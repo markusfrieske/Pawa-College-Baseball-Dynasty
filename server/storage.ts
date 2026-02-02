@@ -37,6 +37,7 @@ export interface IStorage {
 
   getCoach(id: string): Promise<Coach | undefined>;
   getCoachByTeam(teamId: string): Promise<Coach | undefined>;
+  getCoachesByLeague(leagueId: string): Promise<Coach[]>;
   createCoach(coach: InsertCoach): Promise<Coach>;
 
   getScoutsByLeague(leagueId: string): Promise<Scout[]>;
@@ -137,6 +138,10 @@ export class DatabaseStorage implements IStorage {
   async getCoachByTeam(teamId: string): Promise<Coach | undefined> {
     const [coach] = await db.select().from(coaches).where(eq(coaches.teamId, teamId));
     return coach || undefined;
+  }
+
+  async getCoachesByLeague(leagueId: string): Promise<Coach[]> {
+    return await db.select().from(coaches).where(eq(coaches.leagueId, leagueId));
   }
 
   async createCoach(insertCoach: InsertCoach): Promise<Coach> {

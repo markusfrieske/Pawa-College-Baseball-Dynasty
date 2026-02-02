@@ -11,14 +11,45 @@ import { AttributeSlider } from "@/components/ui/attribute-slider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Star, ArrowRight, ArrowLeft } from "lucide-react";
-import type { Team, Coach } from "@shared/schema";
+import { Star, ArrowRight, ArrowLeft, Search, Target, GraduationCap, Building2, User, Cpu } from "lucide-react";
+import type { Team, Coach, Conference, League } from "@shared/schema";
+
+interface TeamCoachInfo {
+  id: string;
+  firstName: string;
+  lastName: string;
+  userId: string | null;
+}
+
+interface TeamWithCoach extends Team {
+  coach: TeamCoachInfo | null;
+}
 
 interface SetupData {
-  teams: Team[];
+  teams: TeamWithCoach[];
+  conferences: Conference[];
+  league: League;
   selectedTeam?: Team;
   coach?: Coach;
 }
+
+interface ArchetypeSkills {
+  scouting: number;
+  recruiting: number;
+  academic: number;
+  facilities: number;
+}
+
+const archetypeSkillTrees: Record<string, ArchetypeSkills> = {
+  "Balanced": { scouting: 5, recruiting: 5, academic: 5, facilities: 5 },
+  "Pure CEO": { scouting: 3, recruiting: 8, academic: 4, facilities: 5 },
+  "Player's Coach": { scouting: 4, recruiting: 4, academic: 7, facilities: 5 },
+  "Tactician": { scouting: 8, recruiting: 4, academic: 4, facilities: 4 },
+  "Old School": { scouting: 5, recruiting: 4, academic: 4, facilities: 7 },
+  "Scout Master": { scouting: 9, recruiting: 3, academic: 4, facilities: 4 },
+  "Academic Dean": { scouting: 4, recruiting: 4, academic: 9, facilities: 3 },
+  "Dealmaker": { scouting: 3, recruiting: 7, academic: 3, facilities: 7 },
+};
 
 const archetypeOptions = [
   { value: "Balanced", label: "Balanced - Well-rounded approach" },
@@ -26,6 +57,9 @@ const archetypeOptions = [
   { value: "Player's Coach", label: "Player's Coach - Development focused" },
   { value: "Tactician", label: "Tactician - In-game strategy" },
   { value: "Old School", label: "Old School - Fundamentals first" },
+  { value: "Scout Master", label: "Scout Master - Elite talent evaluation" },
+  { value: "Academic Dean", label: "Academic Dean - Scholar-athlete focus" },
+  { value: "Dealmaker", label: "Dealmaker - NIL and facilities expert" },
 ];
 
 const skinToneOptions = [
@@ -131,6 +165,7 @@ export default function LeagueSetupPage() {
         {step === "team" ? (
           <TeamSelectionStep
             teams={data?.teams || []}
+            conferences={data?.conferences || []}
             selectedTeamId={selectedTeamId}
             onSelect={setSelectedTeamId}
             onNext={() => {
@@ -181,63 +216,69 @@ function StepIndicator({
 
 function TeamSelectionStep({
   teams,
+  conferences,
   selectedTeamId,
   onSelect,
   onNext,
 }: {
-  teams: Team[];
+  teams: TeamWithCoach[];
+  conferences: Conference[];
   selectedTeamId: string | null;
   onSelect: (id: string) => void;
   onNext: () => void;
 }) {
-  const availableTeams = teams.filter(t => !t.coachId);
+  // Group teams by conference
+  const teamsByConference = conferences.map(conf => ({
+    conference: conf,
+    teams: teams.filter(t => t.conferenceId === conf.id),
+  }));
+
+  // Teams without a conference (unassigned)
+  const unassignedTeams = teams.filter(t => !t.conferenceId);
 
   return (
-    <div className="space-y-6">
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {availableTeams.map((team) => (
-          <button
-            key={team.id}
-            onClick={() => onSelect(team.id)}
-            className={`text-left p-4 rounded border-2 transition-all ${
-              selectedTeamId === team.id
-                ? "border-gold bg-gold/10"
-                : "border-border hover:border-gold/50"
-            }`}
-            data-testid={`button-team-${team.id}`}
-          >
-            <div className="flex items-center gap-4 mb-3">
-              <TeamBadge
-                abbreviation={team.abbreviation}
-                primaryColor={team.primaryColor}
-                secondaryColor={team.secondaryColor}
+    <div className="space-y-8">
+      {teamsByConference.map(({ conference, teams: confTeams }) => (
+        <div key={conference.id}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-pixel text-sm text-gold">{conference.name}</h3>
+            <span className="text-xs text-muted-foreground">{confTeams.length} teams</span>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {confTeams.map((team) => (
+              <TeamCard
+                key={team.id}
+                team={team}
+                isSelected={selectedTeamId === team.id}
+                onSelect={onSelect}
               />
-              <div>
-                <p className="font-medium">{team.name}</p>
-                <p className="text-sm text-muted-foreground">{team.mascot}</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-2 text-center text-xs">
-              <div>
-                <p className="text-gold font-bold">{team.prestige}</p>
-                <p className="text-muted-foreground">Prestige</p>
-              </div>
-              <div>
-                <p className="font-bold">{team.facilities}</p>
-                <p className="text-muted-foreground">Facilities</p>
-              </div>
-              <div>
-                <p className="font-bold">{team.academics}</p>
-                <p className="text-muted-foreground">Academics</p>
-              </div>
-            </div>
-          </button>
-        ))}
-      </div>
+            ))}
+          </div>
+        </div>
+      ))}
 
-      {availableTeams.length === 0 && (
+      {unassignedTeams.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-pixel text-sm text-muted-foreground">Unassigned</h3>
+            <span className="text-xs text-muted-foreground">{unassignedTeams.length} teams</span>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {unassignedTeams.map((team) => (
+              <TeamCard
+                key={team.id}
+                team={team}
+                isSelected={selectedTeamId === team.id}
+                onSelect={onSelect}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {teams.length === 0 && (
         <RetroCard variant="bordered" className="text-center py-12">
-          <p className="text-muted-foreground">No available teams</p>
+          <p className="text-muted-foreground">No teams in this league</p>
         </RetroCard>
       )}
 
@@ -248,6 +289,80 @@ function TeamSelectionStep({
         </RetroButton>
       </div>
     </div>
+  );
+}
+
+function TeamCard({
+  team,
+  isSelected,
+  onSelect,
+}: {
+  team: TeamWithCoach;
+  isSelected: boolean;
+  onSelect: (id: string) => void;
+}) {
+  const hasCoach = !!team.coach;
+  const isHuman = hasCoach && !!team.coach?.userId;
+  const isCpu = hasCoach && !team.coach?.userId;
+  const isAvailable = !hasCoach;
+
+  return (
+    <button
+      onClick={() => isAvailable && onSelect(team.id)}
+      disabled={!isAvailable}
+      className={`text-left p-4 rounded border-2 transition-all ${
+        isSelected
+          ? "border-gold bg-gold/10"
+          : isAvailable
+          ? "border-border hover:border-gold/50"
+          : "border-border/50 opacity-60 cursor-not-allowed"
+      }`}
+      data-testid={`button-team-${team.id}`}
+    >
+      <div className="flex items-center gap-3 mb-3">
+        <TeamBadge
+          abbreviation={team.abbreviation}
+          primaryColor={team.primaryColor}
+          secondaryColor={team.secondaryColor}
+        />
+        <div className="flex-1 min-w-0">
+          <p className="font-medium truncate">{team.name}</p>
+          <p className="text-sm text-muted-foreground truncate">{team.mascot}</p>
+        </div>
+        {hasCoach && (
+          <div
+            className={`px-2 py-1 rounded text-[8px] font-pixel flex items-center gap-1 ${
+              isHuman ? "bg-blue-500/20 text-blue-400" : "bg-orange-500/20 text-orange-400"
+            }`}
+            data-testid={`badge-${isHuman ? "human" : "cpu"}-${team.id}`}
+          >
+            {isHuman ? <User className="w-3 h-3" /> : <Cpu className="w-3 h-3" />}
+            {isHuman ? "Human" : "CPU"}
+          </div>
+        )}
+      </div>
+      
+      {hasCoach && team.coach && (
+        <p className="text-xs text-muted-foreground mb-2 truncate">
+          HC {team.coach.firstName} {team.coach.lastName}
+        </p>
+      )}
+      
+      <div className="grid grid-cols-3 gap-2 text-center text-xs">
+        <div>
+          <p className="text-gold font-bold">{team.prestige}</p>
+          <p className="text-muted-foreground">Prestige</p>
+        </div>
+        <div>
+          <p className="font-bold">{team.facilities}</p>
+          <p className="text-muted-foreground">Facilities</p>
+        </div>
+        <div>
+          <p className="font-bold">{team.academics}</p>
+          <p className="text-muted-foreground">Academics</p>
+        </div>
+      </div>
+    </button>
   );
 }
 
@@ -303,6 +418,8 @@ function CoachCreationStep({
               onChange={(e) => setCoachData(prev => ({ ...prev, archetype: e.target.value }))}
               data-testid="select-archetype"
             />
+
+            <SkillTreeDisplay archetype={coachData.archetype} />
           </RetroCardContent>
         </RetroCard>
 
@@ -385,6 +502,44 @@ function SetupSkeleton() {
             <Skeleton key={i} className="h-40" />
           ))}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function SkillTreeDisplay({ archetype }: { archetype: string }) {
+  const skills = archetypeSkillTrees[archetype] || archetypeSkillTrees["Balanced"];
+  
+  const skillItems = [
+    { key: "scouting", label: "Scouting", icon: Search, color: "text-blue-400", value: skills.scouting },
+    { key: "recruiting", label: "Recruiting", icon: Target, color: "text-green-400", value: skills.recruiting },
+    { key: "academic", label: "Academic", icon: GraduationCap, color: "text-purple-400", value: skills.academic },
+    { key: "facilities", label: "Facilities", icon: Building2, color: "text-orange-400", value: skills.facilities },
+  ];
+
+  return (
+    <div className="mt-6 p-4 bg-background/50 border border-border rounded">
+      <h4 className="font-pixel text-[10px] text-muted-foreground uppercase mb-4">Starting Skill Grades</h4>
+      <div className="grid grid-cols-4 gap-3">
+        {skillItems.map((skill) => (
+          <div key={skill.key} className="flex flex-col items-center gap-2" data-testid={`skill-${skill.key}`}>
+            <div className={`p-2 bg-card border border-border rounded ${skill.color}`}>
+              <skill.icon className="w-4 h-4" />
+            </div>
+            <span className="text-[8px] text-muted-foreground font-pixel">{skill.label}</span>
+            <div className="flex items-center gap-1">
+              <div className="w-12 h-2 bg-border rounded overflow-hidden">
+                <div
+                  className={`h-full transition-all ${
+                    skill.value >= 7 ? "bg-green-500" : skill.value >= 5 ? "bg-gold" : "bg-orange-500"
+                  }`}
+                  style={{ width: `${(skill.value / 10) * 100}%` }}
+                />
+              </div>
+              <span className="font-pixel text-[10px] text-gold w-4">{skill.value}</span>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

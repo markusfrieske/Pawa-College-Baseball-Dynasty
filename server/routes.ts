@@ -35,7 +35,7 @@ const setupSchema = z.object({
   coach: z.object({
     firstName: z.string().min(1).max(50),
     lastName: z.string().min(1).max(50),
-    archetype: z.enum(["Balanced", "Pure CEO", "Player's Coach", "Tactician", "Old School"]).optional(),
+    archetype: z.enum(["Balanced", "Pure CEO", "Player's Coach", "Tactician", "Old School", "Scout Master", "Academic Dean", "Dealmaker"]).optional(),
     skinTone: z.string().optional(),
     hairColor: z.string().optional(),
     hairStyle: z.string().optional(),
@@ -308,7 +308,28 @@ export async function registerRoutes(
       }
 
       const leagueTeams = await storage.getTeamsByLeague(league.id);
-      res.json({ teams: leagueTeams });
+      const conferences = await storage.getConferencesByLeague(league.id);
+      const coaches = await storage.getCoachesByLeague(league.id);
+      
+      // Add coach info to teams for Human/CPU display
+      const teamsWithCoachInfo = leagueTeams.map(team => {
+        const coach = coaches.find(c => c.teamId === team.id);
+        return {
+          ...team,
+          coach: coach ? {
+            id: coach.id,
+            firstName: coach.firstName,
+            lastName: coach.lastName,
+            userId: coach.userId,
+          } : null,
+        };
+      });
+      
+      res.json({ 
+        teams: teamsWithCoachInfo,
+        conferences,
+        league,
+      });
     } catch (error) {
       console.error("Failed to fetch setup data:", error);
       res.status(500).json({ message: "Failed to fetch setup data" });
