@@ -26,8 +26,8 @@ const teamCountOptions = [
 
 const conferenceOptions = [
   { value: "2", label: "2 Conferences" },
-  { value: "4", label: "4 Conferences" },
-  { value: "5", label: "5 Conferences (Full)" },
+  { value: "3", label: "3 Conferences" },
+  { value: "4", label: "4 Conferences (Full)" },
 ];
 
 const seasonLengthOptions = [

@@ -97,7 +97,7 @@ export default {
       },
       fontFamily: {
         sans: ["Inter", "sans-serif"],
-        pixel: ["'Press Start 2P'", "cursive"],
+        pixel: ["'Press Start 2P'", "'DotGothic16'", "cursive"],
         serif: ["var(--font-serif)"],
         mono: ["var(--font-mono)"],
       },

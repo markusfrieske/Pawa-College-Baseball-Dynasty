@@ -48,10 +48,15 @@ A league-first, story-driven college baseball dynasty simulator where human coac
 - Commissioner absolute authority with full audit logging
 
 ### Team Management
-- Select from 16 real college baseball programs
+- Select from 64 real college baseball programs across 4 conferences:
+  * SEC (16 teams): Alabama, Arkansas, Auburn, Florida, Georgia, Kentucky, LSU, Mississippi State, Missouri, Oklahoma, Ole Miss, South Carolina, Tennessee, Texas, Texas A&M, Vanderbilt
+  * ACC (16 teams): Boston College, California, Clemson, Duke, Florida State, Georgia Tech, Louisville, Miami, NC State, North Carolina, Notre Dame, Pittsburgh, Stanford, Virginia, Virginia Tech, Wake Forest
+  * Big 12 (14 teams): Arizona, Arizona State, Baylor, BYU, Cincinnati, Houston, Kansas, Kansas State, Oklahoma State, TCU, Texas Tech, UCF, Utah, West Virginia
+  * Big Ten (18 teams): Illinois, Indiana, Iowa, Maryland, Michigan, Michigan State, Minnesota, Nebraska, Northwestern, Ohio State, Oregon, Penn State, Purdue, Rutgers, USC, UCLA, Washington, Wisconsin
 - School attributes: Stadium, Facilities, College Life, Marketing, Academics
-- NIL budget management
-- Prestige and fanbase tracking
+- NIL budget management (ranges from $1.5M to $6M based on program)
+- Prestige ratings (5-9 based on baseball success)
+- Fanbase passion (A+ to C) and type (Blue Blood, Academic Elite, Southern, Cult Following, etc.)
 
 ### Coach System
 - Create custom coach with appearance options
