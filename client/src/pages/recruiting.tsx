@@ -27,6 +27,7 @@ import {
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Recruit, RecruitingInterest, Team } from "@shared/schema";
+import { getAbilityByName } from "@shared/abilities";
 
 interface RecruitWithInterest extends Recruit {
   interest?: RecruitingInterest;
@@ -226,7 +227,32 @@ function RecruitRow({
   const stage = stageBadges[recruit.stage] || stageBadges.open;
   const scoutPct = recruit.interest?.scoutPercentage || 0;
   // Blue chips always have ratings revealed
-  const isRevealed = recruit.isBlueChip || scoutPct >= 100;
+  const isFullyRevealed = recruit.isBlueChip || scoutPct >= 100;
+
+  // Get display strings for overall and star rating based on scouting progress
+  const getOverallDisplay = (): string => {
+    if (isFullyRevealed) return recruit.overall.toString();
+    if (scoutPct === 0) return "???";
+    // Show range based on minOverall/maxOverall from interest
+    const minOvr = recruit.interest?.minOverall || 1;
+    const maxOvr = recruit.interest?.maxOverall || 999;
+    if (maxOvr - minOvr <= 50) return `${minOvr}-${maxOvr}`;
+    if (maxOvr - minOvr <= 150) return `${minOvr}-${maxOvr}`;
+    return `${minOvr}-${maxOvr}`;
+  };
+
+  const getStarDisplay = (): string => {
+    if (isFullyRevealed) return `${recruit.starRating}`;
+    if (scoutPct === 0) return "?";
+    const minStar = recruit.interest?.minStar || 1;
+    const maxStar = recruit.interest?.maxStar || 5;
+    if (minStar === maxStar) return `${minStar}`;
+    return `${minStar}-${maxStar}`;
+  };
+
+  // Get number of revealed abilities
+  const revealedAbilitiesCount = recruit.interest?.revealedAbilitiesCount || 0;
+  const totalAbilities = recruit.abilities?.length || 0;
 
   return (
     <RetroCard className="hover:border-gold/30 transition-colors" data-testid={`card-recruit-${recruit.id}`}>
@@ -241,13 +267,18 @@ function RecruitRow({
             )}
           </div>
           <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
+            <div className="flex items-center gap-2 mb-1 flex-wrap">
               <span className="font-medium">{recruit.firstName} {recruit.lastName}</span>
               {recruit.isBlueChip && (
                 <Badge className="bg-blue-500 text-white text-[8px]">Blue Chip</Badge>
               )}
               <Badge className={`${stage.color} text-white text-[8px]`}>{stage.label}</Badge>
               <Badge variant="outline" className="text-[8px]">{recruit.recruitType}</Badge>
+              {totalAbilities > 0 && (
+                <Badge variant="outline" className="text-[8px] border-gold/50 text-gold">
+                  {isFullyRevealed ? `${totalAbilities} Abilities` : `${revealedAbilitiesCount}/${totalAbilities > revealedAbilitiesCount ? "?" : totalAbilities}`}
+                </Badge>
+              )}
             </div>
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <span className="flex items-center gap-1">
@@ -260,17 +291,17 @@ function RecruitRow({
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="text-center min-w-[60px]">
-            <p className="font-bold text-lg text-gold">
-              {isRevealed ? recruit.overall : "??"}
+          <div className="text-center min-w-[70px]">
+            <p className={`font-bold ${isFullyRevealed ? "text-lg" : "text-sm"} text-gold`}>
+              {getOverallDisplay()}
             </p>
             <p className="text-[10px] text-muted-foreground">OVR</p>
           </div>
-          <div className="text-center min-w-[60px]">
-            <p className="font-bold text-lg">
-              {isRevealed ? recruit.potential : "??"}
+          <div className="text-center min-w-[40px]">
+            <p className={`font-bold ${isFullyRevealed ? "text-lg" : "text-sm"}`}>
+              {getStarDisplay()}
             </p>
-            <p className="text-[10px] text-muted-foreground">POT</p>
+            <p className="text-[10px] text-muted-foreground">STAR</p>
           </div>
         </div>
 
@@ -345,10 +376,30 @@ function RecruitDetailModal({
 
   const scoutPct = recruit.interest?.scoutPercentage || 0;
   // Blue chips have all ratings revealed automatically
-  const isRevealed = recruit.isBlueChip || scoutPct >= 100;
+  const isFullyRevealed = recruit.isBlueChip || scoutPct >= 100;
   const revealedAttrs = recruit.isBlueChip 
     ? ["hitForAvg", "power", "speed", "arm", "fielding", "errorResistance", "velocity", "control", "stamina", "stuff"]
     : (recruit.interest?.revealedAttributes || []);
+
+  // Progressive reveal display functions for modal
+  const getOverallDisplay = (): string => {
+    if (isFullyRevealed) return recruit.overall.toString();
+    if (scoutPct === 0) return "???";
+    const minOvr = recruit.interest?.minOverall || 1;
+    const maxOvr = recruit.interest?.maxOverall || 999;
+    return `${minOvr}-${maxOvr}`;
+  };
+
+  const getStarDisplay = (): string => {
+    if (isFullyRevealed) return `${recruit.starRating}`;
+    if (scoutPct === 0) return "?";
+    const minStar = recruit.interest?.minStar || 1;
+    const maxStar = recruit.interest?.maxStar || 5;
+    if (minStar === maxStar) return `${minStar}`;
+    return `${minStar}-${maxStar}`;
+  };
+
+  const revealedAbilitiesCount = recruit.interest?.revealedAbilitiesCount || 0;
 
   const fielderAttrs = [
     { key: "hitForAvg", label: "Hit for Avg", value: recruit.hitForAvg },
@@ -394,16 +445,16 @@ function RecruitDetailModal({
         <div className="space-y-6">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="text-center p-3 bg-muted rounded">
-              <p className="text-2xl font-bold text-gold">
-                {isRevealed ? recruit.overall : "??"}
+              <p className={`font-bold text-gold ${isFullyRevealed ? "text-2xl" : "text-lg"}`}>
+                {getOverallDisplay()}
               </p>
-              <p className="text-xs text-muted-foreground">Overall</p>
+              <p className="text-xs text-muted-foreground">Overall (1-999)</p>
             </div>
             <div className="text-center p-3 bg-muted rounded">
-              <p className="text-2xl font-bold">
-                {isRevealed ? recruit.potential : "??"}
+              <p className={`font-bold ${isFullyRevealed ? "text-2xl" : "text-lg"}`}>
+                {getStarDisplay()}
               </p>
-              <p className="text-xs text-muted-foreground">Potential</p>
+              <p className="text-xs text-muted-foreground">Star Rating</p>
             </div>
             <div className="text-center p-3 bg-muted rounded">
               <p className="text-lg font-bold">{recruit.classRank}</p>
@@ -430,7 +481,7 @@ function RecruitDetailModal({
             <h4 className="font-pixel text-[10px] text-gold mb-3">Attributes</h4>
             <div className="grid grid-cols-2 gap-3">
               {attrs.map((attr) => {
-                const revealed = isRevealed || revealedAttrs.includes(attr.key);
+                const revealed = isFullyRevealed || revealedAttrs.includes(attr.key);
                 return (
                   <div key={attr.key} className="flex items-center justify-between p-2 bg-muted/50 rounded">
                     <span className="text-sm text-muted-foreground">{attr.label}</span>
@@ -456,6 +507,46 @@ function RecruitDetailModal({
               ))}
             </div>
           </div>
+
+          {/* Abilities Section */}
+          {(recruit.abilities as string[] || []).length > 0 && (
+            <div>
+              <h4 className="font-pixel text-[10px] text-gold mb-3">
+                Special Abilities ({isFullyRevealed ? (recruit.abilities as string[]).length : `${revealedAbilitiesCount}/?`})
+              </h4>
+              <div className="flex flex-wrap gap-2">
+                {(recruit.abilities as string[] || []).map((abilityName, idx) => {
+                  const ability = getAbilityByName(abilityName);
+                  const isAbilityRevealed = isFullyRevealed || revealedAbilitiesCount > idx;
+                  
+                  if (!isAbilityRevealed) {
+                    return (
+                      <Badge key={idx} variant="outline" className="text-xs border-muted-foreground/50 text-muted-foreground">
+                        ???
+                      </Badge>
+                    );
+                  }
+                  
+                  const tierColors = {
+                    gold: "bg-yellow-600/20 border-yellow-500 text-yellow-400",
+                    blue: "bg-blue-600/20 border-blue-500 text-blue-400",
+                    red: "bg-red-600/20 border-red-500 text-red-400",
+                  };
+                  
+                  return (
+                    <Badge 
+                      key={idx}
+                      variant="outline"
+                      className={`text-xs ${ability ? tierColors[ability.tier] : ""}`}
+                      title={ability?.description}
+                    >
+                      {abilityName}
+                    </Badge>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {recruit.dealbreaker && (
             <div className="p-3 bg-red-500/10 border border-red-500/30 rounded">

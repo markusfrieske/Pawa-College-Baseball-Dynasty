@@ -35,7 +35,8 @@ A league-first, story-driven college baseball dynasty simulator where human coac
 │   ├── routes.ts             # API endpoints
 │   └── index.ts              # Server entry point
 └── shared/
-    └── schema.ts             # Drizzle schema + Zod types
+    ├── schema.ts             # Drizzle schema + Zod types
+    └── abilities.ts          # 100+ special abilities (pitcher/fielder/catcher, gold/blue/red tiers)
 ```
 
 ## Key Features
@@ -57,11 +58,25 @@ A league-first, story-driven college baseball dynasty simulator where human coac
 - Coach archetypes: Balanced, Pure CEO, Player's Coach, Tactician, Old School
 - Skill progression: Offense, Defense, Training, Recruiting
 
+### Rating System (Updated)
+- **Overall Rating**: 1-999 scale (replacing old 1-99 scale)
+- **Star Rating**: 1-5 stars based on overall (5-star: 800+, 4-star: 600+, 3-star: 400+, 2-star: 200+, 1-star: below 200)
+- **Special Abilities**: Players/recruits can have 0-3 special abilities
+  - Gold tier: Elite positive abilities (e.g., "Explosive Fastball", "Monster Stuff")
+  - Blue tier: Good positive abilities (e.g., "Heavy Ball", "Quick Hands")
+  - Red tier: Negative abilities (e.g., "Choker", "Wild Pitches")
+- **Abilities Assignment**: Higher-star players more likely to have multiple abilities, preferring gold tier
+
 ### Recruiting (Fog of War)
 - 40-50 recruits per class with 1-5 star ratings
 - **Star Distribution**: 5% 5-star, 10% 4-star, 40% 3-star, 30% 2-star, 15% 1-star
-- **Blue Chip System**: Top 1-3 recruits have all ratings automatically revealed
+- **Blue Chip System**: Top 1-3 recruits have all ratings AND abilities automatically revealed
 - **Gem/Bust Mechanic**: 8% gems (ranked lower than ability), 8% busts (ranked higher)
+- **Progressive Reveal**: Scouting narrows rating ranges (??? → 400-800 → 550-700 → exact)
+  - Unscouted: Overall shows "???", star rating shows "?"
+  - Partially scouted: Shows ranges (e.g., "600-750", "3-4 stars")
+  - Fully scouted (100%): Shows exact values
+- **Abilities Reveal**: Abilities are progressively revealed as scouting percentage increases
 - Hidden attributes revealed through scouting (0% → 15% → 100%)
 - 6 priority categories: Proximity, Reputation, Playing Time, Academics, Prestige, Facilities
 - Recruiting stages: Open → Top 8 → Top 5 → Top 3 → Verbal → Signed

@@ -47,6 +47,7 @@ export interface IStorage {
   createPlayer(player: InsertPlayer): Promise<Player>;
 
   getRecruitsByLeague(leagueId: string): Promise<Recruit[]>;
+  getRecruit(id: string): Promise<Recruit | undefined>;
   createRecruit(recruit: InsertRecruit): Promise<Recruit>;
   updateRecruit(id: string, data: Partial<Recruit>): Promise<Recruit | undefined>;
   deleteRecruitsByLeague(leagueId: string): Promise<void>;
@@ -170,6 +171,11 @@ export class DatabaseStorage implements IStorage {
 
   async getRecruitsByLeague(leagueId: string): Promise<Recruit[]> {
     return await db.select().from(recruits).where(eq(recruits.leagueId, leagueId));
+  }
+
+  async getRecruit(id: string): Promise<Recruit | undefined> {
+    const [recruit] = await db.select().from(recruits).where(eq(recruits.id, id));
+    return recruit || undefined;
   }
 
   async createRecruit(insertRecruit: InsertRecruit): Promise<Recruit> {

@@ -2,7 +2,9 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { RetroButton } from "@/components/ui/retro-button";
 import { AttributeSlider } from "@/components/ui/attribute-slider";
+import { Badge } from "@/components/ui/badge";
 import { X, MapPin, ChevronRight } from "lucide-react";
+import { getAbilityByName } from "@shared/abilities";
 
 interface PlayerStats {
   gamesPlayed?: number;
@@ -28,7 +30,8 @@ interface Player {
   hometown: string;
   homeState: string;
   overall: number;
-  potential: string;
+  starRating: number;
+  potential?: string;
   hitForAvg: number;
   power: number;
   speed: number;
@@ -41,6 +44,7 @@ interface Player {
   stuff: number;
   bats?: string;
   throws?: string;
+  abilities?: string[];
   careerStats?: PlayerStats[];
 }
 
@@ -117,11 +121,11 @@ export function PlayerProfileCard({ player, open, onClose }: PlayerProfileCardPr
         <div className="grid grid-cols-3 gap-2 p-4 border-b border-border">
           <div className="bg-background/50 rounded p-3 text-center">
             <p className="font-pixel text-gold text-lg" data-testid="text-overall">{player.overall}</p>
-            <p className="text-xs text-muted-foreground">Overall</p>
+            <p className="text-xs text-muted-foreground">Overall (1-999)</p>
           </div>
           <div className="bg-background/50 rounded p-3 text-center">
-            <p className="font-pixel text-lg" data-testid="text-potential">{player.potential}</p>
-            <p className="text-xs text-muted-foreground">Potential</p>
+            <p className="font-pixel text-lg" data-testid="text-star-rating">{player.starRating}</p>
+            <p className="text-xs text-muted-foreground">Star Rating</p>
           </div>
           <div className="bg-background/50 rounded p-3 text-center">
             <p className="font-pixel text-lg" data-testid="text-eligibility">
@@ -190,6 +194,33 @@ export function PlayerProfileCard({ player, open, onClose }: PlayerProfileCardPr
                   <AttributeRow label="Fielding" value={player.fielding} />
                   <AttributeRow label="Error Resist" value={player.errorResistance} />
                 </>
+              )}
+
+              {player.abilities && player.abilities.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-border">
+                  <h3 className="font-pixel text-gold text-xs mb-3">Special Abilities</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {player.abilities.map((abilityName, idx) => {
+                      const ability = getAbilityByName(abilityName);
+                      const tierColors = {
+                        gold: "bg-yellow-600/20 border-yellow-500 text-yellow-400",
+                        blue: "bg-blue-600/20 border-blue-500 text-blue-400",
+                        red: "bg-red-600/20 border-red-500 text-red-400",
+                      };
+                      
+                      return (
+                        <Badge 
+                          key={idx}
+                          variant="outline"
+                          className={`text-xs ${ability ? tierColors[ability.tier] : ""}`}
+                          title={ability?.description}
+                        >
+                          {abilityName}
+                        </Badge>
+                      );
+                    })}
+                  </div>
+                </div>
               )}
             </div>
           ) : (

@@ -5,6 +5,7 @@ import session from "express-session";
 import bcrypt from "bcrypt";
 import { z } from "zod";
 import { randomUUID } from "crypto";
+import { getRandomAbilities } from "@shared/abilities";
 
 declare module "express-session" {
   interface SessionData {
@@ -426,32 +427,110 @@ export async function registerRoutes(
         return res.status(400).json({ message: "No team assigned" });
       }
 
+      // Get the recruit to know actual values for progressive reveal
+      const recruit = await storage.getRecruit(req.params.recruitId as string);
+      if (!recruit) {
+        return res.status(404).json({ message: "Recruit not found" });
+      }
+
       let interest = await storage.getRecruitingInterest(req.params.recruitId, userTeam.id);
       
       // Scout reveals 15-25% each time
       const revealAmount = 15 + Math.floor(Math.random() * 11);
+
+      // Helper function to narrow down a range
+      const narrowRange = (min: number, max: number, actual: number, pct: number): { newMin: number; newMax: number } => {
+        const range = max - min;
+        // As scouting progresses, narrow the range around the actual value
+        const narrowFactor = pct / 100;
+        const newRange = Math.max(0, range * (1 - narrowFactor * 0.8));
+        const halfRange = Math.floor(newRange / 2);
+        let newMin = Math.max(min, actual - halfRange);
+        let newMax = Math.min(max, actual + halfRange);
+        // Ensure range is at least 1 apart unless at 100%
+        if (pct >= 100) {
+          return { newMin: actual, newMax: actual };
+        }
+        return { newMin, newMax };
+      };
+
+      // Helper function to narrow star range
+      const narrowStarRange = (min: number, max: number, actual: number, pct: number): { newMin: number; newMax: number } => {
+        if (pct >= 100) return { newMin: actual, newMax: actual };
+        if (pct >= 75) {
+          // At 75%+, exact star
+          return { newMin: actual, newMax: actual };
+        }
+        if (pct >= 50) {
+          // At 50%+, narrow to within 1 star
+          return { 
+            newMin: Math.max(1, actual - 1), 
+            newMax: Math.min(5, actual + 1) 
+          };
+        }
+        if (pct >= 25) {
+          // At 25%+, narrow to within 2 stars of actual
+          return { 
+            newMin: Math.max(1, actual - 2), 
+            newMax: Math.min(5, actual + 2) 
+          };
+        }
+        return { newMin: 1, newMax: 5 };
+      };
       
       if (!interest) {
         // Determine which attributes to reveal
         const revealedAttrs = getAttributesToReveal(revealAmount);
+        
+        // Calculate initial ranges based on reveal amount
+        const ovrRange = narrowRange(1, 999, recruit.overall, revealAmount);
+        const starRange = narrowStarRange(1, 5, recruit.starRating, revealAmount);
+        
+        // Reveal abilities based on percentage
+        const totalAbilities = (recruit.abilities as string[] || []).length;
+        const revealedAbilitiesCount = Math.min(totalAbilities, Math.floor(totalAbilities * (revealAmount / 100)));
+        
         interest = await storage.createRecruitingInterest({
-          recruitId: req.params.recruitId,
+          recruitId: req.params.recruitId as string,
           teamId: userTeam.id,
           scoutPercentage: revealAmount,
           revealedAttributes: revealedAttrs,
+          minOverall: ovrRange.newMin,
+          maxOverall: ovrRange.newMax,
+          minStar: starRange.newMin,
+          maxStar: starRange.newMax,
+          revealedAbilitiesCount,
         });
       } else {
         const currentPct = interest.scoutPercentage || 0;
         const newPct = Math.min(100, currentPct + revealAmount);
         
         // Add more revealed attributes based on new percentage
-        const currentAttrs = interest.revealedAttributes || [];
+        const currentAttrs = (interest.revealedAttributes as string[]) || [];
         const additionalAttrs = getAttributesToReveal(newPct - currentPct, currentAttrs);
         const allAttrs = [...currentAttrs, ...additionalAttrs];
+        
+        // Narrow down the rating ranges
+        const currentMinOvr = interest.minOverall || 1;
+        const currentMaxOvr = interest.maxOverall || 999;
+        const currentMinStar = interest.minStar || 1;
+        const currentMaxStar = interest.maxStar || 5;
+        
+        const ovrRange = narrowRange(currentMinOvr, currentMaxOvr, recruit.overall, newPct);
+        const starRange = narrowStarRange(currentMinStar, currentMaxStar, recruit.starRating, newPct);
+        
+        // Reveal more abilities
+        const totalAbilities = (recruit.abilities as string[] || []).length;
+        const revealedAbilitiesCount = Math.min(totalAbilities, Math.floor(totalAbilities * (newPct / 100)));
         
         interest = await storage.updateRecruitingInterest(interest.id, {
           scoutPercentage: newPct,
           revealedAttributes: allAttrs,
+          minOverall: ovrRange.newMin,
+          maxOverall: ovrRange.newMax,
+          minStar: starRange.newMin,
+          maxStar: starRange.newMax,
+          revealedAbilitiesCount,
         });
       }
 
@@ -839,24 +918,44 @@ async function generateRecruits(leagueId: string, count: number) {
     return { rankMod: 0, isGem: false, isBust: false };
   };
 
+  // Generate overall rating 1-999 based on star rank
+  const getOverallByStarRank = (starRank: number): number => {
+    // 5-star: 800-999, 4-star: 650-849, 3-star: 450-699, 2-star: 250-499, 1-star: 1-299
+    switch (starRank) {
+      case 5: return 800 + Math.floor(Math.random() * 200);  // 800-999
+      case 4: return 650 + Math.floor(Math.random() * 200);  // 650-849
+      case 3: return 450 + Math.floor(Math.random() * 250);  // 450-699
+      case 2: return 250 + Math.floor(Math.random() * 250);  // 250-499
+      default: return 100 + Math.floor(Math.random() * 200); // 100-299
+    }
+  };
+
+  // Get number of abilities based on star rating
+  const getAbilityCount = (starRank: number): number => {
+    switch (starRank) {
+      case 5: return 2 + Math.floor(Math.random() * 2); // 2-3 abilities
+      case 4: return 1 + Math.floor(Math.random() * 2); // 1-2 abilities
+      case 3: return Math.floor(Math.random() * 2);     // 0-1 abilities
+      default: return Math.random() < 0.3 ? 1 : 0;       // 30% chance of 1 ability
+    }
+  };
+
   for (let i = 0; i < count; i++) {
     const position = positions[Math.floor(Math.random() * positions.length)];
-    const { rankMod, isGem, isBust } = getGemBustModifier();
-    
-    // Calculate true overall first, then adjust rank based on gem/bust
-    const baseOverall = 55 + Math.floor(Math.random() * 35); // 55-90 range
-    const displayedRank = Math.max(1, Math.min(count, i + 1 + Math.floor(rankMod)));
+    const { isGem, isBust } = getGemBustModifier();
     const starRank = getStarRank(i, count);
-    
     const stateIdx = Math.floor(Math.random() * states.length);
     const isBlueChip = i < numBlueChips;
 
-    // Overall should correlate with star rank
-    const overall = starRank === 5 ? 80 + Math.floor(Math.random() * 10) :
-                    starRank === 4 ? 72 + Math.floor(Math.random() * 10) :
-                    starRank === 3 ? 62 + Math.floor(Math.random() * 12) :
-                    starRank === 2 ? 52 + Math.floor(Math.random() * 12) :
-                    40 + Math.floor(Math.random() * 14);
+    // Overall rating 1-999 correlates with star rank
+    const overall = getOverallByStarRank(starRank);
+    
+    // Star rating is the actual star value (1-5) - same as starRank for display but stored separately
+    const starRating = starRank;
+    
+    // Generate abilities based on position and star rating
+    const abilityCount = getAbilityCount(starRank);
+    const abilities = getRandomAbilities(position, abilityCount, starRank >= 4);
 
     await storage.createRecruit({
       leagueId,
@@ -870,9 +969,7 @@ async function generateRecruits(leagueId: string, count: number) {
       positionRank: Math.floor(i / positions.length) + 1,
       recruitType: Math.random() < 0.8 ? "HS" : "JUCO",
       overall,
-      potential: starRank >= 4 ? ["A+", "A", "A"][Math.floor(Math.random() * 3)] :
-                 starRank === 3 ? ["A", "B+", "B"][Math.floor(Math.random() * 3)] :
-                 ["B+", "B", "C+", "C"][Math.floor(Math.random() * 4)],
+      starRating,
       hitForAvg: 40 + Math.floor(Math.random() * 40),
       power: 40 + Math.floor(Math.random() * 40),
       speed: 40 + Math.floor(Math.random() * 40),
@@ -883,6 +980,7 @@ async function generateRecruits(leagueId: string, count: number) {
       control: 40 + Math.floor(Math.random() * 40),
       stamina: 40 + Math.floor(Math.random() * 40),
       stuff: 40 + Math.floor(Math.random() * 40),
+      abilities,
       proximityPriority: priorities[Math.floor(Math.random() * priorities.length)],
       reputationPriority: priorities[Math.floor(Math.random() * priorities.length)],
       playingTimePriority: priorities[Math.floor(Math.random() * priorities.length)],
@@ -910,6 +1008,16 @@ async function generatePlayersForTeam(teamId: string) {
     const eligibility = eligibilities[Math.floor(Math.random() * eligibilities.length)];
     const stateIdx = Math.floor(Math.random() * states.length);
 
+    // Generate 1-999 overall rating and 1-5 star rating for players
+    const starRating = Math.floor(Math.random() * 3) + 2; // 2-4 stars for roster players
+    const overall = starRating === 4 ? 650 + Math.floor(Math.random() * 200) :
+                    starRating === 3 ? 450 + Math.floor(Math.random() * 250) :
+                    250 + Math.floor(Math.random() * 250);
+
+    // Generate abilities based on position
+    const abilityCount = Math.random() < 0.4 ? Math.floor(Math.random() * 2) : 0;
+    const abilities = getRandomAbilities(position, abilityCount);
+
     await storage.createPlayer({
       teamId,
       firstName: firstNames[Math.floor(Math.random() * firstNames.length)],
@@ -919,8 +1027,8 @@ async function generatePlayersForTeam(teamId: string) {
       homeState: states[stateIdx],
       hometown: cities[stateIdx],
       jerseyNumber: i + 1,
-      overall: 55 + Math.floor(Math.random() * 35),
-      potential: ["A+", "A", "B+", "B", "C+", "C", "D"][Math.floor(Math.random() * 7)],
+      overall,
+      starRating,
       hitForAvg: 40 + Math.floor(Math.random() * 40),
       power: 40 + Math.floor(Math.random() * 40),
       speed: 40 + Math.floor(Math.random() * 40),
@@ -931,6 +1039,7 @@ async function generatePlayersForTeam(teamId: string) {
       control: 40 + Math.floor(Math.random() * 40),
       stamina: 40 + Math.floor(Math.random() * 40),
       stuff: 40 + Math.floor(Math.random() * 40),
+      abilities,
     });
   }
 }
