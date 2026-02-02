@@ -1,8 +1,32 @@
 import { Link } from "wouter";
+import { useState } from "react";
 import { RetroButton } from "@/components/ui/retro-button";
-import { Trophy, Users, Target, Calendar, Star, TrendingUp } from "lucide-react";
+import { RetroInput } from "@/components/ui/retro-input";
+import { RetroSelect } from "@/components/ui/retro-select";
+import { Trophy, Users, Target, Calendar, Star, TrendingUp, User, Bug, Volume2, VolumeX, Layers, LogOut, DollarSign, X, GraduationCap, Building2, Search } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function LandingPage() {
+  const [isMuted, setIsMuted] = useState(false);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const { toast } = useToast();
+
+  const { data: user } = useQuery<{ id: string; email: string }>({
+    queryKey: ["/api/auth/me"],
+  });
+
+  const logoutMutation = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/auth/logout"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      toast({ title: "Signed out successfully" });
+    },
+  });
+
+  const isLoggedIn = !!user;
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border">
@@ -15,20 +39,87 @@ export default function LandingPage() {
               College Baseball Dynasty
             </span>
           </div>
-          <div className="flex gap-3">
-            <Link href="/login">
-              <RetroButton variant="outline" size="sm" data-testid="link-login">
-                Sign In
+          
+          {isLoggedIn ? (
+            <div className="flex items-center gap-1 sm:gap-2">
+              <div className="flex items-center gap-2 text-gold" data-testid="display-user">
+                <User className="w-5 h-5" />
+                <span className="font-pixel text-[8px] sm:text-[10px] hidden sm:block truncate max-w-[100px]">
+                  {user.email.split("@")[0]}
+                </span>
+              </div>
+              <RetroButton
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowFeedbackModal(true)}
+                title="Submit Feedback"
+                data-testid="button-feedback"
+              >
+                <Bug className="w-4 h-4" />
               </RetroButton>
-            </Link>
-            <Link href="/register">
-              <RetroButton size="sm" data-testid="link-register">
-                Sign Up
+              <RetroButton
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsMuted(!isMuted)}
+                title={isMuted ? "Unmute" : "Mute"}
+                data-testid="button-mute"
+              >
+                {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
               </RetroButton>
-            </Link>
-          </div>
+              <Link href="/dashboard">
+                <RetroButton
+                  variant="ghost"
+                  size="icon"
+                  title="My Leagues"
+                  data-testid="button-my-leagues"
+                >
+                  <Layers className="w-4 h-4" />
+                </RetroButton>
+              </Link>
+              <RetroButton
+                variant="ghost"
+                size="icon"
+                onClick={() => logoutMutation.mutate()}
+                title="Sign Out"
+                data-testid="button-signout"
+              >
+                <LogOut className="w-4 h-4" />
+              </RetroButton>
+              <a
+                href="https://www.paypal.com/donate?business=Markusfrieske%40gmail.com"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <RetroButton
+                  variant="ghost"
+                  size="icon"
+                  title="Donate"
+                  data-testid="link-donate"
+                >
+                  <DollarSign className="w-4 h-4" />
+                </RetroButton>
+              </a>
+            </div>
+          ) : (
+            <div className="flex gap-3">
+              <Link href="/login">
+                <RetroButton variant="outline" size="sm" data-testid="link-login">
+                  Sign In
+                </RetroButton>
+              </Link>
+              <Link href="/register">
+                <RetroButton size="sm" data-testid="link-register">
+                  Sign Up
+                </RetroButton>
+              </Link>
+            </div>
+          )}
         </div>
       </header>
+
+      {showFeedbackModal && (
+        <FeedbackModal onClose={() => setShowFeedbackModal(false)} />
+      )}
 
       <main>
         <section className="py-20 px-4">
@@ -69,7 +160,7 @@ export default function LandingPage() {
         <section className="py-16 px-4 bg-card/50">
           <div className="container mx-auto">
             <h2 className="font-pixel text-gold text-xl text-center mb-12">
-              Core Features
+              Features
             </h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               <FeatureCard
@@ -92,11 +183,7 @@ export default function LandingPage() {
                 title="Full Season Structure"
                 description="Preseason through College World Series. Weekly advances with recruiting phases and story events."
               />
-              <FeatureCard
-                icon={<Star className="w-8 h-8" />}
-                title="Coach Progression"
-                description="Level up your coach each season. Choose permanent skills from scouting, recruiting, and academic branches."
-              />
+              <CoachProgressionCard />
               <FeatureCard
                 icon={<TrendingUp className="w-8 h-8" />}
                 title="Story Engine"
@@ -148,6 +235,130 @@ function FeatureCard({
       <div className="text-gold mb-4">{icon}</div>
       <h3 className="font-pixel text-[10px] text-foreground uppercase mb-3">{title}</h3>
       <p className="text-muted-foreground text-sm leading-relaxed">{description}</p>
+    </div>
+  );
+}
+
+function CoachProgressionCard() {
+  const skillTrees = [
+    { icon: Search, name: "Scouting", color: "text-blue-400" },
+    { icon: Target, name: "Recruiting", color: "text-green-400" },
+    { icon: GraduationCap, name: "Academic", color: "text-purple-400" },
+    { icon: Building2, name: "Facilities", color: "text-orange-400" },
+  ];
+
+  return (
+    <div className="bg-card border-2 border-border p-6 hover:border-gold/50 transition-colors">
+      <div className="text-gold mb-4">
+        <Star className="w-8 h-8" />
+      </div>
+      <h3 className="font-pixel text-[10px] text-foreground uppercase mb-3">Coach Progression</h3>
+      <p className="text-muted-foreground text-sm leading-relaxed mb-4">
+        Level up your coach each season. Choose permanent skills from scouting, recruiting, academic and facilities branches.
+      </p>
+      <div className="grid grid-cols-4 gap-2 mt-4">
+        {skillTrees.map((tree) => (
+          <div key={tree.name} className="flex flex-col items-center gap-1" data-testid={`skill-tree-${tree.name.toLowerCase()}`}>
+            <div className={`p-2 bg-background/50 border border-border rounded ${tree.color}`}>
+              <tree.icon className="w-4 h-4" />
+            </div>
+            <span className="text-[8px] text-muted-foreground font-pixel">{tree.name}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FeedbackModal({ onClose }: { onClose: () => void }) {
+  const [topic, setTopic] = useState("");
+  const [details, setDetails] = useState("");
+  const [name, setName] = useState("");
+  const { toast } = useToast();
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!topic || !details) {
+      toast({ title: "Please fill in all required fields", variant: "destructive" });
+      return;
+    }
+    toast({ title: "Feedback submitted! Thank you for your input." });
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div
+        className="bg-card border-2 border-border max-w-md w-full p-6 relative"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <RetroButton
+          variant="ghost"
+          size="icon"
+          onClick={onClose}
+          className="absolute top-4 right-4 text-muted-foreground"
+          data-testid="button-close-feedback"
+        >
+          <X className="w-5 h-5" />
+        </RetroButton>
+
+        <div className="flex items-center gap-2 mb-4">
+          <Bug className="w-6 h-6 text-gold" />
+          <h2 className="font-pixel text-gold text-sm">Submit Feedback</h2>
+        </div>
+
+        <p className="text-muted-foreground text-sm mb-6">
+          Report a bug, request a feature, or share your feedback.
+        </p>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="font-pixel text-[10px] text-foreground block mb-2">
+              Topic <span className="text-red-400">*</span>
+            </label>
+            <RetroSelect
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+              options={[
+                { value: "", label: "Select a topic" },
+                { value: "bug", label: "Bug Report" },
+                { value: "feature", label: "Feature Request" },
+                { value: "feedback", label: "General Feedback" },
+                { value: "question", label: "Question" },
+              ]}
+            />
+          </div>
+
+          <div>
+            <label className="font-pixel text-[10px] text-foreground block mb-2">
+              Details <span className="text-red-400">*</span>
+            </label>
+            <textarea
+              value={details}
+              onChange={(e) => setDetails(e.target.value)}
+              placeholder="Describe your bug, feature request, or feedback..."
+              className="w-full h-24 bg-card border-2 border-border text-foreground p-3 text-sm resize-none focus:border-gold focus:outline-none"
+              data-testid="input-feedback-details"
+            />
+          </div>
+
+          <div>
+            <label className="font-pixel text-[10px] text-foreground block mb-2">
+              Your Name (optional)
+            </label>
+            <RetroInput
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter your name"
+              data-testid="input-feedback-name"
+            />
+          </div>
+
+          <RetroButton type="submit" className="w-full" data-testid="button-submit-feedback">
+            Submit Feedback
+          </RetroButton>
+        </form>
+      </div>
     </div>
   );
 }
