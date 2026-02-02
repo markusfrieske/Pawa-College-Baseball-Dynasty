@@ -170,33 +170,42 @@ function QuickActionCard({
 }
 
 function StandingsTab({ league }: { league: LeagueDetails }) {
-  const sortedTeams = [...(league.teams || [])].sort((a, b) => {
-    const aWins = a.standings?.wins || 0;
-    const bWins = b.standings?.wins || 0;
-    return bWins - aWins;
-  });
+  // Group teams by conference and sort within each conference
+  const standingsByConference = league.conferences?.map(conf => {
+    const confTeams = (league.teams || [])
+      .filter(t => t.conferenceId === conf.id)
+      .sort((a, b) => {
+        const aWins = a.standings?.wins || 0;
+        const bWins = b.standings?.wins || 0;
+        if (bWins !== aWins) return bWins - aWins;
+        return (a.standings?.losses || 0) - (b.standings?.losses || 0);
+      });
+    return { ...conf, teams: confTeams };
+  }) || [];
 
   return (
-    <RetroCard>
-      <RetroCardHeader>Season {league.currentSeason} Standings</RetroCardHeader>
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border text-muted-foreground">
-              <th className="text-left py-3 px-2">#</th>
-              <th className="text-left py-3 px-2">Team</th>
-              <th className="text-center py-3 px-2">W</th>
-              <th className="text-center py-3 px-2">L</th>
-              <th className="text-center py-3 px-2 hidden sm:table-cell">Conf</th>
-              <th className="text-center py-3 px-2 hidden md:table-cell">RS</th>
-              <th className="text-center py-3 px-2 hidden md:table-cell">RA</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sortedTeams.map((team, index) => (
-              <tr key={team.id} className="border-b border-border/50 hover:bg-card/50">
-                <td className="py-3 px-2 text-muted-foreground">{index + 1}</td>
-                <td className="py-3 px-2">
+    <div className="space-y-6">
+      {standingsByConference.map((conf) => (
+        <RetroCard key={conf.id}>
+          <RetroCardHeader>{conf.name} Standings</RetroCardHeader>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-muted-foreground">
+                  <th className="text-left py-3 px-2">#</th>
+                  <th className="text-left py-3 px-2">Team</th>
+                  <th className="text-center py-3 px-2">W</th>
+                  <th className="text-center py-3 px-2">L</th>
+                  <th className="text-center py-3 px-2 hidden sm:table-cell">Conf</th>
+                  <th className="text-center py-3 px-2 hidden md:table-cell">RS</th>
+                  <th className="text-center py-3 px-2 hidden md:table-cell">RA</th>
+                </tr>
+              </thead>
+              <tbody>
+                {conf.teams.map((team, index) => (
+                  <tr key={team.id} className="border-b border-border/50 hover:bg-card/50">
+                    <td className="py-3 px-2 text-muted-foreground">{index + 1}</td>
+                    <td className="py-3 px-2">
                   <div className="flex items-center gap-3">
                     <TeamBadge
                       abbreviation={team.abbreviation}
@@ -222,12 +231,14 @@ function StandingsTab({ league }: { league: LeagueDetails }) {
                 <td className="text-center py-3 px-2 hidden md:table-cell text-muted-foreground">
                   {team.standings?.runsAllowed || 0}
                 </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </RetroCard>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </RetroCard>
+      ))}
+    </div>
   );
 }
 
@@ -272,31 +283,97 @@ function TeamsTab({ league }: { league: LeagueDetails }) {
 }
 
 function RankingsTab({ league }: { league: LeagueDetails }) {
-  const sortedByPrestige = [...(league.teams || [])].sort((a, b) => b.prestige - a.prestige);
+  // Calculate team ratings based on attributes (F to A+)
+  const getLetterGrade = (value: number): string => {
+    if (value >= 9) return "A+";
+    if (value >= 8) return "A";
+    if (value >= 7) return "B+";
+    if (value >= 6) return "B";
+    if (value >= 5) return "C+";
+    if (value >= 4) return "C";
+    if (value >= 3) return "D+";
+    if (value >= 2) return "D";
+    return "F";
+  };
+
+  const getGradeColor = (grade: string): string => {
+    if (grade.startsWith("A")) return "text-green-400";
+    if (grade.startsWith("B")) return "text-blue-400";
+    if (grade.startsWith("C")) return "text-yellow-400";
+    if (grade.startsWith("D")) return "text-orange-400";
+    return "text-red-400";
+  };
+
+  const teamsWithRatings = [...(league.teams || [])].map(team => {
+    const overall = Math.round((team.prestige + team.facilities + (team.stadium || 5)) / 3);
+    const fielding = Math.round((team.facilities + (team.stadium || 5)) / 2);
+    const pitching = Math.round((team.prestige + team.facilities) / 2);
+    return {
+      ...team,
+      overallGrade: getLetterGrade(overall),
+      fieldingGrade: getLetterGrade(fielding),
+      pitchingGrade: getLetterGrade(pitching),
+      sortValue: overall,
+    };
+  }).sort((a, b) => b.sortValue - a.sortValue);
 
   return (
     <RetroCard>
-      <RetroCardHeader>Team Rankings</RetroCardHeader>
-      <div className="space-y-3">
-        {sortedByPrestige.map((team, index) => (
-          <div key={team.id} className="flex items-center gap-4 p-3 bg-muted/30 rounded">
-            <span className="font-pixel text-gold text-sm w-8">#{index + 1}</span>
-            <TeamBadge
-              abbreviation={team.abbreviation}
-              primaryColor={team.primaryColor}
-              secondaryColor={team.secondaryColor}
-              size="sm"
-            />
-            <div className="flex-1">
-              <p className="font-medium">{team.name} {team.mascot}</p>
-              <p className="text-xs text-muted-foreground">{team.city}, {team.state}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-sm text-gold font-bold">{team.prestige}</p>
-              <p className="text-[10px] text-muted-foreground">Prestige</p>
-            </div>
-          </div>
-        ))}
+      <RetroCardHeader>Team Power Rankings</RetroCardHeader>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border text-muted-foreground">
+              <th className="text-left py-3 px-2">#</th>
+              <th className="text-left py-3 px-2">Team</th>
+              <th className="text-center py-3 px-2">OVR</th>
+              <th className="text-center py-3 px-2">FIELD</th>
+              <th className="text-center py-3 px-2">PITCH</th>
+              <th className="text-center py-3 px-2 hidden sm:table-cell">Prestige</th>
+            </tr>
+          </thead>
+          <tbody>
+            {teamsWithRatings.map((team, index) => (
+              <tr key={team.id} className="border-b border-border/50 hover:bg-card/50">
+                <td className="py-3 px-2">
+                  <span className="font-pixel text-gold text-sm">#{index + 1}</span>
+                </td>
+                <td className="py-3 px-2">
+                  <div className="flex items-center gap-3">
+                    <TeamBadge
+                      abbreviation={team.abbreviation}
+                      primaryColor={team.primaryColor}
+                      secondaryColor={team.secondaryColor}
+                      size="sm"
+                    />
+                    <div>
+                      <p className="font-medium">{team.name}</p>
+                      <p className="text-xs text-muted-foreground hidden sm:block">{team.mascot}</p>
+                    </div>
+                  </div>
+                </td>
+                <td className="py-3 px-2 text-center">
+                  <span className={`font-bold ${getGradeColor(team.overallGrade)}`}>
+                    {team.overallGrade}
+                  </span>
+                </td>
+                <td className="py-3 px-2 text-center">
+                  <span className={`font-bold ${getGradeColor(team.fieldingGrade)}`}>
+                    {team.fieldingGrade}
+                  </span>
+                </td>
+                <td className="py-3 px-2 text-center">
+                  <span className={`font-bold ${getGradeColor(team.pitchingGrade)}`}>
+                    {team.pitchingGrade}
+                  </span>
+                </td>
+                <td className="py-3 px-2 text-center hidden sm:table-cell">
+                  <StarRating rating={Math.ceil(team.prestige / 2)} size="sm" />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </RetroCard>
   );

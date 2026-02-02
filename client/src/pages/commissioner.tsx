@@ -63,6 +63,24 @@ export default function CommissionerPage() {
     },
   });
 
+  const importRecruitingMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/leagues/${id}/recruiting/import`, {});
+      return res.json() as Promise<{ success: boolean; count: number }>;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "commissioner"] });
+      toast({ 
+        title: "Recruiting Class Imported", 
+        description: `Generated ${data.count} new recruits for the recruiting class.` 
+      });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   if (isLoading) {
     return <CommissionerSkeleton />;
   }
@@ -149,6 +167,8 @@ export default function CommissionerPage() {
               league={data?.league}
               onAdvanceWeek={() => advanceWeekMutation.mutate()}
               isAdvancing={advanceWeekMutation.isPending}
+              onImportRecruiting={() => importRecruitingMutation.mutate()}
+              isImporting={importRecruitingMutation.isPending}
             />
           </TabsContent>
 
@@ -172,10 +192,14 @@ function ActionsTab({
   league,
   onAdvanceWeek,
   isAdvancing,
+  onImportRecruiting,
+  isImporting,
 }: {
   league?: League;
   onAdvanceWeek: () => void;
   isAdvancing: boolean;
+  onImportRecruiting: () => void;
+  isImporting: boolean;
 }) {
   return (
     <div className="grid md:grid-cols-2 gap-6">
@@ -202,10 +226,37 @@ function ActionsTab({
         <RetroCardHeader>Quick Actions</RetroCardHeader>
         <RetroCardContent>
           <div className="space-y-3">
-            <ActionButton label="Edit Schedule" description="Modify upcoming games" />
-            <ActionButton label="Edit Teams" description="Modify team attributes" />
-            <ActionButton label="Edit Recruits" description="Modify recruit pool" />
-            <ActionButton label="Reset Season" description="Start the season over" variant="destructive" />
+            <ActionButton 
+              label={isImporting ? "Importing..." : "Import Recruiting Class"}
+              description="Generate new recruits for the season" 
+              onClick={onImportRecruiting}
+              disabled={isImporting}
+              dataTestId="button-import-recruiting"
+            />
+            <ActionButton 
+              label="Edit Schedule" 
+              description="Modify upcoming games" 
+              href={`/league/${league?.id}/schedule`}
+              dataTestId="button-edit-schedule"
+            />
+            <ActionButton 
+              label="Edit Teams" 
+              description="Modify team attributes" 
+              href={`/league/${league?.id}`}
+              dataTestId="button-edit-teams"
+            />
+            <ActionButton 
+              label="View Roster" 
+              description="View your team roster" 
+              href={`/league/${league?.id}/roster`}
+              dataTestId="button-view-roster"
+            />
+            <ActionButton 
+              label="Reset Season" 
+              description="Start the season over" 
+              variant="destructive"
+              dataTestId="button-reset-season"
+            />
           </div>
         </RetroCardContent>
       </RetroCard>
@@ -217,26 +268,61 @@ function ActionButton({
   label,
   description,
   variant = "default",
+  href,
+  dataTestId,
+  onClick,
+  disabled,
 }: {
   label: string;
   description: string;
   variant?: "default" | "destructive";
+  href?: string;
+  dataTestId?: string;
+  onClick?: () => void;
+  disabled?: boolean;
 }) {
-  return (
-    <button
-      className={`w-full flex items-center justify-between p-3 rounded border transition-colors ${
-        variant === "destructive"
-          ? "border-red-500/30 hover:bg-red-500/10 text-red-400"
-          : "border-border hover:bg-muted/50"
-      }`}
-    >
+  const baseClasses = `w-full flex items-center justify-between p-3 rounded border transition-colors ${
+    disabled 
+      ? "opacity-50 cursor-not-allowed"
+      : "cursor-pointer"
+  } ${
+    variant === "destructive"
+      ? "border-red-500/30 hover:bg-red-500/10 text-red-400"
+      : "border-border hover:bg-muted/50"
+  }`;
+
+  if (onClick) {
+    return (
+      <button
+        className={baseClasses}
+        onClick={onClick}
+        disabled={disabled}
+        data-testid={dataTestId}
+      >
+        <div className="text-left">
+          <p className="font-medium text-sm">{label}</p>
+          <p className="text-xs text-muted-foreground">{description}</p>
+        </div>
+        <ChevronRight className="w-4 h-4" />
+      </button>
+    );
+  }
+
+  const content = (
+    <div className={baseClasses} data-testid={dataTestId}>
       <div className="text-left">
         <p className="font-medium text-sm">{label}</p>
         <p className="text-xs text-muted-foreground">{description}</p>
       </div>
       <ChevronRight className="w-4 h-4" />
-    </button>
+    </div>
   );
+
+  if (href) {
+    return <Link href={href}>{content}</Link>;
+  }
+
+  return content;
 }
 
 function SettingsTab({

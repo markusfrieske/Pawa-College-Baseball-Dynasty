@@ -59,6 +59,9 @@ A league-first, story-driven college baseball dynasty simulator where human coac
 
 ### Recruiting (Fog of War)
 - 40-50 recruits per class with 1-5 star ratings
+- **Star Distribution**: 5% 5-star, 10% 4-star, 40% 3-star, 30% 2-star, 15% 1-star
+- **Blue Chip System**: Top 1-3 recruits have all ratings automatically revealed
+- **Gem/Bust Mechanic**: 8% gems (ranked lower than ability), 8% busts (ranked higher)
 - Hidden attributes revealed through scouting (0% → 15% → 100%)
 - 6 priority categories: Proximity, Reputation, Playing Time, Academics, Prestige, Facilities
 - Recruiting stages: Open → Top 8 → Top 5 → Top 3 → Verbal → Signed

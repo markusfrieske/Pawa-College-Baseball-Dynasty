@@ -225,18 +225,27 @@ function RecruitRow({
 
   const stage = stageBadges[recruit.stage] || stageBadges.open;
   const scoutPct = recruit.interest?.scoutPercentage || 0;
-  const isRevealed = scoutPct >= 100;
+  // Blue chips always have ratings revealed
+  const isRevealed = recruit.isBlueChip || scoutPct >= 100;
 
   return (
     <RetroCard className="hover:border-gold/30 transition-colors" data-testid={`card-recruit-${recruit.id}`}>
       <div className="flex flex-col lg:flex-row lg:items-center gap-4">
         <div className="flex items-center gap-4 flex-1">
-          <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center">
+          <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center relative">
             <span className="font-pixel text-[10px] text-gold">{recruit.position}</span>
+            {recruit.isBlueChip && (
+              <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full border-2 border-background flex items-center justify-center">
+                <span className="text-[8px] text-white font-bold">B</span>
+              </div>
+            )}
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
               <span className="font-medium">{recruit.firstName} {recruit.lastName}</span>
+              {recruit.isBlueChip && (
+                <Badge className="bg-blue-500 text-white text-[8px]">Blue Chip</Badge>
+              )}
               <Badge className={`${stage.color} text-white text-[8px]`}>{stage.label}</Badge>
               <Badge variant="outline" className="text-[8px]">{recruit.recruitType}</Badge>
             </div>
@@ -335,8 +344,11 @@ function RecruitDetailModal({
   if (!recruit) return null;
 
   const scoutPct = recruit.interest?.scoutPercentage || 0;
-  const isRevealed = scoutPct >= 100;
-  const revealedAttrs = recruit.interest?.revealedAttributes || [];
+  // Blue chips have all ratings revealed automatically
+  const isRevealed = recruit.isBlueChip || scoutPct >= 100;
+  const revealedAttrs = recruit.isBlueChip 
+    ? ["hitForAvg", "power", "speed", "arm", "fielding", "errorResistance", "velocity", "control", "stamina", "stuff"]
+    : (recruit.interest?.revealedAttributes || []);
 
   const fielderAttrs = [
     { key: "hitForAvg", label: "Hit for Avg", value: recruit.hitForAvg },
@@ -369,10 +381,13 @@ function RecruitDetailModal({
     <Dialog open={!!recruit} onOpenChange={() => onClose()}>
       <DialogContent className="bg-card border-gold max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="font-pixel text-gold flex items-center gap-3">
+          <DialogTitle className="font-pixel text-gold flex items-center gap-3 flex-wrap">
             <span className="text-lg">{recruit.position}</span>
             <span>{recruit.firstName} {recruit.lastName}</span>
             <StarRating rating={recruit.starRank} />
+            {recruit.isBlueChip && (
+              <Badge className="bg-blue-500 text-white">Blue Chip</Badge>
+            )}
           </DialogTitle>
         </DialogHeader>
 

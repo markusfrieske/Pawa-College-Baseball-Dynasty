@@ -27,6 +27,13 @@ const teamCountOptions = [
 const conferenceOptions = [
   { value: "2", label: "2 Conferences" },
   { value: "4", label: "4 Conferences" },
+  { value: "5", label: "5 Conferences (Full)" },
+];
+
+const seasonLengthOptions = [
+  { value: "short", label: "Short Season - 8 Games" },
+  { value: "medium", label: "Medium Season - 14 Games" },
+  { value: "long", label: "Long Season - 32 Games" },
 ];
 
 export default function LeagueCreatePage() {
@@ -34,6 +41,7 @@ export default function LeagueCreatePage() {
   const [maxTeams, setMaxTeams] = useState("8");
   const [cpuDifficulty, setCpuDifficulty] = useState("normal");
   const [conferences, setConferences] = useState("2");
+  const [seasonLength, setSeasonLength] = useState("medium");
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -44,6 +52,7 @@ export default function LeagueCreatePage() {
       maxTeams: number;
       cpuDifficulty: string;
       conferenceCount: number;
+      seasonLength: string;
     }) => {
       return apiRequest("POST", "/api/leagues", data);
     },
@@ -69,8 +78,8 @@ export default function LeagueCreatePage() {
     e.preventDefault();
     if (!name.trim()) {
       toast({
-        title: "League name required",
-        description: "Please enter a name for your league.",
+        title: "Dynasty name required",
+        description: "Please enter a name for your dynasty.",
         variant: "destructive",
       });
       return;
@@ -80,6 +89,7 @@ export default function LeagueCreatePage() {
       maxTeams: parseInt(maxTeams),
       cpuDifficulty,
       conferenceCount: parseInt(conferences),
+      seasonLength,
     });
   };
 
@@ -98,7 +108,7 @@ export default function LeagueCreatePage() {
             <Star className="w-5 h-5 text-gold fill-gold" />
             <Star className="w-5 h-5 text-gold fill-gold" />
           </div>
-          <h1 className="font-pixel text-gold text-xl">New League</h1>
+          <h1 className="font-pixel text-gold text-xl">New Dynasty</h1>
           <div className="flex justify-center gap-1 mt-4">
             <Star className="w-5 h-5 text-gold fill-gold" />
             <Star className="w-5 h-5 text-gold fill-gold" />
@@ -109,13 +119,13 @@ export default function LeagueCreatePage() {
           <RetroCardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               <RetroInput
-                id="leagueName"
-                label="League Name"
-                placeholder="e.g., College World Series Sim"
+                id="dynastyName"
+                label="Dynasty Name"
+                placeholder="e.g., SEC Dynasty 2026"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                data-testid="input-league-name"
+                data-testid="input-dynasty-name"
               />
 
               <RetroSelect
@@ -137,6 +147,15 @@ export default function LeagueCreatePage() {
               />
 
               <RetroSelect
+                id="seasonLength"
+                label="Season Length"
+                options={seasonLengthOptions}
+                value={seasonLength}
+                onChange={(e) => setSeasonLength(e.target.value)}
+                data-testid="select-season-length"
+              />
+
+              <RetroSelect
                 id="difficulty"
                 label="CPU Difficulty"
                 options={difficultyOptions}
@@ -150,9 +169,9 @@ export default function LeagueCreatePage() {
                   type="submit"
                   className="w-full"
                   disabled={createLeagueMutation.isPending}
-                  data-testid="button-create-league"
+                  data-testid="button-create-dynasty"
                 >
-                  {createLeagueMutation.isPending ? "Creating..." : "Start League"}
+                  {createLeagueMutation.isPending ? "Creating..." : "Start Dynasty"}
                 </RetroButton>
               </div>
             </form>
@@ -160,7 +179,7 @@ export default function LeagueCreatePage() {
         </RetroCard>
 
         <div className="mt-6 text-center text-muted-foreground text-sm">
-          <p>Leagues can have 1-16 teams with human or CPU coaches.</p>
+          <p>Dynasties can have 4-16 teams with human or CPU coaches.</p>
           <p className="mt-1">Maximum dynasty length: 20 seasons.</p>
         </div>
       </div>

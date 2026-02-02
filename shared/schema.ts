@@ -28,6 +28,7 @@ export const leagues = pgTable("leagues", {
   commissionerId: varchar("commissioner_id").notNull().references(() => users.id),
   maxTeams: integer("max_teams").notNull().default(16),
   cpuDifficulty: text("cpu_difficulty").notNull().default("normal"),
+  seasonLength: text("season_length").notNull().default("medium"),
   currentSeason: integer("current_season").notNull().default(1),
   currentPhase: text("current_phase").notNull().default("preseason"),
   currentWeek: integer("current_week").notNull().default(1),
@@ -39,6 +40,7 @@ export const insertLeagueSchema = createInsertSchema(leagues).pick({
   commissionerId: true,
   maxTeams: true,
   cpuDifficulty: true,
+  seasonLength: true,
 });
 
 export type InsertLeague = z.infer<typeof insertLeagueSchema>;
@@ -280,6 +282,9 @@ export const recruits = pgTable("recruits", {
   commitmentThreshold: integer("commitment_threshold").notNull().default(500),
   stage: text("stage").notNull().default("open"),
   signedTeamId: varchar("signed_team_id").references(() => teams.id),
+  isBlueChip: boolean("is_blue_chip").notNull().default(false),
+  isGem: boolean("is_gem").notNull().default(false),
+  isBust: boolean("is_bust").notNull().default(false),
 });
 
 export const insertRecruitSchema = createInsertSchema(recruits).pick({
@@ -317,6 +322,9 @@ export const insertRecruitSchema = createInsertSchema(recruits).pick({
   commitmentThreshold: true,
   stage: true,
   signedTeamId: true,
+  isBlueChip: true,
+  isGem: true,
+  isBust: true,
 });
 
 export type InsertRecruit = z.infer<typeof insertRecruitSchema>;

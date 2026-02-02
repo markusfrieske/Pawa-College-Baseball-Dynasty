@@ -49,6 +49,7 @@ export interface IStorage {
   getRecruitsByLeague(leagueId: string): Promise<Recruit[]>;
   createRecruit(recruit: InsertRecruit): Promise<Recruit>;
   updateRecruit(id: string, data: Partial<Recruit>): Promise<Recruit | undefined>;
+  deleteRecruitsByLeague(leagueId: string): Promise<void>;
 
   getRecruitingInterestsByTeam(teamId: string): Promise<RecruitingInterest[]>;
   getRecruitingInterest(recruitId: string, teamId: string): Promise<RecruitingInterest | undefined>;
@@ -179,6 +180,16 @@ export class DatabaseStorage implements IStorage {
   async updateRecruit(id: string, data: Partial<Recruit>): Promise<Recruit | undefined> {
     const [recruit] = await db.update(recruits).set(data).where(eq(recruits.id, id)).returning();
     return recruit || undefined;
+  }
+
+  async deleteRecruitsByLeague(leagueId: string): Promise<void> {
+    // First delete all recruiting interests for recruits in this league
+    const leagueRecruits = await db.select().from(recruits).where(eq(recruits.leagueId, leagueId));
+    for (const recruit of leagueRecruits) {
+      await db.delete(recruitingInterests).where(eq(recruitingInterests.recruitId, recruit.id));
+    }
+    // Then delete the recruits
+    await db.delete(recruits).where(eq(recruits.leagueId, leagueId));
   }
 
   async getRecruitingInterestsByTeam(teamId: string): Promise<RecruitingInterest[]> {

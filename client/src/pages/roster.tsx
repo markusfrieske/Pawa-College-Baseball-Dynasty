@@ -6,8 +6,7 @@ import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/re
 import { RetroSelect } from "@/components/ui/retro-select";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { AttributeSlider } from "@/components/ui/attribute-slider";
+import { PlayerProfileCard } from "@/components/player-profile-card";
 import { 
   ArrowLeft, 
   Users, 
@@ -206,100 +205,21 @@ export default function RosterPage() {
         </RetroCard>
       </main>
 
-      <PlayerDetailModal
-        player={selectedPlayer}
-        onClose={() => setSelectedPlayer(null)}
-      />
+      {selectedPlayer && (
+        <PlayerProfileCard
+          player={{
+            ...selectedPlayer,
+            bats: selectedPlayer.batHand,
+            throws: selectedPlayer.throwHand,
+          }}
+          open={!!selectedPlayer}
+          onClose={() => setSelectedPlayer(null)}
+        />
+      )}
     </div>
   );
 }
 
-function PlayerDetailModal({
-  player,
-  onClose,
-}: {
-  player: Player | null;
-  onClose: () => void;
-}) {
-  if (!player) return null;
-
-  const isPitcher = player.position === "P";
-
-  const fielderAttrs = [
-    { label: "Hit for Avg", value: player.hitForAvg || 50 },
-    { label: "Power", value: player.power || 50 },
-    { label: "Speed", value: player.speed || 50 },
-    { label: "Arm", value: player.arm || 50 },
-    { label: "Fielding", value: player.fielding || 50 },
-    { label: "Error Res", value: player.errorResistance || 50 },
-  ];
-
-  const pitcherAttrs = [
-    { label: "Velocity", value: player.velocity || 50 },
-    { label: "Control", value: player.control || 50 },
-    { label: "Stamina", value: player.stamina || 50 },
-    { label: "Stuff", value: player.stuff || 50 },
-  ];
-
-  const attrs = isPitcher ? pitcherAttrs : fielderAttrs;
-
-  return (
-    <Dialog open={!!player} onOpenChange={() => onClose()}>
-      <DialogContent className="bg-card border-gold max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="font-pixel text-gold flex items-center gap-3">
-            <Badge variant="outline">{player.position}</Badge>
-            <span>#{player.jerseyNumber} {player.firstName} {player.lastName}</span>
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-6">
-          <div className="grid grid-cols-3 gap-4">
-            <div className="text-center p-3 bg-muted rounded">
-              <p className="text-2xl font-bold text-gold">{player.overall}</p>
-              <p className="text-xs text-muted-foreground">Overall</p>
-            </div>
-            <div className="text-center p-3 bg-muted rounded">
-              <p className="text-2xl font-bold">{player.potential}</p>
-              <p className="text-xs text-muted-foreground">Potential</p>
-            </div>
-            <div className="text-center p-3 bg-muted rounded">
-              <p className="text-lg font-bold">{player.eligibility}</p>
-              <p className="text-xs text-muted-foreground">Year</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <MapPin className="w-4 h-4" />
-              {player.hometown}, {player.homeState}
-            </span>
-            <span className="flex items-center gap-1">
-              <GraduationCap className="w-4 h-4" />
-              Bats {player.batHand} / Throws {player.throwHand}
-            </span>
-          </div>
-
-          <div>
-            <h4 className="font-pixel text-[10px] text-gold mb-4">Attributes</h4>
-            <div className="space-y-3">
-              {attrs.map((attr) => (
-                <AttributeSlider
-                  key={attr.label}
-                  label={attr.label}
-                  value={attr.value}
-                  max={99}
-                  min={1}
-                  disabled
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
 
 function RosterSkeleton() {
   return (
