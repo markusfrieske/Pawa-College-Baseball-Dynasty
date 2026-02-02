@@ -1,16 +1,795 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import session from "express-session";
+import bcrypt from "bcrypt";
+import { z } from "zod";
+import { randomUUID } from "crypto";
+
+declare module "express-session" {
+  interface SessionData {
+    userId?: string;
+    isGuest?: boolean;
+  }
+}
+
+const authSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+});
+
+const leagueCreateSchema = z.object({
+  name: z.string().min(1).max(100),
+  maxTeams: z.number().min(4).max(16).optional(),
+  cpuDifficulty: z.enum(["easy", "normal", "hard", "elite"]).optional(),
+  conferenceCount: z.number().min(2).max(4).optional(),
+});
+
+const gameScoreSchema = z.object({
+  homeScore: z.number().min(0),
+  awayScore: z.number().min(0),
+});
+
+const setupSchema = z.object({
+  teamId: z.string().min(1),
+  coach: z.object({
+    firstName: z.string().min(1).max(50),
+    lastName: z.string().min(1).max(50),
+    archetype: z.enum(["Balanced", "Pure CEO", "Player's Coach", "Tactician", "Old School"]).optional(),
+    skinTone: z.string().optional(),
+    hairColor: z.string().optional(),
+    hairStyle: z.string().optional(),
+  }),
+});
+
+const settingsSchema = z.object({
+  auditLogPublic: z.boolean(),
+});
+
+const SALT_ROUNDS = 10;
+
+const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.session.userId && !req.session.isGuest) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+  next();
+};
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  // put application routes here
-  // prefix all routes with /api
+  app.use(
+    session({
+      secret: process.env.SESSION_SECRET || randomUUID(),
+      resave: false,
+      saveUninitialized: false,
+      cookie: { secure: false, maxAge: 7 * 24 * 60 * 60 * 1000 },
+    })
+  );
 
-  // use storage to perform CRUD operations on the storage interface
-  // e.g. storage.insertUser(user) or storage.getUserByUsername(username)
+  // Auth routes
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const result = authSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid email or password (min 6 characters)" });
+      }
+
+      const { email, password } = result.data;
+      
+      const existing = await storage.getUserByEmail(email);
+      if (existing) {
+        return res.status(400).json({ message: "Email already registered" });
+      }
+
+      const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+      const user = await storage.createUser({ email, password: hashedPassword });
+      req.session.userId = user.id;
+      res.json({ id: user.id, email: user.email });
+    } catch (error) {
+      console.error("Registration error:", error);
+      res.status(500).json({ message: "Registration failed" });
+    }
+  });
+
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const result = authSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid email or password" });
+      }
+
+      const { email, password } = result.data;
+      
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      const passwordMatch = await bcrypt.compare(password, user.password);
+      if (!passwordMatch) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      req.session.userId = user.id;
+      res.json({ id: user.id, email: user.email });
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(500).json({ message: "Login failed" });
+    }
+  });
+
+  app.get("/api/auth/me", (req, res) => {
+    if (req.session.userId) {
+      storage.getUser(req.session.userId).then((user) => {
+        if (user) {
+          res.json({ id: user.id, email: user.email });
+        } else {
+          res.status(401).json({ message: "Not authenticated" });
+        }
+      });
+    } else if (req.session.isGuest) {
+      res.json({ id: "guest", email: "guest@guest.com" });
+    } else {
+      res.status(401).json({ message: "Not authenticated" });
+    }
+  });
+
+  app.post("/api/auth/guest", (req, res) => {
+    req.session.isGuest = true;
+    req.session.userId = `guest-${randomUUID()}`;
+    res.json({ id: req.session.userId, email: "guest@guest.com" });
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ message: "Logout failed" });
+      }
+      res.json({ message: "Logged out" });
+    });
+  });
+
+  // League routes
+  app.get("/api/leagues", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const userLeagues = await storage.getLeaguesByUser(userId);
+      
+      const leaguesWithDetails = await Promise.all(
+        userLeagues.map(async (league) => {
+          const leagueTeams = await storage.getTeamsByLeague(league.id);
+          const userTeam = leagueTeams.find((t) => !t.isCpu);
+          const userCoach = userTeam?.coachId 
+            ? await storage.getCoach(userTeam.coachId) 
+            : undefined;
+          
+          return {
+            ...league,
+            teams: leagueTeams,
+            userTeam,
+            userCoach,
+          };
+        })
+      );
+
+      res.json(leaguesWithDetails);
+    } catch (error) {
+      console.error("Failed to fetch leagues:", error);
+      res.status(500).json({ message: "Failed to fetch leagues" });
+    }
+  });
+
+  app.post("/api/leagues", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const result = leagueCreateSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid league data" });
+      }
+
+      const { name, maxTeams = 8, cpuDifficulty = "normal", conferenceCount = 2 } = result.data;
+
+      const league = await storage.createLeague({
+        name,
+        commissionerId: userId,
+        maxTeams,
+        cpuDifficulty,
+      });
+
+      // Create conferences
+      const conferenceNames = conferenceCount === 4
+        ? ["East Coast", "Southern Belt", "Midwest", "Mountain"]
+        : ["American", "National"];
+
+      for (const confName of conferenceNames) {
+        await storage.createConference({ leagueId: league.id, name: confName });
+      }
+
+      // Create teams
+      const conferences = await storage.getConferencesByLeague(league.id);
+      const teamsPerConference = Math.floor(maxTeams / conferences.length);
+
+      const sampleTeams = generateSampleTeams(maxTeams);
+      let teamIndex = 0;
+
+      for (const conf of conferences) {
+        for (let i = 0; i < teamsPerConference && teamIndex < sampleTeams.length; i++) {
+          const teamData = sampleTeams[teamIndex];
+          const team = await storage.createTeam({
+            ...teamData,
+            leagueId: league.id,
+            conferenceId: conf.id,
+            isCpu: true,
+          });
+          
+          // Create standings for this team
+          await storage.createStandings({
+            leagueId: league.id,
+            teamId: team.id,
+            season: 1,
+          });
+          
+          teamIndex++;
+        }
+      }
+
+      // Create recruits
+      await generateRecruits(league.id, 50);
+
+      await storage.createAuditLog({
+        leagueId: league.id,
+        userId,
+        action: "League Created",
+        details: `League "${name}" was created with ${maxTeams} teams`,
+      });
+
+      res.json(league);
+    } catch (error) {
+      console.error("Failed to create league:", error);
+      res.status(500).json({ message: "Failed to create league" });
+    }
+  });
+
+  app.get("/api/leagues/:id", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id);
+      if (!league) {
+        return res.status(404).json({ message: "League not found" });
+      }
+
+      const leagueTeams = await storage.getTeamsByLeague(league.id);
+      const leagueConferences = await storage.getConferencesByLeague(league.id);
+      const leagueStandings = await storage.getStandingsByLeague(league.id, league.currentSeason);
+
+      const teamsWithStandings = leagueTeams.map((team) => ({
+        ...team,
+        standings: leagueStandings.find((s) => s.teamId === team.id),
+      }));
+
+      res.json({
+        ...league,
+        teams: teamsWithStandings,
+        conferences: leagueConferences,
+      });
+    } catch (error) {
+      console.error("Failed to fetch league:", error);
+      res.status(500).json({ message: "Failed to fetch league" });
+    }
+  });
+
+  app.get("/api/leagues/:id/setup", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id);
+      if (!league) {
+        return res.status(404).json({ message: "League not found" });
+      }
+
+      const leagueTeams = await storage.getTeamsByLeague(league.id);
+      res.json({ teams: leagueTeams });
+    } catch (error) {
+      console.error("Failed to fetch setup data:", error);
+      res.status(500).json({ message: "Failed to fetch setup data" });
+    }
+  });
+
+  app.post("/api/leagues/:id/setup", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const result = setupSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid setup data" });
+      }
+      
+      const { teamId, coach: coachData } = result.data;
+
+      const coach = await storage.createCoach({
+        userId,
+        teamId,
+        leagueId: req.params.id,
+        firstName: coachData.firstName,
+        lastName: coachData.lastName,
+        archetype: coachData.archetype || "Balanced",
+        skinTone: coachData.skinTone || "light",
+        hairColor: coachData.hairColor || "brown",
+        hairStyle: coachData.hairStyle || "short",
+      });
+
+      await storage.updateTeam(teamId, { coachId: coach.id, isCpu: false });
+
+      // Generate players for the team
+      await generatePlayersForTeam(teamId);
+
+      // Generate initial schedule
+      await generateSchedule(req.params.id);
+
+      await storage.createAuditLog({
+        leagueId: req.params.id,
+        userId,
+        action: "Coach Created",
+        details: `${coachData.firstName} ${coachData.lastName} joined as coach`,
+      });
+
+      res.json({ coach });
+    } catch (error) {
+      console.error("Setup failed:", error);
+      res.status(500).json({ message: "Setup failed" });
+    }
+  });
+
+  // Recruiting routes
+  app.get("/api/leagues/:id/recruiting", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id);
+      if (!league) {
+        return res.status(404).json({ message: "League not found" });
+      }
+
+      const leagueTeams = await storage.getTeamsByLeague(league.id);
+      const userTeam = leagueTeams.find((t) => !t.isCpu);
+      
+      if (!userTeam) {
+        return res.status(400).json({ message: "No team assigned" });
+      }
+
+      const leagueRecruits = await storage.getRecruitsByLeague(league.id);
+      const interests = await storage.getRecruitingInterestsByTeam(userTeam.id);
+
+      const recruitsWithInterest = leagueRecruits.map((recruit) => {
+        const interest = interests.find((i) => i.recruitId === recruit.id);
+        return {
+          ...recruit,
+          interest,
+        };
+      });
+
+      res.json({
+        recruits: recruitsWithInterest,
+        team: userTeam,
+        remainingActions: 22,
+        targetedCount: interests.filter((i) => i.isTargeted).length,
+        commitsCount: leagueRecruits.filter((r) => r.signedTeamId === userTeam.id).length,
+      });
+    } catch (error) {
+      console.error("Failed to fetch recruiting data:", error);
+      res.status(500).json({ message: "Failed to fetch recruiting data" });
+    }
+  });
+
+  app.post("/api/leagues/:id/recruiting/:recruitId/scout", requireAuth, async (req, res) => {
+    try {
+      const leagueTeams = await storage.getTeamsByLeague(req.params.id);
+      const userTeam = leagueTeams.find((t) => !t.isCpu);
+      
+      if (!userTeam) {
+        return res.status(400).json({ message: "No team assigned" });
+      }
+
+      let interest = await storage.getRecruitingInterest(req.params.recruitId, userTeam.id);
+      
+      // Scout reveals 15-25% each time
+      const revealAmount = 15 + Math.floor(Math.random() * 11);
+      
+      if (!interest) {
+        // Determine which attributes to reveal
+        const revealedAttrs = getAttributesToReveal(revealAmount);
+        interest = await storage.createRecruitingInterest({
+          recruitId: req.params.recruitId,
+          teamId: userTeam.id,
+          scoutPercentage: revealAmount,
+          revealedAttributes: revealedAttrs,
+        });
+      } else {
+        const currentPct = interest.scoutPercentage || 0;
+        const newPct = Math.min(100, currentPct + revealAmount);
+        
+        // Add more revealed attributes based on new percentage
+        const currentAttrs = interest.revealedAttributes || [];
+        const additionalAttrs = getAttributesToReveal(newPct - currentPct, currentAttrs);
+        const allAttrs = [...currentAttrs, ...additionalAttrs];
+        
+        interest = await storage.updateRecruitingInterest(interest.id, {
+          scoutPercentage: newPct,
+          revealedAttributes: allAttrs,
+        });
+      }
+
+      res.json(interest);
+    } catch (error) {
+      console.error("Failed to scout recruit:", error);
+      res.status(500).json({ message: "Failed to scout recruit" });
+    }
+  });
+
+  app.post("/api/leagues/:id/recruiting/:recruitId/target", requireAuth, async (req, res) => {
+    try {
+      const leagueTeams = await storage.getTeamsByLeague(req.params.id);
+      const userTeam = leagueTeams.find((t) => !t.isCpu);
+      
+      if (!userTeam) {
+        return res.status(400).json({ message: "No team assigned" });
+      }
+
+      let interest = await storage.getRecruitingInterest(req.params.recruitId, userTeam.id);
+      
+      if (!interest) {
+        interest = await storage.createRecruitingInterest({
+          recruitId: req.params.recruitId,
+          teamId: userTeam.id,
+          isTargeted: true,
+        });
+      } else {
+        interest = await storage.updateRecruitingInterest(interest.id, {
+          isTargeted: !interest.isTargeted,
+        });
+      }
+
+      res.json(interest);
+    } catch (error) {
+      console.error("Failed to target recruit:", error);
+      res.status(500).json({ message: "Failed to target recruit" });
+    }
+  });
+
+  // Roster routes
+  app.get("/api/leagues/:id/roster", requireAuth, async (req, res) => {
+    try {
+      const leagueTeams = await storage.getTeamsByLeague(req.params.id);
+      const userTeam = leagueTeams.find((t) => !t.isCpu);
+      
+      if (!userTeam) {
+        return res.status(400).json({ message: "No team assigned" });
+      }
+
+      const teamPlayers = await storage.getPlayersByTeam(userTeam.id);
+
+      res.json({
+        players: teamPlayers,
+        team: userTeam,
+      });
+    } catch (error) {
+      console.error("Failed to fetch roster:", error);
+      res.status(500).json({ message: "Failed to fetch roster" });
+    }
+  });
+
+  // Schedule routes
+  app.get("/api/leagues/:id/schedule", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id);
+      if (!league) {
+        return res.status(404).json({ message: "League not found" });
+      }
+
+      const leagueGames = await storage.getGamesByLeague(league.id);
+      const leagueTeams = await storage.getTeamsByLeague(league.id);
+
+      const gamesWithTeams = leagueGames.map((game) => ({
+        ...game,
+        homeTeam: leagueTeams.find((t) => t.id === game.homeTeamId),
+        awayTeam: leagueTeams.find((t) => t.id === game.awayTeamId),
+      }));
+
+      res.json({
+        games: gamesWithTeams,
+        currentWeek: league.currentWeek,
+        currentSeason: league.currentSeason,
+      });
+    } catch (error) {
+      console.error("Failed to fetch schedule:", error);
+      res.status(500).json({ message: "Failed to fetch schedule" });
+    }
+  });
+
+  app.patch("/api/leagues/:id/games/:gameId", requireAuth, async (req, res) => {
+    try {
+      const result = gameScoreSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid score data" });
+      }
+
+      const { homeScore, awayScore } = result.data;
+      
+      const game = await storage.updateGame(req.params.gameId, {
+        homeScore,
+        awayScore,
+        isComplete: true,
+      });
+
+      if (!game) {
+        return res.status(404).json({ message: "Game not found" });
+      }
+
+      // Update standings
+      const leagueStandings = await storage.getStandingsByLeague(req.params.id, game.season);
+      
+      const homeStanding = leagueStandings.find(s => s.teamId === game.homeTeamId);
+      const awayStanding = leagueStandings.find(s => s.teamId === game.awayTeamId);
+
+      if (homeStanding && awayStanding) {
+        const homeWon = homeScore > awayScore;
+        
+        await storage.updateStandings(homeStanding.id, {
+          wins: homeStanding.wins + (homeWon ? 1 : 0),
+          losses: homeStanding.losses + (homeWon ? 0 : 1),
+          runsScored: homeStanding.runsScored + homeScore,
+          runsAllowed: homeStanding.runsAllowed + awayScore,
+        });
+        
+        await storage.updateStandings(awayStanding.id, {
+          wins: awayStanding.wins + (homeWon ? 0 : 1),
+          losses: awayStanding.losses + (homeWon ? 1 : 0),
+          runsScored: awayStanding.runsScored + awayScore,
+          runsAllowed: awayStanding.runsAllowed + homeScore,
+        });
+      }
+
+      await storage.createAuditLog({
+        leagueId: req.params.id,
+        userId: req.session.userId,
+        action: "Game Score Submitted",
+        details: `Final: ${awayScore} - ${homeScore}`,
+      });
+
+      res.json(game);
+    } catch (error) {
+      console.error("Failed to update game:", error);
+      res.status(500).json({ message: "Failed to update game" });
+    }
+  });
+
+  // Commissioner routes
+  app.get("/api/leagues/:id/commissioner", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id);
+      if (!league) {
+        return res.status(404).json({ message: "League not found" });
+      }
+
+      const auditLogsData = await storage.getAuditLogsByLeague(league.id);
+      const leagueTeams = await storage.getTeamsByLeague(league.id);
+      const humanTeams = leagueTeams.filter(t => !t.isCpu);
+
+      res.json({
+        league,
+        auditLogs: auditLogsData,
+        readyCoaches: [],
+        totalCoaches: humanTeams.length,
+      });
+    } catch (error) {
+      console.error("Failed to fetch commissioner data:", error);
+      res.status(500).json({ message: "Failed to fetch commissioner data" });
+    }
+  });
+
+  app.post("/api/leagues/:id/advance", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id);
+      if (!league) {
+        return res.status(404).json({ message: "League not found" });
+      }
+
+      const updatedLeague = await storage.updateLeague(league.id, {
+        currentWeek: league.currentWeek + 1,
+      });
+
+      await storage.createAuditLog({
+        leagueId: league.id,
+        userId: req.session.userId,
+        action: "Week Advanced",
+        details: `Advanced to Week ${league.currentWeek + 1}`,
+      });
+
+      res.json(updatedLeague);
+    } catch (error) {
+      console.error("Failed to advance week:", error);
+      res.status(500).json({ message: "Failed to advance week" });
+    }
+  });
+
+  app.patch("/api/leagues/:id/settings", requireAuth, async (req, res) => {
+    try {
+      const result = settingsSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ message: "Invalid settings data" });
+      }
+      
+      const { auditLogPublic } = result.data;
+      const league = await storage.updateLeague(req.params.id, { auditLogPublic });
+      res.json(league);
+    } catch (error) {
+      console.error("Failed to update settings:", error);
+      res.status(500).json({ message: "Failed to update settings" });
+    }
+  });
+
+  // Team routes
+  app.get("/api/leagues/:id/teams/:teamId", requireAuth, async (req, res) => {
+    try {
+      const team = await storage.getTeam(req.params.teamId);
+      if (!team) {
+        return res.status(404).json({ message: "Team not found" });
+      }
+
+      const coach = team.coachId ? await storage.getCoach(team.coachId) : undefined;
+      const teamPlayers = await storage.getPlayersByTeam(team.id);
+
+      res.json({
+        ...team,
+        coach,
+        players: teamPlayers,
+      });
+    } catch (error) {
+      console.error("Failed to fetch team:", error);
+      res.status(500).json({ message: "Failed to fetch team" });
+    }
+  });
 
   return httpServer;
+}
+
+// Helper functions
+function getAttributesToReveal(percentage: number, existing: string[] = []): string[] {
+  const allAttrs = ["hitForAvg", "power", "speed", "arm", "fielding", "errorResistance", "velocity", "control", "stamina", "stuff"];
+  const remaining = allAttrs.filter(a => !existing.includes(a));
+  
+  const countToReveal = Math.floor((percentage / 100) * allAttrs.length);
+  const toReveal: string[] = [];
+  
+  for (let i = 0; i < countToReveal && remaining.length > 0; i++) {
+    const idx = Math.floor(Math.random() * remaining.length);
+    toReveal.push(remaining.splice(idx, 1)[0]);
+  }
+  
+  return toReveal;
+}
+
+async function generateSchedule(leagueId: string) {
+  const leagueTeams = await storage.getTeamsByLeague(leagueId);
+  
+  // Generate 16 weeks of games
+  for (let week = 1; week <= 16; week++) {
+    // Round robin scheduling
+    const shuffled = [...leagueTeams].sort(() => Math.random() - 0.5);
+    for (let i = 0; i < shuffled.length - 1; i += 2) {
+      await storage.createGame({
+        leagueId,
+        season: 1,
+        week,
+        homeTeamId: shuffled[i].id,
+        awayTeamId: shuffled[i + 1].id,
+        phase: "regular",
+      });
+    }
+  }
+}
+
+function generateSampleTeams(count: number) {
+  const teams = [
+    { name: "Florida", mascot: "Gators", abbreviation: "FL", city: "Gainesville", state: "FL", primaryColor: "#0037ff", secondaryColor: "#fc4903", prestige: 9, stadium: 8, facilities: 7, collegeLife: 10, marketing: 8, academics: 8, fanbasePassion: "A", fanbaseType: "Blue Blood", enrollment: 55000, nilBudget: 5000000 },
+    { name: "Texas", mascot: "Longhorns", abbreviation: "TEX", city: "Austin", state: "TX", primaryColor: "#bf5700", secondaryColor: "#ffffff", prestige: 9, stadium: 9, facilities: 8, collegeLife: 9, marketing: 9, academics: 7, fanbasePassion: "A", fanbaseType: "Blue Blood", enrollment: 52000, nilBudget: 6000000 },
+    { name: "Vanderbilt", mascot: "Commodores", abbreviation: "VAN", city: "Nashville", state: "TN", primaryColor: "#866d4b", secondaryColor: "#000000", prestige: 9, stadium: 7, facilities: 9, collegeLife: 8, marketing: 7, academics: 10, fanbasePassion: "B", fanbaseType: "Academic Elite", enrollment: 14000, nilBudget: 4000000 },
+    { name: "LSU", mascot: "Tigers", abbreviation: "LSU", city: "Baton Rouge", state: "LA", primaryColor: "#461d7c", secondaryColor: "#fdd023", prestige: 9, stadium: 9, facilities: 8, collegeLife: 9, marketing: 8, academics: 6, fanbasePassion: "A+", fanbaseType: "Blue Blood", enrollment: 35000, nilBudget: 5000000 },
+    { name: "Miami", mascot: "Hurricanes", abbreviation: "MIA", city: "Coral Gables", state: "FL", primaryColor: "#f47321", secondaryColor: "#005030", prestige: 8, stadium: 7, facilities: 7, collegeLife: 9, marketing: 8, academics: 7, fanbasePassion: "B", fanbaseType: "Balanced", enrollment: 12000, nilBudget: 3500000 },
+    { name: "Stanford", mascot: "Cardinal", abbreviation: "STAN", city: "Stanford", state: "CA", primaryColor: "#8c1515", secondaryColor: "#ffffff", prestige: 7, stadium: 6, facilities: 8, collegeLife: 8, marketing: 7, academics: 10, fanbasePassion: "B", fanbaseType: "Academic Elite", enrollment: 17000, nilBudget: 3000000 },
+    { name: "Arizona State", mascot: "Sun Devils", abbreviation: "ASU", city: "Tempe", state: "AZ", primaryColor: "#8c1d40", secondaryColor: "#ffc627", prestige: 6, stadium: 7, facilities: 6, collegeLife: 9, marketing: 6, academics: 6, fanbasePassion: "B", fanbaseType: "Party School", enrollment: 75000, nilBudget: 2500000 },
+    { name: "Oregon State", mascot: "Beavers", abbreviation: "OSU", city: "Corvallis", state: "OR", primaryColor: "#dc4405", secondaryColor: "#000000", prestige: 7, stadium: 6, facilities: 7, collegeLife: 7, marketing: 6, academics: 7, fanbasePassion: "B", fanbaseType: "Balanced", enrollment: 34000, nilBudget: 2000000 },
+    { name: "Ole Miss", mascot: "Rebels", abbreviation: "MISS", city: "Oxford", state: "MS", primaryColor: "#14213d", secondaryColor: "#ce1126", prestige: 7, stadium: 7, facilities: 7, collegeLife: 8, marketing: 7, academics: 6, fanbasePassion: "A", fanbaseType: "Southern", enrollment: 24000, nilBudget: 3500000 },
+    { name: "Arkansas", mascot: "Razorbacks", abbreviation: "ARK", city: "Fayetteville", state: "AR", primaryColor: "#9d2235", secondaryColor: "#ffffff", prestige: 8, stadium: 8, facilities: 7, collegeLife: 7, marketing: 7, academics: 6, fanbasePassion: "A+", fanbaseType: "Blue Blood", enrollment: 30000, nilBudget: 4000000 },
+    { name: "Tennessee", mascot: "Volunteers", abbreviation: "TENN", city: "Knoxville", state: "TN", primaryColor: "#ff8200", secondaryColor: "#ffffff", prestige: 7, stadium: 7, facilities: 7, collegeLife: 8, marketing: 7, academics: 6, fanbasePassion: "A", fanbaseType: "Southern", enrollment: 31000, nilBudget: 3500000 },
+    { name: "NC State", mascot: "Wolfpack", abbreviation: "NCS", city: "Raleigh", state: "NC", primaryColor: "#cc0000", secondaryColor: "#ffffff", prestige: 6, stadium: 6, facilities: 6, collegeLife: 7, marketing: 6, academics: 7, fanbasePassion: "B", fanbaseType: "Balanced", enrollment: 37000, nilBudget: 2000000 },
+    { name: "UCLA", mascot: "Bruins", abbreviation: "UCLA", city: "Los Angeles", state: "CA", primaryColor: "#2774ae", secondaryColor: "#ffd100", prestige: 7, stadium: 6, facilities: 7, collegeLife: 9, marketing: 8, academics: 9, fanbasePassion: "B", fanbaseType: "Academic Elite", enrollment: 46000, nilBudget: 3000000 },
+    { name: "Wake Forest", mascot: "Demon Deacons", abbreviation: "WAKE", city: "Winston-Salem", state: "NC", primaryColor: "#9e7e38", secondaryColor: "#000000", prestige: 5, stadium: 5, facilities: 6, collegeLife: 7, marketing: 5, academics: 9, fanbasePassion: "C", fanbaseType: "Academic Elite", enrollment: 9000, nilBudget: 1500000 },
+    { name: "Virginia", mascot: "Cavaliers", abbreviation: "UVA", city: "Charlottesville", state: "VA", primaryColor: "#232d4b", secondaryColor: "#f84c1e", prestige: 6, stadium: 6, facilities: 6, collegeLife: 8, marketing: 6, academics: 9, fanbasePassion: "B", fanbaseType: "Academic Elite", enrollment: 26000, nilBudget: 2000000 },
+    { name: "Georgia", mascot: "Bulldogs", abbreviation: "UGA", city: "Athens", state: "GA", primaryColor: "#ba0c2f", secondaryColor: "#000000", prestige: 7, stadium: 7, facilities: 7, collegeLife: 9, marketing: 8, academics: 7, fanbasePassion: "A", fanbaseType: "Southern", enrollment: 40000, nilBudget: 4000000 },
+  ];
+
+  return teams.slice(0, count);
+}
+
+async function generateRecruits(leagueId: string, count: number) {
+  const firstNames = ["Marcus", "Tyler", "Jordan", "Chris", "Devon", "Aaron", "Ryan", "Justin", "Brandon", "Cameron", "Dylan", "Jake", "Austin", "Kyle", "Cole", "Mason", "Logan", "Ethan", "Noah", "Caleb"];
+  const lastNames = ["Johnson", "Williams", "Brown", "Davis", "Miller", "Wilson", "Moore", "Taylor", "Anderson", "Thomas", "Jackson", "White", "Harris", "Martin", "Thompson", "Garcia", "Martinez", "Robinson", "Clark", "Rodriguez"];
+  const positions = ["P", "C", "1B", "2B", "SS", "3B", "LF", "CF", "RF"];
+  const states = ["CA", "TX", "FL", "GA", "NC", "TN", "AZ", "LA", "AL", "SC"];
+  const cities = ["Los Angeles", "Houston", "Miami", "Atlanta", "Charlotte", "Nashville", "Phoenix", "New Orleans", "Birmingham", "Charleston"];
+  const priorities = ["Extremely", "Very", "Somewhat", "Not Important"];
+
+  for (let i = 0; i < count; i++) {
+    const position = positions[Math.floor(Math.random() * positions.length)];
+    const starRank = Math.random() < 0.1 ? 5 : Math.random() < 0.25 ? 4 : Math.random() < 0.5 ? 3 : Math.random() < 0.75 ? 2 : 1;
+    const overall = 60 + starRank * 6 + Math.floor(Math.random() * 10);
+    const stateIdx = Math.floor(Math.random() * states.length);
+
+    await storage.createRecruit({
+      leagueId,
+      firstName: firstNames[Math.floor(Math.random() * firstNames.length)],
+      lastName: lastNames[Math.floor(Math.random() * lastNames.length)],
+      position,
+      homeState: states[stateIdx],
+      hometown: cities[stateIdx],
+      starRank,
+      classRank: i + 1,
+      positionRank: Math.floor(i / positions.length) + 1,
+      recruitType: Math.random() < 0.8 ? "HS" : "JUCO",
+      overall,
+      potential: ["A+", "A", "B+", "B", "C+", "C", "D"][Math.floor(Math.random() * 7)],
+      hitForAvg: 40 + Math.floor(Math.random() * 40),
+      power: 40 + Math.floor(Math.random() * 40),
+      speed: 40 + Math.floor(Math.random() * 40),
+      arm: 40 + Math.floor(Math.random() * 40),
+      fielding: 40 + Math.floor(Math.random() * 40),
+      errorResistance: 40 + Math.floor(Math.random() * 40),
+      velocity: 40 + Math.floor(Math.random() * 40),
+      control: 40 + Math.floor(Math.random() * 40),
+      stamina: 40 + Math.floor(Math.random() * 40),
+      stuff: 40 + Math.floor(Math.random() * 40),
+      proximityPriority: priorities[Math.floor(Math.random() * priorities.length)],
+      reputationPriority: priorities[Math.floor(Math.random() * priorities.length)],
+      playingTimePriority: priorities[Math.floor(Math.random() * priorities.length)],
+      academicsPriority: priorities[Math.floor(Math.random() * priorities.length)],
+      prestigePriority: priorities[Math.floor(Math.random() * priorities.length)],
+      facilitiesPriority: priorities[Math.floor(Math.random() * priorities.length)],
+      commitmentThreshold: 300 + Math.floor(Math.random() * 400),
+    });
+  }
+}
+
+async function generatePlayersForTeam(teamId: string) {
+  const firstNames = ["Marcus", "Tyler", "Jordan", "Chris", "Devon", "Aaron", "Ryan", "Justin", "Brandon", "Cameron", "Dylan", "Jake", "Austin", "Kyle", "Cole", "Mason", "Logan", "Ethan", "Noah", "Caleb"];
+  const lastNames = ["Johnson", "Williams", "Brown", "Davis", "Miller", "Wilson", "Moore", "Taylor", "Anderson", "Thomas", "Jackson", "White", "Harris", "Martin", "Thompson", "Garcia", "Martinez", "Robinson", "Clark", "Rodriguez"];
+  const positions = ["P", "P", "P", "P", "P", "C", "C", "1B", "2B", "SS", "3B", "LF", "CF", "RF", "LF", "RF"];
+  const eligibilities = ["FR", "FR", "SO", "SO", "JR", "JR", "JR", "SR", "SR"];
+  const states = ["CA", "TX", "FL", "GA", "NC"];
+  const cities = ["Los Angeles", "Houston", "Miami", "Atlanta", "Charlotte"];
+
+  for (let i = 0; i < 25; i++) {
+    const position = positions[i % positions.length];
+    const eligibility = eligibilities[Math.floor(Math.random() * eligibilities.length)];
+    const stateIdx = Math.floor(Math.random() * states.length);
+
+    await storage.createPlayer({
+      teamId,
+      firstName: firstNames[Math.floor(Math.random() * firstNames.length)],
+      lastName: lastNames[Math.floor(Math.random() * lastNames.length)],
+      position,
+      eligibility,
+      homeState: states[stateIdx],
+      hometown: cities[stateIdx],
+      jerseyNumber: i + 1,
+      overall: 55 + Math.floor(Math.random() * 35),
+      potential: ["A+", "A", "B+", "B", "C+", "C", "D"][Math.floor(Math.random() * 7)],
+      hitForAvg: 40 + Math.floor(Math.random() * 40),
+      power: 40 + Math.floor(Math.random() * 40),
+      speed: 40 + Math.floor(Math.random() * 40),
+      arm: 40 + Math.floor(Math.random() * 40),
+      fielding: 40 + Math.floor(Math.random() * 40),
+      errorResistance: 40 + Math.floor(Math.random() * 40),
+      velocity: 40 + Math.floor(Math.random() * 40),
+      control: 40 + Math.floor(Math.random() * 40),
+      stamina: 40 + Math.floor(Math.random() * 40),
+      stuff: 40 + Math.floor(Math.random() * 40),
+    });
+  }
 }

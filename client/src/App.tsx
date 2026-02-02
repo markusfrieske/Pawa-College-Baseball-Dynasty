@@ -4,16 +4,62 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
+import LandingPage from "@/pages/landing";
+import AuthPage, { GuestWarningModal } from "@/pages/auth";
+import DashboardPage from "@/pages/dashboard";
+import LeagueCreatePage from "@/pages/league-create";
+import LeagueViewPage from "@/pages/league-view";
+import RecruitingPage from "@/pages/recruiting";
+import TeamViewPage from "@/pages/team-view";
+import SchedulePage from "@/pages/schedule";
+import CommissionerPage from "@/pages/commissioner";
+import RosterPage from "@/pages/roster";
+import LeagueSetupPage from "@/pages/league-setup";
+import { useState } from "react";
+import { useLocation } from "wouter";
 
 function Router() {
   return (
     <Switch>
-      {/* Add pages below */}
-      {/* <Route path="/" component={Home}/> */}
-      {/* Fallback to 404 */}
+      <Route path="/" component={LandingPage} />
+      <Route path="/login">
+        <AuthPage mode="login" />
+      </Route>
+      <Route path="/register">
+        <AuthPage mode="register" />
+      </Route>
+      <Route path="/guest" component={GuestPage} />
+      <Route path="/dashboard" component={DashboardPage} />
+      <Route path="/league/create" component={LeagueCreatePage} />
+      <Route path="/league/:id" component={LeagueViewPage} />
+      <Route path="/league/:id/setup" component={LeagueSetupPage} />
+      <Route path="/league/:id/recruiting" component={RecruitingPage} />
+      <Route path="/league/:id/roster" component={RosterPage} />
+      <Route path="/league/:id/schedule" component={SchedulePage} />
+      <Route path="/league/:id/commissioner" component={CommissionerPage} />
+      <Route path="/league/:id/team/:teamId" component={TeamViewPage} />
       <Route component={NotFound} />
     </Switch>
   );
+}
+
+function GuestPage() {
+  const [, setLocation] = useLocation();
+  const [showWarning, setShowWarning] = useState(true);
+
+  if (showWarning) {
+    return (
+      <GuestWarningModal
+        onBack={() => setLocation("/")}
+        onContinue={() => {
+          setShowWarning(false);
+          setLocation("/dashboard");
+        }}
+      />
+    );
+  }
+
+  return null;
 }
 
 function App() {

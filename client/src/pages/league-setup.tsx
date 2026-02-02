@@ -1,0 +1,391 @@
+import { useState } from "react";
+import { useParams, useLocation } from "wouter";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { RetroButton } from "@/components/ui/retro-button";
+import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
+import { RetroInput } from "@/components/ui/retro-input";
+import { RetroSelect } from "@/components/ui/retro-select";
+import { TeamBadge } from "@/components/ui/team-badge";
+import { CoachAvatar } from "@/components/coach-avatar";
+import { AttributeSlider } from "@/components/ui/attribute-slider";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { Star, ArrowRight, ArrowLeft } from "lucide-react";
+import type { Team, Coach } from "@shared/schema";
+
+interface SetupData {
+  teams: Team[];
+  selectedTeam?: Team;
+  coach?: Coach;
+}
+
+const archetypeOptions = [
+  { value: "Balanced", label: "Balanced - Well-rounded approach" },
+  { value: "Pure CEO", label: "Pure CEO - Recruiting focused" },
+  { value: "Player's Coach", label: "Player's Coach - Development focused" },
+  { value: "Tactician", label: "Tactician - In-game strategy" },
+  { value: "Old School", label: "Old School - Fundamentals first" },
+];
+
+const skinToneOptions = [
+  { value: "light", label: "Light" },
+  { value: "medium", label: "Medium" },
+  { value: "tan", label: "Tan" },
+  { value: "dark", label: "Dark" },
+  { value: "deep", label: "Deep" },
+];
+
+const hairColorOptions = [
+  { value: "black", label: "Black" },
+  { value: "brown", label: "Brown" },
+  { value: "blonde", label: "Blonde" },
+  { value: "red", label: "Red" },
+  { value: "gray", label: "Gray" },
+  { value: "white", label: "White" },
+];
+
+const hairStyleOptions = [
+  { value: "short", label: "Short" },
+  { value: "medium", label: "Medium" },
+  { value: "long", label: "Long" },
+  { value: "bald", label: "Bald" },
+];
+
+export default function LeagueSetupPage() {
+  const { id } = useParams<{ id: string }>();
+  const [, setLocation] = useLocation();
+  const [step, setStep] = useState<"team" | "coach">("team");
+  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const [coachData, setCoachData] = useState({
+    firstName: "",
+    lastName: "",
+    archetype: "Balanced",
+    skinTone: "light",
+    hairColor: "brown",
+    hairStyle: "short",
+  });
+
+  const { data, isLoading } = useQuery<SetupData>({
+    queryKey: ["/api/leagues", id, "setup"],
+  });
+
+  const setupMutation = useMutation({
+    mutationFn: async (payload: { teamId: string; coach: typeof coachData }) => {
+      return apiRequest("POST", `/api/leagues/${id}/setup`, payload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues"] });
+      toast({ title: "Setup Complete!", description: "Welcome to your dynasty!" });
+      setLocation(`/league/${id}`);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  if (isLoading) {
+    return <SetupSkeleton />;
+  }
+
+  const selectedTeam = data?.teams.find(t => t.id === selectedTeamId);
+
+  const handleComplete = () => {
+    if (!selectedTeamId || !coachData.firstName || !coachData.lastName) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setupMutation.mutate({ teamId: selectedTeamId, coach: coachData });
+  };
+
+  return (
+    <div className="min-h-screen bg-background p-4">
+      <div className="container mx-auto max-w-4xl">
+        <div className="text-center mb-8">
+          <div className="flex justify-center gap-1 mb-4">
+            <Star className="w-5 h-5 text-gold fill-gold" />
+            <Star className="w-5 h-5 text-gold fill-gold" />
+          </div>
+          <h1 className="font-pixel text-gold text-xl mb-2">
+            {step === "team" ? "Select Your Team" : "Create Your Coach"}
+          </h1>
+          <div className="flex justify-center gap-1 mt-4">
+            <Star className="w-5 h-5 text-gold fill-gold" />
+            <Star className="w-5 h-5 text-gold fill-gold" />
+          </div>
+        </div>
+
+        <div className="flex justify-center gap-4 mb-8">
+          <StepIndicator step={1} label="Team" active={step === "team"} completed={step === "coach"} />
+          <div className="w-8 h-0.5 bg-border self-center" />
+          <StepIndicator step={2} label="Coach" active={step === "coach"} completed={false} />
+        </div>
+
+        {step === "team" ? (
+          <TeamSelectionStep
+            teams={data?.teams || []}
+            selectedTeamId={selectedTeamId}
+            onSelect={setSelectedTeamId}
+            onNext={() => {
+              if (selectedTeamId) setStep("coach");
+              else toast({ title: "Select a team", variant: "destructive" });
+            }}
+          />
+        ) : (
+          <CoachCreationStep
+            selectedTeam={selectedTeam!}
+            coachData={coachData}
+            setCoachData={setCoachData}
+            onBack={() => setStep("team")}
+            onComplete={handleComplete}
+            isPending={setupMutation.isPending}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function StepIndicator({ 
+  step, 
+  label, 
+  active, 
+  completed 
+}: { 
+  step: number; 
+  label: string; 
+  active: boolean; 
+  completed: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <div
+        className={`w-8 h-8 rounded-full flex items-center justify-center font-pixel text-xs
+          ${active ? "bg-gold text-navy-dark" : completed ? "bg-green-500 text-white" : "bg-muted text-muted-foreground"}`}
+      >
+        {step}
+      </div>
+      <span className={`font-pixel text-[10px] ${active ? "text-gold" : "text-muted-foreground"}`}>
+        {label}
+      </span>
+    </div>
+  );
+}
+
+function TeamSelectionStep({
+  teams,
+  selectedTeamId,
+  onSelect,
+  onNext,
+}: {
+  teams: Team[];
+  selectedTeamId: string | null;
+  onSelect: (id: string) => void;
+  onNext: () => void;
+}) {
+  const availableTeams = teams.filter(t => !t.coachId);
+
+  return (
+    <div className="space-y-6">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {availableTeams.map((team) => (
+          <button
+            key={team.id}
+            onClick={() => onSelect(team.id)}
+            className={`text-left p-4 rounded border-2 transition-all ${
+              selectedTeamId === team.id
+                ? "border-gold bg-gold/10"
+                : "border-border hover:border-gold/50"
+            }`}
+            data-testid={`button-team-${team.id}`}
+          >
+            <div className="flex items-center gap-4 mb-3">
+              <TeamBadge
+                abbreviation={team.abbreviation}
+                primaryColor={team.primaryColor}
+                secondaryColor={team.secondaryColor}
+              />
+              <div>
+                <p className="font-medium">{team.name}</p>
+                <p className="text-sm text-muted-foreground">{team.mascot}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-center text-xs">
+              <div>
+                <p className="text-gold font-bold">{team.prestige}</p>
+                <p className="text-muted-foreground">Prestige</p>
+              </div>
+              <div>
+                <p className="font-bold">{team.facilities}</p>
+                <p className="text-muted-foreground">Facilities</p>
+              </div>
+              <div>
+                <p className="font-bold">{team.academics}</p>
+                <p className="text-muted-foreground">Academics</p>
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      {availableTeams.length === 0 && (
+        <RetroCard variant="bordered" className="text-center py-12">
+          <p className="text-muted-foreground">No available teams</p>
+        </RetroCard>
+      )}
+
+      <div className="flex justify-end">
+        <RetroButton onClick={onNext} disabled={!selectedTeamId} data-testid="button-next-step">
+          Next: Create Coach
+          <ArrowRight className="w-4 h-4 ml-2" />
+        </RetroButton>
+      </div>
+    </div>
+  );
+}
+
+function CoachCreationStep({
+  selectedTeam,
+  coachData,
+  setCoachData,
+  onBack,
+  onComplete,
+  isPending,
+}: {
+  selectedTeam: Team;
+  coachData: {
+    firstName: string;
+    lastName: string;
+    archetype: string;
+    skinTone: string;
+    hairColor: string;
+    hairStyle: string;
+  };
+  setCoachData: React.Dispatch<React.SetStateAction<typeof coachData>>;
+  onBack: () => void;
+  onComplete: () => void;
+  isPending: boolean;
+}) {
+  return (
+    <div className="grid lg:grid-cols-3 gap-6">
+      <div className="lg:col-span-2 space-y-6">
+        <RetroCard>
+          <RetroCardHeader>Coach Details</RetroCardHeader>
+          <RetroCardContent>
+            <div className="grid sm:grid-cols-2 gap-4 mb-6">
+              <RetroInput
+                label="First Name"
+                value={coachData.firstName}
+                onChange={(e) => setCoachData(prev => ({ ...prev, firstName: e.target.value }))}
+                placeholder="Enter first name"
+                data-testid="input-first-name"
+              />
+              <RetroInput
+                label="Last Name"
+                value={coachData.lastName}
+                onChange={(e) => setCoachData(prev => ({ ...prev, lastName: e.target.value }))}
+                placeholder="Enter last name"
+                data-testid="input-last-name"
+              />
+            </div>
+
+            <RetroSelect
+              label="Coach Archetype"
+              options={archetypeOptions}
+              value={coachData.archetype}
+              onChange={(e) => setCoachData(prev => ({ ...prev, archetype: e.target.value }))}
+              data-testid="select-archetype"
+            />
+          </RetroCardContent>
+        </RetroCard>
+
+        <RetroCard>
+          <RetroCardHeader>Appearance</RetroCardHeader>
+          <RetroCardContent>
+            <div className="grid sm:grid-cols-3 gap-4">
+              <RetroSelect
+                label="Skin Tone"
+                options={skinToneOptions}
+                value={coachData.skinTone}
+                onChange={(e) => setCoachData(prev => ({ ...prev, skinTone: e.target.value }))}
+                data-testid="select-skin-tone"
+              />
+              <RetroSelect
+                label="Hair Color"
+                options={hairColorOptions}
+                value={coachData.hairColor}
+                onChange={(e) => setCoachData(prev => ({ ...prev, hairColor: e.target.value }))}
+                data-testid="select-hair-color"
+              />
+              <RetroSelect
+                label="Hair Style"
+                options={hairStyleOptions}
+                value={coachData.hairStyle}
+                onChange={(e) => setCoachData(prev => ({ ...prev, hairStyle: e.target.value }))}
+                data-testid="select-hair-style"
+              />
+            </div>
+          </RetroCardContent>
+        </RetroCard>
+      </div>
+
+      <div className="space-y-6">
+        <RetroCard className="text-center">
+          <RetroCardHeader>Preview</RetroCardHeader>
+          <CoachAvatar
+            skinTone={coachData.skinTone}
+            hairColor={coachData.hairColor}
+            hairStyle={coachData.hairStyle}
+            size="lg"
+            className="mx-auto mb-4"
+          />
+          <p className="font-medium text-foreground mb-1">
+            HC {coachData.firstName || "First"} {coachData.lastName || "Last"}
+          </p>
+          <p className="text-sm text-muted-foreground mb-3">{coachData.archetype}</p>
+          <div className="flex items-center justify-center gap-2">
+            <TeamBadge
+              abbreviation={selectedTeam.abbreviation}
+              primaryColor={selectedTeam.primaryColor}
+              secondaryColor={selectedTeam.secondaryColor}
+              size="sm"
+            />
+            <span className="text-sm">{selectedTeam.name}</span>
+          </div>
+        </RetroCard>
+
+        <div className="flex gap-3">
+          <RetroButton variant="outline" onClick={onBack} className="flex-1">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </RetroButton>
+          <RetroButton onClick={onComplete} disabled={isPending} className="flex-1" data-testid="button-complete-setup">
+            {isPending ? "..." : "Start Dynasty"}
+          </RetroButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SetupSkeleton() {
+  return (
+    <div className="min-h-screen bg-background p-4">
+      <div className="container mx-auto max-w-4xl">
+        <Skeleton className="h-8 w-48 mx-auto mb-8" />
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Skeleton key={i} className="h-40" />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
