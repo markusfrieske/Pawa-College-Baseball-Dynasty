@@ -9,7 +9,7 @@ export default function LandingPage() {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gold rounded-full flex items-center justify-center">
-              <span className="text-navy-dark font-pixel text-xs">CBD</span>
+              <span className="text-forest-dark font-pixel text-xs">CBD</span>
             </div>
             <span className="font-pixel text-gold text-sm hidden sm:block">
               College Baseball Dynasty

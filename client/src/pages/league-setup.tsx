@@ -168,7 +168,7 @@ function StepIndicator({
     <div className="flex items-center gap-2">
       <div
         className={`w-8 h-8 rounded-full flex items-center justify-center font-pixel text-xs
-          ${active ? "bg-gold text-navy-dark" : completed ? "bg-green-500 text-white" : "bg-muted text-muted-foreground"}`}
+          ${active ? "bg-gold text-forest-dark" : completed ? "bg-green-500 text-white" : "bg-muted text-muted-foreground"}`}
       >
         {step}
       </div>

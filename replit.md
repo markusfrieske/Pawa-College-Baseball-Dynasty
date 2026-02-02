@@ -1,7 +1,7 @@
 # College Baseball Dynasty
 
 ## Overview
-A league-first, story-driven college baseball dynasty simulator where human coaches compete in recruiting, roster management, and long-term program building. Built with a retro pixel art aesthetic using Press Start 2P font and dark navy/gold color scheme.
+A league-first, story-driven college baseball dynasty simulator where human coaches compete in recruiting, roster management, and long-term program building. Built with a retro pixel art aesthetic using Press Start 2P font and dark forest green/gold color scheme.
 
 ## Tech Stack
 - **Frontend**: React + TypeScript + Vite + Tailwind CSS + shadcn/ui
@@ -119,10 +119,11 @@ Core tables:
 ## Design System
 
 ### Colors
-- **Background**: Navy dark (#0a1628)
-- **Primary/Accent**: Gold (#FFD700)
-- **Card**: Navy light (#152238)
-- **Border**: Navy border (#1e3a5f)
+- **Background**: Dark forest green (#1a2b1a)
+- **Primary/Accent**: Gold (#C4A35A)
+- **Card**: Forest light (#243524)
+- **Border**: Forest border (#2d3d2d)
+- **Foreground**: White for body text, Gold for headings
 
 ### Typography
 - **Headlines**: Press Start 2P (pixel font)

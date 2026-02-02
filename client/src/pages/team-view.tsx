@@ -83,13 +83,13 @@ export default function TeamViewPage() {
       <main className="container mx-auto px-4 py-6">
         <Tabs defaultValue="overview" className="space-y-6">
           <TabsList className="bg-card border border-border">
-            <TabsTrigger value="overview" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-navy-dark">
+            <TabsTrigger value="overview" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
               Overview
             </TabsTrigger>
-            <TabsTrigger value="roster" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-navy-dark">
+            <TabsTrigger value="roster" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
               Roster
             </TabsTrigger>
-            <TabsTrigger value="facilities" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-navy-dark">
+            <TabsTrigger value="facilities" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
               Facilities
             </TabsTrigger>
           </TabsList>

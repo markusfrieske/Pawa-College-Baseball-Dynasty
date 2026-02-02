@@ -114,13 +114,13 @@ export default function LeagueViewPage() {
 
         <Tabs defaultValue="standings" className="space-y-4">
           <TabsList className="bg-card border border-border">
-            <TabsTrigger value="standings" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-navy-dark">
+            <TabsTrigger value="standings" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
               Standings
             </TabsTrigger>
-            <TabsTrigger value="teams" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-navy-dark">
+            <TabsTrigger value="teams" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
               Teams
             </TabsTrigger>
-            <TabsTrigger value="rankings" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-navy-dark">
+            <TabsTrigger value="rankings" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
               Rankings
             </TabsTrigger>
           </TabsList>

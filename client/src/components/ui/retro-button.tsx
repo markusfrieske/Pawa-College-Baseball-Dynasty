@@ -11,7 +11,7 @@ export const RetroButton = forwardRef<HTMLButtonElement, RetroButtonProps>(
     const baseStyles = "font-pixel uppercase tracking-wider transition-all duration-150 border-2 disabled:opacity-50 disabled:cursor-not-allowed";
     
     const variants = {
-      primary: "bg-gold text-navy-dark border-gold-dark hover:bg-yellow-400 active:translate-y-0.5",
+      primary: "bg-gold text-forest-dark border-gold-dark hover:bg-gold/80 active:translate-y-0.5",
       secondary: "bg-secondary text-secondary-foreground border-border hover:bg-secondary/80 active:translate-y-0.5",
       outline: "bg-transparent text-gold border-gold hover:bg-gold/10 active:translate-y-0.5",
       destructive: "bg-red-600 text-white border-red-800 hover:bg-red-500 active:translate-y-0.5",

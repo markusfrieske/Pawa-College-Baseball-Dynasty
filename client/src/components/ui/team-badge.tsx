@@ -31,7 +31,7 @@ export function TeamBadge({
       style={{
         backgroundColor: primaryColor,
         borderColor: secondaryColor || primaryColor,
-        color: isLightColor(primaryColor) ? "#0a1628" : "#ffffff",
+        color: isLightColor(primaryColor) ? "#1a2b1a" : "#ffffff",
       }}
     >
       {abbreviation}

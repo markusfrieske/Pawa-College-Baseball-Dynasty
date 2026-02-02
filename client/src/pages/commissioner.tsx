@@ -133,13 +133,13 @@ export default function CommissionerPage() {
 
         <Tabs defaultValue="actions" className="space-y-6">
           <TabsList className="bg-card border border-border">
-            <TabsTrigger value="actions" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-navy-dark">
+            <TabsTrigger value="actions" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
               Actions
             </TabsTrigger>
-            <TabsTrigger value="settings" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-navy-dark">
+            <TabsTrigger value="settings" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
               Settings
             </TabsTrigger>
-            <TabsTrigger value="audit" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-navy-dark">
+            <TabsTrigger value="audit" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
               Audit Log
             </TabsTrigger>
           </TabsList>

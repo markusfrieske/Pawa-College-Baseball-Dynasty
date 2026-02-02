@@ -80,12 +80,12 @@ export default {
           busy: "rgb(239 68 68)",
           offline: "rgb(156 163 175)",
         },
-        gold: "#FFD700",
-        "gold-dark": "#B8860B",
-        navy: {
-          DEFAULT: "#0a1628",
-          light: "#152238",
-          dark: "#050d18",
+        gold: "#C4A35A",
+        "gold-dark": "#9A7B3A",
+        forest: {
+          DEFAULT: "#1a2b1a",
+          light: "#243524",
+          dark: "#0f1a0f",
         },
         star: {
           1: "#6B7280",

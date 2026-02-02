@@ -64,7 +64,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
           <Link href="/">
             <div className="inline-flex items-center gap-3 cursor-pointer">
               <div className="w-12 h-12 bg-gold rounded-full flex items-center justify-center">
-                <span className="text-navy-dark font-pixel text-sm">CBD</span>
+                <span className="text-forest-dark font-pixel text-sm">CBD</span>
               </div>
             </div>
           </Link>
