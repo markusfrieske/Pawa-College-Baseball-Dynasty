@@ -121,7 +121,9 @@ export async function registerRoutes(
   });
 
   app.get("/api/auth/me", (req, res) => {
-    if (req.session.userId) {
+    if (req.session.isGuest) {
+      res.json({ id: req.session.userId || "guest", email: "guest@guest.com" });
+    } else if (req.session.userId) {
       storage.getUser(req.session.userId).then((user) => {
         if (user) {
           res.json({ id: user.id, email: user.email });
@@ -129,17 +131,36 @@ export async function registerRoutes(
           res.status(401).json({ message: "Not authenticated" });
         }
       });
-    } else if (req.session.isGuest) {
-      res.json({ id: "guest", email: "guest@guest.com" });
     } else {
       res.status(401).json({ message: "Not authenticated" });
     }
   });
 
-  app.post("/api/auth/guest", (req, res) => {
-    req.session.isGuest = true;
-    req.session.userId = `guest-${randomUUID()}`;
-    res.json({ id: req.session.userId, email: "guest@guest.com" });
+  app.post("/api/auth/guest", async (req, res) => {
+    try {
+      const guestId = `guest-${randomUUID()}`;
+      const guestEmail = `guest-${randomUUID()}@guest.local`;
+      
+      // Create a temporary guest user in the database to satisfy foreign key constraints
+      await storage.createUser({ 
+        id: guestId,
+        email: guestEmail, 
+        password: randomUUID() // Random password, not used for guest auth
+      });
+      
+      req.session.isGuest = true;
+      req.session.userId = guestId;
+      req.session.save((err) => {
+        if (err) {
+          console.error("Session save error:", err);
+          return res.status(500).json({ message: "Failed to create guest session" });
+        }
+        res.json({ id: guestId, email: guestEmail });
+      });
+    } catch (error) {
+      console.error("Guest creation error:", error);
+      res.status(500).json({ message: "Failed to create guest session" });
+    }
   });
 
   app.post("/api/auth/logout", (req, res) => {

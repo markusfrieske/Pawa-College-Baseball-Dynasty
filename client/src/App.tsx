@@ -46,15 +46,34 @@ function Router() {
 function GuestPage() {
   const [, setLocation] = useLocation();
   const [showWarning, setShowWarning] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleContinueAsGuest = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/auth/guest", {
+        method: "POST",
+        credentials: "include",
+      });
+      if (res.ok) {
+        setShowWarning(false);
+        setLocation("/dashboard");
+      } else {
+        console.error("Failed to create guest session");
+      }
+    } catch (error) {
+      console.error("Guest login error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   if (showWarning) {
     return (
       <GuestWarningModal
         onBack={() => setLocation("/")}
-        onContinue={() => {
-          setShowWarning(false);
-          setLocation("/dashboard");
-        }}
+        onContinue={handleContinueAsGuest}
+        isLoading={isLoading}
       />
     );
   }

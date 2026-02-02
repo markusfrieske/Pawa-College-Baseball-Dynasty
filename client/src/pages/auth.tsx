@@ -152,7 +152,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
   );
 }
 
-export function GuestWarningModal({ onContinue, onBack }: { onContinue: () => void; onBack: () => void }) {
+export function GuestWarningModal({ onContinue, onBack, isLoading }: { onContinue: () => void; onBack: () => void; isLoading?: boolean }) {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <RetroCard variant="bordered" className="max-w-md">
@@ -164,11 +164,11 @@ export function GuestWarningModal({ onContinue, onBack }: { onContinue: () => vo
           Playing as a guest means your leagues will NOT be saved. When you leave or refresh the page, all progress will be lost. Sign in to save your leagues permanently.
         </p>
         <div className="flex gap-3">
-          <RetroButton variant="outline" onClick={onBack} className="flex-1" data-testid="button-go-back">
+          <RetroButton variant="outline" onClick={onBack} className="flex-1" data-testid="button-go-back" disabled={isLoading}>
             Go Back
           </RetroButton>
-          <RetroButton onClick={onContinue} className="flex-1" data-testid="button-continue-guest">
-            Continue as Guest
+          <RetroButton onClick={onContinue} className="flex-1" data-testid="button-continue-guest" disabled={isLoading}>
+            {isLoading ? "Loading..." : "Continue as Guest"}
           </RetroButton>
         </div>
       </RetroCard>

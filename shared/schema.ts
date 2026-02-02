@@ -11,8 +11,11 @@ export const users = pgTable("users", {
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
+  id: true,
   email: true,
   password: true,
+}).extend({
+  id: z.string().optional(), // Allow optional id for guest user creation
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
