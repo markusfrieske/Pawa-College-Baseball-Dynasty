@@ -689,12 +689,14 @@ export async function registerRoutes(
       const auditLogsData = await storage.getAuditLogsByLeague(league.id);
       const leagueTeams = await storage.getTeamsByLeague(league.id);
       const humanTeams = leagueTeams.filter(t => !t.isCpu);
+      const invites = await storage.getLeagueInvitesByLeague(league.id);
 
       res.json({
         league,
         auditLogs: auditLogsData,
         readyCoaches: [],
         totalCoaches: humanTeams.length,
+        invites,
       });
     } catch (error) {
       console.error("Failed to fetch commissioner data:", error);
@@ -768,6 +770,183 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to update settings:", error);
       res.status(500).json({ message: "Failed to update settings" });
+    }
+  });
+
+  // League invite routes
+  app.post("/api/leagues/:id/invites", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id);
+      if (!league) {
+        return res.status(404).json({ message: "League not found" });
+      }
+      
+      if (league.commissionerId !== req.session.userId) {
+        return res.status(403).json({ message: "Only the commissioner can send invites" });
+      }
+
+      const { email } = req.body;
+      if (!email || typeof email !== "string") {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      // Check if invite already exists for this email in this league
+      const existingInvite = await storage.getLeagueInviteByEmail(league.id, email);
+      if (existingInvite) {
+        return res.status(400).json({ message: "An invite has already been sent to this email" });
+      }
+
+      // Generate unique invite code with retry for collisions
+      let inviteCode: string;
+      let attempts = 0;
+      do {
+        inviteCode = crypto.randomUUID().replace(/-/g, '').substring(0, 12).toUpperCase();
+        const existing = await storage.getLeagueInviteByCode(inviteCode);
+        if (!existing) break;
+        attempts++;
+      } while (attempts < 5);
+      
+      if (attempts >= 5) {
+        return res.status(500).json({ message: "Failed to generate unique invite code" });
+      }
+
+      const invite = await storage.createLeagueInvite({
+        leagueId: league.id,
+        email,
+        inviteCode,
+        invitedById: req.session.userId!,
+      });
+
+      await storage.createAuditLog({
+        leagueId: league.id,
+        userId: req.session.userId,
+        action: "Invite Sent",
+        details: `Sent invite to ${email}`,
+      });
+
+      res.json(invite);
+    } catch (error) {
+      console.error("Failed to create invite:", error);
+      res.status(500).json({ message: "Failed to create invite" });
+    }
+  });
+
+  app.get("/api/invites/:code", async (req, res) => {
+    try {
+      const invite = await storage.getLeagueInviteByCode(req.params.code);
+      if (!invite) {
+        return res.status(404).json({ message: "Invite not found" });
+      }
+      
+      if (invite.status !== "pending") {
+        return res.status(400).json({ message: "This invite has already been used or expired" });
+      }
+
+      const league = await storage.getLeague(invite.leagueId);
+      const teams = await storage.getTeamsByLeague(invite.leagueId);
+      const availableTeams = teams.filter(t => t.isCpu); // Only show CPU teams as available
+
+      res.json({
+        invite,
+        league,
+        availableTeams,
+      });
+    } catch (error) {
+      console.error("Failed to fetch invite:", error);
+      res.status(500).json({ message: "Failed to fetch invite" });
+    }
+  });
+
+  app.post("/api/invites/:code/accept", requireAuth, async (req, res) => {
+    try {
+      const invite = await storage.getLeagueInviteByCode(req.params.code);
+      if (!invite) {
+        return res.status(404).json({ message: "Invite not found" });
+      }
+
+      if (invite.status !== "pending") {
+        return res.status(400).json({ message: "This invite has already been used or expired" });
+      }
+
+      // Verify user email matches invite email
+      const user = await storage.getUser(req.session.userId!);
+      if (!user || user.email.toLowerCase() !== invite.email.toLowerCase()) {
+        return res.status(403).json({ 
+          message: "This invite was sent to a different email address. Please log in with the email that received the invite." 
+        });
+      }
+
+      const { teamId, coachData } = req.body;
+      if (!teamId) {
+        return res.status(400).json({ message: "Team selection is required" });
+      }
+
+      // Check if team is still available (CPU team)
+      const team = await storage.getTeam(teamId);
+      if (!team || !team.isCpu) {
+        return res.status(400).json({ message: "This team is not available" });
+      }
+
+      // Verify team belongs to this league
+      if (team.leagueId !== invite.leagueId) {
+        return res.status(400).json({ message: "Invalid team selection" });
+      }
+
+      // Create a coach for the user if coach data is provided
+      let coachId = null;
+      if (coachData) {
+        const coach = await storage.createCoach({
+          name: coachData.name || user.username || "Coach",
+          teamId,
+          archetype: coachData.archetype || "balanced",
+          userId: req.session.userId!,
+          offenseSkill: 50,
+          defenseSkill: 50,
+          trainingSkill: 50,
+          recruitingSkill: 50,
+          appearance: coachData.appearance || {},
+        });
+        coachId = coach.id;
+      } else {
+        // Create default coach if no data provided
+        const coach = await storage.createCoach({
+          name: user.username || "Coach",
+          teamId,
+          archetype: "balanced",
+          userId: req.session.userId!,
+          offenseSkill: 50,
+          defenseSkill: 50,
+          trainingSkill: 50,
+          recruitingSkill: 50,
+          appearance: {},
+        });
+        coachId = coach.id;
+      }
+
+      // Update the invite
+      await storage.updateLeagueInvite(invite.id, {
+        status: "accepted",
+        teamId,
+        acceptedById: req.session.userId,
+      });
+
+      // Mark the team as human-controlled and assign coach
+      await storage.updateTeam(teamId, {
+        isCpu: false,
+        coachId,
+      });
+
+      await storage.createAuditLog({
+        leagueId: invite.leagueId,
+        userId: req.session.userId,
+        action: "Invite Accepted",
+        details: `${invite.email} joined the league and selected ${team.name}`,
+      });
+
+      res.json({ success: true, leagueId: invite.leagueId, teamId });
+    } catch (error) {
+      console.error("Failed to accept invite:", error);
+      res.status(500).json({ message: "Failed to accept invite" });
     }
   });
 

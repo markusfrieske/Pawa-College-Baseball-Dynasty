@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
+import { RetroInput } from "@/components/ui/retro-input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
@@ -15,17 +16,22 @@ import {
   Users, 
   AlertTriangle,
   ChevronRight,
-  Clock
+  Clock,
+  Mail,
+  UserPlus,
+  Check,
+  Copy
 } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { League, AuditLog } from "@shared/schema";
+import type { League, AuditLog, LeagueInvite } from "@shared/schema";
 
 interface CommissionerData {
   league: League;
   auditLogs: AuditLog[];
   readyCoaches: string[];
   totalCoaches: number;
+  invites: LeagueInvite[];
 }
 
 export default function CommissionerPage() {
@@ -160,6 +166,9 @@ export default function CommissionerPage() {
             <TabsTrigger value="audit" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
               Audit Log
             </TabsTrigger>
+            <TabsTrigger value="invites" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
+              Invites
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="actions">
@@ -181,6 +190,10 @@ export default function CommissionerPage() {
 
           <TabsContent value="audit">
             <AuditLogTab logs={data?.auditLogs || []} />
+          </TabsContent>
+
+          <TabsContent value="invites">
+            <InvitesTab leagueId={id!} invites={data?.invites || []} />
           </TabsContent>
         </Tabs>
       </main>
@@ -406,6 +419,133 @@ function AuditLogTab({ logs }: { logs: AuditLog[] }) {
         )}
       </div>
     </RetroCard>
+  );
+}
+
+function InvitesTab({ leagueId, invites }: { leagueId: string; invites: LeagueInvite[] }) {
+  const [email, setEmail] = useState("");
+  const [copied, setCopied] = useState<string | null>(null);
+  const { toast } = useToast();
+  const qc = useQueryClient();
+
+  const sendInviteMutation = useMutation({
+    mutationFn: async (email: string) => {
+      const res = await apiRequest("POST", `/api/leagues/${leagueId}/invites`, { email });
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "commissioner"] });
+      setEmail("");
+      toast({ title: "Invite Created", description: "Invite link generated successfully." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const copyInviteLink = (code: string) => {
+    const link = `${window.location.origin}/invite/${code}`;
+    navigator.clipboard.writeText(link);
+    setCopied(code);
+    setTimeout(() => setCopied(null), 2000);
+    toast({ title: "Link Copied", description: "Invite link copied to clipboard." });
+  };
+
+  const statusBadge = (status: string) => {
+    switch (status) {
+      case "pending":
+        return <Badge variant="outline" className="text-yellow-400 border-yellow-400/50">Pending</Badge>;
+      case "accepted":
+        return <Badge variant="outline" className="text-green-400 border-green-400/50">Accepted</Badge>;
+      case "expired":
+        return <Badge variant="outline" className="text-red-400 border-red-400/50">Expired</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <RetroCard>
+        <RetroCardHeader>
+          <div className="flex items-center gap-2">
+            <UserPlus className="w-4 h-4 text-gold" />
+            <span>Send New Invite</span>
+          </div>
+        </RetroCardHeader>
+        <RetroCardContent>
+          <p className="text-muted-foreground mb-4">
+            Invite a friend to join your league. They will receive a unique link to select an available CPU team.
+          </p>
+          <div className="flex gap-3">
+            <RetroInput
+              type="email"
+              placeholder="friend@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="flex-1"
+              data-testid="input-invite-email"
+            />
+            <RetroButton
+              onClick={() => sendInviteMutation.mutate(email)}
+              disabled={!email || sendInviteMutation.isPending}
+              data-testid="button-send-invite"
+            >
+              <Mail className="w-4 h-4 mr-2" />
+              {sendInviteMutation.isPending ? "Sending..." : "Send Invite"}
+            </RetroButton>
+          </div>
+        </RetroCardContent>
+      </RetroCard>
+
+      <RetroCard>
+        <RetroCardHeader className="flex items-center justify-between gap-4">
+          <span>Sent Invites</span>
+          <Badge variant="outline" className="text-[8px]">{invites.length} invites</Badge>
+        </RetroCardHeader>
+
+        <div className="space-y-3 max-h-96 overflow-y-auto">
+          {invites.map((invite) => (
+            <div key={invite.id} className="flex items-center justify-between gap-3 p-3 bg-muted/30 rounded">
+              <div className="flex items-center gap-3 flex-1">
+                <Mail className="w-4 h-4 text-muted-foreground" />
+                <div className="flex-1">
+                  <p className="text-sm">{invite.email}</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Code: {invite.inviteCode} | Created: {new Date(invite.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                {statusBadge(invite.status)}
+                {invite.status === "pending" && (
+                  <RetroButton
+                    variant="outline"
+                    size="sm"
+                    onClick={() => copyInviteLink(invite.inviteCode)}
+                    data-testid={`button-copy-invite-${invite.inviteCode}`}
+                  >
+                    {copied === invite.inviteCode ? (
+                      <Check className="w-4 h-4 text-green-400" />
+                    ) : (
+                      <Copy className="w-4 h-4" />
+                    )}
+                  </RetroButton>
+                )}
+              </div>
+            </div>
+          ))}
+
+          {invites.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              <UserPlus className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>No invites sent yet</p>
+              <p className="text-sm mt-2">Use the form above to invite friends to your league</p>
+            </div>
+          )}
+        </div>
+      </RetroCard>
+    </div>
   );
 }
 

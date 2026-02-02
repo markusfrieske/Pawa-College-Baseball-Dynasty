@@ -36,7 +36,7 @@ export default function LandingPage() {
               <span className="text-forest-dark font-pixel text-xs">CBD</span>
             </div>
             <span className="font-pixel text-gold text-sm hidden sm:block">
-              College Baseball Dynasty
+              パワプロ College Baseball Dynasty
             </span>
           </div>
           
@@ -213,7 +213,7 @@ export default function LandingPage() {
 
       <footer className="border-t border-border py-8 px-4">
         <div className="container mx-auto text-center text-muted-foreground text-sm">
-          <p className="font-pixel text-[10px] mb-2">College Baseball Dynasty</p>
+          <p className="font-pixel text-[10px] mb-2">パワプロ College Baseball Dynasty</p>
           <p>A league-first dynasty simulator</p>
         </div>
       </footer>

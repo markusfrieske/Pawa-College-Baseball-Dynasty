@@ -1,6 +1,6 @@
 import {
   users, leagues, conferences, teams, coaches, scouts,
-  players, recruits, recruitingInterests, games, standings, auditLogs,
+  players, recruits, recruitingInterests, games, standings, auditLogs, leagueInvites,
   type User, type InsertUser,
   type League, type InsertLeague,
   type Conference, type InsertConference,
@@ -13,6 +13,7 @@ import {
   type Game, type InsertGame,
   type Standings, type InsertStandings,
   type AuditLog, type InsertAuditLog,
+  type LeagueInvite, type InsertLeagueInvite,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc } from "drizzle-orm";
@@ -67,6 +68,12 @@ export interface IStorage {
 
   getAuditLogsByLeague(leagueId: string): Promise<AuditLog[]>;
   createAuditLog(log: InsertAuditLog): Promise<AuditLog>;
+
+  getLeagueInvitesByLeague(leagueId: string): Promise<LeagueInvite[]>;
+  getLeagueInviteByCode(inviteCode: string): Promise<LeagueInvite | undefined>;
+  getLeagueInviteByEmail(leagueId: string, email: string): Promise<LeagueInvite | undefined>;
+  createLeagueInvite(invite: InsertLeagueInvite): Promise<LeagueInvite>;
+  updateLeagueInvite(id: string, data: Partial<LeagueInvite>): Promise<LeagueInvite | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -257,6 +264,34 @@ export class DatabaseStorage implements IStorage {
   async createAuditLog(insertLog: InsertAuditLog): Promise<AuditLog> {
     const [log] = await db.insert(auditLogs).values(insertLog).returning();
     return log;
+  }
+
+  async getLeagueInvitesByLeague(leagueId: string): Promise<LeagueInvite[]> {
+    return await db.select().from(leagueInvites)
+      .where(eq(leagueInvites.leagueId, leagueId))
+      .orderBy(desc(leagueInvites.createdAt));
+  }
+
+  async getLeagueInviteByCode(inviteCode: string): Promise<LeagueInvite | undefined> {
+    const [invite] = await db.select().from(leagueInvites)
+      .where(eq(leagueInvites.inviteCode, inviteCode));
+    return invite || undefined;
+  }
+
+  async getLeagueInviteByEmail(leagueId: string, email: string): Promise<LeagueInvite | undefined> {
+    const [invite] = await db.select().from(leagueInvites)
+      .where(and(eq(leagueInvites.leagueId, leagueId), eq(leagueInvites.email, email)));
+    return invite || undefined;
+  }
+
+  async createLeagueInvite(insertInvite: InsertLeagueInvite): Promise<LeagueInvite> {
+    const [invite] = await db.insert(leagueInvites).values(insertInvite).returning();
+    return invite;
+  }
+
+  async updateLeagueInvite(id: string, data: Partial<LeagueInvite>): Promise<LeagueInvite | undefined> {
+    const [invite] = await db.update(leagueInvites).set(data).where(eq(leagueInvites.id, id)).returning();
+    return invite || undefined;
   }
 }
 

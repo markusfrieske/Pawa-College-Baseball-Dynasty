@@ -447,6 +447,31 @@ export const insertAuditLogSchema = createInsertSchema(auditLogs).pick({
 export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
 export type AuditLog = typeof auditLogs.$inferSelect;
 
+// League invites table for email invitations
+export const leagueInvites = pgTable("league_invites", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  leagueId: varchar("league_id").notNull().references(() => leagues.id),
+  email: text("email").notNull(),
+  inviteCode: text("invite_code").notNull().unique(),
+  status: text("status").notNull().default("pending"), // pending, accepted, expired
+  teamId: varchar("team_id").references(() => teams.id), // team selected by invitee
+  invitedById: varchar("invited_by_id").notNull().references(() => users.id),
+  acceptedById: varchar("accepted_by_id").references(() => users.id),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  expiresAt: timestamp("expires_at"),
+});
+
+export const insertLeagueInviteSchema = createInsertSchema(leagueInvites).pick({
+  leagueId: true,
+  email: true,
+  inviteCode: true,
+  invitedById: true,
+  expiresAt: true,
+});
+
+export type InsertLeagueInvite = z.infer<typeof insertLeagueInviteSchema>;
+export type LeagueInvite = typeof leagueInvites.$inferSelect;
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   leagues: many(leagues),
@@ -510,4 +535,11 @@ export const standingsRelations = relations(standings, ({ one }) => ({
 export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
   league: one(leagues, { fields: [auditLogs.leagueId], references: [leagues.id] }),
   user: one(users, { fields: [auditLogs.userId], references: [users.id] }),
+}));
+
+export const leagueInvitesRelations = relations(leagueInvites, ({ one }) => ({
+  league: one(leagues, { fields: [leagueInvites.leagueId], references: [leagues.id] }),
+  team: one(teams, { fields: [leagueInvites.teamId], references: [teams.id] }),
+  invitedBy: one(users, { fields: [leagueInvites.invitedById], references: [users.id] }),
+  acceptedBy: one(users, { fields: [leagueInvites.acceptedById], references: [users.id] }),
 }));

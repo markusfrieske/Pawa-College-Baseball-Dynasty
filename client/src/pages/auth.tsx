@@ -29,7 +29,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
         title: mode === "login" ? "Welcome back!" : "Account created!",
         description: mode === "login" 
           ? "You have successfully signed in."
-          : "Your account has been created. Welcome to College Baseball Dynasty!",
+          : "Your account has been created. Welcome to パワプロ College Baseball Dynasty!",
       });
       setLocation("/dashboard");
     },

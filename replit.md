@@ -88,6 +88,15 @@ A league-first, story-driven college baseball dynasty simulator where human coac
 - Manual game score entry
 - Conference and overall standings
 
+### League Invite System (Multiplayer)
+- Commissioner can send email invites via the Invites tab
+- Unique 12-character invite codes generated using UUID
+- Email verification on acceptance - user must log in with the invited email
+- Invite flow: Create invite → Copy link → Share with friend → Friend signs up/logs in → Selects available CPU team → Team becomes human-controlled
+- Accepting invite creates a coach and assigns it to the selected team
+- Invite statuses: pending, accepted, expired
+- Security: Email must match, team must be CPU, team must belong to invite's league
+
 ## Database Schema
 
 Core tables:
@@ -102,6 +111,7 @@ Core tables:
 - `games` - Schedule and results
 - `standings` - Season standings
 - `audit_logs` - Commissioner action history
+- `league_invites` - Email invites for multiplayer leagues
 
 ## API Routes
 
@@ -133,6 +143,11 @@ Core tables:
 - `GET /api/leagues/:id/commissioner` - Commissioner data
 - `POST /api/leagues/:id/advance` - Advance week
 - `PATCH /api/leagues/:id/settings` - Update settings
+
+### Invites
+- `POST /api/leagues/:id/invites` - Create invite (commissioner only)
+- `GET /api/invites/:code` - Get invite details by code
+- `POST /api/invites/:code/accept` - Accept invite and join league
 
 ## Design System
 

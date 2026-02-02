@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { RetroButton } from "@/components/ui/retro-button";
 import { AttributeSlider } from "@/components/ui/attribute-slider";
 import { Badge } from "@/components/ui/badge";
+import { LetterGrade } from "@/components/ui/letter-grade";
 import { X, MapPin, ChevronRight } from "lucide-react";
 import { getAbilityByName } from "@shared/abilities";
 
@@ -287,31 +288,24 @@ export function PlayerProfileCard({ player, open, onClose }: PlayerProfileCardPr
 }
 
 function AttributeRow({ label, value }: { label: string; value: number }) {
-  const getColor = (v: number) => {
-    if (v >= 80) return "#22c55e";
-    if (v >= 60) return "#C4A35A";
-    return "#f97316";
-  };
-
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-3" data-testid={`attr-row-${label.toLowerCase().replace(/\s/g, "-")}`}>
       <span className="text-sm text-muted-foreground w-24">{label}</span>
       <div className="flex-1 h-2 bg-background/50 rounded-full overflow-hidden">
         <div 
           className="h-full rounded-full transition-all"
-          style={{ 
-            width: `${value}%`,
-            backgroundColor: getColor(value)
-          }}
+          style={{ width: `${value}%` }}
         />
       </div>
-      <span 
-        className="text-sm font-bold w-8 text-right"
-        style={{ color: getColor(value) }}
-        data-testid={`text-attr-${label.toLowerCase().replace(/\s/g, "-")}`}
-      >
-        {value}
-      </span>
+      <div className="flex items-center gap-1">
+        <LetterGrade value={value} size="sm" />
+        <span 
+          className="text-sm font-bold w-8 text-right"
+          data-testid={`text-attr-${label.toLowerCase().replace(/\s/g, "-")}`}
+        >
+          {value}
+        </span>
+      </div>
     </div>
   );
 }

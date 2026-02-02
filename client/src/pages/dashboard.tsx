@@ -31,7 +31,7 @@ export default function DashboardPage() {
               <span className="text-forest-dark font-pixel text-xs">CBD</span>
             </div>
             <span className="font-pixel text-gold text-sm hidden sm:block">
-              College Baseball Dynasty
+              パワプロ College Baseball Dynasty
             </span>
           </div>
           <div className="flex items-center gap-4">
