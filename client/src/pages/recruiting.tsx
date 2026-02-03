@@ -60,8 +60,11 @@ interface RecruitingData {
   team: Team;
   remainingActions: number;
   maxActions: number;
+  remainingScoutActions: number;
+  maxScoutActions: number;
   targetedCount: number;
   commitsCount: number;
+  maxCommits: number;
   rosterDepth: Record<string, number>;
   rosterSize: number;
 }
@@ -236,10 +239,11 @@ export default function RecruitingPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-4">
-            <StatCard icon={<Target className="w-4 h-4" />} label="Targets" value={`${data?.targetedCount || 0}/40`} />
-            <StatCard icon={<Check className="w-4 h-4" />} label="Commits" value={`${data?.commitsCount || 0}/25`} />
-            <StatCard icon={<Search className="w-4 h-4" />} label="Recruiting Actions" value={`${data?.remainingActions || 0}/${data?.maxActions || 10}`} />
+          <div className="grid grid-cols-4 gap-4">
+            <StatCard icon={<Target className="w-4 h-4" />} label="Targets" value={`${data?.targetedCount || 0}/30`} />
+            <StatCard icon={<Check className="w-4 h-4" />} label="Commits" value={`${data?.commitsCount || 0}/${data?.maxCommits ?? 0}`} />
+            <StatCard icon={<Phone className="w-4 h-4" />} label="Recruiting Actions" value={`${data?.remainingActions ?? 0}/${data?.maxActions ?? 0}`} />
+            <StatCard icon={<Eye className="w-4 h-4" />} label="Scout Actions" value={`${data?.remainingScoutActions ?? 0}/${data?.maxScoutActions ?? 0}`} />
           </div>
         </div>
       </header>

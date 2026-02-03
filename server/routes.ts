@@ -417,6 +417,9 @@ export async function registerRoutes(
       const leagueRecruits = await storage.getRecruitsByLeague(league.id);
       const interests = await storage.getRecruitingInterestsByTeam(userTeam.id);
       const roster = await storage.getPlayersByTeam(userTeam.id);
+      
+      // Get coach data for skill-based action limits
+      const coach = userTeam.coachId ? await storage.getCoach(userTeam.coachId) : null;
 
       const recruitsWithInterest = leagueRecruits.map((recruit) => {
         const interest = interests.find((i) => i.recruitId === recruit.id);
@@ -431,17 +434,37 @@ export async function registerRoutes(
         positionCounts[player.position] = (positionCounts[player.position] || 0) + 1;
       });
 
-      const MAX_ACTIONS_PER_WEEK = 10;
-      const actionsUsed = interests.filter((i) => i.scoutPercentage > 0).length;
-      const remainingActions = Math.max(0, MAX_ACTIONS_PER_WEEK - actionsUsed);
+      // Calculate dynamic maximums based on coach skills
+      const scoutingSkill = coach?.scoutingSkill || 1;
+      const evaluationSkill = coach?.evaluationSkill || 1;
+      const pitchingRecruitingSkill = coach?.pitchingRecruitingSkill || 1;
+      const hittingRecruitingSkill = coach?.hittingRecruitingSkill || 1;
+      
+      // Scout actions: 5 base + (scouting + evaluation) / 2
+      const maxScoutActions = 5 + Math.floor((scoutingSkill + evaluationSkill) / 2);
+      // Recruiting actions: 5 base + (pitching + hitting recruiting) / 2
+      const maxRecruitingActions = 5 + Math.floor((pitchingRecruitingSkill + hittingRecruitingSkill) / 2);
+      
+      // Count seniors for commit limit calculation (max 25 roster, so commits = 25 - current + seniors leaving)
+      const seniorsCount = roster.filter(p => p.year === 'SR').length;
+      const maxCommits = Math.max(0, 25 - roster.length + seniorsCount);
+      
+      // Track scout and recruiting actions used
+      const scoutActionsUsed = interests.filter((i) => i.scoutPercentage > 0).length;
+      const recruitingActionsUsed = interests.filter((i) => i.interestLevel > 0).length;
+      const remainingScoutActions = Math.max(0, maxScoutActions - scoutActionsUsed);
+      const remainingRecruitingActions = Math.max(0, maxRecruitingActions - recruitingActionsUsed);
 
       res.json({
         recruits: recruitsWithInterest,
         team: userTeam,
-        remainingActions,
-        maxActions: MAX_ACTIONS_PER_WEEK,
+        remainingActions: remainingRecruitingActions,
+        maxActions: maxRecruitingActions,
+        remainingScoutActions,
+        maxScoutActions,
         targetedCount: interests.filter((i) => i.isTargeted).length,
         commitsCount: leagueRecruits.filter((r) => r.signedTeamId === userTeam.id).length,
+        maxCommits,
         rosterDepth: positionCounts,
         rosterSize: roster.length,
       });
