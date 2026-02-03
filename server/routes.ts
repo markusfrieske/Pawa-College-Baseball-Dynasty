@@ -1051,9 +1051,9 @@ export async function registerRoutes(
         return res.status(404).json({ message: "League not found" });
       }
 
-      const teams = await storage.getTeams(league.id);
-      const coaches = await storage.getCoaches(league.id);
-      const games = await storage.getGames(league.id);
+      const teams = await storage.getTeamsByLeague(league.id);
+      const coaches = await storage.getCoachesByLeague(league.id);
+      const games = await storage.getGamesByLeague(league.id);
       
       // Get current week's games that need scores
       const currentWeekGames = games.filter(g => 
