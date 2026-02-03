@@ -764,7 +764,7 @@ function ReadyButton({ leagueId }: { leagueId: string }) {
       </span>
       <RetroButton
         size="sm"
-        variant={isReady ? "outline" : "default"}
+        variant={isReady ? "outline" : "primary"}
         onClick={() => toggleReady.mutate()}
         disabled={toggleReady.isPending}
         className={isReady ? "border-green-500 text-green-500" : ""}

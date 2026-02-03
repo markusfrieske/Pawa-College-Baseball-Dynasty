@@ -68,6 +68,9 @@ interface RecruitingData {
   maxCommits: number;
   rosterDepth: Record<string, number>;
   rosterSize: number;
+  nextYearDepth: Record<string, number>;
+  nextYearRosterSize: number;
+  seniorsGraduating: number;
 }
 
 const positionOptions = [
@@ -346,8 +349,12 @@ export default function RecruitingPage() {
             </span>
           </div>
           
-          {showTeamNeeds && data?.rosterDepth && (
-            <TeamNeedsIndicator rosterDepth={data.rosterDepth} rosterSize={data.rosterSize} />
+          {showTeamNeeds && data?.nextYearDepth && (
+            <TeamNeedsIndicator 
+              nextYearDepth={data.nextYearDepth} 
+              nextYearRosterSize={data.nextYearRosterSize} 
+              seniorsGraduating={data.seniorsGraduating}
+            />
           )}
         </RetroCard>
 
@@ -357,7 +364,6 @@ export default function RecruitingPage() {
               key={recruit.id}
               recruit={recruit}
               leagueId={id!}
-              onViewDetails={() => setSelectedRecruit(recruit)}
               onTarget={() => targetMutation.mutate(recruit.id)}
               onScout={() => scoutMutation.mutate(recruit.id)}
               onSaveNotes={(notes) => notesMutation.mutate({ recruitId: recruit.id, notes })}
@@ -455,11 +461,19 @@ const IDEAL_DEPTH: Record<string, number> = {
   RF: 2,
 };
 
-function TeamNeedsIndicator({ rosterDepth, rosterSize }: { rosterDepth: Record<string, number>; rosterSize: number }) {
+function TeamNeedsIndicator({ 
+  nextYearDepth, 
+  nextYearRosterSize, 
+  seniorsGraduating 
+}: { 
+  nextYearDepth: Record<string, number>; 
+  nextYearRosterSize: number;
+  seniorsGraduating: number;
+}) {
   const positions = ["P", "C", "1B", "2B", "SS", "3B", "LF", "CF", "RF"];
   
   const getDepthStatus = (pos: string) => {
-    const current = rosterDepth[pos] || 0;
+    const current = nextYearDepth[pos] || 0;
     const ideal = IDEAL_DEPTH[pos] || 2;
     if (current >= ideal) return "full";
     if (current >= ideal * 0.5) return "ok";
@@ -468,16 +482,21 @@ function TeamNeedsIndicator({ rosterDepth, rosterSize }: { rosterDepth: Record<s
 
   return (
     <div className="mt-4 pt-4 border-t border-border" data-testid="team-needs-indicator">
-      <div className="flex items-center gap-2 mb-3">
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
         <Users className="w-4 h-4 text-gold" />
-        <span className="font-pixel text-[10px] text-gold">ROSTER DEPTH</span>
+        <span className="font-pixel text-[10px] text-gold">NEXT YEAR FORECAST</span>
         <span className="text-xs text-muted-foreground ml-auto">
-          {rosterSize}/35 players
+          {nextYearRosterSize}/25 players
         </span>
+        {seniorsGraduating > 0 && (
+          <span className="text-xs text-amber-400">
+            ({seniorsGraduating} graduating)
+          </span>
+        )}
       </div>
       <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2">
         {positions.map((pos) => {
-          const current = rosterDepth[pos] || 0;
+          const current = nextYearDepth[pos] || 0;
           const ideal = IDEAL_DEPTH[pos] || 2;
           const status = getDepthStatus(pos);
           
@@ -515,7 +534,6 @@ function TeamNeedsIndicator({ rosterDepth, rosterSize }: { rosterDepth: Record<s
 function RecruitRow({
   recruit,
   leagueId,
-  onViewDetails,
   onTarget,
   onScout,
   onSaveNotes,
@@ -527,7 +545,6 @@ function RecruitRow({
 }: {
   recruit: RecruitWithInterest;
   leagueId: string;
-  onViewDetails: () => void;
   onTarget: () => void;
   onScout: () => void;
   onSaveNotes: (notes: string) => void;
@@ -700,13 +717,14 @@ function RecruitRow({
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <RetroButton
-                  size="sm"
-                  onClick={onViewDetails}
-                  data-testid={`button-view-${recruit.id}`}
-                >
-                  <Eye className="w-3 h-3" />
-                </RetroButton>
+                <Link href={`/league/${leagueId}/recruit/${recruit.id}`}>
+                  <RetroButton
+                    size="sm"
+                    data-testid={`button-view-${recruit.id}`}
+                  >
+                    <Eye className="w-3 h-3" />
+                  </RetroButton>
+                </Link>
               </TooltipTrigger>
               <TooltipContent>View Details</TooltipContent>
             </Tooltip>

@@ -379,8 +379,15 @@ export async function registerRoutes(
 
       await storage.updateTeam(teamId, { coachId: coach.id, isCpu: false });
 
-      // Generate players for the team
-      await generatePlayersForTeam(teamId);
+      // Generate players for ALL teams in the league
+      const leagueTeams = await storage.getTeamsByLeague(req.params.id);
+      for (const team of leagueTeams) {
+        // Check if team already has players
+        const existingPlayers = await storage.getPlayersByTeam(team.id);
+        if (existingPlayers.length === 0) {
+          await generatePlayersForTeam(team.id);
+        }
+      }
 
       // Generate initial schedule
       await generateSchedule(req.params.id);
@@ -429,9 +436,19 @@ export async function registerRoutes(
         };
       });
 
+      // Current roster position counts
       const positionCounts: Record<string, number> = {};
       roster.forEach((player) => {
         positionCounts[player.position] = (positionCounts[player.position] || 0) + 1;
+      });
+
+      // Next year's roster forecast (seniors graduate, players age up)
+      const nextYearDepth: Record<string, number> = {};
+      roster.forEach((player) => {
+        // Seniors will graduate, so don't count them for next year
+        if (player.eligibility !== 'SR') {
+          nextYearDepth[player.position] = (nextYearDepth[player.position] || 0) + 1;
+        }
       });
 
       // Calculate dynamic maximums based on coach skills
@@ -446,7 +463,8 @@ export async function registerRoutes(
       const maxRecruitingActions = 5 + Math.floor((pitchingRecruitingSkill + hittingRecruitingSkill) / 2);
       
       // Count seniors for commit limit calculation (max 25 roster, so commits = 25 - current + seniors leaving)
-      const seniorsCount = roster.filter(p => p.year === 'SR').length;
+      const seniorsCount = roster.filter(p => p.eligibility === 'SR').length;
+      const nextYearRosterSize = roster.length - seniorsCount;
       const maxCommits = Math.max(0, 25 - roster.length + seniorsCount);
       
       // Track scout and recruiting actions used
@@ -467,6 +485,9 @@ export async function registerRoutes(
         maxCommits,
         rosterDepth: positionCounts,
         rosterSize: roster.length,
+        nextYearDepth,
+        nextYearRosterSize,
+        seniorsGraduating: seniorsCount,
       });
     } catch (error) {
       console.error("Failed to fetch recruiting data:", error);

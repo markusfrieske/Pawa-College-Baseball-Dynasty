@@ -80,6 +80,15 @@ A league-first, story-driven college baseball dynasty simulator where human coac
   - Red tier: Negative abilities (e.g., "Choker", "Wild Pitches")
 - **Abilities Assignment**: Higher-star players more likely to have multiple abilities, preferring gold tier
 
+### Player Profile Card Structure
+Player cards display 4 distinct sections:
+1. **Name/Bio/Details**: Portrait, position badge, star rating, name, eligibility, bats/throws, hometown, overall rating
+2. **Attributes (Numeric)**: For fielders: Contact, Power, Speed, Arm, Fielding, Error Resist. For pitchers: Velocity, Control, Stamina, Stuff + Pitch Mix
+3. **Common Abilities (Letter Grades G-A)**: 
+   - Fielders: Clutch, vs LHP, Grit, Stealing, Running, Throwing, Recovery, Catcher (for C only)
+   - Pitchers: W/RISP, vs Lefty, Poise, Grit, Heater, Agile, Recovery
+4. **Special Abilities**: Gold/Blue/Red tier badges with descriptions
+
 ### Recruiting (Fog of War)
 - 40-50 recruits per class with 1-5 star ratings
 - **Star Distribution**: 5% 5-star, 10% 4-star, 40% 3-star, 30% 2-star, 15% 1-star
@@ -90,7 +99,7 @@ A league-first, story-driven college baseball dynasty simulator where human coac
 
 ### Recruiting QoL Features
 - **Sort Options**: 6 sorting methods (Class Rank, Position Rank, Star Rating, Overall, Name, Scout Progress)
-- **Team Needs Indicator**: Color-coded roster depth by position (green/yellow/red for overstocked/ideal/understocked)
+- **Next Year Roster Forecast**: Team needs indicator shows next year's roster depth after seniors graduate (max 25 players, excludes graduating seniors)
 - **Notes System**: Personal notes on each recruit with database persistence
 - **Filter Presets**: Save/load filter configurations to localStorage
 - **Comparison Tool**: Select up to 3 recruits via checkbox to compare side-by-side stats in modal
