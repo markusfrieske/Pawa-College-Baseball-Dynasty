@@ -13,9 +13,11 @@ import {
   Filter,
   Eye,
   GraduationCap,
-  MapPin
+  MapPin,
+  Star
 } from "lucide-react";
 import type { Player, Team } from "@shared/schema";
+import { isPitcher, isCatcher, isInfielder, isOutfielder } from "@shared/positions";
 
 interface RosterData {
   players: Player[];
@@ -50,21 +52,24 @@ export default function RosterPage() {
 
   const filteredPlayers = data?.players.filter(p => {
     if (positionFilter !== "all") {
-      if (positionFilter === "IF" && !["1B", "2B", "SS", "3B"].includes(p.position)) return false;
-      if (positionFilter === "OF" && !["LF", "CF", "RF"].includes(p.position)) return false;
+      if (positionFilter === "IF" && !isInfielder(p.position)) return false;
+      if (positionFilter === "OF" && !isOutfielder(p.position)) return false;
       if (positionFilter !== "IF" && positionFilter !== "OF" && p.position !== positionFilter) return false;
     }
     if (eligibilityFilter !== "all" && p.eligibility !== eligibilityFilter) return false;
     return true;
   }) || [];
 
-  const positions = ["P", "C", "1B", "2B", "SS", "3B", "LF", "CF", "RF"];
-  const sortedPlayers = [...filteredPlayers].sort((a, b) => {
-    const posA = positions.indexOf(a.position);
-    const posB = positions.indexOf(b.position);
-    if (posA !== posB) return posA - posB;
-    return b.overall - a.overall;
-  });
+  const groupPlayersByCategory = (players: Player[]) => {
+    const pitchers = players.filter(p => isPitcher(p.position)).sort((a, b) => b.starRating - a.starRating || b.overall - a.overall);
+    const catchers = players.filter(p => isCatcher(p.position)).sort((a, b) => b.starRating - a.starRating || b.overall - a.overall);
+    const infielders = players.filter(p => isInfielder(p.position)).sort((a, b) => b.starRating - a.starRating || b.overall - a.overall);
+    const outfielders = players.filter(p => isOutfielder(p.position)).sort((a, b) => b.starRating - a.starRating || b.overall - a.overall);
+    return { pitchers, catchers, infielders, outfielders };
+  };
+
+  const grouped = groupPlayersByCategory(filteredPlayers);
+  const allSorted = [...filteredPlayers].sort((a, b) => b.starRating - a.starRating || b.overall - a.overall);
 
   if (isLoading) {
     return <RosterSkeleton />;
@@ -104,105 +109,50 @@ export default function RosterPage() {
               data-testid="select-eligibility-filter"
             />
             <span className="text-sm text-muted-foreground ml-auto">
-              {sortedPlayers.length} players shown
+              {filteredPlayers.length} players shown
             </span>
           </div>
         </RetroCard>
 
-        <RetroCard>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border text-muted-foreground">
-                  <th className="text-left py-3 px-2">#</th>
-                  <th className="text-left py-3 px-2">Name</th>
-                  <th className="text-center py-3 px-2">Pos</th>
-                  <th className="text-center py-3 px-2">Year</th>
-                  <th className="text-center py-3 px-2">B/T</th>
-                  <th className="text-center py-3 px-2">OVR</th>
-                  <th className="text-center py-3 px-2">POT</th>
-                  <th className="text-left py-3 px-2 hidden lg:table-cell">Hometown</th>
-                  <th className="text-center py-3 px-2">View</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedPlayers.map((player) => (
-                  <tr 
-                    key={player.id} 
-                    className="border-b border-border/50 hover:bg-card/50"
-                    data-testid={`row-player-${player.id}`}
-                  >
-                    <td className="py-3 px-2 text-muted-foreground font-mono">
-                      {player.jerseyNumber}
-                    </td>
-                    <td className="py-3 px-2">
-                      <span className="font-medium">
-                        {player.firstName} {player.lastName}
-                      </span>
-                    </td>
-                    <td className="text-center py-3 px-2">
-                      <Badge variant="outline" className="text-[10px]">
-                        {player.position}
-                      </Badge>
-                    </td>
-                    <td className="text-center py-3 px-2">
-                      <Badge 
-                        className={`text-[10px] ${
-                          player.eligibility === "SR" ? "bg-red-500" :
-                          player.eligibility === "JR" ? "bg-yellow-500" :
-                          player.eligibility === "SO" ? "bg-green-500" :
-                          "bg-blue-500"
-                        } text-white`}
-                      >
-                        {player.eligibility}
-                      </Badge>
-                    </td>
-                    <td className="text-center py-3 px-2 text-muted-foreground">
-                      {player.batHand}/{player.throwHand}
-                    </td>
-                    <td className="text-center py-3 px-2">
-                      <span className="font-bold text-gold">{player.overall}</span>
-                    </td>
-                    <td className="text-center py-3 px-2">
-                      <Badge 
-                        variant="outline" 
-                        className={`text-[10px] ${
-                          player.potential === "A+" || player.potential === "A"
-                            ? "text-green-400 border-green-400"
-                            : player.potential === "B+" || player.potential === "B"
-                            ? "text-blue-400 border-blue-400"
-                            : "text-muted-foreground"
-                        }`}
-                      >
-                        {player.potential}
-                      </Badge>
-                    </td>
-                    <td className="py-3 px-2 text-muted-foreground hidden lg:table-cell">
-                      {player.hometown}, {player.homeState}
-                    </td>
-                    <td className="text-center py-3 px-2">
-                      <RetroButton
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setSelectedPlayer(player)}
-                        data-testid={`button-view-${player.id}`}
-                      >
-                        <Eye className="w-3 h-3" />
-                      </RetroButton>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        {positionFilter === "all" ? (
+          <>
+            <PositionSection 
+              title="Pitchers" 
+              players={grouped.pitchers} 
+              onSelectPlayer={setSelectedPlayer}
+            />
+            <PositionSection 
+              title="Catchers" 
+              players={grouped.catchers} 
+              onSelectPlayer={setSelectedPlayer}
+            />
+            <PositionSection 
+              title="Infielders" 
+              players={grouped.infielders} 
+              onSelectPlayer={setSelectedPlayer}
+            />
+            <PositionSection 
+              title="Outfielders" 
+              players={grouped.outfielders} 
+              onSelectPlayer={setSelectedPlayer}
+            />
+          </>
+        ) : (
+          <PositionSection 
+            title={positionOptions.find(o => o.value === positionFilter)?.label || "Players"} 
+            players={allSorted} 
+            onSelectPlayer={setSelectedPlayer}
+          />
+        )}
 
-          {sortedPlayers.length === 0 && (
+        {filteredPlayers.length === 0 && (
+          <RetroCard>
             <div className="text-center py-12 text-muted-foreground">
               <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
               <p>No players match your filters</p>
             </div>
-          )}
-        </RetroCard>
+          </RetroCard>
+        )}
       </main>
 
       {selectedPlayer && (
@@ -220,6 +170,91 @@ export default function RosterPage() {
   );
 }
 
+
+interface PositionSectionProps {
+  title: string;
+  players: Player[];
+  onSelectPlayer: (player: Player) => void;
+}
+
+function PositionSection({ title, players, onSelectPlayer }: PositionSectionProps) {
+  if (players.length === 0) return null;
+
+  return (
+    <RetroCard className="mb-4">
+      <div className="px-4 py-2 bg-card/80 border-b border-border">
+        <h3 className="font-pixel text-gold text-xs uppercase tracking-wider">
+          {title} ({players.length})
+        </h3>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border text-muted-foreground">
+              <th className="text-left py-3 px-2">#</th>
+              <th className="text-left py-3 px-2">Name</th>
+              <th className="text-center py-3 px-2">Pos</th>
+              <th className="text-center py-3 px-2">Year</th>
+              <th className="text-center py-3 px-2">B/T</th>
+              <th className="text-center py-3 px-2">
+                <Star className="w-3 h-3 inline text-gold" />
+              </th>
+              <th className="text-left py-3 px-2 hidden lg:table-cell">Hometown</th>
+            </tr>
+          </thead>
+          <tbody>
+            {players.map((player) => (
+              <tr 
+                key={player.id} 
+                className="border-b border-border/50 hover:bg-card/50"
+                data-testid={`row-player-${player.id}`}
+              >
+                <td className="py-3 px-2 text-muted-foreground font-mono">
+                  {player.jerseyNumber}
+                </td>
+                <td className="py-3 px-2">
+                  <button
+                    onClick={() => onSelectPlayer(player)}
+                    className="font-medium text-left hover:text-gold transition-colors cursor-pointer"
+                    data-testid={`link-player-${player.id}`}
+                  >
+                    {player.firstName} {player.lastName}
+                  </button>
+                </td>
+                <td className="text-center py-3 px-2">
+                  <Badge variant="outline" className="text-[10px]">
+                    {player.position}
+                  </Badge>
+                </td>
+                <td className="text-center py-3 px-2">
+                  <Badge 
+                    className={`text-[10px] ${
+                      player.eligibility === "SR" ? "bg-red-500" :
+                      player.eligibility === "JR" ? "bg-yellow-500" :
+                      player.eligibility === "SO" ? "bg-green-500" :
+                      "bg-blue-500"
+                    } text-white`}
+                  >
+                    {player.eligibility}
+                  </Badge>
+                </td>
+                <td className="text-center py-3 px-2 text-muted-foreground">
+                  {player.batHand}/{player.throwHand}
+                </td>
+                <td className="text-center py-3 px-2">
+                  <span className="font-bold text-gold">{player.overall}</span>
+                </td>
+                <td className="py-3 px-2 text-muted-foreground hidden lg:table-cell">
+                  {player.hometown}, {player.homeState}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </RetroCard>
+  );
+}
 
 function RosterSkeleton() {
   return (

@@ -6,6 +6,7 @@ import { TeamBadge } from "@/components/ui/team-badge";
 import { AttributeSlider } from "@/components/ui/attribute-slider";
 import { StarRating } from "@/components/ui/star-rating";
 import { CoachAvatar } from "@/components/coach-avatar";
+import { PlayerAvatar } from "@/components/player-avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -17,13 +18,25 @@ import {
   Star,
   DollarSign,
   GraduationCap,
-  Building2
+  Building2,
+  Calendar,
+  History,
+  TrendingUp,
+  Award
 } from "lucide-react";
-import type { Team, Coach, Player } from "@shared/schema";
+import type { Team, Coach, Player, Game } from "@shared/schema";
+import { isPitcher, isHitter, isCatcher, isInfielder, isOutfielder } from "@shared/positions";
+
+interface GameWithTeams extends Game {
+  homeTeam?: { name: string; abbreviation: string };
+  awayTeam?: { name: string; abbreviation: string };
+}
 
 interface TeamDetails extends Team {
   coach?: Coach;
   players?: Player[];
+  games?: GameWithTeams[];
+  record?: { wins: number; losses: number; conferenceWins: number; conferenceLosses: number };
 }
 
 export default function TeamViewPage() {
@@ -81,29 +94,50 @@ export default function TeamViewPage() {
       </header>
 
       <main className="container mx-auto px-4 py-6">
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="bg-card border border-border">
-            <TabsTrigger value="overview" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
-              Overview
+        <Tabs defaultValue="summary" className="space-y-6">
+          <TabsList className="bg-card border border-border flex-wrap gap-1">
+            <TabsTrigger value="summary" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
+              Summary
+            </TabsTrigger>
+            <TabsTrigger value="schedule" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
+              Schedule
             </TabsTrigger>
             <TabsTrigger value="roster" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
               Roster
             </TabsTrigger>
-            <TabsTrigger value="facilities" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
-              Facilities
+            <TabsTrigger value="coaches" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
+              Coaches
+            </TabsTrigger>
+            <TabsTrigger value="school" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
+              School
+            </TabsTrigger>
+            <TabsTrigger value="history" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
+              History
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview">
-            <OverviewTab team={team} />
+          <TabsContent value="summary">
+            <SummaryTab team={team} leagueId={id!} />
+          </TabsContent>
+
+          <TabsContent value="schedule">
+            <ScheduleTab team={team} leagueId={id!} />
           </TabsContent>
 
           <TabsContent value="roster">
             <RosterTab team={team} />
           </TabsContent>
 
-          <TabsContent value="facilities">
-            <FacilitiesTab team={team} />
+          <TabsContent value="coaches">
+            <CoachesTab team={team} />
+          </TabsContent>
+
+          <TabsContent value="school">
+            <SchoolTab team={team} />
+          </TabsContent>
+
+          <TabsContent value="history">
+            <HistoryTab team={team} />
           </TabsContent>
         </Tabs>
       </main>
@@ -111,39 +145,84 @@ export default function TeamViewPage() {
   );
 }
 
-function OverviewTab({ team }: { team: TeamDetails }) {
+function SummaryTab({ team, leagueId }: { team: TeamDetails; leagueId: string }) {
+  const players = team.players || [];
+  const impactPlayers = [...players]
+    .sort((a, b) => b.overall - a.overall)
+    .slice(0, 5);
+  
+  const pitchers = players.filter(p => isPitcher(p.position));
+  const hitters = players.filter(p => isHitter(p.position));
+  
+  const avgPitching = pitchers.length > 0 
+    ? Math.round(pitchers.reduce((sum, p) => sum + p.overall, 0) / pitchers.length) 
+    : 0;
+  const avgHitting = hitters.length > 0 
+    ? Math.round(hitters.reduce((sum, p) => sum + p.overall, 0) / hitters.length) 
+    : 0;
+
   return (
     <div className="grid lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 space-y-6">
         <RetroCard>
-          <RetroCardHeader>School Information</RetroCardHeader>
+          <RetroCardHeader>Team Statistics</RetroCardHeader>
           <RetroCardContent>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <StatBox label="Record" value={`${team.record?.wins || 0}-${team.record?.losses || 0}`} color="gold" />
+              <StatBox label="Conf Record" value={`${team.record?.conferenceWins || 0}-${team.record?.conferenceLosses || 0}`} color="blue" />
+              <StatBox label="Roster Size" value={players.length.toString()} color="green" />
+              <StatBox label="Prestige" value={`${team.prestige}/10`} color="purple" />
+            </div>
+            
             <div className="grid sm:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <InfoRow icon={<Trophy className="w-4 h-4" />} label="Prestige" value={`${team.prestige}/10`} />
-                <InfoRow icon={<Users className="w-4 h-4" />} label="Enrollment" value={team.enrollment.toLocaleString()} />
-                <InfoRow icon={<MapPin className="w-4 h-4" />} label="Location" value={`${team.city}, ${team.state}`} />
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground mb-3">Offensive Talent</h4>
+                <AttributeSlider label="" value={avgHitting} max={999} disabled showValue={false} />
+                <p className="text-xl font-bold text-gold mt-1">{avgHitting}</p>
               </div>
-              <div className="space-y-4">
-                <InfoRow icon={<Star className="w-4 h-4" />} label="Fanbase Passion" value={team.fanbasePassion} />
-                <InfoRow icon={<DollarSign className="w-4 h-4" />} label="NIL Budget" value={`$${(team.nilBudget / 1000000).toFixed(1)}M`} />
-                <InfoRow icon={<Building2 className="w-4 h-4" />} label="Fanbase Type" value={team.fanbaseType} />
+              <div>
+                <h4 className="text-sm font-medium text-muted-foreground mb-3">Pitching Talent</h4>
+                <AttributeSlider label="" value={avgPitching} max={999} disabled showValue={false} />
+                <p className="text-xl font-bold text-gold mt-1">{avgPitching}</p>
               </div>
             </div>
           </RetroCardContent>
         </RetroCard>
 
         <RetroCard>
-          <RetroCardHeader>School Attributes</RetroCardHeader>
+          <RetroCardHeader className="flex items-center justify-between gap-4">
+            <span>Impact Players</span>
+            <Link href={`/league/${leagueId}/roster`}>
+              <span className="text-gold text-[8px] hover:underline cursor-pointer">View Full Roster</span>
+            </Link>
+          </RetroCardHeader>
           <RetroCardContent>
-            <div className="grid sm:grid-cols-2 gap-x-8 gap-y-4">
-              <AttributeSlider label="Stadium" value={team.stadium} max={10} disabled />
-              <AttributeSlider label="Facilities" value={team.facilities} max={10} disabled />
-              <AttributeSlider label="College Life" value={team.collegeLife} max={10} disabled />
-              <AttributeSlider label="Marketing" value={team.marketing} max={10} disabled />
-              <AttributeSlider label="Academics" value={team.academics} max={10} disabled />
-              <AttributeSlider label="Prestige" value={team.prestige} max={10} disabled />
-            </div>
+            {impactPlayers.length > 0 ? (
+              <div className="space-y-3">
+                {impactPlayers.map((player, idx) => (
+                  <div key={player.id} className="flex items-center gap-3 p-2 bg-background/50 rounded">
+                    <span className="text-gold font-bold w-6 text-center">#{idx + 1}</span>
+                    <PlayerAvatar 
+                      skinTone={player.skinTone || "medium"}
+                      hairColor={player.hairColor || "brown"}
+                      hairStyle={player.hairStyle || "short"}
+                      headwear="cap"
+                      size="sm"
+                    />
+                    <div className="flex-1">
+                      <p className="font-medium">{player.firstName} {player.lastName}</p>
+                      <p className="text-xs text-muted-foreground">{player.position} - {player.eligibility}</p>
+                    </div>
+                    <div className="text-right">
+                      <StarRating rating={getStarRating(player.overall)} size="sm" />
+                      <p className="text-xs text-muted-foreground">{player.overall} OVR</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-center text-muted-foreground py-8">No players on roster yet</p>
+            )}
           </RetroCardContent>
         </RetroCard>
       </div>
@@ -193,25 +272,265 @@ function OverviewTab({ team }: { team: TeamDetails }) {
         )}
 
         <RetroCard>
-          <RetroCardHeader>Quick Stats</RetroCardHeader>
+          <RetroCardHeader>Roster Breakdown</RetroCardHeader>
           <RetroCardContent>
             <div className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Roster Size</span>
-                <span className="font-medium">{team.players?.length || 0}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Avg Overall</span>
-                <span className="font-medium">
-                  {team.players && team.players.length > 0
-                    ? Math.round(team.players.reduce((sum, p) => sum + p.overall, 0) / team.players.length)
-                    : "-"}
-                </span>
-              </div>
+              <RosterBreakdownRow label="Pitchers" count={pitchers.length} total={players.length} />
+              <RosterBreakdownRow label="Catchers" count={players.filter(p => isCatcher(p.position)).length} total={players.length} />
+              <RosterBreakdownRow label="Infielders" count={players.filter(p => isInfielder(p.position)).length} total={players.length} />
+              <RosterBreakdownRow label="Outfielders" count={players.filter(p => isOutfielder(p.position)).length} total={players.length} />
+            </div>
+          </RetroCardContent>
+        </RetroCard>
+
+        <RetroCard>
+          <RetroCardHeader>Quick Links</RetroCardHeader>
+          <RetroCardContent>
+            <div className="space-y-2">
+              <Link href={`/league/${leagueId}/roster`}>
+                <RetroButton variant="outline" size="sm" className="w-full justify-start" data-testid="link-roster">
+                  <Users className="w-4 h-4 mr-2" /> View Full Roster
+                </RetroButton>
+              </Link>
+              <Link href={`/league/${leagueId}/recruiting`}>
+                <RetroButton variant="outline" size="sm" className="w-full justify-start" data-testid="link-recruiting">
+                  <TrendingUp className="w-4 h-4 mr-2" /> Recruiting Board
+                </RetroButton>
+              </Link>
+              <Link href={`/league/${leagueId}/schedule`}>
+                <RetroButton variant="outline" size="sm" className="w-full justify-start" data-testid="link-schedule">
+                  <Calendar className="w-4 h-4 mr-2" /> View Schedule
+                </RetroButton>
+              </Link>
             </div>
           </RetroCardContent>
         </RetroCard>
       </div>
+    </div>
+  );
+}
+
+function StatBox({ label, value, color }: { label: string; value: string; color: string }) {
+  const colorClasses: Record<string, string> = {
+    gold: "bg-gold/20 text-gold",
+    blue: "bg-blue-500/20 text-blue-400",
+    green: "bg-green-500/20 text-green-400",
+    purple: "bg-purple-500/20 text-purple-400",
+  };
+  
+  return (
+    <div className={`p-3 rounded ${colorClasses[color] || colorClasses.gold}`}>
+      <p className="text-2xl font-bold">{value}</p>
+      <p className="text-xs text-muted-foreground">{label}</p>
+    </div>
+  );
+}
+
+function RosterBreakdownRow({ label, count, total }: { label: string; count: number; total: number }) {
+  const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
+  return (
+    <div>
+      <div className="flex justify-between text-sm mb-1">
+        <span className="text-muted-foreground">{label}</span>
+        <span>{count}</span>
+      </div>
+      <div className="h-2 bg-background rounded overflow-hidden">
+        <div 
+          className="h-full bg-gold rounded transition-all duration-300" 
+          style={{ width: `${percentage}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function getStarRating(overall: number): number {
+  if (overall >= 800) return 5;
+  if (overall >= 600) return 4;
+  if (overall >= 400) return 3;
+  if (overall >= 200) return 2;
+  return 1;
+}
+
+function ScheduleTab({ team, leagueId }: { team: TeamDetails; leagueId: string }) {
+  const games = team.games || [];
+  
+  const getOpponentInfo = (game: GameWithTeams) => {
+    const isHome = game.homeTeamId === team.id;
+    const opponentTeam = isHome ? game.awayTeam : game.homeTeam;
+    const prefix = isHome ? "vs" : "@";
+    const opponentName = opponentTeam?.name || opponentTeam?.abbreviation || "TBD";
+    return { prefix, opponentName };
+  };
+
+  const getGameResult = (game: GameWithTeams) => {
+    if (game.homeScore === null || game.awayScore === null) return null;
+    const isHome = game.homeTeamId === team.id;
+    const ourScore = isHome ? game.homeScore : game.awayScore;
+    const theirScore = isHome ? game.awayScore : game.homeScore;
+    const won = ourScore > theirScore;
+    return { ourScore, theirScore, won };
+  };
+  
+  return (
+    <RetroCard>
+      <RetroCardHeader className="flex items-center justify-between gap-4">
+        <span>Season Schedule</span>
+        <Link href={`/league/${leagueId}/schedule`}>
+          <span className="text-gold text-[8px] hover:underline cursor-pointer">Full Schedule</span>
+        </Link>
+      </RetroCardHeader>
+      <RetroCardContent>
+        {games.length > 0 ? (
+          <div className="space-y-2">
+            {games.slice(0, 10).map((game) => {
+              const { prefix, opponentName } = getOpponentInfo(game);
+              const result = getGameResult(game);
+              
+              return (
+                <div key={game.id} className="flex items-center gap-3 p-3 bg-background/50 rounded">
+                  <div className="flex-1">
+                    <p className="font-medium">Week {game.week}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {prefix} {opponentName}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    {result ? (
+                      <div>
+                        <Badge 
+                          variant="outline" 
+                          className={result.won ? "text-green-400 border-green-400" : "text-red-400 border-red-400"}
+                        >
+                          {result.won ? "W" : "L"}
+                        </Badge>
+                        <p className="text-sm font-medium mt-1">{result.ourScore} - {result.theirScore}</p>
+                      </div>
+                    ) : (
+                      <Badge variant="outline">Upcoming</Badge>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-12 text-muted-foreground">
+            <Calendar className="w-12 h-12 mx-auto mb-4 opacity-50" />
+            <p>No games scheduled yet</p>
+          </div>
+        )}
+      </RetroCardContent>
+    </RetroCard>
+  );
+}
+
+function CoachesTab({ team }: { team: TeamDetails }) {
+  return (
+    <div className="grid md:grid-cols-2 gap-6">
+      {team.coach ? (
+        <RetroCard>
+          <RetroCardHeader>Head Coach</RetroCardHeader>
+          <RetroCardContent>
+            <div className="flex items-start gap-4">
+              <CoachAvatar
+                skinTone={team.coach.skinTone}
+                hairColor={team.coach.hairColor}
+                hairStyle={team.coach.hairStyle}
+                size="lg"
+              />
+              <div className="flex-1">
+                <h3 className="font-medium text-lg mb-1">
+                  {team.coach.firstName} {team.coach.lastName}
+                </h3>
+                <Badge variant="outline" className="mb-3">
+                  {team.coach.archetype}
+                </Badge>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Level {team.coach.level} - {team.coach.experience} XP
+                </p>
+                
+                <div className="space-y-2">
+                  <AttributeSlider label="Offense" value={team.coach.offenseSkill} max={100} disabled />
+                  <AttributeSlider label="Defense" value={team.coach.defenseSkill} max={100} disabled />
+                  <AttributeSlider label="Training" value={team.coach.trainingSkill} max={100} disabled />
+                  <AttributeSlider label="Recruiting" value={team.coach.recruitingSkill} max={100} disabled />
+                </div>
+              </div>
+            </div>
+          </RetroCardContent>
+        </RetroCard>
+      ) : (
+        <RetroCard>
+          <RetroCardContent className="text-center py-12">
+            <Users className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+            <p className="text-muted-foreground">No coach assigned</p>
+          </RetroCardContent>
+        </RetroCard>
+      )}
+      
+      <RetroCard>
+        <RetroCardHeader>Coaching Staff</RetroCardHeader>
+        <RetroCardContent className="text-center py-12">
+          <Users className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+          <p className="text-muted-foreground">Assistant coaches coming soon</p>
+        </RetroCardContent>
+      </RetroCard>
+    </div>
+  );
+}
+
+function SchoolTab({ team }: { team: TeamDetails }) {
+  return (
+    <div className="grid lg:grid-cols-2 gap-6">
+      <RetroCard>
+        <RetroCardHeader>School Information</RetroCardHeader>
+        <RetroCardContent>
+          <div className="space-y-4">
+            <InfoRow icon={<MapPin className="w-4 h-4" />} label="Location" value={`${team.city}, ${team.state}`} />
+            <InfoRow icon={<Users className="w-4 h-4" />} label="Enrollment" value={team.enrollment.toLocaleString()} />
+            <InfoRow icon={<Trophy className="w-4 h-4" />} label="Prestige" value={`${team.prestige}/10`} />
+            <InfoRow icon={<Star className="w-4 h-4" />} label="Fanbase Passion" value={team.fanbasePassion} />
+            <InfoRow icon={<DollarSign className="w-4 h-4" />} label="NIL Budget" value={`$${(team.nilBudget / 1000000).toFixed(1)}M`} />
+            <InfoRow icon={<Building2 className="w-4 h-4" />} label="Fanbase Type" value={team.fanbaseType} />
+          </div>
+        </RetroCardContent>
+      </RetroCard>
+
+      <RetroCard>
+        <RetroCardHeader>Facilities</RetroCardHeader>
+        <RetroCardContent>
+          <div className="space-y-4">
+            <AttributeSlider label="Stadium" value={team.stadium} max={10} disabled />
+            <AttributeSlider label="Training Facilities" value={team.facilities} max={10} disabled />
+            <AttributeSlider label="College Life" value={team.collegeLife} max={10} disabled />
+            <AttributeSlider label="Marketing" value={team.marketing} max={10} disabled />
+            <AttributeSlider label="Academics" value={team.academics} max={10} disabled />
+          </div>
+        </RetroCardContent>
+      </RetroCard>
+    </div>
+  );
+}
+
+function HistoryTab({ team }: { team: TeamDetails }) {
+  return (
+    <div className="grid lg:grid-cols-2 gap-6">
+      <RetroCard>
+        <RetroCardHeader>Season History</RetroCardHeader>
+        <RetroCardContent className="text-center py-12">
+          <History className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+          <p className="text-muted-foreground">Season history will appear here after completing seasons</p>
+        </RetroCardContent>
+      </RetroCard>
+
+      <RetroCard>
+        <RetroCardHeader>Program Achievements</RetroCardHeader>
+        <RetroCardContent className="text-center py-12">
+          <Award className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+          <p className="text-muted-foreground">Championships and awards will be tracked here</p>
+        </RetroCardContent>
+      </RetroCard>
     </div>
   );
 }
@@ -307,37 +626,6 @@ function RosterTab({ team }: { team: TeamDetails }) {
         </div>
       )}
     </RetroCard>
-  );
-}
-
-function FacilitiesTab({ team }: { team: TeamDetails }) {
-  const facilities = [
-    { name: "Stadium", level: team.stadium, description: "Home field advantage and atmosphere" },
-    { name: "Training Facilities", level: team.facilities, description: "Player development bonus" },
-    { name: "College Life", level: team.collegeLife, description: "Recruiting visits and camp invites" },
-    { name: "Marketing", level: team.marketing, description: "NIL deal efficiency and poll bonuses" },
-    { name: "Academics", level: team.academics, description: "Academic recruiting bonus" },
-  ];
-
-  return (
-    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {facilities.map((facility) => (
-        <RetroCard key={facility.name}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-pixel text-[10px] text-gold">{facility.name}</h3>
-            <span className="text-2xl font-bold">{facility.level}</span>
-          </div>
-          <AttributeSlider
-            label=""
-            value={facility.level}
-            max={10}
-            disabled
-            showValue={false}
-          />
-          <p className="text-sm text-muted-foreground mt-3">{facility.description}</p>
-        </RetroCard>
-      ))}
-    </div>
   );
 }
 

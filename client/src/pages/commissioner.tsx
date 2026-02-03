@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { 
   ArrowLeft, 
   Settings, 
@@ -20,7 +21,10 @@ import {
   Mail,
   UserPlus,
   Check,
-  Copy
+  Copy,
+  Upload,
+  FileSpreadsheet,
+  X
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -70,8 +74,8 @@ export default function CommissionerPage() {
   });
 
   const importRecruitingMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", `/api/leagues/${id}/recruiting/import`, {});
+    mutationFn: async (csvData?: string) => {
+      const res = await apiRequest("POST", `/api/leagues/${id}/recruiting/import`, { csvData });
       return res.json() as Promise<{ success: boolean; count: number }>;
     },
     onSuccess: (data) => {
@@ -79,7 +83,7 @@ export default function CommissionerPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "commissioner"] });
       toast({ 
         title: "Recruiting Class Imported", 
-        description: `Generated ${data.count} new recruits for the recruiting class.` 
+        description: `${data.count > 0 ? `Imported ${data.count} recruits` : 'Generated new recruiting class'} successfully.` 
       });
     },
     onError: (error: Error) => {
@@ -176,7 +180,7 @@ export default function CommissionerPage() {
               league={data?.league}
               onAdvanceWeek={() => advanceWeekMutation.mutate()}
               isAdvancing={advanceWeekMutation.isPending}
-              onImportRecruiting={() => importRecruitingMutation.mutate()}
+              onImportRecruiting={(csvData?: string) => importRecruitingMutation.mutate(csvData)}
               isImporting={importRecruitingMutation.isPending}
             />
           </TabsContent>
@@ -211,9 +215,32 @@ function ActionsTab({
   league?: League;
   onAdvanceWeek: () => void;
   isAdvancing: boolean;
-  onImportRecruiting: () => void;
+  onImportRecruiting: (csvData?: string) => void;
   isImporting: boolean;
 }) {
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [showEditTeamsDialog, setShowEditTeamsDialog] = useState(false);
+  const [csvData, setCsvData] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      setCsvData(content);
+    };
+    reader.readAsText(file);
+  };
+
+  const handleImport = (useCSV: boolean) => {
+    onImportRecruiting(useCSV ? csvData : undefined);
+    setShowImportDialog(false);
+    setCsvData("");
+  };
+
   return (
     <div className="grid md:grid-cols-2 gap-6">
       <RetroCard>
@@ -241,8 +268,8 @@ function ActionsTab({
           <div className="space-y-3">
             <ActionButton 
               label={isImporting ? "Importing..." : "Import Recruiting Class"}
-              description="Generate new recruits for the season" 
-              onClick={onImportRecruiting}
+              description="Import recruits from CSV file" 
+              onClick={() => setShowImportDialog(true)}
               disabled={isImporting}
               dataTestId="button-import-recruiting"
             />
@@ -254,8 +281,8 @@ function ActionsTab({
             />
             <ActionButton 
               label="Edit Teams" 
-              description="Modify team attributes" 
-              href={`/league/${league?.id}`}
+              description="Swap teams in or out of league" 
+              onClick={() => setShowEditTeamsDialog(true)}
               dataTestId="button-edit-teams"
             />
             <ActionButton 
@@ -273,6 +300,111 @@ function ActionsTab({
           </div>
         </RetroCardContent>
       </RetroCard>
+
+      <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
+        <DialogContent className="bg-card border-border max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-pixel text-gold text-sm">Import Recruiting Class</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Upload a CSV file with recruit data, or generate a new class automatically.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div 
+              className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-gold transition-colors"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv"
+                onChange={handleFileUpload}
+                className="hidden"
+                data-testid="input-import-file"
+              />
+              <FileSpreadsheet className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                Click to upload CSV file
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Format: firstName, lastName, position, overall, starRating, homeState
+              </p>
+            </div>
+
+            {csvData && (
+              <div className="bg-background/50 rounded p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-gold">File loaded</span>
+                  <button 
+                    onClick={() => setCsvData("")}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <p className="text-xs text-muted-foreground mb-2">
+                  {csvData.split('\n').length - 1} recruits detected
+                </p>
+                <RetroButton
+                  onClick={() => handleImport(true)}
+                  disabled={isImporting}
+                  className="w-full"
+                  data-testid="button-import-csv"
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  {isImporting ? "Importing..." : "Import CSV Data"}
+                </RetroButton>
+              </div>
+            )}
+
+            <div className="border-t border-border pt-4">
+              <p className="text-xs text-muted-foreground mb-3">
+                Or generate a new class automatically:
+              </p>
+              <RetroButton
+                variant="outline"
+                onClick={() => handleImport(false)}
+                disabled={isImporting}
+                className="w-full"
+                data-testid="button-generate-class"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                {isImporting ? "Generating..." : "Generate New Class"}
+              </RetroButton>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showEditTeamsDialog} onOpenChange={setShowEditTeamsDialog}>
+        <DialogContent className="bg-card border-border max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="font-pixel text-gold text-sm">Edit Teams</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Swap teams in or out of the league.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              Select teams to add or remove from the league. Changes will take effect immediately.
+            </p>
+            
+            <div className="bg-background/50 rounded p-4 text-center">
+              <Users className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                Team editing is available in the Team View screen.
+              </p>
+              <Link href={`/league/${league?.id}`}>
+                <RetroButton variant="outline" className="mt-3" data-testid="button-go-to-teams">
+                  Go to Teams
+                </RetroButton>
+              </Link>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { RetroButton } from "@/components/ui/retro-button";
 import { AttributeSlider } from "@/components/ui/attribute-slider";
 import { Badge } from "@/components/ui/badge";
 import { LetterGrade } from "@/components/ui/letter-grade";
-import { X, MapPin, ChevronRight } from "lucide-react";
+import { X, MapPin, ChevronRight, Star } from "lucide-react";
 import { getAbilityByName } from "@shared/abilities";
 
 interface PlayerStats {
@@ -122,11 +122,21 @@ export function PlayerProfileCard({ player, open, onClose }: PlayerProfileCardPr
         <div className="grid grid-cols-3 gap-2 p-4 border-b border-border">
           <div className="bg-background/50 rounded p-3 text-center">
             <p className="font-pixel text-gold text-lg" data-testid="text-overall">{player.overall}</p>
-            <p className="text-xs text-muted-foreground">Overall (1-999)</p>
+            <p className="text-xs text-muted-foreground flex items-center justify-center gap-1">
+              <Star className="w-3 h-3 text-gold" fill="currentColor" /> Rating
+            </p>
           </div>
           <div className="bg-background/50 rounded p-3 text-center">
-            <p className="font-pixel text-lg" data-testid="text-star-rating">{player.starRating}</p>
-            <p className="text-xs text-muted-foreground">Star Rating</p>
+            <div className="flex items-center justify-center gap-0.5" data-testid="text-star-rating">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Star
+                  key={i}
+                  className={`w-3 h-3 ${i < player.starRating ? "text-gold" : "text-muted-foreground/30"}`}
+                  fill={i < player.starRating ? "currentColor" : "none"}
+                />
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">Rank</p>
           </div>
           <div className="bg-background/50 rounded p-3 text-center">
             <p className="font-pixel text-lg" data-testid="text-eligibility">
