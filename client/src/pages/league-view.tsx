@@ -20,7 +20,8 @@ import {
   ChevronRight,
   Newspaper,
   Plus,
-  Pin
+  Pin,
+  Award
 } from "lucide-react";
 import type { League, Team, Conference, Standings, DynastyNews } from "@shared/schema";
 import { User, Cpu } from "lucide-react";
@@ -136,6 +137,12 @@ export default function LeagueViewPage() {
             icon={<Settings className="w-6 h-6" />}
             title="Commissioner"
             subtitle="Dynasty settings"
+          />
+          <QuickActionCard
+            href={`/league/${id}/coach`}
+            icon={<Award className="w-6 h-6" />}
+            title="Coach Profile"
+            subtitle="View your career"
           />
         </div>
 

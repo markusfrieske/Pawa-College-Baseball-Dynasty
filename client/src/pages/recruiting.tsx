@@ -557,14 +557,22 @@ function RecruitDetailModal({
             <h4 className="font-pixel text-[10px] text-gold mb-3">Priorities</h4>
             {scoutPct >= 50 ? (
               <div className="grid grid-cols-2 gap-3">
-                {priorities.map((p) => (
-                  <div key={p.key} className="flex items-center justify-between p-2 bg-muted/50 rounded">
-                    <span className="text-sm text-muted-foreground">{p.label}</span>
-                    <Badge variant="outline" className="text-xs">
-                      {p.value}
-                    </Badge>
-                  </div>
-                ))}
+                {priorities.map((p) => {
+                  const priorityLabels: Record<string, string> = {
+                    "Extremely": "Extremely Important",
+                    "Very": "Very Important",
+                    "Somewhat": "Somewhat Important",
+                    "Not Important": "Not Important"
+                  };
+                  return (
+                    <div key={p.key} className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                      <span className="text-sm text-muted-foreground">{p.label}</span>
+                      <Badge variant="outline" className="text-xs whitespace-nowrap">
+                        {priorityLabels[p.value as string] || p.value}
+                      </Badge>
+                    </div>
+                  );
+                })}
               </div>
             ) : (
               <div className="p-4 bg-muted/30 border border-border rounded text-center">

@@ -17,6 +17,7 @@ import RosterPage from "@/pages/roster";
 import LeagueSetupPage from "@/pages/league-setup";
 import DynastySetupPage from "@/pages/dynasty-setup";
 import InvitePage from "@/pages/invite";
+import CoachProfilePage from "@/pages/coach-profile";
 import { useState } from "react";
 import { useLocation } from "wouter";
 
@@ -41,6 +42,7 @@ function Router() {
       <Route path="/league/:id/schedule" component={SchedulePage} />
       <Route path="/league/:id/commissioner" component={CommissionerPage} />
       <Route path="/league/:id/team/:teamId" component={TeamViewPage} />
+      <Route path="/league/:id/coach" component={CoachProfilePage} />
       <Route path="/invite/:code" component={InvitePage} />
       <Route component={NotFound} />
     </Switch>

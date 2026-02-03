@@ -8,7 +8,7 @@ interface RetroButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 export const RetroButton = forwardRef<HTMLButtonElement, RetroButtonProps>(
   ({ className, variant = "primary", size = "md", children, ...props }, ref) => {
-    const baseStyles = "font-pixel uppercase tracking-wider transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed";
+    const baseStyles = "inline-flex items-center justify-center font-pixel uppercase tracking-wider transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed";
     
     const variants = {
       primary: "bg-gold text-forest-dark border-2 border-gold-dark hover:bg-gold/80 active:translate-y-0.5",

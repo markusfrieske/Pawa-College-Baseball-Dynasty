@@ -41,6 +41,7 @@ export interface IStorage {
   getCoachByTeam(teamId: string): Promise<Coach | undefined>;
   getCoachesByLeague(leagueId: string): Promise<Coach[]>;
   createCoach(coach: InsertCoach): Promise<Coach>;
+  updateCoach(id: string, data: Partial<Coach>): Promise<Coach | undefined>;
 
   getScoutsByLeague(leagueId: string): Promise<Scout[]>;
   createScout(scout: InsertScout): Promise<Scout>;
@@ -160,6 +161,11 @@ export class DatabaseStorage implements IStorage {
 
   async createCoach(insertCoach: InsertCoach): Promise<Coach> {
     const [coach] = await db.insert(coaches).values(insertCoach).returning();
+    return coach;
+  }
+
+  async updateCoach(id: string, data: Partial<Coach>): Promise<Coach | undefined> {
+    const [coach] = await db.update(coaches).set(data).where(eq(coaches.id, id)).returning();
     return coach;
   }
 

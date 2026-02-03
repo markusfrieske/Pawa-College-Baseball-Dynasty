@@ -137,6 +137,19 @@ export const coaches = pgTable("coaches", {
   facialHair: text("facial_hair").notNull().default("none"),
   eyeStyle: text("eye_style").notNull().default("normal"),
   skillTreeChoices: json("skill_tree_choices").$type<string[]>().default([]),
+  // Career stats
+  careerWins: integer("career_wins").notNull().default(0),
+  careerLosses: integer("career_losses").notNull().default(0),
+  confWins: integer("conf_wins").notNull().default(0),
+  confLosses: integer("conf_losses").notNull().default(0),
+  confChampionships: integer("conf_championships").notNull().default(0),
+  cwsAppearances: integer("cws_appearances").notNull().default(0),
+  nationalChampionships: integer("national_championships").notNull().default(0),
+  coachOfYearAwards: integer("coach_of_year_awards").notNull().default(0),
+  allAmericans: integer("all_americans").notNull().default(0),
+  draftPicks: integer("draft_picks").notNull().default(0),
+  legacyScore: integer("legacy_score").notNull().default(0),
+  skillPoints: integer("skill_points").notNull().default(0),
 });
 
 export const insertCoachSchema = createInsertSchema(coaches).pick({

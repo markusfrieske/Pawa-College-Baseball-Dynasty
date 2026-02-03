@@ -588,6 +588,67 @@ export async function registerRoutes(
     }
   });
 
+  // Sign/commit a recruit to your team
+  app.post("/api/leagues/:id/recruiting/:recruitId/sign", requireAuth, async (req, res) => {
+    try {
+      const leagueTeams = await storage.getTeamsByLeague(req.params.id as string);
+      const userId = req.session.userId;
+      const coaches = await storage.getCoachesByLeague(req.params.id as string);
+      const userCoach = coaches.find((c) => c.userId === userId);
+      
+      if (!userCoach || !userCoach.teamId) {
+        return res.status(400).json({ message: "No team assigned" });
+      }
+
+      const userTeam = leagueTeams.find((t) => t.id === userCoach.teamId);
+      if (!userTeam) {
+        return res.status(400).json({ message: "Team not found" });
+      }
+
+      const recruit = await storage.getRecruit(req.params.recruitId as string);
+      if (!recruit) {
+        return res.status(404).json({ message: "Recruit not found" });
+      }
+
+      if (recruit.signedTeamId) {
+        return res.status(400).json({ message: "Recruit already signed to a team" });
+      }
+
+      // Sign the recruit
+      const updatedRecruit = await storage.updateRecruit(recruit.id, {
+        signedTeamId: userTeam.id,
+        stage: "signed",
+      });
+
+      // Award XP to the coach for signing a recruit
+      const SIGN_XP_BASE = 50;
+      const starBonus = (recruit.starRank || 1) * 25; // 25 extra per star
+      const signXp = SIGN_XP_BASE + starBonus;
+      
+      const newXp = userCoach.xp + signXp;
+      const newLevel = Math.floor(newXp / 1000) + 1;
+      const skillPointsGained = newLevel > userCoach.level ? 1 : 0;
+      
+      await storage.updateCoach(userCoach.id, {
+        xp: newXp,
+        level: newLevel,
+        skillPoints: userCoach.skillPoints + skillPointsGained,
+      });
+
+      await storage.createAuditLog({
+        leagueId: req.params.id,
+        userId: req.session.userId,
+        action: "Recruit Signed",
+        details: `Signed ${recruit.firstName} ${recruit.lastName} (${recruit.starRank}-star ${recruit.position})`,
+      });
+
+      res.json(updatedRecruit);
+    } catch (error) {
+      console.error("Failed to sign recruit:", error);
+      res.status(500).json({ message: "Failed to sign recruit" });
+    }
+  });
+
   // Roster routes
   app.get("/api/leagues/:id/roster", requireAuth, async (req, res) => {
     try {
@@ -607,6 +668,34 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to fetch roster:", error);
       res.status(500).json({ message: "Failed to fetch roster" });
+    }
+  });
+
+  // Coach profile route
+  app.get("/api/leagues/:id/coach", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId;
+      const coaches = await storage.getCoachesByLeague(req.params.id as string);
+      
+      // Find the coach belonging to the authenticated user
+      const userCoach = coaches.find((c) => c.userId === userId);
+      
+      if (!userCoach) {
+        return res.status(404).json({ message: "No coach found for this user" });
+      }
+
+      const team = userCoach.teamId ? await storage.getTeam(userCoach.teamId) : undefined;
+      if (!team) {
+        return res.status(404).json({ message: "Team not found" });
+      }
+
+      res.json({
+        coach: userCoach,
+        team,
+      });
+    } catch (error) {
+      console.error("Failed to fetch coach:", error);
+      res.status(500).json({ message: "Failed to fetch coach" });
     }
   });
 
@@ -679,6 +768,50 @@ export async function registerRoutes(
           runsScored: awayStanding.runsScored + awayScore,
           runsAllowed: awayStanding.runsAllowed + homeScore,
         });
+      }
+
+      // Award XP to coaches for wins
+      const leagueTeams = await storage.getTeamsByLeague(req.params.id as string);
+      const homeTeam = leagueTeams.find(t => t.id === game.homeTeamId);
+      const awayTeam = leagueTeams.find(t => t.id === game.awayTeamId);
+      const homeWon = homeScore > awayScore;
+      
+      // XP values
+      const WIN_XP = 100;
+      const LOSS_XP = 25;
+      
+      // Update home team coach
+      if (homeTeam?.coachId) {
+        const homeCoach = await storage.getCoach(homeTeam.coachId);
+        if (homeCoach) {
+          const newXp = homeCoach.xp + (homeWon ? WIN_XP : LOSS_XP);
+          const newLevel = Math.floor(newXp / 1000) + 1;
+          const skillPointsGained = newLevel > homeCoach.level ? 1 : 0;
+          await storage.updateCoach(homeCoach.id, {
+            xp: newXp,
+            level: newLevel,
+            skillPoints: homeCoach.skillPoints + skillPointsGained,
+            careerWins: homeCoach.careerWins + (homeWon ? 1 : 0),
+            careerLosses: homeCoach.careerLosses + (homeWon ? 0 : 1),
+          });
+        }
+      }
+      
+      // Update away team coach
+      if (awayTeam?.coachId) {
+        const awayCoach = await storage.getCoach(awayTeam.coachId);
+        if (awayCoach) {
+          const newXp = awayCoach.xp + (homeWon ? LOSS_XP : WIN_XP);
+          const newLevel = Math.floor(newXp / 1000) + 1;
+          const skillPointsGained = newLevel > awayCoach.level ? 1 : 0;
+          await storage.updateCoach(awayCoach.id, {
+            xp: newXp,
+            level: newLevel,
+            skillPoints: awayCoach.skillPoints + skillPointsGained,
+            careerWins: awayCoach.careerWins + (homeWon ? 0 : 1),
+            careerLosses: awayCoach.careerLosses + (homeWon ? 1 : 0),
+          });
+        }
       }
 
       await storage.createAuditLog({
