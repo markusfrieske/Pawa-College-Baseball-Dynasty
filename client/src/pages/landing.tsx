@@ -3,10 +3,11 @@ import { useState } from "react";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroInput } from "@/components/ui/retro-input";
 import { RetroSelect } from "@/components/ui/retro-select";
-import { Trophy, Users, Target, Calendar, Star, TrendingUp, User, Bug, Volume2, VolumeX, Layers, LogOut, DollarSign, X, GraduationCap, Building2, Search } from "lucide-react";
+import { Trophy, Users, Target, Calendar, Star, TrendingUp, User, Bug, Volume2, VolumeX, Layers, LogOut, DollarSign, X, GraduationCap, Building2, Search, Settings, CalendarDays, Binoculars, Newspaper, Crown } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { DynastyLogo } from "@/components/dynasty-logo";
 
 export default function LandingPage() {
   const [isMuted, setIsMuted] = useState(false);
@@ -32,9 +33,7 @@ export default function LandingPage() {
       <header className="border-b border-border">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gold rounded-full flex items-center justify-center">
-              <span className="text-forest-dark font-pixel text-xs">CBD</span>
-            </div>
+            <DynastyLogo className="w-10 h-10" />
             <span className="font-pixel text-gold text-sm hidden sm:block">
               パワプロ College Baseball Dynasty
             </span>
@@ -163,31 +162,61 @@ export default function LandingPage() {
               Features
             </h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <FeatureCard
-                icon={<Users className="w-8 h-8" />}
+              <FeatureCardWithIcons
+                icon={<Settings className="w-8 h-8" />}
                 title="League Management"
                 description="Create leagues with up to 16 teams. Mix human coaches with CPU opponents across multiple conferences."
+                subIcons={[
+                  { icon: Users, name: "Teams", color: "text-blue-400" },
+                  { icon: Settings, name: "Settings", color: "text-green-400" },
+                  { icon: Layers, name: "Conferences", color: "text-purple-400" },
+                  { icon: Crown, name: "Commissioner", color: "text-orange-400" },
+                ]}
               />
-              <FeatureCard
-                icon={<Target className="w-8 h-8" />}
+              <FeatureCardWithIcons
+                icon={<Binoculars className="w-8 h-8" />}
                 title="Deep Recruiting"
                 description="Scout recruits with hidden ratings. Use points wisely on visits, pitches, and NIL deals to land top talent."
+                subIcons={[
+                  { icon: Search, name: "Scout", color: "text-blue-400" },
+                  { icon: Target, name: "Target", color: "text-green-400" },
+                  { icon: DollarSign, name: "NIL", color: "text-purple-400" },
+                  { icon: Star, name: "Rankings", color: "text-orange-400" },
+                ]}
               />
-              <FeatureCard
-                icon={<Trophy className="w-8 h-8" />}
+              <FeatureCardWithIcons
+                icon={<Crown className="w-8 h-8" />}
                 title="Dynasty Building"
                 description="20-season dynasties with full historical archives. Build a program that dominates for generations."
+                subIcons={[
+                  { icon: Trophy, name: "Titles", color: "text-blue-400" },
+                  { icon: TrendingUp, name: "Growth", color: "text-green-400" },
+                  { icon: Building2, name: "Program", color: "text-purple-400" },
+                  { icon: Star, name: "Legacy", color: "text-orange-400" },
+                ]}
               />
-              <FeatureCard
-                icon={<Calendar className="w-8 h-8" />}
+              <FeatureCardWithIcons
+                icon={<CalendarDays className="w-8 h-8" />}
                 title="Full Season Structure"
                 description="Preseason through College World Series. Weekly advances with recruiting phases and story events."
+                subIcons={[
+                  { icon: Calendar, name: "Schedule", color: "text-blue-400" },
+                  { icon: Trophy, name: "Playoffs", color: "text-green-400" },
+                  { icon: Target, name: "Recruiting", color: "text-purple-400" },
+                  { icon: Star, name: "CWS", color: "text-orange-400" },
+                ]}
               />
               <CoachProgressionCard />
-              <FeatureCard
-                icon={<TrendingUp className="w-8 h-8" />}
+              <FeatureCardWithIcons
+                icon={<Newspaper className="w-8 h-8" />}
                 title="Story Engine"
                 description="Dynamic narratives that affect recruiting and gameplay. Respond to scandals, rumors, and breakout stories."
+                subIcons={[
+                  { icon: Newspaper, name: "News", color: "text-blue-400" },
+                  { icon: TrendingUp, name: "Drama", color: "text-green-400" },
+                  { icon: User, name: "Stories", color: "text-purple-400" },
+                  { icon: Star, name: "Moments", color: "text-orange-400" },
+                ]}
               />
             </div>
           </div>
@@ -221,20 +250,32 @@ export default function LandingPage() {
   );
 }
 
-function FeatureCard({
+function FeatureCardWithIcons({
   icon,
   title,
   description,
+  subIcons,
 }: {
   icon: React.ReactNode;
   title: string;
   description: string;
+  subIcons: Array<{ icon: React.ComponentType<{ className?: string }>; name: string; color: string }>;
 }) {
   return (
     <div className="bg-card border-2 border-border p-6 hover:border-gold/50 transition-colors">
       <div className="text-gold mb-4">{icon}</div>
       <h3 className="font-pixel text-[10px] text-foreground uppercase mb-3">{title}</h3>
-      <p className="text-muted-foreground text-sm leading-relaxed">{description}</p>
+      <p className="text-muted-foreground text-sm leading-relaxed mb-4">{description}</p>
+      <div className="grid grid-cols-4 gap-2 mt-4">
+        {subIcons.map((item) => (
+          <div key={item.name} className="flex flex-col items-center gap-1" data-testid={`feature-${title.toLowerCase().replace(/\s+/g, '-')}-${item.name.toLowerCase()}`}>
+            <div className={`p-2 bg-background/50 border border-border rounded ${item.color}`}>
+              <item.icon className="w-4 h-4" />
+            </div>
+            <span className="text-[8px] text-muted-foreground font-pixel">{item.name}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

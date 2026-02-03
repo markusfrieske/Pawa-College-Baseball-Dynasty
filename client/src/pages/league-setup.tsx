@@ -111,10 +111,15 @@ export default function LeagueSetupPage() {
     mutationFn: async (payload: { teamId: string; coach: typeof coachData }) => {
       return apiRequest("POST", `/api/leagues/${id}/setup`, payload);
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues"] });
       toast({ title: "Setup Complete!", description: "Welcome to your dynasty!" });
-      setLocation(`/league/${id}`);
+      // Check if user is commissioner - if so, redirect to dynasty-setup
+      if (data?.league?.commissionerId === data?.league?.commissionerId) {
+        setLocation(`/league/${id}/dynasty-setup`);
+      } else {
+        setLocation(`/league/${id}`);
+      }
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });

@@ -15,6 +15,7 @@ import SchedulePage from "@/pages/schedule";
 import CommissionerPage from "@/pages/commissioner";
 import RosterPage from "@/pages/roster";
 import LeagueSetupPage from "@/pages/league-setup";
+import DynastySetupPage from "@/pages/dynasty-setup";
 import InvitePage from "@/pages/invite";
 import { useState } from "react";
 import { useLocation } from "wouter";
@@ -34,6 +35,7 @@ function Router() {
       <Route path="/league/create" component={LeagueCreatePage} />
       <Route path="/league/:id" component={LeagueViewPage} />
       <Route path="/league/:id/setup" component={LeagueSetupPage} />
+      <Route path="/league/:id/dynasty-setup" component={DynastySetupPage} />
       <Route path="/league/:id/recruiting" component={RecruitingPage} />
       <Route path="/league/:id/roster" component={RosterPage} />
       <Route path="/league/:id/schedule" component={SchedulePage} />

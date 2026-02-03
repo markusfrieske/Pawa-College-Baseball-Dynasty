@@ -220,6 +220,7 @@ export async function registerRoutes(
         maxTeams,
         cpuDifficulty,
         seasonLength,
+        currentPhase: "dynasty_setup",
       });
 
       // Create conferences - use real college baseball conferences
@@ -953,7 +954,7 @@ export async function registerRoutes(
   // Team routes
   app.get("/api/leagues/:id/teams/:teamId", requireAuth, async (req, res) => {
     try {
-      const team = await storage.getTeam(req.params.teamId);
+      const team = await storage.getTeam(req.params.teamId as string);
       if (!team) {
         return res.status(404).json({ message: "Team not found" });
       }
@@ -969,6 +970,105 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to fetch team:", error);
       res.status(500).json({ message: "Failed to fetch team" });
+    }
+  });
+
+  // Dynasty Setup routes
+  app.get("/api/leagues/:id/dynasty-setup", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const userId = req.session.userId;
+      
+      const league = await storage.getLeague(leagueId);
+      if (!league) {
+        return res.status(404).json({ message: "League not found" });
+      }
+      
+      const teams = await storage.getTeamsByLeague(leagueId);
+      const conferences = await storage.getConferencesByLeague(leagueId);
+      const recruits = await storage.getRecruitsByLeague(leagueId);
+      const games = await storage.getGamesByLeague(leagueId);
+      const invites = await storage.getLeagueInvites(leagueId);
+      
+      const teamsWithCoaches = await Promise.all(teams.map(async (team) => {
+        const coach = team.coachId ? await storage.getCoach(team.coachId) : null;
+        let user = null;
+        if (coach?.userId) {
+          const userData = await storage.getUser(coach.userId);
+          user = userData ? { email: userData.email } : null;
+        }
+        return { ...team, coach, user };
+      }));
+      
+      const isCommissioner = league.commissionerId === userId;
+      
+      res.json({
+        league,
+        teams: teamsWithCoaches,
+        conferences,
+        invites,
+        hasRecruits: recruits.length > 0,
+        hasSchedule: games.length > 0,
+        isCommissioner,
+      });
+    } catch (error) {
+      console.error("Failed to fetch dynasty setup:", error);
+      res.status(500).json({ message: "Failed to fetch dynasty setup" });
+    }
+  });
+
+  // Start dynasty - changes phase from dynasty_setup to preseason
+  app.post("/api/leagues/:id/start", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const userId = req.session.userId;
+      
+      const league = await storage.getLeague(leagueId);
+      if (!league) {
+        return res.status(404).json({ message: "League not found" });
+      }
+      
+      if (league.commissionerId !== userId) {
+        return res.status(403).json({ message: "Only commissioner can start dynasty" });
+      }
+      
+      await storage.updateLeague(leagueId, { currentPhase: "preseason" });
+      
+      await storage.createAuditLog({
+        leagueId,
+        userId: userId || "system",
+        action: "start_dynasty",
+        details: { season: league.currentSeason },
+      });
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to start dynasty:", error);
+      res.status(500).json({ message: "Failed to start dynasty" });
+    }
+  });
+
+  // Generate schedule
+  app.post("/api/leagues/:id/schedule/generate", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const userId = req.session.userId;
+      
+      const league = await storage.getLeague(leagueId);
+      if (!league) {
+        return res.status(404).json({ message: "League not found" });
+      }
+      
+      if (league.commissionerId !== userId) {
+        return res.status(403).json({ message: "Only commissioner can generate schedule" });
+      }
+      
+      await generateSchedule(leagueId);
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to generate schedule:", error);
+      res.status(500).json({ message: "Failed to generate schedule" });
     }
   });
 

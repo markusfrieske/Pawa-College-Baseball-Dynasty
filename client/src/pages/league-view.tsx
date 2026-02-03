@@ -48,6 +48,7 @@ export default function LeagueViewPage() {
   }
 
   const phaseLabels: Record<string, string> = {
+    dynasty_setup: "Dynasty Setup",
     preseason: "Preseason",
     spring_training: "Spring Training",
     recruiting: "Recruiting Phase",
