@@ -253,7 +253,7 @@ export default function DynastySetupPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Link href={`/league/${id}/team/${team.id}/roster`}>
+                      <Link href={`/league/${id}/team/${team.id}`}>
                         <RetroButton variant="ghost" size="sm" data-testid={`button-view-roster-${team.id}`}>
                           <Eye className="w-3 h-3" />
                         </RetroButton>
