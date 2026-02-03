@@ -1005,6 +1005,91 @@ export async function registerRoutes(
     }
   });
 
+  // Toggle ready status for user's coach
+  app.post("/api/leagues/:id/ready", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id as string);
+      if (!league) {
+        return res.status(404).json({ message: "League not found" });
+      }
+
+      const coaches = await storage.getCoaches(league.id);
+      const userCoach = coaches.find(c => c.userId === req.session.userId);
+      if (!userCoach) {
+        return res.status(403).json({ message: "You don't have a coach in this league" });
+      }
+
+      // Toggle ready status
+      const newReadyStatus = !userCoach.isReady;
+      await storage.updateCoach(userCoach.id, { isReady: newReadyStatus });
+
+      res.json({ success: true, isReady: newReadyStatus });
+    } catch (error) {
+      console.error("Failed to toggle ready status:", error);
+      res.status(500).json({ message: "Failed to toggle ready status" });
+    }
+  });
+
+  // Get ready status for all teams in a league (commissioner view)
+  app.get("/api/leagues/:id/ready-status", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id as string);
+      if (!league) {
+        return res.status(404).json({ message: "League not found" });
+      }
+
+      const teams = await storage.getTeams(league.id);
+      const coaches = await storage.getCoaches(league.id);
+      const games = await storage.getGames(league.id);
+      
+      // Get current week's games that need scores
+      const currentWeekGames = games.filter(g => 
+        g.week === league.currentWeek && 
+        g.season === league.currentSeason &&
+        !g.isComplete
+      );
+
+      const readyStatus = teams.map(team => {
+        const coach = coaches.find(c => c.teamId === team.id);
+        const isHumanControlled = !!coach?.userId;
+        
+        // Check if team has pending scores to report
+        const pendingGames = currentWeekGames.filter(g => 
+          (g.homeTeamId === team.id || g.awayTeamId === team.id)
+        );
+        const hasReportedScores = pendingGames.length === 0 || 
+          pendingGames.every(g => g.homeScore !== null && g.awayScore !== null);
+
+        return {
+          teamId: team.id,
+          teamName: team.name,
+          abbreviation: team.abbreviation,
+          isHumanControlled,
+          userId: coach?.userId ?? null,
+          coachName: coach ? `${coach.firstName} ${coach.lastName}` : "CPU",
+          isReady: coach?.isReady ?? false,
+          scoutActionsUsed: coach?.scoutActionsUsed ?? 0,
+          recruitActionsUsed: coach?.recruitActionsUsed ?? 0,
+          hasReportedScores,
+        };
+      });
+
+      const allHumansReady = readyStatus
+        .filter(s => s.isHumanControlled)
+        .every(s => s.isReady);
+
+      res.json({ 
+        readyStatus, 
+        allHumansReady,
+        humanCount: readyStatus.filter(s => s.isHumanControlled).length,
+        readyCount: readyStatus.filter(s => s.isHumanControlled && s.isReady).length
+      });
+    } catch (error) {
+      console.error("Failed to get ready status:", error);
+      res.status(500).json({ message: "Failed to get ready status" });
+    }
+  });
+
   // Helper function to convert letter grade to numeric value (0-100)
   function letterGradeToNumeric(grade: string): number {
     const gradeMap: Record<string, number> = {

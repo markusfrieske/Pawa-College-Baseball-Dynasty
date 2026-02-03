@@ -248,28 +248,31 @@ function ActionsTab({
   };
 
   return (
-    <div className="grid md:grid-cols-2 gap-6">
-      <RetroCard>
-        <RetroCardHeader>Advance Week</RetroCardHeader>
-        <RetroCardContent>
-          <p className="text-muted-foreground mb-4">
-            Move the league forward to the next week. This will process recruiting updates,
-            trigger story events, and update standings.
-          </p>
-          <RetroButton
-            onClick={onAdvanceWeek}
-            disabled={isAdvancing}
-            className="w-full"
-            data-testid="button-advance-week"
-          >
-            <Play className="w-4 h-4 mr-2" />
-            {isAdvancing ? "Advancing..." : "Advance Week"}
-          </RetroButton>
-        </RetroCardContent>
-      </RetroCard>
+    <div className="space-y-6">
+      <ReadyStatusSection leagueId={league?.id || ""} />
+      
+      <div className="grid md:grid-cols-2 gap-6">
+        <RetroCard>
+          <RetroCardHeader>Advance Week</RetroCardHeader>
+          <RetroCardContent>
+            <p className="text-muted-foreground mb-4">
+              Move the league forward to the next week. This will process recruiting updates,
+              trigger story events, and update standings.
+            </p>
+            <RetroButton
+              onClick={onAdvanceWeek}
+              disabled={isAdvancing}
+              className="w-full"
+              data-testid="button-advance-week"
+            >
+              <Play className="w-4 h-4 mr-2" />
+              {isAdvancing ? "Advancing..." : "Advance Week"}
+            </RetroButton>
+          </RetroCardContent>
+        </RetroCard>
 
-      <RetroCard>
-        <RetroCardHeader>Quick Actions</RetroCardHeader>
+        <RetroCard>
+          <RetroCardHeader>Quick Actions</RetroCardHeader>
         <RetroCardContent>
           <div className="space-y-3">
             <ActionButton 
@@ -411,7 +414,113 @@ function ActionsTab({
           </div>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
+  );
+}
+
+interface ReadyStatusData {
+  readyStatus: Array<{
+    teamId: string;
+    teamName: string;
+    abbreviation: string;
+    isHumanControlled: boolean;
+    userId: string | null;
+    coachName: string;
+    isReady: boolean;
+    scoutActionsUsed: number;
+    recruitActionsUsed: number;
+    hasReportedScores: boolean;
+  }>;
+  allHumansReady: boolean;
+  humanCount: number;
+  readyCount: number;
+}
+
+function ReadyStatusSection({ leagueId }: { leagueId: string }) {
+  const { data, isLoading } = useQuery<ReadyStatusData>({
+    queryKey: ["/api/leagues", leagueId, "ready-status"],
+    enabled: !!leagueId,
+  });
+
+  if (isLoading || !data) {
+    return (
+      <RetroCard>
+        <RetroCardHeader>Ready Status</RetroCardHeader>
+        <RetroCardContent>
+          <Skeleton className="h-32" />
+        </RetroCardContent>
+      </RetroCard>
+    );
+  }
+
+  const humanTeams = data.readyStatus.filter(s => s.isHumanControlled);
+
+  return (
+    <RetroCard>
+      <RetroCardHeader>
+        <div className="flex items-center justify-between w-full">
+          <span>Ready Status</span>
+          <Badge 
+            variant="outline" 
+            className={data.allHumansReady ? "border-green-500 text-green-500" : "border-gold text-gold"}
+          >
+            {data.readyCount}/{data.humanCount} Ready
+          </Badge>
+        </div>
+      </RetroCardHeader>
+      <RetroCardContent>
+        {humanTeams.length === 0 ? (
+          <p className="text-muted-foreground text-sm">No human coaches in this dynasty.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-muted-foreground">
+                  <th className="pb-2 font-medium">Coach</th>
+                  <th className="pb-2 font-medium text-center">Ready</th>
+                  <th className="pb-2 font-medium text-center">Scout</th>
+                  <th className="pb-2 font-medium text-center">Recruit</th>
+                  <th className="pb-2 font-medium text-center">Scores</th>
+                </tr>
+              </thead>
+              <tbody>
+                {humanTeams.map((team) => (
+                  <tr key={team.teamId} className="border-b border-border/50">
+                    <td className="py-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{team.abbreviation}</span>
+                        <span className="text-muted-foreground">{team.coachName}</span>
+                      </div>
+                    </td>
+                    <td className="py-2 text-center">
+                      {team.isReady ? (
+                        <Check className="w-4 h-4 text-green-500 mx-auto" />
+                      ) : (
+                        <Clock className="w-4 h-4 text-muted-foreground mx-auto" />
+                      )}
+                    </td>
+                    <td className="py-2 text-center text-muted-foreground">
+                      {team.scoutActionsUsed}
+                    </td>
+                    <td className="py-2 text-center text-muted-foreground">
+                      {team.recruitActionsUsed}
+                    </td>
+                    <td className="py-2 text-center">
+                      {team.hasReportedScores ? (
+                        <Check className="w-4 h-4 text-green-500 mx-auto" />
+                      ) : (
+                        <X className="w-4 h-4 text-red-500 mx-auto" />
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </RetroCardContent>
+    </RetroCard>
   );
 }
 

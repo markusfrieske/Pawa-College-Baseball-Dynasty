@@ -11,7 +11,7 @@ import { AttributeSlider } from "@/components/ui/attribute-slider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Star, ArrowRight, ArrowLeft, Search, Target, GraduationCap, Building2, User, Cpu } from "lucide-react";
+import { Star, ArrowRight, ArrowLeft, Search, Target, GraduationCap, Building2, User, Cpu, Eye, Zap } from "lucide-react";
 import type { Team, Coach, Conference, League } from "@shared/schema";
 
 interface TeamCoachInfo {
@@ -35,20 +35,20 @@ interface SetupData {
 
 interface ArchetypeSkills {
   scouting: number;
-  recruiting: number;
-  academic: number;
-  facilities: number;
+  evaluation: number;
+  pitchers: number;
+  hitters: number;
 }
 
 const archetypeSkillTrees: Record<string, ArchetypeSkills> = {
-  "Balanced": { scouting: 5, recruiting: 5, academic: 5, facilities: 5 },
-  "Pure CEO": { scouting: 3, recruiting: 8, academic: 4, facilities: 5 },
-  "Player's Coach": { scouting: 4, recruiting: 4, academic: 7, facilities: 5 },
-  "Tactician": { scouting: 8, recruiting: 4, academic: 4, facilities: 4 },
-  "Old School": { scouting: 5, recruiting: 4, academic: 4, facilities: 7 },
-  "Scout Master": { scouting: 9, recruiting: 3, academic: 4, facilities: 4 },
-  "Academic Dean": { scouting: 4, recruiting: 4, academic: 9, facilities: 3 },
-  "Dealmaker": { scouting: 3, recruiting: 7, academic: 3, facilities: 7 },
+  "Balanced": { scouting: 2, evaluation: 2, pitchers: 2, hitters: 2 },
+  "Pure CEO": { scouting: 1, evaluation: 1, pitchers: 3, hitters: 3 },
+  "Player's Coach": { scouting: 2, evaluation: 3, pitchers: 2, hitters: 1 },
+  "Tactician": { scouting: 4, evaluation: 2, pitchers: 1, hitters: 1 },
+  "Old School": { scouting: 1, evaluation: 4, pitchers: 2, hitters: 1 },
+  "Scout Master": { scouting: 4, evaluation: 3, pitchers: 1, hitters: 1 },
+  "Academic Dean": { scouting: 2, evaluation: 3, pitchers: 1, hitters: 2 },
+  "Dealmaker": { scouting: 1, evaluation: 1, pitchers: 3, hitters: 3 },
 };
 
 const archetypeOptions = [
@@ -512,15 +512,15 @@ function SkillTreeDisplay({ archetype }: { archetype: string }) {
   const skills = archetypeSkillTrees[archetype] || archetypeSkillTrees["Balanced"];
   
   const skillItems = [
-    { key: "scouting", label: "Scouting", icon: Search, color: "text-blue-400", value: skills.scouting },
-    { key: "recruiting", label: "Recruiting", icon: Target, color: "text-green-400", value: skills.recruiting },
-    { key: "academic", label: "Academic", icon: GraduationCap, color: "text-purple-400", value: skills.academic },
-    { key: "facilities", label: "Facilities", icon: Building2, color: "text-orange-400", value: skills.facilities },
+    { key: "scouting", label: "Scouting", icon: Search, color: "text-blue-400", value: skills.scouting, maxValue: 4 },
+    { key: "evaluation", label: "Evaluation", icon: Eye, color: "text-purple-400", value: skills.evaluation, maxValue: 4 },
+    { key: "pitchers", label: "Pitchers", icon: Target, color: "text-green-400", value: skills.pitchers, maxValue: 4 },
+    { key: "hitters", label: "Hitters", icon: Zap, color: "text-orange-400", value: skills.hitters, maxValue: 4 },
   ];
 
   return (
     <div className="mt-6 p-4 bg-background/50 border border-border rounded">
-      <h4 className="font-pixel text-[10px] text-muted-foreground uppercase mb-4">Starting Skill Grades</h4>
+      <h4 className="font-pixel text-[10px] text-muted-foreground uppercase mb-4">Archetype Skill Boosts</h4>
       <div className="grid grid-cols-4 gap-3">
         {skillItems.map((skill) => (
           <div key={skill.key} className="flex flex-col items-center gap-2" data-testid={`skill-${skill.key}`}>
@@ -529,15 +529,17 @@ function SkillTreeDisplay({ archetype }: { archetype: string }) {
             </div>
             <span className="text-[8px] text-muted-foreground font-pixel">{skill.label}</span>
             <div className="flex items-center gap-1">
-              <div className="w-12 h-2 bg-border rounded overflow-hidden">
-                <div
-                  className={`h-full transition-all ${
-                    skill.value >= 7 ? "bg-green-500" : skill.value >= 5 ? "bg-gold" : "bg-orange-500"
-                  }`}
-                  style={{ width: `${(skill.value / 10) * 100}%` }}
-                />
+              <div className="flex gap-0.5">
+                {[1, 2, 3, 4].map((n) => (
+                  <div
+                    key={n}
+                    className={`w-2 h-4 rounded-sm transition-all ${
+                      n <= skill.value ? "bg-gold" : "bg-border"
+                    }`}
+                  />
+                ))}
               </div>
-              <span className="font-pixel text-[10px] text-gold w-4">{skill.value}</span>
+              <span className="font-pixel text-[10px] text-gold w-4">+{skill.value}</span>
             </div>
           </div>
         ))}

@@ -24,7 +24,9 @@ import {
   Award,
   Image as ImageIcon,
   X,
-  Building2
+  Building2,
+  Check,
+  Clock
 } from "lucide-react";
 import type { League, Team, Conference, Standings, DynastyNews } from "@shared/schema";
 import { User, Cpu } from "lucide-react";
@@ -100,7 +102,7 @@ export default function LeagueViewPage() {
             </Link>
             <h1 className="font-pixel text-gold text-lg">{league.name}</h1>
           </div>
-          <div className="flex flex-wrap gap-6 text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4" />
               <span>Season {league.currentSeason}, Week {league.currentWeek}</span>
@@ -112,6 +114,9 @@ export default function LeagueViewPage() {
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4" />
               <span>{league.teams?.length || 0} / {league.maxTeams} Teams</span>
+            </div>
+            <div className="ml-auto">
+              <ReadyButton leagueId={id} />
             </div>
           </div>
         </div>
@@ -701,6 +706,82 @@ function LeagueViewSkeleton() {
         </div>
         <Skeleton className="h-96" />
       </main>
+    </div>
+  );
+}
+
+interface ReadyStatusData {
+  readyStatus: Array<{
+    teamId: string;
+    teamName: string;
+    abbreviation: string;
+    isHumanControlled: boolean;
+    userId: string | null;
+    coachName: string;
+    isReady: boolean;
+    scoutActionsUsed: number;
+    recruitActionsUsed: number;
+    hasReportedScores: boolean;
+  }>;
+  allHumansReady: boolean;
+  humanCount: number;
+  readyCount: number;
+  currentUserId?: string;
+}
+
+function ReadyButton({ leagueId }: { leagueId: string }) {
+  const queryClient = useQueryClient();
+  
+  const { data: user } = useQuery<{ id: string; email: string }>({
+    queryKey: ["/api/auth/me"],
+  });
+
+  const { data: readyData, isLoading } = useQuery<ReadyStatusData>({
+    queryKey: ["/api/leagues", leagueId, "ready-status"],
+  });
+
+  const toggleReady = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/leagues/${leagueId}/ready`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "ready-status"] });
+    },
+  });
+
+  if (isLoading || !readyData || !user) {
+    return <Skeleton className="h-9 w-24" />;
+  }
+
+  const myTeamStatus = readyData.readyStatus.find(s => s.userId === user.id);
+  const isReady = myTeamStatus?.isReady ?? false;
+
+  return (
+    <div className="flex items-center gap-3">
+      <span className="text-xs text-muted-foreground">
+        {readyData.readyCount}/{readyData.humanCount} Ready
+      </span>
+      <RetroButton
+        size="sm"
+        variant={isReady ? "outline" : "default"}
+        onClick={() => toggleReady.mutate()}
+        disabled={toggleReady.isPending}
+        className={isReady ? "border-green-500 text-green-500" : ""}
+        data-testid="button-ready"
+      >
+        {isReady ? (
+          <>
+            <Check className="w-4 h-4 mr-1" />
+            Ready
+          </>
+        ) : (
+          <>
+            <Clock className="w-4 h-4 mr-1" />
+            Mark Ready
+          </>
+        )}
+      </RetroButton>
     </div>
   );
 }

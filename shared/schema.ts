@@ -150,6 +150,9 @@ export const coaches = pgTable("coaches", {
   draftPicks: integer("draft_picks").notNull().default(0),
   legacyScore: integer("legacy_score").notNull().default(0),
   skillPoints: integer("skill_points").notNull().default(0),
+  isReady: boolean("is_ready").notNull().default(false),
+  scoutActionsUsed: integer("scout_actions_used").notNull().default(0),
+  recruitActionsUsed: integer("recruit_actions_used").notNull().default(0),
 });
 
 export const insertCoachSchema = createInsertSchema(coaches).pick({
