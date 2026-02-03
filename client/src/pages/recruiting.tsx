@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
@@ -38,6 +38,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { RetroInput } from "@/components/ui/retro-input";
+import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 
 interface FilterPreset {
   id: string;
@@ -111,6 +112,7 @@ export default function RecruitingPage() {
   const [starFilter, setStarFilter] = useState("all");
   const [sortBy, setSortBy] = useState("classRank");
   const [showTeamNeeds, setShowTeamNeeds] = useState(false);
+  const [showWatchlistOnly, setShowWatchlistOnly] = useState(false);
   const [filterPresets, setFilterPresets] = useState<FilterPreset[]>(() => {
     const saved = localStorage.getItem(`recruiting-presets-${id}`);
     return saved ? JSON.parse(saved) : [];
@@ -119,6 +121,17 @@ export default function RecruitingPage() {
   const [compareRecruits, setCompareRecruits] = useState<RecruitWithInterest[]>([]);
   const [showCompareModal, setShowCompareModal] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setSelectedRecruit(null);
+        setShowCompareModal(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const toggleCompare = (recruit: RecruitWithInterest) => {
     if (compareRecruits.find(r => r.id === recruit.id)) {
@@ -206,6 +219,7 @@ export default function RecruitingPage() {
   const filteredRecruits = data?.recruits.filter(r => {
     if (positionFilter !== "all" && r.position !== positionFilter) return false;
     if (starFilter !== "all" && r.starRank < parseInt(starFilter)) return false;
+    if (showWatchlistOnly && !r.interest?.isTargeted) return false;
     return true;
   }).sort((a, b) => {
     switch (sortBy) {
@@ -232,16 +246,37 @@ export default function RecruitingPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border sticky top-0 bg-background z-10">
+      <header className="border-b border-border sticky top-0 bg-background z-[1000]">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-4 mb-4">
             <Link href={`/league/${id}`} className="text-muted-foreground hover:text-gold transition-colors">
               <ArrowLeft className="w-5 h-5" />
             </Link>
-            <h1 className="font-pixel text-gold text-lg">Recruiting</h1>
+            <div className="flex flex-col gap-1">
+              <Breadcrumb>
+                <BreadcrumbList>
+                  <BreadcrumbItem>
+                    <BreadcrumbLink asChild>
+                      <Link href="/dashboard" className="text-muted-foreground hover:text-gold text-xs">Leagues</Link>
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem>
+                    <BreadcrumbLink asChild>
+                      <Link href={`/league/${id}`} className="text-muted-foreground hover:text-gold text-xs">{data?.team?.schoolName || "Dynasty"}</Link>
+                    </BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem>
+                    <BreadcrumbPage className="text-gold text-xs">Recruiting</BreadcrumbPage>
+                  </BreadcrumbItem>
+                </BreadcrumbList>
+              </Breadcrumb>
+              <h1 className="font-pixel text-gold text-lg">Recruiting</h1>
+            </div>
           </div>
 
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
             <StatCard icon={<Target className="w-4 h-4" />} label="Targets" value={`${data?.targetedCount || 0}/30`} />
             <StatCard icon={<Check className="w-4 h-4" />} label="Commits" value={`${data?.commitsCount || 0}/${data?.maxCommits ?? 0}`} />
             <StatCard icon={<Phone className="w-4 h-4" />} label="Recruiting Actions" value={`${data?.remainingActions ?? 0}/${data?.maxActions ?? 0}`} />
@@ -277,6 +312,15 @@ export default function RecruitingPage() {
                 data-testid="select-sort"
               />
             </div>
+            <RetroButton 
+              variant={showWatchlistOnly ? "primary" : "outline"} 
+              size="sm" 
+              onClick={() => setShowWatchlistOnly(!showWatchlistOnly)}
+              data-testid="button-watchlist-filter"
+            >
+              <Target className="w-3 h-3 mr-1" />
+              Watchlist {showWatchlistOnly && `(${data?.targetedCount || 0})`}
+            </RetroButton>
             <Popover>
               <PopoverTrigger asChild>
                 <RetroButton variant="outline" size="sm" data-testid="button-presets">
@@ -380,8 +424,27 @@ export default function RecruitingPage() {
 
         {filteredRecruits.length === 0 && (
           <RetroCard variant="bordered" className="text-center py-12">
-            <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">No recruits match your filters</p>
+            {showWatchlistOnly ? (
+              <>
+                <Target className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground mb-2">No recruits on your watchlist</p>
+                <p className="text-xs text-muted-foreground">Click the target icon on any recruit to add them</p>
+                <RetroButton 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-4"
+                  onClick={() => setShowWatchlistOnly(false)}
+                  data-testid="button-clear-watchlist-filter"
+                >
+                  Show All Recruits
+                </RetroButton>
+              </>
+            ) : (
+              <>
+                <Search className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">No recruits match your filters</p>
+              </>
+            )}
           </RetroCard>
         )}
       </main>

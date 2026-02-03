@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { 
   ArrowLeft, 
   Settings, 
@@ -224,6 +225,7 @@ function ActionsTab({
   onImportRecruiting: (csvData?: string) => void;
   isImporting: boolean;
 }) {
+  const { toast } = useToast();
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [showEditTeamsDialog, setShowEditTeamsDialog] = useState(false);
   const [csvData, setCsvData] = useState("");
@@ -300,12 +302,36 @@ function ActionsTab({
               href={`/league/${league?.id}/roster`}
               dataTestId="button-view-roster"
             />
-            <ActionButton 
-              label="Reset Season" 
-              description="Start the season over" 
-              variant="destructive"
-              dataTestId="button-reset-season"
-            />
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <div>
+                  <ActionButton 
+                    label="Reset Season" 
+                    description="Start the season over" 
+                    variant="destructive"
+                    dataTestId="button-reset-season"
+                  />
+                </div>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="bg-card border-border">
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="font-pixel text-gold text-sm">Reset Season?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will reset all games, standings, and stats for the current season. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel className="bg-background border-border">Cancel</AlertDialogCancel>
+                  <AlertDialogAction 
+                    className="bg-destructive text-destructive-foreground"
+                    onClick={() => toast({ title: "Coming Soon", description: "Season reset will be available in a future update." })}
+                    data-testid="button-confirm-reset-season"
+                  >
+                    Reset Season
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </RetroCardContent>
       </RetroCard>

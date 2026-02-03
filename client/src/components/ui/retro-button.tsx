@@ -13,11 +13,11 @@ export const RetroButton = forwardRef<HTMLButtonElement, RetroButtonProps>(
     const baseStyles = "inline-flex items-center justify-center gap-2 font-pixel uppercase tracking-wider transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed";
     
     const variants = {
-      primary: "bg-gold text-forest-dark border-2 border-gold-dark hover:bg-gold/80 active:translate-y-0.5",
-      secondary: "bg-secondary text-secondary-foreground border-2 border-border hover:bg-secondary/80 active:translate-y-0.5",
-      outline: "bg-transparent text-gold border-2 border-gold hover:bg-gold/10 active:translate-y-0.5",
-      destructive: "bg-red-600 text-white border-2 border-red-800 hover:bg-red-500 active:translate-y-0.5",
-      ghost: "bg-transparent text-gold border-0 hover:bg-gold/10 active:translate-y-0.5",
+      primary: "bg-gold text-forest-dark border-2 border-gold-dark hover-elevate active-elevate-2",
+      secondary: "bg-secondary text-secondary-foreground border-2 border-border hover-elevate active-elevate-2",
+      outline: "bg-transparent text-gold border-2 border-gold hover-elevate active-elevate-2",
+      destructive: "bg-red-600 text-white border-2 border-red-800 hover-elevate active-elevate-2",
+      ghost: "bg-transparent text-gold border-0 hover-elevate active-elevate-2",
     };
 
     const sizes = {
