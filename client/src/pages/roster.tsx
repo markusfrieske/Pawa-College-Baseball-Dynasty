@@ -220,7 +220,6 @@ function PositionSection({ title, players, onSelectPlayer }: PositionSectionProp
                     data-testid={`link-player-${player.id}`}
                   >
                     <PlayerPortrait
-                      position={player.position}
                       skinTone={player.skinTone || "light"}
                       hairColor={player.hairColor || "brown"}
                       hairStyle={player.hairStyle || "short"}

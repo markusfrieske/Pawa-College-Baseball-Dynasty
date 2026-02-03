@@ -34,19 +34,19 @@ interface Player {
   overall: number;
   starRating: number;
   potential?: string;
-  hitForAvg: number;
-  power: number;
-  speed: number;
-  arm: number;
-  fielding: number;
-  errorResistance: number;
-  velocity: number;
-  control: number;
-  stamina: number;
-  stuff: number;
+  hitForAvg?: number | null;
+  power?: number | null;
+  speed?: number | null;
+  arm?: number | null;
+  fielding?: number | null;
+  errorResistance?: number | null;
+  velocity?: number | null;
+  control?: number | null;
+  stamina?: number | null;
+  stuff?: number | null;
   bats?: string;
   throws?: string;
-  abilities?: string[];
+  abilities?: string[] | null;
   careerStats?: PlayerStats[];
   skinTone?: string;
   hairColor?: string;
@@ -102,7 +102,6 @@ export function PlayerProfileCard({ player, open, onClose }: PlayerProfileCardPr
         <div className="p-4 border-b border-border">
           <div className="flex items-center gap-3">
             <PlayerPortrait
-              position={player.position}
               skinTone={player.skinTone || "light"}
               hairColor={player.hairColor || "brown"}
               hairStyle={player.hairStyle || "short"}
@@ -303,23 +302,24 @@ export function PlayerProfileCard({ player, open, onClose }: PlayerProfileCardPr
   );
 }
 
-function AttributeRow({ label, value }: { label: string; value: number }) {
+function AttributeRow({ label, value }: { label: string; value?: number | null }) {
+  const displayValue = value ?? 50;
   return (
     <div className="flex items-center gap-3" data-testid={`attr-row-${label.toLowerCase().replace(/\s/g, "-")}`}>
       <span className="text-sm text-muted-foreground w-24">{label}</span>
       <div className="flex-1 h-2 bg-background/50 rounded-full overflow-hidden">
         <div 
           className="h-full rounded-full transition-all"
-          style={{ width: `${value}%` }}
+          style={{ width: `${displayValue}%` }}
         />
       </div>
       <div className="flex items-center gap-1">
-        <LetterGrade value={value} size="sm" />
+        <LetterGrade value={displayValue} size="sm" />
         <span 
           className="text-sm font-bold w-8 text-right"
           data-testid={`text-attr-${label.toLowerCase().replace(/\s/g, "-")}`}
         >
-          {value}
+          {displayValue}
         </span>
       </div>
     </div>

@@ -261,8 +261,16 @@ function RecruitRow({
     <RetroCard className="hover:border-gold/30 transition-colors" data-testid={`card-recruit-${recruit.id}`}>
       <div className="flex flex-col lg:flex-row lg:items-center gap-4">
         <div className="flex items-center gap-4 flex-1">
-          <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center relative">
-            <span className="font-pixel text-[10px] text-gold">{recruit.position}</span>
+          <div className="w-12 h-12 relative flex-shrink-0">
+            <PlayerPortrait 
+              skinTone={recruit.skinTone || "light"}
+              hairColor={recruit.hairColor || "brown"}
+              hairStyle={recruit.hairStyle || "short"}
+              className="w-12 h-12"
+            />
+            <div className="absolute -bottom-1 -left-1 w-6 h-6 bg-card rounded-full border border-gold flex items-center justify-center">
+              <span className="font-pixel text-[8px] text-gold">{recruit.position}</span>
+            </div>
             {recruit.isBlueChip && (
               <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full border-2 border-background flex items-center justify-center">
                 <span className="text-[8px] text-white font-bold">B</span>
@@ -287,6 +295,9 @@ function RecruitRow({
               <span className="flex items-center gap-1">
                 <MapPin className="w-3 h-3" />
                 {recruit.hometown}, {recruit.homeState}
+              </span>
+              <span className="text-[10px]">
+                T: {recruit.throwHand} / B: {recruit.batHand}
               </span>
               <StarRating rating={recruit.starRank} size="sm" />
             </div>
@@ -454,7 +465,6 @@ function RecruitDetailModal({
         <DialogHeader>
           <div className="flex items-start gap-4">
             <PlayerPortrait 
-              position={recruit.position} 
               skinTone={recruit.skinTone || "light"}
               hairColor={recruit.hairColor || "brown"}
               hairStyle={recruit.hairStyle || "short"}
