@@ -38,14 +38,11 @@ export function PitchMixDial({ pitches, className = "" }: PitchMixListProps) {
 
   return (
     <div className={`${className}`} data-testid="pitch-mix-dial">
-      <h4 className="font-pixel text-[10px] text-gold mb-2">Pitch Mix</h4>
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-row flex-wrap gap-4">
         {activePitches.map((pitch) => (
-          <div key={pitch.name} className="text-center min-w-[40px]">
+          <div key={pitch.name} className="flex flex-col items-center">
             <span className="text-[10px] text-muted-foreground">{pitchLabels[pitch.name] || pitch.name}</span>
-            <div className={`text-lg font-bold ${getRatingColor(pitch.rating)}`}>
-              {pitch.rating}
-            </div>
+            <span className={`text-sm font-bold ${getRatingColor(pitch.rating)}`}>{pitch.rating}</span>
           </div>
         ))}
       </div>
