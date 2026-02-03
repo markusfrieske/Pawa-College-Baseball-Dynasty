@@ -886,8 +886,7 @@ function DepthChartView({ players, onSelectPlayer, teamPrimaryColor }: { players
   const pitchers = players.filter(p => isPitcher(p.position)).sort((a, b) => b.overall - a.overall);
   const starters = pitchers.slice(0, 5);
   const bullpen = pitchers.slice(5, 10);
-
-  const catchers = getPlayersByPosition("C");
+  const dhPlayers = getPlayersByPosition("DH");
   
   return (
     <div className="space-y-4" data-testid="depth-chart-view">
@@ -896,23 +895,35 @@ function DepthChartView({ players, onSelectPlayer, teamPrimaryColor }: { players
       </div>
       
       <div className="grid gap-4">
+        {/* Row 1: Outfield - LF/CF/RF */}
         <div className="flex justify-center gap-4 flex-wrap">
           <PositionCard position="LF" players={getPlayersByPosition("LF")} onSelectPlayer={onSelectPlayer} teamPrimaryColor={teamPrimaryColor} />
           <PositionCard position="CF" players={getPlayersByPosition("CF")} onSelectPlayer={onSelectPlayer} teamPrimaryColor={teamPrimaryColor} />
           <PositionCard position="RF" players={getPlayersByPosition("RF")} onSelectPlayer={onSelectPlayer} teamPrimaryColor={teamPrimaryColor} />
         </div>
         
-        <div className="flex justify-center gap-4 flex-wrap items-start">
+        {/* Row 2: Infield - 3B/SS/2B/1B */}
+        <div className="flex justify-center gap-4 flex-wrap">
           <PositionCard position="3B" players={getPlayersByPosition("3B")} onSelectPlayer={onSelectPlayer} teamPrimaryColor={teamPrimaryColor} />
+          <PositionCard position="SS" players={getPlayersByPosition("SS")} onSelectPlayer={onSelectPlayer} teamPrimaryColor={teamPrimaryColor} />
+          <PositionCard position="2B" players={getPlayersByPosition("2B")} onSelectPlayer={onSelectPlayer} teamPrimaryColor={teamPrimaryColor} />
+          <PositionCard position="1B" players={getPlayersByPosition("1B")} onSelectPlayer={onSelectPlayer} teamPrimaryColor={teamPrimaryColor} />
+        </div>
+        
+        {/* Row 3: Catcher */}
+        <div className="flex justify-center">
+          <PositionCard position="C" players={getPlayersByPosition("C")} onSelectPlayer={onSelectPlayer} teamPrimaryColor={teamPrimaryColor} />
+        </div>
+        
+        {/* Row 4: DH / SP / RP */}
+        <div className="flex justify-center gap-4 flex-wrap items-start">
+          {/* DH */}
+          <PositionCard position="DH" players={dhPlayers} onSelectPlayer={onSelectPlayer} teamPrimaryColor={teamPrimaryColor} />
           
-          <div className="flex flex-col gap-4">
-            <PositionCard position="SS" players={getPlayersByPosition("SS")} onSelectPlayer={onSelectPlayer} teamPrimaryColor={teamPrimaryColor} />
-            <PositionCard position="2B" players={getPlayersByPosition("2B")} onSelectPlayer={onSelectPlayer} teamPrimaryColor={teamPrimaryColor} />
-          </div>
-          
+          {/* Starting Pitchers */}
           <div className="bg-card/90 border border-border rounded-lg overflow-hidden min-w-[160px]" data-testid="depth-card-SP">
             <div className="bg-gold/20 px-2 py-1 border-b border-border">
-              <span className="font-pixel text-gold text-[10px]">STARTING PITCHERS</span>
+              <span className="font-pixel text-gold text-[10px]">SP</span>
             </div>
             <div className="p-1">
               {starters.length === 0 ? (
@@ -946,46 +957,7 @@ function DepthChartView({ players, onSelectPlayer, teamPrimaryColor }: { players
             </div>
           </div>
           
-          <PositionCard position="1B" players={getPlayersByPosition("1B")} onSelectPlayer={onSelectPlayer} teamPrimaryColor={teamPrimaryColor} />
-        </div>
-        
-        <div className="flex justify-center gap-4 flex-wrap items-start">
-          <div className="bg-card/90 border border-border rounded-lg overflow-hidden min-w-[140px]" data-testid="depth-card-C">
-            <div className="bg-gold/20 px-2 py-1 border-b border-border">
-              <span className="font-pixel text-gold text-[10px]">C</span>
-            </div>
-            <div className="p-1">
-              {catchers.length === 0 ? (
-                <div className="text-muted-foreground text-xs py-2 text-center">Empty</div>
-              ) : (
-                catchers.slice(0, 3).map((p, idx) => (
-                  <button
-                    key={p.id}
-                    onClick={() => onSelectPlayer(p)}
-                    className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-left transition-colors ${
-                      idx === 0 ? 'bg-gold/10 hover:bg-gold/20' : 'hover:bg-card'
-                    }`}
-                    data-testid={`depth-C-${idx}`}
-                  >
-                    <PlayerPortrait
-                      skinTone={p.skinTone || "light"}
-                      hairColor={p.hairColor || "brown"}
-                      hairStyle={p.hairStyle || "short"}
-                      className="w-6 h-6 flex-shrink-0"
-                      jerseyColor={teamPrimaryColor}
-                    />
-                    <span className={`text-xs truncate flex-1 ${idx === 0 ? 'text-foreground' : 'text-muted-foreground'}`}>
-                      {p.firstName.charAt(0)}. {p.lastName}
-                    </span>
-                    <span className={`text-xs font-bold ${idx === 0 ? 'text-gold' : 'text-muted-foreground'}`}>
-                      {p.overall}
-                    </span>
-                  </button>
-                ))
-              )}
-            </div>
-          </div>
-          
+          {/* Relief Pitchers */}
           <div className="bg-card/90 border border-border rounded-lg overflow-hidden min-w-[140px]" data-testid="depth-card-RP">
             <div className="bg-gold/20 px-2 py-1 border-b border-border">
               <span className="font-pixel text-gold text-[10px]">RP</span>

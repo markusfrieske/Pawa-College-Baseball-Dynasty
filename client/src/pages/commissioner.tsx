@@ -388,8 +388,17 @@ function ActionsTab({
               <p className="text-sm text-muted-foreground">
                 Click to upload CSV file
               </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Supports letter grades (S-G). Required: firstName, lastName, position, overall, homeState. Optional: contact, power, speed, arm, fielding, clutch, grit, recovery (fielders); velocity, control, stamina, stuff, poise (pitchers).
+              <p className="text-xs text-muted-foreground mt-1 text-left">
+                <span className="text-gold">Required:</span> firstName, lastName, position, overall, homeState<br/>
+                <span className="text-gold">Basic:</span> hometown, starRating, recruitType, throwHand, batHand<br/>
+                <span className="text-gold">Fielder Attrs:</span> contact, power, speed, arm, fielding, errorResistance<br/>
+                <span className="text-gold">Fielder Abilities:</span> clutch, vsLHP, grit, stealing, running, throwing, recovery, catcherAbility<br/>
+                <span className="text-gold">Pitcher Attrs:</span> velocity, control, stamina, stuff<br/>
+                <span className="text-gold">Pitcher Abilities:</span> wRISP, vsLefty, poise, heater, agile, recovery<br/>
+                <span className="text-gold">Priorities:</span> proximity, reputation, playingTime, academics, prestige, facilities (Not/Somewhat/Very/Extremely)<br/>
+                <span className="text-gold">Special:</span> abilities (comma-separated), isBlueChip, isGem, isBust<br/>
+                <span className="text-gold">Appearance:</span> skinTone, hairColor, hairStyle<br/>
+                <span className="text-muted-foreground italic">Letter grades S-G accepted for numeric fields</span>
               </p>
             </div>
 

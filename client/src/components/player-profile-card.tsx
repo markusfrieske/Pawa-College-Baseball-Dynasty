@@ -7,6 +7,7 @@ import { PlayerPortrait } from "@/components/ui/player-portrait";
 import { PitchMixDial, generatePitchMixForDial } from "@/components/ui/pitch-mix-dial";
 import { MapPin, Star, Edit } from "lucide-react";
 import { getAbilityByName } from "@shared/abilities";
+import { velocityToMPH } from "@/lib/playerUtils";
 
 interface Player {
   id: string;
@@ -179,18 +180,6 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
                     />
                   ))}
                 </div>
-                {isCommissioner && onEdit && (
-                  <RetroButton
-                    size="sm"
-                    variant="outline"
-                    onClick={onEdit}
-                    className="ml-auto"
-                    data-testid="button-edit-player"
-                  >
-                    <Edit className="w-3 h-3 mr-1" />
-                    Edit
-                  </RetroButton>
-                )}
               </div>
               <h2 className="font-pixel text-gold text-sm mt-1" data-testid="text-player-name">
                 #{player.jerseyNumber} {player.firstName} {player.lastName}
@@ -247,7 +236,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
         </div>
 
         {/* Special Abilities Section */}
-        <div className="p-4">
+        <div className="p-4 border-b border-border">
           <h3 className="font-pixel text-gold text-xs mb-3">SPECIAL ABILITIES</h3>
           {player.abilities && player.abilities.length > 0 ? (
             <div className="flex flex-wrap gap-2">
@@ -275,6 +264,21 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
             <p className="text-sm text-muted-foreground">No special abilities</p>
           )}
         </div>
+
+        {/* Edit Button (Commissioner Only) */}
+        {isCommissioner && onEdit && (
+          <div className="p-4">
+            <RetroButton
+              variant="outline"
+              onClick={onEdit}
+              className="w-full"
+              data-testid="button-edit-player"
+            >
+              <Edit className="w-4 h-4 mr-2" />
+              Edit Player
+            </RetroButton>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
@@ -282,16 +286,18 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
 
 function AttributeRow({ label, value }: { label: string; value?: number | null }) {
   const displayValue = value ?? 50;
+  const isVelocity = label === "Velocity";
+  
   return (
     <div className="flex items-center justify-between p-2 bg-background/50 rounded" data-testid={`attr-row-${label.toLowerCase().replace(/\s/g, "-")}`}>
       <span className="text-sm text-muted-foreground">{label}</span>
       <div className="flex items-center gap-2">
         <LetterGrade value={displayValue} size="sm" />
         <span 
-          className="text-sm font-bold w-8 text-right"
+          className="text-sm font-bold w-14 text-right"
           data-testid={`text-attr-${label.toLowerCase().replace(/\s/g, "-")}`}
         >
-          {displayValue}
+          {isVelocity ? `${velocityToMPH(displayValue)} MPH` : displayValue}
         </span>
       </div>
     </div>

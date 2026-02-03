@@ -116,6 +116,7 @@ export default function CoachProfilePage() {
                     hairStyle={coach.hairStyle}
                     facialHair={coach.facialHair}
                     className="w-24 h-24"
+                    teamPrimaryColor={team.primaryColor}
                   />
                 </div>
                 <div className="flex-1">
@@ -669,6 +670,7 @@ export function CoachProfileByIdPage() {
                     hairStyle={coach.hairStyle}
                     facialHair={coach.facialHair}
                     className="w-24 h-24"
+                    teamPrimaryColor={team?.primaryColor}
                   />
                 </div>
                 <div className="flex-1">

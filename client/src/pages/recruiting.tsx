@@ -57,6 +57,7 @@ import { getAbilityByName } from "@shared/abilities";
 import { PlayerPortrait } from "@/components/ui/player-portrait";
 import { PitchMixDial } from "@/components/ui/pitch-mix-dial";
 import { LetterGrade } from "@/components/ui/letter-grade";
+import { velocityToMPH } from "@/lib/playerUtils";
 
 interface RecruitWithInterest extends Recruit {
   interest?: RecruitingInterest;
@@ -1279,11 +1280,15 @@ function RecruitDetailModal({
                 <div className="grid grid-cols-2 gap-3">
                   {attrs.map((attr) => {
                     const revealed = isFullyRevealed || revealedAttrs.includes(attr.key);
+                    const isVelocity = attr.key === "velocity";
+                    const displayValue = isVelocity && revealed 
+                      ? `${velocityToMPH(attr.value)} MPH`
+                      : (revealed ? attr.value : "??");
                     return (
                       <div key={attr.key} className="flex items-center justify-between p-2 bg-muted/50 rounded">
                         <span className="text-sm text-muted-foreground">{attr.label}</span>
                         <span className={`font-bold ${revealed ? "text-foreground" : "text-muted-foreground"}`}>
-                          {revealed ? attr.value : "??"}
+                          {displayValue}
                         </span>
                       </div>
                     );

@@ -308,8 +308,9 @@ function SummaryTab({ team, leagueId }: { team: TeamDetails; leagueId: string })
                       skinTone={player.skinTone || "medium"}
                       hairColor={player.hairColor || "brown"}
                       hairStyle={player.hairStyle || "short"}
-                      headwear="cap"
+                      headwear="none"
                       size="sm"
+                      jerseyColor={team.primaryColor}
                     />
                     <div className="flex-1">
                       <p className="font-medium">{player.firstName} {player.lastName}</p>
@@ -340,6 +341,7 @@ function SummaryTab({ team, leagueId }: { team: TeamDetails; leagueId: string })
                 hairStyle={team.coach.hairStyle}
                 size="lg"
                 className="mx-auto mb-4"
+                teamPrimaryColor={team.primaryColor}
               />
               <h3 className="font-medium text-foreground mb-1">
                 {team.coach.firstName} {team.coach.lastName}
@@ -552,6 +554,7 @@ function CoachesTab({ team }: { team: TeamDetails }) {
                 hairColor={team.coach.hairColor}
                 hairStyle={team.coach.hairStyle}
                 size="lg"
+                teamPrimaryColor={team.primaryColor}
               />
               <div className="flex-1">
                 <h3 className="font-medium text-lg mb-1">

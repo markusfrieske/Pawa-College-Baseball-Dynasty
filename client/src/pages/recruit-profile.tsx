@@ -38,6 +38,7 @@ import { isPitcher as checkIsPitcher, isCatcher as checkIsCatcher } from "@share
 import { getAbilityByName } from "@shared/abilities";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { velocityToMPH } from "@/lib/playerUtils";
 
 interface TopSchool {
   teamId: string;
@@ -1128,6 +1129,7 @@ function RecruitAttributesSection({
   const renderAttribute = (label: string, value: number | null | undefined, revealThreshold: number) => {
     const isRevealed = shouldRevealAttribute(revealThreshold);
     const displayValue = isRevealed ? (value ?? 50) : null;
+    const isVelocity = label === "Velocity";
     
     return (
       <div className="flex items-center gap-3">
@@ -1140,11 +1142,13 @@ function RecruitAttributesSection({
             />
           )}
         </div>
-        <div className="flex items-center gap-1 w-16 justify-end">
+        <div className="flex items-center gap-1 w-20 justify-end">
           {isRevealed ? (
             <>
               <LetterGrade value={displayValue!} size="sm" />
-              <span className="text-sm font-bold w-8 text-right">{displayValue}</span>
+              <span className="text-sm font-bold w-14 text-right">
+                {isVelocity ? `${velocityToMPH(displayValue!)} MPH` : displayValue}
+              </span>
             </>
           ) : (
             <span className="text-sm text-muted-foreground">???</span>

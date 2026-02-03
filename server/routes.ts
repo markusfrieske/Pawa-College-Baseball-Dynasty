@@ -1731,6 +1731,51 @@ export async function registerRoutes(
             }
           }
 
+          // Priority fields (text values: Not, Somewhat, Very, Extremely)
+          const priorityMap: Record<string, string> = {
+            'proximitypriority': 'proximityPriority', 'proximity': 'proximityPriority',
+            'reputationpriority': 'reputationPriority', 'reputation': 'reputationPriority', 'coachreputation': 'reputationPriority',
+            'playingtimepriority': 'playingTimePriority', 'playingtime': 'playingTimePriority',
+            'academicspriority': 'academicsPriority', 'academics': 'academicsPriority',
+            'prestigepriority': 'prestigePriority', 'prestige': 'prestigePriority', 'schoolprestige': 'prestigePriority',
+            'facilitiespriority': 'facilitiesPriority', 'facilities': 'facilitiesPriority'
+          };
+          
+          for (const [csvKey, schemaKey] of Object.entries(priorityMap)) {
+            if (row[csvKey]) {
+              const val = row[csvKey].toLowerCase();
+              // Map possible values to standard format
+              let priority = 'Somewhat';
+              if (val.includes('not') || val === 'n') priority = 'Not';
+              else if (val.includes('extremely') || val === 'e') priority = 'Extremely';
+              else if (val.includes('very') || val === 'v') priority = 'Very';
+              else if (val.includes('somewhat') || val === 's') priority = 'Somewhat';
+              recruit[schemaKey] = priority;
+            }
+          }
+          
+          // Special abilities (comma-separated list)
+          if (row.abilities || row.specialabilities) {
+            const abilitiesStr = row.abilities || row.specialabilities;
+            recruit.abilities = abilitiesStr.split(',').map((a: string) => a.trim()).filter((a: string) => a);
+          }
+          
+          // Boolean flags
+          if (row.isbluechip || row.bluechip) {
+            recruit.isBlueChip = ['true', '1', 'yes', 'y'].includes((row.isbluechip || row.bluechip).toLowerCase());
+          }
+          if (row.isgem || row.gem) {
+            recruit.isGem = ['true', '1', 'yes', 'y'].includes((row.isgem || row.gem).toLowerCase());
+          }
+          if (row.isbust || row.bust) {
+            recruit.isBust = ['true', '1', 'yes', 'y'].includes((row.isbust || row.bust).toLowerCase());
+          }
+          
+          // Appearance
+          if (row.skintone) recruit.skinTone = row.skintone;
+          if (row.haircolor) recruit.hairColor = row.haircolor;
+          if (row.hairstyle) recruit.hairStyle = row.hairstyle;
+
           await storage.createRecruit(recruit);
           recruitCount++;
         }

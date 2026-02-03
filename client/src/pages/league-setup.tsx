@@ -475,6 +475,7 @@ function CoachCreationStep({
             hairStyle={coachData.hairStyle}
             size="lg"
             className="mx-auto mb-4"
+            teamPrimaryColor={selectedTeam?.primaryColor}
           />
           <p className="font-medium text-foreground mb-1">
             HC {coachData.firstName || "First"} {coachData.lastName || "Last"}

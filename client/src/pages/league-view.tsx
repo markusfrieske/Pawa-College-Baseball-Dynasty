@@ -47,7 +47,20 @@ interface TeamWithCoach extends Team {
   } | null;
   user?: {
     email: string;
+    username?: string | null;
   } | null;
+}
+
+// Helper to get display name from user email/username
+function getDisplayName(user?: { email: string; username?: string | null } | null): string {
+  if (!user) return "";
+  if (user.username) return user.username;
+  const emailPrefix = user.email.split("@")[0];
+  // For guest accounts, show shortened version
+  if (emailPrefix.startsWith("guest-")) {
+    return "Guest";
+  }
+  return emailPrefix;
 }
 
 interface LeagueDetails extends League {
@@ -297,7 +310,7 @@ function StandingsTab({ league }: { league: LeagueDetails }) {
                               <span className="text-foreground hover:text-gold">{team.coach.firstName} {team.coach.lastName}</span>
                               {team.coach.userId ? (
                                 team.user && (
-                                  <span className="text-xs text-muted-foreground ml-1">({team.user.email.split("@")[0]})</span>
+                                  <span className="text-xs text-muted-foreground ml-1">({getDisplayName(team.user)})</span>
                                 )
                               ) : (
                                 <span className="text-xs text-orange-400 ml-1">(CPU)</span>

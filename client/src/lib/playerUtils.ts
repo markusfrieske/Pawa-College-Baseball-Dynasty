@@ -138,3 +138,17 @@ export function isCatcher(position: string): boolean {
   const pos = position?.toUpperCase() || "";
   return ["C", "CATCHER"].includes(pos);
 }
+
+// Convert velocity rating (1-99) to MPH (82-102)
+// Rating 1 = 82 MPH, Rating 99 = 102 MPH
+export function velocityToMPH(rating: number | null | undefined): number {
+  const val = rating ?? 50;
+  // Linear interpolation: (val - 1) / (99 - 1) * (102 - 82) + 82
+  // Simplified: 82 + (val - 1) * 20 / 98
+  return Math.round(82 + ((val - 1) * 20) / 98);
+}
+
+// Get velocity display string with MPH
+export function getVelocityDisplay(rating: number | null | undefined): string {
+  return `${velocityToMPH(rating)} MPH`;
+}
