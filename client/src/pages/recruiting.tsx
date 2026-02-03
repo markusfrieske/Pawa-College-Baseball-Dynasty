@@ -58,6 +58,7 @@ interface RecruitingData {
   recruits: RecruitWithInterest[];
   team: Team;
   remainingActions: number;
+  maxActions: number;
   targetedCount: number;
   commitsCount: number;
   rosterDepth: Record<string, number>;
@@ -237,7 +238,7 @@ export default function RecruitingPage() {
           <div className="grid grid-cols-3 gap-4">
             <StatCard icon={<Target className="w-4 h-4" />} label="Targets" value={`${data?.targetedCount || 0}/40`} />
             <StatCard icon={<Check className="w-4 h-4" />} label="Commits" value={`${data?.commitsCount || 0}/25`} />
-            <StatCard icon={<Search className="w-4 h-4" />} label="Recruiting Actions" value={`${data?.remainingActions || 0}`} />
+            <StatCard icon={<Search className="w-4 h-4" />} label="Recruiting Actions" value={`${data?.remainingActions || 0}/${data?.maxActions || 10}`} />
           </div>
         </div>
       </header>

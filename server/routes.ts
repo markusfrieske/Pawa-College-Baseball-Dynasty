@@ -428,10 +428,15 @@ export async function registerRoutes(
         positionCounts[player.position] = (positionCounts[player.position] || 0) + 1;
       });
 
+      const MAX_ACTIONS_PER_WEEK = 10;
+      const actionsUsed = interests.filter((i) => i.scoutPercentage > 0).length;
+      const remainingActions = Math.max(0, MAX_ACTIONS_PER_WEEK - actionsUsed);
+
       res.json({
         recruits: recruitsWithInterest,
         team: userTeam,
-        remainingActions: 22,
+        remainingActions,
+        maxActions: MAX_ACTIONS_PER_WEEK,
         targetedCount: interests.filter((i) => i.isTargeted).length,
         commitsCount: leagueRecruits.filter((r) => r.signedTeamId === userTeam.id).length,
         rosterDepth: positionCounts,

@@ -18,14 +18,14 @@ export function getLetterGrade(value: number): { letter: string; tier: string } 
 }
 
 const tierColors: Record<string, string> = {
-  s: "bg-pink-500 text-white",
-  a: "bg-pink-400 text-white",
-  b: "bg-orange-500 text-white",
-  c: "bg-yellow-500 text-black",
-  d: "bg-yellow-600 text-white",
-  e: "bg-gray-500 text-white",
-  f: "bg-gray-600 text-white",
-  g: "bg-gray-700 text-white",
+  s: "bg-pink-300 text-black",
+  a: "bg-pink-500 text-white",
+  b: "bg-red-500 text-white",
+  c: "bg-orange-500 text-white",
+  d: "bg-yellow-500 text-black",
+  e: "bg-green-500 text-white",
+  f: "bg-blue-500 text-white",
+  g: "bg-gray-400 text-white",
 };
 
 const sizeClasses: Record<string, string> = {
