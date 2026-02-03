@@ -45,7 +45,7 @@ export default function InvitePage() {
       return res.json() as Promise<{ success: boolean; leagueId: string; teamId: string }>;
     },
     onSuccess: (result) => {
-      toast({ title: "Welcome to the League!", description: "You have successfully joined the league." });
+      toast({ title: "Welcome to the Dynasty!", description: "You have successfully joined the dynasty." });
       setLocation(`/league/${result.leagueId}`);
     },
     onError: (error: Error) => {
@@ -100,13 +100,13 @@ export default function InvitePage() {
           <RetroCardHeader>
             <div className="flex items-center gap-2">
               <Trophy className="w-4 h-4 text-gold" />
-              <span>League Details</span>
+              <span>Dynasty Details</span>
             </div>
           </RetroCardHeader>
           <RetroCardContent>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-sm text-muted-foreground">League Name</p>
+                <p className="text-sm text-muted-foreground">Dynasty Name</p>
                 <p className="font-semibold">{data.league.name}</p>
               </div>
               <div>
@@ -205,7 +205,7 @@ export default function InvitePage() {
                     className="min-w-48"
                     data-testid="button-accept-invite"
                   >
-                    {acceptMutation.isPending ? "Joining..." : "Join League"}
+                    {acceptMutation.isPending ? "Joining..." : "Join Dynasty"}
                   </RetroButton>
                 </div>
               </>

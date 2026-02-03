@@ -129,7 +129,7 @@ export default function DynastySetupPage() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <RetroCard variant="bordered" className="text-center p-8">
-          <h2 className="font-pixel text-gold text-sm mb-4">League Not Found</h2>
+          <h2 className="font-pixel text-gold text-sm mb-4">Dynasty Not Found</h2>
           <Link href="/dashboard">
             <RetroButton data-testid="button-back-dashboard">Back to Dashboard</RetroButton>
           </Link>

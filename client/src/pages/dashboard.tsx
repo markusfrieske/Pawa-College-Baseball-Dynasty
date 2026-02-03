@@ -52,15 +52,15 @@ export default function DashboardPage() {
       <main className="container mx-auto px-4 py-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
-            <h1 className="font-pixel text-gold text-xl mb-2">Your Leagues</h1>
+            <h1 className="font-pixel text-gold text-xl mb-2">Your Dynasties</h1>
             <p className="text-muted-foreground text-sm">
-              Manage your dynasties and join new leagues
+              Manage your dynasties and join new ones
             </p>
           </div>
           <Link href="/league/create">
-            <RetroButton data-testid="button-create-league">
+            <RetroButton data-testid="button-create-dynasty">
               <Plus className="w-4 h-4 mr-2" />
-              New League
+              New Dynasty
             </RetroButton>
           </Link>
         </div>
@@ -163,15 +163,15 @@ function EmptyState() {
   return (
     <RetroCard variant="bordered" className="text-center py-12">
       <Trophy className="w-12 h-12 text-gold mx-auto mb-4" />
-      <h2 className="font-pixel text-gold text-sm mb-2">No Leagues Yet</h2>
+      <h2 className="font-pixel text-gold text-sm mb-2">No Dynasties Yet</h2>
       <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-        Create your first league to start building your college baseball dynasty.
+        Create your first dynasty to start building your college baseball program.
         Compete against other coaches or CPU opponents.
       </p>
       <Link href="/league/create">
-        <RetroButton data-testid="button-create-first-league">
+        <RetroButton data-testid="button-create-first-dynasty">
           <Plus className="w-4 h-4 mr-2" />
-          Create Your First League
+          Create Your First Dynasty
         </RetroButton>
       </Link>
     </RetroCard>

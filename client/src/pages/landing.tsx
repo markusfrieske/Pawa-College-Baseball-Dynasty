@@ -69,8 +69,8 @@ export default function LandingPage() {
                 <RetroButton
                   variant="ghost"
                   size="icon"
-                  title="My Leagues"
-                  data-testid="button-my-leagues"
+                  title="My Dynasties"
+                  data-testid="button-my-dynasties"
                 >
                   <Layers className="w-4 h-4" />
                 </RetroButton>
@@ -164,8 +164,8 @@ export default function LandingPage() {
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               <FeatureCardWithIcons
                 icon={<Settings className="w-8 h-8" />}
-                title="League Management"
-                description="Create leagues with up to 16 teams. Mix human coaches with CPU opponents across multiple conferences."
+                title="Dynasty Management"
+                description="Create dynasties with up to 16 teams. Mix human coaches with CPU opponents across multiple conferences."
                 subIcons={[
                   { icon: Users, name: "Teams", color: "text-blue-400" },
                   { icon: Settings, name: "Settings", color: "text-green-400" },

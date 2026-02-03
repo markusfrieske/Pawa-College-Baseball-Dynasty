@@ -53,7 +53,7 @@ export default function CommissionerPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id] });
-      toast({ title: "Week Advanced", description: "The league has moved to the next week." });
+      toast({ title: "Week Advanced", description: "The dynasty has moved to the next week." });
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -281,7 +281,7 @@ function ActionsTab({
             />
             <ActionButton 
               label="Edit Teams" 
-              description="Swap teams in or out of league" 
+              description="Swap teams in or out of dynasty" 
               onClick={() => setShowEditTeamsDialog(true)}
               dataTestId="button-edit-teams"
             />
@@ -382,13 +382,13 @@ function ActionsTab({
           <DialogHeader>
             <DialogTitle className="font-pixel text-gold text-sm">Edit Teams</DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              Swap teams in or out of the league.
+              Swap teams in or out of the dynasty.
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4 py-4">
             <p className="text-sm text-muted-foreground">
-              Select teams to add or remove from the league. Changes will take effect immediately.
+              Select teams to add or remove from the dynasty. Changes will take effect immediately.
             </p>
             
             <div className="bg-background/50 rounded p-4 text-center">
@@ -479,7 +479,7 @@ function SettingsTab({
 }) {
   return (
     <RetroCard>
-      <RetroCardHeader>League Settings</RetroCardHeader>
+      <RetroCardHeader>Dynasty Settings</RetroCardHeader>
       <RetroCardContent>
         <div className="space-y-6">
           <div className="flex items-center justify-between">
@@ -500,7 +500,7 @@ function SettingsTab({
             <div className="flex items-center gap-3 mb-4">
               <Settings className="w-5 h-5 text-muted-foreground" />
               <div>
-                <p className="font-medium">League Name</p>
+                <p className="font-medium">Dynasty Name</p>
                 <p className="text-sm text-muted-foreground">{league?.name}</p>
               </div>
             </div>
@@ -607,7 +607,7 @@ function InvitesTab({ leagueId, invites }: { leagueId: string; invites: LeagueIn
         </RetroCardHeader>
         <RetroCardContent>
           <p className="text-muted-foreground mb-4">
-            Invite a friend to join your league. They will receive a unique link to select an available CPU team.
+            Invite a friend to join your dynasty. They will receive a unique link to select an available CPU team.
           </p>
           <div className="flex gap-3">
             <RetroInput
@@ -672,7 +672,7 @@ function InvitesTab({ leagueId, invites }: { leagueId: string; invites: LeagueIn
             <div className="text-center py-8 text-muted-foreground">
               <UserPlus className="w-12 h-12 mx-auto mb-4 opacity-50" />
               <p>No invites sent yet</p>
-              <p className="text-sm mt-2">Use the form above to invite friends to your league</p>
+              <p className="text-sm mt-2">Use the form above to invite friends to your dynasty</p>
             </div>
           )}
         </div>

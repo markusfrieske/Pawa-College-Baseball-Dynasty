@@ -56,7 +56,7 @@ export default function TeamViewPage() {
         <RetroCard variant="bordered" className="text-center p-8">
           <h2 className="font-pixel text-gold text-sm mb-4">Team Not Found</h2>
           <Link href={`/league/${id}`}>
-            <RetroButton>Back to League</RetroButton>
+            <RetroButton>Back to Dynasty</RetroButton>
           </Link>
         </RetroCard>
       </div>

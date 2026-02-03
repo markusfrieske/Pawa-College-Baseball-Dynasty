@@ -52,7 +52,7 @@ export default function LeagueViewPage() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <RetroCard variant="bordered" className="text-center p-8">
-          <h2 className="font-pixel text-gold text-sm mb-4">League Not Found</h2>
+          <h2 className="font-pixel text-gold text-sm mb-4">Dynasty Not Found</h2>
           <Link href="/dashboard">
             <RetroButton>Back to Dashboard</RetroButton>
           </Link>
@@ -123,7 +123,7 @@ export default function LeagueViewPage() {
             href={`/league/${id}/commissioner`}
             icon={<Settings className="w-6 h-6" />}
             title="Commissioner"
-            subtitle="League settings"
+            subtitle="Dynasty settings"
           />
         </div>
 
@@ -222,51 +222,51 @@ function StandingsTab({ league }: { league: LeagueDetails }) {
                   <tr key={team.id} className="border-b border-border/50 hover:bg-card/50">
                     <td className="py-3 px-2 text-muted-foreground">{index + 1}</td>
                     <td className="py-3 px-2">
-                  <div className="flex items-center gap-3">
-                    <TeamBadge
-                      abbreviation={team.abbreviation}
-                      primaryColor={team.primaryColor}
-                      secondaryColor={team.secondaryColor}
-                      size="sm"
-                    />
-                    <Link href={`/league/${league.id}/team/${team.id}`}>
-                      <span className="font-medium hover:text-gold cursor-pointer" data-testid={`link-team-standings-${team.id}`}>{team.name}</span>
-                    </Link>
-                  </div>
-                </td>
-                <td className="py-3 px-2 hidden lg:table-cell">
-                  {team.coach ? (
-                    <div className="flex items-center gap-2">
-                      <User className="w-3 h-3 text-gold" />
-                      <div>
-                        <span className="text-foreground">{team.coach.firstName} {team.coach.lastName}</span>
-                        {team.user && (
-                          <span className="text-xs text-muted-foreground ml-1">({team.user.email.split("@")[0]})</span>
-                        )}
+                      <div className="flex items-center gap-3">
+                        <TeamBadge
+                          abbreviation={team.abbreviation}
+                          primaryColor={team.primaryColor}
+                          secondaryColor={team.secondaryColor}
+                          size="sm"
+                        />
+                        <Link href={`/league/${league.id}/team/${team.id}`}>
+                          <span className="font-medium hover:text-gold cursor-pointer" data-testid={`link-team-standings-${team.id}`}>{team.name}</span>
+                        </Link>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Cpu className="w-3 h-3" />
-                      <span>CPU</span>
-                    </div>
-                  )}
-                </td>
-                <td className="text-center py-3 px-2 font-bold text-green-500">
-                  {team.standings?.wins || 0}
-                </td>
-                <td className="text-center py-3 px-2 font-bold text-red-500">
-                  {team.standings?.losses || 0}
-                </td>
-                <td className="text-center py-3 px-2 hidden sm:table-cell text-muted-foreground">
-                  {team.standings?.conferenceWins || 0}-{team.standings?.conferenceLosses || 0}
-                </td>
-                <td className="text-center py-3 px-2 hidden md:table-cell text-muted-foreground">
-                  {team.standings?.runsScored || 0}
-                </td>
-                <td className="text-center py-3 px-2 hidden md:table-cell text-muted-foreground">
-                  {team.standings?.runsAllowed || 0}
-                </td>
+                    </td>
+                    <td className="py-3 px-2 hidden lg:table-cell">
+                      {team.coach ? (
+                        <div className="flex items-center gap-2">
+                          <User className="w-3 h-3 text-gold" />
+                          <div>
+                            <span className="text-foreground">{team.coach.firstName} {team.coach.lastName}</span>
+                            {team.user && (
+                              <span className="text-xs text-muted-foreground ml-1">({team.user.email.split("@")[0]})</span>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Cpu className="w-3 h-3" />
+                          <span>CPU</span>
+                        </div>
+                      )}
+                    </td>
+                    <td className="text-center py-3 px-2 font-bold text-green-500">
+                      {team.standings?.wins || 0}
+                    </td>
+                    <td className="text-center py-3 px-2 font-bold text-red-500">
+                      {team.standings?.losses || 0}
+                    </td>
+                    <td className="text-center py-3 px-2 hidden sm:table-cell text-muted-foreground">
+                      {team.standings?.conferenceWins || 0}-{team.standings?.conferenceLosses || 0}
+                    </td>
+                    <td className="text-center py-3 px-2 hidden md:table-cell text-muted-foreground">
+                      {team.standings?.runsScored || 0}
+                    </td>
+                    <td className="text-center py-3 px-2 hidden md:table-cell text-muted-foreground">
+                      {team.standings?.runsAllowed || 0}
+                    </td>
                   </tr>
                 ))}
               </tbody>

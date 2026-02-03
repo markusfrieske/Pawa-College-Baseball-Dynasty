@@ -283,7 +283,7 @@ function TeamSelectionStep({
 
       {teams.length === 0 && (
         <RetroCard variant="bordered" className="text-center py-12">
-          <p className="text-muted-foreground">No teams in this league</p>
+          <p className="text-muted-foreground">No teams in this dynasty</p>
         </RetroCard>
       )}
 

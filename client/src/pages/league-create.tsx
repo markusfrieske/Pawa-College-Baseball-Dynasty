@@ -60,7 +60,7 @@ export default function LeagueCreatePage() {
       const league = await response.json();
       queryClient.invalidateQueries({ queryKey: ["/api/leagues"] });
       toast({
-        title: "League Created!",
+        title: "Dynasty Created!",
         description: `${name} has been created. Time to set up your team!`,
       });
       setLocation(`/league/${league.id}/setup`);
@@ -68,7 +68,7 @@ export default function LeagueCreatePage() {
     onError: (error: Error) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to create league. Please try again.",
+        description: error.message || "Failed to create dynasty. Please try again.",
         variant: "destructive",
       });
     },
