@@ -289,6 +289,9 @@ export const recruits = pgTable("recruits", {
   isBlueChip: boolean("is_blue_chip").notNull().default(false),
   isGem: boolean("is_gem").notNull().default(false),
   isBust: boolean("is_bust").notNull().default(false),
+  skinTone: text("skin_tone").notNull().default("light"),
+  hairColor: text("hair_color").notNull().default("brown"),
+  hairStyle: text("hair_style").notNull().default("short"),
 });
 
 export const insertRecruitSchema = createInsertSchema(recruits).pick({
@@ -330,6 +333,9 @@ export const insertRecruitSchema = createInsertSchema(recruits).pick({
   isBlueChip: true,
   isGem: true,
   isBust: true,
+  skinTone: true,
+  hairColor: true,
+  hairStyle: true,
 });
 
 export type InsertRecruit = z.infer<typeof insertRecruitSchema>;

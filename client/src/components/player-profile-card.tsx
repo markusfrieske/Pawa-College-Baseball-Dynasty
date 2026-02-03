@@ -4,6 +4,7 @@ import { RetroButton } from "@/components/ui/retro-button";
 import { AttributeSlider } from "@/components/ui/attribute-slider";
 import { Badge } from "@/components/ui/badge";
 import { LetterGrade } from "@/components/ui/letter-grade";
+import { PlayerPortrait } from "@/components/ui/player-portrait";
 import { MapPin, ChevronRight, Star } from "lucide-react";
 import { getAbilityByName } from "@shared/abilities";
 
@@ -47,6 +48,9 @@ interface Player {
   throws?: string;
   abilities?: string[];
   careerStats?: PlayerStats[];
+  skinTone?: string;
+  hairColor?: string;
+  hairStyle?: string;
 }
 
 interface PlayerProfileCardProps {
@@ -97,15 +101,24 @@ export function PlayerProfileCard({ player, open, onClose }: PlayerProfileCardPr
         
         <div className="p-4 border-b border-border">
           <div className="flex items-center gap-3">
-            <div 
-              className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm"
-              style={{ backgroundColor: posColor }}
-              data-testid="badge-position"
-            >
-              {player.position}
-            </div>
+            <PlayerPortrait
+              position={player.position}
+              skinTone={player.skinTone || "light"}
+              hairColor={player.hairColor || "brown"}
+              hairStyle={player.hairStyle || "short"}
+              className="w-14 h-14 flex-shrink-0"
+            />
             <div className="flex-1">
-              <h2 className="font-pixel text-gold text-sm" data-testid="text-player-name">
+              <div className="flex items-center gap-2">
+                <Badge 
+                  className="text-[10px] text-white"
+                  style={{ backgroundColor: posColor }}
+                  data-testid="badge-position"
+                >
+                  {player.position}
+                </Badge>
+              </div>
+              <h2 className="font-pixel text-gold text-sm mt-1" data-testid="text-player-name">
                 #{player.jerseyNumber} {player.firstName} {player.lastName}
               </h2>
             </div>

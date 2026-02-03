@@ -455,8 +455,9 @@ function RecruitDetailModal({
           <div className="flex items-start gap-4">
             <PlayerPortrait 
               position={recruit.position} 
-              skinTone={recruit.firstName.length % 5}
-              hairStyle={recruit.lastName.length % 5}
+              skinTone={recruit.skinTone || "light"}
+              hairColor={recruit.hairColor || "brown"}
+              hairStyle={recruit.hairStyle || "short"}
               className="w-16 h-16 flex-shrink-0"
             />
             <div className="flex-1">

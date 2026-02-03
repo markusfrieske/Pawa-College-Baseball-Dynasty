@@ -7,6 +7,7 @@ import { RetroSelect } from "@/components/ui/retro-select";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PlayerProfileCard } from "@/components/player-profile-card";
+import { PlayerPortrait } from "@/components/ui/player-portrait";
 import { 
   ArrowLeft, 
   Users, 
@@ -215,9 +216,16 @@ function PositionSection({ title, players, onSelectPlayer }: PositionSectionProp
                 <td className="py-3 px-2">
                   <button
                     onClick={() => onSelectPlayer(player)}
-                    className="font-medium text-left hover:text-gold transition-colors cursor-pointer"
+                    className="font-medium text-left hover:text-gold transition-colors cursor-pointer flex items-center gap-2"
                     data-testid={`link-player-${player.id}`}
                   >
+                    <PlayerPortrait
+                      position={player.position}
+                      skinTone={player.skinTone || "light"}
+                      hairColor={player.hairColor || "brown"}
+                      hairStyle={player.hairStyle || "short"}
+                      className="w-8 h-8 flex-shrink-0"
+                    />
                     {player.firstName} {player.lastName}
                   </button>
                 </td>
