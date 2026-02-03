@@ -387,8 +387,28 @@ interface PlayerEditModalProps {
   isSaving: boolean;
 }
 
+const positionsList = ["P", "C", "1B", "2B", "3B", "SS", "LF", "CF", "RF"];
+const eligibilityList = ["FR", "SO", "JR", "SR"];
+const skinToneOptions = ["light", "medium", "tan", "olive", "dark", "deep"];
+const hairColorOptions = ["black", "brown", "blonde", "red", "gray", "white"];
+const hairStyleOptions = ["short", "medium", "long", "fade", "buzz", "bald"];
+const headwearOptions = ["cap", "helmet", "batting_helmet", "catchers_mask", "none"];
+
 function PlayerEditModal({ player, open, onClose, onSave, isSaving }: PlayerEditModalProps) {
   const [formData, setFormData] = useState({
+    firstName: player.firstName,
+    lastName: player.lastName,
+    position: player.position,
+    eligibility: player.eligibility,
+    jerseyNumber: player.jerseyNumber,
+    hometown: player.hometown,
+    homeState: player.homeState,
+    batHand: player.batHand,
+    throwHand: player.throwHand,
+    skinTone: player.skinTone || "light",
+    hairColor: player.hairColor || "brown",
+    hairStyle: player.hairStyle || "short",
+    headwear: player.headwear || "cap",
     overall: player.overall,
     starRating: player.starRating,
     hitForAvg: player.hitForAvg || 50,
@@ -397,13 +417,29 @@ function PlayerEditModal({ player, open, onClose, onSave, isSaving }: PlayerEdit
     arm: player.arm || 50,
     fielding: player.fielding || 50,
     errorResistance: player.errorResistance || 50,
+    clutch: player.clutch || 50,
+    vsLHP: player.vsLHP || 50,
+    grit: player.grit || 50,
+    stealing: player.stealing || 50,
+    running: player.running || 50,
+    throwing: player.throwing || 50,
+    recovery: player.recovery || 50,
+    catcherAbility: player.catcherAbility || 50,
     velocity: player.velocity || 50,
     control: player.control || 50,
     stamina: player.stamina || 50,
     stuff: player.stuff || 50,
+    wRISP: player.wRISP || 50,
+    vsLefty: player.vsLefty || 50,
+    poise: player.poise || 50,
+    heater: player.heater || 50,
+    agile: player.agile || 50,
+    abilities: player.abilities || [],
   });
 
-  const isPlayerPitcher = isPitcher(player.position);
+  const [activeTab, setActiveTab] = useState<"info" | "attrs" | "common" | "abilities">("info");
+  const isPlayerPitcher = isPitcher(formData.position);
+  const isPlayerCatcher = isCatcher(formData.position);
 
   const handleSubmit = () => {
     onSave(formData);
@@ -411,164 +447,364 @@ function PlayerEditModal({ player, open, onClose, onSave, isSaving }: PlayerEdit
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-card border-border max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="bg-card border-border max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-pixel text-gold text-sm flex items-center gap-2">
             <Edit className="w-4 h-4" />
-            Edit Player: {player.firstName} {player.lastName}
+            Edit Player
           </DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs text-muted-foreground">Overall (1-999)</label>
-              <RetroInput
-                type="number"
-                min={1}
-                max={999}
-                value={formData.overall}
-                onChange={(e) => setFormData({ ...formData, overall: parseInt(e.target.value) || 1 })}
-                data-testid="input-overall"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground">Star Rating (1-5)</label>
-              <RetroInput
-                type="number"
-                min={1}
-                max={5}
-                value={formData.starRating}
-                onChange={(e) => setFormData({ ...formData, starRating: parseInt(e.target.value) || 1 })}
-                data-testid="input-star-rating"
-              />
-            </div>
-          </div>
+        
+        <div className="flex gap-1 mb-4 border-b border-border pb-2">
+          {(["info", "attrs", "common", "abilities"] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-3 py-1 text-xs rounded ${
+                activeTab === tab ? 'bg-gold text-background' : 'text-muted-foreground hover:text-foreground'
+              }`}
+              data-testid={`tab-${tab}`}
+            >
+              {tab === "info" ? "Info" : tab === "attrs" ? "Attributes" : tab === "common" ? "Common" : "Abilities"}
+            </button>
+          ))}
+        </div>
 
-          {isPlayerPitcher ? (
+        <div className="space-y-4">
+          {activeTab === "info" && (
             <>
-              <h4 className="font-pixel text-gold text-[10px] border-b border-border pb-1">Pitcher Attributes</h4>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-muted-foreground">Velocity</label>
+                  <label className="text-xs text-muted-foreground">First Name</label>
                   <RetroInput
-                    type="number"
-                    min={1}
-                    max={99}
-                    value={formData.velocity}
-                    onChange={(e) => setFormData({ ...formData, velocity: parseInt(e.target.value) || 50 })}
-                    data-testid="input-velocity"
+                    value={formData.firstName}
+                    onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                    data-testid="input-first-name"
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground">Control</label>
+                  <label className="text-xs text-muted-foreground">Last Name</label>
                   <RetroInput
-                    type="number"
-                    min={1}
-                    max={99}
-                    value={formData.control}
-                    onChange={(e) => setFormData({ ...formData, control: parseInt(e.target.value) || 50 })}
-                    data-testid="input-control"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Stamina</label>
-                  <RetroInput
-                    type="number"
-                    min={1}
-                    max={99}
-                    value={formData.stamina}
-                    onChange={(e) => setFormData({ ...formData, stamina: parseInt(e.target.value) || 50 })}
-                    data-testid="input-stamina"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Stuff</label>
-                  <RetroInput
-                    type="number"
-                    min={1}
-                    max={99}
-                    value={formData.stuff}
-                    onChange={(e) => setFormData({ ...formData, stuff: parseInt(e.target.value) || 50 })}
-                    data-testid="input-stuff"
+                    value={formData.lastName}
+                    onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                    data-testid="input-last-name"
                   />
                 </div>
               </div>
-            </>
-          ) : (
-            <>
-              <h4 className="font-pixel text-gold text-[10px] border-b border-border pb-1">Fielder Attributes</h4>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">Position</label>
+                  <select
+                    value={formData.position}
+                    onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                    className="w-full bg-card border border-border rounded px-2 py-1.5 text-sm"
+                    data-testid="select-position"
+                  >
+                    {positionsList.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Year</label>
+                  <select
+                    value={formData.eligibility}
+                    onChange={(e) => setFormData({ ...formData, eligibility: e.target.value })}
+                    className="w-full bg-card border border-border rounded px-2 py-1.5 text-sm"
+                    data-testid="select-eligibility"
+                  >
+                    {eligibilityList.map(e => <option key={e} value={e}>{e}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Jersey #</label>
+                  <RetroInput
+                    type="number"
+                    min={0}
+                    max={99}
+                    value={formData.jerseyNumber}
+                    onChange={(e) => setFormData({ ...formData, jerseyNumber: parseInt(e.target.value) || 0 })}
+                    data-testid="input-jersey"
+                  />
+                </div>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-muted-foreground">Contact</label>
+                  <label className="text-xs text-muted-foreground">Hometown</label>
                   <RetroInput
-                    type="number"
-                    min={1}
-                    max={99}
-                    value={formData.hitForAvg}
-                    onChange={(e) => setFormData({ ...formData, hitForAvg: parseInt(e.target.value) || 50 })}
-                    data-testid="input-contact"
+                    value={formData.hometown}
+                    onChange={(e) => setFormData({ ...formData, hometown: e.target.value })}
+                    data-testid="input-hometown"
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground">Power</label>
+                  <label className="text-xs text-muted-foreground">State</label>
+                  <RetroInput
+                    value={formData.homeState}
+                    onChange={(e) => setFormData({ ...formData, homeState: e.target.value })}
+                    data-testid="input-state"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">Bats</label>
+                  <select
+                    value={formData.batHand}
+                    onChange={(e) => setFormData({ ...formData, batHand: e.target.value })}
+                    className="w-full bg-card border border-border rounded px-2 py-1.5 text-sm"
+                    data-testid="select-bats"
+                  >
+                    <option value="R">Right</option>
+                    <option value="L">Left</option>
+                    <option value="S">Switch</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Throws</label>
+                  <select
+                    value={formData.throwHand}
+                    onChange={(e) => setFormData({ ...formData, throwHand: e.target.value })}
+                    className="w-full bg-card border border-border rounded px-2 py-1.5 text-sm"
+                    data-testid="select-throws"
+                  >
+                    <option value="R">Right</option>
+                    <option value="L">Left</option>
+                  </select>
+                </div>
+              </div>
+              <h4 className="font-pixel text-gold text-[10px] border-b border-border pb-1">Appearance</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">Skin Tone</label>
+                  <select
+                    value={formData.skinTone}
+                    onChange={(e) => setFormData({ ...formData, skinTone: e.target.value })}
+                    className="w-full bg-card border border-border rounded px-2 py-1.5 text-sm capitalize"
+                    data-testid="select-skin"
+                  >
+                    {skinToneOptions.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Hair Color</label>
+                  <select
+                    value={formData.hairColor}
+                    onChange={(e) => setFormData({ ...formData, hairColor: e.target.value })}
+                    className="w-full bg-card border border-border rounded px-2 py-1.5 text-sm capitalize"
+                    data-testid="select-hair-color"
+                  >
+                    {hairColorOptions.map(h => <option key={h} value={h}>{h}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Hair Style</label>
+                  <select
+                    value={formData.hairStyle}
+                    onChange={(e) => setFormData({ ...formData, hairStyle: e.target.value })}
+                    className="w-full bg-card border border-border rounded px-2 py-1.5 text-sm capitalize"
+                    data-testid="select-hair-style"
+                  >
+                    {hairStyleOptions.map(h => <option key={h} value={h}>{h}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Headwear</label>
+                  <select
+                    value={formData.headwear}
+                    onChange={(e) => setFormData({ ...formData, headwear: e.target.value })}
+                    className="w-full bg-card border border-border rounded px-2 py-1.5 text-sm capitalize"
+                    data-testid="select-headwear"
+                  >
+                    {headwearOptions.map(h => <option key={h} value={h}>{h.replace("_", " ")}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">Overall (1-999)</label>
                   <RetroInput
                     type="number"
                     min={1}
-                    max={99}
-                    value={formData.power}
-                    onChange={(e) => setFormData({ ...formData, power: parseInt(e.target.value) || 50 })}
-                    data-testid="input-power"
+                    max={999}
+                    value={formData.overall}
+                    onChange={(e) => setFormData({ ...formData, overall: parseInt(e.target.value) || 1 })}
+                    data-testid="input-overall"
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground">Speed</label>
+                  <label className="text-xs text-muted-foreground">Star Rating (1-5)</label>
                   <RetroInput
                     type="number"
                     min={1}
-                    max={99}
-                    value={formData.speed}
-                    onChange={(e) => setFormData({ ...formData, speed: parseInt(e.target.value) || 50 })}
-                    data-testid="input-speed"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Arm</label>
-                  <RetroInput
-                    type="number"
-                    min={1}
-                    max={99}
-                    value={formData.arm}
-                    onChange={(e) => setFormData({ ...formData, arm: parseInt(e.target.value) || 50 })}
-                    data-testid="input-arm"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Fielding</label>
-                  <RetroInput
-                    type="number"
-                    min={1}
-                    max={99}
-                    value={formData.fielding}
-                    onChange={(e) => setFormData({ ...formData, fielding: parseInt(e.target.value) || 50 })}
-                    data-testid="input-fielding"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Error Resist</label>
-                  <RetroInput
-                    type="number"
-                    min={1}
-                    max={99}
-                    value={formData.errorResistance}
-                    onChange={(e) => setFormData({ ...formData, errorResistance: parseInt(e.target.value) || 50 })}
-                    data-testid="input-error-resist"
+                    max={5}
+                    value={formData.starRating}
+                    onChange={(e) => setFormData({ ...formData, starRating: parseInt(e.target.value) || 1 })}
+                    data-testid="input-star-rating"
                   />
                 </div>
               </div>
             </>
           )}
 
-          <div className="flex justify-end gap-2 pt-4">
+          {activeTab === "attrs" && (
+            <>
+              {isPlayerPitcher ? (
+                <>
+                  <h4 className="font-pixel text-gold text-[10px] border-b border-border pb-1">Pitcher Attributes (1-99)</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-muted-foreground">Velocity</label>
+                      <RetroInput type="number" min={1} max={99} value={formData.velocity} onChange={(e) => setFormData({ ...formData, velocity: parseInt(e.target.value) || 50 })} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Control</label>
+                      <RetroInput type="number" min={1} max={99} value={formData.control} onChange={(e) => setFormData({ ...formData, control: parseInt(e.target.value) || 50 })} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Stamina</label>
+                      <RetroInput type="number" min={1} max={99} value={formData.stamina} onChange={(e) => setFormData({ ...formData, stamina: parseInt(e.target.value) || 50 })} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Stuff</label>
+                      <RetroInput type="number" min={1} max={99} value={formData.stuff} onChange={(e) => setFormData({ ...formData, stuff: parseInt(e.target.value) || 50 })} />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h4 className="font-pixel text-gold text-[10px] border-b border-border pb-1">Fielder Attributes (1-99)</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-muted-foreground">Contact</label>
+                      <RetroInput type="number" min={1} max={99} value={formData.hitForAvg} onChange={(e) => setFormData({ ...formData, hitForAvg: parseInt(e.target.value) || 50 })} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Power</label>
+                      <RetroInput type="number" min={1} max={99} value={formData.power} onChange={(e) => setFormData({ ...formData, power: parseInt(e.target.value) || 50 })} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Speed</label>
+                      <RetroInput type="number" min={1} max={99} value={formData.speed} onChange={(e) => setFormData({ ...formData, speed: parseInt(e.target.value) || 50 })} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Arm</label>
+                      <RetroInput type="number" min={1} max={99} value={formData.arm} onChange={(e) => setFormData({ ...formData, arm: parseInt(e.target.value) || 50 })} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Fielding</label>
+                      <RetroInput type="number" min={1} max={99} value={formData.fielding} onChange={(e) => setFormData({ ...formData, fielding: parseInt(e.target.value) || 50 })} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Error Resist</label>
+                      <RetroInput type="number" min={1} max={99} value={formData.errorResistance} onChange={(e) => setFormData({ ...formData, errorResistance: parseInt(e.target.value) || 50 })} />
+                    </div>
+                  </div>
+                </>
+              )}
+            </>
+          )}
+
+          {activeTab === "common" && (
+            <>
+              {isPlayerPitcher ? (
+                <>
+                  <h4 className="font-pixel text-gold text-[10px] border-b border-border pb-1">Pitcher Common Abilities (1-99)</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-muted-foreground">W/RISP</label>
+                      <RetroInput type="number" min={1} max={99} value={formData.wRISP} onChange={(e) => setFormData({ ...formData, wRISP: parseInt(e.target.value) || 50 })} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">vs Lefty</label>
+                      <RetroInput type="number" min={1} max={99} value={formData.vsLefty} onChange={(e) => setFormData({ ...formData, vsLefty: parseInt(e.target.value) || 50 })} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Poise</label>
+                      <RetroInput type="number" min={1} max={99} value={formData.poise} onChange={(e) => setFormData({ ...formData, poise: parseInt(e.target.value) || 50 })} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Grit</label>
+                      <RetroInput type="number" min={1} max={99} value={formData.grit} onChange={(e) => setFormData({ ...formData, grit: parseInt(e.target.value) || 50 })} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Heater</label>
+                      <RetroInput type="number" min={1} max={99} value={formData.heater} onChange={(e) => setFormData({ ...formData, heater: parseInt(e.target.value) || 50 })} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Agile</label>
+                      <RetroInput type="number" min={1} max={99} value={formData.agile} onChange={(e) => setFormData({ ...formData, agile: parseInt(e.target.value) || 50 })} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Recovery</label>
+                      <RetroInput type="number" min={1} max={99} value={formData.recovery} onChange={(e) => setFormData({ ...formData, recovery: parseInt(e.target.value) || 50 })} />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h4 className="font-pixel text-gold text-[10px] border-b border-border pb-1">Fielder Common Abilities (1-99)</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-muted-foreground">Clutch</label>
+                      <RetroInput type="number" min={1} max={99} value={formData.clutch} onChange={(e) => setFormData({ ...formData, clutch: parseInt(e.target.value) || 50 })} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">vs LHP</label>
+                      <RetroInput type="number" min={1} max={99} value={formData.vsLHP} onChange={(e) => setFormData({ ...formData, vsLHP: parseInt(e.target.value) || 50 })} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Grit</label>
+                      <RetroInput type="number" min={1} max={99} value={formData.grit} onChange={(e) => setFormData({ ...formData, grit: parseInt(e.target.value) || 50 })} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Stealing</label>
+                      <RetroInput type="number" min={1} max={99} value={formData.stealing} onChange={(e) => setFormData({ ...formData, stealing: parseInt(e.target.value) || 50 })} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Running</label>
+                      <RetroInput type="number" min={1} max={99} value={formData.running} onChange={(e) => setFormData({ ...formData, running: parseInt(e.target.value) || 50 })} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Throwing</label>
+                      <RetroInput type="number" min={1} max={99} value={formData.throwing} onChange={(e) => setFormData({ ...formData, throwing: parseInt(e.target.value) || 50 })} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Recovery</label>
+                      <RetroInput type="number" min={1} max={99} value={formData.recovery} onChange={(e) => setFormData({ ...formData, recovery: parseInt(e.target.value) || 50 })} />
+                    </div>
+                    {isPlayerCatcher && (
+                      <div>
+                        <label className="text-xs text-muted-foreground">Catcher</label>
+                        <RetroInput type="number" min={1} max={99} value={formData.catcherAbility} onChange={(e) => setFormData({ ...formData, catcherAbility: parseInt(e.target.value) || 50 })} />
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </>
+          )}
+
+          {activeTab === "abilities" && (
+            <>
+              <h4 className="font-pixel text-gold text-[10px] border-b border-border pb-1">Special Abilities</h4>
+              <div className="text-xs text-muted-foreground mb-2">
+                Enter ability IDs separated by commas (e.g., explosive_fb, quick_hands)
+              </div>
+              <RetroInput
+                value={(formData.abilities || []).join(", ")}
+                onChange={(e) => setFormData({ 
+                  ...formData, 
+                  abilities: e.target.value.split(",").map(a => a.trim()).filter(a => a) 
+                })}
+                placeholder="explosive_fb, monster_stuff"
+                data-testid="input-abilities"
+              />
+              <div className="text-xs text-muted-foreground mt-2">
+                Current: {(formData.abilities || []).length} abilities
+              </div>
+            </>
+          )}
+
+          <div className="flex justify-end gap-2 pt-4 border-t border-border">
             <RetroButton variant="outline" onClick={onClose} data-testid="button-cancel-edit">
               Cancel
             </RetroButton>
@@ -582,148 +818,195 @@ function PlayerEditModal({ player, open, onClose, onSave, isSaving }: PlayerEdit
   );
 }
 
-function DepthChartView({ players, onSelectPlayer }: { players: Player[]; onSelectPlayer: (p: Player) => void }) {
-  const positions = [
-    { pos: "LF", x: 15, y: 25, label: "Left Field" },
-    { pos: "CF", x: 50, y: 10, label: "Center Field" },
-    { pos: "RF", x: 85, y: 25, label: "Right Field" },
-    { pos: "SS", x: 35, y: 55, label: "Shortstop" },
-    { pos: "2B", x: 65, y: 55, label: "Second Base" },
-    { pos: "3B", x: 15, y: 65, label: "Third Base" },
-    { pos: "1B", x: 85, y: 65, label: "First Base" },
-    { pos: "C", x: 50, y: 85, label: "Catcher" },
-    { pos: "P", x: 50, y: 68, label: "Pitcher" },
-  ];
+interface PositionCardProps {
+  position: string;
+  players: Player[];
+  onSelectPlayer: (p: Player) => void;
+  maxPlayers?: number;
+}
 
+function PositionCard({ position, players, onSelectPlayer, maxPlayers = 3 }: PositionCardProps) {
+  const displayPlayers = players.slice(0, maxPlayers);
+  
+  return (
+    <div className="bg-card/90 border border-border rounded-lg overflow-hidden min-w-[140px]" data-testid={`depth-card-${position}`}>
+      <div className="bg-gold/20 px-2 py-1 border-b border-border">
+        <span className="font-pixel text-gold text-[10px]">{position}</span>
+      </div>
+      <div className="p-1">
+        {displayPlayers.length === 0 ? (
+          <div className="text-muted-foreground text-xs py-2 text-center">Empty</div>
+        ) : (
+          displayPlayers.map((p, idx) => (
+            <button
+              key={p.id}
+              onClick={() => onSelectPlayer(p)}
+              className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-left transition-colors ${
+                idx === 0 ? 'bg-gold/10 hover:bg-gold/20' : 'hover:bg-card'
+              }`}
+              data-testid={`depth-${position}-${idx}`}
+            >
+              <PlayerPortrait
+                skinTone={p.skinTone || "light"}
+                hairColor={p.hairColor || "brown"}
+                hairStyle={p.hairStyle || "short"}
+                className="w-6 h-6 flex-shrink-0"
+              />
+              <span className={`text-xs truncate flex-1 ${idx === 0 ? 'text-foreground' : 'text-muted-foreground'}`}>
+                {p.firstName.charAt(0)}. {p.lastName}
+              </span>
+              <span className={`text-xs font-bold ${idx === 0 ? 'text-gold' : 'text-muted-foreground'}`}>
+                {p.overall}
+              </span>
+            </button>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
+function DepthChartView({ players, onSelectPlayer }: { players: Player[]; onSelectPlayer: (p: Player) => void }) {
   const getPlayersByPosition = (pos: string): Player[] => {
     return players
       .filter(p => p.position === pos)
-      .sort((a, b) => b.overall - a.overall)
-      .slice(0, 3);
+      .sort((a, b) => b.overall - a.overall);
   };
 
   const pitchers = players.filter(p => isPitcher(p.position)).sort((a, b) => b.overall - a.overall);
   const starters = pitchers.slice(0, 5);
-  const bullpen = pitchers.slice(5);
+  const bullpen = pitchers.slice(5, 10);
 
+  const catchers = getPlayersByPosition("C");
+  
   return (
-    <div className="space-y-6">
-      <RetroCard>
-        <div className="font-pixel text-gold text-sm mb-4">FIELD POSITIONS</div>
-        <div className="relative w-full aspect-[4/3] bg-gradient-to-b from-green-900 to-green-800 rounded-lg overflow-hidden" data-testid="depth-chart-field">
-          <div className="absolute inset-0 flex items-center justify-center opacity-20">
-            <div className="w-[60%] h-[60%] border-2 border-white/30 rounded-full" />
-            <div className="absolute w-[30%] h-[30%] border-2 border-white/30" style={{ clipPath: "polygon(50% 100%, 0 0, 100% 0)" }} />
+    <div className="space-y-4" data-testid="depth-chart-view">
+      <div className="text-right">
+        <span className="font-pixel text-gold text-lg">DEPTH CHART</span>
+      </div>
+      
+      <div className="grid gap-4">
+        <div className="flex justify-center gap-4 flex-wrap">
+          <PositionCard position="LF" players={getPlayersByPosition("LF")} onSelectPlayer={onSelectPlayer} />
+          <PositionCard position="CF" players={getPlayersByPosition("CF")} onSelectPlayer={onSelectPlayer} />
+          <PositionCard position="RF" players={getPlayersByPosition("RF")} onSelectPlayer={onSelectPlayer} />
+        </div>
+        
+        <div className="flex justify-center gap-4 flex-wrap items-start">
+          <PositionCard position="3B" players={getPlayersByPosition("3B")} onSelectPlayer={onSelectPlayer} />
+          
+          <div className="flex flex-col gap-4">
+            <PositionCard position="SS" players={getPlayersByPosition("SS")} onSelectPlayer={onSelectPlayer} />
+            <PositionCard position="2B" players={getPlayersByPosition("2B")} onSelectPlayer={onSelectPlayer} />
           </div>
           
-          {positions.map(({ pos, x, y, label }) => {
-            const posPlayers = getPlayersByPosition(pos);
-            const starter = posPlayers[0];
-            
-            return (
-              <div
-                key={pos}
-                className="absolute transform -translate-x-1/2 -translate-y-1/2"
-                style={{ left: `${x}%`, top: `${y}%` }}
-              >
-                <div className="text-center">
-                  <div className="font-pixel text-[8px] text-white/70 mb-1">{pos}</div>
-                  {starter ? (
-                    <button
-                      onClick={() => onSelectPlayer(starter)}
-                      className="group"
-                      data-testid={`depth-${pos}-starter`}
-                    >
-                      <div className="relative w-14 h-14 mx-auto mb-1">
-                        <div className="absolute inset-0 w-10 h-10 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-45 border-2 border-gold group-hover:border-white transition-colors bg-forest-card" />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-gold group-hover:border-white transition-colors">
-                            <PlayerPortrait
-                              skinTone={starter.skinTone || "light"}
-                              hairColor={starter.hairColor || "brown"}
-                              hairStyle={starter.hairStyle || "short"}
-                              className="w-8 h-8"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-[8px] text-white truncate max-w-[60px]">
-                        {starter.lastName}
-                      </div>
-                      <div className="text-[10px] font-bold text-gold">{starter.overall}</div>
-                    </button>
-                  ) : (
-                    <div className="relative w-12 h-12 mx-auto">
-                      <div className="absolute inset-0 w-10 h-10 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-45 border-2 border-dashed border-white/30" />
-                      <span className="absolute inset-0 flex items-center justify-center text-white/30 text-[10px]">?</span>
-                    </div>
-                  )}
-                  {posPlayers.length > 1 && (
-                    <div className="text-[8px] text-white/50 mt-1">+{posPlayers.length - 1} backup</div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+          <div className="bg-card/90 border border-border rounded-lg overflow-hidden min-w-[160px]" data-testid="depth-card-SP">
+            <div className="bg-gold/20 px-2 py-1 border-b border-border">
+              <span className="font-pixel text-gold text-[10px]">STARTING PITCHERS</span>
+            </div>
+            <div className="p-1">
+              {starters.length === 0 ? (
+                <div className="text-muted-foreground text-xs py-2 text-center">No pitchers</div>
+              ) : (
+                starters.map((p, idx) => (
+                  <button
+                    key={p.id}
+                    onClick={() => onSelectPlayer(p)}
+                    className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-left transition-colors ${
+                      idx === 0 ? 'bg-gold/10 hover:bg-gold/20' : 'hover:bg-card'
+                    }`}
+                    data-testid={`depth-SP-${idx}`}
+                  >
+                    <PlayerPortrait
+                      skinTone={p.skinTone || "light"}
+                      hairColor={p.hairColor || "brown"}
+                      hairStyle={p.hairStyle || "short"}
+                      className="w-6 h-6 flex-shrink-0"
+                    />
+                    <span className={`text-xs truncate flex-1 ${idx === 0 ? 'text-foreground' : 'text-muted-foreground'}`}>
+                      {p.firstName.charAt(0)}. {p.lastName}
+                    </span>
+                    <span className={`text-xs font-bold ${idx === 0 ? 'text-gold' : 'text-muted-foreground'}`}>
+                      {p.overall}
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+          
+          <PositionCard position="1B" players={getPlayersByPosition("1B")} onSelectPlayer={onSelectPlayer} />
         </div>
-      </RetroCard>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <RetroCard>
-          <div className="font-pixel text-gold text-sm mb-3">STARTING ROTATION</div>
-          <div className="space-y-2">
-            {starters.length === 0 ? (
-              <p className="text-muted-foreground text-sm">No pitchers on roster</p>
-            ) : (
-              starters.map((p, i) => (
-                <button
-                  key={p.id}
-                  onClick={() => onSelectPlayer(p)}
-                  className="w-full flex items-center gap-3 p-2 rounded hover:bg-gold/10 transition-colors"
-                  data-testid={`starter-${i + 1}`}
-                >
-                  <span className="font-pixel text-gold text-sm w-6">SP{i + 1}</span>
-                  <PlayerPortrait
-                    skinTone={p.skinTone || "light"}
-                    hairColor={p.hairColor || "brown"}
-                    hairStyle={p.hairStyle || "short"}
-                    className="w-8 h-8"
-                  />
-                  <span className="flex-1 text-left text-sm">{p.firstName} {p.lastName}</span>
-                  <span className="font-bold text-gold">{p.overall}</span>
-                </button>
-              ))
-            )}
+        
+        <div className="flex justify-center gap-4 flex-wrap items-start">
+          <div className="bg-card/90 border border-border rounded-lg overflow-hidden min-w-[140px]" data-testid="depth-card-C">
+            <div className="bg-gold/20 px-2 py-1 border-b border-border">
+              <span className="font-pixel text-gold text-[10px]">C</span>
+            </div>
+            <div className="p-1">
+              {catchers.length === 0 ? (
+                <div className="text-muted-foreground text-xs py-2 text-center">Empty</div>
+              ) : (
+                catchers.slice(0, 3).map((p, idx) => (
+                  <button
+                    key={p.id}
+                    onClick={() => onSelectPlayer(p)}
+                    className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-left transition-colors ${
+                      idx === 0 ? 'bg-gold/10 hover:bg-gold/20' : 'hover:bg-card'
+                    }`}
+                    data-testid={`depth-C-${idx}`}
+                  >
+                    <PlayerPortrait
+                      skinTone={p.skinTone || "light"}
+                      hairColor={p.hairColor || "brown"}
+                      hairStyle={p.hairStyle || "short"}
+                      className="w-6 h-6 flex-shrink-0"
+                    />
+                    <span className={`text-xs truncate flex-1 ${idx === 0 ? 'text-foreground' : 'text-muted-foreground'}`}>
+                      {p.firstName.charAt(0)}. {p.lastName}
+                    </span>
+                    <span className={`text-xs font-bold ${idx === 0 ? 'text-gold' : 'text-muted-foreground'}`}>
+                      {p.overall}
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
           </div>
-        </RetroCard>
-
-        <RetroCard>
-          <div className="font-pixel text-gold text-sm mb-3">BULLPEN</div>
-          <div className="space-y-2 max-h-48 overflow-y-auto">
-            {bullpen.length === 0 ? (
-              <p className="text-muted-foreground text-sm">No bullpen pitchers</p>
-            ) : (
-              bullpen.map((p, i) => (
-                <button
-                  key={p.id}
-                  onClick={() => onSelectPlayer(p)}
-                  className="w-full flex items-center gap-3 p-2 rounded hover:bg-gold/10 transition-colors"
-                  data-testid={`bullpen-${i + 1}`}
-                >
-                  <span className="font-pixel text-muted-foreground text-[10px] w-6">RP</span>
-                  <PlayerPortrait
-                    skinTone={p.skinTone || "light"}
-                    hairColor={p.hairColor || "brown"}
-                    hairStyle={p.hairStyle || "short"}
-                    className="w-8 h-8"
-                  />
-                  <span className="flex-1 text-left text-sm">{p.firstName} {p.lastName}</span>
-                  <span className="font-bold text-gold">{p.overall}</span>
-                </button>
-              ))
-            )}
+          
+          <div className="bg-card/90 border border-border rounded-lg overflow-hidden min-w-[140px]" data-testid="depth-card-RP">
+            <div className="bg-gold/20 px-2 py-1 border-b border-border">
+              <span className="font-pixel text-gold text-[10px]">RP</span>
+            </div>
+            <div className="p-1 max-h-40 overflow-y-auto">
+              {bullpen.length === 0 ? (
+                <div className="text-muted-foreground text-xs py-2 text-center">No relievers</div>
+              ) : (
+                bullpen.map((p, idx) => (
+                  <button
+                    key={p.id}
+                    onClick={() => onSelectPlayer(p)}
+                    className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-left hover:bg-card transition-colors"
+                    data-testid={`depth-RP-${idx}`}
+                  >
+                    <PlayerPortrait
+                      skinTone={p.skinTone || "light"}
+                      hairColor={p.hairColor || "brown"}
+                      hairStyle={p.hairStyle || "short"}
+                      className="w-6 h-6 flex-shrink-0"
+                    />
+                    <span className="text-xs truncate flex-1 text-muted-foreground">
+                      {p.firstName.charAt(0)}. {p.lastName}
+                    </span>
+                    <span className="text-xs font-bold text-muted-foreground">
+                      {p.overall}
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
           </div>
-        </RetroCard>
+        </div>
       </div>
     </div>
   );

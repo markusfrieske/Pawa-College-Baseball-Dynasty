@@ -2094,6 +2094,65 @@ export async function registerRoutes(
     }
   });
 
+  // Update recruit (commissioner only)
+  app.patch("/api/leagues/:id/recruits/:recruitId", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id as string);
+      if (!league) {
+        return res.status(404).json({ message: "League not found" });
+      }
+
+      if (league.commissionerId !== req.session.userId) {
+        return res.status(403).json({ message: "Only the commissioner can edit recruits" });
+      }
+
+      const recruit = await storage.getRecruit(req.params.recruitId as string);
+      if (!recruit) {
+        return res.status(404).json({ message: "Recruit not found" });
+      }
+
+      if (recruit.leagueId !== req.params.id) {
+        return res.status(403).json({ message: "Recruit does not belong to this league" });
+      }
+
+      const allowedFields = [
+        'firstName', 'lastName', 'position', 'hometown', 'homeState',
+        'batHand', 'throwHand', 'recruitType', 'recruitYear',
+        'skinTone', 'hairColor', 'hairStyle', 'headwear',
+        'overall', 'starRating', 'classRank', 'positionRank',
+        'isBlueChip', 'isGem', 'isBust',
+        'hitForAvg', 'power', 'speed', 'arm', 'fielding', 'errorResistance',
+        'clutch', 'vsLHP', 'grit', 'stealing', 'running', 'throwing', 'recovery', 'catcherAbility',
+        'velocity', 'control', 'stamina', 'stuff',
+        'wRISP', 'vsLefty', 'poise', 'heater', 'agile',
+        'abilities',
+        'proximityPriority', 'reputationPriority', 'playingTimePriority',
+        'academicsPriority', 'prestigePriority', 'facilitiesPriority', 'dealbreaker'
+      ];
+
+      const sanitizedData: Record<string, any> = {};
+      for (const key of allowedFields) {
+        if (key in req.body) {
+          sanitizedData[key] = req.body[key];
+        }
+      }
+
+      const updated = await storage.updateRecruit(req.params.recruitId as string, sanitizedData);
+      
+      await storage.createAuditLog({
+        leagueId: req.params.id as string,
+        userId: req.session.userId,
+        action: "Recruit Edited",
+        details: `Edited recruit ${recruit.firstName} ${recruit.lastName}`,
+      });
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Failed to update recruit:", error);
+      res.status(500).json({ message: "Failed to update recruit" });
+    }
+  });
+
   // Dynasty Setup routes
   app.get("/api/leagues/:id/dynasty-setup", requireAuth, async (req, res) => {
     try {

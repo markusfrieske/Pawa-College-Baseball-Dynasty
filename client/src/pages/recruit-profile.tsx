@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
+import { RetroInput } from "@/components/ui/retro-input";
 import { StarRating } from "@/components/ui/star-rating";
 import { PlayerAvatar } from "@/components/player-avatar";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +13,7 @@ import { Progress } from "@/components/ui/progress";
 import { LetterGrade } from "@/components/ui/letter-grade";
 import { TeamBadge } from "@/components/ui/team-badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   ArrowLeft, 
   MapPin,
@@ -26,11 +28,13 @@ import {
   Save,
   StickyNote,
   HelpCircle,
-  Lock
+  Lock,
+  Edit,
+  Pencil
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import type { Recruit, RecruitingInterest, Team } from "@shared/schema";
-import { isPitcher as checkIsPitcher } from "@shared/positions";
+import type { Recruit, RecruitingInterest, Team, League } from "@shared/schema";
+import { isPitcher as checkIsPitcher, isCatcher as checkIsCatcher } from "@shared/positions";
 import { getAbilityByName } from "@shared/abilities";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -68,6 +72,7 @@ export default function RecruitProfilePage() {
   const { id, recruitId } = useParams<{ id: string; recruitId: string }>();
   const [notes, setNotes] = useState("");
   const [isEditingNotes, setIsEditingNotes] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -78,6 +83,30 @@ export default function RecruitProfilePage() {
   const { data: actionsData } = useQuery<{ actions: ActionLog[] }>({
     queryKey: ["/api/leagues", id, "recruiting", recruitId, "actions"],
     enabled: !!recruitId && !!id,
+  });
+
+  const { data: authData } = useQuery<{ id: string }>({
+    queryKey: ["/api/auth/me"],
+  });
+
+  const { data: leagueData } = useQuery<{ league: League }>({
+    queryKey: ["/api/leagues", id],
+  });
+
+  const isCommissioner = authData?.id && leagueData?.league?.commissionerId === authData.id;
+
+  const updateRecruitMutation = useMutation({
+    mutationFn: async (updates: Partial<Recruit>) => {
+      return apiRequest("PATCH", `/api/leagues/${id}/recruits/${recruitId}`, updates);
+    },
+    onSuccess: () => {
+      toast({ title: "Recruit Updated", description: "Changes saved successfully." });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruits", recruitId] });
+      setIsEditModalOpen(false);
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update recruit", variant: "destructive" });
+    },
   });
 
   const scoutMutation = useMutation({
@@ -296,6 +325,18 @@ export default function RecruitProfilePage() {
                 )}
               </div>
             </div>
+            {isCommissioner && (
+              <RetroButton
+                variant="outline"
+                size="sm"
+                className="ml-auto"
+                onClick={() => setIsEditModalOpen(true)}
+                data-testid="button-edit-recruit"
+              >
+                <Pencil className="w-3 h-3 mr-1" />
+                Edit
+              </RetroButton>
+            )}
           </div>
         </div>
       </header>
@@ -626,7 +667,420 @@ export default function RecruitProfilePage() {
           </div>
         </div>
       </main>
+
+      {isEditModalOpen && data?.recruit && (
+        <RecruitEditModal
+          recruit={data.recruit}
+          open={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          onSave={(updates) => updateRecruitMutation.mutate(updates)}
+          isSaving={updateRecruitMutation.isPending}
+        />
+      )}
     </div>
+  );
+}
+
+const positionsList = ["P", "C", "1B", "2B", "3B", "SS", "LF", "CF", "RF"];
+const skinToneOptions = ["light", "medium", "tan", "olive", "dark", "deep"];
+const hairColorOptions = ["black", "brown", "blonde", "red", "gray", "white"];
+const hairStyleOptions = ["short", "medium", "long", "fade", "buzz", "bald"];
+const headwearOptions = ["cap", "helmet", "batting_helmet", "catchers_mask", "none"];
+const priorityOptions = ["Extremely", "Very", "Somewhat", "Not Important"];
+
+interface RecruitEditModalProps {
+  recruit: Recruit;
+  open: boolean;
+  onClose: () => void;
+  onSave: (updates: Partial<Recruit>) => void;
+  isSaving: boolean;
+}
+
+function RecruitEditModal({ recruit, open, onClose, onSave, isSaving }: RecruitEditModalProps) {
+  const [formData, setFormData] = useState({
+    firstName: recruit.firstName,
+    lastName: recruit.lastName,
+    position: recruit.position,
+    hometown: recruit.hometown,
+    homeState: recruit.homeState,
+    batHand: recruit.batHand,
+    throwHand: recruit.throwHand,
+    recruitType: recruit.recruitType,
+    recruitYear: recruit.recruitYear || "FR",
+    skinTone: recruit.skinTone || "light",
+    hairColor: recruit.hairColor || "brown",
+    hairStyle: recruit.hairStyle || "short",
+    headwear: recruit.headwear || "cap",
+    overall: recruit.overall,
+    starRating: recruit.starRating,
+    classRank: recruit.classRank,
+    positionRank: recruit.positionRank,
+    isBlueChip: recruit.isBlueChip || false,
+    isGem: recruit.isGem || false,
+    isBust: recruit.isBust || false,
+    hitForAvg: recruit.hitForAvg || 50,
+    power: recruit.power || 50,
+    speed: recruit.speed || 50,
+    arm: recruit.arm || 50,
+    fielding: recruit.fielding || 50,
+    errorResistance: recruit.errorResistance || 50,
+    clutch: recruit.clutch || 50,
+    vsLHP: recruit.vsLHP || 50,
+    grit: recruit.grit || 50,
+    stealing: recruit.stealing || 50,
+    running: recruit.running || 50,
+    throwing: recruit.throwing || 50,
+    recovery: recruit.recovery || 50,
+    catcherAbility: recruit.catcherAbility || 50,
+    velocity: recruit.velocity || 50,
+    control: recruit.control || 50,
+    stamina: recruit.stamina || 50,
+    stuff: recruit.stuff || 50,
+    wRISP: recruit.wRISP || 50,
+    vsLefty: recruit.vsLefty || 50,
+    poise: recruit.poise || 50,
+    heater: recruit.heater || 50,
+    agile: recruit.agile || 50,
+    abilities: recruit.abilities || [],
+    proximityPriority: recruit.proximityPriority || "Somewhat",
+    reputationPriority: recruit.reputationPriority || "Somewhat",
+    playingTimePriority: recruit.playingTimePriority || "Somewhat",
+    academicsPriority: recruit.academicsPriority || "Somewhat",
+    prestigePriority: recruit.prestigePriority || "Somewhat",
+    facilitiesPriority: recruit.facilitiesPriority || "Somewhat",
+    dealbreaker: recruit.dealbreaker || "",
+  });
+
+  const [activeTab, setActiveTab] = useState<"info" | "attrs" | "common" | "priorities" | "abilities">("info");
+  const isRecruitPitcher = checkIsPitcher(formData.position);
+  const isRecruitCatcher = checkIsCatcher(formData.position);
+
+  const handleSubmit = () => {
+    onSave(formData);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="bg-card border-border max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="font-pixel text-gold text-sm flex items-center gap-2">
+            <Edit className="w-4 h-4" />
+            Edit Recruit
+          </DialogTitle>
+        </DialogHeader>
+        
+        <div className="flex gap-1 mb-4 border-b border-border pb-2 flex-wrap">
+          {(["info", "attrs", "common", "priorities", "abilities"] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-2 py-1 text-xs rounded ${
+                activeTab === tab ? 'bg-gold text-background' : 'text-muted-foreground hover:text-foreground'
+              }`}
+              data-testid={`recruit-tab-${tab}`}
+            >
+              {tab === "info" ? "Info" : tab === "attrs" ? "Attributes" : tab === "common" ? "Common" : tab === "priorities" ? "Priorities" : "Abilities"}
+            </button>
+          ))}
+        </div>
+
+        <div className="space-y-4">
+          {activeTab === "info" && (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">First Name</label>
+                  <RetroInput value={formData.firstName} onChange={(e) => setFormData({ ...formData, firstName: e.target.value })} />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Last Name</label>
+                  <RetroInput value={formData.lastName} onChange={(e) => setFormData({ ...formData, lastName: e.target.value })} />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">Position</label>
+                  <select value={formData.position} onChange={(e) => setFormData({ ...formData, position: e.target.value })} className="w-full bg-card border border-border rounded px-2 py-1.5 text-sm" data-testid="select-recruit-position">
+                    {positionsList.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Type</label>
+                  <select value={formData.recruitType} onChange={(e) => setFormData({ ...formData, recruitType: e.target.value })} className="w-full bg-card border border-border rounded px-2 py-1.5 text-sm" data-testid="select-recruit-type">
+                    <option value="HS">HS</option>
+                    <option value="JUCO">JUCO</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Year</label>
+                  <select value={formData.recruitYear} onChange={(e) => setFormData({ ...formData, recruitYear: e.target.value })} className="w-full bg-card border border-border rounded px-2 py-1.5 text-sm" data-testid="select-recruit-year">
+                    <option value="FR">FR</option>
+                    <option value="SO">SO</option>
+                    <option value="JR">JR</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">Hometown</label>
+                  <RetroInput value={formData.hometown} onChange={(e) => setFormData({ ...formData, hometown: e.target.value })} />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">State</label>
+                  <RetroInput value={formData.homeState} onChange={(e) => setFormData({ ...formData, homeState: e.target.value })} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">Bats</label>
+                  <select value={formData.batHand} onChange={(e) => setFormData({ ...formData, batHand: e.target.value })} className="w-full bg-card border border-border rounded px-2 py-1.5 text-sm" data-testid="select-recruit-bathand">
+                    <option value="R">Right</option>
+                    <option value="L">Left</option>
+                    <option value="S">Switch</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Throws</label>
+                  <select value={formData.throwHand} onChange={(e) => setFormData({ ...formData, throwHand: e.target.value })} className="w-full bg-card border border-border rounded px-2 py-1.5 text-sm" data-testid="select-recruit-throwhand">
+                    <option value="R">Right</option>
+                    <option value="L">Left</option>
+                  </select>
+                </div>
+              </div>
+              <h4 className="font-pixel text-gold text-[10px] border-b border-border pb-1">Appearance</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">Skin Tone</label>
+                  <select value={formData.skinTone} onChange={(e) => setFormData({ ...formData, skinTone: e.target.value })} className="w-full bg-card border border-border rounded px-2 py-1.5 text-sm capitalize" data-testid="select-recruit-skintone">
+                    {skinToneOptions.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Hair Color</label>
+                  <select value={formData.hairColor} onChange={(e) => setFormData({ ...formData, hairColor: e.target.value })} className="w-full bg-card border border-border rounded px-2 py-1.5 text-sm capitalize" data-testid="select-recruit-haircolor">
+                    {hairColorOptions.map(h => <option key={h} value={h}>{h}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Hair Style</label>
+                  <select value={formData.hairStyle} onChange={(e) => setFormData({ ...formData, hairStyle: e.target.value })} className="w-full bg-card border border-border rounded px-2 py-1.5 text-sm capitalize" data-testid="select-recruit-hairstyle">
+                    {hairStyleOptions.map(h => <option key={h} value={h}>{h}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Headwear</label>
+                  <select value={formData.headwear} onChange={(e) => setFormData({ ...formData, headwear: e.target.value })} className="w-full bg-card border border-border rounded px-2 py-1.5 text-sm capitalize" data-testid="select-recruit-headwear">
+                    {headwearOptions.map(h => <option key={h} value={h}>{h.replace("_", " ")}</option>)}
+                  </select>
+                </div>
+              </div>
+              <h4 className="font-pixel text-gold text-[10px] border-b border-border pb-1">Rankings</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">Overall (1-999)</label>
+                  <RetroInput type="number" min={1} max={999} value={formData.overall} onChange={(e) => setFormData({ ...formData, overall: parseInt(e.target.value) || 1 })} />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Star Rating (1-5)</label>
+                  <RetroInput type="number" min={1} max={5} value={formData.starRating} onChange={(e) => setFormData({ ...formData, starRating: parseInt(e.target.value) || 1 })} />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Class Rank</label>
+                  <RetroInput type="number" min={1} value={formData.classRank} onChange={(e) => setFormData({ ...formData, classRank: parseInt(e.target.value) || 1 })} />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Position Rank</label>
+                  <RetroInput type="number" min={1} value={formData.positionRank} onChange={(e) => setFormData({ ...formData, positionRank: parseInt(e.target.value) || 1 })} />
+                </div>
+              </div>
+              <div className="flex gap-4 flex-wrap">
+                <label className="flex items-center gap-2 text-xs">
+                  <input type="checkbox" checked={formData.isBlueChip} onChange={(e) => setFormData({ ...formData, isBlueChip: e.target.checked })} className="accent-gold" data-testid="checkbox-bluechip" />
+                  Blue Chip
+                </label>
+                <label className="flex items-center gap-2 text-xs">
+                  <input type="checkbox" checked={formData.isGem} onChange={(e) => setFormData({ ...formData, isGem: e.target.checked })} className="accent-green-500" data-testid="checkbox-gem" />
+                  Gem
+                </label>
+                <label className="flex items-center gap-2 text-xs">
+                  <input type="checkbox" checked={formData.isBust} onChange={(e) => setFormData({ ...formData, isBust: e.target.checked })} className="accent-red-500" data-testid="checkbox-bust" />
+                  Bust
+                </label>
+              </div>
+            </>
+          )}
+
+          {activeTab === "attrs" && (
+            <>
+              {isRecruitPitcher ? (
+                <>
+                  <h4 className="font-pixel text-gold text-[10px] border-b border-border pb-1">Pitcher Attributes (1-99)</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-muted-foreground">Velocity</label>
+                      <RetroInput type="number" min={1} max={99} value={formData.velocity} onChange={(e) => setFormData({ ...formData, velocity: parseInt(e.target.value) || 50 })} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Control</label>
+                      <RetroInput type="number" min={1} max={99} value={formData.control} onChange={(e) => setFormData({ ...formData, control: parseInt(e.target.value) || 50 })} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Stamina</label>
+                      <RetroInput type="number" min={1} max={99} value={formData.stamina} onChange={(e) => setFormData({ ...formData, stamina: parseInt(e.target.value) || 50 })} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Stuff</label>
+                      <RetroInput type="number" min={1} max={99} value={formData.stuff} onChange={(e) => setFormData({ ...formData, stuff: parseInt(e.target.value) || 50 })} />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h4 className="font-pixel text-gold text-[10px] border-b border-border pb-1">Fielder Attributes (1-99)</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-muted-foreground">Contact</label>
+                      <RetroInput type="number" min={1} max={99} value={formData.hitForAvg} onChange={(e) => setFormData({ ...formData, hitForAvg: parseInt(e.target.value) || 50 })} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Power</label>
+                      <RetroInput type="number" min={1} max={99} value={formData.power} onChange={(e) => setFormData({ ...formData, power: parseInt(e.target.value) || 50 })} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Speed</label>
+                      <RetroInput type="number" min={1} max={99} value={formData.speed} onChange={(e) => setFormData({ ...formData, speed: parseInt(e.target.value) || 50 })} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Arm</label>
+                      <RetroInput type="number" min={1} max={99} value={formData.arm} onChange={(e) => setFormData({ ...formData, arm: parseInt(e.target.value) || 50 })} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Fielding</label>
+                      <RetroInput type="number" min={1} max={99} value={formData.fielding} onChange={(e) => setFormData({ ...formData, fielding: parseInt(e.target.value) || 50 })} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground">Error Resist</label>
+                      <RetroInput type="number" min={1} max={99} value={formData.errorResistance} onChange={(e) => setFormData({ ...formData, errorResistance: parseInt(e.target.value) || 50 })} />
+                    </div>
+                  </div>
+                </>
+              )}
+            </>
+          )}
+
+          {activeTab === "common" && (
+            <>
+              {isRecruitPitcher ? (
+                <>
+                  <h4 className="font-pixel text-gold text-[10px] border-b border-border pb-1">Pitcher Common Abilities (1-99)</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><label className="text-xs text-muted-foreground">W/RISP</label><RetroInput type="number" min={1} max={99} value={formData.wRISP} onChange={(e) => setFormData({ ...formData, wRISP: parseInt(e.target.value) || 50 })} /></div>
+                    <div><label className="text-xs text-muted-foreground">vs Lefty</label><RetroInput type="number" min={1} max={99} value={formData.vsLefty} onChange={(e) => setFormData({ ...formData, vsLefty: parseInt(e.target.value) || 50 })} /></div>
+                    <div><label className="text-xs text-muted-foreground">Poise</label><RetroInput type="number" min={1} max={99} value={formData.poise} onChange={(e) => setFormData({ ...formData, poise: parseInt(e.target.value) || 50 })} /></div>
+                    <div><label className="text-xs text-muted-foreground">Grit</label><RetroInput type="number" min={1} max={99} value={formData.grit} onChange={(e) => setFormData({ ...formData, grit: parseInt(e.target.value) || 50 })} /></div>
+                    <div><label className="text-xs text-muted-foreground">Heater</label><RetroInput type="number" min={1} max={99} value={formData.heater} onChange={(e) => setFormData({ ...formData, heater: parseInt(e.target.value) || 50 })} /></div>
+                    <div><label className="text-xs text-muted-foreground">Agile</label><RetroInput type="number" min={1} max={99} value={formData.agile} onChange={(e) => setFormData({ ...formData, agile: parseInt(e.target.value) || 50 })} /></div>
+                    <div><label className="text-xs text-muted-foreground">Recovery</label><RetroInput type="number" min={1} max={99} value={formData.recovery} onChange={(e) => setFormData({ ...formData, recovery: parseInt(e.target.value) || 50 })} /></div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h4 className="font-pixel text-gold text-[10px] border-b border-border pb-1">Fielder Common Abilities (1-99)</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div><label className="text-xs text-muted-foreground">Clutch</label><RetroInput type="number" min={1} max={99} value={formData.clutch} onChange={(e) => setFormData({ ...formData, clutch: parseInt(e.target.value) || 50 })} /></div>
+                    <div><label className="text-xs text-muted-foreground">vs LHP</label><RetroInput type="number" min={1} max={99} value={formData.vsLHP} onChange={(e) => setFormData({ ...formData, vsLHP: parseInt(e.target.value) || 50 })} /></div>
+                    <div><label className="text-xs text-muted-foreground">Grit</label><RetroInput type="number" min={1} max={99} value={formData.grit} onChange={(e) => setFormData({ ...formData, grit: parseInt(e.target.value) || 50 })} /></div>
+                    <div><label className="text-xs text-muted-foreground">Stealing</label><RetroInput type="number" min={1} max={99} value={formData.stealing} onChange={(e) => setFormData({ ...formData, stealing: parseInt(e.target.value) || 50 })} /></div>
+                    <div><label className="text-xs text-muted-foreground">Running</label><RetroInput type="number" min={1} max={99} value={formData.running} onChange={(e) => setFormData({ ...formData, running: parseInt(e.target.value) || 50 })} /></div>
+                    <div><label className="text-xs text-muted-foreground">Throwing</label><RetroInput type="number" min={1} max={99} value={formData.throwing} onChange={(e) => setFormData({ ...formData, throwing: parseInt(e.target.value) || 50 })} /></div>
+                    <div><label className="text-xs text-muted-foreground">Recovery</label><RetroInput type="number" min={1} max={99} value={formData.recovery} onChange={(e) => setFormData({ ...formData, recovery: parseInt(e.target.value) || 50 })} /></div>
+                    {isRecruitCatcher && <div><label className="text-xs text-muted-foreground">Catcher</label><RetroInput type="number" min={1} max={99} value={formData.catcherAbility} onChange={(e) => setFormData({ ...formData, catcherAbility: parseInt(e.target.value) || 50 })} /></div>}
+                  </div>
+                </>
+              )}
+            </>
+          )}
+
+          {activeTab === "priorities" && (
+            <>
+              <h4 className="font-pixel text-gold text-[10px] border-b border-border pb-1">Recruit Priorities</h4>
+              <div className="grid grid-cols-1 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">Proximity to Home</label>
+                  <select value={formData.proximityPriority} onChange={(e) => setFormData({ ...formData, proximityPriority: e.target.value })} className="w-full bg-card border border-border rounded px-2 py-1.5 text-sm" data-testid="select-priority-proximity">
+                    {priorityOptions.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Coach Reputation</label>
+                  <select value={formData.reputationPriority} onChange={(e) => setFormData({ ...formData, reputationPriority: e.target.value })} className="w-full bg-card border border-border rounded px-2 py-1.5 text-sm" data-testid="select-priority-reputation">
+                    {priorityOptions.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Playing Time</label>
+                  <select value={formData.playingTimePriority} onChange={(e) => setFormData({ ...formData, playingTimePriority: e.target.value })} className="w-full bg-card border border-border rounded px-2 py-1.5 text-sm" data-testid="select-priority-playingtime">
+                    {priorityOptions.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Academics</label>
+                  <select value={formData.academicsPriority} onChange={(e) => setFormData({ ...formData, academicsPriority: e.target.value })} className="w-full bg-card border border-border rounded px-2 py-1.5 text-sm" data-testid="select-priority-academics">
+                    {priorityOptions.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">School Prestige</label>
+                  <select value={formData.prestigePriority} onChange={(e) => setFormData({ ...formData, prestigePriority: e.target.value })} className="w-full bg-card border border-border rounded px-2 py-1.5 text-sm" data-testid="select-priority-prestige">
+                    {priorityOptions.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Facilities</label>
+                  <select value={formData.facilitiesPriority} onChange={(e) => setFormData({ ...formData, facilitiesPriority: e.target.value })} className="w-full bg-card border border-border rounded px-2 py-1.5 text-sm" data-testid="select-priority-facilities">
+                    {priorityOptions.map(p => <option key={p} value={p}>{p}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Dealbreaker</label>
+                  <RetroInput value={formData.dealbreaker || ""} onChange={(e) => setFormData({ ...formData, dealbreaker: e.target.value })} placeholder="e.g., Must be close to home" data-testid="input-dealbreaker" />
+                </div>
+              </div>
+            </>
+          )}
+
+          {activeTab === "abilities" && (
+            <>
+              <h4 className="font-pixel text-gold text-[10px] border-b border-border pb-1">Special Abilities</h4>
+              <div className="text-xs text-muted-foreground mb-2">
+                Enter ability IDs separated by commas (e.g., explosive_fb, quick_hands)
+              </div>
+              <RetroInput
+                value={(formData.abilities as string[] || []).join(", ")}
+                onChange={(e) => setFormData({ 
+                  ...formData, 
+                  abilities: e.target.value.split(",").map(a => a.trim()).filter(a => a) 
+                })}
+                placeholder="explosive_fb, monster_stuff"
+                data-testid="input-abilities"
+              />
+              <div className="text-xs text-muted-foreground mt-2">
+                Current: {(formData.abilities as string[] || []).length} abilities
+              </div>
+            </>
+          )}
+
+          <div className="flex justify-end gap-2 pt-4 border-t border-border">
+            <RetroButton variant="outline" onClick={onClose} data-testid="button-cancel-recruit-edit">
+              Cancel
+            </RetroButton>
+            <RetroButton onClick={handleSubmit} disabled={isSaving} data-testid="button-save-recruit">
+              {isSaving ? "Saving..." : "Save Changes"}
+            </RetroButton>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

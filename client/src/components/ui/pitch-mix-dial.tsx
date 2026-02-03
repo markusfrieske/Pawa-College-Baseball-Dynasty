@@ -118,8 +118,13 @@ export function generatePitchMixForDial(player: {
   
   const result: { name: string; rating: number }[] = [];
   
-  const fbRating = Math.round(50 + velocity * 0.35 + seededRandom(seed, 0) * 15);
-  result.push({ name: "FB", rating: Math.min(99, Math.max(40, fbRating)) });
+  const attrToRating = (attrValue: number): number => {
+    const base = Math.floor((attrValue / 100) * 5) + 2;
+    return Math.min(7, Math.max(1, base + Math.floor(seededRandom(seed, attrValue) * 2) - 1));
+  };
+  
+  const fbRating = attrToRating(velocity);
+  result.push({ name: "FB", rating: fbRating });
   
   const availableCommon = commonPitches.filter(p => p !== "FB");
   const shuffledCommon = [...availableCommon].sort((a, b) => 
@@ -133,18 +138,18 @@ export function generatePitchMixForDial(player: {
     let rating: number;
     
     if (pitch === "CB") {
-      rating = Math.round(40 + control * 0.4 + seededRandom(seed, i + 10) * 20);
+      rating = attrToRating(control);
     } else if (pitch === "SL") {
-      rating = Math.round(40 + stuff * 0.4 + seededRandom(seed, i + 20) * 20);
+      rating = attrToRating(stuff);
     } else if (pitch === "CH") {
-      rating = Math.round(40 + (stuff + control) / 2 * 0.35 + seededRandom(seed, i + 30) * 20);
+      rating = attrToRating((stuff + control) / 2);
     } else if (pitch === "CT" || pitch === "2FB") {
-      rating = Math.round(40 + velocity * 0.35 + seededRandom(seed, i + 40) * 20);
+      rating = attrToRating(velocity);
     } else {
-      rating = Math.round(40 + (velocity + stuff + control) / 3 * 0.3 + seededRandom(seed, i + 50) * 20);
+      rating = attrToRating((velocity + stuff + control) / 3);
     }
     
-    result.push({ name: pitch, rating: Math.min(99, Math.max(30, rating)) });
+    result.push({ name: pitch, rating });
   }
   
   if (starRating >= 4 && result.length < numPitches) {
@@ -155,8 +160,8 @@ export function generatePitchMixForDial(player: {
     const skilledCount = numPitches - result.length;
     for (let i = 0; i < skilledCount && i < shuffledSkilled.length; i++) {
       const pitch = shuffledSkilled[i];
-      const rating = Math.round(35 + stuff * 0.45 + seededRandom(seed, i + 200) * 25);
-      result.push({ name: pitch, rating: Math.min(99, Math.max(30, rating)) });
+      const rating = attrToRating(stuff);
+      result.push({ name: pitch, rating });
     }
   }
   
@@ -165,8 +170,8 @@ export function generatePitchMixForDial(player: {
     if (nextCommonIdx < shuffledCommon.length) {
       const pitch = shuffledCommon[nextCommonIdx];
       if (!result.find(p => p.name === pitch)) {
-        const rating = Math.round(35 + (velocity + stuff) / 2 * 0.3 + seededRandom(seed, nextCommonIdx + 300) * 20);
-        result.push({ name: pitch, rating: Math.min(99, Math.max(30, rating)) });
+        const rating = attrToRating((velocity + stuff) / 2);
+        result.push({ name: pitch, rating });
       }
     } else {
       break;
