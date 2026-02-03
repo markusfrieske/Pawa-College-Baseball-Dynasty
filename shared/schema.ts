@@ -479,6 +479,32 @@ export const insertLeagueInviteSchema = createInsertSchema(leagueInvites).pick({
 export type InsertLeagueInvite = z.infer<typeof insertLeagueInviteSchema>;
 export type LeagueInvite = typeof leagueInvites.$inferSelect;
 
+// Dynasty News table
+export const dynastyNews = pgTable("dynasty_news", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  leagueId: varchar("league_id").notNull().references(() => leagues.id),
+  authorId: varchar("author_id").references(() => users.id),
+  authorName: text("author_name").notNull(),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  category: text("category").notNull().default("general"), // general, recruiting, game, trade, announcement
+  isSticky: boolean("is_sticky").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertDynastyNewsSchema = createInsertSchema(dynastyNews).pick({
+  leagueId: true,
+  authorId: true,
+  authorName: true,
+  title: true,
+  content: true,
+  category: true,
+  isSticky: true,
+});
+
+export type InsertDynastyNews = z.infer<typeof insertDynastyNewsSchema>;
+export type DynastyNews = typeof dynastyNews.$inferSelect;
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   leagues: many(leagues),
@@ -549,4 +575,9 @@ export const leagueInvitesRelations = relations(leagueInvites, ({ one }) => ({
   team: one(teams, { fields: [leagueInvites.teamId], references: [teams.id] }),
   invitedBy: one(users, { fields: [leagueInvites.invitedById], references: [users.id] }),
   acceptedBy: one(users, { fields: [leagueInvites.acceptedById], references: [users.id] }),
+}));
+
+export const dynastyNewsRelations = relations(dynastyNews, ({ one }) => ({
+  league: one(leagues, { fields: [dynastyNews.leagueId], references: [leagues.id] }),
+  author: one(users, { fields: [dynastyNews.authorId], references: [users.id] }),
 }));

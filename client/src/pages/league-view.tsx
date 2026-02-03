@@ -1,11 +1,14 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
+import { RetroInput } from "@/components/ui/retro-input";
 import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
 import { TeamBadge } from "@/components/ui/team-badge";
 import { StarRating } from "@/components/ui/star-rating";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { 
   ArrowLeft, 
   Trophy, 
@@ -14,10 +17,14 @@ import {
   Calendar, 
   Settings,
   Play,
-  ChevronRight 
+  ChevronRight,
+  Newspaper,
+  Plus,
+  Pin
 } from "lucide-react";
-import type { League, Team, Conference, Standings } from "@shared/schema";
+import type { League, Team, Conference, Standings, DynastyNews } from "@shared/schema";
 import { User, Cpu } from "lucide-react";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface TeamWithCoach extends Team {
   standings?: Standings;
@@ -143,6 +150,9 @@ export default function LeagueViewPage() {
             <TabsTrigger value="rankings" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
               Rankings
             </TabsTrigger>
+            <TabsTrigger value="news" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
+              News
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="standings">
@@ -155,6 +165,10 @@ export default function LeagueViewPage() {
 
           <TabsContent value="rankings">
             <RankingsTab league={league} />
+          </TabsContent>
+
+          <TabsContent value="news">
+            <NewsTab leagueId={league.id} />
           </TabsContent>
         </Tabs>
       </main>
@@ -436,6 +450,168 @@ function RankingsTab({ league }: { league: LeagueDetails }) {
           </tbody>
         </table>
       </div>
+    </RetroCard>
+  );
+}
+
+function NewsTab({ leagueId }: { leagueId: string }) {
+  const [showForm, setShowForm] = useState(false);
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [category, setCategory] = useState("general");
+
+  const { data: news, isLoading } = useQuery<DynastyNews[]>({
+    queryKey: ["/api/leagues", leagueId, "news"],
+  });
+
+  const createNewsMutation = useMutation({
+    mutationFn: async (data: { title: string; content: string; category: string }) => {
+      return await apiRequest("POST", `/api/leagues/${leagueId}/news`, data);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "news"] });
+      setShowForm(false);
+      setTitle("");
+      setContent("");
+      setCategory("general");
+    },
+  });
+
+  const categoryLabels: Record<string, string> = {
+    general: "General",
+    recruiting: "Recruiting",
+    game: "Game Result",
+    trade: "Trade",
+    announcement: "Announcement",
+  };
+
+  const categoryColors: Record<string, string> = {
+    general: "bg-muted",
+    recruiting: "bg-blue-500/20 text-blue-400",
+    game: "bg-green-500/20 text-green-400",
+    trade: "bg-purple-500/20 text-purple-400",
+    announcement: "bg-yellow-500/20 text-yellow-400",
+  };
+
+  if (isLoading) {
+    return (
+      <RetroCard variant="bordered">
+        <RetroCardHeader>
+          <div className="flex items-center gap-2">
+            <Newspaper className="w-4 h-4 text-gold" />
+            <span>Dynasty News</span>
+          </div>
+        </RetroCardHeader>
+        <RetroCardContent>
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-24 mb-3" />
+          ))}
+        </RetroCardContent>
+      </RetroCard>
+    );
+  }
+
+  return (
+    <RetroCard variant="bordered">
+      <RetroCardHeader className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <Newspaper className="w-4 h-4 text-gold" />
+          <span>Dynasty News</span>
+        </div>
+        <RetroButton 
+          size="sm" 
+          onClick={() => setShowForm(!showForm)}
+          data-testid="button-create-news"
+        >
+          <Plus className="w-4 h-4 mr-1" />
+          Post
+        </RetroButton>
+      </RetroCardHeader>
+      <RetroCardContent>
+        {showForm && (
+          <div className="bg-muted/50 rounded-lg p-4 mb-4 space-y-3">
+            <RetroInput
+              placeholder="News title..."
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              data-testid="input-news-title"
+            />
+            <textarea
+              placeholder="Write your news post..."
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              className="w-full bg-background border border-border rounded p-2 text-sm min-h-[100px] resize-none focus:outline-none focus:border-gold"
+              data-testid="input-news-content"
+            />
+            <div className="flex items-center gap-2 flex-wrap">
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="bg-background border border-border rounded px-2 py-1 text-sm"
+                data-testid="select-news-category"
+              >
+                <option value="general">General</option>
+                <option value="recruiting">Recruiting</option>
+                <option value="game">Game Result</option>
+                <option value="trade">Trade</option>
+                <option value="announcement">Announcement</option>
+              </select>
+              <div className="flex-1" />
+              <RetroButton
+                variant="outline"
+                size="sm"
+                onClick={() => setShowForm(false)}
+                data-testid="button-cancel-news"
+              >
+                Cancel
+              </RetroButton>
+              <RetroButton
+                size="sm"
+                onClick={() => createNewsMutation.mutate({ title, content, category })}
+                disabled={!title.trim() || !content.trim() || createNewsMutation.isPending}
+                data-testid="button-submit-news"
+              >
+                {createNewsMutation.isPending ? "Posting..." : "Post"}
+              </RetroButton>
+            </div>
+          </div>
+        )}
+
+        {(!news || news.length === 0) ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <Newspaper className="w-10 h-10 mx-auto mb-3 opacity-50" />
+            <p className="text-sm">No news yet. Be the first to post!</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {news.map((item) => (
+              <div 
+                key={item.id} 
+                className="bg-muted/30 rounded-lg p-4 border border-border/50"
+                data-testid={`card-news-${item.id}`}
+              >
+                <div className="flex items-start gap-2 mb-2">
+                  {item.isSticky && (
+                    <Pin className="w-3 h-3 text-gold flex-shrink-0 mt-1" />
+                  )}
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="font-medium text-gold">{item.title}</h4>
+                      <Badge className={`text-[9px] ${categoryColors[item.category] || ""}`}>
+                        {categoryLabels[item.category] || item.category}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Posted by {item.authorName} - {new Date(item.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+                <p className="text-sm text-foreground whitespace-pre-wrap">{item.content}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </RetroCardContent>
     </RetroCard>
   );
 }

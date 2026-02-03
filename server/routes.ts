@@ -1132,6 +1132,73 @@ export async function registerRoutes(
     }
   });
 
+  // Dynasty News routes
+  app.get("/api/leagues/:id/news", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const news = await storage.getDynastyNewsByLeague(leagueId);
+      res.json(news);
+    } catch (error) {
+      console.error("Failed to fetch dynasty news:", error);
+      res.status(500).json({ message: "Failed to fetch news" });
+    }
+  });
+
+  app.post("/api/leagues/:id/news", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const userId = req.session.userId;
+      const { title, content, category, isSticky } = req.body;
+
+      if (!title || !content) {
+        return res.status(400).json({ message: "Title and content are required" });
+      }
+
+      const user = await storage.getUser(userId!);
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+
+      const news = await storage.createDynastyNews({
+        leagueId,
+        authorId: userId,
+        authorName: user.username || user.email || "Unknown",
+        title,
+        content,
+        category: category || "general",
+        isSticky: isSticky || false,
+      });
+
+      res.json(news);
+    } catch (error) {
+      console.error("Failed to create dynasty news:", error);
+      res.status(500).json({ message: "Failed to create news" });
+    }
+  });
+
+  app.delete("/api/leagues/:id/news/:newsId", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const newsId = req.params.newsId as string;
+      const userId = req.session.userId;
+
+      const league = await storage.getLeague(leagueId);
+      if (!league) {
+        return res.status(404).json({ message: "League not found" });
+      }
+
+      if (league.commissionerId !== userId) {
+        return res.status(403).json({ message: "Only commissioner can delete news" });
+      }
+
+      await storage.deleteDynastyNews(newsId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to delete dynasty news:", error);
+      res.status(500).json({ message: "Failed to delete news" });
+    }
+  });
+
   return httpServer;
 }
 

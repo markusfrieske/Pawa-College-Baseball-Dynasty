@@ -1,6 +1,6 @@
 import {
   users, leagues, conferences, teams, coaches, scouts,
-  players, recruits, recruitingInterests, games, standings, auditLogs, leagueInvites,
+  players, recruits, recruitingInterests, games, standings, auditLogs, leagueInvites, dynastyNews,
   type User, type InsertUser,
   type League, type InsertLeague,
   type Conference, type InsertConference,
@@ -14,6 +14,7 @@ import {
   type Standings, type InsertStandings,
   type AuditLog, type InsertAuditLog,
   type LeagueInvite, type InsertLeagueInvite,
+  type DynastyNews, type InsertDynastyNews,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc } from "drizzle-orm";
@@ -74,6 +75,10 @@ export interface IStorage {
   getLeagueInviteByEmail(leagueId: string, email: string): Promise<LeagueInvite | undefined>;
   createLeagueInvite(invite: InsertLeagueInvite): Promise<LeagueInvite>;
   updateLeagueInvite(id: string, data: Partial<LeagueInvite>): Promise<LeagueInvite | undefined>;
+
+  getDynastyNewsByLeague(leagueId: string): Promise<DynastyNews[]>;
+  createDynastyNews(news: InsertDynastyNews): Promise<DynastyNews>;
+  deleteDynastyNews(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -292,6 +297,21 @@ export class DatabaseStorage implements IStorage {
   async updateLeagueInvite(id: string, data: Partial<LeagueInvite>): Promise<LeagueInvite | undefined> {
     const [invite] = await db.update(leagueInvites).set(data).where(eq(leagueInvites.id, id)).returning();
     return invite || undefined;
+  }
+
+  async getDynastyNewsByLeague(leagueId: string): Promise<DynastyNews[]> {
+    return await db.select().from(dynastyNews)
+      .where(eq(dynastyNews.leagueId, leagueId))
+      .orderBy(desc(dynastyNews.isSticky), desc(dynastyNews.createdAt));
+  }
+
+  async createDynastyNews(insertNews: InsertDynastyNews): Promise<DynastyNews> {
+    const [news] = await db.insert(dynastyNews).values(insertNews).returning();
+    return news;
+  }
+
+  async deleteDynastyNews(id: string): Promise<void> {
+    await db.delete(dynastyNews).where(eq(dynastyNews.id, id));
   }
 }
 
