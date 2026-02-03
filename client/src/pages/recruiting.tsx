@@ -233,10 +233,6 @@ export default function RecruitingPage() {
               <ArrowLeft className="w-5 h-5" />
             </Link>
             <h1 className="font-pixel text-gold text-lg">Recruiting</h1>
-            <div className="ml-auto flex items-center gap-2">
-              <span className="font-pixel text-[10px] text-muted-foreground">Actions:</span>
-              <span className="font-pixel text-gold">{data?.remainingActions || 0}</span>
-            </div>
           </div>
 
           <div className="grid grid-cols-4 gap-4">

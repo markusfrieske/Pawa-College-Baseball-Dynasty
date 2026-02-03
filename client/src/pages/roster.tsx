@@ -232,17 +232,8 @@ function PositionSection({ title, players, onSelectPlayer }: PositionSectionProp
                 <td className="text-center py-3 px-2">
                   <PositionBadge position={player.position} size="sm" />
                 </td>
-                <td className="text-center py-3 px-2">
-                  <Badge 
-                    className={`text-[10px] ${
-                      player.eligibility === "SR" ? "bg-red-500" :
-                      player.eligibility === "JR" ? "bg-yellow-500" :
-                      player.eligibility === "SO" ? "bg-green-500" :
-                      "bg-blue-500"
-                    } text-white`}
-                  >
-                    {player.eligibility}
-                  </Badge>
+                <td className="text-center py-3 px-2 text-muted-foreground">
+                  {player.eligibility}
                 </td>
                 <td className="text-center py-3 px-2 text-muted-foreground">
                   {player.batHand}/{player.throwHand}

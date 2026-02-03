@@ -23,7 +23,8 @@ import {
   Pin,
   Award,
   Image as ImageIcon,
-  X
+  X,
+  Building2
 } from "lucide-react";
 import type { League, Team, Conference, Standings, DynastyNews } from "@shared/schema";
 import { User, Cpu } from "lucide-react";
@@ -71,6 +72,8 @@ export default function LeagueViewPage() {
     );
   }
 
+  const userTeam = league.teams?.find(t => !t.isCpu);
+
   const phaseLabels: Record<string, string> = {
     dynasty_setup: "Dynasty Setup",
     preseason: "Preseason",
@@ -115,12 +118,18 @@ export default function LeagueViewPage() {
       </header>
 
       <main className="container mx-auto px-4 py-6">
-        <div className="grid lg:grid-cols-4 gap-6 mb-6">
+        <div className="grid lg:grid-cols-6 gap-4 mb-6">
           <QuickActionCard
-            href={`/league/${id}/recruiting`}
-            icon={<Target className="w-6 h-6" />}
-            title="Recruiting"
-            subtitle="Scout and recruit players"
+            href={`/league/${id}/coach`}
+            icon={<Award className="w-6 h-6" />}
+            title="Coach"
+            subtitle="View your career"
+          />
+          <QuickActionCard
+            href={`/league/${id}/team/${userTeam?.id || ''}`}
+            icon={<Building2 className="w-6 h-6" />}
+            title="School"
+            subtitle="Your program"
           />
           <QuickActionCard
             href={`/league/${id}/roster`}
@@ -135,16 +144,16 @@ export default function LeagueViewPage() {
             subtitle="View games"
           />
           <QuickActionCard
+            href={`/league/${id}/recruiting`}
+            icon={<Target className="w-6 h-6" />}
+            title="Recruiting"
+            subtitle="Scout players"
+          />
+          <QuickActionCard
             href={`/league/${id}/commissioner`}
             icon={<Settings className="w-6 h-6" />}
             title="Commissioner"
             subtitle="Dynasty settings"
-          />
-          <QuickActionCard
-            href={`/league/${id}/coach`}
-            icon={<Award className="w-6 h-6" />}
-            title="Coach Profile"
-            subtitle="View your career"
           />
         </div>
 

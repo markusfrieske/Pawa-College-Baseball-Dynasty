@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { PositionBadge } from "@/components/ui/position-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
+import { LetterGrade } from "@/components/ui/letter-grade";
 import { 
   ArrowLeft, 
   MapPin,
@@ -17,6 +18,7 @@ import {
   User
 } from "lucide-react";
 import type { Recruit, RecruitingInterest } from "@shared/schema";
+import { isPitcher as checkIsPitcher } from "@shared/positions";
 
 interface RecruitWithInterest extends Recruit {
   interest?: RecruitingInterest;
@@ -124,13 +126,15 @@ export default function RecruitProfilePage() {
                   <p className="font-bold text-lg">#{recruit.positionRank || "—"}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Overall</p>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Star className="w-3 h-3 text-gold" /> Rating
+                  </p>
                   <p className="font-bold text-lg text-gold">
                     {isFullyRevealed ? recruit.overall : "???"}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Star Rating</p>
+                  <p className="text-xs text-muted-foreground">Rank</p>
                   <div className="pt-1">
                     {isFullyRevealed ? (
                       <StarRating rating={recruit.starRating} size="md" />
@@ -156,6 +160,17 @@ export default function RecruitProfilePage() {
                 </div>
                 <Progress value={scoutPct} className="h-2" />
               </div>
+            </RetroCardContent>
+          </RetroCard>
+
+          <RetroCard>
+            <RetroCardHeader>Attributes</RetroCardHeader>
+            <RetroCardContent>
+              <RecruitAttributesSection 
+                recruit={recruit} 
+                scoutPct={scoutPct}
+                isFullyRevealed={isFullyRevealed}
+              />
             </RetroCardContent>
           </RetroCard>
 
@@ -238,6 +253,73 @@ function RecruitProfileSkeleton() {
           <Skeleton className="h-64" />
         </div>
       </main>
+    </div>
+  );
+}
+
+function RecruitAttributesSection({ 
+  recruit, 
+  scoutPct,
+  isFullyRevealed 
+}: { 
+  recruit: RecruitWithInterest; 
+  scoutPct: number;
+  isFullyRevealed: boolean;
+}) {
+  const isPitcher = checkIsPitcher(recruit.position);
+  
+  const shouldRevealAttribute = (threshold: number) => {
+    return isFullyRevealed || scoutPct >= threshold;
+  };
+  
+  const renderAttribute = (label: string, value: number | null | undefined, revealThreshold: number) => {
+    const isRevealed = shouldRevealAttribute(revealThreshold);
+    const displayValue = isRevealed ? (value ?? 50) : null;
+    
+    return (
+      <div className="flex items-center gap-3">
+        <span className="text-sm text-muted-foreground w-24">{label}</span>
+        <div className="flex-1 h-2 bg-background/50 rounded-full overflow-hidden">
+          {isRevealed && (
+            <div 
+              className="h-full rounded-full bg-gold/70"
+              style={{ width: `${displayValue}%` }}
+            />
+          )}
+        </div>
+        <div className="flex items-center gap-1 w-16 justify-end">
+          {isRevealed ? (
+            <>
+              <LetterGrade value={displayValue!} size="sm" />
+              <span className="text-sm font-bold w-8 text-right">{displayValue}</span>
+            </>
+          ) : (
+            <span className="text-sm text-muted-foreground">???</span>
+          )}
+        </div>
+      </div>
+    );
+  };
+  
+  return (
+    <div className="space-y-3">
+      {isPitcher ? (
+        <>
+          {renderAttribute("Velocity", recruit.velocity, 15)}
+          {renderAttribute("Control", recruit.control, 30)}
+          {renderAttribute("Stamina", recruit.stamina, 50)}
+          {renderAttribute("Stuff", recruit.stuff, 75)}
+          {renderAttribute("Fielding", recruit.fielding, 100)}
+        </>
+      ) : (
+        <>
+          {renderAttribute("Contact", recruit.hitForAvg, 15)}
+          {renderAttribute("Power", recruit.power, 30)}
+          {renderAttribute("Speed", recruit.speed, 50)}
+          {renderAttribute("Arm", recruit.arm, 75)}
+          {renderAttribute("Fielding", recruit.fielding, 100)}
+        </>
+      )}
     </div>
   );
 }
