@@ -722,17 +722,30 @@ export async function registerRoutes(
   app.get("/api/leagues/:id/roster", requireAuth, async (req, res) => {
     try {
       const leagueTeams = await storage.getTeamsByLeague(req.params.id);
-      const userTeam = leagueTeams.find((t) => !t.isCpu);
+      const requestedTeamId = req.query.teamId as string | undefined;
       
-      if (!userTeam) {
+      let team;
+      if (requestedTeamId) {
+        team = leagueTeams.find((t) => t.id === requestedTeamId);
+        if (!team) {
+          return res.status(404).json({ message: "Team not found" });
+        }
+      } else {
+        const userId = req.session.userId;
+        const coaches = await storage.getCoachesByLeague(req.params.id);
+        const userCoach = coaches.find((c) => c.userId === userId);
+        team = userCoach ? leagueTeams.find((t) => t.id === userCoach.teamId) : leagueTeams.find((t) => !t.isCpu);
+      }
+      
+      if (!team) {
         return res.status(400).json({ message: "No team assigned" });
       }
 
-      const teamPlayers = await storage.getPlayersByTeam(userTeam.id);
+      const teamPlayers = await storage.getPlayersByTeam(team.id);
 
       res.json({
         players: teamPlayers,
-        team: userTeam,
+        team: team,
       });
     } catch (error) {
       console.error("Failed to fetch roster:", error);

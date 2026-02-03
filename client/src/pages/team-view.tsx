@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useParams, Link } from "wouter";
+import { useParams, Link, useLocation } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
 import { TeamBadge } from "@/components/ui/team-badge";
@@ -22,7 +22,8 @@ import {
   Calendar,
   History,
   TrendingUp,
-  Award
+  Award,
+  ChevronDown
 } from "lucide-react";
 import type { Team, Coach, Player, Game } from "@shared/schema";
 import { isPitcher, isHitter, isCatcher, isInfielder, isOutfielder } from "@shared/positions";
@@ -39,11 +40,25 @@ interface TeamDetails extends Team {
   record?: { wins: number; losses: number; conferenceWins: number; conferenceLosses: number };
 }
 
+interface LeagueTeam {
+  id: string;
+  name: string;
+  abbreviation: string;
+  primaryColor: string;
+  secondaryColor: string;
+  coach?: { firstName: string; lastName: string } | null;
+}
+
 export default function TeamViewPage() {
   const { id, teamId } = useParams<{ id: string; teamId: string }>();
+  const [, setLocation] = useLocation();
 
   const { data: team, isLoading } = useQuery<TeamDetails>({
     queryKey: ["/api/leagues", id, "teams", teamId],
+  });
+  
+  const { data: leagueData } = useQuery<{ teams: LeagueTeam[] }>({
+    queryKey: ["/api/leagues", id],
   });
 
   if (isLoading) {
@@ -73,22 +88,42 @@ export default function TeamViewPage() {
             </Link>
           </div>
 
-          <div className="flex items-center gap-6">
-            <TeamBadge
-              abbreviation={team.abbreviation}
-              primaryColor={team.primaryColor}
-              secondaryColor={team.secondaryColor}
-              size="lg"
-            />
-            <div>
-              <h1 className="font-pixel text-gold text-xl mb-1">
-                {team.name} {team.mascot}
-              </h1>
-              <p className="text-muted-foreground flex items-center gap-1">
-                <MapPin className="w-4 h-4" />
-                {team.city}, {team.state}
-              </p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-6">
+              <TeamBadge
+                abbreviation={team.abbreviation}
+                primaryColor={team.primaryColor}
+                secondaryColor={team.secondaryColor}
+                size="lg"
+              />
+              <div>
+                <h1 className="font-pixel text-gold text-xl mb-1">
+                  {team.name} {team.mascot}
+                </h1>
+                <p className="text-muted-foreground flex items-center gap-1">
+                  <MapPin className="w-4 h-4" />
+                  {team.city}, {team.state}
+                </p>
+              </div>
             </div>
+            
+            {leagueData?.teams && leagueData.teams.length > 1 && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">View Team:</span>
+                <select
+                  value={teamId}
+                  onChange={(e) => setLocation(`/league/${id}/team/${e.target.value}`)}
+                  className="bg-card border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-gold"
+                  data-testid="select-view-team"
+                >
+                  {leagueData.teams.map(t => (
+                    <option key={t.id} value={t.id} className="bg-forest-card">
+                      {t.name} ({t.abbreviation}){t.coach ? ` - ${t.coach.firstName} ${t.coach.lastName}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
         </div>
       </header>

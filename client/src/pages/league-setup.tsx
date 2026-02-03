@@ -157,10 +157,44 @@ export default function LeagueSetupPage() {
           </div>
         </div>
 
-        <div className="flex justify-center gap-4 mb-8">
-          <StepIndicator step={1} label="Team" active={step === "team"} completed={step === "coach"} />
-          <div className="w-8 h-0.5 bg-border self-center" />
-          <StepIndicator step={2} label="Coach" active={step === "coach"} completed={false} />
+        <div className="flex items-center justify-between mb-8">
+          {step === "coach" ? (
+            <RetroButton variant="outline" onClick={() => setStep("team")} data-testid="button-back">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back
+            </RetroButton>
+          ) : (
+            <div />
+          )}
+          
+          <div className="flex items-center gap-4">
+            <StepIndicator step={1} label="Team" active={step === "team"} completed={step === "coach"} />
+            <div className="w-8 h-0.5 bg-border" />
+            <StepIndicator step={2} label="Coach" active={step === "coach"} completed={false} />
+          </div>
+
+          {step === "team" ? (
+            <RetroButton
+              onClick={() => {
+                if (selectedTeamId) setStep("coach");
+                else toast({ title: "Select a team", variant: "destructive" });
+              }}
+              disabled={!selectedTeamId}
+              data-testid="button-next-step"
+            >
+              Next
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </RetroButton>
+          ) : (
+            <RetroButton
+              onClick={handleComplete}
+              disabled={setupMutation.isPending || !coachData.firstName || !coachData.lastName}
+              data-testid="button-complete-setup"
+            >
+              {setupMutation.isPending ? "Creating..." : "Start Dynasty"}
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </RetroButton>
+          )}
         </div>
 
         {step === "team" ? (
@@ -169,19 +203,12 @@ export default function LeagueSetupPage() {
             conferences={data?.conferences || []}
             selectedTeamId={selectedTeamId}
             onSelect={setSelectedTeamId}
-            onNext={() => {
-              if (selectedTeamId) setStep("coach");
-              else toast({ title: "Select a team", variant: "destructive" });
-            }}
           />
         ) : (
           <CoachCreationStep
             selectedTeam={selectedTeam!}
             coachData={coachData}
             setCoachData={setCoachData}
-            onBack={() => setStep("team")}
-            onComplete={handleComplete}
-            isPending={setupMutation.isPending}
           />
         )}
       </div>
@@ -220,13 +247,11 @@ function TeamSelectionStep({
   conferences,
   selectedTeamId,
   onSelect,
-  onNext,
 }: {
   teams: TeamWithCoach[];
   conferences: Conference[];
   selectedTeamId: string | null;
   onSelect: (id: string) => void;
-  onNext: () => void;
 }) {
   // Group teams by conference
   const teamsByConference = conferences.map(conf => ({
@@ -252,6 +277,7 @@ function TeamSelectionStep({
                 team={team}
                 isSelected={selectedTeamId === team.id}
                 onSelect={onSelect}
+                allTeamsInConference={confTeams}
               />
             ))}
           </div>
@@ -271,6 +297,7 @@ function TeamSelectionStep({
                 team={team}
                 isSelected={selectedTeamId === team.id}
                 onSelect={onSelect}
+                allTeamsInConference={unassignedTeams}
               />
             ))}
           </div>
@@ -282,13 +309,6 @@ function TeamSelectionStep({
           <p className="text-muted-foreground">No teams in this dynasty</p>
         </RetroCard>
       )}
-
-      <div className="flex justify-end">
-        <RetroButton onClick={onNext} disabled={!selectedTeamId} data-testid="button-next-step">
-          Next: Create Coach
-          <ArrowRight className="w-4 h-4 ml-2" />
-        </RetroButton>
-      </div>
     </div>
   );
 }
@@ -297,27 +317,30 @@ function TeamCard({
   team,
   isSelected,
   onSelect,
+  allTeamsInConference,
 }: {
   team: TeamWithCoach;
   isSelected: boolean;
   onSelect: (id: string) => void;
+  allTeamsInConference?: TeamWithCoach[];
 }) {
   const hasCoach = !!team.coach;
   const isHuman = hasCoach && !!team.coach?.userId;
   const isCpu = hasCoach && !team.coach?.userId;
   const isAvailable = !hasCoach;
+  
+  const availableTeamsInConf = allTeamsInConference?.filter(t => !t.coach) || [];
 
   return (
-    <button
-      onClick={() => isAvailable && onSelect(team.id)}
-      disabled={!isAvailable}
+    <div
       className={`text-left p-4 rounded border-2 transition-all ${
         isSelected
           ? "border-gold bg-gold/10"
           : isAvailable
-          ? "border-border hover:border-gold/50"
-          : "border-border/50 opacity-60 cursor-not-allowed"
+          ? "border-border hover:border-gold/50 cursor-pointer"
+          : "border-border/50 opacity-60"
       }`}
+      onClick={() => isAvailable && !isSelected && onSelect(team.id)}
       data-testid={`button-team-${team.id}`}
     >
       <div className="flex items-center gap-3 mb-3">
@@ -327,8 +350,29 @@ function TeamCard({
           secondaryColor={team.secondaryColor}
         />
         <div className="flex-1 min-w-0">
-          <p className="font-medium truncate">{team.name}</p>
-          <p className="text-sm text-muted-foreground truncate">{team.mascot}</p>
+          {isSelected && availableTeamsInConf.length > 1 ? (
+            <select
+              value={team.id}
+              onChange={(e) => {
+                e.stopPropagation();
+                onSelect(e.target.value);
+              }}
+              className="bg-transparent border border-gold/50 rounded px-2 py-1 text-sm font-medium w-full focus:outline-none focus:border-gold"
+              onClick={(e) => e.stopPropagation()}
+              data-testid="select-team-dropdown"
+            >
+              {availableTeamsInConf.map(t => (
+                <option key={t.id} value={t.id} className="bg-forest-card">
+                  {t.name} ({t.abbreviation})
+                </option>
+              ))}
+            </select>
+          ) : (
+            <>
+              <p className="font-medium truncate">{team.name}</p>
+              <p className="text-sm text-muted-foreground truncate">{team.mascot}</p>
+            </>
+          )}
         </div>
         {hasCoach && (
           <div
@@ -363,7 +407,7 @@ function TeamCard({
           <p className="text-muted-foreground">Academics</p>
         </div>
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -371,9 +415,6 @@ function CoachCreationStep({
   selectedTeam,
   coachData,
   setCoachData,
-  onBack,
-  onComplete,
-  isPending,
 }: {
   selectedTeam: Team;
   coachData: {
@@ -385,9 +426,6 @@ function CoachCreationStep({
     hairStyle: string;
   };
   setCoachData: React.Dispatch<React.SetStateAction<typeof coachData>>;
-  onBack: () => void;
-  onComplete: () => void;
-  isPending: boolean;
 }) {
   return (
     <div className="grid lg:grid-cols-3 gap-6">
@@ -479,15 +517,6 @@ function CoachCreationStep({
           </div>
         </RetroCard>
 
-        <div className="flex gap-3">
-          <RetroButton variant="outline" onClick={onBack} className="flex-1">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
-          </RetroButton>
-          <RetroButton onClick={onComplete} disabled={isPending} className="flex-1" data-testid="button-complete-setup">
-            {isPending ? "..." : "Start Dynasty"}
-          </RetroButton>
-        </div>
       </div>
     </div>
   );

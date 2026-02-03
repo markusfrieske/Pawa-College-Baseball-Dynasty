@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useParams, Link } from "wouter";
+import { useParams, Link, useLocation } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
 import { RetroSelect } from "@/components/ui/retro-select";
@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { PlayerProfileCard } from "@/components/player-profile-card";
 import { PlayerPortrait } from "@/components/ui/player-portrait";
 import { PositionBadge } from "@/components/ui/position-badge";
+import { TeamBadge } from "@/components/ui/team-badge";
 import { 
   ArrowLeft, 
   Users, 
@@ -18,12 +19,21 @@ import {
   MapPin,
   Star
 } from "lucide-react";
-import type { Player, Team } from "@shared/schema";
+import type { Player, Team, Coach } from "@shared/schema";
 import { isPitcher, isCatcher, isInfielder, isOutfielder } from "@shared/positions";
 
 interface RosterData {
   players: Player[];
   team: Team;
+}
+
+interface LeagueTeam {
+  id: string;
+  name: string;
+  abbreviation: string;
+  primaryColor: string;
+  secondaryColor: string;
+  coach?: { firstName: string; lastName: string } | null;
 }
 
 const positionOptions = [
@@ -47,9 +57,18 @@ export default function RosterPage() {
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [positionFilter, setPositionFilter] = useState("all");
   const [eligibilityFilter, setEligibilityFilter] = useState("all");
+  const [viewingTeamId, setViewingTeamId] = useState<string | null>(null);
 
+  const rosterUrl = viewingTeamId 
+    ? `/api/leagues/${id}/roster?teamId=${viewingTeamId}`
+    : `/api/leagues/${id}/roster`;
+    
   const { data, isLoading } = useQuery<RosterData>({
-    queryKey: ["/api/leagues", id, "roster"],
+    queryKey: [rosterUrl],
+  });
+  
+  const { data: leagueData } = useQuery<{ teams: LeagueTeam[] }>({
+    queryKey: ["/api/leagues", id],
   });
 
   const filteredPlayers = data?.players.filter(p => {
@@ -85,9 +104,31 @@ export default function RosterPage() {
             <Link href={`/league/${id}`} className="text-muted-foreground hover:text-gold transition-colors">
               <ArrowLeft className="w-5 h-5" />
             </Link>
-            <h1 className="font-pixel text-gold text-lg">Roster</h1>
-            <div className="ml-auto text-sm text-muted-foreground">
-              {data?.players.length || 0} Players
+            <h1 className="font-pixel text-gold text-lg">
+              {data?.team ? `${data.team.name} Roster` : 'Roster'}
+            </h1>
+            <div className="ml-auto flex items-center gap-4">
+              {leagueData?.teams && leagueData.teams.length > 1 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">View:</span>
+                  <select
+                    value={viewingTeamId || ""}
+                    onChange={(e) => setViewingTeamId(e.target.value || null)}
+                    className="bg-card border border-border rounded px-2 py-1 text-sm focus:outline-none focus:border-gold"
+                    data-testid="select-view-roster"
+                  >
+                    <option value="" className="bg-forest-card">My Team</option>
+                    {leagueData.teams.map(t => (
+                      <option key={t.id} value={t.id} className="bg-forest-card">
+                        {t.name} ({t.abbreviation})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <span className="text-sm text-muted-foreground">
+                {data?.players.length || 0} Players
+              </span>
             </div>
           </div>
         </div>
