@@ -201,10 +201,10 @@ export default function LeagueCreatePage() {
                 <RetroButton
                   type="submit"
                   className="w-full"
-                  disabled={createLeagueMutation.isPending}
+                  loading={createLeagueMutation.isPending}
                   data-testid="button-create-dynasty"
                 >
-                  {createLeagueMutation.isPending ? "Creating..." : "Start Dynasty"}
+                  Start Dynasty
                 </RetroButton>
               </div>
             </form>

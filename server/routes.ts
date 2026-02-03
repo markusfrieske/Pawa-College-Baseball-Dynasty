@@ -234,15 +234,14 @@ export async function registerRoutes(
         await storage.createConference({ leagueId: league.id, name: confName });
       }
 
-      // Create teams - use conference-based team generation
+      // Create ALL teams for each conference - let users choose which ones to include
       const conferences = await storage.getConferencesByLeague(league.id);
-      const teamsPerConference = Math.floor(maxTeams / conferences.length);
 
       for (const conf of conferences) {
         const conferenceTeamPool = getTeamsForConference(conf.name);
-        const teamsToCreate = conferenceTeamPool.slice(0, teamsPerConference);
         
-        for (const teamData of teamsToCreate) {
+        // Create ALL teams in the conference pool
+        for (const teamData of conferenceTeamPool) {
           const team = await storage.createTeam({
             ...teamData,
             leagueId: league.id,
@@ -2095,13 +2094,13 @@ async function generatePlayersForTeam(teamId: string) {
     ...Array(6).fill("FR"),
   ];
 
-  // Position distribution: 12 pitchers, 2 catchers, 11 fielders (covers all positions)
+  // Position distribution: 12 pitchers, 2 catchers, 11 fielders = 25 total
   const positionDistribution = [
     ...Array(12).fill("P"), // 12 pitchers
     ...Array(2).fill("C"),  // 2 catchers
     "1B", "2B", "SS", "3B", // 4 infielders
     "LF", "CF", "RF",       // 3 outfielders
-    "1B", "2B",             // 2 utility infielders
+    "SS", "3B", "CF", "RF", // 4 utility fielders (depth)
   ];
 
   // Shuffle the distributions for randomization

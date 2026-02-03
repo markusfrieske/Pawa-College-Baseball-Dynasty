@@ -188,10 +188,11 @@ export default function LeagueSetupPage() {
           ) : (
             <RetroButton
               onClick={handleComplete}
-              disabled={setupMutation.isPending || !coachData.firstName || !coachData.lastName}
+              loading={setupMutation.isPending}
+              disabled={!coachData.firstName || !coachData.lastName}
               data-testid="button-complete-setup"
             >
-              {setupMutation.isPending ? "Creating..." : "Start Dynasty"}
+              Start Dynasty
               <ArrowRight className="w-4 h-4 ml-2" />
             </RetroButton>
           )}
