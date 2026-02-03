@@ -952,29 +952,34 @@ export async function registerRoutes(
       let coachId = null;
       if (coachData) {
         const coach = await storage.createCoach({
-          name: coachData.name || user.username || "Coach",
+          firstName: coachData.firstName || "New",
+          lastName: coachData.lastName || "Coach",
+          leagueId: invite.leagueId,
           teamId,
-          archetype: coachData.archetype || "balanced",
+          archetype: coachData.archetype || "Balanced",
           userId: req.session.userId!,
           offenseSkill: 50,
           defenseSkill: 50,
           trainingSkill: 50,
           recruitingSkill: 50,
-          appearance: coachData.appearance || {},
+          skinTone: coachData.skinTone || "light",
+          hairColor: coachData.hairColor || "brown",
+          hairStyle: coachData.hairStyle || "short",
         });
         coachId = coach.id;
       } else {
         // Create default coach if no data provided
         const coach = await storage.createCoach({
-          name: user.username || "Coach",
+          firstName: "New",
+          lastName: "Coach",
+          leagueId: invite.leagueId,
           teamId,
-          archetype: "balanced",
+          archetype: "Balanced",
           userId: req.session.userId!,
           offenseSkill: 50,
           defenseSkill: 50,
           trainingSkill: 50,
           recruitingSkill: 50,
-          appearance: {},
         });
         coachId = coach.id;
       }
@@ -1043,7 +1048,7 @@ export async function registerRoutes(
       const conferences = await storage.getConferencesByLeague(leagueId);
       const recruits = await storage.getRecruitsByLeague(leagueId);
       const games = await storage.getGamesByLeague(leagueId);
-      const invites = await storage.getLeagueInvites(leagueId);
+      const invites = await storage.getLeagueInvitesByLeague(leagueId);
       
       const teamsWithCoaches = await Promise.all(teams.map(async (team) => {
         const coach = team.coachId ? await storage.getCoach(team.coachId) : null;
@@ -1093,7 +1098,7 @@ export async function registerRoutes(
         leagueId,
         userId: userId || "system",
         action: "start_dynasty",
-        details: { season: league.currentSeason },
+        details: JSON.stringify({ season: league.currentSeason }),
       });
       
       res.json({ success: true });

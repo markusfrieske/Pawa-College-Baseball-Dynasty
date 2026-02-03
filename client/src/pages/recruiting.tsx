@@ -21,7 +21,6 @@ import {
   GraduationCap,
   DollarSign,
   HelpCircle,
-  X,
   Check
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
@@ -501,9 +500,14 @@ function RecruitDetailModal({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <GraduationCap className="w-4 h-4" />
-            <span>{recruit.recruitType === "HS" ? "High School" : "JUCO Transfer"}</span>
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <GraduationCap className="w-4 h-4" />
+              <span>{recruit.recruitType === "HS" ? "High School" : "JUCO Transfer"}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span>Bats {recruit.batHand || "R"} / Throws {recruit.throwHand || "R"}</span>
+            </div>
           </div>
 
           {recruit.position === "P" ? (

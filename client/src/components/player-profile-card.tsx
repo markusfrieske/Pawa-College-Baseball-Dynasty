@@ -4,7 +4,7 @@ import { RetroButton } from "@/components/ui/retro-button";
 import { AttributeSlider } from "@/components/ui/attribute-slider";
 import { Badge } from "@/components/ui/badge";
 import { LetterGrade } from "@/components/ui/letter-grade";
-import { X, MapPin, ChevronRight, Star } from "lucide-react";
+import { MapPin, ChevronRight, Star } from "lucide-react";
 import { getAbilityByName } from "@shared/abilities";
 
 interface PlayerStats {
@@ -109,13 +109,6 @@ export function PlayerProfileCard({ player, open, onClose }: PlayerProfileCardPr
                 #{player.jerseyNumber} {player.firstName} {player.lastName}
               </h2>
             </div>
-            <button 
-              onClick={onClose}
-              className="text-muted-foreground hover:text-foreground"
-              data-testid="button-close-profile"
-            >
-              <X className="w-5 h-5" />
-            </button>
           </div>
         </div>
 

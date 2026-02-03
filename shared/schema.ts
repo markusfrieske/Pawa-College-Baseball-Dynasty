@@ -41,6 +41,7 @@ export const insertLeagueSchema = createInsertSchema(leagues).pick({
   maxTeams: true,
   cpuDifficulty: true,
   seasonLength: true,
+  currentPhase: true,
 });
 
 export type InsertLeague = z.infer<typeof insertLeagueSchema>;
