@@ -1444,12 +1444,11 @@ export async function registerRoutes(
 
       // Get user's team to find their interest in this recruit
       const leagueTeams = await storage.getTeamsByLeague(req.params.id as string);
-      const userCoaches = await storage.getCoachesByUser(req.session.userId!);
-      const userCoach = userCoaches.find(c => leagueTeams.some(t => t.id === c.teamId));
+      const userTeam = leagueTeams.find(t => !t.isCpu);
       
       let interest = null;
-      if (userCoach?.teamId) {
-        interest = await storage.getRecruitingInterest(recruit.id, userCoach.teamId);
+      if (userTeam) {
+        interest = await storage.getRecruitingInterest(recruit.id, userTeam.id);
       }
 
       res.json({
