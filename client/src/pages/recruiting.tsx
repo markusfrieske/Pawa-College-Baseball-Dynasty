@@ -317,6 +317,18 @@ function RecruitRow({
             </p>
             <p className="text-[10px] text-muted-foreground">STAR</p>
           </div>
+          <div className="text-center min-w-[40px]">
+            <p className="font-bold text-sm">
+              #{recruit.classRank || "—"}
+            </p>
+            <p className="text-[10px] text-muted-foreground">CLASS</p>
+          </div>
+          <div className="text-center min-w-[40px]">
+            <p className="font-bold text-sm">
+              #{recruit.positionRank || "—"}
+            </p>
+            <p className="text-[10px] text-muted-foreground">{recruit.position}</p>
+          </div>
         </div>
 
         <div className="flex items-center gap-4">
