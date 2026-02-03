@@ -24,10 +24,11 @@ const teamCountOptions = [
   { value: "16", label: "16 Teams" },
 ];
 
-const conferenceOptions = [
-  { value: "2", label: "2 Conferences" },
-  { value: "3", label: "3 Conferences" },
-  { value: "4", label: "4 Conferences (Full)" },
+const availableConferences = [
+  { id: "SEC", name: "SEC", teams: 16, description: "Southeastern Conference" },
+  { id: "ACC", name: "ACC", teams: 16, description: "Atlantic Coast Conference" },
+  { id: "Big 12", name: "Big 12", teams: 14, description: "Big 12 Conference" },
+  { id: "Big Ten", name: "Big Ten", teams: 18, description: "Big Ten Conference" },
 ];
 
 const seasonLengthOptions = [
@@ -40,18 +41,26 @@ export default function LeagueCreatePage() {
   const [name, setName] = useState("");
   const [maxTeams, setMaxTeams] = useState("8");
   const [cpuDifficulty, setCpuDifficulty] = useState("normal");
-  const [conferences, setConferences] = useState("2");
+  const [selectedConferences, setSelectedConferences] = useState<string[]>(["SEC", "ACC"]);
   const [seasonLength, setSeasonLength] = useState("medium");
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  const toggleConference = (confId: string) => {
+    setSelectedConferences(prev => 
+      prev.includes(confId) 
+        ? prev.filter(c => c !== confId)
+        : [...prev, confId]
+    );
+  };
 
   const createLeagueMutation = useMutation({
     mutationFn: async (data: {
       name: string;
       maxTeams: number;
       cpuDifficulty: string;
-      conferenceCount: number;
+      selectedConferences: string[];
       seasonLength: string;
     }) => {
       return apiRequest("POST", "/api/leagues", data);
@@ -84,11 +93,19 @@ export default function LeagueCreatePage() {
       });
       return;
     }
+    if (selectedConferences.length < 1) {
+      toast({
+        title: "Select at least one conference",
+        description: "Please select at least one conference for your dynasty.",
+        variant: "destructive",
+      });
+      return;
+    }
     createLeagueMutation.mutate({
       name: name.trim(),
       maxTeams: parseInt(maxTeams),
       cpuDifficulty,
-      conferenceCount: parseInt(conferences),
+      selectedConferences,
       seasonLength,
     });
   };
@@ -137,14 +154,30 @@ export default function LeagueCreatePage() {
                 data-testid="select-team-count"
               />
 
-              <RetroSelect
-                id="conferences"
-                label="Conferences"
-                options={conferenceOptions}
-                value={conferences}
-                onChange={(e) => setConferences(e.target.value)}
-                data-testid="select-conferences"
-              />
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gold">Select Conferences</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {availableConferences.map(conf => (
+                    <button
+                      key={conf.id}
+                      type="button"
+                      onClick={() => toggleConference(conf.id)}
+                      className={`p-3 rounded-lg border text-left transition-all ${
+                        selectedConferences.includes(conf.id)
+                          ? "bg-gold/20 border-gold text-gold"
+                          : "bg-card border-border text-muted-foreground hover:border-gold/50"
+                      }`}
+                      data-testid={`checkbox-conference-${conf.id.replace(/\s/g, '-')}`}
+                    >
+                      <div className="font-medium text-sm">{conf.name}</div>
+                      <div className="text-xs opacity-70">{conf.teams} teams</div>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {selectedConferences.length} conference{selectedConferences.length !== 1 ? 's' : ''} selected
+                </p>
+              </div>
 
               <RetroSelect
                 id="seasonLength"

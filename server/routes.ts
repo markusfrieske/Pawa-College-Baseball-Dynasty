@@ -24,6 +24,7 @@ const leagueCreateSchema = z.object({
   maxTeams: z.number().min(4).max(16).optional(),
   cpuDifficulty: z.enum(["easy", "normal", "hard", "elite"]).optional(),
   conferenceCount: z.number().min(2).max(4).optional(),
+  selectedConferences: z.array(z.string()).min(1).max(4).optional(),
   seasonLength: z.enum(["short", "medium", "long"]).optional(),
 });
 
@@ -212,7 +213,7 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Invalid league data" });
       }
 
-      const { name, maxTeams = 8, cpuDifficulty = "normal", conferenceCount = 2, seasonLength = "medium" } = result.data;
+      const { name, maxTeams = 8, cpuDifficulty = "normal", conferenceCount = 2, selectedConferences, seasonLength = "medium" } = result.data;
 
       const league = await storage.createLeague({
         name,
@@ -223,9 +224,11 @@ export async function registerRoutes(
         currentPhase: "dynasty_setup",
       });
 
-      // Create conferences - use real college baseball conferences
+      // Create conferences - use selected conferences or default to first N
       const allConferences = ["SEC", "ACC", "Big 12", "Big Ten"];
-      const conferenceNames = allConferences.slice(0, conferenceCount);
+      const conferenceNames = selectedConferences && selectedConferences.length > 0
+        ? selectedConferences.filter(c => allConferences.includes(c))
+        : allConferences.slice(0, conferenceCount);
 
       for (const confName of conferenceNames) {
         await storage.createConference({ leagueId: league.id, name: confName });
