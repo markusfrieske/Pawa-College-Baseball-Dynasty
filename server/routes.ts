@@ -1227,6 +1227,36 @@ export async function registerRoutes(
     }
   });
 
+  // Single recruit route
+  app.get("/api/leagues/:id/recruits/:recruitId", requireAuth, async (req, res) => {
+    try {
+      const recruit = await storage.getRecruit(req.params.recruitId as string);
+      if (!recruit) {
+        return res.status(404).json({ message: "Recruit not found" });
+      }
+
+      // Get user's team to find their interest in this recruit
+      const leagueTeams = await storage.getTeamsByLeague(req.params.id as string);
+      const userCoaches = await storage.getCoachesByUser(req.session.userId!);
+      const userCoach = userCoaches.find(c => leagueTeams.some(t => t.id === c.teamId));
+      
+      let interest = null;
+      if (userCoach?.teamId) {
+        interest = await storage.getRecruitingInterest(recruit.id, userCoach.teamId);
+      }
+
+      res.json({
+        recruit: {
+          ...recruit,
+          interest,
+        },
+      });
+    } catch (error) {
+      console.error("Failed to fetch recruit:", error);
+      res.status(500).json({ message: "Failed to fetch recruit" });
+    }
+  });
+
   // Dynasty Setup routes
   app.get("/api/leagues/:id/dynasty-setup", requireAuth, async (req, res) => {
     try {
@@ -1579,6 +1609,9 @@ async function generateRecruits(leagueId: string, count: number) {
     const abilityCount = getAbilityCount(starRank);
     const abilities = getRandomAbilities(position, abilityCount, starRank >= 4);
 
+    // Random appearance for recruits
+    const appearance = getRandomAppearance();
+
     await storage.createRecruit({
       leagueId,
       firstName: firstNames[Math.floor(Math.random() * firstNames.length)],
@@ -1613,8 +1646,27 @@ async function generateRecruits(leagueId: string, count: number) {
       isBlueChip,
       isGem,
       isBust,
+      skinTone: appearance.skinTone,
+      hairColor: appearance.hairColor,
+      hairStyle: appearance.hairStyle,
+      headwear: appearance.headwear,
     });
   }
+}
+
+// Random appearance generator for players/recruits
+function getRandomAppearance() {
+  const skinTones = ["light", "medium", "tan", "dark", "deep"];
+  const hairColors = ["black", "brown", "blonde", "red", "gray"];
+  const hairStyles = ["short", "buzzcut", "curly", "mullet", "bald"];
+  const headwears = ["cap", "helmet", "batting_helmet", "none"];
+  
+  return {
+    skinTone: skinTones[Math.floor(Math.random() * skinTones.length)],
+    hairColor: hairColors[Math.floor(Math.random() * hairColors.length)],
+    hairStyle: hairStyles[Math.floor(Math.random() * hairStyles.length)],
+    headwear: headwears[Math.floor(Math.random() * headwears.length)],
+  };
 }
 
 async function generatePlayersForTeam(teamId: string) {
@@ -1640,6 +1692,9 @@ async function generatePlayersForTeam(teamId: string) {
     const abilityCount = Math.random() < 0.4 ? Math.floor(Math.random() * 2) : 0;
     const abilities = getRandomAbilities(position, abilityCount);
 
+    // Random appearance
+    const appearance = getRandomAppearance();
+
     await storage.createPlayer({
       teamId,
       firstName: firstNames[Math.floor(Math.random() * firstNames.length)],
@@ -1662,6 +1717,10 @@ async function generatePlayersForTeam(teamId: string) {
       stamina: 40 + Math.floor(Math.random() * 40),
       stuff: 40 + Math.floor(Math.random() * 40),
       abilities,
+      skinTone: appearance.skinTone,
+      hairColor: appearance.hairColor,
+      hairStyle: appearance.hairStyle,
+      headwear: appearance.headwear,
     });
   }
 }

@@ -234,11 +234,10 @@ export default function RecruitingPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <StatCard icon={<Target className="w-4 h-4" />} label="Targets" value={`${data?.targetedCount || 0}/40`} />
             <StatCard icon={<Check className="w-4 h-4" />} label="Commits" value={`${data?.commitsCount || 0}/25`} />
-            <StatCard icon={<DollarSign className="w-4 h-4" />} label="NIL Budget" value={`$${((data?.team?.nilBudget || 0) / 1000000).toFixed(1)}M`} />
-            <StatCard icon={<Search className="w-4 h-4" />} label="Scouts" value="10/10" />
+            <StatCard icon={<Search className="w-4 h-4" />} label="Recruiting Actions" value={`${data?.remainingActions || 0}`} />
           </div>
         </div>
       </header>
@@ -354,6 +353,7 @@ export default function RecruitingPage() {
             <RecruitRow
               key={recruit.id}
               recruit={recruit}
+              leagueId={id!}
               onViewDetails={() => setSelectedRecruit(recruit)}
               onTarget={() => targetMutation.mutate(recruit.id)}
               onScout={() => scoutMutation.mutate(recruit.id)}
@@ -511,6 +511,7 @@ function TeamNeedsIndicator({ rosterDepth, rosterSize }: { rosterDepth: Record<s
 
 function RecruitRow({
   recruit,
+  leagueId,
   onViewDetails,
   onTarget,
   onScout,
@@ -522,6 +523,7 @@ function RecruitRow({
   isSelected,
 }: {
   recruit: RecruitWithInterest;
+  leagueId: string;
   onViewDetails: () => void;
   onTarget: () => void;
   onScout: () => void;
@@ -605,7 +607,9 @@ function RecruitRow({
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <span className="font-medium">{recruit.firstName} {recruit.lastName}</span>
+              <Link href={`/league/${leagueId}/recruit/${recruit.id}`} className="hover:text-gold">
+                <span className="font-medium">{recruit.firstName} {recruit.lastName}</span>
+              </Link>
               {recruit.isBlueChip && (
                 <Badge className="bg-blue-500 text-white text-[8px]">Blue Chip</Badge>
               )}
@@ -623,7 +627,7 @@ function RecruitRow({
                 {recruit.hometown}, {recruit.homeState}
               </span>
               <span className="text-[10px]">
-                T: {recruit.throwHand} / B: {recruit.batHand}
+                {recruit.throwHand}/{recruit.batHand === "S" ? "S" : recruit.batHand}
               </span>
               <StarRating rating={recruit.starRank} size="sm" />
             </div>
@@ -636,12 +640,6 @@ function RecruitRow({
               {getOverallDisplay()}
             </p>
             <p className="text-[10px] text-muted-foreground">OVR</p>
-          </div>
-          <div className="text-center min-w-[40px]">
-            <p className={`font-bold ${isFullyRevealed ? "text-lg" : "text-sm"}`}>
-              {getStarDisplay()}
-            </p>
-            <p className="text-[10px] text-muted-foreground">STAR</p>
           </div>
           <div className="text-center min-w-[40px]">
             <p className="font-bold text-sm">

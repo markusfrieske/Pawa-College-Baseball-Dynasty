@@ -227,6 +227,7 @@ export const players = pgTable("players", {
   skinTone: text("skin_tone").notNull().default("light"),
   hairColor: text("hair_color").notNull().default("brown"),
   hairStyle: text("hair_style").notNull().default("short"),
+  headwear: text("headwear").notNull().default("cap"),
 });
 
 export const insertPlayerSchema = createInsertSchema(players).pick({
@@ -256,6 +257,7 @@ export const insertPlayerSchema = createInsertSchema(players).pick({
   skinTone: true,
   hairColor: true,
   hairStyle: true,
+  headwear: true,
 });
 
 export type InsertPlayer = z.infer<typeof insertPlayerSchema>;
@@ -305,6 +307,7 @@ export const recruits = pgTable("recruits", {
   skinTone: text("skin_tone").notNull().default("light"),
   hairColor: text("hair_color").notNull().default("brown"),
   hairStyle: text("hair_style").notNull().default("short"),
+  headwear: text("headwear").notNull().default("cap"),
 });
 
 export const insertRecruitSchema = createInsertSchema(recruits).pick({
@@ -349,6 +352,7 @@ export const insertRecruitSchema = createInsertSchema(recruits).pick({
   skinTone: true,
   hairColor: true,
   hairStyle: true,
+  headwear: true,
 });
 
 export type InsertRecruit = z.infer<typeof insertRecruitSchema>;

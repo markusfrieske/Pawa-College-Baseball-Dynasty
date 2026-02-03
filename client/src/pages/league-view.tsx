@@ -233,14 +233,14 @@ function StandingsTab({ league }: { league: LeagueDetails }) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-muted-foreground">
-                  <th className="text-left py-3 px-2">#</th>
-                  <th className="text-left py-3 px-2">Team</th>
-                  <th className="text-left py-3 px-2 hidden lg:table-cell">Coach</th>
-                  <th className="text-center py-3 px-2">W</th>
-                  <th className="text-center py-3 px-2">L</th>
-                  <th className="text-center py-3 px-2 hidden sm:table-cell">Conf</th>
-                  <th className="text-center py-3 px-2 hidden md:table-cell">RS</th>
-                  <th className="text-center py-3 px-2 hidden md:table-cell">RA</th>
+                  <th className="text-left py-3 px-2 w-10">#</th>
+                  <th className="text-left py-3 px-2 min-w-[150px]">Team</th>
+                  <th className="text-left py-3 px-2 hidden lg:table-cell min-w-[150px]">Coach</th>
+                  <th className="text-center py-3 px-2 w-12">W</th>
+                  <th className="text-center py-3 px-2 w-12">L</th>
+                  <th className="text-center py-3 px-2 w-16 hidden sm:table-cell">Conf</th>
+                  <th className="text-center py-3 px-2 w-12 hidden md:table-cell">RS</th>
+                  <th className="text-center py-3 px-2 w-12 hidden md:table-cell">RA</th>
                 </tr>
               </thead>
               <tbody>
@@ -262,15 +262,17 @@ function StandingsTab({ league }: { league: LeagueDetails }) {
                     </td>
                     <td className="py-3 px-2 hidden lg:table-cell">
                       {team.coach ? (
-                        <div className="flex items-center gap-2">
-                          <User className="w-3 h-3 text-gold" />
-                          <div>
-                            <span className="text-foreground">{team.coach.firstName} {team.coach.lastName}</span>
-                            {team.user && (
-                              <span className="text-xs text-muted-foreground ml-1">({team.user.email.split("@")[0]})</span>
-                            )}
+                        <Link href={`/league/${league.id}/coach/${team.coach.id}`}>
+                          <div className="flex items-center gap-2 hover:text-gold cursor-pointer">
+                            <User className="w-3 h-3 text-gold" />
+                            <div>
+                              <span className="text-foreground hover:text-gold">{team.coach.firstName} {team.coach.lastName}</span>
+                              {team.user && (
+                                <span className="text-xs text-muted-foreground ml-1">({team.user.email.split("@")[0]})</span>
+                              )}
+                            </div>
                           </div>
-                        </div>
+                        </Link>
                       ) : (
                         <div className="flex items-center gap-2 text-muted-foreground">
                           <Cpu className="w-3 h-3" />
