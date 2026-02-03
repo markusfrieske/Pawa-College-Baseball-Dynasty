@@ -96,13 +96,19 @@ export default function CommissionerPage() {
   }
 
   const phaseLabels: Record<string, string> = {
+    dynasty_setup: "Dynasty Setup",
     preseason: "Preseason",
     spring_training: "Spring Training",
-    recruiting: "Recruiting Phase",
-    regular: "Regular Season",
+    regular_season: "Regular Season",
+    conference_championship: "Conference Championship",
     super_regionals: "Super Regionals",
     cws: "College World Series",
-    offseason: "Offseason",
+    players_leaving: "Players Leaving",
+    offseason_recruiting_1: "Early Recruiting",
+    offseason_recruiting_2: "Mid Recruiting",
+    offseason_recruiting_3: "Late Recruiting",
+    offseason_recruiting_4: "Final Recruiting",
+    signing_day: "Signing Day",
   };
 
   return (
