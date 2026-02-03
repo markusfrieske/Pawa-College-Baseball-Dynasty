@@ -223,12 +223,9 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
           
           {/* Pitch Mix for Pitchers */}
           {isPitcher && pitchMix.length > 0 && (
-            <div className="mt-4">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-xs text-muted-foreground">Pitch Mix</span>
-                <span className="font-pixel text-gold text-sm">{pitchMix.length}</span>
-              </div>
-              <PitchMixDial pitches={pitchMix} className="w-32 h-32 mx-auto" />
+            <div className="mt-4 pt-4 border-t border-border">
+              <h4 className="font-pixel text-gold text-xs mb-2">PITCH MIX</h4>
+              <PitchMixDial pitches={pitchMix} />
             </div>
           )}
         </div>

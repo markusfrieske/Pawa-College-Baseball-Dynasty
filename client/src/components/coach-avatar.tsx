@@ -17,6 +17,14 @@ const skinTones: Record<string, string> = {
   deep: "#4a2c17",
 };
 
+const skinShadows: Record<string, string> = {
+  light: "#e8c4a0",
+  medium: "#b8906a",
+  tan: "#a88558",
+  dark: "#6d4018",
+  deep: "#3a2210",
+};
+
 const hairColors: Record<string, string> = {
   black: "#1a1a1a",
   brown: "#4a3728",
@@ -25,39 +33,6 @@ const hairColors: Record<string, string> = {
   gray: "#808080",
   white: "#e0e0e0",
 };
-
-function HairStyle({ style, color }: { style: string; color: string }) {
-  switch (style) {
-    case "short":
-      return (
-        <>
-          <ellipse cx="50" cy="30" rx="24" ry="12" fill={color} />
-          <path d="M 26 35 Q 26 28 32 25 L 50 22 L 68 25 Q 74 28 74 35 L 74 40 Q 50 38 26 40 Z" fill={color} />
-        </>
-      );
-    case "medium":
-      return (
-        <>
-          <ellipse cx="50" cy="28" rx="26" ry="14" fill={color} />
-          <path d="M 24 35 Q 24 26 32 22 L 50 18 L 68 22 Q 76 26 76 35 L 76 45 Q 50 42 24 45 Z" fill={color} />
-          <ellipse cx="28" cy="50" rx="6" ry="10" fill={color} />
-          <ellipse cx="72" cy="50" rx="6" ry="10" fill={color} />
-        </>
-      );
-    case "long":
-      return (
-        <>
-          <ellipse cx="50" cy="26" rx="28" ry="16" fill={color} />
-          <path d="M 22 35 Q 22 24 32 20 L 50 16 L 68 20 Q 78 24 78 35 L 78 50 Q 50 46 22 50 Z" fill={color} />
-          <ellipse cx="25" cy="55" rx="8" ry="18" fill={color} />
-          <ellipse cx="75" cy="55" rx="8" ry="18" fill={color} />
-        </>
-      );
-    case "bald":
-    default:
-      return null;
-  }
-}
 
 export function CoachAvatar({
   skinTone = "light",
@@ -73,34 +48,99 @@ export function CoachAvatar({
   };
 
   const skin = skinTones[skinTone] || skinTones.light;
+  const skinShade = skinShadows[skinTone] || skinShadows.light;
   const hair = hairColors[hairColor] || hairColors.brown;
 
   return (
     <div
       className={cn(
-        "relative rounded-full overflow-hidden bg-gradient-to-b from-muted to-accent",
+        "relative overflow-hidden",
         sizes[size],
         className
       )}
+      style={{ imageRendering: "pixelated" }}
     >
-      <svg viewBox="0 0 100 100" className="w-full h-full">
-        <circle cx="50" cy="55" r="28" fill={skin} />
+      <svg 
+        viewBox="0 0 32 32" 
+        className="w-full h-full"
+        style={{ imageRendering: "pixelated" }}
+        shapeRendering="crispEdges"
+      >
+        {/* Background */}
+        <rect x="0" y="0" width="32" height="32" fill="#3366cc" />
         
-        <HairStyle style={hairStyle} color={hair} />
+        {/* Neck / Polo shirt */}
+        <rect x="11" y="26" width="10" height="6" fill={skin} />
+        <rect x="8" y="28" width="16" height="4" fill="#2563eb" />
+        <rect x="14" y="28" width="4" height="4" fill={skin} />
+        {/* Collar */}
+        <rect x="12" y="28" width="2" height="2" fill="#1e4fc9" />
+        <rect x="18" y="28" width="2" height="2" fill="#1e4fc9" />
         
-        <circle cx="40" cy="55" r="3" fill="#1a1a1a" />
-        <circle cx="60" cy="55" r="3" fill="#1a1a1a" />
+        {/* Face - main shape (pixelated oval) */}
+        <rect x="10" y="12" width="12" height="14" fill={skin} />
+        <rect x="9" y="14" width="1" height="10" fill={skin} />
+        <rect x="22" y="14" width="1" height="10" fill={skin} />
+        <rect x="11" y="11" width="10" height="1" fill={skin} />
+        <rect x="11" y="26" width="10" height="1" fill={skin} />
         
-        <ellipse cx="50" cy="65" rx="4" ry="2" fill="#d4a574" />
+        {/* Face shadow/depth */}
+        <rect x="9" y="18" width="1" height="4" fill={skinShade} />
+        <rect x="10" y="24" width="12" height="2" fill={skinShade} />
         
-        <path
-          d="M 42 72 Q 50 77 58 72"
-          stroke="#1a1a1a"
-          strokeWidth="2"
-          fill="none"
-        />
+        {/* Eyes */}
+        <rect x="12" y="17" width="2" height="2" fill="#1a1a1a" />
+        <rect x="18" y="17" width="2" height="2" fill="#1a1a1a" />
+        <rect x="12" y="17" width="1" height="1" fill="#ffffff" />
+        <rect x="18" y="17" width="1" height="1" fill="#ffffff" />
         
-        <rect x="30" y="82" width="40" height="18" fill="#2563eb" rx="3" />
+        {/* Nose */}
+        <rect x="15" y="19" width="2" height="2" fill={skinShade} />
+        
+        {/* Mouth/Smile */}
+        <rect x="13" y="22" width="6" height="1" fill="#333333" />
+        <rect x="12" y="22" width="1" height="1" fill={skinShade} />
+        <rect x="19" y="22" width="1" height="1" fill={skinShade} />
+        
+        {/* Ears */}
+        <rect x="8" y="16" width="2" height="3" fill={skin} />
+        <rect x="22" y="16" width="2" height="3" fill={skin} />
+        
+        {/* Hair based on style */}
+        {hairStyle === "short" && (
+          <>
+            <rect x="10" y="9" width="12" height="4" fill={hair} />
+            <rect x="9" y="10" width="1" height="5" fill={hair} />
+            <rect x="22" y="10" width="1" height="5" fill={hair} />
+            <rect x="11" y="8" width="10" height="1" fill={hair} />
+          </>
+        )}
+        
+        {hairStyle === "medium" && (
+          <>
+            <rect x="9" y="8" width="14" height="5" fill={hair} />
+            <rect x="8" y="9" width="1" height="7" fill={hair} />
+            <rect x="23" y="9" width="1" height="7" fill={hair} />
+            <rect x="10" y="7" width="12" height="1" fill={hair} />
+            {/* Side hair */}
+            <rect x="7" y="14" width="2" height="8" fill={hair} />
+            <rect x="23" y="14" width="2" height="8" fill={hair} />
+          </>
+        )}
+        
+        {hairStyle === "long" && (
+          <>
+            <rect x="8" y="7" width="16" height="6" fill={hair} />
+            <rect x="7" y="8" width="1" height="8" fill={hair} />
+            <rect x="24" y="8" width="1" height="8" fill={hair} />
+            <rect x="10" y="6" width="12" height="1" fill={hair} />
+            {/* Long side hair */}
+            <rect x="6" y="12" width="3" height="14" fill={hair} />
+            <rect x="23" y="12" width="3" height="14" fill={hair} />
+          </>
+        )}
+        
+        {/* Bald = no hair rendered */}
       </svg>
     </div>
   );

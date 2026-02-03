@@ -8,15 +8,23 @@ interface PitchMixListProps {
 
 const pitchLabels: Record<string, string> = {
   FB: "Fastball",
-  SL: "Slider",
+  "2FB": "2-Seam",
+  CH: "Change Up",
   CB: "Curveball",
-  CH: "Changeup",
-  CT: "Cutter",
+  SL: "Slider",
   SNK: "Sinker",
-  SPL: "Splitter",
+  CT: "Cutter",
+  SHU: "Shuuto",
+  CCH: "Circle Change",
+  HSL: "Hard Slider",
+  SWP: "Sweeper",
+  KN: "Knuckleball",
+  VSL: "Vertical Slider",
+  SFF: "SFF",
+  FK: "Forkball",
+  SCB: "Slow Curve",
+  PCB: "Power Curve",
 };
-
-const pitchOrder = ["FB", "SL", "CB", "CH", "CT", "SNK", "SPL"];
 
 export function PitchMixDial({ pitches, className = "" }: PitchMixListProps) {
   const activePitches = pitches.filter(p => p.rating > 0);
@@ -29,20 +37,36 @@ export function PitchMixDial({ pitches, className = "" }: PitchMixListProps) {
     );
   }
 
-  const getRatingColor = (rating: number) => {
-    if (rating >= 6) return "text-gold";
-    if (rating >= 4) return "text-blue-400";
-    if (rating >= 2) return "text-purple-400";
-    return "text-muted-foreground";
-  };
+  const pairs: ({ name: string; rating: number } | null)[][] = [];
+  for (let i = 0; i < activePitches.length; i += 2) {
+    const pair: ({ name: string; rating: number } | null)[] = [activePitches[i]];
+    if (i + 1 < activePitches.length) {
+      pair.push(activePitches[i + 1]);
+    } else {
+      pair.push(null);
+    }
+    pairs.push(pair);
+  }
 
   return (
     <div className={`${className}`} data-testid="pitch-mix-dial">
-      <div className="flex flex-row flex-wrap gap-4">
-        {activePitches.map((pitch) => (
-          <div key={pitch.name} className="flex flex-col items-center">
-            <span className="text-[10px] text-muted-foreground">{pitchLabels[pitch.name] || pitch.name}</span>
-            <span className={`text-sm font-bold ${getRatingColor(pitch.rating)}`}>{pitch.rating}</span>
+      <div className="space-y-1">
+        {pairs.map((pair, idx) => (
+          <div key={idx} className="grid grid-cols-2 gap-4">
+            {pair.map((pitch, pIdx) => (
+              <div key={pIdx} className="flex items-center gap-2">
+                {pitch ? (
+                  <>
+                    <span className="text-sm text-foreground" data-testid={`pitch-name-${pitch.name}`}>
+                      {pitchLabels[pitch.name] || pitch.name}
+                    </span>
+                    <span className="text-sm font-bold text-gold" data-testid={`pitch-rating-${pitch.name}`}>
+                      {pitch.rating}
+                    </span>
+                  </>
+                ) : null}
+              </div>
+            ))}
           </div>
         ))}
       </div>
@@ -50,7 +74,11 @@ export function PitchMixDial({ pitches, className = "" }: PitchMixListProps) {
   );
 }
 
+const commonPitches = ["FB", "2FB", "CH", "CB", "SL", "SNK", "CT"];
+const skilledPitches = ["SHU", "CCH", "HSL", "SWP", "KN", "VSL", "SFF", "FK", "SCB", "PCB"];
+
 export function generatePitchMixForDial(player: {
+  id?: string;
   position: string;
   velocity?: number | null;
   control?: number | null;
@@ -64,33 +92,86 @@ export function generatePitchMixForDial(player: {
   const control = player.control || 50;
   const starRating = player.starRating || 3;
   
+  const seedFromId = (id: string) => {
+    let hash = 0;
+    for (let i = 0; i < id.length; i++) {
+      hash = ((hash << 5) - hash) + id.charCodeAt(i);
+      hash = hash & hash;
+    }
+    return Math.abs(hash);
+  };
+  
+  const seed = player.id ? seedFromId(player.id) : Math.floor(Math.random() * 10000);
+  const seededRandom = (s: number, idx: number) => {
+    const x = Math.sin(s + idx * 9999) * 10000;
+    return x - Math.floor(x);
+  };
+  
   let numPitches: number;
   if (starRating >= 5) {
-    numPitches = 4 + Math.floor(Math.random() * 2);
+    numPitches = 5 + (seed % 2);
   } else if (starRating >= 4) {
-    numPitches = 4 + Math.floor(Math.random() * 2);
-  } else if (starRating >= 3) {
-    numPitches = 3 + Math.floor(Math.random() * 2);
+    numPitches = 4 + (seed % 2);
   } else {
-    numPitches = 2 + Math.floor(Math.random() * 3);
+    numPitches = 3 + (seed % 2);
   }
   
-  const baseRating = starRating >= 4 ? 4 : starRating >= 3 ? 3 : 2;
+  const result: { name: string; rating: number }[] = [];
   
-  const fbRating = Math.min(7, Math.max(1, baseRating + Math.floor(velocity / 25) - 1 + Math.floor(Math.random() * 2)));
+  const fbRating = Math.round(50 + velocity * 0.35 + seededRandom(seed, 0) * 15);
+  result.push({ name: "FB", rating: Math.min(99, Math.max(40, fbRating)) });
   
-  const basePitches = [
-    { name: "FB", rating: fbRating },
-    { name: "SL", rating: Math.min(7, Math.max(1, baseRating + Math.floor(stuff / 30) - 1 + Math.floor(Math.random() * 2))) },
-    { name: "CB", rating: Math.min(7, Math.max(1, baseRating + Math.floor(control / 30) - 1 + Math.floor(Math.random() * 2))) },
-    { name: "CH", rating: Math.min(7, Math.max(1, baseRating + Math.floor((stuff + control) / 60) - 1 + Math.floor(Math.random() * 2))) },
-    { name: "CT", rating: Math.min(7, Math.max(1, baseRating + Math.floor((velocity + control) / 60) - 1 + Math.floor(Math.random() * 2))) },
-    { name: "SNK", rating: Math.min(7, Math.max(1, baseRating + Math.floor(velocity / 35) + Math.floor(Math.random() * 2))) },
-    { name: "SPL", rating: Math.min(7, Math.max(1, baseRating + Math.floor(stuff / 35) + Math.floor(Math.random() * 2))) },
-  ];
+  const availableCommon = commonPitches.filter(p => p !== "FB");
+  const shuffledCommon = [...availableCommon].sort((a, b) => 
+    seededRandom(seed, availableCommon.indexOf(a)) - seededRandom(seed, availableCommon.indexOf(b))
+  );
   
-  const shuffledSecondary = basePitches.slice(1).sort(() => Math.random() - 0.5);
-  const selectedPitches = [basePitches[0], ...shuffledSecondary.slice(0, numPitches - 1)];
+  const commonCount = Math.min(numPitches - 1, starRating >= 4 ? 3 : 2);
   
-  return selectedPitches.filter(p => p.name === "FB" || p.rating >= 1);
+  for (let i = 0; i < commonCount && i < shuffledCommon.length; i++) {
+    const pitch = shuffledCommon[i];
+    let rating: number;
+    
+    if (pitch === "CB") {
+      rating = Math.round(40 + control * 0.4 + seededRandom(seed, i + 10) * 20);
+    } else if (pitch === "SL") {
+      rating = Math.round(40 + stuff * 0.4 + seededRandom(seed, i + 20) * 20);
+    } else if (pitch === "CH") {
+      rating = Math.round(40 + (stuff + control) / 2 * 0.35 + seededRandom(seed, i + 30) * 20);
+    } else if (pitch === "CT" || pitch === "2FB") {
+      rating = Math.round(40 + velocity * 0.35 + seededRandom(seed, i + 40) * 20);
+    } else {
+      rating = Math.round(40 + (velocity + stuff + control) / 3 * 0.3 + seededRandom(seed, i + 50) * 20);
+    }
+    
+    result.push({ name: pitch, rating: Math.min(99, Math.max(30, rating)) });
+  }
+  
+  if (starRating >= 4 && result.length < numPitches) {
+    const shuffledSkilled = [...skilledPitches].sort((a, b) =>
+      seededRandom(seed, skilledPitches.indexOf(a) + 100) - seededRandom(seed, skilledPitches.indexOf(b) + 100)
+    );
+    
+    const skilledCount = numPitches - result.length;
+    for (let i = 0; i < skilledCount && i < shuffledSkilled.length; i++) {
+      const pitch = shuffledSkilled[i];
+      const rating = Math.round(35 + stuff * 0.45 + seededRandom(seed, i + 200) * 25);
+      result.push({ name: pitch, rating: Math.min(99, Math.max(30, rating)) });
+    }
+  }
+  
+  while (result.length < numPitches && shuffledCommon.length > result.length - 1) {
+    const nextCommonIdx = result.length - 1;
+    if (nextCommonIdx < shuffledCommon.length) {
+      const pitch = shuffledCommon[nextCommonIdx];
+      if (!result.find(p => p.name === pitch)) {
+        const rating = Math.round(35 + (velocity + stuff) / 2 * 0.3 + seededRandom(seed, nextCommonIdx + 300) * 20);
+        result.push({ name: pitch, rating: Math.min(99, Math.max(30, rating)) });
+      }
+    } else {
+      break;
+    }
+  }
+  
+  return result.sort((a, b) => b.rating - a.rating);
 }
