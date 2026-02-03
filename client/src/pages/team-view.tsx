@@ -483,11 +483,18 @@ function ScheduleTab({ team, leagueId }: { team: TeamDetails; leagueId: string }
 }
 
 function CoachesTab({ team }: { team: TeamDetails }) {
+  const isCpuCoach = team.coach && !team.coach.userId;
+  
   return (
     <div className="grid md:grid-cols-2 gap-6">
       {team.coach ? (
         <RetroCard>
-          <RetroCardHeader>Head Coach</RetroCardHeader>
+          <RetroCardHeader>
+            <div className="flex items-center gap-2">
+              Head Coach
+              {isCpuCoach && <Badge variant="outline" className="text-[8px]">CPU</Badge>}
+            </div>
+          </RetroCardHeader>
           <RetroCardContent>
             <div className="flex items-start gap-4">
               <CoachAvatar
@@ -504,14 +511,14 @@ function CoachesTab({ team }: { team: TeamDetails }) {
                   {team.coach.archetype}
                 </Badge>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Level {team.coach.level} - {team.coach.xp} XP
+                  Level {team.coach.level} - {team.coach.xp.toLocaleString()} XP
                 </p>
                 
                 <div className="space-y-2">
-                  <AttributeSlider label="Scouting" value={team.coach.scoutingSkill} max={10} disabled />
-                  <AttributeSlider label="Evaluation" value={team.coach.evaluationSkill} max={10} disabled />
-                  <AttributeSlider label="Pitching" value={team.coach.pitchingRecruitingSkill} max={10} disabled />
-                  <AttributeSlider label="Hitting" value={team.coach.hittingRecruitingSkill} max={10} disabled />
+                  <AttributeSlider label="Scouting" value={team.coach.scoutingSkill} max={4} disabled />
+                  <AttributeSlider label="Evaluation" value={team.coach.evaluationSkill} max={4} disabled />
+                  <AttributeSlider label="Pitching" value={team.coach.pitchingRecruitingSkill} max={4} disabled />
+                  <AttributeSlider label="Hitting" value={team.coach.hittingRecruitingSkill} max={4} disabled />
                 </div>
                 <Link href={`/coach/${team.coach.id}`} className="mt-3 block">
                   <RetroButton variant="outline" size="sm" className="w-full" data-testid="button-view-coach-full">
@@ -531,13 +538,47 @@ function CoachesTab({ team }: { team: TeamDetails }) {
         </RetroCard>
       )}
       
-      <RetroCard>
-        <RetroCardHeader>Scout</RetroCardHeader>
-        <RetroCardContent className="text-center py-12">
-          <Users className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-          <p className="text-muted-foreground">Scout details coming soon</p>
-        </RetroCardContent>
-      </RetroCard>
+      {team.coach ? (
+        <RetroCard>
+          <RetroCardHeader>Career Stats</RetroCardHeader>
+          <RetroCardContent>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-2 bg-background/50 rounded text-center">
+                <p className="text-xs text-muted-foreground">Career Record</p>
+                <p className="font-bold text-lg">{team.coach.careerWins}-{team.coach.careerLosses}</p>
+              </div>
+              <div className="p-2 bg-background/50 rounded text-center">
+                <p className="text-xs text-muted-foreground">Conf Record</p>
+                <p className="font-bold text-lg">{team.coach.confWins}-{team.coach.confLosses}</p>
+              </div>
+              <div className="p-2 bg-background/50 rounded text-center">
+                <p className="text-xs text-muted-foreground">Conf Titles</p>
+                <p className="font-bold text-lg text-gold">{team.coach.confChampionships}</p>
+              </div>
+              <div className="p-2 bg-background/50 rounded text-center">
+                <p className="text-xs text-muted-foreground">CWS Apps</p>
+                <p className="font-bold text-lg text-gold">{team.coach.cwsAppearances}</p>
+              </div>
+              <div className="p-2 bg-background/50 rounded text-center">
+                <p className="text-xs text-muted-foreground">Nat'l Titles</p>
+                <p className="font-bold text-lg text-gold">{team.coach.nationalChampionships}</p>
+              </div>
+              <div className="p-2 bg-background/50 rounded text-center">
+                <p className="text-xs text-muted-foreground">Draft Picks</p>
+                <p className="font-bold text-lg">{team.coach.draftPicks}</p>
+              </div>
+            </div>
+          </RetroCardContent>
+        </RetroCard>
+      ) : (
+        <RetroCard>
+          <RetroCardHeader>Scout</RetroCardHeader>
+          <RetroCardContent className="text-center py-12">
+            <Users className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+            <p className="text-muted-foreground">Scout details coming soon</p>
+          </RetroCardContent>
+        </RetroCard>
+      )}
     </div>
   );
 }

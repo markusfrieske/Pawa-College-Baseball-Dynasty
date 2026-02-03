@@ -15,8 +15,11 @@ import {
   GraduationCap,
   Star,
   Target,
-  User
+  User,
+  Gem,
+  XCircle
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Recruit, RecruitingInterest } from "@shared/schema";
 import { isPitcher as checkIsPitcher } from "@shared/positions";
 
@@ -107,6 +110,26 @@ export default function RecruitProfilePage() {
                   {recruit.recruitType === "JUCO" ? `JUCO ${recruit.recruitYear || "FR"}` : recruit.recruitType}
                 </Badge>
                 <Badge className={`${stage.color} text-white`}>{stage.label}</Badge>
+                {isFullyRevealed && recruit.isGem && (
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <div className="flex items-center justify-center w-6 h-6 bg-green-500/20 rounded-full">
+                        <Gem className="w-4 h-4 text-green-400" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>Gem - Better than ranking suggests</TooltipContent>
+                  </Tooltip>
+                )}
+                {isFullyRevealed && recruit.isBust && (
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <div className="flex items-center justify-center w-6 h-6 bg-red-500/20 rounded-full">
+                        <XCircle className="w-4 h-4 text-red-400" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>Bust - Worse than ranking suggests</TooltipContent>
+                  </Tooltip>
+                )}
               </div>
             </div>
           </div>

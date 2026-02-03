@@ -1641,6 +1641,9 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Only commissioner can start dynasty" });
       }
       
+      // Generate CPU coaches for teams that don't have one
+      await generateCpuCoaches(leagueId);
+      
       await storage.updateLeague(leagueId, { currentPhase: "preseason" });
       
       await storage.createAuditLog({
@@ -1876,44 +1879,84 @@ function getTeamsForConference(conferenceName: string) {
   return conferenceTeams[conferenceName] || [];
 }
 
+// Recruiting class themes that influence the distribution of players
+type RecruitingTheme = "high_velocity" | "sluggers" | "balanced" | "top_heavy" | "hidden_gems";
+
+function getRandomRecruitingTheme(): RecruitingTheme {
+  const themes: RecruitingTheme[] = ["high_velocity", "sluggers", "balanced", "top_heavy", "hidden_gems"];
+  return themes[Math.floor(Math.random() * themes.length)];
+}
+
 async function generateRecruits(leagueId: string, count: number) {
   const firstNames = ["Marcus", "Tyler", "Jordan", "Chris", "Devon", "Aaron", "Ryan", "Justin", "Brandon", "Cameron", "Dylan", "Jake", "Austin", "Kyle", "Cole", "Mason", "Logan", "Ethan", "Noah", "Caleb", "Jayden", "Bryce", "Hunter", "Chase", "Trey"];
   const lastNames = ["Johnson", "Williams", "Brown", "Davis", "Miller", "Wilson", "Moore", "Taylor", "Anderson", "Thomas", "Jackson", "White", "Harris", "Martin", "Thompson", "Garcia", "Martinez", "Robinson", "Clark", "Rodriguez", "Lewis", "Walker", "Hall", "Young", "King"];
-  const positions = ["P", "C", "1B", "2B", "SS", "3B", "LF", "CF", "RF"];
+  const fieldPositions = ["C", "1B", "2B", "SS", "3B", "LF", "CF", "RF"];
   const states = ["CA", "TX", "FL", "GA", "NC", "TN", "AZ", "LA", "AL", "SC"];
   const cities = ["Los Angeles", "Houston", "Miami", "Atlanta", "Charlotte", "Nashville", "Phoenix", "New Orleans", "Birmingham", "Charleston"];
   const priorities = ["Extremely", "Very", "Somewhat", "Not Important"];
 
-  // Star distribution: 5% 5-star, 10% 4-star, 40% 3-star, 30% 2-star, 15% 1-star
-  const getStarRank = (idx: number, total: number): number => {
+  // Select a hidden theme for this recruiting class
+  const theme = getRandomRecruitingTheme();
+  
+  // Theme modifies pitcher/fielder balance and gem distribution
+  const getPitcherRatio = (theme: RecruitingTheme): number => {
+    switch (theme) {
+      case "high_velocity": return 0.55; // More pitchers
+      case "sluggers": return 0.35; // More hitters
+      case "balanced": return 0.45;
+      case "top_heavy": return 0.45;
+      case "hidden_gems": return 0.45;
+      default: return 0.45;
+    }
+  };
+
+  const pitcherRatio = getPitcherRatio(theme);
+
+  // Star distribution adjusted by theme
+  const getStarRank = (idx: number, total: number, theme: RecruitingTheme): number => {
     const pct = idx / total;
-    if (pct < 0.05) return 5;       // Top 5% = 5 stars
-    if (pct < 0.15) return 4;       // Next 10% = 4 stars  
-    if (pct < 0.55) return 3;       // Next 40% = 3 stars
-    if (pct < 0.85) return 2;       // Next 30% = 2 stars
-    return 1;                        // Bottom 15% = 1 star
+    if (theme === "top_heavy") {
+      // More high-star recruits
+      if (pct < 0.08) return 5;       // 8% 5-star
+      if (pct < 0.22) return 4;       // 14% 4-star  
+      if (pct < 0.55) return 3;       // 33% 3-star
+      if (pct < 0.80) return 2;       // 25% 2-star
+      return 1;                        // 20% 1-star
+    }
+    // Standard distribution: 5% 5-star, 10% 4-star, 40% 3-star, 30% 2-star, 15% 1-star
+    if (pct < 0.05) return 5;
+    if (pct < 0.15) return 4;
+    if (pct < 0.55) return 3;
+    if (pct < 0.85) return 2;
+    return 1;
   };
 
   // Blue chips: top 1-3 recruits have all ratings revealed
-  const numBlueChips = Math.floor(Math.random() * 3) + 1; // 1-3 blue chips
+  const numBlueChips = Math.floor(Math.random() * 3) + 1;
 
-  // Gem/bust system: some players are rated higher/lower than their true ability
-  const getGemBustModifier = (): { rankMod: number; isGem: boolean; isBust: boolean } => {
+  // Gem/bust system adjusted by theme
+  const getGemBustModifier = (theme: RecruitingTheme): { isGem: boolean; isBust: boolean } => {
     const roll = Math.random();
-    if (roll < 0.08) return { rankMod: -15, isGem: true, isBust: false };  // 8% gems (ranked lower than ability)
-    if (roll < 0.16) return { rankMod: 15, isGem: false, isBust: true };   // 8% busts (ranked higher than ability)
-    return { rankMod: 0, isGem: false, isBust: false };
+    const gemChance = theme === "hidden_gems" ? 0.15 : 0.08; // Hidden gems theme has more gems
+    const bustChance = theme === "hidden_gems" ? 0.05 : 0.08; // Hidden gems theme has fewer busts
+    
+    if (roll < gemChance) return { isGem: true, isBust: false };
+    if (roll < gemChance + bustChance) return { isGem: false, isBust: true };
+    return { isGem: false, isBust: false };
   };
 
-  // Generate overall rating 1-999 based on star rank
-  const getOverallByStarRank = (starRank: number): number => {
-    // 5-star: 800-999, 4-star: 650-849, 3-star: 450-699, 2-star: 250-499, 1-star: 1-299
+  // New overall rating ranges per star rating (user specified)
+  // Blue Chips = 600-700, 5-star = 450-625, 4-star = 350-475, 3-star = 250-375, 2-star = 150-275, 1-star = <175
+  const getOverallByStarRank = (starRank: number, isBlueChip: boolean): number => {
+    if (isBlueChip) {
+      return 600 + Math.floor(Math.random() * 101); // 600-700
+    }
     switch (starRank) {
-      case 5: return 800 + Math.floor(Math.random() * 200);  // 800-999
-      case 4: return 650 + Math.floor(Math.random() * 200);  // 650-849
-      case 3: return 450 + Math.floor(Math.random() * 250);  // 450-699
-      case 2: return 250 + Math.floor(Math.random() * 250);  // 250-499
-      default: return 100 + Math.floor(Math.random() * 200); // 100-299
+      case 5: return 450 + Math.floor(Math.random() * 176); // 450-625
+      case 4: return 350 + Math.floor(Math.random() * 126); // 350-475
+      case 3: return 250 + Math.floor(Math.random() * 126); // 250-375
+      case 2: return 150 + Math.floor(Math.random() * 126); // 150-275
+      default: return 50 + Math.floor(Math.random() * 126);  // 50-175
     }
   };
 
@@ -1927,17 +1970,31 @@ async function generateRecruits(leagueId: string, count: number) {
     }
   };
 
+  // Theme-based attribute boosts
+  const getThemeBoost = (theme: RecruitingTheme, isPitcher: boolean): { attr: string; boost: number } => {
+    if (theme === "high_velocity" && isPitcher) {
+      return { attr: "velocity", boost: 15 };
+    }
+    if (theme === "sluggers" && !isPitcher) {
+      return { attr: "power", boost: 15 };
+    }
+    return { attr: "", boost: 0 };
+  };
+
   for (let i = 0; i < count; i++) {
-    const position = positions[Math.floor(Math.random() * positions.length)];
-    const { isGem, isBust } = getGemBustModifier();
-    const starRank = getStarRank(i, count);
+    // Determine position based on pitcher ratio
+    const isPitcher = Math.random() < pitcherRatio;
+    const position = isPitcher ? "P" : fieldPositions[Math.floor(Math.random() * fieldPositions.length)];
+    
+    const { isGem, isBust } = getGemBustModifier(theme);
+    const starRank = getStarRank(i, count, theme);
     const stateIdx = Math.floor(Math.random() * states.length);
     const isBlueChip = i < numBlueChips;
 
-    // Overall rating 1-999 correlates with star rank
-    const overall = getOverallByStarRank(starRank);
+    // Overall rating correlates with star rank
+    const overall = getOverallByStarRank(starRank, isBlueChip);
     
-    // Star rating is the actual star value (1-5) - same as starRank for display but stored separately
+    // Star rating displayed on the card
     const starRating = starRank;
     
     // Generate abilities based on position and star rating
@@ -1957,6 +2014,14 @@ async function generateRecruits(leagueId: string, count: number) {
       else recruitYear = "JR";
     }
 
+    // Apply theme boosts
+    const themeBoost = getThemeBoost(theme, isPitcher);
+    let velocity = 40 + Math.floor(Math.random() * 40);
+    let power = 40 + Math.floor(Math.random() * 40);
+    
+    if (themeBoost.attr === "velocity") velocity = Math.min(99, velocity + themeBoost.boost);
+    if (themeBoost.attr === "power") power = Math.min(99, power + themeBoost.boost);
+
     await storage.createRecruit({
       leagueId,
       firstName: firstNames[Math.floor(Math.random() * firstNames.length)],
@@ -1966,18 +2031,18 @@ async function generateRecruits(leagueId: string, count: number) {
       hometown: cities[stateIdx],
       starRank,
       classRank: i + 1,
-      positionRank: Math.floor(i / positions.length) + 1,
+      positionRank: Math.floor(i / 9) + 1, // 9 positions
       recruitType,
       recruitYear,
       overall,
       starRating,
       hitForAvg: 40 + Math.floor(Math.random() * 40),
-      power: 40 + Math.floor(Math.random() * 40),
+      power,
       speed: 40 + Math.floor(Math.random() * 40),
       arm: 40 + Math.floor(Math.random() * 40),
       fielding: 40 + Math.floor(Math.random() * 40),
       errorResistance: 40 + Math.floor(Math.random() * 40),
-      velocity: 40 + Math.floor(Math.random() * 40),
+      velocity,
       control: 40 + Math.floor(Math.random() * 40),
       stamina: 40 + Math.floor(Math.random() * 40),
       stuff: 40 + Math.floor(Math.random() * 40),
@@ -2018,28 +2083,72 @@ function getRandomAppearance() {
 async function generatePlayersForTeam(teamId: string) {
   const firstNames = ["Marcus", "Tyler", "Jordan", "Chris", "Devon", "Aaron", "Ryan", "Justin", "Brandon", "Cameron", "Dylan", "Jake", "Austin", "Kyle", "Cole", "Mason", "Logan", "Ethan", "Noah", "Caleb"];
   const lastNames = ["Johnson", "Williams", "Brown", "Davis", "Miller", "Wilson", "Moore", "Taylor", "Anderson", "Thomas", "Jackson", "White", "Harris", "Martin", "Thompson", "Garcia", "Martinez", "Robinson", "Clark", "Rodriguez"];
-  const positions = ["P", "P", "P", "P", "P", "C", "C", "1B", "2B", "SS", "3B", "LF", "CF", "RF", "LF", "RF"];
-  const eligibilities = ["FR", "FR", "SO", "SO", "JR", "JR", "JR", "SR", "SR"];
-  const states = ["CA", "TX", "FL", "GA", "NC"];
-  const cities = ["Los Angeles", "Houston", "Miami", "Atlanta", "Charlotte"];
+  const fieldPositions = ["C", "1B", "2B", "SS", "3B", "LF", "CF", "RF"];
+  const states = ["CA", "TX", "FL", "GA", "NC", "TN", "AZ", "LA", "AL", "SC"];
+  const cities = ["Los Angeles", "Houston", "Miami", "Atlanta", "Charlotte", "Nashville", "Phoenix", "New Orleans", "Birmingham", "Charleston"];
+
+  // Class balance: 6 SR, 6 JR, 7 SO, 6 FR = 25 total
+  const eligibilityDistribution = [
+    ...Array(6).fill("SR"),
+    ...Array(6).fill("JR"),
+    ...Array(7).fill("SO"),
+    ...Array(6).fill("FR"),
+  ];
+
+  // Position distribution: 12 pitchers, 2 catchers, 11 fielders (covers all positions)
+  const positionDistribution = [
+    ...Array(12).fill("P"), // 12 pitchers
+    ...Array(2).fill("C"),  // 2 catchers
+    "1B", "2B", "SS", "3B", // 4 infielders
+    "LF", "CF", "RF",       // 3 outfielders
+    "1B", "2B",             // 2 utility infielders
+  ];
+
+  // Shuffle the distributions for randomization
+  const shuffledEligibilities = [...eligibilityDistribution].sort(() => Math.random() - 0.5);
+  const shuffledPositions = [...positionDistribution].sort(() => Math.random() - 0.5);
+
+  // New overall rating ranges matching recruit generation
+  const getOverallByStarRank = (starRank: number): number => {
+    switch (starRank) {
+      case 5: return 450 + Math.floor(Math.random() * 176); // 450-625
+      case 4: return 350 + Math.floor(Math.random() * 126); // 350-475
+      case 3: return 250 + Math.floor(Math.random() * 126); // 250-375
+      case 2: return 150 + Math.floor(Math.random() * 126); // 150-275
+      default: return 50 + Math.floor(Math.random() * 126);  // 50-175
+    }
+  };
+
+  // Star rating distribution for roster players (weighted towards 2-4 stars)
+  const getStarRating = (): number => {
+    const roll = Math.random();
+    if (roll < 0.05) return 5;       // 5% 5-star
+    if (roll < 0.25) return 4;       // 20% 4-star
+    if (roll < 0.65) return 3;       // 40% 3-star
+    if (roll < 0.90) return 2;       // 25% 2-star
+    return 1;                         // 10% 1-star
+  };
 
   for (let i = 0; i < 25; i++) {
-    const position = positions[i % positions.length];
-    const eligibility = eligibilities[Math.floor(Math.random() * eligibilities.length)];
+    const position = shuffledPositions[i];
+    const eligibility = shuffledEligibilities[i];
     const stateIdx = Math.floor(Math.random() * states.length);
 
-    // Generate 1-999 overall rating and 1-5 star rating for players
-    const starRating = Math.floor(Math.random() * 3) + 2; // 2-4 stars for roster players
-    const overall = starRating === 4 ? 650 + Math.floor(Math.random() * 200) :
-                    starRating === 3 ? 450 + Math.floor(Math.random() * 250) :
-                    250 + Math.floor(Math.random() * 250);
+    // Generate star rating and overall
+    const starRating = getStarRating();
+    const overall = getOverallByStarRank(starRating);
 
-    // Generate abilities based on position
-    const abilityCount = Math.random() < 0.4 ? Math.floor(Math.random() * 2) : 0;
-    const abilities = getRandomAbilities(position, abilityCount);
+    // Generate abilities based on position and star rating
+    const abilityCount = starRating >= 4 ? Math.floor(Math.random() * 2) + 1 : 
+                         starRating === 3 ? Math.floor(Math.random() * 2) :
+                         Math.random() < 0.3 ? 1 : 0;
+    const abilities = getRandomAbilities(position, abilityCount, starRating >= 4);
 
     // Random appearance
     const appearance = getRandomAppearance();
+
+    // Generate common abilities (letter grades mapped from 30-90 range)
+    const genCommonAbility = () => 30 + Math.floor(Math.random() * 61);
 
     await storage.createPlayer({
       teamId,
@@ -2062,11 +2171,119 @@ async function generatePlayersForTeam(teamId: string) {
       control: 40 + Math.floor(Math.random() * 40),
       stamina: 40 + Math.floor(Math.random() * 40),
       stuff: 40 + Math.floor(Math.random() * 40),
+      clutch: genCommonAbility(),
+      vsLHP: genCommonAbility(),
+      grit: genCommonAbility(),
+      stealing: genCommonAbility(),
+      running: genCommonAbility(),
+      throwing: genCommonAbility(),
+      recovery: genCommonAbility(),
+      catcherAbility: position === "C" ? genCommonAbility() : null,
+      wRISP: genCommonAbility(),
+      vsLefty: genCommonAbility(),
+      poise: genCommonAbility(),
+      heater: genCommonAbility(),
+      agile: genCommonAbility(),
       abilities,
       skinTone: appearance.skinTone,
       hairColor: appearance.hairColor,
       hairStyle: appearance.hairStyle,
       headwear: appearance.headwear,
     });
+  }
+}
+
+// Generate veteran CPU coaches for teams that don't have a coach
+async function generateCpuCoaches(leagueId: string) {
+  const firstNames = ["Bob", "Jim", "Steve", "Mike", "Tom", "Bill", "Joe", "Dave", "Rick", "Jack", "Paul", "John", "Mark", "Dan", "Pete", "Tony", "Ray", "Frank", "Ed", "Gary"];
+  const lastNames = ["Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Rodriguez", "Martinez", "Hernandez", "Lopez", "Gonzalez", "Wilson", "Anderson", "Thomas", "Taylor", "Moore", "Jackson", "Martin"];
+  const archetypes = ["Balanced", "Pure CEO", "Player's Coach", "Tactician", "Old School"];
+
+  const teams = await storage.getTeamsByLeague(leagueId);
+  
+  for (const team of teams) {
+    // Skip if team already has a coach
+    if (team.coachId) continue;
+    
+    // Generate random veteran experience (5-25 seasons of experience)
+    const seasonsExperience = 5 + Math.floor(Math.random() * 21);
+    
+    // Calculate level based on experience (1 level per 2 seasons on average, with variance)
+    const level = Math.min(25, Math.max(1, Math.floor(seasonsExperience * 0.4 + Math.random() * 5)));
+    
+    // XP is level * 1000 (they've already leveled up)
+    const xp = level * 1000;
+    
+    // Generate skill points - total skill points = level (each level gives 1 point)
+    // Distribute across 4 skill trees (1-4 max per tree)
+    const distributeSkillPoints = (totalPoints: number): [number, number, number, number] => {
+      const skills: [number, number, number, number] = [1, 1, 1, 1]; // Start at 1 each
+      let remaining = totalPoints;
+      
+      while (remaining > 0) {
+        const idx = Math.floor(Math.random() * 4);
+        if (skills[idx] < 4) {
+          skills[idx]++;
+          remaining--;
+        } else if (skills.every(s => s >= 4)) {
+          break; // Max all skills reached
+        }
+      }
+      return skills;
+    };
+    
+    const [scoutingSkill, evaluationSkill, pitchingRecruitingSkill, hittingRecruitingSkill] = distributeSkillPoints(level);
+    
+    // Generate career stats based on experience
+    const winsPerSeason = 20 + Math.floor(Math.random() * 25);
+    const lossesPerSeason = 45 - winsPerSeason + Math.floor(Math.random() * 10);
+    const careerWins = seasonsExperience * winsPerSeason + Math.floor(Math.random() * 50);
+    const careerLosses = seasonsExperience * lossesPerSeason + Math.floor(Math.random() * 50);
+    
+    // Conference record (slightly less than overall)
+    const confWins = Math.floor(careerWins * 0.4 + Math.random() * careerWins * 0.1);
+    const confLosses = Math.floor(careerLosses * 0.4 + Math.random() * careerLosses * 0.1);
+    
+    // Achievements based on experience and randomness
+    const confChampionships = Math.floor(Math.random() * Math.min(seasonsExperience * 0.15, 5));
+    const cwsAppearances = Math.floor(Math.random() * Math.min(seasonsExperience * 0.2, 8));
+    const nationalChampionships = Math.random() < 0.1 ? (Math.random() < 0.5 ? 1 : 2) : 0;
+    const coachOfYearAwards = Math.floor(Math.random() * Math.min(seasonsExperience * 0.05, 3));
+    const allAmericans = Math.floor(seasonsExperience * 0.5 + Math.random() * 10);
+    const draftPicks = Math.floor(seasonsExperience * 2 + Math.random() * 20);
+    
+    // Random appearance
+    const appearance = getRandomAppearance();
+    
+    const coach = await storage.createCoach({
+      userId: null, // CPU coach - no user
+      teamId: team.id,
+      leagueId,
+      firstName: firstNames[Math.floor(Math.random() * firstNames.length)],
+      lastName: lastNames[Math.floor(Math.random() * lastNames.length)],
+      archetype: archetypes[Math.floor(Math.random() * archetypes.length)],
+      level,
+      xp,
+      scoutingSkill,
+      evaluationSkill,
+      pitchingRecruitingSkill,
+      hittingRecruitingSkill,
+      skinTone: appearance.skinTone,
+      hairColor: appearance.hairColor,
+      hairStyle: appearance.hairStyle,
+      careerWins,
+      careerLosses,
+      confWins,
+      confLosses,
+      confChampionships,
+      cwsAppearances,
+      nationalChampionships,
+      coachOfYearAwards,
+      allAmericans,
+      draftPicks,
+    });
+    
+    // Link coach to team
+    await storage.updateTeam(team.id, { coachId: coach.id });
   }
 }

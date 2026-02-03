@@ -31,7 +31,9 @@ import {
   X,
   Save,
   Bookmark,
-  Trash2
+  Trash2,
+  Gem,
+  XCircle
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -641,6 +643,26 @@ function RecruitRow({
                 <Badge variant="outline" className="text-[8px] border-gold/50 text-gold">
                   {isFullyRevealed ? `${totalAbilities} Abilities` : `${revealedAbilitiesCount}/${totalAbilities > revealedAbilitiesCount ? "?" : totalAbilities}`}
                 </Badge>
+              )}
+              {isFullyRevealed && recruit.isGem && (
+                <Tooltip>
+                  <TooltipTrigger>
+                    <div className="flex items-center justify-center w-5 h-5 bg-green-500/20 rounded-full">
+                      <Gem className="w-3 h-3 text-green-400" />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>Gem - Better than ranking suggests</TooltipContent>
+                </Tooltip>
+              )}
+              {isFullyRevealed && recruit.isBust && (
+                <Tooltip>
+                  <TooltipTrigger>
+                    <div className="flex items-center justify-center w-5 h-5 bg-red-500/20 rounded-full">
+                      <XCircle className="w-3 h-3 text-red-400" />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>Bust - Worse than ranking suggests</TooltipContent>
+                </Tooltip>
               )}
             </div>
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
