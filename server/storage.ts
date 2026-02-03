@@ -17,7 +17,7 @@ import {
   type DynastyNews, type InsertDynastyNews,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, or } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -61,6 +61,7 @@ export interface IStorage {
   updateRecruitingInterest(id: string, data: Partial<RecruitingInterest>): Promise<RecruitingInterest | undefined>;
 
   getGamesByLeague(leagueId: string): Promise<Game[]>;
+  getGamesByTeam(teamId: string): Promise<Game[]>;
   createGame(game: InsertGame): Promise<Game>;
   updateGame(id: string, data: Partial<Game>): Promise<Game | undefined>;
 
@@ -238,6 +239,12 @@ export class DatabaseStorage implements IStorage {
 
   async getGamesByLeague(leagueId: string): Promise<Game[]> {
     return await db.select().from(games).where(eq(games.leagueId, leagueId));
+  }
+
+  async getGamesByTeam(teamId: string): Promise<Game[]> {
+    return await db.select().from(games).where(
+      or(eq(games.homeTeamId, teamId), eq(games.awayTeamId, teamId))
+    ).orderBy(games.week);
   }
 
   async createGame(insertGame: InsertGame): Promise<Game> {

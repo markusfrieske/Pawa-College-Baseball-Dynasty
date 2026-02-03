@@ -1220,11 +1220,43 @@ export async function registerRoutes(
 
       const coach = team.coachId ? await storage.getCoach(team.coachId) : undefined;
       const teamPlayers = await storage.getPlayersByTeam(team.id);
+      const teamGames = await storage.getGamesByTeam(team.id);
+      const allTeams = await storage.getTeamsByLeague(req.params.id as string);
+
+      // Enrich games with team info
+      const gamesWithTeams = teamGames.map(game => {
+        const homeTeam = allTeams.find(t => t.id === game.homeTeamId);
+        const awayTeam = allTeams.find(t => t.id === game.awayTeamId);
+        return {
+          ...game,
+          homeTeam: homeTeam ? { name: homeTeam.name, abbreviation: homeTeam.abbreviation } : undefined,
+          awayTeam: awayTeam ? { name: awayTeam.name, abbreviation: awayTeam.abbreviation } : undefined,
+        };
+      });
+
+      // Calculate record
+      let wins = 0, losses = 0, conferenceWins = 0, conferenceLosses = 0;
+      teamGames.forEach(game => {
+        if (game.homeScore !== null && game.awayScore !== null) {
+          const isHome = game.homeTeamId === team.id;
+          const ourScore = isHome ? game.homeScore : game.awayScore;
+          const theirScore = isHome ? game.awayScore : game.homeScore;
+          if (ourScore > theirScore) {
+            wins++;
+            if (game.isConferenceGame) conferenceWins++;
+          } else {
+            losses++;
+            if (game.isConferenceGame) conferenceLosses++;
+          }
+        }
+      });
 
       res.json({
         ...team,
         coach,
         players: teamPlayers,
+        games: gamesWithTeams,
+        record: { wins, losses, conferenceWins, conferenceLosses },
       });
     } catch (error) {
       console.error("Failed to fetch team:", error);
