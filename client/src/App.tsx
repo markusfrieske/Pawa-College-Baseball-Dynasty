@@ -16,6 +16,7 @@ import CommissionerPage from "@/pages/commissioner";
 import RosterPage from "@/pages/roster";
 import LeagueSetupPage from "@/pages/league-setup";
 import DynastySetupPage from "@/pages/dynasty-setup";
+import TeamSelectionPage from "@/pages/team-selection";
 import InvitePage from "@/pages/invite";
 import CoachProfilePage, { CoachProfileByIdPage } from "@/pages/coach-profile";
 import RecruitProfilePage from "@/pages/recruit-profile";
@@ -36,6 +37,7 @@ function Router() {
       <Route path="/dashboard" component={DashboardPage} />
       <Route path="/league/create" component={LeagueCreatePage} />
       <Route path="/league/:id" component={LeagueViewPage} />
+      <Route path="/league/:id/team-selection" component={TeamSelectionPage} />
       <Route path="/league/:id/setup" component={LeagueSetupPage} />
       <Route path="/league/:id/dynasty-setup" component={DynastySetupPage} />
       <Route path="/league/:id/recruiting" component={RecruitingPage} />

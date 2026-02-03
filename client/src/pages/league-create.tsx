@@ -70,9 +70,9 @@ export default function LeagueCreatePage() {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues"] });
       toast({
         title: "Dynasty Created!",
-        description: `${name} has been created. Time to set up your team!`,
+        description: `${name} has been created. Now select your teams!`,
       });
-      setLocation(`/league/${league.id}/setup`);
+      setLocation(`/league/${league.id}/team-selection`);
     },
     onError: (error: Error) => {
       toast({

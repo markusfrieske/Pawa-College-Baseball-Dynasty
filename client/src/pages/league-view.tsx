@@ -288,11 +288,19 @@ function StandingsTab({ league }: { league: LeagueDetails }) {
                       {team.coach ? (
                         <Link href={`/league/${league.id}/coach/${team.coach.id}`}>
                           <div className="flex items-center gap-2 hover:text-gold cursor-pointer">
-                            <User className="w-3 h-3 text-gold" />
+                            {team.coach.userId ? (
+                              <User className="w-3 h-3 text-gold" />
+                            ) : (
+                              <Cpu className="w-3 h-3 text-orange-400" />
+                            )}
                             <div>
                               <span className="text-foreground hover:text-gold">{team.coach.firstName} {team.coach.lastName}</span>
-                              {team.user && (
-                                <span className="text-xs text-muted-foreground ml-1">({team.user.email.split("@")[0]})</span>
+                              {team.coach.userId ? (
+                                team.user && (
+                                  <span className="text-xs text-muted-foreground ml-1">({team.user.email.split("@")[0]})</span>
+                                )
+                              ) : (
+                                <span className="text-xs text-orange-400 ml-1">(CPU)</span>
                               )}
                             </div>
                           </div>
@@ -796,13 +804,13 @@ function ReadyButton({ leagueId }: { leagueId: string }) {
 
 function SeasonProgressBar({ phase }: { phase: string }) {
   const phases = [
-    { key: "preseason", label: "Pre", icon: "🏃" },
-    { key: "spring_training", label: "Train", icon: "⚾" },
-    { key: "recruiting", label: "Recruit", icon: "📋" },
-    { key: "regular_season", label: "Season", icon: "🏟️" },
-    { key: "super_regionals", label: "Supers", icon: "🏆" },
-    { key: "cws", label: "CWS", icon: "🎉" },
-    { key: "offseason", label: "Off", icon: "📝" },
+    { key: "preseason", label: "Preseason" },
+    { key: "spring_training", label: "Spring" },
+    { key: "regular_season", label: "Reg Season" },
+    { key: "conference_championship", label: "Conf Champs" },
+    { key: "super_regionals", label: "Super Region" },
+    { key: "cws", label: "CWS" },
+    { key: "offseason", label: "Offseason" },
   ];
 
   const offseasonPhases = ["players_leaving", "offseason_recruiting_1", "offseason_recruiting_2", 

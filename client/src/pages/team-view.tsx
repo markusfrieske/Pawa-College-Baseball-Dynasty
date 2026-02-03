@@ -441,7 +441,7 @@ function ScheduleTab({ team, leagueId }: { team: TeamDetails; leagueId: string }
       <RetroCardContent>
         {games.length > 0 ? (
           <div className="space-y-2">
-            {games.slice(0, 10).map((game) => {
+            {games.map((game) => {
               const { prefix, opponentName } = getOpponentInfo(game);
               const result = getGameResult(game);
               
@@ -670,77 +670,85 @@ function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string;
 
 function RosterTab({ team, onSelectPlayer }: { team: TeamDetails; onSelectPlayer: (player: Player) => void }) {
   const players = team.players || [];
-  const positions = ["P", "C", "1B", "2B", "SS", "3B", "LF", "CF", "RF"];
 
-  const sortedPlayers = [...players].sort((a, b) => {
-    const posA = positions.indexOf(a.position);
-    const posB = positions.indexOf(b.position);
-    if (posA !== posB) return posA - posB;
-    return b.overall - a.overall;
-  });
+  const pitchers = players.filter(p => p.position === "P").sort((a, b) => b.overall - a.overall);
+  const catchers = players.filter(p => p.position === "C").sort((a, b) => b.overall - a.overall);
+  const infielders = players.filter(p => ["1B", "2B", "SS", "3B"].includes(p.position)).sort((a, b) => b.overall - a.overall);
+  const outfielders = players.filter(p => ["LF", "CF", "RF"].includes(p.position)).sort((a, b) => b.overall - a.overall);
+
+  const positionGroups = [
+    { label: "Pitchers", players: pitchers },
+    { label: "Catchers", players: catchers },
+    { label: "Infielders", players: infielders },
+    { label: "Outfielders", players: outfielders },
+  ];
 
   return (
-    <RetroCard>
-      <RetroCardHeader className="flex items-center justify-between gap-4">
-        <span>Roster</span>
-        <span className="text-muted-foreground text-[8px]">{players.length} Players</span>
-      </RetroCardHeader>
+    <div className="space-y-4">
+      {positionGroups.map(group => (
+        <RetroCard key={group.label}>
+          <RetroCardHeader className="flex items-center justify-between gap-4">
+            <span>{group.label}</span>
+            <span className="text-muted-foreground text-[8px]">{group.players.length} Players</span>
+          </RetroCardHeader>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border text-muted-foreground">
-              <th className="text-left py-3 px-2">#</th>
-              <th className="text-left py-3 px-2">Name</th>
-              <th className="text-center py-3 px-2">Pos</th>
-              <th className="text-center py-3 px-2">Year</th>
-              <th className="text-center py-3 px-2">OVR</th>
-              <th className="text-center py-3 px-2">Rank</th>
-              <th className="text-left py-3 px-2 hidden sm:table-cell">Hometown</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sortedPlayers.map((player) => (
-              <tr 
-                key={player.id} 
-                className="border-b border-border/50 hover:bg-card/50 cursor-pointer transition-colors"
-                onClick={() => onSelectPlayer(player)}
-                data-testid={`row-player-${player.id}`}
-              >
-                <td className="py-3 px-2 text-muted-foreground">{player.jerseyNumber}</td>
-                <td className="py-3 px-2 font-medium">
-                  {player.firstName} {player.lastName}
-                </td>
-                <td className="text-center py-3 px-2">
-                  <Badge variant="outline" className="text-[10px]">
-                    {player.position}
-                  </Badge>
-                </td>
-                <td className="text-center py-3 px-2 text-muted-foreground">
-                  {player.eligibility}
-                </td>
-                <td className="text-center py-3 px-2">
-                  <span className="font-bold text-gold">{player.overall}</span>
-                </td>
-                <td className="text-center py-3 px-2">
-                  <span className={`font-pixel text-[10px] ${
-                    player.starRating >= 4
-                      ? "text-gold"
-                      : player.starRating >= 3
-                      ? "text-blue-400"
-                      : "text-muted-foreground"
-                  }`}>
-                    {"★".repeat(player.starRating || 1)}
-                  </span>
-                </td>
-                <td className="py-3 px-2 text-muted-foreground hidden sm:table-cell">
-                  {player.hometown}, {player.homeState}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-muted-foreground">
+                  <th className="text-left py-3 px-2">#</th>
+                  <th className="text-left py-3 px-2">Name</th>
+                  <th className="text-center py-3 px-2">Pos</th>
+                  <th className="text-center py-3 px-2">Year</th>
+                  <th className="text-center py-3 px-2">OVR</th>
+                  <th className="text-center py-3 px-2">Rank</th>
+                  <th className="text-left py-3 px-2 hidden sm:table-cell">Hometown</th>
+                </tr>
+              </thead>
+              <tbody>
+                {group.players.map((player) => (
+                  <tr 
+                    key={player.id} 
+                    className="border-b border-border/50 hover:bg-card/50 cursor-pointer transition-colors"
+                    onClick={() => onSelectPlayer(player)}
+                    data-testid={`row-player-${player.id}`}
+                  >
+                    <td className="py-3 px-2 text-muted-foreground">{player.jerseyNumber}</td>
+                    <td className="py-3 px-2 font-medium">
+                      {player.firstName} {player.lastName}
+                    </td>
+                    <td className="text-center py-3 px-2">
+                      <Badge variant="outline" className="text-[10px]">
+                        {player.position}
+                      </Badge>
+                    </td>
+                    <td className="text-center py-3 px-2 text-muted-foreground">
+                      {player.eligibility}
+                    </td>
+                    <td className="text-center py-3 px-2">
+                      <span className="font-bold text-gold">{player.overall}</span>
+                    </td>
+                    <td className="text-center py-3 px-2">
+                      <span className={`font-pixel text-[10px] ${
+                        player.starRating >= 4
+                          ? "text-gold"
+                          : player.starRating >= 3
+                          ? "text-blue-400"
+                          : "text-muted-foreground"
+                      }`}>
+                        {"★".repeat(player.starRating || 1)}
+                      </span>
+                    </td>
+                    <td className="py-3 px-2 text-muted-foreground hidden sm:table-cell">
+                      {player.hometown}, {player.homeState}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </RetroCard>
+      ))}
 
       {players.length === 0 && (
         <div className="text-center py-12 text-muted-foreground">
@@ -748,7 +756,7 @@ function RosterTab({ team, onSelectPlayer }: { team: TeamDetails; onSelectPlayer
           <p>No players on roster yet</p>
         </div>
       )}
-    </RetroCard>
+    </div>
   );
 }
 

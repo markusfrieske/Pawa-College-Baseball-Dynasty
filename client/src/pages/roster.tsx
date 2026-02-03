@@ -634,13 +634,15 @@ function DepthChartView({ players, onSelectPlayer }: { players: Player[]; onSele
                       className="group"
                       data-testid={`depth-${pos}-starter`}
                     >
-                      <div className="w-10 h-10 mx-auto mb-1">
-                        <PlayerPortrait
-                          skinTone={starter.skinTone || "light"}
-                          hairColor={starter.hairColor || "brown"}
-                          hairStyle={starter.hairStyle || "short"}
-                          className="w-10 h-10 border-2 border-gold rounded-full group-hover:border-white transition-colors"
-                        />
+                      <div className="w-12 h-12 mx-auto mb-1 rotate-45 overflow-hidden border-2 border-gold group-hover:border-white transition-colors">
+                        <div className="-rotate-45 scale-125">
+                          <PlayerPortrait
+                            skinTone={starter.skinTone || "light"}
+                            hairColor={starter.hairColor || "brown"}
+                            hairStyle={starter.hairStyle || "short"}
+                            className="w-12 h-12"
+                          />
+                        </div>
                       </div>
                       <div className="text-[8px] text-white truncate max-w-[60px]">
                         {starter.lastName}
@@ -648,8 +650,8 @@ function DepthChartView({ players, onSelectPlayer }: { players: Player[]; onSele
                       <div className="text-[10px] font-bold text-gold">{starter.overall}</div>
                     </button>
                   ) : (
-                    <div className="w-10 h-10 mx-auto border-2 border-dashed border-white/30 rounded-full flex items-center justify-center">
-                      <span className="text-white/30 text-[10px]">?</span>
+                    <div className="w-10 h-10 mx-auto border-2 border-dashed border-white/30 rotate-45 flex items-center justify-center">
+                      <span className="text-white/30 text-[10px] -rotate-45">?</span>
                     </div>
                   )}
                   {posPlayers.length > 1 && (

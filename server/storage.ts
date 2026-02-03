@@ -20,7 +20,7 @@ import {
   type RecruitTopSchools, type InsertRecruitTopSchools,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, or } from "drizzle-orm";
+import { eq, and, desc, or, inArray } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -59,6 +59,7 @@ export interface IStorage {
   deleteRecruitsByLeague(leagueId: string): Promise<void>;
 
   getRecruitingInterestsByTeam(teamId: string): Promise<RecruitingInterest[]>;
+  getRecruitingInterestsByLeague(leagueId: string): Promise<RecruitingInterest[]>;
   getRecruitingInterest(recruitId: string, teamId: string): Promise<RecruitingInterest | undefined>;
   createRecruitingInterest(interest: InsertRecruitingInterest): Promise<RecruitingInterest>;
   updateRecruitingInterest(id: string, data: Partial<RecruitingInterest>): Promise<RecruitingInterest | undefined>;
@@ -233,6 +234,13 @@ export class DatabaseStorage implements IStorage {
 
   async getRecruitingInterestsByTeam(teamId: string): Promise<RecruitingInterest[]> {
     return await db.select().from(recruitingInterests).where(eq(recruitingInterests.teamId, teamId));
+  }
+
+  async getRecruitingInterestsByLeague(leagueId: string): Promise<RecruitingInterest[]> {
+    const leagueTeams = await db.select().from(teams).where(eq(teams.leagueId, leagueId));
+    const teamIds = leagueTeams.map(t => t.id);
+    if (teamIds.length === 0) return [];
+    return await db.select().from(recruitingInterests).where(inArray(recruitingInterests.teamId, teamIds));
   }
 
   async getRecruitingInterest(recruitId: string, teamId: string): Promise<RecruitingInterest | undefined> {

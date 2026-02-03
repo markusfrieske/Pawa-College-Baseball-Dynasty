@@ -1031,7 +1031,7 @@ function RecruitRow({
                 <TeamBadge
                   abbreviation={school.abbreviation}
                   primaryColor={school.primaryColor}
-                  size="xs"
+                  size="sm"
                 />
                 <span className="text-[10px] text-muted-foreground w-8">{school.abbreviation}</span>
                 <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">

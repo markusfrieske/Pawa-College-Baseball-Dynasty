@@ -234,32 +234,7 @@ export async function registerRoutes(
         await storage.createConference({ leagueId: league.id, name: confName });
       }
 
-      // Create ALL teams for each conference - let users choose which ones to include
-      const conferences = await storage.getConferencesByLeague(league.id);
-
-      for (const conf of conferences) {
-        const conferenceTeamPool = getTeamsForConference(conf.name);
-        
-        // Create ALL teams in the conference pool
-        for (const teamData of conferenceTeamPool) {
-          const team = await storage.createTeam({
-            ...teamData,
-            leagueId: league.id,
-            conferenceId: conf.id,
-            isCpu: true,
-          });
-          
-          // Create standings for this team
-          await storage.createStandings({
-            leagueId: league.id,
-            teamId: team.id,
-            season: 1,
-          });
-        }
-      }
-
-      // Create recruits
-      await generateRecruits(league.id, 50);
+      // DON'T create teams yet - let users select specific teams in dynasty-setup
 
       await storage.createAuditLog({
         leagueId: league.id,
@@ -318,9 +293,102 @@ export async function registerRoutes(
     }
   });
 
+  // Dynasty setup - get available team templates for selecting which teams to include
+  app.get("/api/leagues/:id/dynasty-setup", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id as string);
+      if (!league) {
+        return res.status(404).json({ message: "League not found" });
+      }
+
+      const conferences = await storage.getConferencesByLeague(league.id);
+      
+      // Return team templates (not DB teams) for each conference
+      const conferenceTeamPools = conferences.map(conf => ({
+        conference: conf,
+        teams: getTeamsForConference(conf.name),
+      }));
+      
+      res.json({ 
+        league,
+        conferences,
+        conferenceTeamPools,
+      });
+    } catch (error) {
+      console.error("Failed to fetch dynasty setup data:", error);
+      res.status(500).json({ message: "Failed to fetch dynasty setup data" });
+    }
+  });
+
+  // Dynasty setup - create selected teams
+  app.post("/api/leagues/:id/dynasty-setup", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const league = await storage.getLeague(req.params.id as string);
+      if (!league) {
+        return res.status(404).json({ message: "League not found" });
+      }
+
+      if (league.commissionerId !== userId) {
+        return res.status(403).json({ message: "Only the commissioner can set up the dynasty" });
+      }
+
+      const { selectedTeams } = req.body as { selectedTeams: { conferenceId: string; teamNames: string[] }[] };
+      
+      if (!selectedTeams || !Array.isArray(selectedTeams)) {
+        return res.status(400).json({ message: "Invalid selected teams data" });
+      }
+
+      const conferences = await storage.getConferencesByLeague(league.id);
+      let totalTeamsCreated = 0;
+
+      for (const selection of selectedTeams) {
+        const conf = conferences.find(c => c.id === selection.conferenceId);
+        if (!conf) continue;
+
+        const conferenceTeamPool = getTeamsForConference(conf.name);
+        
+        for (const teamName of selection.teamNames) {
+          const teamData = conferenceTeamPool.find(t => t.name === teamName);
+          if (!teamData) continue;
+
+          const team = await storage.createTeam({
+            ...teamData,
+            leagueId: league.id,
+            conferenceId: conf.id,
+            isCpu: true,
+          });
+
+          await storage.createStandings({
+            leagueId: league.id,
+            teamId: team.id,
+            season: 1,
+          });
+
+          totalTeamsCreated++;
+        }
+      }
+
+      // Generate recruits now that teams exist
+      await generateRecruits(league.id, 50);
+
+      await storage.createAuditLog({
+        leagueId: league.id,
+        userId,
+        action: "Teams Selected",
+        details: `${totalTeamsCreated} teams added to the dynasty`,
+      });
+
+      res.json({ success: true, teamsCreated: totalTeamsCreated });
+    } catch (error) {
+      console.error("Dynasty setup failed:", error);
+      res.status(500).json({ message: "Dynasty setup failed" });
+    }
+  });
+
   app.get("/api/leagues/:id/setup", requireAuth, async (req, res) => {
     try {
-      const league = await storage.getLeague(req.params.id);
+      const league = await storage.getLeague(req.params.id as string);
       if (!league) {
         return res.status(404).json({ message: "League not found" });
       }
@@ -1359,6 +1427,9 @@ export async function registerRoutes(
         !g.isComplete
       );
 
+      // Get all recruiting interests for accurate action counts
+      const allInterests = await storage.getRecruitingInterestsByLeague(league.id);
+
       const readyStatus = teams.map(team => {
         const coach = coaches.find(c => c.teamId === team.id);
         const isHumanControlled = !!coach?.userId;
@@ -1370,6 +1441,11 @@ export async function registerRoutes(
         const hasReportedScores = pendingGames.length === 0 || 
           pendingGames.every(g => g.homeScore !== null && g.awayScore !== null);
 
+        // Calculate actual scout and recruit actions from interests
+        const teamInterests = allInterests.filter(i => i.teamId === team.id);
+        const scoutActionsUsed = teamInterests.filter(i => i.scoutPercentage > 0).length;
+        const recruitActionsUsed = teamInterests.filter(i => i.interestLevel > 0).length;
+
         return {
           teamId: team.id,
           teamName: team.name,
@@ -1378,8 +1454,8 @@ export async function registerRoutes(
           userId: coach?.userId ?? null,
           coachName: coach ? `${coach.firstName} ${coach.lastName}` : "CPU",
           isReady: coach?.isReady ?? false,
-          scoutActionsUsed: coach?.scoutActionsUsed ?? 0,
-          recruitActionsUsed: coach?.recruitActionsUsed ?? 0,
+          scoutActionsUsed,
+          recruitActionsUsed,
           hasReportedScores,
         };
       });
