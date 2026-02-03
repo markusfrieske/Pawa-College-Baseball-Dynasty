@@ -1139,6 +1139,56 @@ export async function registerRoutes(
     }
   });
 
+  // Upgrade a coach skill
+  app.post("/api/leagues/:id/coach/upgrade-skill", requireAuth, async (req, res) => {
+    try {
+      const { skill } = req.body;
+      const validSkills = ["scouting", "evaluation", "pitching", "hitting"];
+      
+      if (!validSkills.includes(skill)) {
+        return res.status(400).json({ message: "Invalid skill type" });
+      }
+      
+      const userId = req.session.userId;
+      const coaches = await storage.getCoachesByLeague(req.params.id);
+      const userCoach = coaches.find((c) => c.userId === userId);
+      
+      if (!userCoach) {
+        return res.status(404).json({ message: "No coach found for this user" });
+      }
+      
+      if ((userCoach.skillPoints || 0) < 1) {
+        return res.status(400).json({ message: "Not enough skill points" });
+      }
+      
+      // Get current skill level and check max
+      const skillFieldMap: Record<string, keyof typeof userCoach> = {
+        scouting: "scoutingSkill",
+        evaluation: "evaluationSkill",
+        pitching: "pitchingRecruitingSkill",
+        hitting: "hittingRecruitingSkill",
+      };
+      
+      const skillField = skillFieldMap[skill];
+      const currentLevel = (userCoach[skillField] as number) || 1;
+      
+      if (currentLevel >= 10) {
+        return res.status(400).json({ message: "Skill already at maximum level" });
+      }
+      
+      // Update coach
+      const updatedCoach = await storage.updateCoach(userCoach.id, {
+        [skillField]: currentLevel + 1,
+        skillPoints: (userCoach.skillPoints || 0) - 1,
+      });
+      
+      res.json({ coach: updatedCoach });
+    } catch (error) {
+      console.error("Failed to upgrade skill:", error);
+      res.status(500).json({ message: "Failed to upgrade skill" });
+    }
+  });
+
   // View any coach by ID (for viewing other coaches)
   app.get("/api/coaches/:coachId", requireAuth, async (req, res) => {
     try {
@@ -2450,6 +2500,89 @@ async function generateRecruits(leagueId: string, count: number) {
       hairStyle: appearance.hairStyle,
       headwear: appearance.headwear,
     });
+  }
+  
+  // After all recruits are created, generate top schools for each
+  await generateTopSchoolsForLeague(leagueId);
+}
+
+// Generate top schools for all recruits in a league based on their priorities
+async function generateTopSchoolsForLeague(leagueId: string) {
+  const teams = await storage.getTeamsByLeague(leagueId);
+  const recruits = await storage.getRecruitsByLeague(leagueId);
+  
+  // Priority weight mapping
+  const priorityWeight = (priority: string | null): number => {
+    switch (priority) {
+      case "Extremely": return 4;
+      case "Very": return 3;
+      case "Somewhat": return 2;
+      case "Not Important": return 1;
+      default: return 2;
+    }
+  };
+  
+  for (const recruit of recruits) {
+    // Score each team based on how well they match recruit priorities
+    const teamScores = teams.map(team => {
+      let score = 0;
+      
+      // Proximity: Higher scores for teams in same state (proximity priority matters)
+      const proximityWeight = priorityWeight(recruit.proximityPriority);
+      if (recruit.homeState === team.state) {
+        score += 30 * proximityWeight;
+      } else {
+        // Nearby states logic (simplified)
+        score += 10 * proximityWeight;
+      }
+      
+      // Academics: Match team's academics attribute (1-10 scale)
+      const academicsWeight = priorityWeight(recruit.academicsPriority);
+      score += (team.academics || 5) * 3 * academicsWeight;
+      
+      // Prestige: Match team's prestige rating (1-10 scale)
+      const prestigeWeight = priorityWeight(recruit.prestigePriority);
+      score += (team.prestige || 5) * 3 * prestigeWeight;
+      
+      // Facilities: Match team's facilities rating (1-10 scale)
+      const facilitiesWeight = priorityWeight(recruit.facilitiesPriority);
+      score += (team.facilities || 5) * 3 * facilitiesWeight;
+      
+      // Reputation: Match team's overall program reputation (using prestige + facilities as proxy)
+      const reputationWeight = priorityWeight(recruit.reputationPriority);
+      score += ((team.prestige || 5) + (team.facilities || 5)) * 1.5 * reputationWeight;
+      
+      // Playing time: Lower prestige teams often offer more playing time
+      const playingTimeWeight = priorityWeight(recruit.playingTimePriority);
+      score += (10 - (team.prestige || 5)) * 2 * playingTimeWeight;
+      
+      // Add some randomness to create variety
+      score += Math.floor(Math.random() * 20);
+      
+      return { team, score };
+    });
+    
+    // Sort by score descending and take top 5-8 teams as top schools
+    const sortedTeams = teamScores.sort((a, b) => b.score - a.score);
+    const numTopSchools = 5 + Math.floor(Math.random() * 4); // 5-8 schools
+    const topSchools = sortedTeams.slice(0, Math.min(numTopSchools, teams.length));
+    
+    // Create top school entries with interest levels proportional to score
+    const maxScore = topSchools[0]?.score || 100;
+    for (let i = 0; i < topSchools.length; i++) {
+      const { team, score } = topSchools[i];
+      // Interest level: 30-80 range based on score relative to top score
+      const interestLevel = Math.floor(30 + (score / maxScore) * 50);
+      
+      await storage.createRecruitTopSchool({
+        recruitId: recruit.id,
+        teamId: team.id,
+        interestLevel: Math.min(80, interestLevel),
+        rank: i + 1,
+        isActive: true,
+        accumulatedInterest: 0,
+      });
+    }
   }
 }
 

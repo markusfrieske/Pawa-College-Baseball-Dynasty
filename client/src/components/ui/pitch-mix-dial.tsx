@@ -1,4 +1,4 @@
-interface PitchMixDialProps {
+interface PitchMixListProps {
   pitches: {
     name: string;
     rating: number;
@@ -18,16 +18,10 @@ const pitchLabels: Record<string, string> = {
 
 const pitchOrder = ["FB", "SL", "CB", "CH", "CT", "SNK", "SPL"];
 
-export function PitchMixDial({ pitches, className = "" }: PitchMixDialProps) {
-  const centerX = 80;
-  const centerY = 90;
-  const maxRadius = 55;
-  const minRadius = 10;
-
+export function PitchMixDial({ pitches, className = "" }: PitchMixListProps) {
   const activePitches = pitches.filter(p => p.rating > 0);
-  const numPitches = activePitches.length;
   
-  if (numPitches === 0) {
+  if (activePitches.length === 0) {
     return (
       <div className={`${className}`} data-testid="pitch-mix-dial">
         <div className="text-center text-muted-foreground text-xs">No pitches</div>
@@ -35,140 +29,26 @@ export function PitchMixDial({ pitches, className = "" }: PitchMixDialProps) {
     );
   }
 
-  const angleStep = (2 * Math.PI) / Math.max(numPitches, 1);
-  const startAngle = -Math.PI / 2;
-
-  const getCoordinates = (angle: number, radius: number) => ({
-    x: centerX + radius * Math.cos(angle),
-    y: centerY + radius * Math.sin(angle),
-  });
-
-  const getRatingRadius = (rating: number) => {
-    const normalized = Math.min(7, Math.max(1, rating));
-    return minRadius + ((normalized - 1) / 6) * (maxRadius - minRadius);
-  };
-
   const getRatingColor = (rating: number) => {
-    if (rating >= 6) return "#C4A35A";
-    if (rating >= 4) return "#60a5fa";
-    if (rating >= 2) return "#a78bfa";
-    return "#94a3b8";
+    if (rating >= 6) return "text-gold";
+    if (rating >= 4) return "text-blue-400";
+    if (rating >= 2) return "text-purple-400";
+    return "text-muted-foreground";
   };
-
-  const ringRadii = [1, 2, 3, 4, 5, 6, 7].map(r => minRadius + ((r - 1) / 6) * (maxRadius - minRadius));
 
   return (
     <div className={`${className}`} data-testid="pitch-mix-dial">
-      <div className="text-center mb-2">
-        <span className="font-pixel text-[10px] text-gold">Pitch Mix</span>
-      </div>
-      
-      <svg viewBox="0 0 160 160" className="w-full h-full">
-        <defs>
-          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="1" result="coloredBlur"/>
-            <feMerge>
-              <feMergeNode in="coloredBlur"/>
-              <feMergeNode in="SourceGraphic"/>
-            </feMerge>
-          </filter>
-        </defs>
-        
-        {[1, 3, 5, 7].map((level) => (
-          <circle
-            key={level}
-            cx={centerX}
-            cy={centerY}
-            r={ringRadii[level - 1]}
-            fill="none"
-            stroke="#2d3d2d"
-            strokeWidth="1"
-            strokeDasharray={level === 7 ? "none" : "4,4"}
-            opacity={level === 7 ? 0.6 : 0.3}
-          />
+      <h4 className="font-pixel text-[10px] text-gold mb-2">Pitch Mix</h4>
+      <div className="flex flex-wrap gap-3">
+        {activePitches.map((pitch) => (
+          <div key={pitch.name} className="text-center min-w-[40px]">
+            <span className="text-[10px] text-muted-foreground">{pitchLabels[pitch.name] || pitch.name}</span>
+            <div className={`text-lg font-bold ${getRatingColor(pitch.rating)}`}>
+              {pitch.rating}
+            </div>
+          </div>
         ))}
-        
-        {[1, 3, 5, 7].map((level) => {
-          const labelAngle = -Math.PI / 2 + Math.PI / 8;
-          const pos = getCoordinates(labelAngle, ringRadii[level - 1] + 2);
-          return (
-            <text
-              key={`label-${level}`}
-              x={pos.x}
-              y={pos.y}
-              fill="#94a3b8"
-              fontSize="10"
-              fontWeight="bold"
-              textAnchor="middle"
-              dominantBaseline="middle"
-            >
-              {level}
-            </text>
-          );
-        })}
-        
-        <circle cx={centerX} cy={centerY} r="8" fill="#C4A35A" />
-        <circle cx={centerX} cy={centerY} r="5" fill="#1a2b1a" />
-        
-        {activePitches.map((pitch, i) => {
-          const angle = startAngle + i * angleStep;
-          const radius = getRatingRadius(pitch.rating);
-          const end = getCoordinates(angle, radius);
-          const color = getRatingColor(pitch.rating);
-          
-          const labelRadius = maxRadius + 18;
-          const labelPos = getCoordinates(angle, labelRadius);
-          
-          const isFastball = pitch.name === "FB";
-          const strokeWidth = isFastball ? 5 : 3;
-          
-          return (
-            <g key={pitch.name}>
-              <line
-                x1={centerX}
-                y1={centerY}
-                x2={end.x}
-                y2={end.y}
-                stroke={color}
-                strokeWidth={strokeWidth}
-                strokeLinecap="round"
-                filter="url(#glow)"
-              />
-              
-              <circle
-                cx={end.x}
-                cy={end.y}
-                r={isFastball ? 5 : 4}
-                fill={color}
-              />
-              
-              <text
-                x={labelPos.x}
-                y={labelPos.y - 5}
-                fill="#C4A35A"
-                fontSize="9"
-                fontFamily="'Press Start 2P', monospace"
-                textAnchor="middle"
-                dominantBaseline="middle"
-              >
-                {pitch.name}
-              </text>
-              
-              <text
-                x={labelPos.x}
-                y={labelPos.y + 8}
-                fill={color}
-                fontSize="11"
-                fontWeight="bold"
-                textAnchor="middle"
-                dominantBaseline="middle"
-              >
-                {pitch.rating}
-              </text>
-            </g>
-          );
-        })}
-      </svg>
+      </div>
     </div>
   );
 }

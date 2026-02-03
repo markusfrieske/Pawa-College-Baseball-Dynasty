@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link, useLocation } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
@@ -12,6 +12,8 @@ import { PlayerProfileCard } from "@/components/player-profile-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import { 
   ArrowLeft, 
   MapPin, 
@@ -26,8 +28,11 @@ import {
   TrendingUp,
   Award,
   ChevronDown,
-  Eye
+  Eye,
+  Edit
 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { RetroInput } from "@/components/ui/retro-input";
 import type { Team, Coach, Player, Game } from "@shared/schema";
 import { isPitcher, isHitter, isCatcher, isInfielder, isOutfielder } from "@shared/positions";
 
@@ -52,17 +57,46 @@ interface LeagueTeam {
   coach?: { firstName: string; lastName: string } | null;
 }
 
+interface League {
+  id: string;
+  commissionerId: string;
+}
+
 export default function TeamViewPage() {
   const { id, teamId } = useParams<{ id: string; teamId: string }>();
   const [, setLocation] = useLocation();
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: team, isLoading } = useQuery<TeamDetails>({
     queryKey: ["/api/leagues", id, "teams", teamId],
   });
   
-  const { data: leagueData } = useQuery<{ teams: LeagueTeam[] }>({
+  const { data: leagueData } = useQuery<{ teams: LeagueTeam[]; league?: League }>({
     queryKey: ["/api/leagues", id],
+  });
+  
+  const { data: authData } = useQuery<{ id: string }>({
+    queryKey: ["/api/auth/me"],
+  });
+  
+  const isCommissioner = authData?.id && leagueData?.league?.commissionerId === authData.id;
+  
+  const updatePlayerMutation = useMutation({
+    mutationFn: async (updates: Partial<Player> & { id: string }) => {
+      return apiRequest("PATCH", `/api/leagues/${id}/players/${updates.id}`, updates);
+    },
+    onSuccess: () => {
+      toast({ title: "Player updated", description: "Player data has been saved." });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "teams", teamId] });
+      setEditingPlayer(null);
+      setSelectedPlayer(null);
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update player", variant: "destructive" });
+    },
   });
 
   if (isLoading) {
@@ -192,6 +226,21 @@ export default function TeamViewPage() {
           }}
           open={!!selectedPlayer}
           onClose={() => setSelectedPlayer(null)}
+          isCommissioner={!!isCommissioner}
+          onEdit={() => {
+            setEditingPlayer(selectedPlayer);
+            setSelectedPlayer(null);
+          }}
+        />
+      )}
+      
+      {editingPlayer && (
+        <PlayerEditModal
+          player={editingPlayer}
+          open={!!editingPlayer}
+          onClose={() => setEditingPlayer(null)}
+          onSave={(updates) => updatePlayerMutation.mutate({ ...updates, id: editingPlayer.id })}
+          isSaving={updatePlayerMutation.isPending}
         />
       )}
     </div>
@@ -779,5 +828,208 @@ function TeamViewSkeleton() {
         <Skeleton className="h-96" />
       </main>
     </div>
+  );
+}
+
+interface PlayerEditModalProps {
+  player: Player;
+  open: boolean;
+  onClose: () => void;
+  onSave: (updates: Partial<Player>) => void;
+  isSaving: boolean;
+}
+
+function PlayerEditModal({ player, open, onClose, onSave, isSaving }: PlayerEditModalProps) {
+  const [formData, setFormData] = useState({
+    overall: player.overall,
+    starRating: player.starRating,
+    hitForAvg: player.hitForAvg || 50,
+    power: player.power || 50,
+    speed: player.speed || 50,
+    arm: player.arm || 50,
+    fielding: player.fielding || 50,
+    errorResistance: player.errorResistance || 50,
+    velocity: player.velocity || 50,
+    control: player.control || 50,
+    stamina: player.stamina || 50,
+    stuff: player.stuff || 50,
+  });
+
+  const isPlayerPitcher = isPitcher(player.position);
+
+  const handleSubmit = () => {
+    onSave(formData);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="bg-card border-border max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="font-pixel text-gold text-sm flex items-center gap-2">
+            <Edit className="w-4 h-4" />
+            Edit Player: {player.firstName} {player.lastName}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs text-muted-foreground">Overall (1-999)</label>
+              <RetroInput
+                type="number"
+                min={1}
+                max={999}
+                value={formData.overall}
+                onChange={(e) => setFormData({ ...formData, overall: parseInt(e.target.value) || 1 })}
+                data-testid="input-overall"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Star Rating (1-5)</label>
+              <RetroInput
+                type="number"
+                min={1}
+                max={5}
+                value={formData.starRating}
+                onChange={(e) => setFormData({ ...formData, starRating: parseInt(e.target.value) || 1 })}
+                data-testid="input-star-rating"
+              />
+            </div>
+          </div>
+
+          {isPlayerPitcher ? (
+            <>
+              <h4 className="font-pixel text-gold text-[10px] border-b border-border pb-1">Pitcher Attributes</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">Velocity</label>
+                  <RetroInput
+                    type="number"
+                    min={1}
+                    max={99}
+                    value={formData.velocity}
+                    onChange={(e) => setFormData({ ...formData, velocity: parseInt(e.target.value) || 50 })}
+                    data-testid="input-velocity"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Control</label>
+                  <RetroInput
+                    type="number"
+                    min={1}
+                    max={99}
+                    value={formData.control}
+                    onChange={(e) => setFormData({ ...formData, control: parseInt(e.target.value) || 50 })}
+                    data-testid="input-control"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Stamina</label>
+                  <RetroInput
+                    type="number"
+                    min={1}
+                    max={99}
+                    value={formData.stamina}
+                    onChange={(e) => setFormData({ ...formData, stamina: parseInt(e.target.value) || 50 })}
+                    data-testid="input-stamina"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Stuff</label>
+                  <RetroInput
+                    type="number"
+                    min={1}
+                    max={99}
+                    value={formData.stuff}
+                    onChange={(e) => setFormData({ ...formData, stuff: parseInt(e.target.value) || 50 })}
+                    data-testid="input-stuff"
+                  />
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <h4 className="font-pixel text-gold text-[10px] border-b border-border pb-1">Fielder Attributes</h4>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">Contact</label>
+                  <RetroInput
+                    type="number"
+                    min={1}
+                    max={99}
+                    value={formData.hitForAvg}
+                    onChange={(e) => setFormData({ ...formData, hitForAvg: parseInt(e.target.value) || 50 })}
+                    data-testid="input-contact"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Power</label>
+                  <RetroInput
+                    type="number"
+                    min={1}
+                    max={99}
+                    value={formData.power}
+                    onChange={(e) => setFormData({ ...formData, power: parseInt(e.target.value) || 50 })}
+                    data-testid="input-power"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Speed</label>
+                  <RetroInput
+                    type="number"
+                    min={1}
+                    max={99}
+                    value={formData.speed}
+                    onChange={(e) => setFormData({ ...formData, speed: parseInt(e.target.value) || 50 })}
+                    data-testid="input-speed"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Arm</label>
+                  <RetroInput
+                    type="number"
+                    min={1}
+                    max={99}
+                    value={formData.arm}
+                    onChange={(e) => setFormData({ ...formData, arm: parseInt(e.target.value) || 50 })}
+                    data-testid="input-arm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Fielding</label>
+                  <RetroInput
+                    type="number"
+                    min={1}
+                    max={99}
+                    value={formData.fielding}
+                    onChange={(e) => setFormData({ ...formData, fielding: parseInt(e.target.value) || 50 })}
+                    data-testid="input-fielding"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Error Resist</label>
+                  <RetroInput
+                    type="number"
+                    min={1}
+                    max={99}
+                    value={formData.errorResistance}
+                    onChange={(e) => setFormData({ ...formData, errorResistance: parseInt(e.target.value) || 50 })}
+                    data-testid="input-error-resist"
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
+          <div className="flex justify-end gap-2 pt-4">
+            <RetroButton variant="outline" onClick={onClose} data-testid="button-cancel-edit">
+              Cancel
+            </RetroButton>
+            <RetroButton onClick={handleSubmit} disabled={isSaving} data-testid="button-save-player">
+              {isSaving ? "Saving..." : "Save Changes"}
+            </RetroButton>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }

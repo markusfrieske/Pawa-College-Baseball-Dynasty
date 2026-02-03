@@ -634,14 +634,17 @@ function DepthChartView({ players, onSelectPlayer }: { players: Player[]; onSele
                       className="group"
                       data-testid={`depth-${pos}-starter`}
                     >
-                      <div className="w-12 h-12 mx-auto mb-1 rotate-45 overflow-hidden border-2 border-gold group-hover:border-white transition-colors">
-                        <div className="-rotate-45 scale-125">
-                          <PlayerPortrait
-                            skinTone={starter.skinTone || "light"}
-                            hairColor={starter.hairColor || "brown"}
-                            hairStyle={starter.hairStyle || "short"}
-                            className="w-12 h-12"
-                          />
+                      <div className="relative w-14 h-14 mx-auto mb-1">
+                        <div className="absolute inset-0 w-10 h-10 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-45 border-2 border-gold group-hover:border-white transition-colors bg-forest-card" />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-gold group-hover:border-white transition-colors">
+                            <PlayerPortrait
+                              skinTone={starter.skinTone || "light"}
+                              hairColor={starter.hairColor || "brown"}
+                              hairStyle={starter.hairStyle || "short"}
+                              className="w-8 h-8"
+                            />
+                          </div>
                         </div>
                       </div>
                       <div className="text-[8px] text-white truncate max-w-[60px]">
@@ -650,8 +653,9 @@ function DepthChartView({ players, onSelectPlayer }: { players: Player[]; onSele
                       <div className="text-[10px] font-bold text-gold">{starter.overall}</div>
                     </button>
                   ) : (
-                    <div className="w-10 h-10 mx-auto border-2 border-dashed border-white/30 rotate-45 flex items-center justify-center">
-                      <span className="text-white/30 text-[10px] -rotate-45">?</span>
+                    <div className="relative w-12 h-12 mx-auto">
+                      <div className="absolute inset-0 w-10 h-10 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-45 border-2 border-dashed border-white/30" />
+                      <span className="absolute inset-0 flex items-center justify-center text-white/30 text-[10px]">?</span>
                     </div>
                   )}
                   {posPlayers.length > 1 && (

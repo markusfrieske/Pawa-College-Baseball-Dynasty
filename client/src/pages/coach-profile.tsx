@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { CoachAvatar } from "@/components/coach-avatar";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import { 
   ArrowLeft,
   Trophy,
@@ -17,7 +19,8 @@ import {
   Zap,
   Shield,
   Swords,
-  GraduationCap
+  GraduationCap,
+  Plus
 } from "lucide-react";
 import type { Coach, Team } from "@shared/schema";
 
@@ -43,10 +46,29 @@ function getXpProgress(xp: number, level: number): number {
 export default function CoachProfilePage() {
   const { id } = useParams<{ id: string }>();
   const [activeTab, setActiveTab] = useState<"career" | "attributes" | "skills">("career");
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { data, isLoading } = useQuery<CoachData>({
     queryKey: ["/api/leagues", id, "coach"],
   });
+
+  const upgradeSkillMutation = useMutation({
+    mutationFn: async (skill: string) => {
+      return apiRequest("POST", `/api/leagues/${id}/coach/upgrade-skill`, { skill });
+    },
+    onSuccess: () => {
+      toast({ title: "Skill Upgraded", description: "Your coaching skill has been improved!" });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "coach"] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message || "Failed to upgrade skill", variant: "destructive" });
+    },
+  });
+
+  const handleUpgradeSkill = (skill: string) => {
+    upgradeSkillMutation.mutate(skill);
+  };
 
   if (isLoading) {
     return <CoachProfileSkeleton />;
@@ -150,7 +172,7 @@ export default function CoachProfilePage() {
         )}
 
         {activeTab === "skills" && (
-          <SkillsTab coach={coach} />
+          <SkillsTab coach={coach} leagueId={id} onUpgrade={handleUpgradeSkill} />
         )}
       </main>
     </div>
@@ -304,7 +326,12 @@ function AttributesTab({ coach, xpProgress, xpForNext, isOwnCoach = true }: { co
   );
 }
 
-function SkillsTab({ coach, isOwnCoach = true }: { coach: Coach; isOwnCoach?: boolean }) {
+function SkillsTab({ coach, isOwnCoach = true, leagueId, onUpgrade }: { 
+  coach: Coach; 
+  isOwnCoach?: boolean;
+  leagueId?: string;
+  onUpgrade?: (skill: string) => void;
+}) {
   const skillBadges = [
     { 
       name: "Scout Master",
@@ -409,13 +436,21 @@ function SkillsTab({ coach, isOwnCoach = true }: { coach: Coach; isOwnCoach?: bo
           </div>
         </RetroCardHeader>
         <RetroCardContent>
-          <p className="text-sm text-muted-foreground mb-4">
-            Spend skill points to upgrade your coaching abilities. Earn XP by winning games and signing recruits.
-          </p>
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm text-muted-foreground">
+              Spend skill points to upgrade your coaching abilities. Earn XP by winning games and signing recruits.
+            </p>
+            {isOwnCoach && (
+              <Badge variant={coach.skillPoints > 0 ? "default" : "outline"} className="ml-4">
+                {coach.skillPoints} Skill Points
+              </Badge>
+            )}
+          </div>
 
           <div className="grid md:grid-cols-2 gap-6">
             <SkillTreeBranch
               name="Scouting"
+              skillKey="scouting"
               level={coach.scoutingSkill}
               color="bg-emerald-600"
               icon={<Target className="w-4 h-4" />}
@@ -425,9 +460,12 @@ function SkillsTab({ coach, isOwnCoach = true }: { coach: Coach; isOwnCoach?: bo
                 "Level 6-9: +5% scouting speed per level",
                 "Level 10: Unlock 'Elite Scout' badge"
               ]}
+              canUpgrade={isOwnCoach && coach.skillPoints > 0}
+              onUpgrade={onUpgrade}
             />
             <SkillTreeBranch
               name="Evaluation"
+              skillKey="evaluation"
               level={coach.evaluationSkill}
               color="bg-blue-500"
               icon={<Shield className="w-4 h-4" />}
@@ -437,9 +475,12 @@ function SkillsTab({ coach, isOwnCoach = true }: { coach: Coach; isOwnCoach?: bo
                 "Level 6-9: Narrower rating ranges shown",
                 "Level 10: Unlock 'Diamond Eye' badge"
               ]}
+              canUpgrade={isOwnCoach && coach.skillPoints > 0}
+              onUpgrade={onUpgrade}
             />
             <SkillTreeBranch
               name="Pitching"
+              skillKey="pitching"
               level={coach.pitchingRecruitingSkill}
               color="bg-amber-500"
               icon={<Zap className="w-4 h-4" />}
@@ -449,9 +490,12 @@ function SkillsTab({ coach, isOwnCoach = true }: { coach: Coach; isOwnCoach?: bo
                 "Level 6-9: +3% pitcher signing bonus",
                 "Level 10: Unlock 'Pitching Factory' badge"
               ]}
+              canUpgrade={isOwnCoach && coach.skillPoints > 0}
+              onUpgrade={onUpgrade}
             />
             <SkillTreeBranch
               name="Hitting"
+              skillKey="hitting"
               level={coach.hittingRecruitingSkill}
               color="bg-red-500"
               icon={<Swords className="w-4 h-4" />}
@@ -461,6 +505,8 @@ function SkillsTab({ coach, isOwnCoach = true }: { coach: Coach; isOwnCoach?: bo
                 "Level 6-9: +3% hitter signing bonus",
                 "Level 10: Unlock 'Hitting Factory' badge"
               ]}
+              canUpgrade={isOwnCoach && coach.skillPoints > 0}
+              onUpgrade={onUpgrade}
             />
           </div>
         </RetroCardContent>
@@ -471,17 +517,25 @@ function SkillsTab({ coach, isOwnCoach = true }: { coach: Coach; isOwnCoach?: bo
 
 function SkillTreeBranch({ 
   name, 
+  skillKey,
   level, 
   color, 
   icon,
-  effects 
+  effects,
+  canUpgrade,
+  onUpgrade
 }: { 
-  name: string; 
+  name: string;
+  skillKey: string;
   level: number; 
   color: string; 
   icon: React.ReactNode;
   effects: string[];
+  canUpgrade?: boolean;
+  onUpgrade?: (skill: string) => void;
 }) {
+  const isMaxed = level >= 10;
+  
   return (
     <div className="bg-muted/30 rounded-lg p-4">
       <div className="flex items-center gap-3 mb-3">
@@ -492,10 +546,20 @@ function SkillTreeBranch({
           <h4 className="font-medium">{name}</h4>
           <p className="text-sm text-muted-foreground">Level {level}/10</p>
         </div>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
           <span className={`text-2xl font-bold ${level >= 5 ? "text-gold" : "text-foreground"}`}>
             {level}
           </span>
+          {canUpgrade && !isMaxed && onUpgrade && (
+            <RetroButton
+              size="sm"
+              variant="outline"
+              onClick={() => onUpgrade(skillKey)}
+              data-testid={`button-upgrade-${skillKey}`}
+            >
+              <Plus className="w-3 h-3" />
+            </RetroButton>
+          )}
         </div>
       </div>
       <Progress value={(level / 10) * 100} className="h-2 mb-3" />
@@ -507,6 +571,9 @@ function SkillTreeBranch({
           </li>
         ))}
       </ul>
+      {isMaxed && (
+        <p className="text-xs text-gold mt-2 text-center">MAX LEVEL</p>
+      )}
     </div>
   );
 }

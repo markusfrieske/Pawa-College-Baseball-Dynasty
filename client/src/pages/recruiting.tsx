@@ -35,7 +35,8 @@ import {
   Gem,
   XCircle,
   CheckSquare,
-  Square
+  Square,
+  Gift
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -528,10 +529,16 @@ export default function RecruitingPage() {
               leagueId={id!}
               onTarget={() => targetMutation.mutate(recruit.id)}
               onScout={() => scoutMutation.mutate(recruit.id)}
+              onPhone={() => phoneMutation.mutate(recruit.id)}
+              onEmail={() => emailMutation.mutate(recruit.id)}
+              onOffer={() => offerMutation.mutate(recruit.id)}
               onSaveNotes={(notes) => notesMutation.mutate({ recruitId: recruit.id, notes })}
               onToggleCompare={() => toggleCompare(recruit)}
               isTargeting={targetMutation.isPending}
               isScouting={scoutMutation.isPending}
+              isPhoning={phoneMutation.isPending}
+              isEmailing={emailMutation.isPending}
+              isOffering={offerMutation.isPending}
               isSavingNotes={notesMutation.isPending}
               isSelected={compareRecruits.some(r => r.id === recruit.id)}
               isBulkSelected={bulkSelected.has(recruit.id)}
@@ -725,10 +732,16 @@ function RecruitRow({
   leagueId,
   onTarget,
   onScout,
+  onPhone,
+  onEmail,
+  onOffer,
   onSaveNotes,
   onToggleCompare,
   isTargeting,
   isScouting,
+  isPhoning,
+  isEmailing,
+  isOffering,
   isSavingNotes,
   isSelected,
   isBulkSelected,
@@ -738,10 +751,16 @@ function RecruitRow({
   leagueId: string;
   onTarget: () => void;
   onScout: () => void;
+  onPhone: () => void;
+  onEmail: () => void;
+  onOffer: () => void;
   onSaveNotes: (notes: string) => void;
   onToggleCompare: () => void;
   isTargeting: boolean;
   isScouting: boolean;
+  isPhoning: boolean;
+  isEmailing: boolean;
+  isOffering: boolean;
   isSavingNotes: boolean;
   isSelected: boolean;
   isBulkSelected: boolean;
@@ -938,6 +957,48 @@ function RecruitRow({
                 </RetroButton>
               </TooltipTrigger>
               <TooltipContent>Target</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <RetroButton
+                  variant="outline"
+                  size="sm"
+                  onClick={onPhone}
+                  disabled={isPhoning || !recruit.interest}
+                  data-testid={`button-phone-${recruit.id}`}
+                >
+                  <Phone className="w-3 h-3" />
+                </RetroButton>
+              </TooltipTrigger>
+              <TooltipContent>Phone Call (+5% interest)</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <RetroButton
+                  variant="outline"
+                  size="sm"
+                  onClick={onEmail}
+                  disabled={isEmailing || !recruit.interest}
+                  data-testid={`button-email-${recruit.id}`}
+                >
+                  <Mail className="w-3 h-3" />
+                </RetroButton>
+              </TooltipTrigger>
+              <TooltipContent>Send Email (+3% interest)</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <RetroButton
+                  variant={recruit.interest?.hasOffer ? "primary" : "outline"}
+                  size="sm"
+                  onClick={onOffer}
+                  disabled={isOffering || !recruit.interest || recruit.interest?.hasOffer}
+                  data-testid={`button-offer-${recruit.id}`}
+                >
+                  <Gift className="w-3 h-3" />
+                </RetroButton>
+              </TooltipTrigger>
+              <TooltipContent>{recruit.interest?.hasOffer ? "Scholarship Offered" : "Offer Scholarship (+15% interest)"}</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -1284,32 +1345,34 @@ function RecruitDetailModal({
 
           <div>
             <h4 className="font-pixel text-[10px] text-gold mb-3">Priorities</h4>
-            {scoutPct >= 50 ? (
-              <div className="grid grid-cols-2 gap-3">
-                {priorities.map((p) => {
-                  const priorityLabels: Record<string, string> = {
-                    "Extremely": "Extremely Important",
-                    "Very": "Very Important",
-                    "Somewhat": "Somewhat Important",
-                    "Not Important": "Not Important"
-                  };
-                  return (
-                    <div key={p.key} className="flex items-center justify-between p-2 bg-muted/50 rounded">
-                      <span className="text-sm text-muted-foreground">{p.label}</span>
+            <div className="grid grid-cols-2 gap-3">
+              {priorities.map((p) => {
+                const priorityLabels: Record<string, string> = {
+                  "Extremely": "Extremely Important",
+                  "Very": "Very Important",
+                  "Somewhat": "Somewhat Important",
+                  "Not Important": "Not Important"
+                };
+                return (
+                  <div key={p.key} className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                    <span className="text-sm text-muted-foreground">{p.label}</span>
+                    {scoutPct >= 50 ? (
                       <Badge variant="outline" className="text-xs whitespace-nowrap">
                         {priorityLabels[p.value as string] || p.value}
                       </Badge>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="p-4 bg-muted/30 border border-border rounded text-center">
-                <HelpCircle className="w-6 h-6 text-muted-foreground mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">
-                  Scout to 50% to reveal recruit priorities
-                </p>
-              </div>
+                    ) : (
+                      <Badge variant="outline" className="text-xs whitespace-nowrap text-muted-foreground">
+                        ???
+                      </Badge>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            {scoutPct < 50 && (
+              <p className="text-xs text-muted-foreground text-center mt-2">
+                Scout to 50% to unlock priorities
+              </p>
             )}
           </div>
 
