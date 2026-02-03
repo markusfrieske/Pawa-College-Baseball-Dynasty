@@ -1553,7 +1553,7 @@ export async function registerRoutes(
     try {
       const leagueId = req.params.id as string;
       const userId = req.session.userId;
-      const { title, content, category, isSticky } = req.body;
+      const { title, content, category, isSticky, imageUrl } = req.body;
 
       if (!title || !content) {
         return res.status(400).json({ message: "Title and content are required" });
@@ -1571,6 +1571,7 @@ export async function registerRoutes(
         title,
         content,
         category: category || "general",
+        imageUrl: imageUrl || null,
         isSticky: isSticky || false,
       });
 

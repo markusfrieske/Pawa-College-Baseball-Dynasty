@@ -21,7 +21,9 @@ import {
   Newspaper,
   Plus,
   Pin,
-  Award
+  Award,
+  Image as ImageIcon,
+  X
 } from "lucide-react";
 import type { League, Team, Conference, Standings, DynastyNews } from "@shared/schema";
 import { User, Cpu } from "lucide-react";
@@ -468,13 +470,27 @@ function NewsTab({ leagueId }: { leagueId: string }) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [category, setCategory] = useState("general");
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImageUrl(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const { data: news, isLoading } = useQuery<DynastyNews[]>({
     queryKey: ["/api/leagues", leagueId, "news"],
   });
 
   const createNewsMutation = useMutation({
-    mutationFn: async (data: { title: string; content: string; category: string }) => {
+    mutationFn: async (data: { title: string; content: string; category: string; imageUrl?: string | null }) => {
       return await apiRequest("POST", `/api/leagues/${leagueId}/news`, data);
     },
     onSuccess: () => {
@@ -483,6 +499,7 @@ function NewsTab({ leagueId }: { leagueId: string }) {
       setTitle("");
       setContent("");
       setCategory("general");
+      setImageUrl(null);
     },
   });
 
@@ -552,6 +569,30 @@ function NewsTab({ leagueId }: { leagueId: string }) {
               className="w-full bg-background border border-border rounded p-2 text-sm min-h-[100px] resize-none focus:outline-none focus:border-gold"
               data-testid="input-news-content"
             />
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 cursor-pointer bg-background border border-border rounded px-2 py-1 text-sm hover:border-gold transition-colors">
+                <ImageIcon className="w-4 h-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Add Image</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                  data-testid="input-news-image"
+                />
+              </label>
+              {imageUrl && (
+                <div className="flex items-center gap-2">
+                  <img src={imageUrl} alt="Preview" className="w-10 h-10 object-cover rounded" />
+                  <button
+                    onClick={() => setImageUrl(null)}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+            </div>
             <div className="flex items-center gap-2 flex-wrap">
               <select
                 value={category}
@@ -576,7 +617,7 @@ function NewsTab({ leagueId }: { leagueId: string }) {
               </RetroButton>
               <RetroButton
                 size="sm"
-                onClick={() => createNewsMutation.mutate({ title, content, category })}
+                onClick={() => createNewsMutation.mutate({ title, content, category, imageUrl })}
                 disabled={!title.trim() || !content.trim() || createNewsMutation.isPending}
                 data-testid="button-submit-news"
               >
@@ -615,6 +656,15 @@ function NewsTab({ leagueId }: { leagueId: string }) {
                     </p>
                   </div>
                 </div>
+                {item.imageUrl && (
+                  <div className="my-3">
+                    <img 
+                      src={item.imageUrl} 
+                      alt={item.title}
+                      className="max-w-full max-h-64 rounded-lg object-cover"
+                    />
+                  </div>
+                )}
                 <p className="text-sm text-foreground whitespace-pre-wrap">{item.content}</p>
               </div>
             ))}

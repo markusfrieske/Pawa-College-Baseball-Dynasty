@@ -563,6 +563,7 @@ export const dynastyNews = pgTable("dynasty_news", {
   title: text("title").notNull(),
   content: text("content").notNull(),
   category: text("category").notNull().default("general"), // general, recruiting, game, trade, announcement
+  imageUrl: text("image_url"),
   isSticky: boolean("is_sticky").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -574,6 +575,7 @@ export const insertDynastyNewsSchema = createInsertSchema(dynastyNews).pick({
   title: true,
   content: true,
   category: true,
+  imageUrl: true,
   isSticky: true,
 });
 
