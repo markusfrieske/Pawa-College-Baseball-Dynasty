@@ -74,7 +74,7 @@ export default function TeamViewPage() {
     queryKey: ["/api/leagues", id, "teams", teamId],
   });
   
-  const { data: leagueData } = useQuery<{ teams: LeagueTeam[]; league?: League }>({
+  const { data: leagueData } = useQuery<{ teams: LeagueTeam[]; commissionerId?: string }>({
     queryKey: ["/api/leagues", id],
   });
   
@@ -82,7 +82,7 @@ export default function TeamViewPage() {
     queryKey: ["/api/auth/me"],
   });
   
-  const isCommissioner = authData?.id && leagueData?.league?.commissionerId === authData.id;
+  const isCommissioner = authData?.id && leagueData?.commissionerId === authData.id;
   
   const updatePlayerMutation = useMutation({
     mutationFn: async (updates: Partial<Player> & { id: string }) => {

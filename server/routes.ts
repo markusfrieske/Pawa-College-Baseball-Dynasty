@@ -495,49 +495,71 @@ export async function registerRoutes(
       // Get coach data for skill-based action limits
       const coach = userTeam.coachId ? await storage.getCoach(userTeam.coachId) : null;
 
-      const recruitsWithInterest = leagueRecruits.map((recruit) => {
+      // Build team lookup map for top schools
+      const teamMap = new Map(leagueTeams.map(t => [t.id, t]));
+
+      const recruitsWithInterest = await Promise.all(leagueRecruits.map(async (recruit) => {
         const interest = interests.find((i) => i.recruitId === recruit.id);
         
-        // Generate topSchools for this recruit based on stage
-        // Use seeded randomization based on recruit ID for deterministic results
-        const seedFromId = (id: string) => {
-          let hash = 0;
-          for (let i = 0; i < id.length; i++) {
-            hash = ((hash << 5) - hash) + id.charCodeAt(i);
-            hash = hash & hash;
-          }
-          return Math.abs(hash);
-        };
-        
-        const seed = seedFromId(recruit.id);
-        const seededShuffle = <T,>(arr: T[], s: number): T[] => {
-          const result = [...arr];
-          for (let i = result.length - 1; i > 0; i--) {
-            const j = (s * (i + 1)) % result.length;
-            [result[i], result[j]] = [result[j], result[i]];
-          }
-          return result;
-        };
+        // Fetch stored top schools from database (only includes teams in the league)
+        const storedTopSchools = await storage.getRecruitTopSchools(recruit.id);
         
         // Stage values are lowercase: "open", "top8", "top5", "top3", "verbal", "signed"
         const stage = (recruit.stage || "open").toLowerCase();
         const topSchoolsCount = stage === "top3" ? 3 : stage === "top5" ? 5 : 8;
-        const shuffledTeams = seededShuffle(leagueTeams, seed).slice(0, topSchoolsCount);
         
-        const topSchools = shuffledTeams.map((team, idx) => ({
-          teamId: team.id,
-          teamName: team.name,
-          abbreviation: team.abbreviation,
-          primaryColor: team.primaryColor,
-          interestLevel: Math.max(10, 100 - (idx * 10) - ((seed + idx) % 10)),
-        })).sort((a, b) => b.interestLevel - a.interestLevel);
+        // Convert stored top schools to display format, filtering by active schools in the league
+        let topSchools = storedTopSchools
+          .filter(ts => ts.isActive && teamMap.has(ts.teamId))
+          .sort((a, b) => (a.rank || 99) - (b.rank || 99))
+          .slice(0, topSchoolsCount)
+          .map(ts => {
+            const team = teamMap.get(ts.teamId)!;
+            return {
+              teamId: ts.teamId,
+              teamName: team.name,
+              abbreviation: team.abbreviation,
+              primaryColor: team.primaryColor,
+              interestLevel: ts.interestLevel + ts.accumulatedInterest,
+            };
+          })
+          .sort((a, b) => b.interestLevel - a.interestLevel);
+        
+        // Fallback: if no stored top schools, generate from league teams
+        if (topSchools.length === 0) {
+          const seedFromId = (id: string) => {
+            let hash = 0;
+            for (let i = 0; i < id.length; i++) {
+              hash = ((hash << 5) - hash) + id.charCodeAt(i);
+              hash = hash & hash;
+            }
+            return Math.abs(hash);
+          };
+          const seed = seedFromId(recruit.id);
+          const seededShuffle = <T,>(arr: T[], s: number): T[] => {
+            const result = [...arr];
+            for (let i = result.length - 1; i > 0; i--) {
+              const j = (s * (i + 1)) % result.length;
+              [result[i], result[j]] = [result[j], result[i]];
+            }
+            return result;
+          };
+          const shuffledTeams = seededShuffle(leagueTeams, seed).slice(0, topSchoolsCount);
+          topSchools = shuffledTeams.map((team, idx) => ({
+            teamId: team.id,
+            teamName: team.name,
+            abbreviation: team.abbreviation,
+            primaryColor: team.primaryColor,
+            interestLevel: Math.max(10, 100 - (idx * 10) - ((seed + idx) % 10)),
+          })).sort((a, b) => b.interestLevel - a.interestLevel);
+        }
         
         return {
           ...recruit,
           interest,
           topSchools,
         };
-      });
+      }));
 
       // Current roster position counts
       const positionCounts: Record<string, number> = {};
@@ -2008,11 +2030,63 @@ export async function registerRoutes(
         interest = await storage.getRecruitingInterest(recruit.id, userTeam.id);
       }
 
+      // Fetch stored top schools from database (only includes teams in the league)
+      const teamMap = new Map(leagueTeams.map(t => [t.id, t]));
+      const storedTopSchools = await storage.getRecruitTopSchools(recruit.id);
+      const stage = (recruit.stage || "open").toLowerCase();
+      const topSchoolsCount = stage === "top3" ? 3 : stage === "top5" ? 5 : 8;
+      
+      let topSchools = storedTopSchools
+        .filter(ts => ts.isActive && teamMap.has(ts.teamId))
+        .sort((a, b) => (a.rank || 99) - (b.rank || 99))
+        .slice(0, topSchoolsCount)
+        .map(ts => {
+          const team = teamMap.get(ts.teamId)!;
+          return {
+            teamId: ts.teamId,
+            teamName: team.name,
+            abbreviation: team.abbreviation,
+            primaryColor: team.primaryColor,
+            interestLevel: ts.interestLevel + ts.accumulatedInterest,
+          };
+        })
+        .sort((a, b) => b.interestLevel - a.interestLevel);
+      
+      // Fallback if no stored top schools
+      if (topSchools.length === 0) {
+        const seedFromId = (id: string) => {
+          let hash = 0;
+          for (let i = 0; i < id.length; i++) {
+            hash = ((hash << 5) - hash) + id.charCodeAt(i);
+            hash = hash & hash;
+          }
+          return Math.abs(hash);
+        };
+        const seed = seedFromId(recruit.id);
+        const seededShuffle = <T,>(arr: T[], s: number): T[] => {
+          const result = [...arr];
+          for (let i = result.length - 1; i > 0; i--) {
+            const j = (s * (i + 1)) % result.length;
+            [result[i], result[j]] = [result[j], result[i]];
+          }
+          return result;
+        };
+        const shuffledTeams = seededShuffle(leagueTeams, seed).slice(0, topSchoolsCount);
+        topSchools = shuffledTeams.map((team, idx) => ({
+          teamId: team.id,
+          teamName: team.name,
+          abbreviation: team.abbreviation,
+          primaryColor: team.primaryColor,
+          interestLevel: Math.max(10, 100 - (idx * 10) - ((seed + idx) % 10)),
+        })).sort((a, b) => b.interestLevel - a.interestLevel);
+      }
+
       res.json({
         recruit: {
           ...recruit,
           interest,
         },
+        topSchools,
       });
     } catch (error) {
       console.error("Failed to fetch recruit:", error);
