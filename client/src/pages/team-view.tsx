@@ -250,23 +250,28 @@ function SummaryTab({ team, leagueId }: { team: TeamDetails; leagueId: string })
               </p>
 
               <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="p-2 bg-emerald-500/20 rounded">
+                  <p className="font-bold text-emerald-400">{team.coach.scoutingSkill}</p>
+                  <p className="text-xs text-muted-foreground">Scouting</p>
+                </div>
                 <div className="p-2 bg-blue-500/20 rounded">
-                  <p className="font-bold text-blue-400">{team.coach.offenseSkill}</p>
-                  <p className="text-xs text-muted-foreground">Offense</p>
+                  <p className="font-bold text-blue-400">{team.coach.evaluationSkill}</p>
+                  <p className="text-xs text-muted-foreground">Evaluation</p>
                 </div>
-                <div className="p-2 bg-green-500/20 rounded">
-                  <p className="font-bold text-green-400">{team.coach.defenseSkill}</p>
-                  <p className="text-xs text-muted-foreground">Defense</p>
+                <div className="p-2 bg-amber-500/20 rounded">
+                  <p className="font-bold text-amber-400">{team.coach.pitchingRecruitingSkill}</p>
+                  <p className="text-xs text-muted-foreground">Pitching</p>
                 </div>
-                <div className="p-2 bg-yellow-500/20 rounded">
-                  <p className="font-bold text-yellow-400">{team.coach.trainingSkill}</p>
-                  <p className="text-xs text-muted-foreground">Training</p>
-                </div>
-                <div className="p-2 bg-purple-500/20 rounded">
-                  <p className="font-bold text-purple-400">{team.coach.recruitingSkill}</p>
-                  <p className="text-xs text-muted-foreground">Recruiting</p>
+                <div className="p-2 bg-red-500/20 rounded">
+                  <p className="font-bold text-red-400">{team.coach.hittingRecruitingSkill}</p>
+                  <p className="text-xs text-muted-foreground">Hitting</p>
                 </div>
               </div>
+              <Link href={`/coach/${team.coach.id}`} className="mt-3 block">
+                <RetroButton variant="outline" size="sm" className="w-full" data-testid="button-view-coach">
+                  View Full Profile
+                </RetroButton>
+              </Link>
             </RetroCardContent>
           </RetroCard>
         )}
@@ -447,15 +452,20 @@ function CoachesTab({ team }: { team: TeamDetails }) {
                   {team.coach.archetype}
                 </Badge>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Level {team.coach.level} - {team.coach.experience} XP
+                  Level {team.coach.level} - {team.coach.xp} XP
                 </p>
                 
                 <div className="space-y-2">
-                  <AttributeSlider label="Offense" value={team.coach.offenseSkill} max={100} disabled />
-                  <AttributeSlider label="Defense" value={team.coach.defenseSkill} max={100} disabled />
-                  <AttributeSlider label="Training" value={team.coach.trainingSkill} max={100} disabled />
-                  <AttributeSlider label="Recruiting" value={team.coach.recruitingSkill} max={100} disabled />
+                  <AttributeSlider label="Scouting" value={team.coach.scoutingSkill} max={10} disabled />
+                  <AttributeSlider label="Evaluation" value={team.coach.evaluationSkill} max={10} disabled />
+                  <AttributeSlider label="Pitching" value={team.coach.pitchingRecruitingSkill} max={10} disabled />
+                  <AttributeSlider label="Hitting" value={team.coach.hittingRecruitingSkill} max={10} disabled />
                 </div>
+                <Link href={`/coach/${team.coach.id}`} className="mt-3 block">
+                  <RetroButton variant="outline" size="sm" className="w-full" data-testid="button-view-coach-full">
+                    View Full Profile
+                  </RetroButton>
+                </Link>
               </div>
             </div>
           </RetroCardContent>
@@ -600,14 +610,14 @@ function RosterTab({ team }: { team: TeamDetails }) {
                   <Badge 
                     variant="outline" 
                     className={`text-[10px] ${
-                      player.potential === "A+" || player.potential === "A"
-                        ? "text-green-400 border-green-400"
-                        : player.potential === "B+" || player.potential === "B"
+                      player.starRating >= 4
+                        ? "text-gold border-gold"
+                        : player.starRating >= 3
                         ? "text-blue-400 border-blue-400"
                         : "text-muted-foreground"
                     }`}
                   >
-                    {player.potential}
+                    {player.starRating}
                   </Badge>
                 </td>
                 <td className="py-3 px-2 text-muted-foreground hidden sm:table-cell">

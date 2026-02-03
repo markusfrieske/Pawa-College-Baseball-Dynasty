@@ -692,6 +692,29 @@ export async function registerRoutes(
       res.json({
         coach: userCoach,
         team,
+        isOwnCoach: true,
+      });
+    } catch (error) {
+      console.error("Failed to fetch coach:", error);
+      res.status(500).json({ message: "Failed to fetch coach" });
+    }
+  });
+
+  // View any coach by ID (for viewing other coaches)
+  app.get("/api/coaches/:coachId", requireAuth, async (req, res) => {
+    try {
+      const coach = await storage.getCoach(req.params.coachId as string);
+      if (!coach) {
+        return res.status(404).json({ message: "Coach not found" });
+      }
+
+      const team = coach.teamId ? await storage.getTeam(coach.teamId) : undefined;
+      const isOwnCoach = coach.userId === req.session.userId;
+
+      res.json({
+        coach,
+        team,
+        isOwnCoach,
       });
     } catch (error) {
       console.error("Failed to fetch coach:", error);
@@ -1091,10 +1114,10 @@ export async function registerRoutes(
           teamId,
           archetype: coachData.archetype || "Balanced",
           userId: req.session.userId!,
-          offenseSkill: 50,
-          defenseSkill: 50,
-          trainingSkill: 50,
-          recruitingSkill: 50,
+          scoutingSkill: 1,
+          evaluationSkill: 1,
+          pitchingRecruitingSkill: 1,
+          hittingRecruitingSkill: 1,
           skinTone: coachData.skinTone || "light",
           hairColor: coachData.hairColor || "brown",
           hairStyle: coachData.hairStyle || "short",
@@ -1109,10 +1132,10 @@ export async function registerRoutes(
           teamId,
           archetype: "Balanced",
           userId: req.session.userId!,
-          offenseSkill: 50,
-          defenseSkill: 50,
-          trainingSkill: 50,
-          recruitingSkill: 50,
+          scoutingSkill: 1,
+          evaluationSkill: 1,
+          pitchingRecruitingSkill: 1,
+          hittingRecruitingSkill: 1,
         });
         coachId = coach.id;
       }
@@ -1295,7 +1318,7 @@ export async function registerRoutes(
       const news = await storage.createDynastyNews({
         leagueId,
         authorId: userId,
-        authorName: user.username || user.email || "Unknown",
+        authorName: user.email.split("@")[0] || "Unknown",
         title,
         content,
         category: category || "general",

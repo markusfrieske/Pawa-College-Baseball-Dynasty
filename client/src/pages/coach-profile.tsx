@@ -238,12 +238,12 @@ function CareerTab({ coach }: { coach: Coach }) {
   );
 }
 
-function AttributesTab({ coach, xpProgress, xpForNext }: { coach: Coach; xpProgress: number; xpForNext: number }) {
+function AttributesTab({ coach, xpProgress, xpForNext, isOwnCoach = true }: { coach: Coach; xpProgress: number; xpForNext: number; isOwnCoach?: boolean }) {
   const skillTrees = [
-    { key: "offense", label: "Offense", value: coach.offenseSkill, color: "bg-green-500", icon: Swords },
-    { key: "defense", label: "Defense", value: coach.defenseSkill, color: "bg-blue-500", icon: Shield },
-    { key: "training", label: "Training", value: coach.trainingSkill, color: "bg-yellow-500", icon: Zap },
-    { key: "recruiting", label: "Recruiting", value: coach.recruitingSkill, color: "bg-red-500", icon: Target },
+    { key: "scouting", label: "Scouting", value: coach.scoutingSkill, color: "bg-emerald-600", icon: Target },
+    { key: "evaluation", label: "Evaluation", value: coach.evaluationSkill, color: "bg-blue-500", icon: Shield },
+    { key: "pitching", label: "Pitching", value: coach.pitchingRecruitingSkill, color: "bg-amber-500", icon: Zap },
+    { key: "hitting", label: "Hitting", value: coach.hittingRecruitingSkill, color: "bg-red-500", icon: Swords },
   ];
 
   return (
@@ -304,43 +304,55 @@ function AttributesTab({ coach, xpProgress, xpForNext }: { coach: Coach; xpProgr
   );
 }
 
-function SkillsTab({ coach }: { coach: Coach }) {
+function SkillsTab({ coach, isOwnCoach = true }: { coach: Coach; isOwnCoach?: boolean }) {
   const skillBadges = [
     { 
-      name: "Player Developer",
-      description: "+5% to player development during offseason",
-      requirement: "Training 5+",
-      unlocked: coach.trainingSkill >= 5
+      name: "Scout Master",
+      description: "+15% scouting speed on all recruits",
+      requirement: "Scouting 5+",
+      unlocked: coach.scoutingSkill >= 5
     },
     { 
-      name: "Elite Recruiter",
-      description: "+10% recruiting points per interaction",
-      requirement: "Recruiting 5+",
-      unlocked: coach.recruitingSkill >= 5
+      name: "Talent Evaluator",
+      description: "Reveals if a recruit is a gem or bust at 50% scouted",
+      requirement: "Evaluation 5+",
+      unlocked: coach.evaluationSkill >= 5
     },
     { 
-      name: "Offensive Guru",
-      description: "+5% batting average for all hitters",
-      requirement: "Offense 5+",
-      unlocked: coach.offenseSkill >= 5
+      name: "Arm Whisperer",
+      description: "+10% initial interest from all pitchers",
+      requirement: "Pitching 5+",
+      unlocked: coach.pitchingRecruitingSkill >= 5
     },
     { 
-      name: "Defensive Specialist",
-      description: "-10% errors for all fielders",
-      requirement: "Defense 5+",
-      unlocked: coach.defenseSkill >= 5
+      name: "Bat Magnet",
+      description: "+10% initial interest from all hitters",
+      requirement: "Hitting 5+",
+      unlocked: coach.hittingRecruitingSkill >= 5
     },
     { 
-      name: "Master Trainer",
-      description: "+10% to player development",
-      requirement: "Training 10+",
-      unlocked: coach.trainingSkill >= 10
+      name: "Elite Scout",
+      description: "+30% scouting speed, reveals 2 abilities at 75% scouted",
+      requirement: "Scouting 10+",
+      unlocked: coach.scoutingSkill >= 10
     },
     { 
-      name: "5-Star Magnet",
-      description: "+20% chance to land 5-star recruits",
-      requirement: "Recruiting 10+",
-      unlocked: coach.recruitingSkill >= 10
+      name: "Diamond Eye",
+      description: "Automatically identifies gems/busts at 25% scouted",
+      requirement: "Evaluation 10+",
+      unlocked: coach.evaluationSkill >= 10
+    },
+    { 
+      name: "Pitching Factory",
+      description: "+25% interest from pitchers, -10% scholarship cost",
+      requirement: "Pitching 10+",
+      unlocked: coach.pitchingRecruitingSkill >= 10
+    },
+    { 
+      name: "Hitting Factory",
+      description: "+25% interest from hitters, -10% scholarship cost",
+      requirement: "Hitting 10+",
+      unlocked: coach.hittingRecruitingSkill >= 10
     },
   ];
 
@@ -403,51 +415,51 @@ function SkillsTab({ coach }: { coach: Coach }) {
 
           <div className="grid md:grid-cols-2 gap-6">
             <SkillTreeBranch
-              name="Offense"
-              level={coach.offenseSkill}
-              color="bg-green-500"
-              icon={<Swords className="w-4 h-4" />}
+              name="Scouting"
+              level={coach.scoutingSkill}
+              color="bg-emerald-600"
+              icon={<Target className="w-4 h-4" />}
               effects={[
-                "Level 1-4: +1% batting average per level",
-                "Level 5: Unlock 'Offensive Guru' badge",
-                "Level 6-9: +2% power per level",
-                "Level 10: Unlock 'Slugger Factory' badge"
+                "Level 1-4: +3% scouting speed per level",
+                "Level 5: Unlock 'Scout Master' badge",
+                "Level 6-9: +5% scouting speed per level",
+                "Level 10: Unlock 'Elite Scout' badge"
               ]}
             />
             <SkillTreeBranch
-              name="Defense"
-              level={coach.defenseSkill}
+              name="Evaluation"
+              level={coach.evaluationSkill}
               color="bg-blue-500"
               icon={<Shield className="w-4 h-4" />}
               effects={[
-                "Level 1-4: -1% errors per level",
-                "Level 5: Unlock 'Defensive Specialist' badge",
-                "Level 6-9: +2% fielding per level",
-                "Level 10: Unlock 'Gold Glove Factory' badge"
+                "Level 1-4: Earlier gem/bust reveal per level",
+                "Level 5: Unlock 'Talent Evaluator' badge",
+                "Level 6-9: Narrower rating ranges shown",
+                "Level 10: Unlock 'Diamond Eye' badge"
               ]}
             />
             <SkillTreeBranch
-              name="Training"
-              level={coach.trainingSkill}
-              color="bg-yellow-500"
+              name="Pitching"
+              level={coach.pitchingRecruitingSkill}
+              color="bg-amber-500"
               icon={<Zap className="w-4 h-4" />}
               effects={[
-                "Level 1-4: +1% player development per level",
-                "Level 5: Unlock 'Player Developer' badge",
-                "Level 6-9: +2% player development per level",
-                "Level 10: Unlock 'Master Trainer' badge"
+                "Level 1-4: +2% pitcher interest per level",
+                "Level 5: Unlock 'Arm Whisperer' badge",
+                "Level 6-9: +3% pitcher signing bonus",
+                "Level 10: Unlock 'Pitching Factory' badge"
               ]}
             />
             <SkillTreeBranch
-              name="Recruiting"
-              level={coach.recruitingSkill}
+              name="Hitting"
+              level={coach.hittingRecruitingSkill}
               color="bg-red-500"
-              icon={<Target className="w-4 h-4" />}
+              icon={<Swords className="w-4 h-4" />}
               effects={[
-                "Level 1-4: +2% recruiting points per level",
-                "Level 5: Unlock 'Elite Recruiter' badge",
-                "Level 6-9: +5% 5-star interest per level",
-                "Level 10: Unlock '5-Star Magnet' badge"
+                "Level 1-4: +2% hitter interest per level",
+                "Level 5: Unlock 'Bat Magnet' badge",
+                "Level 6-9: +3% hitter signing bonus",
+                "Level 10: Unlock 'Hitting Factory' badge"
               ]}
             />
           </div>
@@ -527,6 +539,134 @@ function CoachProfileSkeleton() {
           <Skeleton className="h-10 w-24" />
         </div>
         <Skeleton className="h-96" />
+      </main>
+    </div>
+  );
+}
+
+interface CoachDataById {
+  coach: Coach;
+  team?: Team;
+  isOwnCoach: boolean;
+}
+
+export function CoachProfileByIdPage() {
+  const { coachId } = useParams<{ coachId: string }>();
+  const [activeTab, setActiveTab] = useState<"career" | "attributes" | "skills">("career");
+
+  const { data, isLoading } = useQuery<CoachDataById>({
+    queryKey: ["/api/coaches", coachId],
+  });
+
+  if (isLoading) {
+    return <CoachProfileSkeleton />;
+  }
+
+  if (!data) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <RetroCard className="text-center p-8">
+          <p className="text-muted-foreground mb-4">Coach not found</p>
+          <Link href="/dashboard">
+            <RetroButton variant="outline">Back to Dashboard</RetroButton>
+          </Link>
+        </RetroCard>
+      </div>
+    );
+  }
+
+  const { coach, team, isOwnCoach } = data;
+  const xpProgress = getXpProgress(coach.xp, coach.level);
+  const xpForNext = getXpForNextLevel(coach.level);
+
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="border-b border-border">
+        <div className="container mx-auto px-4 py-4">
+          <RetroButton variant="ghost" size="sm" onClick={() => window.history.back()} data-testid="button-back">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </RetroButton>
+        </div>
+      </header>
+
+      <main className="container mx-auto px-4 py-6">
+        <RetroCard variant="bordered" className="mb-6">
+          <RetroCardContent className="p-6">
+            <div className="flex flex-col md:flex-row gap-6">
+              <div className="flex items-start gap-4">
+                <div className="relative">
+                  <CoachAvatar
+                    skinTone={coach.skinTone}
+                    hairColor={coach.hairColor}
+                    hairStyle={coach.hairStyle}
+                    facialHair={coach.facialHair}
+                    className="w-24 h-24"
+                  />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    {team && (
+                      <div 
+                        className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold"
+                        style={{ backgroundColor: team.primaryColor, color: team.secondaryColor }}
+                      >
+                        {team.abbreviation}
+                      </div>
+                    )}
+                    <div>
+                      <h1 className="font-pixel text-gold text-lg">
+                        HC {coach.firstName} {coach.lastName}
+                      </h1>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Badge variant="outline" className="text-xs">{coach.archetype}</Badge>
+                        <span>Level {coach.level}</span>
+                        {!isOwnCoach && (
+                          <Badge variant="secondary" className="text-xs">Rival Coach</Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  {team && (
+                    <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                      <Users className="w-3 h-3" />
+                      <span>{team.name}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </RetroCardContent>
+        </RetroCard>
+
+        <div className="flex gap-2 mb-6 flex-wrap">
+          {(["career", "attributes", "skills"] as const).map((tab) => (
+            <RetroButton
+              key={tab}
+              variant={activeTab === tab ? "primary" : "outline"}
+              size="sm"
+              onClick={() => setActiveTab(tab)}
+              data-testid={`button-tab-${tab}`}
+            >
+              {tab === "career" && <Trophy className="w-4 h-4 mr-2" />}
+              {tab === "attributes" && <Target className="w-4 h-4 mr-2" />}
+              {tab === "skills" && <GraduationCap className="w-4 h-4 mr-2" />}
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </RetroButton>
+          ))}
+        </div>
+
+        {activeTab === "career" && (
+          <CareerTab coach={coach} />
+        )}
+
+        {activeTab === "attributes" && (
+          <AttributesTab coach={coach} xpProgress={xpProgress} xpForNext={xpForNext} isOwnCoach={isOwnCoach} />
+        )}
+
+        {activeTab === "skills" && (
+          <SkillsTab coach={coach} isOwnCoach={isOwnCoach} />
+        )}
       </main>
     </div>
   );

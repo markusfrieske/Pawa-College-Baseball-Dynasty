@@ -61,7 +61,15 @@ A league-first, story-driven college baseball dynasty simulator where human coac
 ### Coach System
 - Create custom coach with appearance options
 - Coach archetypes: Balanced, Pure CEO, Player's Coach, Tactician, Old School
-- Skill progression: Offense, Defense, Training, Recruiting
+- 4 Recruiting-focused skill trees: Scouting, Evaluation, Pitching Recruiting, Hitting Recruiting
+- XP System: 100 XP for wins, 25 XP for losses, 50-175 XP for signing recruits (based on star rank)
+- Level up every 1000 XP, earning 1 skill point to spend on skill trees
+- Skill badges unlocked at level 5 and 10 in each tree:
+  - Scouting: Scout Master (5), Elite Scout (10) - faster scouting, earlier ability reveals
+  - Evaluation: Talent Evaluator (5), Diamond Eye (10) - identify gems/busts earlier
+  - Pitching: Arm Whisperer (5), Pitching Factory (10) - interest bonuses from pitchers
+  - Hitting: Bat Magnet (5), Hitting Factory (10) - interest bonuses from hitters
+- View any coach's profile from team pages (your own shows full details, rivals show career/badges only)
 
 ### Rating System (Updated)
 - **Overall Rating**: 1-999 scale (replacing old 1-99 scale)
