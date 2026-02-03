@@ -17,9 +17,23 @@ import {
   ChevronRight 
 } from "lucide-react";
 import type { League, Team, Conference, Standings } from "@shared/schema";
+import { User, Cpu } from "lucide-react";
+
+interface TeamWithCoach extends Team {
+  standings?: Standings;
+  coach?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    userId: string;
+  } | null;
+  user?: {
+    email: string;
+  } | null;
+}
 
 interface LeagueDetails extends League {
-  teams: (Team & { standings?: Standings })[];
+  teams: TeamWithCoach[];
   conferences: Conference[];
 }
 
@@ -195,6 +209,7 @@ function StandingsTab({ league }: { league: LeagueDetails }) {
                 <tr className="border-b border-border text-muted-foreground">
                   <th className="text-left py-3 px-2">#</th>
                   <th className="text-left py-3 px-2">Team</th>
+                  <th className="text-left py-3 px-2 hidden lg:table-cell">Coach</th>
                   <th className="text-center py-3 px-2">W</th>
                   <th className="text-center py-3 px-2">L</th>
                   <th className="text-center py-3 px-2 hidden sm:table-cell">Conf</th>
@@ -214,8 +229,28 @@ function StandingsTab({ league }: { league: LeagueDetails }) {
                       secondaryColor={team.secondaryColor}
                       size="sm"
                     />
-                    <span className="font-medium">{team.name}</span>
+                    <Link href={`/league/${league.id}/team/${team.id}`}>
+                      <span className="font-medium hover:text-gold cursor-pointer" data-testid={`link-team-standings-${team.id}`}>{team.name}</span>
+                    </Link>
                   </div>
+                </td>
+                <td className="py-3 px-2 hidden lg:table-cell">
+                  {team.coach ? (
+                    <div className="flex items-center gap-2">
+                      <User className="w-3 h-3 text-gold" />
+                      <div>
+                        <span className="text-foreground">{team.coach.firstName} {team.coach.lastName}</span>
+                        {team.user && (
+                          <span className="text-xs text-muted-foreground ml-1">({team.user.email.split("@")[0]})</span>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Cpu className="w-3 h-3" />
+                      <span>CPU</span>
+                    </div>
+                  )}
                 </td>
                 <td className="text-center py-3 px-2 font-bold text-green-500">
                   {team.standings?.wins || 0}
@@ -269,6 +304,24 @@ function TeamsTab({ league }: { league: LeagueDetails }) {
                       <p className="text-xs text-muted-foreground">{team.mascot}</p>
                     </div>
                   </div>
+                  
+                  <div className="flex items-center gap-2 text-xs mb-2">
+                    {team.coach ? (
+                      <>
+                        <User className="w-3 h-3 text-gold" />
+                        <span className="text-foreground">{team.coach.firstName} {team.coach.lastName}</span>
+                        {team.user && (
+                          <span className="text-muted-foreground">({team.user.email.split("@")[0]})</span>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <Cpu className="w-3 h-3 text-muted-foreground" />
+                        <span className="text-muted-foreground">CPU Controlled</span>
+                      </>
+                    )}
+                  </div>
+                  
                   <div className="flex items-center justify-between text-xs text-muted-foreground">
                     <span>Prestige</span>
                     <StarRating rating={Math.ceil(team.prestige / 2)} size="sm" />
@@ -348,7 +401,9 @@ function RankingsTab({ league }: { league: LeagueDetails }) {
                       size="sm"
                     />
                     <div>
-                      <p className="font-medium">{team.name}</p>
+                      <Link href={`/league/${league.id}/team/${team.id}`}>
+                        <span className="font-medium hover:text-gold cursor-pointer" data-testid={`link-team-rankings-${team.id}`}>{team.name}</span>
+                      </Link>
                       <p className="text-xs text-muted-foreground hidden sm:block">{team.mascot}</p>
                     </div>
                   </div>

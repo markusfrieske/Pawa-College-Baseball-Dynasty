@@ -275,7 +275,7 @@ export async function registerRoutes(
 
   app.get("/api/leagues/:id", requireAuth, async (req, res) => {
     try {
-      const league = await storage.getLeague(req.params.id);
+      const league = await storage.getLeague(req.params.id as string);
       if (!league) {
         return res.status(404).json({ message: "League not found" });
       }
@@ -283,15 +283,31 @@ export async function registerRoutes(
       const leagueTeams = await storage.getTeamsByLeague(league.id);
       const leagueConferences = await storage.getConferencesByLeague(league.id);
       const leagueStandings = await storage.getStandingsByLeague(league.id, league.currentSeason);
+      const coaches = await storage.getCoachesByLeague(league.id);
 
-      const teamsWithStandings = leagueTeams.map((team) => ({
-        ...team,
-        standings: leagueStandings.find((s) => s.teamId === team.id),
+      const teamsWithStandingsAndCoach = await Promise.all(leagueTeams.map(async (team) => {
+        const coach = coaches.find(c => c.teamId === team.id);
+        let user = null;
+        if (coach?.userId) {
+          const userData = await storage.getUser(coach.userId);
+          user = userData ? { email: userData.email } : null;
+        }
+        return {
+          ...team,
+          standings: leagueStandings.find((s) => s.teamId === team.id),
+          coach: coach ? {
+            id: coach.id,
+            firstName: coach.firstName,
+            lastName: coach.lastName,
+            userId: coach.userId,
+          } : null,
+          user,
+        };
       }));
 
       res.json({
         ...league,
-        teams: teamsWithStandings,
+        teams: teamsWithStandingsAndCoach,
         conferences: leagueConferences,
       });
     } catch (error) {
@@ -730,19 +746,58 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/leagues/:id/recruiting/import", requireAuth, async (req, res) => {
+  // Generate recruiting class for dynasty setup
+  app.post("/api/leagues/:id/recruiting/generate", requireAuth, async (req, res) => {
     try {
-      const league = await storage.getLeague(req.params.id);
+      const league = await storage.getLeague(req.params.id as string);
       if (!league) {
         return res.status(404).json({ message: "League not found" });
       }
+      
+      // Commissioner-only action
+      if (league.commissionerId !== req.session.userId) {
+        return res.status(403).json({ message: "Only commissioner can generate recruiting class" });
+      }
 
       // Delete existing recruits for this league
-      await storage.deleteRecruitsByLeague(req.params.id);
+      await storage.deleteRecruitsByLeague(req.params.id as string);
 
       // Generate new recruiting class (40-50 recruits)
       const recruitCount = 40 + Math.floor(Math.random() * 11);
-      await generateRecruits(req.params.id, recruitCount);
+      await generateRecruits(req.params.id as string, recruitCount);
+
+      await storage.createAuditLog({
+        leagueId: league.id,
+        userId: req.session.userId,
+        action: "Recruiting Class Generated",
+        details: `Generated ${recruitCount} new recruits for the recruiting class`,
+      });
+
+      res.json({ success: true, count: recruitCount });
+    } catch (error) {
+      console.error("Failed to generate recruiting class:", error);
+      res.status(500).json({ message: "Failed to generate recruiting class" });
+    }
+  });
+
+  app.post("/api/leagues/:id/recruiting/import", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id as string);
+      if (!league) {
+        return res.status(404).json({ message: "League not found" });
+      }
+      
+      // Commissioner-only action
+      if (league.commissionerId !== req.session.userId) {
+        return res.status(403).json({ message: "Only commissioner can import recruiting class" });
+      }
+
+      // Delete existing recruits for this league
+      await storage.deleteRecruitsByLeague(req.params.id as string);
+
+      // Generate new recruiting class (40-50 recruits)
+      const recruitCount = 40 + Math.floor(Math.random() * 11);
+      await generateRecruits(req.params.id as string, recruitCount);
 
       await storage.createAuditLog({
         leagueId: league.id,

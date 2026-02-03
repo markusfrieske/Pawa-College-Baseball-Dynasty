@@ -496,16 +496,25 @@ function RecruitDetailModal({
 
           <div>
             <h4 className="font-pixel text-[10px] text-gold mb-3">Priorities</h4>
-            <div className="grid grid-cols-2 gap-3">
-              {priorities.map((p) => (
-                <div key={p.key} className="flex items-center justify-between p-2 bg-muted/50 rounded">
-                  <span className="text-sm text-muted-foreground">{p.label}</span>
-                  <Badge variant="outline" className="text-xs">
-                    {p.value}
-                  </Badge>
-                </div>
-              ))}
-            </div>
+            {scoutPct >= 50 ? (
+              <div className="grid grid-cols-2 gap-3">
+                {priorities.map((p) => (
+                  <div key={p.key} className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                    <span className="text-sm text-muted-foreground">{p.label}</span>
+                    <Badge variant="outline" className="text-xs">
+                      {p.value}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-4 bg-muted/30 border border-border rounded text-center">
+                <HelpCircle className="w-6 h-6 text-muted-foreground mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">
+                  Scout to 50% to reveal recruit priorities
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Abilities Section */}
@@ -558,7 +567,7 @@ function RecruitDetailModal({
             </div>
           )}
 
-          <div className="flex gap-3">
+          <div className="flex gap-3 flex-wrap">
             <RetroButton className="flex-1" data-testid="button-pitch">
               <Phone className="w-4 h-4 mr-2" />
               Phone Call
@@ -566,6 +575,14 @@ function RecruitDetailModal({
             <RetroButton variant="outline" className="flex-1" data-testid="button-email">
               <Mail className="w-4 h-4 mr-2" />
               Email
+            </RetroButton>
+            <RetroButton 
+              variant="outline" 
+              className="flex-1 border-gold text-gold hover:bg-gold/10"
+              data-testid="button-offer-scholarship"
+            >
+              <GraduationCap className="w-4 h-4 mr-2" />
+              Offer Scholarship
             </RetroButton>
           </div>
         </div>
