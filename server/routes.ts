@@ -1271,6 +1271,50 @@ export async function registerRoutes(
     }
   });
 
+  // Simulate week - auto-resolve all games for the current week
+  app.post("/api/leagues/:id/simulate", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id);
+      if (!league) {
+        return res.status(404).json({ message: "League not found" });
+      }
+
+      if (league.commissionerId !== req.session.userId) {
+        return res.status(403).json({ message: "Only the commissioner can simulate games" });
+      }
+
+      const games = await storage.getGamesByLeague(league.id);
+      const currentWeekGames = games.filter(g => 
+        g.week === league.currentWeek && 
+        g.season === league.currentSeason &&
+        !g.isComplete
+      );
+
+      for (const game of currentWeekGames) {
+        const homeScore = Math.floor(Math.random() * 10) + 1;
+        const awayScore = Math.floor(Math.random() * 10) + 1;
+        
+        await storage.updateGame(game.id, {
+          homeScore,
+          awayScore,
+          isComplete: true,
+        });
+      }
+
+      await storage.createAuditLog({
+        leagueId: league.id,
+        userId: req.session.userId,
+        action: "Simulated Week",
+        details: `Auto-resolved ${currentWeekGames.length} games for week ${league.currentWeek}`,
+      });
+
+      res.json({ success: true, gamesSimulated: currentWeekGames.length });
+    } catch (error) {
+      console.error("Failed to simulate week:", error);
+      res.status(500).json({ message: "Failed to simulate week" });
+    }
+  });
+
   // Toggle ready status for user's coach
   app.post("/api/leagues/:id/ready", requireAuth, async (req, res) => {
     try {

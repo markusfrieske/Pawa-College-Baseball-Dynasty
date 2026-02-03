@@ -33,7 +33,9 @@ import {
   Bookmark,
   Trash2,
   Gem,
-  XCircle
+  XCircle,
+  CheckSquare,
+  Square
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -121,6 +123,8 @@ export default function RecruitingPage() {
   const [newPresetName, setNewPresetName] = useState("");
   const [compareRecruits, setCompareRecruits] = useState<RecruitWithInterest[]>([]);
   const [showCompareModal, setShowCompareModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
   useEffect(() => {
@@ -256,7 +260,38 @@ export default function RecruitingPage() {
     },
   });
 
+  const bulkScoutMutation = useMutation({
+    mutationFn: async (recruitIds: string[]) => {
+      const results = await Promise.all(
+        recruitIds.map(recruitId => 
+          apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/scout`, {})
+        )
+      );
+      return results;
+    },
+    onSuccess: (_, recruitIds) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
+      setBulkSelected(new Set());
+      toast({ title: "Bulk Scouting Complete", description: `Scouted ${recruitIds.length} recruits!` });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const toggleBulkSelect = (recruitId: string) => {
+    const newSet = new Set(bulkSelected);
+    if (newSet.has(recruitId)) {
+      newSet.delete(recruitId);
+    } else {
+      newSet.add(recruitId);
+    }
+    setBulkSelected(newSet);
+  };
+
   const filteredRecruits = data?.recruits.filter(r => {
+    const searchLower = searchQuery.toLowerCase();
+    if (searchQuery && !`${r.firstName} ${r.lastName}`.toLowerCase().includes(searchLower)) return false;
     if (positionFilter !== "all" && r.position !== positionFilter) return false;
     if (starFilter !== "all" && r.starRank < parseInt(starFilter)) return false;
     if (showWatchlistOnly && !r.interest?.isTargeted) return false;
@@ -279,6 +314,15 @@ export default function RecruitingPage() {
         return (a.classRank || 999) - (b.classRank || 999);
     }
   }) || [];
+
+  const selectAllVisible = () => {
+    const scoutableRecruits = filteredRecruits?.filter(r => (r.interest?.scoutPercentage || 0) < 100) || [];
+    if (bulkSelected.size === scoutableRecruits.length && scoutableRecruits.length > 0) {
+      setBulkSelected(new Set());
+    } else {
+      setBulkSelected(new Set(scoutableRecruits.map(r => r.id)));
+    }
+  };
 
   if (isLoading) {
     return <RecruitingSkeleton />;
@@ -328,6 +372,16 @@ export default function RecruitingPage() {
       <main className="container mx-auto px-4 py-6">
         <RetroCard className="mb-6">
           <div className="flex flex-wrap gap-4 items-center">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <RetroInput
+                placeholder="Search recruits..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 w-48"
+                data-testid="input-search-recruits"
+              />
+            </div>
             <RetroSelect
               options={positionOptions}
               value={positionFilter}
@@ -420,16 +474,38 @@ export default function RecruitingPage() {
                 </div>
               </PopoverContent>
             </Popover>
-            <RetroButton
-              variant="outline"
-              size="sm"
-              onClick={() => setShowTeamNeeds(!showTeamNeeds)}
-              className="ml-auto"
-              data-testid="button-toggle-team-needs"
-            >
-              <Users className="w-3 h-3 mr-1" />
-              Team Needs
-            </RetroButton>
+            <div className="flex items-center gap-2 ml-auto">
+              <RetroButton
+                variant="outline"
+                size="sm"
+                onClick={selectAllVisible}
+                data-testid="button-select-all"
+              >
+                <CheckSquare className="w-3 h-3 mr-1" />
+                {bulkSelected.size > 0 ? `Deselect (${bulkSelected.size})` : "Select All"}
+              </RetroButton>
+              {bulkSelected.size > 0 && (
+                <RetroButton
+                  variant="primary"
+                  size="sm"
+                  onClick={() => bulkScoutMutation.mutate(Array.from(bulkSelected))}
+                  disabled={bulkScoutMutation.isPending}
+                  data-testid="button-bulk-scout"
+                >
+                  <Eye className="w-3 h-3 mr-1" />
+                  {bulkScoutMutation.isPending ? "Scouting..." : `Scout Selected (${bulkSelected.size})`}
+                </RetroButton>
+              )}
+              <RetroButton
+                variant="outline"
+                size="sm"
+                onClick={() => setShowTeamNeeds(!showTeamNeeds)}
+                data-testid="button-toggle-team-needs"
+              >
+                <Users className="w-3 h-3 mr-1" />
+                Team Needs
+              </RetroButton>
+            </div>
             <span className="text-sm text-muted-foreground">
               {filteredRecruits.length} recruits found
             </span>
@@ -458,6 +534,8 @@ export default function RecruitingPage() {
               isScouting={scoutMutation.isPending}
               isSavingNotes={notesMutation.isPending}
               isSelected={compareRecruits.some(r => r.id === recruit.id)}
+              isBulkSelected={bulkSelected.has(recruit.id)}
+              onBulkSelect={() => toggleBulkSelect(recruit.id)}
             />
           ))}
         </div>
@@ -653,6 +731,8 @@ function RecruitRow({
   isScouting,
   isSavingNotes,
   isSelected,
+  isBulkSelected,
+  onBulkSelect,
 }: {
   recruit: RecruitWithInterest;
   leagueId: string;
@@ -664,6 +744,8 @@ function RecruitRow({
   isScouting: boolean;
   isSavingNotes: boolean;
   isSelected: boolean;
+  isBulkSelected: boolean;
+  onBulkSelect: () => void;
 }) {
   const [showNotesDialog, setShowNotesDialog] = useState(false);
   const [notesValue, setNotesValue] = useState(recruit.interest?.notes || "");
@@ -711,6 +793,17 @@ function RecruitRow({
     <RetroCard className={`hover:border-gold/30 transition-colors ${isSelected ? "border-gold ring-1 ring-gold/50" : ""}`} data-testid={`card-recruit-${recruit.id}`}>
       <div className="flex flex-col lg:flex-row lg:items-center gap-4">
         <div className="flex items-center gap-4 flex-1">
+          {scoutPct < 100 && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onBulkSelect(); }}
+              className={`w-5 h-5 flex items-center justify-center transition-colors ${
+                isBulkSelected ? "text-gold" : "text-muted-foreground/50 hover:text-gold"
+              }`}
+              data-testid={`checkbox-bulk-${recruit.id}`}
+            >
+              {isBulkSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
+            </button>
+          )}
           <button
             onClick={onToggleCompare}
             className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${

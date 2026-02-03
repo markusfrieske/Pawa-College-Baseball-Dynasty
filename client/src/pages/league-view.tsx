@@ -26,8 +26,13 @@ import {
   X,
   Building2,
   Check,
-  Clock
+  Clock,
+  Bell,
+  TrendingUp,
+  Star,
+  Zap
 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { League, Team, Conference, Standings, DynastyNews } from "@shared/schema";
 import { User, Cpu } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -115,10 +120,13 @@ export default function LeagueViewPage() {
               <Users className="w-4 h-4" />
               <span>{league.teams?.length || 0} / {league.maxTeams} Teams</span>
             </div>
-            <div className="ml-auto">
+            <div className="flex items-center gap-2 ml-auto">
+              <NotificationCenter leagueId={id!} />
               <ReadyButton leagueId={id} />
             </div>
           </div>
+          
+          <SeasonProgressBar phase={league.currentPhase} />
         </div>
       </header>
 
@@ -783,5 +791,113 @@ function ReadyButton({ leagueId }: { leagueId: string }) {
         )}
       </RetroButton>
     </div>
+  );
+}
+
+function SeasonProgressBar({ phase }: { phase: string }) {
+  const phases = [
+    { key: "preseason", label: "Pre", icon: "🏃" },
+    { key: "spring_training", label: "Train", icon: "⚾" },
+    { key: "recruiting", label: "Recruit", icon: "📋" },
+    { key: "regular_season", label: "Season", icon: "🏟️" },
+    { key: "super_regionals", label: "Supers", icon: "🏆" },
+    { key: "cws", label: "CWS", icon: "🎉" },
+    { key: "offseason", label: "Off", icon: "📝" },
+  ];
+
+  const offseasonPhases = ["players_leaving", "offseason_recruiting_1", "offseason_recruiting_2", 
+    "offseason_recruiting_3", "offseason_recruiting_4", "signing_day"];
+  
+  const currentPhaseNormalized = offseasonPhases.includes(phase) ? "offseason" : phase;
+  const currentIndex = phases.findIndex(p => p.key === currentPhaseNormalized);
+
+  return (
+    <div className="mt-4" data-testid="season-progress-bar">
+      <div className="flex items-center justify-between gap-1">
+        {phases.map((p, i) => (
+          <div
+            key={p.key}
+            className={`flex-1 flex flex-col items-center gap-1 ${
+              i < currentIndex ? "opacity-50" : i === currentIndex ? "" : "opacity-30"
+            }`}
+          >
+            <div
+              className={`w-full h-2 rounded-full ${
+                i < currentIndex
+                  ? "bg-green-500"
+                  : i === currentIndex
+                    ? "bg-gold"
+                    : "bg-muted"
+              }`}
+            />
+            <span className={`text-[8px] font-pixel ${i === currentIndex ? "text-gold" : "text-muted-foreground"}`}>
+              {p.label}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function NotificationCenter({ leagueId }: { leagueId: string }) {
+  const { data: news } = useQuery<{ news: { id: string; headline: string; body: string; createdAt: string; newsType: string }[] }>({
+    queryKey: ["/api/leagues", leagueId, "news"],
+  });
+
+  const recentNews = news?.news?.slice(0, 5) || [];
+  const unreadCount = recentNews.length;
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button className="relative p-2 rounded hover:bg-gold/10 transition-colors" data-testid="button-notifications">
+          <Bell className="w-5 h-5 text-muted-foreground hover:text-gold" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center">
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
+          )}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-80 bg-card border-border p-0" align="end">
+        <div className="p-3 border-b border-border">
+          <span className="font-pixel text-gold text-xs">NOTIFICATIONS</span>
+        </div>
+        <div className="max-h-64 overflow-y-auto">
+          {recentNews.length === 0 ? (
+            <div className="p-4 text-center text-muted-foreground text-sm">
+              No recent notifications
+            </div>
+          ) : (
+            recentNews.map((item) => (
+              <div key={item.id} className="p-3 border-b border-border/50 hover:bg-gold/5">
+                <div className="flex items-start gap-2">
+                  <div className={`w-2 h-2 rounded-full mt-1.5 ${
+                    item.newsType === "commit" ? "bg-green-500" :
+                    item.newsType === "decommit" ? "bg-red-500" :
+                    item.newsType === "transfer" ? "bg-blue-500" :
+                    "bg-gold"
+                  }`} />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">{item.headline}</p>
+                    <p className="text-xs text-muted-foreground line-clamp-2">{item.body}</p>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+        {recentNews.length > 0 && (
+          <div className="p-2 border-t border-border">
+            <Link href={`/league/${leagueId}`}>
+              <button className="w-full text-center text-xs text-gold hover:underline">
+                View all news
+              </button>
+            </Link>
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
   );
 }

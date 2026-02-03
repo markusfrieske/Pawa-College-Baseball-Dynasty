@@ -74,6 +74,19 @@ export default function CommissionerPage() {
     },
   });
 
+  const simulateWeekMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", `/api/leagues/${id}/simulate`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id] });
+      toast({ title: "Week Simulated", description: "All games have been auto-resolved." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   const importRecruitingMutation = useMutation({
     mutationFn: async (csvData?: string) => {
       const res = await apiRequest("POST", `/api/leagues/${id}/recruiting/import`, { csvData });
@@ -189,6 +202,8 @@ export default function CommissionerPage() {
               isAdvancing={advanceWeekMutation.isPending}
               onImportRecruiting={(csvData?: string) => importRecruitingMutation.mutate(csvData)}
               isImporting={importRecruitingMutation.isPending}
+              onSimulateWeek={() => simulateWeekMutation.mutate()}
+              isSimulating={simulateWeekMutation.isPending}
             />
           </TabsContent>
 
@@ -218,12 +233,16 @@ function ActionsTab({
   isAdvancing,
   onImportRecruiting,
   isImporting,
+  onSimulateWeek,
+  isSimulating,
 }: {
   league?: League;
   onAdvanceWeek: () => void;
   isAdvancing: boolean;
   onImportRecruiting: (csvData?: string) => void;
   isImporting: boolean;
+  onSimulateWeek: () => void;
+  isSimulating: boolean;
 }) {
   const { toast } = useToast();
   const [showImportDialog, setShowImportDialog] = useState(false);
@@ -301,6 +320,13 @@ function ActionsTab({
               description="View your team roster" 
               href={`/league/${league?.id}/roster`}
               dataTestId="button-view-roster"
+            />
+            <ActionButton 
+              label={isSimulating ? "Simulating..." : "Simulate Week"}
+              description="Auto-resolve all games for this week" 
+              onClick={onSimulateWeek}
+              disabled={isSimulating}
+              dataTestId="button-simulate-week"
             />
             <AlertDialog>
               <AlertDialogTrigger asChild>

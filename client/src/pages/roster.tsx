@@ -22,7 +22,9 @@ import {
   GraduationCap,
   MapPin,
   Star,
-  Edit
+  Edit,
+  LayoutGrid,
+  List
 } from "lucide-react";
 import type { Player, Team, Coach, League } from "@shared/schema";
 import { isPitcher, isCatcher, isInfielder, isOutfielder } from "@shared/positions";
@@ -64,6 +66,7 @@ export default function RosterPage() {
   const [positionFilter, setPositionFilter] = useState("all");
   const [eligibilityFilter, setEligibilityFilter] = useState("all");
   const [viewingTeamId, setViewingTeamId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"list" | "depth">("list");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -180,13 +183,35 @@ export default function RosterPage() {
               className="w-40"
               data-testid="select-eligibility-filter"
             />
-            <span className="text-sm text-muted-foreground ml-auto">
+            <div className="flex items-center gap-2 ml-auto">
+              <RetroButton
+                variant={viewMode === "list" ? "primary" : "outline"}
+                size="sm"
+                onClick={() => setViewMode("list")}
+                data-testid="button-list-view"
+              >
+                <List className="w-3 h-3 mr-1" />
+                List
+              </RetroButton>
+              <RetroButton
+                variant={viewMode === "depth" ? "primary" : "outline"}
+                size="sm"
+                onClick={() => setViewMode("depth")}
+                data-testid="button-depth-view"
+              >
+                <LayoutGrid className="w-3 h-3 mr-1" />
+                Depth Chart
+              </RetroButton>
+            </div>
+            <span className="text-sm text-muted-foreground">
               {filteredPlayers.length} players shown
             </span>
           </div>
         </RetroCard>
 
-        {positionFilter === "all" ? (
+        {viewMode === "depth" ? (
+          <DepthChartView players={data?.players || []} onSelectPlayer={setSelectedPlayer} />
+        ) : positionFilter === "all" ? (
           <>
             <PositionSection 
               title="Pitchers" 
@@ -554,5 +579,146 @@ function PlayerEditModal({ player, open, onClose, onSave, isSaving }: PlayerEdit
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function DepthChartView({ players, onSelectPlayer }: { players: Player[]; onSelectPlayer: (p: Player) => void }) {
+  const positions = [
+    { pos: "LF", x: 15, y: 25, label: "Left Field" },
+    { pos: "CF", x: 50, y: 10, label: "Center Field" },
+    { pos: "RF", x: 85, y: 25, label: "Right Field" },
+    { pos: "SS", x: 35, y: 55, label: "Shortstop" },
+    { pos: "2B", x: 65, y: 55, label: "Second Base" },
+    { pos: "3B", x: 15, y: 65, label: "Third Base" },
+    { pos: "1B", x: 85, y: 65, label: "First Base" },
+    { pos: "C", x: 50, y: 85, label: "Catcher" },
+    { pos: "P", x: 50, y: 68, label: "Pitcher" },
+  ];
+
+  const getPlayersByPosition = (pos: string): Player[] => {
+    return players
+      .filter(p => p.position === pos)
+      .sort((a, b) => b.overall - a.overall)
+      .slice(0, 3);
+  };
+
+  const pitchers = players.filter(p => isPitcher(p.position)).sort((a, b) => b.overall - a.overall);
+  const starters = pitchers.slice(0, 5);
+  const bullpen = pitchers.slice(5);
+
+  return (
+    <div className="space-y-6">
+      <RetroCard>
+        <div className="font-pixel text-gold text-sm mb-4">FIELD POSITIONS</div>
+        <div className="relative w-full aspect-[4/3] bg-gradient-to-b from-green-900 to-green-800 rounded-lg overflow-hidden" data-testid="depth-chart-field">
+          <div className="absolute inset-0 flex items-center justify-center opacity-20">
+            <div className="w-[60%] h-[60%] border-2 border-white/30 rounded-full" />
+            <div className="absolute w-[30%] h-[30%] border-2 border-white/30" style={{ clipPath: "polygon(50% 100%, 0 0, 100% 0)" }} />
+          </div>
+          
+          {positions.map(({ pos, x, y, label }) => {
+            const posPlayers = getPlayersByPosition(pos);
+            const starter = posPlayers[0];
+            
+            return (
+              <div
+                key={pos}
+                className="absolute transform -translate-x-1/2 -translate-y-1/2"
+                style={{ left: `${x}%`, top: `${y}%` }}
+              >
+                <div className="text-center">
+                  <div className="font-pixel text-[8px] text-white/70 mb-1">{pos}</div>
+                  {starter ? (
+                    <button
+                      onClick={() => onSelectPlayer(starter)}
+                      className="group"
+                      data-testid={`depth-${pos}-starter`}
+                    >
+                      <div className="w-10 h-10 mx-auto mb-1">
+                        <PlayerPortrait
+                          skinTone={starter.skinTone || "light"}
+                          hairColor={starter.hairColor || "brown"}
+                          hairStyle={starter.hairStyle || "short"}
+                          className="w-10 h-10 border-2 border-gold rounded-full group-hover:border-white transition-colors"
+                        />
+                      </div>
+                      <div className="text-[8px] text-white truncate max-w-[60px]">
+                        {starter.lastName}
+                      </div>
+                      <div className="text-[10px] font-bold text-gold">{starter.overall}</div>
+                    </button>
+                  ) : (
+                    <div className="w-10 h-10 mx-auto border-2 border-dashed border-white/30 rounded-full flex items-center justify-center">
+                      <span className="text-white/30 text-[10px]">?</span>
+                    </div>
+                  )}
+                  {posPlayers.length > 1 && (
+                    <div className="text-[8px] text-white/50 mt-1">+{posPlayers.length - 1} backup</div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </RetroCard>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <RetroCard>
+          <div className="font-pixel text-gold text-sm mb-3">STARTING ROTATION</div>
+          <div className="space-y-2">
+            {starters.length === 0 ? (
+              <p className="text-muted-foreground text-sm">No pitchers on roster</p>
+            ) : (
+              starters.map((p, i) => (
+                <button
+                  key={p.id}
+                  onClick={() => onSelectPlayer(p)}
+                  className="w-full flex items-center gap-3 p-2 rounded hover:bg-gold/10 transition-colors"
+                  data-testid={`starter-${i + 1}`}
+                >
+                  <span className="font-pixel text-gold text-sm w-6">SP{i + 1}</span>
+                  <PlayerPortrait
+                    skinTone={p.skinTone || "light"}
+                    hairColor={p.hairColor || "brown"}
+                    hairStyle={p.hairStyle || "short"}
+                    className="w-8 h-8"
+                  />
+                  <span className="flex-1 text-left text-sm">{p.firstName} {p.lastName}</span>
+                  <span className="font-bold text-gold">{p.overall}</span>
+                </button>
+              ))
+            )}
+          </div>
+        </RetroCard>
+
+        <RetroCard>
+          <div className="font-pixel text-gold text-sm mb-3">BULLPEN</div>
+          <div className="space-y-2 max-h-48 overflow-y-auto">
+            {bullpen.length === 0 ? (
+              <p className="text-muted-foreground text-sm">No bullpen pitchers</p>
+            ) : (
+              bullpen.map((p, i) => (
+                <button
+                  key={p.id}
+                  onClick={() => onSelectPlayer(p)}
+                  className="w-full flex items-center gap-3 p-2 rounded hover:bg-gold/10 transition-colors"
+                  data-testid={`bullpen-${i + 1}`}
+                >
+                  <span className="font-pixel text-muted-foreground text-[10px] w-6">RP</span>
+                  <PlayerPortrait
+                    skinTone={p.skinTone || "light"}
+                    hairColor={p.hairColor || "brown"}
+                    hairStyle={p.hairStyle || "short"}
+                    className="w-8 h-8"
+                  />
+                  <span className="flex-1 text-left text-sm">{p.firstName} {p.lastName}</span>
+                  <span className="font-bold text-gold">{p.overall}</span>
+                </button>
+              ))
+            )}
+          </div>
+        </RetroCard>
+      </div>
+    </div>
   );
 }
