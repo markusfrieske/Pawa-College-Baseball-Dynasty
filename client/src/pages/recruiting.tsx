@@ -1022,11 +1022,11 @@ function RecruitRow({
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs text-muted-foreground">Top Schools Interest</span>
             <Badge variant="outline" className="text-[8px]">
-              {recruit.stage === "Open" ? "8 Schools" : recruit.stage === "Top 8" ? "Top 8" : recruit.stage === "Top 5" ? "Top 5" : recruit.stage === "Top 3" ? "Top 3" : recruit.stage}
+              {recruit.stage === "open" ? "8 Schools" : recruit.stage === "top8" ? "Top 8" : recruit.stage === "top5" ? "Top 5" : recruit.stage === "top3" ? "Top 3" : recruit.stage}
             </Badge>
           </div>
           <div className="space-y-1.5">
-            {recruit.topSchools.slice(0, recruit.stage === "Top 3" ? 3 : recruit.stage === "Top 5" ? 5 : 8).map((school, i) => (
+            {recruit.topSchools.slice(0, recruit.stage === "top3" ? 3 : recruit.stage === "top5" ? 5 : 8).map((school, i) => (
               <div key={school.teamId} className="flex items-center gap-2">
                 <TeamBadge
                   abbreviation={school.abbreviation}

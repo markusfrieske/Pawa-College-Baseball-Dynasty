@@ -497,9 +497,45 @@ export async function registerRoutes(
 
       const recruitsWithInterest = leagueRecruits.map((recruit) => {
         const interest = interests.find((i) => i.recruitId === recruit.id);
+        
+        // Generate topSchools for this recruit based on stage
+        // Use seeded randomization based on recruit ID for deterministic results
+        const seedFromId = (id: string) => {
+          let hash = 0;
+          for (let i = 0; i < id.length; i++) {
+            hash = ((hash << 5) - hash) + id.charCodeAt(i);
+            hash = hash & hash;
+          }
+          return Math.abs(hash);
+        };
+        
+        const seed = seedFromId(recruit.id);
+        const seededShuffle = <T,>(arr: T[], s: number): T[] => {
+          const result = [...arr];
+          for (let i = result.length - 1; i > 0; i--) {
+            const j = (s * (i + 1)) % result.length;
+            [result[i], result[j]] = [result[j], result[i]];
+          }
+          return result;
+        };
+        
+        // Stage values are lowercase: "open", "top8", "top5", "top3", "verbal", "signed"
+        const stage = (recruit.stage || "open").toLowerCase();
+        const topSchoolsCount = stage === "top3" ? 3 : stage === "top5" ? 5 : 8;
+        const shuffledTeams = seededShuffle(leagueTeams, seed).slice(0, topSchoolsCount);
+        
+        const topSchools = shuffledTeams.map((team, idx) => ({
+          teamId: team.id,
+          teamName: team.name,
+          abbreviation: team.abbreviation,
+          primaryColor: team.primaryColor,
+          interestLevel: Math.max(10, 100 - (idx * 10) - ((seed + idx) % 10)),
+        })).sort((a, b) => b.interestLevel - a.interestLevel);
+        
         return {
           ...recruit,
           interest,
+          topSchools,
         };
       });
 
