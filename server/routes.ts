@@ -979,6 +979,34 @@ export async function registerRoutes(
     }
   });
 
+  // Helper function to convert letter grade to numeric value (0-100)
+  function letterGradeToNumeric(grade: string): number {
+    const gradeMap: Record<string, number> = {
+      'S': 95, 'A': 85, 'B': 75, 'C': 65, 'D': 55, 'E': 45, 'F': 35, 'G': 20
+    };
+    return gradeMap[grade.toUpperCase()] ?? 50;
+  }
+
+  // Helper function to parse CSV data
+  function parseCSVLine(line: string): string[] {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    result.push(current.trim());
+    return result;
+  }
+
   app.post("/api/leagues/:id/recruiting/import", requireAuth, async (req, res) => {
     try {
       const league = await storage.getLeague(req.params.id as string);
@@ -994,16 +1022,132 @@ export async function registerRoutes(
       // Delete existing recruits for this league
       await storage.deleteRecruitsByLeague(req.params.id as string);
 
-      // Generate new recruiting class (40-50 recruits)
-      const recruitCount = 40 + Math.floor(Math.random() * 11);
-      await generateRecruits(req.params.id as string, recruitCount);
+      const { csvData } = req.body;
+      let recruitCount = 0;
 
-      await storage.createAuditLog({
-        leagueId: league.id,
-        userId: req.session.userId,
-        action: "Recruiting Class Imported",
-        details: `Generated ${recruitCount} new recruits for the recruiting class`,
-      });
+      if (csvData && typeof csvData === 'string' && csvData.trim()) {
+        // Parse CSV data
+        const lines = csvData.trim().split('\n');
+        const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase().replace(/\s+/g, ''));
+        
+        for (let i = 1; i < lines.length; i++) {
+          const values = parseCSVLine(lines[i]);
+          if (values.length < 2) continue;
+          
+          const row: Record<string, string> = {};
+          headers.forEach((h, idx) => {
+            row[h] = values[idx] || '';
+          });
+
+          // Detect if pitcher or fielder based on position
+          const position = row.position || row.pos || 'IF';
+          const isPitcher = ['SP', 'RP', 'P'].includes(position.toUpperCase());
+
+          // Calculate star rating from overall if provided
+          const overallValue = parseInt(row.overall) || 500;
+          let starRating = 3;
+          if (overallValue >= 800) starRating = 5;
+          else if (overallValue >= 600) starRating = 4;
+          else if (overallValue >= 400) starRating = 3;
+          else if (overallValue >= 200) starRating = 2;
+          else starRating = 1;
+
+          // Parse recruit data from CSV
+          const recruit: any = {
+            leagueId: league.id,
+            firstName: row.firstname || row.first || row['first name'] || 'Player',
+            lastName: row.lastname || row.last || row['last name'] || 'Unknown',
+            position: position.toUpperCase(),
+            homeState: row.homestate || row.state || row['home state'] || 'TX',
+            hometown: row.hometown || row.city || row['home city'] || 'Houston',
+            classRank: i,
+            positionRank: Math.ceil(i / 5),
+            overall: overallValue,
+            starRating: parseInt(row.starrating) || parseInt(row.stars) || starRating,
+            starRank: parseInt(row.starrating) || parseInt(row.stars) || starRating,
+            recruitType: row.recruittype || row.type || 'HS',
+            throwHand: row.throwhand || row.throws || 'R',
+            batHand: row.bathand || row.bats || 'R',
+          };
+
+          // Fielder attributes with letter grade support
+          const fielderAttrs = ['hitforavg', 'contact', 'power', 'speed', 'runspeed', 'arm', 
+            'armstrength', 'fielding', 'errorresistance', 'clutch', 'vslhp', 'grit', 
+            'stealing', 'running', 'throwing', 'recovery', 'catcherability'];
+          
+          // Map CSV headers to schema fields
+          const attrMap: Record<string, string> = {
+            'contact': 'hitForAvg', 'hitforavg': 'hitForAvg',
+            'power': 'power',
+            'speed': 'speed', 'runspeed': 'speed',
+            'arm': 'arm', 'armstrength': 'arm',
+            'fielding': 'fielding',
+            'errorresistance': 'errorResistance',
+            'clutch': 'clutch',
+            'vslhp': 'vsLHP', 'vsleft': 'vsLHP',
+            'grit': 'grit',
+            'stealing': 'stealing',
+            'running': 'running',
+            'throwing': 'throwing',
+            'recovery': 'recovery',
+            'catcherability': 'catcherAbility', 'catcher': 'catcherAbility'
+          };
+
+          // Process fielder attributes
+          for (const [csvKey, schemaKey] of Object.entries(attrMap)) {
+            if (row[csvKey]) {
+              const val = row[csvKey];
+              recruit[schemaKey] = /^[A-Ga-g]$/.test(val) 
+                ? letterGradeToNumeric(val) 
+                : parseInt(val) || 50;
+            }
+          }
+
+          // Pitcher attributes with letter grade support
+          const pitcherAttrMap: Record<string, string> = {
+            'velocity': 'velocity', 'velo': 'velocity',
+            'control': 'control',
+            'stamina': 'stamina',
+            'stuff': 'stuff', 'pitchmix': 'stuff',
+            'wrisp': 'wRISP', 'risp': 'wRISP',
+            'vslefty': 'vsLefty',
+            'poise': 'poise',
+            'heater': 'heater',
+            'agile': 'agile'
+          };
+
+          // Process pitcher attributes
+          for (const [csvKey, schemaKey] of Object.entries(pitcherAttrMap)) {
+            if (row[csvKey]) {
+              const val = row[csvKey];
+              recruit[schemaKey] = /^[A-Ga-g]$/.test(val) 
+                ? letterGradeToNumeric(val) 
+                : parseInt(val) || 50;
+            }
+          }
+
+          await storage.createRecruit(recruit);
+          recruitCount++;
+        }
+
+        await storage.createAuditLog({
+          leagueId: league.id,
+          userId: req.session.userId,
+          action: "Recruiting Class Imported",
+          details: `Imported ${recruitCount} recruits from CSV file`,
+        });
+      } else {
+        // Generate new recruiting class (40-50 recruits)
+        recruitCount = 40 + Math.floor(Math.random() * 11);
+        await generateRecruits(req.params.id as string, recruitCount);
+
+        await storage.createAuditLog({
+          leagueId: league.id,
+          userId: req.session.userId,
+          action: "Recruiting Class Imported",
+          details: `Generated ${recruitCount} new recruits for the recruiting class`,
+        });
+      }
 
       res.json({ success: true, count: recruitCount });
     } catch (error) {

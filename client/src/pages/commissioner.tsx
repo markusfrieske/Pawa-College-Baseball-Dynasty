@@ -334,7 +334,7 @@ function ActionsTab({
                 Click to upload CSV file
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                Format: firstName, lastName, position, overall, starRating, homeState
+                Supports letter grades (S-G). Required: firstName, lastName, position, overall, homeState. Optional: contact, power, speed, arm, fielding, clutch, grit, recovery (fielders); velocity, control, stamina, stuff, poise (pitchers).
               </p>
             </div>
 
