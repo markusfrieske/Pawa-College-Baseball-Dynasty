@@ -11,6 +11,7 @@ import { PositionBadge } from "@/components/ui/position-badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
   ArrowLeft, 
   Target, 
@@ -616,7 +617,9 @@ function RecruitRow({
                 <Badge className="bg-blue-500 text-white text-[8px]">Blue Chip</Badge>
               )}
               <Badge className={`${stage.color} text-white text-[8px]`}>{stage.label}</Badge>
-              <Badge variant="outline" className="text-[8px]">{recruit.recruitType}</Badge>
+              <Badge variant="outline" className="text-[8px]">
+                  {recruit.recruitType === "JUCO" ? `JUCO ${recruit.recruitYear || "FR"}` : recruit.recruitType}
+                </Badge>
               {totalAbilities > 0 && (
                 <Badge variant="outline" className="text-[8px] border-gold/50 text-gold">
                   {isFullyRevealed ? `${totalAbilities} Abilities` : `${revealedAbilitiesCount}/${totalAbilities > revealedAbilitiesCount ? "?" : totalAbilities}`}
@@ -667,40 +670,60 @@ function RecruitRow({
           </div>
 
           <div className="flex gap-2">
-            <RetroButton
-              variant="outline"
-              size="sm"
-              onClick={onScout}
-              disabled={isScouting || scoutPct >= 100}
-              data-testid={`button-scout-${recruit.id}`}
-            >
-              <Search className="w-3 h-3" />
-            </RetroButton>
-            <RetroButton
-              variant={recruit.interest?.isTargeted ? "primary" : "outline"}
-              size="sm"
-              onClick={onTarget}
-              disabled={isTargeting}
-              data-testid={`button-target-${recruit.id}`}
-            >
-              <Target className="w-3 h-3" />
-            </RetroButton>
-            <RetroButton
-              size="sm"
-              onClick={onViewDetails}
-              data-testid={`button-view-${recruit.id}`}
-            >
-              <Eye className="w-3 h-3" />
-            </RetroButton>
-            <RetroButton
-              variant={recruit.interest?.notes ? "primary" : "outline"}
-              size="sm"
-              onClick={() => setShowNotesDialog(true)}
-              disabled={!recruit.interest}
-              data-testid={`button-notes-${recruit.id}`}
-            >
-              <StickyNote className="w-3 h-3" />
-            </RetroButton>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <RetroButton
+                  variant="outline"
+                  size="sm"
+                  onClick={onScout}
+                  disabled={isScouting || scoutPct >= 100}
+                  data-testid={`button-scout-${recruit.id}`}
+                >
+                  <Search className="w-3 h-3" />
+                </RetroButton>
+              </TooltipTrigger>
+              <TooltipContent>Scout</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <RetroButton
+                  variant={recruit.interest?.isTargeted ? "primary" : "outline"}
+                  size="sm"
+                  onClick={onTarget}
+                  disabled={isTargeting}
+                  data-testid={`button-target-${recruit.id}`}
+                >
+                  <Target className="w-3 h-3" />
+                </RetroButton>
+              </TooltipTrigger>
+              <TooltipContent>Target</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <RetroButton
+                  size="sm"
+                  onClick={onViewDetails}
+                  data-testid={`button-view-${recruit.id}`}
+                >
+                  <Eye className="w-3 h-3" />
+                </RetroButton>
+              </TooltipTrigger>
+              <TooltipContent>View Details</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <RetroButton
+                  variant={recruit.interest?.notes ? "primary" : "outline"}
+                  size="sm"
+                  onClick={() => setShowNotesDialog(true)}
+                  disabled={!recruit.interest}
+                  data-testid={`button-notes-${recruit.id}`}
+                >
+                  <StickyNote className="w-3 h-3" />
+                </RetroButton>
+              </TooltipTrigger>
+              <TooltipContent>Notes</TooltipContent>
+            </Tooltip>
           </div>
         </div>
       </div>
@@ -908,7 +931,7 @@ function RecruitDetailModal({
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
               <GraduationCap className="w-4 h-4" />
-              <span>{recruit.recruitType === "HS" ? "High School" : "JUCO Transfer"}</span>
+              <span>{recruit.recruitType === "HS" ? "High School" : `JUCO ${recruit.recruitYear || "FR"} Transfer`}</span>
             </div>
             <div className="flex items-center gap-2">
               <span>Bats {recruit.batHand || "R"} / Throws {recruit.throwHand || "R"}</span>

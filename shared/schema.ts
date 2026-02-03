@@ -309,6 +309,7 @@ export const recruits = pgTable("recruits", {
   classRank: integer("class_rank").notNull(),
   positionRank: integer("position_rank").notNull(),
   recruitType: text("recruit_type").notNull().default("HS"),
+  recruitYear: text("recruit_year").notNull().default("FR"),
   overall: integer("overall").notNull().default(500),
   starRating: integer("star_rating").notNull().default(3),
   // Fielder attributes (letter grades S-G, stored as 0-100)
@@ -369,6 +370,7 @@ export const insertRecruitSchema = createInsertSchema(recruits).pick({
   classRank: true,
   positionRank: true,
   recruitType: true,
+  recruitYear: true,
   overall: true,
   starRating: true,
   hitForAvg: true,

@@ -103,7 +103,9 @@ export default function RecruitProfilePage() {
                   {recruit.hometown}, {recruit.homeState}
                 </span>
                 <PositionBadge position={recruit.position} size="md" />
-                <Badge variant="outline">{recruit.recruitType}</Badge>
+                <Badge variant="outline">
+                  {recruit.recruitType === "JUCO" ? `JUCO ${recruit.recruitYear || "FR"}` : recruit.recruitType}
+                </Badge>
                 <Badge className={`${stage.color} text-white`}>{stage.label}</Badge>
               </div>
             </div>

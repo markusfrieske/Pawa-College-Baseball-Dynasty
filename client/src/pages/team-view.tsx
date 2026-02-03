@@ -515,10 +515,10 @@ function CoachesTab({ team }: { team: TeamDetails }) {
       )}
       
       <RetroCard>
-        <RetroCardHeader>Coaching Staff</RetroCardHeader>
+        <RetroCardHeader>Scout</RetroCardHeader>
         <RetroCardContent className="text-center py-12">
           <Users className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-          <p className="text-muted-foreground">Assistant coaches coming soon</p>
+          <p className="text-muted-foreground">Scout details coming soon</p>
         </RetroCardContent>
       </RetroCard>
     </div>
@@ -619,7 +619,7 @@ function RosterTab({ team }: { team: TeamDetails }) {
               <th className="text-center py-3 px-2">Pos</th>
               <th className="text-center py-3 px-2">Year</th>
               <th className="text-center py-3 px-2">OVR</th>
-              <th className="text-center py-3 px-2">POT</th>
+              <th className="text-center py-3 px-2">Rank</th>
               <th className="text-left py-3 px-2 hidden sm:table-cell">Hometown</th>
             </tr>
           </thead>
@@ -642,18 +642,15 @@ function RosterTab({ team }: { team: TeamDetails }) {
                   <span className="font-bold text-gold">{player.overall}</span>
                 </td>
                 <td className="text-center py-3 px-2">
-                  <Badge 
-                    variant="outline" 
-                    className={`text-[10px] ${
-                      player.starRating >= 4
-                        ? "text-gold border-gold"
-                        : player.starRating >= 3
-                        ? "text-blue-400 border-blue-400"
-                        : "text-muted-foreground"
-                    }`}
-                  >
-                    {player.starRating}
-                  </Badge>
+                  <span className={`font-pixel text-[10px] ${
+                    player.starRating >= 4
+                      ? "text-gold"
+                      : player.starRating >= 3
+                      ? "text-blue-400"
+                      : "text-muted-foreground"
+                  }`}>
+                    {"★".repeat(player.starRating || 1)}
+                  </span>
                 </td>
                 <td className="py-3 px-2 text-muted-foreground hidden sm:table-cell">
                   {player.hometown}, {player.homeState}

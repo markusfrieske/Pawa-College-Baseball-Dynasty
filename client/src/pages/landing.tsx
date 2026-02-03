@@ -3,7 +3,7 @@ import { useState } from "react";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroInput } from "@/components/ui/retro-input";
 import { RetroSelect } from "@/components/ui/retro-select";
-import { Trophy, Users, Target, Calendar, Star, TrendingUp, User, Bug, Volume2, VolumeX, Layers, LogOut, DollarSign, X, GraduationCap, Building2, Search, Settings, CalendarDays, Binoculars, Newspaper, Crown } from "lucide-react";
+import { Trophy, Users, Target, Calendar, Star, TrendingUp, User, Bug, Volume2, VolumeX, Layers, LogOut, DollarSign, X, GraduationCap, Building2, Search, Settings, CalendarDays, Binoculars, Newspaper, Crown, Eye, Zap, Swords } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -282,10 +282,10 @@ function FeatureCardWithIcons({
 
 function CoachProgressionCard() {
   const skillTrees = [
-    { icon: Search, name: "Scouting", color: "text-blue-400" },
-    { icon: Target, name: "Recruiting", color: "text-green-400" },
-    { icon: GraduationCap, name: "Academic", color: "text-purple-400" },
-    { icon: Building2, name: "Facilities", color: "text-orange-400" },
+    { icon: Search, name: "Scouting", color: "text-blue-400", value: 2 },
+    { icon: Eye, name: "Evaluation", color: "text-purple-400", value: 3 },
+    { icon: Zap, name: "Pitching", color: "text-green-400", value: 1 },
+    { icon: Swords, name: "Hitting", color: "text-orange-400", value: 2 },
   ];
 
   return (
@@ -293,9 +293,9 @@ function CoachProgressionCard() {
       <div className="text-gold mb-4">
         <Star className="w-8 h-8" />
       </div>
-      <h3 className="font-pixel text-[10px] text-foreground uppercase mb-3">Coach Progression</h3>
+      <h3 className="font-pixel text-[10px] text-foreground uppercase mb-3">Starting Skill Grades</h3>
       <p className="text-muted-foreground text-sm leading-relaxed mb-4">
-        Level up your coach each season. Choose permanent skills from scouting, recruiting, academic and facilities branches.
+        Coaches start with skill ratings from 1-3 based on archetype. Level up to improve scouting, evaluation, pitching and hitting skills.
       </p>
       <div className="grid grid-cols-4 gap-2 mt-4">
         {skillTrees.map((tree) => (
@@ -304,6 +304,14 @@ function CoachProgressionCard() {
               <tree.icon className="w-4 h-4" />
             </div>
             <span className="text-[8px] text-muted-foreground font-pixel">{tree.name}</span>
+            <div className="flex gap-0.5">
+              {[1, 2, 3].map((n) => (
+                <div
+                  key={n}
+                  className={`w-2 h-3 rounded-sm ${n <= tree.value ? "bg-gold" : "bg-border"}`}
+                />
+              ))}
+            </div>
           </div>
         ))}
       </div>

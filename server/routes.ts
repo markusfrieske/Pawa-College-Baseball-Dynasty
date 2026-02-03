@@ -1917,6 +1917,16 @@ async function generateRecruits(leagueId: string, count: number) {
     // Random appearance for recruits
     const appearance = getRandomAppearance();
 
+    // Determine recruit type and year
+    const recruitType = Math.random() < 0.8 ? "HS" : "JUCO";
+    let recruitYear = "FR";
+    if (recruitType === "JUCO") {
+      const rand = Math.random();
+      if (rand < 0.4) recruitYear = "FR";
+      else if (rand < 0.8) recruitYear = "SO";
+      else recruitYear = "JR";
+    }
+
     await storage.createRecruit({
       leagueId,
       firstName: firstNames[Math.floor(Math.random() * firstNames.length)],
@@ -1927,7 +1937,8 @@ async function generateRecruits(leagueId: string, count: number) {
       starRank,
       classRank: i + 1,
       positionRank: Math.floor(i / positions.length) + 1,
-      recruitType: Math.random() < 0.8 ? "HS" : "JUCO",
+      recruitType,
+      recruitYear,
       overall,
       starRating,
       hitForAvg: 40 + Math.floor(Math.random() * 40),
