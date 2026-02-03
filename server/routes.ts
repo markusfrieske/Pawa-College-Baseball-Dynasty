@@ -293,8 +293,8 @@ export async function registerRoutes(
     }
   });
 
-  // Dynasty setup - get available team templates for selecting which teams to include
-  app.get("/api/leagues/:id/dynasty-setup", requireAuth, async (req, res) => {
+  // Team selection - get available team templates for selecting which teams to include
+  app.get("/api/leagues/:id/team-selection", requireAuth, async (req, res) => {
     try {
       const league = await storage.getLeague(req.params.id as string);
       if (!league) {
@@ -320,8 +320,8 @@ export async function registerRoutes(
     }
   });
 
-  // Dynasty setup - create selected teams
-  app.post("/api/leagues/:id/dynasty-setup", requireAuth, async (req, res) => {
+  // Team selection - create selected teams
+  app.post("/api/leagues/:id/team-selection", requireAuth, async (req, res) => {
     try {
       const userId = req.session.userId!;
       const league = await storage.getLeague(req.params.id as string);

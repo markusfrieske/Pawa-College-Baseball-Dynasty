@@ -44,12 +44,12 @@ export default function TeamSelectionPage() {
   const [selectedTeams, setSelectedTeams] = useState<Record<string, string[]>>({});
 
   const { data, isLoading } = useQuery<TeamSelectionData>({
-    queryKey: ["/api/leagues", id, "dynasty-setup"],
+    queryKey: ["/api/leagues", id, "team-selection"],
   });
 
   const saveMutation = useMutation({
     mutationFn: async (teams: { conferenceId: string; teamNames: string[] }[]) => {
-      return apiRequest("POST", `/api/leagues/${id}/dynasty-setup`, { selectedTeams: teams });
+      return apiRequest("POST", `/api/leagues/${id}/team-selection`, { selectedTeams: teams });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues"] });

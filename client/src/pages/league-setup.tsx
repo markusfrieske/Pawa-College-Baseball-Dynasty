@@ -278,7 +278,6 @@ function TeamSelectionStep({
                 team={team}
                 isSelected={selectedTeamId === team.id}
                 onSelect={onSelect}
-                allTeamsInConference={confTeams}
               />
             ))}
           </div>
@@ -298,7 +297,6 @@ function TeamSelectionStep({
                 team={team}
                 isSelected={selectedTeamId === team.id}
                 onSelect={onSelect}
-                allTeamsInConference={unassignedTeams}
               />
             ))}
           </div>
@@ -318,19 +316,15 @@ function TeamCard({
   team,
   isSelected,
   onSelect,
-  allTeamsInConference,
 }: {
   team: TeamWithCoach;
   isSelected: boolean;
   onSelect: (id: string) => void;
-  allTeamsInConference?: TeamWithCoach[];
 }) {
   const hasCoach = !!team.coach;
   const isHuman = hasCoach && !!team.coach?.userId;
   const isCpu = hasCoach && !team.coach?.userId;
   const isAvailable = !hasCoach;
-  
-  const availableTeamsInConf = allTeamsInConference?.filter(t => !t.coach) || [];
 
   return (
     <div
@@ -351,29 +345,8 @@ function TeamCard({
           secondaryColor={team.secondaryColor}
         />
         <div className="flex-1 min-w-0">
-          {isSelected && availableTeamsInConf.length > 1 ? (
-            <select
-              value={team.id}
-              onChange={(e) => {
-                e.stopPropagation();
-                onSelect(e.target.value);
-              }}
-              className="bg-transparent border border-gold/50 rounded px-2 py-1 text-sm font-medium w-full focus:outline-none focus:border-gold"
-              onClick={(e) => e.stopPropagation()}
-              data-testid="select-team-dropdown"
-            >
-              {availableTeamsInConf.map(t => (
-                <option key={t.id} value={t.id} className="bg-forest-card">
-                  {t.name} ({t.abbreviation})
-                </option>
-              ))}
-            </select>
-          ) : (
-            <>
-              <p className="font-medium truncate">{team.name}</p>
-              <p className="text-sm text-muted-foreground truncate">{team.mascot}</p>
-            </>
-          )}
+          <p className="font-medium truncate">{team.name}</p>
+          <p className="text-sm text-muted-foreground truncate">{team.mascot}</p>
         </div>
         {hasCoach && (
           <div
