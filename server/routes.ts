@@ -413,6 +413,7 @@ export async function registerRoutes(
 
       const leagueRecruits = await storage.getRecruitsByLeague(league.id);
       const interests = await storage.getRecruitingInterestsByTeam(userTeam.id);
+      const roster = await storage.getPlayersByTeam(userTeam.id);
 
       const recruitsWithInterest = leagueRecruits.map((recruit) => {
         const interest = interests.find((i) => i.recruitId === recruit.id);
@@ -422,12 +423,19 @@ export async function registerRoutes(
         };
       });
 
+      const positionCounts: Record<string, number> = {};
+      roster.forEach((player) => {
+        positionCounts[player.position] = (positionCounts[player.position] || 0) + 1;
+      });
+
       res.json({
         recruits: recruitsWithInterest,
         team: userTeam,
         remainingActions: 22,
         targetedCount: interests.filter((i) => i.isTargeted).length,
         commitsCount: leagueRecruits.filter((r) => r.signedTeamId === userTeam.id).length,
+        rosterDepth: positionCounts,
+        rosterSize: roster.length,
       });
     } catch (error) {
       console.error("Failed to fetch recruiting data:", error);
@@ -585,6 +593,36 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to target recruit:", error);
       res.status(500).json({ message: "Failed to target recruit" });
+    }
+  });
+
+  // Update recruit notes
+  app.patch("/api/leagues/:id/recruiting/:recruitId/notes", requireAuth, async (req, res) => {
+    try {
+      const leagueTeams = await storage.getTeamsByLeague(req.params.id);
+      const userTeam = leagueTeams.find((t) => !t.isCpu);
+      
+      if (!userTeam) {
+        return res.status(400).json({ message: "No team assigned" });
+      }
+
+      const { notes } = req.body;
+      if (typeof notes !== "string") {
+        return res.status(400).json({ message: "Notes must be a string" });
+      }
+
+      const interest = await storage.getRecruitingInterest(req.params.recruitId, userTeam.id);
+      if (!interest) {
+        return res.status(404).json({ message: "Recruit interest not found" });
+      }
+
+      await storage.updateRecruitingInterest(interest.id, { notes: notes || null });
+      const updated = await storage.getRecruitingInterest(req.params.recruitId, userTeam.id);
+      
+      res.json(updated);
+    } catch (error) {
+      console.error("Failed to update notes:", error);
+      res.status(500).json({ message: "Failed to update notes" });
     }
   });
 

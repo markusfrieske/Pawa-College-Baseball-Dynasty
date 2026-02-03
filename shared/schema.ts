@@ -369,6 +369,7 @@ export const recruitingInterests = pgTable("recruiting_interests", {
   minStar: integer("min_star").notNull().default(1),
   maxStar: integer("max_star").notNull().default(5),
   revealedAbilitiesCount: integer("revealed_abilities_count").notNull().default(0),
+  notes: text("notes"),
 });
 
 export const insertRecruitingInterestSchema = createInsertSchema(recruitingInterests).pick({
@@ -384,6 +385,7 @@ export const insertRecruitingInterestSchema = createInsertSchema(recruitingInter
   minStar: true,
   maxStar: true,
   revealedAbilitiesCount: true,
+  notes: true,
 });
 
 export type InsertRecruitingInterest = z.infer<typeof insertRecruitingInterestSchema>;

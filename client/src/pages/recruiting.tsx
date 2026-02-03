@@ -21,8 +21,27 @@ import {
   GraduationCap,
   DollarSign,
   HelpCircle,
-  Check
+  Check,
+  Users,
+  AlertTriangle,
+  CheckCircle,
+  StickyNote,
+  X,
+  Save,
+  Bookmark,
+  Trash2
 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { RetroInput } from "@/components/ui/retro-input";
+
+interface FilterPreset {
+  id: string;
+  name: string;
+  position: string;
+  star: string;
+  sort: string;
+}
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Recruit, RecruitingInterest, Team } from "@shared/schema";
@@ -41,6 +60,8 @@ interface RecruitingData {
   remainingActions: number;
   targetedCount: number;
   commitsCount: number;
+  rosterDepth: Record<string, number>;
+  rosterSize: number;
 }
 
 const positionOptions = [
@@ -63,13 +84,70 @@ const starOptions = [
   { value: "3", label: "3+ Star" },
 ];
 
+const sortOptions = [
+  { value: "classRank", label: "Class Rank" },
+  { value: "positionRank", label: "Position Rank" },
+  { value: "overall", label: "Overall (High to Low)" },
+  { value: "starRank", label: "Star Rating" },
+  { value: "name", label: "Name (A-Z)" },
+  { value: "state", label: "Home State" },
+];
+
 export default function RecruitingPage() {
   const { id } = useParams<{ id: string }>();
   const [selectedRecruit, setSelectedRecruit] = useState<RecruitWithInterest | null>(null);
   const [positionFilter, setPositionFilter] = useState("all");
   const [starFilter, setStarFilter] = useState("all");
+  const [sortBy, setSortBy] = useState("classRank");
+  const [showTeamNeeds, setShowTeamNeeds] = useState(false);
+  const [filterPresets, setFilterPresets] = useState<FilterPreset[]>(() => {
+    const saved = localStorage.getItem(`recruiting-presets-${id}`);
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [newPresetName, setNewPresetName] = useState("");
+  const [compareRecruits, setCompareRecruits] = useState<RecruitWithInterest[]>([]);
+  const [showCompareModal, setShowCompareModal] = useState(false);
   const { toast } = useToast();
+
+  const toggleCompare = (recruit: RecruitWithInterest) => {
+    if (compareRecruits.find(r => r.id === recruit.id)) {
+      setCompareRecruits(compareRecruits.filter(r => r.id !== recruit.id));
+    } else if (compareRecruits.length < 3) {
+      setCompareRecruits([...compareRecruits, recruit]);
+    } else {
+      toast({ title: "Compare limit", description: "You can only compare up to 3 recruits at a time." });
+    }
+  };
   const queryClient = useQueryClient();
+
+  const savePreset = () => {
+    if (!newPresetName.trim()) return;
+    const preset: FilterPreset = {
+      id: Date.now().toString(),
+      name: newPresetName.trim(),
+      position: positionFilter,
+      star: starFilter,
+      sort: sortBy,
+    };
+    const updated = [...filterPresets, preset];
+    setFilterPresets(updated);
+    localStorage.setItem(`recruiting-presets-${id}`, JSON.stringify(updated));
+    setNewPresetName("");
+    toast({ title: "Preset saved", description: `"${preset.name}" has been saved.` });
+  };
+
+  const loadPreset = (preset: FilterPreset) => {
+    setPositionFilter(preset.position);
+    setStarFilter(preset.star);
+    setSortBy(preset.sort);
+    toast({ title: "Preset loaded", description: `Applied "${preset.name}" filters.` });
+  };
+
+  const deletePreset = (presetId: string) => {
+    const updated = filterPresets.filter(p => p.id !== presetId);
+    setFilterPresets(updated);
+    localStorage.setItem(`recruiting-presets-${id}`, JSON.stringify(updated));
+  };
 
   const { data, isLoading } = useQuery<RecruitingData>({
     queryKey: ["/api/leagues", id, "recruiting"],
@@ -101,10 +179,40 @@ export default function RecruitingPage() {
     },
   });
 
+  const notesMutation = useMutation({
+    mutationFn: async ({ recruitId, notes }: { recruitId: string; notes: string }) => {
+      return apiRequest("PATCH", `/api/leagues/${id}/recruiting/${recruitId}/notes`, { notes });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
+      toast({ title: "Notes saved", description: "Your notes have been updated." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   const filteredRecruits = data?.recruits.filter(r => {
     if (positionFilter !== "all" && r.position !== positionFilter) return false;
     if (starFilter !== "all" && r.starRank < parseInt(starFilter)) return false;
     return true;
+  }).sort((a, b) => {
+    switch (sortBy) {
+      case "classRank":
+        return (a.classRank || 999) - (b.classRank || 999);
+      case "positionRank":
+        return (a.positionRank || 999) - (b.positionRank || 999);
+      case "overall":
+        return b.overall - a.overall;
+      case "starRank":
+        return b.starRank - a.starRank || b.overall - a.overall;
+      case "name":
+        return `${a.lastName}${a.firstName}`.localeCompare(`${b.lastName}${b.firstName}`);
+      case "state":
+        return (a.homeState || "").localeCompare(b.homeState || "") || (a.classRank || 999) - (b.classRank || 999);
+      default:
+        return (a.classRank || 999) - (b.classRank || 999);
+    }
   }) || [];
 
   if (isLoading) {
@@ -152,10 +260,93 @@ export default function RecruitingPage() {
               className="w-40"
               data-testid="select-star-filter"
             />
-            <span className="text-sm text-muted-foreground ml-auto">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Sort:</span>
+              <RetroSelect
+                options={sortOptions}
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="w-44"
+                data-testid="select-sort"
+              />
+            </div>
+            <Popover>
+              <PopoverTrigger asChild>
+                <RetroButton variant="outline" size="sm" data-testid="button-presets">
+                  <Bookmark className="w-3 h-3 mr-1" />
+                  Presets
+                </RetroButton>
+              </PopoverTrigger>
+              <PopoverContent className="w-64 bg-card border-border p-3">
+                <div className="space-y-3">
+                  <p className="font-pixel text-[10px] text-gold">SAVED PRESETS</p>
+                  {filterPresets.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">No saved presets</p>
+                  ) : (
+                    <div className="space-y-2 max-h-32 overflow-y-auto">
+                      {filterPresets.map((preset) => (
+                        <div key={preset.id} className="flex items-center gap-2 group">
+                          <RetroButton
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 justify-start text-xs"
+                            onClick={() => loadPreset(preset)}
+                            data-testid={`button-load-preset-${preset.id}`}
+                          >
+                            {preset.name}
+                          </RetroButton>
+                          <button
+                            onClick={() => deletePreset(preset.id)}
+                            className="text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity"
+                            data-testid={`button-delete-preset-${preset.id}`}
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="pt-2 border-t border-border">
+                    <p className="font-pixel text-[8px] text-muted-foreground mb-2">SAVE CURRENT</p>
+                    <div className="flex gap-2">
+                      <RetroInput
+                        value={newPresetName}
+                        onChange={(e) => setNewPresetName(e.target.value)}
+                        placeholder="Preset name"
+                        className="flex-1 h-8 text-xs"
+                        data-testid="input-preset-name"
+                      />
+                      <RetroButton
+                        size="sm"
+                        onClick={savePreset}
+                        disabled={!newPresetName.trim()}
+                        data-testid="button-save-preset"
+                      >
+                        <Save className="w-3 h-3" />
+                      </RetroButton>
+                    </div>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+            <RetroButton
+              variant="outline"
+              size="sm"
+              onClick={() => setShowTeamNeeds(!showTeamNeeds)}
+              className="ml-auto"
+              data-testid="button-toggle-team-needs"
+            >
+              <Users className="w-3 h-3 mr-1" />
+              Team Needs
+            </RetroButton>
+            <span className="text-sm text-muted-foreground">
               {filteredRecruits.length} recruits found
             </span>
           </div>
+          
+          {showTeamNeeds && data?.rosterDepth && (
+            <TeamNeedsIndicator rosterDepth={data.rosterDepth} rosterSize={data.rosterSize} />
+          )}
         </RetroCard>
 
         <div className="space-y-3">
@@ -166,8 +357,12 @@ export default function RecruitingPage() {
               onViewDetails={() => setSelectedRecruit(recruit)}
               onTarget={() => targetMutation.mutate(recruit.id)}
               onScout={() => scoutMutation.mutate(recruit.id)}
+              onSaveNotes={(notes) => notesMutation.mutate({ recruitId: recruit.id, notes })}
+              onToggleCompare={() => toggleCompare(recruit)}
               isTargeting={targetMutation.isPending}
               isScouting={scoutMutation.isPending}
+              isSavingNotes={notesMutation.isPending}
+              isSelected={compareRecruits.some(r => r.id === recruit.id)}
             />
           ))}
         </div>
@@ -187,6 +382,48 @@ export default function RecruitingPage() {
         onScout={(recruitId) => scoutMutation.mutate(recruitId)}
         isScouting={scoutMutation.isPending}
       />
+
+      {compareRecruits.length > 0 && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-card border border-gold rounded-lg shadow-lg p-3 flex items-center gap-4 z-50" data-testid="compare-bar">
+          <span className="font-pixel text-[10px] text-gold">COMPARE:</span>
+          <div className="flex items-center gap-2">
+            {compareRecruits.map((r) => (
+              <div key={r.id} className="flex items-center gap-1 bg-background/50 px-2 py-1 rounded">
+                <span className="text-xs">{r.firstName} {r.lastName}</span>
+                <button
+                  onClick={() => toggleCompare(r)}
+                  className="text-muted-foreground hover:text-red-400"
+                  data-testid={`button-remove-compare-${r.id}`}
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+          <RetroButton
+            size="sm"
+            onClick={() => setShowCompareModal(true)}
+            disabled={compareRecruits.length < 2}
+            data-testid="button-open-compare"
+          >
+            Compare ({compareRecruits.length}/3)
+          </RetroButton>
+          <RetroButton
+            variant="outline"
+            size="sm"
+            onClick={() => setCompareRecruits([])}
+            data-testid="button-clear-compare"
+          >
+            Clear
+          </RetroButton>
+        </div>
+      )}
+
+      <CompareModal
+        recruits={compareRecruits}
+        isOpen={showCompareModal}
+        onClose={() => setShowCompareModal(false)}
+      />
     </div>
   );
 }
@@ -203,21 +440,101 @@ function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string
   );
 }
 
+const IDEAL_DEPTH: Record<string, number> = {
+  P: 12,
+  C: 2,
+  "1B": 2,
+  "2B": 2,
+  SS: 2,
+  "3B": 2,
+  LF: 2,
+  CF: 2,
+  RF: 2,
+};
+
+function TeamNeedsIndicator({ rosterDepth, rosterSize }: { rosterDepth: Record<string, number>; rosterSize: number }) {
+  const positions = ["P", "C", "1B", "2B", "SS", "3B", "LF", "CF", "RF"];
+  
+  const getDepthStatus = (pos: string) => {
+    const current = rosterDepth[pos] || 0;
+    const ideal = IDEAL_DEPTH[pos] || 2;
+    if (current >= ideal) return "full";
+    if (current >= ideal * 0.5) return "ok";
+    return "need";
+  };
+
+  return (
+    <div className="mt-4 pt-4 border-t border-border" data-testid="team-needs-indicator">
+      <div className="flex items-center gap-2 mb-3">
+        <Users className="w-4 h-4 text-gold" />
+        <span className="font-pixel text-[10px] text-gold">ROSTER DEPTH</span>
+        <span className="text-xs text-muted-foreground ml-auto">
+          {rosterSize}/35 players
+        </span>
+      </div>
+      <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2">
+        {positions.map((pos) => {
+          const current = rosterDepth[pos] || 0;
+          const ideal = IDEAL_DEPTH[pos] || 2;
+          const status = getDepthStatus(pos);
+          
+          return (
+            <div
+              key={pos}
+              className={`p-2 rounded text-center border ${
+                status === "need" 
+                  ? "border-red-500/50 bg-red-500/10" 
+                  : status === "ok" 
+                    ? "border-yellow-500/50 bg-yellow-500/10" 
+                    : "border-green-500/50 bg-green-500/10"
+              }`}
+              data-testid={`depth-${pos}`}
+            >
+              <div className="flex items-center justify-center gap-1 mb-1">
+                {status === "need" && <AlertTriangle className="w-3 h-3 text-red-500" />}
+                {status === "ok" && <AlertTriangle className="w-3 h-3 text-yellow-500" />}
+                {status === "full" && <CheckCircle className="w-3 h-3 text-green-500" />}
+              </div>
+              <p className="font-pixel text-[10px] text-foreground">{pos}</p>
+              <p className={`text-xs font-bold ${
+                status === "need" ? "text-red-400" : status === "ok" ? "text-yellow-400" : "text-green-400"
+              }`}>
+                {current}/{ideal}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function RecruitRow({
   recruit,
   onViewDetails,
   onTarget,
   onScout,
+  onSaveNotes,
+  onToggleCompare,
   isTargeting,
   isScouting,
+  isSavingNotes,
+  isSelected,
 }: {
   recruit: RecruitWithInterest;
   onViewDetails: () => void;
   onTarget: () => void;
   onScout: () => void;
+  onSaveNotes: (notes: string) => void;
+  onToggleCompare: () => void;
   isTargeting: boolean;
   isScouting: boolean;
+  isSavingNotes: boolean;
+  isSelected: boolean;
 }) {
+  const [showNotesDialog, setShowNotesDialog] = useState(false);
+  const [notesValue, setNotesValue] = useState(recruit.interest?.notes || "");
+
   const stageBadges: Record<string, { label: string; color: string }> = {
     open: { label: "Open", color: "bg-gray-500" },
     top8: { label: "Top 8", color: "bg-blue-500" },
@@ -258,9 +575,18 @@ function RecruitRow({
   const totalAbilities = recruit.abilities?.length || 0;
 
   return (
-    <RetroCard className="hover:border-gold/30 transition-colors" data-testid={`card-recruit-${recruit.id}`}>
+    <RetroCard className={`hover:border-gold/30 transition-colors ${isSelected ? "border-gold ring-1 ring-gold/50" : ""}`} data-testid={`card-recruit-${recruit.id}`}>
       <div className="flex flex-col lg:flex-row lg:items-center gap-4">
         <div className="flex items-center gap-4 flex-1">
+          <button
+            onClick={onToggleCompare}
+            className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+              isSelected ? "bg-gold border-gold text-forest-dark" : "border-muted-foreground/50 hover:border-gold"
+            }`}
+            data-testid={`checkbox-compare-${recruit.id}`}
+          >
+            {isSelected && <Check className="w-3 h-3" />}
+          </button>
           <div className="w-12 h-12 relative flex-shrink-0">
             <PlayerPortrait 
               skinTone={recruit.skinTone || "light"}
@@ -366,9 +692,65 @@ function RecruitRow({
             >
               <Eye className="w-3 h-3" />
             </RetroButton>
+            <RetroButton
+              variant={recruit.interest?.notes ? "primary" : "outline"}
+              size="sm"
+              onClick={() => setShowNotesDialog(true)}
+              disabled={!recruit.interest}
+              data-testid={`button-notes-${recruit.id}`}
+            >
+              <StickyNote className="w-3 h-3" />
+            </RetroButton>
           </div>
         </div>
       </div>
+
+      {recruit.interest?.notes && (
+        <div className="mt-2 px-4 py-2 bg-gold/10 border border-gold/20 rounded text-sm text-muted-foreground">
+          <span className="text-gold font-pixel text-[8px]">NOTE: </span>
+          {recruit.interest.notes}
+        </div>
+      )}
+
+      <Dialog open={showNotesDialog} onOpenChange={setShowNotesDialog}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="font-pixel text-gold text-sm">
+              Notes for {recruit.firstName} {recruit.lastName}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Textarea
+              value={notesValue}
+              onChange={(e) => setNotesValue(e.target.value)}
+              placeholder="Add your personal notes about this recruit..."
+              className="min-h-[100px] bg-background border-border"
+              data-testid="textarea-notes"
+            />
+            <div className="flex gap-2 justify-end">
+              <RetroButton
+                variant="outline"
+                size="sm"
+                onClick={() => setShowNotesDialog(false)}
+                data-testid="button-cancel-notes"
+              >
+                Cancel
+              </RetroButton>
+              <RetroButton
+                size="sm"
+                onClick={() => {
+                  onSaveNotes(notesValue);
+                  setShowNotesDialog(false);
+                }}
+                disabled={isSavingNotes}
+                data-testid="button-save-notes"
+              >
+                Save Notes
+              </RetroButton>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {recruit.topSchools && recruit.topSchools.length > 0 && (
         <div className="mt-4 pt-4 border-t border-border">
@@ -684,6 +1066,158 @@ function RecruitDetailModal({
               Offer Scholarship
             </RetroButton>
           </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function CompareModal({
+  recruits,
+  isOpen,
+  onClose,
+}: {
+  recruits: RecruitWithInterest[];
+  isOpen: boolean;
+  onClose: () => void;
+}) {
+  if (!isOpen || recruits.length < 2) return null;
+
+  const getOverallDisplay = (recruit: RecruitWithInterest) => {
+    const scoutPct = recruit.interest?.scoutPercentage || 0;
+    if (recruit.isBlueChip) return recruit.overall.toString();
+    if (scoutPct === 0) return "???";
+    if (scoutPct < 100) {
+      const min = recruit.interest?.minOverall || 1;
+      const max = recruit.interest?.maxOverall || 999;
+      return `${min}-${max}`;
+    }
+    return recruit.overall.toString();
+  };
+
+  const getStarDisplay = (recruit: RecruitWithInterest) => {
+    const scoutPct = recruit.interest?.scoutPercentage || 0;
+    if (recruit.isBlueChip) return recruit.starRank.toString();
+    if (scoutPct === 0) return "?";
+    if (scoutPct < 100) {
+      const min = recruit.interest?.minStar || 1;
+      const max = recruit.interest?.maxStar || 5;
+      if (min === max) return min.toString();
+      return `${min}-${max}`;
+    }
+    return recruit.starRank.toString();
+  };
+
+  const getRevealedAbilities = (recruit: RecruitWithInterest) => {
+    if (recruit.isBlueChip) return recruit.abilities || [];
+    const revealedCount = recruit.interest?.revealedAbilitiesCount || 0;
+    return (recruit.abilities || []).slice(0, revealedCount);
+  };
+
+  const isFullyScouted = (recruit: RecruitWithInterest) => {
+    return recruit.isBlueChip || (recruit.interest?.scoutPercentage || 0) >= 100;
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="bg-card border-border max-w-3xl" data-testid="compare-modal">
+        <DialogHeader>
+          <DialogTitle className="font-pixel text-gold text-sm">
+            Compare Recruits
+          </DialogTitle>
+        </DialogHeader>
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+          {recruits.map((recruit) => {
+            const scoutPct = recruit.interest?.scoutPercentage || 0;
+            const overallDisplay = getOverallDisplay(recruit);
+            const starDisplay = getStarDisplay(recruit);
+            const revealedAbilities = getRevealedAbilities(recruit);
+            const fullyKnown = isFullyScouted(recruit);
+            
+            return (
+              <div key={recruit.id} className="bg-background/50 rounded-lg p-4 border border-border" data-testid={`compare-card-${recruit.id}`}>
+                <div className="flex items-center gap-3 mb-4">
+                  <PlayerPortrait
+                    skinTone={recruit.skinTone || "light"}
+                    hairColor={recruit.hairColor || "brown"}
+                    hairStyle={recruit.hairStyle || "short"}
+                    className="w-12 h-12"
+                  />
+                  <div>
+                    <p className="font-medium">{recruit.firstName} {recruit.lastName}</p>
+                    <p className="text-xs text-muted-foreground">{recruit.position} - {recruit.hometown}, {recruit.homeState}</p>
+                    <p className="text-xs text-muted-foreground">Scouted: {scoutPct}%</p>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-muted-foreground">Overall</span>
+                      <span className={fullyKnown ? "" : "text-muted-foreground italic"}>
+                        {overallDisplay}
+                      </span>
+                    </div>
+                    {fullyKnown && (
+                      <div className="h-2 bg-background rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all bg-gold"
+                          style={{ width: `${Math.min(100, (recruit.overall / 999) * 100)}%` }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-muted-foreground">Star Rating</span>
+                      <span className={fullyKnown ? "" : "text-muted-foreground italic"}>
+                        {starDisplay} {fullyKnown ? "★" : ""}
+                      </span>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-muted-foreground">Class Rank</span>
+                      <span>#{recruit.classRank || "—"}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-muted-foreground">Position Rank</span>
+                      <span>#{recruit.positionRank || "—"}</span>
+                    </div>
+                  </div>
+                </div>
+                {revealedAbilities.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-border">
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Abilities {!fullyKnown && recruit.abilities && recruit.abilities.length > revealedAbilities.length && `(${revealedAbilities.length}/${recruit.abilities.length} revealed)`}
+                    </p>
+                    <div className="flex flex-wrap gap-1">
+                      {revealedAbilities.map((ability, i) => {
+                        const abilityData = getAbilityByName(ability);
+                        const tierColor = abilityData?.tier === "gold" ? "text-gold" : abilityData?.tier === "blue" ? "text-blue-400" : "text-red-400";
+                        return (
+                          <Badge key={i} variant="outline" className={`text-[8px] ${tierColor}`}>
+                            {ability}
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                {scoutPct === 0 && !recruit.isBlueChip && (
+                  <div className="mt-4 pt-4 border-t border-border">
+                    <p className="text-xs text-muted-foreground italic">Not yet scouted</p>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <div className="flex justify-end pt-4">
+          <RetroButton variant="outline" onClick={onClose} data-testid="button-close-compare">
+            Close
+          </RetroButton>
         </div>
       </DialogContent>
     </Dialog>

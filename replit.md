@@ -87,6 +87,13 @@ A league-first, story-driven college baseball dynasty simulator where human coac
 - **Gem/Bust Mechanic**: 8% gems (ranked lower than ability), 8% busts (ranked higher)
 - **Progressive Reveal**: Scouting narrows rating ranges (??? → 400-800 → 550-700 → exact)
   - Unscouted: Overall shows "???", star rating shows "?"
+
+### Recruiting QoL Features
+- **Sort Options**: 6 sorting methods (Class Rank, Position Rank, Star Rating, Overall, Name, Scout Progress)
+- **Team Needs Indicator**: Color-coded roster depth by position (green/yellow/red for overstocked/ideal/understocked)
+- **Notes System**: Personal notes on each recruit with database persistence
+- **Filter Presets**: Save/load filter configurations to localStorage
+- **Comparison Tool**: Select up to 3 recruits via checkbox to compare side-by-side stats in modal
   - Partially scouted: Shows ranges (e.g., "600-750", "3-4 stars")
   - Fully scouted (100%): Shows exact values
 - **Abilities Reveal**: Abilities are progressively revealed as scouting percentage increases
