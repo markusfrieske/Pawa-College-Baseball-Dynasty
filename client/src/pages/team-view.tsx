@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, Link, useLocation } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
@@ -7,6 +8,7 @@ import { AttributeSlider } from "@/components/ui/attribute-slider";
 import { StarRating } from "@/components/ui/star-rating";
 import { CoachAvatar } from "@/components/coach-avatar";
 import { PlayerAvatar } from "@/components/player-avatar";
+import { PlayerProfileCard } from "@/components/player-profile-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -52,6 +54,7 @@ interface LeagueTeam {
 export default function TeamViewPage() {
   const { id, teamId } = useParams<{ id: string; teamId: string }>();
   const [, setLocation] = useLocation();
+  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
 
   const { data: team, isLoading } = useQuery<TeamDetails>({
     queryKey: ["/api/leagues", id, "teams", teamId],
@@ -113,12 +116,14 @@ export default function TeamViewPage() {
                 <select
                   value={teamId}
                   onChange={(e) => setLocation(`/league/${id}/team/${e.target.value}`)}
-                  className="bg-card border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-gold"
+                  className="bg-background border border-gold/50 rounded px-3 py-2 text-sm text-foreground focus:outline-none focus:border-gold max-w-[280px]"
                   data-testid="select-view-team"
                 >
-                  {leagueData.teams.map(t => (
-                    <option key={t.id} value={t.id} className="bg-forest-card">
-                      {t.name} ({t.abbreviation}){t.coach ? ` - ${t.coach.firstName} ${t.coach.lastName}` : ''}
+                  {leagueData.teams
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .map(t => (
+                    <option key={t.id} value={t.id} className="bg-background text-foreground py-1">
+                      {t.name} ({t.abbreviation})
                     </option>
                   ))}
                 </select>
@@ -160,7 +165,7 @@ export default function TeamViewPage() {
           </TabsContent>
 
           <TabsContent value="roster">
-            <RosterTab team={team} />
+            <RosterTab team={team} onSelectPlayer={setSelectedPlayer} />
           </TabsContent>
 
           <TabsContent value="coaches">
@@ -176,6 +181,18 @@ export default function TeamViewPage() {
           </TabsContent>
         </Tabs>
       </main>
+
+      {selectedPlayer && (
+        <PlayerProfileCard
+          player={{
+            ...selectedPlayer,
+            bats: (selectedPlayer as Player & { batHand?: string }).batHand,
+            throws: (selectedPlayer as Player & { throwHand?: string }).throwHand,
+          }}
+          open={!!selectedPlayer}
+          onClose={() => setSelectedPlayer(null)}
+        />
+      )}
     </div>
   );
 }
@@ -592,7 +609,7 @@ function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string;
   );
 }
 
-function RosterTab({ team }: { team: TeamDetails }) {
+function RosterTab({ team, onSelectPlayer }: { team: TeamDetails; onSelectPlayer: (player: Player) => void }) {
   const players = team.players || [];
   const positions = ["P", "C", "1B", "2B", "SS", "3B", "LF", "CF", "RF"];
 
@@ -625,7 +642,12 @@ function RosterTab({ team }: { team: TeamDetails }) {
           </thead>
           <tbody>
             {sortedPlayers.map((player) => (
-              <tr key={player.id} className="border-b border-border/50 hover:bg-card/50">
+              <tr 
+                key={player.id} 
+                className="border-b border-border/50 hover:bg-card/50 cursor-pointer transition-colors"
+                onClick={() => onSelectPlayer(player)}
+                data-testid={`row-player-${player.id}`}
+              >
                 <td className="py-3 px-2 text-muted-foreground">{player.jerseyNumber}</td>
                 <td className="py-3 px-2 font-medium">
                   {player.firstName} {player.lastName}

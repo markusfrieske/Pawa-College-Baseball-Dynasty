@@ -197,37 +197,39 @@ export default function RecruitProfilePage() {
             </RetroCardContent>
           </RetroCard>
 
-          <RetroCard className="md:col-span-2">
-            <RetroCardHeader>Recruiting Priorities</RetroCardHeader>
-            <RetroCardContent>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <div>
-                  <p className="text-xs text-muted-foreground">Proximity</p>
-                  <p className="font-medium">{recruit.proximityPriority}</p>
+          {scoutPct >= 50 && (
+            <RetroCard className="md:col-span-2">
+              <RetroCardHeader>Recruiting Priorities</RetroCardHeader>
+              <RetroCardContent>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Proximity</p>
+                    <p className="font-medium">{recruit.proximityPriority}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Reputation</p>
+                    <p className="font-medium">{recruit.reputationPriority}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Playing Time</p>
+                    <p className="font-medium">{recruit.playingTimePriority}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Academics</p>
+                    <p className="font-medium">{recruit.academicsPriority}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Prestige</p>
+                    <p className="font-medium">{recruit.prestigePriority}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">Facilities</p>
+                    <p className="font-medium">{recruit.facilitiesPriority}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Reputation</p>
-                  <p className="font-medium">{recruit.reputationPriority}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Playing Time</p>
-                  <p className="font-medium">{recruit.playingTimePriority}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Academics</p>
-                  <p className="font-medium">{recruit.academicsPriority}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Prestige</p>
-                  <p className="font-medium">{recruit.prestigePriority}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Facilities</p>
-                  <p className="font-medium">{recruit.facilitiesPriority}</p>
-                </div>
-              </div>
-            </RetroCardContent>
-          </RetroCard>
+              </RetroCardContent>
+            </RetroCard>
+          )}
         </div>
       </main>
     </div>

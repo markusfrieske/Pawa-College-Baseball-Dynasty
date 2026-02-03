@@ -1748,10 +1748,19 @@ function getAttributesToReveal(percentage: number, existing: string[] = []): str
 }
 
 async function generateSchedule(leagueId: string) {
+  const league = await storage.getLeague(leagueId);
   const leagueTeams = await storage.getTeamsByLeague(leagueId);
   
-  // Generate 16 weeks of games
-  for (let week = 1; week <= 16; week++) {
+  // Map season length to number of weeks
+  const seasonWeeks: Record<string, number> = {
+    "short": 8,
+    "medium": 14,
+    "long": 32,
+  };
+  const numWeeks = seasonWeeks[league?.seasonLength || "medium"] || 14;
+  
+  // Generate games for the season
+  for (let week = 1; week <= numWeeks; week++) {
     // Round robin scheduling
     const shuffled = [...leagueTeams].sort(() => Math.random() - 0.5);
     for (let i = 0; i < shuffled.length - 1; i += 2) {
