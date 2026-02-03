@@ -7,6 +7,7 @@ import { RetroSelect } from "@/components/ui/retro-select";
 import { TeamBadge } from "@/components/ui/team-badge";
 import { StarRating } from "@/components/ui/star-rating";
 import { Badge } from "@/components/ui/badge";
+import { PositionBadge } from "@/components/ui/position-badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -597,8 +598,8 @@ function RecruitRow({
               hairStyle={recruit.hairStyle || "short"}
               className="w-12 h-12"
             />
-            <div className="absolute -bottom-1 -left-1 w-6 h-6 bg-card rounded-full border border-gold flex items-center justify-center">
-              <span className="font-pixel text-[8px] text-gold">{recruit.position}</span>
+            <div className="absolute -bottom-1 -left-1">
+              <PositionBadge position={recruit.position} size="sm" />
             </div>
             {recruit.isBlueChip && (
               <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-500 rounded-full border-2 border-background flex items-center justify-center">
@@ -865,7 +866,7 @@ function RecruitDetailModal({
             />
             <div className="flex-1">
               <DialogTitle className="font-pixel text-gold flex items-center gap-3 flex-wrap">
-                <span className="text-lg">{recruit.position}</span>
+                <PositionBadge position={recruit.position} size="lg" />
                 <span>{recruit.firstName} {recruit.lastName}</span>
                 <StarRating rating={recruit.starRank} />
                 {recruit.isBlueChip && (

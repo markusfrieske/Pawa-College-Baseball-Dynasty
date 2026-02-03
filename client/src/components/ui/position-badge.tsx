@@ -1,34 +1,10 @@
 import { cn } from "@/lib/utils";
+import { getPositionColor } from "@/lib/playerUtils";
 
 interface PositionBadgeProps {
   position: string;
   size?: "sm" | "md" | "lg";
   className?: string;
-}
-
-function getPositionColor(position: string): string {
-  const pos = position?.toUpperCase() || "";
-  
-  if (pos === "SP" || pos === "P") {
-    return "bg-red-500 text-white";
-  }
-  if (pos === "RP" || pos === "CP" || pos === "CL") {
-    return "bg-pink-400 text-white";
-  }
-  if (["C", "CATCHER"].includes(pos)) {
-    return "bg-blue-500 text-white";
-  }
-  if (["1B", "2B", "3B", "SS", "IF"].includes(pos)) {
-    return "bg-yellow-500 text-black";
-  }
-  if (["LF", "CF", "RF", "OF"].includes(pos)) {
-    return "bg-green-500 text-white";
-  }
-  if (pos === "DH" || pos === "UTIL") {
-    return "bg-gray-500 text-white";
-  }
-  
-  return "bg-muted text-muted-foreground";
 }
 
 const sizeClasses: Record<string, string> = {
@@ -53,4 +29,3 @@ export function PositionBadge({ position, size = "md", className }: PositionBadg
   );
 }
 
-export { getPositionColor };

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PlayerProfileCard } from "@/components/player-profile-card";
 import { PlayerPortrait } from "@/components/ui/player-portrait";
+import { PositionBadge } from "@/components/ui/position-badge";
 import { 
   ArrowLeft, 
   Users, 
@@ -229,9 +230,7 @@ function PositionSection({ title, players, onSelectPlayer }: PositionSectionProp
                   </button>
                 </td>
                 <td className="text-center py-3 px-2">
-                  <Badge variant="outline" className="text-[10px]">
-                    {player.position}
-                  </Badge>
+                  <PositionBadge position={player.position} size="sm" />
                 </td>
                 <td className="text-center py-3 px-2">
                   <Badge 

@@ -5,6 +5,7 @@ import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/re
 import { StarRating } from "@/components/ui/star-rating";
 import { PlayerAvatar } from "@/components/player-avatar";
 import { Badge } from "@/components/ui/badge";
+import { PositionBadge } from "@/components/ui/position-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 import { 
@@ -99,7 +100,7 @@ export default function RecruitProfilePage() {
                   <MapPin className="w-4 h-4" />
                   {recruit.hometown}, {recruit.homeState}
                 </span>
-                <Badge variant="outline">{recruit.position}</Badge>
+                <PositionBadge position={recruit.position} size="md" />
                 <Badge variant="outline">{recruit.recruitType}</Badge>
                 <Badge className={`${stage.color} text-white`}>{stage.label}</Badge>
               </div>
