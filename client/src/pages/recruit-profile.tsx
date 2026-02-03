@@ -280,8 +280,9 @@ export default function RecruitProfilePage() {
                 skinTone={recruit.skinTone}
                 hairColor={recruit.hairColor}
                 hairStyle={recruit.hairStyle}
-                headwear={recruit.headwear}
+                headwear="none"
                 size="lg"
+                isRecruit={true}
               />
               {recruit.isBlueChip && (
                 <div className="absolute -top-1 -right-1 w-6 h-6 bg-blue-500 rounded-full border-2 border-background flex items-center justify-center">

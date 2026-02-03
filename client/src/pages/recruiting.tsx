@@ -838,6 +838,7 @@ function RecruitRow({
               hairColor={recruit.hairColor || "brown"}
               hairStyle={recruit.hairStyle || "short"}
               className="w-12 h-12"
+              isRecruit={true}
             />
             <div className="absolute -bottom-1 -left-1">
               <PositionBadge position={recruit.position} size="sm" />
@@ -1218,6 +1219,7 @@ function RecruitDetailModal({
               hairColor={recruit.hairColor || "brown"}
               hairStyle={recruit.hairStyle || "short"}
               className="w-16 h-16 flex-shrink-0"
+              isRecruit={true}
             />
             <div className="flex-1">
               <DialogTitle className="font-pixel text-gold flex items-center gap-3 flex-wrap">
@@ -1546,6 +1548,7 @@ function CompareModal({
                     hairColor={recruit.hairColor || "brown"}
                     hairStyle={recruit.hairStyle || "short"}
                     className="w-12 h-12"
+                    isRecruit={true}
                   />
                   <div>
                     <p className="font-medium">{recruit.firstName} {recruit.lastName}</p>

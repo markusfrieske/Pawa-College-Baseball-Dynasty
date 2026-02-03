@@ -7,12 +7,15 @@ interface PlayerAvatarProps {
   headwear?: string;
   size?: "sm" | "md" | "lg";
   className?: string;
+  jerseyColor?: string;
+  isRecruit?: boolean;
 }
 
 const skinTones: Record<string, string> = {
   light: "#fcd5b5",
   medium: "#d4a574",
   tan: "#c69c6d",
+  olive: "#b8976a",
   dark: "#8d5524",
   deep: "#4a2c17",
 };
@@ -21,6 +24,7 @@ const skinShadows: Record<string, string> = {
   light: "#e8c4a0",
   medium: "#b8906a",
   tan: "#a88558",
+  olive: "#9a7d5a",
   dark: "#6d4018",
   deep: "#3a2210",
 };
@@ -47,9 +51,11 @@ export function PlayerAvatar({
   skinTone = "light",
   hairColor = "brown",
   hairStyle = "short",
-  headwear = "cap",
+  headwear = "none",
   size = "md",
   className,
+  jerseyColor,
+  isRecruit = false,
 }: PlayerAvatarProps) {
   const sizes = {
     sm: "w-10 h-10",
@@ -61,14 +67,21 @@ export function PlayerAvatar({
   const skinShade = skinShadows[skinTone] || skinShadows.light;
   const hair = hairColors[hairColor] || hairColors.brown;
   const hairShade = hairShadows[hairColor] || hairShadows.brown;
-  const hasHeadwear = headwear !== "none";
-  const teamColor = "#1a4a1a";
-  const teamColorDark = "#0f2f0f";
+  
+  const recruitGray = "#6b7280";
+  const recruitGrayDark = "#4b5563";
+  const defaultTeamColor = "#1a4a1a";
+  const defaultTeamColorDark = "#0f2f0f";
+  
+  const jersey = isRecruit ? recruitGray : (jerseyColor || defaultTeamColor);
+  const jerseyDark = isRecruit ? recruitGrayDark : (jerseyColor ? darkenColor(jerseyColor) : defaultTeamColorDark);
+  
+  const bgColor = "#f5f0e6";
 
   return (
     <div
       className={cn(
-        "relative overflow-hidden",
+        "relative overflow-hidden rounded",
         sizes[size],
         className
       )}
@@ -80,149 +93,130 @@ export function PlayerAvatar({
         style={{ imageRendering: "pixelated" }}
         shapeRendering="crispEdges"
       >
-        {/* Background */}
-        <rect x="0" y="0" width="32" height="32" fill="#3366cc" />
+        {/* Off-white/tan background */}
+        <rect x="0" y="0" width="32" height="32" fill={bgColor} />
         
-        {/* Neck / Jersey */}
-        <rect x="11" y="26" width="10" height="6" fill={skin} />
-        <rect x="8" y="28" width="16" height="4" fill="#008080" />
-        <rect x="14" y="28" width="4" height="4" fill={skin} />
+        {/* Jersey - connected across, looks like a proper jersey */}
+        <rect x="6" y="25" width="20" height="7" fill={jersey} />
+        <rect x="8" y="24" width="16" height="1" fill={jersey} />
+        <rect x="10" y="23" width="12" height="1" fill={jersey} />
+        {/* Jersey collar line */}
+        <rect x="12" y="24" width="8" height="1" fill={jerseyDark} />
         
-        {/* Face - main shape (pixelated oval) */}
-        <rect x="10" y="12" width="12" height="14" fill={skin} />
-        <rect x="9" y="14" width="1" height="10" fill={skin} />
-        <rect x="22" y="14" width="1" height="10" fill={skin} />
-        <rect x="11" y="11" width="10" height="1" fill={skin} />
-        <rect x="11" y="26" width="10" height="1" fill={skin} />
+        {/* Neck */}
+        <rect x="13" y="22" width="6" height="3" fill={skin} />
         
-        {/* Face shadow/depth */}
-        <rect x="9" y="18" width="1" height="4" fill={skinShade} />
-        <rect x="10" y="24" width="12" height="2" fill={skinShade} />
+        {/* Face - larger, more prominent */}
+        <rect x="9" y="8" width="14" height="14" fill={skin} />
+        <rect x="8" y="10" width="1" height="10" fill={skin} />
+        <rect x="23" y="10" width="1" height="10" fill={skin} />
+        <rect x="10" y="7" width="12" height="1" fill={skin} />
+        <rect x="10" y="22" width="12" height="1" fill={skin} />
         
-        {/* Eyes */}
-        <rect x="12" y="17" width="2" height="2" fill="#1a1a1a" />
-        <rect x="18" y="17" width="2" height="2" fill="#1a1a1a" />
-        <rect x="12" y="17" width="1" height="1" fill="#ffffff" />
-        <rect x="18" y="17" width="1" height="1" fill="#ffffff" />
+        {/* Face shadow/depth - chin area */}
+        <rect x="8" y="14" width="1" height="4" fill={skinShade} />
+        <rect x="9" y="20" width="14" height="2" fill={skinShade} />
+        
+        {/* Eyes - positioned higher for larger face */}
+        <rect x="11" y="13" width="3" height="3" fill="#1a1a1a" />
+        <rect x="18" y="13" width="3" height="3" fill="#1a1a1a" />
+        <rect x="11" y="13" width="1" height="1" fill="#ffffff" />
+        <rect x="18" y="13" width="1" height="1" fill="#ffffff" />
+        
+        {/* Eyebrows */}
+        <rect x="11" y="11" width="4" height="1" fill={hairShade} />
+        <rect x="17" y="11" width="4" height="1" fill={hairShade} />
         
         {/* Nose */}
-        <rect x="15" y="19" width="2" height="2" fill={skinShade} />
+        <rect x="15" y="15" width="2" height="3" fill={skinShade} />
         
         {/* Mouth */}
-        <rect x="14" y="22" width="4" height="1" fill="#333333" />
+        <rect x="13" y="19" width="6" height="1" fill="#444444" />
         
         {/* Ears */}
-        <rect x="8" y="16" width="2" height="3" fill={skin} />
-        <rect x="22" y="16" width="2" height="3" fill={skin} />
+        <rect x="7" y="12" width="2" height="4" fill={skin} />
+        <rect x="23" y="12" width="2" height="4" fill={skin} />
         
-        {/* Hair based on style */}
-        {hairStyle === "short" && !hasHeadwear && (
+        {/* Hair based on style - always show hair, no hats */}
+        {hairStyle === "short" && (
           <>
-            <rect x="10" y="9" width="12" height="4" fill={hair} />
-            <rect x="9" y="10" width="1" height="5" fill={hair} />
-            <rect x="22" y="10" width="1" height="5" fill={hair} />
-            <rect x="11" y="8" width="10" height="1" fill={hair} />
+            <rect x="9" y="5" width="14" height="4" fill={hair} />
+            <rect x="8" y="6" width="1" height="5" fill={hair} />
+            <rect x="23" y="6" width="1" height="5" fill={hair} />
+            <rect x="10" y="4" width="12" height="1" fill={hair} />
+            <rect x="9" y="8" width="14" height="1" fill={hairShade} />
           </>
         )}
         
-        {hairStyle === "buzzcut" && !hasHeadwear && (
+        {hairStyle === "medium" && (
           <>
-            <rect x="10" y="10" width="12" height="3" fill={hair} />
-            <rect x="9" y="11" width="1" height="4" fill={hair} />
-            <rect x="22" y="11" width="1" height="4" fill={hair} />
+            <rect x="8" y="4" width="16" height="5" fill={hair} />
+            <rect x="7" y="5" width="1" height="7" fill={hair} />
+            <rect x="24" y="5" width="1" height="7" fill={hair} />
+            <rect x="10" y="3" width="12" height="1" fill={hair} />
+            <rect x="8" y="8" width="16" height="1" fill={hairShade} />
           </>
         )}
         
-        {hairStyle === "curly" && !hasHeadwear && (
+        {hairStyle === "long" && (
           <>
-            <rect x="9" y="7" width="14" height="6" fill={hair} />
-            <rect x="8" y="8" width="2" height="10" fill={hair} />
-            <rect x="22" y="8" width="2" height="10" fill={hair} />
-            <rect x="10" y="6" width="3" height="2" fill={hair} />
-            <rect x="14" y="5" width="4" height="2" fill={hair} />
-            <rect x="19" y="6" width="3" height="2" fill={hair} />
+            <rect x="7" y="3" width="18" height="6" fill={hair} />
+            <rect x="6" y="4" width="1" height="10" fill={hair} />
+            <rect x="25" y="4" width="1" height="10" fill={hair} />
+            <rect x="6" y="14" width="2" height="10" fill={hair} />
+            <rect x="24" y="14" width="2" height="10" fill={hair} />
+            <rect x="9" y="2" width="14" height="1" fill={hair} />
           </>
         )}
         
-        {hairStyle === "mullet" && !hasHeadwear && (
+        {hairStyle === "fade" && (
           <>
-            <rect x="10" y="8" width="12" height="4" fill={hair} />
-            <rect x="9" y="9" width="1" height="6" fill={hair} />
-            <rect x="22" y="9" width="1" height="6" fill={hair} />
-            <rect x="8" y="14" width="2" height="10" fill={hair} />
-            <rect x="22" y="14" width="2" height="10" fill={hair} />
-            <rect x="10" y="24" width="12" height="4" fill={hair} />
+            <rect x="10" y="5" width="12" height="3" fill={hair} />
+            <rect x="9" y="6" width="1" height="4" fill={hair} />
+            <rect x="22" y="6" width="1" height="4" fill={hair} />
+            <rect x="8" y="8" width="1" height="4" fill={hairShade} />
+            <rect x="23" y="8" width="1" height="4" fill={hairShade} />
+            <rect x="11" y="4" width="10" height="1" fill={hair} />
           </>
         )}
         
-        {/* Side hair visible under cap */}
-        {hasHeadwear && hairStyle !== "bald" && (
+        {hairStyle === "buzz" && (
           <>
-            <rect x="8" y="14" width="2" height="6" fill={hair} />
-            <rect x="22" y="14" width="2" height="6" fill={hair} />
+            <rect x="9" y="6" width="14" height="2" fill={hair} />
+            <rect x="8" y="7" width="1" height="4" fill={hair} />
+            <rect x="23" y="7" width="1" height="4" fill={hair} />
+            <rect x="10" y="5" width="12" height="1" fill={hair} />
           </>
         )}
         
-        {/* Headwear */}
-        {headwear === "cap" && (
+        {hairStyle === "bald" && (
           <>
-            <rect x="8" y="7" width="16" height="6" fill={teamColor} />
-            <rect x="7" y="8" width="1" height="4" fill={teamColor} />
-            <rect x="24" y="8" width="1" height="4" fill={teamColor} />
-            <rect x="10" y="6" width="12" height="1" fill={teamColor} />
-            {/* Cap bill */}
-            <rect x="6" y="12" width="6" height="2" fill={teamColor} />
-            <rect x="5" y="13" width="2" height="1" fill={teamColorDark} />
-            {/* Cap shadow */}
-            <rect x="8" y="12" width="16" height="1" fill={teamColorDark} />
+            {/* Just show the top of head, no hair */}
+            <rect x="10" y="6" width="12" height="2" fill={skin} />
+            <rect x="9" y="7" width="1" height="2" fill={skinShade} />
+            <rect x="22" y="7" width="1" height="2" fill={skinShade} />
           </>
         )}
         
-        {headwear === "helmet" && (
+        {/* Default to short if unknown style */}
+        {!["short", "medium", "long", "fade", "buzz", "bald"].includes(hairStyle) && (
           <>
-            <rect x="7" y="6" width="18" height="8" fill={teamColor} />
-            <rect x="6" y="7" width="1" height="6" fill={teamColor} />
-            <rect x="25" y="7" width="1" height="6" fill={teamColor} />
-            <rect x="9" y="5" width="14" height="1" fill={teamColor} />
-            {/* Earflap */}
-            <rect x="6" y="12" width="2" height="6" fill={teamColor} />
-            <rect x="24" y="12" width="2" height="6" fill={teamColor} />
-            {/* Face guard */}
-            <rect x="23" y="16" width="2" height="6" fill="#666666" />
-            {/* Shadow */}
-            <rect x="7" y="13" width="18" height="1" fill={teamColorDark} />
-          </>
-        )}
-        
-        {headwear === "batting_helmet" && (
-          <>
-            <rect x="7" y="5" width="18" height="9" fill={teamColor} />
-            <rect x="6" y="6" width="1" height="7" fill={teamColor} />
-            <rect x="25" y="6" width="1" height="7" fill={teamColor} />
-            <rect x="9" y="4" width="14" height="1" fill={teamColor} />
-            {/* Large earflap */}
-            <rect x="5" y="12" width="3" height="8" fill={teamColor} />
-            <rect x="24" y="12" width="3" height="4" fill={teamColor} />
-            {/* Shadow */}
-            <rect x="7" y="13" width="18" height="1" fill={teamColorDark} />
-          </>
-        )}
-        
-        {headwear === "catchers_mask" && (
-          <>
-            <rect x="8" y="7" width="16" height="6" fill={teamColor} />
-            <rect x="7" y="8" width="1" height="4" fill={teamColor} />
-            <rect x="24" y="8" width="1" height="4" fill={teamColor} />
-            <rect x="10" y="6" width="12" height="1" fill={teamColor} />
-            {/* Mask bars */}
-            <rect x="11" y="16" width="1" height="8" fill="#555555" />
-            <rect x="16" y="16" width="1" height="9" fill="#555555" />
-            <rect x="20" y="16" width="1" height="8" fill="#555555" />
-            <rect x="10" y="18" width="12" height="1" fill="#555555" />
-            <rect x="10" y="22" width="12" height="1" fill="#555555" />
+            <rect x="9" y="5" width="14" height="4" fill={hair} />
+            <rect x="8" y="6" width="1" height="5" fill={hair} />
+            <rect x="23" y="6" width="1" height="5" fill={hair} />
+            <rect x="10" y="4" width="12" height="1" fill={hair} />
+            <rect x="9" y="8" width="14" height="1" fill={hairShade} />
           </>
         )}
       </svg>
     </div>
   );
+}
+
+function darkenColor(hex: string): string {
+  if (!hex.startsWith('#')) return hex;
+  const r = Math.max(0, parseInt(hex.slice(1, 3), 16) - 40);
+  const g = Math.max(0, parseInt(hex.slice(3, 5), 16) - 40);
+  const b = Math.max(0, parseInt(hex.slice(5, 7), 16) - 40);
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 }

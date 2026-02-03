@@ -210,28 +210,32 @@ export default function RosterPage() {
         </RetroCard>
 
         {viewMode === "depth" ? (
-          <DepthChartView players={data?.players || []} onSelectPlayer={setSelectedPlayer} />
+          <DepthChartView players={data?.players || []} onSelectPlayer={setSelectedPlayer} teamPrimaryColor={data?.team?.primaryColor} />
         ) : positionFilter === "all" ? (
           <>
             <PositionSection 
               title="Pitchers" 
               players={grouped.pitchers} 
               onSelectPlayer={setSelectedPlayer}
+              teamPrimaryColor={data?.team?.primaryColor}
             />
             <PositionSection 
               title="Catchers" 
               players={grouped.catchers} 
               onSelectPlayer={setSelectedPlayer}
+              teamPrimaryColor={data?.team?.primaryColor}
             />
             <PositionSection 
               title="Infielders" 
               players={grouped.infielders} 
               onSelectPlayer={setSelectedPlayer}
+              teamPrimaryColor={data?.team?.primaryColor}
             />
             <PositionSection 
               title="Outfielders" 
               players={grouped.outfielders} 
               onSelectPlayer={setSelectedPlayer}
+              teamPrimaryColor={data?.team?.primaryColor}
             />
           </>
         ) : (
@@ -239,6 +243,7 @@ export default function RosterPage() {
             title={positionOptions.find(o => o.value === positionFilter)?.label || "Players"} 
             players={allSorted} 
             onSelectPlayer={setSelectedPlayer}
+            teamPrimaryColor={data?.team?.primaryColor}
           />
         )}
 
@@ -266,6 +271,7 @@ export default function RosterPage() {
             setEditingPlayer(selectedPlayer);
             setSelectedPlayer(null);
           }}
+          teamPrimaryColor={data?.team?.primaryColor}
         />
       )}
 
@@ -287,9 +293,10 @@ interface PositionSectionProps {
   title: string;
   players: Player[];
   onSelectPlayer: (player: Player) => void;
+  teamPrimaryColor?: string;
 }
 
-function PositionSection({ title, players, onSelectPlayer }: PositionSectionProps) {
+function PositionSection({ title, players, onSelectPlayer, teamPrimaryColor }: PositionSectionProps) {
   if (players.length === 0) return null;
 
   return (
@@ -335,6 +342,7 @@ function PositionSection({ title, players, onSelectPlayer }: PositionSectionProp
                       hairColor={player.hairColor || "brown"}
                       hairStyle={player.hairStyle || "short"}
                       className="w-8 h-8 flex-shrink-0"
+                      jerseyColor={teamPrimaryColor}
                     />
                     {player.firstName} {player.lastName}
                   </button>
@@ -823,9 +831,10 @@ interface PositionCardProps {
   players: Player[];
   onSelectPlayer: (p: Player) => void;
   maxPlayers?: number;
+  teamPrimaryColor?: string;
 }
 
-function PositionCard({ position, players, onSelectPlayer, maxPlayers = 3 }: PositionCardProps) {
+function PositionCard({ position, players, onSelectPlayer, maxPlayers = 3, teamPrimaryColor }: PositionCardProps) {
   const displayPlayers = players.slice(0, maxPlayers);
   
   return (
@@ -851,6 +860,7 @@ function PositionCard({ position, players, onSelectPlayer, maxPlayers = 3 }: Pos
                 hairColor={p.hairColor || "brown"}
                 hairStyle={p.hairStyle || "short"}
                 className="w-6 h-6 flex-shrink-0"
+                jerseyColor={teamPrimaryColor}
               />
               <span className={`text-xs truncate flex-1 ${idx === 0 ? 'text-foreground' : 'text-muted-foreground'}`}>
                 {p.firstName.charAt(0)}. {p.lastName}
@@ -866,7 +876,7 @@ function PositionCard({ position, players, onSelectPlayer, maxPlayers = 3 }: Pos
   );
 }
 
-function DepthChartView({ players, onSelectPlayer }: { players: Player[]; onSelectPlayer: (p: Player) => void }) {
+function DepthChartView({ players, onSelectPlayer, teamPrimaryColor }: { players: Player[]; onSelectPlayer: (p: Player) => void; teamPrimaryColor?: string }) {
   const getPlayersByPosition = (pos: string): Player[] => {
     return players
       .filter(p => p.position === pos)
@@ -887,17 +897,17 @@ function DepthChartView({ players, onSelectPlayer }: { players: Player[]; onSele
       
       <div className="grid gap-4">
         <div className="flex justify-center gap-4 flex-wrap">
-          <PositionCard position="LF" players={getPlayersByPosition("LF")} onSelectPlayer={onSelectPlayer} />
-          <PositionCard position="CF" players={getPlayersByPosition("CF")} onSelectPlayer={onSelectPlayer} />
-          <PositionCard position="RF" players={getPlayersByPosition("RF")} onSelectPlayer={onSelectPlayer} />
+          <PositionCard position="LF" players={getPlayersByPosition("LF")} onSelectPlayer={onSelectPlayer} teamPrimaryColor={teamPrimaryColor} />
+          <PositionCard position="CF" players={getPlayersByPosition("CF")} onSelectPlayer={onSelectPlayer} teamPrimaryColor={teamPrimaryColor} />
+          <PositionCard position="RF" players={getPlayersByPosition("RF")} onSelectPlayer={onSelectPlayer} teamPrimaryColor={teamPrimaryColor} />
         </div>
         
         <div className="flex justify-center gap-4 flex-wrap items-start">
-          <PositionCard position="3B" players={getPlayersByPosition("3B")} onSelectPlayer={onSelectPlayer} />
+          <PositionCard position="3B" players={getPlayersByPosition("3B")} onSelectPlayer={onSelectPlayer} teamPrimaryColor={teamPrimaryColor} />
           
           <div className="flex flex-col gap-4">
-            <PositionCard position="SS" players={getPlayersByPosition("SS")} onSelectPlayer={onSelectPlayer} />
-            <PositionCard position="2B" players={getPlayersByPosition("2B")} onSelectPlayer={onSelectPlayer} />
+            <PositionCard position="SS" players={getPlayersByPosition("SS")} onSelectPlayer={onSelectPlayer} teamPrimaryColor={teamPrimaryColor} />
+            <PositionCard position="2B" players={getPlayersByPosition("2B")} onSelectPlayer={onSelectPlayer} teamPrimaryColor={teamPrimaryColor} />
           </div>
           
           <div className="bg-card/90 border border-border rounded-lg overflow-hidden min-w-[160px]" data-testid="depth-card-SP">
@@ -922,6 +932,7 @@ function DepthChartView({ players, onSelectPlayer }: { players: Player[]; onSele
                       hairColor={p.hairColor || "brown"}
                       hairStyle={p.hairStyle || "short"}
                       className="w-6 h-6 flex-shrink-0"
+                      jerseyColor={teamPrimaryColor}
                     />
                     <span className={`text-xs truncate flex-1 ${idx === 0 ? 'text-foreground' : 'text-muted-foreground'}`}>
                       {p.firstName.charAt(0)}. {p.lastName}
@@ -935,7 +946,7 @@ function DepthChartView({ players, onSelectPlayer }: { players: Player[]; onSele
             </div>
           </div>
           
-          <PositionCard position="1B" players={getPlayersByPosition("1B")} onSelectPlayer={onSelectPlayer} />
+          <PositionCard position="1B" players={getPlayersByPosition("1B")} onSelectPlayer={onSelectPlayer} teamPrimaryColor={teamPrimaryColor} />
         </div>
         
         <div className="flex justify-center gap-4 flex-wrap items-start">
@@ -961,6 +972,7 @@ function DepthChartView({ players, onSelectPlayer }: { players: Player[]; onSele
                       hairColor={p.hairColor || "brown"}
                       hairStyle={p.hairStyle || "short"}
                       className="w-6 h-6 flex-shrink-0"
+                      jerseyColor={teamPrimaryColor}
                     />
                     <span className={`text-xs truncate flex-1 ${idx === 0 ? 'text-foreground' : 'text-muted-foreground'}`}>
                       {p.firstName.charAt(0)}. {p.lastName}
@@ -994,6 +1006,7 @@ function DepthChartView({ players, onSelectPlayer }: { players: Player[]; onSele
                       hairColor={p.hairColor || "brown"}
                       hairStyle={p.hairStyle || "short"}
                       className="w-6 h-6 flex-shrink-0"
+                      jerseyColor={teamPrimaryColor}
                     />
                     <span className="text-xs truncate flex-1 text-muted-foreground">
                       {p.firstName.charAt(0)}. {p.lastName}

@@ -2557,10 +2557,15 @@ async function generateRecruits(leagueId: string, count: number) {
     const isPitcher = Math.random() < pitcherRatio;
     const position = isPitcher ? "P" : fieldPositions[Math.floor(Math.random() * fieldPositions.length)];
     
-    const { isGem, isBust } = getGemBustModifier(theme);
     const starRank = getStarRank(i, count, theme);
     const stateIdx = Math.floor(Math.random() * states.length);
     const isBlueChip = i < numBlueChips;
+    
+    // Get gem/bust modifier, but Blue Chips can NEVER be busts
+    let { isGem, isBust } = getGemBustModifier(theme);
+    if (isBlueChip && isBust) {
+      isBust = false; // Blue Chips can never be busts
+    }
 
     // Overall rating correlates with star rank
     const overall = getOverallByStarRank(starRank, isBlueChip);

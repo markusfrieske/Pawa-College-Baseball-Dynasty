@@ -63,6 +63,7 @@ interface PlayerProfileCardProps {
   onClose: () => void;
   isCommissioner?: boolean;
   onEdit?: () => void;
+  teamPrimaryColor?: string;
 }
 
 const positionColors: Record<string, string> = {
@@ -78,7 +79,7 @@ const positionColors: Record<string, string> = {
 };
 
 
-export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdit }: PlayerProfileCardProps) {
+export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdit, teamPrimaryColor }: PlayerProfileCardProps) {
   const isPitcher = player.position === "P";
   const isCatcher = player.position === "C";
   const posColor = positionColors[player.position] || "#666";
@@ -158,6 +159,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
               hairColor={player.hairColor || "brown"}
               hairStyle={player.hairStyle || "short"}
               className="w-14 h-14 flex-shrink-0"
+              jerseyColor={teamPrimaryColor}
             />
             <div className="flex-1">
               <div className="flex items-center gap-2">
