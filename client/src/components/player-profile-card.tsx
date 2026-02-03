@@ -4,7 +4,7 @@ import { RetroButton } from "@/components/ui/retro-button";
 import { Badge } from "@/components/ui/badge";
 import { LetterGrade, getLetterGrade } from "@/components/ui/letter-grade";
 import { PlayerPortrait } from "@/components/ui/player-portrait";
-import { PitchMixWheel } from "@/components/ui/pitch-mix-wheel";
+import { PitchMixDial, generatePitchMixForDial } from "@/components/ui/pitch-mix-dial";
 import { MapPin, Star, Edit } from "lucide-react";
 import { getAbilityByName } from "@shared/abilities";
 
@@ -77,21 +77,6 @@ const positionColors: Record<string, string> = {
   RF: "#f4a460",
 };
 
-// Generate pitch mix based on pitcher stats
-function generatePitchMix(player: Player): { name: string; rating: number }[] {
-  if (player.position !== "P") return [];
-  const pitchCount = Math.min(7, Math.max(1, Math.floor((player.stuff || 50) / 15) + 1));
-  const basePitches = [
-    { name: "FB", rating: Math.min(99, (player.velocity || 50) + 20) },
-    { name: "SL", rating: Math.floor((player.stuff || 50) * 0.9) },
-    { name: "CB", rating: Math.floor((player.control || 50) * 0.85) },
-    { name: "CH", rating: Math.floor((player.stuff || 50) * 0.75) },
-    { name: "CT", rating: Math.floor((player.control || 50) * 0.6) },
-    { name: "SNK", rating: Math.floor((player.velocity || 50) * 0.7) },
-    { name: "SPL", rating: Math.floor((player.stuff || 50) * 0.5) },
-  ];
-  return basePitches.slice(0, pitchCount).filter(p => p.rating > 30);
-}
 
 export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdit }: PlayerProfileCardProps) {
   const isPitcher = player.position === "P";
@@ -99,7 +84,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
   const posColor = positionColors[player.position] || "#666";
   const bats = player.bats || player.batHand || "R";
   const throws = player.throws || player.throwHand || "R";
-  const pitchMix = generatePitchMix(player);
+  const pitchMix = generatePitchMixForDial(player);
 
   const eligibilityLabel: Record<string, string> = {
     FR: "Freshman",
@@ -243,14 +228,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
                 <span className="text-xs text-muted-foreground">Pitch Mix</span>
                 <span className="font-pixel text-gold text-sm">{pitchMix.length}</span>
               </div>
-              <div className="flex gap-2 flex-wrap">
-                {pitchMix.map((pitch) => (
-                  <div key={pitch.name} className="bg-background/50 px-2 py-1 rounded text-center">
-                    <span className="text-xs text-muted-foreground">{pitch.name}</span>
-                    <p className="font-bold text-sm">{pitch.rating}</p>
-                  </div>
-                ))}
-              </div>
+              <PitchMixDial pitches={pitchMix} className="w-32 h-32 mx-auto" />
             </div>
           )}
         </div>
@@ -323,12 +301,11 @@ function AttributeRow({ label, value }: { label: string; value?: number | null }
 
 function CommonAbilityRow({ label, value }: { label: string; value?: number | null }) {
   const displayValue = value ?? 50;
-  const { letter } = getLetterGrade(displayValue);
   
   return (
     <div className="flex items-center justify-between p-2 bg-background/50 rounded" data-testid={`common-ability-${label.toLowerCase().replace(/\s/g, "-")}`}>
       <span className="text-sm text-muted-foreground">{label}</span>
-      <LetterGrade value={displayValue} size="sm" />
+      <LetterGrade value={displayValue} size="sm" isCommonAbility={true} />
     </div>
   );
 }

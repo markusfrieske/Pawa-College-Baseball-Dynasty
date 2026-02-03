@@ -4,15 +4,15 @@ interface LetterGradeProps {
   value: number;
   size?: "sm" | "md" | "lg";
   className?: string;
+  isCommonAbility?: boolean;
 }
 
-export function getLetterGrade(value: number): { letter: string; tier: string } {
+export function getLetterGrade(value: number, isCommonAbility: boolean = false): { letter: string; tier: string } {
   if (value >= 90) return { letter: "S", tier: "s" };
   if (value >= 80) return { letter: "A", tier: "a" };
   if (value >= 70) return { letter: "B", tier: "b" };
   if (value >= 60) return { letter: "C", tier: "c" };
   if (value >= 50) return { letter: "D", tier: "d" };
-  if (value >= 40) return { letter: "E", tier: "e" };
   if (value >= 30) return { letter: "F", tier: "f" };
   return { letter: "G", tier: "g" };
 }
@@ -23,9 +23,18 @@ const tierColors: Record<string, string> = {
   b: "bg-red-500 text-white",
   c: "bg-orange-500 text-white",
   d: "bg-yellow-500 text-black",
-  e: "bg-green-500 text-white",
   f: "bg-blue-500 text-white",
   g: "bg-gray-400 text-white",
+};
+
+const commonAbilityColors: Record<string, string> = {
+  s: "bg-blue-500 text-white",
+  a: "bg-blue-500 text-white",
+  b: "bg-blue-500 text-white",
+  c: "bg-sky-400 text-white",
+  d: "bg-sky-400 text-white",
+  f: "bg-red-500 text-white",
+  g: "bg-red-500 text-white",
 };
 
 const sizeClasses: Record<string, string> = {
@@ -34,14 +43,15 @@ const sizeClasses: Record<string, string> = {
   lg: "w-8 h-8 text-sm",
 };
 
-export function LetterGrade({ value, size = "md", className }: LetterGradeProps) {
-  const { letter, tier } = getLetterGrade(value);
+export function LetterGrade({ value, size = "md", className, isCommonAbility = false }: LetterGradeProps) {
+  const { letter, tier } = getLetterGrade(value, isCommonAbility);
+  const colors = isCommonAbility ? commonAbilityColors : tierColors;
   
   return (
     <span
       className={cn(
         "inline-flex items-center justify-center font-bold rounded",
-        tierColors[tier],
+        colors[tier],
         sizeClasses[size],
         className
       )}

@@ -1,6 +1,7 @@
 import {
   users, leagues, conferences, teams, coaches, scouts,
   players, recruits, recruitingInterests, games, standings, auditLogs, leagueInvites, dynastyNews,
+  recruitingActionsLog, recruitTopSchools,
   type User, type InsertUser,
   type League, type InsertLeague,
   type Conference, type InsertConference,
@@ -15,6 +16,8 @@ import {
   type AuditLog, type InsertAuditLog,
   type LeagueInvite, type InsertLeagueInvite,
   type DynastyNews, type InsertDynastyNews,
+  type RecruitingActionsLog, type InsertRecruitingActionsLog,
+  type RecruitTopSchools, type InsertRecruitTopSchools,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, or } from "drizzle-orm";
@@ -81,6 +84,17 @@ export interface IStorage {
   getDynastyNewsByLeague(leagueId: string): Promise<DynastyNews[]>;
   createDynastyNews(news: InsertDynastyNews): Promise<DynastyNews>;
   deleteDynastyNews(id: string): Promise<void>;
+
+  getRecruitingActionsLog(recruitId: string, teamId: string): Promise<RecruitingActionsLog[]>;
+  createRecruitingAction(action: InsertRecruitingActionsLog): Promise<RecruitingActionsLog>;
+
+  getRecruitTopSchools(recruitId: string): Promise<RecruitTopSchools[]>;
+  getRecruitTopSchool(recruitId: string, teamId: string): Promise<RecruitTopSchools | undefined>;
+  createRecruitTopSchool(topSchool: InsertRecruitTopSchools): Promise<RecruitTopSchools>;
+  updateRecruitTopSchool(id: string, data: Partial<RecruitTopSchools>): Promise<RecruitTopSchools | undefined>;
+  
+  updatePlayer(id: string, data: Partial<Player>): Promise<Player | undefined>;
+  getPlayer(id: string): Promise<Player | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -325,6 +339,48 @@ export class DatabaseStorage implements IStorage {
 
   async deleteDynastyNews(id: string): Promise<void> {
     await db.delete(dynastyNews).where(eq(dynastyNews.id, id));
+  }
+
+  async getRecruitingActionsLog(recruitId: string, teamId: string): Promise<RecruitingActionsLog[]> {
+    return await db.select().from(recruitingActionsLog)
+      .where(and(eq(recruitingActionsLog.recruitId, recruitId), eq(recruitingActionsLog.teamId, teamId)))
+      .orderBy(desc(recruitingActionsLog.createdAt));
+  }
+
+  async createRecruitingAction(action: InsertRecruitingActionsLog): Promise<RecruitingActionsLog> {
+    const [log] = await db.insert(recruitingActionsLog).values(action).returning();
+    return log;
+  }
+
+  async getRecruitTopSchools(recruitId: string): Promise<RecruitTopSchools[]> {
+    return await db.select().from(recruitTopSchools)
+      .where(eq(recruitTopSchools.recruitId, recruitId));
+  }
+
+  async getRecruitTopSchool(recruitId: string, teamId: string): Promise<RecruitTopSchools | undefined> {
+    const [topSchool] = await db.select().from(recruitTopSchools)
+      .where(and(eq(recruitTopSchools.recruitId, recruitId), eq(recruitTopSchools.teamId, teamId)));
+    return topSchool || undefined;
+  }
+
+  async createRecruitTopSchool(topSchool: InsertRecruitTopSchools): Promise<RecruitTopSchools> {
+    const [created] = await db.insert(recruitTopSchools).values(topSchool).returning();
+    return created;
+  }
+
+  async updateRecruitTopSchool(id: string, data: Partial<RecruitTopSchools>): Promise<RecruitTopSchools | undefined> {
+    const [updated] = await db.update(recruitTopSchools).set(data).where(eq(recruitTopSchools.id, id)).returning();
+    return updated || undefined;
+  }
+
+  async getPlayer(id: string): Promise<Player | undefined> {
+    const [player] = await db.select().from(players).where(eq(players.id, id));
+    return player || undefined;
+  }
+
+  async updatePlayer(id: string, data: Partial<Player>): Promise<Player | undefined> {
+    const [player] = await db.update(players).set(data).where(eq(players.id, id)).returning();
+    return player || undefined;
   }
 }
 

@@ -610,10 +610,210 @@ export async function registerRoutes(
         });
       }
 
+      // Log the scouting action
+      const league = await storage.getLeague(req.params.id);
+      if (league) {
+        await storage.createRecruitingAction({
+          recruitId: req.params.recruitId,
+          teamId: userTeam.id,
+          leagueId: req.params.id,
+          week: league.currentWeek,
+          season: league.currentSeason,
+          actionType: "scout",
+          interestChange: 0,
+          notes: `Scouted to ${interest?.scoutPercentage || 0}%`,
+        });
+      }
+
       res.json(interest);
     } catch (error) {
       console.error("Failed to scout recruit:", error);
       res.status(500).json({ message: "Failed to scout recruit" });
+    }
+  });
+
+  // Get recruiting actions log for a recruit
+  app.get("/api/leagues/:id/recruiting/:recruitId/actions", requireAuth, async (req, res) => {
+    try {
+      const leagueTeams = await storage.getTeamsByLeague(req.params.id);
+      const userTeam = leagueTeams.find((t) => !t.isCpu);
+      
+      if (!userTeam) {
+        return res.status(400).json({ message: "No team assigned" });
+      }
+
+      const actions = await storage.getRecruitingActionsLog(req.params.recruitId, userTeam.id);
+      res.json({ actions });
+    } catch (error) {
+      console.error("Failed to fetch recruiting actions:", error);
+      res.status(500).json({ message: "Failed to fetch recruiting actions" });
+    }
+  });
+
+  // Recruiting action: phone call
+  app.post("/api/leagues/:id/recruiting/:recruitId/phone", requireAuth, async (req, res) => {
+    try {
+      const leagueTeams = await storage.getTeamsByLeague(req.params.id);
+      const userTeam = leagueTeams.find((t) => !t.isCpu);
+      
+      if (!userTeam) {
+        return res.status(400).json({ message: "No team assigned" });
+      }
+
+      const recruit = await storage.getRecruit(req.params.recruitId);
+      if (!recruit) {
+        return res.status(404).json({ message: "Recruit not found" });
+      }
+
+      const league = await storage.getLeague(req.params.id);
+      if (!league) {
+        return res.status(404).json({ message: "League not found" });
+      }
+
+      let interest = await storage.getRecruitingInterest(req.params.recruitId, userTeam.id);
+      
+      const interestGain = 5 + Math.floor(Math.random() * 10);
+      
+      if (!interest) {
+        interest = await storage.createRecruitingInterest({
+          recruitId: req.params.recruitId,
+          teamId: userTeam.id,
+          interestLevel: interestGain,
+        });
+      } else {
+        interest = await storage.updateRecruitingInterest(interest.id, {
+          interestLevel: Math.min(100, (interest.interestLevel || 0) + interestGain),
+        });
+      }
+
+      await storage.createRecruitingAction({
+        recruitId: req.params.recruitId,
+        teamId: userTeam.id,
+        leagueId: req.params.id,
+        week: league.currentWeek,
+        season: league.currentSeason,
+        actionType: "phone",
+        interestChange: interestGain,
+        notes: "Made a phone call",
+      });
+
+      res.json(interest);
+    } catch (error) {
+      console.error("Failed to make phone call:", error);
+      res.status(500).json({ message: "Failed to make phone call" });
+    }
+  });
+
+  // Recruiting action: email
+  app.post("/api/leagues/:id/recruiting/:recruitId/email", requireAuth, async (req, res) => {
+    try {
+      const leagueTeams = await storage.getTeamsByLeague(req.params.id);
+      const userTeam = leagueTeams.find((t) => !t.isCpu);
+      
+      if (!userTeam) {
+        return res.status(400).json({ message: "No team assigned" });
+      }
+
+      const recruit = await storage.getRecruit(req.params.recruitId);
+      if (!recruit) {
+        return res.status(404).json({ message: "Recruit not found" });
+      }
+
+      const league = await storage.getLeague(req.params.id);
+      if (!league) {
+        return res.status(404).json({ message: "League not found" });
+      }
+
+      let interest = await storage.getRecruitingInterest(req.params.recruitId, userTeam.id);
+      
+      const interestGain = 3 + Math.floor(Math.random() * 5);
+      
+      if (!interest) {
+        interest = await storage.createRecruitingInterest({
+          recruitId: req.params.recruitId,
+          teamId: userTeam.id,
+          interestLevel: interestGain,
+        });
+      } else {
+        interest = await storage.updateRecruitingInterest(interest.id, {
+          interestLevel: Math.min(100, (interest.interestLevel || 0) + interestGain),
+        });
+      }
+
+      await storage.createRecruitingAction({
+        recruitId: req.params.recruitId,
+        teamId: userTeam.id,
+        leagueId: req.params.id,
+        week: league.currentWeek,
+        season: league.currentSeason,
+        actionType: "email",
+        interestChange: interestGain,
+        notes: "Sent an email",
+      });
+
+      res.json(interest);
+    } catch (error) {
+      console.error("Failed to send email:", error);
+      res.status(500).json({ message: "Failed to send email" });
+    }
+  });
+
+  // Recruiting action: offer scholarship
+  app.post("/api/leagues/:id/recruiting/:recruitId/offer", requireAuth, async (req, res) => {
+    try {
+      const leagueTeams = await storage.getTeamsByLeague(req.params.id);
+      const userTeam = leagueTeams.find((t) => !t.isCpu);
+      
+      if (!userTeam) {
+        return res.status(400).json({ message: "No team assigned" });
+      }
+
+      const recruit = await storage.getRecruit(req.params.recruitId);
+      if (!recruit) {
+        return res.status(404).json({ message: "Recruit not found" });
+      }
+
+      const league = await storage.getLeague(req.params.id);
+      if (!league) {
+        return res.status(404).json({ message: "League not found" });
+      }
+
+      let interest = await storage.getRecruitingInterest(req.params.recruitId, userTeam.id);
+      
+      const interestGain = 15 + Math.floor(Math.random() * 10);
+      
+      if (!interest) {
+        interest = await storage.createRecruitingInterest({
+          recruitId: req.params.recruitId,
+          teamId: userTeam.id,
+          interestLevel: interestGain,
+          hasOffer: true,
+        });
+      } else {
+        if (interest.hasOffer) {
+          return res.status(400).json({ message: "Already offered scholarship" });
+        }
+        interest = await storage.updateRecruitingInterest(interest.id, {
+          interestLevel: Math.min(100, (interest.interestLevel || 0) + interestGain),
+          hasOffer: true,
+        });
+      }
+
+      await storage.createRecruitingAction({
+        recruitId: req.params.recruitId,
+        teamId: userTeam.id,
+        leagueId: req.params.id,
+        week: league.currentWeek,
+        season: league.currentSeason,
+        actionType: "offer",
+        interestChange: interestGain,
+        notes: "Offered scholarship",
+      });
+
+      res.json(interest);
+    } catch (error) {
+      console.error("Failed to offer scholarship:", error);
+      res.status(500).json({ message: "Failed to offer scholarship" });
     }
   });
 
@@ -770,6 +970,39 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to fetch roster:", error);
       res.status(500).json({ message: "Failed to fetch roster" });
+    }
+  });
+
+  // Update player (commissioner only)
+  app.patch("/api/leagues/:id/players/:playerId", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id);
+      if (!league) {
+        return res.status(404).json({ message: "League not found" });
+      }
+
+      if (league.commissionerId !== req.session.userId) {
+        return res.status(403).json({ message: "Only the commissioner can edit players" });
+      }
+
+      const player = await storage.getPlayer(req.params.playerId);
+      if (!player) {
+        return res.status(404).json({ message: "Player not found" });
+      }
+
+      const updated = await storage.updatePlayer(req.params.playerId, req.body);
+      
+      await storage.createAuditLog({
+        leagueId: req.params.id,
+        userId: req.session.userId,
+        action: "Player Edited",
+        details: `Edited player ${player.firstName} ${player.lastName}`,
+      });
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Failed to update player:", error);
+      res.status(500).json({ message: "Failed to update player" });
     }
   });
 

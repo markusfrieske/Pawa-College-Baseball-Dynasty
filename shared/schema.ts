@@ -456,6 +456,57 @@ export const insertRecruitingInterestSchema = createInsertSchema(recruitingInter
 export type InsertRecruitingInterest = z.infer<typeof insertRecruitingInterestSchema>;
 export type RecruitingInterest = typeof recruitingInterests.$inferSelect;
 
+// Recruiting Actions Log table (tracks scout/phone/email actions by week)
+export const recruitingActionsLog = pgTable("recruiting_actions_log", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  recruitId: varchar("recruit_id").notNull().references(() => recruits.id),
+  teamId: varchar("team_id").notNull().references(() => teams.id),
+  leagueId: varchar("league_id").notNull().references(() => leagues.id),
+  week: integer("week").notNull(),
+  season: integer("season").notNull(),
+  actionType: text("action_type").notNull(), // 'scout', 'phone', 'email', 'offer', 'visit'
+  interestChange: integer("interest_change").notNull().default(0),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertRecruitingActionsLogSchema = createInsertSchema(recruitingActionsLog).pick({
+  recruitId: true,
+  teamId: true,
+  leagueId: true,
+  week: true,
+  season: true,
+  actionType: true,
+  interestChange: true,
+  notes: true,
+});
+
+export type InsertRecruitingActionsLog = z.infer<typeof insertRecruitingActionsLogSchema>;
+export type RecruitingActionsLog = typeof recruitingActionsLog.$inferSelect;
+
+// Top Schools Interest table (tracks which schools a recruit is interested in)
+export const recruitTopSchools = pgTable("recruit_top_schools", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  recruitId: varchar("recruit_id").notNull().references(() => recruits.id),
+  teamId: varchar("team_id").notNull().references(() => teams.id),
+  interestLevel: integer("interest_level").notNull().default(50), // 0-100 scale
+  rank: integer("rank"), // Position in top schools list (1-8 during Open, 1-5 during Top 5, 1-3 during Top 3)
+  isActive: boolean("is_active").notNull().default(true), // Whether still in consideration
+  accumulatedInterest: integer("accumulated_interest").notNull().default(0), // Total interest accumulated from recruiting actions
+});
+
+export const insertRecruitTopSchoolsSchema = createInsertSchema(recruitTopSchools).pick({
+  recruitId: true,
+  teamId: true,
+  interestLevel: true,
+  rank: true,
+  isActive: true,
+  accumulatedInterest: true,
+});
+
+export type InsertRecruitTopSchools = z.infer<typeof insertRecruitTopSchoolsSchema>;
+export type RecruitTopSchools = typeof recruitTopSchools.$inferSelect;
+
 // Games table
 export const games = pgTable("games", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -662,4 +713,15 @@ export const leagueInvitesRelations = relations(leagueInvites, ({ one }) => ({
 export const dynastyNewsRelations = relations(dynastyNews, ({ one }) => ({
   league: one(leagues, { fields: [dynastyNews.leagueId], references: [leagues.id] }),
   author: one(users, { fields: [dynastyNews.authorId], references: [users.id] }),
+}));
+
+export const recruitingActionsLogRelations = relations(recruitingActionsLog, ({ one }) => ({
+  recruit: one(recruits, { fields: [recruitingActionsLog.recruitId], references: [recruits.id] }),
+  team: one(teams, { fields: [recruitingActionsLog.teamId], references: [teams.id] }),
+  league: one(leagues, { fields: [recruitingActionsLog.leagueId], references: [leagues.id] }),
+}));
+
+export const recruitTopSchoolsRelations = relations(recruitTopSchools, ({ one }) => ({
+  recruit: one(recruits, { fields: [recruitTopSchools.recruitId], references: [recruits.id] }),
+  team: one(teams, { fields: [recruitTopSchools.teamId], references: [teams.id] }),
 }));

@@ -25,7 +25,8 @@ import {
   History,
   TrendingUp,
   Award,
-  ChevronDown
+  ChevronDown,
+  Eye
 } from "lucide-react";
 import type { Team, Coach, Player, Game } from "@shared/schema";
 import { isPitcher, isHitter, isCatcher, isInfielder, isOutfielder } from "@shared/positions";
@@ -572,13 +573,30 @@ function CoachesTab({ team }: { team: TeamDetails }) {
         </RetroCard>
       ) : (
         <RetroCard>
-          <RetroCardHeader>Scout</RetroCardHeader>
+          <RetroCardHeader>Career Stats</RetroCardHeader>
           <RetroCardContent className="text-center py-12">
-            <Users className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-            <p className="text-muted-foreground">Scout details coming soon</p>
+            <Award className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+            <p className="text-muted-foreground">No coach assigned</p>
           </RetroCardContent>
         </RetroCard>
       )}
+
+      {/* Scout Director Section */}
+      <RetroCard className="md:col-span-2">
+        <RetroCardHeader>
+          <div className="flex items-center gap-2">
+            Scout Director
+            <Badge variant="outline" className="text-[8px] bg-gold/10 text-gold border-gold">Coming Soon</Badge>
+          </div>
+        </RetroCardHeader>
+        <RetroCardContent className="text-center py-12">
+          <Eye className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+          <p className="text-muted-foreground mb-2">Scout Director system coming soon</p>
+          <p className="text-xs text-muted-foreground max-w-md mx-auto">
+            Hire and manage scouts with unique perks and skills to help you evaluate recruits faster and more accurately.
+          </p>
+        </RetroCardContent>
+      </RetroCard>
     </div>
   );
 }

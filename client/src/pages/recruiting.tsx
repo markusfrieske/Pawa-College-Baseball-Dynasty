@@ -52,7 +52,8 @@ import { useToast } from "@/hooks/use-toast";
 import type { Recruit, RecruitingInterest, Team } from "@shared/schema";
 import { getAbilityByName } from "@shared/abilities";
 import { PlayerPortrait } from "@/components/ui/player-portrait";
-import { PitchMixWheel } from "@/components/ui/pitch-mix-wheel";
+import { PitchMixDial } from "@/components/ui/pitch-mix-dial";
+import { LetterGrade } from "@/components/ui/letter-grade";
 
 interface RecruitWithInterest extends Recruit {
   interest?: RecruitingInterest;
@@ -216,6 +217,45 @@ export default function RecruitingPage() {
     },
   });
 
+  const phoneMutation = useMutation({
+    mutationFn: async (recruitId: string) => {
+      return apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/phone`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
+      toast({ title: "Phone Call Made", description: "Interest level increased!" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const emailMutation = useMutation({
+    mutationFn: async (recruitId: string) => {
+      return apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/email`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
+      toast({ title: "Email Sent", description: "Interest level increased!" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const offerMutation = useMutation({
+    mutationFn: async (recruitId: string) => {
+      return apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/offer`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
+      toast({ title: "Scholarship Offered", description: "Major interest boost!" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   const filteredRecruits = data?.recruits.filter(r => {
     if (positionFilter !== "all" && r.position !== positionFilter) return false;
     if (starFilter !== "all" && r.starRank < parseInt(starFilter)) return false;
@@ -263,7 +303,7 @@ export default function RecruitingPage() {
                   <BreadcrumbSeparator />
                   <BreadcrumbItem>
                     <BreadcrumbLink asChild>
-                      <Link href={`/league/${id}`} className="text-muted-foreground hover:text-gold text-xs">{data?.team?.schoolName || "Dynasty"}</Link>
+                      <Link href={`/league/${id}`} className="text-muted-foreground hover:text-gold text-xs">{data?.team?.name || "Dynasty"}</Link>
                     </BreadcrumbLink>
                   </BreadcrumbItem>
                   <BreadcrumbSeparator />
@@ -455,6 +495,12 @@ export default function RecruitingPage() {
         leagueId={id!}
         onScout={(recruitId) => scoutMutation.mutate(recruitId)}
         isScouting={scoutMutation.isPending}
+        onPhone={(recruitId) => phoneMutation.mutate(recruitId)}
+        isPhoning={phoneMutation.isPending}
+        onEmail={(recruitId) => emailMutation.mutate(recruitId)}
+        isEmailing={emailMutation.isPending}
+        onOffer={(recruitId) => offerMutation.mutate(recruitId)}
+        isOffering={offerMutation.isPending}
       />
 
       {compareRecruits.length > 0 && (
@@ -880,15 +926,32 @@ function RecruitRow({
 
       {recruit.topSchools && recruit.topSchools.length > 0 && (
         <div className="mt-4 pt-4 border-t border-border">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs text-muted-foreground">Top Schools:</span>
-            {recruit.topSchools.slice(0, 5).map((school, i) => (
-              <TeamBadge
-                key={school.teamId}
-                abbreviation={school.abbreviation}
-                primaryColor={school.primaryColor}
-                size="sm"
-              />
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs text-muted-foreground">Top Schools Interest</span>
+            <Badge variant="outline" className="text-[8px]">
+              {recruit.stage === "Open" ? "8 Schools" : recruit.stage === "Top 8" ? "Top 8" : recruit.stage === "Top 5" ? "Top 5" : recruit.stage === "Top 3" ? "Top 3" : recruit.stage}
+            </Badge>
+          </div>
+          <div className="space-y-1.5">
+            {recruit.topSchools.slice(0, recruit.stage === "Top 3" ? 3 : recruit.stage === "Top 5" ? 5 : 8).map((school, i) => (
+              <div key={school.teamId} className="flex items-center gap-2">
+                <TeamBadge
+                  abbreviation={school.abbreviation}
+                  primaryColor={school.primaryColor}
+                  size="xs"
+                />
+                <span className="text-[10px] text-muted-foreground w-8">{school.abbreviation}</span>
+                <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                  <div 
+                    className="h-full transition-all"
+                    style={{ 
+                      width: `${Math.min(100, school.interestLevel)}%`,
+                      backgroundColor: school.primaryColor 
+                    }}
+                  />
+                </div>
+                <span className="text-[10px] text-muted-foreground w-6 text-right">{school.interestLevel}%</span>
+              </div>
             ))}
           </div>
         </div>
@@ -903,12 +966,24 @@ function RecruitDetailModal({
   leagueId,
   onScout,
   isScouting,
+  onPhone,
+  isPhoning,
+  onEmail,
+  isEmailing,
+  onOffer,
+  isOffering,
 }: {
   recruit: RecruitWithInterest | null;
   onClose: () => void;
   leagueId: string;
   onScout: (recruitId: string) => void;
   isScouting: boolean;
+  onPhone: (recruitId: string) => void;
+  isPhoning: boolean;
+  onEmail: (recruitId: string) => void;
+  isEmailing: boolean;
+  onOffer: (recruitId: string) => void;
+  isOffering: boolean;
 }) {
   if (!recruit) return null;
 
@@ -1061,7 +1136,7 @@ function RecruitDetailModal({
               </div>
               <div>
                 <h4 className="font-pixel text-[10px] text-gold mb-3">Pitch Mix</h4>
-                <PitchMixWheel pitches={generatePitchMix()} className="w-32 h-32 mx-auto" />
+                <PitchMixDial pitches={generatePitchMix()} className="w-32 h-32 mx-auto" />
               </div>
             </div>
           ) : (
@@ -1082,6 +1157,37 @@ function RecruitDetailModal({
               </div>
             </div>
           )}
+
+          {/* Common Abilities Section */}
+          <div>
+            <h4 className="font-pixel text-[10px] text-gold mb-3">Common Abilities</h4>
+            <div className="grid grid-cols-2 gap-2">
+              {recruit.position === "P" ? (
+                <>
+                  <CommonAbilityRow label="W/RISP" value={recruit.wRISP} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
+                  <CommonAbilityRow label="vs Lefty" value={recruit.vsLefty} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
+                  <CommonAbilityRow label="Poise" value={recruit.poise} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
+                  <CommonAbilityRow label="Grit" value={recruit.grit} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
+                  <CommonAbilityRow label="Heater" value={recruit.heater} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
+                  <CommonAbilityRow label="Agile" value={recruit.agile} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
+                  <CommonAbilityRow label="Recovery" value={recruit.recovery} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
+                </>
+              ) : (
+                <>
+                  <CommonAbilityRow label="Clutch" value={recruit.clutch} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
+                  <CommonAbilityRow label="vs LHP" value={recruit.vsLHP} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
+                  <CommonAbilityRow label="Grit" value={recruit.grit} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
+                  <CommonAbilityRow label="Stealing" value={recruit.stealing} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
+                  <CommonAbilityRow label="Running" value={recruit.running} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
+                  <CommonAbilityRow label="Throwing" value={recruit.throwing} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
+                  <CommonAbilityRow label="Recovery" value={recruit.recovery} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
+                  {recruit.position === "C" && (
+                    <CommonAbilityRow label="Catcher" value={recruit.catcherAbility} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
+                  )}
+                </>
+              )}
+            </div>
+          </div>
 
           <div>
             <h4 className="font-pixel text-[10px] text-gold mb-3">Priorities</h4>
@@ -1175,23 +1281,39 @@ function RecruitDetailModal({
               <Eye className="w-4 h-4 mr-2" />
               {isScouting ? "Scouting..." : `Scout (${scoutPct}%)`}
             </RetroButton>
-            <RetroButton className="flex-1" data-testid="button-pitch">
+            <RetroButton 
+              className="flex-1" 
+              data-testid="button-phone"
+              onClick={() => onPhone(recruit.id)}
+              disabled={isPhoning}
+            >
               <Phone className="w-4 h-4 mr-2" />
-              Phone Call
+              {isPhoning ? "Calling..." : "Phone Call"}
             </RetroButton>
-            <RetroButton variant="outline" className="flex-1" data-testid="button-email">
+            <RetroButton 
+              variant="outline" 
+              className="flex-1" 
+              data-testid="button-email"
+              onClick={() => onEmail(recruit.id)}
+              disabled={isEmailing}
+            >
               <Mail className="w-4 h-4 mr-2" />
-              Email
+              {isEmailing ? "Sending..." : "Email"}
             </RetroButton>
             <RetroButton 
               variant="outline" 
               className="border-gold text-gold hover:bg-gold/10"
               data-testid="button-offer-scholarship"
+              onClick={() => onOffer(recruit.id)}
+              disabled={isOffering || recruit.interest?.hasOffer}
             >
               <GraduationCap className="w-4 h-4 mr-2" />
-              Offer Scholarship
+              {isOffering ? "Offering..." : recruit.interest?.hasOffer ? "Offered" : "Offer Scholarship"}
             </RetroButton>
           </div>
+
+          {/* Actions Log */}
+          <RecruitActionsLog recruitId={recruit.id} leagueId={leagueId} />
         </div>
       </DialogContent>
     </Dialog>
@@ -1347,6 +1469,112 @@ function CompareModal({
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function CommonAbilityRow({ 
+  label, 
+  value, 
+  scoutPct, 
+  isFullyRevealed 
+}: { 
+  label: string; 
+  value?: number | null; 
+  scoutPct: number;
+  isFullyRevealed: boolean;
+}) {
+  const revealed = isFullyRevealed || scoutPct >= 75;
+  const displayValue = value ?? 50;
+  
+  return (
+    <div className="flex items-center justify-between p-2 bg-muted/50 rounded" data-testid={`common-ability-${label.toLowerCase().replace(/\s/g, "-")}`}>
+      <span className="text-sm text-muted-foreground">{label}</span>
+      {revealed ? (
+        <LetterGrade value={displayValue} size="sm" isCommonAbility={true} />
+      ) : (
+        <span className="text-sm text-muted-foreground">??</span>
+      )}
+    </div>
+  );
+}
+
+function RecruitActionsLog({ recruitId, leagueId }: { recruitId: string; leagueId: string }) {
+  const { data: actionsData, isLoading } = useQuery<{ actions: Array<{
+    id: string;
+    week: number;
+    season: number;
+    actionType: string;
+    interestChange: number;
+    notes: string | null;
+    createdAt: string;
+  }> }>({
+    queryKey: ["/api/leagues", leagueId, "recruiting", recruitId, "actions"],
+    enabled: !!recruitId && !!leagueId,
+  });
+
+  const actionIcons: Record<string, any> = {
+    scout: <Eye className="w-3 h-3" />,
+    phone: <Phone className="w-3 h-3" />,
+    email: <Mail className="w-3 h-3" />,
+    offer: <GraduationCap className="w-3 h-3" />,
+    visit: <MapPin className="w-3 h-3" />,
+  };
+
+  const actionColors: Record<string, string> = {
+    scout: "text-green-400",
+    phone: "text-blue-400",
+    email: "text-purple-400",
+    offer: "text-gold",
+    visit: "text-teal-400",
+  };
+
+  if (isLoading) {
+    return (
+      <div className="mt-4 pt-4 border-t border-border">
+        <h4 className="font-pixel text-[10px] text-gold mb-2">Activity Log</h4>
+        <Skeleton className="h-20" />
+      </div>
+    );
+  }
+
+  if (!actionsData?.actions?.length) {
+    return (
+      <div className="mt-4 pt-4 border-t border-border">
+        <h4 className="font-pixel text-[10px] text-gold mb-2">Activity Log</h4>
+        <p className="text-xs text-muted-foreground italic">No activity yet</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-4 pt-4 border-t border-border">
+      <h4 className="font-pixel text-[10px] text-gold mb-2">Activity Log</h4>
+      <div className="max-h-32 overflow-y-auto space-y-1">
+        {actionsData.actions.slice(0, 10).map((action) => (
+          <div 
+            key={action.id} 
+            className="flex items-center gap-2 text-xs py-1 px-2 bg-muted/30 rounded"
+            data-testid={`action-log-${action.id}`}
+          >
+            <span className={actionColors[action.actionType] || "text-muted-foreground"}>
+              {actionIcons[action.actionType] || <HelpCircle className="w-3 h-3" />}
+            </span>
+            <span className="text-muted-foreground">
+              Wk {action.week}, S{action.season}
+            </span>
+            <span className="text-foreground capitalize">{action.actionType}</span>
+            {action.notes && (
+              <span className="text-muted-foreground truncate flex-1">{action.notes}</span>
+            )}
+            {action.interestChange !== 0 && (
+              <span className={action.interestChange > 0 ? "text-green-400" : "text-red-400"}>
+                {action.interestChange > 0 ? "+" : ""}{action.interestChange}%
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
