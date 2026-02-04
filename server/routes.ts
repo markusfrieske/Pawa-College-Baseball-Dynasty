@@ -1132,6 +1132,70 @@ export async function registerRoutes(
     }
   });
 
+  // Batch update players (commissioner only)
+  app.patch("/api/leagues/:id/players/batch", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id);
+      if (!league) {
+        return res.status(404).json({ message: "League not found" });
+      }
+
+      if (league.commissionerId !== req.session.userId) {
+        return res.status(403).json({ message: "Only the commissioner can edit players" });
+      }
+
+      const { updates } = req.body as { updates: { id: string; changes: Record<string, unknown> }[] };
+      if (!Array.isArray(updates)) {
+        return res.status(400).json({ message: "Updates must be an array" });
+      }
+
+      const allowedFields = [
+        'firstName', 'lastName', 'position', 'hometown', 'homeState',
+        'batHand', 'throwHand', 'eligibility',
+        'skinTone', 'hairColor', 'hairStyle', 'headwear',
+        'overall', 'starRating',
+        'hitForAvg', 'power', 'speed', 'arm', 'fielding', 'errorResistance',
+        'clutch', 'vsLHP', 'grit', 'stealing', 'running', 'throwing', 'recovery', 'catcherAbility',
+        'velocity', 'control', 'stamina', 'stuff',
+        'wRISP', 'vsLefty', 'poise', 'heater', 'agile',
+        'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL',
+        'abilities'
+      ];
+
+      // Get all teams in this league to verify player ownership
+      const teams = await storage.getTeamsByLeague(req.params.id);
+      const leagueTeamIds = new Set(teams.map(t => t.id));
+
+      const results = [];
+      for (const update of updates) {
+        const player = await storage.getPlayer(update.id);
+        // Verify player exists and belongs to a team in this league
+        if (player && leagueTeamIds.has(player.teamId)) {
+          const sanitizedData: Record<string, unknown> = {};
+          for (const key of allowedFields) {
+            if (key in update.changes) {
+              sanitizedData[key] = update.changes[key];
+            }
+          }
+          const updated = await storage.updatePlayer(update.id, sanitizedData);
+          results.push(updated);
+        }
+      }
+
+      await storage.createAuditLog({
+        leagueId: req.params.id,
+        userId: req.session.userId,
+        action: "Batch Player Edit",
+        details: `Edited ${results.length} players via roster editor`,
+      });
+
+      res.json({ success: true, count: results.length });
+    } catch (error) {
+      console.error("Failed to batch update players:", error);
+      res.status(500).json({ message: "Failed to batch update players" });
+    }
+  });
+
   // Coach profile route
   app.get("/api/leagues/:id/coach", requireAuth, async (req, res) => {
     try {
@@ -2170,6 +2234,7 @@ export async function registerRoutes(
         'clutch', 'vsLHP', 'grit', 'stealing', 'running', 'throwing', 'recovery', 'catcherAbility',
         'velocity', 'control', 'stamina', 'stuff',
         'wRISP', 'vsLefty', 'poise', 'heater', 'agile',
+        'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL',
         'abilities',
         'proximityPriority', 'reputationPriority', 'playingTimePriority',
         'academicsPriority', 'prestigePriority', 'facilitiesPriority', 'dealbreaker'
@@ -2195,6 +2260,68 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to update recruit:", error);
       res.status(500).json({ message: "Failed to update recruit" });
+    }
+  });
+
+  // Batch update recruits (commissioner only)
+  app.patch("/api/leagues/:id/recruits/batch", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id as string);
+      if (!league) {
+        return res.status(404).json({ message: "League not found" });
+      }
+
+      if (league.commissionerId !== req.session.userId) {
+        return res.status(403).json({ message: "Only the commissioner can edit recruits" });
+      }
+
+      const { updates } = req.body as { updates: { id: string; changes: Record<string, unknown> }[] };
+      if (!Array.isArray(updates)) {
+        return res.status(400).json({ message: "Updates must be an array" });
+      }
+
+      const allowedFields = [
+        'firstName', 'lastName', 'position', 'hometown', 'homeState',
+        'batHand', 'throwHand', 'recruitType', 'recruitYear',
+        'skinTone', 'hairColor', 'hairStyle', 'headwear',
+        'overall', 'starRating', 'classRank', 'positionRank',
+        'isBlueChip', 'isGem', 'isBust',
+        'hitForAvg', 'power', 'speed', 'arm', 'fielding', 'errorResistance',
+        'clutch', 'vsLHP', 'grit', 'stealing', 'running', 'throwing', 'recovery', 'catcherAbility',
+        'velocity', 'control', 'stamina', 'stuff',
+        'wRISP', 'vsLefty', 'poise', 'heater', 'agile',
+        'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL',
+        'abilities',
+        'proximityPriority', 'reputationPriority', 'playingTimePriority',
+        'academicsPriority', 'prestigePriority', 'facilitiesPriority', 'dealbreaker'
+      ];
+
+      const results = [];
+      for (const update of updates) {
+        const recruit = await storage.getRecruit(update.id);
+        if (recruit && recruit.leagueId === req.params.id) {
+          const sanitizedData: Record<string, unknown> = {};
+          for (const key of allowedFields) {
+            if (key in update.changes) {
+              sanitizedData[key] = update.changes[key];
+            }
+          }
+          const updated = await storage.updateRecruit(update.id, sanitizedData);
+          results.push(updated);
+        }
+      }
+
+      await storage.createAuditLog({
+        leagueId: req.params.id as string,
+        userId: req.session.userId,
+        action: "Batch Recruit Edit",
+        details: `Edited ${results.length} recruits via recruiting editor`,
+      });
+
+      res.json({ success: true, count: results.length });
+    } catch (error) {
+      console.error("Failed to batch update recruits:", error);
+      res.status(500).json({ message: "Failed to batch update recruits" });
     }
   });
 

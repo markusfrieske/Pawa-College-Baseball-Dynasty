@@ -117,6 +117,22 @@ Player cards display 4 distinct sections:
 - Manual game score entry
 - Conference and overall standings
 
+### Commissioner Bulk Editing Tools
+- **Edit All Rosters** (`/league/:id/edit-rosters`): Spreadsheet-like interface for bulk editing all team rosters
+  - Tab-based team selection
+  - Sortable columns (name, position, eligibility, overall, stars)
+  - Inline editing for player names, positions, attributes
+  - Pitch mix editing: FB/2S as checkboxes, SL/CB/CH/CT/SNK/SPL as 0-7 dropdowns
+  - Unsaved changes tracking with yellow highlighting
+  - Batch save with audit logging
+- **Edit Recruiting Class** (`/league/:id/edit-recruits`): Bulk editor for all recruits
+  - Position filter dropdown
+  - Sortable columns (rank, name, position, overall, stars)
+  - Inline editing for names, position, type, year, attributes
+  - Pitch mix editing for pitchers
+  - Priority settings (Proximity, Reputation, Playing Time, Academics, Prestige, Facilities)
+  - Batch save with commissioner audit logging
+
 ### League Invite System (Multiplayer)
 - Commissioner can send email invites via the Invites tab
 - Unique 12-character invite codes generated using UUID

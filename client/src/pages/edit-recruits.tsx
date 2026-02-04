@@ -1,0 +1,721 @@
+import { useState, useMemo } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useParams, Link } from "wouter";
+import { RetroButton } from "@/components/ui/retro-button";
+import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ArrowLeft, Save, RotateCcw, ChevronUp, ChevronDown, Filter } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import type { Recruit } from "@shared/schema";
+
+interface RecruitingData {
+  recruits: Recruit[];
+}
+
+type SortField = "lastName" | "position" | "overall" | "starRating" | "classRank";
+type SortDir = "asc" | "desc";
+
+const positions = ["P", "C", "1B", "2B", "SS", "3B", "LF", "CF", "RF", "DH"];
+const hands = ["R", "L", "S"];
+const recruitTypes = ["HS", "JUCO"];
+const recruitYears = ["FR", "SO", "JR"];
+const priorityOptions = ["Not Important", "Somewhat", "Very", "Extremely"];
+
+export default function EditRecruitsPage() {
+  const { id } = useParams<{ id: string }>();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  const [changes, setChanges] = useState<Record<string, Partial<Recruit>>>({});
+  const [sortField, setSortField] = useState<SortField>("classRank");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [positionFilter, setPositionFilter] = useState<string>("all");
+
+  const { data: recruitingData, isLoading } = useQuery<RecruitingData>({
+    queryKey: ["/api/leagues", id, "recruiting"],
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: async (updates: { id: string; changes: Partial<Recruit> }[]) => {
+      return apiRequest("PATCH", `/api/leagues/${id}/recruits/batch`, { updates });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
+      setChanges({});
+      toast({ title: "Recruits Saved", description: "All changes have been saved." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const recruits = recruitingData?.recruits || [];
+
+  // Filter by position
+  const filteredRecruits = useMemo(() => {
+    if (positionFilter === "all") return recruits;
+    return recruits.filter(r => r.position === positionFilter);
+  }, [recruits, positionFilter]);
+
+  // Sort recruits
+  const sortedRecruits = useMemo(() => {
+    return [...filteredRecruits].sort((a, b) => {
+      const aVal = a[sortField];
+      const bVal = b[sortField];
+      if (typeof aVal === "string" && typeof bVal === "string") {
+        return sortDir === "asc" ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      }
+      if (typeof aVal === "number" && typeof bVal === "number") {
+        return sortDir === "asc" ? aVal - bVal : bVal - aVal;
+      }
+      return 0;
+    });
+  }, [filteredRecruits, sortField, sortDir]);
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDir(sortDir === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDir("asc");
+    }
+  };
+
+  const updateRecruit = (recruitId: string, field: keyof Recruit, value: unknown) => {
+    setChanges(prev => ({
+      ...prev,
+      [recruitId]: {
+        ...prev[recruitId],
+        [field]: value,
+      },
+    }));
+  };
+
+  const getRecruitValue = <K extends keyof Recruit>(recruit: Recruit, field: K): Recruit[K] => {
+    if (changes[recruit.id]?.[field] !== undefined) {
+      return changes[recruit.id][field] as Recruit[K];
+    }
+    return recruit[field];
+  };
+
+  const handleSave = () => {
+    const updates = Object.entries(changes).map(([id, recruitChanges]) => ({
+      id,
+      changes: recruitChanges,
+    }));
+    if (updates.length > 0) {
+      saveMutation.mutate(updates);
+    }
+  };
+
+  const handleReset = () => {
+    setChanges({});
+    toast({ title: "Changes Reset", description: "All unsaved changes have been discarded." });
+  };
+
+  const hasChanges = Object.keys(changes).length > 0;
+
+  const SortHeader = ({ field, label }: { field: SortField; label: string }) => (
+    <th
+      className="px-2 py-2 text-left cursor-pointer hover:bg-muted/50 whitespace-nowrap"
+      onClick={() => handleSort(field)}
+    >
+      <div className="flex items-center gap-1">
+        <span className="text-xs font-pixel text-gold">{label}</span>
+        {sortField === field && (
+          sortDir === "asc" ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+        )}
+      </div>
+    </th>
+  );
+
+  if (isLoading) {
+    return (
+      <div className="p-6 space-y-4">
+        <Skeleton className="h-10 w-48" />
+        <Skeleton className="h-[600px] w-full" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background p-4">
+      <div className="max-w-[1800px] mx-auto space-y-4">
+        {/* Header */}
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-4">
+            <Link href={`/leagues/${id}/commissioner`}>
+              <RetroButton variant="outline" size="sm" data-testid="button-back">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Commissioner
+              </RetroButton>
+            </Link>
+            <h1 className="font-pixel text-xl text-gold">EDIT RECRUITING CLASS</h1>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Position Filter */}
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-muted-foreground" />
+              <Select value={positionFilter} onValueChange={setPositionFilter}>
+                <SelectTrigger className="h-8 w-24 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  {positions.map(p => (
+                    <SelectItem key={p} value={p}>{p}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {hasChanges && (
+              <Badge variant="outline" className="text-yellow-500 border-yellow-500">
+                {Object.keys(changes).length} unsaved changes
+              </Badge>
+            )}
+            <RetroButton 
+              variant="outline" 
+              size="sm" 
+              onClick={handleReset}
+              disabled={!hasChanges}
+              data-testid="button-reset"
+            >
+              <RotateCcw className="w-4 h-4 mr-2" />
+              Reset
+            </RetroButton>
+            <RetroButton 
+              onClick={handleSave}
+              disabled={!hasChanges || saveMutation.isPending}
+              data-testid="button-save"
+            >
+              <Save className="w-4 h-4 mr-2" />
+              {saveMutation.isPending ? "Saving..." : "Save All"}
+            </RetroButton>
+          </div>
+        </div>
+
+        {/* Recruits Table */}
+        <RetroCard>
+          <RetroCardHeader>
+            <h2 className="font-pixel text-gold">Recruiting Class ({sortedRecruits.length} recruits)</h2>
+          </RetroCardHeader>
+          <RetroCardContent className="p-0">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/30 sticky top-0">
+                  <tr>
+                    <SortHeader field="classRank" label="RNK" />
+                    <SortHeader field="lastName" label="NAME" />
+                    <SortHeader field="position" label="POS" />
+                    <SortHeader field="overall" label="OVR" />
+                    <SortHeader field="starRating" label="STARS" />
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">TYPE</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">YEAR</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">BATS</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">THROWS</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">HOMETOWN</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">STATE</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">CONTACT</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">POWER</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">SPEED</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">ARM</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">FIELD</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">VELO</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">CTRL</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">STAM</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">STUFF</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">FB</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">2S</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">SL</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">CB</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">CH</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">CT</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">SNK</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">SPL</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">PROX</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">REP</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">PT</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">ACAD</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">PRES</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">FAC</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedRecruits.map((recruit, idx) => {
+                    const isPitcher = recruit.position === "P";
+                    const isChanged = !!changes[recruit.id];
+                    return (
+                      <tr 
+                        key={recruit.id} 
+                        className={`border-b border-border ${isChanged ? "bg-yellow-500/10" : idx % 2 === 0 ? "bg-muted/10" : ""}`}
+                      >
+                        {/* Class Rank */}
+                        <td className="px-2 py-1">
+                          <Input
+                            type="number"
+                            min={1}
+                            className="h-7 w-12 text-xs"
+                            value={getRecruitValue(recruit, "classRank")}
+                            onChange={(e) => updateRecruit(recruit.id, "classRank", parseInt(e.target.value) || 1)}
+                            data-testid={`input-rank-${recruit.id}`}
+                          />
+                        </td>
+                        {/* Name */}
+                        <td className="px-2 py-1">
+                          <div className="flex gap-1">
+                            <Input
+                              className="h-7 w-20 text-xs"
+                              value={getRecruitValue(recruit, "firstName")}
+                              onChange={(e) => updateRecruit(recruit.id, "firstName", e.target.value)}
+                            />
+                            <Input
+                              className="h-7 w-24 text-xs"
+                              value={getRecruitValue(recruit, "lastName")}
+                              onChange={(e) => updateRecruit(recruit.id, "lastName", e.target.value)}
+                            />
+                          </div>
+                        </td>
+                        {/* Position */}
+                        <td className="px-2 py-1">
+                          <Select
+                            value={getRecruitValue(recruit, "position")}
+                            onValueChange={(v) => updateRecruit(recruit.id, "position", v)}
+                          >
+                            <SelectTrigger className="h-7 w-14 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {positions.map(p => (
+                                <SelectItem key={p} value={p}>{p}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        {/* Overall */}
+                        <td className="px-2 py-1">
+                          <Input
+                            type="number"
+                            min={1}
+                            max={999}
+                            className="h-7 w-14 text-xs"
+                            value={getRecruitValue(recruit, "overall")}
+                            onChange={(e) => updateRecruit(recruit.id, "overall", parseInt(e.target.value) || 1)}
+                          />
+                        </td>
+                        {/* Star Rating */}
+                        <td className="px-2 py-1">
+                          <Select
+                            value={String(getRecruitValue(recruit, "starRating"))}
+                            onValueChange={(v) => updateRecruit(recruit.id, "starRating", parseInt(v))}
+                          >
+                            <SelectTrigger className="h-7 w-12 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[1, 2, 3, 4, 5].map(s => (
+                                <SelectItem key={s} value={String(s)}>{s}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        {/* Type */}
+                        <td className="px-2 py-1">
+                          <Select
+                            value={getRecruitValue(recruit, "recruitType")}
+                            onValueChange={(v) => updateRecruit(recruit.id, "recruitType", v)}
+                          >
+                            <SelectTrigger className="h-7 w-16 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {recruitTypes.map(t => (
+                                <SelectItem key={t} value={t}>{t}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        {/* Year */}
+                        <td className="px-2 py-1">
+                          <Select
+                            value={getRecruitValue(recruit, "recruitYear")}
+                            onValueChange={(v) => updateRecruit(recruit.id, "recruitYear", v)}
+                          >
+                            <SelectTrigger className="h-7 w-12 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {recruitYears.map(y => (
+                                <SelectItem key={y} value={y}>{y}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        {/* Bats */}
+                        <td className="px-2 py-1">
+                          <Select
+                            value={getRecruitValue(recruit, "batHand")}
+                            onValueChange={(v) => updateRecruit(recruit.id, "batHand", v)}
+                          >
+                            <SelectTrigger className="h-7 w-10 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {hands.map(h => (
+                                <SelectItem key={h} value={h}>{h}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        {/* Throws */}
+                        <td className="px-2 py-1">
+                          <Select
+                            value={getRecruitValue(recruit, "throwHand")}
+                            onValueChange={(v) => updateRecruit(recruit.id, "throwHand", v)}
+                          >
+                            <SelectTrigger className="h-7 w-10 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {hands.map(h => (
+                                <SelectItem key={h} value={h}>{h}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        {/* Hometown */}
+                        <td className="px-2 py-1">
+                          <Input
+                            className="h-7 w-24 text-xs"
+                            value={getRecruitValue(recruit, "hometown")}
+                            onChange={(e) => updateRecruit(recruit.id, "hometown", e.target.value)}
+                          />
+                        </td>
+                        {/* State */}
+                        <td className="px-2 py-1">
+                          <Input
+                            className="h-7 w-10 text-xs"
+                            maxLength={2}
+                            value={getRecruitValue(recruit, "homeState")}
+                            onChange={(e) => updateRecruit(recruit.id, "homeState", e.target.value.toUpperCase())}
+                          />
+                        </td>
+                        {/* Fielder Attributes */}
+                        <td className="px-2 py-1">
+                          <Input
+                            type="number"
+                            min={1}
+                            max={99}
+                            className="h-7 w-10 text-xs"
+                            value={getRecruitValue(recruit, "hitForAvg") || ""}
+                            onChange={(e) => updateRecruit(recruit.id, "hitForAvg", parseInt(e.target.value) || null)}
+                            disabled={isPitcher}
+                          />
+                        </td>
+                        <td className="px-2 py-1">
+                          <Input
+                            type="number"
+                            min={1}
+                            max={99}
+                            className="h-7 w-10 text-xs"
+                            value={getRecruitValue(recruit, "power") || ""}
+                            onChange={(e) => updateRecruit(recruit.id, "power", parseInt(e.target.value) || null)}
+                            disabled={isPitcher}
+                          />
+                        </td>
+                        <td className="px-2 py-1">
+                          <Input
+                            type="number"
+                            min={1}
+                            max={99}
+                            className="h-7 w-10 text-xs"
+                            value={getRecruitValue(recruit, "speed") || ""}
+                            onChange={(e) => updateRecruit(recruit.id, "speed", parseInt(e.target.value) || null)}
+                            disabled={isPitcher}
+                          />
+                        </td>
+                        <td className="px-2 py-1">
+                          <Input
+                            type="number"
+                            min={1}
+                            max={99}
+                            className="h-7 w-10 text-xs"
+                            value={getRecruitValue(recruit, "arm") || ""}
+                            onChange={(e) => updateRecruit(recruit.id, "arm", parseInt(e.target.value) || null)}
+                            disabled={isPitcher}
+                          />
+                        </td>
+                        <td className="px-2 py-1">
+                          <Input
+                            type="number"
+                            min={1}
+                            max={99}
+                            className="h-7 w-10 text-xs"
+                            value={getRecruitValue(recruit, "fielding") || ""}
+                            onChange={(e) => updateRecruit(recruit.id, "fielding", parseInt(e.target.value) || null)}
+                            disabled={isPitcher}
+                          />
+                        </td>
+                        {/* Pitcher Attributes */}
+                        <td className="px-2 py-1">
+                          <Input
+                            type="number"
+                            min={1}
+                            max={99}
+                            className="h-7 w-10 text-xs"
+                            value={getRecruitValue(recruit, "velocity") || ""}
+                            onChange={(e) => updateRecruit(recruit.id, "velocity", parseInt(e.target.value) || null)}
+                            disabled={!isPitcher}
+                          />
+                        </td>
+                        <td className="px-2 py-1">
+                          <Input
+                            type="number"
+                            min={1}
+                            max={99}
+                            className="h-7 w-10 text-xs"
+                            value={getRecruitValue(recruit, "control") || ""}
+                            onChange={(e) => updateRecruit(recruit.id, "control", parseInt(e.target.value) || null)}
+                            disabled={!isPitcher}
+                          />
+                        </td>
+                        <td className="px-2 py-1">
+                          <Input
+                            type="number"
+                            min={1}
+                            max={99}
+                            className="h-7 w-10 text-xs"
+                            value={getRecruitValue(recruit, "stamina") || ""}
+                            onChange={(e) => updateRecruit(recruit.id, "stamina", parseInt(e.target.value) || null)}
+                            disabled={!isPitcher}
+                          />
+                        </td>
+                        <td className="px-2 py-1">
+                          <Input
+                            type="number"
+                            min={1}
+                            max={99}
+                            className="h-7 w-10 text-xs"
+                            value={getRecruitValue(recruit, "stuff") || ""}
+                            onChange={(e) => updateRecruit(recruit.id, "stuff", parseInt(e.target.value) || null)}
+                            disabled={!isPitcher}
+                          />
+                        </td>
+                        {/* Pitch Mix */}
+                        <td className="px-2 py-1 text-center">
+                          <Checkbox
+                            checked={getRecruitValue(recruit, "pitchFB") === 1}
+                            onCheckedChange={(c) => updateRecruit(recruit.id, "pitchFB", c ? 1 : 0)}
+                            disabled={!isPitcher}
+                          />
+                        </td>
+                        <td className="px-2 py-1 text-center">
+                          <Checkbox
+                            checked={getRecruitValue(recruit, "pitch2S") === 1}
+                            onCheckedChange={(c) => updateRecruit(recruit.id, "pitch2S", c ? 1 : 0)}
+                            disabled={!isPitcher}
+                          />
+                        </td>
+                        <td className="px-2 py-1">
+                          <Select
+                            value={String(getRecruitValue(recruit, "pitchSL") || 0)}
+                            onValueChange={(v) => updateRecruit(recruit.id, "pitchSL", parseInt(v))}
+                            disabled={!isPitcher}
+                          >
+                            <SelectTrigger className="h-7 w-10 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[0, 1, 2, 3, 4, 5, 6, 7].map(n => (
+                                <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td className="px-2 py-1">
+                          <Select
+                            value={String(getRecruitValue(recruit, "pitchCB") || 0)}
+                            onValueChange={(v) => updateRecruit(recruit.id, "pitchCB", parseInt(v))}
+                            disabled={!isPitcher}
+                          >
+                            <SelectTrigger className="h-7 w-10 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[0, 1, 2, 3, 4, 5, 6, 7].map(n => (
+                                <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td className="px-2 py-1">
+                          <Select
+                            value={String(getRecruitValue(recruit, "pitchCH") || 0)}
+                            onValueChange={(v) => updateRecruit(recruit.id, "pitchCH", parseInt(v))}
+                            disabled={!isPitcher}
+                          >
+                            <SelectTrigger className="h-7 w-10 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[0, 1, 2, 3, 4, 5, 6, 7].map(n => (
+                                <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td className="px-2 py-1">
+                          <Select
+                            value={String(getRecruitValue(recruit, "pitchCT") || 0)}
+                            onValueChange={(v) => updateRecruit(recruit.id, "pitchCT", parseInt(v))}
+                            disabled={!isPitcher}
+                          >
+                            <SelectTrigger className="h-7 w-10 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[0, 1, 2, 3, 4, 5, 6, 7].map(n => (
+                                <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td className="px-2 py-1">
+                          <Select
+                            value={String(getRecruitValue(recruit, "pitchSNK") || 0)}
+                            onValueChange={(v) => updateRecruit(recruit.id, "pitchSNK", parseInt(v))}
+                            disabled={!isPitcher}
+                          >
+                            <SelectTrigger className="h-7 w-10 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[0, 1, 2, 3, 4, 5, 6, 7].map(n => (
+                                <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td className="px-2 py-1">
+                          <Select
+                            value={String(getRecruitValue(recruit, "pitchSPL") || 0)}
+                            onValueChange={(v) => updateRecruit(recruit.id, "pitchSPL", parseInt(v))}
+                            disabled={!isPitcher}
+                          >
+                            <SelectTrigger className="h-7 w-10 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[0, 1, 2, 3, 4, 5, 6, 7].map(n => (
+                                <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        {/* Priorities */}
+                        <td className="px-2 py-1">
+                          <Select
+                            value={getRecruitValue(recruit, "proximityPriority")}
+                            onValueChange={(v) => updateRecruit(recruit.id, "proximityPriority", v)}
+                          >
+                            <SelectTrigger className="h-7 w-16 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {priorityOptions.map(p => (
+                                <SelectItem key={p} value={p}>{p.substring(0, 4)}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td className="px-2 py-1">
+                          <Select
+                            value={getRecruitValue(recruit, "reputationPriority")}
+                            onValueChange={(v) => updateRecruit(recruit.id, "reputationPriority", v)}
+                          >
+                            <SelectTrigger className="h-7 w-16 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {priorityOptions.map(p => (
+                                <SelectItem key={p} value={p}>{p.substring(0, 4)}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td className="px-2 py-1">
+                          <Select
+                            value={getRecruitValue(recruit, "playingTimePriority")}
+                            onValueChange={(v) => updateRecruit(recruit.id, "playingTimePriority", v)}
+                          >
+                            <SelectTrigger className="h-7 w-16 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {priorityOptions.map(p => (
+                                <SelectItem key={p} value={p}>{p.substring(0, 4)}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td className="px-2 py-1">
+                          <Select
+                            value={getRecruitValue(recruit, "academicsPriority")}
+                            onValueChange={(v) => updateRecruit(recruit.id, "academicsPriority", v)}
+                          >
+                            <SelectTrigger className="h-7 w-16 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {priorityOptions.map(p => (
+                                <SelectItem key={p} value={p}>{p.substring(0, 4)}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td className="px-2 py-1">
+                          <Select
+                            value={getRecruitValue(recruit, "prestigePriority")}
+                            onValueChange={(v) => updateRecruit(recruit.id, "prestigePriority", v)}
+                          >
+                            <SelectTrigger className="h-7 w-16 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {priorityOptions.map(p => (
+                                <SelectItem key={p} value={p}>{p.substring(0, 4)}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        <td className="px-2 py-1">
+                          <Select
+                            value={getRecruitValue(recruit, "facilitiesPriority")}
+                            onValueChange={(v) => updateRecruit(recruit.id, "facilitiesPriority", v)}
+                          >
+                            <SelectTrigger className="h-7 w-16 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {priorityOptions.map(p => (
+                                <SelectItem key={p} value={p}>{p.substring(0, 4)}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </RetroCardContent>
+        </RetroCard>
+      </div>
+    </div>
+  );
+}

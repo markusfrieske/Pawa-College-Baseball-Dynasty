@@ -322,6 +322,18 @@ function ActionsTab({
               dataTestId="button-view-roster"
             />
             <ActionButton 
+              label="Edit All Rosters" 
+              description="Bulk edit all team rosters" 
+              href={`/league/${league?.id}/edit-rosters`}
+              dataTestId="button-edit-rosters"
+            />
+            <ActionButton 
+              label="Edit Recruiting Class" 
+              description="Bulk edit all recruits" 
+              href={`/league/${league?.id}/edit-recruits`}
+              dataTestId="button-edit-recruits"
+            />
+            <ActionButton 
               label={isSimulating ? "Simulating..." : "Simulate Week"}
               description="Auto-resolve all games for this week" 
               onClick={onSimulateWeek}
