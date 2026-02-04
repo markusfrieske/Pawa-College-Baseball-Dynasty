@@ -103,6 +103,30 @@ export default function RosterPage() {
     },
   });
 
+  const declareDraftMutation = useMutation({
+    mutationFn: async (playerId: string) => {
+      const response = await apiRequest("POST", `/api/leagues/${id}/players/${playerId}/declare-draft`, {});
+      return response.json() as Promise<{ message: string }>;
+    },
+    onSuccess: (result) => {
+      toast({ title: "Draft Declaration", description: result.message });
+      queryClient.invalidateQueries({ queryKey: [rosterUrl] });
+      setSelectedPlayer(null);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Cannot Declare", description: error.message, variant: "destructive" });
+    },
+  });
+
+  // Check if a player is eligible to declare for the draft
+  // Must be: RS (redshirt) + high skill (4+ stars OR 700+ overall) + not already declared
+  const canPlayerDeclareDraft = (player: Player): boolean => {
+    const isRedshirt = player.eligibility === "RS";
+    const isHighSkill = player.starRating >= 4 || player.overall >= 700;
+    const notDeclared = !player.declaredForDraft;
+    return isRedshirt && isHighSkill && notDeclared;
+  };
+
   const filteredPlayers = data?.players.filter(p => {
     if (positionFilter !== "all") {
       if (positionFilter === "IF" && !isInfielder(p.position)) return false;
@@ -272,6 +296,9 @@ export default function RosterPage() {
             setSelectedPlayer(null);
           }}
           teamPrimaryColor={data?.team?.primaryColor}
+          canDeclareDraft={canPlayerDeclareDraft(selectedPlayer)}
+          onDeclareDraft={() => declareDraftMutation.mutate(selectedPlayer.id)}
+          isDeclaringDraft={declareDraftMutation.isPending}
         />
       )}
 

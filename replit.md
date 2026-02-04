@@ -117,6 +117,14 @@ Player cards display 4 distinct sections:
 - Manual game score entry
 - Conference and overall standings
 
+### Draft Declaration System
+- High-skill redshirt (RS) players can declare for the MLB Draft early
+- Eligibility requirements: RS eligibility + 4+ star rating OR 700+ overall
+- Declaration is irreversible - player is removed from active roster
+- Commissioner or team coach can initiate draft declarations
+- Declared players tracked in database with declaration date
+- Audit log records all draft declarations
+
 ### Commissioner Bulk Editing Tools
 - **Edit All Rosters** (`/league/:id/edit-rosters`): Spreadsheet-like interface for bulk editing all team rosters
   - Tab-based team selection

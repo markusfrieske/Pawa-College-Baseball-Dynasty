@@ -5,8 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { LetterGrade, getLetterGrade } from "@/components/ui/letter-grade";
 import { PlayerPortrait } from "@/components/ui/player-portrait";
 import { PitchMixDial, generatePitchMixForDial } from "@/components/ui/pitch-mix-dial";
-import { MapPin, Star, Edit } from "lucide-react";
+import { MapPin, Star, Edit, Trophy } from "lucide-react";
 import { getAbilityByName } from "@shared/abilities";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { velocityToMPH } from "@/lib/playerUtils";
 
 interface Player {
@@ -56,6 +57,7 @@ interface Player {
   skinTone?: string;
   hairColor?: string;
   hairStyle?: string;
+  declaredForDraft?: boolean;
 }
 
 interface PlayerProfileCardProps {
@@ -65,6 +67,9 @@ interface PlayerProfileCardProps {
   isCommissioner?: boolean;
   onEdit?: () => void;
   teamPrimaryColor?: string;
+  canDeclareDraft?: boolean;
+  onDeclareDraft?: () => void;
+  isDeclaringDraft?: boolean;
 }
 
 const positionColors: Record<string, string> = {
@@ -80,7 +85,7 @@ const positionColors: Record<string, string> = {
 };
 
 
-export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdit, teamPrimaryColor }: PlayerProfileCardProps) {
+export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdit, teamPrimaryColor, canDeclareDraft, onDeclareDraft, isDeclaringDraft }: PlayerProfileCardProps) {
   const isPitcher = player.position === "P";
   const isCatcher = player.position === "C";
   const posColor = positionColors[player.position] || "#666";
@@ -265,9 +270,59 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
           )}
         </div>
 
-        {/* Edit Button (Commissioner Only) */}
-        {isCommissioner && onEdit && (
-          <div className="p-4">
+        {/* Draft Declaration Status */}
+        {player.declaredForDraft && (
+          <div className="px-4 py-2 bg-yellow-500/20 border-t border-border">
+            <div className="flex items-center gap-2 text-yellow-500">
+              <Trophy className="w-4 h-4" />
+              <span className="font-pixel text-xs">DECLARED FOR MLB DRAFT</span>
+            </div>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="p-4 space-y-2">
+          {/* Draft Declaration Button */}
+          {canDeclareDraft && onDeclareDraft && !player.declaredForDraft && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <RetroButton
+                  variant="outline"
+                  className="w-full border-yellow-500 text-yellow-500 hover:bg-yellow-500/10"
+                  disabled={isDeclaringDraft}
+                  data-testid="button-declare-draft"
+                >
+                  <Trophy className="w-4 h-4 mr-2" />
+                  {isDeclaringDraft ? "Declaring..." : "Declare for MLB Draft"}
+                </RetroButton>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="bg-card border-border">
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="font-pixel text-gold text-sm">
+                    Declare for MLB Draft?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {player.firstName} {player.lastName} will declare for the MLB Draft. 
+                    This action is irreversible - the player will be removed from your roster 
+                    and will no longer be available for your team.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel className="bg-background border-border">Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-yellow-500 text-black hover:bg-yellow-400"
+                    onClick={onDeclareDraft}
+                    data-testid="button-confirm-declare-draft"
+                  >
+                    Declare for Draft
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+
+          {/* Edit Button (Commissioner Only) */}
+          {isCommissioner && onEdit && (
             <RetroButton
               variant="outline"
               onClick={onEdit}
@@ -277,8 +332,8 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
               <Edit className="w-4 h-4 mr-2" />
               Edit Player
             </RetroButton>
-          </div>
-        )}
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -319,12 +374,18 @@ export function PlayerProfileCardTrigger({
   player, 
   children,
   isCommissioner,
-  onEdit
+  onEdit,
+  canDeclareDraft,
+  onDeclareDraft,
+  isDeclaringDraft,
 }: { 
   player: Player; 
   children: React.ReactNode;
   isCommissioner?: boolean;
   onEdit?: () => void;
+  canDeclareDraft?: boolean;
+  onDeclareDraft?: () => void;
+  isDeclaringDraft?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   
@@ -339,6 +400,9 @@ export function PlayerProfileCardTrigger({
         onClose={() => setOpen(false)} 
         isCommissioner={isCommissioner}
         onEdit={onEdit}
+        canDeclareDraft={canDeclareDraft}
+        onDeclareDraft={onDeclareDraft}
+        isDeclaringDraft={isDeclaringDraft}
       />
     </>
   );

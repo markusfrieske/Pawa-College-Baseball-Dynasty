@@ -1088,9 +1088,12 @@ export async function registerRoutes(
       }
 
       const teamPlayers = await storage.getPlayersByTeam(team.id);
+      
+      // Filter out players who have declared for the draft
+      const activePlayers = teamPlayers.filter(p => !p.declaredForDraft);
 
       res.json({
-        players: teamPlayers,
+        players: activePlayers,
         team: team,
       });
     } catch (error) {
@@ -1129,6 +1132,93 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to update player:", error);
       res.status(500).json({ message: "Failed to update player" });
+    }
+  });
+
+  // Declare player for draft (commissioner or owning coach)
+  app.post("/api/leagues/:id/players/:playerId/declare-draft", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id);
+      if (!league) {
+        return res.status(404).json({ message: "League not found" });
+      }
+
+      const player = await storage.getPlayer(req.params.playerId);
+      if (!player) {
+        return res.status(404).json({ message: "Player not found" });
+      }
+
+      // Check if player's team belongs to this league
+      const team = await storage.getTeam(player.teamId);
+      if (!team) {
+        return res.status(404).json({ message: "Team not found" });
+      }
+      
+      // Verify team belongs to the league in the URL
+      const leagueTeams = await storage.getTeamsByLeague(req.params.id);
+      const teamBelongsToLeague = leagueTeams.some(t => t.id === team.id);
+      if (!teamBelongsToLeague) {
+        return res.status(404).json({ message: "Player not found in this league" });
+      }
+
+      // Check if user is commissioner or owns this player's team
+      const coaches = await storage.getCoachesByLeague(req.params.id);
+      const userCoach = coaches.find(c => c.userId === req.session.userId);
+      
+      const isCommissioner = league.commissionerId === req.session.userId;
+      const isTeamCoach = userCoach && team && userCoach.teamId === team.id;
+      
+      if (!isCommissioner && !isTeamCoach) {
+        return res.status(403).json({ message: "Only the commissioner or team coach can declare players for draft" });
+      }
+
+      // Check eligibility: must be RS (redshirt) and at least sophomore level with high skill
+      // RS eligibility format: "RS" for redshirt freshmen who haven't played
+      // High skill = 4 or 5 star rating OR overall >= 700
+      const isRedshirt = player.eligibility === "RS";
+      const isHighSkill = player.starRating >= 4 || player.overall >= 700;
+      
+      // For RS sophomores - eligibility would still show RS but they've had a year
+      // In reality, RS players who are sophomores or higher (played 2+ years) can declare
+      // Since we use RS as a blanket term, we'll check for high skill + RS eligibility
+      
+      if (!isRedshirt) {
+        return res.status(400).json({ 
+          message: "Only redshirt players can declare for the draft early" 
+        });
+      }
+
+      if (!isHighSkill) {
+        return res.status(400).json({ 
+          message: "Only high-skill players (4+ stars or 700+ overall) can declare for the draft" 
+        });
+      }
+
+      if (player.declaredForDraft) {
+        return res.status(400).json({ message: "Player has already declared for the draft" });
+      }
+
+      // Update player to mark as declared for draft
+      const updated = await storage.updatePlayer(req.params.playerId, {
+        declaredForDraft: true,
+        draftDeclarationDate: new Date(),
+      });
+
+      await storage.createAuditLog({
+        leagueId: req.params.id,
+        userId: req.session.userId,
+        action: "Draft Declaration",
+        details: `${player.firstName} ${player.lastName} (${team?.abbreviation || 'Unknown'}) declared for the MLB Draft`,
+      });
+
+      res.json({ 
+        success: true, 
+        message: `${player.firstName} ${player.lastName} has declared for the MLB Draft`,
+        player: updated 
+      });
+    } catch (error) {
+      console.error("Failed to declare player for draft:", error);
+      res.status(500).json({ message: "Failed to declare player for draft" });
     }
   });
 
