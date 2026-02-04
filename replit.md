@@ -27,7 +27,9 @@ A league-first, story-driven college baseball dynasty simulator where human coac
 │   │   ├── roster.tsx        # Team roster management
 │   │   ├── schedule.tsx      # Game schedule with score entry
 │   │   ├── team-view.tsx     # Individual team details
-│   │   └── commissioner.tsx  # Commissioner tools and audit log
+│   │   ├── commissioner.tsx  # Commissioner tools and audit log
+│   │   ├── players-leaving.tsx # Players departing by team (graduates, draft, portal)
+│   │   └── transfer-portal.tsx # Transfer portal recruiting interface
 │   └── App.tsx               # Main app with routing
 ├── server/
 │   ├── db.ts                 # Database connection
@@ -124,6 +126,23 @@ Player cards display 4 distinct sections:
 - Commissioner or team coach can initiate draft declarations
 - Declared players tracked in database with declaration date
 - Audit log records all draft declarations
+
+### Transfer Portal System
+- **Players Leaving Summary** (`/league/:id/players-leaving`): View all departing players by team
+  - Three categories: Graduates (Sr eligibility), Draft Declarations, Transfer Portal entries
+  - Organized by team with collapsible accordion sections
+  - Shows player name, position, eligibility, and star rating
+- **Transfer Portal** (`/league/:id/transfer-portal`): Recruit players from other teams
+  - Browse all players who have entered the portal
+  - Target players and add personal notes (like recruiting board)
+  - Sign players to your team during offseason
+  - Security: Can't sign players from other leagues or your own players
+- **Portal Entry**: Commissioner or team coach can enter players into portal
+  - Seniors cannot enter portal (they're graduating)
+  - Draft-declared players cannot enter portal
+  - Players can leave via three paths: graduation, draft declaration, or transfer portal
+- **Transfer Portal Interests**: Track which teams are interested in portal players
+  - Similar structure to recruiting interests
 
 ### Commissioner Bulk Editing Tools
 - **Edit All Rosters** (`/league/:id/edit-rosters`): Spreadsheet-like interface for bulk editing all team rosters
