@@ -2690,9 +2690,23 @@ async function generateRecruits(leagueId: string, count: number) {
 }
 
 // Generate top schools for all recruits in a league based on their priorities
+// With BALANCED DISTRIBUTION: ensures each team gets a fair share of #1 recruit interests
 async function generateTopSchoolsForLeague(leagueId: string) {
   const teams = await storage.getTeamsByLeague(leagueId);
   const recruits = await storage.getRecruitsByLeague(leagueId);
+  
+  if (teams.length === 0 || recruits.length === 0) return;
+  
+  // Sort recruits by overall rating (descending) so top recruits get processed first
+  const sortedRecruits = [...recruits].sort((a, b) => (b.overall || 0) - (a.overall || 0));
+  
+  // Calculate fair share and max cap for distribution
+  const fairShare = Math.max(1, Math.ceil(recruits.length / teams.length));
+  const maxCap = fairShare + Math.ceil(fairShare * 0.5); // Allow 50% overflow max
+  
+  // Track #1 assignments per team
+  const teamTopInterestCount: Map<string, number> = new Map();
+  teams.forEach(t => teamTopInterestCount.set(t.id, 0));
   
   // Priority weight mapping
   const priorityWeight = (priority: string | null): number => {
@@ -2705,63 +2719,187 @@ async function generateTopSchoolsForLeague(leagueId: string) {
     }
   };
   
-  for (const recruit of recruits) {
-    // Score each team based on how well they match recruit priorities
-    const teamScores = teams.map(team => {
-      let score = 0;
+  // Score calculator for a recruit-team pair
+  const calculateScore = (recruit: typeof recruits[0], team: typeof teams[0]): number => {
+    let score = 0;
+    
+    // Proximity: Higher scores for teams in same state
+    const proximityWeight = priorityWeight(recruit.proximityPriority);
+    if (recruit.homeState === team.state) {
+      score += 30 * proximityWeight;
+    } else {
+      score += 10 * proximityWeight;
+    }
+    
+    // Academics
+    const academicsWeight = priorityWeight(recruit.academicsPriority);
+    score += (team.academics || 5) * 3 * academicsWeight;
+    
+    // Prestige
+    const prestigeWeight = priorityWeight(recruit.prestigePriority);
+    score += (team.prestige || 5) * 3 * prestigeWeight;
+    
+    // Facilities
+    const facilitiesWeight = priorityWeight(recruit.facilitiesPriority);
+    score += (team.facilities || 5) * 3 * facilitiesWeight;
+    
+    // Reputation
+    const reputationWeight = priorityWeight(recruit.reputationPriority);
+    score += ((team.prestige || 5) + (team.facilities || 5)) * 1.5 * reputationWeight;
+    
+    // Playing time
+    const playingTimeWeight = priorityWeight(recruit.playingTimePriority);
+    score += (10 - (team.prestige || 5)) * 2 * playingTimeWeight;
+    
+    // Add randomness for variety
+    score += Math.floor(Math.random() * 25);
+    
+    return score;
+  };
+  
+  // Store all recruit top schools data for post-generation rebalancing
+  const recruitTopSchoolsData: Map<string, { teamId: string; score: number; rank: number }[]> = new Map();
+  
+  for (const recruit of sortedRecruits) {
+    // Score each team
+    const teamScores = teams.map(team => ({
+      team,
+      score: calculateScore(recruit, team)
+    }));
+    
+    // Sort by score for top schools list
+    const sortedTeams = [...teamScores].sort((a, b) => b.score - a.score);
+    const numTopSchools = 5 + Math.floor(Math.random() * 4);
+    let topSchools = sortedTeams.slice(0, Math.min(numTopSchools, teams.length));
+    
+    // BALANCED #1 SELECTION with progressive enforcement
+    if (topSchools.length > 1) {
+      const topScore = topSchools[0].score;
       
-      // Proximity: Higher scores for teams in same state (proximity priority matters)
-      const proximityWeight = priorityWeight(recruit.proximityPriority);
-      if (recruit.homeState === team.state) {
-        score += 30 * proximityWeight;
-      } else {
-        // Nearby states logic (simplified)
-        score += 10 * proximityWeight;
+      // Find best candidate that's within 15% of top score AND under fair share
+      let bestSwapIdx = -1;
+      let bestSwapScore = 0;
+      
+      for (let i = 1; i < Math.min(5, topSchools.length); i++) {
+        const candidateTeam = topSchools[i].team;
+        const candidateCount = teamTopInterestCount.get(candidateTeam.id) || 0;
+        const scorePct = topSchools[i].score / topScore;
+        
+        // Check if current #1 is at or over max cap - must swap
+        const top1Count = teamTopInterestCount.get(topSchools[0].team.id) || 0;
+        const mustSwap = top1Count >= maxCap;
+        
+        // Swap if candidate is under fair share and within threshold
+        // Or must swap if #1 is at max cap
+        if (candidateCount < fairShare && (scorePct >= 0.85 || mustSwap)) {
+          if (topSchools[i].score > bestSwapScore) {
+            bestSwapIdx = i;
+            bestSwapScore = topSchools[i].score;
+          }
+        }
       }
       
-      // Academics: Match team's academics attribute (1-10 scale)
-      const academicsWeight = priorityWeight(recruit.academicsPriority);
-      score += (team.academics || 5) * 3 * academicsWeight;
-      
-      // Prestige: Match team's prestige rating (1-10 scale)
-      const prestigeWeight = priorityWeight(recruit.prestigePriority);
-      score += (team.prestige || 5) * 3 * prestigeWeight;
-      
-      // Facilities: Match team's facilities rating (1-10 scale)
-      const facilitiesWeight = priorityWeight(recruit.facilitiesPriority);
-      score += (team.facilities || 5) * 3 * facilitiesWeight;
-      
-      // Reputation: Match team's overall program reputation (using prestige + facilities as proxy)
-      const reputationWeight = priorityWeight(recruit.reputationPriority);
-      score += ((team.prestige || 5) + (team.facilities || 5)) * 1.5 * reputationWeight;
-      
-      // Playing time: Lower prestige teams often offer more playing time
-      const playingTimeWeight = priorityWeight(recruit.playingTimePriority);
-      score += (10 - (team.prestige || 5)) * 2 * playingTimeWeight;
-      
-      // Add some randomness to create variety
-      score += Math.floor(Math.random() * 20);
-      
-      return { team, score };
-    });
+      // Perform swap if found
+      if (bestSwapIdx > 0) {
+        const temp = topSchools[0];
+        topSchools[0] = topSchools[bestSwapIdx];
+        topSchools[bestSwapIdx] = temp;
+      }
+    }
     
-    // Sort by score descending and take top 5-8 teams as top schools
-    const sortedTeams = teamScores.sort((a, b) => b.score - a.score);
-    const numTopSchools = 5 + Math.floor(Math.random() * 4); // 5-8 schools
-    const topSchools = sortedTeams.slice(0, Math.min(numTopSchools, teams.length));
+    // Track #1 assignment
+    if (topSchools.length > 0) {
+      const topTeamId = topSchools[0].team.id;
+      teamTopInterestCount.set(topTeamId, (teamTopInterestCount.get(topTeamId) || 0) + 1);
+    }
     
-    // Create top school entries with interest levels proportional to score
-    const maxScore = topSchools[0]?.score || 100;
+    // Store data for database creation
+    recruitTopSchoolsData.set(recruit.id, topSchools.map((ts, idx) => ({
+      teamId: ts.team.id,
+      score: ts.score,
+      rank: idx + 1
+    })));
+  }
+  
+  // POST-GENERATION REBALANCING PASS
+  // Find teams that are over-represented and under-represented
+  const overRepTeams = [...teamTopInterestCount.entries()]
+    .filter(([_, count]) => count > maxCap)
+    .map(([id]) => id);
+  const underRepTeams = [...teamTopInterestCount.entries()]
+    .filter(([_, count]) => count < Math.max(1, fairShare - 2))
+    .map(([id]) => id);
+  
+  // If significant imbalance, perform targeted swaps with score proximity check
+  if (overRepTeams.length > 0 && underRepTeams.length > 0) {
+    for (const recruitId of recruitTopSchoolsData.keys()) {
+      const topSchools = recruitTopSchoolsData.get(recruitId)!;
+      if (topSchools.length < 2) continue;
+      
+      // Sort by current rank to get #1
+      topSchools.sort((a, b) => a.rank - b.rank);
+      const current1 = topSchools[0];
+      if (!overRepTeams.includes(current1.teamId)) continue;
+      
+      // Find a swap candidate from under-represented teams WITH SCORE PROXIMITY CHECK
+      const top1Score = current1.score;
+      for (let i = 1; i < Math.min(5, topSchools.length); i++) {
+        const candidate = topSchools[i];
+        // Only swap if candidate score is within 15% of #1 score (preserves priority matching)
+        const scorePct = candidate.score / top1Score;
+        if (scorePct < 0.85) continue; // Skip if too far below in score
+        
+        if (underRepTeams.includes(candidate.teamId)) {
+          // Swap ranks
+          const oldRank1TeamId = current1.teamId;
+          topSchools[i].rank = 1;
+          topSchools[0].rank = i + 1;
+          
+          // Update counts
+          teamTopInterestCount.set(oldRank1TeamId, (teamTopInterestCount.get(oldRank1TeamId) || 1) - 1);
+          teamTopInterestCount.set(candidate.teamId, (teamTopInterestCount.get(candidate.teamId) || 0) + 1);
+          
+          // Re-sort by rank
+          topSchools.sort((a, b) => a.rank - b.rank);
+          
+          // Update over/under lists
+          const newOverCount = teamTopInterestCount.get(oldRank1TeamId) || 0;
+          if (newOverCount <= maxCap) {
+            const idx = overRepTeams.indexOf(oldRank1TeamId);
+            if (idx >= 0) overRepTeams.splice(idx, 1);
+          }
+          const newUnderCount = teamTopInterestCount.get(candidate.teamId) || 0;
+          if (newUnderCount >= Math.max(1, fairShare - 2)) {
+            const idx = underRepTeams.indexOf(candidate.teamId);
+            if (idx >= 0) underRepTeams.splice(idx, 1);
+          }
+          break;
+        }
+      }
+    }
+  }
+  
+  // Create database entries with RECALCULATED interest levels based on final ranks
+  for (const [recruitId, topSchools] of recruitTopSchoolsData.entries()) {
+    // Sort by final rank
+    topSchools.sort((a, b) => a.rank - b.rank);
+    
+    // Interest levels: #1 gets highest (70-80), lower ranks get proportionally less
+    // This ensures #1 always has highest interest regardless of original score
     for (let i = 0; i < topSchools.length; i++) {
-      const { team, score } = topSchools[i];
-      // Interest level: 30-80 range based on score relative to top score
-      const interestLevel = Math.floor(30 + (score / maxScore) * 50);
+      const ts = topSchools[i];
+      // Base interest by rank: #1=75, #2=65, #3=55, etc. with some variation
+      const baseInterest = Math.max(30, 80 - (i * 8));
+      // Add small variation based on original score
+      const maxScore = Math.max(...topSchools.map(t => t.score)) || 100;
+      const scoreBonus = Math.floor((ts.score / maxScore) * 5);
+      const interestLevel = Math.min(80, baseInterest + scoreBonus);
       
       await storage.createRecruitTopSchool({
-        recruitId: recruit.id,
-        teamId: team.id,
-        interestLevel: Math.min(80, interestLevel),
-        rank: i + 1,
+        recruitId,
+        teamId: ts.teamId,
+        interestLevel,
+        rank: i + 1, // Use array index + 1 as final rank
         isActive: true,
         accumulatedInterest: 0,
       });
