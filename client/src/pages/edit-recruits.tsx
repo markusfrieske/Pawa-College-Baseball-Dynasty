@@ -25,6 +25,17 @@ const hands = ["R", "L", "S"];
 const recruitTypes = ["HS", "JUCO"];
 const recruitYears = ["FR", "SO", "JR"];
 const priorityOptions = ["Not Important", "Somewhat", "Very", "Extremely"];
+const letterGrades = ["G", "F", "D", "C", "B", "A", "S"];
+const letterGradeValues: Record<string, number> = { G: 20, F: 40, D: 55, C: 65, B: 75, A: 85, S: 95 };
+const valueToGrade = (v: number): string => {
+  if (v >= 90) return "S";
+  if (v >= 80) return "A";
+  if (v >= 70) return "B";
+  if (v >= 60) return "C";
+  if (v >= 50) return "D";
+  if (v >= 30) return "F";
+  return "G";
+};
 
 export default function EditRecruitsPage() {
   const { id } = useParams<{ id: string }>();
@@ -149,7 +160,7 @@ export default function EditRecruitsPage() {
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-4">
-            <Link href={`/leagues/${id}/commissioner`}>
+            <Link href={`/league/${id}/commissioner`}>
               <RetroButton variant="outline" size="sm" data-testid="button-back">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Commissioner
@@ -243,6 +254,17 @@ export default function EditRecruitsPage() {
                     <th className="px-2 py-2 text-xs font-pixel text-gold">ACAD</th>
                     <th className="px-2 py-2 text-xs font-pixel text-gold">PRES</th>
                     <th className="px-2 py-2 text-xs font-pixel text-gold">FAC</th>
+                    {/* Common Abilities */}
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">CLCH</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">GRIT</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">vsL</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">RCVY</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">STLN</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">RUN</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">THRW</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">POIS</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">HEAT</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-gold">AGIL</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -703,6 +725,172 @@ export default function EditRecruitsPage() {
                             <SelectContent>
                               {priorityOptions.map(p => (
                                 <SelectItem key={p} value={p}>{p.substring(0, 4)}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        {/* Common Abilities - Clutch */}
+                        <td className="px-2 py-1">
+                          <Select
+                            value={valueToGrade(getRecruitValue(recruit, "clutch") || 50)}
+                            onValueChange={(v) => updateRecruit(recruit.id, "clutch", letterGradeValues[v])}
+                          >
+                            <SelectTrigger className="h-7 w-12 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {letterGrades.map(g => (
+                                <SelectItem key={g} value={g}>{g}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        {/* Common Abilities - Grit */}
+                        <td className="px-2 py-1">
+                          <Select
+                            value={valueToGrade(getRecruitValue(recruit, "grit") || 50)}
+                            onValueChange={(v) => updateRecruit(recruit.id, "grit", letterGradeValues[v])}
+                          >
+                            <SelectTrigger className="h-7 w-12 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {letterGrades.map(g => (
+                                <SelectItem key={g} value={g}>{g}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        {/* Common Abilities - vsL */}
+                        <td className="px-2 py-1">
+                          <Select
+                            value={valueToGrade(getRecruitValue(recruit, isPitcher ? "vsLefty" : "vsLHP") || 50)}
+                            onValueChange={(v) => updateRecruit(recruit.id, isPitcher ? "vsLefty" : "vsLHP", letterGradeValues[v])}
+                          >
+                            <SelectTrigger className="h-7 w-12 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {letterGrades.map(g => (
+                                <SelectItem key={g} value={g}>{g}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        {/* Common Abilities - Recovery */}
+                        <td className="px-2 py-1">
+                          <Select
+                            value={valueToGrade(getRecruitValue(recruit, "recovery") || 50)}
+                            onValueChange={(v) => updateRecruit(recruit.id, "recovery", letterGradeValues[v])}
+                          >
+                            <SelectTrigger className="h-7 w-12 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {letterGrades.map(g => (
+                                <SelectItem key={g} value={g}>{g}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        {/* Common Abilities - Stealing (fielders only) */}
+                        <td className="px-2 py-1">
+                          <Select
+                            value={valueToGrade(getRecruitValue(recruit, "stealing") || 50)}
+                            onValueChange={(v) => updateRecruit(recruit.id, "stealing", letterGradeValues[v])}
+                            disabled={isPitcher}
+                          >
+                            <SelectTrigger className="h-7 w-12 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {letterGrades.map(g => (
+                                <SelectItem key={g} value={g}>{g}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        {/* Common Abilities - Running (fielders only) */}
+                        <td className="px-2 py-1">
+                          <Select
+                            value={valueToGrade(getRecruitValue(recruit, "running") || 50)}
+                            onValueChange={(v) => updateRecruit(recruit.id, "running", letterGradeValues[v])}
+                            disabled={isPitcher}
+                          >
+                            <SelectTrigger className="h-7 w-12 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {letterGrades.map(g => (
+                                <SelectItem key={g} value={g}>{g}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        {/* Common Abilities - Throwing (fielders only) */}
+                        <td className="px-2 py-1">
+                          <Select
+                            value={valueToGrade(getRecruitValue(recruit, "throwing") || 50)}
+                            onValueChange={(v) => updateRecruit(recruit.id, "throwing", letterGradeValues[v])}
+                            disabled={isPitcher}
+                          >
+                            <SelectTrigger className="h-7 w-12 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {letterGrades.map(g => (
+                                <SelectItem key={g} value={g}>{g}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        {/* Common Abilities - Poise (pitchers only) */}
+                        <td className="px-2 py-1">
+                          <Select
+                            value={valueToGrade(getRecruitValue(recruit, "poise") || 50)}
+                            onValueChange={(v) => updateRecruit(recruit.id, "poise", letterGradeValues[v])}
+                            disabled={!isPitcher}
+                          >
+                            <SelectTrigger className="h-7 w-12 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {letterGrades.map(g => (
+                                <SelectItem key={g} value={g}>{g}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        {/* Common Abilities - Heater (pitchers only) */}
+                        <td className="px-2 py-1">
+                          <Select
+                            value={valueToGrade(getRecruitValue(recruit, "heater") || 50)}
+                            onValueChange={(v) => updateRecruit(recruit.id, "heater", letterGradeValues[v])}
+                            disabled={!isPitcher}
+                          >
+                            <SelectTrigger className="h-7 w-12 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {letterGrades.map(g => (
+                                <SelectItem key={g} value={g}>{g}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </td>
+                        {/* Common Abilities - Agile (pitchers only) */}
+                        <td className="px-2 py-1">
+                          <Select
+                            value={valueToGrade(getRecruitValue(recruit, "agile") || 50)}
+                            onValueChange={(v) => updateRecruit(recruit.id, "agile", letterGradeValues[v])}
+                            disabled={!isPitcher}
+                          >
+                            <SelectTrigger className="h-7 w-12 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {letterGrades.map(g => (
+                                <SelectItem key={g} value={g}>{g}</SelectItem>
                               ))}
                             </SelectContent>
                           </Select>

@@ -457,6 +457,18 @@ export default function RecruitProfilePage() {
               </RetroCard>
             </div>
 
+            {/* Common Abilities Section */}
+            <RetroCard>
+              <RetroCardHeader>Common Abilities</RetroCardHeader>
+              <RetroCardContent>
+                <RecruitCommonAbilitiesSection 
+                  recruit={recruit}
+                  scoutPct={scoutPct}
+                  isFullyRevealed={isFullyRevealed}
+                />
+              </RetroCardContent>
+            </RetroCard>
+
             {/* Abilities Section */}
             <RetroCard>
               <RetroCardHeader>
@@ -1175,6 +1187,66 @@ function RecruitAttributesSection({
           {renderAttribute("Speed", recruit.speed, 50)}
           {renderAttribute("Arm", recruit.arm, 75)}
           {renderAttribute("Fielding", recruit.fielding, 100)}
+        </>
+      )}
+    </div>
+  );
+}
+
+function RecruitCommonAbilitiesSection({ 
+  recruit, 
+  scoutPct,
+  isFullyRevealed 
+}: { 
+  recruit: RecruitWithInterest; 
+  scoutPct: number;
+  isFullyRevealed: boolean;
+}) {
+  const isPitcher = checkIsPitcher(recruit.position);
+  const isCatcher = checkIsCatcher(recruit.position);
+  
+  const shouldRevealAbility = (threshold: number) => {
+    return isFullyRevealed || scoutPct >= threshold;
+  };
+  
+  const renderAbility = (label: string, value: number | null | undefined, revealThreshold: number) => {
+    const isRevealed = shouldRevealAbility(revealThreshold);
+    const displayValue = isRevealed ? (value ?? 50) : null;
+    
+    return (
+      <div className="flex items-center justify-between p-2 bg-muted/30 rounded">
+        <span className="text-sm text-muted-foreground">{label}</span>
+        {isRevealed ? (
+          <LetterGrade value={displayValue!} size="sm" isCommonAbility={true} />
+        ) : (
+          <span className="text-sm text-muted-foreground">???</span>
+        )}
+      </div>
+    );
+  };
+  
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      {isPitcher ? (
+        <>
+          {renderAbility("W/RISP", recruit.clutch, 25)}
+          {renderAbility("vs Lefty", recruit.vsLefty, 35)}
+          {renderAbility("Poise", recruit.poise, 45)}
+          {renderAbility("Grit", recruit.grit, 55)}
+          {renderAbility("Heater", recruit.heater, 65)}
+          {renderAbility("Agile", recruit.agile, 75)}
+          {renderAbility("Recovery", recruit.recovery, 85)}
+        </>
+      ) : (
+        <>
+          {renderAbility("Clutch", recruit.clutch, 25)}
+          {renderAbility("vs LHP", recruit.vsLHP, 35)}
+          {renderAbility("Grit", recruit.grit, 45)}
+          {renderAbility("Stealing", recruit.stealing, 55)}
+          {renderAbility("Running", recruit.running, 65)}
+          {renderAbility("Throwing", recruit.throwing, 75)}
+          {renderAbility("Recovery", recruit.recovery, 85)}
+          {isCatcher && renderAbility("Catcher", recruit.catcherAbility, 95)}
         </>
       )}
     </div>

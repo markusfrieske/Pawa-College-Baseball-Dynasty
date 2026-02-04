@@ -25,6 +25,16 @@ const positions = ["P", "C", "1B", "2B", "SS", "3B", "LF", "CF", "RF", "DH"];
 const eligibilities = ["FR", "SO", "JR", "SR", "RS"];
 const hands = ["R", "L", "S"];
 const letterGrades = ["G", "F", "D", "C", "B", "A", "S"];
+const letterGradeValues: Record<string, number> = { G: 20, F: 40, D: 55, C: 65, B: 75, A: 85, S: 95 };
+const valueToGrade = (v: number): string => {
+  if (v >= 90) return "S";
+  if (v >= 80) return "A";
+  if (v >= 70) return "B";
+  if (v >= 60) return "C";
+  if (v >= 50) return "D";
+  if (v >= 30) return "F";
+  return "G";
+};
 const priorityOptions = ["Not Important", "Somewhat", "Very", "Extremely"];
 const skinTones = ["light", "medium", "tan", "dark", "deep"];
 const hairColors = ["black", "brown", "blonde", "red", "gray"];
@@ -45,7 +55,12 @@ export default function EditRostersPage() {
   });
 
   const { data: rosterData, isLoading: rosterLoading } = useQuery<{ players: Player[] }>({
-    queryKey: ["/api/leagues", id, "roster"],
+    queryKey: ["/api/leagues", id, "roster", selectedTeamId],
+    queryFn: async () => {
+      const res = await fetch(`/api/leagues/${id}/roster?teamId=${selectedTeamId}`);
+      if (!res.ok) throw new Error("Failed to fetch roster");
+      return res.json();
+    },
     enabled: !!selectedTeamId,
   });
 
@@ -54,7 +69,12 @@ export default function EditRostersPage() {
       return apiRequest("PATCH", `/api/leagues/${id}/players/batch`, { updates });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "roster"] });
+      queryClient.invalidateQueries({ 
+        predicate: (query) => {
+          const key = query.queryKey;
+          return Array.isArray(key) && key[0] === "/api/leagues" && key[1] === id && key[2] === "roster";
+        }
+      });
       setChanges({});
       toast({ title: "Roster Saved", description: "All changes have been saved." });
     },
@@ -72,11 +92,8 @@ export default function EditRostersPage() {
     }
   }, [selectedTeamId, teams]);
 
-  // Filter players by selected team
-  const teamPlayers = useMemo(() => {
-    if (!rosterData?.players || !selectedTeamId) return [];
-    return rosterData.players.filter(p => p.teamId === selectedTeamId);
-  }, [rosterData?.players, selectedTeamId]);
+  // Get players from fetched data (already filtered by teamId in API)
+  const teamPlayers = rosterData?.players || [];
 
   // Sort players
   const sortedPlayers = useMemo(() => {
@@ -165,7 +182,7 @@ export default function EditRostersPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href={`/leagues/${id}/commissioner`}>
+            <Link href={`/league/${id}/commissioner`}>
               <RetroButton variant="outline" size="sm" data-testid="button-back">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to Commissioner
@@ -257,6 +274,17 @@ export default function EditRostersPage() {
                             <th className="px-2 py-2 text-xs font-pixel text-gold">CT</th>
                             <th className="px-2 py-2 text-xs font-pixel text-gold">SNK</th>
                             <th className="px-2 py-2 text-xs font-pixel text-gold">SPL</th>
+                            {/* Common Abilities */}
+                            <th className="px-2 py-2 text-xs font-pixel text-gold">CLCH</th>
+                            <th className="px-2 py-2 text-xs font-pixel text-gold">GRIT</th>
+                            <th className="px-2 py-2 text-xs font-pixel text-gold">vsL</th>
+                            <th className="px-2 py-2 text-xs font-pixel text-gold">RCVY</th>
+                            <th className="px-2 py-2 text-xs font-pixel text-gold">STLN</th>
+                            <th className="px-2 py-2 text-xs font-pixel text-gold">RUN</th>
+                            <th className="px-2 py-2 text-xs font-pixel text-gold">THRW</th>
+                            <th className="px-2 py-2 text-xs font-pixel text-gold">POIS</th>
+                            <th className="px-2 py-2 text-xs font-pixel text-gold">HEAT</th>
+                            <th className="px-2 py-2 text-xs font-pixel text-gold">AGIL</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -495,21 +523,39 @@ export default function EditRostersPage() {
                                     disabled={!isPitcher}
                                   />
                                 </td>
-                                {/* Pitch Mix - FB (binary checkbox) */}
-                                <td className="px-2 py-1 text-center">
-                                  <Checkbox
-                                    checked={getPlayerValue(player, "pitchFB") === 1}
-                                    onCheckedChange={(c) => updatePlayer(player.id, "pitchFB", c ? 1 : 0)}
+                                {/* Pitch Mix - FB (0-7 dropdown) */}
+                                <td className="px-2 py-1">
+                                  <Select
+                                    value={String(getPlayerValue(player, "pitchFB") || 0)}
+                                    onValueChange={(v) => updatePlayer(player.id, "pitchFB", parseInt(v))}
                                     disabled={!isPitcher}
-                                  />
+                                  >
+                                    <SelectTrigger className="h-7 w-12 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {[0, 1, 2, 3, 4, 5, 6, 7].map(n => (
+                                        <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
                                 </td>
-                                {/* Pitch Mix - 2S (binary checkbox) */}
-                                <td className="px-2 py-1 text-center">
-                                  <Checkbox
-                                    checked={getPlayerValue(player, "pitch2S") === 1}
-                                    onCheckedChange={(c) => updatePlayer(player.id, "pitch2S", c ? 1 : 0)}
+                                {/* Pitch Mix - 2S (0-7 dropdown) */}
+                                <td className="px-2 py-1">
+                                  <Select
+                                    value={String(getPlayerValue(player, "pitch2S") || 0)}
+                                    onValueChange={(v) => updatePlayer(player.id, "pitch2S", parseInt(v))}
                                     disabled={!isPitcher}
-                                  />
+                                  >
+                                    <SelectTrigger className="h-7 w-12 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {[0, 1, 2, 3, 4, 5, 6, 7].map(n => (
+                                        <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
                                 </td>
                                 {/* Pitch Mix - SL (0-7 dropdown) */}
                                 <td className="px-2 py-1">
@@ -609,6 +655,172 @@ export default function EditRostersPage() {
                                     <SelectContent>
                                       {[0, 1, 2, 3, 4, 5, 6, 7].map(n => (
                                         <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </td>
+                                {/* Common Abilities - Clutch */}
+                                <td className="px-2 py-1">
+                                  <Select
+                                    value={valueToGrade(getPlayerValue(player, "clutch") || 50)}
+                                    onValueChange={(v) => updatePlayer(player.id, "clutch", letterGradeValues[v])}
+                                  >
+                                    <SelectTrigger className="h-7 w-12 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {letterGrades.map(g => (
+                                        <SelectItem key={g} value={g}>{g}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </td>
+                                {/* Common Abilities - Grit */}
+                                <td className="px-2 py-1">
+                                  <Select
+                                    value={valueToGrade(getPlayerValue(player, "grit") || 50)}
+                                    onValueChange={(v) => updatePlayer(player.id, "grit", letterGradeValues[v])}
+                                  >
+                                    <SelectTrigger className="h-7 w-12 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {letterGrades.map(g => (
+                                        <SelectItem key={g} value={g}>{g}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </td>
+                                {/* Common Abilities - vsL (vsLHP for fielders, vsLefty for pitchers) */}
+                                <td className="px-2 py-1">
+                                  <Select
+                                    value={valueToGrade(getPlayerValue(player, isPitcher ? "vsLefty" : "vsLHP") || 50)}
+                                    onValueChange={(v) => updatePlayer(player.id, isPitcher ? "vsLefty" : "vsLHP", letterGradeValues[v])}
+                                  >
+                                    <SelectTrigger className="h-7 w-12 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {letterGrades.map(g => (
+                                        <SelectItem key={g} value={g}>{g}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </td>
+                                {/* Common Abilities - Recovery */}
+                                <td className="px-2 py-1">
+                                  <Select
+                                    value={valueToGrade(getPlayerValue(player, "recovery") || 50)}
+                                    onValueChange={(v) => updatePlayer(player.id, "recovery", letterGradeValues[v])}
+                                  >
+                                    <SelectTrigger className="h-7 w-12 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {letterGrades.map(g => (
+                                        <SelectItem key={g} value={g}>{g}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </td>
+                                {/* Common Abilities - Stealing (fielders only) */}
+                                <td className="px-2 py-1">
+                                  <Select
+                                    value={valueToGrade(getPlayerValue(player, "stealing") || 50)}
+                                    onValueChange={(v) => updatePlayer(player.id, "stealing", letterGradeValues[v])}
+                                    disabled={isPitcher}
+                                  >
+                                    <SelectTrigger className="h-7 w-12 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {letterGrades.map(g => (
+                                        <SelectItem key={g} value={g}>{g}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </td>
+                                {/* Common Abilities - Running (fielders only) */}
+                                <td className="px-2 py-1">
+                                  <Select
+                                    value={valueToGrade(getPlayerValue(player, "running") || 50)}
+                                    onValueChange={(v) => updatePlayer(player.id, "running", letterGradeValues[v])}
+                                    disabled={isPitcher}
+                                  >
+                                    <SelectTrigger className="h-7 w-12 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {letterGrades.map(g => (
+                                        <SelectItem key={g} value={g}>{g}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </td>
+                                {/* Common Abilities - Throwing (fielders only) */}
+                                <td className="px-2 py-1">
+                                  <Select
+                                    value={valueToGrade(getPlayerValue(player, "throwing") || 50)}
+                                    onValueChange={(v) => updatePlayer(player.id, "throwing", letterGradeValues[v])}
+                                    disabled={isPitcher}
+                                  >
+                                    <SelectTrigger className="h-7 w-12 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {letterGrades.map(g => (
+                                        <SelectItem key={g} value={g}>{g}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </td>
+                                {/* Common Abilities - Poise (pitchers only) */}
+                                <td className="px-2 py-1">
+                                  <Select
+                                    value={valueToGrade(getPlayerValue(player, "poise") || 50)}
+                                    onValueChange={(v) => updatePlayer(player.id, "poise", letterGradeValues[v])}
+                                    disabled={!isPitcher}
+                                  >
+                                    <SelectTrigger className="h-7 w-12 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {letterGrades.map(g => (
+                                        <SelectItem key={g} value={g}>{g}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </td>
+                                {/* Common Abilities - Heater (pitchers only) */}
+                                <td className="px-2 py-1">
+                                  <Select
+                                    value={valueToGrade(getPlayerValue(player, "heater") || 50)}
+                                    onValueChange={(v) => updatePlayer(player.id, "heater", letterGradeValues[v])}
+                                    disabled={!isPitcher}
+                                  >
+                                    <SelectTrigger className="h-7 w-12 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {letterGrades.map(g => (
+                                        <SelectItem key={g} value={g}>{g}</SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </td>
+                                {/* Common Abilities - Agile (pitchers only) */}
+                                <td className="px-2 py-1">
+                                  <Select
+                                    value={valueToGrade(getPlayerValue(player, "agile") || 50)}
+                                    onValueChange={(v) => updatePlayer(player.id, "agile", letterGradeValues[v])}
+                                    disabled={!isPitcher}
+                                  >
+                                    <SelectTrigger className="h-7 w-12 text-xs">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      {letterGrades.map(g => (
+                                        <SelectItem key={g} value={g}>{g}</SelectItem>
                                       ))}
                                     </SelectContent>
                                   </Select>
