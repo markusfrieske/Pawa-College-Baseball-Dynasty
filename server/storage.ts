@@ -1,7 +1,7 @@
 import {
   users, leagues, conferences, teams, coaches, scouts,
   players, recruits, recruitingInterests, games, standings, auditLogs, leagueInvites, dynastyNews,
-  recruitingActionsLog, recruitTopSchools,
+  recruitingActionsLog, recruitTopSchools, transferPortalInterests,
   type User, type InsertUser,
   type League, type InsertLeague,
   type Conference, type InsertConference,
@@ -18,6 +18,7 @@ import {
   type DynastyNews, type InsertDynastyNews,
   type RecruitingActionsLog, type InsertRecruitingActionsLog,
   type RecruitTopSchools, type InsertRecruitTopSchools,
+  type TransferPortalInterest, type InsertTransferPortalInterest,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, or, inArray } from "drizzle-orm";
@@ -96,6 +97,13 @@ export interface IStorage {
   
   updatePlayer(id: string, data: Partial<Player>): Promise<Player | undefined>;
   getPlayer(id: string): Promise<Player | undefined>;
+  
+  getTransferPortalPlayersByLeague(leagueId: string): Promise<Player[]>;
+  getTransferPortalInterestsByTeam(teamId: string): Promise<TransferPortalInterest[]>;
+  getTransferPortalInterest(playerId: string, teamId: string): Promise<TransferPortalInterest | undefined>;
+  createTransferPortalInterest(interest: InsertTransferPortalInterest): Promise<TransferPortalInterest>;
+  updateTransferPortalInterest(id: string, data: Partial<TransferPortalInterest>): Promise<TransferPortalInterest | undefined>;
+  deleteTransferPortalInterestsByPlayer(playerId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -389,6 +397,44 @@ export class DatabaseStorage implements IStorage {
   async updatePlayer(id: string, data: Partial<Player>): Promise<Player | undefined> {
     const [player] = await db.update(players).set(data).where(eq(players.id, id)).returning();
     return player || undefined;
+  }
+
+  async getTransferPortalPlayersByLeague(leagueId: string): Promise<Player[]> {
+    const leagueTeams = await this.getTeamsByLeague(leagueId);
+    const teamIds = leagueTeams.map(t => t.id);
+    if (teamIds.length === 0) return [];
+    return await db.select().from(players)
+      .where(and(
+        inArray(players.teamId, teamIds),
+        eq(players.inTransferPortal, true)
+      ));
+  }
+
+  async getTransferPortalInterestsByTeam(teamId: string): Promise<TransferPortalInterest[]> {
+    return await db.select().from(transferPortalInterests).where(eq(transferPortalInterests.teamId, teamId));
+  }
+
+  async getTransferPortalInterest(playerId: string, teamId: string): Promise<TransferPortalInterest | undefined> {
+    const [interest] = await db.select().from(transferPortalInterests)
+      .where(and(
+        eq(transferPortalInterests.playerId, playerId),
+        eq(transferPortalInterests.teamId, teamId)
+      ));
+    return interest || undefined;
+  }
+
+  async createTransferPortalInterest(interest: InsertTransferPortalInterest): Promise<TransferPortalInterest> {
+    const [created] = await db.insert(transferPortalInterests).values(interest).returning();
+    return created;
+  }
+
+  async updateTransferPortalInterest(id: string, data: Partial<TransferPortalInterest>): Promise<TransferPortalInterest | undefined> {
+    const [updated] = await db.update(transferPortalInterests).set(data).where(eq(transferPortalInterests.id, id)).returning();
+    return updated || undefined;
+  }
+
+  async deleteTransferPortalInterestsByPlayer(playerId: string): Promise<void> {
+    await db.delete(transferPortalInterests).where(eq(transferPortalInterests.playerId, playerId));
   }
 }
 

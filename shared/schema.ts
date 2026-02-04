@@ -253,6 +253,9 @@ export const players = pgTable("players", {
   abilities: json("abilities").$type<string[]>().default([]),
   declaredForDraft: boolean("declared_for_draft").notNull().default(false),
   draftDeclarationDate: timestamp("draft_declaration_date"),
+  inTransferPortal: boolean("in_transfer_portal").notNull().default(false),
+  portalEntryDate: timestamp("portal_entry_date"),
+  portalReason: text("portal_reason"),
   skinTone: text("skin_tone").notNull().default("light"),
   hairColor: text("hair_color").notNull().default("brown"),
   hairStyle: text("hair_style").notNull().default("short"),
@@ -306,6 +309,9 @@ export const insertPlayerSchema = createInsertSchema(players).pick({
   abilities: true,
   declaredForDraft: true,
   draftDeclarationDate: true,
+  inTransferPortal: true,
+  portalEntryDate: true,
+  portalReason: true,
   skinTone: true,
   hairColor: true,
   hairStyle: true,
@@ -493,6 +499,29 @@ export const insertRecruitingInterestSchema = createInsertSchema(recruitingInter
 
 export type InsertRecruitingInterest = z.infer<typeof insertRecruitingInterestSchema>;
 export type RecruitingInterest = typeof recruitingInterests.$inferSelect;
+
+// Transfer Portal Interests table (teams recruiting from transfer portal)
+export const transferPortalInterests = pgTable("transfer_portal_interests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  playerId: varchar("player_id").notNull().references(() => players.id),
+  teamId: varchar("team_id").notNull().references(() => teams.id),
+  interestLevel: integer("interest_level").notNull().default(0),
+  isTargeted: boolean("is_targeted").notNull().default(false),
+  hasOffer: boolean("has_offer").notNull().default(false),
+  notes: text("notes"),
+});
+
+export const insertTransferPortalInterestSchema = createInsertSchema(transferPortalInterests).pick({
+  playerId: true,
+  teamId: true,
+  interestLevel: true,
+  isTargeted: true,
+  hasOffer: true,
+  notes: true,
+});
+
+export type InsertTransferPortalInterest = z.infer<typeof insertTransferPortalInterestSchema>;
+export type TransferPortalInterest = typeof transferPortalInterests.$inferSelect;
 
 // Recruiting Actions Log table (tracks scout/phone/email actions by week)
 export const recruitingActionsLog = pgTable("recruiting_actions_log", {
@@ -762,4 +791,9 @@ export const recruitingActionsLogRelations = relations(recruitingActionsLog, ({ 
 export const recruitTopSchoolsRelations = relations(recruitTopSchools, ({ one }) => ({
   recruit: one(recruits, { fields: [recruitTopSchools.recruitId], references: [recruits.id] }),
   team: one(teams, { fields: [recruitTopSchools.teamId], references: [teams.id] }),
+}));
+
+export const transferPortalInterestsRelations = relations(transferPortalInterests, ({ one }) => ({
+  player: one(players, { fields: [transferPortalInterests.playerId], references: [players.id] }),
+  team: one(teams, { fields: [transferPortalInterests.teamId], references: [teams.id] }),
 }));
