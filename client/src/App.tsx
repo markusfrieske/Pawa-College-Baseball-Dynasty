@@ -22,6 +22,8 @@ import CoachProfilePage, { CoachProfileByIdPage } from "@/pages/coach-profile";
 import RecruitProfilePage from "@/pages/recruit-profile";
 import EditRostersPage from "@/pages/edit-rosters";
 import EditRecruitsPage from "@/pages/edit-recruits";
+import PlayersLeavingPage from "@/pages/players-leaving";
+import TransferPortalPage from "@/pages/transfer-portal";
 import { useState } from "react";
 import { useLocation } from "wouter";
 
@@ -48,6 +50,8 @@ function Router() {
       <Route path="/league/:id/commissioner" component={CommissionerPage} />
       <Route path="/league/:id/edit-rosters" component={EditRostersPage} />
       <Route path="/league/:id/edit-recruits" component={EditRecruitsPage} />
+      <Route path="/league/:id/players-leaving" component={PlayersLeavingPage} />
+      <Route path="/league/:id/transfer-portal" component={TransferPortalPage} />
       <Route path="/league/:id/team/:teamId" component={TeamViewPage} />
       <Route path="/league/:id/recruit/:recruitId" component={RecruitProfilePage} />
       <Route path="/league/:id/coach" component={CoachProfilePage} />

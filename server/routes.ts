@@ -1222,6 +1222,320 @@ export async function registerRoutes(
     }
   });
 
+  // Enter player into transfer portal (commissioner or owning coach)
+  app.post("/api/leagues/:id/players/:playerId/enter-portal", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id);
+      if (!league) {
+        return res.status(404).json({ message: "League not found" });
+      }
+
+      const player = await storage.getPlayer(req.params.playerId);
+      if (!player) {
+        return res.status(404).json({ message: "Player not found" });
+      }
+
+      // Check if player's team belongs to this league
+      const team = await storage.getTeam(player.teamId);
+      if (!team) {
+        return res.status(404).json({ message: "Team not found" });
+      }
+      
+      const leagueTeams = await storage.getTeamsByLeague(req.params.id);
+      const teamBelongsToLeague = leagueTeams.some(t => t.id === team.id);
+      if (!teamBelongsToLeague) {
+        return res.status(404).json({ message: "Player not found in this league" });
+      }
+
+      // Check if user is commissioner or owns this player's team
+      const coaches = await storage.getCoachesByLeague(req.params.id);
+      const userCoach = coaches.find(c => c.userId === req.session.userId);
+      
+      const isCommissioner = league.commissionerId === req.session.userId;
+      const isTeamCoach = userCoach && userCoach.teamId === team.id;
+      
+      if (!isCommissioner && !isTeamCoach) {
+        return res.status(403).json({ message: "Only the commissioner or team coach can enter players into the transfer portal" });
+      }
+
+      if (player.inTransferPortal) {
+        return res.status(400).json({ message: "Player is already in the transfer portal" });
+      }
+
+      if (player.declaredForDraft) {
+        return res.status(400).json({ message: "Player has already declared for the draft" });
+      }
+
+      // Seniors cannot enter portal (they're graduating)
+      if (player.eligibility === "Sr") {
+        return res.status(400).json({ message: "Seniors cannot enter the transfer portal" });
+      }
+
+      const { reason } = req.body as { reason?: string };
+
+      const updated = await storage.updatePlayer(req.params.playerId, {
+        inTransferPortal: true,
+        portalEntryDate: new Date(),
+        portalReason: reason || "Seeking new opportunity",
+      });
+
+      await storage.createAuditLog({
+        leagueId: req.params.id,
+        userId: req.session.userId,
+        action: "Transfer Portal Entry",
+        details: `${player.firstName} ${player.lastName} (${team.abbreviation}) entered the transfer portal${reason ? `: ${reason}` : ''}`,
+      });
+
+      res.json({ 
+        success: true, 
+        message: `${player.firstName} ${player.lastName} has entered the transfer portal`,
+        player: updated 
+      });
+    } catch (error) {
+      console.error("Failed to enter player into portal:", error);
+      res.status(500).json({ message: "Failed to enter player into transfer portal" });
+    }
+  });
+
+  // Get players leaving (graduates, draft declarations, transfer portal) - summary by team
+  app.get("/api/leagues/:id/players-leaving", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id);
+      if (!league) {
+        return res.status(404).json({ message: "League not found" });
+      }
+
+      const teams = await storage.getTeamsByLeague(req.params.id);
+      const playersLeavingByTeam: Record<string, {
+        teamId: string;
+        teamName: string;
+        abbreviation: string;
+        primaryColor: string;
+        secondaryColor: string;
+        graduates: typeof allPlayers;
+        draftDeclarations: typeof allPlayers;
+        transfers: typeof allPlayers;
+        totalLeaving: number;
+      }> = {};
+
+      // Initialize for all teams
+      for (const team of teams) {
+        playersLeavingByTeam[team.id] = {
+          teamId: team.id,
+          teamName: team.name,
+          abbreviation: team.abbreviation,
+          primaryColor: team.primaryColor,
+          secondaryColor: team.secondaryColor,
+          graduates: [],
+          draftDeclarations: [],
+          transfers: [],
+          totalLeaving: 0,
+        };
+      }
+
+      // Get all players for all teams
+      const allPlayers: (typeof players.$inferSelect)[] = [];
+      for (const team of teams) {
+        const teamPlayers = await storage.getPlayersByTeam(team.id);
+        allPlayers.push(...teamPlayers);
+      }
+
+      // Categorize players
+      for (const player of allPlayers) {
+        const teamData = playersLeavingByTeam[player.teamId];
+        if (!teamData) continue;
+
+        if (player.eligibility === "Sr") {
+          teamData.graduates.push(player);
+          teamData.totalLeaving++;
+        } else if (player.declaredForDraft) {
+          teamData.draftDeclarations.push(player);
+          teamData.totalLeaving++;
+        } else if (player.inTransferPortal) {
+          teamData.transfers.push(player);
+          teamData.totalLeaving++;
+        }
+      }
+
+      // Calculate league totals
+      const leagueTotals = {
+        graduates: Object.values(playersLeavingByTeam).reduce((sum, t) => sum + t.graduates.length, 0),
+        draftDeclarations: Object.values(playersLeavingByTeam).reduce((sum, t) => sum + t.draftDeclarations.length, 0),
+        transfers: Object.values(playersLeavingByTeam).reduce((sum, t) => sum + t.transfers.length, 0),
+        total: Object.values(playersLeavingByTeam).reduce((sum, t) => sum + t.totalLeaving, 0),
+      };
+
+      res.json({
+        league: { id: league.id, name: league.name, currentSeason: league.currentSeason },
+        teams: Object.values(playersLeavingByTeam).sort((a, b) => b.totalLeaving - a.totalLeaving),
+        totals: leagueTotals,
+      });
+    } catch (error) {
+      console.error("Failed to get players leaving:", error);
+      res.status(500).json({ message: "Failed to get players leaving" });
+    }
+  });
+
+  // Get transfer portal players for the league
+  app.get("/api/leagues/:id/transfer-portal", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id);
+      if (!league) {
+        return res.status(404).json({ message: "League not found" });
+      }
+
+      const portalPlayers = await storage.getTransferPortalPlayersByLeague(req.params.id);
+      const teams = await storage.getTeamsByLeague(req.params.id);
+      const teamsMap = new Map(teams.map(t => [t.id, t]));
+      
+      // Get user's coach for portal interests
+      const coaches = await storage.getCoachesByLeague(req.params.id);
+      const userCoach = coaches.find(c => c.userId === req.session.userId);
+      
+      let myInterests: Record<string, typeof portalInterests[0]> = {};
+      if (userCoach?.teamId) {
+        const portalInterests = await storage.getTransferPortalInterestsByTeam(userCoach.teamId);
+        myInterests = Object.fromEntries(portalInterests.map(i => [i.playerId, i]));
+      }
+
+      const playersWithDetails = portalPlayers.map(player => ({
+        ...player,
+        originalTeam: teamsMap.get(player.teamId) || null,
+        myInterest: myInterests[player.id] || null,
+      }));
+
+      res.json({
+        players: playersWithDetails,
+        myTeamId: userCoach?.teamId || null,
+        isCommissioner: league.commissionerId === req.session.userId,
+      });
+    } catch (error) {
+      console.error("Failed to get transfer portal:", error);
+      res.status(500).json({ message: "Failed to get transfer portal" });
+    }
+  });
+
+  // Update interest in a portal player
+  app.post("/api/leagues/:id/transfer-portal/:playerId/interest", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id);
+      if (!league) {
+        return res.status(404).json({ message: "League not found" });
+      }
+
+      const coaches = await storage.getCoachesByLeague(req.params.id);
+      const userCoach = coaches.find(c => c.userId === req.session.userId);
+      
+      if (!userCoach?.teamId) {
+        return res.status(403).json({ message: "You must have a team to recruit from the portal" });
+      }
+
+      const player = await storage.getPlayer(req.params.playerId);
+      if (!player || !player.inTransferPortal) {
+        return res.status(404).json({ message: "Player not found in transfer portal" });
+      }
+
+      // Check player is in this league
+      const leagueTeams = await storage.getTeamsByLeague(req.params.id);
+      const teamBelongsToLeague = leagueTeams.some(t => t.id === player.teamId);
+      if (!teamBelongsToLeague) {
+        return res.status(404).json({ message: "Player not found in this league" });
+      }
+
+      // Can't recruit your own player
+      if (player.teamId === userCoach.teamId) {
+        return res.status(400).json({ message: "Cannot recruit your own player from the portal" });
+      }
+
+      const { isTargeted, notes } = req.body as { isTargeted?: boolean; notes?: string };
+
+      let interest = await storage.getTransferPortalInterest(req.params.playerId, userCoach.teamId);
+      
+      if (interest) {
+        interest = await storage.updateTransferPortalInterest(interest.id, {
+          isTargeted: isTargeted ?? interest.isTargeted,
+          notes: notes !== undefined ? notes : interest.notes,
+        });
+      } else {
+        interest = await storage.createTransferPortalInterest({
+          playerId: req.params.playerId,
+          teamId: userCoach.teamId,
+          isTargeted: isTargeted ?? false,
+          notes: notes || null,
+        });
+      }
+
+      res.json({ success: true, interest });
+    } catch (error) {
+      console.error("Failed to update portal interest:", error);
+      res.status(500).json({ message: "Failed to update portal interest" });
+    }
+  });
+
+  // Sign player from transfer portal
+  app.post("/api/leagues/:id/transfer-portal/:playerId/sign", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id);
+      if (!league) {
+        return res.status(404).json({ message: "League not found" });
+      }
+
+      const coaches = await storage.getCoachesByLeague(req.params.id);
+      const userCoach = coaches.find(c => c.userId === req.session.userId);
+      
+      if (!userCoach?.teamId) {
+        return res.status(403).json({ message: "You must have a team to sign from the portal" });
+      }
+
+      const player = await storage.getPlayer(req.params.playerId);
+      if (!player || !player.inTransferPortal) {
+        return res.status(404).json({ message: "Player not found in transfer portal" });
+      }
+
+      // Verify player is in this league
+      const leagueTeams = await storage.getTeamsByLeague(req.params.id);
+      const teamBelongsToLeague = leagueTeams.some(t => t.id === player.teamId);
+      if (!teamBelongsToLeague) {
+        return res.status(404).json({ message: "Player not found in this league" });
+      }
+
+      // Can't sign your own player from the portal
+      if (player.teamId === userCoach.teamId) {
+        return res.status(400).json({ message: "Cannot sign your own player from the portal" });
+      }
+
+      const oldTeam = await storage.getTeam(player.teamId);
+      const newTeam = await storage.getTeam(userCoach.teamId);
+
+      // Update player to new team and remove from portal
+      const updated = await storage.updatePlayer(req.params.playerId, {
+        teamId: userCoach.teamId,
+        inTransferPortal: false,
+        portalEntryDate: null,
+        portalReason: null,
+      });
+
+      // Clean up portal interests
+      await storage.deleteTransferPortalInterestsByPlayer(req.params.playerId);
+
+      await storage.createAuditLog({
+        leagueId: req.params.id,
+        userId: req.session.userId,
+        action: "Transfer Portal Signing",
+        details: `${player.firstName} ${player.lastName} transferred from ${oldTeam?.abbreviation || 'Unknown'} to ${newTeam?.abbreviation || 'Unknown'}`,
+      });
+
+      res.json({ 
+        success: true, 
+        message: `${player.firstName} ${player.lastName} has signed with ${newTeam?.name || 'your team'}`,
+        player: updated 
+      });
+    } catch (error) {
+      console.error("Failed to sign portal player:", error);
+      res.status(500).json({ message: "Failed to sign portal player" });
+    }
+  });
+
   // Batch update players (commissioner only)
   app.patch("/api/leagues/:id/players/batch", requireAuth, async (req, res) => {
     try {
