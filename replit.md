@@ -152,6 +152,7 @@ Player cards display 4 distinct sections:
   - Pitch mix editing: FB/2S as checkboxes, SL/CB/CH/CT/SNK/SPL as 0-7 dropdowns
   - Unsaved changes tracking with yellow highlighting
   - Batch save with audit logging
+  - **Keyboard Navigation**: Press Enter to move focus to the same field in the next row (skips disabled fields)
 - **Edit Recruiting Class** (`/league/:id/edit-recruits`): Bulk editor for all recruits
   - Position filter dropdown
   - Sortable columns (rank, name, position, overall, stars)
@@ -159,6 +160,7 @@ Player cards display 4 distinct sections:
   - Pitch mix editing for pitchers
   - Priority settings (Proximity, Reputation, Playing Time, Academics, Prestige, Facilities)
   - Batch save with commissioner audit logging
+  - **Keyboard Navigation**: Press Enter to move focus to the same field in the next row (skips disabled fields)
 
 ### League Invite System (Multiplayer)
 - Commissioner can send email invites via the Invites tab
