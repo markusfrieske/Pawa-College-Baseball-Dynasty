@@ -887,6 +887,9 @@ function PositionCard({ position, players, onSelectPlayer, maxPlayers = 3, teamP
               <span className={`text-xs truncate flex-1 ${idx === 0 ? 'text-foreground' : 'text-muted-foreground'}`}>
                 {p.firstName.charAt(0)}. {p.lastName}
               </span>
+              <span className={`text-[9px] text-muted-foreground/80 font-medium`}>
+                {p.eligibility || 'FR'}
+              </span>
               <span className={`text-xs font-bold ${idx === 0 ? 'text-gold' : 'text-muted-foreground'}`}>
                 {p.overall}
               </span>
@@ -990,6 +993,9 @@ function DepthChartView({ players, onSelectPlayer, teamPrimaryColor }: { players
                     <span className={`text-xs truncate flex-1 ${idx === 0 ? 'text-foreground' : 'text-muted-foreground'}`}>
                       {p.firstName.charAt(0)}. {p.lastName}
                     </span>
+                    <span className={`text-[9px] text-muted-foreground/80 font-medium`}>
+                      {p.eligibility || 'FR'}
+                    </span>
                     <span className={`text-xs font-bold ${idx === 0 ? 'text-gold' : 'text-muted-foreground'}`}>
                       {p.overall}
                     </span>
@@ -1024,6 +1030,9 @@ function DepthChartView({ players, onSelectPlayer, teamPrimaryColor }: { players
                     />
                     <span className="text-xs truncate flex-1 text-muted-foreground">
                       {p.firstName.charAt(0)}. {p.lastName}
+                    </span>
+                    <span className={`text-[9px] text-muted-foreground/80 font-medium`}>
+                      {p.eligibility || 'FR'}
                     </span>
                     <span className="text-xs font-bold text-muted-foreground">
                       {p.overall}

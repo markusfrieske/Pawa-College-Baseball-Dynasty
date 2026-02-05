@@ -13,6 +13,8 @@ import { ArrowLeft, Save, RotateCcw, ChevronUp, ChevronDown } from "lucide-react
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Player, Team } from "@shared/schema";
+import { ALL_PITCHER_ABILITIES, ALL_FIELDER_ABILITIES, getAbilityByName, type Ability } from "@shared/abilities";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface LeagueData {
   teams: (Team & { coach?: { firstName: string; lastName: string } })[];
@@ -310,6 +312,7 @@ export default function EditRostersPage() {
                             <th className="px-2 py-2 text-xs font-pixel text-gold">POIS</th>
                             <th className="px-2 py-2 text-xs font-pixel text-gold">HEAT</th>
                             <th className="px-2 py-2 text-xs font-pixel text-gold">AGIL</th>
+                            <th className="px-2 py-2 text-xs font-pixel text-gold">ABILITIES</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -570,10 +573,10 @@ export default function EditRostersPage() {
                                     disabled={!isPitcher}
                                   />
                                 </td>
-                                {/* Pitch Mix - FB (0-7 dropdown) */}
+                                {/* Pitch Mix - FB (0-1 checkbox style - presence only) */}
                                 <td className="px-2 py-1">
                                   <Select
-                                    value={String(getPlayerValue(player, "pitchFB") || 0)}
+                                    value={String(Math.min(1, getPlayerValue(player, "pitchFB") || 0))}
                                     onValueChange={(v) => updatePlayer(player.id, "pitchFB", parseInt(v))}
                                     disabled={!isPitcher}
                                   >
@@ -581,16 +584,16 @@ export default function EditRostersPage() {
                                       <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      {[0, 1, 2, 3, 4, 5, 6, 7].map(n => (
-                                        <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                                      {[0, 1].map(n => (
+                                        <SelectItem key={n} value={String(n)}>{n === 1 ? "✓" : "-"}</SelectItem>
                                       ))}
                                     </SelectContent>
                                   </Select>
                                 </td>
-                                {/* Pitch Mix - 2S (0-7 dropdown) */}
+                                {/* Pitch Mix - 2S (0-1 checkbox style - presence only) */}
                                 <td className="px-2 py-1">
                                   <Select
-                                    value={String(getPlayerValue(player, "pitch2S") || 0)}
+                                    value={String(Math.min(1, getPlayerValue(player, "pitch2S") || 0))}
                                     onValueChange={(v) => updatePlayer(player.id, "pitch2S", parseInt(v))}
                                     disabled={!isPitcher}
                                   >
@@ -598,8 +601,8 @@ export default function EditRostersPage() {
                                       <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      {[0, 1, 2, 3, 4, 5, 6, 7].map(n => (
-                                        <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                                      {[0, 1].map(n => (
+                                        <SelectItem key={n} value={String(n)}>{n === 1 ? "✓" : "-"}</SelectItem>
                                       ))}
                                     </SelectContent>
                                   </Select>
@@ -872,6 +875,14 @@ export default function EditRostersPage() {
                                     </SelectContent>
                                   </Select>
                                 </td>
+                                {/* Special Abilities */}
+                                <td className="px-2 py-1">
+                                  <AbilityEditor
+                                    abilities={(getPlayerValue(player, "abilities") as string[]) || []}
+                                    onChange={(newAbilities) => updatePlayer(player.id, "abilities", newAbilities)}
+                                    isPitcher={isPitcher}
+                                  />
+                                </td>
                               </tr>
                             );
                           })}
@@ -886,5 +897,94 @@ export default function EditRostersPage() {
         </Tabs>
       </div>
     </div>
+  );
+}
+
+function AbilityEditor({
+  abilities,
+  onChange,
+  isPitcher,
+}: {
+  abilities: string[];
+  onChange: (abilities: string[]) => void;
+  isPitcher: boolean;
+}) {
+  const availableAbilities = isPitcher ? ALL_PITCHER_ABILITIES : ALL_FIELDER_ABILITIES;
+  
+  const toggleAbility = (abilityName: string) => {
+    if (abilities.includes(abilityName)) {
+      onChange(abilities.filter(a => a !== abilityName));
+    } else {
+      onChange([...abilities, abilityName]);
+    }
+  };
+  
+  const getTierColor = (tier: string) => {
+    switch (tier) {
+      case "gold": return "text-yellow-500";
+      case "blue": return "text-blue-400";
+      case "red": return "text-red-400";
+      default: return "text-muted-foreground";
+    }
+  };
+  
+  const currentAbilities = abilities.map(name => getAbilityByName(name)).filter(Boolean) as Ability[];
+  
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button className="h-7 min-w-[100px] px-2 text-left text-xs bg-background border border-border rounded flex items-center gap-1 hover:bg-muted/50">
+          {abilities.length === 0 ? (
+            <span className="text-muted-foreground">None</span>
+          ) : (
+            <div className="flex gap-0.5 flex-wrap">
+              {currentAbilities.slice(0, 2).map((ability) => (
+                <span 
+                  key={ability.name}
+                  className={`text-[9px] px-1 rounded ${getTierColor(ability.tier)}`}
+                >
+                  {ability.name.split(" ")[0]}
+                </span>
+              ))}
+              {abilities.length > 2 && (
+                <span className="text-[9px] text-muted-foreground">+{abilities.length - 2}</span>
+              )}
+            </div>
+          )}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-80 max-h-96 overflow-y-auto p-2" align="start">
+        <div className="space-y-2">
+          <div className="font-pixel text-gold text-xs mb-2">SPECIAL ABILITIES</div>
+          {["gold", "blue", "red"].map(tier => {
+            const tierAbilities = availableAbilities.filter(a => a.tier === tier);
+            if (tierAbilities.length === 0) return null;
+            return (
+              <div key={tier} className="space-y-1">
+                <div className={`text-[10px] font-semibold uppercase ${getTierColor(tier)}`}>
+                  {tier} Tier
+                </div>
+                {tierAbilities.map(ability => (
+                  <label 
+                    key={ability.name}
+                    className="flex items-start gap-2 cursor-pointer hover:bg-muted/50 p-1 rounded"
+                  >
+                    <Checkbox
+                      checked={abilities.includes(ability.name)}
+                      onCheckedChange={() => toggleAbility(ability.name)}
+                      className="mt-0.5"
+                    />
+                    <div className="flex-1">
+                      <div className={`text-xs ${getTierColor(ability.tier)}`}>{ability.name}</div>
+                      <div className="text-[9px] text-muted-foreground">{ability.description}</div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            );
+          })}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }

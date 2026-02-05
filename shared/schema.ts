@@ -374,6 +374,8 @@ export const recruits = pgTable("recruits", {
   pitchSNK: integer("pitch_snk").default(0),
   pitchSPL: integer("pitch_spl").default(0),
   abilities: json("abilities").$type<string[]>().default([]),
+  // Randomized scouting reveal order - JSON array of field names that determines unlock order
+  scoutingOrder: json("scouting_order").$type<string[]>().default([]),
   proximityPriority: text("proximity_priority").notNull().default("Somewhat"),
   reputationPriority: text("reputation_priority").notNull().default("Somewhat"),
   playingTimePriority: text("playing_time_priority").notNull().default("Somewhat"),
@@ -441,6 +443,7 @@ export const insertRecruitSchema = createInsertSchema(recruits).pick({
   pitchSNK: true,
   pitchSPL: true,
   abilities: true,
+  scoutingOrder: true,
   proximityPriority: true,
   reputationPriority: true,
   playingTimePriority: true,

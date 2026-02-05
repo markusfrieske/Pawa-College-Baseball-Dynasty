@@ -3118,16 +3118,17 @@ async function generateRecruits(leagueId: string, count: number) {
     }
   };
 
-  // Generate pitch mix for pitchers (ratings 1-7)
+  // Generate pitch mix for pitchers
+  // FB and 2S are capped at 1 (presence indicator only), secondary pitches are rated 1-7
   const generatePitchMix = (isPitcher: boolean): { pitchFB: number; pitch2S: number; pitchSL: number; pitchCB: number; pitchCH: number; pitchCT: number; pitchSNK: number; pitchSPL: number } => {
     if (!isPitcher) {
       return { pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0 };
     }
     
-    // Every pitcher has a fastball (1-7)
-    const pitchFB = 1 + Math.floor(Math.random() * 7);
-    // 50% chance of 2-seam
-    const pitch2S = Math.random() < 0.5 ? 1 + Math.floor(Math.random() * 7) : 0;
+    // Every pitcher has a fastball - capped at 1 (presence only)
+    const pitchFB = 1;
+    // 50% chance of 2-seam - capped at 1 (presence only)
+    const pitch2S = Math.random() < 0.5 ? 1 : 0;
     
     // Secondary pitches pool
     const secondaryPitches = ['SL', 'CB', 'CH', 'CT', 'SNK', 'SPL'];
@@ -3146,6 +3147,38 @@ async function generateRecruits(leagueId: string, count: number) {
       pitchSNK: selectedSecondary.has('SNK') ? 1 + Math.floor(Math.random() * 7) : 0,
       pitchSPL: selectedSecondary.has('SPL') ? 1 + Math.floor(Math.random() * 7) : 0,
     };
+  };
+  
+  // Generate randomized scouting order for a recruit
+  // Returns a shuffled array of field names that determines the order in which attributes are revealed
+  const generateScoutingOrder = (isPitcher: boolean, position: string): string[] => {
+    // Fielder attributes (common to all fielders)
+    const fielderAttributes = ['hitForAvg', 'power', 'speed', 'arm', 'fielding', 'errorResistance'];
+    const fielderAbilities = ['clutch', 'vsLHP', 'grit', 'stealing', 'running', 'throwing', 'recovery'];
+    
+    // Pitcher attributes
+    const pitcherAttributes = ['velocity', 'control', 'stamina'];
+    const pitcherAbilities = ['wRISP', 'vsLefty', 'poise', 'grit', 'heater', 'agile', 'recovery'];
+    const pitchTypes = ['pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL'];
+    
+    // Catcher-specific ability
+    const catcherAbility = position === 'C' ? ['catcherAbility'] : [];
+    
+    // Build the list based on player type
+    let allFields: string[];
+    if (isPitcher) {
+      allFields = [...pitcherAttributes, ...pitchTypes, ...pitcherAbilities];
+    } else {
+      allFields = [...fielderAttributes, ...fielderAbilities, ...catcherAbility];
+    }
+    
+    // Shuffle the array using Fisher-Yates algorithm
+    for (let i = allFields.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [allFields[i], allFields[j]] = [allFields[j], allFields[i]];
+    }
+    
+    return allFields;
   };
 
   // Generate common ability value (numeric 20-95) based on overall rating
@@ -3271,6 +3304,9 @@ async function generateRecruits(leagueId: string, count: number) {
     
     // Generate common abilities based on overall rating
     const commonAbilities = generateCommonAbilities(isPitcher, position, overall);
+    
+    // Generate randomized scouting order for this recruit
+    const scoutingOrder = generateScoutingOrder(isPitcher, position);
 
     await storage.createRecruit({
       leagueId,
@@ -3302,6 +3338,8 @@ async function generateRecruits(leagueId: string, count: number) {
       ...commonAbilities,
       // Special abilities
       abilities,
+      // Randomized scouting reveal order
+      scoutingOrder,
       proximityPriority: priorities[Math.floor(Math.random() * priorities.length)],
       reputationPriority: priorities[Math.floor(Math.random() * priorities.length)],
       playingTimePriority: priorities[Math.floor(Math.random() * priorities.length)],
@@ -3665,6 +3703,15 @@ async function generatePlayersForTeam(teamId: string) {
       hairColor: appearance.hairColor,
       hairStyle: appearance.hairStyle,
       headwear: appearance.headwear,
+      // Generate pitch mix for pitchers
+      pitchFB: position === "P" ? 1 : 0,  // FB capped at 1 (presence indicator)
+      pitch2S: position === "P" && Math.random() < 0.5 ? 1 : 0,  // 2S capped at 1
+      pitchSL: position === "P" && Math.random() < 0.6 ? 1 + Math.floor(Math.random() * 7) : 0,
+      pitchCB: position === "P" && Math.random() < 0.6 ? 1 + Math.floor(Math.random() * 7) : 0,
+      pitchCH: position === "P" && Math.random() < 0.5 ? 1 + Math.floor(Math.random() * 7) : 0,
+      pitchCT: position === "P" && Math.random() < 0.4 ? 1 + Math.floor(Math.random() * 7) : 0,
+      pitchSNK: position === "P" && Math.random() < 0.3 ? 1 + Math.floor(Math.random() * 7) : 0,
+      pitchSPL: position === "P" && Math.random() < 0.3 ? 1 + Math.floor(Math.random() * 7) : 0,
     });
   }
 }

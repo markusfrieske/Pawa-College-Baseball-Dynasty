@@ -1142,13 +1142,27 @@ function RecruitAttributesSection({
   isFullyRevealed: boolean;
 }) {
   const isPitcher = checkIsPitcher(recruit.position);
+  const scoutingOrder = (recruit.scoutingOrder as string[]) || [];
   
-  const shouldRevealAttribute = (threshold: number) => {
-    return isFullyRevealed || scoutPct >= threshold;
+  // Default field orders for legacy recruits without scoutingOrder
+  const defaultFielderOrder = ['hitForAvg', 'power', 'speed', 'arm', 'fielding', 'errorResistance', 'clutch', 'vsLHP', 'grit', 'stealing', 'running', 'throwing', 'recovery'];
+  const defaultPitcherOrder = ['velocity', 'control', 'stamina', 'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL', 'wRISP', 'vsLefty', 'poise', 'grit', 'heater', 'agile', 'recovery'];
+  
+  // Use stored scouting order or fall back to default order
+  const effectiveOrder = scoutingOrder.length > 0 
+    ? scoutingOrder 
+    : (isPitcher ? defaultPitcherOrder : defaultFielderOrder);
+  
+  // Calculate how many attributes should be revealed based on scouting progress
+  const revealCount = Math.ceil((scoutPct / 100) * effectiveOrder.length);
+  const revealedFields = new Set(effectiveOrder.slice(0, revealCount));
+  
+  const shouldRevealField = (fieldName: string) => {
+    return isFullyRevealed || revealedFields.has(fieldName);
   };
   
-  const renderAttribute = (label: string, value: number | null | undefined, revealThreshold: number) => {
-    const isRevealed = shouldRevealAttribute(revealThreshold);
+  const renderAttribute = (label: string, fieldName: string, value: number | null | undefined) => {
+    const isRevealed = shouldRevealField(fieldName);
     const displayValue = isRevealed ? (value ?? 50) : null;
     const isVelocity = label === "Velocity";
     
@@ -1183,18 +1197,18 @@ function RecruitAttributesSection({
     <div className="space-y-3">
       {isPitcher ? (
         <>
-          {renderAttribute("Velocity", recruit.velocity, 15)}
-          {renderAttribute("Control", recruit.control, 30)}
-          {renderAttribute("Stamina", recruit.stamina, 50)}
-          {renderAttribute("Fielding", recruit.fielding, 75)}
+          {renderAttribute("Velocity", "velocity", recruit.velocity)}
+          {renderAttribute("Control", "control", recruit.control)}
+          {renderAttribute("Stamina", "stamina", recruit.stamina)}
+          {renderAttribute("Fielding", "fielding", recruit.fielding)}
         </>
       ) : (
         <>
-          {renderAttribute("Contact", recruit.hitForAvg, 15)}
-          {renderAttribute("Power", recruit.power, 30)}
-          {renderAttribute("Speed", recruit.speed, 50)}
-          {renderAttribute("Arm", recruit.arm, 75)}
-          {renderAttribute("Fielding", recruit.fielding, 100)}
+          {renderAttribute("Contact", "hitForAvg", recruit.hitForAvg)}
+          {renderAttribute("Power", "power", recruit.power)}
+          {renderAttribute("Speed", "speed", recruit.speed)}
+          {renderAttribute("Arm", "arm", recruit.arm)}
+          {renderAttribute("Fielding", "fielding", recruit.fielding)}
         </>
       )}
     </div>
@@ -1212,13 +1226,27 @@ function RecruitCommonAbilitiesSection({
 }) {
   const isPitcher = checkIsPitcher(recruit.position);
   const isCatcher = checkIsCatcher(recruit.position);
+  const scoutingOrder = (recruit.scoutingOrder as string[]) || [];
   
-  const shouldRevealAbility = (threshold: number) => {
-    return isFullyRevealed || scoutPct >= threshold;
+  // Default field orders for legacy recruits without scoutingOrder
+  const defaultFielderOrder = ['hitForAvg', 'power', 'speed', 'arm', 'fielding', 'errorResistance', 'clutch', 'vsLHP', 'grit', 'stealing', 'running', 'throwing', 'recovery', 'catcherAbility'];
+  const defaultPitcherOrder = ['velocity', 'control', 'stamina', 'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL', 'wRISP', 'vsLefty', 'poise', 'grit', 'heater', 'agile', 'recovery'];
+  
+  // Use stored scouting order or fall back to default order
+  const effectiveOrder = scoutingOrder.length > 0 
+    ? scoutingOrder 
+    : (isPitcher ? defaultPitcherOrder : defaultFielderOrder);
+  
+  // Calculate how many attributes should be revealed based on scouting progress
+  const revealCount = Math.ceil((scoutPct / 100) * effectiveOrder.length);
+  const revealedFields = new Set(effectiveOrder.slice(0, revealCount));
+  
+  const shouldRevealField = (fieldName: string) => {
+    return isFullyRevealed || revealedFields.has(fieldName);
   };
   
-  const renderAbility = (label: string, value: number | null | undefined, revealThreshold: number) => {
-    const isRevealed = shouldRevealAbility(revealThreshold);
+  const renderAbility = (label: string, fieldName: string, value: number | null | undefined) => {
+    const isRevealed = shouldRevealField(fieldName);
     const displayValue = isRevealed ? (value ?? 50) : null;
     
     return (
@@ -1237,24 +1265,24 @@ function RecruitCommonAbilitiesSection({
     <div className="grid grid-cols-2 gap-2">
       {isPitcher ? (
         <>
-          {renderAbility("W/RISP", recruit.clutch, 25)}
-          {renderAbility("vs Lefty", recruit.vsLefty, 35)}
-          {renderAbility("Poise", recruit.poise, 45)}
-          {renderAbility("Grit", recruit.grit, 55)}
-          {renderAbility("Heater", recruit.heater, 65)}
-          {renderAbility("Agile", recruit.agile, 75)}
-          {renderAbility("Recovery", recruit.recovery, 85)}
+          {renderAbility("W/RISP", "wRISP", recruit.wRISP)}
+          {renderAbility("vs Lefty", "vsLefty", recruit.vsLefty)}
+          {renderAbility("Poise", "poise", recruit.poise)}
+          {renderAbility("Grit", "grit", recruit.grit)}
+          {renderAbility("Heater", "heater", recruit.heater)}
+          {renderAbility("Agile", "agile", recruit.agile)}
+          {renderAbility("Recovery", "recovery", recruit.recovery)}
         </>
       ) : (
         <>
-          {renderAbility("Clutch", recruit.clutch, 25)}
-          {renderAbility("vs LHP", recruit.vsLHP, 35)}
-          {renderAbility("Grit", recruit.grit, 45)}
-          {renderAbility("Stealing", recruit.stealing, 55)}
-          {renderAbility("Running", recruit.running, 65)}
-          {renderAbility("Throwing", recruit.throwing, 75)}
-          {renderAbility("Recovery", recruit.recovery, 85)}
-          {isCatcher && renderAbility("Catcher", recruit.catcherAbility, 95)}
+          {renderAbility("Clutch", "clutch", recruit.clutch)}
+          {renderAbility("vs LHP", "vsLHP", recruit.vsLHP)}
+          {renderAbility("Grit", "grit", recruit.grit)}
+          {renderAbility("Stealing", "stealing", recruit.stealing)}
+          {renderAbility("Running", "running", recruit.running)}
+          {renderAbility("Throwing", "throwing", recruit.throwing)}
+          {renderAbility("Recovery", "recovery", recruit.recovery)}
+          {isCatcher && renderAbility("Catcher", "catcherAbility", recruit.catcherAbility)}
         </>
       )}
     </div>
@@ -1270,23 +1298,35 @@ function RecruitPitchMixSection({
   scoutPct: number;
   isFullyRevealed: boolean;
 }) {
-  const pitchTypes = [
-    { key: "pitchFB", label: "Fastball (FB)", threshold: 25 },
-    { key: "pitch2S", label: "2-Seam (2S)", threshold: 30 },
-    { key: "pitchSL", label: "Slider (SL)", threshold: 40 },
-    { key: "pitchCB", label: "Curveball (CB)", threshold: 50 },
-    { key: "pitchCH", label: "Changeup (CH)", threshold: 60 },
-    { key: "pitchCT", label: "Cutter (CT)", threshold: 70 },
-    { key: "pitchSNK", label: "Sinker (SNK)", threshold: 80 },
-    { key: "pitchSPL", label: "Splitter (SPL)", threshold: 90 },
-  ] as const;
+  const scoutingOrder = (recruit.scoutingOrder as string[]) || [];
   
-  const shouldRevealPitch = (threshold: number) => {
-    return isFullyRevealed || scoutPct >= threshold;
+  // Default pitcher order for legacy recruits without scoutingOrder
+  const defaultPitcherOrder = ['velocity', 'control', 'stamina', 'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL', 'wRISP', 'vsLefty', 'poise', 'grit', 'heater', 'agile', 'recovery'];
+  
+  // Use stored scouting order or fall back to default order
+  const effectiveOrder = scoutingOrder.length > 0 ? scoutingOrder : defaultPitcherOrder;
+  
+  // Calculate how many attributes should be revealed based on scouting progress
+  const revealCount = Math.ceil((scoutPct / 100) * effectiveOrder.length);
+  const revealedFields = new Set(effectiveOrder.slice(0, revealCount));
+  
+  const shouldRevealField = (fieldName: string) => {
+    return isFullyRevealed || revealedFields.has(fieldName);
   };
   
-  const renderPitch = (key: string, label: string, threshold: number) => {
-    const isRevealed = shouldRevealPitch(threshold);
+  const pitchTypes = [
+    { key: "pitchFB", label: "Fastball (FB)" },
+    { key: "pitch2S", label: "2-Seam (2S)" },
+    { key: "pitchSL", label: "Slider (SL)" },
+    { key: "pitchCB", label: "Curveball (CB)" },
+    { key: "pitchCH", label: "Changeup (CH)" },
+    { key: "pitchCT", label: "Cutter (CT)" },
+    { key: "pitchSNK", label: "Sinker (SNK)" },
+    { key: "pitchSPL", label: "Splitter (SPL)" },
+  ] as const;
+  
+  const renderPitch = (key: string, label: string) => {
+    const isRevealed = shouldRevealField(key);
     const value = recruit[key as keyof typeof recruit] as number | null | undefined;
     const displayValue = isRevealed ? (value || 0) : null;
     
@@ -1328,7 +1368,7 @@ function RecruitPitchMixSection({
   
   return (
     <div className="grid grid-cols-2 gap-2">
-      {pitchTypes.map(({ key, label, threshold }) => renderPitch(key, label, threshold))}
+      {pitchTypes.map(({ key, label }) => renderPitch(key, label))}
     </div>
   );
 }
