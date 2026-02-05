@@ -913,7 +913,27 @@ function DepthChartView({ players, onSelectPlayer, teamPrimaryColor }: { players
   const pitchers = players.filter(p => isPitcher(p.position)).sort((a, b) => b.overall - a.overall);
   const starters = pitchers.slice(0, 5);
   const bullpen = pitchers.slice(5, 10);
-  const dhPlayers = getPlayersByPosition("DH");
+  
+  // DH Selection: Best fielder by Contact+Power+Speed blend who is NOT a #1 starter at any position
+  const fieldPositions = ["LF", "CF", "RF", "3B", "SS", "2B", "1B", "C"];
+  const starterIds = new Set<string>();
+  fieldPositions.forEach(pos => {
+    const posPlayers = getPlayersByPosition(pos);
+    if (posPlayers.length > 0) {
+      starterIds.add(posPlayers[0].id);
+    }
+  });
+  
+  // Get all non-pitcher players who are NOT #1 starters
+  const eligibleForDH = players
+    .filter(p => !isPitcher(p.position) && !starterIds.has(p.id))
+    .map(p => ({
+      player: p,
+      dhScore: (p.hitForAvg || 0) + (p.power || 0) + (p.speed || 0)
+    }))
+    .sort((a, b) => b.dhScore - a.dhScore);
+  
+  const dhPlayers = eligibleForDH.length > 0 ? [eligibleForDH[0].player] : [];
   
   return (
     <div className="space-y-4" data-testid="depth-chart-view">
