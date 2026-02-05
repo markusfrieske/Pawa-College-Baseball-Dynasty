@@ -306,7 +306,7 @@ export default function EditRecruitsPage() {
                           <Input
                             type="number"
                             min={1}
-                            className="h-7 w-12 text-xs"
+                            className="h-7 w-12 text-xs no-spinner"
                             value={getRecruitValue(recruit, "classRank")}
                             onChange={(e) => updateRecruit(recruit.id, "classRank", parseInt(e.target.value) || 1)}
                             onKeyDown={(e) => handleKeyDown(e, idx, "classRank")}
@@ -358,7 +358,7 @@ export default function EditRecruitsPage() {
                             type="number"
                             min={1}
                             max={999}
-                            className="h-7 w-14 text-xs"
+                            className="h-7 w-14 text-xs no-spinner"
                             value={getRecruitValue(recruit, "overall")}
                             onChange={(e) => updateRecruit(recruit.id, "overall", parseInt(e.target.value) || 1)}
                             onKeyDown={(e) => handleKeyDown(e, idx, "overall")}
@@ -469,7 +469,7 @@ export default function EditRecruitsPage() {
                             type="number"
                             min={1}
                             max={100}
-                            className="h-7 w-10 text-xs"
+                            className="h-7 w-10 text-xs no-spinner"
                             value={getRecruitValue(recruit, "hitForAvg") || ""}
                             onChange={(e) => updateRecruit(recruit.id, "hitForAvg", parseInt(e.target.value) || null)}
                             onKeyDown={(e) => handleKeyDown(e, idx, "hitForAvg")}
@@ -483,7 +483,7 @@ export default function EditRecruitsPage() {
                             type="number"
                             min={1}
                             max={100}
-                            className="h-7 w-10 text-xs"
+                            className="h-7 w-10 text-xs no-spinner"
                             value={getRecruitValue(recruit, "power") || ""}
                             onChange={(e) => updateRecruit(recruit.id, "power", parseInt(e.target.value) || null)}
                             onKeyDown={(e) => handleKeyDown(e, idx, "power")}
@@ -497,7 +497,7 @@ export default function EditRecruitsPage() {
                             type="number"
                             min={1}
                             max={100}
-                            className="h-7 w-10 text-xs"
+                            className="h-7 w-10 text-xs no-spinner"
                             value={getRecruitValue(recruit, "speed") || ""}
                             onChange={(e) => updateRecruit(recruit.id, "speed", parseInt(e.target.value) || null)}
                             onKeyDown={(e) => handleKeyDown(e, idx, "speed")}
@@ -511,7 +511,7 @@ export default function EditRecruitsPage() {
                             type="number"
                             min={1}
                             max={100}
-                            className="h-7 w-10 text-xs"
+                            className="h-7 w-10 text-xs no-spinner"
                             value={getRecruitValue(recruit, "arm") || ""}
                             onChange={(e) => updateRecruit(recruit.id, "arm", parseInt(e.target.value) || null)}
                             onKeyDown={(e) => handleKeyDown(e, idx, "arm")}
@@ -525,7 +525,7 @@ export default function EditRecruitsPage() {
                             type="number"
                             min={1}
                             max={100}
-                            className="h-7 w-10 text-xs"
+                            className="h-7 w-10 text-xs no-spinner"
                             value={getRecruitValue(recruit, "fielding") || ""}
                             onChange={(e) => updateRecruit(recruit.id, "fielding", parseInt(e.target.value) || null)}
                             onKeyDown={(e) => handleKeyDown(e, idx, "fielding")}
@@ -540,7 +540,7 @@ export default function EditRecruitsPage() {
                             type="number"
                             min={82}
                             max={102}
-                            className="h-7 w-10 text-xs"
+                            className="h-7 w-10 text-xs no-spinner"
                             value={getRecruitValue(recruit, "velocity") || ""}
                             onChange={(e) => updateRecruit(recruit.id, "velocity", parseInt(e.target.value) || null)}
                             onKeyDown={(e) => handleKeyDown(e, idx, "velocity")}
@@ -554,7 +554,7 @@ export default function EditRecruitsPage() {
                             type="number"
                             min={1}
                             max={100}
-                            className="h-7 w-10 text-xs"
+                            className="h-7 w-10 text-xs no-spinner"
                             value={getRecruitValue(recruit, "control") || ""}
                             onChange={(e) => updateRecruit(recruit.id, "control", parseInt(e.target.value) || null)}
                             onKeyDown={(e) => handleKeyDown(e, idx, "control")}
@@ -568,7 +568,7 @@ export default function EditRecruitsPage() {
                             type="number"
                             min={1}
                             max={100}
-                            className="h-7 w-10 text-xs"
+                            className="h-7 w-10 text-xs no-spinner"
                             value={getRecruitValue(recruit, "stamina") || ""}
                             onChange={(e) => updateRecruit(recruit.id, "stamina", parseInt(e.target.value) || null)}
                             onKeyDown={(e) => handleKeyDown(e, idx, "stamina")}

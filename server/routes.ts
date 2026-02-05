@@ -3118,6 +3118,97 @@ async function generateRecruits(leagueId: string, count: number) {
     }
   };
 
+  // Generate pitch mix for pitchers (ratings 1-7)
+  const generatePitchMix = (isPitcher: boolean): { pitchFB: number; pitch2S: number; pitchSL: number; pitchCB: number; pitchCH: number; pitchCT: number; pitchSNK: number; pitchSPL: number } => {
+    if (!isPitcher) {
+      return { pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0 };
+    }
+    
+    // Every pitcher has a fastball (1-7)
+    const pitchFB = 1 + Math.floor(Math.random() * 7);
+    // 50% chance of 2-seam
+    const pitch2S = Math.random() < 0.5 ? 1 + Math.floor(Math.random() * 7) : 0;
+    
+    // Secondary pitches pool
+    const secondaryPitches = ['SL', 'CB', 'CH', 'CT', 'SNK', 'SPL'];
+    const shuffled = secondaryPitches.sort(() => Math.random() - 0.5);
+    // Pick 2-4 secondary pitches
+    const numSecondary = 2 + Math.floor(Math.random() * 3);
+    const selectedSecondary = new Set(shuffled.slice(0, numSecondary));
+    
+    return {
+      pitchFB,
+      pitch2S,
+      pitchSL: selectedSecondary.has('SL') ? 1 + Math.floor(Math.random() * 7) : 0,
+      pitchCB: selectedSecondary.has('CB') ? 1 + Math.floor(Math.random() * 7) : 0,
+      pitchCH: selectedSecondary.has('CH') ? 1 + Math.floor(Math.random() * 7) : 0,
+      pitchCT: selectedSecondary.has('CT') ? 1 + Math.floor(Math.random() * 7) : 0,
+      pitchSNK: selectedSecondary.has('SNK') ? 1 + Math.floor(Math.random() * 7) : 0,
+      pitchSPL: selectedSecondary.has('SPL') ? 1 + Math.floor(Math.random() * 7) : 0,
+    };
+  };
+
+  // Generate common ability value (numeric 20-95) based on overall rating
+  // Higher overall = better chance of higher ability values
+  // UI converts: >= 90: S, >= 80: A, >= 70: B, >= 60: C, >= 50: D, >= 30: F, < 30: G
+  const generateCommonAbilityValue = (overall: number): number => {
+    // Base value scales with overall rating
+    // Overall 50-175 (1-star): ability values ~25-55 (G to D)
+    // Overall 150-275 (2-star): ability values ~35-65 (F to C)
+    // Overall 250-375 (3-star): ability values ~45-75 (D to B)
+    // Overall 350-475 (4-star): ability values ~55-85 (D to A)
+    // Overall 450-700 (5-star/blue chip): ability values ~65-95 (C to S)
+    const normalizedOverall = Math.min(700, Math.max(50, overall));
+    const baseValue = 25 + Math.floor((normalizedOverall - 50) / 13); // Scales from 25 to 75
+    // Add randomness (-15 to +20)
+    const variance = Math.floor(Math.random() * 36) - 15;
+    return Math.max(20, Math.min(95, baseValue + variance));
+  };
+
+  // Generate all common abilities for a recruit (numeric values)
+  const generateCommonAbilities = (isPitcher: boolean, position: string, overall: number): {
+    clutch: number; vsLHP: number; grit: number; stealing: number; running: number; throwing: number; recovery: number; catcherAbility: number;
+    wRISP: number; vsLefty: number; poise: number; heater: number; agile: number;
+  } => {
+    if (isPitcher) {
+      return {
+        // Pitcher abilities (active)
+        wRISP: generateCommonAbilityValue(overall),
+        vsLefty: generateCommonAbilityValue(overall),
+        poise: generateCommonAbilityValue(overall),
+        grit: generateCommonAbilityValue(overall),
+        heater: generateCommonAbilityValue(overall),
+        agile: generateCommonAbilityValue(overall),
+        recovery: generateCommonAbilityValue(overall),
+        // Fielder abilities (default values for pitchers)
+        clutch: 50,
+        vsLHP: 50,
+        stealing: 50,
+        running: 50,
+        throwing: 50,
+        catcherAbility: 50,
+      };
+    } else {
+      return {
+        // Fielder abilities (active)
+        clutch: generateCommonAbilityValue(overall),
+        vsLHP: generateCommonAbilityValue(overall),
+        grit: generateCommonAbilityValue(overall),
+        stealing: generateCommonAbilityValue(overall),
+        running: generateCommonAbilityValue(overall),
+        throwing: generateCommonAbilityValue(overall),
+        recovery: generateCommonAbilityValue(overall),
+        catcherAbility: position === 'C' ? generateCommonAbilityValue(overall) : 50,
+        // Pitcher abilities (default values for fielders)
+        wRISP: 50,
+        vsLefty: 50,
+        poise: 50,
+        heater: 50,
+        agile: 50,
+      };
+    }
+  };
+
   // Theme-based attribute boosts
   const getThemeBoost = (theme: RecruitingTheme, isPitcher: boolean): { attr: string; boost: number } => {
     if (theme === "high_velocity" && isPitcher) {
@@ -3175,6 +3266,12 @@ async function generateRecruits(leagueId: string, count: number) {
     if (themeBoost.attr === "velocity") velocity = Math.min(99, velocity + themeBoost.boost);
     if (themeBoost.attr === "power") power = Math.min(99, power + themeBoost.boost);
 
+    // Generate pitch mix for pitchers
+    const pitchMix = generatePitchMix(isPitcher);
+    
+    // Generate common abilities based on overall rating
+    const commonAbilities = generateCommonAbilities(isPitcher, position, overall);
+
     await storage.createRecruit({
       leagueId,
       firstName: firstNames[Math.floor(Math.random() * firstNames.length)],
@@ -3199,6 +3296,11 @@ async function generateRecruits(leagueId: string, count: number) {
       control: 40 + Math.floor(Math.random() * 40),
       stamina: 40 + Math.floor(Math.random() * 40),
       stuff: 40 + Math.floor(Math.random() * 40),
+      // Pitch mix
+      ...pitchMix,
+      // Common abilities
+      ...commonAbilities,
+      // Special abilities
       abilities,
       proximityPriority: priorities[Math.floor(Math.random() * priorities.length)],
       reputationPriority: priorities[Math.floor(Math.random() * priorities.length)],

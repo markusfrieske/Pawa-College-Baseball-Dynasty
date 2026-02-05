@@ -382,7 +382,7 @@ export default function EditRostersPage() {
                                     type="number"
                                     min={1}
                                     max={999}
-                                    className="h-7 w-16 text-xs"
+                                    className="h-7 w-16 text-xs no-spinner"
                                     value={getPlayerValue(player, "overall")}
                                     onChange={(e) => updatePlayer(player.id, "overall", parseInt(e.target.value) || 1)}
                                     onKeyDown={(e) => handleKeyDown(e, idx, "overall")}
@@ -462,7 +462,7 @@ export default function EditRostersPage() {
                                     type="number"
                                     min={1}
                                     max={100}
-                                    className="h-7 w-12 text-xs"
+                                    className="h-7 w-12 text-xs no-spinner"
                                     value={getPlayerValue(player, "hitForAvg") || ""}
                                     onChange={(e) => updatePlayer(player.id, "hitForAvg", parseInt(e.target.value) || null)}
                                     onKeyDown={(e) => handleKeyDown(e, idx, "hitForAvg")}
@@ -476,7 +476,7 @@ export default function EditRostersPage() {
                                     type="number"
                                     min={1}
                                     max={100}
-                                    className="h-7 w-12 text-xs"
+                                    className="h-7 w-12 text-xs no-spinner"
                                     value={getPlayerValue(player, "power") || ""}
                                     onChange={(e) => updatePlayer(player.id, "power", parseInt(e.target.value) || null)}
                                     onKeyDown={(e) => handleKeyDown(e, idx, "power")}
@@ -490,7 +490,7 @@ export default function EditRostersPage() {
                                     type="number"
                                     min={1}
                                     max={100}
-                                    className="h-7 w-12 text-xs"
+                                    className="h-7 w-12 text-xs no-spinner"
                                     value={getPlayerValue(player, "speed") || ""}
                                     onChange={(e) => updatePlayer(player.id, "speed", parseInt(e.target.value) || null)}
                                     onKeyDown={(e) => handleKeyDown(e, idx, "speed")}
@@ -504,7 +504,7 @@ export default function EditRostersPage() {
                                     type="number"
                                     min={1}
                                     max={100}
-                                    className="h-7 w-12 text-xs"
+                                    className="h-7 w-12 text-xs no-spinner"
                                     value={getPlayerValue(player, "arm") || ""}
                                     onChange={(e) => updatePlayer(player.id, "arm", parseInt(e.target.value) || null)}
                                     onKeyDown={(e) => handleKeyDown(e, idx, "arm")}
@@ -518,7 +518,7 @@ export default function EditRostersPage() {
                                     type="number"
                                     min={1}
                                     max={100}
-                                    className="h-7 w-12 text-xs"
+                                    className="h-7 w-12 text-xs no-spinner"
                                     value={getPlayerValue(player, "fielding") || ""}
                                     onChange={(e) => updatePlayer(player.id, "fielding", parseInt(e.target.value) || null)}
                                     onKeyDown={(e) => handleKeyDown(e, idx, "fielding")}
@@ -533,7 +533,7 @@ export default function EditRostersPage() {
                                     type="number"
                                     min={82}
                                     max={102}
-                                    className="h-7 w-12 text-xs"
+                                    className="h-7 w-12 text-xs no-spinner"
                                     value={getPlayerValue(player, "velocity") || ""}
                                     onChange={(e) => updatePlayer(player.id, "velocity", parseInt(e.target.value) || null)}
                                     onKeyDown={(e) => handleKeyDown(e, idx, "velocity")}
@@ -547,7 +547,7 @@ export default function EditRostersPage() {
                                     type="number"
                                     min={1}
                                     max={100}
-                                    className="h-7 w-12 text-xs"
+                                    className="h-7 w-12 text-xs no-spinner"
                                     value={getPlayerValue(player, "control") || ""}
                                     onChange={(e) => updatePlayer(player.id, "control", parseInt(e.target.value) || null)}
                                     onKeyDown={(e) => handleKeyDown(e, idx, "control")}
@@ -561,7 +561,7 @@ export default function EditRostersPage() {
                                     type="number"
                                     min={1}
                                     max={100}
-                                    className="h-7 w-12 text-xs"
+                                    className="h-7 w-12 text-xs no-spinner"
                                     value={getPlayerValue(player, "stamina") || ""}
                                     onChange={(e) => updatePlayer(player.id, "stamina", parseInt(e.target.value) || null)}
                                     onKeyDown={(e) => handleKeyDown(e, idx, "stamina")}
