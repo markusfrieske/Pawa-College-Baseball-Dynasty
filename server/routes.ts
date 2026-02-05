@@ -6,6 +6,7 @@ import bcrypt from "bcrypt";
 import { z } from "zod";
 import { randomUUID } from "crypto";
 import { getRandomAbilities } from "@shared/abilities";
+import type { Player, TransferPortalInterest } from "@shared/schema";
 
 declare module "express-session" {
   interface SessionData {
@@ -1334,7 +1335,7 @@ export async function registerRoutes(
       }
 
       // Get all players for all teams
-      const allPlayers: (typeof players.$inferSelect)[] = [];
+      const allPlayers: Player[] = [];
       for (const team of teams) {
         const teamPlayers = await storage.getPlayersByTeam(team.id);
         allPlayers.push(...teamPlayers);
@@ -1392,7 +1393,7 @@ export async function registerRoutes(
       const coaches = await storage.getCoachesByLeague(req.params.id);
       const userCoach = coaches.find(c => c.userId === req.session.userId);
       
-      let myInterests: Record<string, typeof portalInterests[0]> = {};
+      let myInterests: Record<string, TransferPortalInterest> = {};
       if (userCoach?.teamId) {
         const portalInterests = await storage.getTransferPortalInterestsByTeam(userCoach.teamId);
         myInterests = Object.fromEntries(portalInterests.map(i => [i.playerId, i]));
@@ -1967,8 +1968,8 @@ export async function registerRoutes(
         return res.status(404).json({ message: "League not found" });
       }
 
-      const coaches = await storage.getCoaches(league.id);
-      const userCoach = coaches.find(c => c.userId === req.session.userId);
+      const coaches = await storage.getCoachesByLeague(league.id);
+      const userCoach = coaches.find((c: { userId: string | null }) => c.userId === req.session.userId);
       if (!userCoach) {
         return res.status(403).json({ message: "You don't have a coach in this league" });
       }
