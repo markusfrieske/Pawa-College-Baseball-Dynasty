@@ -14,8 +14,8 @@ import { TeamBadge } from "@/components/ui/team-badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { LeagueLayout } from "@/components/league-layout";
 import { 
+  ArrowLeft, 
   Users, 
   Filter,
   Eye,
@@ -149,50 +149,48 @@ export default function RosterPage() {
   const allSorted = [...filteredPlayers].sort((a, b) => b.starRating - a.starRating || b.overall - a.overall);
 
   if (isLoading) {
-    return (
-      <LeagueLayout leagueId={id || ""}>
-        <RosterSkeleton />
-      </LeagueLayout>
-    );
+    return <RosterSkeleton />;
   }
 
   return (
-    <LeagueLayout leagueId={id || ""}>
-      <div className="min-h-screen bg-background">
-        <header className="border-b border-border sticky top-0 bg-background z-10">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center gap-4">
-              <h1 className="font-pixel text-gold text-lg">
-                {data?.team ? `${data.team.name} Roster` : 'Roster'}
-              </h1>
-              <div className="ml-auto flex items-center gap-4">
-                {leagueData?.teams && leagueData.teams.length > 1 && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground">View:</span>
-                    <select
-                      value={viewingTeamId || ""}
-                      onChange={(e) => setViewingTeamId(e.target.value || null)}
-                      className="bg-card border border-border rounded px-2 py-1 text-sm focus:outline-none focus:border-gold"
-                      data-testid="select-view-roster"
-                    >
-                      <option value="" className="bg-forest-card">My Team</option>
-                      {leagueData.teams.map(t => (
-                        <option key={t.id} value={t.id} className="bg-forest-card">
-                          {t.name} ({t.abbreviation})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-                <span className="text-sm text-muted-foreground">
-                  {data?.players.length || 0} Players
-                </span>
-              </div>
+    <div className="min-h-screen bg-background">
+      <header className="border-b border-border sticky top-0 bg-background z-10">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center gap-4 mb-4">
+            <Link href={`/league/${id}`} className="text-muted-foreground hover:text-gold transition-colors">
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
+            <h1 className="font-pixel text-gold text-lg">
+              {data?.team ? `${data.team.name} Roster` : 'Roster'}
+            </h1>
+            <div className="ml-auto flex items-center gap-4">
+              {leagueData?.teams && leagueData.teams.length > 1 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">View:</span>
+                  <select
+                    value={viewingTeamId || ""}
+                    onChange={(e) => setViewingTeamId(e.target.value || null)}
+                    className="bg-card border border-border rounded px-2 py-1 text-sm focus:outline-none focus:border-gold"
+                    data-testid="select-view-roster"
+                  >
+                    <option value="" className="bg-forest-card">My Team</option>
+                    {leagueData.teams.map(t => (
+                      <option key={t.id} value={t.id} className="bg-forest-card">
+                        {t.name} ({t.abbreviation})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <span className="text-sm text-muted-foreground">
+                {data?.players.length || 0} Players
+              </span>
             </div>
           </div>
-        </header>
+        </div>
+      </header>
 
-        <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-4 py-6">
         <RetroCard className="mb-6">
           <div className="flex flex-wrap gap-4 items-center">
             <RetroSelect
@@ -1037,6 +1035,6 @@ function DepthChartView({ players, onSelectPlayer, teamPrimaryColor }: { players
           </div>
         </div>
       </div>
-    </LeagueLayout>
+    </div>
   );
 }
