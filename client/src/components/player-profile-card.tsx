@@ -33,7 +33,6 @@ interface Player {
   velocity?: number | null;
   control?: number | null;
   stamina?: number | null;
-  stuff?: number | null;
   // Common abilities (letter grade based)
   clutch?: number | null;
   vsLHP?: number | null;
@@ -116,7 +115,6 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
     { label: "Velocity", value: player.velocity },
     { label: "Control", value: player.control },
     { label: "Stamina", value: player.stamina },
-    { label: "Stuff", value: player.stuff },
   ];
 
   // Common abilities for fielders (displayed as letter grades G-A)

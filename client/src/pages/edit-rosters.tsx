@@ -265,7 +265,6 @@ export default function EditRostersPage() {
                             <th className="px-2 py-2 text-xs font-pixel text-gold">VELO</th>
                             <th className="px-2 py-2 text-xs font-pixel text-gold">CTRL</th>
                             <th className="px-2 py-2 text-xs font-pixel text-gold">STAM</th>
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">STUFF</th>
                             <th className="px-2 py-2 text-xs font-pixel text-gold">FB</th>
                             <th className="px-2 py-2 text-xs font-pixel text-gold">2S</th>
                             <th className="px-2 py-2 text-xs font-pixel text-gold">SL</th>
@@ -422,12 +421,12 @@ export default function EditRostersPage() {
                                     onChange={(e) => updatePlayer(player.id, "homeState", e.target.value.toUpperCase())}
                                   />
                                 </td>
-                                {/* Fielder Attributes */}
+                                {/* Fielder Attributes (1-100 scale) */}
                                 <td className="px-2 py-1">
                                   <Input
                                     type="number"
                                     min={1}
-                                    max={99}
+                                    max={100}
                                     className="h-7 w-12 text-xs"
                                     value={getPlayerValue(player, "hitForAvg") || ""}
                                     onChange={(e) => updatePlayer(player.id, "hitForAvg", parseInt(e.target.value) || null)}
@@ -438,7 +437,7 @@ export default function EditRostersPage() {
                                   <Input
                                     type="number"
                                     min={1}
-                                    max={99}
+                                    max={100}
                                     className="h-7 w-12 text-xs"
                                     value={getPlayerValue(player, "power") || ""}
                                     onChange={(e) => updatePlayer(player.id, "power", parseInt(e.target.value) || null)}
@@ -449,7 +448,7 @@ export default function EditRostersPage() {
                                   <Input
                                     type="number"
                                     min={1}
-                                    max={99}
+                                    max={100}
                                     className="h-7 w-12 text-xs"
                                     value={getPlayerValue(player, "speed") || ""}
                                     onChange={(e) => updatePlayer(player.id, "speed", parseInt(e.target.value) || null)}
@@ -460,7 +459,7 @@ export default function EditRostersPage() {
                                   <Input
                                     type="number"
                                     min={1}
-                                    max={99}
+                                    max={100}
                                     className="h-7 w-12 text-xs"
                                     value={getPlayerValue(player, "arm") || ""}
                                     onChange={(e) => updatePlayer(player.id, "arm", parseInt(e.target.value) || null)}
@@ -471,19 +470,19 @@ export default function EditRostersPage() {
                                   <Input
                                     type="number"
                                     min={1}
-                                    max={99}
+                                    max={100}
                                     className="h-7 w-12 text-xs"
                                     value={getPlayerValue(player, "fielding") || ""}
                                     onChange={(e) => updatePlayer(player.id, "fielding", parseInt(e.target.value) || null)}
                                     disabled={isPitcher}
                                   />
                                 </td>
-                                {/* Pitcher Attributes */}
+                                {/* Pitcher Attributes (Velocity: 82-102 MPH, Control/Stamina: 1-100) */}
                                 <td className="px-2 py-1">
                                   <Input
                                     type="number"
-                                    min={1}
-                                    max={99}
+                                    min={82}
+                                    max={102}
                                     className="h-7 w-12 text-xs"
                                     value={getPlayerValue(player, "velocity") || ""}
                                     onChange={(e) => updatePlayer(player.id, "velocity", parseInt(e.target.value) || null)}
@@ -494,7 +493,7 @@ export default function EditRostersPage() {
                                   <Input
                                     type="number"
                                     min={1}
-                                    max={99}
+                                    max={100}
                                     className="h-7 w-12 text-xs"
                                     value={getPlayerValue(player, "control") || ""}
                                     onChange={(e) => updatePlayer(player.id, "control", parseInt(e.target.value) || null)}
@@ -505,21 +504,10 @@ export default function EditRostersPage() {
                                   <Input
                                     type="number"
                                     min={1}
-                                    max={99}
+                                    max={100}
                                     className="h-7 w-12 text-xs"
                                     value={getPlayerValue(player, "stamina") || ""}
                                     onChange={(e) => updatePlayer(player.id, "stamina", parseInt(e.target.value) || null)}
-                                    disabled={!isPitcher}
-                                  />
-                                </td>
-                                <td className="px-2 py-1">
-                                  <Input
-                                    type="number"
-                                    min={1}
-                                    max={99}
-                                    className="h-7 w-12 text-xs"
-                                    value={getPlayerValue(player, "stuff") || ""}
-                                    onChange={(e) => updatePlayer(player.id, "stuff", parseInt(e.target.value) || null)}
                                     disabled={!isPitcher}
                                   />
                                 </td>

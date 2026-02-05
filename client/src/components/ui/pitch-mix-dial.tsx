@@ -82,12 +82,10 @@ export function generatePitchMixForDial(player: {
   position: string;
   velocity?: number | null;
   control?: number | null;
-  stuff?: number | null;
   starRating?: number | null;
 }): { name: string; rating: number }[] {
   if (player.position !== "P") return [];
   
-  const stuff = player.stuff || 50;
   const velocity = player.velocity || 50;
   const control = player.control || 50;
   const starRating = player.starRating || 3;
@@ -140,13 +138,13 @@ export function generatePitchMixForDial(player: {
     if (pitch === "CB") {
       rating = attrToRating(control);
     } else if (pitch === "SL") {
-      rating = attrToRating(stuff);
+      rating = attrToRating((velocity + control) / 2);
     } else if (pitch === "CH") {
-      rating = attrToRating((stuff + control) / 2);
+      rating = attrToRating(control);
     } else if (pitch === "CT" || pitch === "2FB") {
       rating = attrToRating(velocity);
     } else {
-      rating = attrToRating((velocity + stuff + control) / 3);
+      rating = attrToRating((velocity + control) / 2);
     }
     
     result.push({ name: pitch, rating });
@@ -160,7 +158,7 @@ export function generatePitchMixForDial(player: {
     const skilledCount = numPitches - result.length;
     for (let i = 0; i < skilledCount && i < shuffledSkilled.length; i++) {
       const pitch = shuffledSkilled[i];
-      const rating = attrToRating(stuff);
+      const rating = attrToRating(control);
       result.push({ name: pitch, rating });
     }
   }
@@ -170,7 +168,7 @@ export function generatePitchMixForDial(player: {
     if (nextCommonIdx < shuffledCommon.length) {
       const pitch = shuffledCommon[nextCommonIdx];
       if (!result.find(p => p.name === pitch)) {
-        const rating = attrToRating((velocity + stuff) / 2);
+        const rating = attrToRating((velocity + control) / 2);
         result.push({ name: pitch, rating });
       }
     } else {

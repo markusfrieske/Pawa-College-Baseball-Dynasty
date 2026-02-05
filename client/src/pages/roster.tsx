@@ -463,7 +463,6 @@ function PlayerEditModal({ player, open, onClose, onSave, isSaving }: PlayerEdit
     velocity: player.velocity || 50,
     control: player.control || 50,
     stamina: player.stamina || 50,
-    stuff: player.stuff || 50,
     wRISP: player.wRISP || 50,
     vsLefty: player.vsLefty || 50,
     poise: player.poise || 50,
@@ -697,10 +696,6 @@ function PlayerEditModal({ player, open, onClose, onSave, isSaving }: PlayerEdit
                     <div>
                       <label className="text-xs text-muted-foreground">Stamina</label>
                       <RetroInput type="number" min={1} max={99} value={formData.stamina} onChange={(e) => setFormData({ ...formData, stamina: parseInt(e.target.value) || 50 })} />
-                    </div>
-                    <div>
-                      <label className="text-xs text-muted-foreground">Stuff</label>
-                      <RetroInput type="number" min={1} max={99} value={formData.stuff} onChange={(e) => setFormData({ ...formData, stuff: parseInt(e.target.value) || 50 })} />
                     </div>
                   </div>
                 </>

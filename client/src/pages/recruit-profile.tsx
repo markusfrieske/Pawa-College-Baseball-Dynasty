@@ -457,6 +457,20 @@ export default function RecruitProfilePage() {
               </RetroCard>
             </div>
 
+            {/* Pitch Mix Section (Pitchers Only) */}
+            {checkIsPitcher(recruit.position) && (
+              <RetroCard>
+                <RetroCardHeader>Pitch Mix</RetroCardHeader>
+                <RetroCardContent>
+                  <RecruitPitchMixSection 
+                    recruit={recruit}
+                    scoutPct={scoutPct}
+                    isFullyRevealed={isFullyRevealed}
+                  />
+                </RetroCardContent>
+              </RetroCard>
+            )}
+
             {/* Common Abilities Section */}
             <RetroCard>
               <RetroCardHeader>Common Abilities</RetroCardHeader>
@@ -749,7 +763,6 @@ function RecruitEditModal({ recruit, open, onClose, onSave, isSaving }: RecruitE
     velocity: recruit.velocity || 50,
     control: recruit.control || 50,
     stamina: recruit.stamina || 50,
-    stuff: recruit.stuff || 50,
     wRISP: recruit.wRISP || 50,
     vsLefty: recruit.vsLefty || 50,
     poise: recruit.poise || 50,
@@ -941,10 +954,6 @@ function RecruitEditModal({ recruit, open, onClose, onSave, isSaving }: RecruitE
                     <div>
                       <label className="text-xs text-muted-foreground">Stamina</label>
                       <RetroInput type="number" min={1} max={99} value={formData.stamina} onChange={(e) => setFormData({ ...formData, stamina: parseInt(e.target.value) || 50 })} />
-                    </div>
-                    <div>
-                      <label className="text-xs text-muted-foreground">Stuff</label>
-                      <RetroInput type="number" min={1} max={99} value={formData.stuff} onChange={(e) => setFormData({ ...formData, stuff: parseInt(e.target.value) || 50 })} />
                     </div>
                   </div>
                 </>
@@ -1177,8 +1186,7 @@ function RecruitAttributesSection({
           {renderAttribute("Velocity", recruit.velocity, 15)}
           {renderAttribute("Control", recruit.control, 30)}
           {renderAttribute("Stamina", recruit.stamina, 50)}
-          {renderAttribute("Stuff", recruit.stuff, 75)}
-          {renderAttribute("Fielding", recruit.fielding, 100)}
+          {renderAttribute("Fielding", recruit.fielding, 75)}
         </>
       ) : (
         <>
@@ -1249,6 +1257,78 @@ function RecruitCommonAbilitiesSection({
           {isCatcher && renderAbility("Catcher", recruit.catcherAbility, 95)}
         </>
       )}
+    </div>
+  );
+}
+
+function RecruitPitchMixSection({ 
+  recruit, 
+  scoutPct,
+  isFullyRevealed 
+}: { 
+  recruit: RecruitWithInterest; 
+  scoutPct: number;
+  isFullyRevealed: boolean;
+}) {
+  const pitchTypes = [
+    { key: "pitchFB", label: "Fastball (FB)", threshold: 25 },
+    { key: "pitch2S", label: "2-Seam (2S)", threshold: 30 },
+    { key: "pitchSL", label: "Slider (SL)", threshold: 40 },
+    { key: "pitchCB", label: "Curveball (CB)", threshold: 50 },
+    { key: "pitchCH", label: "Changeup (CH)", threshold: 60 },
+    { key: "pitchCT", label: "Cutter (CT)", threshold: 70 },
+    { key: "pitchSNK", label: "Sinker (SNK)", threshold: 80 },
+    { key: "pitchSPL", label: "Splitter (SPL)", threshold: 90 },
+  ] as const;
+  
+  const shouldRevealPitch = (threshold: number) => {
+    return isFullyRevealed || scoutPct >= threshold;
+  };
+  
+  const renderPitch = (key: string, label: string, threshold: number) => {
+    const isRevealed = shouldRevealPitch(threshold);
+    const value = recruit[key as keyof typeof recruit] as number | null | undefined;
+    const displayValue = isRevealed ? (value || 0) : null;
+    
+    if (!isRevealed) {
+      return (
+        <div key={key} className="flex items-center justify-between p-2 bg-muted/30 rounded">
+          <span className="text-sm text-muted-foreground">{label}</span>
+          <span className="text-sm text-muted-foreground">???</span>
+        </div>
+      );
+    }
+    
+    if (displayValue === 0) {
+      return (
+        <div key={key} className="flex items-center justify-between p-2 bg-muted/30 rounded opacity-50">
+          <span className="text-sm text-muted-foreground">{label}</span>
+          <span className="text-sm text-muted-foreground">-</span>
+        </div>
+      );
+    }
+    
+    return (
+      <div key={key} className="flex items-center justify-between p-2 bg-muted/30 rounded">
+        <span className="text-sm text-foreground">{label}</span>
+        <div className="flex items-center gap-2">
+          <div className="flex gap-0.5">
+            {[1, 2, 3, 4, 5, 6, 7].map(n => (
+              <div 
+                key={n}
+                className={`w-2 h-4 rounded-sm ${n <= (displayValue ?? 0) ? 'bg-gold' : 'bg-muted'}`}
+              />
+            ))}
+          </div>
+          <span className="text-sm font-bold text-gold w-4 text-right">{displayValue ?? 0}</span>
+        </div>
+      </div>
+    );
+  };
+  
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      {pitchTypes.map(({ key, label, threshold }) => renderPitch(key, label, threshold))}
     </div>
   );
 }

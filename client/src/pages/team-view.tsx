@@ -855,7 +855,6 @@ function PlayerEditModal({ player, open, onClose, onSave, isSaving }: PlayerEdit
     velocity: player.velocity || 50,
     control: player.control || 50,
     stamina: player.stamina || 50,
-    stuff: player.stuff || 50,
   });
 
   const isPlayerPitcher = isPitcher(player.position);
@@ -934,17 +933,6 @@ function PlayerEditModal({ player, open, onClose, onSave, isSaving }: PlayerEdit
                     value={formData.stamina}
                     onChange={(e) => setFormData({ ...formData, stamina: parseInt(e.target.value) || 50 })}
                     data-testid="input-stamina"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-muted-foreground">Stuff</label>
-                  <RetroInput
-                    type="number"
-                    min={1}
-                    max={99}
-                    value={formData.stuff}
-                    onChange={(e) => setFormData({ ...formData, stuff: parseInt(e.target.value) || 50 })}
-                    data-testid="input-stuff"
                   />
                 </div>
               </div>

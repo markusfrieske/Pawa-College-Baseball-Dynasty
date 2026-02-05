@@ -85,7 +85,7 @@ A league-first, story-driven college baseball dynasty simulator where human coac
 ### Player Profile Card Structure
 Player cards display 4 distinct sections:
 1. **Name/Bio/Details**: Portrait, position badge, star rating, name, eligibility, bats/throws, hometown, overall rating
-2. **Attributes (Numeric)**: For fielders: Contact, Power, Speed, Arm, Fielding, Error Resist. For pitchers: Velocity, Control, Stamina, Stuff + Pitch Mix
+2. **Attributes (Numeric)**: For fielders: Contact, Power, Speed, Arm, Fielding, Error Resist. For pitchers: Velocity, Control, Stamina + Pitch Mix
 3. **Common Abilities (Letter Grades G-A)**: 
    - Fielders: Clutch, vs LHP, Grit, Stealing, Running, Throwing, Recovery, Catcher (for C only)
    - Pitchers: W/RISP, vs Lefty, Poise, Grit, Heater, Agile, Recovery

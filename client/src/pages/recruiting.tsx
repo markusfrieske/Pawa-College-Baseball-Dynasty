@@ -1147,7 +1147,7 @@ function RecruitDetailModal({
   // Blue chips have all ratings revealed automatically
   const isFullyRevealed = recruit.isBlueChip || scoutPct >= 100;
   const revealedAttrs = recruit.isBlueChip 
-    ? ["hitForAvg", "power", "speed", "arm", "fielding", "errorResistance", "velocity", "control", "stamina", "stuff"]
+    ? ["hitForAvg", "power", "speed", "arm", "fielding", "errorResistance", "velocity", "control", "stamina"]
     : (recruit.interest?.revealedAttributes || []);
 
   // Progressive reveal display functions for modal
@@ -1183,7 +1183,6 @@ function RecruitDetailModal({
     { key: "velocity", label: "Velocity", value: recruit.velocity },
     { key: "control", label: "Control", value: recruit.control },
     { key: "stamina", label: "Stamina", value: recruit.stamina },
-    { key: "stuff", label: "Stuff", value: recruit.stuff },
   ];
 
   const attrs = recruit.position === "P" ? pitcherAttrs : fielderAttrs;
@@ -1201,9 +1200,9 @@ function RecruitDetailModal({
     if (recruit.position !== "P") return [];
     const basePitches = [
       { name: "FB", rating: isFullyRevealed || revealedAttrs.includes("velocity") ? Math.min(99, (recruit.velocity || 50) + 20) : 0 },
-      { name: "SL", rating: isFullyRevealed || revealedAttrs.includes("stuff") ? Math.floor((recruit.stuff || 0) * 0.8) : 0 },
+      { name: "SL", rating: isFullyRevealed || revealedAttrs.includes("control") ? Math.floor((recruit.control || 0) * 0.8) : 0 },
       { name: "CB", rating: isFullyRevealed || revealedAttrs.includes("control") ? Math.floor((recruit.control || 0) * 0.7) : 0 },
-      { name: "CH", rating: isFullyRevealed || revealedAttrs.includes("stuff") ? Math.floor((recruit.stuff || 0) * 0.6) : 0 },
+      { name: "CH", rating: isFullyRevealed || revealedAttrs.includes("control") ? Math.floor((recruit.control || 0) * 0.6) : 0 },
       { name: "CT", rating: 0 },
       { name: "SNK", rating: 0 },
     ];

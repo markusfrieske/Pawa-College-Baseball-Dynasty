@@ -405,7 +405,7 @@ function ActionsTab({
                 <span className="text-gold">Basic:</span> hometown, starRating, recruitType, throwHand, batHand<br/>
                 <span className="text-gold">Fielder Attrs:</span> contact, power, speed, arm, fielding, errorResistance<br/>
                 <span className="text-gold">Fielder Abilities:</span> clutch, vsLHP, grit, stealing, running, throwing, recovery, catcherAbility<br/>
-                <span className="text-gold">Pitcher Attrs:</span> velocity, control, stamina, stuff<br/>
+                <span className="text-gold">Pitcher Attrs:</span> velocity, control, stamina<br/>
                 <span className="text-gold">Pitcher Abilities:</span> wRISP, vsLefty, poise, heater, agile, recovery<br/>
                 <span className="text-gold">Priorities:</span> proximity, reputation, playingTime, academics, prestige, facilities (Not/Somewhat/Very/Extremely)<br/>
                 <span className="text-gold">Special:</span> abilities (comma-separated), isBlueChip, isGem, isBust<br/>

@@ -239,7 +239,6 @@ export default function EditRecruitsPage() {
                     <th className="px-2 py-2 text-xs font-pixel text-gold">VELO</th>
                     <th className="px-2 py-2 text-xs font-pixel text-gold">CTRL</th>
                     <th className="px-2 py-2 text-xs font-pixel text-gold">STAM</th>
-                    <th className="px-2 py-2 text-xs font-pixel text-gold">STUFF</th>
                     <th className="px-2 py-2 text-xs font-pixel text-gold">FB</th>
                     <th className="px-2 py-2 text-xs font-pixel text-gold">2S</th>
                     <th className="px-2 py-2 text-xs font-pixel text-gold">SL</th>
@@ -426,12 +425,12 @@ export default function EditRecruitsPage() {
                             onChange={(e) => updateRecruit(recruit.id, "homeState", e.target.value.toUpperCase())}
                           />
                         </td>
-                        {/* Fielder Attributes */}
+                        {/* Fielder Attributes (1-100 scale) */}
                         <td className="px-2 py-1">
                           <Input
                             type="number"
                             min={1}
-                            max={99}
+                            max={100}
                             className="h-7 w-10 text-xs"
                             value={getRecruitValue(recruit, "hitForAvg") || ""}
                             onChange={(e) => updateRecruit(recruit.id, "hitForAvg", parseInt(e.target.value) || null)}
@@ -442,7 +441,7 @@ export default function EditRecruitsPage() {
                           <Input
                             type="number"
                             min={1}
-                            max={99}
+                            max={100}
                             className="h-7 w-10 text-xs"
                             value={getRecruitValue(recruit, "power") || ""}
                             onChange={(e) => updateRecruit(recruit.id, "power", parseInt(e.target.value) || null)}
@@ -453,7 +452,7 @@ export default function EditRecruitsPage() {
                           <Input
                             type="number"
                             min={1}
-                            max={99}
+                            max={100}
                             className="h-7 w-10 text-xs"
                             value={getRecruitValue(recruit, "speed") || ""}
                             onChange={(e) => updateRecruit(recruit.id, "speed", parseInt(e.target.value) || null)}
@@ -464,7 +463,7 @@ export default function EditRecruitsPage() {
                           <Input
                             type="number"
                             min={1}
-                            max={99}
+                            max={100}
                             className="h-7 w-10 text-xs"
                             value={getRecruitValue(recruit, "arm") || ""}
                             onChange={(e) => updateRecruit(recruit.id, "arm", parseInt(e.target.value) || null)}
@@ -475,19 +474,19 @@ export default function EditRecruitsPage() {
                           <Input
                             type="number"
                             min={1}
-                            max={99}
+                            max={100}
                             className="h-7 w-10 text-xs"
                             value={getRecruitValue(recruit, "fielding") || ""}
                             onChange={(e) => updateRecruit(recruit.id, "fielding", parseInt(e.target.value) || null)}
                             disabled={isPitcher}
                           />
                         </td>
-                        {/* Pitcher Attributes */}
+                        {/* Pitcher Attributes (Velocity: 82-102 MPH, Control/Stamina: 1-100) */}
                         <td className="px-2 py-1">
                           <Input
                             type="number"
-                            min={1}
-                            max={99}
+                            min={82}
+                            max={102}
                             className="h-7 w-10 text-xs"
                             value={getRecruitValue(recruit, "velocity") || ""}
                             onChange={(e) => updateRecruit(recruit.id, "velocity", parseInt(e.target.value) || null)}
@@ -498,7 +497,7 @@ export default function EditRecruitsPage() {
                           <Input
                             type="number"
                             min={1}
-                            max={99}
+                            max={100}
                             className="h-7 w-10 text-xs"
                             value={getRecruitValue(recruit, "control") || ""}
                             onChange={(e) => updateRecruit(recruit.id, "control", parseInt(e.target.value) || null)}
@@ -509,38 +508,45 @@ export default function EditRecruitsPage() {
                           <Input
                             type="number"
                             min={1}
-                            max={99}
+                            max={100}
                             className="h-7 w-10 text-xs"
                             value={getRecruitValue(recruit, "stamina") || ""}
                             onChange={(e) => updateRecruit(recruit.id, "stamina", parseInt(e.target.value) || null)}
                             disabled={!isPitcher}
                           />
                         </td>
+                        {/* Pitch Mix (0-7 dropdowns) */}
                         <td className="px-2 py-1">
-                          <Input
-                            type="number"
-                            min={1}
-                            max={99}
-                            className="h-7 w-10 text-xs"
-                            value={getRecruitValue(recruit, "stuff") || ""}
-                            onChange={(e) => updateRecruit(recruit.id, "stuff", parseInt(e.target.value) || null)}
+                          <Select
+                            value={String(getRecruitValue(recruit, "pitchFB") || 0)}
+                            onValueChange={(v) => updateRecruit(recruit.id, "pitchFB", parseInt(v))}
                             disabled={!isPitcher}
-                          />
+                          >
+                            <SelectTrigger className="h-7 w-10 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[0, 1, 2, 3, 4, 5, 6, 7].map(n => (
+                                <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </td>
-                        {/* Pitch Mix */}
-                        <td className="px-2 py-1 text-center">
-                          <Checkbox
-                            checked={getRecruitValue(recruit, "pitchFB") === 1}
-                            onCheckedChange={(c) => updateRecruit(recruit.id, "pitchFB", c ? 1 : 0)}
+                        <td className="px-2 py-1">
+                          <Select
+                            value={String(getRecruitValue(recruit, "pitch2S") || 0)}
+                            onValueChange={(v) => updateRecruit(recruit.id, "pitch2S", parseInt(v))}
                             disabled={!isPitcher}
-                          />
-                        </td>
-                        <td className="px-2 py-1 text-center">
-                          <Checkbox
-                            checked={getRecruitValue(recruit, "pitch2S") === 1}
-                            onCheckedChange={(c) => updateRecruit(recruit.id, "pitch2S", c ? 1 : 0)}
-                            disabled={!isPitcher}
-                          />
+                          >
+                            <SelectTrigger className="h-7 w-10 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {[0, 1, 2, 3, 4, 5, 6, 7].map(n => (
+                                <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </td>
                         <td className="px-2 py-1">
                           <Select
