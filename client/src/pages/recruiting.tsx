@@ -224,12 +224,17 @@ export default function RecruitingPage() {
   });
 
   const phoneMutation = useMutation({
-    mutationFn: async (recruitId: string) => {
-      return apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/phone`, {});
+    mutationFn: async ({ recruitId, pitchTopic }: { recruitId: string; pitchTopic?: string }) => {
+      return apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/phone`, { pitchTopic });
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
-      toast({ title: "Phone Call Made", description: "Interest level increased!" });
+      const gain = data.interestGain || 0;
+      const match = data.matchLevel || "Somewhat";
+      toast({ 
+        title: "Phone Call Made", 
+        description: `+${gain}% interest (${match} priority match)` 
+      });
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -237,12 +242,34 @@ export default function RecruitingPage() {
   });
 
   const emailMutation = useMutation({
-    mutationFn: async (recruitId: string) => {
-      return apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/email`, {});
+    mutationFn: async ({ recruitId, pitchTopic }: { recruitId: string; pitchTopic?: string }) => {
+      return apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/email`, { pitchTopic });
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
-      toast({ title: "Email Sent", description: "Interest level increased!" });
+      const gain = data.interestGain || 0;
+      const match = data.matchLevel || "Somewhat";
+      toast({ 
+        title: "Email Sent", 
+        description: `+${gain}% interest (${match} priority match)` 
+      });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const visitMutation = useMutation({
+    mutationFn: async (recruitId: string) => {
+      return apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/visit`, {});
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
+      const gain = data.interestGain || 0;
+      toast({ 
+        title: "Campus Visit Scheduled", 
+        description: `+${gain}% interest from visit!` 
+      });
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -253,9 +280,10 @@ export default function RecruitingPage() {
     mutationFn: async (recruitId: string) => {
       return apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/offer`, {});
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
-      toast({ title: "Scholarship Offered", description: "Major interest boost!" });
+      const gain = data.interestGain || 0;
+      toast({ title: "Scholarship Offered", description: `+${gain}% interest from offer!` });
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -530,8 +558,9 @@ export default function RecruitingPage() {
               leagueId={id!}
               onTarget={() => targetMutation.mutate(recruit.id)}
               onScout={() => scoutMutation.mutate(recruit.id)}
-              onPhone={() => phoneMutation.mutate(recruit.id)}
-              onEmail={() => emailMutation.mutate(recruit.id)}
+              onPhone={(pitchTopic?: string) => phoneMutation.mutate({ recruitId: recruit.id, pitchTopic })}
+              onEmail={(pitchTopic?: string) => emailMutation.mutate({ recruitId: recruit.id, pitchTopic })}
+              onVisit={() => visitMutation.mutate(recruit.id)}
               onOffer={() => offerMutation.mutate(recruit.id)}
               onSaveNotes={(notes) => notesMutation.mutate({ recruitId: recruit.id, notes })}
               onToggleCompare={() => toggleCompare(recruit)}
@@ -539,6 +568,7 @@ export default function RecruitingPage() {
               isScouting={scoutMutation.isPending}
               isPhoning={phoneMutation.isPending}
               isEmailing={emailMutation.isPending}
+              isVisiting={visitMutation.isPending}
               isOffering={offerMutation.isPending}
               isSavingNotes={notesMutation.isPending}
               isSelected={compareRecruits.some(r => r.id === recruit.id)}
@@ -581,10 +611,12 @@ export default function RecruitingPage() {
         leagueId={id!}
         onScout={(recruitId) => scoutMutation.mutate(recruitId)}
         isScouting={scoutMutation.isPending}
-        onPhone={(recruitId) => phoneMutation.mutate(recruitId)}
+        onPhone={(recruitId, pitchTopic) => phoneMutation.mutate({ recruitId, pitchTopic })}
         isPhoning={phoneMutation.isPending}
-        onEmail={(recruitId) => emailMutation.mutate(recruitId)}
+        onEmail={(recruitId, pitchTopic) => emailMutation.mutate({ recruitId, pitchTopic })}
         isEmailing={emailMutation.isPending}
+        onVisit={(recruitId) => visitMutation.mutate(recruitId)}
+        isVisiting={visitMutation.isPending}
         onOffer={(recruitId) => offerMutation.mutate(recruitId)}
         isOffering={offerMutation.isPending}
       />
@@ -735,6 +767,7 @@ function RecruitRow({
   onScout,
   onPhone,
   onEmail,
+  onVisit,
   onOffer,
   onSaveNotes,
   onToggleCompare,
@@ -742,6 +775,7 @@ function RecruitRow({
   isScouting,
   isPhoning,
   isEmailing,
+  isVisiting,
   isOffering,
   isSavingNotes,
   isSelected,
@@ -752,8 +786,9 @@ function RecruitRow({
   leagueId: string;
   onTarget: () => void;
   onScout: () => void;
-  onPhone: () => void;
-  onEmail: () => void;
+  onPhone: (pitchTopic?: string) => void;
+  onEmail: (pitchTopic?: string) => void;
+  onVisit: () => void;
   onOffer: () => void;
   onSaveNotes: (notes: string) => void;
   onToggleCompare: () => void;
@@ -761,6 +796,7 @@ function RecruitRow({
   isScouting: boolean;
   isPhoning: boolean;
   isEmailing: boolean;
+  isVisiting: boolean;
   isOffering: boolean;
   isSavingNotes: boolean;
   isSelected: boolean;
@@ -1126,6 +1162,8 @@ function RecruitDetailModal({
   isPhoning,
   onEmail,
   isEmailing,
+  onVisit,
+  isVisiting,
   onOffer,
   isOffering,
 }: {
@@ -1134,10 +1172,12 @@ function RecruitDetailModal({
   leagueId: string;
   onScout: (recruitId: string) => void;
   isScouting: boolean;
-  onPhone: (recruitId: string) => void;
+  onPhone: (recruitId: string, pitchTopic?: string) => void;
   isPhoning: boolean;
-  onEmail: (recruitId: string) => void;
+  onEmail: (recruitId: string, pitchTopic?: string) => void;
   isEmailing: boolean;
+  onVisit: (recruitId: string) => void;
+  isVisiting: boolean;
   onOffer: (recruitId: string) => void;
   isOffering: boolean;
 }) {
@@ -1461,6 +1501,16 @@ function RecruitDetailModal({
             >
               <Mail className="w-4 h-4 mr-2" />
               {isEmailing ? "Sending..." : "Email"}
+            </RetroButton>
+            <RetroButton 
+              variant="outline" 
+              className="flex-1" 
+              data-testid="button-visit"
+              onClick={() => onVisit(recruit.id)}
+              disabled={isVisiting}
+            >
+              <MapPin className="w-4 h-4 mr-2" />
+              {isVisiting ? "Scheduling..." : "Campus Visit"}
             </RetroButton>
             <RetroButton 
               variant="outline" 

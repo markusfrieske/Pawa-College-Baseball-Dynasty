@@ -777,33 +777,128 @@ export async function registerRoutes(
     }
   });
 
-  // Recruiting action: phone call
+  // ============ RECRUITING CALCULATION HELPERS ============
+  
+  // Calculate priority match bonus based on pitch topic and recruit priorities
+  function calculatePriorityBonus(pitchTopic: string, recruit: any, team: any): { bonus: number; matchLevel: string } {
+    const priorityMap: Record<string, string> = {
+      proximity: recruit.proximityPriority,
+      reputation: recruit.reputationPriority,
+      playingTime: recruit.playingTimePriority,
+      academics: recruit.academicsPriority,
+      prestige: recruit.prestigePriority,
+      facilities: recruit.facilitiesPriority,
+    };
+    
+    const priorityValue = priorityMap[pitchTopic] || "Somewhat";
+    
+    // Convert priority text to multiplier
+    const priorityMultipliers: Record<string, number> = {
+      "Not Important": 0.5,
+      "Somewhat": 1.0,
+      "Very": 1.5,
+      "Extremely": 2.0,
+    };
+    
+    const multiplier = priorityMultipliers[priorityValue] || 1.0;
+    return { bonus: multiplier, matchLevel: priorityValue };
+  }
+  
+  // Calculate school attribute bonus for a pitch topic
+  function calculateSchoolBonus(pitchTopic: string, team: any): number {
+    const attributeMap: Record<string, number> = {
+      proximity: 1.0, // No school attribute for proximity
+      reputation: (team.prestige || 5) / 5, // Prestige affects reputation pitch
+      playingTime: 1.0, // Playing time is situational
+      academics: (team.academics || 5) / 5,
+      prestige: (team.prestige || 5) / 5,
+      facilities: (team.facilities || 5) / 5,
+    };
+    
+    return attributeMap[pitchTopic] || 1.0;
+  }
+  
+  // Calculate coach skill bonus for recruiting action
+  function calculateCoachBonus(coach: any, recruit: any, actionType: string): number {
+    if (!coach) return 1.0;
+    
+    const isPitcher = recruit.position === "P";
+    const baseSkill = isPitcher 
+      ? (coach.pitchingRecruitingSkill || 1)
+      : (coach.hittingRecruitingSkill || 1);
+    
+    // Each skill level adds 5% effectiveness
+    return 1.0 + (baseSkill - 1) * 0.05;
+  }
+  
+  // Calculate proximity bonus based on recruit home state vs team state
+  function calculateProximityBonus(recruitState: string, teamState: string): number {
+    if (recruitState === teamState) return 1.5; // Same state
+    
+    // Regional proximity groupings
+    const regions: Record<string, string[]> = {
+      southeast: ["FL", "GA", "AL", "SC", "NC", "TN", "MS", "LA"],
+      southwest: ["TX", "AZ", "NM", "OK"],
+      midwest: ["OH", "IN", "IL", "MI", "WI", "MN", "IA", "MO", "NE", "KS"],
+      northeast: ["NY", "PA", "NJ", "MA", "CT", "MD", "VA"],
+      west: ["CA", "WA", "OR", "CO", "UT", "NV"],
+    };
+    
+    let recruitRegion = "";
+    let teamRegion = "";
+    
+    for (const [region, states] of Object.entries(regions)) {
+      if (states.includes(recruitState)) recruitRegion = region;
+      if (states.includes(teamState)) teamRegion = region;
+    }
+    
+    if (recruitRegion && recruitRegion === teamRegion) return 1.2; // Same region
+    return 1.0; // Different region
+  }
+
+  // Recruiting action: phone call with pitch topic
   app.post("/api/leagues/:id/recruiting/:recruitId/phone", requireAuth, async (req, res) => {
     try {
-      const leagueTeams = await storage.getTeamsByLeague(req.params.id);
-      const userTeam = leagueTeams.find((t) => !t.isCpu);
+      const { pitchTopic } = req.body || {}; // proximity, reputation, playingTime, academics, prestige, facilities
+      
+      const leagueTeams = await storage.getTeamsByLeague(req.params.id as string);
+      const userId = req.session.userId;
+      const coaches = await storage.getCoachesByLeague(req.params.id as string);
+      const userCoach = coaches.find((c) => c.userId === userId);
+      const userTeam = leagueTeams.find((t) => t.id === userCoach?.teamId);
       
       if (!userTeam) {
         return res.status(400).json({ message: "No team assigned" });
       }
 
-      const recruit = await storage.getRecruit(req.params.recruitId);
+      const recruit = await storage.getRecruit(req.params.recruitId as string);
       if (!recruit) {
         return res.status(404).json({ message: "Recruit not found" });
       }
 
-      const league = await storage.getLeague(req.params.id);
+      const league = await storage.getLeague(req.params.id as string);
       if (!league) {
         return res.status(404).json({ message: "League not found" });
       }
 
-      let interest = await storage.getRecruitingInterest(req.params.recruitId, userTeam.id);
+      // Calculate interest gain with modifiers
+      const baseGain = 5 + Math.floor(Math.random() * 10); // 5-14 base
+      const topic = pitchTopic || "reputation"; // Default pitch topic
       
-      const interestGain = 5 + Math.floor(Math.random() * 10);
+      const { bonus: priorityBonus, matchLevel } = calculatePriorityBonus(topic, recruit, userTeam);
+      const schoolBonus = calculateSchoolBonus(topic, userTeam);
+      const coachBonus = calculateCoachBonus(userCoach, recruit, "phone");
+      const proximityBonus = topic === "proximity" ? calculateProximityBonus(recruit.homeState, userTeam.state) : 1.0;
+      
+      // Apply all modifiers
+      const totalMultiplier = priorityBonus * schoolBonus * coachBonus * proximityBonus;
+      const interestGain = Math.round(baseGain * totalMultiplier);
+
+      let interest = await storage.getRecruitingInterest(req.params.recruitId as string, userTeam.id);
       
       if (!interest) {
         interest = await storage.createRecruitingInterest({
-          recruitId: req.params.recruitId,
+          recruitId: req.params.recruitId as string,
           teamId: userTeam.id,
           interestLevel: interestGain,
         });
@@ -814,50 +909,71 @@ export async function registerRoutes(
       }
 
       await storage.createRecruitingAction({
-        recruitId: req.params.recruitId,
+        recruitId: req.params.recruitId as string,
         teamId: userTeam.id,
-        leagueId: req.params.id,
+        leagueId: req.params.id as string,
         week: league.currentWeek,
         season: league.currentSeason,
         actionType: "phone",
         interestChange: interestGain,
-        notes: "Made a phone call",
+        notes: `Phone call about ${topic} (${matchLevel} priority, +${interestGain}%)`,
       });
 
-      res.json(interest);
+      res.json({ 
+        interest, 
+        interestGain, 
+        pitchTopic: topic, 
+        matchLevel,
+        multiplier: totalMultiplier.toFixed(2)
+      });
     } catch (error) {
       console.error("Failed to make phone call:", error);
       res.status(500).json({ message: "Failed to make phone call" });
     }
   });
 
-  // Recruiting action: email
+  // Recruiting action: email with pitch topic
   app.post("/api/leagues/:id/recruiting/:recruitId/email", requireAuth, async (req, res) => {
     try {
-      const leagueTeams = await storage.getTeamsByLeague(req.params.id);
-      const userTeam = leagueTeams.find((t) => !t.isCpu);
+      const { pitchTopic } = req.body || {};
+      
+      const leagueTeams = await storage.getTeamsByLeague(req.params.id as string);
+      const userId = req.session.userId;
+      const coaches = await storage.getCoachesByLeague(req.params.id as string);
+      const userCoach = coaches.find((c) => c.userId === userId);
+      const userTeam = leagueTeams.find((t) => t.id === userCoach?.teamId);
       
       if (!userTeam) {
         return res.status(400).json({ message: "No team assigned" });
       }
 
-      const recruit = await storage.getRecruit(req.params.recruitId);
+      const recruit = await storage.getRecruit(req.params.recruitId as string);
       if (!recruit) {
         return res.status(404).json({ message: "Recruit not found" });
       }
 
-      const league = await storage.getLeague(req.params.id);
+      const league = await storage.getLeague(req.params.id as string);
       if (!league) {
         return res.status(404).json({ message: "League not found" });
       }
 
-      let interest = await storage.getRecruitingInterest(req.params.recruitId, userTeam.id);
+      // Calculate interest gain with modifiers (email is less effective than phone)
+      const baseGain = 3 + Math.floor(Math.random() * 5); // 3-7 base
+      const topic = pitchTopic || "reputation";
       
-      const interestGain = 3 + Math.floor(Math.random() * 5);
+      const { bonus: priorityBonus, matchLevel } = calculatePriorityBonus(topic, recruit, userTeam);
+      const schoolBonus = calculateSchoolBonus(topic, userTeam);
+      const coachBonus = calculateCoachBonus(userCoach, recruit, "email");
+      const proximityBonus = topic === "proximity" ? calculateProximityBonus(recruit.homeState, userTeam.state) : 1.0;
+      
+      const totalMultiplier = priorityBonus * schoolBonus * coachBonus * proximityBonus;
+      const interestGain = Math.round(baseGain * totalMultiplier);
+
+      let interest = await storage.getRecruitingInterest(req.params.recruitId as string, userTeam.id);
       
       if (!interest) {
         interest = await storage.createRecruitingInterest({
-          recruitId: req.params.recruitId,
+          recruitId: req.params.recruitId as string,
           teamId: userTeam.id,
           interestLevel: interestGain,
         });
@@ -868,50 +984,137 @@ export async function registerRoutes(
       }
 
       await storage.createRecruitingAction({
-        recruitId: req.params.recruitId,
+        recruitId: req.params.recruitId as string,
         teamId: userTeam.id,
-        leagueId: req.params.id,
+        leagueId: req.params.id as string,
         week: league.currentWeek,
         season: league.currentSeason,
         actionType: "email",
         interestChange: interestGain,
-        notes: "Sent an email",
+        notes: `Email about ${topic} (${matchLevel} priority, +${interestGain}%)`,
       });
 
-      res.json(interest);
+      res.json({ 
+        interest, 
+        interestGain, 
+        pitchTopic: topic, 
+        matchLevel,
+        multiplier: totalMultiplier.toFixed(2)
+      });
     } catch (error) {
       console.error("Failed to send email:", error);
       res.status(500).json({ message: "Failed to send email" });
+    }
+  });
+  
+  // Recruiting action: campus visit (high value, limited uses)
+  app.post("/api/leagues/:id/recruiting/:recruitId/visit", requireAuth, async (req, res) => {
+    try {
+      const leagueTeams = await storage.getTeamsByLeague(req.params.id as string);
+      const userId = req.session.userId;
+      const coaches = await storage.getCoachesByLeague(req.params.id as string);
+      const userCoach = coaches.find((c) => c.userId === userId);
+      const userTeam = leagueTeams.find((t) => t.id === userCoach?.teamId);
+      
+      if (!userTeam) {
+        return res.status(400).json({ message: "No team assigned" });
+      }
+
+      const recruit = await storage.getRecruit(req.params.recruitId as string);
+      if (!recruit) {
+        return res.status(404).json({ message: "Recruit not found" });
+      }
+
+      const league = await storage.getLeague(req.params.id as string);
+      if (!league) {
+        return res.status(404).json({ message: "League not found" });
+      }
+
+      // Campus visits give huge bonuses based on all school attributes
+      const baseGain = 15 + Math.floor(Math.random() * 10); // 15-24 base
+      
+      // Campus visit is influenced by multiple school attributes
+      const facilitiesBonus = (userTeam.facilities || 5) / 5;
+      const academicsBonus = (userTeam.academics || 5) / 5;
+      const prestigeBonus = (userTeam.prestige || 5) / 5;
+      const collegeLifeBonus = (userTeam.collegeLife || 5) / 5;
+      
+      // Average of relevant attributes
+      const schoolAttrBonus = (facilitiesBonus + academicsBonus + prestigeBonus + collegeLifeBonus) / 4;
+      const coachBonus = calculateCoachBonus(userCoach, recruit, "visit");
+      
+      const totalMultiplier = schoolAttrBonus * coachBonus;
+      const interestGain = Math.round(baseGain * totalMultiplier);
+
+      let interest = await storage.getRecruitingInterest(req.params.recruitId as string, userTeam.id);
+      
+      if (!interest) {
+        interest = await storage.createRecruitingInterest({
+          recruitId: req.params.recruitId as string,
+          teamId: userTeam.id,
+          interestLevel: interestGain,
+        });
+      } else {
+        interest = await storage.updateRecruitingInterest(interest.id, {
+          interestLevel: Math.min(100, (interest.interestLevel || 0) + interestGain),
+        });
+      }
+
+      await storage.createRecruitingAction({
+        recruitId: req.params.recruitId as string,
+        teamId: userTeam.id,
+        leagueId: req.params.id as string,
+        week: league.currentWeek,
+        season: league.currentSeason,
+        actionType: "visit",
+        interestChange: interestGain,
+        notes: `Campus visit (+${interestGain}% interest)`,
+      });
+
+      res.json({ 
+        interest, 
+        interestGain,
+        multiplier: totalMultiplier.toFixed(2)
+      });
+    } catch (error) {
+      console.error("Failed to schedule visit:", error);
+      res.status(500).json({ message: "Failed to schedule visit" });
     }
   });
 
   // Recruiting action: offer scholarship
   app.post("/api/leagues/:id/recruiting/:recruitId/offer", requireAuth, async (req, res) => {
     try {
-      const leagueTeams = await storage.getTeamsByLeague(req.params.id);
-      const userTeam = leagueTeams.find((t) => !t.isCpu);
+      const leagueTeams = await storage.getTeamsByLeague(req.params.id as string);
+      const userId = req.session.userId;
+      const coaches = await storage.getCoachesByLeague(req.params.id as string);
+      const userCoach = coaches.find((c) => c.userId === userId);
+      const userTeam = leagueTeams.find((t) => t.id === userCoach?.teamId);
       
       if (!userTeam) {
         return res.status(400).json({ message: "No team assigned" });
       }
 
-      const recruit = await storage.getRecruit(req.params.recruitId);
+      const recruit = await storage.getRecruit(req.params.recruitId as string);
       if (!recruit) {
         return res.status(404).json({ message: "Recruit not found" });
       }
 
-      const league = await storage.getLeague(req.params.id);
+      const league = await storage.getLeague(req.params.id as string);
       if (!league) {
         return res.status(404).json({ message: "League not found" });
       }
 
-      let interest = await storage.getRecruitingInterest(req.params.recruitId, userTeam.id);
+      let interest = await storage.getRecruitingInterest(req.params.recruitId as string, userTeam.id);
       
-      const interestGain = 15 + Math.floor(Math.random() * 10);
+      // Offers give big interest boost, influenced by prestige
+      const baseGain = 15 + Math.floor(Math.random() * 10);
+      const prestigeBonus = (userTeam.prestige || 5) / 5;
+      const interestGain = Math.round(baseGain * prestigeBonus);
       
       if (!interest) {
         interest = await storage.createRecruitingInterest({
-          recruitId: req.params.recruitId,
+          recruitId: req.params.recruitId as string,
           teamId: userTeam.id,
           interestLevel: interestGain,
           hasOffer: true,
@@ -927,17 +1130,17 @@ export async function registerRoutes(
       }
 
       await storage.createRecruitingAction({
-        recruitId: req.params.recruitId,
+        recruitId: req.params.recruitId as string,
         teamId: userTeam.id,
-        leagueId: req.params.id,
+        leagueId: req.params.id as string,
         week: league.currentWeek,
         season: league.currentSeason,
         actionType: "offer",
         interestChange: interestGain,
-        notes: "Offered scholarship",
+        notes: `Offered scholarship (+${interestGain}% interest)`,
       });
 
-      res.json(interest);
+      res.json({ interest, interestGain });
     } catch (error) {
       console.error("Failed to offer scholarship:", error);
       res.status(500).json({ message: "Failed to offer scholarship" });
@@ -1062,6 +1265,68 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to sign recruit:", error);
       res.status(500).json({ message: "Failed to sign recruit" });
+    }
+  });
+
+  // Get all commits (signed recruits) for all teams in a league
+  app.get("/api/leagues/:id/commits", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id as string);
+      if (!league) {
+        return res.status(404).json({ message: "League not found" });
+      }
+
+      const leagueTeams = await storage.getTeamsByLeague(league.id);
+      const recruits = await storage.getRecruitsByLeague(league.id);
+      
+      // Group signed recruits by team
+      const signedRecruits = recruits.filter(r => r.signedTeamId);
+      
+      const commitsByTeam = leagueTeams.map(team => {
+        const teamCommits = signedRecruits.filter(r => r.signedTeamId === team.id);
+        return {
+          team: {
+            id: team.id,
+            name: team.name,
+            abbreviation: team.abbreviation,
+            primaryColor: team.primaryColor,
+            secondaryColor: team.secondaryColor,
+            prestige: team.prestige,
+            isCpu: team.isCpu,
+          },
+          commits: teamCommits.map(r => ({
+            id: r.id,
+            firstName: r.firstName,
+            lastName: r.lastName,
+            position: r.position,
+            starRating: r.starRating,
+            overall: r.overall,
+            classRank: r.classRank,
+            positionRank: r.positionRank,
+            homeState: r.homeState,
+            hometown: r.hometown,
+            recruitType: r.recruitType,
+          })),
+          commitCount: teamCommits.length,
+          avgStarRating: teamCommits.length > 0 
+            ? teamCommits.reduce((sum, r) => sum + (r.starRating || 3), 0) / teamCommits.length 
+            : 0,
+        };
+      }).sort((a, b) => {
+        // Sort by commit count, then by average star rating
+        if (b.commitCount !== a.commitCount) return b.commitCount - a.commitCount;
+        return b.avgStarRating - a.avgStarRating;
+      });
+
+      res.json({
+        league: { id: league.id, name: league.name, currentSeason: league.currentSeason },
+        commitsByTeam,
+        totalCommits: signedRecruits.length,
+        totalRecruits: recruits.length,
+      });
+    } catch (error) {
+      console.error("Failed to fetch commits:", error);
+      res.status(500).json({ message: "Failed to fetch commits" });
     }
   });
 
@@ -1859,20 +2124,44 @@ export async function registerRoutes(
 
   app.post("/api/leagues/:id/advance", requireAuth, async (req, res) => {
     try {
-      const league = await storage.getLeague(req.params.id);
+      const league = await storage.getLeague(req.params.id as string);
       if (!league) {
         return res.status(404).json({ message: "League not found" });
       }
 
+      const leagueId = league.id;
+      const currentWeek = league.currentWeek;
+      const nextWeek = currentWeek + 1;
+      
+      // ============ CPU RECRUITING AI ============
+      // Run CPU recruiting actions during recruiting phase
+      if (league.currentPhase === "recruiting" || league.currentPhase === "preseason") {
+        await runCpuRecruiting(leagueId, currentWeek, league.currentSeason);
+      }
+      
+      // ============ RECRUIT STAGE PROGRESSION ============
+      // Update recruit stages based on interest levels and week progression
+      await updateRecruitStages(leagueId, nextWeek);
+      
+      // ============ RESET WEEKLY ACTIONS ============
+      // Reset coach action counts for new week
+      const coaches = await storage.getCoachesByLeague(leagueId);
+      for (const coach of coaches) {
+        await storage.updateCoach(coach.id, {
+          scoutActionsUsed: 0,
+          recruitActionsUsed: 0,
+        });
+      }
+
       const updatedLeague = await storage.updateLeague(league.id, {
-        currentWeek: league.currentWeek + 1,
+        currentWeek: nextWeek,
       });
 
       await storage.createAuditLog({
         leagueId: league.id,
         userId: req.session.userId,
         action: "Week Advanced",
-        details: `Advanced to Week ${league.currentWeek + 1}`,
+        details: `Advanced to Week ${nextWeek}`,
       });
 
       res.json(updatedLeague);
@@ -1881,6 +2170,156 @@ export async function registerRoutes(
       res.status(500).json({ message: "Failed to advance week" });
     }
   });
+  
+  // ============ CPU RECRUITING AI FUNCTION ============
+  async function runCpuRecruiting(leagueId: string, week: number, season: number) {
+    const teams = await storage.getTeamsByLeague(leagueId);
+    const cpuTeams = teams.filter(t => t.isCpu);
+    const recruits = await storage.getRecruitsByLeague(leagueId);
+    const unsignedRecruits = recruits.filter(r => !r.signedTeamId);
+    
+    if (unsignedRecruits.length === 0 || cpuTeams.length === 0) return;
+    
+    for (const team of cpuTeams) {
+      // CPU makes 2-4 recruiting actions per week based on difficulty
+      const actionsPerWeek = 2 + Math.floor(Math.random() * 3);
+      
+      // Get team's current interests and roster to determine priorities
+      const teamInterests = await storage.getRecruitingInterestsByTeam(team.id);
+      const roster = await storage.getPlayersByTeam(team.id);
+      
+      // Calculate position needs
+      const positionCounts: Record<string, number> = {};
+      for (const player of roster) {
+        positionCounts[player.position] = (positionCounts[player.position] || 0) + 1;
+      }
+      
+      // CPU prioritizes recruits it's already recruiting or that match team prestige
+      const sortedRecruits = unsignedRecruits
+        .map(r => {
+          const interest = teamInterests.find(i => i.recruitId === r.id);
+          const prestigeMatch = Math.abs((team.prestige || 5) - (r.starRating || 3) * 2);
+          const positionNeed = (positionCounts[r.position] || 0) < 2 ? 10 : 0;
+          const currentInterest = interest?.interestLevel || 0;
+          return { 
+            recruit: r, 
+            interest,
+            score: currentInterest * 2 + positionNeed - prestigeMatch + Math.random() * 5 
+          };
+        })
+        .sort((a, b) => b.score - a.score);
+      
+      // Perform recruiting actions on top recruits
+      for (let i = 0; i < Math.min(actionsPerWeek, sortedRecruits.length); i++) {
+        const { recruit, interest } = sortedRecruits[i];
+        
+        // Choose action based on current interest level
+        const actionTypes = ["email", "phone", "phone"];
+        if ((interest?.interestLevel || 0) > 50 && !interest?.hasOffer) {
+          actionTypes.push("offer");
+        }
+        if ((interest?.interestLevel || 0) > 70) {
+          actionTypes.push("visit");
+        }
+        
+        const actionType = actionTypes[Math.floor(Math.random() * actionTypes.length)];
+        
+        // Calculate interest gain for CPU (simplified, no pitch topics)
+        let baseGain = 0;
+        switch (actionType) {
+          case "email": baseGain = 3 + Math.floor(Math.random() * 5); break;
+          case "phone": baseGain = 5 + Math.floor(Math.random() * 10); break;
+          case "offer": baseGain = 15 + Math.floor(Math.random() * 10); break;
+          case "visit": baseGain = 15 + Math.floor(Math.random() * 10); break;
+        }
+        
+        // Apply prestige bonus
+        const prestigeBonus = (team.prestige || 5) / 5;
+        const interestGain = Math.round(baseGain * prestigeBonus);
+        
+        if (!interest) {
+          await storage.createRecruitingInterest({
+            recruitId: recruit.id,
+            teamId: team.id,
+            interestLevel: interestGain,
+            hasOffer: actionType === "offer",
+          });
+        } else {
+          await storage.updateRecruitingInterest(interest.id, {
+            interestLevel: Math.min(100, (interest.interestLevel || 0) + interestGain),
+            hasOffer: interest.hasOffer || actionType === "offer",
+          });
+        }
+        
+        // Log the CPU action
+        await storage.createRecruitingAction({
+          recruitId: recruit.id,
+          teamId: team.id,
+          leagueId: leagueId,
+          week: week,
+          season: season,
+          actionType: actionType,
+          interestChange: interestGain,
+          notes: `CPU ${actionType} action`,
+        });
+      }
+    }
+  }
+  
+  // ============ RECRUIT STAGE PROGRESSION FUNCTION ============
+  async function updateRecruitStages(leagueId: string, week: number) {
+    const recruits = await storage.getRecruitsByLeague(leagueId);
+    const unsignedRecruits = recruits.filter(r => !r.signedTeamId);
+    
+    for (const recruit of unsignedRecruits) {
+      // Get all interests for this recruit
+      const allInterests = await storage.getRecruitingInterestsByRecruit(recruit.id);
+      if (allInterests.length === 0) continue;
+      
+      // Sort by interest level to find top schools
+      const sortedInterests = allInterests
+        .filter(i => i.interestLevel > 0)
+        .sort((a, b) => (b.interestLevel || 0) - (a.interestLevel || 0));
+      
+      const topInterestLevel = sortedInterests[0]?.interestLevel || 0;
+      const currentStage = recruit.stage || "open";
+      
+      // Determine new stage based on week and interest levels
+      let newStage = currentStage;
+      
+      // Stage progression happens naturally over time if recruits have interested teams
+      if (sortedInterests.length >= 1) {
+        if (week >= 12 && topInterestLevel >= 90 && sortedInterests.some(i => i.hasOffer)) {
+          // High interest + offer late in recruiting = can commit
+          newStage = "verbal";
+        } else if (week >= 10 && topInterestLevel >= 70) {
+          newStage = "top3";
+        } else if (week >= 7 && topInterestLevel >= 50) {
+          newStage = "top5";
+        } else if (week >= 4 && topInterestLevel >= 30) {
+          newStage = "top8";
+        }
+      }
+      
+      // Only update if stage changed (and can only progress forward)
+      const stageOrder = ["open", "top8", "top5", "top3", "verbal", "signed"];
+      if (stageOrder.indexOf(newStage) > stageOrder.indexOf(currentStage)) {
+        await storage.updateRecruit(recruit.id, { stage: newStage });
+        
+        // If verbal, check if they should auto-commit to a team
+        if (newStage === "verbal") {
+          const topSchool = sortedInterests[0];
+          if (topSchool && topSchool.interestLevel >= 95 && topSchool.hasOffer) {
+            // Auto-sign to team with highest interest that has offered
+            await storage.updateRecruit(recruit.id, { 
+              stage: "signed",
+              signedTeamId: topSchool.teamId,
+            });
+          }
+        }
+      }
+    }
+  }
 
   // Generate recruiting class for dynasty setup
   app.post("/api/leagues/:id/recruiting/generate", requireAuth, async (req, res) => {

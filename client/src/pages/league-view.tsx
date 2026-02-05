@@ -176,6 +176,12 @@ export default function LeagueViewPage() {
             subtitle="Scout players"
           />
           <QuickActionCard
+            href={`/league/${id}/commits`}
+            icon={<Trophy className="w-6 h-6" />}
+            title="Commits"
+            subtitle="Class leaderboard"
+          />
+          <QuickActionCard
             href={`/league/${id}/commissioner`}
             icon={<Settings className="w-6 h-6" />}
             title="Commissioner"
