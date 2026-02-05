@@ -70,21 +70,29 @@ export default function TeamSelectionPage() {
   }, [data]);
 
   const toggleTeam = (conferenceId: string, teamName: string) => {
-    setSelectedTeams(prev => {
-      const current = prev[conferenceId] || [];
-      if (current.includes(teamName)) {
-        return { ...prev, [conferenceId]: current.filter(t => t !== teamName) };
-      }
-      if (current.length >= teamsPerConference) {
-        toast({ 
-          title: "Limit Reached", 
-          description: `You can only select ${teamsPerConference} teams per conference.`,
-          variant: "destructive" 
-        });
-        return prev;
-      }
-      return { ...prev, [conferenceId]: [...current, teamName] };
-    });
+    const current = selectedTeams[conferenceId] || [];
+    
+    if (current.includes(teamName)) {
+      setSelectedTeams(prev => ({ 
+        ...prev, 
+        [conferenceId]: (prev[conferenceId] || []).filter(t => t !== teamName) 
+      }));
+      return;
+    }
+    
+    if (current.length >= teamsPerConference) {
+      toast({ 
+        title: "Limit Reached", 
+        description: `You can only select ${teamsPerConference} teams per conference.`,
+        variant: "destructive" 
+      });
+      return;
+    }
+    
+    setSelectedTeams(prev => ({ 
+      ...prev, 
+      [conferenceId]: [...(prev[conferenceId] || []), teamName] 
+    }));
   };
 
   const totalSelected = useMemo(() => {
