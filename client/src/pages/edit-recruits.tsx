@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, KeyboardEvent } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
@@ -113,6 +113,32 @@ export default function EditRecruitsPage() {
     }
     return recruit[field];
   };
+
+  // Handle Enter key to save and move to next row
+  const handleKeyDown = useCallback((
+    e: KeyboardEvent<HTMLInputElement>,
+    rowIndex: number,
+    field: string
+  ) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      e.stopPropagation();
+      // Use requestAnimationFrame for more deterministic timing after React render
+      requestAnimationFrame(() => {
+        // Try to find next enabled input, skipping disabled ones
+        for (let i = 1; i <= 5; i++) {
+          const nextRow = rowIndex + i;
+          const selector = `input[data-row="${nextRow}"][data-field="${field}"]:not(:disabled)`;
+          const nextInput = document.querySelector(selector) as HTMLInputElement;
+          if (nextInput) {
+            nextInput.focus();
+            nextInput.select();
+            break;
+          }
+        }
+      });
+    }
+  }, []);
 
   const handleSave = () => {
     const updates = Object.entries(changes).map(([id, recruitChanges]) => ({
@@ -283,6 +309,9 @@ export default function EditRecruitsPage() {
                             className="h-7 w-12 text-xs"
                             value={getRecruitValue(recruit, "classRank")}
                             onChange={(e) => updateRecruit(recruit.id, "classRank", parseInt(e.target.value) || 1)}
+                            onKeyDown={(e) => handleKeyDown(e, idx, "classRank")}
+                            data-row={idx}
+                            data-field="classRank"
                             data-testid={`input-rank-${recruit.id}`}
                           />
                         </td>
@@ -293,11 +322,17 @@ export default function EditRecruitsPage() {
                               className="h-7 w-20 text-xs"
                               value={getRecruitValue(recruit, "firstName")}
                               onChange={(e) => updateRecruit(recruit.id, "firstName", e.target.value)}
+                              onKeyDown={(e) => handleKeyDown(e, idx, "firstName")}
+                              data-row={idx}
+                              data-field="firstName"
                             />
                             <Input
                               className="h-7 w-24 text-xs"
                               value={getRecruitValue(recruit, "lastName")}
                               onChange={(e) => updateRecruit(recruit.id, "lastName", e.target.value)}
+                              onKeyDown={(e) => handleKeyDown(e, idx, "lastName")}
+                              data-row={idx}
+                              data-field="lastName"
                             />
                           </div>
                         </td>
@@ -326,6 +361,9 @@ export default function EditRecruitsPage() {
                             className="h-7 w-14 text-xs"
                             value={getRecruitValue(recruit, "overall")}
                             onChange={(e) => updateRecruit(recruit.id, "overall", parseInt(e.target.value) || 1)}
+                            onKeyDown={(e) => handleKeyDown(e, idx, "overall")}
+                            data-row={idx}
+                            data-field="overall"
                           />
                         </td>
                         {/* Star Rating */}
@@ -434,6 +472,9 @@ export default function EditRecruitsPage() {
                             className="h-7 w-10 text-xs"
                             value={getRecruitValue(recruit, "hitForAvg") || ""}
                             onChange={(e) => updateRecruit(recruit.id, "hitForAvg", parseInt(e.target.value) || null)}
+                            onKeyDown={(e) => handleKeyDown(e, idx, "hitForAvg")}
+                            data-row={idx}
+                            data-field="hitForAvg"
                             disabled={isPitcher}
                           />
                         </td>
@@ -445,6 +486,9 @@ export default function EditRecruitsPage() {
                             className="h-7 w-10 text-xs"
                             value={getRecruitValue(recruit, "power") || ""}
                             onChange={(e) => updateRecruit(recruit.id, "power", parseInt(e.target.value) || null)}
+                            onKeyDown={(e) => handleKeyDown(e, idx, "power")}
+                            data-row={idx}
+                            data-field="power"
                             disabled={isPitcher}
                           />
                         </td>
@@ -456,6 +500,9 @@ export default function EditRecruitsPage() {
                             className="h-7 w-10 text-xs"
                             value={getRecruitValue(recruit, "speed") || ""}
                             onChange={(e) => updateRecruit(recruit.id, "speed", parseInt(e.target.value) || null)}
+                            onKeyDown={(e) => handleKeyDown(e, idx, "speed")}
+                            data-row={idx}
+                            data-field="speed"
                             disabled={isPitcher}
                           />
                         </td>
@@ -467,6 +514,9 @@ export default function EditRecruitsPage() {
                             className="h-7 w-10 text-xs"
                             value={getRecruitValue(recruit, "arm") || ""}
                             onChange={(e) => updateRecruit(recruit.id, "arm", parseInt(e.target.value) || null)}
+                            onKeyDown={(e) => handleKeyDown(e, idx, "arm")}
+                            data-row={idx}
+                            data-field="arm"
                             disabled={isPitcher}
                           />
                         </td>
@@ -478,6 +528,9 @@ export default function EditRecruitsPage() {
                             className="h-7 w-10 text-xs"
                             value={getRecruitValue(recruit, "fielding") || ""}
                             onChange={(e) => updateRecruit(recruit.id, "fielding", parseInt(e.target.value) || null)}
+                            onKeyDown={(e) => handleKeyDown(e, idx, "fielding")}
+                            data-row={idx}
+                            data-field="fielding"
                             disabled={isPitcher}
                           />
                         </td>
@@ -490,6 +543,9 @@ export default function EditRecruitsPage() {
                             className="h-7 w-10 text-xs"
                             value={getRecruitValue(recruit, "velocity") || ""}
                             onChange={(e) => updateRecruit(recruit.id, "velocity", parseInt(e.target.value) || null)}
+                            onKeyDown={(e) => handleKeyDown(e, idx, "velocity")}
+                            data-row={idx}
+                            data-field="velocity"
                             disabled={!isPitcher}
                           />
                         </td>
@@ -501,6 +557,9 @@ export default function EditRecruitsPage() {
                             className="h-7 w-10 text-xs"
                             value={getRecruitValue(recruit, "control") || ""}
                             onChange={(e) => updateRecruit(recruit.id, "control", parseInt(e.target.value) || null)}
+                            onKeyDown={(e) => handleKeyDown(e, idx, "control")}
+                            data-row={idx}
+                            data-field="control"
                             disabled={!isPitcher}
                           />
                         </td>
@@ -512,6 +571,9 @@ export default function EditRecruitsPage() {
                             className="h-7 w-10 text-xs"
                             value={getRecruitValue(recruit, "stamina") || ""}
                             onChange={(e) => updateRecruit(recruit.id, "stamina", parseInt(e.target.value) || null)}
+                            onKeyDown={(e) => handleKeyDown(e, idx, "stamina")}
+                            data-row={idx}
+                            data-field="stamina"
                             disabled={!isPitcher}
                           />
                         </td>

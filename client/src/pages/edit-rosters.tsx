@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback, KeyboardEvent } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
@@ -135,6 +135,32 @@ export default function EditRostersPage() {
     }
     return player[field];
   };
+
+  // Handle Enter key to save and move to next row
+  const handleKeyDown = useCallback((
+    e: KeyboardEvent<HTMLInputElement>,
+    rowIndex: number,
+    field: string
+  ) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      e.stopPropagation();
+      // Use requestAnimationFrame for more deterministic timing after React render
+      requestAnimationFrame(() => {
+        // Try to find next enabled input, skipping disabled ones
+        for (let i = 1; i <= 5; i++) {
+          const nextRow = rowIndex + i;
+          const selector = `input[data-row="${nextRow}"][data-field="${field}"]:not(:disabled)`;
+          const nextInput = document.querySelector(selector) as HTMLInputElement;
+          if (nextInput) {
+            nextInput.focus();
+            nextInput.select();
+            break;
+          }
+        }
+      });
+    }
+  }, []);
 
   const handleSave = () => {
     const updates = Object.entries(changes).map(([id, playerChanges]) => ({
@@ -302,12 +328,18 @@ export default function EditRostersPage() {
                                       className="h-7 w-24 text-xs"
                                       value={getPlayerValue(player, "firstName")}
                                       onChange={(e) => updatePlayer(player.id, "firstName", e.target.value)}
+                                      onKeyDown={(e) => handleKeyDown(e, idx, "firstName")}
+                                      data-row={idx}
+                                      data-field="firstName"
                                       data-testid={`input-firstname-${player.id}`}
                                     />
                                     <Input
                                       className="h-7 w-28 text-xs"
                                       value={getPlayerValue(player, "lastName")}
                                       onChange={(e) => updatePlayer(player.id, "lastName", e.target.value)}
+                                      onKeyDown={(e) => handleKeyDown(e, idx, "lastName")}
+                                      data-row={idx}
+                                      data-field="lastName"
                                       data-testid={`input-lastname-${player.id}`}
                                     />
                                   </div>
@@ -353,6 +385,9 @@ export default function EditRostersPage() {
                                     className="h-7 w-16 text-xs"
                                     value={getPlayerValue(player, "overall")}
                                     onChange={(e) => updatePlayer(player.id, "overall", parseInt(e.target.value) || 1)}
+                                    onKeyDown={(e) => handleKeyDown(e, idx, "overall")}
+                                    data-row={idx}
+                                    data-field="overall"
                                     data-testid={`input-overall-${player.id}`}
                                   />
                                 </td>
@@ -430,6 +465,9 @@ export default function EditRostersPage() {
                                     className="h-7 w-12 text-xs"
                                     value={getPlayerValue(player, "hitForAvg") || ""}
                                     onChange={(e) => updatePlayer(player.id, "hitForAvg", parseInt(e.target.value) || null)}
+                                    onKeyDown={(e) => handleKeyDown(e, idx, "hitForAvg")}
+                                    data-row={idx}
+                                    data-field="hitForAvg"
                                     disabled={isPitcher}
                                   />
                                 </td>
@@ -441,6 +479,9 @@ export default function EditRostersPage() {
                                     className="h-7 w-12 text-xs"
                                     value={getPlayerValue(player, "power") || ""}
                                     onChange={(e) => updatePlayer(player.id, "power", parseInt(e.target.value) || null)}
+                                    onKeyDown={(e) => handleKeyDown(e, idx, "power")}
+                                    data-row={idx}
+                                    data-field="power"
                                     disabled={isPitcher}
                                   />
                                 </td>
@@ -452,6 +493,9 @@ export default function EditRostersPage() {
                                     className="h-7 w-12 text-xs"
                                     value={getPlayerValue(player, "speed") || ""}
                                     onChange={(e) => updatePlayer(player.id, "speed", parseInt(e.target.value) || null)}
+                                    onKeyDown={(e) => handleKeyDown(e, idx, "speed")}
+                                    data-row={idx}
+                                    data-field="speed"
                                     disabled={isPitcher}
                                   />
                                 </td>
@@ -463,6 +507,9 @@ export default function EditRostersPage() {
                                     className="h-7 w-12 text-xs"
                                     value={getPlayerValue(player, "arm") || ""}
                                     onChange={(e) => updatePlayer(player.id, "arm", parseInt(e.target.value) || null)}
+                                    onKeyDown={(e) => handleKeyDown(e, idx, "arm")}
+                                    data-row={idx}
+                                    data-field="arm"
                                     disabled={isPitcher}
                                   />
                                 </td>
@@ -474,6 +521,9 @@ export default function EditRostersPage() {
                                     className="h-7 w-12 text-xs"
                                     value={getPlayerValue(player, "fielding") || ""}
                                     onChange={(e) => updatePlayer(player.id, "fielding", parseInt(e.target.value) || null)}
+                                    onKeyDown={(e) => handleKeyDown(e, idx, "fielding")}
+                                    data-row={idx}
+                                    data-field="fielding"
                                     disabled={isPitcher}
                                   />
                                 </td>
@@ -486,6 +536,9 @@ export default function EditRostersPage() {
                                     className="h-7 w-12 text-xs"
                                     value={getPlayerValue(player, "velocity") || ""}
                                     onChange={(e) => updatePlayer(player.id, "velocity", parseInt(e.target.value) || null)}
+                                    onKeyDown={(e) => handleKeyDown(e, idx, "velocity")}
+                                    data-row={idx}
+                                    data-field="velocity"
                                     disabled={!isPitcher}
                                   />
                                 </td>
@@ -497,6 +550,9 @@ export default function EditRostersPage() {
                                     className="h-7 w-12 text-xs"
                                     value={getPlayerValue(player, "control") || ""}
                                     onChange={(e) => updatePlayer(player.id, "control", parseInt(e.target.value) || null)}
+                                    onKeyDown={(e) => handleKeyDown(e, idx, "control")}
+                                    data-row={idx}
+                                    data-field="control"
                                     disabled={!isPitcher}
                                   />
                                 </td>
@@ -508,6 +564,9 @@ export default function EditRostersPage() {
                                     className="h-7 w-12 text-xs"
                                     value={getPlayerValue(player, "stamina") || ""}
                                     onChange={(e) => updatePlayer(player.id, "stamina", parseInt(e.target.value) || null)}
+                                    onKeyDown={(e) => handleKeyDown(e, idx, "stamina")}
+                                    data-row={idx}
+                                    data-field="stamina"
                                     disabled={!isPitcher}
                                   />
                                 </td>
