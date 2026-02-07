@@ -82,6 +82,10 @@ import { velocityToMPH } from "@/lib/playerUtils";
 interface RecruitWithInterest extends Recruit {
   interest?: RecruitingInterest;
   topSchools?: { teamId: string; teamName: string; abbreviation: string; primaryColor: string; interestLevel: number }[];
+  signedTeamName?: string | null;
+  signedTeamAbbreviation?: string | null;
+  signedTeamPrimaryColor?: string | null;
+  signedTeamSecondaryColor?: string | null;
 }
 
 interface RecruitingData {
@@ -977,11 +981,17 @@ function RecruitRow({
   const revealedAbilitiesCount = recruit.interest?.revealedAbilitiesCount || 0;
   const totalAbilities = recruit.abilities?.length || 0;
 
+  const isSigned = recruit.stage === "signed" && !!recruit.signedTeamId;
+
   return (
-    <RetroCard className={`hover:border-gold/30 transition-colors ${isSelected ? "border-gold ring-1 ring-gold/50" : ""}`} data-testid={`card-recruit-${recruit.id}`}>
+    <RetroCard 
+      className={`hover:border-gold/30 transition-colors ${isSelected ? "border-gold ring-1 ring-gold/50" : ""}`} 
+      data-testid={`card-recruit-${recruit.id}`}
+      style={isSigned && recruit.signedTeamPrimaryColor ? { borderLeft: `4px solid ${recruit.signedTeamPrimaryColor}` } : undefined}
+    >
       <div className="flex flex-col lg:flex-row lg:items-center gap-4">
         <div className="flex items-center gap-4 flex-1">
-          {scoutPct < 100 && (
+          {!isSigned && scoutPct < 100 && (
             <button
               onClick={(e) => { e.stopPropagation(); onBulkSelect(); }}
               className={`w-5 h-5 flex items-center justify-center transition-colors ${
@@ -992,15 +1002,17 @@ function RecruitRow({
               {isBulkSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
             </button>
           )}
-          <button
-            onClick={onToggleCompare}
-            className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
-              isSelected ? "bg-gold border-gold text-forest-dark" : "border-muted-foreground/50 hover:border-gold"
-            }`}
-            data-testid={`checkbox-compare-${recruit.id}`}
-          >
-            {isSelected && <Check className="w-3 h-3" />}
-          </button>
+          {!isSigned && (
+            <button
+              onClick={onToggleCompare}
+              className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                isSelected ? "bg-gold border-gold text-forest-dark" : "border-muted-foreground/50 hover:border-gold"
+              }`}
+              data-testid={`checkbox-compare-${recruit.id}`}
+            >
+              {isSelected && <Check className="w-3 h-3" />}
+            </button>
+          )}
           <div className="w-12 h-12 relative flex-shrink-0">
             <PlayerPortrait 
               skinTone={recruit.skinTone || "light"}
@@ -1026,7 +1038,16 @@ function RecruitRow({
               {recruit.isBlueChip && (
                 <Badge className="bg-blue-500 text-white text-[8px]">Blue Chip</Badge>
               )}
-              <Badge className={`${stage.color} text-white text-[8px]`}>{stage.label}</Badge>
+              {isSigned && recruit.signedTeamAbbreviation ? (
+                <Badge 
+                  className="text-white text-[8px]"
+                  style={{ backgroundColor: recruit.signedTeamPrimaryColor || "#666" }}
+                >
+                  Signed: {recruit.signedTeamAbbreviation}
+                </Badge>
+              ) : (
+                <Badge className={`${stage.color} text-white text-[8px]`}>{stage.label}</Badge>
+              )}
               <Badge variant="outline" className="text-[8px]">
                   {recruit.recruitType === "JUCO" ? `JUCO ${recruit.recruitYear || "FR"}` : recruit.recruitType}
                 </Badge>
@@ -1095,115 +1116,141 @@ function RecruitRow({
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="w-32">
-            <div className="flex justify-between text-xs text-muted-foreground mb-1">
-              <span>Scout</span>
-              <span>{scoutPct}%</span>
+        {isSigned ? (
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 px-3 py-2 rounded" style={{ backgroundColor: `${recruit.signedTeamPrimaryColor}20` || "rgba(100,100,100,0.1)" }}>
+              <TeamBadge 
+                abbreviation={recruit.signedTeamAbbreviation || "?"} 
+                primaryColor={recruit.signedTeamPrimaryColor || "#666"} 
+                secondaryColor={recruit.signedTeamSecondaryColor || "#fff"} 
+                size="sm" 
+              />
+              <span className="text-xs font-medium" style={{ color: recruit.signedTeamPrimaryColor || "#ccc" }}>
+                {recruit.signedTeamName || "Unknown"}
+              </span>
             </div>
-            <Progress value={scoutPct} className="h-2" />
-          </div>
-
-          <div className="flex gap-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <RetroButton
-                  variant="outline"
-                  size="sm"
-                  onClick={onScout}
-                  disabled={isScouting || scoutPct >= 100 || outOfScoutActions}
-                  data-testid={`button-scout-${recruit.id}`}
-                >
-                  <Search className="w-3 h-3" />
-                </RetroButton>
-              </TooltipTrigger>
-              <TooltipContent>Scout</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <RetroButton
-                  variant={recruit.interest?.isTargeted ? "primary" : "outline"}
-                  size="sm"
-                  onClick={onTarget}
-                  disabled={isTargeting}
-                  data-testid={`button-target-${recruit.id}`}
-                >
-                  <Target className="w-3 h-3" />
-                </RetroButton>
-              </TooltipTrigger>
-              <TooltipContent>Target</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <RetroButton
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onPhone()}
-                  disabled={isPhoning || !recruit.interest || outOfRecruitingActions}
-                  data-testid={`button-phone-${recruit.id}`}
-                >
-                  <Phone className="w-3 h-3" />
-                </RetroButton>
-              </TooltipTrigger>
-              <TooltipContent>Phone Call</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <RetroButton
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onEmail()}
-                  disabled={isEmailing || !recruit.interest || outOfRecruitingActions}
-                  data-testid={`button-email-${recruit.id}`}
-                >
-                  <Mail className="w-3 h-3" />
-                </RetroButton>
-              </TooltipTrigger>
-              <TooltipContent>Send Email</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <RetroButton
-                  variant={recruit.interest?.hasOffer ? "primary" : "outline"}
-                  size="sm"
-                  onClick={onOffer}
-                  disabled={isOffering || !recruit.interest || recruit.interest?.hasOffer}
-                  data-testid={`button-offer-${recruit.id}`}
-                >
-                  <Gift className="w-3 h-3" />
-                </RetroButton>
-              </TooltipTrigger>
-              <TooltipContent>{recruit.interest?.hasOffer ? "Scholarship Offered" : "Offer Scholarship"}</TooltipContent>
-            </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Link href={`/league/${leagueId}/recruit/${recruit.id}`}>
-                  <RetroButton
-                    size="sm"
-                    data-testid={`button-view-${recruit.id}`}
-                  >
+                  <RetroButton size="sm" data-testid={`button-view-${recruit.id}`}>
                     <Eye className="w-3 h-3" />
                   </RetroButton>
                 </Link>
               </TooltipTrigger>
               <TooltipContent>View Details</TooltipContent>
             </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <RetroButton
-                  variant={recruit.interest?.notes ? "primary" : "outline"}
-                  size="sm"
-                  onClick={() => setShowNotesDialog(true)}
-                  disabled={!recruit.interest}
-                  data-testid={`button-notes-${recruit.id}`}
-                >
-                  <StickyNote className="w-3 h-3" />
-                </RetroButton>
-              </TooltipTrigger>
-              <TooltipContent>Notes</TooltipContent>
-            </Tooltip>
           </div>
-        </div>
+        ) : (
+          <div className="flex items-center gap-4">
+            <div className="w-32">
+              <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                <span>Scout</span>
+                <span>{scoutPct}%</span>
+              </div>
+              <Progress value={scoutPct} className="h-2" />
+            </div>
+
+            <div className="flex gap-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <RetroButton
+                    variant="outline"
+                    size="sm"
+                    onClick={onScout}
+                    disabled={isScouting || scoutPct >= 100 || outOfScoutActions}
+                    data-testid={`button-scout-${recruit.id}`}
+                  >
+                    <Search className="w-3 h-3" />
+                  </RetroButton>
+                </TooltipTrigger>
+                <TooltipContent>Scout</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <RetroButton
+                    variant={recruit.interest?.isTargeted ? "primary" : "outline"}
+                    size="sm"
+                    onClick={onTarget}
+                    disabled={isTargeting}
+                    data-testid={`button-target-${recruit.id}`}
+                  >
+                    <Target className="w-3 h-3" />
+                  </RetroButton>
+                </TooltipTrigger>
+                <TooltipContent>Target</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <RetroButton
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onPhone()}
+                    disabled={isPhoning || !recruit.interest || outOfRecruitingActions}
+                    data-testid={`button-phone-${recruit.id}`}
+                  >
+                    <Phone className="w-3 h-3" />
+                  </RetroButton>
+                </TooltipTrigger>
+                <TooltipContent>Phone Call</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <RetroButton
+                    variant="outline"
+                    size="sm"
+                    onClick={() => onEmail()}
+                    disabled={isEmailing || !recruit.interest || outOfRecruitingActions}
+                    data-testid={`button-email-${recruit.id}`}
+                  >
+                    <Mail className="w-3 h-3" />
+                  </RetroButton>
+                </TooltipTrigger>
+                <TooltipContent>Send Email</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <RetroButton
+                    variant={recruit.interest?.hasOffer ? "primary" : "outline"}
+                    size="sm"
+                    onClick={onOffer}
+                    disabled={isOffering || !recruit.interest || recruit.interest?.hasOffer}
+                    data-testid={`button-offer-${recruit.id}`}
+                  >
+                    <Gift className="w-3 h-3" />
+                  </RetroButton>
+                </TooltipTrigger>
+                <TooltipContent>{recruit.interest?.hasOffer ? "Scholarship Offered" : "Offer Scholarship"}</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link href={`/league/${leagueId}/recruit/${recruit.id}`}>
+                    <RetroButton
+                      size="sm"
+                      data-testid={`button-view-${recruit.id}`}
+                    >
+                      <Eye className="w-3 h-3" />
+                    </RetroButton>
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent>View Details</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <RetroButton
+                    variant={recruit.interest?.notes ? "primary" : "outline"}
+                    size="sm"
+                    onClick={() => setShowNotesDialog(true)}
+                    disabled={!recruit.interest}
+                    data-testid={`button-notes-${recruit.id}`}
+                  >
+                    <StickyNote className="w-3 h-3" />
+                  </RetroButton>
+                </TooltipTrigger>
+                <TooltipContent>Notes</TooltipContent>
+              </Tooltip>
+            </div>
+          </div>
+        )}
       </div>
 
       {recruit.interest?.notes && (
@@ -1619,57 +1666,66 @@ function RecruitDetailModal({
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
-            <RetroButton 
-              variant="outline" 
-              className="border-green-500 text-green-400 hover:bg-green-500/10"
-              data-testid="button-scout-modal"
-              onClick={() => onScout(recruit.id)}
-              disabled={isScouting || scoutPct >= 100}
-            >
-              <Eye className="w-4 h-4 mr-2" />
-              {isScouting ? "Scouting..." : `Scout (${scoutPct}%)`}
-            </RetroButton>
-            <RetroButton 
-              className="flex-1" 
-              data-testid="button-phone"
-              onClick={() => onPhone(recruit.id)}
-              disabled={isPhoning}
-            >
-              <Phone className="w-4 h-4 mr-2" />
-              {isPhoning ? "Calling..." : "Phone Call"}
-            </RetroButton>
-            <RetroButton 
-              variant="outline" 
-              className="flex-1" 
-              data-testid="button-email"
-              onClick={() => onEmail(recruit.id)}
-              disabled={isEmailing}
-            >
-              <Mail className="w-4 h-4 mr-2" />
-              {isEmailing ? "Sending..." : "Email"}
-            </RetroButton>
-            <RetroButton 
-              variant="outline" 
-              className="flex-1" 
-              data-testid="button-visit"
-              onClick={() => onVisit(recruit.id)}
-              disabled={isVisiting || outOfRecruitingActions}
-            >
-              <MapPin className="w-4 h-4 mr-2" />
-              {isVisiting ? "Scheduling..." : "Campus Visit"}
-            </RetroButton>
-            <RetroButton 
-              variant="outline" 
-              className="border-gold text-gold hover:bg-gold/10"
-              data-testid="button-offer-scholarship"
-              onClick={() => onOffer(recruit.id)}
-              disabled={isOffering || recruit.interest?.hasOffer}
-            >
-              <GraduationCap className="w-4 h-4 mr-2" />
-              {isOffering ? "Offering..." : recruit.interest?.hasOffer ? "Offered" : "Offer Scholarship"}
-            </RetroButton>
-          </div>
+          {recruit.stage === "signed" && recruit.signedTeamId ? (
+            <div className="p-4 rounded text-center" style={{ backgroundColor: `${(recruit as RecruitWithInterest).signedTeamPrimaryColor}15` || "rgba(100,100,100,0.1)", border: `1px solid ${(recruit as RecruitWithInterest).signedTeamPrimaryColor}40` }}>
+              <p className="font-pixel text-xs mb-1" style={{ color: (recruit as RecruitWithInterest).signedTeamPrimaryColor || "#ccc" }}>
+                Signed with {(recruit as RecruitWithInterest).signedTeamName || "Unknown"}
+              </p>
+              <p className="text-[10px] text-muted-foreground">This recruit is no longer available</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              <RetroButton 
+                variant="outline" 
+                className="border-green-500 text-green-400 hover:bg-green-500/10"
+                data-testid="button-scout-modal"
+                onClick={() => onScout(recruit.id)}
+                disabled={isScouting || scoutPct >= 100}
+              >
+                <Eye className="w-4 h-4 mr-2" />
+                {isScouting ? "Scouting..." : `Scout (${scoutPct}%)`}
+              </RetroButton>
+              <RetroButton 
+                className="flex-1" 
+                data-testid="button-phone"
+                onClick={() => onPhone(recruit.id)}
+                disabled={isPhoning}
+              >
+                <Phone className="w-4 h-4 mr-2" />
+                {isPhoning ? "Calling..." : "Phone Call"}
+              </RetroButton>
+              <RetroButton 
+                variant="outline" 
+                className="flex-1" 
+                data-testid="button-email"
+                onClick={() => onEmail(recruit.id)}
+                disabled={isEmailing}
+              >
+                <Mail className="w-4 h-4 mr-2" />
+                {isEmailing ? "Sending..." : "Email"}
+              </RetroButton>
+              <RetroButton 
+                variant="outline" 
+                className="flex-1" 
+                data-testid="button-visit"
+                onClick={() => onVisit(recruit.id)}
+                disabled={isVisiting || outOfRecruitingActions}
+              >
+                <MapPin className="w-4 h-4 mr-2" />
+                {isVisiting ? "Scheduling..." : "Campus Visit"}
+              </RetroButton>
+              <RetroButton 
+                variant="outline" 
+                className="border-gold text-gold hover:bg-gold/10"
+                data-testid="button-offer-scholarship"
+                onClick={() => onOffer(recruit.id)}
+                disabled={isOffering || recruit.interest?.hasOffer}
+              >
+                <GraduationCap className="w-4 h-4 mr-2" />
+                {isOffering ? "Offering..." : recruit.interest?.hasOffer ? "Offered" : "Offer Scholarship"}
+              </RetroButton>
+            </div>
+          )}
 
           {/* Actions Log */}
           <RecruitActionsLog recruitId={recruit.id} leagueId={leagueId} />

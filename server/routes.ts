@@ -560,10 +560,15 @@ export async function registerRoutes(
           })).sort((a, b) => b.interestLevel - a.interestLevel);
         }
         
+        const signedTeam = recruit.signedTeamId ? teamMap.get(recruit.signedTeamId) : null;
         return {
           ...recruit,
           interest,
           topSchools,
+          signedTeamName: signedTeam?.name || null,
+          signedTeamAbbreviation: signedTeam?.abbreviation || null,
+          signedTeamPrimaryColor: signedTeam?.primaryColor || null,
+          signedTeamSecondaryColor: signedTeam?.secondaryColor || null,
         };
       }));
 
@@ -2264,7 +2269,7 @@ export async function registerRoutes(
       const maxWeeks = seasonWeeks[league.seasonLength || "medium"] || 14;
       
       // ============ CPU RECRUITING AI ============
-      if (league.currentPhase === "recruiting" || league.currentPhase === "preseason") {
+      if (league.currentPhase === "recruiting" || league.currentPhase === "preseason" || league.currentPhase === "regular_season") {
         await runCpuRecruiting(leagueId, currentWeek, league.currentSeason);
       }
       
@@ -2429,8 +2434,10 @@ export async function registerRoutes(
         return res.json(updatedLeague);
       }
 
+      const newPhase = league.currentPhase === "preseason" && nextWeek >= 2 ? "regular_season" : league.currentPhase;
       const updatedLeague = await storage.updateLeague(league.id, {
         currentWeek: nextWeek,
+        currentPhase: newPhase,
       });
 
       await storage.createAuditLog({
@@ -3465,10 +3472,10 @@ export async function registerRoutes(
     const difficulty = league?.cpuDifficulty || "high_school";
     
     const difficultyConfig: Record<string, { minActions: number; maxActions: number; gainMultiplier: number; targetingBonus: number; offerThreshold: number; visitThreshold: number }> = {
-      beginner:     { minActions: 1, maxActions: 2, gainMultiplier: 0.6,  targetingBonus: 0,  offerThreshold: 70, visitThreshold: 85 },
-      high_school:  { minActions: 2, maxActions: 3, gainMultiplier: 0.85, targetingBonus: 3,  offerThreshold: 50, visitThreshold: 70 },
-      all_american: { minActions: 3, maxActions: 4, gainMultiplier: 1.1,  targetingBonus: 7,  offerThreshold: 40, visitThreshold: 55 },
-      elite:        { minActions: 4, maxActions: 5, gainMultiplier: 1.35, targetingBonus: 12, offerThreshold: 30, visitThreshold: 45 },
+      beginner:     { minActions: 3, maxActions: 5,  gainMultiplier: 0.8,  targetingBonus: 0,  offerThreshold: 50, visitThreshold: 65 },
+      high_school:  { minActions: 4, maxActions: 7,  gainMultiplier: 1.1,  targetingBonus: 5,  offerThreshold: 35, visitThreshold: 50 },
+      all_american: { minActions: 5, maxActions: 8,  gainMultiplier: 1.3,  targetingBonus: 10, offerThreshold: 25, visitThreshold: 40 },
+      elite:        { minActions: 6, maxActions: 10, gainMultiplier: 1.5,  targetingBonus: 15, offerThreshold: 20, visitThreshold: 30 },
     };
     const config = difficultyConfig[difficulty] || difficultyConfig.high_school;
     
@@ -3509,20 +3516,20 @@ export async function registerRoutes(
         
         const actionTypes = ["email", "phone", "phone"];
         if ((interest?.interestLevel || 0) > config.offerThreshold && !interest?.hasOffer) {
-          actionTypes.push("offer");
+          actionTypes.push("offer", "offer");
         }
         if ((interest?.interestLevel || 0) > config.visitThreshold) {
-          actionTypes.push("visit");
+          actionTypes.push("visit", "visit");
         }
         
         const actionType = actionTypes[Math.floor(Math.random() * actionTypes.length)];
         
         let baseGain = 0;
         switch (actionType) {
-          case "email": baseGain = 3 + Math.floor(Math.random() * 5); break;
-          case "phone": baseGain = 5 + Math.floor(Math.random() * 10); break;
-          case "offer": baseGain = 15 + Math.floor(Math.random() * 10); break;
-          case "visit": baseGain = 15 + Math.floor(Math.random() * 10); break;
+          case "email": baseGain = 5 + Math.floor(Math.random() * 8); break;
+          case "phone": baseGain = 8 + Math.floor(Math.random() * 12); break;
+          case "offer": baseGain = 18 + Math.floor(Math.random() * 12); break;
+          case "visit": baseGain = 18 + Math.floor(Math.random() * 12); break;
         }
         
         const overallQuality = ((team.prestige || 5) + (team.facilities || 5) + (team.academics || 5)) / 15;
@@ -3543,7 +3550,6 @@ export async function registerRoutes(
           });
         }
         
-        // Log the CPU action
         await storage.createRecruitingAction({
           recruitId: recruit.id,
           teamId: team.id,
@@ -3564,11 +3570,9 @@ export async function registerRoutes(
     const unsignedRecruits = recruits.filter(r => !r.signedTeamId);
     
     for (const recruit of unsignedRecruits) {
-      // Get all interests for this recruit
       const allInterests = await storage.getRecruitingInterestsByRecruit(recruit.id);
       if (allInterests.length === 0) continue;
       
-      // Sort by interest level to find top schools
       const sortedInterests = allInterests
         .filter(i => i.interestLevel > 0)
         .sort((a, b) => (b.interestLevel || 0) - (a.interestLevel || 0));
@@ -3576,38 +3580,52 @@ export async function registerRoutes(
       const topInterestLevel = sortedInterests[0]?.interestLevel || 0;
       const currentStage = recruit.stage || "open";
       
-      // Determine new stage based on week and interest levels
       let newStage = currentStage;
       
-      // Stage progression happens naturally over time if recruits have interested teams
+      // Star-based thresholds: higher-rated recruits take longer to decide
+      const starRating = recruit.starRating || 3;
+      const isBlueChip = recruit.isBlueChip || false;
+      
+      // Signing thresholds scale with star rating
+      const verbalWeek = isBlueChip ? 11 : starRating >= 5 ? 10 : starRating >= 4 ? 8 : 6;
+      const verbalInterest = isBlueChip ? 85 : starRating >= 5 ? 80 : starRating >= 4 ? 70 : 60;
+      const signInterest = isBlueChip ? 90 : starRating >= 5 ? 85 : starRating >= 4 ? 75 : 65;
+      
       if (sortedInterests.length >= 1) {
-        if (week >= 12 && topInterestLevel >= 90 && sortedInterests.some(i => i.hasOffer)) {
-          // High interest + offer late in recruiting = can commit
+        if (week >= verbalWeek && topInterestLevel >= verbalInterest && sortedInterests.some(i => i.hasOffer)) {
           newStage = "verbal";
-        } else if (week >= 10 && topInterestLevel >= 70) {
+        } else if (week >= Math.max(3, verbalWeek - 4) && topInterestLevel >= 55) {
           newStage = "top3";
-        } else if (week >= 7 && topInterestLevel >= 50) {
+        } else if (week >= Math.max(2, verbalWeek - 6) && topInterestLevel >= 35) {
           newStage = "top5";
-        } else if (week >= 4 && topInterestLevel >= 30) {
+        } else if (week >= 2 && topInterestLevel >= 20) {
           newStage = "top8";
         }
       }
       
-      // Only update if stage changed (and can only progress forward)
       const stageOrder = ["open", "top8", "top5", "top3", "verbal", "signed"];
       if (stageOrder.indexOf(newStage) > stageOrder.indexOf(currentStage)) {
         await storage.updateRecruit(recruit.id, { stage: newStage });
         
-        // If verbal, check if they should auto-commit to a team
         if (newStage === "verbal") {
-          const topSchool = sortedInterests[0];
-          if (topSchool && topSchool.interestLevel >= 95 && topSchool.hasOffer) {
-            // Auto-sign to team with highest interest that has offered
+          const topSchool = sortedInterests.filter(i => i.hasOffer).sort((a, b) => (b.interestLevel || 0) - (a.interestLevel || 0))[0];
+          if (topSchool && topSchool.interestLevel >= signInterest) {
             await storage.updateRecruit(recruit.id, { 
               stage: "signed",
               signedTeamId: topSchool.teamId,
             });
           }
+        }
+      }
+      
+      // Also check if already verbal recruits should now sign (interest grew enough)
+      if (currentStage === "verbal") {
+        const topSchoolWithOffer = sortedInterests.filter(i => i.hasOffer).sort((a, b) => (b.interestLevel || 0) - (a.interestLevel || 0))[0];
+        if (topSchoolWithOffer && topSchoolWithOffer.interestLevel >= signInterest) {
+          await storage.updateRecruit(recruit.id, { 
+            stage: "signed",
+            signedTeamId: topSchoolWithOffer.teamId,
+          });
         }
       }
     }

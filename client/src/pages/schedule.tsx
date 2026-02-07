@@ -68,13 +68,21 @@ export default function SchedulePage() {
     return <ScheduleSkeleton />;
   }
 
-  const gamesByWeek = data?.games.reduce((acc, game) => {
-    if (!acc[game.week]) acc[game.week] = [];
-    acc[game.week].push(game);
-    return acc;
-  }, {} as Record<number, GameWithTeams[]>) || {};
+  const phaseLabels: Record<string, string> = {
+    conference_championship: "Conference Championship",
+    super_regionals: "Super Regionals",
+    cws: "College World Series",
+  };
 
-  const weeks = Object.keys(gamesByWeek).map(Number).sort((a, b) => a - b);
+  const gamesByGroup = data?.games.reduce((acc, game) => {
+    const isPostseason = ["conference_championship", "super_regionals", "cws"].includes(game.phase || "");
+    const groupKey = isPostseason ? game.phase! : `week_${game.week}`;
+    if (!acc[groupKey]) acc[groupKey] = { games: [], label: isPostseason ? phaseLabels[game.phase!] || game.phase! : `Week ${game.week}`, sortOrder: isPostseason ? 1000 + (game.phase === "conference_championship" ? 1 : game.phase === "super_regionals" ? 2 : 3) : game.week, isCurrentWeek: !isPostseason && game.week === data?.currentWeek };
+    acc[groupKey].games.push(game);
+    return acc;
+  }, {} as Record<string, { games: GameWithTeams[]; label: string; sortOrder: number; isCurrentWeek: boolean }>) || {};
+
+  const groups = Object.entries(gamesByGroup).sort(([, a], [, b]) => a.sortOrder - b.sortOrder);
 
   return (
     <div className="min-h-screen bg-background">
@@ -94,17 +102,17 @@ export default function SchedulePage() {
       </header>
 
       <main className="container mx-auto px-4 py-6 space-y-6">
-        {weeks.map((week) => (
-          <RetroCard key={week}>
+        {groups.map(([key, group]) => (
+          <RetroCard key={key}>
             <RetroCardHeader className="flex items-center justify-between gap-4">
-              <span>Week {week}</span>
-              {week === data?.currentWeek && (
+              <span>{group.label}</span>
+              {group.isCurrentWeek && (
                 <span className="text-[8px] text-gold bg-gold/20 px-2 py-1 rounded">Current</span>
               )}
             </RetroCardHeader>
             <RetroCardContent>
               <div className="space-y-4">
-                {gamesByWeek[week].map((game) => (
+                {group.games.map((game) => (
                   <GameRow
                     key={game.id}
                     game={game}
@@ -117,7 +125,7 @@ export default function SchedulePage() {
           </RetroCard>
         ))}
 
-        {weeks.length === 0 && (
+        {groups.length === 0 && (
           <RetroCard variant="bordered" className="text-center py-12">
             <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <p className="text-muted-foreground">No games scheduled yet</p>
