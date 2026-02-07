@@ -687,22 +687,23 @@ export type AuditLog = typeof auditLogs.$inferSelect;
 export const leagueInvites = pgTable("league_invites", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   leagueId: varchar("league_id").notNull().references(() => leagues.id),
-  email: text("email").notNull(),
+  email: text("email"),
   inviteCode: text("invite_code").notNull().unique(),
-  status: text("status").notNull().default("pending"), // pending, accepted, expired
-  teamId: varchar("team_id").references(() => teams.id), // team selected by invitee
+  status: text("status").notNull().default("pending"), // pending, accepted, revoked
+  teamId: varchar("team_id").references(() => teams.id),
   invitedById: varchar("invited_by_id").notNull().references(() => users.id),
   acceptedById: varchar("accepted_by_id").references(() => users.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   expiresAt: timestamp("expires_at"),
+  label: text("label"),
 });
 
 export const insertLeagueInviteSchema = createInsertSchema(leagueInvites).pick({
   leagueId: true,
-  email: true,
   inviteCode: true,
   invitedById: true,
   expiresAt: true,
+  label: true,
 });
 
 export type InsertLeagueInvite = z.infer<typeof insertLeagueInviteSchema>;

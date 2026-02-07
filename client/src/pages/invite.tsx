@@ -138,9 +138,9 @@ export default function InvitePage() {
                 <LogIn className="w-12 h-12 text-gold mx-auto mb-4" />
                 <p className="text-lg font-semibold mb-2">Sign In Required</p>
                 <p className="text-muted-foreground mb-6">
-                  You need to sign in or create an account with the email address <span className="text-gold">{data.invite.email}</span> to accept this invite.
+                  Sign in or create an account to join this dynasty.
                 </p>
-                <div className="flex gap-3 justify-center">
+                <div className="flex gap-3 justify-center flex-wrap">
                   <Link href={`/login?redirect=/invite/${code}`}>
                     <RetroButton data-testid="button-login-to-accept">
                       <LogIn className="w-4 h-4 mr-2" />

@@ -30,7 +30,8 @@ import {
   Trophy,
   Swords,
   UserMinus,
-  Target
+  Target,
+  Link as LinkIcon
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -936,20 +937,36 @@ function AuditLogTab({ logs }: { logs: AuditLog[] }) {
 }
 
 function InvitesTab({ leagueId, invites }: { leagueId: string; invites: LeagueInvite[] }) {
-  const [email, setEmail] = useState("");
   const [copied, setCopied] = useState<string | null>(null);
+  const [label, setLabel] = useState("");
   const { toast } = useToast();
   const qc = useQueryClient();
 
-  const sendInviteMutation = useMutation({
-    mutationFn: async (email: string) => {
-      const res = await apiRequest("POST", `/api/leagues/${leagueId}/invites`, { email });
+  const generateLinkMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/leagues/${leagueId}/invites`, { label: label || undefined });
+      return res.json();
+    },
+    onSuccess: (data: LeagueInvite) => {
+      qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "commissioner"] });
+      setLabel("");
+      const link = `${window.location.origin}/invite/${data.inviteCode}`;
+      navigator.clipboard.writeText(link);
+      toast({ title: "Invite Link Created", description: "Link copied to clipboard." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const revokeMutation = useMutation({
+    mutationFn: async (code: string) => {
+      const res = await apiRequest("POST", `/api/invites/${code}/revoke`);
       return res.json();
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "commissioner"] });
-      setEmail("");
-      toast({ title: "Invite Created", description: "Invite link generated successfully." });
+      toast({ title: "Invite Revoked", description: "The invite link has been disabled." });
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -967,71 +984,76 @@ function InvitesTab({ leagueId, invites }: { leagueId: string; invites: LeagueIn
   const statusBadge = (status: string) => {
     switch (status) {
       case "pending":
-        return <Badge variant="outline" className="text-yellow-400 border-yellow-400/50">Pending</Badge>;
+        return <Badge variant="outline" className="text-yellow-400 border-yellow-400/50">Active</Badge>;
       case "accepted":
         return <Badge variant="outline" className="text-green-400 border-green-400/50">Accepted</Badge>;
-      case "expired":
-        return <Badge variant="outline" className="text-red-400 border-red-400/50">Expired</Badge>;
+      case "revoked":
+        return <Badge variant="outline" className="text-red-400 border-red-400/50">Revoked</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
   };
+
+  const pendingInvites = invites.filter(i => i.status === "pending");
+  const pastInvites = invites.filter(i => i.status !== "pending");
 
   return (
     <div className="space-y-6">
       <RetroCard>
         <RetroCardHeader>
           <div className="flex items-center gap-2">
-            <UserPlus className="w-4 h-4 text-gold" />
-            <span>Send New Invite</span>
+            <LinkIcon className="w-4 h-4 text-gold" />
+            <span>Generate Invite Link</span>
           </div>
         </RetroCardHeader>
         <RetroCardContent>
           <p className="text-muted-foreground mb-4">
-            Invite a friend to join your dynasty. They will receive a unique link to select an available CPU team.
+            Generate a shareable link that anyone can use to join your dynasty and claim an available CPU team.
           </p>
           <div className="flex gap-3">
             <RetroInput
-              type="email"
-              placeholder="friend@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              type="text"
+              placeholder="Label (optional, e.g. 'For Mike')"
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
               className="flex-1"
-              data-testid="input-invite-email"
+              data-testid="input-invite-label"
             />
             <RetroButton
-              onClick={() => sendInviteMutation.mutate(email)}
-              disabled={!email || sendInviteMutation.isPending}
-              data-testid="button-send-invite"
+              onClick={() => generateLinkMutation.mutate()}
+              disabled={generateLinkMutation.isPending}
+              data-testid="button-generate-invite"
             >
-              <Mail className="w-4 h-4 mr-2" />
-              {sendInviteMutation.isPending ? "Sending..." : "Send Invite"}
+              <LinkIcon className="w-4 h-4 mr-2" />
+              {generateLinkMutation.isPending ? "Generating..." : "Generate Link"}
             </RetroButton>
           </div>
         </RetroCardContent>
       </RetroCard>
 
-      <RetroCard>
-        <RetroCardHeader className="flex items-center justify-between gap-4">
-          <span>Sent Invites</span>
-          <Badge variant="outline" className="text-[8px]">{invites.length} invites</Badge>
-        </RetroCardHeader>
+      {pendingInvites.length > 0 && (
+        <RetroCard>
+          <RetroCardHeader className="flex items-center justify-between gap-4">
+            <span>Active Links</span>
+            <Badge variant="outline" className="text-[8px]">{pendingInvites.length} active</Badge>
+          </RetroCardHeader>
 
-        <div className="space-y-3 max-h-96 overflow-y-auto">
-          {invites.map((invite) => (
-            <div key={invite.id} className="flex items-center justify-between gap-3 p-3 bg-muted/30 rounded">
-              <div className="flex items-center gap-3 flex-1">
-                <Mail className="w-4 h-4 text-muted-foreground" />
-                <div className="flex-1">
-                  <p className="text-sm">{invite.email}</p>
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    Code: {invite.inviteCode} | Created: {new Date(invite.createdAt).toLocaleDateString()}
-                  </p>
+          <div className="space-y-3 max-h-96 overflow-y-auto">
+            {pendingInvites.map((invite) => (
+              <div key={invite.id} className="flex items-center justify-between gap-3 p-3 bg-muted/30 rounded">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <LinkIcon className="w-4 h-4 text-gold shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm truncate">
+                      {invite.label || `Invite ${invite.inviteCode.substring(0, 6)}...`}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Created: {new Date(invite.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-3">
-                {statusBadge(invite.status)}
-                {invite.status === "pending" && (
+                <div className="flex items-center gap-2 shrink-0">
+                  {statusBadge(invite.status)}
                   <RetroButton
                     variant="outline"
                     size="sm"
@@ -1044,20 +1066,61 @@ function InvitesTab({ leagueId, invites }: { leagueId: string; invites: LeagueIn
                       <Copy className="w-4 h-4" />
                     )}
                   </RetroButton>
-                )}
+                  <RetroButton
+                    variant="outline"
+                    size="sm"
+                    onClick={() => revokeMutation.mutate(invite.inviteCode)}
+                    disabled={revokeMutation.isPending}
+                    data-testid={`button-revoke-invite-${invite.inviteCode}`}
+                  >
+                    <X className="w-4 h-4 text-red-400" />
+                  </RetroButton>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+        </RetroCard>
+      )}
 
-          {invites.length === 0 && (
+      {pastInvites.length > 0 && (
+        <RetroCard>
+          <RetroCardHeader className="flex items-center justify-between gap-4">
+            <span>Past Invites</span>
+            <Badge variant="outline" className="text-[8px]">{pastInvites.length} total</Badge>
+          </RetroCardHeader>
+
+          <div className="space-y-3 max-h-64 overflow-y-auto">
+            {pastInvites.map((invite) => (
+              <div key={invite.id} className="flex items-center justify-between gap-3 p-3 bg-muted/30 rounded opacity-60">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <LinkIcon className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm truncate">
+                      {invite.label || `Invite ${invite.inviteCode.substring(0, 6)}...`}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Created: {new Date(invite.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+                {statusBadge(invite.status)}
+              </div>
+            ))}
+          </div>
+        </RetroCard>
+      )}
+
+      {invites.length === 0 && (
+        <RetroCard>
+          <RetroCardContent>
             <div className="text-center py-8 text-muted-foreground">
               <UserPlus className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>No invites sent yet</p>
-              <p className="text-sm mt-2">Use the form above to invite friends to your dynasty</p>
+              <p>No invite links yet</p>
+              <p className="text-sm mt-2">Generate a link above and share it with friends to invite them to your dynasty</p>
             </div>
-          )}
-        </div>
-      </RetroCard>
+          </RetroCardContent>
+        </RetroCard>
+      )}
     </div>
   );
 }

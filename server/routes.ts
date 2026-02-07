@@ -4975,21 +4975,11 @@ export async function registerRoutes(
       }
       
       if (league.commissionerId !== req.session.userId) {
-        return res.status(403).json({ message: "Only the commissioner can send invites" });
+        return res.status(403).json({ message: "Only the commissioner can generate invite links" });
       }
 
-      const { email } = req.body;
-      if (!email || typeof email !== "string") {
-        return res.status(400).json({ message: "Email is required" });
-      }
+      const { label } = req.body || {};
 
-      // Check if invite already exists for this email in this league
-      const existingInvite = await storage.getLeagueInviteByEmail(league.id, email);
-      if (existingInvite) {
-        return res.status(400).json({ message: "An invite has already been sent to this email" });
-      }
-
-      // Generate unique invite code with retry for collisions
       let inviteCode: string;
       let attempts = 0;
       do {
@@ -5005,16 +4995,16 @@ export async function registerRoutes(
 
       const invite = await storage.createLeagueInvite({
         leagueId: league.id,
-        email,
         inviteCode,
         invitedById: req.session.userId!,
+        label: label || null,
       });
 
       await storage.createAuditLog({
         leagueId: league.id,
         userId: req.session.userId,
-        action: "Invite Sent",
-        details: `Sent invite to ${email}`,
+        action: "Invite Link Created",
+        details: `Generated invite link: ${inviteCode}${label ? ` (${label})` : ""}`,
       });
 
       res.json(invite);
@@ -5032,7 +5022,10 @@ export async function registerRoutes(
       }
       
       if (invite.status !== "pending") {
-        return res.status(400).json({ message: "This invite has already been used or expired" });
+        const statusMsg = invite.status === "accepted" ? "This invite link has already been used" 
+          : invite.status === "revoked" ? "This invite link has been revoked by the commissioner"
+          : "This invite link is no longer valid";
+        return res.status(400).json({ message: statusMsg });
       }
 
       const league = await storage.getLeague(invite.leagueId);
@@ -5058,15 +5051,23 @@ export async function registerRoutes(
       }
 
       if (invite.status !== "pending") {
-        return res.status(400).json({ message: "This invite has already been used or expired" });
+        return res.status(400).json({ message: "This invite link has already been used or revoked" });
       }
 
-      // Verify user email matches invite email
-      const user = await storage.getUser(req.session.userId!);
-      if (!user || user.email.toLowerCase() !== invite.email.toLowerCase()) {
-        return res.status(403).json({ 
-          message: "This invite was sent to a different email address. Please log in with the email that received the invite." 
-        });
+      const userId = req.session.userId!;
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const existingTeams = await storage.getTeamsByLeague(invite.leagueId);
+      const teamsWithCoaches = existingTeams.filter(t => t.coachId);
+      const coaches = await Promise.all(
+        teamsWithCoaches.map(t => storage.getCoach(t.coachId!))
+      );
+      const alreadyCoaching = coaches.some(c => c && c.userId === userId);
+      if (alreadyCoaching) {
+        return res.status(400).json({ message: "You are already a coach in this league" });
       }
 
       const { teamId, coachData } = req.body;
@@ -5138,13 +5139,45 @@ export async function registerRoutes(
         leagueId: invite.leagueId,
         userId: req.session.userId,
         action: "Invite Accepted",
-        details: `${invite.email} joined the league and selected ${team.name}`,
+        details: `${user.email || "A player"} joined the league and selected ${team.name}`,
       });
 
       res.json({ success: true, leagueId: invite.leagueId, teamId });
     } catch (error) {
       console.error("Failed to accept invite:", error);
       res.status(500).json({ message: "Failed to accept invite" });
+    }
+  });
+
+  app.post("/api/invites/:code/revoke", requireAuth, async (req, res) => {
+    try {
+      const invite = await storage.getLeagueInviteByCode(req.params.code);
+      if (!invite) {
+        return res.status(404).json({ message: "Invite not found" });
+      }
+
+      const league = await storage.getLeague(invite.leagueId);
+      if (!league || league.commissionerId !== req.session.userId) {
+        return res.status(403).json({ message: "Only the commissioner can revoke invites" });
+      }
+
+      if (invite.status !== "pending") {
+        return res.status(400).json({ message: "Only pending invites can be revoked" });
+      }
+
+      await storage.updateLeagueInvite(invite.id, { status: "revoked" });
+
+      await storage.createAuditLog({
+        leagueId: invite.leagueId,
+        userId: req.session.userId,
+        action: "Invite Revoked",
+        details: `Revoked invite link: ${invite.inviteCode}`,
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to revoke invite:", error);
+      res.status(500).json({ message: "Failed to revoke invite" });
     }
   });
 
