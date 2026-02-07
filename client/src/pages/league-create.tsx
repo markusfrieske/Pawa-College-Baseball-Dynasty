@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroInput } from "@/components/ui/retro-input";
@@ -15,13 +15,6 @@ const difficultyOptions = [
   { value: "high_school", label: "High School - Moderate competition level" },
   { value: "all_american", label: "All-American - Aggressive, skilled rivals" },
   { value: "elite", label: "Elite - Ruthless, dominant opponents" },
-];
-
-const teamCountOptions = [
-  { value: "4", label: "4 Teams" },
-  { value: "8", label: "8 Teams" },
-  { value: "12", label: "12 Teams" },
-  { value: "16", label: "16 Teams" },
 ];
 
 const availableConferences = [
@@ -47,12 +40,44 @@ export default function LeagueCreatePage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  const totalAvailableTeams = useMemo(() => {
+    return selectedConferences.reduce((sum, confId) => {
+      const conf = availableConferences.find(c => c.id === confId);
+      return sum + (conf?.teams || 0);
+    }, 0);
+  }, [selectedConferences]);
+
+  const teamCountOptions = useMemo(() => {
+    const counts = [6, 8, 10, 12, 14, 16, 18];
+    const options = counts
+      .filter(n => n < totalAvailableTeams)
+      .map(n => ({ value: String(n), label: `${n} Teams` }));
+    if (totalAvailableTeams > 0) {
+      options.push({ value: String(totalAvailableTeams), label: `All Teams (${totalAvailableTeams})` });
+    }
+    return options;
+  }, [totalAvailableTeams]);
+
   const toggleConference = (confId: string) => {
-    setSelectedConferences(prev => 
-      prev.includes(confId) 
+    setSelectedConferences(prev => {
+      const next = prev.includes(confId) 
         ? prev.filter(c => c !== confId)
-        : [...prev, confId]
-    );
+        : [...prev, confId];
+      const newTotal = next.reduce((sum, id) => {
+        const conf = availableConferences.find(c => c.id === id);
+        return sum + (conf?.teams || 0);
+      }, 0);
+      const currentTeamCount = parseInt(maxTeams);
+      if (currentTeamCount > newTotal && newTotal > 0) {
+        const validCounts = [6, 8, 10, 12, 14, 16, 18].filter(n => n <= newTotal);
+        if (validCounts.length > 0) {
+          setMaxTeams(String(validCounts[validCounts.length - 1]));
+        } else {
+          setMaxTeams(String(newTotal));
+        }
+      }
+      return next;
+    });
   };
 
   const createLeagueMutation = useMutation({
@@ -145,15 +170,6 @@ export default function LeagueCreatePage() {
                 data-testid="input-dynasty-name"
               />
 
-              <RetroSelect
-                id="teamCount"
-                label="Number of Teams"
-                options={teamCountOptions}
-                value={maxTeams}
-                onChange={(e) => setMaxTeams(e.target.value)}
-                data-testid="select-team-count"
-              />
-
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gold">Select Conferences</label>
                 <div className="grid grid-cols-2 gap-2">
@@ -176,8 +192,19 @@ export default function LeagueCreatePage() {
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {selectedConferences.length} conference{selectedConferences.length !== 1 ? 's' : ''} selected
+                  {selectedConferences.length > 0 && ` \u00B7 ${totalAvailableTeams} teams available`}
                 </p>
               </div>
+
+              <RetroSelect
+                id="teamCount"
+                label="Number of Teams"
+                options={teamCountOptions.length > 0 ? teamCountOptions : [{ value: "", label: "Select conferences first" }]}
+                value={teamCountOptions.length > 0 ? maxTeams : ""}
+                onChange={(e) => setMaxTeams(e.target.value)}
+                disabled={selectedConferences.length === 0}
+                data-testid="select-team-count"
+              />
 
               <RetroSelect
                 id="seasonLength"
@@ -212,7 +239,7 @@ export default function LeagueCreatePage() {
         </RetroCard>
 
         <div className="mt-6 text-center text-muted-foreground text-sm">
-          <p>Dynasties can have 4-16 teams with human or CPU coaches.</p>
+          <p>Select conferences first, then choose how many teams to include.</p>
           <p className="mt-1">Maximum dynasty length: 20 seasons.</p>
         </div>
       </div>

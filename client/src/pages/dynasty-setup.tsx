@@ -26,7 +26,6 @@ import {
   Eye,
   Edit,
   Plus,
-  RefreshCw,
 } from "lucide-react";
 import {
   Dialog,
@@ -102,24 +101,6 @@ export default function DynastySetupPage() {
     onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
   });
 
-  const generateRecruitsMutation = useMutation({
-    mutationFn: () => apiRequest("POST", `/api/leagues/${id}/recruiting/generate`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "dynasty-setup"] });
-      toast({ title: "Recruiting class generated!" });
-    },
-    onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
-  });
-
-  const generateScheduleMutation = useMutation({
-    mutationFn: () => apiRequest("POST", `/api/leagues/${id}/schedule/generate`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "dynasty-setup"] });
-      toast({ title: "Schedule generated!" });
-    },
-    onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
-  });
-
   const startDynastyMutation = useMutation({
     mutationFn: () => apiRequest("POST", `/api/leagues/${id}/start`),
     onSuccess: () => {
@@ -153,7 +134,7 @@ export default function DynastySetupPage() {
   const cpuTeams = teams.filter(t => t.isCpu);
   const pendingInvites = invites.filter(i => i.status === "pending");
 
-  const setupComplete = hasRecruits && hasSchedule && humanTeams.length > 0;
+  const setupComplete = humanTeams.length > 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -197,13 +178,13 @@ export default function DynastySetupPage() {
             icon={<FileUp className="w-5 h-5" />}
             title="Recruiting Class"
             status={hasRecruits ? "complete" : "pending"}
-            description={hasRecruits ? "Recruiting class ready" : "Generate or import recruits"}
+            description={hasRecruits ? "Recruiting class ready" : "Auto-generated on start"}
           />
           <SetupCheckItem
             icon={<Calendar className="w-5 h-5" />}
             title="Schedule"
             status={hasSchedule ? "complete" : "pending"}
-            description={hasSchedule ? "Season schedule set" : "Generate schedule"}
+            description={hasSchedule ? "Season schedule set" : "Auto-generated on start"}
           />
         </div>
 
@@ -289,17 +270,12 @@ export default function DynastySetupPage() {
                     <span className="font-pixel text-gold text-xs">Recruiting Class</span>
                   </RetroCardHeader>
                   <RetroCardContent>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      {hasRecruits 
+                        ? "Recruiting class is ready. You can import a custom class or edit existing recruits."
+                        : "A recruiting class will be auto-generated when the dynasty starts. You can also import a custom class."}
+                    </p>
                     <div className="flex gap-3">
-                      <RetroButton
-                        variant="outline"
-                        onClick={() => generateRecruitsMutation.mutate()}
-                        disabled={generateRecruitsMutation.isPending}
-                        className="flex-1"
-                        data-testid="button-generate-recruits"
-                      >
-                        <RefreshCw className={`w-4 h-4 mr-2 ${generateRecruitsMutation.isPending ? "animate-spin" : ""}`} />
-                        {generateRecruitsMutation.isPending ? "Generating..." : "Generate Class"}
-                      </RetroButton>
                       <RetroButton
                         variant="outline"
                         onClick={() => setShowImportDialog(true)}
@@ -309,6 +285,14 @@ export default function DynastySetupPage() {
                         <FileUp className="w-4 h-4 mr-2" />
                         Import CSV
                       </RetroButton>
+                      {hasRecruits && (
+                        <Link href={`/league/${id}/commissioner`} className="flex-1">
+                          <RetroButton variant="outline" className="w-full" data-testid="button-edit-recruits">
+                            <Edit className="w-4 h-4 mr-2" />
+                            Edit Recruits
+                          </RetroButton>
+                        </Link>
+                      )}
                     </div>
                     {hasRecruits && (
                       <div className="mt-4 flex items-center gap-2 text-green-400 text-sm">
@@ -324,23 +308,20 @@ export default function DynastySetupPage() {
                     <span className="font-pixel text-gold text-xs">Season Schedule</span>
                   </RetroCardHeader>
                   <RetroCardContent>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      {hasSchedule 
+                        ? "Schedule is set. You can view or edit it below."
+                        : "A schedule will be auto-generated when the dynasty starts."}
+                    </p>
                     <div className="flex gap-3">
-                      <RetroButton
-                        variant="outline"
-                        onClick={() => generateScheduleMutation.mutate()}
-                        disabled={generateScheduleMutation.isPending}
-                        className="flex-1"
-                        data-testid="button-generate-schedule"
-                      >
-                        <RefreshCw className={`w-4 h-4 mr-2 ${generateScheduleMutation.isPending ? "animate-spin" : ""}`} />
-                        {generateScheduleMutation.isPending ? "Generating..." : "Generate Schedule"}
-                      </RetroButton>
-                      <Link href={`/league/${id}/schedule`} className="flex-1">
-                        <RetroButton variant="outline" className="w-full" data-testid="button-edit-schedule">
-                          <Edit className="w-4 h-4 mr-2" />
-                          View Schedule
-                        </RetroButton>
-                      </Link>
+                      {hasSchedule && (
+                        <Link href={`/league/${id}/schedule`} className="flex-1">
+                          <RetroButton variant="outline" className="w-full" data-testid="button-edit-schedule">
+                            <Edit className="w-4 h-4 mr-2" />
+                            View Schedule
+                          </RetroButton>
+                        </Link>
+                      )}
                     </div>
                     {hasSchedule && (
                       <div className="mt-4 flex items-center gap-2 text-green-400 text-sm">

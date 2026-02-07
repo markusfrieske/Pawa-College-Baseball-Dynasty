@@ -35,7 +35,7 @@ const authSchema = z.object({
 
 const leagueCreateSchema = z.object({
   name: z.string().min(1).max(100),
-  maxTeams: z.number().min(4).max(16).optional(),
+  maxTeams: z.number().min(6).max(64).optional(),
   cpuDifficulty: z.enum(["beginner", "high_school", "all_american", "elite"]).optional(),
   conferenceCount: z.number().min(2).max(4).optional(),
   selectedConferences: z.array(z.string()).min(1).max(4).optional(),
@@ -318,12 +318,10 @@ export async function registerRoutes(
 
       const conferences = await storage.getConferencesByLeague(league.id);
       
-      const allConferenceNames = ["SEC", "ACC", "Big 12", "Big Ten"];
-      const conferenceTeamPools = allConferenceNames.map(confName => {
-        const dynConf = conferences.find(c => c.name === confName);
+      const conferenceTeamPools = conferences.map(conf => {
         return {
-          conference: dynConf || { id: confName, name: confName, leagueId: league.id },
-          teams: getTeamsForConference(confName),
+          conference: conf,
+          teams: getTeamsForConference(conf.name),
         };
       });
       
@@ -5682,6 +5680,20 @@ export async function registerRoutes(
       
       // Generate CPU coaches for teams that don't have one
       await generateCpuCoaches(leagueId);
+      
+      // Auto-generate recruiting class if not already present
+      const existingRecruits = await storage.getRecruitsByLeague(leagueId);
+      if (existingRecruits.length === 0) {
+        const teams = await storage.getTeamsByLeague(leagueId);
+        const recruitCount = Math.max(80, teams.length * 5);
+        await generateRecruits(leagueId, recruitCount);
+      }
+      
+      // Auto-generate schedule if not already present
+      const existingGames = await storage.getGamesByLeague(leagueId);
+      if (existingGames.length === 0) {
+        await generateSchedule(leagueId);
+      }
       
       await storage.updateLeague(leagueId, { currentPhase: "preseason" });
       
