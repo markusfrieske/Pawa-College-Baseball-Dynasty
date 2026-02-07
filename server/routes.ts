@@ -2813,6 +2813,25 @@ export async function registerRoutes(
     const updatedAllGames = await storage.getGamesByLeague(leagueId);
     const updatedSRGames = updatedAllGames.filter(g => g.phase === "super_regionals" && g.season === season && g.isComplete);
     
+    const leagueTeams = await storage.getTeamsByLeague(leagueId);
+    const standingsList = await storage.getStandingsByLeague(leagueId, season);
+    const rankedTeams = leagueTeams.map(t => {
+      const s = standingsList.find(st => st.teamId === t.id);
+      return { team: t, wins: s?.wins || 0, runsScored: s?.runsScored || 0 };
+    }).sort((a, b) => b.wins - a.wins || b.runsScored - a.runsScored);
+    const bracketSize = Math.floor(leagueTeams.length / 2);
+    const qualifiedTeamIds = rankedTeams.slice(0, bracketSize).map(t => t.team.id);
+    
+    if (qualifiedTeamIds.length <= 2) {
+      const lastGame = updatedSRGames[updatedSRGames.length - 1];
+      if (lastGame) {
+        const winnerId = (lastGame.homeScore ?? 0) > (lastGame.awayScore ?? 0) ? lastGame.homeTeamId : lastGame.awayTeamId;
+        const loserId = winnerId === lastGame.homeTeamId ? lastGame.awayTeamId : lastGame.homeTeamId;
+        return { done: true, champion1: winnerId, champion2: loserId };
+      }
+      return { done: true, champion1: qualifiedTeamIds[0], champion2: qualifiedTeamIds[1] };
+    }
+    
     const eliminated = new Set<string>();
     for (const g of updatedSRGames) {
       const loserId = (g.homeScore ?? 0) > (g.awayScore ?? 0) ? g.awayTeamId : g.homeTeamId;
@@ -2825,15 +2844,6 @@ export async function registerRoutes(
       participated.add(g.awayTeamId);
     }
     
-    const leagueTeams = await storage.getTeamsByLeague(leagueId);
-    const standingsList = await storage.getStandingsByLeague(leagueId, season);
-    const rankedTeams = leagueTeams.map(t => {
-      const s = standingsList.find(st => st.teamId === t.id);
-      return { team: t, wins: s?.wins || 0, runsScored: s?.runsScored || 0 };
-    }).sort((a, b) => b.wins - a.wins || b.runsScored - a.runsScored);
-    const bracketSize = Math.floor(leagueTeams.length / 2);
-    const qualifiedTeamIds = rankedTeams.slice(0, bracketSize).map(t => t.team.id);
-    
     const remainingTeams = qualifiedTeamIds.filter(id => !eliminated.has(id));
     const byeTeams = remainingTeams.filter(id => !participated.has(id));
     const activeWinners = remainingTeams.filter(id => participated.has(id));
@@ -2843,6 +2853,15 @@ export async function registerRoutes(
     });
     
     if (nextRoundTeams.length <= 2) {
+      const finalGame = updatedSRGames.filter(g => 
+        nextRoundTeams.includes(g.homeTeamId) || nextRoundTeams.includes(g.awayTeamId)
+      ).pop();
+      
+      if (nextRoundTeams.length === 1 && finalGame) {
+        const winnerId = nextRoundTeams[0];
+        const loserId = finalGame.homeTeamId === winnerId ? finalGame.awayTeamId : finalGame.homeTeamId;
+        return { done: true, champion1: winnerId, champion2: loserId };
+      }
       return { done: true, champion1: nextRoundTeams[0], champion2: nextRoundTeams[1] };
     }
     
