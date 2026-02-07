@@ -90,6 +90,27 @@ export default function RecruitProfilePage() {
   const [notes, setNotes] = useState("");
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [showProfilePhonePicker, setShowProfilePhonePicker] = useState(false);
+  const [showProfileEmailPicker, setShowProfileEmailPicker] = useState(false);
+  const [profilePhonePitches, setProfilePhonePitches] = useState<string[]>([]);
+  const [profileEmailPitch, setProfileEmailPitch] = useState<string | null>(null);
+
+  const pitchOptions = [
+    { key: "proximity", label: "Proximity" },
+    { key: "reputation", label: "Reputation" },
+    { key: "playingTime", label: "Playing Time" },
+    { key: "academics", label: "Academics" },
+    { key: "prestige", label: "Prestige" },
+    { key: "facilities", label: "Facilities" },
+  ];
+
+  const toggleProfilePhonePitch = (key: string) => {
+    setProfilePhonePitches(prev => {
+      if (prev.includes(key)) return prev.filter(k => k !== key);
+      if (prev.length >= 3) return prev;
+      return [...prev, key];
+    });
+  };
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -141,11 +162,12 @@ export default function RecruitProfilePage() {
   });
 
   const phoneMutation = useMutation({
-    mutationFn: async () => {
-      return apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/phone`);
+    mutationFn: async (pitchTopics?: string[]) => {
+      return apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/phone`, { pitchTopics });
     },
-    onSuccess: () => {
-      toast({ title: "Phone Call Made", description: "Interest increased" });
+    onSuccess: (data: any) => {
+      const gain = data.interestGain || 0;
+      toast({ title: "Phone Call Made", description: gain > 10 ? "Strong interest!" : "Interest increased" });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruits", recruitId] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting", recruitId, "actions"] });
     },
@@ -155,11 +177,12 @@ export default function RecruitProfilePage() {
   });
 
   const emailMutation = useMutation({
-    mutationFn: async () => {
-      return apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/email`);
+    mutationFn: async (pitchTopic?: string) => {
+      return apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/email`, { pitchTopic });
     },
-    onSuccess: () => {
-      toast({ title: "Email Sent", description: "Interest increased" });
+    onSuccess: (data: any) => {
+      const gain = data.interestGain || 0;
+      toast({ title: "Email Sent", description: gain > 5 ? "Good response!" : "Interest increased" });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruits", recruitId] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting", recruitId, "actions"] });
     },
@@ -374,20 +397,21 @@ export default function RecruitProfilePage() {
           </RetroButton>
           <RetroButton 
             data-testid="button-phone"
-            onClick={() => phoneMutation.mutate()}
+            variant={showProfilePhonePicker ? "primary" : "default"}
+            onClick={() => { setShowProfilePhonePicker(!showProfilePhonePicker); setShowProfileEmailPicker(false); setProfilePhonePitches([]); }}
             disabled={phoneMutation.isPending || !recruit.interest}
           >
             <Phone className="w-4 h-4 mr-2" />
-            {phoneMutation.isPending ? "Calling..." : "Phone"}
+            {phoneMutation.isPending ? "Calling..." : "Phone (3 pitches)"}
           </RetroButton>
           <RetroButton 
-            variant="outline" 
+            variant={showProfileEmailPicker ? "primary" : "outline"}
             data-testid="button-email"
-            onClick={() => emailMutation.mutate()}
+            onClick={() => { setShowProfileEmailPicker(!showProfileEmailPicker); setShowProfilePhonePicker(false); setProfileEmailPitch(null); }}
             disabled={emailMutation.isPending || !recruit.interest}
           >
             <Mail className="w-4 h-4 mr-2" />
-            {emailMutation.isPending ? "Sending..." : "Email"}
+            {emailMutation.isPending ? "Sending..." : "Email (1 pitch)"}
           </RetroButton>
           <RetroButton 
             variant="outline" 
@@ -400,6 +424,86 @@ export default function RecruitProfilePage() {
             {offerMutation.isPending ? "Offering..." : recruit.interest?.hasOffer ? "Offered" : "Offer"}
           </RetroButton>
         </div>
+
+        {showProfilePhonePicker && (
+          <div className="p-3 bg-muted/30 border border-border rounded" data-testid="profile-pitch-picker-phone">
+            <p className="text-[10px] font-pixel text-gold mb-2">SELECT UP TO 3 PITCHES FOR PHONE CALL</p>
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {pitchOptions.map(opt => (
+                <button
+                  key={opt.key}
+                  onClick={() => toggleProfilePhonePitch(opt.key)}
+                  className={`text-xs px-3 py-1.5 rounded border transition-colors ${
+                    profilePhonePitches.includes(opt.key)
+                      ? "bg-gold/20 border-gold text-gold"
+                      : "bg-muted/20 border-border text-muted-foreground hover:border-gold/50"
+                  }`}
+                  data-testid={`profile-pitch-phone-${opt.key}`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <RetroButton
+                size="sm"
+                onClick={() => {
+                  phoneMutation.mutate(profilePhonePitches);
+                  setShowProfilePhonePicker(false);
+                  setProfilePhonePitches([]);
+                }}
+                disabled={profilePhonePitches.length === 0 || phoneMutation.isPending}
+                data-testid="profile-button-send-phone"
+              >
+                <Phone className="w-3 h-3 mr-1" />
+                Call ({profilePhonePitches.length}/3)
+              </RetroButton>
+              <RetroButton variant="outline" size="sm" onClick={() => { setShowProfilePhonePicker(false); setProfilePhonePitches([]); }}>
+                Cancel
+              </RetroButton>
+            </div>
+          </div>
+        )}
+
+        {showProfileEmailPicker && (
+          <div className="p-3 bg-muted/30 border border-border rounded" data-testid="profile-pitch-picker-email">
+            <p className="text-[10px] font-pixel text-gold mb-2">SELECT 1 PITCH FOR EMAIL</p>
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {pitchOptions.map(opt => (
+                <button
+                  key={opt.key}
+                  onClick={() => setProfileEmailPitch(profileEmailPitch === opt.key ? null : opt.key)}
+                  className={`text-xs px-3 py-1.5 rounded border transition-colors ${
+                    profileEmailPitch === opt.key
+                      ? "bg-gold/20 border-gold text-gold"
+                      : "bg-muted/20 border-border text-muted-foreground hover:border-gold/50"
+                  }`}
+                  data-testid={`profile-pitch-email-${opt.key}`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <RetroButton
+                size="sm"
+                onClick={() => {
+                  emailMutation.mutate(profileEmailPitch || undefined);
+                  setShowProfileEmailPicker(false);
+                  setProfileEmailPitch(null);
+                }}
+                disabled={!profileEmailPitch || emailMutation.isPending}
+                data-testid="profile-button-send-email"
+              >
+                <Mail className="w-3 h-3 mr-1" />
+                Send Email
+              </RetroButton>
+              <RetroButton variant="outline" size="sm" onClick={() => { setShowProfileEmailPicker(false); setProfileEmailPitch(null); }}>
+                Cancel
+              </RetroButton>
+            </div>
+          </div>
+        )}
 
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Left Column - Recruit Info & Attributes */}
@@ -654,7 +758,7 @@ export default function RecruitProfilePage() {
                         <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
                           <div 
                             className="h-full bg-gold/70 rounded-full"
-                            style={{ width: `${Math.round(school.interestLevel / 20) * 20}%` }}
+                            style={{ width: `${Math.min(100, Math.max(5, school.interestLevel + ((school.teamId.charCodeAt(0) % 11) - 5)))}%` }}
                           />
                         </div>
                         <span className={`text-xs font-bold w-16 text-right ${getInterestLabel(school.interestLevel).color}`}>{getInterestLabel(school.interestLevel).label}</span>

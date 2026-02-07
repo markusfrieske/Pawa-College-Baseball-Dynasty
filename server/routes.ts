@@ -593,10 +593,8 @@ export async function registerRoutes(
       const pitchingRecruitingSkill = coach?.pitchingRecruitingSkill || 1;
       const hittingRecruitingSkill = coach?.hittingRecruitingSkill || 1;
       
-      // Scout actions: 5 base + (scouting + evaluation) / 2
-      const maxScoutActions = 5 + Math.floor((scoutingSkill + evaluationSkill) / 2);
-      // Recruiting actions: 5 base + (pitching + hitting recruiting) / 2
-      const maxRecruitingActions = 5 + Math.floor((pitchingRecruitingSkill + hittingRecruitingSkill) / 2);
+      const maxScoutActions = 12 + Math.floor((scoutingSkill + evaluationSkill) / 2);
+      const maxRecruitingActions = 12 + Math.floor((pitchingRecruitingSkill + hittingRecruitingSkill) / 2);
       
       // Count seniors for commit limit calculation (max 25 roster, so commits = 25 - current + seniors leaving)
       const seniorsCount = roster.filter(p => p.eligibility === 'SR').length;
@@ -642,7 +640,7 @@ export async function registerRoutes(
         return res.status(400).json({ message: "No team assigned" });
       }
 
-      const maxScoutActions = 5 + Math.floor(((userCoach?.scoutingSkill || 1) + (userCoach?.evaluationSkill || 1)) / 2);
+      const maxScoutActions = 12 + Math.floor(((userCoach?.scoutingSkill || 1) + (userCoach?.evaluationSkill || 1)) / 2);
       if ((userCoach?.scoutActionsUsed || 0) >= maxScoutActions) {
         return res.status(400).json({ message: `You've used all ${maxScoutActions} scouting actions this week` });
       }
@@ -891,10 +889,13 @@ export async function registerRoutes(
     return 1.0; // Different region
   }
 
-  // Recruiting action: phone call with pitch topic
+  // Recruiting action: phone call with up to 3 pitch topics
   app.post("/api/leagues/:id/recruiting/:recruitId/phone", requireAuth, async (req, res) => {
     try {
-      const { pitchTopic } = req.body || {}; // proximity, reputation, playingTime, academics, prestige, facilities
+      const { pitchTopic, pitchTopics } = req.body || {};
+      const topics: string[] = pitchTopics && Array.isArray(pitchTopics) && pitchTopics.length > 0 
+        ? pitchTopics.slice(0, 3) 
+        : [pitchTopic || "reputation"];
       
       const leagueTeams = await storage.getTeamsByLeague(req.params.id as string);
       const userId = req.session.userId;
@@ -916,23 +917,25 @@ export async function registerRoutes(
         return res.status(404).json({ message: "League not found" });
       }
 
-      const maxRecruitingActions = 5 + Math.floor(((userCoach?.pitchingRecruitingSkill || 1) + (userCoach?.hittingRecruitingSkill || 1)) / 2);
+      const maxRecruitingActions = 12 + Math.floor(((userCoach?.pitchingRecruitingSkill || 1) + (userCoach?.hittingRecruitingSkill || 1)) / 2);
       if ((userCoach?.recruitActionsUsed || 0) >= maxRecruitingActions) {
         return res.status(400).json({ message: `You've used all ${maxRecruitingActions} recruiting actions this week` });
       }
 
-      // Calculate interest gain with modifiers
-      const baseGain = 5 + Math.floor(Math.random() * 10); // 5-14 base
-      const topic = pitchTopic || "reputation"; // Default pitch topic
+      let totalInterestGain = 0;
+      const pitchResults: { topic: string; gain: number; matchLevel: string }[] = [];
       
-      const { bonus: priorityBonus, matchLevel } = calculatePriorityBonus(topic, recruit, userTeam);
-      const schoolBonus = calculateSchoolBonus(topic, userTeam);
-      const coachBonus = calculateCoachBonus(userCoach, recruit, "phone");
-      const proximityBonus = topic === "proximity" ? calculateProximityBonus(recruit.homeState, userTeam.state) : 1.0;
-      
-      // Apply all modifiers
-      const totalMultiplier = priorityBonus * schoolBonus * coachBonus * proximityBonus;
-      const interestGain = Math.round(baseGain * totalMultiplier);
+      for (const topic of topics) {
+        const baseGain = 3 + Math.floor(Math.random() * 7);
+        const { bonus: priorityBonus, matchLevel } = calculatePriorityBonus(topic, recruit, userTeam);
+        const schoolBonus = calculateSchoolBonus(topic, userTeam);
+        const coachBonus = calculateCoachBonus(userCoach, recruit, "phone");
+        const proximityBonus = topic === "proximity" ? calculateProximityBonus(recruit.homeState, userTeam.state) : 1.0;
+        const totalMultiplier = priorityBonus * schoolBonus * coachBonus * proximityBonus;
+        const gain = Math.round(baseGain * totalMultiplier);
+        totalInterestGain += gain;
+        pitchResults.push({ topic, gain, matchLevel });
+      }
 
       let interest = await storage.getRecruitingInterest(req.params.recruitId as string, userTeam.id);
       
@@ -940,23 +943,23 @@ export async function registerRoutes(
         interest = await storage.createRecruitingInterest({
           recruitId: req.params.recruitId as string,
           teamId: userTeam.id,
-          interestLevel: interestGain,
+          interestLevel: totalInterestGain,
         });
       } else {
         interest = await storage.updateRecruitingInterest(interest.id, {
-          interestLevel: Math.min(100, (interest.interestLevel || 0) + interestGain),
+          interestLevel: Math.min(100, (interest.interestLevel || 0) + totalInterestGain),
         });
       }
 
-      // Sync top schools interest
       const phoneTopSchools = await storage.getRecruitTopSchools(req.params.recruitId as string);
       const phoneUserTopSchool = phoneTopSchools.find(ts => ts.teamId === userTeam.id);
       if (phoneUserTopSchool) {
         await storage.updateRecruitTopSchool(phoneUserTopSchool.id, { 
-          accumulatedInterest: (phoneUserTopSchool.accumulatedInterest || 0) + interestGain 
+          accumulatedInterest: (phoneUserTopSchool.accumulatedInterest || 0) + totalInterestGain 
         });
       }
 
+      const topicSummary = pitchResults.map(p => `${p.topic} (${p.matchLevel}, +${p.gain}%)`).join(", ");
       await storage.createRecruitingAction({
         recruitId: req.params.recruitId as string,
         teamId: userTeam.id,
@@ -964,8 +967,8 @@ export async function registerRoutes(
         week: league.currentWeek,
         season: league.currentSeason,
         actionType: "phone",
-        interestChange: interestGain,
-        notes: `Phone call about ${topic} (${matchLevel} priority, +${interestGain}%)`,
+        interestChange: totalInterestGain,
+        notes: `Phone call: ${topicSummary}`,
       });
 
       if (userCoach) {
@@ -977,10 +980,8 @@ export async function registerRoutes(
       const actionsRemaining = maxRecruitingActions - ((userCoach?.recruitActionsUsed || 0) + 1);
       res.json({ 
         interest, 
-        interestGain, 
-        pitchTopic: topic, 
-        matchLevel,
-        multiplier: totalMultiplier.toFixed(2),
+        interestGain: totalInterestGain, 
+        pitchResults,
         actionsRemaining,
       });
     } catch (error) {
@@ -1014,7 +1015,7 @@ export async function registerRoutes(
         return res.status(404).json({ message: "League not found" });
       }
 
-      const maxRecruitingActions = 5 + Math.floor(((userCoach?.pitchingRecruitingSkill || 1) + (userCoach?.hittingRecruitingSkill || 1)) / 2);
+      const maxRecruitingActions = 12 + Math.floor(((userCoach?.pitchingRecruitingSkill || 1) + (userCoach?.hittingRecruitingSkill || 1)) / 2);
       if ((userCoach?.recruitActionsUsed || 0) >= maxRecruitingActions) {
         return res.status(400).json({ message: `You've used all ${maxRecruitingActions} recruiting actions this week` });
       }
@@ -1109,7 +1110,7 @@ export async function registerRoutes(
         return res.status(404).json({ message: "League not found" });
       }
 
-      const maxRecruitingActions = 5 + Math.floor(((userCoach?.pitchingRecruitingSkill || 1) + (userCoach?.hittingRecruitingSkill || 1)) / 2);
+      const maxRecruitingActions = 12 + Math.floor(((userCoach?.pitchingRecruitingSkill || 1) + (userCoach?.hittingRecruitingSkill || 1)) / 2);
       if ((userCoach?.recruitActionsUsed || 0) >= maxRecruitingActions) {
         return res.status(400).json({ message: `You've used all ${maxRecruitingActions} recruiting actions this week` });
       }
@@ -1206,6 +1207,11 @@ export async function registerRoutes(
         return res.status(404).json({ message: "League not found" });
       }
 
+      const maxRecruitingActions = 12 + Math.floor(((userCoach?.pitchingRecruitingSkill || 1) + (userCoach?.hittingRecruitingSkill || 1)) / 2);
+      if ((userCoach?.recruitActionsUsed || 0) >= maxRecruitingActions) {
+        return res.status(400).json({ message: `You've used all ${maxRecruitingActions} recruiting actions this week` });
+      }
+
       let interest = await storage.getRecruitingInterest(req.params.recruitId as string, userTeam.id);
       
       // Offers give big interest boost, influenced by prestige
@@ -1250,7 +1256,15 @@ export async function registerRoutes(
         notes: `Offered scholarship (+${interestGain}% interest)`,
       });
 
-      res.json({ interest, interestGain });
+      if (userCoach) {
+        await storage.updateCoach(userCoach.id, {
+          recruitActionsUsed: (userCoach.recruitActionsUsed || 0) + 1,
+        });
+      }
+
+      const maxRecruitingActions = 12 + Math.floor(((userCoach?.pitchingRecruitingSkill || 1) + (userCoach?.hittingRecruitingSkill || 1)) / 2);
+      const actionsRemaining = maxRecruitingActions - ((userCoach?.recruitActionsUsed || 0) + 1);
+      res.json({ interest, interestGain, actionsRemaining });
     } catch (error) {
       console.error("Failed to offer scholarship:", error);
       res.status(500).json({ message: "Failed to offer scholarship" });
@@ -1269,12 +1283,24 @@ export async function registerRoutes(
       let interest = await storage.getRecruitingInterest(req.params.recruitId, userTeam.id);
       
       if (!interest) {
+        const allInterests = await storage.getRecruitingInterestsByTeam(userTeam.id);
+        const currentTargets = allInterests.filter(i => i.isTargeted).length;
+        if (currentTargets >= 20) {
+          return res.status(400).json({ message: "Maximum 20 targets reached. Remove a target first." });
+        }
         interest = await storage.createRecruitingInterest({
           recruitId: req.params.recruitId,
           teamId: userTeam.id,
           isTargeted: true,
         });
       } else {
+        if (!interest.isTargeted) {
+          const allInterests = await storage.getRecruitingInterestsByTeam(userTeam.id);
+          const currentTargets = allInterests.filter(i => i.isTargeted).length;
+          if (currentTargets >= 20) {
+            return res.status(400).json({ message: "Maximum 20 targets reached. Remove a target first." });
+          }
+        }
         interest = await storage.updateRecruitingInterest(interest.id, {
           isTargeted: !interest.isTargeted,
         });

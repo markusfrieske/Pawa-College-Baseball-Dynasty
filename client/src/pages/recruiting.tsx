@@ -268,7 +268,8 @@ export default function RecruitingPage() {
 
   const phoneMutation = useMutation({
     mutationFn: async ({ recruitId, pitchTopic }: { recruitId: string; pitchTopic?: string }) => {
-      return apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/phone`, { pitchTopic });
+      const pitchTopics = pitchTopic ? pitchTopic.split(",") : undefined;
+      return apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/phone`, { pitchTopics });
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
@@ -456,7 +457,7 @@ export default function RecruitingPage() {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
-            <StatCard icon={<Target className="w-4 h-4" />} label="Targets" value={`${data?.targetedCount || 0}/30`} />
+            <StatCard icon={<Target className="w-4 h-4" />} label="Targets" value={`${data?.targetedCount || 0}/20`} />
             <StatCard icon={<Check className="w-4 h-4" />} label="Commits" value={`${data?.commitsCount || 0}/${data?.maxCommits ?? 0}`} />
             <StatCard icon={<Phone className="w-4 h-4" />} label="Recruiting Actions" value={`${data?.remainingActions ?? 0}/${data?.maxActions ?? 0}`} />
             <StatCard icon={<Eye className="w-4 h-4" />} label="Scout Actions" value={`${data?.remainingScoutActions ?? 0}/${data?.maxScoutActions ?? 0}`} />
@@ -620,6 +621,8 @@ export default function RecruitingPage() {
               nextYearDepth={data.nextYearDepth} 
               nextYearRosterSize={data.nextYearRosterSize} 
               seniorsGraduating={data.seniorsGraduating}
+              positionFilter={positionFilter}
+              onPositionClick={(pos) => setPositionFilter(positionFilter === pos ? "all" : pos)}
             />
           )}
 
@@ -819,11 +822,15 @@ const IDEAL_DEPTH: Record<string, number> = {
 function TeamNeedsIndicator({ 
   nextYearDepth, 
   nextYearRosterSize, 
-  seniorsGraduating 
+  seniorsGraduating,
+  positionFilter,
+  onPositionClick,
 }: { 
   nextYearDepth: Record<string, number>; 
   nextYearRosterSize: number;
   seniorsGraduating: number;
+  positionFilter?: string;
+  onPositionClick?: (pos: string) => void;
 }) {
   const positions = ["P", "C", "1B", "2B", "SS", "3B", "LF", "CF", "RF"];
   
@@ -855,16 +862,20 @@ function TeamNeedsIndicator({
           const ideal = IDEAL_DEPTH[pos] || 2;
           const status = getDepthStatus(pos);
           
+          const isActive = positionFilter === pos;
           return (
             <div
               key={pos}
-              className={`p-2 rounded text-center border ${
-                status === "need" 
-                  ? "border-red-500/50 bg-red-500/10" 
-                  : status === "ok" 
-                    ? "border-yellow-500/50 bg-yellow-500/10" 
-                    : "border-green-500/50 bg-green-500/10"
-              }`}
+              className={`p-2 rounded text-center border cursor-pointer transition-all ${
+                isActive
+                  ? "border-gold ring-2 ring-gold/50 ring-offset-1 ring-offset-background"
+                  : status === "need" 
+                    ? "border-red-500/50 bg-red-500/10" 
+                    : status === "ok" 
+                      ? "border-yellow-500/50 bg-yellow-500/10" 
+                      : "border-green-500/50 bg-green-500/10"
+              } hover:opacity-80`}
+              onClick={() => onPositionClick?.(pos)}
               data-testid={`depth-${pos}`}
             >
               <div className="flex items-center justify-center gap-1 mb-1">
@@ -941,6 +952,27 @@ function RecruitRow({
 }) {
   const [showNotesDialog, setShowNotesDialog] = useState(false);
   const [notesValue, setNotesValue] = useState(recruit.interest?.notes || "");
+  const [showPhonePicker, setShowPhonePicker] = useState(false);
+  const [showEmailPicker, setShowEmailPicker] = useState(false);
+  const [selectedPhonePitches, setSelectedPhonePitches] = useState<string[]>([]);
+  const [selectedEmailPitch, setSelectedEmailPitch] = useState<string | null>(null);
+
+  const pitchOptions = [
+    { key: "proximity", label: "Proximity" },
+    { key: "reputation", label: "Reputation" },
+    { key: "playingTime", label: "Playing Time" },
+    { key: "academics", label: "Academics" },
+    { key: "prestige", label: "Prestige" },
+    { key: "facilities", label: "Facilities" },
+  ];
+
+  const togglePhonePitch = (key: string) => {
+    setSelectedPhonePitches(prev => {
+      if (prev.includes(key)) return prev.filter(k => k !== key);
+      if (prev.length >= 3) return prev;
+      return [...prev, key];
+    });
+  };
 
   const stageBadges: Record<string, { label: string; color: string }> = {
     open: { label: "Open", color: "bg-gray-500" },
@@ -1182,30 +1214,30 @@ function RecruitRow({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <RetroButton
-                    variant="outline"
+                    variant={showPhonePicker ? "primary" : "outline"}
                     size="sm"
-                    onClick={() => onPhone()}
+                    onClick={() => { setShowPhonePicker(!showPhonePicker); setShowEmailPicker(false); setSelectedPhonePitches([]); }}
                     disabled={isPhoning || !recruit.interest || outOfRecruitingActions}
                     data-testid={`button-phone-${recruit.id}`}
                   >
                     <Phone className="w-3 h-3" />
                   </RetroButton>
                 </TooltipTrigger>
-                <TooltipContent>Phone Call</TooltipContent>
+                <TooltipContent>Phone Call (3 pitches)</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <RetroButton
-                    variant="outline"
+                    variant={showEmailPicker ? "primary" : "outline"}
                     size="sm"
-                    onClick={() => onEmail()}
+                    onClick={() => { setShowEmailPicker(!showEmailPicker); setShowPhonePicker(false); setSelectedEmailPitch(null); }}
                     disabled={isEmailing || !recruit.interest || outOfRecruitingActions}
                     data-testid={`button-email-${recruit.id}`}
                   >
                     <Mail className="w-3 h-3" />
                   </RetroButton>
                 </TooltipTrigger>
-                <TooltipContent>Send Email</TooltipContent>
+                <TooltipContent>Send Email (1 pitch)</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -1252,6 +1284,86 @@ function RecruitRow({
           </div>
         )}
       </div>
+
+      {showPhonePicker && (
+        <div className="mt-3 p-3 bg-muted/30 border border-border rounded" data-testid={`pitch-picker-phone-${recruit.id}`}>
+          <p className="text-[10px] font-pixel text-gold mb-2">SELECT UP TO 3 PITCHES FOR PHONE CALL</p>
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            {pitchOptions.map(opt => (
+              <button
+                key={opt.key}
+                onClick={() => togglePhonePitch(opt.key)}
+                className={`text-xs px-2 py-1 rounded border transition-colors ${
+                  selectedPhonePitches.includes(opt.key)
+                    ? "bg-gold/20 border-gold text-gold"
+                    : "bg-muted/20 border-border text-muted-foreground hover:border-gold/50"
+                }`}
+                data-testid={`pitch-option-phone-${opt.key}-${recruit.id}`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-2 items-center">
+            <RetroButton
+              size="sm"
+              onClick={() => {
+                onPhone(selectedPhonePitches.length > 0 ? selectedPhonePitches.join(",") : undefined);
+                setShowPhonePicker(false);
+                setSelectedPhonePitches([]);
+              }}
+              disabled={selectedPhonePitches.length === 0 || isPhoning}
+              data-testid={`button-send-phone-${recruit.id}`}
+            >
+              <Phone className="w-3 h-3 mr-1" />
+              Call ({selectedPhonePitches.length}/3)
+            </RetroButton>
+            <RetroButton variant="outline" size="sm" onClick={() => { setShowPhonePicker(false); setSelectedPhonePitches([]); }}>
+              Cancel
+            </RetroButton>
+          </div>
+        </div>
+      )}
+
+      {showEmailPicker && (
+        <div className="mt-3 p-3 bg-muted/30 border border-border rounded" data-testid={`pitch-picker-email-${recruit.id}`}>
+          <p className="text-[10px] font-pixel text-gold mb-2">SELECT 1 PITCH FOR EMAIL</p>
+          <div className="flex flex-wrap gap-1.5 mb-2">
+            {pitchOptions.map(opt => (
+              <button
+                key={opt.key}
+                onClick={() => setSelectedEmailPitch(selectedEmailPitch === opt.key ? null : opt.key)}
+                className={`text-xs px-2 py-1 rounded border transition-colors ${
+                  selectedEmailPitch === opt.key
+                    ? "bg-gold/20 border-gold text-gold"
+                    : "bg-muted/20 border-border text-muted-foreground hover:border-gold/50"
+                }`}
+                data-testid={`pitch-option-email-${opt.key}-${recruit.id}`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex gap-2 items-center">
+            <RetroButton
+              size="sm"
+              onClick={() => {
+                onEmail(selectedEmailPitch || undefined);
+                setShowEmailPicker(false);
+                setSelectedEmailPitch(null);
+              }}
+              disabled={!selectedEmailPitch || isEmailing}
+              data-testid={`button-send-email-${recruit.id}`}
+            >
+              <Mail className="w-3 h-3 mr-1" />
+              Send Email
+            </RetroButton>
+            <RetroButton variant="outline" size="sm" onClick={() => { setShowEmailPicker(false); setSelectedEmailPitch(null); }}>
+              Cancel
+            </RetroButton>
+          </div>
+        </div>
+      )}
 
       {recruit.interest?.notes && (
         <div className="mt-2 px-4 py-2 bg-gold/10 border border-gold/20 rounded text-sm text-muted-foreground">
@@ -1375,10 +1487,31 @@ function RecruitDetailModal({
   onOffer: (recruitId: string) => void;
   isOffering: boolean;
 }) {
+  const [modalPhonePitches, setModalPhonePitches] = useState<string[]>([]);
+  const [modalEmailPitch, setModalEmailPitch] = useState<string | null>(null);
+  const [showModalPhonePicker, setShowModalPhonePicker] = useState(false);
+  const [showModalEmailPicker, setShowModalEmailPicker] = useState(false);
+
+  const modalPitchOptions = [
+    { key: "proximity", label: "Proximity" },
+    { key: "reputation", label: "Reputation" },
+    { key: "playingTime", label: "Playing Time" },
+    { key: "academics", label: "Academics" },
+    { key: "prestige", label: "Prestige" },
+    { key: "facilities", label: "Facilities" },
+  ];
+
+  const toggleModalPhonePitch = (key: string) => {
+    setModalPhonePitches(prev => {
+      if (prev.includes(key)) return prev.filter(k => k !== key);
+      if (prev.length >= 3) return prev;
+      return [...prev, key];
+    });
+  };
+
   if (!recruit) return null;
 
   const scoutPct = recruit.interest?.scoutPercentage || 0;
-  // Blue chips have all ratings revealed automatically
   const isFullyRevealed = recruit.isBlueChip || scoutPct >= 100;
   const revealedAttrs = recruit.isBlueChip 
     ? ["hitForAvg", "power", "speed", "arm", "fielding", "errorResistance", "velocity", "control", "stamina"]
@@ -1688,21 +1821,22 @@ function RecruitDetailModal({
               <RetroButton 
                 className="flex-1" 
                 data-testid="button-phone"
-                onClick={() => onPhone(recruit.id)}
+                variant={showModalPhonePicker ? "primary" : "default"}
+                onClick={() => { setShowModalPhonePicker(!showModalPhonePicker); setShowModalEmailPicker(false); setModalPhonePitches([]); }}
                 disabled={isPhoning}
               >
                 <Phone className="w-4 h-4 mr-2" />
-                {isPhoning ? "Calling..." : "Phone Call"}
+                {isPhoning ? "Calling..." : "Phone (3 pitches)"}
               </RetroButton>
               <RetroButton 
-                variant="outline" 
+                variant={showModalEmailPicker ? "primary" : "outline"}
                 className="flex-1" 
                 data-testid="button-email"
-                onClick={() => onEmail(recruit.id)}
+                onClick={() => { setShowModalEmailPicker(!showModalEmailPicker); setShowModalPhonePicker(false); setModalEmailPitch(null); }}
                 disabled={isEmailing}
               >
                 <Mail className="w-4 h-4 mr-2" />
-                {isEmailing ? "Sending..." : "Email"}
+                {isEmailing ? "Sending..." : "Email (1 pitch)"}
               </RetroButton>
               <RetroButton 
                 variant="outline" 
@@ -1724,6 +1858,86 @@ function RecruitDetailModal({
                 <GraduationCap className="w-4 h-4 mr-2" />
                 {isOffering ? "Offering..." : recruit.interest?.hasOffer ? "Offered" : "Offer Scholarship"}
               </RetroButton>
+            </div>
+          )}
+
+          {showModalPhonePicker && recruit && (
+            <div className="p-3 bg-muted/30 border border-border rounded" data-testid="modal-pitch-picker-phone">
+              <p className="text-[10px] font-pixel text-gold mb-2">SELECT UP TO 3 PITCHES FOR PHONE CALL</p>
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                {modalPitchOptions.map(opt => (
+                  <button
+                    key={opt.key}
+                    onClick={() => toggleModalPhonePitch(opt.key)}
+                    className={`text-xs px-3 py-1.5 rounded border transition-colors ${
+                      modalPhonePitches.includes(opt.key)
+                        ? "bg-gold/20 border-gold text-gold"
+                        : "bg-muted/20 border-border text-muted-foreground hover:border-gold/50"
+                    }`}
+                    data-testid={`modal-pitch-phone-${opt.key}`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <RetroButton
+                  size="sm"
+                  onClick={() => {
+                    onPhone(recruit.id, modalPhonePitches.join(","));
+                    setShowModalPhonePicker(false);
+                    setModalPhonePitches([]);
+                  }}
+                  disabled={modalPhonePitches.length === 0 || isPhoning}
+                  data-testid="modal-button-send-phone"
+                >
+                  <Phone className="w-3 h-3 mr-1" />
+                  Call ({modalPhonePitches.length}/3)
+                </RetroButton>
+                <RetroButton variant="outline" size="sm" onClick={() => { setShowModalPhonePicker(false); setModalPhonePitches([]); }}>
+                  Cancel
+                </RetroButton>
+              </div>
+            </div>
+          )}
+
+          {showModalEmailPicker && recruit && (
+            <div className="p-3 bg-muted/30 border border-border rounded" data-testid="modal-pitch-picker-email">
+              <p className="text-[10px] font-pixel text-gold mb-2">SELECT 1 PITCH FOR EMAIL</p>
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                {modalPitchOptions.map(opt => (
+                  <button
+                    key={opt.key}
+                    onClick={() => setModalEmailPitch(modalEmailPitch === opt.key ? null : opt.key)}
+                    className={`text-xs px-3 py-1.5 rounded border transition-colors ${
+                      modalEmailPitch === opt.key
+                        ? "bg-gold/20 border-gold text-gold"
+                        : "bg-muted/20 border-border text-muted-foreground hover:border-gold/50"
+                    }`}
+                    data-testid={`modal-pitch-email-${opt.key}`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <RetroButton
+                  size="sm"
+                  onClick={() => {
+                    onEmail(recruit.id, modalEmailPitch || undefined);
+                    setShowModalEmailPicker(false);
+                    setModalEmailPitch(null);
+                  }}
+                  disabled={!modalEmailPitch || isEmailing}
+                  data-testid="modal-button-send-email"
+                >
+                  <Mail className="w-3 h-3 mr-1" />
+                  Send Email
+                </RetroButton>
+                <RetroButton variant="outline" size="sm" onClick={() => { setShowModalEmailPicker(false); setModalEmailPitch(null); }}>
+                  Cancel
+                </RetroButton>
+              </div>
             </div>
           )}
 

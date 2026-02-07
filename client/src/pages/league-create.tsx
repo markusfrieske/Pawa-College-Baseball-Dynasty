@@ -11,10 +11,10 @@ import { Star, ArrowLeft } from "lucide-react";
 import { Link } from "wouter";
 
 const difficultyOptions = [
-  { value: "beginner", label: "Beginner - CPU does 1-2 actions/week at 60% effectiveness" },
-  { value: "high_school", label: "High School - CPU does 2-3 actions/week at 85% effectiveness" },
-  { value: "all_american", label: "All-American - CPU does 3-4 actions/week at 110% effectiveness" },
-  { value: "elite", label: "Elite - CPU does 4-5 actions/week at 135% effectiveness" },
+  { value: "beginner", label: "Beginner - Easy, relaxed pace" },
+  { value: "high_school", label: "High School - Moderate competition level" },
+  { value: "all_american", label: "All-American - Aggressive, skilled rivals" },
+  { value: "elite", label: "Elite - Ruthless, dominant opponents" },
 ];
 
 const teamCountOptions = [

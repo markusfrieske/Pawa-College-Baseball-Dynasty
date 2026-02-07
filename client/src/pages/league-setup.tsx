@@ -52,14 +52,14 @@ const archetypeSkillTrees: Record<string, ArchetypeSkills> = {
 };
 
 const archetypeOptions = [
-  { value: "Balanced", label: "Balanced - Even skill spread across all areas" },
-  { value: "Pure CEO", label: "Pure CEO - Top pitcher recruiting, weaker scouting" },
-  { value: "Player's Coach", label: "Player's Coach - Strong evaluation, balanced recruiting" },
-  { value: "Tactician", label: "Tactician - Best scouting, finds hidden gems early" },
-  { value: "Old School", label: "Old School - Best evaluation, sees true player potential" },
-  { value: "Scout Master", label: "Scout Master - Elite scouting + evaluation combo" },
-  { value: "Academic Dean", label: "Academic Dean - Strong evaluation, balanced hitter focus" },
-  { value: "Dealmaker", label: "Dealmaker - Best at landing hitters, good all-around" },
+  { value: "Balanced", label: "Balanced" },
+  { value: "Pure CEO", label: "Pure CEO" },
+  { value: "Player's Coach", label: "Player's Coach" },
+  { value: "Tactician", label: "Tactician" },
+  { value: "Old School", label: "Old School" },
+  { value: "Scout Master", label: "Scout Master" },
+  { value: "Academic Dean", label: "Academic Dean" },
+  { value: "Dealmaker", label: "Dealmaker" },
 ];
 
 const skinToneOptions = [
