@@ -1,7 +1,7 @@
 import {
   users, leagues, conferences, teams, coaches, scouts,
   players, recruits, recruitingInterests, games, standings, auditLogs, leagueInvites, dynastyNews,
-  recruitingActionsLog, recruitTopSchools, transferPortalInterests, playerHistory,
+  recruitingActionsLog, recruitTopSchools, transferPortalInterests, playerHistory, playerPromises,
   type User, type InsertUser,
   type League, type InsertLeague,
   type Conference, type InsertConference,
@@ -20,6 +20,7 @@ import {
   type RecruitTopSchools, type InsertRecruitTopSchools,
   type TransferPortalInterest, type InsertTransferPortalInterest,
   type PlayerHistory, type InsertPlayerHistory,
+  type PlayerPromise, type InsertPlayerPromise,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, or, inArray } from "drizzle-orm";
@@ -112,6 +113,13 @@ export interface IStorage {
   getPlayerHistoryByLeague(leagueId: string): Promise<PlayerHistory[]>;
   getPlayerHistoryByTeam(teamId: string): Promise<PlayerHistory[]>;
   deleteLeague(id: string): Promise<void>;
+
+  createPlayerPromise(data: InsertPlayerPromise): Promise<PlayerPromise>;
+  getPlayerPromisesByTeam(teamId: string): Promise<PlayerPromise[]>;
+  getPlayerPromisesByPlayer(playerId: string): Promise<PlayerPromise[]>;
+  getActivePromisesByLeague(leagueId: string): Promise<PlayerPromise[]>;
+  updatePlayerPromise(id: string, data: Partial<PlayerPromise>): Promise<PlayerPromise | undefined>;
+  getPendingDeparturesByLeague(leagueId: string): Promise<Player[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -499,8 +507,42 @@ export class DatabaseStorage implements IStorage {
       await tx.delete(scouts).where(eq(scouts.leagueId, id));
       await tx.delete(teams).where(eq(teams.leagueId, id));
       await tx.delete(conferences).where(eq(conferences.leagueId, id));
+      await tx.delete(playerPromises).where(eq(playerPromises.leagueId, id));
       await tx.delete(leagues).where(eq(leagues.id, id));
     });
+  }
+
+  async createPlayerPromise(data: InsertPlayerPromise): Promise<PlayerPromise> {
+    const [promise] = await db.insert(playerPromises).values(data).returning();
+    return promise;
+  }
+
+  async getPlayerPromisesByTeam(teamId: string): Promise<PlayerPromise[]> {
+    return db.select().from(playerPromises).where(eq(playerPromises.teamId, teamId));
+  }
+
+  async getPlayerPromisesByPlayer(playerId: string): Promise<PlayerPromise[]> {
+    return db.select().from(playerPromises).where(eq(playerPromises.playerId, playerId));
+  }
+
+  async getActivePromisesByLeague(leagueId: string): Promise<PlayerPromise[]> {
+    return db.select().from(playerPromises).where(
+      and(eq(playerPromises.leagueId, leagueId), eq(playerPromises.isActive, true))
+    );
+  }
+
+  async updatePlayerPromise(id: string, data: Partial<PlayerPromise>): Promise<PlayerPromise | undefined> {
+    const [updated] = await db.update(playerPromises).set(data).where(eq(playerPromises.id, id)).returning();
+    return updated || undefined;
+  }
+
+  async getPendingDeparturesByLeague(leagueId: string): Promise<Player[]> {
+    const leagueTeams = await this.getTeamsByLeague(leagueId);
+    const teamIds = leagueTeams.map(t => t.id);
+    if (teamIds.length === 0) return [];
+    return db.select().from(players).where(
+      and(inArray(players.teamId, teamIds), eq(players.pendingDeparture, true))
+    );
   }
 }
 

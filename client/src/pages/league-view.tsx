@@ -1590,6 +1590,19 @@ function OffseasonSummary({ league }: { league: LeagueDetails }) {
                   </div>
                 </div>
               )}
+              {league.currentPhase === "offseason_departures" && (
+                <div className="mt-3">
+                  <Link href={`/league/${league.id}/departures`}>
+                    <RetroButton
+                      variant="primary"
+                      size="sm"
+                      data-testid="button-view-departures"
+                    >
+                      Review Departures
+                    </RetroButton>
+                  </Link>
+                </div>
+              )}
             </div>
           )}
 

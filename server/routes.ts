@@ -1262,8 +1262,8 @@ export async function registerRoutes(
         });
       }
 
-      const maxRecruitingActions = 12 + Math.floor(((userCoach?.pitchingRecruitingSkill || 1) + (userCoach?.hittingRecruitingSkill || 1)) / 2);
-      const actionsRemaining = maxRecruitingActions - ((userCoach?.recruitActionsUsed || 0) + 1);
+      const maxActions = 12 + Math.floor(((userCoach?.pitchingRecruitingSkill || 1) + (userCoach?.hittingRecruitingSkill || 1)) / 2);
+      const actionsRemaining = maxActions - ((userCoach?.recruitActionsUsed || 0) + 1);
       res.json({ interest, interestGain, actionsRemaining });
     } catch (error) {
       console.error("Failed to offer scholarship:", error);
@@ -1792,6 +1792,388 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to get players leaving:", error);
       res.status(500).json({ message: "Failed to get players leaving" });
+    }
+  });
+
+  // ============ DEPARTURES SYSTEM ============
+  
+  // Get all departures for the departures screen
+  app.get("/api/leagues/:id/departures", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      const teams = await storage.getTeamsByLeague(req.params.id);
+      const coaches = await storage.getCoachesByLeague(req.params.id);
+      const userCoach = coaches.find(c => c.userId === req.session.userId);
+      const userTeam = teams.find(t => t.id === userCoach?.teamId);
+
+      const departuresByTeam: Record<string, any> = {};
+
+      for (const team of teams) {
+        const roster = await storage.getPlayersByTeam(team.id);
+        const pending = roster.filter(p => p.pendingDeparture);
+        const promises = await storage.getPlayerPromisesByTeam(team.id);
+
+        departuresByTeam[team.id] = {
+          teamId: team.id,
+          teamName: team.name,
+          abbreviation: team.abbreviation,
+          primaryColor: team.primaryColor,
+          secondaryColor: team.secondaryColor,
+          isCpu: team.isCpu,
+          nilBudget: team.nilBudget,
+          nilSpent: team.nilSpent,
+          nilRemaining: team.nilBudget - (team.nilSpent || 0),
+          rosterSize: roster.filter(p => !p.pendingDeparture).length,
+          graduates: pending.filter(p => p.departureType === "graduated"),
+          draftDeclarations: pending.filter(p => p.departureType === "draft"),
+          transfers: pending.filter(p => p.departureType === "transfer"),
+          promises: promises.filter(p => p.isActive),
+        };
+      }
+
+      res.json({
+        league: { 
+          id: league.id, 
+          name: league.name, 
+          currentSeason: league.currentSeason,
+          currentPhase: league.currentPhase,
+        },
+        userTeamId: userTeam?.id,
+        userTeam: userTeam ? departuresByTeam[userTeam.id] : null,
+        allTeams: Object.values(departuresByTeam).sort((a: any, b: any) => {
+          const aTotal = a.graduates.length + a.draftDeclarations.length + a.transfers.length;
+          const bTotal = b.graduates.length + b.draftDeclarations.length + b.transfers.length;
+          return bTotal - aTotal;
+        }),
+      });
+    } catch (error) {
+      console.error("Failed to get departures:", error);
+      res.status(500).json({ message: "Failed to get departures" });
+    }
+  });
+
+  // Retain a draft-eligible player with NIL offer
+  app.post("/api/leagues/:id/departures/retain-draft", requireAuth, async (req, res) => {
+    try {
+      const { playerId, nilOffer } = req.body;
+      if (!playerId || nilOffer === undefined) {
+        return res.status(400).json({ message: "playerId and nilOffer are required" });
+      }
+
+      const league = await storage.getLeague(req.params.id);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      const coaches = await storage.getCoachesByLeague(req.params.id);
+      const userCoach = coaches.find(c => c.userId === req.session.userId);
+      if (!userCoach?.teamId) return res.status(403).json({ message: "No team assigned" });
+
+      const player = await storage.getPlayer(playerId);
+      if (!player || !player.pendingDeparture || player.departureType !== "draft") {
+        return res.status(400).json({ message: "Player not found or not a draft departure" });
+      }
+      if (player.teamId !== userCoach.teamId) {
+        return res.status(403).json({ message: "Not your player" });
+      }
+      if (player.retentionStatus === "retained" || player.retentionStatus === "rejected") {
+        return res.status(400).json({ message: "Already processed" });
+      }
+
+      const team = await storage.getTeam(userCoach.teamId);
+      if (!team) return res.status(404).json({ message: "Team not found" });
+
+      const nilRemaining = team.nilBudget - (team.nilSpent || 0);
+      if (nilOffer > nilRemaining) {
+        return res.status(400).json({ message: `Insufficient NIL budget. You have $${nilRemaining.toLocaleString()} remaining.` });
+      }
+
+      const askMin = player.draftAskMin || 50000;
+      const askMax = player.draftAskMax || 100000;
+      
+      let stayChance: number;
+      if (nilOffer >= askMax) {
+        stayChance = 0.95;
+      } else if (nilOffer >= askMin) {
+        stayChance = 0.5 + 0.4 * ((nilOffer - askMin) / (askMax - askMin));
+      } else if (nilOffer >= askMin * 0.5) {
+        stayChance = 0.1 + 0.4 * ((nilOffer) / askMin);
+      } else {
+        stayChance = 0.1;
+      }
+
+      const roll = Math.random();
+      const stayed = roll < stayChance;
+
+      if (stayed) {
+        await storage.updatePlayer(playerId, {
+          pendingDeparture: false,
+          departureType: null,
+          retentionStatus: "retained",
+          declaredForDraft: false,
+          nilOffered: nilOffer,
+        });
+        await storage.updateTeam(team.id, { nilSpent: (team.nilSpent || 0) + nilOffer });
+        
+        await storage.createAuditLog({
+          leagueId: req.params.id,
+          userId: req.session.userId,
+          action: "Draft Retention: Success",
+          details: `${player.firstName} ${player.lastName} retained with $${nilOffer.toLocaleString()} NIL offer.`,
+        });
+      } else {
+        await storage.updatePlayer(playerId, {
+          retentionStatus: "rejected",
+          nilOffered: nilOffer,
+        });
+        
+        await storage.createAuditLog({
+          leagueId: req.params.id,
+          userId: req.session.userId,
+          action: "Draft Retention: Failed",
+          details: `${player.firstName} ${player.lastName} rejected $${nilOffer.toLocaleString()} NIL offer and will enter the MLB Draft.`,
+        });
+      }
+
+      res.json({ 
+        success: stayed, 
+        playerId, 
+        playerName: `${player.firstName} ${player.lastName}`,
+        nilOffer,
+        stayChance: Math.round(stayChance * 100),
+      });
+    } catch (error) {
+      console.error("Failed to retain draft player:", error);
+      res.status(500).json({ message: "Failed to retain player" });
+    }
+  });
+
+  // Retain a transfer portal player with NIL + promises
+  app.post("/api/leagues/:id/departures/retain-transfer", requireAuth, async (req, res) => {
+    try {
+      const { playerId, nilOffer, playerPromise, teamPromise } = req.body;
+      if (!playerId) {
+        return res.status(400).json({ message: "playerId is required" });
+      }
+
+      const league = await storage.getLeague(req.params.id);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      const coaches = await storage.getCoachesByLeague(req.params.id);
+      const userCoach = coaches.find(c => c.userId === req.session.userId);
+      if (!userCoach?.teamId) return res.status(403).json({ message: "No team assigned" });
+
+      const player = await storage.getPlayer(playerId);
+      if (!player || !player.pendingDeparture || player.departureType !== "transfer") {
+        return res.status(400).json({ message: "Player not found or not a transfer departure" });
+      }
+      if (player.teamId !== userCoach.teamId) {
+        return res.status(403).json({ message: "Not your player" });
+      }
+      if (player.retentionStatus === "retained" || player.retentionStatus === "rejected") {
+        return res.status(400).json({ message: "Already processed" });
+      }
+
+      const team = await storage.getTeam(userCoach.teamId);
+      if (!team) return res.status(404).json({ message: "Team not found" });
+
+      const offer = nilOffer || 0;
+      const nilRemaining = team.nilBudget - (team.nilSpent || 0);
+      if (offer > nilRemaining) {
+        return res.status(400).json({ message: `Insufficient NIL budget. You have $${nilRemaining.toLocaleString()} remaining.` });
+      }
+
+      // Calculate retention chance
+      let retentionChance = 0.30; // base
+
+      // NIL bonus (up to +25%)
+      if (offer > 0) {
+        const nilFactor = Math.min(offer / 200000, 1);
+        retentionChance += 0.25 * nilFactor;
+      }
+
+      // Player promise bonus (up to +25%)
+      const promiseDifficulty: Record<string, number> = {
+        easy: 0.10,
+        medium: 0.18,
+        hard: 0.25,
+      };
+      if (playerPromise?.type && playerPromise?.difficulty) {
+        retentionChance += promiseDifficulty[playerPromise.difficulty] || 0.10;
+      }
+
+      // Team promise bonus (up to +20%)
+      const teamPromiseDifficulty: Record<string, number> = {
+        easy: 0.08,
+        medium: 0.14,
+        hard: 0.20,
+      };
+      if (teamPromise?.type && teamPromise?.difficulty) {
+        retentionChance += teamPromiseDifficulty[teamPromise.difficulty] || 0.08;
+      }
+
+      retentionChance = Math.min(retentionChance, 0.98);
+
+      const roll = Math.random();
+      const stayed = roll < retentionChance;
+
+      if (stayed) {
+        await storage.updatePlayer(playerId, {
+          pendingDeparture: false,
+          departureType: null,
+          retentionStatus: "retained",
+          inTransferPortal: false,
+          nilOffered: offer,
+        });
+        if (offer > 0) {
+          await storage.updateTeam(team.id, { nilSpent: (team.nilSpent || 0) + offer });
+        }
+
+        // Create promise records if promises were made
+        if (playerPromise?.type) {
+          await storage.createPlayerPromise({
+            leagueId: req.params.id,
+            teamId: team.id,
+            playerId,
+            season: league.currentSeason + 1,
+            promiseType: playerPromise.type,
+            promiseCategory: "player",
+            targetValue: playerPromise.targetValue || playerPromise.difficulty,
+            nilAmount: 0,
+          });
+        }
+        if (teamPromise?.type) {
+          await storage.createPlayerPromise({
+            leagueId: req.params.id,
+            teamId: team.id,
+            playerId,
+            season: league.currentSeason + 1,
+            promiseType: teamPromise.type,
+            promiseCategory: "team",
+            targetValue: teamPromise.targetValue || teamPromise.difficulty,
+            nilAmount: 0,
+          });
+        }
+
+        await storage.createAuditLog({
+          leagueId: req.params.id,
+          userId: req.session.userId,
+          action: "Transfer Retention: Success",
+          details: `${player.firstName} ${player.lastName} convinced to stay with $${offer.toLocaleString()} NIL${playerPromise?.type ? ` + ${playerPromise.type} promise` : ""}${teamPromise?.type ? ` + ${teamPromise.type} promise` : ""}.`,
+        });
+      } else {
+        await storage.updatePlayer(playerId, {
+          retentionStatus: "rejected",
+          nilOffered: offer,
+        });
+
+        await storage.createAuditLog({
+          leagueId: req.params.id,
+          userId: req.session.userId,
+          action: "Transfer Retention: Failed",
+          details: `${player.firstName} ${player.lastName} rejected retention offer and will enter the transfer portal.`,
+        });
+      }
+
+      res.json({
+        success: stayed,
+        playerId,
+        playerName: `${player.firstName} ${player.lastName}`,
+        nilOffer: offer,
+        retentionChance: Math.round(retentionChance * 100),
+      });
+    } catch (error) {
+      console.error("Failed to retain transfer player:", error);
+      res.status(500).json({ message: "Failed to retain player" });
+    }
+  });
+
+  // Finalize departures - process all remaining pending players and advance phase
+  app.post("/api/leagues/:id/departures/finalize", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      if (league.currentPhase !== "offseason_departures") {
+        return res.status(400).json({ message: "Not in departures phase" });
+      }
+
+      // Verify commissioner
+      if (league.commissionerId !== req.session.userId) {
+        const coaches = await storage.getCoachesByLeague(req.params.id);
+        const userCoach = coaches.find(c => c.userId === req.session.userId);
+        if (!userCoach) return res.status(403).json({ message: "Not authorized" });
+      }
+
+      const teams = await storage.getTeamsByLeague(req.params.id);
+      let totalGraduated = 0;
+      let totalDrafted = 0;
+      let totalTransferred = 0;
+
+      for (const team of teams) {
+        const roster = await storage.getPlayersByTeam(team.id);
+        const pending = roster.filter(p => p.pendingDeparture && p.retentionStatus !== "retained");
+
+        for (const player of pending) {
+          const eligMap: Record<string, number> = { "FR": 1, "SO": 2, "JR": 3, "SR": 4, "RS": 5 };
+          
+          if (player.departureType === "graduated" || player.departureType === "draft") {
+            await storage.createPlayerHistory({
+              leagueId: req.params.id,
+              teamId: team.id,
+              firstName: player.firstName,
+              lastName: player.lastName,
+              position: player.position,
+              finalEligibility: player.eligibility,
+              overall: player.overall,
+              starRating: player.starRating,
+              departureType: player.departureType,
+              departedSeason: league.currentSeason,
+              seasonsPlayed: eligMap[player.eligibility] || 1,
+              abilities: player.abilities || [],
+              homeState: player.homeState,
+              hometown: player.hometown,
+            });
+            await storage.deletePlayer(player.id);
+            if (player.departureType === "graduated") totalGraduated++;
+            else totalDrafted++;
+          } else if (player.departureType === "transfer") {
+            await storage.updatePlayer(player.id, {
+              pendingDeparture: false,
+              retentionStatus: null,
+              inTransferPortal: true,
+            });
+            totalTransferred++;
+          }
+        }
+
+        // Clear retained players' pending flags
+        const retained = roster.filter(p => p.pendingDeparture && p.retentionStatus === "retained");
+        for (const player of retained) {
+          await storage.updatePlayer(player.id, {
+            pendingDeparture: false,
+            departureType: null,
+          });
+        }
+      }
+
+      // Advance to recruiting phase
+      const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "offseason_recruiting_1" });
+
+      await storage.createAuditLog({
+        leagueId: req.params.id,
+        userId: req.session.userId,
+        action: "Departures Finalized",
+        details: `${totalGraduated} graduated, ${totalDrafted} entered MLB draft, ${totalTransferred} entered transfer portal.`,
+      });
+
+      res.json({ 
+        ...updatedLeague,
+        departed: { graduated: totalGraduated, drafted: totalDrafted, transferred: totalTransferred },
+      });
+    } catch (error) {
+      console.error("Failed to finalize departures:", error);
+      res.status(500).json({ message: "Failed to finalize departures" });
     }
   });
 
@@ -2438,17 +2820,30 @@ export async function registerRoutes(
       const offseasonPhases = ["offseason_departures", "offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4", "offseason_signing_day"];
       
       if (league.currentPhase === "offseason_departures") {
-        // Process departures: graduates, draft declarations, transfer portal entries
+        // First evaluate promises from previous season
+        const promiseResult = await evaluatePlayerPromises(leagueId, league.currentSeason);
+        if (promiseResult.broken > 0) {
+          await storage.createAuditLog({
+            leagueId, userId: req.session.userId,
+            action: "Promise Evaluation",
+            details: `${promiseResult.evaluated} promises evaluated: ${promiseResult.met} met, ${promiseResult.broken} broken. Players with broken promises are unhappy.`,
+          });
+        }
+
         const departureResult = await processOffseasonDepartures(leagueId, league.currentSeason);
         
-        const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "offseason_recruiting_1" });
         await storage.createAuditLog({
           leagueId, userId: req.session.userId,
-          action: "Offseason: Players Leaving",
-          details: `${departureResult.graduated} graduated, ${departureResult.draftDeclared} declared for MLB draft, ${departureResult.transferPortal} entered transfer portal.`,
+          action: "Offseason: Departures Phase",
+          details: `${departureResult.graduated} graduating, ${departureResult.draftDeclared} draft eligible, ${departureResult.transferPortal} considering transfer. Review departures before finalizing.`,
         });
         
-        return res.json({ ...updatedLeague, departures: departureResult });
+        return res.json({ 
+          ...league, 
+          currentPhase: "offseason_departures",
+          departures: departureResult,
+          needsDepartureReview: true 
+        });
       }
       
       if (["offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4"].includes(league.currentPhase)) {
@@ -2957,112 +3352,203 @@ export async function registerRoutes(
   }
 
   // ============ SEASON TRANSITION FUNCTION ============
+  
+  // ============ PROMISE EVALUATION ============
+  async function evaluatePlayerPromises(leagueId: string, completedSeason: number) {
+    const activePromises = await storage.getActivePromisesByLeague(leagueId);
+    const promisesForSeason = activePromises.filter(p => p.season === completedSeason);
+    
+    if (promisesForSeason.length === 0) return { evaluated: 0, met: 0, broken: 0 };
+
+    const teams = await storage.getTeamsByLeague(leagueId);
+    const teamStandings: Record<string, any> = {};
+    for (const team of teams) {
+      const standings = await storage.getStandingsByLeague(leagueId, completedSeason);
+      const teamStanding = standings.find(s => s.teamId === team.id);
+      teamStandings[team.id] = teamStanding || { wins: 0, losses: 0 };
+    }
+
+    let met = 0;
+    let broken = 0;
+
+    for (const promise of promisesForSeason) {
+      const player = await storage.getPlayer(promise.playerId);
+      if (!player) {
+        await storage.updatePlayerPromise(promise.id, { isActive: false, isMet: false, evaluatedSeason: completedSeason });
+        broken++;
+        continue;
+      }
+
+      let isMet = false;
+      const target = promise.targetValue;
+
+      if (promise.promiseCategory === "player") {
+        // Player promises are based on simulated stats - since we don't track per-game stats yet,
+        // we evaluate based on player overall and promise difficulty
+        const difficulty = target; // "easy", "medium", "hard"
+        const overallFactor = (player.overall || 500) / 999;
+        
+        if (difficulty === "easy") {
+          isMet = Math.random() < 0.7 + overallFactor * 0.2;
+        } else if (difficulty === "medium") {
+          isMet = Math.random() < 0.4 + overallFactor * 0.3;
+        } else {
+          isMet = Math.random() < 0.15 + overallFactor * 0.3;
+        }
+      } else if (promise.promiseCategory === "team") {
+        const standing = teamStandings[promise.teamId];
+        const totalGames = (standing?.wins || 0) + (standing?.losses || 0);
+        const winPct = totalGames > 0 ? (standing?.wins || 0) / totalGames : 0;
+
+        if (promise.promiseType === "winPercentage") {
+          const targetPct = parseFloat(target) || 0.5;
+          isMet = winPct >= targetPct;
+        } else if (promise.promiseType === "conferenceChampionship") {
+          isMet = Math.random() < winPct * 0.5; // approximate based on record
+        } else if (promise.promiseType === "cwsChampionship") {
+          isMet = Math.random() < winPct * 0.15; // very hard to achieve
+        } else {
+          const difficulty = target;
+          if (difficulty === "easy") isMet = winPct >= 0.45;
+          else if (difficulty === "medium") isMet = winPct >= 0.55;
+          else isMet = winPct >= 0.65;
+        }
+      }
+
+      await storage.updatePlayerPromise(promise.id, {
+        isActive: false,
+        isMet,
+        evaluatedSeason: completedSeason,
+      });
+
+      if (isMet) {
+        met++;
+      } else {
+        broken++;
+        // Auto-flag player for departure next offseason
+        if (player) {
+          await storage.updatePlayer(player.id, {
+            inTransferPortal: true,
+            portalReason: `Broken promise: ${promise.promiseType}`,
+          });
+        }
+      }
+    }
+
+    return { evaluated: promisesForSeason.length, met, broken };
+  }
+
   // ============ OFFSEASON DEPARTURES ============
+  function generateDraftAsk(overall: number): { min: number; max: number } {
+    const baseMin = Math.floor((overall - 500) * 2000 + 50000);
+    const baseMax = Math.floor(baseMin * (1.5 + Math.random() * 0.5));
+    const variance = Math.floor(Math.random() * 20000);
+    return { 
+      min: Math.max(25000, baseMin + variance), 
+      max: Math.max(50000, baseMax + variance) 
+    };
+  }
+
+  const transferReasons = [
+    "Wants more playing time",
+    "Looking for a fresh start",
+    "Unhappy with team direction",
+    "Seeking better facilities",
+    "Wants to be closer to home",
+    "Dissatisfied with role on team",
+    "Looking for more competitive program",
+    "Academic opportunities elsewhere",
+  ];
+
   async function processOffseasonDepartures(leagueId: string, completedSeason: number) {
     const teams = await storage.getTeamsByLeague(leagueId);
     let totalGraduated = 0;
     let totalDraftDeclared = 0;
     let totalTransferPortal = 0;
+
+    const existingPending = await storage.getPendingDeparturesByLeague(leagueId);
+    if (existingPending.length > 0) {
+      const grads = existingPending.filter(p => p.departureType === "graduated");
+      const drafts = existingPending.filter(p => p.departureType === "draft");
+      const transfers = existingPending.filter(p => p.departureType === "transfer");
+      return { graduated: grads.length, draftDeclared: drafts.length, transferPortal: transfers.length };
+    }
     
     for (const team of teams) {
       const roster = await storage.getPlayersByTeam(team.id);
       
-      // 1. Graduate seniors
       const seniors = roster.filter(p => p.eligibility === "SR");
       for (const senior of seniors) {
-        const eligMap: Record<string, number> = { "FR": 1, "SO": 2, "JR": 3, "SR": 4, "RS": 5 };
-        await storage.createPlayerHistory({
-          leagueId,
-          teamId: team.id,
-          firstName: senior.firstName,
-          lastName: senior.lastName,
-          position: senior.position,
-          finalEligibility: senior.eligibility,
-          overall: senior.overall,
-          starRating: senior.starRating,
+        await storage.updatePlayer(senior.id, {
+          pendingDeparture: true,
           departureType: "graduated",
-          departedSeason: completedSeason,
-          seasonsPlayed: eligMap[senior.eligibility] || 1,
-          abilities: senior.abilities || [],
-          homeState: senior.homeState,
-          hometown: senior.hometown,
+          retentionStatus: "none",
         });
-        await storage.deletePlayer(senior.id);
         totalGraduated++;
       }
       
-      // 2. Auto-declare MLB draft for JR/SR with 550+ overall (SR already graduated above)
-      const remainingAfterGrad = await storage.getPlayersByTeam(team.id);
-      const draftEligible = remainingAfterGrad.filter(p => 
+      const draftEligible = roster.filter(p => 
         (p.eligibility === "JR" || p.eligibility === "RS") && 
         (p.overall || 0) >= 550 && 
-        !p.declaredForDraft
+        !p.declaredForDraft &&
+        p.eligibility !== "SR"
       );
       for (const player of draftEligible) {
-        const eligMap: Record<string, number> = { "FR": 1, "SO": 2, "JR": 3, "SR": 4, "RS": 5 };
-        await storage.createPlayerHistory({
-          leagueId,
-          teamId: team.id,
-          firstName: player.firstName,
-          lastName: player.lastName,
-          position: player.position,
-          finalEligibility: player.eligibility,
-          overall: player.overall,
-          starRating: player.starRating,
+        const ask = generateDraftAsk(player.overall);
+        await storage.updatePlayer(player.id, {
+          pendingDeparture: true,
           departureType: "draft",
-          departedSeason: completedSeason,
-          seasonsPlayed: eligMap[player.eligibility] || 1,
-          abilities: player.abilities || [],
-          homeState: player.homeState,
-          hometown: player.hometown,
+          retentionStatus: "pending",
+          draftAskMin: ask.min,
+          draftAskMax: ask.max,
+          declaredForDraft: true,
         });
-        await storage.deletePlayer(player.id);
         totalDraftDeclared++;
       }
       
-      // 3. Also process any previously declared draft players
-      const remainingAfterDraft = await storage.getPlayersByTeam(team.id);
-      const previouslyDeclared = remainingAfterDraft.filter(p => p.declaredForDraft);
+      const previouslyDeclared = roster.filter(p => p.declaredForDraft && p.eligibility !== "SR" && !draftEligible.find(d => d.id === p.id));
       for (const player of previouslyDeclared) {
-        const eligMap: Record<string, number> = { "FR": 1, "SO": 2, "JR": 3, "SR": 4, "RS": 5 };
-        await storage.createPlayerHistory({
-          leagueId,
-          teamId: team.id,
-          firstName: player.firstName,
-          lastName: player.lastName,
-          position: player.position,
-          finalEligibility: player.eligibility,
-          overall: player.overall,
-          starRating: player.starRating,
+        const ask = generateDraftAsk(player.overall);
+        await storage.updatePlayer(player.id, {
+          pendingDeparture: true,
           departureType: "draft",
-          departedSeason: completedSeason,
-          seasonsPlayed: eligMap[player.eligibility] || 1,
-          abilities: player.abilities || [],
-          homeState: player.homeState,
-          hometown: player.hometown,
+          retentionStatus: "pending",
+          draftAskMin: player.draftAskMin || ask.min,
+          draftAskMax: player.draftAskMax || ask.max,
         });
-        await storage.deletePlayer(player.id);
         totalDraftDeclared++;
       }
       
-      // 4. Some players enter transfer portal (random chance based on playing time/rating)
-      const remainingAfterAll = await storage.getPlayersByTeam(team.id);
-      const portalCandidates = remainingAfterAll.filter(p => 
-        !p.inTransferPortal && 
+      const nonDeparting = roster.filter(p => 
         p.eligibility !== "SR" && 
-        (p.overall || 500) < 450 // Lower-rated players more likely to transfer
+        !p.declaredForDraft &&
+        !p.inTransferPortal &&
+        (p.overall || 500) < 450
       );
-      // 10-20% of low-rated players enter portal
-      const portalCount = Math.max(0, Math.floor(portalCandidates.length * (0.1 + Math.random() * 0.1)));
-      const shuffled = portalCandidates.sort(() => Math.random() - 0.5);
+      const portalCount = Math.max(0, Math.floor(nonDeparting.length * (0.1 + Math.random() * 0.1)));
+      const shuffled = nonDeparting.sort(() => Math.random() - 0.5);
       for (let i = 0; i < Math.min(portalCount, shuffled.length); i++) {
-        await storage.updatePlayer(shuffled[i].id, { inTransferPortal: true });
+        const reason = transferReasons[Math.floor(Math.random() * transferReasons.length)];
+        await storage.updatePlayer(shuffled[i].id, { 
+          pendingDeparture: true,
+          departureType: "transfer",
+          retentionStatus: (shuffled[i].eligibility === "JR" || shuffled[i].eligibility === "SO") ? "pending" : "none",
+          inTransferPortal: true,
+          transferReason: reason,
+        });
         totalTransferPortal++;
       }
       
-      // Also count already-in-portal players
-      const existingPortal = remainingAfterAll.filter(p => p.inTransferPortal);
-      totalTransferPortal += existingPortal.length;
+      const existingPortal = roster.filter(p => p.inTransferPortal && !shuffled.slice(0, portalCount).find(s => s.id === p.id));
+      for (const player of existingPortal) {
+        await storage.updatePlayer(player.id, {
+          pendingDeparture: true,
+          departureType: "transfer",
+          retentionStatus: (player.eligibility === "JR" || player.eligibility === "SO") ? "pending" : "none",
+          transferReason: player.transferReason || transferReasons[Math.floor(Math.random() * transferReasons.length)],
+        });
+        totalTransferPortal++;
+      }
     }
     
     return { graduated: totalGraduated, draftDeclared: totalDraftDeclared, transferPortal: totalTransferPortal };

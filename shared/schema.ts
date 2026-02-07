@@ -86,6 +86,7 @@ export const teams = pgTable("teams", {
   fanbaseType: text("fanbase_type").notNull().default("Balanced"),
   enrollment: integer("enrollment").notNull().default(30000),
   nilBudget: integer("nil_budget").notNull().default(3000000),
+  nilSpent: integer("nil_spent").notNull().default(0),
   isCpu: boolean("is_cpu").notNull().default(true),
 });
 
@@ -110,6 +111,7 @@ export const insertTeamSchema = createInsertSchema(teams).pick({
   fanbaseType: true,
   enrollment: true,
   nilBudget: true,
+  nilSpent: true,
   isCpu: true,
 });
 
@@ -256,6 +258,13 @@ export const players = pgTable("players", {
   inTransferPortal: boolean("in_transfer_portal").notNull().default(false),
   portalEntryDate: timestamp("portal_entry_date"),
   portalReason: text("portal_reason"),
+  pendingDeparture: boolean("pending_departure").notNull().default(false),
+  departureType: text("departure_type"),
+  retentionStatus: text("retention_status"),
+  draftAskMin: integer("draft_ask_min"),
+  draftAskMax: integer("draft_ask_max"),
+  nilOffered: integer("nil_offered"),
+  transferReason: text("transfer_reason"),
   skinTone: text("skin_tone").notNull().default("light"),
   hairColor: text("hair_color").notNull().default("brown"),
   hairStyle: text("hair_style").notNull().default("short"),
@@ -312,6 +321,13 @@ export const insertPlayerSchema = createInsertSchema(players).pick({
   inTransferPortal: true,
   portalEntryDate: true,
   portalReason: true,
+  pendingDeparture: true,
+  departureType: true,
+  retentionStatus: true,
+  draftAskMin: true,
+  draftAskMax: true,
+  nilOffered: true,
+  transferReason: true,
   skinTone: true,
   hairColor: true,
   hairStyle: true,
@@ -749,6 +765,38 @@ export const insertPlayerHistorySchema = createInsertSchema(playerHistory).pick(
 export type InsertPlayerHistory = z.infer<typeof insertPlayerHistorySchema>;
 export type PlayerHistory = typeof playerHistory.$inferSelect;
 
+// Player Promises table - tracks retention promises made to players
+export const playerPromises = pgTable("player_promises", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  leagueId: varchar("league_id").notNull().references(() => leagues.id),
+  teamId: varchar("team_id").notNull().references(() => teams.id),
+  playerId: varchar("player_id").notNull().references(() => players.id),
+  season: integer("season").notNull(),
+  promiseType: text("promise_type").notNull(),
+  promiseCategory: text("promise_category").notNull(),
+  targetValue: text("target_value").notNull(),
+  nilAmount: integer("nil_amount").notNull().default(0),
+  isActive: boolean("is_active").notNull().default(true),
+  isMet: boolean("is_met"),
+  evaluatedSeason: integer("evaluated_season"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertPlayerPromiseSchema = createInsertSchema(playerPromises).pick({
+  leagueId: true,
+  teamId: true,
+  playerId: true,
+  season: true,
+  promiseType: true,
+  promiseCategory: true,
+  targetValue: true,
+  nilAmount: true,
+  isActive: true,
+});
+
+export type InsertPlayerPromise = z.infer<typeof insertPlayerPromiseSchema>;
+export type PlayerPromise = typeof playerPromises.$inferSelect;
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   leagues: many(leagues),
@@ -845,4 +893,10 @@ export const recruitTopSchoolsRelations = relations(recruitTopSchools, ({ one })
 export const transferPortalInterestsRelations = relations(transferPortalInterests, ({ one }) => ({
   player: one(players, { fields: [transferPortalInterests.playerId], references: [players.id] }),
   team: one(teams, { fields: [transferPortalInterests.teamId], references: [teams.id] }),
+}));
+
+export const playerPromisesRelations = relations(playerPromises, ({ one }) => ({
+  league: one(leagues, { fields: [playerPromises.leagueId], references: [leagues.id] }),
+  team: one(teams, { fields: [playerPromises.teamId], references: [teams.id] }),
+  player: one(players, { fields: [playerPromises.playerId], references: [players.id] }),
 }));

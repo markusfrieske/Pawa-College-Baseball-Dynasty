@@ -25,6 +25,7 @@ import EditRecruitsPage from "@/pages/edit-recruits";
 import PlayersLeavingPage from "@/pages/players-leaving";
 import TransferPortalPage from "@/pages/transfer-portal";
 import CommitsPage from "@/pages/commits";
+import DeparturesPage from "@/pages/departures";
 import { useState } from "react";
 import { useLocation } from "wouter";
 
@@ -54,6 +55,7 @@ function Router() {
       <Route path="/league/:id/players-leaving" component={PlayersLeavingPage} />
       <Route path="/league/:id/transfer-portal" component={TransferPortalPage} />
       <Route path="/league/:id/commits" component={CommitsPage} />
+      <Route path="/league/:id/departures" component={DeparturesPage} />
       <Route path="/league/:id/team/:teamId" component={TeamViewPage} />
       <Route path="/league/:id/recruit/:recruitId" component={RecruitProfilePage} />
       <Route path="/league/:id/coach" component={CoachProfilePage} />
