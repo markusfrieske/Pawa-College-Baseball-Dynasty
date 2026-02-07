@@ -194,7 +194,7 @@ export default function CommissionerPage() {
 
   const phaseLabels: Record<string, string> = {
     dynasty_setup: "Dynasty Setup",
-    preseason: "Preseason",
+    preseason: "Spring Training",
     spring_training: "Spring Training",
     regular_season: "Regular Season",
     conference_championship: "Conference Championship",
@@ -454,19 +454,23 @@ function ActionsTab({
           <RetroCardHeader>Quick Actions</RetroCardHeader>
         <RetroCardContent>
           <div className="space-y-3">
-            <ActionButton 
-              label={isImporting ? "Importing..." : "Import Recruiting Class"}
-              description="Import recruits from CSV file" 
-              onClick={() => setShowImportDialog(true)}
-              disabled={isImporting}
-              dataTestId="button-import-recruiting"
-            />
-            <ActionButton 
-              label="Edit Schedule" 
-              description="Modify upcoming games" 
-              href={`/league/${league?.id}/schedule`}
-              dataTestId="button-edit-schedule"
-            />
+            {(league?.currentPhase === "dynasty_setup" || league?.currentPhase === "preseason") && (
+              <>
+                <ActionButton 
+                  label={isImporting ? "Importing..." : "Import Recruiting Class"}
+                  description="Import recruits from CSV file" 
+                  onClick={() => setShowImportDialog(true)}
+                  disabled={isImporting}
+                  dataTestId="button-import-recruiting"
+                />
+                <ActionButton 
+                  label="Edit Schedule" 
+                  description="Modify upcoming games" 
+                  href={`/league/${league?.id}/schedule`}
+                  dataTestId="button-edit-schedule"
+                />
+              </>
+            )}
             <ActionButton 
               label="Edit Teams" 
               description="Swap teams in or out of dynasty" 

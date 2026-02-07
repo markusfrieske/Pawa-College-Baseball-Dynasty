@@ -2490,6 +2490,150 @@ export async function registerRoutes(
     }
   });
 
+  // League stats - aggregate batting/pitching from box scores
+  app.get("/api/leagues/:id/stats", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id);
+      if (!league) {
+        return res.status(404).json({ message: "League not found" });
+      }
+
+      const season = req.query.season ? parseInt(req.query.season as string) : league.currentSeason;
+      const allGames = await storage.getGamesByLeague(req.params.id);
+      const seasonGames = allGames.filter(g => g.season === season && g.isComplete && g.boxScore);
+      const teams = await storage.getTeamsByLeague(req.params.id);
+      const teamsMap = new Map(teams.map(t => [t.id, t]));
+
+      interface BatterAgg { name: string; teamId: string; games: number; ab: number; r: number; h: number; rbi: number; bb: number; so: number; }
+      interface PitcherAgg { name: string; teamId: string; games: number; ip: number; h: number; r: number; er: number; bb: number; so: number; wins: number; losses: number; }
+      interface TeamAgg { teamId: string; games: number; runsScored: number; runsAllowed: number; hits: number; hitsAllowed: number; totalAB: number; totalBB: number; totalSO: number; errors: number; }
+
+      const batters = new Map<string, BatterAgg>();
+      const pitchers = new Map<string, PitcherAgg>();
+      const teamStats = new Map<string, TeamAgg>();
+
+      for (const game of seasonGames) {
+        let box: any;
+        try { box = JSON.parse(game.boxScore!); } catch { continue; }
+        if (!box.home || !box.away) continue;
+
+        const sides = [
+          { data: box.home, teamId: game.homeTeamId, oppTeamId: game.awayTeamId, isHome: true },
+          { data: box.away, teamId: game.awayTeamId, oppTeamId: game.homeTeamId, isHome: false },
+        ];
+
+        for (const side of sides) {
+          const tKey = side.teamId;
+          if (!teamStats.has(tKey)) {
+            teamStats.set(tKey, { teamId: tKey, games: 0, runsScored: 0, runsAllowed: 0, hits: 0, hitsAllowed: 0, totalAB: 0, totalBB: 0, totalSO: 0, errors: 0 });
+          }
+          const ts = teamStats.get(tKey)!;
+          ts.games++;
+          const teamScore = side.isHome ? (game.homeScore ?? 0) : (game.awayScore ?? 0);
+          const oppScore = side.isHome ? (game.awayScore ?? 0) : (game.homeScore ?? 0);
+          ts.runsScored += teamScore;
+          ts.runsAllowed += oppScore;
+          ts.errors += side.data.errors || 0;
+
+          if (side.data.batting) {
+            for (const b of side.data.batting) {
+              ts.totalAB += b.ab || 0;
+              ts.hits += b.h || 0;
+              ts.totalBB += b.bb || 0;
+              ts.totalSO += b.so || 0;
+
+              const bKey = `${b.name}_${side.teamId}`;
+              if (!batters.has(bKey)) {
+                batters.set(bKey, { name: b.name, teamId: side.teamId, games: 0, ab: 0, r: 0, h: 0, rbi: 0, bb: 0, so: 0 });
+              }
+              const ba = batters.get(bKey)!;
+              ba.games++;
+              ba.ab += b.ab || 0;
+              ba.r += b.r || 0;
+              ba.h += b.h || 0;
+              ba.rbi += b.rbi || 0;
+              ba.bb += b.bb || 0;
+              ba.so += b.so || 0;
+            }
+          }
+
+          if (side.data.pitching) {
+            for (const p of side.data.pitching) {
+              ts.hitsAllowed += p.h || 0;
+              const pKey = `${p.name}_${side.teamId}`;
+              if (!pitchers.has(pKey)) {
+                pitchers.set(pKey, { name: p.name, teamId: side.teamId, games: 0, ip: 0, h: 0, r: 0, er: 0, bb: 0, so: 0, wins: 0, losses: 0 });
+              }
+              const pa = pitchers.get(pKey)!;
+              pa.games++;
+              const ipParts = String(p.ip).split(".");
+              const fullInnings = parseInt(ipParts[0]) || 0;
+              const partialInnings = parseInt(ipParts[1]) || 0;
+              pa.ip += fullInnings + partialInnings / 3;
+              pa.h += p.h || 0;
+              pa.r += p.r || 0;
+              pa.er += p.er || 0;
+              pa.bb += p.bb || 0;
+              pa.so += p.so || 0;
+            }
+
+            if (side.data.pitching.length > 0) {
+              const starter = side.data.pitching[0];
+              const sKey = `${starter.name}_${side.teamId}`;
+              const pa = pitchers.get(sKey);
+              if (pa) {
+                const teamScore = side.isHome ? (game.homeScore ?? 0) : (game.awayScore ?? 0);
+                const oppScore = side.isHome ? (game.awayScore ?? 0) : (game.homeScore ?? 0);
+                if (teamScore > oppScore) pa.wins++;
+                else pa.losses++;
+              }
+            }
+          }
+        }
+      }
+
+      const battingLeaders = Array.from(batters.values())
+        .filter(b => b.ab >= 10)
+        .map(b => ({
+          ...b,
+          avg: b.ab > 0 ? (b.h / b.ab).toFixed(3) : ".000",
+          teamAbbr: teamsMap.get(b.teamId)?.abbreviation || "???",
+          teamColor: teamsMap.get(b.teamId)?.primaryColor || "#666",
+        }));
+
+      const pitchingLeaders = Array.from(pitchers.values())
+        .filter(p => p.ip >= 3)
+        .map(p => ({
+          ...p,
+          ipDisplay: `${Math.floor(p.ip)}.${Math.round((p.ip % 1) * 3)}`,
+          era: p.ip > 0 ? ((p.er * 9) / p.ip).toFixed(2) : "0.00",
+          teamAbbr: teamsMap.get(p.teamId)?.abbreviation || "???",
+          teamColor: teamsMap.get(p.teamId)?.primaryColor || "#666",
+        }));
+
+      const teamStatsArray = Array.from(teamStats.values()).map(ts => ({
+        ...ts,
+        teamName: teamsMap.get(ts.teamId)?.name || "Unknown",
+        teamAbbr: teamsMap.get(ts.teamId)?.abbreviation || "???",
+        teamColor: teamsMap.get(ts.teamId)?.primaryColor || "#666",
+        battingAvg: ts.totalAB > 0 ? (ts.hits / ts.totalAB).toFixed(3) : ".000",
+        rpg: ts.games > 0 ? (ts.runsScored / ts.games).toFixed(1) : "0.0",
+        rapg: ts.games > 0 ? (ts.runsAllowed / ts.games).toFixed(1) : "0.0",
+      }));
+
+      res.json({
+        season,
+        battingLeaders,
+        pitchingLeaders,
+        teamStats: teamStatsArray.sort((a, b) => parseFloat(b.battingAvg) - parseFloat(a.battingAvg)),
+        totalGames: seasonGames.length,
+      });
+    } catch (error) {
+      console.error("Failed to fetch league stats:", error);
+      res.status(500).json({ message: "Failed to fetch league stats" });
+    }
+  });
+
   // Schedule routes
   app.get("/api/leagues/:id/schedule", requireAuth, async (req, res) => {
     try {
@@ -2762,7 +2906,7 @@ export async function registerRoutes(
           
           await generateSuperRegionalBracket(leagueId, league.currentSeason);
           
-          const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "super_regionals" });
+          const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "super_regionals", currentWeek: nextWeek });
           await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "Conference Championships Complete", details: "Conference championship games have been played. Super Regionals begin!" });
           return res.json(updatedLeague);
         }
@@ -2776,11 +2920,12 @@ export async function registerRoutes(
               homeTeamId: srResult.champion1, awayTeamId: srResult.champion2,
               phase: "cws",
             });
-            const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "cws" });
+            const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "cws", currentWeek: nextWeek });
             await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "Super Regionals Complete", details: "The final two teams advance to the College World Series!" });
             return res.json(updatedLeague);
           }
           
+          await storage.updateLeague(league.id, { currentWeek: nextWeek });
           await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "Super Regionals Round Complete", details: "A round of the Super Regionals has been completed." });
           const updatedLeague = await storage.getLeague(leagueId);
           return res.json(updatedLeague);
@@ -2794,7 +2939,7 @@ export async function registerRoutes(
             const champTeam = leagueTeams.find(t => t.id === cwsResult.champion);
             const runnerUpTeam = leagueTeams.find(t => t.id === cwsResult.runnerUp);
             
-            const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "offseason_departures" });
+            const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "offseason_departures", currentWeek: nextWeek });
             await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "CWS Champion Crowned!", details: `${champTeam?.name || "Unknown"} wins the College World Series over ${runnerUpTeam?.name || "Unknown"}!` });
             
             if (champTeam && runnerUpTeam) {
@@ -2804,10 +2949,33 @@ export async function registerRoutes(
                 console.error("CWS news generation error:", e);
               }
             }
+
+            try {
+              const promiseResult = await evaluatePlayerPromises(leagueId, league.currentSeason);
+              if (promiseResult.broken > 0) {
+                await storage.createAuditLog({
+                  leagueId, userId: req.session.userId,
+                  action: "Promise Evaluation",
+                  details: `${promiseResult.evaluated} promises evaluated: ${promiseResult.met} met, ${promiseResult.broken} broken.`,
+                });
+              }
+              const departureResult = await processOffseasonDepartures(leagueId, league.currentSeason);
+              await storage.createAuditLog({
+                leagueId, userId: req.session.userId,
+                action: "Offseason: Departures Phase",
+                details: `${departureResult.graduated} graduating, ${departureResult.draftDeclared} draft eligible, ${departureResult.transferPortal} considering transfer. Review departures before finalizing.`,
+              });
+              try {
+                await generateDeparturesSummaryNews(leagueId, league.currentSeason, departureResult.graduated, departureResult.draftDeclared, departureResult.transferPortal);
+              } catch (e) { console.error("Departures news error:", e); }
+            } catch (e) {
+              console.error("Auto-process departures error:", e);
+            }
             
             return res.json({ ...updatedLeague, cwsChampion: cwsResult.champion, cwsRunnerUp: cwsResult.runnerUp });
           }
           
+          await storage.updateLeague(league.id, { currentWeek: nextWeek });
           await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "CWS Game Complete", details: "A game of the College World Series has been played." });
           const updatedLeague = await storage.getLeague(leagueId);
           return res.json(updatedLeague);
@@ -2875,7 +3043,7 @@ export async function registerRoutes(
         const phaseIndex = offseasonPhases.indexOf(league.currentPhase);
         const nextPhase = offseasonPhases[phaseIndex + 1];
         
-        const updatedLeague = await storage.updateLeague(league.id, { currentPhase: nextPhase });
+        const updatedLeague = await storage.updateLeague(league.id, { currentPhase: nextPhase, currentWeek: nextWeek });
         await storage.createAuditLog({
           leagueId, userId: req.session.userId,
           action: `Offseason Recruiting Week ${phaseIndex}`,
@@ -2920,7 +3088,7 @@ export async function registerRoutes(
 
       if (nextWeek > maxWeeks) {
         await generateConferenceChampionships(leagueId, league.currentSeason);
-        const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "conference_championship" });
+        const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "conference_championship", currentWeek: nextWeek });
         await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "Regular Season Complete", details: "The regular season is over! Conference Championships begin." });
         return res.json(updatedLeague);
       }
@@ -2992,32 +3160,32 @@ export async function registerRoutes(
       innings.push([awayInnings[i], homeInnings[i]]);
     }
 
-    const pitcherPositions = ["SP", "RP", "CP"];
-
-    function generateTeamStats(players: Player[], teamScore: number) {
-      const positionPlayers = players.filter(p => !pitcherPositions.includes(p.position));
-      const pitchers = players.filter(p => pitcherPositions.includes(p.position));
+    function generateTeamStats(players: Player[], teamScore: number, isHome: boolean) {
+      const positionPlayers = players.filter(p => p.position !== "P");
+      const pitchers = players.filter(p => p.position === "P");
 
       const battingLineup: { name: string; position: string; ab: number; r: number; h: number; rbi: number; bb: number; so: number; avg: string }[] = [];
       const positionOrder = ["C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "DH"];
 
       let selectedBatters: { firstName: string; lastName: string; position: string; contact: number }[] = [];
-      if (positionPlayers.length >= 9) {
-        const used = new Set<string>();
-        for (const pos of positionOrder) {
-          const p = positionPlayers.find(pl => pl.position === pos && !used.has(pl.id));
-          if (p) {
-            used.add(p.id);
-            selectedBatters.push({ firstName: p.firstName, lastName: p.lastName, position: p.position, contact: p.hitForAvg || 50 });
-          }
+      const used = new Set<string>();
+      for (const pos of positionOrder) {
+        const p = positionPlayers.find(pl => pl.position === pos && !used.has(pl.id));
+        if (p) {
+          used.add(p.id);
+          selectedBatters.push({ firstName: p.firstName, lastName: p.lastName, position: p.position, contact: p.hitForAvg || 50 });
         }
-        for (const p of positionPlayers) {
-          if (selectedBatters.length >= 9) break;
-          if (!used.has(p.id)) {
-            used.add(p.id);
-            selectedBatters.push({ firstName: p.firstName, lastName: p.lastName, position: p.position, contact: p.hitForAvg || 50 });
-          }
+      }
+      for (const p of positionPlayers) {
+        if (selectedBatters.length >= 9) break;
+        if (!used.has(p.id)) {
+          used.add(p.id);
+          selectedBatters.push({ firstName: p.firstName, lastName: p.lastName, position: "DH", contact: p.hitForAvg || 50 });
         }
+      }
+      if (selectedBatters.length < 9 && pitchers.length > 0) {
+        const bestPitcher = pitchers[0];
+        selectedBatters.push({ firstName: bestPitcher.firstName, lastName: bestPitcher.lastName, position: "P", contact: bestPitcher.hitForAvg || 30 });
       }
       
       while (selectedBatters.length < 9) {
@@ -3032,27 +3200,37 @@ export async function registerRoutes(
         });
       }
 
+      const totalHits = Math.max(teamScore, teamScore + Math.floor(Math.random() * 5));
+      let hitsLeft = totalHits;
       let runsLeft = teamScore;
-      let totalH = 0;
-      let totalRBI = 0;
+      let rbiLeft = teamScore;
 
       for (let i = 0; i < selectedBatters.length; i++) {
         const batter = selectedBatters[i];
-        const ab = 3 + Math.floor(Math.random() * 3);
-        const hitChance = Math.min(0.45, Math.max(0.1, batter.contact / 200));
+        const ab = 3 + Math.floor(Math.random() * 2);
+        const hitChance = Math.min(0.45, Math.max(0.1, batter.contact / 180));
         let h = 0;
-        for (let j = 0; j < ab; j++) {
-          if (Math.random() < hitChance) h++;
+        if (i === selectedBatters.length - 1) {
+          h = Math.min(ab, Math.max(0, hitsLeft));
+        } else {
+          for (let j = 0; j < ab; j++) {
+            if (hitsLeft > 0 && Math.random() < hitChance) { h++; hitsLeft--; }
+          }
         }
-        const bb = Math.random() < 0.15 ? 1 : 0;
-        const so = Math.floor(Math.random() * 3);
-        const r = i < runsLeft ? (Math.random() < 0.4 ? 1 : 0) : 0;
-        if (r) runsLeft--;
-        const rbi = Math.random() < 0.3 ? Math.min(Math.floor(Math.random() * 3) + 1, teamScore) : 0;
+        const bb = Math.random() < 0.12 ? 1 : 0;
+        const so = h === 0 ? Math.floor(Math.random() * 2) + 1 : Math.floor(Math.random() * 2);
+
+        let r = 0;
+        if (runsLeft > 0 && Math.random() < 0.35) { r = 1; runsLeft--; }
+
+        let rbi = 0;
+        if (rbiLeft > 0 && h > 0) {
+          rbi = Math.min(rbiLeft, Math.floor(Math.random() * 2) + (Math.random() < 0.15 ? 2 : 0));
+          rbiLeft -= rbi;
+        }
+
         const avg = ab > 0 ? (h / ab).toFixed(3) : ".000";
 
-        totalH += h;
-        totalRBI += rbi;
         battingLineup.push({
           name: `${batter.firstName[0]}. ${batter.lastName}`,
           position: batter.position,
@@ -3062,9 +3240,19 @@ export async function registerRoutes(
       }
 
       if (runsLeft > 0) {
-        for (let i = 0; runsLeft > 0 && i < battingLineup.length; i++) {
-          battingLineup[i].r++;
+        const hitters = battingLineup.filter(b => b.h > 0);
+        for (let i = 0; runsLeft > 0; i++) {
+          const target = hitters.length > 0 ? hitters[i % hitters.length] : battingLineup[i % battingLineup.length];
+          target.r++;
           runsLeft--;
+        }
+      }
+      if (rbiLeft > 0) {
+        const hitters = battingLineup.filter(b => b.h > 0);
+        for (let i = 0; rbiLeft > 0; i++) {
+          const target = hitters.length > 0 ? hitters[i % hitters.length] : battingLineup[i % battingLineup.length];
+          target.rbi++;
+          rbiLeft--;
         }
       }
 
@@ -3072,30 +3260,25 @@ export async function registerRoutes(
       if (totalR > teamScore) {
         let excess = totalR - teamScore;
         for (let i = battingLineup.length - 1; i >= 0 && excess > 0; i--) {
-          if (battingLineup[i].r > 0) {
-            battingLineup[i].r--;
-            excess--;
-          }
+          const remove = Math.min(battingLineup[i].r, excess);
+          battingLineup[i].r -= remove;
+          excess -= remove;
         }
       }
 
       const pitchingStaff: { name: string; ip: string; h: number; r: number; er: number; bb: number; so: number; era: string }[] = [];
-      const numPitchers = Math.min(pitchers.length || 1, 1 + Math.floor(Math.random() * 3));
+      const numPitchers = Math.min(Math.max(pitchers.length, 1), 1 + Math.floor(Math.random() * 3));
       let selectedPitchers: { firstName: string; lastName: string }[] = [];
       
-      if (pitchers.length > 0) {
-        for (let i = 0; i < numPitchers && i < pitchers.length; i++) {
-          selectedPitchers.push({ firstName: pitchers[i].firstName, lastName: pitchers[i].lastName });
-        }
+      for (let i = 0; i < numPitchers && i < pitchers.length; i++) {
+        selectedPitchers.push({ firstName: pitchers[i].firstName, lastName: pitchers[i].lastName });
       }
-      while (selectedPitchers.length === 0 || selectedPitchers.length < numPitchers) {
-        const fakePitchers = [{ firstName: "John", lastName: "Doe" }, { firstName: "James", lastName: "Wilson" }, { firstName: "Tom", lastName: "Anderson" }];
-        selectedPitchers.push(fakePitchers[selectedPitchers.length % fakePitchers.length]);
-        if (selectedPitchers.length >= 3) break;
+      while (selectedPitchers.length === 0) {
+        selectedPitchers.push({ firstName: "John", lastName: "Doe" });
       }
 
       let inningsLeft = 9;
-      const opponentScore = teamScore === homeScore ? awayScore : homeScore;
+      const opponentScore = isHome ? awayScore : homeScore;
       let opponentRunsLeft = opponentScore;
       const opponentHitsTotal = Math.max(opponentScore, Math.floor(Math.random() * 5) + opponentScore);
 
@@ -3103,7 +3286,7 @@ export async function registerRoutes(
         const isLast = i === selectedPitchers.length - 1;
         let ip: number;
         if (isLast) {
-          ip = inningsLeft;
+          ip = Math.max(1, inningsLeft);
         } else {
           ip = Math.max(1, Math.floor(inningsLeft / (selectedPitchers.length - i)) + (Math.random() > 0.5 ? 1 : -1));
           ip = Math.min(ip, inningsLeft - (selectedPitchers.length - i - 1));
@@ -3118,7 +3301,7 @@ export async function registerRoutes(
         opponentRunsLeft -= pRuns;
         const er = Math.max(0, pRuns - (Math.random() < 0.1 ? 1 : 0));
         const pBB = Math.floor(Math.random() * 3);
-        const pSO = Math.floor(Math.random() * (ip * 2)) + 1;
+        const pSO = Math.floor(Math.random() * Math.max(1, ip * 2)) + 1;
         const totalIP = ip + fraction / 10;
         const era = totalIP > 0 ? ((er * 9) / totalIP).toFixed(2) : "0.00";
 
@@ -3138,7 +3321,7 @@ export async function registerRoutes(
 
       const totals = {
         ab: battingLineup.reduce((s, b) => s + b.ab, 0),
-        r: battingLineup.reduce((s, b) => s + b.r, 0),
+        r: teamScore,
         h: battingLineup.reduce((s, b) => s + b.h, 0),
         rbi: battingLineup.reduce((s, b) => s + b.rbi, 0),
         bb: battingLineup.reduce((s, b) => s + b.bb, 0),
@@ -3148,8 +3331,8 @@ export async function registerRoutes(
       return { batting: battingLineup, pitching: pitchingStaff, totals, errors };
     }
 
-    const home = generateTeamStats(homePlayers, homeScore);
-    const away = generateTeamStats(awayPlayers, awayScore);
+    const home = generateTeamStats(homePlayers, homeScore, true);
+    const away = generateTeamStats(awayPlayers, awayScore, false);
 
     return { innings, home, away };
   }
@@ -5906,8 +6089,77 @@ async function generateRecruits(leagueId: string, count: number) {
   const firstNames = ["Marcus", "Tyler", "Jordan", "Chris", "Devon", "Aaron", "Ryan", "Justin", "Brandon", "Cameron", "Dylan", "Jake", "Austin", "Kyle", "Cole", "Mason", "Logan", "Ethan", "Noah", "Caleb", "Jayden", "Bryce", "Hunter", "Chase", "Trey"];
   const lastNames = ["Johnson", "Williams", "Brown", "Davis", "Miller", "Wilson", "Moore", "Taylor", "Anderson", "Thomas", "Jackson", "White", "Harris", "Martin", "Thompson", "Garcia", "Martinez", "Robinson", "Clark", "Rodriguez", "Lewis", "Walker", "Hall", "Young", "King"];
   const fieldPositions = ["C", "1B", "2B", "SS", "3B", "LF", "CF", "RF"];
-  const states = ["CA", "TX", "FL", "GA", "NC", "TN", "AZ", "LA", "AL", "SC"];
-  const cities = ["Los Angeles", "Houston", "Miami", "Atlanta", "Charlotte", "Nashville", "Phoenix", "New Orleans", "Birmingham", "Charleston"];
+  const stateData: { state: string; cities: string[]; weight: number }[] = [
+    { state: "CA", cities: ["Los Angeles", "San Diego", "San Francisco", "Sacramento", "Fresno", "Long Beach"], weight: 10 },
+    { state: "TX", cities: ["Houston", "Dallas", "Austin", "San Antonio", "Arlington", "Lubbock"], weight: 10 },
+    { state: "FL", cities: ["Miami", "Tampa", "Orlando", "Jacksonville", "Fort Lauderdale", "Gainesville"], weight: 9 },
+    { state: "GA", cities: ["Atlanta", "Savannah", "Augusta", "Marietta", "Athens", "Macon"], weight: 7 },
+    { state: "NC", cities: ["Charlotte", "Raleigh", "Durham", "Greensboro", "Wilmington"], weight: 5 },
+    { state: "TN", cities: ["Nashville", "Memphis", "Knoxville", "Chattanooga"], weight: 4 },
+    { state: "AZ", cities: ["Phoenix", "Tucson", "Scottsdale", "Mesa"], weight: 4 },
+    { state: "LA", cities: ["New Orleans", "Baton Rouge", "Shreveport", "Lafayette"], weight: 4 },
+    { state: "AL", cities: ["Birmingham", "Tuscaloosa", "Mobile", "Huntsville"], weight: 4 },
+    { state: "SC", cities: ["Charleston", "Columbia", "Greenville", "Myrtle Beach"], weight: 4 },
+    { state: "MS", cities: ["Jackson", "Oxford", "Starkville", "Hattiesburg"], weight: 3 },
+    { state: "OK", cities: ["Oklahoma City", "Tulsa", "Norman", "Stillwater"], weight: 3 },
+    { state: "AR", cities: ["Little Rock", "Fayetteville", "Fort Smith"], weight: 3 },
+    { state: "VA", cities: ["Richmond", "Virginia Beach", "Charlottesville", "Norfolk"], weight: 3 },
+    { state: "OH", cities: ["Columbus", "Cincinnati", "Cleveland", "Dayton"], weight: 3 },
+    { state: "IL", cities: ["Chicago", "Springfield", "Champaign", "Peoria"], weight: 2 },
+    { state: "PA", cities: ["Philadelphia", "Pittsburgh", "State College", "Harrisburg"], weight: 2 },
+    { state: "NY", cities: ["New York", "Buffalo", "Syracuse", "Albany"], weight: 2 },
+    { state: "NJ", cities: ["Newark", "Trenton", "Jersey City", "Princeton"], weight: 2 },
+    { state: "MO", cities: ["St. Louis", "Kansas City", "Columbia", "Springfield"], weight: 2 },
+    { state: "IN", cities: ["Indianapolis", "Bloomington", "Fort Wayne", "South Bend"], weight: 2 },
+    { state: "MI", cities: ["Detroit", "Ann Arbor", "Grand Rapids", "Lansing"], weight: 2 },
+    { state: "KY", cities: ["Louisville", "Lexington", "Bowling Green"], weight: 2 },
+    { state: "WI", cities: ["Milwaukee", "Madison", "Green Bay"], weight: 1 },
+    { state: "MN", cities: ["Minneapolis", "St. Paul", "Rochester"], weight: 1 },
+    { state: "IA", cities: ["Des Moines", "Iowa City", "Cedar Rapids"], weight: 1 },
+    { state: "KS", cities: ["Wichita", "Lawrence", "Topeka"], weight: 1 },
+    { state: "NE", cities: ["Omaha", "Lincoln", "Grand Island"], weight: 1 },
+    { state: "CO", cities: ["Denver", "Colorado Springs", "Boulder"], weight: 1 },
+    { state: "OR", cities: ["Portland", "Eugene", "Corvallis"], weight: 1 },
+    { state: "WA", cities: ["Seattle", "Tacoma", "Spokane"], weight: 1 },
+    { state: "CT", cities: ["Hartford", "New Haven", "Stamford"], weight: 1 },
+    { state: "MA", cities: ["Boston", "Worcester", "Cambridge"], weight: 1 },
+    { state: "MD", cities: ["Baltimore", "College Park", "Annapolis"], weight: 1 },
+    { state: "NV", cities: ["Las Vegas", "Reno", "Henderson"], weight: 1 },
+    { state: "NM", cities: ["Albuquerque", "Santa Fe", "Las Cruces"], weight: 1 },
+    { state: "UT", cities: ["Salt Lake City", "Provo", "Ogden"], weight: 1 },
+    { state: "WV", cities: ["Charleston", "Morgantown", "Huntington"], weight: 1 },
+    { state: "HI", cities: ["Honolulu", "Hilo", "Pearl City"], weight: 1 },
+    { state: "ID", cities: ["Boise", "Nampa", "Idaho Falls"], weight: 1 },
+    { state: "MT", cities: ["Billings", "Missoula", "Great Falls"], weight: 1 },
+    { state: "ND", cities: ["Fargo", "Bismarck", "Grand Forks"], weight: 1 },
+    { state: "SD", cities: ["Sioux Falls", "Rapid City", "Brookings"], weight: 1 },
+    { state: "WY", cities: ["Cheyenne", "Casper", "Laramie"], weight: 1 },
+    { state: "AK", cities: ["Anchorage", "Fairbanks", "Juneau"], weight: 1 },
+    { state: "ME", cities: ["Portland", "Bangor", "Augusta"], weight: 1 },
+    { state: "NH", cities: ["Manchester", "Concord", "Nashua"], weight: 1 },
+    { state: "VT", cities: ["Burlington", "Montpelier", "Rutland"], weight: 1 },
+    { state: "DE", cities: ["Wilmington", "Dover", "Newark"], weight: 1 },
+    { state: "RI", cities: ["Providence", "Newport", "Warwick"], weight: 1 },
+  ];
+
+  const weightedPool: number[] = [];
+  for (let si = 0; si < stateData.length; si++) {
+    for (let w = 0; w < stateData[si].weight; w++) {
+      weightedPool.push(si);
+    }
+  }
+  const stateAssignments: number[] = [];
+  const guaranteedCount = Math.min(stateData.length, count);
+  for (let i = 0; i < guaranteedCount; i++) {
+    stateAssignments.push(i);
+  }
+  for (let i = guaranteedCount; i < count; i++) {
+    stateAssignments.push(weightedPool[Math.floor(Math.random() * weightedPool.length)]);
+  }
+  for (let i = stateAssignments.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [stateAssignments[i], stateAssignments[j]] = [stateAssignments[j], stateAssignments[i]];
+  }
   const priorities = ["Extremely", "Very", "Somewhat", "Not Important"];
 
   // Select a hidden theme for this recruiting class
@@ -6153,7 +6405,9 @@ async function generateRecruits(leagueId: string, count: number) {
     const position = isPitcher ? "P" : fieldPositions[Math.floor(Math.random() * fieldPositions.length)];
     
     const starRank = getStarRank(i, count, theme);
-    const stateIdx = Math.floor(Math.random() * states.length);
+    const stateIdx = stateAssignments[i] || 0;
+    const recruitState = stateData[stateIdx];
+    const recruitCity = recruitState.cities[Math.floor(Math.random() * recruitState.cities.length)];
     const isBlueChip = i < numBlueChips;
     
     // Get gem/bust modifier based on star rank - Blue Chips can NEVER be gems/busts
@@ -6206,8 +6460,8 @@ async function generateRecruits(leagueId: string, count: number) {
       firstName: firstNames[Math.floor(Math.random() * firstNames.length)],
       lastName: lastNames[Math.floor(Math.random() * lastNames.length)],
       position,
-      homeState: states[stateIdx],
-      hometown: cities[stateIdx],
+      homeState: recruitState.state,
+      hometown: recruitCity,
       starRank,
       classRank: i + 1,
       positionRank: Math.floor(i / 9) + 1, // 9 positions
@@ -6491,8 +6745,24 @@ async function generatePlayersForTeam(teamId: string) {
   const firstNames = ["Marcus", "Tyler", "Jordan", "Chris", "Devon", "Aaron", "Ryan", "Justin", "Brandon", "Cameron", "Dylan", "Jake", "Austin", "Kyle", "Cole", "Mason", "Logan", "Ethan", "Noah", "Caleb"];
   const lastNames = ["Johnson", "Williams", "Brown", "Davis", "Miller", "Wilson", "Moore", "Taylor", "Anderson", "Thomas", "Jackson", "White", "Harris", "Martin", "Thompson", "Garcia", "Martinez", "Robinson", "Clark", "Rodriguez"];
   const fieldPositions = ["C", "1B", "2B", "SS", "3B", "LF", "CF", "RF"];
-  const states = ["CA", "TX", "FL", "GA", "NC", "TN", "AZ", "LA", "AL", "SC"];
-  const cities = ["Los Angeles", "Houston", "Miami", "Atlanta", "Charlotte", "Nashville", "Phoenix", "New Orleans", "Birmingham", "Charleston"];
+  const rosterStates = [
+    { state: "CA", cities: ["Los Angeles", "San Diego", "Sacramento", "Long Beach"] },
+    { state: "TX", cities: ["Houston", "Dallas", "Austin", "San Antonio"] },
+    { state: "FL", cities: ["Miami", "Tampa", "Orlando", "Jacksonville"] },
+    { state: "GA", cities: ["Atlanta", "Savannah", "Augusta", "Athens"] },
+    { state: "NC", cities: ["Charlotte", "Raleigh", "Durham"] },
+    { state: "TN", cities: ["Nashville", "Memphis", "Knoxville"] },
+    { state: "AZ", cities: ["Phoenix", "Tucson", "Scottsdale"] },
+    { state: "LA", cities: ["New Orleans", "Baton Rouge", "Shreveport"] },
+    { state: "AL", cities: ["Birmingham", "Tuscaloosa", "Mobile"] },
+    { state: "SC", cities: ["Charleston", "Columbia", "Greenville"] },
+    { state: "MS", cities: ["Jackson", "Oxford", "Starkville"] },
+    { state: "OH", cities: ["Columbus", "Cincinnati", "Cleveland"] },
+    { state: "IL", cities: ["Chicago", "Springfield", "Champaign"] },
+    { state: "PA", cities: ["Philadelphia", "Pittsburgh", "State College"] },
+    { state: "NY", cities: ["New York", "Buffalo", "Syracuse"] },
+    { state: "VA", cities: ["Richmond", "Virginia Beach", "Charlottesville"] },
+  ];
 
   // Class balance: 6 SR, 6 JR, 7 SO, 6 FR = 25 total
   const eligibilityDistribution = [
@@ -6539,7 +6809,7 @@ async function generatePlayersForTeam(teamId: string) {
   for (let i = 0; i < 25; i++) {
     const position = shuffledPositions[i];
     const eligibility = shuffledEligibilities[i];
-    const stateIdx = Math.floor(Math.random() * states.length);
+    const rosterStateEntry = rosterStates[Math.floor(Math.random() * rosterStates.length)];
 
     // Generate star rating and overall
     const starRating = getStarRating();
@@ -6563,8 +6833,8 @@ async function generatePlayersForTeam(teamId: string) {
       lastName: lastNames[Math.floor(Math.random() * lastNames.length)],
       position,
       eligibility,
-      homeState: states[stateIdx],
-      hometown: cities[stateIdx],
+      homeState: rosterStateEntry.state,
+      hometown: rosterStateEntry.cities[Math.floor(Math.random() * rosterStateEntry.cities.length)],
       jerseyNumber: i + 1,
       overall,
       starRating,

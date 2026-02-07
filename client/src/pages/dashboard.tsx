@@ -109,7 +109,7 @@ function LeagueCard({ league }: { league: LeagueWithDetails }) {
 
   const phaseLabels: Record<string, string> = {
     dynasty_setup: "Dynasty Setup",
-    preseason: "Preseason",
+    preseason: "Spring Training",
     spring_training: "Spring Training",
     regular_season: "Regular Season",
     conference_championship: "Conference Championship",

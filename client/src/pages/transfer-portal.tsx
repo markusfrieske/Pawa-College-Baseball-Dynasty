@@ -143,6 +143,9 @@ export default function TransferPortalPage() {
   const [notesText, setNotesText] = useState("");
   const [confirmSign, setConfirmSign] = useState<PortalPlayer | null>(null);
   const [positionFilter, setPositionFilter] = useState("all");
+  const [starFilter, setStarFilter] = useState("all");
+  const [sortBy, setSortBy] = useState<"overall" | "star" | "name">("overall");
+  const [showTargetedOnly, setShowTargetedOnly] = useState(false);
 
   const { data, isLoading } = useQuery<TransferPortalData>({
     queryKey: [`/api/leagues/${id}/transfer-portal`],
@@ -240,9 +243,15 @@ export default function TransferPortalPage() {
   }
 
   const positions = ["all", ...Array.from(new Set(data.players.map(p => p.position)))];
-  const filteredPlayers = positionFilter === "all" 
-    ? data.players 
-    : data.players.filter(p => p.position === positionFilter);
+  const filteredPlayers = data.players
+    .filter(p => positionFilter === "all" || p.position === positionFilter)
+    .filter(p => starFilter === "all" || p.starRating === parseInt(starFilter))
+    .filter(p => !showTargetedOnly || p.myInterest?.isTargeted)
+    .sort((a, b) => {
+      if (sortBy === "overall") return b.overall - a.overall;
+      if (sortBy === "star") return b.starRating - a.starRating || b.overall - a.overall;
+      return `${a.lastName}${a.firstName}`.localeCompare(`${b.lastName}${b.firstName}`);
+    });
 
   return (
     <div className="min-h-screen bg-[#1a2b1a] p-4">
@@ -279,18 +288,61 @@ export default function TransferPortalPage() {
           </RetroCard>
         )}
 
-        <div className="flex flex-wrap gap-2">
-          {positions.map(pos => (
-            <RetroButton
-              key={pos}
-              variant={positionFilter === pos ? "primary" : "outline"}
-              size="sm"
-              onClick={() => setPositionFilter(pos)}
-              data-testid={`filter-position-${pos}`}
-            >
-              {pos === "all" ? "All Positions" : pos}
-            </RetroButton>
-          ))}
+        <div className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            {positions.map(pos => (
+              <RetroButton
+                key={pos}
+                variant={positionFilter === pos ? "primary" : "outline"}
+                size="sm"
+                onClick={() => setPositionFilter(pos)}
+                data-testid={`filter-position-${pos}`}
+              >
+                {pos === "all" ? "All Positions" : pos}
+              </RetroButton>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-gray-400 font-['Press_Start_2P']">Stars:</span>
+            {["all", "5", "4", "3", "2", "1"].map(s => (
+              <RetroButton
+                key={s}
+                variant={starFilter === s ? "primary" : "outline"}
+                size="sm"
+                onClick={() => setStarFilter(s)}
+                data-testid={`filter-star-${s}`}
+              >
+                {s === "all" ? "All" : `${s}${"★"}`}
+              </RetroButton>
+            ))}
+            <div className="border-l border-gray-600 h-6 mx-2" />
+            <span className="text-xs text-gray-400 font-['Press_Start_2P']">Sort:</span>
+            {([["overall", "OVR"], ["star", "Stars"], ["name", "Name"]] as const).map(([key, label]) => (
+              <RetroButton
+                key={key}
+                variant={sortBy === key ? "primary" : "outline"}
+                size="sm"
+                onClick={() => setSortBy(key)}
+                data-testid={`sort-${key}`}
+              >
+                {label}
+              </RetroButton>
+            ))}
+            {data.myTeamId && (
+              <>
+                <div className="border-l border-gray-600 h-6 mx-2" />
+                <RetroButton
+                  variant={showTargetedOnly ? "primary" : "outline"}
+                  size="sm"
+                  onClick={() => setShowTargetedOnly(!showTargetedOnly)}
+                  data-testid="filter-targeted-only"
+                >
+                  <Target className="w-3 h-3 mr-1" />
+                  Targeted Only
+                </RetroButton>
+              </>
+            )}
+          </div>
         </div>
 
         {filteredPlayers.length === 0 ? (
