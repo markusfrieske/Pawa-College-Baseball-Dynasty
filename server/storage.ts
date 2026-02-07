@@ -111,6 +111,7 @@ export interface IStorage {
   createPlayerHistory(data: InsertPlayerHistory): Promise<PlayerHistory>;
   getPlayerHistoryByLeague(leagueId: string): Promise<PlayerHistory[]>;
   getPlayerHistoryByTeam(teamId: string): Promise<PlayerHistory[]>;
+  deleteLeague(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -464,6 +465,42 @@ export class DatabaseStorage implements IStorage {
 
   async getPlayerHistoryByTeam(teamId: string): Promise<PlayerHistory[]> {
     return db.select().from(playerHistory).where(eq(playerHistory.teamId, teamId));
+  }
+
+  async deleteLeague(id: string): Promise<void> {
+    await db.transaction(async (tx) => {
+      const leagueTeams = await tx.select({ id: teams.id }).from(teams).where(eq(teams.leagueId, id));
+      const teamIds = leagueTeams.map(t => t.id);
+
+      if (teamIds.length > 0) {
+        await tx.delete(transferPortalInterests).where(inArray(transferPortalInterests.teamId, teamIds));
+        await tx.delete(playerHistory).where(inArray(playerHistory.teamId, teamIds));
+        await tx.delete(players).where(inArray(players.teamId, teamIds));
+        await tx.delete(recruitingInterests).where(inArray(recruitingInterests.teamId, teamIds));
+        await tx.delete(recruitTopSchools).where(inArray(recruitTopSchools.teamId, teamIds));
+        await tx.delete(coaches).where(inArray(coaches.teamId, teamIds));
+        await tx.delete(standings).where(inArray(standings.teamId, teamIds));
+      }
+
+      const leagueRecruits = await tx.select({ id: recruits.id }).from(recruits).where(eq(recruits.leagueId, id));
+      const recruitIds = leagueRecruits.map(r => r.id);
+      if (recruitIds.length > 0) {
+        await tx.delete(recruitTopSchools).where(inArray(recruitTopSchools.recruitId, recruitIds));
+        await tx.delete(recruitingActionsLog).where(inArray(recruitingActionsLog.recruitId, recruitIds));
+        await tx.delete(recruitingInterests).where(inArray(recruitingInterests.recruitId, recruitIds));
+      }
+
+      await tx.delete(recruits).where(eq(recruits.leagueId, id));
+      await tx.delete(games).where(eq(games.leagueId, id));
+      await tx.delete(standings).where(eq(standings.leagueId, id));
+      await tx.delete(auditLogs).where(eq(auditLogs.leagueId, id));
+      await tx.delete(leagueInvites).where(eq(leagueInvites.leagueId, id));
+      await tx.delete(dynastyNews).where(eq(dynastyNews.leagueId, id));
+      await tx.delete(scouts).where(eq(scouts.leagueId, id));
+      await tx.delete(teams).where(eq(teams.leagueId, id));
+      await tx.delete(conferences).where(eq(conferences.leagueId, id));
+      await tx.delete(leagues).where(eq(leagues.id, id));
+    });
   }
 }
 

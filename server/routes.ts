@@ -305,11 +305,14 @@ export async function registerRoutes(
 
       const conferences = await storage.getConferencesByLeague(league.id);
       
-      // Return team templates (not DB teams) for each conference
-      const conferenceTeamPools = conferences.map(conf => ({
-        conference: conf,
-        teams: getTeamsForConference(conf.name),
-      }));
+      const allConferenceNames = ["SEC", "ACC", "Big 12", "Big Ten"];
+      const conferenceTeamPools = allConferenceNames.map(confName => {
+        const dynConf = conferences.find(c => c.name === confName);
+        return {
+          conference: dynConf || { id: confName, name: confName, leagueId: league.id },
+          teams: getTeamsForConference(confName),
+        };
+      });
       
       res.json({ 
         league,
@@ -344,14 +347,15 @@ export async function registerRoutes(
       const conferences = await storage.getConferencesByLeague(league.id);
       let totalTeamsCreated = 0;
 
+      const allConferenceNames = ["SEC", "ACC", "Big 12", "Big Ten"];
+      const allTeamPools = allConferenceNames.flatMap(name => getTeamsForConference(name));
+
       for (const selection of selectedTeams) {
         const conf = conferences.find(c => c.id === selection.conferenceId);
         if (!conf) continue;
-
-        const conferenceTeamPool = getTeamsForConference(conf.name);
         
         for (const teamName of selection.teamNames) {
-          const teamData = conferenceTeamPool.find(t => t.name === teamName);
+          const teamData = allTeamPools.find(t => t.name === teamName);
           if (!teamData) continue;
 
           const team = await storage.createTeam({
@@ -3597,6 +3601,23 @@ export async function registerRoutes(
     }
   });
 
+  app.delete("/api/leagues/:id", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      if (league.commissionerId !== req.session.userId) {
+        return res.status(403).json({ message: "Only the commissioner can delete a league" });
+      }
+      
+      await storage.deleteLeague(leagueId);
+      res.json({ message: "League deleted" });
+    } catch (error) {
+      console.error("Failed to delete league:", error);
+      res.status(500).json({ message: "Failed to delete league" });
+    }
+  });
+
   // League invite routes
   app.post("/api/leagues/:id/invites", requireAuth, async (req, res) => {
     try {
@@ -4225,29 +4246,109 @@ function getAttributesToReveal(percentage: number, existing: string[] = []): str
   return toReveal;
 }
 
-async function generateSchedule(leagueId: string) {
+async function generateSchedule(leagueId: string, season: number = 1) {
   const league = await storage.getLeague(leagueId);
   const leagueTeams = await storage.getTeamsByLeague(leagueId);
+  const conferences = await storage.getConferencesByLeague(leagueId);
   
-  // Map season length to number of weeks
   const seasonWeeks: Record<string, number> = {
     "short": 8,
     "medium": 14,
     "long": 32,
   };
   const numWeeks = seasonWeeks[league?.seasonLength || "medium"] || 14;
+  const numTeams = leagueTeams.length;
   
-  // Generate games for the season
+  if (numTeams < 2) return;
+
+  const confMap = new Map<string, typeof leagueTeams>();
+  for (const team of leagueTeams) {
+    const cid = team.conferenceId || "none";
+    if (!confMap.has(cid)) confMap.set(cid, []);
+    confMap.get(cid)!.push(team);
+  }
+
+  function generateRoundRobin(teams: typeof leagueTeams) {
+    const n = teams.length;
+    if (n < 2) return [];
+    const list = [...teams];
+    const useBye = n % 2 !== 0;
+    if (useBye) list.push(null as any);
+    const count = list.length;
+    const rounds: { home: typeof leagueTeams[0]; away: typeof leagueTeams[0] }[][] = [];
+    
+    for (let r = 0; r < count - 1; r++) {
+      const round: { home: typeof leagueTeams[0]; away: typeof leagueTeams[0] }[] = [];
+      for (let i = 0; i < count / 2; i++) {
+        const t1 = list[i];
+        const t2 = list[count - 1 - i];
+        if (t1 && t2) {
+          round.push(r % 2 === 0 ? { home: t1, away: t2 } : { home: t2, away: t1 });
+        }
+      }
+      rounds.push(round);
+      const last = list.pop()!;
+      list.splice(1, 0, last);
+    }
+    return rounds;
+  }
+
+  const confRounds: { home: typeof leagueTeams[0]; away: typeof leagueTeams[0] }[][] = [];
+  for (const [, confTeams] of confMap) {
+    const rounds = generateRoundRobin(confTeams);
+    for (let i = 0; i < rounds.length; i++) {
+      if (!confRounds[i]) confRounds[i] = [];
+      confRounds[i].push(...rounds[i]);
+    }
+  }
+
+  const interconfRounds = generateRoundRobin(leagueTeams);
+
+  const allMatchups: { home: typeof leagueTeams[0]; away: typeof leagueTeams[0]; isConf: boolean }[] = [];
+  
+  for (const round of confRounds) {
+    for (const m of round) {
+      allMatchups.push({ ...m, isConf: true });
+    }
+  }
+  for (const round of interconfRounds) {
+    for (const m of round) {
+      const sameConf = m.home.conferenceId && m.home.conferenceId === m.away.conferenceId;
+      if (!sameConf) {
+        allMatchups.push({ ...m, isConf: false });
+      }
+    }
+  }
+
+  const gamesPerWeek = Math.floor(numTeams / 2);
+  const totalGamesNeeded = numWeeks * gamesPerWeek;
+
+  const scheduled: typeof allMatchups = [];
+  scheduled.push(...allMatchups);
+  
+  while (scheduled.length < totalGamesNeeded) {
+    const extra = [...allMatchups].sort(() => Math.random() - 0.5);
+    for (const m of extra) {
+      if (scheduled.length >= totalGamesNeeded) break;
+      scheduled.push({ 
+        home: Math.random() > 0.5 ? m.home : m.away, 
+        away: Math.random() > 0.5 ? m.away : m.home, 
+        isConf: m.isConf 
+      });
+    }
+  }
+
   for (let week = 1; week <= numWeeks; week++) {
-    // Round robin scheduling
-    const shuffled = [...leagueTeams].sort(() => Math.random() - 0.5);
-    for (let i = 0; i < shuffled.length - 1; i += 2) {
+    const weekStart = (week - 1) * gamesPerWeek;
+    const weekGames = scheduled.slice(weekStart, weekStart + gamesPerWeek);
+    
+    for (const game of weekGames) {
       await storage.createGame({
         leagueId,
-        season: 1,
+        season,
         week,
-        homeTeamId: shuffled[i].id,
-        awayTeamId: shuffled[i + 1].id,
+        homeTeamId: game.home.id,
+        awayTeamId: game.away.id,
         phase: "regular",
       });
     }

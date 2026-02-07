@@ -22,6 +22,9 @@ interface TeamTemplate {
   prestige: number;
   facilities: number;
   academics: number;
+  stadium?: number;
+  marketing?: number;
+  collegeLife?: number;
 }
 
 interface ConferenceTeamPool {
@@ -41,7 +44,8 @@ export default function TeamSelectionPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  const [selectedTeams, setSelectedTeams] = useState<Record<string, string[]>>({});
+  const [selectedTeamNames, setSelectedTeamNames] = useState<Set<string>>(new Set());
+  const [teamSort, setTeamSort] = useState("name");
 
   const { data, isLoading } = useQuery<TeamSelectionData>({
     queryKey: ["/api/leagues", id, "team-selection"],
@@ -62,61 +66,82 @@ export default function TeamSelectionPage() {
     },
   });
 
-  const teamsPerConference = useMemo(() => {
-    if (!data) return 0;
-    const numConferences = data.conferences.length;
-    if (numConferences === 0) return 0;
-    return Math.ceil(data.league.maxTeams / numConferences);
+  const allTeams = useMemo(() => {
+    if (!data) return [];
+    const teams: (TeamTemplate & { sourceConference: string; sourceConferenceId: string })[] = [];
+    for (const pool of data.conferenceTeamPools) {
+      for (const team of pool.teams) {
+        teams.push({ ...team, sourceConference: pool.conference.name, sourceConferenceId: pool.conference.id });
+      }
+    }
+    return teams;
   }, [data]);
 
-  const toggleTeam = (conferenceId: string, teamName: string) => {
-    const current = selectedTeams[conferenceId] || [];
-    
-    if (current.includes(teamName)) {
-      setSelectedTeams(prev => ({ 
-        ...prev, 
-        [conferenceId]: (prev[conferenceId] || []).filter(t => t !== teamName) 
-      }));
-      return;
-    }
-    
-    if (current.length >= teamsPerConference) {
-      toast({ 
-        title: "Limit Reached", 
-        description: `You can only select ${teamsPerConference} teams per conference.`,
-        variant: "destructive" 
-      });
-      return;
-    }
-    
-    setSelectedTeams(prev => ({ 
-      ...prev, 
-      [conferenceId]: [...(prev[conferenceId] || []), teamName] 
-    }));
-  };
+  const sortedTeams = useMemo(() => {
+    return [...allTeams].sort((a, b) => {
+      switch (teamSort) {
+        case "prestige": return (b.prestige || 0) - (a.prestige || 0);
+        case "facilities": return (b.facilities || 0) - (a.facilities || 0);
+        case "academics": return (b.academics || 0) - (a.academics || 0);
+        case "overall": {
+          const aAvg = ((a.prestige || 0) + (a.facilities || 0) + (a.academics || 0) + (a.stadium || 0) + (a.marketing || 0) + (a.collegeLife || 0)) / 6;
+          const bAvg = ((b.prestige || 0) + (b.facilities || 0) + (b.academics || 0) + (b.stadium || 0) + (b.marketing || 0) + (b.collegeLife || 0)) / 6;
+          return bAvg - aAvg;
+        }
+        default: return a.name.localeCompare(b.name);
+      }
+    });
+  }, [allTeams, teamSort]);
 
-  const totalSelected = useMemo(() => {
-    return Object.values(selectedTeams).flat().length;
-  }, [selectedTeams]);
+  const toggleTeam = (teamName: string) => {
+    setSelectedTeamNames(prev => {
+      const next = new Set(prev);
+      if (next.has(teamName)) {
+        next.delete(teamName);
+      } else {
+        if (data && next.size >= data.league.maxTeams) {
+          toast({ 
+            title: "Limit Reached", 
+            description: `You can only select ${data.league.maxTeams} teams.`,
+            variant: "destructive" 
+          });
+          return prev;
+        }
+        next.add(teamName);
+      }
+      return next;
+    });
+  };
 
   const handleContinue = () => {
     if (!data) return;
     
-    if (totalSelected !== data.league.maxTeams) {
+    if (selectedTeamNames.size !== data.league.maxTeams) {
       toast({ 
         title: "Select More Teams", 
-        description: `Please select exactly ${data.league.maxTeams} teams total.`,
+        description: `Please select exactly ${data.league.maxTeams} teams.`,
         variant: "destructive" 
       });
       return;
     }
 
-    const teamsArray = Object.entries(selectedTeams).map(([conferenceId, teamNames]) => ({
-      conferenceId,
-      teamNames,
+    const selectedArray = Array.from(selectedTeamNames);
+    const conferences = data.conferences;
+    const numConferences = conferences.length;
+    const teamsPerConf = Math.floor(selectedArray.length / numConferences);
+    const remainder = selectedArray.length % numConferences;
+
+    const teamsPayload: { conferenceId: string; teamNames: string[] }[] = conferences.map((conf, idx) => ({
+      conferenceId: conf.id,
+      teamNames: [] as string[],
     }));
 
-    saveMutation.mutate(teamsArray);
+    selectedArray.forEach((teamName, idx) => {
+      const confIdx = idx % numConferences;
+      teamsPayload[confIdx].teamNames.push(teamName);
+    });
+
+    saveMutation.mutate(teamsPayload);
   };
 
   if (isLoading) {
@@ -142,9 +167,9 @@ export default function TeamSelectionPage() {
             <Star className="w-5 h-5 text-gold fill-gold" />
             <Star className="w-5 h-5 text-gold fill-gold" />
           </div>
-          <h1 className="font-pixel text-gold text-xl mb-2">Select Teams</h1>
+          <h1 className="font-pixel text-gold text-xl mb-2" data-testid="text-select-teams-title">Select Teams</h1>
           <p className="text-muted-foreground text-sm">
-            Choose {data.league.maxTeams} teams for your dynasty ({teamsPerConference} per conference)
+            Choose {data.league.maxTeams} teams for your dynasty. Teams will be auto-distributed across {data.conferences.length} conferences.
           </p>
           <div className="flex justify-center gap-1 mt-4">
             <Star className="w-5 h-5 text-gold fill-gold" />
@@ -152,14 +177,14 @@ export default function TeamSelectionPage() {
           </div>
         </div>
 
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex justify-between items-center mb-4">
           <div className="text-sm text-muted-foreground">
-            <span className="text-gold font-bold">{totalSelected}</span> / {data.league.maxTeams} teams selected
+            <span className="text-gold font-bold" data-testid="text-selected-count">{selectedTeamNames.size}</span> / {data.league.maxTeams} teams selected
           </div>
           <RetroButton
             onClick={handleContinue}
             loading={saveMutation.isPending}
-            disabled={totalSelected !== data.league.maxTeams}
+            disabled={selectedTeamNames.size !== data.league.maxTeams}
             data-testid="button-continue-setup"
           >
             Continue
@@ -167,27 +192,50 @@ export default function TeamSelectionPage() {
           </RetroButton>
         </div>
 
+        <div className="flex items-center gap-2 mb-6 flex-wrap">
+          <span className="text-xs text-muted-foreground">Sort:</span>
+          {[
+            { value: "name", label: "Name" },
+            { value: "prestige", label: "Prestige" },
+            { value: "facilities", label: "Facilities" },
+            { value: "academics", label: "Academics" },
+            { value: "overall", label: "Overall" },
+          ].map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => setTeamSort(opt.value)}
+              className={`px-2 py-1 text-[10px] font-pixel rounded border transition-colors ${
+                teamSort === opt.value ? "bg-gold text-forest-dark border-gold" : "border-border text-muted-foreground hover:border-gold/50"
+              }`}
+              data-testid={`button-sort-${opt.value}`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
         <div className="space-y-8">
-          {data.conferenceTeamPools.map(({ conference, teams }) => {
-            const confSelected = selectedTeams[conference.id] || [];
+          {data.conferenceTeamPools.map(({ conference, teams: poolTeams }) => {
+            const sortedPoolTeams = sortedTeams.filter(t => t.sourceConferenceId === conference.id);
+            const confSelectedCount = sortedPoolTeams.filter(t => selectedTeamNames.has(t.name)).length;
             return (
               <RetroCard key={conference.id}>
                 <RetroCardHeader>
-                  <div className="flex justify-between items-center">
+                  <div className="flex justify-between items-center gap-2">
                     <span>{conference.name}</span>
                     <span className="text-xs text-muted-foreground">
-                      {confSelected.length} / {teamsPerConference} selected
+                      {confSelectedCount} selected
                     </span>
                   </div>
                 </RetroCardHeader>
                 <RetroCardContent>
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                    {teams.map((team) => {
-                      const isSelected = confSelected.includes(team.name);
+                    {sortedPoolTeams.map((team) => {
+                      const isSelected = selectedTeamNames.has(team.name);
                       return (
                         <button
                           key={team.name}
-                          onClick={() => toggleTeam(conference.id, team.name)}
+                          onClick={() => toggleTeam(team.name)}
                           className={`p-3 rounded border-2 text-left transition-all ${
                             isSelected
                               ? "border-gold bg-gold/20"

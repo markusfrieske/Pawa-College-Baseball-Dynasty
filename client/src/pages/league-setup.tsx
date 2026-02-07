@@ -42,24 +42,24 @@ interface ArchetypeSkills {
 
 const archetypeSkillTrees: Record<string, ArchetypeSkills> = {
   "Balanced": { scouting: 2, evaluation: 2, pitchers: 2, hitters: 2 },
-  "Pure CEO": { scouting: 1, evaluation: 1, pitchers: 3, hitters: 3 },
+  "Pure CEO": { scouting: 1, evaluation: 1, pitchers: 4, hitters: 2 },
   "Player's Coach": { scouting: 2, evaluation: 3, pitchers: 2, hitters: 1 },
   "Tactician": { scouting: 4, evaluation: 2, pitchers: 1, hitters: 1 },
   "Old School": { scouting: 1, evaluation: 4, pitchers: 2, hitters: 1 },
-  "Scout Master": { scouting: 4, evaluation: 3, pitchers: 1, hitters: 1 },
+  "Scout Master": { scouting: 4, evaluation: 3, pitchers: 0, hitters: 1 },
   "Academic Dean": { scouting: 2, evaluation: 3, pitchers: 1, hitters: 2 },
-  "Dealmaker": { scouting: 1, evaluation: 1, pitchers: 3, hitters: 3 },
+  "Dealmaker": { scouting: 1, evaluation: 2, pitchers: 2, hitters: 3 },
 };
 
 const archetypeOptions = [
-  { value: "Balanced", label: "Balanced - Well-rounded approach" },
-  { value: "Pure CEO", label: "Pure CEO - Recruiting focused" },
-  { value: "Player's Coach", label: "Player's Coach - Development focused" },
-  { value: "Tactician", label: "Tactician - In-game strategy" },
-  { value: "Old School", label: "Old School - Fundamentals first" },
-  { value: "Scout Master", label: "Scout Master - Elite talent evaluation" },
-  { value: "Academic Dean", label: "Academic Dean - Scholar-athlete focus" },
-  { value: "Dealmaker", label: "Dealmaker - NIL and facilities expert" },
+  { value: "Balanced", label: "Balanced - Even skill spread across all areas" },
+  { value: "Pure CEO", label: "Pure CEO - Top pitcher recruiting, weaker scouting" },
+  { value: "Player's Coach", label: "Player's Coach - Strong evaluation, balanced recruiting" },
+  { value: "Tactician", label: "Tactician - Best scouting, finds hidden gems early" },
+  { value: "Old School", label: "Old School - Best evaluation, sees true player potential" },
+  { value: "Scout Master", label: "Scout Master - Elite scouting + evaluation combo" },
+  { value: "Academic Dean", label: "Academic Dean - Strong evaluation, balanced hitter focus" },
+  { value: "Dealmaker", label: "Dealmaker - Best at landing hitters, good all-around" },
 ];
 
 const skinToneOptions = [
@@ -254,10 +254,28 @@ function TeamSelectionStep({
   selectedTeamId: string | null;
   onSelect: (id: string) => void;
 }) {
+  const [teamSort, setTeamSort] = useState("name");
+  
+  const sortTeams = (teamList: TeamWithCoach[]) => {
+    return [...teamList].sort((a, b) => {
+      switch (teamSort) {
+        case "prestige": return (b.prestige || 0) - (a.prestige || 0);
+        case "facilities": return (b.facilities || 0) - (a.facilities || 0);
+        case "academics": return (b.academics || 0) - (a.academics || 0);
+        case "overall": {
+          const aAvg = ((a.prestige || 0) + (a.facilities || 0) + (a.academics || 0) + (a.stadium || 0) + (a.marketing || 0) + (a.collegeLife || 0)) / 6;
+          const bAvg = ((b.prestige || 0) + (b.facilities || 0) + (b.academics || 0) + (b.stadium || 0) + (b.marketing || 0) + (b.collegeLife || 0)) / 6;
+          return bAvg - aAvg;
+        }
+        default: return a.name.localeCompare(b.name);
+      }
+    });
+  };
+
   // Group teams by conference
   const teamsByConference = conferences.map(conf => ({
     conference: conf,
-    teams: teams.filter(t => t.conferenceId === conf.id),
+    teams: sortTeams(teams.filter(t => t.conferenceId === conf.id)),
   }));
 
   // Teams without a conference (unassigned)
@@ -265,6 +283,27 @@ function TeamSelectionStep({
 
   return (
     <div className="space-y-8">
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
+        <span className="text-xs text-muted-foreground">Sort by:</span>
+        {[
+          { value: "name", label: "Name" },
+          { value: "prestige", label: "Prestige" },
+          { value: "facilities", label: "Facilities" },
+          { value: "academics", label: "Academics" },
+          { value: "overall", label: "Overall" },
+        ].map(opt => (
+          <button
+            key={opt.value}
+            onClick={() => setTeamSort(opt.value)}
+            className={`px-2 py-1 text-[10px] font-pixel rounded border transition-colors ${
+              teamSort === opt.value ? "bg-gold text-forest-dark border-gold" : "border-border text-muted-foreground hover:border-gold/50"
+            }`}
+            data-testid={`button-sort-${opt.value}`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
       {teamsByConference.map(({ conference, teams: confTeams }) => (
         <div key={conference.id}>
           <div className="flex items-center justify-between mb-4">
@@ -413,6 +452,7 @@ function CoachCreationStep({
                 value={coachData.firstName}
                 onChange={(e) => setCoachData(prev => ({ ...prev, firstName: e.target.value }))}
                 placeholder="Enter first name"
+                maxLength={20}
                 data-testid="input-first-name"
               />
               <RetroInput
@@ -420,6 +460,7 @@ function CoachCreationStep({
                 value={coachData.lastName}
                 onChange={(e) => setCoachData(prev => ({ ...prev, lastName: e.target.value }))}
                 placeholder="Enter last name"
+                maxLength={20}
                 data-testid="input-last-name"
               />
             </div>
@@ -524,7 +565,8 @@ function SkillTreeDisplay({ archetype }: { archetype: string }) {
 
   return (
     <div className="mt-6 p-4 bg-background/50 border border-border rounded">
-      <h4 className="font-pixel text-[10px] text-muted-foreground uppercase mb-4">Archetype Skill Boosts</h4>
+      <h4 className="font-pixel text-[10px] text-muted-foreground uppercase mb-2">Archetype Skill Boosts</h4>
+      <p className="text-[10px] text-muted-foreground mb-4">Higher bars mean faster progress in that skill tree. Scouting reveals recruit attributes faster. Evaluation improves accuracy of player ratings. Pitchers/Hitters boost recruiting effectiveness for those positions.</p>
       <div className="grid grid-cols-4 gap-3">
         {skillItems.map((skill) => (
           <div key={skill.key} className="flex flex-col items-center gap-2" data-testid={`skill-${skill.key}`}>

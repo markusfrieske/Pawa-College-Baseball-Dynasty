@@ -1,11 +1,15 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
 import { TeamBadge } from "@/components/ui/team-badge";
-import { Plus, Trophy, Users, Calendar, Settings, LogOut } from "lucide-react";
+import { Plus, Trophy, Users, Calendar, Settings, LogOut, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import type { League, Team, Coach } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
+import { apiRequest, queryClient as qc } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface LeagueWithDetails extends League {
   teams?: Team[];
@@ -89,6 +93,20 @@ export default function DashboardPage() {
 }
 
 function LeagueCard({ league }: { league: LeagueWithDetails }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const deleteMutation = useMutation({
+    mutationFn: () => apiRequest("DELETE", `/api/leagues/${league.id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues"] });
+      toast({ title: "League Deleted", description: `"${league.name}" has been deleted.` });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   const phaseLabels: Record<string, string> = {
     dynasty_setup: "Dynasty Setup",
     preseason: "Preseason",
@@ -106,14 +124,48 @@ function LeagueCard({ league }: { league: LeagueWithDetails }) {
   };
 
   return (
-    <Link href={`/league/${league.id}`}>
-      <RetroCard className="hover:border-gold/50 transition-colors cursor-pointer" data-testid={`card-league-${league.id}`}>
-        <RetroCardHeader className="flex items-center justify-between gap-4">
-          <span className="truncate">{league.name}</span>
+    <RetroCard className="hover:border-gold/50 transition-colors" data-testid={`card-league-${league.id}`}>
+      <RetroCardHeader className="flex items-center justify-between gap-4">
+        <Link href={`/league/${league.id}`} className="truncate cursor-pointer hover:text-gold transition-colors">
+          <span>{league.name}</span>
+        </Link>
+        <div className="flex items-center gap-2">
           <span className="text-[8px] text-muted-foreground whitespace-nowrap">
             Season {league.currentSeason}
           </span>
-        </RetroCardHeader>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <RetroButton
+                variant="ghost"
+                size="sm"
+                onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                data-testid={`button-delete-league-${league.id}`}
+              >
+                <Trash2 className="w-3 h-3 text-red-400" />
+              </RetroButton>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Dynasty</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete "{league.name}"? This will permanently remove all teams, players, games, and other data. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => deleteMutation.mutate()}
+                  className="bg-red-600 hover:bg-red-700"
+                  data-testid={`button-confirm-delete-league-${league.id}`}
+                >
+                  {deleteMutation.isPending ? "Deleting..." : "Delete Dynasty"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      </RetroCardHeader>
+      <Link href={`/league/${league.id}`} className="cursor-pointer">
         <RetroCardContent>
           <div className="flex items-center gap-4 mb-4">
             {league.userTeam ? (
@@ -160,8 +212,8 @@ function LeagueCard({ league }: { league: LeagueWithDetails }) {
             </div>
           </div>
         </RetroCardContent>
-      </RetroCard>
-    </Link>
+      </Link>
+    </RetroCard>
   );
 }
 

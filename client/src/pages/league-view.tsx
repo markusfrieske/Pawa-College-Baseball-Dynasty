@@ -98,6 +98,28 @@ export default function LeagueViewPage() {
 
   const userTeam = league.teams?.find(t => !t.isCpu);
 
+  if (league.currentPhase === "dynasty_setup" || (!league.teams || league.teams.length === 0)) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <RetroCard variant="bordered" className="text-center p-8 max-w-md">
+          <Trophy className="w-12 h-12 text-gold mx-auto mb-4" />
+          <h2 className="font-pixel text-gold text-sm mb-2">Dynasty Setup Incomplete</h2>
+          <p className="text-sm text-muted-foreground mb-6">
+            This dynasty still needs teams selected. Continue setup to pick your team and add CPU opponents.
+          </p>
+          <div className="flex gap-3 justify-center">
+            <Link href={`/league/${id}/team-selection`}>
+              <RetroButton data-testid="button-resume-setup">Resume Setup</RetroButton>
+            </Link>
+            <Link href="/dashboard">
+              <RetroButton variant="outline" data-testid="button-back-dashboard">Back to Dashboard</RetroButton>
+            </Link>
+          </div>
+        </RetroCard>
+      </div>
+    );
+  }
+
   const phaseLabels: Record<string, string> = {
     dynasty_setup: "Dynasty Setup",
     preseason: "Preseason",

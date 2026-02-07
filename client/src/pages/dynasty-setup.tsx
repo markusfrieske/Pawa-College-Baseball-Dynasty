@@ -82,13 +82,22 @@ export default function DynastySetupPage() {
     queryKey: ["/api/leagues", id, "dynasty-setup"],
   });
 
+  const [lastInviteLink, setLastInviteLink] = useState("");
+
   const inviteMutation = useMutation({
-    mutationFn: (email: string) => apiRequest("POST", `/api/leagues/${id}/invites`, { email }),
-    onSuccess: () => {
+    mutationFn: async (email: string) => {
+      const res = await apiRequest("POST", `/api/leagues/${id}/invites`, { email });
+      return res.json();
+    },
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "dynasty-setup"] });
-      toast({ title: "Invite sent!" });
+      const inviteCode = data?.inviteCode || data?.invite?.inviteCode;
+      if (inviteCode) {
+        const link = `${window.location.origin}/invite/${inviteCode}`;
+        setLastInviteLink(link);
+      }
+      toast({ title: "Invite created!" });
       setInviteEmail("");
-      setShowInviteDialog(false);
     },
     onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
   });
@@ -326,10 +335,10 @@ export default function DynastySetupPage() {
                         <RefreshCw className={`w-4 h-4 mr-2 ${generateScheduleMutation.isPending ? "animate-spin" : ""}`} />
                         {generateScheduleMutation.isPending ? "Generating..." : "Generate Schedule"}
                       </RetroButton>
-                      <Link href={`/league/${id}/schedule/edit`} className="flex-1">
+                      <Link href={`/league/${id}/schedule`} className="flex-1">
                         <RetroButton variant="outline" className="w-full" data-testid="button-edit-schedule">
                           <Edit className="w-4 h-4 mr-2" />
-                          Edit Schedule
+                          View Schedule
                         </RetroButton>
                       </Link>
                     </div>
@@ -395,8 +404,33 @@ export default function DynastySetupPage() {
               data-testid="button-send-invite"
             >
               <Send className="w-4 h-4 mr-2" />
-              {inviteMutation.isPending ? "Sending..." : "Send Invite"}
+              {inviteMutation.isPending ? "Sending..." : "Create Invite"}
             </RetroButton>
+            {lastInviteLink && (
+              <div className="p-3 bg-background/50 border border-gold/30 rounded space-y-2">
+                <p className="text-xs text-gold font-pixel">Invite Link (share directly):</p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={lastInviteLink}
+                    className="flex-1 bg-background border border-border rounded px-2 py-1 text-xs text-foreground"
+                    data-testid="input-invite-link"
+                  />
+                  <RetroButton
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText(lastInviteLink);
+                      toast({ title: "Link Copied", description: "Invite link copied to clipboard." });
+                    }}
+                    data-testid="button-copy-invite-link"
+                  >
+                    Copy
+                  </RetroButton>
+                </div>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
