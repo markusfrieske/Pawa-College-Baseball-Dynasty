@@ -30,7 +30,11 @@ import {
   Bell,
   TrendingUp,
   Star,
-  Zap
+  Zap,
+  History,
+  BarChart,
+  ScrollText,
+  Compass
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { League, Team, Conference, Standings, DynastyNews } from "@shared/schema";
@@ -189,6 +193,8 @@ export default function LeagueViewPage() {
           />
         </div>
 
+        <OffseasonSummary league={league} />
+
         <Tabs defaultValue="news" className="space-y-4">
           <TabsList className="bg-card border border-border">
             <TabsTrigger value="news" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
@@ -205,6 +211,12 @@ export default function LeagueViewPage() {
             </TabsTrigger>
             <TabsTrigger value="postseason" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
               Postseason
+            </TabsTrigger>
+            <TabsTrigger value="awards" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
+              Awards
+            </TabsTrigger>
+            <TabsTrigger value="history" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
+              History
             </TabsTrigger>
           </TabsList>
 
@@ -226,6 +238,14 @@ export default function LeagueViewPage() {
 
           <TabsContent value="postseason">
             <PostseasonTab leagueId={league.id} />
+          </TabsContent>
+
+          <TabsContent value="awards">
+            <AwardsTab leagueId={league.id} />
+          </TabsContent>
+
+          <TabsContent value="history">
+            <DynastyHistoryTab leagueId={league.id} />
           </TabsContent>
         </Tabs>
       </main>
@@ -360,6 +380,41 @@ function StandingsTab({ league }: { league: LeagueDetails }) {
           </div>
         </RetroCard>
       ))}
+      {["regular_season", "preseason", "spring_training"].includes(league.currentPhase) && (
+        <RetroCard data-testid="postseason-projection">
+          <RetroCardHeader>
+            <div className="flex items-center gap-2 w-full">
+              <Compass className="w-4 h-4 text-gold" />
+              <span>Postseason Projection</span>
+            </div>
+          </RetroCardHeader>
+          <RetroCardContent>
+            <p className="text-xs text-muted-foreground mb-3">Based on current standings, these teams would qualify for the postseason:</p>
+            <div className="space-y-3">
+              {standingsByConference.map(conf => {
+                const topTwo = conf.teams.slice(0, 2);
+                return (
+                  <div key={conf.id}>
+                    <p className="font-pixel text-[9px] text-muted-foreground mb-1">{conf.name}</p>
+                    <div className="flex gap-2">
+                      {topTwo.map((team, i) => (
+                        <div key={team.id} className="flex items-center gap-2 text-xs">
+                          <Badge variant={i === 0 ? "default" : "outline"} className={`text-[8px] ${i === 0 ? "bg-gold text-forest-dark" : ""}`}>
+                            {i === 0 ? "1 Seed" : "2 Seed"}
+                          </Badge>
+                          <span>{team.name}</span>
+                          <span className="text-muted-foreground">({team.standings?.wins || 0}-{team.standings?.losses || 0})</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-[9px] text-muted-foreground mt-3">Top 2 teams per conference qualify for Conference Championships. Winners advance to Super Regionals.</p>
+          </RetroCardContent>
+        </RetroCard>
+      )}
     </div>
   );
 }
@@ -893,6 +948,235 @@ interface PostseasonData {
   cws: PostseasonGame[];
 }
 
+function DynastyHistoryTab({ leagueId }: { leagueId: string }) {
+  const { data, isLoading } = useQuery<{
+    seasons: {
+      season: number;
+      cwsChampion: { name: string; abbreviation: string; primaryColor: string } | null;
+      cwsRunnerUp: { name: string; abbreviation: string; primaryColor: string } | null;
+      conferenceChampions: { name: string; abbreviation: string }[];
+      teamRecords: { name: string; abbreviation: string; teamId: string; wins: number; losses: number; conferenceWins: number; conferenceLosses: number }[];
+      hasCWSData: boolean;
+    }[];
+    currentSeason: number;
+  }>({
+    queryKey: ["/api/leagues", leagueId, "dynasty-history"],
+  });
+
+  if (isLoading) return <Skeleton className="h-64" />;
+  if (!data || data.seasons.length === 0) {
+    return (
+      <RetroCard>
+        <RetroCardContent>
+          <div className="text-center py-12 text-muted-foreground">
+            <History className="w-12 h-12 mx-auto mb-4 opacity-30" />
+            <p className="font-pixel text-xs text-gold mb-2">No History Yet</p>
+            <p className="text-sm">Complete your first season to start building your dynasty history.</p>
+          </div>
+        </RetroCardContent>
+      </RetroCard>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <RetroCard>
+        <RetroCardHeader>
+          <div className="flex items-center gap-2 w-full">
+            <History className="w-4 h-4 text-gold" />
+            <span>Dynasty Timeline</span>
+          </div>
+        </RetroCardHeader>
+        <RetroCardContent>
+          <div className="space-y-4">
+            {data.seasons.map(season => (
+              <div key={season.season} className="border-b border-border/50 pb-4 last:border-0" data-testid={`history-season-${season.season}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="font-pixel text-gold text-[10px]">SEASON {season.season}</p>
+                  {season.season === data.currentSeason && (
+                    <Badge variant="outline" className="text-[8px]">Current</Badge>
+                  )}
+                </div>
+                {season.cwsChampion && (
+                  <div className="flex items-center gap-2 mb-2">
+                    <Trophy className="w-4 h-4 text-gold" />
+                    <span className="text-sm font-medium">{season.cwsChampion.name}</span>
+                    <span className="text-xs text-muted-foreground">CWS Champion</span>
+                    {season.cwsRunnerUp && (
+                      <span className="text-xs text-muted-foreground">over {season.cwsRunnerUp.name}</span>
+                    )}
+                  </div>
+                )}
+                {!season.cwsChampion && season.hasCWSData && (
+                  <p className="text-xs text-muted-foreground mb-2">CWS in progress...</p>
+                )}
+                {season.conferenceChampions.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    {season.conferenceChampions.map((champ, i) => (
+                      <Badge key={i} variant="outline" className="text-[8px]">{champ.abbreviation} Conf Champ</Badge>
+                    ))}
+                  </div>
+                )}
+                {season.teamRecords.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 text-xs">
+                    {season.teamRecords.slice(0, 8).map(team => (
+                      <div key={team.teamId} className="flex items-center justify-between px-2 py-0.5">
+                        <span className="text-muted-foreground">{team.abbreviation}</span>
+                        <span>{team.wins || 0}-{team.losses || 0}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </RetroCardContent>
+      </RetroCard>
+    </div>
+  );
+}
+
+function AwardsTab({ leagueId }: { leagueId: string }) {
+  const { data, isLoading } = useQuery<{
+    season: number;
+    leagueAwards: {
+      mvp: { playerName: string; position: string; overall: number; eligibility: string; teamName: string; abbreviation: string; primaryColor: string } | null;
+      pitcherOfYear: { playerName: string; position: string; overall: number; eligibility: string; teamName: string; abbreviation: string; primaryColor: string } | null;
+      freshmanOfYear: { playerName: string; position: string; overall: number; eligibility: string; teamName: string; abbreviation: string; primaryColor: string } | null;
+    };
+    conferenceAwards: {
+      conferenceName: string;
+      mvp: any;
+      pitcherOfYear: any;
+      topPlayers: any[];
+    }[];
+    statsLeaders: {
+      topHitters: any[];
+      topPitchers: any[];
+    };
+  }>({
+    queryKey: ["/api/leagues", leagueId, "season-awards"],
+  });
+
+  if (isLoading) return <Skeleton className="h-64" />;
+  if (!data) return null;
+
+  const AwardCard = ({ title, player, icon }: { title: string; player: any; icon: React.ReactNode }) => {
+    if (!player) return null;
+    return (
+      <RetroCard data-testid={`award-${title.toLowerCase().replace(/\s/g, "-")}`}>
+        <div className="flex items-center gap-3">
+          <div className="text-gold">{icon}</div>
+          <div className="flex-1">
+            <p className="text-[9px] text-muted-foreground font-pixel">{title}</p>
+            <p className="font-medium text-sm">{player.playerName}</p>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+              <span>{player.position}</span>
+              <span className="text-gold font-bold">{player.overall} OVR</span>
+              <Badge variant="outline" className="text-[8px]">{player.eligibility}</Badge>
+              <span>{player.teamName}</span>
+            </div>
+          </div>
+        </div>
+      </RetroCard>
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      <RetroCard>
+        <RetroCardHeader>
+          <div className="flex items-center gap-2 w-full">
+            <Award className="w-4 h-4 text-gold" />
+            <span>Season {data.season} Awards</span>
+          </div>
+        </RetroCardHeader>
+        <RetroCardContent>
+          <div className="grid sm:grid-cols-3 gap-3">
+            <AwardCard title="MVP" player={data.leagueAwards.mvp} icon={<Trophy className="w-6 h-6" />} />
+            <AwardCard title="Pitcher of the Year" player={data.leagueAwards.pitcherOfYear} icon={<Zap className="w-6 h-6" />} />
+            <AwardCard title="Freshman of the Year" player={data.leagueAwards.freshmanOfYear} icon={<Star className="w-6 h-6" />} />
+          </div>
+        </RetroCardContent>
+      </RetroCard>
+
+      {data.conferenceAwards.map(conf => (
+        <RetroCard key={conf.conferenceName}>
+          <RetroCardHeader>{conf.conferenceName} Awards</RetroCardHeader>
+          <RetroCardContent>
+            <div className="grid sm:grid-cols-2 gap-3 mb-4">
+              <AwardCard title={`${conf.conferenceName} MVP`} player={conf.mvp} icon={<Trophy className="w-5 h-5" />} />
+              <AwardCard title={`${conf.conferenceName} Pitcher`} player={conf.pitcherOfYear} icon={<Zap className="w-5 h-5" />} />
+            </div>
+            {conf.topPlayers.length > 0 && (
+              <div>
+                <p className="font-pixel text-[9px] text-muted-foreground mb-2">ALL-CONFERENCE TEAM</p>
+                <div className="space-y-1">
+                  {conf.topPlayers.map((p: any, i: number) => p && (
+                    <div key={i} className="flex items-center justify-between text-xs py-1 border-b border-border/30">
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground w-4">{i + 1}.</span>
+                        <span>{p.playerName}</span>
+                        <Badge variant="outline" className="text-[7px]">{p.position}</Badge>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-gold font-bold">{p.overall}</span>
+                        <span className="text-muted-foreground">{p.abbreviation}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </RetroCardContent>
+        </RetroCard>
+      ))}
+
+      <div className="grid sm:grid-cols-2 gap-4">
+        <RetroCard>
+          <RetroCardHeader>Top Hitters</RetroCardHeader>
+          <RetroCardContent>
+            <div className="space-y-1">
+              {data.statsLeaders.topHitters.map((p: any, i: number) => p && (
+                <div key={i} className="flex items-center justify-between text-xs py-1 border-b border-border/30">
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground w-4">{i + 1}.</span>
+                    <span>{p.playerName}</span>
+                    <Badge variant="outline" className="text-[7px]">{p.position}</Badge>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gold font-bold">{p.overall}</span>
+                    <span className="text-muted-foreground">{p.abbreviation}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </RetroCardContent>
+        </RetroCard>
+        <RetroCard>
+          <RetroCardHeader>Top Pitchers</RetroCardHeader>
+          <RetroCardContent>
+            <div className="space-y-1">
+              {data.statsLeaders.topPitchers.map((p: any, i: number) => p && (
+                <div key={i} className="flex items-center justify-between text-xs py-1 border-b border-border/30">
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground w-4">{i + 1}.</span>
+                    <span>{p.playerName}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gold font-bold">{p.overall}</span>
+                    <span className="text-muted-foreground">{p.abbreviation}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </RetroCardContent>
+        </RetroCard>
+      </div>
+    </div>
+  );
+}
+
 function PostseasonTab({ leagueId }: { leagueId: string }) {
   const { data, isLoading } = useQuery<PostseasonData>({
     queryKey: ["/api/leagues", leagueId, "postseason"],
@@ -1084,6 +1368,93 @@ function CWSSeriesDisplay({ games }: { games: PostseasonGame[] }) {
         </div>
       )}
     </div>
+  );
+}
+
+function OffseasonSummary({ league }: { league: LeagueDetails }) {
+  const isOffseasonPhase = ["players_leaving", "offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4", "signing_day"].includes(league.currentPhase);
+  
+  if (!isOffseasonPhase) return null;
+  
+  const userTeam = league.teams?.find(t => !t.isCpu);
+  if (!userTeam) return null;
+
+  const { data: historyData } = useQuery<{
+    history: { departureType: string; teamId: string; position: string; firstName: string; lastName: string; overall: number; departedSeason: number }[];
+  }>({
+    queryKey: ["/api/leagues", league.id, "player-history"],
+  });
+
+  const currentSeasonDepartures = historyData?.history?.filter(
+    h => h.teamId === userTeam.id && h.departedSeason === league.currentSeason
+  ) || [];
+
+  const graduated = currentSeasonDepartures.filter(h => h.departureType === "graduated");
+  const drafted = currentSeasonDepartures.filter(h => h.departureType === "draft");
+  const transferred = currentSeasonDepartures.filter(h => h.departureType === "transfer_portal");
+  
+  return (
+    <RetroCard className="border-gold/30 mb-4" data-testid="offseason-summary">
+      <div className="flex items-start gap-3">
+        <ScrollText className="w-5 h-5 text-gold flex-shrink-0 mt-0.5" />
+        <div className="flex-1">
+          <p className="font-pixel text-gold text-[10px] mb-2">OFFSEASON RECAP</p>
+          {currentSeasonDepartures.length > 0 ? (
+            <div className="space-y-3">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-muted/30 rounded p-2 text-center">
+                  <p className="font-bold text-lg text-foreground">{graduated.length}</p>
+                  <p className="text-[9px] text-muted-foreground">Graduated</p>
+                </div>
+                <div className="bg-muted/30 rounded p-2 text-center">
+                  <p className="font-bold text-lg text-foreground">{drafted.length}</p>
+                  <p className="text-[9px] text-muted-foreground">Draft Declared</p>
+                </div>
+                <div className="bg-muted/30 rounded p-2 text-center">
+                  <p className="font-bold text-lg text-foreground">{transferred.length}</p>
+                  <p className="text-[9px] text-muted-foreground">Transferred</p>
+                </div>
+              </div>
+              {currentSeasonDepartures.length > 0 && (
+                <div>
+                  <p className="text-[9px] text-muted-foreground mb-1">DEPARTING PLAYERS</p>
+                  <div className="flex flex-wrap gap-1">
+                    {currentSeasonDepartures.slice(0, 10).map((p, i) => (
+                      <Badge key={i} variant="outline" className="text-[8px]">
+                        {p.firstName[0]}. {p.lastName} ({p.position}, {p.overall} OVR)
+                      </Badge>
+                    ))}
+                    {currentSeasonDepartures.length > 10 && (
+                      <Badge variant="outline" className="text-[8px] text-muted-foreground">
+                        +{currentSeasonDepartures.length - 10} more
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              The offseason is underway. Manage your roster through recruiting and the transfer portal before the new season begins.
+            </p>
+          )}
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Link href={`/league/${league.id}/roster`}>
+              <RetroButton variant="outline" size="sm" data-testid="button-offseason-roster">
+                <Users className="w-3 h-3 mr-1" />
+                View Roster
+              </RetroButton>
+            </Link>
+            <Link href={`/league/${league.id}/recruiting`}>
+              <RetroButton variant="outline" size="sm" data-testid="button-offseason-recruiting">
+                <Target className="w-3 h-3 mr-1" />
+                Recruiting Board
+              </RetroButton>
+            </Link>
+          </div>
+        </div>
+      </div>
+    </RetroCard>
   );
 }
 

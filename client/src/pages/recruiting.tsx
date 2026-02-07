@@ -36,7 +36,11 @@ import {
   XCircle,
   CheckSquare,
   Square,
-  Gift
+  Gift,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  BarChart3
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -124,6 +128,8 @@ const sortOptions = [
   { value: "starRank", label: "Star Rating" },
   { value: "name", label: "Name (A-Z)" },
   { value: "state", label: "Home State" },
+  { value: "scoutPriority", label: "Scout Priority (Targeted First)" },
+  { value: "interest", label: "Interest Level" },
 ];
 
 export default function RecruitingPage() {
@@ -133,6 +139,7 @@ export default function RecruitingPage() {
   const [starFilter, setStarFilter] = useState("all");
   const [sortBy, setSortBy] = useState("classRank");
   const [showTeamNeeds, setShowTeamNeeds] = useState(false);
+  const [showPipeline, setShowPipeline] = useState(false);
   const [showWatchlistOnly, setShowWatchlistOnly] = useState(false);
   const [filterPresets, setFilterPresets] = useState<FilterPreset[]>(() => {
     const saved = localStorage.getItem(`recruiting-presets-${id}`);
@@ -198,6 +205,21 @@ export default function RecruitingPage() {
 
   const { data, isLoading } = useQuery<RecruitingData>({
     queryKey: ["/api/leagues", id, "recruiting"],
+  });
+
+  const { data: pipelineData } = useQuery<{
+    pipeline: { cold: number; cool: number; warm: number; hot: number; very_hot: number; on_fire: number; committed: number };
+    positionNeeds: { position: string; current: number; graduating: number; need: boolean }[];
+    totalTargeted: number;
+    rosterSize: number;
+  }>({
+    queryKey: ["/api/leagues", id, "recruiting", "pipeline"],
+  });
+
+  const { data: trendsData } = useQuery<{
+    trends: Record<string, { trend: "up" | "down" | "flat"; recentGain: number }>;
+  }>({
+    queryKey: ["/api/leagues", id, "recruiting", "trends"],
   });
 
   const scoutMutation = useMutation({
@@ -358,6 +380,14 @@ export default function RecruitingPage() {
         return `${a.lastName}${a.firstName}`.localeCompare(`${b.lastName}${b.firstName}`);
       case "state":
         return (a.homeState || "").localeCompare(b.homeState || "") || (a.classRank || 999) - (b.classRank || 999);
+      case "scoutPriority": {
+        const aTargeted = a.interest?.isTargeted ? 0 : 1;
+        const bTargeted = b.interest?.isTargeted ? 0 : 1;
+        if (aTargeted !== bTargeted) return aTargeted - bTargeted;
+        return (a.interest?.scoutPercentage || 0) - (b.interest?.scoutPercentage || 0);
+      }
+      case "interest":
+        return (b.interest?.interestLevel || 0) - (a.interest?.interestLevel || 0);
       default:
         return (a.classRank || 999) - (b.classRank || 999);
     }
@@ -553,6 +583,15 @@ export default function RecruitingPage() {
                 <Users className="w-3 h-3 mr-1" />
                 Team Needs
               </RetroButton>
+              <RetroButton
+                variant={showPipeline ? "primary" : "outline"}
+                size="sm"
+                onClick={() => setShowPipeline(!showPipeline)}
+                data-testid="button-toggle-pipeline"
+              >
+                <BarChart3 className="w-3 h-3 mr-1" />
+                Pipeline
+              </RetroButton>
             </div>
             <span className="text-sm text-muted-foreground">
               {filteredRecruits.length} recruits found
@@ -565,6 +604,40 @@ export default function RecruitingPage() {
               nextYearRosterSize={data.nextYearRosterSize} 
               seniorsGraduating={data.seniorsGraduating}
             />
+          )}
+
+          {showPipeline && pipelineData && (
+            <div className="mt-4 pt-4 border-t border-border">
+              <p className="font-pixel text-[10px] text-gold mb-3">RECRUITING PIPELINE</p>
+              <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+                {[
+                  { label: "Cold", count: pipelineData.pipeline.cold, color: "bg-blue-300/20 text-blue-300" },
+                  { label: "Cool", count: pipelineData.pipeline.cool, color: "bg-blue-400/20 text-blue-400" },
+                  { label: "Warm", count: pipelineData.pipeline.warm, color: "bg-green-400/20 text-green-400" },
+                  { label: "Hot", count: pipelineData.pipeline.hot, color: "bg-yellow-400/20 text-yellow-400" },
+                  { label: "Very Hot", count: pipelineData.pipeline.very_hot, color: "bg-orange-400/20 text-orange-400" },
+                  { label: "On Fire", count: pipelineData.pipeline.on_fire, color: "bg-red-400/20 text-red-400" },
+                  { label: "Committed", count: pipelineData.pipeline.committed, color: "bg-gold/20 text-gold" },
+                ].map(stage => (
+                  <div key={stage.label} className={`text-center p-2 rounded ${stage.color}`}>
+                    <p className="font-bold text-lg">{stage.count}</p>
+                    <p className="text-[9px]">{stage.label}</p>
+                  </div>
+                ))}
+              </div>
+              {pipelineData.positionNeeds.some(p => p.need) && (
+                <div className="mt-3">
+                  <p className="text-[9px] text-muted-foreground mb-1">POSITION NEEDS (After Graduation)</p>
+                  <div className="flex flex-wrap gap-1">
+                    {pipelineData.positionNeeds.filter(p => p.need).map(p => (
+                      <Badge key={p.position} variant="outline" className="text-[8px] border-red-500/50 text-red-400">
+                        {p.position} ({p.current - p.graduating} remaining)
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </RetroCard>
 
@@ -592,6 +665,8 @@ export default function RecruitingPage() {
               isSelected={compareRecruits.some(r => r.id === recruit.id)}
               isBulkSelected={bulkSelected.has(recruit.id)}
               onBulkSelect={() => toggleBulkSelect(recruit.id)}
+              trend={trendsData?.trends?.[recruit.id]}
+              positionNeed={pipelineData?.positionNeeds?.find(p => p.position === recruit.position)?.need}
             />
           ))}
         </div>
@@ -799,6 +874,8 @@ function RecruitRow({
   isSelected,
   isBulkSelected,
   onBulkSelect,
+  trend,
+  positionNeed,
 }: {
   recruit: RecruitWithInterest;
   leagueId: string;
@@ -820,6 +897,8 @@ function RecruitRow({
   isSelected: boolean;
   isBulkSelected: boolean;
   onBulkSelect: () => void;
+  trend?: { trend: "up" | "down" | "flat"; recentGain: number };
+  positionNeed?: boolean;
 }) {
   const [showNotesDialog, setShowNotesDialog] = useState(false);
   const [notesValue, setNotesValue] = useState(recruit.interest?.notes || "");
@@ -921,6 +1000,11 @@ function RecruitRow({
                   {isFullyRevealed ? `${totalAbilities} Abilities` : `${revealedAbilitiesCount}/${totalAbilities > revealedAbilitiesCount ? "?" : totalAbilities}`}
                 </Badge>
               )}
+              {positionNeed && (
+                <Badge variant="outline" className="text-[8px] border-red-500/50 text-red-400">
+                  NEED
+                </Badge>
+              )}
               {isFullyRevealed && recruit.isGem && (
                 <Tooltip>
                   <TooltipTrigger>
@@ -983,6 +1067,12 @@ function RecruitRow({
               <span>{scoutPct}%</span>
             </div>
             <Progress value={scoutPct} className="h-2" />
+            {trend && trend.trend !== "flat" && (
+              <div className={`flex items-center gap-0.5 text-[10px] ${trend.trend === "up" ? "text-green-400" : "text-red-400"}`}>
+                {trend.trend === "up" ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                <span>{trend.trend === "up" ? "+" : ""}{trend.recentGain}</span>
+              </div>
+            )}
           </div>
 
           <div className="flex gap-2">

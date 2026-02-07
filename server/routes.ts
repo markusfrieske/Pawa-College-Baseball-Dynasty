@@ -2812,6 +2812,226 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/leagues/:id/recruiting/pipeline", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      
+      const allCoaches = await storage.getCoachesByLeague(leagueId);
+      const userCoach = allCoaches.find(c => c.userId === req.session.userId);
+      if (!userCoach || !userCoach.teamId) return res.status(403).json({ message: "No team found" });
+      
+      const teamId = userCoach.teamId;
+      const interests = await storage.getRecruitingInterestsByTeam(teamId);
+      const allRecruits = await storage.getRecruitsByLeague(leagueId);
+      const roster = await storage.getPlayersByTeam(teamId);
+      
+      const pipeline = { cold: 0, cool: 0, warm: 0, hot: 0, very_hot: 0, on_fire: 0, committed: 0 };
+      const committed = allRecruits.filter(r => r.signedTeamId === teamId);
+      pipeline.committed = committed.length;
+      
+      for (const interest of interests) {
+        if (interest.interestLevel >= 90) pipeline.on_fire++;
+        else if (interest.interestLevel >= 70) pipeline.very_hot++;
+        else if (interest.interestLevel >= 50) pipeline.hot++;
+        else if (interest.interestLevel >= 30) pipeline.warm++;
+        else if (interest.interestLevel >= 15) pipeline.cool++;
+        else pipeline.cold++;
+      }
+      
+      const seniors = roster.filter(p => p.eligibility === "SR");
+      const positionCounts: Record<string, number> = {};
+      const seniorPositions: Record<string, number> = {};
+      for (const p of roster) {
+        positionCounts[p.position] = (positionCounts[p.position] || 0) + 1;
+      }
+      for (const s of seniors) {
+        seniorPositions[s.position] = (seniorPositions[s.position] || 0) + 1;
+      }
+      
+      const positionNeeds: { position: string; current: number; graduating: number; need: boolean }[] = [];
+      const allPositions = ["P", "C", "1B", "2B", "SS", "3B", "LF", "CF", "RF"];
+      for (const pos of allPositions) {
+        const current = positionCounts[pos] || 0;
+        const graduating = seniorPositions[pos] || 0;
+        const afterGrad = current - graduating;
+        positionNeeds.push({ position: pos, current, graduating, need: afterGrad < 2 });
+      }
+      
+      res.json({ pipeline, positionNeeds, totalTargeted: interests.filter(i => i.isTargeted).length, rosterSize: roster.length });
+    } catch (error) {
+      console.error("Failed to fetch pipeline:", error);
+      res.status(500).json({ message: "Failed to fetch pipeline data" });
+    }
+  });
+
+  app.get("/api/leagues/:id/recruiting/trends", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      
+      const allCoaches = await storage.getCoachesByLeague(leagueId);
+      const userCoach = allCoaches.find(c => c.userId === req.session.userId);
+      if (!userCoach || !userCoach.teamId) return res.status(403).json({ message: "No team found" });
+      
+      const teamId = userCoach.teamId;
+      const interests = await storage.getRecruitingInterestsByTeam(teamId);
+      
+      const trends: Record<string, { trend: "up" | "down" | "flat"; recentGain: number }> = {};
+      
+      for (const interest of interests) {
+        const actions = await storage.getRecruitingActionsLog(interest.recruitId, teamId);
+        const recentActions = actions.filter(a => {
+          const weekDiff = league.currentWeek - a.week;
+          return a.season === league.currentSeason && weekDiff >= 0 && weekDiff <= 2;
+        });
+        
+        const totalGain = recentActions.reduce((sum, a) => sum + (a.interestChange || 0), 0);
+        let trend: "up" | "down" | "flat" = "flat";
+        if (totalGain > 5) trend = "up";
+        else if (totalGain < -5) trend = "down";
+        
+        trends[interest.recruitId] = { trend, recentGain: totalGain };
+      }
+      
+      res.json({ trends });
+    } catch (error) {
+      console.error("Failed to fetch trends:", error);
+      res.status(500).json({ message: "Failed to fetch trend data" });
+    }
+  });
+
+  app.get("/api/leagues/:id/season-awards", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      
+      const leagueTeams = await storage.getTeamsByLeague(leagueId);
+      const confs = await storage.getConferencesByLeague(leagueId);
+      const teamMap = Object.fromEntries(leagueTeams.map(t => [t.id, t]));
+      
+      const allPlayers: { player: any; team: any }[] = [];
+      for (const team of leagueTeams) {
+        const roster = await storage.getPlayersByTeam(team.id);
+        for (const p of roster) {
+          allPlayers.push({ player: p, team });
+        }
+      }
+      
+      const nonPitchers = allPlayers.filter(x => x.player.position !== "P").sort((a, b) => b.player.overall - a.player.overall);
+      const pitchers = allPlayers.filter(x => x.player.position === "P").sort((a, b) => b.player.overall - a.player.overall);
+      const freshmen = allPlayers.filter(x => x.player.eligibility === "FR").sort((a, b) => b.player.overall - a.player.overall);
+      
+      const formatAward = (x: { player: any; team: any } | undefined) => x ? {
+        playerName: `${x.player.firstName} ${x.player.lastName}`,
+        position: x.player.position,
+        overall: x.player.overall,
+        eligibility: x.player.eligibility,
+        teamName: x.team.name,
+        abbreviation: x.team.abbreviation,
+        primaryColor: x.team.primaryColor,
+      } : null;
+      
+      const conferenceAwards = confs.map(conf => {
+        const confTeamIds = leagueTeams.filter(t => t.conferenceId === conf.id).map(t => t.id);
+        const confPlayers = allPlayers.filter(x => confTeamIds.includes(x.player.teamId));
+        const confNonP = confPlayers.filter(x => x.player.position !== "P").sort((a, b) => b.player.overall - a.player.overall);
+        const confP = confPlayers.filter(x => x.player.position === "P").sort((a, b) => b.player.overall - a.player.overall);
+        return {
+          conferenceName: conf.name,
+          mvp: formatAward(confNonP[0]),
+          pitcherOfYear: formatAward(confP[0]),
+          topPlayers: confPlayers.sort((a, b) => b.player.overall - a.player.overall).slice(0, 5).map(formatAward),
+        };
+      });
+      
+      res.json({
+        season: league.currentSeason,
+        leagueAwards: {
+          mvp: formatAward(nonPitchers[0]),
+          pitcherOfYear: formatAward(pitchers[0]),
+          freshmanOfYear: formatAward(freshmen[0]),
+        },
+        conferenceAwards,
+        statsLeaders: {
+          topHitters: nonPitchers.slice(0, 10).map(formatAward),
+          topPitchers: pitchers.slice(0, 10).map(formatAward),
+        },
+      });
+    } catch (error) {
+      console.error("Failed to fetch season awards:", error);
+      res.status(500).json({ message: "Failed to fetch season awards" });
+    }
+  });
+
+  app.get("/api/leagues/:id/dynasty-history", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      
+      const allGames = await storage.getGamesByLeague(leagueId);
+      const leagueTeams = await storage.getTeamsByLeague(leagueId);
+      const teamMap = Object.fromEntries(leagueTeams.map(t => [t.id, { name: t.name, abbreviation: t.abbreviation, primaryColor: t.primaryColor }]));
+      
+      const seasons: any[] = [];
+      
+      for (let s = 1; s <= league.currentSeason; s++) {
+        const seasonStandings = await storage.getStandingsByLeague(leagueId, s);
+        const cwsGames = allGames.filter(g => g.phase === "cws" && g.season === s && g.isComplete);
+        
+        let cwsChampion = null;
+        let cwsRunnerUp = null;
+        
+        if (cwsGames.length >= 2) {
+          const winsMap: Record<string, number> = {};
+          for (const g of cwsGames) {
+            const winnerId = (g.homeScore ?? 0) > (g.awayScore ?? 0) ? g.homeTeamId : g.awayTeamId;
+            winsMap[winnerId] = (winsMap[winnerId] || 0) + 1;
+          }
+          const champId = Object.entries(winsMap).find(([_, w]) => w >= 2)?.[0];
+          if (champId) {
+            cwsChampion = teamMap[champId] || null;
+            const otherIds = Object.keys(winsMap).filter(id => id !== champId);
+            cwsRunnerUp = otherIds.length > 0 ? teamMap[otherIds[0]] || null : null;
+          }
+        }
+        
+        const confChampGames = allGames.filter(g => g.phase === "conference_championship" && g.season === s && g.isComplete);
+        const confChampions = confChampGames.map(g => {
+          const winnerId = (g.homeScore ?? 0) > (g.awayScore ?? 0) ? g.homeTeamId : g.awayTeamId;
+          return teamMap[winnerId] || null;
+        }).filter(Boolean);
+        
+        const teamRecords = seasonStandings.map(st => ({
+          ...teamMap[st.teamId],
+          teamId: st.teamId,
+          wins: st.wins,
+          losses: st.losses,
+          conferenceWins: st.conferenceWins,
+          conferenceLosses: st.conferenceLosses,
+        })).sort((a, b) => (b.wins || 0) - (a.wins || 0));
+        
+        seasons.push({
+          season: s,
+          cwsChampion,
+          cwsRunnerUp,
+          conferenceChampions: confChampions,
+          teamRecords,
+          hasCWSData: cwsGames.length > 0,
+        });
+      }
+      
+      res.json({ seasons, currentSeason: league.currentSeason });
+    } catch (error) {
+      console.error("Failed to fetch dynasty history:", error);
+      res.status(500).json({ message: "Failed to fetch dynasty history" });
+    }
+  });
+
   // ============ CPU RECRUITING AI FUNCTION ============
   async function runCpuRecruiting(leagueId: string, week: number, season: number) {
     const league = await storage.getLeague(leagueId);
