@@ -2912,6 +2912,17 @@ export async function registerRoutes(
       const leagueId = req.params.id as string;
       const league = await storage.getLeague(leagueId);
       if (!league) return res.status(404).json({ message: "League not found" });
+
+      const preRegularPhases = ["dynasty_setup", "recruiting", "preseason", "spring_training", "regular_season"];
+      const awardsAvailable = !preRegularPhases.includes(league.currentPhase);
+
+      if (!awardsAvailable) {
+        return res.json({
+          season: league.currentSeason,
+          awardsAvailable: false,
+          currentPhase: league.currentPhase,
+        });
+      }
       
       const leagueTeams = await storage.getTeamsByLeague(leagueId);
       const confs = await storage.getConferencesByLeague(leagueId);
@@ -2938,27 +2949,97 @@ export async function registerRoutes(
         abbreviation: x.team.abbreviation,
         primaryColor: x.team.primaryColor,
       } : null;
-      
-      const conferenceAwards = confs.map(conf => {
+
+      const allPositions = ["C", "1B", "2B", "SS", "3B", "LF", "CF", "RF", "P", "DH"];
+
+      const buildPositionTeam = (pool: { player: any; team: any }[]) => {
+        const result: { position: string; player: any }[] = [];
+        const used = new Set<string>();
+        for (const pos of allPositions) {
+          const candidates = pool
+            .filter(x => {
+              if (pos === "DH") return x.player.position !== "P" && !used.has(x.player.id);
+              return x.player.position === pos && !used.has(x.player.id);
+            })
+            .sort((a, b) => b.player.overall - a.player.overall);
+          if (candidates.length > 0) {
+            used.add(candidates[0].player.id);
+            result.push({ position: pos, player: formatAward(candidates[0]) });
+          }
+        }
+        return result;
+      };
+
+      const allAmericanTeam = buildPositionTeam(allPlayers);
+
+      const allFreshmanTeam = buildPositionTeam(freshmen.map(x => x));
+
+      const allGames = await storage.getGamesByLeague(leagueId);
+      const season = league.currentSeason;
+
+      const ccGames = allGames.filter(g => g.phase === "conference_championship" && g.season === season && g.isComplete);
+      const conferenceChampionshipMVPs: { conferenceName: string; mvp: any }[] = [];
+      const seenConfIds = new Set<string>();
+      for (const game of ccGames) {
+        const winnerId = (game.homeScore ?? 0) > (game.awayScore ?? 0) ? game.homeTeamId : game.awayTeamId;
+        const winningTeam = teamMap[winnerId];
+        if (winningTeam && !seenConfIds.has(winningTeam.conferenceId)) {
+          seenConfIds.add(winningTeam.conferenceId);
+          const conf = confs.find(c => c.id === winningTeam.conferenceId);
+          const teamPlayers = allPlayers.filter(x => x.player.teamId === winnerId);
+          const bestPlayer = teamPlayers.sort((a, b) => b.player.overall - a.player.overall)[0];
+          if (bestPlayer && conf) {
+            conferenceChampionshipMVPs.push({
+              conferenceName: conf.name,
+              mvp: formatAward(bestPlayer),
+            });
+          }
+        }
+      }
+
+      let cwsMVP = null;
+      const cwsGames = allGames.filter(g => g.phase === "cws" && g.season === season && g.isComplete);
+      if (cwsGames.length > 0) {
+        const teamWins: Record<string, number> = {};
+        for (const g of cwsGames) {
+          const winnerId = (g.homeScore ?? 0) > (g.awayScore ?? 0) ? g.homeTeamId : g.awayTeamId;
+          teamWins[winnerId] = (teamWins[winnerId] || 0) + 1;
+        }
+        const cwsChampId = Object.entries(teamWins).find(([_, w]) => w >= 2)?.[0]
+          || Object.entries(teamWins).sort((a, b) => b[1] - a[1])[0]?.[0];
+        if (cwsChampId) {
+          const champPlayers = allPlayers.filter(x => x.player.teamId === cwsChampId);
+          const bestChampPlayer = champPlayers.sort((a, b) => b.player.overall - a.player.overall)[0];
+          cwsMVP = formatAward(bestChampPlayer);
+        }
+      }
+
+      const conferenceAwards = confs.length > 1 ? confs.map(conf => {
         const confTeamIds = leagueTeams.filter(t => t.conferenceId === conf.id).map(t => t.id);
         const confPlayers = allPlayers.filter(x => confTeamIds.includes(x.player.teamId));
         const confNonP = confPlayers.filter(x => x.player.position !== "P").sort((a, b) => b.player.overall - a.player.overall);
         const confP = confPlayers.filter(x => x.player.position === "P").sort((a, b) => b.player.overall - a.player.overall);
+        const allConferenceTeam = buildPositionTeam(confPlayers);
         return {
           conferenceName: conf.name,
           mvp: formatAward(confNonP[0]),
           pitcherOfYear: formatAward(confP[0]),
-          topPlayers: confPlayers.sort((a, b) => b.player.overall - a.player.overall).slice(0, 5).map(formatAward),
+          allConferenceTeam,
         };
-      });
+      }) : [];
       
       res.json({
         season: league.currentSeason,
+        awardsAvailable: true,
         leagueAwards: {
           mvp: formatAward(nonPitchers[0]),
           pitcherOfYear: formatAward(pitchers[0]),
           freshmanOfYear: formatAward(freshmen[0]),
         },
+        conferenceChampionshipMVPs,
+        cwsMVP,
+        allAmericanTeam,
+        allFreshmanTeam,
         conferenceAwards,
         statsLeaders: {
           topHitters: nonPitchers.slice(0, 10).map(formatAward),

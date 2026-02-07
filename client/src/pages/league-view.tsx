@@ -1058,32 +1058,73 @@ function DynastyHistoryTab({ leagueId }: { leagueId: string }) {
   );
 }
 
+type AwardPlayer = {
+  playerName: string;
+  position: string;
+  overall: number;
+  eligibility: string;
+  teamName: string;
+  abbreviation: string;
+  primaryColor: string;
+} | null;
+
+interface SeasonAwardsData {
+  season: number;
+  awardsAvailable: boolean;
+  currentPhase?: string;
+  leagueAwards?: {
+    mvp: AwardPlayer;
+    pitcherOfYear: AwardPlayer;
+    freshmanOfYear: AwardPlayer;
+  };
+  conferenceChampionshipMVPs?: { conferenceName: string; mvp: AwardPlayer }[];
+  cwsMVP?: AwardPlayer;
+  allAmericanTeam?: { position: string; player: AwardPlayer }[];
+  allFreshmanTeam?: { position: string; player: AwardPlayer }[];
+  conferenceAwards?: {
+    conferenceName: string;
+    mvp: AwardPlayer;
+    pitcherOfYear: AwardPlayer;
+    allConferenceTeam: { position: string; player: AwardPlayer }[];
+  }[];
+  statsLeaders?: {
+    topHitters: AwardPlayer[];
+    topPitchers: AwardPlayer[];
+  };
+}
+
 function AwardsTab({ leagueId }: { leagueId: string }) {
-  const { data, isLoading } = useQuery<{
-    season: number;
-    leagueAwards: {
-      mvp: { playerName: string; position: string; overall: number; eligibility: string; teamName: string; abbreviation: string; primaryColor: string } | null;
-      pitcherOfYear: { playerName: string; position: string; overall: number; eligibility: string; teamName: string; abbreviation: string; primaryColor: string } | null;
-      freshmanOfYear: { playerName: string; position: string; overall: number; eligibility: string; teamName: string; abbreviation: string; primaryColor: string } | null;
-    };
-    conferenceAwards: {
-      conferenceName: string;
-      mvp: any;
-      pitcherOfYear: any;
-      topPlayers: any[];
-    }[];
-    statsLeaders: {
-      topHitters: any[];
-      topPitchers: any[];
-    };
-  }>({
+  const { data, isLoading } = useQuery<SeasonAwardsData>({
     queryKey: ["/api/leagues", leagueId, "season-awards"],
   });
 
   if (isLoading) return <Skeleton className="h-64" />;
   if (!data) return null;
 
-  const AwardCard = ({ title, player, icon }: { title: string; player: any; icon: React.ReactNode }) => {
+  if (!data.awardsAvailable) {
+    const phaseLabels: Record<string, string> = {
+      preseason: "Preseason",
+      spring_training: "Spring Training",
+      regular_season: "Regular Season",
+      dynasty_setup: "Dynasty Setup",
+    };
+    return (
+      <RetroCard>
+        <RetroCardContent>
+          <div className="flex flex-col items-center justify-center py-12 gap-3" data-testid="awards-not-available">
+            <Award className="w-10 h-10 text-muted-foreground/40" />
+            <p className="font-pixel text-sm text-muted-foreground">Awards Not Yet Available</p>
+            <p className="text-xs text-muted-foreground/70 text-center max-w-md">
+              Awards will be revealed after the regular season is complete.
+              Current phase: {phaseLabels[data.currentPhase || ""] || data.currentPhase}
+            </p>
+          </div>
+        </RetroCardContent>
+      </RetroCard>
+    );
+  }
+
+  const AwardCard = ({ title, player, icon }: { title: string; player: AwardPlayer; icon: React.ReactNode }) => {
     if (!player) return null;
     return (
       <RetroCard data-testid={`award-${title.toLowerCase().replace(/\s/g, "-")}`}>
@@ -1092,7 +1133,7 @@ function AwardsTab({ leagueId }: { leagueId: string }) {
           <div className="flex-1">
             <p className="text-[9px] text-muted-foreground font-pixel">{title}</p>
             <p className="font-medium text-sm">{player.playerName}</p>
-            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5 flex-wrap">
               <span>{player.position}</span>
               <span className="text-gold font-bold">{player.overall} OVR</span>
               <Badge variant="outline" className="text-[8px]">{player.eligibility}</Badge>
@@ -1101,6 +1142,29 @@ function AwardsTab({ leagueId }: { leagueId: string }) {
           </div>
         </div>
       </RetroCard>
+    );
+  };
+
+  const PositionTeamTable = ({ team, title }: { team: { position: string; player: AwardPlayer }[]; title: string }) => {
+    if (!team || team.length === 0) return null;
+    return (
+      <div data-testid={`position-team-${title.toLowerCase().replace(/\s/g, "-")}`}>
+        <p className="font-pixel text-[9px] text-muted-foreground mb-2">{title.toUpperCase()}</p>
+        <div className="space-y-1">
+          {team.map((entry, i) => entry.player && (
+            <div key={i} className="flex items-center justify-between text-xs py-1 border-b border-border/30">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-[7px] min-w-[28px] justify-center">{entry.position}</Badge>
+                <span>{entry.player.playerName}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-gold font-bold">{entry.player.overall}</span>
+                <span className="text-muted-foreground">{entry.player.abbreviation}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     );
   };
 
@@ -1115,14 +1179,70 @@ function AwardsTab({ leagueId }: { leagueId: string }) {
         </RetroCardHeader>
         <RetroCardContent>
           <div className="grid sm:grid-cols-3 gap-3">
-            <AwardCard title="MVP" player={data.leagueAwards.mvp} icon={<Trophy className="w-6 h-6" />} />
-            <AwardCard title="Pitcher of the Year" player={data.leagueAwards.pitcherOfYear} icon={<Zap className="w-6 h-6" />} />
-            <AwardCard title="Freshman of the Year" player={data.leagueAwards.freshmanOfYear} icon={<Star className="w-6 h-6" />} />
+            <AwardCard title="MVP" player={data.leagueAwards?.mvp || null} icon={<Trophy className="w-6 h-6" />} />
+            <AwardCard title="Pitcher of the Year" player={data.leagueAwards?.pitcherOfYear || null} icon={<Zap className="w-6 h-6" />} />
+            <AwardCard title="Freshman of the Year" player={data.leagueAwards?.freshmanOfYear || null} icon={<Star className="w-6 h-6" />} />
           </div>
         </RetroCardContent>
       </RetroCard>
 
-      {data.conferenceAwards.map(conf => (
+      {(data.conferenceChampionshipMVPs && data.conferenceChampionshipMVPs.length > 0) && (
+        <RetroCard>
+          <RetroCardHeader>
+            <div className="flex items-center gap-2 w-full">
+              <Trophy className="w-4 h-4 text-gold" />
+              <span>Conference Championship MVPs</span>
+            </div>
+          </RetroCardHeader>
+          <RetroCardContent>
+            <div className="grid sm:grid-cols-2 gap-3">
+              {data.conferenceChampionshipMVPs.map(cc => (
+                <AwardCard key={cc.conferenceName} title={`${cc.conferenceName} CC MVP`} player={cc.mvp} icon={<Trophy className="w-5 h-5" />} />
+              ))}
+            </div>
+          </RetroCardContent>
+        </RetroCard>
+      )}
+
+      {data.cwsMVP && (
+        <RetroCard>
+          <RetroCardHeader>
+            <div className="flex items-center gap-2 w-full">
+              <Trophy className="w-4 h-4 text-gold" />
+              <span>College World Series MVP</span>
+            </div>
+          </RetroCardHeader>
+          <RetroCardContent>
+            <AwardCard title="CWS MVP" player={data.cwsMVP} icon={<Trophy className="w-6 h-6" />} />
+          </RetroCardContent>
+        </RetroCard>
+      )}
+
+      <RetroCard>
+        <RetroCardHeader>
+          <div className="flex items-center gap-2 w-full">
+            <Star className="w-4 h-4 text-gold" />
+            <span>All-American Team</span>
+          </div>
+        </RetroCardHeader>
+        <RetroCardContent>
+          <PositionTeamTable team={data.allAmericanTeam || []} title="All-American First Team" />
+        </RetroCardContent>
+      </RetroCard>
+
+      <RetroCard>
+        <RetroCardHeader>
+          <div className="flex items-center gap-2 w-full">
+            <Star className="w-4 h-4 text-gold" />
+            <span>All-Freshman Team</span>
+          </div>
+        </RetroCardHeader>
+        <RetroCardContent>
+          <PositionTeamTable team={data.allFreshmanTeam || []} title="All-Freshman Team" />
+        </RetroCardContent>
+      </RetroCard>
+
+      {data.conferenceAwards && data.conferenceAwards.length > 0 && data.conferenceAwards.map(conf => (
         <RetroCard key={conf.conferenceName}>
           <RetroCardHeader>{conf.conferenceName} Awards</RetroCardHeader>
           <RetroCardContent>
@@ -1130,26 +1250,7 @@ function AwardsTab({ leagueId }: { leagueId: string }) {
               <AwardCard title={`${conf.conferenceName} MVP`} player={conf.mvp} icon={<Trophy className="w-5 h-5" />} />
               <AwardCard title={`${conf.conferenceName} Pitcher`} player={conf.pitcherOfYear} icon={<Zap className="w-5 h-5" />} />
             </div>
-            {conf.topPlayers.length > 0 && (
-              <div>
-                <p className="font-pixel text-[9px] text-muted-foreground mb-2">ALL-CONFERENCE TEAM</p>
-                <div className="space-y-1">
-                  {conf.topPlayers.map((p: any, i: number) => p && (
-                    <div key={i} className="flex items-center justify-between text-xs py-1 border-b border-border/30">
-                      <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground w-4">{i + 1}.</span>
-                        <span>{p.playerName}</span>
-                        <Badge variant="outline" className="text-[7px]">{p.position}</Badge>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-gold font-bold">{p.overall}</span>
-                        <span className="text-muted-foreground">{p.abbreviation}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            <PositionTeamTable team={conf.allConferenceTeam} title={`All-${conf.conferenceName} Team`} />
           </RetroCardContent>
         </RetroCard>
       ))}
@@ -1159,7 +1260,7 @@ function AwardsTab({ leagueId }: { leagueId: string }) {
           <RetroCardHeader>Top Hitters</RetroCardHeader>
           <RetroCardContent>
             <div className="space-y-1">
-              {data.statsLeaders.topHitters.map((p: any, i: number) => p && (
+              {data.statsLeaders?.topHitters.map((p: any, i: number) => p && (
                 <div key={i} className="flex items-center justify-between text-xs py-1 border-b border-border/30">
                   <div className="flex items-center gap-2">
                     <span className="text-muted-foreground w-4">{i + 1}.</span>
@@ -1179,7 +1280,7 @@ function AwardsTab({ leagueId }: { leagueId: string }) {
           <RetroCardHeader>Top Pitchers</RetroCardHeader>
           <RetroCardContent>
             <div className="space-y-1">
-              {data.statsLeaders.topPitchers.map((p: any, i: number) => p && (
+              {data.statsLeaders?.topPitchers.map((p: any, i: number) => p && (
                 <div key={i} className="flex items-center justify-between text-xs py-1 border-b border-border/30">
                   <div className="flex items-center gap-2">
                     <span className="text-muted-foreground w-4">{i + 1}.</span>
