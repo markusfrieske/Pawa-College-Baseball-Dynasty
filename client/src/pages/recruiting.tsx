@@ -52,6 +52,7 @@ interface FilterPreset {
   name: string;
   position: string;
   star: string;
+  state?: string;
   sort: string;
 }
 import { apiRequest } from "@/lib/queryClient";
@@ -141,6 +142,7 @@ export default function RecruitingPage() {
   const [selectedRecruit, setSelectedRecruit] = useState<RecruitWithInterest | null>(null);
   const [positionFilter, setPositionFilter] = useState("all");
   const [starFilter, setStarFilter] = useState("all");
+  const [stateFilter, setStateFilter] = useState("all");
   const [sortBy, setSortBy] = useState("classRank");
   const [showTeamNeeds, setShowTeamNeeds] = useState(false);
   const [showPipeline, setShowPipeline] = useState(false);
@@ -186,6 +188,7 @@ export default function RecruitingPage() {
       name: newPresetName.trim(),
       position: positionFilter,
       star: starFilter,
+      state: stateFilter,
       sort: sortBy,
     };
     const updated = [...filterPresets, preset];
@@ -197,6 +200,7 @@ export default function RecruitingPage() {
 
   const loadPreset = (preset: FilterPreset) => {
     setPositionFilter(preset.position);
+    setStateFilter(preset.state || "all");
     setStarFilter(preset.star);
     setSortBy(preset.sort);
     toast({ title: "Preset loaded", description: `Applied "${preset.name}" filters.` });
@@ -370,6 +374,7 @@ export default function RecruitingPage() {
     if (searchQuery && !`${r.firstName} ${r.lastName}`.toLowerCase().includes(searchLower)) return false;
     if (positionFilter !== "all" && r.position !== positionFilter) return false;
     if (starFilter !== "all" && r.starRank < parseInt(starFilter)) return false;
+    if (stateFilter !== "all" && r.homeState !== stateFilter) return false;
     if (showWatchlistOnly && !r.interest?.isTargeted) return false;
     if (sortBy === "interest" && !(r.interest && (r.interest.interestLevel || 0) > 0)) return false;
     if (pipelineFilter) {
@@ -491,6 +496,16 @@ export default function RecruitingPage() {
               onChange={(e) => setStarFilter(e.target.value)}
               className="w-40"
               data-testid="select-star-filter"
+            />
+            <RetroSelect
+              options={[
+                { label: "All States", value: "all" },
+                ...(data?.recruits ? [...new Set(data.recruits.map(r => r.homeState).filter(Boolean))].sort().map(s => ({ label: s!, value: s! })) : [])
+              ]}
+              value={stateFilter}
+              onChange={(e) => setStateFilter(e.target.value)}
+              className="w-32"
+              data-testid="select-state-filter"
             />
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground">Sort:</span>

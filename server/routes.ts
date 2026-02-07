@@ -1382,6 +1382,16 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Recruit already signed to a team" });
       }
 
+      const roster = await storage.getPlayersByTeam(userTeam.id);
+      const leagueRecruits = await storage.getRecruitsByLeague(req.params.id as string);
+      const currentCommits = leagueRecruits.filter(r => r.signedTeamId === userTeam.id).length;
+      const departingCount = roster.filter(p => p.pendingDeparture && p.retentionStatus !== "retained").length;
+      const portalCount = roster.filter(p => p.inTransferPortal).length;
+      const projectedSize = roster.length - departingCount - portalCount + currentCommits + 1;
+      if (projectedSize > 30) {
+        return res.status(400).json({ message: "Roster would exceed 30-player limit. Release or manage your roster before signing more recruits." });
+      }
+
       // Sign the recruit
       const updatedRecruit = await storage.updateRecruit(recruit.id, {
         signedTeamId: userTeam.id,
@@ -2137,6 +2147,9 @@ export async function registerRoutes(
         if (!userCoach) return res.status(403).json({ message: "Not authorized" });
       }
 
+      // Ensure departures have been processed (in case user skipped advance-week)
+      await processOffseasonDepartures(req.params.id, league.currentSeason);
+
       const teams = await storage.getTeamsByLeague(req.params.id);
       let totalGraduated = 0;
       let totalDrafted = 0;
@@ -2170,6 +2183,22 @@ export async function registerRoutes(
             if (player.departureType === "graduated") totalGraduated++;
             else totalDrafted++;
           } else if (player.departureType === "transfer") {
+            await storage.createPlayerHistory({
+              leagueId: req.params.id,
+              teamId: team.id,
+              firstName: player.firstName,
+              lastName: player.lastName,
+              position: player.position,
+              finalEligibility: player.eligibility,
+              overall: player.overall,
+              starRating: player.starRating,
+              departureType: "transfer_portal",
+              departedSeason: league.currentSeason,
+              seasonsPlayed: eligMap[player.eligibility] || 1,
+              abilities: player.abilities || [],
+              homeState: player.homeState,
+              hometown: player.hometown,
+            });
             await storage.updatePlayer(player.id, {
               pendingDeparture: false,
               retentionStatus: null,
@@ -2582,28 +2611,7 @@ export async function registerRoutes(
       }
 
       // Update standings
-      const leagueStandings = await storage.getStandingsByLeague(req.params.id, game.season);
-      
-      const homeStanding = leagueStandings.find(s => s.teamId === game.homeTeamId);
-      const awayStanding = leagueStandings.find(s => s.teamId === game.awayTeamId);
-
-      if (homeStanding && awayStanding) {
-        const homeWon = homeScore > awayScore;
-        
-        await storage.updateStandings(homeStanding.id, {
-          wins: homeStanding.wins + (homeWon ? 1 : 0),
-          losses: homeStanding.losses + (homeWon ? 0 : 1),
-          runsScored: homeStanding.runsScored + homeScore,
-          runsAllowed: homeStanding.runsAllowed + awayScore,
-        });
-        
-        await storage.updateStandings(awayStanding.id, {
-          wins: awayStanding.wins + (homeWon ? 0 : 1),
-          losses: awayStanding.losses + (homeWon ? 1 : 0),
-          runsScored: awayStanding.runsScored + awayScore,
-          runsAllowed: awayStanding.runsAllowed + homeScore,
-        });
-      }
+      await updateStandingsForGame(req.params.id as string, game.season, game.homeTeamId, game.awayTeamId, homeScore, awayScore, game.isConference);
 
       // Award XP to coaches for wins
       const leagueTeams = await storage.getTeamsByLeague(req.params.id as string);
@@ -2741,7 +2749,7 @@ export async function registerRoutes(
       for (const game of incompleteGames) {
         const result = await simulateGame(game.homeTeamId, game.awayTeamId);
         await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, isComplete: true, boxScore: result.boxScore });
-        await updateStandingsForGame(leagueId, league.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore);
+        await updateStandingsForGame(leagueId, league.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, game.isConference);
         
         const homeTeamSim = leagueTeamsForSim.find(t => t.id === game.homeTeamId);
         const awayTeamSim = leagueTeamsForSim.find(t => t.id === game.awayTeamId);
@@ -3204,18 +3212,38 @@ export async function registerRoutes(
   }
 
   // ============ STANDINGS UPDATE HELPER ============
-  async function updateStandingsForGame(leagueId: string, season: number, homeTeamId: string, awayTeamId: string, homeScore: number, awayScore: number) {
-    const standingsList = await storage.getStandingsByLeague(leagueId, season);
-    const homeStanding = standingsList.find(s => s.teamId === homeTeamId);
-    const awayStanding = standingsList.find(s => s.teamId === awayTeamId);
+  async function updateStandingsForGame(leagueId: string, season: number, homeTeamId: string, awayTeamId: string, homeScore: number, awayScore: number, isConference: boolean = false) {
+    let standingsList = await storage.getStandingsByLeague(leagueId, season);
     
-    if (homeScore > awayScore) {
-      if (homeStanding) await storage.updateStandings(homeStanding.id, { wins: (homeStanding.wins || 0) + 1, runsScored: (homeStanding.runsScored || 0) + homeScore, runsAllowed: (homeStanding.runsAllowed || 0) + awayScore });
-      if (awayStanding) await storage.updateStandings(awayStanding.id, { losses: (awayStanding.losses || 0) + 1, runsScored: (awayStanding.runsScored || 0) + awayScore, runsAllowed: (awayStanding.runsAllowed || 0) + homeScore });
-    } else {
-      if (awayStanding) await storage.updateStandings(awayStanding.id, { wins: (awayStanding.wins || 0) + 1, runsScored: (awayStanding.runsScored || 0) + awayScore, runsAllowed: (awayStanding.runsAllowed || 0) + homeScore });
-      if (homeStanding) await storage.updateStandings(homeStanding.id, { losses: (homeStanding.losses || 0) + 1, runsScored: (homeStanding.runsScored || 0) + homeScore, runsAllowed: (homeStanding.runsAllowed || 0) + awayScore });
+    let homeStanding = standingsList.find(s => s.teamId === homeTeamId);
+    let awayStanding = standingsList.find(s => s.teamId === awayTeamId);
+    
+    if (!homeStanding) {
+      homeStanding = await storage.createStandings({ leagueId, teamId: homeTeamId, season });
     }
+    if (!awayStanding) {
+      awayStanding = await storage.createStandings({ leagueId, teamId: awayTeamId, season });
+    }
+    
+    const homeWon = homeScore > awayScore;
+    
+    await storage.updateStandings(homeStanding.id, {
+      wins: (homeStanding.wins || 0) + (homeWon ? 1 : 0),
+      losses: (homeStanding.losses || 0) + (homeWon ? 0 : 1),
+      conferenceWins: (homeStanding.conferenceWins || 0) + (isConference && homeWon ? 1 : 0),
+      conferenceLosses: (homeStanding.conferenceLosses || 0) + (isConference && !homeWon ? 1 : 0),
+      runsScored: (homeStanding.runsScored || 0) + homeScore,
+      runsAllowed: (homeStanding.runsAllowed || 0) + awayScore,
+    });
+    
+    await storage.updateStandings(awayStanding.id, {
+      wins: (awayStanding.wins || 0) + (homeWon ? 0 : 1),
+      losses: (awayStanding.losses || 0) + (homeWon ? 1 : 0),
+      conferenceWins: (awayStanding.conferenceWins || 0) + (isConference && !homeWon ? 1 : 0),
+      conferenceLosses: (awayStanding.conferenceLosses || 0) + (isConference && homeWon ? 1 : 0),
+      runsScored: (awayStanding.runsScored || 0) + awayScore,
+      runsAllowed: (awayStanding.runsAllowed || 0) + homeScore,
+    });
   }
 
   // ============ CONFERENCE CHAMPIONSHIP GENERATION ============
@@ -4452,22 +4480,33 @@ export async function registerRoutes(
         if (newStage === "verbal") {
           const topSchool = sortedInterests.filter(i => i.hasOffer).sort((a, b) => (b.interestLevel || 0) - (a.interestLevel || 0))[0];
           if (topSchool && topSchool.interestLevel >= signInterest) {
-            await storage.updateRecruit(recruit.id, { 
-              stage: "signed",
-              signedTeamId: topSchool.teamId,
-            });
+            const teamRoster = await storage.getPlayersByTeam(topSchool.teamId);
+            const teamCommits = recruits.filter(r => r.signedTeamId === topSchool.teamId).length;
+            const departing = teamRoster.filter(p => p.pendingDeparture && p.retentionStatus !== "retained").length;
+            const portal = teamRoster.filter(p => p.inTransferPortal).length;
+            if (teamRoster.length - departing - portal + teamCommits + 1 <= 30) {
+              await storage.updateRecruit(recruit.id, { 
+                stage: "signed",
+                signedTeamId: topSchool.teamId,
+              });
+            }
           }
         }
       }
       
-      // Also check if already verbal recruits should now sign (interest grew enough)
       if (currentStage === "verbal") {
         const topSchoolWithOffer = sortedInterests.filter(i => i.hasOffer).sort((a, b) => (b.interestLevel || 0) - (a.interestLevel || 0))[0];
         if (topSchoolWithOffer && topSchoolWithOffer.interestLevel >= signInterest) {
-          await storage.updateRecruit(recruit.id, { 
-            stage: "signed",
-            signedTeamId: topSchoolWithOffer.teamId,
-          });
+          const teamRoster = await storage.getPlayersByTeam(topSchoolWithOffer.teamId);
+          const teamCommits = recruits.filter(r => r.signedTeamId === topSchoolWithOffer.teamId).length;
+          const departing = teamRoster.filter(p => p.pendingDeparture && p.retentionStatus !== "retained").length;
+          const portal = teamRoster.filter(p => p.inTransferPortal).length;
+          if (teamRoster.length - departing - portal + teamCommits + 1 <= 30) {
+            await storage.updateRecruit(recruit.id, { 
+              stage: "signed",
+              signedTeamId: topSchoolWithOffer.teamId,
+            });
+          }
         }
       }
     }
@@ -5710,6 +5749,7 @@ async function generateSchedule(leagueId: string, season: number = 1) {
         homeTeamId: game.home.id,
         awayTeamId: game.away.id,
         phase: "regular",
+        isConference: game.isConf,
       });
     }
   }
