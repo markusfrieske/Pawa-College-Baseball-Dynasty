@@ -2388,7 +2388,7 @@ export async function registerRoutes(
             const champTeam = leagueTeams.find(t => t.id === cwsResult.champion);
             const runnerUpTeam = leagueTeams.find(t => t.id === cwsResult.runnerUp);
             
-            const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "offseason" });
+            const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "offseason_departures" });
             await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "CWS Champion Crowned!", details: `${champTeam?.name || "Unknown"} wins the College World Series over ${runnerUpTeam?.name || "Unknown"}!` });
             
             await storage.createDynastyNews({
@@ -2408,7 +2408,44 @@ export async function registerRoutes(
         }
       }
 
-      if (league.currentPhase === "offseason") {
+      // ============ OFFSEASON SUB-PHASE PROGRESSION ============
+      const offseasonPhases = ["offseason_departures", "offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4", "offseason_signing_day"];
+      
+      if (league.currentPhase === "offseason_departures") {
+        // Process departures: graduates, draft declarations, transfer portal entries
+        const departureResult = await processOffseasonDepartures(leagueId, league.currentSeason);
+        
+        const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "offseason_recruiting_1" });
+        await storage.createAuditLog({
+          leagueId, userId: req.session.userId,
+          action: "Offseason: Players Leaving",
+          details: `${departureResult.graduated} graduated, ${departureResult.draftDeclared} declared for MLB draft, ${departureResult.transferPortal} entered transfer portal.`,
+        });
+        
+        return res.json({ ...updatedLeague, departures: departureResult });
+      }
+      
+      if (["offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4"].includes(league.currentPhase)) {
+        // Run CPU recruiting for leftover unsigned recruits + transfer portal
+        await runCpuRecruiting(leagueId, league.currentWeek, league.currentSeason);
+        await runCpuTransferPortalRecruiting(leagueId);
+        await updateRecruitStages(leagueId, league.currentWeek);
+        
+        const phaseIndex = offseasonPhases.indexOf(league.currentPhase);
+        const nextPhase = offseasonPhases[phaseIndex + 1];
+        
+        const updatedLeague = await storage.updateLeague(league.id, { currentPhase: nextPhase });
+        await storage.createAuditLog({
+          leagueId, userId: req.session.userId,
+          action: `Offseason Recruiting Week ${phaseIndex}`,
+          details: `Offseason recruiting week ${phaseIndex} complete. CPU teams continue recruiting.`,
+        });
+        
+        return res.json(updatedLeague);
+      }
+      
+      if (league.currentPhase === "offseason_signing_day") {
+        // Finalize season: add signed recruits to rosters, advance eligibility, generate new class
         const transitionResult = await performSeasonTransition(leagueId, league.currentSeason);
         
         const updatedLeague = await storage.updateLeague(league.id, {
@@ -2421,10 +2458,16 @@ export async function registerRoutes(
           leagueId: league.id,
           userId: req.session.userId,
           action: "Season Advanced",
-          details: `Season ${league.currentSeason} ended. ${transitionResult.graduated} players graduated, ${transitionResult.recruitsAdded} recruits joined rosters, ${transitionResult.newRecruits} new recruits generated. Now entering Season ${league.currentSeason + 1}.`,
+          details: `Season ${league.currentSeason} ended. ${transitionResult.recruitsAdded} recruits joined rosters, ${transitionResult.newRecruits} new recruits generated. Now entering Season ${league.currentSeason + 1}.`,
         });
 
         return res.json({ ...updatedLeague, seasonTransition: transitionResult });
+      }
+      
+      // Legacy "offseason" phase - treat same as offseason_departures for backwards compatibility
+      if (league.currentPhase === "offseason") {
+        const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "offseason_departures" });
+        return res.json(updatedLeague);
       }
 
       if (nextWeek > maxWeeks) {
@@ -2869,17 +2912,17 @@ export async function registerRoutes(
   }
 
   // ============ SEASON TRANSITION FUNCTION ============
-  async function performSeasonTransition(leagueId: string, completedSeason: number) {
+  // ============ OFFSEASON DEPARTURES ============
+  async function processOffseasonDepartures(leagueId: string, completedSeason: number) {
     const teams = await storage.getTeamsByLeague(leagueId);
     let totalGraduated = 0;
-    let totalRecruitsAdded = 0;
     let totalDraftDeclared = 0;
-    let totalTransferred = 0;
+    let totalTransferPortal = 0;
     
     for (const team of teams) {
       const roster = await storage.getPlayersByTeam(team.id);
       
-      // 1. Archive graduating seniors (SR eligibility) to player history
+      // 1. Graduate seniors
       const seniors = roster.filter(p => p.eligibility === "SR");
       for (const senior of seniors) {
         const eligMap: Record<string, number> = { "FR": 1, "SO": 2, "JR": 3, "SR": 4, "RS": 5 };
@@ -2903,9 +2946,14 @@ export async function registerRoutes(
         totalGraduated++;
       }
       
-      // 2. Archive draft-declared players
-      const draftDeclared = roster.filter(p => p.declaredForDraft && !seniors.includes(p));
-      for (const player of draftDeclared) {
+      // 2. Auto-declare MLB draft for JR/SR with 550+ overall (SR already graduated above)
+      const remainingAfterGrad = await storage.getPlayersByTeam(team.id);
+      const draftEligible = remainingAfterGrad.filter(p => 
+        (p.eligibility === "JR" || p.eligibility === "RS") && 
+        (p.overall || 0) >= 550 && 
+        !p.declaredForDraft
+      );
+      for (const player of draftEligible) {
         const eligMap: Record<string, number> = { "FR": 1, "SO": 2, "JR": 3, "SR": 4, "RS": 5 };
         await storage.createPlayerHistory({
           leagueId,
@@ -2927,9 +2975,114 @@ export async function registerRoutes(
         totalDraftDeclared++;
       }
       
-      // 3. Archive transfer portal players who haven't been signed
-      const portalPlayers = roster.filter(p => p.inTransferPortal && !seniors.includes(p) && !draftDeclared.includes(p));
-      for (const player of portalPlayers) {
+      // 3. Also process any previously declared draft players
+      const remainingAfterDraft = await storage.getPlayersByTeam(team.id);
+      const previouslyDeclared = remainingAfterDraft.filter(p => p.declaredForDraft);
+      for (const player of previouslyDeclared) {
+        const eligMap: Record<string, number> = { "FR": 1, "SO": 2, "JR": 3, "SR": 4, "RS": 5 };
+        await storage.createPlayerHistory({
+          leagueId,
+          teamId: team.id,
+          firstName: player.firstName,
+          lastName: player.lastName,
+          position: player.position,
+          finalEligibility: player.eligibility,
+          overall: player.overall,
+          starRating: player.starRating,
+          departureType: "draft",
+          departedSeason: completedSeason,
+          seasonsPlayed: eligMap[player.eligibility] || 1,
+          abilities: player.abilities || [],
+          homeState: player.homeState,
+          hometown: player.hometown,
+        });
+        await storage.deletePlayer(player.id);
+        totalDraftDeclared++;
+      }
+      
+      // 4. Some players enter transfer portal (random chance based on playing time/rating)
+      const remainingAfterAll = await storage.getPlayersByTeam(team.id);
+      const portalCandidates = remainingAfterAll.filter(p => 
+        !p.inTransferPortal && 
+        p.eligibility !== "SR" && 
+        (p.overall || 500) < 450 // Lower-rated players more likely to transfer
+      );
+      // 10-20% of low-rated players enter portal
+      const portalCount = Math.max(0, Math.floor(portalCandidates.length * (0.1 + Math.random() * 0.1)));
+      const shuffled = portalCandidates.sort(() => Math.random() - 0.5);
+      for (let i = 0; i < Math.min(portalCount, shuffled.length); i++) {
+        await storage.updatePlayer(shuffled[i].id, { inTransferPortal: true });
+        totalTransferPortal++;
+      }
+      
+      // Also count already-in-portal players
+      const existingPortal = remainingAfterAll.filter(p => p.inTransferPortal);
+      totalTransferPortal += existingPortal.length;
+    }
+    
+    return { graduated: totalGraduated, draftDeclared: totalDraftDeclared, transferPortal: totalTransferPortal };
+  }
+  
+  // ============ CPU TRANSFER PORTAL RECRUITING ============
+  async function runCpuTransferPortalRecruiting(leagueId: string) {
+    const teams = await storage.getTeamsByLeague(leagueId);
+    const cpuTeams = teams.filter(t => t.isCpu);
+    
+    // Get all transfer portal players
+    const allPlayers: any[] = [];
+    for (const team of teams) {
+      const roster = await storage.getPlayersByTeam(team.id);
+      const portalPlayers = roster.filter(p => p.inTransferPortal);
+      allPlayers.push(...portalPlayers.map(p => ({ ...p, currentTeam: team })));
+    }
+    
+    if (allPlayers.length === 0 || cpuTeams.length === 0) return;
+    
+    // Each CPU team tries to sign 0-2 transfer portal players per round
+    for (const team of cpuTeams) {
+      const signsThisRound = Math.floor(Math.random() * 3); // 0, 1, or 2
+      if (signsThisRound === 0) continue;
+      
+      const roster = await storage.getPlayersByTeam(team.id);
+      const positionCounts: Record<string, number> = {};
+      for (const p of roster) {
+        positionCounts[p.position] = (positionCounts[p.position] || 0) + 1;
+      }
+      
+      // Find portal players from other teams, sorted by need
+      const candidates = allPlayers
+        .filter(p => p.currentTeam.id !== team.id && p.inTransferPortal)
+        .map(p => ({
+          player: p,
+          score: ((positionCounts[p.position] || 0) < 2 ? 20 : 0) + (p.overall || 500) / 100 + Math.random() * 5,
+        }))
+        .sort((a, b) => b.score - a.score);
+      
+      for (let i = 0; i < Math.min(signsThisRound, candidates.length); i++) {
+        const { player } = candidates[i];
+        // Transfer player to CPU team
+        await storage.updatePlayer(player.id, {
+          teamId: team.id,
+          inTransferPortal: false,
+        });
+        // Remove from allPlayers so another team can't sign them
+        const idx = allPlayers.findIndex(p => p.id === player.id);
+        if (idx >= 0) allPlayers.splice(idx, 1);
+      }
+    }
+  }
+  
+  async function performSeasonTransition(leagueId: string, completedSeason: number) {
+    const teams = await storage.getTeamsByLeague(leagueId);
+    let totalRecruitsAdded = 0;
+    let totalTransferred = 0;
+    
+    for (const team of teams) {
+      // Departures (graduates, draft, transfers) already handled by processOffseasonDepartures
+      // Archive any remaining transfer portal players who weren't signed during offseason
+      const roster = await storage.getPlayersByTeam(team.id);
+      const remainingPortal = roster.filter(p => p.inTransferPortal);
+      for (const player of remainingPortal) {
         const eligMap: Record<string, number> = { "FR": 1, "SO": 2, "JR": 3, "SR": 4, "RS": 5 };
         await storage.createPlayerHistory({
           leagueId,
@@ -2951,7 +3104,7 @@ export async function registerRoutes(
         totalTransferred++;
       }
       
-      // 4. Advance eligibility for remaining players: FR→SO, SO→JR, JR→SR
+      // Advance eligibility for remaining players: FR→SO, SO→JR, JR→SR
       const remainingPlayers = await storage.getPlayersByTeam(team.id);
       for (const player of remainingPlayers) {
         const eligProgression: Record<string, string> = {
@@ -3050,8 +3203,6 @@ export async function registerRoutes(
     }
     
     return {
-      graduated: totalGraduated,
-      draftDeclared: totalDraftDeclared,
       transferred: totalTransferred,
       recruitsAdded: totalRecruitsAdded,
       newRecruits: recruitCount,
@@ -3084,6 +3235,77 @@ export async function registerRoutes(
     }
   });
 
+  // ============ SIGNING DAY SUMMARY API ============
+  app.get("/api/leagues/:id/signing-day", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id);
+      if (!league) {
+        return res.status(404).json({ message: "League not found" });
+      }
+      
+      const teams = await storage.getTeamsByLeague(league.id);
+      const recruits = await storage.getRecruitsByLeague(league.id);
+      const signedRecruits = recruits.filter(r => r.signedTeamId);
+      const unsignedRecruits = recruits.filter(r => !r.signedTeamId);
+      
+      // Get transfer portal activity from player history
+      const history = await storage.getPlayerHistoryByLeague(league.id);
+      const portalDepartures = history.filter(h => 
+        h.departureType === "transfer_portal" && h.departedSeason === league.currentSeason
+      );
+      
+      // Get current transfer portal players (still unsigned)
+      const portalPlayers = await storage.getTransferPortalPlayersByLeague(league.id);
+      
+      // Group signed recruits by team
+      const teamSignings = teams.map(team => {
+        const teamRecruits = signedRecruits
+          .filter(r => r.signedTeamId === team.id)
+          .map(r => ({
+            id: r.id,
+            firstName: r.firstName,
+            lastName: r.lastName,
+            position: r.position,
+            starRating: r.starRating,
+            overall: r.overall,
+            homeState: r.homeState,
+            isBlueChip: r.isBlueChip,
+          }));
+        
+        return {
+          teamId: team.id,
+          teamName: team.name,
+          abbreviation: team.abbreviation,
+          primaryColor: team.primaryColor,
+          secondaryColor: team.secondaryColor,
+          mascot: team.mascot,
+          recruits: teamRecruits,
+          totalRecruits: teamRecruits.length,
+          avgRating: teamRecruits.length > 0 
+            ? Math.round(teamRecruits.reduce((sum, r) => sum + (r.starRating || 3), 0) / teamRecruits.length * 10) / 10
+            : 0,
+          totalStars: teamRecruits.reduce((sum, r) => sum + (r.starRating || 3), 0),
+        };
+      })
+      .filter(t => t.totalRecruits > 0)
+      .sort((a, b) => b.totalStars - a.totalStars);
+      
+      res.json({
+        teamSignings,
+        totalSigned: signedRecruits.length,
+        totalUnsigned: unsignedRecruits.length,
+        totalRecruits: recruits.length,
+        transferPortal: {
+          departed: portalDepartures.length,
+          stillAvailable: portalPlayers.length,
+        },
+      });
+    } catch (error) {
+      console.error("Failed to get signing day data:", error);
+      res.status(500).json({ message: "Failed to get signing day data" });
+    }
+  });
+
   // Explicit season advance endpoint
   app.post("/api/leagues/:id/advance-season", requireAuth, async (req, res) => {
     try {
@@ -3096,7 +3318,8 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Only commissioner can advance the season" });
       }
       
-      if (league.currentPhase !== "offseason") {
+      const offseasonPhaseList = ["offseason", "offseason_departures", "offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4", "offseason_signing_day"];
+      if (!offseasonPhaseList.includes(league.currentPhase)) {
         return res.status(400).json({ message: "Season can only be advanced during offseason phase" });
       }
       
@@ -3112,7 +3335,7 @@ export async function registerRoutes(
         leagueId: league.id,
         userId: req.session.userId,
         action: "Season Advanced",
-        details: `Season ${league.currentSeason} ended. ${transitionResult.graduated} players graduated, ${transitionResult.recruitsAdded} recruits joined rosters, ${transitionResult.newRecruits} new recruits generated.`,
+        details: `Season ${league.currentSeason} ended. ${transitionResult.recruitsAdded} recruits joined rosters, ${transitionResult.newRecruits} new recruits generated.`,
       });
 
       res.json({ ...updatedLeague, seasonTransition: transitionResult });

@@ -28,7 +28,9 @@ import {
   X,
   GraduationCap,
   Trophy,
-  Swords
+  Swords,
+  UserMinus,
+  Target
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -77,10 +79,26 @@ export default function CommissionerPage() {
           conference_championship: "The regular season is over! Conference Championships begin.",
           super_regionals: "Conference Championships are complete! Super Regionals bracket is set.",
           cws: "The final two teams advance to the College World Series!",
-          offseason: "The College World Series is complete! Preparing for next season.",
+          offseason_departures: "The season is over. Processing player departures...",
+          offseason_recruiting_1: "Departures processed. Offseason recruiting begins!",
+          offseason_recruiting_2: "Offseason recruiting week 2 underway.",
+          offseason_recruiting_3: "Offseason recruiting week 3 underway.",
+          offseason_recruiting_4: "Final week of offseason recruiting.",
+          offseason_signing_day: "Recruiting is over! Signing Day results are in.",
+        };
+        const phaseTitle: Record<string, string> = {
+          conference_championship: "Postseason Update",
+          super_regionals: "Postseason Update",
+          cws: "Postseason Update",
+          offseason_departures: "Offseason",
+          offseason_recruiting_1: "Offseason Recruiting",
+          offseason_recruiting_2: "Offseason Recruiting",
+          offseason_recruiting_3: "Offseason Recruiting",
+          offseason_recruiting_4: "Offseason Recruiting",
+          offseason_signing_day: "Signing Day",
         };
         toast({ 
-          title: phaseMessages[phase] ? "Postseason Update" : "Week Advanced", 
+          title: phaseTitle[phase] || (phaseMessages[phase] ? "Update" : "Week Advanced"), 
           description: phaseMessages[phase] || "The dynasty has moved to the next week.",
         });
       }
@@ -178,12 +196,13 @@ export default function CommissionerPage() {
     conference_championship: "Conference Championship",
     super_regionals: "Super Regionals",
     cws: "College World Series",
-    players_leaving: "Players Leaving",
-    offseason_recruiting_1: "Early Recruiting",
-    offseason_recruiting_2: "Mid Recruiting",
-    offseason_recruiting_3: "Late Recruiting",
-    offseason_recruiting_4: "Final Recruiting",
-    signing_day: "Signing Day",
+    offseason: "Offseason",
+    offseason_departures: "Player Departures",
+    offseason_recruiting_1: "Offseason Recruiting (Wk 1)",
+    offseason_recruiting_2: "Offseason Recruiting (Wk 2)",
+    offseason_recruiting_3: "Offseason Recruiting (Wk 3)",
+    offseason_recruiting_4: "Offseason Recruiting (Wk 4)",
+    offseason_signing_day: "Signing Day",
   };
 
   return (
@@ -337,7 +356,8 @@ function ActionsTab({
   };
 
   const isPostseason = ["conference_championship", "super_regionals", "cws"].includes(league?.currentPhase || "");
-  const isOffseason = league?.currentPhase === "offseason";
+  const offseasonPhaseList = ["offseason", "offseason_departures", "offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4", "offseason_signing_day"];
+  const isOffseason = offseasonPhaseList.includes(league?.currentPhase || "");
   
   const advanceLabel = (() => {
     if (isAdvancing) return "Processing...";
@@ -345,7 +365,13 @@ function ActionsTab({
       case "conference_championship": return "Play Conference Championships";
       case "super_regionals": return "Play Super Regional Round";
       case "cws": return "Play CWS Game";
-      case "offseason": return "Start Next Season";
+      case "offseason_departures": return "Process Player Departures";
+      case "offseason_recruiting_1": return "Advance Recruiting (Week 1)";
+      case "offseason_recruiting_2": return "Advance Recruiting (Week 2)";
+      case "offseason_recruiting_3": return "Advance Recruiting (Week 3)";
+      case "offseason_recruiting_4": return "Advance Recruiting (Week 4)";
+      case "offseason_signing_day": return "Signing Day - Start New Season";
+      case "offseason": return "Begin Offseason";
       default: return "Advance Week";
     }
   })();
@@ -355,7 +381,14 @@ function ActionsTab({
       case "conference_championship": return "Simulate conference championship matchups between top teams.";
       case "super_regionals": return "Simulate the next round of the Super Regional bracket tournament.";
       case "cws": return "Play the next game of the College World Series best-of-3 championship.";
-      case "offseason": return "Graduate seniors, advance eligibility, add signed recruits, and generate a new recruiting class.";
+      case "offseason_departures": return "Process graduating seniors, MLB draft declarations, and transfer portal entries. Review which players are leaving your program.";
+      case "offseason_recruiting_1":
+      case "offseason_recruiting_2":
+      case "offseason_recruiting_3":
+      case "offseason_recruiting_4":
+        return "Continue recruiting unsigned recruits and transfer portal players. CPU teams are also actively recruiting during this period.";
+      case "offseason_signing_day": return "Signing Day! Finalize all commits, add signed recruits to rosters, advance eligibility, and generate a new recruiting class for next season.";
+      case "offseason": return "Begin the offseason process. Players will be leaving, recruiting continues, and a new season awaits.";
       default: return "Move the league forward to the next week. This will process recruiting updates, trigger story events, and update standings.";
     }
   })();
@@ -365,6 +398,13 @@ function ActionsTab({
       case "conference_championship": return <Swords className="w-4 h-4 mr-2" />;
       case "super_regionals": return <Swords className="w-4 h-4 mr-2" />;
       case "cws": return <Trophy className="w-4 h-4 mr-2" />;
+      case "offseason_departures": return <UserMinus className="w-4 h-4 mr-2" />;
+      case "offseason_recruiting_1":
+      case "offseason_recruiting_2":
+      case "offseason_recruiting_3":
+      case "offseason_recruiting_4":
+        return <Target className="w-4 h-4 mr-2" />;
+      case "offseason_signing_day": return <GraduationCap className="w-4 h-4 mr-2" />;
       case "offseason": return <GraduationCap className="w-4 h-4 mr-2" />;
       default: return <Play className="w-4 h-4 mr-2" />;
     }
@@ -392,22 +432,15 @@ function ActionsTab({
               {advanceIcon}
               {advanceLabel}
             </RetroButton>
-            {isOffseason && (
+            {isOffseason && league?.currentPhase !== "offseason_signing_day" && (
               <div className="mt-3 pt-3 border-t border-border">
-                <p className="text-muted-foreground text-xs mb-2">
-                  End the current season: graduates seniors, advances eligibility,
-                  adds signed recruits to rosters, and generates a new recruiting class.
+                <p className="text-muted-foreground text-xs">
+                  {league?.currentPhase === "offseason_departures" 
+                    ? "Review your departing players before advancing. Visit the Recruiting Board to continue recruiting."
+                    : league?.currentPhase?.startsWith("offseason_recruiting")
+                    ? "Use the Recruiting Board and Transfer Portal to recruit players during the offseason."
+                    : "The offseason process has multiple phases."}
                 </p>
-                <RetroButton
-                  onClick={onAdvanceSeason}
-                  disabled={isAdvancingSeason || isAdvancing}
-                  variant="outline"
-                  className="w-full"
-                  data-testid="button-advance-season"
-                >
-                  <GraduationCap className="w-4 h-4 mr-2" />
-                  {isAdvancingSeason ? "Processing..." : "Advance to Next Season"}
-                </RetroButton>
               </div>
             )}
           </RetroCardContent>

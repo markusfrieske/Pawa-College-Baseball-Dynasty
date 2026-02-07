@@ -34,7 +34,8 @@ import {
   History,
   BarChart,
   ScrollText,
-  Compass
+  Compass,
+  UserMinus
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { League, Team, Conference, Standings, DynastyNews } from "@shared/schema";
@@ -128,12 +129,13 @@ export default function LeagueViewPage() {
     conference_championship: "Conference Championship",
     super_regionals: "Super Regionals",
     cws: "College World Series",
-    players_leaving: "Players Leaving",
-    offseason_recruiting_1: "Early Recruiting",
-    offseason_recruiting_2: "Mid Recruiting",
-    offseason_recruiting_3: "Late Recruiting",
-    offseason_recruiting_4: "Final Recruiting",
-    signing_day: "Signing Day",
+    offseason: "Offseason",
+    offseason_departures: "Players Leaving",
+    offseason_recruiting_1: "Offseason Recruiting (Week 1)",
+    offseason_recruiting_2: "Offseason Recruiting (Week 2)",
+    offseason_recruiting_3: "Offseason Recruiting (Week 3)",
+    offseason_recruiting_4: "Offseason Recruiting (Week 4)",
+    offseason_signing_day: "Signing Day",
   };
 
   return (
@@ -916,8 +918,8 @@ function SeasonProgressBar({ phase }: { phase: string }) {
     { key: "offseason", label: "Offseason" },
   ];
 
-  const offseasonPhases = ["players_leaving", "offseason_recruiting_1", "offseason_recruiting_2", 
-    "offseason_recruiting_3", "offseason_recruiting_4", "signing_day"];
+  const offseasonPhases = ["offseason_departures", "offseason_recruiting_1", "offseason_recruiting_2", 
+    "offseason_recruiting_3", "offseason_recruiting_4", "offseason_signing_day"];
   
   const currentPhaseNormalized = offseasonPhases.includes(phase) ? "offseason" : phase;
   const currentIndex = phases.findIndex(p => p.key === currentPhaseNormalized);
@@ -1494,8 +1496,30 @@ function CWSSeriesDisplay({ games }: { games: PostseasonGame[] }) {
   );
 }
 
+interface SigningDayData {
+  teamSignings: {
+    teamId: string;
+    teamName: string;
+    abbreviation: string;
+    primaryColor: string;
+    secondaryColor: string;
+    mascot: string;
+    recruits: { id: string; firstName: string; lastName: string; position: string; starRating: number; overall: number; homeState: string; isBlueChip: boolean }[];
+    totalRecruits: number;
+    avgRating: number;
+    totalStars: number;
+  }[];
+  totalSigned: number;
+  totalUnsigned: number;
+  totalRecruits: number;
+  transferPortal?: {
+    departed: number;
+    stillAvailable: number;
+  };
+}
+
 function OffseasonSummary({ league }: { league: LeagueDetails }) {
-  const isOffseasonPhase = ["players_leaving", "offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4", "signing_day"].includes(league.currentPhase);
+  const isOffseasonPhase = ["offseason", "offseason_departures", "offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4", "offseason_signing_day"].includes(league.currentPhase);
   
   if (!isOffseasonPhase) return null;
   
@@ -1508,6 +1532,11 @@ function OffseasonSummary({ league }: { league: LeagueDetails }) {
     queryKey: ["/api/leagues", league.id, "player-history"],
   });
 
+  const { data: signingDayData } = useQuery<SigningDayData>({
+    queryKey: ["/api/leagues", league.id, "signing-day"],
+    enabled: league.currentPhase === "offseason_signing_day",
+  });
+
   const currentSeasonDepartures = historyData?.history?.filter(
     h => h.teamId === userTeam.id && h.departedSeason === league.currentSeason
   ) || [];
@@ -1515,14 +1544,25 @@ function OffseasonSummary({ league }: { league: LeagueDetails }) {
   const graduated = currentSeasonDepartures.filter(h => h.departureType === "graduated");
   const drafted = currentSeasonDepartures.filter(h => h.departureType === "draft");
   const transferred = currentSeasonDepartures.filter(h => h.departureType === "transfer_portal");
+
+  const phaseTitle = league.currentPhase === "offseason_departures" ? "PLAYERS LEAVING" 
+    : league.currentPhase === "offseason_signing_day" ? "SIGNING DAY"
+    : league.currentPhase?.startsWith("offseason_recruiting") ? "OFFSEASON RECRUITING"
+    : "OFFSEASON";
+
+  const phaseIcon = league.currentPhase === "offseason_departures" ? <UserMinus className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+    : league.currentPhase === "offseason_signing_day" ? <Award className="w-5 h-5 text-gold flex-shrink-0 mt-0.5" />
+    : <ScrollText className="w-5 h-5 text-gold flex-shrink-0 mt-0.5" />;
   
   return (
     <RetroCard className="border-gold/30 mb-4" data-testid="offseason-summary">
       <div className="flex items-start gap-3">
-        <ScrollText className="w-5 h-5 text-gold flex-shrink-0 mt-0.5" />
+        {phaseIcon}
         <div className="flex-1">
-          <p className="font-pixel text-gold text-[10px] mb-2">OFFSEASON RECAP</p>
-          {currentSeasonDepartures.length > 0 ? (
+          <p className="font-pixel text-gold text-[10px] mb-2">{phaseTitle}</p>
+          
+          {/* Departures phase or any phase with departure data */}
+          {(league.currentPhase === "offseason_departures" || (currentSeasonDepartures.length > 0 && league.currentPhase !== "offseason_signing_day")) && (
             <div className="space-y-3">
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-muted/30 rounded p-2 text-center">
@@ -1531,36 +1571,85 @@ function OffseasonSummary({ league }: { league: LeagueDetails }) {
                 </div>
                 <div className="bg-muted/30 rounded p-2 text-center">
                   <p className="font-bold text-lg text-foreground">{drafted.length}</p>
-                  <p className="text-[9px] text-muted-foreground">Draft Declared</p>
+                  <p className="text-[9px] text-muted-foreground">MLB Draft</p>
                 </div>
                 <div className="bg-muted/30 rounded p-2 text-center">
                   <p className="font-bold text-lg text-foreground">{transferred.length}</p>
-                  <p className="text-[9px] text-muted-foreground">Transferred</p>
+                  <p className="text-[9px] text-muted-foreground">Transfer Portal</p>
                 </div>
               </div>
               {currentSeasonDepartures.length > 0 && (
                 <div>
                   <p className="text-[9px] text-muted-foreground mb-1">DEPARTING PLAYERS</p>
                   <div className="flex flex-wrap gap-1">
-                    {currentSeasonDepartures.slice(0, 10).map((p, i) => (
+                    {currentSeasonDepartures.map((p, i) => (
                       <Badge key={i} variant="outline" className="text-[8px]">
-                        {p.firstName[0]}. {p.lastName} ({p.position}, {p.overall} OVR)
+                        {p.firstName[0]}. {p.lastName} ({p.position}, {p.overall} OVR) - {p.departureType === "graduated" ? "Grad" : p.departureType === "draft" ? "MLB" : "Portal"}
                       </Badge>
                     ))}
-                    {currentSeasonDepartures.length > 10 && (
-                      <Badge variant="outline" className="text-[8px] text-muted-foreground">
-                        +{currentSeasonDepartures.length - 10} more
-                      </Badge>
-                    )}
                   </div>
                 </div>
               )}
             </div>
-          ) : (
+          )}
+
+          {/* Recruiting phase message */}
+          {league.currentPhase?.startsWith("offseason_recruiting") && currentSeasonDepartures.length === 0 && (
             <p className="text-sm text-muted-foreground">
-              The offseason is underway. Manage your roster through recruiting and the transfer portal before the new season begins.
+              The offseason recruiting period is underway. Visit the Recruiting Board to recruit unsigned players and check the Transfer Portal for available transfers.
             </p>
           )}
+
+          {/* Signing Day phase */}
+          {league.currentPhase === "offseason_signing_day" && signingDayData && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="bg-gold/10 rounded p-2 text-center">
+                  <p className="font-bold text-lg text-gold">{signingDayData.totalSigned}</p>
+                  <p className="text-[9px] text-muted-foreground">Recruits Signed</p>
+                </div>
+                <div className="bg-muted/30 rounded p-2 text-center">
+                  <p className="font-bold text-lg text-foreground">{signingDayData.totalUnsigned}</p>
+                  <p className="text-[9px] text-muted-foreground">Unsigned</p>
+                </div>
+                <div className="bg-muted/30 rounded p-2 text-center">
+                  <p className="font-bold text-lg text-foreground">{signingDayData.totalRecruits}</p>
+                  <p className="text-[9px] text-muted-foreground">Total Class</p>
+                </div>
+                {signingDayData.transferPortal && (
+                  <div className="bg-blue-500/10 rounded p-2 text-center">
+                    <p className="font-bold text-lg text-blue-400">{signingDayData.transferPortal.departed}</p>
+                    <p className="text-[9px] text-muted-foreground">Portal Transfers</p>
+                  </div>
+                )}
+              </div>
+              
+              <p className="text-[9px] text-muted-foreground mb-1">RECRUITING CLASS RANKINGS</p>
+              <div className="space-y-2 max-h-80 overflow-y-auto">
+                {signingDayData.teamSignings.map((team, rank) => (
+                  <div key={team.teamId} className="flex items-center gap-2 p-2 rounded bg-muted/20" data-testid={`signing-day-team-${team.abbreviation}`}>
+                    <span className="font-pixel text-gold text-xs w-6 text-center">#{rank + 1}</span>
+                    <TeamBadge abbreviation={team.abbreviation} primaryColor={team.primaryColor} secondaryColor={team.secondaryColor} size="sm" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium truncate">{team.teamName}</p>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {team.recruits.map(r => (
+                          <Badge key={r.id} variant="outline" className="text-[8px]">
+                            {r.firstName[0]}. {r.lastName} ({r.position}) {"*".repeat(r.starRating || 3)}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-xs font-bold">{team.totalRecruits}</p>
+                      <p className="text-[8px] text-muted-foreground">Avg {team.avgRating}*</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="mt-3 flex flex-wrap gap-2">
             <Link href={`/league/${league.id}/roster`}>
               <RetroButton variant="outline" size="sm" data-testid="button-offseason-roster">
@@ -1568,12 +1657,14 @@ function OffseasonSummary({ league }: { league: LeagueDetails }) {
                 View Roster
               </RetroButton>
             </Link>
-            <Link href={`/league/${league.id}/recruiting`}>
-              <RetroButton variant="outline" size="sm" data-testid="button-offseason-recruiting">
-                <Target className="w-3 h-3 mr-1" />
-                Recruiting Board
-              </RetroButton>
-            </Link>
+            {league.currentPhase !== "offseason_signing_day" && (
+              <Link href={`/league/${league.id}/recruiting`}>
+                <RetroButton variant="outline" size="sm" data-testid="button-offseason-recruiting">
+                  <Target className="w-3 h-3 mr-1" />
+                  Recruiting Board
+                </RetroButton>
+              </Link>
+            )}
           </div>
         </div>
       </div>
