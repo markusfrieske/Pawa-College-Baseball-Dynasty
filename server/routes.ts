@@ -23,7 +23,7 @@ const authSchema = z.object({
 const leagueCreateSchema = z.object({
   name: z.string().min(1).max(100),
   maxTeams: z.number().min(4).max(16).optional(),
-  cpuDifficulty: z.enum(["easy", "normal", "hard", "elite"]).optional(),
+  cpuDifficulty: z.enum(["beginner", "high_school", "all_american", "elite"]).optional(),
   conferenceCount: z.number().min(2).max(4).optional(),
   selectedConferences: z.array(z.string()).min(1).max(4).optional(),
   seasonLength: z.enum(["short", "medium", "long"]).optional(),
@@ -47,7 +47,8 @@ const setupSchema = z.object({
 });
 
 const settingsSchema = z.object({
-  auditLogPublic: z.boolean(),
+  auditLogPublic: z.boolean().optional(),
+  cpuDifficulty: z.enum(["beginner", "high_school", "all_american", "elite"]).optional(),
 });
 
 const SALT_ROUNDS = 10;
@@ -214,7 +215,7 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Invalid league data" });
       }
 
-      const { name, maxTeams = 8, cpuDifficulty = "normal", conferenceCount = 2, selectedConferences, seasonLength = "medium" } = result.data;
+      const { name, maxTeams = 8, cpuDifficulty = "high_school", conferenceCount = 2, selectedConferences, seasonLength = "medium" } = result.data;
 
       const league = await storage.createLeague({
         name,
@@ -2462,6 +2463,17 @@ export async function registerRoutes(
 
   // ============ CPU RECRUITING AI FUNCTION ============
   async function runCpuRecruiting(leagueId: string, week: number, season: number) {
+    const league = await storage.getLeague(leagueId);
+    const difficulty = league?.cpuDifficulty || "high_school";
+    
+    const difficultyConfig: Record<string, { minActions: number; maxActions: number; gainMultiplier: number; targetingBonus: number; offerThreshold: number; visitThreshold: number }> = {
+      beginner:     { minActions: 1, maxActions: 2, gainMultiplier: 0.6,  targetingBonus: 0,  offerThreshold: 70, visitThreshold: 85 },
+      high_school:  { minActions: 2, maxActions: 3, gainMultiplier: 0.85, targetingBonus: 3,  offerThreshold: 50, visitThreshold: 70 },
+      all_american: { minActions: 3, maxActions: 4, gainMultiplier: 1.1,  targetingBonus: 7,  offerThreshold: 40, visitThreshold: 55 },
+      elite:        { minActions: 4, maxActions: 5, gainMultiplier: 1.35, targetingBonus: 12, offerThreshold: 30, visitThreshold: 45 },
+    };
+    const config = difficultyConfig[difficulty] || difficultyConfig.high_school;
+    
     const teams = await storage.getTeamsByLeague(leagueId);
     const cpuTeams = teams.filter(t => t.isCpu);
     const recruits = await storage.getRecruitsByLeague(leagueId);
@@ -2470,20 +2482,16 @@ export async function registerRoutes(
     if (unsignedRecruits.length === 0 || cpuTeams.length === 0) return;
     
     for (const team of cpuTeams) {
-      // CPU makes 2-4 recruiting actions per week based on difficulty
-      const actionsPerWeek = 2 + Math.floor(Math.random() * 3);
+      const actionsPerWeek = config.minActions + Math.floor(Math.random() * (config.maxActions - config.minActions + 1));
       
-      // Get team's current interests and roster to determine priorities
       const teamInterests = await storage.getRecruitingInterestsByTeam(team.id);
       const roster = await storage.getPlayersByTeam(team.id);
       
-      // Calculate position needs
       const positionCounts: Record<string, number> = {};
       for (const player of roster) {
         positionCounts[player.position] = (positionCounts[player.position] || 0) + 1;
       }
       
-      // CPU prioritizes recruits it's already recruiting or that match team prestige
       const sortedRecruits = unsignedRecruits
         .map(r => {
           const interest = teamInterests.find(i => i.recruitId === r.id);
@@ -2493,27 +2501,24 @@ export async function registerRoutes(
           return { 
             recruit: r, 
             interest,
-            score: currentInterest * 2 + positionNeed - prestigeMatch + Math.random() * 5 
+            score: currentInterest * 2 + positionNeed - prestigeMatch + config.targetingBonus + Math.random() * 5 
           };
         })
         .sort((a, b) => b.score - a.score);
       
-      // Perform recruiting actions on top recruits
       for (let i = 0; i < Math.min(actionsPerWeek, sortedRecruits.length); i++) {
         const { recruit, interest } = sortedRecruits[i];
         
-        // Choose action based on current interest level
         const actionTypes = ["email", "phone", "phone"];
-        if ((interest?.interestLevel || 0) > 50 && !interest?.hasOffer) {
+        if ((interest?.interestLevel || 0) > config.offerThreshold && !interest?.hasOffer) {
           actionTypes.push("offer");
         }
-        if ((interest?.interestLevel || 0) > 70) {
+        if ((interest?.interestLevel || 0) > config.visitThreshold) {
           actionTypes.push("visit");
         }
         
         const actionType = actionTypes[Math.floor(Math.random() * actionTypes.length)];
         
-        // Calculate interest gain for CPU (simplified, no pitch topics)
         let baseGain = 0;
         switch (actionType) {
           case "email": baseGain = 3 + Math.floor(Math.random() * 5); break;
@@ -2524,7 +2529,7 @@ export async function registerRoutes(
         
         const overallQuality = ((team.prestige || 5) + (team.facilities || 5) + (team.academics || 5)) / 15;
         const schoolBonus = 0.8 + (overallQuality * 0.4);
-        const interestGain = Math.round(baseGain * schoolBonus);
+        const interestGain = Math.round(baseGain * schoolBonus * config.gainMultiplier);
         
         if (!interest) {
           await storage.createRecruitingInterest({
@@ -3010,8 +3015,10 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Invalid settings data" });
       }
       
-      const { auditLogPublic } = result.data;
-      const league = await storage.updateLeague(req.params.id, { auditLogPublic });
+      const updateData: Record<string, any> = {};
+      if (result.data.auditLogPublic !== undefined) updateData.auditLogPublic = result.data.auditLogPublic;
+      if (result.data.cpuDifficulty !== undefined) updateData.cpuDifficulty = result.data.cpuDifficulty;
+      const league = await storage.updateLeague(req.params.id, updateData);
       res.json(league);
     } catch (error) {
       console.error("Failed to update settings:", error);

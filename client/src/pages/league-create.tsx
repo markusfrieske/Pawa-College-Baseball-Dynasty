@@ -11,10 +11,10 @@ import { Star, ArrowLeft } from "lucide-react";
 import { Link } from "wouter";
 
 const difficultyOptions = [
-  { value: "easy", label: "Easy - CPU makes more mistakes" },
-  { value: "normal", label: "Normal - Balanced gameplay" },
-  { value: "hard", label: "Hard - CPU plays optimally" },
-  { value: "elite", label: "Elite - Minimal CPU mistakes" },
+  { value: "beginner", label: "Beginner - CPU recruits poorly" },
+  { value: "high_school", label: "High School - Balanced recruiting" },
+  { value: "all_american", label: "All-American - CPU recruits aggressively" },
+  { value: "elite", label: "Elite - CPU recruits at maximum power" },
 ];
 
 const teamCountOptions = [
@@ -40,7 +40,7 @@ const seasonLengthOptions = [
 export default function LeagueCreatePage() {
   const [name, setName] = useState("");
   const [maxTeams, setMaxTeams] = useState("8");
-  const [cpuDifficulty, setCpuDifficulty] = useState("normal");
+  const [cpuDifficulty, setCpuDifficulty] = useState("high_school");
   const [selectedConferences, setSelectedConferences] = useState<string[]>(["SEC", "ACC"]);
   const [seasonLength, setSeasonLength] = useState("medium");
   const [, setLocation] = useLocation();

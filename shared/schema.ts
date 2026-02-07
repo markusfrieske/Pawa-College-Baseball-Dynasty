@@ -27,7 +27,7 @@ export const leagues = pgTable("leagues", {
   name: text("name").notNull(),
   commissionerId: varchar("commissioner_id").notNull().references(() => users.id),
   maxTeams: integer("max_teams").notNull().default(16),
-  cpuDifficulty: text("cpu_difficulty").notNull().default("normal"),
+  cpuDifficulty: text("cpu_difficulty").notNull().default("high_school"),
   seasonLength: text("season_length").notNull().default("medium"),
   currentSeason: integer("current_season").notNull().default(1),
   currentPhase: text("current_phase").notNull().default("preseason"),

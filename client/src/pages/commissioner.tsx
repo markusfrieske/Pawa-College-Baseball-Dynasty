@@ -102,6 +102,19 @@ export default function CommissionerPage() {
     },
   });
 
+  const updateDifficultyMutation = useMutation({
+    mutationFn: async (cpuDifficulty: string) => {
+      return apiRequest("PATCH", `/api/leagues/${id}/settings`, { cpuDifficulty });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "commissioner"] });
+      toast({ title: "Difficulty Updated", description: "CPU difficulty has been changed." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   const simulateWeekMutation = useMutation({
     mutationFn: async () => {
       return apiRequest("POST", `/api/leagues/${id}/simulate`, {});
@@ -241,6 +254,7 @@ export default function CommissionerPage() {
             <SettingsTab
               league={data?.league}
               onToggleAuditLog={(isPublic) => toggleAuditLogMutation.mutate(isPublic)}
+              onChangeDifficulty={(difficulty) => updateDifficultyMutation.mutate(difficulty)}
             />
           </TabsContent>
 
@@ -708,12 +722,21 @@ function ActionButton({
   return content;
 }
 
+const difficultyOptions = [
+  { value: "beginner", label: "Beginner", description: "CPU recruits poorly, fewer actions" },
+  { value: "high_school", label: "High School", description: "Balanced recruiting, standard pace" },
+  { value: "all_american", label: "All-American", description: "Aggressive CPU recruiting" },
+  { value: "elite", label: "Elite", description: "Maximum CPU recruiting power" },
+];
+
 function SettingsTab({
   league,
   onToggleAuditLog,
+  onChangeDifficulty,
 }: {
   league?: League;
   onToggleAuditLog: (isPublic: boolean) => void;
+  onChangeDifficulty: (difficulty: string) => void;
 }) {
   return (
     <RetroCard>
@@ -732,6 +755,33 @@ function SettingsTab({
               onCheckedChange={onToggleAuditLog}
               data-testid="switch-audit-log-public"
             />
+          </div>
+
+          <div className="border-t border-border pt-6">
+            <div className="mb-4">
+              <p className="font-medium mb-2">CPU Difficulty</p>
+              <p className="text-sm text-muted-foreground mb-3">
+                Controls how aggressively CPU teams recruit
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {difficultyOptions.map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => onChangeDifficulty(opt.value)}
+                    className={`p-3 rounded-md border text-left transition-all ${
+                      league?.cpuDifficulty === opt.value
+                        ? "bg-gold/20 border-gold text-gold"
+                        : "bg-card border-border text-muted-foreground hover:border-gold/50"
+                    }`}
+                    data-testid={`button-difficulty-${opt.value}`}
+                  >
+                    <div className="font-medium text-sm">{opt.label}</div>
+                    <div className="text-xs opacity-70 mt-1">{opt.description}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           <div className="border-t border-border pt-6">
