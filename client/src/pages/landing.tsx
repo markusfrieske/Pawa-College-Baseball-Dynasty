@@ -3,14 +3,13 @@ import { useState } from "react";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroInput } from "@/components/ui/retro-input";
 import { RetroSelect } from "@/components/ui/retro-select";
-import { Trophy, Users, Target, Calendar, Star, TrendingUp, User, Bug, Volume2, VolumeX, Layers, LogOut, DollarSign, X, GraduationCap, Building2, Search, Settings, CalendarDays, Binoculars, Newspaper, Crown, Eye, Zap, Swords } from "lucide-react";
+import { Trophy, Users, Target, Calendar, Star, TrendingUp, User, Bug, Layers, LogOut, DollarSign, X, GraduationCap, Building2, Search, Settings, CalendarDays, Binoculars, Newspaper, Crown, Eye, Zap, Swords } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { DynastyLogo } from "@/components/dynasty-logo";
 
 export default function LandingPage() {
-  const [isMuted, setIsMuted] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const { toast } = useToast();
 
@@ -31,7 +30,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="container mx-auto px-4 pr-14 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <DynastyLogo className="w-10 h-10" />
             <span className="font-pixel text-gold text-sm hidden sm:block">
@@ -55,15 +54,6 @@ export default function LandingPage() {
                 data-testid="button-feedback"
               >
                 <Bug className="w-4 h-4" />
-              </RetroButton>
-              <RetroButton
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsMuted(!isMuted)}
-                title={isMuted ? "Unmute" : "Mute"}
-                data-testid="button-mute"
-              >
-                {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
               </RetroButton>
               <Link href="/dashboard">
                 <RetroButton
