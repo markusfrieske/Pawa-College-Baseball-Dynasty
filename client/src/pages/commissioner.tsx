@@ -25,7 +25,8 @@ import {
   Copy,
   Upload,
   FileSpreadsheet,
-  X
+  X,
+  GraduationCap
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -52,9 +53,36 @@ export default function CommissionerPage() {
     mutationFn: async () => {
       return apiRequest("POST", `/api/leagues/${id}/advance`, {});
     },
-    onSuccess: () => {
+    onSuccess: (response: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id] });
-      toast({ title: "Week Advanced", description: "The dynasty has moved to the next week." });
+      if (response?.seasonTransition) {
+        const t = response.seasonTransition;
+        toast({ 
+          title: "Season Complete!", 
+          description: `${t.graduated} graduated, ${t.recruitsAdded} recruits joined rosters, ${t.newRecruits} new recruits generated. Welcome to Season ${response.currentSeason}!`,
+        });
+      } else {
+        toast({ title: "Week Advanced", description: "The dynasty has moved to the next week." });
+      }
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const advanceSeasonMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", `/api/leagues/${id}/advance-season`, {});
+    },
+    onSuccess: (response: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id] });
+      const t = response?.seasonTransition;
+      toast({ 
+        title: "Season Complete!", 
+        description: t 
+          ? `${t.graduated} graduated, ${t.recruitsAdded} recruits joined rosters, ${t.newRecruits} new recruits generated.`
+          : "The dynasty has advanced to the next season.",
+      });
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -200,6 +228,8 @@ export default function CommissionerPage() {
               league={data?.league}
               onAdvanceWeek={() => advanceWeekMutation.mutate()}
               isAdvancing={advanceWeekMutation.isPending}
+              onAdvanceSeason={() => advanceSeasonMutation.mutate()}
+              isAdvancingSeason={advanceSeasonMutation.isPending}
               onImportRecruiting={(csvData?: string) => importRecruitingMutation.mutate(csvData)}
               isImporting={importRecruitingMutation.isPending}
               onSimulateWeek={() => simulateWeekMutation.mutate()}
@@ -231,6 +261,8 @@ function ActionsTab({
   league,
   onAdvanceWeek,
   isAdvancing,
+  onAdvanceSeason,
+  isAdvancingSeason,
   onImportRecruiting,
   isImporting,
   onSimulateWeek,
@@ -239,6 +271,8 @@ function ActionsTab({
   league?: League;
   onAdvanceWeek: () => void;
   isAdvancing: boolean;
+  onAdvanceSeason: () => void;
+  isAdvancingSeason: boolean;
   onImportRecruiting: (csvData?: string) => void;
   isImporting: boolean;
   onSimulateWeek: () => void;
@@ -282,13 +316,29 @@ function ActionsTab({
             </p>
             <RetroButton
               onClick={onAdvanceWeek}
-              disabled={isAdvancing}
+              disabled={isAdvancing || isAdvancingSeason}
               className="w-full"
               data-testid="button-advance-week"
             >
               <Play className="w-4 h-4 mr-2" />
               {isAdvancing ? "Advancing..." : "Advance Week"}
             </RetroButton>
+            <div className="mt-3 pt-3 border-t border-border">
+              <p className="text-muted-foreground text-xs mb-2">
+                End the current season: graduates seniors, advances eligibility,
+                adds signed recruits to rosters, and generates a new recruiting class.
+              </p>
+              <RetroButton
+                onClick={onAdvanceSeason}
+                disabled={isAdvancingSeason || isAdvancing}
+                variant="outline"
+                className="w-full"
+                data-testid="button-advance-season"
+              >
+                <GraduationCap className="w-4 h-4 mr-2" />
+                {isAdvancingSeason ? "Processing..." : "Advance to Next Season"}
+              </RetroButton>
+            </div>
           </RetroCardContent>
         </RetroCard>
 

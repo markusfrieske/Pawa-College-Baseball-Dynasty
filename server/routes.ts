@@ -814,8 +814,12 @@ export async function registerRoutes(
       prestige: (team.prestige || 5) / 5,
       facilities: (team.facilities || 5) / 5,
     };
+    const topicBonus = attributeMap[pitchTopic] || 1.0;
     
-    return attributeMap[pitchTopic] || 1.0;
+    const overallQuality = ((team.prestige || 5) + (team.facilities || 5) + (team.academics || 5)) / 30;
+    const qualityModifier = 0.9 + (overallQuality * 0.2);
+    
+    return topicBonus * qualityModifier;
   }
   
   // Calculate coach skill bonus for recruiting action
@@ -826,9 +830,18 @@ export async function registerRoutes(
     const baseSkill = isPitcher 
       ? (coach.pitchingRecruitingSkill || 1)
       : (coach.hittingRecruitingSkill || 1);
+    const skillBonus = 1.0 + (baseSkill - 1) * 0.05;
     
-    // Each skill level adds 5% effectiveness
-    return 1.0 + (baseSkill - 1) * 0.05;
+    const archetypeMultipliers: Record<string, number> = {
+      "Pure CEO": 1.15,
+      "Player's Coach": 1.10,
+      "Balanced": 1.0,
+      "Tactician": 0.95,
+      "Old School": 0.90,
+    };
+    const archetypeBonus = archetypeMultipliers[coach.archetype] || 1.0;
+    
+    return skillBonus * archetypeBonus;
   }
   
   // Calculate proximity bonus based on recruit home state vs team state
@@ -2133,24 +2146,50 @@ export async function registerRoutes(
       const currentWeek = league.currentWeek;
       const nextWeek = currentWeek + 1;
       
+      // Determine max weeks for season based on phase
+      const seasonWeeks: Record<string, number> = {
+        "short": 8,
+        "medium": 14,
+        "long": 32,
+      };
+      const maxWeeks = seasonWeeks[league.seasonLength || "medium"] || 14;
+      
       // ============ CPU RECRUITING AI ============
-      // Run CPU recruiting actions during recruiting phase
       if (league.currentPhase === "recruiting" || league.currentPhase === "preseason") {
         await runCpuRecruiting(leagueId, currentWeek, league.currentSeason);
       }
       
       // ============ RECRUIT STAGE PROGRESSION ============
-      // Update recruit stages based on interest levels and week progression
       await updateRecruitStages(leagueId, nextWeek);
       
       // ============ RESET WEEKLY ACTIONS ============
-      // Reset coach action counts for new week
       const coaches = await storage.getCoachesByLeague(leagueId);
       for (const coach of coaches) {
         await storage.updateCoach(coach.id, {
           scoutActionsUsed: 0,
           recruitActionsUsed: 0,
         });
+      }
+
+      // ============ CHECK FOR SEASON TRANSITION ============
+      // If we've passed the max weeks for offseason phase, trigger season transition
+      if (league.currentPhase === "offseason" || nextWeek > maxWeeks) {
+        const transitionResult = await performSeasonTransition(leagueId, league.currentSeason);
+        
+        const updatedLeague = await storage.updateLeague(league.id, {
+          currentWeek: 1,
+          currentSeason: league.currentSeason + 1,
+          currentPhase: "preseason",
+        });
+
+        await storage.createAuditLog({
+          leagueId: league.id,
+          userId: req.session.userId,
+          action: "Season Advanced",
+          details: `Season ${league.currentSeason} ended. ${transitionResult.graduated} players graduated, ${transitionResult.recruitsAdded} recruits joined rosters, ${transitionResult.newRecruits} new recruits generated. Now entering Season ${league.currentSeason + 1}.`,
+        });
+
+        return res.json({ ...updatedLeague, seasonTransition: transitionResult });
       }
 
       const updatedLeague = await storage.updateLeague(league.id, {
@@ -2171,6 +2210,256 @@ export async function registerRoutes(
     }
   });
   
+  // ============ SEASON TRANSITION FUNCTION ============
+  async function performSeasonTransition(leagueId: string, completedSeason: number) {
+    const teams = await storage.getTeamsByLeague(leagueId);
+    let totalGraduated = 0;
+    let totalRecruitsAdded = 0;
+    let totalDraftDeclared = 0;
+    let totalTransferred = 0;
+    
+    for (const team of teams) {
+      const roster = await storage.getPlayersByTeam(team.id);
+      
+      // 1. Archive graduating seniors (SR eligibility) to player history
+      const seniors = roster.filter(p => p.eligibility === "SR");
+      for (const senior of seniors) {
+        const eligMap: Record<string, number> = { "FR": 1, "SO": 2, "JR": 3, "SR": 4, "RS": 5 };
+        await storage.createPlayerHistory({
+          leagueId,
+          teamId: team.id,
+          firstName: senior.firstName,
+          lastName: senior.lastName,
+          position: senior.position,
+          finalEligibility: senior.eligibility,
+          overall: senior.overall,
+          starRating: senior.starRating,
+          departureType: "graduated",
+          departedSeason: completedSeason,
+          seasonsPlayed: eligMap[senior.eligibility] || 1,
+          abilities: senior.abilities || [],
+          homeState: senior.homeState,
+          hometown: senior.hometown,
+        });
+        await storage.deletePlayer(senior.id);
+        totalGraduated++;
+      }
+      
+      // 2. Archive draft-declared players
+      const draftDeclared = roster.filter(p => p.declaredForDraft && !seniors.includes(p));
+      for (const player of draftDeclared) {
+        const eligMap: Record<string, number> = { "FR": 1, "SO": 2, "JR": 3, "SR": 4, "RS": 5 };
+        await storage.createPlayerHistory({
+          leagueId,
+          teamId: team.id,
+          firstName: player.firstName,
+          lastName: player.lastName,
+          position: player.position,
+          finalEligibility: player.eligibility,
+          overall: player.overall,
+          starRating: player.starRating,
+          departureType: "draft",
+          departedSeason: completedSeason,
+          seasonsPlayed: eligMap[player.eligibility] || 1,
+          abilities: player.abilities || [],
+          homeState: player.homeState,
+          hometown: player.hometown,
+        });
+        await storage.deletePlayer(player.id);
+        totalDraftDeclared++;
+      }
+      
+      // 3. Archive transfer portal players who haven't been signed
+      const portalPlayers = roster.filter(p => p.inTransferPortal && !seniors.includes(p) && !draftDeclared.includes(p));
+      for (const player of portalPlayers) {
+        const eligMap: Record<string, number> = { "FR": 1, "SO": 2, "JR": 3, "SR": 4, "RS": 5 };
+        await storage.createPlayerHistory({
+          leagueId,
+          teamId: team.id,
+          firstName: player.firstName,
+          lastName: player.lastName,
+          position: player.position,
+          finalEligibility: player.eligibility,
+          overall: player.overall,
+          starRating: player.starRating,
+          departureType: "transfer_portal",
+          departedSeason: completedSeason,
+          seasonsPlayed: eligMap[player.eligibility] || 1,
+          abilities: player.abilities || [],
+          homeState: player.homeState,
+          hometown: player.hometown,
+        });
+        await storage.deletePlayer(player.id);
+        totalTransferred++;
+      }
+      
+      // 4. Advance eligibility for remaining players: FR→SO, SO→JR, JR→SR
+      const remainingPlayers = await storage.getPlayersByTeam(team.id);
+      for (const player of remainingPlayers) {
+        const eligProgression: Record<string, string> = {
+          "FR": "SO",
+          "SO": "JR",
+          "JR": "SR",
+          "RS": "SR",
+        };
+        const newEligibility = eligProgression[player.eligibility];
+        if (newEligibility) {
+          await storage.updatePlayer(player.id, { 
+            eligibility: newEligibility,
+            declaredForDraft: false,
+            inTransferPortal: false,
+          });
+        }
+      }
+      
+      // 5. Convert signed recruits into roster players
+      const recruits = await storage.getRecruitsByLeague(leagueId);
+      const signedRecruits = recruits.filter(r => r.signedTeamId === team.id);
+      
+      for (const recruit of signedRecruits) {
+        const jerseyNumber = 1 + Math.floor(Math.random() * 99);
+        await storage.createPlayer({
+          teamId: team.id,
+          firstName: recruit.firstName,
+          lastName: recruit.lastName,
+          position: recruit.position,
+          eligibility: "FR",
+          throwHand: recruit.throwHand || "R",
+          batHand: recruit.batHand || "R",
+          homeState: recruit.homeState,
+          hometown: recruit.hometown,
+          jerseyNumber,
+          overall: recruit.overall,
+          starRating: recruit.starRating,
+          hitForAvg: recruit.hitForAvg || 50,
+          power: recruit.power || 50,
+          speed: recruit.speed || 50,
+          arm: recruit.arm || 50,
+          fielding: recruit.fielding || 50,
+          errorResistance: recruit.errorResistance || 50,
+          clutch: recruit.clutch || 50,
+          vsLHP: recruit.vsLHP || 50,
+          grit: recruit.grit || 50,
+          stealing: recruit.stealing || 50,
+          running: recruit.running || 50,
+          throwing: recruit.throwing || 50,
+          recovery: recruit.recovery || 50,
+          catcherAbility: recruit.catcherAbility || 50,
+          velocity: recruit.velocity || 50,
+          control: recruit.control || 50,
+          stamina: recruit.stamina || 50,
+          stuff: recruit.stuff || 50,
+          wRISP: recruit.wRISP || 50,
+          vsLefty: recruit.vsLefty || 50,
+          poise: recruit.poise || 50,
+          heater: recruit.heater || 50,
+          agile: recruit.agile || 50,
+          pitchFB: recruit.pitchFB ?? 1,
+          pitch2S: recruit.pitch2S ?? 0,
+          pitchSL: recruit.pitchSL ?? 0,
+          pitchCB: recruit.pitchCB ?? 0,
+          pitchCH: recruit.pitchCH ?? 0,
+          pitchCT: recruit.pitchCT ?? 0,
+          pitchSNK: recruit.pitchSNK ?? 0,
+          pitchSPL: recruit.pitchSPL ?? 0,
+          abilities: recruit.abilities || [],
+          skinTone: recruit.skinTone || "light",
+          hairColor: recruit.hairColor || "brown",
+          hairStyle: recruit.hairStyle || "short",
+          headwear: recruit.headwear || "cap",
+        });
+        totalRecruitsAdded++;
+      }
+    }
+    
+    // 6. Clear old recruits and recruiting data, generate new class
+    await storage.deleteRecruitsByLeague(leagueId);
+    
+    // Generate new recruiting class (40-50 recruits)
+    const recruitCount = 40 + Math.floor(Math.random() * 11);
+    await generateRecruits(leagueId, recruitCount);
+    
+    // 7. Create new standings for the next season (guard against duplicates)
+    const existingStandings = await storage.getStandingsByLeague(leagueId, completedSeason + 1);
+    if (existingStandings.length === 0) {
+      for (const team of teams) {
+        await storage.createStandings({
+          leagueId,
+          teamId: team.id,
+          season: completedSeason + 1,
+        });
+      }
+    }
+    
+    return {
+      graduated: totalGraduated,
+      draftDeclared: totalDraftDeclared,
+      transferred: totalTransferred,
+      recruitsAdded: totalRecruitsAdded,
+      newRecruits: recruitCount,
+    };
+  }
+  
+  // ============ PLAYER HISTORY API ============
+  app.get("/api/leagues/:id/player-history", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id);
+      if (!league) {
+        return res.status(404).json({ message: "League not found" });
+      }
+      
+      const history = await storage.getPlayerHistoryByLeague(req.params.id);
+      const teams = await storage.getTeamsByLeague(req.params.id);
+      const teamMap = Object.fromEntries(teams.map(t => [t.id, t]));
+      
+      const enrichedHistory = history.map(h => ({
+        ...h,
+        teamName: teamMap[h.teamId]?.name || "Unknown",
+        abbreviation: teamMap[h.teamId]?.abbreviation || "???",
+        primaryColor: teamMap[h.teamId]?.primaryColor || "#666",
+      }));
+      
+      res.json({ history: enrichedHistory });
+    } catch (error) {
+      console.error("Failed to fetch player history:", error);
+      res.status(500).json({ message: "Failed to fetch player history" });
+    }
+  });
+
+  // Explicit season advance endpoint
+  app.post("/api/leagues/:id/advance-season", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id as string);
+      if (!league) {
+        return res.status(404).json({ message: "League not found" });
+      }
+      
+      if (league.commissionerId !== req.session.userId) {
+        return res.status(403).json({ message: "Only commissioner can advance the season" });
+      }
+      
+      const transitionResult = await performSeasonTransition(league.id, league.currentSeason);
+      
+      const updatedLeague = await storage.updateLeague(league.id, {
+        currentWeek: 1,
+        currentSeason: league.currentSeason + 1,
+        currentPhase: "preseason",
+      });
+
+      await storage.createAuditLog({
+        leagueId: league.id,
+        userId: req.session.userId,
+        action: "Season Advanced",
+        details: `Season ${league.currentSeason} ended. ${transitionResult.graduated} players graduated, ${transitionResult.recruitsAdded} recruits joined rosters, ${transitionResult.newRecruits} new recruits generated.`,
+      });
+
+      res.json({ ...updatedLeague, seasonTransition: transitionResult });
+    } catch (error) {
+      console.error("Failed to advance season:", error);
+      res.status(500).json({ message: "Failed to advance season" });
+    }
+  });
+
   // ============ CPU RECRUITING AI FUNCTION ============
   async function runCpuRecruiting(leagueId: string, week: number, season: number) {
     const teams = await storage.getTeamsByLeague(leagueId);
@@ -2233,9 +2522,9 @@ export async function registerRoutes(
           case "visit": baseGain = 15 + Math.floor(Math.random() * 10); break;
         }
         
-        // Apply prestige bonus
-        const prestigeBonus = (team.prestige || 5) / 5;
-        const interestGain = Math.round(baseGain * prestigeBonus);
+        const overallQuality = ((team.prestige || 5) + (team.facilities || 5) + (team.academics || 5)) / 15;
+        const schoolBonus = 0.8 + (overallQuality * 0.4);
+        const interestGain = Math.round(baseGain * schoolBonus);
         
         if (!interest) {
           await storage.createRecruitingInterest({

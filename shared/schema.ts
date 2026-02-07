@@ -708,6 +708,45 @@ export const insertDynastyNewsSchema = createInsertSchema(dynastyNews).pick({
 export type InsertDynastyNews = z.infer<typeof insertDynastyNewsSchema>;
 export type DynastyNews = typeof dynastyNews.$inferSelect;
 
+// Player history/archive table - tracks graduated and departed players
+export const playerHistory = pgTable("player_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  leagueId: varchar("league_id").notNull().references(() => leagues.id),
+  teamId: varchar("team_id").notNull().references(() => teams.id),
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
+  position: text("position").notNull(),
+  finalEligibility: text("final_eligibility").notNull(),
+  overall: integer("overall").notNull().default(500),
+  starRating: integer("star_rating").notNull().default(3),
+  departureType: text("departure_type").notNull().default("graduated"),
+  departedSeason: integer("departed_season").notNull().default(1),
+  seasonsPlayed: integer("seasons_played").notNull().default(1),
+  abilities: json("abilities").$type<string[]>().default([]),
+  homeState: text("home_state").notNull().default(""),
+  hometown: text("hometown").notNull().default(""),
+});
+
+export const insertPlayerHistorySchema = createInsertSchema(playerHistory).pick({
+  leagueId: true,
+  teamId: true,
+  firstName: true,
+  lastName: true,
+  position: true,
+  finalEligibility: true,
+  overall: true,
+  starRating: true,
+  departureType: true,
+  departedSeason: true,
+  seasonsPlayed: true,
+  abilities: true,
+  homeState: true,
+  hometown: true,
+});
+
+export type InsertPlayerHistory = z.infer<typeof insertPlayerHistorySchema>;
+export type PlayerHistory = typeof playerHistory.$inferSelect;
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   leagues: many(leagues),
@@ -744,6 +783,11 @@ export const coachesRelations = relations(coaches, ({ one }) => ({
 
 export const playersRelations = relations(players, ({ one }) => ({
   team: one(teams, { fields: [players.teamId], references: [teams.id] }),
+}));
+
+export const playerHistoryRelations = relations(playerHistory, ({ one }) => ({
+  league: one(leagues, { fields: [playerHistory.leagueId], references: [leagues.id] }),
+  team: one(teams, { fields: [playerHistory.teamId], references: [teams.id] }),
 }));
 
 export const recruitsRelations = relations(recruits, ({ one, many }) => ({

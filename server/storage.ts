@@ -1,7 +1,7 @@
 import {
   users, leagues, conferences, teams, coaches, scouts,
   players, recruits, recruitingInterests, games, standings, auditLogs, leagueInvites, dynastyNews,
-  recruitingActionsLog, recruitTopSchools, transferPortalInterests,
+  recruitingActionsLog, recruitTopSchools, transferPortalInterests, playerHistory,
   type User, type InsertUser,
   type League, type InsertLeague,
   type Conference, type InsertConference,
@@ -19,6 +19,7 @@ import {
   type RecruitingActionsLog, type InsertRecruitingActionsLog,
   type RecruitTopSchools, type InsertRecruitTopSchools,
   type TransferPortalInterest, type InsertTransferPortalInterest,
+  type PlayerHistory, type InsertPlayerHistory,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, or, inArray } from "drizzle-orm";
@@ -105,6 +106,11 @@ export interface IStorage {
   createTransferPortalInterest(interest: InsertTransferPortalInterest): Promise<TransferPortalInterest>;
   updateTransferPortalInterest(id: string, data: Partial<TransferPortalInterest>): Promise<TransferPortalInterest | undefined>;
   deleteTransferPortalInterestsByPlayer(playerId: string): Promise<void>;
+
+  deletePlayer(id: string): Promise<void>;
+  createPlayerHistory(data: InsertPlayerHistory): Promise<PlayerHistory>;
+  getPlayerHistoryByLeague(leagueId: string): Promise<PlayerHistory[]>;
+  getPlayerHistoryByTeam(teamId: string): Promise<PlayerHistory[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -440,6 +446,23 @@ export class DatabaseStorage implements IStorage {
 
   async deleteTransferPortalInterestsByPlayer(playerId: string): Promise<void> {
     await db.delete(transferPortalInterests).where(eq(transferPortalInterests.playerId, playerId));
+  }
+
+  async deletePlayer(id: string): Promise<void> {
+    await db.delete(players).where(eq(players.id, id));
+  }
+
+  async createPlayerHistory(data: InsertPlayerHistory): Promise<PlayerHistory> {
+    const [history] = await db.insert(playerHistory).values(data).returning();
+    return history;
+  }
+
+  async getPlayerHistoryByLeague(leagueId: string): Promise<PlayerHistory[]> {
+    return db.select().from(playerHistory).where(eq(playerHistory.leagueId, leagueId));
+  }
+
+  async getPlayerHistoryByTeam(teamId: string): Promise<PlayerHistory[]> {
+    return db.select().from(playerHistory).where(eq(playerHistory.teamId, teamId));
   }
 }
 

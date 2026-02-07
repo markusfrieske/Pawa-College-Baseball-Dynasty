@@ -34,6 +34,22 @@ import {
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Recruit, RecruitingInterest, Team, League } from "@shared/schema";
+
+function getInterestLabel(level: number): { label: string; color: string } {
+  if (level >= 90) return { label: "On Fire", color: "text-red-400" };
+  if (level >= 70) return { label: "Very Hot", color: "text-orange-400" };
+  if (level >= 50) return { label: "Hot", color: "text-yellow-400" };
+  if (level >= 30) return { label: "Warm", color: "text-green-400" };
+  if (level >= 15) return { label: "Cool", color: "text-blue-400" };
+  return { label: "Cold", color: "text-blue-300" };
+}
+
+function getInterestChangeLabel(change: number): { label: string; color: string } {
+  if (change >= 15) return { label: "Big Boost", color: "text-green-400" };
+  if (change >= 8) return { label: "Good Progress", color: "text-green-400" };
+  if (change >= 3) return { label: "Some Interest", color: "text-yellow-400" };
+  return { label: "Slight Interest", color: "text-blue-400" };
+}
 import { isPitcher as checkIsPitcher, isCatcher as checkIsCatcher } from "@shared/positions";
 import { getAbilityByName } from "@shared/abilities";
 import { apiRequest } from "@/lib/queryClient";
@@ -129,7 +145,7 @@ export default function RecruitProfilePage() {
       return apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/phone`);
     },
     onSuccess: () => {
-      toast({ title: "Phone Call Made", description: "+5% interest boost" });
+      toast({ title: "Phone Call Made", description: "Interest increased" });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruits", recruitId] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting", recruitId, "actions"] });
     },
@@ -143,7 +159,7 @@ export default function RecruitProfilePage() {
       return apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/email`);
     },
     onSuccess: () => {
-      toast({ title: "Email Sent", description: "+3% interest boost" });
+      toast({ title: "Email Sent", description: "Interest increased" });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruits", recruitId] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting", recruitId, "actions"] });
     },
@@ -157,7 +173,7 @@ export default function RecruitProfilePage() {
       return apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/offer`);
     },
     onSuccess: () => {
-      toast({ title: "Scholarship Offered!", description: "+15% interest boost" });
+      toast({ title: "Scholarship Offered!", description: "Big interest boost" });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruits", recruitId] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting", recruitId, "actions"] });
     },
@@ -362,7 +378,7 @@ export default function RecruitProfilePage() {
             disabled={phoneMutation.isPending || !recruit.interest}
           >
             <Phone className="w-4 h-4 mr-2" />
-            {phoneMutation.isPending ? "Calling..." : "Phone (+5%)"}
+            {phoneMutation.isPending ? "Calling..." : "Phone"}
           </RetroButton>
           <RetroButton 
             variant="outline" 
@@ -371,7 +387,7 @@ export default function RecruitProfilePage() {
             disabled={emailMutation.isPending || !recruit.interest}
           >
             <Mail className="w-4 h-4 mr-2" />
-            {emailMutation.isPending ? "Sending..." : "Email (+3%)"}
+            {emailMutation.isPending ? "Sending..." : "Email"}
           </RetroButton>
           <RetroButton 
             variant="outline" 
@@ -381,7 +397,7 @@ export default function RecruitProfilePage() {
             disabled={offerMutation.isPending || recruit.interest?.hasOffer || !recruit.interest}
           >
             <Gift className="w-4 h-4 mr-2" />
-            {offerMutation.isPending ? "Offering..." : recruit.interest?.hasOffer ? "Offered" : "Offer (+15%)"}
+            {offerMutation.isPending ? "Offering..." : recruit.interest?.hasOffer ? "Offered" : "Offer"}
           </RetroButton>
         </div>
 
@@ -438,7 +454,7 @@ export default function RecruitProfilePage() {
                     {recruit.interest?.interestLevel && (
                       <div className="mt-2 flex justify-between text-xs text-muted-foreground">
                         <span>Interest Level</span>
-                        <span className="text-gold font-bold">{recruit.interest.interestLevel}%</span>
+                        <span className={`font-bold ${getInterestLabel(recruit.interest.interestLevel).color}`}>{getInterestLabel(recruit.interest.interestLevel).label}</span>
                       </div>
                     )}
                   </div>
@@ -638,10 +654,10 @@ export default function RecruitProfilePage() {
                         <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
                           <div 
                             className="h-full bg-gold/70 rounded-full"
-                            style={{ width: `${Math.min(100, school.interestLevel)}%` }}
+                            style={{ width: `${Math.round(school.interestLevel / 20) * 20}%` }}
                           />
                         </div>
-                        <span className="text-xs font-bold w-10 text-right">{school.interestLevel}%</span>
+                        <span className={`text-xs font-bold w-16 text-right ${getInterestLabel(school.interestLevel).color}`}>{getInterestLabel(school.interestLevel).label}</span>
                       </div>
                     ))}
                   </div>
@@ -668,7 +684,7 @@ export default function RecruitProfilePage() {
                         </span>
                         <span className="capitalize flex-1">{action.actionType}</span>
                         {action.interestChange > 0 && (
-                          <span className="text-green-400">+{action.interestChange}%</span>
+                          <span className={getInterestChangeLabel(action.interestChange).color}>↑ {getInterestChangeLabel(action.interestChange).label}</span>
                         )}
                         <span className="text-muted-foreground">Wk {action.week}</span>
                       </div>

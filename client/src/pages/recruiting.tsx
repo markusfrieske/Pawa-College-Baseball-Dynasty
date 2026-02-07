@@ -53,6 +53,22 @@ interface FilterPreset {
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Recruit, RecruitingInterest, Team } from "@shared/schema";
+
+function getInterestLabel(level: number): { label: string; color: string } {
+  if (level >= 90) return { label: "On Fire", color: "text-red-400" };
+  if (level >= 70) return { label: "Very Hot", color: "text-orange-400" };
+  if (level >= 50) return { label: "Hot", color: "text-yellow-400" };
+  if (level >= 30) return { label: "Warm", color: "text-green-400" };
+  if (level >= 15) return { label: "Cool", color: "text-blue-400" };
+  return { label: "Cold", color: "text-blue-300" };
+}
+
+function getInterestChangeLabel(change: number): { label: string; color: string } {
+  if (change >= 15) return { label: "Big Boost", color: "text-green-400" };
+  if (change >= 8) return { label: "Good Progress", color: "text-green-400" };
+  if (change >= 3) return { label: "Some Interest", color: "text-yellow-400" };
+  return { label: "Slight Interest", color: "text-blue-400" };
+}
 import { getAbilityByName } from "@shared/abilities";
 import { PlayerPortrait } from "@/components/ui/player-portrait";
 import { PitchMixDial } from "@/components/ui/pitch-mix-dial";
@@ -230,10 +246,10 @@ export default function RecruitingPage() {
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
       const gain = data.interestGain || 0;
-      const match = data.matchLevel || "Somewhat";
+      const changeLabel = getInterestChangeLabel(gain);
       toast({ 
         title: "Phone Call Made", 
-        description: `+${gain}% interest (${match} priority match)` 
+        description: `${changeLabel.label}` 
       });
     },
     onError: (error: Error) => {
@@ -248,10 +264,10 @@ export default function RecruitingPage() {
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
       const gain = data.interestGain || 0;
-      const match = data.matchLevel || "Somewhat";
+      const changeLabel = getInterestChangeLabel(gain);
       toast({ 
         title: "Email Sent", 
-        description: `+${gain}% interest (${match} priority match)` 
+        description: `${changeLabel.label}` 
       });
     },
     onError: (error: Error) => {
@@ -266,9 +282,10 @@ export default function RecruitingPage() {
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
       const gain = data.interestGain || 0;
+      const changeLabel = getInterestChangeLabel(gain);
       toast({ 
         title: "Campus Visit Scheduled", 
-        description: `+${gain}% interest from visit!` 
+        description: `${changeLabel.label}` 
       });
     },
     onError: (error: Error) => {
@@ -283,7 +300,8 @@ export default function RecruitingPage() {
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
       const gain = data.interestGain || 0;
-      toast({ title: "Scholarship Offered", description: `+${gain}% interest from offer!` });
+      const changeLabel = getInterestChangeLabel(gain);
+      toast({ title: "Scholarship Offered", description: `${changeLabel.label}` });
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -1008,7 +1026,7 @@ function RecruitRow({
                   <Phone className="w-3 h-3" />
                 </RetroButton>
               </TooltipTrigger>
-              <TooltipContent>Phone Call (+5% interest)</TooltipContent>
+              <TooltipContent>Phone Call</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -1022,7 +1040,7 @@ function RecruitRow({
                   <Mail className="w-3 h-3" />
                 </RetroButton>
               </TooltipTrigger>
-              <TooltipContent>Send Email (+3% interest)</TooltipContent>
+              <TooltipContent>Send Email</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -1036,7 +1054,7 @@ function RecruitRow({
                   <Gift className="w-3 h-3" />
                 </RetroButton>
               </TooltipTrigger>
-              <TooltipContent>{recruit.interest?.hasOffer ? "Scholarship Offered" : "Offer Scholarship (+15% interest)"}</TooltipContent>
+              <TooltipContent>{recruit.interest?.hasOffer ? "Scholarship Offered" : "Offer Scholarship"}</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -1137,12 +1155,12 @@ function RecruitRow({
                   <div 
                     className="h-full transition-all"
                     style={{ 
-                      width: `${Math.min(100, school.interestLevel)}%`,
+                      width: `${Math.round(school.interestLevel / 20) * 20}%`,
                       backgroundColor: school.primaryColor 
                     }}
                   />
                 </div>
-                <span className="text-[10px] text-muted-foreground w-6 text-right">{school.interestLevel}%</span>
+                <span className={`text-[10px] w-14 text-right ${getInterestLabel(school.interestLevel).color}`}>{getInterestLabel(school.interestLevel).label}</span>
               </div>
             ))}
           </div>
@@ -1780,8 +1798,8 @@ function RecruitActionsLog({ recruitId, leagueId }: { recruitId: string; leagueI
               <span className="text-muted-foreground truncate flex-1">{action.notes}</span>
             )}
             {action.interestChange !== 0 && (
-              <span className={action.interestChange > 0 ? "text-green-400" : "text-red-400"}>
-                {action.interestChange > 0 ? "+" : ""}{action.interestChange}%
+              <span className={action.interestChange > 0 ? getInterestChangeLabel(action.interestChange).color : "text-red-400"}>
+                {action.interestChange > 0 ? `↑ ${getInterestChangeLabel(action.interestChange).label}` : "↓ Interest dropped"}
               </span>
             )}
           </div>
