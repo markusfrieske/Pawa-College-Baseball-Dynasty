@@ -2140,97 +2140,24 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Not in departures phase" });
       }
 
-      // Verify commissioner
       if (league.commissionerId !== req.session.userId) {
         const coaches = await storage.getCoachesByLeague(req.params.id);
         const userCoach = coaches.find(c => c.userId === req.session.userId);
         if (!userCoach) return res.status(403).json({ message: "Not authorized" });
       }
 
-      // Ensure departures have been processed (in case user skipped advance-week)
-      await processOffseasonDepartures(req.params.id, league.currentSeason);
-
-      const teams = await storage.getTeamsByLeague(req.params.id);
-      let totalGraduated = 0;
-      let totalDrafted = 0;
-      let totalTransferred = 0;
-
-      for (const team of teams) {
-        const roster = await storage.getPlayersByTeam(team.id);
-        const pending = roster.filter(p => p.pendingDeparture && p.retentionStatus !== "retained");
-
-        for (const player of pending) {
-          const eligMap: Record<string, number> = { "FR": 1, "SO": 2, "JR": 3, "SR": 4, "RS": 5 };
-          
-          if (player.departureType === "graduated" || player.departureType === "draft") {
-            await storage.createPlayerHistory({
-              leagueId: req.params.id,
-              teamId: team.id,
-              firstName: player.firstName,
-              lastName: player.lastName,
-              position: player.position,
-              finalEligibility: player.eligibility,
-              overall: player.overall,
-              starRating: player.starRating,
-              departureType: player.departureType,
-              departedSeason: league.currentSeason,
-              seasonsPlayed: eligMap[player.eligibility] || 1,
-              abilities: player.abilities || [],
-              homeState: player.homeState,
-              hometown: player.hometown,
-            });
-            await storage.deletePlayer(player.id);
-            if (player.departureType === "graduated") totalGraduated++;
-            else totalDrafted++;
-          } else if (player.departureType === "transfer") {
-            await storage.createPlayerHistory({
-              leagueId: req.params.id,
-              teamId: team.id,
-              firstName: player.firstName,
-              lastName: player.lastName,
-              position: player.position,
-              finalEligibility: player.eligibility,
-              overall: player.overall,
-              starRating: player.starRating,
-              departureType: "transfer_portal",
-              departedSeason: league.currentSeason,
-              seasonsPlayed: eligMap[player.eligibility] || 1,
-              abilities: player.abilities || [],
-              homeState: player.homeState,
-              hometown: player.hometown,
-            });
-            await storage.updatePlayer(player.id, {
-              pendingDeparture: false,
-              retentionStatus: null,
-              inTransferPortal: true,
-            });
-            totalTransferred++;
-          }
-        }
-
-        // Clear retained players' pending flags
-        const retained = roster.filter(p => p.pendingDeparture && p.retentionStatus === "retained");
-        for (const player of retained) {
-          await storage.updatePlayer(player.id, {
-            pendingDeparture: false,
-            departureType: null,
-          });
-        }
-      }
-
-      // Advance to recruiting phase
-      const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "offseason_recruiting_1" });
+      const result = await finalizeDeparturesInternal(req.params.id, league);
 
       await storage.createAuditLog({
         leagueId: req.params.id,
         userId: req.session.userId,
         action: "Departures Finalized",
-        details: `${totalGraduated} graduated, ${totalDrafted} entered MLB draft, ${totalTransferred} entered transfer portal.`,
+        details: `${result.graduated} graduated, ${result.drafted} entered MLB draft, ${result.transferred} entered transfer portal.`,
       });
 
       res.json({ 
-        ...updatedLeague,
-        departed: { graduated: totalGraduated, drafted: totalDrafted, transferred: totalTransferred },
+        ...result.updatedLeague,
+        departed: { graduated: result.graduated, drafted: result.drafted, transferred: result.transferred },
       });
     } catch (error) {
       console.error("Failed to finalize departures:", error);
@@ -2891,36 +2818,52 @@ export async function registerRoutes(
       const offseasonPhases = ["offseason_departures", "offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4", "offseason_signing_day"];
       
       if (league.currentPhase === "offseason_departures") {
-        // First evaluate promises from previous season
-        const promiseResult = await evaluatePlayerPromises(leagueId, league.currentSeason);
-        if (promiseResult.broken > 0) {
+        const existingPending = await storage.getPendingDeparturesByLeague(leagueId);
+        
+        if (existingPending.length === 0) {
+          const promiseResult = await evaluatePlayerPromises(leagueId, league.currentSeason);
+          if (promiseResult.broken > 0) {
+            await storage.createAuditLog({
+              leagueId, userId: req.session.userId,
+              action: "Promise Evaluation",
+              details: `${promiseResult.evaluated} promises evaluated: ${promiseResult.met} met, ${promiseResult.broken} broken. Players with broken promises are unhappy.`,
+            });
+          }
+
+          const departureResult = await processOffseasonDepartures(leagueId, league.currentSeason);
+          
           await storage.createAuditLog({
             leagueId, userId: req.session.userId,
-            action: "Promise Evaluation",
-            details: `${promiseResult.evaluated} promises evaluated: ${promiseResult.met} met, ${promiseResult.broken} broken. Players with broken promises are unhappy.`,
+            action: "Offseason: Departures Phase",
+            details: `${departureResult.graduated} graduating, ${departureResult.draftDeclared} draft eligible, ${departureResult.transferPortal} considering transfer. Review departures before finalizing.`,
+          });
+
+          try {
+            await generateDeparturesSummaryNews(leagueId, league.currentSeason, departureResult.graduated, departureResult.draftDeclared, departureResult.transferPortal);
+          } catch (e) {
+            console.error("Departures news error:", e);
+          }
+          
+          return res.json({ 
+            ...league, 
+            currentPhase: "offseason_departures",
+            departures: departureResult,
+            needsDepartureReview: true 
+          });
+        } else {
+          const finalizeResult = await finalizeDeparturesInternal(leagueId, league);
+          
+          await storage.createAuditLog({
+            leagueId, userId: req.session.userId,
+            action: "Departures Finalized",
+            details: `${finalizeResult.graduated} graduated, ${finalizeResult.drafted} entered MLB draft, ${finalizeResult.transferred} entered transfer portal.`,
+          });
+          
+          return res.json({ 
+            ...finalizeResult.updatedLeague,
+            departed: { graduated: finalizeResult.graduated, drafted: finalizeResult.drafted, transferred: finalizeResult.transferred },
           });
         }
-
-        const departureResult = await processOffseasonDepartures(leagueId, league.currentSeason);
-        
-        await storage.createAuditLog({
-          leagueId, userId: req.session.userId,
-          action: "Offseason: Departures Phase",
-          details: `${departureResult.graduated} graduating, ${departureResult.draftDeclared} draft eligible, ${departureResult.transferPortal} considering transfer. Review departures before finalizing.`,
-        });
-
-        try {
-          await generateDeparturesSummaryNews(leagueId, league.currentSeason, departureResult.graduated, departureResult.draftDeclared, departureResult.transferPortal);
-        } catch (e) {
-          console.error("Departures news error:", e);
-        }
-        
-        return res.json({ 
-          ...league, 
-          currentPhase: "offseason_departures",
-          departures: departureResult,
-          needsDepartureReview: true 
-        });
       }
       
       if (["offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4"].includes(league.currentPhase)) {
@@ -3540,6 +3483,90 @@ export async function registerRoutes(
     }
 
     return { evaluated: promisesForSeason.length, met, broken };
+  }
+
+  // ============ SHARED FINALIZE DEPARTURES HELPER ============
+  async function finalizeDeparturesInternal(leagueId: string, league: any) {
+    await processOffseasonDepartures(leagueId, league.currentSeason);
+
+    const teams = await storage.getTeamsByLeague(leagueId);
+    let totalGraduated = 0;
+    let totalDrafted = 0;
+    let totalTransferred = 0;
+
+    const eligMap: Record<string, number> = { "FR": 1, "SO": 2, "JR": 3, "SR": 4, "RS": 5 };
+
+    for (const team of teams) {
+      const roster = await storage.getPlayersByTeam(team.id);
+      const pending = roster.filter(p => p.pendingDeparture && p.retentionStatus !== "retained");
+
+      for (const player of pending) {
+        if (player.departureType === "graduated" || player.departureType === "draft") {
+          try {
+            await storage.createPlayerHistory({
+              leagueId,
+              teamId: team.id,
+              firstName: player.firstName,
+              lastName: player.lastName,
+              position: player.position,
+              finalEligibility: player.eligibility,
+              overall: player.overall ?? 500,
+              starRating: player.starRating ?? 3,
+              departureType: player.departureType,
+              departedSeason: league.currentSeason,
+              seasonsPlayed: eligMap[player.eligibility] || 1,
+              abilities: player.abilities || [],
+              homeState: player.homeState || "",
+              hometown: player.hometown || "",
+            });
+          } catch (e) {
+            console.error(`Failed to create history for ${player.firstName} ${player.lastName}:`, e);
+          }
+          await storage.deletePlayer(player.id);
+          if (player.departureType === "graduated") totalGraduated++;
+          else totalDrafted++;
+        } else if (player.departureType === "transfer") {
+          try {
+            await storage.createPlayerHistory({
+              leagueId,
+              teamId: team.id,
+              firstName: player.firstName,
+              lastName: player.lastName,
+              position: player.position,
+              finalEligibility: player.eligibility,
+              overall: player.overall ?? 500,
+              starRating: player.starRating ?? 3,
+              departureType: "transfer_portal",
+              departedSeason: league.currentSeason,
+              seasonsPlayed: eligMap[player.eligibility] || 1,
+              abilities: player.abilities || [],
+              homeState: player.homeState || "",
+              hometown: player.hometown || "",
+            });
+          } catch (e) {
+            console.error(`Failed to create transfer history for ${player.firstName} ${player.lastName}:`, e);
+          }
+          await storage.updatePlayer(player.id, {
+            pendingDeparture: false,
+            retentionStatus: null,
+            inTransferPortal: true,
+          });
+          totalTransferred++;
+        }
+      }
+
+      const retained = roster.filter(p => p.pendingDeparture && p.retentionStatus === "retained");
+      for (const player of retained) {
+        await storage.updatePlayer(player.id, {
+          pendingDeparture: false,
+          departureType: null,
+        });
+      }
+    }
+
+    const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "offseason_recruiting_1" });
+
+    return { updatedLeague, graduated: totalGraduated, drafted: totalDrafted, transferred: totalTransferred };
   }
 
   // ============ OFFSEASON DEPARTURES ============

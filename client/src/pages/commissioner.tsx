@@ -65,6 +65,7 @@ export default function CommissionerPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "schedule"] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting", "pipeline"] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting", "trends"] });
+      window.dispatchEvent(new CustomEvent("league-phase-changed"));
       if (response?.seasonTransition) {
         const t = response.seasonTransition;
         toast({ 
@@ -114,6 +115,7 @@ export default function CommissionerPage() {
     },
     onSuccess: (response: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id] });
+      window.dispatchEvent(new CustomEvent("league-phase-changed"));
       const t = response?.seasonTransition;
       toast({ 
         title: "Season Complete!", 
@@ -159,6 +161,7 @@ export default function CommissionerPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id] });
+      window.dispatchEvent(new CustomEvent("league-phase-changed"));
       toast({ title: "Week Simulated", description: "All games have been auto-resolved." });
     },
     onError: (error: Error) => {

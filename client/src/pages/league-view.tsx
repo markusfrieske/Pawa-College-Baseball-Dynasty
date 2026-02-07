@@ -1628,6 +1628,14 @@ function OffseasonSummary({ league }: { league: LeagueDetails }) {
     history: { departureType: string; teamId: string; position: string; firstName: string; lastName: string; overall: number; departedSeason: number }[];
   }>({
     queryKey: ["/api/leagues", league.id, "player-history"],
+    enabled: league.currentPhase !== "offseason_departures",
+  });
+
+  const { data: pendingData } = useQuery<{
+    teams: Record<string, { graduates: any[]; draftDeclarations: any[]; transfers: any[]; totalLeaving: number }>;
+  }>({
+    queryKey: ["/api/leagues", league.id, "players-leaving"],
+    enabled: league.currentPhase === "offseason_departures",
   });
 
   const { data: signingDayData } = useQuery<SigningDayData>({
@@ -1635,13 +1643,27 @@ function OffseasonSummary({ league }: { league: LeagueDetails }) {
     enabled: league.currentPhase === "offseason_signing_day",
   });
 
-  const currentSeasonDepartures = historyData?.history?.filter(
-    h => h.teamId === userTeam.id && h.departedSeason === league.currentSeason
-  ) || [];
+  let graduated: any[] = [];
+  let drafted: any[] = [];
+  let transferred: any[] = [];
+  let currentSeasonDepartures: any[] = [];
 
-  const graduated = currentSeasonDepartures.filter(h => h.departureType === "graduated");
-  const drafted = currentSeasonDepartures.filter(h => h.departureType === "draft");
-  const transferred = currentSeasonDepartures.filter(h => h.departureType === "transfer_portal");
+  if (league.currentPhase === "offseason_departures" && pendingData?.teams) {
+    const teamData = Object.values(pendingData.teams).find((t: any) => t.teamId === userTeam.id) as any;
+    if (teamData) {
+      graduated = (teamData.graduates || []).map((p: any) => ({ ...p, departureType: "graduated" }));
+      drafted = (teamData.draftDeclarations || []).map((p: any) => ({ ...p, departureType: "draft" }));
+      transferred = (teamData.transfers || []).map((p: any) => ({ ...p, departureType: "transfer_portal" }));
+      currentSeasonDepartures = [...graduated, ...drafted, ...transferred];
+    }
+  } else {
+    currentSeasonDepartures = historyData?.history?.filter(
+      h => h.teamId === userTeam.id && h.departedSeason === league.currentSeason
+    ) || [];
+    graduated = currentSeasonDepartures.filter(h => h.departureType === "graduated");
+    drafted = currentSeasonDepartures.filter(h => h.departureType === "draft");
+    transferred = currentSeasonDepartures.filter(h => h.departureType === "transfer_portal");
+  }
 
   const phaseTitle = league.currentPhase === "offseason_departures" ? "PLAYERS LEAVING" 
     : league.currentPhase === "offseason_signing_day" ? "SIGNING DAY"

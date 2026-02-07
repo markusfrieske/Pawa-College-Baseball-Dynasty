@@ -1,12 +1,82 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useMusic, resolveTrackForRoute } from "@/lib/music-context";
+import { queryClient } from "@/lib/queryClient";
 
 export function MusicRouter() {
   const [location] = useLocation();
   const { setTrack } = useMusic();
   const cachedPhaseRef = useRef<{ leagueId: string; phase: string } | null>(null);
-  const fetchingRef = useRef<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  const fetchAndSetPhase = useCallback((leagueId: string, currentLocation: string) => {
+    if (abortRef.current) {
+      abortRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    fetch(`/api/leagues/${leagueId}`, { credentials: "include", signal: controller.signal })
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch league");
+        return res.json();
+      })
+      .then((league) => {
+        if (controller.signal.aborted) return;
+        abortRef.current = null;
+        cachedPhaseRef.current = { leagueId, phase: league.currentPhase };
+        const track = resolveTrackForRoute(currentLocation, league.currentPhase);
+        setTrack(track);
+      })
+      .catch((err) => {
+        if (err.name !== "AbortError") {
+          abortRef.current = null;
+        }
+      });
+  }, [setTrack]);
+
+  useEffect(() => {
+    const handler = () => {
+      const leagueMatch = window.location.pathname.match(/^\/league\/([^/]+)/);
+      if (leagueMatch) {
+        cachedPhaseRef.current = null;
+        fetchAndSetPhase(leagueMatch[1], window.location.pathname);
+      }
+    };
+
+    window.addEventListener("league-phase-changed", handler);
+
+    const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
+      if (event.type === "updated" && event.action.type === "success") {
+        const queryKey = event.query.queryKey;
+        if (
+          Array.isArray(queryKey) &&
+          queryKey[0] === "/api/leagues" &&
+          queryKey.length === 2 &&
+          typeof queryKey[1] === "string"
+        ) {
+          const data = event.query.state.data as any;
+          if (data?.currentPhase) {
+            const leagueId = queryKey[1] as string;
+            const oldPhase = cachedPhaseRef.current?.leagueId === leagueId ? cachedPhaseRef.current.phase : null;
+            if (oldPhase !== data.currentPhase) {
+              cachedPhaseRef.current = { leagueId, phase: data.currentPhase };
+              const track = resolveTrackForRoute(window.location.pathname, data.currentPhase);
+              setTrack(track);
+            }
+          }
+        }
+      }
+    });
+
+    return () => {
+      window.removeEventListener("league-phase-changed", handler);
+      unsubscribe();
+      if (abortRef.current) {
+        abortRef.current.abort();
+      }
+    };
+  }, [fetchAndSetPhase, setTrack]);
 
   useEffect(() => {
     const leagueMatch = location.match(/^\/league\/([^/]+)/);
@@ -38,34 +108,8 @@ export function MusicRouter() {
       setTrack(track);
     }
 
-    if (fetchingRef.current === leagueId) return;
-
-    let cancelled = false;
-    fetchingRef.current = leagueId;
-
-    fetch(`/api/leagues/${leagueId}`, { credentials: "include" })
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch league");
-        return res.json();
-      })
-      .then((league) => {
-        if (cancelled) return;
-        cachedPhaseRef.current = { leagueId, phase: league.currentPhase };
-        fetchingRef.current = null;
-        const track = resolveTrackForRoute(location, league.currentPhase);
-        setTrack(track);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        fetchingRef.current = null;
-        const track = resolveTrackForRoute(location, cachedPhaseRef.current?.phase);
-        setTrack(track);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [location, setTrack]);
+    fetchAndSetPhase(leagueId, location);
+  }, [location, setTrack, fetchAndSetPhase]);
 
   return null;
 }
