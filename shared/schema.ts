@@ -589,6 +589,7 @@ export const games = pgTable("games", {
   awayScore: integer("away_score"),
   isComplete: boolean("is_complete").notNull().default(false),
   phase: text("phase").notNull().default("regular"),
+  boxScore: text("box_score"),
 });
 
 export const insertGameSchema = createInsertSchema(games).pick({
@@ -601,6 +602,7 @@ export const insertGameSchema = createInsertSchema(games).pick({
   awayScore: true,
   isComplete: true,
   phase: true,
+  boxScore: true,
 });
 
 export type InsertGame = z.infer<typeof insertGameSchema>;

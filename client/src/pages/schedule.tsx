@@ -23,9 +23,26 @@ interface ScheduleData {
   currentSeason: number;
 }
 
+interface BoxScoreData {
+  innings: number[][];
+  home: {
+    batting: { name: string; position: string; ab: number; r: number; h: number; rbi: number; bb: number; so: number; avg: string }[];
+    pitching: { name: string; ip: string; h: number; r: number; er: number; bb: number; so: number; era: string }[];
+    totals: { ab: number; r: number; h: number; rbi: number; bb: number; so: number };
+    errors?: number;
+  };
+  away: {
+    batting: { name: string; position: string; ab: number; r: number; h: number; rbi: number; bb: number; so: number; avg: string }[];
+    pitching: { name: string; ip: string; h: number; r: number; er: number; bb: number; so: number; era: string }[];
+    totals: { ab: number; r: number; h: number; rbi: number; bb: number; so: number };
+    errors?: number;
+  };
+}
+
 export default function SchedulePage() {
   const { id } = useParams<{ id: string }>();
   const [editingGame, setEditingGame] = useState<GameWithTeams | null>(null);
+  const [boxScoreGame, setBoxScoreGame] = useState<GameWithTeams | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -92,6 +109,7 @@ export default function SchedulePage() {
                     key={game.id}
                     game={game}
                     onEdit={() => setEditingGame(game)}
+                    onViewBoxScore={() => setBoxScoreGame(game)}
                   />
                 ))}
               </div>
@@ -117,11 +135,16 @@ export default function SchedulePage() {
         }}
         isPending={submitScoreMutation.isPending}
       />
+
+      <BoxScoreModal
+        game={boxScoreGame}
+        onClose={() => setBoxScoreGame(null)}
+      />
     </div>
   );
 }
 
-function GameRow({ game, onEdit }: { game: GameWithTeams; onEdit: () => void }) {
+function GameRow({ game, onEdit, onViewBoxScore }: { game: GameWithTeams; onEdit: () => void; onViewBoxScore: () => void }) {
   return (
     <div className="flex items-center gap-4 p-4 bg-muted/30 rounded" data-testid={`card-game-${game.id}`}>
       <div className="flex-1 flex items-center gap-3">
@@ -135,7 +158,11 @@ function GameRow({ game, onEdit }: { game: GameWithTeams; onEdit: () => void }) 
       </div>
 
       {game.isComplete ? (
-        <div className="flex items-center gap-4">
+        <button
+          onClick={onViewBoxScore}
+          className="flex items-center gap-4 cursor-pointer hover:opacity-80 transition-opacity"
+          data-testid={`button-box-score-${game.id}`}
+        >
           <span className={`text-xl font-bold ${(game.awayScore || 0) > (game.homeScore || 0) ? "text-gold" : "text-muted-foreground"}`}>
             {game.awayScore}
           </span>
@@ -143,7 +170,7 @@ function GameRow({ game, onEdit }: { game: GameWithTeams; onEdit: () => void }) 
           <span className={`text-xl font-bold ${(game.homeScore || 0) > (game.awayScore || 0) ? "text-gold" : "text-muted-foreground"}`}>
             {game.homeScore}
           </span>
-        </div>
+        </button>
       ) : (
         <div className="flex items-center gap-4">
           <span className="text-muted-foreground">@</span>
@@ -168,6 +195,173 @@ function GameRow({ game, onEdit }: { game: GameWithTeams; onEdit: () => void }) 
       >
         {game.isComplete ? <Check className="w-3 h-3" /> : <Edit2 className="w-3 h-3" />}
       </RetroButton>
+    </div>
+  );
+}
+
+function BoxScoreModal({ game, onClose }: { game: GameWithTeams | null; onClose: () => void }) {
+  if (!game) return null;
+
+  let boxScore: BoxScoreData | null = null;
+  if (game.boxScore) {
+    try {
+      boxScore = JSON.parse(game.boxScore);
+    } catch {
+      boxScore = null;
+    }
+  }
+
+  const totalAwayH = boxScore?.away.totals.h ?? 0;
+  const totalHomeH = boxScore?.home.totals.h ?? 0;
+
+  return (
+    <Dialog open={!!game} onOpenChange={() => onClose()}>
+      <DialogContent className="bg-[#1a2e1a] border-gold/50 max-w-4xl max-h-[90vh] overflow-y-auto" data-testid="dialog-box-score">
+        <DialogHeader>
+          <DialogTitle className="font-pixel text-gold text-sm">Box Score</DialogTitle>
+        </DialogHeader>
+
+        {!boxScore ? (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground text-sm">Box score not available for this game.</p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs border-collapse" data-testid="table-line-score">
+                <thead>
+                  <tr className="border-b border-gold/30">
+                    <th className="font-pixel text-gold text-left p-2 min-w-[120px]">Team</th>
+                    {boxScore.innings.map((_, i) => (
+                      <th key={i} className="font-pixel text-gold text-center p-2 w-8">{i + 1}</th>
+                    ))}
+                    <th className="font-pixel text-gold text-center p-2 w-8 border-l border-gold/30">R</th>
+                    <th className="font-pixel text-gold text-center p-2 w-8">H</th>
+                    <th className="font-pixel text-gold text-center p-2 w-8">E</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-b border-gold/20">
+                    <td className="p-2 font-medium text-foreground flex items-center gap-2">
+                      <TeamBadge abbreviation={game.awayTeam.abbreviation} primaryColor={game.awayTeam.primaryColor} secondaryColor={game.awayTeam.secondaryColor} size="sm" />
+                      <span className="truncate">{game.awayTeam.abbreviation}</span>
+                    </td>
+                    {boxScore.innings.map((inning, i) => (
+                      <td key={i} className="text-center p-2 text-foreground">{inning[0]}</td>
+                    ))}
+                    <td className="text-center p-2 font-bold text-gold border-l border-gold/30">{game.awayScore}</td>
+                    <td className="text-center p-2 text-foreground">{totalAwayH}</td>
+                    <td className="text-center p-2 text-foreground">{boxScore.away.errors ?? 0}</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2 font-medium text-foreground flex items-center gap-2">
+                      <TeamBadge abbreviation={game.homeTeam.abbreviation} primaryColor={game.homeTeam.primaryColor} secondaryColor={game.homeTeam.secondaryColor} size="sm" />
+                      <span className="truncate">{game.homeTeam.abbreviation}</span>
+                    </td>
+                    {boxScore.innings.map((inning, i) => (
+                      <td key={i} className="text-center p-2 text-foreground">{inning[1]}</td>
+                    ))}
+                    <td className="text-center p-2 font-bold text-gold border-l border-gold/30">{game.homeScore}</td>
+                    <td className="text-center p-2 text-foreground">{totalHomeH}</td>
+                    <td className="text-center p-2 text-foreground">{boxScore.home.errors ?? 0}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <TeamBattingTable label={game.awayTeam.name} team={boxScore.away} />
+            <TeamBattingTable label={game.homeTeam.name} team={boxScore.home} />
+
+            <TeamPitchingTable label={game.awayTeam.name} pitching={boxScore.away.pitching} />
+            <TeamPitchingTable label={game.homeTeam.name} pitching={boxScore.home.pitching} />
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function TeamBattingTable({ label, team }: { label: string; team: BoxScoreData["home"] }) {
+  return (
+    <div className="overflow-x-auto">
+      <h3 className="font-pixel text-gold text-xs mb-2">{label} - Batting</h3>
+      <table className="w-full text-xs border-collapse" data-testid={`table-batting-${label}`}>
+        <thead>
+          <tr className="border-b border-gold/30">
+            <th className="text-left p-1.5 text-gold/80">Batting</th>
+            <th className="text-center p-1.5 text-gold/80 w-10">AB</th>
+            <th className="text-center p-1.5 text-gold/80 w-10">R</th>
+            <th className="text-center p-1.5 text-gold/80 w-10">H</th>
+            <th className="text-center p-1.5 text-gold/80 w-10">RBI</th>
+            <th className="text-center p-1.5 text-gold/80 w-10">BB</th>
+            <th className="text-center p-1.5 text-gold/80 w-10">SO</th>
+            <th className="text-center p-1.5 text-gold/80 w-14">AVG</th>
+          </tr>
+        </thead>
+        <tbody>
+          {team.batting.map((batter, i) => (
+            <tr key={i} className="border-b border-gold/10">
+              <td className="p-1.5 text-foreground">
+                <span>{batter.name}</span>
+                <span className="text-muted-foreground ml-1">({batter.position})</span>
+              </td>
+              <td className="text-center p-1.5 text-foreground">{batter.ab}</td>
+              <td className="text-center p-1.5 text-foreground">{batter.r}</td>
+              <td className="text-center p-1.5 text-foreground">{batter.h}</td>
+              <td className="text-center p-1.5 text-foreground">{batter.rbi}</td>
+              <td className="text-center p-1.5 text-foreground">{batter.bb}</td>
+              <td className="text-center p-1.5 text-foreground">{batter.so}</td>
+              <td className="text-center p-1.5 text-foreground">{batter.avg}</td>
+            </tr>
+          ))}
+          <tr className="border-t border-gold/30 font-bold">
+            <td className="p-1.5 text-gold">Totals</td>
+            <td className="text-center p-1.5 text-gold">{team.totals.ab}</td>
+            <td className="text-center p-1.5 text-gold">{team.totals.r}</td>
+            <td className="text-center p-1.5 text-gold">{team.totals.h}</td>
+            <td className="text-center p-1.5 text-gold">{team.totals.rbi}</td>
+            <td className="text-center p-1.5 text-gold">{team.totals.bb}</td>
+            <td className="text-center p-1.5 text-gold">{team.totals.so}</td>
+            <td className="text-center p-1.5 text-gold"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function TeamPitchingTable({ label, pitching }: { label: string; pitching: BoxScoreData["home"]["pitching"] }) {
+  return (
+    <div className="overflow-x-auto">
+      <h3 className="font-pixel text-gold text-xs mb-2">{label} - Pitching</h3>
+      <table className="w-full text-xs border-collapse" data-testid={`table-pitching-${label}`}>
+        <thead>
+          <tr className="border-b border-gold/30">
+            <th className="text-left p-1.5 text-gold/80">Pitching</th>
+            <th className="text-center p-1.5 text-gold/80 w-10">IP</th>
+            <th className="text-center p-1.5 text-gold/80 w-10">H</th>
+            <th className="text-center p-1.5 text-gold/80 w-10">R</th>
+            <th className="text-center p-1.5 text-gold/80 w-10">ER</th>
+            <th className="text-center p-1.5 text-gold/80 w-10">BB</th>
+            <th className="text-center p-1.5 text-gold/80 w-10">SO</th>
+            <th className="text-center p-1.5 text-gold/80 w-14">ERA</th>
+          </tr>
+        </thead>
+        <tbody>
+          {pitching.map((pitcher, i) => (
+            <tr key={i} className="border-b border-gold/10">
+              <td className="p-1.5 text-foreground">{pitcher.name}</td>
+              <td className="text-center p-1.5 text-foreground">{pitcher.ip}</td>
+              <td className="text-center p-1.5 text-foreground">{pitcher.h}</td>
+              <td className="text-center p-1.5 text-foreground">{pitcher.r}</td>
+              <td className="text-center p-1.5 text-foreground">{pitcher.er}</td>
+              <td className="text-center p-1.5 text-foreground">{pitcher.bb}</td>
+              <td className="text-center p-1.5 text-foreground">{pitcher.so}</td>
+              <td className="text-center p-1.5 text-foreground">{pitcher.era}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

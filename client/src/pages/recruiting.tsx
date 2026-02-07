@@ -692,6 +692,7 @@ export default function RecruitingPage() {
               isBulkSelected={bulkSelected.has(recruit.id)}
               onBulkSelect={() => toggleBulkSelect(recruit.id)}
               trend={trendsData?.trends?.[recruit.id]}
+              userTeamId={data?.team?.id}
               positionNeed={pipelineData?.positionNeeds?.find(p => p.position === recruit.position)?.need}
               outOfRecruitingActions={(data?.remainingActions ?? 1) <= 0}
               outOfScoutActions={(data?.remainingScoutActions ?? 1) <= 0}
@@ -903,6 +904,7 @@ function RecruitRow({
   isBulkSelected,
   onBulkSelect,
   trend,
+  userTeamId,
   positionNeed,
   outOfRecruitingActions,
   outOfScoutActions,
@@ -928,6 +930,7 @@ function RecruitRow({
   isBulkSelected: boolean;
   onBulkSelect: () => void;
   trend?: { trend: "up" | "down" | "flat"; recentGain: number };
+  userTeamId?: string;
   positionNeed?: boolean;
   outOfRecruitingActions?: boolean;
   outOfScoutActions?: boolean;
@@ -1099,12 +1102,6 @@ function RecruitRow({
               <span>{scoutPct}%</span>
             </div>
             <Progress value={scoutPct} className="h-2" />
-            {trend && trend.trend !== "flat" && (
-              <div className={`flex items-center gap-0.5 text-[10px] ${trend.trend === "up" ? "text-green-400" : "text-red-400"}`}>
-                {trend.trend === "up" ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                <span>{trend.trend === "up" ? "+" : ""}{trend.recentGain}</span>
-              </div>
-            )}
           </div>
 
           <div className="flex gap-2">
@@ -1265,26 +1262,36 @@ function RecruitRow({
             </Badge>
           </div>
           <div className="space-y-1.5">
-            {recruit.topSchools.slice(0, recruit.stage === "top3" ? 3 : recruit.stage === "top5" ? 5 : 8).map((school, i) => (
-              <div key={school.teamId} className="flex items-center gap-2">
-                <TeamBadge
-                  abbreviation={school.abbreviation}
-                  primaryColor={school.primaryColor}
-                  size="sm"
-                />
-                <span className="text-[10px] text-muted-foreground w-8">{school.abbreviation}</span>
-                <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                  <div 
-                    className="h-full transition-all"
-                    style={{ 
-                      width: `${Math.round(school.interestLevel / 20) * 20}%`,
-                      backgroundColor: school.primaryColor 
-                    }}
+            {recruit.topSchools.slice(0, recruit.stage === "top3" ? 3 : recruit.stage === "top5" ? 5 : 8).map((school, i) => {
+              const isUserSchool = userTeamId && school.teamId === userTeamId;
+              const schoolTrend = isUserSchool ? trend : undefined;
+              return (
+                <div key={school.teamId} className={`flex items-center gap-2 ${isUserSchool ? "bg-gold/5 -mx-1 px-1 rounded" : ""}`}>
+                  <TeamBadge
+                    abbreviation={school.abbreviation}
+                    primaryColor={school.primaryColor}
+                    size="sm"
                   />
+                  <span className="text-[10px] text-muted-foreground w-8">{school.abbreviation}</span>
+                  <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                    <div 
+                      className="h-full transition-all"
+                      style={{ 
+                        width: `${Math.min(100, Math.round(school.interestLevel / 20) * 20)}%`,
+                        backgroundColor: isUserSchool ? school.primaryColor : school.primaryColor
+                      }}
+                    />
+                  </div>
+                  {schoolTrend && schoolTrend.trend !== "flat" && (
+                    <div className={`flex items-center gap-0.5 text-[10px] min-w-[40px] ${schoolTrend.trend === "up" ? "text-green-400" : "text-red-400"}`}>
+                      {schoolTrend.trend === "up" ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                      <span>{schoolTrend.trend === "up" ? "+" : ""}{schoolTrend.recentGain}</span>
+                    </div>
+                  )}
+                  <span className={`text-[10px] w-14 text-right ${getInterestLabel(school.interestLevel).color}`}>{getInterestLabel(school.interestLevel).label}</span>
                 </div>
-                <span className={`text-[10px] w-14 text-right ${getInterestLabel(school.interestLevel).color}`}>{getInterestLabel(school.interestLevel).label}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

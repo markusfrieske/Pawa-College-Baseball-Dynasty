@@ -943,6 +943,15 @@ export async function registerRoutes(
         });
       }
 
+      // Sync top schools interest
+      const phoneTopSchools = await storage.getRecruitTopSchools(req.params.recruitId as string);
+      const phoneUserTopSchool = phoneTopSchools.find(ts => ts.teamId === userTeam.id);
+      if (phoneUserTopSchool) {
+        await storage.updateRecruitTopSchool(phoneUserTopSchool.id, { 
+          accumulatedInterest: (phoneUserTopSchool.accumulatedInterest || 0) + interestGain 
+        });
+      }
+
       await storage.createRecruitingAction({
         recruitId: req.params.recruitId as string,
         teamId: userTeam.id,
@@ -1028,6 +1037,15 @@ export async function registerRoutes(
       } else {
         interest = await storage.updateRecruitingInterest(interest.id, {
           interestLevel: Math.min(100, (interest.interestLevel || 0) + interestGain),
+        });
+      }
+
+      // Sync top schools interest
+      const emailTopSchools = await storage.getRecruitTopSchools(req.params.recruitId as string);
+      const emailUserTopSchool = emailTopSchools.find(ts => ts.teamId === userTeam.id);
+      if (emailUserTopSchool) {
+        await storage.updateRecruitTopSchool(emailUserTopSchool.id, { 
+          accumulatedInterest: (emailUserTopSchool.accumulatedInterest || 0) + interestGain 
         });
       }
 
@@ -1121,6 +1139,15 @@ export async function registerRoutes(
         });
       }
 
+      // Sync top schools interest
+      const visitTopSchools = await storage.getRecruitTopSchools(req.params.recruitId as string);
+      const visitUserTopSchool = visitTopSchools.find(ts => ts.teamId === userTeam.id);
+      if (visitUserTopSchool) {
+        await storage.updateRecruitTopSchool(visitUserTopSchool.id, { 
+          accumulatedInterest: (visitUserTopSchool.accumulatedInterest || 0) + interestGain 
+        });
+      }
+
       await storage.createRecruitingAction({
         recruitId: req.params.recruitId as string,
         teamId: userTeam.id,
@@ -1195,6 +1222,15 @@ export async function registerRoutes(
         interest = await storage.updateRecruitingInterest(interest.id, {
           interestLevel: Math.min(100, (interest.interestLevel || 0) + interestGain),
           hasOffer: true,
+        });
+      }
+
+      // Sync top schools interest
+      const offerTopSchools = await storage.getRecruitTopSchools(req.params.recruitId as string);
+      const offerUserTopSchool = offerTopSchools.find(ts => ts.teamId === userTeam.id);
+      if (offerUserTopSchool) {
+        await storage.updateRecruitTopSchool(offerUserTopSchool.id, { 
+          accumulatedInterest: (offerUserTopSchool.accumulatedInterest || 0) + interestGain 
         });
       }
 
@@ -2244,6 +2280,61 @@ export async function registerRoutes(
         });
       }
 
+      // ============ AUTO-SIMULATE REGULAR SEASON GAMES ============
+      const allGames = await storage.getGamesByLeague(leagueId);
+      const incompleteGames = allGames.filter(g => 
+        g.week === currentWeek && 
+        g.season === league.currentSeason && 
+        g.phase === "regular" && 
+        !g.isComplete
+      );
+      
+      const leagueTeamsForSim = await storage.getTeamsByLeague(leagueId);
+      const WIN_XP = 100;
+      const LOSS_XP = 25;
+      
+      for (const game of incompleteGames) {
+        const result = await simulateGame(game.homeTeamId, game.awayTeamId);
+        await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, isComplete: true, boxScore: result.boxScore });
+        await updateStandingsForGame(leagueId, league.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore);
+        
+        const homeTeamSim = leagueTeamsForSim.find(t => t.id === game.homeTeamId);
+        const awayTeamSim = leagueTeamsForSim.find(t => t.id === game.awayTeamId);
+        const homeWonSim = result.homeScore > result.awayScore;
+        
+        if (homeTeamSim?.coachId) {
+          const homeCoach = await storage.getCoach(homeTeamSim.coachId);
+          if (homeCoach) {
+            const newXp = homeCoach.xp + (homeWonSim ? WIN_XP : LOSS_XP);
+            const newLevel = Math.floor(newXp / 1000) + 1;
+            const skillPointsGained = newLevel > homeCoach.level ? 1 : 0;
+            await storage.updateCoach(homeCoach.id, {
+              xp: newXp,
+              level: newLevel,
+              skillPoints: homeCoach.skillPoints + skillPointsGained,
+              careerWins: homeCoach.careerWins + (homeWonSim ? 1 : 0),
+              careerLosses: homeCoach.careerLosses + (homeWonSim ? 0 : 1),
+            });
+          }
+        }
+        
+        if (awayTeamSim?.coachId) {
+          const awayCoach = await storage.getCoach(awayTeamSim.coachId);
+          if (awayCoach) {
+            const newXp = awayCoach.xp + (homeWonSim ? LOSS_XP : WIN_XP);
+            const newLevel = Math.floor(newXp / 1000) + 1;
+            const skillPointsGained = newLevel > awayCoach.level ? 1 : 0;
+            await storage.updateCoach(awayCoach.id, {
+              xp: newXp,
+              level: newLevel,
+              skillPoints: awayCoach.skillPoints + skillPointsGained,
+              careerWins: awayCoach.careerWins + (homeWonSim ? 0 : 1),
+              careerLosses: awayCoach.careerLosses + (homeWonSim ? 1 : 0),
+            });
+          }
+        }
+      }
+
       // ============ POSTSEASON / SEASON PROGRESSION ============
       const isPostseason = ["conference_championship", "super_regionals", "cws"].includes(league.currentPhase);
 
@@ -2254,7 +2345,7 @@ export async function registerRoutes(
           
           for (const game of confGames) {
             const result = await simulateGame(game.homeTeamId, game.awayTeamId);
-            await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, isComplete: true });
+            await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, isComplete: true, boxScore: result.boxScore });
             await updateStandingsForGame(leagueId, league.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore);
           }
           
@@ -2357,7 +2448,7 @@ export async function registerRoutes(
   });
   
   // ============ GAME SIMULATION FUNCTION ============
-  async function simulateGame(homeTeamId: string, awayTeamId: string): Promise<{ homeScore: number; awayScore: number }> {
+  async function simulateGame(homeTeamId: string, awayTeamId: string): Promise<{ homeScore: number; awayScore: number; boxScore: string }> {
     const homePlayers = await storage.getPlayersByTeam(homeTeamId);
     const awayPlayers = await storage.getPlayersByTeam(awayTeamId);
     
@@ -2381,7 +2472,188 @@ export async function registerRoutes(
       if (Math.random() > 0.5) homeScore++; else awayScore++;
     }
     
-    return { homeScore, awayScore };
+    const boxScore = generateBoxScore(homeScore, awayScore, homePlayers, awayPlayers);
+    
+    return { homeScore, awayScore, boxScore: JSON.stringify(boxScore) };
+  }
+
+  function generateBoxScore(homeScore: number, awayScore: number, homePlayers: Player[], awayPlayers: Player[]) {
+    function distributeRuns(totalRuns: number, numInnings: number): number[] {
+      const innings = new Array(numInnings).fill(0);
+      for (let i = 0; i < totalRuns; i++) {
+        innings[Math.floor(Math.random() * numInnings)]++;
+      }
+      return innings;
+    }
+
+    let numInnings = 9;
+    const homeInnings = distributeRuns(homeScore, numInnings);
+    const awayInnings = distributeRuns(awayScore, numInnings);
+    const innings: number[][] = [];
+    for (let i = 0; i < numInnings; i++) {
+      innings.push([awayInnings[i], homeInnings[i]]);
+    }
+
+    const pitcherPositions = ["SP", "RP", "CP"];
+
+    function generateTeamStats(players: Player[], teamScore: number) {
+      const positionPlayers = players.filter(p => !pitcherPositions.includes(p.position));
+      const pitchers = players.filter(p => pitcherPositions.includes(p.position));
+
+      const battingLineup: { name: string; position: string; ab: number; r: number; h: number; rbi: number; bb: number; so: number; avg: string }[] = [];
+      const positionOrder = ["C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "DH"];
+
+      let selectedBatters: { firstName: string; lastName: string; position: string; contact: number }[] = [];
+      if (positionPlayers.length >= 9) {
+        const used = new Set<string>();
+        for (const pos of positionOrder) {
+          const p = positionPlayers.find(pl => pl.position === pos && !used.has(pl.id));
+          if (p) {
+            used.add(p.id);
+            selectedBatters.push({ firstName: p.firstName, lastName: p.lastName, position: p.position, contact: p.hitForAvg || 50 });
+          }
+        }
+        for (const p of positionPlayers) {
+          if (selectedBatters.length >= 9) break;
+          if (!used.has(p.id)) {
+            used.add(p.id);
+            selectedBatters.push({ firstName: p.firstName, lastName: p.lastName, position: p.position, contact: p.hitForAvg || 50 });
+          }
+        }
+      }
+      
+      while (selectedBatters.length < 9) {
+        const fakeNames = ["Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Martinez"];
+        const fakeFirst = ["Jake", "Mike", "Chris", "Tyler", "Matt", "Ryan", "Josh", "Nick", "Ben"];
+        const idx = selectedBatters.length;
+        selectedBatters.push({
+          firstName: fakeFirst[idx % fakeFirst.length],
+          lastName: fakeNames[idx % fakeNames.length],
+          position: positionOrder[idx] || "DH",
+          contact: 50,
+        });
+      }
+
+      let runsLeft = teamScore;
+      let totalH = 0;
+      let totalRBI = 0;
+
+      for (let i = 0; i < selectedBatters.length; i++) {
+        const batter = selectedBatters[i];
+        const ab = 3 + Math.floor(Math.random() * 3);
+        const hitChance = Math.min(0.45, Math.max(0.1, batter.contact / 200));
+        let h = 0;
+        for (let j = 0; j < ab; j++) {
+          if (Math.random() < hitChance) h++;
+        }
+        const bb = Math.random() < 0.15 ? 1 : 0;
+        const so = Math.floor(Math.random() * 3);
+        const r = i < runsLeft ? (Math.random() < 0.4 ? 1 : 0) : 0;
+        if (r) runsLeft--;
+        const rbi = Math.random() < 0.3 ? Math.min(Math.floor(Math.random() * 3) + 1, teamScore) : 0;
+        const avg = ab > 0 ? (h / ab).toFixed(3) : ".000";
+
+        totalH += h;
+        totalRBI += rbi;
+        battingLineup.push({
+          name: `${batter.firstName[0]}. ${batter.lastName}`,
+          position: batter.position,
+          ab, r, h, rbi, bb, so,
+          avg: avg.startsWith("0") ? avg.substring(1) : avg,
+        });
+      }
+
+      if (runsLeft > 0) {
+        for (let i = 0; runsLeft > 0 && i < battingLineup.length; i++) {
+          battingLineup[i].r++;
+          runsLeft--;
+        }
+      }
+
+      const totalR = battingLineup.reduce((s, b) => s + b.r, 0);
+      if (totalR > teamScore) {
+        let excess = totalR - teamScore;
+        for (let i = battingLineup.length - 1; i >= 0 && excess > 0; i--) {
+          if (battingLineup[i].r > 0) {
+            battingLineup[i].r--;
+            excess--;
+          }
+        }
+      }
+
+      const pitchingStaff: { name: string; ip: string; h: number; r: number; er: number; bb: number; so: number; era: string }[] = [];
+      const numPitchers = Math.min(pitchers.length || 1, 1 + Math.floor(Math.random() * 3));
+      let selectedPitchers: { firstName: string; lastName: string }[] = [];
+      
+      if (pitchers.length > 0) {
+        for (let i = 0; i < numPitchers && i < pitchers.length; i++) {
+          selectedPitchers.push({ firstName: pitchers[i].firstName, lastName: pitchers[i].lastName });
+        }
+      }
+      while (selectedPitchers.length === 0 || selectedPitchers.length < numPitchers) {
+        const fakePitchers = [{ firstName: "John", lastName: "Doe" }, { firstName: "James", lastName: "Wilson" }, { firstName: "Tom", lastName: "Anderson" }];
+        selectedPitchers.push(fakePitchers[selectedPitchers.length % fakePitchers.length]);
+        if (selectedPitchers.length >= 3) break;
+      }
+
+      let inningsLeft = 9;
+      const opponentScore = teamScore === homeScore ? awayScore : homeScore;
+      let opponentRunsLeft = opponentScore;
+      const opponentHitsTotal = Math.max(opponentScore, Math.floor(Math.random() * 5) + opponentScore);
+
+      for (let i = 0; i < selectedPitchers.length; i++) {
+        const isLast = i === selectedPitchers.length - 1;
+        let ip: number;
+        if (isLast) {
+          ip = inningsLeft;
+        } else {
+          ip = Math.max(1, Math.floor(inningsLeft / (selectedPitchers.length - i)) + (Math.random() > 0.5 ? 1 : -1));
+          ip = Math.min(ip, inningsLeft - (selectedPitchers.length - i - 1));
+        }
+        inningsLeft -= ip;
+
+        const fraction = Math.floor(Math.random() * 3);
+        const ipStr = fraction > 0 ? `${ip}.${fraction}` : `${ip}.0`;
+
+        const pHits = isLast ? Math.max(0, opponentHitsTotal - pitchingStaff.reduce((s, p) => s + p.h, 0)) : Math.floor(Math.random() * 4) + 1;
+        const pRuns = isLast ? opponentRunsLeft : Math.min(opponentRunsLeft, Math.floor(Math.random() * 3));
+        opponentRunsLeft -= pRuns;
+        const er = Math.max(0, pRuns - (Math.random() < 0.1 ? 1 : 0));
+        const pBB = Math.floor(Math.random() * 3);
+        const pSO = Math.floor(Math.random() * (ip * 2)) + 1;
+        const totalIP = ip + fraction / 10;
+        const era = totalIP > 0 ? ((er * 9) / totalIP).toFixed(2) : "0.00";
+
+        pitchingStaff.push({
+          name: `${selectedPitchers[i].firstName[0]}. ${selectedPitchers[i].lastName}`,
+          ip: ipStr,
+          h: pHits,
+          r: pRuns,
+          er,
+          bb: pBB,
+          so: pSO,
+          era,
+        });
+      }
+
+      const errors = Math.floor(Math.random() * 3);
+
+      const totals = {
+        ab: battingLineup.reduce((s, b) => s + b.ab, 0),
+        r: battingLineup.reduce((s, b) => s + b.r, 0),
+        h: battingLineup.reduce((s, b) => s + b.h, 0),
+        rbi: battingLineup.reduce((s, b) => s + b.rbi, 0),
+        bb: battingLineup.reduce((s, b) => s + b.bb, 0),
+        so: battingLineup.reduce((s, b) => s + b.so, 0),
+      };
+
+      return { batting: battingLineup, pitching: pitchingStaff, totals, errors };
+    }
+
+    const home = generateTeamStats(homePlayers, homeScore);
+    const away = generateTeamStats(awayPlayers, awayScore);
+
+    return { innings, home, away };
   }
 
   // ============ STANDINGS UPDATE HELPER ============
@@ -2484,6 +2756,7 @@ export async function registerRoutes(
         homeScore: result.homeScore,
         awayScore: result.awayScore,
         isComplete: true,
+        boxScore: result.boxScore,
       });
     }
     
@@ -2549,6 +2822,7 @@ export async function registerRoutes(
         homeScore: result.homeScore,
         awayScore: result.awayScore,
         isComplete: true,
+        boxScore: result.boxScore,
       });
     }
     
@@ -3393,13 +3667,12 @@ export async function registerRoutes(
       );
 
       for (const game of currentWeekGames) {
-        const homeScore = Math.floor(Math.random() * 10) + 1;
-        const awayScore = Math.floor(Math.random() * 10) + 1;
-        
+        const result = await simulateGame(game.homeTeamId, game.awayTeamId);
         await storage.updateGame(game.id, {
-          homeScore,
-          awayScore,
+          homeScore: result.homeScore,
+          awayScore: result.awayScore,
           isComplete: true,
+          boxScore: result.boxScore,
         });
       }
 

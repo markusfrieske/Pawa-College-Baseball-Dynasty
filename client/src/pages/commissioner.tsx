@@ -58,6 +58,11 @@ export default function CommissionerPage() {
     onSuccess: (response: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "postseason"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "commissioner"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "schedule"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting", "pipeline"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting", "trends"] });
       if (response?.seasonTransition) {
         const t = response.seasonTransition;
         toast({ 
@@ -387,7 +392,7 @@ function ActionsTab({
               {advanceIcon}
               {advanceLabel}
             </RetroButton>
-            {!isPostseason && !isOffseason && (
+            {isOffseason && (
               <div className="mt-3 pt-3 border-t border-border">
                 <p className="text-muted-foreground text-xs mb-2">
                   End the current season: graduates seniors, advances eligibility,
