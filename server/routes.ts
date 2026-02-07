@@ -2172,9 +2172,75 @@ export async function registerRoutes(
         });
       }
 
-      // ============ CHECK FOR SEASON TRANSITION ============
-      // If we've passed the max weeks for offseason phase, trigger season transition
-      if (league.currentPhase === "offseason" || nextWeek > maxWeeks) {
+      // ============ POSTSEASON / SEASON PROGRESSION ============
+      const isPostseason = ["conference_championship", "super_regionals", "cws"].includes(league.currentPhase);
+
+      if (isPostseason) {
+        if (league.currentPhase === "conference_championship") {
+          const confGames = (await storage.getGamesByLeague(leagueId))
+            .filter(g => g.phase === "conference_championship" && g.season === league.currentSeason && !g.isComplete);
+          
+          for (const game of confGames) {
+            const result = await simulateGame(game.homeTeamId, game.awayTeamId);
+            await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, isComplete: true });
+            await updateStandingsForGame(leagueId, league.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore);
+          }
+          
+          await generateSuperRegionalBracket(leagueId, league.currentSeason);
+          
+          const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "super_regionals" });
+          await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "Conference Championships Complete", details: "Conference championship games have been played. Super Regionals begin!" });
+          return res.json(updatedLeague);
+        }
+        
+        if (league.currentPhase === "super_regionals") {
+          const srResult = await advanceSuperRegionals(leagueId, league.currentSeason);
+          
+          if (srResult.done && srResult.champion1 && srResult.champion2) {
+            await storage.createGame({
+              leagueId, season: league.currentSeason, week: 0,
+              homeTeamId: srResult.champion1, awayTeamId: srResult.champion2,
+              phase: "cws",
+            });
+            const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "cws" });
+            await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "Super Regionals Complete", details: "The final two teams advance to the College World Series!" });
+            return res.json(updatedLeague);
+          }
+          
+          await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "Super Regionals Round Complete", details: "A round of the Super Regionals has been completed." });
+          const updatedLeague = await storage.getLeague(leagueId);
+          return res.json(updatedLeague);
+        }
+        
+        if (league.currentPhase === "cws") {
+          const cwsResult = await advanceCWS(leagueId, league.currentSeason);
+          
+          if (cwsResult.done && cwsResult.champion) {
+            const leagueTeams = await storage.getTeamsByLeague(leagueId);
+            const champTeam = leagueTeams.find(t => t.id === cwsResult.champion);
+            const runnerUpTeam = leagueTeams.find(t => t.id === cwsResult.runnerUp);
+            
+            const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "offseason" });
+            await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "CWS Champion Crowned!", details: `${champTeam?.name || "Unknown"} wins the College World Series over ${runnerUpTeam?.name || "Unknown"}!` });
+            
+            await storage.createDynastyNews({
+              leagueId,
+              authorName: "Dynasty Sports Network",
+              title: `${champTeam?.name} Wins the College World Series!`,
+              content: `The ${champTeam?.name} ${champTeam?.mascot} have defeated the ${runnerUpTeam?.name} ${runnerUpTeam?.mascot} to win the College World Series championship!`,
+              category: "game",
+            });
+            
+            return res.json({ ...updatedLeague, cwsChampion: cwsResult.champion, cwsRunnerUp: cwsResult.runnerUp });
+          }
+          
+          await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "CWS Game Complete", details: "A game of the College World Series has been played." });
+          const updatedLeague = await storage.getLeague(leagueId);
+          return res.json(updatedLeague);
+        }
+      }
+
+      if (league.currentPhase === "offseason") {
         const transitionResult = await performSeasonTransition(leagueId, league.currentSeason);
         
         const updatedLeague = await storage.updateLeague(league.id, {
@@ -2191,6 +2257,13 @@ export async function registerRoutes(
         });
 
         return res.json({ ...updatedLeague, seasonTransition: transitionResult });
+      }
+
+      if (nextWeek > maxWeeks) {
+        await generateConferenceChampionships(leagueId, league.currentSeason);
+        const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "conference_championship" });
+        await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "Regular Season Complete", details: "The regular season is over! Conference Championships begin." });
+        return res.json(updatedLeague);
       }
 
       const updatedLeague = await storage.updateLeague(league.id, {
@@ -2211,6 +2284,237 @@ export async function registerRoutes(
     }
   });
   
+  // ============ GAME SIMULATION FUNCTION ============
+  async function simulateGame(homeTeamId: string, awayTeamId: string): Promise<{ homeScore: number; awayScore: number }> {
+    const homePlayers = await storage.getPlayersByTeam(homeTeamId);
+    const awayPlayers = await storage.getPlayersByTeam(awayTeamId);
+    
+    const homeStrength = homePlayers.length > 0 
+      ? homePlayers.reduce((sum, p) => sum + (p.overall || 500), 0) / homePlayers.length 
+      : 500;
+    const awayStrength = awayPlayers.length > 0 
+      ? awayPlayers.reduce((sum, p) => sum + (p.overall || 500), 0) / awayPlayers.length 
+      : 500;
+    
+    const homeBase = 2 + Math.random() * 6;
+    const awayBase = 2 + Math.random() * 6;
+    
+    const strengthDiff = (homeStrength - awayStrength) / 500;
+    let homeScore = Math.round(homeBase + strengthDiff * 2 + Math.random() * 2);
+    let awayScore = Math.round(awayBase - strengthDiff * 2);
+    
+    homeScore = Math.max(0, homeScore);
+    awayScore = Math.max(0, awayScore);
+    if (homeScore === awayScore) {
+      if (Math.random() > 0.5) homeScore++; else awayScore++;
+    }
+    
+    return { homeScore, awayScore };
+  }
+
+  // ============ STANDINGS UPDATE HELPER ============
+  async function updateStandingsForGame(leagueId: string, season: number, homeTeamId: string, awayTeamId: string, homeScore: number, awayScore: number) {
+    const standingsList = await storage.getStandingsByLeague(leagueId, season);
+    const homeStanding = standingsList.find(s => s.teamId === homeTeamId);
+    const awayStanding = standingsList.find(s => s.teamId === awayTeamId);
+    
+    if (homeScore > awayScore) {
+      if (homeStanding) await storage.updateStandings(homeStanding.id, { wins: (homeStanding.wins || 0) + 1, runsScored: (homeStanding.runsScored || 0) + homeScore, runsAllowed: (homeStanding.runsAllowed || 0) + awayScore });
+      if (awayStanding) await storage.updateStandings(awayStanding.id, { losses: (awayStanding.losses || 0) + 1, runsScored: (awayStanding.runsScored || 0) + awayScore, runsAllowed: (awayStanding.runsAllowed || 0) + homeScore });
+    } else {
+      if (awayStanding) await storage.updateStandings(awayStanding.id, { wins: (awayStanding.wins || 0) + 1, runsScored: (awayStanding.runsScored || 0) + awayScore, runsAllowed: (awayStanding.runsAllowed || 0) + homeScore });
+      if (homeStanding) await storage.updateStandings(homeStanding.id, { losses: (homeStanding.losses || 0) + 1, runsScored: (homeStanding.runsScored || 0) + homeScore, runsAllowed: (homeStanding.runsAllowed || 0) + awayScore });
+    }
+  }
+
+  // ============ CONFERENCE CHAMPIONSHIP GENERATION ============
+  async function generateConferenceChampionships(leagueId: string, season: number) {
+    const confs = await storage.getConferencesByLeague(leagueId);
+    const leagueTeams = await storage.getTeamsByLeague(leagueId);
+    const standingsList = await storage.getStandingsByLeague(leagueId, season);
+    
+    for (const conf of confs) {
+      const confTeams = leagueTeams.filter(t => t.conferenceId === conf.id);
+      if (confTeams.length < 2) continue;
+      
+      const confStandings = confTeams.map(t => {
+        const s = standingsList.find(st => st.teamId === t.id);
+        return { team: t, wins: s?.wins || 0, confWins: s?.conferenceWins || 0 };
+      }).sort((a, b) => b.confWins - a.confWins || b.wins - a.wins);
+      
+      await storage.createGame({
+        leagueId,
+        season,
+        week: 0,
+        homeTeamId: confStandings[0].team.id,
+        awayTeamId: confStandings[1].team.id,
+        phase: "conference_championship",
+      });
+    }
+  }
+
+  // ============ SUPER REGIONAL BRACKET GENERATION ============
+  async function generateSuperRegionalBracket(leagueId: string, season: number) {
+    const leagueTeams = await storage.getTeamsByLeague(leagueId);
+    const standingsList = await storage.getStandingsByLeague(leagueId, season);
+    
+    const rankedTeams = leagueTeams.map(t => {
+      const s = standingsList.find(st => st.teamId === t.id);
+      return { team: t, wins: s?.wins || 0, runsScored: s?.runsScored || 0 };
+    }).sort((a, b) => b.wins - a.wins || b.runsScored - a.runsScored);
+    
+    const bracketSize = Math.floor(leagueTeams.length / 2);
+    const qualifiedTeams = rankedTeams.slice(0, bracketSize);
+    
+    const fullBracketSize = Math.pow(2, Math.floor(Math.log2(bracketSize)));
+    const numFirstRoundGames = bracketSize - fullBracketSize;
+    
+    if (numFirstRoundGames === 0) {
+      for (let i = 0; i < qualifiedTeams.length / 2; i++) {
+        await storage.createGame({
+          leagueId,
+          season,
+          week: 0,
+          homeTeamId: qualifiedTeams[i].team.id,
+          awayTeamId: qualifiedTeams[qualifiedTeams.length - 1 - i].team.id,
+          phase: "super_regionals",
+        });
+      }
+    } else {
+      const numByes = fullBracketSize - numFirstRoundGames;
+      const firstRoundTeams = qualifiedTeams.slice(numByes);
+      
+      for (let i = 0; i < firstRoundTeams.length / 2; i++) {
+        const home = firstRoundTeams[i];
+        const away = firstRoundTeams[firstRoundTeams.length - 1 - i];
+        await storage.createGame({
+          leagueId,
+          season,
+          week: 0,
+          homeTeamId: home.team.id,
+          awayTeamId: away.team.id,
+          phase: "super_regionals",
+        });
+      }
+    }
+  }
+
+  // ============ ADVANCE SUPER REGIONALS ============
+  async function advanceSuperRegionals(leagueId: string, season: number): Promise<{ done: boolean; champion1?: string; champion2?: string }> {
+    const allGames = await storage.getGamesByLeague(leagueId);
+    const srGames = allGames.filter(g => g.phase === "super_regionals" && g.season === season);
+    
+    const incompleteGames = srGames.filter(g => !g.isComplete);
+    
+    for (const game of incompleteGames) {
+      const result = await simulateGame(game.homeTeamId, game.awayTeamId);
+      await storage.updateGame(game.id, {
+        homeScore: result.homeScore,
+        awayScore: result.awayScore,
+        isComplete: true,
+      });
+    }
+    
+    const updatedAllGames = await storage.getGamesByLeague(leagueId);
+    const updatedSRGames = updatedAllGames.filter(g => g.phase === "super_regionals" && g.season === season && g.isComplete);
+    
+    const eliminated = new Set<string>();
+    for (const g of updatedSRGames) {
+      const loserId = (g.homeScore ?? 0) > (g.awayScore ?? 0) ? g.awayTeamId : g.homeTeamId;
+      eliminated.add(loserId);
+    }
+    
+    const participated = new Set<string>();
+    for (const g of updatedSRGames) {
+      participated.add(g.homeTeamId);
+      participated.add(g.awayTeamId);
+    }
+    
+    const leagueTeams = await storage.getTeamsByLeague(leagueId);
+    const standingsList = await storage.getStandingsByLeague(leagueId, season);
+    const rankedTeams = leagueTeams.map(t => {
+      const s = standingsList.find(st => st.teamId === t.id);
+      return { team: t, wins: s?.wins || 0, runsScored: s?.runsScored || 0 };
+    }).sort((a, b) => b.wins - a.wins || b.runsScored - a.runsScored);
+    const bracketSize = Math.floor(leagueTeams.length / 2);
+    const qualifiedTeamIds = rankedTeams.slice(0, bracketSize).map(t => t.team.id);
+    
+    const remainingTeams = qualifiedTeamIds.filter(id => !eliminated.has(id));
+    const byeTeams = remainingTeams.filter(id => !participated.has(id));
+    const activeWinners = remainingTeams.filter(id => participated.has(id));
+    
+    const nextRoundTeams = [...activeWinners, ...byeTeams].sort((a, b) => {
+      return qualifiedTeamIds.indexOf(a) - qualifiedTeamIds.indexOf(b);
+    });
+    
+    if (nextRoundTeams.length <= 2) {
+      return { done: true, champion1: nextRoundTeams[0], champion2: nextRoundTeams[1] };
+    }
+    
+    for (let i = 0; i < nextRoundTeams.length / 2; i++) {
+      await storage.createGame({
+        leagueId,
+        season,
+        week: 0,
+        homeTeamId: nextRoundTeams[i],
+        awayTeamId: nextRoundTeams[nextRoundTeams.length - 1 - i],
+        phase: "super_regionals",
+      });
+    }
+    
+    return { done: false };
+  }
+
+  // ============ ADVANCE CWS (BEST OF 3) ============
+  async function advanceCWS(leagueId: string, season: number): Promise<{ done: boolean; champion?: string; runnerUp?: string }> {
+    const allGames = await storage.getGamesByLeague(leagueId);
+    const cwsGames = allGames.filter(g => g.phase === "cws" && g.season === season);
+    
+    const incompleteGames = cwsGames.filter(g => !g.isComplete);
+    for (const game of incompleteGames) {
+      const result = await simulateGame(game.homeTeamId, game.awayTeamId);
+      await storage.updateGame(game.id, {
+        homeScore: result.homeScore,
+        awayScore: result.awayScore,
+        isComplete: true,
+      });
+    }
+    
+    const updatedGames = await storage.getGamesByLeague(leagueId);
+    const completedCWS = updatedGames.filter(g => g.phase === "cws" && g.season === season && g.isComplete);
+    
+    const winsMap: Record<string, number> = {};
+    let team1 = "", team2 = "";
+    for (const g of completedCWS) {
+      if (!team1) team1 = g.homeTeamId;
+      if (!team2) team2 = g.homeTeamId === team1 ? g.awayTeamId : g.homeTeamId;
+      const winner = (g.homeScore ?? 0) > (g.awayScore ?? 0) ? g.homeTeamId : g.awayTeamId;
+      winsMap[winner] = (winsMap[winner] || 0) + 1;
+    }
+    
+    if ((winsMap[team1] || 0) >= 2) {
+      return { done: true, champion: team1, runnerUp: team2 };
+    }
+    if ((winsMap[team2] || 0) >= 2) {
+      return { done: true, champion: team2, runnerUp: team1 };
+    }
+    
+    const gameNumber = completedCWS.length + 1;
+    const homeTeam = gameNumber % 2 === 1 ? team1 : team2;
+    const awayTeam = homeTeam === team1 ? team2 : team1;
+    
+    await storage.createGame({
+      leagueId,
+      season,
+      week: 0,
+      homeTeamId: homeTeam,
+      awayTeamId: awayTeam,
+      phase: "cws",
+    });
+    
+    return { done: false };
+  }
+
   // ============ SEASON TRANSITION FUNCTION ============
   async function performSeasonTransition(leagueId: string, completedSeason: number) {
     const teams = await storage.getTeamsByLeague(leagueId);
@@ -2439,6 +2743,10 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Only commissioner can advance the season" });
       }
       
+      if (league.currentPhase !== "offseason") {
+        return res.status(400).json({ message: "Season can only be advanced during offseason phase" });
+      }
+      
       const transitionResult = await performSeasonTransition(league.id, league.currentSeason);
       
       const updatedLeague = await storage.updateLeague(league.id, {
@@ -2458,6 +2766,49 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to advance season:", error);
       res.status(500).json({ message: "Failed to advance season" });
+    }
+  });
+
+  // ============ POSTSEASON DATA ENDPOINT ============
+  app.get("/api/leagues/:id/postseason", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      
+      const allGames = await storage.getGamesByLeague(leagueId);
+      let season = Number(req.query.season) || league.currentSeason;
+      
+      const leagueTeams = await storage.getTeamsByLeague(leagueId);
+      const teamMap = Object.fromEntries(leagueTeams.map(t => [t.id, { name: t.name, abbreviation: t.abbreviation, primaryColor: t.primaryColor, secondaryColor: t.secondaryColor }]));
+      
+      let confChampGames = allGames.filter(g => g.phase === "conference_championship" && g.season === season);
+      let srGames = allGames.filter(g => g.phase === "super_regionals" && g.season === season);
+      let cwsGames = allGames.filter(g => g.phase === "cws" && g.season === season);
+      
+      if (confChampGames.length === 0 && srGames.length === 0 && cwsGames.length === 0 && season > 1 && !req.query.season) {
+        season = league.currentSeason - 1;
+        confChampGames = allGames.filter(g => g.phase === "conference_championship" && g.season === season);
+        srGames = allGames.filter(g => g.phase === "super_regionals" && g.season === season);
+        cwsGames = allGames.filter(g => g.phase === "cws" && g.season === season);
+      }
+      
+      const enrichGame = (g: any) => ({
+        ...g,
+        homeTeam: teamMap[g.homeTeamId],
+        awayTeam: teamMap[g.awayTeamId],
+      });
+      
+      res.json({
+        phase: league.currentPhase,
+        season,
+        conferenceChampionships: confChampGames.map(enrichGame),
+        superRegionals: srGames.map(enrichGame),
+        cws: cwsGames.map(enrichGame),
+      });
+    } catch (error) {
+      console.error("Failed to fetch postseason data:", error);
+      res.status(500).json({ message: "Failed to fetch postseason data" });
     }
   });
 

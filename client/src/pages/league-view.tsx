@@ -203,6 +203,9 @@ export default function LeagueViewPage() {
             <TabsTrigger value="rankings" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
               Rankings
             </TabsTrigger>
+            <TabsTrigger value="postseason" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
+              Postseason
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="standings">
@@ -219,6 +222,10 @@ export default function LeagueViewPage() {
 
           <TabsContent value="news">
             <NewsTab leagueId={league.id} />
+          </TabsContent>
+
+          <TabsContent value="postseason">
+            <PostseasonTab leagueId={league.id} />
           </TabsContent>
         </Tabs>
       </main>
@@ -863,6 +870,219 @@ function SeasonProgressBar({ phase }: { phase: string }) {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+interface PostseasonGame {
+  id: string;
+  homeTeamId: string;
+  awayTeamId: string;
+  homeScore: number | null;
+  awayScore: number | null;
+  isComplete: boolean;
+  phase: string;
+  homeTeam: { name: string; abbreviation: string; primaryColor: string; secondaryColor: string };
+  awayTeam: { name: string; abbreviation: string; primaryColor: string; secondaryColor: string };
+}
+
+interface PostseasonData {
+  phase: string;
+  conferenceChampionships: PostseasonGame[];
+  superRegionals: PostseasonGame[];
+  cws: PostseasonGame[];
+}
+
+function PostseasonTab({ leagueId }: { leagueId: string }) {
+  const { data, isLoading } = useQuery<PostseasonData>({
+    queryKey: ["/api/leagues", leagueId, "postseason"],
+    enabled: !!leagueId,
+  });
+
+  if (isLoading) {
+    return <Skeleton className="h-64" />;
+  }
+
+  const hasData = data && (
+    data.conferenceChampionships.length > 0 || 
+    data.superRegionals.length > 0 || 
+    data.cws.length > 0
+  );
+
+  if (!hasData) {
+    return (
+      <RetroCard>
+        <RetroCardContent>
+          <div className="text-center py-12 text-muted-foreground">
+            <Trophy className="w-12 h-12 mx-auto mb-4 opacity-30" />
+            <p className="font-pixel text-xs text-gold mb-2">No Postseason Yet</p>
+            <p className="text-sm">The postseason will begin after the regular season ends.</p>
+          </div>
+        </RetroCardContent>
+      </RetroCard>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {data!.conferenceChampionships.length > 0 && (
+        <RetroCard>
+          <RetroCardHeader>
+            <div className="flex items-center gap-2 w-full">
+              <Trophy className="w-4 h-4 text-gold" />
+              <span>Conference Championships</span>
+            </div>
+          </RetroCardHeader>
+          <RetroCardContent>
+            <div className="grid sm:grid-cols-2 gap-3">
+              {data!.conferenceChampionships.map(game => (
+                <PostseasonGameCard key={game.id} game={game} />
+              ))}
+            </div>
+          </RetroCardContent>
+        </RetroCard>
+      )}
+
+      {data!.superRegionals.length > 0 && (
+        <RetroCard>
+          <RetroCardHeader>
+            <div className="flex items-center gap-2 w-full">
+              <Trophy className="w-4 h-4 text-gold" />
+              <span>Super Regionals</span>
+            </div>
+          </RetroCardHeader>
+          <RetroCardContent>
+            <PostseasonBracketView games={data!.superRegionals} />
+          </RetroCardContent>
+        </RetroCard>
+      )}
+
+      {data!.cws.length > 0 && (
+        <RetroCard>
+          <RetroCardHeader>
+            <div className="flex items-center gap-2 w-full">
+              <Trophy className="w-4 h-4 text-gold" />
+              <span>College World Series</span>
+            </div>
+          </RetroCardHeader>
+          <RetroCardContent>
+            <div className="space-y-3">
+              {data!.cws.map((game, i) => (
+                <div key={game.id}>
+                  <p className="text-[9px] text-muted-foreground font-pixel mb-1">Game {i + 1}</p>
+                  <PostseasonGameCard game={game} />
+                </div>
+              ))}
+              <CWSSeriesDisplay games={data!.cws} />
+            </div>
+          </RetroCardContent>
+        </RetroCard>
+      )}
+    </div>
+  );
+}
+
+function PostseasonGameCard({ game }: { game: PostseasonGame }) {
+  const homeWon = game.isComplete && (game.homeScore ?? 0) > (game.awayScore ?? 0);
+  const awayWon = game.isComplete && (game.awayScore ?? 0) > (game.homeScore ?? 0);
+
+  return (
+    <div className="bg-muted/30 rounded p-3 border border-border" data-testid={`postseason-game-${game.id}`}>
+      <div className={`flex items-center justify-between gap-2 py-1 ${homeWon ? "text-gold font-medium" : awayWon ? "text-muted-foreground" : ""}`}>
+        <div className="flex items-center gap-2">
+          <span className="text-xs">{game.homeTeam?.name || "TBD"}</span>
+          <Badge variant="outline" className="text-[8px]">{game.homeTeam?.abbreviation}</Badge>
+        </div>
+        <span className="text-sm font-pixel">{game.isComplete ? game.homeScore : "-"}</span>
+      </div>
+      <div className="border-t border-border/50 my-1" />
+      <div className={`flex items-center justify-between gap-2 py-1 ${awayWon ? "text-gold font-medium" : homeWon ? "text-muted-foreground" : ""}`}>
+        <div className="flex items-center gap-2">
+          <span className="text-xs">{game.awayTeam?.name || "TBD"}</span>
+          <Badge variant="outline" className="text-[8px]">{game.awayTeam?.abbreviation}</Badge>
+        </div>
+        <span className="text-sm font-pixel">{game.isComplete ? game.awayScore : "-"}</span>
+      </div>
+      {!game.isComplete && (
+        <div className="text-center mt-2">
+          <Badge variant="outline" className="text-[8px]">Upcoming</Badge>
+        </div>
+      )}
+      {game.isComplete && (
+        <div className="text-center mt-2">
+          <Badge className="text-[8px] bg-green-500/20 text-green-400 border-green-500/30">Final</Badge>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PostseasonBracketView({ games }: { games: PostseasonGame[] }) {
+  const completedGames = games.filter(g => g.isComplete);
+  const upcomingGames = games.filter(g => !g.isComplete);
+
+  return (
+    <div className="space-y-4">
+      {completedGames.length > 0 && (
+        <div>
+          <p className="text-[9px] text-muted-foreground font-pixel mb-2 uppercase">Completed Rounds</p>
+          <div className="grid sm:grid-cols-2 gap-3">
+            {completedGames.map(game => (
+              <PostseasonGameCard key={game.id} game={game} />
+            ))}
+          </div>
+        </div>
+      )}
+      {upcomingGames.length > 0 && (
+        <div>
+          <p className="text-[9px] text-muted-foreground font-pixel mb-2 uppercase">Next Round</p>
+          <div className="grid sm:grid-cols-2 gap-3">
+            {upcomingGames.map(game => (
+              <PostseasonGameCard key={game.id} game={game} />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CWSSeriesDisplay({ games }: { games: PostseasonGame[] }) {
+  const completedGames = games.filter(g => g.isComplete);
+  if (completedGames.length === 0) return null;
+
+  const winsMap: Record<string, { name: string; wins: number }> = {};
+  for (const g of completedGames) {
+    const winnerId = (g.homeScore ?? 0) > (g.awayScore ?? 0) ? g.homeTeamId : g.awayTeamId;
+    const winnerTeam = winnerId === g.homeTeamId ? g.homeTeam : g.awayTeam;
+    if (!winsMap[winnerId]) winsMap[winnerId] = { name: winnerTeam?.name || "TBD", wins: 0 };
+    winsMap[winnerId].wins++;
+  }
+
+  const entries = Object.values(winsMap);
+  const champion = entries.find(e => e.wins >= 2);
+
+  return (
+    <div className="mt-4 pt-4 border-t border-border">
+      {champion ? (
+        <div className="text-center bg-gold/10 rounded p-4 border border-gold/20">
+          <Trophy className="w-8 h-8 text-gold mx-auto mb-2" />
+          <p className="font-pixel text-gold text-sm" data-testid="text-league-cws-champion">
+            {champion.name} Wins the College World Series!
+          </p>
+        </div>
+      ) : (
+        <div className="text-center">
+          <p className="font-pixel text-xs text-muted-foreground mb-2">Series Status</p>
+          <div className="flex items-center justify-center gap-6 text-sm">
+            {entries.map(e => (
+              <span key={e.name} className="font-pixel text-gold">
+                {e.name}: {e.wins}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
