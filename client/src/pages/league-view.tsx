@@ -41,6 +41,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import type { League, Team, Conference, Standings, DynastyNews } from "@shared/schema";
 import { User, Cpu } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import addieFriskImg from "@/assets/images/addie-frisk.png";
+import sullyPumpImg from "@/assets/images/sully-pump.png";
 
 interface TeamWithCoach extends Team {
   standings?: Standings;
@@ -606,6 +608,7 @@ function NewsTab({ leagueId }: { leagueId: string }) {
   const [content, setContent] = useState("");
   const [category, setCategory] = useState("general");
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [filterJournalist, setFilterJournalist] = useState<string>("all");
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -642,17 +645,34 @@ function NewsTab({ leagueId }: { leagueId: string }) {
     general: "General",
     recruiting: "Recruiting",
     game: "Game Result",
+    postseason: "Postseason",
+    conference: "Conference",
+    recap: "Weekly Recap",
     trade: "Trade",
     announcement: "Announcement",
   };
 
   const categoryColors: Record<string, string> = {
-    general: "bg-muted",
+    general: "bg-muted text-muted-foreground",
     recruiting: "bg-blue-500/20 text-blue-400",
     game: "bg-green-500/20 text-green-400",
+    postseason: "bg-amber-500/20 text-amber-400",
+    conference: "bg-cyan-500/20 text-cyan-400",
+    recap: "bg-indigo-500/20 text-indigo-400",
     trade: "bg-purple-500/20 text-purple-400",
     announcement: "bg-yellow-500/20 text-yellow-400",
   };
+
+  const journalistInfo: Record<string, { name: string; avatar: string; title: string }> = {
+    addie: { name: "Addie Frisk", avatar: addieFriskImg, title: "Game & Conference Reporter" },
+    sully: { name: "Sully Pump", avatar: sullyPumpImg, title: "Recruiting Analyst" },
+  };
+
+  const filteredNews = news?.filter(item => {
+    if (filterJournalist === "all") return true;
+    if (filterJournalist === "user") return !item.journalist;
+    return item.journalist === filterJournalist;
+  });
 
   if (isLoading) {
     return (
@@ -689,6 +709,39 @@ function NewsTab({ leagueId }: { leagueId: string }) {
         </RetroButton>
       </RetroCardHeader>
       <RetroCardContent>
+        <div className="flex items-center gap-2 mb-4 flex-wrap" data-testid="news-filters">
+          <button
+            onClick={() => setFilterJournalist("all")}
+            className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${filterJournalist === "all" ? "bg-gold/20 text-gold border border-gold/40" : "bg-muted/50 text-muted-foreground border border-transparent"}`}
+            data-testid="filter-news-all"
+          >
+            All
+          </button>
+          <button
+            onClick={() => setFilterJournalist("addie")}
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-colors ${filterJournalist === "addie" ? "bg-gold/20 text-gold border border-gold/40" : "bg-muted/50 text-muted-foreground border border-transparent"}`}
+            data-testid="filter-news-addie"
+          >
+            <img src={addieFriskImg} alt="" className="w-4 h-4 rounded-sm" style={{ imageRendering: "pixelated" }} />
+            Addie
+          </button>
+          <button
+            onClick={() => setFilterJournalist("sully")}
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-colors ${filterJournalist === "sully" ? "bg-gold/20 text-gold border border-gold/40" : "bg-muted/50 text-muted-foreground border border-transparent"}`}
+            data-testid="filter-news-sully"
+          >
+            <img src={sullyPumpImg} alt="" className="w-4 h-4 rounded-sm" style={{ imageRendering: "pixelated" }} />
+            Sully
+          </button>
+          <button
+            onClick={() => setFilterJournalist("user")}
+            className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${filterJournalist === "user" ? "bg-gold/20 text-gold border border-gold/40" : "bg-muted/50 text-muted-foreground border border-transparent"}`}
+            data-testid="filter-news-user"
+          >
+            Commissioner
+          </button>
+        </div>
+
         {showForm && (
           <div className="bg-muted/50 rounded-lg p-4 mb-4 space-y-3">
             <RetroInput
@@ -762,47 +815,83 @@ function NewsTab({ leagueId }: { leagueId: string }) {
           </div>
         )}
 
-        {(!news || news.length === 0) ? (
+        {(!filteredNews || filteredNews.length === 0) ? (
           <div className="text-center py-8 text-muted-foreground">
             <Newspaper className="w-10 h-10 mx-auto mb-3 opacity-50" />
-            <p className="text-sm">No news yet. Be the first to post!</p>
+            <p className="text-sm">{filterJournalist !== "all" ? "No stories from this reporter yet." : "No news yet. Be the first to post!"}</p>
           </div>
         ) : (
           <div className="space-y-3">
-            {news.map((item) => (
-              <div 
-                key={item.id} 
-                className="bg-muted/30 rounded-lg p-4 border border-border/50"
-                data-testid={`card-news-${item.id}`}
-              >
-                <div className="flex items-start gap-2 mb-2">
-                  {item.isSticky && (
-                    <Pin className="w-3 h-3 text-gold flex-shrink-0 mt-1" />
-                  )}
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h4 className="font-medium text-gold">{item.title}</h4>
-                      <Badge className={`text-[9px] ${categoryColors[item.category] || ""}`}>
-                        {categoryLabels[item.category] || item.category}
-                      </Badge>
+            {filteredNews.map((item) => {
+              const journalist = item.journalist ? journalistInfo[item.journalist] : null;
+              return (
+                <div 
+                  key={item.id} 
+                  className="bg-muted/30 rounded-lg p-4 border border-border/50"
+                  data-testid={`card-news-${item.id}`}
+                >
+                  <div className="flex items-start gap-3 mb-2">
+                    {journalist ? (
+                      <img 
+                        src={journalist.avatar} 
+                        alt={journalist.name}
+                        className="w-10 h-10 rounded-md flex-shrink-0 border border-gold/30"
+                        style={{ imageRendering: "pixelated" }}
+                        data-testid={`avatar-journalist-${item.journalist}`}
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-md flex-shrink-0 bg-muted border border-border flex items-center justify-center">
+                        <Newspaper className="w-5 h-5 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {item.isSticky && (
+                          <Pin className="w-3 h-3 text-gold flex-shrink-0" />
+                        )}
+                        <h4 className="font-medium text-gold text-sm leading-tight">{item.title}</h4>
+                        <Badge className={`text-[9px] no-default-hover-elevate no-default-active-elevate ${categoryColors[item.category] || "bg-muted"}`}>
+                          {categoryLabels[item.category] || item.category}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {journalist ? (
+                          <>
+                            <span className="text-foreground/80">{journalist.name}</span>
+                            <span className="mx-1 opacity-50">|</span>
+                            <span className="italic">{journalist.title}</span>
+                          </>
+                        ) : (
+                          <span>{item.authorName}</span>
+                        )}
+                        {item.season && (
+                          <>
+                            <span className="mx-1 opacity-50">|</span>
+                            Season {item.season}{item.week ? `, Week ${item.week}` : ""}
+                          </>
+                        )}
+                        {!item.season && (
+                          <>
+                            <span className="mx-1 opacity-50">|</span>
+                            {new Date(item.createdAt).toLocaleDateString()}
+                          </>
+                        )}
+                      </p>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Posted by {item.authorName} - {new Date(item.createdAt).toLocaleDateString()}
-                    </p>
                   </div>
+                  {item.imageUrl && (
+                    <div className="my-3 pl-[52px]">
+                      <img 
+                        src={item.imageUrl} 
+                        alt={item.title}
+                        className="max-w-full max-h-64 rounded-lg object-cover"
+                      />
+                    </div>
+                  )}
+                  <p className="text-sm text-foreground/90 whitespace-pre-wrap pl-[52px] leading-relaxed">{item.content}</p>
                 </div>
-                {item.imageUrl && (
-                  <div className="my-3">
-                    <img 
-                      src={item.imageUrl} 
-                      alt={item.title}
-                      className="max-w-full max-h-64 rounded-lg object-cover"
-                    />
-                  </div>
-                )}
-                <p className="text-sm text-foreground whitespace-pre-wrap">{item.content}</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </RetroCardContent>

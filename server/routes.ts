@@ -7,6 +7,16 @@ import { z } from "zod";
 import { randomUUID } from "crypto";
 import { getRandomAbilities } from "@shared/abilities";
 import type { Player, TransferPortalInterest } from "@shared/schema";
+import {
+  generateGameNewsArticles,
+  generateCWSChampionNewsArticle,
+  generateRecruitCommitNewsArticle,
+  generateDraftDeclarationNewsArticle,
+  generateTransferPortalNewsArticle,
+  generateSeasonPreviewNewsArticle,
+  generateConferenceUpdateNews,
+  generateDeparturesSummaryNews,
+} from "./news-engine";
 
 declare module "express-session" {
   interface SessionData {
@@ -1397,6 +1407,25 @@ export async function registerRoutes(
         details: `Signed ${recruit.firstName} ${recruit.lastName} (${recruit.starRank}-star ${recruit.position})`,
       });
 
+      try {
+        const league = await storage.getLeague(req.params.id);
+        await generateRecruitCommitNewsArticle(
+          req.params.id,
+          `${recruit.firstName} ${recruit.lastName}`,
+          recruit.starRank || 3,
+          recruit.position,
+          recruit.homeState,
+          recruit.hometown,
+          userTeam,
+          recruit.overall,
+          recruit.classRank,
+          league?.currentSeason || 1,
+          league?.currentWeek
+        );
+      } catch (e) {
+        console.error("Recruit commit news error:", e);
+      }
+
       res.json(updatedRecruit);
     } catch (error) {
       console.error("Failed to sign recruit:", error);
@@ -2748,6 +2777,22 @@ export async function registerRoutes(
         }
       }
 
+      // ============ AUTO-GENERATE NEWS FOR REGULAR SEASON GAMES ============
+      if (incompleteGames.length > 0) {
+        try {
+          const allGamesAfterSim = await storage.getGamesByLeague(leagueId);
+          const completedThisWeek = allGamesAfterSim.filter(g =>
+            g.week === currentWeek && g.season === league.currentSeason && g.phase === "regular" && g.isComplete
+          );
+          await generateGameNewsArticles(leagueId, completedThisWeek, leagueTeamsForSim, league.currentSeason, currentWeek, league.currentPhase);
+          if (currentWeek % 3 === 0) {
+            await generateConferenceUpdateNews(leagueId, leagueTeamsForSim, league.currentSeason, currentWeek);
+          }
+        } catch (e) {
+          console.error("News generation error:", e);
+        }
+      }
+
       // ============ POSTSEASON / SEASON PROGRESSION ============
       const isPostseason = ["conference_championship", "super_regionals", "cws"].includes(league.currentPhase);
 
@@ -2761,6 +2806,12 @@ export async function registerRoutes(
             await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, isComplete: true, boxScore: result.boxScore });
             await updateStandingsForGame(leagueId, league.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore);
           }
+
+          try {
+            const postTeams = await storage.getTeamsByLeague(leagueId);
+            const completedConf = (await storage.getGamesByLeague(leagueId)).filter(g => g.phase === "conference_championship" && g.season === league.currentSeason && g.isComplete);
+            await generateGameNewsArticles(leagueId, completedConf, postTeams, league.currentSeason, currentWeek, "conference_championship");
+          } catch (e) { console.error("Postseason news error:", e); }
           
           await generateSuperRegionalBracket(leagueId, league.currentSeason);
           
@@ -2799,13 +2850,13 @@ export async function registerRoutes(
             const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "offseason_departures" });
             await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "CWS Champion Crowned!", details: `${champTeam?.name || "Unknown"} wins the College World Series over ${runnerUpTeam?.name || "Unknown"}!` });
             
-            await storage.createDynastyNews({
-              leagueId,
-              authorName: "Dynasty Sports Network",
-              title: `${champTeam?.name} Wins the College World Series!`,
-              content: `The ${champTeam?.name} ${champTeam?.mascot} have defeated the ${runnerUpTeam?.name} ${runnerUpTeam?.mascot} to win the College World Series championship!`,
-              category: "game",
-            });
+            if (champTeam && runnerUpTeam) {
+              try {
+                await generateCWSChampionNewsArticle(leagueId, champTeam, runnerUpTeam, league.currentSeason);
+              } catch (e) {
+                console.error("CWS news generation error:", e);
+              }
+            }
             
             return res.json({ ...updatedLeague, cwsChampion: cwsResult.champion, cwsRunnerUp: cwsResult.runnerUp });
           }
@@ -2837,6 +2888,12 @@ export async function registerRoutes(
           action: "Offseason: Departures Phase",
           details: `${departureResult.graduated} graduating, ${departureResult.draftDeclared} draft eligible, ${departureResult.transferPortal} considering transfer. Review departures before finalizing.`,
         });
+
+        try {
+          await generateDeparturesSummaryNews(leagueId, league.currentSeason, departureResult.graduated, departureResult.draftDeclared, departureResult.transferPortal);
+        } catch (e) {
+          console.error("Departures news error:", e);
+        }
         
         return res.json({ 
           ...league, 
@@ -2881,6 +2938,13 @@ export async function registerRoutes(
           action: "Season Advanced",
           details: `Season ${league.currentSeason} ended. ${transitionResult.recruitsAdded} recruits joined rosters, ${transitionResult.newRecruits} new recruits generated. Now entering Season ${league.currentSeason + 1}.`,
         });
+
+        try {
+          const previewTeams = await storage.getTeamsByLeague(leagueId);
+          await generateSeasonPreviewNewsArticle(leagueId, previewTeams, league.currentSeason + 1);
+        } catch (e) {
+          console.error("Season preview news error:", e);
+        }
 
         return res.json({ ...updatedLeague, seasonTransition: transitionResult });
       }
@@ -3504,6 +3568,12 @@ export async function registerRoutes(
           declaredForDraft: true,
         });
         totalDraftDeclared++;
+        try {
+          await generateDraftDeclarationNewsArticle(
+            leagueId, `${player.firstName} ${player.lastName}`,
+            player.position, team, player.overall, player.starRating || 3, completedSeason
+          );
+        } catch (e) { console.error("Draft news error:", e); }
       }
       
       const previouslyDeclared = roster.filter(p => p.declaredForDraft && p.eligibility !== "SR" && !draftEligible.find(d => d.id === p.id));
@@ -3537,6 +3607,12 @@ export async function registerRoutes(
           transferReason: reason,
         });
         totalTransferPortal++;
+        try {
+          await generateTransferPortalNewsArticle(
+            leagueId, `${shuffled[i].firstName} ${shuffled[i].lastName}`,
+            shuffled[i].position, team, shuffled[i].starRating || 3, completedSeason
+          );
+        } catch (e) { console.error("Transfer portal news error:", e); }
       }
       
       const existingPortal = roster.filter(p => p.inTransferPortal && !shuffled.slice(0, portalCount).find(s => s.id === p.id));
