@@ -5,9 +5,11 @@ interface RetroCardProps {
   children: ReactNode;
   className?: string;
   variant?: "default" | "highlighted" | "bordered";
+  style?: React.CSSProperties;
+  "data-testid"?: string;
 }
 
-export function RetroCard({ children, className, variant = "default" }: RetroCardProps) {
+export function RetroCard({ children, className, variant = "default", style, "data-testid": testId }: RetroCardProps) {
   const variants = {
     default: "bg-card border-card-border",
     highlighted: "bg-card border-gold",
@@ -15,7 +17,7 @@ export function RetroCard({ children, className, variant = "default" }: RetroCar
   };
 
   return (
-    <div className={cn("border-2 p-4", variants[variant], className)}>
+    <div className={cn("border-2 p-4", variants[variant], className)} style={style} data-testid={testId}>
       {children}
     </div>
   );

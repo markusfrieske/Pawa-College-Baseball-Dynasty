@@ -748,6 +748,7 @@ export default function RecruitingPage() {
         isVisiting={visitMutation.isPending}
         onOffer={(recruitId) => offerMutation.mutate(recruitId)}
         isOffering={offerMutation.isPending}
+        outOfRecruitingActions={(data?.remainingActions ?? 1) <= 0}
       />
 
       {compareRecruits.length > 0 && (
@@ -1472,6 +1473,7 @@ function RecruitDetailModal({
   isVisiting,
   onOffer,
   isOffering,
+  outOfRecruitingActions,
 }: {
   recruit: RecruitWithInterest | null;
   onClose: () => void;
@@ -1486,6 +1488,7 @@ function RecruitDetailModal({
   isVisiting: boolean;
   onOffer: (recruitId: string) => void;
   isOffering: boolean;
+  outOfRecruitingActions?: boolean;
 }) {
   const [modalPhonePitches, setModalPhonePitches] = useState<string[]>([]);
   const [modalEmailPitch, setModalEmailPitch] = useState<string | null>(null);
@@ -1789,6 +1792,42 @@ function RecruitDetailModal({
             </div>
           )}
 
+          {/* Story-Revealed Traits */}
+          {(recruit.personality || recruit.workEthic || recruit.gemBustRevealed) && (
+            <div>
+              <h4 className="font-pixel text-[10px] text-gold mb-3">Intangibles (Story Revealed)</h4>
+              <div className="grid grid-cols-2 gap-3">
+                {recruit.personality && (
+                  <div className="bg-muted/30 rounded p-2.5 border border-border/50">
+                    <span className="text-[10px] text-muted-foreground block mb-1">Personality</span>
+                    <span className="text-sm font-medium text-foreground capitalize">{(recruit.personality as string).replace(/_/g, " ")}</span>
+                  </div>
+                )}
+                {recruit.workEthic && (
+                  <div className="bg-muted/30 rounded p-2.5 border border-border/50">
+                    <span className="text-[10px] text-muted-foreground block mb-1">Work Ethic</span>
+                    <span className="text-sm font-medium text-foreground capitalize">{recruit.workEthic as string}</span>
+                  </div>
+                )}
+                {recruit.gemBustRevealed && (
+                  <div className={`rounded p-2.5 border col-span-2 ${recruit.isGem ? "bg-green-500/10 border-green-500/30" : recruit.isBust ? "bg-red-500/10 border-red-500/30" : "bg-muted/30 border-border/50"}`}>
+                    <span className="text-[10px] text-muted-foreground block mb-1">Scout Assessment</span>
+                    <span className={`text-sm font-medium ${recruit.isGem ? "text-green-400" : recruit.isBust ? "text-red-400" : "text-foreground"}`}>
+                      {recruit.isGem ? "Hidden Gem - Better than rating suggests" : recruit.isBust ? "Potential Bust - May be overrated" : "Accurate Rating - What you see is what you get"}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {!recruit.personality && !recruit.workEthic && !recruit.gemBustRevealed && (
+            <div className="bg-muted/20 rounded p-3 border border-dashed border-border/40">
+              <h4 className="font-pixel text-[10px] text-muted-foreground mb-1">Intangibles</h4>
+              <p className="text-xs text-muted-foreground italic">Unknown - Follow this recruit's story arc to reveal personality, work ethic, and true potential.</p>
+            </div>
+          )}
+
           {recruit.dealbreaker && (
             <div className="p-3 bg-red-500/10 border border-red-500/30 rounded">
               <div className="flex items-center gap-2 text-red-400 mb-1">
@@ -1821,7 +1860,7 @@ function RecruitDetailModal({
               <RetroButton 
                 className="flex-1" 
                 data-testid="button-phone"
-                variant={showModalPhonePicker ? "primary" : "default"}
+                variant={showModalPhonePicker ? "primary" : "outline"}
                 onClick={() => { setShowModalPhonePicker(!showModalPhonePicker); setShowModalEmailPicker(false); setModalPhonePitches([]); }}
                 disabled={isPhoning}
               >

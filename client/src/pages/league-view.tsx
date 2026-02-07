@@ -43,6 +43,7 @@ import { User, Cpu } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import addieFriskImg from "@/assets/images/addie-frisk.png";
 import sullyPumpImg from "@/assets/images/sully-pump.png";
+import { StoryEngineHub } from "@/components/story-engine-hub";
 
 interface TeamWithCoach extends Team {
   standings?: Standings;
@@ -259,7 +260,7 @@ export default function LeagueViewPage() {
           </TabsContent>
 
           <TabsContent value="news">
-            <NewsTab leagueId={league.id} />
+            <StoryEngineHub leagueId={league.id} teamId={userTeam?.id} />
           </TabsContent>
 
           <TabsContent value="postseason">
