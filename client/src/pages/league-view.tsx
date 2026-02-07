@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
+import { useUpdateMusicPhase } from "@/lib/music-context";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroInput } from "@/components/ui/retro-input";
 import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
@@ -78,10 +79,17 @@ interface LeagueDetails extends League {
 
 export default function LeagueViewPage() {
   const { id } = useParams<{ id: string }>();
+  const updateMusicPhase = useUpdateMusicPhase();
 
   const { data: league, isLoading } = useQuery<LeagueDetails>({
     queryKey: ["/api/leagues", id],
   });
+
+  useEffect(() => {
+    if (league?.currentPhase) {
+      updateMusicPhase(league.currentPhase);
+    }
+  }, [league?.currentPhase, updateMusicPhase]);
 
   if (isLoading) {
     return <LeagueViewSkeleton />;

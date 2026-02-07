@@ -28,6 +28,9 @@ import CommitsPage from "@/pages/commits";
 import DeparturesPage from "@/pages/departures";
 import { useState } from "react";
 import { useLocation } from "wouter";
+import { MusicProvider } from "@/lib/music-context";
+import { MusicRouter } from "@/components/music-router";
+import { VolumeControl } from "@/components/volume-control";
 
 function Router() {
   return (
@@ -109,8 +112,14 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Router />
+        <MusicProvider>
+          <MusicRouter />
+          <div className="fixed bottom-4 right-4 z-50" data-testid="music-controls-floating">
+            <VolumeControl />
+          </div>
+          <Toaster />
+          <Router />
+        </MusicProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );
