@@ -238,12 +238,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteRecruitsByLeague(leagueId: string): Promise<void> {
-    // First delete all recruiting interests for recruits in this league
-    const leagueRecruits = await db.select().from(recruits).where(eq(recruits.leagueId, leagueId));
-    for (const recruit of leagueRecruits) {
-      await db.delete(recruitingInterests).where(eq(recruitingInterests.recruitId, recruit.id));
+    const leagueRecruits = await db.select({ id: recruits.id }).from(recruits).where(eq(recruits.leagueId, leagueId));
+    const recruitIds = leagueRecruits.map(r => r.id);
+    if (recruitIds.length > 0) {
+      await db.delete(recruitTopSchools).where(inArray(recruitTopSchools.recruitId, recruitIds));
+      await db.delete(recruitingActionsLog).where(inArray(recruitingActionsLog.recruitId, recruitIds));
+      await db.delete(recruitingInterests).where(inArray(recruitingInterests.recruitId, recruitIds));
     }
-    // Then delete the recruits
     await db.delete(recruits).where(eq(recruits.leagueId, leagueId));
   }
 
