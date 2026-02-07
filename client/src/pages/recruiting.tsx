@@ -149,6 +149,7 @@ export default function RecruitingPage() {
   const [compareRecruits, setCompareRecruits] = useState<RecruitWithInterest[]>([]);
   const [showCompareModal, setShowCompareModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [pipelineFilter, setPipelineFilter] = useState<string | null>(null);
   const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
@@ -365,6 +366,18 @@ export default function RecruitingPage() {
     if (positionFilter !== "all" && r.position !== positionFilter) return false;
     if (starFilter !== "all" && r.starRank < parseInt(starFilter)) return false;
     if (showWatchlistOnly && !r.interest?.isTargeted) return false;
+    if (sortBy === "interest" && !(r.interest && (r.interest.interestLevel || 0) > 0)) return false;
+    if (pipelineFilter) {
+      const level = r.interest?.interestLevel || 0;
+      if (pipelineFilter === "cold" && !(level >= 1 && level <= 15)) return false;
+      if (pipelineFilter === "cool" && !(level >= 16 && level <= 30)) return false;
+      if (pipelineFilter === "warm" && !(level >= 31 && level <= 50)) return false;
+      if (pipelineFilter === "hot" && !(level >= 51 && level <= 70)) return false;
+      if (pipelineFilter === "very_hot" && !(level >= 71 && level <= 85)) return false;
+      if (pipelineFilter === "on_fire" && !(level >= 86 && level <= 99)) return false;
+      if (pipelineFilter === "committed" && !r.signedTeamId) return false;
+      if (pipelineFilter === "home_state" && r.homeState !== data?.team?.state) return false;
+    }
     return true;
   }).sort((a, b) => {
     switch (sortBy) {
@@ -608,18 +621,31 @@ export default function RecruitingPage() {
 
           {showPipeline && pipelineData && (
             <div className="mt-4 pt-4 border-t border-border">
-              <p className="font-pixel text-[10px] text-gold mb-3">RECRUITING PIPELINE</p>
-              <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
+              <div className="flex items-center justify-between mb-3">
+                <p className="font-pixel text-[10px] text-gold">RECRUITING PIPELINE</p>
+                {pipelineFilter && (
+                  <RetroButton variant="outline" size="sm" onClick={() => setPipelineFilter(null)} data-testid="button-clear-pipeline-filter">
+                    <X className="w-3 h-3 mr-1" /> Clear Filter
+                  </RetroButton>
+                )}
+              </div>
+              <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
                 {[
-                  { label: "Cold", count: pipelineData.pipeline.cold, color: "bg-blue-300/20 text-blue-300" },
-                  { label: "Cool", count: pipelineData.pipeline.cool, color: "bg-blue-400/20 text-blue-400" },
-                  { label: "Warm", count: pipelineData.pipeline.warm, color: "bg-green-400/20 text-green-400" },
-                  { label: "Hot", count: pipelineData.pipeline.hot, color: "bg-yellow-400/20 text-yellow-400" },
-                  { label: "Very Hot", count: pipelineData.pipeline.very_hot, color: "bg-orange-400/20 text-orange-400" },
-                  { label: "On Fire", count: pipelineData.pipeline.on_fire, color: "bg-red-400/20 text-red-400" },
-                  { label: "Committed", count: pipelineData.pipeline.committed, color: "bg-gold/20 text-gold" },
+                  { label: "Cold", key: "cold", count: pipelineData.pipeline.cold, color: "bg-blue-300/20 text-blue-300" },
+                  { label: "Cool", key: "cool", count: pipelineData.pipeline.cool, color: "bg-blue-400/20 text-blue-400" },
+                  { label: "Warm", key: "warm", count: pipelineData.pipeline.warm, color: "bg-green-400/20 text-green-400" },
+                  { label: "Hot", key: "hot", count: pipelineData.pipeline.hot, color: "bg-yellow-400/20 text-yellow-400" },
+                  { label: "Very Hot", key: "very_hot", count: pipelineData.pipeline.very_hot, color: "bg-orange-400/20 text-orange-400" },
+                  { label: "On Fire", key: "on_fire", count: pipelineData.pipeline.on_fire, color: "bg-red-400/20 text-red-400" },
+                  { label: "Committed", key: "committed", count: pipelineData.pipeline.committed, color: "bg-gold/20 text-gold" },
+                  { label: "Home State", key: "home_state", count: data?.recruits.filter(r => r.homeState === data?.team?.state).length || 0, color: "bg-purple-400/20 text-purple-400" },
                 ].map(stage => (
-                  <div key={stage.label} className={`text-center p-2 rounded ${stage.color}`}>
+                  <div
+                    key={stage.key}
+                    className={`text-center p-2 rounded cursor-pointer transition-all ${stage.color} ${pipelineFilter === stage.key ? "ring-2 ring-gold ring-offset-1 ring-offset-background" : "hover:opacity-80"}`}
+                    onClick={() => setPipelineFilter(pipelineFilter === stage.key ? null : stage.key)}
+                    data-testid={`pipeline-filter-${stage.key}`}
+                  >
                     <p className="font-bold text-lg">{stage.count}</p>
                     <p className="text-[9px]">{stage.label}</p>
                   </div>
@@ -667,6 +693,8 @@ export default function RecruitingPage() {
               onBulkSelect={() => toggleBulkSelect(recruit.id)}
               trend={trendsData?.trends?.[recruit.id]}
               positionNeed={pipelineData?.positionNeeds?.find(p => p.position === recruit.position)?.need}
+              outOfRecruitingActions={(data?.remainingActions ?? 1) <= 0}
+              outOfScoutActions={(data?.remainingScoutActions ?? 1) <= 0}
             />
           ))}
         </div>
@@ -876,6 +904,8 @@ function RecruitRow({
   onBulkSelect,
   trend,
   positionNeed,
+  outOfRecruitingActions,
+  outOfScoutActions,
 }: {
   recruit: RecruitWithInterest;
   leagueId: string;
@@ -899,6 +929,8 @@ function RecruitRow({
   onBulkSelect: () => void;
   trend?: { trend: "up" | "down" | "flat"; recentGain: number };
   positionNeed?: boolean;
+  outOfRecruitingActions?: boolean;
+  outOfScoutActions?: boolean;
 }) {
   const [showNotesDialog, setShowNotesDialog] = useState(false);
   const [notesValue, setNotesValue] = useState(recruit.interest?.notes || "");
@@ -1082,7 +1114,7 @@ function RecruitRow({
                   variant="outline"
                   size="sm"
                   onClick={onScout}
-                  disabled={isScouting || scoutPct >= 100}
+                  disabled={isScouting || scoutPct >= 100 || outOfScoutActions}
                   data-testid={`button-scout-${recruit.id}`}
                 >
                   <Search className="w-3 h-3" />
@@ -1109,8 +1141,8 @@ function RecruitRow({
                 <RetroButton
                   variant="outline"
                   size="sm"
-                  onClick={onPhone}
-                  disabled={isPhoning || !recruit.interest}
+                  onClick={() => onPhone()}
+                  disabled={isPhoning || !recruit.interest || outOfRecruitingActions}
                   data-testid={`button-phone-${recruit.id}`}
                 >
                   <Phone className="w-3 h-3" />
@@ -1123,8 +1155,8 @@ function RecruitRow({
                 <RetroButton
                   variant="outline"
                   size="sm"
-                  onClick={onEmail}
-                  disabled={isEmailing || !recruit.interest}
+                  onClick={() => onEmail()}
+                  disabled={isEmailing || !recruit.interest || outOfRecruitingActions}
                   data-testid={`button-email-${recruit.id}`}
                 >
                   <Mail className="w-3 h-3" />
@@ -1615,7 +1647,7 @@ function RecruitDetailModal({
               className="flex-1" 
               data-testid="button-visit"
               onClick={() => onVisit(recruit.id)}
-              disabled={isVisiting}
+              disabled={isVisiting || outOfRecruitingActions}
             >
               <MapPin className="w-4 h-4 mr-2" />
               {isVisiting ? "Scheduling..." : "Campus Visit"}

@@ -598,9 +598,8 @@ export async function registerRoutes(
       const nextYearRosterSize = roster.length - seniorsCount;
       const maxCommits = Math.max(0, 25 - roster.length + seniorsCount);
       
-      // Track scout and recruiting actions used
-      const scoutActionsUsed = interests.filter((i) => i.scoutPercentage > 0).length;
-      const recruitingActionsUsed = interests.filter((i) => i.interestLevel > 0).length;
+      const scoutActionsUsed = coach?.scoutActionsUsed || 0;
+      const recruitingActionsUsed = coach?.recruitActionsUsed || 0;
       const remainingScoutActions = Math.max(0, maxScoutActions - scoutActionsUsed);
       const remainingRecruitingActions = Math.max(0, maxRecruitingActions - recruitingActionsUsed);
 
@@ -629,13 +628,20 @@ export async function registerRoutes(
   app.post("/api/leagues/:id/recruiting/:recruitId/scout", requireAuth, async (req, res) => {
     try {
       const leagueTeams = await storage.getTeamsByLeague(req.params.id);
-      const userTeam = leagueTeams.find((t) => !t.isCpu);
+      const userId = req.session.userId;
+      const coaches = await storage.getCoachesByLeague(req.params.id as string);
+      const userCoach = coaches.find((c) => c.userId === userId);
+      const userTeam = leagueTeams.find((t) => t.id === userCoach?.teamId) || leagueTeams.find((t) => !t.isCpu);
       
       if (!userTeam) {
         return res.status(400).json({ message: "No team assigned" });
       }
 
-      // Get the recruit to know actual values for progressive reveal
+      const maxScoutActions = 5 + Math.floor(((userCoach?.scoutingSkill || 1) + (userCoach?.evaluationSkill || 1)) / 2);
+      if ((userCoach?.scoutActionsUsed || 0) >= maxScoutActions) {
+        return res.status(400).json({ message: `You've used all ${maxScoutActions} scouting actions this week` });
+      }
+
       const recruit = await storage.getRecruit(req.params.recruitId as string);
       if (!recruit) {
         return res.status(404).json({ message: "Recruit not found" });
@@ -754,6 +760,12 @@ export async function registerRoutes(
           actionType: "scout",
           interestChange: 0,
           notes: `Scouted to ${interest?.scoutPercentage || 0}%`,
+        });
+      }
+
+      if (userCoach) {
+        await storage.updateCoach(userCoach.id, {
+          scoutActionsUsed: (userCoach.scoutActionsUsed || 0) + 1,
         });
       }
 
@@ -899,6 +911,11 @@ export async function registerRoutes(
         return res.status(404).json({ message: "League not found" });
       }
 
+      const maxRecruitingActions = 5 + Math.floor(((userCoach?.pitchingRecruitingSkill || 1) + (userCoach?.hittingRecruitingSkill || 1)) / 2);
+      if ((userCoach?.recruitActionsUsed || 0) >= maxRecruitingActions) {
+        return res.status(400).json({ message: `You've used all ${maxRecruitingActions} recruiting actions this week` });
+      }
+
       // Calculate interest gain with modifiers
       const baseGain = 5 + Math.floor(Math.random() * 10); // 5-14 base
       const topic = pitchTopic || "reputation"; // Default pitch topic
@@ -937,12 +954,20 @@ export async function registerRoutes(
         notes: `Phone call about ${topic} (${matchLevel} priority, +${interestGain}%)`,
       });
 
+      if (userCoach) {
+        await storage.updateCoach(userCoach.id, {
+          recruitActionsUsed: (userCoach.recruitActionsUsed || 0) + 1,
+        });
+      }
+
+      const actionsRemaining = maxRecruitingActions - ((userCoach?.recruitActionsUsed || 0) + 1);
       res.json({ 
         interest, 
         interestGain, 
         pitchTopic: topic, 
         matchLevel,
-        multiplier: totalMultiplier.toFixed(2)
+        multiplier: totalMultiplier.toFixed(2),
+        actionsRemaining,
       });
     } catch (error) {
       console.error("Failed to make phone call:", error);
@@ -973,6 +998,11 @@ export async function registerRoutes(
       const league = await storage.getLeague(req.params.id as string);
       if (!league) {
         return res.status(404).json({ message: "League not found" });
+      }
+
+      const maxRecruitingActions = 5 + Math.floor(((userCoach?.pitchingRecruitingSkill || 1) + (userCoach?.hittingRecruitingSkill || 1)) / 2);
+      if ((userCoach?.recruitActionsUsed || 0) >= maxRecruitingActions) {
+        return res.status(400).json({ message: `You've used all ${maxRecruitingActions} recruiting actions this week` });
       }
 
       // Calculate interest gain with modifiers (email is less effective than phone)
@@ -1012,12 +1042,20 @@ export async function registerRoutes(
         notes: `Email about ${topic} (${matchLevel} priority, +${interestGain}%)`,
       });
 
+      if (userCoach) {
+        await storage.updateCoach(userCoach.id, {
+          recruitActionsUsed: (userCoach.recruitActionsUsed || 0) + 1,
+        });
+      }
+
+      const actionsRemaining = maxRecruitingActions - ((userCoach?.recruitActionsUsed || 0) + 1);
       res.json({ 
         interest, 
         interestGain, 
         pitchTopic: topic, 
         matchLevel,
-        multiplier: totalMultiplier.toFixed(2)
+        multiplier: totalMultiplier.toFixed(2),
+        actionsRemaining,
       });
     } catch (error) {
       console.error("Failed to send email:", error);
@@ -1046,6 +1084,11 @@ export async function registerRoutes(
       const league = await storage.getLeague(req.params.id as string);
       if (!league) {
         return res.status(404).json({ message: "League not found" });
+      }
+
+      const maxRecruitingActions = 5 + Math.floor(((userCoach?.pitchingRecruitingSkill || 1) + (userCoach?.hittingRecruitingSkill || 1)) / 2);
+      if ((userCoach?.recruitActionsUsed || 0) >= maxRecruitingActions) {
+        return res.status(400).json({ message: `You've used all ${maxRecruitingActions} recruiting actions this week` });
       }
 
       // Campus visits give huge bonuses based on all school attributes
@@ -1089,10 +1132,18 @@ export async function registerRoutes(
         notes: `Campus visit (+${interestGain}% interest)`,
       });
 
+      if (userCoach) {
+        await storage.updateCoach(userCoach.id, {
+          recruitActionsUsed: (userCoach.recruitActionsUsed || 0) + 1,
+        });
+      }
+
+      const actionsRemaining = maxRecruitingActions - ((userCoach?.recruitActionsUsed || 0) + 1);
       res.json({ 
         interest, 
         interestGain,
-        multiplier: totalMultiplier.toFixed(2)
+        multiplier: totalMultiplier.toFixed(2),
+        actionsRemaining,
       });
     } catch (error) {
       console.error("Failed to schedule visit:", error);
@@ -1302,6 +1353,17 @@ export async function registerRoutes(
       
       const commitsByTeam = leagueTeams.map(team => {
         const teamCommits = signedRecruits.filter(r => r.signedTeamId === team.id);
+        const avgStarRating = teamCommits.length > 0 
+          ? teamCommits.reduce((sum, r) => sum + (r.starRating || 3), 0) / teamCommits.length 
+          : 0;
+        const avgOverall = teamCommits.length > 0
+          ? teamCommits.reduce((sum, r) => sum + (r.overall || 500), 0) / teamCommits.length
+          : 0;
+        const fiveStars = teamCommits.filter(r => r.starRating === 5).length;
+        const fourStars = teamCommits.filter(r => r.starRating >= 4).length;
+        const classScore = teamCommits.length > 0
+          ? (avgStarRating * 20) + (avgOverall / 50) + (fiveStars * 15) + (fourStars * 5) + (teamCommits.length * 3)
+          : 0;
         return {
           team: {
             id: team.id,
@@ -1326,14 +1388,20 @@ export async function registerRoutes(
             recruitType: r.recruitType,
           })),
           commitCount: teamCommits.length,
-          avgStarRating: teamCommits.length > 0 
-            ? teamCommits.reduce((sum, r) => sum + (r.starRating || 3), 0) / teamCommits.length 
-            : 0,
+          avgStarRating,
+          avgOverall,
+          fiveStars,
+          fourStars,
+          classScore,
+          classRank: 0,
         };
-      }).sort((a, b) => {
-        // Sort by commit count, then by average star rating
-        if (b.commitCount !== a.commitCount) return b.commitCount - a.commitCount;
-        return b.avgStarRating - a.avgStarRating;
+      }).sort((a, b) => b.classScore - a.classScore);
+
+      let rankCounter = 1;
+      commitsByTeam.forEach((t) => {
+        if (t.commitCount > 0) {
+          t.classRank = rankCounter++;
+        }
       });
 
       res.json({

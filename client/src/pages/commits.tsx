@@ -42,6 +42,11 @@ interface TeamCommits {
   commits: CommitInfo[];
   commitCount: number;
   avgStarRating: number;
+  avgOverall: number;
+  fiveStars: number;
+  fourStars: number;
+  classScore: number;
+  classRank: number;
 }
 
 interface CommitsData {
@@ -81,12 +86,17 @@ function CommitMiniCard({ commit }: { commit: CommitInfo }) {
 }
 
 function TeamCommitCard({ teamData }: { teamData: TeamCommits }) {
-  const { team, commits, avgStarRating } = teamData;
+  const { team, commits, avgStarRating, avgOverall, fiveStars, fourStars, classRank } = teamData;
 
   return (
     <RetroCard className="h-fit">
       <RetroCardHeader className="pb-2">
         <div className="flex items-center gap-2">
+          {classRank > 0 && (
+            <div className={`flex items-center justify-center w-8 h-8 rounded font-pixel text-sm ${classRank <= 3 ? "bg-gold/20 text-gold" : "bg-[#2d3d2d] text-gray-400"}`}>
+              #{classRank}
+            </div>
+          )}
           <TeamBadge
             abbreviation={team.abbreviation}
             primaryColor={team.primaryColor}
@@ -100,16 +110,21 @@ function TeamCommitCard({ teamData }: { teamData: TeamCommits }) {
                 <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">CPU</Badge>
               )}
             </div>
-            <div className="flex items-center gap-2 text-xs text-gray-400">
+            <div className="flex items-center gap-2 flex-wrap text-xs text-gray-400">
               <span className="flex items-center gap-1">
                 <Users className="w-3 h-3" />
                 {commits.length} commit{commits.length !== 1 ? "s" : ""}
               </span>
               {commits.length > 0 && (
-                <span className="flex items-center gap-1">
-                  <TrendingUp className="w-3 h-3" />
-                  {avgStarRating.toFixed(1)} avg
-                </span>
+                <>
+                  <span className="flex items-center gap-1">
+                    <StarRating rating={Math.round(avgStarRating)} size="sm" />
+                    {avgStarRating.toFixed(1)} avg
+                  </span>
+                  <span>{Math.round(avgOverall)} avg OVR</span>
+                  {fiveStars > 0 && <Badge variant="outline" className="text-[8px] px-1 py-0 h-4 border-gold/50 text-gold">{fiveStars}x 5-Star</Badge>}
+                  {fourStars > 0 && <Badge variant="outline" className="text-[8px] px-1 py-0 h-4 border-blue-400/50 text-blue-400">{fourStars}x 4+Star</Badge>}
+                </>
               )}
             </div>
           </div>
@@ -227,7 +242,8 @@ export default function CommitsPage() {
       </div>
 
       <div className="mb-4">
-        <h2 className="font-pixel text-sm text-[#C4A35A] mb-2">RECRUITING LEADERBOARD</h2>
+        <h2 className="font-pixel text-sm text-[#C4A35A] mb-2">CLASS RANKINGS</h2>
+        <p className="text-xs text-gray-400">Teams ranked by recruiting class quality (star ratings, overall, and depth)</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
