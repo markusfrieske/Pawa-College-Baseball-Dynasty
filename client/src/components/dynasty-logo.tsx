@@ -1,12 +1,11 @@
-import ribbonIcon from "@assets/image_1770493395165.png";
+import speechBubbleIcon from "@assets/gold_speech_bubble.png";
 
 export function DynastyLogo({ className = "" }: { className?: string }) {
   return (
     <img
-      src={ribbonIcon}
+      src={speechBubbleIcon}
       alt="College Baseball Dynasty"
       className={`object-contain ${className}`}
-      style={{ imageRendering: "pixelated" }}
     />
   );
 }
@@ -14,10 +13,9 @@ export function DynastyLogo({ className = "" }: { className?: string }) {
 export function DynastyLogoLarge({ className = "" }: { className?: string }) {
   return (
     <img
-      src={ribbonIcon}
+      src={speechBubbleIcon}
       alt="College Baseball Dynasty"
       className={`object-contain ${className}`}
-      style={{ imageRendering: "pixelated" }}
     />
   );
 }
