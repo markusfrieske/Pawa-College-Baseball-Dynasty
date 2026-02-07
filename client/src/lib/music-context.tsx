@@ -1,21 +1,8 @@
 import { createContext, useContext, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
-import gameStartUrl from "@assets/Game_Start_1770490818716.wav";
-import standingsUrl from "@assets/Standings_1770490818716.wav";
-import newRecruitsUrl from "@assets/New_Recruits_1770490818715.wav";
-import leagueManagementUrl from "@assets/League_Management_1770490818716.wav";
-import recruitingUrl from "@assets/Recruiting_1770490818715.wav";
-import graduationUrl from "@assets/Graduation_1770490818715.wav";
-import finalScoreUrl from "@assets/Final_Score_1770490818715.wav";
-import playoffsUrl from "@assets/Playoffs_1770490818714.wav";
-import interviewUrl from "@assets/Interview_1770490818714.wav";
-import offseasonUrl from "@assets/Offseason_1770490818714.wav";
-import predictionsUrl from "@assets/Predictions_1770490818713.wav";
-
 export type TrackId =
   | "game_start"
   | "standings"
-  | "new_recruits"
   | "league_management"
   | "recruiting"
   | "graduation"
@@ -27,17 +14,16 @@ export type TrackId =
   | "none";
 
 const TRACK_URLS: Record<Exclude<TrackId, "none">, string> = {
-  game_start: gameStartUrl,
-  standings: standingsUrl,
-  new_recruits: newRecruitsUrl,
-  league_management: leagueManagementUrl,
-  recruiting: recruitingUrl,
-  graduation: graduationUrl,
-  final_score: finalScoreUrl,
-  playoffs: playoffsUrl,
-  interview: interviewUrl,
-  offseason: offseasonUrl,
-  predictions: predictionsUrl,
+  game_start: "/music/Game_Start.mp3",
+  standings: "/music/Standings.mp3",
+  league_management: "/music/League_Management.mp3",
+  recruiting: "/music/Recruiting.mp3",
+  graduation: "/music/Graduation.mp3",
+  final_score: "/music/Final_Score.mp3",
+  playoffs: "/music/Playoffs.mp3",
+  interview: "/music/Interview.mp3",
+  offseason: "/music/Offseason.mp3",
+  predictions: "/music/Predictions.mp3",
 };
 
 interface MusicContextValue {
@@ -253,14 +239,6 @@ export function resolveTrackForRoute(
     return "game_start";
   }
 
-  if (pathname === "/dashboard") {
-    return "standings";
-  }
-
-  if (pathname.includes("/dynasty-setup") || pathname.includes("/league-setup") || pathname.includes("/team-selection") || pathname === "/league/create") {
-    return "new_recruits";
-  }
-
   if (pathname.includes("/recruiting") || pathname.includes("/recruit/")) {
     return "recruiting";
   }
@@ -269,11 +247,7 @@ export function resolveTrackForRoute(
     return "graduation";
   }
 
-  if (pathname.includes("/departures") || pathname.includes("/players-leaving")) {
-    return "offseason";
-  }
-
-  if (pathname.includes("/transfer-portal")) {
+  if (pathname.includes("/departures") || pathname.includes("/players-leaving") || pathname.includes("/transfer-portal")) {
     return "offseason";
   }
 
