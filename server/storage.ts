@@ -274,6 +274,8 @@ export class DatabaseStorage implements IStorage {
     const leagueRecruits = await db.select({ id: recruits.id }).from(recruits).where(eq(recruits.leagueId, leagueId));
     const recruitIds = leagueRecruits.map(r => r.id);
     if (recruitIds.length > 0) {
+      await db.update(storyArcs).set({ targetRecruitId: null }).where(inArray(storyArcs.targetRecruitId, recruitIds));
+      await db.update(storyEvents).set({ targetRecruitId: null }).where(inArray(storyEvents.targetRecruitId, recruitIds));
       await db.delete(recruitTopSchools).where(inArray(recruitTopSchools.recruitId, recruitIds));
       await db.delete(recruitingActionsLog).where(inArray(recruitingActionsLog.recruitId, recruitIds));
       await db.delete(recruitingInterests).where(inArray(recruitingInterests.recruitId, recruitIds));
@@ -483,6 +485,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deletePlayer(id: string): Promise<void> {
+    await db.update(storyArcs).set({ targetPlayerId: null }).where(eq(storyArcs.targetPlayerId, id));
+    await db.update(storyEvents).set({ targetPlayerId: null }).where(eq(storyEvents.targetPlayerId, id));
+    await db.update(moments).set({ targetPlayerId: null }).where(eq(moments.targetPlayerId, id));
     await db.delete(players).where(eq(players.id, id));
   }
 
@@ -503,6 +508,15 @@ export class DatabaseStorage implements IStorage {
     await db.transaction(async (tx) => {
       const leagueTeams = await tx.select({ id: teams.id }).from(teams).where(eq(teams.leagueId, id));
       const teamIds = leagueTeams.map(t => t.id);
+
+      const leagueArcs = await tx.select({ id: storyArcs.id }).from(storyArcs).where(eq(storyArcs.leagueId, id));
+      const arcIds = leagueArcs.map(a => a.id);
+      if (arcIds.length > 0) {
+        await tx.delete(storyArcChapters).where(inArray(storyArcChapters.arcId, arcIds));
+      }
+      await tx.delete(storyArcs).where(eq(storyArcs.leagueId, id));
+      await tx.delete(storyEvents).where(eq(storyEvents.leagueId, id));
+      await tx.delete(moments).where(eq(moments.leagueId, id));
 
       if (teamIds.length > 0) {
         await tx.delete(transferPortalInterests).where(inArray(transferPortalInterests.teamId, teamIds));
@@ -528,14 +542,6 @@ export class DatabaseStorage implements IStorage {
       await tx.delete(auditLogs).where(eq(auditLogs.leagueId, id));
       await tx.delete(leagueInvites).where(eq(leagueInvites.leagueId, id));
       await tx.delete(dynastyNews).where(eq(dynastyNews.leagueId, id));
-      const leagueArcs = await tx.select({ id: storyArcs.id }).from(storyArcs).where(eq(storyArcs.leagueId, id));
-      const arcIds = leagueArcs.map(a => a.id);
-      if (arcIds.length > 0) {
-        await tx.delete(storyArcChapters).where(inArray(storyArcChapters.arcId, arcIds));
-      }
-      await tx.delete(storyArcs).where(eq(storyArcs.leagueId, id));
-      await tx.delete(storyEvents).where(eq(storyEvents.leagueId, id));
-      await tx.delete(moments).where(eq(moments.leagueId, id));
       await tx.delete(scouts).where(eq(scouts.leagueId, id));
       await tx.delete(teams).where(eq(teams.leagueId, id));
       await tx.delete(conferences).where(eq(conferences.leagueId, id));
