@@ -389,7 +389,7 @@ export async function registerRoutes(
       }
 
       // Generate recruits now that teams exist
-      await generateRecruits(league.id, 50);
+      await generateRecruits(league.id, 80);
 
       await storage.createAuditLog({
         leagueId: league.id,
@@ -3860,8 +3860,8 @@ export async function registerRoutes(
     // 6. Clear old recruits and recruiting data, generate new class
     await storage.deleteRecruitsByLeague(leagueId);
     
-    // Generate new recruiting class (40-50 recruits)
-    const recruitCount = 40 + Math.floor(Math.random() * 11);
+    // Generate new recruiting class (80 recruits)
+    const recruitCount = 80;
     await generateRecruits(leagueId, recruitCount);
     
     // 7. Create new standings for the next season (guard against duplicates)
@@ -4555,8 +4555,8 @@ export async function registerRoutes(
       // Delete existing recruits for this league
       await storage.deleteRecruitsByLeague(req.params.id as string);
 
-      // Generate new recruiting class (40-50 recruits)
-      const recruitCount = 40 + Math.floor(Math.random() * 11);
+      // Generate new recruiting class (80 recruits)
+      const recruitCount = 80;
       await generateRecruits(req.params.id as string, recruitCount);
 
       await storage.createAuditLog({
@@ -4912,8 +4912,8 @@ export async function registerRoutes(
           details: `Imported ${recruitCount} recruits from CSV file`,
         });
       } else {
-        // Generate new recruiting class (40-50 recruits)
-        recruitCount = 40 + Math.floor(Math.random() * 11);
+        // Generate new recruiting class (80 recruits)
+        recruitCount = 80;
         await generateRecruits(req.params.id as string, recruitCount);
 
         await storage.createAuditLog({
@@ -5894,50 +5894,77 @@ async function generateRecruits(leagueId: string, count: number) {
 
   const pitcherRatio = getPitcherRatio(theme);
 
-  // Star distribution adjusted by theme
+  // Star distribution: Blue Chip 5★ 3%, 5★ 5%, 4★ 12%, 3★ 60%, 2★ 15%, 1★ 5%
+  // Blue chips are handled separately (top ~3% get isBlueChip flag)
   const getStarRank = (idx: number, total: number, theme: RecruitingTheme): number => {
     const pct = idx / total;
     if (theme === "top_heavy") {
-      // More high-star recruits
-      if (pct < 0.08) return 5;       // 8% 5-star
-      if (pct < 0.22) return 4;       // 14% 4-star  
-      if (pct < 0.55) return 3;       // 33% 3-star
-      if (pct < 0.80) return 2;       // 25% 2-star
-      return 1;                        // 20% 1-star
+      if (pct < 0.10) return 5;       // 10% 5-star (includes blue chips)
+      if (pct < 0.25) return 4;       // 15% 4-star  
+      if (pct < 0.70) return 3;       // 45% 3-star
+      if (pct < 0.88) return 2;       // 18% 2-star
+      return 1;                        // 12% 1-star
     }
-    // Standard distribution: 5% 5-star, 10% 4-star, 40% 3-star, 30% 2-star, 15% 1-star
-    if (pct < 0.05) return 5;
-    if (pct < 0.15) return 4;
-    if (pct < 0.55) return 3;
-    if (pct < 0.85) return 2;
+    // Standard: top 8% are 5-star (3% blue chip + 5% regular), 12% 4-star, 60% 3-star, 15% 2-star, 5% 1-star
+    if (pct < 0.08) return 5;
+    if (pct < 0.20) return 4;
+    if (pct < 0.80) return 3;
+    if (pct < 0.95) return 2;
     return 1;
   };
 
-  // Blue chips: top 1-3 recruits have all ratings revealed
-  const numBlueChips = Math.floor(Math.random() * 3) + 1;
+  // Blue chips: ~3% of the class (2-3 for 80 recruits)
+  const numBlueChips = Math.max(2, Math.floor(count * 0.03) + (Math.random() < 0.5 ? 1 : 0));
 
-  // Gem/bust system adjusted by theme
-  const getGemBustModifier = (theme: RecruitingTheme): { isGem: boolean; isBust: boolean } => {
+  // Gem/bust system: creates real recruiting uncertainty
+  // Gems: low-star recruits with hidden elite talent (overall far above their star band)
+  // Busts: high-star recruits who look great on paper but underperform (overall far below their star band)
+  const getGemBustModifier = (theme: RecruitingTheme, starRank: number): { isGem: boolean; isBust: boolean } => {
     const roll = Math.random();
-    const gemChance = theme === "hidden_gems" ? 0.15 : 0.08; // Hidden gems theme has more gems
-    const bustChance = theme === "hidden_gems" ? 0.05 : 0.08; // Hidden gems theme has fewer busts
+    const gemChance = theme === "hidden_gems" ? 0.18 : 0.10;
+    const bustChance = theme === "hidden_gems" ? 0.04 : 0.08;
     
-    if (roll < gemChance) return { isGem: true, isBust: false };
-    if (roll < gemChance + bustChance) return { isGem: false, isBust: true };
+    // Only 1-3 star players can be gems (low stars, hidden high talent)
+    if (starRank <= 3 && roll < gemChance) return { isGem: true, isBust: false };
+    // Only 4-5 star players can be busts (high stars, disappointing talent)
+    if (starRank >= 4 && roll < bustChance) return { isGem: false, isBust: true };
     return { isGem: false, isBust: false };
   };
 
-  // New overall rating ranges per star rating (user specified)
-  // Blue Chips = 600-700, 5-star = 450-625, 4-star = 350-475, 3-star = 250-375, 2-star = 150-275, 1-star = <175
-  const getOverallByStarRank = (starRank: number, isBlueChip: boolean): number => {
+  // Overall rating bands per star rating
+  // Blue Chip 5★ = 600-650, 5★ = 500-625, 4★ = 400-525, 3★ = 300-450, 2★ = 150-325, 1★ = ≤175
+  // Gems get overall from 1-2 tiers ABOVE their star band
+  // Busts get overall from 1-2 tiers BELOW their star band
+  const getOverallByStarRank = (starRank: number, isBlueChip: boolean, isGem: boolean, isBust: boolean): number => {
     if (isBlueChip) {
-      return 600 + Math.floor(Math.random() * 101); // 600-700
+      return 600 + Math.floor(Math.random() * 51); // 600-650
     }
+
+    // Gem: a low-star recruit with hidden high talent
+    if (isGem) {
+      switch (starRank) {
+        case 3: return 400 + Math.floor(Math.random() * 151); // 400-550 (4-5 star talent)
+        case 2: return 350 + Math.floor(Math.random() * 126); // 350-475 (3-4 star talent)
+        case 1: return 300 + Math.floor(Math.random() * 126); // 300-425 (2-4 star talent)
+        default: return 400 + Math.floor(Math.random() * 126);
+      }
+    }
+
+    // Bust: a high-star recruit who disappoints
+    if (isBust) {
+      switch (starRank) {
+        case 5: return 200 + Math.floor(Math.random() * 151); // 200-350 (2-3 star talent)
+        case 4: return 150 + Math.floor(Math.random() * 151); // 150-300 (1-2 star talent)
+        default: return 200 + Math.floor(Math.random() * 126);
+      }
+    }
+
+    // Standard bands
     switch (starRank) {
-      case 5: return 450 + Math.floor(Math.random() * 176); // 450-625
-      case 4: return 350 + Math.floor(Math.random() * 126); // 350-475
-      case 3: return 250 + Math.floor(Math.random() * 126); // 250-375
-      case 2: return 150 + Math.floor(Math.random() * 126); // 150-275
+      case 5: return 500 + Math.floor(Math.random() * 126); // 500-625
+      case 4: return 400 + Math.floor(Math.random() * 126); // 400-525
+      case 3: return 300 + Math.floor(Math.random() * 151); // 300-450
+      case 2: return 150 + Math.floor(Math.random() * 176); // 150-325
       default: return 50 + Math.floor(Math.random() * 126);  // 50-175
     }
   };
@@ -6096,14 +6123,13 @@ async function generateRecruits(leagueId: string, count: number) {
     const stateIdx = Math.floor(Math.random() * states.length);
     const isBlueChip = i < numBlueChips;
     
-    // Get gem/bust modifier, but Blue Chips can NEVER be busts
-    let { isGem, isBust } = getGemBustModifier(theme);
-    if (isBlueChip && isBust) {
-      isBust = false; // Blue Chips can never be busts
-    }
+    // Get gem/bust modifier based on star rank - Blue Chips can NEVER be gems/busts
+    let { isGem, isBust } = isBlueChip 
+      ? { isGem: false, isBust: false } 
+      : getGemBustModifier(theme, starRank);
 
-    // Overall rating correlates with star rank
-    const overall = getOverallByStarRank(starRank, isBlueChip);
+    // Overall rating - gems/busts get dramatically different values than their star suggests
+    const overall = getOverallByStarRank(starRank, isBlueChip, isGem, isBust);
     
     // Star rating displayed on the card
     const starRating = starRank;
