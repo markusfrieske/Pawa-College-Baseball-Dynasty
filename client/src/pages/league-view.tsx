@@ -38,6 +38,8 @@ import {
   Compass,
   UserMinus
 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { League, Team, Conference, Standings, DynastyNews } from "@shared/schema";
 import { User, Cpu } from "lucide-react";
@@ -80,6 +82,8 @@ interface LeagueDetails extends League {
 export default function LeagueViewPage() {
   const { id } = useParams<{ id: string }>();
   const updateMusicPhase = useUpdateMusicPhase();
+  const [showRecap, setShowRecap] = useState(false);
+  const [recapSeason, setRecapSeason] = useState(1);
 
   const { data: league, isLoading } = useQuery<LeagueDetails>({
     queryKey: ["/api/leagues", id],
@@ -149,6 +153,10 @@ export default function LeagueViewPage() {
     offseason_signing_day: "Signing Day",
   };
 
+  const canShowRecap = league.currentSeason >= 1;
+  const isOffseason = league.currentPhase.startsWith("offseason");
+  const recapSeasonNum = isOffseason && league.currentSeason > 1 ? league.currentSeason - 1 : league.currentSeason;
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border">
@@ -168,6 +176,23 @@ export default function LeagueViewPage() {
               <Trophy className="w-4 h-4" />
               <span>{phaseLabels[league.currentPhase]}</span>
             </div>
+            {userTeam?.standings && (
+              <div className="flex items-center gap-2" data-testid="text-user-team-record">
+                <span className="text-gold font-medium">
+                  {userTeam.name}: {userTeam.standings.wins ?? 0}-{userTeam.standings.losses ?? 0}
+                </span>
+              </div>
+            )}
+            {canShowRecap && (
+              <button
+                onClick={() => { setRecapSeason(recapSeasonNum); setShowRecap(true); }}
+                className="flex items-center gap-1 text-gold/70 hover:text-gold transition-colors"
+                data-testid="button-season-recap"
+              >
+                <ScrollText className="w-4 h-4" />
+                <span className="text-xs">Recap</span>
+              </button>
+            )}
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4" />
               <span>{league.teams?.length || 0} / {league.maxTeams} Teams</span>
@@ -291,6 +316,13 @@ export default function LeagueViewPage() {
           </TabsContent>
         </Tabs>
       </main>
+
+      <SeasonRecapDialog
+        leagueId={league.id}
+        season={recapSeason}
+        open={showRecap}
+        onClose={() => setShowRecap(false)}
+      />
     </div>
   );
 }
@@ -462,13 +494,74 @@ function StandingsTab({ league }: { league: LeagueDetails }) {
 }
 
 function TeamsTab({ league }: { league: LeagueDetails }) {
+  const [compareTeamA, setCompareTeamA] = useState("");
+  const [compareTeamB, setCompareTeamB] = useState("");
+  const [showCompare, setShowCompare] = useState(false);
+
   const teamsByConference = league.conferences?.map(conf => ({
     ...conf,
     teams: league.teams?.filter(t => t.conferenceId === conf.id) || [],
   })) || [];
 
+  const allTeams = league.teams || [];
+
   return (
     <div className="space-y-6">
+      <RetroCard>
+        <RetroCardHeader className="flex items-center justify-between gap-4">
+          <span>Compare Teams</span>
+        </RetroCardHeader>
+        <RetroCardContent>
+          <div className="flex flex-wrap items-end gap-3">
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">Team A</label>
+              <select
+                value={compareTeamA}
+                onChange={(e) => setCompareTeamA(e.target.value)}
+                className="bg-muted border border-border rounded px-3 py-2 text-sm"
+                data-testid="select-compare-team-a"
+              >
+                <option value="">Select team...</option>
+                {allTeams.map(t => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            </div>
+            <span className="text-muted-foreground text-sm pb-2">vs</span>
+            <div>
+              <label className="text-xs text-muted-foreground block mb-1">Team B</label>
+              <select
+                value={compareTeamB}
+                onChange={(e) => setCompareTeamB(e.target.value)}
+                className="bg-muted border border-border rounded px-3 py-2 text-sm"
+                data-testid="select-compare-team-b"
+              >
+                <option value="">Select team...</option>
+                {allTeams.filter(t => t.id !== compareTeamA).map(t => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            </div>
+            <RetroButton
+              size="sm"
+              disabled={!compareTeamA || !compareTeamB}
+              onClick={() => setShowCompare(true)}
+              data-testid="button-compare-teams"
+            >
+              Compare
+            </RetroButton>
+          </div>
+        </RetroCardContent>
+      </RetroCard>
+
+      <TeamCompareDialog
+        leagueId={league.id}
+        teamAId={compareTeamA}
+        teamBId={compareTeamB}
+        open={showCompare}
+        onClose={() => setShowCompare(false)}
+      />
+
       {teamsByConference.map((conf) => (
         <RetroCard key={conf.id}>
           <RetroCardHeader>{conf.name}</RetroCardHeader>
@@ -1397,6 +1490,78 @@ function StatsTab({ leagueId }: { leagueId: string }) {
   );
 }
 
+function DynastyTrendsCard({ leagueId }: { leagueId: string }) {
+  const { data, isLoading } = useQuery<{
+    teamName: string;
+    teamAbbreviation: string;
+    prestige: number;
+    facilities: number;
+    seasons: { season: number; wins: number; losses: number; runsScored: number; runsAllowed: number; avgOverall: number; rosterSize: number }[];
+  }>({
+    queryKey: ["/api/leagues", leagueId, "dynasty-trends"],
+  });
+
+  if (isLoading) return <Skeleton className="h-48" />;
+  if (!data || data.seasons.length <= 0) return null;
+
+  const maxWins = Math.max(...data.seasons.map(s => s.wins), 1);
+
+  return (
+    <RetroCard>
+      <RetroCardHeader>
+        <div className="flex items-center gap-2 w-full">
+          <BarChart className="w-4 h-4 text-gold" />
+          <span>{data.teamName} Season Trends</span>
+        </div>
+      </RetroCardHeader>
+      <RetroCardContent>
+        <div className="space-y-4">
+          <div>
+            <p className="text-xs text-muted-foreground mb-2">Win-Loss by Season</p>
+            <div className="flex items-end gap-2 h-24">
+              {data.seasons.map((s) => {
+                const winPct = maxWins > 0 ? (s.wins / maxWins) * 100 : 0;
+                return (
+                  <Tooltip key={s.season}>
+                    <TooltipTrigger asChild>
+                      <div className="flex flex-col items-center flex-1 gap-1" data-testid={`trend-season-${s.season}`}>
+                        <div className="w-full flex flex-col items-center justify-end h-20">
+                          <div
+                            className="w-full rounded-t bg-gold/70"
+                            style={{ height: `${Math.max(winPct, 5)}%` }}
+                          />
+                        </div>
+                        <span className="text-[8px] text-muted-foreground">S{s.season}</span>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent className="bg-card border-border">
+                      <p className="text-xs font-medium">Season {s.season}</p>
+                      <p className="text-xs">Record: {s.wins}-{s.losses}</p>
+                      <p className="text-xs">RS: {s.runsScored} | RA: {s.runsAllowed}</p>
+                      <p className="text-xs">Avg OVR: {s.avgOverall}</p>
+                      <p className="text-xs">Roster: {s.rosterSize}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {data.seasons.map(s => (
+              <div key={s.season} className="text-center">
+                <p className="font-pixel text-[8px] text-gold">S{s.season}</p>
+                <p className="text-sm font-mono">{s.wins}-{s.losses}</p>
+                <p className="text-[10px] text-muted-foreground">OVR: {s.avgOverall}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </RetroCardContent>
+    </RetroCard>
+  );
+}
+
 function DynastyHistoryTab({ leagueId }: { leagueId: string }) {
   const { data, isLoading } = useQuery<{
     seasons: {
@@ -1429,6 +1594,8 @@ function DynastyHistoryTab({ leagueId }: { leagueId: string }) {
 
   return (
     <div className="space-y-4">
+      <DynastyTrendsCard leagueId={leagueId} />
+
       <RetroCard>
         <RetroCardHeader>
           <div className="flex items-center gap-2 w-full">
@@ -1941,6 +2108,203 @@ interface SigningDayData {
     departed: number;
     stillAvailable: number;
   };
+}
+
+interface CompareTeamData {
+  id: string; name: string; abbreviation: string; primaryColor: string; secondaryColor: string;
+  prestige: number; facilities: number;
+  wins: number; losses: number; confWins: number; confLosses: number;
+  runsScored: number; runsAllowed: number;
+  rosterSize: number; avgOverall: number; avgPitcher: number; avgHitter: number;
+  positionCounts: Record<string, number>;
+  topPlayers: { name: string; position: string; overall: number; year: number }[];
+  freshmen: number; sophomores: number; juniors: number; seniors: number;
+}
+
+function CompareStatRow({ label, valueA, valueB, highlight }: { label: string; valueA: string | number; valueB: string | number; highlight?: boolean }) {
+  const numA = typeof valueA === "number" ? valueA : parseFloat(valueA);
+  const numB = typeof valueB === "number" ? valueB : parseFloat(valueB);
+  const aWins = !isNaN(numA) && !isNaN(numB) && numA > numB;
+  const bWins = !isNaN(numA) && !isNaN(numB) && numB > numA;
+
+  return (
+    <div className={`grid grid-cols-3 gap-2 py-1.5 text-sm ${highlight ? "bg-gold/5" : ""}`}>
+      <span className={`text-right font-mono ${aWins ? "text-green-400 font-semibold" : ""}`}>{valueA}</span>
+      <span className="text-center text-xs text-muted-foreground">{label}</span>
+      <span className={`font-mono ${bWins ? "text-green-400 font-semibold" : ""}`}>{valueB}</span>
+    </div>
+  );
+}
+
+function TeamCompareDialog({ leagueId, teamAId, teamBId, open, onClose }: { leagueId: string; teamAId: string; teamBId: string; open: boolean; onClose: () => void }) {
+  const { data, isLoading } = useQuery<{ teamA: CompareTeamData; teamB: CompareTeamData }>({
+    queryKey: [`/api/leagues/${leagueId}/team-compare?teamA=${teamAId}&teamB=${teamBId}`],
+    enabled: open && !!teamAId && !!teamBId,
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="bg-background border-gold/30 max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="font-pixel text-gold text-sm">Team Comparison</DialogTitle>
+        </DialogHeader>
+
+        {isLoading ? (
+          <div className="space-y-3">
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+          </div>
+        ) : data ? (
+          <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-2">
+              <div className="flex items-center justify-end gap-2">
+                <span className="font-pixel text-xs text-right">{data.teamA.name}</span>
+                <TeamBadge name={data.teamA.name} abbreviation={data.teamA.abbreviation} primaryColor={data.teamA.primaryColor} size="md" />
+              </div>
+              <div className="text-center text-muted-foreground text-xs pt-2">VS</div>
+              <div className="flex items-center gap-2">
+                <TeamBadge name={data.teamB.name} abbreviation={data.teamB.abbreviation} primaryColor={data.teamB.primaryColor} size="md" />
+                <span className="font-pixel text-xs">{data.teamB.name}</span>
+              </div>
+            </div>
+
+            <div className="border border-border/50 rounded-md p-3 space-y-1">
+              <p className="font-pixel text-gold text-[10px] mb-2 text-center">RECORD</p>
+              <CompareStatRow label="W-L" valueA={`${data.teamA.wins}-${data.teamA.losses}`} valueB={`${data.teamB.wins}-${data.teamB.losses}`} highlight />
+              <CompareStatRow label="Conf W-L" valueA={`${data.teamA.confWins}-${data.teamA.confLosses}`} valueB={`${data.teamB.confWins}-${data.teamB.confLosses}`} />
+              <CompareStatRow label="Runs Scored" valueA={data.teamA.runsScored} valueB={data.teamB.runsScored} />
+              <CompareStatRow label="Runs Allowed" valueA={data.teamA.runsAllowed} valueB={data.teamB.runsAllowed} />
+            </div>
+
+            <div className="border border-border/50 rounded-md p-3 space-y-1">
+              <p className="font-pixel text-gold text-[10px] mb-2 text-center">ROSTER</p>
+              <CompareStatRow label="Roster Size" valueA={data.teamA.rosterSize} valueB={data.teamB.rosterSize} />
+              <CompareStatRow label="Avg Overall" valueA={data.teamA.avgOverall} valueB={data.teamB.avgOverall} highlight />
+              <CompareStatRow label="Avg Pitcher" valueA={data.teamA.avgPitcher} valueB={data.teamB.avgPitcher} />
+              <CompareStatRow label="Avg Hitter" valueA={data.teamA.avgHitter} valueB={data.teamB.avgHitter} />
+              <CompareStatRow label="Freshmen" valueA={data.teamA.freshmen} valueB={data.teamB.freshmen} />
+              <CompareStatRow label="Sophomores" valueA={data.teamA.sophomores} valueB={data.teamB.sophomores} />
+              <CompareStatRow label="Juniors" valueA={data.teamA.juniors} valueB={data.teamB.juniors} />
+              <CompareStatRow label="Seniors" valueA={data.teamA.seniors} valueB={data.teamB.seniors} />
+            </div>
+
+            <div className="border border-border/50 rounded-md p-3 space-y-1">
+              <p className="font-pixel text-gold text-[10px] mb-2 text-center">PROGRAM</p>
+              <CompareStatRow label="Prestige" valueA={data.teamA.prestige} valueB={data.teamB.prestige} highlight />
+              <CompareStatRow label="Facilities" valueA={data.teamA.facilities} valueB={data.teamB.facilities} />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              {[data.teamA, data.teamB].map((team, idx) => (
+                <div key={idx} className="border border-border/50 rounded-md p-3">
+                  <p className="font-pixel text-[10px] text-gold mb-2">TOP 5 PLAYERS - {team.abbreviation}</p>
+                  {team.topPlayers.map((p, i) => (
+                    <div key={i} className="flex items-center justify-between text-xs py-0.5">
+                      <span className="truncate">{p.name} <span className="text-muted-foreground">({p.position}, Yr {p.year})</span></span>
+                      <span className="font-mono">{p.overall}</span>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function SeasonRecapDialog({ leagueId, season, open, onClose }: { leagueId: string; season: number; open: boolean; onClose: () => void }) {
+  const { data, isLoading } = useQuery<{
+    season: number;
+    teams: { id: string; name: string; abbreviation: string; primaryColor: string; secondaryColor: string; wins: number; losses: number; confWins: number; confLosses: number; runsScored: number; runsAllowed: number }[];
+    cwsChampion: { name: string; abbreviation: string; primaryColor: string } | null;
+    cwsRunnerUp: { name: string; abbreviation: string } | null;
+    totalGames: number;
+    bestRecord: string | null;
+  }>({
+    queryKey: ["/api/leagues", leagueId, "season-recap", season],
+    enabled: open && season > 0,
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="bg-background border-gold/30 max-w-lg max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="font-pixel text-gold text-sm flex items-center gap-2">
+            <Trophy className="w-5 h-5" />
+            Season {season} Recap
+          </DialogTitle>
+        </DialogHeader>
+
+        {isLoading ? (
+          <div className="space-y-3">
+            <Skeleton className="h-16 w-full" />
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-8 w-full" />
+          </div>
+        ) : data ? (
+          <div className="space-y-4">
+            {data.cwsChampion && (
+              <div className="text-center p-4 border border-gold/30 rounded-md bg-gold/5">
+                <p className="text-xs text-muted-foreground mb-1">CWS CHAMPION</p>
+                <div className="flex items-center justify-center gap-2">
+                  <TeamBadge
+                    name={data.cwsChampion.name}
+                    abbreviation={data.cwsChampion.abbreviation}
+                    primaryColor={data.cwsChampion.primaryColor}
+                    size="md"
+                  />
+                  <span className="font-pixel text-gold text-sm">{data.cwsChampion.name}</span>
+                </div>
+                {data.cwsRunnerUp && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Runner-up: {data.cwsRunnerUp.name}
+                  </p>
+                )}
+              </div>
+            )}
+
+            <div className="flex items-center justify-between text-xs text-muted-foreground border-b border-border/50 pb-2">
+              <span>{data.totalGames} games played</span>
+              {data.bestRecord && <span>Best: {data.bestRecord}</span>}
+            </div>
+
+            <div>
+              <p className="font-pixel text-gold text-[10px] mb-2">TOP 10 TEAMS</p>
+              <div className="space-y-1">
+                {data.teams.map((team, i) => (
+                  <div
+                    key={team.id}
+                    className="flex items-center gap-2 p-2 rounded text-sm"
+                    data-testid={`recap-team-${i}`}
+                  >
+                    <span className="text-muted-foreground w-5 text-right text-xs">{i + 1}.</span>
+                    <TeamBadge
+                      name={team.name}
+                      abbreviation={team.abbreviation}
+                      primaryColor={team.primaryColor}
+                      size="sm"
+                    />
+                    <span className="flex-1 truncate">{team.name}</span>
+                    <span className="font-mono text-xs">
+                      {team.wins}-{team.losses}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      ({team.confWins}-{team.confLosses} conf)
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground text-center py-4">No recap data available</p>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 function OffseasonSummary({ league }: { league: LeagueDetails }) {

@@ -50,6 +50,14 @@ export default function CommissionerPage() {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [autoAdvance, setAutoAdvance] = useState(() => {
+    return localStorage.getItem(`auto-advance-${id}`) === "true";
+  });
+
+  const toggleAutoAdvance = (val: boolean) => {
+    setAutoAdvance(val);
+    localStorage.setItem(`auto-advance-${id}`, val ? "true" : "false");
+  };
 
   const { data, isLoading } = useQuery<CommissionerData>({
     queryKey: ["/api/leagues", id, "commissioner"],
@@ -104,6 +112,16 @@ export default function CommissionerPage() {
           title: phaseTitle[phase] || (phaseMessages[phase] ? "Update" : "Week Advanced"), 
           description: phaseMessages[phase] || "The dynasty has moved to the next week.",
         });
+
+        const autoAdvanceEnabled = localStorage.getItem(`auto-advance-${id}`) === "true";
+        const autoAdvancePhases = ["regular_season", "preseason", "spring_training"];
+        if (autoAdvanceEnabled && phase && autoAdvancePhases.includes(phase) && !advanceWeekMutation.isPending) {
+          setTimeout(() => {
+            if (!advanceWeekMutation.isPending) {
+              advanceWeekMutation.mutate();
+            }
+          }, 600);
+        }
       }
     },
     onError: (error: Error) => {
@@ -151,6 +169,30 @@ export default function CommissionerPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "commissioner"] });
       toast({ title: "Difficulty Updated", description: "CPU difficulty has been changed." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const simToSigningDayMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", `/api/leagues/${id}/sim-to-signing-day`, {});
+    },
+    onSuccess: (response: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "commissioner"] });
+      window.dispatchEvent(new CustomEvent("league-phase-changed"));
+      if (response?.seasonTransition) {
+        const t = response.seasonTransition;
+        toast({ 
+          title: "Offseason Complete!", 
+          description: `${t.recruitsAdded} recruits signed, ${t.newRecruits} new class generated. Welcome to Season ${response.currentSeason}!`,
+        });
+      } else {
+        toast({ title: "Offseason Simulated", description: "Fast-forwarded through the offseason." });
+      }
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -314,6 +356,10 @@ export default function CommissionerPage() {
               isSimulating={simulateWeekMutation.isPending}
               onSimToOffseason={() => simToOffseasonMutation.mutate()}
               isSimToOffseason={simToOffseasonMutation.isPending}
+              onSimToSigningDay={() => simToSigningDayMutation.mutate()}
+              isSimToSigningDay={simToSigningDayMutation.isPending}
+              autoAdvance={autoAdvance}
+              toggleAutoAdvance={toggleAutoAdvance}
             />
           </TabsContent>
 
@@ -350,6 +396,10 @@ function ActionsTab({
   isSimulating,
   onSimToOffseason,
   isSimToOffseason,
+  onSimToSigningDay,
+  isSimToSigningDay,
+  autoAdvance,
+  toggleAutoAdvance,
 }: {
   league?: League;
   onAdvanceWeek: () => void;
@@ -362,6 +412,10 @@ function ActionsTab({
   isSimulating: boolean;
   onSimToOffseason: () => void;
   isSimToOffseason: boolean;
+  onSimToSigningDay: () => void;
+  isSimToSigningDay: boolean;
+  autoAdvance: boolean;
+  toggleAutoAdvance: (val: boolean) => void;
 }) {
   const { toast } = useToast();
   const [showImportDialog, setShowImportDialog] = useState(false);
@@ -475,17 +529,37 @@ function ActionsTab({
                 {isSimToOffseason ? "Simulating Season..." : "Sim Full Season"}
               </RetroButton>
             )}
-            {isOffseason && league?.currentPhase !== "offseason_signing_day" && (
-              <div className="mt-3 pt-3 border-t border-border">
-                <p className="text-muted-foreground text-xs">
+            {isOffseason && (
+              <div className="mt-3 space-y-3">
+                <RetroButton
+                  onClick={onSimToSigningDay}
+                  disabled={isAdvancing || isSimToSigningDay || isSimToOffseason}
+                  className="w-full"
+                  data-testid="button-sim-to-signing-day"
+                >
+                  <FastForward className="w-4 h-4 mr-2" />
+                  {isSimToSigningDay ? "Processing Offseason..." : "Sim to Next Season"}
+                </RetroButton>
+                <p className="text-muted-foreground text-xs pt-2 border-t border-border">
                   {league?.currentPhase === "offseason_departures" 
-                    ? "Review your departing players before advancing. Visit the Recruiting Board to continue recruiting."
+                    ? "Review your departing players before advancing, or sim through the entire offseason."
                     : league?.currentPhase?.startsWith("offseason_recruiting")
-                    ? "Use the Recruiting Board and Transfer Portal to recruit players during the offseason."
-                    : "The offseason process has multiple phases."}
+                    ? "Use the Recruiting Board, or sim to skip remaining offseason weeks."
+                    : "Fast-forward through recruiting, signing day, and start the next season."}
                 </p>
               </div>
             )}
+            <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Auto-Advance</p>
+                <p className="text-xs text-muted-foreground">Auto-advance through regular season weeks</p>
+              </div>
+              <Switch
+                checked={autoAdvance}
+                onCheckedChange={toggleAutoAdvance}
+                data-testid="switch-auto-advance"
+              />
+            </div>
           </RetroCardContent>
         </RetroCard>
 

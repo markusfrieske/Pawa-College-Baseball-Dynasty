@@ -157,6 +157,7 @@ export default function RecruitingPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [pipelineFilter, setPipelineFilter] = useState<string | null>(null);
   const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
+  const [showTopAvailable, setShowTopAvailable] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -376,6 +377,11 @@ export default function RecruitingPage() {
     if (starFilter !== "all" && r.starRank < parseInt(starFilter)) return false;
     if (stateFilter !== "all" && r.homeState !== stateFilter) return false;
     if (showWatchlistOnly && !r.interest?.isTargeted) return false;
+    if (showTopAvailable && pipelineData?.positionNeeds) {
+      const needPositions = pipelineData.positionNeeds.filter(p => p.need).map(p => p.position);
+      if (!needPositions.includes(r.position)) return false;
+      if (r.signedTeamId) return false;
+    }
     if (sortBy === "interest" && !(r.interest && (r.interest.interestLevel || 0) > 0)) return false;
     if (pipelineFilter) {
       const level = r.interest?.interestLevel || 0;
@@ -510,7 +516,7 @@ export default function RecruitingPage() {
             <RetroSelect
               options={[
                 { label: "All States", value: "all" },
-                ...(data?.recruits ? [...new Set(data.recruits.map(r => r.homeState).filter(Boolean))].sort().map(s => ({ label: s!, value: s! })) : [])
+                ...(data?.recruits ? Array.from(new Set(data.recruits.map(r => r.homeState).filter(Boolean))).sort().map(s => ({ label: s!, value: s! })) : [])
               ]}
               value={stateFilter}
               onChange={(e) => setStateFilter(e.target.value)}
@@ -535,6 +541,15 @@ export default function RecruitingPage() {
             >
               <Target className="w-3 h-3 mr-1" />
               Watchlist {showWatchlistOnly && `(${data?.targetedCount || 0})`}
+            </RetroButton>
+            <RetroButton
+              variant={showTopAvailable ? "primary" : "outline"}
+              size="sm"
+              onClick={() => setShowTopAvailable(!showTopAvailable)}
+              data-testid="button-top-available"
+            >
+              <TrendingUp className="w-3 h-3 mr-1" />
+              Top Available
             </RetroButton>
             <Popover>
               <PopoverTrigger asChild>
@@ -596,6 +611,21 @@ export default function RecruitingPage() {
               </PopoverContent>
             </Popover>
             <div className="flex items-center gap-2 ml-auto">
+              {(() => {
+                const unscoutedTargets = data?.recruits.filter(r => r.interest?.isTargeted && (r.interest?.scoutPercentage || 0) < 100) || [];
+                return unscoutedTargets.length > 0 ? (
+                  <RetroButton
+                    variant="outline"
+                    size="sm"
+                    onClick={() => bulkScoutMutation.mutate(unscoutedTargets.map(r => r.id))}
+                    disabled={bulkScoutMutation.isPending || (data?.remainingScoutActions ?? 0) <= 0}
+                    data-testid="button-quick-scout-targets"
+                  >
+                    <Eye className="w-3 h-3 mr-1" />
+                    {bulkScoutMutation.isPending ? "Scouting..." : `Scout Targets (${unscoutedTargets.length})`}
+                  </RetroButton>
+                ) : null;
+              })()}
               <RetroButton
                 variant="outline"
                 size="sm"

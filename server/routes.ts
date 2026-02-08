@@ -2649,10 +2649,14 @@ export async function registerRoutes(
         awayTeam: leagueTeams.find((t) => t.id === game.awayTeamId),
       }));
 
+      const coach = await storage.getCoachByUserId(req.session.userId!);
+      const userTeam = coach ? leagueTeams.find(t => t.id === coach.teamId) : null;
+
       res.json({
         games: gamesWithTeams,
         currentWeek: league.currentWeek,
         currentSeason: league.currentSeason,
+        userTeamId: userTeam?.id || null,
       });
     } catch (error) {
       console.error("Failed to fetch schedule:", error);
@@ -3243,6 +3247,71 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to sim to offseason:", error);
       res.status(500).json({ message: "Failed to sim to offseason" });
+    }
+  });
+
+  app.post("/api/leagues/:id/sim-to-signing-day", async (req, res) => {
+    try {
+      const leagueId = req.params.id;
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      if (!req.session.userId || league.commissionerId !== req.session.userId) {
+        return res.status(403).json({ message: "Only the commissioner can sim the offseason." });
+      }
+
+      const offseasonPhases = ["offseason_departures", "offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4", "offseason_signing_day"];
+      if (!offseasonPhases.includes(league.currentPhase)) {
+        return res.status(400).json({ message: "Can only sim to signing day during offseason phases." });
+      }
+
+      let currentLeague = league;
+
+      if (currentLeague.currentPhase === "offseason_departures") {
+        const existingPending = await storage.getPendingDeparturesByLeague(leagueId);
+        if (existingPending.length === 0) {
+          await evaluatePlayerPromises(leagueId, currentLeague.currentSeason);
+          await processOffseasonDepartures(leagueId, currentLeague.currentSeason);
+        }
+        await finalizeDeparturesInternal(leagueId, currentLeague);
+        currentLeague = (await storage.getLeague(leagueId)) as any;
+      }
+
+      const recruitingPhases = ["offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4"];
+      for (const phase of recruitingPhases) {
+        if (offseasonPhases.indexOf(currentLeague.currentPhase) <= offseasonPhases.indexOf(phase)) {
+          await runCpuRecruiting(leagueId, currentLeague.currentWeek ?? 1, currentLeague.currentSeason);
+          await runCpuTransferPortalRecruiting(leagueId);
+          await updateRecruitStages(leagueId, currentLeague.currentWeek ?? 1);
+          const nextPhaseIdx = offseasonPhases.indexOf(phase) + 1;
+          currentLeague = (await storage.updateLeague(leagueId, {
+            currentPhase: offseasonPhases[nextPhaseIdx],
+            currentWeek: (currentLeague.currentWeek ?? 1) + 1,
+          })) as any;
+        }
+      }
+
+      if (currentLeague.currentPhase === "offseason_signing_day") {
+        const transitionResult = await performSeasonTransition(leagueId, currentLeague.currentSeason);
+        currentLeague = (await storage.updateLeague(leagueId, {
+          currentWeek: 1,
+          currentSeason: currentLeague.currentSeason + 1,
+          currentPhase: "preseason",
+        })) as any;
+
+        await storage.createAuditLog({
+          leagueId,
+          userId: req.session.userId,
+          action: "Sim to Signing Day",
+          details: `Fast-forwarded offseason. ${transitionResult.recruitsAdded} recruits joined, ${transitionResult.newRecruits} new class generated. Now Season ${currentLeague.currentSeason}.`,
+        });
+
+        return res.json({ ...currentLeague, seasonTransition: transitionResult });
+      }
+
+      res.json(currentLeague);
+    } catch (error) {
+      console.error("Failed to sim to signing day:", error);
+      res.status(500).json({ message: "Failed to sim to signing day" });
     }
   });
   
@@ -4605,6 +4674,165 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to fetch season awards:", error);
       res.status(500).json({ message: "Failed to fetch season awards" });
+    }
+  });
+
+  app.get("/api/leagues/:id/season-recap/:season", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const season = parseInt(req.params.season);
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      const leagueTeams = await storage.getTeamsByLeague(leagueId);
+      const allGames = await storage.getGamesByLeague(leagueId);
+      const seasonStandings = await storage.getStandingsByLeague(leagueId, season);
+
+      const teamsWithRecords = leagueTeams.map(t => {
+        const s = seasonStandings.find(st => st.teamId === t.id);
+        return {
+          id: t.id, name: t.name, abbreviation: t.abbreviation,
+          primaryColor: t.primaryColor, secondaryColor: t.secondaryColor,
+          wins: s?.wins ?? 0, losses: s?.losses ?? 0,
+          confWins: s?.conferenceWins ?? 0, confLosses: s?.conferenceLosses ?? 0,
+          runsScored: s?.runsScored ?? 0, runsAllowed: s?.runsAllowed ?? 0,
+        };
+      }).sort((a, b) => b.wins - a.wins || a.losses - b.losses);
+
+      let cwsChampion = null;
+      let cwsRunnerUp = null;
+      const cwsGames = allGames.filter(g => g.phase === "cws" && g.season === season && g.isComplete);
+      if (cwsGames.length > 0) {
+        const teamWins: Record<string, number> = {};
+        for (const g of cwsGames) {
+          const winnerId = (g.homeScore ?? 0) > (g.awayScore ?? 0) ? g.homeTeamId : g.awayTeamId;
+          teamWins[winnerId] = (teamWins[winnerId] || 0) + 1;
+        }
+        const champId = Object.entries(teamWins).sort((a, b) => b[1] - a[1])[0]?.[0];
+        const runnerId = Object.entries(teamWins).sort((a, b) => b[1] - a[1])[1]?.[0]
+          || cwsGames.map(g => g.homeTeamId === champId ? g.awayTeamId : g.homeTeamId).find(id => id !== champId);
+        cwsChampion = leagueTeams.find(t => t.id === champId);
+        cwsRunnerUp = leagueTeams.find(t => t.id === runnerId);
+      }
+
+      const totalGames = allGames.filter(g => g.season === season && g.isComplete).length;
+
+      res.json({
+        season,
+        teams: teamsWithRecords.slice(0, 10),
+        cwsChampion: cwsChampion ? { name: cwsChampion.name, abbreviation: cwsChampion.abbreviation, primaryColor: cwsChampion.primaryColor } : null,
+        cwsRunnerUp: cwsRunnerUp ? { name: cwsRunnerUp.name, abbreviation: cwsRunnerUp.abbreviation } : null,
+        totalGames,
+        bestRecord: teamsWithRecords[0] ? `${teamsWithRecords[0].name} (${teamsWithRecords[0].wins}-${teamsWithRecords[0].losses})` : null,
+      });
+    } catch (error) {
+      console.error("Failed to get season recap:", error);
+      res.status(500).json({ message: "Failed to get season recap" });
+    }
+  });
+
+  app.get("/api/leagues/:id/team-compare", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const teamAId = req.query.teamA as string;
+      const teamBId = req.query.teamB as string;
+      if (!teamAId || !teamBId) return res.status(400).json({ message: "Need teamA and teamB query params" });
+
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      const leagueTeams = await storage.getTeamsByLeague(leagueId);
+      const teamA = leagueTeams.find(t => t.id === teamAId);
+      const teamB = leagueTeams.find(t => t.id === teamBId);
+      if (!teamA || !teamB) return res.status(404).json({ message: "Team not found" });
+
+      const rosterA = await storage.getPlayersByTeam(teamAId);
+      const rosterB = await storage.getPlayersByTeam(teamBId);
+
+      const standingsAll = await storage.getStandingsByLeague(leagueId, league.currentSeason);
+      const sA = standingsAll.find(s => s.teamId === teamAId);
+      const sB = standingsAll.find(s => s.teamId === teamBId);
+
+      const buildTeamData = (team: typeof teamA, roster: typeof rosterA, standings: typeof sA) => {
+        const avgOverall = roster.length > 0 ? Math.round(roster.reduce((s, p) => s + p.overall, 0) / roster.length) : 0;
+        const pitchers = roster.filter(p => p.position === "P");
+        const hitters = roster.filter(p => p.position !== "P");
+        const avgPitcher = pitchers.length > 0 ? Math.round(pitchers.reduce((s, p) => s + p.overall, 0) / pitchers.length) : 0;
+        const avgHitter = hitters.length > 0 ? Math.round(hitters.reduce((s, p) => s + p.overall, 0) / hitters.length) : 0;
+
+        const positionCounts: Record<string, number> = {};
+        roster.forEach(p => { positionCounts[p.position] = (positionCounts[p.position] || 0) + 1; });
+
+        const topPlayers = [...roster].sort((a, b) => b.overall - a.overall).slice(0, 5).map(p => ({
+          name: `${p.firstName} ${p.lastName}`, position: p.position, overall: p.overall, year: p.year,
+        }));
+
+        return {
+          id: team!.id, name: team!.name, abbreviation: team!.abbreviation,
+          primaryColor: team!.primaryColor, secondaryColor: team!.secondaryColor,
+          prestige: team!.prestige, facilities: team!.facilities,
+          wins: standings?.wins ?? 0, losses: standings?.losses ?? 0,
+          confWins: standings?.conferenceWins ?? 0, confLosses: standings?.conferenceLosses ?? 0,
+          runsScored: standings?.runsScored ?? 0, runsAllowed: standings?.runsAllowed ?? 0,
+          rosterSize: roster.length, avgOverall, avgPitcher, avgHitter,
+          positionCounts, topPlayers,
+          freshmen: roster.filter(p => p.year === 1).length,
+          sophomores: roster.filter(p => p.year === 2).length,
+          juniors: roster.filter(p => p.year === 3).length,
+          seniors: roster.filter(p => p.year === 4).length,
+        };
+      };
+
+      res.json({
+        teamA: buildTeamData(teamA, rosterA, sA),
+        teamB: buildTeamData(teamB, rosterB, sB),
+      });
+    } catch (error) {
+      console.error("Failed to compare teams:", error);
+      res.status(500).json({ message: "Failed to compare teams" });
+    }
+  });
+
+  app.get("/api/leagues/:id/dynasty-trends", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const teamId = req.query.teamId as string;
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      const leagueTeams = await storage.getTeamsByLeague(leagueId);
+      const targetTeam = teamId ? leagueTeams.find(t => t.id === teamId) : leagueTeams.find(t => !t.isCpu);
+      if (!targetTeam) return res.status(404).json({ message: "Team not found" });
+
+      const seasons: { season: number; wins: number; losses: number; runsScored: number; runsAllowed: number; avgOverall: number; rosterSize: number }[] = [];
+
+      for (let s = 1; s <= league.currentSeason; s++) {
+        const standings = await storage.getStandingsByLeague(leagueId, s);
+        const teamStandings = standings.find(st => st.teamId === targetTeam.id);
+        const roster = await storage.getPlayersByTeam(targetTeam.id);
+        const avgOverall = roster.length > 0 ? Math.round(roster.reduce((sum, p) => sum + p.overall, 0) / roster.length) : 0;
+
+        seasons.push({
+          season: s,
+          wins: teamStandings?.wins ?? 0,
+          losses: teamStandings?.losses ?? 0,
+          runsScored: teamStandings?.runsScored ?? 0,
+          runsAllowed: teamStandings?.runsAllowed ?? 0,
+          avgOverall,
+          rosterSize: roster.length,
+        });
+      }
+
+      res.json({
+        teamName: targetTeam.name,
+        teamAbbreviation: targetTeam.abbreviation,
+        prestige: targetTeam.prestige,
+        facilities: targetTeam.facilities,
+        seasons,
+      });
+    } catch (error) {
+      console.error("Failed to get dynasty trends:", error);
+      res.status(500).json({ message: "Failed to get dynasty trends" });
     }
   });
 

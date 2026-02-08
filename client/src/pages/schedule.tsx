@@ -7,6 +7,7 @@ import { RetroInput } from "@/components/ui/retro-input";
 import { TeamBadge } from "@/components/ui/team-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Calendar, Check, Edit2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -21,6 +22,7 @@ interface ScheduleData {
   games: GameWithTeams[];
   currentWeek: number;
   currentSeason: number;
+  userTeamId: string | null;
 }
 
 interface BoxScoreData {
@@ -118,6 +120,7 @@ export default function SchedulePage() {
                     game={game}
                     onEdit={() => setEditingGame(game)}
                     onViewBoxScore={() => setBoxScoreGame(game)}
+                    userTeamId={data?.userTeamId}
                   />
                 ))}
               </div>
@@ -152,9 +155,23 @@ export default function SchedulePage() {
   );
 }
 
-function GameRow({ game, onEdit, onViewBoxScore }: { game: GameWithTeams; onEdit: () => void; onViewBoxScore: () => void }) {
+function GameRow({ game, onEdit, onViewBoxScore, userTeamId }: { game: GameWithTeams; onEdit: () => void; onViewBoxScore: () => void; userTeamId?: string | null }) {
+  const isUserGame = userTeamId && (game.homeTeamId === userTeamId || game.awayTeamId === userTeamId);
+  const userWon = isUserGame && game.isComplete && (
+    (game.homeTeamId === userTeamId && (game.homeScore ?? 0) > (game.awayScore ?? 0)) ||
+    (game.awayTeamId === userTeamId && (game.awayScore ?? 0) > (game.homeScore ?? 0))
+  );
+  const userLost = isUserGame && game.isComplete && !userWon;
+
   return (
-    <div className="flex items-center gap-4 p-4 bg-muted/30 rounded" data-testid={`card-game-${game.id}`}>
+    <div 
+      className={`flex items-center gap-4 p-4 rounded ${
+        game.isComplete && isUserGame
+          ? userWon ? "bg-green-900/20 border border-green-800/30" : "bg-red-900/20 border border-red-800/30"
+          : "bg-muted/30"
+      }`} 
+      data-testid={`card-game-${game.id}`}
+    >
       <div className="flex-1 flex items-center gap-3">
         <TeamBadge
           abbreviation={game.awayTeam.abbreviation}
@@ -178,6 +195,11 @@ function GameRow({ game, onEdit, onViewBoxScore }: { game: GameWithTeams; onEdit
           <span className={`text-xl font-bold ${(game.homeScore || 0) > (game.awayScore || 0) ? "text-gold" : "text-muted-foreground"}`}>
             {game.homeScore}
           </span>
+          {isUserGame && (
+            <Badge variant="outline" className={`text-[9px] ml-1 ${userWon ? "border-green-600 text-green-400" : "border-red-600 text-red-400"}`}>
+              {userWon ? "W" : "L"}
+            </Badge>
+          )}
         </button>
       ) : (
         <div className="flex items-center gap-4">
