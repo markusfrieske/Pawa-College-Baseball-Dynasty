@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { RetroButton } from "@/components/ui/retro-button";
 import { Badge } from "@/components/ui/badge";
@@ -69,6 +70,7 @@ interface PlayerProfileCardProps {
   canDeclareDraft?: boolean;
   onDeclareDraft?: () => void;
   isDeclaringDraft?: boolean;
+  leagueId?: string;
 }
 
 const positionColors: Record<string, string> = {
@@ -84,7 +86,7 @@ const positionColors: Record<string, string> = {
 };
 
 
-export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdit, teamPrimaryColor, canDeclareDraft, onDeclareDraft, isDeclaringDraft }: PlayerProfileCardProps) {
+export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdit, teamPrimaryColor, canDeclareDraft, onDeclareDraft, isDeclaringDraft, leagueId }: PlayerProfileCardProps) {
   const isPitcher = player.position === "P";
   const isCatcher = player.position === "C";
   const posColor = positionColors[player.position] || "#666";
@@ -268,6 +270,10 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
           )}
         </div>
 
+        {leagueId && (
+          <CareerStatsSection playerId={player.id} leagueId={leagueId} isPitcher={isPitcher} />
+        )}
+
         {/* Draft Declaration Status */}
         {player.declaredForDraft && (
           <div className="px-4 py-2 bg-yellow-500/20 border-t border-border">
@@ -337,6 +343,131 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
   );
 }
 
+function CareerStatsSection({ playerId, leagueId, isPitcher }: { playerId: string; leagueId: string; isPitcher: boolean }) {
+  const { data, isLoading } = useQuery<{
+    playerId: string;
+    leagueId: string;
+    seasons: Array<{
+      season: number;
+      games: number;
+      ab: number; r: number; h: number; doubles: number; triples: number;
+      hr: number; rbi: number; bb: number; so: number; sb: number;
+      avg: string; obp: string; slg: string; ops: string;
+      babip: string; wOBA: string; avgExitVelo: string; barrelPct: string; hardHitPct: string; fldPct: string;
+      pitchingGames: number; wins: number; losses: number;
+      ipDisplay: string; pHits: number; pEr: number; pBb: number; pSo: number; pHr: number;
+      era: string; fip: string; whip: string; kPct: string; whiffRate: string; avgSpinRate: number;
+    }>;
+  }>({
+    queryKey: ["/api/leagues", leagueId, "players", playerId, "career-stats"],
+    enabled: !!leagueId && !!playerId,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="p-4 border-b border-border">
+        <h3 className="font-pixel text-gold text-xs mb-3">CAREER STATS</h3>
+        <div className="text-xs text-muted-foreground">Loading stats...</div>
+      </div>
+    );
+  }
+
+  if (!data || !data.seasons || data.seasons.length === 0) {
+    return (
+      <div className="p-4 border-b border-border">
+        <h3 className="font-pixel text-gold text-xs mb-3">CAREER STATS</h3>
+        <p className="text-xs text-muted-foreground">No game stats recorded yet</p>
+      </div>
+    );
+  }
+
+  if (isPitcher) {
+    return (
+      <div className="p-4 border-b border-border">
+        <h3 className="font-pixel text-gold text-xs mb-3">CAREER STATS</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs" data-testid="table-career-pitching">
+            <thead>
+              <tr className="border-b border-border text-left">
+                <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground">SZN</th>
+                <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">G</th>
+                <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">W</th>
+                <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">L</th>
+                <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">ERA</th>
+                <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">IP</th>
+                <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">SO</th>
+                <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">FIP</th>
+                <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">WHIP</th>
+                <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">K%</th>
+                <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">Whiff%</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.seasons.map((s) => (
+                <tr key={s.season} className="border-b border-border/30" data-testid={`row-career-season-${s.season}`}>
+                  <td className="py-1 px-1 font-pixel text-[7px] text-gold">S{s.season}</td>
+                  <td className="py-1 px-1 text-center">{s.pitchingGames}</td>
+                  <td className="py-1 px-1 text-center">{s.wins}</td>
+                  <td className="py-1 px-1 text-center">{s.losses}</td>
+                  <td className="py-1 px-1 text-center font-medium text-gold">{s.era}</td>
+                  <td className="py-1 px-1 text-center">{s.ipDisplay}</td>
+                  <td className="py-1 px-1 text-center">{s.pSo}</td>
+                  <td className="py-1 px-1 text-center">{s.fip}</td>
+                  <td className="py-1 px-1 text-center">{s.whip}</td>
+                  <td className="py-1 px-1 text-center">{s.kPct}%</td>
+                  <td className="py-1 px-1 text-center">{s.whiffRate}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 border-b border-border">
+      <h3 className="font-pixel text-gold text-xs mb-3">CAREER STATS</h3>
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs" data-testid="table-career-batting">
+          <thead>
+            <tr className="border-b border-border text-left">
+              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground">SZN</th>
+              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">G</th>
+              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">AB</th>
+              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">AVG</th>
+              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">OPS</th>
+              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">HR</th>
+              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">RBI</th>
+              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">SB</th>
+              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">wOBA</th>
+              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">EV</th>
+              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">Brl%</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data.seasons.map((s) => (
+              <tr key={s.season} className="border-b border-border/30" data-testid={`row-career-season-${s.season}`}>
+                <td className="py-1 px-1 font-pixel text-[7px] text-gold">S{s.season}</td>
+                <td className="py-1 px-1 text-center">{s.games}</td>
+                <td className="py-1 px-1 text-center">{s.ab}</td>
+                <td className="py-1 px-1 text-center font-medium text-gold">{s.avg}</td>
+                <td className="py-1 px-1 text-center font-medium">{s.ops}</td>
+                <td className="py-1 px-1 text-center">{s.hr}</td>
+                <td className="py-1 px-1 text-center">{s.rbi}</td>
+                <td className="py-1 px-1 text-center">{s.sb}</td>
+                <td className="py-1 px-1 text-center">{s.wOBA}</td>
+                <td className="py-1 px-1 text-center">{s.avgExitVelo}</td>
+                <td className="py-1 px-1 text-center">{s.barrelPct}%</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 function AttributeRow({ label, value }: { label: string; value?: number | null }) {
   const displayValue = value ?? 50;
   const isVelocity = label === "Velocity";
@@ -376,6 +507,7 @@ export function PlayerProfileCardTrigger({
   canDeclareDraft,
   onDeclareDraft,
   isDeclaringDraft,
+  leagueId,
 }: { 
   player: Player; 
   children: React.ReactNode;
@@ -384,6 +516,7 @@ export function PlayerProfileCardTrigger({
   canDeclareDraft?: boolean;
   onDeclareDraft?: () => void;
   isDeclaringDraft?: boolean;
+  leagueId?: string;
 }) {
   const [open, setOpen] = useState(false);
   
@@ -401,6 +534,7 @@ export function PlayerProfileCardTrigger({
         canDeclareDraft={canDeclareDraft}
         onDeclareDraft={onDeclareDraft}
         isDeclaringDraft={isDeclaringDraft}
+        leagueId={leagueId}
       />
     </>
   );

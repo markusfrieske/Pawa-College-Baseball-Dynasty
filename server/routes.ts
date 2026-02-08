@@ -2505,10 +2505,13 @@ export async function registerRoutes(
       interface BatterAgg {
         name: string; teamId: string; games: number; ab: number; r: number; h: number;
         doubles: number; triples: number; hr: number; rbi: number; bb: number; hbp: number; so: number; sb: number;
+        cs: number; exitVeloTotal: number; barrels: number; ballsInPlay: number; hardHits: number;
+        putouts: number; assists: number; fieldingErrors: number; totalChances: number;
       }
       interface PitcherAgg {
         name: string; teamId: string; games: number; ip: number; h: number; r: number; er: number;
         bb: number; so: number; hr: number; wins: number; losses: number;
+        totalPitches: number; whiffs: number; spinRateTotal: number;
       }
       interface TeamAgg {
         teamId: string; games: number; runsScored: number; runsAllowed: number; hits: number; hitsAllowed: number;
@@ -2564,6 +2567,8 @@ export async function registerRoutes(
                 batters.set(bKey, {
                   name: b.name, teamId: side.teamId, games: 0, ab: 0, r: 0, h: 0,
                   doubles: 0, triples: 0, hr: 0, rbi: 0, bb: 0, hbp: 0, so: 0, sb: 0,
+                  cs: 0, exitVeloTotal: 0, barrels: 0, ballsInPlay: 0, hardHits: 0,
+                  putouts: 0, assists: 0, fieldingErrors: 0, totalChances: 0,
                 });
               }
               const ba = batters.get(bKey)!;
@@ -2579,6 +2584,15 @@ export async function registerRoutes(
               ba.hbp += b.hbp || 0;
               ba.so += b.so || 0;
               ba.sb += b.sb || 0;
+              ba.cs += b.cs || 0;
+              ba.exitVeloTotal += b.exitVelo || 0;
+              ba.barrels += b.barrels || 0;
+              ba.ballsInPlay += b.ballsInPlay || 0;
+              ba.hardHits += b.hardHits || 0;
+              ba.putouts += b.putouts || 0;
+              ba.assists += b.assists || 0;
+              ba.fieldingErrors += b.fieldingErrors || 0;
+              ba.totalChances += b.totalChances || 0;
             }
           }
 
@@ -2590,6 +2604,7 @@ export async function registerRoutes(
                 pitchers.set(pKey, {
                   name: p.name, teamId: side.teamId, games: 0, ip: 0, h: 0, r: 0, er: 0,
                   bb: 0, so: 0, hr: 0, wins: 0, losses: 0,
+                  totalPitches: 0, whiffs: 0, spinRateTotal: 0,
                 });
               }
               const pa = pitchers.get(pKey)!;
@@ -2604,6 +2619,9 @@ export async function registerRoutes(
               pa.bb += p.bb || 0;
               pa.so += p.so || 0;
               pa.hr += p.hr || 0;
+              pa.totalPitches += p.totalPitches || 0;
+              pa.whiffs += p.whiffs || 0;
+              pa.spinRateTotal += p.spinRate || 0;
             }
 
             if (side.data.pitching.length > 0) {
@@ -2639,6 +2657,26 @@ export async function registerRoutes(
           const wRAA = ((wOBA - 0.320) / 1.25) * (b.ab + b.bb + b.hbp);
           const battingWar = wRAA / 10;
 
+          const babip = (b.ab - b.so - b.hr) > 0 ? (b.h - b.hr) / (b.ab - b.so - b.hr) : 0;
+
+          const leagueWOBA = 0.320;
+          const wOBAScale = 1.25;
+          const lgRPA = 0.12;
+          const wRCplus = lgRPA > 0 ? ((((wOBA - leagueWOBA) / wOBAScale) + lgRPA) / lgRPA) * 100 : 100;
+
+          const lgOBP = 0.320;
+          const lgSLG = 0.410;
+          const opsPlus = obp > 0 || slg > 0 ? Math.round(100 * (obp / lgOBP + slg / lgSLG - 1)) : 0;
+
+          const avgExitVelo = b.games > 0 ? b.exitVeloTotal / b.games : 0;
+          const barrelPct = b.ballsInPlay > 0 ? (b.barrels / b.ballsInPlay) * 100 : 0;
+          const hardHitPct = b.ballsInPlay > 0 ? (b.hardHits / b.ballsInPlay) * 100 : 0;
+
+          const fldPct = b.totalChances > 0 ? (b.putouts + b.assists) / b.totalChances : 0;
+          const lgFldPct = 0.970;
+          const oaa = Math.round((fldPct - lgFldPct) * b.totalChances * 0.5);
+          const drs = Math.round((fldPct - lgFldPct) * b.totalChances * 0.7 + (b.assists * 0.05));
+
           return {
             ...b,
             avg: avg.toFixed(3),
@@ -2646,6 +2684,17 @@ export async function registerRoutes(
             slg: slg.toFixed(3),
             ops: ops.toFixed(3),
             war: Math.max(0, battingWar).toFixed(1),
+            babip: babip.toFixed(3),
+            wOBA: wOBA.toFixed(3),
+            wRCplus: Math.round(Math.max(0, wRCplus)),
+            opsPlus: Math.max(0, opsPlus),
+            avgExitVelo: avgExitVelo.toFixed(1),
+            barrelPct: barrelPct.toFixed(1),
+            hardHitPct: hardHitPct.toFixed(1),
+            oaa,
+            drs,
+            fldPct: fldPct.toFixed(3),
+            cs: b.cs,
             teamAbbr: teamsMap.get(b.teamId)?.abbreviation || "???",
             teamColor: teamsMap.get(b.teamId)?.primaryColor || "#666",
           };
@@ -2662,6 +2711,13 @@ export async function registerRoutes(
           const raaPitch = p.ip > 0 ? ((LEAGUE_AVG_RPG / 9 - era / 9) * p.ip) : 0;
           const pitchingWar = raaPitch / 10;
 
+          const bfApprox = Math.round(p.ip * 3 + p.h + p.bb);
+          const kPct = bfApprox > 0 ? (p.so / bfApprox) * 100 : 0;
+          const bbPct = bfApprox > 0 ? (p.bb / bfApprox) * 100 : 0;
+          const whiffRate = p.totalPitches > 0 ? (p.whiffs / p.totalPitches) * 100 : 0;
+          const siera = p.ip > 0 ? (era * 0.6 + fip * 0.4) : 0;
+          const avgSpinRate = p.games > 0 ? Math.round(p.spinRateTotal / p.games) : 0;
+
           return {
             ...p,
             ipDisplay: `${Math.floor(p.ip)}.${Math.round((p.ip % 1) * 3)}`,
@@ -2671,6 +2727,12 @@ export async function registerRoutes(
             kPer9: kPer9.toFixed(1),
             bbPer9: bbPer9.toFixed(1),
             war: Math.max(0, pitchingWar).toFixed(1),
+            kPct: kPct.toFixed(1),
+            bbPct: bbPct.toFixed(1),
+            whiffRate: whiffRate.toFixed(1),
+            siera: Math.max(0, siera).toFixed(2),
+            avgSpinRate,
+            totalPitches: p.totalPitches,
             teamAbbr: teamsMap.get(p.teamId)?.abbreviation || "???",
             teamColor: teamsMap.get(p.teamId)?.primaryColor || "#666",
           };
@@ -2709,6 +2771,61 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to fetch league stats:", error);
       res.status(500).json({ message: "Failed to fetch league stats" });
+    }
+  });
+
+  app.get("/api/leagues/:leagueId/players/:playerId/career-stats", requireAuth, async (req, res) => {
+    try {
+      const stats = await storage.getPlayerSeasonStats(req.params.playerId, req.params.leagueId);
+
+      const seasonStats = stats.map(s => {
+        const ip = s.ipOuts / 3;
+        const avg = s.ab > 0 ? (s.h / s.ab) : 0;
+        const obp = (s.ab + s.bb + s.hbp) > 0 ? (s.h + s.bb + s.hbp) / (s.ab + s.bb + s.hbp) : 0;
+        const singles = s.h - s.doubles - s.triples - s.hr;
+        const totalBases = singles + s.doubles * 2 + s.triples * 3 + s.hr * 4;
+        const slg = s.ab > 0 ? totalBases / s.ab : 0;
+        const ops = obp + slg;
+        const era = ip > 0 ? (s.pEr * 9) / ip : 0;
+        const fip = ip > 0 ? ((13 * s.pHr + 3 * s.pBb - 2 * s.pSo) / ip) + 3.10 : 0;
+        const whip = ip > 0 ? (s.pBb + s.pHits) / ip : 0;
+        const babip = (s.ab - s.so - s.hr) > 0 ? (s.h - s.hr) / (s.ab - s.so - s.hr) : 0;
+        const wOBA = (s.ab + s.bb + s.hbp) > 0
+          ? (0.69 * s.bb + 0.72 * s.hbp + 0.89 * singles + 1.27 * s.doubles + 1.62 * s.triples + 2.10 * s.hr) / (s.ab + s.bb + s.hbp)
+          : 0;
+        const avgExitVelo = s.games > 0 ? s.exitVeloTotal / s.games : 0;
+        const barrelPct = s.ballsInPlay > 0 ? (s.barrels / s.ballsInPlay) * 100 : 0;
+        const hardHitPct = s.ballsInPlay > 0 ? (s.hardHits / s.ballsInPlay) * 100 : 0;
+        const fldPct = s.totalChances > 0 ? (s.putouts + s.assists) / s.totalChances : 0;
+        const bfApprox = Math.round(ip * 3 + s.pHits + s.pBb);
+        const kPct = bfApprox > 0 ? (s.pSo / bfApprox) * 100 : 0;
+        const whiffRate = s.totalPitches > 0 ? (s.whiffs / s.totalPitches) * 100 : 0;
+        const avgSpinRate = s.pitchingGames > 0 ? Math.round(s.spinRateTotal / s.pitchingGames) : 0;
+
+        return {
+          season: s.season,
+          teamId: s.teamId,
+          position: s.position,
+          games: s.games,
+          ab: s.ab, r: s.r, h: s.h, doubles: s.doubles, triples: s.triples,
+          hr: s.hr, rbi: s.rbi, bb: s.bb, hbp: s.hbp, so: s.so, sb: s.sb, cs: s.cs,
+          avg: avg.toFixed(3), obp: obp.toFixed(3), slg: slg.toFixed(3), ops: ops.toFixed(3),
+          babip: babip.toFixed(3), wOBA: wOBA.toFixed(3),
+          avgExitVelo: avgExitVelo.toFixed(1), barrelPct: barrelPct.toFixed(1), hardHitPct: hardHitPct.toFixed(1),
+          fldPct: fldPct.toFixed(3),
+          pitchingGames: s.pitchingGames,
+          wins: s.wins, losses: s.losses,
+          ipDisplay: `${Math.floor(ip)}.${Math.round((ip % 1) * 3)}`,
+          pHits: s.pHits, pRuns: s.pRuns, pEr: s.pEr, pBb: s.pBb, pSo: s.pSo, pHr: s.pHr,
+          era: era.toFixed(2), fip: Math.max(0, fip).toFixed(2), whip: whip.toFixed(2),
+          kPct: kPct.toFixed(1), whiffRate: whiffRate.toFixed(1), avgSpinRate,
+        };
+      });
+
+      res.json({ playerId: req.params.playerId, leagueId: req.params.leagueId, seasons: seasonStats });
+    } catch (error) {
+      console.error("Failed to fetch career stats:", error);
+      res.status(500).json({ message: "Failed to fetch career stats" });
     }
   });
 
@@ -2903,6 +3020,7 @@ export async function registerRoutes(
         const result = await simulateGame(game.homeTeamId, game.awayTeamId);
         await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, isComplete: true, boxScore: result.boxScore });
         await updateStandingsForGame(leagueId, league.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, game.isConference);
+        try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, league.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, league.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
         
         const homeTeamSim = leagueTeamsForSim.find(t => t.id === game.homeTeamId);
         const awayTeamSim = leagueTeamsForSim.find(t => t.id === game.awayTeamId);
@@ -2978,6 +3096,7 @@ export async function registerRoutes(
             const result = await simulateGame(game.homeTeamId, game.awayTeamId);
             await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, isComplete: true, boxScore: result.boxScore });
             await updateStandingsForGame(leagueId, league.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore);
+            try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, league.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, league.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
           }
 
           try {
@@ -3243,6 +3362,7 @@ export async function registerRoutes(
               isComplete: true,
             });
             await updateStandingsForGame(leagueId, currentLeague.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore);
+            try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
           }
 
           if (nextWeek > maxWeeks) {
@@ -3262,6 +3382,7 @@ export async function registerRoutes(
             const result = await simulateGame(game.homeTeamId, game.awayTeamId);
             await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, boxScore: result.boxScore, isComplete: true });
             await updateStandingsForGame(leagueId, currentLeague.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, true);
+            try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
           }
           await generateSuperRegionalBracket(leagueId, currentLeague.currentSeason);
           currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "super_regionals" })) as any;
@@ -3460,23 +3581,25 @@ export async function registerRoutes(
       const pitchers = players.filter(p => p.position === "P");
 
       interface BatterLine {
-        name: string; position: string; ab: number; r: number; h: number;
+        name: string; position: string; playerId: string; ab: number; r: number; h: number;
         doubles: number; triples: number; hr: number; rbi: number;
-        bb: number; hbp: number; so: number; sb: number; avg: string;
+        bb: number; hbp: number; so: number; sb: number; cs: number; avg: string;
+        exitVelo: number; barrels: number; hardHits: number; ballsInPlay: number;
+        putouts: number; assists: number; fieldingErrors: number; totalChances: number;
       }
 
       const battingLineup: BatterLine[] = [];
       const positionOrder = ["C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "DH"];
 
-      let selectedBatters: { firstName: string; lastName: string; position: string; contact: number; power: number; speed: number }[] = [];
+      let selectedBatters: { id: string; firstName: string; lastName: string; position: string; contact: number; power: number; speed: number; fielding: number }[] = [];
       const used = new Set<string>();
       for (const pos of positionOrder) {
         const p = positionPlayers.find(pl => pl.position === pos && !used.has(pl.id));
         if (p) {
           used.add(p.id);
           selectedBatters.push({
-            firstName: p.firstName, lastName: p.lastName, position: p.position,
-            contact: p.hitForAvg || 50, power: p.power || 50, speed: p.speed || 50,
+            id: p.id, firstName: p.firstName, lastName: p.lastName, position: p.position,
+            contact: p.hitForAvg || 50, power: p.power || 50, speed: p.speed || 50, fielding: p.fielding || 50,
           });
         }
       }
@@ -3485,16 +3608,16 @@ export async function registerRoutes(
         if (!used.has(p.id)) {
           used.add(p.id);
           selectedBatters.push({
-            firstName: p.firstName, lastName: p.lastName, position: "DH",
-            contact: p.hitForAvg || 50, power: p.power || 50, speed: p.speed || 50,
+            id: p.id, firstName: p.firstName, lastName: p.lastName, position: "DH",
+            contact: p.hitForAvg || 50, power: p.power || 50, speed: p.speed || 50, fielding: p.fielding || 50,
           });
         }
       }
       if (selectedBatters.length < 9 && pitchers.length > 0) {
         const bp = pitchers[0];
         selectedBatters.push({
-          firstName: bp.firstName, lastName: bp.lastName, position: "P",
-          contact: bp.hitForAvg || 25, power: bp.power || 20, speed: bp.speed || 40,
+          id: bp.id, firstName: bp.firstName, lastName: bp.lastName, position: "P",
+          contact: bp.hitForAvg || 25, power: bp.power || 20, speed: bp.speed || 40, fielding: bp.fielding || 50,
         });
       }
       while (selectedBatters.length < 9) {
@@ -3502,10 +3625,10 @@ export async function registerRoutes(
         const fakeFirst = ["Jake", "Mike", "Chris", "Tyler", "Matt", "Ryan", "Josh", "Nick", "Ben"];
         const idx = selectedBatters.length;
         selectedBatters.push({
-          firstName: fakeFirst[idx % fakeFirst.length],
+          id: "fake_" + idx, firstName: fakeFirst[idx % fakeFirst.length],
           lastName: fakeNames[idx % fakeNames.length],
           position: positionOrder[idx] || "DH",
-          contact: 50, power: 40, speed: 50,
+          contact: 50, power: 40, speed: 50, fielding: 50,
         });
       }
 
@@ -3557,6 +3680,29 @@ export async function registerRoutes(
         const sbChance = batter.speed / 500;
         const sb = Math.random() < sbChance ? (Math.random() < 0.3 ? 2 : 1) : 0;
 
+        const cs = sb > 0 && Math.random() < 0.28 ? 1 : 0;
+
+        const baseExitVelo = 82 + (batter.power / 100) * 16;
+        const exitVelo = Math.round((baseExitVelo + (Math.random() - 0.5) * 6) * 10) / 10;
+
+        const bip = Math.max(0, ab - so);
+
+        const barrelRate = 0.03 + (batter.power / 100) * 0.12;
+        const barrelCount = Math.floor(bip * barrelRate + (Math.random() < 0.5 ? 1 : 0));
+
+        const hardHitRate = 0.20 + (batter.power / 100) * 0.25;
+        const hardHitCount = Math.max(barrelCount, Math.floor(bip * hardHitRate));
+
+        const fieldingFactor = batter.fielding / 100;
+        const poBase = batter.position === "1B" ? 8 : batter.position === "C" ? 6 : 
+          ["LF","CF","RF"].includes(batter.position) ? 2 : 3;
+        const putoutsCount = Math.max(0, Math.floor(poBase * (0.7 + fieldingFactor * 0.6) + (Math.random() - 0.5) * 2));
+        const assistsCount = ["P","C","SS","2B","3B"].includes(batter.position) ? 
+          Math.max(0, Math.floor(2 * (0.5 + fieldingFactor * 0.5) + (Math.random() - 0.5) * 2)) : 
+          Math.random() < 0.15 ? 1 : 0;
+        const feCount = Math.random() < (0.08 - fieldingFactor * 0.06) ? 1 : 0;
+        const tcCount = putoutsCount + assistsCount + feCount;
+
         let r = 0;
         if (runsLeft > 0) {
           const runChance = h > 0 ? 0.35 : 0.15;
@@ -3583,7 +3729,10 @@ export async function registerRoutes(
         battingLineup.push({
           name: `${batter.firstName[0]}. ${batter.lastName}`,
           position: batter.position,
-          ab, r, h, doubles, triples, hr, rbi, bb, hbp, so, sb,
+          playerId: batter.id, ab, r, h, doubles, triples, hr, rbi, bb, hbp, so, sb, cs,
+          exitVelo, barrels: barrelCount, hardHits: hardHitCount,
+          ballsInPlay: bip, putouts: putoutsCount, assists: assistsCount,
+          fieldingErrors: feCount, totalChances: tcCount,
           avg: avg.startsWith("0") ? avg.substring(1) : avg,
         });
       }
@@ -3616,22 +3765,23 @@ export async function registerRoutes(
       }
 
       interface PitcherLine {
-        name: string; ip: string; h: number; r: number; er: number;
+        name: string; playerId: string; ip: string; h: number; r: number; er: number;
         bb: number; so: number; hr: number; era: string;
+        totalPitches: number; whiffs: number; spinRate: number;
       }
 
       const pitchingStaff: PitcherLine[] = [];
       const numPitchers = Math.min(Math.max(pitchers.length, 1), 1 + Math.floor(Math.random() * 3));
-      let selectedPitchers: { firstName: string; lastName: string; control: number; velocity: number }[] = [];
+      let selectedPitchers: { id: string; firstName: string; lastName: string; control: number; velocity: number; stuff: number }[] = [];
 
       for (let i = 0; i < numPitchers && i < pitchers.length; i++) {
         selectedPitchers.push({
-          firstName: pitchers[i].firstName, lastName: pitchers[i].lastName,
-          control: pitchers[i].control || 50, velocity: pitchers[i].velocity || 50,
+          id: pitchers[i].id, firstName: pitchers[i].firstName, lastName: pitchers[i].lastName,
+          control: pitchers[i].control || 50, velocity: pitchers[i].velocity || 50, stuff: pitchers[i].stuff || 50,
         });
       }
       while (selectedPitchers.length === 0) {
-        selectedPitchers.push({ firstName: "John", lastName: "Doe", control: 50, velocity: 50 });
+        selectedPitchers.push({ id: "fake_p", firstName: "John", lastName: "Doe", control: 50, velocity: 50, stuff: 50 });
       }
 
       let inningsLeft = 9;
@@ -3695,9 +3845,17 @@ export async function registerRoutes(
 
         const era = ipDecimal > 0 ? ((er * 9) / ipDecimal).toFixed(2) : "0.00";
 
+        const pitchesPerInning = 15 + Math.floor(Math.random() * 5);
+        const totalPitchCount = Math.round(ipDecimal * pitchesPerInning);
+        const whiffRate = 0.15 + velocityFactor * 0.15 + (pitcher.stuff / 100) * 0.10;
+        const whiffCount = Math.floor(totalPitchCount * whiffRate * 0.3);
+        const baseSpinRate = 1900 + (pitcher.stuff / 100) * 800;
+        const spinRateValue = Math.round(baseSpinRate + (Math.random() - 0.5) * 200);
+
         pitchingStaff.push({
           name: `${pitcher.firstName[0]}. ${pitcher.lastName}`,
-          ip: ipStr, h: pHits, r: pRuns, er, bb: pBB, so: pSO, hr: pHR, era,
+          playerId: pitcher.id, ip: ipStr, h: pHits, r: pRuns, er, bb: pBB, so: pSO, hr: pHR, era,
+          totalPitches: totalPitchCount, whiffs: whiffCount, spinRate: spinRateValue,
         });
       }
 
@@ -3715,6 +3873,15 @@ export async function registerRoutes(
         hbp: battingLineup.reduce((s, b) => s + b.hbp, 0),
         so: battingLineup.reduce((s, b) => s + b.so, 0),
         sb: battingLineup.reduce((s, b) => s + b.sb, 0),
+        cs: battingLineup.reduce((s, b) => s + b.cs, 0),
+        exitVeloTotal: battingLineup.reduce((s, b) => s + b.exitVelo, 0),
+        barrels: battingLineup.reduce((s, b) => s + b.barrels, 0),
+        hardHits: battingLineup.reduce((s, b) => s + b.hardHits, 0),
+        ballsInPlay: battingLineup.reduce((s, b) => s + b.ballsInPlay, 0),
+        putouts: battingLineup.reduce((s, b) => s + b.putouts, 0),
+        assists: battingLineup.reduce((s, b) => s + b.assists, 0),
+        fieldingErrors: battingLineup.reduce((s, b) => s + b.fieldingErrors, 0),
+        totalChances: battingLineup.reduce((s, b) => s + b.totalChances, 0),
       };
 
       return { batting: battingLineup, pitching: pitchingStaff, totals, errors };
@@ -3724,6 +3891,80 @@ export async function registerRoutes(
     const away = generateTeamStats(awayPlayers, awayScore, false);
 
     return { innings, home, away };
+  }
+
+  async function accumulatePlayerStats(leagueId: string, season: number, teamId: string, boxData: any) {
+    if (!boxData.batting) return;
+    for (const b of boxData.batting) {
+      if (!b.playerId || b.playerId.startsWith("fake_")) continue;
+      await storage.upsertPlayerSeasonStats({
+        playerId: b.playerId,
+        playerName: b.name,
+        teamId,
+        leagueId,
+        season,
+        position: b.position,
+        games: 1,
+        ab: b.ab || 0,
+        r: b.r || 0,
+        h: b.h || 0,
+        doubles: b.doubles || 0,
+        triples: b.triples || 0,
+        hr: b.hr || 0,
+        rbi: b.rbi || 0,
+        bb: b.bb || 0,
+        hbp: b.hbp || 0,
+        so: b.so || 0,
+        sb: b.sb || 0,
+        cs: b.cs || 0,
+        exitVeloTotal: b.exitVelo || 0,
+        barrels: b.barrels || 0,
+        ballsInPlay: b.ballsInPlay || 0,
+        hardHits: b.hardHits || 0,
+        putouts: b.putouts || 0,
+        assists: b.assists || 0,
+        fieldingErrors: b.fieldingErrors || 0,
+        totalChances: b.totalChances || 0,
+        wpa: 0,
+        pitchingGames: 0, wins: 0, losses: 0, ipOuts: 0,
+        pHits: 0, pRuns: 0, pEr: 0, pBb: 0, pSo: 0, pHr: 0,
+        totalPitches: 0, whiffs: 0, spinRateTotal: 0,
+      });
+    }
+    if (!boxData.pitching) return;
+    for (const p of boxData.pitching) {
+      if (!p.playerId || p.playerId.startsWith("fake_")) continue;
+      const ipParts = String(p.ip).split(".");
+      const fullInnings = parseInt(ipParts[0]) || 0;
+      const partialOuts = parseInt(ipParts[1]) || 0;
+      const totalOuts = fullInnings * 3 + partialOuts;
+      await storage.upsertPlayerSeasonStats({
+        playerId: p.playerId,
+        playerName: p.name,
+        teamId,
+        leagueId,
+        season,
+        position: "P",
+        games: 0,
+        ab: 0, r: 0, h: 0, doubles: 0, triples: 0, hr: 0,
+        rbi: 0, bb: 0, hbp: 0, so: 0, sb: 0, cs: 0,
+        exitVeloTotal: 0, barrels: 0, ballsInPlay: 0, hardHits: 0,
+        putouts: 0, assists: 0, fieldingErrors: 0, totalChances: 0,
+        wpa: 0,
+        pitchingGames: 1,
+        wins: 0, losses: 0,
+        ipOuts: totalOuts,
+        pHits: p.h || 0,
+        pRuns: p.r || 0,
+        pEr: p.er || 0,
+        pBb: p.bb || 0,
+        pSo: p.so || 0,
+        pHr: p.hr || 0,
+        totalPitches: p.totalPitches || 0,
+        whiffs: p.whiffs || 0,
+        spinRateTotal: p.spinRate || 0,
+      });
+    }
   }
 
   // ============ STANDINGS UPDATE HELPER ============
@@ -3848,6 +4089,7 @@ export async function registerRoutes(
         isComplete: true,
         boxScore: result.boxScore,
       });
+      try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, season, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, season, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
     }
     
     const updatedAllGames = await storage.getGamesByLeague(leagueId);
@@ -3924,6 +4166,7 @@ export async function registerRoutes(
         isComplete: true,
         boxScore: result.boxScore,
       });
+      try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, season, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, season, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
     }
     
     const updatedGames = await storage.getGamesByLeague(leagueId);
@@ -5325,6 +5568,7 @@ export async function registerRoutes(
           isComplete: true,
           boxScore: result.boxScore,
         });
+        try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(league.id, league.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(league.id, league.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
       }
 
       await storage.createAuditLog({

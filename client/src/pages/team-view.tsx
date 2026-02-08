@@ -231,6 +231,7 @@ export default function TeamViewPage() {
             setEditingPlayer(selectedPlayer);
             setSelectedPlayer(null);
           }}
+          leagueId={id}
         />
       )}
       

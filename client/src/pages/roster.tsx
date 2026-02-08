@@ -299,6 +299,7 @@ export default function RosterPage() {
           canDeclareDraft={canPlayerDeclareDraft(selectedPlayer)}
           onDeclareDraft={() => declareDraftMutation.mutate(selectedPlayer.id)}
           isDeclaringDraft={declareDraftMutation.isPending}
+          leagueId={id}
         />
       )}
 

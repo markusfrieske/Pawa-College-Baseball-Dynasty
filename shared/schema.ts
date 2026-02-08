@@ -1086,6 +1086,56 @@ export const insertMomentSchema = createInsertSchema(moments).pick({
 export type InsertMoment = z.infer<typeof insertMomentSchema>;
 export type Moment = typeof moments.$inferSelect;
 
+// Player Season Stats table - accumulated per-player, per-season statistics
+export const playerSeasonStats = pgTable("player_season_stats", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  playerId: varchar("player_id").notNull(),
+  playerName: text("player_name").notNull(),
+  teamId: varchar("team_id").notNull(),
+  leagueId: varchar("league_id").notNull().references(() => leagues.id),
+  season: integer("season").notNull(),
+  position: text("position").notNull(),
+  games: integer("games").notNull().default(0),
+  ab: integer("ab").notNull().default(0),
+  r: integer("r").notNull().default(0),
+  h: integer("h").notNull().default(0),
+  doubles: integer("doubles").notNull().default(0),
+  triples: integer("triples").notNull().default(0),
+  hr: integer("hr").notNull().default(0),
+  rbi: integer("rbi").notNull().default(0),
+  bb: integer("bb").notNull().default(0),
+  hbp: integer("hbp").notNull().default(0),
+  so: integer("so").notNull().default(0),
+  sb: integer("sb").notNull().default(0),
+  cs: integer("cs").notNull().default(0),
+  exitVeloTotal: real("exit_velo_total").notNull().default(0),
+  barrels: integer("barrels").notNull().default(0),
+  ballsInPlay: integer("balls_in_play").notNull().default(0),
+  hardHits: integer("hard_hits").notNull().default(0),
+  pitchingGames: integer("pitching_games").notNull().default(0),
+  wins: integer("wins").notNull().default(0),
+  losses: integer("losses").notNull().default(0),
+  ipOuts: integer("ip_outs").notNull().default(0),
+  pHits: integer("p_hits").notNull().default(0),
+  pRuns: integer("p_runs").notNull().default(0),
+  pEr: integer("p_er").notNull().default(0),
+  pBb: integer("p_bb").notNull().default(0),
+  pSo: integer("p_so").notNull().default(0),
+  pHr: integer("p_hr").notNull().default(0),
+  totalPitches: integer("total_pitches").notNull().default(0),
+  whiffs: integer("whiffs").notNull().default(0),
+  spinRateTotal: real("spin_rate_total").notNull().default(0),
+  putouts: integer("putouts").notNull().default(0),
+  assists: integer("assists").notNull().default(0),
+  fieldingErrors: integer("fielding_errors").notNull().default(0),
+  totalChances: integer("total_chances").notNull().default(0),
+  wpa: real("wpa").notNull().default(0),
+});
+
+export const insertPlayerSeasonStatsSchema = createInsertSchema(playerSeasonStats).omit({ id: true });
+export type InsertPlayerSeasonStats = z.infer<typeof insertPlayerSeasonStatsSchema>;
+export type PlayerSeasonStats = typeof playerSeasonStats.$inferSelect;
+
 // Relations for new tables
 export const storyEventsRelations = relations(storyEvents, ({ one }) => ({
   league: one(leagues, { fields: [storyEvents.leagueId], references: [leagues.id] }),

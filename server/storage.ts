@@ -2,7 +2,7 @@ import {
   users, leagues, conferences, teams, coaches, scouts,
   players, recruits, recruitingInterests, games, standings, auditLogs, leagueInvites, dynastyNews,
   recruitingActionsLog, recruitTopSchools, transferPortalInterests, playerHistory, playerPromises,
-  storyEvents, storyArcs, storyArcChapters, moments,
+  storyEvents, storyArcs, storyArcChapters, moments, playerSeasonStats,
   type User, type InsertUser,
   type League, type InsertLeague,
   type Conference, type InsertConference,
@@ -26,6 +26,7 @@ import {
   type StoryArc, type InsertStoryArc,
   type StoryArcChapter, type InsertStoryArcChapter,
   type Moment, type InsertMoment,
+  type PlayerSeasonStats, type InsertPlayerSeasonStats,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, or, inArray } from "drizzle-orm";
@@ -144,6 +145,10 @@ export interface IStorage {
   getMomentsByLeague(leagueId: string): Promise<Moment[]>;
   getMomentsByTeam(teamId: string): Promise<Moment[]>;
   createMoment(moment: InsertMoment): Promise<Moment>;
+
+  getPlayerSeasonStats(playerId: string, leagueId: string): Promise<PlayerSeasonStats[]>;
+  getPlayerSeasonStatsBySeason(leagueId: string, season: number): Promise<PlayerSeasonStats[]>;
+  upsertPlayerSeasonStats(data: InsertPlayerSeasonStats): Promise<PlayerSeasonStats>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -677,6 +682,72 @@ export class DatabaseStorage implements IStorage {
 
   async createMoment(moment: InsertMoment): Promise<Moment> {
     const [created] = await db.insert(moments).values(moment).returning();
+    return created;
+  }
+
+  async getPlayerSeasonStats(playerId: string, leagueId: string): Promise<PlayerSeasonStats[]> {
+    return db.select().from(playerSeasonStats)
+      .where(and(eq(playerSeasonStats.playerId, playerId), eq(playerSeasonStats.leagueId, leagueId)));
+  }
+
+  async getPlayerSeasonStatsBySeason(leagueId: string, season: number): Promise<PlayerSeasonStats[]> {
+    return db.select().from(playerSeasonStats)
+      .where(and(eq(playerSeasonStats.leagueId, leagueId), eq(playerSeasonStats.season, season)));
+  }
+
+  async upsertPlayerSeasonStats(data: InsertPlayerSeasonStats): Promise<PlayerSeasonStats> {
+    const [existing] = await db.select().from(playerSeasonStats)
+      .where(and(
+        eq(playerSeasonStats.playerId, data.playerId),
+        eq(playerSeasonStats.leagueId, data.leagueId),
+        eq(playerSeasonStats.season, data.season)
+      ));
+
+    if (existing) {
+      const [updated] = await db.update(playerSeasonStats).set({
+        playerName: data.playerName,
+        teamId: data.teamId,
+        position: data.position,
+        games: existing.games + (data.games ?? 0),
+        ab: existing.ab + (data.ab ?? 0),
+        r: existing.r + (data.r ?? 0),
+        h: existing.h + (data.h ?? 0),
+        doubles: existing.doubles + (data.doubles ?? 0),
+        triples: existing.triples + (data.triples ?? 0),
+        hr: existing.hr + (data.hr ?? 0),
+        rbi: existing.rbi + (data.rbi ?? 0),
+        bb: existing.bb + (data.bb ?? 0),
+        hbp: existing.hbp + (data.hbp ?? 0),
+        so: existing.so + (data.so ?? 0),
+        sb: existing.sb + (data.sb ?? 0),
+        cs: existing.cs + (data.cs ?? 0),
+        exitVeloTotal: existing.exitVeloTotal + (data.exitVeloTotal ?? 0),
+        barrels: existing.barrels + (data.barrels ?? 0),
+        ballsInPlay: existing.ballsInPlay + (data.ballsInPlay ?? 0),
+        hardHits: existing.hardHits + (data.hardHits ?? 0),
+        pitchingGames: existing.pitchingGames + (data.pitchingGames ?? 0),
+        wins: existing.wins + (data.wins ?? 0),
+        losses: existing.losses + (data.losses ?? 0),
+        ipOuts: existing.ipOuts + (data.ipOuts ?? 0),
+        pHits: existing.pHits + (data.pHits ?? 0),
+        pRuns: existing.pRuns + (data.pRuns ?? 0),
+        pEr: existing.pEr + (data.pEr ?? 0),
+        pBb: existing.pBb + (data.pBb ?? 0),
+        pSo: existing.pSo + (data.pSo ?? 0),
+        pHr: existing.pHr + (data.pHr ?? 0),
+        totalPitches: existing.totalPitches + (data.totalPitches ?? 0),
+        whiffs: existing.whiffs + (data.whiffs ?? 0),
+        spinRateTotal: existing.spinRateTotal + (data.spinRateTotal ?? 0),
+        putouts: existing.putouts + (data.putouts ?? 0),
+        assists: existing.assists + (data.assists ?? 0),
+        fieldingErrors: existing.fieldingErrors + (data.fieldingErrors ?? 0),
+        totalChances: existing.totalChances + (data.totalChances ?? 0),
+        wpa: existing.wpa + (data.wpa ?? 0),
+      }).where(eq(playerSeasonStats.id, existing.id)).returning();
+      return updated;
+    }
+
+    const [created] = await db.insert(playerSeasonStats).values(data).returning();
     return created;
   }
 }
