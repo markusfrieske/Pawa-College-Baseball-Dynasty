@@ -283,3 +283,11 @@ input[type="number"].no-spinner::-webkit-inner-spin-button {
 input[type="number"].no-spinner {
   -moz-appearance: textfield;
 }
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

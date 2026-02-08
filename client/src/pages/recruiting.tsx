@@ -488,14 +488,14 @@ export default function RecruitingPage() {
 
       <main className="container mx-auto px-4 py-6">
         <RetroCard className="mb-6">
-          <div className="flex flex-wrap gap-4 items-center">
-            <div className="relative">
+          <div className="flex flex-wrap gap-2 sm:gap-4 items-center">
+            <div className="relative w-full sm:w-auto">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <RetroInput
                 placeholder="Search recruits..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 w-48"
+                className="pl-9 w-full sm:w-48"
                 data-testid="input-search-recruits"
               />
             </div>
@@ -503,14 +503,14 @@ export default function RecruitingPage() {
               options={positionOptions}
               value={positionFilter}
               onChange={(e) => setPositionFilter(e.target.value)}
-              className="w-40"
+              className="w-[calc(50%-0.25rem)] sm:w-40"
               data-testid="select-position-filter"
             />
             <RetroSelect
               options={starOptions}
               value={starFilter}
               onChange={(e) => setStarFilter(e.target.value)}
-              className="w-40"
+              className="w-[calc(50%-0.25rem)] sm:w-40"
               data-testid="select-star-filter"
             />
             <RetroSelect
@@ -520,16 +520,16 @@ export default function RecruitingPage() {
               ]}
               value={stateFilter}
               onChange={(e) => setStateFilter(e.target.value)}
-              className="w-32"
+              className="w-[calc(50%-0.25rem)] sm:w-32"
               data-testid="select-state-filter"
             />
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Sort:</span>
+            <div className="flex items-center gap-2 w-[calc(50%-0.25rem)] sm:w-auto">
+              <span className="text-xs text-muted-foreground shrink-0">Sort:</span>
               <RetroSelect
                 options={sortOptions}
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="w-44"
+                className="w-full sm:w-44"
                 data-testid="select-sort"
               />
             </div>
@@ -540,7 +540,7 @@ export default function RecruitingPage() {
               data-testid="button-watchlist-filter"
             >
               <Target className="w-3 h-3 mr-1" />
-              Watchlist {showWatchlistOnly && `(${data?.targetedCount || 0})`}
+              <span className="hidden sm:inline">Watchlist</span><span className="sm:hidden">Watch</span> {showWatchlistOnly && `(${data?.targetedCount || 0})`}
             </RetroButton>
             <RetroButton
               variant={showTopAvailable ? "primary" : "outline"}
@@ -549,7 +549,7 @@ export default function RecruitingPage() {
               data-testid="button-top-available"
             >
               <TrendingUp className="w-3 h-3 mr-1" />
-              Top Available
+              <span className="hidden sm:inline">Top Available</span><span className="sm:hidden">Top</span>
             </RetroButton>
             <Popover>
               <PopoverTrigger asChild>
@@ -610,7 +610,7 @@ export default function RecruitingPage() {
                 </div>
               </PopoverContent>
             </Popover>
-            <div className="flex items-center gap-2 ml-auto">
+            <div className="flex items-center gap-2 w-full sm:w-auto sm:ml-auto">
               {(() => {
                 const unscoutedTargets = data?.recruits.filter(r => r.interest?.isTargeted && (r.interest?.scoutPercentage || 0) < 100) || [];
                 return unscoutedTargets.length > 0 ? (

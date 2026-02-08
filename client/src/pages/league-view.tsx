@@ -167,7 +167,7 @@ export default function LeagueViewPage() {
             </Link>
             <h1 className="font-pixel text-gold text-lg">{league.name}</h1>
           </div>
-          <div className="flex flex-wrap items-center gap-6 text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-6 text-xs sm:text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4" />
               <span>Season {league.currentSeason}, Week {league.currentWeek}</span>
@@ -208,7 +208,7 @@ export default function LeagueViewPage() {
       </header>
 
       <main className="container mx-auto px-4 py-6">
-        <div className="grid lg:grid-cols-6 gap-4 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2 sm:gap-3 mb-6">
           <QuickActionCard
             href={`/league/${id}/coach`}
             icon={<Award className="w-6 h-6" />}
@@ -256,32 +256,34 @@ export default function LeagueViewPage() {
         <OffseasonSummary league={league} />
 
         <Tabs defaultValue="news" className="space-y-4">
-          <TabsList className="bg-card border border-border">
-            <TabsTrigger value="news" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
-              News
-            </TabsTrigger>
-            <TabsTrigger value="standings" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
-              Standings
-            </TabsTrigger>
-            <TabsTrigger value="teams" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
-              Teams
-            </TabsTrigger>
-            <TabsTrigger value="rankings" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
-              Rankings
-            </TabsTrigger>
-            <TabsTrigger value="stats" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
-              Stats
-            </TabsTrigger>
-            <TabsTrigger value="postseason" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
-              Postseason
-            </TabsTrigger>
-            <TabsTrigger value="awards" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
-              Awards
-            </TabsTrigger>
-            <TabsTrigger value="history" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
-              History
-            </TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto -mx-4 px-4 pb-2 scrollbar-hide">
+            <TabsList className="bg-card border border-border w-max min-w-full flex">
+              <TabsTrigger value="news" className="font-pixel text-[8px] flex-1 min-w-0 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-news">
+                News
+              </TabsTrigger>
+              <TabsTrigger value="standings" className="font-pixel text-[8px] flex-1 min-w-0 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-standings">
+                Standings
+              </TabsTrigger>
+              <TabsTrigger value="teams" className="font-pixel text-[8px] flex-1 min-w-0 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-teams">
+                Teams
+              </TabsTrigger>
+              <TabsTrigger value="rankings" className="font-pixel text-[8px] flex-1 min-w-0 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-rankings">
+                Rankings
+              </TabsTrigger>
+              <TabsTrigger value="stats" className="font-pixel text-[8px] flex-1 min-w-0 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-stats">
+                Stats
+              </TabsTrigger>
+              <TabsTrigger value="postseason" className="font-pixel text-[8px] flex-1 min-w-0 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-postseason">
+                Post
+              </TabsTrigger>
+              <TabsTrigger value="awards" className="font-pixel text-[8px] flex-1 min-w-0 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-awards">
+                Awards
+              </TabsTrigger>
+              <TabsTrigger value="history" className="font-pixel text-[8px] flex-1 min-w-0 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-history">
+                History
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="standings">
             <StandingsTab league={league} />
@@ -1018,7 +1020,7 @@ function LeagueViewSkeleton() {
         </div>
       </header>
       <main className="container mx-auto px-4 py-6">
-        <div className="grid lg:grid-cols-4 gap-6 mb-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6">
           {[1, 2, 3, 4].map((i) => (
             <Skeleton key={i} className="h-20" />
           ))}
@@ -1127,11 +1129,11 @@ function SeasonProgressBar({ phase }: { phase: string }) {
 
   return (
     <div className="mt-4" data-testid="season-progress-bar">
-      <div className="flex items-center justify-between gap-1">
+      <div className="flex items-center gap-1 sm:gap-2">
         {phases.map((p, i) => (
           <div
             key={p.key}
-            className={`flex-1 flex flex-col items-center gap-1 ${
+            className={`flex-1 flex flex-col items-center gap-1 min-w-0 ${
               i < currentIndex ? "opacity-50" : i === currentIndex ? "" : "opacity-30"
             }`}
           >
@@ -1144,7 +1146,7 @@ function SeasonProgressBar({ phase }: { phase: string }) {
                     : "bg-muted"
               }`}
             />
-            <span className={`text-[8px] font-pixel ${i === currentIndex ? "text-gold" : "text-muted-foreground"}`}>
+            <span className={`text-[6px] sm:text-[8px] font-pixel truncate max-w-full ${i === currentIndex ? "text-gold" : "text-muted-foreground"}`}>
               {p.label}
             </span>
           </div>
@@ -1364,7 +1366,7 @@ function StatsTab({ leagueId, currentSeason }: { leagueId: string; currentSeason
         )}
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap">
         {(["team", "batting", "pitching"] as const).map(v => (
           <RetroButton
             key={v}
@@ -1373,7 +1375,7 @@ function StatsTab({ leagueId, currentSeason }: { leagueId: string; currentSeason
             onClick={() => setView(v)}
             data-testid={`stats-view-${v}`}
           >
-            {v === "team" ? "Team Stats" : v === "batting" ? "Batting Leaders" : "Pitching Leaders"}
+            {v === "team" ? "Team" : v === "batting" ? "Batting" : "Pitching"}
           </RetroButton>
         ))}
       </div>

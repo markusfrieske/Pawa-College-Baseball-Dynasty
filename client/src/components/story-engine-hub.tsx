@@ -13,13 +13,15 @@ import {
 } from "lucide-react";
 import addieFriskImg from "@/assets/images/addie-frisk.png";
 import sullyPumpImg from "@/assets/images/sully-pump.png";
+import jimboFarrellImg from "@/assets/images/jimbo-farrell.png";
 import type { DynastyNews, StoryEvent, StoryArc, Moment, StoryArcChapter } from "@shared/schema";
 
 type StoryArcWithChapters = StoryArc & { chapters: StoryArcChapter[] };
 
 const journalistInfo: Record<string, { name: string; avatar: string; title: string }> = {
-  addie: { name: "Addie Frisk", avatar: addieFriskImg, title: "Game & Conference Reporter" },
+  addie: { name: "Addie Frisk", avatar: addieFriskImg, title: "Dynasty & Conference Reporter" },
   sully: { name: "Sully Pump", avatar: sullyPumpImg, title: "Recruiting Analyst" },
+  jimbo: { name: "Jimbo Farrell", avatar: jimboFarrellImg, title: "Rumors & Drama Insider" },
 };
 
 const categoryLabels: Record<string, string> = {

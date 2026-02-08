@@ -397,7 +397,7 @@ export default function RecruitProfilePage() {
           </RetroButton>
           <RetroButton 
             data-testid="button-phone"
-            variant={showProfilePhonePicker ? "primary" : "default"}
+            variant={showProfilePhonePicker ? "primary" : "outline"}
             onClick={() => { setShowProfilePhonePicker(!showProfilePhonePicker); setShowProfileEmailPicker(false); setProfilePhonePitches([]); }}
             disabled={phoneMutation.isPending || !recruit.interest}
           >
