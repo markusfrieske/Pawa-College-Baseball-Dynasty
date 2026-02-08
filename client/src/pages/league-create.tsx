@@ -25,9 +25,9 @@ const availableConferences = [
 ];
 
 const seasonLengthOptions = [
-  { value: "short", label: "Short Season - 8 Games" },
-  { value: "medium", label: "Medium Season - 14 Games" },
-  { value: "long", label: "Long Season - 32 Games" },
+  { value: "short", label: "Short Season - 10 Games (5 weeks)" },
+  { value: "medium", label: "Standard Season - 20 Games (5 weeks)" },
+  { value: "long", label: "Long Season - 40 Games (10 weeks)" },
 ];
 
 export default function LeagueCreatePage() {
