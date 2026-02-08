@@ -2912,6 +2912,12 @@ export async function registerRoutes(
         if (league.currentPhase === "super_regionals") {
           const srResult = await advanceSuperRegionals(leagueId, league.currentSeason);
           
+          if (srResult.done && !srResult.champion1) {
+            const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "offseason_departures", currentWeek: nextWeek });
+            await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "Postseason Skipped", details: "Not enough teams for postseason bracket." });
+            return res.json(updatedLeague);
+          }
+          
           if (srResult.done && srResult.champion1 && srResult.champion2) {
             await storage.createGame({
               leagueId, season: league.currentSeason, week: 0,
@@ -3108,6 +3114,135 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to advance week:", error);
       res.status(500).json({ message: "Failed to advance week" });
+    }
+  });
+
+  app.post("/api/leagues/:id/sim-to-offseason", async (req, res) => {
+    try {
+      const leagueId = req.params.id;
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      if (!req.session.userId || league.commissionerId !== req.session.userId) {
+        return res.status(403).json({ message: "Only the commissioner can sim the full season." });
+      }
+
+      const MAX_ITERATIONS = 100;
+      let currentLeague = league;
+      let iterations = 0;
+      const phasesVisited: string[] = [];
+      const startSeason = currentLeague.currentSeason;
+
+      while (iterations < MAX_ITERATIONS) {
+        iterations++;
+        const phase = currentLeague.currentPhase;
+        phasesVisited.push(`${phase} (wk ${currentLeague.currentWeek})`);
+
+        if (phase === "offseason_departures" && iterations > 1) {
+          break;
+        }
+        if ((currentLeague.currentSeason ?? 1) > startSeason) {
+          break;
+        }
+
+        const maxWeeks = currentLeague.seasonLength === "short" ? 8 : currentLeague.seasonLength === "long" ? 20 : 15;
+        const nextWeek = (currentLeague.currentWeek ?? 1) + 1;
+
+        if (phase === "preseason" || phase === "spring_training" || phase === "regular_season") {
+          const weekGames = (await storage.getGamesByLeague(leagueId))
+            .filter(g => g.season === currentLeague.currentSeason && g.week === currentLeague.currentWeek && !g.isComplete);
+          for (const game of weekGames) {
+            const result = await simulateGame(game.homeTeamId, game.awayTeamId);
+            await storage.updateGame(game.id, {
+              homeScore: result.homeScore,
+              awayScore: result.awayScore,
+              boxScore: result.boxScore,
+              isComplete: true,
+            });
+            await updateStandingsForGame(leagueId, currentLeague.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore);
+          }
+
+          if (nextWeek > maxWeeks) {
+            await generateConferenceChampionships(leagueId, currentLeague.currentSeason);
+            currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "conference_championship", currentWeek: nextWeek })) as any;
+          } else {
+            const newPhase = phase === "preseason" && nextWeek >= 2 ? "regular_season" : phase;
+            currentLeague = (await storage.updateLeague(leagueId, { currentWeek: nextWeek, currentPhase: newPhase })) as any;
+          }
+          continue;
+        }
+
+        if (phase === "conference_championship") {
+          const ccGames = (await storage.getGamesByLeague(leagueId))
+            .filter(g => g.phase === "conference_championship" && g.season === currentLeague.currentSeason && !g.isComplete);
+          for (const game of ccGames) {
+            const result = await simulateGame(game.homeTeamId, game.awayTeamId);
+            await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, boxScore: result.boxScore, isComplete: true });
+            await updateStandingsForGame(leagueId, currentLeague.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, true);
+          }
+          await generateSuperRegionalBracket(leagueId, currentLeague.currentSeason);
+          currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "super_regionals" })) as any;
+          continue;
+        }
+
+        if (phase === "super_regionals") {
+          let srDone = false;
+          let srIterations = 0;
+          while (!srDone && srIterations < 20) {
+            srIterations++;
+            const srResult = await advanceSuperRegionals(leagueId, currentLeague.currentSeason);
+            srDone = srResult.done;
+            if (srDone) {
+              if (srResult.champion1 && srResult.champion2) {
+                await storage.createGame({
+                  leagueId, season: currentLeague.currentSeason, week: 0,
+                  homeTeamId: srResult.champion1, awayTeamId: srResult.champion2,
+                  phase: "cws",
+                });
+                currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "cws" })) as any;
+              } else {
+                currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "offseason_departures" })) as any;
+              }
+            }
+          }
+          continue;
+        }
+
+        if (phase === "cws") {
+          let cwsDone = false;
+          let cwsIterations = 0;
+          while (!cwsDone && cwsIterations < 10) {
+            cwsIterations++;
+            const cwsResult = await advanceCWS(leagueId, currentLeague.currentSeason);
+            cwsDone = cwsResult.done;
+          }
+          try {
+            await evaluatePlayerPromises(leagueId, currentLeague.currentSeason);
+          } catch (e) {
+            console.error("Promise eval error during sim:", e);
+          }
+          try {
+            await processOffseasonDepartures(leagueId, currentLeague.currentSeason);
+          } catch (e) {
+            console.error("Departure processing error during sim:", e);
+          }
+          currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "offseason_departures" })) as any;
+          continue;
+        }
+
+        break;
+      }
+
+      await storage.createAuditLog({
+        leagueId,
+        userId: req.session.userId,
+        action: "Sim to Offseason",
+        details: `Simulated ${iterations} advances from ${phasesVisited[0] || "unknown"} to ${currentLeague.currentPhase}. Season ${startSeason}.`,
+      });
+
+      res.json(currentLeague);
+    } catch (error) {
+      console.error("Failed to sim to offseason:", error);
+      res.status(500).json({ message: "Failed to sim to offseason" });
     }
   });
   
@@ -3502,15 +3637,6 @@ export async function registerRoutes(
     });
     
     if (nextRoundTeams.length <= 2) {
-      const finalGame = updatedSRGames.filter(g => 
-        nextRoundTeams.includes(g.homeTeamId) || nextRoundTeams.includes(g.awayTeamId)
-      ).pop();
-      
-      if (nextRoundTeams.length === 1 && finalGame) {
-        const winnerId = nextRoundTeams[0];
-        const loserId = finalGame.homeTeamId === winnerId ? finalGame.awayTeamId : finalGame.homeTeamId;
-        return { done: true, champion1: winnerId, champion2: loserId };
-      }
       return { done: true, champion1: nextRoundTeams[0], champion2: nextRoundTeams[1] };
     }
     
@@ -4056,6 +4182,9 @@ export async function registerRoutes(
         });
       }
     }
+    
+    // 8. Generate schedule for the next season
+    await generateSchedule(leagueId, completedSeason + 1);
     
     return {
       transferred: totalTransferred,

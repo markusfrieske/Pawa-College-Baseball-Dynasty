@@ -31,7 +31,8 @@ import {
   Swords,
   UserMinus,
   Target,
-  Link as LinkIcon
+  Link as LinkIcon,
+  FastForward
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -150,6 +151,27 @@ export default function CommissionerPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "commissioner"] });
       toast({ title: "Difficulty Updated", description: "CPU difficulty has been changed." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const simToOffseasonMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", `/api/leagues/${id}/sim-to-offseason`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "postseason"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "commissioner"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "schedule"] });
+      window.dispatchEvent(new CustomEvent("league-phase-changed"));
+      toast({ 
+        title: "Season Simulated!", 
+        description: "The entire season has been simulated. Review player departures before continuing.",
+      });
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -290,6 +312,8 @@ export default function CommissionerPage() {
               isImporting={importRecruitingMutation.isPending}
               onSimulateWeek={() => simulateWeekMutation.mutate()}
               isSimulating={simulateWeekMutation.isPending}
+              onSimToOffseason={() => simToOffseasonMutation.mutate()}
+              isSimToOffseason={simToOffseasonMutation.isPending}
             />
           </TabsContent>
 
@@ -324,6 +348,8 @@ function ActionsTab({
   isImporting,
   onSimulateWeek,
   isSimulating,
+  onSimToOffseason,
+  isSimToOffseason,
 }: {
   league?: League;
   onAdvanceWeek: () => void;
@@ -334,6 +360,8 @@ function ActionsTab({
   isImporting: boolean;
   onSimulateWeek: () => void;
   isSimulating: boolean;
+  onSimToOffseason: () => void;
+  isSimToOffseason: boolean;
 }) {
   const { toast } = useToast();
   const [showImportDialog, setShowImportDialog] = useState(false);
@@ -429,13 +457,24 @@ function ActionsTab({
             </p>
             <RetroButton
               onClick={onAdvanceWeek}
-              disabled={isAdvancing || isAdvancingSeason}
+              disabled={isAdvancing || isAdvancingSeason || isSimToOffseason}
               className="w-full"
               data-testid="button-advance-week"
             >
               {advanceIcon}
               {advanceLabel}
             </RetroButton>
+            {!isPostseason && !isOffseason && (
+              <RetroButton
+                onClick={onSimToOffseason}
+                disabled={isAdvancing || isAdvancingSeason || isSimToOffseason}
+                className="w-full mt-3"
+                data-testid="button-sim-full-season"
+              >
+                <FastForward className="w-4 h-4 mr-2" />
+                {isSimToOffseason ? "Simulating Season..." : "Sim Full Season"}
+              </RetroButton>
+            )}
             {isOffseason && league?.currentPhase !== "offseason_signing_day" && (
               <div className="mt-3 pt-3 border-t border-border">
                 <p className="text-muted-foreground text-xs">
