@@ -2851,7 +2851,8 @@ export async function registerRoutes(
         awayTeam: leagueTeams.find((t) => t.id === game.awayTeamId),
       }));
 
-      const coach = await storage.getCoachByUserId(req.session.userId!);
+      const coaches = await storage.getCoachesByLeague(league.id);
+      const coach = coaches.find(c => c.userId === req.session.userId);
       const userTeam = coach ? leagueTeams.find(t => t.id === coach.teamId) : null;
 
       res.json({
