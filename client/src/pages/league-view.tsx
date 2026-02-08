@@ -300,7 +300,7 @@ export default function LeagueViewPage() {
           </TabsContent>
 
           <TabsContent value="stats">
-            <StatsTab leagueId={league.id} />
+            <StatsTab leagueId={league.id} currentSeason={league.currentSeason} />
           </TabsContent>
 
           <TabsContent value="postseason">
@@ -1274,15 +1274,18 @@ interface StatsData {
   totalGames: number;
 }
 
-function StatsTab({ leagueId }: { leagueId: string }) {
+function StatsTab({ leagueId, currentSeason }: { leagueId: string; currentSeason: number }) {
   const [view, setView] = useState<"team" | "batting" | "pitching">("team");
+  const [selectedSeason, setSelectedSeason] = useState<number | null>(null);
   const [battingSort, setBattingSort] = useState<"avg" | "ops" | "hr" | "rbi" | "war" | "wOBA" | "wRCplus" | "opsPlus" | "babip" | "exitVelo" | "barrelPct" | "oaa" | "fldPct">("avg");
   const [pitchingSort, setPitchingSort] = useState<"era" | "fip" | "so" | "whip" | "war" | "siera" | "kPct" | "whiffRate" | "spinRate">("era");
   const [battingView, setBattingView] = useState<"traditional" | "advanced" | "statcast" | "defense">("traditional");
   const [pitchingView, setPitchingView] = useState<"traditional" | "advanced">("traditional");
 
+  const seasonParam = selectedSeason ? `?season=${selectedSeason}` : "";
   const { data, isLoading } = useQuery<StatsData>({
-    queryKey: ["/api/leagues", leagueId, "stats"],
+    queryKey: ["/api/leagues", leagueId, "stats", selectedSeason || "latest"],
+    queryFn: () => fetch(`/api/leagues/${leagueId}/stats${seasonParam}`, { credentials: "include" }).then(r => r.json()),
   });
 
   if (isLoading) {
@@ -1344,6 +1347,21 @@ function StatsTab({ leagueId }: { leagueId: string }) {
         <BarChart className="w-5 h-5 text-gold" />
         <span className="font-pixel text-gold text-xs">Season {data.season} Stats</span>
         <span className="text-xs text-muted-foreground">({data.totalGames} games played)</span>
+        {currentSeason > 1 && (
+          <div className="flex gap-1 ml-auto" data-testid="season-selector">
+            {Array.from({ length: currentSeason }, (_, i) => i + 1).map(s => (
+              <RetroButton
+                key={s}
+                variant={(selectedSeason === s || (!selectedSeason && data.season === s)) ? "primary" : "outline"}
+                size="sm"
+                onClick={() => setSelectedSeason(s)}
+                data-testid={`season-select-${s}`}
+              >
+                S{s}
+              </RetroButton>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="flex gap-2">

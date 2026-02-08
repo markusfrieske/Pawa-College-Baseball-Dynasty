@@ -2496,9 +2496,14 @@ export async function registerRoutes(
         return res.status(404).json({ message: "League not found" });
       }
 
-      const season = req.query.season ? parseInt(req.query.season as string) : league.currentSeason;
+      let season = req.query.season ? parseInt(req.query.season as string) : league.currentSeason;
       const allGames = await storage.getGamesByLeague(req.params.id);
-      const seasonGames = allGames.filter(g => g.season === season && g.isComplete && g.boxScore);
+      let seasonGames = allGames.filter(g => g.season === season && g.isComplete && g.boxScore);
+      
+      if (seasonGames.length === 0 && !req.query.season && season > 1) {
+        season = season - 1;
+        seasonGames = allGames.filter(g => g.season === season && g.isComplete && g.boxScore);
+      }
       const teams = await storage.getTeamsByLeague(req.params.id);
       const teamsMap = new Map(teams.map(t => [t.id, t]));
 
