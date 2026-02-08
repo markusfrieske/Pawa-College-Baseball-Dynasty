@@ -125,21 +125,14 @@ export default function TeamSelectionPage() {
       return;
     }
 
-    const selectedArray = Array.from(selectedTeamNames);
-    const conferences = data.conferences;
-    const numConferences = conferences.length;
-    const teamsPerConf = Math.floor(selectedArray.length / numConferences);
-    const remainder = selectedArray.length % numConferences;
-
-    const teamsPayload: { conferenceId: string; teamNames: string[] }[] = conferences.map((conf, idx) => ({
-      conferenceId: conf.id,
-      teamNames: [] as string[],
-    }));
-
-    selectedArray.forEach((teamName, idx) => {
-      const confIdx = idx % numConferences;
-      teamsPayload[confIdx].teamNames.push(teamName);
-    });
+    const teamsPayload: { conferenceId: string; teamNames: string[] }[] = data.conferenceTeamPools
+      .map(({ conference, teams: poolTeams }) => ({
+        conferenceId: conference.id,
+        teamNames: poolTeams
+          .filter(t => selectedTeamNames.has(t.name))
+          .map(t => t.name),
+      }))
+      .filter(entry => entry.teamNames.length > 0);
 
     saveMutation.mutate(teamsPayload);
   };

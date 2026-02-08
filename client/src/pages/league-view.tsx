@@ -1014,8 +1014,7 @@ function ReadyButton({ leagueId }: { leagueId: string }) {
 
 function SeasonProgressBar({ phase }: { phase: string }) {
   const phases = [
-    { key: "preseason", label: "Spring" },
-    { key: "spring_training", label: "Spring" },
+    { key: "spring", label: "Spring" },
     { key: "regular_season", label: "Reg Season" },
     { key: "conference_championship", label: "Conf Champs" },
     { key: "super_regionals", label: "Super Region" },
@@ -1026,7 +1025,11 @@ function SeasonProgressBar({ phase }: { phase: string }) {
   const offseasonPhases = ["offseason_departures", "offseason_recruiting_1", "offseason_recruiting_2", 
     "offseason_recruiting_3", "offseason_recruiting_4", "offseason_signing_day"];
   
-  const currentPhaseNormalized = offseasonPhases.includes(phase) ? "offseason" : phase;
+  const springPhases = ["preseason", "spring_training"];
+  
+  const currentPhaseNormalized = offseasonPhases.includes(phase) ? "offseason" 
+    : springPhases.includes(phase) ? "spring" 
+    : phase;
   const currentIndex = phases.findIndex(p => p.key === currentPhaseNormalized);
 
   return (
