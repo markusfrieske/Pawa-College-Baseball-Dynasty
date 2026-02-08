@@ -25,20 +25,33 @@ interface ScheduleData {
   userTeamId: string | null;
 }
 
+interface BoxScoreBatter {
+  name: string; position: string; ab: number; r: number; h: number;
+  doubles?: number; triples?: number; hr?: number;
+  rbi: number; bb: number; hbp?: number; so: number; sb?: number; avg: string;
+}
+
+interface BoxScorePitcher {
+  name: string; ip: string; h: number; r: number; er: number;
+  bb: number; so: number; hr?: number; era: string;
+}
+
+interface BoxScoreTotals {
+  ab: number; r: number; h: number; doubles?: number; triples?: number; hr?: number;
+  rbi: number; bb: number; hbp?: number; so: number; sb?: number;
+}
+
+interface BoxScoreTeam {
+  batting: BoxScoreBatter[];
+  pitching: BoxScorePitcher[];
+  totals: BoxScoreTotals;
+  errors?: number;
+}
+
 interface BoxScoreData {
   innings: number[][];
-  home: {
-    batting: { name: string; position: string; ab: number; r: number; h: number; rbi: number; bb: number; so: number; avg: string }[];
-    pitching: { name: string; ip: string; h: number; r: number; er: number; bb: number; so: number; era: string }[];
-    totals: { ab: number; r: number; h: number; rbi: number; bb: number; so: number };
-    errors?: number;
-  };
-  away: {
-    batting: { name: string; position: string; ab: number; r: number; h: number; rbi: number; bb: number; so: number; avg: string }[];
-    pitching: { name: string; ip: string; h: number; r: number; er: number; bb: number; so: number; era: string }[];
-    totals: { ab: number; r: number; h: number; rbi: number; bb: number; so: number };
-    errors?: number;
-  };
+  home: BoxScoreTeam;
+  away: BoxScoreTeam;
 }
 
 export default function SchedulePage() {
@@ -311,7 +324,7 @@ function BoxScoreModal({ game, onClose }: { game: GameWithTeams | null; onClose:
   );
 }
 
-function TeamBattingTable({ label, team }: { label: string; team: BoxScoreData["home"] }) {
+function TeamBattingTable({ label, team }: { label: string; team: BoxScoreTeam }) {
   return (
     <div className="overflow-x-auto">
       <h3 className="font-pixel text-gold text-xs mb-2">{label} - Batting</h3>
@@ -319,13 +332,17 @@ function TeamBattingTable({ label, team }: { label: string; team: BoxScoreData["
         <thead>
           <tr className="border-b border-gold/30">
             <th className="text-left p-1.5 text-gold/80">Batting</th>
-            <th className="text-center p-1.5 text-gold/80 w-10">AB</th>
-            <th className="text-center p-1.5 text-gold/80 w-10">R</th>
-            <th className="text-center p-1.5 text-gold/80 w-10">H</th>
-            <th className="text-center p-1.5 text-gold/80 w-10">RBI</th>
-            <th className="text-center p-1.5 text-gold/80 w-10">BB</th>
-            <th className="text-center p-1.5 text-gold/80 w-10">SO</th>
-            <th className="text-center p-1.5 text-gold/80 w-14">AVG</th>
+            <th className="text-center p-1.5 text-gold/80 w-8">AB</th>
+            <th className="text-center p-1.5 text-gold/80 w-8">R</th>
+            <th className="text-center p-1.5 text-gold/80 w-8">H</th>
+            <th className="text-center p-1.5 text-gold/80 w-8">2B</th>
+            <th className="text-center p-1.5 text-gold/80 w-8">3B</th>
+            <th className="text-center p-1.5 text-gold/80 w-8">HR</th>
+            <th className="text-center p-1.5 text-gold/80 w-8">RBI</th>
+            <th className="text-center p-1.5 text-gold/80 w-8">BB</th>
+            <th className="text-center p-1.5 text-gold/80 w-8">SO</th>
+            <th className="text-center p-1.5 text-gold/80 w-8">SB</th>
+            <th className="text-center p-1.5 text-gold/80 w-12">AVG</th>
           </tr>
         </thead>
         <tbody>
@@ -338,9 +355,13 @@ function TeamBattingTable({ label, team }: { label: string; team: BoxScoreData["
               <td className="text-center p-1.5 text-foreground">{batter.ab}</td>
               <td className="text-center p-1.5 text-foreground">{batter.r}</td>
               <td className="text-center p-1.5 text-foreground">{batter.h}</td>
+              <td className="text-center p-1.5 text-foreground">{batter.doubles ?? 0}</td>
+              <td className="text-center p-1.5 text-foreground">{batter.triples ?? 0}</td>
+              <td className="text-center p-1.5 text-foreground">{batter.hr ?? 0}</td>
               <td className="text-center p-1.5 text-foreground">{batter.rbi}</td>
               <td className="text-center p-1.5 text-foreground">{batter.bb}</td>
               <td className="text-center p-1.5 text-foreground">{batter.so}</td>
+              <td className="text-center p-1.5 text-foreground">{batter.sb ?? 0}</td>
               <td className="text-center p-1.5 text-foreground">{batter.avg}</td>
             </tr>
           ))}
@@ -349,9 +370,13 @@ function TeamBattingTable({ label, team }: { label: string; team: BoxScoreData["
             <td className="text-center p-1.5 text-gold">{team.totals.ab}</td>
             <td className="text-center p-1.5 text-gold">{team.totals.r}</td>
             <td className="text-center p-1.5 text-gold">{team.totals.h}</td>
+            <td className="text-center p-1.5 text-gold">{team.totals.doubles ?? 0}</td>
+            <td className="text-center p-1.5 text-gold">{team.totals.triples ?? 0}</td>
+            <td className="text-center p-1.5 text-gold">{team.totals.hr ?? 0}</td>
             <td className="text-center p-1.5 text-gold">{team.totals.rbi}</td>
             <td className="text-center p-1.5 text-gold">{team.totals.bb}</td>
             <td className="text-center p-1.5 text-gold">{team.totals.so}</td>
+            <td className="text-center p-1.5 text-gold">{team.totals.sb ?? 0}</td>
             <td className="text-center p-1.5 text-gold"></td>
           </tr>
         </tbody>
@@ -360,7 +385,7 @@ function TeamBattingTable({ label, team }: { label: string; team: BoxScoreData["
   );
 }
 
-function TeamPitchingTable({ label, pitching }: { label: string; pitching: BoxScoreData["home"]["pitching"] }) {
+function TeamPitchingTable({ label, pitching }: { label: string; pitching: BoxScorePitcher[] }) {
   return (
     <div className="overflow-x-auto">
       <h3 className="font-pixel text-gold text-xs mb-2">{label} - Pitching</h3>
@@ -374,6 +399,7 @@ function TeamPitchingTable({ label, pitching }: { label: string; pitching: BoxSc
             <th className="text-center p-1.5 text-gold/80 w-10">ER</th>
             <th className="text-center p-1.5 text-gold/80 w-10">BB</th>
             <th className="text-center p-1.5 text-gold/80 w-10">SO</th>
+            <th className="text-center p-1.5 text-gold/80 w-10">HR</th>
             <th className="text-center p-1.5 text-gold/80 w-14">ERA</th>
           </tr>
         </thead>
@@ -387,6 +413,7 @@ function TeamPitchingTable({ label, pitching }: { label: string; pitching: BoxSc
               <td className="text-center p-1.5 text-foreground">{pitcher.er}</td>
               <td className="text-center p-1.5 text-foreground">{pitcher.bb}</td>
               <td className="text-center p-1.5 text-foreground">{pitcher.so}</td>
+              <td className="text-center p-1.5 text-foreground">{pitcher.hr ?? 0}</td>
               <td className="text-center p-1.5 text-foreground">{pitcher.era}</td>
             </tr>
           ))}

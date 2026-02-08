@@ -1180,10 +1180,19 @@ interface BattingLeader {
   ab: number;
   r: number;
   h: number;
+  doubles: number;
+  triples: number;
+  hr: number;
   rbi: number;
   bb: number;
+  hbp: number;
   so: number;
+  sb: number;
   avg: string;
+  obp: string;
+  slg: string;
+  ops: string;
+  war: string;
   teamAbbr: string;
   teamColor: string;
 }
@@ -1199,9 +1208,15 @@ interface PitchingLeader {
   er: number;
   bb: number;
   so: number;
+  hr: number;
   wins: number;
   losses: number;
   era: string;
+  fip: string;
+  whip: string;
+  kPer9: string;
+  bbPer9: string;
+  war: string;
   teamAbbr: string;
   teamColor: string;
 }
@@ -1219,8 +1234,16 @@ interface TeamStatEntry {
   totalAB: number;
   totalBB: number;
   totalSO: number;
+  totalHR: number;
+  totalDoubles: number;
+  totalTriples: number;
+  totalHBP: number;
+  totalSB: number;
   errors: number;
   battingAvg: string;
+  obp: string;
+  slg: string;
+  ops: string;
   rpg: string;
   rapg: string;
 }
@@ -1235,8 +1258,8 @@ interface StatsData {
 
 function StatsTab({ leagueId }: { leagueId: string }) {
   const [view, setView] = useState<"team" | "batting" | "pitching">("team");
-  const [battingSort, setBattingSort] = useState<"avg" | "rbi" | "r" | "h">("avg");
-  const [pitchingSort, setPitchingSort] = useState<"era" | "so" | "wins">("era");
+  const [battingSort, setBattingSort] = useState<"avg" | "ops" | "hr" | "rbi" | "war">("avg");
+  const [pitchingSort, setPitchingSort] = useState<"era" | "fip" | "so" | "whip" | "war">("era");
 
   const { data, isLoading } = useQuery<StatsData>({
     queryKey: ["/api/leagues", leagueId, "stats"],
@@ -1267,16 +1290,19 @@ function StatsTab({ leagueId }: { leagueId: string }) {
 
   const sortedBatters = [...data.battingLeaders].sort((a, b) => {
     if (battingSort === "avg") return parseFloat(b.avg) - parseFloat(a.avg);
+    if (battingSort === "ops") return parseFloat(b.ops) - parseFloat(a.ops);
+    if (battingSort === "hr") return b.hr - a.hr;
     if (battingSort === "rbi") return b.rbi - a.rbi;
-    if (battingSort === "r") return b.r - a.r;
-    if (battingSort === "h") return b.h - a.h;
+    if (battingSort === "war") return parseFloat(b.war) - parseFloat(a.war);
     return 0;
   }).slice(0, 25);
 
   const sortedPitchers = [...data.pitchingLeaders].sort((a, b) => {
     if (pitchingSort === "era") return parseFloat(a.era) - parseFloat(b.era);
+    if (pitchingSort === "fip") return parseFloat(a.fip) - parseFloat(b.fip);
     if (pitchingSort === "so") return b.so - a.so;
-    if (pitchingSort === "wins") return b.wins - a.wins;
+    if (pitchingSort === "whip") return parseFloat(a.whip) - parseFloat(b.whip);
+    if (pitchingSort === "war") return parseFloat(b.war) - parseFloat(a.war);
     return 0;
   }).slice(0, 25);
 
@@ -1315,13 +1341,14 @@ function StatsTab({ leagueId }: { leagueId: string }) {
                     <th className="py-2 px-2 font-pixel text-[8px] text-gold">Team</th>
                     <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">G</th>
                     <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">AVG</th>
+                    <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">OBP</th>
+                    <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">SLG</th>
+                    <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">OPS</th>
                     <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">R</th>
-                    <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">H</th>
+                    <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">HR</th>
+                    <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">SB</th>
                     <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">RPG</th>
-                    <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">RA</th>
                     <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">RAPG</th>
-                    <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">BB</th>
-                    <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">SO</th>
                     <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">E</th>
                   </tr>
                 </thead>
@@ -1336,13 +1363,14 @@ function StatsTab({ leagueId }: { leagueId: string }) {
                       </td>
                       <td className="py-2 px-2 text-center text-xs">{ts.games}</td>
                       <td className="py-2 px-2 text-center text-xs font-medium text-gold">{ts.battingAvg}</td>
+                      <td className="py-2 px-2 text-center text-xs">{ts.obp}</td>
+                      <td className="py-2 px-2 text-center text-xs">{ts.slg}</td>
+                      <td className="py-2 px-2 text-center text-xs font-medium">{ts.ops}</td>
                       <td className="py-2 px-2 text-center text-xs">{ts.runsScored}</td>
-                      <td className="py-2 px-2 text-center text-xs">{ts.hits}</td>
+                      <td className="py-2 px-2 text-center text-xs">{ts.totalHR}</td>
+                      <td className="py-2 px-2 text-center text-xs">{ts.totalSB}</td>
                       <td className="py-2 px-2 text-center text-xs">{ts.rpg}</td>
-                      <td className="py-2 px-2 text-center text-xs">{ts.runsAllowed}</td>
                       <td className="py-2 px-2 text-center text-xs">{ts.rapg}</td>
-                      <td className="py-2 px-2 text-center text-xs">{ts.totalBB}</td>
-                      <td className="py-2 px-2 text-center text-xs">{ts.totalSO}</td>
                       <td className="py-2 px-2 text-center text-xs">{ts.errors}</td>
                     </tr>
                   ))}
@@ -1357,7 +1385,7 @@ function StatsTab({ leagueId }: { leagueId: string }) {
         <div className="space-y-3">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs text-muted-foreground">Sort by:</span>
-            {(["avg", "h", "r", "rbi"] as const).map(s => (
+            {(["avg", "ops", "hr", "rbi", "war"] as const).map(s => (
               <RetroButton
                 key={s}
                 variant={battingSort === s ? "primary" : "outline"}
@@ -1378,38 +1406,44 @@ function StatsTab({ leagueId }: { leagueId: string }) {
                 <table className="w-full text-sm" data-testid="table-batting-leaders">
                   <thead>
                     <tr className="border-b border-border text-left">
-                      <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center w-8">#</th>
-                      <th className="py-2 px-2 font-pixel text-[8px] text-gold">Player</th>
-                      <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground">Team</th>
-                      <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">G</th>
-                      <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">AB</th>
-                      <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">AVG</th>
-                      <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">H</th>
-                      <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">R</th>
-                      <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">RBI</th>
-                      <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">BB</th>
-                      <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">SO</th>
+                      <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center w-6">#</th>
+                      <th className="py-2 px-1 font-pixel text-[8px] text-gold">Player</th>
+                      <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground">Team</th>
+                      <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">G</th>
+                      <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">AB</th>
+                      <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">AVG</th>
+                      <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">OBP</th>
+                      <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">SLG</th>
+                      <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">OPS</th>
+                      <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">H</th>
+                      <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">HR</th>
+                      <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">RBI</th>
+                      <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">SB</th>
+                      <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">WAR</th>
                     </tr>
                   </thead>
                   <tbody>
                     {sortedBatters.map((b, idx) => (
                       <tr key={`${b.name}-${b.teamId}`} className={`border-b border-border/30 ${idx % 2 === 0 ? "" : "bg-muted/10"}`} data-testid={`row-batter-${idx}`}>
-                        <td className="py-2 px-2 text-center text-xs text-muted-foreground">{idx + 1}</td>
-                        <td className="py-2 px-2 text-xs font-medium">{b.name}</td>
-                        <td className="py-2 px-2">
+                        <td className="py-2 px-1 text-center text-xs text-muted-foreground">{idx + 1}</td>
+                        <td className="py-2 px-1 text-xs font-medium">{b.name}</td>
+                        <td className="py-2 px-1">
                           <div className="flex items-center gap-1">
                             <div className="w-2 h-2 rounded-sm" style={{ backgroundColor: b.teamColor }} />
                             <span className="font-pixel text-[7px]">{b.teamAbbr}</span>
                           </div>
                         </td>
-                        <td className="py-2 px-2 text-center text-xs">{b.games}</td>
-                        <td className="py-2 px-2 text-center text-xs">{b.ab}</td>
-                        <td className="py-2 px-2 text-center text-xs font-medium text-gold">{b.avg}</td>
-                        <td className="py-2 px-2 text-center text-xs">{b.h}</td>
-                        <td className="py-2 px-2 text-center text-xs">{b.r}</td>
-                        <td className="py-2 px-2 text-center text-xs">{b.rbi}</td>
-                        <td className="py-2 px-2 text-center text-xs">{b.bb}</td>
-                        <td className="py-2 px-2 text-center text-xs">{b.so}</td>
+                        <td className="py-2 px-1 text-center text-xs">{b.games}</td>
+                        <td className="py-2 px-1 text-center text-xs">{b.ab}</td>
+                        <td className="py-2 px-1 text-center text-xs font-medium text-gold">{b.avg}</td>
+                        <td className="py-2 px-1 text-center text-xs">{b.obp}</td>
+                        <td className="py-2 px-1 text-center text-xs">{b.slg}</td>
+                        <td className="py-2 px-1 text-center text-xs font-medium">{b.ops}</td>
+                        <td className="py-2 px-1 text-center text-xs">{b.h}</td>
+                        <td className="py-2 px-1 text-center text-xs">{b.hr}</td>
+                        <td className="py-2 px-1 text-center text-xs">{b.rbi}</td>
+                        <td className="py-2 px-1 text-center text-xs">{b.sb}</td>
+                        <td className="py-2 px-1 text-center text-xs font-medium text-gold">{b.war}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1424,7 +1458,7 @@ function StatsTab({ leagueId }: { leagueId: string }) {
         <div className="space-y-3">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs text-muted-foreground">Sort by:</span>
-            {(["era", "so", "wins"] as const).map(s => (
+            {(["era", "fip", "so", "whip", "war"] as const).map(s => (
               <RetroButton
                 key={s}
                 variant={pitchingSort === s ? "primary" : "outline"}
@@ -1445,38 +1479,42 @@ function StatsTab({ leagueId }: { leagueId: string }) {
                 <table className="w-full text-sm" data-testid="table-pitching-leaders">
                   <thead>
                     <tr className="border-b border-border text-left">
-                      <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center w-8">#</th>
-                      <th className="py-2 px-2 font-pixel text-[8px] text-gold">Player</th>
-                      <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground">Team</th>
-                      <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">G</th>
-                      <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">W</th>
-                      <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">L</th>
-                      <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">ERA</th>
-                      <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">IP</th>
-                      <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">H</th>
-                      <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">SO</th>
-                      <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">BB</th>
+                      <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center w-6">#</th>
+                      <th className="py-2 px-1 font-pixel text-[8px] text-gold">Player</th>
+                      <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground">Team</th>
+                      <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">W</th>
+                      <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">L</th>
+                      <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">ERA</th>
+                      <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">FIP</th>
+                      <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">WHIP</th>
+                      <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">IP</th>
+                      <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">SO</th>
+                      <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">K/9</th>
+                      <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">BB/9</th>
+                      <th className="py-2 px-1 font-pixel text-[8px] text-muted-foreground text-center">WAR</th>
                     </tr>
                   </thead>
                   <tbody>
                     {sortedPitchers.map((p, idx) => (
                       <tr key={`${p.name}-${p.teamId}`} className={`border-b border-border/30 ${idx % 2 === 0 ? "" : "bg-muted/10"}`} data-testid={`row-pitcher-${idx}`}>
-                        <td className="py-2 px-2 text-center text-xs text-muted-foreground">{idx + 1}</td>
-                        <td className="py-2 px-2 text-xs font-medium">{p.name}</td>
-                        <td className="py-2 px-2">
+                        <td className="py-2 px-1 text-center text-xs text-muted-foreground">{idx + 1}</td>
+                        <td className="py-2 px-1 text-xs font-medium">{p.name}</td>
+                        <td className="py-2 px-1">
                           <div className="flex items-center gap-1">
                             <div className="w-2 h-2 rounded-sm" style={{ backgroundColor: p.teamColor }} />
                             <span className="font-pixel text-[7px]">{p.teamAbbr}</span>
                           </div>
                         </td>
-                        <td className="py-2 px-2 text-center text-xs">{p.games}</td>
-                        <td className="py-2 px-2 text-center text-xs">{p.wins}</td>
-                        <td className="py-2 px-2 text-center text-xs">{p.losses}</td>
-                        <td className="py-2 px-2 text-center text-xs font-medium text-gold">{p.era}</td>
-                        <td className="py-2 px-2 text-center text-xs">{p.ipDisplay}</td>
-                        <td className="py-2 px-2 text-center text-xs">{p.h}</td>
-                        <td className="py-2 px-2 text-center text-xs">{p.so}</td>
-                        <td className="py-2 px-2 text-center text-xs">{p.bb}</td>
+                        <td className="py-2 px-1 text-center text-xs">{p.wins}</td>
+                        <td className="py-2 px-1 text-center text-xs">{p.losses}</td>
+                        <td className="py-2 px-1 text-center text-xs font-medium text-gold">{p.era}</td>
+                        <td className="py-2 px-1 text-center text-xs">{p.fip}</td>
+                        <td className="py-2 px-1 text-center text-xs">{p.whip}</td>
+                        <td className="py-2 px-1 text-center text-xs">{p.ipDisplay}</td>
+                        <td className="py-2 px-1 text-center text-xs">{p.so}</td>
+                        <td className="py-2 px-1 text-center text-xs">{p.kPer9}</td>
+                        <td className="py-2 px-1 text-center text-xs">{p.bbPer9}</td>
+                        <td className="py-2 px-1 text-center text-xs font-medium text-gold">{p.war}</td>
                       </tr>
                     ))}
                   </tbody>

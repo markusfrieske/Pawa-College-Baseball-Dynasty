@@ -2502,9 +2502,19 @@ export async function registerRoutes(
       const teams = await storage.getTeamsByLeague(req.params.id);
       const teamsMap = new Map(teams.map(t => [t.id, t]));
 
-      interface BatterAgg { name: string; teamId: string; games: number; ab: number; r: number; h: number; rbi: number; bb: number; so: number; }
-      interface PitcherAgg { name: string; teamId: string; games: number; ip: number; h: number; r: number; er: number; bb: number; so: number; wins: number; losses: number; }
-      interface TeamAgg { teamId: string; games: number; runsScored: number; runsAllowed: number; hits: number; hitsAllowed: number; totalAB: number; totalBB: number; totalSO: number; errors: number; }
+      interface BatterAgg {
+        name: string; teamId: string; games: number; ab: number; r: number; h: number;
+        doubles: number; triples: number; hr: number; rbi: number; bb: number; hbp: number; so: number; sb: number;
+      }
+      interface PitcherAgg {
+        name: string; teamId: string; games: number; ip: number; h: number; r: number; er: number;
+        bb: number; so: number; hr: number; wins: number; losses: number;
+      }
+      interface TeamAgg {
+        teamId: string; games: number; runsScored: number; runsAllowed: number; hits: number; hitsAllowed: number;
+        totalAB: number; totalBB: number; totalSO: number; totalHR: number; totalDoubles: number; totalTriples: number;
+        totalHBP: number; totalSB: number; errors: number;
+      }
 
       const batters = new Map<string, BatterAgg>();
       const pitchers = new Map<string, PitcherAgg>();
@@ -2523,7 +2533,11 @@ export async function registerRoutes(
         for (const side of sides) {
           const tKey = side.teamId;
           if (!teamStats.has(tKey)) {
-            teamStats.set(tKey, { teamId: tKey, games: 0, runsScored: 0, runsAllowed: 0, hits: 0, hitsAllowed: 0, totalAB: 0, totalBB: 0, totalSO: 0, errors: 0 });
+            teamStats.set(tKey, {
+              teamId: tKey, games: 0, runsScored: 0, runsAllowed: 0, hits: 0, hitsAllowed: 0,
+              totalAB: 0, totalBB: 0, totalSO: 0, totalHR: 0, totalDoubles: 0, totalTriples: 0,
+              totalHBP: 0, totalSB: 0, errors: 0,
+            });
           }
           const ts = teamStats.get(tKey)!;
           ts.games++;
@@ -2539,19 +2553,32 @@ export async function registerRoutes(
               ts.hits += b.h || 0;
               ts.totalBB += b.bb || 0;
               ts.totalSO += b.so || 0;
+              ts.totalHR += b.hr || 0;
+              ts.totalDoubles += b.doubles || 0;
+              ts.totalTriples += b.triples || 0;
+              ts.totalHBP += b.hbp || 0;
+              ts.totalSB += b.sb || 0;
 
               const bKey = `${b.name}_${side.teamId}`;
               if (!batters.has(bKey)) {
-                batters.set(bKey, { name: b.name, teamId: side.teamId, games: 0, ab: 0, r: 0, h: 0, rbi: 0, bb: 0, so: 0 });
+                batters.set(bKey, {
+                  name: b.name, teamId: side.teamId, games: 0, ab: 0, r: 0, h: 0,
+                  doubles: 0, triples: 0, hr: 0, rbi: 0, bb: 0, hbp: 0, so: 0, sb: 0,
+                });
               }
               const ba = batters.get(bKey)!;
               ba.games++;
               ba.ab += b.ab || 0;
               ba.r += b.r || 0;
               ba.h += b.h || 0;
+              ba.doubles += b.doubles || 0;
+              ba.triples += b.triples || 0;
+              ba.hr += b.hr || 0;
               ba.rbi += b.rbi || 0;
               ba.bb += b.bb || 0;
+              ba.hbp += b.hbp || 0;
               ba.so += b.so || 0;
+              ba.sb += b.sb || 0;
             }
           }
 
@@ -2560,7 +2587,10 @@ export async function registerRoutes(
               ts.hitsAllowed += p.h || 0;
               const pKey = `${p.name}_${side.teamId}`;
               if (!pitchers.has(pKey)) {
-                pitchers.set(pKey, { name: p.name, teamId: side.teamId, games: 0, ip: 0, h: 0, r: 0, er: 0, bb: 0, so: 0, wins: 0, losses: 0 });
+                pitchers.set(pKey, {
+                  name: p.name, teamId: side.teamId, games: 0, ip: 0, h: 0, r: 0, er: 0,
+                  bb: 0, so: 0, hr: 0, wins: 0, losses: 0,
+                });
               }
               const pa = pitchers.get(pKey)!;
               pa.games++;
@@ -2573,6 +2603,7 @@ export async function registerRoutes(
               pa.er += p.er || 0;
               pa.bb += p.bb || 0;
               pa.so += p.so || 0;
+              pa.hr += p.hr || 0;
             }
 
             if (side.data.pitching.length > 0) {
@@ -2590,34 +2621,83 @@ export async function registerRoutes(
         }
       }
 
+      const FIP_CONSTANT = 3.10;
+      const LEAGUE_AVG_RPG = 4.5;
+
       const battingLeaders = Array.from(batters.values())
         .filter(b => b.ab >= 10)
-        .map(b => ({
-          ...b,
-          avg: b.ab > 0 ? (b.h / b.ab).toFixed(3) : ".000",
-          teamAbbr: teamsMap.get(b.teamId)?.abbreviation || "???",
-          teamColor: teamsMap.get(b.teamId)?.primaryColor || "#666",
-        }));
+        .map(b => {
+          const avg = b.ab > 0 ? b.h / b.ab : 0;
+          const obp = (b.ab + b.bb + b.hbp) > 0 ? (b.h + b.bb + b.hbp) / (b.ab + b.bb + b.hbp) : 0;
+          const singles = b.h - b.doubles - b.triples - b.hr;
+          const totalBases = singles + b.doubles * 2 + b.triples * 3 + b.hr * 4;
+          const slg = b.ab > 0 ? totalBases / b.ab : 0;
+          const ops = obp + slg;
+          const wOBA = (b.ab + b.bb + b.hbp) > 0
+            ? (0.69 * b.bb + 0.72 * b.hbp + 0.89 * singles + 1.27 * b.doubles + 1.62 * b.triples + 2.10 * b.hr) / (b.ab + b.bb + b.hbp)
+            : 0;
+          const wRAA = ((wOBA - 0.320) / 1.25) * (b.ab + b.bb + b.hbp);
+          const battingWar = wRAA / 10;
+
+          return {
+            ...b,
+            avg: avg.toFixed(3),
+            obp: obp.toFixed(3),
+            slg: slg.toFixed(3),
+            ops: ops.toFixed(3),
+            war: Math.max(0, battingWar).toFixed(1),
+            teamAbbr: teamsMap.get(b.teamId)?.abbreviation || "???",
+            teamColor: teamsMap.get(b.teamId)?.primaryColor || "#666",
+          };
+        });
 
       const pitchingLeaders = Array.from(pitchers.values())
         .filter(p => p.ip >= 3)
-        .map(p => ({
-          ...p,
-          ipDisplay: `${Math.floor(p.ip)}.${Math.round((p.ip % 1) * 3)}`,
-          era: p.ip > 0 ? ((p.er * 9) / p.ip).toFixed(2) : "0.00",
-          teamAbbr: teamsMap.get(p.teamId)?.abbreviation || "???",
-          teamColor: teamsMap.get(p.teamId)?.primaryColor || "#666",
-        }));
+        .map(p => {
+          const era = p.ip > 0 ? (p.er * 9) / p.ip : 0;
+          const fip = p.ip > 0 ? ((13 * p.hr + 3 * p.bb - 2 * p.so) / p.ip) + FIP_CONSTANT : 0;
+          const whip = p.ip > 0 ? (p.bb + p.h) / p.ip : 0;
+          const kPer9 = p.ip > 0 ? (p.so * 9) / p.ip : 0;
+          const bbPer9 = p.ip > 0 ? (p.bb * 9) / p.ip : 0;
+          const raaPitch = p.ip > 0 ? ((LEAGUE_AVG_RPG / 9 - era / 9) * p.ip) : 0;
+          const pitchingWar = raaPitch / 10;
 
-      const teamStatsArray = Array.from(teamStats.values()).map(ts => ({
-        ...ts,
-        teamName: teamsMap.get(ts.teamId)?.name || "Unknown",
-        teamAbbr: teamsMap.get(ts.teamId)?.abbreviation || "???",
-        teamColor: teamsMap.get(ts.teamId)?.primaryColor || "#666",
-        battingAvg: ts.totalAB > 0 ? (ts.hits / ts.totalAB).toFixed(3) : ".000",
-        rpg: ts.games > 0 ? (ts.runsScored / ts.games).toFixed(1) : "0.0",
-        rapg: ts.games > 0 ? (ts.runsAllowed / ts.games).toFixed(1) : "0.0",
-      }));
+          return {
+            ...p,
+            ipDisplay: `${Math.floor(p.ip)}.${Math.round((p.ip % 1) * 3)}`,
+            era: era.toFixed(2),
+            fip: Math.max(0, fip).toFixed(2),
+            whip: whip.toFixed(2),
+            kPer9: kPer9.toFixed(1),
+            bbPer9: bbPer9.toFixed(1),
+            war: Math.max(0, pitchingWar).toFixed(1),
+            teamAbbr: teamsMap.get(p.teamId)?.abbreviation || "???",
+            teamColor: teamsMap.get(p.teamId)?.primaryColor || "#666",
+          };
+        });
+
+      const teamStatsArray = Array.from(teamStats.values()).map(ts => {
+        const battingAvg = ts.totalAB > 0 ? ts.hits / ts.totalAB : 0;
+        const singles = ts.hits - ts.totalDoubles - ts.totalTriples - ts.totalHR;
+        const totalBases = singles + ts.totalDoubles * 2 + ts.totalTriples * 3 + ts.totalHR * 4;
+        const slg = ts.totalAB > 0 ? totalBases / ts.totalAB : 0;
+        const obp = (ts.totalAB + ts.totalBB + ts.totalHBP) > 0
+          ? (ts.hits + ts.totalBB + ts.totalHBP) / (ts.totalAB + ts.totalBB + ts.totalHBP) : 0;
+        const ops = obp + slg;
+
+        return {
+          ...ts,
+          teamName: teamsMap.get(ts.teamId)?.name || "Unknown",
+          teamAbbr: teamsMap.get(ts.teamId)?.abbreviation || "???",
+          teamColor: teamsMap.get(ts.teamId)?.primaryColor || "#666",
+          battingAvg: battingAvg.toFixed(3),
+          obp: obp.toFixed(3),
+          slg: slg.toFixed(3),
+          ops: ops.toFixed(3),
+          rpg: ts.games > 0 ? (ts.runsScored / ts.games).toFixed(1) : "0.0",
+          rapg: ts.games > 0 ? (ts.runsAllowed / ts.games).toFixed(1) : "0.0",
+        };
+      });
 
       res.json({
         season,
@@ -3319,29 +3399,36 @@ export async function registerRoutes(
   async function simulateGame(homeTeamId: string, awayTeamId: string): Promise<{ homeScore: number; awayScore: number; boxScore: string }> {
     const homePlayers = await storage.getPlayersByTeam(homeTeamId);
     const awayPlayers = await storage.getPlayersByTeam(awayTeamId);
-    
-    const homeStrength = homePlayers.length > 0 
-      ? homePlayers.reduce((sum, p) => sum + (p.overall || 500), 0) / homePlayers.length 
+
+    const homeStrength = homePlayers.length > 0
+      ? homePlayers.reduce((sum, p) => sum + (p.overall || 500), 0) / homePlayers.length
       : 500;
-    const awayStrength = awayPlayers.length > 0 
-      ? awayPlayers.reduce((sum, p) => sum + (p.overall || 500), 0) / awayPlayers.length 
+    const awayStrength = awayPlayers.length > 0
+      ? awayPlayers.reduce((sum, p) => sum + (p.overall || 500), 0) / awayPlayers.length
       : 500;
-    
-    const homeBase = 2 + Math.random() * 6;
-    const awayBase = 2 + Math.random() * 6;
-    
+
     const strengthDiff = (homeStrength - awayStrength) / 500;
-    let homeScore = Math.round(homeBase + strengthDiff * 2 + Math.random() * 2);
-    let awayScore = Math.round(awayBase - strengthDiff * 2);
-    
-    homeScore = Math.max(0, homeScore);
-    awayScore = Math.max(0, awayScore);
+    const homeAdv = 0.3;
+    let homeExpected = 4.5 + strengthDiff * 2.5 + homeAdv;
+    let awayExpected = 4.5 - strengthDiff * 2.5;
+    homeExpected = Math.max(1.5, Math.min(9, homeExpected));
+    awayExpected = Math.max(1.5, Math.min(9, awayExpected));
+
+    function poissonSample(lambda: number): number {
+      let L = Math.exp(-lambda), k = 0, p = 1;
+      do { k++; p *= Math.random(); } while (p > L);
+      return k - 1;
+    }
+
+    let homeScore = poissonSample(homeExpected);
+    let awayScore = poissonSample(awayExpected);
+    homeScore = Math.max(0, Math.min(20, homeScore));
+    awayScore = Math.max(0, Math.min(20, awayScore));
     if (homeScore === awayScore) {
       if (Math.random() > 0.5) homeScore++; else awayScore++;
     }
-    
+
     const boxScore = generateBoxScore(homeScore, awayScore, homePlayers, awayPlayers);
-    
     return { homeScore, awayScore, boxScore: JSON.stringify(boxScore) };
   }
 
@@ -3349,12 +3436,18 @@ export async function registerRoutes(
     function distributeRuns(totalRuns: number, numInnings: number): number[] {
       const innings = new Array(numInnings).fill(0);
       for (let i = 0; i < totalRuns; i++) {
-        innings[Math.floor(Math.random() * numInnings)]++;
+        const weights = innings.map((_, idx) => idx < 2 ? 0.8 : idx >= numInnings - 3 ? 1.3 : 1.0);
+        const totalWeight = weights.reduce((a, b) => a + b, 0);
+        let r = Math.random() * totalWeight, cumulative = 0;
+        for (let j = 0; j < numInnings; j++) {
+          cumulative += weights[j];
+          if (r <= cumulative) { innings[j]++; break; }
+        }
       }
       return innings;
     }
 
-    let numInnings = 9;
+    const numInnings = 9;
     const homeInnings = distributeRuns(homeScore, numInnings);
     const awayInnings = distributeRuns(awayScore, numInnings);
     const innings: number[][] = [];
@@ -3366,30 +3459,44 @@ export async function registerRoutes(
       const positionPlayers = players.filter(p => p.position !== "P");
       const pitchers = players.filter(p => p.position === "P");
 
-      const battingLineup: { name: string; position: string; ab: number; r: number; h: number; rbi: number; bb: number; so: number; avg: string }[] = [];
+      interface BatterLine {
+        name: string; position: string; ab: number; r: number; h: number;
+        doubles: number; triples: number; hr: number; rbi: number;
+        bb: number; hbp: number; so: number; sb: number; avg: string;
+      }
+
+      const battingLineup: BatterLine[] = [];
       const positionOrder = ["C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "DH"];
 
-      let selectedBatters: { firstName: string; lastName: string; position: string; contact: number }[] = [];
+      let selectedBatters: { firstName: string; lastName: string; position: string; contact: number; power: number; speed: number }[] = [];
       const used = new Set<string>();
       for (const pos of positionOrder) {
         const p = positionPlayers.find(pl => pl.position === pos && !used.has(pl.id));
         if (p) {
           used.add(p.id);
-          selectedBatters.push({ firstName: p.firstName, lastName: p.lastName, position: p.position, contact: p.hitForAvg || 50 });
+          selectedBatters.push({
+            firstName: p.firstName, lastName: p.lastName, position: p.position,
+            contact: p.hitForAvg || 50, power: p.power || 50, speed: p.speed || 50,
+          });
         }
       }
       for (const p of positionPlayers) {
         if (selectedBatters.length >= 9) break;
         if (!used.has(p.id)) {
           used.add(p.id);
-          selectedBatters.push({ firstName: p.firstName, lastName: p.lastName, position: "DH", contact: p.hitForAvg || 50 });
+          selectedBatters.push({
+            firstName: p.firstName, lastName: p.lastName, position: "DH",
+            contact: p.hitForAvg || 50, power: p.power || 50, speed: p.speed || 50,
+          });
         }
       }
       if (selectedBatters.length < 9 && pitchers.length > 0) {
-        const bestPitcher = pitchers[0];
-        selectedBatters.push({ firstName: bestPitcher.firstName, lastName: bestPitcher.lastName, position: "P", contact: bestPitcher.hitForAvg || 30 });
+        const bp = pitchers[0];
+        selectedBatters.push({
+          firstName: bp.firstName, lastName: bp.lastName, position: "P",
+          contact: bp.hitForAvg || 25, power: bp.power || 20, speed: bp.speed || 40,
+        });
       }
-      
       while (selectedBatters.length < 9) {
         const fakeNames = ["Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Martinez"];
         const fakeFirst = ["Jake", "Mike", "Chris", "Tyler", "Matt", "Ryan", "Josh", "Nick", "Ben"];
@@ -3398,36 +3505,76 @@ export async function registerRoutes(
           firstName: fakeFirst[idx % fakeFirst.length],
           lastName: fakeNames[idx % fakeNames.length],
           position: positionOrder[idx] || "DH",
-          contact: 50,
+          contact: 50, power: 40, speed: 50,
         });
       }
 
-      const totalHits = Math.max(teamScore, teamScore + Math.floor(Math.random() * 5));
-      let hitsLeft = totalHits;
+      const teamHits = Math.max(teamScore, Math.round(teamScore * 1.6 + Math.random() * 3 + 2));
+      let hitsLeft = teamHits;
       let runsLeft = teamScore;
       let rbiLeft = teamScore;
 
       for (let i = 0; i < selectedBatters.length; i++) {
         const batter = selectedBatters[i];
-        const ab = 3 + Math.floor(Math.random() * 2);
-        const hitChance = Math.min(0.45, Math.max(0.1, batter.contact / 180));
+        const lineupSlot = i;
+        const ab = lineupSlot < 3 ? (3 + Math.floor(Math.random() * 2) + (Math.random() < 0.3 ? 1 : 0))
+          : lineupSlot < 6 ? (3 + Math.floor(Math.random() * 2))
+          : (2 + Math.floor(Math.random() * 2) + (Math.random() < 0.2 ? 1 : 0));
+
+        const contactFactor = Math.min(0.38, Math.max(0.12, batter.contact / 270 + 0.05));
         let h = 0;
         if (i === selectedBatters.length - 1) {
           h = Math.min(ab, Math.max(0, hitsLeft));
         } else {
           for (let j = 0; j < ab; j++) {
-            if (hitsLeft > 0 && Math.random() < hitChance) { h++; hitsLeft--; }
+            if (hitsLeft > 0 && Math.random() < contactFactor) { h++; hitsLeft--; }
           }
         }
-        const bb = Math.random() < 0.12 ? 1 : 0;
-        const so = h === 0 ? Math.floor(Math.random() * 2) + 1 : Math.floor(Math.random() * 2);
+
+        let doubles = 0, triples = 0, hr = 0;
+        const powerFactor = batter.power / 100;
+        for (let j = 0; j < h; j++) {
+          const roll = Math.random();
+          if (roll < 0.025 * powerFactor + 0.01) { hr++; }
+          else if (roll < 0.04 * powerFactor + 0.025) { triples++; }
+          else if (roll < 0.15 * powerFactor + 0.08) { doubles++; }
+        }
+
+        const bbChance = 0.06 + (batter.contact / 800);
+        let bb = 0;
+        for (let j = 0; j < ab; j++) {
+          if (Math.random() < bbChance) bb++;
+        }
+
+        const hbp = Math.random() < 0.03 ? 1 : 0;
+
+        const soChance = Math.max(0.10, 0.30 - batter.contact / 400);
+        let so = 0;
+        for (let j = 0; j < ab - h; j++) {
+          if (Math.random() < soChance) so++;
+        }
+
+        const sbChance = batter.speed / 500;
+        const sb = Math.random() < sbChance ? (Math.random() < 0.3 ? 2 : 1) : 0;
 
         let r = 0;
-        if (runsLeft > 0 && Math.random() < 0.35) { r = 1; runsLeft--; }
+        if (runsLeft > 0) {
+          const runChance = h > 0 ? 0.35 : 0.15;
+          if (Math.random() < runChance) { r = 1; runsLeft--; }
+          if (hr > 0 && runsLeft > 0) { r = 1; runsLeft--; }
+        }
 
         let rbi = 0;
-        if (rbiLeft > 0 && h > 0) {
-          rbi = Math.min(rbiLeft, Math.floor(Math.random() * 2) + (Math.random() < 0.15 ? 2 : 0));
+        if (rbiLeft > 0 && (h > 0 || bb > 0)) {
+          if (hr > 0) {
+            rbi = Math.min(rbiLeft, 1 + Math.floor(Math.random() * 3));
+          } else if (doubles > 0 || triples > 0) {
+            rbi = Math.min(rbiLeft, 1 + (Math.random() < 0.3 ? 1 : 0));
+          } else if (h > 0) {
+            rbi = Math.min(rbiLeft, Math.random() < 0.35 ? 1 : 0);
+          } else {
+            rbi = Math.min(rbiLeft, Math.random() < 0.1 ? 1 : 0);
+          }
           rbiLeft -= rbi;
         }
 
@@ -3436,7 +3583,7 @@ export async function registerRoutes(
         battingLineup.push({
           name: `${batter.firstName[0]}. ${batter.lastName}`,
           position: batter.position,
-          ab, r, h, rbi, bb, so,
+          ab, r, h, doubles, triples, hr, rbi, bb, hbp, so, sb,
           avg: avg.startsWith("0") ? avg.substring(1) : avg,
         });
       }
@@ -3468,66 +3615,106 @@ export async function registerRoutes(
         }
       }
 
-      const pitchingStaff: { name: string; ip: string; h: number; r: number; er: number; bb: number; so: number; era: string }[] = [];
+      interface PitcherLine {
+        name: string; ip: string; h: number; r: number; er: number;
+        bb: number; so: number; hr: number; era: string;
+      }
+
+      const pitchingStaff: PitcherLine[] = [];
       const numPitchers = Math.min(Math.max(pitchers.length, 1), 1 + Math.floor(Math.random() * 3));
-      let selectedPitchers: { firstName: string; lastName: string }[] = [];
-      
+      let selectedPitchers: { firstName: string; lastName: string; control: number; velocity: number }[] = [];
+
       for (let i = 0; i < numPitchers && i < pitchers.length; i++) {
-        selectedPitchers.push({ firstName: pitchers[i].firstName, lastName: pitchers[i].lastName });
+        selectedPitchers.push({
+          firstName: pitchers[i].firstName, lastName: pitchers[i].lastName,
+          control: pitchers[i].control || 50, velocity: pitchers[i].velocity || 50,
+        });
       }
       while (selectedPitchers.length === 0) {
-        selectedPitchers.push({ firstName: "John", lastName: "Doe" });
+        selectedPitchers.push({ firstName: "John", lastName: "Doe", control: 50, velocity: 50 });
       }
 
       let inningsLeft = 9;
       const opponentScore = isHome ? awayScore : homeScore;
       let opponentRunsLeft = opponentScore;
-      const opponentHitsTotal = Math.max(opponentScore, Math.floor(Math.random() * 5) + opponentScore);
+      const opponentHitsTotal = Math.max(opponentScore, Math.round(opponentScore * 1.6 + Math.random() * 3 + 2));
+      let opponentHitsLeft = opponentHitsTotal;
+      let opponentHrLeft = Math.floor(opponentHitsTotal * 0.08 + Math.random() * 1.5);
 
       for (let i = 0; i < selectedPitchers.length; i++) {
+        const pitcher = selectedPitchers[i];
         const isLast = i === selectedPitchers.length - 1;
-        let ip: number;
+        let fullInnings: number;
         if (isLast) {
-          ip = Math.max(1, inningsLeft);
+          fullInnings = Math.max(1, inningsLeft);
         } else {
-          ip = Math.max(1, Math.floor(inningsLeft / (selectedPitchers.length - i)) + (Math.random() > 0.5 ? 1 : -1));
-          ip = Math.min(ip, inningsLeft - (selectedPitchers.length - i - 1));
+          fullInnings = Math.max(1, Math.floor(inningsLeft / (selectedPitchers.length - i)) + (Math.random() > 0.5 ? 1 : -1));
+          fullInnings = Math.min(fullInnings, inningsLeft - (selectedPitchers.length - i - 1));
         }
-        inningsLeft -= ip;
+        inningsLeft -= fullInnings;
 
-        const fraction = Math.floor(Math.random() * 3);
-        const ipStr = fraction > 0 ? `${ip}.${fraction}` : `${ip}.0`;
+        const outs = Math.floor(Math.random() * 3);
+        const ipStr = outs > 0 ? `${fullInnings}.${outs}` : `${fullInnings}.0`;
+        const ipDecimal = fullInnings + outs / 3;
 
-        const pHits = isLast ? Math.max(0, opponentHitsTotal - pitchingStaff.reduce((s, p) => s + p.h, 0)) : Math.floor(Math.random() * 4) + 1;
-        const pRuns = isLast ? opponentRunsLeft : Math.min(opponentRunsLeft, Math.floor(Math.random() * 3));
-        opponentRunsLeft -= pRuns;
-        const er = Math.max(0, pRuns - (Math.random() < 0.1 ? 1 : 0));
-        const pBB = Math.floor(Math.random() * 3);
-        const pSO = Math.floor(Math.random() * Math.max(1, ip * 2)) + 1;
-        const totalIP = ip + fraction / 10;
-        const era = totalIP > 0 ? ((er * 9) / totalIP).toFixed(2) : "0.00";
+        const controlFactor = pitcher.control / 100;
+        const velocityFactor = pitcher.velocity / 100;
+
+        let pHits: number;
+        if (isLast) {
+          pHits = Math.max(0, opponentHitsLeft);
+        } else {
+          const hitsPerInning = 1.0 - controlFactor * 0.15;
+          pHits = Math.max(0, Math.round(fullInnings * hitsPerInning + (Math.random() - 0.5) * 2));
+          opponentHitsLeft -= pHits;
+        }
+
+        let pRuns: number;
+        if (isLast) {
+          pRuns = opponentRunsLeft;
+        } else {
+          pRuns = Math.min(opponentRunsLeft, Math.floor(Math.random() * Math.max(1, Math.ceil(fullInnings * 0.5))));
+          opponentRunsLeft -= pRuns;
+        }
+
+        const er = Math.max(0, pRuns - (Math.random() < 0.12 ? 1 : 0));
+
+        const bbRate = Math.max(0.5, 3.5 - controlFactor * 2.5);
+        const pBB = Math.max(0, Math.round(ipDecimal * bbRate / 9 + (Math.random() - 0.5)));
+
+        const soRate = 5 + velocityFactor * 7;
+        const pSO = Math.max(0, Math.round(ipDecimal * soRate / 9 + (Math.random() - 0.5) * 2));
+
+        let pHR: number;
+        if (isLast) {
+          pHR = Math.max(0, opponentHrLeft);
+        } else {
+          pHR = Math.min(opponentHrLeft, Math.random() < 0.3 ? 1 : 0);
+          opponentHrLeft -= pHR;
+        }
+
+        const era = ipDecimal > 0 ? ((er * 9) / ipDecimal).toFixed(2) : "0.00";
 
         pitchingStaff.push({
-          name: `${selectedPitchers[i].firstName[0]}. ${selectedPitchers[i].lastName}`,
-          ip: ipStr,
-          h: pHits,
-          r: pRuns,
-          er,
-          bb: pBB,
-          so: pSO,
-          era,
+          name: `${pitcher.firstName[0]}. ${pitcher.lastName}`,
+          ip: ipStr, h: pHits, r: pRuns, er, bb: pBB, so: pSO, hr: pHR, era,
         });
       }
 
-      const errors = Math.floor(Math.random() * 3);
+      const errors = Math.random() < 0.4 ? (Math.random() < 0.3 ? 2 : 1) : 0;
 
       const totals = {
         ab: battingLineup.reduce((s, b) => s + b.ab, 0),
         r: teamScore,
         h: battingLineup.reduce((s, b) => s + b.h, 0),
+        doubles: battingLineup.reduce((s, b) => s + b.doubles, 0),
+        triples: battingLineup.reduce((s, b) => s + b.triples, 0),
+        hr: battingLineup.reduce((s, b) => s + b.hr, 0),
         rbi: battingLineup.reduce((s, b) => s + b.rbi, 0),
         bb: battingLineup.reduce((s, b) => s + b.bb, 0),
+        hbp: battingLineup.reduce((s, b) => s + b.hbp, 0),
         so: battingLineup.reduce((s, b) => s + b.so, 0),
+        sb: battingLineup.reduce((s, b) => s + b.sb, 0),
       };
 
       return { batting: battingLineup, pitching: pitchingStaff, totals, errors };
