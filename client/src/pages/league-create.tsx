@@ -22,6 +22,10 @@ const availableConferences = [
   { id: "ACC", name: "ACC", teams: 16, description: "Atlantic Coast Conference" },
   { id: "Big 12", name: "Big 12", teams: 14, description: "Big 12 Conference" },
   { id: "Big Ten", name: "Big Ten", teams: 18, description: "Big Ten Conference" },
+  { id: "Pac-12", name: "Pac-12", teams: 7, description: "Pacific-12 Conference" },
+  { id: "Ivy League", name: "Ivy League", teams: 8, description: "Ivy League" },
+  { id: "Sun Belt", name: "Sun Belt", teams: 12, description: "Sun Belt Conference" },
+  { id: "Big West", name: "Big West", teams: 10, description: "Big West Conference" },
 ];
 
 const seasonLengthOptions = [
