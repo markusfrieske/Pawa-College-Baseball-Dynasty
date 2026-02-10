@@ -598,14 +598,8 @@ export async function registerRoutes(
         }
       });
 
-      // Calculate dynamic maximums based on coach skills
-      const scoutingSkill = coach?.scoutingSkill || 1;
-      const evaluationSkill = coach?.evaluationSkill || 1;
-      const pitchingRecruitingSkill = coach?.pitchingRecruitingSkill || 1;
-      const hittingRecruitingSkill = coach?.hittingRecruitingSkill || 1;
-      
-      const maxScoutActions = 12 + Math.floor((scoutingSkill + evaluationSkill) / 2);
-      const maxRecruitingActions = 12 + Math.floor((pitchingRecruitingSkill + hittingRecruitingSkill) / 2);
+      const maxScoutActions = getMaxScoutActions(coach);
+      const maxRecruitingActions = getMaxRecruitingActions(coach);
       
       // Count seniors for commit limit calculation (max 25 roster, so commits = 25 - current + seniors leaving)
       const seniorsCount = roster.filter(p => p.eligibility === 'SR').length;
@@ -622,8 +616,10 @@ export async function registerRoutes(
         team: userTeam,
         remainingActions: remainingRecruitingActions,
         maxActions: maxRecruitingActions,
+        actionsUsed: recruitingActionsUsed,
         remainingScoutActions,
         maxScoutActions,
+        scoutActionsUsed,
         targetedCount: interests.filter((i) => i.isTargeted).length,
         commitsCount: leagueRecruits.filter((r) => r.signedTeamId === userTeam.id).length,
         maxCommits,
@@ -651,7 +647,7 @@ export async function registerRoutes(
         return res.status(400).json({ message: "No team assigned" });
       }
 
-      const maxScoutActions = 12 + Math.floor(((userCoach?.scoutingSkill || 1) + (userCoach?.evaluationSkill || 1)) / 2);
+      const maxScoutActions = getMaxScoutActions(userCoach);
       if ((userCoach?.scoutActionsUsed || 0) >= maxScoutActions) {
         return res.status(400).json({ message: `You've used all ${maxScoutActions} scouting actions this week` });
       }
@@ -886,6 +882,52 @@ export async function registerRoutes(
     return topicBonus * qualityModifier;
   }
   
+  const ARCHETYPE_RECRUITING_ACTION_BONUS: Record<string, number> = {
+    "Scout Master": 6,
+    "Dealmaker": 4,
+    "Pure CEO": 2,
+    "Player's Coach": 0,
+    "Balanced": 0,
+    "Academic Dean": 0,
+    "Tactician": -2,
+    "Old School": -4,
+  };
+
+  const ARCHETYPE_INTEREST_MULTIPLIERS: Record<string, number> = {
+    "Pure CEO": 1.15,
+    "Dealmaker": 1.12,
+    "Player's Coach": 1.10,
+    "Scout Master": 1.08,
+    "Balanced": 1.0,
+    "Academic Dean": 1.0,
+    "Tactician": 0.95,
+    "Old School": 0.90,
+  };
+
+  function getMaxRecruitingActions(coach: any): number {
+    const baseActions = 12;
+    const skillBonus = Math.floor(((coach?.pitchingRecruitingSkill || 1) + (coach?.hittingRecruitingSkill || 1)) / 2);
+    const archetypeBonus = ARCHETYPE_RECRUITING_ACTION_BONUS[coach?.archetype] || 0;
+    return Math.max(4, baseActions + skillBonus + archetypeBonus);
+  }
+
+  function getMaxScoutActions(coach: any): number {
+    const baseActions = 12;
+    const skillBonus = Math.floor(((coach?.scoutingSkill || 1) + (coach?.evaluationSkill || 1)) / 2);
+    const archetypeScoutBonus: Record<string, number> = {
+      "Scout Master": 6,
+      "Academic Dean": 2,
+      "Balanced": 0,
+      "Pure CEO": 0,
+      "Player's Coach": 0,
+      "Dealmaker": -2,
+      "Tactician": 0,
+      "Old School": -2,
+    };
+    const archBonus = archetypeScoutBonus[coach?.archetype] || 0;
+    return Math.max(4, baseActions + skillBonus + archBonus);
+  }
+
   // Calculate coach skill bonus for recruiting action
   function calculateCoachBonus(coach: any, recruit: any, actionType: string): number {
     if (!coach) return 1.0;
@@ -896,14 +938,7 @@ export async function registerRoutes(
       : (coach.hittingRecruitingSkill || 1);
     const skillBonus = 1.0 + (baseSkill - 1) * 0.05;
     
-    const archetypeMultipliers: Record<string, number> = {
-      "Pure CEO": 1.15,
-      "Player's Coach": 1.10,
-      "Balanced": 1.0,
-      "Tactician": 0.95,
-      "Old School": 0.90,
-    };
-    const archetypeBonus = archetypeMultipliers[coach.archetype] || 1.0;
+    const archetypeBonus = ARCHETYPE_INTEREST_MULTIPLIERS[coach.archetype] || 1.0;
     
     return skillBonus * archetypeBonus;
   }
@@ -961,7 +996,7 @@ export async function registerRoutes(
         return res.status(404).json({ message: "League not found" });
       }
 
-      const maxRecruitingActions = 12 + Math.floor(((userCoach?.pitchingRecruitingSkill || 1) + (userCoach?.hittingRecruitingSkill || 1)) / 2);
+      const maxRecruitingActions = getMaxRecruitingActions(userCoach);
       if ((userCoach?.recruitActionsUsed || 0) >= maxRecruitingActions) {
         return res.status(400).json({ message: `You've used all ${maxRecruitingActions} recruiting actions this week` });
       }
@@ -1059,7 +1094,7 @@ export async function registerRoutes(
         return res.status(404).json({ message: "League not found" });
       }
 
-      const maxRecruitingActions = 12 + Math.floor(((userCoach?.pitchingRecruitingSkill || 1) + (userCoach?.hittingRecruitingSkill || 1)) / 2);
+      const maxRecruitingActions = getMaxRecruitingActions(userCoach);
       if ((userCoach?.recruitActionsUsed || 0) >= maxRecruitingActions) {
         return res.status(400).json({ message: `You've used all ${maxRecruitingActions} recruiting actions this week` });
       }
@@ -1154,7 +1189,7 @@ export async function registerRoutes(
         return res.status(404).json({ message: "League not found" });
       }
 
-      const maxRecruitingActions = 12 + Math.floor(((userCoach?.pitchingRecruitingSkill || 1) + (userCoach?.hittingRecruitingSkill || 1)) / 2);
+      const maxRecruitingActions = getMaxRecruitingActions(userCoach);
       if ((userCoach?.recruitActionsUsed || 0) >= maxRecruitingActions) {
         return res.status(400).json({ message: `You've used all ${maxRecruitingActions} recruiting actions this week` });
       }
@@ -1251,7 +1286,7 @@ export async function registerRoutes(
         return res.status(404).json({ message: "League not found" });
       }
 
-      const maxRecruitingActions = 12 + Math.floor(((userCoach?.pitchingRecruitingSkill || 1) + (userCoach?.hittingRecruitingSkill || 1)) / 2);
+      const maxRecruitingActions = getMaxRecruitingActions(userCoach);
       if ((userCoach?.recruitActionsUsed || 0) >= maxRecruitingActions) {
         return res.status(400).json({ message: `You've used all ${maxRecruitingActions} recruiting actions this week` });
       }
@@ -1306,8 +1341,7 @@ export async function registerRoutes(
         });
       }
 
-      const maxActions = 12 + Math.floor(((userCoach?.pitchingRecruitingSkill || 1) + (userCoach?.hittingRecruitingSkill || 1)) / 2);
-      const actionsRemaining = maxActions - ((userCoach?.recruitActionsUsed || 0) + 1);
+      const actionsRemaining = maxRecruitingActions - ((userCoach?.recruitActionsUsed || 0) + 1);
       res.json({ interest, interestGain, actionsRemaining });
     } catch (error) {
       console.error("Failed to offer scholarship:", error);
@@ -7858,7 +7892,7 @@ async function generatePlayersForTeam(teamId: string) {
 async function generateCpuCoaches(leagueId: string) {
   const firstNames = ["Bob", "Jim", "Steve", "Mike", "Tom", "Bill", "Joe", "Dave", "Rick", "Jack", "Paul", "John", "Mark", "Dan", "Pete", "Tony", "Ray", "Frank", "Ed", "Gary"];
   const lastNames = ["Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Rodriguez", "Martinez", "Hernandez", "Lopez", "Gonzalez", "Wilson", "Anderson", "Thomas", "Taylor", "Moore", "Jackson", "Martin"];
-  const archetypes = ["Balanced", "Pure CEO", "Player's Coach", "Tactician", "Old School"];
+  const archetypes = ["Balanced", "Pure CEO", "Player's Coach", "Tactician", "Old School", "Scout Master", "Academic Dean", "Dealmaker"];
 
   const teams = await storage.getTeamsByLeague(leagueId);
   
