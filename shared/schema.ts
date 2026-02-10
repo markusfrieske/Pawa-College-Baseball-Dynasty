@@ -269,6 +269,7 @@ export const players = pgTable("players", {
   hairColor: text("hair_color").notNull().default("brown"),
   hairStyle: text("hair_style").notNull().default("short"),
   headwear: text("headwear").notNull().default("cap"),
+  depthOrder: integer("depth_order").notNull().default(0),
 });
 
 export const insertPlayerSchema = createInsertSchema(players).pick({
@@ -332,6 +333,7 @@ export const insertPlayerSchema = createInsertSchema(players).pick({
   hairColor: true,
   hairStyle: true,
   headwear: true,
+  depthOrder: true,
 });
 
 export type InsertPlayer = z.infer<typeof insertPlayerSchema>;

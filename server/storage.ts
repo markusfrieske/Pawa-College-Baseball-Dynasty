@@ -97,6 +97,7 @@ export interface IStorage {
   deleteDynastyNews(id: string): Promise<void>;
 
   getRecruitingActionsLog(recruitId: string, teamId: string): Promise<RecruitingActionsLog[]>;
+  getRecruitingActionsLogByTeam(teamId: string, leagueId: string): Promise<RecruitingActionsLog[]>;
   createRecruitingAction(action: InsertRecruitingActionsLog): Promise<RecruitingActionsLog>;
 
   getRecruitTopSchools(recruitId: string): Promise<RecruitTopSchools[]>;
@@ -415,6 +416,12 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(recruitingActionsLog.createdAt));
   }
 
+  async getRecruitingActionsLogByTeam(teamId: string, leagueId: string): Promise<RecruitingActionsLog[]> {
+    return await db.select().from(recruitingActionsLog)
+      .where(and(eq(recruitingActionsLog.teamId, teamId), eq(recruitingActionsLog.leagueId, leagueId)))
+      .orderBy(desc(recruitingActionsLog.createdAt));
+  }
+
   async createRecruitingAction(action: InsertRecruitingActionsLog): Promise<RecruitingActionsLog> {
     const [log] = await db.insert(recruitingActionsLog).values(action).returning();
     return log;
@@ -490,6 +497,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deletePlayer(id: string): Promise<void> {
+    await db.delete(transferPortalInterests).where(eq(transferPortalInterests.playerId, id));
+    await db.delete(playerPromises).where(eq(playerPromises.playerId, id));
     await db.update(storyArcs).set({ targetPlayerId: null }).where(eq(storyArcs.targetPlayerId, id));
     await db.update(storyEvents).set({ targetPlayerId: null }).where(eq(storyEvents.targetPlayerId, id));
     await db.update(moments).set({ targetPlayerId: null }).where(eq(moments.targetPlayerId, id));

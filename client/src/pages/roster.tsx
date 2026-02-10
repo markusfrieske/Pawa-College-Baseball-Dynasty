@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link, useLocation } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
@@ -24,8 +24,10 @@ import {
   Star,
   Edit,
   LayoutGrid,
-  List
+  List,
+  GripVertical
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Player, Team, Coach, League } from "@shared/schema";
 import { isPitcher, isCatcher, isInfielder, isOutfielder } from "@shared/positions";
 
@@ -234,7 +236,7 @@ export default function RosterPage() {
         </RetroCard>
 
         {viewMode === "depth" ? (
-          <DepthChartView players={data?.players || []} onSelectPlayer={setSelectedPlayer} teamPrimaryColor={data?.team?.primaryColor} />
+          <DepthChartView players={data?.players || []} onSelectPlayer={setSelectedPlayer} teamPrimaryColor={data?.team?.primaryColor} leagueId={id} isOwnTeam={!viewingTeamId} rosterUrl={rosterUrl} />
         ) : positionFilter === "all" ? (
           <>
             <PositionSection 
@@ -855,46 +857,176 @@ interface PositionCardProps {
   onSelectPlayer: (p: Player) => void;
   maxPlayers?: number;
   teamPrimaryColor?: string;
+  draggable?: boolean;
+  onReorder?: (position: string, reorderedPlayers: Player[]) => void;
 }
 
-function PositionCard({ position, players, onSelectPlayer, maxPlayers = 3, teamPrimaryColor }: PositionCardProps) {
-  const displayPlayers = players.slice(0, maxPlayers);
-  
+function DepthPlayerRow({ p, idx, position, teamPrimaryColor, draggable, onSelectPlayer, onDragStart, onDragOver, onDrop, onDragEnd, dragOverIdx }: {
+  p: Player;
+  idx: number;
+  position: string;
+  teamPrimaryColor?: string;
+  draggable?: boolean;
+  onSelectPlayer: (p: Player) => void;
+  onDragStart?: (e: React.DragEvent, idx: number) => void;
+  onDragOver?: (e: React.DragEvent, idx: number) => void;
+  onDrop?: (e: React.DragEvent, idx: number) => void;
+  onDragEnd?: () => void;
+  dragOverIdx?: number | null;
+}) {
+  const dragStartPos = useRef<{ x: number; y: number } | null>(null);
+  const wasDragged = useRef(false);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    dragStartPos.current = { x: e.clientX, y: e.clientY };
+    wasDragged.current = false;
+  };
+
+  const handleDragStartInternal = (e: React.DragEvent) => {
+    wasDragged.current = true;
+    onDragStart?.(e, idx);
+  };
+
+  const handleClick = () => {
+    if (!wasDragged.current) {
+      onSelectPlayer(p);
+    }
+    wasDragged.current = false;
+  };
+
+  const keyStats = isPitcher(p.position)
+    ? `VEL ${p.velocity || 0} / CTL ${p.control || 0} / STM ${p.stamina || 0}`
+    : `CON ${p.hitForAvg || 0} / PWR ${p.power || 0} / SPD ${p.speed || 0}`;
+
+  const isDragOver = dragOverIdx === idx;
+
   return (
-    <div className="bg-card/90 border border-border rounded-lg overflow-hidden min-w-[140px]" data-testid={`depth-card-${position}`}>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div
+          draggable={draggable}
+          onDragStart={handleDragStartInternal}
+          onDragOver={(e) => onDragOver?.(e, idx)}
+          onDrop={(e) => onDrop?.(e, idx)}
+          onDragEnd={onDragEnd}
+          onMouseDown={handleMouseDown}
+          onClick={handleClick}
+          className={`w-full flex items-center gap-1 px-2 py-1.5 rounded text-left transition-colors cursor-pointer select-none ${
+            idx === 0 ? 'bg-gold/10 hover:bg-gold/20' : 'hover:bg-card'
+          } ${isDragOver ? 'border border-[#d4a843] bg-gold/10' : 'border border-transparent'}`}
+          data-testid={`depth-${position}-${idx}`}
+        >
+          {draggable && (
+            <GripVertical
+              className="w-3 h-3 text-muted-foreground/50 flex-shrink-0 cursor-grab"
+              data-testid={`depth-drag-handle-${p.id}`}
+            />
+          )}
+          <PlayerPortrait
+            skinTone={p.skinTone || "light"}
+            hairColor={p.hairColor || "brown"}
+            hairStyle={p.hairStyle || "short"}
+            className="w-6 h-6 flex-shrink-0"
+            jerseyColor={teamPrimaryColor}
+          />
+          <span className={`text-xs truncate flex-1 ${idx === 0 ? 'text-foreground' : 'text-muted-foreground'}`}>
+            {p.firstName.charAt(0)}. {p.lastName}
+          </span>
+          <span className="text-[9px] text-muted-foreground/80 font-medium">
+            {p.eligibility || 'FR'}
+          </span>
+          <span className={`text-xs font-bold ${idx === 0 ? 'text-gold' : 'text-muted-foreground'}`}>
+            {p.overall}
+          </span>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent side="right" className="bg-card border-border p-2 max-w-[200px]">
+        <div className="space-y-1">
+          <div className="font-pixel text-gold text-xs">
+            #{p.jerseyNumber} {p.firstName} {p.lastName}
+          </div>
+          <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+            <span>{p.position}</span>
+            <span>OVR {p.overall}</span>
+            <span className="flex items-center gap-0.5">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Star
+                  key={i}
+                  className={`w-2 h-2 ${i < p.starRating ? "text-gold" : "text-muted-foreground/30"}`}
+                  fill={i < p.starRating ? "currentColor" : "none"}
+                />
+              ))}
+            </span>
+          </div>
+          <div className="text-[10px] text-muted-foreground">{keyStats}</div>
+        </div>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+function PositionCard({ position, players, onSelectPlayer, maxPlayers = 3, teamPrimaryColor, draggable, onReorder }: PositionCardProps) {
+  const displayPlayers = players.slice(0, maxPlayers);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+  const dragIdxRef = useRef<number | null>(null);
+
+  const handleDragStart = useCallback((e: React.DragEvent, idx: number) => {
+    dragIdxRef.current = idx;
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", String(idx));
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent, idx: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOverIdx(idx);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent, dropIdx: number) => {
+    e.preventDefault();
+    setDragOverIdx(null);
+    const dragIdx = dragIdxRef.current;
+    if (dragIdx === null || dragIdx === dropIdx) return;
+    const reordered = [...displayPlayers];
+    const [moved] = reordered.splice(dragIdx, 1);
+    reordered.splice(dropIdx, 0, moved);
+    onReorder?.(position, reordered);
+    dragIdxRef.current = null;
+  }, [displayPlayers, position, onReorder]);
+
+  const handleDragEnd = useCallback(() => {
+    setDragOverIdx(null);
+    dragIdxRef.current = null;
+  }, []);
+
+  return (
+    <div
+      className="bg-card/90 border border-border rounded-lg overflow-visible min-w-[140px]"
+      data-testid={`depth-card-${position}`}
+      data-position-group={position}
+    >
       <div className="bg-gold/20 px-2 py-1 border-b border-border">
         <span className="font-pixel text-gold text-[10px]">{position}</span>
       </div>
-      <div className="p-1">
+      <div className="p-1" data-testid={`depth-position-group-${position}`}>
         {displayPlayers.length === 0 ? (
           <div className="text-muted-foreground text-xs py-2 text-center">Empty</div>
         ) : (
           displayPlayers.map((p, idx) => (
-            <button
+            <DepthPlayerRow
               key={p.id}
-              onClick={() => onSelectPlayer(p)}
-              className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-left transition-colors ${
-                idx === 0 ? 'bg-gold/10 hover:bg-gold/20' : 'hover:bg-card'
-              }`}
-              data-testid={`depth-${position}-${idx}`}
-            >
-              <PlayerPortrait
-                skinTone={p.skinTone || "light"}
-                hairColor={p.hairColor || "brown"}
-                hairStyle={p.hairStyle || "short"}
-                className="w-6 h-6 flex-shrink-0"
-                jerseyColor={teamPrimaryColor}
-              />
-              <span className={`text-xs truncate flex-1 ${idx === 0 ? 'text-foreground' : 'text-muted-foreground'}`}>
-                {p.firstName.charAt(0)}. {p.lastName}
-              </span>
-              <span className={`text-[9px] text-muted-foreground/80 font-medium`}>
-                {p.eligibility || 'FR'}
-              </span>
-              <span className={`text-xs font-bold ${idx === 0 ? 'text-gold' : 'text-muted-foreground'}`}>
-                {p.overall}
-              </span>
-            </button>
+              p={p}
+              idx={idx}
+              position={position}
+              teamPrimaryColor={teamPrimaryColor}
+              draggable={draggable}
+              onSelectPlayer={onSelectPlayer}
+              onDragStart={draggable ? handleDragStart : undefined}
+              onDragOver={draggable ? handleDragOver : undefined}
+              onDrop={draggable ? handleDrop : undefined}
+              onDragEnd={draggable ? handleDragEnd : undefined}
+              dragOverIdx={dragOverIdx}
+            />
           ))
         )}
       </div>
@@ -902,18 +1034,56 @@ function PositionCard({ position, players, onSelectPlayer, maxPlayers = 3, teamP
   );
 }
 
-function DepthChartView({ players, onSelectPlayer, teamPrimaryColor }: { players: Player[]; onSelectPlayer: (p: Player) => void; teamPrimaryColor?: string }) {
-  const getPlayersByPosition = (pos: string): Player[] => {
-    return players
-      .filter(p => p.position === pos)
-      .sort((a, b) => b.overall - a.overall);
+function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leagueId, isOwnTeam, rosterUrl }: {
+  players: Player[];
+  onSelectPlayer: (p: Player) => void;
+  teamPrimaryColor?: string;
+  leagueId?: string;
+  isOwnTeam?: boolean;
+  rosterUrl?: string;
+}) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const depthOrderMutation = useMutation({
+    mutationFn: async (orders: { playerId: string; depthOrder: number }[]) => {
+      return apiRequest("PUT", `/api/leagues/${leagueId}/depth-chart`, { orders });
+    },
+    onSuccess: () => {
+      if (rosterUrl) {
+        queryClient.invalidateQueries({ queryKey: [rosterUrl] });
+      }
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to save depth chart order", variant: "destructive" });
+    },
+  });
+
+  const handleReorder = useCallback((position: string, reorderedPlayers: Player[]) => {
+    const orders = reorderedPlayers.map((p, idx) => ({
+      playerId: p.id,
+      depthOrder: idx + 1,
+    }));
+    depthOrderMutation.mutate(orders);
+  }, [depthOrderMutation]);
+
+  const sortByDepth = (list: Player[]) => {
+    return [...list].sort((a, b) => {
+      const aOrder = a.depthOrder || 0;
+      const bOrder = b.depthOrder || 0;
+      if (aOrder !== bOrder) return aOrder - bOrder;
+      return b.overall - a.overall;
+    });
   };
 
-  const pitchers = players.filter(p => isPitcher(p.position)).sort((a, b) => b.overall - a.overall);
+  const getPlayersByPosition = (pos: string): Player[] => {
+    return sortByDepth(players.filter(p => p.position === pos));
+  };
+
+  const pitchers = sortByDepth(players.filter(p => isPitcher(p.position)));
   const starters = pitchers.slice(0, 5);
   const bullpen = pitchers.slice(5, 10);
-  
-  // DH Selection: Best fielder by Contact+Power+Speed blend who is NOT a #1 starter at any position
+
   const fieldPositions = ["LF", "CF", "RF", "3B", "SS", "2B", "1B", "C"];
   const starterIds = new Set<string>();
   fieldPositions.forEach(pos => {
@@ -922,8 +1092,7 @@ function DepthChartView({ players, onSelectPlayer, teamPrimaryColor }: { players
       starterIds.add(posPlayers[0].id);
     }
   });
-  
-  // Get all non-pitcher players who are NOT #1 starters
+
   const eligibleForDH = players
     .filter(p => !isPitcher(p.position) && !starterIds.has(p.id))
     .map(p => ({
@@ -931,118 +1100,39 @@ function DepthChartView({ players, onSelectPlayer, teamPrimaryColor }: { players
       dhScore: (p.hitForAvg || 0) + (p.power || 0) + (p.speed || 0)
     }))
     .sort((a, b) => b.dhScore - a.dhScore);
-  
+
   const dhPlayers = eligibleForDH.length > 0 ? [eligibleForDH[0].player] : [];
-  
+
+  const canDrag = isOwnTeam === true;
+
   return (
     <div className="space-y-4" data-testid="depth-chart-view">
       <div className="text-right">
         <span className="font-pixel text-gold text-lg">DEPTH CHART</span>
       </div>
-      
+
       <div className="grid gap-4">
-        {/* Row 1: Outfield - LF/CF/RF */}
         <div className="flex justify-center gap-4 flex-wrap">
-          <PositionCard position="LF" players={getPlayersByPosition("LF")} onSelectPlayer={onSelectPlayer} teamPrimaryColor={teamPrimaryColor} />
-          <PositionCard position="CF" players={getPlayersByPosition("CF")} onSelectPlayer={onSelectPlayer} teamPrimaryColor={teamPrimaryColor} />
-          <PositionCard position="RF" players={getPlayersByPosition("RF")} onSelectPlayer={onSelectPlayer} teamPrimaryColor={teamPrimaryColor} />
+          <PositionCard position="LF" players={getPlayersByPosition("LF")} onSelectPlayer={onSelectPlayer} teamPrimaryColor={teamPrimaryColor} draggable={canDrag} onReorder={handleReorder} />
+          <PositionCard position="CF" players={getPlayersByPosition("CF")} onSelectPlayer={onSelectPlayer} teamPrimaryColor={teamPrimaryColor} draggable={canDrag} onReorder={handleReorder} />
+          <PositionCard position="RF" players={getPlayersByPosition("RF")} onSelectPlayer={onSelectPlayer} teamPrimaryColor={teamPrimaryColor} draggable={canDrag} onReorder={handleReorder} />
         </div>
-        
-        {/* Row 2: Infield - 3B/SS/2B/1B */}
+
         <div className="flex justify-center gap-4 flex-wrap">
-          <PositionCard position="3B" players={getPlayersByPosition("3B")} onSelectPlayer={onSelectPlayer} teamPrimaryColor={teamPrimaryColor} />
-          <PositionCard position="SS" players={getPlayersByPosition("SS")} onSelectPlayer={onSelectPlayer} teamPrimaryColor={teamPrimaryColor} />
-          <PositionCard position="2B" players={getPlayersByPosition("2B")} onSelectPlayer={onSelectPlayer} teamPrimaryColor={teamPrimaryColor} />
-          <PositionCard position="1B" players={getPlayersByPosition("1B")} onSelectPlayer={onSelectPlayer} teamPrimaryColor={teamPrimaryColor} />
+          <PositionCard position="3B" players={getPlayersByPosition("3B")} onSelectPlayer={onSelectPlayer} teamPrimaryColor={teamPrimaryColor} draggable={canDrag} onReorder={handleReorder} />
+          <PositionCard position="SS" players={getPlayersByPosition("SS")} onSelectPlayer={onSelectPlayer} teamPrimaryColor={teamPrimaryColor} draggable={canDrag} onReorder={handleReorder} />
+          <PositionCard position="2B" players={getPlayersByPosition("2B")} onSelectPlayer={onSelectPlayer} teamPrimaryColor={teamPrimaryColor} draggable={canDrag} onReorder={handleReorder} />
+          <PositionCard position="1B" players={getPlayersByPosition("1B")} onSelectPlayer={onSelectPlayer} teamPrimaryColor={teamPrimaryColor} draggable={canDrag} onReorder={handleReorder} />
         </div>
-        
-        {/* Row 3: Catcher */}
+
         <div className="flex justify-center">
-          <PositionCard position="C" players={getPlayersByPosition("C")} onSelectPlayer={onSelectPlayer} teamPrimaryColor={teamPrimaryColor} />
+          <PositionCard position="C" players={getPlayersByPosition("C")} onSelectPlayer={onSelectPlayer} teamPrimaryColor={teamPrimaryColor} draggable={canDrag} onReorder={handleReorder} />
         </div>
-        
-        {/* Row 4: DH / SP / RP */}
+
         <div className="flex justify-center gap-4 flex-wrap items-start">
-          {/* DH */}
           <PositionCard position="DH" players={dhPlayers} onSelectPlayer={onSelectPlayer} teamPrimaryColor={teamPrimaryColor} />
-          
-          {/* Starting Pitchers */}
-          <div className="bg-card/90 border border-border rounded-lg overflow-hidden min-w-[160px]" data-testid="depth-card-SP">
-            <div className="bg-gold/20 px-2 py-1 border-b border-border">
-              <span className="font-pixel text-gold text-[10px]">SP</span>
-            </div>
-            <div className="p-1">
-              {starters.length === 0 ? (
-                <div className="text-muted-foreground text-xs py-2 text-center">No pitchers</div>
-              ) : (
-                starters.map((p, idx) => (
-                  <button
-                    key={p.id}
-                    onClick={() => onSelectPlayer(p)}
-                    className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-left transition-colors ${
-                      idx === 0 ? 'bg-gold/10 hover:bg-gold/20' : 'hover:bg-card'
-                    }`}
-                    data-testid={`depth-SP-${idx}`}
-                  >
-                    <PlayerPortrait
-                      skinTone={p.skinTone || "light"}
-                      hairColor={p.hairColor || "brown"}
-                      hairStyle={p.hairStyle || "short"}
-                      className="w-6 h-6 flex-shrink-0"
-                      jerseyColor={teamPrimaryColor}
-                    />
-                    <span className={`text-xs truncate flex-1 ${idx === 0 ? 'text-foreground' : 'text-muted-foreground'}`}>
-                      {p.firstName.charAt(0)}. {p.lastName}
-                    </span>
-                    <span className={`text-[9px] text-muted-foreground/80 font-medium`}>
-                      {p.eligibility || 'FR'}
-                    </span>
-                    <span className={`text-xs font-bold ${idx === 0 ? 'text-gold' : 'text-muted-foreground'}`}>
-                      {p.overall}
-                    </span>
-                  </button>
-                ))
-              )}
-            </div>
-          </div>
-          
-          {/* Relief Pitchers */}
-          <div className="bg-card/90 border border-border rounded-lg overflow-hidden min-w-[140px]" data-testid="depth-card-RP">
-            <div className="bg-gold/20 px-2 py-1 border-b border-border">
-              <span className="font-pixel text-gold text-[10px]">RP</span>
-            </div>
-            <div className="p-1 max-h-40 overflow-y-auto">
-              {bullpen.length === 0 ? (
-                <div className="text-muted-foreground text-xs py-2 text-center">No relievers</div>
-              ) : (
-                bullpen.map((p, idx) => (
-                  <button
-                    key={p.id}
-                    onClick={() => onSelectPlayer(p)}
-                    className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-left hover:bg-card transition-colors"
-                    data-testid={`depth-RP-${idx}`}
-                  >
-                    <PlayerPortrait
-                      skinTone={p.skinTone || "light"}
-                      hairColor={p.hairColor || "brown"}
-                      hairStyle={p.hairStyle || "short"}
-                      className="w-6 h-6 flex-shrink-0"
-                      jerseyColor={teamPrimaryColor}
-                    />
-                    <span className="text-xs truncate flex-1 text-muted-foreground">
-                      {p.firstName.charAt(0)}. {p.lastName}
-                    </span>
-                    <span className={`text-[9px] text-muted-foreground/80 font-medium`}>
-                      {p.eligibility || 'FR'}
-                    </span>
-                    <span className="text-xs font-bold text-muted-foreground">
-                      {p.overall}
-                    </span>
-                  </button>
-                ))
-              )}
-            </div>
-          </div>
+          <PositionCard position="SP" players={starters} onSelectPlayer={onSelectPlayer} teamPrimaryColor={teamPrimaryColor} maxPlayers={5} draggable={canDrag} onReorder={handleReorder} />
+          <PositionCard position="RP" players={bullpen} onSelectPlayer={onSelectPlayer} teamPrimaryColor={teamPrimaryColor} maxPlayers={10} draggable={canDrag} onReorder={handleReorder} />
         </div>
       </div>
     </div>

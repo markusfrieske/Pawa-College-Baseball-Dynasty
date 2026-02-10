@@ -808,6 +808,39 @@ export async function registerRoutes(
     }
   });
 
+  // Get all scouting/recruiting actions for user's team (history across all recruits)
+  app.get("/api/leagues/:id/recruiting-history", requireAuth, async (req, res) => {
+    try {
+      const leagueTeams = await storage.getTeamsByLeague(req.params.id);
+      const coaches = await storage.getCoachesByLeague(req.params.id);
+      const userCoach = coaches.find(c => c.userId === req.session.userId);
+      
+      if (!userCoach) {
+        return res.status(400).json({ message: "No coach assigned" });
+      }
+
+      const actions = await storage.getRecruitingActionsLogByTeam(userCoach.teamId, req.params.id);
+      
+      const recruits = await storage.getRecruitsByLeague(req.params.id);
+      const recruitMap = new Map(recruits.map(r => [r.id, r]));
+      
+      const enrichedActions = actions.map(a => {
+        const recruit = recruitMap.get(a.recruitId);
+        return {
+          ...a,
+          recruitName: recruit ? `${recruit.firstName} ${recruit.lastName}` : "Unknown",
+          recruitPosition: recruit?.position || "?",
+          recruitStarRating: recruit?.starRating || 0,
+        };
+      });
+
+      res.json({ actions: enrichedActions });
+    } catch (error) {
+      console.error("Failed to fetch recruiting history:", error);
+      res.status(500).json({ message: "Failed to fetch recruiting history" });
+    }
+  });
+
   // ============ RECRUITING CALCULATION HELPERS ============
   
   // Calculate priority match bonus based on pitch topic and recruit priorities
@@ -2384,6 +2417,39 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to batch update players:", error);
       res.status(500).json({ message: "Failed to batch update players" });
+    }
+  });
+
+  // Depth chart reorder - update depth order for players at a position
+  app.put("/api/leagues/:id/depth-chart", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      const coaches = await storage.getCoachesByLeague(req.params.id);
+      const userCoach = coaches.find(c => c.userId === req.session.userId);
+      const isCommissioner = league.commissionerId === req.session.userId;
+      if (!userCoach && !isCommissioner) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+
+      const { orders } = req.body as { orders: { playerId: string; depthOrder: number }[] };
+      if (!Array.isArray(orders)) {
+        return res.status(400).json({ message: "Orders must be an array" });
+      }
+
+      const teamId = userCoach?.teamId;
+      for (const order of orders) {
+        const player = await storage.getPlayer(order.playerId);
+        if (player && (isCommissioner || player.teamId === teamId)) {
+          await storage.updatePlayer(order.playerId, { depthOrder: order.depthOrder });
+        }
+      }
+
+      res.json({ success: true, count: orders.length });
+    } catch (error) {
+      console.error("Failed to update depth chart:", error);
+      res.status(500).json({ message: "Failed to update depth chart" });
     }
   });
 

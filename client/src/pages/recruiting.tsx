@@ -40,7 +40,10 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
-  BarChart3
+  BarChart3,
+  ChevronDown,
+  ChevronUp,
+  History
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -158,6 +161,7 @@ export default function RecruitingPage() {
   const [pipelineFilter, setPipelineFilter] = useState<string | null>(null);
   const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
   const [showTopAvailable, setShowTopAvailable] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -230,6 +234,30 @@ export default function RecruitingPage() {
     trends: Record<string, { trend: "up" | "down" | "flat"; recentGain: number }>;
   }>({
     queryKey: ["/api/leagues", id, "recruiting", "trends"],
+  });
+
+  const { data: leagueData } = useQuery<{ id: string; currentWeek: number; currentSeason: number }>({
+    queryKey: ["/api/leagues", id],
+  });
+
+  const { data: historyData } = useQuery<{
+    actions: Array<{
+      id: string;
+      recruitId: string;
+      teamId: string;
+      leagueId: string;
+      week: number;
+      season: number;
+      actionType: string;
+      interestChange: number;
+      notes: string | null;
+      createdAt: string;
+      recruitName: string;
+      recruitPosition: string;
+      recruitStarRating: number;
+    }>;
+  }>({
+    queryKey: ["/api/leagues", id, "recruiting-history"],
   });
 
   const scoutMutation = useMutation({
@@ -728,6 +756,116 @@ export default function RecruitingPage() {
             </div>
           )}
         </RetroCard>
+
+        {/* Scouting History Panel */}
+        {(() => {
+          const currentWeek = leagueData?.currentWeek ?? 1;
+          const allActions = historyData?.actions ?? [];
+          const lastWeekActions = allActions.filter(a => a.week === currentWeek - 1);
+          const displayActions = lastWeekActions.length > 0
+            ? lastWeekActions
+            : (() => {
+                const weeks = Array.from(new Set(allActions.map(a => a.week))).filter(w => w < currentWeek).sort((a, b) => b - a);
+                return weeks.length > 0 ? allActions.filter(a => a.week === weeks[0]) : [];
+              })();
+          const displayWeek = displayActions.length > 0 ? displayActions[0].week : currentWeek - 1;
+          const groupedByRecruit = displayActions.reduce<Record<string, typeof displayActions>>((acc, action) => {
+            const key = action.recruitId;
+            if (!acc[key]) acc[key] = [];
+            acc[key].push(action);
+            return acc;
+          }, {});
+          const recruitGroups = Object.values(groupedByRecruit);
+          const totalActions = displayActions.length;
+          const totalRecruits = recruitGroups.length;
+
+          const histActionIcons: Record<string, any> = {
+            scout: <Eye className="w-3 h-3" />,
+            phone: <Phone className="w-3 h-3" />,
+            email: <Mail className="w-3 h-3" />,
+            offer: <GraduationCap className="w-3 h-3" />,
+            visit: <MapPin className="w-3 h-3" />,
+          };
+          const histActionColors: Record<string, string> = {
+            scout: "text-green-400",
+            phone: "text-blue-400",
+            email: "text-purple-400",
+            offer: "text-gold",
+            visit: "text-teal-400",
+          };
+
+          return (
+            <div className="mb-6" data-testid="scouting-history-panel">
+              <RetroCard variant="default">
+                <button
+                  className="w-full flex items-center justify-between gap-2 cursor-pointer"
+                  onClick={() => setShowHistory(!showHistory)}
+                  data-testid="button-toggle-history"
+                >
+                  <div className="flex items-center gap-2">
+                    <History className="w-4 h-4 text-gold" />
+                    <span className="font-pixel text-gold text-sm uppercase tracking-wider">Last Week's Activity</span>
+                    {totalActions > 0 && (
+                      <span className="text-[10px] text-muted-foreground">
+                        (Week {displayWeek})
+                      </span>
+                    )}
+                  </div>
+                  {showHistory ? <ChevronUp className="w-4 h-4 text-gold" /> : <ChevronDown className="w-4 h-4 text-gold" />}
+                </button>
+
+                {showHistory && (
+                  <div className="mt-4 pt-4 border-t border-border">
+                    {totalActions === 0 ? (
+                      <p className="text-xs text-muted-foreground italic">No scouting activity last week</p>
+                    ) : (
+                      <>
+                        <p className="text-[10px] text-muted-foreground mb-3">
+                          {totalActions} action{totalActions !== 1 ? "s" : ""} taken across {totalRecruits} recruit{totalRecruits !== 1 ? "s" : ""}
+                        </p>
+                        <div className="space-y-3">
+                          {recruitGroups.map((actions) => {
+                            const first = actions[0];
+                            return (
+                              <div key={first.recruitId} className="bg-muted/30 rounded p-3">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="text-sm font-medium text-foreground">{first.recruitName}</span>
+                                  <PositionBadge position={first.recruitPosition} />
+                                  {first.recruitStarRating > 0 && (
+                                    <StarRating rating={first.recruitStarRating} size="sm" />
+                                  )}
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                  {actions.map((action) => (
+                                    <div
+                                      key={action.id}
+                                      className="flex items-center gap-1.5 text-xs py-1 px-2 bg-background/50 rounded"
+                                      data-testid={`history-action-${action.id}`}
+                                    >
+                                      <span className={histActionColors[action.actionType] || "text-muted-foreground"}>
+                                        {histActionIcons[action.actionType] || <HelpCircle className="w-3 h-3" />}
+                                      </span>
+                                      <span className="capitalize text-foreground">{action.actionType}</span>
+                                      {action.interestChange !== 0 && (
+                                        <span className={action.interestChange > 0 ? "text-green-400" : "text-red-400"}>
+                                          {action.interestChange > 0 ? `+${action.interestChange}` : action.interestChange}
+                                        </span>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+              </RetroCard>
+            </div>
+          );
+        })()}
 
         <div className="space-y-3">
           {filteredRecruits.map((recruit) => (
