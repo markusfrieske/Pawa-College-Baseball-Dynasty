@@ -140,6 +140,7 @@ const sortOptions = [
   { value: "state", label: "Home State" },
   { value: "scoutPriority", label: "Scout Priority (Targeted First)" },
   { value: "interest", label: "Interest Level" },
+  { value: "myInterest", label: "Interest in You (High to Low)" },
 ];
 
 export default function RecruitingPage() {
@@ -413,14 +414,15 @@ export default function RecruitingPage() {
       if (r.signedTeamId) return false;
     }
     if (sortBy === "interest" && !(r.interest && (r.interest.interestLevel || 0) > 0)) return false;
+    if (sortBy === "myInterest" && !(r.interest && (r.interest.interestLevel || 0) > 0)) return false;
     if (pipelineFilter) {
       const level = r.interest?.interestLevel || 0;
       if (pipelineFilter === "cold" && !(level >= 1 && level <= 15)) return false;
-      if (pipelineFilter === "cool" && !(level >= 16 && level <= 30)) return false;
-      if (pipelineFilter === "warm" && !(level >= 31 && level <= 50)) return false;
-      if (pipelineFilter === "hot" && !(level >= 51 && level <= 70)) return false;
-      if (pipelineFilter === "very_hot" && !(level >= 71 && level <= 85)) return false;
-      if (pipelineFilter === "on_fire" && !(level >= 86 && level <= 99)) return false;
+      if (pipelineFilter === "cool" && !(level >= 15 && level <= 29)) return false;
+      if (pipelineFilter === "warm" && !(level >= 30 && level <= 49)) return false;
+      if (pipelineFilter === "hot" && !(level >= 50 && level <= 69)) return false;
+      if (pipelineFilter === "very_hot" && !(level >= 70 && level <= 89)) return false;
+      if (pipelineFilter === "on_fire" && !(level >= 90)) return false;
       if (pipelineFilter === "committed" && !r.signedTeamId) return false;
       if (pipelineFilter === "home_state" && r.homeState !== data?.team?.state) return false;
     }
@@ -457,6 +459,11 @@ export default function RecruitingPage() {
       }
       case "interest":
         return (b.interest?.interestLevel || 0) - (a.interest?.interestLevel || 0);
+      case "myInterest": {
+        const aLevel = a.interest?.interestLevel || 0;
+        const bLevel = b.interest?.interestLevel || 0;
+        return bLevel - aLevel;
+      }
       default:
         return (a.classRank || 999) - (b.classRank || 999);
     }
@@ -1643,7 +1650,7 @@ function RecruitRow({
                       <span>{schoolTrend.trend === "up" ? "+" : ""}{schoolTrend.recentGain}</span>
                     </div>
                   )}
-                  <span className={`text-[10px] w-14 text-right ${getInterestLabel(school.interestLevel).color}`}>{getInterestLabel(school.interestLevel).label}</span>
+                  <span className={`text-[10px] w-16 text-right flex-shrink-0 ${getInterestLabel(school.interestLevel).color}`}>{getInterestLabel(school.interestLevel).label}</span>
                 </div>
               );
             })}

@@ -154,6 +154,7 @@ async function detectProgramFirsts(
   existing: Set<string>
 ) {
   if (!coach) return;
+  if (season <= 1) return;
 
   if (coach.confChampionships === 1) {
     const key = `first_conf_title-${team.id}-${season}`;

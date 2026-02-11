@@ -996,6 +996,14 @@ export async function registerRoutes(
         return res.status(404).json({ message: "League not found" });
       }
 
+      const existingActions = await storage.getRecruitingActionsLog(req.params.recruitId as string, userTeam.id);
+      const phoneThisWeek = existingActions.filter(a => 
+        a.actionType === "phone" && a.week === league.currentWeek && a.season === league.currentSeason
+      );
+      if (phoneThisWeek.length >= 1) {
+        return res.status(400).json({ message: "You've already called this recruit this week. Max 1 phone call per recruit per week." });
+      }
+
       const maxRecruitingActions = getMaxRecruitingActions(userCoach);
       if ((userCoach?.recruitActionsUsed || 0) >= maxRecruitingActions) {
         return res.status(400).json({ message: `You've used all ${maxRecruitingActions} recruiting actions this week` });
@@ -1092,6 +1100,14 @@ export async function registerRoutes(
       const league = await storage.getLeague(req.params.id as string);
       if (!league) {
         return res.status(404).json({ message: "League not found" });
+      }
+
+      const existingEmailActions = await storage.getRecruitingActionsLog(req.params.recruitId as string, userTeam.id);
+      const emailThisWeek = existingEmailActions.filter(a => 
+        a.actionType === "email" && a.week === league.currentWeek && a.season === league.currentSeason
+      );
+      if (emailThisWeek.length >= 1) {
+        return res.status(400).json({ message: "You've already emailed this recruit this week. Max 1 email per recruit per week." });
       }
 
       const maxRecruitingActions = getMaxRecruitingActions(userCoach);
@@ -3102,12 +3118,12 @@ export async function registerRoutes(
       
       // ============ RESET WEEKLY ACTIONS ============
       const coaches = await storage.getCoachesByLeague(leagueId);
-      for (const coach of coaches) {
-        await storage.updateCoach(coach.id, {
+      await Promise.all(coaches.map(coach => 
+        storage.updateCoach(coach.id, {
           scoutActionsUsed: 0,
           recruitActionsUsed: 0,
-        });
-      }
+        })
+      ));
 
       // ============ AUTO-SIMULATE REGULAR SEASON GAMES ============
       const allGames = await storage.getGamesByLeague(leagueId);
@@ -3122,10 +3138,14 @@ export async function registerRoutes(
       const WIN_XP = 100;
       const LOSS_XP = 25;
       
-      for (const game of incompleteGames) {
+      const gameResults = await Promise.all(incompleteGames.map(async (game) => {
         const result = await simulateGame(game.homeTeamId, game.awayTeamId);
         await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, isComplete: true, boxScore: result.boxScore });
         await updateStandingsForGame(leagueId, league.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, game.isConference);
+        return { game, result };
+      }));
+
+      for (const { game, result } of gameResults) {
         try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, league.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, league.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
         
         const homeTeamSim = leagueTeamsForSim.find(t => t.id === game.homeTeamId);
@@ -3183,9 +3203,11 @@ export async function registerRoutes(
 
       // ============ STORY ENGINE: DRAMA, ARCS, MOMENTS ============
       try {
-        await generateWeeklyDrama(leagueId, league.currentSeason, currentWeek);
-        await generateWeeklyStoryArcs(leagueId, league.currentSeason, currentWeek);
-        await detectMoments(leagueId, league.currentSeason, currentWeek);
+        await Promise.all([
+          generateWeeklyDrama(leagueId, league.currentSeason, currentWeek),
+          generateWeeklyStoryArcs(leagueId, league.currentSeason, currentWeek),
+          detectMoments(leagueId, league.currentSeason, currentWeek),
+        ]);
       } catch (e) {
         console.error("Story engine error (non-blocking):", e);
       }
@@ -5460,8 +5482,10 @@ export async function registerRoutes(
     for (const team of cpuTeams) {
       const actionsPerWeek = config.minActions + Math.floor(Math.random() * (config.maxActions - config.minActions + 1));
       
-      const teamInterests = await storage.getRecruitingInterestsByTeam(team.id);
-      const roster = await storage.getPlayersByTeam(team.id);
+      const [teamInterests, roster] = await Promise.all([
+        storage.getRecruitingInterestsByTeam(team.id),
+        storage.getPlayersByTeam(team.id),
+      ]);
       
       const positionCounts: Record<string, number> = {};
       for (const player of roster) {

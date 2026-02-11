@@ -131,6 +131,15 @@ export default function RecruitProfilePage() {
     queryKey: ["/api/leagues", id],
   });
 
+  const currentWeek = leagueData?.league?.currentWeek ?? 1;
+  const currentSeason = leagueData?.league?.currentSeason ?? 1;
+  const phoneUsedThisWeek = actionsData?.actions?.some(
+    a => a.actionType === "phone" && a.week === currentWeek && a.season === currentSeason
+  ) ?? false;
+  const emailUsedThisWeek = actionsData?.actions?.some(
+    a => a.actionType === "email" && a.week === currentWeek && a.season === currentSeason
+  ) ?? false;
+
   const isCommissioner = authData?.id && leagueData?.league?.commissionerId === authData.id;
 
   const updateRecruitMutation = useMutation({
@@ -171,8 +180,8 @@ export default function RecruitProfilePage() {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruits", recruitId] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting", recruitId, "actions"] });
     },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to make phone call", variant: "destructive" });
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message || "Failed to make phone call", variant: "destructive" });
     },
   });
 
@@ -186,8 +195,8 @@ export default function RecruitProfilePage() {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruits", recruitId] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting", recruitId, "actions"] });
     },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to send email", variant: "destructive" });
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message || "Failed to send email", variant: "destructive" });
     },
   });
 
@@ -282,6 +291,26 @@ export default function RecruitProfilePage() {
     "Very": "Very Important",
     "Somewhat": "Somewhat Important",
     "Not Important": "Not Important"
+  };
+
+  const getPriorityColor = (value: string): string => {
+    if (value === "Extremely" || value === "Very") return "bg-green-500/20 text-green-400 border-green-500/40";
+    if (value === "Somewhat") return "bg-yellow-500/20 text-yellow-400 border-yellow-500/40";
+    if (value === "Not Important") return "bg-red-500/20 text-red-400 border-red-500/40";
+    return "";
+  };
+
+  const getTeamGradeForPriority = (priorityKey: string, team?: Team): number | null => {
+    if (!team) return null;
+    const gradeMap: Record<string, number | undefined> = {
+      proximityPriority: undefined,
+      reputationPriority: team.prestige,
+      playingTimePriority: undefined,
+      academicsPriority: team.academics,
+      prestigePriority: team.prestige,
+      facilitiesPriority: team.facilities,
+    };
+    return gradeMap[priorityKey] ?? null;
   };
 
   const revealedAbilitiesCount = recruit.interest?.revealedAbilitiesCount || 0;
@@ -399,19 +428,19 @@ export default function RecruitProfilePage() {
             data-testid="button-phone"
             variant={showProfilePhonePicker ? "primary" : "outline"}
             onClick={() => { setShowProfilePhonePicker(!showProfilePhonePicker); setShowProfileEmailPicker(false); setProfilePhonePitches([]); }}
-            disabled={phoneMutation.isPending || !recruit.interest}
+            disabled={phoneMutation.isPending || !recruit.interest || phoneUsedThisWeek}
           >
             <Phone className="w-4 h-4 mr-2" />
-            {phoneMutation.isPending ? "Calling..." : "Phone (3 pitches)"}
+            {phoneMutation.isPending ? "Calling..." : phoneUsedThisWeek ? "Called This Week" : "Phone (3 pitches)"}
           </RetroButton>
           <RetroButton 
             variant={showProfileEmailPicker ? "primary" : "outline"}
             data-testid="button-email"
             onClick={() => { setShowProfileEmailPicker(!showProfileEmailPicker); setShowProfilePhonePicker(false); setProfileEmailPitch(null); }}
-            disabled={emailMutation.isPending || !recruit.interest}
+            disabled={emailMutation.isPending || !recruit.interest || emailUsedThisWeek}
           >
             <Mail className="w-4 h-4 mr-2" />
-            {emailMutation.isPending ? "Sending..." : "Email (1 pitch)"}
+            {emailMutation.isPending ? "Sending..." : emailUsedThisWeek ? "Emailed This Week" : "Email (1 pitch)"}
           </RetroButton>
           <RetroButton 
             variant="outline" 
@@ -440,7 +469,11 @@ export default function RecruitProfilePage() {
                   }`}
                   data-testid={`profile-pitch-phone-${opt.key}`}
                 >
-                  {opt.label}
+                  {opt.label}{(() => {
+                    const gradeMap: Record<string, number | undefined> = { proximity: undefined, reputation: data.team?.prestige, playingTime: undefined, academics: data.team?.academics, prestige: data.team?.prestige, facilities: data.team?.facilities };
+                    const grade = gradeMap[opt.key];
+                    return grade !== undefined ? ` (${grade})` : '';
+                  })()}
                 </button>
               ))}
             </div>
@@ -480,7 +513,11 @@ export default function RecruitProfilePage() {
                   }`}
                   data-testid={`profile-pitch-email-${opt.key}`}
                 >
-                  {opt.label}
+                  {opt.label}{(() => {
+                    const gradeMap: Record<string, number | undefined> = { proximity: undefined, reputation: data.team?.prestige, playingTime: undefined, academics: data.team?.academics, prestige: data.team?.prestige, facilities: data.team?.facilities };
+                    const grade = gradeMap[opt.key];
+                    return grade !== undefined ? ` (${grade})` : '';
+                  })()}
                 </button>
               ))}
             </div>
@@ -661,8 +698,13 @@ export default function RecruitProfilePage() {
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {priorities.map((p) => (
                       <div key={p.key}>
-                        <p className="text-xs text-muted-foreground">{p.label}</p>
-                        <Badge variant="outline" className="mt-1">
+                        <p className="text-xs text-muted-foreground">
+                          {p.label}
+                          {getTeamGradeForPriority(p.key, data.team) !== null && (
+                            <span className="ml-1 text-gold font-bold">({getTeamGradeForPriority(p.key, data.team)}/10)</span>
+                          )}
+                        </p>
+                        <Badge variant="outline" className={`mt-1 ${getPriorityColor(p.value as string)}`}>
                           {priorityLabels[p.value as string] || p.value}
                         </Badge>
                       </div>
