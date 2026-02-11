@@ -46,6 +46,7 @@ interface DeparturePlayer {
   transferReason: string | null;
   abilities: string[];
   teamId: string;
+  draftRound: number | null;
 }
 
 interface TeamDepartures {
@@ -911,6 +912,11 @@ function PlayerDepartureRow({
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs text-muted-foreground">OVR {player.overall}</span>
             <StarRating rating={player.starRating} size="sm" />
+            {type === "draft" && player.draftRound && (
+              <Badge className="bg-amber-600/30 text-amber-400 border-amber-600/50 text-[10px] no-default-hover-elevate no-default-active-elevate" data-testid={`badge-draft-round-${player.id}`}>
+                Rd {player.draftRound}
+              </Badge>
+            )}
             {type === "draft" && player.draftAskMin && !compact && (
               <span className="text-[10px] text-amber-400">
                 Asking ${player.draftAskMin.toLocaleString()} - ${(player.draftAskMax || 0).toLocaleString()}

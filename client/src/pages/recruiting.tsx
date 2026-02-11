@@ -1283,9 +1283,19 @@ function RecruitRow({
               ) : (
                 <Badge className={`${stage.color} text-white text-[8px]`}>{stage.label}</Badge>
               )}
-              <Badge variant="outline" className="text-[8px]">
-                  {recruit.recruitType === "JUCO" ? `JUCO ${recruit.recruitYear || "FR"}` : recruit.recruitType}
+              {recruit.recruitType === "TRANSFER" ? (
+                <Badge className="bg-purple-600/30 text-purple-400 border-purple-600/50 text-[8px] no-default-hover-elevate no-default-active-elevate" data-testid={`badge-transfer-${recruit.id}`}>
+                  TRANSFER {recruit.recruitYear || ""} {recruit.fromTeamName ? `(${recruit.fromTeamName})` : ""}
                 </Badge>
+              ) : recruit.recruitType === "JUCO" ? (
+                <Badge className="bg-cyan-600/30 text-cyan-400 border-cyan-600/50 text-[8px] no-default-hover-elevate no-default-active-elevate" data-testid={`badge-juco-${recruit.id}`}>
+                  JUCO {recruit.recruitYear || "FR"} {recruit.fromTeamName ? `(${recruit.fromTeamName})` : ""}
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-[8px]" data-testid={`badge-type-${recruit.id}`}>
+                  {recruit.recruitType || "HS"}
+                </Badge>
+              )}
               {totalAbilities > 0 && (
                 <Badge variant="outline" className="text-[8px] border-gold/50 text-gold">
                   {isFullyRevealed ? `${totalAbilities} Abilities` : `${revealedAbilitiesCount}/${totalAbilities > revealedAbilitiesCount ? "?" : totalAbilities}`}
@@ -1837,7 +1847,7 @@ function RecruitDetailModal({
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
               <GraduationCap className="w-4 h-4" />
-              <span>{recruit.recruitType === "HS" ? "High School" : `JUCO ${recruit.recruitYear || "FR"} Transfer`}</span>
+              <span>{recruit.recruitType === "TRANSFER" ? `Transfer from ${recruit.fromTeamName || "Unknown"} (${recruit.recruitYear || "SO"})` : recruit.recruitType === "JUCO" ? `JUCO Transfer from ${recruit.fromTeamName || "Unknown"} (${recruit.recruitYear || "FR"})` : "High School"}</span>
             </div>
             <div className="flex items-center gap-2">
               <span>Bats {recruit.batHand || "R"} / Throws {recruit.throwHand || "R"}</span>

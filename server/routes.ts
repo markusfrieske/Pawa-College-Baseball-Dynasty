@@ -4555,6 +4555,7 @@ export async function registerRoutes(
               overall: player.overall ?? 500,
               starRating: player.starRating ?? 3,
               departureType: player.departureType,
+              draftRound: player.draftRound || null,
               departedSeason: league.currentSeason,
               seasonsPlayed: eligMap[player.eligibility] || 1,
               abilities: player.abilities || [],
@@ -4602,9 +4603,111 @@ export async function registerRoutes(
         await storage.updatePlayer(player.id, {
           pendingDeparture: false,
           departureType: null,
+          draftRound: null,
         });
       }
     }
+
+    // Add transfer portal players to the existing recruiting pool as TRANSFER recruits
+    const existingRecruits = await storage.getRecruitsByLeague(leagueId);
+    const existingSourceIds = new Set(existingRecruits.filter(r => r.sourcePlayerId).map(r => r.sourcePlayerId));
+    
+    const allTeamsForTransfers = await storage.getTeamsByLeague(leagueId);
+    const transfersToAdd: Array<{ player: any; teamName: string }> = [];
+    
+    for (const team of allTeamsForTransfers) {
+      const roster = await storage.getPlayersByTeam(team.id);
+      const portalPlayers = roster.filter(p => p.inTransferPortal);
+      for (const player of portalPlayers) {
+        if (!existingSourceIds.has(player.id)) {
+          transfersToAdd.push({ player, teamName: team.name });
+        }
+      }
+    }
+    
+    // Collect all OVRs for ranking after batch creation
+    const allOvrs = existingRecruits.map(r => r.overall || 0);
+    for (const { player } of transfersToAdd) {
+      allOvrs.push(player.overall || 300);
+    }
+    allOvrs.sort((a, b) => b - a);
+    
+    for (const { player, teamName } of transfersToAdd) {
+      const ovr = player.overall || 300;
+      const starRating = ovr >= 600 ? 5 : ovr >= 500 ? 4 : ovr >= 400 ? 3 : ovr >= 250 ? 2 : 1;
+      
+      const classRank = allOvrs.filter(o => o >= ovr).indexOf(ovr) + 1 || allOvrs.filter(o => o >= ovr).length;
+      const posOvrs = [...existingRecruits.filter(r => r.position === player.position).map(r => r.overall || 0), ovr].sort((a, b) => b - a);
+      const posRank = posOvrs.indexOf(ovr) + 1 || 1;
+      
+      const recruitYear = player.eligibility || "SO";
+      
+      await storage.createRecruit({
+          leagueId,
+          firstName: player.firstName,
+          lastName: player.lastName,
+          position: player.position,
+          throwHand: player.throwHand || "R",
+          batHand: player.batHand || "R",
+          homeState: player.homeState || "TX",
+          hometown: player.hometown || "Unknown",
+          starRank: starRating,
+          classRank,
+          positionRank: posRank,
+          recruitType: "TRANSFER",
+          recruitYear,
+          overall: ovr,
+          starRating,
+          hitForAvg: player.hitForAvg || 50,
+          power: player.power || 50,
+          speed: player.speed || 50,
+          arm: player.arm || 50,
+          fielding: player.fielding || 50,
+          errorResistance: player.errorResistance || 50,
+          clutch: player.clutch || 50,
+          vsLHP: player.vsLHP || 50,
+          grit: player.grit || 50,
+          stealing: player.stealing || 50,
+          running: player.running || 50,
+          throwing: player.throwing || 50,
+          recovery: player.recovery || 50,
+          catcherAbility: player.catcherAbility || 50,
+          velocity: player.velocity || 50,
+          control: player.control || 50,
+          stamina: player.stamina || 50,
+          stuff: player.stuff || 50,
+          wRISP: player.wRISP || 50,
+          vsLefty: player.vsLefty || 50,
+          poise: player.poise || 50,
+          heater: player.heater || 50,
+          agile: player.agile || 50,
+          pitchFB: player.pitchFB ?? 1,
+          pitch2S: player.pitch2S ?? 0,
+          pitchSL: player.pitchSL ?? 0,
+          pitchCB: player.pitchCB ?? 0,
+          pitchCH: player.pitchCH ?? 0,
+          pitchCT: player.pitchCT ?? 0,
+          pitchSNK: player.pitchSNK ?? 0,
+          pitchSPL: player.pitchSPL ?? 0,
+          abilities: player.abilities || [],
+          sourcePlayerId: player.id,
+          fromTeamName: teamName,
+          commitmentThreshold: 450,
+          proximityPriority: "Somewhat",
+          reputationPriority: "Very Important",
+          playingTimePriority: "Extremely Important",
+          academicsPriority: "Not Important",
+          prestigePriority: "Very Important",
+          facilitiesPriority: "Somewhat",
+          skinTone: player.skinTone || "light",
+          hairColor: player.hairColor || "brown",
+          hairStyle: player.hairStyle || "short",
+          headwear: player.headwear || "cap",
+        });
+      }
+    
+    // Regenerate top schools interest to include transfer recruits
+    await generateTopSchoolsForLeague(leagueId);
 
     const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "offseason_recruiting_1" });
 
@@ -4647,46 +4750,130 @@ export async function registerRoutes(
       return { graduated: grads.length, draftDeclared: drafts.length, transferPortal: transfers.length };
     }
     
+    // Phase 1: Collect all seniors and potential departures across ALL teams
+    const allSeniors: Array<{ player: any; team: any }> = [];
+    const allRosterPlayers: Array<{ player: any; team: any }> = [];
+    
+    for (const team of teams) {
+      const roster = await storage.getPlayersByTeam(team.id);
+      for (const player of roster) {
+        allRosterPlayers.push({ player, team });
+        if (player.eligibility === "SR") {
+          allSeniors.push({ player, team });
+        }
+      }
+    }
+    
+    // Phase 2: MLB Draft Projection - top players get drafted instead of just graduating
+    // Collect all departing players (seniors + previously declared juniors/RS)
+    const allDepartingPlayers: Array<{ player: any; team: any; isJunior: boolean }> = [];
+    
+    for (const { player, team } of allSeniors) {
+      allDepartingPlayers.push({ player, team, isJunior: false });
+    }
+    
+    // Also include juniors/RS with high enough OVR for draft consideration
+    const juniorDraftCandidates = allRosterPlayers.filter(({ player }) => 
+      (player.eligibility === "JR" || player.eligibility === "RS") && 
+      !player.declaredForDraft &&
+      (player.overall || 0) >= 400
+    );
+    for (const { player, team } of juniorDraftCandidates) {
+      allDepartingPlayers.push({ player, team, isJunior: true });
+    }
+    
+    // Previously declared draft players
+    const previouslyDeclared = allRosterPlayers.filter(({ player }) => 
+      player.declaredForDraft && player.eligibility !== "SR"
+    );
+    for (const { player, team } of previouslyDeclared) {
+      if (!allDepartingPlayers.find(d => d.player.id === player.id)) {
+        allDepartingPlayers.push({ player, team, isJunior: true });
+      }
+    }
+    
+    // Sort all departing players by OVR descending to project draft rounds
+    const sortedByOvr = [...allDepartingPlayers].sort((a, b) => (b.player.overall || 0) - (a.player.overall || 0));
+    
+    // Project 3 rounds of MLB Draft (about 90 picks for 30 teams, but we scale to league size)
+    // Each round has ~(number of teams * 2-3) picks, so roughly top 10% of all departures
+    const totalDepartures = allSeniors.length + previouslyDeclared.length;
+    const draftPicks = Math.max(6, Math.ceil(totalDepartures * 0.10)); // At least 6 picks
+    const round1Picks = Math.ceil(draftPicks / 3);
+    const round2Picks = Math.ceil(draftPicks / 3);
+    const round3Picks = draftPicks - round1Picks - round2Picks;
+    
+    // Map each top player to a draft round
+    const draftProjections = new Map<string, number>();
+    for (let i = 0; i < Math.min(sortedByOvr.length, draftPicks); i++) {
+      const round = i < round1Picks ? 1 : i < round1Picks + round2Picks ? 2 : 3;
+      draftProjections.set(sortedByOvr[i].player.id, round);
+    }
+    
+    // Phase 3: Process each team's departures
     for (const team of teams) {
       const roster = await storage.getPlayersByTeam(team.id);
       
+      // Seniors: check if they're projected to be drafted
       const seniors = roster.filter(p => p.eligibility === "SR");
       for (const senior of seniors) {
-        await storage.updatePlayer(senior.id, {
-          pendingDeparture: true,
-          departureType: "graduated",
-          retentionStatus: "none",
-        });
-        totalGraduated++;
+        const projectedRound = draftProjections.get(senior.id);
+        if (projectedRound) {
+          // Senior is projected to be drafted
+          await storage.updatePlayer(senior.id, {
+            pendingDeparture: true,
+            departureType: "draft",
+            retentionStatus: "none", // Seniors can't be retained from draft
+            draftRound: projectedRound,
+          });
+          totalDraftDeclared++;
+        } else {
+          // Regular graduation
+          await storage.updatePlayer(senior.id, {
+            pendingDeparture: true,
+            departureType: "graduated",
+            retentionStatus: "none",
+          });
+          totalGraduated++;
+        }
       }
       
-      const draftEligible = roster.filter(p => 
+      // Juniors/RS projected in first 3 rounds auto-declare for draft
+      const juniorsOnTeam = roster.filter(p => 
         (p.eligibility === "JR" || p.eligibility === "RS") && 
-        (p.overall || 0) >= 550 && 
-        !p.declaredForDraft &&
-        p.eligibility !== "SR"
+        p.eligibility !== "SR" &&
+        !p.declaredForDraft
       );
-      for (const player of draftEligible) {
-        const ask = generateDraftAsk(player.overall);
-        await storage.updatePlayer(player.id, {
-          pendingDeparture: true,
-          departureType: "draft",
-          retentionStatus: "pending",
-          draftAskMin: ask.min,
-          draftAskMax: ask.max,
-          declaredForDraft: true,
-        });
-        totalDraftDeclared++;
-        try {
-          await generateDraftDeclarationNewsArticle(
-            leagueId, `${player.firstName} ${player.lastName}`,
-            player.position, team, player.overall, player.starRating || 3, completedSeason
-          );
-        } catch (e) { console.error("Draft news error:", e); }
+      for (const player of juniorsOnTeam) {
+        const projectedRound = draftProjections.get(player.id);
+        if (projectedRound) {
+          const ask = generateDraftAsk(player.overall);
+          // Draft declarations for juniors are harder to retain: higher ask
+          const draftMultiplier = projectedRound === 1 ? 2.0 : projectedRound === 2 ? 1.5 : 1.2;
+          await storage.updatePlayer(player.id, {
+            pendingDeparture: true,
+            departureType: "draft",
+            retentionStatus: "pending",
+            draftAskMin: Math.floor(ask.min * draftMultiplier),
+            draftAskMax: Math.floor(ask.max * draftMultiplier),
+            draftRound: projectedRound,
+            declaredForDraft: true,
+          });
+          totalDraftDeclared++;
+          try {
+            await generateDraftDeclarationNewsArticle(
+              leagueId, `${player.firstName} ${player.lastName}`,
+              player.position, team, player.overall, player.starRating || 3, completedSeason
+            );
+          } catch (e) { console.error("Draft news error:", e); }
+        }
       }
       
-      const previouslyDeclared = roster.filter(p => p.declaredForDraft && p.eligibility !== "SR" && !draftEligible.find(d => d.id === p.id));
-      for (const player of previouslyDeclared) {
+      // Previously declared draft players (carried over from before)
+      const prevDeclared = roster.filter(p => p.declaredForDraft && p.eligibility !== "SR" && !juniorsOnTeam.find(j => j.id === p.id && draftProjections.has(j.id)));
+      for (const player of prevDeclared) {
+        if (player.pendingDeparture) continue; // Already processed
+        const projectedRound = draftProjections.get(player.id);
         const ask = generateDraftAsk(player.overall);
         await storage.updatePlayer(player.id, {
           pendingDeparture: true,
@@ -4694,14 +4881,18 @@ export async function registerRoutes(
           retentionStatus: "pending",
           draftAskMin: player.draftAskMin || ask.min,
           draftAskMax: player.draftAskMax || ask.max,
+          draftRound: projectedRound || null,
         });
         totalDraftDeclared++;
       }
       
+      // Transfer portal - lower-rated players
       const nonDeparting = roster.filter(p => 
         p.eligibility !== "SR" && 
         !p.declaredForDraft &&
         !p.inTransferPortal &&
+        !p.pendingDeparture &&
+        !draftProjections.has(p.id) &&
         (p.overall || 500) < 450
       );
       const portalCount = Math.max(0, Math.floor(nonDeparting.length * (0.1 + Math.random() * 0.1)));
@@ -4724,7 +4915,7 @@ export async function registerRoutes(
         } catch (e) { console.error("Transfer portal news error:", e); }
       }
       
-      const existingPortal = roster.filter(p => p.inTransferPortal && !shuffled.slice(0, portalCount).find(s => s.id === p.id));
+      const existingPortal = roster.filter(p => p.inTransferPortal && !p.pendingDeparture && !shuffled.slice(0, portalCount).find(s => s.id === p.id));
       for (const player of existingPortal) {
         await storage.updatePlayer(player.id, {
           pendingDeparture: true,
@@ -4793,13 +4984,24 @@ export async function registerRoutes(
     let totalRecruitsAdded = 0;
     let totalTransferred = 0;
     
+    // Collect unsigned transfer portal players BEFORE deleting them
+    const unsignedTransfers: Array<{ player: any; teamName: string }> = [];
+    
     for (const team of teams) {
-      // Departures (graduates, draft, transfers) already handled by processOffseasonDepartures
-      // Archive any remaining transfer portal players who weren't signed during offseason
       const roster = await storage.getPlayersByTeam(team.id);
       const remainingPortal = roster.filter(p => p.inTransferPortal);
       for (const player of remainingPortal) {
         const eligMap: Record<string, number> = { "FR": 1, "SO": 2, "JR": 3, "SR": 4, "RS": 5 };
+        
+        // Check if this player was signed as a recruit by another team
+        const recruits = await storage.getRecruitsByLeague(leagueId);
+        const wasSignedAsRecruit = recruits.some(r => r.sourcePlayerId === player.id && r.signedTeamId);
+        
+        if (!wasSignedAsRecruit) {
+          // Track unsigned transfer for JUCO or adding to next recruiting pool
+          unsignedTransfers.push({ player, teamName: team.name });
+        }
+        
         await storage.createPlayerHistory({
           leagueId,
           teamId: team.id,
@@ -4809,7 +5011,7 @@ export async function registerRoutes(
           finalEligibility: player.eligibility,
           overall: player.overall,
           starRating: player.starRating,
-          departureType: "transfer_portal",
+          departureType: wasSignedAsRecruit ? "transfer_signed" : "transfer_juco",
           departedSeason: completedSeason,
           seasonsPlayed: eligMap[player.eligibility] || 1,
           abilities: player.abilities || [],
@@ -4839,18 +5041,22 @@ export async function registerRoutes(
         }
       }
       
-      // 5. Convert signed recruits into roster players
+      // Convert signed recruits into roster players
       const recruits = await storage.getRecruitsByLeague(leagueId);
       const signedRecruits = recruits.filter(r => r.signedTeamId === team.id);
       
       for (const recruit of signedRecruits) {
         const jerseyNumber = 1 + Math.floor(Math.random() * 99);
+        // Transfer recruits keep their eligibility, HS recruits start as FR
+        const recruitElig = recruit.recruitType === "TRANSFER" ? (recruit.recruitYear || "SO") : "FR";
+        // JUCO recruits get their JUCO year
+        const finalElig = recruit.recruitType === "JUCO" ? (recruit.recruitYear || "FR") : recruitElig;
         await storage.createPlayer({
           teamId: team.id,
           firstName: recruit.firstName,
           lastName: recruit.lastName,
           position: recruit.position,
-          eligibility: "FR",
+          eligibility: finalElig,
           throwHand: recruit.throwHand || "R",
           batHand: recruit.batHand || "R",
           homeState: recruit.homeState,
@@ -4899,14 +5105,101 @@ export async function registerRoutes(
       }
     }
     
-    // 6. Clear old recruits and recruiting data, generate new class
+    // Clear old recruits and recruiting data, generate new class
     await storage.deleteRecruitsByLeague(leagueId);
     
-    // Generate new recruiting class (80 recruits)
+    // Generate new recruiting class (80 HS recruits)
     const recruitCount = 80;
     await generateRecruits(leagueId, recruitCount);
     
-    // 7. Create new standings for the next season (guard against duplicates)
+    // Add unsigned transfer portal players as JUCO recruits in the new recruiting class
+    // They "signed with JUCO" and will re-enter as JUCO recruits next season
+    for (const { player, teamName } of unsignedTransfers) {
+      // Advance their eligibility for JUCO year
+      const jucoEligMap: Record<string, string> = { "FR": "SO", "SO": "JR", "JR": "SR" };
+      const newElig = jucoEligMap[player.eligibility] || player.eligibility;
+      if (newElig === "SR") continue; // Seniors can't come back from JUCO
+      
+      // Give them a slight rating bump from JUCO development (+5-15 OVR points)
+      const jucoBoost = 5 + Math.floor(Math.random() * 11);
+      const boostedOverall = Math.min(999, (player.overall || 300) + jucoBoost);
+      
+      // Determine star rating from boosted overall
+      const starRating = boostedOverall >= 600 ? 5 : boostedOverall >= 500 ? 4 : boostedOverall >= 400 ? 3 : boostedOverall >= 250 ? 2 : 1;
+      
+      // Get all recruits to determine new rank
+      const currentRecruits = await storage.getRecruitsByLeague(leagueId);
+      const classRank = currentRecruits.filter(r => (r.overall || 0) >= boostedOverall).length + 1;
+      const posRecruits = currentRecruits.filter(r => r.position === player.position);
+      const posRank = posRecruits.filter(r => (r.overall || 0) >= boostedOverall).length + 1;
+      
+      await storage.createRecruit({
+        leagueId,
+        firstName: player.firstName,
+        lastName: player.lastName,
+        position: player.position,
+        throwHand: player.throwHand || "R",
+        batHand: player.batHand || "R",
+        homeState: player.homeState || "TX",
+        hometown: player.hometown || "Unknown",
+        starRank: starRating,
+        classRank,
+        positionRank: posRank,
+        recruitType: "JUCO",
+        recruitYear: newElig,
+        overall: boostedOverall,
+        starRating,
+        hitForAvg: player.hitForAvg || 50,
+        power: player.power || 50,
+        speed: player.speed || 50,
+        arm: player.arm || 50,
+        fielding: player.fielding || 50,
+        errorResistance: player.errorResistance || 50,
+        clutch: player.clutch || 50,
+        vsLHP: player.vsLHP || 50,
+        grit: player.grit || 50,
+        stealing: player.stealing || 50,
+        running: player.running || 50,
+        throwing: player.throwing || 50,
+        recovery: player.recovery || 50,
+        catcherAbility: player.catcherAbility || 50,
+        velocity: player.velocity || 50,
+        control: player.control || 50,
+        stamina: player.stamina || 50,
+        stuff: player.stuff || 50,
+        wRISP: player.wRISP || 50,
+        vsLefty: player.vsLefty || 50,
+        poise: player.poise || 50,
+        heater: player.heater || 50,
+        agile: player.agile || 50,
+        pitchFB: player.pitchFB ?? 1,
+        pitch2S: player.pitch2S ?? 0,
+        pitchSL: player.pitchSL ?? 0,
+        pitchCB: player.pitchCB ?? 0,
+        pitchCH: player.pitchCH ?? 0,
+        pitchCT: player.pitchCT ?? 0,
+        pitchSNK: player.pitchSNK ?? 0,
+        pitchSPL: player.pitchSPL ?? 0,
+        abilities: player.abilities || [],
+        fromTeamName: teamName,
+        skinTone: player.skinTone || "light",
+        hairColor: player.hairColor || "brown",
+        hairStyle: player.hairStyle || "short",
+        headwear: player.headwear || "cap",
+        commitmentThreshold: 400,
+        proximityPriority: "Somewhat",
+        reputationPriority: "Somewhat",
+        playingTimePriority: "Very Important",
+        academicsPriority: "Not Important",
+        prestigePriority: "Somewhat",
+        facilitiesPriority: "Somewhat",
+      });
+    }
+    
+    // Generate top schools interest for any new recruits (includes JUCO)
+    await generateTopSchoolsForLeague(leagueId);
+    
+    // Create new standings for the next season (guard against duplicates)
     const existingStandings = await storage.getStandingsByLeague(leagueId, completedSeason + 1);
     if (existingStandings.length === 0) {
       for (const team of teams) {
@@ -4918,7 +5211,7 @@ export async function registerRoutes(
       }
     }
     
-    // 8. Generate schedule for the next season
+    // Generate schedule for the next season
     await generateSchedule(leagueId, completedSeason + 1);
     
     return {
