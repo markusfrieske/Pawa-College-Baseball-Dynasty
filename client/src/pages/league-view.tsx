@@ -1168,6 +1168,9 @@ interface PostseasonGame {
   awayTeam: { name: string; abbreviation: string; primaryColor: string; secondaryColor: string };
   homeSeed?: number;
   awaySeed?: number;
+  bracketSide?: string;
+  bracketRound?: number;
+  bracketType?: string;
 }
 
 interface PostseasonData {
@@ -2228,18 +2231,21 @@ function PostseasonGameCard({ game }: { game: PostseasonGame }) {
   );
 }
 
-function BracketMatchup({ game, compact }: { game: PostseasonGame | null; compact?: boolean }) {
+function BracketMatchup({ game, label }: { game: PostseasonGame | null; label?: string }) {
   if (!game) {
     return (
-      <div className="bg-muted/20 border border-border/50 rounded" data-testid="bracket-matchup-tbd">
-        <div className="flex items-center justify-between px-2 py-1.5 text-muted-foreground">
-          <span className="text-[10px]">TBD</span>
-          <span className="text-[10px] font-pixel">-</span>
-        </div>
-        <div className="border-t border-border/30" />
-        <div className="flex items-center justify-between px-2 py-1.5 text-muted-foreground">
-          <span className="text-[10px]">TBD</span>
-          <span className="text-[10px] font-pixel">-</span>
+      <div data-testid="bracket-matchup-tbd">
+        {label && <p className="text-[7px] font-pixel text-muted-foreground/50 mb-0.5">{label}</p>}
+        <div className="bg-muted/20 border border-border/50 rounded w-full">
+          <div className="flex items-center justify-between px-2 py-1.5 text-muted-foreground">
+            <span className="text-[10px]">TBD</span>
+            <span className="text-[10px] font-pixel">-</span>
+          </div>
+          <div className="border-t border-border/30" />
+          <div className="flex items-center justify-between px-2 py-1.5 text-muted-foreground">
+            <span className="text-[10px]">TBD</span>
+            <span className="text-[10px] font-pixel">-</span>
+          </div>
         </div>
       </div>
     );
@@ -2249,132 +2255,172 @@ function BracketMatchup({ game, compact }: { game: PostseasonGame | null; compac
   const awayWon = game.isComplete && (game.awayScore ?? 0) > (game.homeScore ?? 0);
 
   return (
-    <div className={`border rounded ${game.isComplete ? "border-border" : "border-border/50"} bg-muted/30`} data-testid={`bracket-game-${game.id}`}>
-      <div className={`flex items-center justify-between gap-1 px-2 py-1.5 ${homeWon ? "bg-gold/10 text-gold font-medium" : awayWon ? "text-muted-foreground" : ""}`}>
-        <div className="flex items-center gap-1.5 min-w-0 flex-1">
-          {game.homeSeed && <span className="text-[9px] font-pixel text-gold flex-shrink-0 w-3">{game.homeSeed}</span>}
-          <span className={`${compact ? "text-[10px]" : "text-xs"} truncate`}>{game.homeTeam?.abbreviation || "TBD"}</span>
+    <div data-testid={`bracket-game-${game.id}`}>
+      {label && <p className="text-[7px] font-pixel text-muted-foreground/50 mb-0.5">{label}</p>}
+      <div className={`border rounded ${game.isComplete ? "border-border" : "border-gold/30"} bg-muted/30 w-full`}>
+        <div className={`flex items-center justify-between gap-1 px-2 py-1.5 ${homeWon ? "bg-gold/10 text-gold font-medium" : awayWon ? "text-muted-foreground" : ""}`}>
+          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+            {game.homeSeed && <span className="text-[9px] font-pixel text-gold flex-shrink-0 w-3">{game.homeSeed}</span>}
+            <span className="text-[10px] truncate">{game.homeTeam?.abbreviation || "TBD"}</span>
+          </div>
+          <span className="text-[10px] font-pixel flex-shrink-0">{game.isComplete ? game.homeScore : "-"}</span>
         </div>
-        <span className={`${compact ? "text-[10px]" : "text-xs"} font-pixel flex-shrink-0`}>{game.isComplete ? game.homeScore : ""}</span>
+        <div className="border-t border-border/30" />
+        <div className={`flex items-center justify-between gap-1 px-2 py-1.5 ${awayWon ? "bg-gold/10 text-gold font-medium" : homeWon ? "text-muted-foreground" : ""}`}>
+          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+            {game.awaySeed && <span className="text-[9px] font-pixel text-gold flex-shrink-0 w-3">{game.awaySeed}</span>}
+            <span className="text-[10px] truncate">{game.awayTeam?.abbreviation || "TBD"}</span>
+          </div>
+          <span className="text-[10px] font-pixel flex-shrink-0">{game.isComplete ? game.awayScore : "-"}</span>
+        </div>
       </div>
-      <div className="border-t border-border/30" />
-      <div className={`flex items-center justify-between gap-1 px-2 py-1.5 ${awayWon ? "bg-gold/10 text-gold font-medium" : homeWon ? "text-muted-foreground" : ""}`}>
-        <div className="flex items-center gap-1.5 min-w-0 flex-1">
-          {game.awaySeed && <span className="text-[9px] font-pixel text-gold flex-shrink-0 w-3">{game.awaySeed}</span>}
-          <span className={`${compact ? "text-[10px]" : "text-xs"} truncate`}>{game.awayTeam?.abbreviation || "TBD"}</span>
+      {!game.isComplete && (
+        <p className="text-[7px] text-center text-muted-foreground/50 mt-0.5">Upcoming</p>
+      )}
+    </div>
+  );
+}
+
+function DoubleEliminationBracketSide({ games, side, sideLabel }: { games: PostseasonGame[]; side: string; sideLabel: string }) {
+  const sideGames = games.filter(g => g.bracketSide === side);
+
+  const winnersR1 = sideGames.filter(g => g.bracketRound === 1 && g.bracketType === "winners");
+  const winnersR2 = sideGames.filter(g => g.bracketRound === 2 && g.bracketType === "winners");
+  const losersR1 = sideGames.filter(g => g.bracketRound === 1 && g.bracketType === "losers");
+  const losersR2 = sideGames.filter(g => g.bracketRound === 2 && g.bracketType === "losers");
+  const bracketFinal = sideGames.filter(g => g.bracketType === "bracket_final");
+  const ifNecessary = sideGames.filter(g => g.bracketType === "if_necessary");
+
+  const getWinnerInfo = (game: PostseasonGame) => {
+    if (!game.isComplete) return null;
+    const homeWon = (game.homeScore ?? 0) > (game.awayScore ?? 0);
+    return homeWon
+      ? { abbreviation: game.homeTeam?.abbreviation || "TBD", seed: game.homeSeed }
+      : { abbreviation: game.awayTeam?.abbreviation || "TBD", seed: game.awaySeed };
+  };
+
+  const bracketChampion = ifNecessary.length > 0 && ifNecessary[0].isComplete
+    ? getWinnerInfo(ifNecessary[0])
+    : bracketFinal.length > 0 && bracketFinal[0].isComplete
+      ? (() => {
+          const w = getWinnerInfo(bracketFinal[0]);
+          const wbChamp = winnersR2.length > 0 && winnersR2[0].isComplete ? getWinnerInfo(winnersR2[0]) : null;
+          if (w && wbChamp && w.abbreviation === wbChamp.abbreviation) return w;
+          return null;
+        })()
+      : null;
+
+  return (
+    <div className="flex-1 min-w-0" data-testid={`bracket-side-${side}`}>
+      <p className="text-[9px] font-pixel text-gold text-center mb-2 uppercase">{sideLabel}</p>
+
+      <div className="space-y-1 mb-3">
+        <p className="text-[7px] font-pixel text-muted-foreground uppercase">Winners Bracket</p>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-2">
+            {winnersR1.length > 0 ? winnersR1.map(g => (
+              <BracketMatchup key={g.id} game={g} />
+            )) : (
+              <>
+                <BracketMatchup game={null} />
+                <BracketMatchup game={null} />
+              </>
+            )}
+          </div>
+          <div className="flex items-center">
+            <BracketMatchup game={winnersR2[0] || null} label="WB Final" />
+          </div>
         </div>
-        <span className={`${compact ? "text-[10px]" : "text-xs"} font-pixel flex-shrink-0`}>{game.isComplete ? game.awayScore : ""}</span>
+      </div>
+
+      <div className="border-t border-border/30 my-2" />
+
+      <div className="space-y-1 mb-3">
+        <p className="text-[7px] font-pixel text-muted-foreground uppercase">Losers Bracket</p>
+        <div className="grid grid-cols-2 gap-2">
+          <BracketMatchup game={losersR1[0] || null} label="Elimination" />
+          <BracketMatchup game={losersR2[0] || null} label="LB Final" />
+        </div>
+      </div>
+
+      <div className="border-t border-border/30 my-2" />
+
+      <div className="space-y-1">
+        <p className="text-[7px] font-pixel text-gold uppercase">Bracket Championship</p>
+        <div className="grid grid-cols-2 gap-2">
+          <BracketMatchup game={bracketFinal[0] || null} label="Championship" />
+          {ifNecessary.length > 0 ? (
+            <BracketMatchup game={ifNecessary[0]} label="If Necessary" />
+          ) : (
+            <div className="flex items-center justify-center">
+              {bracketChampion ? (
+                <div className="bg-gold/10 border border-gold/30 rounded px-3 py-2 text-center w-full">
+                  <p className="text-[7px] font-pixel text-muted-foreground mb-1">CWS BOUND</p>
+                  <p className="text-gold font-pixel text-xs">
+                    {bracketChampion.seed && <span className="mr-1">{bracketChampion.seed}</span>}
+                    {bracketChampion.abbreviation}
+                  </p>
+                </div>
+              ) : (
+                <div className="bg-muted/20 border border-border/50 rounded px-3 py-2 text-center w-full">
+                  <p className="text-[7px] font-pixel text-muted-foreground mb-1">CWS BOUND</p>
+                  <p className="text-muted-foreground font-pixel text-[10px]">TBD</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        {ifNecessary.length > 0 && ifNecessary[0].isComplete && (
+          <div className="mt-2">
+            {(() => {
+              const champ = getWinnerInfo(ifNecessary[0]);
+              return champ ? (
+                <div className="bg-gold/10 border border-gold/30 rounded px-3 py-2 text-center">
+                  <p className="text-[7px] font-pixel text-muted-foreground mb-1">CWS BOUND</p>
+                  <p className="text-gold font-pixel text-xs">
+                    {champ.seed && <span className="mr-1">{champ.seed}</span>}
+                    {champ.abbreviation}
+                  </p>
+                </div>
+              ) : null;
+            })()}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 function PostseasonBracketView({ games }: { games: PostseasonGame[] }) {
-  const rounds: PostseasonGame[][] = [];
-  const gamesByOrder = [...games].sort((a, b) => {
-    const aIdx = games.indexOf(a);
-    const bIdx = games.indexOf(b);
-    return aIdx - bIdx;
-  });
+  const hasDoubleElim = games.some(g => g.bracketSide);
 
-  let remaining = [...gamesByOrder];
-  let expectedInRound = 4;
-  while (remaining.length > 0) {
-    const roundGames = remaining.slice(0, expectedInRound);
-    rounds.push(roundGames);
-    remaining = remaining.slice(expectedInRound);
-    expectedInRound = Math.max(1, Math.ceil(expectedInRound / 2));
-  }
-
-  if (rounds.length === 0) return null;
-
-  const firstRound = rounds[0] || [];
-  const laterRounds = rounds.slice(1);
-
-  const topHalf = firstRound.slice(0, Math.ceil(firstRound.length / 2));
-  const bottomHalf = firstRound.slice(Math.ceil(firstRound.length / 2));
-
-  const getWinner = (game: PostseasonGame): { name: string; abbreviation: string; seed?: number } | null => {
-    if (!game.isComplete) return null;
-    const homeWon = (game.homeScore ?? 0) > (game.awayScore ?? 0);
-    return homeWon
-      ? { name: game.homeTeam?.name || "TBD", abbreviation: game.homeTeam?.abbreviation || "TBD", seed: game.homeSeed }
-      : { name: game.awayTeam?.name || "TBD", abbreviation: game.awayTeam?.abbreviation || "TBD", seed: game.awaySeed };
-  };
-
-  return (
-    <div className="space-y-2" data-testid="bracket-view">
-      <div className="flex items-stretch gap-3 overflow-x-auto pb-2">
-        <div className="flex flex-col justify-around gap-4 min-w-[120px]" data-testid="bracket-round-1">
-          <p className="text-[8px] font-pixel text-muted-foreground text-center uppercase mb-1">Quarterfinals</p>
-          {topHalf.map((game, i) => (
-            <BracketMatchup key={game.id || `top-${i}`} game={game} compact />
+  if (!hasDoubleElim) {
+    return (
+      <div className="space-y-3" data-testid="bracket-view">
+        <div className="grid sm:grid-cols-2 gap-3">
+          {games.map(game => (
+            <PostseasonGameCard key={game.id} game={game} />
           ))}
-          <div className="flex-1" />
-          {bottomHalf.map((game, i) => (
-            <BracketMatchup key={game.id || `bottom-${i}`} game={game} compact />
-          ))}
-        </div>
-
-        {laterRounds.map((round, roundIdx) => {
-          const label = roundIdx === laterRounds.length - 1 ? "Final" : "Semifinals";
-          return (
-            <div key={roundIdx} className="flex flex-col justify-around gap-8 min-w-[120px]" data-testid={`bracket-round-${roundIdx + 2}`}>
-              <p className="text-[8px] font-pixel text-muted-foreground text-center uppercase mb-1">{label}</p>
-              {round.map((game, i) => (
-                <BracketMatchup key={game.id || `r${roundIdx}-${i}`} game={game} compact />
-              ))}
-              {round.length === 0 && (
-                <BracketMatchup game={null} compact />
-              )}
-            </div>
-          );
-        })}
-
-        {laterRounds.length === 0 && firstRound.length > 0 && (
-          <div className="flex flex-col justify-center gap-4 min-w-[120px]">
-            <p className="text-[8px] font-pixel text-muted-foreground text-center uppercase mb-1">Winner</p>
-            {firstRound.some(g => g.isComplete) ? (
-              <div className="bg-gold/10 border border-gold/30 rounded px-2 py-2 text-center">
-                {firstRound.filter(g => g.isComplete).map(g => {
-                  const w = getWinner(g);
-                  return w ? (
-                    <div key={g.id} className="text-gold font-pixel text-xs">
-                      {w.seed && <span className="mr-1">{w.seed}</span>}
-                      {w.abbreviation}
-                    </div>
-                  ) : null;
-                })}
-              </div>
-            ) : (
-              <BracketMatchup game={null} compact />
-            )}
-          </div>
-        )}
-
-        <div className="flex flex-col justify-center min-w-[100px]">
-          <p className="text-[8px] font-pixel text-gold text-center uppercase mb-1">CWS Bound</p>
-          <div className="bg-gold/5 border border-gold/20 rounded px-2 py-3 text-center">
-            {(() => {
-              const allComplete = games.every(g => g.isComplete);
-              if (!allComplete) return <span className="text-[10px] text-muted-foreground font-pixel">TBD</span>;
-              const lastGame = games[games.length - 1];
-              const w = lastGame ? getWinner(lastGame) : null;
-              return w ? (
-                <span className="text-gold font-pixel text-xs">
-                  {w.seed && <span className="mr-1">{w.seed}</span>}
-                  {w.abbreviation}
-                </span>
-              ) : <span className="text-[10px] text-muted-foreground font-pixel">TBD</span>;
-            })()}
-          </div>
         </div>
       </div>
+    );
+  }
 
-      <div className="grid sm:grid-cols-2 gap-3 mt-3">
-        {games.map(game => (
-          <PostseasonGameCard key={game.id} game={game} />
-        ))}
+  return (
+    <div className="space-y-4" data-testid="bracket-view">
+      <div className="flex gap-4">
+        <DoubleEliminationBracketSide games={games} side="A" sideLabel="Bracket A" />
+        <div className="w-px bg-border/50 flex-shrink-0" />
+        <DoubleEliminationBracketSide games={games} side="B" sideLabel="Bracket B" />
+      </div>
+
+      <div className="border-t border-border/30 pt-3">
+        <p className="text-[8px] font-pixel text-muted-foreground uppercase mb-2">All Games</p>
+        <div className="grid sm:grid-cols-2 gap-3">
+          {games.map(game => (
+            <PostseasonGameCard key={game.id} game={game} />
+          ))}
+        </div>
       </div>
     </div>
   );

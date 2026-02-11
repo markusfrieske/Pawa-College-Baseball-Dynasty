@@ -7,7 +7,7 @@ import bcrypt from "bcrypt";
 import { z } from "zod";
 import { randomUUID } from "crypto";
 import { getRandomAbilities } from "@shared/abilities";
-import type { Player, TransferPortalInterest } from "@shared/schema";
+import type { Player, TransferPortalInterest, Game } from "@shared/schema";
 import {
   generateGameNewsArticles,
   generateCWSChampionNewsArticle,
@@ -4182,17 +4182,41 @@ export async function registerRoutes(
     const maxBracketSize = Math.min(8, leagueTeams.length);
     const qualifiedTeams = rankedTeams.slice(0, maxBracketSize);
     
-    for (let i = 0; i < qualifiedTeams.length / 2; i++) {
-      const homeSeed = i + 1;
-      const awaySeed = qualifiedTeams.length - i;
+    // Split into two brackets: A gets seeds 1,4,5,8 and B gets seeds 2,3,6,7
+    // Bracket A Round 1: 1v8, 4v5
+    // Bracket B Round 1: 2v7, 3v6
+    if (qualifiedTeams.length >= 8) {
       await storage.createGame({
-        leagueId,
-        season,
-        week: 0,
-        homeTeamId: qualifiedTeams[i].team.id,
-        awayTeamId: qualifiedTeams[qualifiedTeams.length - 1 - i].team.id,
-        phase: "super_regionals",
+        leagueId, season, week: 0,
+        homeTeamId: qualifiedTeams[0].team.id, awayTeamId: qualifiedTeams[7].team.id,
+        phase: "super_regionals", bracketSide: "A", bracketRound: 1, bracketType: "winners",
       });
+      await storage.createGame({
+        leagueId, season, week: 0,
+        homeTeamId: qualifiedTeams[3].team.id, awayTeamId: qualifiedTeams[4].team.id,
+        phase: "super_regionals", bracketSide: "A", bracketRound: 1, bracketType: "winners",
+      });
+      await storage.createGame({
+        leagueId, season, week: 0,
+        homeTeamId: qualifiedTeams[1].team.id, awayTeamId: qualifiedTeams[6].team.id,
+        phase: "super_regionals", bracketSide: "B", bracketRound: 1, bracketType: "winners",
+      });
+      await storage.createGame({
+        leagueId, season, week: 0,
+        homeTeamId: qualifiedTeams[2].team.id, awayTeamId: qualifiedTeams[5].team.id,
+        phase: "super_regionals", bracketSide: "B", bracketRound: 1, bracketType: "winners",
+      });
+    } else {
+      // Fallback for fewer teams - simple bracket
+      for (let i = 0; i < qualifiedTeams.length / 2; i++) {
+        await storage.createGame({
+          leagueId, season, week: 0,
+          homeTeamId: qualifiedTeams[i].team.id,
+          awayTeamId: qualifiedTeams[qualifiedTeams.length - 1 - i].team.id,
+          phase: "super_regionals", bracketSide: i < qualifiedTeams.length / 4 ? "A" : "B",
+          bracketRound: 1, bracketType: "winners",
+        });
+      }
     }
   }
 
@@ -4201,8 +4225,8 @@ export async function registerRoutes(
     const allGames = await storage.getGamesByLeague(leagueId);
     const srGames = allGames.filter(g => g.phase === "super_regionals" && g.season === season);
     
+    // Simulate all incomplete games
     const incompleteGames = srGames.filter(g => !g.isComplete);
-    
     for (const game of incompleteGames) {
       const result = await simulateGame(game.homeTeamId, game.awayTeamId);
       await storage.updateGame(game.id, {
@@ -4214,64 +4238,129 @@ export async function registerRoutes(
       try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, season, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, season, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
     }
     
+    // Re-fetch all SR games after simulation
     const updatedAllGames = await storage.getGamesByLeague(leagueId);
-    const updatedSRGames = updatedAllGames.filter(g => g.phase === "super_regionals" && g.season === season && g.isComplete);
+    const updatedSRGames = updatedAllGames.filter(g => g.phase === "super_regionals" && g.season === season);
     
-    const leagueTeams = await storage.getTeamsByLeague(leagueId);
-    const standingsList = await storage.getStandingsByLeague(leagueId, season);
-    const rankedTeams = leagueTeams.map(t => {
-      const s = standingsList.find(st => st.teamId === t.id);
-      return { team: t, wins: s?.wins || 0, runsScored: s?.runsScored || 0 };
-    }).sort((a, b) => b.wins - a.wins || b.runsScored - a.runsScored);
-    const bracketSize = Math.floor(leagueTeams.length / 2);
-    const qualifiedTeamIds = rankedTeams.slice(0, bracketSize).map(t => t.team.id);
+    // Process each bracket side independently
+    const sideAChampion = await processBracketSide(leagueId, season, updatedSRGames, "A");
+    const sideBChampion = await processBracketSide(leagueId, season, updatedSRGames, "B");
     
-    if (qualifiedTeamIds.length <= 2) {
-      const lastGame = updatedSRGames[updatedSRGames.length - 1];
-      if (lastGame) {
-        const winnerId = (lastGame.homeScore ?? 0) > (lastGame.awayScore ?? 0) ? lastGame.homeTeamId : lastGame.awayTeamId;
-        const loserId = winnerId === lastGame.homeTeamId ? lastGame.awayTeamId : lastGame.homeTeamId;
-        return { done: true, champion1: winnerId, champion2: loserId };
-      }
-      return { done: true, champion1: qualifiedTeamIds[0], champion2: qualifiedTeamIds[1] };
+    // Check if both brackets have champions
+    if (sideAChampion && sideBChampion) {
+      return { done: true, champion1: sideAChampion, champion2: sideBChampion };
     }
     
-    const eliminated = new Set<string>();
-    for (const g of updatedSRGames) {
-      const loserId = (g.homeScore ?? 0) > (g.awayScore ?? 0) ? g.awayTeamId : g.homeTeamId;
-      eliminated.add(loserId);
+    // Check if there are pending games to play
+    const pendingGames = (await storage.getGamesByLeague(leagueId))
+      .filter(g => g.phase === "super_regionals" && g.season === season && !g.isComplete);
+    if (pendingGames.length > 0) {
+      return { done: false };
     }
     
-    const participated = new Set<string>();
-    for (const g of updatedSRGames) {
-      participated.add(g.homeTeamId);
-      participated.add(g.awayTeamId);
-    }
+    // If no pending games and no champions, something went wrong - force finish
+    return { done: true, champion1: sideAChampion || undefined, champion2: sideBChampion || undefined };
+  }
+
+  function getGameWinner(game: Game): string {
+    return (game.homeScore ?? 0) > (game.awayScore ?? 0) ? game.homeTeamId : game.awayTeamId;
+  }
+  
+  function getGameLoser(game: Game): string {
+    return (game.homeScore ?? 0) > (game.awayScore ?? 0) ? game.awayTeamId : game.homeTeamId;
+  }
+
+  async function processBracketSide(leagueId: string, season: number, allSRGames: Game[], side: string): Promise<string | null> {
+    const sideGames = allSRGames.filter(g => g.bracketSide === side && g.isComplete);
+    const pendingSide = allSRGames.filter(g => g.bracketSide === side && !g.isComplete);
     
-    const remainingTeams = qualifiedTeamIds.filter(id => !eliminated.has(id));
-    const byeTeams = remainingTeams.filter(id => !participated.has(id));
-    const activeWinners = remainingTeams.filter(id => participated.has(id));
+    if (pendingSide.length > 0) return null; // Still games to play
     
-    const nextRoundTeams = [...activeWinners, ...byeTeams].sort((a, b) => {
-      return qualifiedTeamIds.indexOf(a) - qualifiedTeamIds.indexOf(b);
-    });
+    // Get games by round and type
+    const winnersR1 = sideGames.filter(g => g.bracketRound === 1 && g.bracketType === "winners");
+    const winnersR2 = sideGames.filter(g => g.bracketRound === 2 && g.bracketType === "winners");
+    const losersR1 = sideGames.filter(g => g.bracketRound === 1 && g.bracketType === "losers");
+    const losersR2 = sideGames.filter(g => g.bracketRound === 2 && g.bracketType === "losers");
+    const bracketFinal = sideGames.filter(g => g.bracketType === "bracket_final");
+    const ifNecessary = sideGames.filter(g => g.bracketType === "if_necessary");
     
-    if (nextRoundTeams.length <= 2) {
-      return { done: true, champion1: nextRoundTeams[0], champion2: nextRoundTeams[1] };
-    }
+    // Round 1 Winners must be complete (2 games)
+    if (winnersR1.length < 2) return null;
     
-    for (let i = 0; i < nextRoundTeams.length / 2; i++) {
+    // Create Winners R2 (winners semis) if not exists
+    if (winnersR2.length === 0) {
+      const w1 = getGameWinner(winnersR1[0]);
+      const w2 = getGameWinner(winnersR1[1]);
       await storage.createGame({
-        leagueId,
-        season,
-        week: 0,
-        homeTeamId: nextRoundTeams[i],
-        awayTeamId: nextRoundTeams[nextRoundTeams.length - 1 - i],
-        phase: "super_regionals",
+        leagueId, season, week: 0,
+        homeTeamId: w1, awayTeamId: w2,
+        phase: "super_regionals", bracketSide: side, bracketRound: 2, bracketType: "winners",
       });
+      return null;
     }
     
-    return { done: false };
+    // Create Losers R1 (first elimination game) if not exists
+    if (losersR1.length === 0) {
+      const l1 = getGameLoser(winnersR1[0]);
+      const l2 = getGameLoser(winnersR1[1]);
+      await storage.createGame({
+        leagueId, season, week: 0,
+        homeTeamId: l1, awayTeamId: l2,
+        phase: "super_regionals", bracketSide: side, bracketRound: 1, bracketType: "losers",
+      });
+      return null;
+    }
+    
+    // Create Losers R2 (losers bracket final): Loser of Winners R2 vs Winner of Losers R1
+    if (losersR2.length === 0 && winnersR2.length > 0 && losersR1.length > 0) {
+      const wbLoser = getGameLoser(winnersR2[0]);
+      const lbWinner = getGameWinner(losersR1[0]);
+      await storage.createGame({
+        leagueId, season, week: 0,
+        homeTeamId: lbWinner, awayTeamId: wbLoser,
+        phase: "super_regionals", bracketSide: side, bracketRound: 2, bracketType: "losers",
+      });
+      return null;
+    }
+    
+    // Create Bracket Final: Winner of Winners R2 vs Winner of Losers R2
+    if (bracketFinal.length === 0 && losersR2.length > 0) {
+      const wbChamp = getGameWinner(winnersR2[0]);
+      const lbChamp = getGameWinner(losersR2[0]);
+      await storage.createGame({
+        leagueId, season, week: 0,
+        homeTeamId: wbChamp, awayTeamId: lbChamp,
+        phase: "super_regionals", bracketSide: side, bracketRound: 3, bracketType: "bracket_final",
+      });
+      return null;
+    }
+    
+    // Check bracket final result
+    if (bracketFinal.length > 0) {
+      const wbChamp = getGameWinner(winnersR2[0]);
+      const bfWinner = getGameWinner(bracketFinal[0]);
+      
+      // If winners bracket champion won the bracket final, they're the bracket champion (undefeated)
+      if (bfWinner === wbChamp) {
+        return bfWinner;
+      }
+      
+      // If losers bracket team won, we need an if-necessary game
+      if (ifNecessary.length === 0) {
+        const bfLoser = getGameLoser(bracketFinal[0]);
+        await storage.createGame({
+          leagueId, season, week: 0,
+          homeTeamId: bfWinner, awayTeamId: bfLoser,
+          phase: "super_regionals", bracketSide: side, bracketRound: 4, bracketType: "if_necessary",
+        });
+        return null;
+      }
+      
+      // If-necessary game is complete, winner is bracket champion
+      return getGameWinner(ifNecessary[0]);
+    }
+    
+    return null;
   }
 
   // ============ ADVANCE CWS (BEST OF 3) ============
@@ -4991,7 +5080,12 @@ export async function registerRoutes(
         awaySeed: rankedTeamIds.indexOf(g.awayTeamId) + 1,
       });
       
-      const enrichedSR = srGames.map(enrichGame).sort((a: any, b: any) => a.homeSeed - b.homeSeed);
+      const enrichedSR = srGames.map(enrichGame).sort((a: any, b: any) => {
+        if (a.bracketSide !== b.bracketSide) return (a.bracketSide || "A") < (b.bracketSide || "B") ? -1 : 1;
+        if (a.bracketRound !== b.bracketRound) return (a.bracketRound || 0) - (b.bracketRound || 0);
+        const typeOrder: Record<string, number> = { winners: 0, losers: 1, bracket_final: 2, if_necessary: 3 };
+        return (typeOrder[a.bracketType] ?? 0) - (typeOrder[b.bracketType] ?? 0);
+      });
       
       res.json({
         phase: league.currentPhase,

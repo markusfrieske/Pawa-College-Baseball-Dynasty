@@ -617,6 +617,9 @@ export const games = pgTable("games", {
   phase: text("phase").notNull().default("regular"),
   boxScore: text("box_score"),
   isConference: boolean("is_conference").notNull().default(false),
+  bracketSide: text("bracket_side"),
+  bracketRound: integer("bracket_round"),
+  bracketType: text("bracket_type"),
 });
 
 export const insertGameSchema = createInsertSchema(games).pick({
@@ -631,6 +634,9 @@ export const insertGameSchema = createInsertSchema(games).pick({
   phase: true,
   boxScore: true,
   isConference: true,
+  bracketSide: true,
+  bracketRound: true,
+  bracketType: true,
 });
 
 export type InsertGame = z.infer<typeof insertGameSchema>;
