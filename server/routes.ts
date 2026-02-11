@@ -6,7 +6,7 @@ import connectPgSimple from "connect-pg-simple";
 import bcrypt from "bcrypt";
 import { z } from "zod";
 import { randomUUID } from "crypto";
-import { getRandomAbilities } from "@shared/abilities";
+import { getRandomAbilities, getAbilitiesForPosition } from "@shared/abilities";
 import type { Player, TransferPortalInterest, Game } from "@shared/schema";
 import {
   generateGameNewsArticles,
@@ -7541,76 +7541,72 @@ async function generateRecruits(leagueId: string, count: number) {
   const firstNames = ["Marcus", "Tyler", "Jordan", "Chris", "Devon", "Aaron", "Ryan", "Justin", "Brandon", "Cameron", "Dylan", "Jake", "Austin", "Kyle", "Cole", "Mason", "Logan", "Ethan", "Noah", "Caleb", "Jayden", "Bryce", "Hunter", "Chase", "Trey"];
   const lastNames = ["Johnson", "Williams", "Brown", "Davis", "Miller", "Wilson", "Moore", "Taylor", "Anderson", "Thomas", "Jackson", "White", "Harris", "Martin", "Thompson", "Garcia", "Martinez", "Robinson", "Clark", "Rodriguez", "Lewis", "Walker", "Hall", "Young", "King"];
   const fieldPositions = ["C", "1B", "2B", "SS", "3B", "LF", "CF", "RF"];
-  const stateData: { state: string; cities: string[]; weight: number }[] = [
-    { state: "CA", cities: ["Los Angeles", "San Diego", "San Francisco", "Sacramento", "Fresno", "Long Beach"], weight: 10 },
-    { state: "TX", cities: ["Houston", "Dallas", "Austin", "San Antonio", "Arlington", "Lubbock"], weight: 10 },
-    { state: "FL", cities: ["Miami", "Tampa", "Orlando", "Jacksonville", "Fort Lauderdale", "Gainesville"], weight: 9 },
-    { state: "GA", cities: ["Atlanta", "Savannah", "Augusta", "Marietta", "Athens", "Macon"], weight: 7 },
-    { state: "NC", cities: ["Charlotte", "Raleigh", "Durham", "Greensboro", "Wilmington"], weight: 5 },
-    { state: "TN", cities: ["Nashville", "Memphis", "Knoxville", "Chattanooga"], weight: 4 },
-    { state: "AZ", cities: ["Phoenix", "Tucson", "Scottsdale", "Mesa"], weight: 4 },
-    { state: "LA", cities: ["New Orleans", "Baton Rouge", "Shreveport", "Lafayette"], weight: 4 },
-    { state: "AL", cities: ["Birmingham", "Tuscaloosa", "Mobile", "Huntsville"], weight: 4 },
-    { state: "SC", cities: ["Charleston", "Columbia", "Greenville", "Myrtle Beach"], weight: 4 },
-    { state: "MS", cities: ["Jackson", "Oxford", "Starkville", "Hattiesburg"], weight: 3 },
-    { state: "OK", cities: ["Oklahoma City", "Tulsa", "Norman", "Stillwater"], weight: 3 },
-    { state: "AR", cities: ["Little Rock", "Fayetteville", "Fort Smith"], weight: 3 },
-    { state: "VA", cities: ["Richmond", "Virginia Beach", "Charlottesville", "Norfolk"], weight: 3 },
-    { state: "OH", cities: ["Columbus", "Cincinnati", "Cleveland", "Dayton"], weight: 3 },
-    { state: "IL", cities: ["Chicago", "Springfield", "Champaign", "Peoria"], weight: 2 },
-    { state: "PA", cities: ["Philadelphia", "Pittsburgh", "State College", "Harrisburg"], weight: 2 },
-    { state: "NY", cities: ["New York", "Buffalo", "Syracuse", "Albany"], weight: 2 },
-    { state: "NJ", cities: ["Newark", "Trenton", "Jersey City", "Princeton"], weight: 2 },
-    { state: "MO", cities: ["St. Louis", "Kansas City", "Columbia", "Springfield"], weight: 2 },
-    { state: "IN", cities: ["Indianapolis", "Bloomington", "Fort Wayne", "South Bend"], weight: 2 },
-    { state: "MI", cities: ["Detroit", "Ann Arbor", "Grand Rapids", "Lansing"], weight: 2 },
-    { state: "KY", cities: ["Louisville", "Lexington", "Bowling Green"], weight: 2 },
-    { state: "WI", cities: ["Milwaukee", "Madison", "Green Bay"], weight: 1 },
-    { state: "MN", cities: ["Minneapolis", "St. Paul", "Rochester"], weight: 1 },
-    { state: "IA", cities: ["Des Moines", "Iowa City", "Cedar Rapids"], weight: 1 },
-    { state: "KS", cities: ["Wichita", "Lawrence", "Topeka"], weight: 1 },
-    { state: "NE", cities: ["Omaha", "Lincoln", "Grand Island"], weight: 1 },
-    { state: "CO", cities: ["Denver", "Colorado Springs", "Boulder"], weight: 1 },
-    { state: "OR", cities: ["Portland", "Eugene", "Corvallis"], weight: 1 },
-    { state: "WA", cities: ["Seattle", "Tacoma", "Spokane"], weight: 1 },
-    { state: "CT", cities: ["Hartford", "New Haven", "Stamford"], weight: 1 },
-    { state: "MA", cities: ["Boston", "Worcester", "Cambridge"], weight: 1 },
-    { state: "MD", cities: ["Baltimore", "College Park", "Annapolis"], weight: 1 },
-    { state: "NV", cities: ["Las Vegas", "Reno", "Henderson"], weight: 1 },
-    { state: "NM", cities: ["Albuquerque", "Santa Fe", "Las Cruces"], weight: 1 },
-    { state: "UT", cities: ["Salt Lake City", "Provo", "Ogden"], weight: 1 },
-    { state: "WV", cities: ["Charleston", "Morgantown", "Huntington"], weight: 1 },
-    { state: "HI", cities: ["Honolulu", "Hilo", "Pearl City"], weight: 1 },
-    { state: "ID", cities: ["Boise", "Nampa", "Idaho Falls"], weight: 1 },
-    { state: "MT", cities: ["Billings", "Missoula", "Great Falls"], weight: 1 },
-    { state: "ND", cities: ["Fargo", "Bismarck", "Grand Forks"], weight: 1 },
-    { state: "SD", cities: ["Sioux Falls", "Rapid City", "Brookings"], weight: 1 },
-    { state: "WY", cities: ["Cheyenne", "Casper", "Laramie"], weight: 1 },
-    { state: "AK", cities: ["Anchorage", "Fairbanks", "Juneau"], weight: 1 },
-    { state: "ME", cities: ["Portland", "Bangor", "Augusta"], weight: 1 },
-    { state: "NH", cities: ["Manchester", "Concord", "Nashua"], weight: 1 },
-    { state: "VT", cities: ["Burlington", "Montpelier", "Rutland"], weight: 1 },
-    { state: "DE", cities: ["Wilmington", "Dover", "Newark"], weight: 1 },
-    { state: "RI", cities: ["Providence", "Newport", "Warwick"], weight: 1 },
+  const stateData: { state: string; cities: string[]; pct: number }[] = [
+    { state: "AL", cities: ["Birmingham", "Tuscaloosa", "Mobile", "Huntsville"], pct: 1.5 },
+    { state: "AK", cities: ["Anchorage", "Fairbanks", "Juneau"], pct: 0.1 },
+    { state: "AZ", cities: ["Phoenix", "Tucson", "Scottsdale", "Mesa"], pct: 3.0 },
+    { state: "AR", cities: ["Little Rock", "Fayetteville", "Fort Smith"], pct: 1.0 },
+    { state: "CA", cities: ["Los Angeles", "San Diego", "San Francisco", "Sacramento", "Fresno", "Long Beach"], pct: 24.0 },
+    { state: "CO", cities: ["Denver", "Colorado Springs", "Boulder"], pct: 0.8 },
+    { state: "CT", cities: ["Hartford", "New Haven", "Stamford"], pct: 0.6 },
+    { state: "DE", cities: ["Wilmington", "Dover", "Newark"], pct: 0.2 },
+    { state: "FL", cities: ["Miami", "Tampa", "Orlando", "Jacksonville", "Fort Lauderdale", "Gainesville"], pct: 16.0 },
+    { state: "GA", cities: ["Atlanta", "Savannah", "Augusta", "Marietta", "Athens", "Macon"], pct: 6.5 },
+    { state: "HI", cities: ["Honolulu", "Hilo", "Pearl City"], pct: 0.3 },
+    { state: "ID", cities: ["Boise", "Nampa", "Idaho Falls"], pct: 0.2 },
+    { state: "IL", cities: ["Chicago", "Springfield", "Champaign", "Peoria"], pct: 2.5 },
+    { state: "IN", cities: ["Indianapolis", "Bloomington", "Fort Wayne", "South Bend"], pct: 1.2 },
+    { state: "IA", cities: ["Des Moines", "Iowa City", "Cedar Rapids"], pct: 0.5 },
+    { state: "KS", cities: ["Wichita", "Lawrence", "Topeka"], pct: 0.7 },
+    { state: "KY", cities: ["Louisville", "Lexington", "Bowling Green"], pct: 1.2 },
+    { state: "LA", cities: ["New Orleans", "Baton Rouge", "Shreveport", "Lafayette"], pct: 2.0 },
+    { state: "ME", cities: ["Portland", "Bangor", "Augusta"], pct: 0.1 },
+    { state: "MD", cities: ["Baltimore", "College Park", "Annapolis"], pct: 1.2 },
+    { state: "MA", cities: ["Boston", "Worcester", "Cambridge"], pct: 0.8 },
+    { state: "MI", cities: ["Detroit", "Ann Arbor", "Grand Rapids", "Lansing"], pct: 1.5 },
+    { state: "MN", cities: ["Minneapolis", "St. Paul", "Rochester"], pct: 0.8 },
+    { state: "MS", cities: ["Jackson", "Oxford", "Starkville", "Hattiesburg"], pct: 1.5 },
+    { state: "MO", cities: ["St. Louis", "Kansas City", "Columbia", "Springfield"], pct: 1.5 },
+    { state: "MT", cities: ["Billings", "Missoula", "Great Falls"], pct: 0.1 },
+    { state: "NE", cities: ["Omaha", "Lincoln", "Grand Island"], pct: 0.5 },
+    { state: "NV", cities: ["Las Vegas", "Reno", "Henderson"], pct: 0.8 },
+    { state: "NH", cities: ["Manchester", "Concord", "Nashua"], pct: 0.2 },
+    { state: "NJ", cities: ["Newark", "Trenton", "Jersey City", "Princeton"], pct: 3.0 },
+    { state: "NM", cities: ["Albuquerque", "Santa Fe", "Las Cruces"], pct: 0.4 },
+    { state: "NY", cities: ["New York", "Buffalo", "Syracuse", "Albany"], pct: 2.5 },
+    { state: "NC", cities: ["Charlotte", "Raleigh", "Durham", "Greensboro", "Wilmington"], pct: 4.0 },
+    { state: "ND", cities: ["Fargo", "Bismarck", "Grand Forks"], pct: 0.1 },
+    { state: "OH", cities: ["Columbus", "Cincinnati", "Cleveland", "Dayton"], pct: 2.5 },
+    { state: "OK", cities: ["Oklahoma City", "Tulsa", "Norman", "Stillwater"], pct: 1.5 },
+    { state: "OR", cities: ["Portland", "Eugene", "Corvallis"], pct: 1.0 },
+    { state: "PA", cities: ["Philadelphia", "Pittsburgh", "State College", "Harrisburg"], pct: 2.0 },
+    { state: "RI", cities: ["Providence", "Newport", "Warwick"], pct: 0.2 },
+    { state: "SC", cities: ["Charleston", "Columbia", "Greenville", "Myrtle Beach"], pct: 2.0 },
+    { state: "SD", cities: ["Sioux Falls", "Rapid City", "Brookings"], pct: 0.1 },
+    { state: "TN", cities: ["Nashville", "Memphis", "Knoxville", "Chattanooga"], pct: 2.0 },
+    { state: "TX", cities: ["Houston", "Dallas", "Austin", "San Antonio", "Arlington", "Lubbock"], pct: 19.0 },
+    { state: "UT", cities: ["Salt Lake City", "Provo", "Ogden"], pct: 0.8 },
+    { state: "VT", cities: ["Burlington", "Montpelier", "Rutland"], pct: 0.1 },
+    { state: "VA", cities: ["Richmond", "Virginia Beach", "Charlottesville", "Norfolk"], pct: 2.0 },
+    { state: "WA", cities: ["Seattle", "Tacoma", "Spokane"], pct: 1.2 },
+    { state: "WV", cities: ["Charleston", "Morgantown", "Huntington"], pct: 0.3 },
+    { state: "WI", cities: ["Milwaukee", "Madison", "Green Bay"], pct: 1.0 },
+    { state: "WY", cities: ["Cheyenne", "Casper", "Laramie"], pct: 0.1 },
   ];
 
-  const weightedPool: number[] = [];
-  for (let si = 0; si < stateData.length; si++) {
-    for (let w = 0; w < stateData[si].weight; w++) {
-      weightedPool.push(si);
+  const totalPct = stateData.reduce((sum, s) => sum + s.pct, 0);
+  const pickWeightedState = (): number => {
+    const roll = Math.random() * totalPct;
+    let cumulative = 0;
+    for (let i = 0; i < stateData.length; i++) {
+      cumulative += stateData[i].pct;
+      if (roll < cumulative) return i;
     }
-  }
+    return stateData.length - 1;
+  };
   const stateAssignments: number[] = [];
-  const guaranteedCount = Math.min(stateData.length, count);
-  for (let i = 0; i < guaranteedCount; i++) {
-    stateAssignments.push(i);
-  }
-  for (let i = guaranteedCount; i < count; i++) {
-    stateAssignments.push(weightedPool[Math.floor(Math.random() * weightedPool.length)]);
-  }
-  for (let i = stateAssignments.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [stateAssignments[i], stateAssignments[j]] = [stateAssignments[j], stateAssignments[i]];
+  for (let i = 0; i < count; i++) {
+    stateAssignments.push(pickWeightedState());
   }
   const priorities = ["Extremely", "Very", "Somewhat", "Not Important"];
 
@@ -7851,31 +7847,73 @@ async function generateRecruits(leagueId: string, count: number) {
     return { attr: "", boost: 0 };
   };
 
+  // Pick 1 Generational Gem (hidden among 2-3 stars) and 1 Generational Bust (hidden among 4-5 stars, not blue chip)
+  // Find eligible indices after star ranks are determined
+  const starRanks: number[] = [];
   for (let i = 0; i < count; i++) {
-    // Determine position based on pitcher ratio
+    starRanks.push(getStarRank(i, count, theme));
+  }
+  const gemCandidates = starRanks.map((sr, idx) => ({ sr, idx })).filter(x => (x.sr === 2 || x.sr === 3) && x.idx >= numBlueChips);
+  const bustCandidates = starRanks.map((sr, idx) => ({ sr, idx })).filter(x => (x.sr === 4 || x.sr === 5) && x.idx >= numBlueChips);
+  const generationalGemIdx = gemCandidates.length > 0 ? gemCandidates[Math.floor(Math.random() * gemCandidates.length)].idx : -1;
+  const generationalBustIdx = bustCandidates.length > 0 ? bustCandidates[Math.floor(Math.random() * bustCandidates.length)].idx : -1;
+
+  for (let i = 0; i < count; i++) {
     const isPitcher = Math.random() < pitcherRatio;
     const position = isPitcher ? "P" : fieldPositions[Math.floor(Math.random() * fieldPositions.length)];
     
-    const starRank = getStarRank(i, count, theme);
+    const starRank = starRanks[i];
     const stateIdx = stateAssignments[i] || 0;
     const recruitState = stateData[stateIdx];
     const recruitCity = recruitState.cities[Math.floor(Math.random() * recruitState.cities.length)];
     const isBlueChip = i < numBlueChips;
+    const isGenerationalGem = i === generationalGemIdx;
+    const isGenerationalBust = i === generationalBustIdx;
     
-    // Get gem/bust modifier based on star rank - Blue Chips can NEVER be gems/busts
-    let { isGem, isBust } = isBlueChip 
-      ? { isGem: false, isBust: false } 
-      : getGemBustModifier(theme, starRank);
+    let isGem = false;
+    let isBust = false;
+    let overall: number;
+    let abilityCount: number;
 
-    // Overall rating - gems/busts get dramatically different values than their star suggests
-    const overall = getOverallByStarRank(starRank, isBlueChip, isGem, isBust);
+    if (isGenerationalGem) {
+      isGem = true;
+      overall = 750 + Math.floor(Math.random() * 200); // 750-949, truly elite
+      abilityCount = 3; // max special abilities
+    } else if (isGenerationalBust) {
+      isBust = true;
+      overall = 50 + Math.floor(Math.random() * 101); // 50-150, terrible
+      abilityCount = 0; // no special abilities
+    } else {
+      const gemBust = isBlueChip 
+        ? { isGem: false, isBust: false } 
+        : getGemBustModifier(theme, starRank);
+      isGem = gemBust.isGem;
+      isBust = gemBust.isBust;
+      overall = getOverallByStarRank(starRank, isBlueChip, isGem, isBust);
+      abilityCount = getAbilityCount(starRank);
+    }
     
-    // Star rating displayed on the card
     const starRating = starRank;
     
-    // Generate abilities based on position and star rating
-    const abilityCount = getAbilityCount(starRank);
-    const abilities = getRandomAbilities(position, abilityCount, starRank >= 4);
+    let abilities: string[];
+    if (isGenerationalGem) {
+      const availableAbilities = getAbilitiesForPosition(position);
+      const goldAbilities = availableAbilities.filter(a => a.tier === "gold");
+      const blueAbilities = availableAbilities.filter(a => a.tier === "blue");
+      const shuffledGold = [...goldAbilities].sort(() => Math.random() - 0.5);
+      const shuffledBlue = [...blueAbilities].sort(() => Math.random() - 0.5);
+      const selected: string[] = [];
+      for (const a of shuffledGold) { if (selected.length < 2 && !selected.includes(a.name)) selected.push(a.name); }
+      for (const a of shuffledBlue) { if (selected.length < 3 && !selected.includes(a.name)) selected.push(a.name); }
+      abilities = selected;
+    } else if (isGenerationalBust) {
+      const availableAbilities = getAbilitiesForPosition(position);
+      const redAbilities = availableAbilities.filter(a => a.tier === "red");
+      const shuffledRed = [...redAbilities].sort(() => Math.random() - 0.5);
+      abilities = shuffledRed.slice(0, 2).map(a => a.name);
+    } else {
+      abilities = getRandomAbilities(position, abilityCount, starRank >= 4);
+    }
 
     // Random appearance for recruits
     const appearance = getRandomAppearance();
@@ -7892,19 +7930,94 @@ async function generateRecruits(leagueId: string, count: number) {
 
     // Apply theme boosts
     const themeBoost = getThemeBoost(theme, isPitcher);
-    let velocity = 40 + Math.floor(Math.random() * 40);
-    let power = 40 + Math.floor(Math.random() * 40);
+    let velocity: number;
+    let power: number;
+    let hitForAvg: number;
+    let speed: number;
+    let arm: number;
+    let fielding: number;
+    let errorResistance: number;
+    let control: number;
+    let stamina: number;
+    let stuff: number;
+
+    if (isGenerationalGem) {
+      hitForAvg = 85 + Math.floor(Math.random() * 15);
+      power = 85 + Math.floor(Math.random() * 15);
+      speed = 80 + Math.floor(Math.random() * 20);
+      arm = 85 + Math.floor(Math.random() * 15);
+      fielding = 85 + Math.floor(Math.random() * 15);
+      errorResistance = 80 + Math.floor(Math.random() * 20);
+      velocity = 85 + Math.floor(Math.random() * 15);
+      control = 85 + Math.floor(Math.random() * 15);
+      stamina = 80 + Math.floor(Math.random() * 20);
+      stuff = 85 + Math.floor(Math.random() * 15);
+    } else if (isGenerationalBust) {
+      hitForAvg = 15 + Math.floor(Math.random() * 25);
+      power = 15 + Math.floor(Math.random() * 25);
+      speed = 15 + Math.floor(Math.random() * 25);
+      arm = 15 + Math.floor(Math.random() * 25);
+      fielding = 15 + Math.floor(Math.random() * 25);
+      errorResistance = 15 + Math.floor(Math.random() * 25);
+      velocity = 15 + Math.floor(Math.random() * 25);
+      control = 15 + Math.floor(Math.random() * 25);
+      stamina = 15 + Math.floor(Math.random() * 25);
+      stuff = 15 + Math.floor(Math.random() * 25);
+    } else {
+      hitForAvg = 40 + Math.floor(Math.random() * 40);
+      power = 40 + Math.floor(Math.random() * 40);
+      speed = 40 + Math.floor(Math.random() * 40);
+      arm = 40 + Math.floor(Math.random() * 40);
+      fielding = 40 + Math.floor(Math.random() * 40);
+      errorResistance = 40 + Math.floor(Math.random() * 40);
+      velocity = 40 + Math.floor(Math.random() * 40);
+      control = 40 + Math.floor(Math.random() * 40);
+      stamina = 40 + Math.floor(Math.random() * 40);
+      stuff = 40 + Math.floor(Math.random() * 40);
+    }
     
     if (themeBoost.attr === "velocity") velocity = Math.min(99, velocity + themeBoost.boost);
     if (themeBoost.attr === "power") power = Math.min(99, power + themeBoost.boost);
 
-    // Generate pitch mix for pitchers
     const pitchMix = generatePitchMix(isPitcher);
     
-    // Generate common abilities based on overall rating
-    const commonAbilities = generateCommonAbilities(isPitcher, position, overall);
+    let commonAbilities: ReturnType<typeof generateCommonAbilities>;
+    if (isGenerationalGem) {
+      const genElite = () => 90 + Math.floor(Math.random() * 10); // 90-99 = S grade
+      if (isPitcher) {
+        commonAbilities = {
+          wRISP: genElite(), vsLefty: genElite(), poise: genElite(), grit: genElite(),
+          heater: genElite(), agile: genElite(), recovery: genElite(),
+          clutch: 50, vsLHP: 50, stealing: 50, running: 50, throwing: 50, catcherAbility: 50,
+        };
+      } else {
+        commonAbilities = {
+          clutch: genElite(), vsLHP: genElite(), grit: genElite(), stealing: genElite(),
+          running: genElite(), throwing: genElite(), recovery: genElite(),
+          catcherAbility: position === 'C' ? genElite() : 50,
+          wRISP: 50, vsLefty: 50, poise: 50, heater: 50, agile: 50,
+        };
+      }
+    } else if (isGenerationalBust) {
+      const genPoor = () => 10 + Math.floor(Math.random() * 20); // 10-29 = G-F grade
+      if (isPitcher) {
+        commonAbilities = {
+          wRISP: genPoor(), vsLefty: genPoor(), poise: genPoor(), grit: genPoor(),
+          heater: genPoor(), agile: genPoor(), recovery: genPoor(),
+          clutch: 50, vsLHP: 50, stealing: 50, running: 50, throwing: 50, catcherAbility: 50,
+        };
+      } else {
+        commonAbilities = {
+          clutch: genPoor(), vsLHP: genPoor(), grit: genPoor(), stealing: genPoor(),
+          running: genPoor(), throwing: genPoor(), recovery: genPoor(),
+          catcherAbility: position === 'C' ? genPoor() : 50,
+          wRISP: 50, vsLefty: 50, poise: 50, heater: 50, agile: 50,
+        };
+      }
+    } else {
+      commonAbilities = generateCommonAbilities(isPitcher, position, overall);
+    }
     
-    // Generate randomized scouting order for this recruit
     const scoutingOrder = generateScoutingOrder(isPitcher, position);
 
     await storage.createRecruit({
@@ -7916,28 +8029,24 @@ async function generateRecruits(leagueId: string, count: number) {
       hometown: recruitCity,
       starRank,
       classRank: i + 1,
-      positionRank: Math.floor(i / 9) + 1, // 9 positions
+      positionRank: Math.floor(i / 9) + 1,
       recruitType,
       recruitYear,
       overall,
       starRating,
-      hitForAvg: 40 + Math.floor(Math.random() * 40),
+      hitForAvg,
       power,
-      speed: 40 + Math.floor(Math.random() * 40),
-      arm: 40 + Math.floor(Math.random() * 40),
-      fielding: 40 + Math.floor(Math.random() * 40),
-      errorResistance: 40 + Math.floor(Math.random() * 40),
+      speed,
+      arm,
+      fielding,
+      errorResistance,
       velocity,
-      control: 40 + Math.floor(Math.random() * 40),
-      stamina: 40 + Math.floor(Math.random() * 40),
-      stuff: 40 + Math.floor(Math.random() * 40),
-      // Pitch mix
+      control,
+      stamina,
+      stuff,
       ...pitchMix,
-      // Common abilities
       ...commonAbilities,
-      // Special abilities
       abilities,
-      // Randomized scouting reveal order
       scoutingOrder,
       proximityPriority: priorities[Math.floor(Math.random() * priorities.length)],
       reputationPriority: priorities[Math.floor(Math.random() * priorities.length)],
@@ -7949,6 +8058,8 @@ async function generateRecruits(leagueId: string, count: number) {
       isBlueChip,
       isGem,
       isBust,
+      isGenerationalGem,
+      isGenerationalBust,
       skinTone: appearance.skinTone,
       hairColor: appearance.hairColor,
       hairStyle: appearance.hairStyle,

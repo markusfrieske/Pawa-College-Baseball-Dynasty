@@ -30,7 +30,8 @@ import {
   HelpCircle,
   Lock,
   Edit,
-  Pencil
+  Pencil,
+  Skull
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Recruit, RecruitingInterest, Team, League } from "@shared/schema";
@@ -373,7 +374,29 @@ export default function RecruitProfilePage() {
                   {recruit.recruitType === "JUCO" ? `JUCO ${recruit.recruitYear || "FR"}` : recruit.recruitType}
                 </Badge>
                 <Badge className={`${stage.color} text-white`}>{stage.label}</Badge>
-                {isFullyRevealed && recruit.isGem && (
+                {isFullyRevealed && (recruit as any).isGenerationalGem && (
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Badge className="text-[9px] bg-amber-500 text-black border-amber-400 no-default-hover-elevate no-default-active-elevate">
+                        <Star className="w-3.5 h-3.5 mr-0.5 fill-current" />
+                        GENERATIONAL GEM
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>Generational Talent - Once-in-a-generation player hidden in the recruiting class</TooltipContent>
+                  </Tooltip>
+                )}
+                {isFullyRevealed && (recruit as any).isGenerationalBust && (
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Badge className="text-[9px] bg-red-700 text-white border-red-600 no-default-hover-elevate no-default-active-elevate">
+                        <Skull className="w-3.5 h-3.5 mr-0.5" />
+                        GENERATIONAL BUST
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>Generational Bust - An overhyped recruit who will severely disappoint</TooltipContent>
+                  </Tooltip>
+                )}
+                {isFullyRevealed && recruit.isGem && !(recruit as any).isGenerationalGem && (
                   <Tooltip>
                     <TooltipTrigger>
                       <div className="flex items-center justify-center w-6 h-6 bg-green-500/20 rounded-full">
@@ -383,7 +406,7 @@ export default function RecruitProfilePage() {
                     <TooltipContent>Gem - Better than ranking suggests</TooltipContent>
                   </Tooltip>
                 )}
-                {isFullyRevealed && recruit.isBust && (
+                {isFullyRevealed && recruit.isBust && !(recruit as any).isGenerationalBust && (
                   <Tooltip>
                     <TooltipTrigger>
                       <div className="flex items-center justify-center w-6 h-6 bg-red-500/20 rounded-full">

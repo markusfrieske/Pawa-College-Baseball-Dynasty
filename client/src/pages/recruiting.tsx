@@ -43,7 +43,9 @@ import {
   BarChart3,
   ChevronDown,
   ChevronUp,
-  History
+  History,
+  Star,
+  Skull
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -1306,7 +1308,29 @@ function RecruitRow({
                   NEED
                 </Badge>
               )}
-              {isFullyRevealed && recruit.isGem && (
+              {isFullyRevealed && (recruit as any).isGenerationalGem && (
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Badge className="text-[8px] bg-amber-500 text-black border-amber-400 no-default-hover-elevate no-default-active-elevate">
+                      <Star className="w-3 h-3 mr-0.5 fill-current" />
+                      GENERATIONAL GEM
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>Generational Talent - Once-in-a-generation player hidden in the recruiting class</TooltipContent>
+                </Tooltip>
+              )}
+              {isFullyRevealed && (recruit as any).isGenerationalBust && (
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Badge className="text-[8px] bg-red-700 text-white border-red-600 no-default-hover-elevate no-default-active-elevate">
+                      <Skull className="w-3 h-3 mr-0.5" />
+                      GENERATIONAL BUST
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>Generational Bust - An overhyped recruit who will severely disappoint</TooltipContent>
+                </Tooltip>
+              )}
+              {isFullyRevealed && recruit.isGem && !(recruit as any).isGenerationalGem && (
                 <Tooltip>
                   <TooltipTrigger>
                     <div className="flex items-center justify-center w-5 h-5 bg-green-500/20 rounded-full">
@@ -1316,7 +1340,7 @@ function RecruitRow({
                   <TooltipContent>Gem - Better than ranking suggests</TooltipContent>
                 </Tooltip>
               )}
-              {isFullyRevealed && recruit.isBust && (
+              {isFullyRevealed && recruit.isBust && !(recruit as any).isGenerationalBust && (
                 <Tooltip>
                   <TooltipTrigger>
                     <div className="flex items-center justify-center w-5 h-5 bg-red-500/20 rounded-full">
@@ -2022,10 +2046,25 @@ function RecruitDetailModal({
                   </div>
                 )}
                 {recruit.gemBustRevealed && (
-                  <div className={`rounded p-2.5 border col-span-2 ${recruit.isGem ? "bg-green-500/10 border-green-500/30" : recruit.isBust ? "bg-red-500/10 border-red-500/30" : "bg-muted/30 border-border/50"}`}>
+                  <div className={`rounded p-2.5 border col-span-2 ${
+                    (recruit as any).isGenerationalGem ? "bg-amber-500/15 border-amber-500/40" :
+                    (recruit as any).isGenerationalBust ? "bg-red-700/15 border-red-700/40" :
+                    recruit.isGem ? "bg-green-500/10 border-green-500/30" : 
+                    recruit.isBust ? "bg-red-500/10 border-red-500/30" : "bg-muted/30 border-border/50"
+                  }`}>
                     <span className="text-[10px] text-muted-foreground block mb-1">Scout Assessment</span>
-                    <span className={`text-sm font-medium ${recruit.isGem ? "text-green-400" : recruit.isBust ? "text-red-400" : "text-foreground"}`}>
-                      {recruit.isGem ? "Hidden Gem - Better than rating suggests" : recruit.isBust ? "Potential Bust - May be overrated" : "Accurate Rating - What you see is what you get"}
+                    <span className={`text-sm font-medium ${
+                      (recruit as any).isGenerationalGem ? "text-amber-400" :
+                      (recruit as any).isGenerationalBust ? "text-red-400" :
+                      recruit.isGem ? "text-green-400" : recruit.isBust ? "text-red-400" : "text-foreground"
+                    }`}>
+                      {(recruit as any).isGenerationalGem 
+                        ? "GENERATIONAL TALENT - Once-in-a-generation player. Elite in every way."
+                        : (recruit as any).isGenerationalBust 
+                        ? "GENERATIONAL BUST - Severely overrated. A major disappointment waiting to happen."
+                        : recruit.isGem ? "Hidden Gem - Better than rating suggests" 
+                        : recruit.isBust ? "Potential Bust - May be overrated" 
+                        : "Accurate Rating - What you see is what you get"}
                     </span>
                   </div>
                 )}

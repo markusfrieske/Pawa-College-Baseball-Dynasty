@@ -409,6 +409,8 @@ export const recruits = pgTable("recruits", {
   isBlueChip: boolean("is_blue_chip").notNull().default(false),
   isGem: boolean("is_gem").notNull().default(false),
   isBust: boolean("is_bust").notNull().default(false),
+  isGenerationalGem: boolean("is_generational_gem").notNull().default(false),
+  isGenerationalBust: boolean("is_generational_bust").notNull().default(false),
   storyLockedAbilities: json("story_locked_abilities").$type<string[]>().default([]),
   personality: text("personality"), // 'leader', 'hot_head', 'coachable', 'lazy', 'clutch_gene', 'team_player', 'lone_wolf', 'grinder'
   workEthic: text("work_ethic"), // 'elite', 'high', 'average', 'low'
@@ -483,6 +485,8 @@ export const insertRecruitSchema = createInsertSchema(recruits).pick({
   isBlueChip: true,
   isGem: true,
   isBust: true,
+  isGenerationalGem: true,
+  isGenerationalBust: true,
   storyLockedAbilities: true,
   personality: true,
   workEthic: true,
