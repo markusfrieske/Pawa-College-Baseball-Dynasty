@@ -4225,41 +4225,66 @@ export async function registerRoutes(
     const allGames = await storage.getGamesByLeague(leagueId);
     const srGames = allGames.filter(g => g.phase === "super_regionals" && g.season === season);
     
-    // Simulate all incomplete games
     const incompleteGames = srGames.filter(g => !g.isComplete);
-    for (const game of incompleteGames) {
-      const result = await simulateGame(game.homeTeamId, game.awayTeamId);
-      await storage.updateGame(game.id, {
-        homeScore: result.homeScore,
-        awayScore: result.awayScore,
-        isComplete: true,
-        boxScore: result.boxScore,
-      });
-      try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, season, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, season, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
+    
+    if (incompleteGames.length > 0) {
+      // Find the earliest round among incomplete games to simulate only that round
+      const minRound = Math.min(...incompleteGames.map(g => g.bracketRound ?? 0));
+      const typeOrder: Record<string, number> = { winners: 0, losers: 1, bracket_final: 2, if_necessary: 3 };
+      const currentRoundGames = incompleteGames.filter(g => (g.bracketRound ?? 0) === minRound);
+      // Among same-round games, pick the earliest type
+      const minTypeOrder = Math.min(...currentRoundGames.map(g => typeOrder[g.bracketType ?? "winners"] ?? 0));
+      const gamesToSimulate = currentRoundGames.filter(g => (typeOrder[g.bracketType ?? "winners"] ?? 0) === minTypeOrder);
+      
+      for (const game of gamesToSimulate) {
+        const result = await simulateGame(game.homeTeamId, game.awayTeamId);
+        await storage.updateGame(game.id, {
+          homeScore: result.homeScore,
+          awayScore: result.awayScore,
+          isComplete: true,
+          boxScore: result.boxScore,
+        });
+        try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, season, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, season, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
+      }
     }
     
     // Re-fetch all SR games after simulation
     const updatedAllGames = await storage.getGamesByLeague(leagueId);
     const updatedSRGames = updatedAllGames.filter(g => g.phase === "super_regionals" && g.season === season);
     
-    // Process each bracket side independently
+    // Process each bracket side to create next-round games
     const sideAChampion = await processBracketSide(leagueId, season, updatedSRGames, "A");
     const sideBChampion = await processBracketSide(leagueId, season, updatedSRGames, "B");
     
-    // Check if both brackets have champions
     if (sideAChampion && sideBChampion) {
       return { done: true, champion1: sideAChampion, champion2: sideBChampion };
     }
     
-    // Check if there are pending games to play
+    // Check if new games were just created that need to be played next advance
     const pendingGames = (await storage.getGamesByLeague(leagueId))
       .filter(g => g.phase === "super_regionals" && g.season === season && !g.isComplete);
     if (pendingGames.length > 0) {
       return { done: false };
     }
     
-    // If no pending games and no champions, something went wrong - force finish
-    return { done: true, champion1: sideAChampion || undefined, champion2: sideBChampion || undefined };
+    // All games complete but one side may still need game creation - re-process
+    const finalAllGames = await storage.getGamesByLeague(leagueId);
+    const finalSRGames = finalAllGames.filter(g => g.phase === "super_regionals" && g.season === season);
+    const finalA = await processBracketSide(leagueId, season, finalSRGames, "A");
+    const finalB = await processBracketSide(leagueId, season, finalSRGames, "B");
+    
+    if (finalA && finalB) {
+      return { done: true, champion1: finalA, champion2: finalB };
+    }
+    
+    // New games were created by processBracketSide
+    const newPending = (await storage.getGamesByLeague(leagueId))
+      .filter(g => g.phase === "super_regionals" && g.season === season && !g.isComplete);
+    if (newPending.length > 0) {
+      return { done: false };
+    }
+    
+    return { done: true, champion1: finalA || undefined, champion2: finalB || undefined };
   }
 
   function getGameWinner(game: Game): string {
