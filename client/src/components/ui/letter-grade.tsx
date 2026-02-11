@@ -28,7 +28,7 @@ const tierColors: Record<string, string> = {
 };
 
 const commonAbilityColors: Record<string, string> = {
-  s: "bg-blue-500 text-white",
+  s: "bg-amber-500 text-black",
   a: "bg-blue-500 text-white",
   b: "bg-blue-500 text-white",
   c: "bg-sky-400 text-white",
