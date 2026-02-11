@@ -4176,42 +4176,23 @@ export async function registerRoutes(
     
     const rankedTeams = leagueTeams.map(t => {
       const s = standingsList.find(st => st.teamId === t.id);
-      return { team: t, wins: s?.wins || 0, runsScored: s?.runsScored || 0 };
-    }).sort((a, b) => b.wins - a.wins || b.runsScored - a.runsScored);
+      return { team: t, wins: s?.wins || 0, losses: s?.losses || 0, runsScored: s?.runsScored || 0 };
+    }).sort((a, b) => b.wins - a.wins || a.losses - b.losses || b.runsScored - a.runsScored);
     
-    const bracketSize = Math.floor(leagueTeams.length / 2);
-    const qualifiedTeams = rankedTeams.slice(0, bracketSize);
+    const maxBracketSize = Math.min(8, leagueTeams.length);
+    const qualifiedTeams = rankedTeams.slice(0, maxBracketSize);
     
-    const fullBracketSize = Math.pow(2, Math.floor(Math.log2(bracketSize)));
-    const numFirstRoundGames = bracketSize - fullBracketSize;
-    
-    if (numFirstRoundGames === 0) {
-      for (let i = 0; i < qualifiedTeams.length / 2; i++) {
-        await storage.createGame({
-          leagueId,
-          season,
-          week: 0,
-          homeTeamId: qualifiedTeams[i].team.id,
-          awayTeamId: qualifiedTeams[qualifiedTeams.length - 1 - i].team.id,
-          phase: "super_regionals",
-        });
-      }
-    } else {
-      const numByes = fullBracketSize - numFirstRoundGames;
-      const firstRoundTeams = qualifiedTeams.slice(numByes);
-      
-      for (let i = 0; i < firstRoundTeams.length / 2; i++) {
-        const home = firstRoundTeams[i];
-        const away = firstRoundTeams[firstRoundTeams.length - 1 - i];
-        await storage.createGame({
-          leagueId,
-          season,
-          week: 0,
-          homeTeamId: home.team.id,
-          awayTeamId: away.team.id,
-          phase: "super_regionals",
-        });
-      }
+    for (let i = 0; i < qualifiedTeams.length / 2; i++) {
+      const homeSeed = i + 1;
+      const awaySeed = qualifiedTeams.length - i;
+      await storage.createGame({
+        leagueId,
+        season,
+        week: 0,
+        homeTeamId: qualifiedTeams[i].team.id,
+        awayTeamId: qualifiedTeams[qualifiedTeams.length - 1 - i].team.id,
+        phase: "super_regionals",
+      });
     }
   }
 
@@ -4993,17 +4974,30 @@ export async function registerRoutes(
         cwsGames = allGames.filter(g => g.phase === "cws" && g.season === season);
       }
       
+      const standingsList = await storage.getStandingsByLeague(leagueId, season);
+      const rankedTeamIds = leagueTeams
+        .map(t => {
+          const s = standingsList.find(st => st.teamId === t.id);
+          return { id: t.id, wins: s?.wins || 0, losses: s?.losses || 0, runsScored: s?.runsScored || 0 };
+        })
+        .sort((a, b) => b.wins - a.wins || a.losses - b.losses || b.runsScored - a.runsScored)
+        .map(t => t.id);
+      
       const enrichGame = (g: any) => ({
         ...g,
         homeTeam: teamMap[g.homeTeamId],
         awayTeam: teamMap[g.awayTeamId],
+        homeSeed: rankedTeamIds.indexOf(g.homeTeamId) + 1,
+        awaySeed: rankedTeamIds.indexOf(g.awayTeamId) + 1,
       });
+      
+      const enrichedSR = srGames.map(enrichGame).sort((a: any, b: any) => a.homeSeed - b.homeSeed);
       
       res.json({
         phase: league.currentPhase,
         season,
         conferenceChampionships: confChampGames.map(enrichGame),
-        superRegionals: srGames.map(enrichGame),
+        superRegionals: enrichedSR,
         cws: cwsGames.map(enrichGame),
       });
     } catch (error) {
