@@ -532,6 +532,8 @@ export class DatabaseStorage implements IStorage {
       await tx.delete(storyEvents).where(eq(storyEvents.leagueId, id));
       await tx.delete(moments).where(eq(moments.leagueId, id));
 
+      await tx.delete(playerSeasonStats).where(eq(playerSeasonStats.leagueId, id));
+
       if (teamIds.length > 0) {
         await tx.delete(transferPortalInterests).where(inArray(transferPortalInterests.teamId, teamIds));
         await tx.delete(playerHistory).where(inArray(playerHistory.teamId, teamIds));
