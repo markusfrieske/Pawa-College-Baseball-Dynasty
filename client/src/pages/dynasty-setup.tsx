@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft,
   Users,
-  Mail,
+  Link as LinkIcon,
   FileUp,
   Calendar,
   Play,
@@ -21,12 +21,14 @@ import {
   Cpu,
   Settings,
   ChevronRight,
-  Send,
   Trash2,
   Eye,
   Edit,
   Plus,
+  Copy,
+  X,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -34,7 +36,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import type { Team, Coach, Conference, League } from "@shared/schema";
+import type { Team, Coach, Conference, League, LeagueInvite } from "@shared/schema";
 
 interface TeamWithCoach extends Team {
   coach: {
@@ -46,14 +48,6 @@ interface TeamWithCoach extends Team {
   user?: {
     email: string;
   };
-}
-
-interface LeagueInvite {
-  id: string;
-  email: string;
-  status: string;
-  code: string;
-  createdAt: string;
 }
 
 interface DynastySetupData {
@@ -74,18 +68,17 @@ export default function DynastySetupPage() {
   
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteLabel, setInviteLabel] = useState("");
   const [importFile, setImportFile] = useState<File | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
 
   const { data, isLoading, refetch } = useQuery<DynastySetupData>({
     queryKey: ["/api/leagues", id, "dynasty-setup"],
   });
 
-  const [lastInviteLink, setLastInviteLink] = useState("");
-
   const inviteMutation = useMutation({
-    mutationFn: async (email: string) => {
-      const res = await apiRequest("POST", `/api/leagues/${id}/invites`, { email });
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/leagues/${id}/invites`, { label: inviteLabel || undefined });
       return res.json();
     },
     onSuccess: (data: any) => {
@@ -93,13 +86,33 @@ export default function DynastySetupPage() {
       const inviteCode = data?.inviteCode || data?.invite?.inviteCode;
       if (inviteCode) {
         const link = `${window.location.origin}/invite/${inviteCode}`;
-        setLastInviteLink(link);
+        navigator.clipboard.writeText(link);
+        toast({ title: "Invite Link Created", description: "Link copied to clipboard." });
       }
-      toast({ title: "Invite created!" });
-      setInviteEmail("");
+      setInviteLabel("");
     },
     onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
   });
+
+  const revokeMutation = useMutation({
+    mutationFn: async (code: string) => {
+      const res = await apiRequest("POST", `/api/invites/${code}/revoke`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "dynasty-setup"] });
+      toast({ title: "Invite Revoked", description: "The invite link has been disabled." });
+    },
+    onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+  });
+
+  const copyInviteLink = (code: string) => {
+    const link = `${window.location.origin}/invite/${code}`;
+    navigator.clipboard.writeText(link);
+    setCopied(code);
+    setTimeout(() => setCopied(null), 2000);
+    toast({ title: "Link Copied", description: "Invite link copied to clipboard." });
+  };
 
   const startDynastyMutation = useMutation({
     mutationFn: () => apiRequest("POST", `/api/leagues/${id}/start`),
@@ -200,7 +213,7 @@ export default function DynastySetupPage() {
                     onClick={() => setShowInviteDialog(true)}
                     data-testid="button-invite-coach"
                   >
-                    <Mail className="w-3 h-3 mr-2" />
+                    <LinkIcon className="w-3 h-3 mr-2" />
                     Invite Coach
                   </RetroButton>
                 )}
@@ -335,20 +348,52 @@ export default function DynastySetupPage() {
                 {pendingInvites.length > 0 && (
                   <RetroCard variant="bordered">
                     <RetroCardHeader>
-                      <span className="font-pixel text-gold text-xs">Pending Invites</span>
+                      <div className="flex items-center justify-between gap-4">
+                        <span className="font-pixel text-gold text-xs">Active Invite Links</span>
+                        <Badge variant="outline" className="text-[8px]">{pendingInvites.length} active</Badge>
+                      </div>
                     </RetroCardHeader>
                     <RetroCardContent>
                       <div className="space-y-2">
                         {pendingInvites.map((invite) => (
                           <div
                             key={invite.id}
-                            className="flex items-center justify-between p-2 bg-background/50 border border-border rounded text-sm"
+                            className="flex items-center justify-between gap-3 p-2 bg-background/50 border border-border rounded text-sm"
                           >
-                            <div className="flex items-center gap-2">
-                              <Clock className="w-4 h-4 text-muted-foreground" />
-                              <span>{invite.email}</span>
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <LinkIcon className="w-4 h-4 text-gold shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm truncate">
+                                  {invite.label || `Invite ${invite.inviteCode.substring(0, 6)}...`}
+                                </p>
+                                <p className="text-[10px] text-muted-foreground mt-0.5">
+                                  Created: {new Date(invite.createdAt).toLocaleDateString()}
+                                </p>
+                              </div>
                             </div>
-                            <span className="text-xs text-muted-foreground">Pending</span>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <RetroButton
+                                variant="outline"
+                                size="sm"
+                                onClick={() => copyInviteLink(invite.inviteCode)}
+                                data-testid={`button-copy-invite-${invite.inviteCode}`}
+                              >
+                                {copied === invite.inviteCode ? (
+                                  <Check className="w-3 h-3 text-green-400" />
+                                ) : (
+                                  <Copy className="w-3 h-3" />
+                                )}
+                              </RetroButton>
+                              <RetroButton
+                                variant="outline"
+                                size="sm"
+                                onClick={() => revokeMutation.mutate(invite.inviteCode)}
+                                disabled={revokeMutation.isPending}
+                                data-testid={`button-revoke-invite-${invite.inviteCode}`}
+                              >
+                                <X className="w-3 h-3 text-red-400" />
+                              </RetroButton>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -366,52 +411,28 @@ export default function DynastySetupPage() {
           <DialogHeader>
             <DialogTitle className="font-pixel text-gold text-sm">Invite Coach</DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              Send an email invite to another coach to join your league.
+              Generate a shareable link that anyone can use to join your dynasty and claim an available CPU team.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <RetroInput
-              label="Email Address"
-              type="email"
-              value={inviteEmail}
-              onChange={(e) => setInviteEmail(e.target.value)}
-              placeholder="coach@email.com"
-              data-testid="input-invite-email"
-            />
-            <RetroButton
-              onClick={() => inviteMutation.mutate(inviteEmail)}
-              disabled={!inviteEmail || inviteMutation.isPending}
-              className="w-full"
-              data-testid="button-send-invite"
-            >
-              <Send className="w-4 h-4 mr-2" />
-              {inviteMutation.isPending ? "Sending..." : "Create Invite"}
-            </RetroButton>
-            {lastInviteLink && (
-              <div className="p-3 bg-background/50 border border-gold/30 rounded space-y-2">
-                <p className="text-xs text-gold font-pixel">Invite Link (share directly):</p>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    readOnly
-                    value={lastInviteLink}
-                    className="flex-1 bg-background border border-border rounded px-2 py-1 text-xs text-foreground"
-                    data-testid="input-invite-link"
-                  />
-                  <RetroButton
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      navigator.clipboard.writeText(lastInviteLink);
-                      toast({ title: "Link Copied", description: "Invite link copied to clipboard." });
-                    }}
-                    data-testid="button-copy-invite-link"
-                  >
-                    Copy
-                  </RetroButton>
-                </div>
-              </div>
-            )}
+            <div className="flex gap-3">
+              <RetroInput
+                type="text"
+                placeholder="Label (optional, e.g. 'For Mike')"
+                value={inviteLabel}
+                onChange={(e) => setInviteLabel(e.target.value)}
+                className="flex-1"
+                data-testid="input-invite-label"
+              />
+              <RetroButton
+                onClick={() => inviteMutation.mutate()}
+                disabled={inviteMutation.isPending}
+                data-testid="button-generate-invite"
+              >
+                <LinkIcon className="w-4 h-4 mr-2" />
+                {inviteMutation.isPending ? "Generating..." : "Generate Link"}
+              </RetroButton>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
