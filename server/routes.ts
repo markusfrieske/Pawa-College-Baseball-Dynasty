@@ -3446,6 +3446,10 @@ export async function registerRoutes(
       }
 
       const newPhase = league.currentPhase === "preseason" && nextWeek >= 2 ? "regular_season" : league.currentPhase;
+      if (newPhase === "regular_season" && league.currentPhase === "preseason") {
+        await storage.clearProgressionDeltasForLeague(leagueId);
+        console.log(`[Progression] Cleared progression deltas for league ${leagueId} (preseason -> regular_season)`);
+      }
       const updatedLeague = await storage.updateLeague(league.id, {
         currentWeek: nextWeek,
         currentPhase: newPhase,
@@ -3515,6 +3519,10 @@ export async function registerRoutes(
             currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "conference_championship", currentWeek: nextWeek })) as any;
           } else {
             const newPhase = phase === "preseason" && nextWeek >= 2 ? "regular_season" : phase;
+            if (newPhase === "regular_season" && phase === "preseason") {
+              await storage.clearProgressionDeltasForLeague(leagueId);
+              console.log(`[Progression] Cleared progression deltas for league ${leagueId} (preseason -> regular_season)`);
+            }
             currentLeague = (await storage.updateLeague(leagueId, { currentWeek: nextWeek, currentPhase: newPhase })) as any;
           }
           continue;
@@ -4485,6 +4493,7 @@ export async function registerRoutes(
 
         const zone = getProgressionZone(player.potential);
         const updates: Record<string, number> = {};
+        const deltas: Record<string, number> = {};
 
         for (const attr of attrFields) {
           const val = (player as any)[attr] as number | null;
@@ -4497,7 +4506,10 @@ export async function registerRoutes(
           } else {
             delta = -(1 + Math.floor(Math.random() * 3));
           }
-          updates[attr] = Math.max(1, Math.min(99, val + delta));
+          const newVal = Math.max(1, Math.min(99, val + delta));
+          updates[attr] = newVal;
+          const actualDelta = newVal - val;
+          if (actualDelta !== 0) deltas[attr] = actualDelta;
         }
 
         for (const attr of commonFields) {
@@ -4511,15 +4523,22 @@ export async function registerRoutes(
           } else {
             delta = -(1 + Math.floor(Math.random() * 2));
           }
-          updates[attr] = Math.max(1, Math.min(99, val + delta));
+          const newVal = Math.max(1, Math.min(99, val + delta));
+          updates[attr] = newVal;
+          const actualDelta = newVal - val;
+          if (actualDelta !== 0) deltas[attr] = actualDelta;
         }
 
         const attrAvg = attrFields.reduce((sum, f) => sum + ((updates[f] ?? (player as any)[f] ?? 50) as number), 0) / attrFields.length;
         const newOverall = Math.max(1, Math.min(999, Math.round(attrAvg * 10)));
         updates["overall"] = newOverall;
+        const ovrDelta = newOverall - player.overall;
+        if (ovrDelta !== 0) deltas["overall"] = ovrDelta;
 
         const starFromOverall = newOverall >= 800 ? 5 : newOverall >= 600 ? 4 : newOverall >= 400 ? 3 : newOverall >= 200 ? 2 : 1;
         updates["starRating"] = starFromOverall;
+
+        (updates as any)["progressionDeltas"] = Object.keys(deltas).length > 0 ? deltas : null;
 
         await storage.updatePlayer(player.id, updates);
         progressed++;

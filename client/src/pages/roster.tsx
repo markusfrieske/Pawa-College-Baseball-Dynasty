@@ -25,7 +25,9 @@ import {
   Edit,
   LayoutGrid,
   List,
-  GripVertical
+  GripVertical,
+  ArrowUp,
+  ArrowDown
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Player, Team, Coach, League } from "@shared/schema";
@@ -398,6 +400,11 @@ function PositionSection({ title, players, onSelectPlayer, teamPrimaryColor, pro
                 </td>
                 <td className="text-center py-3 px-2">
                   <span className="font-bold text-gold">{player.overall}</span>
+                  {player.progressionDeltas?.overall != null && player.progressionDeltas.overall !== 0 && (
+                    <span className={`inline-flex items-center ml-1 text-xs font-bold ${player.progressionDeltas.overall > 0 ? "text-green-400" : "text-red-400"}`} data-testid={`text-roster-ovr-delta-${player.id}`}>
+                      {player.progressionDeltas.overall > 0 ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
+                    </span>
+                  )}
                 </td>
                 {progressionEnabled && (
                   <td className="text-center py-3 px-2">
@@ -967,7 +974,7 @@ function DepthPlayerRow({ p, idx, position, teamPrimaryColor, draggable, onSelec
           </div>
           <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
             <span>{p.position}</span>
-            <span>OVR {p.overall}</span>
+            <span className="inline-flex items-center gap-0.5">OVR {p.overall}{p.progressionDeltas?.overall != null && p.progressionDeltas.overall !== 0 && (p.progressionDeltas.overall > 0 ? <ArrowUp className="w-2 h-2 text-green-400" /> : <ArrowDown className="w-2 h-2 text-red-400" />)}</span>
             <span className="flex items-center gap-0.5">
               {Array.from({ length: 5 }).map((_, i) => (
                 <Star

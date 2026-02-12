@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { LetterGrade, getLetterGrade } from "@/components/ui/letter-grade";
 import { PlayerPortrait } from "@/components/ui/player-portrait";
 import { PitchMixDial, generatePitchMixForDial } from "@/components/ui/pitch-mix-dial";
-import { MapPin, Star, Edit, Trophy } from "lucide-react";
+import { MapPin, Star, Edit, Trophy, ArrowUp, ArrowDown } from "lucide-react";
 import { getAbilityByName } from "@shared/abilities";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { velocityToMPH } from "@/lib/playerUtils";
@@ -58,6 +58,13 @@ interface Player {
   hairColor?: string;
   hairStyle?: string;
   declaredForDraft?: boolean;
+  progressionDeltas?: Record<string, number> | null;
+}
+
+function DeltaArrow({ delta }: { delta: number }) {
+  if (delta > 0) return <ArrowUp className="w-3 h-3 text-green-400 inline-block" />;
+  if (delta < 0) return <ArrowDown className="w-3 h-3 text-red-400 inline-block" />;
+  return null;
 }
 
 interface PlayerProfileCardProps {
@@ -102,48 +109,50 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
     RS: "Redshirt",
   };
 
+  const deltas = player.progressionDeltas;
+
   // Fielder attributes
   const fielderAttrs = [
-    { label: "Contact", value: player.hitForAvg },
-    { label: "Power", value: player.power },
-    { label: "Speed", value: player.speed },
-    { label: "Arm", value: player.arm },
-    { label: "Fielding", value: player.fielding },
-    { label: "Error Resist", value: player.errorResistance },
+    { label: "Contact", value: player.hitForAvg, delta: deltas?.hitForAvg },
+    { label: "Power", value: player.power, delta: deltas?.power },
+    { label: "Speed", value: player.speed, delta: deltas?.speed },
+    { label: "Arm", value: player.arm, delta: deltas?.arm },
+    { label: "Fielding", value: player.fielding, delta: deltas?.fielding },
+    { label: "Error Resist", value: player.errorResistance, delta: deltas?.errorResistance },
   ];
 
   // Pitcher attributes
   const pitcherAttrs = [
-    { label: "Velocity", value: player.velocity },
-    { label: "Control", value: player.control },
-    { label: "Stamina", value: player.stamina },
+    { label: "Velocity", value: player.velocity, delta: deltas?.velocity },
+    { label: "Control", value: player.control, delta: deltas?.control },
+    { label: "Stamina", value: player.stamina, delta: deltas?.stamina },
   ];
 
   // Common abilities for fielders (displayed as letter grades G-A)
-  const fielderCommonAbilities = [
-    { label: "Clutch", value: player.clutch },
-    { label: "vs LHP", value: player.vsLHP },
-    { label: "Grit", value: player.grit },
-    { label: "Stealing", value: player.stealing },
-    { label: "Running", value: player.running },
-    { label: "Throwing", value: player.throwing },
-    { label: "Recovery", value: player.recovery },
+  const fielderCommonAbilities: Array<{ label: string; value?: number | null; delta?: number }> = [
+    { label: "Clutch", value: player.clutch, delta: deltas?.clutch },
+    { label: "vs LHP", value: player.vsLHP, delta: deltas?.vsLHP },
+    { label: "Grit", value: player.grit, delta: deltas?.grit },
+    { label: "Stealing", value: player.stealing, delta: deltas?.stealing },
+    { label: "Running", value: player.running, delta: deltas?.running },
+    { label: "Throwing", value: player.throwing, delta: deltas?.throwing },
+    { label: "Recovery", value: player.recovery, delta: deltas?.recovery },
   ];
   
   // Add catcher ability only for catchers
   if (isCatcher) {
-    fielderCommonAbilities.push({ label: "Catcher", value: player.catcherAbility });
+    fielderCommonAbilities.push({ label: "Catcher", value: player.catcherAbility, delta: deltas?.catcherAbility });
   }
 
   // Common abilities for pitchers (displayed as letter grades G-A)
   const pitcherCommonAbilities = [
-    { label: "W/RISP", value: player.wRISP },
-    { label: "vs Lefty", value: player.vsLefty },
-    { label: "Poise", value: player.poise },
-    { label: "Grit", value: player.grit },
-    { label: "Heater", value: player.heater },
-    { label: "Agile", value: player.agile },
-    { label: "Recovery", value: player.recovery },
+    { label: "W/RISP", value: player.wRISP, delta: deltas?.wRISP },
+    { label: "vs Lefty", value: player.vsLefty, delta: deltas?.vsLefty },
+    { label: "Poise", value: player.poise, delta: deltas?.poise },
+    { label: "Grit", value: player.grit, delta: deltas?.grit },
+    { label: "Heater", value: player.heater, delta: deltas?.heater },
+    { label: "Agile", value: player.agile, delta: deltas?.agile },
+    { label: "Recovery", value: player.recovery, delta: deltas?.recovery },
   ];
 
   const attrs = isPitcher ? pitcherAttrs : fielderAttrs;
@@ -204,6 +213,12 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
             <div className="flex items-center gap-1 ml-auto">
               <span className="font-pixel text-gold text-lg" data-testid="text-overall">{player.overall}</span>
               <span className="text-xs">OVR</span>
+              {player.progressionDeltas?.overall != null && player.progressionDeltas.overall !== 0 && (
+                <span className={`flex items-center text-xs font-bold ${player.progressionDeltas.overall > 0 ? "text-green-400" : "text-red-400"}`} data-testid="text-ovr-delta">
+                  <DeltaArrow delta={player.progressionDeltas.overall} />
+                  {player.progressionDeltas.overall > 0 ? "+" : ""}{player.progressionDeltas.overall}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -213,7 +228,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
           <h3 className="font-pixel text-gold text-xs mb-3">ATTRIBUTES</h3>
           <div className="grid grid-cols-2 gap-2">
             {attrs.map((attr) => (
-              <AttributeRow key={attr.label} label={attr.label} value={attr.value} />
+              <AttributeRow key={attr.label} label={attr.label} value={attr.value} delta={attr.delta} />
             ))}
           </div>
           
@@ -234,7 +249,8 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
               <CommonAbilityRow 
                 key={ability.label} 
                 label={ability.label} 
-                value={ability.value} 
+                value={ability.value}
+                delta={ability.delta}
               />
             ))}
           </div>
@@ -468,7 +484,7 @@ function CareerStatsSection({ playerId, leagueId, isPitcher }: { playerId: strin
   );
 }
 
-function AttributeRow({ label, value }: { label: string; value?: number | null }) {
+function AttributeRow({ label, value, delta }: { label: string; value?: number | null; delta?: number }) {
   const displayValue = value ?? 50;
   const isVelocity = label === "Velocity";
   
@@ -483,18 +499,26 @@ function AttributeRow({ label, value }: { label: string; value?: number | null }
         >
           {isVelocity ? `${velocityToMPH(displayValue)} MPH` : displayValue}
         </span>
+        {delta != null && delta !== 0 && (
+          <DeltaArrow delta={delta} />
+        )}
       </div>
     </div>
   );
 }
 
-function CommonAbilityRow({ label, value }: { label: string; value?: number | null }) {
+function CommonAbilityRow({ label, value, delta }: { label: string; value?: number | null; delta?: number }) {
   const displayValue = value ?? 50;
   
   return (
     <div className="flex items-center justify-between p-2 bg-background/50 rounded" data-testid={`common-ability-${label.toLowerCase().replace(/\s/g, "-")}`}>
       <span className="text-sm text-muted-foreground">{label}</span>
-      <LetterGrade value={displayValue} size="sm" isCommonAbility={true} />
+      <div className="flex items-center gap-1">
+        <LetterGrade value={displayValue} size="sm" isCommonAbility={true} />
+        {delta != null && delta !== 0 && (
+          <DeltaArrow delta={delta} />
+        )}
+      </div>
     </div>
   );
 }

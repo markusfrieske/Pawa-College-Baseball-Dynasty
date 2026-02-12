@@ -29,7 +29,7 @@ import {
   type PlayerSeasonStats, type InsertPlayerSeasonStats,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, or, inArray } from "drizzle-orm";
+import { eq, and, desc, or, inArray, isNotNull, sql } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -107,6 +107,7 @@ export interface IStorage {
   
   updatePlayer(id: string, data: Partial<Player>): Promise<Player | undefined>;
   getPlayer(id: string): Promise<Player | undefined>;
+  clearProgressionDeltasForLeague(leagueId: string): Promise<number>;
   
   getTransferPortalPlayersByLeague(leagueId: string): Promise<Player[]>;
   getTransferPortalInterestsByTeam(teamId: string): Promise<TransferPortalInterest[]>;
@@ -456,6 +457,21 @@ export class DatabaseStorage implements IStorage {
   async updatePlayer(id: string, data: Partial<Player>): Promise<Player | undefined> {
     const [player] = await db.update(players).set(data).where(eq(players.id, id)).returning();
     return player || undefined;
+  }
+
+  async clearProgressionDeltasForLeague(leagueId: string): Promise<number> {
+    const leagueTeams = await this.getTeamsByLeague(leagueId);
+    const teamIds = leagueTeams.map(t => t.id);
+    if (teamIds.length === 0) return 0;
+    await db.update(players)
+      .set({ progressionDeltas: sql`NULL` } as any)
+      .where(
+        and(
+          inArray(players.teamId, teamIds),
+          isNotNull(players.progressionDeltas)
+        )
+      );
+    return teamIds.length;
   }
 
   async getTransferPortalPlayersByLeague(leagueId: string): Promise<Player[]> {
