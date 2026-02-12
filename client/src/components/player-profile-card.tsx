@@ -22,7 +22,7 @@ interface Player {
   homeState: string;
   overall: number;
   starRating: number;
-  potential?: string;
+  potential?: number | null;
   // Fielder attributes
   hitForAvg?: number | null;
   power?: number | null;

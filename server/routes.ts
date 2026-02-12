@@ -7,6 +7,7 @@ import bcrypt from "bcrypt";
 import { z } from "zod";
 import { randomUUID } from "crypto";
 import { getRandomAbilities, getAbilitiesForPosition } from "@shared/abilities";
+import { getPotentialRange, getProgressionZone } from "@shared/potential";
 import type { Player, TransferPortalInterest, Game } from "@shared/schema";
 import {
   generateGameNewsArticles,
@@ -41,6 +42,7 @@ const leagueCreateSchema = z.object({
   conferenceCount: z.number().min(2).max(4).optional(),
   selectedConferences: z.array(z.string()).min(1).max(4).optional(),
   seasonLength: z.enum(["short", "medium", "long"]).optional(),
+  progressionEnabled: z.boolean().optional(),
 });
 
 const gameScoreSchema = z.object({
@@ -241,7 +243,7 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Invalid league data" });
       }
 
-      const { name, maxTeams = 8, cpuDifficulty = "high_school", conferenceCount = 2, selectedConferences, seasonLength = "medium" } = result.data;
+      const { name, maxTeams = 8, cpuDifficulty = "high_school", conferenceCount = 2, selectedConferences, seasonLength = "medium", progressionEnabled = false } = result.data;
 
       const league = await storage.createLeague({
         name,
@@ -250,6 +252,7 @@ export async function registerRoutes(
         cpuDifficulty,
         seasonLength,
         currentPhase: "dynasty_setup",
+        progressionEnabled,
       });
 
       // Create conferences - use selected conferences or default to first N
@@ -476,13 +479,14 @@ export async function registerRoutes(
 
       await storage.updateTeam(teamId, { coachId: coach.id, isCpu: false });
 
-      // Generate players for ALL teams in the league
+      const leagueForGen = await storage.getLeague(req.params.id);
+      const progressionOn = leagueForGen?.progressionEnabled ?? false;
+
       const leagueTeams = await storage.getTeamsByLeague(req.params.id);
       for (const team of leagueTeams) {
-        // Check if team already has players
         const existingPlayers = await storage.getPlayersByTeam(team.id);
         if (existingPlayers.length === 0) {
-          await generatePlayersForTeam(team.id);
+          await generatePlayersForTeam(team.id, progressionOn);
         }
       }
 
@@ -4441,7 +4445,74 @@ export async function registerRoutes(
   }
 
   // ============ SEASON TRANSITION FUNCTION ============
-  
+
+  // ============ PLAYER PROGRESSION ============
+  async function applyPlayerProgression(leagueId: string) {
+    const league = await storage.getLeague(leagueId);
+    if (!league?.progressionEnabled) return { progressed: 0 };
+
+    const teams = await storage.getTeamsByLeague(leagueId);
+    let progressed = 0;
+
+    const attrFields = [
+      "hitForAvg", "power", "speed", "arm", "fielding", "errorResistance",
+      "velocity", "control", "stamina", "stuff",
+    ] as const;
+    const commonFields = [
+      "clutch", "vsLHP", "grit", "stealing", "running", "throwing",
+      "recovery", "wRISP", "vsLefty", "poise", "heater", "agile",
+    ] as const;
+
+    for (const team of teams) {
+      const roster = await storage.getPlayersByTeam(team.id);
+      for (const player of roster) {
+        if (player.potential == null) continue;
+
+        const zone = getProgressionZone(player.potential);
+        const updates: Record<string, number> = {};
+
+        for (const attr of attrFields) {
+          const val = (player as any)[attr] as number | null;
+          if (val == null) continue;
+          let delta = 0;
+          if (zone === "improving") {
+            delta = 1 + Math.floor(Math.random() * 4);
+          } else if (zone === "stable") {
+            delta = Math.floor(Math.random() * 3) - 1;
+          } else {
+            delta = -(1 + Math.floor(Math.random() * 3));
+          }
+          updates[attr] = Math.max(1, Math.min(99, val + delta));
+        }
+
+        for (const attr of commonFields) {
+          const val = (player as any)[attr] as number | null;
+          if (val == null) continue;
+          let delta = 0;
+          if (zone === "improving") {
+            delta = 1 + Math.floor(Math.random() * 3);
+          } else if (zone === "stable") {
+            delta = Math.floor(Math.random() * 3) - 1;
+          } else {
+            delta = -(1 + Math.floor(Math.random() * 2));
+          }
+          updates[attr] = Math.max(1, Math.min(99, val + delta));
+        }
+
+        const attrAvg = attrFields.reduce((sum, f) => sum + ((updates[f] ?? (player as any)[f] ?? 50) as number), 0) / attrFields.length;
+        const newOverall = Math.max(1, Math.min(999, Math.round(attrAvg * 10)));
+        updates["overall"] = newOverall;
+
+        const starFromOverall = newOverall >= 800 ? 5 : newOverall >= 600 ? 4 : newOverall >= 400 ? 3 : newOverall >= 200 ? 2 : 1;
+        updates["starRating"] = starFromOverall;
+
+        await storage.updatePlayer(player.id, updates);
+        progressed++;
+      }
+    }
+    return { progressed };
+  }
+
   // ============ PROMISE EVALUATION ============
   async function evaluatePlayerPromises(leagueId: string, completedSeason: number) {
     const activePromises = await storage.getActivePromisesByLeague(leagueId);
@@ -4980,6 +5051,9 @@ export async function registerRoutes(
   }
   
   async function performSeasonTransition(leagueId: string, completedSeason: number) {
+    // Apply player progression before advancing eligibility
+    const progressionResult = await applyPlayerProgression(leagueId);
+
     const teams = await storage.getTeamsByLeague(leagueId);
     let totalRecruitsAdded = 0;
     let totalTransferred = 0;
@@ -5100,6 +5174,7 @@ export async function registerRoutes(
           hairColor: recruit.hairColor || "brown",
           hairStyle: recruit.hairStyle || "short",
           headwear: recruit.headwear || "cap",
+          potential: recruit.potential ?? null,
         });
         totalRecruitsAdded++;
       }
@@ -5218,6 +5293,7 @@ export async function registerRoutes(
       transferred: totalTransferred,
       recruitsAdded: totalRecruitsAdded,
       newRecruits: recruitCount,
+      playersProgressed: progressionResult.progressed,
     };
   }
   
@@ -7538,6 +7614,8 @@ function getRandomRecruitingTheme(): RecruitingTheme {
 }
 
 async function generateRecruits(leagueId: string, count: number) {
+  const leagueForProgression = await storage.getLeague(leagueId);
+  const progressionEnabled = leagueForProgression?.progressionEnabled ?? false;
   const firstNames = ["Marcus", "Tyler", "Jordan", "Chris", "Devon", "Aaron", "Ryan", "Justin", "Brandon", "Cameron", "Dylan", "Jake", "Austin", "Kyle", "Cole", "Mason", "Logan", "Ethan", "Noah", "Caleb", "Jayden", "Bryce", "Hunter", "Chase", "Trey"];
   const lastNames = ["Johnson", "Williams", "Brown", "Davis", "Miller", "Wilson", "Moore", "Taylor", "Anderson", "Thomas", "Jackson", "White", "Harris", "Martin", "Thompson", "Garcia", "Martinez", "Robinson", "Clark", "Rodriguez", "Lewis", "Walker", "Hall", "Young", "King"];
   const fieldPositions = ["C", "1B", "2B", "SS", "3B", "LF", "CF", "RF"];
@@ -8064,10 +8142,14 @@ async function generateRecruits(leagueId: string, count: number) {
       hairColor: appearance.hairColor,
       hairStyle: appearance.hairStyle,
       headwear: appearance.headwear,
+      ...(progressionEnabled ? (() => {
+        const pot = 50 + Math.floor(Math.random() * 50);
+        const range = getPotentialRange(pot);
+        return { potential: pot, potentialFloor: range.floor, potentialCeiling: range.ceiling };
+      })() : {}),
     });
   }
   
-  // After all recruits are created, generate top schools for each
   await generateTopSchoolsForLeague(leagueId);
 }
 
@@ -8304,7 +8386,7 @@ function getRandomAppearance() {
   };
 }
 
-async function generatePlayersForTeam(teamId: string) {
+async function generatePlayersForTeam(teamId: string, progressionEnabled: boolean = false) {
   const firstNames = ["Marcus", "Tyler", "Jordan", "Chris", "Devon", "Aaron", "Ryan", "Justin", "Brandon", "Cameron", "Dylan", "Jake", "Austin", "Kyle", "Cole", "Mason", "Logan", "Ethan", "Noah", "Caleb"];
   const lastNames = ["Johnson", "Williams", "Brown", "Davis", "Miller", "Wilson", "Moore", "Taylor", "Anderson", "Thomas", "Jackson", "White", "Harris", "Martin", "Thompson", "Garcia", "Martinez", "Robinson", "Clark", "Rodriguez"];
   const fieldPositions = ["C", "1B", "2B", "SS", "3B", "LF", "CF", "RF"];
@@ -8429,9 +8511,9 @@ async function generatePlayersForTeam(teamId: string) {
       hairColor: appearance.hairColor,
       hairStyle: appearance.hairStyle,
       headwear: appearance.headwear,
-      // Generate pitch mix for pitchers
-      pitchFB: position === "P" ? 1 : 0,  // FB capped at 1 (presence indicator)
-      pitch2S: position === "P" && Math.random() < 0.5 ? 1 : 0,  // 2S capped at 1
+      potential: progressionEnabled ? (50 + Math.floor(Math.random() * 50)) : null,
+      pitchFB: position === "P" ? 1 : 0,
+      pitch2S: position === "P" && Math.random() < 0.5 ? 1 : 0,
       pitchSL: position === "P" && Math.random() < 0.6 ? 1 + Math.floor(Math.random() * 7) : 0,
       pitchCB: position === "P" && Math.random() < 0.6 ? 1 + Math.floor(Math.random() * 7) : 0,
       pitchCH: position === "P" && Math.random() < 0.5 ? 1 + Math.floor(Math.random() * 7) : 0,

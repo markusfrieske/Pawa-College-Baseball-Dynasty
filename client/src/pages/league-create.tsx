@@ -7,8 +7,9 @@ import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/re
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Star, ArrowLeft } from "lucide-react";
+import { Star, ArrowLeft, TrendingUp } from "lucide-react";
 import { Link } from "wouter";
+import { Switch } from "@/components/ui/switch";
 
 const difficultyOptions = [
   { value: "beginner", label: "Beginner - Easy, relaxed pace" },
@@ -40,6 +41,7 @@ export default function LeagueCreatePage() {
   const [cpuDifficulty, setCpuDifficulty] = useState("high_school");
   const [selectedConferences, setSelectedConferences] = useState<string[]>(["SEC", "ACC"]);
   const [seasonLength, setSeasonLength] = useState("medium");
+  const [progressionEnabled, setProgressionEnabled] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -91,6 +93,7 @@ export default function LeagueCreatePage() {
       cpuDifficulty: string;
       selectedConferences: string[];
       seasonLength: string;
+      progressionEnabled: boolean;
     }) => {
       return apiRequest("POST", "/api/leagues", data);
     },
@@ -136,6 +139,7 @@ export default function LeagueCreatePage() {
       cpuDifficulty,
       selectedConferences,
       seasonLength,
+      progressionEnabled,
     });
   };
 
@@ -227,6 +231,37 @@ export default function LeagueCreatePage() {
                 onChange={(e) => setCpuDifficulty(e.target.value)}
                 data-testid="select-difficulty"
               />
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 rounded border border-border bg-background/50">
+                  <div className="flex items-center gap-3">
+                    <TrendingUp className="w-4 h-4 text-gold" />
+                    <div>
+                      <label htmlFor="progression-toggle" className="text-sm font-medium text-foreground cursor-pointer">
+                        Player Progression
+                      </label>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Players gain or lose attributes each season based on their potential grade
+                      </p>
+                    </div>
+                  </div>
+                  <Switch
+                    id="progression-toggle"
+                    checked={progressionEnabled}
+                    onCheckedChange={setProgressionEnabled}
+                    data-testid="switch-progression"
+                  />
+                </div>
+                {progressionEnabled && (
+                  <div className="p-3 rounded border border-gold/20 bg-gold/5 text-xs text-muted-foreground space-y-1">
+                    <p className="text-gold font-medium">Potential Grades: F to A+</p>
+                    <p>B- and above: Players improve each season</p>
+                    <p>C- to C+: Players stay stable</p>
+                    <p>D+ and below: Players decline each season</p>
+                    <p className="mt-1">Recruit potential is scouted as a 2-grade range. The exact grade is revealed when they join your roster.</p>
+                  </div>
+                )}
+              </div>
 
               <div className="pt-4">
                 <RetroButton

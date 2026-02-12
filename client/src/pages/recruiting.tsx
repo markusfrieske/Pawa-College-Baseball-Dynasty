@@ -12,6 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { getPotentialRangeLabel } from "@shared/potential";
 import { 
   ArrowLeft, 
   Target, 
@@ -241,7 +242,7 @@ export default function RecruitingPage() {
     queryKey: ["/api/leagues", id, "recruiting", "trends"],
   });
 
-  const { data: leagueData } = useQuery<{ id: string; currentWeek: number; currentSeason: number }>({
+  const { data: leagueData } = useQuery<{ id: string; currentWeek: number; currentSeason: number; progressionEnabled?: boolean }>({
     queryKey: ["/api/leagues", id],
   });
 
@@ -907,6 +908,7 @@ export default function RecruitingPage() {
               positionNeed={pipelineData?.positionNeeds?.find(p => p.position === recruit.position)?.need}
               outOfRecruitingActions={(data?.remainingActions ?? 1) <= 0}
               outOfScoutActions={(data?.remainingScoutActions ?? 1) <= 0}
+              progressionEnabled={leagueData?.progressionEnabled}
             />
           ))}
         </div>
@@ -1128,6 +1130,7 @@ function RecruitRow({
   positionNeed,
   outOfRecruitingActions,
   outOfScoutActions,
+  progressionEnabled,
 }: {
   recruit: RecruitWithInterest;
   leagueId: string;
@@ -1154,6 +1157,7 @@ function RecruitRow({
   positionNeed?: boolean;
   outOfRecruitingActions?: boolean;
   outOfScoutActions?: boolean;
+  progressionEnabled?: boolean;
 }) {
   const [showNotesDialog, setShowNotesDialog] = useState(false);
   const [notesValue, setNotesValue] = useState(recruit.interest?.notes || "");
@@ -1383,6 +1387,14 @@ function RecruitRow({
             </p>
             <p className="text-[10px] text-muted-foreground">{recruit.position}</p>
           </div>
+          {progressionEnabled && recruit.potentialFloor != null && recruit.potentialCeiling != null && scoutPct >= 50 && (
+            <div className="text-center min-w-[50px]">
+              <p className="font-bold text-sm text-amber-400">
+                {getPotentialRangeLabel(recruit.potentialFloor, recruit.potentialCeiling)}
+              </p>
+              <p className="text-[10px] text-muted-foreground">POT</p>
+            </div>
+          )}
         </div>
 
         {isSigned ? (

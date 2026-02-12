@@ -33,6 +33,7 @@ export const leagues = pgTable("leagues", {
   currentPhase: text("current_phase").notNull().default("preseason"),
   currentWeek: integer("current_week").notNull().default(1),
   auditLogPublic: boolean("audit_log_public").notNull().default(true),
+  progressionEnabled: boolean("progression_enabled").notNull().default(false),
 });
 
 export const insertLeagueSchema = createInsertSchema(leagues).pick({
@@ -42,6 +43,7 @@ export const insertLeagueSchema = createInsertSchema(leagues).pick({
   cpuDifficulty: true,
   seasonLength: true,
   currentPhase: true,
+  progressionEnabled: true,
 });
 
 export type InsertLeague = z.infer<typeof insertLeagueSchema>;
@@ -270,6 +272,7 @@ export const players = pgTable("players", {
   hairColor: text("hair_color").notNull().default("brown"),
   hairStyle: text("hair_style").notNull().default("short"),
   headwear: text("headwear").notNull().default("cap"),
+  potential: integer("potential"),
   depthOrder: integer("depth_order").notNull().default(0),
 });
 
@@ -335,6 +338,7 @@ export const insertPlayerSchema = createInsertSchema(players).pick({
   hairColor: true,
   hairStyle: true,
   headwear: true,
+  potential: true,
   depthOrder: true,
 });
 
@@ -421,6 +425,9 @@ export const recruits = pgTable("recruits", {
   hairColor: text("hair_color").notNull().default("brown"),
   hairStyle: text("hair_style").notNull().default("short"),
   headwear: text("headwear").notNull().default("cap"),
+  potential: integer("potential"),
+  potentialFloor: integer("potential_floor"),
+  potentialCeiling: integer("potential_ceiling"),
 });
 
 export const insertRecruitSchema = createInsertSchema(recruits).pick({
@@ -497,6 +504,9 @@ export const insertRecruitSchema = createInsertSchema(recruits).pick({
   hairColor: true,
   hairStyle: true,
   headwear: true,
+  potential: true,
+  potentialFloor: true,
+  potentialCeiling: true,
 });
 
 export type InsertRecruit = z.infer<typeof insertRecruitSchema>;

@@ -53,6 +53,7 @@ function getInterestChangeLabel(change: number): { label: string; color: string 
 }
 import { isPitcher as checkIsPitcher, isCatcher as checkIsCatcher } from "@shared/positions";
 import { getAbilityByName } from "@shared/abilities";
+import { getPotentialRangeLabel, getPotentialGrade, getProgressionZone, getProgressionColor } from "@shared/potential";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { velocityToMPH } from "@/lib/playerUtils";
@@ -608,6 +609,24 @@ export default function RecruitProfilePage() {
                       <p className="font-bold">{recruit.batHand || "R"}</p>
                     </div>
                   </div>
+                  {leagueData?.league?.progressionEnabled && recruit.potentialFloor != null && recruit.potentialCeiling != null && scoutPct >= 50 && (
+                    <div className="mt-4 pt-4 border-t border-border">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <HelpCircle className="w-3 h-3" />
+                            </TooltipTrigger>
+                            <TooltipContent>Potential determines how a player's attributes will change each season. Higher potential means improvement, lower means decline.</TooltipContent>
+                          </Tooltip>
+                          Potential
+                        </p>
+                        <p className="font-bold text-sm">
+                          {getPotentialRangeLabel(recruit.potentialFloor, recruit.potentialCeiling)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
                   <div className="mt-4 pt-4 border-t border-border">
                     <div className="flex justify-between text-xs text-muted-foreground mb-1">

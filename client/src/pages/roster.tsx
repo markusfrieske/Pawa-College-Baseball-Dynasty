@@ -30,6 +30,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Player, Team, Coach, League } from "@shared/schema";
 import { isPitcher, isCatcher, isInfielder, isOutfielder } from "@shared/positions";
+import { getPotentialGrade, getProgressionZone, getProgressionColor } from "@shared/potential";
 
 interface RosterData {
   players: Player[];
@@ -80,7 +81,7 @@ export default function RosterPage() {
     queryKey: [rosterUrl],
   });
   
-  const { data: leagueData } = useQuery<{ teams: LeagueTeam[]; league?: League }>({
+  const { data: leagueData } = useQuery<{ teams: LeagueTeam[]; league?: League; progressionEnabled?: boolean }>({
     queryKey: ["/api/leagues", id],
   });
 
@@ -244,24 +245,28 @@ export default function RosterPage() {
               players={grouped.pitchers} 
               onSelectPlayer={setSelectedPlayer}
               teamPrimaryColor={data?.team?.primaryColor}
+              progressionEnabled={leagueData?.progressionEnabled}
             />
             <PositionSection 
               title="Catchers" 
               players={grouped.catchers} 
               onSelectPlayer={setSelectedPlayer}
               teamPrimaryColor={data?.team?.primaryColor}
+              progressionEnabled={leagueData?.progressionEnabled}
             />
             <PositionSection 
               title="Infielders" 
               players={grouped.infielders} 
               onSelectPlayer={setSelectedPlayer}
               teamPrimaryColor={data?.team?.primaryColor}
+              progressionEnabled={leagueData?.progressionEnabled}
             />
             <PositionSection 
               title="Outfielders" 
               players={grouped.outfielders} 
               onSelectPlayer={setSelectedPlayer}
               teamPrimaryColor={data?.team?.primaryColor}
+              progressionEnabled={leagueData?.progressionEnabled}
             />
           </>
         ) : (
@@ -270,6 +275,7 @@ export default function RosterPage() {
             players={allSorted} 
             onSelectPlayer={setSelectedPlayer}
             teamPrimaryColor={data?.team?.primaryColor}
+            progressionEnabled={leagueData?.progressionEnabled}
           />
         )}
 
@@ -324,9 +330,10 @@ interface PositionSectionProps {
   players: Player[];
   onSelectPlayer: (player: Player) => void;
   teamPrimaryColor?: string;
+  progressionEnabled?: boolean;
 }
 
-function PositionSection({ title, players, onSelectPlayer, teamPrimaryColor }: PositionSectionProps) {
+function PositionSection({ title, players, onSelectPlayer, teamPrimaryColor, progressionEnabled }: PositionSectionProps) {
   if (players.length === 0) return null;
 
   return (
@@ -348,6 +355,9 @@ function PositionSection({ title, players, onSelectPlayer, teamPrimaryColor }: P
               <th className="text-center py-3 px-2">
                 <Star className="w-3 h-3 inline text-gold" />
               </th>
+              {progressionEnabled && (
+                <th className="text-center py-3 px-2">POT</th>
+              )}
               <th className="text-left py-3 px-2 hidden lg:table-cell">Hometown</th>
             </tr>
           </thead>
@@ -389,6 +399,16 @@ function PositionSection({ title, players, onSelectPlayer, teamPrimaryColor }: P
                 <td className="text-center py-3 px-2">
                   <span className="font-bold text-gold">{player.overall}</span>
                 </td>
+                {progressionEnabled && (
+                  <td className="text-center py-3 px-2">
+                    {player.potential != null ? (() => {
+                      const grade = getPotentialGrade(player.potential);
+                      const zone = getProgressionZone(player.potential);
+                      const color = getProgressionColor(zone);
+                      return <span className={`font-bold ${color}`}>{grade}</span>;
+                    })() : <span className="text-muted-foreground">—</span>}
+                  </td>
+                )}
                 <td className="py-3 px-2 text-muted-foreground hidden lg:table-cell">
                   {player.hometown}, {player.homeState}
                 </td>
