@@ -4313,8 +4313,23 @@ export async function registerRoutes(
     const bracketFinal = sideGames.filter(g => g.bracketType === "bracket_final");
     const ifNecessary = sideGames.filter(g => g.bracketType === "if_necessary");
     
-    // Round 1 Winners must be complete (2 games)
-    if (winnersR1.length < 2) return null;
+    // If only 1 game in winners R1 (small bracket side), the winner is the side champion
+    if (winnersR1.length === 1 && winnersR1.length === sideGames.length) {
+      return getGameWinner(winnersR1[0]);
+    }
+    
+    // If bracket has 0 winners R1 games, no champion can be determined
+    if (winnersR1.length === 0) return null;
+    
+    // If only 1 R1 game but other games exist (shouldn't happen but guard against it)
+    if (winnersR1.length === 1) {
+      // Check if all side games are complete and we have a bracket final winner
+      if (bracketFinal.length > 0) return getGameWinner(bracketFinal[0]);
+      if (ifNecessary.length > 0) return getGameWinner(ifNecessary[0]);
+      return getGameWinner(winnersR1[0]);
+    }
+    
+    // Round 1 Winners must be complete (2+ games) for full double-elimination
     
     // Create Winners R2 (winners semis) if not exists
     if (winnersR2.length === 0) {
@@ -5061,6 +5076,49 @@ export async function registerRoutes(
     // Collect unsigned transfer portal players BEFORE deleting them
     const unsignedTransfers: Array<{ player: any; teamName: string }> = [];
     
+    // Pre-pass: Auto-sign recruits for CPU teams that are under-rostered (round-robin for fairness)
+    const MIN_ROSTER = 20;
+    const cpuTeamsNeedingRecruits: Array<{ team: typeof teams[0]; needed: number; positionCounts: Record<string, number> }> = [];
+    const allRecruitsPreCheck = await storage.getRecruitsByLeague(leagueId);
+    
+    for (const team of teams) {
+      if (!team.isCpu) continue;
+      const currentRoster = await storage.getPlayersByTeam(team.id);
+      const alreadySignedCount = allRecruitsPreCheck.filter(r => r.signedTeamId === team.id).length;
+      const projectedSize = currentRoster.length + alreadySignedCount;
+      if (projectedSize < MIN_ROSTER) {
+        const positionCounts: Record<string, number> = {};
+        for (const p of currentRoster) positionCounts[p.position] = (positionCounts[p.position] || 0) + 1;
+        cpuTeamsNeedingRecruits.push({ team, needed: MIN_ROSTER - projectedSize, positionCounts });
+      }
+    }
+    
+    if (cpuTeamsNeedingRecruits.length > 0) {
+      const unsignedPool = allRecruitsPreCheck.filter(r => !r.signedTeamId);
+      const claimed = new Set<string>();
+      let anyAssigned = true;
+      while (anyAssigned) {
+        anyAssigned = false;
+        for (const entry of cpuTeamsNeedingRecruits) {
+          if (entry.needed <= 0) continue;
+          const available = unsignedPool.filter(r => !claimed.has(r.id));
+          if (available.length === 0) break;
+          const best = available.sort((a, b) => {
+            const aNeed = (entry.positionCounts[a.position] || 0) < 2 ? 10 : 0;
+            const bNeed = (entry.positionCounts[b.position] || 0) < 2 ? 10 : 0;
+            return (bNeed + (b.overall || 0)) - (aNeed + (a.overall || 0));
+          })[0];
+          if (best) {
+            await storage.updateRecruit(best.id, { signedTeamId: entry.team.id });
+            claimed.add(best.id);
+            entry.positionCounts[best.position] = (entry.positionCounts[best.position] || 0) + 1;
+            entry.needed--;
+            anyAssigned = true;
+          }
+        }
+      }
+    }
+
     for (const team of teams) {
       const roster = await storage.getPlayersByTeam(team.id);
       const remainingPortal = roster.filter(p => p.inTransferPortal);
