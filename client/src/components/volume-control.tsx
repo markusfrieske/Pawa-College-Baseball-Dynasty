@@ -1,5 +1,5 @@
 import { useMusic } from "@/lib/music-context";
-import { Volume2, Volume1, VolumeX } from "lucide-react";
+import { Volume2, Volume1, VolumeX, ChevronUp, ChevronDown } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 
 export function VolumeControl() {
@@ -8,37 +8,48 @@ export function VolumeControl() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
+    function handleOutside(e: PointerEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setShowSlider(false);
       }
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("pointerdown", handleOutside);
+    return () => document.removeEventListener("pointerdown", handleOutside);
   }, []);
 
   const VolumeIcon = muted || volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
+  const SliderChevron = showSlider ? ChevronDown : ChevronUp;
 
   return (
     <div ref={containerRef} className="relative" data-testid="volume-control">
-      <button
-        onClick={toggleMute}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          setShowSlider((v) => !v);
-        }}
-        onMouseEnter={() => setShowSlider(true)}
-        className="flex items-center justify-center w-9 h-9 rounded-md text-[#c8aa6e] hover-elevate active-elevate-2 transition-colors"
-        data-testid="button-mute-toggle"
-        title={muted ? "Unmute" : "Mute (right-click for volume)"}
-      >
-        <VolumeIcon className="w-5 h-5" />
-      </button>
+      <div className="flex items-center gap-0.5">
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            toggleMute();
+          }}
+          className="flex items-center justify-center w-9 h-9 rounded-md text-[#c8aa6e] hover-elevate active-elevate-2 transition-colors"
+          data-testid="button-mute-toggle"
+          title={muted ? "Unmute" : "Mute"}
+        >
+          <VolumeIcon className="w-5 h-5 pointer-events-none" />
+        </button>
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            setShowSlider((v) => !v);
+          }}
+          className="flex items-center justify-center w-5 h-9 rounded-md text-[#c8aa6e]/60 hover-elevate active-elevate-2 transition-colors"
+          data-testid="button-volume-expand"
+          title="Volume slider"
+        >
+          <SliderChevron className="w-3.5 h-3.5 pointer-events-none" />
+        </button>
+      </div>
       <div
         className={`absolute right-0 top-full mt-1 z-50 flex flex-col items-center gap-2 p-3 rounded-md border border-[#c8aa6e]/30 bg-[#1a2e1a] shadow-lg transition-all duration-200 ${
           showSlider ? "opacity-100 visible" : "opacity-0 invisible"
         }`}
-        onMouseLeave={() => setShowSlider(false)}
         data-testid="volume-slider-panel"
       >
         <span
@@ -55,11 +66,6 @@ export function VolumeControl() {
           value={muted ? 0 : volume}
           onChange={(e) => {
             const v = parseFloat(e.target.value);
-            setVolume(v);
-            if (muted && v > 0) toggleMute();
-          }}
-          onInput={(e) => {
-            const v = parseFloat((e.target as HTMLInputElement).value);
             setVolume(v);
             if (muted && v > 0) toggleMute();
           }}
