@@ -274,6 +274,7 @@ export const players = pgTable("players", {
   headwear: text("headwear").notNull().default("cap"),
   potential: integer("potential"),
   depthOrder: integer("depth_order").notNull().default(0),
+  progressionDeltas: json("progression_deltas").$type<Record<string, number>>(),
 });
 
 export const insertPlayerSchema = createInsertSchema(players).pick({
