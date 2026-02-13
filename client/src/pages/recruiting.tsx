@@ -1387,7 +1387,7 @@ function RecruitRow({
             </p>
             <p className="text-[10px] text-muted-foreground">{recruit.position}</p>
           </div>
-          {progressionEnabled && recruit.potentialFloor != null && recruit.potentialCeiling != null && scoutPct >= 50 && (
+          {progressionEnabled && recruit.potentialFloor != null && recruit.potentialCeiling != null && scoutPct >= 100 && (
             <div className="text-center min-w-[50px]">
               <p className="font-bold text-sm text-amber-400">
                 {getPotentialRangeLabel(recruit.potentialFloor, recruit.potentialCeiling)}

@@ -609,7 +609,7 @@ export default function RecruitProfilePage() {
                       <p className="font-bold">{recruit.batHand || "R"}</p>
                     </div>
                   </div>
-                  {leagueData?.league?.progressionEnabled && recruit.potentialFloor != null && recruit.potentialCeiling != null && scoutPct >= 50 && (
+                  {leagueData?.league?.progressionEnabled && recruit.potentialFloor != null && recruit.potentialCeiling != null && scoutPct >= 100 && (
                     <div className="mt-4 pt-4 border-t border-border">
                       <div className="flex items-center justify-between">
                         <p className="text-xs text-muted-foreground flex items-center gap-1">

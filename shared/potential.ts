@@ -31,12 +31,9 @@ export function getPotentialGradeIndex(value: number): number {
 }
 
 export function getPotentialRange(actual: number): { floor: number; ceiling: number } {
-  const gradeIdx = getPotentialGradeIndex(actual);
-  const floorIdx = Math.max(0, gradeIdx - 1);
-  const ceilIdx = Math.min(POTENTIAL_GRADES.length - 1, gradeIdx + 1);
   return {
-    floor: POTENTIAL_GRADES[floorIdx].min,
-    ceiling: POTENTIAL_GRADES[ceilIdx].max,
+    floor: Math.max(50, actual - 25),
+    ceiling: Math.min(99, actual + 25),
   };
 }
 

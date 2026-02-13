@@ -10,6 +10,7 @@ import { MapPin, Star, Edit, Trophy, ArrowUp, ArrowDown } from "lucide-react";
 import { getAbilityByName } from "@shared/abilities";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { velocityToMPH } from "@/lib/playerUtils";
+import { getPotentialGrade, getProgressionZone, getProgressionColor } from "@shared/potential";
 
 interface Player {
   id: string;
@@ -210,14 +211,24 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
               <MapPin className="w-4 h-4" />
               <span data-testid="text-hometown">{player.hometown}, {player.homeState}</span>
             </div>
-            <div className="flex items-center gap-1 ml-auto">
-              <span className="font-pixel text-gold text-lg" data-testid="text-overall">{player.overall}</span>
-              <span className="text-xs">OVR</span>
-              {player.progressionDeltas?.overall != null && player.progressionDeltas.overall !== 0 && (
-                <span className={`flex items-center text-xs font-bold ${player.progressionDeltas.overall > 0 ? "text-green-400" : "text-red-400"}`} data-testid="text-ovr-delta">
-                  <DeltaArrow delta={player.progressionDeltas.overall} />
-                  {player.progressionDeltas.overall > 0 ? "+" : ""}{player.progressionDeltas.overall}
-                </span>
+            <div className="flex items-center gap-3 ml-auto">
+              <div className="flex items-center gap-1">
+                <span className="font-pixel text-gold text-lg" data-testid="text-overall">{player.overall}</span>
+                <span className="text-xs">OVR</span>
+                {player.progressionDeltas?.overall != null && player.progressionDeltas.overall !== 0 && (
+                  <span className={`flex items-center text-xs font-bold ${player.progressionDeltas.overall > 0 ? "text-green-400" : "text-red-400"}`} data-testid="text-ovr-delta">
+                    <DeltaArrow delta={player.progressionDeltas.overall} />
+                    {player.progressionDeltas.overall > 0 ? "+" : ""}{player.progressionDeltas.overall}
+                  </span>
+                )}
+              </div>
+              {player.potential != null && (
+                <div className="flex items-center gap-1" data-testid="text-potential">
+                  <span className={`font-pixel text-lg ${getProgressionColor(getProgressionZone(player.potential))}`}>
+                    {getPotentialGrade(player.potential)}
+                  </span>
+                  <span className="text-xs">POT</span>
+                </div>
               )}
             </div>
           </div>
