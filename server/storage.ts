@@ -550,6 +550,8 @@ export class DatabaseStorage implements IStorage {
 
       await tx.delete(playerSeasonStats).where(eq(playerSeasonStats.leagueId, id));
 
+      await tx.delete(playerPromises).where(eq(playerPromises.leagueId, id));
+
       if (teamIds.length > 0) {
         await tx.delete(transferPortalInterests).where(inArray(transferPortalInterests.teamId, teamIds));
         await tx.delete(playerHistory).where(inArray(playerHistory.teamId, teamIds));
@@ -577,7 +579,6 @@ export class DatabaseStorage implements IStorage {
       await tx.delete(scouts).where(eq(scouts.leagueId, id));
       await tx.delete(teams).where(eq(teams.leagueId, id));
       await tx.delete(conferences).where(eq(conferences.leagueId, id));
-      await tx.delete(playerPromises).where(eq(playerPromises.leagueId, id));
       await tx.delete(leagues).where(eq(leagues.id, id));
     });
   }
