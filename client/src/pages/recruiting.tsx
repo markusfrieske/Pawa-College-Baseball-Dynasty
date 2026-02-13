@@ -580,199 +580,226 @@ export default function RecruitingPage() {
 
       <main className="container mx-auto px-4 py-6">
         <RetroCard className="mb-6">
-          <div className="flex flex-wrap gap-2 sm:gap-4 items-center">
-            <div className="relative w-full sm:w-auto">
+          <div className="space-y-4">
+            <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <RetroInput
                 placeholder="Search recruits..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 w-full sm:w-48"
+                className="pl-9 w-full"
                 data-testid="input-search-recruits"
               />
             </div>
-            <RetroSelect
-              options={positionOptions}
-              value={positionFilter}
-              onChange={(e) => setPositionFilter(e.target.value)}
-              className="w-[calc(50%-0.25rem)] sm:w-40"
-              data-testid="select-position-filter"
-            />
-            <RetroSelect
-              options={starOptions}
-              value={starFilter}
-              onChange={(e) => setStarFilter(e.target.value)}
-              className="w-[calc(50%-0.25rem)] sm:w-40"
-              data-testid="select-star-filter"
-            />
-            <RetroSelect
-              options={[
-                { label: "All Types", value: "all" },
-                { label: "High School", value: "HS" },
-                { label: "Transfer", value: "TRANSFER" },
-                { label: "JUCO", value: "JUCO" },
-              ]}
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="w-[calc(50%-0.25rem)] sm:w-32"
-              data-testid="select-type-filter"
-            />
-            <RetroSelect
-              options={[
-                { label: "All States", value: "all" },
-                ...(data?.recruits ? Array.from(new Set(data.recruits.map(r => r.homeState).filter(Boolean))).sort().map(s => ({ label: s!, value: s! })) : [])
-              ]}
-              value={stateFilter}
-              onChange={(e) => setStateFilter(e.target.value)}
-              className="w-[calc(50%-0.25rem)] sm:w-32"
-              data-testid="select-state-filter"
-            />
-            <div className="flex items-center gap-2 w-[calc(50%-0.25rem)] sm:w-auto">
-              <span className="text-xs text-muted-foreground shrink-0">Sort:</span>
+
+            <div>
+              <p className="font-pixel text-[9px] text-gold mb-2">FILTERS</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <RetroSelect
+                  options={positionOptions}
+                  value={positionFilter}
+                  onChange={(e) => setPositionFilter(e.target.value)}
+                  className="w-full"
+                  data-testid="select-position-filter"
+                />
+                <RetroSelect
+                  options={starOptions}
+                  value={starFilter}
+                  onChange={(e) => setStarFilter(e.target.value)}
+                  className="w-full"
+                  data-testid="select-star-filter"
+                />
+                <RetroSelect
+                  options={[
+                    { label: "All Types", value: "all" },
+                    { label: "High School", value: "HS" },
+                    { label: "Transfer", value: "TRANSFER" },
+                    { label: "JUCO", value: "JUCO" },
+                  ]}
+                  value={typeFilter}
+                  onChange={(e) => setTypeFilter(e.target.value)}
+                  className="w-full"
+                  data-testid="select-type-filter"
+                />
+                <RetroSelect
+                  options={[
+                    { label: "All States", value: "all" },
+                    ...(data?.recruits ? Array.from(new Set(data.recruits.map(r => r.homeState).filter(Boolean))).sort().map(s => ({ label: s!, value: s! })) : [])
+                  ]}
+                  value={stateFilter}
+                  onChange={(e) => setStateFilter(e.target.value)}
+                  className="w-full"
+                  data-testid="select-state-filter"
+                />
+              </div>
+            </div>
+
+            <div>
+              <p className="font-pixel text-[9px] text-gold mb-2">SORT</p>
               <RetroSelect
                 options={sortOptions}
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="w-full sm:w-44"
+                className="w-full sm:w-56"
                 data-testid="select-sort"
               />
             </div>
-            <RetroButton 
-              variant={showWatchlistOnly ? "primary" : "outline"} 
-              size="sm" 
-              onClick={() => setShowWatchlistOnly(!showWatchlistOnly)}
-              data-testid="button-watchlist-filter"
-            >
-              <Target className="w-3 h-3 mr-1" />
-              <span className="hidden sm:inline">Watchlist</span><span className="sm:hidden">Watch</span> {showWatchlistOnly && `(${data?.targetedCount || 0})`}
-            </RetroButton>
-            <RetroButton
-              variant={showTopAvailable ? "primary" : "outline"}
-              size="sm"
-              onClick={() => setShowTopAvailable(!showTopAvailable)}
-              data-testid="button-top-available"
-            >
-              <TrendingUp className="w-3 h-3 mr-1" />
-              <span className="hidden sm:inline">Top Available</span><span className="sm:hidden">Top</span>
-            </RetroButton>
-            <Popover>
-              <PopoverTrigger asChild>
-                <RetroButton variant="outline" size="sm" data-testid="button-presets">
-                  <Bookmark className="w-3 h-3 mr-1" />
-                  Presets
+
+            <div>
+              <p className="font-pixel text-[9px] text-gold mb-2">VIEWS</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <RetroButton 
+                  variant={showWatchlistOnly ? "primary" : "outline"} 
+                  size="sm" 
+                  onClick={() => setShowWatchlistOnly(!showWatchlistOnly)}
+                  className="w-full justify-center"
+                  data-testid="button-watchlist-filter"
+                >
+                  <Target className="w-3 h-3 mr-1" />
+                  Watchlist {showWatchlistOnly && `(${data?.targetedCount || 0})`}
                 </RetroButton>
-              </PopoverTrigger>
-              <PopoverContent className="w-64 bg-card border-border p-3">
-                <div className="space-y-3">
-                  <p className="font-pixel text-[10px] text-gold">SAVED PRESETS</p>
-                  {filterPresets.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">No saved presets</p>
-                  ) : (
-                    <div className="space-y-2 max-h-32 overflow-y-auto">
-                      {filterPresets.map((preset) => (
-                        <div key={preset.id} className="flex items-center gap-2 group">
-                          <RetroButton
-                            variant="outline"
-                            size="sm"
-                            className="flex-1 justify-start text-xs"
-                            onClick={() => loadPreset(preset)}
-                            data-testid={`button-load-preset-${preset.id}`}
-                          >
-                            {preset.name}
-                          </RetroButton>
-                          <button
-                            onClick={() => deletePreset(preset.id)}
-                            className="text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity"
-                            data-testid={`button-delete-preset-${preset.id}`}
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </button>
+                <RetroButton
+                  variant={showTopAvailable ? "primary" : "outline"}
+                  size="sm"
+                  onClick={() => setShowTopAvailable(!showTopAvailable)}
+                  className="w-full justify-center"
+                  data-testid="button-top-available"
+                >
+                  <TrendingUp className="w-3 h-3 mr-1" />
+                  Top Available
+                </RetroButton>
+                <RetroButton
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowTeamNeeds(!showTeamNeeds)}
+                  className="w-full justify-center"
+                  data-testid="button-toggle-team-needs"
+                >
+                  <Users className="w-3 h-3 mr-1" />
+                  Team Needs
+                </RetroButton>
+                <RetroButton
+                  variant={showPipeline ? "primary" : "outline"}
+                  size="sm"
+                  onClick={() => setShowPipeline(!showPipeline)}
+                  className="w-full justify-center"
+                  data-testid="button-toggle-pipeline"
+                >
+                  <BarChart3 className="w-3 h-3 mr-1" />
+                  Pipeline
+                </RetroButton>
+              </div>
+            </div>
+
+            <div>
+              <p className="font-pixel text-[9px] text-gold mb-2">TOOLS</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <RetroButton variant="outline" size="sm" className="w-full justify-center" data-testid="button-presets">
+                      <Bookmark className="w-3 h-3 mr-1" />
+                      Presets
+                    </RetroButton>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64 bg-card border-border p-3">
+                    <div className="space-y-3">
+                      <p className="font-pixel text-[10px] text-gold">SAVED PRESETS</p>
+                      {filterPresets.length === 0 ? (
+                        <p className="text-xs text-muted-foreground">No saved presets</p>
+                      ) : (
+                        <div className="space-y-2 max-h-32 overflow-y-auto">
+                          {filterPresets.map((preset) => (
+                            <div key={preset.id} className="flex items-center gap-2 group">
+                              <RetroButton
+                                variant="outline"
+                                size="sm"
+                                className="flex-1 justify-start text-xs"
+                                onClick={() => loadPreset(preset)}
+                                data-testid={`button-load-preset-${preset.id}`}
+                              >
+                                {preset.name}
+                              </RetroButton>
+                              <button
+                                onClick={() => deletePreset(preset.id)}
+                                className="text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity"
+                                data-testid={`button-delete-preset-${preset.id}`}
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      )}
+                      <div className="pt-2 border-t border-border">
+                        <p className="font-pixel text-[8px] text-muted-foreground mb-2">SAVE CURRENT</p>
+                        <div className="flex gap-2">
+                          <RetroInput
+                            value={newPresetName}
+                            onChange={(e) => setNewPresetName(e.target.value)}
+                            placeholder="Preset name"
+                            className="flex-1 h-8 text-xs"
+                            data-testid="input-preset-name"
+                          />
+                          <RetroButton
+                            size="sm"
+                            onClick={savePreset}
+                            disabled={!newPresetName.trim()}
+                            data-testid="button-save-preset"
+                          >
+                            <Save className="w-3 h-3" />
+                          </RetroButton>
+                        </div>
+                      </div>
                     </div>
-                  )}
-                  <div className="pt-2 border-t border-border">
-                    <p className="font-pixel text-[8px] text-muted-foreground mb-2">SAVE CURRENT</p>
-                    <div className="flex gap-2">
-                      <RetroInput
-                        value={newPresetName}
-                        onChange={(e) => setNewPresetName(e.target.value)}
-                        placeholder="Preset name"
-                        className="flex-1 h-8 text-xs"
-                        data-testid="input-preset-name"
-                      />
-                      <RetroButton
-                        size="sm"
-                        onClick={savePreset}
-                        disabled={!newPresetName.trim()}
-                        data-testid="button-save-preset"
-                      >
-                        <Save className="w-3 h-3" />
-                      </RetroButton>
-                    </div>
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
-            <div className="flex items-center gap-2 w-full sm:w-auto sm:ml-auto">
-              {(() => {
-                const unscoutedTargets = data?.recruits.filter(r => r.interest?.isTargeted && (r.interest?.scoutPercentage || 0) < 100) || [];
-                return unscoutedTargets.length > 0 ? (
+                  </PopoverContent>
+                </Popover>
+                <RetroButton
+                  variant="outline"
+                  size="sm"
+                  onClick={selectAllVisible}
+                  className="w-full justify-center"
+                  data-testid="button-select-all"
+                >
+                  <CheckSquare className="w-3 h-3 mr-1" />
+                  {bulkSelected.size > 0 ? `Deselect (${bulkSelected.size})` : "Select All"}
+                </RetroButton>
+                {bulkSelected.size > 0 && (
                   <RetroButton
-                    variant="outline"
+                    variant="primary"
                     size="sm"
-                    onClick={() => bulkScoutMutation.mutate(unscoutedTargets.map(r => r.id))}
-                    disabled={bulkScoutMutation.isPending || (data?.remainingScoutPoints ?? 0) <= 0}
-                    data-testid="button-quick-scout-targets"
+                    onClick={() => bulkScoutMutation.mutate(Array.from(bulkSelected))}
+                    disabled={bulkScoutMutation.isPending}
+                    className="w-full justify-center"
+                    data-testid="button-bulk-scout"
                   >
                     <Eye className="w-3 h-3 mr-1" />
-                    {bulkScoutMutation.isPending ? "Scouting..." : `Scout Targets (${unscoutedTargets.length})`}
+                    {bulkScoutMutation.isPending ? "Scouting..." : `Scout (${bulkSelected.size})`}
                   </RetroButton>
-                ) : null;
-              })()}
-              <RetroButton
-                variant="outline"
-                size="sm"
-                onClick={selectAllVisible}
-                data-testid="button-select-all"
-              >
-                <CheckSquare className="w-3 h-3 mr-1" />
-                {bulkSelected.size > 0 ? `Deselect (${bulkSelected.size})` : "Select All"}
-              </RetroButton>
-              {bulkSelected.size > 0 && (
-                <RetroButton
-                  variant="primary"
-                  size="sm"
-                  onClick={() => bulkScoutMutation.mutate(Array.from(bulkSelected))}
-                  disabled={bulkScoutMutation.isPending}
-                  data-testid="button-bulk-scout"
-                >
-                  <Eye className="w-3 h-3 mr-1" />
-                  {bulkScoutMutation.isPending ? "Scouting..." : `Scout Selected (${bulkSelected.size})`}
-                </RetroButton>
-              )}
-              <RetroButton
-                variant="outline"
-                size="sm"
-                onClick={() => setShowTeamNeeds(!showTeamNeeds)}
-                data-testid="button-toggle-team-needs"
-              >
-                <Users className="w-3 h-3 mr-1" />
-                Team Needs
-              </RetroButton>
-              <RetroButton
-                variant={showPipeline ? "primary" : "outline"}
-                size="sm"
-                onClick={() => setShowPipeline(!showPipeline)}
-                data-testid="button-toggle-pipeline"
-              >
-                <BarChart3 className="w-3 h-3 mr-1" />
-                Pipeline
-              </RetroButton>
+                )}
+                {(() => {
+                  const unscoutedTargets = data?.recruits.filter(r => r.interest?.isTargeted && (r.interest?.scoutPercentage || 0) < 100) || [];
+                  return unscoutedTargets.length > 0 ? (
+                    <RetroButton
+                      variant="outline"
+                      size="sm"
+                      onClick={() => bulkScoutMutation.mutate(unscoutedTargets.map(r => r.id))}
+                      disabled={bulkScoutMutation.isPending || (data?.remainingScoutPoints ?? 0) <= 0}
+                      className="w-full justify-center"
+                      data-testid="button-quick-scout-targets"
+                    >
+                      <Eye className="w-3 h-3 mr-1" />
+                      {bulkScoutMutation.isPending ? "Scouting..." : `Scout Targets (${unscoutedTargets.length})`}
+                    </RetroButton>
+                  ) : null;
+                })()}
+              </div>
             </div>
-            <span className="text-sm text-muted-foreground">
-              {filteredRecruits.length} recruits found
-            </span>
+
+            <div className="flex items-center justify-between pt-2 border-t border-border/50">
+              <span className="text-sm text-muted-foreground">
+                {filteredRecruits.length} recruits found
+              </span>
+            </div>
           </div>
           
           {showTeamNeeds && data?.nextYearDepth && (
