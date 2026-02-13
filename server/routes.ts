@@ -4529,10 +4529,12 @@ export async function registerRoutes(
           if (actualDelta !== 0) deltas[attr] = actualDelta;
         }
 
-        const attrAvg = attrFields.reduce((sum, f) => sum + ((updates[f] ?? (player as any)[f] ?? 50) as number), 0) / attrFields.length;
-        const newOverall = Math.max(1, Math.min(999, Math.round(attrAvg * 10)));
+        const presentAttrFields = attrFields.filter(f => (player as any)[f] != null);
+        const totalAttrDelta = presentAttrFields.reduce((sum, f) => sum + (deltas[f] || 0), 0);
+        const avgAttrDelta = presentAttrFields.length > 0 ? totalAttrDelta / presentAttrFields.length : 0;
+        const ovrDelta = Math.round(avgAttrDelta * 10);
+        const newOverall = Math.max(1, Math.min(999, player.overall + ovrDelta));
         updates["overall"] = newOverall;
-        const ovrDelta = newOverall - player.overall;
         if (ovrDelta !== 0) deltas["overall"] = ovrDelta;
 
         const starFromOverall = newOverall >= 800 ? 5 : newOverall >= 600 ? 4 : newOverall >= 400 ? 3 : newOverall >= 200 ? 2 : 1;
