@@ -7,7 +7,7 @@ import bcrypt from "bcrypt";
 import { z } from "zod";
 import { randomUUID } from "crypto";
 import { getRandomAbilities, getAbilitiesForPosition } from "@shared/abilities";
-import { getPotentialRange, getProgressionZone } from "@shared/potential";
+import { getPotentialRange, getProgressionZone, rollWeightedPotential } from "@shared/potential";
 import type { Player, TransferPortalInterest, Game } from "@shared/schema";
 import {
   generateGameNewsArticles,
@@ -8222,7 +8222,7 @@ async function generateRecruits(leagueId: string, count: number) {
       hairStyle: appearance.hairStyle,
       headwear: appearance.headwear,
       ...(progressionEnabled ? (() => {
-        const pot = 50 + Math.floor(Math.random() * 50);
+        const pot = rollWeightedPotential();
         const range = getPotentialRange(pot);
         return { potential: pot, potentialFloor: range.floor, potentialCeiling: range.ceiling };
       })() : {}),
@@ -8590,7 +8590,7 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
       hairColor: appearance.hairColor,
       hairStyle: appearance.hairStyle,
       headwear: appearance.headwear,
-      potential: progressionEnabled ? (50 + Math.floor(Math.random() * 50)) : null,
+      potential: progressionEnabled ? rollWeightedPotential() : null,
       pitchFB: position === "P" ? 1 : 0,
       pitch2S: position === "P" && Math.random() < 0.5 ? 1 : 0,
       pitchSL: position === "P" && Math.random() < 0.6 ? 1 + Math.floor(Math.random() * 7) : 0,

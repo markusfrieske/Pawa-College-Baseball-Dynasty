@@ -44,6 +44,34 @@ export function getPotentialRangeLabel(floor: number, ceiling: number): string {
   return `${floorGrade} - ${ceilGrade}`;
 }
 
+export const POTENTIAL_DISTRIBUTION = [
+  { grade: "F",  weight: 4,  min: 50, max: 53 },
+  { grade: "D-", weight: 8,  min: 54, max: 57 },
+  { grade: "D",  weight: 10, min: 58, max: 61 },
+  { grade: "D+", weight: 14, min: 62, max: 65 },
+  { grade: "C-", weight: 20, min: 66, max: 69 },
+  { grade: "C",  weight: 18, min: 70, max: 73 },
+  { grade: "C+", weight: 14, min: 74, max: 77 },
+  { grade: "B-", weight: 10, min: 78, max: 81 },
+  { grade: "B",  weight: 8,  min: 82, max: 85 },
+  { grade: "B+", weight: 6,  min: 86, max: 89 },
+  { grade: "A-", weight: 4,  min: 90, max: 93 },
+  { grade: "A",  weight: 3,  min: 94, max: 97 },
+  { grade: "A+", weight: 1,  min: 98, max: 99 },
+] as const;
+
+export function rollWeightedPotential(): number {
+  const totalWeight = POTENTIAL_DISTRIBUTION.reduce((s, d) => s + d.weight, 0);
+  let roll = Math.random() * totalWeight;
+  for (const tier of POTENTIAL_DISTRIBUTION) {
+    roll -= tier.weight;
+    if (roll <= 0) {
+      return tier.min + Math.floor(Math.random() * (tier.max - tier.min + 1));
+    }
+  }
+  return 70;
+}
+
 export type ProgressionZone = "declining" | "stable" | "improving";
 
 export function getProgressionZone(potential: number): ProgressionZone {
