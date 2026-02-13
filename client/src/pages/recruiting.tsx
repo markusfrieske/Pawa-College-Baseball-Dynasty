@@ -1449,7 +1449,7 @@ function RecruitRow({
             </Tooltip>
           </div>
         ) : (
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
             <div className="w-32">
               <div className="flex justify-between text-xs text-muted-foreground mb-1">
                 <span>Scout</span>
@@ -1458,7 +1458,7 @@ function RecruitRow({
               <Progress value={scoutPct} className="h-2" />
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex gap-1 flex-wrap">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <RetroButton

@@ -600,8 +600,20 @@ export async function registerRoutes(
         }
         
         const signedTeam = recruit.signedTeamId ? teamMap.get(recruit.signedTeamId) : null;
+        
+        let dynamicPotentialFloor = recruit.potentialFloor;
+        let dynamicPotentialCeiling = recruit.potentialCeiling;
+        if (recruit.potential != null && coach) {
+          const evalSkill = coach.evaluationSkill || 1;
+          const dynRange = getPotentialRange(recruit.potential, evalSkill);
+          dynamicPotentialFloor = dynRange.floor;
+          dynamicPotentialCeiling = dynRange.ceiling;
+        }
+        
         return {
           ...recruit,
+          potentialFloor: dynamicPotentialFloor,
+          potentialCeiling: dynamicPotentialCeiling,
           interest,
           topSchools,
           signedTeamName: signedTeam?.name || null,
@@ -7055,9 +7067,23 @@ export async function registerRoutes(
         })).sort((a, b) => b.interestLevel - a.interestLevel);
       }
 
+      let dynamicPotentialFloor = recruit.potentialFloor;
+      let dynamicPotentialCeiling = recruit.potentialCeiling;
+      if (recruit.potential != null && userTeam?.coachId) {
+        const coach = await storage.getCoach(userTeam.coachId);
+        if (coach) {
+          const evalSkill = coach.evaluationSkill || 1;
+          const dynRange = getPotentialRange(recruit.potential, evalSkill);
+          dynamicPotentialFloor = dynRange.floor;
+          dynamicPotentialCeiling = dynRange.ceiling;
+        }
+      }
+
       res.json({
         recruit: {
           ...recruit,
+          potentialFloor: dynamicPotentialFloor,
+          potentialCeiling: dynamicPotentialCeiling,
           interest,
         },
         topSchools,
@@ -8344,6 +8370,25 @@ async function generateTopSchoolsForLeague(leagueId: string) {
   // Score calculator for a recruit-team pair
   const calculateScore = (recruit: typeof recruits[0], team: typeof teams[0]): number => {
     let score = 0;
+    const starRank = recruit.starRank || 3;
+    const teamPrestige = team.prestige || 5;
+    
+    // Prestige affinity: high-star recruits strongly prefer high-prestige schools,
+    // low-star recruits prefer lower-prestige schools (more playing time, better fit)
+    const prestigeAffinity = (() => {
+      if (starRank >= 5) {
+        return teamPrestige >= 7 ? 40 : teamPrestige >= 5 ? 15 : 0;
+      } else if (starRank === 4) {
+        return teamPrestige >= 6 ? 30 : teamPrestige >= 4 ? 20 : 5;
+      } else if (starRank === 3) {
+        return Math.abs(teamPrestige - 5) <= 2 ? 25 : 10;
+      } else if (starRank === 2) {
+        return teamPrestige <= 5 ? 30 : teamPrestige <= 7 ? 15 : 0;
+      } else {
+        return teamPrestige <= 4 ? 35 : teamPrestige <= 6 ? 15 : 0;
+      }
+    })();
+    score += prestigeAffinity;
     
     // Proximity: Higher scores for teams in same state
     const proximityWeight = priorityWeight(recruit.proximityPriority);
@@ -8357,9 +8402,9 @@ async function generateTopSchoolsForLeague(leagueId: string) {
     const academicsWeight = priorityWeight(recruit.academicsPriority);
     score += (team.academics || 5) * 3 * academicsWeight;
     
-    // Prestige
+    // Prestige (priority-weighted on top of affinity)
     const prestigeWeight = priorityWeight(recruit.prestigePriority);
-    score += (team.prestige || 5) * 3 * prestigeWeight;
+    score += teamPrestige * 3 * prestigeWeight;
     
     // Facilities
     const facilitiesWeight = priorityWeight(recruit.facilitiesPriority);
@@ -8367,11 +8412,12 @@ async function generateTopSchoolsForLeague(leagueId: string) {
     
     // Reputation
     const reputationWeight = priorityWeight(recruit.reputationPriority);
-    score += ((team.prestige || 5) + (team.facilities || 5)) * 1.5 * reputationWeight;
+    score += (teamPrestige + (team.facilities || 5)) * 1.5 * reputationWeight;
     
-    // Playing time
+    // Playing time - low-star recruits value this more
     const playingTimeWeight = priorityWeight(recruit.playingTimePriority);
-    score += (10 - (team.prestige || 5)) * 2 * playingTimeWeight;
+    const ptBonus = starRank <= 2 ? 1.5 : 1.0;
+    score += (10 - teamPrestige) * 2 * playingTimeWeight * ptBonus;
     
     // Add randomness for variety
     score += Math.floor(Math.random() * 25);

@@ -30,10 +30,13 @@ export function getPotentialGradeIndex(value: number): number {
   return POTENTIAL_GRADES.length - 1;
 }
 
-export function getPotentialRange(actual: number): { floor: number; ceiling: number } {
+export function getPotentialRange(actual: number, evaluationSkill: number = 1): { floor: number; ceiling: number } {
+  const baseRange = 25;
+  const reduction = Math.max(0, (evaluationSkill - 1) * 3);
+  const range = Math.max(4, baseRange - reduction);
   return {
-    floor: Math.max(50, actual - 25),
-    ceiling: Math.min(99, actual + 25),
+    floor: Math.max(50, actual - range),
+    ceiling: Math.min(99, actual + range),
   };
 }
 
