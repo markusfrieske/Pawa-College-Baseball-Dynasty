@@ -56,6 +56,7 @@ interface TeamDepartures {
   primaryColor: string;
   secondaryColor: string;
   isCpu: boolean;
+  departuresFinalized: boolean;
   nilBudget: number;
   nilSpent: number;
   nilRemaining: number;
@@ -158,9 +159,14 @@ export default function DeparturesPage() {
       return res.json();
     },
     onSuccess: (result) => {
-      toast({ title: "Departures Finalized", description: `${result.departed.graduated} graduated, ${result.departed.drafted} drafted, ${result.departed.transferred} transferred.` });
+      toast({ 
+        title: "Departures Marked Ready", 
+        description: result.allTeamsReady 
+          ? "All coaches are ready! The commissioner can now advance to recruiting." 
+          : `You're ready! Waiting for ${result.totalHumanTeams - result.readyCount} more coach(es).`
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "departures"] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId] });
-      setLocation(`/league/${leagueId}`);
     },
     onError: (err: any) => {
       toast({ title: "Failed", description: err.message || "Could not finalize departures", variant: "destructive" });
@@ -395,21 +401,36 @@ export default function DeparturesPage() {
               <RetroCardContent>
                 <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                   <div>
-                    <p className="font-pixel text-xs text-gold uppercase mb-1">Ready to Finalize?</p>
-                    <p className="text-sm text-muted-foreground">
-                      {pendingActions > 0
-                        ? `You have ${pendingActions} retention action${pendingActions !== 1 ? "s" : ""} remaining. Make your offers before finalizing.`
-                        : "All retention decisions have been made. Finalize to proceed to recruiting."}
-                    </p>
+                    {userTeam.departuresFinalized ? (
+                      <>
+                        <p className="font-pixel text-xs text-green-400 uppercase mb-1 flex items-center gap-2">
+                          <CheckCircle className="w-4 h-4" /> Departures Submitted
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Your departures are finalized. Waiting for the commissioner to advance the league.
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="font-pixel text-xs text-gold uppercase mb-1">Ready to Submit?</p>
+                        <p className="text-sm text-muted-foreground">
+                          {pendingActions > 0
+                            ? `You have ${pendingActions} retention action${pendingActions !== 1 ? "s" : ""} remaining. Make your offers before submitting.`
+                            : "All retention decisions have been made. Submit to mark your departures as ready."}
+                        </p>
+                      </>
+                    )}
                   </div>
-                  <RetroButton
-                    variant="primary"
-                    onClick={() => finalizeMutation.mutate()}
-                    loading={finalizeMutation.isPending}
-                    data-testid="button-finalize-departures"
-                  >
-                    Finalize Departures
-                  </RetroButton>
+                  {!userTeam.departuresFinalized && (
+                    <RetroButton
+                      variant="primary"
+                      onClick={() => finalizeMutation.mutate()}
+                      loading={finalizeMutation.isPending}
+                      data-testid="button-finalize-departures"
+                    >
+                      Submit Departures
+                    </RetroButton>
+                  )}
                 </div>
               </RetroCardContent>
             </RetroCard>

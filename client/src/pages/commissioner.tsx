@@ -467,7 +467,7 @@ function ActionsTab({
       case "conference_championship": return "Simulate conference championship matchups between top teams.";
       case "super_regionals": return "Simulate the next round of the Super Regional bracket tournament.";
       case "cws": return "Play the next game of the College World Series best-of-3 championship.";
-      case "offseason_departures": return "Process graduating seniors, MLB draft declarations, and transfer portal entries. Review which players are leaving your program.";
+      case "offseason_departures": return "All coaches must submit their departures before advancing. Once all coaches are ready, advancing will process graduates, draft declarations, and transfer portal entries.";
       case "offseason_recruiting_1":
       case "offseason_recruiting_2":
       case "offseason_recruiting_3":
@@ -776,11 +776,13 @@ interface ReadyStatusData {
     userId: string | null;
     coachName: string;
     isReady: boolean;
+    departuresFinalized: boolean;
     scoutActionsUsed: number;
     recruitActionsUsed: number;
     hasReportedScores: boolean;
   }>;
   allHumansReady: boolean;
+  currentPhase: string;
   humanCount: number;
   readyCount: number;
 }
@@ -803,12 +805,13 @@ function ReadyStatusSection({ leagueId }: { leagueId: string }) {
   }
 
   const humanTeams = data.readyStatus.filter(s => s.isHumanControlled);
+  const isDeparturesPhase = data.currentPhase === "offseason_departures";
 
   return (
     <RetroCard>
       <RetroCardHeader>
         <div className="flex items-center justify-between w-full">
-          <span>Ready Status</span>
+          <span>{isDeparturesPhase ? "Departure Readiness" : "Ready Status"}</span>
           <Badge 
             variant="outline" 
             className={data.allHumansReady ? "border-green-500 text-green-500" : "border-gold text-gold"}
@@ -820,6 +823,41 @@ function ReadyStatusSection({ leagueId }: { leagueId: string }) {
       <RetroCardContent>
         {humanTeams.length === 0 ? (
           <p className="text-muted-foreground text-sm">No human coaches in this dynasty.</p>
+        ) : isDeparturesPhase ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border text-left text-muted-foreground">
+                  <th className="pb-2 font-medium">Coach</th>
+                  <th className="pb-2 font-medium text-center">Departures Submitted</th>
+                </tr>
+              </thead>
+              <tbody>
+                {humanTeams.map((team) => (
+                  <tr key={team.teamId} className="border-b border-border/50">
+                    <td className="py-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{team.abbreviation}</span>
+                        <span className="text-muted-foreground">{team.coachName}</span>
+                      </div>
+                    </td>
+                    <td className="py-2 text-center">
+                      {team.departuresFinalized ? (
+                        <Check className="w-4 h-4 text-green-500 mx-auto" data-testid={`status-departures-ready-${team.teamId}`} />
+                      ) : (
+                        <Clock className="w-4 h-4 text-muted-foreground mx-auto" data-testid={`status-departures-waiting-${team.teamId}`} />
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {!data.allHumansReady && (
+              <p className="text-xs text-muted-foreground mt-3">
+                All coaches must submit their departures before the league can advance.
+              </p>
+            )}
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

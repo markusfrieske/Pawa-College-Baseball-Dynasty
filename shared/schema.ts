@@ -90,6 +90,7 @@ export const teams = pgTable("teams", {
   nilBudget: integer("nil_budget").notNull().default(3000000),
   nilSpent: integer("nil_spent").notNull().default(0),
   isCpu: boolean("is_cpu").notNull().default(true),
+  departuresFinalized: boolean("departures_finalized").notNull().default(false),
 });
 
 export const insertTeamSchema = createInsertSchema(teams).pick({

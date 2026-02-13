@@ -1985,6 +1985,7 @@ export async function registerRoutes(
           primaryColor: team.primaryColor,
           secondaryColor: team.secondaryColor,
           isCpu: team.isCpu,
+          departuresFinalized: team.departuresFinalized,
           nilBudget: team.nilBudget,
           nilSpent: team.nilSpent,
           nilRemaining: team.nilBudget - (team.nilSpent || 0),
@@ -2251,7 +2252,7 @@ export async function registerRoutes(
     }
   });
 
-  // Finalize departures - process all remaining pending players and advance phase
+  // Finalize departures - mark team as ready (does NOT advance the league phase)
   app.post("/api/leagues/:id/departures/finalize", requireAuth, async (req, res) => {
     try {
       const league = await storage.getLeague(req.params.id);
@@ -2261,24 +2262,29 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Not in departures phase" });
       }
 
-      if (league.commissionerId !== req.session.userId) {
-        const coaches = await storage.getCoachesByLeague(req.params.id);
-        const userCoach = coaches.find(c => c.userId === req.session.userId);
-        if (!userCoach) return res.status(403).json({ message: "Not authorized" });
-      }
+      const coaches = await storage.getCoachesByLeague(req.params.id);
+      const userCoach = coaches.find(c => c.userId === req.session.userId);
+      if (!userCoach?.teamId) return res.status(403).json({ message: "Not authorized" });
 
-      const result = await finalizeDeparturesInternal(req.params.id, league);
+      await storage.updateTeam(userCoach.teamId, { departuresFinalized: true });
 
       await storage.createAuditLog({
         leagueId: req.params.id,
         userId: req.session.userId,
-        action: "Departures Finalized",
-        details: `${result.graduated} graduated, ${result.drafted} entered MLB draft, ${result.transferred} entered transfer portal.`,
+        action: "Departures Marked Ready",
+        details: `Coach marked their departures as finalized and ready to advance.`,
       });
 
+      const teams = await storage.getTeamsByLeague(req.params.id);
+      const humanTeams = teams.filter(t => !t.isCpu);
+      const allReady = humanTeams.every(t => t.departuresFinalized);
+
       res.json({ 
-        ...result.updatedLeague,
-        departed: { graduated: result.graduated, drafted: result.drafted, transferred: result.transferred },
+        success: true,
+        teamMarkedReady: true,
+        allTeamsReady: allReady,
+        readyCount: humanTeams.filter(t => t.departuresFinalized).length,
+        totalHumanTeams: humanTeams.length,
       });
     } catch (error) {
       console.error("Failed to finalize departures:", error);
@@ -3394,7 +3400,29 @@ export async function registerRoutes(
             needsDepartureReview: true 
           });
         } else {
+          const leagueTeams = await storage.getTeamsByLeague(leagueId);
+          const humanTeams = leagueTeams.filter(t => !t.isCpu);
+          const allReady = humanTeams.every(t => t.departuresFinalized);
+          
+          if (!allReady) {
+            const readyCount = humanTeams.filter(t => t.departuresFinalized).length;
+            const notReadyTeams = humanTeams.filter(t => !t.departuresFinalized).map(t => t.name);
+            return res.status(400).json({ 
+              message: `Not all coaches have finalized departures. ${readyCount}/${humanTeams.length} ready. Waiting on: ${notReadyTeams.join(", ")}`,
+              readyCount,
+              totalHumanTeams: humanTeams.length,
+              waitingOn: notReadyTeams,
+            });
+          }
+
           const finalizeResult = await finalizeDeparturesInternal(leagueId, league);
+          
+          // Reset departuresFinalized flags for all teams
+          for (const team of leagueTeams) {
+            if (team.departuresFinalized) {
+              await storage.updateTeam(team.id, { departuresFinalized: false });
+            }
+          }
           
           await storage.createAuditLog({
             leagueId, userId: req.session.userId,
@@ -3519,7 +3547,7 @@ export async function registerRoutes(
           break;
         }
 
-        const maxWeeks = currentLeague.seasonLength === "short" ? 8 : currentLeague.seasonLength === "long" ? 20 : 15;
+        const maxWeeks = currentLeague.seasonLength === "short" ? 5 : currentLeague.seasonLength === "long" ? 10 : 5;
         const nextWeek = (currentLeague.currentWeek ?? 1) + 1;
 
         if (phase === "preseason" || phase === "spring_training" || phase === "regular_season") {
@@ -6451,21 +6479,24 @@ export async function registerRoutes(
           userId: coach?.userId ?? null,
           coachName: coach ? `${coach.firstName} ${coach.lastName}` : "CPU",
           isReady: coach?.isReady ?? false,
+          departuresFinalized: team.departuresFinalized,
           scoutActionsUsed,
           recruitActionsUsed,
           hasReportedScores,
         };
       });
 
+      const isDeparturesPhase = league.currentPhase === "offseason_departures";
       const allHumansReady = readyStatus
         .filter(s => s.isHumanControlled)
-        .every(s => s.isReady);
+        .every(s => isDeparturesPhase ? s.departuresFinalized : s.isReady);
 
       res.json({ 
         readyStatus, 
         allHumansReady,
+        currentPhase: league.currentPhase,
         humanCount: readyStatus.filter(s => s.isHumanControlled).length,
-        readyCount: readyStatus.filter(s => s.isHumanControlled && s.isReady).length
+        readyCount: readyStatus.filter(s => s.isHumanControlled && (isDeparturesPhase ? s.departuresFinalized : s.isReady)).length
       });
     } catch (error) {
       console.error("Failed to get ready status:", error);
