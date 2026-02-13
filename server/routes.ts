@@ -332,6 +332,11 @@ export async function registerRoutes(
         return res.status(404).json({ message: "League not found" });
       }
 
+      const existingTeams = await storage.getTeamsByLeague(league.id);
+      if (existingTeams.length > 0) {
+        return res.json({ league, conferences: [], conferenceTeamPools: [], teamsAlreadySelected: true });
+      }
+
       const conferences = await storage.getConferencesByLeague(league.id);
       
       const conferenceTeamPools = conferences.map(conf => {
@@ -345,6 +350,7 @@ export async function registerRoutes(
         league,
         conferences,
         conferenceTeamPools,
+        teamsAlreadySelected: false,
       });
     } catch (error) {
       console.error("Failed to fetch dynasty setup data:", error);
@@ -363,6 +369,11 @@ export async function registerRoutes(
 
       if (league.commissionerId !== userId) {
         return res.status(403).json({ message: "Only the commissioner can set up the dynasty" });
+      }
+
+      const existingTeams = await storage.getTeamsByLeague(league.id);
+      if (existingTeams.length > 0) {
+        return res.status(400).json({ message: "Teams have already been selected for this league" });
       }
 
       const { selectedTeams } = req.body as { selectedTeams: { conferenceId: string; teamNames: string[] }[] };

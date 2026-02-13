@@ -36,6 +36,7 @@ interface TeamSelectionData {
   league: League;
   conferences: Conference[];
   conferenceTeamPools: ConferenceTeamPool[];
+  teamsAlreadySelected?: boolean;
 }
 
 export default function TeamSelectionPage() {
@@ -143,6 +144,11 @@ export default function TeamSelectionPage() {
 
   if (!data) {
     return <div className="p-8 text-center text-muted-foreground">League not found</div>;
+  }
+
+  if (data.teamsAlreadySelected) {
+    setLocation(`/league/${id}/dynasty-setup`);
+    return <SetupSkeleton />;
   }
 
   return (

@@ -126,7 +126,7 @@ function LeagueCard({ league }: { league: LeagueWithDetails }) {
   return (
     <RetroCard className="hover:border-gold/50 transition-colors" data-testid={`card-league-${league.id}`}>
       <RetroCardHeader className="flex items-center justify-between gap-4">
-        <Link href={`/league/${league.id}`} className="truncate cursor-pointer hover:text-gold transition-colors">
+        <Link href={league.currentPhase === "dynasty_setup" ? `/league/${league.id}/dynasty-setup` : `/league/${league.id}`} className="truncate cursor-pointer hover:text-gold transition-colors">
           <span>{league.name}</span>
         </Link>
         <div className="flex items-center gap-2">
