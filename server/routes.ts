@@ -8,6 +8,7 @@ import { z } from "zod";
 import { randomUUID } from "crypto";
 import { getRandomAbilities, getAbilitiesForPosition } from "@shared/abilities";
 import { getPotentialRange, getProgressionZone, rollWeightedPotential } from "@shared/potential";
+import { getActionPointCost } from "@shared/stateDistance";
 import type { Player, TransferPortalInterest, Game } from "@shared/schema";
 import {
   generateGameNewsArticles,
@@ -678,15 +679,23 @@ export async function registerRoutes(
         }
       }
 
+      const recruitPointCosts: Record<string, { visit: number; headCoachVisit: number }> = {};
+      for (const recruit of leagueRecruits) {
+        recruitPointCosts[recruit.id] = {
+          visit: getActionPointCost("visit", userTeam.state, recruit.homeState),
+          headCoachVisit: getActionPointCost("head_coach_visit", userTeam.state, recruit.homeState),
+        };
+      }
+
       res.json({
         recruits: recruitsWithInterest,
         team: userTeam,
-        remainingActions: remainingRecruitingActions,
-        maxActions: maxRecruitingActions,
-        actionsUsed: recruitingActionsUsed,
-        remainingScoutActions,
-        maxScoutActions,
-        scoutActionsUsed,
+        remainingPoints: remainingRecruitingActions,
+        maxPoints: maxRecruitingActions,
+        pointsUsed: recruitingActionsUsed,
+        remainingScoutPoints: remainingScoutActions,
+        maxScoutPoints: maxScoutActions,
+        scoutPointsUsed: scoutActionsUsed,
         targetedCount: interests.filter((i) => i.isTargeted).length,
         commitsCount: leagueRecruits.filter((r) => r.signedTeamId === userTeam.id).length,
         maxCommits,
@@ -696,6 +705,7 @@ export async function registerRoutes(
         nextYearRosterSize,
         seniorsGraduating: seniorsCount,
         premiumActionsUsed,
+        recruitPointCosts,
       });
     } catch (error) {
       console.error("Failed to fetch recruiting data:", error);
@@ -717,7 +727,7 @@ export async function registerRoutes(
 
       const maxScoutActions = getMaxScoutActions(userCoach);
       if ((userCoach?.scoutActionsUsed || 0) >= maxScoutActions) {
-        return res.status(400).json({ message: `You've used all ${maxScoutActions} scouting actions this week` });
+        return res.status(400).json({ message: `You've used all ${maxScoutActions} scouting points this week` });
       }
 
       const recruit = await storage.getRecruit(req.params.recruitId as string);
@@ -1123,7 +1133,7 @@ export async function registerRoutes(
 
       const maxRecruitingActions = getMaxRecruitingActions(userCoach);
       if ((userCoach?.recruitActionsUsed || 0) >= maxRecruitingActions) {
-        return res.status(400).json({ message: `You've used all ${maxRecruitingActions} recruiting actions this week` });
+        return res.status(400).json({ message: `You've used all ${maxRecruitingActions} recruiting points this week` });
       }
 
       let totalInterestGain = 0;
@@ -1229,7 +1239,7 @@ export async function registerRoutes(
 
       const maxRecruitingActions = getMaxRecruitingActions(userCoach);
       if ((userCoach?.recruitActionsUsed || 0) >= maxRecruitingActions) {
-        return res.status(400).json({ message: `You've used all ${maxRecruitingActions} recruiting actions this week` });
+        return res.status(400).json({ message: `You've used all ${maxRecruitingActions} recruiting points this week` });
       }
 
       // Calculate interest gain with modifiers (email is less effective than phone)
@@ -1322,11 +1332,11 @@ export async function registerRoutes(
         return res.status(404).json({ message: "League not found" });
       }
 
-      const actionCost = 2;
+      const actionCost = getActionPointCost("visit", userTeam.state, recruit.homeState);
       const maxRecruitingActions = getMaxRecruitingActions(userCoach);
       const actionsUsed = userCoach?.recruitActionsUsed || 0;
       if (actionsUsed + actionCost > maxRecruitingActions) {
-        return res.status(400).json({ message: `Campus Visit costs 2 recruiting actions. You only have ${maxRecruitingActions - actionsUsed} remaining.` });
+        return res.status(400).json({ message: `Campus Visit costs ${actionCost} recruiting points. You only have ${maxRecruitingActions - actionsUsed} remaining.` });
       }
 
       const existingActions = await storage.getRecruitingActionsLog(req.params.recruitId as string, userTeam.id);
@@ -1379,7 +1389,7 @@ export async function registerRoutes(
         season: league.currentSeason,
         actionType: "visit",
         interestChange: interestGain,
-        notes: `Campus Visit (+${interestGain}% interest) [Costs 2 actions]`,
+        notes: `Campus Visit (+${interestGain}% interest) [Costs ${actionCost} points]`,
       });
 
       if (userCoach) {
@@ -1425,11 +1435,11 @@ export async function registerRoutes(
         return res.status(404).json({ message: "League not found" });
       }
 
-      const actionCost = 2;
+      const actionCost = getActionPointCost("head_coach_visit", userTeam.state, recruit.homeState);
       const maxRecruitingActions = getMaxRecruitingActions(userCoach);
       const actionsUsed = userCoach?.recruitActionsUsed || 0;
       if (actionsUsed + actionCost > maxRecruitingActions) {
-        return res.status(400).json({ message: `Head Coach Visit costs 2 recruiting actions. You only have ${maxRecruitingActions - actionsUsed} remaining.` });
+        return res.status(400).json({ message: `Head Coach Visit costs ${actionCost} recruiting points. You only have ${maxRecruitingActions - actionsUsed} remaining.` });
       }
 
       const existingActions = await storage.getRecruitingActionsLog(req.params.recruitId as string, userTeam.id);
@@ -1479,7 +1489,7 @@ export async function registerRoutes(
         season: league.currentSeason,
         actionType: "head_coach_visit",
         interestChange: interestGain,
-        notes: `Head Coach Visit (+${interestGain}% interest) [Costs 2 actions]`,
+        notes: `Head Coach Visit (+${interestGain}% interest) [Costs ${actionCost} points]`,
       });
 
       if (userCoach) {
@@ -1527,7 +1537,7 @@ export async function registerRoutes(
 
       const maxRecruitingActions = getMaxRecruitingActions(userCoach);
       if ((userCoach?.recruitActionsUsed || 0) >= maxRecruitingActions) {
-        return res.status(400).json({ message: `You've used all ${maxRecruitingActions} recruiting actions this week` });
+        return res.status(400).json({ message: `You've used all ${maxRecruitingActions} recruiting points this week` });
       }
 
       let interest = await storage.getRecruitingInterest(req.params.recruitId as string, userTeam.id);

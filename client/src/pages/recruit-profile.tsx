@@ -31,7 +31,10 @@ import {
   Lock,
   Edit,
   Pencil,
-  Skull
+  Skull,
+  Building2,
+  Crown,
+  CheckCircle
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Recruit, RecruitingInterest, Team, League } from "@shared/schema";
@@ -96,6 +99,12 @@ export default function RecruitProfilePage() {
   const [showProfileEmailPicker, setShowProfileEmailPicker] = useState(false);
   const [profilePhonePitches, setProfilePhonePitches] = useState<string[]>([]);
   const [profileEmailPitch, setProfileEmailPitch] = useState<string | null>(null);
+  const [actionResultModal, setActionResultModal] = useState<{
+    title: string;
+    description: string;
+    type: "success" | "error";
+    icon?: "check" | "phone" | "email" | "visit" | "coach" | "offer" | "scout";
+  } | null>(null);
 
   const pitchOptions = [
     { key: "proximity", label: "Proximity" },
@@ -133,6 +142,11 @@ export default function RecruitProfilePage() {
     queryKey: ["/api/leagues", id],
   });
 
+  const { data: recruitingData } = useQuery<any>({
+    queryKey: ["/api/leagues", id, "recruiting"],
+    enabled: !!id,
+  });
+
   const currentWeek = leagueData?.league?.currentWeek ?? 1;
   const currentSeason = leagueData?.league?.currentSeason ?? 1;
   const phoneUsedThisWeek = actionsData?.actions?.some(
@@ -143,6 +157,12 @@ export default function RecruitProfilePage() {
   ) ?? false;
 
   const isCommissioner = authData?.id && leagueData?.league?.commissionerId === authData.id;
+
+  const visitCost = recruitingData?.recruitPointCosts?.[recruitId!]?.visit ?? 2;
+  const headCoachVisitCost = recruitingData?.recruitPointCosts?.[recruitId!]?.headCoachVisit ?? 2;
+  const hasVisited = recruitingData?.premiumActionsUsed?.[recruitId!]?.includes("visit") ?? false;
+  const hasHeadCoachVisited = recruitingData?.premiumActionsUsed?.[recruitId!]?.includes("head_coach_visit") ?? false;
+  const remainingPoints = recruitingData?.remainingPoints ?? 0;
 
   const updateRecruitMutation = useMutation({
     mutationFn: async (updates: Partial<Recruit>) => {
@@ -163,12 +183,12 @@ export default function RecruitProfilePage() {
       return apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/scout`);
     },
     onSuccess: () => {
-      toast({ title: "Scouted!", description: "Scouting progress increased." });
+      setActionResultModal({ title: "Scouting Complete", description: "New attributes revealed!", type: "success", icon: "scout" });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruits", recruitId] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting", recruitId, "actions"] });
     },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to scout recruit", variant: "destructive" });
+    onError: (error: Error) => {
+      setActionResultModal({ title: "Scouting Failed", description: error.message, type: "error" });
     },
   });
 
@@ -178,12 +198,13 @@ export default function RecruitProfilePage() {
     },
     onSuccess: (data: any) => {
       const gain = data.interestGain || 0;
-      toast({ title: "Phone Call Made", description: gain > 10 ? "Strong interest!" : "Interest increased" });
+      const changeLabel = getInterestChangeLabel(gain);
+      setActionResultModal({ title: "Phone Call Made", description: changeLabel.label, type: "success", icon: "phone" });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruits", recruitId] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting", recruitId, "actions"] });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message || "Failed to make phone call", variant: "destructive" });
+      setActionResultModal({ title: "Phone Call Failed", description: error.message, type: "error" });
     },
   });
 
@@ -193,12 +214,45 @@ export default function RecruitProfilePage() {
     },
     onSuccess: (data: any) => {
       const gain = data.interestGain || 0;
-      toast({ title: "Email Sent", description: gain > 5 ? "Good response!" : "Interest increased" });
+      const changeLabel = getInterestChangeLabel(gain);
+      setActionResultModal({ title: "Email Sent", description: changeLabel.label, type: "success", icon: "email" });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruits", recruitId] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting", recruitId, "actions"] });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message || "Failed to send email", variant: "destructive" });
+      setActionResultModal({ title: "Email Failed", description: error.message, type: "error" });
+    },
+  });
+
+  const visitMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/visit`, {});
+    },
+    onSuccess: (data: any) => {
+      const gain = data.interestGain || 0;
+      const changeLabel = getInterestChangeLabel(gain);
+      setActionResultModal({ title: "Campus Visit Scheduled", description: changeLabel.label, type: "success", icon: "visit" });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruits", recruitId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting", recruitId, "actions"] });
+    },
+    onError: (error: Error) => {
+      setActionResultModal({ title: "Visit Failed", description: error.message, type: "error" });
+    },
+  });
+
+  const headCoachVisitMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/head-coach-visit`, {});
+    },
+    onSuccess: (data: any) => {
+      const gain = data.interestGain || 0;
+      const changeLabel = getInterestChangeLabel(gain);
+      setActionResultModal({ title: "Head Coach Visit Complete", description: changeLabel.label, type: "success", icon: "coach" });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruits", recruitId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting", recruitId, "actions"] });
+    },
+    onError: (error: Error) => {
+      setActionResultModal({ title: "HC Visit Failed", description: error.message, type: "error" });
     },
   });
 
@@ -206,13 +260,15 @@ export default function RecruitProfilePage() {
     mutationFn: async () => {
       return apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/offer`);
     },
-    onSuccess: () => {
-      toast({ title: "Scholarship Offered!", description: "Big interest boost" });
+    onSuccess: (data: any) => {
+      const gain = data.interestGain || 0;
+      const changeLabel = getInterestChangeLabel(gain);
+      setActionResultModal({ title: "Scholarship Offered", description: changeLabel.label, type: "success", icon: "offer" });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruits", recruitId] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting", recruitId, "actions"] });
     },
-    onError: () => {
-      toast({ title: "Error", description: "Failed to offer scholarship", variant: "destructive" });
+    onError: (error: Error) => {
+      setActionResultModal({ title: "Offer Failed", description: error.message, type: "error" });
     },
   });
 
@@ -437,7 +493,7 @@ export default function RecruitProfilePage() {
 
       <main className="container mx-auto px-4 py-6">
         {/* Action Buttons */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
           <RetroButton 
             variant="outline" 
             className="border-green-500 text-green-400"
@@ -465,6 +521,26 @@ export default function RecruitProfilePage() {
           >
             <Mail className="w-4 h-4 mr-2" />
             {emailMutation.isPending ? "Sending..." : emailUsedThisWeek ? "Emailed This Week" : "Email (1 pitch)"}
+          </RetroButton>
+          <RetroButton 
+            variant="outline" 
+            className="border-teal-500 text-teal-400"
+            data-testid="button-visit"
+            onClick={() => visitMutation.mutate()}
+            disabled={visitMutation.isPending || !recruit.interest || hasVisited || remainingPoints < visitCost}
+          >
+            <Building2 className="w-4 h-4 mr-2" />
+            {visitMutation.isPending ? "Visiting..." : hasVisited ? "Visited" : `Visit (${visitCost})`}
+          </RetroButton>
+          <RetroButton 
+            variant="outline" 
+            className="border-purple-500 text-purple-400"
+            data-testid="button-hc-visit"
+            onClick={() => headCoachVisitMutation.mutate()}
+            disabled={headCoachVisitMutation.isPending || !recruit.interest || hasHeadCoachVisited || remainingPoints < headCoachVisitCost}
+          >
+            <Crown className="w-4 h-4 mr-2" />
+            {headCoachVisitMutation.isPending ? "Visiting..." : hasHeadCoachVisited ? "HC Visited" : `HC Visit (${headCoachVisitCost})`}
           </RetroButton>
           <RetroButton 
             variant="outline" 
@@ -909,6 +985,44 @@ export default function RecruitProfilePage() {
           isSaving={updateRecruitMutation.isPending}
         />
       )}
+
+      <Dialog open={!!actionResultModal} onOpenChange={() => setActionResultModal(null)}>
+        <DialogContent className="max-w-sm border-2 border-[#1a3a1a] bg-[#0d1f0d]" data-testid="action-result-modal">
+          <div className="flex flex-col items-center gap-4 py-4">
+            {actionResultModal?.type === "success" ? (
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#1a3a1a]">
+                {actionResultModal.icon === "phone" && <Phone className="h-7 w-7 text-[#c8aa6e]" />}
+                {actionResultModal.icon === "email" && <Mail className="h-7 w-7 text-[#c8aa6e]" />}
+                {actionResultModal.icon === "visit" && <Building2 className="h-7 w-7 text-[#c8aa6e]" />}
+                {actionResultModal.icon === "coach" && <Crown className="h-7 w-7 text-[#c8aa6e]" />}
+                {actionResultModal.icon === "offer" && <GraduationCap className="h-7 w-7 text-[#c8aa6e]" />}
+                {actionResultModal.icon === "scout" && <Eye className="h-7 w-7 text-[#c8aa6e]" />}
+                {actionResultModal.icon === "check" && <CheckCircle className="h-7 w-7 text-green-400" />}
+                {!actionResultModal.icon && <CheckCircle className="h-7 w-7 text-green-400" />}
+              </div>
+            ) : (
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-900/30">
+                <XCircle className="h-7 w-7 text-red-400" />
+              </div>
+            )}
+            <div className="text-center">
+              <h3 className="font-['Press_Start_2P'] text-sm text-[#c8aa6e]" data-testid="action-result-title">
+                {actionResultModal?.title}
+              </h3>
+              <p className="mt-2 text-sm text-gray-300" data-testid="action-result-description">
+                {actionResultModal?.description}
+              </p>
+            </div>
+            <RetroButton
+              onClick={() => setActionResultModal(null)}
+              className="mt-2"
+              data-testid="action-result-dismiss"
+            >
+              OK
+            </RetroButton>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

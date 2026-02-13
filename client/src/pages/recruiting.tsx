@@ -47,7 +47,8 @@ import {
   History,
   Star,
   Skull,
-  Crown
+  Crown,
+  Building2
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -100,12 +101,13 @@ interface RecruitWithInterest extends Recruit {
 interface RecruitingData {
   recruits: RecruitWithInterest[];
   team: Team;
-  remainingActions: number;
-  maxActions: number;
-  actionsUsed: number;
-  remainingScoutActions: number;
-  maxScoutActions: number;
-  scoutActionsUsed: number;
+  remainingPoints: number;
+  maxPoints: number;
+  pointsUsed: number;
+  remainingScoutPoints: number;
+  maxScoutPoints: number;
+  scoutPointsUsed: number;
+  recruitPointCosts: Record<string, { visit: number; headCoachVisit: number }>;
   targetedCount: number;
   commitsCount: number;
   maxCommits: number;
@@ -172,6 +174,12 @@ export default function RecruitingPage() {
   const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
   const [showTopAvailable, setShowTopAvailable] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [actionResultModal, setActionResultModal] = useState<{
+    title: string;
+    description: string;
+    type: "success" | "error";
+    icon?: "check" | "phone" | "email" | "visit" | "coach" | "offer" | "scout";
+  } | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -279,10 +287,10 @@ export default function RecruitingPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
-      toast({ title: "Scouting complete", description: "New attributes revealed!" });
+      setActionResultModal({ title: "Scouting Complete", description: "New attributes revealed!", type: "success", icon: "scout" });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      setActionResultModal({ title: "Scouting Failed", description: error.message, type: "error" });
     },
   });
 
@@ -292,10 +300,10 @@ export default function RecruitingPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
-      toast({ title: "Recruit targeted", description: "Added to your target list." });
+      setActionResultModal({ title: "Recruit Targeted", description: "Added to your target list.", type: "success", icon: "check" });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      setActionResultModal({ title: "Error", description: error.message, type: "error" });
     },
   });
 
@@ -321,13 +329,10 @@ export default function RecruitingPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
       const gain = data.interestGain || 0;
       const changeLabel = getInterestChangeLabel(gain);
-      toast({ 
-        title: "Phone Call Made", 
-        description: `${changeLabel.label}` 
-      });
+      setActionResultModal({ title: "Phone Call Made", description: changeLabel.label, type: "success", icon: "phone" });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      setActionResultModal({ title: "Phone Call Failed", description: error.message, type: "error" });
     },
   });
 
@@ -339,13 +344,10 @@ export default function RecruitingPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
       const gain = data.interestGain || 0;
       const changeLabel = getInterestChangeLabel(gain);
-      toast({ 
-        title: "Email Sent", 
-        description: `${changeLabel.label}` 
-      });
+      setActionResultModal({ title: "Email Sent", description: changeLabel.label, type: "success", icon: "email" });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      setActionResultModal({ title: "Email Failed", description: error.message, type: "error" });
     },
   });
 
@@ -357,13 +359,10 @@ export default function RecruitingPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
       const gain = data.interestGain || 0;
       const changeLabel = getInterestChangeLabel(gain);
-      toast({ 
-        title: "Campus Visit Scheduled", 
-        description: `${changeLabel.label}` 
-      });
+      setActionResultModal({ title: "Campus Visit Scheduled", description: changeLabel.label, type: "success", icon: "visit" });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      setActionResultModal({ title: "Visit Failed", description: error.message, type: "error" });
     },
   });
 
@@ -375,13 +374,10 @@ export default function RecruitingPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
       const gain = data.interestGain || 0;
       const changeLabel = getInterestChangeLabel(gain);
-      toast({ 
-        title: "Head Coach Visit Complete", 
-        description: `${changeLabel.label}` 
-      });
+      setActionResultModal({ title: "Head Coach Visit Complete", description: changeLabel.label, type: "success", icon: "coach" });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      setActionResultModal({ title: "HC Visit Failed", description: error.message, type: "error" });
     },
   });
 
@@ -393,10 +389,10 @@ export default function RecruitingPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
       const gain = data.interestGain || 0;
       const changeLabel = getInterestChangeLabel(gain);
-      toast({ title: "Scholarship Offered", description: `${changeLabel.label}` });
+      setActionResultModal({ title: "Scholarship Offered", description: changeLabel.label, type: "success", icon: "offer" });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      setActionResultModal({ title: "Offer Failed", description: error.message, type: "error" });
     },
   });
 
@@ -412,10 +408,10 @@ export default function RecruitingPage() {
     onSuccess: (_, recruitIds) => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
       setBulkSelected(new Set());
-      toast({ title: "Bulk Scouting Complete", description: `Scouted ${recruitIds.length} recruits!` });
+      setActionResultModal({ title: "Bulk Scouting Complete", description: `Scouted ${recruitIds.length} recruits!`, type: "success", icon: "scout" });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      setActionResultModal({ title: "Scouting Failed", description: error.message, type: "error" });
     },
   });
 
@@ -576,8 +572,8 @@ export default function RecruitingPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
             <StatCard icon={<Target className="w-4 h-4" />} label="Targets" value={`${data?.targetedCount || 0}/20`} />
             <StatCard icon={<Check className="w-4 h-4" />} label="Commits" value={`${data?.commitsCount || 0}/${data?.maxCommits ?? 0}`} />
-            <StatCard icon={<Phone className="w-4 h-4" />} label="Recruiting Actions" value={`${data?.actionsUsed ?? 0}/${data?.maxActions ?? 0}`} />
-            <StatCard icon={<Eye className="w-4 h-4" />} label="Scout Actions" value={`${data?.scoutActionsUsed ?? 0}/${data?.maxScoutActions ?? 0}`} />
+            <StatCard icon={<Phone className="w-4 h-4" />} label="Recruiting Points" value={`${data?.pointsUsed ?? 0}/${data?.maxPoints ?? 0}`} />
+            <StatCard icon={<Eye className="w-4 h-4" />} label="Scout Points" value={`${data?.scoutPointsUsed ?? 0}/${data?.maxScoutPoints ?? 0}`} />
           </div>
         </div>
       </header>
@@ -726,7 +722,7 @@ export default function RecruitingPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => bulkScoutMutation.mutate(unscoutedTargets.map(r => r.id))}
-                    disabled={bulkScoutMutation.isPending || (data?.remainingScoutActions ?? 0) <= 0}
+                    disabled={bulkScoutMutation.isPending || (data?.remainingScoutPoints ?? 0) <= 0}
                     data-testid="button-quick-scout-targets"
                   >
                     <Eye className="w-3 h-3 mr-1" />
@@ -979,9 +975,11 @@ export default function RecruitingPage() {
               trend={trendsData?.trends?.[recruit.id]}
               userTeamId={data?.team?.id}
               positionNeed={pipelineData?.positionNeeds?.find(p => p.position === recruit.position)?.need}
-              outOfRecruitingActions={(data?.remainingActions ?? 1) <= 0}
-              outOfPremiumActions={(data?.remainingActions ?? 2) < 2}
-              outOfScoutActions={(data?.remainingScoutActions ?? 1) <= 0}
+              outOfRecruitingActions={(data?.remainingPoints ?? 1) <= 0}
+              remainingPoints={data?.remainingPoints ?? 0}
+              visitCost={data?.recruitPointCosts?.[recruit.id]?.visit ?? 2}
+              headCoachVisitCost={data?.recruitPointCosts?.[recruit.id]?.headCoachVisit ?? 2}
+              outOfScoutActions={(data?.remainingScoutPoints ?? 1) <= 0}
               progressionEnabled={leagueData?.progressionEnabled}
             />
           ))}
@@ -1030,11 +1028,51 @@ export default function RecruitingPage() {
         isHeadCoachVisiting={headCoachVisitMutation.isPending}
         onOffer={(recruitId) => offerMutation.mutate(recruitId)}
         isOffering={offerMutation.isPending}
-        outOfRecruitingActions={(data?.remainingActions ?? 1) <= 0}
-        outOfPremiumActions={(data?.remainingActions ?? 2) < 2}
+        outOfRecruitingActions={(data?.remainingPoints ?? 1) <= 0}
+        remainingPoints={data?.remainingPoints ?? 0}
+        visitCost={selectedRecruit ? (data?.recruitPointCosts?.[selectedRecruit.id]?.visit ?? 2) : 2}
+        headCoachVisitCost={selectedRecruit ? (data?.recruitPointCosts?.[selectedRecruit.id]?.headCoachVisit ?? 2) : 2}
         hasVisited={selectedRecruit ? (data?.premiumActionsUsed?.[selectedRecruit.id]?.includes("visit") ?? false) : false}
         hasHeadCoachVisited={selectedRecruit ? (data?.premiumActionsUsed?.[selectedRecruit.id]?.includes("head_coach_visit") ?? false) : false}
       />
+
+      <Dialog open={!!actionResultModal} onOpenChange={() => setActionResultModal(null)}>
+        <DialogContent className="max-w-sm border-2 border-[#1a3a1a] bg-[#0d1f0d]" data-testid="action-result-modal">
+          <div className="flex flex-col items-center gap-4 py-4">
+            {actionResultModal?.type === "success" ? (
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#1a3a1a]">
+                {actionResultModal.icon === "phone" && <Phone className="h-7 w-7 text-[#c8aa6e]" />}
+                {actionResultModal.icon === "email" && <Mail className="h-7 w-7 text-[#c8aa6e]" />}
+                {actionResultModal.icon === "visit" && <Building2 className="h-7 w-7 text-[#c8aa6e]" />}
+                {actionResultModal.icon === "coach" && <Crown className="h-7 w-7 text-[#c8aa6e]" />}
+                {actionResultModal.icon === "offer" && <GraduationCap className="h-7 w-7 text-[#c8aa6e]" />}
+                {actionResultModal.icon === "scout" && <Eye className="h-7 w-7 text-[#c8aa6e]" />}
+                {actionResultModal.icon === "check" && <CheckCircle className="h-7 w-7 text-green-400" />}
+                {!actionResultModal.icon && <CheckCircle className="h-7 w-7 text-green-400" />}
+              </div>
+            ) : (
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-900/30">
+                <XCircle className="h-7 w-7 text-red-400" />
+              </div>
+            )}
+            <div className="text-center">
+              <h3 className="font-['Press_Start_2P'] text-sm text-[#c8aa6e]" data-testid="action-result-title">
+                {actionResultModal?.title}
+              </h3>
+              <p className="mt-2 text-sm text-gray-300" data-testid="action-result-description">
+                {actionResultModal?.description}
+              </p>
+            </div>
+            <RetroButton
+              onClick={() => setActionResultModal(null)}
+              className="mt-2"
+              data-testid="action-result-dismiss"
+            >
+              OK
+            </RetroButton>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {compareRecruits.length > 0 && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-card border border-gold rounded-lg shadow-lg p-3 flex items-center gap-4 z-50" data-testid="compare-bar">
@@ -1210,7 +1248,9 @@ function RecruitRow({
   userTeamId,
   positionNeed,
   outOfRecruitingActions,
-  outOfPremiumActions,
+  remainingPoints,
+  visitCost,
+  headCoachVisitCost,
   outOfScoutActions,
   progressionEnabled,
   hasVisited,
@@ -1242,7 +1282,9 @@ function RecruitRow({
   userTeamId?: string;
   positionNeed?: boolean;
   outOfRecruitingActions?: boolean;
-  outOfPremiumActions?: boolean;
+  remainingPoints: number;
+  visitCost: number;
+  headCoachVisitCost: number;
   outOfScoutActions?: boolean;
   progressionEnabled?: boolean;
   hasVisited?: boolean;
@@ -1254,6 +1296,7 @@ function RecruitRow({
   const [showEmailPicker, setShowEmailPicker] = useState(false);
   const [selectedPhonePitches, setSelectedPhonePitches] = useState<string[]>([]);
   const [selectedEmailPitch, setSelectedEmailPitch] = useState<string | null>(null);
+  const [showTopSchools, setShowTopSchools] = useState(false);
 
   const pitchOptions = [
     { key: "proximity", label: "Proximity" },
@@ -1520,7 +1563,7 @@ function RecruitRow({
               <Progress value={scoutPct} className="h-2" />
             </div>
 
-            <div className="flex gap-1 flex-wrap">
+            <div className="flex gap-1.5 flex-wrap">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <RetroButton
@@ -1530,10 +1573,11 @@ function RecruitRow({
                     disabled={isScouting || scoutPct >= 100 || outOfScoutActions}
                     data-testid={`button-scout-${recruit.id}`}
                   >
-                    <Search className="w-3 h-3" />
+                    <Search className="w-3 h-3 mr-1" />
+                    <span className="text-[9px]">Scout</span>
                   </RetroButton>
                 </TooltipTrigger>
-                <TooltipContent>Scout</TooltipContent>
+                <TooltipContent>Scout (1 scouting point)</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -1544,10 +1588,11 @@ function RecruitRow({
                     disabled={isTargeting}
                     data-testid={`button-target-${recruit.id}`}
                   >
-                    <Target className="w-3 h-3" />
+                    <Target className="w-3 h-3 mr-1" />
+                    <span className="text-[9px]">Target</span>
                   </RetroButton>
                 </TooltipTrigger>
-                <TooltipContent>Target</TooltipContent>
+                <TooltipContent>{recruit.interest?.isTargeted ? "Untarget" : "Target"}</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -1558,10 +1603,11 @@ function RecruitRow({
                     disabled={isPhoning || !recruit.interest || outOfRecruitingActions}
                     data-testid={`button-phone-${recruit.id}`}
                   >
-                    <Phone className="w-3 h-3" />
+                    <Phone className="w-3 h-3 mr-1" />
+                    <span className="text-[9px]">Call (1)</span>
                   </RetroButton>
                 </TooltipTrigger>
-                <TooltipContent>Phone Call (3 pitches)</TooltipContent>
+                <TooltipContent>Phone Call - 1 recruiting point (3 pitches)</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -1572,10 +1618,11 @@ function RecruitRow({
                     disabled={isEmailing || !recruit.interest || outOfRecruitingActions}
                     data-testid={`button-email-${recruit.id}`}
                   >
-                    <Mail className="w-3 h-3" />
+                    <Mail className="w-3 h-3 mr-1" />
+                    <span className="text-[9px]">Email (1)</span>
                   </RetroButton>
                 </TooltipTrigger>
-                <TooltipContent>Send Email (1 pitch)</TooltipContent>
+                <TooltipContent>Send Email - 1 recruiting point (1 pitch)</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -1583,13 +1630,14 @@ function RecruitRow({
                     variant={hasVisited ? "primary" : "outline"}
                     size="sm"
                     onClick={onVisit}
-                    disabled={isVisiting || !recruit.interest || outOfPremiumActions || hasVisited}
+                    disabled={isVisiting || !recruit.interest || remainingPoints < visitCost || hasVisited}
                     data-testid={`button-visit-${recruit.id}`}
                   >
-                    <MapPin className="w-3 h-3" />
+                    <Building2 className="w-3 h-3 mr-1" />
+                    <span className="text-[9px]">Visit ({visitCost})</span>
                   </RetroButton>
                 </TooltipTrigger>
-                <TooltipContent>{hasVisited ? "Campus Visit Used" : outOfPremiumActions ? "Need 2 actions for Campus Visit" : "Campus Visit (2 actions)"}</TooltipContent>
+                <TooltipContent>{hasVisited ? "Campus Visit Used" : remainingPoints < visitCost ? `Need ${visitCost} points for Campus Visit` : `Campus Visit - ${visitCost} recruiting points`}</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -1597,13 +1645,14 @@ function RecruitRow({
                     variant={hasHeadCoachVisited ? "primary" : "outline"}
                     size="sm"
                     onClick={onHeadCoachVisit}
-                    disabled={isHeadCoachVisiting || !recruit.interest || outOfPremiumActions || hasHeadCoachVisited}
+                    disabled={isHeadCoachVisiting || !recruit.interest || remainingPoints < headCoachVisitCost || hasHeadCoachVisited}
                     data-testid={`button-head-coach-visit-${recruit.id}`}
                   >
-                    <Crown className="w-3 h-3" />
+                    <Crown className="w-3 h-3 mr-1" />
+                    <span className="text-[9px]">HC Visit ({headCoachVisitCost})</span>
                   </RetroButton>
                 </TooltipTrigger>
-                <TooltipContent>{hasHeadCoachVisited ? "Head Coach Visit Used" : outOfPremiumActions ? "Need 2 actions for HC Visit" : "Head Coach Visit (2 actions)"}</TooltipContent>
+                <TooltipContent>{hasHeadCoachVisited ? "Head Coach Visit Used" : remainingPoints < headCoachVisitCost ? `Need ${headCoachVisitCost} points for HC Visit` : `Head Coach Visit - ${headCoachVisitCost} recruiting points`}</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -1614,10 +1663,11 @@ function RecruitRow({
                     disabled={isOffering || !recruit.interest || recruit.interest?.hasOffer}
                     data-testid={`button-offer-${recruit.id}`}
                   >
-                    <Gift className="w-3 h-3" />
+                    <Gift className="w-3 h-3 mr-1" />
+                    <span className="text-[9px]">{recruit.interest?.hasOffer ? "Offered" : "Offer"}</span>
                   </RetroButton>
                 </TooltipTrigger>
-                <TooltipContent>{recruit.interest?.hasOffer ? "Scholarship Offered" : "Offer Scholarship"}</TooltipContent>
+                <TooltipContent>{recruit.interest?.hasOffer ? "Scholarship Offered" : "Offer Scholarship (1 recruiting point)"}</TooltipContent>
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -1780,44 +1830,53 @@ function RecruitRow({
 
       {recruit.topSchools && recruit.topSchools.length > 0 && (
         <div className="mt-4 pt-4 border-t border-border">
-          <div className="flex items-center justify-between mb-2">
+          <button
+            onClick={() => setShowTopSchools(!showTopSchools)}
+            className="flex items-center justify-between w-full mb-2 group"
+            data-testid={`button-toggle-top-schools-${recruit.id}`}
+          >
             <span className="text-xs text-muted-foreground">Top Schools Interest</span>
-            <Badge variant="outline" className="text-[8px]">
-              {recruit.stage === "open" ? "8 Schools" : recruit.stage === "top8" ? "Top 8" : recruit.stage === "top5" ? "Top 5" : recruit.stage === "top3" ? "Top 3" : recruit.stage}
-            </Badge>
-          </div>
-          <div className="space-y-1.5">
-            {recruit.topSchools.slice(0, recruit.stage === "top3" ? 3 : recruit.stage === "top5" ? 5 : 8).map((school, i) => {
-              const isUserSchool = userTeamId && school.teamId === userTeamId;
-              const schoolTrend = isUserSchool ? trend : undefined;
-              return (
-                <div key={school.teamId} className={`flex items-center gap-2 ${isUserSchool ? "bg-gold/5 -mx-1 px-1 rounded" : ""}`}>
-                  <TeamBadge
-                    abbreviation={school.abbreviation}
-                    primaryColor={school.primaryColor}
-                    size="sm"
-                  />
-                  <span className="text-[10px] text-muted-foreground w-8">{school.abbreviation}</span>
-                  <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                    <div 
-                      className="h-full transition-all"
-                      style={{ 
-                        width: `${Math.min(100, Math.round(school.interestLevel / 20) * 20)}%`,
-                        backgroundColor: isUserSchool ? school.primaryColor : school.primaryColor
-                      }}
+            <div className="flex items-center gap-1.5">
+              <Badge variant="outline" className="text-[8px]">
+                {recruit.stage === "open" ? "8 Schools" : recruit.stage === "top8" ? "Top 8" : recruit.stage === "top5" ? "Top 5" : recruit.stage === "top3" ? "Top 3" : recruit.stage}
+              </Badge>
+              {showTopSchools ? <ChevronUp className="w-3 h-3 text-muted-foreground" /> : <ChevronDown className="w-3 h-3 text-muted-foreground" />}
+            </div>
+          </button>
+          {showTopSchools && (
+            <div className="space-y-1.5">
+              {recruit.topSchools.slice(0, recruit.stage === "top3" ? 3 : recruit.stage === "top5" ? 5 : 8).map((school, i) => {
+                const isUserSchool = userTeamId && school.teamId === userTeamId;
+                const schoolTrend = isUserSchool ? trend : undefined;
+                return (
+                  <div key={school.teamId} className={`flex items-center gap-2 ${isUserSchool ? "bg-gold/5 -mx-1 px-1 rounded" : ""}`}>
+                    <TeamBadge
+                      abbreviation={school.abbreviation}
+                      primaryColor={school.primaryColor}
+                      size="sm"
                     />
-                  </div>
-                  {schoolTrend && schoolTrend.trend !== "flat" && (
-                    <div className={`flex items-center gap-0.5 text-[10px] min-w-[40px] ${schoolTrend.trend === "up" ? "text-green-400" : "text-red-400"}`}>
-                      {schoolTrend.trend === "up" ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                      <span>{schoolTrend.trend === "up" ? "+" : ""}{schoolTrend.recentGain}</span>
+                    <span className="text-[10px] text-muted-foreground w-8">{school.abbreviation}</span>
+                    <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                      <div 
+                        className="h-full transition-all"
+                        style={{ 
+                          width: `${Math.min(100, Math.round(school.interestLevel / 20) * 20)}%`,
+                          backgroundColor: isUserSchool ? school.primaryColor : school.primaryColor
+                        }}
+                      />
                     </div>
-                  )}
-                  <span className={`text-[10px] w-16 text-right flex-shrink-0 ${getInterestLabel(school.interestLevel).color}`}>{getInterestLabel(school.interestLevel).label}</span>
-                </div>
-              );
-            })}
-          </div>
+                    {schoolTrend && schoolTrend.trend !== "flat" && (
+                      <div className={`flex items-center gap-0.5 text-[10px] min-w-[40px] ${schoolTrend.trend === "up" ? "text-green-400" : "text-red-400"}`}>
+                        {schoolTrend.trend === "up" ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                        <span>{schoolTrend.trend === "up" ? "+" : ""}{schoolTrend.recentGain}</span>
+                      </div>
+                    )}
+                    <span className={`text-[10px] w-16 text-right flex-shrink-0 ${getInterestLabel(school.interestLevel).color}`}>{getInterestLabel(school.interestLevel).label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
     </RetroCard>
@@ -1841,7 +1900,9 @@ function RecruitDetailModal({
   onOffer,
   isOffering,
   outOfRecruitingActions,
-  outOfPremiumActions,
+  remainingPoints,
+  visitCost,
+  headCoachVisitCost,
   hasVisited,
   hasHeadCoachVisited,
 }: {
@@ -1861,7 +1922,9 @@ function RecruitDetailModal({
   onOffer: (recruitId: string) => void;
   isOffering: boolean;
   outOfRecruitingActions?: boolean;
-  outOfPremiumActions?: boolean;
+  remainingPoints: number;
+  visitCost: number;
+  headCoachVisitCost: number;
   hasVisited?: boolean;
   hasHeadCoachVisited?: boolean;
 }) {
@@ -2272,20 +2335,20 @@ function RecruitDetailModal({
                 className="flex-1" 
                 data-testid="button-visit"
                 onClick={() => onVisit(recruit.id)}
-                disabled={isVisiting || outOfPremiumActions || hasVisited}
+                disabled={isVisiting || remainingPoints < visitCost || hasVisited}
               >
-                <MapPin className="w-4 h-4 mr-2" />
-                {hasVisited ? "Visited" : isVisiting ? "Scheduling..." : "Campus Visit (2)"}
+                <Building2 className="w-4 h-4 mr-2" />
+                {hasVisited ? "Visited" : isVisiting ? "Scheduling..." : `Campus Visit (${visitCost})`}
               </RetroButton>
               <RetroButton 
                 variant={hasHeadCoachVisited ? "primary" : "outline"}
                 className="flex-1" 
                 data-testid="button-head-coach-visit"
                 onClick={() => onHeadCoachVisit(recruit.id)}
-                disabled={isHeadCoachVisiting || outOfPremiumActions || hasHeadCoachVisited}
+                disabled={isHeadCoachVisiting || remainingPoints < headCoachVisitCost || hasHeadCoachVisited}
               >
                 <Crown className="w-4 h-4 mr-2" />
-                {hasHeadCoachVisited ? "HC Visited" : isHeadCoachVisiting ? "Visiting..." : "HC Visit (2)"}
+                {hasHeadCoachVisited ? "HC Visited" : isHeadCoachVisiting ? "Visiting..." : `HC Visit (${headCoachVisitCost})`}
               </RetroButton>
               <RetroButton 
                 variant="outline" 
