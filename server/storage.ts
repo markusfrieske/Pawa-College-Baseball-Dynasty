@@ -102,6 +102,7 @@ export interface IStorage {
 
   getRecruitTopSchools(recruitId: string): Promise<RecruitTopSchools[]>;
   getRecruitTopSchool(recruitId: string, teamId: string): Promise<RecruitTopSchools | undefined>;
+  getTopSchoolsByTeam(teamId: string): Promise<RecruitTopSchools[]>;
   createRecruitTopSchool(topSchool: InsertRecruitTopSchools): Promise<RecruitTopSchools>;
   updateRecruitTopSchool(id: string, data: Partial<RecruitTopSchools>): Promise<RecruitTopSchools | undefined>;
   
@@ -437,6 +438,11 @@ export class DatabaseStorage implements IStorage {
     const [topSchool] = await db.select().from(recruitTopSchools)
       .where(and(eq(recruitTopSchools.recruitId, recruitId), eq(recruitTopSchools.teamId, teamId)));
     return topSchool || undefined;
+  }
+
+  async getTopSchoolsByTeam(teamId: string): Promise<RecruitTopSchools[]> {
+    return await db.select().from(recruitTopSchools)
+      .where(eq(recruitTopSchools.teamId, teamId));
   }
 
   async createRecruitTopSchool(topSchool: InsertRecruitTopSchools): Promise<RecruitTopSchools> {

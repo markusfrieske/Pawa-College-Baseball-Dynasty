@@ -1862,7 +1862,28 @@ function RecruitRow({
             className="flex items-center justify-between w-full mb-2 group"
             data-testid={`button-toggle-top-schools-${recruit.id}`}
           >
-            <span className="text-xs text-muted-foreground">Top Schools Interest</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Top Schools</span>
+              {(() => {
+                const visibleCount = recruit.stage === "top3" ? 3 : recruit.stage === "top5" ? 5 : 8;
+                const visibleSchools = recruit.topSchools!.slice(0, visibleCount);
+                const userIdx = visibleSchools.findIndex(s => s.teamId === userTeamId);
+                if (userIdx >= 0) {
+                  const userSchool = visibleSchools[userIdx];
+                  const interestInfo = getInterestLabel(userSchool.interestLevel);
+                  return (
+                    <span className={`text-[9px] font-pixel ${interestInfo.color}`} data-testid={`text-user-school-rank-${recruit.id}`}>
+                      #{userIdx + 1} {interestInfo.label}
+                    </span>
+                  );
+                }
+                return (
+                  <span className="text-[9px] text-muted-foreground/60" data-testid={`text-user-school-absent-${recruit.id}`}>
+                    Not Listed
+                  </span>
+                );
+              })()}
+            </div>
             <div className="flex items-center gap-1.5">
               <Badge variant="outline" className="text-[8px]">
                 {recruit.stage === "open" ? "8 Schools" : recruit.stage === "top8" ? "Top 8" : recruit.stage === "top5" ? "Top 5" : recruit.stage === "top3" ? "Top 3" : recruit.stage}

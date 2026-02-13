@@ -6062,13 +6062,22 @@ export async function registerRoutes(
         interestMap.set(interest.recruitId, interest.interestLevel);
       }
 
+      const topSchoolEntries = await storage.getTopSchoolsByTeam(teamId);
+      const topSchoolInterestMap = new Map<string, number>();
+      for (const ts of topSchoolEntries) {
+        const combined = ts.interestLevel + (ts.accumulatedInterest || 0);
+        topSchoolInterestMap.set(ts.recruitId, combined);
+      }
+
       const pipeline = { cold: 0, cool: 0, warm: 0, hot: 0, very_hot: 0, on_fire: 0, committed: 0, home_state: 0, home_region: 0 };
       const committed = allRecruits.filter(r => r.signedTeamId === teamId);
       pipeline.committed = committed.length;
 
       for (const recruit of allRecruits) {
         if (recruit.signedTeamId) continue;
-        const level = interestMap.get(recruit.id) ?? 0;
+        const riLevel = interestMap.get(recruit.id) ?? 0;
+        const tsLevel = topSchoolInterestMap.get(recruit.id) ?? 0;
+        const level = Math.max(riLevel, tsLevel);
         if (level >= 90) pipeline.on_fire++;
         else if (level >= 70) pipeline.very_hot++;
         else if (level >= 50) pipeline.hot++;
