@@ -59,6 +59,7 @@ interface FilterPreset {
   position: string;
   star: string;
   state?: string;
+  type?: string;
   sort: string;
 }
 import { apiRequest } from "@/lib/queryClient";
@@ -152,6 +153,7 @@ export default function RecruitingPage() {
   const [positionFilter, setPositionFilter] = useState("all");
   const [starFilter, setStarFilter] = useState("all");
   const [stateFilter, setStateFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
   const [sortBy, setSortBy] = useState("classRank");
   const [showTeamNeeds, setShowTeamNeeds] = useState(false);
   const [showPipeline, setShowPipeline] = useState(false);
@@ -200,6 +202,7 @@ export default function RecruitingPage() {
       position: positionFilter,
       star: starFilter,
       state: stateFilter,
+      type: typeFilter,
       sort: sortBy,
     };
     const updated = [...filterPresets, preset];
@@ -212,6 +215,7 @@ export default function RecruitingPage() {
   const loadPreset = (preset: FilterPreset) => {
     setPositionFilter(preset.position);
     setStateFilter(preset.state || "all");
+    setTypeFilter(preset.type || "all");
     setStarFilter(preset.star);
     setSortBy(preset.sort);
     toast({ title: "Preset loaded", description: `Applied "${preset.name}" filters.` });
@@ -411,6 +415,12 @@ export default function RecruitingPage() {
     if (positionFilter !== "all" && r.position !== positionFilter) return false;
     if (starFilter !== "all" && r.starRank < parseInt(starFilter)) return false;
     if (stateFilter !== "all" && r.homeState !== stateFilter) return false;
+    if (typeFilter !== "all") {
+      const rt = r.recruitType || "HS";
+      if (typeFilter === "HS" && rt !== "HS") return false;
+      if (typeFilter === "TRANSFER" && rt !== "TRANSFER") return false;
+      if (typeFilter === "JUCO" && rt !== "JUCO") return false;
+    }
     if (showWatchlistOnly && !r.interest?.isTargeted) return false;
     if (showTopAvailable && pipelineData?.positionNeeds) {
       const needPositions = pipelineData.positionNeeds.filter(p => p.need).map(p => p.position);
@@ -578,6 +588,18 @@ export default function RecruitingPage() {
               onChange={(e) => setStarFilter(e.target.value)}
               className="w-[calc(50%-0.25rem)] sm:w-40"
               data-testid="select-star-filter"
+            />
+            <RetroSelect
+              options={[
+                { label: "All Types", value: "all" },
+                { label: "High School", value: "HS" },
+                { label: "Transfer", value: "TRANSFER" },
+                { label: "JUCO", value: "JUCO" },
+              ]}
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="w-[calc(50%-0.25rem)] sm:w-32"
+              data-testid="select-type-filter"
             />
             <RetroSelect
               options={[

@@ -601,17 +601,23 @@ export async function registerRoutes(
         
         const signedTeam = recruit.signedTeamId ? teamMap.get(recruit.signedTeamId) : null;
         
+        let actualPotential = recruit.potential;
+        if (actualPotential == null && (recruit.recruitType === "TRANSFER" || recruit.recruitType === "JUCO")) {
+          actualPotential = rollWeightedPotential();
+          storage.updateRecruit(recruit.id, { potential: actualPotential }).catch(() => {});
+        }
         let dynamicPotentialFloor = recruit.potentialFloor;
         let dynamicPotentialCeiling = recruit.potentialCeiling;
-        if (recruit.potential != null && coach) {
+        if (actualPotential != null && coach) {
           const evalSkill = coach.evaluationSkill || 1;
-          const dynRange = getPotentialRange(recruit.potential, evalSkill);
+          const dynRange = getPotentialRange(actualPotential, evalSkill);
           dynamicPotentialFloor = dynRange.floor;
           dynamicPotentialCeiling = dynRange.ceiling;
         }
         
         return {
           ...recruit,
+          potential: actualPotential,
           potentialFloor: dynamicPotentialFloor,
           potentialCeiling: dynamicPotentialCeiling,
           interest,
@@ -4848,6 +4854,7 @@ export async function registerRoutes(
           pitchSNK: player.pitchSNK ?? 0,
           pitchSPL: player.pitchSPL ?? 0,
           abilities: player.abilities || [],
+          potential: player.potential ?? rollWeightedPotential(),
           sourcePlayerId: player.id,
           fromTeamName: teamName,
           commitmentThreshold: 450,
@@ -5385,6 +5392,7 @@ export async function registerRoutes(
         pitchCT: player.pitchCT ?? 0,
         pitchSNK: player.pitchSNK ?? 0,
         pitchSPL: player.pitchSPL ?? 0,
+        potential: player.potential ?? rollWeightedPotential(),
         abilities: player.abilities || [],
         fromTeamName: teamName,
         skinTone: player.skinTone || "light",
@@ -7098,13 +7106,18 @@ export async function registerRoutes(
         })).sort((a, b) => b.interestLevel - a.interestLevel);
       }
 
+      let actualPotential = recruit.potential;
+      if (actualPotential == null && (recruit.recruitType === "TRANSFER" || recruit.recruitType === "JUCO")) {
+        actualPotential = rollWeightedPotential();
+        storage.updateRecruit(recruit.id, { potential: actualPotential }).catch(() => {});
+      }
       let dynamicPotentialFloor = recruit.potentialFloor;
       let dynamicPotentialCeiling = recruit.potentialCeiling;
-      if (recruit.potential != null && userTeam?.coachId) {
+      if (actualPotential != null && userTeam?.coachId) {
         const coach = await storage.getCoach(userTeam.coachId);
         if (coach) {
           const evalSkill = coach.evaluationSkill || 1;
-          const dynRange = getPotentialRange(recruit.potential, evalSkill);
+          const dynRange = getPotentialRange(actualPotential, evalSkill);
           dynamicPotentialFloor = dynRange.floor;
           dynamicPotentialCeiling = dynRange.ceiling;
         }
@@ -7113,6 +7126,7 @@ export async function registerRoutes(
       res.json({
         recruit: {
           ...recruit,
+          potential: actualPotential,
           potentialFloor: dynamicPotentialFloor,
           potentialCeiling: dynamicPotentialCeiling,
           interest,
