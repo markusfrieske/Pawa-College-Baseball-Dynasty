@@ -172,9 +172,11 @@ export default function LeagueViewPage() {
               <Calendar className="w-4 h-4" />
               <span>Season {league.currentSeason}, Week {league.currentWeek}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <Trophy className="w-4 h-4" />
-              <span>{phaseLabels[league.currentPhase]}</span>
+            <div className="flex items-center gap-2" data-testid="text-current-phase">
+              <Trophy className="w-4 h-4 text-gold" />
+              <Badge variant="outline" className="font-pixel text-[8px] text-gold border-gold/40 bg-gold/10">
+                {phaseLabels[league.currentPhase]}
+              </Badge>
             </div>
             {userTeam?.standings && (
               <div className="flex items-center gap-2" data-testid="text-user-team-record">
@@ -208,6 +210,8 @@ export default function LeagueViewPage() {
       </header>
 
       <main className="container mx-auto px-4 py-6">
+        <PhaseGuidanceBanner phase={league.currentPhase} leagueId={id!} />
+
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2 sm:gap-3 mb-6">
           <QuickActionCard
             href={`/league/${id}/coach`}
@@ -1100,6 +1104,51 @@ function ReadyButton({ leagueId }: { leagueId: string }) {
           </>
         )}
       </RetroButton>
+    </div>
+  );
+}
+
+function PhaseGuidanceBanner({ phase, leagueId }: { phase: string; leagueId: string }) {
+  const getGuidance = (): { text: string; action?: { label: string; href: string } } | null => {
+    switch (phase) {
+      case "preseason":
+      case "spring_training":
+        return { text: "Spring training is underway. Head to the Commissioner page to advance to the regular season.", action: { label: "Commissioner", href: `/league/${leagueId}/commissioner` } };
+      case "regular_season":
+        return { text: "The regular season is in progress. Advance weeks from the Commissioner page or sim ahead.", action: { label: "Commissioner", href: `/league/${leagueId}/commissioner` } };
+      case "conference_championship":
+      case "super_regionals":
+        return { text: "Postseason is underway. Advance from the Commissioner page to continue the bracket.", action: { label: "Commissioner", href: `/league/${leagueId}/commissioner` } };
+      case "cws":
+        return { text: "The College World Series is here. Sim the championship from the Commissioner page.", action: { label: "Commissioner", href: `/league/${leagueId}/commissioner` } };
+      case "offseason_departures":
+        return { text: "Review your departing players and make retention offers before the commissioner advances.", action: { label: "Departures", href: `/league/${leagueId}/departures` } };
+      case "offseason_recruiting_1":
+      case "offseason_recruiting_2":
+      case "offseason_recruiting_3":
+      case "offseason_recruiting_4":
+        return { text: "Recruiting is open. Scout, contact, and offer scholarships to build your next class.", action: { label: "Recruiting", href: `/league/${leagueId}/recruiting` } };
+      case "offseason_signing_day":
+        return { text: "Signing Day is here. Finalize your recruiting class from the Commissioner page.", action: { label: "Commissioner", href: `/league/${leagueId}/commissioner` } };
+      default:
+        return null;
+    }
+  };
+
+  const guidance = getGuidance();
+  if (!guidance) return null;
+
+  return (
+    <div className="mb-4 flex items-center gap-3 rounded-md bg-gold/5 border border-gold/20 px-4 py-2" data-testid="phase-guidance-banner">
+      <ChevronRight className="w-4 h-4 text-gold shrink-0" />
+      <span className="text-xs text-muted-foreground flex-1">{guidance.text}</span>
+      {guidance.action && (
+        <Link href={guidance.action.href}>
+          <RetroButton variant="outline" size="sm" data-testid="button-phase-guidance-action">
+            {guidance.action.label}
+          </RetroButton>
+        </Link>
+      )}
     </div>
   );
 }

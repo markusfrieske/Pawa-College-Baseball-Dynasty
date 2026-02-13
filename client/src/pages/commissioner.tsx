@@ -220,6 +220,46 @@ export default function CommissionerPage() {
     },
   });
 
+  const simToPostseasonMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", `/api/leagues/${id}/sim-to-postseason`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "postseason"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "commissioner"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "schedule"] });
+      window.dispatchEvent(new CustomEvent("league-phase-changed"));
+      toast({ 
+        title: "Regular Season Complete!", 
+        description: "Conference Championships are set. Time for postseason baseball!",
+      });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const simToCwsMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", `/api/leagues/${id}/sim-to-cws`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "postseason"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "commissioner"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "schedule"] });
+      window.dispatchEvent(new CustomEvent("league-phase-changed"));
+      toast({ 
+        title: "College World Series!", 
+        description: "The final two teams are set for the CWS championship series.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   const simulateWeekMutation = useMutation({
     mutationFn: async () => {
       return apiRequest("POST", `/api/leagues/${id}/simulate`, {});
@@ -358,6 +398,10 @@ export default function CommissionerPage() {
               isSimToOffseason={simToOffseasonMutation.isPending}
               onSimToSigningDay={() => simToSigningDayMutation.mutate()}
               isSimToSigningDay={simToSigningDayMutation.isPending}
+              onSimToPostseason={() => simToPostseasonMutation.mutate()}
+              isSimToPostseason={simToPostseasonMutation.isPending}
+              onSimToCws={() => simToCwsMutation.mutate()}
+              isSimToCws={simToCwsMutation.isPending}
               autoAdvance={autoAdvance}
               toggleAutoAdvance={toggleAutoAdvance}
             />
@@ -398,6 +442,10 @@ function ActionsTab({
   isSimToOffseason,
   onSimToSigningDay,
   isSimToSigningDay,
+  onSimToPostseason,
+  isSimToPostseason,
+  onSimToCws,
+  isSimToCws,
   autoAdvance,
   toggleAutoAdvance,
 }: {
@@ -414,6 +462,10 @@ function ActionsTab({
   isSimToOffseason: boolean;
   onSimToSigningDay: () => void;
   isSimToSigningDay: boolean;
+  onSimToPostseason: () => void;
+  isSimToPostseason: boolean;
+  onSimToCws: () => void;
+  isSimToCws: boolean;
   autoAdvance: boolean;
   toggleAutoAdvance: (val: boolean) => void;
 }) {
@@ -444,6 +496,7 @@ function ActionsTab({
   const isPostseason = ["conference_championship", "super_regionals", "cws"].includes(league?.currentPhase || "");
   const offseasonPhaseList = ["offseason", "offseason_departures", "offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4", "offseason_signing_day"];
   const isOffseason = offseasonPhaseList.includes(league?.currentPhase || "");
+  const anySim = isAdvancing || isAdvancingSeason || isSimToOffseason || isSimToSigningDay || isSimToPostseason || isSimToCws;
   
   const advanceLabel = (() => {
     if (isAdvancing) return "Processing...";
@@ -511,44 +564,101 @@ function ActionsTab({
             </p>
             <RetroButton
               onClick={onAdvanceWeek}
-              disabled={isAdvancing || isAdvancingSeason || isSimToOffseason}
+              disabled={anySim}
               className="w-full"
               data-testid="button-advance-week"
             >
               {advanceIcon}
               {advanceLabel}
             </RetroButton>
-            {!isPostseason && !isOffseason && (
-              <RetroButton
-                onClick={onSimToOffseason}
-                disabled={isAdvancing || isAdvancingSeason || isSimToOffseason}
-                className="w-full mt-3"
-                data-testid="button-sim-full-season"
-              >
-                <FastForward className="w-4 h-4 mr-2" />
-                {isSimToOffseason ? "Simulating Season..." : "Sim Full Season"}
-              </RetroButton>
-            )}
-            {isOffseason && (
-              <div className="mt-3 space-y-3">
-                <RetroButton
-                  onClick={onSimToSigningDay}
-                  disabled={isAdvancing || isSimToSigningDay || isSimToOffseason}
-                  className="w-full"
-                  data-testid="button-sim-to-signing-day"
-                >
-                  <FastForward className="w-4 h-4 mr-2" />
-                  {isSimToSigningDay ? "Processing Offseason..." : "Sim to Next Season"}
-                </RetroButton>
-                <p className="text-muted-foreground text-xs pt-2 border-t border-border">
+
+            <div className="mt-4 pt-4 border-t border-border">
+              <p className="font-pixel text-[8px] text-gold uppercase mb-3">Quick Sim</p>
+              <div className="space-y-2">
+                {!isPostseason && !isOffseason && (
+                  <>
+                    <RetroButton
+                      variant="outline"
+                      onClick={onSimToPostseason}
+                      disabled={anySim}
+                      className="w-full"
+                      data-testid="button-sim-to-postseason"
+                    >
+                      <FastForward className="w-4 h-4 mr-2" />
+                      {isSimToPostseason ? "Simulating..." : "Sim to Postseason"}
+                    </RetroButton>
+                    <RetroButton
+                      variant="outline"
+                      onClick={onSimToCws}
+                      disabled={anySim}
+                      className="w-full"
+                      data-testid="button-sim-to-cws"
+                    >
+                      <FastForward className="w-4 h-4 mr-2" />
+                      {isSimToCws ? "Simulating..." : "Sim to College World Series"}
+                    </RetroButton>
+                    <RetroButton
+                      variant="outline"
+                      onClick={onSimToOffseason}
+                      disabled={anySim}
+                      className="w-full"
+                      data-testid="button-sim-to-offseason"
+                    >
+                      <FastForward className="w-4 h-4 mr-2" />
+                      {isSimToOffseason ? "Simulating..." : "Sim to Offseason"}
+                    </RetroButton>
+                  </>
+                )}
+                {isPostseason && (
+                  <>
+                    {league?.currentPhase !== "cws" && (
+                      <RetroButton
+                        variant="outline"
+                        onClick={onSimToCws}
+                        disabled={anySim}
+                        className="w-full"
+                        data-testid="button-sim-to-cws"
+                      >
+                        <FastForward className="w-4 h-4 mr-2" />
+                        {isSimToCws ? "Simulating..." : "Sim to College World Series"}
+                      </RetroButton>
+                    )}
+                    <RetroButton
+                      variant="outline"
+                      onClick={onSimToOffseason}
+                      disabled={anySim}
+                      className="w-full"
+                      data-testid="button-sim-to-offseason"
+                    >
+                      <FastForward className="w-4 h-4 mr-2" />
+                      {isSimToOffseason ? "Simulating..." : "Sim to Offseason"}
+                    </RetroButton>
+                  </>
+                )}
+                {isOffseason && (
+                  <RetroButton
+                    variant="outline"
+                    onClick={onSimToSigningDay}
+                    disabled={anySim}
+                    className="w-full"
+                    data-testid="button-sim-to-next-season"
+                  >
+                    <FastForward className="w-4 h-4 mr-2" />
+                    {isSimToSigningDay ? "Simulating..." : "Sim to Next Season"}
+                  </RetroButton>
+                )}
+              </div>
+              {isOffseason && (
+                <p className="text-muted-foreground text-xs mt-3 pt-2 border-t border-border">
                   {league?.currentPhase === "offseason_departures" 
                     ? "Review your departing players before advancing, or sim through the entire offseason."
                     : league?.currentPhase?.startsWith("offseason_recruiting")
                     ? "Use the Recruiting Board, or sim to skip remaining offseason weeks."
                     : "Fast-forward through recruiting, signing day, and start the next season."}
                 </p>
-              </div>
-            )}
+              )}
+            </div>
+
             <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium">Auto-Advance</p>

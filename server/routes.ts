@@ -3746,6 +3746,171 @@ export async function registerRoutes(
     }
   });
   
+  // Sim to Postseason - stops at conference_championship
+  app.post("/api/leagues/:id/sim-to-postseason", async (req, res) => {
+    try {
+      const leagueId = req.params.id;
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      if (!req.session.userId || league.commissionerId !== req.session.userId) {
+        return res.status(403).json({ message: "Only the commissioner can sim." });
+      }
+
+      const preseasonPhases = ["preseason", "spring_training", "regular_season"];
+      if (!preseasonPhases.includes(league.currentPhase)) {
+        return res.status(400).json({ message: "Can only sim to postseason during the regular season." });
+      }
+
+      const MAX_ITERATIONS = 100;
+      let currentLeague = league;
+      let iterations = 0;
+
+      while (iterations < MAX_ITERATIONS) {
+        iterations++;
+        const phase = currentLeague.currentPhase;
+
+        if (phase === "conference_championship") break;
+
+        const maxWeeks = currentLeague.seasonLength === "short" ? 5 : currentLeague.seasonLength === "long" ? 10 : 5;
+        const nextWeek = (currentLeague.currentWeek ?? 1) + 1;
+
+        if (preseasonPhases.includes(phase)) {
+          const weekGames = (await storage.getGamesByLeague(leagueId))
+            .filter(g => g.season === currentLeague.currentSeason && g.week === currentLeague.currentWeek && !g.isComplete);
+          for (const game of weekGames) {
+            const result = await simulateGame(game.homeTeamId, game.awayTeamId);
+            await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, boxScore: result.boxScore, isComplete: true });
+            await updateStandingsForGame(leagueId, currentLeague.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore);
+            try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
+          }
+          if (nextWeek > maxWeeks) {
+            await generateConferenceChampionships(leagueId, currentLeague.currentSeason);
+            currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "conference_championship", currentWeek: nextWeek })) as any;
+          } else {
+            const newPhase = phase === "preseason" && nextWeek >= 2 ? "regular_season" : phase;
+            if (newPhase === "regular_season" && phase === "preseason") {
+              await storage.clearProgressionDeltasForLeague(leagueId);
+            }
+            currentLeague = (await storage.updateLeague(leagueId, { currentWeek: nextWeek, currentPhase: newPhase })) as any;
+          }
+          continue;
+        }
+        break;
+      }
+
+      await storage.createAuditLog({
+        leagueId, userId: req.session.userId, action: "Sim to Postseason",
+        details: `Simulated ${iterations} advances to ${currentLeague.currentPhase}.`,
+      });
+      res.json(currentLeague);
+    } catch (error) {
+      console.error("Failed to sim to postseason:", error);
+      res.status(500).json({ message: "Failed to sim to postseason" });
+    }
+  });
+
+  // Sim to CWS - advances through regular season + conference championships + super regionals, stops at CWS
+  app.post("/api/leagues/:id/sim-to-cws", async (req, res) => {
+    try {
+      const leagueId = req.params.id;
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      if (!req.session.userId || league.commissionerId !== req.session.userId) {
+        return res.status(403).json({ message: "Only the commissioner can sim." });
+      }
+
+      const validPhases = ["preseason", "spring_training", "regular_season", "conference_championship", "super_regionals"];
+      if (!validPhases.includes(league.currentPhase)) {
+        return res.status(400).json({ message: "Can only sim to CWS before the College World Series." });
+      }
+
+      const MAX_ITERATIONS = 100;
+      let currentLeague = league;
+      let iterations = 0;
+
+      while (iterations < MAX_ITERATIONS) {
+        iterations++;
+        const phase = currentLeague.currentPhase;
+
+        if (phase === "cws") break;
+        if (phase === "offseason_departures") break;
+
+        const maxWeeks = currentLeague.seasonLength === "short" ? 5 : currentLeague.seasonLength === "long" ? 10 : 5;
+        const nextWeek = (currentLeague.currentWeek ?? 1) + 1;
+
+        if (["preseason", "spring_training", "regular_season"].includes(phase)) {
+          const weekGames = (await storage.getGamesByLeague(leagueId))
+            .filter(g => g.season === currentLeague.currentSeason && g.week === currentLeague.currentWeek && !g.isComplete);
+          for (const game of weekGames) {
+            const result = await simulateGame(game.homeTeamId, game.awayTeamId);
+            await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, boxScore: result.boxScore, isComplete: true });
+            await updateStandingsForGame(leagueId, currentLeague.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore);
+            try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
+          }
+          if (nextWeek > maxWeeks) {
+            await generateConferenceChampionships(leagueId, currentLeague.currentSeason);
+            currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "conference_championship", currentWeek: nextWeek })) as any;
+          } else {
+            const newPhase = phase === "preseason" && nextWeek >= 2 ? "regular_season" : phase;
+            if (newPhase === "regular_season" && phase === "preseason") {
+              await storage.clearProgressionDeltasForLeague(leagueId);
+            }
+            currentLeague = (await storage.updateLeague(leagueId, { currentWeek: nextWeek, currentPhase: newPhase })) as any;
+          }
+          continue;
+        }
+
+        if (phase === "conference_championship") {
+          const ccGames = (await storage.getGamesByLeague(leagueId))
+            .filter(g => g.phase === "conference_championship" && g.season === currentLeague.currentSeason && !g.isComplete);
+          for (const game of ccGames) {
+            const result = await simulateGame(game.homeTeamId, game.awayTeamId);
+            await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, boxScore: result.boxScore, isComplete: true });
+            await updateStandingsForGame(leagueId, currentLeague.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, true);
+            try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
+          }
+          await generateSuperRegionalBracket(leagueId, currentLeague.currentSeason);
+          currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "super_regionals" })) as any;
+          continue;
+        }
+
+        if (phase === "super_regionals") {
+          let srDone = false;
+          let srIterations = 0;
+          while (!srDone && srIterations < 20) {
+            srIterations++;
+            const srResult = await advanceSuperRegionals(leagueId, currentLeague.currentSeason);
+            srDone = srResult.done;
+            if (srDone) {
+              if (srResult.champion1 && srResult.champion2) {
+                await storage.createGame({
+                  leagueId, season: currentLeague.currentSeason, week: 0,
+                  homeTeamId: srResult.champion1, awayTeamId: srResult.champion2,
+                  phase: "cws",
+                });
+                currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "cws" })) as any;
+              } else {
+                currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "offseason_departures" })) as any;
+              }
+            }
+          }
+          continue;
+        }
+
+        break;
+      }
+
+      await storage.createAuditLog({
+        leagueId, userId: req.session.userId, action: "Sim to CWS",
+        details: `Simulated ${iterations} advances to ${currentLeague.currentPhase}.`,
+      });
+      res.json(currentLeague);
+    } catch (error) {
+      console.error("Failed to sim to CWS:", error);
+      res.status(500).json({ message: "Failed to sim to CWS" });
+    }
+  });
+
   // ============ GAME SIMULATION FUNCTION ============
   async function simulateGame(homeTeamId: string, awayTeamId: string): Promise<{ homeScore: number; awayScore: number; boxScore: string }> {
     const homePlayers = await storage.getPlayersByTeam(homeTeamId);

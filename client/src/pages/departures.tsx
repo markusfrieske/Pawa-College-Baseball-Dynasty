@@ -407,8 +407,18 @@ export default function DeparturesPage() {
                           <CheckCircle className="w-4 h-4" /> Departures Submitted
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          Your departures are finalized. Waiting for the commissioner to advance the league.
+                          Your departures are finalized. The commissioner can now advance to the recruiting phase.
                         </p>
+                        <div className="mt-2 flex gap-2">
+                          <RetroButton
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setLocation(`/league/${leagueId}`)}
+                            data-testid="button-back-to-league"
+                          >
+                            Back to League
+                          </RetroButton>
+                        </div>
                       </>
                     ) : (
                       <>
