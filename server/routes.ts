@@ -5595,21 +5595,89 @@ export async function registerRoutes(
       if (!userCoach || !userCoach.teamId) return res.status(403).json({ message: "No team found" });
       
       const teamId = userCoach.teamId;
+      const team = await storage.getTeam(teamId);
+      const teamState = team?.state || "";
       const interests = await storage.getRecruitingInterestsByTeam(teamId);
       const allRecruits = await storage.getRecruitsByLeague(leagueId);
       const roster = await storage.getPlayersByTeam(teamId);
+
+      const adjacentStates: Record<string, string[]> = {
+        "AL": ["FL","GA","MS","TN"],
+        "AK": [],
+        "AZ": ["CA","CO","NM","NV","UT"],
+        "AR": ["LA","MO","MS","OK","TN","TX"],
+        "CA": ["AZ","NV","OR"],
+        "CO": ["AZ","KS","NE","NM","OK","UT","WY"],
+        "CT": ["MA","NY","RI"],
+        "DE": ["MD","NJ","PA"],
+        "FL": ["AL","GA"],
+        "GA": ["AL","FL","NC","SC","TN"],
+        "HI": [],
+        "ID": ["MT","NV","OR","UT","WA","WY"],
+        "IL": ["IA","IN","KY","MO","WI"],
+        "IN": ["IL","KY","MI","OH"],
+        "IA": ["IL","MN","MO","NE","SD","WI"],
+        "KS": ["CO","MO","NE","OK"],
+        "KY": ["IL","IN","MO","OH","TN","VA","WV"],
+        "LA": ["AR","MS","TX"],
+        "ME": ["NH"],
+        "MD": ["DE","PA","VA","WV","DC"],
+        "MA": ["CT","NH","NY","RI","VT"],
+        "MI": ["IN","OH","WI"],
+        "MN": ["IA","ND","SD","WI"],
+        "MS": ["AL","AR","LA","TN"],
+        "MO": ["AR","IA","IL","KS","KY","NE","OK","TN"],
+        "MT": ["ID","ND","SD","WY"],
+        "NE": ["CO","IA","KS","MO","SD","WY"],
+        "NV": ["AZ","CA","ID","OR","UT"],
+        "NH": ["MA","ME","VT"],
+        "NJ": ["DE","NY","PA"],
+        "NM": ["AZ","CO","OK","TX","UT"],
+        "NY": ["CT","MA","NJ","PA","VT"],
+        "NC": ["GA","SC","TN","VA"],
+        "ND": ["MN","MT","SD"],
+        "OH": ["IN","KY","MI","PA","WV"],
+        "OK": ["AR","CO","KS","MO","NM","TX"],
+        "OR": ["CA","ID","NV","WA"],
+        "PA": ["DE","MD","NJ","NY","OH","WV"],
+        "RI": ["CT","MA"],
+        "SC": ["GA","NC"],
+        "SD": ["IA","MN","MT","ND","NE","WY"],
+        "TN": ["AL","AR","GA","KY","MO","MS","NC","VA"],
+        "TX": ["AR","LA","NM","OK"],
+        "UT": ["AZ","CO","ID","NM","NV","WY"],
+        "VT": ["MA","NH","NY"],
+        "VA": ["KY","MD","NC","TN","WV","DC"],
+        "WA": ["ID","OR"],
+        "WV": ["KY","MD","OH","PA","VA"],
+        "WI": ["IA","IL","MI","MN"],
+        "WY": ["CO","ID","MT","NE","SD","UT"],
+        "DC": ["MD","VA"],
+      };
+
+      const neighborStates = new Set(adjacentStates[teamState] || []);
       
-      const pipeline = { cold: 0, cool: 0, warm: 0, hot: 0, very_hot: 0, on_fire: 0, committed: 0 };
+      const interestMap = new Map<string, number>();
+      for (const interest of interests) {
+        interestMap.set(interest.recruitId, interest.interestLevel);
+      }
+
+      const pipeline = { cold: 0, cool: 0, warm: 0, hot: 0, very_hot: 0, on_fire: 0, committed: 0, home_state: 0, home_region: 0 };
       const committed = allRecruits.filter(r => r.signedTeamId === teamId);
       pipeline.committed = committed.length;
-      
-      for (const interest of interests) {
-        if (interest.interestLevel >= 90) pipeline.on_fire++;
-        else if (interest.interestLevel >= 70) pipeline.very_hot++;
-        else if (interest.interestLevel >= 50) pipeline.hot++;
-        else if (interest.interestLevel >= 30) pipeline.warm++;
-        else if (interest.interestLevel >= 15) pipeline.cool++;
-        else pipeline.cold++;
+
+      for (const recruit of allRecruits) {
+        if (recruit.signedTeamId) continue;
+        const level = interestMap.get(recruit.id) ?? 0;
+        if (level >= 90) pipeline.on_fire++;
+        else if (level >= 70) pipeline.very_hot++;
+        else if (level >= 50) pipeline.hot++;
+        else if (level >= 30) pipeline.warm++;
+        else if (level >= 15) pipeline.cool++;
+        else if (level >= 1) pipeline.cold++;
+
+        if (recruit.homeState === teamState) pipeline.home_state++;
+        else if (neighborStates.has(recruit.homeState)) pipeline.home_region++;
       }
       
       const seniors = roster.filter(p => p.eligibility === "SR");
@@ -5631,7 +5699,7 @@ export async function registerRoutes(
         positionNeeds.push({ position: pos, current, graduating, need: afterGrad < 2 });
       }
       
-      res.json({ pipeline, positionNeeds, totalTargeted: interests.filter(i => i.isTargeted).length, rosterSize: roster.length });
+      res.json({ pipeline, positionNeeds, totalTargeted: interests.filter(i => i.isTargeted).length, rosterSize: roster.length, teamState });
     } catch (error) {
       console.error("Failed to fetch pipeline:", error);
       res.status(500).json({ message: "Failed to fetch pipeline data" });

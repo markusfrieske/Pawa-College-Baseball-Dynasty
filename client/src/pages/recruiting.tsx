@@ -228,10 +228,11 @@ export default function RecruitingPage() {
   });
 
   const { data: pipelineData } = useQuery<{
-    pipeline: { cold: number; cool: number; warm: number; hot: number; very_hot: number; on_fire: number; committed: number };
+    pipeline: { cold: number; cool: number; warm: number; hot: number; very_hot: number; on_fire: number; committed: number; home_state: number; home_region: number };
     positionNeeds: { position: string; current: number; graduating: number; need: boolean }[];
     totalTargeted: number;
     rosterSize: number;
+    teamState: string;
   }>({
     queryKey: ["/api/leagues", id, "recruiting", "pipeline"],
   });
@@ -419,15 +420,40 @@ export default function RecruitingPage() {
     if (sortBy === "interest" && !(r.interest && (r.interest.interestLevel || 0) > 0)) return false;
     if (sortBy === "myInterest" && !(r.interest && (r.interest.interestLevel || 0) > 0)) return false;
     if (pipelineFilter) {
+      if (pipelineFilter !== "committed" && r.signedTeamId) return false;
       const level = r.interest?.interestLevel || 0;
-      if (pipelineFilter === "cold" && !(level >= 1 && level <= 15)) return false;
+      if (pipelineFilter === "cold" && !(level >= 1 && level <= 14)) return false;
       if (pipelineFilter === "cool" && !(level >= 15 && level <= 29)) return false;
       if (pipelineFilter === "warm" && !(level >= 30 && level <= 49)) return false;
       if (pipelineFilter === "hot" && !(level >= 50 && level <= 69)) return false;
       if (pipelineFilter === "very_hot" && !(level >= 70 && level <= 89)) return false;
       if (pipelineFilter === "on_fire" && !(level >= 90)) return false;
       if (pipelineFilter === "committed" && !r.signedTeamId) return false;
-      if (pipelineFilter === "home_state" && r.homeState !== data?.team?.state) return false;
+      if (pipelineFilter === "home_state" && r.homeState !== pipelineData?.teamState) return false;
+      if (pipelineFilter === "home_region") {
+        const ts = pipelineData?.teamState || "";
+        const adj: Record<string, string[]> = {
+          "AL":["FL","GA","MS","TN"],"AZ":["CA","CO","NM","NV","UT"],"AR":["LA","MO","MS","OK","TN","TX"],
+          "CA":["AZ","NV","OR"],"CO":["AZ","KS","NE","NM","OK","UT","WY"],"CT":["MA","NY","RI"],
+          "DE":["MD","NJ","PA"],"FL":["AL","GA"],"GA":["AL","FL","NC","SC","TN"],
+          "ID":["MT","NV","OR","UT","WA","WY"],"IL":["IA","IN","KY","MO","WI"],"IN":["IL","KY","MI","OH"],
+          "IA":["IL","MN","MO","NE","SD","WI"],"KS":["CO","MO","NE","OK"],"KY":["IL","IN","MO","OH","TN","VA","WV"],
+          "LA":["AR","MS","TX"],"ME":["NH"],"MD":["DE","PA","VA","WV","DC"],"MA":["CT","NH","NY","RI","VT"],
+          "MI":["IN","OH","WI"],"MN":["IA","ND","SD","WI"],"MS":["AL","AR","LA","TN"],
+          "MO":["AR","IA","IL","KS","KY","NE","OK","TN"],"MT":["ID","ND","SD","WY"],
+          "NE":["CO","IA","KS","MO","SD","WY"],"NV":["AZ","CA","ID","OR","UT"],"NH":["MA","ME","VT"],
+          "NJ":["DE","NY","PA"],"NM":["AZ","CO","OK","TX","UT"],"NY":["CT","MA","NJ","PA","VT"],
+          "NC":["GA","SC","TN","VA"],"ND":["MN","MT","SD"],"OH":["IN","KY","MI","PA","WV"],
+          "OK":["AR","CO","KS","MO","NM","TX"],"OR":["CA","ID","NV","WA"],"PA":["DE","MD","NJ","NY","OH","WV"],
+          "RI":["CT","MA"],"SC":["GA","NC"],"SD":["IA","MN","MT","ND","NE","WY"],
+          "TN":["AL","AR","GA","KY","MO","MS","NC","VA"],"TX":["AR","LA","NM","OK"],
+          "UT":["AZ","CO","ID","NM","NV","WY"],"VT":["MA","NH","NY"],"VA":["KY","MD","NC","TN","WV","DC"],
+          "WA":["ID","OR"],"WV":["KY","MD","OH","PA","VA"],"WI":["IA","IL","MI","MN"],
+          "WY":["CO","ID","MT","NE","SD","UT"],"DC":["MD","VA"],
+        };
+        const neighbors = new Set(adj[ts] || []);
+        if (r.homeState === ts || !neighbors.has(r.homeState)) return false;
+      }
     }
     return true;
   }).sort((a, b) => {
@@ -731,7 +757,7 @@ export default function RecruitingPage() {
                   </RetroButton>
                 )}
               </div>
-              <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
+              <div className="grid grid-cols-3 sm:grid-cols-9 gap-2">
                 {[
                   { label: "Cold", key: "cold", count: pipelineData.pipeline.cold, color: "bg-blue-300/20 text-blue-300" },
                   { label: "Cool", key: "cool", count: pipelineData.pipeline.cool, color: "bg-blue-400/20 text-blue-400" },
@@ -740,7 +766,8 @@ export default function RecruitingPage() {
                   { label: "Very Hot", key: "very_hot", count: pipelineData.pipeline.very_hot, color: "bg-orange-400/20 text-orange-400" },
                   { label: "On Fire", key: "on_fire", count: pipelineData.pipeline.on_fire, color: "bg-red-400/20 text-red-400" },
                   { label: "Committed", key: "committed", count: pipelineData.pipeline.committed, color: "bg-gold/20 text-gold" },
-                  { label: "Home State", key: "home_state", count: data?.recruits.filter(r => r.homeState === data?.team?.state).length || 0, color: "bg-purple-400/20 text-purple-400" },
+                  { label: "Home State", key: "home_state", count: pipelineData.pipeline.home_state, color: "bg-purple-400/20 text-purple-400" },
+                  { label: "Region", key: "home_region", count: pipelineData.pipeline.home_region, color: "bg-teal-400/20 text-teal-400" },
                 ].map(stage => (
                   <div
                     key={stage.key}

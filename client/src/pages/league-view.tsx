@@ -342,14 +342,11 @@ function QuickActionCard({
 }) {
   return (
     <Link href={href}>
-      <RetroCard className="hover:border-gold/50 transition-colors cursor-pointer h-full overflow-hidden" data-testid={`card-action-${title.toLowerCase()}`}>
-        <div className="flex items-center gap-3">
-          <div className="text-gold flex-shrink-0">{icon}</div>
-          <div className="flex-1 min-w-0">
-            <h3 className="font-pixel text-[10px] text-foreground truncate">{title}</h3>
-            <p className="text-xs text-muted-foreground truncate">{subtitle}</p>
-          </div>
-          <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+      <RetroCard className="hover:border-gold/50 transition-colors cursor-pointer h-full" data-testid={`card-action-${title.toLowerCase()}`}>
+        <div className="flex flex-col items-center text-center gap-1 py-1">
+          <div className="text-gold">{icon}</div>
+          <h3 className="font-pixel text-[9px] text-foreground leading-tight">{title}</h3>
+          <p className="text-[8px] text-muted-foreground leading-tight hidden sm:block">{subtitle}</p>
         </div>
       </RetroCard>
     </Link>
