@@ -554,8 +554,16 @@ export async function registerRoutes(
         const topSchoolsCount = stage === "top3" ? 3 : stage === "top5" ? 5 : 8;
         
         // Convert stored top schools to display format, filtering by active schools in the league
-        let topSchools = storedTopSchools
-          .filter(ts => ts.isActive && teamMap.has(ts.teamId))
+        // Deduplicate by teamId, keeping the entry with the highest combined interest
+        const deduped = new Map<string, typeof storedTopSchools[0]>();
+        for (const ts of storedTopSchools) {
+          if (!ts.isActive || !teamMap.has(ts.teamId)) continue;
+          const existing = deduped.get(ts.teamId);
+          if (!existing || (ts.interestLevel + ts.accumulatedInterest) > (existing.interestLevel + existing.accumulatedInterest)) {
+            deduped.set(ts.teamId, ts);
+          }
+        }
+        let topSchools = Array.from(deduped.values())
           .sort((a, b) => (a.rank || 99) - (b.rank || 99))
           .slice(0, topSchoolsCount)
           .map(ts => {
@@ -705,8 +713,20 @@ export async function registerRoutes(
 
       let interest = await storage.getRecruitingInterest(req.params.recruitId, userTeam.id);
       
-      // Scout reveals 15-25% each time
-      const revealAmount = 15 + Math.floor(Math.random() * 11);
+      // Scout reveals 15-25% each time, with archetype scouting efficiency bonus
+      const archetypeScoutEfficiency: Record<string, number> = {
+        "Scout Master": 15,
+        "Academic Dean": 5,
+        "Balanced": 0,
+        "Pure CEO": 0,
+        "Player's Coach": 0,
+        "Dealmaker": 0,
+        "Tactician": 3,
+        "Old School": 0,
+      };
+      const scoutSkillBonus = Math.floor(((userCoach?.scoutingSkill || 1) - 1) * 2);
+      const archEfficiency = archetypeScoutEfficiency[userCoach?.archetype] || 0;
+      const revealAmount = 15 + Math.floor(Math.random() * 11) + scoutSkillBonus + archEfficiency;
 
       // Helper function to narrow down a range
       const narrowRange = (min: number, max: number, actual: number, pct: number): { newMin: number; newMax: number } => {
@@ -958,7 +978,7 @@ export async function registerRoutes(
   }
 
   function getMaxScoutActions(coach: any): number {
-    const baseActions = 12;
+    const baseActions = 20;
     const skillBonus = Math.floor(((coach?.scoutingSkill || 1) + (coach?.evaluationSkill || 1)) / 2);
     const archetypeScoutBonus: Record<string, number> = {
       "Scout Master": 6,
@@ -7061,8 +7081,16 @@ export async function registerRoutes(
       const stage = (recruit.stage || "open").toLowerCase();
       const topSchoolsCount = stage === "top3" ? 3 : stage === "top5" ? 5 : 8;
       
-      let topSchools = storedTopSchools
-        .filter(ts => ts.isActive && teamMap.has(ts.teamId))
+      // Deduplicate by teamId, keeping the entry with the highest combined interest
+      const dedupedDetail = new Map<string, typeof storedTopSchools[0]>();
+      for (const ts of storedTopSchools) {
+        if (!ts.isActive || !teamMap.has(ts.teamId)) continue;
+        const existing = dedupedDetail.get(ts.teamId);
+        if (!existing || (ts.interestLevel + ts.accumulatedInterest) > (existing.interestLevel + existing.accumulatedInterest)) {
+          dedupedDetail.set(ts.teamId, ts);
+        }
+      }
+      let topSchools = Array.from(dedupedDetail.values())
         .sort((a, b) => (a.rank || 99) - (b.rank || 99))
         .slice(0, topSchoolsCount)
         .map(ts => {
