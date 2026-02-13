@@ -665,6 +665,19 @@ export async function registerRoutes(
       const remainingScoutActions = Math.max(0, maxScoutActions - scoutActionsUsed);
       const remainingRecruitingActions = Math.max(0, maxRecruitingActions - recruitingActionsUsed);
 
+      const allTeamActions = await storage.getRecruitingActionsLogByTeam(userTeam.id, league.id);
+      const premiumActionsUsed: Record<string, string[]> = {};
+      for (const action of allTeamActions) {
+        if (action.actionType === "visit" || action.actionType === "head_coach_visit") {
+          if (!premiumActionsUsed[action.recruitId]) {
+            premiumActionsUsed[action.recruitId] = [];
+          }
+          if (!premiumActionsUsed[action.recruitId].includes(action.actionType)) {
+            premiumActionsUsed[action.recruitId].push(action.actionType);
+          }
+        }
+      }
+
       res.json({
         recruits: recruitsWithInterest,
         team: userTeam,
@@ -682,6 +695,7 @@ export async function registerRoutes(
         nextYearDepth,
         nextYearRosterSize,
         seniorsGraduating: seniorsCount,
+        premiumActionsUsed,
       });
     } catch (error) {
       console.error("Failed to fetch recruiting data:", error);
@@ -727,17 +741,18 @@ export async function registerRoutes(
       const scoutSkillBonus = Math.floor(((userCoach?.scoutingSkill || 1) - 1) * 2);
       const archEfficiency = archetypeScoutEfficiency[userCoach?.archetype] || 0;
       const revealAmount = 15 + Math.floor(Math.random() * 11) + scoutSkillBonus + archEfficiency;
+      const potentialNarrowMultiplier = ARCHETYPE_POTENTIAL_NARROWING[userCoach?.archetype] || 1.0;
 
-      // Helper function to narrow down a range
+      // Helper function to narrow down a range (with archetype potential narrowing bonus)
       const narrowRange = (min: number, max: number, actual: number, pct: number): { newMin: number; newMax: number } => {
         const range = max - min;
-        // As scouting progresses, narrow the range around the actual value
-        const narrowFactor = pct / 100;
+        // Apply archetype bonus to how quickly ranges narrow
+        const effectivePct = Math.min(100, pct * potentialNarrowMultiplier);
+        const narrowFactor = effectivePct / 100;
         const newRange = Math.max(0, range * (1 - narrowFactor * 0.8));
         const halfRange = Math.floor(newRange / 2);
         let newMin = Math.max(min, actual - halfRange);
         let newMax = Math.min(max, actual + halfRange);
-        // Ensure range is at least 1 apart unless at 100%
         if (pct >= 100) {
           return { newMin: actual, newMax: actual };
         }
@@ -978,21 +993,54 @@ export async function registerRoutes(
   }
 
   function getMaxScoutActions(coach: any): number {
-    const baseActions = 20;
+    const baseActions = 25;
     const skillBonus = Math.floor(((coach?.scoutingSkill || 1) + (coach?.evaluationSkill || 1)) / 2);
     const archetypeScoutBonus: Record<string, number> = {
-      "Scout Master": 6,
-      "Academic Dean": 2,
+      "Scout Master": 8,
+      "Academic Dean": 3,
       "Balanced": 0,
       "Pure CEO": 0,
-      "Player's Coach": 0,
+      "Player's Coach": 2,
       "Dealmaker": -2,
-      "Tactician": 0,
+      "Tactician": 2,
       "Old School": -2,
     };
     const archBonus = archetypeScoutBonus[coach?.archetype] || 0;
     return Math.max(4, baseActions + skillBonus + archBonus);
   }
+
+  const ARCHETYPE_PITCHER_BONUS: Record<string, number> = {
+    "Tactician": 1.20,
+    "Old School": 1.15,
+    "Scout Master": 1.05,
+    "Balanced": 1.0,
+    "Pure CEO": 1.0,
+    "Dealmaker": 1.0,
+    "Player's Coach": 1.0,
+    "Academic Dean": 1.0,
+  };
+
+  const ARCHETYPE_HITTER_BONUS: Record<string, number> = {
+    "Player's Coach": 1.20,
+    "Dealmaker": 1.10,
+    "Scout Master": 1.05,
+    "Balanced": 1.0,
+    "Pure CEO": 1.0,
+    "Tactician": 1.0,
+    "Old School": 1.0,
+    "Academic Dean": 1.0,
+  };
+
+  const ARCHETYPE_POTENTIAL_NARROWING: Record<string, number> = {
+    "Scout Master": 1.30,
+    "Academic Dean": 1.15,
+    "Tactician": 1.10,
+    "Balanced": 1.0,
+    "Pure CEO": 1.0,
+    "Player's Coach": 1.0,
+    "Dealmaker": 0.90,
+    "Old School": 0.85,
+  };
 
   // Calculate coach skill bonus for recruiting action
   function calculateCoachBonus(coach: any, recruit: any, actionType: string): number {
@@ -1005,8 +1053,11 @@ export async function registerRoutes(
     const skillBonus = 1.0 + (baseSkill - 1) * 0.05;
     
     const archetypeBonus = ARCHETYPE_INTEREST_MULTIPLIERS[coach.archetype] || 1.0;
+    const positionBonus = isPitcher
+      ? (ARCHETYPE_PITCHER_BONUS[coach.archetype] || 1.0)
+      : (ARCHETYPE_HITTER_BONUS[coach.archetype] || 1.0);
     
-    return skillBonus * archetypeBonus;
+    return skillBonus * archetypeBonus * positionBonus;
   }
   
   // Calculate proximity bonus based on recruit home state vs team state
@@ -1271,21 +1322,27 @@ export async function registerRoutes(
         return res.status(404).json({ message: "League not found" });
       }
 
+      const actionCost = 2;
       const maxRecruitingActions = getMaxRecruitingActions(userCoach);
-      if ((userCoach?.recruitActionsUsed || 0) >= maxRecruitingActions) {
-        return res.status(400).json({ message: `You've used all ${maxRecruitingActions} recruiting actions this week` });
+      const actionsUsed = userCoach?.recruitActionsUsed || 0;
+      if (actionsUsed + actionCost > maxRecruitingActions) {
+        return res.status(400).json({ message: `Campus Visit costs 2 recruiting actions. You only have ${maxRecruitingActions - actionsUsed} remaining.` });
+      }
+
+      const existingActions = await storage.getRecruitingActionsLog(req.params.recruitId as string, userTeam.id);
+      const previousVisit = existingActions.find(a => a.actionType === "visit");
+      if (previousVisit) {
+        return res.status(400).json({ message: "You've already used your Campus Visit for this recruit. This action can only be done once per recruit." });
       }
 
       // Campus visits give huge bonuses based on all school attributes
-      const baseGain = 15 + Math.floor(Math.random() * 10); // 15-24 base
+      const baseGain = 20 + Math.floor(Math.random() * 16); // 20-35 base
       
-      // Campus visit is influenced by multiple school attributes
       const facilitiesBonus = (userTeam.facilities || 5) / 5;
       const academicsBonus = (userTeam.academics || 5) / 5;
       const prestigeBonus = (userTeam.prestige || 5) / 5;
       const collegeLifeBonus = (userTeam.collegeLife || 5) / 5;
       
-      // Average of relevant attributes
       const schoolAttrBonus = (facilitiesBonus + academicsBonus + prestigeBonus + collegeLifeBonus) / 4;
       const coachBonus = calculateCoachBonus(userCoach, recruit, "visit");
       
@@ -1306,7 +1363,6 @@ export async function registerRoutes(
         });
       }
 
-      // Sync top schools interest
       const visitTopSchools = await storage.getRecruitTopSchools(req.params.recruitId as string);
       const visitUserTopSchool = visitTopSchools.find(ts => ts.teamId === userTeam.id);
       if (visitUserTopSchool) {
@@ -1323,25 +1379,126 @@ export async function registerRoutes(
         season: league.currentSeason,
         actionType: "visit",
         interestChange: interestGain,
-        notes: `Campus visit (+${interestGain}% interest)`,
+        notes: `Campus Visit (+${interestGain}% interest) [Costs 2 actions]`,
       });
 
       if (userCoach) {
         await storage.updateCoach(userCoach.id, {
-          recruitActionsUsed: (userCoach.recruitActionsUsed || 0) + 1,
+          recruitActionsUsed: actionsUsed + actionCost,
         });
       }
 
-      const actionsRemaining = maxRecruitingActions - ((userCoach?.recruitActionsUsed || 0) + 1);
+      const actionsRemaining = maxRecruitingActions - (actionsUsed + actionCost);
       res.json({ 
         interest, 
         interestGain,
         multiplier: totalMultiplier.toFixed(2),
         actionsRemaining,
+        actionCost,
       });
     } catch (error) {
       console.error("Failed to schedule visit:", error);
       res.status(500).json({ message: "Failed to schedule visit" });
+    }
+  });
+
+  // Recruiting action: Head Coach Visit (premium, 1 per recruit, costs 2 actions)
+  app.post("/api/leagues/:id/recruiting/:recruitId/head-coach-visit", requireAuth, async (req, res) => {
+    try {
+      const leagueTeams = await storage.getTeamsByLeague(req.params.id as string);
+      const userId = req.session.userId;
+      const coaches = await storage.getCoachesByLeague(req.params.id as string);
+      const userCoach = coaches.find((c) => c.userId === userId);
+      const userTeam = leagueTeams.find((t) => t.id === userCoach?.teamId);
+      
+      if (!userTeam) {
+        return res.status(400).json({ message: "No team assigned" });
+      }
+
+      const recruit = await storage.getRecruit(req.params.recruitId as string);
+      if (!recruit) {
+        return res.status(404).json({ message: "Recruit not found" });
+      }
+
+      const league = await storage.getLeague(req.params.id as string);
+      if (!league) {
+        return res.status(404).json({ message: "League not found" });
+      }
+
+      const actionCost = 2;
+      const maxRecruitingActions = getMaxRecruitingActions(userCoach);
+      const actionsUsed = userCoach?.recruitActionsUsed || 0;
+      if (actionsUsed + actionCost > maxRecruitingActions) {
+        return res.status(400).json({ message: `Head Coach Visit costs 2 recruiting actions. You only have ${maxRecruitingActions - actionsUsed} remaining.` });
+      }
+
+      const existingActions = await storage.getRecruitingActionsLog(req.params.recruitId as string, userTeam.id);
+      const previousHCV = existingActions.find(a => a.actionType === "head_coach_visit");
+      if (previousHCV) {
+        return res.status(400).json({ message: "You've already used your Head Coach Visit for this recruit. This action can only be done once per recruit." });
+      }
+
+      // Head Coach Visit: big base gain, heavily influenced by coach skill and archetype
+      const baseGain = 25 + Math.floor(Math.random() * 16); // 25-40 base
+      
+      const coachBonus = calculateCoachBonus(userCoach, recruit, "head_coach_visit");
+      // Head coach visit also benefits from coach prestige/reputation
+      const coachLevel = (userCoach?.level || 1);
+      const levelBonus = 1.0 + (coachLevel - 1) * 0.03; // 3% per level above 1
+      
+      const totalMultiplier = coachBonus * levelBonus;
+      const interestGain = Math.round(baseGain * totalMultiplier);
+
+      let interest = await storage.getRecruitingInterest(req.params.recruitId as string, userTeam.id);
+      
+      if (!interest) {
+        interest = await storage.createRecruitingInterest({
+          recruitId: req.params.recruitId as string,
+          teamId: userTeam.id,
+          interestLevel: interestGain,
+        });
+      } else {
+        interest = await storage.updateRecruitingInterest(interest.id, {
+          interestLevel: Math.min(100, (interest.interestLevel || 0) + interestGain),
+        });
+      }
+
+      const hcvTopSchools = await storage.getRecruitTopSchools(req.params.recruitId as string);
+      const hcvUserTopSchool = hcvTopSchools.find(ts => ts.teamId === userTeam.id);
+      if (hcvUserTopSchool) {
+        await storage.updateRecruitTopSchool(hcvUserTopSchool.id, { 
+          accumulatedInterest: (hcvUserTopSchool.accumulatedInterest || 0) + interestGain 
+        });
+      }
+
+      await storage.createRecruitingAction({
+        recruitId: req.params.recruitId as string,
+        teamId: userTeam.id,
+        leagueId: req.params.id as string,
+        week: league.currentWeek,
+        season: league.currentSeason,
+        actionType: "head_coach_visit",
+        interestChange: interestGain,
+        notes: `Head Coach Visit (+${interestGain}% interest) [Costs 2 actions]`,
+      });
+
+      if (userCoach) {
+        await storage.updateCoach(userCoach.id, {
+          recruitActionsUsed: actionsUsed + actionCost,
+        });
+      }
+
+      const actionsRemaining = maxRecruitingActions - (actionsUsed + actionCost);
+      res.json({ 
+        interest, 
+        interestGain,
+        multiplier: totalMultiplier.toFixed(2),
+        actionsRemaining,
+        actionCost,
+      });
+    } catch (error) {
+      console.error("Failed to schedule head coach visit:", error);
+      res.status(500).json({ message: "Failed to schedule head coach visit" });
     }
   });
 

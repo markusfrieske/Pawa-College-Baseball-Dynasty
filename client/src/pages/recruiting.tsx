@@ -46,7 +46,8 @@ import {
   ChevronUp,
   History,
   Star,
-  Skull
+  Skull,
+  Crown
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -113,6 +114,7 @@ interface RecruitingData {
   nextYearDepth: Record<string, number>;
   nextYearRosterSize: number;
   seniorsGraduating: number;
+  premiumActionsUsed: Record<string, string[]>;
 }
 
 const positionOptions = [
@@ -357,6 +359,24 @@ export default function RecruitingPage() {
       const changeLabel = getInterestChangeLabel(gain);
       toast({ 
         title: "Campus Visit Scheduled", 
+        description: `${changeLabel.label}` 
+      });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const headCoachVisitMutation = useMutation({
+    mutationFn: async (recruitId: string) => {
+      return apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/head-coach-visit`, {});
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
+      const gain = data.interestGain || 0;
+      const changeLabel = getInterestChangeLabel(gain);
+      toast({ 
+        title: "Head Coach Visit Complete", 
         description: `${changeLabel.label}` 
       });
     },
@@ -939,6 +959,7 @@ export default function RecruitingPage() {
               onPhone={(pitchTopic?: string) => phoneMutation.mutate({ recruitId: recruit.id, pitchTopic })}
               onEmail={(pitchTopic?: string) => emailMutation.mutate({ recruitId: recruit.id, pitchTopic })}
               onVisit={() => visitMutation.mutate(recruit.id)}
+              onHeadCoachVisit={() => headCoachVisitMutation.mutate(recruit.id)}
               onOffer={() => offerMutation.mutate(recruit.id)}
               onSaveNotes={(notes) => notesMutation.mutate({ recruitId: recruit.id, notes })}
               onToggleCompare={() => toggleCompare(recruit)}
@@ -947,7 +968,10 @@ export default function RecruitingPage() {
               isPhoning={phoneMutation.isPending}
               isEmailing={emailMutation.isPending}
               isVisiting={visitMutation.isPending}
+              isHeadCoachVisiting={headCoachVisitMutation.isPending}
               isOffering={offerMutation.isPending}
+              hasVisited={data?.premiumActionsUsed?.[recruit.id]?.includes("visit") ?? false}
+              hasHeadCoachVisited={data?.premiumActionsUsed?.[recruit.id]?.includes("head_coach_visit") ?? false}
               isSavingNotes={notesMutation.isPending}
               isSelected={compareRecruits.some(r => r.id === recruit.id)}
               isBulkSelected={bulkSelected.has(recruit.id)}
@@ -956,6 +980,7 @@ export default function RecruitingPage() {
               userTeamId={data?.team?.id}
               positionNeed={pipelineData?.positionNeeds?.find(p => p.position === recruit.position)?.need}
               outOfRecruitingActions={(data?.remainingActions ?? 1) <= 0}
+              outOfPremiumActions={(data?.remainingActions ?? 2) < 2}
               outOfScoutActions={(data?.remainingScoutActions ?? 1) <= 0}
               progressionEnabled={leagueData?.progressionEnabled}
             />
@@ -1001,9 +1026,14 @@ export default function RecruitingPage() {
         isEmailing={emailMutation.isPending}
         onVisit={(recruitId) => visitMutation.mutate(recruitId)}
         isVisiting={visitMutation.isPending}
+        onHeadCoachVisit={(recruitId) => headCoachVisitMutation.mutate(recruitId)}
+        isHeadCoachVisiting={headCoachVisitMutation.isPending}
         onOffer={(recruitId) => offerMutation.mutate(recruitId)}
         isOffering={offerMutation.isPending}
         outOfRecruitingActions={(data?.remainingActions ?? 1) <= 0}
+        outOfPremiumActions={(data?.remainingActions ?? 2) < 2}
+        hasVisited={selectedRecruit ? (data?.premiumActionsUsed?.[selectedRecruit.id]?.includes("visit") ?? false) : false}
+        hasHeadCoachVisited={selectedRecruit ? (data?.premiumActionsUsed?.[selectedRecruit.id]?.includes("head_coach_visit") ?? false) : false}
       />
 
       {compareRecruits.length > 0 && (
@@ -1161,6 +1191,7 @@ function RecruitRow({
   onPhone,
   onEmail,
   onVisit,
+  onHeadCoachVisit,
   onOffer,
   onSaveNotes,
   onToggleCompare,
@@ -1169,6 +1200,7 @@ function RecruitRow({
   isPhoning,
   isEmailing,
   isVisiting,
+  isHeadCoachVisiting,
   isOffering,
   isSavingNotes,
   isSelected,
@@ -1178,8 +1210,11 @@ function RecruitRow({
   userTeamId,
   positionNeed,
   outOfRecruitingActions,
+  outOfPremiumActions,
   outOfScoutActions,
   progressionEnabled,
+  hasVisited,
+  hasHeadCoachVisited,
 }: {
   recruit: RecruitWithInterest;
   leagueId: string;
@@ -1188,6 +1223,7 @@ function RecruitRow({
   onPhone: (pitchTopic?: string) => void;
   onEmail: (pitchTopic?: string) => void;
   onVisit: () => void;
+  onHeadCoachVisit: () => void;
   onOffer: () => void;
   onSaveNotes: (notes: string) => void;
   onToggleCompare: () => void;
@@ -1196,6 +1232,7 @@ function RecruitRow({
   isPhoning: boolean;
   isEmailing: boolean;
   isVisiting: boolean;
+  isHeadCoachVisiting: boolean;
   isOffering: boolean;
   isSavingNotes: boolean;
   isSelected: boolean;
@@ -1205,8 +1242,11 @@ function RecruitRow({
   userTeamId?: string;
   positionNeed?: boolean;
   outOfRecruitingActions?: boolean;
+  outOfPremiumActions?: boolean;
   outOfScoutActions?: boolean;
   progressionEnabled?: boolean;
+  hasVisited?: boolean;
+  hasHeadCoachVisited?: boolean;
 }) {
   const [showNotesDialog, setShowNotesDialog] = useState(false);
   const [notesValue, setNotesValue] = useState(recruit.interest?.notes || "");
@@ -1540,6 +1580,34 @@ function RecruitRow({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <RetroButton
+                    variant={hasVisited ? "primary" : "outline"}
+                    size="sm"
+                    onClick={onVisit}
+                    disabled={isVisiting || !recruit.interest || outOfPremiumActions || hasVisited}
+                    data-testid={`button-visit-${recruit.id}`}
+                  >
+                    <MapPin className="w-3 h-3" />
+                  </RetroButton>
+                </TooltipTrigger>
+                <TooltipContent>{hasVisited ? "Campus Visit Used" : outOfPremiumActions ? "Need 2 actions for Campus Visit" : "Campus Visit (2 actions)"}</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <RetroButton
+                    variant={hasHeadCoachVisited ? "primary" : "outline"}
+                    size="sm"
+                    onClick={onHeadCoachVisit}
+                    disabled={isHeadCoachVisiting || !recruit.interest || outOfPremiumActions || hasHeadCoachVisited}
+                    data-testid={`button-head-coach-visit-${recruit.id}`}
+                  >
+                    <Crown className="w-3 h-3" />
+                  </RetroButton>
+                </TooltipTrigger>
+                <TooltipContent>{hasHeadCoachVisited ? "Head Coach Visit Used" : outOfPremiumActions ? "Need 2 actions for HC Visit" : "Head Coach Visit (2 actions)"}</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <RetroButton
                     variant={recruit.interest?.hasOffer ? "primary" : "outline"}
                     size="sm"
                     onClick={onOffer}
@@ -1768,9 +1836,14 @@ function RecruitDetailModal({
   isEmailing,
   onVisit,
   isVisiting,
+  onHeadCoachVisit,
+  isHeadCoachVisiting,
   onOffer,
   isOffering,
   outOfRecruitingActions,
+  outOfPremiumActions,
+  hasVisited,
+  hasHeadCoachVisited,
 }: {
   recruit: RecruitWithInterest | null;
   onClose: () => void;
@@ -1783,9 +1856,14 @@ function RecruitDetailModal({
   isEmailing: boolean;
   onVisit: (recruitId: string) => void;
   isVisiting: boolean;
+  onHeadCoachVisit: (recruitId: string) => void;
+  isHeadCoachVisiting: boolean;
   onOffer: (recruitId: string) => void;
   isOffering: boolean;
   outOfRecruitingActions?: boolean;
+  outOfPremiumActions?: boolean;
+  hasVisited?: boolean;
+  hasHeadCoachVisited?: boolean;
 }) {
   const [modalPhonePitches, setModalPhonePitches] = useState<string[]>([]);
   const [modalEmailPitch, setModalEmailPitch] = useState<string | null>(null);
@@ -2190,18 +2268,28 @@ function RecruitDetailModal({
                 {isEmailing ? "Sending..." : "Email (1 pitch)"}
               </RetroButton>
               <RetroButton 
-                variant="outline" 
+                variant={hasVisited ? "primary" : "outline"}
                 className="flex-1" 
                 data-testid="button-visit"
                 onClick={() => onVisit(recruit.id)}
-                disabled={isVisiting || outOfRecruitingActions}
+                disabled={isVisiting || outOfPremiumActions || hasVisited}
               >
                 <MapPin className="w-4 h-4 mr-2" />
-                {isVisiting ? "Scheduling..." : "Campus Visit"}
+                {hasVisited ? "Visited" : isVisiting ? "Scheduling..." : "Campus Visit (2)"}
+              </RetroButton>
+              <RetroButton 
+                variant={hasHeadCoachVisited ? "primary" : "outline"}
+                className="flex-1" 
+                data-testid="button-head-coach-visit"
+                onClick={() => onHeadCoachVisit(recruit.id)}
+                disabled={isHeadCoachVisiting || outOfPremiumActions || hasHeadCoachVisited}
+              >
+                <Crown className="w-4 h-4 mr-2" />
+                {hasHeadCoachVisited ? "HC Visited" : isHeadCoachVisiting ? "Visiting..." : "HC Visit (2)"}
               </RetroButton>
               <RetroButton 
                 variant="outline" 
-                className="border-gold text-gold hover:bg-gold/10"
+                className="border-gold text-gold"
                 data-testid="button-offer-scholarship"
                 onClick={() => onOffer(recruit.id)}
                 disabled={isOffering || recruit.interest?.hasOffer}
