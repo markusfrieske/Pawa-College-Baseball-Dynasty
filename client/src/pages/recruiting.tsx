@@ -323,7 +323,8 @@ export default function RecruitingPage() {
   const phoneMutation = useMutation({
     mutationFn: async ({ recruitId, pitchTopic }: { recruitId: string; pitchTopic?: string }) => {
       const pitchTopics = pitchTopic ? pitchTopic.split(",") : undefined;
-      return apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/phone`, { pitchTopics });
+      const res = await apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/phone`, { pitchTopics });
+      return await res.json();
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
@@ -338,7 +339,8 @@ export default function RecruitingPage() {
 
   const emailMutation = useMutation({
     mutationFn: async ({ recruitId, pitchTopic }: { recruitId: string; pitchTopic?: string }) => {
-      return apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/email`, { pitchTopic });
+      const res = await apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/email`, { pitchTopic });
+      return await res.json();
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
@@ -353,7 +355,8 @@ export default function RecruitingPage() {
 
   const visitMutation = useMutation({
     mutationFn: async (recruitId: string) => {
-      return apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/visit`, {});
+      const res = await apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/visit`, {});
+      return await res.json();
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
@@ -368,7 +371,8 @@ export default function RecruitingPage() {
 
   const headCoachVisitMutation = useMutation({
     mutationFn: async (recruitId: string) => {
-      return apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/head-coach-visit`, {});
+      const res = await apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/head-coach-visit`, {});
+      return await res.json();
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
@@ -383,7 +387,8 @@ export default function RecruitingPage() {
 
   const offerMutation = useMutation({
     mutationFn: async (recruitId: string) => {
-      return apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/offer`, {});
+      const res = await apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/offer`, {});
+      return await res.json();
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
@@ -1546,7 +1551,7 @@ function RecruitRow({
             </p>
             <p className="text-[10px] text-muted-foreground">{recruit.position}</p>
           </div>
-          {progressionEnabled && recruit.potentialFloor != null && recruit.potentialCeiling != null && scoutPct >= 100 && (
+          {recruit.potentialFloor != null && recruit.potentialCeiling != null && scoutPct >= 100 && (
             <div className="text-center min-w-[50px]">
               <p className="font-bold text-sm text-amber-400">
                 {getPotentialRangeLabel(recruit.potentialFloor, recruit.potentialCeiling)}
@@ -1661,7 +1666,7 @@ function RecruitRow({
                     data-testid={`button-visit-${recruit.id}`}
                   >
                     <Building2 className="w-3 h-3 mr-1" />
-                    <span className="text-[9px]">Visit ({visitCost})</span>
+                    <span className="text-[9px]">{hasVisited ? "Visited" : `Visit (${visitCost})`}</span>
                   </RetroButton>
                 </TooltipTrigger>
                 <TooltipContent>{hasVisited ? "Campus Visit Used" : remainingPoints < visitCost ? `Need ${visitCost} points for Campus Visit` : `Campus Visit - ${visitCost} recruiting points`}</TooltipContent>
@@ -1676,7 +1681,7 @@ function RecruitRow({
                     data-testid={`button-head-coach-visit-${recruit.id}`}
                   >
                     <Crown className="w-3 h-3 mr-1" />
-                    <span className="text-[9px]">HC Visit ({headCoachVisitCost})</span>
+                    <span className="text-[9px]">{hasHeadCoachVisited ? "HC Visited" : `HC Visit (${headCoachVisitCost})`}</span>
                   </RetroButton>
                 </TooltipTrigger>
                 <TooltipContent>{hasHeadCoachVisited ? "Head Coach Visit Used" : remainingPoints < headCoachVisitCost ? `Need ${headCoachVisitCost} points for HC Visit` : `Head Coach Visit - ${headCoachVisitCost} recruiting points`}</TooltipContent>

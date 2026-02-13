@@ -611,7 +611,7 @@ export async function registerRoutes(
         const signedTeam = recruit.signedTeamId ? teamMap.get(recruit.signedTeamId) : null;
         
         let actualPotential = recruit.potential;
-        if (actualPotential == null && (recruit.recruitType === "TRANSFER" || recruit.recruitType === "JUCO")) {
+        if (actualPotential == null) {
           actualPotential = rollWeightedPotential();
           storage.updateRecruit(recruit.id, { potential: actualPotential }).catch(() => {});
         }
@@ -7476,7 +7476,7 @@ export async function registerRoutes(
       }
 
       let actualPotential = recruit.potential;
-      if (actualPotential == null && (recruit.recruitType === "TRANSFER" || recruit.recruitType === "JUCO")) {
+      if (actualPotential == null) {
         actualPotential = rollWeightedPotential();
         storage.updateRecruit(recruit.id, { potential: actualPotential }).catch(() => {});
       }
@@ -9129,7 +9129,7 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
       hairColor: appearance.hairColor,
       hairStyle: appearance.hairStyle,
       headwear: appearance.headwear,
-      potential: progressionEnabled ? rollWeightedPotential() : null,
+      potential: rollWeightedPotential(),
       pitchFB: position === "P" ? 1 : 0,
       pitch2S: position === "P" && Math.random() < 0.5 ? 1 : 0,
       pitchSL: position === "P" && Math.random() < 0.6 ? 1 + Math.floor(Math.random() * 7) : 0,
