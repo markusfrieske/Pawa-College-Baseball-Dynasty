@@ -1,13 +1,26 @@
 import { useToast } from "@/hooks/use-toast"
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
+import { playChime, playError } from "@/lib/sfx"
 
 export function Toaster() {
   const { toasts, dismiss } = useToast()
+  const lastPlayedRef = useRef<string | null>(null)
 
   const activeToast = toasts.length > 0 ? toasts[0] : null
 
   useEffect(() => {
-    if (!activeToast) return
+    if (!activeToast) {
+      lastPlayedRef.current = null
+      return
+    }
+    if (lastPlayedRef.current !== activeToast.id) {
+      lastPlayedRef.current = activeToast.id
+      if (activeToast.variant === "destructive") {
+        playError()
+      } else {
+        playChime()
+      }
+    }
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") dismiss(activeToast.id)
     }

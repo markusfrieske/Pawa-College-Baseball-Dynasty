@@ -1,15 +1,17 @@
 import { cn } from "@/lib/utils";
 import { forwardRef, type ButtonHTMLAttributes } from "react";
 import { Loader2 } from "lucide-react";
+import { playClick } from "@/lib/sfx";
 
 interface RetroButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "primary" | "secondary" | "outline" | "destructive" | "ghost";
   size?: "sm" | "md" | "lg" | "icon";
   loading?: boolean;
+  noClickSound?: boolean;
 }
 
 export const RetroButton = forwardRef<HTMLButtonElement, RetroButtonProps>(
-  ({ className, variant = "primary", size = "md", loading = false, children, disabled, ...props }, ref) => {
+  ({ className, variant = "primary", size = "md", loading = false, noClickSound = false, children, disabled, onClick, ...props }, ref) => {
     const baseStyles = "inline-flex items-center justify-center gap-2 font-pixel uppercase tracking-wider transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed";
     
     const variants = {
@@ -27,11 +29,19 @@ export const RetroButton = forwardRef<HTMLButtonElement, RetroButtonProps>(
       icon: "p-2 flex items-center justify-center",
     };
 
+    const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+      if (!noClickSound && !disabled && !loading) {
+        playClick();
+      }
+      onClick?.(e);
+    };
+
     return (
       <button
         ref={ref}
         className={cn(baseStyles, variants[variant], sizes[size], className)}
         disabled={disabled || loading}
+        onClick={handleClick}
         {...props}
       >
         {loading && <Loader2 className="w-4 h-4 animate-spin" />}

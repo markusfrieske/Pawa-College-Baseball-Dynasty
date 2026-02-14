@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
+import { playSuccess, playError as playSfxError } from "@/lib/sfx";
 import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
 import { RetroInput } from "@/components/ui/retro-input";
 import { StarRating } from "@/components/ui/star-rating";
@@ -99,12 +100,19 @@ export default function RecruitProfilePage() {
   const [showProfileEmailPicker, setShowProfileEmailPicker] = useState(false);
   const [profilePhonePitches, setProfilePhonePitches] = useState<string[]>([]);
   const [profileEmailPitch, setProfileEmailPitch] = useState<string | null>(null);
-  const [actionResultModal, setActionResultModal] = useState<{
+  const [actionResultModal, setActionResultModalRaw] = useState<{
     title: string;
     description: string;
     type: "success" | "error";
     icon?: "check" | "phone" | "email" | "visit" | "coach" | "offer" | "scout";
   } | null>(null);
+  const setActionResultModal = useCallback((modal: typeof actionResultModal) => {
+    if (modal) {
+      if (modal.type === "success") playSuccess();
+      else playSfxError();
+    }
+    setActionResultModalRaw(modal);
+  }, []);
 
   const pitchOptions = [
     { key: "proximity", label: "Proximity" },
