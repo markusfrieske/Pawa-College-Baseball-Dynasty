@@ -1,5 +1,5 @@
 import { useToast } from "@/hooks/use-toast"
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useCallback } from "react"
 import { playChime, playError } from "@/lib/sfx"
 
 export function Toaster() {
@@ -7,6 +7,10 @@ export function Toaster() {
   const lastPlayedRef = useRef<string | null>(null)
 
   const activeToast = toasts.length > 0 ? toasts[0] : null
+
+  const handleDismiss = useCallback(() => {
+    if (activeToast) dismiss(activeToast.id)
+  }, [activeToast, dismiss])
 
   useEffect(() => {
     if (!activeToast) {
@@ -25,7 +29,15 @@ export function Toaster() {
       if (e.key === "Escape") dismiss(activeToast.id)
     }
     window.addEventListener("keydown", handleKeyDown)
-    return () => window.removeEventListener("keydown", handleKeyDown)
+
+    const timer = setTimeout(() => {
+      dismiss(activeToast.id)
+    }, 2500)
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+      clearTimeout(timer)
+    }
   }, [activeToast, dismiss])
 
   if (!activeToast) return null
@@ -36,13 +48,16 @@ export function Toaster() {
     <div
       className="fixed inset-0 z-[9999] flex items-center justify-center"
       data-testid="popup-overlay"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) handleDismiss()
+      }}
     >
       <div
-        className="absolute inset-0 bg-black/60"
-        onClick={() => dismiss(activeToast.id)}
+        className="absolute inset-0 bg-black/60 -z-10"
+        aria-hidden="true"
       />
       <div
-        className={`relative z-10 w-full max-w-sm mx-4 rounded-md border-2 p-5 shadow-lg ${
+        className={`relative w-full max-w-sm mx-4 rounded-md border-2 p-5 shadow-lg ${
           isDestructive
             ? "border-red-500/60 bg-[#1a1a0a]"
             : "border-[#c8a964]/60 bg-[#1a2e1a]"
@@ -65,11 +80,12 @@ export function Toaster() {
           </p>
         )}
         <button
-          onClick={() => dismiss(activeToast.id)}
-          className={`mt-4 w-full py-2 px-4 text-xs font-['Press_Start_2P'] rounded border ${
+          type="button"
+          onClick={handleDismiss}
+          className={`mt-4 w-full py-3 px-4 text-xs font-['Press_Start_2P'] rounded border cursor-pointer select-none touch-manipulation ${
             isDestructive
-              ? "border-red-500/40 text-red-400 hover:bg-red-500/10"
-              : "border-[#c8a964]/40 text-[#c8a964] hover:bg-[#c8a964]/10"
+              ? "border-red-500/40 text-red-400"
+              : "border-[#c8a964]/40 text-[#c8a964]"
           }`}
           data-testid="popup-dismiss"
         >
