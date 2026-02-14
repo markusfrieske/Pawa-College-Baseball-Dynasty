@@ -3750,9 +3750,9 @@ export async function registerRoutes(
       });
 
       res.json(updatedLeague);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to advance week:", error);
-      res.status(500).json({ message: "Failed to advance week" });
+      res.status(500).json({ message: "Failed to advance week", detail: error?.message || String(error) });
     }
   });
 
@@ -5927,7 +5927,9 @@ export async function registerRoutes(
   }
 
   async function finalizeSigningDay(leagueId: string, completedSeason: number) {
+    console.log(`[finalizeSigningDay] Starting for league ${leagueId}, season ${completedSeason}`);
     const progressionResult = await applyPlayerProgression(leagueId);
+    console.log(`[finalizeSigningDay] Progression complete: ${progressionResult.progressed} players`);
 
     const teams = await storage.getTeamsByLeague(leagueId);
     let totalRecruitsAdded = 0;
@@ -5975,6 +5977,7 @@ export async function registerRoutes(
       }
     }
 
+    console.log(`[finalizeSigningDay] Processing ${teams.length} teams for transfers/eligibility/recruits`);
     for (const team of teams) {
       const roster = await storage.getPlayersByTeam(team.id);
       const remainingPortal = roster.filter(p => p.inTransferPortal);
@@ -7518,6 +7521,7 @@ export async function registerRoutes(
           coachName: coach ? `${coach.firstName} ${coach.lastName}` : "CPU",
           isReady: coach?.isReady ?? false,
           departuresFinalized: team.departuresFinalized,
+          walkonReady: team.walkonReady ?? false,
           scoutActionsUsed,
           recruitActionsUsed,
           hasReportedScores,
@@ -7525,16 +7529,24 @@ export async function registerRoutes(
       });
 
       const isDeparturesPhase = league.currentPhase === "offseason_departures";
+      const isWalkonsPhase = league.currentPhase === "offseason_walkons";
+      
+      const getReadyState = (s: typeof readyStatus[0]) => {
+        if (isDeparturesPhase) return s.departuresFinalized;
+        if (isWalkonsPhase) return s.walkonReady;
+        return s.isReady;
+      };
+      
       const allHumansReady = readyStatus
         .filter(s => s.isHumanControlled)
-        .every(s => isDeparturesPhase ? s.departuresFinalized : s.isReady);
+        .every(s => getReadyState(s));
 
       res.json({ 
         readyStatus, 
         allHumansReady,
         currentPhase: league.currentPhase,
         humanCount: readyStatus.filter(s => s.isHumanControlled).length,
-        readyCount: readyStatus.filter(s => s.isHumanControlled && (isDeparturesPhase ? s.departuresFinalized : s.isReady)).length
+        readyCount: readyStatus.filter(s => s.isHumanControlled && getReadyState(s)).length
       });
     } catch (error) {
       console.error("Failed to get ready status:", error);

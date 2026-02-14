@@ -893,6 +893,7 @@ interface ReadyStatusData {
     coachName: string;
     isReady: boolean;
     departuresFinalized: boolean;
+    walkonReady: boolean;
     scoutActionsUsed: number;
     recruitActionsUsed: number;
     hasReportedScores: boolean;
@@ -922,6 +923,12 @@ function ReadyStatusSection({ leagueId }: { leagueId: string }) {
 
   const humanTeams = data.readyStatus.filter(s => s.isHumanControlled);
   const isDeparturesPhase = data.currentPhase === "offseason_departures";
+  const isWalkonsPhase = data.currentPhase === "offseason_walkons";
+  const getTeamReady = (team: typeof humanTeams[0]) => {
+    if (isDeparturesPhase) return team.departuresFinalized;
+    if (isWalkonsPhase) return team.walkonReady;
+    return team.isReady;
+  };
 
   return (
     <RetroCard>
@@ -996,7 +1003,7 @@ function ReadyStatusSection({ leagueId }: { leagueId: string }) {
                       </div>
                     </td>
                     <td className="py-2 text-center">
-                      {team.isReady ? (
+                      {getTeamReady(team) ? (
                         <Check className="w-4 h-4 text-green-500 mx-auto" />
                       ) : (
                         <Clock className="w-4 h-4 text-muted-foreground mx-auto" />
