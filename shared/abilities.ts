@@ -240,3 +240,68 @@ export function getRandomAbilities(position: string, count: number, preferGold: 
 export function getAbilityByName(name: string): Ability | undefined {
   return ALL_ABILITIES.find(a => a.name === name);
 }
+
+export function calculateOVR(attrs: {
+  hitForAvg?: number | null;
+  power?: number | null;
+  speed?: number | null;
+  arm?: number | null;
+  fielding?: number | null;
+  errorResistance?: number | null;
+  velocity?: number | null;
+  control?: number | null;
+  stamina?: number | null;
+  stuff?: number | null;
+  clutch?: number | null;
+  vsLHP?: number | null;
+  grit?: number | null;
+  stealing?: number | null;
+  running?: number | null;
+  throwing?: number | null;
+  recovery?: number | null;
+  wRISP?: number | null;
+  vsLefty?: number | null;
+  poise?: number | null;
+  heater?: number | null;
+  agile?: number | null;
+  abilities?: string[] | null;
+}): number {
+  const attrFields = [
+    attrs.hitForAvg, attrs.power, attrs.speed, attrs.arm,
+    attrs.fielding, attrs.errorResistance, attrs.velocity,
+    attrs.control, attrs.stamina, attrs.stuff,
+  ];
+  let attrSum = 0;
+  for (const v of attrFields) { attrSum += (v ?? 50); }
+
+  const commonFields = [
+    attrs.clutch, attrs.vsLHP, attrs.grit, attrs.stealing,
+    attrs.running, attrs.throwing, attrs.recovery,
+    attrs.wRISP, attrs.vsLefty, attrs.poise, attrs.heater, attrs.agile,
+  ];
+  let commonSum = 0;
+  for (const v of commonFields) { commonSum += (v ?? 50); }
+
+  let specialBonus = 0;
+  if (attrs.abilities && attrs.abilities.length > 0) {
+    for (const abilityName of attrs.abilities) {
+      const ability = getAbilityByName(abilityName);
+      if (ability) {
+        if (ability.tier === "gold") specialBonus += 33;
+        else if (ability.tier === "blue") specialBonus += 20;
+        else if (ability.tier === "red") specialBonus -= 15;
+      }
+    }
+  }
+
+  const raw = Math.round(attrSum * 0.6 + commonSum * 0.25 + specialBonus);
+  return Math.max(1, Math.min(999, raw));
+}
+
+export function getStarRatingFromOVR(ovr: number): number {
+  if (ovr >= 800) return 5;
+  if (ovr >= 600) return 4;
+  if (ovr >= 400) return 3;
+  if (ovr >= 200) return 2;
+  return 1;
+}

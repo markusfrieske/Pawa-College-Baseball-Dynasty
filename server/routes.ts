@@ -6,7 +6,7 @@ import connectPgSimple from "connect-pg-simple";
 import bcrypt from "bcrypt";
 import { z } from "zod";
 import { randomUUID } from "crypto";
-import { getRandomAbilities, getAbilitiesForPosition } from "@shared/abilities";
+import { getRandomAbilities, getAbilitiesForPosition, calculateOVR, getStarRatingFromOVR } from "@shared/abilities";
 import { getPotentialRange, getProgressionZone, rollWeightedPotential } from "@shared/potential";
 import { getActionPointCost } from "@shared/stateDistance";
 import type { Player, TransferPortalInterest, Game } from "@shared/schema";
@@ -1894,7 +1894,14 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Player not found" });
       }
 
-      const updated = await storage.updatePlayer(req.params.playerId, req.body);
+      const mergedPlayer = { ...player, ...req.body };
+      const recalcedOverall = calculateOVR(mergedPlayer);
+      const recalcedStar = getStarRatingFromOVR(recalcedOverall);
+      const updated = await storage.updatePlayer(req.params.playerId, {
+        ...req.body,
+        overall: recalcedOverall,
+        starRating: recalcedStar,
+      });
       
       await storage.createAuditLog({
         leagueId: req.params.id,
@@ -2686,10 +2693,13 @@ export async function registerRoutes(
         if (player && leagueTeamIds.has(player.teamId)) {
           const sanitizedData: Record<string, unknown> = {};
           for (const key of allowedFields) {
-            if (key in update.changes) {
+            if (key in update.changes && key !== 'overall' && key !== 'starRating') {
               sanitizedData[key] = update.changes[key];
             }
           }
+          const mergedPlayer = { ...player, ...sanitizedData };
+          sanitizedData['overall'] = calculateOVR(mergedPlayer as any);
+          sanitizedData['starRating'] = getStarRatingFromOVR(sanitizedData['overall'] as number);
           const updated = await storage.updatePlayer(update.id, sanitizedData);
           results.push(updated);
         }
@@ -4984,12 +4994,16 @@ export async function registerRoutes(
           if (actualDelta !== 0) deltas[attr] = actualDelta;
         }
 
-        const newOverall = Math.max(1, Math.min(999, player.overall + targetOvrDelta));
+        const updatedPlayerData = { ...player } as any;
+        for (const [key, val] of Object.entries(updates)) {
+          updatedPlayerData[key] = val;
+        }
+        const newOverall = calculateOVR(updatedPlayerData);
         updates["overall"] = newOverall;
-        if (targetOvrDelta !== 0) deltas["overall"] = targetOvrDelta;
+        const ovrDelta = newOverall - player.overall;
+        if (ovrDelta !== 0) deltas["overall"] = ovrDelta;
 
-        const starFromOverall = newOverall >= 800 ? 5 : newOverall >= 600 ? 4 : newOverall >= 400 ? 3 : newOverall >= 200 ? 2 : 1;
-        updates["starRating"] = starFromOverall;
+        updates["starRating"] = getStarRatingFromOVR(newOverall);
 
         (updates as any)["progressionDeltas"] = Object.keys(deltas).length > 0 ? deltas : null;
 
@@ -5191,8 +5205,8 @@ export async function registerRoutes(
     allOvrs.sort((a, b) => b - a);
     
     for (const { player, teamName } of transfersToAdd) {
-      const ovr = player.overall || 300;
-      const starRating = ovr >= 600 ? 5 : ovr >= 500 ? 4 : ovr >= 400 ? 3 : ovr >= 250 ? 2 : 1;
+      const ovr = calculateOVR(player);
+      const starRating = getStarRatingFromOVR(ovr);
       
       const classRank = allOvrs.filter(o => o >= ovr).indexOf(ovr) + 1 || allOvrs.filter(o => o >= ovr).length;
       const posOvrs = [...existingRecruits.filter(r => r.position === player.position).map(r => r.overall || 0), ovr].sort((a, b) => b - a);
@@ -5726,12 +5740,31 @@ export async function registerRoutes(
       const newElig = jucoEligMap[player.eligibility] || player.eligibility;
       if (newElig === "SR") continue; // Seniors can't come back from JUCO
       
-      // Give them a slight rating bump from JUCO development (+5-15 OVR points)
-      const jucoBoost = 5 + Math.floor(Math.random() * 11);
-      const boostedOverall = Math.min(999, (player.overall || 300) + jucoBoost);
+      // JUCO development: boost each attribute by +1-3 points, then recalculate OVR
+      const jucoAttrBoost = () => 1 + Math.floor(Math.random() * 3);
+      const boostedHitForAvg = Math.min(100, (player.hitForAvg || 50) + jucoAttrBoost());
+      const boostedPower = Math.min(100, (player.power || 50) + jucoAttrBoost());
+      const boostedSpeed = Math.min(100, (player.speed || 50) + jucoAttrBoost());
+      const boostedArm = Math.min(100, (player.arm || 50) + jucoAttrBoost());
+      const boostedFielding = Math.min(100, (player.fielding || 50) + jucoAttrBoost());
+      const boostedErrorResistance = Math.min(100, (player.errorResistance || 50) + jucoAttrBoost());
+      const boostedVelocity = Math.min(100, (player.velocity || 50) + jucoAttrBoost());
+      const boostedControl = Math.min(100, (player.control || 50) + jucoAttrBoost());
+      const boostedStamina = Math.min(100, (player.stamina || 50) + jucoAttrBoost());
+      const boostedStuff = Math.min(100, (player.stuff || 50) + jucoAttrBoost());
       
-      // Determine star rating from boosted overall
-      const starRating = boostedOverall >= 600 ? 5 : boostedOverall >= 500 ? 4 : boostedOverall >= 400 ? 3 : boostedOverall >= 250 ? 2 : 1;
+      const jucoPlayerData = {
+        hitForAvg: boostedHitForAvg, power: boostedPower, speed: boostedSpeed,
+        arm: boostedArm, fielding: boostedFielding, errorResistance: boostedErrorResistance,
+        velocity: boostedVelocity, control: boostedControl, stamina: boostedStamina, stuff: boostedStuff,
+        clutch: player.clutch, vsLHP: player.vsLHP, grit: player.grit, stealing: player.stealing,
+        running: player.running, throwing: player.throwing, recovery: player.recovery,
+        wRISP: player.wRISP, vsLefty: player.vsLefty, poise: player.poise,
+        heater: player.heater, agile: player.agile,
+        abilities: player.abilities as string[] || [],
+      };
+      const boostedOverall = calculateOVR(jucoPlayerData);
+      const starRating = getStarRatingFromOVR(boostedOverall);
       
       // Get all recruits to determine new rank
       const currentRecruits = await storage.getRecruitsByLeague(leagueId);
@@ -5755,12 +5788,12 @@ export async function registerRoutes(
         recruitYear: newElig,
         overall: boostedOverall,
         starRating,
-        hitForAvg: player.hitForAvg || 50,
-        power: player.power || 50,
-        speed: player.speed || 50,
-        arm: player.arm || 50,
-        fielding: player.fielding || 50,
-        errorResistance: player.errorResistance || 50,
+        hitForAvg: boostedHitForAvg,
+        power: boostedPower,
+        speed: boostedSpeed,
+        arm: boostedArm,
+        fielding: boostedFielding,
+        errorResistance: boostedErrorResistance,
         clutch: player.clutch || 50,
         vsLHP: player.vsLHP || 50,
         grit: player.grit || 50,
@@ -5769,10 +5802,10 @@ export async function registerRoutes(
         throwing: player.throwing || 50,
         recovery: player.recovery || 50,
         catcherAbility: player.catcherAbility || 50,
-        velocity: player.velocity || 50,
-        control: player.control || 50,
-        stamina: player.stamina || 50,
-        stuff: player.stuff || 50,
+        velocity: boostedVelocity,
+        control: boostedControl,
+        stamina: boostedStamina,
+        stuff: boostedStuff,
         wRISP: player.wRISP || 50,
         vsLefty: player.vsLefty || 50,
         poise: player.poise || 50,
@@ -6979,14 +7012,9 @@ export async function registerRoutes(
           const position = row.position || row.pos || 'IF';
           const isPitcher = ['SP', 'RP', 'P'].includes(position.toUpperCase());
 
-          // Calculate star rating from overall if provided
+          // Initial overall placeholder (will be recalculated from attributes below)
           const overallValue = parseInt(row.overall) || 500;
-          let starRating = 3;
-          if (overallValue >= 800) starRating = 5;
-          else if (overallValue >= 600) starRating = 4;
-          else if (overallValue >= 400) starRating = 3;
-          else if (overallValue >= 200) starRating = 2;
-          else starRating = 1;
+          const starRating = getStarRatingFromOVR(overallValue);
 
           // Parse recruit data from CSV
           const recruit: any = {
@@ -7106,6 +7134,11 @@ export async function registerRoutes(
           if (row.skintone) recruit.skinTone = row.skintone;
           if (row.haircolor) recruit.hairColor = row.haircolor;
           if (row.hairstyle) recruit.hairStyle = row.hairstyle;
+
+          // Recalculate OVR from attributes using the formula
+          recruit.overall = calculateOVR(recruit);
+          recruit.starRating = getStarRatingFromOVR(recruit.overall);
+          recruit.starRank = recruit.starRating;
 
           await storage.createRecruit(recruit);
           recruitCount++;
@@ -7589,10 +7622,15 @@ export async function registerRoutes(
 
       const sanitizedData: Record<string, any> = {};
       for (const key of allowedFields) {
-        if (key in req.body) {
+        if (key in req.body && key !== 'overall' && key !== 'starRating') {
           sanitizedData[key] = req.body[key];
         }
       }
+
+      const mergedRecruit = { ...recruit, ...sanitizedData };
+      sanitizedData['overall'] = calculateOVR(mergedRecruit);
+      sanitizedData['starRating'] = getStarRatingFromOVR(sanitizedData['overall']);
+      sanitizedData['starRank'] = sanitizedData['starRating'];
 
       const updated = await storage.updateRecruit(req.params.recruitId as string, sanitizedData);
       
@@ -7649,10 +7687,14 @@ export async function registerRoutes(
         if (recruit && recruit.leagueId === req.params.id) {
           const sanitizedData: Record<string, unknown> = {};
           for (const key of allowedFields) {
-            if (key in update.changes) {
+            if (key in update.changes && key !== 'overall' && key !== 'starRating') {
               sanitizedData[key] = update.changes[key];
             }
           }
+          const mergedRecruit = { ...recruit, ...sanitizedData };
+          sanitizedData['overall'] = calculateOVR(mergedRecruit as any);
+          sanitizedData['starRating'] = getStarRatingFromOVR(sanitizedData['overall'] as number);
+          sanitizedData['starRank'] = sanitizedData['starRating'];
           const updated = await storage.updateRecruit(update.id, sanitizedData);
           results.push(updated);
         }
@@ -8381,41 +8423,31 @@ async function generateRecruits(leagueId: string, count: number) {
     return { isGem: false, isBust: false };
   };
 
-  // Overall rating bands per star rating
-  // Blue Chip 5★ = 600-650, 5★ = 500-625, 4★ = 400-525, 3★ = 300-450, 2★ = 150-325, 1★ = ≤175
-  // Gems get overall from 1-2 tiers ABOVE their star band
-  // Busts get overall from 1-2 tiers BELOW their star band
-  const getOverallByStarRank = (starRank: number, isBlueChip: boolean, isGem: boolean, isBust: boolean): number => {
-    if (isBlueChip) {
-      return 600 + Math.floor(Math.random() * 51); // 600-650
-    }
-
-    // Gem: a low-star recruit with hidden high talent
+  // Target attribute averages by star rank (OVR ≈ 9 * avgAttr + special bonus)
+  // Attrs + commons at same level: OVR = 10*A*0.6 + 12*A*0.25 = 9A
+  const getTargetAttrAvgForRecruit = (starRank: number, isBlueChip: boolean, isGem: boolean, isBust: boolean): number => {
+    if (isBlueChip) return 68 + Math.floor(Math.random() * 8); // ~612-684 OVR
     if (isGem) {
       switch (starRank) {
-        case 3: return 400 + Math.floor(Math.random() * 151); // 400-550 (4-5 star talent)
-        case 2: return 350 + Math.floor(Math.random() * 126); // 350-475 (3-4 star talent)
-        case 1: return 300 + Math.floor(Math.random() * 126); // 300-425 (2-4 star talent)
-        default: return 400 + Math.floor(Math.random() * 126);
+        case 3: return 55 + Math.floor(Math.random() * 15); // gem 3-star: attrs of 4-5 star
+        case 2: return 45 + Math.floor(Math.random() * 15); // gem 2-star: attrs of 3-4 star
+        case 1: return 38 + Math.floor(Math.random() * 15); // gem 1-star: attrs of 2-3 star
+        default: return 55 + Math.floor(Math.random() * 10);
       }
     }
-
-    // Bust: a high-star recruit who disappoints
     if (isBust) {
       switch (starRank) {
-        case 5: return 200 + Math.floor(Math.random() * 151); // 200-350 (2-3 star talent)
-        case 4: return 150 + Math.floor(Math.random() * 151); // 150-300 (1-2 star talent)
-        default: return 200 + Math.floor(Math.random() * 126);
+        case 5: return 25 + Math.floor(Math.random() * 15); // bust 5-star: attrs of 2-3 star
+        case 4: return 20 + Math.floor(Math.random() * 15); // bust 4-star: attrs of 1-2 star
+        default: return 25 + Math.floor(Math.random() * 10);
       }
     }
-
-    // Standard bands
     switch (starRank) {
-      case 5: return 500 + Math.floor(Math.random() * 126); // 500-625
-      case 4: return 400 + Math.floor(Math.random() * 126); // 400-525
-      case 3: return 300 + Math.floor(Math.random() * 151); // 300-450
-      case 2: return 150 + Math.floor(Math.random() * 176); // 150-325
-      default: return 50 + Math.floor(Math.random() * 126);  // 50-175
+      case 5: return 60 + Math.floor(Math.random() * 12); // 60-71 avg → ~540-639 OVR
+      case 4: return 48 + Math.floor(Math.random() * 12); // 48-59 avg → ~432-531 OVR
+      case 3: return 38 + Math.floor(Math.random() * 12); // 38-49 avg → ~342-441 OVR
+      case 2: return 22 + Math.floor(Math.random() * 14); // 22-35 avg → ~198-315 OVR
+      default: return 8 + Math.floor(Math.random() * 14);  // 8-21 avg → ~72-189 OVR
     }
   };
 
@@ -8492,25 +8524,14 @@ async function generateRecruits(leagueId: string, count: number) {
     return allFields;
   };
 
-  // Generate common ability value (numeric 20-95) based on overall rating
-  // Higher overall = better chance of higher ability values
-  // UI converts: >= 90: S, >= 80: A, >= 70: B, >= 60: C, >= 50: D, >= 30: F, < 30: G
-  const generateCommonAbilityValue = (overall: number): number => {
-    // Base value scales with overall rating
-    // Overall 50-175 (1-star): ability values ~25-55 (G to D)
-    // Overall 150-275 (2-star): ability values ~35-65 (F to C)
-    // Overall 250-375 (3-star): ability values ~45-75 (D to B)
-    // Overall 350-475 (4-star): ability values ~55-85 (D to A)
-    // Overall 450-700 (5-star/blue chip): ability values ~65-95 (C to S)
-    const normalizedOverall = Math.min(700, Math.max(50, overall));
-    const baseValue = 25 + Math.floor((normalizedOverall - 50) / 13); // Scales from 25 to 75
-    // Add randomness (-15 to +20)
-    const variance = Math.floor(Math.random() * 36) - 15;
-    return Math.max(20, Math.min(95, baseValue + variance));
+  // Generate common ability value based on target attribute average
+  const generateCommonAbilityValue = (targetAvg: number): number => {
+    const variance = Math.floor(Math.random() * 21) - 10;
+    return Math.max(1, Math.min(100, targetAvg + variance));
   };
 
   // Generate all common abilities for a recruit (numeric values)
-  const generateCommonAbilities = (isPitcher: boolean, position: string, overall: number): {
+  const generateCommonAbilities = (isPitcher: boolean, position: string, targetAvg: number): {
     clutch: number; vsLHP: number; grit: number; stealing: number; running: number; throwing: number; recovery: number; catcherAbility: number;
     wRISP: number; vsLefty: number; poise: number; heater: number; agile: number;
   } => {
@@ -8589,24 +8610,24 @@ async function generateRecruits(leagueId: string, count: number) {
     
     let isGem = false;
     let isBust = false;
-    let overall: number;
+    let targetAttrAvg: number;
     let abilityCount: number;
 
     if (isGenerationalGem) {
       isGem = true;
-      overall = 750 + Math.floor(Math.random() * 200); // 750-949, truly elite
-      abilityCount = 3; // max special abilities
+      targetAttrAvg = -1; // handled separately with elite attributes
+      abilityCount = 3;
     } else if (isGenerationalBust) {
       isBust = true;
-      overall = 50 + Math.floor(Math.random() * 101); // 50-150, terrible
-      abilityCount = 0; // no special abilities
+      targetAttrAvg = -1; // handled separately with poor attributes
+      abilityCount = 0;
     } else {
       const gemBust = isBlueChip 
         ? { isGem: false, isBust: false } 
         : getGemBustModifier(theme, starRank);
       isGem = gemBust.isGem;
       isBust = gemBust.isBust;
-      overall = getOverallByStarRank(starRank, isBlueChip, isGem, isBust);
+      targetAttrAvg = getTargetAttrAvgForRecruit(starRank, isBlueChip, isGem, isBust);
       abilityCount = getAbilityCount(starRank);
     }
     
@@ -8647,6 +8668,8 @@ async function generateRecruits(leagueId: string, count: number) {
 
     // Apply theme boosts
     const themeBoost = getThemeBoost(theme, isPitcher);
+    const genAttr = (avg: number) => Math.max(1, Math.min(100, avg + Math.floor(Math.random() * 21) - 10));
+
     let velocity: number;
     let power: number;
     let hitForAvg: number;
@@ -8681,16 +8704,16 @@ async function generateRecruits(leagueId: string, count: number) {
       stamina = 15 + Math.floor(Math.random() * 25);
       stuff = 15 + Math.floor(Math.random() * 25);
     } else {
-      hitForAvg = 40 + Math.floor(Math.random() * 40);
-      power = 40 + Math.floor(Math.random() * 40);
-      speed = 40 + Math.floor(Math.random() * 40);
-      arm = 40 + Math.floor(Math.random() * 40);
-      fielding = 40 + Math.floor(Math.random() * 40);
-      errorResistance = 40 + Math.floor(Math.random() * 40);
-      velocity = 40 + Math.floor(Math.random() * 40);
-      control = 40 + Math.floor(Math.random() * 40);
-      stamina = 40 + Math.floor(Math.random() * 40);
-      stuff = 40 + Math.floor(Math.random() * 40);
+      hitForAvg = genAttr(targetAttrAvg);
+      power = genAttr(targetAttrAvg);
+      speed = genAttr(targetAttrAvg);
+      arm = genAttr(targetAttrAvg);
+      fielding = genAttr(targetAttrAvg);
+      errorResistance = genAttr(targetAttrAvg);
+      velocity = genAttr(targetAttrAvg);
+      control = genAttr(targetAttrAvg);
+      stamina = genAttr(targetAttrAvg);
+      stuff = genAttr(targetAttrAvg);
     }
     
     if (themeBoost.attr === "velocity") velocity = Math.min(99, velocity + themeBoost.boost);
@@ -8732,10 +8755,19 @@ async function generateRecruits(leagueId: string, count: number) {
         };
       }
     } else {
-      commonAbilities = generateCommonAbilities(isPitcher, position, overall);
+      commonAbilities = generateCommonAbilities(isPitcher, position, targetAttrAvg);
     }
     
     const scoutingOrder = generateScoutingOrder(isPitcher, position);
+
+    const recruitOvrData = {
+      hitForAvg, power, speed, arm, fielding, errorResistance,
+      velocity, control, stamina, stuff,
+      ...commonAbilities,
+      abilities,
+    };
+    const overall = calculateOVR(recruitOvrData);
+    const computedStarRating = getStarRatingFromOVR(overall);
 
     await storage.createRecruit({
       leagueId,
@@ -8750,7 +8782,7 @@ async function generateRecruits(leagueId: string, count: number) {
       recruitType,
       recruitYear,
       overall,
-      starRating,
+      starRating: isBlueChip || isGem || isBust || isGenerationalGem || isGenerationalBust ? starRating : computedStarRating,
       hitForAvg,
       power,
       speed,
@@ -9089,47 +9121,65 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
   const shuffledEligibilities = [...eligibilityDistribution].sort(() => Math.random() - 0.5);
   const shuffledPositions = [...positionDistribution].sort(() => Math.random() - 0.5);
 
-  // New overall rating ranges matching recruit generation
-  const getOverallByStarRank = (starRank: number): number => {
-    switch (starRank) {
-      case 5: return 450 + Math.floor(Math.random() * 176); // 450-625
-      case 4: return 350 + Math.floor(Math.random() * 126); // 350-475
-      case 3: return 250 + Math.floor(Math.random() * 126); // 250-375
-      case 2: return 150 + Math.floor(Math.random() * 126); // 150-275
-      default: return 50 + Math.floor(Math.random() * 126);  // 50-175
-    }
+  // Target attribute average by star tier (OVR ≈ 9 * avgAttr + special bonus)
+  const getTargetAttrAvg = (): { avg: number; starTier: number } => {
+    const roll = Math.random();
+    if (roll < 0.05) return { avg: 78 + Math.floor(Math.random() * 12), starTier: 5 };  // 78-89 avg → ~700-800 OVR
+    if (roll < 0.25) return { avg: 62 + Math.floor(Math.random() * 12), starTier: 4 };  // 62-73 avg → ~560-660 OVR
+    if (roll < 0.65) return { avg: 45 + Math.floor(Math.random() * 12), starTier: 3 };  // 45-56 avg → ~405-504 OVR
+    if (roll < 0.90) return { avg: 28 + Math.floor(Math.random() * 12), starTier: 2 };  // 28-39 avg → ~252-351 OVR
+    return { avg: 12 + Math.floor(Math.random() * 12), starTier: 1 };                    // 12-23 avg → ~108-207 OVR
   };
 
-  // Star rating distribution for roster players (weighted towards 2-4 stars)
-  const getStarRating = (): number => {
-    const roll = Math.random();
-    if (roll < 0.05) return 5;       // 5% 5-star
-    if (roll < 0.25) return 4;       // 20% 4-star
-    if (roll < 0.65) return 3;       // 40% 3-star
-    if (roll < 0.90) return 2;       // 25% 2-star
-    return 1;                         // 10% 1-star
-  };
+  const genAttrAroundAvg = (avg: number) => Math.max(1, Math.min(100, avg + Math.floor(Math.random() * 21) - 10));
 
   for (let i = 0; i < 25; i++) {
     const position = shuffledPositions[i];
     const eligibility = shuffledEligibilities[i];
     const rosterStateEntry = rosterStates[Math.floor(Math.random() * rosterStates.length)];
 
-    // Generate star rating and overall
-    const starRating = getStarRating();
-    const overall = getOverallByStarRank(starRating);
+    const { avg: targetAvg, starTier } = getTargetAttrAvg();
 
-    // Generate abilities based on position and star rating
-    const abilityCount = starRating >= 4 ? Math.floor(Math.random() * 2) + 1 : 
-                         starRating === 3 ? Math.floor(Math.random() * 2) :
+    const abilityCount = starTier >= 4 ? Math.floor(Math.random() * 2) + 1 : 
+                         starTier === 3 ? Math.floor(Math.random() * 2) :
                          Math.random() < 0.3 ? 1 : 0;
-    const abilities = getRandomAbilities(position, abilityCount, starRating >= 4);
+    const abilities = getRandomAbilities(position, abilityCount, starTier >= 4);
 
-    // Random appearance
     const appearance = getRandomAppearance();
 
-    // Generate common abilities (letter grades mapped from 30-90 range)
-    const genCommonAbility = () => 30 + Math.floor(Math.random() * 61);
+    const hitForAvg = genAttrAroundAvg(targetAvg);
+    const power = genAttrAroundAvg(targetAvg);
+    const speed = genAttrAroundAvg(targetAvg);
+    const arm = genAttrAroundAvg(targetAvg);
+    const fielding = genAttrAroundAvg(targetAvg);
+    const errorResistance = genAttrAroundAvg(targetAvg);
+    const velocity = genAttrAroundAvg(targetAvg);
+    const control = genAttrAroundAvg(targetAvg);
+    const stamina = genAttrAroundAvg(targetAvg);
+    const stuff = genAttrAroundAvg(targetAvg);
+    const clutch = genAttrAroundAvg(targetAvg);
+    const vsLHPVal = genAttrAroundAvg(targetAvg);
+    const grit = genAttrAroundAvg(targetAvg);
+    const stealing = genAttrAroundAvg(targetAvg);
+    const running = genAttrAroundAvg(targetAvg);
+    const throwing = genAttrAroundAvg(targetAvg);
+    const recovery = genAttrAroundAvg(targetAvg);
+    const wRISP = genAttrAroundAvg(targetAvg);
+    const vsLefty = genAttrAroundAvg(targetAvg);
+    const poise = genAttrAroundAvg(targetAvg);
+    const heater = genAttrAroundAvg(targetAvg);
+    const agile = genAttrAroundAvg(targetAvg);
+
+    const playerData = {
+      hitForAvg, power, speed, arm, fielding, errorResistance,
+      velocity, control, stamina, stuff,
+      clutch, vsLHP: vsLHPVal, grit, stealing, running, throwing, recovery,
+      wRISP, vsLefty, poise, heater, agile,
+      abilities,
+    };
+
+    const overall = calculateOVR(playerData);
+    const starRating = getStarRatingFromOVR(overall);
 
     await storage.createPlayer({
       teamId,
@@ -9142,30 +9192,8 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
       jerseyNumber: i + 1,
       overall,
       starRating,
-      hitForAvg: 40 + Math.floor(Math.random() * 40),
-      power: 40 + Math.floor(Math.random() * 40),
-      speed: 40 + Math.floor(Math.random() * 40),
-      arm: 40 + Math.floor(Math.random() * 40),
-      fielding: 40 + Math.floor(Math.random() * 40),
-      errorResistance: 40 + Math.floor(Math.random() * 40),
-      velocity: 40 + Math.floor(Math.random() * 40),
-      control: 40 + Math.floor(Math.random() * 40),
-      stamina: 40 + Math.floor(Math.random() * 40),
-      stuff: 40 + Math.floor(Math.random() * 40),
-      clutch: genCommonAbility(),
-      vsLHP: genCommonAbility(),
-      grit: genCommonAbility(),
-      stealing: genCommonAbility(),
-      running: genCommonAbility(),
-      throwing: genCommonAbility(),
-      recovery: genCommonAbility(),
-      catcherAbility: position === "C" ? genCommonAbility() : null,
-      wRISP: genCommonAbility(),
-      vsLefty: genCommonAbility(),
-      poise: genCommonAbility(),
-      heater: genCommonAbility(),
-      agile: genCommonAbility(),
-      abilities,
+      ...playerData,
+      catcherAbility: position === "C" ? genAttrAroundAvg(targetAvg) : null,
       skinTone: appearance.skinTone,
       hairColor: appearance.hairColor,
       hairStyle: appearance.hairStyle,
