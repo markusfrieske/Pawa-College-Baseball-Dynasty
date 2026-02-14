@@ -8536,21 +8536,22 @@ async function generateRecruits(leagueId: string, count: number) {
     const bustChance = theme === "hidden_gems" ? 0.04 : 0.08;
     
     // Only 1-3 star players can be gems (low stars, hidden high talent)
-    if (starRank <= 3 && roll < gemChance) return { isGem: true, isBust: false };
-    // Only 4-5 star players can be busts (high stars, disappointing talent)
-    if (starRank >= 4 && roll < bustChance) return { isGem: false, isBust: true };
+    if (starRank >= 1 && starRank <= 3 && roll < gemChance) return { isGem: true, isBust: false };
+    // Only 3-5 star players can be busts (high stars, disappointing talent), never blue chips
+    if (starRank >= 3 && starRank <= 5 && roll < bustChance) return { isGem: false, isBust: true };
     return { isGem: false, isBust: false };
   };
 
   // Target attribute averages by star rank (OVR ≈ 9 * avgAttr + special bonus)
-  // Attrs + commons at same level: OVR = 10*A*0.6 + 12*A*0.25 = 9A
+  // Regular players: 159-650 OVR. Only generational gems can exceed 650.
+  // Blue chips: guaranteed 600+ OVR
   const getTargetAttrAvgForRecruit = (starRank: number, isBlueChip: boolean, isGem: boolean, isBust: boolean): number => {
-    if (isBlueChip) return 68 + Math.floor(Math.random() * 8); // ~612-684 OVR
+    if (isBlueChip) return 68 + Math.floor(Math.random() * 5); // ~612-657 OVR (guaranteed 600+, capped at 650)
     if (isGem) {
       switch (starRank) {
-        case 3: return 55 + Math.floor(Math.random() * 15); // gem 3-star: attrs of 4-5 star
-        case 2: return 45 + Math.floor(Math.random() * 15); // gem 2-star: attrs of 3-4 star
-        case 1: return 38 + Math.floor(Math.random() * 15); // gem 1-star: attrs of 2-3 star
+        case 3: return 55 + Math.floor(Math.random() * 12); // gem 3-star: attrs of 4-5 star
+        case 2: return 45 + Math.floor(Math.random() * 12); // gem 2-star: attrs of 3-4 star
+        case 1: return 38 + Math.floor(Math.random() * 12); // gem 1-star: attrs of 2-3 star
         default: return 55 + Math.floor(Math.random() * 10);
       }
     }
@@ -8562,11 +8563,11 @@ async function generateRecruits(leagueId: string, count: number) {
       }
     }
     switch (starRank) {
-      case 5: return 60 + Math.floor(Math.random() * 12); // 60-71 avg → ~540-639 OVR
-      case 4: return 48 + Math.floor(Math.random() * 12); // 48-59 avg → ~432-531 OVR
-      case 3: return 38 + Math.floor(Math.random() * 12); // 38-49 avg → ~342-441 OVR
-      case 2: return 22 + Math.floor(Math.random() * 14); // 22-35 avg → ~198-315 OVR
-      default: return 8 + Math.floor(Math.random() * 14);  // 8-21 avg → ~72-189 OVR
+      case 5: return 58 + Math.floor(Math.random() * 12); // 58-69 avg → ~522-621 OVR (capped at 650)
+      case 4: return 48 + Math.floor(Math.random() * 10); // 48-57 avg → ~432-513 OVR
+      case 3: return 38 + Math.floor(Math.random() * 10); // 38-47 avg → ~342-423 OVR
+      case 2: return 22 + Math.floor(Math.random() * 12); // 22-33 avg → ~198-297 OVR
+      default: return 18 + Math.floor(Math.random() * 8);  // 18-25 avg → ~162-225 OVR (min ~159)
     }
   };
 
@@ -8700,14 +8701,13 @@ async function generateRecruits(leagueId: string, count: number) {
     return { attr: "", boost: 0 };
   };
 
-  // Pick 1 Generational Gem (hidden among 2-3 stars) and 1 Generational Bust (hidden among 4-5 stars, not blue chip)
-  // Find eligible indices after star ranks are determined
+  // Pick 1 Generational Gem (hidden among 1-3 stars) and 1 Generational Bust (hidden among 3-5 stars, never blue chip)
   const starRanks: number[] = [];
   for (let i = 0; i < count; i++) {
     starRanks.push(getStarRank(i, count, theme));
   }
-  const gemCandidates = starRanks.map((sr, idx) => ({ sr, idx })).filter(x => (x.sr === 2 || x.sr === 3) && x.idx >= numBlueChips);
-  const bustCandidates = starRanks.map((sr, idx) => ({ sr, idx })).filter(x => (x.sr === 4 || x.sr === 5) && x.idx >= numBlueChips);
+  const gemCandidates = starRanks.map((sr, idx) => ({ sr, idx })).filter(x => (x.sr >= 1 && x.sr <= 3) && x.idx >= numBlueChips);
+  const bustCandidates = starRanks.map((sr, idx) => ({ sr, idx })).filter(x => (x.sr >= 3 && x.sr <= 5) && x.idx >= numBlueChips);
   const generationalGemIdx = gemCandidates.length > 0 ? gemCandidates[Math.floor(Math.random() * gemCandidates.length)].idx : -1;
   const generationalBustIdx = bustCandidates.length > 0 ? bustCandidates[Math.floor(Math.random() * bustCandidates.length)].idx : -1;
 
@@ -8738,10 +8738,10 @@ async function generateRecruits(leagueId: string, count: number) {
       abilityCount = 0;
     } else {
       const gemBust = isBlueChip 
-        ? { isGem: false, isBust: false } 
+        ? { isGem: false, isBust: false }
         : getGemBustModifier(theme, starRank);
       isGem = gemBust.isGem;
-      isBust = gemBust.isBust;
+      isBust = isBlueChip ? false : gemBust.isBust;
       targetAttrAvg = getTargetAttrAvgForRecruit(starRank, isBlueChip, isGem, isBust);
       abilityCount = getAbilityCount(starRank);
     }
@@ -8881,7 +8881,22 @@ async function generateRecruits(leagueId: string, count: number) {
       ...commonAbilities,
       abilities,
     };
-    const overall = calculateOVR(recruitOvrData);
+    let overall = calculateOVR(recruitOvrData);
+
+    // Enforce OVR bounds:
+    // - Regular players (non-generational): capped at 159-650
+    // - Generational gems: can exceed 650 (no upper cap except 999)
+    // - Generational busts: can go below 150
+    // - Blue chips: must be 600+
+    if (isGenerationalGem) {
+      overall = Math.max(651, Math.min(999, overall));
+    } else if (isGenerationalBust) {
+      overall = Math.min(overall, 149);
+    } else if (isBlueChip) {
+      overall = Math.max(600, Math.min(650, overall));
+    } else {
+      overall = Math.max(159, Math.min(650, overall));
+    }
     const computedStarRating = getStarRatingFromOVR(overall);
 
     await storage.createRecruit({
@@ -8929,7 +8944,19 @@ async function generateRecruits(leagueId: string, count: number) {
       hairStyle: appearance.hairStyle,
       headwear: appearance.headwear,
       ...(progressionEnabled ? (() => {
-        const pot = rollWeightedPotential();
+        let pot = rollWeightedPotential();
+        // Blue chips: guaranteed B- or higher potential (min 78)
+        if (isBlueChip) {
+          pot = Math.max(78, pot);
+        }
+        // Generational gems: higher than C potential (min C+ = 74)
+        if (isGenerationalGem) {
+          pot = Math.max(74, pot);
+        }
+        // Regular gems: higher than C potential (min C+ = 74)
+        if (isGem && !isGenerationalGem) {
+          pot = Math.max(74, pot);
+        }
         const range = getPotentialRange(pot);
         return { potential: pot, potentialFloor: range.floor, potentialCeiling: range.ceiling };
       })() : {}),
@@ -9237,13 +9264,14 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
   const shuffledPositions = [...positionDistribution].sort(() => Math.random() - 0.5);
 
   // Target attribute average by star tier (OVR ≈ 9 * avgAttr + special bonus)
+  // All roster players capped at 159-650 OVR (only generational recruits can exceed)
   const getTargetAttrAvg = (): { avg: number; starTier: number } => {
     const roll = Math.random();
-    if (roll < 0.05) return { avg: 78 + Math.floor(Math.random() * 12), starTier: 5 };  // 78-89 avg → ~700-800 OVR
-    if (roll < 0.25) return { avg: 62 + Math.floor(Math.random() * 12), starTier: 4 };  // 62-73 avg → ~560-660 OVR
-    if (roll < 0.65) return { avg: 45 + Math.floor(Math.random() * 12), starTier: 3 };  // 45-56 avg → ~405-504 OVR
-    if (roll < 0.90) return { avg: 28 + Math.floor(Math.random() * 12), starTier: 2 };  // 28-39 avg → ~252-351 OVR
-    return { avg: 12 + Math.floor(Math.random() * 12), starTier: 1 };                    // 12-23 avg → ~108-207 OVR
+    if (roll < 0.05) return { avg: 65 + Math.floor(Math.random() * 8), starTier: 5 };  // 65-72 avg → ~585-648 OVR (capped 650)
+    if (roll < 0.25) return { avg: 55 + Math.floor(Math.random() * 10), starTier: 4 };  // 55-64 avg → ~495-576 OVR
+    if (roll < 0.65) return { avg: 42 + Math.floor(Math.random() * 10), starTier: 3 };  // 42-51 avg → ~378-459 OVR
+    if (roll < 0.90) return { avg: 26 + Math.floor(Math.random() * 12), starTier: 2 };  // 26-37 avg → ~234-333 OVR
+    return { avg: 18 + Math.floor(Math.random() * 8), starTier: 1 };                    // 18-25 avg → ~162-225 OVR (min ~159)
   };
 
   const genAttrAroundAvg = (avg: number) => Math.max(1, Math.min(100, avg + Math.floor(Math.random() * 21) - 10));
@@ -9293,7 +9321,8 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
       abilities,
     };
 
-    const overall = calculateOVR(playerData);
+    const rawOverall = calculateOVR(playerData);
+    const overall = Math.max(159, Math.min(650, rawOverall));
     const starRating = getStarRatingFromOVR(overall);
 
     await storage.createPlayer({
