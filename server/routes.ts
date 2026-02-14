@@ -3375,10 +3375,9 @@ export async function registerRoutes(
       ));
 
       // ============ AUTO-SIMULATE REGULAR SEASON GAMES ============
-      const allGames = await storage.getGamesByLeague(leagueId);
-      const incompleteGames = allGames.filter(g => 
+      const seasonGames = await storage.getGamesByLeagueSeason(leagueId, league.currentSeason);
+      const incompleteGames = seasonGames.filter(g => 
         g.week === currentWeek && 
-        g.season === league.currentSeason && 
         g.phase === "regular" && 
         !g.isComplete
       );
@@ -3390,57 +3389,61 @@ export async function registerRoutes(
       const gameResults = await Promise.all(incompleteGames.map(async (game) => {
         const result = await simulateGame(game.homeTeamId, game.awayTeamId);
         await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, isComplete: true, boxScore: result.boxScore });
-        await updateStandingsForGame(leagueId, league.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, game.isConference);
         return { game, result };
       }));
 
+      const coachXpAccum = new Map<string, { xp: number; wins: number; losses: number }>();
+
       for (const { game, result } of gameResults) {
+        await updateStandingsForGame(leagueId, league.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, game.isConference);
         try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, league.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, league.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
-        
+
         const homeTeamSim = leagueTeamsForSim.find(t => t.id === game.homeTeamId);
         const awayTeamSim = leagueTeamsForSim.find(t => t.id === game.awayTeamId);
         const homeWonSim = result.homeScore > result.awayScore;
-        
+
         if (homeTeamSim?.coachId) {
-          const homeCoach = await storage.getCoach(homeTeamSim.coachId);
-          if (homeCoach) {
-            const newXp = homeCoach.xp + (homeWonSim ? WIN_XP : LOSS_XP);
-            const newLevel = Math.floor(newXp / 1000) + 1;
-            const skillPointsGained = newLevel > homeCoach.level ? 1 : 0;
-            await storage.updateCoach(homeCoach.id, {
-              xp: newXp,
-              level: newLevel,
-              skillPoints: homeCoach.skillPoints + skillPointsGained,
-              careerWins: homeCoach.careerWins + (homeWonSim ? 1 : 0),
-              careerLosses: homeCoach.careerLosses + (homeWonSim ? 0 : 1),
-            });
-          }
+          const acc = coachXpAccum.get(homeTeamSim.coachId) || { xp: 0, wins: 0, losses: 0 };
+          acc.xp += homeWonSim ? WIN_XP : LOSS_XP;
+          acc.wins += homeWonSim ? 1 : 0;
+          acc.losses += homeWonSim ? 0 : 1;
+          coachXpAccum.set(homeTeamSim.coachId, acc);
         }
-        
         if (awayTeamSim?.coachId) {
-          const awayCoach = await storage.getCoach(awayTeamSim.coachId);
-          if (awayCoach) {
-            const newXp = awayCoach.xp + (homeWonSim ? LOSS_XP : WIN_XP);
-            const newLevel = Math.floor(newXp / 1000) + 1;
-            const skillPointsGained = newLevel > awayCoach.level ? 1 : 0;
-            await storage.updateCoach(awayCoach.id, {
-              xp: newXp,
-              level: newLevel,
-              skillPoints: awayCoach.skillPoints + skillPointsGained,
-              careerWins: awayCoach.careerWins + (homeWonSim ? 0 : 1),
-              careerLosses: awayCoach.careerLosses + (homeWonSim ? 1 : 0),
-            });
-          }
+          const acc = coachXpAccum.get(awayTeamSim.coachId) || { xp: 0, wins: 0, losses: 0 };
+          acc.xp += homeWonSim ? LOSS_XP : WIN_XP;
+          acc.wins += homeWonSim ? 0 : 1;
+          acc.losses += homeWonSim ? 1 : 0;
+          coachXpAccum.set(awayTeamSim.coachId, acc);
+        }
+      }
+
+      for (const [coachId, acc] of coachXpAccum) {
+        const coach = await storage.getCoach(coachId);
+        if (coach) {
+          const newXp = coach.xp + acc.xp;
+          const newLevel = Math.floor(newXp / 1000) + 1;
+          const skillPointsGained = Math.max(0, newLevel - coach.level);
+          await storage.updateCoach(coach.id, {
+            xp: newXp,
+            level: newLevel,
+            skillPoints: coach.skillPoints + skillPointsGained,
+            careerWins: coach.careerWins + acc.wins,
+            careerLosses: coach.careerLosses + acc.losses,
+          });
         }
       }
 
       // ============ AUTO-GENERATE NEWS FOR REGULAR SEASON GAMES ============
       if (incompleteGames.length > 0) {
         try {
-          const allGamesAfterSim = await storage.getGamesByLeague(leagueId);
-          const completedThisWeek = allGamesAfterSim.filter(g =>
-            g.week === currentWeek && g.season === league.currentSeason && g.phase === "regular" && g.isComplete
-          );
+          const completedThisWeek = gameResults.map(gr => ({
+            ...gr.game,
+            homeScore: gr.result.homeScore,
+            awayScore: gr.result.awayScore,
+            isComplete: true,
+            boxScore: gr.result.boxScore,
+          }));
           await generateGameNewsArticles(leagueId, completedThisWeek, leagueTeamsForSim, league.currentSeason, currentWeek, league.currentPhase);
           if (currentWeek % 3 === 0) {
             await generateConferenceUpdateNews(leagueId, leagueTeamsForSim, league.currentSeason, currentWeek);
