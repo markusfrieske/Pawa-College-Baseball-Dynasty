@@ -7,7 +7,7 @@ import bcrypt from "bcrypt";
 import { z } from "zod";
 import { randomUUID } from "crypto";
 import { getRandomAbilities, getAbilitiesForPosition, calculateOVR, getStarRatingFromOVR } from "@shared/abilities";
-import { getPotentialRange, getProgressionZone, rollWeightedPotential } from "@shared/potential";
+import { getPotentialRange, getProgressionZone, rollWeightedPotential, getPotentialGrade } from "@shared/potential";
 import { getActionPointCost } from "@shared/stateDistance";
 import type { Player, TransferPortalInterest, Game, InsertPlayerSeasonStats } from "@shared/schema";
 import {

@@ -512,7 +512,7 @@ function ActionsTab({
       case "offseason_recruiting_2": return "Advance Recruiting (Week 2)";
       case "offseason_recruiting_3": return "Advance Recruiting (Week 3)";
       case "offseason_recruiting_4": return "Advance Recruiting (Week 4)";
-      case "offseason_signing_day": return "Signing Day - Start New Season";
+      case "offseason_signing_day": return "Advance to Cuts & Walk-Ons";
       case "offseason_walkons": return "Finalize Walk-Ons - Start New Season";
       case "offseason": return "Begin Offseason";
       default: return "Advance Week";
@@ -530,7 +530,7 @@ function ActionsTab({
       case "offseason_recruiting_3":
       case "offseason_recruiting_4":
         return "Continue recruiting unsigned recruits and transfer portal players. CPU teams are also actively recruiting during this period.";
-      case "offseason_signing_day": return "Signing Day! Finalize all commits, add signed recruits to rosters, advance eligibility, and generate a new recruiting class for next season.";
+      case "offseason_signing_day": return "Signing Day! Finalize all commits, add signed recruits to rosters, and advance eligibility. Teams will then manage roster cuts and walk-on signings.";
       case "offseason_walkons": return "All teams must finalize their roster cuts and walk-on signings before advancing. Once all teams are ready, rosters will be locked and the new season begins.";
       case "offseason": return "Begin the offseason process. Players will be leaving, recruiting continues, and a new season awaits.";
       default: return "Move the league forward to the next week. This will process recruiting updates, trigger story events, and update standings.";
