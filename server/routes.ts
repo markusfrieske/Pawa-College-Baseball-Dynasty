@@ -9,7 +9,7 @@ import { randomUUID } from "crypto";
 import { getRandomAbilities, getAbilitiesForPosition, calculateOVR, getStarRatingFromOVR } from "@shared/abilities";
 import { getPotentialRange, getProgressionZone, rollWeightedPotential } from "@shared/potential";
 import { getActionPointCost } from "@shared/stateDistance";
-import type { Player, TransferPortalInterest, Game } from "@shared/schema";
+import type { Player, TransferPortalInterest, Game, InsertPlayerSeasonStats } from "@shared/schema";
 import {
   generateGameNewsArticles,
   generateCWSChampionNewsArticle,
@@ -3738,6 +3738,61 @@ export async function registerRoutes(
       const phasesVisited: string[] = [];
       const startSeason = currentLeague.currentSeason;
 
+      const allPlayers = await storage.getPlayersByLeague(leagueId);
+      const rosterCache = new Map<string, Player[]>();
+      for (const p of allPlayers) {
+        if (!rosterCache.has(p.teamId)) rosterCache.set(p.teamId, []);
+        rosterCache.get(p.teamId)!.push(p);
+      }
+
+      let standingsCache = await storage.getStandingsByLeague(leagueId, startSeason);
+      const standingsMap = new Map<string, typeof standingsCache[0]>();
+      for (const s of standingsCache) standingsMap.set(s.teamId, s);
+
+      async function updateStandingsCached(
+        homeTeamId: string, awayTeamId: string,
+        homeScore: number, awayScore: number, isConference: boolean = false
+      ) {
+        let homeStanding = standingsMap.get(homeTeamId);
+        let awayStanding = standingsMap.get(awayTeamId);
+        if (!homeStanding) {
+          homeStanding = await storage.createStandings({ leagueId, teamId: homeTeamId, season: startSeason });
+          standingsMap.set(homeTeamId, homeStanding);
+        }
+        if (!awayStanding) {
+          awayStanding = await storage.createStandings({ leagueId, teamId: awayTeamId, season: startSeason });
+          standingsMap.set(awayTeamId, awayStanding);
+        }
+        const homeWon = homeScore > awayScore;
+        const updatedHome = await storage.updateStandings(homeStanding.id, {
+          wins: (homeStanding.wins || 0) + (homeWon ? 1 : 0),
+          losses: (homeStanding.losses || 0) + (homeWon ? 0 : 1),
+          conferenceWins: (homeStanding.conferenceWins || 0) + (isConference && homeWon ? 1 : 0),
+          conferenceLosses: (homeStanding.conferenceLosses || 0) + (isConference && !homeWon ? 1 : 0),
+          runsScored: (homeStanding.runsScored || 0) + homeScore,
+          runsAllowed: (homeStanding.runsAllowed || 0) + awayScore,
+        });
+        if (updatedHome) standingsMap.set(homeTeamId, updatedHome);
+        const updatedAway = await storage.updateStandings(awayStanding.id, {
+          wins: (awayStanding.wins || 0) + (homeWon ? 0 : 1),
+          losses: (awayStanding.losses || 0) + (homeWon ? 1 : 0),
+          conferenceWins: (awayStanding.conferenceWins || 0) + (isConference && !homeWon ? 1 : 0),
+          conferenceLosses: (awayStanding.conferenceLosses || 0) + (isConference && homeWon ? 1 : 0),
+          runsScored: (awayStanding.runsScored || 0) + awayScore,
+          runsAllowed: (awayStanding.runsAllowed || 0) + homeScore,
+        });
+        if (updatedAway) standingsMap.set(awayTeamId, updatedAway);
+      }
+
+      let seasonGames: Game[] | null = null;
+      async function getSeasonGames(): Promise<Game[]> {
+        if (!seasonGames) {
+          seasonGames = await storage.getGamesByLeagueSeason(leagueId, startSeason);
+        }
+        return seasonGames;
+      }
+      function invalidateGameCache() { seasonGames = null; }
+
       while (iterations < MAX_ITERATIONS) {
         iterations++;
         const phase = currentLeague.currentPhase;
@@ -3754,22 +3809,39 @@ export async function registerRoutes(
         const nextWeek = (currentLeague.currentWeek ?? 1) + 1;
 
         if (phase === "preseason" || phase === "spring_training" || phase === "regular_season") {
-          const weekGames = (await storage.getGamesByLeague(leagueId))
-            .filter(g => g.season === currentLeague.currentSeason && g.week === currentLeague.currentWeek && !g.isComplete);
-          for (const game of weekGames) {
-            const result = await simulateGame(game.homeTeamId, game.awayTeamId);
+          const allSeasonGames = await getSeasonGames();
+          const weekGames = allSeasonGames.filter(g => g.week === currentLeague.currentWeek && !g.isComplete);
+
+          const simResults = weekGames.map(game => {
+            const homePlayers = rosterCache.get(game.homeTeamId) || [];
+            const awayPlayers = rosterCache.get(game.awayTeamId) || [];
+            return { game, result: simulateGameWithRosters(homePlayers, awayPlayers) };
+          });
+
+          await Promise.all(simResults.map(async ({ game, result }) => {
             await storage.updateGame(game.id, {
               homeScore: result.homeScore,
               awayScore: result.awayScore,
               boxScore: result.boxScore,
               isComplete: true,
             });
-            await updateStandingsForGame(leagueId, currentLeague.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, game.isConference);
-            try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
+            game.isComplete = true;
+            game.homeScore = result.homeScore;
+            game.awayScore = result.awayScore;
+          }));
+
+          for (const { game, result } of simResults) {
+            await updateStandingsCached(game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, game.isConference ?? false);
+            try {
+              const box = JSON.parse(result.boxScore);
+              await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home);
+              await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away);
+            } catch (e) { console.error("Stat accumulation error:", e); }
           }
 
           if (nextWeek > maxWeeks) {
             await generateConferenceChampionships(leagueId, currentLeague.currentSeason);
+            invalidateGameCache();
             currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "conference_championship", currentWeek: nextWeek })) as any;
           } else {
             const newPhase = phase === "preseason" && nextWeek >= 2 ? "regular_season" : phase;
@@ -3783,14 +3855,29 @@ export async function registerRoutes(
         }
 
         if (phase === "conference_championship") {
-          const ccGames = (await storage.getGamesByLeague(leagueId))
-            .filter(g => g.phase === "conference_championship" && g.season === currentLeague.currentSeason && !g.isComplete);
-          for (const game of ccGames) {
-            const result = await simulateGame(game.homeTeamId, game.awayTeamId);
+          const allSeasonGames = await getSeasonGames();
+          const ccGames = allSeasonGames.filter(g => g.phase === "conference_championship" && !g.isComplete);
+
+          const simResults = ccGames.map(game => {
+            const homePlayers = rosterCache.get(game.homeTeamId) || [];
+            const awayPlayers = rosterCache.get(game.awayTeamId) || [];
+            return { game, result: simulateGameWithRosters(homePlayers, awayPlayers) };
+          });
+
+          await Promise.all(simResults.map(async ({ game, result }) => {
             await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, boxScore: result.boxScore, isComplete: true });
-            await updateStandingsForGame(leagueId, currentLeague.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore);
-            try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
+            game.isComplete = true;
+          }));
+
+          for (const { game, result } of simResults) {
+            await updateStandingsCached(game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore);
+            try {
+              const box = JSON.parse(result.boxScore);
+              await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home);
+              await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away);
+            } catch (e) { console.error("Stat accumulation error:", e); }
           }
+          invalidateGameCache();
           await generateSuperRegionalBracket(leagueId, currentLeague.currentSeason);
           currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "super_regionals" })) as any;
           continue;
@@ -3810,6 +3897,7 @@ export async function registerRoutes(
                   homeTeamId: srResult.champion1, awayTeamId: srResult.champion2,
                   phase: "cws",
                 });
+                invalidateGameCache();
                 currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "cws" })) as any;
               } else {
                 currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "offseason_departures" })) as any;
@@ -4089,9 +4177,7 @@ export async function registerRoutes(
   });
 
   // ============ GAME SIMULATION FUNCTION ============
-  async function simulateGame(homeTeamId: string, awayTeamId: string): Promise<{ homeScore: number; awayScore: number; boxScore: string }> {
-    const homePlayers = await storage.getPlayersByTeam(homeTeamId);
-    const awayPlayers = await storage.getPlayersByTeam(awayTeamId);
+  function simulateGameWithRosters(homePlayers: Player[], awayPlayers: Player[]): { homeScore: number; awayScore: number; boxScore: string } {
 
     const homeStrength = homePlayers.length > 0
       ? homePlayers.reduce((sum, p) => sum + (p.overall || 500), 0) / homePlayers.length
@@ -4123,6 +4209,12 @@ export async function registerRoutes(
 
     const boxScore = generateBoxScore(homeScore, awayScore, homePlayers, awayPlayers);
     return { homeScore, awayScore, boxScore: JSON.stringify(boxScore) };
+  }
+
+  async function simulateGame(homeTeamId: string, awayTeamId: string): Promise<{ homeScore: number; awayScore: number; boxScore: string }> {
+    const homePlayers = await storage.getPlayersByTeam(homeTeamId);
+    const awayPlayers = await storage.getPlayersByTeam(awayTeamId);
+    return simulateGameWithRosters(homePlayers, awayPlayers);
   }
 
   function generateBoxScore(homeScore: number, awayScore: number, homePlayers: Player[], awayPlayers: Player[]) {
@@ -4486,77 +4578,101 @@ export async function registerRoutes(
   }
 
   async function accumulatePlayerStats(leagueId: string, season: number, teamId: string, boxData: any) {
-    if (!boxData.batting) return;
-    for (const b of boxData.batting) {
-      if (!b.playerId || b.playerId.startsWith("fake_")) continue;
-      await storage.upsertPlayerSeasonStats({
-        playerId: b.playerId,
-        playerName: b.name,
-        teamId,
-        leagueId,
-        season,
-        position: b.position,
-        games: 1,
-        ab: b.ab || 0,
-        r: b.r || 0,
-        h: b.h || 0,
-        doubles: b.doubles || 0,
-        triples: b.triples || 0,
-        hr: b.hr || 0,
-        rbi: b.rbi || 0,
-        bb: b.bb || 0,
-        hbp: b.hbp || 0,
-        so: b.so || 0,
-        sb: b.sb || 0,
-        cs: b.cs || 0,
-        exitVeloTotal: b.exitVelo || 0,
-        barrels: b.barrels || 0,
-        ballsInPlay: b.ballsInPlay || 0,
-        hardHits: b.hardHits || 0,
-        putouts: b.putouts || 0,
-        assists: b.assists || 0,
-        fieldingErrors: b.fieldingErrors || 0,
-        totalChances: b.totalChances || 0,
-        wpa: 0,
-        pitchingGames: 0, wins: 0, losses: 0, ipOuts: 0,
-        pHits: 0, pRuns: 0, pEr: 0, pBb: 0, pSo: 0, pHr: 0,
-        totalPitches: 0, whiffs: 0, spinRateTotal: 0,
-      });
+    const playerStatsMap = new Map<string, InsertPlayerSeasonStats>();
+
+    if (boxData.batting) {
+      for (const b of boxData.batting) {
+        if (!b.playerId || b.playerId.startsWith("fake_")) continue;
+        playerStatsMap.set(b.playerId, {
+          playerId: b.playerId,
+          playerName: b.name,
+          teamId,
+          leagueId,
+          season,
+          position: b.position,
+          games: 1,
+          ab: b.ab || 0,
+          r: b.r || 0,
+          h: b.h || 0,
+          doubles: b.doubles || 0,
+          triples: b.triples || 0,
+          hr: b.hr || 0,
+          rbi: b.rbi || 0,
+          bb: b.bb || 0,
+          hbp: b.hbp || 0,
+          so: b.so || 0,
+          sb: b.sb || 0,
+          cs: b.cs || 0,
+          exitVeloTotal: b.exitVelo || 0,
+          barrels: b.barrels || 0,
+          ballsInPlay: b.ballsInPlay || 0,
+          hardHits: b.hardHits || 0,
+          putouts: b.putouts || 0,
+          assists: b.assists || 0,
+          fieldingErrors: b.fieldingErrors || 0,
+          totalChances: b.totalChances || 0,
+          wpa: 0,
+          pitchingGames: 0, wins: 0, losses: 0, ipOuts: 0,
+          pHits: 0, pRuns: 0, pEr: 0, pBb: 0, pSo: 0, pHr: 0,
+          totalPitches: 0, whiffs: 0, spinRateTotal: 0,
+        });
+      }
     }
-    if (!boxData.pitching) return;
-    for (const p of boxData.pitching) {
-      if (!p.playerId || p.playerId.startsWith("fake_")) continue;
-      const ipParts = String(p.ip).split(".");
-      const fullInnings = parseInt(ipParts[0]) || 0;
-      const partialOuts = parseInt(ipParts[1]) || 0;
-      const totalOuts = fullInnings * 3 + partialOuts;
-      await storage.upsertPlayerSeasonStats({
-        playerId: p.playerId,
-        playerName: p.name,
-        teamId,
-        leagueId,
-        season,
-        position: "P",
-        games: 0,
-        ab: 0, r: 0, h: 0, doubles: 0, triples: 0, hr: 0,
-        rbi: 0, bb: 0, hbp: 0, so: 0, sb: 0, cs: 0,
-        exitVeloTotal: 0, barrels: 0, ballsInPlay: 0, hardHits: 0,
-        putouts: 0, assists: 0, fieldingErrors: 0, totalChances: 0,
-        wpa: 0,
-        pitchingGames: 1,
-        wins: 0, losses: 0,
-        ipOuts: totalOuts,
-        pHits: p.h || 0,
-        pRuns: p.r || 0,
-        pEr: p.er || 0,
-        pBb: p.bb || 0,
-        pSo: p.so || 0,
-        pHr: p.hr || 0,
-        totalPitches: p.totalPitches || 0,
-        whiffs: p.whiffs || 0,
-        spinRateTotal: p.spinRate || 0,
-      });
+
+    if (boxData.pitching) {
+      for (const p of boxData.pitching) {
+        if (!p.playerId || p.playerId.startsWith("fake_")) continue;
+        const ipParts = String(p.ip).split(".");
+        const fullInnings = parseInt(ipParts[0]) || 0;
+        const partialOuts = parseInt(ipParts[1]) || 0;
+        const totalOuts = fullInnings * 3 + partialOuts;
+        const existing = playerStatsMap.get(p.playerId);
+        if (existing) {
+          existing.pitchingGames = 1;
+          existing.ipOuts = totalOuts;
+          existing.pHits = p.h || 0;
+          existing.pRuns = p.r || 0;
+          existing.pEr = p.er || 0;
+          existing.pBb = p.bb || 0;
+          existing.pSo = p.so || 0;
+          existing.pHr = p.hr || 0;
+          existing.totalPitches = p.totalPitches || 0;
+          existing.whiffs = p.whiffs || 0;
+          existing.spinRateTotal = p.spinRate || 0;
+        } else {
+          playerStatsMap.set(p.playerId, {
+            playerId: p.playerId,
+            playerName: p.name,
+            teamId,
+            leagueId,
+            season,
+            position: "P",
+            games: 0,
+            ab: 0, r: 0, h: 0, doubles: 0, triples: 0, hr: 0,
+            rbi: 0, bb: 0, hbp: 0, so: 0, sb: 0, cs: 0,
+            exitVeloTotal: 0, barrels: 0, ballsInPlay: 0, hardHits: 0,
+            putouts: 0, assists: 0, fieldingErrors: 0, totalChances: 0,
+            wpa: 0,
+            pitchingGames: 1,
+            wins: 0, losses: 0,
+            ipOuts: totalOuts,
+            pHits: p.h || 0,
+            pRuns: p.r || 0,
+            pEr: p.er || 0,
+            pBb: p.bb || 0,
+            pSo: p.so || 0,
+            pHr: p.hr || 0,
+            totalPitches: p.totalPitches || 0,
+            whiffs: p.whiffs || 0,
+            spinRateTotal: p.spinRate || 0,
+          });
+        }
+      }
     }
+
+    await Promise.all(
+      Array.from(playerStatsMap.values()).map(stats => storage.upsertPlayerSeasonStats(stats))
+    );
   }
 
   // ============ STANDINGS UPDATE HELPER ============
