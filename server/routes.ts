@@ -4091,11 +4091,11 @@ export async function registerRoutes(
       : 500;
 
     const strengthDiff = (homeStrength - awayStrength) / 500;
-    const homeAdv = 0.3;
-    let homeExpected = 4.5 + strengthDiff * 2.5 + homeAdv;
-    let awayExpected = 4.5 - strengthDiff * 2.5;
-    homeExpected = Math.max(1.5, Math.min(9, homeExpected));
-    awayExpected = Math.max(1.5, Math.min(9, awayExpected));
+    const homeAdv = 0.25;
+    let homeExpected = 4.5 + strengthDiff * 5.0 + homeAdv;
+    let awayExpected = 4.5 - strengthDiff * 5.0;
+    homeExpected = Math.max(1.0, Math.min(10, homeExpected));
+    awayExpected = Math.max(1.0, Math.min(10, awayExpected));
 
     function poissonSample(lambda: number): number {
       let L = Math.exp(-lambda), k = 0, p = 1;
@@ -4206,14 +4206,14 @@ export async function registerRoutes(
           : lineupSlot < 6 ? (3 + Math.floor(Math.random() * 2))
           : (2 + Math.floor(Math.random() * 2) + (Math.random() < 0.2 ? 1 : 0));
 
-        const soChance = Math.max(0.17, 0.35 - batter.contact / 400);
+        const soChance = Math.max(0.12, 0.38 - batter.contact / 290);
         let so = 0;
         for (let j = 0; j < ab; j++) {
           if (Math.random() < soChance) so++;
         }
 
         const nonKAB = ab - so;
-        const contactFactor = Math.min(0.44, Math.max(0.22, batter.contact / 220 + 0.06));
+        const contactFactor = Math.min(0.46, Math.max(0.22, batter.contact / 210 + 0.04));
         let h = 0;
         if (i === selectedBatters.length - 1) {
           const maxLastBatterHits = Math.min(nonKAB, Math.ceil(nonKAB * contactFactor * 1.5));
@@ -4226,14 +4226,25 @@ export async function registerRoutes(
 
         let doubles = 0, triples = 0, hr = 0;
         const powerFactor = batter.power / 100;
+        let rawHR = 0.12 * Math.pow(powerFactor, 1.5) + 0.01;
+        let rawTriples = 0.006 * powerFactor + 0.005;
+        let rawDoubles = 0.22 * powerFactor + 0.08;
+        const rawTotal = rawHR + rawTriples + rawDoubles;
+        const maxXBH = 0.55;
+        if (rawTotal > maxXBH) {
+          const scale = maxXBH / rawTotal;
+          rawHR *= scale;
+          rawTriples *= scale;
+          rawDoubles *= scale;
+        }
         for (let j = 0; j < h; j++) {
           const roll = Math.random();
-          if (roll < 0.07 * powerFactor + 0.025) { hr++; }
-          else if (roll < 0.076 * powerFactor + 0.030) { triples++; }
-          else if (roll < 0.24 * powerFactor + 0.13) { doubles++; }
+          if (roll < rawHR) { hr++; }
+          else if (roll < rawHR + rawTriples) { triples++; }
+          else if (roll < rawHR + rawTriples + rawDoubles) { doubles++; }
         }
 
-        const bbChance = 0.035 + (batter.contact / 1100);
+        const bbChance = 0.025 + (batter.contact / 950);
         let bb = 0;
         for (let j = 0; j < ab; j++) {
           if (Math.random() < bbChance) bb++;
@@ -4241,30 +4252,32 @@ export async function registerRoutes(
 
         const hbp = Math.random() < 0.03 ? 1 : 0;
 
-        const sbChance = batter.speed / 400;
-        const sb = Math.random() < sbChance ? (Math.random() < 0.3 ? 2 : 1) : 0;
+        const speedFactor = batter.speed / 100;
+        const sbChance = speedFactor * speedFactor * 0.35;
+        const sb = Math.random() < sbChance ? (Math.random() < speedFactor * 0.35 ? 2 : 1) : 0;
 
         const cs = sb > 0 && Math.random() < 0.28 ? 1 : 0;
 
-        const baseExitVelo = 82 + (batter.power / 100) * 16;
+        const pwrPct = batter.power / 100;
+        const baseExitVelo = 78 + pwrPct * 22;
         const exitVelo = Math.round((baseExitVelo + (Math.random() - 0.5) * 6) * 10) / 10;
 
         const bip = Math.max(0, ab - so);
 
-        const barrelRate = 0.03 + (batter.power / 100) * 0.12;
+        const barrelRate = 0.01 + Math.pow(pwrPct, 1.5) * 0.18;
         const barrelCount = Math.floor(bip * barrelRate + (Math.random() < 0.5 ? 1 : 0));
 
-        const hardHitRate = 0.20 + (batter.power / 100) * 0.25;
+        const hardHitRate = 0.15 + pwrPct * 0.30;
         const hardHitCount = Math.max(barrelCount, Math.floor(bip * hardHitRate));
 
         const fieldingFactor = batter.fielding / 100;
         const poBase = batter.position === "1B" ? 8 : batter.position === "C" ? 6 : 
           ["LF","CF","RF"].includes(batter.position) ? 2 : 3;
-        const putoutsCount = Math.max(0, Math.floor(poBase * (0.7 + fieldingFactor * 0.6) + (Math.random() - 0.5) * 2));
+        const putoutsCount = Math.max(0, Math.floor(poBase * (0.5 + fieldingFactor * 0.8) + (Math.random() - 0.5) * 2));
         const assistsCount = ["P","C","SS","2B","3B"].includes(batter.position) ? 
-          Math.max(0, Math.floor(2 * (0.5 + fieldingFactor * 0.5) + (Math.random() - 0.5) * 2)) : 
+          Math.max(0, Math.floor(2 * (0.3 + fieldingFactor * 0.7) + (Math.random() - 0.5) * 2)) : 
           Math.random() < 0.15 ? 1 : 0;
-        const feCount = Math.random() < (0.08 - fieldingFactor * 0.06) ? 1 : 0;
+        const feCount = Math.random() < (0.12 - fieldingFactor * 0.10) ? 1 : 0;
         const tcCount = putoutsCount + assistsCount + feCount;
 
         let r = 0;
@@ -4373,12 +4386,13 @@ export async function registerRoutes(
 
         const controlFactor = pitcher.control / 100;
         const velocityFactor = pitcher.velocity / 100;
+        const stuffFactor = pitcher.stuff / 100;
 
         let pHits: number;
         if (isLast) {
           pHits = Math.max(0, opponentHitsLeft);
         } else {
-          const hitsPerInning = 1.0 - controlFactor * 0.15;
+          const hitsPerInning = 1.15 - controlFactor * 0.25 - stuffFactor * 0.15;
           pHits = Math.max(0, Math.round(fullInnings * hitsPerInning + (Math.random() - 0.5) * 2));
           opponentHitsLeft -= pHits;
         }
@@ -4387,33 +4401,37 @@ export async function registerRoutes(
         if (isLast) {
           pRuns = opponentRunsLeft;
         } else {
-          pRuns = Math.min(opponentRunsLeft, Math.floor(Math.random() * Math.max(1, Math.ceil(fullInnings * 0.5))));
+          const runFactor = 1.0 - (controlFactor + stuffFactor + velocityFactor) / 6;
+          pRuns = Math.min(opponentRunsLeft, Math.floor(Math.random() * Math.max(1, Math.ceil(fullInnings * (0.3 + runFactor * 0.5)))));
           opponentRunsLeft -= pRuns;
         }
 
         const er = Math.max(0, pRuns - (Math.random() < 0.12 ? 1 : 0));
 
-        const bbRate = Math.max(0.5, 3.5 - controlFactor * 2.5);
+        const bbRate = Math.max(0.3, 5.0 - controlFactor * 4.5);
         const pBB = Math.max(0, Math.round(ipDecimal * bbRate / 9 + (Math.random() - 0.5)));
 
-        const soRate = 5 + velocityFactor * 7;
+        const soRate = 3 + velocityFactor * 6 + stuffFactor * 5;
         const pSO = Math.max(0, Math.round(ipDecimal * soRate / 9 + (Math.random() - 0.5) * 2));
 
         let pHR: number;
         if (isLast) {
           pHR = Math.max(0, opponentHrLeft);
         } else {
-          pHR = Math.min(opponentHrLeft, Math.random() < 0.3 ? 1 : 0);
-          opponentHrLeft -= pHR;
+          const hrPerInning = 0.08 + (1 - stuffFactor) * 0.12;
+          pHR = 0;
+          for (let inn = 0; inn < fullInnings && opponentHrLeft > 0; inn++) {
+            if (Math.random() < hrPerInning) { pHR++; opponentHrLeft--; }
+          }
         }
 
         const era = ipDecimal > 0 ? ((er * 9) / ipDecimal).toFixed(2) : "0.00";
 
-        const pitchesPerInning = 15 + Math.floor(Math.random() * 5);
+        const pitchesPerInning = 14 + Math.floor((1 - controlFactor * 0.3) * 8 + Math.random() * 4);
         const totalPitchCount = Math.round(ipDecimal * pitchesPerInning);
-        const whiffRate = 0.15 + velocityFactor * 0.15 + (pitcher.stuff / 100) * 0.10;
+        const whiffRate = 0.10 + velocityFactor * 0.18 + stuffFactor * 0.14;
         const whiffCount = Math.floor(totalPitchCount * whiffRate * 0.3);
-        const baseSpinRate = 1900 + (pitcher.stuff / 100) * 800;
+        const baseSpinRate = 1700 + stuffFactor * 1000;
         const spinRateValue = Math.round(baseSpinRate + (Math.random() - 0.5) * 200);
 
         pitchingStaff.push({
