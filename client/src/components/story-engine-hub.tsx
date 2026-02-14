@@ -67,7 +67,7 @@ export function StoryEngineHub({ leagueId, teamId }: { leagueId: string; teamId?
 
   return (
     <div data-testid="story-engine-hub">
-      <div className="flex items-center gap-1 mb-4 flex-wrap" data-testid="story-engine-tabs">
+      <div className="flex items-center gap-1 mb-4 overflow-x-auto scrollbar-hide" data-testid="story-engine-tabs">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -75,7 +75,7 @@ export function StoryEngineHub({ leagueId, teamId }: { leagueId: string; teamId?
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-pixel transition-colors ${
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-pixel transition-colors whitespace-nowrap shrink-0 ${
                 isActive
                   ? "bg-gold/20 text-gold border border-gold/40"
                   : "bg-muted/50 text-muted-foreground border border-transparent"

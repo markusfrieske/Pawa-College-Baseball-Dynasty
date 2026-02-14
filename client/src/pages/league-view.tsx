@@ -163,25 +163,25 @@ export default function LeagueViewPage() {
     <div className="min-h-screen bg-background">
       <header className="border-b border-border">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-4 mb-4">
-            <Link href="/dashboard" className="text-muted-foreground hover:text-gold transition-colors">
+          <div className="flex items-center gap-3 mb-3 min-w-0">
+            <Link href="/dashboard" className="text-muted-foreground hover:text-gold transition-colors shrink-0">
               <ArrowLeft className="w-5 h-5" />
             </Link>
-            <h1 className="font-pixel text-gold text-lg">{league.name}</h1>
+            <h1 className="font-pixel text-gold text-base sm:text-lg truncate">{league.name}</h1>
           </div>
-          <div className="flex flex-wrap items-center gap-3 sm:gap-6 text-xs sm:text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              <span>Season {league.currentSeason}, Week {league.currentWeek}</span>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Calendar className="w-3.5 h-3.5" />
+              <span>S{league.currentSeason} W{league.currentWeek}</span>
             </div>
-            <div className="flex items-center gap-2" data-testid="text-current-phase">
-              <Trophy className="w-4 h-4 text-gold" />
-              <Badge variant="outline" className="font-pixel text-[8px] text-gold border-gold/40 bg-gold/10">
+            <div className="flex items-center gap-1.5 shrink-0" data-testid="text-current-phase">
+              <Trophy className="w-3.5 h-3.5 text-gold" />
+              <Badge variant="outline" className="font-pixel text-[7px] sm:text-[8px] text-gold border-gold/40 bg-gold/10 whitespace-nowrap">
                 {phaseLabels[league.currentPhase]}
               </Badge>
             </div>
             {userTeam?.standings && (
-              <div className="flex items-center gap-2" data-testid="text-user-team-record">
+              <div className="flex items-center gap-1.5 shrink-0" data-testid="text-user-team-record">
                 <span className="text-gold font-medium">
                   {userTeam.name}: {userTeam.standings.wins ?? 0}-{userTeam.standings.losses ?? 0}
                 </span>
@@ -190,21 +190,21 @@ export default function LeagueViewPage() {
             {canShowRecap && (
               <button
                 onClick={() => { setRecapSeason(recapSeasonNum); setShowRecap(true); }}
-                className="flex items-center gap-1 text-gold/70 hover:text-gold transition-colors"
+                className="flex items-center gap-1 text-gold/70 hover:text-gold transition-colors shrink-0"
                 data-testid="button-season-recap"
               >
-                <ScrollText className="w-4 h-4" />
-                <span className="text-xs">Recap</span>
+                <ScrollText className="w-3.5 h-3.5" />
+                <span className="text-[10px]">Recap</span>
               </button>
             )}
-            <div className="flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              <span>{league.teams?.length || 0} / {league.maxTeams} Teams</span>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Users className="w-3.5 h-3.5" />
+              <span>{league.teams?.length || 0}/{league.maxTeams} Teams</span>
             </div>
-            <div className="flex items-center gap-2 ml-auto">
-              <NotificationCenter leagueId={id!} />
-              <ReadyButton leagueId={id} />
-            </div>
+          </div>
+          <div className="flex items-center justify-end gap-2 mt-2">
+            <NotificationCenter leagueId={id!} />
+            <ReadyButton leagueId={id} />
           </div>
           
           <SeasonProgressBar phase={league.currentPhase} />
@@ -263,30 +263,30 @@ export default function LeagueViewPage() {
 
         <Tabs defaultValue="news" className="space-y-4">
           <div className="overflow-x-auto -mx-4 px-4 pb-2 scrollbar-hide">
-            <TabsList className="bg-card border border-border w-max min-w-full flex">
-              <TabsTrigger value="news" className="font-pixel text-[8px] flex-1 min-w-0 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-news">
+            <TabsList className="bg-card border border-border inline-flex w-auto gap-0">
+              <TabsTrigger value="news" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-news">
                 News
               </TabsTrigger>
-              <TabsTrigger value="standings" className="font-pixel text-[8px] flex-1 min-w-0 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-standings">
-                Standings
+              <TabsTrigger value="standings" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-standings">
+                Stand
               </TabsTrigger>
-              <TabsTrigger value="teams" className="font-pixel text-[8px] flex-1 min-w-0 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-teams">
+              <TabsTrigger value="teams" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-teams">
                 Teams
               </TabsTrigger>
-              <TabsTrigger value="rankings" className="font-pixel text-[8px] flex-1 min-w-0 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-rankings">
-                Rankings
+              <TabsTrigger value="rankings" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-rankings">
+                Rank
               </TabsTrigger>
-              <TabsTrigger value="stats" className="font-pixel text-[8px] flex-1 min-w-0 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-stats">
+              <TabsTrigger value="stats" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-stats">
                 Stats
               </TabsTrigger>
-              <TabsTrigger value="postseason" className="font-pixel text-[8px] flex-1 min-w-0 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-postseason">
+              <TabsTrigger value="postseason" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-postseason">
                 Post
               </TabsTrigger>
-              <TabsTrigger value="awards" className="font-pixel text-[8px] flex-1 min-w-0 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-awards">
-                Awards
+              <TabsTrigger value="awards" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-awards">
+                Award
               </TabsTrigger>
-              <TabsTrigger value="history" className="font-pixel text-[8px] flex-1 min-w-0 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-history">
-                History
+              <TabsTrigger value="history" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-history">
+                Hist
               </TabsTrigger>
             </TabsList>
           </div>
@@ -1159,12 +1159,12 @@ function PhaseGuidanceBanner({ phase, leagueId }: { phase: string; leagueId: str
 
 function SeasonProgressBar({ phase }: { phase: string }) {
   const phases = [
-    { key: "spring", label: "Spring" },
-    { key: "regular_season", label: "Reg Season" },
-    { key: "conference_championship", label: "Conf Champs" },
-    { key: "super_regionals", label: "Super Region" },
+    { key: "spring", label: "SPR" },
+    { key: "regular_season", label: "REG" },
+    { key: "conference_championship", label: "CONF" },
+    { key: "super_regionals", label: "SUPR" },
     { key: "cws", label: "CWS" },
-    { key: "offseason", label: "Offseason" },
+    { key: "offseason", label: "OFF" },
   ];
 
   const offseasonPhases = ["offseason_departures", "offseason_recruiting_1", "offseason_recruiting_2", 
@@ -1196,7 +1196,7 @@ function SeasonProgressBar({ phase }: { phase: string }) {
                     : "bg-muted"
               }`}
             />
-            <span className={`text-[6px] sm:text-[8px] font-pixel truncate max-w-full ${i === currentIndex ? "text-gold" : "text-muted-foreground"}`}>
+            <span className={`text-[7px] sm:text-[8px] font-pixel text-center ${i === currentIndex ? "text-gold" : "text-muted-foreground"}`}>
               {p.label}
             </span>
           </div>
