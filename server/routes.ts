@@ -5364,80 +5364,90 @@ export async function registerRoutes(
     }
     allOvrs.sort((a, b) => b - a);
     
+    let transferRecruitsCreated = 0;
     for (const { player, teamName } of transfersToAdd) {
-      const ovr = calculateOVR(player);
-      const starRating = getStarRatingFromOVR(ovr);
-      
-      const classRank = allOvrs.filter(o => o >= ovr).indexOf(ovr) + 1 || allOvrs.filter(o => o >= ovr).length;
-      const posOvrs = [...existingRecruits.filter(r => r.position === player.position).map(r => r.overall || 0), ovr].sort((a, b) => b - a);
-      const posRank = posOvrs.indexOf(ovr) + 1 || 1;
-      
-      const recruitYear = player.eligibility || "SO";
-      
-      await storage.createRecruit({
-          leagueId,
-          firstName: player.firstName,
-          lastName: player.lastName,
-          position: player.position,
-          throwHand: player.throwHand || "R",
-          batHand: player.batHand || "R",
-          homeState: player.homeState || "TX",
-          hometown: player.hometown || "Unknown",
-          starRank: starRating,
-          classRank,
-          positionRank: posRank,
-          recruitType: "TRANSFER",
-          recruitYear,
-          overall: ovr,
-          starRating,
-          hitForAvg: player.hitForAvg || 50,
-          power: player.power || 50,
-          speed: player.speed || 50,
-          arm: player.arm || 50,
-          fielding: player.fielding || 50,
-          errorResistance: player.errorResistance || 50,
-          clutch: player.clutch || 50,
-          vsLHP: player.vsLHP || 50,
-          grit: player.grit || 50,
-          stealing: player.stealing || 50,
-          running: player.running || 50,
-          throwing: player.throwing || 50,
-          recovery: player.recovery || 50,
-          catcherAbility: player.catcherAbility || 50,
-          velocity: player.velocity || 50,
-          control: player.control || 50,
-          stamina: player.stamina || 50,
-          stuff: player.stuff || 50,
-          wRISP: player.wRISP || 50,
-          vsLefty: player.vsLefty || 50,
-          poise: player.poise || 50,
-          heater: player.heater || 50,
-          agile: player.agile || 50,
-          pitchFB: player.pitchFB ?? 1,
-          pitch2S: player.pitch2S ?? 0,
-          pitchSL: player.pitchSL ?? 0,
-          pitchCB: player.pitchCB ?? 0,
-          pitchCH: player.pitchCH ?? 0,
-          pitchCT: player.pitchCT ?? 0,
-          pitchSNK: player.pitchSNK ?? 0,
-          pitchSPL: player.pitchSPL ?? 0,
-          abilities: player.abilities || [],
-          potential: player.potential ?? rollWeightedPotential(),
-          sourcePlayerId: player.id,
-          fromTeamName: teamName,
-          commitmentThreshold: 450,
-          proximityPriority: "Somewhat",
-          reputationPriority: "Very Important",
-          playingTimePriority: "Extremely Important",
-          academicsPriority: "Not Important",
-          prestigePriority: "Very Important",
-          facilitiesPriority: "Somewhat",
-          skinTone: player.skinTone || "light",
-          hairColor: player.hairColor || "brown",
-          hairStyle: player.hairStyle || "short",
-          headwear: player.headwear || "cap",
-        });
+      try {
+        const ovr = calculateOVR(player);
+        const starRating = getStarRatingFromOVR(ovr);
+        
+        const higherOrEqual = allOvrs.filter(o => o >= ovr);
+        const classRank = Math.max(1, higherOrEqual.indexOf(ovr) + 1 || higherOrEqual.length);
+        const posOvrs = [...existingRecruits.filter(r => r.position === player.position).map(r => r.overall || 0), ovr].sort((a, b) => b - a);
+        const posRank = Math.max(1, posOvrs.indexOf(ovr) + 1);
+        
+        const validEligibilities = ["FR", "SO", "JR", "SR", "RS"];
+        const recruitYear = validEligibilities.includes(player.eligibility) ? player.eligibility : "SO";
+        const playerAbilities = Array.isArray(player.abilities) ? player.abilities : [];
+        
+        await storage.createRecruit({
+            leagueId,
+            firstName: player.firstName,
+            lastName: player.lastName,
+            position: player.position,
+            throwHand: player.throwHand || "R",
+            batHand: player.batHand || "R",
+            homeState: player.homeState || "TX",
+            hometown: player.hometown || "Unknown",
+            starRank: starRating,
+            classRank,
+            positionRank: posRank,
+            recruitType: "TRANSFER",
+            recruitYear,
+            overall: ovr,
+            starRating,
+            hitForAvg: player.hitForAvg ?? 50,
+            power: player.power ?? 50,
+            speed: player.speed ?? 50,
+            arm: player.arm ?? 50,
+            fielding: player.fielding ?? 50,
+            errorResistance: player.errorResistance ?? 50,
+            clutch: player.clutch ?? 50,
+            vsLHP: player.vsLHP ?? 50,
+            grit: player.grit ?? 50,
+            stealing: player.stealing ?? 50,
+            running: player.running ?? 50,
+            throwing: player.throwing ?? 50,
+            recovery: player.recovery ?? 50,
+            catcherAbility: player.catcherAbility ?? 50,
+            velocity: player.velocity ?? 50,
+            control: player.control ?? 50,
+            stamina: player.stamina ?? 50,
+            stuff: player.stuff ?? 50,
+            wRISP: player.wRISP ?? 50,
+            vsLefty: player.vsLefty ?? 50,
+            poise: player.poise ?? 50,
+            heater: player.heater ?? 50,
+            agile: player.agile ?? 50,
+            pitchFB: player.pitchFB ?? 1,
+            pitch2S: player.pitch2S ?? 0,
+            pitchSL: player.pitchSL ?? 0,
+            pitchCB: player.pitchCB ?? 0,
+            pitchCH: player.pitchCH ?? 0,
+            pitchCT: player.pitchCT ?? 0,
+            pitchSNK: player.pitchSNK ?? 0,
+            pitchSPL: player.pitchSPL ?? 0,
+            abilities: playerAbilities,
+            potential: player.potential ?? rollWeightedPotential(),
+            sourcePlayerId: player.id,
+            fromTeamName: teamName,
+            commitmentThreshold: 450,
+            proximityPriority: "Somewhat",
+            reputationPriority: "Very Important",
+            playingTimePriority: "Extremely Important",
+            academicsPriority: "Not Important",
+            prestigePriority: "Very Important",
+            facilitiesPriority: "Somewhat",
+            skinTone: player.skinTone || "light",
+            hairColor: player.hairColor || "brown",
+            hairStyle: player.hairStyle || "short",
+            headwear: player.headwear || "cap",
+          });
+        transferRecruitsCreated++;
+      } catch (e) {
+        console.error(`Failed to create TRANSFER recruit for ${player.firstName} ${player.lastName} (player ${player.id}) from ${teamName}:`, e);
       }
+    }
+    console.log(`Transfer portal: ${transfersToAdd.length} portal players found, ${transferRecruitsCreated} TRANSFER recruits created`);
     
     // Regenerate top schools interest to include transfer recruits
     await generateTopSchoolsForLeague(leagueId);
@@ -6211,90 +6221,97 @@ export async function registerRoutes(
     const recruitCount = 80;
     await generateRecruits(leagueId, recruitCount);
 
+    let jucoRecruitsCreated = 0;
     for (const walkon of unsignedRealWalkons) {
-      const jucoEligMap: Record<string, string> = { "FR": "SO", "SO": "JR", "JR": "SR" };
-      const newElig = jucoEligMap[walkon.eligibility || "FR"] || walkon.eligibility;
-      if (newElig === "SR") continue;
+      try {
+        const jucoEligMap: Record<string, string> = { "FR": "SO", "SO": "JR", "JR": "SR" };
+        const newElig = jucoEligMap[walkon.eligibility || "FR"] || walkon.eligibility;
+        if (newElig === "SR") continue;
 
-      const jucoAttrBoost = () => 1 + Math.floor(Math.random() * 3);
-      const boostedHitForAvg = Math.min(100, (walkon.hitForAvg || 50) + jucoAttrBoost());
-      const boostedPower = Math.min(100, (walkon.power || 50) + jucoAttrBoost());
-      const boostedSpeed = Math.min(100, (walkon.speed || 50) + jucoAttrBoost());
-      const boostedArm = Math.min(100, (walkon.arm || 50) + jucoAttrBoost());
-      const boostedFielding = Math.min(100, (walkon.fielding || 50) + jucoAttrBoost());
-      const boostedErrorResistance = Math.min(100, (walkon.errorResistance || 50) + jucoAttrBoost());
-      const boostedVelocity = Math.min(100, (walkon.velocity || 50) + jucoAttrBoost());
-      const boostedControl = Math.min(100, (walkon.control || 50) + jucoAttrBoost());
-      const boostedStamina = Math.min(100, (walkon.stamina || 50) + jucoAttrBoost());
-      const boostedStuff = Math.min(100, (walkon.stuff || 50) + jucoAttrBoost());
+        const jucoAttrBoost = () => 1 + Math.floor(Math.random() * 3);
+        const boostedHitForAvg = Math.min(100, (walkon.hitForAvg || 50) + jucoAttrBoost());
+        const boostedPower = Math.min(100, (walkon.power || 50) + jucoAttrBoost());
+        const boostedSpeed = Math.min(100, (walkon.speed || 50) + jucoAttrBoost());
+        const boostedArm = Math.min(100, (walkon.arm || 50) + jucoAttrBoost());
+        const boostedFielding = Math.min(100, (walkon.fielding || 50) + jucoAttrBoost());
+        const boostedErrorResistance = Math.min(100, (walkon.errorResistance || 50) + jucoAttrBoost());
+        const boostedVelocity = Math.min(100, (walkon.velocity || 50) + jucoAttrBoost());
+        const boostedControl = Math.min(100, (walkon.control || 50) + jucoAttrBoost());
+        const boostedStamina = Math.min(100, (walkon.stamina || 50) + jucoAttrBoost());
+        const boostedStuff = Math.min(100, (walkon.stuff || 50) + jucoAttrBoost());
 
-      const jucoData = {
-        hitForAvg: boostedHitForAvg, power: boostedPower, speed: boostedSpeed,
-        arm: boostedArm, fielding: boostedFielding, errorResistance: boostedErrorResistance,
-        velocity: boostedVelocity, control: boostedControl, stamina: boostedStamina, stuff: boostedStuff,
-        clutch: walkon.clutch, vsLHP: walkon.vsLHP, grit: walkon.grit, stealing: walkon.stealing,
-        running: walkon.running, throwing: walkon.throwing, recovery: walkon.recovery,
-        wRISP: walkon.wRISP, vsLefty: walkon.vsLefty, poise: walkon.poise,
-        heater: walkon.heater, agile: walkon.agile,
-        abilities: walkon.abilities as string[] || [],
-      };
-      const boostedOverall = calculateOVR(jucoData);
-      const walkonStarRating = getStarRatingFromOVR(boostedOverall);
+        const jucoData = {
+          hitForAvg: boostedHitForAvg, power: boostedPower, speed: boostedSpeed,
+          arm: boostedArm, fielding: boostedFielding, errorResistance: boostedErrorResistance,
+          velocity: boostedVelocity, control: boostedControl, stamina: boostedStamina, stuff: boostedStuff,
+          clutch: walkon.clutch, vsLHP: walkon.vsLHP, grit: walkon.grit, stealing: walkon.stealing,
+          running: walkon.running, throwing: walkon.throwing, recovery: walkon.recovery,
+          wRISP: walkon.wRISP, vsLefty: walkon.vsLefty, poise: walkon.poise,
+          heater: walkon.heater, agile: walkon.agile,
+          abilities: walkon.abilities as string[] || [],
+        };
+        const boostedOverall = calculateOVR(jucoData);
+        const walkonStarRating = getStarRatingFromOVR(boostedOverall);
 
-      const currentRecruits = await storage.getRecruitsByLeague(leagueId);
-      const classRank = currentRecruits.filter(r => (r.overall || 0) >= boostedOverall).length + 1;
-      const posRecruits = currentRecruits.filter(r => r.position === walkon.position);
-      const posRank = posRecruits.filter(r => (r.overall || 0) >= boostedOverall).length + 1;
+        const currentRecruits = await storage.getRecruitsByLeague(leagueId);
+        const classRank = currentRecruits.filter(r => (r.overall || 0) >= boostedOverall).length + 1;
+        const posRecruits = currentRecruits.filter(r => r.position === walkon.position);
+        const posRank = posRecruits.filter(r => (r.overall || 0) >= boostedOverall).length + 1;
 
-      await storage.createRecruit({
-        leagueId,
-        firstName: walkon.firstName,
-        lastName: walkon.lastName,
-        position: walkon.position,
-        throwHand: walkon.throwHand || "R",
-        batHand: walkon.batHand || "R",
-        homeState: walkon.homeState || "TX",
-        hometown: walkon.hometown || "Unknown",
-        starRank: walkonStarRating,
-        classRank,
-        positionRank: posRank,
-        recruitType: "JUCO",
-        recruitYear: newElig,
-        overall: boostedOverall,
-        starRating: walkonStarRating,
-        hitForAvg: boostedHitForAvg,
-        power: boostedPower,
-        speed: boostedSpeed,
-        arm: boostedArm,
-        fielding: boostedFielding,
-        errorResistance: boostedErrorResistance,
-        clutch: walkon.clutch || 50,
-        vsLHP: walkon.vsLHP || 50,
-        grit: walkon.grit || 50,
-        stealing: walkon.stealing || 50,
-        running: walkon.running || 50,
-        throwing: walkon.throwing || 50,
-        recovery: walkon.recovery || 50,
-        catcherAbility: walkon.catcherAbility || 50,
-        velocity: boostedVelocity,
-        control: boostedControl,
-        stamina: boostedStamina,
-        stuff: boostedStuff,
-        wRISP: walkon.wRISP || 50,
-        vsLefty: walkon.vsLefty || 50,
-        poise: walkon.poise || 50,
-        heater: walkon.heater || 50,
-        agile: walkon.agile || 50,
-        abilities: walkon.abilities || [],
-        skinTone: walkon.skinTone || "light",
-        hairColor: walkon.hairColor || "brown",
-        hairStyle: walkon.hairStyle || "short",
-        headwear: walkon.headwear || "cap",
-        potential: walkon.potential ?? 60,
-        sourcePlayerId: null,
-        fromTeamName: null,
-      });
+        await storage.createRecruit({
+          leagueId,
+          firstName: walkon.firstName,
+          lastName: walkon.lastName,
+          position: walkon.position,
+          throwHand: walkon.throwHand || "R",
+          batHand: walkon.batHand || "R",
+          homeState: walkon.homeState || "TX",
+          hometown: walkon.hometown || "Unknown",
+          starRank: walkonStarRating,
+          classRank,
+          positionRank: posRank,
+          recruitType: "JUCO",
+          recruitYear: newElig,
+          overall: boostedOverall,
+          starRating: walkonStarRating,
+          hitForAvg: boostedHitForAvg,
+          power: boostedPower,
+          speed: boostedSpeed,
+          arm: boostedArm,
+          fielding: boostedFielding,
+          errorResistance: boostedErrorResistance,
+          clutch: walkon.clutch ?? 50,
+          vsLHP: walkon.vsLHP ?? 50,
+          grit: walkon.grit ?? 50,
+          stealing: walkon.stealing ?? 50,
+          running: walkon.running ?? 50,
+          throwing: walkon.throwing ?? 50,
+          recovery: walkon.recovery ?? 50,
+          catcherAbility: walkon.catcherAbility ?? 50,
+          velocity: boostedVelocity,
+          control: boostedControl,
+          stamina: boostedStamina,
+          stuff: boostedStuff,
+          wRISP: walkon.wRISP ?? 50,
+          vsLefty: walkon.vsLefty ?? 50,
+          poise: walkon.poise ?? 50,
+          heater: walkon.heater ?? 50,
+          agile: walkon.agile ?? 50,
+          abilities: walkon.abilities || [],
+          skinTone: walkon.skinTone || "light",
+          hairColor: walkon.hairColor || "brown",
+          hairStyle: walkon.hairStyle || "short",
+          headwear: walkon.headwear || "cap",
+          potential: walkon.potential ?? 60,
+          sourcePlayerId: null,
+          fromTeamName: null,
+        });
+        jucoRecruitsCreated++;
+      } catch (e) {
+        console.error(`Failed to create JUCO recruit for ${walkon.firstName} ${walkon.lastName}:`, e);
+      }
     }
+    console.log(`JUCO recruits: ${unsignedRealWalkons.length} unsigned walk-ons, ${jucoRecruitsCreated} JUCO recruits created`);
 
     await generateTopSchoolsForLeague(leagueId);
 
