@@ -3754,7 +3754,7 @@ export async function registerRoutes(
               boxScore: result.boxScore,
               isComplete: true,
             });
-            await updateStandingsForGame(leagueId, currentLeague.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore);
+            await updateStandingsForGame(leagueId, currentLeague.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, game.isConference);
             try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
           }
 
@@ -3778,7 +3778,7 @@ export async function registerRoutes(
           for (const game of ccGames) {
             const result = await simulateGame(game.homeTeamId, game.awayTeamId);
             await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, boxScore: result.boxScore, isComplete: true });
-            await updateStandingsForGame(leagueId, currentLeague.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, true);
+            await updateStandingsForGame(leagueId, currentLeague.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore);
             try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
           }
           await generateSuperRegionalBracket(leagueId, currentLeague.currentSeason);
@@ -3947,7 +3947,7 @@ export async function registerRoutes(
           for (const game of weekGames) {
             const result = await simulateGame(game.homeTeamId, game.awayTeamId);
             await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, boxScore: result.boxScore, isComplete: true });
-            await updateStandingsForGame(leagueId, currentLeague.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore);
+            await updateStandingsForGame(leagueId, currentLeague.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, game.isConference);
             try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
           }
           if (nextWeek > maxWeeks) {
@@ -4011,7 +4011,7 @@ export async function registerRoutes(
           for (const game of weekGames) {
             const result = await simulateGame(game.homeTeamId, game.awayTeamId);
             await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, boxScore: result.boxScore, isComplete: true });
-            await updateStandingsForGame(leagueId, currentLeague.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore);
+            await updateStandingsForGame(leagueId, currentLeague.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, game.isConference);
             try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
           }
           if (nextWeek > maxWeeks) {
@@ -4033,7 +4033,7 @@ export async function registerRoutes(
           for (const game of ccGames) {
             const result = await simulateGame(game.homeTeamId, game.awayTeamId);
             await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, boxScore: result.boxScore, isComplete: true });
-            await updateStandingsForGame(leagueId, currentLeague.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, true);
+            await updateStandingsForGame(leagueId, currentLeague.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore);
             try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
           }
           await generateSuperRegionalBracket(leagueId, currentLeague.currentSeason);
@@ -8062,7 +8062,6 @@ async function generateSchedule(leagueId: string, season: number = 1) {
     }
 
     for (const ooc of oocPairs) {
-      const sameConf = ooc.home.conferenceId === ooc.away.conferenceId;
       await storage.createGame({
         leagueId,
         season,
@@ -8070,7 +8069,7 @@ async function generateSchedule(leagueId: string, season: number = 1) {
         homeTeamId: ooc.home.id,
         awayTeamId: ooc.away.id,
         phase: "regular",
-        isConference: sameConf,
+        isConference: false,
       });
       totalGames++;
     }
