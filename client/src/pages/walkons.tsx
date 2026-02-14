@@ -6,6 +6,7 @@ import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/re
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PositionBadge } from "@/components/ui/position-badge";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { ArrowLeft, Users, UserPlus, Scissors, CheckCircle, Filter, Star, MapPin } from "lucide-react";
@@ -52,6 +53,7 @@ export default function WalkonsPage() {
   const [posFilter, setPosFilter] = useState("all");
   const [showSigned, setShowSigned] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const [confirmCut, setConfirmCut] = useState<Player | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -240,7 +242,7 @@ export default function WalkonsPage() {
                       <RetroButton
                         variant="ghost"
                         size="sm"
-                        onClick={(e) => { e.stopPropagation(); cutMutation.mutate(player.id); }}
+                        onClick={(e) => { e.stopPropagation(); setConfirmCut(player); }}
                         disabled={cutMutation.isPending}
                         className="text-red-400 hover:text-red-300"
                         data-testid={`button-cut-${player.id}`}
@@ -358,6 +360,35 @@ export default function WalkonsPage() {
           </div>
         </div>
       </div>
+
+      <AlertDialog open={!!confirmCut} onOpenChange={(open) => { if (!open) setConfirmCut(null); }}>
+        <AlertDialogContent className="bg-[#1a2e1a] border-[#3a5a3a]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-pixel text-gold text-sm">
+              Confirm Cut
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-muted-foreground">
+              Are you sure you want to cut <span className="text-foreground font-medium">{confirmCut?.firstName} {confirmCut?.lastName}</span> ({confirmCut?.position}, {confirmCut?.overall} OVR)? This player will be sent to JUCO and cannot be recovered.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-cut">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground"
+              data-testid="button-confirm-cut"
+              onClick={() => {
+                if (confirmCut) {
+                  cutMutation.mutate(confirmCut.id);
+                  setConfirmCut(null);
+                }
+              }}
+            >
+              <Scissors className="w-3 h-3 mr-1" />
+              Cut Player
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {selectedPlayer && (
         <PlayerProfileCard
