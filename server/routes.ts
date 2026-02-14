@@ -4194,7 +4194,7 @@ export async function registerRoutes(
         });
       }
 
-      const teamHits = Math.max(teamScore, Math.round(teamScore * 1.6 + Math.random() * 3 + 2));
+      const teamHits = Math.max(teamScore, Math.round(teamScore * 1.5 + Math.random() * 3 + 2));
       let hitsLeft = teamHits;
       let runsLeft = teamScore;
       let rbiLeft = teamScore;
@@ -4206,12 +4206,20 @@ export async function registerRoutes(
           : lineupSlot < 6 ? (3 + Math.floor(Math.random() * 2))
           : (2 + Math.floor(Math.random() * 2) + (Math.random() < 0.2 ? 1 : 0));
 
-        const contactFactor = Math.min(0.38, Math.max(0.12, batter.contact / 270 + 0.05));
+        const soChance = Math.max(0.17, 0.35 - batter.contact / 400);
+        let so = 0;
+        for (let j = 0; j < ab; j++) {
+          if (Math.random() < soChance) so++;
+        }
+
+        const nonKAB = ab - so;
+        const contactFactor = Math.min(0.44, Math.max(0.22, batter.contact / 220 + 0.06));
         let h = 0;
         if (i === selectedBatters.length - 1) {
-          h = Math.min(ab, Math.max(0, hitsLeft));
+          const maxLastBatterHits = Math.min(nonKAB, Math.ceil(nonKAB * contactFactor * 1.5));
+          h = Math.min(maxLastBatterHits, Math.max(0, hitsLeft));
         } else {
-          for (let j = 0; j < ab; j++) {
+          for (let j = 0; j < nonKAB; j++) {
             if (hitsLeft > 0 && Math.random() < contactFactor) { h++; hitsLeft--; }
           }
         }
@@ -4220,12 +4228,12 @@ export async function registerRoutes(
         const powerFactor = batter.power / 100;
         for (let j = 0; j < h; j++) {
           const roll = Math.random();
-          if (roll < 0.025 * powerFactor + 0.01) { hr++; }
-          else if (roll < 0.04 * powerFactor + 0.025) { triples++; }
-          else if (roll < 0.15 * powerFactor + 0.08) { doubles++; }
+          if (roll < 0.07 * powerFactor + 0.025) { hr++; }
+          else if (roll < 0.076 * powerFactor + 0.030) { triples++; }
+          else if (roll < 0.24 * powerFactor + 0.13) { doubles++; }
         }
 
-        const bbChance = 0.06 + (batter.contact / 800);
+        const bbChance = 0.035 + (batter.contact / 1100);
         let bb = 0;
         for (let j = 0; j < ab; j++) {
           if (Math.random() < bbChance) bb++;
@@ -4233,13 +4241,7 @@ export async function registerRoutes(
 
         const hbp = Math.random() < 0.03 ? 1 : 0;
 
-        const soChance = Math.max(0.10, 0.30 - batter.contact / 400);
-        let so = 0;
-        for (let j = 0; j < ab - h; j++) {
-          if (Math.random() < soChance) so++;
-        }
-
-        const sbChance = batter.speed / 500;
+        const sbChance = batter.speed / 400;
         const sb = Math.random() < sbChance ? (Math.random() < 0.3 ? 2 : 1) : 0;
 
         const cs = sb > 0 && Math.random() < 0.28 ? 1 : 0;
@@ -4349,7 +4351,7 @@ export async function registerRoutes(
       let inningsLeft = 9;
       const opponentScore = isHome ? awayScore : homeScore;
       let opponentRunsLeft = opponentScore;
-      const opponentHitsTotal = Math.max(opponentScore, Math.round(opponentScore * 1.6 + Math.random() * 3 + 2));
+      const opponentHitsTotal = Math.max(opponentScore, Math.round(opponentScore * 1.5 + Math.random() * 3 + 2));
       let opponentHitsLeft = opponentHitsTotal;
       let opponentHrLeft = Math.floor(opponentHitsTotal * 0.08 + Math.random() * 1.5);
 
