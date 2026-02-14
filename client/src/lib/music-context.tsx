@@ -272,6 +272,8 @@ export function resolveTrackForRoute(
         return "offseason";
       case "offseason_signing_day":
         return "predictions";
+      case "offseason_walkons":
+        return "offseason";
       default:
         if (leaguePhase.startsWith("offseason_recruiting")) {
           return "recruiting";

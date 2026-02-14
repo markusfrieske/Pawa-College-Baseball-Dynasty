@@ -3570,7 +3570,7 @@ export async function registerRoutes(
       }
 
       // ============ OFFSEASON SUB-PHASE PROGRESSION ============
-      const offseasonPhases = ["offseason_departures", "offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4", "offseason_signing_day"];
+      const offseasonPhases = ["offseason_departures", "offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4", "offseason_signing_day", "offseason_walkons"];
       
       if (league.currentPhase === "offseason_departures") {
         const existingPending = await storage.getPendingDeparturesByLeague(leagueId);
@@ -3663,8 +3663,38 @@ export async function registerRoutes(
       }
       
       if (league.currentPhase === "offseason_signing_day") {
-        // Finalize season: add signed recruits to rosters, advance eligibility, generate new class
-        const transitionResult = await performSeasonTransition(leagueId, league.currentSeason);
+        const signingResult = await finalizeSigningDay(leagueId, league.currentSeason);
+        
+        await generateWalkonPool(leagueId);
+        await processCpuWalkons(leagueId);
+        
+        const allTeams = await storage.getTeamsByLeague(leagueId);
+        for (const team of allTeams) {
+          await storage.updateTeam(team.id, { walkonReady: team.isCpu });
+        }
+        
+        const updatedLeague = await storage.updateLeague(league.id, {
+          currentPhase: "offseason_walkons",
+        });
+        
+        await storage.createAuditLog({
+          leagueId: league.id,
+          userId: req.session.userId,
+          action: "Walk-On Phase Started",
+          details: `Signing day complete. ${signingResult.recruitsAdded} recruits joined rosters. Teams can now make cuts and sign walk-ons.`,
+        });
+        
+        return res.json(updatedLeague);
+      }
+      
+      if (league.currentPhase === "offseason_walkons") {
+        const allTeams = await storage.getTeamsByLeague(leagueId);
+        const allReady = allTeams.every(t => t.walkonReady);
+        if (!allReady) {
+          return res.status(400).json({ message: "Not all teams are ready. Each team must mark ready before advancing." });
+        }
+        
+        const walkonResult = await finalizeWalkonsPhase(leagueId, league.currentSeason);
         
         const updatedLeague = await storage.updateLeague(league.id, {
           currentWeek: 1,
@@ -3676,7 +3706,7 @@ export async function registerRoutes(
           leagueId: league.id,
           userId: req.session.userId,
           action: "Season Advanced",
-          details: `Season ${league.currentSeason} ended. ${transitionResult.recruitsAdded} recruits joined rosters, ${transitionResult.newRecruits} new recruits generated. Now entering Season ${league.currentSeason + 1}.`,
+          details: `Season ${league.currentSeason} ended. ${walkonResult.walkonsAdded} walk-ons joined rosters, ${walkonResult.newRecruits} new recruits generated. Now entering Season ${league.currentSeason + 1}.`,
         });
 
         try {
@@ -3686,7 +3716,7 @@ export async function registerRoutes(
           console.error("Season preview news error:", e);
         }
 
-        return res.json({ ...updatedLeague, seasonTransition: transitionResult });
+        return res.json({ ...updatedLeague, seasonTransition: walkonResult });
       }
       
       // Legacy "offseason" phase - treat same as offseason_departures for backwards compatibility
@@ -3958,7 +3988,7 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Only the commissioner can sim the offseason." });
       }
 
-      const offseasonPhases = ["offseason_departures", "offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4", "offseason_signing_day"];
+      const offseasonPhases = ["offseason_departures", "offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4", "offseason_signing_day", "offseason_walkons"];
       if (!offseasonPhases.includes(league.currentPhase)) {
         return res.status(400).json({ message: "Can only sim to signing day during offseason phases." });
       }
@@ -3990,7 +4020,18 @@ export async function registerRoutes(
       }
 
       if (currentLeague.currentPhase === "offseason_signing_day") {
-        const transitionResult = await performSeasonTransition(leagueId, currentLeague.currentSeason);
+        const signingResult = await finalizeSigningDay(leagueId, currentLeague.currentSeason);
+        
+        await generateWalkonPool(leagueId);
+        await processCpuWalkons(leagueId);
+        
+        const allTeams2 = await storage.getTeamsByLeague(leagueId);
+        for (const team of allTeams2) {
+          await storage.updateTeam(team.id, { walkonReady: true });
+        }
+        
+        const walkonResult = await finalizeWalkonsPhase(leagueId, currentLeague.currentSeason);
+        
         currentLeague = (await storage.updateLeague(leagueId, {
           currentWeek: 1,
           currentSeason: currentLeague.currentSeason + 1,
@@ -4001,10 +4042,10 @@ export async function registerRoutes(
           leagueId,
           userId: req.session.userId,
           action: "Sim to Signing Day",
-          details: `Fast-forwarded offseason. ${transitionResult.recruitsAdded} recruits joined, ${transitionResult.newRecruits} new class generated. Now Season ${currentLeague.currentSeason}.`,
+          details: `Fast-forwarded offseason. ${signingResult.recruitsAdded} recruits joined, ${walkonResult.walkonsAdded} walk-ons added, ${walkonResult.newRecruits} new class generated. Now Season ${currentLeague.currentSeason}.`,
         });
 
-        return res.json({ ...currentLeague, seasonTransition: transitionResult });
+        return res.json({ ...currentLeague, seasonTransition: { ...signingResult, ...walkonResult } });
       }
 
       res.json(currentLeague);
@@ -5671,22 +5712,231 @@ export async function registerRoutes(
     }
   }
   
-  async function performSeasonTransition(leagueId: string, completedSeason: number) {
-    // Apply player progression before advancing eligibility
+  const walkonFirstNames = ["James","John","Robert","Michael","William","David","Richard","Joseph","Thomas","Charles","Christopher","Daniel","Matthew","Anthony","Mark","Donald","Steven","Paul","Andrew","Joshua","Kenneth","Kevin","Brian","George","Timothy","Ronald","Edward","Jason","Jeffrey","Ryan","Jacob","Gary","Nicholas","Eric","Jonathan","Patrick","Tyler","Brandon","Justin","Ethan","Nathan","Connor","Mason","Caleb","Dylan","Austin","Hunter","Chase","Logan","Cole"];
+  const walkonLastNames = ["Smith","Johnson","Williams","Brown","Jones","Garcia","Miller","Davis","Rodriguez","Martinez","Hernandez","Lopez","Gonzalez","Wilson","Anderson","Thomas","Taylor","Moore","Jackson","Martin","Lee","Perez","Thompson","White","Harris","Sanchez","Clark","Ramirez","Lewis","Robinson","Walker","Young","Allen","King","Wright","Scott","Torres","Hill","Green","Adams","Baker","Hall","Rivera","Campbell","Mitchell","Carter","Roberts","Gomez","Phillips","Evans"];
+
+  async function generateWalkonPool(leagueId: string) {
+    await storage.deleteWalkonsByLeague(leagueId);
+    
+    const allRecruits = await storage.getRecruitsByLeague(leagueId);
+    const unsignedRecruits = allRecruits.filter(r => !r.signedTeamId);
+    
+    for (const recruit of unsignedRecruits) {
+      await storage.createWalkon({
+        leagueId,
+        firstName: recruit.firstName,
+        lastName: recruit.lastName,
+        position: recruit.position,
+        throwHand: recruit.throwHand || "R",
+        batHand: recruit.batHand || "R",
+        homeState: recruit.homeState,
+        hometown: recruit.hometown,
+        eligibility: recruit.recruitYear || "FR",
+        overall: recruit.overall,
+        starRating: recruit.starRating,
+        hitForAvg: recruit.hitForAvg ?? 50,
+        power: recruit.power ?? 50,
+        speed: recruit.speed ?? 50,
+        arm: recruit.arm ?? 50,
+        fielding: recruit.fielding ?? 50,
+        errorResistance: recruit.errorResistance ?? 50,
+        clutch: recruit.clutch ?? 50,
+        vsLHP: recruit.vsLHP ?? 50,
+        grit: recruit.grit ?? 50,
+        stealing: recruit.stealing ?? 50,
+        running: recruit.running ?? 50,
+        throwing: recruit.throwing ?? 50,
+        recovery: recruit.recovery ?? 50,
+        catcherAbility: recruit.catcherAbility ?? 50,
+        velocity: recruit.velocity ?? 50,
+        control: recruit.control ?? 50,
+        stamina: recruit.stamina ?? 50,
+        stuff: recruit.stuff ?? 50,
+        wRISP: recruit.wRISP ?? 50,
+        vsLefty: recruit.vsLefty ?? 50,
+        poise: recruit.poise ?? 50,
+        heater: recruit.heater ?? 50,
+        agile: recruit.agile ?? 50,
+        abilities: recruit.abilities || [],
+        potential: recruit.potential ?? null,
+        isGenerated: false,
+        sourceRecruitId: recruit.id,
+        skinTone: recruit.skinTone || "light",
+        hairColor: recruit.hairColor || "brown",
+        hairStyle: recruit.hairStyle || "short",
+        headwear: recruit.headwear || "cap",
+      });
+    }
+    
+    const positionsToFill = ["P", "C", "1B", "2B", "SS", "3B", "LF", "CF", "RF"];
+    const pool = await storage.getWalkonsByLeague(leagueId);
+    const posCounts: Record<string, number> = {};
+    for (const p of pool) {
+      posCounts[p.position] = (posCounts[p.position] || 0) + 1;
+    }
+    
+    const TARGET_PER_POS = 12;
+    const fillerStates = ["TX", "CA", "FL", "GA", "NC", "AL", "SC", "LA", "AZ", "OH"];
+    const fillerTowns = ["Springfield", "Franklin", "Clinton", "Madison", "Georgetown", "Salem", "Greenville", "Bristol", "Fairview", "Chester"];
+    
+    for (const pos of positionsToFill) {
+      const current = posCounts[pos] || 0;
+      const needed = Math.max(0, TARGET_PER_POS - current);
+      
+      for (let i = 0; i < needed; i++) {
+        const isPitcher = pos === "P";
+        const randAttr = () => 20 + Math.floor(Math.random() * 26);
+        const attrs: any = {
+          hitForAvg: randAttr(), power: randAttr(), speed: randAttr(),
+          arm: randAttr(), fielding: randAttr(), errorResistance: randAttr(),
+          clutch: randAttr(), vsLHP: randAttr(), grit: randAttr(),
+          stealing: randAttr(), running: randAttr(), throwing: randAttr(),
+          recovery: randAttr(), catcherAbility: pos === "C" ? randAttr() : 20,
+          velocity: isPitcher ? randAttr() : 20, control: isPitcher ? randAttr() : 20,
+          stamina: isPitcher ? randAttr() : 20, stuff: isPitcher ? randAttr() : 20,
+          wRISP: randAttr(), vsLefty: randAttr(), poise: randAttr(),
+          heater: randAttr(), agile: randAttr(),
+          abilities: [],
+        };
+        
+        const overall = calculateOVR(attrs);
+        const starRating = getStarRatingFromOVR(overall);
+        const firstName = walkonFirstNames[Math.floor(Math.random() * walkonFirstNames.length)];
+        const lastName = walkonLastNames[Math.floor(Math.random() * walkonLastNames.length)];
+        const homeState = fillerStates[Math.floor(Math.random() * fillerStates.length)];
+        const hometown = fillerTowns[Math.floor(Math.random() * fillerTowns.length)];
+        
+        const potential = 50 + Math.floor(Math.random() * 24);
+        
+        await storage.createWalkon({
+          leagueId,
+          firstName,
+          lastName,
+          position: pos,
+          throwHand: Math.random() > 0.7 ? "L" : "R",
+          batHand: Math.random() > 0.65 ? "L" : "R",
+          homeState,
+          hometown,
+          eligibility: "FR",
+          overall,
+          starRating,
+          ...attrs,
+          potential,
+          isGenerated: true,
+          skinTone: ["light", "medium", "dark", "tan"][Math.floor(Math.random() * 4)],
+          hairColor: ["brown", "black", "blonde", "red"][Math.floor(Math.random() * 4)],
+          hairStyle: ["short", "buzz", "medium"][Math.floor(Math.random() * 3)],
+          headwear: "cap",
+        });
+      }
+    }
+  }
+
+  async function processCpuWalkons(leagueId: string) {
+    const teams = await storage.getTeamsByLeague(leagueId);
+    const MAX_ROSTER = 25;
+    
+    for (const team of teams) {
+      if (!team.isCpu) continue;
+      
+      let roster = await storage.getPlayersByTeam(team.id);
+      
+      if (roster.length > MAX_ROSTER) {
+        const positionCounts: Record<string, number> = {};
+        for (const p of roster) positionCounts[p.position] = (positionCounts[p.position] || 0) + 1;
+        
+        const cuttable = roster.filter(p => (positionCounts[p.position] || 0) > 1)
+          .sort((a, b) => (a.overall || 0) - (b.overall || 0));
+        
+        let toCut = roster.length - MAX_ROSTER;
+        const currentLeagueData = await storage.getLeague(leagueId);
+        const currentSeason = currentLeagueData?.currentSeason || 1;
+        
+        for (const player of cuttable) {
+          if (toCut <= 0) break;
+          if ((positionCounts[player.position] || 0) > 1) {
+            const eligMap: Record<string, number> = { "FR": 1, "SO": 2, "JR": 3, "SR": 4, "RS": 5 };
+            await storage.createPlayerHistory({
+              leagueId,
+              teamId: team.id,
+              firstName: player.firstName,
+              lastName: player.lastName,
+              position: player.position,
+              finalEligibility: player.eligibility,
+              overall: player.overall,
+              starRating: player.starRating,
+              departureType: "cut_juco",
+              departedSeason: currentSeason,
+              seasonsPlayed: eligMap[player.eligibility] || 1,
+              abilities: player.abilities || [],
+              homeState: player.homeState,
+              hometown: player.hometown,
+            });
+            await storage.deletePlayer(player.id);
+            positionCounts[player.position]--;
+            toCut--;
+          }
+        }
+        
+        roster = await storage.getPlayersByTeam(team.id);
+      }
+      
+      if (roster.length < MAX_ROSTER) {
+        const positionCounts: Record<string, number> = {};
+        for (const p of roster) positionCounts[p.position] = (positionCounts[p.position] || 0) + 1;
+        
+        let pool = await storage.getWalkonsByLeague(leagueId);
+        let available = pool.filter(w => !w.signedTeamId);
+        let slotsToFill = MAX_ROSTER - roster.length;
+        
+        while (slotsToFill > 0 && available.length > 0) {
+          const allPositions = ["P", "C", "1B", "2B", "SS", "3B", "LF", "CF", "RF"];
+          const posNeeds = allPositions.map(pos => ({ pos, count: positionCounts[pos] || 0 }))
+            .sort((a, b) => a.count - b.count);
+          
+          let signed = false;
+          for (const need of posNeeds) {
+            const candidates = available.filter(w => w.position === need.pos)
+              .sort((a, b) => (b.overall || 0) - (a.overall || 0));
+            
+            if (candidates.length > 0) {
+              const best = candidates[0];
+              await storage.updateWalkon(best.id, { signedTeamId: team.id, signedTeamName: team.name });
+              positionCounts[need.pos] = (positionCounts[need.pos] || 0) + 1;
+              slotsToFill--;
+              signed = true;
+              available = available.filter(w => w.id !== best.id);
+              break;
+            }
+          }
+          
+          if (!signed) {
+            const bestAvail = available.sort((a, b) => (b.overall || 0) - (a.overall || 0))[0];
+            if (bestAvail) {
+              await storage.updateWalkon(bestAvail.id, { signedTeamId: team.id, signedTeamName: team.name });
+              positionCounts[bestAvail.position] = (positionCounts[bestAvail.position] || 0) + 1;
+              slotsToFill--;
+              available = available.filter(w => w.id !== bestAvail.id);
+            } else {
+              break;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  async function finalizeSigningDay(leagueId: string, completedSeason: number) {
     const progressionResult = await applyPlayerProgression(leagueId);
 
     const teams = await storage.getTeamsByLeague(leagueId);
     let totalRecruitsAdded = 0;
     let totalTransferred = 0;
-    
-    // Collect unsigned transfer portal players BEFORE deleting them
-    const unsignedTransfers: Array<{ player: any; teamName: string }> = [];
-    
-    // Pre-pass: Auto-sign recruits for CPU teams that are under-rostered (round-robin for fairness)
+
     const MIN_ROSTER = 20;
     const cpuTeamsNeedingRecruits: Array<{ team: typeof teams[0]; needed: number; positionCounts: Record<string, number> }> = [];
     const allRecruitsPreCheck = await storage.getRecruitsByLeague(leagueId);
-    
+
     for (const team of teams) {
       if (!team.isCpu) continue;
       const currentRoster = await storage.getPlayersByTeam(team.id);
@@ -5698,7 +5948,7 @@ export async function registerRoutes(
         cpuTeamsNeedingRecruits.push({ team, needed: MIN_ROSTER - projectedSize, positionCounts });
       }
     }
-    
+
     if (cpuTeamsNeedingRecruits.length > 0) {
       const unsignedPool = allRecruitsPreCheck.filter(r => !r.signedTeamId);
       const claimed = new Set<string>();
@@ -5730,16 +5980,10 @@ export async function registerRoutes(
       const remainingPortal = roster.filter(p => p.inTransferPortal);
       for (const player of remainingPortal) {
         const eligMap: Record<string, number> = { "FR": 1, "SO": 2, "JR": 3, "SR": 4, "RS": 5 };
-        
-        // Check if this player was signed as a recruit by another team
+
         const recruits = await storage.getRecruitsByLeague(leagueId);
         const wasSignedAsRecruit = recruits.some(r => r.sourcePlayerId === player.id && r.signedTeamId);
-        
-        if (!wasSignedAsRecruit) {
-          // Track unsigned transfer for JUCO or adding to next recruiting pool
-          unsignedTransfers.push({ player, teamName: team.name });
-        }
-        
+
         await storage.createPlayerHistory({
           leagueId,
           teamId: team.id,
@@ -5756,11 +6000,61 @@ export async function registerRoutes(
           homeState: player.homeState,
           hometown: player.hometown,
         });
+
+        if (!wasSignedAsRecruit) {
+          const jucoEligMap: Record<string, string> = { "FR": "SO", "SO": "JR", "JR": "SR" };
+          const newElig = jucoEligMap[player.eligibility] || player.eligibility;
+          if (newElig !== "SR") {
+            await storage.createWalkon({
+              leagueId,
+              firstName: player.firstName,
+              lastName: player.lastName,
+              position: player.position,
+              throwHand: player.throwHand || "R",
+              batHand: player.batHand || "R",
+              homeState: player.homeState || "TX",
+              hometown: player.hometown || "Unknown",
+              eligibility: player.eligibility,
+              overall: player.overall,
+              starRating: player.starRating,
+              hitForAvg: player.hitForAvg || 50,
+              power: player.power || 50,
+              speed: player.speed || 50,
+              arm: player.arm || 50,
+              fielding: player.fielding || 50,
+              errorResistance: player.errorResistance || 50,
+              clutch: player.clutch || 50,
+              vsLHP: player.vsLHP || 50,
+              grit: player.grit || 50,
+              stealing: player.stealing || 50,
+              running: player.running || 50,
+              throwing: player.throwing || 50,
+              recovery: player.recovery || 50,
+              catcherAbility: player.catcherAbility || 50,
+              velocity: player.velocity || 50,
+              control: player.control || 50,
+              stamina: player.stamina || 50,
+              stuff: player.stuff || 50,
+              wRISP: player.wRISP || 50,
+              vsLefty: player.vsLefty || 50,
+              poise: player.poise || 50,
+              heater: player.heater || 50,
+              agile: player.agile || 50,
+              abilities: player.abilities || [],
+              potential: player.potential ?? null,
+              isGenerated: false,
+              skinTone: player.skinTone || "light",
+              hairColor: player.hairColor || "brown",
+              hairStyle: player.hairStyle || "short",
+              headwear: player.headwear || "cap",
+            });
+          }
+        }
+
         await storage.deletePlayer(player.id);
         totalTransferred++;
       }
-      
-      // Advance eligibility for remaining players: FR→SO, SO→JR, JR→SR
+
       const remainingPlayers = await storage.getPlayersByTeam(team.id);
       for (const player of remainingPlayers) {
         const eligProgression: Record<string, string> = {
@@ -5771,23 +6065,20 @@ export async function registerRoutes(
         };
         const newEligibility = eligProgression[player.eligibility];
         if (newEligibility) {
-          await storage.updatePlayer(player.id, { 
+          await storage.updatePlayer(player.id, {
             eligibility: newEligibility,
             declaredForDraft: false,
             inTransferPortal: false,
           });
         }
       }
-      
-      // Convert signed recruits into roster players
+
       const recruits = await storage.getRecruitsByLeague(leagueId);
       const signedRecruits = recruits.filter(r => r.signedTeamId === team.id);
-      
+
       for (const recruit of signedRecruits) {
         const jerseyNumber = 1 + Math.floor(Math.random() * 99);
-        // Transfer recruits keep their eligibility, HS recruits start as FR
         const recruitElig = recruit.recruitType === "TRANSFER" ? (recruit.recruitYear || "SO") : "FR";
-        // JUCO recruits get their JUCO year
         const finalElig = recruit.recruitType === "JUCO" ? (recruit.recruitYear || "FR") : recruitElig;
         await storage.createPlayer({
           teamId: team.id,
@@ -5843,122 +6134,167 @@ export async function registerRoutes(
         totalRecruitsAdded++;
       }
     }
-    
-    // Clear old recruits and recruiting data, generate new class
+
+    return {
+      recruitsAdded: totalRecruitsAdded,
+      transferred: totalTransferred,
+      playersProgressed: progressionResult.progressed,
+    };
+  }
+
+  async function finalizeWalkonsPhase(leagueId: string, completedSeason: number) {
+    const teams = await storage.getTeamsByLeague(leagueId);
+    let totalWalkonsAdded = 0;
+
+    const walkons = await storage.getWalkonsByLeague(leagueId);
+
+    for (const team of teams) {
+      const signedWalkons = walkons.filter(w => w.signedTeamId === team.id);
+      for (const walkon of signedWalkons) {
+        const jerseyNumber = 1 + Math.floor(Math.random() * 99);
+        await storage.createPlayer({
+          teamId: team.id,
+          firstName: walkon.firstName,
+          lastName: walkon.lastName,
+          position: walkon.position,
+          eligibility: walkon.eligibility || "FR",
+          throwHand: walkon.throwHand || "R",
+          batHand: walkon.batHand || "R",
+          homeState: walkon.homeState,
+          hometown: walkon.hometown,
+          jerseyNumber,
+          overall: walkon.overall,
+          starRating: walkon.starRating,
+          hitForAvg: walkon.hitForAvg || 50,
+          power: walkon.power || 50,
+          speed: walkon.speed || 50,
+          arm: walkon.arm || 50,
+          fielding: walkon.fielding || 50,
+          errorResistance: walkon.errorResistance || 50,
+          clutch: walkon.clutch || 50,
+          vsLHP: walkon.vsLHP || 50,
+          grit: walkon.grit || 50,
+          stealing: walkon.stealing || 50,
+          running: walkon.running || 50,
+          throwing: walkon.throwing || 50,
+          recovery: walkon.recovery || 50,
+          catcherAbility: walkon.catcherAbility || 50,
+          velocity: walkon.velocity || 50,
+          control: walkon.control || 50,
+          stamina: walkon.stamina || 50,
+          stuff: walkon.stuff || 50,
+          wRISP: walkon.wRISP || 50,
+          vsLefty: walkon.vsLefty || 50,
+          poise: walkon.poise || 50,
+          heater: walkon.heater || 50,
+          agile: walkon.agile || 50,
+          abilities: walkon.abilities || [],
+          skinTone: walkon.skinTone || "light",
+          hairColor: walkon.hairColor || "brown",
+          hairStyle: walkon.hairStyle || "short",
+          headwear: walkon.headwear || "cap",
+          potential: walkon.potential ?? null,
+        });
+        totalWalkonsAdded++;
+      }
+    }
+
+    const unsignedRealWalkons = walkons.filter(w => !w.signedTeamId && !w.isGenerated);
+
+    await storage.deleteWalkonsByLeague(leagueId);
+
     await storage.deleteRecruitsByLeague(leagueId);
-    
-    // Generate new recruiting class (80 HS recruits)
+
     const recruitCount = 80;
     await generateRecruits(leagueId, recruitCount);
-    
-    // Add unsigned transfer portal players as JUCO recruits in the new recruiting class
-    // They "signed with JUCO" and will re-enter as JUCO recruits next season
-    for (const { player, teamName } of unsignedTransfers) {
-      // Advance their eligibility for JUCO year
+
+    for (const walkon of unsignedRealWalkons) {
       const jucoEligMap: Record<string, string> = { "FR": "SO", "SO": "JR", "JR": "SR" };
-      const newElig = jucoEligMap[player.eligibility] || player.eligibility;
-      if (newElig === "SR") continue; // Seniors can't come back from JUCO
-      
-      // JUCO development: boost each attribute by +1-3 points, then recalculate OVR
+      const newElig = jucoEligMap[walkon.eligibility || "FR"] || walkon.eligibility;
+      if (newElig === "SR") continue;
+
       const jucoAttrBoost = () => 1 + Math.floor(Math.random() * 3);
-      const boostedHitForAvg = Math.min(100, (player.hitForAvg || 50) + jucoAttrBoost());
-      const boostedPower = Math.min(100, (player.power || 50) + jucoAttrBoost());
-      const boostedSpeed = Math.min(100, (player.speed || 50) + jucoAttrBoost());
-      const boostedArm = Math.min(100, (player.arm || 50) + jucoAttrBoost());
-      const boostedFielding = Math.min(100, (player.fielding || 50) + jucoAttrBoost());
-      const boostedErrorResistance = Math.min(100, (player.errorResistance || 50) + jucoAttrBoost());
-      const boostedVelocity = Math.min(100, (player.velocity || 50) + jucoAttrBoost());
-      const boostedControl = Math.min(100, (player.control || 50) + jucoAttrBoost());
-      const boostedStamina = Math.min(100, (player.stamina || 50) + jucoAttrBoost());
-      const boostedStuff = Math.min(100, (player.stuff || 50) + jucoAttrBoost());
-      
-      const jucoPlayerData = {
+      const boostedHitForAvg = Math.min(100, (walkon.hitForAvg || 50) + jucoAttrBoost());
+      const boostedPower = Math.min(100, (walkon.power || 50) + jucoAttrBoost());
+      const boostedSpeed = Math.min(100, (walkon.speed || 50) + jucoAttrBoost());
+      const boostedArm = Math.min(100, (walkon.arm || 50) + jucoAttrBoost());
+      const boostedFielding = Math.min(100, (walkon.fielding || 50) + jucoAttrBoost());
+      const boostedErrorResistance = Math.min(100, (walkon.errorResistance || 50) + jucoAttrBoost());
+      const boostedVelocity = Math.min(100, (walkon.velocity || 50) + jucoAttrBoost());
+      const boostedControl = Math.min(100, (walkon.control || 50) + jucoAttrBoost());
+      const boostedStamina = Math.min(100, (walkon.stamina || 50) + jucoAttrBoost());
+      const boostedStuff = Math.min(100, (walkon.stuff || 50) + jucoAttrBoost());
+
+      const jucoData = {
         hitForAvg: boostedHitForAvg, power: boostedPower, speed: boostedSpeed,
         arm: boostedArm, fielding: boostedFielding, errorResistance: boostedErrorResistance,
         velocity: boostedVelocity, control: boostedControl, stamina: boostedStamina, stuff: boostedStuff,
-        clutch: player.clutch, vsLHP: player.vsLHP, grit: player.grit, stealing: player.stealing,
-        running: player.running, throwing: player.throwing, recovery: player.recovery,
-        wRISP: player.wRISP, vsLefty: player.vsLefty, poise: player.poise,
-        heater: player.heater, agile: player.agile,
-        abilities: player.abilities as string[] || [],
+        clutch: walkon.clutch, vsLHP: walkon.vsLHP, grit: walkon.grit, stealing: walkon.stealing,
+        running: walkon.running, throwing: walkon.throwing, recovery: walkon.recovery,
+        wRISP: walkon.wRISP, vsLefty: walkon.vsLefty, poise: walkon.poise,
+        heater: walkon.heater, agile: walkon.agile,
+        abilities: walkon.abilities as string[] || [],
       };
-      const boostedOverall = calculateOVR(jucoPlayerData);
-      const starRating = getStarRatingFromOVR(boostedOverall);
-      
-      // Get all recruits to determine new rank
+      const boostedOverall = calculateOVR(jucoData);
+      const walkonStarRating = getStarRatingFromOVR(boostedOverall);
+
       const currentRecruits = await storage.getRecruitsByLeague(leagueId);
       const classRank = currentRecruits.filter(r => (r.overall || 0) >= boostedOverall).length + 1;
-      const posRecruits = currentRecruits.filter(r => r.position === player.position);
+      const posRecruits = currentRecruits.filter(r => r.position === walkon.position);
       const posRank = posRecruits.filter(r => (r.overall || 0) >= boostedOverall).length + 1;
-      
+
       await storage.createRecruit({
         leagueId,
-        firstName: player.firstName,
-        lastName: player.lastName,
-        position: player.position,
-        throwHand: player.throwHand || "R",
-        batHand: player.batHand || "R",
-        homeState: player.homeState || "TX",
-        hometown: player.hometown || "Unknown",
-        starRank: starRating,
+        firstName: walkon.firstName,
+        lastName: walkon.lastName,
+        position: walkon.position,
+        throwHand: walkon.throwHand || "R",
+        batHand: walkon.batHand || "R",
+        homeState: walkon.homeState || "TX",
+        hometown: walkon.hometown || "Unknown",
+        starRank: walkonStarRating,
         classRank,
         positionRank: posRank,
         recruitType: "JUCO",
         recruitYear: newElig,
         overall: boostedOverall,
-        starRating,
+        starRating: walkonStarRating,
         hitForAvg: boostedHitForAvg,
         power: boostedPower,
         speed: boostedSpeed,
         arm: boostedArm,
         fielding: boostedFielding,
         errorResistance: boostedErrorResistance,
-        clutch: player.clutch || 50,
-        vsLHP: player.vsLHP || 50,
-        grit: player.grit || 50,
-        stealing: player.stealing || 50,
-        running: player.running || 50,
-        throwing: player.throwing || 50,
-        recovery: player.recovery || 50,
-        catcherAbility: player.catcherAbility || 50,
+        clutch: walkon.clutch || 50,
+        vsLHP: walkon.vsLHP || 50,
+        grit: walkon.grit || 50,
+        stealing: walkon.stealing || 50,
+        running: walkon.running || 50,
+        throwing: walkon.throwing || 50,
+        recovery: walkon.recovery || 50,
+        catcherAbility: walkon.catcherAbility || 50,
         velocity: boostedVelocity,
         control: boostedControl,
         stamina: boostedStamina,
         stuff: boostedStuff,
-        wRISP: player.wRISP || 50,
-        vsLefty: player.vsLefty || 50,
-        poise: player.poise || 50,
-        heater: player.heater || 50,
-        agile: player.agile || 50,
-        pitchFB: player.pitchFB ?? 1,
-        pitch2S: player.pitch2S ?? 0,
-        pitchSL: player.pitchSL ?? 0,
-        pitchCB: player.pitchCB ?? 0,
-        pitchCH: player.pitchCH ?? 0,
-        pitchCT: player.pitchCT ?? 0,
-        pitchSNK: player.pitchSNK ?? 0,
-        pitchSPL: player.pitchSPL ?? 0,
-        potential: player.potential ?? rollWeightedPotential(),
-        abilities: player.abilities || [],
-        fromTeamName: teamName,
-        skinTone: player.skinTone || "light",
-        hairColor: player.hairColor || "brown",
-        hairStyle: player.hairStyle || "short",
-        headwear: player.headwear || "cap",
-        commitmentThreshold: 400,
-        proximityPriority: "Somewhat",
-        reputationPriority: "Somewhat",
-        playingTimePriority: "Very Important",
-        academicsPriority: "Not Important",
-        prestigePriority: "Somewhat",
-        facilitiesPriority: "Somewhat",
+        wRISP: walkon.wRISP || 50,
+        vsLefty: walkon.vsLefty || 50,
+        poise: walkon.poise || 50,
+        heater: walkon.heater || 50,
+        agile: walkon.agile || 50,
+        abilities: walkon.abilities || [],
+        skinTone: walkon.skinTone || "light",
+        hairColor: walkon.hairColor || "brown",
+        hairStyle: walkon.hairStyle || "short",
+        headwear: walkon.headwear || "cap",
+        potential: walkon.potential ?? 60,
+        sourcePlayerId: null,
+        fromTeamName: null,
       });
     }
-    
-    // Generate top schools interest for any new recruits (includes JUCO)
+
     await generateTopSchoolsForLeague(leagueId);
-    
-    // Create new standings for the next season (guard against duplicates)
+
     const existingStandings = await storage.getStandingsByLeague(leagueId, completedSeason + 1);
     if (existingStandings.length === 0) {
       for (const team of teams) {
@@ -5969,15 +6305,24 @@ export async function registerRoutes(
         });
       }
     }
-    
-    // Generate schedule for the next season
+
     await generateSchedule(leagueId, completedSeason + 1);
-    
+
     return {
-      transferred: totalTransferred,
-      recruitsAdded: totalRecruitsAdded,
+      walkonsAdded: totalWalkonsAdded,
       newRecruits: recruitCount,
-      playersProgressed: progressionResult.progressed,
+    };
+  }
+
+  async function performSeasonTransition(leagueId: string, completedSeason: number) {
+    const signingResult = await finalizeSigningDay(leagueId, completedSeason);
+    const walkonResult = await finalizeWalkonsPhase(leagueId, completedSeason);
+
+    return {
+      transferred: signingResult.transferred,
+      recruitsAdded: signingResult.recruitsAdded + walkonResult.walkonsAdded,
+      newRecruits: walkonResult.newRecruits,
+      playersProgressed: signingResult.playersProgressed,
     };
   }
   
@@ -6090,7 +6435,7 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Only commissioner can advance the season" });
       }
       
-      const offseasonPhaseList = ["offseason", "offseason_departures", "offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4", "offseason_signing_day"];
+      const offseasonPhaseList = ["offseason", "offseason_departures", "offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4", "offseason_signing_day", "offseason_walkons"];
       if (!offseasonPhaseList.includes(league.currentPhase)) {
         return res.status(400).json({ message: "Season can only be advanced during offseason phase" });
       }
@@ -6114,6 +6459,136 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to advance season:", error);
       res.status(500).json({ message: "Failed to advance season" });
+    }
+  });
+
+  // ============ WALK-ON MANAGEMENT ENDPOINTS ============
+  app.get("/api/leagues/:id/walkons", requireAuth, async (req, res) => {
+    try {
+      const walkons = await storage.getWalkonsByLeague(req.params.id);
+      res.json(walkons);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get walk-on pool" });
+    }
+  });
+
+  app.post("/api/leagues/:id/walkons/:walkonId/sign", requireAuth, async (req, res) => {
+    try {
+      const { id: leagueId, walkonId } = req.params;
+      const league = await storage.getLeague(leagueId);
+      if (!league || league.currentPhase !== "offseason_walkons") {
+        return res.status(400).json({ message: "Not in walk-on phase" });
+      }
+      
+      const coaches = await storage.getCoachesByLeague(leagueId);
+      const userCoach = coaches.find(c => c.userId === req.session.userId);
+      if (!userCoach || !userCoach.teamId) {
+        return res.status(403).json({ message: "No team found" });
+      }
+      const team = await storage.getTeam(userCoach.teamId);
+      if (!team) return res.status(404).json({ message: "Team not found" });
+      
+      const roster = await storage.getPlayersByTeam(team.id);
+      if (roster.length >= 25) {
+        return res.status(400).json({ message: "Roster is full (25 players). Cut a player first." });
+      }
+      
+      const walkons = await storage.getWalkonsByLeague(leagueId);
+      const walkon = walkons.find(w => w.id === walkonId);
+      if (!walkon) return res.status(404).json({ message: "Walk-on not found" });
+      if (walkon.signedTeamId) {
+        return res.status(400).json({ message: `Already signed by ${walkon.signedTeamName || "another team"}` });
+      }
+      
+      const updated = await storage.updateWalkon(walkonId, { signedTeamId: team.id, signedTeamName: team.name });
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to sign walk-on" });
+    }
+  });
+
+  app.post("/api/leagues/:id/walkons/cut/:playerId", requireAuth, async (req, res) => {
+    try {
+      const { id: leagueId, playerId } = req.params;
+      const league = await storage.getLeague(leagueId);
+      if (!league || league.currentPhase !== "offseason_walkons") {
+        return res.status(400).json({ message: "Not in walk-on phase" });
+      }
+      
+      const coaches = await storage.getCoachesByLeague(leagueId);
+      const userCoach = coaches.find(c => c.userId === req.session.userId);
+      if (!userCoach || !userCoach.teamId) {
+        return res.status(403).json({ message: "No team found" });
+      }
+      
+      const player = await storage.getPlayer(playerId);
+      if (!player || player.teamId !== userCoach.teamId) {
+        return res.status(403).json({ message: "Not your player" });
+      }
+      
+      const eligMap: Record<string, number> = { "FR": 1, "SO": 2, "JR": 3, "SR": 4, "RS": 5 };
+      await storage.createPlayerHistory({
+        leagueId,
+        teamId: userCoach.teamId,
+        firstName: player.firstName,
+        lastName: player.lastName,
+        position: player.position,
+        finalEligibility: player.eligibility,
+        overall: player.overall,
+        starRating: player.starRating,
+        departureType: "cut_juco",
+        departedSeason: league.currentSeason,
+        seasonsPlayed: eligMap[player.eligibility] || 1,
+        abilities: player.abilities || [],
+        homeState: player.homeState,
+        hometown: player.hometown,
+      });
+      
+      await storage.deletePlayer(playerId);
+      
+      res.json({ message: "Player cut and sent to JUCO" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to cut player" });
+    }
+  });
+
+  app.post("/api/leagues/:id/walkons/ready", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id;
+      const league = await storage.getLeague(leagueId);
+      if (!league || league.currentPhase !== "offseason_walkons") {
+        return res.status(400).json({ message: "Not in walk-on phase" });
+      }
+      
+      const coaches = await storage.getCoachesByLeague(leagueId);
+      const userCoach = coaches.find(c => c.userId === req.session.userId);
+      if (!userCoach || !userCoach.teamId) {
+        return res.status(403).json({ message: "No team found" });
+      }
+      
+      const team = await storage.getTeam(userCoach.teamId);
+      if (!team) return res.status(404).json({ message: "Team not found" });
+      
+      const updated = await storage.updateTeam(team.id, { walkonReady: !team.walkonReady });
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to toggle ready status" });
+    }
+  });
+
+  app.get("/api/leagues/:id/walkons/readiness", requireAuth, async (req, res) => {
+    try {
+      const teams = await storage.getTeamsByLeague(req.params.id);
+      const readiness = teams.map(t => ({
+        teamId: t.id,
+        teamName: t.name,
+        isCpu: t.isCpu,
+        walkonReady: t.walkonReady,
+        abbreviation: t.abbreviation,
+      }));
+      res.json(readiness);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get readiness" });
     }
   });
 

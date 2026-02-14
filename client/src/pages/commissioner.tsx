@@ -96,6 +96,7 @@ export default function CommissionerPage() {
           offseason_recruiting_3: "Offseason recruiting week 3 underway.",
           offseason_recruiting_4: "Final week of offseason recruiting.",
           offseason_signing_day: "Recruiting is over! Signing Day results are in.",
+          offseason_walkons: "Teams are finalizing roster cuts and walk-on signings.",
         };
         const phaseTitle: Record<string, string> = {
           conference_championship: "Postseason Update",
@@ -107,6 +108,7 @@ export default function CommissionerPage() {
           offseason_recruiting_3: "Offseason Recruiting",
           offseason_recruiting_4: "Offseason Recruiting",
           offseason_signing_day: "Signing Day",
+          offseason_walkons: "Walk-Ons",
         };
         toast({ 
           title: phaseTitle[phase] || (phaseMessages[phase] ? "Update" : "Week Advanced"), 
@@ -311,6 +313,7 @@ export default function CommissionerPage() {
     offseason_recruiting_3: "Offseason Recruiting (Wk 3)",
     offseason_recruiting_4: "Offseason Recruiting (Wk 4)",
     offseason_signing_day: "Signing Day",
+    offseason_walkons: "Walk-Ons",
   };
 
   return (
@@ -494,7 +497,7 @@ function ActionsTab({
   };
 
   const isPostseason = ["conference_championship", "super_regionals", "cws"].includes(league?.currentPhase || "");
-  const offseasonPhaseList = ["offseason", "offseason_departures", "offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4", "offseason_signing_day"];
+  const offseasonPhaseList = ["offseason", "offseason_departures", "offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4", "offseason_signing_day", "offseason_walkons"];
   const isOffseason = offseasonPhaseList.includes(league?.currentPhase || "");
   const anySim = isAdvancing || isAdvancingSeason || isSimToOffseason || isSimToSigningDay || isSimToPostseason || isSimToCws;
   
@@ -510,6 +513,7 @@ function ActionsTab({
       case "offseason_recruiting_3": return "Advance Recruiting (Week 3)";
       case "offseason_recruiting_4": return "Advance Recruiting (Week 4)";
       case "offseason_signing_day": return "Signing Day - Start New Season";
+      case "offseason_walkons": return "Finalize Walk-Ons - Start New Season";
       case "offseason": return "Begin Offseason";
       default: return "Advance Week";
     }
@@ -527,6 +531,7 @@ function ActionsTab({
       case "offseason_recruiting_4":
         return "Continue recruiting unsigned recruits and transfer portal players. CPU teams are also actively recruiting during this period.";
       case "offseason_signing_day": return "Signing Day! Finalize all commits, add signed recruits to rosters, advance eligibility, and generate a new recruiting class for next season.";
+      case "offseason_walkons": return "All teams must finalize their roster cuts and walk-on signings before advancing. Once all teams are ready, rosters will be locked and the new season begins.";
       case "offseason": return "Begin the offseason process. Players will be leaving, recruiting continues, and a new season awaits.";
       default: return "Move the league forward to the next week. This will process recruiting updates, trigger story events, and update standings.";
     }
@@ -544,6 +549,7 @@ function ActionsTab({
       case "offseason_recruiting_4":
         return <Target className="w-4 h-4 mr-2" />;
       case "offseason_signing_day": return <GraduationCap className="w-4 h-4 mr-2" />;
+      case "offseason_walkons": return <UserPlus className="w-4 h-4 mr-2" />;
       case "offseason": return <GraduationCap className="w-4 h-4 mr-2" />;
       default: return <Play className="w-4 h-4 mr-2" />;
     }

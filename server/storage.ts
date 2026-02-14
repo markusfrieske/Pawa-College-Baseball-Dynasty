@@ -2,7 +2,7 @@ import {
   users, leagues, conferences, teams, coaches, scouts,
   players, recruits, recruitingInterests, games, standings, auditLogs, leagueInvites, dynastyNews,
   recruitingActionsLog, recruitTopSchools, transferPortalInterests, playerHistory, playerPromises,
-  storyEvents, storyArcs, storyArcChapters, moments, playerSeasonStats,
+  storyEvents, storyArcs, storyArcChapters, moments, playerSeasonStats, walkonPool,
   type User, type InsertUser,
   type League, type InsertLeague,
   type Conference, type InsertConference,
@@ -27,6 +27,7 @@ import {
   type StoryArcChapter, type InsertStoryArcChapter,
   type Moment, type InsertMoment,
   type PlayerSeasonStats, type InsertPlayerSeasonStats,
+  type Walkon, type InsertWalkon,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, or, inArray, isNotNull, sql } from "drizzle-orm";
@@ -66,6 +67,11 @@ export interface IStorage {
   createRecruit(recruit: InsertRecruit): Promise<Recruit>;
   updateRecruit(id: string, data: Partial<Recruit>): Promise<Recruit | undefined>;
   deleteRecruitsByLeague(leagueId: string): Promise<void>;
+
+  getWalkonsByLeague(leagueId: string): Promise<Walkon[]>;
+  createWalkon(walkon: InsertWalkon): Promise<Walkon>;
+  updateWalkon(id: string, data: Partial<Walkon>): Promise<Walkon | undefined>;
+  deleteWalkonsByLeague(leagueId: string): Promise<void>;
 
   getRecruitingInterestsByTeam(teamId: string): Promise<RecruitingInterest[]>;
   getRecruitingInterestsByLeague(leagueId: string): Promise<RecruitingInterest[]>;
@@ -291,6 +297,24 @@ export class DatabaseStorage implements IStorage {
       await db.delete(recruitingInterests).where(inArray(recruitingInterests.recruitId, recruitIds));
     }
     await db.delete(recruits).where(eq(recruits.leagueId, leagueId));
+  }
+
+  async getWalkonsByLeague(leagueId: string): Promise<Walkon[]> {
+    return await db.select().from(walkonPool).where(eq(walkonPool.leagueId, leagueId));
+  }
+
+  async createWalkon(insertWalkon: InsertWalkon): Promise<Walkon> {
+    const [walkon] = await db.insert(walkonPool).values(insertWalkon).returning();
+    return walkon;
+  }
+
+  async updateWalkon(id: string, data: Partial<Walkon>): Promise<Walkon | undefined> {
+    const [walkon] = await db.update(walkonPool).set(data).where(eq(walkonPool.id, id)).returning();
+    return walkon || undefined;
+  }
+
+  async deleteWalkonsByLeague(leagueId: string): Promise<void> {
+    await db.delete(walkonPool).where(eq(walkonPool.leagueId, leagueId));
   }
 
   async getRecruitingInterestsByTeam(teamId: string): Promise<RecruitingInterest[]> {

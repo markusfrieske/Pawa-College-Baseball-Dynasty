@@ -36,7 +36,8 @@ import {
   BarChart,
   ScrollText,
   Compass,
-  UserMinus
+  UserMinus,
+  UserPlus
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -151,6 +152,7 @@ export default function LeagueViewPage() {
     offseason_recruiting_3: "Offseason Recruiting (Week 3)",
     offseason_recruiting_4: "Offseason Recruiting (Week 4)",
     offseason_signing_day: "Signing Day",
+    offseason_walkons: "Cuts & Walk-Ons",
   };
 
   const canShowRecap = league.currentSeason >= 1;
@@ -1130,6 +1132,8 @@ function PhaseGuidanceBanner({ phase, leagueId }: { phase: string; leagueId: str
         return { text: "Recruiting is open. Scout, contact, and offer scholarships to build your next class.", action: { label: "Recruiting", href: `/league/${leagueId}/recruiting` } };
       case "offseason_signing_day":
         return { text: "Signing Day is here. Finalize your recruiting class from the Commissioner page.", action: { label: "Commissioner", href: `/league/${leagueId}/commissioner` } };
+      case "offseason_walkons":
+        return { text: "Time to finalize your roster. Cut players to get to 25 and sign walk-ons to fill gaps.", action: { label: "Walk-Ons", href: `/league/${leagueId}/walkons` } };
       default:
         return null;
     }
@@ -1164,7 +1168,7 @@ function SeasonProgressBar({ phase }: { phase: string }) {
   ];
 
   const offseasonPhases = ["offseason_departures", "offseason_recruiting_1", "offseason_recruiting_2", 
-    "offseason_recruiting_3", "offseason_recruiting_4", "offseason_signing_day"];
+    "offseason_recruiting_3", "offseason_recruiting_4", "offseason_signing_day", "offseason_walkons"];
   
   const springPhases = ["preseason", "spring_training"];
   
@@ -2732,7 +2736,7 @@ function SeasonRecapDialog({ leagueId, season, open, onClose }: { leagueId: stri
 }
 
 function OffseasonSummary({ league }: { league: LeagueDetails }) {
-  const isOffseasonPhase = ["offseason", "offseason_departures", "offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4", "offseason_signing_day"].includes(league.currentPhase);
+  const isOffseasonPhase = ["offseason", "offseason_departures", "offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4", "offseason_signing_day", "offseason_walkons"].includes(league.currentPhase);
   
   if (!isOffseasonPhase) return null;
   
@@ -2782,11 +2786,13 @@ function OffseasonSummary({ league }: { league: LeagueDetails }) {
 
   const phaseTitle = league.currentPhase === "offseason_departures" ? "PLAYERS LEAVING" 
     : league.currentPhase === "offseason_signing_day" ? "SIGNING DAY"
+    : league.currentPhase === "offseason_walkons" ? "CUTS & WALK-ONS"
     : league.currentPhase?.startsWith("offseason_recruiting") ? "OFFSEASON RECRUITING"
     : "OFFSEASON";
 
   const phaseIcon = league.currentPhase === "offseason_departures" ? <UserMinus className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
     : league.currentPhase === "offseason_signing_day" ? <Award className="w-5 h-5 text-gold flex-shrink-0 mt-0.5" />
+    : league.currentPhase === "offseason_walkons" ? <UserPlus className="w-5 h-5 text-gold flex-shrink-0 mt-0.5" />
     : <ScrollText className="w-5 h-5 text-gold flex-shrink-0 mt-0.5" />;
   
   return (
@@ -2848,7 +2854,20 @@ function OffseasonSummary({ league }: { league: LeagueDetails }) {
             </p>
           )}
 
-          {/* Signing Day phase */}
+          {league.currentPhase === "offseason_walkons" && (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Finalize your roster by cutting players and signing walk-ons. All teams must be ready before advancing to the new season.
+              </p>
+              <Link href={`/league/${league.id}/walkons`}>
+                <RetroButton variant="primary" size="sm" data-testid="button-walkons-page">
+                  <UserPlus className="w-3 h-3 mr-1" />
+                  Manage Walk-Ons
+                </RetroButton>
+              </Link>
+            </div>
+          )}
+
           {league.currentPhase === "offseason_signing_day" && signingDayData && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -2905,7 +2924,7 @@ function OffseasonSummary({ league }: { league: LeagueDetails }) {
                 View Roster
               </RetroButton>
             </Link>
-            {league.currentPhase !== "offseason_signing_day" && (
+            {league.currentPhase !== "offseason_signing_day" && league.currentPhase !== "offseason_walkons" && (
               <Link href={`/league/${league.id}/recruiting`}>
                 <RetroButton variant="outline" size="sm" data-testid="button-offseason-recruiting">
                   <Target className="w-3 h-3 mr-1" />
