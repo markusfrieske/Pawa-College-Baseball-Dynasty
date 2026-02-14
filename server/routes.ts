@@ -8537,15 +8537,13 @@ async function generateRecruits(leagueId: string, count: number) {
   } => {
     if (isPitcher) {
       return {
-        // Pitcher abilities (active)
-        wRISP: generateCommonAbilityValue(overall),
-        vsLefty: generateCommonAbilityValue(overall),
-        poise: generateCommonAbilityValue(overall),
-        grit: generateCommonAbilityValue(overall),
-        heater: generateCommonAbilityValue(overall),
-        agile: generateCommonAbilityValue(overall),
-        recovery: generateCommonAbilityValue(overall),
-        // Fielder abilities (default values for pitchers)
+        wRISP: generateCommonAbilityValue(targetAvg),
+        vsLefty: generateCommonAbilityValue(targetAvg),
+        poise: generateCommonAbilityValue(targetAvg),
+        grit: generateCommonAbilityValue(targetAvg),
+        heater: generateCommonAbilityValue(targetAvg),
+        agile: generateCommonAbilityValue(targetAvg),
+        recovery: generateCommonAbilityValue(targetAvg),
         clutch: 50,
         vsLHP: 50,
         stealing: 50,
@@ -8555,16 +8553,14 @@ async function generateRecruits(leagueId: string, count: number) {
       };
     } else {
       return {
-        // Fielder abilities (active)
-        clutch: generateCommonAbilityValue(overall),
-        vsLHP: generateCommonAbilityValue(overall),
-        grit: generateCommonAbilityValue(overall),
-        stealing: generateCommonAbilityValue(overall),
-        running: generateCommonAbilityValue(overall),
-        throwing: generateCommonAbilityValue(overall),
-        recovery: generateCommonAbilityValue(overall),
-        catcherAbility: position === 'C' ? generateCommonAbilityValue(overall) : 50,
-        // Pitcher abilities (default values for fielders)
+        clutch: generateCommonAbilityValue(targetAvg),
+        vsLHP: generateCommonAbilityValue(targetAvg),
+        grit: generateCommonAbilityValue(targetAvg),
+        stealing: generateCommonAbilityValue(targetAvg),
+        running: generateCommonAbilityValue(targetAvg),
+        throwing: generateCommonAbilityValue(targetAvg),
+        recovery: generateCommonAbilityValue(targetAvg),
+        catcherAbility: position === 'C' ? generateCommonAbilityValue(targetAvg) : 50,
         wRISP: 50,
         vsLefty: 50,
         poise: 50,
