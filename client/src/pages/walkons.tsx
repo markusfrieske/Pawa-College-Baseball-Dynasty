@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { ArrowLeft, Users, UserPlus, Scissors, CheckCircle, Filter, Star, MapPin } from "lucide-react";
 import { getPotentialGrade } from "@shared/potential";
+import { PlayerProfileCard } from "@/components/player-profile-card";
 import type { Player, Team, League } from "@shared/schema";
 
 interface Walkon {
@@ -50,6 +51,7 @@ export default function WalkonsPage() {
   const { id } = useParams<{ id: string }>();
   const [posFilter, setPosFilter] = useState("all");
   const [showSigned, setShowSigned] = useState(false);
+  const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -217,24 +219,28 @@ export default function WalkonsPage() {
                   {sortedRoster.map(player => (
                     <div
                       key={player.id}
-                      className="flex items-center gap-2 p-2 rounded bg-muted/20 hover-elevate"
+                      className="flex items-center gap-2 p-2 rounded bg-muted/20 hover-elevate cursor-pointer"
                       data-testid={`roster-player-${player.id}`}
+                      onClick={() => setSelectedPlayer(player)}
                     >
                       <PositionBadge position={player.position} size="sm" />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium truncate">
                           {player.firstName} {player.lastName}
                         </p>
-                        <div className="flex items-center gap-2 text-[9px] text-muted-foreground">
+                        <div className="flex items-center gap-2 text-[9px] text-muted-foreground flex-wrap">
                           <span>{player.eligibility}</span>
                           <span>{player.overall} OVR</span>
                           <span className="flex">{starDisplay(player.starRating || 1)}</span>
+                          {player.potential != null && (
+                            <span>Pot: {getPotentialGrade(player.potential)}</span>
+                          )}
                         </div>
                       </div>
                       <RetroButton
                         variant="ghost"
                         size="sm"
-                        onClick={() => cutMutation.mutate(player.id)}
+                        onClick={(e) => { e.stopPropagation(); cutMutation.mutate(player.id); }}
                         disabled={cutMutation.isPending}
                         className="text-red-400 hover:text-red-300"
                         data-testid={`button-cut-${player.id}`}
@@ -352,6 +358,19 @@ export default function WalkonsPage() {
           </div>
         </div>
       </div>
+
+      {selectedPlayer && (
+        <PlayerProfileCard
+          player={{
+            ...selectedPlayer,
+            bats: selectedPlayer.batHand,
+            throws: selectedPlayer.throwHand,
+          }}
+          open={!!selectedPlayer}
+          onClose={() => setSelectedPlayer(null)}
+          leagueId={id}
+        />
+      )}
     </div>
   );
 }
