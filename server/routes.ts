@@ -4899,6 +4899,26 @@ export async function registerRoutes(
   // ============ SEASON TRANSITION FUNCTION ============
 
   // ============ PLAYER PROGRESSION ============
+  function getOvrDeltaFromPotential(potential: number): number {
+    const grade = getPotentialGrade(potential);
+    switch (grade) {
+      case "A+": return 40 + Math.floor(Math.random() * 11);
+      case "A":  return 25 + Math.floor(Math.random() * 11);
+      case "A-": return 20 + Math.floor(Math.random() * 11);
+      case "B+": return 15 + Math.floor(Math.random() * 11);
+      case "B":  return 10 + Math.floor(Math.random() * 11);
+      case "B-": return 10 + Math.floor(Math.random() * 6);
+      case "C+": return 3 + Math.floor(Math.random() * 6);
+      case "C":  return -2 + Math.floor(Math.random() * 5);
+      case "C-": return -5 + Math.floor(Math.random() * 6);
+      case "D+": return -(5 + Math.floor(Math.random() * 6));
+      case "D":  return -(10 + Math.floor(Math.random() * 11));
+      case "D-": return -(15 + Math.floor(Math.random() * 11));
+      case "F":  return -(25 + Math.floor(Math.random() * 16));
+      default:   return 0;
+    }
+  }
+
   async function applyPlayerProgression(leagueId: string) {
     const league = await storage.getLeague(leagueId);
     if (!league?.progressionEnabled) return { progressed: 0 };
@@ -4920,51 +4940,53 @@ export async function registerRoutes(
       for (const player of roster) {
         if (player.potential == null) continue;
 
-        const zone = getProgressionZone(player.potential);
+        const targetOvrDelta = getOvrDeltaFromPotential(player.potential);
+
         const updates: Record<string, number> = {};
         const deltas: Record<string, number> = {};
 
-        for (const attr of attrFields) {
-          const val = (player as any)[attr] as number | null;
-          if (val == null) continue;
-          let delta = 0;
-          if (zone === "improving") {
-            delta = 1 + Math.floor(Math.random() * 4);
-          } else if (zone === "stable") {
-            delta = Math.floor(Math.random() * 3) - 1;
-          } else {
-            delta = -(1 + Math.floor(Math.random() * 3));
-          }
-          const newVal = Math.max(1, Math.min(99, val + delta));
-          updates[attr] = newVal;
-          const actualDelta = newVal - val;
-          if (actualDelta !== 0) deltas[attr] = actualDelta;
-        }
-
-        for (const attr of commonFields) {
-          const val = (player as any)[attr] as number | null;
-          if (val == null) continue;
-          let delta = 0;
-          if (zone === "improving") {
-            delta = 1 + Math.floor(Math.random() * 3);
-          } else if (zone === "stable") {
-            delta = Math.floor(Math.random() * 3) - 1;
-          } else {
-            delta = -(1 + Math.floor(Math.random() * 2));
-          }
-          const newVal = Math.max(1, Math.min(99, val + delta));
-          updates[attr] = newVal;
-          const actualDelta = newVal - val;
-          if (actualDelta !== 0) deltas[attr] = actualDelta;
-        }
-
         const presentAttrFields = attrFields.filter(f => (player as any)[f] != null);
-        const totalAttrDelta = presentAttrFields.reduce((sum, f) => sum + (deltas[f] || 0), 0);
-        const avgAttrDelta = presentAttrFields.length > 0 ? totalAttrDelta / presentAttrFields.length : 0;
-        const ovrDelta = Math.round(avgAttrDelta * 10);
-        const newOverall = Math.max(1, Math.min(999, player.overall + ovrDelta));
+        const presentCommonFields = commonFields.filter(f => (player as any)[f] != null);
+        const totalFields = presentAttrFields.length + presentCommonFields.length;
+        if (totalFields === 0) continue;
+
+        const targetAvgAttrDelta = targetOvrDelta / 10;
+
+        const rawAttrDeltas: number[] = [];
+        for (const attr of presentAttrFields) {
+          rawAttrDeltas.push(targetAvgAttrDelta + (Math.random() - 0.5) * 2);
+        }
+        if (rawAttrDeltas.length > 0) {
+          const rawAvg = rawAttrDeltas.reduce((s, d) => s + d, 0) / rawAttrDeltas.length;
+          const correction = targetAvgAttrDelta - rawAvg;
+          for (let k = 0; k < rawAttrDeltas.length; k++) {
+            rawAttrDeltas[k] += correction;
+          }
+        }
+
+        for (let k = 0; k < presentAttrFields.length; k++) {
+          const attr = presentAttrFields[k];
+          const val = (player as any)[attr] as number;
+          const delta = Math.round(rawAttrDeltas[k]);
+          const newVal = Math.max(1, Math.min(100, val + delta));
+          updates[attr] = newVal;
+          const actualDelta = newVal - val;
+          if (actualDelta !== 0) deltas[attr] = actualDelta;
+        }
+
+        for (const attr of presentCommonFields) {
+          const val = (player as any)[attr] as number;
+          const variance = (Math.random() - 0.5) * 2;
+          const delta = Math.round(targetAvgAttrDelta * 0.8 + variance);
+          const newVal = Math.max(1, Math.min(100, val + delta));
+          updates[attr] = newVal;
+          const actualDelta = newVal - val;
+          if (actualDelta !== 0) deltas[attr] = actualDelta;
+        }
+
+        const newOverall = Math.max(1, Math.min(999, player.overall + targetOvrDelta));
         updates["overall"] = newOverall;
-        if (ovrDelta !== 0) deltas["overall"] = ovrDelta;
+        if (targetOvrDelta !== 0) deltas["overall"] = targetOvrDelta;
 
         const starFromOverall = newOverall >= 800 ? 5 : newOverall >= 600 ? 4 : newOverall >= 400 ? 3 : newOverall >= 200 ? 2 : 1;
         updates["starRating"] = starFromOverall;
