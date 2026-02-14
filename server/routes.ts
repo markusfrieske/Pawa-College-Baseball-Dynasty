@@ -77,6 +77,77 @@ const requireAuth = (req: Request, res: Response, next: NextFunction) => {
   next();
 };
 
+async function autoAssignLineup(storage: any, teamPlayers: Player[], teamId: string): Promise<void> {
+  const positionPlayers = teamPlayers.filter(p => p.position !== "P");
+  const pitchers = teamPlayers.filter(p => p.position === "P");
+
+  const hittingScore = (p: Player) =>
+    (p.hitForAvg || 0) * 0.4 + (p.power || 0) * 0.3 + (p.speed || 0) * 0.2 + (p.clutch || 0) * 0.1;
+
+  const positionSlots = ["C", "1B", "2B", "SS", "3B", "LF", "CF", "RF"];
+  const starters: Player[] = [];
+  const usedIds = new Set<string>();
+
+  for (const pos of positionSlots) {
+    const candidates = positionPlayers
+      .filter(p => p.position === pos && !usedIds.has(p.id))
+      .sort((a, b) => (b.overall || 0) - (a.overall || 0));
+    if (candidates.length > 0) {
+      starters.push(candidates[0]);
+      usedIds.add(candidates[0].id);
+    }
+  }
+
+  if (starters.length < 9) {
+    const dhCandidates = positionPlayers
+      .filter(p => !usedIds.has(p.id))
+      .sort((a, b) => (b.overall || 0) - (a.overall || 0));
+    if (dhCandidates.length > 0) {
+      starters.push(dhCandidates[0]);
+      usedIds.add(dhCandidates[0].id);
+    }
+  }
+
+  starters.sort((a, b) => hittingScore(b) - hittingScore(a));
+
+  for (const p of positionPlayers) {
+    const idx = starters.indexOf(p);
+    if (idx !== -1) {
+      await storage.updatePlayer(p.id, { battingOrder: idx + 1 });
+    } else {
+      await storage.updatePlayer(p.id, { battingOrder: null });
+    }
+  }
+
+  pitchers.sort((a, b) => (b.overall || 0) - (a.overall || 0));
+
+  const rotationRoles = ["FRI", "SAT", "SUN", "MID"];
+  for (let i = 0; i < pitchers.length; i++) {
+    let role: string | null = null;
+    if (i < rotationRoles.length) {
+      role = rotationRoles[i];
+    } else {
+      const bullpenIdx = i - rotationRoles.length;
+      if (bullpenIdx === 0) {
+        role = "CP";
+      } else if (bullpenIdx === 1) {
+        role = "SU";
+      } else if (bullpenIdx === 2) {
+        role = "MR1";
+      } else if (bullpenIdx === 3) {
+        role = "MR2";
+      } else if (bullpenIdx === 4) {
+        role = "MR3";
+      } else if (bullpenIdx === 5) {
+        role = "LRP";
+      } else {
+        role = null;
+      }
+    }
+    await storage.updatePlayer(pitchers[i].id, { pitchingRole: role });
+  }
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -500,6 +571,11 @@ export async function registerRoutes(
         if (existingPlayers.length === 0) {
           await generatePlayersForTeam(team.id, progressionOn);
         }
+      }
+
+      for (const team of leagueTeams) {
+        const teamPlayers = await storage.getPlayersByTeam(team.id);
+        await autoAssignLineup(storage, teamPlayers, team.id);
       }
 
       // Generate initial schedule
@@ -2752,6 +2828,122 @@ export async function registerRoutes(
     }
   });
 
+  // Batting order - set batting order for the user's team
+  app.put("/api/leagues/:id/batting-order", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      const coaches = await storage.getCoachesByLeague(req.params.id);
+      const userCoach = coaches.find(c => c.userId === req.session.userId);
+      const isCommissioner = league.commissionerId === req.session.userId;
+      if (!userCoach && !isCommissioner) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+
+      const { orders } = req.body as { orders: { playerId: string; battingOrder: number | null }[] };
+      if (!Array.isArray(orders)) {
+        return res.status(400).json({ message: "Orders must be an array" });
+      }
+
+      for (const order of orders) {
+        if (order.battingOrder !== null && (order.battingOrder < 1 || order.battingOrder > 9)) {
+          return res.status(400).json({ message: "Batting order must be 1-9 or null" });
+        }
+      }
+
+      const usedNumbers = orders
+        .map(o => o.battingOrder)
+        .filter((n): n is number => n !== null);
+      if (new Set(usedNumbers).size !== usedNumbers.length) {
+        return res.status(400).json({ message: "Duplicate batting order numbers not allowed" });
+      }
+
+      const teamId = userCoach?.teamId;
+      for (const order of orders) {
+        const player = await storage.getPlayer(order.playerId);
+        if (player && (isCommissioner || player.teamId === teamId)) {
+          await storage.updatePlayer(order.playerId, { battingOrder: order.battingOrder });
+        }
+      }
+
+      res.json({ success: true, count: orders.length });
+    } catch (error) {
+      console.error("Failed to update batting order:", error);
+      res.status(500).json({ message: "Failed to update batting order" });
+    }
+  });
+
+  // Pitching roles - set pitching roles for the user's team
+  app.put("/api/leagues/:id/pitching-roles", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      const coaches = await storage.getCoachesByLeague(req.params.id);
+      const userCoach = coaches.find(c => c.userId === req.session.userId);
+      const isCommissioner = league.commissionerId === req.session.userId;
+      if (!userCoach && !isCommissioner) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+
+      const validRoles = ["FRI", "SAT", "SUN", "MID", "LRP", "MR", "SU", "CP"];
+      const { assignments } = req.body as { assignments: { playerId: string; pitchingRole: string | null }[] };
+      if (!Array.isArray(assignments)) {
+        return res.status(400).json({ message: "Assignments must be an array" });
+      }
+
+      for (const assignment of assignments) {
+        if (assignment.pitchingRole !== null && !validRoles.includes(assignment.pitchingRole)) {
+          return res.status(400).json({ message: `Invalid pitching role: ${assignment.pitchingRole}. Valid roles: ${validRoles.join(", ")}` });
+        }
+      }
+
+      const teamId = userCoach?.teamId;
+      for (const assignment of assignments) {
+        const player = await storage.getPlayer(assignment.playerId);
+        if (!player) continue;
+        if (!isCommissioner && player.teamId !== teamId) continue;
+        if (player.position !== "P") {
+          return res.status(400).json({ message: `Player ${player.firstName} ${player.lastName} is not a pitcher` });
+        }
+        await storage.updatePlayer(assignment.playerId, { pitchingRole: assignment.pitchingRole });
+      }
+
+      res.json({ success: true, count: assignments.length });
+    } catch (error) {
+      console.error("Failed to update pitching roles:", error);
+      res.status(500).json({ message: "Failed to update pitching roles" });
+    }
+  });
+
+  // Auto-lineup - auto-assign batting order, rotation, and bullpen
+  app.post("/api/leagues/:id/auto-lineup", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      const coaches = await storage.getCoachesByLeague(req.params.id);
+      const userCoach = coaches.find(c => c.userId === req.session.userId);
+      const isCommissioner = league.commissionerId === req.session.userId;
+      if (!userCoach && !isCommissioner) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+
+      const teamId = userCoach?.teamId;
+      if (!teamId) return res.status(400).json({ message: "No team assigned" });
+
+      const teamPlayers = await storage.getPlayersByTeam(teamId);
+      await autoAssignLineup(storage, teamPlayers, teamId);
+
+      const updatedRoster = await storage.getPlayersByTeam(teamId);
+      res.json({ success: true, roster: updatedRoster });
+    } catch (error) {
+      console.error("Failed to auto-assign lineup:", error);
+      res.status(500).json({ message: "Failed to auto-assign lineup" });
+    }
+  });
+
   // Coach profile route
   app.get("/api/leagues/:id/coach", requireAuth, async (req, res) => {
     try {
@@ -3702,6 +3894,18 @@ export async function registerRoutes(
           currentPhase: "preseason",
         });
 
+        try {
+          const allTeamsForLineup = await storage.getTeamsByLeague(leagueId);
+          for (const team of allTeamsForLineup) {
+            if (!team.userId || team.userId === "cpu") {
+              const teamPlayers = await storage.getPlayersByTeam(team.id);
+              await autoAssignLineup(storage, teamPlayers, team.id);
+            }
+          }
+        } catch (e) {
+          console.error("CPU auto-lineup error:", e);
+        }
+
         await storage.createAuditLog({
           leagueId: league.id,
           userId: req.session.userId,
@@ -4038,6 +4242,18 @@ export async function registerRoutes(
           currentPhase: "preseason",
         })) as any;
 
+        try {
+          const allTeamsForLineup = await storage.getTeamsByLeague(leagueId);
+          for (const team of allTeamsForLineup) {
+            if (!team.userId || team.userId === "cpu") {
+              const teamPlayers = await storage.getPlayersByTeam(team.id);
+              await autoAssignLineup(storage, teamPlayers, team.id);
+            }
+          }
+        } catch (e) {
+          console.error("CPU auto-lineup error:", e);
+        }
+
         await storage.createAuditLog({
           leagueId,
           userId: req.session.userId,
@@ -4301,22 +4517,38 @@ export async function registerRoutes(
 
       let selectedBatters: { id: string; firstName: string; lastName: string; position: string; contact: number; power: number; speed: number; fielding: number }[] = [];
       const used = new Set<string>();
-      for (const pos of positionOrder) {
-        const p = positionPlayers.find(pl => pl.position === pos && !used.has(pl.id));
-        if (p) {
+
+      const lineupPlayers = positionPlayers
+        .filter(p => p.battingOrder != null && p.battingOrder >= 1 && p.battingOrder <= 9)
+        .sort((a, b) => (a.battingOrder || 0) - (b.battingOrder || 0));
+
+      if (lineupPlayers.length >= 7) {
+        for (const p of lineupPlayers) {
           used.add(p.id);
           selectedBatters.push({
             id: p.id, firstName: p.firstName, lastName: p.lastName, position: p.position,
             contact: p.hitForAvg || 50, power: p.power || 50, speed: p.speed || 50, fielding: p.fielding || 50,
           });
         }
+      } else {
+        for (const pos of positionOrder) {
+          const p = positionPlayers.find(pl => pl.position === pos && !used.has(pl.id));
+          if (p) {
+            used.add(p.id);
+            selectedBatters.push({
+              id: p.id, firstName: p.firstName, lastName: p.lastName, position: p.position,
+              contact: p.hitForAvg || 50, power: p.power || 50, speed: p.speed || 50, fielding: p.fielding || 50,
+            });
+          }
+        }
       }
+
       for (const p of positionPlayers) {
         if (selectedBatters.length >= 9) break;
         if (!used.has(p.id)) {
           used.add(p.id);
           selectedBatters.push({
-            id: p.id, firstName: p.firstName, lastName: p.lastName, position: "DH",
+            id: p.id, firstName: p.firstName, lastName: p.lastName, position: p.position === "P" ? "DH" : p.position,
             contact: p.hitForAvg || 50, power: p.power || 50, speed: p.speed || 50, fielding: p.fielding || 50,
           });
         }
@@ -4494,14 +4726,33 @@ export async function registerRoutes(
       }
 
       const pitchingStaff: PitcherLine[] = [];
-      const numPitchers = Math.min(Math.max(pitchers.length, 1), 1 + Math.floor(Math.random() * 3));
       let selectedPitchers: { id: string; firstName: string; lastName: string; control: number; velocity: number; stuff: number }[] = [];
 
-      for (let i = 0; i < numPitchers && i < pitchers.length; i++) {
+      const starterRoles = ["FRI", "SAT", "SUN", "MID"];
+      const relieverRoles = ["LRP", "MR", "MR1", "MR2", "MR3", "SU", "CP"];
+      const starter = pitchers.find(p => starterRoles.includes(p.pitchingRole || ""));
+      const relievers = pitchers.filter(p => relieverRoles.includes(p.pitchingRole || ""));
+
+      if (starter) {
         selectedPitchers.push({
-          id: pitchers[i].id, firstName: pitchers[i].firstName, lastName: pitchers[i].lastName,
-          control: pitchers[i].control || 50, velocity: pitchers[i].velocity || 50, stuff: pitchers[i].stuff || 50,
+          id: starter.id, firstName: starter.firstName, lastName: starter.lastName,
+          control: starter.control || 50, velocity: starter.velocity || 50, stuff: starter.stuff || 50,
         });
+        const numRelievers = Math.min(relievers.length, Math.floor(Math.random() * 3));
+        for (let i = 0; i < numRelievers; i++) {
+          selectedPitchers.push({
+            id: relievers[i].id, firstName: relievers[i].firstName, lastName: relievers[i].lastName,
+            control: relievers[i].control || 50, velocity: relievers[i].velocity || 50, stuff: relievers[i].stuff || 50,
+          });
+        }
+      } else {
+        const numPitchers = Math.min(Math.max(pitchers.length, 1), 1 + Math.floor(Math.random() * 3));
+        for (let i = 0; i < numPitchers && i < pitchers.length; i++) {
+          selectedPitchers.push({
+            id: pitchers[i].id, firstName: pitchers[i].firstName, lastName: pitchers[i].lastName,
+            control: pitchers[i].control || 50, velocity: pitchers[i].velocity || 50, stuff: pitchers[i].stuff || 50,
+          });
+        }
       }
       while (selectedPitchers.length === 0) {
         selectedPitchers.push({ id: "fake_p", firstName: "John", lastName: "Doe", control: 50, velocity: 50, stuff: 50 });

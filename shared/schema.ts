@@ -276,6 +276,8 @@ export const players = pgTable("players", {
   headwear: text("headwear").notNull().default("cap"),
   potential: integer("potential"),
   depthOrder: integer("depth_order").notNull().default(0),
+  battingOrder: integer("batting_order"),
+  pitchingRole: text("pitching_role"),
   progressionDeltas: json("progression_deltas").$type<Record<string, number>>(),
 });
 
@@ -343,6 +345,8 @@ export const insertPlayerSchema = createInsertSchema(players).pick({
   headwear: true,
   potential: true,
   depthOrder: true,
+  battingOrder: true,
+  pitchingRole: true,
 });
 
 export type InsertPlayer = z.infer<typeof insertPlayerSchema>;
