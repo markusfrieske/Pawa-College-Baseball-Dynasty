@@ -75,6 +75,9 @@ export default function CommissionerPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "schedule"] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting", "pipeline"] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting", "trends"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/leagues/${id}/roster`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "roster"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "walkons"] });
       window.dispatchEvent(new CustomEvent("league-phase-changed"));
       if (response?.seasonTransition) {
         const t = response.seasonTransition;

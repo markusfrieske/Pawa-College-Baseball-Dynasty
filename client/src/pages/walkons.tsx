@@ -86,6 +86,8 @@ export default function WalkonsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "walkons"] });
       queryClient.invalidateQueries({ queryKey: [`/api/leagues/${id}/roster`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "roster"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "commissioner"] });
       toast({ title: "Walk-on signed", description: "Player added to your roster." });
     },
     onError: (err: any) => {
@@ -99,7 +101,9 @@ export default function WalkonsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/leagues/${id}/roster`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "roster"] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "walkons"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "commissioner"] });
       toast({ title: "Player cut", description: "Player has been released to JUCO." });
     },
     onError: (err: any) => {
