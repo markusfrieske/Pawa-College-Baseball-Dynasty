@@ -3579,7 +3579,7 @@ export async function registerRoutes(
       const LOSS_XP = 25;
       
       const gameResults = await Promise.all(incompleteGames.map(async (game) => {
-        const result = await simulateGame(game.homeTeamId, game.awayTeamId);
+        const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType);
         await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, isComplete: true, boxScore: result.boxScore });
         return { game, result };
       }));
@@ -3665,7 +3665,7 @@ export async function registerRoutes(
             .filter(g => g.phase === "conference_championship" && g.season === league.currentSeason && !g.isComplete);
           
           for (const game of confGames) {
-            const result = await simulateGame(game.homeTeamId, game.awayTeamId);
+            const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType || "friday");
             await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, isComplete: true, boxScore: result.boxScore });
             await updateStandingsForGame(leagueId, league.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore);
             try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, league.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, league.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
@@ -4052,7 +4052,7 @@ export async function registerRoutes(
           const simResults = weekGames.map(game => {
             const homePlayers = rosterCache.get(game.homeTeamId) || [];
             const awayPlayers = rosterCache.get(game.awayTeamId) || [];
-            return { game, result: simulateGameWithRosters(homePlayers, awayPlayers) };
+            return { game, result: simulateGameWithRosters(homePlayers, awayPlayers, game.gameType) };
           });
 
           await Promise.all(simResults.map(async ({ game, result }) => {
@@ -4098,7 +4098,7 @@ export async function registerRoutes(
           const simResults = ccGames.map(game => {
             const homePlayers = rosterCache.get(game.homeTeamId) || [];
             const awayPlayers = rosterCache.get(game.awayTeamId) || [];
-            return { game, result: simulateGameWithRosters(homePlayers, awayPlayers) };
+            return { game, result: simulateGameWithRosters(homePlayers, awayPlayers, game.gameType || "friday") };
           });
 
           await Promise.all(simResults.map(async ({ game, result }) => {
@@ -4303,7 +4303,7 @@ export async function registerRoutes(
           const weekGames = (await storage.getGamesByLeague(leagueId))
             .filter(g => g.season === currentLeague.currentSeason && g.week === currentLeague.currentWeek && !g.isComplete);
           for (const game of weekGames) {
-            const result = await simulateGame(game.homeTeamId, game.awayTeamId);
+            const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType);
             await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, boxScore: result.boxScore, isComplete: true });
             await updateStandingsForGame(leagueId, currentLeague.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, game.isConference);
             try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
@@ -4367,7 +4367,7 @@ export async function registerRoutes(
           const weekGames = (await storage.getGamesByLeague(leagueId))
             .filter(g => g.season === currentLeague.currentSeason && g.week === currentLeague.currentWeek && !g.isComplete);
           for (const game of weekGames) {
-            const result = await simulateGame(game.homeTeamId, game.awayTeamId);
+            const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType);
             await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, boxScore: result.boxScore, isComplete: true });
             await updateStandingsForGame(leagueId, currentLeague.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, game.isConference);
             try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
@@ -4389,7 +4389,7 @@ export async function registerRoutes(
           const ccGames = (await storage.getGamesByLeague(leagueId))
             .filter(g => g.phase === "conference_championship" && g.season === currentLeague.currentSeason && !g.isComplete);
           for (const game of ccGames) {
-            const result = await simulateGame(game.homeTeamId, game.awayTeamId);
+            const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType || "friday");
             await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, boxScore: result.boxScore, isComplete: true });
             await updateStandingsForGame(leagueId, currentLeague.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore);
             try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
@@ -4437,7 +4437,7 @@ export async function registerRoutes(
   });
 
   // ============ GAME SIMULATION FUNCTION ============
-  function simulateGameWithRosters(homePlayers: Player[], awayPlayers: Player[]): { homeScore: number; awayScore: number; boxScore: string } {
+  function simulateGameWithRosters(homePlayers: Player[], awayPlayers: Player[], gameType?: string | null): { homeScore: number; awayScore: number; boxScore: string } {
 
     const homeStrength = homePlayers.length > 0
       ? homePlayers.reduce((sum, p) => sum + (p.overall || 500), 0) / homePlayers.length
@@ -4467,17 +4467,17 @@ export async function registerRoutes(
       if (Math.random() > 0.5) homeScore++; else awayScore++;
     }
 
-    const boxScore = generateBoxScore(homeScore, awayScore, homePlayers, awayPlayers);
+    const boxScore = generateBoxScore(homeScore, awayScore, homePlayers, awayPlayers, gameType);
     return { homeScore, awayScore, boxScore: JSON.stringify(boxScore) };
   }
 
-  async function simulateGame(homeTeamId: string, awayTeamId: string): Promise<{ homeScore: number; awayScore: number; boxScore: string }> {
+  async function simulateGame(homeTeamId: string, awayTeamId: string, gameType?: string | null): Promise<{ homeScore: number; awayScore: number; boxScore: string }> {
     const homePlayers = await storage.getPlayersByTeam(homeTeamId);
     const awayPlayers = await storage.getPlayersByTeam(awayTeamId);
-    return simulateGameWithRosters(homePlayers, awayPlayers);
+    return simulateGameWithRosters(homePlayers, awayPlayers, gameType);
   }
 
-  function generateBoxScore(homeScore: number, awayScore: number, homePlayers: Player[], awayPlayers: Player[]) {
+  function generateBoxScore(homeScore: number, awayScore: number, homePlayers: Player[], awayPlayers: Player[], gameType?: string | null) {
     function distributeRuns(totalRuns: number, numInnings: number): number[] {
       const innings = new Array(numInnings).fill(0);
       for (let i = 0; i < totalRuns; i++) {
@@ -4728,9 +4728,19 @@ export async function registerRoutes(
       const pitchingStaff: PitcherLine[] = [];
       let selectedPitchers: { id: string; firstName: string; lastName: string; control: number; velocity: number; stuff: number }[] = [];
 
+      const gameTypeToRole: Record<string, string> = {
+        "friday": "FRI", "saturday": "SAT", "sunday": "SUN", "midweek": "MID",
+      };
       const starterRoles = ["FRI", "SAT", "SUN", "MID"];
       const relieverRoles = ["LRP", "MR", "MR1", "MR2", "MR3", "SU", "CP"];
-      const starter = pitchers.find(p => starterRoles.includes(p.pitchingRole || ""));
+
+      const targetRole = gameType ? gameTypeToRole[gameType] : null;
+      let starter = targetRole
+        ? pitchers.find(p => p.pitchingRole === targetRole)
+        : null;
+      if (!starter) {
+        starter = pitchers.find(p => starterRoles.includes(p.pitchingRole || "")) || null;
+      }
       const relievers = pitchers.filter(p => relieverRoles.includes(p.pitchingRole || ""));
 
       if (starter) {
@@ -5098,8 +5108,11 @@ export async function registerRoutes(
       const minTypeOrder = Math.min(...currentRoundGames.map(g => typeOrder[g.bracketType ?? "winners"] ?? 0));
       const gamesToSimulate = currentRoundGames.filter(g => (typeOrder[g.bracketType ?? "winners"] ?? 0) === minTypeOrder);
       
-      for (const game of gamesToSimulate) {
-        const result = await simulateGame(game.homeTeamId, game.awayTeamId);
+      const postseasonRotation = ["friday", "saturday", "sunday"];
+      for (let gi = 0; gi < gamesToSimulate.length; gi++) {
+        const game = gamesToSimulate[gi];
+        const psGameType = game.gameType || postseasonRotation[gi % 3];
+        const result = await simulateGame(game.homeTeamId, game.awayTeamId, psGameType);
         await storage.updateGame(game.id, {
           homeScore: result.homeScore,
           awayScore: result.awayScore,
@@ -5271,8 +5284,11 @@ export async function registerRoutes(
     const cwsGames = allGames.filter(g => g.phase === "cws" && g.season === season);
     
     const incompleteGames = cwsGames.filter(g => !g.isComplete);
-    for (const game of incompleteGames) {
-      const result = await simulateGame(game.homeTeamId, game.awayTeamId);
+    const cwsRotation = ["friday", "saturday", "sunday"];
+    for (let gi = 0; gi < incompleteGames.length; gi++) {
+      const game = incompleteGames[gi];
+      const cwsGameType = game.gameType || cwsRotation[gi % 3];
+      const result = await simulateGame(game.homeTeamId, game.awayTeamId, cwsGameType);
       await storage.updateGame(game.id, {
         homeScore: result.homeScore,
         awayScore: result.awayScore,
@@ -7693,7 +7709,7 @@ export async function registerRoutes(
       );
 
       for (const game of currentWeekGames) {
-        const result = await simulateGame(game.homeTeamId, game.awayTeamId);
+        const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType);
         await storage.updateGame(game.id, {
           homeScore: result.homeScore,
           awayScore: result.awayScore,
@@ -8959,6 +8975,7 @@ async function generateSchedule(leagueId: string, season: number = 1) {
       }
     }
 
+    const confGameTypes = confGamesPerSeries === 3 ? ["friday", "saturday", "sunday"] : ["friday"];
     for (const series of weekConfSeries) {
       for (let g = 0; g < confGamesPerSeries; g++) {
         const isAway = g === 1;
@@ -8970,6 +8987,7 @@ async function generateSchedule(leagueId: string, season: number = 1) {
           awayTeamId: isAway ? series.home.id : series.away.id,
           phase: "regular",
           isConference: true,
+          gameType: confGameTypes[g] || "friday",
         });
         totalGames++;
       }
@@ -9028,6 +9046,7 @@ async function generateSchedule(leagueId: string, season: number = 1) {
         awayTeamId: ooc.away.id,
         phase: "regular",
         isConference: false,
+        gameType: "midweek",
       });
       totalGames++;
     }
