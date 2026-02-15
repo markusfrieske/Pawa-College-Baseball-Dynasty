@@ -28,6 +28,7 @@ const availableConferences = [
   { id: "Sun Belt", name: "Sun Belt", teams: 12, description: "Sun Belt Conference" },
   { id: "Big West", name: "Big West", teams: 10, description: "Big West Conference" },
   { id: "HBCU", name: "HBCU", teams: 16, description: "Historically Black Colleges & Universities" },
+  { id: "Missouri Valley", name: "Missouri Valley", teams: 14, description: "Missouri Valley Conference" },
 ];
 
 const seasonLengthOptions = [
