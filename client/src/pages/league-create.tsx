@@ -27,6 +27,7 @@ const availableConferences = [
   { id: "Ivy League", name: "Ivy League", teams: 8, description: "Ivy League" },
   { id: "Sun Belt", name: "Sun Belt", teams: 12, description: "Sun Belt Conference" },
   { id: "Big West", name: "Big West", teams: 10, description: "Big West Conference" },
+  { id: "HBCU", name: "HBCU", teams: 16, description: "Historically Black Colleges & Universities" },
 ];
 
 const seasonLengthOptions = [

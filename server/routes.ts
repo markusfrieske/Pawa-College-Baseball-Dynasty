@@ -328,7 +328,7 @@ export async function registerRoutes(
       });
 
       // Create conferences - use selected conferences or default to first N
-      const allConferences = ["SEC", "ACC", "Big 12", "Big Ten", "Pac-12", "Ivy League", "Sun Belt", "Big West"];
+      const allConferences = ["SEC", "ACC", "Big 12", "Big Ten", "Pac-12", "Ivy League", "Sun Belt", "Big West", "HBCU"];
       const conferenceNames = selectedConferences && selectedConferences.length > 0
         ? selectedConferences.filter(c => allConferences.includes(c))
         : allConferences.slice(0, conferenceCount);
@@ -457,7 +457,7 @@ export async function registerRoutes(
       const conferences = await storage.getConferencesByLeague(league.id);
       let totalTeamsCreated = 0;
 
-      const allConferenceNames = ["SEC", "ACC", "Big 12", "Big Ten", "Pac-12", "Ivy League", "Sun Belt", "Big West"];
+      const allConferenceNames = ["SEC", "ACC", "Big 12", "Big Ten", "Pac-12", "Ivy League", "Sun Belt", "Big West", "HBCU"];
       const allTeamPools = allConferenceNames.flatMap(name => getTeamsForConference(name));
 
       for (const selection of selectedTeams) {
@@ -9154,6 +9154,24 @@ function getTeamsForConference(conferenceName: string) {
       { name: "UC Davis", mascot: "Aggies", abbreviation: "UCD", city: "Davis", state: "CA", primaryColor: "#002855", secondaryColor: "#daaa00", prestige: 4, stadium: 4, facilities: 5, collegeLife: 7, marketing: 4, academics: 8, fanbasePassion: "C", fanbaseType: "Academic Elite", enrollment: 40000, nilBudget: 1000000 },
       { name: "Cal State Northridge", mascot: "Matadors", abbreviation: "CSUN", city: "Northridge", state: "CA", primaryColor: "#ce1126", secondaryColor: "#000000", prestige: 4, stadium: 4, facilities: 4, collegeLife: 7, marketing: 4, academics: 5, fanbasePassion: "C", fanbaseType: "Balanced", enrollment: 38000, nilBudget: 800000 },
       { name: "Cal State Bakersfield", mascot: "Roadrunners", abbreviation: "CSUB", city: "Bakersfield", state: "CA", primaryColor: "#003399", secondaryColor: "#f0ab00", prestige: 3, stadium: 3, facilities: 4, collegeLife: 5, marketing: 3, academics: 5, fanbasePassion: "C", fanbaseType: "Balanced", enrollment: 11000, nilBudget: 600000 },
+    ],
+    "HBCU": [
+      { name: "Grambling State", mascot: "Tigers", abbreviation: "GRAM", city: "Grambling", state: "LA", primaryColor: "#000000", secondaryColor: "#f0ab00", prestige: 6, stadium: 5, facilities: 4, collegeLife: 7, marketing: 6, academics: 5, fanbasePassion: "A", fanbaseType: "Cult Following", enrollment: 5000, nilBudget: 800000 },
+      { name: "Southern University", mascot: "Jaguars", abbreviation: "SOU", city: "Baton Rouge", state: "LA", primaryColor: "#0033a0", secondaryColor: "#fdd023", prestige: 6, stadium: 5, facilities: 5, collegeLife: 7, marketing: 6, academics: 5, fanbasePassion: "A", fanbaseType: "Cult Following", enrollment: 7000, nilBudget: 900000 },
+      { name: "Florida A&M", mascot: "Rattlers", abbreviation: "FAMU", city: "Tallahassee", state: "FL", primaryColor: "#006747", secondaryColor: "#f47920", prestige: 7, stadium: 6, facilities: 5, collegeLife: 8, marketing: 7, academics: 6, fanbasePassion: "A+", fanbaseType: "Cult Following", enrollment: 10000, nilBudget: 1200000 },
+      { name: "Bethune-Cookman", mascot: "Wildcats", abbreviation: "BCU", city: "Daytona Beach", state: "FL", primaryColor: "#8b0000", secondaryColor: "#ffd700", prestige: 6, stadium: 5, facilities: 5, collegeLife: 7, marketing: 6, academics: 5, fanbasePassion: "A", fanbaseType: "Cult Following", enrollment: 4000, nilBudget: 700000 },
+      { name: "Jackson State", mascot: "Tigers", abbreviation: "JKST", city: "Jackson", state: "MS", primaryColor: "#002b5c", secondaryColor: "#ffffff", prestige: 6, stadium: 6, facilities: 5, collegeLife: 7, marketing: 7, academics: 5, fanbasePassion: "A", fanbaseType: "Cult Following", enrollment: 7000, nilBudget: 1000000 },
+      { name: "North Carolina A&T", mascot: "Aggies", abbreviation: "NCAT", city: "Greensboro", state: "NC", primaryColor: "#004684", secondaryColor: "#ffc72c", prestige: 6, stadium: 5, facilities: 5, collegeLife: 7, marketing: 6, academics: 6, fanbasePassion: "A", fanbaseType: "Balanced", enrollment: 13000, nilBudget: 900000 },
+      { name: "Alabama State", mascot: "Hornets", abbreviation: "ALST", city: "Montgomery", state: "AL", primaryColor: "#000000", secondaryColor: "#d4a843", prestige: 5, stadium: 5, facilities: 4, collegeLife: 7, marketing: 5, academics: 5, fanbasePassion: "A", fanbaseType: "Cult Following", enrollment: 5000, nilBudget: 700000 },
+      { name: "Norfolk State", mascot: "Spartans", abbreviation: "NSU", city: "Norfolk", state: "VA", primaryColor: "#006747", secondaryColor: "#ffc72c", prestige: 5, stadium: 5, facilities: 4, collegeLife: 7, marketing: 5, academics: 6, fanbasePassion: "B", fanbaseType: "Balanced", enrollment: 6000, nilBudget: 700000 },
+      { name: "Alcorn State", mascot: "Braves", abbreviation: "ALCN", city: "Lorman", state: "MS", primaryColor: "#461d7c", secondaryColor: "#fdd023", prestige: 5, stadium: 4, facilities: 4, collegeLife: 6, marketing: 5, academics: 5, fanbasePassion: "A", fanbaseType: "Cult Following", enrollment: 3500, nilBudget: 600000 },
+      { name: "Prairie View A&M", mascot: "Panthers", abbreviation: "PVAM", city: "Prairie View", state: "TX", primaryColor: "#461d7c", secondaryColor: "#fdd023", prestige: 5, stadium: 4, facilities: 4, collegeLife: 6, marketing: 5, academics: 5, fanbasePassion: "B", fanbaseType: "Balanced", enrollment: 9000, nilBudget: 600000 },
+      { name: "Texas Southern", mascot: "Tigers", abbreviation: "TXSO", city: "Houston", state: "TX", primaryColor: "#8b0000", secondaryColor: "#b0b7bc", prestige: 5, stadium: 5, facilities: 4, collegeLife: 7, marketing: 5, academics: 5, fanbasePassion: "B", fanbaseType: "Balanced", enrollment: 7000, nilBudget: 700000 },
+      { name: "Howard", mascot: "Bison", abbreviation: "HOW", city: "Washington", state: "DC", primaryColor: "#003a63", secondaryColor: "#e51937", prestige: 6, stadium: 5, facilities: 5, collegeLife: 8, marketing: 7, academics: 7, fanbasePassion: "A", fanbaseType: "Academic Elite", enrollment: 10000, nilBudget: 1000000 },
+      { name: "Delaware State", mascot: "Hornets", abbreviation: "DSU", city: "Dover", state: "DE", primaryColor: "#c8102e", secondaryColor: "#00529b", prestige: 4, stadium: 4, facilities: 4, collegeLife: 6, marketing: 4, academics: 5, fanbasePassion: "B", fanbaseType: "Balanced", enrollment: 5000, nilBudget: 500000 },
+      { name: "Coppin State", mascot: "Eagles", abbreviation: "COPP", city: "Baltimore", state: "MD", primaryColor: "#002d72", secondaryColor: "#ffc72c", prestige: 4, stadium: 4, facilities: 4, collegeLife: 6, marketing: 4, academics: 5, fanbasePassion: "B", fanbaseType: "Balanced", enrollment: 3000, nilBudget: 400000 },
+      { name: "North Carolina Central", mascot: "Eagles", abbreviation: "NCCU", city: "Durham", state: "NC", primaryColor: "#8b0000", secondaryColor: "#b0b7bc", prestige: 5, stadium: 5, facilities: 4, collegeLife: 7, marketing: 5, academics: 6, fanbasePassion: "B", fanbaseType: "Balanced", enrollment: 8000, nilBudget: 600000 },
+      { name: "Maryland Eastern Shore", mascot: "Hawks", abbreviation: "UMES", city: "Princess Anne", state: "MD", primaryColor: "#8b0000", secondaryColor: "#b7a57a", prestige: 4, stadium: 3, facilities: 3, collegeLife: 5, marketing: 4, academics: 5, fanbasePassion: "B", fanbaseType: "Balanced", enrollment: 3000, nilBudget: 400000 },
     ],
   };
   
