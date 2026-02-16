@@ -1965,6 +1965,6 @@ for (const [team, freshmen] of Object.entries(SEC_SUPPLEMENTAL)) {
 for (const [team, freshmen] of Object.entries(ACC_SUPPLEMENTAL)) {
   if (SEC_REAL_ROSTERS[team]) {
     const base = SEC_REAL_ROSTERS[team].filter(p => p.eligibility !== "FR");
-    SEC_REAL_ROSTERS[team] = [...base.slice(0, 22), ...freshmen.slice(0, 3)];
+    SEC_REAL_ROSTERS[team] = [...base.slice(0, 20), ...freshmen.slice(0, 5)];
   }
 }
