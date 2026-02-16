@@ -20,7 +20,7 @@ const difficultyOptions = [
 
 const availableConferences = [
   { id: "SEC", name: "SEC", teams: 16, description: "Southeastern Conference" },
-  { id: "ACC", name: "ACC", teams: 16, description: "Atlantic Coast Conference" },
+  { id: "ACC", name: "ACC", teams: 17, description: "Atlantic Coast Conference" },
   { id: "Big 12", name: "Big 12", teams: 14, description: "Big 12 Conference" },
   { id: "Big Ten", name: "Big Ten", teams: 18, description: "Big Ten Conference" },
   { id: "Pac-12", name: "Pac-12", teams: 7, description: "Pacific-12 Conference" },

@@ -1,4 +1,7 @@
 import { calculateOVR, getStarRatingFromOVR } from "../shared/abilities";
+import { ACC_BATCH1_ROSTERS } from "./accRostersBatch1";
+import { ACC_BATCH2_ROSTERS } from "./accRostersBatch2";
+import { ACC_BATCH3_ROSTERS } from "./accRostersBatch3";
 
 export interface RealPlayer {
   firstName: string;
@@ -1939,4 +1942,7 @@ export const SEC_REAL_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: [], potential: "B+", catcherAbility: null,
       ...noPitches },
   ],
+  ...ACC_BATCH1_ROSTERS,
+  ...ACC_BATCH2_ROSTERS,
+  ...ACC_BATCH3_ROSTERS,
 };
