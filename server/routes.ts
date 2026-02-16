@@ -25,6 +25,16 @@ import { generateWeeklyStoryArcs } from "./story-arcs";
 import { detectMoments } from "./moments-engine";
 import { SEC_REAL_ROSTERS } from "./realRosters";
 
+function potentialGradeToNumber(grade: string): number {
+  const map: Record<string, number> = {
+    "F": 51, "D-": 55, "D": 59, "D+": 63,
+    "C-": 67, "C": 71, "C+": 75,
+    "B-": 79, "B": 83, "B+": 87,
+    "A-": 91, "A": 95, "A+": 98,
+  };
+  return map[grade] ?? 71;
+}
+
 declare module "express-session" {
   interface SessionData {
     userId?: string;
@@ -591,8 +601,10 @@ export async function registerRoutes(
 
       res.json({ coach });
     } catch (error) {
-      console.error("Setup failed:", error);
-      res.status(500).json({ message: "Setup failed" });
+      const errMsg = error instanceof Error ? error.message : String(error);
+      const errStack = error instanceof Error ? error.stack : '';
+      console.error("Setup failed:", errMsg, errStack);
+      res.status(500).json({ message: "Setup failed", detail: errMsg });
     }
   });
 
@@ -10031,9 +10043,12 @@ function getRandomAppearance() {
 async function generatePlayersForTeam(teamId: string, progressionEnabled: boolean = false, teamName?: string) {
   const realRoster = teamName ? SEC_REAL_ROSTERS[teamName] : undefined;
 
-  if (realRoster && realRoster.length >= 25) {
-    for (const rp of realRoster.slice(0, 25)) {
+  if (realRoster && realRoster.length > 0) {
+    const usedJerseyNumbers = new Set<number>();
+
+    for (const rp of realRoster) {
       const appearance = getRandomAppearance();
+      usedJerseyNumbers.add(rp.jerseyNumber);
       const playerData = {
         hitForAvg: rp.hitForAvg, power: rp.power, speed: rp.speed, arm: rp.arm,
         fielding: rp.fielding, errorResistance: rp.errorResistance,
@@ -10065,7 +10080,7 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
         hairColor: appearance.hairColor,
         hairStyle: appearance.hairStyle,
         headwear: appearance.headwear,
-        potential: rp.potential,
+        potential: typeof rp.potential === 'string' ? potentialGradeToNumber(rp.potential as string) : (rp.potential ?? 71),
         pitchFB: rp.pitchFB,
         pitch2S: rp.pitch2S,
         pitchSL: rp.pitchSL,
@@ -10075,6 +10090,78 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
         pitchSNK: rp.pitchSNK,
         pitchSPL: rp.pitchSPL,
       });
+    }
+
+    const remaining = 25 - realRoster.length;
+    if (remaining > 0) {
+      const fillerNames = ["Marcus", "Tyler", "Jordan", "Chris", "Devon", "Aaron", "Ryan", "Justin", "Brandon", "Cameron"];
+      const fillerLastNames = ["Johnson", "Williams", "Brown", "Davis", "Miller", "Wilson", "Moore", "Taylor", "Anderson", "Thomas"];
+      const fillerStates = [
+        { state: "CA", cities: ["Los Angeles", "San Diego"] },
+        { state: "TX", cities: ["Houston", "Dallas"] },
+        { state: "FL", cities: ["Miami", "Tampa"] },
+        { state: "GA", cities: ["Atlanta", "Savannah"] },
+      ];
+      const existingPositions = realRoster.map(rp => rp.position);
+      const hasCatcher = existingPositions.filter(p => p === "C").length;
+      const hasPitchers = existingPositions.filter(p => p === "P").length;
+      const fillerPositions: string[] = [];
+      if (hasCatcher < 2) fillerPositions.push(...Array(2 - hasCatcher).fill("C"));
+      if (hasPitchers < 12) fillerPositions.push(...Array(Math.min(remaining - fillerPositions.length, 12 - hasPitchers)).fill("P"));
+      while (fillerPositions.length < remaining) {
+        const fieldPos = ["1B", "2B", "SS", "3B", "LF", "CF", "RF"];
+        fillerPositions.push(fieldPos[Math.floor(Math.random() * fieldPos.length)]);
+      }
+      const fillerEligibilities = ["FR", "SO", "JR"];
+
+      for (let f = 0; f < remaining; f++) {
+        const appearance = getRandomAppearance();
+        const targetAvg = 25 + Math.floor(Math.random() * 15);
+        const genAttr = () => Math.max(1, Math.min(99, targetAvg + Math.floor(Math.random() * 21) - 10));
+        const pos = fillerPositions[f];
+        const abilities: string[] = [];
+        const playerData = {
+          hitForAvg: genAttr(), power: genAttr(), speed: genAttr(), arm: genAttr(),
+          fielding: genAttr(), errorResistance: genAttr(),
+          velocity: genAttr(), control: genAttr(), stamina: genAttr(), stuff: genAttr(),
+          clutch: genAttr(), vsLHP: genAttr(), grit: genAttr(), stealing: genAttr(),
+          running: genAttr(), throwing: genAttr(), recovery: genAttr(),
+          wRISP: genAttr(), vsLefty: genAttr(), poise: genAttr(), heater: genAttr(), agile: genAttr(),
+          abilities,
+        };
+        const rawOvr = calculateOVR(playerData);
+        const ovr = Math.max(159, Math.min(650, rawOvr));
+        let jerseyNum = realRoster.length + f + 1;
+        while (usedJerseyNumbers.has(jerseyNum)) jerseyNum++;
+        usedJerseyNumbers.add(jerseyNum);
+        const stEntry = fillerStates[Math.floor(Math.random() * fillerStates.length)];
+
+        await storage.createPlayer({
+          teamId,
+          firstName: fillerNames[Math.floor(Math.random() * fillerNames.length)],
+          lastName: fillerLastNames[Math.floor(Math.random() * fillerLastNames.length)],
+          position: pos,
+          eligibility: fillerEligibilities[Math.floor(Math.random() * fillerEligibilities.length)],
+          homeState: stEntry.state,
+          hometown: stEntry.cities[Math.floor(Math.random() * stEntry.cities.length)],
+          jerseyNumber: jerseyNum,
+          overall: ovr,
+          starRating: getStarRatingFromOVR(ovr),
+          ...playerData,
+          catcherAbility: pos === "C" ? genAttr() : null,
+          skinTone: appearance.skinTone,
+          hairColor: appearance.hairColor,
+          hairStyle: appearance.hairStyle,
+          headwear: appearance.headwear,
+          potential: rollWeightedPotential(),
+          pitchFB: pos === "P" ? 1 : 0,
+          pitch2S: pos === "P" && Math.random() < 0.5 ? 1 : 0,
+          pitchSL: pos === "P" && Math.random() < 0.6 ? 1 + Math.floor(Math.random() * 7) : 0,
+          pitchCB: pos === "P" && Math.random() < 0.6 ? 1 + Math.floor(Math.random() * 7) : 0,
+          pitchCH: pos === "P" && Math.random() < 0.5 ? 1 + Math.floor(Math.random() * 7) : 0,
+          pitchCT: 0, pitchSNK: 0, pitchSPL: 0,
+        });
+      }
     }
     return;
   }
