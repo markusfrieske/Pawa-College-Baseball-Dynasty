@@ -2,6 +2,11 @@ import { calculateOVR, getStarRatingFromOVR } from "../shared/abilities";
 import { ACC_BATCH1_ROSTERS } from "./accRostersBatch1";
 import { ACC_BATCH2_ROSTERS } from "./accRostersBatch2";
 import { ACC_BATCH3_ROSTERS } from "./accRostersBatch3";
+import { SEC_SUPPLEMENTAL } from "./secSupplemental";
+import { ACC_SUPPLEMENTAL } from "./accSupplemental";
+import { BIG_TEN_BATCH1_ROSTERS } from "./bigTenBatch1";
+import { BIG_TEN_BATCH2_ROSTERS } from "./bigTenBatch2";
+import { BIG_TEN_BATCH3_ROSTERS } from "./bigTenBatch3";
 
 export interface RealPlayer {
   firstName: string;
@@ -1945,4 +1950,21 @@ export const SEC_REAL_ROSTERS: Record<string, RealPlayer[]> = {
   ...ACC_BATCH1_ROSTERS,
   ...ACC_BATCH2_ROSTERS,
   ...ACC_BATCH3_ROSTERS,
+  ...BIG_TEN_BATCH1_ROSTERS,
+  ...BIG_TEN_BATCH2_ROSTERS,
+  ...BIG_TEN_BATCH3_ROSTERS,
 };
+
+for (const [team, freshmen] of Object.entries(SEC_SUPPLEMENTAL)) {
+  if (SEC_REAL_ROSTERS[team]) {
+    const base = SEC_REAL_ROSTERS[team].filter(p => p.eligibility !== "FR");
+    SEC_REAL_ROSTERS[team] = [...base.slice(0, 20), ...freshmen.slice(0, 5)];
+  }
+}
+
+for (const [team, freshmen] of Object.entries(ACC_SUPPLEMENTAL)) {
+  if (SEC_REAL_ROSTERS[team]) {
+    const base = SEC_REAL_ROSTERS[team].filter(p => p.eligibility !== "FR");
+    SEC_REAL_ROSTERS[team] = [...base.slice(0, 22), ...freshmen.slice(0, 3)];
+  }
+}
