@@ -23,6 +23,7 @@ import {
 import { generateWeeklyDrama, resolveDramaChoice } from "./drama-engine";
 import { generateWeeklyStoryArcs } from "./story-arcs";
 import { detectMoments } from "./moments-engine";
+import { SEC_REAL_ROSTERS } from "./realRosters";
 
 declare module "express-session" {
   interface SessionData {
@@ -569,7 +570,7 @@ export async function registerRoutes(
       for (const team of leagueTeams) {
         const existingPlayers = await storage.getPlayersByTeam(team.id);
         if (existingPlayers.length === 0) {
-          await generatePlayersForTeam(team.id, progressionOn);
+          await generatePlayersForTeam(team.id, progressionOn, team.name);
         }
       }
 
@@ -10027,7 +10028,57 @@ function getRandomAppearance() {
   };
 }
 
-async function generatePlayersForTeam(teamId: string, progressionEnabled: boolean = false) {
+async function generatePlayersForTeam(teamId: string, progressionEnabled: boolean = false, teamName?: string) {
+  const realRoster = teamName ? SEC_REAL_ROSTERS[teamName] : undefined;
+
+  if (realRoster && realRoster.length >= 25) {
+    for (const rp of realRoster.slice(0, 25)) {
+      const appearance = getRandomAppearance();
+      const playerData = {
+        hitForAvg: rp.hitForAvg, power: rp.power, speed: rp.speed, arm: rp.arm,
+        fielding: rp.fielding, errorResistance: rp.errorResistance,
+        velocity: rp.velocity, control: rp.control, stamina: rp.stamina, stuff: rp.stuff,
+        clutch: rp.clutch, vsLHP: rp.vsLHP, grit: rp.grit, stealing: rp.stealing,
+        running: rp.running, throwing: rp.throwing, recovery: rp.recovery,
+        wRISP: rp.wRISP, vsLefty: rp.vsLefty, poise: rp.poise, heater: rp.heater, agile: rp.agile,
+        abilities: rp.abilities,
+      };
+
+      const rawOverall = calculateOVR(playerData);
+      const overall = Math.max(159, Math.min(650, rawOverall));
+      const starRating = getStarRatingFromOVR(overall);
+
+      await storage.createPlayer({
+        teamId,
+        firstName: rp.firstName,
+        lastName: rp.lastName,
+        position: rp.position,
+        eligibility: rp.eligibility,
+        homeState: rp.homeState,
+        hometown: rp.hometown,
+        jerseyNumber: rp.jerseyNumber,
+        overall,
+        starRating,
+        ...playerData,
+        catcherAbility: rp.catcherAbility,
+        skinTone: appearance.skinTone,
+        hairColor: appearance.hairColor,
+        hairStyle: appearance.hairStyle,
+        headwear: appearance.headwear,
+        potential: rp.potential,
+        pitchFB: rp.pitchFB,
+        pitch2S: rp.pitch2S,
+        pitchSL: rp.pitchSL,
+        pitchCB: rp.pitchCB,
+        pitchCH: rp.pitchCH,
+        pitchCT: rp.pitchCT,
+        pitchSNK: rp.pitchSNK,
+        pitchSPL: rp.pitchSPL,
+      });
+    }
+    return;
+  }
+
   const firstNames = ["Marcus", "Tyler", "Jordan", "Chris", "Devon", "Aaron", "Ryan", "Justin", "Brandon", "Cameron", "Dylan", "Jake", "Austin", "Kyle", "Cole", "Mason", "Logan", "Ethan", "Noah", "Caleb"];
   const lastNames = ["Johnson", "Williams", "Brown", "Davis", "Miller", "Wilson", "Moore", "Taylor", "Anderson", "Thomas", "Jackson", "White", "Harris", "Martin", "Thompson", "Garcia", "Martinez", "Robinson", "Clark", "Rodriguez"];
   const fieldPositions = ["C", "1B", "2B", "SS", "3B", "LF", "CF", "RF"];
