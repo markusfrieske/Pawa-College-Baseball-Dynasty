@@ -1273,6 +1273,38 @@ export const insertPlayerSeasonStatsSchema = createInsertSchema(playerSeasonStat
 export type InsertPlayerSeasonStats = z.infer<typeof insertPlayerSeasonStatsSchema>;
 export type PlayerSeasonStats = typeof playerSeasonStats.$inferSelect;
 
+// Saved Rosters table - user-created roster sets
+export const savedRosters = pgTable("saved_rosters", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  basedOn: text("based_on").notNull().default("NCAA 2026"),
+  rosterData: json("roster_data").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertSavedRosterSchema = createInsertSchema(savedRosters).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertSavedRoster = z.infer<typeof insertSavedRosterSchema>;
+export type SavedRoster = typeof savedRosters.$inferSelect;
+
+// Saved Recruiting Classes table - user-created recruiting class templates
+export const savedRecruitingClasses = pgTable("saved_recruiting_classes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  recruitCount: integer("recruit_count").notNull().default(80),
+  classData: json("class_data").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertSavedRecruitingClassSchema = createInsertSchema(savedRecruitingClasses).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertSavedRecruitingClass = z.infer<typeof insertSavedRecruitingClassSchema>;
+export type SavedRecruitingClass = typeof savedRecruitingClasses.$inferSelect;
+
 // Relations for new tables
 export const storyEventsRelations = relations(storyEvents, ({ one }) => ({
   league: one(leagues, { fields: [storyEvents.leagueId], references: [leagues.id] }),

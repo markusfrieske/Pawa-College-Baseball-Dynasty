@@ -3,7 +3,7 @@ import { useState } from "react";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroInput } from "@/components/ui/retro-input";
 import { RetroSelect } from "@/components/ui/retro-select";
-import { Trophy, Users, Target, Calendar, Star, TrendingUp, User, Bug, Layers, LogOut, DollarSign, X, GraduationCap, Building2, Search, Settings, CalendarDays, Binoculars, Newspaper, Crown, Eye, Zap, Swords } from "lucide-react";
+import { Trophy, Users, Target, Calendar, Star, TrendingUp, User, Bug, Layers, LogOut, DollarSign, X, GraduationCap, Building2, Search, Settings, CalendarDays, Binoculars, Newspaper, Crown, Eye, Zap, Swords, ClipboardList, UserPlus } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -140,6 +140,20 @@ export default function LandingPage() {
               <Link href="/guest">
                 <RetroButton variant="outline" size="lg" data-testid="button-guest-mode">
                   Try as Guest
+                </RetroButton>
+              </Link>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center mt-6">
+              <Link href={isLoggedIn ? "/manage-rosters" : "/login"}>
+                <RetroButton variant="outline" data-testid="button-manage-rosters">
+                  <ClipboardList className="w-4 h-4 mr-2" />
+                  View & Edit Rosters
+                </RetroButton>
+              </Link>
+              <Link href={isLoggedIn ? "/manage-recruiting" : "/login"}>
+                <RetroButton variant="outline" data-testid="button-manage-recruiting">
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Create & Edit Recruiting Class
                 </RetroButton>
               </Link>
             </div>

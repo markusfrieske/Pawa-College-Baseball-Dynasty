@@ -28,6 +28,9 @@ import {
   type Moment, type InsertMoment,
   type PlayerSeasonStats, type InsertPlayerSeasonStats,
   type Walkon, type InsertWalkon,
+  savedRosters, savedRecruitingClasses,
+  type SavedRoster, type InsertSavedRoster,
+  type SavedRecruitingClass, type InsertSavedRecruitingClass,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, or, inArray, isNotNull, sql } from "drizzle-orm";
@@ -160,6 +163,18 @@ export interface IStorage {
   getPlayerSeasonStats(playerId: string, leagueId: string): Promise<PlayerSeasonStats[]>;
   getPlayerSeasonStatsBySeason(leagueId: string, season: number): Promise<PlayerSeasonStats[]>;
   upsertPlayerSeasonStats(data: InsertPlayerSeasonStats): Promise<PlayerSeasonStats>;
+
+  getSavedRostersByUser(userId: string): Promise<SavedRoster[]>;
+  getSavedRoster(id: string): Promise<SavedRoster | undefined>;
+  createSavedRoster(data: InsertSavedRoster): Promise<SavedRoster>;
+  updateSavedRoster(id: string, data: Partial<SavedRoster>): Promise<SavedRoster | undefined>;
+  deleteSavedRoster(id: string): Promise<void>;
+
+  getSavedRecruitingClassesByUser(userId: string): Promise<SavedRecruitingClass[]>;
+  getSavedRecruitingClass(id: string): Promise<SavedRecruitingClass | undefined>;
+  createSavedRecruitingClass(data: InsertSavedRecruitingClass): Promise<SavedRecruitingClass>;
+  updateSavedRecruitingClass(id: string, data: Partial<SavedRecruitingClass>): Promise<SavedRecruitingClass | undefined>;
+  deleteSavedRecruitingClass(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -822,6 +837,52 @@ export class DatabaseStorage implements IStorage {
 
     const [created] = await db.insert(playerSeasonStats).values(data).returning();
     return created;
+  }
+
+  async getSavedRostersByUser(userId: string): Promise<SavedRoster[]> {
+    return await db.select().from(savedRosters).where(eq(savedRosters.userId, userId)).orderBy(desc(savedRosters.updatedAt));
+  }
+
+  async getSavedRoster(id: string): Promise<SavedRoster | undefined> {
+    const [roster] = await db.select().from(savedRosters).where(eq(savedRosters.id, id));
+    return roster || undefined;
+  }
+
+  async createSavedRoster(data: InsertSavedRoster): Promise<SavedRoster> {
+    const [roster] = await db.insert(savedRosters).values(data).returning();
+    return roster;
+  }
+
+  async updateSavedRoster(id: string, data: Partial<SavedRoster>): Promise<SavedRoster | undefined> {
+    const [roster] = await db.update(savedRosters).set({ ...data, updatedAt: new Date() }).where(eq(savedRosters.id, id)).returning();
+    return roster || undefined;
+  }
+
+  async deleteSavedRoster(id: string): Promise<void> {
+    await db.delete(savedRosters).where(eq(savedRosters.id, id));
+  }
+
+  async getSavedRecruitingClassesByUser(userId: string): Promise<SavedRecruitingClass[]> {
+    return await db.select().from(savedRecruitingClasses).where(eq(savedRecruitingClasses.userId, userId)).orderBy(desc(savedRecruitingClasses.updatedAt));
+  }
+
+  async getSavedRecruitingClass(id: string): Promise<SavedRecruitingClass | undefined> {
+    const [rc] = await db.select().from(savedRecruitingClasses).where(eq(savedRecruitingClasses.id, id));
+    return rc || undefined;
+  }
+
+  async createSavedRecruitingClass(data: InsertSavedRecruitingClass): Promise<SavedRecruitingClass> {
+    const [rc] = await db.insert(savedRecruitingClasses).values(data).returning();
+    return rc;
+  }
+
+  async updateSavedRecruitingClass(id: string, data: Partial<SavedRecruitingClass>): Promise<SavedRecruitingClass | undefined> {
+    const [rc] = await db.update(savedRecruitingClasses).set({ ...data, updatedAt: new Date() }).where(eq(savedRecruitingClasses.id, id)).returning();
+    return rc || undefined;
+  }
+
+  async deleteSavedRecruitingClass(id: string): Promise<void> {
+    await db.delete(savedRecruitingClasses).where(eq(savedRecruitingClasses.id, id));
   }
 }
 

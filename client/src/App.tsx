@@ -27,6 +27,8 @@ import TransferPortalPage from "@/pages/transfer-portal";
 import CommitsPage from "@/pages/commits";
 import DeparturesPage from "@/pages/departures";
 import WalkonsPage from "@/pages/walkons";
+import ManageRostersPage from "@/pages/manage-rosters";
+import ManageRecruitingPage from "@/pages/manage-recruiting";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { MusicProvider } from "@/lib/music-context";
@@ -66,6 +68,8 @@ function Router() {
       <Route path="/league/:id/coach" component={CoachProfilePage} />
       <Route path="/league/:id/coach/:coachId" component={CoachProfileByIdPage} />
       <Route path="/coach/:coachId" component={CoachProfileByIdPage} />
+      <Route path="/manage-rosters" component={ManageRostersPage} />
+      <Route path="/manage-recruiting" component={ManageRecruitingPage} />
       <Route path="/invite/:code" component={InvitePage} />
       <Route component={NotFound} />
     </Switch>

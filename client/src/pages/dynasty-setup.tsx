@@ -27,6 +27,7 @@ import {
   Plus,
   Copy,
   X,
+  Database,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -36,7 +37,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import type { Team, Coach, Conference, League, LeagueInvite } from "@shared/schema";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import type { Team, Coach, Conference, League, LeagueInvite, SavedRoster, SavedRecruitingClass } from "@shared/schema";
 
 interface TeamWithCoach extends Team {
   coach: {
@@ -68,6 +70,8 @@ export default function DynastySetupPage() {
   
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
+  const [selectedRosterId, setSelectedRosterId] = useState<string>("default");
+  const [selectedClassId, setSelectedClassId] = useState<string>("auto");
   const [inviteLabel, setInviteLabel] = useState("");
   const [importFile, setImportFile] = useState<File | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
@@ -114,8 +118,21 @@ export default function DynastySetupPage() {
     toast({ title: "Link Copied", description: "Invite link copied to clipboard." });
   };
 
+  const { data: savedRosters } = useQuery<SavedRoster[]>({
+    queryKey: ["/api/saved-rosters"],
+    enabled: !!data?.isCommissioner,
+  });
+
+  const { data: savedClasses } = useQuery<SavedRecruitingClass[]>({
+    queryKey: ["/api/saved-recruiting-classes"],
+    enabled: !!data?.isCommissioner,
+  });
+
   const startDynastyMutation = useMutation({
-    mutationFn: () => apiRequest("POST", `/api/leagues/${id}/start`),
+    mutationFn: () => apiRequest("POST", `/api/leagues/${id}/start`, {
+      rosterId: selectedRosterId !== "default" ? selectedRosterId : undefined,
+      recruitingClassId: selectedClassId !== "auto" ? selectedClassId : undefined,
+    }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues"] });
       toast({ title: "Dynasty Started!", description: "Let the games begin!" });
@@ -280,14 +297,60 @@ export default function DynastySetupPage() {
               <>
                 <RetroCard variant="bordered">
                   <RetroCardHeader>
+                    <span className="font-pixel text-gold text-xs">Roster Source</span>
+                  </RetroCardHeader>
+                  <RetroCardContent>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Choose which roster data to use for this dynasty.
+                    </p>
+                    <Select value={selectedRosterId} onValueChange={setSelectedRosterId}>
+                      <SelectTrigger data-testid="select-roster-source" className="w-full">
+                        <SelectValue placeholder="Select roster source" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="default">NCAA 2026 (Default)</SelectItem>
+                        {savedRosters?.map((roster) => (
+                          <SelectItem key={roster.id} value={String(roster.id)}>
+                            {roster.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <div className="mt-3 flex items-center gap-2 text-green-400 text-sm">
+                      <Database className="w-4 h-4" />
+                      <span>{selectedRosterId === "default" ? "Using default NCAA 2026 rosters" : "Using custom saved roster"}</span>
+                    </div>
+                    <Link href="/manage-rosters">
+                      <RetroButton variant="ghost" size="sm" className="mt-2 text-xs" data-testid="button-manage-rosters-link">
+                        Manage Saved Rosters
+                      </RetroButton>
+                    </Link>
+                  </RetroCardContent>
+                </RetroCard>
+
+                <RetroCard variant="bordered">
+                  <RetroCardHeader>
                     <span className="font-pixel text-gold text-xs">Recruiting Class</span>
                   </RetroCardHeader>
                   <RetroCardContent>
                     <p className="text-sm text-muted-foreground mb-3">
                       {hasRecruits 
                         ? "Recruiting class is ready. You can import a custom class or edit existing recruits."
-                        : "A recruiting class will be auto-generated when the dynasty starts. You can also import a custom class."}
+                        : "Choose a recruiting class source or auto-generate when the dynasty starts."}
                     </p>
+                    <Select value={selectedClassId} onValueChange={setSelectedClassId}>
+                      <SelectTrigger data-testid="select-recruiting-class" className="w-full mb-3">
+                        <SelectValue placeholder="Select recruiting class" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="auto">Auto-Generate</SelectItem>
+                        {savedClasses?.map((cls) => (
+                          <SelectItem key={cls.id} value={String(cls.id)}>
+                            {cls.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <div className="flex gap-3">
                       <RetroButton
                         variant="outline"
@@ -313,6 +376,11 @@ export default function DynastySetupPage() {
                         <span>Recruiting class loaded</span>
                       </div>
                     )}
+                    <Link href="/manage-recruiting">
+                      <RetroButton variant="ghost" size="sm" className="mt-2 text-xs" data-testid="button-manage-recruiting-link">
+                        Manage Saved Recruiting Classes
+                      </RetroButton>
+                    </Link>
                   </RetroCardContent>
                 </RetroCard>
 

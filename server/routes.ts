@@ -8666,6 +8666,7 @@ export async function registerRoutes(
     try {
       const leagueId = req.params.id as string;
       const userId = req.session.userId;
+      const { rosterId, recruitingClassId } = req.body || {};
       
       const league = await storage.getLeague(leagueId);
       if (!league) {
@@ -8676,15 +8677,57 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Only commissioner can start dynasty" });
       }
       
+      // Apply saved roster if specified
+      if (rosterId) {
+        const savedRoster = await storage.getSavedRoster(rosterId);
+        if (savedRoster && savedRoster.userId === userId) {
+          const rosterData = savedRoster.rosterData as any;
+          if (rosterData?.teams) {
+            const teams = await storage.getTeamsByLeague(leagueId);
+            for (const teamData of rosterData.teams) {
+              const matchingTeam = teams.find(t => t.name === teamData.teamName);
+              if (matchingTeam && teamData.players) {
+                const existingPlayers = await storage.getPlayersByTeam(matchingTeam.id);
+                for (const p of existingPlayers) {
+                  await storage.deletePlayer(p.id);
+                }
+                for (const playerData of teamData.players) {
+                  await storage.createPlayer({
+                    ...playerData,
+                    teamId: matchingTeam.id,
+                    leagueId,
+                  });
+                }
+              }
+            }
+          }
+        }
+      }
+      
       // Generate CPU coaches for teams that don't have one
       await generateCpuCoaches(leagueId);
       
-      // Auto-generate recruiting class if not already present
+      // Apply saved recruiting class if specified, otherwise auto-generate
       const existingRecruits = await storage.getRecruitsByLeague(leagueId);
       if (existingRecruits.length === 0) {
-        const teams = await storage.getTeamsByLeague(leagueId);
-        const recruitCount = Math.max(80, teams.length * 5);
-        await generateRecruits(leagueId, recruitCount);
+        if (recruitingClassId) {
+          const savedClass = await storage.getSavedRecruitingClass(recruitingClassId);
+          if (savedClass && savedClass.userId === userId) {
+            const classData = savedClass.classData as any;
+            if (classData?.recruits) {
+              for (const recruitData of classData.recruits) {
+                await storage.createRecruit({
+                  ...recruitData,
+                  leagueId,
+                });
+              }
+            }
+          }
+        } else {
+          const teams = await storage.getTeamsByLeague(leagueId);
+          const recruitCount = Math.max(80, teams.length * 5);
+          await generateRecruits(leagueId, recruitCount);
+        }
       }
       
       // Auto-generate schedule if not already present
@@ -8699,7 +8742,11 @@ export async function registerRoutes(
         leagueId,
         userId: userId || "system",
         action: "start_dynasty",
-        details: JSON.stringify({ season: league.currentSeason }),
+        details: JSON.stringify({ 
+          season: league.currentSeason,
+          rosterId: rosterId || "default",
+          recruitingClassId: recruitingClassId || "auto",
+        }),
       });
       
       res.json({ success: true });
@@ -8876,6 +8923,160 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to check pending events:", error);
       res.status(500).json({ message: "Failed to check pending" });
+    }
+  });
+
+  // === Saved Rosters API ===
+  app.get("/api/saved-rosters", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const rosters = await storage.getSavedRostersByUser(userId);
+      res.json(rosters);
+    } catch (error) {
+      console.error("Failed to get saved rosters:", error);
+      res.status(500).json({ message: "Failed to get saved rosters" });
+    }
+  });
+
+  app.get("/api/saved-rosters/:id", requireAuth, async (req, res) => {
+    try {
+      const roster = await storage.getSavedRoster(req.params.id as string);
+      if (!roster) return res.status(404).json({ message: "Roster not found" });
+      if (roster.userId !== req.session.userId) return res.status(403).json({ message: "Not authorized" });
+      res.json(roster);
+    } catch (error) {
+      console.error("Failed to get saved roster:", error);
+      res.status(500).json({ message: "Failed to get saved roster" });
+    }
+  });
+
+  app.post("/api/saved-rosters", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { name, description, basedOn, rosterData } = req.body;
+      if (!name || !rosterData) return res.status(400).json({ message: "Name and roster data required" });
+      const roster = await storage.createSavedRoster({ userId, name, description, basedOn: basedOn || "NCAA 2026", rosterData });
+      res.json(roster);
+    } catch (error) {
+      console.error("Failed to create saved roster:", error);
+      res.status(500).json({ message: "Failed to create saved roster" });
+    }
+  });
+
+  app.patch("/api/saved-rosters/:id", requireAuth, async (req, res) => {
+    try {
+      const roster = await storage.getSavedRoster(req.params.id as string);
+      if (!roster) return res.status(404).json({ message: "Roster not found" });
+      if (roster.userId !== req.session.userId) return res.status(403).json({ message: "Not authorized" });
+      const updated = await storage.updateSavedRoster(req.params.id as string, req.body);
+      res.json(updated);
+    } catch (error) {
+      console.error("Failed to update saved roster:", error);
+      res.status(500).json({ message: "Failed to update saved roster" });
+    }
+  });
+
+  app.delete("/api/saved-rosters/:id", requireAuth, async (req, res) => {
+    try {
+      const roster = await storage.getSavedRoster(req.params.id as string);
+      if (!roster) return res.status(404).json({ message: "Roster not found" });
+      if (roster.userId !== req.session.userId) return res.status(403).json({ message: "Not authorized" });
+      await storage.deleteSavedRoster(req.params.id as string);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to delete saved roster:", error);
+      res.status(500).json({ message: "Failed to delete saved roster" });
+    }
+  });
+
+  // === Saved Recruiting Classes API ===
+  app.get("/api/saved-recruiting-classes", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const classes = await storage.getSavedRecruitingClassesByUser(userId);
+      res.json(classes);
+    } catch (error) {
+      console.error("Failed to get saved recruiting classes:", error);
+      res.status(500).json({ message: "Failed to get saved recruiting classes" });
+    }
+  });
+
+  app.get("/api/saved-recruiting-classes/:id", requireAuth, async (req, res) => {
+    try {
+      const rc = await storage.getSavedRecruitingClass(req.params.id as string);
+      if (!rc) return res.status(404).json({ message: "Recruiting class not found" });
+      if (rc.userId !== req.session.userId) return res.status(403).json({ message: "Not authorized" });
+      res.json(rc);
+    } catch (error) {
+      console.error("Failed to get saved recruiting class:", error);
+      res.status(500).json({ message: "Failed to get saved recruiting class" });
+    }
+  });
+
+  app.post("/api/saved-recruiting-classes", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const { name, description, recruitCount, classData } = req.body;
+      if (!name || !classData) return res.status(400).json({ message: "Name and class data required" });
+      const rc = await storage.createSavedRecruitingClass({ userId, name, description, recruitCount: recruitCount || 80, classData });
+      res.json(rc);
+    } catch (error) {
+      console.error("Failed to create saved recruiting class:", error);
+      res.status(500).json({ message: "Failed to create saved recruiting class" });
+    }
+  });
+
+  app.patch("/api/saved-recruiting-classes/:id", requireAuth, async (req, res) => {
+    try {
+      const rc = await storage.getSavedRecruitingClass(req.params.id as string);
+      if (!rc) return res.status(404).json({ message: "Recruiting class not found" });
+      if (rc.userId !== req.session.userId) return res.status(403).json({ message: "Not authorized" });
+      const updated = await storage.updateSavedRecruitingClass(req.params.id as string, req.body);
+      res.json(updated);
+    } catch (error) {
+      console.error("Failed to update saved recruiting class:", error);
+      res.status(500).json({ message: "Failed to update saved recruiting class" });
+    }
+  });
+
+  app.delete("/api/saved-recruiting-classes/:id", requireAuth, async (req, res) => {
+    try {
+      const rc = await storage.getSavedRecruitingClass(req.params.id as string);
+      if (!rc) return res.status(404).json({ message: "Recruiting class not found" });
+      if (rc.userId !== req.session.userId) return res.status(403).json({ message: "Not authorized" });
+      await storage.deleteSavedRecruitingClass(req.params.id as string);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to delete saved recruiting class:", error);
+      res.status(500).json({ message: "Failed to delete saved recruiting class" });
+    }
+  });
+
+  // === Conference Teams API (for roster viewing) ===
+  app.get("/api/conference-teams", async (_req, res) => {
+    try {
+      const allConferences = ["SEC", "ACC", "Big 12", "Big Ten", "Pac-12", "Ivy League", "Sun Belt", "Big West", "HBCU", "Missouri Valley"];
+      const result = allConferences.map(conf => ({
+        conference: conf,
+        teams: getTeamsForConference(conf).map(t => t.name),
+      }));
+      res.json(result);
+    } catch (error) {
+      console.error("Failed to get conference teams:", error);
+      res.status(500).json({ message: "Failed to get conference teams" });
+    }
+  });
+
+  // === Default Roster Data API (returns base roster for a team) ===
+  app.get("/api/default-roster/:teamName", async (req, res) => {
+    try {
+      const teamName = decodeURIComponent(req.params.teamName);
+      const roster = SEC_REAL_ROSTERS[teamName];
+      if (!roster) return res.status(404).json({ message: "Team roster not found" });
+      res.json(roster);
+    } catch (error) {
+      console.error("Failed to get default roster:", error);
+      res.status(500).json({ message: "Failed to get default roster" });
     }
   });
 
