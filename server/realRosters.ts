@@ -7,6 +7,12 @@ import { SEC_BATCH3_ROSTERS } from "./secBatch3";
 import { BIG_TEN_BATCH1_ROSTERS } from "./bigTenBatch1";
 import { BIG_TEN_BATCH2_ROSTERS } from "./bigTenBatch2";
 import { BIG_TEN_BATCH3_ROSTERS } from "./bigTenBatch3";
+import { PAC12_ROSTERS } from "./pac12Rosters";
+import { IVY_LEAGUE_ROSTERS } from "./ivyLeagueRosters";
+import { SUN_BELT_ROSTERS } from "./sunBeltRosters";
+import { BIG_WEST_ROSTERS } from "./bigWestRosters";
+import { HBCU_ROSTERS } from "./hbcuRosters";
+import { MO_VALLEY_ROSTERS } from "./moValleyRosters";
 
 export interface RealPlayer {
   firstName: string;
@@ -61,4 +67,10 @@ export const SEC_REAL_ROSTERS: Record<string, RealPlayer[]> = {
   ...BIG_TEN_BATCH1_ROSTERS,
   ...BIG_TEN_BATCH2_ROSTERS,
   ...BIG_TEN_BATCH3_ROSTERS,
+  ...PAC12_ROSTERS,
+  ...IVY_LEAGUE_ROSTERS,
+  ...SUN_BELT_ROSTERS,
+  ...BIG_WEST_ROSTERS,
+  ...HBCU_ROSTERS,
+  ...MO_VALLEY_ROSTERS,
 };
