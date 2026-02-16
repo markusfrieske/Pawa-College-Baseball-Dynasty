@@ -147,13 +147,13 @@ export default function LandingPage() {
               <Link href={isLoggedIn ? "/manage-rosters" : "/login"}>
                 <RetroButton variant="outline" data-testid="button-manage-rosters">
                   <ClipboardList className="w-4 h-4 mr-2" />
-                  View & Edit Rosters
+                  Manage Rosters
                 </RetroButton>
               </Link>
               <Link href={isLoggedIn ? "/manage-recruiting" : "/login"}>
                 <RetroButton variant="outline" data-testid="button-manage-recruiting">
                   <UserPlus className="w-4 h-4 mr-2" />
-                  Create & Edit Recruiting Class
+                  Manage Recruiting Class
                 </RetroButton>
               </Link>
             </div>
