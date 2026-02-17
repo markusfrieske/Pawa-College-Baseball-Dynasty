@@ -29,6 +29,7 @@ interface PitcherInfo {
   stuff: number;
   control: number;
   velocity: number;
+  stamina: number;
 }
 
 interface AtBat {

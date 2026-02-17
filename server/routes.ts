@@ -3613,65 +3613,74 @@ export async function registerRoutes(
       function buildLineup(players: Player[]) {
         const positionPlayers = players.filter(p => p.position !== "P");
         const pitchers = players.filter(p => p.position === "P");
-        const positionOrder = ["C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "DH"];
+        const selected: Player[] = [];
         const used = new Set<string>();
-        const lineup: { playerId: string; firstName: string; lastName: string; position: string; order: number; contact: number; power: number; speed: number; fielding: number }[] = [];
 
-        const lineupPlayers = positionPlayers
-          .filter(p => p.battingOrder != null && p.battingOrder >= 1 && p.battingOrder <= 9)
-          .sort((a, b) => (a.battingOrder || 0) - (b.battingOrder || 0));
-
-        if (lineupPlayers.length >= 7) {
-          for (const p of lineupPlayers) {
-            used.add(p.id);
-            lineup.push({
-              playerId: p.id, firstName: p.firstName, lastName: p.lastName, position: p.position,
-              order: lineup.length + 1,
-              contact: p.hitForAvg || 50, power: p.power || 50, speed: p.speed || 50, fielding: p.fielding || 50,
-            });
-          }
-        } else {
-          for (const pos of positionOrder) {
-            const p = positionPlayers.find(pl => pl.position === pos && !used.has(pl.id));
-            if (p) {
-              used.add(p.id);
-              lineup.push({
-                playerId: p.id, firstName: p.firstName, lastName: p.lastName, position: p.position,
-                order: lineup.length + 1,
-                contact: p.hitForAvg || 50, power: p.power || 50, speed: p.speed || 50, fielding: p.fielding || 50,
-              });
-            }
+        for (const pos of ["C", "1B", "2B", "3B", "SS"]) {
+          const candidates = positionPlayers.filter(p => p.position === pos && !used.has(p.id));
+          if (candidates.length > 0) {
+            candidates.sort((a, b) => ((b.hitForAvg || 0) + (b.power || 0)) - ((a.hitForAvg || 0) + (a.power || 0)));
+            selected.push(candidates[0]);
+            used.add(candidates[0].id);
           }
         }
 
-        for (const p of positionPlayers) {
-          if (lineup.length >= 9) break;
+        const outfielders = positionPlayers.filter(p => p.position === "OF" && !used.has(p.id));
+        outfielders.sort((a, b) => ((b.hitForAvg || 0) + (b.power || 0)) - ((a.hitForAvg || 0) + (a.power || 0)));
+        const ofPositions = ["LF", "CF", "RF"];
+        for (let i = 0; i < 3 && i < outfielders.length; i++) {
+          selected.push(outfielders[i]);
+          used.add(outfielders[i].id);
+        }
+
+        const remaining = positionPlayers.filter(p => !used.has(p.id));
+        remaining.sort((a, b) => ((b.hitForAvg || 0) + (b.power || 0)) - ((a.hitForAvg || 0) + (a.power || 0)));
+        while (selected.length < 9 && remaining.length > 0) {
+          const p = remaining.shift()!;
+          selected.push(p);
+          used.add(p.id);
+        }
+
+        while (selected.length < 9 && pitchers.length > 0) {
+          const p = pitchers.shift()!;
           if (!used.has(p.id)) {
+            selected.push(p);
             used.add(p.id);
-            lineup.push({
-              playerId: p.id, firstName: p.firstName, lastName: p.lastName, position: p.position,
-              order: lineup.length + 1,
-              contact: p.hitForAvg || 50, power: p.power || 50, speed: p.speed || 50, fielding: p.fielding || 50,
-            });
           }
         }
 
-        if (lineup.length < 9 && pitchers.length > 0) {
-          const bp = pitchers[0];
-          lineup.push({
-            playerId: bp.id, firstName: bp.firstName, lastName: bp.lastName, position: "P",
-            order: lineup.length + 1,
-            contact: bp.hitForAvg || 25, power: bp.power || 20, speed: bp.speed || 40, fielding: bp.fielding || 50,
-          });
-        }
+        selected.sort((a, b) => ((b.hitForAvg || 0) + (b.power || 0)) - ((a.hitForAvg || 0) + (a.power || 0)));
+
+        let ofIdx = 0;
+        const lineup = selected.map((p, i) => {
+          let displayPos = p.position;
+          if (p.position === "OF") {
+            displayPos = ofPositions[ofIdx] || "OF";
+            ofIdx++;
+          }
+          return {
+            playerId: p.id,
+            firstName: p.firstName,
+            lastName: p.lastName,
+            position: displayPos,
+            order: i + 1,
+            contact: p.hitForAvg || 50,
+            power: p.power || 50,
+            speed: p.speed || 50,
+            fielding: p.fielding || 50,
+          };
+        });
 
         const fakeFirst = ["Jake", "Mike", "Chris", "Tyler", "Matt", "Ryan", "Josh", "Nick", "Ben"];
         const fakeLast = ["Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Martinez"];
         while (lineup.length < 9) {
           const idx = lineup.length;
           lineup.push({
-            playerId: "fake_" + idx, firstName: fakeFirst[idx % fakeFirst.length], lastName: fakeLast[idx % fakeLast.length],
-            position: positionOrder[idx] || "DH", order: lineup.length + 1,
+            playerId: "fake_" + idx,
+            firstName: fakeFirst[idx % fakeFirst.length],
+            lastName: fakeLast[idx % fakeLast.length],
+            position: "DH",
+            order: lineup.length + 1,
             contact: 50, power: 40, speed: 50, fielding: 50,
           });
         }
@@ -3679,27 +3688,48 @@ export async function registerRoutes(
         return lineup;
       }
 
-      function pickPitcher(players: Player[]) {
+      interface PitcherRef {
+        playerId: string;
+        firstName: string;
+        lastName: string;
+        stuff: number;
+        control: number;
+        velocity: number;
+        stamina: number;
+      }
+
+      function pickPitchingStaff(players: Player[]) {
         const pitchers = players.filter(p => p.position === "P");
-        if (pitchers.length === 0) {
-          const best = players.sort((a, b) => (b.overall || 0) - (a.overall || 0))[0];
-          return {
-            playerId: best?.id || "fake_p", firstName: best?.firstName || "Unknown", lastName: best?.lastName || "Pitcher",
-            stuff: best?.stuff || 50, control: best?.control || 50, velocity: best?.velocity || 50,
-          };
-        }
         pitchers.sort((a, b) => (b.overall || 0) - (a.overall || 0));
-        const p = pitchers[0];
+        const starter = pitchers[0] || players.sort((a, b) => (b.overall || 0) - (a.overall || 0))[0];
+        const bullpen = pitchers.slice(1, 4);
         return {
-          playerId: p.id, firstName: p.firstName, lastName: p.lastName,
-          stuff: p.stuff || 50, control: p.control || 50, velocity: p.velocity || 50,
+          starter: {
+            playerId: starter?.id || "fake_p", firstName: starter?.firstName || "Unknown", lastName: starter?.lastName || "Pitcher",
+            stuff: starter?.stuff || 50, control: starter?.control || 50, velocity: starter?.velocity || 50,
+            stamina: starter?.stamina || 60,
+          } as PitcherRef,
+          bullpen: bullpen.map(p => ({
+            playerId: p.id, firstName: p.firstName, lastName: p.lastName,
+            stuff: p.stuff || 50, control: p.control || 50, velocity: p.velocity || 50,
+            stamina: p.stamina || 50,
+          } as PitcherRef)),
         };
       }
 
       const homeLineup = buildLineup(homePlayers);
       const awayLineup = buildLineup(awayPlayers);
-      const homePitcher = pickPitcher(homePlayers);
-      const awayPitcher = pickPitcher(awayPlayers);
+      const homeStaff = pickPitchingStaff(homePlayers);
+      const awayStaff = pickPitchingStaff(awayPlayers);
+      const homePitcher = homeStaff.starter;
+      const awayPitcher = awayStaff.starter;
+
+      let currentHomePitcher = homeStaff.starter;
+      let currentAwayPitcher = awayStaff.starter;
+      let homeBullpenIdx = 0;
+      let awayBullpenIdx = 0;
+      let homePitchCount = 0;
+      let awayPitchCount = 0;
 
       const avgFielding = (players: Player[]) => {
         const fielders = players.filter(p => p.position !== "P");
@@ -3715,8 +3745,9 @@ export async function registerRoutes(
       for (const b of [...homeLineup, ...awayLineup]) {
         batterStats[b.playerId] = { ab: 0, r: 0, h: 0, doubles: 0, triples: 0, hr: 0, rbi: 0, bb: 0, so: 0 };
       }
-      pitcherStats[homePitcher.playerId] = { outs: 0, h: 0, r: 0, er: 0, bb: 0, so: 0 };
-      pitcherStats[awayPitcher.playerId] = { outs: 0, h: 0, r: 0, er: 0, bb: 0, so: 0 };
+      for (const p of [homeStaff.starter, ...homeStaff.bullpen, awayStaff.starter, ...awayStaff.bullpen]) {
+        pitcherStats[p.playerId] = { outs: 0, h: 0, r: 0, er: 0, bb: 0, so: 0 };
+      }
 
       let homeBatterIndex = 0;
       let awayBatterIndex = 0;
@@ -3822,7 +3853,7 @@ export async function registerRoutes(
 
       function simulateHalfInning(
         battingLineup: typeof homeLineup,
-        pitcher: typeof homePitcher,
+        pitcherState: { current: PitcherRef; pitchCount: number; bullpen: PitcherRef[]; bullpenIdx: number },
         batterIndexRef: { value: number },
         defFielding: number,
         isHome: boolean,
@@ -3831,7 +3862,7 @@ export async function registerRoutes(
         let runs = 0;
         let hits = 0;
         let errors = 0;
-        let bases: [boolean, boolean, boolean] = [false, false, false];
+        let bases: [string | null, string | null, string | null] = [null, null, null];
         const atBats: AtBatResult[] = [];
 
         while (outs < 3) {
@@ -3842,10 +3873,14 @@ export async function registerRoutes(
           const contact = batter.contact;
           const power = batter.power;
           const speed = batter.speed;
-          const stuff = pitcher.stuff;
-          const control = pitcher.control;
-          const velocity = pitcher.velocity;
           const fieldingAvg = defFielding;
+
+          const fatigueFactor = pitcherState.pitchCount > pitcherState.current.stamina * 0.8
+            ? Math.max(0.7, 1 - (pitcherState.pitchCount - pitcherState.current.stamina * 0.8) / 100)
+            : 1;
+          const stuff = pitcherState.current.stuff * fatigueFactor;
+          const control = pitcherState.current.control * fatigueFactor;
+          const velocity = pitcherState.current.velocity;
 
           const contactNorm = contact / 100;
           const powerNorm = power / 100;
@@ -3866,11 +3901,11 @@ export async function registerRoutes(
           const tripleChance = Math.max(0.005, 0.01 + speedNorm * 0.02 + powerNorm * 0.005);
           const doubleChance = Math.max(0.03, 0.06 + powerNorm * 0.04);
 
-          const runnersOn = bases.filter(Boolean).length;
-          const dpChance = (runnersOn > 0 && outs < 2)
+          const runnersOn = bases.filter(b => b !== null).length;
+          const dpChance = (bases[0] !== null && outs < 2)
             ? Math.max(0.03, 0.10 - speedNorm * 0.05)
             : 0;
-          const sacFlyChance = (bases[2] && outs < 2) ? 0.04 : 0;
+          const sacFlyChance = (bases[2] !== null && outs < 2) ? 0.04 : 0;
           const fcChance = runnersOn > 0 ? 0.03 : 0;
 
           const roll = Math.random();
@@ -3958,75 +3993,118 @@ export async function registerRoutes(
 
           result = result!;
 
+          const bId = batter.playerId;
+
           switch (result) {
             case "homerun": {
-              runsScored = 1 + bases.filter(Boolean).length;
-              bases = [false, false, false];
+              for (const baseRunner of bases) {
+                if (baseRunner && batterStats[baseRunner]) {
+                  batterStats[baseRunner].r++;
+                }
+              }
+              if (batterStats[bId]) batterStats[bId].r++;
+              runsScored = 1 + bases.filter(b => b !== null).length;
+              bases = [null, null, null];
               break;
             }
             case "triple": {
-              runsScored = bases.filter(Boolean).length;
-              bases = [false, false, true];
+              for (const baseRunner of bases) {
+                if (baseRunner && batterStats[baseRunner]) {
+                  batterStats[baseRunner].r++;
+                }
+              }
+              runsScored = bases.filter(b => b !== null).length;
+              bases = [null, null, bId];
               break;
             }
             case "double": {
-              runsScored = (bases[1] ? 1 : 0) + (bases[2] ? 1 : 0);
-              if (bases[0] && Math.random() < 0.5 + speedNorm * 0.3) runsScored++;
-              bases = [false, true, bases[0] && runsScored === ((bases[1] ? 1 : 0) + (bases[2] ? 1 : 0)) ? true : false];
+              runsScored = 0;
+              if (bases[2] && batterStats[bases[2]]) { batterStats[bases[2]].r++; runsScored++; }
+              if (bases[1] && batterStats[bases[1]]) { batterStats[bases[1]].r++; runsScored++; }
+              let firstAdvanced = false;
+              if (bases[0]) {
+                if (Math.random() < 0.5 + speedNorm * 0.3) {
+                  if (batterStats[bases[0]]) batterStats[bases[0]].r++;
+                  runsScored++;
+                  firstAdvanced = true;
+                }
+              }
+              bases = [null, bId, bases[0] && !firstAdvanced ? bases[0] : null];
               break;
             }
             case "single": {
-              runsScored = bases[2] ? 1 : 0;
-              if (bases[1] && Math.random() < 0.4 + speedNorm * 0.2) runsScored++;
-              const newThird = bases[1] && runsScored === (bases[2] ? 1 : 0) ? true : false;
-              const newSecond = bases[0] ? true : false;
-              bases = [true, newSecond, newThird];
+              runsScored = 0;
+              if (bases[2] && batterStats[bases[2]]) { batterStats[bases[2]].r++; runsScored++; }
+              let secondScored = false;
+              if (bases[1]) {
+                if (Math.random() < 0.4 + speedNorm * 0.2) {
+                  if (batterStats[bases[1]]) batterStats[bases[1]].r++;
+                  runsScored++;
+                  secondScored = true;
+                }
+              }
+              const newThird = bases[1] && !secondScored ? bases[1] : null;
+              const newSecond = bases[0] || null;
+              bases = [bId, newSecond, newThird];
               break;
             }
             case "walk":
             case "hbp": {
               if (bases[0] && bases[1] && bases[2]) {
+                if (batterStats[bases[2]]) batterStats[bases[2]].r++;
                 runsScored = 1;
               }
               if (bases[0] && bases[1]) {
-                bases[2] = true;
+                bases[2] = bases[1];
               }
               if (bases[0]) {
-                bases[1] = true;
+                bases[1] = bases[0];
               }
-              bases[0] = true;
+              bases[0] = bId;
               break;
             }
             case "error": {
-              if (bases[2]) { runsScored++; }
-              const newThird = bases[1] ? true : false;
-              const newSecond = bases[0] ? true : false;
-              bases = [true, newSecond, newThird];
+              runsScored = 0;
+              if (bases[2]) {
+                if (batterStats[bases[2]]) batterStats[bases[2]].r++;
+                runsScored++;
+              }
+              const errNewThird = bases[1] || null;
+              const errNewSecond = bases[0] || null;
+              bases = [bId, errNewSecond, errNewThird];
               errors++;
               break;
             }
             case "sacrifice_fly": {
               if (bases[2]) {
+                if (batterStats[bases[2]]) batterStats[bases[2]].r++;
                 runsScored = 1;
-                bases[2] = false;
+                bases[2] = null;
               }
               break;
             }
             case "fielders_choice": {
+              runsScored = 0;
               if (bases[2] && outs < 2) {
-                runsScored = 0;
+                if (batterStats[bases[2]]) batterStats[bases[2]].r++;
+                runsScored = 1;
               }
-              if (bases[1]) { bases[2] = true; bases[1] = false; }
-              if (bases[0]) { bases[1] = true; }
-              bases[0] = true;
-              const removedBase = Math.random() < 0.5 ? 1 : 0;
-              if (removedBase === 1 && bases[1]) bases[1] = false;
-              else if (removedBase === 0 && bases[0]) bases[0] = false;
+              const fcThird = bases[1] || null;
+              const fcSecond = bases[0] || null;
+              bases = [bId, fcSecond, fcThird];
+              if (bases[2] && Math.random() < 0.5) bases[2] = null;
+              else if (bases[1] && bases[1] !== bId) bases[1] = null;
               break;
             }
             case "double_play": {
-              if (bases[0]) bases[0] = false;
-              if (bases[1] && Math.random() < 0.3) bases[1] = false;
+              runsScored = 0;
+              if (bases[2] && outs < 2) {
+                if (batterStats[bases[2]]) batterStats[bases[2]].r++;
+                runsScored = 1;
+                bases[2] = null;
+              }
+              bases[0] = null;
+              if (bases[1] && Math.random() < 0.3) bases[1] = null;
               break;
             }
             default:
@@ -4040,8 +4118,7 @@ export async function registerRoutes(
           if (isHit) hits++;
           runs += runsScored;
 
-          const bId = batter.playerId;
-          const pId = isHome ? awayPitcher.playerId : homePitcher.playerId;
+          const pId = pitcherState.current.playerId;
 
           if (!batterStats[bId]) batterStats[bId] = { ab: 0, r: 0, h: 0, doubles: 0, triples: 0, hr: 0, rbi: 0, bb: 0, so: 0 };
           if (!pitcherStats[pId]) pitcherStats[pId] = { outs: 0, h: 0, r: 0, er: 0, bb: 0, so: 0 };
@@ -4088,8 +4165,8 @@ export async function registerRoutes(
           }
 
           const pitchSequence = generatePitchSequence(
-            isHome ? awayPitcher.control : homePitcher.control,
-            isHome ? awayPitcher.stuff : homePitcher.stuff,
+            control,
+            stuff,
             contact, result
           );
 
@@ -4099,10 +4176,18 @@ export async function registerRoutes(
             pitchSequence,
             result,
             description,
-            runnersAfter: [...bases] as [boolean, boolean, boolean],
+            runnersAfter: [bases[0] !== null, bases[1] !== null, bases[2] !== null] as [boolean, boolean, boolean],
             runsScored,
             outs,
           });
+
+          pitcherState.pitchCount += pitchSequence.length;
+          const maxPitches = Math.floor(pitcherState.current.stamina * 1.2) + 20;
+          if (pitcherState.pitchCount > maxPitches && pitcherState.bullpenIdx < pitcherState.bullpen.length) {
+            pitcherState.current = pitcherState.bullpen[pitcherState.bullpenIdx];
+            pitcherState.bullpenIdx++;
+            pitcherState.pitchCount = 0;
+          }
         }
 
         return { atBats, runs, hits, errors };
@@ -4111,16 +4196,18 @@ export async function registerRoutes(
       const homeIdx = { value: 0 };
       const awayIdx = { value: 0 };
 
+      const homePitcherState = { current: currentHomePitcher, pitchCount: homePitchCount, bullpen: homeStaff.bullpen, bullpenIdx: homeBullpenIdx };
+      const awayPitcherState = { current: currentAwayPitcher, pitchCount: awayPitchCount, bullpen: awayStaff.bullpen, bullpenIdx: awayBullpenIdx };
+
       for (let inn = 1; inn <= 9; inn++) {
-        const topHalf = simulateHalfInning(awayLineup, homePitcher, awayIdx, homeFielding, false);
+        const topHalf = simulateHalfInning(awayLineup, homePitcherState, awayIdx, homeFielding, false);
         totalAwayScore += topHalf.runs;
-        topHalf.atBats.forEach(ab => { /* runs already tracked */ });
 
         let bottomHalf: HalfInningResult;
         if (inn === 9 && totalHomeScore > totalAwayScore) {
           bottomHalf = { atBats: [], runs: 0, hits: 0, errors: 0 };
         } else {
-          bottomHalf = simulateHalfInning(homeLineup, awayPitcher, homeIdx, awayFielding, true);
+          bottomHalf = simulateHalfInning(homeLineup, awayPitcherState, homeIdx, awayFielding, true);
           totalHomeScore += bottomHalf.runs;
         }
 
@@ -4129,10 +4216,10 @@ export async function registerRoutes(
 
       let extraInning = 10;
       while (totalHomeScore === totalAwayScore && extraInning <= 12) {
-        const topHalf = simulateHalfInning(awayLineup, homePitcher, awayIdx, homeFielding, false);
+        const topHalf = simulateHalfInning(awayLineup, homePitcherState, awayIdx, homeFielding, false);
         totalAwayScore += topHalf.runs;
 
-        const bottomHalf = simulateHalfInning(homeLineup, awayPitcher, homeIdx, awayFielding, true);
+        const bottomHalf = simulateHalfInning(homeLineup, awayPitcherState, homeIdx, awayFielding, true);
         totalHomeScore += bottomHalf.runs;
 
         innings.push({ inning: extraInning, topHalf, bottomHalf });
@@ -4145,12 +4232,15 @@ export async function registerRoutes(
         const lastInning = innings[innings.length - 1];
         if (totalHomeScore > totalAwayScore) {
           lastInning.bottomHalf.runs++;
+          const bIdx = homeIdx.value % 9;
+          const winBatter = homeLineup[bIdx];
+          if (batterStats[winBatter.playerId]) batterStats[winBatter.playerId].r++;
           lastInning.bottomHalf.atBats.push({
-            batterIndex: homeIdx.value % 9,
-            batterName: `${homeLineup[homeIdx.value % 9].firstName} ${homeLineup[homeIdx.value % 9].lastName}`,
+            batterIndex: bIdx,
+            batterName: `${winBatter.firstName} ${winBatter.lastName}`,
             pitchSequence: ["ball", "strike", "in_play"],
             result: "single",
-            description: `${homeLineup[homeIdx.value % 9].firstName[0]}. ${homeLineup[homeIdx.value % 9].lastName} singles to win the game!`,
+            description: `${winBatter.firstName[0]}. ${winBatter.lastName} singles to win the game!`,
             runnersAfter: [true, false, false],
             runsScored: 1,
             outs: lastInning.bottomHalf.atBats.length > 0 ? lastInning.bottomHalf.atBats[lastInning.bottomHalf.atBats.length - 1].outs : 0,
@@ -4158,12 +4248,15 @@ export async function registerRoutes(
           lastInning.bottomHalf.hits++;
         } else {
           lastInning.topHalf.runs++;
+          const bIdx = awayIdx.value % 9;
+          const winBatter = awayLineup[bIdx];
+          if (batterStats[winBatter.playerId]) batterStats[winBatter.playerId].r++;
           lastInning.topHalf.atBats.push({
-            batterIndex: awayIdx.value % 9,
-            batterName: `${awayLineup[awayIdx.value % 9].firstName} ${awayLineup[awayIdx.value % 9].lastName}`,
+            batterIndex: bIdx,
+            batterName: `${winBatter.firstName} ${winBatter.lastName}`,
             pitchSequence: ["strike", "ball", "in_play"],
             result: "single",
-            description: `${awayLineup[awayIdx.value % 9].firstName[0]}. ${awayLineup[awayIdx.value % 9].lastName} singles to break the tie!`,
+            description: `${winBatter.firstName[0]}. ${winBatter.lastName} singles to break the tie!`,
             runnersAfter: [true, false, false],
             runsScored: 1,
             outs: lastInning.topHalf.atBats.length > 0 ? lastInning.topHalf.atBats[lastInning.topHalf.atBats.length - 1].outs : 0,
@@ -4171,60 +4264,6 @@ export async function registerRoutes(
           lastInning.topHalf.hits++;
         }
       }
-
-      for (const b of homeLineup) {
-        const st = batterStats[b.playerId];
-        if (st) st.r = 0;
-      }
-      for (const b of awayLineup) {
-        const st = batterStats[b.playerId];
-        if (st) st.r = 0;
-      }
-
-      for (const inn of innings) {
-        for (const ab of inn.bottomHalf.atBats) {
-          const batter = homeLineup[ab.batterIndex];
-          if (batter && batterStats[batter.playerId]) {
-            if (ab.result === "homerun") batterStats[batter.playerId].r++;
-            else if (ab.runsScored > 0) {
-              // assign runs to runners who scored
-            }
-          }
-        }
-        for (const ab of inn.topHalf.atBats) {
-          const batter = awayLineup[ab.batterIndex];
-          if (batter && batterStats[batter.playerId]) {
-            if (ab.result === "homerun") batterStats[batter.playerId].r++;
-          }
-        }
-      }
-
-      // Distribute runs scored across batters proportionally
-      const distributeRuns = (lineup: typeof homeLineup, totalRuns: number) => {
-        let runsLeft = totalRuns;
-        const hitters = lineup.filter(b => (batterStats[b.playerId]?.h || 0) > 0);
-        for (const b of lineup) {
-          if (runsLeft <= 0) break;
-          const st = batterStats[b.playerId];
-          if (!st) continue;
-          if (st.hr > 0) { st.r += st.hr; runsLeft -= st.hr; }
-        }
-        for (let i = 0; runsLeft > 0; i++) {
-          const target = hitters.length > 0 ? hitters[i % hitters.length] : lineup[i % lineup.length];
-          const st = batterStats[target.playerId];
-          if (st) { st.r++; runsLeft--; }
-        }
-      };
-      distributeRuns(homeLineup, totalHomeScore);
-      distributeRuns(awayLineup, totalAwayScore);
-
-      const totalOuts = innings.length * 6;
-      const homePitcherOuts = innings.reduce((s, inn) => s + inn.topHalf.atBats.filter(ab =>
-        ["strikeout", "groundout", "flyout", "lineout", "popout", "double_play", "sacrifice_fly", "fielders_choice"].includes(ab.result)
-      ).reduce((s2, ab) => s2 + (ab.result === "double_play" ? 2 : 1), 0), 0);
-      const awayPitcherOuts = innings.reduce((s, inn) => s + inn.bottomHalf.atBats.filter(ab =>
-        ["strikeout", "groundout", "flyout", "lineout", "popout", "double_play", "sacrifice_fly", "fielders_choice"].includes(ab.result)
-      ).reduce((s2, ab) => s2 + (ab.result === "double_play" ? 2 : 1), 0), 0);
 
       const outsToIP = (outs: number) => `${Math.floor(outs / 3)}.${outs % 3}`;
 
@@ -4250,32 +4289,65 @@ export async function registerRoutes(
         };
       });
 
-      const hpStats = pitcherStats[homePitcher.playerId] || { outs: 0, h: 0, r: 0, er: 0, bb: 0, so: 0 };
-      const apStats = pitcherStats[awayPitcher.playerId] || { outs: 0, h: 0, r: 0, er: 0, bb: 0, so: 0 };
+      const allHomePitchers = [homeStaff.starter, ...homeStaff.bullpen];
+      const allAwayPitchers = [awayStaff.starter, ...awayStaff.bullpen];
 
-      const homePitching = [{
-        playerId: homePitcher.playerId,
-        name: `${homePitcher.firstName[0]}. ${homePitcher.lastName}`,
-        ip: outsToIP(homePitcherOuts || hpStats.outs),
-        h: hpStats.h, r: hpStats.r, er: hpStats.er, bb: hpStats.bb, so: hpStats.so,
-        era: hpStats.outs > 0 ? ((hpStats.er * 27) / (hpStats.outs)).toFixed(2) : "0.00",
-      }];
+      const homePitching = allHomePitchers
+        .filter(p => {
+          const st = pitcherStats[p.playerId];
+          return st && (st.outs > 0 || st.h > 0 || st.bb > 0 || st.so > 0 || st.r > 0);
+        })
+        .map(p => {
+          const st = pitcherStats[p.playerId] || { outs: 0, h: 0, r: 0, er: 0, bb: 0, so: 0 };
+          return {
+            playerId: p.playerId,
+            name: `${p.firstName[0]}. ${p.lastName}`,
+            ip: outsToIP(st.outs),
+            h: st.h, r: st.r, er: st.er, bb: st.bb, so: st.so,
+            era: st.outs > 0 ? ((st.er * 27) / st.outs).toFixed(2) : "0.00",
+          };
+        });
 
-      const awayPitching = [{
-        playerId: awayPitcher.playerId,
-        name: `${awayPitcher.firstName[0]}. ${awayPitcher.lastName}`,
-        ip: outsToIP(awayPitcherOuts || apStats.outs),
-        h: apStats.h, r: apStats.r, er: apStats.er, bb: apStats.bb, so: apStats.so,
-        era: apStats.outs > 0 ? ((apStats.er * 27) / (apStats.outs)).toFixed(2) : "0.00",
-      }];
+      const awayPitching = allAwayPitchers
+        .filter(p => {
+          const st = pitcherStats[p.playerId];
+          return st && (st.outs > 0 || st.h > 0 || st.bb > 0 || st.so > 0 || st.r > 0);
+        })
+        .map(p => {
+          const st = pitcherStats[p.playerId] || { outs: 0, h: 0, r: 0, er: 0, bb: 0, so: 0 };
+          return {
+            playerId: p.playerId,
+            name: `${p.firstName[0]}. ${p.lastName}`,
+            ip: outsToIP(st.outs),
+            h: st.h, r: st.r, er: st.er, bb: st.bb, so: st.so,
+            era: st.outs > 0 ? ((st.er * 27) / st.outs).toFixed(2) : "0.00",
+          };
+        });
+
+      if (homePitching.length === 0) {
+        const st = pitcherStats[homePitcher.playerId] || { outs: 0, h: 0, r: 0, er: 0, bb: 0, so: 0 };
+        homePitching.push({
+          playerId: homePitcher.playerId, name: `${homePitcher.firstName[0]}. ${homePitcher.lastName}`,
+          ip: outsToIP(st.outs), h: st.h, r: st.r, er: st.er, bb: st.bb, so: st.so,
+          era: st.outs > 0 ? ((st.er * 27) / st.outs).toFixed(2) : "0.00",
+        });
+      }
+      if (awayPitching.length === 0) {
+        const st = pitcherStats[awayPitcher.playerId] || { outs: 0, h: 0, r: 0, er: 0, bb: 0, so: 0 };
+        awayPitching.push({
+          playerId: awayPitcher.playerId, name: `${awayPitcher.firstName[0]}. ${awayPitcher.lastName}`,
+          ip: outsToIP(st.outs), h: st.h, r: st.r, er: st.er, bb: st.bb, so: st.so,
+          era: st.outs > 0 ? ((st.er * 27) / st.outs).toFixed(2) : "0.00",
+        });
+      }
 
       res.json({
         homeTeam: { id: homeTeam.id, name: homeTeam.name, abbreviation: homeTeam.abbreviation, primaryColor: homeTeam.primaryColor, secondaryColor: homeTeam.secondaryColor },
         awayTeam: { id: awayTeam.id, name: awayTeam.name, abbreviation: awayTeam.abbreviation, primaryColor: awayTeam.primaryColor, secondaryColor: awayTeam.secondaryColor },
         homeLineup,
         awayLineup,
-        homePitcher,
-        awayPitcher,
+        homePitcher: { ...homePitcher, stamina: homePitcher.stamina },
+        awayPitcher: { ...awayPitcher, stamina: awayPitcher.stamina },
         innings,
         finalScore: { home: totalHomeScore, away: totalAwayScore },
         homeBatting,
