@@ -4,10 +4,11 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { RetroButton } from "@/components/ui/retro-button";
 import { TeamBadge } from "@/components/ui/team-badge";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Pause, Play, FastForward, MapPin, Star } from "lucide-react";
+import { ArrowLeft, Pause, Play, FastForward, MapPin, Star, X } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { PlayerAvatar } from "@/components/player-avatar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type SpeedMode = "pause" | "slow" | "fast";
 
@@ -187,6 +188,16 @@ export default function PlayByPlayPage() {
   const [resultFlash, setResultFlash] = useState<{ text: string; type: "hit" | "out" | "walk" | "hr" | "error" } | null>(null);
   const [inningTransition, setInningTransition] = useState<string | null>(null);
   const [scorePulse, setScorePulse] = useState<"home" | "away" | null>(null);
+  const [statsModalPlayer, setStatsModalPlayer] = useState<{
+    name: string;
+    position: string;
+    type: "batter" | "pitcher";
+    seasonStats?: SeasonStatLine;
+    gameStats?: Record<string, number | string>;
+    appearance?: { skinTone?: string; hairColor?: string; hairStyle?: string; headwear?: string };
+    overall?: number;
+    team: TeamInfo;
+  } | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const speedRef = useRef<SpeedMode>(speed);
 
@@ -497,8 +508,9 @@ export default function PlayByPlayPage() {
 
   const positionColor = (pos: string) => {
     if (pos === "P") return "bg-red-500";
-    if (pos === "C") return "bg-orange-500";
-    if (["1B", "2B", "3B", "SS"].includes(pos)) return "bg-blue-500";
+    if (pos === "C") return "bg-blue-500";
+    if (["1B", "2B", "3B", "SS"].includes(pos)) return "bg-yellow-500";
+    if (pos === "DH") return "bg-gray-500";
     return "bg-green-500";
   };
 
@@ -669,6 +681,23 @@ export default function PlayByPlayPage() {
                         headwear: currentLineup[currentAtBat.batterIndex]?.headwear,
                       } : undefined}
                       overall={currentAtBat ? (currentLineup[currentAtBat.batterIndex]?.overall) : undefined}
+                      onClickStats={() => {
+                        if (!currentAtBat) return;
+                        const batter = currentLineup[currentAtBat.batterIndex];
+                        if (!batter) return;
+                        const battingStats = currentHalf === "top" ? pbpData.awayBatting : pbpData.homeBatting;
+                        const stat = battingStats.find(s => s.playerId === batter.playerId);
+                        setStatsModalPlayer({
+                          name: currentAtBat.batterName,
+                          position: batter.position,
+                          type: "batter",
+                          seasonStats: pbpData.playerSeasonStats?.[batter.playerId],
+                          gameStats: stat ? { ab: stat.ab, h: stat.h, hr: stat.hr, rbi: stat.rbi, bb: stat.bb, so: stat.so, r: stat.r } : undefined,
+                          appearance: { skinTone: batter.skinTone, hairColor: batter.hairColor, hairStyle: batter.hairStyle, headwear: batter.headwear },
+                          overall: batter.overall,
+                          team: battingTeam,
+                        });
+                      }}
                     />
                   </div>
 
@@ -839,6 +868,20 @@ export default function PlayByPlayPage() {
                         headwear: currentPitcher.headwear,
                       }}
                       overall={currentPitcher.overall}
+                      onClickStats={() => {
+                        const pitchingStats = currentHalf === "top" ? pbpData.homePitching : pbpData.awayPitching;
+                        const stat = pitchingStats.find(s => s.playerId === currentPitcher.playerId);
+                        setStatsModalPlayer({
+                          name: `${currentPitcher.firstName[0]}. ${currentPitcher.lastName}`,
+                          position: "P",
+                          type: "pitcher",
+                          seasonStats: pbpData.playerSeasonStats?.[currentPitcher.playerId],
+                          gameStats: stat ? { ip: stat.ip, h: stat.h, er: stat.er, bb: stat.bb, so: stat.so, r: stat.r } : undefined,
+                          appearance: { skinTone: currentPitcher.skinTone, hairColor: currentPitcher.hairColor, hairStyle: currentPitcher.hairStyle, headwear: currentPitcher.headwear },
+                          overall: currentPitcher.overall,
+                          team: pitchingTeam,
+                        });
+                      }}
                     />
                   </div>
                 </div>
@@ -979,6 +1022,221 @@ export default function PlayByPlayPage() {
           </div>
         </div>
       </div>
+
+      <Dialog open={!!statsModalPlayer} onOpenChange={(open) => { if (!open) setStatsModalPlayer(null); }}>
+        <DialogContent className="bg-card border-border max-w-md font-pixel">
+          {statsModalPlayer && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-gold">
+                  <PlayerAvatar
+                    skinTone={statsModalPlayer.appearance?.skinTone}
+                    hairColor={statsModalPlayer.appearance?.hairColor}
+                    hairStyle={statsModalPlayer.appearance?.hairStyle}
+                    headwear={statsModalPlayer.appearance?.headwear}
+                    size="md"
+                    jerseyColor={statsModalPlayer.team.primaryColor}
+                    className="w-10 h-10 shrink-0"
+                  />
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant="outline" className="text-[9px] shrink-0">{statsModalPlayer.position}</Badge>
+                      <span className="text-sm truncate">{statsModalPlayer.name}</span>
+                    </div>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <TeamBadge abbreviation={statsModalPlayer.team.abbreviation} primaryColor={statsModalPlayer.team.primaryColor} secondaryColor={statsModalPlayer.team.secondaryColor} size="sm" />
+                      <span className="text-[10px] text-muted-foreground">{statsModalPlayer.team.name}</span>
+                      {statsModalPlayer.overall && (
+                        <span className="text-[10px] text-muted-foreground ml-1">OVR {statsModalPlayer.overall}</span>
+                      )}
+                    </div>
+                  </div>
+                </DialogTitle>
+              </DialogHeader>
+
+              {statsModalPlayer.gameStats && (
+                <div className="border border-border rounded p-3 bg-background/50">
+                  <h4 className="text-[10px] text-gold mb-2">TODAY'S GAME</h4>
+                  {statsModalPlayer.type === "batter" ? (
+                    <div className="grid grid-cols-4 gap-2">
+                      {[["AB", "ab"], ["H", "h"], ["R", "r"], ["HR", "hr"], ["RBI", "rbi"], ["BB", "bb"], ["SO", "so"]].map(([label, key]) => (
+                        <div key={key} className="text-center">
+                          <div className="text-[9px] text-muted-foreground">{label}</div>
+                          <div className="text-sm text-foreground">{statsModalPlayer.gameStats![key]}</div>
+                        </div>
+                      ))}
+                      <div className="text-center">
+                        <div className="text-[9px] text-muted-foreground">AVG</div>
+                        <div className="text-sm text-gold">
+                          {Number(statsModalPlayer.gameStats!.ab) > 0
+                            ? (Number(statsModalPlayer.gameStats!.h) / Number(statsModalPlayer.gameStats!.ab)).toFixed(3)
+                            : ".000"}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-4 gap-2">
+                      {[["IP", "ip"], ["H", "h"], ["R", "r"], ["ER", "er"], ["BB", "bb"], ["SO", "so"]].map(([label, key]) => (
+                        <div key={key} className="text-center">
+                          <div className="text-[9px] text-muted-foreground">{label}</div>
+                          <div className="text-sm text-foreground">{statsModalPlayer.gameStats![key]}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {statsModalPlayer.seasonStats ? (
+                <div className="border border-border rounded p-3 bg-background/50">
+                  <h4 className="text-[10px] text-gold mb-2">SEASON STATS</h4>
+                  {statsModalPlayer.type === "batter" ? (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-4 gap-2">
+                        <div className="text-center">
+                          <div className="text-[9px] text-muted-foreground">G</div>
+                          <div className="text-sm text-foreground">{statsModalPlayer.seasonStats.games}</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-[9px] text-muted-foreground">AB</div>
+                          <div className="text-sm text-foreground">{statsModalPlayer.seasonStats.ab}</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-[9px] text-muted-foreground">AVG</div>
+                          <div className="text-sm text-gold font-bold">{statsModalPlayer.seasonStats.avg}</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-[9px] text-muted-foreground">R</div>
+                          <div className="text-sm text-foreground">{statsModalPlayer.seasonStats.r}</div>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-4 gap-2">
+                        <div className="text-center">
+                          <div className="text-[9px] text-muted-foreground">H</div>
+                          <div className="text-sm text-foreground">{statsModalPlayer.seasonStats.h}</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-[9px] text-muted-foreground">HR</div>
+                          <div className="text-sm text-foreground">{statsModalPlayer.seasonStats.hr}</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-[9px] text-muted-foreground">RBI</div>
+                          <div className="text-sm text-foreground">{statsModalPlayer.seasonStats.rbi}</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-[9px] text-muted-foreground">BB</div>
+                          <div className="text-sm text-foreground">{statsModalPlayer.seasonStats.bb}</div>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-4 gap-2">
+                        <div className="text-center">
+                          <div className="text-[9px] text-muted-foreground">SO</div>
+                          <div className="text-sm text-foreground">{statsModalPlayer.seasonStats.so}</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-[9px] text-muted-foreground">OBP</div>
+                          <div className="text-sm text-foreground">
+                            {(statsModalPlayer.seasonStats.ab + statsModalPlayer.seasonStats.bb) > 0
+                              ? ((statsModalPlayer.seasonStats.h + statsModalPlayer.seasonStats.bb) / (statsModalPlayer.seasonStats.ab + statsModalPlayer.seasonStats.bb)).toFixed(3)
+                              : ".000"}
+                          </div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-[9px] text-muted-foreground">SLG</div>
+                          <div className="text-sm text-foreground">
+                            {statsModalPlayer.seasonStats.ab > 0
+                              ? (((statsModalPlayer.seasonStats.h - statsModalPlayer.seasonStats.hr) + statsModalPlayer.seasonStats.hr * 4) / statsModalPlayer.seasonStats.ab).toFixed(3)
+                              : ".000"}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-4 gap-2">
+                        <div className="text-center">
+                          <div className="text-[9px] text-muted-foreground">G</div>
+                          <div className="text-sm text-foreground">{statsModalPlayer.seasonStats.pitchingGames}</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-[9px] text-muted-foreground">W</div>
+                          <div className="text-sm text-foreground">{statsModalPlayer.seasonStats.wins}</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-[9px] text-muted-foreground">L</div>
+                          <div className="text-sm text-foreground">{statsModalPlayer.seasonStats.losses}</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-[9px] text-muted-foreground">ERA</div>
+                          <div className="text-sm text-gold font-bold">{statsModalPlayer.seasonStats.era}</div>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-4 gap-2">
+                        <div className="text-center">
+                          <div className="text-[9px] text-muted-foreground">IP</div>
+                          <div className="text-sm text-foreground">{(statsModalPlayer.seasonStats.ipOuts / 3).toFixed(1)}</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-[9px] text-muted-foreground">H</div>
+                          <div className="text-sm text-foreground">{statsModalPlayer.seasonStats.pHits}</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-[9px] text-muted-foreground">ER</div>
+                          <div className="text-sm text-foreground">{statsModalPlayer.seasonStats.pEr}</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-[9px] text-muted-foreground">WHIP</div>
+                          <div className="text-sm text-foreground">
+                            {statsModalPlayer.seasonStats.ipOuts > 0
+                              ? (((statsModalPlayer.seasonStats.pHits + statsModalPlayer.seasonStats.pBb) * 3) / statsModalPlayer.seasonStats.ipOuts).toFixed(2)
+                              : "0.00"}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-4 gap-2">
+                        <div className="text-center">
+                          <div className="text-[9px] text-muted-foreground">K</div>
+                          <div className="text-sm text-foreground">{statsModalPlayer.seasonStats.pSo}</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-[9px] text-muted-foreground">BB</div>
+                          <div className="text-sm text-foreground">{statsModalPlayer.seasonStats.pBb}</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-[9px] text-muted-foreground">K/BB</div>
+                          <div className="text-sm text-foreground">
+                            {statsModalPlayer.seasonStats.pBb > 0
+                              ? (statsModalPlayer.seasonStats.pSo / statsModalPlayer.seasonStats.pBb).toFixed(2)
+                              : statsModalPlayer.seasonStats.pSo > 0 ? "INF" : "0.00"}
+                          </div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-[9px] text-muted-foreground">K/9</div>
+                          <div className="text-sm text-foreground">
+                            {statsModalPlayer.seasonStats.ipOuts > 0
+                              ? ((statsModalPlayer.seasonStats.pSo * 27) / statsModalPlayer.seasonStats.ipOuts).toFixed(1)
+                              : "0.0"}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="border border-border rounded p-3 bg-background/50 text-center">
+                  <span className="text-[10px] text-muted-foreground">No season stats available</span>
+                </div>
+              )}
+
+              <div className="flex justify-end">
+                <RetroButton size="sm" variant="outline" onClick={() => setStatsModalPlayer(null)} data-testid="button-close-stats-modal">
+                  Close
+                </RetroButton>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -1000,7 +1258,7 @@ function PlayerFace({ position, size = 28 }: { position: string; size?: number }
   );
 }
 
-function PlayerCard({ type, name, position, stats, gameStats, seasonStats, team, appearance, overall }: {
+function PlayerCard({ type, name, position, stats, gameStats, seasonStats, team, appearance, overall, onClickStats }: {
   type: "batter" | "pitcher";
   name: string;
   position: string;
@@ -1010,6 +1268,7 @@ function PlayerCard({ type, name, position, stats, gameStats, seasonStats, team,
   team: TeamInfo;
   appearance?: { skinTone?: string; hairColor?: string; hairStyle?: string; headwear?: string };
   overall?: number;
+  onClickStats?: () => void;
 }) {
   const ratingColor = (val: number) => {
     if (val >= 80) return "text-green-400";
@@ -1050,7 +1309,11 @@ function PlayerCard({ type, name, position, stats, gameStats, seasonStats, team,
   );
 
   return (
-    <div className="border border-border rounded bg-card/60 p-3" data-testid={`player-card-${type}`}>
+    <div
+      className={`border border-border rounded bg-card/60 p-3 ${onClickStats ? "cursor-pointer hover:border-gold/50 transition-colors" : ""}`}
+      data-testid={`player-card-${type}`}
+      onClick={onClickStats}
+    >
       <div className="flex items-center gap-2 mb-3">
         <PlayerAvatar
           skinTone={appearance?.skinTone}

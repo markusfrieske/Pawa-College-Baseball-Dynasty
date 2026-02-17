@@ -11157,32 +11157,50 @@ async function generateRecruits(leagueId: string, count: number) {
 
   // Generate pitch mix for pitchers
   // FB and 2S are capped at 1 (presence indicator only), secondary pitches are rated 1-7
-  const generatePitchMix = (isPitcher: boolean): { pitchFB: number; pitch2S: number; pitchSL: number; pitchCB: number; pitchCH: number; pitchCT: number; pitchSNK: number; pitchSPL: number } => {
-    if (!isPitcher) {
-      return { pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0 };
-    }
+  const generatePitchMix = (isPitcher: boolean) => {
+    const empty = {
+      pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0,
+      pitchSNK: 0, pitchSPL: 0, pitchSHU: 0, pitchCCH: 0, pitchHSL: 0, pitchSWP: 0,
+      pitchKN: 0, pitchVSL: 0, pitchSFF: 0, pitchFK: 0, pitchSCB: 0, pitchPCB: 0,
+    };
+    if (!isPitcher) return empty;
     
-    // Every pitcher has a fastball - capped at 1 (presence only)
     const pitchFB = 1;
-    // 50% chance of 2-seam - capped at 1 (presence only)
     const pitch2S = Math.random() < 0.5 ? 1 : 0;
     
-    // Secondary pitches pool
-    const secondaryPitches = ['SL', 'CB', 'CH', 'CT', 'SNK', 'SPL'];
-    const shuffled = secondaryPitches.sort(() => Math.random() - 0.5);
-    // Pick 2-4 secondary pitches
-    const numSecondary = 2 + Math.floor(Math.random() * 3);
-    const selectedSecondary = new Set(shuffled.slice(0, numSecondary));
+    const commonPool = ['SL', 'CB', 'CH', 'CT', 'SNK', 'SPL'];
+    const rarePool = ['SHU', 'CCH', 'HSL', 'SWP', 'KN', 'VSL', 'SFF', 'FK', 'SCB', 'PCB'];
+    
+    const shuffledCommon = [...commonPool].sort(() => Math.random() - 0.5);
+    const shuffledRare = [...rarePool].sort(() => Math.random() - 0.5);
+    
+    const numCommon = 2 + Math.floor(Math.random() * 2);
+    const numRare = Math.random() < 0.3 ? 1 : 0;
+    const selectedSecondary = new Set([
+      ...shuffledCommon.slice(0, numCommon),
+      ...shuffledRare.slice(0, numRare),
+    ]);
+    
+    const rndRating = () => 1 + Math.floor(Math.random() * 7);
     
     return {
-      pitchFB,
-      pitch2S,
-      pitchSL: selectedSecondary.has('SL') ? 1 + Math.floor(Math.random() * 7) : 0,
-      pitchCB: selectedSecondary.has('CB') ? 1 + Math.floor(Math.random() * 7) : 0,
-      pitchCH: selectedSecondary.has('CH') ? 1 + Math.floor(Math.random() * 7) : 0,
-      pitchCT: selectedSecondary.has('CT') ? 1 + Math.floor(Math.random() * 7) : 0,
-      pitchSNK: selectedSecondary.has('SNK') ? 1 + Math.floor(Math.random() * 7) : 0,
-      pitchSPL: selectedSecondary.has('SPL') ? 1 + Math.floor(Math.random() * 7) : 0,
+      pitchFB, pitch2S,
+      pitchSL: selectedSecondary.has('SL') ? rndRating() : 0,
+      pitchCB: selectedSecondary.has('CB') ? rndRating() : 0,
+      pitchCH: selectedSecondary.has('CH') ? rndRating() : 0,
+      pitchCT: selectedSecondary.has('CT') ? rndRating() : 0,
+      pitchSNK: selectedSecondary.has('SNK') ? rndRating() : 0,
+      pitchSPL: selectedSecondary.has('SPL') ? rndRating() : 0,
+      pitchSHU: selectedSecondary.has('SHU') ? rndRating() : 0,
+      pitchCCH: selectedSecondary.has('CCH') ? rndRating() : 0,
+      pitchHSL: selectedSecondary.has('HSL') ? rndRating() : 0,
+      pitchSWP: selectedSecondary.has('SWP') ? rndRating() : 0,
+      pitchKN: selectedSecondary.has('KN') ? rndRating() : 0,
+      pitchVSL: selectedSecondary.has('VSL') ? rndRating() : 0,
+      pitchSFF: selectedSecondary.has('SFF') ? rndRating() : 0,
+      pitchFK: selectedSecondary.has('FK') ? rndRating() : 0,
+      pitchSCB: selectedSecondary.has('SCB') ? rndRating() : 0,
+      pitchPCB: selectedSecondary.has('PCB') ? rndRating() : 0,
     };
   };
   

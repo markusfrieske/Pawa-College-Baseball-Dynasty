@@ -62,6 +62,16 @@ interface RealPlayer {
   pitchCT: number;
   pitchSNK: number;
   pitchSPL: number;
+  pitchSHU: number;
+  pitchCCH: number;
+  pitchHSL: number;
+  pitchSWP: number;
+  pitchKN: number;
+  pitchVSL: number;
+  pitchSFF: number;
+  pitchFK: number;
+  pitchSCB: number;
+  pitchPCB: number;
   appearance?: PlayerAppearance;
 }
 
@@ -897,6 +907,7 @@ function PlayerEditPanel({
           </div>
           <div>
             <p className="font-pixel text-[10px] text-gold mb-2">PITCH MIX</p>
+            <p className="font-pixel text-[8px] text-muted-foreground mb-1">FB/2S: 0 or 1 only | Others: 1-7</p>
             <div className="flex items-center gap-3 flex-wrap">
               <NumField field="pitchFB" label="FB" />
               <NumField field="pitch2S" label="2S" />
@@ -906,6 +917,16 @@ function PlayerEditPanel({
               <NumField field="pitchCT" label="CT" />
               <NumField field="pitchSNK" label="SNK" />
               <NumField field="pitchSPL" label="SPL" />
+              <NumField field="pitchSHU" label="SHU" />
+              <NumField field="pitchCCH" label="CCH" />
+              <NumField field="pitchHSL" label="HSL" />
+              <NumField field="pitchSWP" label="SWP" />
+              <NumField field="pitchKN" label="KN" />
+              <NumField field="pitchVSL" label="VSL" />
+              <NumField field="pitchSFF" label="SFF" />
+              <NumField field="pitchFK" label="FK" />
+              <NumField field="pitchSCB" label="SCB" />
+              <NumField field="pitchPCB" label="PCB" />
             </div>
           </div>
         </>

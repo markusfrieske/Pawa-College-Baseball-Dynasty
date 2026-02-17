@@ -6,14 +6,15 @@ interface PitchMixListProps {
   className?: string;
 }
 
-const pitchLabels: Record<string, string> = {
+export const pitchLabels: Record<string, string> = {
   FB: "Fastball",
-  "2FB": "2-Seam",
+  "2S": "2-Seam",
   CH: "Change Up",
   CB: "Curveball",
   SL: "Slider",
   SNK: "Sinker",
   CT: "Cutter",
+  SPL: "Splitter",
   SHU: "Shuuto",
   CCH: "Circle Change",
   HSL: "Hard Slider",
@@ -24,6 +25,32 @@ const pitchLabels: Record<string, string> = {
   FK: "Forkball",
   SCB: "Slow Curve",
   PCB: "Power Curve",
+};
+
+export const allPitchKeys = [
+  "FB", "2S", "SL", "CB", "CH", "CT", "SNK", "SPL",
+  "SHU", "CCH", "HSL", "SWP", "KN", "VSL", "SFF", "FK", "SCB", "PCB",
+] as const;
+
+const pitchDbFieldMap: Record<string, string> = {
+  FB: "pitchFB",
+  "2S": "pitch2S",
+  SL: "pitchSL",
+  CB: "pitchCB",
+  CH: "pitchCH",
+  CT: "pitchCT",
+  SNK: "pitchSNK",
+  SPL: "pitchSPL",
+  SHU: "pitchSHU",
+  CCH: "pitchCCH",
+  HSL: "pitchHSL",
+  SWP: "pitchSWP",
+  KN: "pitchKN",
+  VSL: "pitchVSL",
+  SFF: "pitchSFF",
+  FK: "pitchFK",
+  SCB: "pitchSCB",
+  PCB: "pitchPCB",
 };
 
 export function PitchMixDial({ pitches, className = "" }: PitchMixListProps) {
@@ -74,107 +101,28 @@ export function PitchMixDial({ pitches, className = "" }: PitchMixListProps) {
   );
 }
 
-const commonPitches = ["FB", "2FB", "CH", "CB", "SL", "SNK", "CT"];
-const skilledPitches = ["SHU", "CCH", "HSL", "SWP", "KN", "VSL", "SFF", "FK", "SCB", "PCB"];
-
-export function generatePitchMixForDial(player: {
-  id?: string;
-  position: string;
-  velocity?: number | null;
-  control?: number | null;
-  starRating?: number | null;
-}): { name: string; rating: number }[] {
+export function generatePitchMixForDial(player: Record<string, any>): { name: string; rating: number }[] {
   if (player.position !== "P") return [];
-  
-  const velocity = player.velocity || 50;
-  const control = player.control || 50;
-  const starRating = player.starRating || 3;
-  
-  const seedFromId = (id: string) => {
-    let hash = 0;
-    for (let i = 0; i < id.length; i++) {
-      hash = ((hash << 5) - hash) + id.charCodeAt(i);
-      hash = hash & hash;
-    }
-    return Math.abs(hash);
-  };
-  
-  const seed = player.id ? seedFromId(player.id) : Math.floor(Math.random() * 10000);
-  const seededRandom = (s: number, idx: number) => {
-    const x = Math.sin(s + idx * 9999) * 10000;
-    return x - Math.floor(x);
-  };
-  
-  let numPitches: number;
-  if (starRating >= 5) {
-    numPitches = 5 + (seed % 2);
-  } else if (starRating >= 4) {
-    numPitches = 4 + (seed % 2);
-  } else {
-    numPitches = 3 + (seed % 2);
-  }
   
   const result: { name: string; rating: number }[] = [];
   
-  const attrToRating = (attrValue: number): number => {
-    const base = Math.floor((attrValue / 100) * 5) + 2;
-    return Math.min(7, Math.max(1, base + Math.floor(seededRandom(seed, attrValue) * 2) - 1));
-  };
-  
-  const fbRating = attrToRating(velocity);
-  result.push({ name: "FB", rating: fbRating });
-  
-  const availableCommon = commonPitches.filter(p => p !== "FB");
-  const shuffledCommon = [...availableCommon].sort((a, b) => 
-    seededRandom(seed, availableCommon.indexOf(a)) - seededRandom(seed, availableCommon.indexOf(b))
-  );
-  
-  const commonCount = Math.min(numPitches - 1, starRating >= 4 ? 3 : 2);
-  
-  for (let i = 0; i < commonCount && i < shuffledCommon.length; i++) {
-    const pitch = shuffledCommon[i];
-    let rating: number;
-    
-    if (pitch === "CB") {
-      rating = attrToRating(control);
-    } else if (pitch === "SL") {
-      rating = attrToRating((velocity + control) / 2);
-    } else if (pitch === "CH") {
-      rating = attrToRating(control);
-    } else if (pitch === "CT" || pitch === "2FB") {
-      rating = attrToRating(velocity);
-    } else {
-      rating = attrToRating((velocity + control) / 2);
-    }
-    
-    result.push({ name: pitch, rating });
-  }
-  
-  if (starRating >= 4 && result.length < numPitches) {
-    const shuffledSkilled = [...skilledPitches].sort((a, b) =>
-      seededRandom(seed, skilledPitches.indexOf(a) + 100) - seededRandom(seed, skilledPitches.indexOf(b) + 100)
-    );
-    
-    const skilledCount = numPitches - result.length;
-    for (let i = 0; i < skilledCount && i < shuffledSkilled.length; i++) {
-      const pitch = shuffledSkilled[i];
-      const rating = attrToRating(control);
-      result.push({ name: pitch, rating });
+  for (const pitchKey of allPitchKeys) {
+    const dbField = pitchDbFieldMap[pitchKey];
+    const val = player[dbField];
+    if (val && val > 0) {
+      result.push({ name: pitchKey, rating: val });
     }
   }
   
-  while (result.length < numPitches && shuffledCommon.length > result.length - 1) {
-    const nextCommonIdx = result.length - 1;
-    if (nextCommonIdx < shuffledCommon.length) {
-      const pitch = shuffledCommon[nextCommonIdx];
-      if (!result.find(p => p.name === pitch)) {
-        const rating = attrToRating((velocity + control) / 2);
-        result.push({ name: pitch, rating });
-      }
-    } else {
-      break;
-    }
+  if (result.length === 0) {
+    result.push({ name: "FB", rating: 1 });
   }
   
-  return result.sort((a, b) => b.rating - a.rating);
+  return result.sort((a, b) => {
+    if (a.name === "FB") return -1;
+    if (b.name === "FB") return 1;
+    if (a.name === "2S") return -1;
+    if (b.name === "2S") return 1;
+    return b.rating - a.rating;
+  });
 }
