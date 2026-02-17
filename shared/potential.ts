@@ -48,18 +48,18 @@ export function getPotentialRangeLabel(floor: number, ceiling: number): string {
 }
 
 export const POTENTIAL_DISTRIBUTION = [
-  { grade: "F",  weight: 4,  min: 50, max: 53 },
-  { grade: "D-", weight: 8,  min: 54, max: 57 },
-  { grade: "D",  weight: 10, min: 58, max: 61 },
-  { grade: "D+", weight: 14, min: 62, max: 65 },
-  { grade: "C-", weight: 20, min: 66, max: 69 },
-  { grade: "C",  weight: 18, min: 70, max: 73 },
-  { grade: "C+", weight: 14, min: 74, max: 77 },
-  { grade: "B-", weight: 10, min: 78, max: 81 },
-  { grade: "B",  weight: 8,  min: 82, max: 85 },
-  { grade: "B+", weight: 6,  min: 86, max: 89 },
-  { grade: "A-", weight: 4,  min: 90, max: 93 },
-  { grade: "A",  weight: 3,  min: 94, max: 97 },
+  { grade: "F",  weight: 8,  min: 50, max: 53 },
+  { grade: "D-", weight: 12, min: 54, max: 57 },
+  { grade: "D",  weight: 14, min: 58, max: 61 },
+  { grade: "D+", weight: 12, min: 62, max: 65 },
+  { grade: "C-", weight: 14, min: 66, max: 69 },
+  { grade: "C",  weight: 12, min: 70, max: 73 },
+  { grade: "C+", weight: 10, min: 74, max: 77 },
+  { grade: "B-", weight: 6,  min: 78, max: 81 },
+  { grade: "B",  weight: 5,  min: 82, max: 85 },
+  { grade: "B+", weight: 3,  min: 86, max: 89 },
+  { grade: "A-", weight: 2,  min: 90, max: 93 },
+  { grade: "A",  weight: 1,  min: 94, max: 97 },
   { grade: "A+", weight: 1,  min: 98, max: 99 },
 ] as const;
 
