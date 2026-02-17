@@ -295,13 +295,13 @@ export function calculateOVR(attrs: {
   }
 
   const raw = Math.round(attrSum * 0.6 + commonSum * 0.25 + specialBonus);
-  return Math.max(1, Math.min(999, raw));
+  return Math.max(150, Math.min(650, raw));
 }
 
 export function getStarRatingFromOVR(ovr: number): number {
-  if (ovr >= 800) return 5;
-  if (ovr >= 600) return 4;
-  if (ovr >= 400) return 3;
+  if (ovr >= 500) return 5;
+  if (ovr >= 400) return 4;
+  if (ovr >= 300) return 3;
   if (ovr >= 200) return 2;
   return 1;
 }
