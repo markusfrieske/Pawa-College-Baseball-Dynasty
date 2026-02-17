@@ -407,6 +407,71 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/leagues/:id/dashboard-overview", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const league = await storage.getLeague(leagueId);
+      if (!league) {
+        return res.status(404).json({ message: "League not found" });
+      }
+
+      const coaches = await storage.getCoachesByLeague(leagueId);
+      const userCoach = coaches.find(c => c.userId === req.session.userId);
+      if (!userCoach?.teamId) {
+        return res.status(404).json({ message: "No team found" });
+      }
+
+      const team = await storage.getTeam(userCoach.teamId);
+      const roster = await storage.getPlayersByTeam(userCoach.teamId);
+
+      const eligibility: Record<string, number> = {};
+      const positionCounts: Record<string, number> = {};
+      const positions = ["C", "1B", "2B", "SS", "3B", "LF", "CF", "RF", "P", "DH"];
+
+      for (const p of roster) {
+        eligibility[p.eligibility] = (eligibility[p.eligibility] || 0) + 1;
+        positionCounts[p.position] = (positionCounts[p.position] || 0) + 1;
+      }
+
+      const positionsAtRisk = positions.filter(pos => (positionCounts[pos] || 0) === 1);
+
+      const recruits = await storage.getRecruitsByLeague(leagueId);
+      const mySignedRecruits = recruits.filter(r => r.signedTeamId === userCoach.teamId);
+
+      const myInterests = await storage.getRecruitingInterestsByTeam(userCoach.teamId);
+
+      let totalOverall = 0;
+      let topPlayer: { name: string; position: string; overall: number } | null = null;
+      for (const p of roster) {
+        totalOverall += (p.overall || 0);
+        if (!topPlayer || (p.overall || 0) > topPlayer.overall) {
+          topPlayer = {
+            name: `${p.firstName} ${p.lastName}`,
+            position: p.position,
+            overall: p.overall || 0,
+          };
+        }
+      }
+
+      res.json({
+        rosterSize: roster.length,
+        eligibility,
+        positionCounts,
+        positionsAtRisk,
+        nilBudget: team?.nilBudget || 0,
+        nilSpent: team?.nilSpent || 0,
+        prestige: team?.prestige || 0,
+        recruitingSigned: mySignedRecruits.length,
+        recruitingInterested: myInterests.length,
+        averageOverall: roster.length > 0 ? Math.round(totalOverall / roster.length) : 0,
+        topPlayer,
+      });
+    } catch (error) {
+      console.error("Failed to fetch dashboard overview:", error);
+      res.status(500).json({ message: "Failed to fetch dashboard overview" });
+    }
+  });
+
   // Team selection - get available team templates for selecting which teams to include
   app.get("/api/leagues/:id/team-selection", requireAuth, async (req, res) => {
     try {
@@ -3982,6 +4047,39 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Only the commissioner can sim the full season." });
       }
 
+      const teams = await storage.getTeamsByLeague(leagueId);
+      const teamNameMap = new Map<string, string>();
+      for (const t of teams) teamNameMap.set(t.id, `${t.name} ${t.mascot}`);
+
+      const coaches = await storage.getCoachesByLeague(leagueId);
+      const userCoach = coaches.find(c => c.userId === req.session.userId);
+      const userTeamId = userCoach?.teamId || null;
+
+      const simSummary: {
+        weekResults: Array<{
+          week: number;
+          phase: string;
+          games: Array<{
+            homeTeam: string;
+            awayTeam: string;
+            homeScore: number;
+            awayScore: number;
+            isConference: boolean;
+            isUserTeam: boolean;
+          }>;
+        }>;
+        postseasonResults: Array<{
+          phase: string;
+          games: Array<{
+            homeTeam: string;
+            awayTeam: string;
+            homeScore: number;
+            awayScore: number;
+            isUserTeam: boolean;
+          }>;
+        }>;
+      } = { weekResults: [], postseasonResults: [] };
+
       const MAX_ITERATIONS = 100;
       let currentLeague = league;
       let iterations = 0;
@@ -4080,6 +4178,21 @@ export async function registerRoutes(
             game.awayScore = result.awayScore;
           }));
 
+          if (simResults.length > 0) {
+            simSummary.weekResults.push({
+              week: currentLeague.currentWeek ?? 1,
+              phase: phase,
+              games: simResults.map(({ game, result }) => ({
+                homeTeam: teamNameMap.get(game.homeTeamId) || "Unknown",
+                awayTeam: teamNameMap.get(game.awayTeamId) || "Unknown",
+                homeScore: result.homeScore,
+                awayScore: result.awayScore,
+                isConference: game.isConference ?? false,
+                isUserTeam: game.homeTeamId === userTeamId || game.awayTeamId === userTeamId,
+              })),
+            });
+          }
+
           for (const { game, result } of simResults) {
             await updateStandingsCached(game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, game.isConference ?? false);
             try {
@@ -4118,6 +4231,19 @@ export async function registerRoutes(
             await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, boxScore: result.boxScore, isComplete: true });
             game.isComplete = true;
           }));
+
+          if (simResults.length > 0) {
+            simSummary.postseasonResults.push({
+              phase: "Conference Championship",
+              games: simResults.map(({ game, result }) => ({
+                homeTeam: teamNameMap.get(game.homeTeamId) || "Unknown",
+                awayTeam: teamNameMap.get(game.awayTeamId) || "Unknown",
+                homeScore: result.homeScore,
+                awayScore: result.awayScore,
+                isUserTeam: game.homeTeamId === userTeamId || game.awayTeamId === userTeamId,
+              })),
+            });
+          }
 
           for (const { game, result } of simResults) {
             await updateStandingsCached(game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore);
@@ -4189,7 +4315,7 @@ export async function registerRoutes(
         details: `Simulated ${iterations} advances from ${phasesVisited[0] || "unknown"} to ${currentLeague.currentPhase}. Season ${startSeason}.`,
       });
 
-      res.json(currentLeague);
+      res.json({ ...currentLeague, simSummary });
     } catch (error) {
       console.error("Failed to sim to offseason:", error);
       res.status(500).json({ message: "Failed to sim to offseason" });
@@ -4299,6 +4425,18 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Can only sim to postseason during the regular season." });
       }
 
+      const psTeams = await storage.getTeamsByLeague(leagueId);
+      const psTeamNameMap = new Map<string, string>();
+      for (const t of psTeams) psTeamNameMap.set(t.id, `${t.name} ${t.mascot}`);
+      const psCoaches = await storage.getCoachesByLeague(leagueId);
+      const psUserCoach = psCoaches.find(c => c.userId === req.session.userId);
+      const psUserTeamId = psUserCoach?.teamId || null;
+
+      const simSummary: {
+        weekResults: Array<{ week: number; phase: string; games: Array<{ homeTeam: string; awayTeam: string; homeScore: number; awayScore: number; isConference: boolean; isUserTeam: boolean }> }>;
+        postseasonResults: Array<{ phase: string; games: Array<{ homeTeam: string; awayTeam: string; homeScore: number; awayScore: number; isUserTeam: boolean }> }>;
+      } = { weekResults: [], postseasonResults: [] };
+
       const MAX_ITERATIONS = 100;
       let currentLeague = league;
       let iterations = 0;
@@ -4315,11 +4453,27 @@ export async function registerRoutes(
         if (preseasonPhases.includes(phase)) {
           const weekGames = (await storage.getGamesByLeague(leagueId))
             .filter(g => g.season === currentLeague.currentSeason && g.week === currentLeague.currentWeek && !g.isComplete);
+          const weekSimResults: Array<{ game: Game; result: { homeScore: number; awayScore: number; boxScore: string } }> = [];
           for (const game of weekGames) {
             const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType);
             await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, boxScore: result.boxScore, isComplete: true });
             await updateStandingsForGame(leagueId, currentLeague.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, game.isConference);
             try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
+            weekSimResults.push({ game, result });
+          }
+          if (weekSimResults.length > 0) {
+            simSummary.weekResults.push({
+              week: currentLeague.currentWeek ?? 1,
+              phase,
+              games: weekSimResults.map(({ game, result }) => ({
+                homeTeam: psTeamNameMap.get(game.homeTeamId) || "Unknown",
+                awayTeam: psTeamNameMap.get(game.awayTeamId) || "Unknown",
+                homeScore: result.homeScore,
+                awayScore: result.awayScore,
+                isConference: game.isConference ?? false,
+                isUserTeam: game.homeTeamId === psUserTeamId || game.awayTeamId === psUserTeamId,
+              })),
+            });
           }
           if (nextWeek > maxWeeks) {
             await generateConferenceChampionships(leagueId, currentLeague.currentSeason);
@@ -4340,7 +4494,7 @@ export async function registerRoutes(
         leagueId, userId: req.session.userId, action: "Sim to Postseason",
         details: `Simulated ${iterations} advances to ${currentLeague.currentPhase}.`,
       });
-      res.json(currentLeague);
+      res.json({ ...currentLeague, simSummary });
     } catch (error) {
       console.error("Failed to sim to postseason:", error);
       res.status(500).json({ message: "Failed to sim to postseason" });
@@ -4362,6 +4516,18 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Can only sim to CWS before the College World Series." });
       }
 
+      const cwsTeams = await storage.getTeamsByLeague(leagueId);
+      const cwsTeamNameMap = new Map<string, string>();
+      for (const t of cwsTeams) cwsTeamNameMap.set(t.id, `${t.name} ${t.mascot}`);
+      const cwsCoaches = await storage.getCoachesByLeague(leagueId);
+      const cwsUserCoach = cwsCoaches.find(c => c.userId === req.session.userId);
+      const cwsUserTeamId = cwsUserCoach?.teamId || null;
+
+      const simSummary: {
+        weekResults: Array<{ week: number; phase: string; games: Array<{ homeTeam: string; awayTeam: string; homeScore: number; awayScore: number; isConference: boolean; isUserTeam: boolean }> }>;
+        postseasonResults: Array<{ phase: string; games: Array<{ homeTeam: string; awayTeam: string; homeScore: number; awayScore: number; isUserTeam: boolean }> }>;
+      } = { weekResults: [], postseasonResults: [] };
+
       const MAX_ITERATIONS = 100;
       let currentLeague = league;
       let iterations = 0;
@@ -4379,11 +4545,27 @@ export async function registerRoutes(
         if (["preseason", "spring_training", "regular_season"].includes(phase)) {
           const weekGames = (await storage.getGamesByLeague(leagueId))
             .filter(g => g.season === currentLeague.currentSeason && g.week === currentLeague.currentWeek && !g.isComplete);
+          const cwsWeekResults: Array<{ game: Game; result: { homeScore: number; awayScore: number; boxScore: string } }> = [];
           for (const game of weekGames) {
             const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType);
             await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, boxScore: result.boxScore, isComplete: true });
             await updateStandingsForGame(leagueId, currentLeague.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, game.isConference);
             try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
+            cwsWeekResults.push({ game, result });
+          }
+          if (cwsWeekResults.length > 0) {
+            simSummary.weekResults.push({
+              week: currentLeague.currentWeek ?? 1,
+              phase,
+              games: cwsWeekResults.map(({ game, result }) => ({
+                homeTeam: cwsTeamNameMap.get(game.homeTeamId) || "Unknown",
+                awayTeam: cwsTeamNameMap.get(game.awayTeamId) || "Unknown",
+                homeScore: result.homeScore,
+                awayScore: result.awayScore,
+                isConference: game.isConference ?? false,
+                isUserTeam: game.homeTeamId === cwsUserTeamId || game.awayTeamId === cwsUserTeamId,
+              })),
+            });
           }
           if (nextWeek > maxWeeks) {
             await generateConferenceChampionships(leagueId, currentLeague.currentSeason);
@@ -4401,11 +4583,25 @@ export async function registerRoutes(
         if (phase === "conference_championship") {
           const ccGames = (await storage.getGamesByLeague(leagueId))
             .filter(g => g.phase === "conference_championship" && g.season === currentLeague.currentSeason && !g.isComplete);
+          const ccResults: Array<{ game: Game; result: { homeScore: number; awayScore: number; boxScore: string } }> = [];
           for (const game of ccGames) {
             const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType || "friday");
             await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, boxScore: result.boxScore, isComplete: true });
             await updateStandingsForGame(leagueId, currentLeague.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore);
             try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
+            ccResults.push({ game, result });
+          }
+          if (ccResults.length > 0) {
+            simSummary.postseasonResults.push({
+              phase: "Conference Championship",
+              games: ccResults.map(({ game, result }) => ({
+                homeTeam: cwsTeamNameMap.get(game.homeTeamId) || "Unknown",
+                awayTeam: cwsTeamNameMap.get(game.awayTeamId) || "Unknown",
+                homeScore: result.homeScore,
+                awayScore: result.awayScore,
+                isUserTeam: game.homeTeamId === cwsUserTeamId || game.awayTeamId === cwsUserTeamId,
+              })),
+            });
           }
           await generateSuperRegionalBracket(leagueId, currentLeague.currentSeason);
           currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "super_regionals" })) as any;
@@ -4442,7 +4638,7 @@ export async function registerRoutes(
         leagueId, userId: req.session.userId, action: "Sim to CWS",
         details: `Simulated ${iterations} advances to ${currentLeague.currentPhase}.`,
       });
-      res.json(currentLeague);
+      res.json({ ...currentLeague, simSummary });
     } catch (error) {
       console.error("Failed to sim to CWS:", error);
       res.status(500).json({ message: "Failed to sim to CWS" });
@@ -7355,6 +7551,135 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to fetch season awards:", error);
       res.status(500).json({ message: "Failed to fetch season awards" });
+    }
+  });
+
+  app.get("/api/leagues/:id/season-summary/:season", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const season = parseInt(req.params.season);
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      const leagueTeams = await storage.getTeamsByLeague(leagueId);
+      const coaches = await storage.getCoachesByLeague(leagueId);
+      const userCoach = coaches.find(c => c.userId === req.session.userId);
+      const userTeamId = userCoach?.teamId;
+
+      const seasonStandings = await storage.getStandingsByLeague(leagueId, season);
+      const teamMap = Object.fromEntries(leagueTeams.map(t => [t.id, t]));
+
+      const userTeamStandings = userTeamId ? seasonStandings.find(s => s.teamId === userTeamId) : null;
+      const userTeamData = userTeamId ? teamMap[userTeamId] : null;
+
+      const userTeam = userTeamData && userTeamStandings ? {
+        name: userTeamData.name,
+        abbreviation: userTeamData.abbreviation,
+        primaryColor: userTeamData.primaryColor,
+        wins: userTeamStandings.wins ?? 0,
+        losses: userTeamStandings.losses ?? 0,
+        confWins: userTeamStandings.conferenceWins ?? 0,
+        confLosses: userTeamStandings.conferenceLosses ?? 0,
+        runsScored: userTeamStandings.runsScored ?? 0,
+        runsAllowed: userTeamStandings.runsAllowed ?? 0,
+      } : null;
+
+      const standings = leagueTeams.map(t => {
+        const s = seasonStandings.find(st => st.teamId === t.id);
+        return {
+          name: t.name, abbreviation: t.abbreviation, primaryColor: t.primaryColor,
+          wins: s?.wins ?? 0, losses: s?.losses ?? 0,
+        };
+      }).sort((a, b) => b.wins - a.wins || a.losses - b.losses).slice(0, 10);
+
+      const allGames = await storage.getGamesByLeague(leagueId);
+      let cwsChampion = null;
+      let cwsRunnerUp = null;
+      const cwsGames = allGames.filter(g => g.phase === "cws" && g.season === season && g.isComplete);
+      if (cwsGames.length > 0) {
+        const teamWins: Record<string, number> = {};
+        for (const g of cwsGames) {
+          const winnerId = (g.homeScore ?? 0) > (g.awayScore ?? 0) ? g.homeTeamId : g.awayTeamId;
+          teamWins[winnerId] = (teamWins[winnerId] || 0) + 1;
+        }
+        const champId = Object.entries(teamWins).sort((a, b) => b[1] - a[1])[0]?.[0];
+        const runnerId = Object.entries(teamWins).sort((a, b) => b[1] - a[1])[1]?.[0]
+          || cwsGames.map(g => g.homeTeamId === champId ? g.awayTeamId : g.homeTeamId).find(id => id !== champId);
+        const champTeam = champId ? teamMap[champId] : null;
+        const runnerTeam = runnerId ? teamMap[runnerId] : null;
+        cwsChampion = champTeam ? { name: champTeam.name, abbreviation: champTeam.abbreviation, primaryColor: champTeam.primaryColor } : null;
+        cwsRunnerUp = runnerTeam ? { name: runnerTeam.name, abbreviation: runnerTeam.abbreviation } : null;
+      }
+
+      const allPlayers: { player: any; team: any }[] = [];
+      for (const team of leagueTeams) {
+        const roster = await storage.getPlayersByTeam(team.id);
+        for (const p of roster) {
+          allPlayers.push({ player: p, team });
+        }
+      }
+
+      const nonPitchers = allPlayers.filter(x => x.player.position !== "P").sort((a, b) => b.player.overall - a.player.overall);
+      const pitchers = allPlayers.filter(x => x.player.position === "P").sort((a, b) => b.player.overall - a.player.overall);
+      const freshmen = allPlayers.filter(x => x.player.eligibility === "FR").sort((a, b) => b.player.overall - a.player.overall);
+
+      const formatAwardSummary = (x: { player: any; team: any } | undefined) => x ? {
+        playerName: `${x.player.firstName} ${x.player.lastName}`,
+        position: x.player.position,
+        teamName: x.team.name,
+        overall: x.player.overall,
+      } : null;
+
+      const awards = {
+        mvp: formatAwardSummary(nonPitchers[0]),
+        pitcherOfYear: formatAwardSummary(pitchers[0]),
+        freshmanOfYear: formatAwardSummary(freshmen[0]),
+      };
+
+      const allHistory = await storage.getPlayerHistoryByLeague(leagueId);
+      const seasonHistory = allHistory.filter(h => h.departedSeason === season);
+
+      const leagueDraftPicks = seasonHistory
+        .filter(h => h.draftRound != null)
+        .sort((a, b) => (a.draftRound ?? 99) - (b.draftRound ?? 99))
+        .map(h => ({
+          playerName: `${h.firstName} ${h.lastName}`,
+          position: h.position,
+          teamName: teamMap[h.teamId]?.name ?? "Unknown",
+          draftRound: h.draftRound!,
+        }));
+
+      const userHistory = userTeamId ? seasonHistory.filter(h => h.teamId === userTeamId) : [];
+      const graduated = userHistory.filter(h => h.departureType === "graduated").length;
+      const drafted = userHistory.filter(h => h.draftRound != null).length;
+      const transferred = userHistory.filter(h => h.departureType === "transfer_portal" || h.departureType === "cut_juco").length;
+      const userDraftPicks = userHistory
+        .filter(h => h.draftRound != null)
+        .sort((a, b) => (a.draftRound ?? 99) - (b.draftRound ?? 99))
+        .map(h => ({
+          playerName: `${h.firstName} ${h.lastName}`,
+          position: h.position,
+          draftRound: h.draftRound!,
+        }));
+
+      res.json({
+        season,
+        userTeam,
+        standings,
+        cwsChampion,
+        cwsRunnerUp,
+        awards,
+        userDepartures: {
+          graduated,
+          drafted,
+          transferred,
+          draftPicks: userDraftPicks,
+        },
+        leagueDraftPicks,
+      });
+    } catch (error) {
+      console.error("Failed to get season summary:", error);
+      res.status(500).json({ message: "Failed to get season summary" });
     }
   });
 

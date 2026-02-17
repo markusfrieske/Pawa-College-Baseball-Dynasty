@@ -9,6 +9,7 @@ import { StarRating } from "@/components/ui/star-rating";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -212,11 +213,61 @@ export default function DeparturesPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background p-6">
+      <div className="min-h-screen bg-background p-4 md:p-6">
         <div className="max-w-6xl mx-auto space-y-4">
-          <Skeleton className="h-10 w-64" />
-          <Skeleton className="h-48 w-full" />
-          <Skeleton className="h-64 w-full" />
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-5 w-5 rounded" />
+            <Skeleton className="h-7 w-52" />
+            <Skeleton className="h-5 w-20 rounded-full" />
+          </div>
+          <div className="p-4 rounded-md border border-border/50 bg-card/30">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <div>
+                  <Skeleton className="h-4 w-32 mb-1" />
+                  <Skeleton className="h-3 w-48" />
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="text-center">
+                  <Skeleton className="h-3 w-16 mb-1" />
+                  <Skeleton className="h-4 w-20" />
+                </div>
+                <div className="text-center">
+                  <Skeleton className="h-3 w-12 mb-1" />
+                  <Skeleton className="h-4 w-8" />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Skeleton className="h-9 w-24" />
+            <Skeleton className="h-9 w-28" />
+          </div>
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="rounded-md border border-border/50 bg-card/30">
+              <div className="px-4 py-3 border-b border-border/50">
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-4 w-4 rounded" />
+                  <Skeleton className="h-4 w-36" />
+                </div>
+              </div>
+              <div className="p-4 space-y-2">
+                {Array.from({ length: 3 }).map((_, j) => (
+                  <div key={j} className="flex items-center gap-3 p-3 rounded-md bg-muted/30">
+                    <Skeleton className="h-5 w-8" />
+                    <div className="flex-1">
+                      <Skeleton className="h-4 w-32 mb-1" />
+                      <Skeleton className="h-3 w-20" />
+                    </div>
+                    <Skeleton className="h-5 w-16" />
+                    <Skeleton className="h-8 w-20 rounded" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -432,14 +483,31 @@ export default function DeparturesPage() {
                     )}
                   </div>
                   {!userTeam.departuresFinalized && (
-                    <RetroButton
-                      variant="primary"
-                      onClick={() => finalizeMutation.mutate()}
-                      loading={finalizeMutation.isPending}
-                      data-testid="button-finalize-departures"
-                    >
-                      Submit Departures
-                    </RetroButton>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <RetroButton
+                          variant="primary"
+                          loading={finalizeMutation.isPending}
+                          data-testid="button-finalize-departures"
+                        >
+                          Submit Departures
+                        </RetroButton>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="bg-card border-border">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle className="font-pixel text-gold text-sm">Finalize Departures?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Once finalized, all departure decisions are locked. Graduated seniors will leave, draft declarations will be processed, and transfer portal entries will be confirmed. This cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel className="bg-background border-border">Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => finalizeMutation.mutate()} className="bg-gold text-forest-dark" data-testid="button-confirm-finalize-departures">
+                            Finalize
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   )}
                 </div>
               </RetroCardContent>

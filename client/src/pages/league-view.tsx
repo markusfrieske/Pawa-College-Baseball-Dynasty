@@ -75,6 +75,20 @@ function getDisplayName(user?: { email: string; username?: string | null } | nul
   return emailPrefix;
 }
 
+interface DashboardOverview {
+  rosterSize: number;
+  eligibility: Record<string, number>;
+  positionCounts: Record<string, number>;
+  positionsAtRisk: string[];
+  nilBudget: number;
+  nilSpent: number;
+  prestige: number;
+  recruitingSigned: number;
+  recruitingInterested: number;
+  averageOverall: number;
+  topPlayer: { name: string; position: string; overall: number } | null;
+}
+
 interface LeagueDetails extends League {
   teams: TeamWithCoach[];
   conferences: Conference[];
@@ -88,6 +102,11 @@ export default function LeagueViewPage() {
 
   const { data: league, isLoading } = useQuery<LeagueDetails>({
     queryKey: ["/api/leagues", id],
+  });
+
+  const { data: overview } = useQuery<DashboardOverview>({
+    queryKey: ["/api/leagues", id, "dashboard-overview"],
+    enabled: !!league && league.currentPhase !== "dynasty_setup",
   });
 
   useEffect(() => {
@@ -258,6 +277,58 @@ export default function LeagueViewPage() {
             subtitle="Dynasty settings"
           />
         </div>
+
+        {overview && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            <RetroCard className="p-3" data-testid="card-overview-record">
+              <div className="text-center">
+                <p className="font-pixel text-[8px] text-muted-foreground mb-1">RECORD</p>
+                <p className="text-xl font-bold text-gold">
+                  {userTeam?.standings?.wins || 0}-{userTeam?.standings?.losses || 0}
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  Conf: {userTeam?.standings?.conferenceWins || 0}-{userTeam?.standings?.conferenceLosses || 0}
+                </p>
+              </div>
+            </RetroCard>
+
+            <RetroCard className="p-3" data-testid="card-overview-roster">
+              <div className="text-center">
+                <p className="font-pixel text-[8px] text-muted-foreground mb-1">ROSTER</p>
+                <p className="text-xl font-bold">{overview.rosterSize}/25</p>
+                {overview.positionsAtRisk.length > 0 ? (
+                  <p className="text-[10px] text-red-400">
+                    Thin: {overview.positionsAtRisk.join(", ")}
+                  </p>
+                ) : (
+                  <p className="text-[10px] text-green-400">Healthy depth</p>
+                )}
+              </div>
+            </RetroCard>
+
+            <RetroCard className="p-3" data-testid="card-overview-nil">
+              <div className="text-center">
+                <p className="font-pixel text-[8px] text-muted-foreground mb-1">NIL BUDGET</p>
+                <p className="text-xl font-bold text-gold">
+                  ${Math.round((overview.nilBudget - overview.nilSpent) / 1000)}K
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  of ${Math.round(overview.nilBudget / 1000)}K total
+                </p>
+              </div>
+            </RetroCard>
+
+            <RetroCard className="p-3" data-testid="card-overview-recruiting">
+              <div className="text-center">
+                <p className="font-pixel text-[8px] text-muted-foreground mb-1">RECRUITING</p>
+                <p className="text-xl font-bold">{overview.recruitingSigned}</p>
+                <p className="text-[10px] text-muted-foreground">
+                  Signed | {overview.recruitingInterested} interested
+                </p>
+              </div>
+            </RetroCard>
+          </div>
+        )}
 
         <OffseasonSummary league={league} />
 
@@ -1018,17 +1089,39 @@ function LeagueViewSkeleton() {
     <div className="min-h-screen bg-background">
       <header className="border-b border-border">
         <div className="container mx-auto px-4 py-4">
-          <Skeleton className="h-6 w-48 mb-4" />
-          <Skeleton className="h-4 w-64" />
+          <div className="flex items-center gap-3 mb-3">
+            <Skeleton className="h-5 w-5 rounded" />
+            <Skeleton className="h-6 w-48" />
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-5 w-32 rounded-full" />
+            <Skeleton className="h-4 w-24" />
+          </div>
+          <Skeleton className="h-2 w-full mt-3 rounded-full" />
         </div>
       </header>
       <main className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 mb-6">
-          {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-20" />
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2 sm:gap-3 mb-6">
+          {Array.from({ length: 7 }).map((_, i) => (
+            <div key={i} className="p-3 rounded-md border border-border/50 bg-card/30 text-center">
+              <Skeleton className="h-6 w-6 mx-auto mb-2 rounded" />
+              <Skeleton className="h-3 w-14 mx-auto mb-1" />
+              <Skeleton className="h-2 w-18 mx-auto" />
+            </div>
           ))}
         </div>
-        <Skeleton className="h-96" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="p-3 rounded-md border border-border/50 bg-card/30 text-center">
+              <Skeleton className="h-3 w-16 mx-auto mb-2" />
+              <Skeleton className="h-7 w-12 mx-auto mb-1" />
+              <Skeleton className="h-2 w-20 mx-auto" />
+            </div>
+          ))}
+        </div>
+        <Skeleton className="h-10 w-full mb-4 rounded" />
+        <Skeleton className="h-64 w-full rounded" />
       </main>
     </div>
   );

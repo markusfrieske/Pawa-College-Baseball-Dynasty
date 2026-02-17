@@ -2768,19 +2768,42 @@ function RecruitingSkeleton() {
     <div className="min-h-screen bg-background">
       <header className="border-b border-border">
         <div className="container mx-auto px-4 py-4">
-          <Skeleton className="h-6 w-48 mb-4" />
-          <div className="grid grid-cols-4 gap-4">
+          <div className="flex items-center gap-3 mb-4">
+            <Skeleton className="h-5 w-5 rounded" />
+            <Skeleton className="h-6 w-48" />
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[1, 2, 3, 4].map((i) => (
-              <Skeleton key={i} className="h-16" />
+              <div key={i} className="p-3 rounded-md border border-border/50 bg-card/30">
+                <Skeleton className="h-3 w-16 mb-2" />
+                <Skeleton className="h-6 w-20" />
+              </div>
             ))}
           </div>
         </div>
       </header>
       <main className="container mx-auto px-4 py-6">
-        <Skeleton className="h-16 mb-6" />
-        {[1, 2, 3, 4, 5].map((i) => (
-          <Skeleton key={i} className="h-32 mb-3" />
-        ))}
+        <div className="flex flex-wrap gap-2 mb-4">
+          <Skeleton className="h-9 w-48" />
+          <Skeleton className="h-9 w-28" />
+          <Skeleton className="h-9 w-28" />
+          <Skeleton className="h-9 w-20" />
+        </div>
+        <div className="space-y-2">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-3 p-3 rounded-md border border-border/50 bg-card/30">
+              <Skeleton className="h-4 w-4" />
+              <Skeleton className="h-5 w-8" />
+              <div className="flex-1">
+                <Skeleton className="h-4 w-36 mb-1" />
+                <Skeleton className="h-3 w-24" />
+              </div>
+              <Skeleton className="h-5 w-12" />
+              <Skeleton className="h-5 w-16" />
+              <Skeleton className="h-5 w-20" />
+            </div>
+          ))}
+        </div>
       </main>
     </div>
   );

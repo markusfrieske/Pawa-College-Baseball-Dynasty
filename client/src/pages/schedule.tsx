@@ -514,12 +514,39 @@ function ScheduleSkeleton() {
     <div className="min-h-screen bg-background">
       <header className="border-b border-border">
         <div className="container mx-auto px-4 py-4">
-          <Skeleton className="h-6 w-48" />
+          <div className="flex items-center gap-4">
+            <Skeleton className="h-5 w-5 rounded" />
+            <Skeleton className="h-6 w-32" />
+            <div className="ml-auto flex items-center gap-2">
+              <Skeleton className="h-4 w-4 rounded" />
+              <Skeleton className="h-4 w-36" />
+            </div>
+          </div>
         </div>
       </header>
-      <main className="container mx-auto px-4 py-6">
-        {[1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-48 mb-6" />
+      <main className="container mx-auto px-4 py-6 space-y-6">
+        {[1, 2, 3].map((week) => (
+          <div key={week} className="rounded-md border border-border/50 bg-card/30">
+            <div className="px-4 py-3 border-b border-border/50">
+              <Skeleton className="h-4 w-24" />
+            </div>
+            <div className="p-4 space-y-4">
+              {[1, 2].map((game) => (
+                <div key={game} className="flex items-center gap-4 p-4 rounded bg-muted/30">
+                  <div className="flex-1 flex items-center gap-3">
+                    <Skeleton className="h-8 w-8 rounded-full" />
+                    <Skeleton className="h-4 w-28" />
+                  </div>
+                  <Skeleton className="h-6 w-16" />
+                  <div className="flex-1 flex items-center justify-end gap-3">
+                    <Skeleton className="h-4 w-28" />
+                    <Skeleton className="h-8 w-8 rounded-full" />
+                  </div>
+                  <Skeleton className="h-8 w-8 rounded" />
+                </div>
+              ))}
+            </div>
+          </div>
         ))}
       </main>
     </div>

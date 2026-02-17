@@ -37,6 +37,8 @@ import {
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { League, AuditLog, LeagueInvite } from "@shared/schema";
+import { SimProgressOverlay, type SimSummary } from "@/components/sim-progress-overlay";
+import { SeasonSummaryModal } from "@/components/season-summary-modal";
 
 interface CommissionerData {
   league: League;
@@ -53,6 +55,11 @@ export default function CommissionerPage() {
   const [autoAdvance, setAutoAdvance] = useState(() => {
     return localStorage.getItem(`auto-advance-${id}`) === "true";
   });
+  const [simSummary, setSimSummary] = useState<SimSummary | null>(null);
+  const [showSimOverlay, setShowSimOverlay] = useState(false);
+  const [showSeasonSummary, setShowSeasonSummary] = useState(false);
+  const [summaryCompletedSeason, setSummaryCompletedSeason] = useState(1);
+  const [pendingSeasonSummary, setPendingSeasonSummary] = useState<number | null>(null);
 
   const toggleAutoAdvance = (val: boolean) => {
     setAutoAdvance(val);
@@ -117,6 +124,11 @@ export default function CommissionerPage() {
           title: phaseTitle[phase] || (phaseMessages[phase] ? "Update" : "Week Advanced"), 
           description: phaseMessages[phase] || "The dynasty has moved to the next week.",
         });
+
+        if (phase === "offseason_departures") {
+          setSummaryCompletedSeason(response?.currentSeason || 1);
+          setShowSeasonSummary(true);
+        }
 
         const autoAdvanceEnabled = localStorage.getItem(`auto-advance-${id}`) === "true";
         const autoAdvancePhases = ["regular_season", "preseason", "spring_training"];
@@ -206,19 +218,34 @@ export default function CommissionerPage() {
 
   const simToOffseasonMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("POST", `/api/leagues/${id}/sim-to-offseason`, {});
+      const res = await apiRequest("POST", `/api/leagues/${id}/sim-to-offseason`, {});
+      return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "postseason"] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "commissioner"] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "schedule"] });
       window.dispatchEvent(new CustomEvent("league-phase-changed"));
-      toast({ 
-        title: "Season Simulated!", 
-        description: "The entire season has been simulated. Review player departures before continuing.",
-      });
+      const hasSimData = data?.simSummary && (data.simSummary.weekResults?.length > 0 || data.simSummary.postseasonResults?.length > 0);
+      const isOffseasonTransition = data?.currentPhase === "offseason_departures" || data?.currentPhase === "offseason";
+      if (hasSimData) {
+        setSimSummary(data.simSummary);
+        setShowSimOverlay(true);
+        if (isOffseasonTransition) {
+          setPendingSeasonSummary(data?.currentSeason || 1);
+        }
+      } else {
+        toast({ 
+          title: "Season Simulated!", 
+          description: "The entire season has been simulated. Review player departures before continuing.",
+        });
+        if (isOffseasonTransition) {
+          setSummaryCompletedSeason(data?.currentSeason || 1);
+          setShowSeasonSummary(true);
+        }
+      }
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -227,18 +254,24 @@ export default function CommissionerPage() {
 
   const simToPostseasonMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("POST", `/api/leagues/${id}/sim-to-postseason`, {});
+      const res = await apiRequest("POST", `/api/leagues/${id}/sim-to-postseason`, {});
+      return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "postseason"] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "commissioner"] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "schedule"] });
       window.dispatchEvent(new CustomEvent("league-phase-changed"));
-      toast({ 
-        title: "Regular Season Complete!", 
-        description: "Conference Championships are set. Time for postseason baseball!",
-      });
+      if (data?.simSummary && (data.simSummary.weekResults?.length > 0 || data.simSummary.postseasonResults?.length > 0)) {
+        setSimSummary(data.simSummary);
+        setShowSimOverlay(true);
+      } else {
+        toast({ 
+          title: "Regular Season Complete!", 
+          description: "Conference Championships are set. Time for postseason baseball!",
+        });
+      }
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -247,18 +280,24 @@ export default function CommissionerPage() {
 
   const simToCwsMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("POST", `/api/leagues/${id}/sim-to-cws`, {});
+      const res = await apiRequest("POST", `/api/leagues/${id}/sim-to-cws`, {});
+      return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "postseason"] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "commissioner"] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "schedule"] });
       window.dispatchEvent(new CustomEvent("league-phase-changed"));
-      toast({ 
-        title: "College World Series!", 
-        description: "The final two teams are set for the CWS championship series.",
-      });
+      if (data?.simSummary && (data.simSummary.weekResults?.length > 0 || data.simSummary.postseasonResults?.length > 0)) {
+        setSimSummary(data.simSummary);
+        setShowSimOverlay(true);
+      } else {
+        toast({ 
+          title: "College World Series!", 
+          description: "The final two teams are set for the CWS championship series.",
+        });
+      }
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -430,6 +469,13 @@ export default function CommissionerPage() {
           </TabsContent>
         </Tabs>
       </main>
+
+      <SeasonSummaryModal
+        open={showSeasonSummary}
+        onClose={() => setShowSeasonSummary(false)}
+        leagueId={id!}
+        season={summaryCompletedSeason}
+      />
     </div>
   );
 }
@@ -586,75 +632,177 @@ function ActionsTab({
               <div className="space-y-2">
                 {!isPostseason && !isOffseason && (
                   <>
-                    <RetroButton
-                      variant="outline"
-                      onClick={onSimToPostseason}
-                      disabled={anySim}
-                      className="w-full"
-                      data-testid="button-sim-to-postseason"
-                    >
-                      <FastForward className="w-4 h-4 mr-2" />
-                      {isSimToPostseason ? "Simulating..." : "Sim to Postseason"}
-                    </RetroButton>
-                    <RetroButton
-                      variant="outline"
-                      onClick={onSimToCws}
-                      disabled={anySim}
-                      className="w-full"
-                      data-testid="button-sim-to-cws"
-                    >
-                      <FastForward className="w-4 h-4 mr-2" />
-                      {isSimToCws ? "Simulating..." : "Sim to College World Series"}
-                    </RetroButton>
-                    <RetroButton
-                      variant="outline"
-                      onClick={onSimToOffseason}
-                      disabled={anySim}
-                      className="w-full"
-                      data-testid="button-sim-to-offseason"
-                    >
-                      <FastForward className="w-4 h-4 mr-2" />
-                      {isSimToOffseason ? "Simulating..." : "Sim to Offseason"}
-                    </RetroButton>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <RetroButton
+                          variant="outline"
+                          disabled={anySim}
+                          className="w-full"
+                          data-testid="button-sim-to-postseason"
+                        >
+                          <FastForward className="w-4 h-4 mr-2" />
+                          {isSimToPostseason ? "Simulating..." : "Sim to Postseason"}
+                        </RetroButton>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="bg-card border-border">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle className="font-pixel text-gold text-sm">Sim to Postseason?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will simulate the entire regular season. You won't be able to play individual weeks or make mid-season changes. This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel className="bg-background border-border">Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={onSimToPostseason} className="bg-gold text-forest-dark" data-testid="button-confirm-sim-postseason">
+                            Sim to Postseason
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <RetroButton
+                          variant="outline"
+                          disabled={anySim}
+                          className="w-full"
+                          data-testid="button-sim-to-cws"
+                        >
+                          <FastForward className="w-4 h-4 mr-2" />
+                          {isSimToCws ? "Simulating..." : "Sim to College World Series"}
+                        </RetroButton>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="bg-card border-border">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle className="font-pixel text-gold text-sm">Sim to College World Series?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will simulate through to the College World Series. All remaining games will be auto-played. This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel className="bg-background border-border">Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={onSimToCws} className="bg-gold text-forest-dark" data-testid="button-confirm-sim-cws">
+                            Sim to CWS
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <RetroButton
+                          variant="outline"
+                          disabled={anySim}
+                          className="w-full"
+                          data-testid="button-sim-to-offseason"
+                        >
+                          <FastForward className="w-4 h-4 mr-2" />
+                          {isSimToOffseason ? "Simulating..." : "Sim to Offseason"}
+                        </RetroButton>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="bg-card border-border">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle className="font-pixel text-gold text-sm">Sim to Offseason?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will simulate the entire remaining season including postseason. All games will be auto-played. This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel className="bg-background border-border">Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={onSimToOffseason} className="bg-gold text-forest-dark" data-testid="button-confirm-sim-offseason">
+                            Sim to Offseason
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </>
                 )}
                 {isPostseason && (
                   <>
                     {league?.currentPhase !== "cws" && (
-                      <RetroButton
-                        variant="outline"
-                        onClick={onSimToCws}
-                        disabled={anySim}
-                        className="w-full"
-                        data-testid="button-sim-to-cws"
-                      >
-                        <FastForward className="w-4 h-4 mr-2" />
-                        {isSimToCws ? "Simulating..." : "Sim to College World Series"}
-                      </RetroButton>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <RetroButton
+                            variant="outline"
+                            disabled={anySim}
+                            className="w-full"
+                            data-testid="button-sim-to-cws"
+                          >
+                            <FastForward className="w-4 h-4 mr-2" />
+                            {isSimToCws ? "Simulating..." : "Sim to College World Series"}
+                          </RetroButton>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent className="bg-card border-border">
+                          <AlertDialogHeader>
+                            <AlertDialogTitle className="font-pixel text-gold text-sm">Sim to College World Series?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will simulate through to the College World Series. All remaining games will be auto-played. This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel className="bg-background border-border">Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={onSimToCws} className="bg-gold text-forest-dark" data-testid="button-confirm-sim-cws">
+                              Sim to CWS
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     )}
-                    <RetroButton
-                      variant="outline"
-                      onClick={onSimToOffseason}
-                      disabled={anySim}
-                      className="w-full"
-                      data-testid="button-sim-to-offseason"
-                    >
-                      <FastForward className="w-4 h-4 mr-2" />
-                      {isSimToOffseason ? "Simulating..." : "Sim to Offseason"}
-                    </RetroButton>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <RetroButton
+                          variant="outline"
+                          disabled={anySim}
+                          className="w-full"
+                          data-testid="button-sim-to-offseason"
+                        >
+                          <FastForward className="w-4 h-4 mr-2" />
+                          {isSimToOffseason ? "Simulating..." : "Sim to Offseason"}
+                        </RetroButton>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="bg-card border-border">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle className="font-pixel text-gold text-sm">Sim to Offseason?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will simulate the entire remaining season including postseason. All games will be auto-played. This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel className="bg-background border-border">Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={onSimToOffseason} className="bg-gold text-forest-dark" data-testid="button-confirm-sim-offseason">
+                            Sim to Offseason
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </>
                 )}
                 {isOffseason && (
-                  <RetroButton
-                    variant="outline"
-                    onClick={onSimToSigningDay}
-                    disabled={anySim}
-                    className="w-full"
-                    data-testid="button-sim-to-next-season"
-                  >
-                    <FastForward className="w-4 h-4 mr-2" />
-                    {isSimToSigningDay ? "Simulating..." : "Sim to Next Season"}
-                  </RetroButton>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <RetroButton
+                        variant="outline"
+                        disabled={anySim}
+                        className="w-full"
+                        data-testid="button-sim-to-next-season"
+                      >
+                        <FastForward className="w-4 h-4 mr-2" />
+                        {isSimToSigningDay ? "Simulating..." : "Sim to Next Season"}
+                      </RetroButton>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="bg-card border-border">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="font-pixel text-gold text-sm">Sim to Next Season?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will simulate the entire offseason including recruiting, signing day, and walk-ons. Your recruiting actions won't be applied. This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel className="bg-background border-border">Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={onSimToSigningDay} className="bg-gold text-forest-dark" data-testid="button-confirm-sim-next-season">
+                          Sim to Next Season
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 )}
               </div>
               {isOffseason && (
@@ -1574,6 +1722,20 @@ function CWSSeriesStatus({ games }: { games: PostseasonGame[] }) {
           ))}
         </div>
       )}
+
+      <SimProgressOverlay
+        open={showSimOverlay}
+        onClose={() => {
+          setShowSimOverlay(false);
+          if (pendingSeasonSummary !== null) {
+            setSummaryCompletedSeason(pendingSeasonSummary);
+            setShowSeasonSummary(true);
+            setPendingSeasonSummary(null);
+          }
+        }}
+        simSummary={simSummary}
+        data-testid="sim-progress-overlay"
+      />
     </div>
   );
 }
