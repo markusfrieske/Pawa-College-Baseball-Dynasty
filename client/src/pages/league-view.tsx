@@ -2291,7 +2291,7 @@ function PostseasonTab({ leagueId }: { leagueId: string }) {
           <RetroCardContent>
             <div className="grid sm:grid-cols-2 gap-3">
               {data!.conferenceChampionships.map(game => (
-                <PostseasonGameCard key={game.id} game={game} />
+                <PostseasonGameCard key={game.id} game={game} leagueId={leagueId} />
               ))}
             </div>
           </RetroCardContent>
@@ -2307,7 +2307,7 @@ function PostseasonTab({ leagueId }: { leagueId: string }) {
             </div>
           </RetroCardHeader>
           <RetroCardContent>
-            <PostseasonBracketView games={data!.superRegionals} />
+            <PostseasonBracketView games={data!.superRegionals} leagueId={leagueId} />
           </RetroCardContent>
         </RetroCard>
       )}
@@ -2325,7 +2325,7 @@ function PostseasonTab({ leagueId }: { leagueId: string }) {
               {data!.cws.map((game, i) => (
                 <div key={game.id}>
                   <p className="text-[9px] text-muted-foreground font-pixel mb-1">Game {i + 1}</p>
-                  <PostseasonGameCard game={game} />
+                  <PostseasonGameCard game={game} leagueId={leagueId} />
                 </div>
               ))}
               <CWSSeriesDisplay games={data!.cws} />
@@ -2337,7 +2337,7 @@ function PostseasonTab({ leagueId }: { leagueId: string }) {
   );
 }
 
-function PostseasonGameCard({ game }: { game: PostseasonGame }) {
+function PostseasonGameCard({ game, leagueId }: { game: PostseasonGame; leagueId: string }) {
   const homeWon = game.isComplete && (game.homeScore ?? 0) > (game.awayScore ?? 0);
   const awayWon = game.isComplete && (game.awayScore ?? 0) > (game.homeScore ?? 0);
 
@@ -2360,7 +2360,18 @@ function PostseasonGameCard({ game }: { game: PostseasonGame }) {
         </div>
         <span className="text-sm font-pixel">{game.isComplete ? game.awayScore : "-"}</span>
       </div>
-      {!game.isComplete && (
+      {!game.isComplete && game.homeTeam && game.awayTeam && (
+        <div className="flex items-center justify-center gap-2 mt-2">
+          <Badge variant="outline" className="text-[8px]">Upcoming</Badge>
+          <Link href={`/league/${leagueId}/game/${game.id}/play-by-play`}>
+            <RetroButton variant="outline" size="sm" title="Play by Play" data-testid={`button-pbp-postseason-${game.id}`}>
+              <Play className="w-3 h-3 mr-1" />
+              <span className="text-[8px] font-pixel">PBP</span>
+            </RetroButton>
+          </Link>
+        </div>
+      )}
+      {!game.isComplete && !(game.homeTeam && game.awayTeam) && (
         <div className="text-center mt-2">
           <Badge variant="outline" className="text-[8px]">Upcoming</Badge>
         </div>
@@ -2534,7 +2545,7 @@ function DoubleEliminationBracketSide({ games, side, sideLabel }: { games: Posts
   );
 }
 
-function PostseasonBracketView({ games }: { games: PostseasonGame[] }) {
+function PostseasonBracketView({ games, leagueId }: { games: PostseasonGame[]; leagueId: string }) {
   const hasDoubleElim = games.some(g => g.bracketSide);
 
   if (!hasDoubleElim) {
@@ -2542,7 +2553,7 @@ function PostseasonBracketView({ games }: { games: PostseasonGame[] }) {
       <div className="space-y-3" data-testid="bracket-view">
         <div className="grid sm:grid-cols-2 gap-3">
           {games.map(game => (
-            <PostseasonGameCard key={game.id} game={game} />
+            <PostseasonGameCard key={game.id} game={game} leagueId={leagueId} />
           ))}
         </div>
       </div>
@@ -2561,7 +2572,7 @@ function PostseasonBracketView({ games }: { games: PostseasonGame[] }) {
         <p className="text-[8px] font-pixel text-muted-foreground uppercase mb-2">All Games</p>
         <div className="grid sm:grid-cols-2 gap-3">
           {games.map(game => (
-            <PostseasonGameCard key={game.id} game={game} />
+            <PostseasonGameCard key={game.id} game={game} leagueId={leagueId} />
           ))}
         </div>
       </div>

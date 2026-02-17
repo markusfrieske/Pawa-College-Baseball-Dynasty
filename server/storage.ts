@@ -83,6 +83,7 @@ export interface IStorage {
   createRecruitingInterest(interest: InsertRecruitingInterest): Promise<RecruitingInterest>;
   updateRecruitingInterest(id: string, data: Partial<RecruitingInterest>): Promise<RecruitingInterest | undefined>;
 
+  getGame(id: string): Promise<Game | undefined>;
   getGamesByLeague(leagueId: string): Promise<Game[]>;
   getGamesByLeagueSeason(leagueId: string, season: number): Promise<Game[]>;
   getPlayersByLeague(leagueId: string): Promise<Player[]>;
@@ -361,6 +362,11 @@ export class DatabaseStorage implements IStorage {
   async updateRecruitingInterest(id: string, data: Partial<RecruitingInterest>): Promise<RecruitingInterest | undefined> {
     const [interest] = await db.update(recruitingInterests).set(data).where(eq(recruitingInterests.id, id)).returning();
     return interest || undefined;
+  }
+
+  async getGame(id: string): Promise<Game | undefined> {
+    const [game] = await db.select().from(games).where(eq(games.id, id));
+    return game || undefined;
   }
 
   async getGamesByLeague(leagueId: string): Promise<Game[]> {

@@ -3582,6 +3582,869 @@ export async function registerRoutes(
     }
   });
 
+  // ============ PLAY-BY-PLAY SIMULATION ============
+  app.post("/api/leagues/:id/games/:gameId/play-by-play", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const gameId = req.params.gameId as string;
+
+      const league = await storage.getLeague(leagueId);
+      if (!league) {
+        return res.status(404).json({ message: "League not found" });
+      }
+
+      const game = await storage.getGame(gameId);
+      if (!game || game.leagueId !== leagueId) {
+        return res.status(404).json({ message: "Game not found" });
+      }
+      if (game.isComplete) {
+        return res.status(400).json({ message: "Game is already complete" });
+      }
+
+      const homeTeam = await storage.getTeam(game.homeTeamId);
+      const awayTeam = await storage.getTeam(game.awayTeamId);
+      if (!homeTeam || !awayTeam) {
+        return res.status(404).json({ message: "Teams not found" });
+      }
+
+      const homePlayers = await storage.getPlayersByTeam(game.homeTeamId);
+      const awayPlayers = await storage.getPlayersByTeam(game.awayTeamId);
+
+      function buildLineup(players: Player[]) {
+        const positionPlayers = players.filter(p => p.position !== "P");
+        const pitchers = players.filter(p => p.position === "P");
+        const positionOrder = ["C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "DH"];
+        const used = new Set<string>();
+        const lineup: { playerId: string; firstName: string; lastName: string; position: string; order: number; contact: number; power: number; speed: number; fielding: number }[] = [];
+
+        const lineupPlayers = positionPlayers
+          .filter(p => p.battingOrder != null && p.battingOrder >= 1 && p.battingOrder <= 9)
+          .sort((a, b) => (a.battingOrder || 0) - (b.battingOrder || 0));
+
+        if (lineupPlayers.length >= 7) {
+          for (const p of lineupPlayers) {
+            used.add(p.id);
+            lineup.push({
+              playerId: p.id, firstName: p.firstName, lastName: p.lastName, position: p.position,
+              order: lineup.length + 1,
+              contact: p.hitForAvg || 50, power: p.power || 50, speed: p.speed || 50, fielding: p.fielding || 50,
+            });
+          }
+        } else {
+          for (const pos of positionOrder) {
+            const p = positionPlayers.find(pl => pl.position === pos && !used.has(pl.id));
+            if (p) {
+              used.add(p.id);
+              lineup.push({
+                playerId: p.id, firstName: p.firstName, lastName: p.lastName, position: p.position,
+                order: lineup.length + 1,
+                contact: p.hitForAvg || 50, power: p.power || 50, speed: p.speed || 50, fielding: p.fielding || 50,
+              });
+            }
+          }
+        }
+
+        for (const p of positionPlayers) {
+          if (lineup.length >= 9) break;
+          if (!used.has(p.id)) {
+            used.add(p.id);
+            lineup.push({
+              playerId: p.id, firstName: p.firstName, lastName: p.lastName, position: p.position,
+              order: lineup.length + 1,
+              contact: p.hitForAvg || 50, power: p.power || 50, speed: p.speed || 50, fielding: p.fielding || 50,
+            });
+          }
+        }
+
+        if (lineup.length < 9 && pitchers.length > 0) {
+          const bp = pitchers[0];
+          lineup.push({
+            playerId: bp.id, firstName: bp.firstName, lastName: bp.lastName, position: "P",
+            order: lineup.length + 1,
+            contact: bp.hitForAvg || 25, power: bp.power || 20, speed: bp.speed || 40, fielding: bp.fielding || 50,
+          });
+        }
+
+        const fakeFirst = ["Jake", "Mike", "Chris", "Tyler", "Matt", "Ryan", "Josh", "Nick", "Ben"];
+        const fakeLast = ["Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Martinez"];
+        while (lineup.length < 9) {
+          const idx = lineup.length;
+          lineup.push({
+            playerId: "fake_" + idx, firstName: fakeFirst[idx % fakeFirst.length], lastName: fakeLast[idx % fakeLast.length],
+            position: positionOrder[idx] || "DH", order: lineup.length + 1,
+            contact: 50, power: 40, speed: 50, fielding: 50,
+          });
+        }
+
+        return lineup;
+      }
+
+      function pickPitcher(players: Player[]) {
+        const pitchers = players.filter(p => p.position === "P");
+        if (pitchers.length === 0) {
+          const best = players.sort((a, b) => (b.overall || 0) - (a.overall || 0))[0];
+          return {
+            playerId: best?.id || "fake_p", firstName: best?.firstName || "Unknown", lastName: best?.lastName || "Pitcher",
+            stuff: best?.stuff || 50, control: best?.control || 50, velocity: best?.velocity || 50,
+          };
+        }
+        pitchers.sort((a, b) => (b.overall || 0) - (a.overall || 0));
+        const p = pitchers[0];
+        return {
+          playerId: p.id, firstName: p.firstName, lastName: p.lastName,
+          stuff: p.stuff || 50, control: p.control || 50, velocity: p.velocity || 50,
+        };
+      }
+
+      const homeLineup = buildLineup(homePlayers);
+      const awayLineup = buildLineup(awayPlayers);
+      const homePitcher = pickPitcher(homePlayers);
+      const awayPitcher = pickPitcher(awayPlayers);
+
+      const avgFielding = (players: Player[]) => {
+        const fielders = players.filter(p => p.position !== "P");
+        if (fielders.length === 0) return 50;
+        return fielders.reduce((s, p) => s + (p.fielding || 50), 0) / fielders.length;
+      };
+      const homeFielding = avgFielding(homePlayers);
+      const awayFielding = avgFielding(awayPlayers);
+
+      const batterStats: Record<string, { ab: number; r: number; h: number; doubles: number; triples: number; hr: number; rbi: number; bb: number; so: number }> = {};
+      const pitcherStats: Record<string, { outs: number; h: number; r: number; er: number; bb: number; so: number }> = {};
+
+      for (const b of [...homeLineup, ...awayLineup]) {
+        batterStats[b.playerId] = { ab: 0, r: 0, h: 0, doubles: 0, triples: 0, hr: 0, rbi: 0, bb: 0, so: 0 };
+      }
+      pitcherStats[homePitcher.playerId] = { outs: 0, h: 0, r: 0, er: 0, bb: 0, so: 0 };
+      pitcherStats[awayPitcher.playerId] = { outs: 0, h: 0, r: 0, er: 0, bb: 0, so: 0 };
+
+      let homeBatterIndex = 0;
+      let awayBatterIndex = 0;
+      let totalHomeScore = 0;
+      let totalAwayScore = 0;
+
+      interface AtBatResult {
+        batterIndex: number;
+        batterName: string;
+        pitchSequence: string[];
+        result: string;
+        description: string;
+        runnersAfter: [boolean, boolean, boolean];
+        runsScored: number;
+        outs: number;
+      }
+
+      interface HalfInningResult {
+        atBats: AtBatResult[];
+        runs: number;
+        hits: number;
+        errors: number;
+      }
+
+      interface InningResult {
+        inning: number;
+        topHalf: HalfInningResult;
+        bottomHalf: HalfInningResult;
+      }
+
+      const innings: InningResult[] = [];
+
+      const locations = ["to left field", "to center field", "to right field", "up the middle", "down the line", "to the gap"];
+      const groundLocations = ["to shortstop", "to second base", "to third base", "to first base", "to the pitcher"];
+
+      function generatePitchSequence(
+        pitcherControl: number, pitcherStuff: number,
+        batterContact: number, result: string
+      ): string[] {
+        const sequence: string[] = [];
+        let balls = 0;
+        let strikes = 0;
+
+        const strikeProb = 0.45 + (pitcherControl / 100) * 0.2 - (batterContact / 100) * 0.1;
+        const foulProb = 0.25 + (batterContact / 100) * 0.1;
+
+        if (result === "hbp") {
+          const pitchCount = Math.floor(Math.random() * 3);
+          for (let i = 0; i < pitchCount; i++) {
+            if (Math.random() < strikeProb) {
+              sequence.push(strikes < 2 ? "strike" : "foul");
+              if (strikes < 2) strikes++;
+            } else {
+              sequence.push("ball");
+              balls++;
+            }
+          }
+          sequence.push("hit_by_pitch");
+          return sequence;
+        }
+
+        if (result === "walk") {
+          while (balls < 4) {
+            if (balls === 3 && strikes < 2) {
+              sequence.push("ball");
+              balls++;
+            } else if (Math.random() < 0.4) {
+              if (strikes < 2) { sequence.push("strike"); strikes++; }
+              else { sequence.push("foul"); }
+            } else {
+              sequence.push("ball"); balls++;
+            }
+          }
+          return sequence;
+        }
+
+        if (result === "strikeout") {
+          while (strikes < 3) {
+            if (Math.random() < 0.35 && balls < 3) {
+              sequence.push("ball"); balls++;
+            } else if (strikes === 2 && Math.random() < foulProb) {
+              sequence.push("foul");
+            } else {
+              sequence.push("strike"); strikes++;
+            }
+          }
+          return sequence;
+        }
+
+        const maxPitches = 2 + Math.floor(Math.random() * 5);
+        for (let i = 0; i < maxPitches; i++) {
+          if (Math.random() < strikeProb) {
+            if (strikes < 2) { sequence.push("strike"); strikes++; }
+            else { sequence.push("foul"); }
+          } else {
+            sequence.push("ball"); balls++;
+            if (balls >= 4) { balls--; sequence.pop(); break; }
+          }
+        }
+        sequence.push("in_play");
+        return sequence;
+      }
+
+      function simulateHalfInning(
+        battingLineup: typeof homeLineup,
+        pitcher: typeof homePitcher,
+        batterIndexRef: { value: number },
+        defFielding: number,
+        isHome: boolean,
+      ): HalfInningResult {
+        let outs = 0;
+        let runs = 0;
+        let hits = 0;
+        let errors = 0;
+        let bases: [boolean, boolean, boolean] = [false, false, false];
+        const atBats: AtBatResult[] = [];
+
+        while (outs < 3) {
+          const batterIdx = batterIndexRef.value % 9;
+          const batter = battingLineup[batterIdx];
+          batterIndexRef.value++;
+
+          const contact = batter.contact;
+          const power = batter.power;
+          const speed = batter.speed;
+          const stuff = pitcher.stuff;
+          const control = pitcher.control;
+          const velocity = pitcher.velocity;
+          const fieldingAvg = defFielding;
+
+          const contactNorm = contact / 100;
+          const powerNorm = power / 100;
+          const speedNorm = speed / 100;
+          const stuffNorm = stuff / 100;
+          const controlNorm = control / 100;
+          const velocityNorm = velocity / 100;
+          const fieldNorm = fieldingAvg / 100;
+
+          const strikeoutChance = Math.max(0.08, 0.28 + stuffNorm * 0.15 - contactNorm * 0.20);
+          const walkChance = Math.max(0.04, 0.10 - controlNorm * 0.06 + contactNorm * 0.02);
+          const hbpChance = 0.01;
+          const errorChance = Math.max(0.01, 0.05 - fieldNorm * 0.04);
+
+          const hitChance = Math.max(0.15, 0.32 + contactNorm * 0.12 - velocityNorm * 0.08 - stuffNorm * 0.05);
+
+          const hrChance = Math.max(0.02, 0.04 + powerNorm * 0.08 - stuffNorm * 0.03);
+          const tripleChance = Math.max(0.005, 0.01 + speedNorm * 0.02 + powerNorm * 0.005);
+          const doubleChance = Math.max(0.03, 0.06 + powerNorm * 0.04);
+
+          const runnersOn = bases.filter(Boolean).length;
+          const dpChance = (runnersOn > 0 && outs < 2)
+            ? Math.max(0.03, 0.10 - speedNorm * 0.05)
+            : 0;
+          const sacFlyChance = (bases[2] && outs < 2) ? 0.04 : 0;
+          const fcChance = runnersOn > 0 ? 0.03 : 0;
+
+          const roll = Math.random();
+          let cumulative = 0;
+          let result: string;
+          let runsScored = 0;
+          let isHit = false;
+          let isOut = false;
+          let outsAdded = 0;
+
+          cumulative += strikeoutChance;
+          if (roll < cumulative) {
+            result = "strikeout";
+            isOut = true;
+            outsAdded = 1;
+          } else {
+            cumulative += walkChance;
+            if (roll < cumulative) {
+              result = "walk";
+            } else {
+              cumulative += hbpChance;
+              if (roll < cumulative) {
+                result = "hbp";
+              } else {
+                cumulative += errorChance;
+                if (roll < cumulative) {
+                  result = "error";
+                } else {
+                  cumulative += hrChance;
+                  if (roll < cumulative) {
+                    result = "homerun";
+                    isHit = true;
+                  } else {
+                    cumulative += tripleChance;
+                    if (roll < cumulative) {
+                      result = "triple";
+                      isHit = true;
+                    } else {
+                      cumulative += doubleChance;
+                      if (roll < cumulative) {
+                        result = "double";
+                        isHit = true;
+                      } else {
+                        cumulative += hitChance;
+                        if (roll < cumulative) {
+                          result = "single";
+                          isHit = true;
+                        } else {
+                          cumulative += dpChance;
+                          if (roll < cumulative) {
+                            result = "double_play";
+                            isOut = true;
+                            outsAdded = 2;
+                          } else {
+                            cumulative += sacFlyChance;
+                            if (roll < cumulative) {
+                              result = "sacrifice_fly";
+                              isOut = true;
+                              outsAdded = 1;
+                            } else {
+                              cumulative += fcChance;
+                              if (roll < cumulative) {
+                                result = "fielders_choice";
+                                isOut = true;
+                                outsAdded = 1;
+                              } else {
+                                const outRoll = Math.random();
+                                if (outRoll < 0.45) result = "groundout";
+                                else if (outRoll < 0.80) result = "flyout";
+                                else if (outRoll < 0.92) result = "lineout";
+                                else result = "popout";
+                                isOut = true;
+                                outsAdded = 1;
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+
+          result = result!;
+
+          switch (result) {
+            case "homerun": {
+              runsScored = 1 + bases.filter(Boolean).length;
+              bases = [false, false, false];
+              break;
+            }
+            case "triple": {
+              runsScored = bases.filter(Boolean).length;
+              bases = [false, false, true];
+              break;
+            }
+            case "double": {
+              runsScored = (bases[1] ? 1 : 0) + (bases[2] ? 1 : 0);
+              if (bases[0] && Math.random() < 0.5 + speedNorm * 0.3) runsScored++;
+              bases = [false, true, bases[0] && runsScored === ((bases[1] ? 1 : 0) + (bases[2] ? 1 : 0)) ? true : false];
+              break;
+            }
+            case "single": {
+              runsScored = bases[2] ? 1 : 0;
+              if (bases[1] && Math.random() < 0.4 + speedNorm * 0.2) runsScored++;
+              const newThird = bases[1] && runsScored === (bases[2] ? 1 : 0) ? true : false;
+              const newSecond = bases[0] ? true : false;
+              bases = [true, newSecond, newThird];
+              break;
+            }
+            case "walk":
+            case "hbp": {
+              if (bases[0] && bases[1] && bases[2]) {
+                runsScored = 1;
+              }
+              if (bases[0] && bases[1]) {
+                bases[2] = true;
+              }
+              if (bases[0]) {
+                bases[1] = true;
+              }
+              bases[0] = true;
+              break;
+            }
+            case "error": {
+              if (bases[2]) { runsScored++; }
+              const newThird = bases[1] ? true : false;
+              const newSecond = bases[0] ? true : false;
+              bases = [true, newSecond, newThird];
+              errors++;
+              break;
+            }
+            case "sacrifice_fly": {
+              if (bases[2]) {
+                runsScored = 1;
+                bases[2] = false;
+              }
+              break;
+            }
+            case "fielders_choice": {
+              if (bases[2] && outs < 2) {
+                runsScored = 0;
+              }
+              if (bases[1]) { bases[2] = true; bases[1] = false; }
+              if (bases[0]) { bases[1] = true; }
+              bases[0] = true;
+              const removedBase = Math.random() < 0.5 ? 1 : 0;
+              if (removedBase === 1 && bases[1]) bases[1] = false;
+              else if (removedBase === 0 && bases[0]) bases[0] = false;
+              break;
+            }
+            case "double_play": {
+              if (bases[0]) bases[0] = false;
+              if (bases[1] && Math.random() < 0.3) bases[1] = false;
+              break;
+            }
+            default:
+              break;
+          }
+
+          if (isOut) {
+            outs = Math.min(3, outs + outsAdded);
+          }
+
+          if (isHit) hits++;
+          runs += runsScored;
+
+          const bId = batter.playerId;
+          const pId = isHome ? awayPitcher.playerId : homePitcher.playerId;
+
+          if (!batterStats[bId]) batterStats[bId] = { ab: 0, r: 0, h: 0, doubles: 0, triples: 0, hr: 0, rbi: 0, bb: 0, so: 0 };
+          if (!pitcherStats[pId]) pitcherStats[pId] = { outs: 0, h: 0, r: 0, er: 0, bb: 0, so: 0 };
+
+          if (result !== "walk" && result !== "hbp" && result !== "sacrifice_fly") {
+            batterStats[bId].ab++;
+          }
+          if (isHit) batterStats[bId].h++;
+          if (result === "double") batterStats[bId].doubles++;
+          if (result === "triple") batterStats[bId].triples++;
+          if (result === "homerun") batterStats[bId].hr++;
+          if (result === "walk") batterStats[bId].bb++;
+          if (result === "strikeout") batterStats[bId].so++;
+          batterStats[bId].rbi += runsScored;
+
+          if (isHit) pitcherStats[pId].h++;
+          if (result === "strikeout") pitcherStats[pId].so++;
+          if (result === "walk") pitcherStats[pId].bb++;
+          pitcherStats[pId].r += runsScored;
+          pitcherStats[pId].er += runsScored;
+          if (isOut) pitcherStats[pId].outs += outsAdded;
+
+          const bn = `${batter.firstName[0]}. ${batter.lastName}`;
+          let description = "";
+          switch (result) {
+            case "strikeout": description = `${bn} strikes out`; break;
+            case "walk": description = `${bn} walks`; break;
+            case "hbp": description = `${bn} hit by pitch`; break;
+            case "single": description = `${bn} singles ${locations[Math.floor(Math.random() * locations.length)]}`; break;
+            case "double": description = `${bn} doubles ${locations[Math.floor(Math.random() * locations.length)]}`; break;
+            case "triple": description = `${bn} triples ${locations[Math.floor(Math.random() * locations.length)]}`; break;
+            case "homerun": description = runsScored > 1 ? `${bn} hits a ${runsScored}-run home run!` : `${bn} hits a solo home run!`; break;
+            case "groundout": description = `${bn} grounds out ${groundLocations[Math.floor(Math.random() * groundLocations.length)]}`; break;
+            case "flyout": description = `${bn} flies out ${locations[Math.floor(Math.random() * locations.length)]}`; break;
+            case "lineout": description = `${bn} lines out ${locations[Math.floor(Math.random() * locations.length)]}`; break;
+            case "popout": description = `${bn} pops out to the infield`; break;
+            case "error": description = `${bn} reaches on an error`; break;
+            case "fielders_choice": description = `${bn} reaches on fielder's choice`; break;
+            case "sacrifice_fly": description = `${bn} hits a sacrifice fly ${locations[Math.floor(Math.random() * locations.length)]}`; break;
+            case "double_play": description = `${bn} grounds into a double play`; break;
+          }
+          if (runsScored > 0 && result !== "homerun") {
+            description += `. ${runsScored} run${runsScored > 1 ? "s" : ""} score${runsScored === 1 ? "s" : ""}`;
+          }
+
+          const pitchSequence = generatePitchSequence(
+            isHome ? awayPitcher.control : homePitcher.control,
+            isHome ? awayPitcher.stuff : homePitcher.stuff,
+            contact, result
+          );
+
+          atBats.push({
+            batterIndex: batterIdx,
+            batterName: `${batter.firstName} ${batter.lastName}`,
+            pitchSequence,
+            result,
+            description,
+            runnersAfter: [...bases] as [boolean, boolean, boolean],
+            runsScored,
+            outs,
+          });
+        }
+
+        return { atBats, runs, hits, errors };
+      }
+
+      const homeIdx = { value: 0 };
+      const awayIdx = { value: 0 };
+
+      for (let inn = 1; inn <= 9; inn++) {
+        const topHalf = simulateHalfInning(awayLineup, homePitcher, awayIdx, homeFielding, false);
+        totalAwayScore += topHalf.runs;
+        topHalf.atBats.forEach(ab => { /* runs already tracked */ });
+
+        let bottomHalf: HalfInningResult;
+        if (inn === 9 && totalHomeScore > totalAwayScore) {
+          bottomHalf = { atBats: [], runs: 0, hits: 0, errors: 0 };
+        } else {
+          bottomHalf = simulateHalfInning(homeLineup, awayPitcher, homeIdx, awayFielding, true);
+          totalHomeScore += bottomHalf.runs;
+        }
+
+        innings.push({ inning: inn, topHalf, bottomHalf });
+      }
+
+      let extraInning = 10;
+      while (totalHomeScore === totalAwayScore && extraInning <= 12) {
+        const topHalf = simulateHalfInning(awayLineup, homePitcher, awayIdx, homeFielding, false);
+        totalAwayScore += topHalf.runs;
+
+        const bottomHalf = simulateHalfInning(homeLineup, awayPitcher, homeIdx, awayFielding, true);
+        totalHomeScore += bottomHalf.runs;
+
+        innings.push({ inning: extraInning, topHalf, bottomHalf });
+        extraInning++;
+      }
+
+      if (totalHomeScore === totalAwayScore) {
+        if (Math.random() > 0.5) totalHomeScore++;
+        else totalAwayScore++;
+        const lastInning = innings[innings.length - 1];
+        if (totalHomeScore > totalAwayScore) {
+          lastInning.bottomHalf.runs++;
+          lastInning.bottomHalf.atBats.push({
+            batterIndex: homeIdx.value % 9,
+            batterName: `${homeLineup[homeIdx.value % 9].firstName} ${homeLineup[homeIdx.value % 9].lastName}`,
+            pitchSequence: ["ball", "strike", "in_play"],
+            result: "single",
+            description: `${homeLineup[homeIdx.value % 9].firstName[0]}. ${homeLineup[homeIdx.value % 9].lastName} singles to win the game!`,
+            runnersAfter: [true, false, false],
+            runsScored: 1,
+            outs: lastInning.bottomHalf.atBats.length > 0 ? lastInning.bottomHalf.atBats[lastInning.bottomHalf.atBats.length - 1].outs : 0,
+          });
+          lastInning.bottomHalf.hits++;
+        } else {
+          lastInning.topHalf.runs++;
+          lastInning.topHalf.atBats.push({
+            batterIndex: awayIdx.value % 9,
+            batterName: `${awayLineup[awayIdx.value % 9].firstName} ${awayLineup[awayIdx.value % 9].lastName}`,
+            pitchSequence: ["strike", "ball", "in_play"],
+            result: "single",
+            description: `${awayLineup[awayIdx.value % 9].firstName[0]}. ${awayLineup[awayIdx.value % 9].lastName} singles to break the tie!`,
+            runnersAfter: [true, false, false],
+            runsScored: 1,
+            outs: lastInning.topHalf.atBats.length > 0 ? lastInning.topHalf.atBats[lastInning.topHalf.atBats.length - 1].outs : 0,
+          });
+          lastInning.topHalf.hits++;
+        }
+      }
+
+      for (const b of homeLineup) {
+        const st = batterStats[b.playerId];
+        if (st) st.r = 0;
+      }
+      for (const b of awayLineup) {
+        const st = batterStats[b.playerId];
+        if (st) st.r = 0;
+      }
+
+      for (const inn of innings) {
+        for (const ab of inn.bottomHalf.atBats) {
+          const batter = homeLineup[ab.batterIndex];
+          if (batter && batterStats[batter.playerId]) {
+            if (ab.result === "homerun") batterStats[batter.playerId].r++;
+            else if (ab.runsScored > 0) {
+              // assign runs to runners who scored
+            }
+          }
+        }
+        for (const ab of inn.topHalf.atBats) {
+          const batter = awayLineup[ab.batterIndex];
+          if (batter && batterStats[batter.playerId]) {
+            if (ab.result === "homerun") batterStats[batter.playerId].r++;
+          }
+        }
+      }
+
+      // Distribute runs scored across batters proportionally
+      const distributeRuns = (lineup: typeof homeLineup, totalRuns: number) => {
+        let runsLeft = totalRuns;
+        const hitters = lineup.filter(b => (batterStats[b.playerId]?.h || 0) > 0);
+        for (const b of lineup) {
+          if (runsLeft <= 0) break;
+          const st = batterStats[b.playerId];
+          if (!st) continue;
+          if (st.hr > 0) { st.r += st.hr; runsLeft -= st.hr; }
+        }
+        for (let i = 0; runsLeft > 0; i++) {
+          const target = hitters.length > 0 ? hitters[i % hitters.length] : lineup[i % lineup.length];
+          const st = batterStats[target.playerId];
+          if (st) { st.r++; runsLeft--; }
+        }
+      };
+      distributeRuns(homeLineup, totalHomeScore);
+      distributeRuns(awayLineup, totalAwayScore);
+
+      const totalOuts = innings.length * 6;
+      const homePitcherOuts = innings.reduce((s, inn) => s + inn.topHalf.atBats.filter(ab =>
+        ["strikeout", "groundout", "flyout", "lineout", "popout", "double_play", "sacrifice_fly", "fielders_choice"].includes(ab.result)
+      ).reduce((s2, ab) => s2 + (ab.result === "double_play" ? 2 : 1), 0), 0);
+      const awayPitcherOuts = innings.reduce((s, inn) => s + inn.bottomHalf.atBats.filter(ab =>
+        ["strikeout", "groundout", "flyout", "lineout", "popout", "double_play", "sacrifice_fly", "fielders_choice"].includes(ab.result)
+      ).reduce((s2, ab) => s2 + (ab.result === "double_play" ? 2 : 1), 0), 0);
+
+      const outsToIP = (outs: number) => `${Math.floor(outs / 3)}.${outs % 3}`;
+
+      const homeBatting = homeLineup.map(b => {
+        const st = batterStats[b.playerId] || { ab: 0, r: 0, h: 0, doubles: 0, triples: 0, hr: 0, rbi: 0, bb: 0, so: 0 };
+        return {
+          playerId: b.playerId,
+          name: `${b.firstName[0]}. ${b.lastName}`,
+          position: b.position,
+          ...st,
+          avg: st.ab > 0 ? (st.h / st.ab).toFixed(3) : ".000",
+        };
+      });
+
+      const awayBatting = awayLineup.map(b => {
+        const st = batterStats[b.playerId] || { ab: 0, r: 0, h: 0, doubles: 0, triples: 0, hr: 0, rbi: 0, bb: 0, so: 0 };
+        return {
+          playerId: b.playerId,
+          name: `${b.firstName[0]}. ${b.lastName}`,
+          position: b.position,
+          ...st,
+          avg: st.ab > 0 ? (st.h / st.ab).toFixed(3) : ".000",
+        };
+      });
+
+      const hpStats = pitcherStats[homePitcher.playerId] || { outs: 0, h: 0, r: 0, er: 0, bb: 0, so: 0 };
+      const apStats = pitcherStats[awayPitcher.playerId] || { outs: 0, h: 0, r: 0, er: 0, bb: 0, so: 0 };
+
+      const homePitching = [{
+        playerId: homePitcher.playerId,
+        name: `${homePitcher.firstName[0]}. ${homePitcher.lastName}`,
+        ip: outsToIP(homePitcherOuts || hpStats.outs),
+        h: hpStats.h, r: hpStats.r, er: hpStats.er, bb: hpStats.bb, so: hpStats.so,
+        era: hpStats.outs > 0 ? ((hpStats.er * 27) / (hpStats.outs)).toFixed(2) : "0.00",
+      }];
+
+      const awayPitching = [{
+        playerId: awayPitcher.playerId,
+        name: `${awayPitcher.firstName[0]}. ${awayPitcher.lastName}`,
+        ip: outsToIP(awayPitcherOuts || apStats.outs),
+        h: apStats.h, r: apStats.r, er: apStats.er, bb: apStats.bb, so: apStats.so,
+        era: apStats.outs > 0 ? ((apStats.er * 27) / (apStats.outs)).toFixed(2) : "0.00",
+      }];
+
+      res.json({
+        homeTeam: { id: homeTeam.id, name: homeTeam.name, abbreviation: homeTeam.abbreviation, primaryColor: homeTeam.primaryColor, secondaryColor: homeTeam.secondaryColor },
+        awayTeam: { id: awayTeam.id, name: awayTeam.name, abbreviation: awayTeam.abbreviation, primaryColor: awayTeam.primaryColor, secondaryColor: awayTeam.secondaryColor },
+        homeLineup,
+        awayLineup,
+        homePitcher,
+        awayPitcher,
+        innings,
+        finalScore: { home: totalHomeScore, away: totalAwayScore },
+        homeBatting,
+        awayBatting,
+        homePitching,
+        awayPitching,
+      });
+    } catch (error) {
+      console.error("Play-by-play simulation failed:", error);
+      res.status(500).json({ message: "Play-by-play simulation failed" });
+    }
+  });
+
+  // ============ FINALIZE PLAY-BY-PLAY ============
+  app.post("/api/leagues/:id/games/:gameId/finalize-play-by-play", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const gameId = req.params.gameId as string;
+
+      const league = await storage.getLeague(leagueId);
+      if (!league) {
+        return res.status(404).json({ message: "League not found" });
+      }
+
+      const game = await storage.getGame(gameId);
+      if (!game || game.leagueId !== leagueId) {
+        return res.status(404).json({ message: "Game not found" });
+      }
+      if (game.isComplete) {
+        return res.status(400).json({ message: "Game is already complete" });
+      }
+
+      const { homeScore, awayScore, homeBatting, awayBatting, homePitching, awayPitching, innings } = req.body;
+
+      if (homeScore == null || awayScore == null) {
+        return res.status(400).json({ message: "Missing score data" });
+      }
+
+      const boxScore = {
+        innings: innings || [],
+        home: {
+          batting: (homeBatting || []).map((b: any) => ({
+            name: b.name, position: b.position, playerId: b.playerId,
+            ab: b.ab || 0, r: b.r || 0, h: b.h || 0, doubles: b.doubles || 0, triples: b.triples || 0,
+            hr: b.hr || 0, rbi: b.rbi || 0, bb: b.bb || 0, hbp: 0, so: b.so || 0, sb: 0, cs: 0,
+            exitVelo: 0, barrels: 0, hardHits: 0, ballsInPlay: Math.max(0, (b.ab || 0) - (b.so || 0)),
+            putouts: 0, assists: 0, fieldingErrors: 0, totalChances: 0,
+            avg: b.avg || ".000",
+          })),
+          pitching: (homePitching || []).map((p: any) => ({
+            name: p.name, playerId: p.playerId,
+            ip: p.ip || "0.0", h: p.h || 0, r: p.r || 0, er: p.er || 0,
+            bb: p.bb || 0, so: p.so || 0, hr: 0, era: p.era || "0.00",
+            totalPitches: 0, whiffs: 0, spinRate: 0,
+          })),
+          totals: {
+            ab: (homeBatting || []).reduce((s: number, b: any) => s + (b.ab || 0), 0),
+            r: homeScore,
+            h: (homeBatting || []).reduce((s: number, b: any) => s + (b.h || 0), 0),
+            doubles: (homeBatting || []).reduce((s: number, b: any) => s + (b.doubles || 0), 0),
+            triples: (homeBatting || []).reduce((s: number, b: any) => s + (b.triples || 0), 0),
+            hr: (homeBatting || []).reduce((s: number, b: any) => s + (b.hr || 0), 0),
+            rbi: (homeBatting || []).reduce((s: number, b: any) => s + (b.rbi || 0), 0),
+            bb: (homeBatting || []).reduce((s: number, b: any) => s + (b.bb || 0), 0),
+            hbp: 0, so: (homeBatting || []).reduce((s: number, b: any) => s + (b.so || 0), 0),
+            sb: 0, cs: 0,
+            exitVeloTotal: 0, barrels: 0, hardHits: 0, ballsInPlay: 0,
+            putouts: 0, assists: 0, fieldingErrors: 0, totalChances: 0,
+          },
+          errors: 0,
+        },
+        away: {
+          batting: (awayBatting || []).map((b: any) => ({
+            name: b.name, position: b.position, playerId: b.playerId,
+            ab: b.ab || 0, r: b.r || 0, h: b.h || 0, doubles: b.doubles || 0, triples: b.triples || 0,
+            hr: b.hr || 0, rbi: b.rbi || 0, bb: b.bb || 0, hbp: 0, so: b.so || 0, sb: 0, cs: 0,
+            exitVelo: 0, barrels: 0, hardHits: 0, ballsInPlay: Math.max(0, (b.ab || 0) - (b.so || 0)),
+            putouts: 0, assists: 0, fieldingErrors: 0, totalChances: 0,
+            avg: b.avg || ".000",
+          })),
+          pitching: (awayPitching || []).map((p: any) => ({
+            name: p.name, playerId: p.playerId,
+            ip: p.ip || "0.0", h: p.h || 0, r: p.r || 0, er: p.er || 0,
+            bb: p.bb || 0, so: p.so || 0, hr: 0, era: p.era || "0.00",
+            totalPitches: 0, whiffs: 0, spinRate: 0,
+          })),
+          totals: {
+            ab: (awayBatting || []).reduce((s: number, b: any) => s + (b.ab || 0), 0),
+            r: awayScore,
+            h: (awayBatting || []).reduce((s: number, b: any) => s + (b.h || 0), 0),
+            doubles: (awayBatting || []).reduce((s: number, b: any) => s + (b.doubles || 0), 0),
+            triples: (awayBatting || []).reduce((s: number, b: any) => s + (b.triples || 0), 0),
+            hr: (awayBatting || []).reduce((s: number, b: any) => s + (b.hr || 0), 0),
+            rbi: (awayBatting || []).reduce((s: number, b: any) => s + (b.rbi || 0), 0),
+            bb: (awayBatting || []).reduce((s: number, b: any) => s + (b.bb || 0), 0),
+            hbp: 0, so: (awayBatting || []).reduce((s: number, b: any) => s + (b.so || 0), 0),
+            sb: 0, cs: 0,
+            exitVeloTotal: 0, barrels: 0, hardHits: 0, ballsInPlay: 0,
+            putouts: 0, assists: 0, fieldingErrors: 0, totalChances: 0,
+          },
+          errors: 0,
+        },
+      };
+
+      await storage.updateGame(gameId, {
+        homeScore,
+        awayScore,
+        isComplete: true,
+        boxScore: JSON.stringify(boxScore),
+      });
+
+      await updateStandingsForGame(leagueId, game.season, game.homeTeamId, game.awayTeamId, homeScore, awayScore, game.isConference);
+
+      await accumulatePlayerStats(leagueId, game.season, game.homeTeamId, boxScore.home);
+      await accumulatePlayerStats(leagueId, game.season, game.awayTeamId, boxScore.away);
+
+      const leagueTeams = await storage.getTeamsByLeague(leagueId);
+      const homeTeamData = leagueTeams.find(t => t.id === game.homeTeamId);
+      const awayTeamData = leagueTeams.find(t => t.id === game.awayTeamId);
+      const homeWon = homeScore > awayScore;
+      const WIN_XP = 100;
+      const LOSS_XP = 25;
+
+      if (homeTeamData?.coachId) {
+        const homeCoach = await storage.getCoach(homeTeamData.coachId);
+        if (homeCoach) {
+          const newXp = homeCoach.xp + (homeWon ? WIN_XP : LOSS_XP);
+          const newLevel = Math.floor(newXp / 1000) + 1;
+          const skillPointsGained = newLevel > homeCoach.level ? 1 : 0;
+          await storage.updateCoach(homeCoach.id, {
+            xp: newXp,
+            level: newLevel,
+            skillPoints: homeCoach.skillPoints + skillPointsGained,
+            careerWins: homeCoach.careerWins + (homeWon ? 1 : 0),
+            careerLosses: homeCoach.careerLosses + (homeWon ? 0 : 1),
+          });
+        }
+      }
+
+      if (awayTeamData?.coachId) {
+        const awayCoach = await storage.getCoach(awayTeamData.coachId);
+        if (awayCoach) {
+          const newXp = awayCoach.xp + (homeWon ? LOSS_XP : WIN_XP);
+          const newLevel = Math.floor(newXp / 1000) + 1;
+          const skillPointsGained = newLevel > awayCoach.level ? 1 : 0;
+          await storage.updateCoach(awayCoach.id, {
+            xp: newXp,
+            level: newLevel,
+            skillPoints: awayCoach.skillPoints + skillPointsGained,
+            careerWins: awayCoach.careerWins + (homeWon ? 0 : 1),
+            careerLosses: awayCoach.careerLosses + (homeWon ? 1 : 0),
+          });
+        }
+      }
+
+      await storage.createAuditLog({
+        leagueId,
+        userId: req.session.userId,
+        action: "Play-by-Play Game Completed",
+        details: `Final: ${awayScore} - ${homeScore}`,
+      });
+
+      res.json({ success: true, homeScore, awayScore });
+    } catch (error) {
+      console.error("Finalize play-by-play failed:", error);
+      res.status(500).json({ message: "Finalize play-by-play failed" });
+    }
+  });
+
   // Commissioner routes
   app.get("/api/leagues/:id/commissioner", requireAuth, async (req, res) => {
     try {

@@ -8,7 +8,7 @@ import { TeamBadge } from "@/components/ui/team-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Calendar, Check, Edit2 } from "lucide-react";
+import { ArrowLeft, Calendar, Check, Edit2, Play } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Game, Team } from "@shared/schema";
@@ -134,6 +134,7 @@ export default function SchedulePage() {
                     onEdit={() => setEditingGame(game)}
                     onViewBoxScore={() => setBoxScoreGame(game)}
                     userTeamId={data?.userTeamId}
+                    leagueId={id!}
                   />
                 ))}
               </div>
@@ -168,7 +169,7 @@ export default function SchedulePage() {
   );
 }
 
-function GameRow({ game, onEdit, onViewBoxScore, userTeamId }: { game: GameWithTeams; onEdit: () => void; onViewBoxScore: () => void; userTeamId?: string | null }) {
+function GameRow({ game, onEdit, onViewBoxScore, userTeamId, leagueId }: { game: GameWithTeams; onEdit: () => void; onViewBoxScore: () => void; userTeamId?: string | null; leagueId: string }) {
   const isUserGame = userTeamId && (game.homeTeamId === userTeamId || game.awayTeamId === userTeamId);
   const userWon = isUserGame && game.isComplete && (
     (game.homeTeamId === userTeamId && (game.homeScore ?? 0) > (game.awayScore ?? 0)) ||
@@ -230,14 +231,28 @@ function GameRow({ game, onEdit, onViewBoxScore, userTeamId }: { game: GameWithT
         />
       </div>
 
-      <RetroButton
-        variant="outline"
-        size="sm"
-        onClick={onEdit}
-        data-testid={`button-edit-game-${game.id}`}
-      >
-        {game.isComplete ? <Check className="w-3 h-3" /> : <Edit2 className="w-3 h-3" />}
-      </RetroButton>
+      <div className="flex items-center gap-1">
+        {!game.isComplete && (
+          <Link href={`/league/${leagueId}/game/${game.id}/play-by-play`}>
+            <RetroButton
+              variant="outline"
+              size="sm"
+              title="Play by Play"
+              data-testid={`button-pbp-${game.id}`}
+            >
+              <Play className="w-3 h-3" />
+            </RetroButton>
+          </Link>
+        )}
+        <RetroButton
+          variant="outline"
+          size="sm"
+          onClick={onEdit}
+          data-testid={`button-edit-game-${game.id}`}
+        >
+          {game.isComplete ? <Check className="w-3 h-3" /> : <Edit2 className="w-3 h-3" />}
+        </RetroButton>
+      </div>
     </div>
   );
 }
