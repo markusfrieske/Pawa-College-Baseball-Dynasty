@@ -131,27 +131,25 @@ export default function LandingPage() {
               Build your dynasty. Recruit the best talent. Compete against other coaches in
               a league-first, story-driven college baseball simulator.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/register">
-                <RetroButton size="lg" data-testid="button-get-started">
+            <div className="flex flex-col gap-4 items-center max-w-md mx-auto w-full">
+              <Link href="/register" className="w-full">
+                <RetroButton size="lg" className="w-full" data-testid="button-get-started">
                   Start Your Dynasty
                 </RetroButton>
               </Link>
-              <Link href="/guest">
-                <RetroButton variant="outline" size="lg" data-testid="button-guest-mode">
+              <Link href="/guest" className="w-full">
+                <RetroButton variant="outline" size="lg" className="w-full" data-testid="button-guest-mode">
                   Try as Guest
                 </RetroButton>
               </Link>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center mt-6">
-              <Link href={isLoggedIn ? "/manage-rosters" : "/login"}>
-                <RetroButton variant="outline" data-testid="button-manage-rosters">
+              <Link href={isLoggedIn ? "/manage-rosters" : "/login"} className="w-full">
+                <RetroButton variant="outline" size="lg" className="w-full" data-testid="button-manage-rosters">
                   <ClipboardList className="w-4 h-4 mr-2" />
                   Manage Rosters
                 </RetroButton>
               </Link>
-              <Link href={isLoggedIn ? "/manage-recruiting" : "/login"}>
-                <RetroButton variant="outline" data-testid="button-manage-recruiting">
+              <Link href={isLoggedIn ? "/manage-recruiting" : "/login"} className="w-full">
+                <RetroButton variant="outline" size="lg" className="w-full" data-testid="button-manage-recruiting">
                   <UserPlus className="w-4 h-4 mr-2" />
                   Manage Recruiting Class
                 </RetroButton>
