@@ -152,6 +152,32 @@ export default function EditRecruitsPage() {
     }
   };
 
+  const isRankSorted = sortField === "classRank";
+
+  const moveRecruit = useCallback((recruitId: string, direction: "up" | "down") => {
+    if (!isRankSorted) return;
+    const sorted = [...sortedRecruits];
+    const currentIdx = sorted.findIndex(r => r.id === recruitId);
+    if (currentIdx < 0) return;
+    const targetIdx = direction === "up" 
+      ? (sortDir === "asc" ? currentIdx - 1 : currentIdx + 1)
+      : (sortDir === "asc" ? currentIdx + 1 : currentIdx - 1);
+    if (targetIdx < 0 || targetIdx >= sorted.length) return;
+    
+    const currentRank = getRecruitValue(sorted[currentIdx], "classRank");
+    const targetRank = getRecruitValue(sorted[targetIdx], "classRank");
+    
+    if (currentRank === targetRank) {
+      const newRank = direction === "up" 
+        ? Math.max(1, currentRank - 1) 
+        : currentRank + 1;
+      updateRecruit(sorted[currentIdx].id, "classRank", newRank);
+    } else {
+      updateRecruit(sorted[currentIdx].id, "classRank", targetRank);
+      updateRecruit(sorted[targetIdx].id, "classRank", currentRank);
+    }
+  }, [sortedRecruits, changes, isRankSorted, sortDir]);
+
   const handleReset = () => {
     setChanges({});
     toast({ title: "Changes Reset", description: "All unsaved changes have been discarded." });
@@ -253,6 +279,11 @@ export default function EditRecruitsPage() {
                     <SortHeader field="position" label="POS" />
                     <SortHeader field="overall" label="OVR" />
                     <SortHeader field="starRating" label="STARS" />
+                    <th className="px-2 py-2 text-xs font-pixel text-gold whitespace-nowrap" title="Blue Chip">BC</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-green-400 whitespace-nowrap" title="Gem">GEM</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-red-400 whitespace-nowrap" title="Bust">BUST</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-yellow-400 whitespace-nowrap" title="Generational Gem">G.GEM</th>
+                    <th className="px-2 py-2 text-xs font-pixel text-red-600 whitespace-nowrap" title="Generational Bust">G.BUST</th>
                     <th className="px-2 py-2 text-xs font-pixel text-gold">TYPE</th>
                     <th className="px-2 py-2 text-xs font-pixel text-gold">YEAR</th>
                     <th className="px-2 py-2 text-xs font-pixel text-gold">BATS</th>
@@ -306,17 +337,31 @@ export default function EditRecruitsPage() {
                       >
                         {/* Class Rank */}
                         <td className="px-2 py-1">
-                          <Input
-                            type="number"
-                            min={1}
-                            className="h-7 w-12 text-xs no-spinner"
-                            value={getRecruitValue(recruit, "classRank")}
-                            onChange={(e) => updateRecruit(recruit.id, "classRank", parseInt(e.target.value) || 1)}
-                            onKeyDown={(e) => handleKeyDown(e, idx, "classRank")}
-                            data-row={idx}
-                            data-field="classRank"
-                            data-testid={`input-rank-${recruit.id}`}
-                          />
+                          <div className="flex items-center gap-0.5">
+                            <span className="text-xs text-muted-foreground w-6 text-right" data-testid={`text-rank-${recruit.id}`}>
+                              {getRecruitValue(recruit, "classRank")}
+                            </span>
+                            {isRankSorted && (
+                              <div className="flex flex-col">
+                                <button
+                                  className="text-muted-foreground hover:text-gold p-0 h-3 leading-none"
+                                  onClick={() => moveRecruit(recruit.id, "up")}
+                                  disabled={idx === 0}
+                                  data-testid={`button-rank-up-${recruit.id}`}
+                                >
+                                  <ChevronUp className="w-3 h-3" />
+                                </button>
+                                <button
+                                  className="text-muted-foreground hover:text-gold p-0 h-3 leading-none"
+                                  onClick={() => moveRecruit(recruit.id, "down")}
+                                  disabled={idx === sortedRecruits.length - 1}
+                                  data-testid={`button-rank-down-${recruit.id}`}
+                                >
+                                  <ChevronDown className="w-3 h-3" />
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </td>
                         {/* Name */}
                         <td className="px-2 py-1">
@@ -384,6 +429,63 @@ export default function EditRecruitsPage() {
                               ))}
                             </SelectContent>
                           </Select>
+                        </td>
+                        {/* Blue Chip */}
+                        <td className="px-2 py-1 text-center">
+                          <Checkbox
+                            checked={!!getRecruitValue(recruit, "isBlueChip")}
+                            onCheckedChange={(v) => updateRecruit(recruit.id, "isBlueChip", !!v)}
+                            className="accent-gold"
+                            data-testid={`checkbox-bc-${recruit.id}`}
+                          />
+                        </td>
+                        {/* Gem */}
+                        <td className="px-2 py-1 text-center">
+                          <Checkbox
+                            checked={!!getRecruitValue(recruit, "isGem")}
+                            onCheckedChange={(v) => {
+                              updateRecruit(recruit.id, "isGem", !!v);
+                              if (!v) updateRecruit(recruit.id, "isGenerationalGem", false);
+                            }}
+                            className="accent-green-500"
+                            data-testid={`checkbox-gem-${recruit.id}`}
+                          />
+                        </td>
+                        {/* Bust */}
+                        <td className="px-2 py-1 text-center">
+                          <Checkbox
+                            checked={!!getRecruitValue(recruit, "isBust")}
+                            onCheckedChange={(v) => {
+                              updateRecruit(recruit.id, "isBust", !!v);
+                              if (!v) updateRecruit(recruit.id, "isGenerationalBust", false);
+                            }}
+                            className="accent-red-500"
+                            data-testid={`checkbox-bust-${recruit.id}`}
+                          />
+                        </td>
+                        {/* Generational Gem */}
+                        <td className="px-2 py-1 text-center">
+                          <Checkbox
+                            checked={!!getRecruitValue(recruit, "isGenerationalGem")}
+                            onCheckedChange={(v) => {
+                              updateRecruit(recruit.id, "isGenerationalGem", !!v);
+                              if (v) updateRecruit(recruit.id, "isGem", true);
+                            }}
+                            className="accent-yellow-400"
+                            data-testid={`checkbox-ggem-${recruit.id}`}
+                          />
+                        </td>
+                        {/* Generational Bust */}
+                        <td className="px-2 py-1 text-center">
+                          <Checkbox
+                            checked={!!getRecruitValue(recruit, "isGenerationalBust")}
+                            onCheckedChange={(v) => {
+                              updateRecruit(recruit.id, "isGenerationalBust", !!v);
+                              if (v) updateRecruit(recruit.id, "isBust", true);
+                            }}
+                            className="accent-red-600"
+                            data-testid={`checkbox-gbust-${recruit.id}`}
+                          />
                         </td>
                         {/* Type */}
                         <td className="px-2 py-1">

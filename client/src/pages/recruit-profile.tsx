@@ -1094,6 +1094,16 @@ function RecruitEditModal({ recruit, open, onClose, onSave, isSaving }: RecruitE
     poise: recruit.poise || 50,
     heater: recruit.heater || 50,
     agile: recruit.agile || 50,
+    pitchFB: recruit.pitchFB ?? 1,
+    pitch2S: recruit.pitch2S ?? 0,
+    pitchSL: recruit.pitchSL ?? 0,
+    pitchCB: recruit.pitchCB ?? 0,
+    pitchCH: recruit.pitchCH ?? 0,
+    pitchCT: recruit.pitchCT ?? 0,
+    pitchSNK: recruit.pitchSNK ?? 0,
+    pitchSPL: recruit.pitchSPL ?? 0,
+    isGenerationalGem: recruit.isGenerationalGem || false,
+    isGenerationalBust: recruit.isGenerationalBust || false,
     abilities: recruit.abilities || [],
     proximityPriority: recruit.proximityPriority || "Somewhat",
     reputationPriority: recruit.reputationPriority || "Somewhat",
@@ -1104,9 +1114,13 @@ function RecruitEditModal({ recruit, open, onClose, onSave, isSaving }: RecruitE
     dealbreaker: recruit.dealbreaker || "",
   });
 
-  const [activeTab, setActiveTab] = useState<"info" | "attrs" | "common" | "priorities" | "abilities">("info");
+  const [activeTab, setActiveTab] = useState<"info" | "attrs" | "common" | "pitches" | "priorities" | "abilities">("info");
   const isRecruitPitcher = checkIsPitcher(formData.position);
   const isRecruitCatcher = checkIsCatcher(formData.position);
+
+  const availableTabs = isRecruitPitcher
+    ? (["info", "attrs", "common", "pitches", "priorities", "abilities"] as const)
+    : (["info", "attrs", "common", "priorities", "abilities"] as const);
 
   const handleSubmit = () => {
     onSave(formData);
@@ -1123,7 +1137,7 @@ function RecruitEditModal({ recruit, open, onClose, onSave, isSaving }: RecruitE
         </DialogHeader>
         
         <div className="flex gap-1 mb-4 border-b border-border pb-2 flex-wrap">
-          {(["info", "attrs", "common", "priorities", "abilities"] as const).map((tab) => (
+          {availableTabs.map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -1252,12 +1266,22 @@ function RecruitEditModal({ recruit, open, onClose, onSave, isSaving }: RecruitE
                   Blue Chip
                 </label>
                 <label className="flex items-center gap-2 text-xs">
-                  <input type="checkbox" checked={formData.isGem} onChange={(e) => setFormData({ ...formData, isGem: e.target.checked })} className="accent-green-500" data-testid="checkbox-gem" />
+                  <input type="checkbox" checked={formData.isGem} onChange={(e) => setFormData({ ...formData, isGem: e.target.checked, ...(e.target.checked ? {} : { isGenerationalGem: false }) })} className="accent-green-500" data-testid="checkbox-gem" />
                   Gem
                 </label>
                 <label className="flex items-center gap-2 text-xs">
-                  <input type="checkbox" checked={formData.isBust} onChange={(e) => setFormData({ ...formData, isBust: e.target.checked })} className="accent-red-500" data-testid="checkbox-bust" />
+                  <input type="checkbox" checked={formData.isBust} onChange={(e) => setFormData({ ...formData, isBust: e.target.checked, ...(e.target.checked ? {} : { isGenerationalBust: false }) })} className="accent-red-500" data-testid="checkbox-bust" />
                   Bust
+                </label>
+              </div>
+              <div className="flex gap-4 flex-wrap">
+                <label className={`flex items-center gap-2 text-xs ${!formData.isGem ? 'opacity-40' : ''}`}>
+                  <input type="checkbox" checked={formData.isGenerationalGem} onChange={(e) => setFormData({ ...formData, isGenerationalGem: e.target.checked, ...(e.target.checked ? { isGem: true } : {}) })} className="accent-yellow-400" disabled={!formData.isGem} data-testid="checkbox-generational-gem" />
+                  <Crown className="w-3 h-3 text-yellow-400" /> Generational Gem
+                </label>
+                <label className={`flex items-center gap-2 text-xs ${!formData.isBust ? 'opacity-40' : ''}`}>
+                  <input type="checkbox" checked={formData.isGenerationalBust} onChange={(e) => setFormData({ ...formData, isGenerationalBust: e.target.checked, ...(e.target.checked ? { isBust: true } : {}) })} className="accent-red-600" disabled={!formData.isBust} data-testid="checkbox-generational-bust" />
+                  <Skull className="w-3 h-3 text-red-500" /> Generational Bust
                 </label>
               </div>
             </>
@@ -1347,6 +1371,45 @@ function RecruitEditModal({ recruit, open, onClose, onSave, isSaving }: RecruitE
                   </div>
                 </>
               )}
+            </>
+          )}
+
+          {activeTab === "pitches" && isRecruitPitcher && (
+            <>
+              <h4 className="font-pixel text-gold text-[10px] border-b border-border pb-1">Pitch Mix</h4>
+              <div className="text-xs text-muted-foreground mb-2">
+                FB and 2S are presence toggles (0 = none, 1 = has). Secondary pitches are rated 0-7 (0 = none).
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground flex items-center gap-2">
+                    <input type="checkbox" checked={formData.pitchFB > 0} onChange={(e) => setFormData({ ...formData, pitchFB: e.target.checked ? 1 : 0 })} className="accent-gold" data-testid="checkbox-pitch-fb" />
+                    Fastball (FB)
+                  </label>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground flex items-center gap-2">
+                    <input type="checkbox" checked={formData.pitch2S > 0} onChange={(e) => setFormData({ ...formData, pitch2S: e.target.checked ? 1 : 0 })} className="accent-gold" data-testid="checkbox-pitch-2s" />
+                    2-Seam (2S)
+                  </label>
+                </div>
+              </div>
+              <h4 className="font-pixel text-gold text-[10px] border-b border-border pb-1 mt-3">Secondary Pitches (0-7)</h4>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { key: "pitchSL" as const, label: "Slider (SL)" },
+                  { key: "pitchCB" as const, label: "Curveball (CB)" },
+                  { key: "pitchCH" as const, label: "Changeup (CH)" },
+                  { key: "pitchCT" as const, label: "Cutter (CT)" },
+                  { key: "pitchSNK" as const, label: "Sinker (SNK)" },
+                  { key: "pitchSPL" as const, label: "Splitter (SPL)" },
+                ].map(({ key, label }) => (
+                  <div key={key}>
+                    <label className="text-xs text-muted-foreground">{label}</label>
+                    <RetroInput type="number" min={0} max={7} value={formData[key]} onChange={(e) => setFormData({ ...formData, [key]: Math.min(7, Math.max(0, parseInt(e.target.value) || 0)) })} data-testid={`input-${key}`} />
+                  </div>
+                ))}
+              </div>
             </>
           )}
 
