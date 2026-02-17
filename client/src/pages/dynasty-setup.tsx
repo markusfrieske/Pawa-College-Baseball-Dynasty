@@ -362,7 +362,7 @@ export default function DynastySetupPage() {
                         Import CSV
                       </RetroButton>
                       {hasRecruits && (
-                        <Link href={`/league/${id}/commissioner`} className="flex-1">
+                        <Link href={`/league/${id}/edit-recruits`} className="flex-1">
                           <RetroButton variant="outline" className="w-full" data-testid="button-edit-recruits">
                             <Edit className="w-4 h-4 mr-2" />
                             Edit Recruits
