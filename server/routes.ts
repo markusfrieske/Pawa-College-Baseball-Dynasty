@@ -4240,7 +4240,7 @@ export async function registerRoutes(
         const signingResult = await finalizeSigningDay(leagueId, currentLeague.currentSeason);
         
         await generateWalkonPool(leagueId);
-        await processCpuWalkons(leagueId);
+        await processAllTeamWalkons(leagueId);
         
         const allTeams2 = await storage.getTeamsByLeague(leagueId);
         for (const team of allTeams2) {
@@ -6118,6 +6118,98 @@ export async function registerRoutes(
           hairStyle: ["short", "buzz", "medium"][Math.floor(Math.random() * 3)],
           headwear: "cap",
         });
+      }
+    }
+  }
+
+  async function processAllTeamWalkons(leagueId: string) {
+    const teams = await storage.getTeamsByLeague(leagueId);
+    const MAX_ROSTER = 25;
+    
+    for (const team of teams) {
+      let roster = await storage.getPlayersByTeam(team.id);
+      
+      if (roster.length > MAX_ROSTER && team.isCpu) {
+        const positionCounts: Record<string, number> = {};
+        for (const p of roster) positionCounts[p.position] = (positionCounts[p.position] || 0) + 1;
+        
+        const cuttable = roster.filter(p => (positionCounts[p.position] || 0) > 1)
+          .sort((a, b) => (a.overall || 0) - (b.overall || 0));
+        
+        let toCut = roster.length - MAX_ROSTER;
+        const currentLeagueData = await storage.getLeague(leagueId);
+        const currentSeason = currentLeagueData?.currentSeason || 1;
+        
+        for (const player of cuttable) {
+          if (toCut <= 0) break;
+          if ((positionCounts[player.position] || 0) > 1) {
+            const eligMap: Record<string, number> = { "FR": 1, "SO": 2, "JR": 3, "SR": 4, "RS": 5 };
+            await storage.createPlayerHistory({
+              leagueId,
+              teamId: team.id,
+              firstName: player.firstName,
+              lastName: player.lastName,
+              position: player.position,
+              finalEligibility: player.eligibility,
+              overall: player.overall,
+              starRating: player.starRating,
+              departureType: "cut_juco",
+              departedSeason: currentSeason,
+              seasonsPlayed: eligMap[player.eligibility] || 1,
+              abilities: player.abilities || [],
+              homeState: player.homeState,
+              hometown: player.hometown,
+            });
+            await storage.deletePlayer(player.id);
+            positionCounts[player.position]--;
+            toCut--;
+          }
+        }
+        
+        roster = await storage.getPlayersByTeam(team.id);
+      }
+      
+      if (roster.length < MAX_ROSTER) {
+        const positionCounts: Record<string, number> = {};
+        for (const p of roster) positionCounts[p.position] = (positionCounts[p.position] || 0) + 1;
+        
+        let pool = await storage.getWalkonsByLeague(leagueId);
+        let available = pool.filter(w => !w.signedTeamId);
+        let slotsToFill = MAX_ROSTER - roster.length;
+        
+        while (slotsToFill > 0 && available.length > 0) {
+          const allPositions = ["P", "C", "1B", "2B", "SS", "3B", "LF", "CF", "RF"];
+          const posNeeds = allPositions.map(pos => ({ pos, count: positionCounts[pos] || 0 }))
+            .sort((a, b) => a.count - b.count);
+          
+          let signed = false;
+          for (const need of posNeeds) {
+            const candidates = available.filter(w => w.position === need.pos)
+              .sort((a, b) => (b.overall || 0) - (a.overall || 0));
+            
+            if (candidates.length > 0) {
+              const best = candidates[0];
+              await storage.updateWalkon(best.id, { signedTeamId: team.id, signedTeamName: team.name });
+              positionCounts[need.pos] = (positionCounts[need.pos] || 0) + 1;
+              slotsToFill--;
+              signed = true;
+              available = available.filter(w => w.id !== best.id);
+              break;
+            }
+          }
+          
+          if (!signed) {
+            const bestAvail = available.sort((a, b) => (b.overall || 0) - (a.overall || 0))[0];
+            if (bestAvail) {
+              await storage.updateWalkon(bestAvail.id, { signedTeamId: team.id, signedTeamName: team.name });
+              positionCounts[bestAvail.position] = (positionCounts[bestAvail.position] || 0) + 1;
+              slotsToFill--;
+              available = available.filter(w => w.id !== bestAvail.id);
+            } else {
+              break;
+            }
+          }
+        }
       }
     }
   }
