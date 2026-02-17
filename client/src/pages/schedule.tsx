@@ -8,7 +8,7 @@ import { TeamBadge } from "@/components/ui/team-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Calendar, Check, Edit2, Play } from "lucide-react";
+import { ArrowLeft, Calendar, Check, Edit2, Lock, Play } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Game, Team } from "@shared/schema";
@@ -160,6 +160,7 @@ export default function SchedulePage() {
                   <GameRow
                     key={game.id}
                     game={game}
+                    allGamesInGroup={group.games}
                     onEdit={() => setEditingGame(game)}
                     onViewBoxScore={() => setBoxScoreGame(game)}
                     userTeamId={data?.userTeamId}
@@ -198,13 +199,29 @@ export default function SchedulePage() {
   );
 }
 
-function GameRow({ game, onEdit, onViewBoxScore, userTeamId, leagueId }: { game: GameWithTeams; onEdit: () => void; onViewBoxScore: () => void; userTeamId?: string | null; leagueId: string }) {
+function GameRow({ game, allGamesInGroup, onEdit, onViewBoxScore, userTeamId, leagueId }: { game: GameWithTeams; allGamesInGroup: GameWithTeams[]; onEdit: () => void; onViewBoxScore: () => void; userTeamId?: string | null; leagueId: string }) {
   const isUserGame = userTeamId && (game.homeTeamId === userTeamId || game.awayTeamId === userTeamId);
   const userWon = isUserGame && game.isComplete && (
     (game.homeTeamId === userTeamId && (game.homeScore ?? 0) > (game.awayScore ?? 0)) ||
     (game.awayTeamId === userTeamId && (game.awayScore ?? 0) > (game.homeScore ?? 0))
   );
   const userLost = isUserGame && game.isComplete && !userWon;
+
+  const gameTypeOrder = ["friday", "saturday", "sunday"];
+  const currentIdx = game.gameType ? gameTypeOrder.indexOf(game.gameType) : -1;
+  const isSeriesLocked = !game.isComplete && game.isConference && currentIdx > 0 && (() => {
+    const seriesGames = allGamesInGroup.filter(g =>
+      g.isConference &&
+      g.week === game.week &&
+      ((g.homeTeamId === game.homeTeamId && g.awayTeamId === game.awayTeamId) ||
+       (g.homeTeamId === game.awayTeamId && g.awayTeamId === game.homeTeamId))
+    );
+    for (let i = 0; i < currentIdx; i++) {
+      const priorGame = seriesGames.find(g => g.gameType === gameTypeOrder[i]);
+      if (priorGame && !priorGame.isComplete) return true;
+    }
+    return false;
+  })();
 
   return (
     <div 
@@ -262,16 +279,29 @@ function GameRow({ game, onEdit, onViewBoxScore, userTeamId, leagueId }: { game:
 
       <div className="flex items-center gap-1">
         {!game.isComplete && (
-          <Link href={`/league/${leagueId}/game/${game.id}/play-by-play`}>
+          isSeriesLocked ? (
             <RetroButton
               variant="outline"
               size="sm"
-              title="Play by Play"
-              data-testid={`button-pbp-${game.id}`}
+              title="Complete earlier games in this series first"
+              disabled
+              className="opacity-40 cursor-not-allowed"
+              data-testid={`button-pbp-locked-${game.id}`}
             >
-              <Play className="w-3 h-3" />
+              <Lock className="w-3 h-3" />
             </RetroButton>
-          </Link>
+          ) : (
+            <Link href={`/league/${leagueId}/game/${game.id}/play-by-play`}>
+              <RetroButton
+                variant="outline"
+                size="sm"
+                title="Play by Play"
+                data-testid={`button-pbp-${game.id}`}
+              >
+                <Play className="w-3 h-3" />
+              </RetroButton>
+            </Link>
+          )
         )}
         <RetroButton
           variant="outline"

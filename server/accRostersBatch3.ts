@@ -213,9 +213,9 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       ...noPitches },
     // INFIELDERS (8)
     { firstName: "Rintaro", lastName: "Sasaki", position: "1B", eligibility: "SO", homeState: "CA", hometown: "Stanford", jerseyNumber: 21,
-      hitForAvg: 55, power: 63, speed: 33, arm: 44, fielding: 44, errorResistance: 43, velocity: 0, control: 0, stamina: 27, stuff: 0,
-      clutch: 56, vsLHP: 52, grit: 53, stealing: 13, running: 31, throwing: 45, recovery: 42, wRISP: 56, vsLefty: 50, poise: 52, heater: 0, agile: 34,
-      abilities: ["Power Surge", "Clutch Hitter"], potential: "A+", catcherAbility: null,
+      hitForAvg: 72, power: 78, speed: 33, arm: 44, fielding: 50, errorResistance: 48, velocity: 0, control: 0, stamina: 27, stuff: 0,
+      clutch: 68, vsLHP: 62, grit: 65, stealing: 13, running: 31, throwing: 45, recovery: 42, wRISP: 66, vsLefty: 60, poise: 62, heater: 0, agile: 34,
+      abilities: ["Power Surge", "Clutch Hitter", "Dead Red"], potential: "A+", catcherAbility: null,
       ...noPitches },
     { firstName: "Jimmy", lastName: "Nati", position: "3B", eligibility: "SR", homeState: "NJ", hometown: "Toms River", jerseyNumber: 6,
       hitForAvg: 52, power: 54, speed: 38, arm: 52, fielding: 49, errorResistance: 47, velocity: 0, control: 0, stamina: 30, stuff: 0,

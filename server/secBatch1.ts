@@ -191,11 +191,16 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       clutch: 35, vsLHP: 34, grit: 37, stealing: 11, running: 33, throwing: 50, recovery: 35, wRISP: 34, vsLefty: 35, poise: 35, heater: 52, agile: 37,
       abilities: [], potential: "B+", catcherAbility: null,
       ...pitchMix(1, [0, 3, 3, 4, 0, 0, 0]) },
-    // CATCHERS (1)
+    // CATCHERS (2)
     { firstName: "Karson", lastName: "Bowen", position: "C", eligibility: "SR", homeState: "TX", hometown: "Fort Worth", jerseyNumber: 12,
       hitForAvg: 51, power: 44, speed: 30, arm: 53, fielding: 51, errorResistance: 50, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 50, vsLHP: 47, grit: 51, stealing: 13, running: 28, throwing: 54, recovery: 42, wRISP: 50, vsLefty: 46, poise: 50, heater: 0, agile: 31,
       abilities: ["Iron Glove", "Contact Machine"], potential: "B+", catcherAbility: 49,
+      ...noPitches },
+    { firstName: "AJ", lastName: "Malzone", position: "C", eligibility: "JR", homeState: "IL", hometown: "Manteno", jerseyNumber: 28,
+      hitForAvg: 68, power: 62, speed: 38, arm: 58, fielding: 60, errorResistance: 58, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 64, vsLHP: 58, grit: 65, stealing: 28, running: 37, throwing: 60, recovery: 48, wRISP: 64, vsLefty: 56, poise: 62, heater: 0, agile: 39,
+      abilities: ["Contact Machine", "Iron Glove"], potential: "B+", catcherAbility: 55,
       ...noPitches },
     // INFIELDERS (6)
     { firstName: "Brendan", lastName: "Lawson", position: "SS", eligibility: "SO", homeState: "FL", hometown: "Miami", jerseyNumber: 2,

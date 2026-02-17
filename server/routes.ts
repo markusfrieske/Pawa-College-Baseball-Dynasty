@@ -3601,6 +3601,26 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Game is already complete" });
       }
 
+      if (game.isConference && game.week && game.gameType) {
+        const gameTypeOrder = ["friday", "saturday", "sunday"];
+        const currentIdx = gameTypeOrder.indexOf(game.gameType);
+        if (currentIdx > 0) {
+          const allGames = await storage.getGamesByLeagueSeason(leagueId, game.season || 1);
+          const seriesGames = allGames.filter(g =>
+            g.week === game.week &&
+            g.isConference &&
+            ((g.homeTeamId === game.homeTeamId && g.awayTeamId === game.awayTeamId) ||
+             (g.homeTeamId === game.awayTeamId && g.awayTeamId === game.homeTeamId))
+          );
+          for (let i = 0; i < currentIdx; i++) {
+            const priorGame = seriesGames.find(g => g.gameType === gameTypeOrder[i]);
+            if (priorGame && !priorGame.isComplete) {
+              return res.status(400).json({ message: `Game ${i + 1} of this series must be completed first` });
+            }
+          }
+        }
+      }
+
       const homeTeam = await storage.getTeam(game.homeTeamId);
       const awayTeam = await storage.getTeam(game.awayTeamId);
       if (!homeTeam || !awayTeam) {
@@ -3890,16 +3910,16 @@ export async function registerRoutes(
           const velocityNorm = velocity / 100;
           const fieldNorm = fieldingAvg / 100;
 
-          const strikeoutChance = Math.max(0.08, 0.28 + stuffNorm * 0.15 - contactNorm * 0.20);
-          const walkChance = Math.max(0.04, 0.10 - controlNorm * 0.06 + contactNorm * 0.02);
-          const hbpChance = 0.01;
-          const errorChance = Math.max(0.01, 0.05 - fieldNorm * 0.04);
+          const strikeoutChance = Math.max(0.10, 0.20 + stuffNorm * 0.12 + velocityNorm * 0.05 - contactNorm * 0.15);
+          const walkChance = Math.max(0.03, 0.08 - controlNorm * 0.05 + contactNorm * 0.02);
+          const hbpChance = 0.008;
+          const errorChance = Math.max(0.005, 0.025 - fieldNorm * 0.02);
 
-          const hitChance = Math.max(0.15, 0.32 + contactNorm * 0.12 - velocityNorm * 0.08 - stuffNorm * 0.05);
+          const hitChance = Math.max(0.06, 0.14 + contactNorm * 0.08 - stuffNorm * 0.04 - velocityNorm * 0.03);
 
-          const hrChance = Math.max(0.02, 0.04 + powerNorm * 0.08 - stuffNorm * 0.03);
-          const tripleChance = Math.max(0.005, 0.01 + speedNorm * 0.02 + powerNorm * 0.005);
-          const doubleChance = Math.max(0.03, 0.06 + powerNorm * 0.04);
+          const hrChance = Math.max(0.005, 0.012 + powerNorm * 0.03 - stuffNorm * 0.01);
+          const tripleChance = Math.max(0.002, 0.004 + speedNorm * 0.006);
+          const doubleChance = Math.max(0.01, 0.035 + powerNorm * 0.02 - stuffNorm * 0.01);
 
           const runnersOn = bases.filter(b => b !== null).length;
           const dpChance = (bases[0] !== null && outs < 2)
@@ -4357,7 +4377,8 @@ export async function registerRoutes(
       });
     } catch (error) {
       console.error("Play-by-play simulation failed:", error);
-      res.status(500).json({ message: "Play-by-play simulation failed" });
+      const errMsg = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ message: "Play-by-play simulation failed", detail: errMsg });
     }
   });
 
@@ -10544,13 +10565,12 @@ async function generateSchedule(leagueId: string, season: number = 1) {
     const confGameTypes = confGamesPerSeries === 3 ? ["friday", "saturday", "sunday"] : ["friday"];
     for (const series of weekConfSeries) {
       for (let g = 0; g < confGamesPerSeries; g++) {
-        const isAway = g === 1;
         await storage.createGame({
           leagueId,
           season,
           week: week + 1,
-          homeTeamId: isAway ? series.away.id : series.home.id,
-          awayTeamId: isAway ? series.home.id : series.away.id,
+          homeTeamId: series.home.id,
+          awayTeamId: series.away.id,
           phase: "regular",
           isConference: true,
           gameType: confGameTypes[g] || "friday",
