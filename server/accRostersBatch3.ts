@@ -345,8 +345,8 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       ...noPitches },
     // INFIELDERS (7)
     { firstName: "Eric", lastName: "Becker", position: "SS", eligibility: "SR", homeState: "VA", hometown: "Fredericksburg", jerseyNumber: 2,
-      hitForAvg: 53, power: 41, speed: 48, arm: 53, fielding: 55, errorResistance: 52, velocity: 0, control: 0, stamina: 29, stuff: 0,
-      clutch: 55, vsLHP: 52, grit: 55, stealing: 33, running: 46, throwing: 55, recovery: 43, wRISP: 55, vsLefty: 50, poise: 53, heater: 0, agile: 49,
+      hitForAvg: 72, power: 58, speed: 62, arm: 68, fielding: 74, errorResistance: 70, velocity: 0, control: 0, stamina: 35, stuff: 0,
+      clutch: 70, vsLHP: 65, grit: 72, stealing: 48, running: 60, throwing: 72, recovery: 55, wRISP: 68, vsLefty: 63, poise: 68, heater: 0, agile: 64,
       abilities: ["Iron Glove", "Contact Machine"], potential: "A", catcherAbility: null,
       ...noPitches },
     { firstName: "Harrison", lastName: "Didawick", position: "1B", eligibility: "SR", homeState: "VA", hometown: "Fredericksburg", jerseyNumber: 24,
