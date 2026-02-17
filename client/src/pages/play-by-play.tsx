@@ -4,9 +4,10 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { RetroButton } from "@/components/ui/retro-button";
 import { TeamBadge } from "@/components/ui/team-badge";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Pause, Play, FastForward, MapPin } from "lucide-react";
+import { ArrowLeft, Pause, Play, FastForward, MapPin, Star } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { PlayerAvatar } from "@/components/player-avatar";
 
 type SpeedMode = "pause" | "slow" | "fast";
 
@@ -20,6 +21,12 @@ interface LineupPlayer {
   power: number;
   speed: number;
   fielding: number;
+  skinTone?: string;
+  hairColor?: string;
+  hairStyle?: string;
+  headwear?: string;
+  overall?: number;
+  abilities?: string[];
 }
 
 interface PitcherInfo {
@@ -30,6 +37,12 @@ interface PitcherInfo {
   control: number;
   velocity: number;
   stamina: number;
+  skinTone?: string;
+  hairColor?: string;
+  hairStyle?: string;
+  headwear?: string;
+  overall?: number;
+  abilities?: string[];
 }
 
 interface AtBat {
@@ -489,10 +502,19 @@ export default function PlayByPlayPage() {
     return "bg-green-500";
   };
 
-  const ratingDot = (val: number) => {
-    if (val >= 70) return "bg-green-400";
-    if (val >= 50) return "bg-yellow-400";
-    return "bg-red-400";
+  const getStarRating = (ovr: number) => {
+    if (ovr >= 500) return 5;
+    if (ovr >= 400) return 4;
+    if (ovr >= 300) return 3;
+    if (ovr >= 200) return 2;
+    return 1;
+  };
+
+  const starColor = (stars: number) => {
+    if (stars >= 5) return "text-yellow-300";
+    if (stars >= 4) return "text-yellow-400";
+    if (stars >= 3) return "text-yellow-500/70";
+    return "text-muted-foreground";
   };
 
   const pitchBalls = currentAtBat ? currentAtBat.pitchSequence.slice(0, currentPitchIndex + 1).filter(p => p === "ball").length : 0;
@@ -546,10 +568,11 @@ export default function PlayByPlayPage() {
             <div className="space-y-0.5">
               {pbpData.awayLineup.map((p, i) => {
                 const isActive = currentHalf === "top" && currentAtBat?.batterIndex === i;
+                const stars = getStarRating(p.overall || 300);
                 return (
                   <div
                     key={p.playerId}
-                    className={`flex items-center gap-1.5 px-1.5 py-1 rounded transition-colors ${
+                    className={`flex items-center gap-1 px-1.5 py-0.5 rounded transition-colors ${
                       isActive
                         ? "bg-gold/30 border border-gold/60 shadow-[0_0_6px_rgba(202,166,57,0.3)]"
                         : ""
@@ -557,17 +580,22 @@ export default function PlayByPlayPage() {
                     data-testid={`away-lineup-${i}`}
                   >
                     <span className={`w-4 text-center text-[9px] ${isActive ? "text-gold" : "text-muted-foreground"}`}>{i + 1}</span>
+                    <PlayerAvatar skinTone={p.skinTone} hairColor={p.hairColor} hairStyle={p.hairStyle} headwear={p.headwear} size="sm" jerseyColor={pbpData.awayTeam.primaryColor} className="w-6 h-6 shrink-0" />
                     <span className={`${positionColor(p.position)} text-white text-[8px] px-1 py-0.5 rounded leading-none min-w-[24px] text-center`}>{p.position}</span>
-                    <span className={`text-[11px] truncate flex-1 ${isActive ? "text-gold font-bold" : "text-foreground"}`}>{p.lastName}</span>
-                    <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${ratingDot(p.contact)}`} title={`Contact: ${p.contact}`} />
+                    <span className={`text-[10px] truncate flex-1 ${isActive ? "text-gold font-bold" : "text-foreground"}`}>{p.lastName}</span>
+                    <div className="flex items-center gap-0.5 shrink-0" title={`OVR: ${p.overall || 300}`}>
+                      <Star className={`w-2.5 h-2.5 fill-current ${starColor(stars)}`} />
+                      <span className="text-[8px] text-muted-foreground">{stars}</span>
+                    </div>
                   </div>
                 );
               })}
               <div className="border-t border-border/50 mt-1 pt-1 px-1.5">
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1">
                   <span className="w-4 text-center text-[9px] text-muted-foreground">P</span>
+                  <PlayerAvatar skinTone={pbpData.awayPitcher.skinTone} hairColor={pbpData.awayPitcher.hairColor} hairStyle={pbpData.awayPitcher.hairStyle} headwear={pbpData.awayPitcher.headwear} size="sm" jerseyColor={pbpData.awayTeam.primaryColor} className="w-6 h-6 shrink-0" />
                   <span className="bg-red-500 text-white text-[8px] px-1 py-0.5 rounded leading-none min-w-[24px] text-center">P</span>
-                  <span className="text-[11px] text-muted-foreground truncate">{pbpData.awayPitcher.lastName}</span>
+                  <span className="text-[10px] text-muted-foreground truncate">{pbpData.awayPitcher.lastName}</span>
                 </div>
               </div>
             </div>
@@ -577,9 +605,9 @@ export default function PlayByPlayPage() {
             <div className="flex items-center gap-6 sm:gap-10 lg:gap-14">
               <div className="flex items-center gap-3 lg:gap-5">
                 <TeamBadge abbreviation={pbpData.awayTeam.abbreviation} primaryColor={pbpData.awayTeam.primaryColor} secondaryColor={pbpData.awayTeam.secondaryColor} size="lg" />
-                <div className="flex flex-col items-center">
+                <div className="flex flex-col items-center gap-0.5">
                   <span className="text-[10px] text-muted-foreground uppercase">{pbpData.awayTeam.abbreviation}</span>
-                  {awayRecord && <span className="text-[8px] text-muted-foreground">({awayRecord.wins}-{awayRecord.losses})</span>}
+                  {awayRecord && <span className="text-[8px] text-muted-foreground mb-1">({awayRecord.wins}-{awayRecord.losses})</span>}
                   <span className={`text-5xl sm:text-6xl lg:text-7xl text-foreground transition-transform duration-300 ${scorePulse === "away" ? "scale-110 text-gold" : ""}`} data-testid="score-away">{runningAwayScore}</span>
                 </div>
               </div>
@@ -595,9 +623,9 @@ export default function PlayByPlayPage() {
                 )}
               </div>
               <div className="flex items-center gap-3 lg:gap-5">
-                <div className="flex flex-col items-center">
+                <div className="flex flex-col items-center gap-0.5">
                   <span className="text-[10px] text-muted-foreground uppercase">{pbpData.homeTeam.abbreviation}</span>
-                  {homeRecord && <span className="text-[8px] text-muted-foreground">({homeRecord.wins}-{homeRecord.losses})</span>}
+                  {homeRecord && <span className="text-[8px] text-muted-foreground mb-1">({homeRecord.wins}-{homeRecord.losses})</span>}
                   <span className={`text-5xl sm:text-6xl lg:text-7xl text-foreground transition-transform duration-300 ${scorePulse === "home" ? "scale-110 text-gold" : ""}`} data-testid="score-home">{runningHomeScore}</span>
                 </div>
                 <TeamBadge abbreviation={pbpData.homeTeam.abbreviation} primaryColor={pbpData.homeTeam.primaryColor} secondaryColor={pbpData.homeTeam.secondaryColor} size="lg" />
@@ -634,6 +662,13 @@ export default function PlayByPlayPage() {
                         return pbpData.playerSeasonStats[batter.playerId];
                       })()}
                       team={battingTeam}
+                      appearance={currentAtBat ? {
+                        skinTone: currentLineup[currentAtBat.batterIndex]?.skinTone,
+                        hairColor: currentLineup[currentAtBat.batterIndex]?.hairColor,
+                        hairStyle: currentLineup[currentAtBat.batterIndex]?.hairStyle,
+                        headwear: currentLineup[currentAtBat.batterIndex]?.headwear,
+                      } : undefined}
+                      overall={currentAtBat ? (currentLineup[currentAtBat.batterIndex]?.overall) : undefined}
                     />
                   </div>
 
@@ -672,9 +707,17 @@ export default function PlayByPlayPage() {
                     {currentAtBat && (
                       <div className="text-center bg-card/60 border border-border rounded px-5 py-2">
                         <div className="flex items-center justify-center gap-2 mb-1">
-                          <PlayerFace position={currentLineup[currentAtBat.batterIndex]?.position ?? "DH"} size={24} />
+                          <PlayerAvatar
+                            skinTone={currentLineup[currentAtBat.batterIndex]?.skinTone}
+                            hairColor={currentLineup[currentAtBat.batterIndex]?.hairColor}
+                            hairStyle={currentLineup[currentAtBat.batterIndex]?.hairStyle}
+                            headwear={currentLineup[currentAtBat.batterIndex]?.headwear}
+                            size="sm"
+                            jerseyColor={battingTeam.primaryColor}
+                            className="w-7 h-7 shrink-0"
+                          />
                           <span className={`${positionColor(currentLineup[currentAtBat.batterIndex]?.position ?? "")} text-white text-[9px] px-1.5 py-0.5 rounded leading-none`}>{currentLineup[currentAtBat.batterIndex]?.position}</span>
-                          <span className="text-sm text-gold">{currentAtBat.batterName}</span>
+                          <span className="text-sm text-gold truncate max-w-[180px]">{currentAtBat.batterName}</span>
                         </div>
                         <span className="text-[10px] text-muted-foreground">vs {currentPitcher.firstName[0]}. {currentPitcher.lastName}</span>
                       </div>
@@ -789,6 +832,13 @@ export default function PlayByPlayPage() {
                       })()}
                       seasonStats={pbpData.playerSeasonStats?.[currentPitcher.playerId]}
                       team={pitchingTeam}
+                      appearance={{
+                        skinTone: currentPitcher.skinTone,
+                        hairColor: currentPitcher.hairColor,
+                        hairStyle: currentPitcher.hairStyle,
+                        headwear: currentPitcher.headwear,
+                      }}
+                      overall={currentPitcher.overall}
                     />
                   </div>
                 </div>
@@ -832,10 +882,11 @@ export default function PlayByPlayPage() {
             <div className="space-y-0.5">
               {pbpData.homeLineup.map((p, i) => {
                 const isActive = currentHalf === "bottom" && currentAtBat?.batterIndex === i;
+                const stars = getStarRating(p.overall || 300);
                 return (
                   <div
                     key={p.playerId}
-                    className={`flex items-center gap-1.5 px-1.5 py-1 rounded transition-colors ${
+                    className={`flex items-center gap-1 px-1.5 py-0.5 rounded transition-colors ${
                       isActive
                         ? "bg-gold/30 border border-gold/60 shadow-[0_0_6px_rgba(202,166,57,0.3)]"
                         : ""
@@ -843,17 +894,22 @@ export default function PlayByPlayPage() {
                     data-testid={`home-lineup-${i}`}
                   >
                     <span className={`w-4 text-center text-[9px] ${isActive ? "text-gold" : "text-muted-foreground"}`}>{i + 1}</span>
+                    <PlayerAvatar skinTone={p.skinTone} hairColor={p.hairColor} hairStyle={p.hairStyle} headwear={p.headwear} size="sm" jerseyColor={pbpData.homeTeam.primaryColor} className="w-6 h-6 shrink-0" />
                     <span className={`${positionColor(p.position)} text-white text-[8px] px-1 py-0.5 rounded leading-none min-w-[24px] text-center`}>{p.position}</span>
-                    <span className={`text-[11px] truncate flex-1 ${isActive ? "text-gold font-bold" : "text-foreground"}`}>{p.lastName}</span>
-                    <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${ratingDot(p.contact)}`} title={`Contact: ${p.contact}`} />
+                    <span className={`text-[10px] truncate flex-1 ${isActive ? "text-gold font-bold" : "text-foreground"}`}>{p.lastName}</span>
+                    <div className="flex items-center gap-0.5 shrink-0" title={`OVR: ${p.overall || 300}`}>
+                      <Star className={`w-2.5 h-2.5 fill-current ${starColor(stars)}`} />
+                      <span className="text-[8px] text-muted-foreground">{stars}</span>
+                    </div>
                   </div>
                 );
               })}
               <div className="border-t border-border/50 mt-1 pt-1 px-1.5">
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1">
                   <span className="w-4 text-center text-[9px] text-muted-foreground">P</span>
+                  <PlayerAvatar skinTone={pbpData.homePitcher.skinTone} hairColor={pbpData.homePitcher.hairColor} hairStyle={pbpData.homePitcher.hairStyle} headwear={pbpData.homePitcher.headwear} size="sm" jerseyColor={pbpData.homeTeam.primaryColor} className="w-6 h-6 shrink-0" />
                   <span className="bg-red-500 text-white text-[8px] px-1 py-0.5 rounded leading-none min-w-[24px] text-center">P</span>
-                  <span className="text-[11px] text-muted-foreground truncate">{pbpData.homePitcher.lastName}</span>
+                  <span className="text-[10px] text-muted-foreground truncate">{pbpData.homePitcher.lastName}</span>
                 </div>
               </div>
             </div>
@@ -895,7 +951,6 @@ export default function PlayByPlayPage() {
                       {i + 1}.
                       <span className={`${positionColor(p.position)} text-white text-[6px] px-0.5 rounded leading-none`}>{p.position}</span>
                       {p.lastName}
-                      <span className={`w-1.5 h-1.5 rounded-full inline-block ${ratingDot(p.contact)}`} />
                     </span>
                   );
                 })}
@@ -916,7 +971,6 @@ export default function PlayByPlayPage() {
                       {i + 1}.
                       <span className={`${positionColor(p.position)} text-white text-[6px] px-0.5 rounded leading-none`}>{p.position}</span>
                       {p.lastName}
-                      <span className={`w-1.5 h-1.5 rounded-full inline-block ${ratingDot(p.contact)}`} />
                     </span>
                   );
                 })}
@@ -946,7 +1000,7 @@ function PlayerFace({ position, size = 28 }: { position: string; size?: number }
   );
 }
 
-function PlayerCard({ type, name, position, stats, gameStats, seasonStats, team }: {
+function PlayerCard({ type, name, position, stats, gameStats, seasonStats, team, appearance, overall }: {
   type: "batter" | "pitcher";
   name: string;
   position: string;
@@ -954,6 +1008,8 @@ function PlayerCard({ type, name, position, stats, gameStats, seasonStats, team 
   gameStats?: Record<string, number | string>;
   seasonStats?: SeasonStatLine;
   team: TeamInfo;
+  appearance?: { skinTone?: string; hairColor?: string; hairStyle?: string; headwear?: string };
+  overall?: number;
 }) {
   const ratingColor = (val: number) => {
     if (val >= 80) return "text-green-400";
@@ -961,6 +1017,16 @@ function PlayerCard({ type, name, position, stats, gameStats, seasonStats, team 
     if (val >= 40) return "text-yellow-400";
     return "text-red-400";
   };
+
+  const getStars = (ovr: number) => {
+    if (ovr >= 500) return 5;
+    if (ovr >= 400) return 4;
+    if (ovr >= 300) return 3;
+    if (ovr >= 200) return 2;
+    return 1;
+  };
+
+  const stars = getStars(overall || 300);
 
   const batterStatLabels: [string, string][] = [
     ["contact", "CON"],
@@ -977,17 +1043,42 @@ function PlayerCard({ type, name, position, stats, gameStats, seasonStats, team 
 
   const statLabels = type === "batter" ? batterStatLabels : pitcherStatLabels;
 
+  const hasGameAction = gameStats && (
+    type === "batter"
+      ? (Number(gameStats.ab) > 0 || Number(gameStats.bb) > 0)
+      : (gameStats.ip !== "0.0" && gameStats.ip !== "0")
+  );
+
   return (
     <div className="border border-border rounded bg-card/60 p-3" data-testid={`player-card-${type}`}>
-      <div className="flex items-center gap-2.5 mb-3">
-        <PlayerFace position={position} size={32} />
-        <TeamBadge abbreviation={team.abbreviation} primaryColor={team.primaryColor} secondaryColor={team.secondaryColor} size="sm" />
+      <div className="flex items-center gap-2 mb-3">
+        <PlayerAvatar
+          skinTone={appearance?.skinTone}
+          hairColor={appearance?.hairColor}
+          hairStyle={appearance?.hairStyle}
+          headwear={appearance?.headwear}
+          size="md"
+          jerseyColor={team.primaryColor}
+          className="w-10 h-10 shrink-0"
+        />
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 flex-wrap">
             <Badge variant="outline" className="text-[9px] font-pixel shrink-0">{position}</Badge>
-            <span className="font-pixel text-[12px] text-gold truncate">{name}</span>
+            <span className="font-pixel text-[11px] text-gold truncate max-w-[120px]">{name}</span>
           </div>
-          <span className="text-[10px] text-muted-foreground font-pixel">{type === "batter" ? "At Bat" : "Pitching"}</span>
+          <div className="flex items-center gap-1.5 mt-0.5">
+            <span className="text-[9px] text-muted-foreground font-pixel">{type === "batter" ? "At Bat" : "Pitching"}</span>
+            {overall && (
+              <span className="text-[9px] font-pixel text-muted-foreground flex items-center gap-0.5">
+                OVR {overall}
+                <span className="flex">
+                  {Array.from({ length: stars }).map((_, i) => (
+                    <Star key={i} className="w-2 h-2 fill-yellow-400 text-yellow-400" />
+                  ))}
+                </span>
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -1008,7 +1099,7 @@ function PlayerCard({ type, name, position, stats, gameStats, seasonStats, team 
         ))}
       </div>
 
-      {gameStats && (
+      {hasGameAction && gameStats && (
         <div className="border-t border-border/50 pt-2 mt-1">
           <span className="text-[8px] text-muted-foreground font-pixel block mb-1">TODAY</span>
           <div className="flex flex-wrap gap-x-2.5 gap-y-0.5">
@@ -1183,7 +1274,9 @@ function BattingTable({ stats }: { stats: BattingStat[] }) {
         <tbody>
           {stats.map((s, i) => (
             <tr key={i} className="border-b border-border/30">
-              <td className="px-2 py-1.5 text-foreground truncate max-w-[100px]">{s.name}</td>
+              <td className="px-2 py-1.5 text-foreground">
+                <span className="truncate block max-w-[120px]">{s.name}</span>
+              </td>
               <td className="px-1 py-1.5 text-gold/70">{s.position}</td>
               <td className="text-center px-1 py-1.5">{s.ab}</td>
               <td className="text-center px-1 py-1.5">{s.r}</td>
@@ -1220,7 +1313,9 @@ function PitchingTable({ stats }: { stats: PitchingStat[] }) {
         <tbody>
           {stats.map((s, i) => (
             <tr key={i} className="border-b border-border/30">
-              <td className="px-2 py-1.5 text-foreground truncate max-w-[100px]">{s.name}</td>
+              <td className="px-2 py-1.5 text-foreground">
+                <span className="truncate block max-w-[120px]">{s.name}</span>
+              </td>
               <td className="text-center px-1 py-1.5">{s.ip}</td>
               <td className="text-center px-1 py-1.5">{s.h}</td>
               <td className="text-center px-1 py-1.5">{s.r}</td>

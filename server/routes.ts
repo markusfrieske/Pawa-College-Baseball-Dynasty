@@ -3755,6 +3755,12 @@ export async function registerRoutes(
             power: p.power || 50,
             speed: p.speed || 50,
             fielding: p.fielding || 50,
+            skinTone: p.skinTone || "light",
+            hairColor: p.hairColor || "brown",
+            hairStyle: p.hairStyle || "short",
+            headwear: p.headwear || "cap",
+            overall: p.overall || 300,
+            abilities: p.abilities || [],
           };
         });
 
@@ -3769,6 +3775,12 @@ export async function registerRoutes(
             position: "DH",
             order: lineup.length + 1,
             contact: 50, power: 40, speed: 50, fielding: 50,
+            skinTone: "light",
+            hairColor: "brown",
+            hairStyle: "short",
+            headwear: "cap",
+            overall: 300,
+            abilities: [] as string[],
           });
         }
 
@@ -3783,6 +3795,12 @@ export async function registerRoutes(
         control: number;
         velocity: number;
         stamina: number;
+        skinTone: string;
+        hairColor: string;
+        hairStyle: string;
+        headwear: string;
+        overall: number;
+        abilities: string[];
       }
 
       function pickPitchingStaff(players: Player[]) {
@@ -3795,11 +3813,23 @@ export async function registerRoutes(
             playerId: starter?.id || "fake_p", firstName: starter?.firstName || "Unknown", lastName: starter?.lastName || "Pitcher",
             stuff: starter?.stuff || 50, control: starter?.control || 50, velocity: starter?.velocity || 50,
             stamina: starter?.stamina || 60,
+            skinTone: starter?.skinTone || "light",
+            hairColor: starter?.hairColor || "brown",
+            hairStyle: starter?.hairStyle || "short",
+            headwear: starter?.headwear || "cap",
+            overall: starter?.overall || 300,
+            abilities: starter?.abilities || [],
           } as PitcherRef,
           bullpen: bullpen.map(p => ({
             playerId: p.id, firstName: p.firstName, lastName: p.lastName,
             stuff: p.stuff || 50, control: p.control || 50, velocity: p.velocity || 50,
             stamina: p.stamina || 50,
+            skinTone: p.skinTone || "light",
+            hairColor: p.hairColor || "brown",
+            hairStyle: p.hairStyle || "short",
+            headwear: p.headwear || "cap",
+            overall: p.overall || 300,
+            abilities: p.abilities || [],
           } as PitcherRef)),
         };
       }
