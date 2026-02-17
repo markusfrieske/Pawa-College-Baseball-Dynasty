@@ -4,7 +4,7 @@ import { Link } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
 import { TeamBadge } from "@/components/ui/team-badge";
-import { Plus, Trophy, Users, Calendar, Settings, LogOut, Trash2 } from "lucide-react";
+import { Plus, Trophy, Users, Calendar, Settings, LogOut, Trash2, Star, UserCheck, BookOpen } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import type { League, Team, Coach } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,6 +17,38 @@ interface LeagueWithDetails extends League {
   userTeam?: Team;
 }
 
+interface RosterSummary {
+  leagueId: string;
+  leagueName: string;
+  teamId: string;
+  teamName: string;
+  mascot: string;
+  abbreviation: string;
+  primaryColor: string;
+  secondaryColor: string;
+  playerCount: number;
+  avgOvr: number;
+  starPlayers: number;
+}
+
+interface RecruitingSummary {
+  leagueId: string;
+  leagueName: string;
+  teamId: string;
+  teamName: string;
+  abbreviation: string;
+  primaryColor: string;
+  secondaryColor: string;
+  totalRecruits: number;
+  committed: number;
+  phase: string;
+}
+
+interface DashboardSummaries {
+  rosters: RosterSummary[];
+  recruiting: RecruitingSummary[];
+}
+
 export default function DashboardPage() {
   const { data: user } = useQuery<{ id: string; email: string }>({
     queryKey: ["/api/auth/me"],
@@ -26,18 +58,22 @@ export default function DashboardPage() {
     queryKey: ["/api/leagues"],
   });
 
+  const { data: summaries } = useQuery<DashboardSummaries>({
+    queryKey: ["/api/dashboard/summaries"],
+  });
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <Link href="/" className="flex items-center gap-3 cursor-pointer" data-testid="link-home-logo">
             <div className="w-10 h-10 bg-gold rounded-full flex items-center justify-center">
               <span className="text-forest-dark font-pixel text-xs">CBD</span>
             </div>
             <span className="font-pixel text-gold text-sm hidden sm:block">
               パワプロ College Baseball Dynasty
             </span>
-          </div>
+          </Link>
           <div className="flex items-center gap-4">
             {user && (
               <span className="text-muted-foreground text-sm hidden sm:block">
@@ -86,6 +122,108 @@ export default function DashboardPage() {
           </div>
         ) : (
           <EmptyState />
+        )}
+
+        {summaries && summaries.rosters.length > 0 && (
+          <div className="mt-10">
+            <h2 className="font-pixel text-gold text-lg mb-4" data-testid="section-rosters">Your Rosters</h2>
+            <div className="grid md:grid-cols-2 gap-6">
+              {summaries.rosters.map((roster) => (
+                <Link key={roster.leagueId} href={`/league/${roster.leagueId}/roster`}>
+                  <RetroCard className="hover:border-gold/50 transition-colors cursor-pointer" data-testid={`card-roster-${roster.leagueId}`}>
+                    <RetroCardContent>
+                      <div className="flex items-center gap-4 mb-4">
+                        <TeamBadge
+                          abbreviation={roster.abbreviation}
+                          primaryColor={roster.primaryColor}
+                          secondaryColor={roster.secondaryColor}
+                        />
+                        <div>
+                          <p className="font-medium text-foreground">
+                            {roster.teamName} {roster.mascot}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {roster.leagueName}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-4 text-center">
+                        <div>
+                          <Users className="w-4 h-4 mx-auto text-muted-foreground mb-1" />
+                          <p className="text-xs text-muted-foreground">
+                            {roster.playerCount} Players
+                          </p>
+                        </div>
+                        <div>
+                          <Trophy className="w-4 h-4 mx-auto text-muted-foreground mb-1" />
+                          <p className="text-xs text-muted-foreground">
+                            {roster.avgOvr} Avg OVR
+                          </p>
+                        </div>
+                        <div>
+                          <Star className="w-4 h-4 mx-auto text-muted-foreground mb-1" />
+                          <p className="text-xs text-muted-foreground">
+                            {roster.starPlayers} Stars
+                          </p>
+                        </div>
+                      </div>
+                    </RetroCardContent>
+                  </RetroCard>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {summaries && summaries.recruiting.length > 0 && (
+          <div className="mt-10">
+            <h2 className="font-pixel text-gold text-lg mb-4" data-testid="section-recruiting">Your Recruiting Classes</h2>
+            <div className="grid md:grid-cols-2 gap-6">
+              {summaries.recruiting.map((rec) => (
+                <Link key={rec.leagueId} href={`/league/${rec.leagueId}/recruiting`}>
+                  <RetroCard className="hover:border-gold/50 transition-colors cursor-pointer" data-testid={`card-recruiting-${rec.leagueId}`}>
+                    <RetroCardContent>
+                      <div className="flex items-center gap-4 mb-4">
+                        <TeamBadge
+                          abbreviation={rec.abbreviation}
+                          primaryColor={rec.primaryColor}
+                          secondaryColor={rec.secondaryColor}
+                        />
+                        <div>
+                          <p className="font-medium text-foreground">
+                            {rec.teamName}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {rec.leagueName}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-4 text-center">
+                        <div>
+                          <BookOpen className="w-4 h-4 mx-auto text-muted-foreground mb-1" />
+                          <p className="text-xs text-muted-foreground">
+                            {rec.totalRecruits} Recruits
+                          </p>
+                        </div>
+                        <div>
+                          <UserCheck className="w-4 h-4 mx-auto text-muted-foreground mb-1" />
+                          <p className="text-xs text-muted-foreground">
+                            {rec.committed} Committed
+                          </p>
+                        </div>
+                        <div>
+                          <Calendar className="w-4 h-4 mx-auto text-muted-foreground mb-1" />
+                          <p className="text-xs text-muted-foreground">
+                            {rec.phase === "dynasty_setup" ? "Setup" : rec.phase.includes("recruiting") ? "Recruiting" : "Season"}
+                          </p>
+                        </div>
+                      </div>
+                    </RetroCardContent>
+                  </RetroCard>
+                </Link>
+              ))}
+            </div>
+          </div>
         )}
       </main>
     </div>

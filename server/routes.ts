@@ -318,6 +318,73 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/dashboard/summaries", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const userLeagues = await storage.getLeaguesByUser(userId);
+
+      const results = await Promise.all(userLeagues.map(async (league) => {
+        const [leagueTeams, coaches] = await Promise.all([
+          storage.getTeamsByLeague(league.id),
+          storage.getCoachesByLeague(league.id),
+        ]);
+        const userCoach = coaches.find((c) => c.userId === userId);
+        const userTeam = userCoach ? leagueTeams.find((t) => t.coachId === userCoach.id) : leagueTeams.find((t) => !t.isCpu);
+
+        if (!userTeam) return null;
+
+        const [players, recruits] = await Promise.all([
+          storage.getPlayersByTeam(userTeam.id),
+          storage.getRecruitsByLeague(league.id),
+        ]);
+
+        const activePlayers = players.filter(p => !p.declaredForDraft);
+        const avgOvr = activePlayers.length > 0
+          ? Math.round(activePlayers.reduce((s, p) => s + (p.overall || 0), 0) / activePlayers.length)
+          : 0;
+        const starPlayers = activePlayers.filter(p => (p.overall || 0) >= 400).length;
+        const teamRecruits = recruits.filter((r: any) => r.committedTeamId === userTeam.id);
+
+        return {
+          roster: {
+            leagueId: league.id,
+            leagueName: league.name,
+            teamId: userTeam.id,
+            teamName: userTeam.name,
+            mascot: userTeam.mascot,
+            abbreviation: userTeam.abbreviation,
+            primaryColor: userTeam.primaryColor,
+            secondaryColor: userTeam.secondaryColor,
+            playerCount: activePlayers.length,
+            avgOvr,
+            starPlayers,
+          },
+          recruiting: {
+            leagueId: league.id,
+            leagueName: league.name,
+            teamId: userTeam.id,
+            teamName: userTeam.name,
+            abbreviation: userTeam.abbreviation,
+            primaryColor: userTeam.primaryColor,
+            secondaryColor: userTeam.secondaryColor,
+            totalRecruits: recruits.length,
+            committed: teamRecruits.length,
+            phase: league.currentPhase,
+          },
+        };
+      }));
+
+      const validResults = results.filter(Boolean) as { roster: any; recruiting: any }[];
+      res.json({
+        rosters: validResults.map(r => r.roster),
+        recruiting: validResults.map(r => r.recruiting),
+      });
+    } catch (error) {
+      console.error("Failed to fetch dashboard summaries:", error);
+      res.status(500).json({ message: "Failed to fetch summaries" });
+    }
+  });
+
   app.post("/api/leagues", requireAuth, async (req, res) => {
     try {
       const userId = req.session.userId!;
