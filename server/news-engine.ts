@@ -596,7 +596,7 @@ export async function generateDraftDeclarationNewsArticle(
   stars: number,
   season: number
 ): Promise<void> {
-  if (stars < 3 && overall < 600) return;
+  if (stars < 3 && overall < 400) return;
 
   const newsData = generateDraftDeclarationNews(playerName, position, team, overall, stars);
   await storage.createDynastyNews({

@@ -219,7 +219,7 @@ function parseCSV(text: string): RecruitData[] {
       lastName: lastName || "Player",
       position: POSITIONS.includes(position) ? position : "OF",
       starRating,
-      overall: Math.max(1, Math.min(999, overall)),
+      overall: Math.max(150, Math.min(650, overall)),
       homeState: (homeState || "TX").substring(0, 2).toUpperCase(),
       hometown: pickRandom(HOMETOWNS),
       potential: pickRandom(POTENTIAL_GRADES.slice(3, 7)),

@@ -187,7 +187,7 @@ async function tryGenerateNewArcs(leagueId: string, season: number, week: number
     if (chance(12)) {
       const draftEligible = teamPlayers.filter(p => 
         ["JR", "SR", "RS-JR", "RS-SR"].includes(p.eligibility) &&
-        (p.overall || 500) > 650 &&
+        (p.overall || 300) > 450 &&
         !p.declaredForDraft &&
         !existingArcs.some(a => a.targetPlayerId === p.id)
       );

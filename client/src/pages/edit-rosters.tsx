@@ -383,11 +383,11 @@ export default function EditRostersPage() {
                                 <td className="px-2 py-1">
                                   <Input
                                     type="number"
-                                    min={1}
-                                    max={999}
+                                    min={150}
+                                    max={650}
                                     className="h-7 w-16 text-xs no-spinner"
                                     value={getPlayerValue(player, "overall")}
-                                    onChange={(e) => updatePlayer(player.id, "overall", parseInt(e.target.value) || 1)}
+                                    onChange={(e) => updatePlayer(player.id, "overall", parseInt(e.target.value) || 150)}
                                     onKeyDown={(e) => handleKeyDown(e, idx, "overall")}
                                     data-row={idx}
                                     data-field="overall"

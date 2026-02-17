@@ -887,7 +887,7 @@ export async function registerRoutes(
         const revealedAttrs = getAttributesToReveal(revealAmount);
         
         // Calculate initial ranges based on reveal amount
-        const ovrRange = narrowRange(1, 999, recruit.overall, revealAmount);
+        const ovrRange = narrowRange(150, 650, recruit.overall, revealAmount);
         const starRange = narrowStarRange(1, 5, recruit.starRating, revealAmount);
         
         // Reveal abilities based on percentage
@@ -915,8 +915,8 @@ export async function registerRoutes(
         const allAttrs = [...currentAttrs, ...additionalAttrs];
         
         // Narrow down the rating ranges
-        const currentMinOvr = interest.minOverall || 1;
-        const currentMaxOvr = interest.maxOverall || 999;
+        const currentMinOvr = interest.minOverall || 150;
+        const currentMaxOvr = interest.maxOverall || 650;
         const currentMinStar = interest.minStar || 1;
         const currentMaxStar = interest.maxStar || 5;
         
@@ -1869,7 +1869,7 @@ export async function registerRoutes(
           ? teamCommits.reduce((sum, r) => sum + (r.starRating || 3), 0) / teamCommits.length 
           : 0;
         const avgOverall = teamCommits.length > 0
-          ? teamCommits.reduce((sum, r) => sum + (r.overall || 500), 0) / teamCommits.length
+          ? teamCommits.reduce((sum, r) => sum + (r.overall || 300), 0) / teamCommits.length
           : 0;
         const fiveStars = teamCommits.filter(r => r.starRating === 5).length;
         const fourStars = teamCommits.filter(r => r.starRating >= 4).length;
@@ -2045,9 +2045,9 @@ export async function registerRoutes(
 
       // Check eligibility: must be RS (redshirt) and at least sophomore level with high skill
       // RS eligibility format: "RS" for redshirt freshmen who haven't played
-      // High skill = 4 or 5 star rating OR overall >= 700
+      // High skill = 4 or 5 star rating OR overall >= 500
       const isRedshirt = player.eligibility === "RS";
-      const isHighSkill = player.starRating >= 4 || player.overall >= 700;
+      const isHighSkill = player.starRating >= 4 || player.overall >= 500;
       
       // For RS sophomores - eligibility would still show RS but they've had a year
       // In reality, RS players who are sophomores or higher (played 2+ years) can declare
@@ -2061,7 +2061,7 @@ export async function registerRoutes(
 
       if (!isHighSkill) {
         return res.status(400).json({ 
-          message: "Only high-skill players (4+ stars or 700+ overall) can declare for the draft" 
+          message: "Only high-skill players (4+ stars or 500+ overall) can declare for the draft" 
         });
       }
 
@@ -4453,13 +4453,13 @@ export async function registerRoutes(
   function simulateGameWithRosters(homePlayers: Player[], awayPlayers: Player[], gameType?: string | null): { homeScore: number; awayScore: number; boxScore: string } {
 
     const homeStrength = homePlayers.length > 0
-      ? homePlayers.reduce((sum, p) => sum + (p.overall || 500), 0) / homePlayers.length
-      : 500;
+      ? homePlayers.reduce((sum, p) => sum + (p.overall || 300), 0) / homePlayers.length
+      : 300;
     const awayStrength = awayPlayers.length > 0
-      ? awayPlayers.reduce((sum, p) => sum + (p.overall || 500), 0) / awayPlayers.length
-      : 500;
+      ? awayPlayers.reduce((sum, p) => sum + (p.overall || 300), 0) / awayPlayers.length
+      : 300;
 
-    const strengthDiff = (homeStrength - awayStrength) / 500;
+    const strengthDiff = (homeStrength - awayStrength) / 300;
     const homeAdv = 0.25;
     let homeExpected = 4.5 + strengthDiff * 5.0 + homeAdv;
     let awayExpected = 4.5 - strengthDiff * 5.0;
@@ -5487,7 +5487,7 @@ export async function registerRoutes(
         // Player promises are based on simulated stats - since we don't track per-game stats yet,
         // we evaluate based on player overall and promise difficulty
         const difficulty = target; // "easy", "medium", "hard"
-        const overallFactor = (player.overall || 500) / 999;
+        const overallFactor = (player.overall || 300) / 650;
         
         if (difficulty === "easy") {
           isMet = Math.random() < 0.7 + overallFactor * 0.2;
@@ -5564,7 +5564,7 @@ export async function registerRoutes(
               lastName: player.lastName,
               position: player.position,
               finalEligibility: player.eligibility,
-              overall: player.overall ?? 500,
+              overall: player.overall ?? 300,
               starRating: player.starRating ?? 3,
               departureType: player.departureType,
               draftRound: player.draftRound || null,
@@ -5589,7 +5589,7 @@ export async function registerRoutes(
               lastName: player.lastName,
               position: player.position,
               finalEligibility: player.eligibility,
-              overall: player.overall ?? 500,
+              overall: player.overall ?? 300,
               starRating: player.starRating ?? 3,
               departureType: "transfer_portal",
               departedSeason: league.currentSeason,
@@ -5739,7 +5739,7 @@ export async function registerRoutes(
 
   // ============ OFFSEASON DEPARTURES ============
   function generateDraftAsk(overall: number): { min: number; max: number } {
-    const baseMin = Math.floor((overall - 500) * 2000 + 50000);
+    const baseMin = Math.floor((overall - 300) * 2000 + 50000);
     const baseMax = Math.floor(baseMin * (1.5 + Math.random() * 0.5));
     const variance = Math.floor(Math.random() * 20000);
     return { 
@@ -5916,7 +5916,7 @@ export async function registerRoutes(
         !p.inTransferPortal &&
         !p.pendingDeparture &&
         !draftProjections.has(p.id) &&
-        (p.overall || 500) < 450
+        (p.overall || 300) < 350
       );
       const portalCount = Math.max(0, Math.floor(nonDeparting.length * (0.1 + Math.random() * 0.1)));
       const shuffled = nonDeparting.sort(() => Math.random() - 0.5);
@@ -5984,7 +5984,7 @@ export async function registerRoutes(
         .filter(p => p.currentTeam.id !== team.id && p.inTransferPortal)
         .map(p => ({
           player: p,
-          score: ((positionCounts[p.position] || 0) < 2 ? 20 : 0) + (p.overall || 500) / 100 + Math.random() * 5,
+          score: ((positionCounts[p.position] || 0) < 2 ? 20 : 0) + (p.overall || 300) / 100 + Math.random() * 5,
         }))
         .sort((a, b) => b.score - a.score);
       
@@ -9910,13 +9910,13 @@ async function generateRecruits(leagueId: string, count: number) {
     // - Regular players (non-generational): capped at 159-650
     // - Generational gems: can exceed 650 (no upper cap except 999)
     // - Generational busts: can go below 150
-    // - Blue chips: must be 600+
+    // - Blue chips: must be 500+
     if (isGenerationalGem) {
       overall = Math.max(651, Math.min(999, overall));
     } else if (isGenerationalBust) {
       overall = Math.min(overall, 149);
     } else if (isBlueChip) {
-      overall = Math.max(600, Math.min(650, overall));
+      overall = Math.max(500, Math.min(650, overall));
     } else {
       overall = Math.max(159, Math.min(650, overall));
     }

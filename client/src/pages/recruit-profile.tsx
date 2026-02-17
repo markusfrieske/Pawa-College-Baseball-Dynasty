@@ -1230,8 +1230,8 @@ function RecruitEditModal({ recruit, open, onClose, onSave, isSaving }: RecruitE
               <h4 className="font-pixel text-gold text-[10px] border-b border-border pb-1">Rankings</h4>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-muted-foreground">Overall (1-999)</label>
-                  <RetroInput type="number" min={1} max={999} value={formData.overall} onChange={(e) => setFormData({ ...formData, overall: parseInt(e.target.value) || 1 })} />
+                  <label className="text-xs text-muted-foreground">Overall (150-650)</label>
+                  <RetroInput type="number" min={150} max={650} value={formData.overall} onChange={(e) => setFormData({ ...formData, overall: parseInt(e.target.value) || 150 })} />
                 </div>
                 <div>
                   <label className="text-xs text-muted-foreground">Star Rating (1-5)</label>

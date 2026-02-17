@@ -455,9 +455,9 @@ function RosterBreakdownRow({ label, count, total }: { label: string; count: num
 }
 
 function getStarRating(overall: number): number {
-  if (overall >= 800) return 5;
-  if (overall >= 600) return 4;
-  if (overall >= 400) return 3;
+  if (overall >= 500) return 5;
+  if (overall >= 400) return 4;
+  if (overall >= 300) return 3;
   if (overall >= 200) return 2;
   return 1;
 }

@@ -2594,7 +2594,7 @@ function CompareModal({
                       <div className="h-2 bg-background rounded-full overflow-hidden">
                         <div
                           className="h-full rounded-full transition-all bg-gold"
-                          style={{ width: `${Math.min(100, (recruit.overall / 999) * 100)}%` }}
+                          style={{ width: `${Math.min(100, (recruit.overall / 650) * 100)}%` }}
                         />
                       </div>
                     )}

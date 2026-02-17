@@ -87,7 +87,7 @@ async function generateBoosterPressure(ctx: DramaContext, team: Team, players: P
   if (players.length < 5) return;
 
   const lowerPlayer = players
-    .filter(p => (p.overall || 500) < 600 && !p.declaredForDraft && !p.inTransferPortal)
+    .filter(p => (p.overall || 300) < 400 && !p.declaredForDraft && !p.inTransferPortal)
     .sort(() => Math.random() - 0.5)[0];
   if (!lowerPlayer) return;
 
@@ -131,7 +131,7 @@ async function generateBoosterPressure(ctx: DramaContext, team: Team, players: P
 }
 
 async function generatePlayerDiscipline(ctx: DramaContext, team: Team, players: Player[]) {
-  const eligiblePlayers = players.filter(p => !p.declaredForDraft && !p.inTransferPortal && (p.overall || 500) > 550);
+  const eligiblePlayers = players.filter(p => !p.declaredForDraft && !p.inTransferPortal && (p.overall || 300) > 380);
   if (eligiblePlayers.length === 0) return;
 
   const player = pick(eligiblePlayers);
@@ -180,7 +180,7 @@ async function generatePlayerDiscipline(ctx: DramaContext, team: Team, players: 
 }
 
 async function generateNilNegotiation(ctx: DramaContext, team: Team, players: Player[]) {
-  const starPlayers = players.filter(p => (p.overall || 500) > 700 && !p.declaredForDraft && !p.inTransferPortal);
+  const starPlayers = players.filter(p => (p.overall || 300) > 500 && !p.declaredForDraft && !p.inTransferPortal);
   if (starPlayers.length === 0) return;
 
   const player = pick(starPlayers);

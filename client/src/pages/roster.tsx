@@ -129,7 +129,7 @@ export default function RosterPage() {
   // Must be: RS (redshirt) + high skill (4+ stars OR 700+ overall) + not already declared
   const canPlayerDeclareDraft = (player: Player): boolean => {
     const isRedshirt = player.eligibility === "RS";
-    const isHighSkill = player.starRating >= 4 || player.overall >= 700;
+    const isHighSkill = player.starRating >= 4 || player.overall >= 500;
     const notDeclared = !player.declaredForDraft;
     return isRedshirt && isHighSkill && notDeclared;
   };
