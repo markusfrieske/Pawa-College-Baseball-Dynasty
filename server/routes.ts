@@ -3767,11 +3767,10 @@ export async function registerRoutes(
           const pitchCount = Math.floor(Math.random() * 3);
           for (let i = 0; i < pitchCount; i++) {
             if (Math.random() < strikeProb) {
-              sequence.push(strikes < 2 ? "strike" : "foul");
-              if (strikes < 2) strikes++;
+              if (strikes < 2) { sequence.push("strike"); strikes++; }
+              else { sequence.push("foul"); }
             } else {
-              sequence.push("ball");
-              balls++;
+              if (balls < 3) { sequence.push("ball"); balls++; }
             }
           }
           sequence.push("hit_by_pitch");
@@ -3809,13 +3808,12 @@ export async function registerRoutes(
         const maxPitches = 2 + Math.floor(Math.random() * 5);
         for (let i = 0; i < maxPitches; i++) {
           if (balls >= 3 && strikes >= 2) break;
-          if (Math.random() < strikeProb) {
+          const throwStrike = Math.random() < strikeProb;
+          if (throwStrike) {
             if (strikes < 2) { sequence.push("strike"); strikes++; }
             else { sequence.push("foul"); }
           } else {
-            if (balls < 3) {
-              sequence.push("ball"); balls++;
-            }
+            if (balls < 3) { sequence.push("ball"); balls++; }
           }
         }
         sequence.push("in_play");

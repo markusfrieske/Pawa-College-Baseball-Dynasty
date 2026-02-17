@@ -117,13 +117,19 @@ export default function PlayByPlayPage() {
   const [currentAtBatIndex, setCurrentAtBatIndex] = useState(0);
   const [currentPitchIndex, setCurrentPitchIndex] = useState(-1);
   const [gameOver, setGameOver] = useState(false);
-  const [showBoxScore, setShowBoxScore] = useState(false);
   const [runningHomeScore, setRunningHomeScore] = useState(0);
   const [runningAwayScore, setRunningAwayScore] = useState(0);
+  const [runningAwayHits, setRunningAwayHits] = useState(0);
+  const [runningHomeHits, setRunningHomeHits] = useState(0);
+  const [runningAwayErrors, setRunningAwayErrors] = useState(0);
+  const [runningHomeErrors, setRunningHomeErrors] = useState(0);
   const [currentBases, setCurrentBases] = useState<boolean[]>([false, false, false]);
   const [currentOuts, setCurrentOuts] = useState(0);
   const [displayedDescription, setDisplayedDescription] = useState("");
   const [inningScores, setInningScores] = useState<{ away: number[]; home: number[] }>({ away: [], home: [] });
+  const [resultFlash, setResultFlash] = useState<{ text: string; type: "hit" | "out" | "walk" | "hr" | "error" } | null>(null);
+  const [inningTransition, setInningTransition] = useState<string | null>(null);
+  const [scorePulse, setScorePulse] = useState<"home" | "away" | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const speedRef = useRef<SpeedMode>(speed);
 
@@ -176,6 +182,32 @@ export default function PlayByPlayPage() {
     return half.atBats[currentAtBatIndex] || null;
   }, [pbpData, currentInning, currentHalf, currentAtBatIndex]);
 
+  const showResultFlash = useCallback((result: string) => {
+    const hitResults = ["single", "double", "triple"];
+    const outResults = ["strikeout", "groundout", "flyout", "lineout", "popout", "double_play"];
+    const walkResults = ["walk", "hbp"];
+    const labels: Record<string, string> = {
+      single: "SINGLE", double: "DOUBLE", triple: "TRIPLE", homerun: "HOME RUN",
+      strikeout: "K", groundout: "GROUND OUT", flyout: "FLY OUT", lineout: "LINE OUT",
+      popout: "POP OUT", double_play: "DOUBLE PLAY", walk: "BB", hbp: "HBP",
+      error: "ERROR", sacrifice_fly: "SAC FLY", fielders_choice: "FC",
+    };
+    const type = result === "homerun" ? "hr" : hitResults.includes(result) ? "hit" :
+      walkResults.includes(result) ? "walk" : result === "error" ? "error" : "out";
+    setResultFlash({ text: labels[result] || result.toUpperCase(), type });
+    setTimeout(() => setResultFlash(null), 1200);
+  }, []);
+
+  const showInningTransition = useCallback((label: string) => {
+    setInningTransition(label);
+    setTimeout(() => setInningTransition(null), 1200);
+  }, []);
+
+  const triggerScorePulse = useCallback((side: "home" | "away") => {
+    setScorePulse(side);
+    setTimeout(() => setScorePulse(null), 800);
+  }, []);
+
   const advanceToNextAtBat = useCallback(() => {
     if (!pbpData) return;
     const inning = pbpData.innings[currentInning];
@@ -188,10 +220,24 @@ export default function PlayByPlayPage() {
       setCurrentOuts(atBat.outs);
       if (currentHalf === "top") {
         setRunningAwayScore(prev => prev + atBat.runsScored);
+        if (atBat.runsScored > 0) triggerScorePulse("away");
       } else {
         setRunningHomeScore(prev => prev + atBat.runsScored);
+        if (atBat.runsScored > 0) triggerScorePulse("home");
       }
       setDisplayedDescription(atBat.description);
+      showResultFlash(atBat.result);
+
+      const isHit = ["single", "double", "triple", "homerun"].includes(atBat.result);
+      const isError = atBat.result === "error";
+      if (isHit) {
+        if (currentHalf === "top") setRunningAwayHits(prev => prev + 1);
+        else setRunningHomeHits(prev => prev + 1);
+      }
+      if (isError) {
+        if (currentHalf === "top") setRunningHomeErrors(prev => prev + 1);
+        else setRunningAwayErrors(prev => prev + 1);
+      }
     }
 
     const nextAtBatIndex = currentAtBatIndex + 1;
@@ -212,6 +258,7 @@ export default function PlayByPlayPage() {
       }
 
       if (currentHalf === "top") {
+        showInningTransition(`MID ${currentInning + 1}${getOrdinal(currentInning + 1)}`);
         setCurrentHalf("bottom");
         setCurrentAtBatIndex(0);
         setCurrentPitchIndex(-1);
@@ -221,6 +268,7 @@ export default function PlayByPlayPage() {
       } else {
         const nextInning = currentInning + 1;
         if (nextInning < pbpData.innings.length) {
+          showInningTransition(`END ${currentInning + 1}${getOrdinal(currentInning + 1)}`);
           setCurrentInning(nextInning);
           setCurrentHalf("top");
           setCurrentAtBatIndex(0);
@@ -232,11 +280,19 @@ export default function PlayByPlayPage() {
           setGameOver(true);
           setRunningHomeScore(pbpData.finalScore.home);
           setRunningAwayScore(pbpData.finalScore.away);
+          const totalAwayH = pbpData.innings.reduce((s, inn) => s + inn.topHalf.hits, 0);
+          const totalHomeH = pbpData.innings.reduce((s, inn) => s + inn.bottomHalf.hits, 0);
+          const totalAwayE = pbpData.innings.reduce((s, inn) => s + inn.topHalf.errors, 0);
+          const totalHomeE = pbpData.innings.reduce((s, inn) => s + inn.bottomHalf.errors, 0);
+          setRunningAwayHits(totalAwayH);
+          setRunningHomeHits(totalHomeH);
+          setRunningAwayErrors(totalAwayE);
+          setRunningHomeErrors(totalHomeE);
           setSpeed("pause");
         }
       }
     }
-  }, [pbpData, currentInning, currentHalf, currentAtBatIndex]);
+  }, [pbpData, currentInning, currentHalf, currentAtBatIndex, showResultFlash, showInningTransition, triggerScorePulse]);
 
   const advancePitch = useCallback(() => {
     const atBat = getCurrentAtBat();
@@ -264,6 +320,16 @@ export default function PlayByPlayPage() {
         setRunningAwayScore(prev => prev + atBat.runsScored);
       } else {
         setRunningHomeScore(prev => prev + atBat.runsScored);
+      }
+      const isHit = ["single", "double", "triple", "homerun"].includes(atBat.result);
+      const isError = atBat.result === "error";
+      if (isHit) {
+        if (currentHalf === "top") setRunningAwayHits(prev => prev + 1);
+        else setRunningHomeHits(prev => prev + 1);
+      }
+      if (isError) {
+        if (currentHalf === "top") setRunningHomeErrors(prev => prev + 1);
+        else setRunningAwayErrors(prev => prev + 1);
       }
     }
 
@@ -302,6 +368,14 @@ export default function PlayByPlayPage() {
         setGameOver(true);
         setRunningHomeScore(pbpData.finalScore.home);
         setRunningAwayScore(pbpData.finalScore.away);
+        const totalAwayH = pbpData.innings.reduce((s, inn) => s + inn.topHalf.hits, 0);
+        const totalHomeH = pbpData.innings.reduce((s, inn) => s + inn.bottomHalf.hits, 0);
+        const totalAwayE = pbpData.innings.reduce((s, inn) => s + inn.topHalf.errors, 0);
+        const totalHomeE = pbpData.innings.reduce((s, inn) => s + inn.bottomHalf.errors, 0);
+        setRunningAwayHits(totalAwayH);
+        setRunningHomeHits(totalHomeH);
+        setRunningAwayErrors(totalAwayE);
+        setRunningHomeErrors(totalHomeE);
         setSpeed("pause");
       }
     }
@@ -376,22 +450,6 @@ export default function PlayByPlayPage() {
     pitchStrikes = s;
   }
 
-  if (showBoxScore) {
-    return (
-      <div className="min-h-screen bg-background p-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="font-pixel text-gold text-sm">Final Box Score</h1>
-            <RetroButton variant="outline" size="sm" onClick={() => setShowBoxScore(false)} data-testid="button-back-to-game">
-              Back to Game
-            </RetroButton>
-          </div>
-          <BoxScoreView data={pbpData} inningScores={inningScores} />
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-background flex flex-col" data-testid="play-by-play-page">
       <header className="border-b border-border px-4 py-3 flex items-center justify-between gap-2">
@@ -463,7 +521,7 @@ export default function PlayByPlayPage() {
             </div>
           </div>
 
-          <div className="flex-1 flex flex-col items-center justify-center p-4 gap-4">
+          <div className={`flex-1 flex flex-col items-center p-4 gap-4 relative ${gameOver ? "overflow-y-auto" : "justify-center"}`}>
             <div className="flex items-center gap-6 sm:gap-10">
               <div className="flex flex-col items-center gap-1">
                 <TeamBadge abbreviation={pbpData.awayTeam.abbreviation} primaryColor={pbpData.awayTeam.primaryColor} secondaryColor={pbpData.awayTeam.secondaryColor} size="md" />
@@ -471,9 +529,9 @@ export default function PlayByPlayPage() {
               </div>
               <div className="text-center">
                 <div className="flex items-center gap-4">
-                  <span className="font-pixel text-3xl sm:text-5xl text-foreground" data-testid="score-away">{runningAwayScore}</span>
+                  <span className={`font-pixel text-3xl sm:text-5xl text-foreground transition-transform duration-300 ${scorePulse === "away" ? "scale-125 text-gold" : ""}`} data-testid="score-away">{runningAwayScore}</span>
                   <span className="font-pixel text-xl text-muted-foreground">-</span>
-                  <span className="font-pixel text-3xl sm:text-5xl text-foreground" data-testid="score-home">{runningHomeScore}</span>
+                  <span className={`font-pixel text-3xl sm:text-5xl text-foreground transition-transform duration-300 ${scorePulse === "home" ? "scale-125 text-gold" : ""}`} data-testid="score-home">{runningHomeScore}</span>
                 </div>
                 <div className="mt-2">
                   {gameOver ? (
@@ -532,18 +590,40 @@ export default function PlayByPlayPage() {
               </div>
             )}
 
+            {resultFlash && (
+              <div className="animate-in fade-in zoom-in-95 duration-200" data-testid="result-flash">
+                <span className={`font-pixel text-lg sm:text-2xl font-bold ${
+                  resultFlash.type === "hr" ? "text-yellow-300" :
+                  resultFlash.type === "hit" ? "text-green-400" :
+                  resultFlash.type === "walk" ? "text-blue-400" :
+                  resultFlash.type === "error" ? "text-orange-400" :
+                  "text-red-400"
+                }`}>
+                  {resultFlash.text}
+                </span>
+              </div>
+            )}
+
+            {inningTransition && (
+              <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+                <div className="bg-background/80 border border-gold/40 rounded px-8 py-4 animate-in fade-in zoom-in-90 duration-300">
+                  <span className="font-pixel text-gold text-lg sm:text-xl">{inningTransition}</span>
+                </div>
+              </div>
+            )}
+
             {gameOver && (
-              <div className="flex flex-col items-center gap-3 mt-4">
-                <RetroButton onClick={() => setShowBoxScore(true)} variant="outline" data-testid="button-view-box-score">
-                  View Box Score
-                </RetroButton>
-                <RetroButton
-                  onClick={() => finalizeMutation.mutate()}
-                  disabled={finalizeMutation.isPending}
-                  data-testid="button-end-game"
-                >
-                  {finalizeMutation.isPending ? "Saving..." : "End Game"}
-                </RetroButton>
+              <div className="w-full max-w-4xl mt-4 px-2">
+                <BoxScoreView data={pbpData} inningScores={inningScores} />
+                <div className="flex justify-center mt-6 mb-4">
+                  <RetroButton
+                    onClick={() => finalizeMutation.mutate()}
+                    disabled={finalizeMutation.isPending}
+                    data-testid="button-end-game"
+                  >
+                    {finalizeMutation.isPending ? "Saving..." : "End Game"}
+                  </RetroButton>
+                </div>
               </div>
             )}
           </div>
@@ -638,8 +718,8 @@ export default function PlayByPlayPage() {
                     </td>
                   ))}
                   <td className="text-center px-2 py-1.5 text-gold font-bold border-l border-border">{runningAwayScore}</td>
-                  <td className="text-center px-2 py-1.5">{pbpData.innings.slice(0, inningScores.away.length).reduce((s, inn) => s + inn.topHalf.hits, 0)}</td>
-                  <td className="text-center px-2 py-1.5">{pbpData.innings.slice(0, inningScores.away.length).reduce((s, inn) => s + inn.topHalf.errors, 0)}</td>
+                  <td className="text-center px-2 py-1.5">{runningAwayHits}</td>
+                  <td className="text-center px-2 py-1.5">{runningAwayErrors}</td>
                 </tr>
                 <tr>
                   <td className="px-3 py-1.5 text-foreground">{pbpData.homeTeam.abbreviation}</td>
@@ -649,8 +729,8 @@ export default function PlayByPlayPage() {
                     </td>
                   ))}
                   <td className="text-center px-2 py-1.5 text-gold font-bold border-l border-border">{runningHomeScore}</td>
-                  <td className="text-center px-2 py-1.5">{pbpData.innings.slice(0, inningScores.home.length).reduce((s, inn) => s + inn.bottomHalf.hits, 0)}</td>
-                  <td className="text-center px-2 py-1.5">{pbpData.innings.slice(0, inningScores.home.length).reduce((s, inn) => s + inn.bottomHalf.errors, 0)}</td>
+                  <td className="text-center px-2 py-1.5">{runningHomeHits}</td>
+                  <td className="text-center px-2 py-1.5">{runningHomeErrors}</td>
                 </tr>
               </tbody>
             </table>
