@@ -1569,7 +1569,7 @@ export const MO_VALLEY_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: [], potential: "A-", catcherAbility: null,
       ...noPitches },
     // OUTFIELDERS (6)
-    { firstName: "Markus", lastName: "Frieske", position: "OF", eligibility: "SR", homeState: "IA", hometown: "Cedar Falls", jerseyNumber: 3,
+    { firstName: "Markus", lastName: "Frieske", position: "OF", eligibility: "SR", homeState: "WA", hometown: "Spokane", jerseyNumber: 3,
       hitForAvg: 76, power: 70, speed: 64, arm: 68, fielding: 66, errorResistance: 64, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 72, vsLHP: 68, grit: 74, stealing: 44, running: 62, throwing: 70, recovery: 58, wRISP: 72, vsLefty: 66, poise: 72, heater: 0, agile: 66,
       abilities: ["Contact Machine", "Clutch Hitter", "Cannon Arm"], potential: "A-", catcherAbility: null,

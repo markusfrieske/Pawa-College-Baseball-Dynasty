@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
@@ -7,10 +7,18 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Save, RotateCcw, Download, Upload, Trash2 } from "lucide-react";
+import { ArrowLeft, Save, RotateCcw, Download, Upload, Trash2, ChevronDown, Check, X } from "lucide-react";
 import { apiRequest, queryClient, getQueryFn } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { CoachAvatar } from "@/components/coach-avatar";
+import { ALL_ABILITIES, getAbilitiesForPosition, type Ability } from "@shared/abilities";
+
+interface PlayerAppearance {
+  skinTone: string;
+  hairColor: string;
+  hairStyle: string;
+}
 
 interface RealPlayer {
   firstName: string;
@@ -20,6 +28,7 @@ interface RealPlayer {
   homeState: string;
   hometown: string;
   jerseyNumber: number;
+  rank: number;
   hitForAvg: number;
   power: number;
   speed: number;
@@ -53,6 +62,7 @@ interface RealPlayer {
   pitchCT: number;
   pitchSNK: number;
   pitchSPL: number;
+  appearance?: PlayerAppearance;
 }
 
 interface ConferenceTeams {
@@ -70,6 +80,32 @@ interface SavedRoster {
   createdAt: string | null;
   updatedAt: string | null;
 }
+
+const POTENTIAL_GRADES = ["A+", "A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D", "F"];
+
+const SKIN_TONES = [
+  { value: "light", label: "Light" },
+  { value: "medium", label: "Medium" },
+  { value: "tan", label: "Tan" },
+  { value: "dark", label: "Dark" },
+  { value: "deep", label: "Deep" },
+];
+
+const HAIR_COLORS = [
+  { value: "black", label: "Black" },
+  { value: "brown", label: "Brown" },
+  { value: "blonde", label: "Blonde" },
+  { value: "red", label: "Red" },
+  { value: "gray", label: "Gray" },
+  { value: "white", label: "White" },
+];
+
+const HAIR_STYLES = [
+  { value: "short", label: "Short" },
+  { value: "medium", label: "Medium" },
+  { value: "long", label: "Long" },
+  { value: "bald", label: "Bald" },
+];
 
 function calcOVR(player: RealPlayer): number {
   if (player.position === "P") {
@@ -423,7 +459,16 @@ export default function ManageRostersPage() {
                           >
                             <td className="px-2 py-1.5 text-muted-foreground text-xs">{player.jerseyNumber}</td>
                             <td className="px-2 py-1.5 text-foreground whitespace-nowrap">
-                              {player.firstName} {player.lastName}
+                              <div className="flex items-center gap-2">
+                                <CoachAvatar
+                                  skinTone={player.appearance?.skinTone || "light"}
+                                  hairColor={player.appearance?.hairColor || "brown"}
+                                  hairStyle={player.appearance?.hairStyle || "short"}
+                                  size="sm"
+                                  className="w-6 h-6"
+                                />
+                                {player.firstName} {player.lastName}
+                              </div>
                             </td>
                             <td className="px-2 py-1.5">
                               <Badge variant="outline" className="text-[10px]">{player.position}</Badge>
@@ -517,6 +562,154 @@ export default function ManageRostersPage() {
   );
 }
 
+function AbilitiesDropdown({
+  selectedAbilities,
+  position,
+  onChange,
+  testIdPrefix,
+}: {
+  selectedAbilities: string[];
+  position: string;
+  onChange: (abilities: string[]) => void;
+  testIdPrefix: string;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const availableAbilities = useMemo(() => {
+    return getAbilitiesForPosition(position);
+  }, [position]);
+
+  const filteredAbilities = useMemo(() => {
+    if (!searchTerm) return availableAbilities;
+    return availableAbilities.filter(a =>
+      a.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [availableAbilities, searchTerm]);
+
+  const groupedAbilities = useMemo(() => {
+    const gold = filteredAbilities.filter(a => a.tier === "gold");
+    const blue = filteredAbilities.filter(a => a.tier === "blue");
+    const red = filteredAbilities.filter(a => a.tier === "red");
+    return { gold, blue, red };
+  }, [filteredAbilities]);
+
+  const toggleAbility = (name: string) => {
+    if (selectedAbilities.includes(name)) {
+      onChange(selectedAbilities.filter(a => a !== name));
+    } else {
+      onChange([...selectedAbilities, name]);
+    }
+  };
+
+  const tierColor = (tier: string) => {
+    if (tier === "gold") return "text-yellow-500";
+    if (tier === "blue") return "text-blue-400";
+    if (tier === "red") return "text-red-400";
+    return "text-muted-foreground";
+  };
+
+  const tierBadgeVariant = (tier: string): "default" | "secondary" | "outline" | "destructive" => {
+    if (tier === "red") return "destructive";
+    return "secondary";
+  };
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <div
+        className="flex items-center gap-1 border border-border rounded-md px-2 py-1 cursor-pointer min-h-[28px] bg-background"
+        onClick={() => setIsOpen(!isOpen)}
+        data-testid={`${testIdPrefix}-abilities-trigger`}
+      >
+        {selectedAbilities.length === 0 ? (
+          <span className="text-muted-foreground text-xs">Select abilities...</span>
+        ) : (
+          <div className="flex flex-wrap gap-1">
+            {selectedAbilities.map(ab => {
+              const ability = ALL_ABILITIES.find(a => a.name === ab);
+              return (
+                <Badge
+                  key={ab}
+                  variant={tierBadgeVariant(ability?.tier || "blue")}
+                  className={`text-[8px] ${ability?.tier === "gold" ? "bg-yellow-600/20 text-yellow-500 border-yellow-600/30" : ability?.tier === "red" ? "" : "bg-blue-600/20 text-blue-400 border-blue-600/30"}`}
+                >
+                  {ab}
+                  <button
+                    className="ml-1"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleAbility(ab);
+                    }}
+                  >
+                    <X className="w-2 h-2" />
+                  </button>
+                </Badge>
+              );
+            })}
+          </div>
+        )}
+        <ChevronDown className="w-3 h-3 ml-auto shrink-0 text-muted-foreground" />
+      </div>
+
+      {isOpen && (
+        <div className="absolute z-50 top-full left-0 mt-1 w-80 bg-card border border-border rounded-md shadow-lg max-h-64 overflow-hidden flex flex-col">
+          <div className="p-2 border-b border-border">
+            <Input
+              className="h-7 text-xs"
+              placeholder="Search abilities..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onClick={(e) => e.stopPropagation()}
+              data-testid={`${testIdPrefix}-abilities-search`}
+            />
+          </div>
+          <div className="overflow-y-auto flex-1">
+            {(["gold", "blue", "red"] as const).map(tier => {
+              const abilities = groupedAbilities[tier];
+              if (abilities.length === 0) return null;
+              return (
+                <div key={tier}>
+                  <div className={`px-2 py-1 text-[10px] font-pixel uppercase sticky top-0 bg-card border-b border-border ${tierColor(tier)}`}>
+                    {tier} Abilities ({abilities.length})
+                  </div>
+                  {abilities.map(ability => {
+                    const isSelected = selectedAbilities.includes(ability.name);
+                    return (
+                      <div
+                        key={ability.name}
+                        className={`flex items-center gap-2 px-2 py-1 cursor-pointer text-xs hover:bg-muted/30 ${isSelected ? "bg-muted/20" : ""}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleAbility(ability.name);
+                        }}
+                        data-testid={`${testIdPrefix}-ability-${ability.name.replace(/\s+/g, "-").toLowerCase()}`}
+                      >
+                        <div className={`w-4 h-4 border rounded-sm flex items-center justify-center shrink-0 ${isSelected ? "bg-gold border-gold" : "border-border"}`}>
+                          {isSelected && <Check className="w-3 h-3 text-background" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <span className={`${tierColor(tier)} font-medium`}>{ability.name}</span>
+                          <p className="text-muted-foreground text-[10px] truncate">{ability.description}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+          <div className="p-2 border-t border-border flex justify-end">
+            <RetroButton size="sm" variant="outline" onClick={() => setIsOpen(false)} data-testid={`${testIdPrefix}-abilities-close`}>
+              Done
+            </RetroButton>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PlayerEditPanel({
   player,
   idx,
@@ -527,6 +720,12 @@ function PlayerEditPanel({
   onUpdate: (idx: number, field: keyof RealPlayer, value: unknown) => void;
 }) {
   const isPitcher = player.position === "P";
+  const appearance = player.appearance || { skinTone: "light", hairColor: "brown", hairStyle: "short" };
+
+  const updateAppearance = (field: keyof PlayerAppearance, value: string) => {
+    const updated = { ...appearance, [field]: value };
+    onUpdate(idx, "appearance" as keyof RealPlayer, updated);
+  };
 
   const NumField = ({ field, label, disabled }: { field: keyof RealPlayer; label: string; disabled?: boolean }) => (
     <div className="space-y-0.5">
@@ -558,44 +757,131 @@ function PlayerEditPanel({
 
   return (
     <div className="space-y-4" data-testid={`panel-edit-${idx}`}>
-      <div className="flex items-center gap-4 flex-wrap">
-        <TextInput field="firstName" label="First Name" />
-        <TextInput field="lastName" label="Last Name" />
-        <div className="space-y-0.5">
-          <label className="font-pixel text-[8px] text-gold uppercase">Position</label>
-          <Select
-            value={player.position}
-            onValueChange={(v) => onUpdate(idx, "position", v)}
-          >
-            <SelectTrigger className="h-7 w-16 text-xs" data-testid={`select-position-${idx}`}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {["P", "C", "1B", "2B", "SS", "3B", "LF", "CF", "RF", "DH"].map(p => (
-                <SelectItem key={p} value={p}>{p}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+      <div className="flex items-start gap-6 flex-wrap">
+        <div className="space-y-2">
+          <p className="font-pixel text-[10px] text-gold mb-1">PLAYER AVATAR</p>
+          <div className="flex items-center gap-4">
+            <CoachAvatar
+              skinTone={appearance.skinTone}
+              hairColor={appearance.hairColor}
+              hairStyle={appearance.hairStyle}
+              size="lg"
+            />
+            <div className="space-y-2">
+              <div className="space-y-0.5">
+                <label className="font-pixel text-[8px] text-gold uppercase">Skin Tone</label>
+                <Select value={appearance.skinTone} onValueChange={(v) => updateAppearance("skinTone", v)}>
+                  <SelectTrigger className="h-7 w-24 text-xs" data-testid={`select-skinTone-${idx}`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SKIN_TONES.map(s => (
+                      <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-0.5">
+                <label className="font-pixel text-[8px] text-gold uppercase">Hair Color</label>
+                <Select value={appearance.hairColor} onValueChange={(v) => updateAppearance("hairColor", v)}>
+                  <SelectTrigger className="h-7 w-24 text-xs" data-testid={`select-hairColor-${idx}`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {HAIR_COLORS.map(h => (
+                      <SelectItem key={h.value} value={h.value}>{h.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-0.5">
+                <label className="font-pixel text-[8px] text-gold uppercase">Hair Style</label>
+                <Select value={appearance.hairStyle} onValueChange={(v) => updateAppearance("hairStyle", v)}>
+                  <SelectTrigger className="h-7 w-24 text-xs" data-testid={`select-hairStyle-${idx}`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {HAIR_STYLES.map(h => (
+                      <SelectItem key={h.value} value={h.value}>{h.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="space-y-0.5">
-          <label className="font-pixel text-[8px] text-gold uppercase">Eligibility</label>
-          <Select
-            value={player.eligibility}
-            onValueChange={(v) => onUpdate(idx, "eligibility", v)}
-          >
-            <SelectTrigger className="h-7 w-16 text-xs" data-testid={`select-eligibility-${idx}`}>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {["FR", "SO", "JR", "SR", "RS"].map(e => (
-                <SelectItem key={e} value={e}>{e}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+
+        <div className="flex-1 space-y-3">
+          <div className="flex items-center gap-4 flex-wrap">
+            <TextInput field="firstName" label="First Name" />
+            <TextInput field="lastName" label="Last Name" />
+            <div className="space-y-0.5">
+              <label className="font-pixel text-[8px] text-gold uppercase">Position</label>
+              <Select
+                value={player.position}
+                onValueChange={(v) => onUpdate(idx, "position", v)}
+              >
+                <SelectTrigger className="h-7 w-16 text-xs" data-testid={`select-position-${idx}`}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {["P", "C", "1B", "2B", "SS", "3B", "LF", "CF", "RF", "DH"].map(p => (
+                    <SelectItem key={p} value={p}>{p}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-0.5">
+              <label className="font-pixel text-[8px] text-gold uppercase">Eligibility</label>
+              <Select
+                value={player.eligibility}
+                onValueChange={(v) => onUpdate(idx, "eligibility", v)}
+              >
+                <SelectTrigger className="h-7 w-16 text-xs" data-testid={`select-eligibility-${idx}`}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {["FR", "SO", "JR", "SR", "RS"].map(e => (
+                    <SelectItem key={e} value={e}>{e}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="flex items-center gap-4 flex-wrap">
+            <NumField field="jerseyNumber" label="Jersey #" />
+            <div className="space-y-0.5">
+              <label className="font-pixel text-[8px] text-gold uppercase">Rank (OVR)</label>
+              <Input
+                type="number"
+                min={1}
+                max={999}
+                className="h-7 w-16 text-xs"
+                value={player.rank || calcOVR(player)}
+                onChange={(e) => onUpdate(idx, "rank", parseInt(e.target.value) || 0)}
+                data-testid={`input-rank-${idx}`}
+              />
+            </div>
+            <TextInput field="hometown" label="Home City" />
+            <TextInput field="homeState" label="Home State" className="w-16" />
+            <div className="space-y-0.5">
+              <label className="font-pixel text-[8px] text-gold uppercase">Potential</label>
+              <Select
+                value={player.potential}
+                onValueChange={(v) => onUpdate(idx, "potential", v)}
+              >
+                <SelectTrigger className="h-7 w-16 text-xs" data-testid={`select-potential-${idx}`}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {POTENTIAL_GRADES.map(g => (
+                    <SelectItem key={g} value={g}>{g}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </div>
-        <NumField field="jerseyNumber" label="Jersey #" />
-        <TextInput field="hometown" label="Hometown" />
-        <TextInput field="homeState" label="State" className="w-12" />
       </div>
 
       {isPitcher ? (
@@ -653,6 +939,16 @@ function PlayerEditPanel({
         </div>
       </div>
 
+      <div>
+        <p className="font-pixel text-[10px] text-gold mb-2">SPECIAL ABILITIES</p>
+        <AbilitiesDropdown
+          selectedAbilities={player.abilities || []}
+          position={player.position}
+          onChange={(abilities) => onUpdate(idx, "abilities", abilities)}
+          testIdPrefix={`player-${idx}`}
+        />
+      </div>
+
       <div className="flex items-center gap-2">
         <Badge variant="outline" className="text-muted-foreground text-[10px]">
           OVR: {calcOVR(player)}
@@ -660,6 +956,11 @@ function PlayerEditPanel({
         <Badge variant="outline" className="text-muted-foreground text-[10px]">
           Potential: {player.potential}
         </Badge>
+        {player.abilities && player.abilities.length > 0 && (
+          <Badge variant="outline" className="text-muted-foreground text-[10px]">
+            Abilities: {player.abilities.length}
+          </Badge>
+        )}
       </div>
     </div>
   );
