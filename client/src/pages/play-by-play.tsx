@@ -490,124 +490,168 @@ export default function PlayByPlayPage() {
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <div className="flex-1 flex flex-col lg:flex-row gap-0 min-h-0">
-          <div className="hidden lg:flex flex-col w-56 border-r border-border p-3 overflow-y-auto">
-            <div className="flex items-center gap-2 mb-3">
+          <div className="hidden lg:flex flex-col w-48 xl:w-52 border-r border-border p-2 overflow-y-auto">
+            <div className="flex items-center gap-2 mb-2">
               <TeamBadge abbreviation={pbpData.awayTeam.abbreviation} primaryColor={pbpData.awayTeam.primaryColor} secondaryColor={pbpData.awayTeam.secondaryColor} size="sm" />
-              <span className="font-pixel text-[9px] text-foreground truncate">{pbpData.awayTeam.name}</span>
+              <span className="font-pixel text-[10px] text-foreground truncate">{pbpData.awayTeam.name}</span>
             </div>
             <div className="space-y-0.5">
               {pbpData.awayLineup.map((p, i) => (
                 <div
                   key={p.playerId}
-                  className={`flex items-center gap-1.5 px-2 py-1 rounded text-[10px] ${
+                  className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded text-[11px] ${
                     currentHalf === "top" && currentAtBat?.batterIndex === i
                       ? "bg-gold/20 text-gold border border-gold/40"
                       : "text-muted-foreground"
                   }`}
                   data-testid={`away-lineup-${i}`}
                 >
-                  <span className="w-3 text-center font-pixel text-[8px]">{i + 1}</span>
-                  <span className="w-6 text-[8px] font-pixel text-gold/70">{p.position}</span>
+                  <span className="w-3 text-center font-pixel text-[9px]">{i + 1}</span>
+                  <span className="w-6 text-[9px] font-pixel text-gold/70">{p.position}</span>
                   <span className="truncate">{p.lastName}</span>
                 </div>
               ))}
-              <div className="border-t border-border/50 mt-2 pt-2 px-2">
-                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                  <span className="w-3 text-center font-pixel text-[8px]">P</span>
-                  <span className="w-6 text-[8px] font-pixel text-gold/70">P</span>
+              <div className="border-t border-border/50 mt-1 pt-1 px-1.5">
+                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <span className="w-3 text-center font-pixel text-[9px]">P</span>
+                  <span className="w-6 text-[9px] font-pixel text-gold/70">P</span>
                   <span className="truncate">{pbpData.awayPitcher.lastName}</span>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className={`flex-1 flex flex-col items-center p-4 gap-4 relative ${gameOver ? "overflow-y-auto" : "justify-center"}`}>
-            <div className="flex items-center gap-6 sm:gap-10">
-              <div className="flex flex-col items-center gap-1">
+          <div className={`flex-1 flex flex-col items-center p-3 lg:p-4 gap-2 relative ${gameOver ? "overflow-y-auto" : ""}`}>
+            <div className="flex items-center gap-4 sm:gap-6 lg:gap-8">
+              <div className="flex items-center gap-2 lg:gap-3">
                 <TeamBadge abbreviation={pbpData.awayTeam.abbreviation} primaryColor={pbpData.awayTeam.primaryColor} secondaryColor={pbpData.awayTeam.secondaryColor} size="md" />
-                <span className="font-pixel text-[8px] text-muted-foreground">{pbpData.awayTeam.abbreviation}</span>
+                <span className={`font-pixel text-3xl sm:text-4xl lg:text-5xl text-foreground transition-transform duration-300 ${scorePulse === "away" ? "scale-110 text-gold" : ""}`} data-testid="score-away">{runningAwayScore}</span>
               </div>
-              <div className="text-center">
-                <div className="flex items-center gap-4">
-                  <span className={`font-pixel text-3xl sm:text-5xl text-foreground transition-transform duration-300 ${scorePulse === "away" ? "scale-125 text-gold" : ""}`} data-testid="score-away">{runningAwayScore}</span>
-                  <span className="font-pixel text-xl text-muted-foreground">-</span>
-                  <span className={`font-pixel text-3xl sm:text-5xl text-foreground transition-transform duration-300 ${scorePulse === "home" ? "scale-125 text-gold" : ""}`} data-testid="score-home">{runningHomeScore}</span>
+              <div className="flex flex-col items-center">
+                <span className="font-pixel text-lg text-muted-foreground">-</span>
+                {gameOver ? (
+                  <Badge className="bg-green-500/20 text-green-400 border-green-500/30 font-pixel text-[10px] mt-0.5">FINAL</Badge>
+                ) : (
+                  <span className="font-pixel text-[11px] text-gold mt-0.5" data-testid="inning-display">
+                    {currentHalf === "top" ? "\u25B2" : "\u25BC"} {currentInning + 1}{getOrdinal(currentInning + 1)}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2 lg:gap-3">
+                <span className={`font-pixel text-3xl sm:text-4xl lg:text-5xl text-foreground transition-transform duration-300 ${scorePulse === "home" ? "scale-110 text-gold" : ""}`} data-testid="score-home">{runningHomeScore}</span>
+                <TeamBadge abbreviation={pbpData.homeTeam.abbreviation} primaryColor={pbpData.homeTeam.primaryColor} secondaryColor={pbpData.homeTeam.secondaryColor} size="md" />
+              </div>
+            </div>
+
+            {!gameOver && (
+              <div className="w-full flex flex-col lg:flex-row items-center lg:items-start justify-center gap-3 lg:gap-4 xl:gap-6 mt-1">
+                <div className="hidden lg:block w-56 xl:w-64 shrink-0">
+                  <PlayerCard
+                    type="batter"
+                    name={currentAtBat ? currentAtBat.batterName : ""}
+                    position={currentAtBat ? (currentLineup[currentAtBat.batterIndex]?.position ?? "") : ""}
+                    stats={{
+                      contact: currentAtBat ? (currentLineup[currentAtBat.batterIndex]?.contact ?? 0) : 0,
+                      power: currentAtBat ? (currentLineup[currentAtBat.batterIndex]?.power ?? 0) : 0,
+                      speed: currentAtBat ? (currentLineup[currentAtBat.batterIndex]?.speed ?? 0) : 0,
+                      fielding: currentAtBat ? (currentLineup[currentAtBat.batterIndex]?.fielding ?? 0) : 0,
+                    }}
+                    gameStats={(() => {
+                      if (!currentAtBat) return undefined;
+                      const battingStats = currentHalf === "top" ? pbpData.awayBatting : pbpData.homeBatting;
+                      const batter = currentLineup[currentAtBat.batterIndex];
+                      if (!batter) return undefined;
+                      const stat = battingStats.find(s => s.playerId === batter.playerId);
+                      if (!stat) return undefined;
+                      return { ab: stat.ab, h: stat.h, hr: stat.hr, rbi: stat.rbi, bb: stat.bb, so: stat.so };
+                    })()}
+                    team={battingTeam}
+                  />
                 </div>
-                <div className="mt-2">
-                  {gameOver ? (
-                    <Badge className="bg-green-500/20 text-green-400 border-green-500/30 font-pixel text-[9px]">FINAL</Badge>
-                  ) : (
-                    <span className="font-pixel text-[10px] text-gold" data-testid="inning-display">
-                      {currentHalf === "top" ? "\u25B2" : "\u25BC"} {currentInning + 1}{getOrdinal(currentInning + 1)}
-                    </span>
+
+                <div className="flex flex-col items-center gap-1 shrink-0">
+                  <DiamondView bases={currentBases} />
+
+                  <div className="flex items-center gap-4">
+                    <div className="flex flex-col items-center gap-0.5">
+                      <span className="font-pixel text-[10px] text-muted-foreground">B-S-O</span>
+                      <div className="flex gap-2">
+                        <div className="flex gap-0.5">
+                          {[0, 1, 2, 3].map(i => (
+                            <div key={`b${i}`} className={`w-3 h-3 lg:w-3.5 lg:h-3.5 rounded-full border ${i < pitchBalls ? "bg-green-400 border-green-500" : "border-border bg-muted/30"}`} />
+                          ))}
+                        </div>
+                        <div className="flex gap-0.5">
+                          {[0, 1, 2].map(i => (
+                            <div key={`s${i}`} className={`w-3 h-3 lg:w-3.5 lg:h-3.5 rounded-full border ${i < pitchStrikes ? "bg-yellow-400 border-yellow-500" : "border-border bg-muted/30"}`} />
+                          ))}
+                        </div>
+                        <div className="flex gap-0.5">
+                          {[0, 1, 2].map(i => (
+                            <div key={`o${i}`} className={`w-3 h-3 lg:w-3.5 lg:h-3.5 rounded-full border ${i < currentOuts ? "bg-red-400 border-red-500" : "border-border bg-muted/30"}`} />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {currentAtBat && (
+                    <div className="text-center mt-1">
+                      <div className="flex items-center justify-center gap-2 mb-0.5">
+                        <Badge variant="outline" className="text-[9px] font-pixel">{currentLineup[currentAtBat.batterIndex]?.position}</Badge>
+                        <span className="font-pixel text-xs text-gold">{currentAtBat.batterName}</span>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground">vs {currentPitcher.firstName[0]}. {currentPitcher.lastName}</span>
+                    </div>
+                  )}
+
+                  {displayedDescription && (
+                    <div className="bg-card/80 border border-border rounded px-3 py-1.5 max-w-xs text-center mt-1" data-testid="play-description">
+                      <p className="text-xs text-foreground">{displayedDescription}</p>
+                    </div>
+                  )}
+
+                  {resultFlash && (
+                    <div className="animate-in fade-in zoom-in-95 duration-200" data-testid="result-flash">
+                      <span className={`font-pixel text-xl sm:text-2xl lg:text-3xl font-bold ${
+                        resultFlash.type === "hr" ? "text-yellow-300" :
+                        resultFlash.type === "hit" ? "text-green-400" :
+                        resultFlash.type === "walk" ? "text-blue-400" :
+                        resultFlash.type === "error" ? "text-orange-400" :
+                        "text-red-400"
+                      }`}>
+                        {resultFlash.text}
+                      </span>
+                    </div>
                   )}
                 </div>
-              </div>
-              <div className="flex flex-col items-center gap-1">
-                <TeamBadge abbreviation={pbpData.homeTeam.abbreviation} primaryColor={pbpData.homeTeam.primaryColor} secondaryColor={pbpData.homeTeam.secondaryColor} size="md" />
-                <span className="font-pixel text-[8px] text-muted-foreground">{pbpData.homeTeam.abbreviation}</span>
-              </div>
-            </div>
 
-            <DiamondView bases={currentBases} />
-
-            <div className="flex items-center gap-6">
-              <div className="flex flex-col items-center gap-1">
-                <span className="font-pixel text-[8px] text-muted-foreground">B-S-O</span>
-                <div className="flex gap-2">
-                  <div className="flex gap-0.5">
-                    {[0, 1, 2, 3].map(i => (
-                      <div key={`b${i}`} className={`w-2.5 h-2.5 rounded-full border ${i < pitchBalls ? "bg-green-400 border-green-500" : "border-border bg-muted/30"}`} />
-                    ))}
-                  </div>
-                  <div className="flex gap-0.5">
-                    {[0, 1, 2].map(i => (
-                      <div key={`s${i}`} className={`w-2.5 h-2.5 rounded-full border ${i < pitchStrikes ? "bg-yellow-400 border-yellow-500" : "border-border bg-muted/30"}`} />
-                    ))}
-                  </div>
-                  <div className="flex gap-0.5">
-                    {[0, 1, 2].map(i => (
-                      <div key={`o${i}`} className={`w-2.5 h-2.5 rounded-full border ${i < currentOuts ? "bg-red-400 border-red-500" : "border-border bg-muted/30"}`} />
-                    ))}
-                  </div>
+                <div className="hidden lg:block w-56 xl:w-64 shrink-0">
+                  <PlayerCard
+                    type="pitcher"
+                    name={`${currentPitcher.firstName[0]}. ${currentPitcher.lastName}`}
+                    position="P"
+                    stats={{
+                      velocity: currentPitcher.velocity,
+                      stuff: currentPitcher.stuff,
+                      control: currentPitcher.control,
+                    }}
+                    gameStats={(() => {
+                      const pitchingStats = currentHalf === "top" ? pbpData.homePitching : pbpData.awayPitching;
+                      const stat = pitchingStats.find(s => s.playerId === currentPitcher.playerId);
+                      if (!stat) return undefined;
+                      return { ip: stat.ip, h: stat.h, er: stat.er, bb: stat.bb, so: stat.so };
+                    })()}
+                    team={pitchingTeam}
+                  />
                 </div>
-              </div>
-            </div>
-
-            {!gameOver && currentAtBat && (
-              <div className="text-center mt-2">
-                <div className="flex items-center justify-center gap-2 mb-1">
-                  <Badge variant="outline" className="text-[8px] font-pixel">{currentLineup[currentAtBat.batterIndex]?.position}</Badge>
-                  <span className="font-pixel text-[10px] text-gold">{currentAtBat.batterName}</span>
-                </div>
-                <span className="text-[9px] text-muted-foreground">vs {currentPitcher.firstName[0]}. {currentPitcher.lastName}</span>
-              </div>
-            )}
-
-            {displayedDescription && (
-              <div className="bg-card/80 border border-border rounded px-4 py-2 max-w-sm text-center" data-testid="play-description">
-                <p className="text-sm text-foreground">{displayedDescription}</p>
-              </div>
-            )}
-
-            {resultFlash && (
-              <div className="animate-in fade-in zoom-in-95 duration-200" data-testid="result-flash">
-                <span className={`font-pixel text-lg sm:text-2xl font-bold ${
-                  resultFlash.type === "hr" ? "text-yellow-300" :
-                  resultFlash.type === "hit" ? "text-green-400" :
-                  resultFlash.type === "walk" ? "text-blue-400" :
-                  resultFlash.type === "error" ? "text-orange-400" :
-                  "text-red-400"
-                }`}>
-                  {resultFlash.text}
-                </span>
               </div>
             )}
 
             {inningTransition && (
               <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
-                <div className="bg-background/80 border border-gold/40 rounded px-8 py-4 animate-in fade-in zoom-in-90 duration-300">
-                  <span className="font-pixel text-gold text-lg sm:text-xl">{inningTransition}</span>
+                <div className="bg-background/90 border border-gold/40 rounded px-10 py-5 animate-in fade-in zoom-in-90 duration-300">
+                  <span className="font-pixel text-gold text-xl sm:text-2xl">{inningTransition}</span>
                 </div>
               </div>
             )}
@@ -628,31 +672,31 @@ export default function PlayByPlayPage() {
             )}
           </div>
 
-          <div className="hidden lg:flex flex-col w-56 border-l border-border p-3 overflow-y-auto">
-            <div className="flex items-center gap-2 mb-3">
+          <div className="hidden lg:flex flex-col w-48 xl:w-52 border-l border-border p-2 overflow-y-auto">
+            <div className="flex items-center gap-2 mb-2">
               <TeamBadge abbreviation={pbpData.homeTeam.abbreviation} primaryColor={pbpData.homeTeam.primaryColor} secondaryColor={pbpData.homeTeam.secondaryColor} size="sm" />
-              <span className="font-pixel text-[9px] text-foreground truncate">{pbpData.homeTeam.name}</span>
+              <span className="font-pixel text-[10px] text-foreground truncate">{pbpData.homeTeam.name}</span>
             </div>
             <div className="space-y-0.5">
               {pbpData.homeLineup.map((p, i) => (
                 <div
                   key={p.playerId}
-                  className={`flex items-center gap-1.5 px-2 py-1 rounded text-[10px] ${
+                  className={`flex items-center gap-1.5 px-1.5 py-0.5 rounded text-[11px] ${
                     currentHalf === "bottom" && currentAtBat?.batterIndex === i
                       ? "bg-gold/20 text-gold border border-gold/40"
                       : "text-muted-foreground"
                   }`}
                   data-testid={`home-lineup-${i}`}
                 >
-                  <span className="w-3 text-center font-pixel text-[8px]">{i + 1}</span>
-                  <span className="w-6 text-[8px] font-pixel text-gold/70">{p.position}</span>
+                  <span className="w-3 text-center font-pixel text-[9px]">{i + 1}</span>
+                  <span className="w-6 text-[9px] font-pixel text-gold/70">{p.position}</span>
                   <span className="truncate">{p.lastName}</span>
                 </div>
               ))}
-              <div className="border-t border-border/50 mt-2 pt-2 px-2">
-                <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                  <span className="w-3 text-center font-pixel text-[8px]">P</span>
-                  <span className="w-6 text-[8px] font-pixel text-gold/70">P</span>
+              <div className="border-t border-border/50 mt-1 pt-1 px-1.5">
+                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <span className="w-3 text-center font-pixel text-[9px]">P</span>
+                  <span className="w-6 text-[9px] font-pixel text-gold/70">P</span>
                   <span className="truncate">{pbpData.homePitcher.lastName}</span>
                 </div>
               </div>
@@ -697,40 +741,40 @@ export default function PlayByPlayPage() {
 
         <div className="border-t border-border">
           <div className="overflow-x-auto">
-            <table className="w-full text-[9px] font-pixel" data-testid="linescore-table">
+            <table className="w-full text-[10px] font-pixel" data-testid="linescore-table">
               <thead>
                 <tr className="border-b border-border">
-                  <th className="text-left px-3 py-1.5 text-muted-foreground w-24">TEAM</th>
+                  <th className="text-left px-2 py-1 text-muted-foreground w-16">TEAM</th>
                   {pbpData.innings.map((_, i) => (
-                    <th key={i} className={`text-center px-1.5 py-1.5 w-6 ${i === currentInning && !gameOver ? "text-gold" : "text-muted-foreground"}`}>{i + 1}</th>
+                    <th key={i} className={`text-center px-1 py-1 w-5 ${i === currentInning && !gameOver ? "text-gold" : "text-muted-foreground"}`}>{i + 1}</th>
                   ))}
-                  <th className="text-center px-2 py-1.5 text-gold border-l border-border">R</th>
-                  <th className="text-center px-2 py-1.5 text-muted-foreground">H</th>
-                  <th className="text-center px-2 py-1.5 text-muted-foreground">E</th>
+                  <th className="text-center px-1.5 py-1 text-gold border-l border-border w-7">R</th>
+                  <th className="text-center px-1.5 py-1 text-muted-foreground w-7">H</th>
+                  <th className="text-center px-1.5 py-1 text-muted-foreground w-7">E</th>
                 </tr>
               </thead>
               <tbody>
                 <tr className="border-b border-border/50">
-                  <td className="px-3 py-1.5 text-foreground">{pbpData.awayTeam.abbreviation}</td>
+                  <td className="px-2 py-1 text-foreground">{pbpData.awayTeam.abbreviation}</td>
                   {pbpData.innings.map((inn, i) => (
-                    <td key={i} className={`text-center px-1.5 py-1.5 ${i < inningScores.away.length ? "text-foreground" : "text-muted-foreground/30"}`}>
+                    <td key={i} className={`text-center px-1 py-1 ${i < inningScores.away.length ? "text-foreground" : "text-muted-foreground/30"}`}>
                       {i < inningScores.away.length ? inningScores.away[i] : "-"}
                     </td>
                   ))}
-                  <td className="text-center px-2 py-1.5 text-gold font-bold border-l border-border">{runningAwayScore}</td>
-                  <td className="text-center px-2 py-1.5">{runningAwayHits}</td>
-                  <td className="text-center px-2 py-1.5">{runningAwayErrors}</td>
+                  <td className="text-center px-1.5 py-1 text-gold font-bold border-l border-border">{runningAwayScore}</td>
+                  <td className="text-center px-1.5 py-1">{runningAwayHits}</td>
+                  <td className="text-center px-1.5 py-1">{runningAwayErrors}</td>
                 </tr>
                 <tr>
-                  <td className="px-3 py-1.5 text-foreground">{pbpData.homeTeam.abbreviation}</td>
+                  <td className="px-2 py-1 text-foreground">{pbpData.homeTeam.abbreviation}</td>
                   {pbpData.innings.map((inn, i) => (
-                    <td key={i} className={`text-center px-1.5 py-1.5 ${i < inningScores.home.length ? "text-foreground" : "text-muted-foreground/30"}`}>
+                    <td key={i} className={`text-center px-1 py-1 ${i < inningScores.home.length ? "text-foreground" : "text-muted-foreground/30"}`}>
                       {i < inningScores.home.length ? inningScores.home[i] : "-"}
                     </td>
                   ))}
-                  <td className="text-center px-2 py-1.5 text-gold font-bold border-l border-border">{runningHomeScore}</td>
-                  <td className="text-center px-2 py-1.5">{runningHomeHits}</td>
-                  <td className="text-center px-2 py-1.5">{runningHomeErrors}</td>
+                  <td className="text-center px-1.5 py-1 text-gold font-bold border-l border-border">{runningHomeScore}</td>
+                  <td className="text-center px-1.5 py-1">{runningHomeHits}</td>
+                  <td className="text-center px-1.5 py-1">{runningHomeErrors}</td>
                 </tr>
               </tbody>
             </table>
@@ -741,9 +785,97 @@ export default function PlayByPlayPage() {
   );
 }
 
+function PlayerCard({ type, name, position, stats, gameStats, team }: {
+  type: "batter" | "pitcher";
+  name: string;
+  position: string;
+  stats: Record<string, number>;
+  gameStats?: Record<string, number | string>;
+  team: TeamInfo;
+}) {
+  const ratingColor = (val: number) => {
+    if (val >= 80) return "text-green-400";
+    if (val >= 60) return "text-blue-400";
+    if (val >= 40) return "text-yellow-400";
+    return "text-red-400";
+  };
+
+  const batterStatLabels: [string, string][] = [
+    ["contact", "CON"],
+    ["power", "PWR"],
+    ["speed", "SPD"],
+    ["fielding", "FLD"],
+  ];
+
+  const pitcherStatLabels: [string, string][] = [
+    ["velocity", "VEL"],
+    ["stuff", "STF"],
+    ["control", "CTL"],
+  ];
+
+  const statLabels = type === "batter" ? batterStatLabels : pitcherStatLabels;
+
+  return (
+    <div className="border border-border rounded bg-card/60 p-2.5" data-testid={`player-card-${type}`}>
+      <div className="flex items-center gap-2 mb-2">
+        <TeamBadge abbreviation={team.abbreviation} primaryColor={team.primaryColor} secondaryColor={team.secondaryColor} size="sm" />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <Badge variant="outline" className="text-[8px] font-pixel shrink-0">{position}</Badge>
+            <span className="font-pixel text-[11px] text-gold truncate">{name}</span>
+          </div>
+          <span className="text-[9px] text-muted-foreground">{type === "batter" ? "At Bat" : "Pitching"}</span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1 mb-2">
+        {statLabels.map(([key, label]) => (
+          <div key={key} className="flex items-center justify-between gap-1">
+            <span className="text-[9px] font-pixel text-muted-foreground">{label}</span>
+            <div className="flex items-center gap-1 flex-1">
+              <div className="flex-1 h-1.5 bg-muted/30 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full ${(stats[key] ?? 0) >= 80 ? "bg-green-500" : (stats[key] ?? 0) >= 60 ? "bg-blue-500" : (stats[key] ?? 0) >= 40 ? "bg-yellow-500" : "bg-red-500"}`}
+                  style={{ width: `${Math.min(100, (stats[key] ?? 0))}%` }}
+                />
+              </div>
+              <span className={`text-[10px] font-pixel w-5 text-right ${ratingColor(stats[key] ?? 0)}`}>{stats[key] ?? 0}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {gameStats && (
+        <div className="border-t border-border/50 pt-1.5 mt-1">
+          <div className="flex flex-wrap gap-x-2 gap-y-0.5">
+            {type === "batter" ? (
+              <>
+                <span className="text-[9px]"><span className="text-muted-foreground">AB:</span> <span className="text-foreground">{gameStats.ab}</span></span>
+                <span className="text-[9px]"><span className="text-muted-foreground">H:</span> <span className="text-foreground">{gameStats.h}</span></span>
+                <span className="text-[9px]"><span className="text-muted-foreground">HR:</span> <span className="text-foreground">{gameStats.hr}</span></span>
+                <span className="text-[9px]"><span className="text-muted-foreground">RBI:</span> <span className="text-foreground">{gameStats.rbi}</span></span>
+                <span className="text-[9px]"><span className="text-muted-foreground">BB:</span> <span className="text-foreground">{gameStats.bb}</span></span>
+                <span className="text-[9px]"><span className="text-muted-foreground">K:</span> <span className="text-foreground">{gameStats.so}</span></span>
+              </>
+            ) : (
+              <>
+                <span className="text-[9px]"><span className="text-muted-foreground">IP:</span> <span className="text-foreground">{gameStats.ip}</span></span>
+                <span className="text-[9px]"><span className="text-muted-foreground">H:</span> <span className="text-foreground">{gameStats.h}</span></span>
+                <span className="text-[9px]"><span className="text-muted-foreground">ER:</span> <span className="text-foreground">{gameStats.er}</span></span>
+                <span className="text-[9px]"><span className="text-muted-foreground">BB:</span> <span className="text-foreground">{gameStats.bb}</span></span>
+                <span className="text-[9px]"><span className="text-muted-foreground">K:</span> <span className="text-foreground">{gameStats.so}</span></span>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function DiamondView({ bases }: { bases: boolean[] }) {
   return (
-    <div className="relative w-32 h-32 sm:w-40 sm:h-40" data-testid="diamond-view">
+    <div className="relative w-36 h-36 sm:w-44 sm:h-44 lg:w-48 lg:h-48" data-testid="diamond-view">
       <svg viewBox="0 0 100 100" className="w-full h-full">
         <polygon points="50,15 85,50 50,85 15,50" fill="none" stroke="hsl(var(--border))" strokeWidth="1.5" />
         <line x1="50" y1="85" x2="50" y2="95" stroke="hsl(var(--border))" strokeWidth="1.5" />

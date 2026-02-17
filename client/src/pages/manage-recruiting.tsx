@@ -215,19 +215,88 @@ function generateRecruitingClass(): RecruitData[] {
       pool.splice(idx, 1);
     }
 
-    recruits.push({
+    let specialBonus = 0;
+    for (const aName of abilities) {
+      const ab = ALL_ABILITIES.find(a => a.name === aName);
+      if (ab) {
+        if (ab.tier === "gold") specialBonus += 33;
+        else if (ab.tier === "blue") specialBonus += 20;
+        else if (ab.tier === "red") specialBonus -= 15;
+      }
+    }
+
+    const targetOvr = randInt(minOvr, maxOvr);
+    const targetAttrCommon = targetOvr - specialBonus;
+    const targetAttrSum = Math.max(100, Math.round((targetAttrCommon - 150) / 0.6 + 100));
+    const targetCommonSum = Math.max(100, Math.round((targetAttrCommon - targetAttrSum * 0.6) / 0.25));
+
+    const genAttrs = (count: number, targetSum: number): number[] => {
+      const avg = Math.max(15, Math.min(99, Math.round(targetSum / count)));
+      const vals: number[] = [];
+      let remaining = targetSum;
+      for (let j = 0; j < count - 1; j++) {
+        const spread = Math.max(5, Math.round(avg * 0.3));
+        const val = Math.max(15, Math.min(99, avg + randInt(-spread, spread)));
+        vals.push(val);
+        remaining -= val;
+      }
+      vals.push(Math.max(15, Math.min(99, remaining)));
+      return vals;
+    };
+
+    const attrVals = genAttrs(isPitcherPos ? 4 : 6, Math.round(targetAttrSum * (isPitcherPos ? 0.4 : 0.6)));
+    const commonVals = genAttrs(isPitcherPos ? 7 : 7, Math.round(targetCommonSum * (7/12)));
+
+    const recruit: RecruitData = {
       firstName: pickRandom(FIRST_NAMES),
       lastName: pickRandom(LAST_NAMES),
       position,
       starRating: star,
-      overall: randInt(minOvr, maxOvr),
+      overall: targetOvr,
       homeState: pickRandom(STATES),
       hometown: pickRandom(HOMETOWNS),
       potential: pickRandom(potentialByStars[star]),
       abilities,
       jerseyNumber: randInt(1, 99),
       rank: 0,
-    });
+    };
+
+    if (isPitcherPos) {
+      recruit.velocity = Math.max(60, Math.min(99, attrVals[0]));
+      recruit.control = Math.max(20, Math.min(99, attrVals[1]));
+      recruit.stamina = Math.max(20, Math.min(99, attrVals[2]));
+      recruit.stuff = Math.max(20, Math.min(99, attrVals[3] ?? attrVals[0]));
+      recruit.wRISP = Math.max(15, Math.min(99, commonVals[0]));
+      recruit.vsLefty = Math.max(15, Math.min(99, commonVals[1]));
+      recruit.poise = Math.max(15, Math.min(99, commonVals[2]));
+      recruit.grit = Math.max(15, Math.min(99, commonVals[3]));
+      recruit.heater = Math.max(15, Math.min(99, commonVals[4]));
+      recruit.agile = Math.max(15, Math.min(99, commonVals[5]));
+      recruit.recovery = Math.max(15, Math.min(99, commonVals[6]));
+      recruit.pitchFB = randInt(4, 7);
+      recruit.pitch2S = Math.random() < 0.4 ? randInt(3, 6) : 0;
+      recruit.pitchSL = Math.random() < 0.5 ? randInt(3, 6) : 0;
+      recruit.pitchCB = Math.random() < 0.5 ? randInt(3, 6) : 0;
+      recruit.pitchCH = Math.random() < 0.4 ? randInt(3, 6) : 0;
+      recruit.pitchCT = Math.random() < 0.3 ? randInt(3, 6) : 0;
+      recruit.pitchSNK = Math.random() < 0.25 ? randInt(3, 6) : 0;
+    } else {
+      recruit.hitForAvg = Math.max(15, Math.min(99, attrVals[0]));
+      recruit.power = Math.max(15, Math.min(99, attrVals[1]));
+      recruit.speed = Math.max(15, Math.min(99, attrVals[2]));
+      recruit.arm = Math.max(15, Math.min(99, attrVals[3]));
+      recruit.fielding = Math.max(15, Math.min(99, attrVals[4]));
+      recruit.errorResistance = Math.max(15, Math.min(99, attrVals[5]));
+      recruit.clutch = Math.max(15, Math.min(99, commonVals[0]));
+      recruit.vsLHP = Math.max(15, Math.min(99, commonVals[1]));
+      recruit.grit = Math.max(15, Math.min(99, commonVals[2]));
+      recruit.stealing = Math.max(15, Math.min(99, commonVals[3]));
+      recruit.running = Math.max(15, Math.min(99, commonVals[4]));
+      recruit.throwing = Math.max(15, Math.min(99, commonVals[5]));
+      recruit.recovery = Math.max(15, Math.min(99, commonVals[6]));
+    }
+
+    recruits.push(recruit);
   }
 
   return recruits;

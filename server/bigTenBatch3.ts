@@ -477,8 +477,8 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       ...noPitches },
     // INFIELDERS (7)
     { firstName: "Roch", lastName: "Cholowsky", position: "SS", eligibility: "JR", homeState: "CA", hometown: "Oceanside", jerseyNumber: 2,
-      hitForAvg: 73, power: 73, speed: 61, arm: 66, fielding: 68, errorResistance: 66, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 73, vsLHP: 69, grit: 73, stealing: 48, running: 59, throwing: 68, recovery: 56, wRISP: 73, vsLefty: 68, poise: 71, heater: 0, agile: 65,
+      hitForAvg: 86, power: 85, speed: 72, arm: 78, fielding: 80, errorResistance: 78, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 82, vsLHP: 82, grit: 82, stealing: 40, running: 72, throwing: 82, recovery: 62, wRISP: 82, vsLefty: 80, poise: 82, heater: 0, agile: 68,
       abilities: ["Power Surge", "Clutch Hitter", "Contact Machine"], potential: "A", catcherAbility: null,
       ...noPitches },
     { firstName: "Mulivai", lastName: "Levu", position: "1B", eligibility: "JR", homeState: "HI", hometown: "Honolulu", jerseyNumber: 24,
