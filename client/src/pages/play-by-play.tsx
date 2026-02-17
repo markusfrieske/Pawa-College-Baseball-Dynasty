@@ -4,7 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { RetroButton } from "@/components/ui/retro-button";
 import { TeamBadge } from "@/components/ui/team-badge";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Pause, Play, FastForward } from "lucide-react";
+import { ArrowLeft, Pause, Play, FastForward, MapPin } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -90,6 +90,44 @@ interface TeamInfo {
   abbreviation: string;
   primaryColor: string;
   secondaryColor: string;
+  mascot?: string;
+}
+
+interface GameInfo {
+  week: number;
+  season: number;
+  gameType: string | null;
+  gameTypeLabel: string;
+  isConference: boolean;
+  phase: string;
+  venue: string;
+}
+
+interface TeamRecord {
+  wins: number;
+  losses: number;
+  confWins: number;
+  confLosses: number;
+}
+
+interface ConfStanding {
+  teamId: string;
+  abbreviation: string;
+  name: string;
+  wins: number;
+  losses: number;
+  confWins: number;
+  confLosses: number;
+}
+
+interface SeasonStatLine {
+  games: number;
+  ab: number; h: number; hr: number; rbi: number; bb: number; so: number; r: number;
+  avg: string;
+  pitchingGames: number;
+  wins: number; losses: number;
+  ipOuts: number; pHits: number; pEr: number; pBb: number; pSo: number;
+  era: string;
 }
 
 interface PlayByPlayData {
@@ -105,6 +143,11 @@ interface PlayByPlayData {
   awayBatting: BattingStat[];
   homePitching: PitchingStat[];
   awayPitching: PitchingStat[];
+  gameInfo?: GameInfo;
+  teamRecords?: { home: TeamRecord; away: TeamRecord };
+  conferenceInfo?: { homeName: string; awayName: string };
+  conferenceStandings?: ConfStanding[];
+  playerSeasonStats?: Record<string, SeasonStatLine>;
 }
 
 export default function PlayByPlayPage() {
@@ -412,7 +455,7 @@ export default function PlayByPlayPage() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin w-8 h-8 border-2 border-gold border-t-transparent rounded-full mx-auto mb-4" />
-          <p className="font-pixel text-gold text-xs">Generating play-by-play...</p>
+          <p className="font-pixel text-gold text-sm">Generating play-by-play...</p>
         </div>
       </div>
     );
@@ -422,7 +465,7 @@ export default function PlayByPlayPage() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <p className="font-pixel text-red-400 text-xs mb-4">Failed to generate play-by-play</p>
+          <p className="font-pixel text-red-400 text-sm mb-4">Failed to generate play-by-play</p>
           <p className="text-muted-foreground text-sm mb-4">{(error as Error)?.message || "Unknown error"}</p>
           <RetroButton variant="outline" onClick={() => setLocation(`/league/${id}/schedule`)} data-testid="button-back-schedule">
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -464,50 +507,41 @@ export default function PlayByPlayPage() {
     pitchStrikes = s;
   }
 
+  const homeRecord = pbpData.teamRecords?.home;
+  const awayRecord = pbpData.teamRecords?.away;
+
   return (
-    <div className="min-h-screen bg-background flex flex-col" data-testid="play-by-play-page">
-      <header className="border-b border-border px-4 py-3 flex items-center justify-between gap-2">
+    <div className="min-h-screen bg-background flex flex-col font-pixel" data-testid="play-by-play-page">
+      <header className="border-b border-border px-4 py-2 flex items-center justify-between gap-2">
         <RetroButton variant="ghost" size="sm" onClick={() => setLocation(`/league/${id}/schedule`)} data-testid="button-back">
           <ArrowLeft className="w-4 h-4" />
         </RetroButton>
-        <h1 className="font-pixel text-gold text-[10px] sm:text-xs">Play by Play</h1>
-        <div className="flex gap-1 mr-14">
-          <RetroButton
-            variant={speed === "pause" ? "primary" : "outline"}
-            size="sm"
-            onClick={() => setSpeed("pause")}
-            data-testid="button-speed-pause"
-            title="Pause"
-          >
-            <Pause className="w-3 h-3" />
-          </RetroButton>
-          <RetroButton
-            variant={speed === "slow" ? "primary" : "outline"}
-            size="sm"
-            onClick={() => setSpeed("slow")}
-            data-testid="button-speed-slow"
-            title="Slow (at-bat by at-bat)"
-          >
-            <Play className="w-3 h-3" />
-          </RetroButton>
-          <RetroButton
-            variant={speed === "fast" ? "primary" : "outline"}
-            size="sm"
-            onClick={() => setSpeed("fast")}
-            data-testid="button-speed-fast"
-            title="Fast (half-inning by half-inning)"
-          >
-            <FastForward className="w-3 h-3" />
-          </RetroButton>
+        <div className="flex items-center gap-2">
+          {pbpData.gameInfo && (
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <MapPin className="w-3 h-3" />
+              <span className="text-[10px]" data-testid="text-venue">{pbpData.gameInfo.venue}</span>
+              <span className="text-[10px] text-gold">|</span>
+              <span className="text-[10px]" data-testid="text-week">Wk {pbpData.gameInfo.week}</span>
+              <span className="text-[10px] text-gold">|</span>
+              <span className="text-[10px]" data-testid="text-game-type">{pbpData.gameInfo.gameTypeLabel}</span>
+            </div>
+          )}
         </div>
+        <div className="w-8" />
       </header>
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <div className="flex-1 flex flex-col lg:flex-row gap-0 min-h-0">
-          <div className="hidden lg:flex flex-col w-52 xl:w-60 border-r border-border p-2 overflow-y-auto">
-            <div className="flex items-center gap-2 mb-2 px-1">
+          <div className="hidden lg:flex flex-col w-56 xl:w-64 border-r border-border p-3 overflow-y-auto">
+            <div className="flex items-center gap-2 mb-3 px-1">
               <TeamBadge abbreviation={pbpData.awayTeam.abbreviation} primaryColor={pbpData.awayTeam.primaryColor} secondaryColor={pbpData.awayTeam.secondaryColor} size="sm" />
-              <span className="font-pixel text-[10px] text-foreground truncate">{pbpData.awayTeam.name}</span>
+              <div className="min-w-0 flex-1">
+                <span className="text-[11px] text-foreground truncate block">{pbpData.awayTeam.name}</span>
+                {awayRecord && (
+                  <span className="text-[9px] text-muted-foreground">({awayRecord.wins}-{awayRecord.losses})</span>
+                )}
+              </div>
             </div>
             <div className="space-y-0.5">
               {pbpData.awayLineup.map((p, i) => {
@@ -518,171 +552,253 @@ export default function PlayByPlayPage() {
                     className={`flex items-center gap-1.5 px-1.5 py-1 rounded transition-colors ${
                       isActive
                         ? "bg-gold/30 border border-gold/60 shadow-[0_0_6px_rgba(202,166,57,0.3)]"
-                        : "hover:bg-muted/20"
+                        : ""
                     }`}
                     data-testid={`away-lineup-${i}`}
                   >
-                    <span className={`w-4 text-center font-pixel text-[9px] ${isActive ? "text-gold" : "text-muted-foreground"}`}>{i + 1}</span>
-                    <span className={`${positionColor(p.position)} text-white text-[8px] font-pixel px-1 py-0.5 rounded leading-none min-w-[22px] text-center`}>{p.position}</span>
-                    <span className={`text-[12px] truncate flex-1 ${isActive ? "text-gold font-bold" : "text-foreground"}`}>{p.lastName}</span>
+                    <span className={`w-4 text-center text-[9px] ${isActive ? "text-gold" : "text-muted-foreground"}`}>{i + 1}</span>
+                    <span className={`${positionColor(p.position)} text-white text-[8px] px-1 py-0.5 rounded leading-none min-w-[24px] text-center`}>{p.position}</span>
+                    <span className={`text-[11px] truncate flex-1 ${isActive ? "text-gold font-bold" : "text-foreground"}`}>{p.lastName}</span>
                     <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${ratingDot(p.contact)}`} title={`Contact: ${p.contact}`} />
                   </div>
                 );
               })}
               <div className="border-t border-border/50 mt-1 pt-1 px-1.5">
                 <div className="flex items-center gap-1.5">
-                  <span className="w-4 text-center font-pixel text-[9px] text-muted-foreground">P</span>
-                  <span className="bg-red-500 text-white text-[8px] font-pixel px-1 py-0.5 rounded leading-none min-w-[22px] text-center">P</span>
-                  <span className="text-[12px] text-muted-foreground truncate">{pbpData.awayPitcher.lastName}</span>
+                  <span className="w-4 text-center text-[9px] text-muted-foreground">P</span>
+                  <span className="bg-red-500 text-white text-[8px] px-1 py-0.5 rounded leading-none min-w-[24px] text-center">P</span>
+                  <span className="text-[11px] text-muted-foreground truncate">{pbpData.awayPitcher.lastName}</span>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className={`flex-1 flex flex-col items-center p-3 lg:p-4 gap-2 relative ${gameOver ? "overflow-y-auto" : ""}`}>
-            <div className="flex items-center gap-4 sm:gap-8 lg:gap-10">
-              <div className="flex items-center gap-2 lg:gap-4">
+          <div className={`flex-1 flex flex-col items-center p-4 lg:p-5 gap-3 relative ${gameOver ? "overflow-y-auto" : ""}`}>
+            <div className="flex items-center gap-6 sm:gap-10 lg:gap-14">
+              <div className="flex items-center gap-3 lg:gap-5">
                 <TeamBadge abbreviation={pbpData.awayTeam.abbreviation} primaryColor={pbpData.awayTeam.primaryColor} secondaryColor={pbpData.awayTeam.secondaryColor} size="lg" />
                 <div className="flex flex-col items-center">
-                  <span className="font-pixel text-[9px] text-muted-foreground uppercase">{pbpData.awayTeam.abbreviation}</span>
-                  <span className={`font-pixel text-4xl sm:text-5xl lg:text-6xl text-foreground transition-transform duration-300 ${scorePulse === "away" ? "scale-110 text-gold" : ""}`} data-testid="score-away">{runningAwayScore}</span>
+                  <span className="text-[10px] text-muted-foreground uppercase">{pbpData.awayTeam.abbreviation}</span>
+                  {awayRecord && <span className="text-[8px] text-muted-foreground">({awayRecord.wins}-{awayRecord.losses})</span>}
+                  <span className={`text-5xl sm:text-6xl lg:text-7xl text-foreground transition-transform duration-300 ${scorePulse === "away" ? "scale-110 text-gold" : ""}`} data-testid="score-away">{runningAwayScore}</span>
                 </div>
               </div>
               <div className="flex flex-col items-center gap-1">
                 {gameOver ? (
-                  <Badge className="bg-green-500/20 text-green-400 border-green-500/30 font-pixel text-[10px]">FINAL</Badge>
+                  <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-[11px]">FINAL</Badge>
                 ) : (
                   <div className="flex flex-col items-center">
-                    <span className="font-pixel text-lg text-gold" data-testid="inning-display">
+                    <span className="text-xl text-gold" data-testid="inning-display">
                       {currentHalf === "top" ? "\u25B2" : "\u25BC"} {currentInning + 1}{getOrdinal(currentInning + 1)}
                     </span>
                   </div>
                 )}
               </div>
-              <div className="flex items-center gap-2 lg:gap-4">
+              <div className="flex items-center gap-3 lg:gap-5">
                 <div className="flex flex-col items-center">
-                  <span className="font-pixel text-[9px] text-muted-foreground uppercase">{pbpData.homeTeam.abbreviation}</span>
-                  <span className={`font-pixel text-4xl sm:text-5xl lg:text-6xl text-foreground transition-transform duration-300 ${scorePulse === "home" ? "scale-110 text-gold" : ""}`} data-testid="score-home">{runningHomeScore}</span>
+                  <span className="text-[10px] text-muted-foreground uppercase">{pbpData.homeTeam.abbreviation}</span>
+                  {homeRecord && <span className="text-[8px] text-muted-foreground">({homeRecord.wins}-{homeRecord.losses})</span>}
+                  <span className={`text-5xl sm:text-6xl lg:text-7xl text-foreground transition-transform duration-300 ${scorePulse === "home" ? "scale-110 text-gold" : ""}`} data-testid="score-home">{runningHomeScore}</span>
                 </div>
                 <TeamBadge abbreviation={pbpData.homeTeam.abbreviation} primaryColor={pbpData.homeTeam.primaryColor} secondaryColor={pbpData.homeTeam.secondaryColor} size="lg" />
               </div>
             </div>
 
             {!gameOver && (
-              <div className="w-full flex flex-col lg:flex-row items-center lg:items-start justify-center gap-3 lg:gap-4 xl:gap-6 mt-1">
-                <div className="hidden lg:block w-56 xl:w-64 shrink-0">
-                  <PlayerCard
-                    type="batter"
-                    name={currentAtBat ? currentAtBat.batterName : ""}
-                    position={currentAtBat ? (currentLineup[currentAtBat.batterIndex]?.position ?? "") : ""}
-                    stats={{
-                      contact: currentAtBat ? (currentLineup[currentAtBat.batterIndex]?.contact ?? 0) : 0,
-                      power: currentAtBat ? (currentLineup[currentAtBat.batterIndex]?.power ?? 0) : 0,
-                      speed: currentAtBat ? (currentLineup[currentAtBat.batterIndex]?.speed ?? 0) : 0,
-                      fielding: currentAtBat ? (currentLineup[currentAtBat.batterIndex]?.fielding ?? 0) : 0,
-                    }}
-                    gameStats={(() => {
-                      if (!currentAtBat) return undefined;
-                      const battingStats = currentHalf === "top" ? pbpData.awayBatting : pbpData.homeBatting;
-                      const batter = currentLineup[currentAtBat.batterIndex];
-                      if (!batter) return undefined;
-                      const stat = battingStats.find(s => s.playerId === batter.playerId);
-                      if (!stat) return undefined;
-                      return { ab: stat.ab, h: stat.h, hr: stat.hr, rbi: stat.rbi, bb: stat.bb, so: stat.so };
-                    })()}
-                    team={battingTeam}
-                  />
-                </div>
+              <div className="w-full flex flex-col items-center gap-3 mt-1">
+                <div className="w-full flex flex-col lg:flex-row items-center lg:items-start justify-center gap-4 lg:gap-6 xl:gap-8">
+                  <div className="hidden lg:block w-64 xl:w-72 shrink-0">
+                    <PlayerCard
+                      type="batter"
+                      name={currentAtBat ? currentAtBat.batterName : ""}
+                      position={currentAtBat ? (currentLineup[currentAtBat.batterIndex]?.position ?? "") : ""}
+                      stats={{
+                        contact: currentAtBat ? (currentLineup[currentAtBat.batterIndex]?.contact ?? 0) : 0,
+                        power: currentAtBat ? (currentLineup[currentAtBat.batterIndex]?.power ?? 0) : 0,
+                        speed: currentAtBat ? (currentLineup[currentAtBat.batterIndex]?.speed ?? 0) : 0,
+                        fielding: currentAtBat ? (currentLineup[currentAtBat.batterIndex]?.fielding ?? 0) : 0,
+                      }}
+                      gameStats={(() => {
+                        if (!currentAtBat) return undefined;
+                        const battingStats = currentHalf === "top" ? pbpData.awayBatting : pbpData.homeBatting;
+                        const batter = currentLineup[currentAtBat.batterIndex];
+                        if (!batter) return undefined;
+                        const stat = battingStats.find(s => s.playerId === batter.playerId);
+                        if (!stat) return undefined;
+                        return { ab: stat.ab, h: stat.h, hr: stat.hr, rbi: stat.rbi, bb: stat.bb, so: stat.so };
+                      })()}
+                      seasonStats={(() => {
+                        if (!currentAtBat || !pbpData.playerSeasonStats) return undefined;
+                        const batter = currentLineup[currentAtBat.batterIndex];
+                        if (!batter) return undefined;
+                        return pbpData.playerSeasonStats[batter.playerId];
+                      })()}
+                      team={battingTeam}
+                    />
+                  </div>
 
-                <div className="flex flex-col items-center gap-1 shrink-0">
-                  <div className="flex items-center gap-3 lg:gap-4">
-                    <DiamondView bases={currentBases} />
+                  <div className="flex flex-col items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-4 lg:gap-5">
+                      <DiamondView bases={currentBases} />
 
-                    <div className="border border-border rounded bg-card/80 px-2.5 py-2 flex flex-col gap-1.5">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-pixel text-[10px] text-green-400 w-3">B</span>
-                        <div className="flex gap-1">
-                          {[0, 1, 2, 3].map(i => (
-                            <div key={`b${i}`} className={`w-3.5 h-3.5 rounded-full border ${i < pitchBalls ? "bg-green-400 border-green-500" : "border-border bg-muted/30"}`} />
-                          ))}
+                      <div className="border border-border rounded bg-card/80 px-3 py-2.5 flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] text-green-400 w-3">B</span>
+                          <div className="flex gap-1.5">
+                            {[0, 1, 2, 3].map(i => (
+                              <div key={`b${i}`} className={`w-4 h-4 rounded-full border ${i < pitchBalls ? "bg-green-400 border-green-500" : "border-border bg-muted/30"}`} />
+                            ))}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] text-yellow-400 w-3">S</span>
+                          <div className="flex gap-1.5">
+                            {[0, 1, 2].map(i => (
+                              <div key={`s${i}`} className={`w-4 h-4 rounded-full border ${i < pitchStrikes ? "bg-yellow-400 border-yellow-500" : "border-border bg-muted/30"}`} />
+                            ))}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] text-red-400 w-3">O</span>
+                          <div className="flex gap-1.5">
+                            {[0, 1, 2].map(i => (
+                              <div key={`o${i}`} className={`w-4 h-4 rounded-full border ${i < currentOuts ? "bg-red-400 border-red-500" : "border-border bg-muted/30"}`} />
+                            ))}
+                          </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-pixel text-[10px] text-yellow-400 w-3">S</span>
-                        <div className="flex gap-1">
-                          {[0, 1, 2].map(i => (
-                            <div key={`s${i}`} className={`w-3.5 h-3.5 rounded-full border ${i < pitchStrikes ? "bg-yellow-400 border-yellow-500" : "border-border bg-muted/30"}`} />
-                          ))}
+                    </div>
+
+                    {currentAtBat && (
+                      <div className="text-center bg-card/60 border border-border rounded px-5 py-2">
+                        <div className="flex items-center justify-center gap-2 mb-1">
+                          <PlayerFace position={currentLineup[currentAtBat.batterIndex]?.position ?? "DH"} size={24} />
+                          <span className={`${positionColor(currentLineup[currentAtBat.batterIndex]?.position ?? "")} text-white text-[9px] px-1.5 py-0.5 rounded leading-none`}>{currentLineup[currentAtBat.batterIndex]?.position}</span>
+                          <span className="text-sm text-gold">{currentAtBat.batterName}</span>
                         </div>
+                        <span className="text-[10px] text-muted-foreground">vs {currentPitcher.firstName[0]}. {currentPitcher.lastName}</span>
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-pixel text-[10px] text-red-400 w-3">O</span>
-                        <div className="flex gap-1">
-                          {[0, 1, 2].map(i => (
-                            <div key={`o${i}`} className={`w-3.5 h-3.5 rounded-full border ${i < currentOuts ? "bg-red-400 border-red-500" : "border-border bg-muted/30"}`} />
-                          ))}
-                        </div>
+                    )}
+
+                    {displayedDescription && (
+                      <div className="bg-card/80 border border-border rounded px-4 py-2 max-w-sm text-center" data-testid="play-description">
+                        <p className="text-[11px] text-foreground">{displayedDescription}</p>
                       </div>
+                    )}
+
+                    <div className="overflow-x-auto max-w-sm w-full mt-1">
+                      <table className="w-full text-[10px]" data-testid="linescore-table">
+                        <thead>
+                          <tr className="border-b border-border">
+                            <th className="text-left px-2 py-1 text-muted-foreground w-14">TEAM</th>
+                            {pbpData.innings.map((_, i) => (
+                              <th key={i} className={`text-center px-1 py-1 w-5 ${i === currentInning && !gameOver ? "text-gold" : "text-muted-foreground"}`}>{i + 1}</th>
+                            ))}
+                            <th className="text-center px-1.5 py-1 text-gold border-l border-border w-6">R</th>
+                            <th className="text-center px-1.5 py-1 text-muted-foreground w-6">H</th>
+                            <th className="text-center px-1.5 py-1 text-muted-foreground w-6">E</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr className="border-b border-border/50">
+                            <td className="px-2 py-1 text-foreground">{pbpData.awayTeam.abbreviation}</td>
+                            {pbpData.innings.map((_, i) => (
+                              <td key={i} className={`text-center px-1 py-1 ${i < inningScores.away.length ? "text-foreground" : "text-muted-foreground/30"}`}>
+                                {i < inningScores.away.length ? inningScores.away[i] : "-"}
+                              </td>
+                            ))}
+                            <td className="text-center px-1.5 py-1 text-gold font-bold border-l border-border">{runningAwayScore}</td>
+                            <td className="text-center px-1.5 py-1">{runningAwayHits}</td>
+                            <td className="text-center px-1.5 py-1">{runningAwayErrors}</td>
+                          </tr>
+                          <tr>
+                            <td className="px-2 py-1 text-foreground">{pbpData.homeTeam.abbreviation}</td>
+                            {pbpData.innings.map((_, i) => (
+                              <td key={i} className={`text-center px-1 py-1 ${i < inningScores.home.length ? "text-foreground" : "text-muted-foreground/30"}`}>
+                                {i < inningScores.home.length ? inningScores.home[i] : "-"}
+                              </td>
+                            ))}
+                            <td className="text-center px-1.5 py-1 text-gold font-bold border-l border-border">{runningHomeScore}</td>
+                            <td className="text-center px-1.5 py-1">{runningHomeHits}</td>
+                            <td className="text-center px-1.5 py-1">{runningHomeErrors}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {resultFlash && (
+                      <div className="animate-in fade-in zoom-in-95 duration-200" data-testid="result-flash">
+                        <span className={`text-2xl sm:text-3xl lg:text-4xl font-bold ${
+                          resultFlash.type === "hr" ? "text-yellow-300" :
+                          resultFlash.type === "hit" ? "text-green-400" :
+                          resultFlash.type === "walk" ? "text-blue-400" :
+                          resultFlash.type === "error" ? "text-orange-400" :
+                          "text-red-400"
+                        }`}>
+                          {resultFlash.text}
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-2 mt-1">
+                      <RetroButton
+                        variant={speed === "pause" ? "primary" : "outline"}
+                        size="sm"
+                        onClick={() => setSpeed("pause")}
+                        data-testid="button-speed-pause"
+                        title="Pause"
+                      >
+                        <Pause className="w-4 h-4" />
+                      </RetroButton>
+                      <RetroButton
+                        variant={speed === "slow" ? "primary" : "outline"}
+                        size="sm"
+                        onClick={() => setSpeed("slow")}
+                        data-testid="button-speed-slow"
+                        title="Slow (at-bat by at-bat)"
+                      >
+                        <Play className="w-4 h-4" />
+                      </RetroButton>
+                      <RetroButton
+                        variant={speed === "fast" ? "primary" : "outline"}
+                        size="sm"
+                        onClick={() => setSpeed("fast")}
+                        data-testid="button-speed-fast"
+                        title="Fast (half-inning by half-inning)"
+                      >
+                        <FastForward className="w-4 h-4" />
+                      </RetroButton>
                     </div>
                   </div>
 
-                  {currentAtBat && (
-                    <div className="text-center mt-2 bg-card/60 border border-border rounded px-4 py-1.5">
-                      <div className="flex items-center justify-center gap-2 mb-0.5">
-                        <span className={`${positionColor(currentLineup[currentAtBat.batterIndex]?.position ?? "")} text-white text-[8px] font-pixel px-1 py-0.5 rounded leading-none`}>{currentLineup[currentAtBat.batterIndex]?.position}</span>
-                        <span className="font-pixel text-sm text-gold">{currentAtBat.batterName}</span>
-                      </div>
-                      <span className="text-[10px] text-muted-foreground">vs {currentPitcher.firstName[0]}. {currentPitcher.lastName}</span>
-                    </div>
-                  )}
-
-                  {displayedDescription && (
-                    <div className="bg-card/80 border border-border rounded px-3 py-1.5 max-w-xs text-center mt-1" data-testid="play-description">
-                      <p className="text-xs text-foreground">{displayedDescription}</p>
-                    </div>
-                  )}
-
-                  {resultFlash && (
-                    <div className="animate-in fade-in zoom-in-95 duration-200" data-testid="result-flash">
-                      <span className={`font-pixel text-xl sm:text-2xl lg:text-3xl font-bold ${
-                        resultFlash.type === "hr" ? "text-yellow-300" :
-                        resultFlash.type === "hit" ? "text-green-400" :
-                        resultFlash.type === "walk" ? "text-blue-400" :
-                        resultFlash.type === "error" ? "text-orange-400" :
-                        "text-red-400"
-                      }`}>
-                        {resultFlash.text}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                <div className="hidden lg:block w-56 xl:w-64 shrink-0">
-                  <PlayerCard
-                    type="pitcher"
-                    name={`${currentPitcher.firstName[0]}. ${currentPitcher.lastName}`}
-                    position="P"
-                    stats={{
-                      velocity: currentPitcher.velocity,
-                      stuff: currentPitcher.stuff,
-                      control: currentPitcher.control,
-                    }}
-                    gameStats={(() => {
-                      const pitchingStats = currentHalf === "top" ? pbpData.homePitching : pbpData.awayPitching;
-                      const stat = pitchingStats.find(s => s.playerId === currentPitcher.playerId);
-                      if (!stat) return undefined;
-                      return { ip: stat.ip, h: stat.h, er: stat.er, bb: stat.bb, so: stat.so };
-                    })()}
-                    team={pitchingTeam}
-                  />
+                  <div className="hidden lg:block w-64 xl:w-72 shrink-0">
+                    <PlayerCard
+                      type="pitcher"
+                      name={`${currentPitcher.firstName[0]}. ${currentPitcher.lastName}`}
+                      position="P"
+                      stats={{
+                        velocity: currentPitcher.velocity,
+                        stuff: currentPitcher.stuff,
+                        control: currentPitcher.control,
+                      }}
+                      gameStats={(() => {
+                        const pitchingStats = currentHalf === "top" ? pbpData.homePitching : pbpData.awayPitching;
+                        const stat = pitchingStats.find(s => s.playerId === currentPitcher.playerId);
+                        if (!stat) return undefined;
+                        return { ip: stat.ip, h: stat.h, er: stat.er, bb: stat.bb, so: stat.so };
+                      })()}
+                      seasonStats={pbpData.playerSeasonStats?.[currentPitcher.playerId]}
+                      team={pitchingTeam}
+                    />
+                  </div>
                 </div>
               </div>
             )}
 
             {inningTransition && (
               <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
-                <div className="bg-background/90 border border-gold/40 rounded px-10 py-5 animate-in fade-in zoom-in-90 duration-300">
-                  <span className="font-pixel text-gold text-xl sm:text-2xl">{inningTransition}</span>
+                <div className="bg-background/90 border border-gold/40 rounded px-12 py-6 animate-in fade-in zoom-in-90 duration-300">
+                  <span className="text-gold text-2xl sm:text-3xl">{inningTransition}</span>
                 </div>
               </div>
             )}
@@ -703,10 +819,15 @@ export default function PlayByPlayPage() {
             )}
           </div>
 
-          <div className="hidden lg:flex flex-col w-52 xl:w-60 border-l border-border p-2 overflow-y-auto">
-            <div className="flex items-center gap-2 mb-2 px-1">
+          <div className="hidden lg:flex flex-col w-56 xl:w-64 border-l border-border p-3 overflow-y-auto">
+            <div className="flex items-center gap-2 mb-3 px-1">
               <TeamBadge abbreviation={pbpData.homeTeam.abbreviation} primaryColor={pbpData.homeTeam.primaryColor} secondaryColor={pbpData.homeTeam.secondaryColor} size="sm" />
-              <span className="font-pixel text-[10px] text-foreground truncate">{pbpData.homeTeam.name}</span>
+              <div className="min-w-0 flex-1">
+                <span className="text-[11px] text-foreground truncate block">{pbpData.homeTeam.name}</span>
+                {homeRecord && (
+                  <span className="text-[9px] text-muted-foreground">({homeRecord.wins}-{homeRecord.losses})</span>
+                )}
+              </div>
             </div>
             <div className="space-y-0.5">
               {pbpData.homeLineup.map((p, i) => {
@@ -717,25 +838,43 @@ export default function PlayByPlayPage() {
                     className={`flex items-center gap-1.5 px-1.5 py-1 rounded transition-colors ${
                       isActive
                         ? "bg-gold/30 border border-gold/60 shadow-[0_0_6px_rgba(202,166,57,0.3)]"
-                        : "hover:bg-muted/20"
+                        : ""
                     }`}
                     data-testid={`home-lineup-${i}`}
                   >
-                    <span className={`w-4 text-center font-pixel text-[9px] ${isActive ? "text-gold" : "text-muted-foreground"}`}>{i + 1}</span>
-                    <span className={`${positionColor(p.position)} text-white text-[8px] font-pixel px-1 py-0.5 rounded leading-none min-w-[22px] text-center`}>{p.position}</span>
-                    <span className={`text-[12px] truncate flex-1 ${isActive ? "text-gold font-bold" : "text-foreground"}`}>{p.lastName}</span>
+                    <span className={`w-4 text-center text-[9px] ${isActive ? "text-gold" : "text-muted-foreground"}`}>{i + 1}</span>
+                    <span className={`${positionColor(p.position)} text-white text-[8px] px-1 py-0.5 rounded leading-none min-w-[24px] text-center`}>{p.position}</span>
+                    <span className={`text-[11px] truncate flex-1 ${isActive ? "text-gold font-bold" : "text-foreground"}`}>{p.lastName}</span>
                     <div className={`w-2.5 h-2.5 rounded-full shrink-0 ${ratingDot(p.contact)}`} title={`Contact: ${p.contact}`} />
                   </div>
                 );
               })}
               <div className="border-t border-border/50 mt-1 pt-1 px-1.5">
                 <div className="flex items-center gap-1.5">
-                  <span className="w-4 text-center font-pixel text-[9px] text-muted-foreground">P</span>
-                  <span className="bg-red-500 text-white text-[8px] font-pixel px-1 py-0.5 rounded leading-none min-w-[22px] text-center">P</span>
-                  <span className="text-[12px] text-muted-foreground truncate">{pbpData.homePitcher.lastName}</span>
+                  <span className="w-4 text-center text-[9px] text-muted-foreground">P</span>
+                  <span className="bg-red-500 text-white text-[8px] px-1 py-0.5 rounded leading-none min-w-[24px] text-center">P</span>
+                  <span className="text-[11px] text-muted-foreground truncate">{pbpData.homePitcher.lastName}</span>
                 </div>
               </div>
             </div>
+
+            {pbpData.conferenceStandings && pbpData.conferenceStandings.length > 0 && (
+              <div className="mt-4 pt-3 border-t border-border">
+                <span className="text-[9px] text-gold mb-2 block" data-testid="text-conference-name">{pbpData.conferenceInfo?.homeName || "Conference"}</span>
+                <div className="space-y-0.5" data-testid="conference-standings">
+                  {pbpData.conferenceStandings.slice(0, 8).map((s) => {
+                    const isPlaying = s.teamId === pbpData.homeTeam.id || s.teamId === pbpData.awayTeam.id;
+                    return (
+                      <div key={s.teamId} className={`flex items-center gap-1 text-[8px] px-1 py-0.5 rounded ${isPlaying ? "text-gold" : "text-muted-foreground"}`} data-testid={`standing-${s.abbreviation}`}>
+                        <span className="w-8 truncate">{s.abbreviation}</span>
+                        <span className="flex-1 text-right">{s.confWins}-{s.confLosses}</span>
+                        <span className="text-muted-foreground/50 ml-1">({s.wins}-{s.losses})</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -744,7 +883,7 @@ export default function PlayByPlayPage() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1 mb-1">
                 <TeamBadge abbreviation={pbpData.awayTeam.abbreviation} primaryColor={pbpData.awayTeam.primaryColor} secondaryColor={pbpData.awayTeam.secondaryColor} size="sm" />
-                <span className="font-pixel text-[7px] truncate">{pbpData.awayTeam.abbreviation}</span>
+                <span className="text-[7px] truncate">{pbpData.awayTeam.abbreviation}</span>
               </div>
               <div className="flex flex-wrap gap-x-1.5 gap-y-0.5">
                 {pbpData.awayLineup.slice(0, 9).map((p, i) => {
@@ -765,7 +904,7 @@ export default function PlayByPlayPage() {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1 mb-1">
                 <TeamBadge abbreviation={pbpData.homeTeam.abbreviation} primaryColor={pbpData.homeTeam.primaryColor} secondaryColor={pbpData.homeTeam.secondaryColor} size="sm" />
-                <span className="font-pixel text-[7px] truncate">{pbpData.homeTeam.abbreviation}</span>
+                <span className="text-[7px] truncate">{pbpData.homeTeam.abbreviation}</span>
               </div>
               <div className="flex flex-wrap gap-x-1.5 gap-y-0.5">
                 {pbpData.homeLineup.slice(0, 9).map((p, i) => {
@@ -785,59 +924,35 @@ export default function PlayByPlayPage() {
             </div>
           </div>
         </div>
-
-        <div className="border-t border-border">
-          <div className="overflow-x-auto">
-            <table className="w-full text-[10px] font-pixel" data-testid="linescore-table">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left px-2 py-1 text-muted-foreground w-16">TEAM</th>
-                  {pbpData.innings.map((_, i) => (
-                    <th key={i} className={`text-center px-1 py-1 w-5 ${i === currentInning && !gameOver ? "text-gold" : "text-muted-foreground"}`}>{i + 1}</th>
-                  ))}
-                  <th className="text-center px-1.5 py-1 text-gold border-l border-border w-7">R</th>
-                  <th className="text-center px-1.5 py-1 text-muted-foreground w-7">H</th>
-                  <th className="text-center px-1.5 py-1 text-muted-foreground w-7">E</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="border-b border-border/50">
-                  <td className="px-2 py-1 text-foreground">{pbpData.awayTeam.abbreviation}</td>
-                  {pbpData.innings.map((inn, i) => (
-                    <td key={i} className={`text-center px-1 py-1 ${i < inningScores.away.length ? "text-foreground" : "text-muted-foreground/30"}`}>
-                      {i < inningScores.away.length ? inningScores.away[i] : "-"}
-                    </td>
-                  ))}
-                  <td className="text-center px-1.5 py-1 text-gold font-bold border-l border-border">{runningAwayScore}</td>
-                  <td className="text-center px-1.5 py-1">{runningAwayHits}</td>
-                  <td className="text-center px-1.5 py-1">{runningAwayErrors}</td>
-                </tr>
-                <tr>
-                  <td className="px-2 py-1 text-foreground">{pbpData.homeTeam.abbreviation}</td>
-                  {pbpData.innings.map((inn, i) => (
-                    <td key={i} className={`text-center px-1 py-1 ${i < inningScores.home.length ? "text-foreground" : "text-muted-foreground/30"}`}>
-                      {i < inningScores.home.length ? inningScores.home[i] : "-"}
-                    </td>
-                  ))}
-                  <td className="text-center px-1.5 py-1 text-gold font-bold border-l border-border">{runningHomeScore}</td>
-                  <td className="text-center px-1.5 py-1">{runningHomeHits}</td>
-                  <td className="text-center px-1.5 py-1">{runningHomeErrors}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
       </div>
     </div>
   );
 }
 
-function PlayerCard({ type, name, position, stats, gameStats, team }: {
+function PlayerFace({ position, size = 28 }: { position: string; size?: number }) {
+  const skinColor = "#F5D0A9";
+  const capColor = position === "P" ? "#ef4444" : position === "C" ? "#f97316" : ["1B", "2B", "3B", "SS"].includes(position) ? "#3b82f6" : "#22c55e";
+
+  return (
+    <svg width={size} height={size} viewBox="0 0 20 20" className="shrink-0">
+      <rect x="3" y="0" width="14" height="6" fill={capColor} rx="2" />
+      <rect x="1" y="5" width="18" height="3" fill={capColor} />
+      <rect x="4" y="6" width="12" height="10" fill={skinColor} rx="1" />
+      <rect x="6" y="9" width="2" height="2" fill="#333" rx="0.5" />
+      <rect x="12" y="9" width="2" height="2" fill="#333" rx="0.5" />
+      <rect x="8" y="13" width="4" height="1" fill="#c97" rx="0.5" />
+      <rect x="3" y="16" width="14" height="4" fill={capColor} rx="1" />
+    </svg>
+  );
+}
+
+function PlayerCard({ type, name, position, stats, gameStats, seasonStats, team }: {
   type: "batter" | "pitcher";
   name: string;
   position: string;
   stats: Record<string, number>;
   gameStats?: Record<string, number | string>;
+  seasonStats?: SeasonStatLine;
   team: TeamInfo;
 }) {
   const ratingColor = (val: number) => {
@@ -863,54 +978,81 @@ function PlayerCard({ type, name, position, stats, gameStats, team }: {
   const statLabels = type === "batter" ? batterStatLabels : pitcherStatLabels;
 
   return (
-    <div className="border border-border rounded bg-card/60 p-2.5" data-testid={`player-card-${type}`}>
-      <div className="flex items-center gap-2 mb-2">
+    <div className="border border-border rounded bg-card/60 p-3" data-testid={`player-card-${type}`}>
+      <div className="flex items-center gap-2.5 mb-3">
+        <PlayerFace position={position} size={32} />
         <TeamBadge abbreviation={team.abbreviation} primaryColor={team.primaryColor} secondaryColor={team.secondaryColor} size="sm" />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <Badge variant="outline" className="text-[8px] font-pixel shrink-0">{position}</Badge>
-            <span className="font-pixel text-[11px] text-gold truncate">{name}</span>
+            <Badge variant="outline" className="text-[9px] font-pixel shrink-0">{position}</Badge>
+            <span className="font-pixel text-[12px] text-gold truncate">{name}</span>
           </div>
-          <span className="text-[9px] text-muted-foreground">{type === "batter" ? "At Bat" : "Pitching"}</span>
+          <span className="text-[10px] text-muted-foreground font-pixel">{type === "batter" ? "At Bat" : "Pitching"}</span>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-x-3 gap-y-1 mb-2">
+      <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 mb-2">
         {statLabels.map(([key, label]) => (
           <div key={key} className="flex items-center justify-between gap-1">
-            <span className="text-[9px] font-pixel text-muted-foreground">{label}</span>
+            <span className="text-[10px] font-pixel text-muted-foreground">{label}</span>
             <div className="flex items-center gap-1 flex-1">
-              <div className="flex-1 h-1.5 bg-muted/30 rounded-full overflow-hidden">
+              <div className="flex-1 h-2 bg-muted/30 rounded-full overflow-hidden">
                 <div
                   className={`h-full rounded-full ${(stats[key] ?? 0) >= 80 ? "bg-green-500" : (stats[key] ?? 0) >= 60 ? "bg-blue-500" : (stats[key] ?? 0) >= 40 ? "bg-yellow-500" : "bg-red-500"}`}
                   style={{ width: `${Math.min(100, (stats[key] ?? 0))}%` }}
                 />
               </div>
-              <span className={`text-[10px] font-pixel w-5 text-right ${ratingColor(stats[key] ?? 0)}`}>{stats[key] ?? 0}</span>
+              <span className={`text-[11px] font-pixel w-6 text-right ${ratingColor(stats[key] ?? 0)}`}>{stats[key] ?? 0}</span>
             </div>
           </div>
         ))}
       </div>
 
       {gameStats && (
-        <div className="border-t border-border/50 pt-1.5 mt-1">
-          <div className="flex flex-wrap gap-x-2 gap-y-0.5">
+        <div className="border-t border-border/50 pt-2 mt-1">
+          <span className="text-[8px] text-muted-foreground font-pixel block mb-1">TODAY</span>
+          <div className="flex flex-wrap gap-x-2.5 gap-y-0.5">
             {type === "batter" ? (
               <>
-                <span className="text-[9px]"><span className="text-muted-foreground">AB:</span> <span className="text-foreground">{gameStats.ab}</span></span>
-                <span className="text-[9px]"><span className="text-muted-foreground">H:</span> <span className="text-foreground">{gameStats.h}</span></span>
-                <span className="text-[9px]"><span className="text-muted-foreground">HR:</span> <span className="text-foreground">{gameStats.hr}</span></span>
-                <span className="text-[9px]"><span className="text-muted-foreground">RBI:</span> <span className="text-foreground">{gameStats.rbi}</span></span>
-                <span className="text-[9px]"><span className="text-muted-foreground">BB:</span> <span className="text-foreground">{gameStats.bb}</span></span>
-                <span className="text-[9px]"><span className="text-muted-foreground">K:</span> <span className="text-foreground">{gameStats.so}</span></span>
+                <span className="text-[10px] font-pixel"><span className="text-muted-foreground">AB:</span> <span className="text-foreground">{gameStats.ab}</span></span>
+                <span className="text-[10px] font-pixel"><span className="text-muted-foreground">H:</span> <span className="text-foreground">{gameStats.h}</span></span>
+                <span className="text-[10px] font-pixel"><span className="text-muted-foreground">HR:</span> <span className="text-foreground">{gameStats.hr}</span></span>
+                <span className="text-[10px] font-pixel"><span className="text-muted-foreground">RBI:</span> <span className="text-foreground">{gameStats.rbi}</span></span>
+                <span className="text-[10px] font-pixel"><span className="text-muted-foreground">BB:</span> <span className="text-foreground">{gameStats.bb}</span></span>
+                <span className="text-[10px] font-pixel"><span className="text-muted-foreground">K:</span> <span className="text-foreground">{gameStats.so}</span></span>
               </>
             ) : (
               <>
-                <span className="text-[9px]"><span className="text-muted-foreground">IP:</span> <span className="text-foreground">{gameStats.ip}</span></span>
-                <span className="text-[9px]"><span className="text-muted-foreground">H:</span> <span className="text-foreground">{gameStats.h}</span></span>
-                <span className="text-[9px]"><span className="text-muted-foreground">ER:</span> <span className="text-foreground">{gameStats.er}</span></span>
-                <span className="text-[9px]"><span className="text-muted-foreground">BB:</span> <span className="text-foreground">{gameStats.bb}</span></span>
-                <span className="text-[9px]"><span className="text-muted-foreground">K:</span> <span className="text-foreground">{gameStats.so}</span></span>
+                <span className="text-[10px] font-pixel"><span className="text-muted-foreground">IP:</span> <span className="text-foreground">{gameStats.ip}</span></span>
+                <span className="text-[10px] font-pixel"><span className="text-muted-foreground">H:</span> <span className="text-foreground">{gameStats.h}</span></span>
+                <span className="text-[10px] font-pixel"><span className="text-muted-foreground">ER:</span> <span className="text-foreground">{gameStats.er}</span></span>
+                <span className="text-[10px] font-pixel"><span className="text-muted-foreground">BB:</span> <span className="text-foreground">{gameStats.bb}</span></span>
+                <span className="text-[10px] font-pixel"><span className="text-muted-foreground">K:</span> <span className="text-foreground">{gameStats.so}</span></span>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {seasonStats && (
+        <div className="border-t border-border/50 pt-2 mt-1">
+          <span className="text-[8px] text-muted-foreground font-pixel block mb-1">SEASON</span>
+          <div className="flex flex-wrap gap-x-2.5 gap-y-0.5">
+            {type === "batter" ? (
+              <>
+                <span className="text-[10px] font-pixel"><span className="text-muted-foreground">AVG:</span> <span className="text-gold">{seasonStats.avg}</span></span>
+                <span className="text-[10px] font-pixel"><span className="text-muted-foreground">HR:</span> <span className="text-foreground">{seasonStats.hr}</span></span>
+                <span className="text-[10px] font-pixel"><span className="text-muted-foreground">RBI:</span> <span className="text-foreground">{seasonStats.rbi}</span></span>
+                <span className="text-[10px] font-pixel"><span className="text-muted-foreground">H:</span> <span className="text-foreground">{seasonStats.h}</span></span>
+                <span className="text-[10px] font-pixel"><span className="text-muted-foreground">G:</span> <span className="text-foreground">{seasonStats.games}</span></span>
+              </>
+            ) : (
+              <>
+                <span className="text-[10px] font-pixel"><span className="text-muted-foreground">ERA:</span> <span className="text-gold">{seasonStats.era}</span></span>
+                <span className="text-[10px] font-pixel"><span className="text-muted-foreground">W-L:</span> <span className="text-foreground">{seasonStats.wins}-{seasonStats.losses}</span></span>
+                <span className="text-[10px] font-pixel"><span className="text-muted-foreground">K:</span> <span className="text-foreground">{seasonStats.pSo}</span></span>
+                <span className="text-[10px] font-pixel"><span className="text-muted-foreground">BB:</span> <span className="text-foreground">{seasonStats.pBb}</span></span>
+                <span className="text-[10px] font-pixel"><span className="text-muted-foreground">G:</span> <span className="text-foreground">{seasonStats.pitchingGames}</span></span>
               </>
             )}
           </div>
@@ -922,7 +1064,7 @@ function PlayerCard({ type, name, position, stats, gameStats, team }: {
 
 function DiamondView({ bases }: { bases: boolean[] }) {
   return (
-    <div className="relative w-36 h-36 sm:w-44 sm:h-44 lg:w-48 lg:h-48" data-testid="diamond-view">
+    <div className="relative w-48 h-48 sm:w-56 sm:h-56 lg:w-64 lg:h-64" data-testid="diamond-view">
       <svg viewBox="0 0 100 100" className="w-full h-full">
         <polygon points="50,15 85,50 50,85 15,50" fill="none" stroke="hsl(var(--border))" strokeWidth="1.5" />
         <line x1="50" y1="85" x2="50" y2="95" stroke="hsl(var(--border))" strokeWidth="1.5" />
@@ -959,9 +1101,9 @@ function DiamondView({ bases }: { bases: boolean[] }) {
 
 function BoxScoreView({ data, inningScores }: { data: PlayByPlayData; inningScores: { away: number[]; home: number[] } }) {
   return (
-    <div className="space-y-6" data-testid="box-score-view">
+    <div className="space-y-6 font-pixel" data-testid="box-score-view">
       <div className="overflow-x-auto">
-        <table className="w-full text-[9px] font-pixel border border-border">
+        <table className="w-full text-[10px] border border-border">
           <thead>
             <tr className="border-b border-border bg-card">
               <th className="text-left px-3 py-2 text-muted-foreground">TEAM</th>
@@ -998,21 +1140,21 @@ function BoxScoreView({ data, inningScores }: { data: PlayByPlayData; inningScor
 
       <div className="grid lg:grid-cols-2 gap-6">
         <div>
-          <h3 className="font-pixel text-[10px] text-gold mb-2 flex items-center gap-2">
+          <h3 className="text-[11px] text-gold mb-2 flex items-center gap-2">
             <TeamBadge abbreviation={data.awayTeam.abbreviation} primaryColor={data.awayTeam.primaryColor} secondaryColor={data.awayTeam.secondaryColor} size="sm" />
             {data.awayTeam.name} Batting
           </h3>
           <BattingTable stats={data.awayBatting} />
-          <h3 className="font-pixel text-[10px] text-gold mt-4 mb-2">{data.awayTeam.name} Pitching</h3>
+          <h3 className="text-[11px] text-gold mt-4 mb-2">{data.awayTeam.name} Pitching</h3>
           <PitchingTable stats={data.awayPitching} />
         </div>
         <div>
-          <h3 className="font-pixel text-[10px] text-gold mb-2 flex items-center gap-2">
+          <h3 className="text-[11px] text-gold mb-2 flex items-center gap-2">
             <TeamBadge abbreviation={data.homeTeam.abbreviation} primaryColor={data.homeTeam.primaryColor} secondaryColor={data.homeTeam.secondaryColor} size="sm" />
             {data.homeTeam.name} Batting
           </h3>
           <BattingTable stats={data.homeBatting} />
-          <h3 className="font-pixel text-[10px] text-gold mt-4 mb-2">{data.homeTeam.name} Pitching</h3>
+          <h3 className="text-[11px] text-gold mt-4 mb-2">{data.homeTeam.name} Pitching</h3>
           <PitchingTable stats={data.homePitching} />
         </div>
       </div>
@@ -1023,34 +1165,34 @@ function BoxScoreView({ data, inningScores }: { data: PlayByPlayData; inningScor
 function BattingTable({ stats }: { stats: BattingStat[] }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-[9px] border border-border">
+      <table className="w-full text-[10px] border border-border font-pixel">
         <thead>
           <tr className="border-b border-border bg-card">
-            <th className="text-left px-2 py-1 text-muted-foreground">Player</th>
-            <th className="text-left px-1 py-1 text-muted-foreground">Pos</th>
-            <th className="text-center px-1 py-1 text-muted-foreground">AB</th>
-            <th className="text-center px-1 py-1 text-muted-foreground">R</th>
-            <th className="text-center px-1 py-1 text-muted-foreground">H</th>
-            <th className="text-center px-1 py-1 text-muted-foreground">HR</th>
-            <th className="text-center px-1 py-1 text-muted-foreground">RBI</th>
-            <th className="text-center px-1 py-1 text-muted-foreground">BB</th>
-            <th className="text-center px-1 py-1 text-muted-foreground">SO</th>
-            <th className="text-center px-1 py-1 text-muted-foreground">AVG</th>
+            <th className="text-left px-2 py-1.5 text-muted-foreground">Player</th>
+            <th className="text-left px-1 py-1.5 text-muted-foreground">Pos</th>
+            <th className="text-center px-1 py-1.5 text-muted-foreground">AB</th>
+            <th className="text-center px-1 py-1.5 text-muted-foreground">R</th>
+            <th className="text-center px-1 py-1.5 text-muted-foreground">H</th>
+            <th className="text-center px-1 py-1.5 text-muted-foreground">HR</th>
+            <th className="text-center px-1 py-1.5 text-muted-foreground">RBI</th>
+            <th className="text-center px-1 py-1.5 text-muted-foreground">BB</th>
+            <th className="text-center px-1 py-1.5 text-muted-foreground">SO</th>
+            <th className="text-center px-1 py-1.5 text-muted-foreground">AVG</th>
           </tr>
         </thead>
         <tbody>
           {stats.map((s, i) => (
             <tr key={i} className="border-b border-border/30">
-              <td className="px-2 py-1 text-foreground truncate max-w-[100px]">{s.name}</td>
-              <td className="px-1 py-1 text-gold/70 font-pixel">{s.position}</td>
-              <td className="text-center px-1 py-1">{s.ab}</td>
-              <td className="text-center px-1 py-1">{s.r}</td>
-              <td className="text-center px-1 py-1">{s.h}</td>
-              <td className="text-center px-1 py-1">{s.hr}</td>
-              <td className="text-center px-1 py-1">{s.rbi}</td>
-              <td className="text-center px-1 py-1">{s.bb}</td>
-              <td className="text-center px-1 py-1">{s.so}</td>
-              <td className="text-center px-1 py-1 text-gold">{s.avg}</td>
+              <td className="px-2 py-1.5 text-foreground truncate max-w-[100px]">{s.name}</td>
+              <td className="px-1 py-1.5 text-gold/70">{s.position}</td>
+              <td className="text-center px-1 py-1.5">{s.ab}</td>
+              <td className="text-center px-1 py-1.5">{s.r}</td>
+              <td className="text-center px-1 py-1.5">{s.h}</td>
+              <td className="text-center px-1 py-1.5">{s.hr}</td>
+              <td className="text-center px-1 py-1.5">{s.rbi}</td>
+              <td className="text-center px-1 py-1.5">{s.bb}</td>
+              <td className="text-center px-1 py-1.5">{s.so}</td>
+              <td className="text-center px-1 py-1.5 text-gold">{s.avg}</td>
             </tr>
           ))}
         </tbody>
@@ -1062,30 +1204,30 @@ function BattingTable({ stats }: { stats: BattingStat[] }) {
 function PitchingTable({ stats }: { stats: PitchingStat[] }) {
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-[9px] border border-border">
+      <table className="w-full text-[10px] border border-border font-pixel">
         <thead>
           <tr className="border-b border-border bg-card">
-            <th className="text-left px-2 py-1 text-muted-foreground">Pitcher</th>
-            <th className="text-center px-1 py-1 text-muted-foreground">IP</th>
-            <th className="text-center px-1 py-1 text-muted-foreground">H</th>
-            <th className="text-center px-1 py-1 text-muted-foreground">R</th>
-            <th className="text-center px-1 py-1 text-muted-foreground">ER</th>
-            <th className="text-center px-1 py-1 text-muted-foreground">BB</th>
-            <th className="text-center px-1 py-1 text-muted-foreground">SO</th>
-            <th className="text-center px-1 py-1 text-muted-foreground">ERA</th>
+            <th className="text-left px-2 py-1.5 text-muted-foreground">Pitcher</th>
+            <th className="text-center px-1 py-1.5 text-muted-foreground">IP</th>
+            <th className="text-center px-1 py-1.5 text-muted-foreground">H</th>
+            <th className="text-center px-1 py-1.5 text-muted-foreground">R</th>
+            <th className="text-center px-1 py-1.5 text-muted-foreground">ER</th>
+            <th className="text-center px-1 py-1.5 text-muted-foreground">BB</th>
+            <th className="text-center px-1 py-1.5 text-muted-foreground">SO</th>
+            <th className="text-center px-1 py-1.5 text-muted-foreground">ERA</th>
           </tr>
         </thead>
         <tbody>
           {stats.map((s, i) => (
             <tr key={i} className="border-b border-border/30">
-              <td className="px-2 py-1 text-foreground truncate max-w-[100px]">{s.name}</td>
-              <td className="text-center px-1 py-1">{s.ip}</td>
-              <td className="text-center px-1 py-1">{s.h}</td>
-              <td className="text-center px-1 py-1">{s.r}</td>
-              <td className="text-center px-1 py-1">{s.er}</td>
-              <td className="text-center px-1 py-1">{s.bb}</td>
-              <td className="text-center px-1 py-1">{s.so}</td>
-              <td className="text-center px-1 py-1 text-gold">{s.era}</td>
+              <td className="px-2 py-1.5 text-foreground truncate max-w-[100px]">{s.name}</td>
+              <td className="text-center px-1 py-1.5">{s.ip}</td>
+              <td className="text-center px-1 py-1.5">{s.h}</td>
+              <td className="text-center px-1 py-1.5">{s.r}</td>
+              <td className="text-center px-1 py-1.5">{s.er}</td>
+              <td className="text-center px-1 py-1.5">{s.bb}</td>
+              <td className="text-center px-1 py-1.5">{s.so}</td>
+              <td className="text-center px-1 py-1.5 text-gold">{s.era}</td>
             </tr>
           ))}
         </tbody>

@@ -4428,9 +4428,72 @@ export async function registerRoutes(
         });
       }
 
+      const [leagueStandings, seasonStats, allConferences] = await Promise.all([
+        storage.getStandingsByLeague(leagueId, game.season || 1),
+        storage.getPlayerSeasonStatsBySeason(leagueId, game.season || 1),
+        storage.getConferencesByLeague(leagueId),
+      ]);
+
+      const homeStanding = leagueStandings.find(s => s.teamId === homeTeam.id);
+      const awayStanding = leagueStandings.find(s => s.teamId === awayTeam.id);
+
+      const homeConf = allConferences.find(c => c.id === homeTeam.conferenceId);
+      const awayConf = allConferences.find(c => c.id === awayTeam.conferenceId);
+
+      // Build conference standings for home team's conference
+      const allTeams = await storage.getTeamsByLeague(leagueId);
+      const homeConfTeamIds = allTeams.filter(t => t.conferenceId === homeTeam.conferenceId).map(t => t.id);
+      const confStandings = leagueStandings
+        .filter(s => homeConfTeamIds.includes(s.teamId))
+        .map(s => {
+          const team = allTeams.find(t => t.id === s.teamId);
+          return {
+            teamId: s.teamId,
+            abbreviation: team?.abbreviation || "???",
+            name: team?.name || "Unknown",
+            wins: s.wins,
+            losses: s.losses,
+            confWins: s.conferenceWins,
+            confLosses: s.conferenceLosses,
+          };
+        })
+        .sort((a, b) => b.confWins - a.confWins || a.confLosses - b.confLosses || b.wins - a.wins);
+
+      // Build season stats lookup for all lineup players + pitchers
+      const allPlayerIds = new Set([
+        ...homeLineup.map(p => p.playerId),
+        ...awayLineup.map(p => p.playerId),
+        homePitcher.playerId,
+        awayPitcher.playerId,
+        ...homeStaff.bullpen.map(p => p.playerId),
+        ...awayStaff.bullpen.map(p => p.playerId),
+      ]);
+      const playerSeasonStatsMap: Record<string, any> = {};
+      for (const stat of seasonStats) {
+        if (allPlayerIds.has(stat.playerId)) {
+          const avg = stat.ab > 0 ? (stat.h / stat.ab).toFixed(3) : ".000";
+          const era = stat.ipOuts > 0 ? ((stat.pEr * 27) / stat.ipOuts).toFixed(2) : "0.00";
+          playerSeasonStatsMap[stat.playerId] = {
+            games: stat.games,
+            ab: stat.ab, h: stat.h, hr: stat.hr, rbi: stat.rbi, bb: stat.bb, so: stat.so, r: stat.r,
+            avg,
+            pitchingGames: stat.pitchingGames,
+            wins: stat.wins, losses: stat.losses,
+            ipOuts: stat.ipOuts, pHits: stat.pHits, pEr: stat.pEr, pBb: stat.pBb, pSo: stat.pSo,
+            era,
+          };
+        }
+      }
+
+      const gameTypeLabel: Record<string, string> = {
+        friday: "Game 1 - Friday",
+        saturday: "Game 2 - Saturday",
+        sunday: "Game 3 - Sunday",
+      };
+
       res.json({
-        homeTeam: { id: homeTeam.id, name: homeTeam.name, abbreviation: homeTeam.abbreviation, primaryColor: homeTeam.primaryColor, secondaryColor: homeTeam.secondaryColor },
-        awayTeam: { id: awayTeam.id, name: awayTeam.name, abbreviation: awayTeam.abbreviation, primaryColor: awayTeam.primaryColor, secondaryColor: awayTeam.secondaryColor },
+        homeTeam: { id: homeTeam.id, name: homeTeam.name, abbreviation: homeTeam.abbreviation, primaryColor: homeTeam.primaryColor, secondaryColor: homeTeam.secondaryColor, mascot: homeTeam.mascot },
+        awayTeam: { id: awayTeam.id, name: awayTeam.name, abbreviation: awayTeam.abbreviation, primaryColor: awayTeam.primaryColor, secondaryColor: awayTeam.secondaryColor, mascot: awayTeam.mascot },
         homeLineup,
         awayLineup,
         homePitcher: { ...homePitcher, stamina: homePitcher.stamina },
@@ -4441,6 +4504,25 @@ export async function registerRoutes(
         awayBatting,
         homePitching,
         awayPitching,
+        gameInfo: {
+          week: game.week,
+          season: game.season || 1,
+          gameType: game.gameType,
+          gameTypeLabel: game.gameType ? gameTypeLabel[game.gameType] || game.gameType : "Non-Conference",
+          isConference: game.isConference,
+          phase: game.phase,
+          venue: `${homeTeam.name} Field`,
+        },
+        teamRecords: {
+          home: { wins: homeStanding?.wins || 0, losses: homeStanding?.losses || 0, confWins: homeStanding?.conferenceWins || 0, confLosses: homeStanding?.conferenceLosses || 0 },
+          away: { wins: awayStanding?.wins || 0, losses: awayStanding?.losses || 0, confWins: awayStanding?.conferenceWins || 0, confLosses: awayStanding?.conferenceLosses || 0 },
+        },
+        conferenceInfo: {
+          homeName: homeConf?.name || "",
+          awayName: awayConf?.name || "",
+        },
+        conferenceStandings: confStandings,
+        playerSeasonStats: playerSeasonStatsMap,
       });
     } catch (error) {
       console.error("Play-by-play simulation failed:", error);
