@@ -33,6 +33,36 @@ interface RecruitData {
   jerseyNumber?: number;
   rank?: number;
   appearance?: PlayerAppearance;
+  hitForAvg?: number;
+  power?: number;
+  speed?: number;
+  arm?: number;
+  fielding?: number;
+  errorResistance?: number;
+  velocity?: number;
+  control?: number;
+  stamina?: number;
+  stuff?: number;
+  clutch?: number;
+  vsLHP?: number;
+  grit?: number;
+  stealing?: number;
+  running?: number;
+  throwing?: number;
+  recovery?: number;
+  wRISP?: number;
+  vsLefty?: number;
+  poise?: number;
+  heater?: number;
+  agile?: number;
+  pitchFB?: number;
+  pitch2S?: number;
+  pitchSL?: number;
+  pitchCB?: number;
+  pitchCH?: number;
+  pitchCT?: number;
+  pitchSNK?: number;
+  pitchSPL?: number;
 }
 
 interface SavedClass {
@@ -1123,6 +1153,398 @@ function RecruitEditPanel({
           </div>
         </div>
       </div>
+
+      <div>
+        <p className="font-pixel text-[10px] text-gold mb-2">ATTRIBUTES</p>
+        {recruit.position === "P" ? (
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="space-y-0.5">
+              <label className="font-pixel text-[8px] text-gold uppercase">Velocity</label>
+              <Input
+                type="number"
+                min={0}
+                max={99}
+                className="h-7 w-16 text-xs"
+                value={recruit.velocity ?? ""}
+                onChange={(e) => onUpdate(originalIndex, "velocity", parseInt(e.target.value) || 0)}
+                data-testid={`input-velocity-recruit-${originalIndex}`}
+              />
+            </div>
+            <div className="space-y-0.5">
+              <label className="font-pixel text-[8px] text-gold uppercase">Control</label>
+              <Input
+                type="number"
+                min={0}
+                max={99}
+                className="h-7 w-16 text-xs"
+                value={recruit.control ?? ""}
+                onChange={(e) => onUpdate(originalIndex, "control", parseInt(e.target.value) || 0)}
+                data-testid={`input-control-recruit-${originalIndex}`}
+              />
+            </div>
+            <div className="space-y-0.5">
+              <label className="font-pixel text-[8px] text-gold uppercase">Stuff</label>
+              <Input
+                type="number"
+                min={0}
+                max={99}
+                className="h-7 w-16 text-xs"
+                value={recruit.stuff ?? ""}
+                onChange={(e) => onUpdate(originalIndex, "stuff", parseInt(e.target.value) || 0)}
+                data-testid={`input-stuff-recruit-${originalIndex}`}
+              />
+            </div>
+            <div className="space-y-0.5">
+              <label className="font-pixel text-[8px] text-gold uppercase">Stamina</label>
+              <Input
+                type="number"
+                min={0}
+                max={99}
+                className="h-7 w-16 text-xs"
+                value={recruit.stamina ?? ""}
+                onChange={(e) => onUpdate(originalIndex, "stamina", parseInt(e.target.value) || 0)}
+                data-testid={`input-stamina-recruit-${originalIndex}`}
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="space-y-0.5">
+              <label className="font-pixel text-[8px] text-gold uppercase">Hit for Avg</label>
+              <Input
+                type="number"
+                min={0}
+                max={99}
+                className="h-7 w-16 text-xs"
+                value={recruit.hitForAvg ?? ""}
+                onChange={(e) => onUpdate(originalIndex, "hitForAvg", parseInt(e.target.value) || 0)}
+                data-testid={`input-hitForAvg-recruit-${originalIndex}`}
+              />
+            </div>
+            <div className="space-y-0.5">
+              <label className="font-pixel text-[8px] text-gold uppercase">Power</label>
+              <Input
+                type="number"
+                min={0}
+                max={99}
+                className="h-7 w-16 text-xs"
+                value={recruit.power ?? ""}
+                onChange={(e) => onUpdate(originalIndex, "power", parseInt(e.target.value) || 0)}
+                data-testid={`input-power-recruit-${originalIndex}`}
+              />
+            </div>
+            <div className="space-y-0.5">
+              <label className="font-pixel text-[8px] text-gold uppercase">Speed</label>
+              <Input
+                type="number"
+                min={0}
+                max={99}
+                className="h-7 w-16 text-xs"
+                value={recruit.speed ?? ""}
+                onChange={(e) => onUpdate(originalIndex, "speed", parseInt(e.target.value) || 0)}
+                data-testid={`input-speed-recruit-${originalIndex}`}
+              />
+            </div>
+            <div className="space-y-0.5">
+              <label className="font-pixel text-[8px] text-gold uppercase">Arm</label>
+              <Input
+                type="number"
+                min={0}
+                max={99}
+                className="h-7 w-16 text-xs"
+                value={recruit.arm ?? ""}
+                onChange={(e) => onUpdate(originalIndex, "arm", parseInt(e.target.value) || 0)}
+                data-testid={`input-arm-recruit-${originalIndex}`}
+              />
+            </div>
+            <div className="space-y-0.5">
+              <label className="font-pixel text-[8px] text-gold uppercase">Fielding</label>
+              <Input
+                type="number"
+                min={0}
+                max={99}
+                className="h-7 w-16 text-xs"
+                value={recruit.fielding ?? ""}
+                onChange={(e) => onUpdate(originalIndex, "fielding", parseInt(e.target.value) || 0)}
+                data-testid={`input-fielding-recruit-${originalIndex}`}
+              />
+            </div>
+            <div className="space-y-0.5">
+              <label className="font-pixel text-[8px] text-gold uppercase">Error Res</label>
+              <Input
+                type="number"
+                min={0}
+                max={99}
+                className="h-7 w-16 text-xs"
+                value={recruit.errorResistance ?? ""}
+                onChange={(e) => onUpdate(originalIndex, "errorResistance", parseInt(e.target.value) || 0)}
+                data-testid={`input-errorResistance-recruit-${originalIndex}`}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div>
+        <p className="font-pixel text-[10px] text-gold mb-2">COMMON ABILITIES</p>
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="space-y-0.5">
+            <label className="font-pixel text-[8px] text-gold uppercase">Clutch</label>
+            <Input
+              type="number"
+              min={0}
+              max={99}
+              className="h-7 w-16 text-xs"
+              value={recruit.clutch ?? ""}
+              onChange={(e) => onUpdate(originalIndex, "clutch", parseInt(e.target.value) || 0)}
+              data-testid={`input-clutch-recruit-${originalIndex}`}
+            />
+          </div>
+          <div className="space-y-0.5">
+            <label className="font-pixel text-[8px] text-gold uppercase">Grit</label>
+            <Input
+              type="number"
+              min={0}
+              max={99}
+              className="h-7 w-16 text-xs"
+              value={recruit.grit ?? ""}
+              onChange={(e) => onUpdate(originalIndex, "grit", parseInt(e.target.value) || 0)}
+              data-testid={`input-grit-recruit-${originalIndex}`}
+            />
+          </div>
+          <div className="space-y-0.5">
+            <label className="font-pixel text-[8px] text-gold uppercase">Running</label>
+            <Input
+              type="number"
+              min={0}
+              max={99}
+              className="h-7 w-16 text-xs"
+              value={recruit.running ?? ""}
+              onChange={(e) => onUpdate(originalIndex, "running", parseInt(e.target.value) || 0)}
+              data-testid={`input-running-recruit-${originalIndex}`}
+            />
+          </div>
+          <div className="space-y-0.5">
+            <label className="font-pixel text-[8px] text-gold uppercase">Agile</label>
+            <Input
+              type="number"
+              min={0}
+              max={99}
+              className="h-7 w-16 text-xs"
+              value={recruit.agile ?? ""}
+              onChange={(e) => onUpdate(originalIndex, "agile", parseInt(e.target.value) || 0)}
+              data-testid={`input-agile-recruit-${originalIndex}`}
+            />
+          </div>
+          {recruit.position === "P" ? (
+            <>
+              <div className="space-y-0.5">
+                <label className="font-pixel text-[8px] text-gold uppercase">Poise</label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={99}
+                  className="h-7 w-16 text-xs"
+                  value={recruit.poise ?? ""}
+                  onChange={(e) => onUpdate(originalIndex, "poise", parseInt(e.target.value) || 0)}
+                  data-testid={`input-poise-recruit-${originalIndex}`}
+                />
+              </div>
+              <div className="space-y-0.5">
+                <label className="font-pixel text-[8px] text-gold uppercase">Heater</label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={99}
+                  className="h-7 w-16 text-xs"
+                  value={recruit.heater ?? ""}
+                  onChange={(e) => onUpdate(originalIndex, "heater", parseInt(e.target.value) || 0)}
+                  data-testid={`input-heater-recruit-${originalIndex}`}
+                />
+              </div>
+              <div className="space-y-0.5">
+                <label className="font-pixel text-[8px] text-gold uppercase">Recovery</label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={99}
+                  className="h-7 w-16 text-xs"
+                  value={recruit.recovery ?? ""}
+                  onChange={(e) => onUpdate(originalIndex, "recovery", parseInt(e.target.value) || 0)}
+                  data-testid={`input-recovery-recruit-${originalIndex}`}
+                />
+              </div>
+              <div className="space-y-0.5">
+                <label className="font-pixel text-[8px] text-gold uppercase">vs Lefty</label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={99}
+                  className="h-7 w-16 text-xs"
+                  value={recruit.vsLefty ?? ""}
+                  onChange={(e) => onUpdate(originalIndex, "vsLefty", parseInt(e.target.value) || 0)}
+                  data-testid={`input-vsLefty-recruit-${originalIndex}`}
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="space-y-0.5">
+                <label className="font-pixel text-[8px] text-gold uppercase">vs LHP</label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={99}
+                  className="h-7 w-16 text-xs"
+                  value={recruit.vsLHP ?? ""}
+                  onChange={(e) => onUpdate(originalIndex, "vsLHP", parseInt(e.target.value) || 0)}
+                  data-testid={`input-vsLHP-recruit-${originalIndex}`}
+                />
+              </div>
+              <div className="space-y-0.5">
+                <label className="font-pixel text-[8px] text-gold uppercase">w/ RISP</label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={99}
+                  className="h-7 w-16 text-xs"
+                  value={recruit.wRISP ?? ""}
+                  onChange={(e) => onUpdate(originalIndex, "wRISP", parseInt(e.target.value) || 0)}
+                  data-testid={`input-wRISP-recruit-${originalIndex}`}
+                />
+              </div>
+              <div className="space-y-0.5">
+                <label className="font-pixel text-[8px] text-gold uppercase">Stealing</label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={99}
+                  className="h-7 w-16 text-xs"
+                  value={recruit.stealing ?? ""}
+                  onChange={(e) => onUpdate(originalIndex, "stealing", parseInt(e.target.value) || 0)}
+                  data-testid={`input-stealing-recruit-${originalIndex}`}
+                />
+              </div>
+              <div className="space-y-0.5">
+                <label className="font-pixel text-[8px] text-gold uppercase">Throwing</label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={99}
+                  className="h-7 w-16 text-xs"
+                  value={recruit.throwing ?? ""}
+                  onChange={(e) => onUpdate(originalIndex, "throwing", parseInt(e.target.value) || 0)}
+                  data-testid={`input-throwing-recruit-${originalIndex}`}
+                />
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {recruit.position === "P" && (
+        <div>
+          <p className="font-pixel text-[10px] text-gold mb-2">PITCH MIX</p>
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="space-y-0.5">
+              <label className="font-pixel text-[8px] text-gold uppercase">FB</label>
+              <Input
+                type="number"
+                min={0}
+                max={99}
+                className="h-7 w-16 text-xs"
+                value={recruit.pitchFB ?? ""}
+                onChange={(e) => onUpdate(originalIndex, "pitchFB", parseInt(e.target.value) || 0)}
+                data-testid={`input-pitchFB-recruit-${originalIndex}`}
+              />
+            </div>
+            <div className="space-y-0.5">
+              <label className="font-pixel text-[8px] text-gold uppercase">2S</label>
+              <Input
+                type="number"
+                min={0}
+                max={99}
+                className="h-7 w-16 text-xs"
+                value={recruit.pitch2S ?? ""}
+                onChange={(e) => onUpdate(originalIndex, "pitch2S", parseInt(e.target.value) || 0)}
+                data-testid={`input-pitch2S-recruit-${originalIndex}`}
+              />
+            </div>
+            <div className="space-y-0.5">
+              <label className="font-pixel text-[8px] text-gold uppercase">SL</label>
+              <Input
+                type="number"
+                min={0}
+                max={99}
+                className="h-7 w-16 text-xs"
+                value={recruit.pitchSL ?? ""}
+                onChange={(e) => onUpdate(originalIndex, "pitchSL", parseInt(e.target.value) || 0)}
+                data-testid={`input-pitchSL-recruit-${originalIndex}`}
+              />
+            </div>
+            <div className="space-y-0.5">
+              <label className="font-pixel text-[8px] text-gold uppercase">CB</label>
+              <Input
+                type="number"
+                min={0}
+                max={99}
+                className="h-7 w-16 text-xs"
+                value={recruit.pitchCB ?? ""}
+                onChange={(e) => onUpdate(originalIndex, "pitchCB", parseInt(e.target.value) || 0)}
+                data-testid={`input-pitchCB-recruit-${originalIndex}`}
+              />
+            </div>
+            <div className="space-y-0.5">
+              <label className="font-pixel text-[8px] text-gold uppercase">CH</label>
+              <Input
+                type="number"
+                min={0}
+                max={99}
+                className="h-7 w-16 text-xs"
+                value={recruit.pitchCH ?? ""}
+                onChange={(e) => onUpdate(originalIndex, "pitchCH", parseInt(e.target.value) || 0)}
+                data-testid={`input-pitchCH-recruit-${originalIndex}`}
+              />
+            </div>
+            <div className="space-y-0.5">
+              <label className="font-pixel text-[8px] text-gold uppercase">CT</label>
+              <Input
+                type="number"
+                min={0}
+                max={99}
+                className="h-7 w-16 text-xs"
+                value={recruit.pitchCT ?? ""}
+                onChange={(e) => onUpdate(originalIndex, "pitchCT", parseInt(e.target.value) || 0)}
+                data-testid={`input-pitchCT-recruit-${originalIndex}`}
+              />
+            </div>
+            <div className="space-y-0.5">
+              <label className="font-pixel text-[8px] text-gold uppercase">SNK</label>
+              <Input
+                type="number"
+                min={0}
+                max={99}
+                className="h-7 w-16 text-xs"
+                value={recruit.pitchSNK ?? ""}
+                onChange={(e) => onUpdate(originalIndex, "pitchSNK", parseInt(e.target.value) || 0)}
+                data-testid={`input-pitchSNK-recruit-${originalIndex}`}
+              />
+            </div>
+            <div className="space-y-0.5">
+              <label className="font-pixel text-[8px] text-gold uppercase">SPL</label>
+              <Input
+                type="number"
+                min={0}
+                max={99}
+                className="h-7 w-16 text-xs"
+                value={recruit.pitchSPL ?? ""}
+                onChange={(e) => onUpdate(originalIndex, "pitchSPL", parseInt(e.target.value) || 0)}
+                data-testid={`input-pitchSPL-recruit-${originalIndex}`}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       <div>
         <p className="font-pixel text-[10px] text-gold mb-2">SPECIAL ABILITIES</p>

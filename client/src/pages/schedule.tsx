@@ -58,6 +58,7 @@ export default function SchedulePage() {
   const { id } = useParams<{ id: string }>();
   const [editingGame, setEditingGame] = useState<GameWithTeams | null>(null);
   const [boxScoreGame, setBoxScoreGame] = useState<GameWithTeams | null>(null);
+  const [showMyTeam, setShowMyTeam] = useState(true);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -89,7 +90,11 @@ export default function SchedulePage() {
     cws: "College World Series",
   };
 
-  const gamesByGroup = data?.games.reduce((acc, game) => {
+  const filteredGames = showMyTeam && data?.userTeamId
+    ? data.games.filter(g => g.homeTeamId === data.userTeamId || g.awayTeamId === data.userTeamId)
+    : data?.games || [];
+
+  const gamesByGroup = filteredGames.reduce((acc, game) => {
     const isPostseason = ["conference_championship", "super_regionals", "cws"].includes(game.phase || "");
     const groupKey = isPostseason ? game.phase! : `week_${game.week}`;
     if (!acc[groupKey]) acc[groupKey] = { games: [], label: isPostseason ? phaseLabels[game.phase!] || game.phase! : `Week ${game.week}`, sortOrder: isPostseason ? 1000 + (game.phase === "conference_championship" ? 1 : game.phase === "super_regionals" ? 2 : 3) : game.week, isCurrentWeek: !isPostseason && game.week === data?.currentWeek };
@@ -103,14 +108,38 @@ export default function SchedulePage() {
     <div className="min-h-screen bg-background">
       <header className="border-b border-border">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-4">
-            <Link href={`/league/${id}`} className="text-muted-foreground hover:text-gold transition-colors">
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <h1 className="font-pixel text-gold text-lg">Schedule</h1>
-            <div className="ml-auto flex items-center gap-2 text-sm text-muted-foreground">
-              <Calendar className="w-4 h-4" />
-              <span>Season {data?.currentSeason}, Week {data?.currentWeek}</span>
+          <div className="flex items-center gap-4 justify-between flex-wrap">
+            <div className="flex items-center gap-4">
+              <Link href={`/league/${id}`} className="text-muted-foreground hover:text-gold transition-colors">
+                <ArrowLeft className="w-5 h-5" />
+              </Link>
+              <h1 className="font-pixel text-gold text-lg">Schedule</h1>
+            </div>
+            <div className="flex items-center gap-4 flex-wrap">
+              {data?.userTeamId && (
+                <div className="flex items-center gap-2">
+                  <RetroButton 
+                    variant={showMyTeam ? "primary" : "outline"} 
+                    size="sm" 
+                    onClick={() => setShowMyTeam(true)}
+                    data-testid="button-my-team-schedule"
+                  >
+                    My Team
+                  </RetroButton>
+                  <RetroButton 
+                    variant={!showMyTeam ? "primary" : "outline"} 
+                    size="sm" 
+                    onClick={() => setShowMyTeam(false)}
+                    data-testid="button-all-games-schedule"
+                  >
+                    All Games
+                  </RetroButton>
+                </div>
+              )}
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Calendar className="w-4 h-4" />
+                <span>Season {data?.currentSeason}, Week {data?.currentWeek}</span>
+              </div>
             </div>
           </div>
         </div>

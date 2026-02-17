@@ -239,6 +239,10 @@ export function resolveTrackForRoute(
     return "game_start";
   }
 
+  if (pathname.includes("/play-by-play")) {
+    return "interview";
+  }
+
   if (pathname.includes("/recruiting") || pathname.includes("/recruit/")) {
     return "recruiting";
   }

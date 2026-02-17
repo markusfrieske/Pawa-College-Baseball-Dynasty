@@ -12,7 +12,7 @@ import { apiRequest, queryClient, getQueryFn } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { CoachAvatar } from "@/components/coach-avatar";
-import { ALL_ABILITIES, getAbilitiesForPosition, type Ability } from "@shared/abilities";
+import { ALL_ABILITIES, getAbilitiesForPosition, calculateOVR, type Ability } from "@shared/abilities";
 
 interface PlayerAppearance {
   skinTone: string;
@@ -108,10 +108,7 @@ const HAIR_STYLES = [
 ];
 
 function calcOVR(player: RealPlayer): number {
-  if (player.position === "P") {
-    return Math.round((player.velocity * 2 + player.control * 2 + player.stuff * 2 + player.stamina + player.poise + player.recovery + player.heater) / 10 * 10);
-  }
-  return Math.round((player.hitForAvg * 2 + player.power * 2 + player.speed + player.fielding + player.arm + player.clutch + player.grit + player.running) / 10 * 10);
+  return calculateOVR(player);
 }
 
 export default function ManageRostersPage() {

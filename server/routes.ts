@@ -3808,12 +3808,14 @@ export async function registerRoutes(
 
         const maxPitches = 2 + Math.floor(Math.random() * 5);
         for (let i = 0; i < maxPitches; i++) {
+          if (balls >= 3 && strikes >= 2) break;
           if (Math.random() < strikeProb) {
             if (strikes < 2) { sequence.push("strike"); strikes++; }
             else { sequence.push("foul"); }
           } else {
-            sequence.push("ball"); balls++;
-            if (balls >= 4) { balls--; sequence.pop(); break; }
+            if (balls < 3) {
+              sequence.push("ball"); balls++;
+            }
           }
         }
         sequence.push("in_play");

@@ -365,7 +365,16 @@ export default function PlayByPlayPage() {
   const currentPitcher = currentHalf === "top" ? pbpData.homePitcher : pbpData.awayPitcher;
 
   const pitchBalls = currentAtBat ? currentAtBat.pitchSequence.slice(0, currentPitchIndex + 1).filter(p => p === "ball").length : 0;
-  const pitchStrikes = currentAtBat ? currentAtBat.pitchSequence.slice(0, currentPitchIndex + 1).filter(p => p === "strike" || p === "foul").length : 0;
+  let pitchStrikes = 0;
+  if (currentAtBat) {
+    let s = 0;
+    for (let i = 0; i <= currentPitchIndex && i < currentAtBat.pitchSequence.length; i++) {
+      const p = currentAtBat.pitchSequence[i];
+      if (p === "strike") { s++; }
+      else if (p === "foul" && s < 2) { s++; }
+    }
+    pitchStrikes = s;
+  }
 
   if (showBoxScore) {
     return (
@@ -390,7 +399,7 @@ export default function PlayByPlayPage() {
           <ArrowLeft className="w-4 h-4" />
         </RetroButton>
         <h1 className="font-pixel text-gold text-[10px] sm:text-xs">Play by Play</h1>
-        <div className="flex gap-1">
+        <div className="flex gap-1 mr-14">
           <RetroButton
             variant={speed === "pause" ? "primary" : "outline"}
             size="sm"
@@ -629,8 +638,8 @@ export default function PlayByPlayPage() {
                     </td>
                   ))}
                   <td className="text-center px-2 py-1.5 text-gold font-bold border-l border-border">{runningAwayScore}</td>
-                  <td className="text-center px-2 py-1.5">{gameOver ? pbpData.innings.reduce((s, inn) => s + inn.topHalf.hits, 0) : "-"}</td>
-                  <td className="text-center px-2 py-1.5">{gameOver ? pbpData.innings.reduce((s, inn) => s + inn.topHalf.errors, 0) : "-"}</td>
+                  <td className="text-center px-2 py-1.5">{pbpData.innings.slice(0, inningScores.away.length).reduce((s, inn) => s + inn.topHalf.hits, 0)}</td>
+                  <td className="text-center px-2 py-1.5">{pbpData.innings.slice(0, inningScores.away.length).reduce((s, inn) => s + inn.topHalf.errors, 0)}</td>
                 </tr>
                 <tr>
                   <td className="px-3 py-1.5 text-foreground">{pbpData.homeTeam.abbreviation}</td>
@@ -640,8 +649,8 @@ export default function PlayByPlayPage() {
                     </td>
                   ))}
                   <td className="text-center px-2 py-1.5 text-gold font-bold border-l border-border">{runningHomeScore}</td>
-                  <td className="text-center px-2 py-1.5">{gameOver ? pbpData.innings.reduce((s, inn) => s + inn.bottomHalf.hits, 0) : "-"}</td>
-                  <td className="text-center px-2 py-1.5">{gameOver ? pbpData.innings.reduce((s, inn) => s + inn.bottomHalf.errors, 0) : "-"}</td>
+                  <td className="text-center px-2 py-1.5">{pbpData.innings.slice(0, inningScores.home.length).reduce((s, inn) => s + inn.bottomHalf.hits, 0)}</td>
+                  <td className="text-center px-2 py-1.5">{pbpData.innings.slice(0, inningScores.home.length).reduce((s, inn) => s + inn.bottomHalf.errors, 0)}</td>
                 </tr>
               </tbody>
             </table>

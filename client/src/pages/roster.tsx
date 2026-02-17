@@ -1167,6 +1167,13 @@ function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leagueId, i
   };
 
   const getPlayersByPosition = (pos: string): Player[] => {
+    if (pos === "LF" || pos === "CF" || pos === "RF") {
+      const specificPlayers = players.filter(p => p.position === pos);
+      const ofPlayers = players.filter(p => p.position === "OF");
+      const ofPositions = ["LF", "CF", "RF"];
+      const myOfPlayers = ofPlayers.filter((_, i) => ofPositions[i % 3] === pos);
+      return sortByDepth([...specificPlayers, ...myOfPlayers]);
+    }
     return sortByDepth(players.filter(p => p.position === pos));
   };
 
