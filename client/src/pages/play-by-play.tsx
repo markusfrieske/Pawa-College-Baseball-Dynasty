@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { RetroButton } from "@/components/ui/retro-button";
@@ -241,6 +241,84 @@ export default function PlayByPlayPage() {
       toast({ title: "Error saving game", description: err.message, variant: "destructive" });
     },
   });
+
+  const runningGameStats = useMemo(() => {
+    if (!pbpData) return { batting: {} as Record<string, { ab: number; r: number; h: number; hr: number; rbi: number; bb: number; so: number }>, pitching: {} as Record<string, { outs: number; h: number; r: number; er: number; bb: number; so: number }> };
+    const batting: Record<string, { ab: number; r: number; h: number; hr: number; rbi: number; bb: number; so: number }> = {};
+    const pitching: Record<string, { outs: number; h: number; r: number; er: number; bb: number; so: number }> = {};
+
+    const hitResults = ["single", "double", "triple", "homerun"];
+    const outResults = ["strikeout", "groundout", "flyout", "lineout", "popout", "double_play", "fielders_choice", "sacrifice_fly"];
+
+    for (let inn = 0; inn < pbpData.innings.length; inn++) {
+      const inning = pbpData.innings[inn];
+      for (const halfKey of ["topHalf", "bottomHalf"] as const) {
+        const half = inning[halfKey];
+        const isTop = halfKey === "topHalf";
+        const lineup = isTop ? pbpData.awayLineup : pbpData.homeLineup;
+        const pitcherLineup = isTop ? pbpData.homeLineup : pbpData.awayLineup;
+        const currentPitcherId = isTop ? pbpData.homePitcher.playerId : pbpData.awayPitcher.playerId;
+
+        for (let abIdx = 0; abIdx < half.atBats.length; abIdx++) {
+          const isPastCurrentPosition = inn > currentInning ||
+            (inn === currentInning && halfKey === "bottomHalf" && currentHalf === "top") ||
+            (inn === currentInning && halfKey === (currentHalf === "top" ? "topHalf" : "bottomHalf") && abIdx >= currentAtBatIndex);
+          if (isPastCurrentPosition) break;
+
+          const ab = half.atBats[abIdx];
+          const batter = lineup[ab.batterIndex];
+          if (!batter) continue;
+          const bId = batter.playerId;
+
+          if (!batting[bId]) batting[bId] = { ab: 0, r: 0, h: 0, hr: 0, rbi: 0, bb: 0, so: 0 };
+          if (!pitching[currentPitcherId]) pitching[currentPitcherId] = { outs: 0, h: 0, r: 0, er: 0, bb: 0, so: 0 };
+
+          const result = ab.result;
+          const isHit = hitResults.includes(result);
+          const isOut = outResults.includes(result);
+          const noAb = result === "walk" || result === "hbp" || result === "sacrifice_fly";
+
+          if (!noAb) batting[bId].ab++;
+          if (isHit) {
+            batting[bId].h++;
+            pitching[currentPitcherId].h++;
+          }
+          if (result === "homerun") batting[bId].hr++;
+          if (result === "walk" || result === "hbp") {
+            batting[bId].bb++;
+            pitching[currentPitcherId].bb++;
+          }
+          if (result === "strikeout") {
+            batting[bId].so++;
+            pitching[currentPitcherId].so++;
+          }
+          batting[bId].rbi += ab.runsScored;
+          pitching[currentPitcherId].r += ab.runsScored;
+          pitching[currentPitcherId].er += ab.runsScored;
+
+          if (isOut) {
+            const outsFromPlay = result === "double_play" ? 2 : 1;
+            pitching[currentPitcherId].outs += outsFromPlay;
+          }
+        }
+      }
+    }
+    return { batting, pitching };
+  }, [pbpData, currentInning, currentHalf, currentAtBatIndex]);
+
+  const getRunningBatterStats = useCallback((playerId: string) => {
+    const s = runningGameStats.batting[playerId];
+    if (!s) return undefined;
+    if (s.ab === 0 && s.bb === 0) return undefined;
+    return s;
+  }, [runningGameStats]);
+
+  const getRunningPitcherStats = useCallback((playerId: string) => {
+    const s = runningGameStats.pitching[playerId];
+    if (!s) return undefined;
+    const outsToIP = (outs: number) => `${Math.floor(outs / 3)}.${outs % 3}`;
+    return { ...s, ip: outsToIP(s.outs) };
+  }, [runningGameStats]);
 
   const getCurrentAtBat = useCallback((): AtBat | null => {
     if (!pbpData) return null;
@@ -597,7 +675,7 @@ export default function PlayByPlayPage() {
                     <span className={`text-[10px] truncate flex-1 ${isActive ? "text-gold font-bold" : "text-foreground"}`}>{p.lastName}</span>
                     <div className="flex items-center gap-0.5 shrink-0" title={`OVR: ${p.overall || 300}`}>
                       <Star className={`w-2.5 h-2.5 fill-current ${starColor(stars)}`} />
-                      <span className="text-[8px] text-muted-foreground">{stars}</span>
+                      <span className="text-[8px] text-muted-foreground">{p.overall || 300}</span>
                     </div>
                   </div>
                 );
@@ -660,12 +738,9 @@ export default function PlayByPlayPage() {
                       }}
                       gameStats={(() => {
                         if (!currentAtBat) return undefined;
-                        const battingStats = currentHalf === "top" ? pbpData.awayBatting : pbpData.homeBatting;
                         const batter = currentLineup[currentAtBat.batterIndex];
                         if (!batter) return undefined;
-                        const stat = battingStats.find(s => s.playerId === batter.playerId);
-                        if (!stat) return undefined;
-                        return { ab: stat.ab, h: stat.h, hr: stat.hr, rbi: stat.rbi, bb: stat.bb, so: stat.so };
+                        return getRunningBatterStats(batter.playerId);
                       })()}
                       seasonStats={(() => {
                         if (!currentAtBat || !pbpData.playerSeasonStats) return undefined;
@@ -685,14 +760,13 @@ export default function PlayByPlayPage() {
                         if (!currentAtBat) return;
                         const batter = currentLineup[currentAtBat.batterIndex];
                         if (!batter) return;
-                        const battingStats = currentHalf === "top" ? pbpData.awayBatting : pbpData.homeBatting;
-                        const stat = battingStats.find(s => s.playerId === batter.playerId);
+                        const rStats = getRunningBatterStats(batter.playerId);
                         setStatsModalPlayer({
                           name: currentAtBat.batterName,
                           position: batter.position,
                           type: "batter",
                           seasonStats: pbpData.playerSeasonStats?.[batter.playerId],
-                          gameStats: stat ? { ab: stat.ab, h: stat.h, hr: stat.hr, rbi: stat.rbi, bb: stat.bb, so: stat.so, r: stat.r } : undefined,
+                          gameStats: rStats ? { ...rStats, r: rStats.r } : undefined,
                           appearance: { skinTone: batter.skinTone, hairColor: batter.hairColor, hairStyle: batter.hairStyle, headwear: batter.headwear },
                           overall: batter.overall,
                           team: battingTeam,
@@ -854,10 +928,9 @@ export default function PlayByPlayPage() {
                         control: currentPitcher.control,
                       }}
                       gameStats={(() => {
-                        const pitchingStats = currentHalf === "top" ? pbpData.homePitching : pbpData.awayPitching;
-                        const stat = pitchingStats.find(s => s.playerId === currentPitcher.playerId);
-                        if (!stat) return undefined;
-                        return { ip: stat.ip, h: stat.h, er: stat.er, bb: stat.bb, so: stat.so };
+                        const rStats = getRunningPitcherStats(currentPitcher.playerId);
+                        if (!rStats) return undefined;
+                        return { ip: rStats.ip, h: rStats.h, er: rStats.er, bb: rStats.bb, so: rStats.so };
                       })()}
                       seasonStats={pbpData.playerSeasonStats?.[currentPitcher.playerId]}
                       team={pitchingTeam}
@@ -869,14 +942,13 @@ export default function PlayByPlayPage() {
                       }}
                       overall={currentPitcher.overall}
                       onClickStats={() => {
-                        const pitchingStats = currentHalf === "top" ? pbpData.homePitching : pbpData.awayPitching;
-                        const stat = pitchingStats.find(s => s.playerId === currentPitcher.playerId);
+                        const rStats = getRunningPitcherStats(currentPitcher.playerId);
                         setStatsModalPlayer({
                           name: `${currentPitcher.firstName[0]}. ${currentPitcher.lastName}`,
                           position: "P",
                           type: "pitcher",
                           seasonStats: pbpData.playerSeasonStats?.[currentPitcher.playerId],
-                          gameStats: stat ? { ip: stat.ip, h: stat.h, er: stat.er, bb: stat.bb, so: stat.so, r: stat.r } : undefined,
+                          gameStats: rStats ? { ip: rStats.ip, h: rStats.h, er: rStats.er, bb: rStats.bb, so: rStats.so, r: rStats.r } : undefined,
                           appearance: { skinTone: currentPitcher.skinTone, hairColor: currentPitcher.hairColor, hairStyle: currentPitcher.hairStyle, headwear: currentPitcher.headwear },
                           overall: currentPitcher.overall,
                           team: pitchingTeam,
@@ -942,7 +1014,7 @@ export default function PlayByPlayPage() {
                     <span className={`text-[10px] truncate flex-1 ${isActive ? "text-gold font-bold" : "text-foreground"}`}>{p.lastName}</span>
                     <div className="flex items-center gap-0.5 shrink-0" title={`OVR: ${p.overall || 300}`}>
                       <Star className={`w-2.5 h-2.5 fill-current ${starColor(stars)}`} />
-                      <span className="text-[8px] text-muted-foreground">{stars}</span>
+                      <span className="text-[8px] text-muted-foreground">{p.overall || 300}</span>
                     </div>
                   </div>
                 );
@@ -1059,7 +1131,7 @@ export default function PlayByPlayPage() {
                   <h4 className="text-[10px] text-gold mb-2">TODAY'S GAME</h4>
                   {statsModalPlayer.type === "batter" ? (
                     <div className="grid grid-cols-4 gap-2">
-                      {[["AB", "ab"], ["H", "h"], ["R", "r"], ["HR", "hr"], ["RBI", "rbi"], ["BB", "bb"], ["SO", "so"]].map(([label, key]) => (
+                      {[["AB", "ab"], ["H", "h"], ["HR", "hr"], ["RBI", "rbi"], ["BB", "bb"], ["SO", "so"]].map(([label, key]) => (
                         <div key={key} className="text-center">
                           <div className="text-[9px] text-muted-foreground">{label}</div>
                           <div className="text-sm text-foreground">{statsModalPlayer.gameStats![key]}</div>
@@ -1327,7 +1399,7 @@ function PlayerCard({ type, name, position, stats, gameStats, seasonStats, team,
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 flex-wrap">
             <Badge variant="outline" className="text-[9px] font-pixel shrink-0">{position}</Badge>
-            <span className="font-pixel text-[11px] text-gold truncate max-w-[120px]">{name}</span>
+            <span className="font-pixel text-[9px] text-gold truncate max-w-[150px]">{name}</span>
           </div>
           <div className="flex items-center gap-1.5 mt-0.5">
             <span className="text-[9px] text-muted-foreground font-pixel">{type === "batter" ? "At Bat" : "Pitching"}</span>
