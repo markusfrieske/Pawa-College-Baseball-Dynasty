@@ -3803,41 +3803,62 @@ export async function registerRoutes(
         abilities: string[];
       }
 
-      function pickPitchingStaff(players: Player[]) {
+      function toPitcherRef(p: Player): PitcherRef {
+        return {
+          playerId: p.id, firstName: p.firstName, lastName: p.lastName,
+          stuff: p.stuff || 50, control: p.control || 50, velocity: p.velocity || 50,
+          stamina: p.stamina || 60,
+          skinTone: p.skinTone || "light",
+          hairColor: p.hairColor || "brown",
+          hairStyle: p.hairStyle || "short",
+          headwear: p.headwear || "cap",
+          overall: p.overall || 300,
+          abilities: p.abilities || [],
+        };
+      }
+
+      function pickPitchingStaff(players: Player[], gameType: string | null | undefined) {
         const pitchers = players.filter(p => p.position === "P");
         pitchers.sort((a, b) => (b.overall || 0) - (a.overall || 0));
-        const starter = pitchers[0] || players.sort((a, b) => (b.overall || 0) - (a.overall || 0))[0];
-        const bullpen = pitchers.slice(1, 4);
+
+        const gameTypeToRole: Record<string, string> = {
+          "friday": "FRI", "saturday": "SAT", "sunday": "SUN", "midweek": "MID",
+        };
+        const starterRoles = ["FRI", "SAT", "SUN", "MID"];
+        const relieverRoles = ["LRP", "MR", "MR1", "MR2", "MR3", "SU", "CP"];
+
+        const targetRole = gameType ? gameTypeToRole[gameType] : null;
+        let starter = targetRole
+          ? pitchers.find(p => p.pitchingRole === targetRole) || null
+          : null;
+        if (!starter) {
+          starter = pitchers.find(p => starterRoles.includes(p.pitchingRole || "")) || null;
+        }
+        if (!starter) {
+          starter = pitchers[0] || players.sort((a, b) => (b.overall || 0) - (a.overall || 0))[0];
+        }
+
+        let bullpen = pitchers
+          .filter(p => p.id !== starter!.id && relieverRoles.includes(p.pitchingRole || ""))
+          .sort((a, b) => {
+            const roleOrder = ["CP", "SU", "MR", "MR1", "MR2", "MR3", "LRP"];
+            return roleOrder.indexOf(a.pitchingRole || "") - roleOrder.indexOf(b.pitchingRole || "");
+          });
+        if (bullpen.length === 0) {
+          bullpen = pitchers.filter(p => p.id !== starter!.id).slice(0, 4);
+        }
+        bullpen = bullpen.slice(0, 4);
+
         return {
-          starter: {
-            playerId: starter?.id || "fake_p", firstName: starter?.firstName || "Unknown", lastName: starter?.lastName || "Pitcher",
-            stuff: starter?.stuff || 50, control: starter?.control || 50, velocity: starter?.velocity || 50,
-            stamina: starter?.stamina || 60,
-            skinTone: starter?.skinTone || "light",
-            hairColor: starter?.hairColor || "brown",
-            hairStyle: starter?.hairStyle || "short",
-            headwear: starter?.headwear || "cap",
-            overall: starter?.overall || 300,
-            abilities: starter?.abilities || [],
-          } as PitcherRef,
-          bullpen: bullpen.map(p => ({
-            playerId: p.id, firstName: p.firstName, lastName: p.lastName,
-            stuff: p.stuff || 50, control: p.control || 50, velocity: p.velocity || 50,
-            stamina: p.stamina || 50,
-            skinTone: p.skinTone || "light",
-            hairColor: p.hairColor || "brown",
-            hairStyle: p.hairStyle || "short",
-            headwear: p.headwear || "cap",
-            overall: p.overall || 300,
-            abilities: p.abilities || [],
-          } as PitcherRef)),
+          starter: toPitcherRef(starter!),
+          bullpen: bullpen.map(p => toPitcherRef(p)),
         };
       }
 
       const homeLineup = buildLineup(homePlayers);
       const awayLineup = buildLineup(awayPlayers);
-      const homeStaff = pickPitchingStaff(homePlayers);
-      const awayStaff = pickPitchingStaff(awayPlayers);
+      const homeStaff = pickPitchingStaff(homePlayers, game.gameType);
+      const awayStaff = pickPitchingStaff(awayPlayers, game.gameType);
       const homePitcher = homeStaff.starter;
       const awayPitcher = awayStaff.starter;
 
