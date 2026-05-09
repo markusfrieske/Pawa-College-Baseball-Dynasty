@@ -169,19 +169,22 @@ function generateRecruitingClass(): RecruitData[] {
   };
 
   const starDistribution: number[] = [];
-  for (let i = 0; i < starCounts[5]; i++) starDistribution.push(5);
-  for (let i = 0; i < starCounts["5h"]; i++) starDistribution.push(5);
-  for (let i = 0; i < starCounts[4]; i++) starDistribution.push(4);
-  for (let i = 0; i < starCounts[3]; i++) starDistribution.push(3);
-  for (let i = 0; i < starCounts[2]; i++) starDistribution.push(2);
-  for (let i = 0; i < starCounts[1]; i++) starDistribution.push(1);
+  const blueChipDistribution: boolean[] = [];
+  const pushSlot = (s: number, bc: boolean) => { starDistribution.push(s); blueChipDistribution.push(bc); };
+  for (let i = 0; i < starCounts[5]; i++) pushSlot(5, false);
+  for (let i = 0; i < starCounts["5h"]; i++) pushSlot(5, true);
+  for (let i = 0; i < starCounts[4]; i++) pushSlot(4, false);
+  for (let i = 0; i < starCounts[3]; i++) pushSlot(3, false);
+  for (let i = 0; i < starCounts[2]; i++) pushSlot(2, false);
+  for (let i = 0; i < starCounts[1]; i++) pushSlot(1, false);
 
-  while (starDistribution.length < total) starDistribution.push(3);
-  while (starDistribution.length > total) starDistribution.pop();
+  while (starDistribution.length < total) pushSlot(3, false);
+  while (starDistribution.length > total) { starDistribution.pop(); blueChipDistribution.pop(); }
 
   for (let i = starDistribution.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [starDistribution[i], starDistribution[j]] = [starDistribution[j], starDistribution[i]];
+    [blueChipDistribution[i], blueChipDistribution[j]] = [blueChipDistribution[j], blueChipDistribution[i]];
   }
 
   const ovrRanges: Record<number, [number, number]> = {
@@ -202,9 +205,10 @@ function generateRecruitingClass(): RecruitData[] {
 
   for (let i = 0; i < total; i++) {
     const star = starDistribution[i];
+    const isBlueChip = blueChipDistribution[i];
     const [minOvr, maxOvr] = ovrRanges[star];
     const position = pickRandom(POSITIONS);
-    const numAbilities = star === 5 ? randInt(3, 5) : star === 4 ? randInt(2, 4) : star === 3 ? randInt(1, 3) : star === 2 ? randInt(0, 2) : randInt(0, 1);
+    const numAbilities = isBlueChip ? randInt(4, 7) : star === 5 ? randInt(3, 5) : star === 4 ? randInt(2, 4) : star === 3 ? randInt(1, 3) : star === 2 ? randInt(0, 2) : randInt(0, 1);
     const abilities: string[] = [];
     const isPitcherPos = position === "P";
     const pool = [...(isPitcherPos ? ABILITIES_POOL_PITCHER : ABILITIES_POOL_FIELDER)];

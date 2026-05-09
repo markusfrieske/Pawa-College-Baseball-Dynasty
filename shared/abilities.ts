@@ -202,11 +202,15 @@ export function getAbilitiesForPosition(position: string): Ability[] {
   }
 }
 
+export const MAX_SPECIAL_ABILITIES = 7;
+
 export function getRandomAbilities(position: string, count: number, preferGold: boolean = false): string[] {
   const availableAbilities = getAbilitiesForPosition(position);
-  
-  if (count === 0 || availableAbilities.length === 0) return [];
-  
+
+  // Clamp requested count to the global cap of 7
+  const cappedCount = Math.max(0, Math.min(MAX_SPECIAL_ABILITIES, count));
+  if (cappedCount === 0 || availableAbilities.length === 0) return [];
+
   let pool: Ability[];
   if (preferGold) {
     const goldAbilities = availableAbilities.filter(a => a.tier === "gold");
@@ -215,25 +219,26 @@ export function getRandomAbilities(position: string, count: number, preferGold: 
   } else {
     pool = availableAbilities.filter(a => a.tier !== "red");
   }
-  
+
   const selected: string[] = [];
   const shuffled = [...pool].sort(() => Math.random() - 0.5);
-  
+
   for (const ability of shuffled) {
-    if (selected.length >= count) break;
+    if (selected.length >= cappedCount) break;
     if (!selected.includes(ability.name)) {
       selected.push(ability.name);
     }
   }
-  
+
+  // 15% chance to swap one slot for a red ability — never exceeds cappedCount
   const redAbilities = availableAbilities.filter(a => a.tier === "red");
-  if (redAbilities.length > 0 && Math.random() < 0.15 && selected.length < count + 1) {
+  if (redAbilities.length > 0 && Math.random() < 0.15 && selected.length > 0) {
     const randomRed = redAbilities[Math.floor(Math.random() * redAbilities.length)];
     if (!selected.includes(randomRed.name)) {
-      selected.push(randomRed.name);
+      selected[selected.length - 1] = randomRed.name;
     }
   }
-  
+
   return selected;
 }
 
