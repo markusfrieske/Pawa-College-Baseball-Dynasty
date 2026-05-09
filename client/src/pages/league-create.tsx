@@ -23,12 +23,15 @@ const availableConferences = [
   { id: "ACC", name: "ACC", teams: 17, description: "Atlantic Coast Conference" },
   { id: "Big 12", name: "Big 12", teams: 14, description: "Big 12 Conference" },
   { id: "Big Ten", name: "Big Ten", teams: 18, description: "Big Ten Conference" },
-  { id: "Pac-12", name: "Pac-12", teams: 7, description: "Pacific-12 Conference" },
+  { id: "Pac-12", name: "Pac-12", teams: 2, description: "Pacific-12 Conference" },
+  { id: "AAC", name: "AAC", teams: 11, description: "American Athletic Conference" },
+  { id: "WCC", name: "WCC", teams: 8, description: "West Coast Conference" },
+  { id: "Mountain West", name: "Mountain West", teams: 6, description: "Mountain West Conference" },
   { id: "Ivy League", name: "Ivy League", teams: 8, description: "Ivy League" },
-  { id: "Sun Belt", name: "Sun Belt", teams: 12, description: "Sun Belt Conference" },
+  { id: "Sun Belt", name: "Sun Belt", teams: 13, description: "Sun Belt Conference" },
   { id: "Big West", name: "Big West", teams: 10, description: "Big West Conference" },
   { id: "HBCU", name: "HBCU", teams: 16, description: "Historically Black Colleges & Universities" },
-  { id: "Missouri Valley", name: "Missouri Valley", teams: 14, description: "Missouri Valley Conference" },
+  { id: "Missouri Valley", name: "Missouri Valley", teams: 13, description: "Missouri Valley Conference" },
 ];
 
 const seasonLengthOptions = [
