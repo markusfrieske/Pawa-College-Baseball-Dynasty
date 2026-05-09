@@ -368,15 +368,35 @@ export default function RecruitProfilePage() {
 
   const getTeamGradeForPriority = (priorityKey: string, team?: Team): number | null => {
     if (!team) return null;
-    const gradeMap: Record<string, number | undefined> = {
-      proximityPriority: undefined,
+    // Approximate the server's proximity multiplier (1.0 - 1.5) as a 1-10 grade
+    // using the recruit's home state vs team state. Same state = 10, same region = 7, else 4.
+    const proximityGrade = (() => {
+      if (!recruit?.homeState || !team.state) return null;
+      if (recruit.homeState === team.state) return 10;
+      const regions: Record<string, string[]> = {
+        southeast: ["FL", "GA", "AL", "SC", "NC", "TN", "MS", "LA"],
+        southwest: ["TX", "AZ", "NM", "OK"],
+        midwest: ["OH", "IN", "IL", "MI", "WI", "MN", "IA", "MO", "NE", "KS"],
+        northeast: ["NY", "PA", "NJ", "MA", "CT", "MD", "VA"],
+        west: ["CA", "WA", "OR", "CO", "UT", "NV"],
+      };
+      let rRegion = "", tRegion = "";
+      for (const [region, states] of Object.entries(regions)) {
+        if (states.includes(recruit.homeState)) rRegion = region;
+        if (states.includes(team.state)) tRegion = region;
+      }
+      return rRegion && rRegion === tRegion ? 7 : 4;
+    })();
+    const gradeMap: Record<string, number | null | undefined> = {
+      proximityPriority: proximityGrade,
       reputationPriority: team.prestige,
       playingTimePriority: undefined,
       academicsPriority: team.academics,
       prestigePriority: team.prestige,
       facilitiesPriority: team.facilities,
     };
-    return gradeMap[priorityKey] ?? null;
+    const v = gradeMap[priorityKey];
+    return v ?? null;
   };
 
   const revealedAbilitiesCount = recruit.interest?.revealedAbilitiesCount || 0;
