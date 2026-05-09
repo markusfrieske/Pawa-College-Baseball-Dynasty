@@ -447,7 +447,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: [], potential: "B+", catcherAbility: null,
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(4, [0, 4, 4, 4, 0, 0, 0]) },
-    // CATCHERS (3)
+    // CATCHERS (2)
     // Chase Fralick — SO C, .335/.426/.472 in 2025, HR in 5 straight games (1st since 1985), .520 last 6 multi-hit
     { firstName: "Chase", lastName: "Fralick", position: "C", eligibility: "SO", homeState: "GA", hometown: "Woodstock", jerseyNumber: 12,
       hitForAvg: 80, power: 70, speed: 36, arm: 60, fielding: 64, errorResistance: 60, velocity: 0, control: 0, stamina: 0, stuff: 0,
@@ -462,7 +462,6 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Power Surge"], potential: "B+", catcherAbility: 56,
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...noPitches },
-    // Will Ketchum — SO backup C
     // INFIELDERS (6)
     // Chris Rembert — SO 2B, ELITE: top pure hitter 2026 draft, .344/14 2B/10 HR 2025, .403 in SEC, 17-G hit streak
     { firstName: "Chris", lastName: "Rembert", position: "2B", eligibility: "SO", homeState: "GA", hometown: "Savannah", jerseyNumber: 1,
