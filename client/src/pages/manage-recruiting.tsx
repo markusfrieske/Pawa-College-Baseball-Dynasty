@@ -204,7 +204,7 @@ function generateRecruitingClass(): RecruitData[] {
     const star = starDistribution[i];
     const [minOvr, maxOvr] = ovrRanges[star];
     const position = pickRandom(POSITIONS);
-    const numAbilities = star >= 4 ? randInt(1, 3) : star === 3 ? randInt(0, 2) : randInt(0, 1);
+    const numAbilities = star === 5 ? randInt(3, 5) : star === 4 ? randInt(2, 4) : star === 3 ? randInt(1, 3) : star === 2 ? randInt(0, 2) : randInt(0, 1);
     const abilities: string[] = [];
     const isPitcherPos = position === "P";
     const pool = [...(isPitcherPos ? ABILITIES_POOL_PITCHER : ABILITIES_POOL_FIELDER)];

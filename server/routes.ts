@@ -11166,13 +11166,15 @@ async function generateRecruits(leagueId: string, count: number) {
     }
   };
 
-  // Get number of abilities based on star rating
-  const getAbilityCount = (starRank: number): number => {
+  // Get number of abilities based on star rating (cap 0-7)
+  const getAbilityCount = (starRank: number, isBlueChip: boolean = false): number => {
+    if (isBlueChip) return 4 + Math.floor(Math.random() * 4); // 4-7 abilities
     switch (starRank) {
-      case 5: return 2 + Math.floor(Math.random() * 2); // 2-3 abilities
-      case 4: return 1 + Math.floor(Math.random() * 2); // 1-2 abilities
-      case 3: return Math.floor(Math.random() * 2);     // 0-1 abilities
-      default: return Math.random() < 0.3 ? 1 : 0;       // 30% chance of 1 ability
+      case 5: return 3 + Math.floor(Math.random() * 3); // 3-5 abilities
+      case 4: return 2 + Math.floor(Math.random() * 3); // 2-4 abilities
+      case 3: return 1 + Math.floor(Math.random() * 3); // 1-3 abilities
+      case 2: return Math.floor(Math.random() * 3);     // 0-2 abilities
+      default: return Math.random() < 0.5 ? 1 : 0;      // 1★: 50% chance of 1
     }
   };
 
@@ -11344,7 +11346,7 @@ async function generateRecruits(leagueId: string, count: number) {
     if (isGenerationalGem) {
       isGem = true;
       targetAttrAvg = -1; // handled separately with elite attributes
-      abilityCount = 3;
+      abilityCount = 5 + Math.floor(Math.random() * 3); // 5-7 abilities
     } else if (isGenerationalBust) {
       isBust = true;
       targetAttrAvg = -1; // handled separately with poor attributes
@@ -11356,7 +11358,7 @@ async function generateRecruits(leagueId: string, count: number) {
       isGem = gemBust.isGem;
       isBust = isBlueChip ? false : gemBust.isBust;
       targetAttrAvg = getTargetAttrAvgForRecruit(starRank, isBlueChip, isGem, isBust);
-      abilityCount = getAbilityCount(starRank);
+      abilityCount = getAbilityCount(starRank, isBlueChip);
     }
     
     const starRating = starRank;
@@ -11368,9 +11370,10 @@ async function generateRecruits(leagueId: string, count: number) {
       const blueAbilities = availableAbilities.filter(a => a.tier === "blue");
       const shuffledGold = [...goldAbilities].sort(() => Math.random() - 0.5);
       const shuffledBlue = [...blueAbilities].sort(() => Math.random() - 0.5);
+      const goldTarget = Math.min(3, Math.max(2, Math.floor(abilityCount / 2)));
       const selected: string[] = [];
-      for (const a of shuffledGold) { if (selected.length < 2 && !selected.includes(a.name)) selected.push(a.name); }
-      for (const a of shuffledBlue) { if (selected.length < 3 && !selected.includes(a.name)) selected.push(a.name); }
+      for (const a of shuffledGold) { if (selected.length < goldTarget && !selected.includes(a.name)) selected.push(a.name); }
+      for (const a of shuffledBlue) { if (selected.length < abilityCount && !selected.includes(a.name)) selected.push(a.name); }
       abilities = selected;
     } else if (isGenerationalBust) {
       const availableAbilities = getAbilitiesForPosition(position);
@@ -12027,9 +12030,11 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
 
     const { avg: targetAvg, starTier } = getTargetAttrAvg();
 
-    const abilityCount = starTier >= 4 ? Math.floor(Math.random() * 2) + 1 : 
-                         starTier === 3 ? Math.floor(Math.random() * 2) :
-                         Math.random() < 0.3 ? 1 : 0;
+    const abilityCount = starTier === 5 ? 3 + Math.floor(Math.random() * 3) :   // 3-5
+                         starTier === 4 ? 2 + Math.floor(Math.random() * 3) :   // 2-4
+                         starTier === 3 ? 1 + Math.floor(Math.random() * 3) :   // 1-3
+                         starTier === 2 ? Math.floor(Math.random() * 3) :       // 0-2
+                         Math.random() < 0.5 ? 1 : 0;                            // 1★: 50% of 1
     const abilities = getRandomAbilities(position, abilityCount, starTier >= 4);
 
     const appearance = getRandomAppearance();
