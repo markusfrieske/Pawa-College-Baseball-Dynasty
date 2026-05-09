@@ -11839,7 +11839,13 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
     const usedJerseyNumbers = new Set<number>();
 
     for (const rp of realRoster) {
-      const appearance = getRandomAppearance();
+      const randomAppearance = getRandomAppearance();
+      const appearance = {
+        skinTone: rp.skinTone || randomAppearance.skinTone,
+        hairColor: rp.hairColor || randomAppearance.hairColor,
+        hairStyle: rp.hairStyle || randomAppearance.hairStyle,
+        headwear: randomAppearance.headwear,
+      };
       usedJerseyNumbers.add(rp.jerseyNumber);
       const playerData = {
         hitForAvg: rp.hitForAvg, power: rp.power, speed: rp.speed, arm: rp.arm,

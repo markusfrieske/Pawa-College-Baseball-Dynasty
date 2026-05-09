@@ -55,6 +55,9 @@ export interface RealPlayer {
   pitchCT: number;
   pitchSNK: number;
   pitchSPL: number;
+  skinTone?: string;
+  hairColor?: string;
+  hairStyle?: string;
 }
 
 export const SEC_REAL_ROSTERS: Record<string, RealPlayer[]> = {
