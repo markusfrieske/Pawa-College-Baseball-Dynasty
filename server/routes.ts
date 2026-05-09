@@ -1329,6 +1329,66 @@ export async function registerRoutes(
     return 1.0; // Different region
   }
 
+  // Shared per-action interest formulas. Both human endpoints and the CPU
+  // recruiter call these so the math is guaranteed to be identical.
+  function computeEmailGain(recruit: any, team: any, coach: any, topic: string) {
+    const baseGain = 3 + Math.floor(Math.random() * 5);
+    const { bonus: priorityBonus, matchLevel } = calculatePriorityBonus(topic, recruit, team);
+    const schoolBonus = calculateSchoolBonus(topic, team);
+    const coachBonus = calculateCoachBonus(coach, recruit, "email");
+    const proximityBonus = topic === "proximity" ? calculateProximityBonus(recruit.homeState, team.state) : 1.0;
+    const totalMultiplier = priorityBonus * schoolBonus * coachBonus * proximityBonus;
+    const interestGain = Math.round(baseGain * totalMultiplier);
+    return { baseGain, interestGain, matchLevel, totalMultiplier };
+  }
+  function computePhoneGain(recruit: any, team: any, coach: any, topics: string[]) {
+    let totalInterestGain = 0;
+    const pitchResults: { topic: string; gain: number; matchLevel: string }[] = [];
+    for (const topic of topics) {
+      const baseGain = 3 + Math.floor(Math.random() * 7);
+      const { bonus: priorityBonus, matchLevel } = calculatePriorityBonus(topic, recruit, team);
+      const schoolBonus = calculateSchoolBonus(topic, team);
+      const coachBonus = calculateCoachBonus(coach, recruit, "phone");
+      const proximityBonus = topic === "proximity" ? calculateProximityBonus(recruit.homeState, team.state) : 1.0;
+      const gain = Math.round(baseGain * priorityBonus * schoolBonus * coachBonus * proximityBonus);
+      totalInterestGain += gain;
+      pitchResults.push({ topic, gain, matchLevel });
+    }
+    return { totalInterestGain, pitchResults };
+  }
+  function computeVisitGain(recruit: any, team: any, coach: any) {
+    const baseGain = 20 + Math.floor(Math.random() * 16);
+    const facilitiesBonus = (team.facilities || 5) / 5;
+    const academicsBonus = (team.academics || 5) / 5;
+    const prestigeBonus = (team.prestige || 5) / 5;
+    const collegeLifeBonus = (team.collegeLife || 5) / 5;
+    const schoolAttrBonus = (facilitiesBonus + academicsBonus + prestigeBonus + collegeLifeBonus) / 4;
+    const coachBonus = calculateCoachBonus(coach, recruit, "visit");
+    const { bonus: priorityBonus } = calculatePriorityBonus("facilities", recruit, team);
+    const proximityBonus = calculateProximityBonus(recruit.homeState, team.state);
+    const totalMultiplier = schoolAttrBonus * coachBonus * priorityBonus * proximityBonus;
+    const interestGain = Math.round(baseGain * totalMultiplier);
+    return { baseGain, interestGain, totalMultiplier };
+  }
+  function computeHeadCoachVisitGain(recruit: any, team: any, coach: any) {
+    const baseGain = 25 + Math.floor(Math.random() * 16);
+    const coachBonus = calculateCoachBonus(coach, recruit, "head_coach_visit");
+    const levelBonus = 1.0 + ((coach?.level || 1) - 1) * 0.03;
+    const { bonus: priorityBonus } = calculatePriorityBonus("prestige", recruit, team);
+    const proximityBonus = calculateProximityBonus(recruit.homeState, team.state);
+    const totalMultiplier = coachBonus * levelBonus * priorityBonus * proximityBonus;
+    const interestGain = Math.round(baseGain * totalMultiplier);
+    return { baseGain, interestGain, totalMultiplier };
+  }
+  function computeOfferGain(recruit: any, team: any, coach: any) {
+    const baseGain = 15 + Math.floor(Math.random() * 10);
+    const prestigeBonus = (team.prestige || 5) / 5;
+    const coachBonus = calculateCoachBonus(coach, recruit, "offer");
+    const { bonus: priorityBonus } = calculatePriorityBonus("playingTime", recruit, team);
+    const interestGain = Math.round(baseGain * prestigeBonus * coachBonus * priorityBonus);
+    return { baseGain, interestGain };
+  }
+
   // Recruiting action: phone call with up to 3 pitch topics
   app.post("/api/leagues/:id/recruiting/:recruitId/phone", requireAuth, async (req, res) => {
     try {
@@ -1370,20 +1430,7 @@ export async function registerRoutes(
         return res.status(400).json({ message: `You've used all ${maxRecruitingActions} recruiting points this week` });
       }
 
-      let totalInterestGain = 0;
-      const pitchResults: { topic: string; gain: number; matchLevel: string }[] = [];
-      
-      for (const topic of topics) {
-        const baseGain = 3 + Math.floor(Math.random() * 7);
-        const { bonus: priorityBonus, matchLevel } = calculatePriorityBonus(topic, recruit, userTeam);
-        const schoolBonus = calculateSchoolBonus(topic, userTeam);
-        const coachBonus = calculateCoachBonus(userCoach, recruit, "phone");
-        const proximityBonus = topic === "proximity" ? calculateProximityBonus(recruit.homeState, userTeam.state) : 1.0;
-        const totalMultiplier = priorityBonus * schoolBonus * coachBonus * proximityBonus;
-        const gain = Math.round(baseGain * totalMultiplier);
-        totalInterestGain += gain;
-        pitchResults.push({ topic, gain, matchLevel });
-      }
+      const { totalInterestGain, pitchResults } = computePhoneGain(recruit, userTeam, userCoach, topics);
 
       let interest = await storage.getRecruitingInterest(req.params.recruitId as string, userTeam.id);
       
@@ -1478,16 +1525,8 @@ export async function registerRoutes(
       }
 
       // Calculate interest gain with modifiers (email is less effective than phone)
-      const baseGain = 3 + Math.floor(Math.random() * 5); // 3-7 base
       const topic = pitchTopic || "reputation";
-      
-      const { bonus: priorityBonus, matchLevel } = calculatePriorityBonus(topic, recruit, userTeam);
-      const schoolBonus = calculateSchoolBonus(topic, userTeam);
-      const coachBonus = calculateCoachBonus(userCoach, recruit, "email");
-      const proximityBonus = topic === "proximity" ? calculateProximityBonus(recruit.homeState, userTeam.state) : 1.0;
-      
-      const totalMultiplier = priorityBonus * schoolBonus * coachBonus * proximityBonus;
-      const interestGain = Math.round(baseGain * totalMultiplier);
+      const { baseGain, interestGain, matchLevel, totalMultiplier } = computeEmailGain(recruit, userTeam, userCoach, topic);
       assertInterestGainSane("email", interestGain, baseGain);
 
       let interest = await storage.getRecruitingInterest(req.params.recruitId as string, userTeam.id);
@@ -1581,22 +1620,7 @@ export async function registerRoutes(
         return res.status(400).json({ message: "You've already used your Campus Visit for this recruit. This action can only be done once per recruit." });
       }
 
-      // Campus visits give huge bonuses based on all school attributes
-      const baseGain = 20 + Math.floor(Math.random() * 16); // 20-35 base
-      
-      const facilitiesBonus = (userTeam.facilities || 5) / 5;
-      const academicsBonus = (userTeam.academics || 5) / 5;
-      const prestigeBonus = (userTeam.prestige || 5) / 5;
-      const collegeLifeBonus = (userTeam.collegeLife || 5) / 5;
-      
-      const schoolAttrBonus = (facilitiesBonus + academicsBonus + prestigeBonus + collegeLifeBonus) / 4;
-      const coachBonus = calculateCoachBonus(userCoach, recruit, "visit");
-      // Visits showcase facilities/college-life; honor recruit's facilities priority
-      const { bonus: priorityBonus } = calculatePriorityBonus("facilities", recruit, userTeam);
-      const proximityBonus = calculateProximityBonus(recruit.homeState, userTeam.state);
-      
-      const totalMultiplier = schoolAttrBonus * coachBonus * priorityBonus * proximityBonus;
-      const interestGain = Math.round(baseGain * totalMultiplier);
+      const { baseGain, interestGain, totalMultiplier } = computeVisitGain(recruit, userTeam, userCoach);
       assertInterestGainSane("visit", interestGain, baseGain);
 
       let interest = await storage.getRecruitingInterest(req.params.recruitId as string, userTeam.id);
@@ -1688,19 +1712,7 @@ export async function registerRoutes(
         return res.status(400).json({ message: "You've already used your Head Coach Visit for this recruit. This action can only be done once per recruit." });
       }
 
-      // Head Coach Visit: big base gain, heavily influenced by coach skill and archetype
-      const baseGain = 25 + Math.floor(Math.random() * 16); // 25-40 base
-      
-      const coachBonus = calculateCoachBonus(userCoach, recruit, "head_coach_visit");
-      // Head coach visit also benefits from coach prestige/reputation
-      const coachLevel = (userCoach?.level || 1);
-      const levelBonus = 1.0 + (coachLevel - 1) * 0.03; // 3% per level above 1
-      // Honor recruit's prestige priority (HCV trades on coach reputation) and proximity
-      const { bonus: priorityBonus } = calculatePriorityBonus("prestige", recruit, userTeam);
-      const proximityBonus = calculateProximityBonus(recruit.homeState, userTeam.state);
-      
-      const totalMultiplier = coachBonus * levelBonus * priorityBonus * proximityBonus;
-      const interestGain = Math.round(baseGain * totalMultiplier);
+      const { baseGain, interestGain, totalMultiplier } = computeHeadCoachVisitGain(recruit, userTeam, userCoach);
       assertInterestGainSane("head_coach_visit", interestGain, baseGain);
 
       let interest = await storage.getRecruitingInterest(req.params.recruitId as string, userTeam.id);
@@ -1786,12 +1798,7 @@ export async function registerRoutes(
 
       let interest = await storage.getRecruitingInterest(req.params.recruitId as string, userTeam.id);
       
-      // Offers give big interest boost, influenced by prestige and coach skill
-      const baseGain = 15 + Math.floor(Math.random() * 10);
-      const prestigeBonus = (userTeam.prestige || 5) / 5;
-      const coachBonus = calculateCoachBonus(userCoach, recruit, "offer");
-      const { bonus: priorityBonus } = calculatePriorityBonus("playingTime", recruit, userTeam);
-      const interestGain = Math.round(baseGain * prestigeBonus * coachBonus * priorityBonus);
+      const { baseGain, interestGain } = computeOfferGain(recruit, userTeam, userCoach);
       assertInterestGainSane("offer", interestGain, baseGain);
       
       if (!interest) {
@@ -9112,8 +9119,12 @@ export async function registerRoutes(
     const allCoaches = await storage.getCoachesByLeague(leagueId);
 
     for (const team of cpuTeams) {
-      const actionsPerWeek = config.minActions + Math.floor(Math.random() * (config.maxActions - config.minActions + 1));
       const teamCoach = allCoaches.find(c => c.teamId === team.id);
+      // Use the same coach-driven budget as humans so archetype/skill perks
+      // measurably affect CPU action throughput too. Difficulty stretches it.
+      const baseBudget = getMaxRecruitingActions(teamCoach);
+      const difficultyStretch = { beginner: 0.6, high_school: 0.8, all_american: 1.0, elite: 1.2 }[difficulty] ?? 0.8;
+      const actionsBudget = Math.max(2, Math.round(baseBudget * difficultyStretch));
       
       const [teamInterests, roster, teamActionsLog] = await Promise.all([
         storage.getRecruitingInterestsByTeam(team.id),
@@ -9149,9 +9160,23 @@ export async function registerRoutes(
         })
         .sort((a, b) => b.score - a.score);
       
-      let actionsTaken = 0;
-      for (let i = 0; i < sortedRecruits.length && actionsTaken < actionsPerWeek; i++) {
+      // Pick the recruit's strongest priority topic so CPU benefits from
+      // priority/school/proximity multipliers the way humans do.
+      function pickBestTopic(recruit: any): string {
+        const topicCandidates = ["reputation", "academics", "prestige", "facilities", "playingTime", "proximity"];
+        const ranked = topicCandidates
+          .map(t => ({ t, level: calculatePriorityBonus(t, recruit, team).matchLevel }))
+          .sort((a, b) => {
+            const order = { Extremely: 4, Very: 3, Somewhat: 2, "Not Important": 1 } as Record<string, number>;
+            return (order[b.level] || 0) - (order[a.level] || 0);
+          });
+        return ranked[0]?.t || "reputation";
+      }
+      
+      let pointsSpent = 0;
+      for (let i = 0; i < sortedRecruits.length && pointsSpent < actionsBudget; i++) {
         const { recruit, interest } = sortedRecruits[i];
+        const remaining = actionsBudget - pointsSpent;
         
         const candidateActions: string[] = [];
         if (!weeklyActionsThisWeek.has(weeklyActionKey(recruit.id, "email"))) candidateActions.push("email");
@@ -9159,42 +9184,44 @@ export async function registerRoutes(
         if ((interest?.interestLevel || 0) > config.offerThreshold && !interest?.hasOffer) {
           candidateActions.push("offer", "offer");
         }
-        if ((interest?.interestLevel || 0) > config.visitThreshold &&
+        const visitCost = getActionPointCost("visit", team.state, recruit.homeState);
+        if ((interest?.interestLevel || 0) > config.visitThreshold && visitCost <= remaining &&
             !teamActionsLog.some(a => a.recruitId === recruit.id && a.actionType === "visit")) {
           candidateActions.push("visit", "visit");
         }
         if (candidateActions.length === 0) continue;
         
         const actionType = candidateActions[Math.floor(Math.random() * candidateActions.length)];
+        const cost = getActionPointCost(actionType, team.state, recruit.homeState);
+        if (cost > remaining) continue; // budget enforcement before execution
         
-        // Choose a topic that matches one of the recruit's "Extremely/Very" priorities
-        // so CPU benefits from priority/school/proximity in the same way humans do.
-        const topicCandidates = ["reputation", "academics", "prestige", "facilities", "playingTime", "proximity"];
-        const topic = topicCandidates.find(t => {
-          const { matchLevel } = calculatePriorityBonus(t, recruit, team);
-          return matchLevel === "Extremely" || matchLevel === "Very";
-        }) || "reputation";
-        
+        // Use the SAME helper as the human path so multipliers match exactly.
+        // Then layer the difficulty gainMultiplier on top.
         let baseGain = 0;
-        switch (actionType) {
-          case "email": baseGain = 3 + Math.floor(Math.random() * 5); break;   // mirror human path
-          case "phone": baseGain = 3 + Math.floor(Math.random() * 7); break;
-          case "offer": baseGain = 15 + Math.floor(Math.random() * 10); break;
-          case "visit": baseGain = 20 + Math.floor(Math.random() * 16); break;
+        let interestGain = 0;
+        if (actionType === "email") {
+          const r = computeEmailGain(recruit, team, teamCoach, pickBestTopic(recruit));
+          baseGain = r.baseGain;
+          interestGain = Math.round(r.interestGain * config.gainMultiplier);
+        } else if (actionType === "phone") {
+          // Mirror human multi-topic phone (1-2 topics for CPU)
+          const topicSet = [pickBestTopic(recruit)];
+          if (Math.random() < 0.5) topicSet.push("reputation");
+          const r = computePhoneGain(recruit, team, teamCoach, topicSet);
+          baseGain = 6 * topicSet.length;
+          interestGain = Math.round(r.totalInterestGain * config.gainMultiplier);
+        } else if (actionType === "visit") {
+          const r = computeVisitGain(recruit, team, teamCoach);
+          baseGain = r.baseGain;
+          interestGain = Math.round(r.interestGain * config.gainMultiplier);
+        } else { // offer
+          const r = computeOfferGain(recruit, team, teamCoach);
+          baseGain = r.baseGain;
+          interestGain = Math.round(r.interestGain * config.gainMultiplier);
         }
-        
-        const priorityBonus = calculatePriorityBonus(topic, recruit, team).bonus;
-        const schoolBonus = calculateSchoolBonus(topic, team);
-        const coachBonus = calculateCoachBonus(teamCoach, recruit, actionType);
-        const proximityBonus = (topic === "proximity" || actionType === "visit")
-          ? calculateProximityBonus(recruit.homeState, team.state)
-          : 1.0;
-        const totalMultiplier = priorityBonus * schoolBonus * coachBonus * proximityBonus * config.gainMultiplier;
-        const interestGain = Math.round(baseGain * totalMultiplier);
         assertInterestGainSane(`cpu_${actionType}`, interestGain, baseGain);
         weeklyActionsThisWeek.add(weeklyActionKey(recruit.id, actionType));
-        // Match human action-point cost: visits cost state-distance points
-        actionsTaken += getActionPointCost(actionType, team.state, recruit.homeState);
+        pointsSpent += cost;
         
         if (!interest) {
           await storage.createRecruitingInterest({
