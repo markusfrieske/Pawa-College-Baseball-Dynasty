@@ -38,6 +38,9 @@ async function buildAll() {
   console.log("validating rosters...");
   await import("./validate-rosters");
 
+  console.log("validating recruiting classes...");
+  await import("./validate-recruits");
+
   console.log("building client...");
   await viteBuild();
 
