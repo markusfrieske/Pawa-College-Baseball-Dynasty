@@ -13,6 +13,7 @@ import { SUN_BELT_ROSTERS } from "./sunBeltRosters";
 import { BIG_WEST_ROSTERS } from "./bigWestRosters";
 import { HBCU_ROSTERS } from "./hbcuRosters";
 import { MO_VALLEY_ROSTERS } from "./moValleyRosters";
+import { BIG_12_ROSTERS } from "./big12Rosters";
 
 export interface RealPlayer {
   firstName: string;
@@ -76,4 +77,5 @@ export const SEC_REAL_ROSTERS: Record<string, RealPlayer[]> = {
   ...BIG_WEST_ROSTERS,
   ...HBCU_ROSTERS,
   ...MO_VALLEY_ROSTERS,
+  ...BIG_12_ROSTERS,
 };
