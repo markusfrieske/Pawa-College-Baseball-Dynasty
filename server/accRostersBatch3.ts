@@ -466,7 +466,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
   "Virginia Tech": [
     // PITCHERS (10)
     { firstName: "Brett", lastName: "Renfrow", position: "P", eligibility: "SR", homeState: "VA", hometown: "Richmond", jerseyNumber: 34,
-      hitForAvg: 25, power: 21, speed: 47, arm: 87, fielding: 54, errorResistance: 56, velocity: 89, control: 81, stamina: 83, stuff: 87,
+      hitForAvg: 25, power: 21, speed: 47, arm: 87, fielding: 54, errorResistance: 56, velocity: 90, control: 81, stamina: 83, stuff: 87,
       clutch: 81, vsLHP: 77, grit: 83, stealing: 17, running: 43, throwing: 85, recovery: 77, wRISP: 79, vsLefty: 79, poise: 83, heater: 87, agile: 54,
       abilities: ["Ace", "Explosive Fastball"], potential: "A", catcherAbility: null,
       ...pitchMix(1, [1, 7, 4, 5, 0, 0, 0]) },
@@ -598,7 +598,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
   "Wake Forest": [
     // PITCHERS (10)
     { firstName: "Blake", lastName: "Morningstar", position: "P", eligibility: "JR", homeState: "NC", hometown: "Raleigh", jerseyNumber: 35,
-      hitForAvg: 26, power: 21, speed: 46, arm: 85, fielding: 52, errorResistance: 57, velocity: 87, control: 80, stamina: 83, stuff: 85,
+      hitForAvg: 26, power: 21, speed: 46, arm: 85, fielding: 52, errorResistance: 57, velocity: 90, control: 80, stamina: 83, stuff: 85,
       clutch: 78, vsLHP: 74, grit: 80, stealing: 18, running: 41, throwing: 83, recovery: 74, wRISP: 76, vsLefty: 76, poise: 80, heater: 85, agile: 52,
       abilities: ["Ace", "Strong Starter"], potential: "A", catcherAbility: null,
       ...pitchMix(1, [1, 6, 4, 5, 0, 0, 0]) },

@@ -589,7 +589,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
     // Drew Burress — JR CF, ONLY DI player with career .756 SLG, 55 R (team most), 7HR/31RBI/49R 2026, ACC POW, top OF in MLB Draft, 56-game OB streak last yr
     { firstName: "Drew", lastName: "Burress", position: "OF", eligibility: "JR", homeState: "GA", hometown: "Stockbridge", jerseyNumber: 1,
       hitForAvg: 86, power: 80, speed: 76, arm: 72, fielding: 76, errorResistance: 70, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 88, vsLHP: 82, grit: 80, stealing: 38, running: 70, throwing: 70, recovery: 60, wRISP: 88, vsLefty: 80, poise: 84, heater: 0, agile: 70,
+      clutch: 90, vsLHP: 82, grit: 80, stealing: 38, running: 70, throwing: 70, recovery: 60, wRISP: 88, vsLefty: 80, poise: 84, heater: 0, agile: 70,
       abilities: ["Power Slugger", "Clutch Hitter", "Speed Demon"], potential: "A+", catcherAbility: null,
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...noPitches },
@@ -632,7 +632,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
 
   "Louisville": [
     { firstName: "Ethan", lastName: "Eberle", position: "P", eligibility: "SO", homeState: "KY", hometown: "Louisville", jerseyNumber: 34,
-      hitForAvg: 19, power: 17, speed: 45, arm: 85, fielding: 54, errorResistance: 56, velocity: 88, control: 83, stamina: 83, stuff: 85,
+      hitForAvg: 19, power: 17, speed: 45, arm: 85, fielding: 54, errorResistance: 56, velocity: 90, control: 83, stamina: 83, stuff: 85,
       clutch: 79, vsLHP: 75, grit: 81, stealing: 15, running: 41, throwing: 83, recovery: 75, wRISP: 77, vsLefty: 79, poise: 81, heater: 88, agile: 49,
       abilities: ["Ace", "Strong Starter"], potential: "A+", catcherAbility: null,
       ...pitchMix(1, [0, 5, 6, 4, 0, 0, 0]) },

@@ -19,7 +19,7 @@ export const BIG_TEN_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
   "Illinois": [
     // PITCHERS (10)
     { firstName: "Regan", lastName: "Hall", position: "P", eligibility: "JR", homeState: "IL", hometown: "Champaign", jerseyNumber: 34,
-      hitForAvg: 18, power: 14, speed: 40, arm: 84, fielding: 50, errorResistance: 52, velocity: 86, control: 79, stamina: 80, stuff: 84,
+      hitForAvg: 18, power: 14, speed: 40, arm: 84, fielding: 50, errorResistance: 52, velocity: 90, control: 79, stamina: 80, stuff: 84,
       clutch: 77, vsLHP: 72, grit: 79, stealing: 12, running: 36, throwing: 82, recovery: 70, wRISP: 74, vsLefty: 77, poise: 79, heater: 84, agile: 46,
       abilities: ["Ace", "Strong Starter", "Filthy Breaking Ball"], potential: "A-", catcherAbility: null,
       ...pitchMix(1, [0, 7, 6, 5, 0, 0, 0]) },
@@ -151,7 +151,7 @@ export const BIG_TEN_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
   "Indiana": [
     // PITCHERS (10)
     { firstName: "Tony", lastName: "Neubeck", position: "P", eligibility: "SR", homeState: "MO", hometown: "Columbia", jerseyNumber: 34,
-      hitForAvg: 20, power: 16, speed: 41, arm: 84, fielding: 49, errorResistance: 51, velocity: 86, control: 76, stamina: 78, stuff: 84,
+      hitForAvg: 20, power: 16, speed: 41, arm: 84, fielding: 49, errorResistance: 51, velocity: 90, control: 76, stamina: 78, stuff: 84,
       clutch: 74, vsLHP: 70, grit: 76, stealing: 12, running: 37, throwing: 82, recovery: 70, wRISP: 72, vsLefty: 74, poise: 76, heater: 84, agile: 45,
       abilities: ["Ace", "Explosive Fastball", "Strong Starter"], potential: "B+", catcherAbility: null,
       ...pitchMix(1, [0, 7, 5, 6, 0, 0, 0]) },
@@ -547,7 +547,7 @@ export const BIG_TEN_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
   "Michigan": [
     // PITCHERS (10)
     { firstName: "Tate", lastName: "Carey", position: "P", eligibility: "SO", homeState: "MI", hometown: "Grand Rapids", jerseyNumber: 34,
-      hitForAvg: 19, power: 15, speed: 44, arm: 86, fielding: 53, errorResistance: 55, velocity: 89, control: 80, stamina: 80, stuff: 86,
+      hitForAvg: 19, power: 15, speed: 44, arm: 86, fielding: 53, errorResistance: 55, velocity: 90, control: 80, stamina: 80, stuff: 86,
       clutch: 78, vsLHP: 74, grit: 80, stealing: 15, running: 40, throwing: 84, recovery: 72, wRISP: 76, vsLefty: 78, poise: 80, heater: 86, agile: 48,
       abilities: ["Ace", "Explosive Fastball"], potential: "A", catcherAbility: null,
       ...pitchMix(1, [0, 7, 5, 6, 0, 0, 0]) },
@@ -679,7 +679,7 @@ export const BIG_TEN_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
   "Michigan State": [
     // PITCHERS (10)
     { firstName: "Nick", lastName: "Powers", position: "P", eligibility: "JR", homeState: "MI", hometown: "Grand Rapids", jerseyNumber: 34,
-      hitForAvg: 21, power: 16, speed: 47, arm: 86, fielding: 56, errorResistance: 59, velocity: 89, control: 84, stamina: 86, stuff: 86,
+      hitForAvg: 21, power: 16, speed: 47, arm: 86, fielding: 56, errorResistance: 59, velocity: 90, control: 84, stamina: 86, stuff: 86,
       clutch: 79, vsLHP: 75, grit: 82, stealing: 14, running: 42, throwing: 84, recovery: 77, wRISP: 77, vsLefty: 79, poise: 82, heater: 86, agile: 52,
       abilities: ["Ace", "Strong Starter"], potential: "B+", catcherAbility: null,
       ...pitchMix(1, [0, 6, 5, 5, 0, 0, 0]) },

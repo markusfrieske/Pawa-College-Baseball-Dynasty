@@ -11,7 +11,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (11) — based on real 2026 mid-season ERAs from lsusports.net
     // Casan Evans — Friday SP, 95-99mph, 5.47 ERA but 13.0 K/9, arm discomfort
     { firstName: "Casan", lastName: "Evans", position: "P", eligibility: "JR", homeState: "LA", hometown: "Baton Rouge", jerseyNumber: 20,
-      hitForAvg: 14, power: 11, speed: 38, arm: 78, fielding: 50, errorResistance: 55, velocity: 88, control: 58, stamina: 72, stuff: 80,
+      hitForAvg: 14, power: 11, speed: 38, arm: 78, fielding: 50, errorResistance: 55, velocity: 90, control: 58, stamina: 72, stuff: 80,
       clutch: 56, vsLHP: 70, grit: 55, stealing: 8, running: 32, throwing: 76, recovery: 62, wRISP: 60, vsLefty: 70, poise: 64, heater: 76, agile: 52,
       abilities: ["Doctor K", "Wild"], potential: "A-", catcherAbility: null,
       skinTone: "dark", hairColor: "black", hairStyle: "short",

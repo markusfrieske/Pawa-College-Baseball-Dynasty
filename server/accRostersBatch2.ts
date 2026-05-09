@@ -141,7 +141,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
   "NC State": [
     // PITCHERS (8)
     { firstName: "Ryan", lastName: "Marohn", position: "P", eligibility: "JR", homeState: "NC", hometown: "Raleigh", jerseyNumber: 34,
-      hitForAvg: 21, power: 17, speed: 41, arm: 85, fielding: 52, errorResistance: 54, velocity: 87, control: 81, stamina: 83, stuff: 85,
+      hitForAvg: 21, power: 17, speed: 41, arm: 85, fielding: 52, errorResistance: 54, velocity: 90, control: 81, stamina: 83, stuff: 85,
       clutch: 79, vsLHP: 75, grit: 81, stealing: 15, running: 37, throwing: 83, recovery: 75, wRISP: 77, vsLefty: 77, poise: 81, heater: 85, agile: 46,
       abilities: ["Ace", "Strong Starter"], potential: "A+", catcherAbility: null,
       ...pitchMix(1, [1, 6, 4, 5, 0, 0, 0]) },
@@ -369,7 +369,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       ...noPitches },
     // Gavin Gallaher — JR 2B captain, .273/9HR/40RBI, leads ALL 2B nationally in DRS (12.55), team captain
     { firstName: "Gavin", lastName: "Gallaher", position: "2B", eligibility: "JR", homeState: "NC", hometown: "Charlotte", jerseyNumber: 5,
-      hitForAvg: 56, power: 60, speed: 50, arm: 60, fielding: 86, errorResistance: 80, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 56, power: 60, speed: 50, arm: 60, fielding: 90, errorResistance: 80, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 70, vsLHP: 64, grit: 78, stealing: 18, running: 46, throwing: 64, recovery: 56, wRISP: 66, vsLefty: 60, poise: 76, heater: 0, agile: 60,
       abilities: ["Iron Glove", "Clutch Hitter", "Power Surge"], potential: "A-", catcherAbility: null,
       skinTone: "light", hairColor: "brown", hairStyle: "short",
@@ -589,7 +589,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
   "Pittsburgh": [
     // PITCHERS (7)
     { firstName: "David", lastName: "Leslie", position: "P", eligibility: "JR", homeState: "PA", hometown: "Pittsburgh", jerseyNumber: 34,
-      hitForAvg: 21, power: 16, speed: 45, arm: 86, fielding: 54, errorResistance: 57, velocity: 88, control: 81, stamina: 84, stuff: 86,
+      hitForAvg: 21, power: 16, speed: 45, arm: 86, fielding: 54, errorResistance: 57, velocity: 90, control: 81, stamina: 84, stuff: 86,
       clutch: 77, vsLHP: 72, grit: 79, stealing: 14, running: 41, throwing: 84, recovery: 74, wRISP: 74, vsLefty: 74, poise: 79, heater: 86, agile: 50,
       abilities: ["Strong Starter"], potential: "A-", catcherAbility: null,
       ...pitchMix(1, [1, 5, 5, 4, 0, 0, 0]) },

@@ -650,7 +650,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
   "Washington": [
     // PITCHERS (10)
     { firstName: "Hayden", lastName: "Lewis", position: "P", eligibility: "SR", homeState: "AZ", hometown: "Tucson", jerseyNumber: 17,
-      hitForAvg: 21, power: 16, speed: 39, arm: 83, fielding: 53, errorResistance: 55, velocity: 85, control: 80, stamina: 80, stuff: 83,
+      hitForAvg: 21, power: 16, speed: 39, arm: 83, fielding: 53, errorResistance: 55, velocity: 90, control: 80, stamina: 80, stuff: 83,
       clutch: 78, vsLHP: 74, grit: 80, stealing: 10, running: 35, throwing: 80, recovery: 74, wRISP: 76, vsLefty: 78, poise: 80, heater: 85, agile: 43,
       abilities: ["Ace", "Strong Starter", "Guts"], potential: "B+", catcherAbility: null,
       ...pitchMix(1, [0, 7, 5, 5, 0, 0, 0]) },

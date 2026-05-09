@@ -35,6 +35,9 @@ const allowlist = [
 async function buildAll() {
   await rm("dist", { recursive: true, force: true });
 
+  console.log("validating rosters...");
+  await import("./validate-rosters");
+
   console.log("building client...");
   await viteBuild();
 

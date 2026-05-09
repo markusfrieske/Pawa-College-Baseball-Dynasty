@@ -23,7 +23,7 @@ export const SUN_BELT_ROSTERS: Record<string, RealPlayer[]> = {
     // Cameron Flukey — Sunday SP JR, ELITE, Preseason POY, 2025: 7-2/118K/101.2 IP
     { firstName: "Cameron", lastName: "Flukey", position: "P", eligibility: "JR", homeState: "FL", hometown: "Land O'Lakes", jerseyNumber: 22,
       hitForAvg: 14, power: 11, speed: 36, arm: 90, fielding: 50, errorResistance: 54, velocity: 88, control: 84, stamina: 86, stuff: 90,
-      clutch: 84, vsLHP: 80, grit: 84, stealing: 8, running: 32, throwing: 84, recovery: 70, wRISP: 80, vsLefty: 82, poise: 86, heater: 88, agile: 44,
+      clutch: 84, vsLHP: 80, grit: 84, stealing: 8, running: 32, throwing: 84, recovery: 70, wRISP: 80, vsLefty: 82, poise: 86, heater: 87, agile: 44,
       abilities: ["Ace", "Doctor K", "Strong Starter"], potential: "A+", catcherAbility: null,
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(86, [0, 80, 76, 70, 0, 0, 0]) },

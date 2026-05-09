@@ -10,7 +10,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
   "Minnesota": [
     // PITCHERS (12)
     { firstName: "Cole", lastName: "Selvig", position: "P", eligibility: "JR", homeState: "MN", hometown: "Wayzata", jerseyNumber: 17,
-      hitForAvg: 20, power: 16, speed: 40, arm: 82, fielding: 52, errorResistance: 54, velocity: 86, control: 78, stamina: 80, stuff: 84,
+      hitForAvg: 20, power: 16, speed: 40, arm: 82, fielding: 52, errorResistance: 54, velocity: 90, control: 78, stamina: 80, stuff: 84,
       clutch: 76, vsLHP: 72, grit: 78, stealing: 10, running: 36, throwing: 80, recovery: 72, wRISP: 74, vsLefty: 74, poise: 78, heater: 86, agile: 46,
       abilities: ["Ace", "Strong Starter", "Explosive Fastball"], potential: "A-", catcherAbility: null,
       ...pitchMix(1, [0, 7, 6, 5, 0, 0, 0]) },
@@ -325,7 +325,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
   "Northwestern": [
     // PITCHERS (10)
     { firstName: "Sam", lastName: "Hliboki", position: "P", eligibility: "SR", homeState: "LA", hometown: "Baton Rouge", jerseyNumber: 31,
-      hitForAvg: 24, power: 19, speed: 42, arm: 86, fielding: 55, errorResistance: 57, velocity: 88, control: 82, stamina: 84, stuff: 88,
+      hitForAvg: 24, power: 19, speed: 42, arm: 86, fielding: 55, errorResistance: 57, velocity: 90, control: 82, stamina: 84, stuff: 88,
       clutch: 82, vsLHP: 78, grit: 84, stealing: 11, running: 38, throwing: 84, recovery: 78, wRISP: 80, vsLefty: 80, poise: 84, heater: 88, agile: 48,
       abilities: ["Ace", "Strong Starter", "Filthy Breaking Ball"], potential: "A-", catcherAbility: null,
       ...pitchMix(1, [0, 8, 6, 5, 0, 0, 0]) },
@@ -457,7 +457,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
   "Ohio State": [
     // PITCHERS (10)
     { firstName: "Pierce", lastName: "Herrenbruck", position: "P", eligibility: "JR", homeState: "IN", hometown: "Fishers", jerseyNumber: 17,
-      hitForAvg: 20, power: 16, speed: 41, arm: 83, fielding: 53, errorResistance: 55, velocity: 85, control: 79, stamina: 79, stuff: 83,
+      hitForAvg: 20, power: 16, speed: 41, arm: 83, fielding: 53, errorResistance: 55, velocity: 90, control: 79, stamina: 79, stuff: 83,
       clutch: 77, vsLHP: 73, grit: 79, stealing: 10, running: 36, throwing: 81, recovery: 73, wRISP: 75, vsLefty: 75, poise: 79, heater: 85, agile: 46,
       abilities: ["Ace", "Strong Starter", "Filthy Breaking Ball"], potential: "A-", catcherAbility: null,
       ...pitchMix(1, [0, 7, 6, 5, 0, 0, 0]) },
