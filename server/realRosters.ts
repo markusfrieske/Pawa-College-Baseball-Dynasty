@@ -14,6 +14,9 @@ import { BIG_WEST_ROSTERS } from "./bigWestRosters";
 import { HBCU_ROSTERS } from "./hbcuRosters";
 import { MO_VALLEY_ROSTERS } from "./moValleyRosters";
 import { BIG_12_ROSTERS } from "./big12Rosters";
+import { AAC_ROSTERS } from "./aacRosters";
+import { WCC_ROSTERS } from "./wccRosters";
+import { MWC_ROSTERS } from "./mwcRosters";
 
 export interface RealPlayer {
   firstName: string;
@@ -78,4 +81,7 @@ export const SEC_REAL_ROSTERS: Record<string, RealPlayer[]> = {
   ...HBCU_ROSTERS,
   ...MO_VALLEY_ROSTERS,
   ...BIG_12_ROSTERS,
+  ...AAC_ROSTERS,
+  ...WCC_ROSTERS,
+  ...MWC_ROSTERS,
 };
