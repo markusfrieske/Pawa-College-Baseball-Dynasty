@@ -19,8 +19,8 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
   "California": [
     // PITCHERS (10)
     { firstName: "Oliver", lastName: "de la Torre", position: "P", eligibility: "JR", homeState: "CA", hometown: "Los Angeles", jerseyNumber: 22,
-      hitForAvg: 28, power: 22, speed: 50, arm: 92, fielding: 58, errorResistance: 60, velocity: 92, control: 82, stamina: 88, stuff: 88,
-      clutch: 76, vsLHP: 72, grit: 80, stealing: 18, running: 46, throwing: 90, recovery: 78, wRISP: 72, vsLefty: 76, poise: 78, heater: 90, agile: 56,
+      hitForAvg: 28, power: 22, speed: 50, arm: 89, fielding: 58, errorResistance: 60, velocity: 91, control: 82, stamina: 88, stuff: 88,
+      clutch: 76, vsLHP: 72, grit: 80, stealing: 18, running: 46, throwing: 88, recovery: 78, wRISP: 72, vsLefty: 76, poise: 78, heater: 88, agile: 56,
       abilities: ["Strong Starter"], potential: "B+", catcherAbility: null,
       ...pitchMix(1, [0, 5, 4, 5, 0, 0, 0]) },
     { firstName: "Ethan", lastName: "Foley", position: "P", eligibility: "JR", homeState: "CA", hometown: "San Diego", jerseyNumber: 33,

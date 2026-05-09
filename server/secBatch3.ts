@@ -20,8 +20,8 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Workhorse"], potential: "B+", catcherAbility: null,
       ...pitchMix(1, [0, 5, 5, 4, 0, 0, 0]) },
     { firstName: "Jake", lastName: "McCoy", position: "P", eligibility: "JR", homeState: "SC", hometown: "Greenville", jerseyNumber: 37,
-      hitForAvg: 20, power: 15, speed: 50, arm: 93, fielding: 60, errorResistance: 62, velocity: 95, control: 93, stamina: 93, stuff: 93,
-      clutch: 86, vsLHP: 82, grit: 88, stealing: 12, running: 45, throwing: 91, recovery: 82, wRISP: 82, vsLefty: 88, poise: 88, heater: 93, agile: 55,
+      hitForAvg: 20, power: 15, speed: 50, arm: 88, fielding: 60, errorResistance: 62, velocity: 93, control: 88, stamina: 88, stuff: 89,
+      clutch: 86, vsLHP: 82, grit: 88, stealing: 12, running: 45, throwing: 87, recovery: 82, wRISP: 82, vsLefty: 88, poise: 88, heater: 90, agile: 55,
       abilities: ["Strong Starter", "Filthy Breaking Ball"], potential: "B+", catcherAbility: null,
       ...pitchMix(1, [0, 4, 6, 5, 0, 0, 0]) },
     { firstName: "Josh", lastName: "Gunther", position: "P", eligibility: "JR", homeState: "GA", hometown: "Marietta", jerseyNumber: 45,
@@ -142,8 +142,8 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
   "Kentucky": [
     // PITCHERS (10)
     { firstName: "Jaxon", lastName: "Jelkin", position: "P", eligibility: "SR", homeState: "TX", hometown: "Houston", jerseyNumber: 34,
-      hitForAvg: 19, power: 15, speed: 43, arm: 83, fielding: 54, errorResistance: 56, velocity: 85, control: 78, stamina: 76, stuff: 83,
-      clutch: 76, vsLHP: 72, grit: 78, stealing: 11, running: 39, throwing: 80, recovery: 69, wRISP: 74, vsLefty: 76, poise: 78, heater: 83, agile: 47,
+      hitForAvg: 19, power: 15, speed: 43, arm: 86, fielding: 54, errorResistance: 56, velocity: 91, control: 78, stamina: 76, stuff: 88,
+      clutch: 76, vsLHP: 72, grit: 78, stealing: 11, running: 39, throwing: 84, recovery: 69, wRISP: 74, vsLefty: 76, poise: 78, heater: 88, agile: 47,
       abilities: ["Strong Starter", "Guts"], potential: "B+", catcherAbility: null,
       ...pitchMix(1, [0, 6, 5, 5, 0, 0, 0]) },
     { firstName: "Ben", lastName: "Cleaver", position: "P", eligibility: "JR", homeState: "KY", hometown: "Louisville", jerseyNumber: 22,
@@ -274,8 +274,8 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
   "Missouri": [
     // PITCHERS (10)
     { firstName: "Javyn", lastName: "Pimental", position: "P", eligibility: "SR", homeState: "CA", hometown: "Los Angeles", jerseyNumber: 33,
-      hitForAvg: 18, power: 13, speed: 44, arm: 83, fielding: 55, errorResistance: 57, velocity: 85, control: 83, stamina: 80, stuff: 83,
-      clutch: 73, vsLHP: 72, grit: 78, stealing: 11, running: 39, throwing: 80, recovery: 72, wRISP: 72, vsLefty: 75, poise: 75, heater: 83, agile: 49,
+      hitForAvg: 18, power: 13, speed: 44, arm: 86, fielding: 55, errorResistance: 57, velocity: 91, control: 85, stamina: 84, stuff: 88,
+      clutch: 73, vsLHP: 72, grit: 78, stealing: 11, running: 39, throwing: 84, recovery: 72, wRISP: 72, vsLefty: 75, poise: 75, heater: 88, agile: 49,
       abilities: ["Workhorse", "Guts"], potential: "B+", catcherAbility: null,
       ...pitchMix(1, [0, 5, 6, 4, 0, 0, 0]) },
     { firstName: "Josh", lastName: "McDevitt", position: "P", eligibility: "JR", homeState: "MO", hometown: "St. Louis", jerseyNumber: 22,

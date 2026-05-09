@@ -772,8 +772,8 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
   "Penn State": [
     // PITCHERS (10)
     { firstName: "Colin", lastName: "Fitzgerald", position: "P", eligibility: "SR", homeState: "PA", hometown: "West Chester", jerseyNumber: 31,
-      hitForAvg: 24, power: 20, speed: 44, arm: 90, fielding: 56, errorResistance: 59, velocity: 92, control: 88, stamina: 88, stuff: 90,
-      clutch: 86, vsLHP: 80, grit: 88, stealing: 10, running: 40, throwing: 88, recovery: 80, wRISP: 83, vsLefty: 83, poise: 88, heater: 92, agile: 50,
+      hitForAvg: 24, power: 20, speed: 44, arm: 88, fielding: 56, errorResistance: 59, velocity: 91, control: 88, stamina: 88, stuff: 89,
+      clutch: 86, vsLHP: 80, grit: 88, stealing: 10, running: 40, throwing: 88, recovery: 80, wRISP: 83, vsLefty: 83, poise: 88, heater: 88, agile: 50,
       abilities: ["Ace", "Strong Starter", "Workhorse"], potential: "A-", catcherAbility: null,
       ...pitchMix(1, [0, 7, 6, 5, 0, 0, 0]) },
     { firstName: "Jake", lastName: "Reynolds", position: "P", eligibility: "JR", homeState: "PA", hometown: "Allentown", jerseyNumber: 22,

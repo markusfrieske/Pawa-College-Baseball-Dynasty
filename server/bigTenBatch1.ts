@@ -288,8 +288,8 @@ export const BIG_TEN_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Strong Starter", "Workhorse"], potential: "A-", catcherAbility: null,
       ...pitchMix(1, [0, 6, 5, 5, 0, 0, 0]) },
     { firstName: "Logan", lastName: "Runde", position: "P", eligibility: "SR", homeState: "FL", hometown: "Miami", jerseyNumber: 33,
-      hitForAvg: 22, power: 16, speed: 46, arm: 93, fielding: 57, errorResistance: 61, velocity: 96, control: 89, stamina: 89, stuff: 93,
-      clutch: 86, vsLHP: 82, grit: 89, stealing: 12, running: 41, throwing: 91, recovery: 84, wRISP: 84, vsLefty: 86, poise: 89, heater: 93, agile: 53,
+      hitForAvg: 22, power: 16, speed: 46, arm: 88, fielding: 57, errorResistance: 61, velocity: 94, control: 89, stamina: 89, stuff: 89,
+      clutch: 86, vsLHP: 82, grit: 89, stealing: 12, running: 41, throwing: 87, recovery: 84, wRISP: 84, vsLefty: 86, poise: 89, heater: 90, agile: 53,
       abilities: ["Ace", "Explosive Fastball"], potential: "B+", catcherAbility: null,
       ...pitchMix(1, [0, 7, 5, 5, 0, 0, 0]) },
     { firstName: "Joe", lastName: "Husak", position: "P", eligibility: "JR", homeState: "IL", hometown: "Normal", jerseyNumber: 35,
@@ -415,8 +415,8 @@ export const BIG_TEN_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
   "Maryland": [
     // PITCHERS (10)
     { firstName: "Lance", lastName: "Williams", position: "P", eligibility: "SO", homeState: "NC", hometown: "Greenville", jerseyNumber: 34,
-      hitForAvg: 21, power: 17, speed: 45, arm: 93, fielding: 56, errorResistance: 58, velocity: 95, control: 80, stamina: 82, stuff: 93,
-      clutch: 82, vsLHP: 78, grit: 84, stealing: 15, running: 41, throwing: 91, recovery: 74, wRISP: 80, vsLefty: 82, poise: 82, heater: 95, agile: 51,
+      hitForAvg: 21, power: 17, speed: 45, arm: 88, fielding: 56, errorResistance: 58, velocity: 93, control: 80, stamina: 82, stuff: 89,
+      clutch: 82, vsLHP: 78, grit: 84, stealing: 15, running: 41, throwing: 87, recovery: 74, wRISP: 80, vsLefty: 82, poise: 82, heater: 90, agile: 51,
       abilities: ["Ace", "Explosive Fastball", "Strong Starter"], potential: "A", catcherAbility: null,
       ...pitchMix(1, [0, 7, 5, 6, 0, 0, 0]) },
     { firstName: "Austin", lastName: "Weiss", position: "P", eligibility: "FR", homeState: "MD", hometown: "Annapolis", jerseyNumber: 29,

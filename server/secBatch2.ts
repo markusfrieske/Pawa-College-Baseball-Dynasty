@@ -463,12 +463,6 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...noPitches },
     // Will Ketchum — SO backup C
-    { firstName: "Will", lastName: "Ketchum", position: "C", eligibility: "SO", homeState: "GA", hometown: "Canton", jerseyNumber: 16,
-      hitForAvg: 36, power: 32, speed: 28, arm: 46, fielding: 44, errorResistance: 42, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 34, vsLHP: 32, grit: 36, stealing: 8, running: 26, throwing: 46, recovery: 32, wRISP: 32, vsLefty: 30, poise: 34, heater: 0, agile: 28,
-      abilities: [], potential: "B+", catcherAbility: 44,
-      skinTone: "light", hairColor: "brown", hairStyle: "short",
-      ...noPitches },
     // INFIELDERS (6)
     // Chris Rembert — SO 2B, ELITE: top pure hitter 2026 draft, .344/14 2B/10 HR 2025, .403 in SEC, 17-G hit streak
     { firstName: "Chris", lastName: "Rembert", position: "2B", eligibility: "SO", homeState: "GA", hometown: "Savannah", jerseyNumber: 1,

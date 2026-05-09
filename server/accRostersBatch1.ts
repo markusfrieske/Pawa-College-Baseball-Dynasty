@@ -9,7 +9,7 @@ const noPitches = { pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, 
 export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
   "Clemson": [
     { firstName: "Aidan", lastName: "Knaak", position: "P", eligibility: "SO", homeState: "FL", hometown: "Fort Myers", jerseyNumber: 34,
-      hitForAvg: 19, power: 16, speed: 48, arm: 90, fielding: 54, errorResistance: 56, velocity: 99, control: 76, stamina: 78, stuff: 90,
+      hitForAvg: 19, power: 16, speed: 48, arm: 88, fielding: 54, errorResistance: 56, velocity: 95, control: 76, stamina: 78, stuff: 89,
       clutch: 82, vsLHP: 77, grit: 84, stealing: 15, running: 43, throwing: 88, recovery: 77, wRISP: 80, vsLefty: 82, poise: 84, heater: 92, agile: 45,
       abilities: ["Explosive Fastball", "Strong Starter"], potential: "A+", catcherAbility: null,
       ...pitchMix(1, [1, 0, 0, 0, 0, 6, 6]) },
@@ -137,8 +137,8 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
 
   "Duke": [
     { firstName: "Aidan", lastName: "Weaver", position: "P", eligibility: "JR", homeState: "PA", hometown: "Pittsburgh", jerseyNumber: 22,
-      hitForAvg: 22, power: 20, speed: 52, arm: 90, fielding: 59, errorResistance: 61, velocity: 96, control: 90, stamina: 90, stuff: 93,
-      clutch: 83, vsLHP: 78, grit: 85, stealing: 17, running: 46, throwing: 88, recovery: 81, wRISP: 81, vsLefty: 83, poise: 85, heater: 96, agile: 56,
+      hitForAvg: 22, power: 20, speed: 52, arm: 88, fielding: 59, errorResistance: 61, velocity: 94, control: 88, stamina: 88, stuff: 89,
+      clutch: 83, vsLHP: 78, grit: 85, stealing: 17, running: 46, throwing: 88, recovery: 81, wRISP: 81, vsLefty: 83, poise: 85, heater: 92, agile: 56,
       abilities: ["Strong Starter", "Guts"], potential: "A-", catcherAbility: null,
       ...pitchMix(1, [0, 5, 6, 4, 0, 0, 0]) },
     { firstName: "Ben", lastName: "Dean", position: "P", eligibility: "JR", homeState: "OH", hometown: "Dayton", jerseyNumber: 33,

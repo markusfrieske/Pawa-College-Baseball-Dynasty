@@ -9,8 +9,8 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
   "Miami": [
     // PITCHERS (8)
     { firstName: "Ryan", lastName: "Bilka", position: "P", eligibility: "JR", homeState: "VA", hometown: "Richmond", jerseyNumber: 34,
-      hitForAvg: 20, power: 17, speed: 41, arm: 81, fielding: 51, errorResistance: 53, velocity: 83, control: 78, stamina: 78, stuff: 81,
-      clutch: 75, vsLHP: 71, grit: 77, stealing: 12, running: 36, throwing: 78, recovery: 71, wRISP: 73, vsLefty: 73, poise: 77, heater: 81, agile: 44,
+      hitForAvg: 20, power: 17, speed: 41, arm: 86, fielding: 51, errorResistance: 53, velocity: 91, control: 78, stamina: 78, stuff: 88,
+      clutch: 75, vsLHP: 71, grit: 77, stealing: 12, running: 36, throwing: 78, recovery: 71, wRISP: 73, vsLefty: 73, poise: 77, heater: 88, agile: 44,
       abilities: ["Ace", "Strong Starter"], potential: "A", catcherAbility: null,
       ...pitchMix(1, [1, 6, 4, 5, 0, 0, 0]) },
     { firstName: "Jake", lastName: "Dorn", position: "P", eligibility: "JR", homeState: "FL", hometown: "Fort Lauderdale", jerseyNumber: 29,

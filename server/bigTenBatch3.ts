@@ -19,8 +19,8 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
   "Purdue": [
     // PITCHERS (10)
     { firstName: "Cole", lastName: "Van Assen", position: "P", eligibility: "JR", homeState: "IN", hometown: "Crown Point", jerseyNumber: 19,
-      hitForAvg: 20, power: 16, speed: 42, arm: 80, fielding: 50, errorResistance: 52, velocity: 82, control: 76, stamina: 80, stuff: 80,
-      clutch: 74, vsLHP: 70, grit: 78, stealing: 10, running: 38, throwing: 78, recovery: 72, wRISP: 72, vsLefty: 74, poise: 76, heater: 82, agile: 46,
+      hitForAvg: 20, power: 16, speed: 42, arm: 86, fielding: 50, errorResistance: 52, velocity: 91, control: 76, stamina: 84, stuff: 88,
+      clutch: 74, vsLHP: 70, grit: 78, stealing: 10, running: 38, throwing: 78, recovery: 72, wRISP: 72, vsLefty: 74, poise: 76, heater: 88, agile: 46,
       abilities: ["Ace", "Strong Starter", "Workhorse"], potential: "A-", catcherAbility: null,
       ...pitchMix(1, [0, 7, 6, 5, 0, 0, 0]) },
     { firstName: "Zach", lastName: "Erdman", position: "P", eligibility: "JR", homeState: "TX", hometown: "Lubbock", jerseyNumber: 34,
@@ -151,8 +151,8 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
   "Rutgers": [
     // PITCHERS (10)
     { firstName: "Joe", lastName: "Mazza", position: "P", eligibility: "JR", homeState: "NJ", hometown: "Toms River", jerseyNumber: 17,
-      hitForAvg: 21, power: 17, speed: 41, arm: 81, fielding: 52, errorResistance: 54, velocity: 82, control: 79, stamina: 81, stuff: 81,
-      clutch: 75, vsLHP: 71, grit: 77, stealing: 11, running: 37, throwing: 79, recovery: 73, wRISP: 73, vsLefty: 75, poise: 77, heater: 82, agile: 45,
+      hitForAvg: 21, power: 17, speed: 41, arm: 86, fielding: 52, errorResistance: 54, velocity: 91, control: 79, stamina: 84, stuff: 88,
+      clutch: 75, vsLHP: 71, grit: 77, stealing: 11, running: 37, throwing: 79, recovery: 73, wRISP: 73, vsLefty: 75, poise: 77, heater: 88, agile: 45,
       abilities: ["Strong Starter", "Filthy Breaking Ball"], potential: "B+", catcherAbility: null,
       ...pitchMix(1, [0, 6, 6, 5, 0, 0, 0]) },
     { firstName: "Zack", lastName: "Konstantinovsky", position: "P", eligibility: "JR", homeState: "NJ", hometown: "Marlboro", jerseyNumber: 22,
