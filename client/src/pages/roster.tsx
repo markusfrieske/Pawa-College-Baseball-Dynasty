@@ -355,7 +355,7 @@ function PositionSection({ title, players, onSelectPlayer, teamPrimaryColor, pro
             key={player.id}
             onClick={() => onSelectPlayer(player)}
             className="w-full text-left px-3 py-2.5 hover:bg-card/50 transition-colors active:bg-card/70"
-            data-testid={`row-player-${player.id}`}
+            data-testid={`card-player-mobile-${player.id}`}
           >
             <div className="flex items-center gap-3">
               <PlayerPortrait
@@ -424,7 +424,7 @@ function PositionSection({ title, players, onSelectPlayer, teamPrimaryColor, pro
               <tr 
                 key={player.id} 
                 className="border-b border-border/50 hover:bg-card/50"
-                data-testid={`row-player-${player.id}`}
+                data-testid={`row-player-desktop-${player.id}`}
               >
                 <td className="py-3 px-2 text-muted-foreground font-mono">
                   {player.jerseyNumber}
