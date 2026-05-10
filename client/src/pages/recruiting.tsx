@@ -162,14 +162,28 @@ const sortOptions = [
 export default function RecruitingPage() {
   const { id } = useParams<{ id: string }>();
   const [selectedRecruit, setSelectedRecruit] = useState<RecruitWithInterest | null>(null);
-  const [positionFilter, setPositionFilter] = useState("all");
-  const [starFilter, setStarFilter] = useState("all");
-  const [stateFilter, setStateFilter] = useState("all");
-  const [typeFilter, setTypeFilter] = useState("all");
-  const [sortBy, setSortBy] = useState("classRank");
-  const [showTeamNeeds, setShowTeamNeeds] = useState(false);
-  const [showPipeline, setShowPipeline] = useState(false);
-  const [showWatchlistOnly, setShowWatchlistOnly] = useState(false);
+
+  const storedFiltersRef = useRef<Record<string, unknown> | null>(null);
+  if (storedFiltersRef.current === null) {
+    try {
+      const raw = localStorage.getItem(`recruiting-filters-${id}`);
+      storedFiltersRef.current = raw ? JSON.parse(raw) : {};
+    } catch {
+      storedFiltersRef.current = {};
+    }
+  }
+  const sf = storedFiltersRef.current;
+
+  const skipPersistRef = useRef(false);
+
+  const [positionFilter, setPositionFilter] = useState<string>((sf.positionFilter as string) ?? "all");
+  const [starFilter, setStarFilter] = useState<string>((sf.starFilter as string) ?? "all");
+  const [stateFilter, setStateFilter] = useState<string>((sf.stateFilter as string) ?? "all");
+  const [typeFilter, setTypeFilter] = useState<string>((sf.typeFilter as string) ?? "all");
+  const [sortBy, setSortBy] = useState<string>((sf.sortBy as string) ?? "classRank");
+  const [showTeamNeeds, setShowTeamNeeds] = useState<boolean>((sf.showTeamNeeds as boolean) ?? false);
+  const [showPipeline, setShowPipeline] = useState<boolean>((sf.showPipeline as boolean) ?? false);
+  const [showWatchlistOnly, setShowWatchlistOnly] = useState<boolean>((sf.showWatchlistOnly as boolean) ?? false);
   const [showFilterSheet, setShowFilterSheet] = useState(false);
   const [filterPresets, setFilterPresets] = useState<FilterPreset[]>(() => {
     const saved = localStorage.getItem(`recruiting-presets-${id}`);
@@ -181,7 +195,7 @@ export default function RecruitingPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [pipelineFilter, setPipelineFilter] = useState<string | null>(null);
   const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
-  const [showTopAvailable, setShowTopAvailable] = useState(false);
+  const [showTopAvailable, setShowTopAvailable] = useState<boolean>((sf.showTopAvailable as boolean) ?? false);
   const [showHistory, setShowHistory] = useState(false);
   const [actionResultModal, setActionResultModal] = useState<{
     title: string;
@@ -201,6 +215,24 @@ export default function RecruitingPage() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
+
+  useEffect(() => {
+    if (skipPersistRef.current) {
+      skipPersistRef.current = false;
+      return;
+    }
+    localStorage.setItem(`recruiting-filters-${id}`, JSON.stringify({
+      positionFilter,
+      starFilter,
+      stateFilter,
+      typeFilter,
+      sortBy,
+      showTeamNeeds,
+      showPipeline,
+      showWatchlistOnly,
+      showTopAvailable,
+    }));
+  }, [id, positionFilter, starFilter, stateFilter, typeFilter, sortBy, showTeamNeeds, showPipeline, showWatchlistOnly, showTopAvailable]);
 
   const toggleCompare = (recruit: RecruitWithInterest) => {
     if (compareRecruits.find(r => r.id === recruit.id)) {
@@ -993,6 +1025,8 @@ export default function RecruitingPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => {
+                      skipPersistRef.current = true;
+                      localStorage.removeItem(`recruiting-filters-${id}`);
                       setPositionFilter("all");
                       setStarFilter("all");
                       setTypeFilter("all");
@@ -1006,7 +1040,7 @@ export default function RecruitingPage() {
                     className="w-full justify-center"
                     data-testid="button-clear-all-filters"
                   >
-                    Clear All Filters
+                    Reset to Defaults
                   </RetroButton>
                   <div>
                     <p className="font-pixel text-[9px] text-gold mb-2">TOOLS</p>
