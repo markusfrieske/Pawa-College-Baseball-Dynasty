@@ -214,8 +214,8 @@ export default function LandingPage() {
               </div>
               <div className="border border-border bg-card/60 overflow-hidden">
                 <img
-                  src="/screenshots/recruiting.jpg"
-                  alt="In-game recruiting board showing real players with star ratings, fog-of-war scouting, and action buttons"
+                  src="/screenshots/pipeline.jpg"
+                  alt="In-game recruit pipeline showing stage-by-stage interest breakdown and position needs"
                   className="w-full h-auto block"
                 />
               </div>
