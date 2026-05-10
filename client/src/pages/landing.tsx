@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroInput } from "@/components/ui/retro-input";
 import { RetroSelect } from "@/components/ui/retro-select";
@@ -390,20 +390,40 @@ export default function LandingPage() {
 
 // ── HERO VIDEO PLAYER ─────────────────────────────────────────
 
+const DEMO_PHASES = [
+  { label: "SCOUTING REVEAL", sub: "Uncover hidden recruit ratings" },
+  { label: "PHONE CALL", sub: "Build interest with your top targets" },
+  { label: "CAMPUS VISIT", sub: "Show off your facilities" },
+  { label: "SCHOLARSHIP OFFER", sub: "Close the deal with NIL money" },
+];
+
+const PHASE_DURATION = 3200;
+
 function HeroVideoPlayer() {
   const [useFallback, setUseFallback] = useState(false);
+  const [phaseIndex, setPhaseIndex] = useState(0);
+  const [visible, setVisible] = useState(true);
 
-  if (useFallback) {
-    return (
-      <img
-        src="/screenshots/recruiting.jpg"
-        alt="In-game recruiting board showing real players with star ratings, interest bars, and fog-of-war scouting"
-        className="w-full h-auto block"
-      />
-    );
-  }
+  useEffect(() => {
+    const cycle = setInterval(() => {
+      setVisible(false);
+      setTimeout(() => {
+        setPhaseIndex((i) => (i + 1) % DEMO_PHASES.length);
+        setVisible(true);
+      }, 300);
+    }, PHASE_DURATION);
+    return () => clearInterval(cycle);
+  }, []);
 
-  return (
+  const phase = DEMO_PHASES[phaseIndex];
+
+  const media = useFallback ? (
+    <img
+      src="/screenshots/recruiting.jpg"
+      alt="In-game recruiting board showing real players with star ratings, interest bars, and fog-of-war scouting"
+      className="w-full h-auto block"
+    />
+  ) : (
     <video
       autoPlay
       muted
@@ -415,6 +435,32 @@ function HeroVideoPlayer() {
     >
       <source src="/screenshots/recruiting-demo.mp4" type="video/mp4" />
     </video>
+  );
+
+  return (
+    <div className="relative">
+      {media}
+      <div
+        className="absolute top-0 left-0 right-0 flex items-center gap-3 px-4 py-2.5 bg-black/70 border-b border-gold/20"
+        style={{
+          opacity: visible ? 1 : 0,
+          transform: visible ? "translateY(0)" : "translateY(-6px)",
+          transition: "opacity 0.28s ease, transform 0.28s ease",
+        }}
+      >
+        <span className="font-pixel text-[9px] text-gold tracking-widest">{phase.label}</span>
+        <span className="text-[9px] text-muted-foreground hidden sm:inline">—</span>
+        <span className="text-[9px] text-muted-foreground hidden sm:inline">{phase.sub}</span>
+        <div className="ml-auto flex gap-1">
+          {DEMO_PHASES.map((_, i) => (
+            <div
+              key={i}
+              className={`h-1 rounded-full transition-all duration-300 ${i === phaseIndex ? "w-5 bg-gold" : "w-1.5 bg-gold/25"}`}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 
