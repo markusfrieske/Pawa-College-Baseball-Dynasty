@@ -3483,6 +3483,59 @@ export async function registerRoutes(
     }
   });
 
+  // Top 100 MLB Prospects
+  app.get("/api/leagues/:id/top-prospects", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      const [allPlayers, leagueTeams] = await Promise.all([
+        storage.getPlayersByLeague(leagueId),
+        storage.getTeamsByLeague(leagueId),
+      ]);
+
+      const teamMap = new Map(leagueTeams.map(t => [t.id, t]));
+      const PITCHER_POSITIONS = new Set(["SP", "RP", "CL", "P"]);
+
+      const activePlayers = allPlayers.filter(p => !p.pendingDeparture && !p.declaredForDraft);
+
+      const withTeam = activePlayers.map(p => {
+        const team = teamMap.get(p.teamId);
+        return {
+          id: p.id,
+          firstName: p.firstName,
+          lastName: p.lastName,
+          position: p.position,
+          eligibility: p.eligibility,
+          overall: p.overall ?? 0,
+          starRating: p.starRating ?? 1,
+          teamId: p.teamId,
+          teamName: team?.name ?? "Unknown",
+          teamAbbreviation: team?.abbreviation ?? "???",
+          teamPrimaryColor: team?.primaryColor ?? "#666",
+          teamSecondaryColor: team?.secondaryColor ?? "#999",
+          category: PITCHER_POSITIONS.has(p.position) ? "pitcher" : "hitter",
+        };
+      });
+
+      const hitters = withTeam
+        .filter(p => p.category === "hitter")
+        .sort((a, b) => b.overall - a.overall)
+        .slice(0, 100);
+
+      const pitchers = withTeam
+        .filter(p => p.category === "pitcher")
+        .sort((a, b) => b.overall - a.overall)
+        .slice(0, 100);
+
+      res.json({ hitters, pitchers });
+    } catch (error) {
+      console.error("Failed to fetch top prospects:", error);
+      res.status(500).json({ message: "Failed to fetch top prospects" });
+    }
+  });
+
   // League stats - aggregate batting/pitching from box scores
   app.get("/api/leagues/:id/stats", requireAuth, async (req, res) => {
     try {

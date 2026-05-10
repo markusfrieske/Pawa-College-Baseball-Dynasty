@@ -368,8 +368,15 @@ export default function LeagueViewPage() {
               <TabsTrigger value="history" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-history">
                 Hist
               </TabsTrigger>
+              <TabsTrigger value="prospects" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-prospects">
+                Pros
+              </TabsTrigger>
             </TabsList>
           </div>
+
+          <TabsContent value="prospects">
+            <ProspectsTab leagueId={league.id} />
+          </TabsContent>
 
           <TabsContent value="standings">
             <StandingsTab league={league} />
@@ -2462,6 +2469,178 @@ function DynastyTrendsCard({ leagueId }: { leagueId: string }) {
           </div>
         </div>
       </RetroCardContent>
+    </RetroCard>
+  );
+}
+
+interface ProspectEntry {
+  id: string;
+  firstName: string;
+  lastName: string;
+  position: string;
+  eligibility: string;
+  overall: number;
+  starRating: number;
+  teamId: string;
+  teamName: string;
+  teamAbbreviation: string;
+  teamPrimaryColor: string;
+  teamSecondaryColor: string;
+  category: "hitter" | "pitcher";
+}
+
+type ProspectsView = "combined" | "hitters" | "pitchers";
+
+function ProspectsTab({ leagueId }: { leagueId: string }) {
+  const [view, setView] = useState<ProspectsView>("combined");
+
+  const { data, isLoading } = useQuery<{ hitters: ProspectEntry[]; pitchers: ProspectEntry[] }>({
+    queryKey: ["/api/leagues", leagueId, "top-prospects"],
+    queryFn: async () => {
+      const res = await fetch(`/api/leagues/${leagueId}/top-prospects`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch prospects");
+      return res.json();
+    },
+  });
+
+  const displayList: (ProspectEntry & { rank: number })[] = (() => {
+    if (!data) return [];
+    if (view === "hitters") return data.hitters.map((p, i) => ({ ...p, rank: i + 1 }));
+    if (view === "pitchers") return data.pitchers.map((p, i) => ({ ...p, rank: i + 1 }));
+    // Combined: merge hitters and pitchers, re-rank by OVR
+    const all = [...data.hitters, ...data.pitchers]
+      .sort((a, b) => b.overall - a.overall)
+      .slice(0, 100);
+    return all.map((p, i) => ({ ...p, rank: i + 1 }));
+  })();
+
+  const eligibilityColor: Record<string, string> = {
+    FR: "text-green-400",
+    SO: "text-blue-400",
+    JR: "text-amber-400",
+    SR: "text-red-400",
+  };
+
+  const ovrColor = (ovr: number) => {
+    if (ovr >= 500) return "text-gold font-bold";
+    if (ovr >= 400) return "text-amber-400 font-semibold";
+    if (ovr >= 300) return "text-foreground";
+    return "text-muted-foreground";
+  };
+
+  if (isLoading) {
+    return (
+      <RetroCard>
+        <RetroCardHeader>
+          <div className="flex items-center gap-2">
+            <Star className="w-4 h-4 text-gold" />
+            Top MLB Prospects
+          </div>
+        </RetroCardHeader>
+        <div className="space-y-2 mt-4">
+          {[...Array(10)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
+        </div>
+      </RetroCard>
+    );
+  }
+
+  return (
+    <RetroCard>
+      <RetroCardHeader>
+        <div className="flex items-center gap-2">
+          <Star className="w-4 h-4 text-gold" />
+          Top MLB Prospects
+        </div>
+      </RetroCardHeader>
+      <p className="text-[10px] text-muted-foreground mb-4">
+        Players ranked by overall rating. Pitchers: SP, RP, CL. Hitters: all other positions.
+      </p>
+
+      <div className="flex gap-2 mb-4" data-testid="prospects-toggle">
+        {(["combined", "hitters", "pitchers"] as ProspectsView[]).map(v => (
+          <button
+            key={v}
+            onClick={() => setView(v)}
+            data-testid={`button-prospects-${v}`}
+            className={`font-pixel text-[8px] px-3 py-1.5 border rounded transition-colors ${
+              view === v
+                ? "bg-gold text-forest-dark border-gold"
+                : "bg-transparent text-muted-foreground border-border hover:border-gold/50 hover:text-gold"
+            }`}
+          >
+            {v === "combined" ? "Top 100" : v === "hitters" ? "Hitters" : "Pitchers"}
+          </button>
+        ))}
+      </div>
+
+      {displayList.length === 0 ? (
+        <p className="text-muted-foreground text-sm text-center py-8">No players found.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border text-muted-foreground font-pixel text-[8px]">
+                <th className="text-left py-2 px-2 w-10">#</th>
+                <th className="text-left py-2 px-2">Player</th>
+                <th className="text-center py-2 px-1 w-10">Pos</th>
+                <th className="text-left py-2 px-2 hidden sm:table-cell">Team</th>
+                <th className="text-center py-2 px-1 w-10">Yr</th>
+                <th className="text-center py-2 px-1 hidden sm:table-cell">Stars</th>
+                <th className="text-center py-2 px-1 w-14">OVR</th>
+              </tr>
+            </thead>
+            <tbody>
+              {displayList.map(prospect => (
+                <tr
+                  key={`${prospect.rank}-${prospect.id}`}
+                  className="border-b border-border/50 hover:bg-card/50 transition-colors"
+                  data-testid={`row-prospect-${prospect.id}`}
+                >
+                  <td className="py-2.5 px-2">
+                    <span className={`font-pixel text-[9px] ${prospect.rank <= 10 ? "text-gold" : "text-muted-foreground"}`}>
+                      #{prospect.rank}
+                    </span>
+                  </td>
+                  <td className="py-2.5 px-2">
+                    <span className="font-medium text-xs">
+                      {prospect.firstName} {prospect.lastName}
+                    </span>
+                  </td>
+                  <td className="py-2.5 px-1 text-center">
+                    <span className="text-[10px] text-muted-foreground">{prospect.position}</span>
+                  </td>
+                  <td className="py-2.5 px-2 hidden sm:table-cell">
+                    <div className="flex items-center gap-1.5">
+                      <TeamBadge
+                        abbreviation={prospect.teamAbbreviation}
+                        primaryColor={prospect.teamPrimaryColor}
+                        secondaryColor={prospect.teamSecondaryColor}
+                        size="sm"
+                      />
+                      <span className="text-[10px] text-muted-foreground truncate max-w-[100px]">
+                        {prospect.teamName}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="py-2.5 px-1 text-center">
+                    <span className={`font-pixel text-[8px] ${eligibilityColor[prospect.eligibility] ?? "text-muted-foreground"}`}>
+                      {prospect.eligibility}
+                    </span>
+                  </td>
+                  <td className="py-2.5 px-1 text-center hidden sm:table-cell">
+                    <StarRating rating={prospect.starRating} size="sm" />
+                  </td>
+                  <td className="py-2.5 px-1 text-center">
+                    <span className={`text-xs ${ovrColor(prospect.overall)}`}>
+                      {prospect.overall}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </RetroCard>
   );
 }
