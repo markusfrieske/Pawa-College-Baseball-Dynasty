@@ -77,12 +77,12 @@ args = "npx tsx scripts/validate-pitch-mix.ts"
 name = "validate-all"
 author = "agent"
 
+[workflows.workflow.metadata]
+outputType = "console"
+
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npx tsx scripts/validate-all.ts"
-
-[workflows.workflow.metadata]
-outputType = "console"
 
 [agent]
 integrations = ["javascript_database:1.0.0"]
