@@ -12,6 +12,7 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getPotentialRangeLabel } from "@shared/potential";
 import { 
@@ -2351,6 +2352,7 @@ function RecruitDetailModal({
   hasVisited?: boolean;
   hasHeadCoachVisited?: boolean;
 }) {
+  const isMobile = useIsMobile();
   const [modalPhonePitches, setModalPhonePitches] = useState<string[]>([]);
   const [modalEmailPitch, setModalEmailPitch] = useState<string | null>(null);
   const [showModalPhonePicker, setShowModalPhonePicker] = useState(false);
@@ -2440,35 +2442,454 @@ function RecruitDetailModal({
     return basePitches;
   };
 
-  return (
-    <Dialog open={!!recruit} onOpenChange={() => onClose()}>
-      <DialogContent className="bg-card border-gold max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <div className="flex items-start gap-4">
-            <PlayerPortrait 
-              skinTone={recruit.skinTone || "light"}
-              hairColor={recruit.hairColor || "brown"}
-              hairStyle={recruit.hairStyle || "short"}
-              className="w-16 h-16 flex-shrink-0"
-              isRecruit={true}
-            />
-            <div className="flex-1">
-              <DialogTitle className="font-pixel text-gold flex items-center gap-3 flex-wrap">
-                <PositionBadge position={recruit.position} size="lg" />
-                <span>{recruit.firstName} {recruit.lastName}</span>
-                <StarRating rating={recruit.starRank} />
-                {recruit.isBlueChip && (
-                  <Badge className="bg-blue-500 text-white">Blue Chip</Badge>
-                )}
-              </DialogTitle>
-              <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
-                <MapPin className="w-3 h-3" />
-                <span>{recruit.hometown}, {recruit.homeState}</span>
-              </div>
+  const headerContent = (
+    <div className="flex items-start gap-4">
+      <PlayerPortrait 
+        skinTone={recruit.skinTone || "light"}
+        hairColor={recruit.hairColor || "brown"}
+        hairStyle={recruit.hairStyle || "short"}
+        className="w-16 h-16 flex-shrink-0"
+        isRecruit={true}
+      />
+      <div className="flex-1">
+        <div className="font-pixel text-gold flex items-center gap-3 flex-wrap text-sm">
+          <PositionBadge position={recruit.position} size="lg" />
+          <span>{recruit.firstName} {recruit.lastName}</span>
+          <StarRating rating={recruit.starRank} />
+          {recruit.isBlueChip && (
+            <Badge className="bg-blue-500 text-white">Blue Chip</Badge>
+          )}
+        </div>
+        <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+          <MapPin className="w-3 h-3" />
+          <span>{recruit.hometown}, {recruit.homeState}</span>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (isMobile) {
+    return (
+      <Sheet open={!!recruit} onOpenChange={() => onClose()}>
+        <SheetContent
+          side="bottom"
+          className="h-dvh overflow-y-auto p-0 border-t border-gold bg-card"
+          data-testid="recruit-detail-sheet-mobile"
+        >
+          <SheetHeader className="p-4 border-b border-border">
+            <SheetTitle asChild>{headerContent}</SheetTitle>
+          </SheetHeader>
+          <div className="space-y-6 p-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="text-center p-3 bg-muted rounded">
+              <p className={`font-bold text-gold ${isFullyRevealed ? "text-2xl" : "text-lg"}`}>
+                {getOverallDisplay()}
+              </p>
+              <p className="text-xs text-muted-foreground">Overall (1-999)</p>
+            </div>
+            <div className="text-center p-3 bg-muted rounded">
+              <p className={`font-bold ${isFullyRevealed ? "text-2xl" : "text-lg"}`}>
+                {getStarDisplay()}
+              </p>
+              <p className="text-xs text-muted-foreground">Star Rating</p>
+            </div>
+            <div className="text-center p-3 bg-muted rounded">
+              <p className="text-lg font-bold">{recruit.classRank}</p>
+              <p className="text-xs text-muted-foreground">Class Rank</p>
+            </div>
+            <div className="text-center p-3 bg-muted rounded">
+              <p className="text-lg font-bold">{recruit.positionRank}</p>
+              <p className="text-xs text-muted-foreground">Pos Rank</p>
             </div>
           </div>
-        </DialogHeader>
 
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <GraduationCap className="w-4 h-4" />
+              <span>{recruit.recruitType === "TRANSFER" ? `Transfer from ${recruit.fromTeamName || "Unknown"} (${recruit.recruitYear || "SO"})` : recruit.recruitType === "JUCO" ? `JUCO Transfer from ${recruit.fromTeamName || "Unknown"} (${recruit.recruitYear || "FR"})` : "High School"}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span>Bats {recruit.batHand || "R"} / Throws {recruit.throwHand || "R"}</span>
+            </div>
+          </div>
+
+          {recruit.position === "P" ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h4 className="font-pixel text-[10px] text-gold mb-3">Attributes</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  {attrs.map((attr) => {
+                    const revealed = isFullyRevealed || revealedAttrs.includes(attr.key);
+                    const isVelocity = attr.key === "velocity";
+                    const displayValue = isVelocity && revealed 
+                      ? `${velocityToMPH(attr.value)} MPH`
+                      : (revealed ? attr.value : "??");
+                    return (
+                      <div key={attr.key} className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                        <span className="text-sm text-muted-foreground">{attr.label}</span>
+                        <span className={`font-bold ${revealed ? "text-foreground" : "text-muted-foreground"}`}>
+                          {displayValue}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              <div>
+                <h4 className="font-pixel text-[10px] text-gold mb-3">Pitch Mix</h4>
+                <PitchMixDial pitches={generatePitchMix()} className="w-32 h-32 mx-auto" />
+              </div>
+            </div>
+          ) : (
+            <div>
+              <h4 className="font-pixel text-[10px] text-gold mb-3">Attributes</h4>
+              <div className="grid grid-cols-2 gap-3">
+                {attrs.map((attr) => {
+                  const revealed = isFullyRevealed || revealedAttrs.includes(attr.key);
+                  return (
+                    <div key={attr.key} className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                      <span className="text-sm text-muted-foreground">{attr.label}</span>
+                      <span className={`font-bold ${revealed ? "text-foreground" : "text-muted-foreground"}`}>
+                        {revealed ? attr.value : "??"}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Common Abilities Section */}
+          <div>
+            <h4 className="font-pixel text-[10px] text-gold mb-3">Common Abilities</h4>
+            <div className="grid grid-cols-2 gap-2">
+              {recruit.position === "P" ? (
+                <>
+                  <CommonAbilityRow label="W/RISP" value={recruit.wRISP} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
+                  <CommonAbilityRow label="vs Lefty" value={recruit.vsLefty} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
+                  <CommonAbilityRow label="Poise" value={recruit.poise} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
+                  <CommonAbilityRow label="Grit" value={recruit.grit} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
+                  <CommonAbilityRow label="Heater" value={recruit.heater} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
+                  <CommonAbilityRow label="Agile" value={recruit.agile} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
+                  <CommonAbilityRow label="Recovery" value={recruit.recovery} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
+                </>
+              ) : (
+                <>
+                  <CommonAbilityRow label="Clutch" value={recruit.clutch} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
+                  <CommonAbilityRow label="vs LHP" value={recruit.vsLHP} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
+                  <CommonAbilityRow label="Grit" value={recruit.grit} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
+                  <CommonAbilityRow label="Stealing" value={recruit.stealing} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
+                  <CommonAbilityRow label="Running" value={recruit.running} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
+                  <CommonAbilityRow label="Throwing" value={recruit.throwing} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
+                  <CommonAbilityRow label="Recovery" value={recruit.recovery} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
+                  {recruit.position === "C" && (
+                    <CommonAbilityRow label="Catcher" value={recruit.catcherAbility} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
+          <div>
+            <h4 className="font-pixel text-[10px] text-gold mb-3">Priorities</h4>
+            <div className="grid grid-cols-2 gap-3">
+              {priorities.map((p) => {
+                const priorityLabels: Record<string, string> = {
+                  "Extremely": "Extremely Important",
+                  "Very": "Very Important",
+                  "Somewhat": "Somewhat Important",
+                  "Not Important": "Not Important"
+                };
+                return (
+                  <div key={p.key} className="flex items-center justify-between p-2 bg-muted/50 rounded">
+                    <span className="text-sm text-muted-foreground">{p.label}</span>
+                    {scoutPct >= 50 ? (
+                      <Badge variant="outline" className="text-xs whitespace-nowrap">
+                        {priorityLabels[p.value as string] || p.value}
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-xs whitespace-nowrap text-muted-foreground">
+                        ???
+                      </Badge>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            {scoutPct < 50 && (
+              <p className="text-xs text-muted-foreground text-center mt-2">
+                Scout to 50% to unlock priorities
+              </p>
+            )}
+          </div>
+
+          {/* Abilities Section */}
+          {(recruit.abilities as string[] || []).length > 0 && (
+            <div>
+              <h4 className="font-pixel text-[10px] text-gold mb-3">
+                Special Abilities ({isFullyRevealed ? (recruit.abilities as string[]).length : `${revealedAbilitiesCount}/?`})
+              </h4>
+              <div className="flex flex-wrap gap-2">
+                {(recruit.abilities as string[] || []).map((abilityName, idx) => {
+                  const ability = getAbilityByName(abilityName);
+                  const isAbilityRevealed = isFullyRevealed || revealedAbilitiesCount > idx;
+                  
+                  if (!isAbilityRevealed) {
+                    return (
+                      <Badge key={idx} variant="outline" className="text-xs border-muted-foreground/50 text-muted-foreground">
+                        ???
+                      </Badge>
+                    );
+                  }
+                  
+                  const tierColors = {
+                    gold: "bg-yellow-600/20 border-yellow-500 text-yellow-400",
+                    blue: "bg-blue-600/20 border-blue-500 text-blue-400",
+                    red: "bg-red-600/20 border-red-500 text-red-400",
+                  };
+                  
+                  return (
+                    <Badge 
+                      key={idx}
+                      variant="outline"
+                      className={`text-xs ${ability ? tierColors[ability.tier] : ""}`}
+                      title={ability?.description}
+                    >
+                      {abilityName}
+                    </Badge>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Story-Revealed Traits */}
+          {(recruit.personality || recruit.workEthic || recruit.gemBustRevealed) && (
+            <div>
+              <h4 className="font-pixel text-[10px] text-gold mb-3">Intangibles (Story Revealed)</h4>
+              <div className="grid grid-cols-2 gap-3">
+                {recruit.personality && (
+                  <div className="bg-muted/30 rounded p-2.5 border border-border/50">
+                    <span className="text-[10px] text-muted-foreground block mb-1">Personality</span>
+                    <span className="text-sm font-medium text-foreground capitalize">{(recruit.personality as string).replace(/_/g, " ")}</span>
+                  </div>
+                )}
+                {recruit.workEthic && (
+                  <div className="bg-muted/30 rounded p-2.5 border border-border/50">
+                    <span className="text-[10px] text-muted-foreground block mb-1">Work Ethic</span>
+                    <span className="text-sm font-medium text-foreground capitalize">{recruit.workEthic as string}</span>
+                  </div>
+                )}
+                {recruit.gemBustRevealed && (
+                  <div className={`rounded p-2.5 border col-span-2 ${
+                    (recruit as any).isGenerationalGem ? "bg-amber-500/15 border-amber-500/40" :
+                    (recruit as any).isGenerationalBust ? "bg-red-700/15 border-red-700/40" :
+                    recruit.isGem ? "bg-green-500/10 border-green-500/30" : 
+                    recruit.isBust ? "bg-red-500/10 border-red-500/30" : "bg-muted/30 border-border/50"
+                  }`}>
+                    <span className="text-[10px] text-muted-foreground block mb-1">Scout Assessment</span>
+                    <span className={`text-sm font-medium ${
+                      (recruit as any).isGenerationalGem ? "text-amber-400" :
+                      (recruit as any).isGenerationalBust ? "text-red-400" :
+                      recruit.isGem ? "text-green-400" : recruit.isBust ? "text-red-400" : "text-foreground"
+                    }`}>
+                      {(recruit as any).isGenerationalGem 
+                        ? "GENERATIONAL TALENT - Once-in-a-generation player. Elite in every way."
+                        : (recruit as any).isGenerationalBust 
+                        ? "GENERATIONAL BUST - Severely overrated. A major disappointment waiting to happen."
+                        : recruit.isGem ? "Hidden Gem - Better than rating suggests" 
+                        : recruit.isBust ? "Potential Bust - May be overrated" 
+                        : "Accurate Rating - What you see is what you get"}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {!recruit.personality && !recruit.workEthic && !recruit.gemBustRevealed && (
+            <div className="bg-muted/20 rounded p-3 border border-dashed border-border/40">
+              <h4 className="font-pixel text-[10px] text-muted-foreground mb-1">Intangibles</h4>
+              <p className="text-xs text-muted-foreground italic">Unknown - Follow this recruit's story arc to reveal personality, work ethic, and true potential.</p>
+            </div>
+          )}
+
+          {recruit.dealbreaker && (
+            <div className="p-3 bg-red-500/10 border border-red-500/30 rounded">
+              <div className="flex items-center gap-2 text-red-400 mb-1">
+                <HelpCircle className="w-4 h-4" />
+                <span className="font-pixel text-[10px]">Dealbreaker</span>
+              </div>
+              <p className="text-sm text-foreground">{recruit.dealbreaker}</p>
+            </div>
+          )}
+
+          {recruit.stage === "signed" && recruit.signedTeamId ? (
+            <div className="p-4 rounded text-center" style={{ backgroundColor: `${(recruit as RecruitWithInterest).signedTeamPrimaryColor}15` || "rgba(100,100,100,0.1)", border: `1px solid ${(recruit as RecruitWithInterest).signedTeamPrimaryColor}40` }}>
+              <p className="font-pixel text-xs mb-1" style={{ color: (recruit as RecruitWithInterest).signedTeamPrimaryColor || "#ccc" }}>
+                Signed with {(recruit as RecruitWithInterest).signedTeamName || "Unknown"}
+              </p>
+              <p className="text-[10px] text-muted-foreground">This recruit is no longer available</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              <RetroButton 
+                variant="outline" 
+                className="border-green-500 text-green-400 hover:bg-green-500/10"
+                data-testid="button-scout-modal"
+                onClick={() => onScout(recruit.id)}
+                disabled={isScouting || scoutPct >= 100}
+              >
+                <Eye className="w-4 h-4 mr-2" />
+                {isScouting ? "Scouting..." : `Scout (${scoutPct}%)`}
+              </RetroButton>
+              <RetroButton 
+                className="flex-1" 
+                data-testid="button-phone"
+                variant={showModalPhonePicker ? "primary" : "outline"}
+                onClick={() => { setShowModalPhonePicker(!showModalPhonePicker); setShowModalEmailPicker(false); setModalPhonePitches([]); }}
+                disabled={isPhoning}
+              >
+                <Phone className="w-4 h-4 mr-2" />
+                {isPhoning ? "Calling..." : "Phone (3 pitches)"}
+              </RetroButton>
+              <RetroButton 
+                variant={showModalEmailPicker ? "primary" : "outline"}
+                className="flex-1" 
+                data-testid="button-email"
+                onClick={() => { setShowModalEmailPicker(!showModalEmailPicker); setShowModalPhonePicker(false); setModalEmailPitch(null); }}
+                disabled={isEmailing}
+              >
+                <Mail className="w-4 h-4 mr-2" />
+                {isEmailing ? "Sending..." : "Email (1 pitch)"}
+              </RetroButton>
+              <RetroButton 
+                variant={hasVisited ? "primary" : "outline"}
+                className="flex-1" 
+                data-testid="button-visit"
+                onClick={() => onVisit(recruit.id)}
+                disabled={isVisiting || remainingPoints < visitCost || hasVisited}
+              >
+                <Building2 className="w-4 h-4 mr-2" />
+                {hasVisited ? "Visited" : isVisiting ? "Scheduling..." : `Campus Visit (${visitCost})`}
+              </RetroButton>
+              <RetroButton 
+                variant={hasHeadCoachVisited ? "primary" : "outline"}
+                className="flex-1" 
+                data-testid="button-head-coach-visit"
+                onClick={() => onHeadCoachVisit(recruit.id)}
+                disabled={isHeadCoachVisiting || remainingPoints < headCoachVisitCost || hasHeadCoachVisited}
+              >
+                <Crown className="w-4 h-4 mr-2" />
+                {hasHeadCoachVisited ? "HC Visited" : isHeadCoachVisiting ? "Visiting..." : `HC Visit (${headCoachVisitCost})`}
+              </RetroButton>
+              <RetroButton 
+                variant="outline" 
+                className="border-gold text-gold"
+                data-testid="button-offer-scholarship"
+                onClick={() => onOffer(recruit.id)}
+                disabled={isOffering || recruit.interest?.hasOffer}
+              >
+                <GraduationCap className="w-4 h-4 mr-2" />
+                {isOffering ? "Offering..." : recruit.interest?.hasOffer ? "Offered" : "Offer Scholarship"}
+              </RetroButton>
+            </div>
+          )}
+
+          {showModalPhonePicker && recruit && (
+            <div className="p-3 bg-muted/30 border border-border rounded" data-testid="modal-pitch-picker-phone">
+              <p className="text-[10px] font-pixel text-gold mb-2">SELECT UP TO 3 PITCHES FOR PHONE CALL</p>
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                {modalPitchOptions.map(opt => (
+                  <button
+                    key={opt.key}
+                    onClick={() => toggleModalPhonePitch(opt.key)}
+                    className={`text-xs px-3 py-1.5 rounded border transition-colors ${
+                      modalPhonePitches.includes(opt.key)
+                        ? "bg-gold/20 border-gold text-gold"
+                        : "bg-muted/20 border-border text-muted-foreground hover:border-gold/50"
+                    }`}
+                    data-testid={`modal-pitch-phone-${opt.key}`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <RetroButton
+                  size="sm"
+                  onClick={() => {
+                    onPhone(recruit.id, modalPhonePitches.join(","));
+                    setShowModalPhonePicker(false);
+                    setModalPhonePitches([]);
+                  }}
+                  disabled={modalPhonePitches.length === 0 || isPhoning}
+                  data-testid="modal-button-send-phone"
+                >
+                  <Phone className="w-3 h-3 mr-1" />
+                  Call ({modalPhonePitches.length}/3)
+                </RetroButton>
+                <RetroButton variant="outline" size="sm" onClick={() => { setShowModalPhonePicker(false); setModalPhonePitches([]); }}>
+                  Cancel
+                </RetroButton>
+              </div>
+            </div>
+          )}
+
+          {showModalEmailPicker && recruit && (
+            <div className="p-3 bg-muted/30 border border-border rounded" data-testid="modal-pitch-picker-email">
+              <p className="text-[10px] font-pixel text-gold mb-2">SELECT 1 PITCH FOR EMAIL</p>
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                {modalPitchOptions.map(opt => (
+                  <button
+                    key={opt.key}
+                    onClick={() => setModalEmailPitch(modalEmailPitch === opt.key ? null : opt.key)}
+                    className={`text-xs px-3 py-1.5 rounded border transition-colors ${
+                      modalEmailPitch === opt.key
+                        ? "bg-gold/20 border-gold text-gold"
+                        : "bg-muted/20 border-border text-muted-foreground hover:border-gold/50"
+                    }`}
+                    data-testid={`modal-pitch-email-${opt.key}`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <RetroButton
+                  size="sm"
+                  onClick={() => {
+                    onEmail(recruit.id, modalEmailPitch || undefined);
+                    setShowModalEmailPicker(false);
+                    setModalEmailPitch(null);
+                  }}
+                  disabled={!modalEmailPitch || isEmailing}
+                  data-testid="modal-button-send-email"
+                >
+                  <Mail className="w-3 h-3 mr-1" />
+                  Send Email
+                </RetroButton>
+                <RetroButton variant="outline" size="sm" onClick={() => { setShowModalEmailPicker(false); setModalEmailPitch(null); }}>
+                  Cancel
+                </RetroButton>
+              </div>
+            </div>
+          )}
+
+          {/* Actions Log */}
+          <RecruitActionsLog recruitId={recruit.id} leagueId={leagueId} />
+        </div>
+      </SheetContent>
+    </Sheet>
+    );
+  }
+
+  return (
+    <Dialog open={!!recruit} onOpenChange={() => onClose()}>
+      <DialogContent className="bg-card border-gold max-w-2xl max-h-[90vh] overflow-y-auto" data-testid="recruit-detail-dialog-desktop">
+        <DialogHeader>
+          <DialogTitle asChild>{headerContent}</DialogTitle>
+        </DialogHeader>
         <div className="space-y-6">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="text-center p-3 bg-muted rounded">
