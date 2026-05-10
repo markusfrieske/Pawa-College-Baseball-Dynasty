@@ -405,14 +405,18 @@ function HeroVideoPlayer() {
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
+    let timeout: ReturnType<typeof setTimeout>;
     const cycle = setInterval(() => {
       setVisible(false);
-      setTimeout(() => {
+      timeout = setTimeout(() => {
         setPhaseIndex((i) => (i + 1) % DEMO_PHASES.length);
         setVisible(true);
       }, 300);
     }, PHASE_DURATION);
-    return () => clearInterval(cycle);
+    return () => {
+      clearInterval(cycle);
+      clearTimeout(timeout);
+    };
   }, []);
 
   const phase = DEMO_PHASES[phaseIndex];
