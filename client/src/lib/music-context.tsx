@@ -64,15 +64,19 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   const [isPlaying, setIsPlaying] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const fadeRafRef = useRef<number | null>(null);
   const pendingTrackRef = useRef<TrackId>("none");
 
-  // Refs that mirror state — let setTrack stay stable across state changes
+  // Explicit cancel function for the in-flight fade — calling it resolves
+  // the fade promise immediately so no dangling async state is left behind.
+  const fadeCancelRef = useRef<(() => void) | null>(null);
+
+  // Refs that mirror state so setTrack has a stable identity
   const currentTrackRef = useRef<TrackId>("none");
   const volumeRef = useRef(getStoredVolume());
   const mutedRef = useRef(getStoredMuted());
   const hasInteractedRef = useRef(false);
-  // Incremented on every setTrack call; lets an awaited fadeOut detect it's stale
+
+  // Incremented on every setTrack call; stale callers bail after each await
   const trackGenRef = useRef(0);
 
   // Keep refs in sync with state
@@ -94,6 +98,11 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     audio.addEventListener("ended", onEnded);
 
     return () => {
+      // Cancel any in-flight fade cleanly on unmount
+      if (fadeCancelRef.current) {
+        fadeCancelRef.current();
+        fadeCancelRef.current = null;
+      }
       audio.removeEventListener("play", onPlay);
       audio.removeEventListener("pause", onPause);
       audio.removeEventListener("ended", onEnded);
@@ -108,7 +117,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       document.removeEventListener("click", handleInteraction);
       document.removeEventListener("keydown", handleInteraction);
 
-      // Play any pending track now that the user has interacted
+      // Play any pending track now that autoplay is unlocked
       if (pendingTrackRef.current !== "none" && audioRef.current) {
         const url = TRACK_URLS[pendingTrackRef.current as Exclude<TrackId, "none">];
         if (url && audioRef.current.paused) {
@@ -126,8 +135,16 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // rAF-based fade — wall-clock accurate, no setInterval throttling
+  // rAF-based fade — wall-clock accurate, no setInterval throttling.
+  // Canceling an in-flight fade resolves its promise immediately so callers
+  // (setTrack) never hang waiting for a superseded fade to finish.
   const fadeOut = useCallback((audio: HTMLAudioElement): Promise<void> => {
+    // Cancel and cleanly resolve any previous in-flight fade
+    if (fadeCancelRef.current) {
+      fadeCancelRef.current();
+      fadeCancelRef.current = null;
+    }
+
     return new Promise((resolve) => {
       if (audio.paused || audio.volume === 0) {
         audio.pause();
@@ -137,27 +154,32 @@ export function MusicProvider({ children }: { children: ReactNode }) {
 
       const startVol = audio.volume;
       const startTime = performance.now();
+      let rafId: number;
+      let canceled = false;
 
-      if (fadeRafRef.current !== null) {
-        cancelAnimationFrame(fadeRafRef.current);
-        fadeRafRef.current = null;
-      }
+      fadeCancelRef.current = () => {
+        canceled = true;
+        cancelAnimationFrame(rafId);
+        resolve(); // Resolve cleanly — no dangling promise
+      };
 
       const tick = (now: number) => {
+        if (canceled) return;
+
         const progress = Math.min(1, (now - startTime) / FADE_DURATION);
         audio.volume = Math.max(0, startVol * (1 - progress));
 
         if (progress < 1) {
-          fadeRafRef.current = requestAnimationFrame(tick);
+          rafId = requestAnimationFrame(tick);
         } else {
-          fadeRafRef.current = null;
+          fadeCancelRef.current = null;
           audio.pause();
           audio.volume = startVol;
           resolve();
         }
       };
 
-      fadeRafRef.current = requestAnimationFrame(tick);
+      rafId = requestAnimationFrame(tick);
     });
   }, []);
 
@@ -165,7 +187,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     async (track: TrackId) => {
       if (track === currentTrackRef.current) return;
 
-      // Bump generation so any in-flight setTrack can detect it became stale
+      // Bump generation — stale callers bail after each await
       const gen = ++trackGenRef.current;
 
       currentTrackRef.current = track;
@@ -174,12 +196,6 @@ export function MusicProvider({ children }: { children: ReactNode }) {
 
       const audio = audioRef.current;
       if (!audio) return;
-
-      // Cancel any in-flight rAF fade before starting a new transition
-      if (fadeRafRef.current !== null) {
-        cancelAnimationFrame(fadeRafRef.current);
-        fadeRafRef.current = null;
-      }
 
       if (track === "none") {
         await fadeOut(audio);
@@ -190,9 +206,11 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       if (!url) return;
 
       if (!audio.paused) {
+        // fadeOut cancels any previous in-flight fade and starts a fresh one.
+        // The previous setTrack that was awaiting the old fade gets resolved
+        // immediately and bails via the generation check below.
         await fadeOut(audio);
-        // If another setTrack call arrived while we were fading, bail out
-        if (gen !== trackGenRef.current) return;
+        if (gen !== trackGenRef.current) return; // Stale — newer call took over
       }
 
       audio.src = url;
