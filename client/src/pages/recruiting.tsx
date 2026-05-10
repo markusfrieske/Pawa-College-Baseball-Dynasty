@@ -300,7 +300,8 @@ export default function RecruitingPage() {
     myRecruits: WeekRecapEntry[];
     hotMissed: WeekRecapEntry[];
   }
-  const recapWeek = Math.max(1, (leagueData?.currentWeek ?? 1) - 1);
+  const hasPriorWeek = (leagueData?.currentWeek ?? 1) > 1;
+  const recapWeek = hasPriorWeek ? (leagueData!.currentWeek - 1) : 0;
   const recapSeason = leagueData?.currentSeason ?? 1;
   const { data: weekRecapData } = useQuery<WeekRecapData>({
     queryKey: ["/api/leagues", id, "recruiting", "weekly-recap", recapSeason, recapWeek],
@@ -309,7 +310,7 @@ export default function RecruitingPage() {
       if (!res.ok) throw new Error("Failed to fetch recap");
       return res.json();
     },
-    enabled: !!id && !!leagueData,
+    enabled: !!id && !!leagueData && hasPriorWeek,
   });
 
   const recapDismissKey = leagueData ? `recap-dismissed-${id}-${recapSeason}-${recapWeek}` : null;
