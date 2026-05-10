@@ -731,13 +731,13 @@ function TeamsTab({ league }: { league: LeagueDetails }) {
           <span>Compare Teams</span>
         </RetroCardHeader>
         <RetroCardContent>
-          <div className="flex flex-wrap items-end gap-3">
-            <div>
+          <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-3">
+            <div className="flex-1 sm:flex-none">
               <label className="text-xs text-muted-foreground block mb-1">Team A</label>
               <select
                 value={compareTeamA}
                 onChange={(e) => setCompareTeamA(e.target.value)}
-                className="bg-muted border border-border rounded px-3 py-2 text-sm"
+                className="w-full sm:w-auto bg-muted border border-border rounded px-3 py-2 text-sm"
                 data-testid="select-compare-team-a"
               >
                 <option value="">Select team...</option>
@@ -746,13 +746,13 @@ function TeamsTab({ league }: { league: LeagueDetails }) {
                 ))}
               </select>
             </div>
-            <span className="text-muted-foreground text-sm pb-2">vs</span>
-            <div>
+            <span className="text-muted-foreground text-sm hidden sm:block pb-2">vs</span>
+            <div className="flex-1 sm:flex-none">
               <label className="text-xs text-muted-foreground block mb-1">Team B</label>
               <select
                 value={compareTeamB}
                 onChange={(e) => setCompareTeamB(e.target.value)}
-                className="bg-muted border border-border rounded px-3 py-2 text-sm"
+                className="w-full sm:w-auto bg-muted border border-border rounded px-3 py-2 text-sm"
                 data-testid="select-compare-team-b"
               >
                 <option value="">Select team...</option>
@@ -765,6 +765,7 @@ function TeamsTab({ league }: { league: LeagueDetails }) {
               size="sm"
               disabled={!compareTeamA || !compareTeamB}
               onClick={() => setShowCompare(true)}
+              className="w-full sm:w-auto"
               data-testid="button-compare-teams"
             >
               Compare
