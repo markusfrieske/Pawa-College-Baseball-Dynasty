@@ -2,8 +2,8 @@
  * Unified pitch-mix helper for all roster files.
  *
  * Schema rules (shared/schema.ts:240-268):
- *   - pitchFB and pitch2S are binary: 0 or 1.
- *   - All other pitch slots (SL/CB/CH/CT/SNK/SPL/...) are integers 0-7.
+ *   - pitchFB, pitch2S, and pitchCH are binary: 0 or 1.
+ *   - All other pitch slots (SL/CB/CT/SNK/SPL/...) are integers 0-7.
  *
  * Canonical usage — all new roster files should call:
  *   pitchMix(1, [2S, SL, CB, CH, CT, SNK, SPL])
@@ -18,7 +18,7 @@
  *      30-39 → 2, 1-29 → 1). The threshold 30 is chosen to distinguish
  *     true 0-100 inputs from a near-schema array that simply has a
  *     stray 8.
- *   - 2S secondary is always re-binarized after any other coercion.
+ *   - 2S and CH secondaries are always re-binarized after any other coercion.
  *
  * pitchMix() emits a single `[roster-sanity]` console.warn the first
  * time it has to coerce a given context, so regressions are surfaced
@@ -78,7 +78,7 @@ function coerceSecondary(v: number, useBucket: boolean): number {
  *            If the largest value is >= 30 (VELOCITY_SCALE_THRESHOLD),
  *            the whole array is treated as a 0-100 quality scale and
  *            bucketed to 1-7.
- *            2S is then re-binarized (0 or 1).
+ *            2S and CH are then re-binarized (0 or 1).
  */
 // Threshold for distinguishing a 0-100 quality scale from a near-schema
 // 0-7 scale that just has a stray out-of-range value. Roster files that
@@ -103,12 +103,18 @@ export function pitchMix(primary: number, secondary: number[], context: string =
   const raw2S = safeSec[0] ?? 0;
   const pitch2S = raw2S >= 1 ? 1 : 0;
 
+  const rawCH = coerceSecondary(safeSec[3] ?? 0, useBucket);
+  if (rawCH > 1) {
+    warnOnce(`${context}:ch`, `pitchMix(${context}): pitchCH quality ${rawCH} collapsed to 1 (CH is binary)`);
+  }
+  const pitchCH = rawCH >= 1 ? 1 : 0;
+
   return {
     pitchFB: safePrimary >= 1 ? 1 : 0,
     pitch2S,
     pitchSL: coerceSecondary(safeSec[1] ?? 0, useBucket),
     pitchCB: coerceSecondary(safeSec[2] ?? 0, useBucket),
-    pitchCH: coerceSecondary(safeSec[3] ?? 0, useBucket),
+    pitchCH,
     pitchCT: coerceSecondary(safeSec[4] ?? 0, useBucket),
     pitchSNK: coerceSecondary(safeSec[5] ?? 0, useBucket),
     pitchSPL: coerceSecondary(safeSec[6] ?? 0, useBucket),

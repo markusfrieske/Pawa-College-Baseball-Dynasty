@@ -212,7 +212,7 @@ export function generateRecruitClass(
       pitchFB, pitch2S,
       pitchSL: selectedSecondary.has('SL') ? rndRating() : 0,
       pitchCB: selectedSecondary.has('CB') ? rndRating() : 0,
-      pitchCH: selectedSecondary.has('CH') ? rndRating() : 0,
+      pitchCH: selectedSecondary.has('CH') ? 1 : 0,
       pitchCT: selectedSecondary.has('CT') ? rndRating() : 0,
       pitchSNK: selectedSecondary.has('SNK') ? rndRating() : 0,
       pitchSPL: selectedSecondary.has('SPL') ? rndRating() : 0,

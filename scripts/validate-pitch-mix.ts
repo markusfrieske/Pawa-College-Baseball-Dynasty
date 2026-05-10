@@ -2,9 +2,8 @@
  * Pitch-mix field validator.
  *
  * Schema rules (server/pitchMixHelpers.ts):
- *   - pitchFB and pitch2S are binary: 0 or 1 (values 1-7 are also accepted
- *     as a legacy "FB quality hint" and collapsed to 1 at runtime).
- *   - pitchSL / pitchCB / pitchCH / pitchCT / pitchSNK / pitchSPL must be
+ *   - pitchFB, pitch2S, and pitchCH are binary: 0 or 1.
+ *   - pitchSL / pitchCB / pitchCT / pitchSNK / pitchSPL must be
  *     integers in 0-7.
  *
  * A value > 7 in any field indicates the author used the wrong 0-100
@@ -70,12 +69,16 @@ const PITCH_FIELDS = [
   "pitchSPL",
 ] as const;
 
+// Fields that must be binary (0 or 1). Any value > 1 is a violation.
+const BINARY_PITCH_FIELDS = new Set(["pitchFB", "pitch2S", "pitchCH"]);
+
 interface PitchViolation {
   file: string;
   team: string;
   player: string;
   field: string;
   value: number;
+  reason: string;
 }
 
 const violations: PitchViolation[] = [];
@@ -88,8 +91,10 @@ for (const [fileName, rosters] of Object.entries(ALL_ROSTERS)) {
       const raw = player as unknown as Record<string, unknown>;
       for (const field of PITCH_FIELDS) {
         const value = typeof raw[field] === "number" ? (raw[field] as number) : 0;
-        if (value > 7) {
-          violations.push({ file: fileName, team: teamName, player: playerName, field, value });
+        if (BINARY_PITCH_FIELDS.has(field) && value > 1) {
+          violations.push({ file: fileName, team: teamName, player: playerName, field, value, reason: "binary field (must be 0 or 1); CH is presence-only" });
+        } else if (!BINARY_PITCH_FIELDS.has(field) && value > 7) {
+          violations.push({ file: fileName, team: teamName, player: playerName, field, value, reason: "wrong 0-100 scale (must be 0-7)" });
         }
       }
     }
@@ -98,13 +103,13 @@ for (const [fileName, rosters] of Object.entries(ALL_ROSTERS)) {
 
 if (violations.length === 0) {
   console.log(
-    "✓ All pitcher pitch-mix fields are within the valid 0-7 range across all roster files."
+    "✓ All pitcher pitch-mix fields are valid: binary fields (FB/2S/CH) are 0-1, secondaries (SL/CB/CT/SNK/SPL) are 0-7."
   );
   process.exit(0);
 }
 
 console.error(
-  `\n✗ Found ${violations.length} pitch-mix field violation(s) — value exceeds 7 (wrong 0-100 scale):\n`
+  `\n✗ Found ${violations.length} pitch-mix field violation(s):\n`
 );
 
 const byFile = new Map<string, PitchViolation[]>();
@@ -117,7 +122,7 @@ for (const v of violations) {
 for (const [file, fileViolations] of byFile) {
   console.error(`  [${file}]`);
   for (const v of fileViolations) {
-    console.error(`    ${v.team} / ${v.player}: ${v.field}=${v.value} (must be 0-7)`);
+    console.error(`    ${v.team} / ${v.player}: ${v.field}=${v.value} (${v.reason})`);
   }
 }
 
