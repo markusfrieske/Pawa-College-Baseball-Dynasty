@@ -106,6 +106,8 @@ export function MusicRouter() {
     if (cachedPhaseRef.current && cachedPhaseRef.current.leagueId === leagueId) {
       const track = resolveTrackForRoute(location, cachedPhaseRef.current.phase);
       setTrack(track);
+      // Phase already cached — no need to fetch again
+      return;
     }
 
     fetchAndSetPhase(leagueId, location);
