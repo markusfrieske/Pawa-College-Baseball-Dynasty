@@ -37,7 +37,8 @@ import {
   ScrollText,
   Compass,
   UserMinus,
-  UserPlus
+  UserPlus,
+  Timer
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -221,6 +222,9 @@ export default function LeagueViewPage() {
               <span>{league.teams?.length || 0}/{league.maxTeams} Teams</span>
             </div>
           </div>
+          {league.phaseDeadline && (
+            <PhaseDeadline deadline={league.phaseDeadline} />
+          )}
           <div className="flex items-center justify-end gap-2 mt-2">
             <NotificationCenter leagueId={id!} />
             <ReadyButton leagueId={id} phase={league.currentPhase} />
@@ -3440,5 +3444,55 @@ function NotificationCenter({ leagueId }: { leagueId: string }) {
         )}
       </PopoverContent>
     </Popover>
+  );
+}
+
+function PhaseDeadline({ deadline }: { deadline: Date | string }) {
+  const [timeLeft, setTimeLeft] = useState("");
+  const [passed, setPassed] = useState(false);
+
+  useEffect(() => {
+    const compute = () => {
+      const now = Date.now();
+      const end = new Date(deadline).getTime();
+      const diff = end - now;
+      if (diff <= 0) {
+        setPassed(true);
+        setTimeLeft("Deadline passed");
+        return;
+      }
+      setPassed(false);
+      const totalMins = Math.floor(diff / 60000);
+      const hours = Math.floor(totalMins / 60);
+      const mins = totalMins % 60;
+      const days = Math.floor(hours / 24);
+      const remHours = hours % 24;
+      if (days > 0) {
+        setTimeLeft(`${days}d ${remHours}h remaining`);
+      } else if (hours > 0) {
+        setTimeLeft(`${hours}h ${mins}m remaining`);
+      } else {
+        setTimeLeft(`${mins}m remaining`);
+      }
+    };
+    compute();
+    const interval = setInterval(compute, 60000);
+    return () => clearInterval(interval);
+  }, [deadline]);
+
+  const diffMs = new Date(deadline).getTime() - Date.now();
+  const colorClass = passed
+    ? "text-red-400"
+    : diffMs < 3600000
+    ? "text-red-400"
+    : diffMs < 14400000
+    ? "text-amber-400"
+    : "text-gold";
+
+  return (
+    <div className={`flex items-center gap-1.5 mt-1.5 text-xs ${colorClass}`} data-testid="text-phase-deadline">
+      <Timer className="w-3 h-3 shrink-0" />
+      <span>{timeLeft}</span>
+    </div>
   );
 }

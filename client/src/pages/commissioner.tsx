@@ -32,7 +32,8 @@ import {
   UserMinus,
   Target,
   Link as LinkIcon,
-  FastForward
+  FastForward,
+  Timer
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -617,6 +618,12 @@ function ActionsTab({
             <p className="text-muted-foreground mb-4">
               {advanceDescription}
             </p>
+            {league?.phaseDeadline && new Date(league.phaseDeadline) <= new Date() && (
+              <div className="mb-3 p-2 rounded bg-red-500/10 border border-red-500/40 text-red-400 text-xs flex items-center gap-2">
+                <Timer className="w-3.5 h-3.5 shrink-0" />
+                Deadline passed — all coaches auto-advanced on next advance.
+              </div>
+            )}
             <RetroButton
               onClick={onAdvanceWeek}
               disabled={anySim}
@@ -1030,7 +1037,104 @@ function ActionsTab({
         </DialogContent>
       </Dialog>
       </div>
+      <PhaseDeadlineControl leagueId={league?.id || ""} currentDeadline={league?.phaseDeadline ?? null} />
     </div>
+  );
+}
+
+function PhaseDeadlineControl({ leagueId, currentDeadline }: { leagueId: string; currentDeadline: Date | string | null }) {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const [deadlineInput, setDeadlineInput] = useState(() => {
+    if (!currentDeadline) return "";
+    const d = new Date(currentDeadline);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  });
+
+  const deadlineMutation = useMutation({
+    mutationFn: async (deadline: string | null) => {
+      const res = await apiRequest("PATCH", `/api/leagues/${leagueId}/deadline`, { deadline });
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId] });
+      qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "commissioner"] });
+      toast({ title: "Deadline Updated" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleSet = () => {
+    if (!deadlineInput) return;
+    deadlineMutation.mutate(new Date(deadlineInput).toISOString());
+  };
+
+  const handleClear = () => {
+    setDeadlineInput("");
+    deadlineMutation.mutate(null);
+  };
+
+  const deadlinePassed = currentDeadline ? new Date(currentDeadline) <= new Date() : false;
+
+  return (
+    <RetroCard>
+      <RetroCardHeader>
+        <div className="flex items-center gap-2">
+          <Timer className="w-4 h-4 text-gold" />
+          <span>Phase Deadline</span>
+        </div>
+      </RetroCardHeader>
+      <RetroCardContent>
+        <p className="text-muted-foreground text-sm mb-4">
+          Set an optional deadline for coaches to complete their actions. When the deadline passes, all non-ready coaches are automatically marked ready on the next advance.
+        </p>
+        {currentDeadline && (
+          <div className={`mb-3 p-2 rounded border text-xs flex items-center gap-2 ${
+            deadlinePassed
+              ? "bg-red-500/10 border-red-500/40 text-red-400"
+              : "bg-gold/10 border-gold/40 text-gold"
+          }`}>
+            <Timer className="w-3.5 h-3.5 shrink-0" />
+            {deadlinePassed
+              ? `Deadline passed: ${new Date(currentDeadline).toLocaleString()}`
+              : `Active deadline: ${new Date(currentDeadline).toLocaleString()}`
+            }
+          </div>
+        )}
+        <div className="flex gap-2 items-end">
+          <div className="flex-1">
+            <p className="text-xs text-muted-foreground mb-1">Set deadline (your local time)</p>
+            <input
+              type="datetime-local"
+              value={deadlineInput}
+              onChange={(e) => setDeadlineInput(e.target.value)}
+              className="w-full h-9 rounded border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-gold"
+              data-testid="input-phase-deadline"
+            />
+          </div>
+          <RetroButton
+            onClick={handleSet}
+            disabled={!deadlineInput || deadlineMutation.isPending}
+            data-testid="button-set-deadline"
+          >
+            Set
+          </RetroButton>
+          {currentDeadline && (
+            <RetroButton
+              variant="outline"
+              onClick={handleClear}
+              disabled={deadlineMutation.isPending}
+              data-testid="button-clear-deadline"
+            >
+              Clear
+            </RetroButton>
+          )}
+        </div>
+      </RetroCardContent>
+    </RetroCard>
   );
 }
 

@@ -34,6 +34,7 @@ export const leagues = pgTable("leagues", {
   currentWeek: integer("current_week").notNull().default(1),
   auditLogPublic: boolean("audit_log_public").notNull().default(true),
   progressionEnabled: boolean("progression_enabled").notNull().default(false),
+  phaseDeadline: timestamp("phase_deadline"),
 });
 
 export const insertLeagueSchema = createInsertSchema(leagues).pick({

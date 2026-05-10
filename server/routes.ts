@@ -4885,7 +4885,27 @@ export async function registerRoutes(
       const leagueId = league.id;
       const currentWeek = league.currentWeek;
       const nextWeek = currentWeek + 1;
-      
+
+      // ============ DEADLINE AUTO-READY ============
+      if (league.phaseDeadline && new Date(league.phaseDeadline) <= new Date()) {
+        const allLeagueCoaches = await storage.getCoachesByLeague(leagueId);
+        const allLeagueTeams = await storage.getTeamsByLeague(leagueId);
+        const humanTeamIds = new Set(allLeagueTeams.filter(t => !t.isCpu).map(t => t.id));
+        const nonReadyHumanCoaches = allLeagueCoaches.filter(c => c.teamId && humanTeamIds.has(c.teamId) && !c.isReady);
+        if (nonReadyHumanCoaches.length > 0) {
+          await Promise.all(nonReadyHumanCoaches.map(c => storage.updateCoach(c.id, { isReady: true })));
+          try {
+            await storage.createLeagueEvent({
+              leagueId,
+              eventType: "PHASE_CHANGE",
+              description: `Deadline passed — ${nonReadyHumanCoaches.length} coach${nonReadyHumanCoaches.length !== 1 ? "es" : ""} auto-advanced.`,
+              season: league.currentSeason,
+              week: currentWeek,
+            });
+          } catch (e) { console.error("Deadline auto-ready feed error:", e); }
+        }
+      }
+
       // Determine max weeks for season based on phase
       const seasonWeeks: Record<string, number> = {
         "short": 5,
@@ -5389,6 +5409,7 @@ export async function registerRoutes(
       const updatedLeague = await storage.updateLeague(league.id, {
         currentWeek: nextWeek,
         currentPhase: newPhase,
+        phaseDeadline: null,
       });
 
       await storage.createAuditLog({
@@ -9938,6 +9959,26 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to import recruiting class:", error);
       res.status(500).json({ message: "Failed to import recruiting class" });
+    }
+  });
+
+  app.patch("/api/leagues/:id/deadline", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id as string);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      if (league.commissionerId !== req.session.userId) {
+        return res.status(403).json({ message: "Only the commissioner can set a deadline" });
+      }
+      const { deadline } = req.body;
+      const phaseDeadline = deadline ? new Date(deadline) : null;
+      if (phaseDeadline && isNaN(phaseDeadline.getTime())) {
+        return res.status(400).json({ message: "Invalid deadline date" });
+      }
+      const updated = await storage.updateLeague(req.params.id as string, { phaseDeadline });
+      res.json(updated);
+    } catch (error) {
+      console.error("Failed to update deadline:", error);
+      res.status(500).json({ message: "Failed to update deadline" });
     }
   });
 
