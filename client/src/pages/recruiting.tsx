@@ -158,6 +158,7 @@ const sortOptions = [
   { value: "scoutPriority", label: "Scout Priority (Targeted First)" },
   { value: "interest", label: "Interest Level" },
   { value: "myInterest", label: "Interest in You (High to Low)" },
+  { value: "trendUp", label: "Rising Interest First" },
 ];
 
 export default function RecruitingPage() {
@@ -193,7 +194,7 @@ export default function RecruitingPage() {
   const [newPresetName, setNewPresetName] = useState("");
   const [compareRecruits, setCompareRecruits] = useState<RecruitWithInterest[]>([]);
   const [showCompareModal, setShowCompareModal] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState<string>((sf.searchQuery as string) ?? "");
   const [pipelineFilter, setPipelineFilter] = useState<string | null>(null);
   const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
   const [showTopAvailable, setShowTopAvailable] = useState<boolean>((sf.showTopAvailable as boolean) ?? false);
@@ -232,8 +233,9 @@ export default function RecruitingPage() {
       showPipeline,
       showWatchlistOnly,
       showTopAvailable,
+      searchQuery,
     }));
-  }, [id, positionFilter, starFilter, stateFilter, typeFilter, sortBy, showTeamNeeds, showPipeline, showWatchlistOnly, showTopAvailable]);
+  }, [id, positionFilter, starFilter, stateFilter, typeFilter, sortBy, showTeamNeeds, showPipeline, showWatchlistOnly, showTopAvailable, searchQuery]);
 
   const toggleCompare = (recruit: RecruitWithInterest) => {
     if (compareRecruits.find(r => r.id === recruit.id)) {
@@ -605,6 +607,15 @@ export default function RecruitingPage() {
         const aLevel = a.interest?.interestLevel || 0;
         const bLevel = b.interest?.interestLevel || 0;
         return bLevel - aLevel;
+      }
+      case "trendUp": {
+        const trendScore = (recruitId: string) => {
+          const t = trendsData?.trends?.[recruitId]?.trend;
+          return t === "up" ? 2 : t === "flat" ? 1 : 0;
+        };
+        const diff = trendScore(b.id) - trendScore(a.id);
+        if (diff !== 0) return diff;
+        return (b.interest?.interestLevel || 0) - (a.interest?.interestLevel || 0);
       }
       default:
         return (a.classRank || 999) - (b.classRank || 999);
@@ -2008,6 +2019,11 @@ function RecruitRow({
                         {interestMeta.label}
                       </span>
                     )}
+                    {trend && trend.trend !== "flat" && (
+                      <span className={`text-[9px] ${trend.trend === "up" ? "text-green-400" : "text-red-400"}`} data-testid={`trend-mobile-${recruit.id}`}>
+                        {trend.trend === "up" ? <TrendingUp className="w-3 h-3 inline" /> : <TrendingDown className="w-3 h-3 inline" />}
+                      </span>
+                    )}
                     <span>{scoutPct}%</span>
                   </div>
                 </div>
@@ -2123,6 +2139,18 @@ function RecruitRow({
                       <span className={`text-[9px] font-bold ${interestMeta.color}`} data-testid={`interest-label-${recruit.id}`}>
                         {interestMeta.label}
                       </span>
+                    )}
+                    {trend && trend.trend !== "flat" && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className={`text-[9px] cursor-default ${trend.trend === "up" ? "text-green-400" : "text-red-400"}`} data-testid={`trend-${recruit.id}`}>
+                            {trend.trend === "up" ? <TrendingUp className="w-3 h-3 inline" /> : <TrendingDown className="w-3 h-3 inline" />}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {trend.trend === "up" ? `Interest rising (+${trend.recentGain} recently)` : `Interest falling (${trend.recentGain} recently)`}
+                        </TooltipContent>
+                      </Tooltip>
                     )}
                     <span>{scoutPct}%</span>
                   </div>

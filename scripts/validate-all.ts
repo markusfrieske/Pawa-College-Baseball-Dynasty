@@ -6,6 +6,8 @@
  *   1. validate-abilities      — ability names, position fit, required fields
  *   2. validate-pitch-mix      — pitch-mix field ranges
  *   3. validate-roster-structure — roster size, FR count, position-group counts
+ *   4. validate-duplicates     — same-team duplicate player names
+ *   5. validate-attributes     — attribute/position consistency (pitcher vs fielder attrs)
  *
  * Adding a new validator: append its script path to the VALIDATORS array below.
  */
@@ -17,6 +19,8 @@ const VALIDATORS = [
   { label: "validate-abilities",        script: "scripts/validate-abilities.ts" },
   { label: "validate-pitch-mix",        script: "scripts/validate-pitch-mix.ts" },
   { label: "validate-roster-structure", script: "scripts/validate-roster-structure.ts" },
+  { label: "validate-duplicates",       script: "scripts/validate-duplicates.ts" },
+  { label: "validate-attributes",       script: "scripts/validate-attributes.ts" },
 ];
 
 const divider = "─".repeat(60);

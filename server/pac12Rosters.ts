@@ -69,9 +69,9 @@ export const PAC12_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Top Gear", "Sharpness", "Staredown"], potential: "A-", catcherAbility: null,
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 5, 4, 5, 0, 0, 0]) },
-    // Mason Pike — FR two-way SS/P, top-150 draft, up to 95mph
+    // Mason Pike — FR two-way SS/P, top-150 draft, up to 95mph (filed as P)
     { firstName: "Mason", lastName: "Pike", position: "P", eligibility: "FR", homeState: "WA", hometown: "Bellevue", jerseyNumber: 50,
-      hitForAvg: 38, power: 32, speed: 44, arm: 78, fielding: 42, errorResistance: 42, velocity: 78, control: 56, stamina: 50, stuff: 76,
+      hitForAvg: 24, power: 22, speed: 44, arm: 78, fielding: 42, errorResistance: 42, velocity: 78, control: 56, stamina: 50, stuff: 76,
       clutch: 44, vsLHP: 40, grit: 44, stealing: 22, running: 42, throwing: 74, recovery: 44, wRISP: 40, vsLefty: 42, poise: 44, heater: 78, agile: 46,
       abilities: ["Explosive Fastball", "Sharpness", "Low Ball"], potential: "A+", catcherAbility: null,
       skinTone: "light", hairColor: "brown", hairStyle: "short",

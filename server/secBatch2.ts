@@ -619,9 +619,9 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Monster Stuff", "Top Gear", "Low Ball"], potential: "B+", catcherAbility: null,
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 4, 3, 3, 0, 0, 0]) },
-    // Bryce Calloway — JR 1B/RHP closer transfer New Orleans, .390/18HR/1.206 OPS, light-tower power, primarily 1B but two-way
+    // Bryce Calloway — JR 1B/RHP closer transfer New Orleans, .390/18HR/1.206 OPS, light-tower power, primarily 1B but two-way (filed as P)
     { firstName: "Bryce", lastName: "Calloway", position: "P", eligibility: "JR", homeState: "LA", hometown: "New Orleans", jerseyNumber: 18,
-      hitForAvg: 80, power: 86, speed: 32, arm: 70, fielding: 56, errorResistance: 54, velocity: 78, control: 70, stamina: 36, stuff: 76,
+      hitForAvg: 22, power: 24, speed: 32, arm: 70, fielding: 56, errorResistance: 54, velocity: 78, control: 70, stamina: 36, stuff: 76,
       clutch: 80, vsLHP: 76, grit: 78, stealing: 8, running: 30, throwing: 70, recovery: 56, wRISP: 80, vsLefty: 76, poise: 76, heater: 78, agile: 36,
       abilities: ["Fireman", "Staredown", "Gear Change", "Phantasmagoric", "Decisive", "Monster Stuff"], potential: "A", catcherAbility: null,
       skinTone: "light", hairColor: "brown", hairStyle: "short",
