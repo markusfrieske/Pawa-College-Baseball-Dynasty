@@ -3,6 +3,7 @@ import {
   players, recruits, recruitingInterests, games, standings, auditLogs, leagueInvites, dynastyNews,
   recruitingActionsLog, recruitTopSchools, transferPortalInterests, playerHistory, playerPromises,
   storyEvents, storyArcs, storyArcChapters, moments, playerSeasonStats, walkonPool,
+  leagueEvents,
   type User, type InsertUser,
   type League, type InsertLeague,
   type Conference, type InsertConference,
@@ -31,6 +32,7 @@ import {
   savedRosters, savedRecruitingClasses,
   type SavedRoster, type InsertSavedRoster,
   type SavedRecruitingClass, type InsertSavedRecruitingClass,
+  type LeagueEvent, type InsertLeagueEvent,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, or, inArray, isNotNull, sql } from "drizzle-orm";
@@ -107,6 +109,9 @@ export interface IStorage {
   getDynastyNewsByLeague(leagueId: string): Promise<DynastyNews[]>;
   createDynastyNews(news: InsertDynastyNews): Promise<DynastyNews>;
   deleteDynastyNews(id: string): Promise<void>;
+
+  createLeagueEvent(event: InsertLeagueEvent): Promise<LeagueEvent>;
+  getLeagueEvents(leagueId: string, limit?: number, eventType?: string): Promise<LeagueEvent[]>;
 
   getRecruitingActionsLog(recruitId: string, teamId: string): Promise<RecruitingActionsLog[]>;
   getRecruitingActionsLogByTeam(teamId: string, leagueId: string): Promise<RecruitingActionsLog[]>;
@@ -470,6 +475,24 @@ export class DatabaseStorage implements IStorage {
 
   async deleteDynastyNews(id: string): Promise<void> {
     await db.delete(dynastyNews).where(eq(dynastyNews.id, id));
+  }
+
+  async createLeagueEvent(event: InsertLeagueEvent): Promise<LeagueEvent> {
+    const [e] = await db.insert(leagueEvents).values(event).returning();
+    return e;
+  }
+
+  async getLeagueEvents(leagueId: string, limit = 100, eventType?: string): Promise<LeagueEvent[]> {
+    if (eventType) {
+      return await db.select().from(leagueEvents)
+        .where(and(eq(leagueEvents.leagueId, leagueId), eq(leagueEvents.eventType, eventType)))
+        .orderBy(desc(leagueEvents.createdAt))
+        .limit(limit);
+    }
+    return await db.select().from(leagueEvents)
+      .where(eq(leagueEvents.leagueId, leagueId))
+      .orderBy(desc(leagueEvents.createdAt))
+      .limit(limit);
   }
 
   async getRecruitingActionsLog(recruitId: string, teamId: string): Promise<RecruitingActionsLog[]> {

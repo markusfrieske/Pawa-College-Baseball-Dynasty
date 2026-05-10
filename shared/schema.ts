@@ -1345,6 +1345,22 @@ export const insertSavedRecruitingClassSchema = createInsertSchema(savedRecruiti
 export type InsertSavedRecruitingClass = z.infer<typeof insertSavedRecruitingClassSchema>;
 export type SavedRecruitingClass = typeof savedRecruitingClasses.$inferSelect;
 
+// League Events table - activity feed for league news
+export const leagueEvents = pgTable("league_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  leagueId: varchar("league_id").notNull().references(() => leagues.id),
+  teamId: varchar("team_id").references(() => teams.id),
+  eventType: text("event_type").notNull(), // SIGNING, TRANSFER, DRAFT, GAME_RESULT, AWARD, PHASE_CHANGE, ROSTER_CUT, WALKON
+  description: text("description").notNull(),
+  season: integer("season").notNull().default(1),
+  week: integer("week").notNull().default(1),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertLeagueEventSchema = createInsertSchema(leagueEvents).omit({ id: true, createdAt: true });
+export type InsertLeagueEvent = z.infer<typeof insertLeagueEventSchema>;
+export type LeagueEvent = typeof leagueEvents.$inferSelect;
+
 // Relations for new tables
 export const storyEventsRelations = relations(storyEvents, ({ one }) => ({
   league: one(leagues, { fields: [storyEvents.leagueId], references: [leagues.id] }),

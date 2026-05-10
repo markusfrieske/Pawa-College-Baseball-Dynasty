@@ -2004,6 +2004,15 @@ export async function registerRoutes(
           league?.currentSeason || 1,
           league?.currentWeek
         );
+        const stars = "★".repeat(recruit.starRank || 1);
+        await storage.createLeagueEvent({
+          leagueId: req.params.id,
+          teamId: userTeam.id,
+          eventType: "SIGNING",
+          description: `${userTeam.name} signed ${recruit.firstName} ${recruit.lastName} (${recruit.position}, ${stars} ${recruit.homeState || ""})`,
+          season: league?.currentSeason || 1,
+          week: league?.currentWeek || 1,
+        });
       } catch (e) {
         console.error("Recruit commit news error:", e);
       }
@@ -2248,6 +2257,18 @@ export async function registerRoutes(
         details: `${player.firstName} ${player.lastName} (${team?.abbreviation || 'Unknown'}) declared for the MLB Draft`,
       });
 
+      try {
+        const leagueForEvent = await storage.getLeague(req.params.id);
+        await storage.createLeagueEvent({
+          leagueId: req.params.id,
+          teamId: team?.id,
+          eventType: "DRAFT",
+          description: `${player.firstName} ${player.lastName} (${player.position}, ${team?.abbreviation || "UNK"}) declared for the MLB Draft`,
+          season: leagueForEvent?.currentSeason || 1,
+          week: leagueForEvent?.currentWeek || 1,
+        });
+      } catch (e) { console.error("League event error:", e); }
+
       res.json({ 
         success: true, 
         message: `${player.firstName} ${player.lastName} has declared for the MLB Draft`,
@@ -2322,6 +2343,18 @@ export async function registerRoutes(
         action: "Transfer Portal Entry",
         details: `${player.firstName} ${player.lastName} (${team.abbreviation}) entered the transfer portal${reason ? `: ${reason}` : ''}`,
       });
+
+      try {
+        const leagueForEvent = await storage.getLeague(req.params.id);
+        await storage.createLeagueEvent({
+          leagueId: req.params.id,
+          teamId: team.id,
+          eventType: "TRANSFER",
+          description: `${player.firstName} ${player.lastName} (${player.position}, ${team.abbreviation}) entered the transfer portal`,
+          season: leagueForEvent?.currentSeason || 1,
+          week: leagueForEvent?.currentWeek || 1,
+        });
+      } catch (e) { console.error("League event error:", e); }
 
       res.json({ 
         success: true, 
@@ -4911,6 +4944,27 @@ export async function registerRoutes(
         } catch (e) {
           console.error("News generation error:", e);
         }
+        // ======= ACTIVITY FEED: log notable game results =======
+        try {
+          for (const { game, result } of gameResults) {
+            const homeTeamFeed = leagueTeamsForSim.find(t => t.id === game.homeTeamId);
+            const awayTeamFeed = leagueTeamsForSim.find(t => t.id === game.awayTeamId);
+            if (!homeTeamFeed || !awayTeamFeed) continue;
+            const homeWon = result.homeScore > result.awayScore;
+            const winner = homeWon ? homeTeamFeed : awayTeamFeed;
+            const loser = homeWon ? awayTeamFeed : homeTeamFeed;
+            const winScore = homeWon ? result.homeScore : result.awayScore;
+            const lossScore = homeWon ? result.awayScore : result.homeScore;
+            await storage.createLeagueEvent({
+              leagueId,
+              teamId: winner.id,
+              eventType: "GAME_RESULT",
+              description: `${winner.abbreviation} def. ${loser.abbreviation} ${winScore}-${lossScore}${game.isConference ? " (Conf)" : ""}`,
+              season: league.currentSeason,
+              week: currentWeek,
+            });
+          }
+        } catch (e) { console.error("Game feed event error:", e); }
       }
 
       // ============ STORY ENGINE: DRAMA, ARCS, MOMENTS ============
@@ -4992,6 +5046,14 @@ export async function registerRoutes(
             if (champTeam && runnerUpTeam) {
               try {
                 await generateCWSChampionNewsArticle(leagueId, champTeam, runnerUpTeam, league.currentSeason);
+                await storage.createLeagueEvent({
+                  leagueId,
+                  teamId: champTeam.id,
+                  eventType: "AWARD",
+                  description: `${champTeam.name} wins the College World Series! Season ${league.currentSeason} National Champions.`,
+                  season: league.currentSeason,
+                  week: nextWeek,
+                });
               } catch (e) {
                 console.error("CWS news generation error:", e);
               }
@@ -5143,6 +5205,16 @@ export async function registerRoutes(
           action: "Walk-On Phase Started",
           details: `Signing day complete. ${signingResult.recruitsAdded} recruits joined rosters. Teams can now make cuts and sign walk-ons.`,
         });
+
+        try {
+          await storage.createLeagueEvent({
+            leagueId: league.id,
+            eventType: "PHASE_CHANGE",
+            description: `Signing Day complete — ${signingResult.recruitsAdded} recruits joined rosters league-wide`,
+            season: league.currentSeason,
+            week: league.currentWeek,
+          });
+        } catch (e) { console.error("League event error:", e); }
         
         return res.json(updatedLeague);
       }
@@ -5201,6 +5273,9 @@ export async function registerRoutes(
         await generateConferenceChampionships(leagueId, league.currentSeason);
         const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "conference_championship", currentWeek: nextWeek });
         await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "Regular Season Complete", details: "The regular season is over! Conference Championships begin." });
+        try {
+          await storage.createLeagueEvent({ leagueId, eventType: "PHASE_CHANGE", description: `Regular season complete — Conference Championships begin (Season ${league.currentSeason})`, season: league.currentSeason, week: nextWeek });
+        } catch (e) { console.error("League event error:", e); }
         return res.json(updatedLeague);
       }
 
@@ -5208,6 +5283,9 @@ export async function registerRoutes(
       if (newPhase === "regular_season" && league.currentPhase === "preseason") {
         await storage.clearProgressionDeltasForLeague(leagueId);
         console.log(`[Progression] Cleared progression deltas for league ${leagueId} (preseason -> regular_season)`);
+        try {
+          await storage.createLeagueEvent({ leagueId, eventType: "PHASE_CHANGE", description: `Regular season underway — Season ${league.currentSeason} begins!`, season: league.currentSeason, week: nextWeek });
+        } catch (e) { console.error("League event error:", e); }
       }
       const updatedLeague = await storage.updateLeague(league.id, {
         currentWeek: nextWeek,
@@ -8279,6 +8357,19 @@ export async function registerRoutes(
       }
       
       const updated = await storage.updateWalkon(walkonId, { signedTeamId: team.id, signedTeamName: team.name });
+
+      try {
+        const leagueForEvent = await storage.getLeague(leagueId);
+        await storage.createLeagueEvent({
+          leagueId,
+          teamId: team.id,
+          eventType: "WALKON",
+          description: `${team.name} signed walk-on ${walkon.firstName} ${walkon.lastName} (${walkon.position})`,
+          season: leagueForEvent?.currentSeason || 1,
+          week: leagueForEvent?.currentWeek || 1,
+        });
+      } catch (e) { console.error("League event error:", e); }
+
       res.json(updated);
     } catch (error) {
       res.status(500).json({ message: "Failed to sign walk-on" });
@@ -8323,7 +8414,19 @@ export async function registerRoutes(
       });
       
       await storage.deletePlayer(playerId);
-      
+
+      try {
+        const teamForEvent = await storage.getTeam(userCoach.teamId);
+        await storage.createLeagueEvent({
+          leagueId,
+          teamId: userCoach.teamId,
+          eventType: "ROSTER_CUT",
+          description: `${teamForEvent?.name || "A team"} cut ${player.firstName} ${player.lastName} (${player.position}) — sent to JUCO`,
+          season: league.currentSeason,
+          week: league.currentWeek,
+        });
+      } catch (e) { console.error("League event error:", e); }
+
       res.json({ message: "Player cut and sent to JUCO" });
     } catch (error) {
       res.status(500).json({ message: "Failed to cut player" });
@@ -10439,6 +10542,20 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to generate schedule:", error);
       res.status(500).json({ message: "Failed to generate schedule" });
+    }
+  });
+
+  // League Events (Activity Feed) routes
+  app.get("/api/leagues/:id/events", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const limit = parseInt(req.query.limit as string) || 100;
+      const eventType = req.query.type as string | undefined;
+      const events = await storage.getLeagueEvents(leagueId, limit, eventType);
+      res.json(events);
+    } catch (error) {
+      console.error("Failed to fetch league events:", error);
+      res.status(500).json({ message: "Failed to fetch events" });
     }
   });
 

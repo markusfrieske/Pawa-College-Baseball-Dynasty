@@ -42,8 +42,8 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import type { League, Team, Conference, Standings, DynastyNews } from "@shared/schema";
-import { User, Cpu } from "lucide-react";
+import type { League, Team, Conference, Standings, DynastyNews, LeagueEvent } from "@shared/schema";
+import { User, Cpu, Pen, GitMerge, FileX, UserCheck, GraduationCap, Activity, Filter } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import addieFriskImg from "@/assets/images/addie-frisk.png";
 import sullyPumpImg from "@/assets/images/sully-pump.png";
@@ -375,7 +375,10 @@ export default function LeagueViewPage() {
           </TabsContent>
 
           <TabsContent value="news">
-            <StoryEngineHub leagueId={league.id} teamId={userTeam?.id} />
+            <ActivityFeed leagueId={league.id} />
+            <div className="mt-4">
+              <StoryEngineHub leagueId={league.id} teamId={userTeam?.id} />
+            </div>
           </TabsContent>
 
           <TabsContent value="stats">
@@ -427,6 +430,131 @@ function QuickActionCard({
         </div>
       </RetroCard>
     </Link>
+  );
+}
+
+// ============ ACTIVITY FEED ============
+
+const EVENT_FILTERS = [
+  { key: "ALL", label: "All" },
+  { key: "SIGNING", label: "Recruiting" },
+  { key: "GAME_RESULT", label: "Games" },
+  { key: "TRANSFER,DRAFT,ROSTER_CUT,WALKON", label: "Transactions" },
+  { key: "AWARD,PHASE_CHANGE", label: "League" },
+] as const;
+
+type FilterKey = (typeof EVENT_FILTERS)[number]["key"];
+
+const eventTypeConfig: Record<string, { icon: React.ReactNode; color: string; label: string }> = {
+  SIGNING: { icon: <Pen className="w-3 h-3" />, color: "text-green-400 bg-green-500/15 border-green-500/30", label: "Signed" },
+  GAME_RESULT: { icon: <Trophy className="w-3 h-3" />, color: "text-gold bg-gold/10 border-gold/30", label: "Game" },
+  TRANSFER: { icon: <GitMerge className="w-3 h-3" />, color: "text-blue-400 bg-blue-500/15 border-blue-500/30", label: "Transfer" },
+  DRAFT: { icon: <GraduationCap className="w-3 h-3" />, color: "text-purple-400 bg-purple-500/15 border-purple-500/30", label: "Draft" },
+  AWARD: { icon: <Award className="w-3 h-3" />, color: "text-amber-400 bg-amber-500/15 border-amber-500/30", label: "Award" },
+  PHASE_CHANGE: { icon: <Calendar className="w-3 h-3" />, color: "text-cyan-400 bg-cyan-500/15 border-cyan-500/30", label: "Phase" },
+  ROSTER_CUT: { icon: <FileX className="w-3 h-3" />, color: "text-red-400 bg-red-500/15 border-red-500/30", label: "Cut" },
+  WALKON: { icon: <UserCheck className="w-3 h-3" />, color: "text-emerald-400 bg-emerald-500/15 border-emerald-500/30", label: "Walk-On" },
+};
+
+function formatRelativeTime(date: string | Date): string {
+  const d = new Date(date);
+  const now = new Date();
+  const diff = now.getTime() - d.getTime();
+  const mins = Math.floor(diff / 60000);
+  const hrs = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+  if (mins < 2) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  if (hrs < 24) return `${hrs}h ago`;
+  return `${days}d ago`;
+}
+
+function ActivityFeed({ leagueId }: { leagueId: string }) {
+  const [activeFilter, setActiveFilter] = useState<FilterKey>("ALL");
+
+  const { data: events = [], isLoading } = useQuery<LeagueEvent[]>({
+    queryKey: ["/api/leagues", leagueId, "events"],
+    queryFn: async () => {
+      const res = await fetch(`/api/leagues/${leagueId}/events`, { credentials: "include" });
+      return res.json();
+    },
+    refetchOnWindowFocus: true,
+    staleTime: 30000,
+  });
+
+  const filteredEvents = activeFilter === "ALL"
+    ? events
+    : events.filter(e => activeFilter.split(",").includes(e.eventType));
+
+  return (
+    <RetroCard className="mb-2" data-testid="activity-feed">
+      <RetroCardHeader>
+        <div className="flex items-center gap-2">
+          <Activity className="w-4 h-4 text-gold" />
+          <span>Activity Feed</span>
+        </div>
+      </RetroCardHeader>
+
+      <div className="px-3 pb-2 pt-1 flex items-center gap-1.5 flex-wrap" data-testid="activity-feed-filters">
+        <Filter className="w-3 h-3 text-muted-foreground shrink-0" />
+        {EVENT_FILTERS.map((f) => (
+          <button
+            key={f.key}
+            onClick={() => setActiveFilter(f.key as FilterKey)}
+            data-testid={`filter-${f.key.toLowerCase()}`}
+            className={`px-2 py-0.5 rounded text-[10px] font-pixel border transition-colors ${
+              activeFilter === f.key
+                ? "bg-gold/20 text-gold border-gold/50"
+                : "border-border text-muted-foreground hover:text-foreground hover:border-border/80"
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="divide-y divide-border/40 max-h-72 overflow-y-auto" data-testid="activity-feed-list">
+        {isLoading ? (
+          Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="px-3 py-2.5 flex items-center gap-3">
+              <Skeleton className="w-6 h-6 rounded-full shrink-0" />
+              <div className="flex-1 space-y-1">
+                <Skeleton className="h-3 w-3/4" />
+                <Skeleton className="h-2.5 w-1/4" />
+              </div>
+            </div>
+          ))
+        ) : filteredEvents.length === 0 ? (
+          <div className="px-3 py-8 text-center" data-testid="activity-feed-empty">
+            <Activity className="w-6 h-6 text-muted-foreground/40 mx-auto mb-2" />
+            <p className="text-xs text-muted-foreground">No activity yet — events will appear as the dynasty progresses.</p>
+          </div>
+        ) : (
+          filteredEvents.map((event) => {
+            const cfg = eventTypeConfig[event.eventType] ?? {
+              icon: <Zap className="w-3 h-3" />,
+              color: "text-muted-foreground bg-muted border-border",
+              label: event.eventType,
+            };
+            return (
+              <div key={event.id} className="px-3 py-2.5 flex items-start gap-3 hover:bg-card/50 transition-colors" data-testid={`event-row-${event.id}`}>
+                <div className={`shrink-0 w-6 h-6 rounded-full border flex items-center justify-center ${cfg.color}`}>
+                  {cfg.icon}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-foreground leading-snug">{event.description}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className={`text-[9px] font-pixel px-1 py-0.5 rounded border ${cfg.color}`}>{cfg.label}</span>
+                    <span className="text-[10px] text-muted-foreground">S{event.season} W{event.week}</span>
+                    <span className="text-[10px] text-muted-foreground ml-auto">{formatRelativeTime(event.createdAt)}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </RetroCard>
   );
 }
 
