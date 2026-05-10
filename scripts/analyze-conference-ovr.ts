@@ -17,9 +17,10 @@ import { BIG_WEST_ROSTERS } from "../server/bigWestRosters";
 import { MO_VALLEY_ROSTERS } from "../server/moValleyRosters";
 import { IVY_LEAGUE_ROSTERS } from "../server/ivyLeagueRosters";
 import { HBCU_ROSTERS } from "../server/hbcuRosters";
+import type { RealPlayer } from "../server/realRosters";
 import { calculateOVR } from "../shared/abilities";
 
-type Roster = Record<string, any[]>;
+type Roster = Record<string, RealPlayer[]>;
 
 function analyzeConf(name: string, rosters: Roster[]) {
   const allOVRs: number[] = [];
@@ -27,7 +28,7 @@ function analyzeConf(name: string, rosters: Roster[]) {
 
   for (const roster of rosters) {
     for (const [team, players] of Object.entries(roster)) {
-      const teamOVRs = players.map((p: any) => calculateOVR(p));
+      const teamOVRs = players.map((p: RealPlayer) => calculateOVR(p));
       const avg = Math.round(teamOVRs.reduce((a, b) => a + b, 0) / teamOVRs.length);
       teamAvgs.push({ team, avg, n: players.length });
       allOVRs.push(...teamOVRs);
