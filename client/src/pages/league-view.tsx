@@ -543,8 +543,13 @@ function ActivityFeed({ leagueId }: { leagueId: string }) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-foreground leading-snug">{event.description}</p>
-                  <div className="flex items-center gap-2 mt-0.5">
+                  <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                     <span className={`text-[9px] font-pixel px-1 py-0.5 rounded border ${cfg.color}`}>{cfg.label}</span>
+                    {event.teamAbbreviation && (
+                      <span className="text-[9px] font-pixel px-1 py-0.5 rounded border border-border/60 text-muted-foreground bg-muted/30">
+                        {event.teamAbbreviation}
+                      </span>
+                    )}
                     <span className="text-[10px] text-muted-foreground">S{event.season} W{event.week}</span>
                     <span className="text-[10px] text-muted-foreground ml-auto">{formatRelativeTime(event.createdAt)}</span>
                   </div>

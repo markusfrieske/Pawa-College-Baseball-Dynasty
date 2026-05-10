@@ -1346,18 +1346,25 @@ export type InsertSavedRecruitingClass = z.infer<typeof insertSavedRecruitingCla
 export type SavedRecruitingClass = typeof savedRecruitingClasses.$inferSelect;
 
 // League Events table - activity feed for league news
+const LEAGUE_EVENT_TYPES = ["SIGNING", "TRANSFER", "DRAFT", "GAME_RESULT", "AWARD", "PHASE_CHANGE", "ROSTER_CUT", "WALKON"] as const;
+export type LeagueEventType = (typeof LEAGUE_EVENT_TYPES)[number];
+
 export const leagueEvents = pgTable("league_events", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   leagueId: varchar("league_id").notNull().references(() => leagues.id),
   teamId: varchar("team_id").references(() => teams.id),
-  eventType: text("event_type").notNull(), // SIGNING, TRANSFER, DRAFT, GAME_RESULT, AWARD, PHASE_CHANGE, ROSTER_CUT, WALKON
+  teamName: text("team_name"),
+  teamAbbreviation: text("team_abbreviation"),
+  eventType: text("event_type").notNull(),
   description: text("description").notNull(),
   season: integer("season").notNull().default(1),
   week: integer("week").notNull().default(1),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const insertLeagueEventSchema = createInsertSchema(leagueEvents).omit({ id: true, createdAt: true });
+export const insertLeagueEventSchema = createInsertSchema(leagueEvents).omit({ id: true, createdAt: true }).extend({
+  eventType: z.enum(LEAGUE_EVENT_TYPES),
+});
 export type InsertLeagueEvent = z.infer<typeof insertLeagueEventSchema>;
 export type LeagueEvent = typeof leagueEvents.$inferSelect;
 

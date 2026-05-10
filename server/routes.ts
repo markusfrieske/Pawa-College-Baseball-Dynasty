@@ -2008,6 +2008,8 @@ export async function registerRoutes(
         await storage.createLeagueEvent({
           leagueId: req.params.id,
           teamId: userTeam.id,
+          teamName: userTeam.name,
+          teamAbbreviation: userTeam.abbreviation,
           eventType: "SIGNING",
           description: `${userTeam.name} signed ${recruit.firstName} ${recruit.lastName} (${recruit.position}, ${stars} ${recruit.homeState || ""})`,
           season: league?.currentSeason || 1,
@@ -2262,6 +2264,8 @@ export async function registerRoutes(
         await storage.createLeagueEvent({
           leagueId: req.params.id,
           teamId: team?.id,
+          teamName: team?.name,
+          teamAbbreviation: team?.abbreviation,
           eventType: "DRAFT",
           description: `${player.firstName} ${player.lastName} (${player.position}, ${team?.abbreviation || "UNK"}) declared for the MLB Draft`,
           season: leagueForEvent?.currentSeason || 1,
@@ -2349,6 +2353,8 @@ export async function registerRoutes(
         await storage.createLeagueEvent({
           leagueId: req.params.id,
           teamId: team.id,
+          teamName: team.name,
+          teamAbbreviation: team.abbreviation,
           eventType: "TRANSFER",
           description: `${player.firstName} ${player.lastName} (${player.position}, ${team.abbreviation}) entered the transfer portal`,
           season: leagueForEvent?.currentSeason || 1,
@@ -4958,6 +4964,8 @@ export async function registerRoutes(
             await storage.createLeagueEvent({
               leagueId,
               teamId: winner.id,
+              teamName: winner.name,
+              teamAbbreviation: winner.abbreviation,
               eventType: "GAME_RESULT",
               description: `${winner.abbreviation} def. ${loser.abbreviation} ${winScore}-${lossScore}${game.isConference ? " (Conf)" : ""}`,
               season: league.currentSeason,
@@ -4997,6 +5005,24 @@ export async function registerRoutes(
             const postTeams = await storage.getTeamsByLeague(leagueId);
             const completedConf = (await storage.getGamesByLeague(leagueId)).filter(g => g.phase === "conference_championship" && g.season === league.currentSeason && g.isComplete);
             await generateGameNewsArticles(leagueId, completedConf, postTeams, league.currentSeason, currentWeek, "conference_championship");
+            // Emit AWARD event for each conference champion
+            for (const cg of completedConf) {
+              const homeWon = (cg.homeScore ?? 0) > (cg.awayScore ?? 0);
+              const champId = homeWon ? cg.homeTeamId : cg.awayTeamId;
+              const champT = leagueTeamsForSim.find(t => t.id === champId);
+              if (champT) {
+                await storage.createLeagueEvent({
+                  leagueId,
+                  teamId: champT.id,
+                  teamName: champT.name,
+                  teamAbbreviation: champT.abbreviation,
+                  eventType: "AWARD",
+                  description: `${champT.name} wins the Conference Championship! Season ${league.currentSeason}.`,
+                  season: league.currentSeason,
+                  week: currentWeek,
+                });
+              }
+            }
           } catch (e) { console.error("Postseason news error:", e); }
           
           await generateSuperRegionalBracket(leagueId, league.currentSeason);
@@ -5049,6 +5075,8 @@ export async function registerRoutes(
                 await storage.createLeagueEvent({
                   leagueId,
                   teamId: champTeam.id,
+                  teamName: champTeam.name,
+                  teamAbbreviation: champTeam.abbreviation,
                   eventType: "AWARD",
                   description: `${champTeam.name} wins the College World Series! Season ${league.currentSeason} National Champions.`,
                   season: league.currentSeason,
@@ -8364,6 +8392,8 @@ export async function registerRoutes(
           leagueId,
           teamId: team.id,
           eventType: "WALKON",
+          teamName: team.name,
+          teamAbbreviation: team.abbreviation,
           description: `${team.name} signed walk-on ${walkon.firstName} ${walkon.lastName} (${walkon.position})`,
           season: leagueForEvent?.currentSeason || 1,
           week: leagueForEvent?.currentWeek || 1,
@@ -8420,6 +8450,8 @@ export async function registerRoutes(
         await storage.createLeagueEvent({
           leagueId,
           teamId: userCoach.teamId,
+          teamName: teamForEvent?.name,
+          teamAbbreviation: teamForEvent?.abbreviation,
           eventType: "ROSTER_CUT",
           description: `${teamForEvent?.name || "A team"} cut ${player.firstName} ${player.lastName} (${player.position}) — sent to JUCO`,
           season: league.currentSeason,
@@ -10549,7 +10581,14 @@ export async function registerRoutes(
   app.get("/api/leagues/:id/events", requireAuth, async (req, res) => {
     try {
       const leagueId = req.params.id as string;
-      const limit = parseInt(req.query.limit as string) || 100;
+      const userId = req.session.userId as string;
+      // Verify league exists and user is a member
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      const coaches = await storage.getCoachesByLeague(leagueId);
+      const isMember = coaches.some(c => c.userId === userId) || league.commissionerId === userId;
+      if (!isMember) return res.status(403).json({ message: "Not a member of this league" });
+      const limit = Math.min(parseInt(req.query.limit as string) || 100, 200);
       const eventType = req.query.type as string | undefined;
       const events = await storage.getLeagueEvents(leagueId, limit, eventType);
       res.json(events);
