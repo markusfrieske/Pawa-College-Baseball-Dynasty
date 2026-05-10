@@ -133,12 +133,12 @@ export default function LandingPage() {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Link href={isLoggedIn ? "/manage-rosters" : "/login"}>
+              <Link href={isLoggedIn ? "/manage-rosters" : "/guest?redirect=/manage-rosters"}>
                 <RetroButton variant="ghost" size="sm" className="text-muted-foreground" data-testid="button-manage-rosters">
                   <ClipboardList className="w-3.5 h-3.5 mr-1.5" /> Manage Rosters
                 </RetroButton>
               </Link>
-              <Link href={isLoggedIn ? "/manage-recruiting" : "/login"}>
+              <Link href={isLoggedIn ? "/manage-recruiting" : "/guest?redirect=/manage-recruiting"}>
                 <RetroButton variant="ghost" size="sm" className="text-muted-foreground" data-testid="button-manage-recruiting">
                   <UserPlus className="w-3.5 h-3.5 mr-1.5" /> Manage Recruiting Class
                 </RetroButton>

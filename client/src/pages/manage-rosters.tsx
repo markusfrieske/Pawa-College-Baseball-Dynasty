@@ -260,26 +260,6 @@ export default function ManageRostersPage() {
     setExpandedRow(null);
   };
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <RetroCard className="max-w-md w-full text-center">
-          <RetroCardHeader>
-            <h1 className="font-pixel text-gold text-lg" data-testid="text-login-gate">MANAGE ROSTERS</h1>
-          </RetroCardHeader>
-          <RetroCardContent>
-            <p className="text-muted-foreground mb-6">
-              Sign in to browse, edit, and save custom NCAA 2026 rosters.
-            </p>
-            <Link href="/login">
-              <RetroButton data-testid="link-login">Sign In</RetroButton>
-            </Link>
-          </RetroCardContent>
-        </RetroCard>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-[1600px] mx-auto space-y-4">
@@ -312,11 +292,12 @@ export default function ManageRostersPage() {
             <RetroButton
               size="sm"
               onClick={() => setSaveDialogOpen(true)}
-              disabled={!selectedTeam || !defaultRoster}
+              disabled={!selectedTeam || !defaultRoster || !user}
+              title={!user ? "Sign in to save rosters" : undefined}
               data-testid="button-save-roster"
             >
               <Save className="w-4 h-4 mr-2" />
-              Save as Custom Roster
+              {user ? "Save as Custom Roster" : "Sign in to Save"}
             </RetroButton>
           </div>
         </div>

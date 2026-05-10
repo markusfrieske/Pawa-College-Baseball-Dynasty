@@ -31,7 +31,7 @@ import ManageRostersPage from "@/pages/manage-rosters";
 import ManageRecruitingPage from "@/pages/manage-recruiting";
 import PlayByPlayPage from "@/pages/play-by-play";
 import { useState } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { MusicProvider } from "@/lib/music-context";
 import { MusicRouter } from "@/components/music-router";
 import { VolumeControl } from "@/components/volume-control";
@@ -81,9 +81,17 @@ function Router() {
 
 function GuestPage() {
   const [, setLocation] = useLocation();
+  const search = useSearch();
   const [showWarning, setShowWarning] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+
+  const redirectTarget = (() => {
+    const params = new URLSearchParams(search);
+    const r = params.get("redirect");
+    if (r && r.startsWith("/") && !r.startsWith("//")) return r;
+    return "/dashboard";
+  })();
 
   const handleContinueAsGuest = async () => {
     setIsLoading(true);
@@ -94,7 +102,7 @@ function GuestPage() {
       });
       if (res.ok) {
         setShowWarning(false);
-        setLocation("/dashboard");
+        setLocation(redirectTarget);
       } else {
         let message = "Could not start guest session. Please try again.";
         try {
