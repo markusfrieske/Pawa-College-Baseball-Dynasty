@@ -161,7 +161,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-card border-border max-w-lg p-0 gap-0 max-h-[90vh] overflow-y-auto">
+      <DialogContent className="bg-card border-border sm:max-w-lg p-0 gap-0 sm:max-h-[90vh] max-h-dvh h-dvh sm:h-auto rounded-none sm:rounded-lg overflow-y-auto w-full sm:w-auto">
         <DialogHeader className="sr-only">
           <DialogTitle>Player Profile</DialogTitle>
           <DialogDescription>View player attributes and abilities</DialogDescription>

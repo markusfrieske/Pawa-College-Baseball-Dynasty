@@ -11,6 +11,7 @@ import { PositionBadge } from "@/components/ui/position-badge";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { getPotentialRangeLabel } from "@shared/potential";
 import { 
@@ -51,7 +52,8 @@ import {
   Building2,
   Flame,
   Telescope,
-  Zap
+  Zap,
+  Filter
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -167,6 +169,7 @@ export default function RecruitingPage() {
   const [showTeamNeeds, setShowTeamNeeds] = useState(false);
   const [showPipeline, setShowPipeline] = useState(false);
   const [showWatchlistOnly, setShowWatchlistOnly] = useState(false);
+  const [showFilterSheet, setShowFilterSheet] = useState(false);
   const [filterPresets, setFilterPresets] = useState<FilterPreset[]>(() => {
     const saved = localStorage.getItem(`recruiting-presets-${id}`);
     return saved ? JSON.parse(saved) : [];
@@ -642,206 +645,240 @@ export default function RecruitingPage() {
               />
             </div>
 
-            <div>
-              <p className="font-pixel text-[9px] text-gold mb-2">FILTERS</p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {/* Mobile: compact filter trigger row */}
+            {(() => {
+              const activeCount = (positionFilter !== "all" ? 1 : 0) + (starFilter !== "all" ? 1 : 0) + (typeFilter !== "all" ? 1 : 0) + (stateFilter !== "all" ? 1 : 0) + (showWatchlistOnly ? 1 : 0) + (showTopAvailable ? 1 : 0);
+              return (
+                <div className="flex items-center gap-2 sm:hidden">
+                  <RetroSelect
+                    options={sortOptions}
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="flex-1"
+                    data-testid="select-sort-mobile"
+                  />
+                  <RetroButton
+                    variant={activeCount > 0 ? "primary" : "outline"}
+                    size="sm"
+                    onClick={() => setShowFilterSheet(true)}
+                    className="shrink-0 relative"
+                    data-testid="button-open-filter-sheet"
+                  >
+                    <Filter className="w-3 h-3 mr-1" />
+                    Filters
+                    {activeCount > 0 && (
+                      <span className="ml-1 bg-background/30 text-[10px] font-bold px-1 rounded">
+                        {activeCount}
+                      </span>
+                    )}
+                  </RetroButton>
+                </div>
+              );
+            })()}
+
+            {/* Desktop: full inline filter UI */}
+            <div className="hidden sm:block space-y-4">
+              <div>
+                <p className="font-pixel text-[9px] text-gold mb-2">FILTERS</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <RetroSelect
+                    options={positionOptions}
+                    value={positionFilter}
+                    onChange={(e) => setPositionFilter(e.target.value)}
+                    className="w-full"
+                    data-testid="select-position-filter"
+                  />
+                  <RetroSelect
+                    options={starOptions}
+                    value={starFilter}
+                    onChange={(e) => setStarFilter(e.target.value)}
+                    className="w-full"
+                    data-testid="select-star-filter"
+                  />
+                  <RetroSelect
+                    options={[
+                      { label: "All Types", value: "all" },
+                      { label: "High School", value: "HS" },
+                      { label: "Transfer", value: "TRANSFER" },
+                      { label: "JUCO", value: "JUCO" },
+                    ]}
+                    value={typeFilter}
+                    onChange={(e) => setTypeFilter(e.target.value)}
+                    className="w-full"
+                    data-testid="select-type-filter"
+                  />
+                  <RetroSelect
+                    options={[
+                      { label: "All States", value: "all" },
+                      ...(data?.recruits ? Array.from(new Set(data.recruits.map(r => r.homeState).filter(Boolean))).sort().map(s => ({ label: s!, value: s! })) : [])
+                    ]}
+                    value={stateFilter}
+                    onChange={(e) => setStateFilter(e.target.value)}
+                    className="w-full"
+                    data-testid="select-state-filter"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <p className="font-pixel text-[9px] text-gold mb-2">SORT</p>
                 <RetroSelect
-                  options={positionOptions}
-                  value={positionFilter}
-                  onChange={(e) => setPositionFilter(e.target.value)}
-                  className="w-full"
-                  data-testid="select-position-filter"
-                />
-                <RetroSelect
-                  options={starOptions}
-                  value={starFilter}
-                  onChange={(e) => setStarFilter(e.target.value)}
-                  className="w-full"
-                  data-testid="select-star-filter"
-                />
-                <RetroSelect
-                  options={[
-                    { label: "All Types", value: "all" },
-                    { label: "High School", value: "HS" },
-                    { label: "Transfer", value: "TRANSFER" },
-                    { label: "JUCO", value: "JUCO" },
-                  ]}
-                  value={typeFilter}
-                  onChange={(e) => setTypeFilter(e.target.value)}
-                  className="w-full"
-                  data-testid="select-type-filter"
-                />
-                <RetroSelect
-                  options={[
-                    { label: "All States", value: "all" },
-                    ...(data?.recruits ? Array.from(new Set(data.recruits.map(r => r.homeState).filter(Boolean))).sort().map(s => ({ label: s!, value: s! })) : [])
-                  ]}
-                  value={stateFilter}
-                  onChange={(e) => setStateFilter(e.target.value)}
-                  className="w-full"
-                  data-testid="select-state-filter"
+                  options={sortOptions}
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="w-full sm:w-56"
+                  data-testid="select-sort"
                 />
               </div>
-            </div>
 
-            <div>
-              <p className="font-pixel text-[9px] text-gold mb-2">SORT</p>
-              <RetroSelect
-                options={sortOptions}
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="w-full sm:w-56"
-                data-testid="select-sort"
-              />
-            </div>
-
-            <div>
-              <p className="font-pixel text-[9px] text-gold mb-2">VIEWS</p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <RetroButton 
-                  variant={showWatchlistOnly ? "primary" : "outline"} 
-                  size="sm" 
-                  onClick={() => setShowWatchlistOnly(!showWatchlistOnly)}
-                  className="w-full justify-center"
-                  data-testid="button-watchlist-filter"
-                >
-                  <Target className="w-3 h-3 mr-1" />
-                  Watchlist {showWatchlistOnly && `(${data?.targetedCount || 0})`}
-                </RetroButton>
-                <RetroButton
-                  variant={showTopAvailable ? "primary" : "outline"}
-                  size="sm"
-                  onClick={() => setShowTopAvailable(!showTopAvailable)}
-                  className="w-full justify-center"
-                  data-testid="button-top-available"
-                >
-                  <TrendingUp className="w-3 h-3 mr-1" />
-                  Top Available
-                </RetroButton>
-                <RetroButton
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowTeamNeeds(!showTeamNeeds)}
-                  className="w-full justify-center"
-                  data-testid="button-toggle-team-needs"
-                >
-                  <Users className="w-3 h-3 mr-1" />
-                  Team Needs
-                </RetroButton>
-                <RetroButton
-                  variant={showPipeline ? "primary" : "outline"}
-                  size="sm"
-                  onClick={() => setShowPipeline(!showPipeline)}
-                  className="w-full justify-center"
-                  data-testid="button-toggle-pipeline"
-                >
-                  <BarChart3 className="w-3 h-3 mr-1" />
-                  Pipeline
-                </RetroButton>
+              <div>
+                <p className="font-pixel text-[9px] text-gold mb-2">VIEWS</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <RetroButton 
+                    variant={showWatchlistOnly ? "primary" : "outline"} 
+                    size="sm" 
+                    onClick={() => setShowWatchlistOnly(!showWatchlistOnly)}
+                    className="w-full justify-center"
+                    data-testid="button-watchlist-filter"
+                  >
+                    <Target className="w-3 h-3 mr-1" />
+                    Watchlist {showWatchlistOnly && `(${data?.targetedCount || 0})`}
+                  </RetroButton>
+                  <RetroButton
+                    variant={showTopAvailable ? "primary" : "outline"}
+                    size="sm"
+                    onClick={() => setShowTopAvailable(!showTopAvailable)}
+                    className="w-full justify-center"
+                    data-testid="button-top-available"
+                  >
+                    <TrendingUp className="w-3 h-3 mr-1" />
+                    Top Available
+                  </RetroButton>
+                  <RetroButton
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowTeamNeeds(!showTeamNeeds)}
+                    className="w-full justify-center"
+                    data-testid="button-toggle-team-needs"
+                  >
+                    <Users className="w-3 h-3 mr-1" />
+                    Team Needs
+                  </RetroButton>
+                  <RetroButton
+                    variant={showPipeline ? "primary" : "outline"}
+                    size="sm"
+                    onClick={() => setShowPipeline(!showPipeline)}
+                    className="w-full justify-center"
+                    data-testid="button-toggle-pipeline"
+                  >
+                    <BarChart3 className="w-3 h-3 mr-1" />
+                    Pipeline
+                  </RetroButton>
+                </div>
               </div>
-            </div>
 
-            <div>
-              <p className="font-pixel text-[9px] text-gold mb-2">TOOLS</p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <RetroButton variant="outline" size="sm" className="w-full justify-center" data-testid="button-presets">
-                      <Bookmark className="w-3 h-3 mr-1" />
-                      Presets
-                    </RetroButton>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-64 bg-card border-border p-3">
-                    <div className="space-y-3">
-                      <p className="font-pixel text-[10px] text-gold">SAVED PRESETS</p>
-                      {filterPresets.length === 0 ? (
-                        <p className="text-xs text-muted-foreground">No saved presets</p>
-                      ) : (
-                        <div className="space-y-2 max-h-32 overflow-y-auto">
-                          {filterPresets.map((preset) => (
-                            <div key={preset.id} className="flex items-center gap-2 group">
-                              <RetroButton
-                                variant="outline"
-                                size="sm"
-                                className="flex-1 justify-start text-xs"
-                                onClick={() => loadPreset(preset)}
-                                data-testid={`button-load-preset-${preset.id}`}
-                              >
-                                {preset.name}
-                              </RetroButton>
-                              <button
-                                onClick={() => deletePreset(preset.id)}
-                                className="text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity"
-                                data-testid={`button-delete-preset-${preset.id}`}
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      <div className="pt-2 border-t border-border">
-                        <p className="font-pixel text-[8px] text-muted-foreground mb-2">SAVE CURRENT</p>
-                        <div className="flex gap-2">
-                          <RetroInput
-                            value={newPresetName}
-                            onChange={(e) => setNewPresetName(e.target.value)}
-                            placeholder="Preset name"
-                            className="flex-1 h-8 text-xs"
-                            data-testid="input-preset-name"
-                          />
-                          <RetroButton
-                            size="sm"
-                            onClick={savePreset}
-                            disabled={!newPresetName.trim()}
-                            data-testid="button-save-preset"
-                          >
-                            <Save className="w-3 h-3" />
-                          </RetroButton>
+              <div>
+                <p className="font-pixel text-[9px] text-gold mb-2">TOOLS</p>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <RetroButton variant="outline" size="sm" className="w-full justify-center" data-testid="button-presets">
+                        <Bookmark className="w-3 h-3 mr-1" />
+                        Presets
+                      </RetroButton>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-64 bg-card border-border p-3">
+                      <div className="space-y-3">
+                        <p className="font-pixel text-[10px] text-gold">SAVED PRESETS</p>
+                        {filterPresets.length === 0 ? (
+                          <p className="text-xs text-muted-foreground">No saved presets</p>
+                        ) : (
+                          <div className="space-y-2 max-h-32 overflow-y-auto">
+                            {filterPresets.map((preset) => (
+                              <div key={preset.id} className="flex items-center gap-2 group">
+                                <RetroButton
+                                  variant="outline"
+                                  size="sm"
+                                  className="flex-1 justify-start text-xs"
+                                  onClick={() => loadPreset(preset)}
+                                  data-testid={`button-load-preset-${preset.id}`}
+                                >
+                                  {preset.name}
+                                </RetroButton>
+                                <button
+                                  onClick={() => deletePreset(preset.id)}
+                                  className="text-red-400 hover:text-red-300 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  data-testid={`button-delete-preset-${preset.id}`}
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        <div className="pt-2 border-t border-border">
+                          <p className="font-pixel text-[8px] text-muted-foreground mb-2">SAVE CURRENT</p>
+                          <div className="flex gap-2">
+                            <RetroInput
+                              value={newPresetName}
+                              onChange={(e) => setNewPresetName(e.target.value)}
+                              placeholder="Preset name"
+                              className="flex-1 h-8 text-xs"
+                              data-testid="input-preset-name"
+                            />
+                            <RetroButton
+                              size="sm"
+                              onClick={savePreset}
+                              disabled={!newPresetName.trim()}
+                              data-testid="button-save-preset"
+                            >
+                              <Save className="w-3 h-3" />
+                            </RetroButton>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-                <RetroButton
-                  variant="outline"
-                  size="sm"
-                  onClick={selectAllVisible}
-                  className="w-full justify-center"
-                  data-testid="button-select-all"
-                >
-                  <CheckSquare className="w-3 h-3 mr-1" />
-                  {bulkSelected.size > 0 ? `Deselect (${bulkSelected.size})` : "Select All"}
-                </RetroButton>
-                {bulkSelected.size > 0 && (
+                    </PopoverContent>
+                  </Popover>
                   <RetroButton
-                    variant="primary"
+                    variant="outline"
                     size="sm"
-                    onClick={() => bulkScoutMutation.mutate(Array.from(bulkSelected))}
-                    disabled={bulkScoutMutation.isPending}
+                    onClick={selectAllVisible}
                     className="w-full justify-center"
-                    data-testid="button-bulk-scout"
+                    data-testid="button-select-all"
                   >
-                    <Eye className="w-3 h-3 mr-1" />
-                    {bulkScoutMutation.isPending ? "Scouting..." : `Scout (${bulkSelected.size})`}
+                    <CheckSquare className="w-3 h-3 mr-1" />
+                    {bulkSelected.size > 0 ? `Deselect (${bulkSelected.size})` : "Select All"}
                   </RetroButton>
-                )}
-                {(() => {
-                  const unscoutedTargets = data?.recruits.filter(r => r.interest?.isTargeted && (r.interest?.scoutPercentage || 0) < 100) || [];
-                  return unscoutedTargets.length > 0 ? (
+                  {bulkSelected.size > 0 && (
                     <RetroButton
-                      variant="outline"
+                      variant="primary"
                       size="sm"
-                      onClick={() => bulkScoutMutation.mutate(unscoutedTargets.map(r => r.id))}
-                      disabled={bulkScoutMutation.isPending || (data?.remainingScoutPoints ?? 0) <= 0}
+                      onClick={() => bulkScoutMutation.mutate(Array.from(bulkSelected))}
+                      disabled={bulkScoutMutation.isPending}
                       className="w-full justify-center"
-                      data-testid="button-quick-scout-targets"
+                      data-testid="button-bulk-scout"
                     >
                       <Eye className="w-3 h-3 mr-1" />
-                      {bulkScoutMutation.isPending ? "Scouting..." : `Scout Targets (${unscoutedTargets.length})`}
+                      {bulkScoutMutation.isPending ? "Scouting..." : `Scout (${bulkSelected.size})`}
                     </RetroButton>
-                  ) : null;
-                })()}
+                  )}
+                  {(() => {
+                    const unscoutedTargets = data?.recruits.filter(r => r.interest?.isTargeted && (r.interest?.scoutPercentage || 0) < 100) || [];
+                    return unscoutedTargets.length > 0 ? (
+                      <RetroButton
+                        variant="outline"
+                        size="sm"
+                        onClick={() => bulkScoutMutation.mutate(unscoutedTargets.map(r => r.id))}
+                        disabled={bulkScoutMutation.isPending || (data?.remainingScoutPoints ?? 0) <= 0}
+                        className="w-full justify-center"
+                        data-testid="button-quick-scout-targets"
+                      >
+                        <Eye className="w-3 h-3 mr-1" />
+                        {bulkScoutMutation.isPending ? "Scouting..." : `Scout Targets (${unscoutedTargets.length})`}
+                      </RetroButton>
+                    ) : null;
+                  })()}
+                </div>
               </div>
             </div>
 
@@ -850,6 +887,112 @@ export default function RecruitingPage() {
                 {filteredRecruits.length} recruits found
               </span>
             </div>
+
+            {/* Mobile filter Sheet */}
+            <Sheet open={showFilterSheet} onOpenChange={setShowFilterSheet}>
+              <SheetContent side="bottom" className="bg-card border-border p-0 max-h-[85vh] overflow-y-auto rounded-t-xl">
+                <SheetHeader className="p-4 border-b border-border">
+                  <SheetTitle className="font-pixel text-gold text-xs">FILTERS</SheetTitle>
+                </SheetHeader>
+                <div className="p-4 space-y-5">
+                  <div>
+                    <p className="font-pixel text-[9px] text-gold mb-2">POSITION</p>
+                    <RetroSelect
+                      options={positionOptions}
+                      value={positionFilter}
+                      onChange={(e) => setPositionFilter(e.target.value)}
+                      className="w-full"
+                      data-testid="select-position-filter-sheet"
+                    />
+                  </div>
+                  <div>
+                    <p className="font-pixel text-[9px] text-gold mb-2">STARS</p>
+                    <RetroSelect
+                      options={starOptions}
+                      value={starFilter}
+                      onChange={(e) => setStarFilter(e.target.value)}
+                      className="w-full"
+                      data-testid="select-star-filter-sheet"
+                    />
+                  </div>
+                  <div>
+                    <p className="font-pixel text-[9px] text-gold mb-2">TYPE</p>
+                    <RetroSelect
+                      options={[
+                        { label: "All Types", value: "all" },
+                        { label: "High School", value: "HS" },
+                        { label: "Transfer", value: "TRANSFER" },
+                        { label: "JUCO", value: "JUCO" },
+                      ]}
+                      value={typeFilter}
+                      onChange={(e) => setTypeFilter(e.target.value)}
+                      className="w-full"
+                      data-testid="select-type-filter-sheet"
+                    />
+                  </div>
+                  <div>
+                    <p className="font-pixel text-[9px] text-gold mb-2">HOME STATE</p>
+                    <RetroSelect
+                      options={[
+                        { label: "All States", value: "all" },
+                        ...(data?.recruits ? Array.from(new Set(data.recruits.map(r => r.homeState).filter(Boolean))).sort().map(s => ({ label: s!, value: s! })) : [])
+                      ]}
+                      value={stateFilter}
+                      onChange={(e) => setStateFilter(e.target.value)}
+                      className="w-full"
+                      data-testid="select-state-filter-sheet"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <RetroButton
+                      variant={showWatchlistOnly ? "primary" : "outline"}
+                      size="sm"
+                      onClick={() => setShowWatchlistOnly(!showWatchlistOnly)}
+                      className="w-full justify-center"
+                      data-testid="button-watchlist-filter-sheet"
+                    >
+                      <Target className="w-3 h-3 mr-1" />
+                      Watchlist
+                    </RetroButton>
+                    <RetroButton
+                      variant={showTopAvailable ? "primary" : "outline"}
+                      size="sm"
+                      onClick={() => setShowTopAvailable(!showTopAvailable)}
+                      className="w-full justify-center"
+                      data-testid="button-top-available-sheet"
+                    >
+                      <TrendingUp className="w-3 h-3 mr-1" />
+                      Top Available
+                    </RetroButton>
+                  </div>
+                  <RetroButton
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setPositionFilter("all");
+                      setStarFilter("all");
+                      setTypeFilter("all");
+                      setStateFilter("all");
+                      setShowWatchlistOnly(false);
+                      setShowTopAvailable(false);
+                      setShowFilterSheet(false);
+                    }}
+                    className="w-full justify-center"
+                    data-testid="button-clear-all-filters"
+                  >
+                    Clear All Filters
+                  </RetroButton>
+                  <RetroButton
+                    size="sm"
+                    onClick={() => setShowFilterSheet(false)}
+                    className="w-full justify-center"
+                    data-testid="button-apply-filters"
+                  >
+                    Show {filteredRecruits.length} Recruits
+                  </RetroButton>
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
           
           {showTeamNeeds && data?.nextYearDepth && (
