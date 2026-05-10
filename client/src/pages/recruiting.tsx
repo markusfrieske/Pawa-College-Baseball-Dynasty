@@ -647,7 +647,7 @@ export default function RecruitingPage() {
 
             {/* Mobile: compact filter trigger row */}
             {(() => {
-              const activeCount = (positionFilter !== "all" ? 1 : 0) + (starFilter !== "all" ? 1 : 0) + (typeFilter !== "all" ? 1 : 0) + (stateFilter !== "all" ? 1 : 0) + (showWatchlistOnly ? 1 : 0) + (showTopAvailable ? 1 : 0);
+              const activeCount = (positionFilter !== "all" ? 1 : 0) + (starFilter !== "all" ? 1 : 0) + (typeFilter !== "all" ? 1 : 0) + (stateFilter !== "all" ? 1 : 0) + (showWatchlistOnly ? 1 : 0) + (showTopAvailable ? 1 : 0) + (showTeamNeeds ? 1 : 0) + (showPipeline ? 1 : 0);
               return (
                 <div className="flex items-center gap-2 sm:hidden">
                   <RetroSelect
@@ -1007,6 +1007,34 @@ export default function RecruitingPage() {
                   >
                     Clear All Filters
                   </RetroButton>
+                  <div>
+                    <p className="font-pixel text-[9px] text-gold mb-2">TOOLS</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <RetroButton
+                        variant="outline"
+                        size="sm"
+                        onClick={() => { selectAllVisible(); setShowFilterSheet(false); }}
+                        className="w-full justify-center"
+                        data-testid="button-select-all-sheet"
+                      >
+                        <CheckSquare className="w-3 h-3 mr-1" />
+                        {bulkSelected.size > 0 ? `Deselect (${bulkSelected.size})` : "Select All"}
+                      </RetroButton>
+                      {bulkSelected.size > 0 && (
+                        <RetroButton
+                          variant="primary"
+                          size="sm"
+                          onClick={() => { bulkScoutMutation.mutate(Array.from(bulkSelected)); setShowFilterSheet(false); }}
+                          disabled={bulkScoutMutation.isPending}
+                          className="w-full justify-center"
+                          data-testid="button-bulk-scout-sheet"
+                        >
+                          <Eye className="w-3 h-3 mr-1" />
+                          Scout ({bulkSelected.size})
+                        </RetroButton>
+                      )}
+                    </div>
+                  </div>
                   <RetroButton
                     size="sm"
                     onClick={() => setShowFilterSheet(false)}
