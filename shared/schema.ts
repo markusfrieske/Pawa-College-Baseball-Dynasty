@@ -35,6 +35,7 @@ export const leagues = pgTable("leagues", {
   auditLogPublic: boolean("audit_log_public").notNull().default(true),
   progressionEnabled: boolean("progression_enabled").notNull().default(false),
   phaseDeadline: timestamp("phase_deadline"),
+  prevPowerRankings: json("prev_power_rankings"),
 });
 
 export const insertLeagueSchema = createInsertSchema(leagues).pick({

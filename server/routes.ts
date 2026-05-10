@@ -3480,15 +3480,25 @@ export async function registerRoutes(
       const recruVals = teamData.map(t => t.recruitingScore);
       const compositeVals = teamData.map(t => t.composite);
 
-      const rankings = teamData.map((t, i) => ({
-        rank: i + 1,
-        ...t,
-        rosterPercentile: computePercentile(rosterVals, t.rosterOvr),
-        pitchingPercentile: computePercentile(pitchVals, t.pitchingOvr),
-        hittingPercentile: computePercentile(hitVals, t.hittingOvr),
-        recruitingPercentile: computePercentile(recruVals, t.recruitingScore),
-        compositePercentile: computePercentile(compositeVals, t.composite),
-      }));
+      // Build previous-rank lookup from the stored snapshot (set at each week advance)
+      const prevRankings = (league.prevPowerRankings as { teamId: string; rank: number }[] | null) ?? [];
+      const prevRankMap = new Map(prevRankings.map(r => [r.teamId, r.rank]));
+
+      const rankings = teamData.map((t, i) => {
+        const currentRank = i + 1;
+        const prevRank = prevRankMap.get(t.teamId);
+        const rankDelta = prevRank != null ? prevRank - currentRank : null;
+        return {
+          rank: currentRank,
+          rankDelta,
+          ...t,
+          rosterPercentile: computePercentile(rosterVals, t.rosterOvr),
+          pitchingPercentile: computePercentile(pitchVals, t.pitchingOvr),
+          hittingPercentile: computePercentile(hitVals, t.hittingOvr),
+          recruitingPercentile: computePercentile(recruVals, t.recruitingScore),
+          compositePercentile: computePercentile(compositeVals, t.composite),
+        };
+      });
 
       res.json({ rankings, userTeamId });
     } catch (error) {
@@ -5134,6 +5144,43 @@ export async function registerRoutes(
       const leagueId = league.id;
       const currentWeek = league.currentWeek;
       const nextWeek = currentWeek + 1;
+
+      // ============ POWER RANKINGS SNAPSHOT ============
+      // Capture rankings before any changes so the next view can show week-over-week movement
+      try {
+        const snapPlayers = await storage.getPlayersByLeague(leagueId);
+        const snapRecruits = await storage.getRecruitsByLeague(leagueId);
+        const snapTeams = await storage.getTeamsByLeague(leagueId);
+        const snapPlayersByTeam = new Map<string, typeof snapPlayers>();
+        for (const p of snapPlayers) {
+          if (!snapPlayersByTeam.has(p.teamId)) snapPlayersByTeam.set(p.teamId, []);
+          snapPlayersByTeam.get(p.teamId)!.push(p);
+        }
+        const snapSignedByTeam = new Map<string, typeof snapRecruits>();
+        for (const r of snapRecruits) {
+          if (r.signedTeamId) {
+            if (!snapSignedByTeam.has(r.signedTeamId)) snapSignedByTeam.set(r.signedTeamId, []);
+            snapSignedByTeam.get(r.signedTeamId)!.push(r);
+          }
+        }
+        const avg = (nums: number[]) => nums.length === 0 ? 0 : Math.round(nums.reduce((s, v) => s + v, 0) / nums.length);
+        const snapRanked = snapTeams.map(team => {
+          const players = snapPlayersByTeam.get(team.id) || [];
+          const pitchers = players.filter(p => p.position === "P");
+          const hitters = players.filter(p => p.position !== "P");
+          const signed = snapSignedByTeam.get(team.id) || [];
+          const rosterOvr = avg(players.map(p => p.overall));
+          const pitchingOvr = avg(pitchers.map(p => p.overall));
+          const hittingOvr = avg(hitters.map(p => p.overall));
+          const recruitingScore = avg(signed.map(r => r.overall));
+          const composite = Math.round(rosterOvr * 0.4 + pitchingOvr * 0.3 + hittingOvr * 0.2 + recruitingScore * 0.1);
+          return { teamId: team.id, composite };
+        }).sort((a, b) => b.composite - a.composite);
+        const snapshot = snapRanked.map((t, i) => ({ teamId: t.teamId, rank: i + 1 }));
+        await storage.updateLeague(leagueId, { prevPowerRankings: snapshot } as any);
+      } catch (snapErr) {
+        console.error("[power-rankings-snapshot] Failed to snapshot rankings:", snapErr);
+      }
 
       // ============ DEADLINE AUTO-READY ============
       if (league.phaseDeadline && new Date(league.phaseDeadline) <= new Date()) {
@@ -11838,10 +11885,16 @@ function getRandomAppearance() {
 async function generatePlayersForTeam(teamId: string, progressionEnabled: boolean = false, teamName?: string, conferenceName?: string) {
   // Conference tier → attribute scale factor (keeps cross-conference OVR spread realistic)
   const CONF_TIER_SCALE: Record<string, number> = {
+    // Tier 1 — power conferences (full attribute scale)
     'SEC': 1.00, 'ACC': 1.00, 'Big 12': 1.00, 'Big Ten': 1.00,
-    'Pac-12': 0.92, 'AAC': 0.92, 'Sun Belt': 0.92,
-    'WCC': 0.87, 'Mountain West': 0.87, 'Big West': 0.87, 'Missouri Valley': 0.87,
-    'Ivy League': 1.00, 'HBCU': 1.00,
+    // Tier 2 — mid-major conferences
+    'Pac-12': 0.80, 'AAC': 0.80, 'Sun Belt': 0.80,
+    // Tier 3 — lower-mid conferences
+    'WCC': 0.72, 'Mountain West': 0.72, 'Big West': 0.72, 'Missouri Valley': 0.72,
+    // Tier 4 — academic/non-scholarship conferences
+    'Ivy League': 0.68,
+    // Tier 5 — HBCU conferences
+    'HBCU': 0.65,
   };
   const tierScale = conferenceName ? (CONF_TIER_SCALE[conferenceName] ?? 1.00) : 1.00;
   const scaleAttr = (v: number) => tierScale < 1.00 ? Math.max(1, Math.min(99, Math.round(v * tierScale))) : v;

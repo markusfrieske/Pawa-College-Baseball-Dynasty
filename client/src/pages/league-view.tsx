@@ -842,6 +842,7 @@ function TeamsTab({ league }: { league: LeagueDetails }) {
 
 interface PowerRankingEntry {
   rank: number;
+  rankDelta: number | null;
   teamId: string;
   teamName: string;
   abbreviation: string;
@@ -997,9 +998,23 @@ function RankingsTab({ league }: { league: LeagueDetails }) {
                     data-testid={`row-power-ranking-${entry.teamId}`}
                   >
                     <td className="py-3 px-2">
-                      <span className={`font-pixel text-xs ${isUser ? "text-gold" : "text-muted-foreground"}`}>
-                        #{entry.rank}
-                      </span>
+                      <div className="flex items-center gap-1">
+                        <span className={`font-pixel text-xs ${isUser ? "text-gold" : "text-muted-foreground"}`}>
+                          #{entry.rank}
+                        </span>
+                        {entry.rankDelta != null && entry.rankDelta !== 0 && (
+                          <span
+                            className={`font-pixel text-[8px] leading-none ${entry.rankDelta > 0 ? "text-green-400" : "text-red-400"}`}
+                            title={`${entry.rankDelta > 0 ? "+" : ""}${entry.rankDelta} since last week`}
+                            data-testid={`rank-delta-${entry.teamId}`}
+                          >
+                            {entry.rankDelta > 0 ? "▲" : "▼"}{Math.abs(entry.rankDelta)}
+                          </span>
+                        )}
+                        {entry.rankDelta === 0 && (
+                          <span className="font-pixel text-[8px] text-muted-foreground/50" title="No change">—</span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3 px-2">
                       <div className="flex items-center gap-2">
