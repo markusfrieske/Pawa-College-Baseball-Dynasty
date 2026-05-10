@@ -360,6 +360,9 @@ export default function LeagueViewPage() {
               <TabsTrigger value="stats" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-stats">
                 Stats
               </TabsTrigger>
+              <TabsTrigger value="prospects" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-prospects">
+                Top 100
+              </TabsTrigger>
               <TabsTrigger value="postseason" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-postseason">
                 Post
               </TabsTrigger>
@@ -368,9 +371,6 @@ export default function LeagueViewPage() {
               </TabsTrigger>
               <TabsTrigger value="history" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-history">
                 Hist
-              </TabsTrigger>
-              <TabsTrigger value="prospects" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-prospects">
-                Pros
               </TabsTrigger>
             </TabsList>
           </div>
@@ -873,6 +873,21 @@ function percentileToGrade(pct: number): string {
   return "F";
 }
 
+// Grade based on absolute OVR vs. the full ~150-team universe so that a
+// mid-major program never reads "F" just because it's the worst team in
+// a strong 12-team league.
+function ovrToGrade(ovr: number): string {
+  if (ovr >= 415) return "A+";
+  if (ovr >= 400) return "A";
+  if (ovr >= 385) return "B+";
+  if (ovr >= 370) return "B";
+  if (ovr >= 350) return "C+";
+  if (ovr >= 330) return "C";
+  if (ovr >= 305) return "D+";
+  if (ovr >= 280) return "D";
+  return "F";
+}
+
 function gradeColor(grade: string): string {
   if (grade.startsWith("A")) return "text-green-400";
   if (grade.startsWith("B")) return "text-blue-400";
@@ -968,11 +983,11 @@ function RankingsTab({ league }: { league: LeagueDetails }) {
             {rankings.map((entry) => {
               const isUser = entry.teamId === userTeamId;
               const isExpanded = expandedTeam === entry.teamId;
-              const rosterGrade = percentileToGrade(entry.rosterPercentile);
-              const pitchGrade = percentileToGrade(entry.pitchingPercentile);
-              const hitGrade = percentileToGrade(entry.hittingPercentile);
+              const rosterGrade = ovrToGrade(entry.rosterOvr);
+              const pitchGrade = ovrToGrade(entry.pitchingOvr);
+              const hitGrade = ovrToGrade(entry.hittingOvr);
               const recGrade = percentileToGrade(entry.recruitingPercentile);
-              const compGrade = percentileToGrade(entry.compositePercentile);
+              const compGrade = ovrToGrade(entry.composite);
 
               return (
                 <Fragment key={entry.teamId}>
