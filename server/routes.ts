@@ -3433,7 +3433,7 @@ export async function registerRoutes(
           rosterOvr * 0.4 +
           pitchingOvr * 0.3 +
           hittingOvr * 0.2 +
-          (recruitingScore || rosterOvr) * 0.1
+          recruitingScore * 0.1
         );
 
         return {
@@ -3447,7 +3447,8 @@ export async function registerRoutes(
           rosterOvr,
           pitchingOvr,
           hittingOvr,
-          recruitingScore: recruitingScore || rosterOvr,
+          recruitingScore,
+          hasSignedRecruits: signed.length > 0,
         };
       }).sort((a, b) => b.composite - a.composite);
 

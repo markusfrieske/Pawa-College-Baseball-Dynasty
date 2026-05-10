@@ -41,7 +41,6 @@ import {
   Timer,
   ChevronDown,
   ChevronUp,
-  ArrowUpDown,
   Swords
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -845,6 +844,7 @@ interface PowerRankingEntry {
   pitchingOvr: number;
   hittingOvr: number;
   recruitingScore: number;
+  hasSignedRecruits: boolean;
   rosterPercentile: number;
   pitchingPercentile: number;
   hittingPercentile: number;
@@ -873,11 +873,10 @@ function gradeColor(grade: string): string {
 }
 
 function percentileLabel(pct: number): string {
-  if (pct >= 90) return "Top 10%";
-  if (pct >= 75) return "Top 25%";
-  if (pct >= 50) return "Top 50%";
-  if (pct >= 25) return "Bot 50%";
-  return "Bot 25%";
+  const fromTop = 100 - pct;
+  if (fromTop <= 0) return "Top 1%";
+  if (pct >= 50) return `Top ${fromTop}%`;
+  return `Bottom ${pct}%`;
 }
 
 function RankingsTab({ league }: { league: LeagueDetails }) {
@@ -1016,15 +1015,19 @@ function RankingsTab({ league }: { league: LeagueDetails }) {
                       </Tooltip>
                     </td>
                     <td className="py-3 px-1 text-center hidden md:table-cell">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="flex flex-col items-center cursor-default">
-                            <span className={`font-bold text-xs ${gradeColor(recGrade)}`}>{recGrade}</span>
-                            <span className="text-[9px] text-muted-foreground">{entry.recruitingScore}</span>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>{percentileLabel(entry.recruitingPercentile)} in Recruiting Class OVR</TooltipContent>
-                      </Tooltip>
+                      {entry.hasSignedRecruits ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="flex flex-col items-center cursor-default">
+                              <span className={`font-bold text-xs ${gradeColor(recGrade)}`}>{recGrade}</span>
+                              <span className="text-[9px] text-muted-foreground">{entry.recruitingScore}</span>
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>{percentileLabel(entry.recruitingPercentile)} in Recruiting Class OVR</TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        <span className="text-[9px] text-muted-foreground/50">—</span>
+                      )}
                     </td>
                     <td className="py-3 px-1 text-center">
                       {!isUser && (
