@@ -1771,6 +1771,9 @@ function RecruitRow({
   const totalAbilities = recruit.abilities?.length || 0;
 
   const isSigned = recruit.stage === "signed" && !!recruit.signedTeamId;
+  const interestMeta = recruit.interest?.interestLevel != null
+    ? getInterestLabel(recruit.interest.interestLevel)
+    : null;
 
   return (
     <RetroCard 
@@ -1999,7 +2002,14 @@ function RecruitRow({
               <div className="flex-1 min-w-0">
                 <div className="flex justify-between text-xs text-muted-foreground mb-1">
                   <span>Scout</span>
-                  <span>{scoutPct}%</span>
+                  <div className="flex items-center gap-1.5">
+                    {interestMeta && (
+                      <span className={`text-[9px] font-bold ${interestMeta.color}`} data-testid={`interest-label-mobile-${recruit.id}`}>
+                        {interestMeta.label}
+                      </span>
+                    )}
+                    <span>{scoutPct}%</span>
+                  </div>
                 </div>
                 <Progress value={scoutPct} className="h-1.5" />
               </div>
@@ -2108,7 +2118,14 @@ function RecruitRow({
               <div className="w-32">
                 <div className="flex justify-between text-xs text-muted-foreground mb-1">
                   <span>Scout</span>
-                  <span>{scoutPct}%</span>
+                  <div className="flex items-center gap-1.5">
+                    {interestMeta && (
+                      <span className={`text-[9px] font-bold ${interestMeta.color}`} data-testid={`interest-label-${recruit.id}`}>
+                        {interestMeta.label}
+                      </span>
+                    )}
+                    <span>{scoutPct}%</span>
+                  </div>
                 </div>
                 <Progress value={scoutPct} className="h-2" />
               </div>
