@@ -7,7 +7,9 @@ import { rm, readFile } from "fs/promises";
 const allowlist = [
   "@google/generative-ai",
   "axios",
-  "connect-pg-simple",
+  // connect-pg-simple reads table.sql from its own package dir at runtime;
+  // bundling it breaks that path resolution. Keep it external so node_modules
+  // is used and the file is always found.
   "cors",
   "date-fns",
   "drizzle-orm",
