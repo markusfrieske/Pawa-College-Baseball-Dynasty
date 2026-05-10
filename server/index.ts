@@ -77,6 +77,48 @@ app.use((req, res, next) => {
     console.warn("[startup-migration] phase_deadline column check failed:", e);
   }
 
+  // Ensure pitch_ch is constrained to 0 or 1 on both players and recruits tables.
+  // Step 1: clamp any existing out-of-range values so the constraint can be added cleanly.
+  // Step 2: add the CHECK constraint idempotently (skipped if it already exists).
+  try {
+    await pool.query("UPDATE players SET pitch_ch = 1 WHERE pitch_ch > 1");
+    await pool.query(`
+      DO $$ BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint c
+          JOIN pg_class t ON t.oid = c.conrelid
+          JOIN pg_namespace n ON n.oid = t.relnamespace
+          WHERE c.conname = 'players_pitch_ch_binary'
+            AND t.relname = 'players'
+            AND n.nspname = 'public'
+        ) THEN
+          ALTER TABLE players ADD CONSTRAINT players_pitch_ch_binary CHECK (pitch_ch IN (0, 1));
+        END IF;
+      END $$;
+    `);
+  } catch (e) {
+    console.warn("[startup-migration] players pitch_ch constraint failed:", e);
+  }
+  try {
+    await pool.query("UPDATE recruits SET pitch_ch = 1 WHERE pitch_ch > 1");
+    await pool.query(`
+      DO $$ BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM pg_constraint c
+          JOIN pg_class t ON t.oid = c.conrelid
+          JOIN pg_namespace n ON n.oid = t.relnamespace
+          WHERE c.conname = 'recruits_pitch_ch_binary'
+            AND t.relname = 'recruits'
+            AND n.nspname = 'public'
+        ) THEN
+          ALTER TABLE recruits ADD CONSTRAINT recruits_pitch_ch_binary CHECK (pitch_ch IN (0, 1));
+        END IF;
+      END $$;
+    `);
+  } catch (e) {
+    console.warn("[startup-migration] recruits pitch_ch constraint failed:", e);
+  }
+
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {

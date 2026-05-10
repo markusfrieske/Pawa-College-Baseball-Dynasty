@@ -12061,7 +12061,7 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
           pitch2S: pos === "P" && Math.random() < 0.5 ? 1 : 0,
           pitchSL: pos === "P" && Math.random() < 0.6 ? 1 + Math.floor(Math.random() * 7) : 0,
           pitchCB: pos === "P" && Math.random() < 0.6 ? 1 + Math.floor(Math.random() * 7) : 0,
-          pitchCH: pos === "P" && Math.random() < 0.5 ? 1 + Math.floor(Math.random() * 7) : 0,
+          pitchCH: pos === "P" && Math.random() < 0.5 ? 1 : 0,
           pitchCT: 0, pitchSNK: 0, pitchSPL: 0,
         });
       }
@@ -12198,7 +12198,7 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
       pitch2S: position === "P" && Math.random() < 0.5 ? 1 : 0,
       pitchSL: position === "P" && Math.random() < 0.6 ? 1 + Math.floor(Math.random() * 7) : 0,
       pitchCB: position === "P" && Math.random() < 0.6 ? 1 + Math.floor(Math.random() * 7) : 0,
-      pitchCH: position === "P" && Math.random() < 0.5 ? 1 + Math.floor(Math.random() * 7) : 0,
+      pitchCH: position === "P" && Math.random() < 0.5 ? 1 : 0,
       pitchCT: position === "P" && Math.random() < 0.4 ? 1 + Math.floor(Math.random() * 7) : 0,
       pitchSNK: position === "P" && Math.random() < 0.3 ? 1 + Math.floor(Math.random() * 7) : 0,
       pitchSPL: position === "P" && Math.random() < 0.3 ? 1 + Math.floor(Math.random() * 7) : 0,

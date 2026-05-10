@@ -368,6 +368,8 @@ export const insertPlayerSchema = createInsertSchema(players).pick({
   depthOrder: true,
   battingOrder: true,
   pitchingRole: true,
+}).extend({
+  pitchCH: z.union([z.literal(0), z.literal(1)]).optional(),
 });
 
 export type InsertPlayer = z.infer<typeof insertPlayerSchema>;
@@ -555,6 +557,8 @@ export const insertRecruitSchema = createInsertSchema(recruits).pick({
   potential: true,
   potentialFloor: true,
   potentialCeiling: true,
+}).extend({
+  pitchCH: z.union([z.literal(0), z.literal(1)]).optional(),
 });
 
 export type InsertRecruit = z.infer<typeof insertRecruitSchema>;
