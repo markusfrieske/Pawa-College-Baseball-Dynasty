@@ -106,10 +106,10 @@ for (const [team, players] of Object.entries(ALL_REAL_ROSTERS)) {
     }
 
     // 3. Primary numeric attributes summing to zero or near-zero (effectively blank player)
-    const attrSum = NUMERIC_ATTRS.reduce(
-      (sum, field) => sum + ((player as Record<string, unknown>)[field] as number ?? 0),
-      0
-    );
+    const attrSum = NUMERIC_ATTRS.reduce((sum, field) => {
+      const val = (player as Record<string, unknown>)[field];
+      return sum + (typeof val === "number" ? val : 0);
+    }, 0);
     if (attrSum <= THIN_ATTR_SUM_THRESHOLD) {
       violations.push({
         kind: "thin-attributes",
