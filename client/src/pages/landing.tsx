@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroInput } from "@/components/ui/retro-input";
 import { RetroSelect } from "@/components/ui/retro-select";
@@ -13,13 +13,6 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { DynastyLogo } from "@/components/dynasty-logo";
 
-const RECRUITS_BASE = [
-  { initials: "C. Evans",   pos: "P",  stars: 5, blueChip: true,  state: "LA", interest: 72, team: "LSU" },
-  { initials: "D. Curiel",  pos: "OF", stars: 4, blueChip: false, state: "CA", interest: 58, team: "LSU" },
-  { initials: "A. Malzone", pos: "C",  stars: 4, blueChip: false, state: "IL", interest: 45, team: "Florida St." },
-  { initials: "C. Kurland", pos: "2B", stars: 3, blueChip: false, state: "FL", interest: 31, team: "Florida St." },
-  { initials: "S. Milam",   pos: "SS", stars: 3, blueChip: false, state: "TX", interest: 19, team: "LSU" },
-];
 
 export default function LandingPage() {
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
@@ -219,7 +212,13 @@ export default function LandingPage() {
                   ))}
                 </ul>
               </div>
-              <AnimatedRecruitBoard />
+              <div className="border border-border bg-card/60 overflow-hidden">
+                <img
+                  src="/screenshots/recruiting.jpg"
+                  alt="In-game recruiting board showing real players with star ratings, fog-of-war scouting, and action buttons"
+                  className="w-full h-auto block"
+                />
+              </div>
             </div>
           </div>
         </section>
@@ -501,81 +500,6 @@ function CoachSkillsPreview() {
       <div className="pt-2 border-t border-border/30 flex justify-between text-[8px] font-pixel text-muted-foreground">
         <span>Coach Level 12</span>
         <span className="text-gold">340 / 500 XP</span>
-      </div>
-    </div>
-  );
-}
-
-// ── ANIMATED RECRUIT BOARD ────────────────────────────────────
-
-function AnimatedRecruitBoard() {
-  const [interests, setInterests] = useState(RECRUITS_BASE.map((r) => r.interest * 0.3));
-  const [tick, setTick] = useState(0);
-  const rafRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    rafRef.current = setTimeout(function step() {
-      setTick((t) => t + 1);
-      rafRef.current = setTimeout(step, 1800);
-    }, 800);
-    return () => { if (rafRef.current) clearTimeout(rafRef.current); };
-  }, []);
-
-  useEffect(() => {
-    setInterests((prev) =>
-      prev.map((cur, i) => {
-        const target = RECRUITS_BASE[i].interest;
-        const delta = (target - cur) * 0.22 + (Math.random() - 0.48) * 2;
-        return Math.max(0, Math.min(100, cur + delta));
-      })
-    );
-  }, [tick]);
-
-  return (
-    <div className="border border-border bg-card/60 overflow-hidden">
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-border/60 bg-black/30">
-        <div className="w-2 h-2 rounded-full bg-red-500/60" />
-        <div className="w-2 h-2 rounded-full bg-amber-500/60" />
-        <div className="w-2 h-2 rounded-full bg-green-500/60" />
-        <span className="font-pixel text-[7px] text-gold/40 ml-1 tracking-widest">RECRUITING BOARD · WK 4</span>
-      </div>
-      <div className="p-3 space-y-2">
-        {RECRUITS_BASE.map((r, i) => (
-          <div key={r.initials} className="flex items-center gap-2 bg-background/40 border border-border/40 px-2.5 py-1.5">
-            <div className="flex gap-0.5 shrink-0">
-              {Array.from({ length: 5 }).map((_, s) => (
-                <Star
-                  key={s}
-                  className={`w-2.5 h-2.5 ${s < r.stars ? (r.blueChip ? "text-blue-400 fill-blue-400" : "text-gold fill-gold") : "text-border"}`}
-                />
-              ))}
-            </div>
-            <span className={`font-pixel text-[8px] w-[68px] shrink-0 ${r.blueChip ? "text-blue-300" : "text-foreground"}`}>
-              {r.initials}
-            </span>
-            <span className="font-pixel text-[7px] text-muted-foreground w-5 shrink-0">{r.pos}</span>
-            <span className="font-pixel text-[7px] text-muted-foreground/60 w-5 shrink-0">{r.state}</span>
-            <div className="flex-1 min-w-0">
-              <div className="w-full h-1.5 bg-border/30 rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all duration-[1600ms] ease-out ${
-                    interests[i] >= 70 ? "bg-green-500" :
-                    interests[i] >= 45 ? "bg-gold" :
-                    interests[i] >= 25 ? "bg-amber-600" : "bg-muted-foreground/40"
-                  }`}
-                  style={{ width: `${interests[i]}%` }}
-                />
-              </div>
-            </div>
-            <span className="font-pixel text-[7px] text-muted-foreground/60 w-6 text-right shrink-0">
-              {Math.round(interests[i])}%
-            </span>
-          </div>
-        ))}
-        <div className="pt-1 flex justify-between items-center">
-          <span className="font-pixel text-[7px] text-muted-foreground/40">REAL 2026 NAMES · ACTUAL ROSTERS</span>
-          <span className="font-pixel text-[7px] text-gold/40">5 / 80 RECRUITS</span>
-        </div>
       </div>
     </div>
   );
