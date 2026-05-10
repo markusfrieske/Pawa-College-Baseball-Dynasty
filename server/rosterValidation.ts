@@ -77,9 +77,17 @@ export function checkTeamRosterStructure(
   return violations;
 }
 
+export interface ValidationResult {
+  violations: number;
+  fetchErrors: number;
+  teamsChecked: number;
+}
+
 /**
  * Query every team in a league from the DB and log any roster-structure
- * violations.  Returns the total number of violations found.
+ * violations.  Returns a result object distinguishing validation violations
+ * from DB fetch errors — a fetchErrors > 0 means the check was incomplete
+ * and should not be treated as a clean pass.
  *
  * @param leagueId   - league to check
  * @param getTeams   - async fn returning teams with { id, name }
@@ -91,25 +99,27 @@ export async function validateLeagueRosters(
   getTeams: (leagueId: string) => Promise<Array<{ id: string; name: string }>>,
   getPlayers: (teamId: string) => Promise<RosterPlayer[]>,
   label: string
-): Promise<number> {
+): Promise<ValidationResult> {
   const TAG = `[roster-validation:${label}]`;
 
   let teams: Array<{ id: string; name: string }>;
   try {
     teams = await getTeams(leagueId);
   } catch (err) {
-    console.error(`${TAG} Failed to fetch teams:`, err);
-    return 0;
+    console.error(`${TAG} Failed to fetch teams — validation skipped:`, err);
+    return { violations: 0, fetchErrors: 1, teamsChecked: 0 };
   }
 
   const allViolations: RosterViolation[] = [];
+  let fetchErrors = 0;
 
   for (const team of teams) {
     let players: RosterPlayer[];
     try {
       players = await getPlayers(team.id);
     } catch (err) {
-      console.error(`${TAG} Failed to fetch players for team "${team.name}":`, err);
+      console.error(`${TAG} Failed to fetch players for team "${team.name}" — skipping:`, err);
+      fetchErrors++;
       continue;
     }
 
@@ -117,13 +127,21 @@ export async function validateLeagueRosters(
     allViolations.push(...teamViolations);
   }
 
+  const teamsChecked = teams.length - fetchErrors;
+
+  if (fetchErrors > 0) {
+    console.error(
+      `${TAG} WARNING: ${fetchErrors} team(s) could not be fetched — results are incomplete.`
+    );
+  }
+
   if (allViolations.length === 0) {
-    console.log(`${TAG} All ${teams.length} team rosters pass structure validation.`);
-    return 0;
+    console.log(`${TAG} All ${teamsChecked} team rosters pass structure validation.`);
+    return { violations: 0, fetchErrors, teamsChecked };
   }
 
   console.error(
-    `${TAG} Found ${allViolations.length} roster-structure violation(s) across ${teams.length} teams:`
+    `${TAG} Found ${allViolations.length} roster-structure violation(s) across ${teamsChecked} teams checked:`
   );
   for (const v of allViolations) {
     console.error(`${TAG}   [${v.teamName}]: ${v.message}`);
@@ -135,5 +153,5 @@ export async function validateLeagueRosters(
     `${TAG} Expected: 25 players total, 5 FR, 10P / 2C / 6-7 INF / 6 OF per team.`
   );
 
-  return allViolations.length;
+  return { violations: allViolations.length, fetchErrors, teamsChecked };
 }
