@@ -312,10 +312,15 @@ export default function RecruitingPage() {
     enabled: !!id && !!leagueData,
   });
 
-  const recapDismissKey = `recap-dismissed-${id}-${recapSeason}-${recapWeek}`;
-  const [recapDismissed, setRecapDismissed] = useState(() => localStorage.getItem(recapDismissKey) === "1");
+  const recapDismissKey = leagueData ? `recap-dismissed-${id}-${recapSeason}-${recapWeek}` : null;
+  const [recapDismissed, setRecapDismissed] = useState(false);
+  useEffect(() => {
+    if (!recapDismissKey) return;
+    setRecapDismissed(localStorage.getItem(recapDismissKey) === "1");
+  }, [recapDismissKey]);
   const [showRecap, setShowRecap] = useState(false);
   const dismissRecap = () => {
+    if (!recapDismissKey) return;
     localStorage.setItem(recapDismissKey, "1");
     setRecapDismissed(true);
   };
