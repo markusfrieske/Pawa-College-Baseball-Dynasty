@@ -2264,6 +2264,18 @@ export async function registerRoutes(
     }
   });
 
+  // Get single player by id
+  app.get("/api/leagues/:id/players/:playerId", requireAuth, async (req, res) => {
+    try {
+      const player = await storage.getPlayer(req.params.playerId);
+      if (!player) return res.status(404).json({ message: "Player not found" });
+      res.json(player);
+    } catch (error) {
+      console.error("Failed to fetch player:", error);
+      res.status(500).json({ message: "Failed to fetch player" });
+    }
+  });
+
   // Update player (commissioner only)
   app.patch("/api/leagues/:id/players/:playerId", requireAuth, async (req, res) => {
     try {
@@ -3530,7 +3542,7 @@ export async function registerRoutes(
         .sort((a, b) => b.overall - a.overall)
         .slice(0, 100);
 
-      res.json({ hitters, pitchers });
+      res.json({ hitters, pitchers, currentSeason: league.currentSeason ?? 1 });
     } catch (error) {
       console.error("Failed to fetch top prospects:", error);
       res.status(500).json({ message: "Failed to fetch top prospects" });
