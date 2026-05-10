@@ -2,7 +2,7 @@ import {
   users, leagues, conferences, teams, coaches, scouts,
   players, recruits, recruitingInterests, games, standings, auditLogs, leagueInvites, dynastyNews,
   recruitingActionsLog, recruitTopSchools, transferPortalInterests, playerHistory, playerPromises,
-  storyEvents, storyArcs, storyArcChapters, moments, playerSeasonStats, walkonPool,
+  playerSeasonStats, walkonPool,
   leagueEvents,
   type User, type InsertUser,
   type League, type InsertLeague,
@@ -23,10 +23,6 @@ import {
   type TransferPortalInterest, type InsertTransferPortalInterest,
   type PlayerHistory, type InsertPlayerHistory,
   type PlayerPromise, type InsertPlayerPromise,
-  type StoryEvent, type InsertStoryEvent,
-  type StoryArc, type InsertStoryArc,
-  type StoryArcChapter, type InsertStoryArcChapter,
-  type Moment, type InsertMoment,
   type PlayerSeasonStats, type InsertPlayerSeasonStats,
   type Walkon, type InsertWalkon,
   savedRosters, savedRecruitingClasses,
@@ -148,25 +144,6 @@ export interface IStorage {
   getActivePromisesByLeague(leagueId: string): Promise<PlayerPromise[]>;
   updatePlayerPromise(id: string, data: Partial<PlayerPromise>): Promise<PlayerPromise | undefined>;
   getPendingDeparturesByLeague(leagueId: string): Promise<Player[]>;
-
-  getStoryEventsByLeague(leagueId: string): Promise<StoryEvent[]>;
-  getStoryEventsByTeam(teamId: string): Promise<StoryEvent[]>;
-  getPendingStoryEvents(leagueId: string, teamId?: string): Promise<StoryEvent[]>;
-  createStoryEvent(event: InsertStoryEvent): Promise<StoryEvent>;
-  updateStoryEvent(id: string, data: Partial<StoryEvent>): Promise<StoryEvent | undefined>;
-
-  getStoryArcsByLeague(leagueId: string): Promise<StoryArc[]>;
-  getActiveStoryArcs(leagueId: string): Promise<StoryArc[]>;
-  createStoryArc(arc: InsertStoryArc): Promise<StoryArc>;
-  updateStoryArc(id: string, data: Partial<StoryArc>): Promise<StoryArc | undefined>;
-
-  getChaptersByArc(arcId: string): Promise<StoryArcChapter[]>;
-  createStoryArcChapter(chapter: InsertStoryArcChapter): Promise<StoryArcChapter>;
-  updateStoryArcChapter(id: string, data: Partial<StoryArcChapter>): Promise<StoryArcChapter | undefined>;
-
-  getMomentsByLeague(leagueId: string): Promise<Moment[]>;
-  getMomentsByTeam(teamId: string): Promise<Moment[]>;
-  createMoment(moment: InsertMoment): Promise<Moment>;
 
   getPlayerSeasonStats(playerId: string, leagueId: string): Promise<PlayerSeasonStats[]>;
   getPlayerSeasonStatsBySeason(leagueId: string, season: number): Promise<PlayerSeasonStats[]>;
@@ -317,8 +294,6 @@ export class DatabaseStorage implements IStorage {
     const leagueRecruits = await db.select({ id: recruits.id }).from(recruits).where(eq(recruits.leagueId, leagueId));
     const recruitIds = leagueRecruits.map(r => r.id);
     if (recruitIds.length > 0) {
-      await db.update(storyArcs).set({ targetRecruitId: null }).where(inArray(storyArcs.targetRecruitId, recruitIds));
-      await db.update(storyEvents).set({ targetRecruitId: null }).where(inArray(storyEvents.targetRecruitId, recruitIds));
       await db.delete(recruitTopSchools).where(inArray(recruitTopSchools.recruitId, recruitIds));
       await db.delete(recruitingActionsLog).where(inArray(recruitingActionsLog.recruitId, recruitIds));
       await db.delete(recruitingInterests).where(inArray(recruitingInterests.recruitId, recruitIds));
@@ -626,9 +601,6 @@ export class DatabaseStorage implements IStorage {
   async deletePlayer(id: string): Promise<void> {
     await db.delete(transferPortalInterests).where(eq(transferPortalInterests.playerId, id));
     await db.delete(playerPromises).where(eq(playerPromises.playerId, id));
-    await db.update(storyArcs).set({ targetPlayerId: null }).where(eq(storyArcs.targetPlayerId, id));
-    await db.update(storyEvents).set({ targetPlayerId: null }).where(eq(storyEvents.targetPlayerId, id));
-    await db.update(moments).set({ targetPlayerId: null }).where(eq(moments.targetPlayerId, id));
     await db.delete(players).where(eq(players.id, id));
   }
 
@@ -649,15 +621,6 @@ export class DatabaseStorage implements IStorage {
     await db.transaction(async (tx) => {
       const leagueTeams = await tx.select({ id: teams.id }).from(teams).where(eq(teams.leagueId, id));
       const teamIds = leagueTeams.map(t => t.id);
-
-      const leagueArcs = await tx.select({ id: storyArcs.id }).from(storyArcs).where(eq(storyArcs.leagueId, id));
-      const arcIds = leagueArcs.map(a => a.id);
-      if (arcIds.length > 0) {
-        await tx.delete(storyArcChapters).where(inArray(storyArcChapters.arcId, arcIds));
-      }
-      await tx.delete(storyArcs).where(eq(storyArcs.leagueId, id));
-      await tx.delete(storyEvents).where(eq(storyEvents.leagueId, id));
-      await tx.delete(moments).where(eq(moments.leagueId, id));
 
       await tx.delete(playerSeasonStats).where(eq(playerSeasonStats.leagueId, id));
 
@@ -725,103 +688,6 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(players).where(
       and(inArray(players.teamId, teamIds), eq(players.pendingDeparture, true))
     );
-  }
-
-  async getStoryEventsByLeague(leagueId: string): Promise<StoryEvent[]> {
-    return db.select().from(storyEvents)
-      .where(eq(storyEvents.leagueId, leagueId))
-      .orderBy(desc(storyEvents.createdAt));
-  }
-
-  async getStoryEventsByTeam(teamId: string): Promise<StoryEvent[]> {
-    return db.select().from(storyEvents)
-      .where(eq(storyEvents.teamId, teamId))
-      .orderBy(desc(storyEvents.createdAt));
-  }
-
-  async getPendingStoryEvents(leagueId: string, teamId?: string): Promise<StoryEvent[]> {
-    if (teamId) {
-      return db.select().from(storyEvents)
-        .where(and(
-          eq(storyEvents.leagueId, leagueId),
-          eq(storyEvents.teamId, teamId),
-          eq(storyEvents.status, "pending"),
-          eq(storyEvents.requiresChoice, true)
-        ))
-        .orderBy(desc(storyEvents.createdAt));
-    }
-    return db.select().from(storyEvents)
-      .where(and(
-        eq(storyEvents.leagueId, leagueId),
-        eq(storyEvents.status, "pending"),
-        eq(storyEvents.requiresChoice, true)
-      ))
-      .orderBy(desc(storyEvents.createdAt));
-  }
-
-  async createStoryEvent(event: InsertStoryEvent): Promise<StoryEvent> {
-    const [created] = await db.insert(storyEvents).values(event).returning();
-    return created;
-  }
-
-  async updateStoryEvent(id: string, data: Partial<StoryEvent>): Promise<StoryEvent | undefined> {
-    const [updated] = await db.update(storyEvents).set(data).where(eq(storyEvents.id, id)).returning();
-    return updated || undefined;
-  }
-
-  async getStoryArcsByLeague(leagueId: string): Promise<StoryArc[]> {
-    return db.select().from(storyArcs)
-      .where(eq(storyArcs.leagueId, leagueId))
-      .orderBy(desc(storyArcs.createdAt));
-  }
-
-  async getActiveStoryArcs(leagueId: string): Promise<StoryArc[]> {
-    return db.select().from(storyArcs)
-      .where(and(eq(storyArcs.leagueId, leagueId), eq(storyArcs.status, "active")))
-      .orderBy(desc(storyArcs.createdAt));
-  }
-
-  async createStoryArc(arc: InsertStoryArc): Promise<StoryArc> {
-    const [created] = await db.insert(storyArcs).values(arc).returning();
-    return created;
-  }
-
-  async updateStoryArc(id: string, data: Partial<StoryArc>): Promise<StoryArc | undefined> {
-    const [updated] = await db.update(storyArcs).set(data).where(eq(storyArcs.id, id)).returning();
-    return updated || undefined;
-  }
-
-  async getChaptersByArc(arcId: string): Promise<StoryArcChapter[]> {
-    return db.select().from(storyArcChapters)
-      .where(eq(storyArcChapters.arcId, arcId))
-      .orderBy(storyArcChapters.chapterNumber);
-  }
-
-  async createStoryArcChapter(chapter: InsertStoryArcChapter): Promise<StoryArcChapter> {
-    const [created] = await db.insert(storyArcChapters).values(chapter).returning();
-    return created;
-  }
-
-  async updateStoryArcChapter(id: string, data: Partial<StoryArcChapter>): Promise<StoryArcChapter | undefined> {
-    const [updated] = await db.update(storyArcChapters).set(data).where(eq(storyArcChapters.id, id)).returning();
-    return updated || undefined;
-  }
-
-  async getMomentsByLeague(leagueId: string): Promise<Moment[]> {
-    return db.select().from(moments)
-      .where(eq(moments.leagueId, leagueId))
-      .orderBy(desc(moments.createdAt));
-  }
-
-  async getMomentsByTeam(teamId: string): Promise<Moment[]> {
-    return db.select().from(moments)
-      .where(eq(moments.teamId, teamId))
-      .orderBy(desc(moments.createdAt));
-  }
-
-  async createMoment(moment: InsertMoment): Promise<Moment> {
-    const [created] = await db.insert(moments).values(moment).returning();
-    return created;
   }
 
   async getPlayerSeasonStats(playerId: string, leagueId: string): Promise<PlayerSeasonStats[]> {

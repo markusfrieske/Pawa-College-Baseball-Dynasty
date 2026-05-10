@@ -20,9 +20,6 @@ import {
   generateConferenceUpdateNews,
   generateDeparturesSummaryNews,
 } from "./news-engine";
-import { generateWeeklyDrama, resolveDramaChoice } from "./drama-engine";
-import { generateWeeklyStoryArcs } from "./story-arcs";
-import { detectMoments } from "./moments-engine";
 import { SEC_REAL_ROSTERS } from "./realRosters";
 import { generateRecruitClass } from "./recruit-generator";
 import { validateLeagueRosters } from "./rosterValidation";
@@ -5283,17 +5280,6 @@ export async function registerRoutes(
             });
           }
         } catch (e) { console.error("Game feed event error:", e); }
-      }
-
-      // ============ STORY ENGINE: DRAMA, ARCS, MOMENTS ============
-      try {
-        await Promise.all([
-          generateWeeklyDrama(leagueId, league.currentSeason, currentWeek),
-          generateWeeklyStoryArcs(leagueId, league.currentSeason, currentWeek),
-          detectMoments(leagueId, league.currentSeason, currentWeek),
-        ]);
-      } catch (e) {
-        console.error("Story engine error (non-blocking):", e);
       }
 
       // ============ POSTSEASON / SEASON PROGRESSION ============
@@ -11043,84 +11029,6 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to delete dynasty news:", error);
       res.status(500).json({ message: "Failed to delete news" });
-    }
-  });
-
-  // ============ STORY ENGINE API ROUTES ============
-
-  app.get("/api/leagues/:id/story-events", requireAuth, async (req, res) => {
-    try {
-      const events = await storage.getStoryEventsByLeague(req.params.id as string);
-      res.json(events);
-    } catch (error) {
-      console.error("Failed to get story events:", error);
-      res.status(500).json({ message: "Failed to get story events" });
-    }
-  });
-
-  app.get("/api/leagues/:id/story-events/pending", requireAuth, async (req, res) => {
-    try {
-      const teamId = req.query.teamId as string | undefined;
-      const events = await storage.getPendingStoryEvents(req.params.id as string, teamId);
-      res.json(events);
-    } catch (error) {
-      console.error("Failed to get pending story events:", error);
-      res.status(500).json({ message: "Failed to get pending events" });
-    }
-  });
-
-  app.post("/api/story-events/:id/resolve", requireAuth, async (req, res) => {
-    try {
-      const { choiceId } = req.body;
-      if (!choiceId || typeof choiceId !== "string") {
-        return res.status(400).json({ message: "choiceId is required" });
-      }
-
-      const result = await resolveDramaChoice(req.params.id as string, choiceId);
-      if (!result) {
-        return res.status(404).json({ message: "Event not found or already resolved" });
-      }
-      res.json(result);
-    } catch (error) {
-      console.error("Failed to resolve story event:", error);
-      res.status(500).json({ message: "Failed to resolve event" });
-    }
-  });
-
-  app.get("/api/leagues/:id/story-arcs", requireAuth, async (req, res) => {
-    try {
-      const arcs = await storage.getStoryArcsByLeague(req.params.id as string);
-      const arcsWithChapters = await Promise.all(
-        arcs.map(async (arc) => {
-          const chapters = await storage.getChaptersByArc(arc.id);
-          return { ...arc, chapters };
-        })
-      );
-      res.json(arcsWithChapters);
-    } catch (error) {
-      console.error("Failed to get story arcs:", error);
-      res.status(500).json({ message: "Failed to get story arcs" });
-    }
-  });
-
-  app.get("/api/leagues/:id/moments", requireAuth, async (req, res) => {
-    try {
-      const allMoments = await storage.getMomentsByLeague(req.params.id as string);
-      res.json(allMoments);
-    } catch (error) {
-      console.error("Failed to get moments:", error);
-      res.status(500).json({ message: "Failed to get moments" });
-    }
-  });
-
-  app.get("/api/leagues/:id/story-events/check-pending", requireAuth, async (req, res) => {
-    try {
-      const teamId = req.query.teamId as string | undefined;
-      const pending = await storage.getPendingStoryEvents(req.params.id as string, teamId);
-      res.json({ hasPending: pending.length > 0, count: pending.length });
-    } catch (error) {
-      console.error("Failed to check pending events:", error);
-      res.status(500).json({ message: "Failed to check pending" });
     }
   });
 
