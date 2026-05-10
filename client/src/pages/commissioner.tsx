@@ -621,7 +621,7 @@ function ActionsTab({
             {league?.phaseDeadline && new Date(league.phaseDeadline) <= new Date() && (
               <div className="mb-3 p-2 rounded bg-red-500/10 border border-red-500/40 text-red-400 text-xs flex items-center gap-2">
                 <Timer className="w-3.5 h-3.5 shrink-0" />
-                Deadline passed — all coaches auto-advanced on next advance.
+                Deadline passed — non-ready coaches will be auto-marked ready when you advance.
               </div>
             )}
             <RetroButton
