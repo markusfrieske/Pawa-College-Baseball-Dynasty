@@ -766,6 +766,21 @@ export async function registerRoutes(
       // Build team lookup map for top schools
       const teamMap = new Map(leagueTeams.map(t => [t.id, t]));
 
+      // Rivalry computation: fetch all league interests to detect competing teams
+      const allLeagueInterests = await storage.getRecruitingInterestsByLeague(league.id);
+      const cpuDifficulty = league.cpuDifficulty || "high_school";
+      const cpuCountsForRivalry = cpuDifficulty === "all_american" || cpuDifficulty === "elite";
+      // Build per-recruit map: recruitId -> number of competing teams with interestLevel >= 30
+      const rivalryMap = new Map<string, number>();
+      for (const li of allLeagueInterests) {
+        if (li.teamId === userTeam.id) continue;
+        if ((li.interestLevel || 0) < 30) continue;
+        const liTeam = teamMap.get(li.teamId);
+        if (!liTeam) continue;
+        if (liTeam.isCpu && !cpuCountsForRivalry) continue;
+        rivalryMap.set(li.recruitId, (rivalryMap.get(li.recruitId) || 0) + 1);
+      }
+
       const recruitsWithInterest = await Promise.all(leagueRecruits.map(async (recruit) => {
         const interest = interests.find((i) => i.recruitId === recruit.id);
         
@@ -846,6 +861,15 @@ export async function registerRoutes(
           dynamicPotentialCeiling = dynRange.ceiling;
         }
         
+        // Rivalry signals: only visible when viewer has scouted >= 25%
+        const userScoutPct = interest?.scoutPercentage || 0;
+        const rawCompetingCount = rivalryMap.get(recruit.id) || 0;
+        const competingCount = userScoutPct >= 25 ? rawCompetingCount : null;
+        const competingIntensity: string | null =
+          competingCount === null || competingCount === 0 ? null :
+          competingCount === 1 ? "Light" :
+          competingCount <= 3 ? "Moderate" : "Heavy";
+
         return {
           ...recruit,
           potential: actualPotential,
@@ -857,6 +881,8 @@ export async function registerRoutes(
           signedTeamAbbreviation: signedTeam?.abbreviation || null,
           signedTeamPrimaryColor: signedTeam?.primaryColor || null,
           signedTeamSecondaryColor: signedTeam?.secondaryColor || null,
+          competingCount,
+          competingIntensity,
         };
       }));
 

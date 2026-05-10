@@ -35,7 +35,8 @@ import {
   Skull,
   Building2,
   Crown,
-  CheckCircle
+  CheckCircle,
+  Flame
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Recruit, RecruitingInterest, Team, League } from "@shared/schema";
@@ -865,6 +866,62 @@ export default function RecruitProfilePage() {
                 )}
               </RetroCardContent>
             </RetroCard>
+
+            {/* Competition Section */}
+            {(() => {
+              const recruitingRecruit = recruitingData?.recruits?.find((r: any) => r.id === recruitId);
+              const competingCount: number | null = recruitingRecruit?.competingCount ?? null;
+              const competingIntensity: string | null = recruitingRecruit?.competingIntensity ?? null;
+              const intensityColor =
+                competingIntensity === "Heavy" ? "text-red-400" :
+                competingIntensity === "Moderate" ? "text-orange-400" : "text-yellow-400";
+              const intensityBg =
+                competingIntensity === "Heavy" ? "bg-red-500/10 border-red-500/40" :
+                competingIntensity === "Moderate" ? "bg-orange-500/10 border-orange-500/40" : "bg-yellow-500/10 border-yellow-500/40";
+              return (
+                <RetroCard>
+                  <RetroCardHeader className="flex items-center gap-2">
+                    <Flame className="w-4 h-4 text-orange-400" />
+                    Competition
+                    {scoutPct < 25 && <Lock className="w-4 h-4 text-muted-foreground ml-auto" />}
+                  </RetroCardHeader>
+                  <RetroCardContent>
+                    {scoutPct < 25 ? (
+                      <div className="text-center py-4">
+                        <Lock className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                        <p className="text-muted-foreground text-sm">Scout to 25% to unlock rivalry signals</p>
+                        <p className="text-xs text-muted-foreground mt-1">Current: {scoutPct}%</p>
+                      </div>
+                    ) : competingCount === null || competingCount === 0 ? (
+                      <div className="text-center py-4">
+                        <p className="text-muted-foreground text-sm">No known competition</p>
+                        <p className="text-xs text-muted-foreground mt-1">No other tracked schools are actively recruiting this player</p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-3">
+                        <div className={`flex items-center justify-between p-3 rounded border ${intensityBg}`}>
+                          <div className="flex items-center gap-2">
+                            <Flame className={`w-5 h-5 ${intensityColor}`} />
+                            <div>
+                              <p className={`font-bold text-sm ${intensityColor}`}>{competingIntensity} Competition</p>
+                              <p className="text-xs text-muted-foreground">
+                                {competingCount} {competingCount === 1 ? "school" : "schools"} actively recruiting
+                              </p>
+                            </div>
+                          </div>
+                          <Badge variant="outline" className={`text-sm font-bold ${intensityColor} border-current`}>
+                            {competingCount}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Rival schools are counted when their interest level exceeds 30. Only human coaches and competitive CPU programs are tracked.
+                        </p>
+                      </div>
+                    )}
+                  </RetroCardContent>
+                </RetroCard>
+              );
+            })()}
 
             {/* Notes Section */}
             <RetroCard>

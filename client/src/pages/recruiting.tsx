@@ -48,7 +48,8 @@ import {
   Star,
   Skull,
   Crown,
-  Building2
+  Building2,
+  Flame
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -1475,6 +1476,29 @@ function RecruitRow({
                 <Badge variant="outline" className="text-[8px] border-red-500/50 text-red-400">
                   NEED
                 </Badge>
+              )}
+              {(recruit as any).competingIntensity && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge
+                      variant="outline"
+                      className={`text-[8px] no-default-hover-elevate no-default-active-elevate ${
+                        (recruit as any).competingIntensity === "Heavy"
+                          ? "border-red-500/60 text-red-400 bg-red-500/10"
+                          : (recruit as any).competingIntensity === "Moderate"
+                          ? "border-orange-500/60 text-orange-400 bg-orange-500/10"
+                          : "border-yellow-500/60 text-yellow-400 bg-yellow-500/10"
+                      }`}
+                      data-testid={`badge-rivalry-${recruit.id}`}
+                    >
+                      <Flame className="w-2.5 h-2.5 mr-0.5" />
+                      {(recruit as any).competingCount} {(recruit as any).competingCount === 1 ? "school" : "schools"}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {(recruit as any).competingIntensity} competition — {(recruit as any).competingCount} {(recruit as any).competingCount === 1 ? "school is" : "schools are"} also recruiting this player
+                  </TooltipContent>
+                </Tooltip>
               )}
               {isFullyRevealed && (recruit as any).isGenerationalGem && (
                 <Tooltip>
