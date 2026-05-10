@@ -476,6 +476,7 @@ export function generateRecruitClass(
     const scoutingOrder = generateScoutingOrder(isPitcher, position);
 
     const recruitOvrData = {
+      position,
       hitForAvg, power, speed, arm, fielding, errorResistance,
       velocity, control, stamina, stuff,
       ...commonAbilities,

@@ -247,6 +247,7 @@ export function getAbilityByName(name: string): Ability | undefined {
 }
 
 export function calculateOVR(attrs: {
+  position?: string | null;
   hitForAvg?: number | null;
   power?: number | null;
   speed?: number | null;
@@ -271,6 +272,48 @@ export function calculateOVR(attrs: {
   agile?: number | null;
   abilities?: string[] | null;
 }): number {
+  const PITCHER_POSITIONS = new Set(["P", "SP", "RP", "CP"]);
+  const isPitcher = attrs.position ? PITCHER_POSITIONS.has(attrs.position) : null;
+
+  let specialBonus = 0;
+  if (attrs.abilities && attrs.abilities.length > 0) {
+    for (const abilityName of attrs.abilities) {
+      const ability = getAbilityByName(abilityName);
+      if (ability) {
+        if (ability.tier === "gold") specialBonus += 33;
+        else if (ability.tier === "blue") specialBonus += 20;
+        else if (ability.tier === "red") specialBonus -= 15;
+      }
+    }
+  }
+
+  if (isPitcher === true) {
+    // Pitcher formula: primary pitching attrs + fielding support + pitcher-specific common attrs
+    const pitchCore =
+      (attrs.velocity ?? 0) + (attrs.control ?? 0) +
+      (attrs.stamina ?? 0) + (attrs.stuff ?? 0);
+    const pitchField = (attrs.arm ?? 0) + (attrs.fielding ?? 0);
+    const pitchCommon =
+      (attrs.heater ?? 0) + (attrs.poise ?? 0) + (attrs.recovery ?? 0) +
+      (attrs.wRISP ?? 0) + (attrs.vsLefty ?? 0);
+    const raw = Math.round(pitchCore * 0.85 + pitchField * 0.20 + pitchCommon * 0.25 + specialBonus);
+    return Math.max(150, Math.min(650, raw));
+  }
+
+  if (isPitcher === false) {
+    // Hitter formula: primary batting/fielding attrs + hitter-specific common attrs
+    const hitCore =
+      (attrs.hitForAvg ?? 0) + (attrs.power ?? 0) + (attrs.speed ?? 0) +
+      (attrs.arm ?? 0) + (attrs.fielding ?? 0) + (attrs.errorResistance ?? 0);
+    const hitCommon =
+      (attrs.clutch ?? 0) + (attrs.vsLHP ?? 0) + (attrs.grit ?? 0) +
+      (attrs.stealing ?? 0) + (attrs.running ?? 0) + (attrs.throwing ?? 0) +
+      (attrs.agile ?? 0) + (attrs.wRISP ?? 0) + (attrs.vsLefty ?? 0);
+    const raw = Math.round(hitCore * 0.75 + hitCommon * 0.22 + specialBonus);
+    return Math.max(150, Math.min(650, raw));
+  }
+
+  // Fallback (no position provided): original mixed formula
   const attrFields = [
     attrs.hitForAvg, attrs.power, attrs.speed, attrs.arm,
     attrs.fielding, attrs.errorResistance, attrs.velocity,
@@ -286,18 +329,6 @@ export function calculateOVR(attrs: {
   ];
   let commonSum = 0;
   for (const v of commonFields) { commonSum += (v ?? 50); }
-
-  let specialBonus = 0;
-  if (attrs.abilities && attrs.abilities.length > 0) {
-    for (const abilityName of attrs.abilities) {
-      const ability = getAbilityByName(abilityName);
-      if (ability) {
-        if (ability.tier === "gold") specialBonus += 33;
-        else if (ability.tier === "blue") specialBonus += 20;
-        else if (ability.tier === "red") specialBonus -= 15;
-      }
-    }
-  }
 
   const raw = Math.round(attrSum * 0.6 + commonSum * 0.25 + specialBonus);
   return Math.max(150, Math.min(650, raw));

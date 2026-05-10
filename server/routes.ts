@@ -7843,6 +7843,7 @@ export async function registerRoutes(
         const isPitcher = pos === "P";
         const randAttr = () => 20 + Math.floor(Math.random() * 26);
         const attrs: any = {
+          position: pos,
           hitForAvg: randAttr(), power: randAttr(), speed: randAttr(),
           arm: randAttr(), fielding: randAttr(), errorResistance: randAttr(),
           clutch: randAttr(), vsLHP: randAttr(), grit: randAttr(),
