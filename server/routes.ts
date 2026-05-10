@@ -1188,6 +1188,88 @@ export async function registerRoutes(
     }
   });
 
+  // Weekly rival activity recap for recruiting page
+  app.get("/api/leagues/:id/recruiting/weekly-recap", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      const coaches = await storage.getCoachesByLeague(leagueId);
+      const userCoach = coaches.find(c => c.userId === req.session.userId);
+      if (!userCoach) return res.status(400).json({ message: "No coach assigned" });
+
+      const leagueTeams = await storage.getTeamsByLeague(leagueId);
+      const userTeam = leagueTeams.find(t => t.id === userCoach.teamId);
+      if (!userTeam) return res.status(400).json({ message: "No team assigned" });
+
+      const reqSeason = req.query.season ? parseInt(req.query.season as string) : league.currentSeason;
+      const reqWeek = req.query.week ? parseInt(req.query.week as string) : Math.max(1, league.currentWeek - 1);
+
+      // Get ALL actions for this league/season/week
+      const allActions = await storage.getRecruitingActionsLogByLeagueWeek(leagueId, reqSeason, reqWeek);
+
+      // Separate my actions from rivals'
+      const myActions = allActions.filter(a => a.teamId === userTeam.id);
+      const rivalActions = allActions.filter(a => a.teamId !== userTeam.id);
+
+      // Build set of recruits I contacted this week
+      const myRecruitIds = new Set(myActions.map(a => a.recruitId));
+
+      // Build rival action counts per recruit
+      const rivalCountByRecruit = new Map<string, number>();
+      for (const a of rivalActions) {
+        rivalCountByRecruit.set(a.recruitId, (rivalCountByRecruit.get(a.recruitId) || 0) + 1);
+      }
+
+      const getActivityLevel = (count: number): string => {
+        if (count >= 5) return "Hot";
+        if (count >= 2) return "Active";
+        return "Quiet";
+      };
+
+      // Load recruits for name/position/star info
+      const allRecruits = await storage.getRecruitsByLeague(leagueId);
+      const recruitMap = new Map(allRecruits.map(r => [r.id, r]));
+
+      // Recruits I contacted: show rival activity count
+      const myRecruits = Array.from(myRecruitIds).map(recruitId => {
+        const recruit = recruitMap.get(recruitId);
+        const rivalCount = rivalCountByRecruit.get(recruitId) || 0;
+        return {
+          recruitId,
+          name: recruit ? `${recruit.firstName} ${recruit.lastName}` : "Unknown",
+          position: recruit?.position || "?",
+          starRating: recruit?.starRating || 0,
+          otherTeamActionCount: rivalCount,
+          activityLevel: getActivityLevel(rivalCount),
+        };
+      }).sort((a, b) => b.otherTeamActionCount - a.otherTeamActionCount);
+
+      // Hot recruits I HAVEN'T contacted with 3+ rival actions
+      const hotMissed = Array.from(rivalCountByRecruit.entries())
+        .filter(([recruitId, count]) => !myRecruitIds.has(recruitId) && count >= 3)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([recruitId, count]) => {
+          const recruit = recruitMap.get(recruitId);
+          return {
+            recruitId,
+            name: recruit ? `${recruit.firstName} ${recruit.lastName}` : "Unknown",
+            position: recruit?.position || "?",
+            starRating: recruit?.starRating || 0,
+            otherTeamActionCount: count,
+            activityLevel: getActivityLevel(count),
+          };
+        });
+
+      res.json({ season: reqSeason, week: reqWeek, myRecruits, hotMissed });
+    } catch (error) {
+      console.error("Failed to fetch weekly recap:", error);
+      res.status(500).json({ message: "Failed to fetch weekly recap" });
+    }
+  });
+
   // ============ RECRUITING CALCULATION HELPERS ============
   
   // Calculate priority match bonus based on pitch topic and recruit priorities

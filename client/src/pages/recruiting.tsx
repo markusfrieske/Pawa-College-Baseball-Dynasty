@@ -49,7 +49,9 @@ import {
   Skull,
   Crown,
   Building2,
-  Flame
+  Flame,
+  Telescope,
+  Zap
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -283,6 +285,40 @@ export default function RecruitingPage() {
   }>({
     queryKey: ["/api/leagues", id, "recruiting-history"],
   });
+
+  interface WeekRecapEntry {
+    recruitId: string;
+    name: string;
+    position: string;
+    starRating: number;
+    otherTeamActionCount: number;
+    activityLevel: string;
+  }
+  interface WeekRecapData {
+    season: number;
+    week: number;
+    myRecruits: WeekRecapEntry[];
+    hotMissed: WeekRecapEntry[];
+  }
+  const recapWeek = Math.max(1, (leagueData?.currentWeek ?? 1) - 1);
+  const recapSeason = leagueData?.currentSeason ?? 1;
+  const { data: weekRecapData } = useQuery<WeekRecapData>({
+    queryKey: ["/api/leagues", id, "recruiting", "weekly-recap", recapSeason, recapWeek],
+    queryFn: async () => {
+      const res = await fetch(`/api/leagues/${id}/recruiting/weekly-recap?season=${recapSeason}&week=${recapWeek}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch recap");
+      return res.json();
+    },
+    enabled: !!id && !!leagueData,
+  });
+
+  const recapDismissKey = `recap-dismissed-${id}-${recapSeason}-${recapWeek}`;
+  const [recapDismissed, setRecapDismissed] = useState(() => localStorage.getItem(recapDismissKey) === "1");
+  const [showRecap, setShowRecap] = useState(false);
+  const dismissRecap = () => {
+    localStorage.setItem(recapDismissKey, "1");
+    setRecapDismissed(true);
+  };
 
   const scoutMutation = useMutation({
     mutationFn: async (recruitId: string) => {
@@ -978,6 +1014,112 @@ export default function RecruitingPage() {
             </div>
           );
         })()}
+
+        {/* Rival Scout Report — Week Recap */}
+        {weekRecapData && !recapDismissed && (weekRecapData.myRecruits.length > 0 || weekRecapData.hotMissed.length > 0) && (
+          <div className="mb-6" data-testid="week-recap-panel">
+            <RetroCard variant="default">
+              <div className="flex items-center justify-between gap-2">
+                <button
+                  className="flex items-center gap-2 cursor-pointer flex-1 text-left"
+                  onClick={() => setShowRecap(!showRecap)}
+                  data-testid="button-toggle-recap"
+                >
+                  <Telescope className="w-4 h-4 text-gold" />
+                  <span className="font-pixel text-gold text-sm uppercase tracking-wider">Rival Scout Report</span>
+                  <span className="text-[10px] text-muted-foreground">(Week {weekRecapData.week})</span>
+                  {showRecap ? <ChevronUp className="w-4 h-4 text-gold ml-1" /> : <ChevronDown className="w-4 h-4 text-gold ml-1" />}
+                </button>
+                <button
+                  onClick={dismissRecap}
+                  className="text-muted-foreground hover:text-foreground p-1"
+                  data-testid="button-dismiss-recap"
+                  title="Dismiss"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {showRecap && (
+                <div className="mt-4 pt-4 border-t border-border space-y-5">
+                  <p className="text-[10px] text-muted-foreground">
+                    Rival activity shown as total actions by other teams — no team identities or pitch details revealed.
+                  </p>
+
+                  {weekRecapData.myRecruits.length > 0 && (
+                    <div>
+                      <p className="font-pixel text-[9px] text-gold mb-2">YOUR TARGETS THIS WEEK</p>
+                      <div className="space-y-2">
+                        {weekRecapData.myRecruits.map(r => {
+                          const levelColor = r.activityLevel === "Hot" ? "text-red-400 bg-red-500/10 border-red-500/30"
+                            : r.activityLevel === "Active" ? "text-amber-400 bg-amber-500/10 border-amber-500/30"
+                            : "text-muted-foreground bg-muted/20 border-border";
+                          return (
+                            <div key={r.recruitId} className="flex items-center justify-between bg-muted/30 rounded p-2.5" data-testid={`recap-my-recruit-${r.recruitId}`}>
+                              <div className="flex items-center gap-2">
+                                <PositionBadge position={r.position} />
+                                <button
+                                  className="text-sm font-medium text-foreground hover:text-gold transition-colors"
+                                  onClick={() => {
+                                    const found = data?.recruits.find(rec => rec.id === r.recruitId);
+                                    if (found) setSelectedRecruit(found);
+                                  }}
+                                  data-testid={`recap-recruit-link-${r.recruitId}`}
+                                >
+                                  {r.name}
+                                </button>
+                                {r.starRating > 0 && <StarRating rating={r.starRating} size="sm" />}
+                              </div>
+                              <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded border text-xs ${levelColor}`} data-testid={`recap-activity-${r.recruitId}`}>
+                                {r.activityLevel === "Hot" && <Zap className="w-3 h-3" />}
+                                {r.activityLevel === "Active" && <Flame className="w-3 h-3" />}
+                                {r.activityLevel === "Quiet" && <Minus className="w-3 h-3" />}
+                                <span>{r.activityLevel}</span>
+                                {r.otherTeamActionCount > 0 && (
+                                  <span className="opacity-70">({r.otherTeamActionCount} rival {r.otherTeamActionCount === 1 ? "action" : "actions"})</span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {weekRecapData.hotMissed.length > 0 && (
+                    <div>
+                      <p className="font-pixel text-[9px] text-amber-400 mb-2">HOT RECRUITS YOU HAVEN'T CONTACTED</p>
+                      <div className="space-y-2">
+                        {weekRecapData.hotMissed.map(r => (
+                          <div key={r.recruitId} className="flex items-center justify-between bg-amber-500/5 border border-amber-500/20 rounded p-2.5" data-testid={`recap-missed-recruit-${r.recruitId}`}>
+                            <div className="flex items-center gap-2">
+                              <PositionBadge position={r.position} />
+                              <button
+                                className="text-sm font-medium text-foreground hover:text-gold transition-colors"
+                                onClick={() => {
+                                  const found = data?.recruits.find(rec => rec.id === r.recruitId);
+                                  if (found) setSelectedRecruit(found);
+                                }}
+                                data-testid={`recap-missed-link-${r.recruitId}`}
+                              >
+                                {r.name}
+                              </button>
+                              {r.starRating > 0 && <StarRating rating={r.starRating} size="sm" />}
+                            </div>
+                            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded border text-xs text-amber-400 bg-amber-500/10 border-amber-500/30">
+                              <Zap className="w-3 h-3" />
+                              <span>{r.otherTeamActionCount} rival {r.otherTeamActionCount === 1 ? "action" : "actions"}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </RetroCard>
+          </div>
+        )}
 
         <div className="space-y-3">
           {filteredRecruits.map((recruit) => (
