@@ -18,13 +18,11 @@
  *
  * pitchMix() is the canonical helper for new roster code; existing
  * roster files were updated to import from this module instead of
- * defining their own per-file copy. normalizePitchFields() is the
- * runtime safety belt applied in realRosters.ts so that inline pitch
- * objects (which never went through pitchMix()) are also normalized.
+ * defining their own per-file copy.
  *
- * Both paths emit a single `[roster-sanity]` console.warn the first
- * time they have to coerce a given context, so future regressions
- * are surfaced without log spam.
+ * pitchMix() emits a single `[roster-sanity]` console.warn the first
+ * time it has to coerce a given context, so future regressions are
+ * surfaced without log spam.
  */
 
 export interface PitchMix {
@@ -114,48 +112,4 @@ export function pitchMix(primary: number, secondary: number[], context: string =
     pitchSNK: coerceSecondary(safeSec[5] ?? 0, useBucket),
     pitchSPL: coerceSecondary(safeSec[6] ?? 0, useBucket),
   };
-}
-
-/**
- * In-place normalizer for RealPlayer-like objects whose pitch fields
- * were authored inline (e.g. WCC/MWC/AAC roster files) or via a stale
- * helper. Called by realRosters.ts at module load time so every player
- * exposed to the rest of the app obeys the schema rule, regardless of
- * which roster file they came from.
- */
-export function normalizePitchFields(
-  p: Partial<PitchMix> & Record<string, unknown>,
-  context: string = "anonymous",
-): void {
-  const get = (k: string): number => {
-    const v = p[k];
-    return typeof v === "number" && Number.isFinite(v) ? v : 0;
-  };
-  const set = (k: string, v: number): void => { p[k] = v; };
-
-  const fb = get("pitchFB");
-  const ts = get("pitch2S");
-  const secVals = SECONDARY_KEYS.map(k => get(k));
-  const max = Math.max(fb, ts, ...secVals);
-  const useBucket = max >= VELOCITY_SCALE_THRESHOLD;
-
-  if (fb > 1) {
-    warnOnce(`${context}:fb`, `${context}: pitchFB=${fb} clamped to 1 (binary)`);
-  }
-  if (useBucket) {
-    warnOnce(`${context}:scale`, `${context}: pitch fields on 0-100 scale (max=${max}); rescaled to 1-7 buckets`);
-  }
-
-  set("pitchFB", fb >= 1 ? 1 : 0);
-  set("pitch2S", ts >= 1 ? 1 : 0);
-  for (let i = 0; i < SECONDARY_KEYS.length; i++) {
-    const k = SECONDARY_KEYS[i];
-    const v = secVals[i];
-    if (v <= 0) { set(k, 0); continue; }
-    if (useBucket) set(k, bucketFromVelocityScale(v));
-    else if (v > 7) {
-      warnOnce(`${context}:${k}`, `${context}: ${k}=${v} clamped to 7`);
-      set(k, 7);
-    } else set(k, Math.round(v));
-  }
 }

@@ -8,8 +8,7 @@
  *     integers in 0-7.
  *
  * A value > 7 in any field indicates the author used the wrong 0-100
- * velocity scale instead of the correct 1-7 bucket scale.  At runtime
- * normalizePitchFields() silently auto-corrects these, so without this
+ * velocity scale instead of the correct 1-7 bucket scale.  Without this
  * script the bad data ships without any author-visible warning.
  *
  * This script imports every roster file directly (bypassing the
