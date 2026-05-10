@@ -176,7 +176,7 @@ export const SUN_BELT_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...noPitches },
     // Ricky Vann — FR OF
-    { firstName: "Ricky", lastName: "Vann", position: "OF", eligibility: "FR", homeState: "GA", hometown: "Atlanta", jerseyNumber: 20,
+    { firstName: "Ricky", lastName: "Vann", position: "2B", eligibility: "FR", homeState: "GA", hometown: "Atlanta", jerseyNumber: 20,
       hitForAvg: 34, power: 30, speed: 46, arm: 44, fielding: 38, errorResistance: 36, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 32, vsLHP: 30, grit: 32, stealing: 28, running: 44, throwing: 44, recovery: 30, wRISP: 30, vsLefty: 28, poise: 32, heater: 0, agile: 46,
       abilities: ["Predicament", "Magician"], potential: "A", catcherAbility: null,

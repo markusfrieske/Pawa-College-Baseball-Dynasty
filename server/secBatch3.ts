@@ -127,7 +127,7 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       clutch: 31, vsLHP: 30, grit: 34, stealing: 28, running: 45, throwing: 48, recovery: 30, wRISP: 30, vsLefty: 28, poise: 31, heater: 0, agile: 48,
       abilities: ["Puller Hitter"], potential: "B+", catcherAbility: null,
       ...noPitches },
-    { firstName: "Bryce", lastName: "Watkins", position: "OF", eligibility: "JR", homeState: "NC", hometown: "Wilmington", jerseyNumber: 32,
+    { firstName: "Bryce", lastName: "Watkins", position: "2B", eligibility: "JR", homeState: "NC", hometown: "Wilmington", jerseyNumber: 32,
       hitForAvg: 48, power: 40, speed: 47, arm: 51, fielding: 48, errorResistance: 47, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 47, vsLHP: 43, grit: 48, stealing: 28, running: 45, throwing: 53, recovery: 40, wRISP: 45, vsLefty: 42, poise: 47, heater: 0, agile: 48,
       abilities: ["Emotional Pillar", "Locked and Loaded", "Home Defense"], potential: "B", catcherAbility: null,
@@ -757,7 +757,7 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "deep", hairColor: "black", hairStyle: "fade",
       ...noPitches },
     // Miles Bennett — JR OF depth, cannon arm
-    { firstName: "Miles", lastName: "Bennett", position: "OF", eligibility: "JR", homeState: "TX", hometown: "The Woodlands", jerseyNumber: 11,
+    { firstName: "Miles", lastName: "Bennett", position: "2B", eligibility: "JR", homeState: "TX", hometown: "The Woodlands", jerseyNumber: 11,
       hitForAvg: 44, power: 38, speed: 44, arm: 60, fielding: 48, errorResistance: 46, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 44, vsLHP: 40, grit: 46, stealing: 22, running: 42, throwing: 60, recovery: 38, wRISP: 42, vsLefty: 38, poise: 44, heater: 0, agile: 46,
       abilities: ["High-Speed Laser"], potential: "B+", catcherAbility: null,

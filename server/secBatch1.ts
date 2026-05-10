@@ -75,7 +75,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [3, 4, 0, 3, 0, 0, 0]) },
     // Zion Theophilus — Freshman RHP, 4.91 ERA, depth arm
-    { firstName: "Zion", lastName: "Theophilus", position: "P", eligibility: "FR", homeState: "FL", hometown: "Miami", jerseyNumber: 52,
+    { firstName: "Zion", lastName: "Theophilus", position: "2B", eligibility: "FR", homeState: "FL", hometown: "Miami", jerseyNumber: 52,
       hitForAvg: 9, power: 6, speed: 30, arm: 60, fielding: 38, errorResistance: 40, velocity: 66, control: 44, stamina: 32, stuff: 60,
       clutch: 48, vsLHP: 50, grit: 48, stealing: 5, running: 26, throwing: 58, recovery: 44, wRISP: 48, vsLefty: 50, poise: 48, heater: 56, agile: 44,
       abilities: ["Walk"], potential: "B+", catcherAbility: null,
@@ -359,7 +359,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
       // Ty Evans — OF JR
-      { firstName: "Ty", lastName: "Evans", position: "OF", eligibility: "JR", homeState: "GA", hometown: "Marietta", jerseyNumber: 11,
+      { firstName: "Ty", lastName: "Evans", position: "2B", eligibility: "JR", homeState: "GA", hometown: "Marietta", jerseyNumber: 11,
         hitForAvg: 54, power: 48, speed: 50, arm: 56, fielding: 52, errorResistance: 50, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 52, vsLHP: 48, grit: 54, stealing: 32, running: 48, throwing: 58, recovery: 44, wRISP: 50, vsLefty: 48, poise: 52, heater: 0, agile: 52,
         abilities: ["Tough Out", "Unrelenting", "Puller Hitter"], potential: "B", catcherAbility: null,
@@ -623,7 +623,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...noPitches },
     // Ben Royo — backup IF (was C)
-    { firstName: "Ben", lastName: "Royo", position: "2B", eligibility: "JR", homeState: "TX", hometown: "Laredo", jerseyNumber: 14,
+    { firstName: "Ben", lastName: "Royo", position: "OF", eligibility: "JR", homeState: "TX", hometown: "Laredo", jerseyNumber: 14,
       hitForAvg: 46, power: 40, speed: 40, arm: 50, fielding: 54, errorResistance: 50, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 46, vsLHP: 42, grit: 48, stealing: 14, running: 36, throwing: 50, recovery: 40, wRISP: 44, vsLefty: 40, poise: 46, heater: 0, agile: 42,
       abilities: ["First Pitch King", "Opposite Field Hitter"], potential: "B+", catcherAbility: null,

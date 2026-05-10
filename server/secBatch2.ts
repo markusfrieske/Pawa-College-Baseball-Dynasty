@@ -678,7 +678,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...noPitches },
     // Rylan Lujo — SO INF/OF, thrives vs SEC
-    { firstName: "Rylan", lastName: "Lujo", position: "2B", eligibility: "SO", homeState: "OH", hometown: "Dayton", jerseyNumber: 10,
+    { firstName: "Rylan", lastName: "Lujo", position: "OF", eligibility: "SO", homeState: "OH", hometown: "Dayton", jerseyNumber: 10,
       hitForAvg: 56, power: 50, speed: 44, arm: 52, fielding: 54, errorResistance: 52, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 60, vsLHP: 56, grit: 58, stealing: 22, running: 40, throwing: 52, recovery: 44, wRISP: 60, vsLefty: 54, poise: 58, heater: 0, agile: 46,
       abilities: ["Contact Hitter", "Consigliere"], potential: "A", catcherAbility: null,

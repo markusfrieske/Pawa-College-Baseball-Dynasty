@@ -233,7 +233,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       clutch: 28, vsLHP: 26, grit: 29, stealing: 20, running: 30, throwing: 34, recovery: 22, wRISP: 27, vsLefty: 25, poise: 27, heater: 0, agile: 32,
       abilities: ["Pull Hitter"], potential: "A-", catcherAbility: null,
       ...noPitches },
-    { firstName: "Teddy", lastName: "Tokheim", position: "3B", eligibility: "FR", homeState: "MN", hometown: "Edina", jerseyNumber: 18,
+    { firstName: "Teddy", lastName: "Tokheim", position: "OF", eligibility: "FR", homeState: "MN", hometown: "Edina", jerseyNumber: 18,
       hitForAvg: 30, power: 28, speed: 30, arm: 37, fielding: 33, errorResistance: 30, velocity: 0, control: 0, stamina: 21, stuff: 0,
       clutch: 29, vsLHP: 26, grit: 30, stealing: 17, running: 29, throwing: 38, recovery: 24, wRISP: 28, vsLefty: 25, poise: 29, heater: 0, agile: 32,
       abilities: ["Shock Commander"], potential: "B+", catcherAbility: null,
