@@ -1,4 +1,4 @@
-import { ALL_ABILITIES, getAbilitiesForPosition } from "../shared/abilities";
+import { ALL_ABILITIES, getAbilitiesForPosition, getAbilityByName } from "../shared/abilities";
 import { ALL_REAL_ROSTERS } from "../server/realRosters";
 
 const CANONICAL_NAMES = new Set(ALL_ABILITIES.map((a) => a.name));
@@ -54,12 +54,30 @@ interface MissingFieldViolation {
   field: RequiredStringField;
 }
 
+interface DuplicateAbilityViolation {
+  kind: "duplicate-ability";
+  team: string;
+  player: string;
+  position: string;
+  duplicatedAbility: string;
+}
+
+interface MultipleGoldViolation {
+  kind: "multiple-gold";
+  team: string;
+  player: string;
+  position: string;
+  goldAbilities: string[];
+}
+
 type Violation =
   | UnknownAbilityViolation
   | PositionMismatchViolation
   | NoAbilitiesViolation
   | ThinAttributesViolation
-  | MissingFieldViolation;
+  | MissingFieldViolation
+  | DuplicateAbilityViolation
+  | MultipleGoldViolation;
 
 const violations: Violation[] = [];
 
@@ -105,6 +123,36 @@ for (const [team, players] of Object.entries(ALL_REAL_ROSTERS)) {
       });
     }
 
+    // 5. Duplicate ability names
+    const seen = new Set<string>();
+    for (const ability of player.abilities) {
+      if (seen.has(ability)) {
+        violations.push({
+          kind: "duplicate-ability",
+          team,
+          player: playerName,
+          position: player.position,
+          duplicatedAbility: ability,
+        });
+      }
+      seen.add(ability);
+    }
+
+    // 6. More than one gold-tier ability
+    const goldAbilitiesOnPlayer = player.abilities
+      .map((name) => getAbilityByName(name))
+      .filter((a): a is NonNullable<typeof a> => a !== undefined && a.tier === "gold")
+      .map((a) => a.name);
+    if (goldAbilitiesOnPlayer.length > 1) {
+      violations.push({
+        kind: "multiple-gold",
+        team,
+        player: playerName,
+        position: player.position,
+        goldAbilities: goldAbilitiesOnPlayer,
+      });
+    }
+
     // 3. Primary numeric attributes summing to zero or near-zero (effectively blank player)
     const attrSum = NUMERIC_ATTRS.reduce((sum, field) => {
       const val = (player as Record<string, unknown>)[field];
@@ -140,14 +188,20 @@ const mismatchViolations = violations.filter((v) => v.kind === "position-mismatc
 const noAbilitiesViolations = violations.filter((v) => v.kind === "no-abilities") as NoAbilitiesViolation[];
 const thinAttrViolations = violations.filter((v) => v.kind === "thin-attributes") as ThinAttributesViolation[];
 const missingFieldViolations = violations.filter((v) => v.kind === "missing-field") as MissingFieldViolation[];
+const duplicateAbilityViolations = violations.filter((v) => v.kind === "duplicate-ability") as DuplicateAbilityViolation[];
+const multipleGoldViolations = violations.filter((v) => v.kind === "multiple-gold") as MultipleGoldViolation[];
 
-// Hard errors: unknown names and position mismatches fail the run.
+// Hard errors: unknown names, position mismatches, duplicates, and multiple-gold fail the run.
 // Warnings: no-abilities, thin-attributes, missing-field are printed but don't fail.
-const hardErrorCount = unknownViolations.length + mismatchViolations.length;
+const hardErrorCount =
+  unknownViolations.length +
+  mismatchViolations.length +
+  duplicateAbilityViolations.length +
+  multipleGoldViolations.length;
 
 if (violations.length === 0) {
   console.log(
-    "✓ All ability names are valid, position-appropriate, and all players have complete data across all roster files."
+    "✓ All ability names are valid, position-appropriate, deduplicated, capped at 1 gold, and all players have complete data across all roster files."
   );
   process.exit(0);
 }
@@ -218,6 +272,34 @@ if (missingFieldViolations.length > 0) {
   }
   console.warn(
     `  Fix: ensure position, eligibility, and homeState are non-empty strings for every player.`
+  );
+}
+
+if (duplicateAbilityViolations.length > 0) {
+  console.error(
+    `\n✗ Found ${duplicateAbilityViolations.length} duplicate ability name(s) in roster files:\n`
+  );
+  for (const v of duplicateAbilityViolations) {
+    console.error(
+      `  [${v.team}] ${v.player} (${v.position}): ability "${v.duplicatedAbility}" appears more than once`
+    );
+  }
+  console.error(
+    `\nFix: each ability name must appear at most once per player. Remove the duplicate entries.`
+  );
+}
+
+if (multipleGoldViolations.length > 0) {
+  console.error(
+    `\n✗ Found ${multipleGoldViolations.length} player(s) with more than one gold-tier ability:\n`
+  );
+  for (const v of multipleGoldViolations) {
+    console.error(
+      `  [${v.team}] ${v.player} (${v.position}): gold abilities [${v.goldAbilities.join(", ")}]`
+    );
+  }
+  console.error(
+    `\nFix: each player may have at most 1 gold-tier ability. Replace extras with blue-tier abilities.`
   );
 }
 

@@ -357,7 +357,7 @@ export function generateRecruitClass(
       const blueAbilities = availableAbilities.filter(a => a.tier === "blue");
       const shuffledGold = [...goldAbilities].sort(() => Math.random() - 0.5);
       const shuffledBlue = [...blueAbilities].sort(() => Math.random() - 0.5);
-      const goldTarget = Math.min(3, Math.max(2, Math.floor(abilityCount / 2)));
+      const goldTarget = 1;
       const selected: string[] = [];
       for (const a of shuffledGold) { if (selected.length < goldTarget && !selected.includes(a.name)) selected.push(a.name); }
       for (const a of shuffledBlue) { if (selected.length < abilityCount && !selected.includes(a.name)) selected.push(a.name); }

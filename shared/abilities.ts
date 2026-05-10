@@ -204,6 +204,73 @@ export function getAbilitiesForPosition(position: string): Ability[] {
 
 export const MAX_SPECIAL_ABILITIES = 7;
 
+/**
+ * Sanitize a player's ability list to enforce two hard rules:
+ *   1. No duplicate ability names.
+ *   2. Maximum one gold-tier ability per player.
+ *
+ * When a second (or later) gold ability is found it is replaced with a
+ * position-appropriate blue ability that is not already in the list.
+ * Replacement blue abilities are drawn in stable array order so the result
+ * is deterministic given the same input.
+ */
+export function sanitizeAbilities(position: string, abilities: string[]): string[] {
+  const availableAbilities = getAbilitiesForPosition(position);
+  const bluePool = availableAbilities.filter(a => a.tier === "blue").map(a => a.name);
+
+  // 1. Deduplicate while preserving order.
+  const seen = new Set<string>();
+  const deduped = abilities.filter(name => {
+    if (seen.has(name)) return false;
+    seen.add(name);
+    return true;
+  });
+
+  // 2. Cap gold abilities at 1 — keep the first gold encountered.
+  let goldSeen = false;
+  const result: string[] = [];
+  const extraGoldsToReplace: number[] = [];
+
+  for (let i = 0; i < deduped.length; i++) {
+    const ability = getAbilityByName(deduped[i]);
+    if (ability && ability.tier === "gold") {
+      if (!goldSeen) {
+        goldSeen = true;
+        result.push(deduped[i]);
+      } else {
+        extraGoldsToReplace.push(i);
+        result.push("__REPLACE__");
+      }
+    } else {
+      result.push(deduped[i]);
+    }
+  }
+
+  if (extraGoldsToReplace.length === 0) return result;
+
+  // Fill replacement slots with randomly-chosen blue abilities not already in the list.
+  const inResult = new Set(result.filter(n => n !== "__REPLACE__"));
+  const available = bluePool.filter(n => !inResult.has(n));
+  // Shuffle the available pool so replacements are drawn randomly.
+  for (let k = available.length - 1; k > 0; k--) {
+    const j = Math.floor(Math.random() * (k + 1));
+    [available[k], available[j]] = [available[j], available[k]];
+  }
+  let repIdx = 0;
+  for (let i = 0; i < result.length; i++) {
+    if (result[i] === "__REPLACE__") {
+      if (repIdx < available.length) {
+        result[i] = available[repIdx++];
+      } else {
+        // No blue ability available — drop this slot entirely.
+        result[i] = "";
+      }
+    }
+  }
+
+  return result.filter(n => n !== "");
+}
+
 export function getRandomAbilities(position: string, count: number, preferGold: boolean = false): string[] {
   const availableAbilities = getAbilitiesForPosition(position);
 
@@ -211,14 +278,12 @@ export function getRandomAbilities(position: string, count: number, preferGold: 
   const cappedCount = Math.max(0, Math.min(MAX_SPECIAL_ABILITIES, count));
   if (cappedCount === 0 || availableAbilities.length === 0) return [];
 
-  let pool: Ability[];
-  if (preferGold) {
-    const goldAbilities = availableAbilities.filter(a => a.tier === "gold");
-    const blueAbilities = availableAbilities.filter(a => a.tier === "blue");
-    pool = [...goldAbilities, ...goldAbilities, ...blueAbilities];
-  } else {
-    pool = availableAbilities.filter(a => a.tier !== "red");
-  }
+  // Build pool: when preferGold, include gold once (not doubled — dedup handles selection)
+  const goldAbilities = availableAbilities.filter(a => a.tier === "gold");
+  const blueAbilities = availableAbilities.filter(a => a.tier === "blue");
+  const pool: Ability[] = preferGold
+    ? [...goldAbilities, ...blueAbilities]
+    : blueAbilities;
 
   const selected: string[] = [];
   const shuffled = [...pool].sort(() => Math.random() - 0.5);
@@ -239,7 +304,8 @@ export function getRandomAbilities(position: string, count: number, preferGold: 
     }
   }
 
-  return selected;
+  // Final guarantee: no duplicates and at most 1 gold.
+  return sanitizeAbilities(position, selected);
 }
 
 export function getAbilityByName(name: string): Ability | undefined {
