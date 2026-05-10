@@ -153,7 +153,7 @@ export default function RecruitProfilePage() {
     queryKey: ["/api/leagues", id],
   });
 
-  const { data: recruitingData } = useQuery<any>({
+  const { data: recruitingData, isLoading: isRecruitingLoading } = useQuery<any>({
     queryKey: ["/api/leagues", id, "recruiting"],
     enabled: !!id,
   });
@@ -872,8 +872,8 @@ export default function RecruitProfilePage() {
             {/* Competition Section */}
             {(() => {
               const recruitingRecruit = (recruitingData?.recruits as RecruitWithInterest[] | undefined)?.find((r) => r.id === recruitId);
-              const competingCount: number | null = recruitingRecruit?.competingCount ?? null;
-              const competingIntensity: string | null = recruitingRecruit?.competingIntensity ?? null;
+              const competingCount: number | null = isRecruitingLoading ? null : (recruitingRecruit?.competingCount ?? null);
+              const competingIntensity: string | null = isRecruitingLoading ? null : (recruitingRecruit?.competingIntensity ?? null);
               const intensityColor =
                 competingIntensity === "Heavy" ? "text-red-400" :
                 competingIntensity === "Moderate" ? "text-orange-400" : "text-yellow-400";
@@ -893,6 +893,10 @@ export default function RecruitProfilePage() {
                         <Lock className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
                         <p className="text-muted-foreground text-sm">Scout to 25% to unlock rivalry signals</p>
                         <p className="text-xs text-muted-foreground mt-1">Current: {scoutPct}%</p>
+                      </div>
+                    ) : isRecruitingLoading ? (
+                      <div className="text-center py-4">
+                        <p className="text-muted-foreground text-sm">Loading competition data...</p>
                       </div>
                     ) : competingCount === null || competingCount === 0 ? (
                       <div className="text-center py-4">
@@ -916,7 +920,7 @@ export default function RecruitProfilePage() {
                           </Badge>
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          Rival schools are counted when their interest level exceeds 30. Only human coaches and competitive CPU programs are tracked.
+                          Rival schools are counted when their combined prestige and recruiting activity crosses a meaningful threshold. Only human coaches and competitive CPU programs are tracked.
                         </p>
                       </div>
                     )}
