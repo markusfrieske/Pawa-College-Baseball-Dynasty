@@ -1,28 +1,28 @@
 /**
- * Unified pitch-mix helper for real-roster files.
+ * Unified pitch-mix helper for all roster files.
  *
  * Schema rules (shared/schema.ts:240-268):
  *   - pitchFB and pitch2S are binary: 0 or 1.
  *   - All other pitch slots (SL/CB/CH/CT/SNK/SPL/...) are integers 0-7.
  *
- * Real-roster files were written at three different times against three
- * different scales:
- *   1. Most files use primary=1 + secondaries 0-7 (correct).
- *   2. A few files (Big Ten Batch 3 UCLA, parts of SEC/ACC batches)
- *      pass a 3-7 "FB quality hint" as the primary slot. FB quality
- *      is already encoded in velocity/stuff/heater, so we collapse
- *      any non-zero primary to 1.
- *   3. Sun Belt, Big 12, Ivy League, and the AAC/WCC/MWC inline
- *      values use a 0-100 velocity-style scale. Those get bucketed
- *      down to 1-7 (80+ -> 7, 70-79 -> 6, ..., 1-29 -> 1).
+ * Canonical usage — all new roster files should call:
+ *   pitchMix(1, [2S, SL, CB, CH, CT, SNK, SPL])
+ * where secondaries are 0-7 integers.
  *
- * pitchMix() is the canonical helper for new roster code; existing
- * roster files were updated to import from this module instead of
- * defining their own per-file copy.
+ * Defensive coercions (applied automatically, logged once per context):
+ *   - Primary > 1: collapsed to 1. pitchFB is binary; FB quality lives
+ *     in the velocity/stuff/heater attributes, not this slot.
+ *   - Any secondary value >= 30: the entire array is treated as a
+ *     0-100 quality scale and bucketed to 1-7
+ *     (80+ → 7, 70-79 → 6, 60-69 → 5, 50-59 → 4, 40-49 → 3,
+ *      30-39 → 2, 1-29 → 1). The threshold 30 is chosen to distinguish
+ *     true 0-100 inputs from a near-schema array that simply has a
+ *     stray 8.
+ *   - 2S secondary is always re-binarized after any other coercion.
  *
  * pitchMix() emits a single `[roster-sanity]` console.warn the first
- * time it has to coerce a given context, so future regressions are
- * surfaced without log spam.
+ * time it has to coerce a given context, so regressions are surfaced
+ * without log spam.
  */
 
 export interface PitchMix {
@@ -75,15 +75,16 @@ function coerceSecondary(v: number, useBucket: boolean): number {
  * primary    Any non-zero value -> pitchFB = 1 (FB is binary; quality
  *            lives in velocity/stuff/heater).
  * secondary  Positional 7-element array: [2S, SL, CB, CH, CT, SNK, SPL].
- *            If the largest value is > 7 the whole array is treated as
- *            a 0-100 quality scale and bucketed to 1-7.
+ *            If the largest value is >= 30 (VELOCITY_SCALE_THRESHOLD),
+ *            the whole array is treated as a 0-100 quality scale and
+ *            bucketed to 1-7.
  *            2S is then re-binarized (0 or 1).
  */
 // Threshold for distinguishing a 0-100 quality scale from a near-schema
-// 0-7 scale that just has a stray out-of-range value. The known 0-100
-// roster files (Sun Belt, Big 12, Ivy, AAC/WCC/MWC inline) all have
-// max >= 70, so 30 is a safe boundary that preserves the relative
-// arsenal for files that simply pass an 8 by mistake.
+// 0-7 scale that just has a stray out-of-range value. Roster files that
+// use 0-100 quality scales typically have a max >= 70, so 30 is a safe
+// boundary that preserves the relative arsenal for files that simply
+// pass an 8 by mistake.
 const VELOCITY_SCALE_THRESHOLD = 30;
 
 export function pitchMix(primary: number, secondary: number[], context: string = "anonymous"): PitchMix {
