@@ -207,6 +207,8 @@ export default function RecruitingPage() {
     type: "success" | "error";
     icon?: "check" | "phone" | "email" | "visit" | "coach" | "offer" | "scout";
   } | null>(null);
+  const [showSaveClassDialog, setShowSaveClassDialog] = useState(false);
+  const [saveClassName, setSaveClassName] = useState("");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -367,6 +369,25 @@ export default function RecruitingPage() {
     localStorage.setItem(recapDismissKey, "1");
     setRecapDismissed(true);
   };
+
+  const saveClassMutation = useMutation({
+    mutationFn: async (name: string) => {
+      const recruits = data?.recruits || [];
+      return apiRequest("POST", `/api/saved-recruiting-classes`, {
+        name,
+        recruitCount: recruits.length,
+        classData: recruits,
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "Class Saved", description: "Recruiting class saved to your dashboard." });
+      setShowSaveClassDialog(false);
+      setSaveClassName("");
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to save recruiting class.", variant: "destructive" });
+    },
+  });
 
   const scoutMutation = useMutation({
     mutationFn: async (recruitId: string) => {
@@ -658,7 +679,7 @@ export default function RecruitingPage() {
             <Link href={`/league/${id}`} className="text-muted-foreground hover:text-gold transition-colors">
               <ArrowLeft className="w-5 h-5" />
             </Link>
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1 flex-1">
               <Breadcrumb>
                 <BreadcrumbList>
                   <BreadcrumbItem>
@@ -680,6 +701,20 @@ export default function RecruitingPage() {
               </Breadcrumb>
               <h1 className="font-pixel text-gold text-lg">Recruiting</h1>
             </div>
+            {data?.recruits && (
+              <RetroButton
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setSaveClassName(`${data.team?.name || "My Team"} Class - Season ${leagueData?.currentSeason ?? 1}`);
+                  setShowSaveClassDialog(true);
+                }}
+                data-testid="button-save-class-file"
+              >
+                <Save className="w-3 h-3 mr-1" />
+                Save Class File
+              </RetroButton>
+            )}
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
@@ -1497,6 +1532,43 @@ export default function RecruitingPage() {
         hasVisited={selectedRecruit ? (data?.premiumActionsUsed?.[selectedRecruit.id]?.includes("visit") ?? false) : false}
         hasHeadCoachVisited={selectedRecruit ? (data?.premiumActionsUsed?.[selectedRecruit.id]?.includes("head_coach_visit") ?? false) : false}
       />
+
+      <Dialog open={showSaveClassDialog} onOpenChange={(open) => { if (!open) setShowSaveClassDialog(false); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-pixel text-gold text-sm">Save Recruiting Class</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              This saves a snapshot of the current recruiting class ({data?.recruits?.length || 0} recruits) to your dashboard.
+            </p>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">File Name</label>
+              <input
+                className="w-full bg-card border border-border rounded px-3 py-2 text-sm focus:outline-none focus:border-gold"
+                value={saveClassName}
+                onChange={(e) => setSaveClassName(e.target.value)}
+                placeholder="e.g. My Team Class - Season 1"
+                maxLength={80}
+                data-testid="input-save-class-name"
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <RetroButton variant="outline" size="sm" onClick={() => setShowSaveClassDialog(false)}>
+                Cancel
+              </RetroButton>
+              <RetroButton
+                size="sm"
+                onClick={() => saveClassMutation.mutate(saveClassName.trim() || "My Recruiting Class")}
+                disabled={saveClassMutation.isPending || !saveClassName.trim()}
+                data-testid="button-confirm-save-class"
+              >
+                {saveClassMutation.isPending ? "Saving..." : "Save"}
+              </RetroButton>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!actionResultModal} onOpenChange={() => setActionResultModal(null)}>
         <DialogContent className="max-w-sm border-2 border-[#1a3a1a] bg-[#0d1f0d]" data-testid="action-result-modal">

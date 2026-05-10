@@ -29,7 +29,8 @@ import {
   ArrowUp,
   ArrowDown,
   Wand2,
-  X
+  X,
+  FolderDown
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Player, Team, Coach, League } from "@shared/schema";
@@ -74,6 +75,8 @@ export default function RosterPage() {
   const [eligibilityFilter, setEligibilityFilter] = useState("all");
   const [viewingTeamId, setViewingTeamId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"list" | "depth">("list");
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [saveFileName, setSaveFileName] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -107,6 +110,26 @@ export default function RosterPage() {
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to update player", variant: "destructive" });
+    },
+  });
+
+  const saveRosterMutation = useMutation({
+    mutationFn: async (name: string) => {
+      const team = data?.team;
+      const players = data?.players || [];
+      return apiRequest("POST", `/api/saved-rosters`, {
+        name,
+        basedOn: team ? `${team.name} (Season ${leagueData?.league?.currentSeason ?? 1})` : "NCAA 2026",
+        rosterData: players,
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "Roster Saved", description: `Roster file saved to your dashboard.` });
+      setShowSaveDialog(false);
+      setSaveFileName("");
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to save roster file.", variant: "destructive" });
     },
   });
 
@@ -188,6 +211,20 @@ export default function RosterPage() {
                     ))}
                   </select>
                 </div>
+              )}
+              {!viewingTeamId && data?.players && (
+                <RetroButton
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSaveFileName(`${data.team?.name || "My Team"} - Season ${leagueData?.league?.currentSeason ?? 1}`);
+                    setShowSaveDialog(true);
+                  }}
+                  data-testid="button-save-roster-file"
+                >
+                  <FolderDown className="w-3 h-3 mr-1" />
+                  Save File
+                </RetroButton>
               )}
               <span className="text-sm text-muted-foreground shrink-0">
                 {data?.players.length || 0} Players
@@ -324,6 +361,42 @@ export default function RosterPage() {
           isSaving={updatePlayerMutation.isPending}
         />
       )}
+
+      <Dialog open={showSaveDialog} onOpenChange={(open) => { if (!open) setShowSaveDialog(false); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-pixel text-gold text-sm">Save Roster File</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              This saves a snapshot of your current roster ({data?.players?.length || 0} players) to your dashboard.
+            </p>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">File Name</label>
+              <RetroInput
+                value={saveFileName}
+                onChange={(e) => setSaveFileName(e.target.value)}
+                placeholder="e.g. My Team - Season 1"
+                maxLength={80}
+                data-testid="input-save-roster-name"
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <RetroButton variant="outline" size="sm" onClick={() => setShowSaveDialog(false)}>
+                Cancel
+              </RetroButton>
+              <RetroButton
+                size="sm"
+                onClick={() => saveRosterMutation.mutate(saveFileName.trim() || "My Roster")}
+                disabled={saveRosterMutation.isPending || !saveFileName.trim()}
+                data-testid="button-confirm-save-roster"
+              >
+                {saveRosterMutation.isPending ? "Saving..." : "Save"}
+              </RetroButton>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

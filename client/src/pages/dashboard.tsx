@@ -4,11 +4,11 @@ import { Link } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
 import { TeamBadge } from "@/components/ui/team-badge";
-import { Plus, Trophy, Users, Calendar, Settings, LogOut, Trash2, Star, UserCheck, BookOpen } from "lucide-react";
+import { Plus, Trophy, Users, Calendar, LogOut, Trash2, UserCheck, BookOpen, FolderOpen, GraduationCap } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import type { League, Team, Coach } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
-import { apiRequest, queryClient as qc } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 interface LeagueWithDetails extends League {
@@ -17,36 +17,26 @@ interface LeagueWithDetails extends League {
   userTeam?: Team;
 }
 
-interface RosterSummary {
-  leagueId: string;
-  leagueName: string;
-  teamId: string;
-  teamName: string;
-  mascot: string;
-  abbreviation: string;
-  primaryColor: string;
-  secondaryColor: string;
-  playerCount: number;
-  avgOvr: number;
-  starPlayers: number;
+interface SavedRoster {
+  id: string;
+  userId: string;
+  name: string;
+  description: string | null;
+  basedOn: string;
+  rosterData: any[];
+  createdAt: string | null;
+  updatedAt: string | null;
 }
 
-interface RecruitingSummary {
-  leagueId: string;
-  leagueName: string;
-  teamId: string;
-  teamName: string;
-  abbreviation: string;
-  primaryColor: string;
-  secondaryColor: string;
-  totalRecruits: number;
-  committed: number;
-  phase: string;
-}
-
-interface DashboardSummaries {
-  rosters: RosterSummary[];
-  recruiting: RecruitingSummary[];
+interface SavedRecruitingClass {
+  id: string;
+  userId: string;
+  name: string;
+  description: string | null;
+  recruitCount: number;
+  classData: any[];
+  createdAt: string | null;
+  updatedAt: string | null;
 }
 
 export default function DashboardPage() {
@@ -58,8 +48,12 @@ export default function DashboardPage() {
     queryKey: ["/api/leagues"],
   });
 
-  const { data: summaries } = useQuery<DashboardSummaries>({
-    queryKey: ["/api/dashboard/summaries"],
+  const { data: savedRosters = [], isLoading: rostersLoading } = useQuery<SavedRoster[]>({
+    queryKey: ["/api/saved-rosters"],
+  });
+
+  const { data: savedRecruitingClasses = [], isLoading: classesLoading } = useQuery<SavedRecruitingClass[]>({
+    queryKey: ["/api/saved-recruiting-classes"],
   });
 
   return (
@@ -90,6 +84,7 @@ export default function DashboardPage() {
       </header>
 
       <main className="container mx-auto px-4 py-8">
+        {/* Dynasties */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div>
             <h1 className="font-pixel text-gold text-xl mb-2">Your Dynasties</h1>
@@ -124,109 +119,206 @@ export default function DashboardPage() {
           <EmptyState />
         )}
 
-        {summaries && summaries.rosters.length > 0 && (
-          <div className="mt-10">
-            <h2 className="font-pixel text-gold text-lg mb-4" data-testid="section-rosters">Your Rosters</h2>
+        {/* Saved Rosters */}
+        <div className="mt-10">
+          <h2 className="font-pixel text-gold text-lg mb-4" data-testid="section-rosters">Your Rosters</h2>
+          {rostersLoading ? (
             <div className="grid md:grid-cols-2 gap-6">
-              {summaries.rosters.map((roster) => (
-                <Link key={roster.leagueId} href={`/league/${roster.leagueId}/roster`}>
-                  <RetroCard className="hover:border-gold/50 transition-colors cursor-pointer" data-testid={`card-roster-${roster.leagueId}`}>
-                    <RetroCardContent>
-                      <div className="flex items-center gap-4 mb-4">
-                        <TeamBadge
-                          abbreviation={roster.abbreviation}
-                          primaryColor={roster.primaryColor}
-                          secondaryColor={roster.secondaryColor}
-                        />
-                        <div>
-                          <p className="font-medium text-foreground">
-                            {roster.teamName} {roster.mascot}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {roster.leagueName}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-3 gap-4 text-center">
-                        <div>
-                          <Users className="w-4 h-4 mx-auto text-muted-foreground mb-1" />
-                          <p className="text-xs text-muted-foreground">
-                            {roster.playerCount} Players
-                          </p>
-                        </div>
-                        <div>
-                          <Trophy className="w-4 h-4 mx-auto text-muted-foreground mb-1" />
-                          <p className="text-xs text-muted-foreground">
-                            {roster.avgOvr} Avg OVR
-                          </p>
-                        </div>
-                        <div>
-                          <Star className="w-4 h-4 mx-auto text-muted-foreground mb-1" />
-                          <p className="text-xs text-muted-foreground">
-                            {roster.starPlayers} Stars
-                          </p>
-                        </div>
-                      </div>
-                    </RetroCardContent>
-                  </RetroCard>
-                </Link>
+              {[1, 2].map((i) => (
+                <RetroCard key={i}>
+                  <Skeleton className="h-6 w-48 mb-4" />
+                  <Skeleton className="h-16 w-full" />
+                </RetroCard>
               ))}
             </div>
-          </div>
-        )}
+          ) : savedRosters.length > 0 ? (
+            <div className="grid md:grid-cols-2 gap-6">
+              {savedRosters.map((roster) => (
+                <SavedRosterCard key={roster.id} roster={roster} />
+              ))}
+            </div>
+          ) : (
+            <RosterEmptyState />
+          )}
+        </div>
 
-        {summaries && summaries.recruiting.length > 0 && (
-          <div className="mt-10">
-            <h2 className="font-pixel text-gold text-lg mb-4" data-testid="section-recruiting">Your Recruiting Classes</h2>
+        {/* Saved Recruiting Classes */}
+        <div className="mt-10">
+          <h2 className="font-pixel text-gold text-lg mb-4" data-testid="section-recruiting">Your Recruiting Classes</h2>
+          {classesLoading ? (
             <div className="grid md:grid-cols-2 gap-6">
-              {summaries.recruiting.map((rec) => (
-                <Link key={rec.leagueId} href={`/league/${rec.leagueId}/recruiting`}>
-                  <RetroCard className="hover:border-gold/50 transition-colors cursor-pointer" data-testid={`card-recruiting-${rec.leagueId}`}>
-                    <RetroCardContent>
-                      <div className="flex items-center gap-4 mb-4">
-                        <TeamBadge
-                          abbreviation={rec.abbreviation}
-                          primaryColor={rec.primaryColor}
-                          secondaryColor={rec.secondaryColor}
-                        />
-                        <div>
-                          <p className="font-medium text-foreground">
-                            {rec.teamName}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {rec.leagueName}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-3 gap-4 text-center">
-                        <div>
-                          <BookOpen className="w-4 h-4 mx-auto text-muted-foreground mb-1" />
-                          <p className="text-xs text-muted-foreground">
-                            {rec.totalRecruits} Recruits
-                          </p>
-                        </div>
-                        <div>
-                          <UserCheck className="w-4 h-4 mx-auto text-muted-foreground mb-1" />
-                          <p className="text-xs text-muted-foreground">
-                            {rec.committed} Committed
-                          </p>
-                        </div>
-                        <div>
-                          <Calendar className="w-4 h-4 mx-auto text-muted-foreground mb-1" />
-                          <p className="text-xs text-muted-foreground">
-                            {rec.phase === "dynasty_setup" ? "Setup" : rec.phase.includes("recruiting") ? "Recruiting" : "Season"}
-                          </p>
-                        </div>
-                      </div>
-                    </RetroCardContent>
-                  </RetroCard>
-                </Link>
+              {[1, 2].map((i) => (
+                <RetroCard key={i}>
+                  <Skeleton className="h-6 w-48 mb-4" />
+                  <Skeleton className="h-16 w-full" />
+                </RetroCard>
               ))}
             </div>
-          </div>
-        )}
+          ) : savedRecruitingClasses.length > 0 ? (
+            <div className="grid md:grid-cols-2 gap-6">
+              {savedRecruitingClasses.map((rc) => (
+                <SavedRecruitingClassCard key={rc.id} rc={rc} />
+              ))}
+            </div>
+          ) : (
+            <RecruitingEmptyState />
+          )}
+        </div>
       </main>
     </div>
+  );
+}
+
+function SavedRosterCard({ roster }: { roster: SavedRoster }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const deleteMutation = useMutation({
+    mutationFn: () => apiRequest("DELETE", `/api/saved-rosters/${roster.id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/saved-rosters"] });
+      toast({ title: "Roster Deleted", description: `"${roster.name}" has been deleted.` });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to delete roster.", variant: "destructive" });
+    },
+  });
+
+  const players = Array.isArray(roster.rosterData) ? roster.rosterData : [];
+  const playerCount = players.length;
+  const avgOvr = playerCount > 0
+    ? Math.round(players.reduce((s: number, p: any) => s + (p.overall || 0), 0) / playerCount)
+    : 0;
+  const savedDate = roster.createdAt ? new Date(roster.createdAt).toLocaleDateString() : "";
+
+  return (
+    <RetroCard className="hover:border-gold/50 transition-colors" data-testid={`card-saved-roster-${roster.id}`}>
+      <RetroCardHeader className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2 min-w-0">
+          <FolderOpen className="w-4 h-4 text-gold shrink-0" />
+          <span className="font-pixel text-sm text-gold truncate">{roster.name}</span>
+        </div>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <RetroButton variant="ghost" size="sm" data-testid={`button-delete-roster-${roster.id}`}>
+              <Trash2 className="w-3 h-3 text-red-400" />
+            </RetroButton>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Roster File</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete "{roster.name}"? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => deleteMutation.mutate()}
+                className="bg-red-600 hover:bg-red-700"
+                data-testid={`button-confirm-delete-roster-${roster.id}`}
+              >
+                {deleteMutation.isPending ? "Deleting..." : "Delete"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </RetroCardHeader>
+      <RetroCardContent>
+        <div className="flex items-center gap-2 mb-3 text-xs text-muted-foreground">
+          <span>{roster.basedOn}</span>
+          {savedDate && <><span>·</span><span>{savedDate}</span></>}
+        </div>
+        <div className="grid grid-cols-2 gap-4 text-center">
+          <div>
+            <Users className="w-4 h-4 mx-auto text-muted-foreground mb-1" />
+            <p className="text-xs text-muted-foreground">{playerCount} Players</p>
+          </div>
+          <div>
+            <Trophy className="w-4 h-4 mx-auto text-muted-foreground mb-1" />
+            <p className="text-xs text-muted-foreground">{avgOvr > 0 ? `${avgOvr} Avg OVR` : "—"}</p>
+          </div>
+        </div>
+        {roster.description && (
+          <p className="text-xs text-muted-foreground mt-3 italic">{roster.description}</p>
+        )}
+      </RetroCardContent>
+    </RetroCard>
+  );
+}
+
+function SavedRecruitingClassCard({ rc }: { rc: SavedRecruitingClass }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const deleteMutation = useMutation({
+    mutationFn: () => apiRequest("DELETE", `/api/saved-recruiting-classes/${rc.id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/saved-recruiting-classes"] });
+      toast({ title: "Recruiting Class Deleted", description: `"${rc.name}" has been deleted.` });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to delete recruiting class.", variant: "destructive" });
+    },
+  });
+
+  const recruits = Array.isArray(rc.classData) ? rc.classData : [];
+  const classSize = recruits.length || rc.recruitCount;
+  const committed = recruits.filter((r: any) => r.signedTeamId || r.stage === "signed").length;
+  const savedDate = rc.createdAt ? new Date(rc.createdAt).toLocaleDateString() : "";
+
+  return (
+    <RetroCard className="hover:border-gold/50 transition-colors" data-testid={`card-saved-class-${rc.id}`}>
+      <RetroCardHeader className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2 min-w-0">
+          <GraduationCap className="w-4 h-4 text-gold shrink-0" />
+          <span className="font-pixel text-sm text-gold truncate">{rc.name}</span>
+        </div>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <RetroButton variant="ghost" size="sm" data-testid={`button-delete-class-${rc.id}`}>
+              <Trash2 className="w-3 h-3 text-red-400" />
+            </RetroButton>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Recruiting Class</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete "{rc.name}"? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => deleteMutation.mutate()}
+                className="bg-red-600 hover:bg-red-700"
+                data-testid={`button-confirm-delete-class-${rc.id}`}
+              >
+                {deleteMutation.isPending ? "Deleting..." : "Delete"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </RetroCardHeader>
+      <RetroCardContent>
+        {savedDate && (
+          <div className="text-xs text-muted-foreground mb-3">{savedDate}</div>
+        )}
+        <div className="grid grid-cols-2 gap-4 text-center">
+          <div>
+            <BookOpen className="w-4 h-4 mx-auto text-muted-foreground mb-1" />
+            <p className="text-xs text-muted-foreground">{classSize} Recruits</p>
+          </div>
+          <div>
+            <UserCheck className="w-4 h-4 mx-auto text-muted-foreground mb-1" />
+            <p className="text-xs text-muted-foreground">{committed} Signed</p>
+          </div>
+        </div>
+        {rc.description && (
+          <p className="text-xs text-muted-foreground mt-3 italic">{rc.description}</p>
+        )}
+      </RetroCardContent>
+    </RetroCard>
   );
 }
 
@@ -370,6 +462,30 @@ function EmptyState() {
           Create Your First Dynasty
         </RetroButton>
       </Link>
+    </RetroCard>
+  );
+}
+
+function RosterEmptyState() {
+  return (
+    <RetroCard variant="bordered" className="text-center py-8">
+      <FolderOpen className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+      <p className="font-pixel text-muted-foreground text-xs mb-2">No Saved Rosters</p>
+      <p className="text-muted-foreground text-sm max-w-sm mx-auto">
+        Open your dynasty's roster page and use "Save Roster File" to create a snapshot here.
+      </p>
+    </RetroCard>
+  );
+}
+
+function RecruitingEmptyState() {
+  return (
+    <RetroCard variant="bordered" className="text-center py-8">
+      <GraduationCap className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+      <p className="font-pixel text-muted-foreground text-xs mb-2">No Saved Recruiting Classes</p>
+      <p className="text-muted-foreground text-sm max-w-sm mx-auto">
+        Open your dynasty's recruiting page and use "Save Class File" to create a snapshot here.
+      </p>
     </RetroCard>
   );
 }
