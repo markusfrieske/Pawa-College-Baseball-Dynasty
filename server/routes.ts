@@ -772,7 +772,12 @@ export async function registerRoutes(
       const teamMap = new Map(leagueTeams.map(t => [t.id, t]));
 
       // Rivalry computation: use recruit_top_schools combined interest (interestLevel + accumulatedInterest)
-      // as the canonical interest signal. Threshold 80 = 50 prestige baseline + 30 active recruitment.
+      // as the canonical interest signal.
+      // RIVALRY_INTEREST_THRESHOLD: combined baseline prestige (default 50) + meaningful active
+      // recruiting accumulation (30). A school must exceed this sum to count as an active rival.
+      const RIVALRY_INTEREST_THRESHOLD = 80;
+      // RIVALRY_INTENSITY_CUTOFFS: school counts that define Light / Moderate / Heavy labels.
+      const RIVALRY_INTENSITY_CUTOFFS = { moderate: 2, heavy: 4 } as const;
       const allLeagueTopSchools = await storage.getRecruitTopSchoolsByLeague(league.id);
       const cpuDifficulty = league.cpuDifficulty || "high_school";
       const cpuCountsForRivalry = cpuDifficulty === "all_american" || cpuDifficulty === "elite";
@@ -781,7 +786,7 @@ export async function registerRoutes(
       for (const ts of allLeagueTopSchools) {
         if (ts.teamId === userTeam.id) continue;
         if (!ts.isActive) continue;
-        if ((ts.interestLevel || 0) + (ts.accumulatedInterest || 0) < 80) continue;
+        if ((ts.interestLevel || 0) + (ts.accumulatedInterest || 0) < RIVALRY_INTEREST_THRESHOLD) continue;
         const tsTeam = teamMap.get(ts.teamId);
         if (!tsTeam) continue;
         if (tsTeam.isCpu && !cpuCountsForRivalry) continue;
@@ -874,8 +879,8 @@ export async function registerRoutes(
         const competingCount = userScoutPct >= 25 ? rawCompetingCount : null;
         const competingIntensity: string | null =
           competingCount === null || competingCount === 0 ? null :
-          competingCount === 1 ? "Light" :
-          competingCount <= 3 ? "Moderate" : "Heavy";
+          competingCount < RIVALRY_INTENSITY_CUTOFFS.moderate ? "Light" :
+          competingCount < RIVALRY_INTENSITY_CUTOFFS.heavy ? "Moderate" : "Heavy";
 
         return {
           ...recruit,

@@ -920,7 +920,7 @@ export default function RecruitProfilePage() {
                           </Badge>
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          Rival schools are counted when their combined prestige and recruiting activity crosses a meaningful threshold. Only human coaches and competitive CPU programs are tracked.
+                          Rival schools are counted when their accumulated recruiting interest for this player crosses a meaningful threshold. Only human coaches and competitive CPU programs are tracked.
                         </p>
                       </div>
                     )}
