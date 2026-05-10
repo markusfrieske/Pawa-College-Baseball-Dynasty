@@ -10,14 +10,14 @@ export const PAC12_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Dax", lastName: "Whitney", position: "P", eligibility: "SO", homeState: "ID", hometown: "Boise", jerseyNumber: 22,
       hitForAvg: 16, power: 12, speed: 38, arm: 86, fielding: 50, errorResistance: 54, velocity: 86, control: 80, stamina: 84, stuff: 90,
       clutch: 80, vsLHP: 76, grit: 82, stealing: 10, running: 34, throwing: 82, recovery: 70, wRISP: 76, vsLefty: 78, poise: 82, heater: 86, agile: 44,
-      abilities: ["Ace", "Doctor K", "Filthy Breaking Ball", "Decisive", "Winner's Luck"], potential: "A+", catcherAbility: null,
+      abilities: ["Star of Victory", "Doctor K", "Sharpness", "Decisive", "Winner's Luck"], potential: "A+", catcherAbility: null,
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 8, 7, 5, 0, 0, 0]) },
     // Ethan Kleinschmit — Saturday LHP JR, 3.56/113K/91 IP, JUCO transfer
     { firstName: "Ethan", lastName: "Kleinschmit", position: "P", eligibility: "JR", homeState: "NE", hometown: "Omaha", jerseyNumber: 29,
       hitForAvg: 15, power: 12, speed: 34, arm: 80, fielding: 46, errorResistance: 50, velocity: 78, control: 80, stamina: 82, stuff: 80,
       clutch: 76, vsLHP: 78, grit: 76, stealing: 9, running: 32, throwing: 76, recovery: 68, wRISP: 72, vsLefty: 78, poise: 76, heater: 78, agile: 42,
-      abilities: ["Strong Starter", "LOOGY", "Pinpoint", "Star of Victory", "Gear Change", "Full Throttle"], potential: "A", catcherAbility: null,
+      abilities: ["Strong Starter", "Fireman", "Inside Pitch", "Star of Victory", "Gear Change", "Full Throttle"], potential: "A", catcherAbility: null,
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 7, 6, 6, 0, 0, 0]) },
     // Eric Segura — Sunday RHP, proven potency
@@ -38,7 +38,7 @@ export const PAC12_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Trey", lastName: "Morris", position: "P", eligibility: "JR", homeState: "CA", hometown: "San Diego", jerseyNumber: 33,
       hitForAvg: 13, power: 10, speed: 32, arm: 70, fielding: 44, errorResistance: 46, velocity: 70, control: 74, stamina: 70, stuff: 70,
       clutch: 68, vsLHP: 62, grit: 68, stealing: 8, running: 30, throwing: 68, recovery: 60, wRISP: 62, vsLefty: 62, poise: 68, heater: 70, agile: 40,
-      abilities: ["Strong Starter", "Workhorse", "Indomitable Soul"], potential: "B+", catcherAbility: null,
+      abilities: ["Strong Starter", "Guts", "Indomitable Soul"], potential: "B+", catcherAbility: null,
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 6, 5, 6, 0, 0, 0]) },
     // James DeCremer III — RHP RP
@@ -59,7 +59,7 @@ export const PAC12_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Jake", lastName: "Pfennigs", position: "P", eligibility: "JR", homeState: "WA", hometown: "Spokane", jerseyNumber: 25,
       hitForAvg: 12, power: 9, speed: 30, arm: 64, fielding: 40, errorResistance: 42, velocity: 66, control: 64, stamina: 60, stuff: 64,
       clutch: 60, vsLHP: 56, grit: 60, stealing: 8, running: 28, throwing: 62, recovery: 54, wRISP: 56, vsLefty: 56, poise: 60, heater: 66, agile: 36,
-      abilities: ["Workhorse", "Flyball Pitcher", "Cross Cannon"], potential: "B+", catcherAbility: null,
+      abilities: ["Guts", "Flyball Pitcher", "Cross Cannon"], potential: "B+", catcherAbility: null,
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 5, 5, 5, 0, 0, 0]) },
     // Sam Keller — SO RHP RP
@@ -194,7 +194,7 @@ export const PAC12_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Zach", lastName: "DeVito", position: "P", eligibility: "JR", homeState: "WA", hometown: "Seattle", jerseyNumber: 29,
       hitForAvg: 13, power: 10, speed: 32, arm: 57, fielding: 39, errorResistance: 40, velocity: 59, control: 56, stamina: 57, stuff: 57,
       clutch: 52, vsLHP: 49, grit: 54, stealing: 9, running: 29, throwing: 56, recovery: 50, wRISP: 50, vsLefty: 52, poise: 54, heater: 57, agile: 36,
-      abilities: ["Workhorse", "True Slider", "Constant Speed"], potential: "B", catcherAbility: null,
+      abilities: ["Guts", "True Slider", "Constant Speed"], potential: "B", catcherAbility: null,
       ...pitchMix(1, [0, 5, 5, 4, 0, 0, 0]) },
     { firstName: "Josh", lastName: "Petersen", position: "P", eligibility: "JR", homeState: "ID", hometown: "Boise", jerseyNumber: 38,
       hitForAvg: 14, power: 11, speed: 36, arm: 60, fielding: 42, errorResistance: 43, velocity: 61, control: 57, stamina: 60, stuff: 60,

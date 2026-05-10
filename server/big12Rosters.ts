@@ -10,14 +10,14 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Dominic", lastName: "Voegele", position: "P", eligibility: "JR", homeState: "KS", hometown: "Lawrence", jerseyNumber: 22,
       hitForAvg: 14, power: 11, speed: 36, arm: 86, fielding: 50, errorResistance: 54, velocity: 86, control: 84, stamina: 84, stuff: 86,
       clutch: 82, vsLHP: 76, grit: 84, stealing: 8, running: 32, throwing: 82, recovery: 68, wRISP: 78, vsLefty: 80, poise: 84, heater: 86, agile: 44,
-      abilities: ["Ace", "Doctor K", "Strong Starter"], potential: "A", catcherAbility: null,
+      abilities: ["Star of Victory", "Doctor K", "Strong Starter"], potential: "A", catcherAbility: null,
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(86, [0, 78, 72, 70, 0, 0, 0]) },
     // Mathis Nayral — Saturday JR RHP 6'5" France, 5.47 ERA
     { firstName: "Mathis", lastName: "Nayral", position: "P", eligibility: "JR", homeState: "FL", hometown: "Miami", jerseyNumber: 31,
       hitForAvg: 12, power: 10, speed: 30, arm: 76, fielding: 44, errorResistance: 48, velocity: 80, control: 70, stamina: 76, stuff: 76,
       clutch: 66, vsLHP: 62, grit: 68, stealing: 7, running: 28, throwing: 74, recovery: 60, wRISP: 64, vsLefty: 66, poise: 68, heater: 80, agile: 40,
-      abilities: ["Strong Starter", "Workhorse"], potential: "A-", catcherAbility: null,
+      abilities: ["Strong Starter", "Guts"], potential: "A-", catcherAbility: null,
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(80, [0, 72, 66, 62, 0, 0, 0]) },
     // Mason Cook — Sunday RHP, 4.95
@@ -38,7 +38,7 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Toby", lastName: "Scheidt", position: "P", eligibility: "SR", homeState: "RI", hometown: "Smithfield", jerseyNumber: 27,
       hitForAvg: 11, power: 9, speed: 30, arm: 76, fielding: 44, errorResistance: 48, velocity: 76, control: 80, stamina: 44, stuff: 80,
       clutch: 76, vsLHP: 60, grit: 76, stealing: 7, running: 28, throwing: 72, recovery: 56, wRISP: 72, vsLefty: 60, poise: 76, heater: 76, agile: 38,
-      abilities: ["Fireman", "Pinpoint"], potential: "A-", catcherAbility: null,
+      abilities: ["Fireman", "Inside Pitch"], potential: "A-", catcherAbility: null,
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(76, [70, 80, 0, 64, 0, 70, 0]) },
     // Riane Ritter — RP transfer St Thomas
@@ -52,7 +52,7 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Manning", lastName: "West", position: "P", eligibility: "SR", homeState: "KS", hometown: "Overland Park", jerseyNumber: 41,
       hitForAvg: 11, power: 9, speed: 30, arm: 70, fielding: 42, errorResistance: 46, velocity: 72, control: 72, stamina: 60, stuff: 70,
       clutch: 64, vsLHP: 60, grit: 64, stealing: 7, running: 28, throwing: 68, recovery: 56, wRISP: 60, vsLefty: 60, poise: 64, heater: 72, agile: 38,
-      abilities: ["Workhorse"], potential: "B+", catcherAbility: null,
+      abilities: ["Guts"], potential: "B+", catcherAbility: null,
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(72, [0, 66, 62, 58, 0, 0, 0]) },
     // Kannon Carr — RP returning, 50+ IP 2025
@@ -194,14 +194,14 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Maxx", lastName: "Yehl", position: "P", eligibility: "JR", homeState: "PA", hometown: "Pittsburgh", jerseyNumber: 19,
       hitForAvg: 13, power: 11, speed: 34, arm: 90, fielding: 50, errorResistance: 54, velocity: 86, control: 84, stamina: 86, stuff: 88,
       clutch: 84, vsLHP: 84, grit: 84, stealing: 8, running: 30, throwing: 82, recovery: 70, wRISP: 80, vsLefty: 84, poise: 86, heater: 86, agile: 42,
-      abilities: ["Ace", "Doctor K", "LOOGY"], potential: "A", catcherAbility: null,
+      abilities: ["Star of Victory", "Doctor K", "Fireman"], potential: "A", catcherAbility: null,
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(86, [0, 80, 74, 70, 0, 0, 0]) },
     // Chansen Cole — Saturday SO RHP, Big 12 Newcomer of Week, CG vs KSt 9K
     { firstName: "Chansen", lastName: "Cole", position: "P", eligibility: "SO", homeState: "WV", hometown: "Charleston", jerseyNumber: 22,
       hitForAvg: 13, power: 10, speed: 32, arm: 80, fielding: 46, errorResistance: 50, velocity: 80, control: 78, stamina: 80, stuff: 80,
       clutch: 76, vsLHP: 70, grit: 76, stealing: 8, running: 30, throwing: 76, recovery: 64, wRISP: 70, vsLefty: 72, poise: 76, heater: 80, agile: 40,
-      abilities: ["Strong Starter", "Pinpoint"], potential: "A", catcherAbility: null,
+      abilities: ["Strong Starter", "Inside Pitch"], potential: "A", catcherAbility: null,
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(80, [0, 74, 68, 64, 0, 0, 0]) },
     // Dawson Montesa — Sunday RHP
@@ -215,7 +215,7 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "David", lastName: "Perez", position: "P", eligibility: "JR", homeState: "PA", hometown: "Greensburg", jerseyNumber: 38,
       hitForAvg: 11, power: 9, speed: 32, arm: 80, fielding: 46, errorResistance: 48, velocity: 80, control: 80, stamina: 44, stuff: 80,
       clutch: 80, vsLHP: 74, grit: 78, stealing: 8, running: 30, throwing: 76, recovery: 56, wRISP: 76, vsLefty: 74, poise: 80, heater: 80, agile: 40,
-      abilities: ["Fireman", "Pinpoint"], potential: "A-", catcherAbility: null,
+      abilities: ["Fireman", "Inside Pitch"], potential: "A-", catcherAbility: null,
       skinTone: "tan", hairColor: "black", hairStyle: "short",
       ...pitchMix(80, [0, 74, 68, 64, 0, 0, 0]) },
     // Ian Korn — RP transfer Seton Hill, 3.22/1.03
@@ -375,7 +375,7 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Cole", lastName: "Carlon", position: "P", eligibility: "JR", homeState: "AZ", hometown: "Phoenix", jerseyNumber: 22,
       hitForAvg: 13, power: 11, speed: 32, arm: 82, fielding: 48, errorResistance: 50, velocity: 84, control: 80, stamina: 82, stuff: 82,
       clutch: 78, vsLHP: 72, grit: 78, stealing: 8, running: 30, throwing: 78, recovery: 66, wRISP: 74, vsLefty: 76, poise: 78, heater: 84, agile: 42,
-      abilities: ["Ace", "Strong Starter"], potential: "A", catcherAbility: null,
+      abilities: ["Star of Victory", "Strong Starter"], potential: "A", catcherAbility: null,
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(84, [0, 76, 70, 66, 0, 0, 0]) },
     // SP #2
@@ -396,7 +396,7 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Colin", lastName: "Linder", position: "P", eligibility: "JR", homeState: "AZ", hometown: "Scottsdale", jerseyNumber: 33,
       hitForAvg: 12, power: 10, speed: 32, arm: 78, fielding: 46, errorResistance: 48, velocity: 80, control: 78, stamina: 56, stuff: 78,
       clutch: 78, vsLHP: 72, grit: 76, stealing: 7, running: 30, throwing: 76, recovery: 58, wRISP: 74, vsLefty: 72, poise: 78, heater: 80, agile: 40,
-      abilities: ["Fireman", "Pinpoint"], potential: "A-", catcherAbility: null,
+      abilities: ["Fireman", "Inside Pitch"], potential: "A-", catcherAbility: null,
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(80, [0, 74, 68, 64, 0, 0, 0]) },
     // Closer
@@ -424,7 +424,7 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Jordan", lastName: "Sims", position: "P", eligibility: "SR", homeState: "AZ", hometown: "Tucson", jerseyNumber: 41,
       hitForAvg: 11, power: 9, speed: 30, arm: 68, fielding: 42, errorResistance: 44, velocity: 70, control: 70, stamina: 60, stuff: 68,
       clutch: 60, vsLHP: 56, grit: 60, stealing: 7, running: 28, throwing: 66, recovery: 56, wRISP: 56, vsLefty: 58, poise: 60, heater: 70, agile: 38,
-      abilities: ["Workhorse"], potential: "B", catcherAbility: null,
+      abilities: ["Guts"], potential: "B", catcherAbility: null,
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(70, [0, 64, 60, 56, 0, 0, 0]) },
     // SP/swing depth

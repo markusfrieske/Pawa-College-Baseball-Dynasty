@@ -614,7 +614,7 @@ import type { RealPlayer } from "./realRosters";
   ],
 
   "Gonzaga": [
-    { firstName: "Owen", lastName: "Wild", position: "P", eligibility: "JR", homeState: "WA", hometown: "Spokane", jerseyNumber: 15,
+    { firstName: "Owen", lastName: "Walk", position: "P", eligibility: "JR", homeState: "WA", hometown: "Spokane", jerseyNumber: 15,
         hitForAvg: 10, power: 14, speed: 36, arm: 84, fielding: 40, errorResistance: 47, velocity: 84, control: 85, stamina: 86, stuff: 85,
         clutch: 77, vsLHP: 71, grit: 83, stealing: 8, running: 35, throwing: 77, recovery: 71, wRISP: 77, vsLefty: 79, poise: 72, heater: 82, agile: 50,
         abilities: ["Star of Victory", "Explosive Fastball", "Grit", "Heavy Ball"], potential: "A", catcherAbility: null,
