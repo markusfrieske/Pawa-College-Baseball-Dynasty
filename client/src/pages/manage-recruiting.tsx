@@ -505,6 +505,7 @@ export default function ManageRecruitingPage() {
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [expandedRecruit, setExpandedRecruit] = useState<number | null>(null);
+  const [showGuestBanner, setShowGuestBanner] = useState(false);
 
   const { data: user } = useQuery<{ id: string; email: string } | null>({
     queryKey: ["/api/auth/me"],
@@ -561,6 +562,7 @@ export default function ManageRecruitingPage() {
     setEditingId(null);
     setClassName("");
     setClassDescription("");
+    if (!user) setShowGuestBanner(true);
     toast({ title: "Class Generated", description: "80 recruits have been generated." });
   };
 
@@ -951,6 +953,23 @@ export default function ManageRecruitingPage() {
                 </div>
               </RetroCardContent>
             </RetroCard>
+
+            {showGuestBanner && !user && (
+              <div
+                className="flex items-center justify-between gap-4 rounded border border-gold/40 bg-gold/10 px-4 py-3"
+                data-testid="banner-guest-save"
+              >
+                <div className="flex items-center gap-2">
+                  <LogIn className="w-4 h-4 text-gold shrink-0" />
+                  <span className="text-sm text-foreground">
+                    Sign in to save this class before it's gone
+                  </span>
+                </div>
+                <Link href="/login" className="font-pixel text-xs text-gold hover:underline whitespace-nowrap" data-testid="link-guest-signin">
+                  Sign In
+                </Link>
+              </div>
+            )}
           </>
         )}
 

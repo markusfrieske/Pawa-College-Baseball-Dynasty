@@ -1266,9 +1266,9 @@ function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leagueId, i
     .sort((a, b) => b.overall - a.overall);
 
   const rotationRoles = [
-    { role: "FRI", label: "Friday" },
-    { role: "SAT", label: "Saturday" },
-    { role: "SUN", label: "Sunday" },
+    { role: "FRI", label: "Fri" },
+    { role: "SAT", label: "Sat" },
+    { role: "SUN", label: "Sun" },
     { role: "MID", label: "Midweek" },
   ];
   const bullpenRoles = [

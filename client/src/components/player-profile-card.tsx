@@ -90,6 +90,7 @@ const positionColors: Record<string, string> = {
   "2B": "#daa520",
   SS: "#cd5c5c",
   "3B": "#4682b4",
+  OF: "#22c55e",
   LF: "#9370db",
   CF: "#20b2aa",
   RF: "#f4a460",
@@ -122,7 +123,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
     { label: "Speed", value: player.speed, delta: deltas?.speed },
     { label: "Arm", value: player.arm, delta: deltas?.arm },
     { label: "Fielding", value: player.fielding, delta: deltas?.fielding },
-    { label: "Error Resist", value: player.errorResistance, delta: deltas?.errorResistance },
+    { label: "Error", value: player.errorResistance, delta: deltas?.errorResistance },
   ];
 
   // Pitcher attributes
