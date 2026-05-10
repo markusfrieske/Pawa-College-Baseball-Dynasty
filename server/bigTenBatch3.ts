@@ -277,7 +277,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [6, 0, 0, 6, 0, 6, 0]) },
       // Grant Govel — RHP SO Friday/weekend, 9-1/2.55
-      { firstName: "Grant", lastName: "Govel", position: "P", eligibility: "SO", homeState: "CA", hometown: "San Diego", jerseyNumber: 27,
+      { firstName: "Grant", lastName: "Govel", position: "P", eligibility: "FR", homeState: "CA", hometown: "San Diego", jerseyNumber: 27,
         hitForAvg: 14, power: 10, speed: 32, arm: 76, fielding: 44, errorResistance: 46, velocity: 78, control: 76, stamina: 78, stuff: 76,
         clutch: 76, vsLHP: 70, grit: 76, stealing: 8, running: 30, throwing: 74, recovery: 64, wRISP: 70, vsLefty: 70, poise: 76, heater: 78, agile: 40,
         abilities: ["Strong Starter", "Inside Pitch", "Painter", "Guts", "Sangfroid"], potential: "A+", catcherAbility: null,
@@ -291,7 +291,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         skinTone: "tan", hairColor: "black", hairStyle: "short",
         ...pitchMix(1, [0, 6, 5, 5, 0, 0, 0]) },
       // Andrew Johnson — SO RHP swing, 4-2/3.75 in 60 IP (14 apps)
-      { firstName: "Andrew", lastName: "Johnson", position: "P", eligibility: "SO", homeState: "CA", hometown: "Thousand Oaks", jerseyNumber: 35,
+      { firstName: "Andrew", lastName: "Johnson", position: "P", eligibility: "FR", homeState: "CA", hometown: "Thousand Oaks", jerseyNumber: 35,
         hitForAvg: 12, power: 9, speed: 34, arm: 66, fielding: 40, errorResistance: 42, velocity: 70, control: 64, stamina: 70, stuff: 68,
         clutch: 60, vsLHP: 58, grit: 62, stealing: 8, running: 30, throwing: 66, recovery: 58, wRISP: 56, vsLefty: 58, poise: 62, heater: 70, agile: 40,
         abilities: ["Guts", "Pace", "Winner's Luck", "True Slider"], potential: "A-", catcherAbility: null,
@@ -326,14 +326,14 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 5, 5, 4, 0, 0, 0]) },
       // Jake Snider — SO RHP depth
-      { firstName: "Jake", lastName: "Snider", position: "P", eligibility: "SO", homeState: "CA", hometown: "Irvine", jerseyNumber: 48,
+      { firstName: "Jake", lastName: "Snider", position: "P", eligibility: "FR", homeState: "CA", hometown: "Irvine", jerseyNumber: 48,
         hitForAvg: 10, power: 8, speed: 28, arm: 48, fielding: 30, errorResistance: 32, velocity: 50, control: 46, stamina: 44, stuff: 48,
         clutch: 38, vsLHP: 36, grit: 40, stealing: 9, running: 26, throwing: 46, recovery: 38, wRISP: 36, vsLefty: 40, poise: 40, heater: 50, agile: 32,
         abilities: ["Groundball Pitcher"], potential: "B+", catcherAbility: null,
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 4, 4, 4, 0, 0, 0]) },
       // Alex Williams — SO RHP depth
-      { firstName: "Alex", lastName: "Williams", position: "P", eligibility: "SO", homeState: "CA", hometown: "Fresno", jerseyNumber: 50,
+      { firstName: "Alex", lastName: "Williams", position: "P", eligibility: "FR", homeState: "CA", hometown: "Fresno", jerseyNumber: 50,
         hitForAvg: 11, power: 9, speed: 30, arm: 52, fielding: 32, errorResistance: 34, velocity: 54, control: 50, stamina: 50, stuff: 52,
         clutch: 40, vsLHP: 38, grit: 42, stealing: 8, running: 28, throwing: 50, recovery: 40, wRISP: 38, vsLefty: 42, poise: 42, heater: 54, agile: 34,
         abilities: ["Halting Quickness"], potential: "B+", catcherAbility: null,

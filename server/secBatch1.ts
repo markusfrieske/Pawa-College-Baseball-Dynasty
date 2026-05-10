@@ -33,7 +33,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 5, 3, 4, 0, 0, 0]) },
     // Deven Sheerin — closer-type, 4.01 ERA, 4 SV, 13.6 K/9, upper-90s post-ACL
-    { firstName: "Deven", lastName: "Sheerin", position: "P", eligibility: "SO", homeState: "FL", hometown: "Orlando", jerseyNumber: 45,
+    { firstName: "Deven", lastName: "Sheerin", position: "P", eligibility: "FR", homeState: "FL", hometown: "Orlando", jerseyNumber: 45,
       hitForAvg: 11, power: 8, speed: 36, arm: 80, fielding: 42, errorResistance: 45, velocity: 86, control: 55, stamina: 38, stuff: 78,
       clutch: 70, vsLHP: 68, grit: 64, stealing: 7, running: 32, throwing: 76, recovery: 50, wRISP: 64, vsLefty: 68, poise: 70, heater: 72, agile: 50,
       abilities: ["Fireman", "Doctor K", "Showtime", "Crossfire"], potential: "B+", catcherAbility: null,
@@ -47,7 +47,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 5, 4, 3, 0, 0, 0]) },
     // Mavrick Rizy — high-leverage RP, 3.86 ERA, dominant Cape Cod
-    { firstName: "Mavrick", lastName: "Rizy", position: "P", eligibility: "SO", homeState: "MA", hometown: "Boston", jerseyNumber: 17,
+    { firstName: "Mavrick", lastName: "Rizy", position: "P", eligibility: "FR", homeState: "MA", hometown: "Boston", jerseyNumber: 17,
       hitForAvg: 10, power: 8, speed: 35, arm: 68, fielding: 42, errorResistance: 45, velocity: 76, control: 50, stamina: 32, stuff: 72,
       clutch: 62, vsLHP: 62, grit: 60, stealing: 6, running: 30, throwing: 66, recovery: 50, wRISP: 60, vsLefty: 62, poise: 62, heater: 65, agile: 48,
       abilities: ["Fireman", "Walk"], potential: "B+", catcherAbility: null,
@@ -61,14 +61,14 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "tan", hairColor: "black", hairStyle: "short",
       ...pitchMix(1, [0, 5, 3, 4, 0, 0, 0]) },
     // Danny Lachenmayer — LHP RP, 4.72 ERA, 14.9 K/9 in small sample
-    { firstName: "Danny", lastName: "Lachenmayer", position: "P", eligibility: "SO", homeState: "TX", hometown: "Houston", jerseyNumber: 28,
+    { firstName: "Danny", lastName: "Lachenmayer", position: "P", eligibility: "FR", homeState: "TX", hometown: "Houston", jerseyNumber: 28,
       hitForAvg: 10, power: 7, speed: 30, arm: 60, fielding: 40, errorResistance: 42, velocity: 66, control: 52, stamina: 28, stuff: 68,
       clutch: 56, vsLHP: 70, grit: 54, stealing: 5, running: 26, throwing: 58, recovery: 48, wRISP: 55, vsLefty: 70, poise: 56, heater: 58, agile: 44,
       abilities: ["Fireman", "Fireman"], potential: "B", catcherAbility: null,
       skinTone: "light", hairColor: "blonde", hairStyle: "short",
       ...pitchMix(1, [0, 4, 0, 4, 0, 0, 0]) },
     // Ethan Plog — LHP, JUCO transfer (Iowa Western), unique slot
-    { firstName: "Ethan", lastName: "Plog", position: "P", eligibility: "SO", homeState: "WI", hometown: "Green Bay", jerseyNumber: 38,
+    { firstName: "Ethan", lastName: "Plog", position: "P", eligibility: "FR", homeState: "WI", hometown: "Green Bay", jerseyNumber: 38,
       hitForAvg: 10, power: 7, speed: 28, arm: 56, fielding: 40, errorResistance: 42, velocity: 60, control: 56, stamina: 30, stuff: 60,
       clutch: 52, vsLHP: 64, grit: 54, stealing: 5, running: 24, throwing: 54, recovery: 46, wRISP: 52, vsLefty: 64, poise: 54, heater: 52, agile: 42,
       abilities: ["Fireman"], potential: "B-", catcherAbility: null,
@@ -188,7 +188,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       // 32-17/13-11 SEC, RPI #12, BA #13, Kevin O'Sullivan Yr 19. SOS #3, 7 SHO (2nd nation).
       // PITCHERS (10) — 1-8 pitch scale
       // Aidan King — Friday RHP SO, 4-2/1.62 ERA, National Pitcher of the Month — TEAM ELITE STUFF
-      { firstName: "Aidan", lastName: "King", position: "P", eligibility: "SO", homeState: "GA", hometown: "Savannah", jerseyNumber: 29,
+      { firstName: "Aidan", lastName: "King", position: "P", eligibility: "FR", homeState: "GA", hometown: "Savannah", jerseyNumber: 29,
         hitForAvg: 14, power: 11, speed: 36, arm: 80, fielding: 50, errorResistance: 54, velocity: 80, control: 84, stamina: 80, stuff: 90,
         clutch: 80, vsLHP: 76, grit: 80, stealing: 10, running: 34, throwing: 78, recovery: 70, wRISP: 80, vsLefty: 80, poise: 80, heater: 80, agile: 44,
         abilities: ["Star of Victory", "Doctor K", "Sharpness", "High Spin Gyroball", "Monster Stuff"], potential: "A+", catcherAbility: null,
@@ -274,7 +274,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         ...noPitches },
       // INFIELDERS (6)
       // Brendan Lawson — SS SO, top 2027 draft prospect, .317/10 HR/61 RBI as FR
-      { firstName: "Brendan", lastName: "Lawson", position: "SS", eligibility: "SO", homeState: "FL", hometown: "Miami", jerseyNumber: 2,
+      { firstName: "Brendan", lastName: "Lawson", position: "SS", eligibility: "FR", homeState: "FL", hometown: "Miami", jerseyNumber: 2,
         hitForAvg: 80, power: 76, speed: 64, arm: 70, fielding: 70, errorResistance: 64, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 80, vsLHP: 76, grit: 80, stealing: 38, running: 60, throwing: 70, recovery: 56, wRISP: 80, vsLefty: 76, poise: 80, heater: 0, agile: 64,
         abilities: ["Artist", "Defensive Artisan", "Consigliere"], potential: "A+", catcherAbility: null,
@@ -509,7 +509,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 6, 0, 5, 0, 0, 0]) },
     // Aiden Sims — Saturday SO RHP, 5-1/4.68, top weekend arm
-    { firstName: "Aiden", lastName: "Sims", position: "P", eligibility: "SO", homeState: "TX", hometown: "Austin", jerseyNumber: 22,
+    { firstName: "Aiden", lastName: "Sims", position: "P", eligibility: "FR", homeState: "TX", hometown: "Austin", jerseyNumber: 22,
       hitForAvg: 16, power: 12, speed: 34, arm: 76, fielding: 44, errorResistance: 46, velocity: 76, control: 72, stamina: 76, stuff: 76,
       clutch: 70, vsLHP: 66, grit: 70, stealing: 11, running: 33, throwing: 72, recovery: 62, wRISP: 64, vsLefty: 68, poise: 70, heater: 76, agile: 38,
       abilities: ["Strong Starter", "Sharpness", "Doctor K", "Flyball Pitcher"], potential: "A", catcherAbility: null,
@@ -852,7 +852,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 6, 0, 5, 0, 4, 0]) },
       // Aiden Sims — RHP, 3 straight quality road starts SEC (Florida/LSU/Missouri)
-      { firstName: "Aiden", lastName: "Sims", position: "P", eligibility: "SO", homeState: "AL", hometown: "Mobile", jerseyNumber: 36,
+      { firstName: "Aiden", lastName: "Sims", position: "P", eligibility: "FR", homeState: "AL", hometown: "Mobile", jerseyNumber: 36,
         hitForAvg: 13, power: 10, speed: 33, arm: 70, fielding: 42, errorResistance: 44, velocity: 72, control: 68, stamina: 68, stuff: 70,
         clutch: 64, vsLHP: 58, grit: 66, stealing: 8, running: 30, throwing: 68, recovery: 58, wRISP: 60, vsLefty: 60, poise: 66, heater: 72, agile: 40,
         abilities: ["Strong Starter", "Doctor K", "Flyball Pitcher"], potential: "A-", catcherAbility: null,
@@ -895,7 +895,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
       // Gage Oelke — SO C backup
-      { firstName: "Gage", lastName: "Oelke", position: "C", eligibility: "SO", homeState: "MS", hometown: "Meridian", jerseyNumber: 14,
+      { firstName: "Gage", lastName: "Oelke", position: "C", eligibility: "FR", homeState: "MS", hometown: "Meridian", jerseyNumber: 14,
         hitForAvg: 40, power: 36, speed: 28, arm: 46, fielding: 44, errorResistance: 40, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 38, vsLHP: 34, grit: 38, stealing: 10, running: 26, throwing: 46, recovery: 34, wRISP: 36, vsLefty: 32, poise: 38, heater: 0, agile: 28,
         abilities: ["Puller Hitter"], potential: "B+", catcherAbility: 42,

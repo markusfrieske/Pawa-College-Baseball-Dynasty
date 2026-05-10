@@ -1462,7 +1462,7 @@ export const MO_VALLEY_ROSTERS: Record<string, RealPlayer[]> = {
       clutch: 59, vsLHP: 57, grit: 61, stealing: 8, running: 29, throwing: 61, recovery: 57, wRISP: 57, vsLefty: 59, poise: 61, heater: 62, agile: 35,
       abilities: ["Star of Victory", "Fireman", "Guts"], potential: "A-", catcherAbility: null,
       ...pitchMix(1, [0, 7, 6, 5, 0, 0, 0]) },
-    { firstName: "Taylor", lastName: "Sinclair", position: "P", eligibility: "SO", homeState: "IA", hometown: "Indianola", jerseyNumber: 12,
+    { firstName: "Taylor", lastName: "Sinclair", position: "P", eligibility: "FR", homeState: "IA", hometown: "Indianola", jerseyNumber: 12,
       hitForAvg: 13, power: 9, speed: 32, arm: 56, fielding: 40, errorResistance: 42, velocity: 56, control: 55, stamina: 56, stuff: 56,
       clutch: 53, vsLHP: 51, grit: 55, stealing: 9, running: 29, throwing: 55, recovery: 51, wRISP: 51, vsLefty: 53, poise: 55, heater: 56, agile: 35,
       abilities: ["Strong Starter", "Guts"], potential: "B+", catcherAbility: null,

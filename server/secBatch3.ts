@@ -437,7 +437,7 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 6, 0, 5, 0, 4, 0]) },
       // Kadyn Leon — SO middle relief (transfer), 13.1 IP / 2 R / 12 K
-      { firstName: "Kadyn", lastName: "Leon", position: "P", eligibility: "SO", homeState: "TX", hometown: "El Paso", jerseyNumber: 36,
+      { firstName: "Kadyn", lastName: "Leon", position: "P", eligibility: "FR", homeState: "TX", hometown: "El Paso", jerseyNumber: 36,
         hitForAvg: 12, power: 10, speed: 34, arm: 68, fielding: 42, errorResistance: 44, velocity: 70, control: 68, stamina: 50, stuff: 70,
         clutch: 64, vsLHP: 60, grit: 64, stealing: 9, running: 32, throwing: 66, recovery: 54, wRISP: 60, vsLefty: 58, poise: 64, heater: 70, agile: 40,
         abilities: ["Fireman", "High Spin Gyroball", "Sharpness", "Crossfire"], potential: "A-", catcherAbility: null,
@@ -465,7 +465,7 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 5, 4, 5, 0, 0, 0]) },
       // Jaden Barfield — SO RHP
-      { firstName: "Jaden", lastName: "Barfield", position: "P", eligibility: "SO", homeState: "OK", hometown: "Norman", jerseyNumber: 37,
+      { firstName: "Jaden", lastName: "Barfield", position: "P", eligibility: "FR", homeState: "OK", hometown: "Norman", jerseyNumber: 37,
         hitForAvg: 12, power: 9, speed: 34, arm: 62, fielding: 40, errorResistance: 42, velocity: 64, control: 60, stamina: 60, stuff: 62,
         clutch: 54, vsLHP: 52, grit: 56, stealing: 10, running: 30, throwing: 60, recovery: 54, wRISP: 52, vsLefty: 56, poise: 56, heater: 64, agile: 38,
         abilities: ["Straddle", "Decisive"], potential: "A-", catcherAbility: null,
@@ -480,7 +480,7 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
       // Luke Hoffman — SO C backup
-      { firstName: "Luke", lastName: "Hoffman", position: "C", eligibility: "SO", homeState: "OK", hometown: "Lawton", jerseyNumber: 19,
+      { firstName: "Luke", lastName: "Hoffman", position: "C", eligibility: "FR", homeState: "OK", hometown: "Lawton", jerseyNumber: 19,
         hitForAvg: 42, power: 36, speed: 28, arm: 50, fielding: 46, errorResistance: 44, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 40, vsLHP: 38, grit: 42, stealing: 10, running: 26, throwing: 50, recovery: 34, wRISP: 38, vsLefty: 36, poise: 42, heater: 0, agile: 28,
         abilities: ["Emergency Strength", "Walkoff Hitter"], potential: "B+", catcherAbility: 44,
@@ -586,7 +586,7 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
   "Texas": [
     // PITCHERS (10) — staff: "the stuff on this staff is not fair"
     // Dylan Volantis — SO LHP, ELITE 6'6" sweeping knuckle curve, FR yr: 4-1/1.94/12 SV/74K, BA Frosh of Year, moved closer→Sun starter
-    { firstName: "Dylan", lastName: "Volantis", position: "P", eligibility: "SO", homeState: "TX", hometown: "Austin", jerseyNumber: 29,
+    { firstName: "Dylan", lastName: "Volantis", position: "P", eligibility: "FR", homeState: "TX", hometown: "Austin", jerseyNumber: 29,
       hitForAvg: 14, power: 11, speed: 42, arm: 88, fielding: 56, errorResistance: 60, velocity: 88, control: 80, stamina: 64, stuff: 92,
       clutch: 86, vsLHP: 80, grit: 86, stealing: 8, running: 36, throwing: 84, recovery: 64, wRISP: 84, vsLefty: 82, poise: 84, heater: 84, agile: 50,
       abilities: ["Star of Victory", "Doctor K", "Sharpness", "Halting Quickness", "Lefty Killer", "Natural Shuuto"], potential: "A+", catcherAbility: null,
@@ -664,7 +664,7 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...noPitches },
     // Chase Porter — SO backup C
-    { firstName: "Chase", lastName: "Porter", position: "C", eligibility: "SO", homeState: "TX", hometown: "Cypress", jerseyNumber: 16,
+    { firstName: "Chase", lastName: "Porter", position: "C", eligibility: "FR", homeState: "TX", hometown: "Cypress", jerseyNumber: 16,
       hitForAvg: 36, power: 32, speed: 28, arm: 50, fielding: 46, errorResistance: 44, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 36, vsLHP: 34, grit: 38, stealing: 8, running: 26, throwing: 50, recovery: 32, wRISP: 34, vsLefty: 32, poise: 36, heater: 0, agile: 30,
       abilities: ["Artist", "Unpredictable", "Good Bunt"], potential: "B+", catcherAbility: 46,

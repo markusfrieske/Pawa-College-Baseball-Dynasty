@@ -145,7 +145,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 7, 6, 5, 0, 0, 0]) },
       // Carson Jasa — SO RHP, weekend rotation
-      { firstName: "Carson", lastName: "Jasa", position: "P", eligibility: "SO", homeState: "NE", hometown: "Elkhorn", jerseyNumber: 31,
+      { firstName: "Carson", lastName: "Jasa", position: "P", eligibility: "FR", homeState: "NE", hometown: "Elkhorn", jerseyNumber: 31,
         hitForAvg: 13, power: 11, speed: 34, arm: 72, fielding: 42, errorResistance: 44, velocity: 76, control: 64, stamina: 60, stuff: 74,
         clutch: 60, vsLHP: 56, grit: 62, stealing: 9, running: 32, throwing: 68, recovery: 54, wRISP: 56, vsLefty: 58, poise: 60, heater: 76, agile: 38,
         abilities: ["Explosive Fastball", "Strong Starter"], potential: "A", catcherAbility: null,
@@ -756,7 +756,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
       // Cole Hendrickson — OF FR
-      { firstName: "Cole", lastName: "Hendrickson", position: "OF", eligibility: "FR", homeState: "OR", hometown: "Springfield", jerseyNumber: 26,
+      { firstName: "Cole", lastName: "Hendrickson", position: "OF", eligibility: "SO", homeState: "OR", hometown: "Springfield", jerseyNumber: 26,
         hitForAvg: 30, power: 26, speed: 40, arm: 38, fielding: 34, errorResistance: 32, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 28, vsLHP: 26, grit: 30, stealing: 26, running: 38, throwing: 40, recovery: 28, wRISP: 26, vsLefty: 26, poise: 28, heater: 0, agile: 42,
         abilities: ["Inside Hitter"], potential: "A-", catcherAbility: null,

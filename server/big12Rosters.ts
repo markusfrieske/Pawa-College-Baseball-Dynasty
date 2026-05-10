@@ -121,14 +121,14 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...noPitches },
     // SS depth
-    { firstName: "Mason", lastName: "Tarply", position: "SS", eligibility: "SO", homeState: "KS", hometown: "Topeka", jerseyNumber: 2,
+    { firstName: "Mason", lastName: "Tarply", position: "SS", eligibility: "FR", homeState: "KS", hometown: "Topeka", jerseyNumber: 2,
       hitForAvg: 44, power: 36, speed: 56, arm: 56, fielding: 56, errorResistance: 52, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 42, vsLHP: 40, grit: 44, stealing: 28, running: 50, throwing: 56, recovery: 38, wRISP: 40, vsLefty: 38, poise: 42, heater: 0, agile: 56,
       abilities: ["Defensive Artisan"], potential: "B+", catcherAbility: null,
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...noPitches },
     // 2B depth
-    { firstName: "Daniel", lastName: "Brooks", position: "2B", eligibility: "SO", homeState: "TX", hometown: "Plano", jerseyNumber: 12,
+    { firstName: "Daniel", lastName: "Brooks", position: "2B", eligibility: "FR", homeState: "TX", hometown: "Plano", jerseyNumber: 12,
       hitForAvg: 44, power: 36, speed: 50, arm: 50, fielding: 54, errorResistance: 50, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 42, vsLHP: 40, grit: 44, stealing: 24, running: 46, throwing: 50, recovery: 38, wRISP: 40, vsLefty: 38, poise: 42, heater: 0, agile: 50,
       abilities: ["Pinch Hitter", "Home Defense"], potential: "B+", catcherAbility: null,
@@ -240,7 +240,7 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 5, 5, 4, 0, 0, 0]) },
     // SP/swing depth
-    { firstName: "Griffin", lastName: "Kirn", position: "P", eligibility: "SO", homeState: "VA", hometown: "Roanoke", jerseyNumber: 25,
+    { firstName: "Griffin", lastName: "Kirn", position: "P", eligibility: "FR", homeState: "VA", hometown: "Roanoke", jerseyNumber: 25,
       hitForAvg: 11, power: 8, speed: 30, arm: 64, fielding: 40, errorResistance: 42, velocity: 68, control: 64, stamina: 60, stuff: 64,
       clutch: 56, vsLHP: 54, grit: 56, stealing: 7, running: 28, throwing: 62, recovery: 54, wRISP: 54, vsLefty: 54, poise: 56, heater: 68, agile: 36,
       abilities: ["Painter"], potential: "B+", catcherAbility: null,
@@ -414,7 +414,7 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "tan", hairColor: "black", hairStyle: "short",
       ...pitchMix(1, [0, 5, 5, 5, 0, 0, 0]) },
     // RP
-    { firstName: "Kade", lastName: "Boyd", position: "P", eligibility: "SO", homeState: "CA", hometown: "Los Angeles", jerseyNumber: 35,
+    { firstName: "Kade", lastName: "Boyd", position: "P", eligibility: "FR", homeState: "CA", hometown: "Los Angeles", jerseyNumber: 35,
       hitForAvg: 11, power: 9, speed: 30, arm: 70, fielding: 42, errorResistance: 46, velocity: 72, control: 70, stamina: 44, stuff: 70,
       clutch: 64, vsLHP: 60, grit: 64, stealing: 7, running: 28, throwing: 68, recovery: 52, wRISP: 60, vsLefty: 60, poise: 64, heater: 72, agile: 38,
       abilities: ["Constant Speed"], potential: "A-", catcherAbility: null,

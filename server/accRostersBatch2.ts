@@ -349,7 +349,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...noPitches },
     // Michael Maginnis — backup C/util
-    { firstName: "Michael", lastName: "Maginnis", position: "C", eligibility: "SO", homeState: "GA", hometown: "Kennesaw", jerseyNumber: 14,
+    { firstName: "Michael", lastName: "Maginnis", position: "C", eligibility: "FR", homeState: "GA", hometown: "Kennesaw", jerseyNumber: 14,
       hitForAvg: 32, power: 28, speed: 30, arm: 50, fielding: 46, errorResistance: 42, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 32, vsLHP: 30, grit: 34, stealing: 10, running: 28, throwing: 50, recovery: 32, wRISP: 30, vsLefty: 28, poise: 32, heater: 0, agile: 32,
       abilities: ["Unrelenting"], potential: "B", catcherAbility: 44,

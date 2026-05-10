@@ -297,7 +297,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 7, 0, 5, 0, 4, 0]) },
       // Ernesto Lugo-Canchola — RHP RP, high-leverage
-      { firstName: "Ernesto", lastName: "Lugo-Canchola", position: "P", eligibility: "SO", homeState: "PR", hometown: "San Juan", jerseyNumber: 39,
+      { firstName: "Ernesto", lastName: "Lugo-Canchola", position: "P", eligibility: "FR", homeState: "PR", hometown: "San Juan", jerseyNumber: 39,
         hitForAvg: 11, power: 9, speed: 30, arm: 68, fielding: 40, errorResistance: 42, velocity: 70, control: 66, stamina: 50, stuff: 68,
         clutch: 64, vsLHP: 58, grit: 64, stealing: 8, running: 30, throwing: 66, recovery: 54, wRISP: 60, vsLefty: 60, poise: 64, heater: 70, agile: 38,
         abilities: ["Guts", "Tunneling", "Natural Shuuto", "Intimidator"], potential: "B+", catcherAbility: null,

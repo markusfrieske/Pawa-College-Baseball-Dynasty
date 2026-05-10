@@ -69,7 +69,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 4, 5, 4, 0, 0, 0]) },
       // Tyler Webb — SO depth
-      { firstName: "Tyler", lastName: "Webb", position: "P", eligibility: "SO", homeState: "TX", hometown: "Dallas", jerseyNumber: 47,
+      { firstName: "Tyler", lastName: "Webb", position: "P", eligibility: "FR", homeState: "TX", hometown: "Dallas", jerseyNumber: 47,
         hitForAvg: 10, power: 8, speed: 26, arm: 46, fielding: 30, errorResistance: 32, velocity: 48, control: 44, stamina: 42, stuff: 46,
         clutch: 38, vsLHP: 36, grit: 40, stealing: 8, running: 24, throwing: 44, recovery: 38, wRISP: 36, vsLefty: 40, poise: 40, heater: 48, agile: 28,
         abilities: ["Winner's Luck", "Walk"], potential: "B+", catcherAbility: null,
@@ -217,7 +217,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 5, 4, 5, 0, 0, 0]) },
       // Matthew Heiberger — LHP fireman, 4 high-leverage IP vs Troy (1 H)
-      { firstName: "Matthew", lastName: "Heiberger", position: "P", eligibility: "SO", homeState: "AL", hometown: "Birmingham", jerseyNumber: 33,
+      { firstName: "Matthew", lastName: "Heiberger", position: "P", eligibility: "FR", homeState: "AL", hometown: "Birmingham", jerseyNumber: 33,
         hitForAvg: 12, power: 10, speed: 32, arm: 70, fielding: 42, errorResistance: 44, velocity: 72, control: 70, stamina: 50, stuff: 72,
         clutch: 70, vsLHP: 76, grit: 68, stealing: 8, running: 30, throwing: 68, recovery: 56, wRISP: 64, vsLefty: 76, poise: 70, heater: 72, agile: 40,
         abilities: ["Fireman", "Fireman", "Perfect Combustion", "Staredown"], potential: "A-", catcherAbility: null,
@@ -599,7 +599,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 4, 4, 4, 0, 0, 0]) },
     // Sam Whitfield — SO RHP RP
-    { firstName: "Sam", lastName: "Whitfield", position: "P", eligibility: "SO", homeState: "GA", hometown: "Savannah", jerseyNumber: 36,
+    { firstName: "Sam", lastName: "Whitfield", position: "P", eligibility: "FR", homeState: "GA", hometown: "Savannah", jerseyNumber: 36,
       hitForAvg: 10, power: 8, speed: 30, arm: 56, fielding: 36, errorResistance: 38, velocity: 60, control: 56, stamina: 36, stuff: 56,
       clutch: 46, vsLHP: 42, grit: 48, stealing: 7, running: 28, throwing: 54, recovery: 42, wRISP: 44, vsLefty: 46, poise: 46, heater: 60, agile: 34,
       abilities: ["Winner's Luck"], potential: "B+", catcherAbility: null,
@@ -747,7 +747,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 7, 6, 6, 0, 0, 0]) },
       // Duke Stone — Saturday RHP SO, 6-1/4.40/78K in 57.1 IP
-      { firstName: "Duke", lastName: "Stone", position: "P", eligibility: "SO", homeState: "MS", hometown: "Jackson", jerseyNumber: 45,
+      { firstName: "Duke", lastName: "Stone", position: "P", eligibility: "FR", homeState: "MS", hometown: "Jackson", jerseyNumber: 45,
         hitForAvg: 14, power: 10, speed: 32, arm: 76, fielding: 42, errorResistance: 46, velocity: 78, control: 70, stamina: 76, stuff: 76,
         clutch: 70, vsLHP: 64, grit: 70, stealing: 8, running: 30, throwing: 72, recovery: 64, wRISP: 64, vsLefty: 66, poise: 70, heater: 78, agile: 38,
         abilities: ["Strong Starter", "Doctor K", "Staredown"], potential: "A", catcherAbility: null,
