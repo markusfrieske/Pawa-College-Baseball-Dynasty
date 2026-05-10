@@ -11,6 +11,11 @@ const NUMERIC_ATTRS = [
   "velocity", "control", "stamina", "stuff",
 ] as const;
 
+// Players with primary attribute sums at or below this threshold are considered
+// suspiciously thin — each attribute is 1-100 so even a weak player should
+// comfortably exceed this across 10 fields.
+const THIN_ATTR_SUM_THRESHOLD = 10;
+
 interface UnknownAbilityViolation {
   kind: "unknown";
   team: string;
@@ -100,12 +105,12 @@ for (const [team, players] of Object.entries(ALL_REAL_ROSTERS)) {
       });
     }
 
-    // 3. All primary numeric attributes summing to zero (effectively blank player)
+    // 3. Primary numeric attributes summing to zero or near-zero (effectively blank player)
     const attrSum = NUMERIC_ATTRS.reduce(
       (sum, field) => sum + ((player as Record<string, unknown>)[field] as number ?? 0),
       0
     );
-    if (attrSum === 0) {
+    if (attrSum <= THIN_ATTR_SUM_THRESHOLD) {
       violations.push({
         kind: "thin-attributes",
         team,
@@ -192,7 +197,7 @@ if (noAbilitiesViolations.length > 0) {
 
 if (thinAttrViolations.length > 0) {
   console.warn(
-    `\n⚠ Warning: ${thinAttrViolations.length} player(s) have all-zero primary attributes (non-fatal):`
+    `\n⚠ Warning: ${thinAttrViolations.length} player(s) have zero or near-zero primary attributes (sum ≤ ${THIN_ATTR_SUM_THRESHOLD}, non-fatal):`
   );
   for (const v of thinAttrViolations) {
     console.warn(
@@ -200,7 +205,7 @@ if (thinAttrViolations.length > 0) {
     );
   }
   console.warn(
-    `  Fix: set hitForAvg/power/speed/arm/fielding/errorResistance/velocity/control/stamina/stuff to non-zero values.`
+    `  Fix: set hitForAvg/power/speed/arm/fielding/errorResistance/velocity/control/stamina/stuff to meaningful values (threshold: ${THIN_ATTR_SUM_THRESHOLD}).`
   );
 }
 
