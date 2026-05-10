@@ -56,18 +56,18 @@ isValidation = true
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "node_modules/.bin/tsx scripts/validate-abilities.ts"
+args = "npx tsx scripts/validate-abilities.ts"
 
 [[workflows.workflow]]
 name = "validate-pitch-mix"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "node_modules/.bin/tsx scripts/validate-pitch-mix.ts"
-
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npx tsx scripts/validate-pitch-mix.ts"
 
 [agent]
 integrations = ["javascript_database:1.0.0"]
