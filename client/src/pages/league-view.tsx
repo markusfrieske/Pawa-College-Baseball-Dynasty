@@ -223,7 +223,7 @@ export default function LeagueViewPage() {
           </div>
           <div className="flex items-center justify-end gap-2 mt-2">
             <NotificationCenter leagueId={id!} />
-            <ReadyButton leagueId={id} />
+            <ReadyButton leagueId={id} phase={league.currentPhase} />
           </div>
           
           <SeasonProgressBar phase={league.currentPhase} />
@@ -1285,7 +1285,7 @@ interface ReadyStatusData {
   currentUserId?: string;
 }
 
-function ReadyButton({ leagueId }: { leagueId: string }) {
+function ReadyButton({ leagueId, phase }: { leagueId: string; phase?: string }) {
   const queryClient = useQueryClient();
   
   const { data: user } = useQuery<{ id: string; email: string }>({
@@ -1309,6 +1309,12 @@ function ReadyButton({ leagueId }: { leagueId: string }) {
   if (isLoading || !readyData || !user) {
     return <Skeleton className="h-9 w-24" />;
   }
+
+  // During phases where readiness is driven by a page action (not the isReady toggle),
+  // suppress the header button — the WaitingOnWidget provides the correct readiness view
+  const isPageActionPhase =
+    phase === "offseason_departures" || phase === "offseason_walkons";
+  if (isPageActionPhase) return null;
 
   const myTeamStatus = readyData.readyStatus.find(s => s.userId === user.id);
   const isReady = myTeamStatus?.isReady ?? false;
