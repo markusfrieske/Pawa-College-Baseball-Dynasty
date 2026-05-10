@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { RetroButton } from "@/components/ui/retro-button";
 import { Badge } from "@/components/ui/badge";
 import { LetterGrade, getLetterGrade } from "@/components/ui/letter-grade";
@@ -11,6 +12,7 @@ import { getAbilityByName } from "@shared/abilities";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { velocityToMPH } from "@/lib/playerUtils";
 import { getPotentialGrade, getProgressionZone, getProgressionColor } from "@shared/potential";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Player {
   id: string;
@@ -95,6 +97,7 @@ const positionColors: Record<string, string> = {
 
 
 export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdit, teamPrimaryColor, canDeclareDraft, onDeclareDraft, isDeclaringDraft, leagueId }: PlayerProfileCardProps) {
+  const isMobile = useIsMobile();
   const isPitcher = player.position === "P";
   const isCatcher = player.position === "C";
   const posColor = positionColors[player.position] || "#666";
@@ -159,14 +162,8 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
   const attrs = isPitcher ? pitcherAttrs : fielderAttrs;
   const commonAbilities = isPitcher ? pitcherCommonAbilities : fielderCommonAbilities;
 
-  return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="bg-card border-border sm:max-w-lg p-0 gap-0 sm:max-h-[90vh] max-h-dvh h-dvh sm:h-auto rounded-none sm:rounded-lg overflow-y-auto w-full sm:w-auto">
-        <DialogHeader className="sr-only">
-          <DialogTitle>Player Profile</DialogTitle>
-          <DialogDescription>View player attributes and abilities</DialogDescription>
-        </DialogHeader>
-        
+  const cardContent = (
+    <>
         {/* Name, Bio & Details Section */}
         <div className="p-4 border-b border-border">
           <div className="flex items-center gap-3">
@@ -365,6 +362,35 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
             </RetroButton>
           )}
         </div>
+    </>
+  );
+
+  if (isMobile) {
+    return (
+      <Sheet open={open} onOpenChange={onClose}>
+        <SheetContent
+          side="bottom"
+          className="bg-card border-border p-0 gap-0 h-dvh overflow-y-auto"
+          data-testid="sheet-player-profile"
+        >
+          <SheetHeader className="sr-only">
+            <SheetTitle>Player Profile</SheetTitle>
+            <SheetDescription>View player attributes and abilities</SheetDescription>
+          </SheetHeader>
+          {cardContent}
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="bg-card border-border sm:max-w-lg p-0 gap-0 sm:max-h-[90vh] overflow-y-auto w-full sm:w-auto" data-testid="dialog-player-profile">
+        <DialogHeader className="sr-only">
+          <DialogTitle>Player Profile</DialogTitle>
+          <DialogDescription>View player attributes and abilities</DialogDescription>
+        </DialogHeader>
+        {cardContent}
       </DialogContent>
     </Dialog>
   );
