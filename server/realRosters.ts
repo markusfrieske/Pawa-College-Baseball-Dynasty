@@ -99,3 +99,6 @@ for (const [teamName, players] of Object.entries(RAW_REAL_ROSTERS)) {
 }
 
 export const SEC_REAL_ROSTERS: Record<string, RealPlayer[]> = RAW_REAL_ROSTERS;
+
+/** All real rosters across every conference. Use this for cross-conference validation. */
+export const ALL_REAL_ROSTERS: Record<string, RealPlayer[]> = RAW_REAL_ROSTERS;

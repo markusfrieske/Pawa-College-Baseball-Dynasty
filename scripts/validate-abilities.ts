@@ -1,5 +1,5 @@
 import { ALL_ABILITIES, getAbilitiesForPosition } from "../shared/abilities";
-import { SEC_REAL_ROSTERS } from "../server/realRosters";
+import { ALL_REAL_ROSTERS } from "../server/realRosters";
 
 const CANONICAL_NAMES = new Set(ALL_ABILITIES.map((a) => a.name));
 
@@ -23,7 +23,11 @@ type Violation = UnknownAbilityViolation | PositionMismatchViolation;
 
 const violations: Violation[] = [];
 
-for (const [team, players] of Object.entries(SEC_REAL_ROSTERS)) {
+console.log(
+  `Scanning ${Object.keys(ALL_REAL_ROSTERS).length} teams (${Object.values(ALL_REAL_ROSTERS).reduce((n, p) => n + p.length, 0)} players) across all conferences...`
+);
+
+for (const [team, players] of Object.entries(ALL_REAL_ROSTERS)) {
   for (const player of players) {
     const playerName = `${player.firstName} ${player.lastName}`;
     const validForPosition = new Set(
