@@ -401,7 +401,6 @@ const DEMO_PHASES = [
 const PHASE_DURATION = 3200;
 
 function HeroVideoPlayer() {
-  const [useFallback, setUseFallback] = useState(false);
   const [phaseIndex, setPhaseIndex] = useState(0);
   const [visible, setVisible] = useState(true);
 
@@ -422,29 +421,13 @@ function HeroVideoPlayer() {
 
   const phase = DEMO_PHASES[phaseIndex];
 
-  const media = useFallback ? (
-    <img
-      src="/screenshots/recruiting.jpg"
-      alt="In-game recruiting board showing real players with star ratings, interest bars, and fog-of-war scouting"
-      className="w-full h-auto block"
-    />
-  ) : (
-    <video
-      autoPlay
-      muted
-      loop
-      playsInline
-      poster="/screenshots/recruiting.jpg"
-      className="w-full h-auto block"
-      onError={() => setUseFallback(true)}
-    >
-      <source src="/screenshots/recruiting-demo.mp4" type="video/mp4" />
-    </video>
-  );
-
   return (
     <div className="relative">
-      {media}
+      <img
+        src="/screenshots/recruiting.jpg"
+        alt="In-game recruiting board showing real players with star ratings, interest bars, and fog-of-war scouting"
+        className="w-full h-auto block"
+      />
       <div
         className="absolute top-0 left-0 right-0 flex items-center gap-3 px-4 py-2.5 bg-black/70 border-b border-gold/20"
         style={{
