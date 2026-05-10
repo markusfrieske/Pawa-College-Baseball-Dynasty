@@ -157,11 +157,7 @@ export default function LandingPage() {
                 <span className="font-pixel text-[8px] text-gold/40 ml-2 tracking-widest">RECRUITING · SEASON 1 · WEEK 4</span>
               </div>
               <div className="p-0 overflow-hidden">
-                <img
-                  src="/screenshots/recruiting.jpg"
-                  alt="In-game recruiting board showing real players with star ratings, interest bars, and fog-of-war scouting"
-                  className="w-full h-auto block"
-                />
+                <HeroVideoPlayer />
               </div>
             </div>
             <p className="text-center text-[10px] font-pixel text-muted-foreground/50 mt-3 tracking-wider">
@@ -389,6 +385,36 @@ export default function LandingPage() {
         </div>
       </footer>
     </div>
+  );
+}
+
+// ── HERO VIDEO PLAYER ─────────────────────────────────────────
+
+function HeroVideoPlayer() {
+  const [useFallback, setUseFallback] = useState(false);
+
+  if (useFallback) {
+    return (
+      <img
+        src="/screenshots/recruiting.jpg"
+        alt="In-game recruiting board showing real players with star ratings, interest bars, and fog-of-war scouting"
+        className="w-full h-auto block"
+      />
+    );
+  }
+
+  return (
+    <video
+      autoPlay
+      muted
+      loop
+      playsInline
+      poster="/screenshots/recruiting.jpg"
+      className="w-full h-auto block"
+      onError={() => setUseFallback(true)}
+    >
+      <source src="/screenshots/recruiting-demo.mp4" type="video/mp4" />
+    </video>
   );
 }
 
