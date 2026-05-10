@@ -11,6 +11,20 @@
  *   E2E_BASE_URL  override server URL (default http://localhost:5000)
  *   E2E_SEASONS   override season count (default 5)
  *   E2E_LOG       override log file path (default /tmp/e2e.log)
+ *
+ * Environment assumptions:
+ *   - DATABASE_URL must be set. The script connects directly to flip
+ *     the seed team back to is_cpu=true (so the run is genuinely
+ *     CPU-only) and to count drafted players, recruit-pool size,
+ *     transfer-portal recruits, JUCO recruits, recruits-signed, and
+ *     total games simmed. Without it those metrics report 0 and the
+ *     CPU-only flip will throw.
+ *   - The Replit "Start application" workflow writes its console
+ *     output to /tmp/logs/Start_application_*.log, which is the only
+ *     place server-side `[recruiting-sanity]` warnings are visible.
+ *     If that directory is missing or empty the script logs a loud
+ *     WARNING line and the "0 warnings" count below it should not be
+ *     trusted.
  */
 
 import { appendFileSync, writeFileSync, readFileSync, readdirSync, statSync } from "fs";
@@ -183,6 +197,9 @@ interface SeasonReport {
   season: number;
   champion: string;
   postseasonGames: number;
+  regularSeasonGames: number;
+  totalGamesThisSeason: number;
+  recruitsSignedThisSeason: number;
   draftedThisSeason: number;
   recruitsInPool: number;
   transferRecruits: number;
@@ -195,6 +212,31 @@ async function countDraftedFor(leagueId: string, season: number): Promise<number
     `SELECT COUNT(*)::int AS n FROM player_history
      WHERE league_id = $1 AND departed_season = $2 AND draft_round IS NOT NULL`,
     [leagueId, season],
+  );
+  return r.rows[0]?.n ?? 0;
+}
+async function countRegularSeasonGames(leagueId: string, season: number): Promise<number> {
+  if (!pgPool) return 0;
+  const r = await pgPool.query<{ n: number }>(
+    `SELECT COUNT(*)::int AS n FROM games
+     WHERE league_id = $1 AND season = $2 AND is_complete = true AND phase = 'regular'`,
+    [leagueId, season],
+  );
+  return r.rows[0]?.n ?? 0;
+}
+async function countAllCompletedGames(leagueId: string): Promise<number> {
+  if (!pgPool) return 0;
+  const r = await pgPool.query<{ n: number }>(
+    `SELECT COUNT(*)::int AS n FROM games WHERE league_id = $1 AND is_complete = true`,
+    [leagueId],
+  );
+  return r.rows[0]?.n ?? 0;
+}
+async function countRecruitsSigned(leagueId: string): Promise<number> {
+  if (!pgPool) return 0;
+  const r = await pgPool.query<{ n: number }>(
+    `SELECT COUNT(*)::int AS n FROM recruits WHERE league_id = $1 AND signed_team_id IS NOT NULL`,
+    [leagueId],
   );
   return r.rows[0]?.n ?? 0;
 }
@@ -257,14 +299,19 @@ async function runSeason(leagueId: string, seasonNum: number): Promise<SeasonRep
 
   // Walk every offseason phase; record which sub-phases we observed so we can
   // strictly assert that signing day and walk-ons both happened this season.
+  // Snapshot the recruits-signed count while we're still in signing_day, since
+  // the recruits table is wiped before the next preseason.
   const phasesSeen = new Set<string>();
+  let signedThisSeason = 0;
   let cur = await api<AdvanceResponse>("POST", `/api/leagues/${leagueId}/advance`);
   phasesSeen.add(cur.currentPhase);
   log(`     phase=${cur.currentPhase}`);
+  if (cur.currentPhase === "offseason_signing_day") signedThisSeason = await countRecruitsSigned(leagueId);
   for (let i = 0; i < 20 && cur.currentPhase !== "preseason"; i++) {
     cur = await api<AdvanceResponse>("POST", `/api/leagues/${leagueId}/advance`);
     phasesSeen.add(cur.currentPhase);
     log(`     phase=${cur.currentPhase}${cur.currentPhase === "preseason" ? `, season=${cur.currentSeason}` : ""}`);
+    if (cur.currentPhase === "offseason_signing_day") signedThisSeason = await countRecruitsSigned(leagueId);
   }
   assert(phasesSeen.has("offseason_signing_day"), `Season ${seasonNum}: offseason_signing_day phase was skipped`);
   assert(phasesSeen.has("offseason_walkons"), `Season ${seasonNum}: offseason_walkons phase was skipped`);
@@ -274,10 +321,15 @@ async function runSeason(leagueId: string, seasonNum: number): Promise<SeasonRep
   // Per-season roster integrity (after walkons returned everyone to 25)
   await assertAllRostersAt25(leagueId, `Season ${seasonNum} end`);
 
+  const postseasonGames = post.cws.length + post.superRegionals.length + post.conferenceChampionships.length;
+  const regularSeasonGames = await countRegularSeasonGames(leagueId, seasonNum);
   return {
     season: seasonNum,
     champion,
-    postseasonGames: post.cws.length + post.superRegionals.length + post.conferenceChampionships.length,
+    postseasonGames,
+    regularSeasonGames,
+    totalGamesThisSeason: regularSeasonGames + postseasonGames,
+    recruitsSignedThisSeason: signedThisSeason,
     draftedThisSeason: await countDraftedFor(leagueId, seasonNum),
     recruitsInPool: await countRecruits(leagueId),
     transferRecruits: await countRecruits(leagueId, "transfer"),
@@ -378,7 +430,7 @@ async function main(): Promise<void> {
   log("");
   log("Per-season summary:");
   for (const r of seasonReports) {
-    log(`  Season ${r.season}: champion=${r.champion}, postseasonGames=${r.postseasonGames}, drafted=${r.draftedThisSeason}, recruits=${r.recruitsInPool}, transfers=${r.transferRecruits}, juco=${r.jucoRecruits}`);
+    log(`  Season ${r.season}: champion=${r.champion}, games=${r.totalGamesThisSeason} (reg=${r.regularSeasonGames}, post=${r.postseasonGames}), signed=${r.recruitsSignedThisSeason}, drafted=${r.draftedThisSeason}, recruitsPool=${r.recruitsInPool}, transfers=${r.transferRecruits}, juco=${r.jucoRecruits}`);
   }
 
   log("");
@@ -400,14 +452,19 @@ async function main(): Promise<void> {
       `SELECT COUNT(*)::int AS n FROM player_history WHERE league_id = $1 AND departure_type = 'transfer'`,
       [finalLeague.id],
     );
+    const totalGames = await countAllCompletedGames(finalLeague.id);
+    const totalSigned = seasonReports.reduce((s, r) => s + r.recruitsSignedThisSeason, 0);
     log("");
     log("Aggregate over run:");
+    log(`  Total games simmed (all phases): ${totalGames}`);
+    log(`  Total recruits signed (all seasons): ${totalSigned}`);
     log(`  Total MLB draftees: ${totalDrafted.rows[0].n}`);
     log(`  Total transfers (departures): ${totalTransfers.rows[0].n}`);
-    log(`  Total recruits in pool: ${await countRecruits(finalLeague.id)}`);
+    log(`  Current recruits in pool: ${await countRecruits(finalLeague.id)}`);
     log(`  Transfer-portal recruits: ${await countRecruits(finalLeague.id, "transfer")}`);
     log(`  JUCO recruits: ${await countRecruits(finalLeague.id, "juco")}`);
     assert(totalDrafted.rows[0].n > 0, "No MLB draftees recorded across run");
+    assert(totalGames > 0, "No completed games recorded across run");
   }
 
   const history = await api<DynastyHistoryResponse>("GET", `/api/leagues/${finalLeague.id}/dynasty-history`);
