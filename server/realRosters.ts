@@ -1,3 +1,4 @@
+import { normalizePitchFields } from "./pitchMixHelpers";
 import { ACC_BATCH1_ROSTERS } from "./accRostersBatch1";
 import { ACC_BATCH2_ROSTERS } from "./accRostersBatch2";
 import { ACC_BATCH3_ROSTERS } from "./accRostersBatch3";
@@ -64,7 +65,7 @@ export interface RealPlayer {
   hairStyle?: string;
 }
 
-export const SEC_REAL_ROSTERS: Record<string, RealPlayer[]> = {
+const RAW_REAL_ROSTERS: Record<string, RealPlayer[]> = {
   ...SEC_BATCH1_ROSTERS,
   ...SEC_BATCH2_ROSTERS,
   ...SEC_BATCH3_ROSTERS,
@@ -85,3 +86,16 @@ export const SEC_REAL_ROSTERS: Record<string, RealPlayer[]> = {
   ...WCC_ROSTERS,
   ...MWC_ROSTERS,
 };
+
+// Runtime safety belt: normalize every pitcher's pitch mix to obey the
+// schema rule (FB/2S binary; SL/CB/CH/CT/SNK/SPL in 0-7). Catches inline
+// roster files (WCC/MWC/AAC) that bypass the pitchMix() helper, and
+// double-checks helper output as defense-in-depth.
+for (const [teamName, players] of Object.entries(RAW_REAL_ROSTERS)) {
+  for (const p of players) {
+    if (p.position !== "P") continue;
+    normalizePitchFields(p as unknown as Record<string, unknown>, `${teamName}/${p.firstName} ${p.lastName}`);
+  }
+}
+
+export const SEC_REAL_ROSTERS: Record<string, RealPlayer[]> = RAW_REAL_ROSTERS;

@@ -1,19 +1,5 @@
 import type { RealPlayer } from "./realRosters";
-
-function pitchMix(primary: number, secondary: number[]): { pitchFB: number; pitch2S: number; pitchSL: number; pitchCB: number; pitchCH: number; pitchCT: number; pitchSNK: number; pitchSPL: number } {
-  return {
-    pitchFB: primary,
-    pitch2S: secondary[0] || 0,
-    pitchSL: secondary[1] || 0,
-    pitchCB: secondary[2] || 0,
-    pitchCH: secondary[3] || 0,
-    pitchCT: secondary[4] || 0,
-    pitchSNK: secondary[5] || 0,
-    pitchSPL: secondary[6] || 0,
-  };
-}
-
-const noPitches = { pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0 };
+import { pitchMix, noPitches } from "./pitchMixHelpers";
 
 export const SUN_BELT_ROSTERS: Record<string, RealPlayer[]> = {
   // Coastal Carolina — 33-15 / 19-15 SB, D1B #8, Kevin Schnall Yr 2 (defending CWS finalist)
