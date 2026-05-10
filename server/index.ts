@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+import { pool } from "./db";
 
 const app = express();
 const httpServer = createServer(app);
@@ -69,6 +70,13 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Ensure phase_deadline column exists (idempotent, safe on any environment)
+  try {
+    await pool.query("ALTER TABLE leagues ADD COLUMN IF NOT EXISTS phase_deadline TIMESTAMP");
+  } catch (e) {
+    console.warn("[startup-migration] phase_deadline column check failed:", e);
+  }
+
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
