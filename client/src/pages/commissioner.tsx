@@ -414,20 +414,22 @@ export default function CommissionerPage() {
         </div>
 
         <Tabs defaultValue="actions" className="space-y-6">
-          <TabsList className="bg-card border border-border">
-            <TabsTrigger value="actions" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
-              Actions
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
-              Settings
-            </TabsTrigger>
-            <TabsTrigger value="audit" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
-              Audit Log
-            </TabsTrigger>
-            <TabsTrigger value="invites" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
-              Invites
-            </TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto -mx-4 px-4 pb-2 scrollbar-hide">
+            <TabsList className="bg-card border border-border inline-flex w-auto">
+              <TabsTrigger value="actions" className="font-pixel text-[8px] whitespace-nowrap data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
+                Actions
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="font-pixel text-[8px] whitespace-nowrap data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
+                Settings
+              </TabsTrigger>
+              <TabsTrigger value="audit" className="font-pixel text-[8px] whitespace-nowrap data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
+                Audit Log
+              </TabsTrigger>
+              <TabsTrigger value="invites" className="font-pixel text-[8px] whitespace-nowrap data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
+                Invites
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="actions">
             <ActionsTab
@@ -1104,7 +1106,7 @@ function PhaseDeadlineControl({ leagueId, currentDeadline }: { leagueId: string;
             }
           </div>
         )}
-        <div className="flex gap-2 items-end">
+        <div className="flex flex-col sm:flex-row gap-2 sm:items-end">
           <div className="flex-1">
             <p className="text-xs text-muted-foreground mb-1">Set deadline (your local time)</p>
             <input
@@ -1115,23 +1117,27 @@ function PhaseDeadlineControl({ leagueId, currentDeadline }: { leagueId: string;
               data-testid="input-phase-deadline"
             />
           </div>
-          <RetroButton
-            onClick={handleSet}
-            disabled={!deadlineInput || deadlineMutation.isPending}
-            data-testid="button-set-deadline"
-          >
-            Set
-          </RetroButton>
-          {currentDeadline && (
+          <div className="flex gap-2">
             <RetroButton
-              variant="outline"
-              onClick={handleClear}
-              disabled={deadlineMutation.isPending}
-              data-testid="button-clear-deadline"
+              onClick={handleSet}
+              disabled={!deadlineInput || deadlineMutation.isPending}
+              data-testid="button-set-deadline"
+              className="flex-1 sm:flex-none"
             >
-              Clear
+              Set
             </RetroButton>
-          )}
+            {currentDeadline && (
+              <RetroButton
+                variant="outline"
+                onClick={handleClear}
+                disabled={deadlineMutation.isPending}
+                data-testid="button-clear-deadline"
+                className="flex-1 sm:flex-none"
+              >
+                Clear
+              </RetroButton>
+            )}
+          </div>
         </div>
       </RetroCardContent>
     </RetroCard>

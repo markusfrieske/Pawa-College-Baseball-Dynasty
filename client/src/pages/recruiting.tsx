@@ -1258,7 +1258,7 @@ export default function RecruitingPage() {
       </Dialog>
 
       {compareRecruits.length > 0 && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 bg-card border border-gold rounded-lg shadow-lg p-3 flex items-center gap-4 z-50" data-testid="compare-bar">
+        <div className="fixed bottom-20 sm:bottom-4 left-1/2 -translate-x-1/2 bg-card border border-gold rounded-lg shadow-lg p-3 flex items-center gap-4 z-50" data-testid="compare-bar">
           <span className="font-pixel text-[10px] text-gold">COMPARE:</span>
           <div className="flex items-center gap-2">
             {compareRecruits.map((r) => (
