@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { useUpdateMusicPhase } from "@/lib/music-context";
@@ -38,7 +38,11 @@ import {
   Compass,
   UserMinus,
   UserPlus,
-  Timer
+  Timer,
+  ChevronDown,
+  ChevronUp,
+  ArrowUpDown,
+  Swords
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -828,102 +832,300 @@ function TeamsTab({ league }: { league: LeagueDetails }) {
   );
 }
 
+interface PowerRankingEntry {
+  rank: number;
+  teamId: string;
+  teamName: string;
+  abbreviation: string;
+  primaryColor: string;
+  secondaryColor: string;
+  isCpu: boolean;
+  composite: number;
+  rosterOvr: number;
+  pitchingOvr: number;
+  hittingOvr: number;
+  recruitingScore: number;
+  rosterPercentile: number;
+  pitchingPercentile: number;
+  hittingPercentile: number;
+  recruitingPercentile: number;
+  compositePercentile: number;
+}
+
+function percentileToGrade(pct: number): string {
+  if (pct >= 90) return "A+";
+  if (pct >= 80) return "A";
+  if (pct >= 70) return "B+";
+  if (pct >= 60) return "B";
+  if (pct >= 50) return "C+";
+  if (pct >= 40) return "C";
+  if (pct >= 30) return "D+";
+  if (pct >= 20) return "D";
+  return "F";
+}
+
+function gradeColor(grade: string): string {
+  if (grade.startsWith("A")) return "text-green-400";
+  if (grade.startsWith("B")) return "text-blue-400";
+  if (grade.startsWith("C")) return "text-yellow-400";
+  if (grade.startsWith("D")) return "text-orange-400";
+  return "text-red-400";
+}
+
+function percentileLabel(pct: number): string {
+  if (pct >= 90) return "Top 10%";
+  if (pct >= 75) return "Top 25%";
+  if (pct >= 50) return "Top 50%";
+  if (pct >= 25) return "Bot 50%";
+  return "Bot 25%";
+}
+
 function RankingsTab({ league }: { league: LeagueDetails }) {
-  // Calculate team ratings based on attributes (F to A+)
-  const getLetterGrade = (value: number): string => {
-    if (value >= 9) return "A+";
-    if (value >= 8) return "A";
-    if (value >= 7) return "B+";
-    if (value >= 6) return "B";
-    if (value >= 5) return "C+";
-    if (value >= 4) return "C";
-    if (value >= 3) return "D+";
-    if (value >= 2) return "D";
-    return "F";
+  const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
+
+  const { data: rankData, isLoading } = useQuery<{ rankings: PowerRankingEntry[]; userTeamId: string | null }>({
+    queryKey: ["/api/leagues", league.id, "power-rankings"],
+    queryFn: async () => {
+      const res = await fetch(`/api/leagues/${league.id}/power-rankings`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch");
+      return res.json();
+    },
+  });
+
+  const userTeamId = rankData?.userTeamId ?? null;
+  const rankings = rankData?.rankings ?? [];
+  const userEntry = rankings.find(r => r.teamId === userTeamId);
+
+  const toggleExpand = (teamId: string) => {
+    setExpandedTeam(prev => prev === teamId ? null : teamId);
   };
 
-  const getGradeColor = (grade: string): string => {
-    if (grade.startsWith("A")) return "text-green-400";
-    if (grade.startsWith("B")) return "text-blue-400";
-    if (grade.startsWith("C")) return "text-yellow-400";
-    if (grade.startsWith("D")) return "text-orange-400";
-    return "text-red-400";
-  };
-
-  const teamsWithRatings = [...(league.teams || [])].map(team => {
-    const overall = Math.round((team.prestige + team.facilities + (team.stadium || 5)) / 3);
-    const fielding = Math.round((team.facilities + (team.stadium || 5)) / 2);
-    const pitching = Math.round((team.prestige + team.facilities) / 2);
-    return {
-      ...team,
-      overallGrade: getLetterGrade(overall),
-      fieldingGrade: getLetterGrade(fielding),
-      pitchingGrade: getLetterGrade(pitching),
-      sortValue: overall,
-    };
-  }).sort((a, b) => b.sortValue - a.sortValue);
+  if (isLoading) {
+    return (
+      <RetroCard>
+        <RetroCardHeader>Power Rankings</RetroCardHeader>
+        <div className="space-y-2 mt-4">
+          {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
+        </div>
+      </RetroCard>
+    );
+  }
 
   return (
     <RetroCard>
-      <RetroCardHeader>Team Power Rankings</RetroCardHeader>
+      <RetroCardHeader>
+        <div className="flex items-center gap-2">
+          <Swords className="w-4 h-4 text-gold" />
+          Power Rankings
+        </div>
+      </RetroCardHeader>
+      <p className="text-[10px] text-muted-foreground mb-4">
+        Composite: Roster OVR (40%) · Pitching OVR (30%) · Hitting OVR (20%) · Recruiting (10%). Click a team to compare.
+      </p>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border text-muted-foreground">
-              <th className="text-left py-3 px-2">#</th>
-              <th className="text-left py-3 px-2">Team</th>
-              <th className="text-center py-3 px-2">OVR</th>
-              <th className="text-center py-3 px-2">FIELD</th>
-              <th className="text-center py-3 px-2">PITCH</th>
-              <th className="text-center py-3 px-2 hidden sm:table-cell">Prestige</th>
+            <tr className="border-b border-border text-muted-foreground font-pixel text-[8px]">
+              <th className="text-left py-2 px-2">#</th>
+              <th className="text-left py-2 px-2">Team</th>
+              <th className="text-center py-2 px-1">Score</th>
+              <th className="text-center py-2 px-1">Roster</th>
+              <th className="text-center py-2 px-1 hidden sm:table-cell">Pitch</th>
+              <th className="text-center py-2 px-1 hidden sm:table-cell">Hit</th>
+              <th className="text-center py-2 px-1 hidden md:table-cell">Rec</th>
+              <th className="py-2 px-1 w-6" />
             </tr>
           </thead>
           <tbody>
-            {teamsWithRatings.map((team, index) => (
-              <tr key={team.id} className="border-b border-border/50 hover:bg-card/50">
-                <td className="py-3 px-2">
-                  <span className="font-pixel text-gold text-sm">#{index + 1}</span>
-                </td>
-                <td className="py-3 px-2">
-                  <div className="flex items-center gap-3">
-                    <TeamBadge
-                      abbreviation={team.abbreviation}
-                      primaryColor={team.primaryColor}
-                      secondaryColor={team.secondaryColor}
-                      size="sm"
-                    />
-                    <div>
-                      <Link href={`/league/${league.id}/team/${team.id}`}>
-                        <span className="font-medium hover:text-gold cursor-pointer" data-testid={`link-team-rankings-${team.id}`}>{team.name}</span>
-                      </Link>
-                      <p className="text-xs text-muted-foreground hidden sm:block">{team.mascot}</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="py-3 px-2 text-center">
-                  <span className={`font-bold ${getGradeColor(team.overallGrade)}`}>
-                    {team.overallGrade}
-                  </span>
-                </td>
-                <td className="py-3 px-2 text-center">
-                  <span className={`font-bold ${getGradeColor(team.fieldingGrade)}`}>
-                    {team.fieldingGrade}
-                  </span>
-                </td>
-                <td className="py-3 px-2 text-center">
-                  <span className={`font-bold ${getGradeColor(team.pitchingGrade)}`}>
-                    {team.pitchingGrade}
-                  </span>
-                </td>
-                <td className="py-3 px-2 text-center hidden sm:table-cell">
-                  <StarRating rating={Math.ceil(team.prestige / 2)} size="sm" />
-                </td>
-              </tr>
-            ))}
+            {rankings.map((entry) => {
+              const isUser = entry.teamId === userTeamId;
+              const isExpanded = expandedTeam === entry.teamId;
+              const rosterGrade = percentileToGrade(entry.rosterPercentile);
+              const pitchGrade = percentileToGrade(entry.pitchingPercentile);
+              const hitGrade = percentileToGrade(entry.hittingPercentile);
+              const recGrade = percentileToGrade(entry.recruitingPercentile);
+              const compGrade = percentileToGrade(entry.compositePercentile);
+
+              return (
+                <Fragment key={entry.teamId}>
+                  <tr
+                    className={`border-b border-border/50 cursor-pointer transition-colors ${isUser ? "bg-gold/10 hover:bg-gold/15" : "hover:bg-card/50"}`}
+                    onClick={() => !isUser && toggleExpand(entry.teamId)}
+                    data-testid={`row-power-ranking-${entry.teamId}`}
+                  >
+                    <td className="py-3 px-2">
+                      <span className={`font-pixel text-xs ${isUser ? "text-gold" : "text-muted-foreground"}`}>
+                        #{entry.rank}
+                      </span>
+                    </td>
+                    <td className="py-3 px-2">
+                      <div className="flex items-center gap-2">
+                        <TeamBadge
+                          abbreviation={entry.abbreviation}
+                          primaryColor={entry.primaryColor}
+                          secondaryColor={entry.secondaryColor}
+                          size="sm"
+                        />
+                        <div>
+                          <span className={`font-medium text-xs ${isUser ? "text-gold font-semibold" : ""}`}>
+                            {entry.teamName}
+                          </span>
+                          {isUser && (
+                            <span className="ml-1.5 text-[9px] font-pixel text-gold/70">YOU</span>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="py-3 px-1 text-center">
+                      <div className="flex flex-col items-center">
+                        <span className={`font-bold text-sm ${gradeColor(compGrade)}`}>{compGrade}</span>
+                        <span className="text-[9px] text-muted-foreground">{entry.composite}</span>
+                      </div>
+                    </td>
+                    <td className="py-3 px-1 text-center">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex flex-col items-center cursor-default">
+                            <span className={`font-bold text-xs ${gradeColor(rosterGrade)}`}>{rosterGrade}</span>
+                            <span className="text-[9px] text-muted-foreground">{entry.rosterOvr}</span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>{percentileLabel(entry.rosterPercentile)} in Roster OVR</TooltipContent>
+                      </Tooltip>
+                    </td>
+                    <td className="py-3 px-1 text-center hidden sm:table-cell">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex flex-col items-center cursor-default">
+                            <span className={`font-bold text-xs ${gradeColor(pitchGrade)}`}>{pitchGrade}</span>
+                            <span className="text-[9px] text-muted-foreground">{entry.pitchingOvr}</span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>{percentileLabel(entry.pitchingPercentile)} in Pitching OVR</TooltipContent>
+                      </Tooltip>
+                    </td>
+                    <td className="py-3 px-1 text-center hidden sm:table-cell">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex flex-col items-center cursor-default">
+                            <span className={`font-bold text-xs ${gradeColor(hitGrade)}`}>{hitGrade}</span>
+                            <span className="text-[9px] text-muted-foreground">{entry.hittingOvr}</span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>{percentileLabel(entry.hittingPercentile)} in Hitting OVR</TooltipContent>
+                      </Tooltip>
+                    </td>
+                    <td className="py-3 px-1 text-center hidden md:table-cell">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex flex-col items-center cursor-default">
+                            <span className={`font-bold text-xs ${gradeColor(recGrade)}`}>{recGrade}</span>
+                            <span className="text-[9px] text-muted-foreground">{entry.recruitingScore}</span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>{percentileLabel(entry.recruitingPercentile)} in Recruiting Class OVR</TooltipContent>
+                      </Tooltip>
+                    </td>
+                    <td className="py-3 px-1 text-center">
+                      {!isUser && (
+                        isExpanded
+                          ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" />
+                          : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />
+                      )}
+                    </td>
+                  </tr>
+
+                  {isExpanded && userEntry && (
+                    <tr className="border-b border-gold/20">
+                      <td colSpan={8} className="px-2 py-3 bg-card/40">
+                        <PowerComparePanel userEntry={userEntry} rivalEntry={entry} />
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              );
+            })}
           </tbody>
         </table>
       </div>
     </RetroCard>
+  );
+}
+
+function PowerComparePanel({ userEntry, rivalEntry }: { userEntry: PowerRankingEntry; rivalEntry: PowerRankingEntry }) {
+  const components = [
+    { label: "Roster OVR", userVal: userEntry.rosterOvr, rivalVal: rivalEntry.rosterOvr, weight: "40%" },
+    { label: "Pitching OVR", userVal: userEntry.pitchingOvr, rivalVal: rivalEntry.pitchingOvr, weight: "30%" },
+    { label: "Hitting OVR", userVal: userEntry.hittingOvr, rivalVal: rivalEntry.hittingOvr, weight: "20%" },
+    { label: "Recruiting", userVal: userEntry.recruitingScore, rivalVal: rivalEntry.recruitingScore, weight: "10%" },
+  ];
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <TeamBadge abbreviation={userEntry.abbreviation} primaryColor={userEntry.primaryColor} secondaryColor={userEntry.secondaryColor} size="sm" />
+          <span className="font-pixel text-gold text-[9px]">YOU</span>
+        </div>
+        <span className="font-pixel text-[9px] text-muted-foreground">HEAD-TO-HEAD</span>
+        <div className="flex items-center gap-2">
+          <span className="font-pixel text-[9px] text-foreground">{rivalEntry.teamName}</span>
+          <TeamBadge abbreviation={rivalEntry.abbreviation} primaryColor={rivalEntry.primaryColor} secondaryColor={rivalEntry.secondaryColor} size="sm" />
+        </div>
+      </div>
+
+      {components.map(({ label, userVal, rivalVal, weight }) => {
+        const delta = userVal - rivalVal;
+        const maxVal = Math.max(userVal, rivalVal, 1);
+        const userPct = Math.round((userVal / maxVal) * 100);
+        const rivalPct = Math.round((rivalVal / maxVal) * 100);
+        const userWins = userVal > rivalVal;
+        const rivalWins = rivalVal > userVal;
+
+        return (
+          <div key={label} className="space-y-1" data-testid={`compare-row-${label.replace(/\s/g, "-").toLowerCase()}`}>
+            <div className="flex justify-between text-[9px] text-muted-foreground">
+              <span className={userWins ? "text-green-400 font-semibold" : ""}>{userVal}</span>
+              <span>{label} <span className="text-muted-foreground/50">({weight})</span></span>
+              <span className={rivalWins ? "text-green-400 font-semibold" : ""}>{rivalVal}</span>
+            </div>
+            <div className="flex gap-1 items-center h-2">
+              <div className="flex-1 flex justify-end">
+                <div
+                  className={`h-2 rounded-sm transition-all ${userWins ? "bg-gold" : "bg-muted-foreground/30"}`}
+                  style={{ width: `${userPct}%` }}
+                />
+              </div>
+              <div className="w-px h-3 bg-border shrink-0" />
+              <div className="flex-1">
+                <div
+                  className={`h-2 rounded-sm transition-all ${rivalWins ? "bg-blue-400" : "bg-muted-foreground/30"}`}
+                  style={{ width: `${rivalPct}%` }}
+                />
+              </div>
+            </div>
+            {delta !== 0 && (
+              <p className="text-[9px] text-center">
+                <span className={delta > 0 ? "text-green-400" : "text-red-400"}>
+                  {delta > 0 ? `+${delta}` : delta} OVR advantage for {delta > 0 ? "you" : rivalEntry.teamName}
+                </span>
+              </p>
+            )}
+          </div>
+        );
+      })}
+
+      <div className="pt-2 border-t border-border/50">
+        <div className="flex justify-between text-[9px]">
+          <span className={userEntry.composite >= rivalEntry.composite ? "text-gold font-semibold" : "text-muted-foreground"}>
+            Composite: {userEntry.composite} (#{userEntry.rank})
+          </span>
+          <span className={rivalEntry.composite >= userEntry.composite ? "text-gold font-semibold" : "text-muted-foreground"}>
+            Composite: {rivalEntry.composite} (#{rivalEntry.rank})
+          </span>
+        </div>
+      </div>
+    </div>
   );
 }
 

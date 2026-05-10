@@ -3383,6 +3383,105 @@ export async function registerRoutes(
     }
   });
 
+  // Power Rankings — composite OVR-based team strength ranking
+  app.get("/api/leagues/:id/power-rankings", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      const coaches = await storage.getCoachesByLeague(leagueId);
+      const userCoach = coaches.find(c => c.userId === req.session.userId);
+      const leagueTeams = await storage.getTeamsByLeague(leagueId);
+      const userTeamId = userCoach?.teamId ?? null;
+
+      const allPlayers = await storage.getPlayersByLeague(leagueId);
+      const allRecruits = await storage.getRecruitsByLeague(leagueId);
+
+      // Group players by team
+      const playersByTeam = new Map<string, typeof allPlayers>();
+      for (const p of allPlayers) {
+        if (!playersByTeam.has(p.teamId)) playersByTeam.set(p.teamId, []);
+        playersByTeam.get(p.teamId)!.push(p);
+      }
+
+      // Group signed recruits by team
+      const signedByTeam = new Map<string, typeof allRecruits>();
+      for (const r of allRecruits) {
+        if (r.signedTeamId) {
+          if (!signedByTeam.has(r.signedTeamId)) signedByTeam.set(r.signedTeamId, []);
+          signedByTeam.get(r.signedTeamId)!.push(r);
+        }
+      }
+
+      const avg = (nums: number[]): number =>
+        nums.length === 0 ? 0 : Math.round(nums.reduce((s, v) => s + v, 0) / nums.length);
+
+      // Build raw data per team
+      const teamData = leagueTeams.map(team => {
+        const players = playersByTeam.get(team.id) || [];
+        const pitchers = players.filter(p => p.position === "P");
+        const hitters = players.filter(p => p.position !== "P");
+        const signed = signedByTeam.get(team.id) || [];
+
+        const rosterOvr = avg(players.map(p => p.overall));
+        const pitchingOvr = avg(pitchers.map(p => p.overall));
+        const hittingOvr = avg(hitters.map(p => p.overall));
+        const recruitingScore = avg(signed.map(r => r.overall));
+
+        const composite = Math.round(
+          rosterOvr * 0.4 +
+          pitchingOvr * 0.3 +
+          hittingOvr * 0.2 +
+          (recruitingScore || rosterOvr) * 0.1
+        );
+
+        return {
+          teamId: team.id,
+          teamName: team.name,
+          abbreviation: team.abbreviation,
+          primaryColor: team.primaryColor,
+          secondaryColor: team.secondaryColor,
+          isCpu: team.isCpu,
+          composite,
+          rosterOvr,
+          pitchingOvr,
+          hittingOvr,
+          recruitingScore: recruitingScore || rosterOvr,
+        };
+      }).sort((a, b) => b.composite - a.composite);
+
+      const n = teamData.length;
+
+      const computePercentile = (vals: number[], val: number): number => {
+        const sorted = [...vals].sort((a, b) => a - b);
+        const rank = sorted.filter(v => v < val).length;
+        return n <= 1 ? 100 : Math.round((rank / (n - 1)) * 100);
+      };
+
+      const rosterVals = teamData.map(t => t.rosterOvr);
+      const pitchVals = teamData.map(t => t.pitchingOvr);
+      const hitVals = teamData.map(t => t.hittingOvr);
+      const recruVals = teamData.map(t => t.recruitingScore);
+      const compositeVals = teamData.map(t => t.composite);
+
+      const rankings = teamData.map((t, i) => ({
+        rank: i + 1,
+        ...t,
+        rosterPercentile: computePercentile(rosterVals, t.rosterOvr),
+        pitchingPercentile: computePercentile(pitchVals, t.pitchingOvr),
+        hittingPercentile: computePercentile(hitVals, t.hittingOvr),
+        recruitingPercentile: computePercentile(recruVals, t.recruitingScore),
+        compositePercentile: computePercentile(compositeVals, t.composite),
+      }));
+
+      res.json({ rankings, userTeamId });
+    } catch (error) {
+      console.error("Failed to fetch power rankings:", error);
+      res.status(500).json({ message: "Failed to fetch power rankings" });
+    }
+  });
+
   // League stats - aggregate batting/pitching from box scores
   app.get("/api/leagues/:id/stats", requireAuth, async (req, res) => {
     try {
