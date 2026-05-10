@@ -35,6 +35,7 @@ import { useLocation } from "wouter";
 import { MusicProvider } from "@/lib/music-context";
 import { MusicRouter } from "@/components/music-router";
 import { VolumeControl } from "@/components/volume-control";
+import { useToast } from "@/hooks/use-toast";
 
 function Router() {
   return (
@@ -82,6 +83,7 @@ function GuestPage() {
   const [, setLocation] = useLocation();
   const [showWarning, setShowWarning] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
   const handleContinueAsGuest = async () => {
     setIsLoading(true);
@@ -94,10 +96,19 @@ function GuestPage() {
         setShowWarning(false);
         setLocation("/dashboard");
       } else {
-        console.error("Failed to create guest session");
+        let message = "Could not start guest session. Please try again.";
+        try {
+          const body = await res.json();
+          if (body?.message) message = body.message;
+        } catch {}
+        toast({ title: "Guest login failed", description: message, variant: "destructive" });
       }
-    } catch (error) {
-      console.error("Guest login error:", error);
+    } catch {
+      toast({
+        title: "Connection error",
+        description: "Could not reach the server. Check your connection and try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
