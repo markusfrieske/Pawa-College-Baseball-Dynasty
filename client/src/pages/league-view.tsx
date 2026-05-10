@@ -456,7 +456,7 @@ const EVENT_FILTERS = [
   { key: "ALL", label: "All" },
   { key: "SIGNING", label: "Recruiting" },
   { key: "GAME_RESULT", label: "Games" },
-  { key: "TRANSFER,DRAFT,ROSTER_CUT,WALKON", label: "Transactions" },
+  { key: "TRANSFER,DRAFT,ROSTER_CUT,WALKON", label: "Roster" },
   { key: "AWARD,PHASE_CHANGE", label: "League" },
 ] as const;
 
