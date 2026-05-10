@@ -402,6 +402,7 @@ export const BIG_WEST_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (10)
     // Jackson Flora — FR RHP, projected #4 overall 2026 MLB Draft, elite velocity, 1.88 ERA in 86.1 IP
     { firstName: "Jackson", lastName: "Flora", position: "P", eligibility: "FR", homeState: "CA", hometown: "Santa Barbara", jerseyNumber: 14,
+      generational: true,
       hitForAvg: 12, power: 9, speed: 30, arm: 88, fielding: 52, errorResistance: 40, velocity: 90, control: 82, stamina: 80, stuff: 92,
       clutch: 78, vsLHP: 80, grit: 76, stealing: 9, running: 28, throwing: 84, recovery: 72, wRISP: 80, vsLefty: 84, poise: 82, heater: 88, agile: 36,
       abilities: ["Star of Victory", "Doctor K", "Explosive Fastball"], potential: "A+", catcherAbility: null,
