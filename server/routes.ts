@@ -25,6 +25,7 @@ import { generateWeeklyStoryArcs } from "./story-arcs";
 import { detectMoments } from "./moments-engine";
 import { SEC_REAL_ROSTERS } from "./realRosters";
 import { generateRecruitClass } from "./recruit-generator";
+import { validateLeagueRosters } from "./rosterValidation";
 
 function potentialGradeToNumber(grade: string): number {
   const map: Record<string, number> = {
@@ -8340,6 +8341,13 @@ export async function registerRoutes(
       }
     }
 
+    await validateLeagueRosters(
+      leagueId,
+      (id) => storage.getTeamsByLeague(id),
+      (teamId) => storage.getPlayersByTeam(teamId),
+      "post-signing-day"
+    );
+
     return {
       recruitsAdded: totalRecruitsAdded,
       transferred: totalTransferred,
@@ -8519,6 +8527,13 @@ export async function registerRoutes(
     }
 
     await generateSchedule(leagueId, completedSeason + 1);
+
+    await validateLeagueRosters(
+      leagueId,
+      (id) => storage.getTeamsByLeague(id),
+      (teamId) => storage.getPlayersByTeam(teamId),
+      "post-walkons"
+    );
 
     return {
       walkonsAdded: totalWalkonsAdded,
