@@ -76,11 +76,11 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       ...pitchMix(1, [3, 4, 0, 3, 0, 0, 0]) },
     // Zion Theophilus — Freshman RHP, 4.91 ERA, depth arm
     { firstName: "Zion", lastName: "Theophilus", position: "2B", eligibility: "FR", homeState: "FL", hometown: "Miami", jerseyNumber: 52,
-      hitForAvg: 9, power: 6, speed: 30, arm: 60, fielding: 38, errorResistance: 40, velocity: 66, control: 44, stamina: 32, stuff: 60,
-      clutch: 48, vsLHP: 50, grit: 48, stealing: 5, running: 26, throwing: 58, recovery: 44, wRISP: 48, vsLefty: 50, poise: 48, heater: 56, agile: 44,
+      hitForAvg: 38, power: 30, speed: 30, arm: 60, fielding: 38, errorResistance: 40, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 48, vsLHP: 50, grit: 48, stealing: 5, running: 26, throwing: 58, recovery: 44, wRISP: 48, vsLefty: 50, poise: 48, heater: 0, agile: 44,
       abilities: ["Error Prone"], potential: "B+", catcherAbility: null,
       skinTone: "deep", hairColor: "black", hairStyle: "fade",
-      ...pitchMix(1, [0, 4, 3, 0, 0, 0, 0]) },
+      ...noPitches },
     // CATCHERS (2)
     // Cade Arrambide — .331 / 16 HR / 43 RBI / .675 SLG — elite power-hitting C
     { firstName: "Cade", lastName: "Arrambide", position: "C", eligibility: "JR", homeState: "TX", hometown: "Boerne", jerseyNumber: 9,
@@ -699,7 +699,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Strong Starter", "Guts"], potential: "B+", catcherAbility: null,
       ...pitchMix(1, [0, 5, 6, 5, 0, 0, 0]) },
     { firstName: "Blaine", lastName: "Brown", position: "P", eligibility: "JR", homeState: "TX", hometown: "Houston", jerseyNumber: 38,
-      hitForAvg: 57, power: 51, speed: 55, arm: 86, fielding: 57, errorResistance: 55, velocity: 91, control: 85, stamina: 84, stuff: 88,
+      hitForAvg: 19, power: 16, speed: 55, arm: 86, fielding: 57, errorResistance: 55, velocity: 91, control: 85, stamina: 84, stuff: 88,
       clutch: 67, vsLHP: 63, grit: 69, stealing: 30, running: 53, throwing: 73, recovery: 63, wRISP: 65, vsLefty: 67, poise: 69, heater: 90, agile: 55,
       abilities: ["Strong Starter", "Staredown", "Indomitable Soul", "Halting Quickness"], potential: "A-", catcherAbility: null,
       ...pitchMix(1, [0, 5, 5, 5, 0, 0, 0]) },
