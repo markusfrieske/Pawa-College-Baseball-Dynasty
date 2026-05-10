@@ -118,6 +118,7 @@ export interface IStorage {
   createRecruitingAction(action: InsertRecruitingActionsLog): Promise<RecruitingActionsLog>;
 
   getRecruitTopSchools(recruitId: string): Promise<RecruitTopSchools[]>;
+  getRecruitTopSchoolsByLeague(leagueId: string): Promise<RecruitTopSchools[]>;
   getRecruitTopSchool(recruitId: string, teamId: string): Promise<RecruitTopSchools | undefined>;
   getTopSchoolsByTeam(teamId: string): Promise<RecruitTopSchools[]>;
   createRecruitTopSchool(topSchool: InsertRecruitTopSchools): Promise<RecruitTopSchools>;
@@ -515,6 +516,13 @@ export class DatabaseStorage implements IStorage {
   async getRecruitTopSchools(recruitId: string): Promise<RecruitTopSchools[]> {
     return await db.select().from(recruitTopSchools)
       .where(eq(recruitTopSchools.recruitId, recruitId));
+  }
+
+  async getRecruitTopSchoolsByLeague(leagueId: string): Promise<RecruitTopSchools[]> {
+    return await db.select({ ...recruitTopSchools })
+      .from(recruitTopSchools)
+      .innerJoin(recruits, eq(recruitTopSchools.recruitId, recruits.id))
+      .where(eq(recruits.leagueId, leagueId));
   }
 
   async getRecruitTopSchool(recruitId: string, teamId: string): Promise<RecruitTopSchools | undefined> {

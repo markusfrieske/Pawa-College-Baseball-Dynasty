@@ -74,6 +74,8 @@ interface TopSchool {
 interface RecruitWithInterest extends Recruit {
   interest?: RecruitingInterest;
   topSchools?: TopSchool[];
+  competingCount?: number | null;
+  competingIntensity?: string | null;
 }
 
 interface RecruitData {
@@ -869,7 +871,7 @@ export default function RecruitProfilePage() {
 
             {/* Competition Section */}
             {(() => {
-              const recruitingRecruit = recruitingData?.recruits?.find((r: any) => r.id === recruitId);
+              const recruitingRecruit = (recruitingData?.recruits as RecruitWithInterest[] | undefined)?.find((r) => r.id === recruitId);
               const competingCount: number | null = recruitingRecruit?.competingCount ?? null;
               const competingIntensity: string | null = recruitingRecruit?.competingIntensity ?? null;
               const intensityColor =

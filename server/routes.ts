@@ -750,7 +750,12 @@ export async function registerRoutes(
       }
 
       const leagueTeams = await storage.getTeamsByLeague(league.id);
-      const userTeam = leagueTeams.find((t) => !t.isCpu);
+      const userId = req.session.userId;
+      const coaches = await storage.getCoachesByLeague(league.id);
+      const userCoach = coaches.find((c) => c.userId === userId);
+      const userTeam = userCoach
+        ? leagueTeams.find((t) => t.coachId === userCoach.id)
+        : leagueTeams.find((t) => !t.isCpu);
       
       if (!userTeam) {
         return res.status(400).json({ message: "No team assigned" });
@@ -761,24 +766,26 @@ export async function registerRoutes(
       const roster = await storage.getPlayersByTeam(userTeam.id);
       
       // Get coach data for skill-based action limits
-      const coach = userTeam.coachId ? await storage.getCoach(userTeam.coachId) : null;
+      const coach = userCoach ?? (userTeam.coachId ? await storage.getCoach(userTeam.coachId) : null);
 
       // Build team lookup map for top schools
       const teamMap = new Map(leagueTeams.map(t => [t.id, t]));
 
-      // Rivalry computation: fetch all league interests to detect competing teams
-      const allLeagueInterests = await storage.getRecruitingInterestsByLeague(league.id);
+      // Rivalry computation: use recruit_top_schools combined interest (interestLevel + accumulatedInterest)
+      // as the canonical interest signal. Threshold 80 = 50 prestige baseline + 30 active recruitment.
+      const allLeagueTopSchools = await storage.getRecruitTopSchoolsByLeague(league.id);
       const cpuDifficulty = league.cpuDifficulty || "high_school";
       const cpuCountsForRivalry = cpuDifficulty === "all_american" || cpuDifficulty === "elite";
-      // Build per-recruit map: recruitId -> number of competing teams with interestLevel >= 30
+      // Build per-recruit map: recruitId -> count of teams with meaningful combined interest
       const rivalryMap = new Map<string, number>();
-      for (const li of allLeagueInterests) {
-        if (li.teamId === userTeam.id) continue;
-        if ((li.interestLevel || 0) < 30) continue;
-        const liTeam = teamMap.get(li.teamId);
-        if (!liTeam) continue;
-        if (liTeam.isCpu && !cpuCountsForRivalry) continue;
-        rivalryMap.set(li.recruitId, (rivalryMap.get(li.recruitId) || 0) + 1);
+      for (const ts of allLeagueTopSchools) {
+        if (ts.teamId === userTeam.id) continue;
+        if (!ts.isActive) continue;
+        if ((ts.interestLevel || 0) + (ts.accumulatedInterest || 0) < 80) continue;
+        const tsTeam = teamMap.get(ts.teamId);
+        if (!tsTeam) continue;
+        if (tsTeam.isCpu && !cpuCountsForRivalry) continue;
+        rivalryMap.set(ts.recruitId, (rivalryMap.get(ts.recruitId) || 0) + 1);
       }
 
       const recruitsWithInterest = await Promise.all(leagueRecruits.map(async (recruit) => {
