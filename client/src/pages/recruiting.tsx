@@ -943,27 +943,50 @@ export default function RecruitingPage() {
                       data-testid="select-state-filter-sheet"
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <RetroButton
-                      variant={showWatchlistOnly ? "primary" : "outline"}
-                      size="sm"
-                      onClick={() => setShowWatchlistOnly(!showWatchlistOnly)}
-                      className="w-full justify-center"
-                      data-testid="button-watchlist-filter-sheet"
-                    >
-                      <Target className="w-3 h-3 mr-1" />
-                      Watchlist
-                    </RetroButton>
-                    <RetroButton
-                      variant={showTopAvailable ? "primary" : "outline"}
-                      size="sm"
-                      onClick={() => setShowTopAvailable(!showTopAvailable)}
-                      className="w-full justify-center"
-                      data-testid="button-top-available-sheet"
-                    >
-                      <TrendingUp className="w-3 h-3 mr-1" />
-                      Top Available
-                    </RetroButton>
+                  <div>
+                    <p className="font-pixel text-[9px] text-gold mb-2">VIEWS</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <RetroButton
+                        variant={showWatchlistOnly ? "primary" : "outline"}
+                        size="sm"
+                        onClick={() => setShowWatchlistOnly(!showWatchlistOnly)}
+                        className="w-full justify-center"
+                        data-testid="button-watchlist-filter-sheet"
+                      >
+                        <Target className="w-3 h-3 mr-1" />
+                        Watchlist
+                      </RetroButton>
+                      <RetroButton
+                        variant={showTopAvailable ? "primary" : "outline"}
+                        size="sm"
+                        onClick={() => setShowTopAvailable(!showTopAvailable)}
+                        className="w-full justify-center"
+                        data-testid="button-top-available-sheet"
+                      >
+                        <TrendingUp className="w-3 h-3 mr-1" />
+                        Top Available
+                      </RetroButton>
+                      <RetroButton
+                        variant={showTeamNeeds ? "primary" : "outline"}
+                        size="sm"
+                        onClick={() => setShowTeamNeeds(!showTeamNeeds)}
+                        className="w-full justify-center"
+                        data-testid="button-toggle-team-needs-sheet"
+                      >
+                        <Users className="w-3 h-3 mr-1" />
+                        Team Needs
+                      </RetroButton>
+                      <RetroButton
+                        variant={showPipeline ? "primary" : "outline"}
+                        size="sm"
+                        onClick={() => setShowPipeline(!showPipeline)}
+                        className="w-full justify-center"
+                        data-testid="button-toggle-pipeline-sheet"
+                      >
+                        <BarChart3 className="w-3 h-3 mr-1" />
+                        Pipeline
+                      </RetroButton>
+                    </div>
                   </div>
                   <RetroButton
                     variant="outline"
@@ -975,6 +998,8 @@ export default function RecruitingPage() {
                       setStateFilter("all");
                       setShowWatchlistOnly(false);
                       setShowTopAvailable(false);
+                      setShowTeamNeeds(false);
+                      setShowPipeline(false);
                       setShowFilterSheet(false);
                     }}
                     className="w-full justify-center"
