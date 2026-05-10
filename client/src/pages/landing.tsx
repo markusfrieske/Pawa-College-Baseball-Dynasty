@@ -4,10 +4,9 @@ import { RetroButton } from "@/components/ui/retro-button";
 import { RetroInput } from "@/components/ui/retro-input";
 import { RetroSelect } from "@/components/ui/retro-select";
 import {
-  Trophy, Users, Target, Star, TrendingUp, User, Bug, Layers, LogOut,
-  DollarSign, X, GraduationCap, Building2, Search, Settings, Binoculars,
-  Crown, Eye, Zap, Swords, ClipboardList, UserPlus, ChevronRight, Flame,
-  Shield, CalendarDays
+  Trophy, Star, User, Bug, Layers, LogOut,
+  DollarSign, X, Search, Binoculars,
+  Crown, Eye, Zap, Swords, ClipboardList, UserPlus, ChevronRight
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -157,8 +156,12 @@ export default function LandingPage() {
                 <div className="w-2.5 h-2.5 rounded-full bg-green-500/70" />
                 <span className="font-pixel text-[8px] text-gold/40 ml-2 tracking-widest">RECRUITING · SEASON 1 · WEEK 4</span>
               </div>
-              <div className="p-5">
-                <RecruitingPreview />
+              <div className="p-0 overflow-hidden">
+                <img
+                  src="/screenshots/recruiting.jpg"
+                  alt="In-game recruiting board showing real players with star ratings, interest bars, and fog-of-war scouting"
+                  className="w-full h-auto block"
+                />
               </div>
             </div>
             <p className="text-center text-[10px] font-pixel text-muted-foreground/50 mt-3 tracking-wider">
@@ -212,9 +215,12 @@ export default function LandingPage() {
                   ))}
                 </ul>
               </div>
-              <div className="border border-border bg-card/40 p-4">
-                <div className="font-pixel text-[8px] text-gold/50 mb-3 tracking-widest">RECRUIT PIPELINE</div>
-                <PipelinePreview />
+              <div className="border border-border bg-card/40 overflow-hidden">
+                <img
+                  src="/screenshots/pipeline.jpg"
+                  alt="In-game recruit pipeline widget showing stage breakdown and position needs"
+                  className="w-full h-auto block"
+                />
               </div>
             </div>
           </div>
@@ -224,9 +230,12 @@ export default function LandingPage() {
         <section className="py-20 px-4 border-t border-border bg-card/30">
           <div className="container mx-auto max-w-5xl">
             <div className="grid md:grid-cols-2 gap-12 items-center">
-              <div className="order-2 md:order-1 border border-border bg-card/60 p-4">
-                <div className="font-pixel text-[8px] text-gold/50 mb-3 tracking-widest">PLAYER PROFILE</div>
-                <PlayerCardPreview />
+              <div className="order-2 md:order-1 border border-border bg-card/60 overflow-hidden">
+                <img
+                  src="/screenshots/player-card.jpg"
+                  alt="In-game player profile card showing real attributes, special ability badges, and career stats"
+                  className="w-full h-auto block"
+                />
               </div>
               <div className="order-1 md:order-2">
                 <div className="font-pixel text-[9px] text-gold/60 tracking-widest mb-3">FEATURE 02</div>
@@ -276,9 +285,12 @@ export default function LandingPage() {
                   ))}
                 </ul>
               </div>
-              <div className="border border-border bg-card/40 p-4">
-                <div className="font-pixel text-[8px] text-gold/50 mb-3 tracking-widest">POWER RANKINGS · WEEK 6</div>
-                <RankingsPreview />
+              <div className="border border-border bg-card/40 overflow-hidden">
+                <img
+                  src="/screenshots/rankings.jpg"
+                  alt="In-game power rankings table showing team grades, trends, and composite scores"
+                  className="w-full h-auto block"
+                />
               </div>
             </div>
           </div>
@@ -376,215 +388,6 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
-    </div>
-  );
-}
-
-// ── INLINE MOCKUP COMPONENTS ─────────────────────────────────
-
-function StarRow({ count, filled }: { count: number; filled: number }) {
-  return (
-    <div className="flex gap-0.5">
-      {Array.from({ length: count }).map((_, i) => (
-        <Star key={i} className={`w-2.5 h-2.5 ${i < filled ? "text-gold fill-gold" : "text-border"}`} />
-      ))}
-    </div>
-  );
-}
-
-function RecruitingPreview() {
-  const recruits = [
-    { name: "J. Martinez", pos: "RHP", stars: 5, state: "TX", interest: 71, ovr: "521", fogged: false, tag: "BLUE CHIP", tagColor: "text-blue-300 border-blue-400/40" },
-    { name: "C. Williams", pos: "OF", stars: 4, state: "FL", interest: 48, ovr: "437", fogged: false, tag: null, tagColor: "" },
-    { name: "T. Johnson", pos: "SS", stars: 4, state: "CA", interest: 33, ovr: "???", fogged: true, tag: null, tagColor: "" },
-    { name: "M. Davis", pos: "C", stars: 3, state: "GA", interest: 62, ovr: "???", fogged: true, tag: "GEM?", tagColor: "text-amber-300 border-amber-400/40" },
-    { name: "B. Thompson", pos: "1B", stars: 3, state: "NC", interest: 19, ovr: "???", fogged: true, tag: null, tagColor: "" },
-    { name: "R. Garcia", pos: "LHP", stars: 2, state: "AZ", interest: 44, ovr: "???", fogged: true, tag: null, tagColor: "" },
-  ];
-
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <span className="font-pixel text-gold text-[10px] tracking-wide">RECRUITS · 80 TOTAL</span>
-        <div className="flex gap-3 text-[9px] font-pixel text-muted-foreground">
-          <span className="text-green-400">6 SCOUTED</span>
-          <span>74 HIDDEN</span>
-        </div>
-      </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="border-b border-border/50 font-pixel text-[8px] text-muted-foreground">
-              <th className="text-left pb-2 pr-3">Player</th>
-              <th className="text-center pb-2 px-2">Pos</th>
-              <th className="text-center pb-2 px-2">Stars</th>
-              <th className="text-center pb-2 px-2 hidden sm:table-cell">OVR</th>
-              <th className="text-right pb-2 pl-2">Interest</th>
-            </tr>
-          </thead>
-          <tbody>
-            {recruits.map((r) => (
-              <tr key={r.name} className="border-b border-border/20 hover:bg-gold/5 transition-colors">
-                <td className="py-2.5 pr-3">
-                  <div className="flex items-center gap-2">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-foreground">{r.name}</span>
-                        {r.tag && (
-                          <span className={`text-[7px] font-pixel border px-1 py-0.5 ${r.tagColor}`}>{r.tag}</span>
-                        )}
-                      </div>
-                      <div className="text-[9px] text-muted-foreground">{r.state}</div>
-                    </div>
-                  </div>
-                </td>
-                <td className="py-2.5 px-2 text-center">
-                  <span className="text-[9px] border border-border px-1.5 py-0.5 text-muted-foreground font-pixel">{r.pos}</span>
-                </td>
-                <td className="py-2.5 px-2 text-center">
-                  <StarRow count={5} filled={r.stars} />
-                </td>
-                <td className="py-2.5 px-2 text-center hidden sm:table-cell">
-                  <span className={r.fogged ? "text-muted-foreground/40 font-pixel text-[9px]" : "text-foreground font-medium"}>{r.ovr}</span>
-                </td>
-                <td className="py-2.5 pl-2 text-right">
-                  <div className="flex items-center justify-end gap-1.5">
-                    <div className="w-14 bg-border/20 h-1.5 rounded-full overflow-hidden">
-                      <div className="h-full bg-gold rounded-full transition-all" style={{ width: `${r.interest}%` }} />
-                    </div>
-                    <span className="text-[9px] text-gold font-pixel w-6 text-right">{r.interest}%</span>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div className="mt-3 pt-3 border-t border-border/30 flex gap-4 text-[8px] font-pixel text-muted-foreground/60">
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-400 inline-block" /> Blue Chip</span>
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-400 inline-block" /> Gem Candidate</span>
-        <span className="flex items-center gap-1"><span className="w-2 h-2 bg-border inline-block" /> Unknown OVR</span>
-      </div>
-    </div>
-  );
-}
-
-function PipelinePreview() {
-  const stages = [
-    { label: "Aware", count: 12, color: "bg-muted-foreground/30" },
-    { label: "Interested", count: 8, color: "bg-blue-500/50" },
-    { label: "Considering", count: 5, color: "bg-purple-500/50" },
-    { label: "Very Interested", count: 3, color: "bg-amber-500/50" },
-    { label: "Committed", count: 1, color: "bg-green-500/70" },
-  ];
-  const max = 12;
-  return (
-    <div className="space-y-2.5">
-      {stages.map((s) => (
-        <div key={s.label} className="flex items-center gap-3">
-          <span className="font-pixel text-[8px] text-muted-foreground w-24 shrink-0">{s.label}</span>
-          <div className="flex-1 bg-border/20 h-3 rounded-sm overflow-hidden">
-            <div className={`h-full ${s.color} rounded-sm transition-all`} style={{ width: `${(s.count / max) * 100}%` }} />
-          </div>
-          <span className="font-pixel text-[9px] text-gold w-3 text-right">{s.count}</span>
-        </div>
-      ))}
-      <div className="pt-2 border-t border-border/30 flex justify-between text-[8px] font-pixel text-muted-foreground">
-        <span>29 total contacts</span>
-        <span className="text-green-400">1 committed</span>
-      </div>
-    </div>
-  );
-}
-
-function PlayerCardPreview() {
-  const attrs = [
-    { name: "Velocity", val: 91, max: 99 },
-    { name: "Stuff", val: 86, max: 99 },
-    { name: "Control", val: 78, max: 99 },
-    { name: "Stamina", val: 82, max: 99 },
-  ];
-  return (
-    <div>
-      <div className="flex items-start justify-between mb-4">
-        <div>
-          <div className="font-pixel text-gold text-xs mb-0.5">Jake Martinez</div>
-          <div className="text-[9px] text-muted-foreground">RHP · Junior · Tennessee</div>
-        </div>
-        <div className="flex flex-col items-end gap-1">
-          <StarRow count={5} filled={5} />
-          <span className="font-pixel text-[9px] text-gold border border-gold/30 px-1.5">521 OVR</span>
-        </div>
-      </div>
-
-      <div className="space-y-2 mb-4">
-        {attrs.map((a) => (
-          <div key={a.name} className="flex items-center gap-2">
-            <span className="font-pixel text-[8px] text-muted-foreground w-14 shrink-0">{a.name}</span>
-            <div className="flex-1 bg-border/20 h-1.5 rounded-full overflow-hidden">
-              <div className="h-full bg-gold rounded-full" style={{ width: `${(a.val / a.max) * 100}%` }} />
-            </div>
-            <span className="font-pixel text-[9px] text-gold w-4 text-right">{a.val}</span>
-          </div>
-        ))}
-      </div>
-
-      <div className="mb-3">
-        <div className="font-pixel text-[8px] text-muted-foreground mb-2">SPECIAL ABILITIES</div>
-        <div className="flex flex-wrap gap-1.5">
-          <span className="text-[7px] font-pixel bg-amber-900/40 text-amber-300 border border-amber-500/30 px-1.5 py-0.5">ELITE ARM</span>
-          <span className="text-[7px] font-pixel bg-blue-900/30 text-blue-300 border border-blue-500/25 px-1.5 py-0.5">STRIKEOUT ARTIST</span>
-          <span className="text-[7px] font-pixel bg-blue-900/30 text-blue-300 border border-blue-500/25 px-1.5 py-0.5">WORKHORSE</span>
-          <span className="text-[7px] font-pixel bg-red-900/30 text-red-300 border border-red-500/25 px-1.5 py-0.5">SLOW STARTER</span>
-        </div>
-      </div>
-
-      <div className="border-t border-border/40 pt-3">
-        <div className="font-pixel text-[8px] text-muted-foreground mb-2">COMMON GRADES</div>
-        <div className="grid grid-cols-4 gap-2">
-          {[
-            { name: "Arm", grade: "A+" },
-            { name: "Poise", grade: "A" },
-            { name: "Fielding", grade: "B+" },
-            { name: "Clutch", grade: "B" },
-          ].map((g) => (
-            <div key={g.name} className="text-center">
-              <div className={`font-pixel text-sm ${g.grade.startsWith("A") ? "text-green-400" : "text-blue-400"}`}>{g.grade}</div>
-              <div className="text-[7px] text-muted-foreground font-pixel">{g.name}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function RankingsPreview() {
-  const teams = [
-    { rank: 1, name: "Tennessee", abbr: "UT", score: "A+", comp: 94, color: "#FF8200", trend: "▲" },
-    { rank: 2, name: "Texas", abbr: "TX", score: "A", comp: 88, color: "#BF5700", trend: "▲" },
-    { rank: 3, name: "Florida", abbr: "FL", score: "A", comp: 85, color: "#0021A5", trend: "—" },
-    { rank: 4, name: "Vanderbilt", abbr: "VU", score: "B+", comp: 79, color: "#866D4B", trend: "▼" },
-    { rank: 5, name: "LSU", abbr: "LS", score: "B+", comp: 76, color: "#461D7C", trend: "▲" },
-    { rank: 6, name: "Arkansas", abbr: "AR", score: "B", comp: 71, color: "#9D2235", trend: "—" },
-  ];
-  return (
-    <div className="space-y-1">
-      {teams.map((t) => (
-        <div key={t.rank} className="flex items-center gap-3 py-1.5 border-b border-border/20 hover:bg-gold/5 transition-colors">
-          <span className="font-pixel text-[9px] text-muted-foreground w-5 text-center">#{t.rank}</span>
-          <div className="w-6 h-6 flex items-center justify-center text-[8px] font-pixel text-white font-bold shrink-0" style={{ backgroundColor: t.color }}>
-            {t.abbr}
-          </div>
-          <span className="flex-1 text-xs font-medium text-foreground">{t.name}</span>
-          <span className={`text-[8px] font-pixel ${t.trend === "▲" ? "text-green-400" : t.trend === "▼" ? "text-red-400" : "text-muted-foreground"}`}>{t.trend}</span>
-          <span className={`font-pixel text-sm font-bold ${t.score.startsWith("A") ? "text-green-400" : "text-blue-400"}`}>{t.score}</span>
-          <span className="text-[9px] text-muted-foreground w-6 text-right">{t.comp}</span>
-        </div>
-      ))}
-      <div className="pt-2 text-[8px] font-pixel text-muted-foreground/50 text-center">
-        Roster OVR · Pitching · Hitting · Recruiting
-      </div>
     </div>
   );
 }
