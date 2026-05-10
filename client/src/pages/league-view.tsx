@@ -543,6 +543,9 @@ function ActivityFeed({ leagueId }: { leagueId: string }) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-foreground leading-snug">{event.description}</p>
+                  {event.teamName && (
+                    <p className="text-[10px] text-muted-foreground mt-0.5 font-medium">{event.teamName}</p>
+                  )}
                   <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                     <span className={`text-[9px] font-pixel px-1 py-0.5 rounded border ${cfg.color}`}>{cfg.label}</span>
                     {event.teamAbbreviation && (

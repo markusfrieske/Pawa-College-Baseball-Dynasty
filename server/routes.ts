@@ -5087,6 +5087,39 @@ export async function registerRoutes(
               }
             }
 
+            // Emit season award events (MVP, Pitcher of Year, Freshman of Year)
+            try {
+              const allSeasonPlayers: { player: any; team: any }[] = [];
+              for (const t of leagueTeams) {
+                const roster = await storage.getPlayersByTeam(t.id);
+                for (const p of roster) allSeasonPlayers.push({ player: p, team: t });
+              }
+              const byOVR = (a: any, b: any) => b.player.overall - a.player.overall;
+              const mvpEntry = allSeasonPlayers.filter(x => x.player.position !== "P").sort(byOVR)[0];
+              const poyEntry = allSeasonPlayers.filter(x => x.player.position === "P").sort(byOVR)[0];
+              const foyEntry = allSeasonPlayers.filter(x => x.player.eligibility === "FR").sort(byOVR)[0];
+              const awardPairs = [
+                { entry: mvpEntry, label: "Season MVP" },
+                { entry: poyEntry, label: "Pitcher of the Year" },
+                { entry: foyEntry, label: "Freshman of the Year" },
+              ];
+              for (const { entry, label } of awardPairs) {
+                if (!entry) continue;
+                await storage.createLeagueEvent({
+                  leagueId,
+                  teamId: entry.team.id,
+                  teamName: entry.team.name,
+                  teamAbbreviation: entry.team.abbreviation,
+                  eventType: "AWARD",
+                  description: `${entry.player.firstName} ${entry.player.lastName} (${entry.team.abbreviation}) named Season ${league.currentSeason} ${label}.`,
+                  season: league.currentSeason,
+                  week: nextWeek,
+                });
+              }
+            } catch (e) {
+              console.error("Season award event error:", e);
+            }
+
             try {
               const promiseResult = await evaluatePlayerPromises(leagueId, league.currentSeason);
               if (promiseResult.broken > 0) {
