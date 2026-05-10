@@ -954,6 +954,11 @@ function PlayerEditPanel({
           <NumField field="running" label="Running" />
           <NumField field="throwing" label="Throwing" />
           <NumField field="agile" label="Agile" />
+          <NumField field="recovery" label="Recovery" />
+          <NumField field="wRISP" label="wRISP" />
+          <NumField field="vsLefty" label="vs Lefty" />
+          <NumField field="poise" label="Poise" />
+          <NumField field="heater" label="Heater" />
         </div>
       </div>
 
