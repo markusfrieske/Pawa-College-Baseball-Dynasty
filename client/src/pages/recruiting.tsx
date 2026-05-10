@@ -159,6 +159,7 @@ const sortOptions = [
   { value: "interest", label: "Interest Level" },
   { value: "myInterest", label: "Interest in You (High to Low)" },
   { value: "trendUp", label: "Rising Interest First" },
+  { value: "competition", label: "Most Contested First" },
 ];
 
 export default function RecruitingPage() {
@@ -198,6 +199,7 @@ export default function RecruitingPage() {
   const [pipelineFilter, setPipelineFilter] = useState<string | null>(null);
   const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
   const [showTopAvailable, setShowTopAvailable] = useState<boolean>((sf.showTopAvailable as boolean) ?? false);
+  const [showContested, setShowContested] = useState<boolean>((sf.showContested as boolean) ?? false);
   const [showHistory, setShowHistory] = useState(false);
   const [actionResultModal, setActionResultModal] = useState<{
     title: string;
@@ -233,9 +235,10 @@ export default function RecruitingPage() {
       showPipeline,
       showWatchlistOnly,
       showTopAvailable,
+      showContested,
       searchQuery,
     }));
-  }, [id, positionFilter, starFilter, stateFilter, typeFilter, sortBy, showTeamNeeds, showPipeline, showWatchlistOnly, showTopAvailable, searchQuery]);
+  }, [id, positionFilter, starFilter, stateFilter, typeFilter, sortBy, showTeamNeeds, showPipeline, showWatchlistOnly, showTopAvailable, showContested, searchQuery]);
 
   const toggleCompare = (recruit: RecruitWithInterest) => {
     if (compareRecruits.find(r => r.id === recruit.id)) {
@@ -527,6 +530,7 @@ export default function RecruitingPage() {
       if (typeFilter === "JUCO" && rt !== "JUCO") return false;
     }
     if (showWatchlistOnly && !r.interest?.isTargeted) return false;
+    if (showContested && !r.competingIntensity) return false;
     if (showTopAvailable && pipelineData?.positionNeeds) {
       const needPositions = pipelineData.positionNeeds.filter(p => p.need).map(p => p.position);
       if (!needPositions.includes(r.position)) return false;
@@ -617,6 +621,17 @@ export default function RecruitingPage() {
         if (diff !== 0) return diff;
         return (b.interest?.interestLevel || 0) - (a.interest?.interestLevel || 0);
       }
+      case "competition": {
+        const intensityScore = (r: RecruitWithInterest) => {
+          if (r.competingIntensity === "Heavy") return 3;
+          if (r.competingIntensity === "Moderate") return 2;
+          if (r.competingIntensity === "Light") return 1;
+          return 0;
+        };
+        const diff = intensityScore(b) - intensityScore(a);
+        if (diff !== 0) return diff;
+        return (b.competingCount || 0) - (a.competingCount || 0);
+      }
       default:
         return (a.classRank || 999) - (b.classRank || 999);
     }
@@ -692,7 +707,7 @@ export default function RecruitingPage() {
 
             {/* Mobile: compact filter trigger row */}
             {(() => {
-              const activeCount = (positionFilter !== "all" ? 1 : 0) + (starFilter !== "all" ? 1 : 0) + (typeFilter !== "all" ? 1 : 0) + (stateFilter !== "all" ? 1 : 0) + (showWatchlistOnly ? 1 : 0) + (showTopAvailable ? 1 : 0) + (showTeamNeeds ? 1 : 0) + (showPipeline ? 1 : 0);
+              const activeCount = (positionFilter !== "all" ? 1 : 0) + (starFilter !== "all" ? 1 : 0) + (typeFilter !== "all" ? 1 : 0) + (stateFilter !== "all" ? 1 : 0) + (showWatchlistOnly ? 1 : 0) + (showTopAvailable ? 1 : 0) + (showTeamNeeds ? 1 : 0) + (showPipeline ? 1 : 0) + (showContested ? 1 : 0);
               return (
                 <div className="flex items-center gap-2 sm:hidden">
                   <RetroSelect
@@ -818,6 +833,16 @@ export default function RecruitingPage() {
                   >
                     <BarChart3 className="w-3 h-3 mr-1" />
                     Pipeline
+                  </RetroButton>
+                  <RetroButton
+                    variant={showContested ? "primary" : "outline"}
+                    size="sm"
+                    onClick={() => setShowContested(!showContested)}
+                    className="w-full justify-center"
+                    data-testid="button-toggle-contested"
+                  >
+                    <Flame className="w-3 h-3 mr-1" />
+                    Contested
                   </RetroButton>
                 </div>
               </div>
@@ -1031,6 +1056,16 @@ export default function RecruitingPage() {
                         <BarChart3 className="w-3 h-3 mr-1" />
                         Pipeline
                       </RetroButton>
+                      <RetroButton
+                        variant={showContested ? "primary" : "outline"}
+                        size="sm"
+                        onClick={() => setShowContested(!showContested)}
+                        className="w-full justify-center"
+                        data-testid="button-toggle-contested-sheet"
+                      >
+                        <Flame className="w-3 h-3 mr-1" />
+                        Contested
+                      </RetroButton>
                     </div>
                   </div>
                   <RetroButton
@@ -1047,6 +1082,7 @@ export default function RecruitingPage() {
                       setShowTopAvailable(false);
                       setShowTeamNeeds(false);
                       setShowPipeline(false);
+                      setShowContested(false);
                       setShowFilterSheet(false);
                     }}
                     className="w-full justify-center"
