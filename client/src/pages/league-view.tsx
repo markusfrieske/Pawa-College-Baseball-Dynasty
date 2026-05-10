@@ -873,10 +873,10 @@ function gradeColor(grade: string): string {
 }
 
 function percentileLabel(pct: number): string {
-  const fromTop = 100 - pct;
-  if (fromTop <= 0) return "Top 1%";
+  const fromTop = Math.max(1, 100 - pct);
+  const fromBot = Math.max(1, pct);
   if (pct >= 50) return `Top ${fromTop}%`;
-  return `Bottom ${pct}%`;
+  return `Bottom ${fromBot}%`;
 }
 
 function RankingsTab({ league }: { league: LeagueDetails }) {
@@ -1015,19 +1015,21 @@ function RankingsTab({ league }: { league: LeagueDetails }) {
                       </Tooltip>
                     </td>
                     <td className="py-3 px-1 text-center hidden md:table-cell">
-                      {entry.hasSignedRecruits ? (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <div className="flex flex-col items-center cursor-default">
-                              <span className={`font-bold text-xs ${gradeColor(recGrade)}`}>{recGrade}</span>
-                              <span className="text-[9px] text-muted-foreground">{entry.recruitingScore}</span>
-                            </div>
-                          </TooltipTrigger>
-                          <TooltipContent>{percentileLabel(entry.recruitingPercentile)} in Recruiting Class OVR</TooltipContent>
-                        </Tooltip>
-                      ) : (
-                        <span className="text-[9px] text-muted-foreground/50">—</span>
-                      )}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex flex-col items-center cursor-default">
+                            <span className={`font-bold text-xs ${gradeColor(recGrade)}`}>{recGrade}</span>
+                            <span className="text-[9px] text-muted-foreground">
+                              {entry.hasSignedRecruits ? entry.recruitingScore : "0"}
+                            </span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {entry.hasSignedRecruits
+                            ? `${percentileLabel(entry.recruitingPercentile)} in Recruiting Class OVR`
+                            : "No signed recruits yet"}
+                        </TooltipContent>
+                      </Tooltip>
                     </td>
                     <td className="py-3 px-1 text-center">
                       {!isUser && (
