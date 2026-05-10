@@ -78,7 +78,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Zion", lastName: "Theophilus", position: "2B", eligibility: "FR", homeState: "FL", hometown: "Miami", jerseyNumber: 52,
       hitForAvg: 9, power: 6, speed: 30, arm: 60, fielding: 38, errorResistance: 40, velocity: 66, control: 44, stamina: 32, stuff: 60,
       clutch: 48, vsLHP: 50, grit: 48, stealing: 5, running: 26, throwing: 58, recovery: 44, wRISP: 48, vsLefty: 50, poise: 48, heater: 56, agile: 44,
-      abilities: ["Walk"], potential: "B+", catcherAbility: null,
+      abilities: ["Error Prone"], potential: "B+", catcherAbility: null,
       skinTone: "deep", hairColor: "black", hairStyle: "fade",
       ...pitchMix(1, [0, 4, 3, 0, 0, 0, 0]) },
     // CATCHERS (2)

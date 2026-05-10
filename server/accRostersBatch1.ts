@@ -254,7 +254,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Ethan", lastName: "Brooks", position: "P", eligibility: "JR", homeState: "VA", hometown: "Virginia Beach", jerseyNumber: 6,
       hitForAvg: 45, power: 37, speed: 50, arm: 52, fielding: 49, errorResistance: 47, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 45, vsLHP: 42, grit: 47, stealing: 31, running: 49, throwing: 54, recovery: 40, wRISP: 44, vsLefty: 40, poise: 45, heater: 0, agile: 52,
-      abilities: ["Heavy Tank"], potential: "B", catcherAbility: null,
+      abilities: ["Quick Hands"], potential: "B", catcherAbility: null,
       ...noPitches },
   ],
 
@@ -744,7 +744,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Tyler", lastName: "Jennings", position: "P", eligibility: "SO", homeState: "IN", hometown: "Terre Haute", jerseyNumber: 14,
       hitForAvg: 44, power: 37, speed: 49, arm: 51, fielding: 47, errorResistance: 45, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 44, vsLHP: 40, grit: 45, stealing: 30, running: 47, throwing: 52, recovery: 39, wRISP: 42, vsLefty: 39, poise: 44, heater: 0, agile: 51,
-      abilities: ["Bad Mood"], potential: "B+", catcherAbility: null,
+      abilities: ["Hot Head"], potential: "B+", catcherAbility: null,
       ...noPitches },
     { firstName: "Derek", lastName: "Collins", position: "2B", eligibility: "JR", homeState: "KY", hometown: "Paducah", jerseyNumber: 9,
       hitForAvg: 49, power: 41, speed: 50, arm: 55, fielding: 52, errorResistance: 50, velocity: 0, control: 0, stamina: 0, stuff: 0,
