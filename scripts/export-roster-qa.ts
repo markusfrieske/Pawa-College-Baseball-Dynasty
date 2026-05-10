@@ -1,4 +1,4 @@
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import { ALL_REAL_ROSTERS } from "../server/realRosters";
 import { calculateOVR, getStarRatingFromOVR, getAbilityByName } from "../shared/abilities";
 
@@ -101,41 +101,24 @@ for (const [teamName, players] of Object.entries(ALL_REAL_ROSTERS)) {
   for (const p of players) {
     const ovr = calculateOVR({ ...p, position: p.position });
     const stars = getStarRatingFromOVR(ovr);
-
     let gold = 0, blue = 0, red = 0;
-    for (const abilityName of p.abilities) {
-      const ability = getAbilityByName(abilityName);
+    for (const name of p.abilities) {
+      const ability = getAbilityByName(name);
       if (ability) {
         if (ability.tier === "gold") gold++;
         else if (ability.tier === "blue") blue++;
         else if (ability.tier === "red") red++;
       }
     }
-
     allRows.push({
-      Rank: 0,
-      Conference: conference,
-      Team: teamName,
+      Rank: 0, Conference: conference, Team: teamName,
       Name: `${p.firstName} ${p.lastName}`,
-      Pos: p.position,
-      Eligibility: p.eligibility,
-      OVR: ovr,
-      Stars: stars,
-      Potential: p.potential,
-      HitAvg: p.hitForAvg,
-      Power: p.power,
-      Speed: p.speed,
-      Arm: p.arm,
-      Fielding: p.fielding,
-      ErrRes: p.errorResistance,
-      Velocity: p.velocity,
-      Control: p.control,
-      Stamina: p.stamina,
-      Stuff: p.stuff,
-      Abilities: p.abilities.join(", "),
-      Gold: gold,
-      Blue: blue,
-      Red: red,
+      Pos: p.position, Eligibility: p.eligibility,
+      OVR: ovr, Stars: stars, Potential: p.potential,
+      HitAvg: p.hitForAvg, Power: p.power, Speed: p.speed,
+      Arm: p.arm, Fielding: p.fielding, ErrRes: p.errorResistance,
+      Velocity: p.velocity, Control: p.control, Stamina: p.stamina, Stuff: p.stuff,
+      Abilities: p.abilities.join(", "), Gold: gold, Blue: blue, Red: red,
     });
   }
 }
@@ -145,79 +128,126 @@ allRows.forEach((r, i) => { r.Rank = i + 1; });
 
 const PITCHER_POS = new Set(["P", "SP", "RP", "CP"]);
 const INFIELD_POS = new Set(["1B", "2B", "3B", "SS"]);
+const OF_POS = new Set(["OF", "LF", "CF", "RF"]);
 
 const pitcherRows = allRows.filter(r => PITCHER_POS.has(r.Pos)).map((r, i) => ({ ...r, Rank: i + 1 }));
 const catcherRows = allRows.filter(r => r.Pos === "C").map((r, i) => ({ ...r, Rank: i + 1 }));
-
 const infieldRows = allRows
   .filter(r => INFIELD_POS.has(r.Pos))
   .sort((a, b) => {
-    const posOrder: Record<string, number> = { "SS": 1, "2B": 2, "3B": 3, "1B": 4 };
-    const pDiff = (posOrder[a.Pos] ?? 9) - (posOrder[b.Pos] ?? 9);
-    return pDiff !== 0 ? pDiff : b.OVR - a.OVR;
+    const posOrder: Record<string, number> = { SS: 1, "2B": 2, "3B": 3, "1B": 4 };
+    const pd = (posOrder[a.Pos] ?? 9) - (posOrder[b.Pos] ?? 9);
+    return pd !== 0 ? pd : b.OVR - a.OVR;
   })
   .map((r, i) => ({ ...r, Rank: i + 1 }));
+const ofRows = allRows.filter(r => OF_POS.has(r.Pos)).map((r, i) => ({ ...r, Rank: i + 1 }));
 
-const ofRows = allRows.filter(r => r.Pos === "OF" || r.Pos === "LF" || r.Pos === "CF" || r.Pos === "RF")
-  .map((r, i) => ({ ...r, Rank: i + 1 }));
+const HEADERS = [
+  "Rank","Conference","Team","Name","Pos","Eligibility",
+  "OVR","Stars","Potential",
+  "HitAvg","Power","Speed","Arm","Fielding","ErrRes",
+  "Velocity","Control","Stamina","Stuff",
+  "Abilities","Gold","Blue","Red",
+] as const;
 
-interface SummaryRow {
-  Conference: string;
-  Teams: number;
-  Players: number;
-  "Avg OVR": number;
-  "Median OVR": number;
-  "5★": number;
-  "4★": number;
-  "3★": number;
-  "2★": number;
-  "1★": number;
+const OVR_COL = HEADERS.indexOf("OVR") + 1;
+
+const SUMMARY_HEADERS = [
+  "Conference","Teams","Players","Avg OVR","Median OVR",
+  "5★","4★","3★","2★","1★",
+] as const;
+
+function median(sorted: number[]): number {
+  const n = sorted.length;
+  return n % 2 === 0
+    ? Math.round((sorted[n / 2 - 1] + sorted[n / 2]) / 2)
+    : sorted[Math.floor(n / 2)];
 }
 
-const summaryRows: SummaryRow[] = [];
-for (const conf of Object.keys(CONFERENCE_MAP)) {
+const summaryData = Object.keys(CONFERENCE_MAP).map(conf => {
   const rows = allRows.filter(r => r.Conference === conf);
-  if (rows.length === 0) continue;
-
   const ovrs = rows.map(r => r.OVR).sort((a, b) => a - b);
-  const median = ovrs.length % 2 === 0
-    ? Math.round((ovrs[ovrs.length / 2 - 1] + ovrs[ovrs.length / 2]) / 2)
-    : ovrs[Math.floor(ovrs.length / 2)];
-  const avgOVR = Math.round(ovrs.reduce((s, v) => s + v, 0) / ovrs.length);
-
-  const teamNames = new Set(rows.map(r => r.Team));
-
-  summaryRows.push({
-    Conference: conf,
-    Teams: teamNames.size,
-    Players: rows.length,
+  const avgOVR = ovrs.length ? Math.round(ovrs.reduce((s, v) => s + v, 0) / ovrs.length) : 0;
+  const med = ovrs.length ? median(ovrs) : 0;
+  return {
+    "Conference": conf,
+    "Teams": new Set(rows.map(r => r.Team)).size,
+    "Players": rows.length,
     "Avg OVR": avgOVR,
-    "Median OVR": median,
+    "Median OVR": med,
     "5★": rows.filter(r => r.Stars === 5).length,
     "4★": rows.filter(r => r.Stars === 4).length,
     "3★": rows.filter(r => r.Stars === 3).length,
     "2★": rows.filter(r => r.Stars === 2).length,
     "1★": rows.filter(r => r.Stars === 1).length,
-  });
+  };
+}).sort((a, b) => b["Avg OVR"] - a["Avg OVR"]);
+
+function addPlayerSheet(
+  wb: ExcelJS.Workbook,
+  sheetName: string,
+  rows: PlayerRow[],
+) {
+  const ws = wb.addWorksheet(sheetName);
+
+  ws.columns = HEADERS.map(h => ({
+    header: h,
+    key: h,
+    width: h === "Name" ? 24 : h === "Team" || h === "Conference" ? 20 : h === "Abilities" ? 50 : h === "Potential" ? 10 : 8,
+  }));
+
+  const headerRow = ws.getRow(1);
+  headerRow.font = { bold: true };
+  headerRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1F3A1F" } };
+  headerRow.alignment = { horizontal: "center" };
+  headerRow.getCell(OVR_COL).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF2A4A1F" } };
+  headerRow.commit();
+
+  ws.views = [{ state: "frozen", ySplit: 1, xSplit: 0, topLeftCell: "A2", activeCell: "A2" }];
+
+  for (const row of rows) {
+    const exRow = ws.addRow(HEADERS.map(h => row[h as keyof PlayerRow]));
+    const ovrCell = exRow.getCell(OVR_COL);
+    ovrCell.numFmt = "0";
+    ovrCell.font = { bold: true };
+    exRow.commit();
+  }
+
+  ws.getColumn(OVR_COL).numFmt = "0";
 }
 
-summaryRows.sort((a, b) => b["Avg OVR"] - a["Avg OVR"]);
+async function main() {
+  const wb = new ExcelJS.Workbook();
+  wb.creator = "College Baseball Dynasty";
 
-function makeSheet(rows: object[], freezeRows = 1) {
-  const ws = XLSX.utils.json_to_sheet(rows);
-  ws["!freeze"] = { xSplit: 0, ySplit: freezeRows };
-  return ws;
+  addPlayerSheet(wb, "All Players", allRows);
+  addPlayerSheet(wb, "Pitchers", pitcherRows);
+  addPlayerSheet(wb, "Catchers", catcherRows);
+  addPlayerSheet(wb, "Infielders", infieldRows);
+  addPlayerSheet(wb, "Outfielders", ofRows);
+
+  const sumWs = wb.addWorksheet("Summary");
+  sumWs.columns = SUMMARY_HEADERS.map(h => ({
+    header: h,
+    key: h,
+    width: h === "Conference" ? 20 : 12,
+  }));
+  const sumHeader = sumWs.getRow(1);
+  sumHeader.font = { bold: true };
+  sumHeader.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1F3A1F" } };
+  sumHeader.commit();
+  sumWs.views = [{ state: "frozen", ySplit: 1, xSplit: 0, topLeftCell: "A2", activeCell: "A2" }];
+  for (const row of summaryData) {
+    const r = sumWs.addRow(SUMMARY_HEADERS.map(h => row[h as keyof typeof row]));
+    r.getCell(4).numFmt = "0";
+    r.getCell(5).numFmt = "0";
+    r.commit();
+  }
+
+  const outPath = "roster-qa.xlsx";
+  await wb.xlsx.writeFile(outPath);
+  console.log(`\u2713 Wrote ${outPath} (${allRows.length} players across ${Object.keys(ALL_REAL_ROSTERS).length} teams)`);
+  console.log(`  Pitchers: ${pitcherRows.length} | Catchers: ${catcherRows.length} | Infielders: ${infieldRows.length} | Outfielders: ${ofRows.length}`);
 }
 
-const wb = XLSX.utils.book_new();
-XLSX.utils.book_append_sheet(wb, makeSheet(allRows), "All Players");
-XLSX.utils.book_append_sheet(wb, makeSheet(pitcherRows), "Pitchers");
-XLSX.utils.book_append_sheet(wb, makeSheet(catcherRows), "Catchers");
-XLSX.utils.book_append_sheet(wb, makeSheet(infieldRows), "Infielders");
-XLSX.utils.book_append_sheet(wb, makeSheet(ofRows), "Outfielders");
-XLSX.utils.book_append_sheet(wb, makeSheet(summaryRows), "Summary");
-
-const outPath = "roster-qa.xlsx";
-XLSX.writeFile(wb, outPath);
-console.log(`\u2713 Wrote ${outPath} (${allRows.length} players across ${Object.keys(ALL_REAL_ROSTERS).length} teams)`);
-console.log(`  Pitchers: ${pitcherRows.length} | Catchers: ${catcherRows.length} | Infielders: ${infieldRows.length} | Outfielders: ${ofRows.length}`);
+main().catch(err => { console.error(err); process.exit(1); });
