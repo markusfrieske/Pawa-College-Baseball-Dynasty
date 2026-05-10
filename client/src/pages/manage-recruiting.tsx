@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Save, Plus, Upload, Trash2, Download, RefreshCw, ChevronDown, Check, X } from "lucide-react";
+import { ArrowLeft, Save, Plus, Upload, Trash2, Download, RefreshCw, ChevronDown, Check, X, LogIn } from "lucide-react";
 import { apiRequest, queryClient, getQueryFn } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -759,6 +759,24 @@ export default function ManageRecruitingPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+            </RetroCardContent>
+          </RetroCard>
+        ) : !user ? (
+          <RetroCard data-testid="section-signin-prompt">
+            <RetroCardContent className="py-6">
+              <div className="flex flex-col items-center gap-3 text-center">
+                <LogIn className="w-8 h-8 text-gold" />
+                <p className="font-pixel text-xs text-gold">SIGN IN TO SAVE YOUR RECRUITING CLASSES</p>
+                <p className="text-muted-foreground text-sm max-w-sm">
+                  Create an account or sign in to save, load, and manage your recruiting classes across sessions.
+                </p>
+                <Link href="/login">
+                  <RetroButton size="sm" data-testid="button-signin-prompt">
+                    <LogIn className="w-4 h-4 mr-2" />
+                    Sign In
+                  </RetroButton>
+                </Link>
               </div>
             </RetroCardContent>
           </RetroCard>
