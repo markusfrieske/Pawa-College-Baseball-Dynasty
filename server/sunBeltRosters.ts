@@ -10,7 +10,7 @@ export const SUN_BELT_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Cameron", lastName: "Flukey", position: "P", eligibility: "JR", homeState: "FL", hometown: "Land O'Lakes", jerseyNumber: 22,
       hitForAvg: 14, power: 11, speed: 36, arm: 90, fielding: 50, errorResistance: 54, velocity: 88, control: 84, stamina: 86, stuff: 90,
       clutch: 84, vsLHP: 80, grit: 84, stealing: 8, running: 32, throwing: 84, recovery: 70, wRISP: 80, vsLefty: 82, poise: 86, heater: 87, agile: 44,
-      abilities: ["Star of Victory", "Doctor K", "Strong Starter", "Wizard Mode", "Star of Victory"], potential: "A+", catcherAbility: null,
+      abilities: ["Star of Victory", "Doctor K", "Wizard Mode"], potential: "A+", catcherAbility: null,
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 7, 6, 6, 0, 0, 0]) },
     // Luke Jones — Friday SP SO, 4-1/4.12

@@ -400,6 +400,13 @@ export const BIG_WEST_ROSTERS: Record<string, RealPlayer[]> = {
 
   "UC Santa Barbara": [
     // PITCHERS (10)
+    // Jackson Flora — FR RHP, projected #4 overall 2026 MLB Draft, elite velocity, 1.88 ERA in 86.1 IP
+    { firstName: "Jackson", lastName: "Flora", position: "P", eligibility: "FR", homeState: "CA", hometown: "Santa Barbara", jerseyNumber: 14,
+      hitForAvg: 12, power: 9, speed: 30, arm: 88, fielding: 52, errorResistance: 40, velocity: 90, control: 82, stamina: 80, stuff: 92,
+      clutch: 78, vsLHP: 80, grit: 76, stealing: 9, running: 28, throwing: 84, recovery: 72, wRISP: 80, vsLefty: 84, poise: 82, heater: 88, agile: 36,
+      abilities: ["Star of Victory", "Doctor K", "Explosive Fastball"], potential: "A+", catcherAbility: null,
+      skinTone: "light", hairColor: "brown", hairStyle: "short",
+      ...pitchMix(1, [0, 7, 6, 6, 0, 0, 0]) },
     { firstName: "Michael", lastName: "Cole", position: "P", eligibility: "JR", homeState: "CA", hometown: "Goleta", jerseyNumber: 34,
       hitForAvg: 15, power: 11, speed: 37, arm: 63, fielding: 43, errorResistance: 44, velocity: 64, control: 63, stamina: 64, stuff: 63,
       clutch: 59, vsLHP: 55, grit: 61, stealing: 11, running: 34, throwing: 61, recovery: 57, wRISP: 57, vsLefty: 59, poise: 61, heater: 63, agile: 41,
@@ -445,11 +452,6 @@ export const BIG_WEST_ROSTERS: Record<string, RealPlayer[]> = {
       clutch: 32, vsLHP: 31, grit: 34, stealing: 11, running: 32, throwing: 48, recovery: 31, wRISP: 31, vsLefty: 34, poise: 32, heater: 49, agile: 39,
       abilities: ["True Slider", "Star of Victory"], potential: "A-", catcherAbility: null,
       ...pitchMix(1, [0, 3, 3, 4, 0, 0, 0]) },
-    { firstName: "Ben", lastName: "Roth", position: "P", eligibility: "FR", homeState: "CA", hometown: "Moorpark", jerseyNumber: 50,
-      hitForAvg: 8, power: 7, speed: 26, arm: 36, fielding: 22, errorResistance: 23, velocity: 38, control: 29, stamina: 29, stuff: 35,
-      clutch: 23, vsLHP: 22, grit: 25, stealing: 8, running: 23, throwing: 35, recovery: 22, wRISP: 22, vsLefty: 25, poise: 23, heater: 36, agile: 29,
-      abilities: ["Halting Quickness"], potential: "B+", catcherAbility: null,
-      ...pitchMix(1, [0, 3, 3, 3, 0, 0, 0]) },
     // CATCHERS (2)
     { firstName: "Jordan", lastName: "Hart", position: "C", eligibility: "JR", homeState: "CA", hometown: "Santa Barbara", jerseyNumber: 14,
       hitForAvg: 48, power: 42, speed: 32, arm: 51, fielding: 50, errorResistance: 48, velocity: 0, control: 0, stamina: 0, stuff: 0,

@@ -543,7 +543,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Roch", lastName: "Cholowsky", position: "SS", eligibility: "JR", homeState: "CA", hometown: "Oceanside", jerseyNumber: 2,
       hitForAvg: 90, power: 86, speed: 70, arm: 80, fielding: 84, errorResistance: 80, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 88, vsLHP: 86, grit: 84, stealing: 38, running: 70, throwing: 82, recovery: 68, wRISP: 88, vsLefty: 86, poise: 86, heater: 0, agile: 70,
-      abilities: ["Power Hitter", "Consigliere", "Contact Hitter"], potential: "A", catcherAbility: null,
+      abilities: ["Iron Man", "Express Baserunning", "Power Hitter", "Consigliere", "Contact Hitter", "Tough Out"], potential: "A+", catcherAbility: null,
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...noPitches },
     // Mulivai Levu — 1B, .347/14HR/54RBI, All-Conference 2025
