@@ -234,7 +234,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       { firstName: "Carson", lastName: "Ozmer", position: "P", eligibility: "SR", homeState: "GA", hometown: "Atlanta", jerseyNumber: 39,
         hitForAvg: 11, power: 9, speed: 32, arm: 74, fielding: 42, errorResistance: 44, velocity: 78, control: 70, stamina: 50, stuff: 78,
         clutch: 80, vsLHP: 70, grit: 76, stealing: 8, running: 30, throwing: 72, recovery: 56, wRISP: 76, vsLefty: 70, poise: 80, heater: 78, agile: 40,
-        abilities: ["Fireman", "Doctor K", "Consigliere", "Top Gear"], potential: "A", catcherAbility: null,
+        abilities: ["Fireman", "Doctor K", "Decisive", "Top Gear"], potential: "A", catcherAbility: null,
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 7, 0, 4, 0, 4, 0]) },
       // Ashton Crowther — JR (South Carolina transfer)
@@ -270,7 +270,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       { firstName: "Will", lastName: "Plattner", position: "C", eligibility: "SR", homeState: "AL", hometown: "Vestavia Hills", jerseyNumber: 19,
         hitForAvg: 56, power: 50, speed: 36, arm: 64, fielding: 64, errorResistance: 60, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 60, vsLHP: 54, grit: 64, stealing: 14, running: 36, throwing: 66, recovery: 48, wRISP: 56, vsLefty: 52, poise: 60, heater: 0, agile: 40,
-        abilities: ["Defensive Artisan", "Guts"], potential: "B+", catcherAbility: 60,
+        abilities: ["Defensive Artisan", "Tough Out"], potential: "B+", catcherAbility: 60,
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
       // INFIELDERS (7)
@@ -623,7 +623,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Bryce", lastName: "Calloway", position: "P", eligibility: "JR", homeState: "LA", hometown: "New Orleans", jerseyNumber: 18,
       hitForAvg: 80, power: 86, speed: 32, arm: 70, fielding: 56, errorResistance: 54, velocity: 78, control: 70, stamina: 36, stuff: 76,
       clutch: 80, vsLHP: 76, grit: 78, stealing: 8, running: 30, throwing: 70, recovery: 56, wRISP: 80, vsLefty: 76, poise: 76, heater: 78, agile: 36,
-      abilities: ["Fireman", "Power Hitter", "Artist", "Phantasmagoric", "Decisive", "Monster Stuff"], potential: "A", catcherAbility: null,
+      abilities: ["Fireman", "Staredown", "Gear Change", "Phantasmagoric", "Decisive", "Monster Stuff"], potential: "A", catcherAbility: null,
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(5, [0, 5, 5, 4, 0, 0, 0]) },
     // CATCHERS (2)

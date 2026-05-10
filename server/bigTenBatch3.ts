@@ -190,7 +190,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Matt", lastName: "Chatelle", position: "C", eligibility: "SR", homeState: "NJ", hometown: "Bridgewater", jerseyNumber: 12,
       hitForAvg: 51, power: 44, speed: 29, arm: 55, fielding: 55, errorResistance: 53, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 52, vsLHP: 48, grit: 55, stealing: 12, running: 27, throwing: 56, recovery: 44, wRISP: 51, vsLefty: 47, poise: 53, heater: 0, agile: 32,
-      abilities: ["Defensive Artisan", "Guts"], potential: "B+", catcherAbility: 52,
+      abilities: ["Defensive Artisan", "Tough Out"], potential: "B+", catcherAbility: 52,
       ...noPitches },
     { firstName: "Trey", lastName: "Wells", position: "C", eligibility: "SR", homeState: "NJ", hometown: "Middletown", jerseyNumber: 18,
       hitForAvg: 39, power: 35, speed: 25, arm: 45, fielding: 43, errorResistance: 41, velocity: 0, control: 0, stamina: 0, stuff: 0,
@@ -301,7 +301,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       { firstName: "Adam", lastName: "Troy", position: "P", eligibility: "SR", homeState: "CA", hometown: "Long Beach", jerseyNumber: 23,
         hitForAvg: 12, power: 10, speed: 34, arm: 76, fielding: 42, errorResistance: 44, velocity: 78, control: 72, stamina: 50, stuff: 78,
         clutch: 80, vsLHP: 70, grit: 76, stealing: 8, running: 30, throwing: 74, recovery: 56, wRISP: 76, vsLefty: 72, poise: 80, heater: 78, agile: 40,
-        abilities: ["Fireman", "Doctor K", "Consigliere", "Strong Finisher", "Straddle"], potential: "A", catcherAbility: null,
+        abilities: ["Fireman", "Doctor K", "Decisive", "Strong Finisher", "Straddle"], potential: "A", catcherAbility: null,
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 7, 0, 4, 0, 4, 0]) },
       // Henry Chabot — SR RHP rotation depth
@@ -694,7 +694,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Ethan", lastName: "Swidler", position: "C", eligibility: "SR", homeState: "PA", hometown: "Easton", jerseyNumber: 4,
       hitForAvg: 51, power: 44, speed: 30, arm: 57, fielding: 55, errorResistance: 54, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 52, vsLHP: 49, grit: 54, stealing: 12, running: 28, throwing: 59, recovery: 44, wRISP: 51, vsLefty: 47, poise: 52, heater: 0, agile: 31,
-      abilities: ["Guts"], potential: "B", catcherAbility: 52,
+      abilities: ["Contact Hitter"], potential: "B", catcherAbility: 52,
       ...noPitches },
     // INFIELDERS (7)
     { firstName: "Ty", lastName: "Cowan", position: "SS", eligibility: "SR", homeState: "WA", hometown: "Kirkland", jerseyNumber: 1,

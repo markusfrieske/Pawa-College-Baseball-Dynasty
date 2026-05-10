@@ -762,7 +762,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       { firstName: "Cesar", lastName: "Gonzalez", position: "P", eligibility: "SR", homeState: "PR", hometown: "San Juan", jerseyNumber: 39,
         hitForAvg: 12, power: 10, speed: 32, arm: 74, fielding: 42, errorResistance: 44, velocity: 76, control: 70, stamina: 50, stuff: 76,
         clutch: 80, vsLHP: 70, grit: 76, stealing: 8, running: 30, throwing: 72, recovery: 56, wRISP: 76, vsLefty: 70, poise: 80, heater: 76, agile: 40,
-        abilities: ["Fireman", "Consigliere", "Inside Pitch", "Inside Pitch", "Low Ball"], potential: "A", catcherAbility: null,
+        abilities: ["Fireman", "Decisive", "Inside Pitch", "Inside Pitch", "Low Ball"], potential: "A", catcherAbility: null,
         skinTone: "tan", hairColor: "black", hairStyle: "short",
         ...pitchMix(1, [0, 7, 0, 4, 0, 4, 0]) },
       // Mason Pelio — JR RHP rotation depth

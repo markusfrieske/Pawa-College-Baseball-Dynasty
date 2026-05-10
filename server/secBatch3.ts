@@ -58,7 +58,7 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Talmadge", lastName: "LeCroy", position: "C", eligibility: "SR", homeState: "SC", hometown: "Easley", jerseyNumber: 18,
       hitForAvg: 47, power: 43, speed: 30, arm: 56, fielding: 54, errorResistance: 53, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 50, vsLHP: 47, grit: 56, stealing: 11, running: 27, throwing: 57, recovery: 44, wRISP: 49, vsLefty: 46, poise: 54, heater: 0, agile: 33,
-      abilities: ["Guts"], potential: "B", catcherAbility: 54,
+      abilities: ["Contact Hitter"], potential: "B", catcherAbility: 54,
       ...noPitches },
     { firstName: "Jake", lastName: "Randolph", position: "C", eligibility: "FR", homeState: "SC", hometown: "Irmo", jerseyNumber: 24,
       hitForAvg: 38, power: 32, speed: 34, arm: 56, fielding: 48, errorResistance: 43, velocity: 0, control: 0, stamina: 0, stuff: 0,

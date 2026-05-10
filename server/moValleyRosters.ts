@@ -1537,7 +1537,7 @@ export const MO_VALLEY_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Boone", lastName: "Bugger", position: "3B", eligibility: "JR", homeState: "MT", hometown: "Bozeman", jerseyNumber: 10,
       hitForAvg: 49, power: 44, speed: 43, arm: 53, fielding: 52, errorResistance: 49, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 49, vsLHP: 47, grit: 52, stealing: 21, running: 41, throwing: 55, recovery: 41, wRISP: 48, vsLefty: 44, poise: 49, heater: 0, agile: 44,
-      abilities: ["Guts"], potential: "B", catcherAbility: null,
+      abilities: ["Tough Out"], potential: "B", catcherAbility: null,
       ...noPitches },
     { firstName: "Nick", lastName: "Cameron", position: "1B", eligibility: "JR", homeState: "IA", hometown: "West Des Moines", jerseyNumber: 7,
       hitForAvg: 48, power: 46, speed: 36, arm: 49, fielding: 49, errorResistance: 48, velocity: 0, control: 0, stamina: 0, stuff: 0,

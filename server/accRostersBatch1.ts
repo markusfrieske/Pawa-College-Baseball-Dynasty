@@ -456,7 +456,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Mason", lastName: "Patel", position: "P", eligibility: "SR", homeState: "GA", hometown: "Johns Creek", jerseyNumber: 30,
       hitForAvg: 10, power: 8, speed: 32, arm: 76, fielding: 44, errorResistance: 50, velocity: 80, control: 76, stamina: 36, stuff: 82,
       clutch: 80, vsLHP: 72, grit: 76, stealing: 7, running: 30, throwing: 74, recovery: 56, wRISP: 76, vsLefty: 72, poise: 80, heater: 70, agile: 42,
-      abilities: ["Fireman", "Doctor K", "Consigliere", "Strikeout", "Inside Pitch"], potential: "A", catcherAbility: null,
+      abilities: ["Fireman", "Doctor K", "Staredown", "Strikeout", "Inside Pitch"], potential: "A", catcherAbility: null,
       skinTone: "tan", hairColor: "black", hairStyle: "short",
       ...pitchMix(5, [0, 7, 0, 4, 0, 4, 0]) },
     // Justin Shadek — Sat SP, RS-SO, transfer from Rutgers, 2025 weekend starter

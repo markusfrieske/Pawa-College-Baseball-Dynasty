@@ -701,7 +701,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Blaine", lastName: "Brown", position: "P", eligibility: "JR", homeState: "TX", hometown: "Houston", jerseyNumber: 38,
       hitForAvg: 57, power: 51, speed: 55, arm: 86, fielding: 57, errorResistance: 55, velocity: 91, control: 85, stamina: 84, stuff: 88,
       clutch: 67, vsLHP: 63, grit: 69, stealing: 30, running: 53, throwing: 73, recovery: 63, wRISP: 65, vsLefty: 67, poise: 69, heater: 90, agile: 55,
-      abilities: ["Strong Starter", "Consigliere", "Indomitable Soul", "Halting Quickness"], potential: "A-", catcherAbility: null,
+      abilities: ["Strong Starter", "Staredown", "Indomitable Soul", "Halting Quickness"], potential: "A-", catcherAbility: null,
       ...pitchMix(1, [0, 5, 5, 5, 0, 0, 0]) },
     { firstName: "Brandon", lastName: "Arvidson", position: "P", eligibility: "JR", homeState: "CA", hometown: "San Clemente", jerseyNumber: 40,
       hitForAvg: 17, power: 13, speed: 35, arm: 74, fielding: 42, errorResistance: 44, velocity: 75, control: 69, stamina: 69, stuff: 74,
