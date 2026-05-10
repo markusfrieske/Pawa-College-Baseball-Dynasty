@@ -30,6 +30,10 @@ author = "agent"
 task = "workflow.run"
 args = "Start application"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "E2E Test"
+
 [[workflows.workflow]]
 name = "Start application"
 author = "agent"
@@ -38,6 +42,17 @@ author = "agent"
 task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5000
+
+[[workflows.workflow]]
+name = "E2E Test"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npx tsx script/e2e-test.ts 2>&1 | tee .local/e2e.stdio"
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 [agent]
 integrations = ["javascript_database:1.0.0"]
