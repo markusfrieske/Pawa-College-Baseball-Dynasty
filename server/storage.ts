@@ -215,7 +215,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateLeague(id: string, data: Partial<League>): Promise<League | undefined> {
-    const [league] = await db.update(leagues).set(data).where(eq(leagues.id, id)).returning();
+    const payload: Partial<League> = { ...data };
+    if ("currentPhase" in payload && !("phaseDeadline" in payload)) {
+      payload.phaseDeadline = null;
+    }
+    const [league] = await db.update(leagues).set(payload).where(eq(leagues.id, id)).returning();
     return league || undefined;
   }
 
