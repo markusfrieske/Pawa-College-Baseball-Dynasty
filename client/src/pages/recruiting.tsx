@@ -54,7 +54,8 @@ import {
   Flame,
   Telescope,
   Zap,
-  Filter
+  Filter,
+  MoreHorizontal
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -1711,6 +1712,7 @@ function RecruitRow({
   const [selectedPhonePitches, setSelectedPhonePitches] = useState<string[]>([]);
   const [selectedEmailPitch, setSelectedEmailPitch] = useState<string | null>(null);
   const [showTopSchools, setShowTopSchools] = useState(false);
+  const [showMobileMore, setShowMobileMore] = useState(false);
 
   const pitchOptions = [
     { key: "proximity", label: "Proximity" },
@@ -1991,150 +1993,262 @@ function RecruitRow({
             </Tooltip>
           </div>
         ) : (
-          <div className="flex items-center gap-4 flex-wrap">
-            <div className="w-32">
-              <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                <span>Scout</span>
-                <span>{scoutPct}%</span>
+          <>
+            {/* Mobile compact quick-actions — Scout + More popover */}
+            <div className="flex items-center gap-2 lg:hidden">
+              <div className="flex-1 min-w-0">
+                <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                  <span>Scout</span>
+                  <span>{scoutPct}%</span>
+                </div>
+                <Progress value={scoutPct} className="h-1.5" />
               </div>
-              <Progress value={scoutPct} className="h-2" />
-            </div>
-
-            <div className="flex gap-1.5 flex-wrap">
-              <Tooltip>
-                <TooltipTrigger asChild>
+              <RetroButton
+                variant="outline"
+                size="sm"
+                onClick={onScout}
+                disabled={isScouting || scoutPct >= 100 || outOfScoutActions}
+                data-testid={`button-scout-mobile-${recruit.id}`}
+              >
+                <Search className="w-3 h-3 mr-1" />
+                <span className="text-[9px]">Scout</span>
+              </RetroButton>
+              <Popover open={showMobileMore} onOpenChange={setShowMobileMore}>
+                <PopoverTrigger asChild>
                   <RetroButton
                     variant="outline"
                     size="sm"
-                    onClick={onScout}
-                    disabled={isScouting || scoutPct >= 100 || outOfScoutActions}
-                    data-testid={`button-scout-${recruit.id}`}
+                    data-testid={`button-more-mobile-${recruit.id}`}
                   >
-                    <Search className="w-3 h-3 mr-1" />
-                    <span className="text-[9px]">Scout</span>
+                    <MoreHorizontal className="w-3 h-3" />
                   </RetroButton>
-                </TooltipTrigger>
-                <TooltipContent>Scout (1 scouting point)</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <RetroButton
-                    variant={recruit.interest?.isTargeted ? "primary" : "outline"}
-                    size="sm"
-                    onClick={onTarget}
-                    disabled={isTargeting}
-                    data-testid={`button-target-${recruit.id}`}
-                  >
-                    <Target className="w-3 h-3 mr-1" />
-                    <span className="text-[9px]">Target</span>
-                  </RetroButton>
-                </TooltipTrigger>
-                <TooltipContent>{recruit.interest?.isTargeted ? "Untarget" : "Target"}</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <RetroButton
-                    variant={showPhonePicker ? "primary" : "outline"}
-                    size="sm"
-                    onClick={() => { setShowPhonePicker(!showPhonePicker); setShowEmailPicker(false); setSelectedPhonePitches([]); }}
-                    disabled={isPhoning || !recruit.interest || outOfRecruitingActions}
-                    data-testid={`button-phone-${recruit.id}`}
-                  >
-                    <Phone className="w-3 h-3 mr-1" />
-                    <span className="text-[9px]">Call (1)</span>
-                  </RetroButton>
-                </TooltipTrigger>
-                <TooltipContent>Phone Call - 1 recruiting point (3 pitches)</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <RetroButton
-                    variant={showEmailPicker ? "primary" : "outline"}
-                    size="sm"
-                    onClick={() => { setShowEmailPicker(!showEmailPicker); setShowPhonePicker(false); setSelectedEmailPitch(null); }}
-                    disabled={isEmailing || !recruit.interest || outOfRecruitingActions}
-                    data-testid={`button-email-${recruit.id}`}
-                  >
-                    <Mail className="w-3 h-3 mr-1" />
-                    <span className="text-[9px]">Email (1)</span>
-                  </RetroButton>
-                </TooltipTrigger>
-                <TooltipContent>Send Email - 1 recruiting point (1 pitch)</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <RetroButton
-                    variant={hasVisited ? "primary" : "outline"}
-                    size="sm"
-                    onClick={onVisit}
-                    disabled={isVisiting || !recruit.interest || remainingPoints < visitCost || hasVisited}
-                    data-testid={`button-visit-${recruit.id}`}
-                  >
-                    <Building2 className="w-3 h-3 mr-1" />
-                    <span className="text-[9px]">{hasVisited ? "Visited" : `Visit (${visitCost})`}</span>
-                  </RetroButton>
-                </TooltipTrigger>
-                <TooltipContent>{hasVisited ? "Campus Visit Used" : remainingPoints < visitCost ? `Need ${visitCost} points for Campus Visit` : `Campus Visit - ${visitCost} recruiting points`}</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <RetroButton
-                    variant={hasHeadCoachVisited ? "primary" : "outline"}
-                    size="sm"
-                    onClick={onHeadCoachVisit}
-                    disabled={isHeadCoachVisiting || !recruit.interest || remainingPoints < headCoachVisitCost || hasHeadCoachVisited}
-                    data-testid={`button-head-coach-visit-${recruit.id}`}
-                  >
-                    <Crown className="w-3 h-3 mr-1" />
-                    <span className="text-[9px]">{hasHeadCoachVisited ? "HC Visited" : `HC Visit (${headCoachVisitCost})`}</span>
-                  </RetroButton>
-                </TooltipTrigger>
-                <TooltipContent>{hasHeadCoachVisited ? "Head Coach Visit Used" : remainingPoints < headCoachVisitCost ? `Need ${headCoachVisitCost} points for HC Visit` : `Head Coach Visit - ${headCoachVisitCost} recruiting points`}</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <RetroButton
-                    variant={recruit.interest?.hasOffer ? "primary" : "outline"}
-                    size="sm"
-                    onClick={onOffer}
-                    disabled={isOffering || !recruit.interest || recruit.interest?.hasOffer}
-                    data-testid={`button-offer-${recruit.id}`}
-                  >
-                    <Gift className="w-3 h-3 mr-1" />
-                    <span className="text-[9px]">{recruit.interest?.hasOffer ? "Offered" : "Offer"}</span>
-                  </RetroButton>
-                </TooltipTrigger>
-                <TooltipContent>{recruit.interest?.hasOffer ? "Scholarship Offered" : "Offer Scholarship (1 recruiting point)"}</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Link href={`/league/${leagueId}/recruit/${recruit.id}`}>
-                    <RetroButton
-                      size="sm"
-                      data-testid={`button-view-${recruit.id}`}
+                </PopoverTrigger>
+                <PopoverContent className="w-44 bg-card border-border p-1.5" align="end" data-testid={`popover-more-${recruit.id}`}>
+                  <div className="flex flex-col gap-0.5">
+                    <button
+                      className={`flex items-center gap-2 w-full text-left px-2 py-1.5 rounded text-xs transition-colors ${recruit.interest?.isTargeted ? "text-gold bg-gold/10" : "text-foreground hover:bg-muted/50"} disabled:opacity-50`}
+                      onClick={() => { onTarget(); setShowMobileMore(false); }}
+                      disabled={isTargeting}
+                      data-testid={`button-target-mobile-${recruit.id}`}
                     >
-                      <Eye className="w-3 h-3" />
-                    </RetroButton>
-                  </Link>
-                </TooltipTrigger>
-                <TooltipContent>View Details</TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <RetroButton
-                    variant={recruit.interest?.notes ? "primary" : "outline"}
-                    size="sm"
-                    onClick={() => setShowNotesDialog(true)}
-                    disabled={!recruit.interest}
-                    data-testid={`button-notes-${recruit.id}`}
-                  >
-                    <StickyNote className="w-3 h-3" />
-                  </RetroButton>
-                </TooltipTrigger>
-                <TooltipContent>Notes</TooltipContent>
-              </Tooltip>
+                      <Target className="w-3 h-3 flex-shrink-0" />
+                      {recruit.interest?.isTargeted ? "Untarget" : "Target"}
+                    </button>
+                    <button
+                      className="flex items-center gap-2 w-full text-left px-2 py-1.5 rounded text-xs text-foreground hover:bg-muted/50 transition-colors disabled:opacity-50"
+                      onClick={() => { setShowPhonePicker(true); setShowEmailPicker(false); setSelectedPhonePitches([]); setShowMobileMore(false); }}
+                      disabled={isPhoning || !recruit.interest || outOfRecruitingActions}
+                      data-testid={`button-phone-mobile-${recruit.id}`}
+                    >
+                      <Phone className="w-3 h-3 flex-shrink-0" />
+                      Call (1 pt)
+                    </button>
+                    <button
+                      className="flex items-center gap-2 w-full text-left px-2 py-1.5 rounded text-xs text-foreground hover:bg-muted/50 transition-colors disabled:opacity-50"
+                      onClick={() => { setShowEmailPicker(true); setShowPhonePicker(false); setSelectedEmailPitch(null); setShowMobileMore(false); }}
+                      disabled={isEmailing || !recruit.interest || outOfRecruitingActions}
+                      data-testid={`button-email-mobile-${recruit.id}`}
+                    >
+                      <Mail className="w-3 h-3 flex-shrink-0" />
+                      Email (1 pt)
+                    </button>
+                    <button
+                      className={`flex items-center gap-2 w-full text-left px-2 py-1.5 rounded text-xs transition-colors ${hasVisited ? "text-gold bg-gold/10" : "text-foreground hover:bg-muted/50"} disabled:opacity-50`}
+                      onClick={() => { onVisit(); setShowMobileMore(false); }}
+                      disabled={isVisiting || !recruit.interest || remainingPoints < visitCost || hasVisited}
+                      data-testid={`button-visit-mobile-${recruit.id}`}
+                    >
+                      <Building2 className="w-3 h-3 flex-shrink-0" />
+                      {hasVisited ? "Visited" : `Visit (${visitCost} pts)`}
+                    </button>
+                    <button
+                      className={`flex items-center gap-2 w-full text-left px-2 py-1.5 rounded text-xs transition-colors ${hasHeadCoachVisited ? "text-gold bg-gold/10" : "text-foreground hover:bg-muted/50"} disabled:opacity-50`}
+                      onClick={() => { onHeadCoachVisit(); setShowMobileMore(false); }}
+                      disabled={isHeadCoachVisiting || !recruit.interest || remainingPoints < headCoachVisitCost || hasHeadCoachVisited}
+                      data-testid={`button-hcvisit-mobile-${recruit.id}`}
+                    >
+                      <Crown className="w-3 h-3 flex-shrink-0" />
+                      {hasHeadCoachVisited ? "HC Visited" : `HC Visit (${headCoachVisitCost} pts)`}
+                    </button>
+                    <button
+                      className={`flex items-center gap-2 w-full text-left px-2 py-1.5 rounded text-xs transition-colors ${recruit.interest?.hasOffer ? "text-gold bg-gold/10" : "text-foreground hover:bg-muted/50"} disabled:opacity-50`}
+                      onClick={() => { onOffer(); setShowMobileMore(false); }}
+                      disabled={isOffering || !recruit.interest || recruit.interest?.hasOffer}
+                      data-testid={`button-offer-mobile-${recruit.id}`}
+                    >
+                      <Gift className="w-3 h-3 flex-shrink-0" />
+                      {recruit.interest?.hasOffer ? "Offered" : "Offer Scholarship"}
+                    </button>
+                    <button
+                      className={`flex items-center gap-2 w-full text-left px-2 py-1.5 rounded text-xs transition-colors ${recruit.interest?.notes ? "text-gold bg-gold/10" : "text-foreground hover:bg-muted/50"} disabled:opacity-50`}
+                      onClick={() => { setShowNotesDialog(true); setShowMobileMore(false); }}
+                      disabled={!recruit.interest}
+                      data-testid={`button-notes-mobile-${recruit.id}`}
+                    >
+                      <StickyNote className="w-3 h-3 flex-shrink-0" />
+                      Notes
+                    </button>
+                    <div className="border-t border-border my-0.5" />
+                    <Link href={`/league/${leagueId}/recruit/${recruit.id}`}>
+                      <button
+                        className="flex items-center gap-2 w-full text-left px-2 py-1.5 rounded text-xs text-foreground hover:bg-muted/50 transition-colors"
+                        data-testid={`button-view-mobile-${recruit.id}`}
+                      >
+                        <Eye className="w-3 h-3 flex-shrink-0" />
+                        View Full Profile
+                      </button>
+                    </Link>
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
-          </div>
+
+            {/* Desktop full actions — unchanged, hidden on mobile */}
+            <div className="hidden lg:flex items-center gap-4 flex-wrap">
+              <div className="w-32">
+                <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                  <span>Scout</span>
+                  <span>{scoutPct}%</span>
+                </div>
+                <Progress value={scoutPct} className="h-2" />
+              </div>
+
+              <div className="flex gap-1.5 flex-wrap">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <RetroButton
+                      variant="outline"
+                      size="sm"
+                      onClick={onScout}
+                      disabled={isScouting || scoutPct >= 100 || outOfScoutActions}
+                      data-testid={`button-scout-${recruit.id}`}
+                    >
+                      <Search className="w-3 h-3 mr-1" />
+                      <span className="text-[9px]">Scout</span>
+                    </RetroButton>
+                  </TooltipTrigger>
+                  <TooltipContent>Scout (1 scouting point)</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <RetroButton
+                      variant={recruit.interest?.isTargeted ? "primary" : "outline"}
+                      size="sm"
+                      onClick={onTarget}
+                      disabled={isTargeting}
+                      data-testid={`button-target-${recruit.id}`}
+                    >
+                      <Target className="w-3 h-3 mr-1" />
+                      <span className="text-[9px]">Target</span>
+                    </RetroButton>
+                  </TooltipTrigger>
+                  <TooltipContent>{recruit.interest?.isTargeted ? "Untarget" : "Target"}</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <RetroButton
+                      variant={showPhonePicker ? "primary" : "outline"}
+                      size="sm"
+                      onClick={() => { setShowPhonePicker(!showPhonePicker); setShowEmailPicker(false); setSelectedPhonePitches([]); }}
+                      disabled={isPhoning || !recruit.interest || outOfRecruitingActions}
+                      data-testid={`button-phone-${recruit.id}`}
+                    >
+                      <Phone className="w-3 h-3 mr-1" />
+                      <span className="text-[9px]">Call (1)</span>
+                    </RetroButton>
+                  </TooltipTrigger>
+                  <TooltipContent>Phone Call - 1 recruiting point (3 pitches)</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <RetroButton
+                      variant={showEmailPicker ? "primary" : "outline"}
+                      size="sm"
+                      onClick={() => { setShowEmailPicker(!showEmailPicker); setShowPhonePicker(false); setSelectedEmailPitch(null); }}
+                      disabled={isEmailing || !recruit.interest || outOfRecruitingActions}
+                      data-testid={`button-email-${recruit.id}`}
+                    >
+                      <Mail className="w-3 h-3 mr-1" />
+                      <span className="text-[9px]">Email (1)</span>
+                    </RetroButton>
+                  </TooltipTrigger>
+                  <TooltipContent>Send Email - 1 recruiting point (1 pitch)</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <RetroButton
+                      variant={hasVisited ? "primary" : "outline"}
+                      size="sm"
+                      onClick={onVisit}
+                      disabled={isVisiting || !recruit.interest || remainingPoints < visitCost || hasVisited}
+                      data-testid={`button-visit-${recruit.id}`}
+                    >
+                      <Building2 className="w-3 h-3 mr-1" />
+                      <span className="text-[9px]">{hasVisited ? "Visited" : `Visit (${visitCost})`}</span>
+                    </RetroButton>
+                  </TooltipTrigger>
+                  <TooltipContent>{hasVisited ? "Campus Visit Used" : remainingPoints < visitCost ? `Need ${visitCost} points for Campus Visit` : `Campus Visit - ${visitCost} recruiting points`}</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <RetroButton
+                      variant={hasHeadCoachVisited ? "primary" : "outline"}
+                      size="sm"
+                      onClick={onHeadCoachVisit}
+                      disabled={isHeadCoachVisiting || !recruit.interest || remainingPoints < headCoachVisitCost || hasHeadCoachVisited}
+                      data-testid={`button-head-coach-visit-${recruit.id}`}
+                    >
+                      <Crown className="w-3 h-3 mr-1" />
+                      <span className="text-[9px]">{hasHeadCoachVisited ? "HC Visited" : `HC Visit (${headCoachVisitCost})`}</span>
+                    </RetroButton>
+                  </TooltipTrigger>
+                  <TooltipContent>{hasHeadCoachVisited ? "Head Coach Visit Used" : remainingPoints < headCoachVisitCost ? `Need ${headCoachVisitCost} points for HC Visit` : `Head Coach Visit - ${headCoachVisitCost} recruiting points`}</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <RetroButton
+                      variant={recruit.interest?.hasOffer ? "primary" : "outline"}
+                      size="sm"
+                      onClick={onOffer}
+                      disabled={isOffering || !recruit.interest || recruit.interest?.hasOffer}
+                      data-testid={`button-offer-${recruit.id}`}
+                    >
+                      <Gift className="w-3 h-3 mr-1" />
+                      <span className="text-[9px]">{recruit.interest?.hasOffer ? "Offered" : "Offer"}</span>
+                    </RetroButton>
+                  </TooltipTrigger>
+                  <TooltipContent>{recruit.interest?.hasOffer ? "Scholarship Offered" : "Offer Scholarship (1 recruiting point)"}</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link href={`/league/${leagueId}/recruit/${recruit.id}`}>
+                      <RetroButton
+                        size="sm"
+                        data-testid={`button-view-${recruit.id}`}
+                      >
+                        <Eye className="w-3 h-3" />
+                      </RetroButton>
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent>View Details</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <RetroButton
+                      variant={recruit.interest?.notes ? "primary" : "outline"}
+                      size="sm"
+                      onClick={() => setShowNotesDialog(true)}
+                      disabled={!recruit.interest}
+                      data-testid={`button-notes-${recruit.id}`}
+                    >
+                      <StickyNote className="w-3 h-3" />
+                    </RetroButton>
+                  </TooltipTrigger>
+                  <TooltipContent>Notes</TooltipContent>
+                </Tooltip>
+              </div>
+            </div>
+          </>
         )}
       </div>
 
