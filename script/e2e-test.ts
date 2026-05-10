@@ -1,22 +1,85 @@
 /**
- * End-to-end test that drives a 10-team, 5-season dynasty against
- * the running dev server (http://localhost:5000).
+ * End-to-end test that drives a 10-team, CPU-only, 5-season dynasty
+ * against the running dev server (http://localhost:5000).
+ *
+ * Conference mix is intentional: the new tier-2/3/5 conferences
+ * (AAC / WCC / Mountain West) plus established SEC teams, to exercise
+ * both the recently-added roster files and the existing ones in the
+ * same loop.
  *
  * Run with: `npx tsx script/e2e-test.ts`
+ *   E2E_BASE_URL  override server URL (default http://localhost:5000)
+ *   E2E_SEASONS   override season count (default 5)
+ *   E2E_LOG       override log file path (default /tmp/e2e.log)
  */
 
-import { appendFileSync, writeFileSync } from "fs";
+import { appendFileSync, writeFileSync, readFileSync, readdirSync, statSync } from "fs";
+import { join } from "path";
 import { Pool } from "pg";
 
-const BASE = process.env.E2E_BASE_URL || "http://localhost:5000";
-const SEASONS_TO_RUN = parseInt(process.env.E2E_SEASONS || "5", 10);
+const BASE: string = process.env.E2E_BASE_URL || "http://localhost:5000";
+const SEASONS_TO_RUN: number = parseInt(process.env.E2E_SEASONS || "5", 10);
+const LOG_PATH: string = process.env.E2E_LOG || "/tmp/e2e.log";
+const SERVER_LOG_DIR: string = "/tmp/logs";
+
+type JsonValue = string | number | boolean | null | JsonObject | JsonValue[];
+interface JsonObject { [k: string]: JsonValue | undefined }
+
+interface Conference { id: string; leagueId: string; name: string }
+interface Coach { id: string; firstName: string; lastName: string; userId?: string | null }
+interface Standings { teamId: string; wins: number; losses: number }
+interface Team {
+  id: string;
+  leagueId: string;
+  name: string;
+  abbreviation: string;
+  isCpu: boolean;
+  conferenceId: string;
+  walkonReady?: boolean;
+  departuresFinalized?: boolean;
+  standings?: Standings;
+  coach?: Coach | null;
+}
+interface League {
+  id: string;
+  name: string;
+  currentSeason: number;
+  currentPhase: string;
+  currentWeek: number;
+  teams: Team[];
+  conferences: Conference[];
+}
+interface PostseasonGame {
+  id: string;
+  phase: string;
+  season: number;
+  homeTeamId: string;
+  awayTeamId: string;
+  homeScore: number | null;
+  awayScore: number | null;
+  isComplete: boolean;
+}
+interface PostseasonResponse {
+  phase: string;
+  season: number;
+  conferenceChampionships: PostseasonGame[];
+  superRegionals: PostseasonGame[];
+  cws: PostseasonGame[];
+}
+interface AwardsResponse { awardsAvailable: boolean; currentPhase?: string; season?: number }
+interface DynastyHistorySeason { season: number; cwsChampion: { name: string } | null }
+interface DynastyHistoryResponse { seasons: DynastyHistorySeason[] }
+interface PlayersResponse { players: { id: string }[] }
+interface AdvanceResponse { currentPhase: string; currentSeason: number }
+interface SetupResponse { teams: Team[]; conferences: Conference[]; league: League }
+interface TeamSelectionResponse { conferences: Conference[] }
+interface CreateLeagueResponse { id: string }
+interface SelectTeamsResponse { teamsCreated: number }
 
 let cookie = "";
 
-type AnyJson = any;
-
-async function apiOnce(method: string, path: string, body: AnyJson | undefined, timeoutMs: number): Promise<AnyJson> {
-  const res = await fetch(`${BASE}${path}`, {
+async function apiOnce<T>(method: string, path: string, body: unknown, timeoutMs: number): Promise<T> {
+  const init: RequestInit = {
     method,
     headers: {
       "Content-Type": "application/json",
@@ -25,271 +88,341 @@ async function apiOnce(method: string, path: string, body: AnyJson | undefined, 
     },
     body: body !== undefined ? JSON.stringify(body) : undefined,
     signal: AbortSignal.timeout(timeoutMs),
-  } as any);
-  const setCookie = (res.headers as any).getSetCookie ? (res.headers as any).getSetCookie() : [res.headers.get("set-cookie")].filter(Boolean) as string[];
-  if (setCookie && setCookie.length) {
-    const parts = setCookie.map((c: string) => c.split(";")[0].trim());
-    cookie = parts.join("; ");
+  };
+  const res = await fetch(`${BASE}${path}`, init);
+  const headersAny = res.headers as Headers & { getSetCookie?: () => string[] };
+  const setCookie: string[] = typeof headersAny.getSetCookie === "function"
+    ? headersAny.getSetCookie()
+    : [res.headers.get("set-cookie")].filter((v): v is string => Boolean(v));
+  if (setCookie.length) {
+    cookie = setCookie.map(c => c.split(";")[0].trim()).join("; ");
   }
   const text = await res.text();
-  let data: any;
+  let data: unknown;
   try { data = text ? JSON.parse(text) : {}; } catch { data = { raw: text }; }
   if (!res.ok) {
-    const detail = typeof data === "object" ? JSON.stringify(data) : String(data);
-    throw new Error(`${method} ${path} → ${res.status}: ${detail}`);
+    throw new Error(`${method} ${path} → ${res.status}: ${typeof data === "object" ? JSON.stringify(data) : String(data)}`);
   }
-  return data;
+  return data as T;
 }
 
-async function api(method: string, path: string, body?: AnyJson, timeoutMs = 60000): Promise<AnyJson> {
-  let lastErr: any;
+async function api<T>(method: string, path: string, body?: unknown, timeoutMs = 60000): Promise<T> {
+  let lastErr: unknown;
   for (let attempt = 1; attempt <= 3; attempt++) {
     try {
-      return await apiOnce(method, path, body, timeoutMs);
-    } catch (err: any) {
+      return await apiOnce<T>(method, path, body, timeoutMs);
+    } catch (err: unknown) {
       lastErr = err;
-      log(`  ! ${method} ${path} attempt ${attempt} failed: ${err?.message || err}`);
+      const msg = err instanceof Error ? err.message : String(err);
+      log(`  ! ${method} ${path} attempt ${attempt} failed: ${msg}`);
       await new Promise(r => setTimeout(r, 500 * attempt));
     }
   }
-  throw lastErr;
+  throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
 }
 
-const TEAM_SELECTION = [
-  { conferenceName: "AAC", teamNames: ["East Carolina", "Wichita State", "Dallas Baptist", "Tulane"] },
-  { conferenceName: "WCC", teamNames: ["Gonzaga", "Pepperdine", "Saint Mary's"] },
-  { conferenceName: "Mountain West", teamNames: ["Fresno State", "San Diego State", "UNLV"] },
+interface ConfTeams { conferenceName: string; teamNames: string[] }
+
+// New + old conference mix:
+//   SEC       — established (tier 1, existing rosters)
+//   AAC       — newly added (tier 2)
+//   WCC       — newly added (tier 3)
+//   Mountain West — newly added (tier 3)
+const TEAM_SELECTION: ConfTeams[] = [
+  { conferenceName: "SEC",           teamNames: ["LSU", "Tennessee", "Vanderbilt"] },
+  { conferenceName: "AAC",           teamNames: ["East Carolina", "Wichita State", "Dallas Baptist"] },
+  { conferenceName: "WCC",           teamNames: ["Gonzaga", "Pepperdine"] },
+  { conferenceName: "Mountain West", teamNames: ["Fresno State", "San Diego State"] },
 ];
 
-const TOTAL_TEAMS = TEAM_SELECTION.reduce((s, c) => s + c.teamNames.length, 0);
+const TOTAL_TEAMS: number = TEAM_SELECTION.reduce((s, c) => s + c.teamNames.length, 0);
 
-const LOG_PATH = process.env.E2E_LOG || "/tmp/e2e.log";
 writeFileSync(LOG_PATH, "");
-function log(msg: string) {
+function log(msg: string): void {
   const t = new Date().toISOString().substring(11, 19);
   const line = `[${t}] ${msg}\n`;
-  try { appendFileSync(LOG_PATH, line); } catch {}
-  try { process.stdout.write(line); } catch {}
+  try { appendFileSync(LOG_PATH, line); } catch { /* best effort */ }
+  try { process.stdout.write(line); } catch { /* best effort */ }
 }
-process.on("unhandledRejection", (r: any) => { log(`UNHANDLED REJECTION: ${r?.stack || r?.message || String(r)}`); });
-process.on("uncaughtException", (r: any) => { log(`UNCAUGHT EXCEPTION: ${r?.stack || r?.message || String(r)}`); });
+process.on("unhandledRejection", (r: unknown) => {
+  const msg = r instanceof Error ? (r.stack || r.message) : String(r);
+  log(`UNHANDLED REJECTION: ${msg}`);
+});
+process.on("uncaughtException", (r: unknown) => {
+  const msg = r instanceof Error ? (r.stack || r.message) : String(r);
+  log(`UNCAUGHT EXCEPTION: ${msg}`);
+});
 
-function assert(cond: any, msg: string) {
+function assert(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(`ASSERTION FAILED: ${msg}`);
 }
 
-const pgPool = process.env.DATABASE_URL ? new Pool({ connectionString: process.env.DATABASE_URL }) : null;
+const pgPool: Pool | null = process.env.DATABASE_URL
+  ? new Pool({ connectionString: process.env.DATABASE_URL })
+  : null;
 
-async function flipTeamToCpu(teamId: string) {
-  if (!pgPool) throw new Error("DATABASE_URL not set; cannot flip human team to CPU");
+async function flipTeamToCpu(teamId: string): Promise<void> {
+  if (!pgPool) throw new Error("DATABASE_URL not set; cannot flip seed team to CPU");
   await pgPool.query(`UPDATE teams SET is_cpu = true, coach_id = NULL WHERE id = $1`, [teamId]);
 }
 
-async function getLeague(leagueId: string): Promise<AnyJson> {
-  return api("GET", `/api/leagues/${leagueId}`);
+async function getLeague(leagueId: string): Promise<League> {
+  return api<League>("GET", `/api/leagues/${leagueId}`);
 }
 
-async function runSeason(leagueId: string, seasonNum: number): Promise<{
+async function assertAllRostersAt25(leagueId: string, label: string): Promise<void> {
+  const lg = await getLeague(leagueId);
+  for (const t of lg.teams) {
+    const td = await api<PlayersResponse>("GET", `/api/leagues/${leagueId}/teams/${t.id}`);
+    assert(td.players.length === 25, `${label}: ${t.name} has ${td.players.length} players (expected 25)`);
+  }
+  log(`  ✓ ${label}: all ${lg.teams.length} rosters at 25`);
+}
+
+interface SeasonReport {
+  season: number;
   champion: string;
   postseasonGames: number;
-}> {
+  draftedThisSeason: number;
+  recruitsInPool: number;
+  transferRecruits: number;
+  jucoRecruits: number;
+}
+
+async function countDraftedFor(leagueId: string, season: number): Promise<number> {
+  if (!pgPool) return 0;
+  const r = await pgPool.query<{ n: number }>(
+    `SELECT COUNT(*)::int AS n FROM player_history
+     WHERE league_id = $1 AND departed_season = $2 AND draft_round IS NOT NULL`,
+    [leagueId, season],
+  );
+  return r.rows[0]?.n ?? 0;
+}
+async function countRecruits(leagueId: string, recruitType?: string): Promise<number> {
+  if (!pgPool) return 0;
+  if (recruitType) {
+    const r = await pgPool.query<{ n: number }>(
+      `SELECT COUNT(*)::int AS n FROM recruits WHERE league_id = $1 AND recruit_type = $2`,
+      [leagueId, recruitType],
+    );
+    return r.rows[0]?.n ?? 0;
+  }
+  const r = await pgPool.query<{ n: number }>(
+    `SELECT COUNT(*)::int AS n FROM recruits WHERE league_id = $1`,
+    [leagueId],
+  );
+  return r.rows[0]?.n ?? 0;
+}
+
+async function runSeason(leagueId: string, seasonNum: number): Promise<SeasonReport> {
   log(`=== Season ${seasonNum}: starting (sim-to-offseason) ===`);
 
-  const sim = await api("POST", `/api/leagues/${leagueId}/sim-to-offseason`);
+  const sim = await api<AdvanceResponse>("POST", `/api/leagues/${leagueId}/sim-to-offseason`);
   log(`  → reached phase=${sim.currentPhase}, season=${sim.currentSeason}`);
   assert(sim.currentPhase === "offseason_departures", `Expected offseason_departures, got ${sim.currentPhase}`);
+  assert(sim.currentSeason === seasonNum, `Expected season ${seasonNum}, got ${sim.currentSeason}`);
 
-  // Postseason data
-  const post = await api("GET", `/api/leagues/${leagueId}/postseason?season=${seasonNum}`);
-  const cws: any[] = post?.cws || [];
-  const sr: any[] = post?.superRegionals || [];
-  const conf: any[] = post?.conferenceChampionships || [];
-  assert(cws.length > 0, `Season ${seasonNum}: no CWS games`);
-  assert(sr.length > 0, `Season ${seasonNum}: no super-regional games`);
-  assert(conf.length > 0, `Season ${seasonNum}: no conference-championship games`);
+  const post = await api<PostseasonResponse>("GET", `/api/leagues/${leagueId}/postseason?season=${seasonNum}`);
+  assert(post.cws.length > 0, `Season ${seasonNum}: no CWS games`);
+  assert(post.superRegionals.length > 0, `Season ${seasonNum}: no super-regional games`);
+  assert(post.conferenceChampionships.length > 0, `Season ${seasonNum}: no conference-championship games`);
 
-  // Determine CWS champion (best-of-3)
   const wins: Record<string, number> = {};
-  for (const g of cws) {
-    if (g.isComplete && g.homeScore != null && g.awayScore != null) {
+  for (const g of post.cws) {
+    if (g.isComplete && g.homeScore !== null && g.awayScore !== null) {
       const winner = g.homeScore > g.awayScore ? g.homeTeamId : g.awayTeamId;
       wins[winner] = (wins[winner] || 0) + 1;
     }
   }
   const champEntry = Object.entries(wins).sort((a, b) => b[1] - a[1])[0];
-  assert(champEntry, `Season ${seasonNum}: no CWS winner`);
+  assert(champEntry !== undefined, `Season ${seasonNum}: no CWS winner`);
   const lg = await getLeague(leagueId);
-  const champTeam = lg.teams.find((t: any) => t.id === champEntry[0]);
-  const champion = champTeam?.name || champEntry[0];
-  log(`  → champion: ${champion} (${champEntry[1]} wins)`);
+  const champTeam = lg.teams.find(t => t.id === champEntry[0]);
+  const champion: string = champTeam ? champTeam.name : champEntry[0];
+  log(`  → champion: ${champion} (${champEntry[1]} CWS wins)`);
 
-  // Standings populated for all 10 teams
-  const standingsCount = lg.teams.filter((t: any) => t.standings).length;
+  const standingsCount = lg.teams.filter(t => t.standings !== undefined).length;
   assert(standingsCount === TOTAL_TEAMS, `Season ${seasonNum}: standings populated for ${standingsCount}/${TOTAL_TEAMS} teams`);
 
-  // Awards endpoint
-  const awards = await api("GET", `/api/leagues/${leagueId}/season-awards`);
-  assert(awards?.awardsAvailable === true, `Season ${seasonNum}: awards not available (phase=${awards?.currentPhase})`);
+  const awards = await api<AwardsResponse>("GET", `/api/leagues/${leagueId}/season-awards`);
+  assert(awards.awardsAvailable === true, `Season ${seasonNum}: awards not available (phase=${awards.currentPhase})`);
 
-  // Dynasty history
-  const history = await api("GET", `/api/leagues/${leagueId}/dynasty-history`);
-  assert(Array.isArray(history?.seasons), `Season ${seasonNum}: dynasty-history missing seasons array`);
-  const completedSeasons = history.seasons.filter((s: any) => s.cwsChampion).length;
-  assert(completedSeasons >= seasonNum, `Season ${seasonNum}: dynasty-history shows ${completedSeasons} completed seasons`);
+  const history = await api<DynastyHistoryResponse>("GET", `/api/leagues/${leagueId}/dynasty-history`);
+  assert(Array.isArray(history.seasons), `Season ${seasonNum}: dynasty-history missing seasons array`);
+  const completed = history.seasons.filter(s => s.cwsChampion).length;
+  assert(completed >= seasonNum, `Season ${seasonNum}: dynasty-history shows only ${completed} completed seasons`);
 
-  // Finalize departures (human-team endpoint; team is CPU but commissioner has authority)
   log(`  → finalizing departures`);
   await api("POST", `/api/leagues/${leagueId}/departures/finalize`);
 
-  // Walk through recruiting → signing → walkons → next preseason
-  let cur: AnyJson = await api("POST", `/api/leagues/${leagueId}/advance`);
+  // Walk every offseason phase; record which sub-phases we observed so we can
+  // strictly assert that signing day and walk-ons both happened this season.
+  const phasesSeen = new Set<string>();
+  let cur = await api<AdvanceResponse>("POST", `/api/leagues/${leagueId}/advance`);
+  phasesSeen.add(cur.currentPhase);
   log(`     phase=${cur.currentPhase}`);
-  for (let i = 0; i < 10 && cur.currentPhase !== "offseason_signing_day" && cur.currentPhase !== "offseason_walkons" && cur.currentPhase !== "preseason"; i++) {
-    cur = await api("POST", `/api/leagues/${leagueId}/advance`);
-    log(`     phase=${cur.currentPhase}`);
+  for (let i = 0; i < 20 && cur.currentPhase !== "preseason"; i++) {
+    cur = await api<AdvanceResponse>("POST", `/api/leagues/${leagueId}/advance`);
+    phasesSeen.add(cur.currentPhase);
+    log(`     phase=${cur.currentPhase}${cur.currentPhase === "preseason" ? `, season=${cur.currentSeason}` : ""}`);
   }
-  if (cur.currentPhase === "offseason_signing_day") {
-    cur = await api("POST", `/api/leagues/${leagueId}/advance`);
-    log(`     phase=${cur.currentPhase}`);
-  }
-  if (cur.currentPhase === "offseason_walkons") {
-    cur = await api("POST", `/api/leagues/${leagueId}/advance`);
-    log(`     phase=${cur.currentPhase}, season=${cur.currentSeason}`);
-  }
+  assert(phasesSeen.has("offseason_signing_day"), `Season ${seasonNum}: offseason_signing_day phase was skipped`);
+  assert(phasesSeen.has("offseason_walkons"), `Season ${seasonNum}: offseason_walkons phase was skipped`);
   assert(cur.currentPhase === "preseason", `Did not reach preseason after offseason; got ${cur.currentPhase}`);
   assert(cur.currentSeason === seasonNum + 1, `Expected season ${seasonNum + 1}, got ${cur.currentSeason}`);
 
-  return { champion, postseasonGames: cws.length + sr.length + conf.length };
+  // Per-season roster integrity (after walkons returned everyone to 25)
+  await assertAllRostersAt25(leagueId, `Season ${seasonNum} end`);
+
+  return {
+    season: seasonNum,
+    champion,
+    postseasonGames: post.cws.length + post.superRegionals.length + post.conferenceChampionships.length,
+    draftedThisSeason: await countDraftedFor(leagueId, seasonNum),
+    recruitsInPool: await countRecruits(leagueId),
+    transferRecruits: await countRecruits(leagueId, "transfer"),
+    jucoRecruits: await countRecruits(leagueId, "juco"),
+  };
 }
 
-async function main() {
-  log(`E2E test starting against ${BASE}`);
-  log(`Target: ${TOTAL_TEAMS} teams (CPU-only), ${SEASONS_TO_RUN} seasons`);
+interface SanityScan { totalWarnings: number; firstFew: string[]; filesScanned: number; scanError?: string }
 
-  // 1. Auth
+function scanRecruitingSanityWarnings(): SanityScan {
+  const warnings: string[] = [];
+  let filesScanned = 0;
+  try {
+    const files = readdirSync(SERVER_LOG_DIR)
+      .filter(f => f.startsWith("Start_application_") && f.endsWith(".log"))
+      .map(f => ({ f, mtime: statSync(join(SERVER_LOG_DIR, f)).mtimeMs }))
+      .sort((a, b) => b.mtime - a.mtime)
+      .slice(0, 3);
+    for (const { f } of files) {
+      const text = readFileSync(join(SERVER_LOG_DIR, f), "utf8");
+      filesScanned++;
+      for (const line of text.split("\n")) {
+        if (line.includes("[recruiting-sanity]")) warnings.push(line.trim());
+      }
+    }
+    return { totalWarnings: warnings.length, firstFew: warnings.slice(0, 5), filesScanned };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { totalWarnings: 0, firstFew: [], filesScanned: 0, scanError: msg };
+  }
+}
+
+async function main(): Promise<void> {
+  log(`E2E test starting against ${BASE}`);
+  log(`Target: ${TOTAL_TEAMS} teams (CPU-only), ${SEASONS_TO_RUN} seasons, standard length, default difficulty`);
+  log(`Conferences: ${TEAM_SELECTION.map(c => `${c.conferenceName}(${c.teamNames.length})`).join(", ")}`);
+
   log("Authenticating as guest");
   await api("POST", "/api/auth/guest");
 
-  // 2. Create league
   const leagueName = `E2E-${Date.now()}`;
-  log(`Creating league "${leagueName}"`);
-  const league = await api("POST", "/api/leagues", {
+  log(`Creating league "${leagueName}" (seasonLength=medium, default difficulty)`);
+  const created = await api<CreateLeagueResponse>("POST", "/api/leagues", {
     name: leagueName,
     maxTeams: TOTAL_TEAMS,
-    cpuDifficulty: "high_school",
     selectedConferences: TEAM_SELECTION.map(c => c.conferenceName),
-    seasonLength: "short",
+    seasonLength: "medium",
     progressionEnabled: false,
   });
-  log(`  → league id ${league.id}`);
+  log(`  → league id ${created.id}`);
 
-  // 3. Conferences
-  const setupData = await api("GET", `/api/leagues/${league.id}/team-selection`);
+  const setupData = await api<TeamSelectionResponse>("GET", `/api/leagues/${created.id}/team-selection`);
   const confIdByName = new Map<string, string>();
   for (const c of setupData.conferences) confIdByName.set(c.name, c.id);
 
-  // 4. Select teams
   log("Selecting teams");
-  const selectedTeams = TEAM_SELECTION.map(c => ({
-    conferenceId: confIdByName.get(c.conferenceName)!,
-    teamNames: c.teamNames,
-  }));
-  const sel = await api("POST", `/api/leagues/${league.id}/team-selection`, { selectedTeams });
+  const selectedTeams = TEAM_SELECTION.map(c => {
+    const confId = confIdByName.get(c.conferenceName);
+    if (!confId) throw new Error(`Conference not found in league: ${c.conferenceName}`);
+    return { conferenceId: confId, teamNames: c.teamNames };
+  });
+  const sel = await api<SelectTeamsResponse>("POST", `/api/leagues/${created.id}/team-selection`, { selectedTeams });
   assert(sel.teamsCreated === TOTAL_TEAMS, `Expected ${TOTAL_TEAMS} teams created, got ${sel.teamsCreated}`);
   log(`  → ${sel.teamsCreated} teams created`);
 
-  // 5. Setup with placeholder coach (required to generate rosters/schedule)
-  const setup2 = await api("GET", `/api/leagues/${league.id}/setup`);
+  const setup2 = await api<SetupResponse>("GET", `/api/leagues/${created.id}/setup`);
   const seedTeam = setup2.teams[0];
   log(`Picking ${seedTeam.name} for setup (rosters + schedule generation)`);
-  await api("POST", `/api/leagues/${league.id}/setup`, {
+  await api("POST", `/api/leagues/${created.id}/setup`, {
     teamId: seedTeam.id,
     coach: { firstName: "Test", lastName: "Coach", archetype: "Balanced" },
   });
 
-  // CPU-only: flip the seed team back to CPU so signing-day/walkons CPU logic manages it
-  log(`  → flipping ${seedTeam.name} to CPU (CPU-only run)`);
+  log(`  → flipping ${seedTeam.name} back to CPU (this is a CPU-only run)`);
   await flipTeamToCpu(seedTeam.id);
 
-  // Start dynasty
   log("Starting dynasty (dynasty_setup → preseason)");
-  await api("POST", `/api/leagues/${league.id}/start`, {});
+  await api("POST", `/api/leagues/${created.id}/start`, {});
 
-  // Initial roster check (strict)
-  const lg0 = await getLeague(league.id);
-  for (const t of lg0.teams) {
-    const td = await api("GET", `/api/leagues/${league.id}/teams/${t.id}`);
-    assert(td?.players?.length === 25, `Initial roster: ${t.name} has ${td?.players?.length} players (expected 25)`);
-  }
-  log(`Initial rosters OK: all ${lg0.teams.length} teams at 25 players`);
+  // Hard CPU-only assertion after the seed-team flip + dynasty start.
+  const cpuCheck = await getLeague(created.id);
+  const humanTeams = cpuCheck.teams.filter(t => !t.isCpu);
+  assert(humanTeams.length === 0, `CPU-only run violated: ${humanTeams.map(t => t.name).join(", ")} still human-controlled`);
+  log(`  ✓ CPU-only verified: all ${cpuCheck.teams.length} teams have isCpu=true`);
 
-  // 6. Run seasons
-  const seasonReports: { season: number; champion: string; postseasonGames: number }[] = [];
+  await assertAllRostersAt25(created.id, "Initial");
+
+  const seasonReports: SeasonReport[] = [];
   for (let s = 1; s <= SEASONS_TO_RUN; s++) {
-    const r = await runSeason(league.id, s);
-    seasonReports.push({ season: s, ...r });
+    seasonReports.push(await runSeason(created.id, s));
   }
 
-  // 7. Final aggregate report
   log("");
   log("============= FINAL REPORT =============");
-  const finalLeague = await getLeague(league.id);
+  const finalLeague = await getLeague(created.id);
   log(`League phase: ${finalLeague.currentPhase}, season: ${finalLeague.currentSeason}`);
   log(`Teams in league: ${finalLeague.teams.length}`);
-
+  log("");
+  log("Per-season summary:");
   for (const r of seasonReports) {
-    log(`Season ${r.season}: champion=${r.champion}, postseasonGames=${r.postseasonGames}`);
+    log(`  Season ${r.season}: champion=${r.champion}, postseasonGames=${r.postseasonGames}, drafted=${r.draftedThisSeason}, recruits=${r.recruitsInPool}, transfers=${r.transferRecruits}, juco=${r.jucoRecruits}`);
   }
 
-  // Roster integrity (strict)
   log("");
   log("Final roster sizes:");
   let bad = 0;
   for (const t of finalLeague.teams) {
-    const td = await api("GET", `/api/leagues/${finalLeague.id}/teams/${t.id}`);
-    const count = td?.players?.length ?? 0;
-    log(`  ${t.name}: ${count} players`);
-    if (count !== 25) bad++;
+    const td = await api<PlayersResponse>("GET", `/api/leagues/${finalLeague.id}/teams/${t.id}`);
+    log(`  ${t.name}: ${td.players.length} players`);
+    if (td.players.length !== 25) bad++;
   }
   assert(bad === 0, `${bad} teams not at 25 players`);
 
-  // Aggregate counts: recruits, transfers, JUCO, draft
   if (pgPool) {
-    const draftRes = await pgPool.query(
+    const totalDrafted = await pgPool.query<{ n: number }>(
       `SELECT COUNT(*)::int AS n FROM player_history WHERE league_id = $1 AND draft_round IS NOT NULL`,
-      [finalLeague.id]
+      [finalLeague.id],
     );
-    const transferRes = await pgPool.query(
+    const totalTransfers = await pgPool.query<{ n: number }>(
       `SELECT COUNT(*)::int AS n FROM player_history WHERE league_id = $1 AND departure_type = 'transfer'`,
-      [finalLeague.id]
-    );
-    const jucoRes = await pgPool.query(
-      `SELECT COUNT(*)::int AS n FROM recruits WHERE league_id = $1 AND recruit_type = 'juco'`,
-      [finalLeague.id]
-    );
-    const transferRecruitRes = await pgPool.query(
-      `SELECT COUNT(*)::int AS n FROM recruits WHERE league_id = $1 AND recruit_type = 'transfer'`,
-      [finalLeague.id]
-    );
-    const recruitRes = await pgPool.query(
-      `SELECT COUNT(*)::int AS n FROM recruits WHERE league_id = $1`,
-      [finalLeague.id]
+      [finalLeague.id],
     );
     log("");
-    log("Aggregate data over 5 seasons:");
-    log(`  MLB draftees: ${draftRes.rows[0].n}`);
-    log(`  Transfers (departures): ${transferRes.rows[0].n}`);
-    log(`  Transfer-portal recruits: ${transferRecruitRes.rows[0].n}`);
-    log(`  JUCO recruits: ${jucoRes.rows[0].n}`);
-    log(`  Total recruits in pool: ${recruitRes.rows[0].n}`);
-    assert(draftRes.rows[0].n > 0, "No MLB draftees recorded");
+    log("Aggregate over run:");
+    log(`  Total MLB draftees: ${totalDrafted.rows[0].n}`);
+    log(`  Total transfers (departures): ${totalTransfers.rows[0].n}`);
+    log(`  Total recruits in pool: ${await countRecruits(finalLeague.id)}`);
+    log(`  Transfer-portal recruits: ${await countRecruits(finalLeague.id, "transfer")}`);
+    log(`  JUCO recruits: ${await countRecruits(finalLeague.id, "juco")}`);
+    assert(totalDrafted.rows[0].n > 0, "No MLB draftees recorded across run");
   }
 
-  // Final dynasty history sanity
-  const history = await api("GET", `/api/leagues/${finalLeague.id}/dynasty-history`);
-  const completed = history.seasons.filter((s: any) => s.cwsChampion).length;
+  const history = await api<DynastyHistoryResponse>("GET", `/api/leagues/${finalLeague.id}/dynasty-history`);
+  const completed = history.seasons.filter(s => s.cwsChampion).length;
   log(`Dynasty history: ${completed} seasons with CWS champions`);
   assert(completed >= SEASONS_TO_RUN, `Dynasty history has ${completed} completed seasons; expected ≥ ${SEASONS_TO_RUN}`);
+
+  log("");
+  const sanity = scanRecruitingSanityWarnings();
+  if (sanity.scanError || sanity.filesScanned === 0) {
+    log(`!!! WARNING: could not scan ${SERVER_LOG_DIR} for [recruiting-sanity] lines: ${sanity.scanError || "no Start_application_*.log files found"}`);
+    log(`           sanity-warning count of 0 below should NOT be trusted for this run.`);
+  }
+  log(`[recruiting-sanity] warnings detected in server logs (${sanity.filesScanned} file(s) scanned): ${sanity.totalWarnings}`);
+  for (const w of sanity.firstFew) log(`  ${w}`);
 
   log("");
   log("E2E test PASSED ✔");
@@ -297,8 +430,9 @@ async function main() {
   if (pgPool) await pgPool.end();
 }
 
-main().catch(async err => {
-  log(`!!! E2E test FAILED: ${err?.stack || err?.message || String(err)}`);
-  if (pgPool) await pgPool.end().catch(() => {});
+main().catch(async (err: unknown) => {
+  const msg = err instanceof Error ? (err.stack || err.message) : String(err);
+  log(`!!! E2E test FAILED: ${msg}`);
+  if (pgPool) await pgPool.end().catch(() => { /* ignore */ });
   process.exit(1);
 });
