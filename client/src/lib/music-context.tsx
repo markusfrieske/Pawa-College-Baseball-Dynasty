@@ -148,8 +148,14 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     audio.addEventListener("pause", onPause);
     audio.addEventListener("ended", onEnded);
 
-    // Pre-buffer the most common first tracks when the browser is idle
-    schedulePreload(["game_start", ...LIKELY_NEXT["game_start"]]);
+    // Pre-buffer the initial track (resolved from the current URL) and its
+    // likely-next neighbours when the browser is idle. This ensures the very
+    // first play is instant even on slow connections, not just subsequent ones.
+    const initialTrack = resolveTrackForRoute(window.location.pathname);
+    const initialPreload: TrackId[] = initialTrack !== "none"
+      ? [initialTrack, ...LIKELY_NEXT[initialTrack]]
+      : [...LIKELY_NEXT["none"]];
+    schedulePreload(initialPreload);
 
     return () => {
       // Cancel any in-flight fade cleanly on unmount
