@@ -1417,6 +1417,17 @@ function WaitingOnWidget({
   const readyCount = readyData?.readyCount ?? 0;
   const humanCount = readyData?.humanCount ?? 0;
 
+  // Phases where readiness is driven by a dedicated page action (not the isReady toggle)
+  const isPageActionPhase =
+    phase === "offseason_departures" || phase === "offseason_walkons";
+
+  // Link and label for phases that require completing a page action to mark ready
+  const pageActionConfig: Record<string, { href: string; label: string }> = {
+    offseason_departures: { href: `/league/${leagueId}/departures`, label: "Review Departures" },
+    offseason_walkons: { href: `/league/${leagueId}/walkons`, label: "Manage Walk-Ons" },
+  };
+  const pageAction = isPageActionPhase ? pageActionConfig[phase] : null;
+
   return (
     <RetroCard
       className="mb-4 border-gold/30 bg-gold/5"
@@ -1434,7 +1445,7 @@ function WaitingOnWidget({
             </span>
           </div>
           <div className="flex items-center gap-2">
-            {myStatus && !myEffectiveReady && (
+            {myStatus && !myEffectiveReady && !isPageActionPhase && (
               <RetroButton
                 size="sm"
                 variant="primary"
@@ -1445,6 +1456,14 @@ function WaitingOnWidget({
                 <Check className="w-3.5 h-3.5 mr-1" />
                 Mark Ready
               </RetroButton>
+            )}
+            {myStatus && !myEffectiveReady && isPageActionPhase && pageAction && (
+              <Link href={pageAction.href}>
+                <RetroButton size="sm" variant="primary" data-testid="button-page-action-widget">
+                  <ChevronRight className="w-3.5 h-3.5 mr-1" />
+                  {pageAction.label}
+                </RetroButton>
+              </Link>
             )}
             {myStatus && myEffectiveReady && !isCommissioner && (
               <span className="flex items-center gap-1 text-[10px] text-green-400">
@@ -1497,7 +1516,7 @@ function WaitingOnWidget({
                     <Clock className="w-3 h-3 text-gold shrink-0" />
                   )}
                   <span className={isMe ? "text-gold font-medium" : ""}>
-                    {entry.abbreviation}
+                    {entry.teamName}
                     {isMe && <span className="ml-1 text-gold/60">(you)</span>}
                   </span>
                 </div>
