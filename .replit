@@ -38,6 +38,10 @@ args = "validate-abilities"
 task = "workflow.run"
 args = "validate-pitch-mix"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "validate-all"
+
 [[workflows.workflow]]
 name = "Start application"
 author = "agent"
@@ -68,6 +72,17 @@ isValidation = true
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npx tsx scripts/validate-pitch-mix.ts"
+
+[[workflows.workflow]]
+name = "validate-all"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npx tsx scripts/validate-all.ts"
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 [agent]
 integrations = ["javascript_database:1.0.0"]
