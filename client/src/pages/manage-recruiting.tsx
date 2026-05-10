@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Save, Plus, Upload, Trash2, Download, RefreshCw, ChevronDown, Check, X } from "lucide-react";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient, getQueryFn } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { CoachAvatar } from "@/components/coach-avatar";
@@ -506,12 +506,14 @@ export default function ManageRecruitingPage() {
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [expandedRecruit, setExpandedRecruit] = useState<number | null>(null);
 
-  const { data: user, isLoading: userLoading } = useQuery<{ id: string; email: string }>({
+  const { data: user } = useQuery<{ id: string; email: string } | null>({
     queryKey: ["/api/auth/me"],
+    queryFn: getQueryFn({ on401: "returnNull" }),
   });
 
   const { data: savedClasses, isLoading: classesLoading } = useQuery<SavedClass[]>({
     queryKey: ["/api/saved-recruiting-classes"],
+    queryFn: getQueryFn({ on401: "returnNull" }),
     enabled: !!user,
   });
 
@@ -668,38 +670,6 @@ export default function ManageRecruitingPage() {
     return counts;
   }, [currentClass]);
 
-  if (userLoading) {
-    return (
-      <div className="min-h-screen bg-background p-6 space-y-4" data-testid="loading-skeleton">
-        <Skeleton className="h-10 w-64" />
-        <Skeleton className="h-[200px] w-full" />
-        <Skeleton className="h-[400px] w-full" />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-6">
-        <RetroCard className="max-w-md w-full text-center">
-          <RetroCardHeader>
-            <h1 className="font-pixel text-gold text-lg">LOGIN REQUIRED</h1>
-          </RetroCardHeader>
-          <RetroCardContent>
-            <p className="text-muted-foreground mb-6">
-              You must be signed in to manage recruiting classes.
-            </p>
-            <Link href="/login">
-              <RetroButton data-testid="button-login-redirect">
-                Sign In
-              </RetroButton>
-            </Link>
-          </RetroCardContent>
-        </RetroCard>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-[1600px] mx-auto space-y-4">
@@ -821,9 +791,15 @@ export default function ManageRecruitingPage() {
                       <RefreshCw className="w-4 h-4 mr-2" />
                       Regenerate
                     </RetroButton>
-                    <RetroButton size="sm" onClick={() => setSaveDialogOpen(true)} data-testid="button-save-class">
+                    <RetroButton
+                      size="sm"
+                      onClick={() => setSaveDialogOpen(true)}
+                      disabled={!user}
+                      title={!user ? "Sign in to save classes" : undefined}
+                      data-testid="button-save-class"
+                    >
                       <Save className="w-4 h-4 mr-2" />
-                      Save Class
+                      {user ? "Save Class" : "Sign in to Save"}
                     </RetroButton>
                   </div>
                 </div>
