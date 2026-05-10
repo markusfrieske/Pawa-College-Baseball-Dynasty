@@ -4,8 +4,9 @@ import { Link } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
 import { TeamBadge } from "@/components/ui/team-badge";
-import { Plus, Trophy, Users, Calendar, LogOut, Trash2, UserCheck, BookOpen, FolderOpen, GraduationCap } from "lucide-react";
+import { Plus, Trophy, Users, Calendar, LogOut, Trash2, UserCheck, BookOpen, FolderOpen, GraduationCap, Eye } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { League, Team, Coach } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiRequest } from "@/lib/queryClient";
@@ -172,6 +173,7 @@ export default function DashboardPage() {
 function SavedRosterCard({ roster }: { roster: SavedRoster }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [showDetail, setShowDetail] = useState(false);
 
   const deleteMutation = useMutation({
     mutationFn: () => apiRequest("DELETE", `/api/saved-rosters/${roster.id}`),
@@ -184,72 +186,110 @@ function SavedRosterCard({ roster }: { roster: SavedRoster }) {
     },
   });
 
-  const players = Array.isArray(roster.rosterData) ? roster.rosterData : [];
+  const players: any[] = Array.isArray(roster.rosterData) ? roster.rosterData : [];
   const playerCount = players.length;
   const avgOvr = playerCount > 0
     ? Math.round(players.reduce((s: number, p: any) => s + (p.overall || 0), 0) / playerCount)
     : 0;
   const savedDate = roster.createdAt ? new Date(roster.createdAt).toLocaleDateString() : "";
+  const byYear: Record<string, any[]> = {};
+  for (const p of players) {
+    const yr = p.year || p.eligibility || "—";
+    if (!byYear[yr]) byYear[yr] = [];
+    byYear[yr].push(p);
+  }
 
   return (
-    <RetroCard className="hover:border-gold/50 transition-colors" data-testid={`card-saved-roster-${roster.id}`}>
-      <RetroCardHeader className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2 min-w-0">
-          <FolderOpen className="w-4 h-4 text-gold shrink-0" />
-          <span className="font-pixel text-sm text-gold truncate">{roster.name}</span>
-        </div>
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <RetroButton variant="ghost" size="sm" data-testid={`button-delete-roster-${roster.id}`}>
-              <Trash2 className="w-3 h-3 text-red-400" />
+    <>
+      <RetroCard className="hover:border-gold/50 transition-colors cursor-pointer" data-testid={`card-saved-roster-${roster.id}`} onClick={() => setShowDetail(true)}>
+        <RetroCardHeader className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2 min-w-0">
+            <FolderOpen className="w-4 h-4 text-gold shrink-0" />
+            <span className="font-pixel text-sm text-gold truncate">{roster.name}</span>
+          </div>
+          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+            <RetroButton variant="ghost" size="sm" onClick={() => setShowDetail(true)} data-testid={`button-view-roster-${roster.id}`}>
+              <Eye className="w-3 h-3 text-muted-foreground" />
             </RetroButton>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete Roster File</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to delete "{roster.name}"? This action cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => deleteMutation.mutate()}
-                className="bg-red-600 hover:bg-red-700"
-                data-testid={`button-confirm-delete-roster-${roster.id}`}
-              >
-                {deleteMutation.isPending ? "Deleting..." : "Delete"}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </RetroCardHeader>
-      <RetroCardContent>
-        <div className="flex items-center gap-2 mb-3 text-xs text-muted-foreground">
-          <span>{roster.basedOn}</span>
-          {savedDate && <><span>·</span><span>{savedDate}</span></>}
-        </div>
-        <div className="grid grid-cols-2 gap-4 text-center">
-          <div>
-            <Users className="w-4 h-4 mx-auto text-muted-foreground mb-1" />
-            <p className="text-xs text-muted-foreground">{playerCount} Players</p>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <RetroButton variant="ghost" size="sm" data-testid={`button-delete-roster-${roster.id}`}>
+                  <Trash2 className="w-3 h-3 text-red-400" />
+                </RetroButton>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Roster File</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete "{roster.name}"? This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => deleteMutation.mutate()}
+                    className="bg-red-600 hover:bg-red-700"
+                    data-testid={`button-confirm-delete-roster-${roster.id}`}
+                  >
+                    {deleteMutation.isPending ? "Deleting..." : "Delete"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
-          <div>
-            <Trophy className="w-4 h-4 mx-auto text-muted-foreground mb-1" />
-            <p className="text-xs text-muted-foreground">{avgOvr > 0 ? `${avgOvr} Avg OVR` : "—"}</p>
+        </RetroCardHeader>
+        <RetroCardContent>
+          <div className="flex items-center gap-2 mb-3 text-xs text-muted-foreground">
+            {roster.basedOn && <span className="font-medium text-foreground/70">{roster.basedOn}</span>}
+            {savedDate && <><span>·</span><span>{savedDate}</span></>}
           </div>
-        </div>
-        {roster.description && (
-          <p className="text-xs text-muted-foreground mt-3 italic">{roster.description}</p>
-        )}
-      </RetroCardContent>
-    </RetroCard>
+          <div className="grid grid-cols-2 gap-4 text-center">
+            <div>
+              <Users className="w-4 h-4 mx-auto text-muted-foreground mb-1" />
+              <p className="text-xs text-muted-foreground">{playerCount} Players</p>
+            </div>
+            <div>
+              <Trophy className="w-4 h-4 mx-auto text-muted-foreground mb-1" />
+              <p className="text-xs text-muted-foreground">{avgOvr > 0 ? `${avgOvr} Avg OVR` : "—"}</p>
+            </div>
+          </div>
+          {roster.description && (
+            <p className="text-xs text-muted-foreground mt-3 italic">{roster.description}</p>
+          )}
+          <p className="text-xs text-gold/60 mt-3 text-right">Click to view roster →</p>
+        </RetroCardContent>
+      </RetroCard>
+
+      <Dialog open={showDetail} onOpenChange={setShowDetail}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-pixel text-gold text-sm">{roster.name}</DialogTitle>
+            {roster.basedOn && <p className="text-xs text-muted-foreground">{roster.basedOn}</p>}
+          </DialogHeader>
+          <div className="space-y-1 text-sm">
+            <div className="grid grid-cols-4 gap-2 text-xs font-semibold text-muted-foreground border-b border-border pb-1 mb-2">
+              <span>Name</span><span>Pos</span><span>Year</span><span className="text-right">OVR</span>
+            </div>
+            {players.sort((a, b) => (b.overall || 0) - (a.overall || 0)).map((p: any, i: number) => (
+              <div key={i} className="grid grid-cols-4 gap-2 text-xs py-0.5 border-b border-border/30">
+                <span className="truncate">{p.name || `Player ${i + 1}`}</span>
+                <span className="text-muted-foreground">{p.position || "—"}</span>
+                <span className="text-muted-foreground">{p.year || p.eligibility || "—"}</span>
+                <span className="text-right font-mono text-gold">{p.overall || "—"}</span>
+              </div>
+            ))}
+            {players.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">No player data in snapshot.</p>}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
 function SavedRecruitingClassCard({ rc }: { rc: SavedRecruitingClass }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [showDetail, setShowDetail] = useState(false);
 
   const deleteMutation = useMutation({
     mutationFn: () => apiRequest("DELETE", `/api/saved-recruiting-classes/${rc.id}`),
@@ -262,63 +302,92 @@ function SavedRecruitingClassCard({ rc }: { rc: SavedRecruitingClass }) {
     },
   });
 
-  const recruits = Array.isArray(rc.classData) ? rc.classData : [];
+  const recruits: any[] = Array.isArray(rc.classData) ? rc.classData : [];
   const classSize = recruits.length || rc.recruitCount;
   const committed = recruits.filter((r: any) => r.signedTeamId || r.stage === "signed").length;
   const savedDate = rc.createdAt ? new Date(rc.createdAt).toLocaleDateString() : "";
 
   return (
-    <RetroCard className="hover:border-gold/50 transition-colors" data-testid={`card-saved-class-${rc.id}`}>
-      <RetroCardHeader className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2 min-w-0">
-          <GraduationCap className="w-4 h-4 text-gold shrink-0" />
-          <span className="font-pixel text-sm text-gold truncate">{rc.name}</span>
-        </div>
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <RetroButton variant="ghost" size="sm" data-testid={`button-delete-class-${rc.id}`}>
-              <Trash2 className="w-3 h-3 text-red-400" />
+    <>
+      <RetroCard className="hover:border-gold/50 transition-colors cursor-pointer" data-testid={`card-saved-class-${rc.id}`} onClick={() => setShowDetail(true)}>
+        <RetroCardHeader className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2 min-w-0">
+            <GraduationCap className="w-4 h-4 text-gold shrink-0" />
+            <span className="font-pixel text-sm text-gold truncate">{rc.name}</span>
+          </div>
+          <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+            <RetroButton variant="ghost" size="sm" onClick={() => setShowDetail(true)} data-testid={`button-view-class-${rc.id}`}>
+              <Eye className="w-3 h-3 text-muted-foreground" />
             </RetroButton>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete Recruiting Class</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to delete "{rc.name}"? This action cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => deleteMutation.mutate()}
-                className="bg-red-600 hover:bg-red-700"
-                data-testid={`button-confirm-delete-class-${rc.id}`}
-              >
-                {deleteMutation.isPending ? "Deleting..." : "Delete"}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </RetroCardHeader>
-      <RetroCardContent>
-        {savedDate && (
-          <div className="text-xs text-muted-foreground mb-3">{savedDate}</div>
-        )}
-        <div className="grid grid-cols-2 gap-4 text-center">
-          <div>
-            <BookOpen className="w-4 h-4 mx-auto text-muted-foreground mb-1" />
-            <p className="text-xs text-muted-foreground">{classSize} Recruits</p>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <RetroButton variant="ghost" size="sm" data-testid={`button-delete-class-${rc.id}`}>
+                  <Trash2 className="w-3 h-3 text-red-400" />
+                </RetroButton>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Recruiting Class</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete "{rc.name}"? This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => deleteMutation.mutate()}
+                    className="bg-red-600 hover:bg-red-700"
+                    data-testid={`button-confirm-delete-class-${rc.id}`}
+                  >
+                    {deleteMutation.isPending ? "Deleting..." : "Delete"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
-          <div>
-            <UserCheck className="w-4 h-4 mx-auto text-muted-foreground mb-1" />
-            <p className="text-xs text-muted-foreground">{committed} Signed</p>
+        </RetroCardHeader>
+        <RetroCardContent>
+          <div className="flex items-center gap-2 mb-3 text-xs text-muted-foreground">
+            {rc.description && <span className="font-medium text-foreground/70">{rc.description}</span>}
+            {savedDate && <><span>·</span><span>{savedDate}</span></>}
           </div>
-        </div>
-        {rc.description && (
-          <p className="text-xs text-muted-foreground mt-3 italic">{rc.description}</p>
-        )}
-      </RetroCardContent>
-    </RetroCard>
+          <div className="grid grid-cols-2 gap-4 text-center">
+            <div>
+              <BookOpen className="w-4 h-4 mx-auto text-muted-foreground mb-1" />
+              <p className="text-xs text-muted-foreground">{classSize} Recruits</p>
+            </div>
+            <div>
+              <UserCheck className="w-4 h-4 mx-auto text-muted-foreground mb-1" />
+              <p className="text-xs text-muted-foreground">{committed} Signed</p>
+            </div>
+          </div>
+          <p className="text-xs text-gold/60 mt-3 text-right">Click to view class →</p>
+        </RetroCardContent>
+      </RetroCard>
+
+      <Dialog open={showDetail} onOpenChange={setShowDetail}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-pixel text-gold text-sm">{rc.name}</DialogTitle>
+            {rc.description && <p className="text-xs text-muted-foreground">Team: {rc.description}</p>}
+          </DialogHeader>
+          <div className="space-y-1 text-sm">
+            <div className="grid grid-cols-4 gap-2 text-xs font-semibold text-muted-foreground border-b border-border pb-1 mb-2">
+              <span>Name</span><span>Pos</span><span>Stars</span><span className="text-right">OVR</span>
+            </div>
+            {recruits.sort((a, b) => (b.stars || 0) - (a.stars || 0)).map((r: any, i: number) => (
+              <div key={i} className="grid grid-cols-4 gap-2 text-xs py-0.5 border-b border-border/30">
+                <span className="truncate">{r.name || `Recruit ${i + 1}`}</span>
+                <span className="text-muted-foreground">{r.position || "—"}</span>
+                <span className="text-yellow-400">{"★".repeat(r.stars || 0)}</span>
+                <span className="text-right font-mono text-gold">{r.overallMin && r.overallMax ? `${r.overallMin}–${r.overallMax}` : (r.overall || "—")}</span>
+              </div>
+            ))}
+            {recruits.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">No recruit data in snapshot.</p>}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 

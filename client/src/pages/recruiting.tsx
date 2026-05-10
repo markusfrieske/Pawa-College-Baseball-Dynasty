@@ -375,6 +375,7 @@ export default function RecruitingPage() {
       const recruits = data?.recruits || [];
       return apiRequest("POST", `/api/saved-recruiting-classes`, {
         name,
+        description: data?.team?.name || null,
         recruitCount: recruits.length,
         classData: recruits,
       });
