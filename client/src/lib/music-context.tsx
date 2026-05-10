@@ -26,6 +26,22 @@ const TRACK_URLS: Record<Exclude<TrackId, "none">, string> = {
   predictions: "/music/Predictions.mp3",
 };
 
+// Which tracks are likely to play next for each track, in priority order.
+// Used to pre-buffer audio so the first play is instant.
+const LIKELY_NEXT: Record<TrackId, TrackId[]> = {
+  game_start:       ["standings", "league_management"],
+  standings:        ["league_management", "recruiting"],
+  league_management:["recruiting", "final_score", "standings"],
+  recruiting:       ["league_management", "predictions"],
+  graduation:       ["offseason", "interview"],
+  final_score:      ["playoffs", "league_management"],
+  playoffs:         ["interview", "standings"],
+  interview:        ["offseason", "standings"],
+  offseason:        ["predictions", "recruiting"],
+  predictions:      ["league_management", "game_start"],
+  none:             ["game_start"],
+};
+
 interface MusicContextValue {
   currentTrack: TrackId;
   setTrack: (track: TrackId) => void;
@@ -79,6 +95,41 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   // Incremented on every setTrack call; stale callers bail after each await
   const trackGenRef = useRef(0);
 
+  // Pre-buffer cache: retained Audio elements keyed by TrackId.
+  // Holding a strong reference prevents GC from discarding them before the
+  // browser finishes buffering. When the main audio element later sets the
+  // same src, the browser serves it from its HTTP cache with no gap.
+  const preloadMapRef = useRef<Map<TrackId, HTMLAudioElement>>(new Map());
+  // All pending idle callback handles — tracked so every one can be cancelled
+  // cleanly on provider unmount even when multiple are queued concurrently.
+  const preloadIdleIdsRef = useRef<number[]>([]);
+
+  const schedulePreload = useCallback((tracks: TrackId[]) => {
+    // Only preload tracks not yet buffered
+    const needed = tracks.filter(id => id !== "none" && !preloadMapRef.current.has(id));
+    if (needed.length === 0) return;
+
+    const run = () => {
+      for (const id of needed) {
+        if (preloadMapRef.current.has(id)) continue; // guard against concurrent calls
+        const url = TRACK_URLS[id as Exclude<TrackId, "none">];
+        if (!url) continue;
+        const buf = new Audio();
+        buf.preload = "auto";
+        buf.src = url;
+        preloadMapRef.current.set(id, buf); // retain reference
+      }
+    };
+
+    if (typeof requestIdleCallback !== "undefined") {
+      const handle = requestIdleCallback(run, { timeout: 4000 }) as unknown as number;
+      preloadIdleIdsRef.current.push(handle);
+    } else {
+      const handle = window.setTimeout(run, 2000);
+      preloadIdleIdsRef.current.push(handle);
+    }
+  }, []);
+
   // Keep refs in sync with state
   useEffect(() => { currentTrackRef.current = currentTrack; }, [currentTrack]);
   useEffect(() => { volumeRef.current = volume; }, [volume]);
@@ -97,19 +148,30 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     audio.addEventListener("pause", onPause);
     audio.addEventListener("ended", onEnded);
 
+    // Pre-buffer the most common first tracks when the browser is idle
+    schedulePreload(["game_start", ...LIKELY_NEXT["game_start"]]);
+
     return () => {
       // Cancel any in-flight fade cleanly on unmount
       if (fadeCancelRef.current) {
         fadeCancelRef.current();
         fadeCancelRef.current = null;
       }
+      for (const handle of preloadIdleIdsRef.current) {
+        if (typeof cancelIdleCallback !== "undefined") {
+          cancelIdleCallback(handle);
+        } else {
+          clearTimeout(handle);
+        }
+      }
+      preloadIdleIdsRef.current = [];
       audio.removeEventListener("play", onPlay);
       audio.removeEventListener("pause", onPause);
       audio.removeEventListener("ended", onEnded);
       audio.pause();
       audio.src = "";
     };
-  }, []);
+  }, [schedulePreload]);
 
   useEffect(() => {
     const handleInteraction = () => {
@@ -219,8 +281,11 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       if (hasInteractedRef.current) {
         audio.play().catch(() => {});
       }
+
+      // Schedule preload of likely-next tracks while the browser is idle
+      schedulePreload(LIKELY_NEXT[track]);
     },
-    [fadeOut]
+    [fadeOut, schedulePreload]
   );
 
   const setVolume = useCallback((v: number) => {
