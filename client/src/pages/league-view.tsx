@@ -233,6 +233,8 @@ export default function LeagueViewPage() {
       <main className="container mx-auto px-4 py-6">
         <PhaseGuidanceBanner phase={league.currentPhase} leagueId={id!} />
 
+        <WaitingOnWidget leagueId={id!} league={league} />
+
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2 sm:gap-3 mb-6">
           <QuickActionCard
             href={`/league/${id}/coach`}
@@ -1270,6 +1272,8 @@ interface ReadyStatusData {
     userId: string | null;
     coachName: string;
     isReady: boolean;
+    departuresFinalized: boolean;
+    walkonReady: boolean;
     scoutActionsUsed: number;
     recruitActionsUsed: number;
     hasReportedScores: boolean;
@@ -1277,6 +1281,7 @@ interface ReadyStatusData {
   allHumansReady: boolean;
   humanCount: number;
   readyCount: number;
+  currentPhase: string;
   currentUserId?: string;
 }
 
@@ -1334,6 +1339,180 @@ function ReadyButton({ leagueId }: { leagueId: string }) {
         )}
       </RetroButton>
     </div>
+  );
+}
+
+const READINESS_PHASES = [
+  "offseason_departures",
+  "offseason_recruiting_1",
+  "offseason_recruiting_2",
+  "offseason_recruiting_3",
+  "offseason_recruiting_4",
+  "offseason_signing_day",
+  "offseason_walkons",
+];
+
+function getEffectiveReady(
+  entry: ReadyStatusData["readyStatus"][0],
+  phase: string
+): boolean {
+  if (phase === "offseason_departures") return !!entry.departuresFinalized;
+  if (phase === "offseason_walkons") return !!entry.walkonReady;
+  return !!entry.isReady;
+}
+
+function WaitingOnWidget({
+  leagueId,
+  league,
+}: {
+  leagueId: string;
+  league: LeagueDetails;
+}) {
+  const queryClient = useQueryClient();
+
+  const { data: user } = useQuery<{ id: string; email: string }>({
+    queryKey: ["/api/auth/me"],
+  });
+
+  const { data: readyData, isLoading } = useQuery<ReadyStatusData>({
+    queryKey: ["/api/leagues", leagueId, "ready-status"],
+    refetchInterval: 30000,
+  });
+
+  const toggleReady = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/leagues/${leagueId}/ready`);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "ready-status"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId] });
+    },
+  });
+
+  const advanceMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/leagues/${leagueId}/advance`, {});
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "ready-status"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "commissioner"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/leagues/${leagueId}/roster`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "walkons"] });
+      window.dispatchEvent(new CustomEvent("league-phase-changed"));
+    },
+  });
+
+  if (!READINESS_PHASES.includes(league.currentPhase)) return null;
+
+  const phase = league.currentPhase;
+  const humanTeams = readyData?.readyStatus.filter((s) => s.isHumanControlled) ?? [];
+  const myStatus = readyData?.readyStatus.find((s) => s.userId === user?.id);
+  const isCommissioner = !!user && user.id === league.commissionerId;
+  const myEffectiveReady = myStatus ? getEffectiveReady(myStatus, phase) : false;
+  const allReady = readyData?.allHumansReady ?? false;
+  const readyCount = readyData?.readyCount ?? 0;
+  const humanCount = readyData?.humanCount ?? 0;
+
+  return (
+    <RetroCard
+      className="mb-4 border-gold/30 bg-gold/5"
+      data-testid="waiting-on-widget"
+    >
+      <div className="px-4 py-3">
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <div className="flex items-center gap-2">
+            <Users className="w-4 h-4 text-gold shrink-0" />
+            <span className="font-pixel text-[9px] text-gold">
+              WAITING ON
+            </span>
+            <span className="text-[10px] text-muted-foreground">
+              ({readyCount}/{humanCount} ready)
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {myStatus && !myEffectiveReady && (
+              <RetroButton
+                size="sm"
+                variant="primary"
+                onClick={() => toggleReady.mutate()}
+                disabled={toggleReady.isPending}
+                data-testid="button-mark-ready-widget"
+              >
+                <Check className="w-3.5 h-3.5 mr-1" />
+                Mark Ready
+              </RetroButton>
+            )}
+            {myStatus && myEffectiveReady && !isCommissioner && (
+              <span className="flex items-center gap-1 text-[10px] text-green-400">
+                <Check className="w-3.5 h-3.5" />
+                You&apos;re ready
+              </span>
+            )}
+            {isCommissioner && allReady && (
+              <RetroButton
+                size="sm"
+                variant="primary"
+                onClick={() => advanceMutation.mutate()}
+                disabled={advanceMutation.isPending}
+                className="border-green-500 bg-green-600/20 text-green-300 hover:bg-green-600/40"
+                data-testid="button-advance-now-widget"
+              >
+                <Play className="w-3.5 h-3.5 mr-1" />
+                {advanceMutation.isPending ? "Advancing..." : "Advance Now"}
+              </RetroButton>
+            )}
+          </div>
+        </div>
+
+        {isLoading ? (
+          <div className="flex gap-2 flex-wrap">
+            {[1, 2].map((i) => (
+              <Skeleton key={i} className="h-6 w-28 rounded" />
+            ))}
+          </div>
+        ) : humanTeams.length === 0 ? (
+          <p className="text-[10px] text-muted-foreground">No human coaches in this league.</p>
+        ) : (
+          <div className="flex flex-wrap gap-2" data-testid="waiting-on-team-list">
+            {humanTeams.map((entry) => {
+              const ready = getEffectiveReady(entry, phase);
+              const isMe = entry.userId === user?.id;
+              return (
+                <div
+                  key={entry.teamId}
+                  className={`flex items-center gap-1.5 rounded px-2.5 py-1 text-[10px] border transition-colors ${
+                    ready
+                      ? "bg-green-500/10 border-green-500/30 text-green-300"
+                      : "bg-card border-border text-muted-foreground"
+                  } ${isMe ? "ring-1 ring-gold/60" : ""}`}
+                  data-testid={`team-ready-status-${entry.teamId}`}
+                >
+                  {ready ? (
+                    <Check className="w-3 h-3 text-green-400 shrink-0" />
+                  ) : (
+                    <Clock className="w-3 h-3 text-gold shrink-0" />
+                  )}
+                  <span className={isMe ? "text-gold font-medium" : ""}>
+                    {entry.abbreviation}
+                    {isMe && <span className="ml-1 text-gold/60">(you)</span>}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {allReady && !isCommissioner && (
+          <p className="mt-2 text-[10px] text-green-400">
+            All coaches are ready — waiting for the commissioner to advance.
+          </p>
+        )}
+      </div>
+    </RetroCard>
   );
 }
 
