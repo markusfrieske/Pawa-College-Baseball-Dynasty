@@ -888,8 +888,12 @@ function percentileLabel(pct: number): string {
   return `Bottom ${fromBot}%`;
 }
 
+type RankSortKey = "composite" | "roster" | "pitching" | "hitting" | "recruiting";
+
 function RankingsTab({ league }: { league: LeagueDetails }) {
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<RankSortKey>("composite");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   const { data: rankData, isLoading } = useQuery<{ rankings: PowerRankingEntry[]; userTeamId: string | null }>({
     queryKey: ["/api/leagues", league.id, "power-rankings"],
@@ -901,8 +905,24 @@ function RankingsTab({ league }: { league: LeagueDetails }) {
   });
 
   const userTeamId = rankData?.userTeamId ?? null;
-  const rankings = rankData?.rankings ?? [];
+  const rawRankings = rankData?.rankings ?? [];
+  const rankings = [...rawRankings].sort((a, b) => {
+    const val = (e: PowerRankingEntry) => {
+      if (sortBy === "composite") return e.composite;
+      if (sortBy === "roster") return e.rosterOvr;
+      if (sortBy === "pitching") return e.pitchingOvr;
+      if (sortBy === "hitting") return e.hittingOvr;
+      return e.recruitingScore;
+    };
+    return sortDir === "desc" ? val(b) - val(a) : val(a) - val(b);
+  });
   const userEntry = rankings.find(r => r.teamId === userTeamId);
+
+  const handleSort = (key: RankSortKey) => {
+    if (sortBy === key) setSortDir(d => d === "desc" ? "asc" : "desc");
+    else { setSortBy(key); setSortDir("desc"); }
+  };
+  const sortArrow = (key: RankSortKey) => sortBy === key ? (sortDir === "desc" ? " ▾" : " ▴") : "";
 
   const toggleExpand = (teamId: string) => {
     setExpandedTeam(prev => prev === teamId ? null : teamId);
@@ -936,11 +956,11 @@ function RankingsTab({ league }: { league: LeagueDetails }) {
             <tr className="border-b border-border text-muted-foreground font-pixel text-[8px]">
               <th className="text-left py-2 px-2">#</th>
               <th className="text-left py-2 px-2">Team</th>
-              <th className="text-center py-2 px-1">Score</th>
-              <th className="text-center py-2 px-1">Roster</th>
-              <th className="text-center py-2 px-1 hidden sm:table-cell">Pitch</th>
-              <th className="text-center py-2 px-1 hidden sm:table-cell">Hit</th>
-              <th className="text-center py-2 px-1 hidden md:table-cell">Rec</th>
+              <th className="text-center py-2 px-1 cursor-pointer hover:text-gold select-none" onClick={() => handleSort("composite")}>Score{sortArrow("composite")}</th>
+              <th className="text-center py-2 px-1 cursor-pointer hover:text-gold select-none" onClick={() => handleSort("roster")}>Roster{sortArrow("roster")}</th>
+              <th className="text-center py-2 px-1 hidden sm:table-cell cursor-pointer hover:text-gold select-none" onClick={() => handleSort("pitching")}>Pitch{sortArrow("pitching")}</th>
+              <th className="text-center py-2 px-1 hidden sm:table-cell cursor-pointer hover:text-gold select-none" onClick={() => handleSort("hitting")}>Hit{sortArrow("hitting")}</th>
+              <th className="text-center py-2 px-1 hidden md:table-cell cursor-pointer hover:text-gold select-none" onClick={() => handleSort("recruiting")}>Rec{sortArrow("recruiting")}</th>
               <th className="py-2 px-1 w-6" />
             </tr>
           </thead>
@@ -3852,15 +3872,49 @@ function OffseasonSummary({ league }: { league: LeagueDetails }) {
 }
 
 function NotificationCenter({ leagueId }: { leagueId: string }) {
+  const [lastSeenCount, setLastSeenCount] = useState(() =>
+    parseInt(localStorage.getItem(`notif-seen-${leagueId}`) || "0", 10)
+  );
+
   const { data: news } = useQuery<{ news: { id: string; headline: string; body: string; createdAt: string; newsType: string }[] }>({
     queryKey: ["/api/leagues", leagueId, "news"],
   });
 
-  const recentNews = news?.news?.slice(0, 5) || [];
-  const unreadCount = recentNews.length;
+  const { data: eventsData } = useQuery<{ events: { id: string; eventType: string; description: string; createdAt: string }[] }>({
+    queryKey: ["/api/leagues", leagueId, "events"],
+  });
+
+  type NotifItem = { id: string; headline: string; body: string; createdAt: string; dotColor: string };
+  const items: NotifItem[] = [
+    ...(news?.news?.slice(0, 6).map(n => ({
+      id: `news-${n.id}`,
+      headline: n.headline,
+      body: n.body,
+      createdAt: n.createdAt,
+      dotColor: n.newsType === "commit" ? "bg-green-500" : n.newsType === "decommit" ? "bg-red-500" : n.newsType === "transfer" ? "bg-blue-500" : "bg-gold",
+    })) || []),
+    ...(eventsData?.events?.slice(0, 6).map(e => ({
+      id: `event-${e.id}`,
+      headline: e.eventType.replace(/_/g, " "),
+      body: e.description,
+      createdAt: e.createdAt,
+      dotColor: e.eventType === "PHASE_CHANGE" ? "bg-purple-500" : e.eventType === "GAME_RESULT" ? "bg-blue-400" : "bg-muted-foreground",
+    })) || []),
+  ]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 8);
+
+  const unreadCount = Math.max(0, items.length - lastSeenCount);
+
+  const handleOpen = (open: boolean) => {
+    if (open) {
+      setLastSeenCount(items.length);
+      localStorage.setItem(`notif-seen-${leagueId}`, String(items.length));
+    }
+  };
 
   return (
-    <Popover>
+    <Popover onOpenChange={handleOpen}>
       <PopoverTrigger asChild>
         <button className="relative p-2 rounded hover:bg-gold/10 transition-colors" data-testid="button-notifications">
           <Bell className="w-5 h-5 text-muted-foreground hover:text-gold" />
@@ -3875,23 +3929,18 @@ function NotificationCenter({ leagueId }: { leagueId: string }) {
         <div className="p-3 border-b border-border">
           <span className="font-pixel text-gold text-xs">NOTIFICATIONS</span>
         </div>
-        <div className="max-h-64 overflow-y-auto">
-          {recentNews.length === 0 ? (
+        <div className="max-h-72 overflow-y-auto">
+          {items.length === 0 ? (
             <div className="p-4 text-center text-muted-foreground text-sm">
               No recent notifications
             </div>
           ) : (
-            recentNews.map((item) => (
+            items.map((item) => (
               <div key={item.id} className="p-3 border-b border-border/50 hover:bg-gold/5">
                 <div className="flex items-start gap-2">
-                  <div className={`w-2 h-2 rounded-full mt-1.5 ${
-                    item.newsType === "commit" ? "bg-green-500" :
-                    item.newsType === "decommit" ? "bg-red-500" :
-                    item.newsType === "transfer" ? "bg-blue-500" :
-                    "bg-gold"
-                  }`} />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium">{item.headline}</p>
+                  <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${item.dotColor}`} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium capitalize line-clamp-1">{item.headline}</p>
                     <p className="text-xs text-muted-foreground line-clamp-2">{item.body}</p>
                   </div>
                 </div>
@@ -3899,11 +3948,11 @@ function NotificationCenter({ leagueId }: { leagueId: string }) {
             ))
           )}
         </div>
-        {recentNews.length > 0 && (
+        {items.length > 0 && (
           <div className="p-2 border-t border-border">
             <Link href={`/league/${leagueId}`}>
               <button className="w-full text-center text-xs text-gold hover:underline">
-                View all news
+                View all in News tab
               </button>
             </Link>
           </div>
@@ -3916,11 +3965,22 @@ function NotificationCenter({ leagueId }: { leagueId: string }) {
 function PhaseDeadline({ deadline }: { deadline: Date | string }) {
   const [timeLeft, setTimeLeft] = useState("");
   const [passed, setPassed] = useState(false);
+  const [showWarning, setShowWarning] = useState(false);
+  const end = new Date(deadline).getTime();
+
+  useEffect(() => {
+    const diffMs = end - Date.now();
+    const isNear = diffMs > 0 && diffMs < 86400000;
+    const warnKey = `deadline-warned-${end}`;
+    if (isNear && !localStorage.getItem(warnKey)) {
+      setShowWarning(true);
+      localStorage.setItem(warnKey, "1");
+    }
+  }, [end]);
 
   useEffect(() => {
     const compute = () => {
       const now = Date.now();
-      const end = new Date(deadline).getTime();
       const diff = end - now;
       if (diff <= 0) {
         setPassed(true);
@@ -3944,9 +4004,9 @@ function PhaseDeadline({ deadline }: { deadline: Date | string }) {
     compute();
     const interval = setInterval(compute, 60000);
     return () => clearInterval(interval);
-  }, [deadline]);
+  }, [end]);
 
-  const diffMs = new Date(deadline).getTime() - Date.now();
+  const diffMs = end - Date.now();
   const colorClass = passed
     ? "text-red-400"
     : diffMs < 3600000
@@ -3956,9 +4016,27 @@ function PhaseDeadline({ deadline }: { deadline: Date | string }) {
     : "text-gold";
 
   return (
-    <div className={`flex items-center gap-1.5 mt-1.5 text-xs ${colorClass}`} data-testid="text-phase-deadline">
-      <Timer className="w-3 h-3 shrink-0" />
-      <span>{timeLeft}</span>
-    </div>
+    <>
+      <Dialog open={showWarning} onOpenChange={setShowWarning}>
+        <DialogContent className="bg-card border-border max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-pixel text-amber-400 text-sm flex items-center gap-2">
+              <Timer className="w-4 h-4" /> Phase Deadline Approaching
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground mt-1">
+            The commissioner has set a deadline for this phase. You have less than 24 hours to complete your actions — mark yourself ready or you may be auto-advanced.
+          </p>
+          <div className={`font-pixel text-xs mt-1 ${colorClass}`}>{timeLeft}</div>
+          <RetroButton onClick={() => setShowWarning(false)} className="mt-3 w-full" data-testid="button-dismiss-deadline-warning">
+            Got It
+          </RetroButton>
+        </DialogContent>
+      </Dialog>
+      <div className={`flex items-center gap-1.5 mt-1.5 text-xs ${colorClass}`} data-testid="text-phase-deadline">
+        <Timer className="w-3 h-3 shrink-0" />
+        <span>{timeLeft}</span>
+      </div>
+    </>
   );
 }

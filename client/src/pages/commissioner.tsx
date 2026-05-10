@@ -1161,6 +1161,7 @@ interface ReadyStatusData {
   }>;
   allHumansReady: boolean;
   currentPhase: string;
+  phaseDeadline: string | null;
   humanCount: number;
   readyCount: number;
 }
@@ -1255,19 +1256,40 @@ function ReadyStatusSection({ leagueId }: { leagueId: string }) {
                 </tr>
               </thead>
               <tbody>
-                {humanTeams.map((team) => (
-                  <tr key={team.teamId} className="border-b border-border/50">
+                {humanTeams.map((team) => {
+                  const isReady = getTeamReady(team);
+                  const deadline = data.phaseDeadline ? new Date(data.phaseDeadline) : null;
+                  const deadlineDiffMs = deadline ? deadline.getTime() - Date.now() : null;
+                  const stallLabel = !isReady && deadline
+                    ? deadlineDiffMs !== null && deadlineDiffMs <= 0
+                      ? "Deadline passed"
+                      : deadlineDiffMs !== null && deadlineDiffMs < 3600000
+                      ? `${Math.ceil(deadlineDiffMs / 60000)}m left`
+                      : deadlineDiffMs !== null
+                      ? `${Math.ceil(deadlineDiffMs / 3600000)}h left`
+                      : null
+                    : null;
+                  return (
+                  <tr key={team.teamId} className={`border-b border-border/50 ${!isReady ? "bg-amber-950/20" : ""}`}>
                     <td className="py-2">
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{team.abbreviation}</span>
                         <span className="text-muted-foreground">{team.coachName}</span>
+                        {!isReady && (
+                          <span className="text-[9px] font-pixel text-amber-400 border border-amber-400/40 px-1 py-0.5 rounded">WAITING</span>
+                        )}
                       </div>
                     </td>
                     <td className="py-2 text-center">
-                      {getTeamReady(team) ? (
+                      {isReady ? (
                         <Check className="w-4 h-4 text-green-500 mx-auto" />
                       ) : (
-                        <Clock className="w-4 h-4 text-muted-foreground mx-auto" />
+                        <div className="flex flex-col items-center gap-0.5">
+                          <Clock className="w-4 h-4 text-amber-400 mx-auto" />
+                          {stallLabel && (
+                            <span className="text-[9px] text-amber-400">{stallLabel}</span>
+                          )}
+                        </div>
                       )}
                     </td>
                     <td className="py-2 text-center text-muted-foreground">
@@ -1284,7 +1306,8 @@ function ReadyStatusSection({ leagueId }: { leagueId: string }) {
                       )}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

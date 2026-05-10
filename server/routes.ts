@@ -711,10 +711,14 @@ export async function registerRoutes(
       const progressionOn = leagueForGen?.progressionEnabled ?? false;
 
       const leagueTeams = await storage.getTeamsByLeague(req.params.id);
+      const leagueConfs = await storage.getConferencesByLeague(req.params.id);
+      const confNameById: Record<string, string> = {};
+      for (const c of leagueConfs) confNameById[c.id] = c.name;
       for (const team of leagueTeams) {
         const existingPlayers = await storage.getPlayersByTeam(team.id);
         if (existingPlayers.length === 0) {
-          await generatePlayersForTeam(team.id, progressionOn, team.name);
+          const confName = team.conferenceId ? confNameById[team.conferenceId] : undefined;
+          await generatePlayersForTeam(team.id, progressionOn, team.name, confName);
         }
       }
 
@@ -9994,6 +9998,7 @@ export async function registerRoutes(
         readyStatus, 
         allHumansReady,
         currentPhase: league.currentPhase,
+        phaseDeadline: league.phaseDeadline ?? null,
         humanCount: readyStatus.filter(s => s.isHumanControlled).length,
         readyCount: readyStatus.filter(s => s.isHumanControlled && getReadyState(s)).length
       });
@@ -11922,7 +11927,17 @@ function getRandomAppearance() {
   };
 }
 
-async function generatePlayersForTeam(teamId: string, progressionEnabled: boolean = false, teamName?: string) {
+async function generatePlayersForTeam(teamId: string, progressionEnabled: boolean = false, teamName?: string, conferenceName?: string) {
+  // Conference tier → attribute scale factor (keeps cross-conference OVR spread realistic)
+  const CONF_TIER_SCALE: Record<string, number> = {
+    'SEC': 1.00, 'ACC': 1.00, 'Big 12': 1.00, 'Big Ten': 1.00,
+    'Pac-12': 0.92, 'AAC': 0.92, 'Sun Belt': 0.92,
+    'WCC': 0.87, 'Mountain West': 0.87, 'Big West': 0.87, 'Missouri Valley': 0.87,
+    'Ivy League': 1.00, 'HBCU': 1.00,
+  };
+  const tierScale = conferenceName ? (CONF_TIER_SCALE[conferenceName] ?? 1.00) : 1.00;
+  const scaleAttr = (v: number) => tierScale < 1.00 ? Math.max(1, Math.min(99, Math.round(v * tierScale))) : v;
+
   const realRoster = teamName ? SEC_REAL_ROSTERS[teamName] : undefined;
 
   if (realRoster && realRoster.length > 0) {
@@ -11938,12 +11953,12 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
       };
       usedJerseyNumbers.add(rp.jerseyNumber);
       const playerData = {
-        hitForAvg: rp.hitForAvg, power: rp.power, speed: rp.speed, arm: rp.arm,
-        fielding: rp.fielding, errorResistance: rp.errorResistance,
-        velocity: rp.velocity, control: rp.control, stamina: rp.stamina, stuff: rp.stuff,
-        clutch: rp.clutch, vsLHP: rp.vsLHP, grit: rp.grit, stealing: rp.stealing,
-        running: rp.running, throwing: rp.throwing, recovery: rp.recovery,
-        wRISP: rp.wRISP, vsLefty: rp.vsLefty, poise: rp.poise, heater: rp.heater, agile: rp.agile,
+        hitForAvg: scaleAttr(rp.hitForAvg), power: scaleAttr(rp.power), speed: scaleAttr(rp.speed), arm: scaleAttr(rp.arm),
+        fielding: scaleAttr(rp.fielding), errorResistance: scaleAttr(rp.errorResistance),
+        velocity: scaleAttr(rp.velocity), control: scaleAttr(rp.control), stamina: scaleAttr(rp.stamina), stuff: scaleAttr(rp.stuff),
+        clutch: scaleAttr(rp.clutch), vsLHP: scaleAttr(rp.vsLHP), grit: scaleAttr(rp.grit), stealing: scaleAttr(rp.stealing),
+        running: scaleAttr(rp.running), throwing: scaleAttr(rp.throwing), recovery: scaleAttr(rp.recovery),
+        wRISP: scaleAttr(rp.wRISP), vsLefty: scaleAttr(rp.vsLefty), poise: scaleAttr(rp.poise), heater: scaleAttr(rp.heater), agile: scaleAttr(rp.agile),
         abilities: rp.abilities,
       };
 
