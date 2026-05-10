@@ -56,7 +56,25 @@ const MusicContext = createContext<MusicContextValue | null>(null);
 
 const STORAGE_KEY_VOLUME = "cbd_music_volume";
 const STORAGE_KEY_MUTED = "cbd_music_muted";
+const STORAGE_KEY_PRELOADED = "cbd_music_preloaded";
 const FADE_DURATION = 800;
+
+function getSessionPreloaded(): Set<TrackId> {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY_PRELOADED);
+    if (raw) {
+      const ids = JSON.parse(raw) as string[];
+      return new Set(ids as TrackId[]);
+    }
+  } catch {}
+  return new Set();
+}
+
+function writeSessionPreloaded(ids: Set<TrackId>): void {
+  try {
+    sessionStorage.setItem(STORAGE_KEY_PRELOADED, JSON.stringify([...ids]));
+  } catch {}
+}
 
 function getStoredVolume(): number {
   try {
@@ -103,22 +121,32 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   // All pending idle callback handles — tracked so every one can be cancelled
   // cleanly on provider unmount even when multiple are queued concurrently.
   const preloadIdleIdsRef = useRef<number[]>([]);
+  // Session-persistent set of track IDs that have been preloaded at least once
+  // in this browser session. Survives page reloads so we don't create redundant
+  // Audio elements when the browser HTTP cache already holds the file.
+  const sessionPreloadedRef = useRef<Set<TrackId>>(getSessionPreloaded());
 
   const schedulePreload = useCallback((tracks: TrackId[]) => {
-    // Only preload tracks not yet buffered
-    const needed = tracks.filter(id => id !== "none" && !preloadMapRef.current.has(id));
+    // Skip tracks already buffered in-memory OR flagged in sessionStorage
+    const needed = tracks.filter(
+      id => id !== "none" &&
+        !preloadMapRef.current.has(id) &&
+        !sessionPreloadedRef.current.has(id)
+    );
     if (needed.length === 0) return;
 
     const run = () => {
       for (const id of needed) {
-        if (preloadMapRef.current.has(id)) continue; // guard against concurrent calls
+        if (preloadMapRef.current.has(id) || sessionPreloadedRef.current.has(id)) continue;
         const url = TRACK_URLS[id as Exclude<TrackId, "none">];
         if (!url) continue;
         const buf = new Audio();
         buf.preload = "auto";
         buf.src = url;
         preloadMapRef.current.set(id, buf); // retain reference
+        sessionPreloadedRef.current.add(id);
       }
+      writeSessionPreloaded(sessionPreloadedRef.current);
     };
 
     if (typeof requestIdleCallback !== "undefined") {
