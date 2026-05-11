@@ -1,6 +1,17 @@
 import type { ChoiceWeights, StorylineHiddenVars } from "@shared/schema";
 import { isPitcher } from "@shared/positions";
 
+// Maps a raw position string to the canonical key used in scenePromptByPosition.
+// Returns null for pitchers (handled via scenePromptPitcher) and unrecognised positions.
+function positionToSceneGroupKey(position: string): string | null {
+  if (position === "C") return "C";
+  if (["LF", "CF", "RF", "OF", "DH"].includes(position)) return "OF";
+  if (position === "SS") return "SS";
+  if (position === "3B") return "3B";
+  if (position === "1B") return "1B";
+  return null;
+}
+
 // ─── Rating Delta Bands ────────────────────────────────────────────────────────
 const DELTAS = {
   minor_pos:    [1, 3],
@@ -62,6 +73,7 @@ export interface ArchetypeEventTemplate {
   id: string;
   scenePrompt?: string;         // pixel art scene image prompt — default (hitter/neutral)
   scenePromptPitcher?: string;  // pitcher-specific override; used when recruit is a pitcher
+  scenePromptByPosition?: Partial<Record<string, string>>; // keyed by canonical group: C, OF, SS, 3B, 1B
   eventText: string;
   eventTextPitcher?: string;    // pitcher-specific override for event body text
   choiceA: string; choiceAOutcome: string; choiceAWeights: ChoiceWeights;
@@ -319,6 +331,10 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
         id: "sb_1",
         scenePrompt: "Pixel art scene: summer showcase ranking board updating in real time, a player's name jumping from unranked to #4 in the state, scouts on phones all simultaneously, a 17-year-old's parents shaking hands with a man in a business suit who arrived out of nowhere. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         scenePromptPitcher: "Pixel art scene: summer showcase ranking board updating in real time, a pitcher's name jumping from unranked to #4 in the state, scouts on phones all simultaneously, a 17-year-old's parents shaking hands with a man in a business suit who arrived out of nowhere. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
+        scenePromptByPosition: {
+          C: "Pixel art scene: summer showcase ranking board updating in real time, a catcher's name jumping from unranked to #4 in the state, scouts comparing phone screens simultaneously, a 17-year-old's parents shaking hands with a business-suited man who arrived out of nowhere, a catcher's helmet and chest protector stacked in the corner of the frame. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
+          OF: "Pixel art scene: summer showcase ranking board updating in real time, an outfielder's name jumping from unranked to #4 in the state, scouts comparing phone screens simultaneously, a 17-year-old's parents shaking hands with a business-suited man who arrived out of nowhere, a slow-motion replay of a diving catch playing on a nearby laptop screen. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
+        },
         eventText: "{name} was unranked entering June. He dominated three consecutive showcase events — best player on the field, every time — and is now fourth in the state. His parents have hired a 35-year-old agent who drove three hours to introduce himself at the second showcase. The agent's first email to programs arrived at 6am this morning. It has 14 bullet points and a logo.",
         choiceA: "Ignore the agent — call the player directly, like you always have", choiceAOutcome: "Going around the noise and straight to the person signals you see him, not his new representation.", choiceAWeights: W.bold_pos,
         choiceB: "Engage the agent professionally — play it right to get access to the player", choiceBOutcome: "Respecting the process earns access. The agent tells him you were professional and serious.", choiceBWeights: W.safe_pos,
@@ -329,6 +345,10 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
         id: "sb_2",
         scenePrompt: "Pixel art scene: fall baseball game at dusk, player pressing badly at the plate, stance tight and mechanical compared to the summer, a distant scout lowering his binoculars slowly, the player's father watching alone in empty bleachers looking worried. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         scenePromptPitcher: "Pixel art scene: fall baseball game at dusk, pitcher struggling on the mound, delivery stiff and labored compared to the summer, a distant scout lowering his binoculars slowly, the player's father watching alone in empty bleachers looking worried. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
+        scenePromptByPosition: {
+          C: "Pixel art scene: fall baseball game at dusk, catcher in full gear visibly struggling behind the plate — a passed ball rolling to the backstop, a runner advancing — a distant scout lowering his binoculars slowly, the player's father watching alone in empty bleachers looking worried. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
+          OF: "Pixel art scene: fall baseball game at dusk, outfielder misjudging a fly ball in deep center, the ball dropping behind him while he over-runs it, a distant scout lowering his binoculars slowly, the player's father watching alone in empty bleachers looking worried. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
+        },
         eventText: "{name} is 2-for-18 in fall ball against real competition and visibly pressing. The agent has stopped responding to scout emails. Two programs quietly rescinded their offers without explanation. His father texted you at midnight: 'He's not sleeping. He thinks he fooled everyone this summer and now they know. Can you call him?' What do you do?",
         eventTextPitcher: "{name} has posted a 7.40 ERA in fall ball against real competition and is visibly unraveling on the mound — windup short, release point all over the place, walking batters he'd have blown away in June. The agent has stopped responding to scout emails. Two programs quietly rescinded their offers without explanation. His father texted you at midnight: 'He's not sleeping. He thinks he fooled everyone this summer and now they know. Can you call him?' What do you do?",
         choiceA: "Call him immediately — not as a recruiter, as someone who believes him", choiceAOutcome: "Your presence at the moment he's convinced he's a fraud is the thing he will carry for years.", choiceAWeights: W.bold_pos,
@@ -373,6 +393,11 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
         id: "cc_1",
         scenePrompt: "Pixel art scene: player alone at the far end of an empty dugout, helmet in his hands, staring at the dirt floor, an empty batting cage behind him, the stadium completely still, a small photo visible tucked inside his helmet. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         scenePromptPitcher: "Pixel art scene: pitcher alone at the far end of an empty dugout, cap pulled down, staring at his hand, an empty bullpen mound behind him, stadium completely still, a small photo tucked inside his hat band. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
+        scenePromptByPosition: {
+          C: "Pixel art scene: catcher in full gear sitting alone at the far end of an empty dugout, mask resting on the bench beside him, shin guards still strapped, staring at a small photo tucked into his chest protector, home plate visible through the dugout entrance, stadium completely still. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
+          OF: "Pixel art scene: outfielder standing motionless alone in center field, glove hanging limp at his side, the vast empty outfield grass stretching in every direction around him, a small photo tucked under the brim of his cap, stadium completely still. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
+          SS: "Pixel art scene: shortstop alone on the infield dirt at his position, head bowed over his glove held in both hands, empty stadium all around him, a small photo tucked inside his glove, the clay of the infield lit only by maintenance lights. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
+        },
         eventText: "{name}'s father built a batting cage in their backyard when he was six years old and coached him every single day for twelve years. He passed away in October. {name} still shows up to every practice. He still takes every at-bat. He just hasn't had a hit since the funeral, and every scout who sees him says the same thing: 'Something's gone.' What do you do when the thing that's gone isn't fixable by a pitching coach?",
         eventTextPitcher: "{name}'s father built a pitching mound in their backyard when he was six years old and coached him every single day for twelve years. He passed away in October. {name} still shows up to every bullpen session. He still takes the mound for every start. He just hasn't thrown a clean inning since the funeral — walked 14 in his last two outings — and every scout who sees him says the same thing: 'Something's gone.' What do you do when the thing that's gone can't be fixed with mechanics?",
         choiceA: "Show up to a game — just to sit in the stands, not to recruit", choiceAOutcome: "Being physically present with no agenda is an act of humanity that coaches almost never do. He notices.", choiceAWeights: W.bold_pos,
@@ -384,6 +409,10 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
         id: "cc_2",
         scenePrompt: "Pixel art scene: player sitting alone in a dugout after a walk-off hit, teammates celebrating on the field, the player quietly crying with his hands in his lap while everyone else erupts around him, a scout in the stands already on the phone, another one crying too. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         scenePromptPitcher: "Pixel art scene: pitcher sitting alone in a dugout after a game-ending strikeout, teammates celebrating on the field, the player quietly crying with his hands on his knees while everyone else erupts, a scout in the stands already on the phone, another one wiping his eye. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
+        scenePromptByPosition: {
+          C: "Pixel art scene: catcher sitting alone in a dugout, mask off and set on the bench, after throwing out a runner to end a fall scrimmage, teammates celebrating on the field, the catcher quietly crying with both hands in his lap while everyone else erupts, a scout in the stands already on the phone, another one wiping his eye. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
+          OF: "Pixel art scene: outfielder sitting alone in a dugout after a diving catch that saved a fall scrimmage, teammates celebrating on the field, the outfielder quietly crying with his glove resting on his knee while everyone else erupts around him, a scout in the stands already on the phone, another one wiping his eye. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
+        },
         eventText: "{name} hit a walk-off in a meaningless fall scrimmage and sobbed in the dugout for ten minutes afterward while his teammates celebrated without him. His teammate told you afterward: 'He said it was the first time he felt anything at the plate since his dad died.' Two scouts in the stands saw it. One of them called you right after. The other one was crying and couldn't talk yet.",
         eventTextPitcher: "{name} struck out the side in a meaningless fall scrimmage and sobbed in the dugout for ten minutes afterward while his teammates celebrated without him. His teammate told you afterward: 'He said it was the first time he felt anything on the mound since his dad died.' Two scouts in the stands saw it. One of them called you right after. The other one was crying and couldn't talk yet.",
         choiceA: "Don't call. Write. Tell him what watching that meant — one coach to one person", choiceAOutcome: "The written word at the right moment becomes the thing he keeps. The relationship changes permanently.", choiceAWeights: W.safe_pos,
@@ -402,6 +431,10 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
         id: "bc_1",
         scenePrompt: "Pixel art scene: exhausted player at a summer showcase, dark circles carved under his eyes, travel bags from three different programs piled in the dugout, overcast hazy sky, a mother in the background moving deliberately toward a coach with a look of quiet determination. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         scenePromptPitcher: "Pixel art scene: exhausted pitcher at a summer showcase, arm sleeve, dark circles carved under his eyes, travel bags from three different travel programs piled in the dugout, overcast hazy sky, a mother in the background moving deliberately toward a coach with quiet determination. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
+        scenePromptByPosition: {
+          C: "Pixel art scene: exhausted catcher at a summer showcase in full gear, shin guards scuffed from three consecutive tournaments, dark circles carved under his eyes, travel bags from three different programs piled beside him, overcast hazy sky, a mother in the background moving deliberately toward a coach with quiet determination. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
+          OF: "Pixel art scene: exhausted outfielder at a summer showcase, dark circles carved under his eyes, three different travel team jerseys half-folded in an open duffel bag at his feet, overcast hazy sky, a mother in the background moving deliberately toward a coach with quiet determination. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
+        },
         eventText: "{name} threw 287 innings across three travel programs this summer. He showed up to the showcase looking gray. His mother found you between games and said quietly: 'He told me last night he wants to quit. Please don't offer him a scholarship right now. Please.' She said 'please' twice. He's on the mound warming up fifty yards away and doesn't know she's talking to you.",
         choiceA: "Honor the mother's request — call him tomorrow, but not about baseball", choiceAOutcome: "Respecting a mother's read of her son's breaking point creates a trust that no scholarship can buy.", choiceAWeights: W.bold_pos,
         choiceB: "Watch the start without approaching — let the performance speak without pressure", choiceBOutcome: "Your quiet presence without demands registers. He sees you in the stands after. He doesn't say anything. He nods.", choiceBWeights: W.safe_pos,
@@ -412,6 +445,10 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
         id: "bc_2",
         scenePrompt: "Pixel art scene: empty showcase field with a lone chair where the player was supposed to be warming up, a phone notification showing a midnight text from a lake 200 miles away, coaches standing in the parking lot looking at each other, fishing dock in the inset image on the phone screen. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         scenePromptPitcher: "Pixel art scene: empty bullpen where the pitcher was supposed to throw, a phone notification showing a midnight text from a lake 200 miles away, coaches standing in the parking lot looking at each other, a fishing dock in the inset image on the phone screen. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
+        scenePromptByPosition: {
+          C: "Pixel art scene: empty home plate area where the catcher was supposed to be running warm-up drills, a lone catcher's mask sitting on the ground behind the dish, a phone notification showing a midnight text from a lake 200 miles away, coaches standing in the parking lot looking at each other, a fishing dock in the inset image on the phone screen. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
+          OF: "Pixel art scene: empty outfield grass where the outfielder was supposed to be shagging flies, a lone glove resting on the warning track, a phone notification showing a midnight text from a lake 200 miles away, coaches standing in the parking lot looking at each other, a fishing dock in the inset image on the phone screen. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
+        },
         eventText: "{name} didn't show up to a major showcase — a $2,000 event his family already paid for. His high school coach says he's 'unavailable.' His Instagram shows him fishing at a lake 200 miles away. He texted you at midnight: 'Sorry coach. I needed to breathe. I'll understand if this changes things.' He's the first recruit who's ever apologized to you for needing rest.",
         choiceA: "Text back immediately: 'Fish as long as you need. We'll be here.'", choiceAOutcome: "Four words and a period. He screenshots it. He shows his mother. She calls you the next morning.", choiceAWeights: W.bold_pos,
         choiceB: "Wait until he comes back — then call and ask what he needs, not what happened", choiceBOutcome: "Asking what he needs instead of demanding an explanation is the rarest response. He wasn't expecting it.", choiceBWeights: W.safe_pos,
@@ -985,12 +1022,14 @@ export function generateStorylineEvent(
     return out;
   };
 
-  // Select position-aware scene prompt and event text: prefer the pitcher variant for pitchers
-  // when available, otherwise fall back to the default (hitter/neutral) variant.
+  // Select the most-specific available scene prompt using the priority chain:
+  //   scenePromptByPosition[groupKey] → scenePromptPitcher → scenePrompt (default)
   const pitcherMode = Boolean(position && isPitcher(position));
-  const scenePrompt = (pitcherMode && template.scenePromptPitcher)
-    ? template.scenePromptPitcher
-    : template.scenePrompt;
+  const posGroupKey = position ? positionToSceneGroupKey(position) : null;
+  const scenePrompt =
+    (posGroupKey && template.scenePromptByPosition?.[posGroupKey]) ||
+    (pitcherMode && template.scenePromptPitcher) ||
+    template.scenePrompt;
   const resolvedEventText = (pitcherMode && template.eventTextPitcher)
     ? template.eventTextPitcher
     : template.eventText;
