@@ -5224,7 +5224,9 @@ export async function registerRoutes(
       }
 
       // ============ STORYLINE EVENTS ============
-      if (["recruiting", "preseason", "regular_season", "offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4"].includes(league.currentPhase)) {
+      // Constrained to recruiting phases only — narrative is centered on the recruiting cycle,
+      // not regular season or preseason gameplay. offseason_recruiting covers all 4 sub-phases.
+      if (["recruiting", "offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4"].includes(league.currentPhase)) {
         try {
           await generateAndResolveStorylineEvents(leagueId, league.currentSeason, nextWeek);
         } catch (err) {

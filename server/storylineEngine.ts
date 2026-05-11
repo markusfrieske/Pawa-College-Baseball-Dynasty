@@ -765,7 +765,12 @@ export function resolveVotes(
     return { winningChoice, ovrDelta: resolveWeights(weights) };
   }
 
-  const winningChoice = (["A", "B", "C", "D"] as const).reduce((best, c) => (counts[c] > counts[best] ? c : best), "A" as "A" | "B" | "C" | "D");
+  // Find the maximum vote count, then collect all choices tied at that count
+  const choices = choiceDWeights ? (["A", "B", "C", "D"] as const) : (["A", "B", "C"] as const);
+  const maxCount = Math.max(...choices.map(c => counts[c]));
+  const tiedChoices = choices.filter(c => counts[c] === maxCount);
+  // Random tie-break among equally-voted options to avoid systematic choice ordering bias
+  const winningChoice = tiedChoices[Math.floor(Math.random() * tiedChoices.length)];
   const weights = winningChoice === "A" ? choiceAWeights : winningChoice === "B" ? choiceBWeights : winningChoice === "C" ? choiceCWeights : (choiceDWeights ?? choiceCWeights);
   return { winningChoice, ovrDelta: resolveWeights(weights) };
 }
