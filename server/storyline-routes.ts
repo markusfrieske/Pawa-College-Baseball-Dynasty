@@ -222,7 +222,45 @@ export function registerStorylineRoutes(app: Express) {
     }
   });
 
-  // POST /api/leagues/:id/storylines/:storylineId/vote
+  // POST /api/leagues/:id/storylines/events/:eventId/vote  (frontend contract)
+  app.post("/api/leagues/:id/storylines/events/:eventId/vote", requireAuth, async (req, res) => {
+    try {
+      const leagueId = String(req.params.id);
+      const eventId = String(req.params.eventId);
+      const { choice } = req.body;
+
+      if (!["A", "B", "C", "D"].includes(choice)) {
+        return res.status(400).json({ message: "Invalid choice — must be A, B, C, or D" });
+      }
+
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      const teamId = await resolveCoachTeamId(leagueId, req.session.userId!);
+      if (!teamId) return res.status(403).json({ message: "You are not a member of this league" });
+
+      const event = await storage.getStorylineEvent(eventId);
+      if (!event) return res.status(404).json({ message: "Event not found" });
+      if (event.resolvedChoice) return res.status(400).json({ message: "This event has already been resolved" });
+
+      const sl = await storage.getStorylineRecruit(event.storylineRecruitId);
+      if (!sl || sl.leagueId !== leagueId) return res.status(403).json({ message: "Event does not belong to this league" });
+
+      const existing = await storage.getStorylineVoteByTeam(eventId, teamId);
+      if (existing) {
+        const updated = await storage.updateStorylineVote(existing.id, { choice });
+        return res.json(updated);
+      }
+
+      const vote = await storage.createStorylineVote({ eventId, teamId, choice });
+      res.json(vote);
+    } catch (err) {
+      console.error("[storylines] VOTE (events route) error:", err);
+      res.status(500).json({ message: "Failed to cast vote" });
+    }
+  });
+
+  // POST /api/leagues/:id/storylines/:storylineId/vote  (legacy / alternate contract)
   app.post("/api/leagues/:id/storylines/:storylineId/vote", requireAuth, async (req, res) => {
     try {
       const leagueId = String(req.params.id);
