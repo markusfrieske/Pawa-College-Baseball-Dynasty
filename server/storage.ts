@@ -287,22 +287,38 @@ export class DatabaseStorage implements IStorage {
   async leaveLeague(coachId: string, leagueId: string, actorUserId: string): Promise<void> {
     const [coach] = await db.select().from(coaches).where(eq(coaches.id, coachId));
     if (!coach) return;
+    const isForced = coach.userId !== actorUserId;
     if (coach.teamId) {
       await db.update(teams).set({ isCpu: true, coachId: null }).where(eq(teams.id, coach.teamId));
     }
     await db.delete(coaches).where(eq(coaches.id, coachId));
-    await db.insert(auditLogs).values({
-      leagueId,
-      userId: actorUserId,
-      action: "Coach Left League",
-      details: `Coach ${coach.firstName} ${coach.lastName} left the league. Their team has been converted to CPU control.`,
-    });
-    await db.insert(leagueEvents).values({
-      leagueId,
-      eventType: "coach_left",
-      title: "Coach Left the Dynasty",
-      description: `${coach.firstName} ${coach.lastName} has left the dynasty. Their team is now CPU-controlled.`,
-    });
+    if (isForced) {
+      await db.insert(auditLogs).values({
+        leagueId,
+        userId: actorUserId,
+        action: "Coach Removed By Commissioner",
+        details: `Coach ${coach.firstName} ${coach.lastName} was removed from the league by the commissioner. Their team has been converted to CPU control.`,
+      });
+      await db.insert(leagueEvents).values({
+        leagueId,
+        eventType: "coach_removed",
+        title: "Coach Removed",
+        description: `${coach.firstName} ${coach.lastName} was removed from the dynasty by the commissioner. Their team is now CPU-controlled.`,
+      });
+    } else {
+      await db.insert(auditLogs).values({
+        leagueId,
+        userId: actorUserId,
+        action: "Coach Left League",
+        details: `Coach ${coach.firstName} ${coach.lastName} left the league. Their team has been converted to CPU control.`,
+      });
+      await db.insert(leagueEvents).values({
+        leagueId,
+        eventType: "coach_left",
+        title: "Coach Left the Dynasty",
+        description: `${coach.firstName} ${coach.lastName} has left the dynasty. Their team is now CPU-controlled.`,
+      });
+    }
   }
 
   async transferCommissioner(leagueId: string, newUserId: string, currentUserId: string): Promise<void> {
