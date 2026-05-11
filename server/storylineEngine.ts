@@ -127,12 +127,24 @@ const HITTER_FALLBACK_FOR_PITCHER: Partial<Record<Archetype, Archetype>> = {
   swing_rebuild:           "late_bloomer",        // positive development arc, position-agnostic
 };
 
+/**
+ * Potentially transitions a player's storyline archetype based on accumulated OVR delta.
+ *
+ * @param currentArchetype - The player's current archetype.
+ * @param cumulativeOvrDelta - Total OVR change accumulated across arc stages.
+ * @param arcStage - How many arc stages have elapsed (transition requires >= 2).
+ * @param isLegendary - Whether the player has a legendary storyline (higher transition chance).
+ * @param position - The player's position string (e.g. "SP", "SS", "C").
+ *   Required so the position compatibility guard can substitute pitcher-only or hitter-only
+ *   archetypes with a position-safe fallback rather than assigning a narratively wrong archetype.
+ *   Must be supplied for every call site — recruit or existing roster player.
+ */
 export function maybeTransitionArchetype(
   currentArchetype: Archetype,
   cumulativeOvrDelta: number,
   arcStage: number,
   isLegendary: boolean,
-  position?: string,
+  position: string,
 ): Archetype {
   if (arcStage < 2) return currentArchetype;
   const transitionChance = isLegendary ? 0.60 : 0.35;
@@ -141,7 +153,6 @@ export function maybeTransitionArchetype(
   // Resolve a transition target to a position-appropriate archetype.
   // If the target is incompatible, use the defined fallback rather than blocking the transition.
   const resolveTarget = (target: Archetype): Archetype => {
-    if (!position) return target; // no position info — preserve existing behavior
     const pitcherPos = isPitcher(position);
     if (!pitcherPos && PITCHER_ONLY_ARCHETYPES.has(target)) {
       return PITCHER_FALLBACK_FOR_NONPITCHER[target] ?? target;

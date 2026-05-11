@@ -640,7 +640,7 @@ export async function generateAndResolveStorylineEvents(
           newCumulativeDelta,
           newArcStage,
           sl.isLegendary,
-          recruit.position ?? undefined,
+          recruit.position,
         );
 
         await storage.updateStorylineRecruit(sl.id, {
