@@ -72,7 +72,7 @@ export default function EditRostersPage() {
       if (!res.ok) throw new Error("Failed to fetch roster");
       return res.json();
     },
-    enabled: !!selectedTeamId,
+    enabled: !!selectedTeamId && isCommissioner,
   });
 
   const saveMutation = useMutation({

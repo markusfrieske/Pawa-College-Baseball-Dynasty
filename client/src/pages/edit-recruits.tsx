@@ -67,6 +67,7 @@ export default function EditRecruitsPage() {
 
   const { data: recruitingData, isLoading } = useQuery<RecruitingData>({
     queryKey: ["/api/leagues", id, "recruiting"],
+    enabled: isCommissioner,
   });
 
   const saveMutation = useMutation({
