@@ -105,14 +105,22 @@ export function maybeTransitionArchetype(
   cumulativeOvrDelta: number,
   arcStage: number,
   isLegendary: boolean,
+  position?: string,
 ): Archetype {
   if (arcStage < 2) return currentArchetype;
   const transitionChance = isLegendary ? 0.60 : 0.35;
   if (Math.random() > transitionChance) return currentArchetype;
 
+  const isPitcher = position === "P";
+  const isAllowed = (target: Archetype): boolean => {
+    if (isPitcher && HITTER_ONLY_ARCHETYPES.has(target)) return false;
+    if (!isPitcher && PITCHER_ONLY_ARCHETYPES.has(target)) return false;
+    return true;
+  };
+
   const transitions = ARCHETYPE_TRANSITIONS[currentArchetype];
-  if (cumulativeOvrDelta >= 15 && transitions.positive) return transitions.positive;
-  if (cumulativeOvrDelta <= -15 && transitions.negative) return transitions.negative;
+  if (cumulativeOvrDelta >= 15 && transitions.positive && isAllowed(transitions.positive)) return transitions.positive;
+  if (cumulativeOvrDelta <= -15 && transitions.negative && isAllowed(transitions.negative)) return transitions.negative;
   return currentArchetype;
 }
 
