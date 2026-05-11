@@ -309,6 +309,8 @@ function SummaryTab({ team, leagueId }: { team: TeamDetails; leagueId: string })
                       skinTone={player.skinTone || "medium"}
                       hairColor={player.hairColor || "brown"}
                       hairStyle={player.hairStyle || "short"}
+                      facialHair={player.facialHair || "none"}
+                      playerId={player.id}
                       headwear="none"
                       size="sm"
                       jerseyColor={team.primaryColor}

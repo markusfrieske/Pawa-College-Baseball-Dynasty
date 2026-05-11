@@ -435,6 +435,8 @@ function PositionSection({ title, players, onSelectPlayer, teamPrimaryColor, pro
                 skinTone={player.skinTone || "light"}
                 hairColor={player.hairColor || "brown"}
                 hairStyle={player.hairStyle || "short"}
+                facialHair={player.facialHair || "none"}
+                playerId={player.id}
                 className="w-9 h-9 flex-shrink-0"
                 jerseyColor={teamPrimaryColor}
               />
@@ -512,6 +514,8 @@ function PositionSection({ title, players, onSelectPlayer, teamPrimaryColor, pro
                       skinTone={player.skinTone || "light"}
                       hairColor={player.hairColor || "brown"}
                       hairStyle={player.hairStyle || "short"}
+                      facialHair={player.facialHair || "none"}
+                      playerId={player.id}
                       className="w-8 h-8 flex-shrink-0"
                       jerseyColor={teamPrimaryColor}
                     />
@@ -1104,6 +1108,8 @@ function DepthPlayerRow({ p, idx, position, teamPrimaryColor, draggable, onSelec
             skinTone={p.skinTone || "light"}
             hairColor={p.hairColor || "brown"}
             hairStyle={p.hairStyle || "short"}
+            facialHair={p.facialHair || "none"}
+            playerId={p.id}
             className="w-6 h-6 flex-shrink-0"
             jerseyColor={teamPrimaryColor}
           />
@@ -1445,6 +1451,8 @@ function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leagueId, i
             skinTone={player.skinTone || "light"}
             hairColor={player.hairColor || "brown"}
             hairStyle={player.hairStyle || "short"}
+            facialHair={player.facialHair || "none"}
+            playerId={player.id}
             className="w-6 h-6 flex-shrink-0"
             jerseyColor={teamPrimaryColor}
           />
@@ -1487,6 +1495,8 @@ function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leagueId, i
           skinTone={player.skinTone || "light"}
           hairColor={player.hairColor || "brown"}
           hairStyle={player.hairStyle || "short"}
+          facialHair={player.facialHair || "none"}
+          playerId={player.id}
           className="w-5 h-5 flex-shrink-0"
           jerseyColor={teamPrimaryColor}
         />

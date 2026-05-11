@@ -12021,17 +12021,49 @@ async function generateTopSchoolsForLeague(leagueId: string) {
 }
 
 // Random appearance generator for players/recruits
-function getRandomAppearance() {
-  const skinTones = ["light", "medium", "tan", "dark", "deep"];
+// conferenceName: biases skin tone distribution by conference
+// eligibility: biases facial hair probability (SR/JR more likely than FR)
+function getRandomAppearance(conferenceName?: string, eligibility?: string) {
+  let skinTones: string[];
+  if (conferenceName === "HBCU") {
+    skinTones = ["dark","dark","dark","deep","deep","deep","medium","tan","olive"];
+  } else if (["Pac-12","WCC","Mountain West"].includes(conferenceName ?? "")) {
+    skinTones = ["medium","medium","tan","tan","olive","olive","light","dark"];
+  } else if (["AAC","Sun Belt"].includes(conferenceName ?? "")) {
+    skinTones = ["light","medium","medium","tan","tan","olive","dark","dark"];
+  } else {
+    skinTones = ["light","light","medium","medium","tan","olive","dark","deep"];
+  }
+
   const hairColors = ["black", "brown", "blonde", "red", "gray"];
-  const hairStyles = ["short", "buzzcut", "curly", "mullet", "bald"];
+  const hairStyles = ["short", "buzz", "medium", "fade", "curly", "mullet", "long", "bald"];
   const headwears = ["cap", "helmet", "batting_helmet", "none"];
-  
+
+  // Facial hair weighted by eligibility
+  let facialHair = "none";
+  const fhRoll = Math.random();
+  if (eligibility === "SR") {
+    if      (fhRoll < 0.22) facialHair = "stubble";
+    else if (fhRoll < 0.34) facialHair = "goatee";
+    else if (fhRoll < 0.40) facialHair = "mustache";
+    else if (fhRoll < 0.43) facialHair = "beard";
+  } else if (eligibility === "JR") {
+    if      (fhRoll < 0.15) facialHair = "stubble";
+    else if (fhRoll < 0.22) facialHair = "goatee";
+    else if (fhRoll < 0.26) facialHair = "mustache";
+  } else if (eligibility === "SO") {
+    if      (fhRoll < 0.08) facialHair = "stubble";
+    else if (fhRoll < 0.11) facialHair = "goatee";
+  } else { // FR or unknown
+    if (fhRoll < 0.04) facialHair = "stubble";
+  }
+
   return {
-    skinTone: skinTones[Math.floor(Math.random() * skinTones.length)],
+    skinTone:  skinTones[Math.floor(Math.random() * skinTones.length)],
     hairColor: hairColors[Math.floor(Math.random() * hairColors.length)],
     hairStyle: hairStyles[Math.floor(Math.random() * hairStyles.length)],
-    headwear: headwears[Math.floor(Math.random() * headwears.length)],
+    headwear:  headwears[Math.floor(Math.random() * headwears.length)],
+    facialHair,
   };
 }
 
@@ -12107,12 +12139,13 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
     const usedJerseyNumbers = new Set<number>();
 
     for (const rp of realRoster) {
-      const randomAppearance = getRandomAppearance();
+      const randomAppearance = getRandomAppearance(conferenceName, rp.eligibility);
       const appearance = {
         skinTone: rp.skinTone || randomAppearance.skinTone,
         hairColor: rp.hairColor || randomAppearance.hairColor,
         hairStyle: rp.hairStyle || randomAppearance.hairStyle,
         headwear: randomAppearance.headwear,
+        facialHair: randomAppearance.facialHair,
       };
       usedJerseyNumbers.add(rp.jerseyNumber);
       const playerData = {
@@ -12165,6 +12198,7 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
         skinTone: appearance.skinTone,
         hairColor: appearance.hairColor,
         hairStyle: appearance.hairStyle,
+        facialHair: appearance.facialHair,
         headwear: appearance.headwear,
         potential: typeof rp.potential === 'string' ? potentialGradeToNumber(rp.potential as string) : (rp.potential ?? 71),
         pitchFB: rp.pitchFB,
@@ -12201,7 +12235,7 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
       const fillerEligibilities = ["FR", "SO", "JR"];
 
       for (let f = 0; f < remaining; f++) {
-        const appearance = getRandomAppearance();
+        const appearance = getRandomAppearance(conferenceName);
         const targetAvg = 25 + Math.floor(Math.random() * 15);
         const genAttr = () => Math.max(1, Math.min(99, targetAvg + Math.floor(Math.random() * 21) - 10));
         const pos = fillerPositions[f];
@@ -12238,6 +12272,7 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
           skinTone: appearance.skinTone,
           hairColor: appearance.hairColor,
           hairStyle: appearance.hairStyle,
+          facialHair: appearance.facialHair,
           headwear: appearance.headwear,
           potential: rollWeightedPotential(),
           pitchFB: pos === "P" ? 1 : 0,
@@ -12323,7 +12358,7 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
     // #66 — use conference-flavored ability pools for HBCU/Ivy; generic pool for all others
     const abilities = getConferenceFlavoredAbilities(conferenceName, position, abilityCount, starTier >= 4);
 
-    const appearance = getRandomAppearance();
+    const appearance = getRandomAppearance(conferenceName, eligibility);
 
     const hitForAvg = genAttrAroundAvg(targetAvg);
     const power = genAttrAroundAvg(targetAvg);
@@ -12376,6 +12411,7 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
       skinTone: appearance.skinTone,
       hairColor: appearance.hairColor,
       hairStyle: appearance.hairStyle,
+      facialHair: appearance.facialHair,
       headwear: appearance.headwear,
       potential: rollWeightedPotential(),
       pitchFB: position === "P" ? 1 : 0,

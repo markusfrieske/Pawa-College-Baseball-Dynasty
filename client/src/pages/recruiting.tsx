@@ -1940,6 +1940,8 @@ function RecruitRow({
               skinTone={recruit.skinTone || "light"}
               hairColor={recruit.hairColor || "brown"}
               hairStyle={recruit.hairStyle || "short"}
+              facialHair={recruit.facialHair || "none"}
+              playerId={recruit.id}
               className="w-12 h-12"
               isRecruit={true}
             />
@@ -2770,6 +2772,8 @@ function RecruitDetailModal({
         skinTone={recruit.skinTone || "light"}
         hairColor={recruit.hairColor || "brown"}
         hairStyle={recruit.hairStyle || "short"}
+        facialHair={recruit.facialHair || "none"}
+        playerId={recruit.id}
         className="w-16 h-16 flex-shrink-0"
         isRecruit={true}
       />
@@ -3686,6 +3690,8 @@ function CompareModal({
                     skinTone={recruit.skinTone || "light"}
                     hairColor={recruit.hairColor || "brown"}
                     hairStyle={recruit.hairStyle || "short"}
+                    facialHair={recruit.facialHair || "none"}
+                    playerId={recruit.id}
                     className="w-12 h-12"
                     isRecruit={true}
                   />

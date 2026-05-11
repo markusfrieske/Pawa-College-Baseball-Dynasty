@@ -9,15 +9,17 @@ export function getRandomRecruitingTheme(): RecruitingTheme {
 }
 
 function getRandomAppearance() {
-  const skinTones = ["light", "medium", "tan", "dark", "deep"];
+  const skinTones = ["light", "medium", "tan", "olive", "dark", "deep"];
   const hairColors = ["black", "brown", "blonde", "red", "gray"];
-  const hairStyles = ["short", "buzzcut", "curly", "mullet", "bald"];
+  const hairStyles = ["short", "buzz", "medium", "fade", "curly", "mullet", "long", "bald"];
   const headwears = ["cap", "helmet", "batting_helmet", "none"];
+  const facialHairs = ["none", "none", "none", "none", "none", "stubble", "stubble", "goatee", "mustache"];
   return {
     skinTone: skinTones[Math.floor(Math.random() * skinTones.length)],
     hairColor: hairColors[Math.floor(Math.random() * hairColors.length)],
     hairStyle: hairStyles[Math.floor(Math.random() * hairStyles.length)],
     headwear: headwears[Math.floor(Math.random() * headwears.length)],
+    facialHair: facialHairs[Math.floor(Math.random() * facialHairs.length)],
   };
 }
 
@@ -537,6 +539,7 @@ export function generateRecruitClass(
       skinTone: appearance.skinTone,
       hairColor: appearance.hairColor,
       hairStyle: appearance.hairStyle,
+      facialHair: appearance.facialHair,
       headwear: appearance.headwear,
     });
   }

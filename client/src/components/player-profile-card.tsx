@@ -172,6 +172,8 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
               skinTone={player.skinTone || "light"}
               hairColor={player.hairColor || "brown"}
               hairStyle={player.hairStyle || "short"}
+              facialHair={player.facialHair || "none"}
+              playerId={player.id}
               className="w-14 h-14 flex-shrink-0"
               jerseyColor={teamPrimaryColor}
             />

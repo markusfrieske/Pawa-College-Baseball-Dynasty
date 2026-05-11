@@ -438,6 +438,8 @@ export default function RecruitProfilePage() {
                 skinTone={recruit.skinTone}
                 hairColor={recruit.hairColor}
                 hairStyle={recruit.hairStyle}
+                facialHair={recruit.facialHair || "none"}
+                playerId={recruit.id}
                 headwear="none"
                 size="lg"
                 isRecruit={true}

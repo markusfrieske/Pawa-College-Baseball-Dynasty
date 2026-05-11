@@ -65,6 +65,8 @@ function PlayerMiniCard({ player, reason }: { player: Player; reason: "graduate"
         skinTone={player.skinTone}
         hairColor={player.hairColor}
         hairStyle={player.hairStyle}
+        facialHair={player.facialHair || "none"}
+        playerId={player.id}
         className="w-8 h-8"
       />
       <div className="flex-1 min-w-0">

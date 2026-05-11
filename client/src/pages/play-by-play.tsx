@@ -670,7 +670,7 @@ export default function PlayByPlayPage() {
                     data-testid={`away-lineup-${i}`}
                   >
                     <span className={`w-4 text-center text-[9px] ${isActive ? "text-gold" : "text-muted-foreground"}`}>{i + 1}</span>
-                    <PlayerAvatar skinTone={p.skinTone} hairColor={p.hairColor} hairStyle={p.hairStyle} headwear={p.headwear} size="sm" jerseyColor={pbpData.awayTeam.primaryColor} className="w-6 h-6 shrink-0" />
+                    <PlayerAvatar skinTone={p.skinTone} hairColor={p.hairColor} hairStyle={p.hairStyle} facialHair={p.facialHair || "none"} playerId={p.id} headwear={p.headwear} size="sm" jerseyColor={pbpData.awayTeam.primaryColor} className="w-6 h-6 shrink-0" />
                     <span className={`${positionColor(p.position)} text-white text-[8px] px-1 py-0.5 rounded leading-none min-w-[24px] text-center`}>{p.position}</span>
                     <span className={`text-[10px] truncate flex-1 ${isActive ? "text-gold font-bold" : "text-foreground"}`}>{p.lastName}</span>
                     <div className="flex items-center gap-0.5 shrink-0" title={`OVR: ${p.overall || 300}`}>
@@ -683,7 +683,7 @@ export default function PlayByPlayPage() {
               <div className="border-t border-border/50 mt-1 pt-1 px-1.5">
                 <div className="flex items-center gap-1">
                   <span className="w-4 text-center text-[9px] text-muted-foreground">P</span>
-                  <PlayerAvatar skinTone={pbpData.awayPitcher.skinTone} hairColor={pbpData.awayPitcher.hairColor} hairStyle={pbpData.awayPitcher.hairStyle} headwear={pbpData.awayPitcher.headwear} size="sm" jerseyColor={pbpData.awayTeam.primaryColor} className="w-6 h-6 shrink-0" />
+                  <PlayerAvatar skinTone={pbpData.awayPitcher.skinTone} hairColor={pbpData.awayPitcher.hairColor} hairStyle={pbpData.awayPitcher.hairStyle} facialHair={pbpData.awayPitcher.facialHair || "none"} playerId={pbpData.awayPitcher.id} headwear={pbpData.awayPitcher.headwear} size="sm" jerseyColor={pbpData.awayTeam.primaryColor} className="w-6 h-6 shrink-0" />
                   <span className="bg-red-500 text-white text-[8px] px-1 py-0.5 rounded leading-none min-w-[24px] text-center">P</span>
                   <span className="text-[10px] text-muted-foreground truncate">{pbpData.awayPitcher.lastName}</span>
                 </div>
@@ -814,6 +814,8 @@ export default function PlayByPlayPage() {
                             skinTone={currentLineup[currentAtBat.batterIndex]?.skinTone}
                             hairColor={currentLineup[currentAtBat.batterIndex]?.hairColor}
                             hairStyle={currentLineup[currentAtBat.batterIndex]?.hairStyle}
+                            facialHair={currentLineup[currentAtBat.batterIndex]?.facialHair || "none"}
+                            playerId={currentLineup[currentAtBat.batterIndex]?.id}
                             headwear={currentLineup[currentAtBat.batterIndex]?.headwear}
                             size="sm"
                             jerseyColor={battingTeam.primaryColor}
@@ -1009,7 +1011,7 @@ export default function PlayByPlayPage() {
                     data-testid={`home-lineup-${i}`}
                   >
                     <span className={`w-4 text-center text-[9px] ${isActive ? "text-gold" : "text-muted-foreground"}`}>{i + 1}</span>
-                    <PlayerAvatar skinTone={p.skinTone} hairColor={p.hairColor} hairStyle={p.hairStyle} headwear={p.headwear} size="sm" jerseyColor={pbpData.homeTeam.primaryColor} className="w-6 h-6 shrink-0" />
+                    <PlayerAvatar skinTone={p.skinTone} hairColor={p.hairColor} hairStyle={p.hairStyle} facialHair={p.facialHair || "none"} playerId={p.id} headwear={p.headwear} size="sm" jerseyColor={pbpData.homeTeam.primaryColor} className="w-6 h-6 shrink-0" />
                     <span className={`${positionColor(p.position)} text-white text-[8px] px-1 py-0.5 rounded leading-none min-w-[24px] text-center`}>{p.position}</span>
                     <span className={`text-[10px] truncate flex-1 ${isActive ? "text-gold font-bold" : "text-foreground"}`}>{p.lastName}</span>
                     <div className="flex items-center gap-0.5 shrink-0" title={`OVR: ${p.overall || 300}`}>
@@ -1022,7 +1024,7 @@ export default function PlayByPlayPage() {
               <div className="border-t border-border/50 mt-1 pt-1 px-1.5">
                 <div className="flex items-center gap-1">
                   <span className="w-4 text-center text-[9px] text-muted-foreground">P</span>
-                  <PlayerAvatar skinTone={pbpData.homePitcher.skinTone} hairColor={pbpData.homePitcher.hairColor} hairStyle={pbpData.homePitcher.hairStyle} headwear={pbpData.homePitcher.headwear} size="sm" jerseyColor={pbpData.homeTeam.primaryColor} className="w-6 h-6 shrink-0" />
+                  <PlayerAvatar skinTone={pbpData.homePitcher.skinTone} hairColor={pbpData.homePitcher.hairColor} hairStyle={pbpData.homePitcher.hairStyle} facialHair={pbpData.homePitcher.facialHair || "none"} playerId={pbpData.homePitcher.id} headwear={pbpData.homePitcher.headwear} size="sm" jerseyColor={pbpData.homeTeam.primaryColor} className="w-6 h-6 shrink-0" />
                   <span className="bg-red-500 text-white text-[8px] px-1 py-0.5 rounded leading-none min-w-[24px] text-center">P</span>
                   <span className="text-[10px] text-muted-foreground truncate">{pbpData.homePitcher.lastName}</span>
                 </div>
@@ -1105,6 +1107,8 @@ export default function PlayByPlayPage() {
                     skinTone={statsModalPlayer.appearance?.skinTone}
                     hairColor={statsModalPlayer.appearance?.hairColor}
                     hairStyle={statsModalPlayer.appearance?.hairStyle}
+                    facialHair={statsModalPlayer.appearance?.facialHair || "none"}
+                    playerId={statsModalPlayer.id}
                     headwear={statsModalPlayer.appearance?.headwear}
                     size="md"
                     jerseyColor={statsModalPlayer.team.primaryColor}
@@ -1391,6 +1395,7 @@ function PlayerCard({ type, name, position, stats, gameStats, seasonStats, team,
           skinTone={appearance?.skinTone}
           hairColor={appearance?.hairColor}
           hairStyle={appearance?.hairStyle}
+          facialHair={appearance?.facialHair || "none"}
           headwear={appearance?.headwear}
           size="md"
           jerseyColor={team.primaryColor}

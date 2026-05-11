@@ -57,6 +57,8 @@ function PortalPlayerCard({
             skinTone={player.skinTone}
             hairColor={player.hairColor}
             hairStyle={player.hairStyle}
+            facialHair={player.facialHair || "none"}
+            playerId={player.id}
             className="w-12 h-12"
           />
           <div className="flex-1 min-w-0">
