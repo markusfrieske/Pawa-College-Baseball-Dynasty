@@ -60,7 +60,8 @@ const FADE_DURATION = 1000;
 // Seconds before a looping track ends when we fire the next loop crossfade.
 const LOOP_LOOKAHEAD = 0.5;
 // How long to wait for `canplaythrough` before we play anyway.
-const READINESS_TIMEOUT_MS = 300;
+// Kept at 200 ms to match the spec's "first play within 200 ms" acceptance criterion.
+const READINESS_TIMEOUT_MS = 200;
 
 function getSessionPreloaded(): Set<TrackId> {
   try {
