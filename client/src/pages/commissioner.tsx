@@ -1366,11 +1366,14 @@ function ReadyStatusSection({ leagueId }: { leagueId: string }) {
                         <span className="font-pixel text-[10px] text-gold">{team.abbreviation}</span>
                         <span className="text-sm text-muted-foreground">{team.coachName}</span>
                       </div>
-                      {isRecruitingPhase && (
-                        <span className="text-[11px] text-muted-foreground">
-                          {team.currentWeekActionCount} action{team.currentWeekActionCount !== 1 ? "s" : ""}
-                        </span>
-                      )}
+                      <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                        {isRecruitingPhase && (
+                          <span>{team.currentWeekActionCount} action{team.currentWeekActionCount !== 1 ? "s" : ""}</span>
+                        )}
+                        {team.lastActivityAt && (
+                          <span className="opacity-60">{formatLastActivity(team.lastActivityAt)}</span>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>

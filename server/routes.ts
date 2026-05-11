@@ -10126,6 +10126,14 @@ export async function registerRoutes(
       // Get this week's recruiting actions for per-team action counts and last-activity timestamps
       const weekActions = await storage.getRecruitingActionsLogByLeagueWeek(league.id, league.currentSeason, league.currentWeek);
 
+      // Get recent league events (current season, non-system events) as activity signals for non-recruiting phases
+      const recentLeagueEvents = await storage.getLeagueEvents(league.id, 200);
+      const currentSeasonEvents = recentLeagueEvents.filter(e =>
+        e.season === league.currentSeason &&
+        e.teamId !== null &&
+        !e.description.startsWith("[COMMISSIONER NUDGE]")
+      );
+
       const readyStatus = teams.map(team => {
         const coach = coaches.find(c => c.teamId === team.id);
         const isHumanControlled = !!coach?.userId;
@@ -10142,13 +10150,26 @@ export async function registerRoutes(
         const scoutActionsUsed = teamInterests.filter(i => i.scoutPercentage > 0).length;
         const recruitActionsUsed = teamInterests.filter(i => i.interestLevel > 0).length;
 
-        // Per-team actions this week and last activity timestamp
+        // Per-team actions this week and last activity timestamp from recruiting log
         const teamWeekActions = weekActions.filter(a => a.teamId === team.id);
         const currentWeekActionCount = teamWeekActions.length;
-        const latestAction = teamWeekActions.sort((a, b) => 
+        const latestRecruitAction = teamWeekActions.sort((a, b) => 
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         )[0];
-        const lastActivityAt = latestAction ? latestAction.createdAt.toISOString() : null;
+
+        // Also check league events for current-phase activity (covers departures, walk-ons, readiness toggles)
+        const teamEvents = currentSeasonEvents.filter(e => e.teamId === team.id);
+        const latestEvent = teamEvents.sort((a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        )[0];
+
+        // Use the most recent signal across both sources
+        const recruitTs = latestRecruitAction ? new Date(latestRecruitAction.createdAt).getTime() : 0;
+        const eventTs = latestEvent ? new Date(latestEvent.createdAt).getTime() : 0;
+        const bestTs = Math.max(recruitTs, eventTs);
+        const lastActivityAt = bestTs > 0
+          ? new Date(bestTs).toISOString()
+          : null;
 
         return {
           teamId: team.id,
