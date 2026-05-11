@@ -12,27 +12,48 @@ function hash(s) {
 }
 
 // Position-based realistic MLB/college distributions
+// Pitcher throw:  ~70% R / 30% L
+// Pitcher bat:    ~95% same as throw, ~4% opposite, ~1% switch (some pitchers cross-bat)
+// Catcher throw:  ~99% R / 1% L
+// Catcher bat:    ~80% R / 12% L / 8% S
+// 1B throw:       ~95% R / 5% L (natural lefties gravitate to 1B)
+// 1B bat:         ~45% L / 44% R / 11% S
+// 2B throw:       100% R
+// 2B bat:         ~65% R / 22% L / 13% S
+// SS throw:       100% R
+// SS bat:         ~62% R / 25% L / 13% S
+// 3B throw:       100% R
+// 3B bat:         ~67% R / 22% L / 11% S
+// OF throw:       ~90% R / 10% L
+// OF bat:         ~60% R / 28% L / 12% S
+// DH throw:       ~80% R / 20% L
+// DH bat:         ~60% R / 28% L / 12% S
 function getHandedness(firstName, lastName, position) {
   const s1 = hash(firstName + '|' + lastName);
   const s2 = hash(lastName + '|' + firstName + '|bat');
+  const s3 = hash(firstName + '|' + lastName + '|bat2');
   let throwHand, batHand;
 
   if (position === 'P') {
-    // ~30% LHP in college baseball
     throwHand = (s1 % 10) < 3 ? 'L' : 'R';
-    batHand = throwHand; // pitchers bat same side they throw
+    // ~95% bat same side they throw, ~4% cross-bat, ~1% switch
+    const b = s3 % 100;
+    if (b < 95) {
+      batHand = throwHand;
+    } else if (b < 99) {
+      batHand = throwHand === 'L' ? 'R' : 'L';
+    } else {
+      batHand = 'S';
+    }
   } else if (position === 'C') {
-    // Catchers almost always throw right
-    throwHand = 'R';
+    throwHand = (s1 % 100) < 99 ? 'R' : 'L';
     const b = s2 % 100;
     batHand = b < 80 ? 'R' : b < 92 ? 'L' : 'S';
   } else if (position === '1B') {
-    // ~5% LH-throwing 1B (natural lefties); ~45% bat left
     throwHand = (s1 % 20) === 0 ? 'L' : 'R';
     const b = s2 % 100;
     batHand = b < 45 ? 'L' : b < 89 ? 'R' : 'S';
   } else if (position === '2B') {
-    // No left-handed throwing 2B
     throwHand = 'R';
     const b = s2 % 100;
     batHand = b < 65 ? 'R' : b < 87 ? 'L' : 'S';
@@ -45,12 +66,11 @@ function getHandedness(firstName, lastName, position) {
     const b = s2 % 100;
     batHand = b < 67 ? 'R' : b < 89 ? 'L' : 'S';
   } else if (position === 'OF') {
-    // ~10% LH-throwing OF
     throwHand = (s1 % 10) === 0 ? 'L' : 'R';
     const b = s2 % 100;
     batHand = b < 60 ? 'R' : b < 88 ? 'L' : 'S';
   } else if (position === 'DH') {
-    throwHand = (s1 % 10) < 2 ? 'L' : 'R';
+    throwHand = (s1 % 5) === 0 ? 'L' : 'R';
     const b = s2 % 100;
     batHand = b < 60 ? 'R' : b < 88 ? 'L' : 'S';
   } else {
@@ -74,7 +94,13 @@ function processFile(filepath) {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
 
-    // Extract player info on the same line (all on first line of each player block)
+    // Skip any existing throwHand/batHand lines (force-update mode)
+    if (/^\s*throwHand:\s*"[LRS]",\s*batHand:\s*"[LRS]",\s*$/.test(line)) {
+      changed++; // will be re-added after catcherAbility
+      continue;
+    }
+
+    // Extract player info (firstName, lastName, position all on first line of each block)
     const fn = line.match(/firstName:\s*"([^"]+)"/);
     if (fn) firstName = fn[1];
 
@@ -86,25 +112,20 @@ function processFile(filepath) {
 
     result.push(line);
 
-    // After the catcherAbility line, inject throwHand/batHand if not already present
+    // After catcherAbility line, inject throwHand/batHand
     if (/catcherAbility:/.test(line)) {
+      const indent = (line.match(/^(\s*)/) || ['', ''])[1];
+      const { throwHand, batHand } = getHandedness(firstName, lastName, position);
+      result.push(`${indent}throwHand: "${throwHand}", batHand: "${batHand}",`);
+      // Don't count as changed if we just stripped and re-added same value;
+      // changed was already incremented above if we stripped a line, otherwise increment now
       const nextLine = lines[i + 1] || '';
-      const alreadyHas = /throwHand:/.test(nextLine) || /batHand:/.test(nextLine);
-      if (!alreadyHas) {
-        const indent = (line.match(/^(\s*)/) || ['', ''])[1];
-        const { throwHand, batHand } = getHandedness(firstName, lastName, position);
-        result.push(`${indent}throwHand: "${throwHand}", batHand: "${batHand}",`);
-        changed++;
-      }
+      if (!/throwHand:/.test(nextLine)) changed++; // fresh insertion
     }
   }
 
-  if (changed > 0) {
-    fs.writeFileSync(filepath, result.join('\n'), 'utf8');
-    console.log(`  ${path.basename(filepath)}: added handedness to ${changed} players`);
-  } else {
-    console.log(`  ${path.basename(filepath)}: already up to date (0 changes)`);
-  }
+  fs.writeFileSync(filepath, result.join('\n'), 'utf8');
+  console.log(`  ${path.basename(filepath)}: processed ${changed} players`);
   return changed;
 }
 
@@ -132,9 +153,9 @@ const batchFiles = [
 
 const root = path.join(__dirname, '..');
 let total = 0;
-console.log('Applying handedness to all roster batch files...');
+console.log('Applying handedness to all roster batch files (force-update)...');
 for (const rel of batchFiles) {
   const fp = path.join(root, rel);
   total += processFile(fp);
 }
-console.log(`\nDone. ${total} players updated.`);
+console.log(`\nDone. ${total} players processed.`);

@@ -183,7 +183,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 15, power: 13, speed: 39, arm: 53, fielding: 30, errorResistance: 43, velocity: 50, control: 49, stamina: 41, stuff: 50,
       clutch: 64, vsLHP: 61, grit: 66, stealing: 15, running: 36, throwing: 67, recovery: 41, wRISP: 47, vsLefty: 47, poise: 50, heater: 53, agile: 43,
       abilities: ["Fireman", "Explosive Fastball"], potential: "A", catcherAbility: null,
-      throwHand: "R", batHand: "R",
+      throwHand: "R", batHand: "L",
       ...pitchMix(1, [0, 7, 0, 1, 3, 0, 0]) },
     { firstName: "Collins", lastName: "Black", position: "P", eligibility: "JR", homeState: "NC", hometown: "Greensboro", jerseyNumber: 41,
       hitForAvg: 15, power: 13, speed: 35, arm: 49, fielding: 31, errorResistance: 44, velocity: 47, control: 48, stamina: 46, stuff: 46,
@@ -341,7 +341,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 11, power: 8, speed: 36, arm: 61, fielding: 34, errorResistance: 48, velocity: 58, control: 54, stamina: 28, stuff: 58,
       clutch: 76, vsLHP: 70, grit: 72, stealing: 8, running: 32, throwing: 74, recovery: 44, wRISP: 57, vsLefty: 56, poise: 59, heater: 56, agile: 46,
       abilities: ["Fireman", "Doctor K", "Groundball Pitcher"], potential: "A-", catcherAbility: null,
-      throwHand: "L", batHand: "L",
+      throwHand: "L", batHand: "S",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 5, 0, 1, 0, 0, 0]) },
     // Ryan Lynch — SO RHP Saturday SP, 4-4 / 3.75 / 12 GS / 69 IP / 66K
@@ -373,7 +373,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 11, power: 9, speed: 30, arm: 45, fielding: 28, errorResistance: 42, velocity: 43, control: 47, stamina: 21, stuff: 45,
       clutch: 60, vsLHP: 56, grit: 60, stealing: 6, running: 26, throwing: 60, recovery: 37, wRISP: 44, vsLefty: 43, poise: 44, heater: 44, agile: 38,
       abilities: ["Fireman", "Lefty Killer"], potential: "B", catcherAbility: null,
-      throwHand: "R", batHand: "R",
+      throwHand: "R", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 4, 3, 1, 0, 0, 0]) },
     // Boston Flannery — RHP swing, 1-0 / 3.44 / 4 GS

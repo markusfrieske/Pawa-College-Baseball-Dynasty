@@ -644,7 +644,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 13, power: 10, speed: 34, arm: 70, fielding: 41, errorResistance: 56, velocity: 66, control: 68, stamina: 57, stuff: 69,
       clutch: 80, vsLHP: 76, grit: 82, stealing: 7, running: 30, throwing: 80, recovery: 52, wRISP: 63, vsLefty: 63, poise: 67, heater: 67, agile: 42,
       abilities: ["Star of Victory", "Intimidator", "Sharpness", "Bad Ball Hitter"], potential: "A", catcherAbility: null,
-      throwHand: "R", batHand: "R",
+      throwHand: "R", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [4, 5, 6, 1, 0, 0, 0]) },
     // Caden Aoki — Sun SP JR, transfer headliner, leadership accolades
@@ -916,7 +916,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 11, power: 8, speed: 32, arm: 43, fielding: 26, errorResistance: 38, velocity: 40, control: 35, stamina: 31, stuff: 40,
         clutch: 40, vsLHP: 38, grit: 42, stealing: 10, running: 30, throwing: 58, recovery: 28, wRISP: 27, vsLefty: 30, poise: 28, heater: 44, agile: 38,
         abilities: ["Strong Starter", "Guts"], potential: "A-", catcherAbility: null,
-        throwHand: "R", batHand: "R",
+        throwHand: "R", batHand: "L",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 4, 4, 1, 0, 0, 0]) },
       // CATCHERS (2)
