@@ -6,6 +6,7 @@ import { RetroButton } from "@/components/ui/retro-button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StarRating } from "@/components/ui/star-rating";
+import { PlayerPortrait } from "@/components/ui/player-portrait";
 import { apiRequest } from "@/lib/queryClient";
 import {
   ArrowLeft, BookOpen, Sparkles, TrendingUp, TrendingDown, Minus,
@@ -58,6 +59,10 @@ interface StorylineRecruit {
     stage: string;
     signedTeamAbbreviation?: string | null;
     signedTeamPrimaryColor?: string | null;
+    skinTone?: string | null;
+    hairColor?: string | null;
+    hairStyle?: string | null;
+    facialHair?: string | null;
   } | null;
   archetypeName: string;
   archetypeDescription: string;
@@ -270,7 +275,14 @@ function StorylineCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: strin
                 onClick={() => generateImageMutation.mutate()}
                 title="Click to generate AI portrait"
               >
-                <PositionSilhouette position={r?.position} isLegendary={sl.isLegendary} />
+                <PlayerPortrait
+                  skinTone={r?.skinTone ?? "light"}
+                  hairColor={r?.hairColor ?? "brown"}
+                  hairStyle={r?.hairStyle ?? "short"}
+                  facialHair={r?.facialHair ?? "none"}
+                  isRecruit={true}
+                  className="w-full h-full"
+                />
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/50">
                   {generateImageMutation.isPending
                     ? <Sparkles className="w-4 h-4 text-gold animate-spin" />
