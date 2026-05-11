@@ -17,7 +17,8 @@ function getRandomAppearance() {
   const eyeStyles = ["standard", "standard", "narrow", "wide", "heavy"];
   const eyebrowStyles = ["flat", "flat", "arched", "thick", "furrowed"];
   const mouthStyles = ["neutral", "neutral", "smile", "smirk"];
-  // Recruits: eye black sparingly (~15%), reflects younger players
+  // Recruits may wear eye black, but less commonly than active players (~15% vs ~28%).
+  // High school & incoming college players wear it selectively — not player-only restriction.
   const eyeBlack = Math.random() < 0.15;
   return {
     skinTone:     skinTones[Math.floor(Math.random() * skinTones.length)],
