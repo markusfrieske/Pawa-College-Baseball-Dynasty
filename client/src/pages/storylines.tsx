@@ -129,34 +129,6 @@ function VoteBar({ counts, total, myVote }: { counts: Record<string, number>; to
   );
 }
 
-// Position silhouette fallback rendered when AI image is unavailable
-function PositionSilhouette({ position, isLegendary }: { position?: string; isLegendary: boolean }) {
-  const pos = position ?? "?";
-  const isPitcher = pos === "P" || pos === "SP" || pos === "RP" || pos === "CL";
-  return (
-    <svg viewBox="0 0 56 56" className="w-full h-full" style={{ imageRendering: "pixelated" }}>
-      {/* Background */}
-      <rect width="56" height="56" fill={isLegendary ? "#2a1f00" : "#111a12"} />
-      {/* Simple pixel-art silhouette: head + body + bat/glove */}
-      <rect x="22" y="8" width="12" height="12" fill={isLegendary ? "#c9a227" : "#4a7a52"} />
-      <rect x="20" y="20" width="16" height="18" fill={isLegendary ? "#c9a227" : "#4a7a52"} />
-      <rect x="16" y="38" width="8" height="10" fill={isLegendary ? "#c9a227" : "#4a7a52"} />
-      <rect x="32" y="38" width="8" height="10" fill={isLegendary ? "#c9a227" : "#4a7a52"} />
-      {isPitcher ? (
-        /* Pitching arm raised */
-        <rect x="8" y="16" width="12" height="6" fill={isLegendary ? "#c9a227" : "#4a7a52"} />
-      ) : (
-        /* Batting stance — bat */
-        <>
-          <rect x="36" y="14" width="4" height="20" fill={isLegendary ? "#f5d060" : "#8ab88e"} />
-          <rect x="36" y="12" width="6" height="4" fill={isLegendary ? "#f5d060" : "#8ab88e"} />
-        </>
-      )}
-      {/* Position label */}
-      <text x="28" y="54" textAnchor="middle" fontSize="6" fontFamily="monospace" fill={isLegendary ? "#c9a227" : "#5a9464"}>{pos}</text>
-    </svg>
-  );
-}
 
 function ArcTimeline({ events }: { events: StorylineEventFull[] }) {
   if (events.length === 0) return null;
