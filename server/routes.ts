@@ -6459,10 +6459,12 @@ export async function registerRoutes(
 
     const strengthDiff = (homeStrength - awayStrength) / 300;
     const homeAdv = 0.25;
-    let homeExpected = 4.5 + strengthDiff * 5.0 + homeAdv;
-    let awayExpected = 4.5 - strengthDiff * 5.0;
-    homeExpected = Math.max(1.0, Math.min(10, homeExpected));
-    awayExpected = Math.max(1.0, Math.min(10, awayExpected));
+    // Base of 5.75 targets 5-8 RPG per team for evenly matched college teams.
+    // Previously 4.5, which produced ~4.5-4.8 RPG (below the 5-8 college baseball range).
+    let homeExpected = 5.75 + strengthDiff * 5.0 + homeAdv;
+    let awayExpected = 5.75 - strengthDiff * 5.0;
+    homeExpected = Math.max(1.0, Math.min(13, homeExpected));
+    awayExpected = Math.max(1.0, Math.min(13, awayExpected));
 
     function poissonSample(lambda: number): number {
       let L = Math.exp(-lambda), k = 0, p = 1;
