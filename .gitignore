@@ -3,4 +3,8 @@ dist
 .DS_Store
 server/public
 vite.config.ts.*
-*.tar.gzroster-qa.xlsx
+*.tar.gz
+roster-qa.xlsx
+test-results/
+playwright-report/
+tests/.last-run.json
