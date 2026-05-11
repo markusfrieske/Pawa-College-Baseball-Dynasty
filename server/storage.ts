@@ -323,6 +323,17 @@ export class DatabaseStorage implements IStorage {
       await db.delete(recruitTopSchools).where(inArray(recruitTopSchools.recruitId, recruitIds));
       await db.delete(recruitingActionsLog).where(inArray(recruitingActionsLog.recruitId, recruitIds));
       await db.delete(recruitingInterests).where(inArray(recruitingInterests.recruitId, recruitIds));
+      const srRows = await db.select({ id: storylineRecruits.id }).from(storylineRecruits).where(inArray(storylineRecruits.recruitId, recruitIds));
+      const srIds = srRows.map(r => r.id);
+      if (srIds.length > 0) {
+        const evRows = await db.select({ id: storylineEvents.id }).from(storylineEvents).where(inArray(storylineEvents.storylineRecruitId, srIds));
+        const evIds = evRows.map(e => e.id);
+        if (evIds.length > 0) {
+          await db.delete(storylineVotes).where(inArray(storylineVotes.eventId, evIds));
+          await db.delete(storylineEvents).where(inArray(storylineEvents.id, evIds));
+        }
+        await db.delete(storylineRecruits).where(inArray(storylineRecruits.id, srIds));
+      }
     }
     await db.delete(recruits).where(eq(recruits.leagueId, leagueId));
   }
