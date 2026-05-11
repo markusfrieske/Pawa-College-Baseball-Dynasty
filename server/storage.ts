@@ -60,6 +60,8 @@ export interface IStorage {
   getCoachesByLeague(leagueId: string): Promise<Coach[]>;
   createCoach(coach: InsertCoach): Promise<Coach>;
   updateCoach(id: string, data: Partial<Coach>): Promise<Coach | undefined>;
+  leaveLeague(coachId: string, leagueId: string, actorUserId: string): Promise<void>;
+  transferCommissioner(leagueId: string, newUserId: string, currentUserId: string): Promise<void>;
 
   getScoutsByLeague(leagueId: string): Promise<Scout[]>;
   createScout(scout: InsertScout): Promise<Scout>;
@@ -280,6 +282,45 @@ export class DatabaseStorage implements IStorage {
   async updateCoach(id: string, data: Partial<Coach>): Promise<Coach | undefined> {
     const [coach] = await db.update(coaches).set(data).where(eq(coaches.id, id)).returning();
     return coach;
+  }
+
+  async leaveLeague(coachId: string, leagueId: string, actorUserId: string): Promise<void> {
+    const [coach] = await db.select().from(coaches).where(eq(coaches.id, coachId));
+    if (!coach) return;
+    if (coach.teamId) {
+      await db.update(teams).set({ isCpu: true, coachId: null }).where(eq(teams.id, coach.teamId));
+    }
+    await db.delete(coaches).where(eq(coaches.id, coachId));
+    await db.insert(auditLogs).values({
+      leagueId,
+      userId: actorUserId,
+      action: "Coach Left League",
+      details: `Coach ${coach.firstName} ${coach.lastName} left the league. Their team has been converted to CPU control.`,
+    });
+    await db.insert(leagueEvents).values({
+      leagueId,
+      eventType: "coach_left",
+      title: "Coach Left the Dynasty",
+      description: `${coach.firstName} ${coach.lastName} has left the dynasty. Their team is now CPU-controlled.`,
+    });
+  }
+
+  async transferCommissioner(leagueId: string, newUserId: string, currentUserId: string): Promise<void> {
+    const [newCoach] = await db.select().from(coaches)
+      .where(and(eq(coaches.leagueId, leagueId), eq(coaches.userId, newUserId)));
+    await db.update(leagues).set({ commissionerId: newUserId }).where(eq(leagues.id, leagueId));
+    await db.insert(auditLogs).values({
+      leagueId,
+      userId: currentUserId,
+      action: "Commissioner Role Transferred",
+      details: `Commissioner role transferred to ${newCoach ? `${newCoach.firstName} ${newCoach.lastName}` : newUserId}.`,
+    });
+    await db.insert(leagueEvents).values({
+      leagueId,
+      eventType: "commissioner_transfer",
+      title: "Commissioner Role Transferred",
+      description: `The commissioner role has been handed off to ${newCoach ? `${newCoach.firstName} ${newCoach.lastName}` : "a new coach"}.`,
+    });
   }
 
   async getScoutsByLeague(leagueId: string): Promise<Scout[]> {

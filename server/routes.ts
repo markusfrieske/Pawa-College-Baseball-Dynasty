@@ -10249,6 +10249,7 @@ export async function registerRoutes(
           abbreviation: team.abbreviation,
           isHumanControlled,
           userId: coach?.userId ?? null,
+          coachId: coach?.id ?? null,
           coachName: coach ? `${coach.firstName} ${coach.lastName}` : "CPU",
           isReady: coach?.isReady ?? false,
           departuresFinalized: team.departuresFinalized,
@@ -11531,6 +11532,68 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to get default roster:", error);
       res.status(500).json({ message: "Failed to get default roster" });
+    }
+  });
+
+  // Coach self-leave: coach removes themselves from the league
+  app.delete("/api/leagues/:leagueId/coaches/:coachId", requireAuth, async (req, res) => {
+    try {
+      const { leagueId, coachId } = req.params as { leagueId: string; coachId: string };
+      const userId = req.session.userId!;
+      const coach = await storage.getCoach(coachId);
+      if (!coach) return res.status(404).json({ message: "Coach not found" });
+      if (coach.leagueId !== leagueId) return res.status(400).json({ message: "Coach not in this league" });
+      if (coach.userId !== userId) return res.status(403).json({ message: "You can only remove yourself" });
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      if (league.commissionerId === userId) return res.status(400).json({ message: "Commissioners must transfer their role before leaving" });
+      await storage.leaveLeague(coachId, leagueId, userId);
+      res.json({ message: "You have left the league" });
+    } catch (error) {
+      console.error("Failed to leave league:", error);
+      res.status(500).json({ message: "Failed to leave league" });
+    }
+  });
+
+  // Commissioner removes a coach from the league
+  app.delete("/api/leagues/:leagueId/coaches/:coachId/remove", requireAuth, async (req, res) => {
+    try {
+      const { leagueId, coachId } = req.params as { leagueId: string; coachId: string };
+      const userId = req.session.userId!;
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      if (league.commissionerId !== userId) return res.status(403).json({ message: "Only the commissioner can remove coaches" });
+      const coach = await storage.getCoach(coachId);
+      if (!coach) return res.status(404).json({ message: "Coach not found" });
+      if (coach.leagueId !== leagueId) return res.status(400).json({ message: "Coach not in this league" });
+      if (coach.userId === userId) return res.status(400).json({ message: "Commissioners cannot remove themselves" });
+      await storage.leaveLeague(coachId, leagueId, userId);
+      res.json({ message: "Coach removed from league" });
+    } catch (error) {
+      console.error("Failed to remove coach:", error);
+      res.status(500).json({ message: "Failed to remove coach" });
+    }
+  });
+
+  // Commissioner transfers their role to another human coach
+  app.patch("/api/leagues/:leagueId/commissioner", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.leagueId as string;
+      const userId = req.session.userId!;
+      const { newUserId } = req.body as { newUserId: string };
+      if (!newUserId) return res.status(400).json({ message: "newUserId is required" });
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      if (league.commissionerId !== userId) return res.status(403).json({ message: "Only the commissioner can transfer the role" });
+      if (newUserId === userId) return res.status(400).json({ message: "You are already the commissioner" });
+      const coaches = await storage.getCoachesByLeague(leagueId);
+      const targetCoach = coaches.find(c => c.userId === newUserId);
+      if (!targetCoach) return res.status(400).json({ message: "Target user must have an active coach in this league" });
+      await storage.transferCommissioner(leagueId, newUserId, userId);
+      res.json({ message: "Commissioner role transferred", newCommissionerId: newUserId });
+    } catch (error) {
+      console.error("Failed to transfer commissioner:", error);
+      res.status(500).json({ message: "Failed to transfer commissioner" });
     }
   });
 

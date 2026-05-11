@@ -1,6 +1,6 @@
 import { useState, useEffect, Fragment } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useParams, Link } from "wouter";
+import { useParams, Link, useLocation } from "wouter";
 import { useUpdateMusicPhase } from "@/lib/music-context";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroInput } from "@/components/ui/retro-input";
@@ -44,11 +44,13 @@ import {
   Swords
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { League, Team, Conference, Standings, DynastyNews, LeagueEvent, Player } from "@shared/schema";
 import { PlayerProfileCard } from "@/components/player-profile-card";
-import { User, Cpu, Pen, GitMerge, FileX, UserCheck, GraduationCap, Activity, Filter } from "lucide-react";
+import { User, Cpu, Pen, GitMerge, FileX, UserCheck, GraduationCap, Activity, Filter, LogOut } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import addieFriskImg from "@/assets/images/addie-frisk.png";
 import sullyPumpImg from "@/assets/images/sully-pump.png";
@@ -107,12 +109,35 @@ interface LeagueDetails extends League {
 
 export default function LeagueViewPage() {
   const { id } = useParams<{ id: string }>();
+  const [, navigate] = useLocation();
   const updateMusicPhase = useUpdateMusicPhase();
+  const { toast } = useToast();
+  const qc = useQueryClient();
   const [showRecap, setShowRecap] = useState(false);
   const [recapSeason, setRecapSeason] = useState(1);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
 
   const { data: league, isLoading } = useQuery<LeagueDetails>({
     queryKey: ["/api/leagues", id],
+  });
+
+  const { data: currentUser } = useQuery<{ id: string; email: string }>({
+    queryKey: ["/api/auth/me"],
+  });
+
+  const leagueMut = useMutation({
+    mutationFn: async (coachId: string) => {
+      const res = await apiRequest("DELETE", `/api/leagues/${id}/coaches/${coachId}`);
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/leagues"] });
+      toast({ title: "Left League", description: "You have left the dynasty. Your team is now CPU-controlled." });
+      navigate("/dashboard");
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
   });
 
   const { data: overview } = useQuery<DashboardOverview>({
@@ -144,6 +169,10 @@ export default function LeagueViewPage() {
   }
 
   const userTeam = league.teams?.find(t => !t.isCpu);
+  const myTeam = league.teams?.find(t => t.coach?.userId === currentUser?.id);
+  const myCoach = myTeam?.coach ?? null;
+  const isCommissioner = !!currentUser && currentUser.id === league.commissionerId;
+  const canLeave = !!myCoach && !isCommissioner;
 
   if (league.currentPhase === "dynasty_setup" || (!league.teams || league.teams.length === 0)) {
     return (
@@ -236,9 +265,46 @@ export default function LeagueViewPage() {
             <PhaseDeadline deadline={league.phaseDeadline} />
           )}
           <div className="flex items-center justify-end gap-2 mt-2">
+            {canLeave && (
+              <RetroButton
+                variant="outline"
+                size="sm"
+                onClick={() => setShowLeaveConfirm(true)}
+                data-testid="button-leave-league"
+                className="border-red-500/40 text-red-400 hover:bg-red-500/10"
+              >
+                <LogOut className="w-3.5 h-3.5 mr-1" />
+                Leave
+              </RetroButton>
+            )}
             <NotificationCenter leagueId={id!} />
             <ReadyButton leagueId={id} phase={league.currentPhase} />
           </div>
+
+          <AlertDialog open={showLeaveConfirm} onOpenChange={setShowLeaveConfirm}>
+            <AlertDialogContent className="bg-card border-border">
+              <AlertDialogHeader>
+                <AlertDialogTitle className="font-pixel text-gold text-sm">Leave Dynasty?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to leave <strong>{league.name}</strong>? Your team ({myTeam?.name}) will become CPU-controlled. This cannot be undone.
+                  {isCommissioner && (
+                    <span className="block mt-2 text-amber-400">You are the commissioner. Transfer the role before leaving.</span>
+                  )}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel className="bg-background border-border">Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => leagueMut.mutate(myCoach!.id)}
+                  disabled={leagueMut.isPending}
+                  className="bg-red-600 hover:bg-red-700 text-white"
+                  data-testid="button-confirm-leave-league"
+                >
+                  {leagueMut.isPending ? "Leaving..." : "Leave Dynasty"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
           
           <SeasonProgressBar phase={league.currentPhase} />
         </div>

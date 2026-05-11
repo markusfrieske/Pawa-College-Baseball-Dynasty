@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useParams, Link } from "wouter";
+import { useParams, Link, useLocation } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
 import { RetroInput } from "@/components/ui/retro-input";
@@ -36,7 +36,9 @@ import {
   Timer,
   Bell,
   BellRing,
-  Bot
+  Bot,
+  UserX,
+  Crown
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -612,7 +614,7 @@ function ActionsTab({
 
   return (
     <div className="space-y-6">
-      <ReadyStatusSection leagueId={league?.id || ""} />
+      <ReadyStatusSection leagueId={league?.id || ""} commissionerUserId={league?.commissionerId} />
       
       {isPostseason && <PostseasonBracket leagueId={league?.id || ""} phase={league?.currentPhase || ""} />}
       
@@ -1154,6 +1156,7 @@ interface ReadyStatusData {
     abbreviation: string;
     isHumanControlled: boolean;
     userId: string | null;
+    coachId: string | null;
     coachName: string;
     isReady: boolean;
     departuresFinalized: boolean;
@@ -1183,9 +1186,31 @@ function formatLastActivity(lastActivityAt: string | null): string {
   return `${days}d ago`;
 }
 
-function ReadyStatusSection({ leagueId }: { leagueId: string }) {
+function ReadyStatusSection({ leagueId, commissionerUserId }: { leagueId: string; commissionerUserId?: string }) {
   const { toast } = useToast();
   const qc = useQueryClient();
+
+  const { data: currentUser } = useQuery<{ id: string; email: string }>({
+    queryKey: ["/api/auth/me"],
+  });
+
+  const isCommissioner = !!currentUser && currentUser.id === commissionerUserId;
+
+  const removeCoachMutation = useMutation({
+    mutationFn: async (coachId: string) => {
+      const res = await apiRequest("DELETE", `/api/leagues/${leagueId}/coaches/${coachId}/remove`);
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "ready-status"] });
+      qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "commissioner"] });
+      qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId] });
+      toast({ title: "Coach Removed", description: "The coach has been removed. Their team is now CPU-controlled." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
 
   const { data, isLoading } = useQuery<ReadyStatusData>({
     queryKey: ["/api/leagues", leagueId, "ready-status"],
@@ -1284,6 +1309,7 @@ function ReadyStatusSection({ leagueId }: { leagueId: string }) {
                       : deadlineDiffMs !== null
                       ? `${Math.ceil(deadlineDiffMs / 3600000)}h left`
                       : null;
+                    const canRemove = isCommissioner && team.userId !== commissionerUserId;
 
                     return (
                       <div
@@ -1328,17 +1354,51 @@ function ReadyStatusSection({ leagueId }: { leagueId: string }) {
                             </div>
                           )}
                         </div>
-                        <RetroButton
-                          variant="outline"
-                          size="sm"
-                          onClick={() => nudgeMutation.mutate(team.teamId)}
-                          disabled={nudgeMutation.isPending}
-                          data-testid={`button-nudge-${team.teamId}`}
-                          className="shrink-0 border-amber-400/40 text-amber-400 hover:bg-amber-400/10"
-                        >
-                          <BellRing className="w-3 h-3 mr-1" />
-                          Nudge
-                        </RetroButton>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <RetroButton
+                            variant="outline"
+                            size="sm"
+                            onClick={() => nudgeMutation.mutate(team.teamId)}
+                            disabled={nudgeMutation.isPending}
+                            data-testid={`button-nudge-${team.teamId}`}
+                            className="border-amber-400/40 text-amber-400 hover:bg-amber-400/10"
+                          >
+                            <BellRing className="w-3 h-3 mr-1" />
+                            Nudge
+                          </RetroButton>
+                          {canRemove && (
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <RetroButton
+                                  variant="outline"
+                                  size="sm"
+                                  data-testid={`button-remove-coach-stall-${team.teamId}`}
+                                  className="border-red-500/40 text-red-400 hover:bg-red-500/10"
+                                >
+                                  <UserX className="w-3 h-3" />
+                                </RetroButton>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent className="bg-card border-border">
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle className="font-pixel text-gold text-sm">Remove Coach?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Remove <strong>{team.coachName}</strong> from the dynasty? Their team ({team.teamName}) will become CPU-controlled. This cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel className="bg-background border-border">Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => removeCoachMutation.mutate(team.coachId!)}
+                                    className="bg-red-600 hover:bg-red-700 text-white"
+                                    data-testid={`button-confirm-remove-coach-${team.teamId}`}
+                                  >
+                                    Remove Coach
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
@@ -1355,7 +1415,9 @@ function ReadyStatusSection({ leagueId }: { leagueId: string }) {
                   </p>
                 )}
                 <div className="space-y-1">
-                  {readyTeams.map((team) => (
+                  {readyTeams.map((team) => {
+                    const canRemove = isCommissioner && team.userId !== commissionerUserId;
+                    return (
                     <div
                       key={team.teamId}
                       className="flex items-center justify-between gap-2 py-1.5 px-2 rounded bg-green-950/20 border border-green-500/20"
@@ -1373,9 +1435,41 @@ function ReadyStatusSection({ leagueId }: { leagueId: string }) {
                         {team.lastActivityAt && (
                           <span className="opacity-60">{formatLastActivity(team.lastActivityAt)}</span>
                         )}
+                        {canRemove && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <button
+                                className="text-red-400/60 hover:text-red-400 transition-colors ml-1"
+                                title="Remove coach"
+                                data-testid={`button-remove-coach-ready-${team.teamId}`}
+                              >
+                                <UserX className="w-3.5 h-3.5" />
+                              </button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent className="bg-card border-border">
+                              <AlertDialogHeader>
+                                <AlertDialogTitle className="font-pixel text-gold text-sm">Remove Coach?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Remove <strong>{team.coachName}</strong> from the dynasty? Their team ({team.teamName}) will become CPU-controlled. This cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel className="bg-background border-border">Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => removeCoachMutation.mutate(team.coachId!)}
+                                  className="bg-red-600 hover:bg-red-700 text-white"
+                                  data-testid={`button-confirm-remove-coach-ready-${team.teamId}`}
+                                >
+                                  Remove Coach
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -1471,6 +1565,111 @@ const difficultyOptions = [
   { value: "elite", label: "Elite", description: "Maximum CPU recruiting power" },
 ];
 
+function TransferCommissionerSection({ leagueId, commissionerId }: { leagueId: string; commissionerId?: string }) {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const [, navigate] = useLocation();
+  const [selectedUserId, setSelectedUserId] = useState("");
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  const { data: currentUser } = useQuery<{ id: string; email: string }>({
+    queryKey: ["/api/auth/me"],
+  });
+
+  const { data: readyData } = useQuery<ReadyStatusData>({
+    queryKey: ["/api/leagues", leagueId, "ready-status"],
+    enabled: !!leagueId,
+  });
+
+  const humanCoaches = (readyData?.readyStatus ?? []).filter(
+    s => s.isHumanControlled && s.userId !== commissionerId
+  );
+
+  const transferMutation = useMutation({
+    mutationFn: async (newUserId: string) => {
+      const res = await apiRequest("PATCH", `/api/leagues/${leagueId}/commissioner`, { newUserId });
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId] });
+      qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "commissioner"] });
+      toast({ title: "Commissioner Role Transferred", description: "The role has been handed off. You are now a regular coach." });
+      setShowConfirm(false);
+      navigate(`/league/${leagueId}`);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+      setShowConfirm(false);
+    },
+  });
+
+  const selectedCoach = humanCoaches.find(c => c.userId === selectedUserId);
+
+  return (
+    <RetroCard>
+      <RetroCardHeader>
+        <div className="flex items-center gap-2">
+          <Crown className="w-4 h-4 text-gold" />
+          <span>Transfer Commissioner Role</span>
+        </div>
+      </RetroCardHeader>
+      <RetroCardContent>
+        <p className="text-muted-foreground text-sm mb-4">
+          Hand off commissioner duties to another human coach in the league. You will become a regular coach — this takes effect immediately.
+        </p>
+        {humanCoaches.length === 0 ? (
+          <p className="text-muted-foreground text-xs italic">No other human coaches in the league to transfer to.</p>
+        ) : (
+          <div className="flex flex-col sm:flex-row gap-3">
+            <select
+              value={selectedUserId}
+              onChange={e => setSelectedUserId(e.target.value)}
+              className="flex-1 h-9 rounded border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-gold"
+              data-testid="select-transfer-commissioner"
+            >
+              <option value="">Select a coach...</option>
+              {humanCoaches.map(c => (
+                <option key={c.userId!} value={c.userId!}>
+                  {c.coachName} ({c.teamName})
+                </option>
+              ))}
+            </select>
+            <RetroButton
+              onClick={() => setShowConfirm(true)}
+              disabled={!selectedUserId || transferMutation.isPending}
+              data-testid="button-transfer-commissioner"
+            >
+              <Crown className="w-4 h-4 mr-2" />
+              Transfer
+            </RetroButton>
+          </div>
+        )}
+      </RetroCardContent>
+
+      <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-pixel text-gold text-sm">Transfer Commissioner Role?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are about to transfer the commissioner role to <strong>{selectedCoach?.coachName}</strong> ({selectedCoach?.teamName}). This is immediate — you will become a regular coach and lose all commissioner controls.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-background border-border">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => transferMutation.mutate(selectedUserId)}
+              className="bg-gold text-forest-dark hover:bg-gold/90"
+              data-testid="button-confirm-transfer-commissioner"
+            >
+              {transferMutation.isPending ? "Transferring..." : "Transfer Role"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </RetroCard>
+  );
+}
+
 function SettingsTab({
   league,
   onToggleAuditLog,
@@ -1481,7 +1680,9 @@ function SettingsTab({
   onChangeDifficulty: (difficulty: string) => void;
 }) {
   return (
+    <div className="space-y-6">
     <RetroCard>
+
       <RetroCardHeader>Dynasty Settings</RetroCardHeader>
       <RetroCardContent>
         <div className="space-y-6">
@@ -1546,6 +1747,10 @@ function SettingsTab({
         </div>
       </RetroCardContent>
     </RetroCard>
+    {league?.id && (
+      <TransferCommissionerSection leagueId={league.id} commissionerId={league.commissionerId ?? undefined} />
+    )}
+    </div>
   );
 }
 
