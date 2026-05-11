@@ -100,6 +100,18 @@ export const ARCHETYPE_TRANSITIONS: Record<Archetype, { positive?: Archetype; ne
   folk_hero:            { positive: "generational_prodigy",  negative: "confidence_crisis" },
 };
 
+// When a transition target is position-incompatible, substitute with a narratively
+// equivalent archetype that works for that position rather than blocking the transition.
+// Keys are pitcher-only or hitter-only archetypes; values are position-safe alternatives.
+const PITCHER_FALLBACK_FOR_NONPITCHER: Partial<Record<Archetype, Archetype>> = {
+  velocity_freak:          "burnout_candidate",   // same negative energy, position-agnostic
+  knuckleball_specialist:  "confidence_crisis",   // quirky → self-doubt arc, works for any player
+  injury_risk:             "academic_concern",    // both are eligibility/progress obstacles
+};
+const HITTER_FALLBACK_FOR_PITCHER: Partial<Record<Archetype, Archetype>> = {
+  swing_rebuild:           "late_bloomer",        // positive development arc, position-agnostic
+};
+
 export function maybeTransitionArchetype(
   currentArchetype: Archetype,
   cumulativeOvrDelta: number,
@@ -111,16 +123,23 @@ export function maybeTransitionArchetype(
   const transitionChance = isLegendary ? 0.60 : 0.35;
   if (Math.random() > transitionChance) return currentArchetype;
 
-  const isPitcher = position === "P";
-  const isAllowed = (target: Archetype): boolean => {
-    if (isPitcher && HITTER_ONLY_ARCHETYPES.has(target)) return false;
-    if (!isPitcher && PITCHER_ONLY_ARCHETYPES.has(target)) return false;
-    return true;
+  // Resolve a transition target to a position-appropriate archetype.
+  // If the target is incompatible, use the defined fallback rather than blocking the transition.
+  const resolveTarget = (target: Archetype): Archetype => {
+    if (!position) return target; // no position info — preserve existing behavior
+    const isPitcher = position === "P";
+    if (!isPitcher && PITCHER_ONLY_ARCHETYPES.has(target)) {
+      return PITCHER_FALLBACK_FOR_NONPITCHER[target] ?? target;
+    }
+    if (isPitcher && HITTER_ONLY_ARCHETYPES.has(target)) {
+      return HITTER_FALLBACK_FOR_PITCHER[target] ?? target;
+    }
+    return target;
   };
 
   const transitions = ARCHETYPE_TRANSITIONS[currentArchetype];
-  if (cumulativeOvrDelta >= 15 && transitions.positive && isAllowed(transitions.positive)) return transitions.positive;
-  if (cumulativeOvrDelta <= -15 && transitions.negative && isAllowed(transitions.negative)) return transitions.negative;
+  if (cumulativeOvrDelta >= 15 && transitions.positive) return resolveTarget(transitions.positive);
+  if (cumulativeOvrDelta <= -15 && transitions.negative) return resolveTarget(transitions.negative);
   return currentArchetype;
 }
 
