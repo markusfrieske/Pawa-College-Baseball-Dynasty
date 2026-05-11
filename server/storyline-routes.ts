@@ -252,6 +252,11 @@ export function registerStorylineRoutes(app: Express) {
       if (!event) return res.status(404).json({ message: "Event not found" });
       if (event.resolvedChoice) return res.status(400).json({ message: "This event has already been resolved" });
 
+      // Reject D votes on 3-choice events
+      if (choice === "D" && !event.choiceD) {
+        return res.status(400).json({ message: "Choice D is not available for this event" });
+      }
+
       const sl = await storage.getStorylineRecruit(event.storylineRecruitId);
       if (!sl || sl.leagueId !== leagueId) return res.status(403).json({ message: "Event does not belong to this league" });
 
@@ -287,6 +292,11 @@ export function registerStorylineRoutes(app: Express) {
       const event = await storage.getStorylineEvent(eventId);
       if (!event) return res.status(404).json({ message: "Event not found" });
       if (event.resolvedChoice) return res.status(400).json({ message: "This event has already been resolved" });
+
+      // Reject D votes on 3-choice events
+      if (choice === "D" && !event.choiceD) {
+        return res.status(400).json({ message: "Choice D is not available for this event" });
+      }
 
       const sl = await storage.getStorylineRecruit(event.storylineRecruitId);
       if (!sl || sl.leagueId !== leagueId) return res.status(403).json({ message: "Event does not belong to this league" });
