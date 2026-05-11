@@ -626,6 +626,7 @@ export function generateStorylineEvent(
   arcStage: number,
   isLegendary: boolean,
   recruitName: string,
+  linkedRecruitName?: string,   // name of linked/overlapping arc recruit for narrative injection
 ): {
   storylineRecruitId: string;
   leagueId: string;
@@ -644,7 +645,21 @@ export function generateStorylineEvent(
   }
   const template = pool[arcStage % pool.length];
 
-  const interpolate = (text: string) => text.replace(/\{name\}/g, recruitName);
+  // Interpolate {name} and optionally inject linked recruit into event narrative
+  const interpolate = (text: string) => {
+    let out = text.replace(/\{name\}/g, recruitName);
+    // If a linked recruit exists and the event text doesn't already mention them,
+    // append a brief "rival/connection" mention to the event narrative on final arc stages
+    if (linkedRecruitName && arcStage >= 2 && !out.includes(linkedRecruitName)) {
+      const linkedPhrases = [
+        ` Meanwhile, ${linkedRecruitName} — another top recruit in this class — is watching how this unfolds.`,
+        ` Scouts note that ${linkedRecruitName}'s recruiting decision could influence ${recruitName}'s choice.`,
+        ` The buzz around ${linkedRecruitName} has made programs reconsider their approach with ${recruitName} as well.`,
+      ];
+      out += linkedPhrases[arcStage % linkedPhrases.length];
+    }
+    return out;
+  };
 
   return {
     storylineRecruitId,

@@ -13,16 +13,32 @@ function requireAuth(req: Request, res: Response, next: () => void) {
 // ─── AI Image Generation (Replit OpenAI Integration — no user API key needed) ──
 // Uses AI_INTEGRATIONS_OPENAI_BASE_URL + AI_INTEGRATIONS_OPENAI_API_KEY set by Replit.
 // gpt-image-1 always returns base64; stored as a data URL in imageUrl.
-async function generateStorylineImage(storylineId: string, imagePrompt: string | null): Promise<string | null> {
+// Accepts optional arcStage for stage-aware prompt evolution; retries once on transient failure.
+async function generateStorylineImage(
+  storylineId: string,
+  imagePrompt: string | null,
+  arcStage?: number,
+): Promise<string | null> {
   const baseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
   const apiKey  = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
   if (!baseURL || !apiKey) {
     console.warn("[storylines] Replit OpenAI integration not configured — skipping image generation");
     return null;
   }
-  try {
-    const prompt = imagePrompt
-      || "A pixel-art portrait silhouette of a college baseball player, retro 8-bit style, dark forest green background, gold rim lighting, mysterious and dramatic atmosphere, no text";
+
+  // Build a stage-aware prompt so the portrait evolves across the recruit's arc
+  const stageDescriptors = [
+    "at the start of their college baseball recruitment journey, uncertain but hopeful",
+    "gaining attention from top programs, building confidence",
+    "at a crossroads in their recruitment, weighing major decisions",
+    "a recruit whose story has unfolded — seasoned by key choices",
+    "a recruit who has fully emerged, defined by the arc of their recruitment",
+  ];
+  const stageDesc = stageDescriptors[Math.min(arcStage ?? 0, stageDescriptors.length - 1)];
+  const basePrompt = imagePrompt
+    || `A pixel-art portrait silhouette of a college baseball player ${stageDesc}, retro 8-bit style, dark forest green background, gold rim lighting, mysterious and dramatic atmosphere, no text`;
+
+  async function attemptGenerate(prompt: string): Promise<string | null> {
     const res = await fetch(`${baseURL}/images/generations`, {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
@@ -36,9 +52,26 @@ async function generateStorylineImage(storylineId: string, imagePrompt: string |
     const json = await res.json() as { data?: Array<{ b64_json?: string }> };
     const b64 = json.data?.[0]?.b64_json;
     if (!b64) return null;
-    const dataUrl = `data:image/png;base64,${b64}`;
-    // Persist to DB so subsequent requests return the cached version
-    await storage.updateStorylineRecruit(storylineId, { imageUrl: dataUrl });
+    return `data:image/png;base64,${b64}`;
+  }
+
+  try {
+    // First attempt
+    let dataUrl = await attemptGenerate(basePrompt);
+
+    // Retry once on failure with a simplified prompt (reduces moderation/timeout risk)
+    if (!dataUrl) {
+      console.info("[storylines] retrying image generation with simplified prompt...");
+      await new Promise(r => setTimeout(r, 2000));
+      dataUrl = await attemptGenerate(
+        "A retro pixel-art silhouette of a college baseball player, dark background, gold lighting, 8-bit style",
+      );
+    }
+
+    if (dataUrl) {
+      // Persist to DB so subsequent arc-stage regenerations can be compared
+      await storage.updateStorylineRecruit(storylineId, { imageUrl: dataUrl });
+    }
     return dataUrl;
   } catch (err) {
     console.warn("[storylines] image generation failed:", err);
@@ -140,6 +173,7 @@ export function registerStorylineRoutes(app: Express) {
       const leagueId = String(req.params.id);
       const league = await storage.getLeague(leagueId);
       if (!league) return res.status(404).json({ message: "League not found" });
+      if (!await assertLeagueMember(leagueId, req.session.userId, res)) return;
 
       const events = await storage.getStorylineEventsByLeague(leagueId, league.currentSeason);
       const unresolved = events.filter(e => !e.resolvedChoice);
@@ -177,10 +211,12 @@ export function registerStorylineRoutes(app: Express) {
   // GET /api/leagues/:id/storylines/:storylineId — single storyline detail
   app.get("/api/leagues/:id/storylines/:storylineId", requireAuth, async (req, res) => {
     try {
+      const leagueId = String(req.params.id);
       const sl = await storage.getStorylineRecruit(String(req.params.storylineId));
       if (!sl) return res.status(404).json({ message: "Storyline not found" });
-      // Security: verify this storyline belongs to the requested league
-      if (sl.leagueId !== String(req.params.id)) return res.status(403).json({ message: "Storyline does not belong to this league" });
+      // Security: verify this storyline belongs to the requested league AND user is a member
+      if (sl.leagueId !== leagueId) return res.status(403).json({ message: "Storyline does not belong to this league" });
+      if (!await assertLeagueMember(leagueId, req.session.userId, res)) return;
 
       const recruit = await storage.getRecruit(sl.recruitId);
       const events = await storage.getStorylineEventsByRecruit(sl.id);
@@ -355,8 +391,9 @@ export async function initializeStorylineRecruits(leagueId: string, season: numb
     await generateWeeklyStorylineEvents(leagueId, season, 1);
 
     // Kick off background image generation for each storyline (fire-and-forget)
+    // Stage 0 = arc beginning — portrait shows recruit at the start of their journey
     for (const sl of created) {
-      generateStorylineImage(sl.id, sl.imagePrompt ?? null).catch(() => {});
+      generateStorylineImage(sl.id, sl.imagePrompt ?? null, 0).catch(() => {});
     }
 
     return picks.length;
@@ -459,8 +496,8 @@ export async function generateAndResolveStorylineEvents(
         });
 
         // Auto-generate/refresh image on EVERY arc stage change (fire-and-forget)
-        // Portrait evolves with the recruit's story — no imageUrl short-circuit here
-        generateStorylineImage(sl.id, sl.imagePrompt ?? null).catch(() => {});
+        // Portrait evolves with the recruit's story — stage passed for scenario-specific prompt
+        generateStorylineImage(sl.id, sl.imagePrompt ?? null, sl.currentArcStage + 1).catch(() => {});
 
         // Always post STORYLINE league event (activity feed)
         const ovrStr = ovrDelta > 0 ? `+${ovrDelta}` : ovrDelta === 0 ? "±0" : `${ovrDelta}`;
@@ -534,12 +571,26 @@ async function generateWeeklyStorylineEvents(leagueId: string, season: number, w
       if (!recruit) continue;
 
       const recruitName = `${recruit.firstName} ${recruit.lastName}`;
+
+      // Resolve linked (overlapping) recruit name for narrative injection
+      let linkedRecruitName: string | null = null;
+      if (sl.overlappingRecruitId) {
+        try {
+          const linkedSl = await storage.getStorylineRecruit(sl.overlappingRecruitId);
+          if (linkedSl) {
+            const linkedR = await storage.getRecruit(linkedSl.recruitId);
+            if (linkedR) linkedRecruitName = `${linkedR.firstName} ${linkedR.lastName}`;
+          }
+        } catch {}
+      }
+
       const eventData = generateStorylineEvent(
         sl.id, leagueId, season, week,
         sl.archetype as Archetype,
         sl.currentArcStage,
         sl.isLegendary,
         recruitName,
+        linkedRecruitName ?? undefined,
       );
 
       await storage.createStorylineEvent(eventData);
