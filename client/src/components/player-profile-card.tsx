@@ -62,6 +62,7 @@ interface Player {
   hairStyle?: string;
   declaredForDraft?: boolean;
   progressionDeltas?: Record<string, number> | null;
+  originalPosition?: string | null;
 }
 
 function DeltaArrow({ delta }: { delta: number }) {
@@ -182,7 +183,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
               jerseyColor={teamPrimaryColor}
             />
             <div className="flex-1">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Badge 
                   className="text-[10px] text-white"
                   style={{ backgroundColor: posColor }}
@@ -190,6 +191,16 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
                 >
                   {player.position}
                 </Badge>
+                {player.originalPosition && player.originalPosition !== player.position && (
+                  <Badge
+                    variant="outline"
+                    className="text-[9px] border-orange-500 text-orange-400"
+                    data-testid="badge-converted-position"
+                    title={`Originally played ${player.originalPosition}`}
+                  >
+                    conv. from {player.originalPosition}
+                  </Badge>
+                )}
                 <div className="flex items-center gap-0.5">
                   {Array.from({ length: 5 }).map((_, i) => (
                     <Star

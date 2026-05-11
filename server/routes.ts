@@ -2380,10 +2380,13 @@ export async function registerRoutes(
       const mergedPlayer = { ...player, ...req.body };
       const recalcedOverall = calculateOVR(mergedPlayer);
       const recalcedStar = getStarRatingFromOVR(recalcedOverall);
+      const positionChanged = req.body.position != null && req.body.position !== player.position;
+      const shouldSetOriginal = positionChanged && !player.originalPosition;
       const updated = await storage.updatePlayer(req.params.playerId, {
         ...req.body,
         overall: recalcedOverall,
         starRating: recalcedStar,
+        ...(shouldSetOriginal ? { originalPosition: player.position } : {}),
       });
       
       await storage.createAuditLog({
@@ -3209,6 +3212,10 @@ export async function registerRoutes(
             }
           }
           const mergedPlayer = { ...player, ...sanitizedData };
+          const positionChanged = 'position' in sanitizedData && sanitizedData['position'] !== player.position;
+          if (positionChanged && !player.originalPosition) {
+            sanitizedData['originalPosition'] = player.position;
+          }
           sanitizedData['overall'] = calculateOVR(mergedPlayer as any);
           sanitizedData['starRating'] = getStarRatingFromOVR(sanitizedData['overall'] as number);
           const updated = await storage.updatePlayer(update.id, sanitizedData);

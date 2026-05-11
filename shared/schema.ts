@@ -295,6 +295,7 @@ export const players = pgTable("players", {
   depthOrder: integer("depth_order").notNull().default(0),
   battingOrder: integer("batting_order"),
   pitchingRole: text("pitching_role"),
+  originalPosition: text("original_position"),
   progressionDeltas: json("progression_deltas").$type<Record<string, number>>(),
 });
 
