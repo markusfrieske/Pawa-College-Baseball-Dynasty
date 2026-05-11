@@ -1282,16 +1282,21 @@ export async function registerRoutes(
 
   // ============ RECRUITING CALCULATION HELPERS ============
   
-  // Calculate priority match bonus based on pitch topic and recruit priorities
-  // Sanity-check that an action's interest gain stays inside its expected band.
-  // Bands derived from spec: priority(0.5-2.0) * school(~0.7-1.4) * coach(~0.95-1.7) * proximity(1-1.5).
-  // Worst case multiplier ~0.3, best ~7.0. We log when out of plausible range.
+  // Clipped-gain observability counter. Incremented whenever a gain lands outside
+  // the expected band so operators can grep for summary lines in server logs.
+  let _sanityClippedCount = 0;
+
   function assertInterestGainSane(actionType: string, interestGain: number, baseGain: number) {
-    const expectedMin = Math.floor(baseGain * 0.25);
-    const expectedMax = Math.ceil(baseGain * 8);
+    // Tightened band: 0.4× to 5.0× base (previously 0.25×–8×).
+    // After the school-bonus normalization (0.80–1.25) and per-action multiplier
+    // caps (email/phone 4.5×, visits/offer 3.0×) the legitimate range is
+    // ≈0.36×–4.5×, so anything outside 0.4×–5.0× is a real anomaly.
+    const expectedMin = Math.ceil(baseGain * 0.4);
+    const expectedMax = Math.ceil(baseGain * 5.0);
     if (interestGain < expectedMin || interestGain > expectedMax) {
+      _sanityClippedCount++;
       console.warn(
-        `[recruiting-sanity] ${actionType}: interestGain=${interestGain} outside [${expectedMin},${expectedMax}] (base=${baseGain})`,
+        `[recruiting-sanity] ${actionType}: interestGain=${interestGain} outside [${expectedMin},${expectedMax}] (base=${baseGain}) — cumulative clips: ${_sanityClippedCount}`,
       );
     }
   }
@@ -1320,21 +1325,32 @@ export async function registerRoutes(
     return { bonus: multiplier, matchLevel: priorityValue };
   }
   
-  // Calculate school attribute bonus for a pitch topic
+  // Normalize a 1-10 team attribute into the range 0.80–1.25.
+  // At attr=1 → 0.80, attr=5 → 1.0, attr=10 → 1.25.
+  // This replaces the old attr/5 formula (range 0.2–2.0) which caused extreme
+  // stacking and is inconsistent with the design spec of ~0.7–1.4 school bonus.
+  function normalizeAttrBonus(attr: number): number {
+    const clamped = Math.max(1, Math.min(10, attr));
+    return 0.75 + clamped * 0.05;
+  }
+
+  // Calculate school attribute bonus for a pitch topic.
+  // Range: ~0.80–1.375 (topic bonus × overall quality modifier).
   function calculateSchoolBonus(pitchTopic: string, team: any): number {
     const attributeMap: Record<string, number> = {
-      proximity: 1.0, // No school attribute for proximity
-      reputation: (team.prestige || 5) / 5, // Prestige affects reputation pitch
-      playingTime: 1.0, // Playing time is situational
-      academics: (team.academics || 5) / 5,
-      prestige: (team.prestige || 5) / 5,
-      facilities: (team.facilities || 5) / 5,
+      proximity: 1.0,                                // No school attribute for proximity
+      reputation: normalizeAttrBonus(team.prestige || 5),
+      playingTime: 1.0,                              // Playing time is situational
+      academics: normalizeAttrBonus(team.academics || 5),
+      prestige: normalizeAttrBonus(team.prestige || 5),
+      facilities: normalizeAttrBonus(team.facilities || 5),
     };
     const topicBonus = attributeMap[pitchTopic] || 1.0;
-    
+
+    // Overall program quality modifier: 0.92 (all attrs 1) to 1.10 (all attrs 10)
     const overallQuality = ((team.prestige || 5) + (team.facilities || 5) + (team.academics || 5)) / 30;
     const qualityModifier = 0.9 + (overallQuality * 0.2);
-    
+
     return topicBonus * qualityModifier;
   }
   
@@ -1460,6 +1476,43 @@ export async function registerRoutes(
     return 1.0; // Different region
   }
 
+  // ── Recruiting math: expected gain ranges (after rebalance) ──────────────────
+  //
+  //  ACTION          BASE      TYPICAL GAIN    BEST CASE    FLOOR
+  //  Email           3–7       ~5–8%           ~28% (cap)   1%
+  //  Phone/topic     3–9       ~5–10%          ~36% (cap)   1%
+  //  Campus Visit    20–35     ~25–40%         ~88% (cap)   5%
+  //  HC Visit        25–40     ~30–45%         ~100% (cap)  5%
+  //  Offer           15–24     ~18–25%         ~65% (cap)   2%
+  //
+  //  Multiplier components:
+  //    priority:    0.5 (Not Important) – 2.0 (Extremely)
+  //    school:      ~0.80–1.375 (normalizeAttrBonus × qualityModifier)
+  //    coach:       ~0.90–1.66 (skill 1-10 × archetype × position)
+  //    proximity:   1.0 (different region), 1.2 (same region), 1.5 (same state)
+  //
+  //  Caps prevent a single action from dominating:
+  //    email/phone per-topic: totalMultiplier capped at 4.5×
+  //    visit/hcv/offer:       totalMultiplier capped at 3.0×
+  //
+  //  ── Expected weekly progress by star tier (mid-prestige school, balanced coach) ──
+  //
+  //  Signing thresholds: 1–2★ need 65%, 3★ 65%, 4★ 70%, 5★ 80%, blue chip 90%.
+  //  Typical weekly inputs: 1 email (~6%), 1 phone/2 topics (~14%), plus visit/offer
+  //  as one-time boosts. Below: points/week excluding one-time actions.
+  //
+  //  Star  Threshold  Weekly inputs   Est. weeks to threshold (excl. visit/offer)
+  //  1★    65%        email+phone≈20  ~3 weeks — easily signed early
+  //  2★    65%        email+phone≈20  ~3 weeks — a few rivals may compete
+  //  3★    65%        email+phone≈20  ~3 weeks — competitive with 2+ schools
+  //  4★    70%        email+phone≈20  ~4 weeks — needs visit or offer to close
+  //  5★    80%        email+phone≈20  ~4 weeks — requires perfect topic match + visit
+  //  BC    90%        email+phone≈20  ~5+ weeks — visit + HCV + offer nearly required
+  //
+  //  (Season length Standard = 5 recruiting weeks; these are baseline estimates.
+  //   Priority match, school quality, coach level, and proximity shift gains ±50%.)
+  // ─────────────────────────────────────────────────────────────────────────────
+
   // Shared per-action interest formulas. Both human endpoints and the CPU
   // recruiter call these so the math is guaranteed to be identical.
   function computeEmailGain(recruit: any, team: any, coach: any, topic: string) {
@@ -1468,8 +1521,9 @@ export async function registerRoutes(
     const schoolBonus = calculateSchoolBonus(topic, team);
     const coachBonus = calculateCoachBonus(coach, recruit, "email");
     const proximityBonus = topic === "proximity" ? calculateProximityBonus(recruit.homeState, team.state) : 1.0;
-    const totalMultiplier = priorityBonus * schoolBonus * coachBonus * proximityBonus;
-    const interestGain = Math.round(baseGain * totalMultiplier);
+    // Cap at 4.5× to prevent a single email from being dominant
+    const totalMultiplier = Math.min(4.5, priorityBonus * schoolBonus * coachBonus * proximityBonus);
+    const interestGain = Math.max(1, Math.round(baseGain * totalMultiplier));
     return { baseGain, interestGain, matchLevel, totalMultiplier };
   }
   function computePhoneGain(recruit: any, team: any, coach: any, topics: string[]) {
@@ -1481,7 +1535,11 @@ export async function registerRoutes(
       const schoolBonus = calculateSchoolBonus(topic, team);
       const coachBonus = calculateCoachBonus(coach, recruit, "phone");
       const proximityBonus = topic === "proximity" ? calculateProximityBonus(recruit.homeState, team.state) : 1.0;
-      const gain = Math.round(baseGain * priorityBonus * schoolBonus * coachBonus * proximityBonus);
+      // Cap per-topic at 4.5× (same as email) so multi-topic calls don't stack absurdly
+      const topicMultiplier = Math.min(4.5, priorityBonus * schoolBonus * coachBonus * proximityBonus);
+      const gain = Math.max(1, Math.round(baseGain * topicMultiplier));
+      // Sanity-check each topic individually (avoids false positives from aggregate base averaging)
+      assertInterestGainSane(`phone:${topic}`, gain, baseGain);
       totalInterestGain += gain;
       pitchResults.push({ topic, gain, matchLevel });
     }
@@ -1489,16 +1547,18 @@ export async function registerRoutes(
   }
   function computeVisitGain(recruit: any, team: any, coach: any) {
     const baseGain = 20 + Math.floor(Math.random() * 16);
-    const facilitiesBonus = (team.facilities || 5) / 5;
-    const academicsBonus = (team.academics || 5) / 5;
-    const prestigeBonus = (team.prestige || 5) / 5;
-    const collegeLifeBonus = (team.collegeLife || 5) / 5;
+    // Use normalized attr bonuses (0.80–1.25) instead of raw attr/5 (0.2–2.0)
+    const facilitiesBonus = normalizeAttrBonus(team.facilities || 5);
+    const academicsBonus  = normalizeAttrBonus(team.academics  || 5);
+    const prestigeBonus   = normalizeAttrBonus(team.prestige   || 5);
+    const collegeLifeBonus = normalizeAttrBonus(team.collegeLife || 5);
     const schoolAttrBonus = (facilitiesBonus + academicsBonus + prestigeBonus + collegeLifeBonus) / 4;
     const coachBonus = calculateCoachBonus(coach, recruit, "visit");
     const { bonus: priorityBonus } = calculatePriorityBonus("facilities", recruit, team);
     const proximityBonus = calculateProximityBonus(recruit.homeState, team.state);
-    const totalMultiplier = schoolAttrBonus * coachBonus * priorityBonus * proximityBonus;
-    const interestGain = Math.round(baseGain * totalMultiplier);
+    // Cap at 3.0× — visits already have a large base (20–35); compound extremes would eclipse everything else
+    const totalMultiplier = Math.min(3.0, schoolAttrBonus * coachBonus * priorityBonus * proximityBonus);
+    const interestGain = Math.max(5, Math.round(baseGain * totalMultiplier));
     return { baseGain, interestGain, totalMultiplier };
   }
   function computeHeadCoachVisitGain(recruit: any, team: any, coach: any) {
@@ -1507,16 +1567,20 @@ export async function registerRoutes(
     const levelBonus = 1.0 + ((coach?.level || 1) - 1) * 0.03;
     const { bonus: priorityBonus } = calculatePriorityBonus("prestige", recruit, team);
     const proximityBonus = calculateProximityBonus(recruit.homeState, team.state);
-    const totalMultiplier = coachBonus * levelBonus * priorityBonus * proximityBonus;
-    const interestGain = Math.round(baseGain * totalMultiplier);
+    // Cap at 3.0× — HC visit is the premium action; base alone (25–40) is strong
+    const totalMultiplier = Math.min(3.0, coachBonus * levelBonus * priorityBonus * proximityBonus);
+    const interestGain = Math.max(5, Math.round(baseGain * totalMultiplier));
     return { baseGain, interestGain, totalMultiplier };
   }
   function computeOfferGain(recruit: any, team: any, coach: any) {
     const baseGain = 15 + Math.floor(Math.random() * 10);
-    const prestigeBonus = (team.prestige || 5) / 5;
+    // Normalized prestige bonus: 0.80–1.25 (was raw prestige/5 = 0.2–2.0)
+    const prestigeBonus = normalizeAttrBonus(team.prestige || 5);
     const coachBonus = calculateCoachBonus(coach, recruit, "offer");
     const { bonus: priorityBonus } = calculatePriorityBonus("playingTime", recruit, team);
-    const interestGain = Math.round(baseGain * prestigeBonus * coachBonus * priorityBonus);
+    // Cap at 3.0× — offer is primarily gated, not a primary gain engine
+    const totalMultiplier = Math.min(3.0, prestigeBonus * coachBonus * priorityBonus);
+    const interestGain = Math.max(2, Math.round(baseGain * totalMultiplier));
     return { baseGain, interestGain };
   }
 
@@ -1585,7 +1649,7 @@ export async function registerRoutes(
         });
       }
 
-      assertInterestGainSane("phone", totalInterestGain, 6 * topics.length);
+      // Per-topic sanity checks already run inside computePhoneGain; no aggregate check needed here.
       const topicSummary = pitchResults.map(p => `${p.topic} (${p.matchLevel}, +${p.gain}%)`).join(", ");
       await storage.createRecruitingAction({
         recruitId: req.params.recruitId as string,
@@ -9676,11 +9740,21 @@ export async function registerRoutes(
     const league = await storage.getLeague(leagueId);
     const difficulty = league?.cpuDifficulty || "high_school";
     
+    // CPU difficulty balance (rebalanced):
+    //   gainMultiplier applies on top of the same compute* functions humans use.
+    //   Previous elite=1.5× was too strong (50% stronger per action + more actions).
+    //   New values keep CPU competitive without being unfair at default (high_school).
+    //
+    //   Effective human-equivalent actions:
+    //     beginner:     budget≈6 × 0.70 = 4.2 → meaningfully easier than human (12)
+    //     high_school:  budget≈9 × 1.00 = 9.0 → slightly below human baseline
+    //     all_american: budget≈11 × 1.15 = 12.6 → roughly matches a skilled human
+    //     elite:        budget≈13 × 1.30 = 16.9 → challenging but not cheating
     const difficultyConfig: Record<string, { minActions: number; maxActions: number; gainMultiplier: number; targetingBonus: number; offerThreshold: number; visitThreshold: number }> = {
-      beginner:     { minActions: 3, maxActions: 5,  gainMultiplier: 0.8,  targetingBonus: 0,  offerThreshold: 50, visitThreshold: 65 },
-      high_school:  { minActions: 4, maxActions: 7,  gainMultiplier: 1.1,  targetingBonus: 5,  offerThreshold: 35, visitThreshold: 50 },
-      all_american: { minActions: 5, maxActions: 8,  gainMultiplier: 1.3,  targetingBonus: 10, offerThreshold: 25, visitThreshold: 40 },
-      elite:        { minActions: 6, maxActions: 10, gainMultiplier: 1.5,  targetingBonus: 15, offerThreshold: 20, visitThreshold: 30 },
+      beginner:     { minActions: 3, maxActions: 5,  gainMultiplier: 0.70, targetingBonus: 0,  offerThreshold: 50, visitThreshold: 65 },
+      high_school:  { minActions: 4, maxActions: 7,  gainMultiplier: 1.00, targetingBonus: 5,  offerThreshold: 35, visitThreshold: 50 },
+      all_american: { minActions: 5, maxActions: 8,  gainMultiplier: 1.15, targetingBonus: 10, offerThreshold: 25, visitThreshold: 40 },
+      elite:        { minActions: 6, maxActions: 10, gainMultiplier: 1.30, targetingBonus: 15, offerThreshold: 20, visitThreshold: 30 },
     };
     const config = difficultyConfig[difficulty] || difficultyConfig.high_school;
     
