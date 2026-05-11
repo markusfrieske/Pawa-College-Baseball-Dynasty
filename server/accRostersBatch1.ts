@@ -5,7 +5,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
   "Clemson": [
     { firstName: "Aidan", lastName: "Knaak", position: "P", eligibility: "SO", homeState: "FL", hometown: "Fort Myers", jerseyNumber: 34,
       hitForAvg: 19, power: 16, speed: 48, arm: 72, fielding: 44, errorResistance: 56, velocity: 78, control: 62, stamina: 64, stuff: 73,
-      clutch: 82, vsLHP: 77, grit: 84, stealing: 15, running: 43, throwing: 88, recovery: 63, wRISP: 66, vsLefty: 67, poise: 69, heater: 76, agile: 45,
+      clutch: 82, vsLHP: 77, grit: 84, stealing: 15, running: 43, throwing: 90, recovery: 63, wRISP: 66, vsLefty: 67, poise: 69, heater: 76, agile: 45,
       abilities: ["Explosive Fastball", "Strong Starter", "Intimidator", "Tunneling", "Heavy Ball", "Strong Finisher", "Decisive"], potential: "A+", catcherAbility: null,
       ...pitchMix(1, [1, 0, 0, 0, 0, 6, 6]) },
     { firstName: "Michael", lastName: "Sharman", position: "P", eligibility: "JR", homeState: "TN", hometown: "Knoxville", jerseyNumber: 29,
@@ -133,7 +133,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
   "Duke": [
     { firstName: "Aidan", lastName: "Weaver", position: "P", eligibility: "JR", homeState: "PA", hometown: "Pittsburgh", jerseyNumber: 22,
       hitForAvg: 22, power: 20, speed: 52, arm: 73, fielding: 49, errorResistance: 61, velocity: 78, control: 73, stamina: 73, stuff: 74,
-      clutch: 83, vsLHP: 78, grit: 85, stealing: 17, running: 46, throwing: 88, recovery: 67, wRISP: 67, vsLefty: 69, poise: 71, heater: 76, agile: 56,
+      clutch: 83, vsLHP: 78, grit: 85, stealing: 17, running: 46, throwing: 90, recovery: 67, wRISP: 67, vsLefty: 69, poise: 71, heater: 76, agile: 56,
       abilities: ["Strong Starter", "Guts", "Grit", "Intimidator", "Heavy Ball", "Winner's Luck", "Pace"], potential: "A-", catcherAbility: null,
       ...pitchMix(1, [0, 5, 6, 1, 0, 0, 0]) },
     { firstName: "Ben", lastName: "Dean", position: "P", eligibility: "JR", homeState: "OH", hometown: "Dayton", jerseyNumber: 33,
@@ -264,7 +264,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       // Trey Beard — LHP JR Friday ace (FAU transfer), 118K/86 IP / 32 BB in 2025, 33.7% K-rate, highest LHP release point — TEAM ELITE STUFF
       { firstName: "Trey", lastName: "Beard", position: "P", eligibility: "JR", homeState: "FL", hometown: "Boca Raton", jerseyNumber: 27,
         hitForAvg: 14, power: 10, speed: 32, arm: 65, fielding: 36, errorResistance: 48, velocity: 64, control: 62, stamina: 68, stuff: 73,
-        clutch: 80, vsLHP: 84, grit: 80, stealing: 8, running: 30, throwing: 76, recovery: 57, wRISP: 62, vsLefty: 68, poise: 65, heater: 63, agile: 40,
+        clutch: 80, vsLHP: 90, grit: 80, stealing: 8, running: 30, throwing: 76, recovery: 57, wRISP: 62, vsLefty: 68, poise: 65, heater: 63, agile: 40,
         abilities: ["Star of Victory", "Intimidator", "Fireman", "Heavy Ball", "Strong Finisher", "Winner's Luck"], potential: "A+", catcherAbility: null,
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [7, 0, 0, 1, 0, 6, 0]) },
@@ -628,7 +628,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
   "Louisville": [
     { firstName: "Ethan", lastName: "Eberle", position: "P", eligibility: "SO", homeState: "KY", hometown: "Louisville", jerseyNumber: 34,
       hitForAvg: 19, power: 17, speed: 45, arm: 70, fielding: 44, errorResistance: 56, velocity: 74, control: 68, stamina: 68, stuff: 70,
-      clutch: 79, vsLHP: 75, grit: 81, stealing: 15, running: 41, throwing: 83, recovery: 62, wRISP: 63, vsLefty: 65, poise: 66, heater: 72, agile: 49,
+      clutch: 79, vsLHP: 75, grit: 81, stealing: 15, running: 41, throwing: 90, recovery: 62, wRISP: 63, vsLefty: 65, poise: 66, heater: 72, agile: 49,
       abilities: ["Star of Victory", "Strong Starter", "Intimidator", "Straddle"], potential: "A+", catcherAbility: null,
       ...pitchMix(1, [0, 5, 6, 1, 0, 0, 0]) },
     { firstName: "Jake", lastName: "Bean", position: "P", eligibility: "JR", homeState: "OH", hometown: "Kent", jerseyNumber: 27,

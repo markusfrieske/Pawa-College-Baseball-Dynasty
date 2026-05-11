@@ -6,7 +6,7 @@ export const BIG_TEN_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (10)
     { firstName: "Regan", lastName: "Hall", position: "P", eligibility: "JR", homeState: "IL", hometown: "Champaign", jerseyNumber: 34,
       hitForAvg: 18, power: 14, speed: 40, arm: 68, fielding: 41, errorResistance: 52, velocity: 75, control: 64, stamina: 65, stuff: 68,
-      clutch: 77, vsLHP: 72, grit: 79, stealing: 12, running: 36, throwing: 82, recovery: 57, wRISP: 60, vsLefty: 63, poise: 64, heater: 68, agile: 46,
+      clutch: 77, vsLHP: 72, grit: 79, stealing: 12, running: 36, throwing: 90, recovery: 57, wRISP: 60, vsLefty: 63, poise: 64, heater: 68, agile: 46,
       abilities: ["Star of Victory", "Strong Starter", "Sharpness", "Groundball Pitcher", "Intimidator", "Heavy Ball", "vs. Strong Batters"], potential: "A-", catcherAbility: null,
       ...pitchMix(1, [0, 7, 6, 1, 0, 0, 0]) },
     { firstName: "Zach", lastName: "Bates", position: "P", eligibility: "SR", homeState: "IL", hometown: "Peoria", jerseyNumber: 29,
@@ -138,7 +138,7 @@ export const BIG_TEN_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (10)
     { firstName: "Tony", lastName: "Neubeck", position: "P", eligibility: "SR", homeState: "MO", hometown: "Columbia", jerseyNumber: 34,
       hitForAvg: 20, power: 16, speed: 41, arm: 68, fielding: 40, errorResistance: 51, velocity: 73, control: 62, stamina: 63, stuff: 68,
-      clutch: 74, vsLHP: 70, grit: 76, stealing: 12, running: 37, throwing: 82, recovery: 57, wRISP: 58, vsLefty: 60, poise: 62, heater: 68, agile: 45,
+      clutch: 74, vsLHP: 70, grit: 76, stealing: 12, running: 37, throwing: 90, recovery: 57, wRISP: 58, vsLefty: 60, poise: 62, heater: 68, agile: 45,
       abilities: ["Star of Victory", "Intimidator", "Strong Starter", "Heavy Ball", "Winner's Luck", "Pace", "Straddle"], potential: "B+", catcherAbility: null,
       ...pitchMix(1, [0, 7, 5, 1, 0, 0, 0]) },
     { firstName: "Jackson", lastName: "Bergman", position: "P", eligibility: "SR", homeState: "OH", hometown: "Toledo", jerseyNumber: 29,
@@ -275,7 +275,7 @@ export const BIG_TEN_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       ...pitchMix(1, [0, 6, 5, 1, 0, 0, 0]) },
     { firstName: "Logan", lastName: "Runde", position: "P", eligibility: "SR", homeState: "FL", hometown: "Miami", jerseyNumber: 33,
       hitForAvg: 22, power: 16, speed: 46, arm: 73, fielding: 47, errorResistance: 61, velocity: 78, control: 74, stamina: 74, stuff: 74,
-      clutch: 86, vsLHP: 82, grit: 89, stealing: 12, running: 41, throwing: 87, recovery: 70, wRISP: 70, vsLefty: 71, poise: 74, heater: 75, agile: 53,
+      clutch: 86, vsLHP: 82, grit: 90, stealing: 12, running: 41, throwing: 87, recovery: 70, wRISP: 70, vsLefty: 71, poise: 74, heater: 75, agile: 53,
       abilities: ["Star of Victory", "Intimidator", "Heavy Ball", "Winner's Luck"], potential: "B+", catcherAbility: null,
       ...pitchMix(1, [0, 7, 5, 1, 0, 0, 0]) },
     { firstName: "Joe", lastName: "Husak", position: "P", eligibility: "JR", homeState: "IL", hometown: "Normal", jerseyNumber: 35,
@@ -402,7 +402,7 @@ export const BIG_TEN_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (10)
     { firstName: "Lance", lastName: "Williams", position: "P", eligibility: "SO", homeState: "NC", hometown: "Greenville", jerseyNumber: 34,
       hitForAvg: 21, power: 17, speed: 45, arm: 72, fielding: 46, errorResistance: 58, velocity: 77, control: 66, stamina: 67, stuff: 73,
-      clutch: 82, vsLHP: 78, grit: 84, stealing: 15, running: 41, throwing: 87, recovery: 61, wRISP: 66, vsLefty: 67, poise: 67, heater: 74, agile: 51,
+      clutch: 82, vsLHP: 78, grit: 84, stealing: 15, running: 41, throwing: 90, recovery: 61, wRISP: 66, vsLefty: 67, poise: 67, heater: 74, agile: 51,
       abilities: ["Star of Victory", "Intimidator", "Strong Starter", "Straddle", "Heavy Ball", "Inside Pitch"], potential: "A", catcherAbility: null,
       ...pitchMix(1, [0, 7, 5, 1, 0, 0, 0]) },
     { firstName: "Austin", lastName: "Weiss", position: "P", eligibility: "FR", homeState: "MD", hometown: "Annapolis", jerseyNumber: 29,
@@ -534,7 +534,7 @@ export const BIG_TEN_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (10)
     { firstName: "Tate", lastName: "Carey", position: "P", eligibility: "SO", homeState: "MI", hometown: "Grand Rapids", jerseyNumber: 34,
       hitForAvg: 19, power: 15, speed: 44, arm: 70, fielding: 43, errorResistance: 55, velocity: 74, control: 65, stamina: 65, stuff: 70,
-      clutch: 78, vsLHP: 74, grit: 80, stealing: 15, running: 40, throwing: 84, recovery: 59, wRISP: 62, vsLefty: 64, poise: 65, heater: 70, agile: 48,
+      clutch: 78, vsLHP: 74, grit: 80, stealing: 15, running: 40, throwing: 90, recovery: 59, wRISP: 62, vsLefty: 64, poise: 65, heater: 70, agile: 48,
       abilities: ["Star of Victory", "Intimidator", "Wild Fastball", "Heavy Ball", "Winner's Luck", "Pace"], potential: "A", catcherAbility: null,
       ...pitchMix(1, [0, 7, 5, 1, 0, 0, 0]) },
     { firstName: "Kurt", lastName: "Barr", position: "P", eligibility: "SR", homeState: "MI", hometown: "Ann Arbor", jerseyNumber: 29,
@@ -666,7 +666,7 @@ export const BIG_TEN_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (10)
     { firstName: "Nick", lastName: "Powers", position: "P", eligibility: "JR", homeState: "MI", hometown: "Grand Rapids", jerseyNumber: 34,
       hitForAvg: 21, power: 16, speed: 47, arm: 71, fielding: 46, errorResistance: 59, velocity: 74, control: 69, stamina: 71, stuff: 71,
-      clutch: 79, vsLHP: 75, grit: 82, stealing: 14, running: 42, throwing: 84, recovery: 63, wRISP: 63, vsLefty: 65, poise: 67, heater: 71, agile: 52,
+      clutch: 79, vsLHP: 75, grit: 82, stealing: 14, running: 42, throwing: 90, recovery: 63, wRISP: 63, vsLefty: 65, poise: 67, heater: 71, agile: 52,
       abilities: ["Star of Victory", "Strong Starter", "Gyroball", "Intimidator"], potential: "B+", catcherAbility: null,
       ...pitchMix(1, [0, 6, 5, 1, 0, 0, 0]) },
     { firstName: "Derek", lastName: "Kontul", position: "P", eligibility: "SR", homeState: "MI", hometown: "Midland", jerseyNumber: 29,

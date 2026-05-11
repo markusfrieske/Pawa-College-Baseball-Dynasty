@@ -16,7 +16,7 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       ...pitchMix(1, [0, 5, 5, 1, 0, 0, 0]) },
     { firstName: "Jake", lastName: "McCoy", position: "P", eligibility: "JR", homeState: "SC", hometown: "Greenville", jerseyNumber: 37,
       hitForAvg: 20, power: 15, speed: 50, arm: 73, fielding: 50, errorResistance: 62, velocity: 77, control: 73, stamina: 73, stuff: 74,
-      clutch: 86, vsLHP: 82, grit: 88, stealing: 12, running: 45, throwing: 87, recovery: 68, wRISP: 68, vsLefty: 73, poise: 73, heater: 75, agile: 55,
+      clutch: 86, vsLHP: 82, grit: 90, stealing: 12, running: 45, throwing: 87, recovery: 68, wRISP: 68, vsLefty: 73, poise: 73, heater: 75, agile: 55,
       abilities: ["Strong Starter", "Sharpness", "Cross Cannon", "Intimidator", "Heavy Ball", "Winner's Luck"], potential: "B+", catcherAbility: null,
       ...pitchMix(1, [0, 4, 6, 1, 0, 0, 0]) },
     { firstName: "Josh", lastName: "Gunther", position: "P", eligibility: "JR", homeState: "GA", hometown: "Marietta", jerseyNumber: 45,
@@ -138,7 +138,7 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (10)
     { firstName: "Jaxon", lastName: "Jelkin", position: "P", eligibility: "SR", homeState: "TX", hometown: "Houston", jerseyNumber: 34,
       hitForAvg: 19, power: 15, speed: 43, arm: 70, fielding: 44, errorResistance: 56, velocity: 73, control: 64, stamina: 62, stuff: 72,
-      clutch: 76, vsLHP: 72, grit: 78, stealing: 11, running: 39, throwing: 84, recovery: 56, wRISP: 60, vsLefty: 62, poise: 64, heater: 72, agile: 47,
+      clutch: 76, vsLHP: 72, grit: 78, stealing: 11, running: 39, throwing: 90, recovery: 56, wRISP: 60, vsLefty: 62, poise: 64, heater: 72, agile: 47,
       abilities: ["Strong Starter", "Guts", "Bad Ball Hitter", "Release"], potential: "B+", catcherAbility: null,
       ...pitchMix(1, [0, 6, 5, 1, 0, 0, 0]) },
     { firstName: "Ben", lastName: "Cleaver", position: "P", eligibility: "JR", homeState: "KY", hometown: "Louisville", jerseyNumber: 22,
@@ -270,7 +270,7 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (10)
     { firstName: "Javyn", lastName: "Pimental", position: "P", eligibility: "SR", homeState: "CA", hometown: "Los Angeles", jerseyNumber: 33,
       hitForAvg: 18, power: 13, speed: 44, arm: 71, fielding: 45, errorResistance: 57, velocity: 75, control: 70, stamina: 69, stuff: 72,
-      clutch: 73, vsLHP: 72, grit: 78, stealing: 11, running: 39, throwing: 84, recovery: 59, wRISP: 59, vsLefty: 62, poise: 62, heater: 72, agile: 49,
+      clutch: 73, vsLHP: 72, grit: 78, stealing: 11, running: 39, throwing: 90, recovery: 59, wRISP: 59, vsLefty: 62, poise: 62, heater: 72, agile: 49,
       abilities: ["Guts", "Indomitable Soul", "Good Pickoff", "Intimidator", "Heavy Ball"], potential: "B+", catcherAbility: null,
       ...pitchMix(1, [0, 5, 6, 1, 0, 0, 0]) },
     { firstName: "Josh", lastName: "McDevitt", position: "P", eligibility: "JR", homeState: "MO", hometown: "St. Louis", jerseyNumber: 22,
@@ -404,7 +404,7 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       // LJ Mercurius — Friday JR RHP (UNLV transfer), 1.91 ERA / 77 K, Team USA, top-20 K nation early — TEAM ELITE STUFF
       { firstName: "LJ", lastName: "Mercurius", position: "P", eligibility: "JR", homeState: "NV", hometown: "Las Vegas", jerseyNumber: 22,
         hitForAvg: 14, power: 11, speed: 38, arm: 66, fielding: 41, errorResistance: 54, velocity: 68, control: 69, stamina: 69, stuff: 74,
-        clutch: 80, vsLHP: 76, grit: 80, stealing: 10, running: 34, throwing: 80, recovery: 57, wRISP: 62, vsLefty: 66, poise: 66, heater: 69, agile: 44,
+        clutch: 90, vsLHP: 76, grit: 80, stealing: 10, running: 34, throwing: 80, recovery: 57, wRISP: 62, vsLefty: 66, poise: 66, heater: 69, agile: 44,
         abilities: ["Star of Victory", "Intimidator", "Sharpness", "Straddle"], potential: "A+", catcherAbility: null,
         skinTone: "tan", hairColor: "black", hairStyle: "short",
         ...pitchMix(1, [0, 6, 7, 1, 0, 0, 0]) },
@@ -588,7 +588,7 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // Dylan Volantis — SO LHP, ELITE 6'6" sweeping knuckle curve, FR yr: 4-1/1.94/12 SV/74K, BA Frosh of Year, moved closer→Sun starter
     { firstName: "Dylan", lastName: "Volantis", position: "P", eligibility: "FR", homeState: "TX", hometown: "Austin", jerseyNumber: 29,
       hitForAvg: 14, power: 11, speed: 42, arm: 72, fielding: 46, errorResistance: 60, velocity: 72, control: 65, stamina: 52, stuff: 75,
-      clutch: 86, vsLHP: 80, grit: 86, stealing: 8, running: 36, throwing: 84, recovery: 52, wRISP: 68, vsLefty: 67, poise: 68, heater: 68, agile: 50,
+      clutch: 90, vsLHP: 80, grit: 86, stealing: 8, running: 36, throwing: 84, recovery: 52, wRISP: 68, vsLefty: 67, poise: 68, heater: 68, agile: 50,
       abilities: ["Star of Victory", "Intimidator", "Sharpness", "Heavy Ball", "Winner's Luck", "Natural Shuuto"], potential: "A+", catcherAbility: null,
       skinTone: "light", hairColor: "brown", hairStyle: "medium",
       ...pitchMix(1, [5, 5, 7, 1, 0, 0, 0]) },

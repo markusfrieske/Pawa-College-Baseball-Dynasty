@@ -6,7 +6,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (10)
     { firstName: "Oliver", lastName: "de la Torre", position: "P", eligibility: "JR", homeState: "CA", hometown: "Los Angeles", jerseyNumber: 22,
       hitForAvg: 28, power: 22, speed: 50, arm: 73, fielding: 48, errorResistance: 60, velocity: 76, control: 67, stamina: 72, stuff: 72,
-      clutch: 76, vsLHP: 72, grit: 80, stealing: 18, running: 46, throwing: 88, recovery: 64, wRISP: 59, vsLefty: 63, poise: 64, heater: 72, agile: 56,
+      clutch: 76, vsLHP: 72, grit: 80, stealing: 18, running: 46, throwing: 90, recovery: 64, wRISP: 59, vsLefty: 63, poise: 64, heater: 72, agile: 56,
       abilities: ["Strong Starter", "Wild Fastball", "Delayed Arm", "Intimidator", "Heavy Ball"], potential: "B+", catcherAbility: null,
       ...pitchMix(1, [0, 5, 4, 1, 0, 0, 0]) },
     { firstName: "Ethan", lastName: "Foley", position: "P", eligibility: "JR", homeState: "CA", hometown: "San Diego", jerseyNumber: 33,
@@ -138,7 +138,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (10)
     { firstName: "Christian", lastName: "Lim", position: "P", eligibility: "JR", homeState: "CA", hometown: "Irvine", jerseyNumber: 35,
       hitForAvg: 27, power: 23, speed: 49, arm: 75, fielding: 47, errorResistance: 59, velocity: 74, control: 71, stamina: 74, stuff: 74,
-      clutch: 79, vsLHP: 76, grit: 82, stealing: 17, running: 44, throwing: 89, recovery: 63, wRISP: 63, vsLefty: 65, poise: 68, heater: 74, agile: 54,
+      clutch: 79, vsLHP: 76, grit: 82, stealing: 17, running: 44, throwing: 90, recovery: 63, wRISP: 63, vsLefty: 65, poise: 68, heater: 74, agile: 54,
       abilities: ["Strong Starter", "Miracle Sharpness", "Intimidator", "Good Pickoff", "Heavy Ball", "Wild Fastball"], potential: "B+", catcherAbility: null,
       ...pitchMix(1, [0, 5, 5, 1, 0, 0, 0]) },
     { firstName: "Parker", lastName: "Warner", position: "P", eligibility: "SO", homeState: "CA", hometown: "San Jose", jerseyNumber: 29,
@@ -453,7 +453,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (10)
     { firstName: "Brett", lastName: "Renfrow", position: "P", eligibility: "SR", homeState: "VA", hometown: "Richmond", jerseyNumber: 34,
       hitForAvg: 25, power: 21, speed: 47, arm: 71, fielding: 44, errorResistance: 56, velocity: 74, control: 67, stamina: 68, stuff: 71,
-      clutch: 81, vsLHP: 77, grit: 83, stealing: 17, running: 43, throwing: 85, recovery: 63, wRISP: 65, vsLefty: 65, poise: 68, heater: 71, agile: 54,
+      clutch: 81, vsLHP: 77, grit: 83, stealing: 17, running: 43, throwing: 90, recovery: 63, wRISP: 65, vsLefty: 65, poise: 68, heater: 71, agile: 54,
       abilities: ["Star of Victory", "Intimidator", "Escape Pitch", "Heavy Ball", "Release"], potential: "A", catcherAbility: null,
       ...pitchMix(1, [1, 7, 4, 1, 0, 0, 0]) },
     { firstName: "Logan", lastName: "Eisenreich", position: "P", eligibility: "SO", homeState: "VA", hometown: "Blacksburg", jerseyNumber: 29,
@@ -585,7 +585,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (10)
     { firstName: "Blake", lastName: "Morningstar", position: "P", eligibility: "JR", homeState: "NC", hometown: "Raleigh", jerseyNumber: 35,
       hitForAvg: 26, power: 21, speed: 46, arm: 70, fielding: 43, errorResistance: 57, velocity: 73, control: 65, stamina: 68, stuff: 70,
-      clutch: 78, vsLHP: 74, grit: 80, stealing: 18, running: 41, throwing: 83, recovery: 61, wRISP: 62, vsLefty: 62, poise: 65, heater: 70, agile: 52,
+      clutch: 78, vsLHP: 74, grit: 80, stealing: 18, running: 41, throwing: 90, recovery: 61, wRISP: 62, vsLefty: 62, poise: 65, heater: 70, agile: 52,
       abilities: ["Star of Victory", "Strong Starter", "Intimidator", "Heavy Ball", "Winner's Luck", "Gyroball", "Quick Hands"], potential: "A", catcherAbility: null,
       ...pitchMix(1, [1, 6, 4, 1, 0, 0, 0]) },
     { firstName: "Chris", lastName: "Levonas", position: "P", eligibility: "SO", homeState: "NC", hometown: "Charlotte", jerseyNumber: 29,

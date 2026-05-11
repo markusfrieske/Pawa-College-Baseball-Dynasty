@@ -193,7 +193,7 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
     // Maxx Yehl — Friday LHP ace, Big 12 POW, CG vs Kansas
     { firstName: "Maxx", lastName: "Yehl", position: "P", eligibility: "JR", homeState: "PA", hometown: "Pittsburgh", jerseyNumber: 19,
       hitForAvg: 13, power: 11, speed: 34, arm: 74, fielding: 41, errorResistance: 54, velocity: 71, control: 69, stamina: 71, stuff: 72,
-      clutch: 84, vsLHP: 84, grit: 84, stealing: 8, running: 30, throwing: 82, recovery: 58, wRISP: 66, vsLefty: 69, poise: 71, heater: 71, agile: 42,
+      clutch: 90, vsLHP: 84, grit: 84, stealing: 8, running: 30, throwing: 82, recovery: 58, wRISP: 66, vsLefty: 69, poise: 71, heater: 71, agile: 42,
       abilities: ["Star of Victory", "Intimidator", "Fireman"], potential: "A", catcherAbility: null,
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 7, 6, 1, 0, 0, 0]) },
@@ -1448,7 +1448,7 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
   "TCU": [
     { firstName: "Tommy", lastName: "LaPour", position: "P", eligibility: "JR", homeState: "TX", hometown: "Fort Worth", jerseyNumber: 22,
       hitForAvg: 13, power: 11, speed: 32, arm: 71, fielding: 41, errorResistance: 52, velocity: 72, control: 67, stamina: 71, stuff: 72,
-      clutch: 84, vsLHP: 78, grit: 84, stealing: 8, running: 30, throwing: 82, recovery: 58, wRISP: 66, vsLefty: 66, poise: 69, heater: 76, agile: 42,
+      clutch: 90, vsLHP: 78, grit: 84, stealing: 8, running: 30, throwing: 82, recovery: 58, wRISP: 66, vsLefty: 66, poise: 69, heater: 76, agile: 42,
       abilities: ["Strong Starter", "Doctor K", "Tunneling", "Intimidator"], potential: "A+", catcherAbility: null,
       ...pitchMix(1, [0, 7, 6, 1, 0, 0, 0]) },
     { firstName: "Mason", lastName: "Brassfield", position: "P", eligibility: "SR", homeState: "TX", hometown: "Dallas", jerseyNumber: 31,

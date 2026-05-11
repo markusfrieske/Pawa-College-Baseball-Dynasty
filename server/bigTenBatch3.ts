@@ -6,7 +6,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (10)
     { firstName: "Cole", lastName: "Van Assen", position: "P", eligibility: "JR", homeState: "IN", hometown: "Crown Point", jerseyNumber: 19,
       hitForAvg: 20, power: 16, speed: 42, arm: 70, fielding: 41, errorResistance: 52, velocity: 74, control: 62, stamina: 69, stuff: 72,
-      clutch: 74, vsLHP: 70, grit: 78, stealing: 10, running: 38, throwing: 78, recovery: 59, wRISP: 59, vsLefty: 60, poise: 62, heater: 72, agile: 46,
+      clutch: 74, vsLHP: 70, grit: 90, stealing: 10, running: 38, throwing: 78, recovery: 59, wRISP: 59, vsLefty: 60, poise: 62, heater: 72, agile: 46,
       abilities: ["Star of Victory", "Strong Starter", "Guts", "Intimidator", "Heavy Ball", "Winner's Luck", "Pace"], potential: "A-", catcherAbility: null,
       ...pitchMix(1, [0, 7, 6, 1, 0, 0, 0]) },
     { firstName: "Zach", lastName: "Erdman", position: "P", eligibility: "JR", homeState: "TX", hometown: "Lubbock", jerseyNumber: 34,
@@ -138,7 +138,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (10)
     { firstName: "Joe", lastName: "Mazza", position: "P", eligibility: "JR", homeState: "NJ", hometown: "Toms River", jerseyNumber: 17,
       hitForAvg: 21, power: 17, speed: 41, arm: 70, fielding: 43, errorResistance: 54, velocity: 75, control: 65, stamina: 69, stuff: 72,
-      clutch: 75, vsLHP: 71, grit: 77, stealing: 11, running: 37, throwing: 79, recovery: 60, wRISP: 60, vsLefty: 61, poise: 63, heater: 72, agile: 45,
+      clutch: 75, vsLHP: 71, grit: 77, stealing: 11, running: 37, throwing: 90, recovery: 60, wRISP: 60, vsLefty: 61, poise: 63, heater: 72, agile: 45,
       abilities: ["Strong Starter", "Sharpness", "vs. Strong Batters", "Kageura", "Strong Finisher"], potential: "B+", catcherAbility: null,
       ...pitchMix(1, [0, 6, 6, 1, 0, 0, 0]) },
     { firstName: "Zack", lastName: "Konstantinovsky", position: "P", eligibility: "JR", homeState: "NJ", hometown: "Marlboro", jerseyNumber: 22,
@@ -272,7 +272,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       // Mason Edwards — LHP JR Thursday ace, 7-0/1.74, #2 nationally per D1B Top 100 SP — TEAM ELITE STUFF
       { firstName: "Mason", lastName: "Edwards", position: "P", eligibility: "JR", homeState: "CA", hometown: "Los Angeles", jerseyNumber: 31,
         hitForAvg: 16, power: 12, speed: 38, arm: 65, fielding: 41, errorResistance: 54, velocity: 65, control: 69, stamina: 69, stuff: 74,
-        clutch: 80, vsLHP: 84, grit: 80, stealing: 8, running: 32, throwing: 78, recovery: 57, wRISP: 65, vsLefty: 69, poise: 65, heater: 65, agile: 44,
+        clutch: 80, vsLHP: 90, grit: 80, stealing: 8, running: 32, throwing: 78, recovery: 57, wRISP: 65, vsLefty: 69, poise: 65, heater: 65, agile: 44,
         abilities: ["Star of Victory", "Inside Pitch", "Intimidator", "Heavy Ball", "Winner's Luck"], potential: "A+", catcherAbility: null,
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [6, 0, 0, 1, 0, 6, 0]) },
@@ -637,7 +637,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (10)
     { firstName: "Hayden", lastName: "Lewis", position: "P", eligibility: "SR", homeState: "AZ", hometown: "Tucson", jerseyNumber: 17,
       hitForAvg: 21, power: 16, speed: 39, arm: 68, fielding: 43, errorResistance: 55, velocity: 75, control: 65, stamina: 65, stuff: 68,
-      clutch: 78, vsLHP: 74, grit: 80, stealing: 10, running: 35, throwing: 80, recovery: 60, wRISP: 62, vsLefty: 64, poise: 65, heater: 69, agile: 43,
+      clutch: 78, vsLHP: 74, grit: 90, stealing: 10, running: 35, throwing: 80, recovery: 60, wRISP: 62, vsLefty: 64, poise: 65, heater: 69, agile: 43,
       abilities: ["Star of Victory", "Strong Starter", "Guts", "Escape Pitch", "Gyroball", "Wild Fastball"], potential: "B+", catcherAbility: null,
       ...pitchMix(1, [0, 7, 5, 1, 0, 0, 0]) },
     { firstName: "Nate", lastName: "Tichy", position: "P", eligibility: "SO", homeState: "CA", hometown: "Malibu", jerseyNumber: 18,

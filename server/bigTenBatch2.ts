@@ -6,7 +6,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (12)
     { firstName: "Cole", lastName: "Selvig", position: "P", eligibility: "JR", homeState: "MN", hometown: "Wayzata", jerseyNumber: 17,
       hitForAvg: 20, power: 16, speed: 40, arm: 67, fielding: 42, errorResistance: 54, velocity: 73, control: 64, stamina: 65, stuff: 68,
-      clutch: 76, vsLHP: 72, grit: 78, stealing: 10, running: 36, throwing: 80, recovery: 59, wRISP: 60, vsLefty: 60, poise: 64, heater: 70, agile: 46,
+      clutch: 76, vsLHP: 72, grit: 78, stealing: 10, running: 36, throwing: 90, recovery: 59, wRISP: 60, vsLefty: 60, poise: 64, heater: 70, agile: 46,
       abilities: ["Star of Victory", "Strong Starter", "Intimidator", "Heavy Ball", "Winner's Luck", "Pace", "Straddle"], potential: "A-", catcherAbility: null,
       ...pitchMix(1, [0, 7, 6, 1, 0, 0, 0]) },
     { firstName: "Tyler", lastName: "Hemmesch", position: "P", eligibility: "JR", homeState: "MN", hometown: "Cold Spring", jerseyNumber: 31,
@@ -321,7 +321,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (10)
     { firstName: "Sam", lastName: "Hliboki", position: "P", eligibility: "SR", homeState: "LA", hometown: "Baton Rouge", jerseyNumber: 31,
       hitForAvg: 24, power: 19, speed: 42, arm: 71, fielding: 45, errorResistance: 57, velocity: 75, control: 67, stamina: 69, stuff: 72,
-      clutch: 82, vsLHP: 78, grit: 84, stealing: 11, running: 38, throwing: 84, recovery: 64, wRISP: 66, vsLefty: 66, poise: 69, heater: 72, agile: 48,
+      clutch: 82, vsLHP: 78, grit: 90, stealing: 11, running: 38, throwing: 84, recovery: 64, wRISP: 66, vsLefty: 66, poise: 69, heater: 72, agile: 48,
       abilities: ["Star of Victory", "Strong Starter", "Sharpness", "Intimidator", "Heavy Ball", "Bad Ball Hitter"], potential: "A-", catcherAbility: null,
       ...pitchMix(1, [0, 8, 6, 1, 0, 0, 0]) },
     { firstName: "Garrett", lastName: "Shearer", position: "P", eligibility: "JR", homeState: "IL", hometown: "Lake Forest", jerseyNumber: 22,
@@ -453,7 +453,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (10)
     { firstName: "Pierce", lastName: "Herrenbruck", position: "P", eligibility: "JR", homeState: "IN", hometown: "Fishers", jerseyNumber: 17,
       hitForAvg: 20, power: 16, speed: 41, arm: 68, fielding: 43, errorResistance: 55, velocity: 74, control: 64, stamina: 64, stuff: 68,
-      clutch: 77, vsLHP: 73, grit: 79, stealing: 10, running: 36, throwing: 81, recovery: 59, wRISP: 61, vsLefty: 61, poise: 64, heater: 69, agile: 46,
+      clutch: 77, vsLHP: 73, grit: 79, stealing: 10, running: 36, throwing: 90, recovery: 59, wRISP: 61, vsLefty: 61, poise: 64, heater: 69, agile: 46,
       abilities: ["Star of Victory", "Strong Starter", "Sharpness", "Intimidator", "Heavy Ball", "Flyball Pitcher"], potential: "A-", catcherAbility: null,
       ...pitchMix(1, [0, 7, 6, 1, 0, 0, 0]) },
     { firstName: "Caden", lastName: "Marcum", position: "P", eligibility: "JR", homeState: "KY", hometown: "Louisville", jerseyNumber: 31,
@@ -768,7 +768,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (10)
     { firstName: "Colin", lastName: "Fitzgerald", position: "P", eligibility: "SR", homeState: "PA", hometown: "West Chester", jerseyNumber: 31,
       hitForAvg: 24, power: 20, speed: 44, arm: 73, fielding: 46, errorResistance: 59, velocity: 75, control: 73, stamina: 73, stuff: 74,
-      clutch: 86, vsLHP: 80, grit: 88, stealing: 10, running: 40, throwing: 88, recovery: 66, wRISP: 69, vsLefty: 69, poise: 73, heater: 73, agile: 50,
+      clutch: 86, vsLHP: 80, grit: 90, stealing: 10, running: 40, throwing: 88, recovery: 66, wRISP: 69, vsLefty: 69, poise: 73, heater: 73, agile: 50,
       abilities: ["Star of Victory", "Strong Starter", "Guts", "Fireman", "Intimidator", "Strength Distribution"], potential: "A-", catcherAbility: null,
       ...pitchMix(1, [0, 7, 6, 1, 0, 0, 0]) },
     { firstName: "Jake", lastName: "Reynolds", position: "P", eligibility: "JR", homeState: "PA", hometown: "Allentown", jerseyNumber: 22,

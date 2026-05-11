@@ -57,8 +57,8 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       ...noPitches },
     // INFIELDERS (6)
     { firstName: "Daniel", lastName: "Cuvet", position: "3B", eligibility: "JR", homeState: "FL", hometown: "Miami", jerseyNumber: 5,
-      hitForAvg: 82, power: 80, speed: 55, arm: 70, fielding: 66, errorResistance: 64, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 82, vsLHP: 72, grit: 72, stealing: 22, running: 48, throwing: 72, recovery: 42, wRISP: 82, vsLefty: 70, poise: 78, heater: 0, agile: 45,
+      hitForAvg: 90, power: 80, speed: 55, arm: 70, fielding: 66, errorResistance: 64, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 82, vsLHP: 72, grit: 72, stealing: 22, running: 48, throwing: 72, recovery: 42, wRISP: 90, vsLefty: 70, poise: 78, heater: 0, agile: 45,
       abilities: ["Artist", "Consigliere", "Laser Beam"], potential: "A+", catcherAbility: null,
       ...noPitches },
     { firstName: "Jake", lastName: "Ogden", position: "2B", eligibility: "JR", homeState: "FL", hometown: "Boca Raton", jerseyNumber: 3,
@@ -138,7 +138,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (8)
     { firstName: "Ryan", lastName: "Marohn", position: "P", eligibility: "JR", homeState: "NC", hometown: "Raleigh", jerseyNumber: 34,
       hitForAvg: 21, power: 17, speed: 41, arm: 70, fielding: 43, errorResistance: 54, velocity: 73, control: 66, stamina: 68, stuff: 70,
-      clutch: 79, vsLHP: 75, grit: 81, stealing: 15, running: 37, throwing: 83, recovery: 61, wRISP: 63, vsLefty: 63, poise: 66, heater: 70, agile: 46,
+      clutch: 79, vsLHP: 75, grit: 81, stealing: 15, running: 37, throwing: 90, recovery: 61, wRISP: 63, vsLefty: 63, poise: 66, heater: 70, agile: 46,
       abilities: ["Star of Victory", "Strong Starter", "Intimidator", "Heavy Ball", "Straddle"], potential: "A+", catcherAbility: null,
       ...pitchMix(1, [1, 6, 4, 1, 0, 0, 0]) },
     { firstName: "Jacob", lastName: "Dudan", position: "P", eligibility: "JR", homeState: "NC", hometown: "Cary", jerseyNumber: 38,
@@ -454,7 +454,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (8)
     { firstName: "Jack", lastName: "Radel", position: "P", eligibility: "JR", homeState: "OH", hometown: "Cincinnati", jerseyNumber: 34,
       hitForAvg: 23, power: 19, speed: 43, arm: 72, fielding: 43, errorResistance: 54, velocity: 76, control: 67, stamina: 68, stuff: 72,
-      clutch: 81, vsLHP: 77, grit: 83, stealing: 14, running: 40, throwing: 85, recovery: 62, wRISP: 65, vsLefty: 65, poise: 68, heater: 74, agile: 48,
+      clutch: 81, vsLHP: 77, grit: 83, stealing: 14, running: 40, throwing: 90, recovery: 62, wRISP: 65, vsLefty: 65, poise: 68, heater: 74, agile: 48,
       abilities: ["Star of Victory", "Intimidator", "True Slider", "Heavy Ball"], potential: "A+", catcherAbility: null,
       ...pitchMix(1, [1, 7, 4, 1, 0, 0, 0]) },
     { firstName: "Ty", lastName: "Uber", position: "P", eligibility: "SR", homeState: "CA", hometown: "Palo Alto", jerseyNumber: 29,
@@ -586,7 +586,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (7)
     { firstName: "David", lastName: "Leslie", position: "P", eligibility: "JR", homeState: "PA", hometown: "Pittsburgh", jerseyNumber: 34,
       hitForAvg: 21, power: 16, speed: 45, arm: 70, fielding: 44, errorResistance: 57, velocity: 75, control: 66, stamina: 69, stuff: 70,
-      clutch: 77, vsLHP: 72, grit: 79, stealing: 14, running: 41, throwing: 84, recovery: 61, wRISP: 61, vsLefty: 61, poise: 65, heater: 70, agile: 50,
+      clutch: 77, vsLHP: 72, grit: 79, stealing: 14, running: 41, throwing: 90, recovery: 61, wRISP: 61, vsLefty: 61, poise: 65, heater: 70, agile: 50,
       abilities: ["Strong Starter", "Doctor K", "Decisive", "Full Throttle"], potential: "A-", catcherAbility: null,
       ...pitchMix(1, [1, 5, 5, 1, 0, 0, 0]) },
     { firstName: "Vincent", lastName: "Spizzoucco", position: "P", eligibility: "JR", homeState: "PA", hometown: "Philadelphia", jerseyNumber: 29,

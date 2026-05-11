@@ -135,8 +135,8 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
     // OUTFIELDERS (7)
     // Derek Curiel — CF, .343 / 6 HR / 44 RBI — STAR, Golden Spikes contender
     { firstName: "Derek", lastName: "Curiel", position: "OF", eligibility: "JR", homeState: "CA", hometown: "Chino Hills", jerseyNumber: 6,
-      hitForAvg: 88, power: 70, speed: 78, arm: 70, fielding: 80, errorResistance: 76, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 86, vsLHP: 78, grit: 82, stealing: 70, running: 78, throwing: 72, recovery: 65, wRISP: 88, vsLefty: 78, poise: 84, heater: 0, agile: 80,
+      hitForAvg: 90, power: 70, speed: 78, arm: 70, fielding: 80, errorResistance: 76, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 86, vsLHP: 78, grit: 82, stealing: 70, running: 78, throwing: 72, recovery: 65, wRISP: 90, vsLefty: 78, poise: 84, heater: 0, agile: 80,
       abilities: ["Contact Hitter", "Power Hitter", "Express Baserunning", "Consigliere", "Tough Out"], potential: "A+", catcherAbility: null,
       skinTone: "tan", hairColor: "black", hairStyle: "short",
       ...noPitches },
@@ -371,7 +371,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (10)
     { firstName: "Austin", lastName: "Nye", position: "P", eligibility: "SO", homeState: "TN", hometown: "Nashville", jerseyNumber: 34,
       hitForAvg: 24, power: 20, speed: 46, arm: 72, fielding: 43, errorResistance: 54, velocity: 75, control: 68, stamina: 70, stuff: 72,
-      clutch: 79, vsLHP: 74, grit: 81, stealing: 13, running: 41, throwing: 85, recovery: 61, wRISP: 63, vsLefty: 65, poise: 67, heater: 72, agile: 50,
+      clutch: 79, vsLHP: 74, grit: 81, stealing: 13, running: 41, throwing: 90, recovery: 61, wRISP: 63, vsLefty: 65, poise: 67, heater: 72, agile: 50,
       abilities: ["Star of Victory", "Strong Starter", "Sharpness", "Bad Ball Hitter", "Intimidator", "Heavy Ball"], potential: "A", catcherAbility: null,
       ...pitchMix(1, [0, 7, 6, 1, 0, 0, 0]) },
     { firstName: "Connor", lastName: "Fennell", position: "P", eligibility: "JR", homeState: "GA", hometown: "Atlanta", jerseyNumber: 29,
@@ -699,7 +699,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Strong Starter", "Guts"], potential: "B+", catcherAbility: null,
       ...pitchMix(1, [0, 5, 6, 1, 0, 0, 0]) },
     { firstName: "Blaine", lastName: "Brown", position: "P", eligibility: "JR", homeState: "TX", hometown: "Houston", jerseyNumber: 38,
-      hitForAvg: 19, power: 16, speed: 55, arm: 70, fielding: 47, errorResistance: 55, velocity: 74, control: 70, stamina: 69, stuff: 72,
+      hitForAvg: 19, power: 16, speed: 55, arm: 70, fielding: 47, errorResistance: 55, velocity: 90, control: 70, stamina: 69, stuff: 72,
       clutch: 67, vsLHP: 63, grit: 69, stealing: 30, running: 53, throwing: 73, recovery: 52, wRISP: 53, vsLefty: 55, poise: 56, heater: 74, agile: 55,
       abilities: ["Strong Starter", "Staredown", "Indomitable Soul", "Intimidator"], potential: "A-", catcherAbility: null,
       ...pitchMix(1, [0, 5, 5, 1, 0, 0, 0]) },
