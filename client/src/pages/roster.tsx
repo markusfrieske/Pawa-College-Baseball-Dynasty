@@ -452,7 +452,11 @@ function PositionSection({ title, players, onSelectPlayer, teamPrimaryColor, pro
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <span>{player.eligibility}</span>
                   <span className="text-border">·</span>
-                  <span>{player.batHand}/{player.throwHand}</span>
+                  {isPitcher(player.position) ? (
+                    <span className={`font-pixel text-[7px] px-1 py-0.5 rounded border ${player.throwHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`} data-testid={`badge-hand-mobile-${player.id}`}>{player.throwHand}HP</span>
+                  ) : (
+                    <span className={`font-pixel text-[7px] px-1 py-0.5 rounded border ${player.batHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : player.batHand === "S" ? "bg-purple-500/15 text-purple-400 border-purple-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`} data-testid={`badge-hand-mobile-${player.id}`}>{player.batHand}</span>
+                  )}
                   {progressionEnabled && player.potential != null && (
                     <>
                       <span className="text-border">·</span>
@@ -536,8 +540,12 @@ function PositionSection({ title, players, onSelectPlayer, teamPrimaryColor, pro
                 <td className="text-center py-3 px-2 text-muted-foreground">
                   {player.eligibility}
                 </td>
-                <td className="text-center py-3 px-2 text-muted-foreground">
-                  {player.batHand}/{player.throwHand}
+                <td className="text-center py-3 px-2">
+                  {isPitcher(player.position) ? (
+                    <span className={`font-pixel text-[7px] px-1.5 py-0.5 rounded border ${player.throwHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`} data-testid={`badge-hand-desktop-${player.id}`}>{player.throwHand}HP</span>
+                  ) : (
+                    <span className={`font-pixel text-[7px] px-1.5 py-0.5 rounded border ${player.batHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : player.batHand === "S" ? "bg-purple-500/15 text-purple-400 border-purple-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`} data-testid={`badge-hand-desktop-${player.id}`}>{player.batHand}</span>
+                  )}
                 </td>
                 <td className="text-center py-3 px-2">
                   <span className="font-bold text-gold">{player.overall}</span>
