@@ -328,7 +328,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
         eventText: "{name} needs a 2.8 GPA in his final semester to meet minimum eligibility requirements. He's currently at a 2.5. There's a tutor available but it means giving up some showcase appearances.",
         choiceA: "Fund a dedicated academic tutoring program for him", choiceAOutcome: "The investment in his education pays dividends in loyalty and eligibility.", choiceAWeights: W.bold_pos,
         choiceB: "Connect him with current players who navigated similar situations", choiceBOutcome: "Peer guidance is highly effective for academic motivation.", choiceBWeights: W.safe_pos,
-        choiceC: "Maintain recruiting relationship without academic involvement", choiceBOutcome: "Non-intervention is neutral but misses a chance to differentiate.", choiceCWeights: W.cautious,
+        choiceC: "Maintain recruiting relationship without academic involvement", choiceCOutcome: "Non-intervention is neutral but misses a chance to differentiate.", choiceCWeights: W.cautious,
         choiceD: "Look for academic programs that might fit his current GPA", choiceDOutcome: "Finding creative academic paths shows you're invested in his whole future.", choiceDWeights: W.neutral_up,
       },
       {
@@ -480,6 +480,24 @@ export interface StorylinePickConfig {
   legendaryCount: number; // how many should be legendary (default 1)
 }
 
+// Tier distribution: 1 legendary, 2 elite, 2 above_average, 3 average, 2 below_average = 10 total
+const TIER_DISTRIBUTION: Record<string, number> = {
+  legendary: 1,
+  elite: 2,
+  above_average: 2,
+  average: 3,
+  below_average: 2,
+};
+
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 export function pickStorylineRecruits(
   recruits: Array<{ id: string; overall: number; starRank: number; isBlueChip?: boolean | null; isGenerationalGem?: boolean | null; firstName: string; lastName: string; position: string }>,
   config: StorylinePickConfig = { count: 10, legendaryCount: 1 },
@@ -491,36 +509,60 @@ export function pickStorylineRecruits(
   isLegendary: boolean;
   imagePrompt: string;
 }> {
-  const shuffled = [...recruits].sort(() => Math.random() - 0.5);
-  const selected: typeof shuffled = [];
-
-  // Prioritize generational gems for legendary slot
-  const gems = shuffled.filter(r => r.isGenerationalGem);
-  const bluechips = shuffled.filter(r => r.isBlueChip && !r.isGenerationalGem);
-  const fiveStars = shuffled.filter(r => r.starRank >= 5 && !r.isBlueChip && !r.isGenerationalGem);
-  const rest = shuffled.filter(r => r.starRank < 5 && !r.isBlueChip && !r.isGenerationalGem);
-
-  const pool = [...gems, ...bluechips, ...fiveStars, ...rest];
   const usedIds = new Set<string>();
+  const result: typeof recruits = [];
 
-  for (const r of pool) {
-    if (selected.length >= config.count) break;
-    if (!usedIds.has(r.id)) {
-      selected.push(r);
-      usedIds.add(r.id);
+  // 1. Pick legendary slot (gems first, then blue chips, then high-star)
+  const legendaryCandidates = shuffle(
+    recruits.filter(r => r.isGenerationalGem || r.isBlueChip || r.starRank >= 4)
+  );
+  let legendaryPick: typeof recruits[0] | null = null;
+  for (const r of legendaryCandidates) {
+    if (!usedIds.has(r.id)) { legendaryPick = r; usedIds.add(r.id); break; }
+  }
+  if (legendaryPick) result.push(legendaryPick);
+
+  // 2. Pick by tier buckets
+  const tierBuckets: Record<string, typeof recruits> = {
+    elite: shuffle(recruits.filter(r => r.overall >= 500 && !usedIds.has(r.id))),
+    above_average: shuffle(recruits.filter(r => r.overall >= 350 && r.overall < 500 && !usedIds.has(r.id))),
+    average: shuffle(recruits.filter(r => r.overall >= 250 && r.overall < 350 && !usedIds.has(r.id))),
+    below_average: shuffle(recruits.filter(r => r.overall < 250 && !usedIds.has(r.id))),
+  };
+
+  const tierOrder: Array<keyof typeof TIER_DISTRIBUTION> = ["elite", "above_average", "average", "below_average"];
+  for (const tier of tierOrder) {
+    const needed = TIER_DISTRIBUTION[tier];
+    const pool = tierBuckets[tier];
+    let filled = 0;
+    for (const r of pool) {
+      if (filled >= needed) break;
+      if (!usedIds.has(r.id)) {
+        result.push(r);
+        usedIds.add(r.id);
+        filled++;
+      }
+    }
+    // If a tier bucket is short, fill from any remaining recruit
+    if (filled < needed) {
+      const fallback = shuffle(recruits.filter(r => !usedIds.has(r.id)));
+      for (const r of fallback) {
+        if (filled >= needed) break;
+        result.push(r);
+        usedIds.add(r.id);
+        filled++;
+      }
     }
   }
 
-  const legendarySet = new Set<string>();
-  const legendaryCandidates = selected.filter(r => r.isGenerationalGem || r.isBlueChip || r.starRank >= 4);
-  for (let i = 0; i < config.legendaryCount && i < legendaryCandidates.length; i++) {
-    legendarySet.add(legendaryCandidates[i].id);
-  }
+  // Trim to target count if somehow over
+  const selected = result.slice(0, config.count);
+  const legendaryId = legendaryPick?.id;
 
   return selected.map(r => {
-    const isLegendary = legendarySet.has(r.id);
+    const isLegendary = r.id === legendaryId;
     const archetype = pickArchetypeForRecruit(r, isLegendary);
-    const tier = getTierFromOVR(r.overall);
+    const tier = isLegendary ? "legendary" : getTierFromOVR(r.overall);
     const hiddenVars = rollHiddenVars(r.starRank, r.isBlueChip ?? false, isLegendary);
     const imagePrompt = buildImagePrompt(r.firstName, r.lastName, r.position, archetype, isLegendary);
     return { recruitId: r.id, archetype, tier, hiddenVars, isLegendary, imagePrompt };
