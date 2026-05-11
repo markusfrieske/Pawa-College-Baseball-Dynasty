@@ -505,7 +505,6 @@ function StorylinesDashboardWidget({ leagueId }: { leagueId: string }) {
   };
 
   const activeVotes = storylines.filter((s) => s.latestEvent && !s.latestEvent.resolvedChoice);
-  const legendary = storylines.filter((s) => s.isLegendary);
   // Top 3 most active storylines by real activity score
   const mostActive = [...storylines].sort((a, b) => activityScore(b) - activityScore(a)).slice(0, 3);
 
