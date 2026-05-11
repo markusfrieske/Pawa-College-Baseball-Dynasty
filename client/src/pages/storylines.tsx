@@ -155,7 +155,10 @@ function PositionSilhouette({ position, isLegendary }: { position?: string; isLe
 
 function ArcTimeline({ events }: { events: StorylineEventFull[] }) {
   if (events.length === 0) return null;
-  const resolved = events.filter(e => e.resolvedChoice);
+  // Sort ascending by week so history renders chronologically (Wk 1 → Wk N)
+  const resolved = [...events]
+    .filter(e => e.resolvedChoice)
+    .sort((a, b) => (a.week ?? 0) - (b.week ?? 0));
   if (resolved.length === 0) return null;
   return (
     <div className="mt-3 border-t border-border/30 pt-3">
