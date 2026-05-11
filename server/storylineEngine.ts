@@ -1,4 +1,5 @@
 import type { ChoiceWeights, StorylineHiddenVars } from "@shared/schema";
+import { isPitcher } from "@shared/positions";
 
 // ─── Rating Delta Bands ────────────────────────────────────────────────────────
 const DELTAS = {
@@ -128,11 +129,11 @@ export function maybeTransitionArchetype(
   // If the target is incompatible, use the defined fallback rather than blocking the transition.
   const resolveTarget = (target: Archetype): Archetype => {
     if (!position) return target; // no position info — preserve existing behavior
-    const isPitcher = position === "P";
-    if (!isPitcher && PITCHER_ONLY_ARCHETYPES.has(target)) {
+    const pitcherPos = isPitcher(position);
+    if (!pitcherPos && PITCHER_ONLY_ARCHETYPES.has(target)) {
       return PITCHER_FALLBACK_FOR_NONPITCHER[target] ?? target;
     }
-    if (isPitcher && HITTER_ONLY_ARCHETYPES.has(target)) {
+    if (pitcherPos && HITTER_ONLY_ARCHETYPES.has(target)) {
       return HITTER_FALLBACK_FOR_PITCHER[target] ?? target;
     }
     return target;
@@ -899,16 +900,16 @@ function pickArchetypeForRecruit(
   if (isLegendary) {
     return LEGENDARY_ARCHETYPES[Math.floor(Math.random() * LEGENDARY_ARCHETYPES.length)];
   }
-  const isPitcher = r.position === "P";
+  const isPitcherPos = isPitcher(r.position);
   if (r.isBlueChip) {
     const eliteAll: Archetype[] = ["summer_breakout", "velocity_freak", "rivalry_recruit", "social_media_star", "generational_prodigy"];
     // velocity_freak (pitcher-only) must be excluded for position players
-    const elite = isPitcher
+    const elite = isPitcherPos
       ? eliteAll.filter(a => !HITTER_ONLY_ARCHETYPES.has(a))
       : eliteAll.filter(a => !PITCHER_ONLY_ARCHETYPES.has(a));
     return elite[Math.floor(Math.random() * elite.length)];
   }
-  if (isPitcher) {
+  if (isPitcherPos) {
     const pitcherArch: Archetype[] = ["velocity_freak", "knuckleball_specialist", "burnout_candidate", "injury_risk", "late_bloomer"];
     return pitcherArch[Math.floor(Math.random() * pitcherArch.length)];
   }
@@ -982,7 +983,7 @@ export function generateStorylineEvent(
 
   // Select position-aware scene prompt: prefer the pitcher variant for pitchers when available,
   // otherwise fall back to the default (hitter/neutral) scenePrompt.
-  const scenePrompt = (position === "P" && template.scenePromptPitcher)
+  const scenePrompt = (position && isPitcher(position) && template.scenePromptPitcher)
     ? template.scenePromptPitcher
     : template.scenePrompt;
 
