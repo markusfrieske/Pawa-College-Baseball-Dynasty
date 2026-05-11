@@ -157,7 +157,7 @@ export function generateRecruitClass(
     return { isGem: false, isBust: false };
   };
 
-  // Pitcher OVR formula: pitchCore*0.85 + pitchField*0.20 + pitchCommon*0.25
+  // Pitcher OVR formula: pitchCore*1.02 + pitchField*0.21 + pitchCommon*0.37
   // produces ~90 fewer OVR points than the hitter formula at the same raw attribute
   // average (e.g. hitter at avg=43 → OVR ~317; pitcher at avg=43 → OVR ~237).
   // Pitcher bands are therefore calibrated ~22 points higher than hitter bands so
