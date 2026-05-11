@@ -860,7 +860,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteStorylineEventsByLeague(leagueId: string, season: number): Promise<void> {
-    // Deletes all events (and cascade-deletes votes via FK) for the given league+season
+    // Votes must be deleted first (no onDelete cascade on storyline_votes.eventId FK)
+    // Fetch event IDs for this league/season, then delete their votes, then the events
+    const events = await db.select({ id: storylineEvents.id }).from(storylineEvents)
+      .where(and(eq(storylineEvents.leagueId, leagueId), eq(storylineEvents.season, season)));
+    if (events.length > 0) {
+      const eventIds = events.map(e => e.id);
+      await db.delete(storylineVotes).where(inArray(storylineVotes.eventId, eventIds));
+    }
     await db.delete(storylineEvents)
       .where(and(eq(storylineEvents.leagueId, leagueId), eq(storylineEvents.season, season)));
   }

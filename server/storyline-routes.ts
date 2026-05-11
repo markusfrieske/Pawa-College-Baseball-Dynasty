@@ -331,6 +331,16 @@ export function registerStorylineRoutes(app: Express) {
         return res.status(403).json({ message: "Only the commissioner can manually trigger storyline events" });
       }
 
+      // Idempotency guard: enforce weekly cap of 4 unresolved events per league.
+      // Prevents repeated manual triggers from bypassing the 2–4 throttle.
+      const unresolvedEvents = await storage.getUnresolvedStorylineEvents(leagueId);
+      if (unresolvedEvents.length >= 4) {
+        return res.status(409).json({
+          message: "Weekly event cap reached (4 active events). Advance the week or resolve pending events before generating more.",
+          unresolvedCount: unresolvedEvents.length,
+        });
+      }
+
       const generated = await generateAndResolveStorylineEvents(leagueId, league.currentSeason, league.currentWeek);
       res.json({ success: true, ...generated });
     } catch (err) {
@@ -595,12 +605,13 @@ async function generateWeeklyStorylineEvents(leagueId: string, season: number, w
 
     if (ready.length === 0) return 0;
 
-    // Throttle: pick 2–4 recruits to generate events for (prioritize legendary)
+    // Throttle: pick 2–4 recruits to generate events for this week
+    // Non-legendary pool is shuffled each call so all 10 recruits rotate fairly over time;
+    // legendary recruits are still prioritized but non-legendary order is random each week.
     const maxEvents = Math.min(ready.length, 2 + Math.floor(Math.random() * 3)); // 2, 3, or 4
-    const prioritized = [
-      ...ready.filter(sl => sl.isLegendary),
-      ...ready.filter(sl => !sl.isLegendary),
-    ].slice(0, maxEvents);
+    const legendaryReady = ready.filter(sl => sl.isLegendary);
+    const nonLegendaryReady = ready.filter(sl => !sl.isLegendary).sort(() => Math.random() - 0.5);
+    const prioritized = [...legendaryReady, ...nonLegendaryReady].slice(0, maxEvents);
 
     for (const sl of prioritized) {
       const recruit = await storage.getRecruit(sl.recruitId);
