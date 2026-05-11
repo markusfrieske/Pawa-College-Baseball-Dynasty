@@ -181,6 +181,7 @@ export interface IStorage {
   getStorylineEvent(id: string): Promise<StorylineEvent | undefined>;
   createStorylineEvent(data: InsertStorylineEvent): Promise<StorylineEvent>;
   updateStorylineEvent(id: string, data: Partial<StorylineEvent>): Promise<StorylineEvent | undefined>;
+  getFirstStorylineEventImageByTemplateId(templateId: string): Promise<string | null>;
 
   getStorylineVotesByEvent(eventId: string): Promise<StorylineVote[]>;
   getStorylineVoteByTeam(eventId: string, teamId: string): Promise<StorylineVote | undefined>;
@@ -942,6 +943,14 @@ export class DatabaseStorage implements IStorage {
   async updateStorylineEvent(id: string, data: Partial<StorylineEvent>): Promise<StorylineEvent | undefined> {
     const [e] = await db.update(storylineEvents).set(data).where(eq(storylineEvents.id, id)).returning();
     return e || undefined;
+  }
+
+  async getFirstStorylineEventImageByTemplateId(templateId: string): Promise<string | null> {
+    const [e] = await db.select({ eventImageUrl: storylineEvents.eventImageUrl })
+      .from(storylineEvents)
+      .where(and(eq(storylineEvents.templateId, templateId), isNotNull(storylineEvents.eventImageUrl)))
+      .limit(1);
+    return e?.eventImageUrl ?? null;
   }
 
   // ─── Storyline Votes ─────────────────────────────────────────────────────────

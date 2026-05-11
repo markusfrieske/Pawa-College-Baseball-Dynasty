@@ -75,6 +75,67 @@ async function generateStorylineImage(
   return dataUrl;
 }
 
+// Generates a wide retro scene image for a specific storyline event template.
+// Checks the templateId cache first to avoid re-generating the same scene.
+async function generateEventSceneImage(
+  eventId: string,
+  templateId: string,
+  scenePrompt: string,
+): Promise<string | null> {
+  const baseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
+  const apiKey  = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
+  if (!baseURL || !apiKey) {
+    console.warn("[storylines] OpenAI not configured — skipping event image generation");
+    return null;
+  }
+
+  const cached = await storage.getFirstStorylineEventImageByTemplateId(templateId).catch(() => null);
+  if (cached) {
+    await storage.updateStorylineEvent(eventId, { eventImageUrl: cached }).catch(err =>
+      console.warn("[storylines] failed to copy cached event image:", err),
+    );
+    return cached;
+  }
+
+  async function attemptGenerate(prompt: string): Promise<string | null> {
+    const res = await fetch(`${baseURL}/images/generations`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
+      body: JSON.stringify({ model: "gpt-image-1", prompt, n: 1, size: "1536x1024" }),
+    });
+    if (!res.ok) {
+      console.warn("[storylines] event scene image error:", res.status, await res.text());
+      return null;
+    }
+    const json = await res.json() as { data?: Array<{ b64_json?: string }> };
+    const b64 = json.data?.[0]?.b64_json;
+    return b64 ? `data:image/png;base64,${b64}` : null;
+  }
+
+  const fallbackPrompt = "Retro pixel art college baseball scene, 16-bit SNES style, dark forest green background, gold accent lighting, dramatic atmosphere, no text";
+  const delays = [1000, 2000, 4000];
+  let dataUrl: string | null = null;
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const prompt = attempt < 2 ? scenePrompt : fallbackPrompt;
+      dataUrl = await attemptGenerate(prompt);
+      if (dataUrl) break;
+      if (attempt < 2) await new Promise(r => setTimeout(r, delays[attempt]));
+    } catch (err) {
+      console.warn(`[storylines] event image gen attempt ${attempt + 1} threw:`, err);
+      if (attempt < 2) await new Promise(r => setTimeout(r, delays[attempt]));
+    }
+  }
+
+  if (dataUrl) {
+    await storage.updateStorylineEvent(eventId, { eventImageUrl: dataUrl }).catch(err =>
+      console.warn("[storylines] failed to persist event image:", err),
+    );
+  }
+  return dataUrl;
+}
+
 async function resolveCoachTeamId(leagueId: string, userId: string): Promise<string | null> {
   const coaches = await storage.getCoachesByLeague(leagueId);
   return coaches.find(c => c.userId === userId)?.teamId ?? null;
@@ -634,8 +695,15 @@ async function generateWeeklyStorylineEvents(leagueId: string, season: number, w
         linkedRecruitName,
       );
 
-      await storage.createStorylineEvent({ ...eventData, archetypeAtEvent: sl.archetype });
+      const createdEvent = await storage.createStorylineEvent({ ...eventData, archetypeAtEvent: sl.archetype });
       count++;
+
+      if (eventData.templateId && eventData.scenePrompt) {
+        const { id: evId, templateId, scenePrompt } = { id: createdEvent.id, templateId: eventData.templateId, scenePrompt: eventData.scenePrompt };
+        generateEventSceneImage(evId, templateId, scenePrompt).catch(err =>
+          console.warn("[storylines] async event image gen failed:", err),
+        );
+      }
     }
   } catch (err) {
     console.error("[storylines] generateWeeklyEvents error:", err);

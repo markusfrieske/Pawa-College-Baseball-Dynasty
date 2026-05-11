@@ -30,6 +30,7 @@ interface StorylineEventFull {
   resolvedOutcomeText: string | null;
   ovrDelta: number | null;
   archetypeAtEvent?: string | null;
+  eventImageUrl?: string | null;
 }
 
 interface StorylineRecruit {
@@ -323,7 +324,18 @@ function StorylineCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: strin
 
         {event && (
           <div className="mt-4 space-y-3">
-            <div className={`rounded-md px-3 py-2.5 border ${isResolved ? "bg-muted/20 border-border/40" : "bg-card/80 border-gold/20"}`}>
+            <div className={`rounded-md border overflow-hidden ${isResolved ? "bg-muted/20 border-border/40" : "bg-card/80 border-gold/20"}`}>
+              {event.eventImageUrl && (
+                <div className="w-full aspect-[16/5] overflow-hidden">
+                  <img
+                    src={event.eventImageUrl}
+                    alt="Scene"
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                </div>
+              )}
+              <div className="px-3 py-2.5">
               <div className="flex items-center gap-1.5 mb-1.5">
                 {isResolved ? (
                   <CheckCircle className="w-3 h-3 text-green-400" />
@@ -345,6 +357,7 @@ function StorylineCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: strin
                   )}
                 </div>
               )}
+              </div>
             </div>
 
             {!isResolved && (

@@ -59,6 +59,7 @@ export function rollHiddenVars(starRank: number, isBlueChip: boolean, isLegendar
 // ─── Archetype Definitions ────────────────────────────────────────────────────
 export interface ArchetypeEventTemplate {
   id: string;
+  scenePrompt?: string;  // pixel art scene image prompt for this event template
   eventText: string;
   choiceA: string; choiceAOutcome: string; choiceAWeights: ChoiceWeights;
   choiceB: string; choiceBOutcome: string; choiceBWeights: ChoiceWeights;
@@ -154,6 +155,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
     events: [
       {
         id: "lb_1",
+        scenePrompt: "Pixel art scene: lone pitcher in an empty bullpen under amber stadium lights at dusk, pitching coach watching through a chain-link fence with a notepad, overcast sky. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name} has been putting in quiet extra work with the pitching coach after every practice. Sources say his stuff has noticeably ticked up. How does the coaching staff approach this development moment?",
         choiceA: "Push him harder — structured elite workload", choiceAOutcome: "The intense program pays dividends. His mechanics sharpen dramatically.", choiceAWeights: W.bold_pos,
         choiceB: "Let it breathe — controlled organic growth", choiceBOutcome: "He develops at his own pace, steady and sure.", choiceBWeights: W.safe_pos,
@@ -162,6 +164,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
       },
       {
         id: "lb_2",
+        scenePrompt: "Pixel art scene: two scouts sitting in small wooden bleachers at a local ballpark, notepads in hand, watching a player field ground balls, overcast afternoon sky. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "A regional scouting report on {name} quietly circulates. Whispers of a 'sleeper' catch attention — multiple programs are now paying closer attention than they let on.",
         choiceA: "Invite him for an official campus visit immediately", choiceAOutcome: "The official attention validates his trajectory and motivates a surge.", choiceAWeights: W.bold_pos,
         choiceB: "Maintain current relationship — steady build", choiceBOutcome: "Consistent communication proves more valuable than flashy moves.", choiceBWeights: W.safe_pos,
@@ -169,6 +172,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
       },
       {
         id: "lb_3",
+        scenePrompt: "Pixel art scene: phone screen glowing with a viral batting practice clip, crowd gathered around a batting cage under bright spotlights, social media notification icons floating up. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name} posted a viral batting practice video that has every scout's inbox flooded. He looks like a different player. The question is whether it translates to game action.",
         choiceA: "Offer a scholarship now — before others do", choiceAOutcome: "Moving first locks him in and provides a stability boost.", choiceAWeights: W.bold_pos,
         choiceB: "Schedule a head coach visit this weekend", choiceBOutcome: "The personal touch from the head coach strengthens the relationship.", choiceBWeights: W.safe_pos,
@@ -185,6 +189,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
     events: [
       {
         id: "vf_1",
+        scenePrompt: "Pixel art scene: pitcher in full windup, large radar gun in foreground reading 98 mph, coaching staff arguing in the dugout behind him, stadium floodlights cutting through night air. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name} touched 98 mph in a bullpen session but walked seven in his last start. His arm is electric; his command is absent. The pitching coach debate is getting heated.",
         choiceA: "Full mechanics overhaul — the velocity can wait", choiceAOutcome: "The rebuild works. His command improves at the cost of some velocity.", choiceAWeights: W.safe_pos,
         choiceB: "Throw more. Trust the reps to iron out command", choiceBOutcome: "Volume brings either breakthrough or breakdown.", choiceBWeights: W.high_risk,
@@ -193,6 +198,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
       },
       {
         id: "vf_2",
+        scenePrompt: "Pixel art scene: pitcher on the mound under blazing stadium lights, a lone MLB scout with a radar gun in the upper deck, night sky behind. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "The {name} experiment is dividing opinions. His pure stuff rates elite but game results are inconsistent. MLB scouts are still showing up — the ceiling conversations are real.",
         choiceA: "Start him in a big conference game — sink or swim", choiceAOutcome: "Facing elite competition might crystallize his development.", choiceAWeights: W.high_risk,
         choiceB: "Structured approach: mid-week starts only", choiceBOutcome: "Low-pressure reps build a foundation.", choiceBWeights: W.safe_pos,
@@ -200,6 +206,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
       },
       {
         id: "vf_3",
+        scenePrompt: "Pixel art scene: state showcase stage with a spotlight on a pitcher mid-delivery, scoreboard showing 101 mph, crowd of scouts silhouetted in the stands. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name}'s fastball clocked 101 at the state showcase. Rival coaches are shaking their heads. Now he has to decide: keep pursuing the pure power approach or add refinement?",
         choiceA: "Offer a full scholarship on the spot", choiceAOutcome: "Locking him in now secures the upside.", choiceAWeights: W.bold_pos,
         choiceB: "Suggest he focus on the off-speed this summer", choiceBOutcome: "The off-speed development transforms him into a complete pitcher.", choiceBWeights: W.safe_pos,
@@ -216,6 +223,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
     events: [
       {
         id: "sr_1",
+        scenePrompt: "Pixel art scene: batter at an indoor hitting facility, coach adjusting his stance at a tee, video footage playing on a screen in the background, overhead fluorescent lights. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name} is in the middle of a full swing overhaul with a renowned hitting instructor. His numbers have temporarily cratered, but the underlying metrics look promising. Risk or reward?",
         choiceA: "Accelerate the rebuild — all-in on new approach", choiceAOutcome: "The aggressive timeline either completes the transformation or breaks the process.", choiceAWeights: W.high_risk,
         choiceB: "Support the process with patient communication", choiceBOutcome: "He feels understood and valued. The rebuild continues with confidence.", choiceBWeights: W.safe_pos,
@@ -224,6 +232,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
       },
       {
         id: "sr_2",
+        scenePrompt: "Pixel art scene: batter launching a towering home run during a scrimmage, several scouts in the front row half-rising from their seats in surprise, ball arcing into the sky. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "Three months into his swing rebuild, {name} went 3-for-4 with two homers in a scrimmage. Scouts who saw the old swing are skeptical. Those who saw this one aren't.",
         choiceA: "Invite him to a live game showcase immediately", choiceAOutcome: "Game performance either validates everything or reveals the rebuild needs more time.", choiceAWeights: W.high_risk,
         choiceB: "Continue the relationship with detailed evaluation support", choiceBOutcome: "Steady engagement builds mutual trust.", choiceBWeights: W.safe_pos,
@@ -239,6 +248,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
     events: [
       {
         id: "pc_1",
+        scenePrompt: "Pixel art scene: outfielder awkwardly fitted in catcher's gear behind home plate during practice, multiple coaches watching with clipboards, indoor facility with blue padding on walls. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name} is converting from outfield to catcher, and the transition is fascinating scouts. His athleticism is off the charts, but the position requires years to master. How do you handle this?",
         choiceA: "Offer resources: dedicated catcher development staff", choiceAOutcome: "Elite instruction accelerates the conversion.", choiceAWeights: W.bold_pos,
         choiceB: "Let him choose his timeline for the switch", choiceBOutcome: "Ownership of the decision increases his commitment.", choiceBWeights: W.safe_pos,
@@ -247,6 +257,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
       },
       {
         id: "pc_2",
+        scenePrompt: "Pixel art scene: catcher in full gear blocking a ball in the dirt with a dust cloud kicking up, impressed coach watching from behind the backstop. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "After eight weeks at his new position, {name} is showing unexpected aptitude. His blocking has improved dramatically. One scout called him 'a future stud back there.' Momentum is real.",
         choiceA: "Lock in a commitment around his new position", choiceAOutcome: "Showing positional belief cements the relationship.", choiceAWeights: W.bold_pos,
         choiceB: "Schedule a visit focused on position development", choiceBOutcome: "Facility and coaching tours impress him.", choiceBWeights: W.safe_pos,
@@ -262,6 +273,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
     events: [
       {
         id: "sb_1",
+        scenePrompt: "Pixel art scene: summer showcase stadium packed with scouts and tents, a batter at the plate under blazing sun, colorful program banners lining the outfield fence, prospect rankings board visible. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name} dominated three consecutive showcase events over the summer, launching himself from unranked to a top-30 prospect in his state. The attention is new — and overwhelming.",
         choiceA: "Strike fast: official offer before the buzz fades", choiceAOutcome: "Being first with an offer in a hot market is decisive.", choiceAWeights: W.bold_pos,
         choiceB: "Build a personal relationship amid the chaos", choiceBOutcome: "While others throw scholarships, you listen. He notices.", choiceBWeights: W.safe_pos,
@@ -270,6 +282,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
       },
       {
         id: "sb_2",
+        scenePrompt: "Pixel art scene: fall baseball game at dusk, batter in a strained pressing stance, empty concrete bleachers behind, binoculars visible from a distant scout. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name}'s fall season results are under a microscope. Everyone wants to see if the summer performance was real. He's pressing — and it shows in early fall games.",
         choiceA: "Encourage him: remind him of what you saw this summer", choiceAOutcome: "Your belief in him when he's pressing steadies him.", choiceAWeights: W.safe_pos,
         choiceB: "Reduce pressure: let him know the offer stands regardless", choiceBOutcome: "Unconditional support unlocks his natural game.", choiceBWeights: W.bold_pos,
@@ -285,6 +298,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
     events: [
       {
         id: "sm_1",
+        scenePrompt: "Pixel art scene: player filming a training montage on a phone mounted on a tripod in a batting cage, phone screen showing a subscriber count in the millions, ring lights casting a glow. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name}'s latest training montage has 8 million views. Corporate sponsorship inquiries are pouring in. His focus on his brand is raising legitimate questions about his priorities.",
         choiceA: "Embrace the platform — help him leverage it", choiceAOutcome: "Working with the brand instead of against it creates a motivated and focused player.", choiceAWeights: W.bold_pos,
         choiceB: "Have a frank conversation about priorities", choiceBOutcome: "The honest discussion either refocuses him or creates friction.", choiceBWeights: W.high_risk,
@@ -293,6 +307,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
       },
       {
         id: "sm_2",
+        scenePrompt: "Pixel art scene: phone screen showing a controversial social media post with angry reaction icons flooding the comments, player in the dim background staring down at the floor. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name} posted a controversial tweet that caught backlash. Now scouts are questioning his character. Some programs quietly dropped him. You have a decision to make.",
         choiceA: "Stand by him publicly — show character-first values", choiceAOutcome: "Your loyalty in a hard moment creates an unbreakable bond.", choiceAWeights: W.bold_pos,
         choiceB: "Private conversation first, then decide", choiceBOutcome: "Understanding the full story before acting is the mature move.", choiceBWeights: W.safe_pos,
@@ -308,6 +323,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
     events: [
       {
         id: "cc_1",
+        scenePrompt: "Pixel art scene: batter sitting alone at the far end of a dugout bench, bat across his knees, head bowed, empty stadium seats stretching behind him in shadow. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name} went 0-for-12 in his last three games and is visibly struggling mentally. Scouts who watched him six weeks ago are confused — this doesn't look like the same player.",
         choiceA: "Send a handwritten letter emphasizing your belief in him", choiceAOutcome: "The personal gesture cuts through the noise and reignites his confidence.", choiceAWeights: W.bold_pos,
         choiceB: "Schedule a phone call — just to talk, not recruit", choiceBOutcome: "Human connection over recruiting tactics changes the dynamic.", choiceBWeights: W.safe_pos,
@@ -316,6 +332,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
       },
       {
         id: "cc_2",
+        scenePrompt: "Pixel art scene: walk-off home run celebration, teammates mobbing the batter at home plate in an explosion of joy, stadium lights blazing, confetti-like dirt and dust in the air. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name} had a breakthrough game — 4 hits including a walk-off homer. He's riding a wave of emotion. This is the moment to build a foundation, not exploit it.",
         choiceA: "Be there immediately — share the joy genuinely", choiceAOutcome: "Your authentic celebration of his success deepens trust.", choiceAWeights: W.safe_pos,
         choiceB: "Offer a scholarship in the moment — capitalize on the high", choiceBOutcome: "The timing either feels inspired or opportunistic.", choiceBWeights: W.high_risk,
@@ -331,6 +348,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
     events: [
       {
         id: "bc_1",
+        scenePrompt: "Pixel art scene: exhausted pitcher at a summer showcase, dark circles under his eyes, travel bags piled beside the dugout, overcast hazy sky over the field. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name} showed up to a summer showcase visibly exhausted. He's been pitching for three different travel teams simultaneously. His performance was below expectations but scouts are still watching.",
         choiceA: "Encourage a rest period — champion his recovery", choiceAOutcome: "Advocating for his health builds enormous trust and enables a comeback.", choiceAWeights: W.bold_pos,
         choiceB: "Schedule a lighter showcase opportunity instead", choiceBOutcome: "A smaller stage with lower stakes lets him perform authentically.", choiceBWeights: W.safe_pos,
@@ -339,6 +357,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
       },
       {
         id: "bc_2",
+        scenePrompt: "Pixel art scene: pitcher sitting alone on outfield grass watching teammates practice from a distance, long afternoon shadows stretching across the field, a contemplative stillness. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "Reports surface that {name} is seriously considering stepping away from baseball for a semester to recover mentally. His family supports the idea. This is a crucial moment.",
         choiceA: "Support the break — promise his spot will be here when he returns", choiceAOutcome: "Showing you value him as a person over a recruit creates lifelong loyalty.", choiceAWeights: W.bold_pos,
         choiceB: "Offer flexible program options — reduced schedule freshman year", choiceBOutcome: "Creative solutions address his real concerns.", choiceBWeights: W.safe_pos,
@@ -354,6 +373,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
     events: [
       {
         id: "ir_1",
+        scenePrompt: "Pixel art scene: pitcher in a recovery bullpen session, arm wrapped in a sleeve, physical trainer watching intently, slow careful delivery, medical equipment on a nearby table. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name} is eight months post-surgery and throwing in bullpen sessions again. Scouts are cautiously optimistic but no one is fully committing yet. His velocity is at 87% of pre-injury levels.",
         choiceA: "Commit fully — show you believe in his full recovery", choiceAOutcome: "Your early trust sets the foundation for a loyal, motivated player.", choiceAWeights: W.bold_pos,
         choiceB: "Express genuine interest but wait for full medical clearance", choiceBOutcome: "Measured approach respects both parties.", choiceBWeights: W.safe_pos,
@@ -362,6 +382,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
       },
       {
         id: "ir_2",
+        scenePrompt: "Pixel art scene: pitcher pumping his fist as the radar gun reads 94 mph, then immediately grimacing and reaching for his elbow, two emotions frozen in the same moment. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name} hit 94 mph in his return start — his highest velocity since before the injury. The buzz is electric. But he felt tightness in the elbow afterward and is being extra cautious.",
         choiceA: "Encourage aggressive timeline — showcase him at a big event", choiceAOutcome: "Rushing the return risks re-injury and destroys trust.", choiceAWeights: W.risky_neg,
         choiceB: "Support the cautious approach fully", choiceBOutcome: "Patience and support build the relationship for the long game.", choiceBWeights: W.safe_pos,
@@ -377,6 +398,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
     events: [
       {
         id: "ac_1",
+        scenePrompt: "Pixel art scene: student athlete at a library desk studying, baseball glove and helmet resting beside textbooks, tutor pointing at equations on a whiteboard, warm lamplight. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name} needs a 2.8 GPA in his final semester to meet minimum eligibility requirements. He's currently at a 2.5. There's a tutor available but it means giving up some showcase appearances.",
         choiceA: "Fund a dedicated academic tutoring program for him", choiceAOutcome: "The investment in his education pays dividends in loyalty and eligibility.", choiceAWeights: W.bold_pos,
         choiceB: "Connect him with current players who navigated similar situations", choiceBOutcome: "Peer guidance is highly effective for academic motivation.", choiceBWeights: W.safe_pos,
@@ -385,6 +407,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
       },
       {
         id: "ac_2",
+        scenePrompt: "Pixel art scene: player holding a grade report with visible relief, family members hugging around him, phone on the table showing multiple missed calls from coaches. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name} passed all his classes and cleared eligibility — but barely. His family is relieved and he's motivated to prove he belongs. Now the question is who he commits to.",
         choiceA: "Celebrate the achievement personally and follow up immediately", choiceAOutcome: "Sharing in the victory builds a genuine personal bond.", choiceAWeights: W.safe_pos,
         choiceB: "Offer a scholarship — reward the hard work", choiceBOutcome: "Moving at the moment of achievement cements the relationship.", choiceBWeights: W.bold_pos,
@@ -400,6 +423,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
     events: [
       {
         id: "tr_1",
+        scenePrompt: "Pixel art scene: recruit surrounded by a whirlwind of college program logos and ringing phones, standing at a crossroads looking overwhelmed, rival logos closing in. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name} decommitted from his verbal commitment overnight, citing a 'desire to explore other options.' Every program in the region is calling. Your relationship is established — but is it enough?",
         choiceA: "Move immediately — campus visit this weekend", choiceAOutcome: "Speed and decisiveness in a competitive situation wins the room.", choiceAWeights: W.bold_pos,
         choiceB: "Reach out personally — don't pitch, just listen", choiceBOutcome: "Understanding the real reason for the decommitment gives you a real advantage.", choiceBWeights: W.safe_pos,
@@ -408,6 +432,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
       },
       {
         id: "tr_2",
+        scenePrompt: "Pixel art scene: newspaper sports page with a rival program's logo and a recruitment headline, coaches in shadow debating at a table, a phone showing a media article. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "A national media report lists {name} as 'likely headed to' a rival program. Insiders say it's not that simple — there are real concerns about the rival's coaching staff.",
         choiceA: "Address the report directly — ask if there's anything you can answer", choiceAOutcome: "Transparency cuts through rumors and shows confidence.", choiceAWeights: W.safe_pos,
         choiceB: "Don't acknowledge the report — continue your normal approach", choiceBOutcome: "Staying steady while others react demonstrates maturity.", choiceBWeights: W.neutral_up,
@@ -423,6 +448,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
     events: [
       {
         id: "ts_1",
+        scenePrompt: "Pixel art scene: player standing at a fork in a road, one path lit by a baseball diamond at night, the other by a football stadium glow, two offer letters in his hands. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name} just received a full football scholarship offer from a power conference program. His baseball coaches say he's a first-round bat. He's genuinely torn between the two sports.",
         choiceA: "Make the strongest possible baseball case — career earning potential, love of game", choiceAOutcome: "A compelling narrative about the baseball path convinces him this is his sport.", choiceAWeights: W.bold_pos,
         choiceB: "Let him explore — make clear the offer remains open", choiceBOutcome: "Respect for his process keeps the door open.", choiceBWeights: W.safe_pos,
@@ -431,6 +457,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
       },
       {
         id: "ts_2",
+        scenePrompt: "Pixel art scene: player with arm in a cast seated on a hospital bed, baseball bat leaning in the corner, family and coaches gathered around the room with concerned expressions. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name} broke his wrist playing football in the offseason — 8 weeks minimum recovery. His baseball development window is now compressed. Programs are reassessing their interest.",
         choiceA: "Stand firm — express that your offer and belief are unchanged", choiceAOutcome: "Unconditional support during injury is rarely offered. He remembers it forever.", choiceAWeights: W.bold_pos,
         choiceB: "Reassess the offer level based on the injury risk", choiceBOutcome: "Rational risk management, but he'll know you wavered.", choiceBWeights: W.risky_neg,
@@ -446,6 +473,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
     events: [
       {
         id: "kb_1",
+        scenePrompt: "Pixel art scene: knuckleball pitcher mid-delivery with a slow-spinning baseball leaving his grip, three batters frozen in baffled stances at the plate, coaching staff watching in disbelief. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name}'s knuckleball clocked 52 mph and batters looked completely helpless against it in his last start. Every traditional pitching metric says he's a liability. Every actual result says otherwise.",
         choiceA: "Embrace the uniqueness — build your staff around him", choiceAOutcome: "Committing fully to his style unleashes his full potential.", choiceAWeights: W.high_risk,
         choiceB: "Encourage a second pitch as a safety net", choiceBOutcome: "Adding velocity as a backup option might help or might dilute the pure approach.", choiceBWeights: W.neutral_up,
@@ -454,6 +482,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
       },
       {
         id: "kb_2",
+        scenePrompt: "Pixel art scene: packed college stadium, scoreboard showing 15 strikeouts, two scouts walking out shaking their heads while everyone else watches in amazement, an aura of mystery around the mound. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "Against a nationally ranked program, {name}'s knuckleball baffled 15 batters across 7 innings. Two scouts left without filing reports — they didn't know what to write. His future is genuinely unclear.",
         choiceA: "Champion the unconventional — show you see what others don't", choiceAOutcome: "Being the program that believed in his unique gift changes everything.", choiceAWeights: W.bold_pos,
         choiceB: "Offer but hedge — evaluate traditional stuff in parallel", choiceBOutcome: "Cautious approach misses the moment of peak belief.", choiceBWeights: W.cautious,
@@ -469,6 +498,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
     events: [
       {
         id: "rr_1",
+        scenePrompt: "Pixel art scene: recruit walking through a campus, rival program banners and colors visible in the background, secretly reading a brochure for a different school, coaches watching from the shadows. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name} is from the heart of rival country. Every metric says he should sign with them. But something has him exploring. He's taken two visits to your program — more than anyone expected.",
         choiceA: "Make him feel like he'd be part of history — a culture shift", choiceAOutcome: "The 'become a legend here' narrative resonates deeply with competitive players.", choiceAWeights: W.bold_pos,
         choiceB: "Focus purely on fit and development — ignore the rivalry angle", choiceBOutcome: "The rivalry angle is noise. The fit conversation is substance.", choiceBWeights: W.safe_pos,
@@ -477,6 +507,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
       },
       {
         id: "rr_2",
+        scenePrompt: "Pixel art scene: multiple phones ringing simultaneously, rival coaches crowding outside a recruit's family home visible through a window, a chaotic swarm of attention around one household. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "The rival program found out you're heavily recruiting {name} and has gone all-in. The head coach called. The assistant coach is texting his parents. The pressure is real.",
         choiceA: "Match the intensity — this is war, recruit accordingly", choiceAOutcome: "Going all-in on intensity can win the battle but risks alienating the player.", choiceAWeights: W.high_risk,
         choiceB: "Be the steady, calmer voice in the chaos", choiceBOutcome: "When everyone else panics, your composure stands out.", choiceBWeights: W.safe_pos,
@@ -493,6 +524,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
     events: [
       {
         id: "ph_1",
+        scenePrompt: "Pixel art scene: overflowing mailbox stuffed with scholarship offer envelopes, a phone dashboard showing viral showcase footage with millions of views, college logos everywhere. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name}'s showcase footage went viral overnight. Every major program's DM is full. He has 40+ scholarship offers and hasn't returned a single call. How do you cut through the noise?",
         choiceA: "Send a handwritten letter — analog in a digital world", choiceAOutcome: "The personal touch lands differently when everyone else is flooding his inbox.", choiceAWeights: W.bold_pos,
         choiceB: "Fly out with your head coach — show the full commitment", choiceBOutcome: "The in-person visit from your entire staff signals seriousness.", choiceBWeights: W.safe_pos,
@@ -501,6 +533,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
       },
       {
         id: "ph_2",
+        scenePrompt: "Pixel art scene: weathered scout in the stadium bleachers with binoculars, jaw dropped, watching a distant player make a breathtaking play far below, stadium silent in awe. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "A scout pulls you aside after a {name} workout: 'I've seen one player like this in 30 years.' He's choosing between five elite programs next week. What's your closing argument?",
         choiceA: "Development path — show exactly how your program elevates phenoms to pros", choiceAOutcome: "The program's track record of developing elite talent speaks for itself.", choiceAWeights: W.bold_pos,
         choiceB: "Culture — let current players tell the story of what it means to be here", choiceBOutcome: "Peer testimonials from players he admires carry enormous weight.", choiceBWeights: W.safe_pos,
@@ -508,6 +541,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
       },
       {
         id: "ph_3",
+        scenePrompt: "Pixel art scene: commitment day table with two school flags, a family on the phone, a clock on the wall showing one hour remaining, tension visible in every corner of the room. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "Commitment day. {name} has narrowed it to two schools — yours and a rival. His family calls with one hour left. His mother says: 'Tell us one thing no one else has said.' What do you say?",
         choiceA: "Name a specific player you developed and what his life looks like now", choiceAOutcome: "The concrete, personal story is more powerful than any promise.", choiceAWeights: W.bold_pos,
         choiceB: "Tell her that her son is more than a prospect — you see the whole person", choiceBOutcome: "The statement that transcends baseball is the one she remembers.", choiceBWeights: W.safe_pos,
@@ -523,6 +557,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
     events: [
       {
         id: "tc_1",
+        scenePrompt: "Pixel art scene: former top-ranked recruit slumped in a dugout corner, a faded ranking clipping pinned to the wall behind him, whispers visible as shadow figures in the background. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name} was the top recruit in his region six months ago. Now there are whispers — family situation, attitude issues, a drop in grades. His ranking has collapsed. Is this still a player worth recruiting?",
         choiceA: "Go deeper — reach out privately and hear the real story", choiceAOutcome: "Understanding what's actually happening puts you in a unique position of trust.", choiceAWeights: W.bold_pos,
         choiceB: "Watch from a distance — monitor the situation without committing", choiceBOutcome: "Cautious observation avoids risk but also avoids the relationship.", choiceBWeights: W.cautious,
@@ -531,6 +566,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
       },
       {
         id: "tc_2",
+        scenePrompt: "Pixel art scene: player opening up to a coach in a dimly lit locker room, single lamp casting warm amber light across both figures, a moment of quiet trust and vulnerability. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name} opens up to you. His family is going through something serious. He says: 'I need a school that won't give up on me when things get hard.' The coaches who backed off are calling again now that he's stabilizing.",
         choiceA: "Stay steady — you were there when others weren't, and that matters", choiceAOutcome: "The coaches who showed up in the dark earn loyalty that doesn't fade.", choiceAWeights: W.bold_pos,
         choiceB: "Offer a hardship support framework — concrete help, not just words", choiceBOutcome: "Translating care into a real support plan signals a program built for people.", choiceBWeights: W.safe_pos,
@@ -538,6 +574,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
       },
       {
         id: "tc_3",
+        scenePrompt: "Pixel art scene: comeback player back on the field with rising stat numbers glowing on a scoreboard, former doubters visible in the stands as shadowy figures, a new dawn breaking behind the stadium. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name} is back. His performance is trending up, his grades are recovering. The programs that left are now calling. He's told you: 'You were the only one who didn't ghost me.' How do you close?",
         choiceA: "Reference specific moments — show him you paid attention throughout", choiceAOutcome: "Remembering the details of someone's struggle is a profound form of respect.", choiceAWeights: W.bold_pos,
         choiceB: "Let him lead — ask what he wants from this chapter of his life", choiceBOutcome: "Putting him in control of the conversation gives him agency after a period of chaos.", choiceBWeights: W.safe_pos,
@@ -553,6 +590,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
     events: [
       {
         id: "tsi_1",
+        scenePrompt: "Pixel art scene: a young agent at a desk with two contracts — one for baseball, one for football — player in silhouette weighing both, team logos glowing on each contract. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name} is a top baseball and football recruit. Both programs are making their pitches simultaneously. His agent — yes, he has an agent at 17 — says he's leaning toward the sport that shows him the clearest path. What's your argument for baseball?",
         choiceA: "Draft projection — show him the MLB path and the timeline", choiceAOutcome: "Elite baseball players often go pro faster than football. That story matters.", choiceAWeights: W.bold_pos,
         choiceB: "Health — baseball careers last longer, the body takes less punishment", choiceBOutcome: "The longevity argument lands differently when framed around his future.", choiceBWeights: W.safe_pos,
@@ -561,6 +599,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
       },
       {
         id: "tsi_2",
+        scenePrompt: "Pixel art scene: media circus with news vans outside a home, a football coach arguing on the front lawn, baseball coaches arriving from the side, player watching from an upstairs window with uncertainty. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name}'s football coach went public saying baseball would 'waste his potential.' It's created a media circus. He's being pulled in two directions and his commitment has been postponed indefinitely. How do you respond?",
         choiceA: "Stay entirely above the drama — let your program speak for itself", choiceAOutcome: "Dignity under fire signals a program with strong values.", choiceAWeights: W.bold_pos,
         choiceB: "Reach out privately to check in on him — not about baseball, about him", choiceBOutcome: "Checking on the person, not the recruit, is what rare coaches do.", choiceBWeights: W.safe_pos,
@@ -568,6 +607,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
       },
       {
         id: "tsi_3",
+        scenePrompt: "Pixel art scene: private moment before the announcement, player shaking a coach's hand in a quiet room, sunrise visible through a window, a sense of peace before the public storm. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name} has made his decision — baseball. He tells you privately before the announcement. He says your program was 'the only one that made him feel like a baseball player, not a recruiting trophy.' How do you respond?",
         choiceA: "Tell him the story of a similar player who chose baseball and never looked back", choiceAOutcome: "Grounding the moment in someone else's success gives him something to hold.", choiceAWeights: W.safe_pos,
         choiceB: "Make him the centerpiece of your program's identity immediately", choiceBOutcome: "Investing fully from day one sets the tone for the entire relationship.", choiceBWeights: W.bold_pos,
@@ -583,6 +623,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
     events: [
       {
         id: "sci_1",
+        scenePrompt: "Pixel art scene: analytical recruit presenting a thick printed report to a stunned coaching staff across a conference table, charts and graphs covering every wall, data streams glowing on a screen. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name} sent your program a 12-page PDF comparing your pitching development metrics to eight other programs. He highlighted gaps. He called it 'preliminary diligence.' How do you respond to a 17-year-old who just audited your program?",
         choiceA: "Respond in kind — build a counter-presentation using your own data", choiceAOutcome: "Meeting him at his level signals a program that respects intelligence.", choiceAWeights: W.bold_pos,
         choiceB: "Set up a meeting with your analytics staff — let the numbers people talk", choiceBOutcome: "Connecting him with his future teammates in the data room is the right move.", choiceBWeights: W.safe_pos,
@@ -591,6 +632,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
       },
       {
         id: "sci_2",
+        scenePrompt: "Pixel art scene: video call screen showing an analytics dashboard with WAR projections, an empty chair beside the one occupied coach, a clock on the wall showing the call is already running. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name} has narrowed his list by projected WAR contribution of recruits from each program over five years. He requests a 90-minute call specifically about your development philosophy. Your most analytical coach is traveling. How do you handle this?",
         choiceA: "Take the call yourself and be transparent about what you know and don't know", choiceAOutcome: "Intellectual humility from the head coach is exactly what a scientist respects.", choiceAWeights: W.bold_pos,
         choiceB: "Reschedule — get the right people on the call, don't wing it", choiceBOutcome: "Respecting the process shows you understand what he values.", choiceBWeights: W.safe_pos,
@@ -598,6 +640,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
       },
       {
         id: "sci_3",
+        scenePrompt: "Pixel art scene: three school logos on a whiteboard with annotated data columns, the scientist recruit holding a pen hovering over one of them, a final decision moment under fluorescent light. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name} has completed his analysis. He's chosen three finalists — your program is one of them. His final question: 'What would you do differently if you could rebuild your program with perfect data?' What's your answer?",
         choiceA: "Give a specific, honest answer — name a decision you'd change", choiceAOutcome: "The willingness to name a real mistake is the highest form of intellectual honesty.", choiceAWeights: W.bold_pos,
         choiceB: "Turn it back to him — ask what his model would change and engage with the answer", choiceBOutcome: "Making his insight part of the actual conversation elevates the relationship.", choiceBWeights: W.neutral_up,
@@ -613,6 +656,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
     events: [
       {
         id: "fh_1",
+        scenePrompt: "Pixel art scene: small-town ballpark packed with 3,000 fans, the local hero on the mound under floodlights, main street storefronts visible beyond the outfield fence at dusk. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name} plays for a town of 800 people. His games draw crowds of 3,000. Local TV has done six features. He's the most famous person in his county, and he's never left the state. How do you build a relationship with someone whose entire world is in one place?",
         choiceA: "Go to his town — attend a game, walk the main street, meet the community", choiceAOutcome: "Showing up in someone's world sends a message that no zoom call can replicate.", choiceAWeights: W.bold_pos,
         choiceB: "Connect with his coach, his pastor, his neighbors — learn who he is through them", choiceBOutcome: "Understanding his world through the people who shaped it is the deepest kind of research.", choiceBWeights: W.safe_pos,
@@ -621,6 +665,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
       },
       {
         id: "fh_2",
+        scenePrompt: "Pixel art scene: national TV satellite trucks parked on a small-town street, recruit standing outside his home looking overwhelmed at the sudden circus, neighbors watching from their porches. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "A national outlet writes a feature on {name}. Suddenly 30 new programs are calling. He tells you he's overwhelmed. 'I just want to play ball,' he says. 'Not perform for people.' How do you stand out in a suddenly crowded field?",
         choiceA: "Be direct: 'We won't make this bigger than it needs to be. Here's what we offer.'", choiceAOutcome: "Simplicity in a circus is its own kind of power.", choiceAWeights: W.bold_pos,
         choiceB: "Invite him for a quiet, private visit — no fanfare, just the program", choiceBOutcome: "A quiet visit signals you understand what he's asking for.", choiceBWeights: W.safe_pos,
@@ -628,6 +673,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
       },
       {
         id: "fh_3",
+        scenePrompt: "Pixel art scene: commitment announcement in a small-town gymnasium, the entire community celebrating, streamers falling, player at the podium with pure joy on his face, coaches beaming. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name} has committed to your program. At the announcement, he says: 'I picked the school that felt like home.' The room cheers. His town cheers. You've gained not just a player — but a story. How do you honor that?",
         choiceA: "Invite the town — host a group visit from his community early in the season", choiceAOutcome: "Bringing his world into yours is an act of respect that defines the relationship.", choiceAWeights: W.bold_pos,
         choiceB: "Let him be the bridge — give him the platform to represent where he came from", choiceBOutcome: "Making him an ambassador for his story gives him something bigger to carry.", choiceBWeights: W.safe_pos,
@@ -643,6 +689,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
     events: [
       {
         id: "gp_1",
+        scenePrompt: "Pixel art scene: 17-year-old standing at a podium surrounded by microphones and camera flashes, visibly overwhelmed, magazine covers featuring his face floating in the background. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name} is being called the best prospect in the country. Magazine features. National TV appearances. Every conversation about him starts with 'generational talent.' He's 17 years old and overwhelmed.",
         choiceA: "Offer a sanctuary — a program that protects him from the noise", choiceAOutcome: "Being the safe harbor in the storm of expectations is uniquely powerful.", choiceAWeights: W.bold_pos,
         choiceB: "Celebrate the recognition — lean into the greatness narrative", choiceBOutcome: "Matching his energy on the hype creates excitement about your program.", choiceBWeights: W.neutral_up,
@@ -651,6 +698,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
       },
       {
         id: "gp_2",
+        scenePrompt: "Pixel art scene: magazine front page projected on a wall showing top-5 draft pick projection, player in silhouette staring at it, a one-year countdown clock visible beside the projection. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "A national publication projects {name} as a potential top-5 MLB Draft pick — after ONE year of college. The conversation around him has shifted from recruit to future professional. How do you respond?",
         choiceA: "Commit to a one-year max showcase plan — build his draft stock", choiceAOutcome: "Showing you understand and support his professional trajectory is a differentiator.", choiceAWeights: W.bold_pos,
         choiceB: "Emphasize the college experience — multiple years of development", choiceBOutcome: "The development and growth narrative appeals to players and families.", choiceBWeights: W.safe_pos,
@@ -659,6 +707,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
       },
       {
         id: "gp_3",
+        scenePrompt: "Pixel art scene: late night phone call in a kitchen, family gathered around the table, coach on the other end, the final question hanging in the air before tomorrow's announcement. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "The night before {name}'s commitment announcement, his family reaches out to you privately. They have one final question: 'Can you protect him from himself when the pressure gets too much?'",
         choiceA: "Commit fully and specifically — name your plan", choiceAOutcome: "The specific, concrete answer to the right question wins the most important recruit of your career.", choiceAWeights: W.safe_pos,
         choiceB: "Speak from the heart — share your philosophy as a coach", choiceBOutcome: "Authenticity in this final moment seals a relationship built on genuine trust.", choiceBWeights: W.bold_pos,
@@ -668,6 +717,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
     legendaryEvents: [
       {
         id: "gp_legend_1",
+        scenePrompt: "Pixel art scene: Hall of Famers silhouetted in a stadium's luxury box watching a young player perform on the field below, a golden ethereal glow emanating from the player, the whole stadium holding its breath. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "LEGENDARY MOMENT — {name} posted numbers that haven't been seen at this level in recorded history. Multiple Hall of Famers have reached out personally. The whole sport is watching what happens next.",
         choiceA: "Be present at every milestone — make yourself part of his legend", choiceAOutcome: "Being woven into the greatest recruiting story of the era is priceless.", choiceAWeights: { minor_pos: 0.05, moderate_pos: 0.15, major_pos: 0.30, legendary_pos: 0.30, minor_neg: 0.02, moderate_neg: 0.04, major_neg: 0.06, legendary_neg: 0.03, neutral: 0.05 },
         choiceB: "Stay grounded — be the one voice of calm and reason", choiceBOutcome: "When everyone chases the star, the steady voice cuts through.", choiceBWeights: W.bold_pos,
@@ -844,6 +894,8 @@ export function generateStorylineEvent(
   leagueId: string;
   season: number;
   week: number;
+  templateId: string;
+  scenePrompt: string | undefined;
   eventText: string;
   choiceA: string; choiceAOutcome: string; choiceAWeights: ChoiceWeights;
   choiceB: string; choiceBOutcome: string; choiceBWeights: ChoiceWeights;
@@ -875,6 +927,8 @@ export function generateStorylineEvent(
     leagueId,
     season,
     week,
+    templateId: template.id,
+    scenePrompt: template.scenePrompt,
     eventText: interpolate(template.eventText),
     choiceA: template.choiceA,
     choiceAOutcome: interpolate(template.choiceAOutcome),

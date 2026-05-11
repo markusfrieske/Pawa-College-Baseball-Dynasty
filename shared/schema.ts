@@ -1274,6 +1274,8 @@ export const storylineEvents = pgTable("storyline_events", {
   choiceDOutcome: text("choice_d_outcome"),
   choiceDWeights: json("choice_d_weights").$type<ChoiceWeights>(),
   archetypeAtEvent: text("archetype_at_event"),  // recruit's archetype snapshot when this event was created
+  templateId: text("template_id"),               // which event template was used (e.g. "lb_1") — shared image cache key
+  eventImageUrl: text("event_image_url"),        // generated pixel art scene image for this event template
   resolvedChoice: text("resolved_choice"),
   resolvedOutcomeText: text("resolved_outcome_text"),
   ovrDelta: integer("ovr_delta"),
