@@ -33,7 +33,10 @@ import {
   Target,
   Link as LinkIcon,
   FastForward,
-  Timer
+  Timer,
+  Bell,
+  BellRing,
+  Bot
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -1157,6 +1160,8 @@ interface ReadyStatusData {
     walkonReady: boolean;
     scoutActionsUsed: number;
     recruitActionsUsed: number;
+    currentWeekActionCount: number;
+    lastActivityAt: string | null;
     hasReportedScores: boolean;
   }>;
   allHumansReady: boolean;
@@ -1166,10 +1171,41 @@ interface ReadyStatusData {
   readyCount: number;
 }
 
+function formatLastActivity(lastActivityAt: string | null): string {
+  if (!lastActivityAt) return "No activity";
+  const diff = Date.now() - new Date(lastActivityAt).getTime();
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+  if (minutes < 1) return "Just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  return `${days}d ago`;
+}
+
 function ReadyStatusSection({ leagueId }: { leagueId: string }) {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+
   const { data, isLoading } = useQuery<ReadyStatusData>({
     queryKey: ["/api/leagues", leagueId, "ready-status"],
     enabled: !!leagueId,
+    refetchInterval: 30000,
+  });
+
+  const nudgeMutation = useMutation({
+    mutationFn: async (teamId: string) => {
+      const res = await apiRequest("POST", `/api/leagues/${leagueId}/teams/${teamId}/nudge`);
+      return res.json();
+    },
+    onSuccess: (_data, teamId) => {
+      const team = data?.readyStatus.find(s => s.teamId === teamId);
+      toast({ title: "Nudge Sent", description: `Reminder logged for ${team?.coachName ?? "coach"}.` });
+      qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "ready-status"] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
   });
 
   if (isLoading || !data) {
@@ -1184,22 +1220,43 @@ function ReadyStatusSection({ leagueId }: { leagueId: string }) {
   }
 
   const humanTeams = data.readyStatus.filter(s => s.isHumanControlled);
+  const cpuTeams = data.readyStatus.filter(s => !s.isHumanControlled);
   const isDeparturesPhase = data.currentPhase === "offseason_departures";
   const isWalkonsPhase = data.currentPhase === "offseason_walkons";
+  const isRecruitingPhase = ["offseason_recruiting_1","offseason_recruiting_2","offseason_recruiting_3","offseason_recruiting_4"].includes(data.currentPhase);
+
   const getTeamReady = (team: typeof humanTeams[0]) => {
     if (isDeparturesPhase) return team.departuresFinalized;
     if (isWalkonsPhase) return team.walkonReady;
     return team.isReady;
   };
 
+  const stalledTeams = humanTeams.filter(t => !getTeamReady(t));
+  const readyTeams = humanTeams.filter(t => getTeamReady(t));
+
+  const sectionTitle = isDeparturesPhase
+    ? "Departure Readiness"
+    : isWalkonsPhase
+    ? "Walk-On Readiness"
+    : stalledTeams.length > 0
+    ? "Who's Stalling?"
+    : "Ready Status";
+
   return (
     <RetroCard>
       <RetroCardHeader>
         <div className="flex items-center justify-between w-full">
-          <span>{isDeparturesPhase ? "Departure Readiness" : "Ready Status"}</span>
-          <Badge 
-            variant="outline" 
-            className={data.allHumansReady ? "border-green-500 text-green-500" : "border-gold text-gold"}
+          <div className="flex items-center gap-2">
+            {stalledTeams.length > 0 && !data.allHumansReady ? (
+              <BellRing className="w-4 h-4 text-amber-400" />
+            ) : (
+              <Bell className="w-4 h-4 text-green-500" />
+            )}
+            <span>{sectionTitle}</span>
+          </div>
+          <Badge
+            variant="outline"
+            className={data.allHumansReady ? "border-green-500 text-green-500" : "border-amber-400 text-amber-400"}
           >
             {data.readyCount}/{data.humanCount} Ready
           </Badge>
@@ -1208,108 +1265,134 @@ function ReadyStatusSection({ leagueId }: { leagueId: string }) {
       <RetroCardContent>
         {humanTeams.length === 0 ? (
           <p className="text-muted-foreground text-sm">No human coaches in this dynasty.</p>
-        ) : isDeparturesPhase ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border text-left text-muted-foreground">
-                  <th className="pb-2 font-medium">Coach</th>
-                  <th className="pb-2 font-medium text-center">Departures Submitted</th>
-                </tr>
-              </thead>
-              <tbody>
-                {humanTeams.map((team) => (
-                  <tr key={team.teamId} className="border-b border-border/50">
-                    <td className="py-2">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{team.abbreviation}</span>
-                        <span className="text-muted-foreground">{team.coachName}</span>
-                      </div>
-                    </td>
-                    <td className="py-2 text-center">
-                      {team.departuresFinalized ? (
-                        <Check className="w-4 h-4 text-green-500 mx-auto" data-testid={`status-departures-ready-${team.teamId}`} />
-                      ) : (
-                        <Clock className="w-4 h-4 text-muted-foreground mx-auto" data-testid={`status-departures-waiting-${team.teamId}`} />
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {!data.allHumansReady && (
-              <p className="text-xs text-muted-foreground mt-3">
-                All coaches must submit their departures before the league can advance.
-              </p>
-            )}
-          </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border text-left text-muted-foreground">
-                  <th className="pb-2 font-medium">Coach</th>
-                  <th className="pb-2 font-medium text-center">Ready</th>
-                  <th className="pb-2 font-medium text-center">Scout</th>
-                  <th className="pb-2 font-medium text-center">Recruit</th>
-                  <th className="pb-2 font-medium text-center">Scores</th>
-                </tr>
-              </thead>
-              <tbody>
-                {humanTeams.map((team) => {
-                  const isReady = getTeamReady(team);
-                  const deadline = data.phaseDeadline ? new Date(data.phaseDeadline) : null;
-                  const deadlineDiffMs = deadline ? deadline.getTime() - Date.now() : null;
-                  const stallLabel = !isReady && deadline
-                    ? deadlineDiffMs !== null && deadlineDiffMs <= 0
+          <div className="space-y-4">
+            {/* Stalled coaches - shown prominently when any are waiting */}
+            {stalledTeams.length > 0 && (
+              <div>
+                <p className="font-pixel text-[9px] text-amber-400 uppercase mb-2 flex items-center gap-1">
+                  <Clock className="w-3 h-3" /> Waiting ({stalledTeams.length})
+                </p>
+                <div className="space-y-2">
+                  {stalledTeams.map((team) => {
+                    const deadline = data.phaseDeadline ? new Date(data.phaseDeadline) : null;
+                    const deadlineDiffMs = deadline ? deadline.getTime() - Date.now() : null;
+                    const timeLeft = deadlineDiffMs !== null && deadlineDiffMs <= 0
                       ? "Deadline passed"
                       : deadlineDiffMs !== null && deadlineDiffMs < 3600000
                       ? `${Math.ceil(deadlineDiffMs / 60000)}m left`
                       : deadlineDiffMs !== null
                       ? `${Math.ceil(deadlineDiffMs / 3600000)}h left`
-                      : null
-                    : null;
-                  return (
-                  <tr key={team.teamId} className={`border-b border-border/50 ${!isReady ? "bg-amber-950/20" : ""}`}>
-                    <td className="py-2">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{team.abbreviation}</span>
-                        <span className="text-muted-foreground">{team.coachName}</span>
-                        {!isReady && (
-                          <span className="text-[9px] font-pixel text-amber-400 border border-amber-400/40 px-1 py-0.5 rounded">WAITING</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-2 text-center">
-                      {isReady ? (
-                        <Check className="w-4 h-4 text-green-500 mx-auto" />
-                      ) : (
-                        <div className="flex flex-col items-center gap-0.5">
-                          <Clock className="w-4 h-4 text-amber-400 mx-auto" />
-                          {stallLabel && (
-                            <span className="text-[9px] text-amber-400">{stallLabel}</span>
+                      : null;
+
+                    return (
+                      <div
+                        key={team.teamId}
+                        className="flex items-center justify-between gap-3 p-2.5 rounded border border-amber-400/30 bg-amber-950/20"
+                        data-testid={`stall-row-${team.teamId}`}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-pixel text-[10px] text-gold">{team.abbreviation}</span>
+                            <span className="text-sm">{team.coachName}</span>
+                            <span className="text-[9px] font-pixel text-amber-400 border border-amber-400/40 px-1 py-0.5 rounded">WAITING</span>
+                          </div>
+                          <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground flex-wrap">
+                            {isDeparturesPhase ? (
+                              <span>Departures not submitted</span>
+                            ) : isWalkonsPhase ? (
+                              <span>Roster not finalized</span>
+                            ) : isRecruitingPhase ? (
+                              <>
+                                <span>{team.currentWeekActionCount} action{team.currentWeekActionCount !== 1 ? "s" : ""} this week</span>
+                                <span>·</span>
+                                <span>Scout: {team.scoutActionsUsed} · Recruit: {team.recruitActionsUsed}</span>
+                              </>
+                            ) : (
+                              <span>Not marked ready</span>
+                            )}
+                            {team.lastActivityAt && (
+                              <>
+                                <span>·</span>
+                                <span className="text-muted-foreground/70">Last active: {formatLastActivity(team.lastActivityAt)}</span>
+                              </>
+                            )}
+                            {!team.lastActivityAt && (
+                              <span className="text-muted-foreground/50">No activity yet this week</span>
+                            )}
+                          </div>
+                          {timeLeft && (
+                            <div className="flex items-center gap-1 mt-1">
+                              <Timer className="w-3 h-3 text-amber-400" />
+                              <span className="text-[10px] text-amber-400">{timeLeft}</span>
+                            </div>
                           )}
                         </div>
+                        <RetroButton
+                          variant="outline"
+                          size="sm"
+                          onClick={() => nudgeMutation.mutate(team.teamId)}
+                          disabled={nudgeMutation.isPending}
+                          data-testid={`button-nudge-${team.teamId}`}
+                          className="shrink-0 border-amber-400/40 text-amber-400 hover:bg-amber-400/10"
+                        >
+                          <BellRing className="w-3 h-3 mr-1" />
+                          Nudge
+                        </RetroButton>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Ready coaches */}
+            {readyTeams.length > 0 && (
+              <div>
+                {stalledTeams.length > 0 && (
+                  <p className="font-pixel text-[9px] text-green-500 uppercase mb-2 flex items-center gap-1">
+                    <Check className="w-3 h-3" /> Ready ({readyTeams.length})
+                  </p>
+                )}
+                <div className="space-y-1">
+                  {readyTeams.map((team) => (
+                    <div
+                      key={team.teamId}
+                      className="flex items-center justify-between gap-2 py-1.5 px-2 rounded bg-green-950/20 border border-green-500/20"
+                      data-testid={`ready-row-${team.teamId}`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Check className="w-3.5 h-3.5 text-green-500 shrink-0" />
+                        <span className="font-pixel text-[10px] text-gold">{team.abbreviation}</span>
+                        <span className="text-sm text-muted-foreground">{team.coachName}</span>
+                      </div>
+                      {isRecruitingPhase && (
+                        <span className="text-[11px] text-muted-foreground">
+                          {team.currentWeekActionCount} action{team.currentWeekActionCount !== 1 ? "s" : ""}
+                        </span>
                       )}
-                    </td>
-                    <td className="py-2 text-center text-muted-foreground">
-                      {team.scoutActionsUsed}
-                    </td>
-                    <td className="py-2 text-center text-muted-foreground">
-                      {team.recruitActionsUsed}
-                    </td>
-                    <td className="py-2 text-center">
-                      {team.hasReportedScores ? (
-                        <Check className="w-4 h-4 text-green-500 mx-auto" />
-                      ) : (
-                        <X className="w-4 h-4 text-red-500 mx-auto" />
-                      )}
-                    </td>
-                  </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* CPU teams summary */}
+            {cpuTeams.length > 0 && (
+              <div className="pt-2 border-t border-border/50">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Bot className="w-3.5 h-3.5" />
+                  <span>{cpuTeams.length} CPU team{cpuTeams.length !== 1 ? "s" : ""} — auto-managed</span>
+                </div>
+              </div>
+            )}
+
+            {data.allHumansReady && humanTeams.length > 0 && (
+              <div className="flex items-center gap-2 p-2 rounded bg-green-950/30 border border-green-500/30">
+                <Check className="w-4 h-4 text-green-500" />
+                <span className="text-sm text-green-400">All coaches are ready — you can advance now.</span>
+              </div>
+            )}
           </div>
         )}
       </RetroCardContent>

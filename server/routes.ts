@@ -10123,6 +10123,9 @@ export async function registerRoutes(
       // Get all recruiting interests for accurate action counts
       const allInterests = await storage.getRecruitingInterestsByLeague(league.id);
 
+      // Get this week's recruiting actions for per-team action counts and last-activity timestamps
+      const weekActions = await storage.getRecruitingActionsLogByLeagueWeek(league.id, league.currentSeason, league.currentWeek);
+
       const readyStatus = teams.map(team => {
         const coach = coaches.find(c => c.teamId === team.id);
         const isHumanControlled = !!coach?.userId;
@@ -10139,6 +10142,14 @@ export async function registerRoutes(
         const scoutActionsUsed = teamInterests.filter(i => i.scoutPercentage > 0).length;
         const recruitActionsUsed = teamInterests.filter(i => i.interestLevel > 0).length;
 
+        // Per-team actions this week and last activity timestamp
+        const teamWeekActions = weekActions.filter(a => a.teamId === team.id);
+        const currentWeekActionCount = teamWeekActions.length;
+        const latestAction = teamWeekActions.sort((a, b) => 
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        )[0];
+        const lastActivityAt = latestAction ? latestAction.createdAt.toISOString() : null;
+
         return {
           teamId: team.id,
           teamName: team.name,
@@ -10151,6 +10162,8 @@ export async function registerRoutes(
           walkonReady: team.walkonReady ?? false,
           scoutActionsUsed,
           recruitActionsUsed,
+          currentWeekActionCount,
+          lastActivityAt,
           hasReportedScores,
         };
       });
@@ -10179,6 +10192,60 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to get ready status:", error);
       res.status(500).json({ message: "Failed to get ready status" });
+    }
+  });
+
+  // Send a nudge notification to a stalled coach (commissioner only)
+  app.post("/api/leagues/:id/teams/:teamId/nudge", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const teamId = req.params.teamId as string;
+
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      if (league.commissionerId !== req.session.userId) {
+        return res.status(403).json({ message: "Only the commissioner can send nudges" });
+      }
+
+      const coaches = await storage.getCoachesByLeague(leagueId);
+      const targetCoach = coaches.find(c => c.teamId === teamId);
+      if (!targetCoach || !targetCoach.userId) {
+        return res.status(400).json({ message: "Cannot nudge a CPU team" });
+      }
+
+      const teams = await storage.getTeamsByLeague(leagueId);
+      const team = teams.find(t => t.id === teamId);
+      if (!team) return res.status(404).json({ message: "Team not found" });
+
+      const phaseLabel: Record<string, string> = {
+        offseason_departures: "submit their player departures",
+        offseason_recruiting_1: "take recruiting actions",
+        offseason_recruiting_2: "take recruiting actions",
+        offseason_recruiting_3: "take recruiting actions",
+        offseason_recruiting_4: "take recruiting actions",
+        offseason_signing_day: "finalize their signing day decisions",
+        offseason_walkons: "complete their roster cuts & walk-ons",
+        regular_season: "advance the week",
+        preseason: "mark themselves ready",
+        spring_training: "mark themselves ready",
+      };
+      const action = phaseLabel[league.currentPhase] || "take action";
+
+      await storage.createLeagueEvent({
+        leagueId,
+        teamId,
+        teamName: team.name,
+        teamAbbreviation: team.abbreviation,
+        eventType: "PHASE_CHANGE",
+        description: `[COMMISSIONER NUDGE] ${team.abbreviation} (${targetCoach.firstName} ${targetCoach.lastName}) has been reminded to ${action}.`,
+        season: league.currentSeason,
+        week: league.currentWeek,
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to send nudge:", error);
+      res.status(500).json({ message: "Failed to send nudge" });
     }
   });
 
