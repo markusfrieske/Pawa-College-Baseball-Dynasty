@@ -85,6 +85,15 @@ function getInterestLabel(level: number): { label: string; color: string } {
   return { label: "Cold", color: "text-blue-300" };
 }
 
+function getInterestBarColor(level: number): string {
+  if (level >= 90) return "bg-red-400";
+  if (level >= 70) return "bg-orange-400";
+  if (level >= 50) return "bg-yellow-400";
+  if (level >= 30) return "bg-green-400";
+  if (level >= 15) return "bg-blue-400";
+  return "bg-blue-300";
+}
+
 function getInterestChangeLabel(change: number): { label: string; color: string } {
   if (change >= 15) return { label: "Big Boost", color: "text-green-400" };
   if (change >= 8) return { label: "Good Progress", color: "text-green-400" };
@@ -127,6 +136,7 @@ interface RecruitingData {
   nextYearRosterSize: number;
   seniorsGraduating: number;
   premiumActionsUsed: Record<string, string[]>;
+  weeklyActionsUsed: Record<string, string[]>;
 }
 
 const positionOptions = [
@@ -1473,6 +1483,8 @@ export default function RecruitingPage() {
               isOffering={offerMutation.isPending}
               hasVisited={data?.premiumActionsUsed?.[recruit.id]?.includes("visit") ?? false}
               hasHeadCoachVisited={data?.premiumActionsUsed?.[recruit.id]?.includes("head_coach_visit") ?? false}
+              phonedThisWeek={data?.weeklyActionsUsed?.[recruit.id]?.includes("phone") ?? false}
+              emailedThisWeek={data?.weeklyActionsUsed?.[recruit.id]?.includes("email") ?? false}
               isSavingNotes={notesMutation.isPending}
               isSelected={compareRecruits.some(r => r.id === recruit.id)}
               isBulkSelected={bulkSelected.has(recruit.id)}
@@ -1799,6 +1811,8 @@ function RecruitRow({
   progressionEnabled,
   hasVisited,
   hasHeadCoachVisited,
+  phonedThisWeek,
+  emailedThisWeek,
 }: {
   recruit: RecruitWithInterest;
   leagueId: string;
@@ -1834,6 +1848,8 @@ function RecruitRow({
   hasVisited?: boolean;
   hasHeadCoachVisited?: boolean;
   isStorylineRecruit?: boolean;
+  phonedThisWeek?: boolean;
+  emailedThisWeek?: boolean;
 }) {
   const [showNotesDialog, setShowNotesDialog] = useState(false);
   const [notesValue, setNotesValue] = useState(recruit.interest?.notes || "");
@@ -2145,24 +2161,35 @@ function RecruitRow({
           <>
             {/* Mobile compact quick-actions — Scout + More popover */}
             <div className="flex items-center gap-2 lg:hidden">
-              <div className="flex-1 min-w-0">
-                <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                  <span>Scout</span>
+              <div className="flex-1 min-w-0 space-y-1">
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span className="text-[9px]">Scout</span>
                   <div className="flex items-center gap-1.5">
-                    {interestMeta && (
-                      <span className={`text-[9px] font-bold ${interestMeta.color}`} data-testid={`interest-label-mobile-${recruit.id}`}>
-                        {interestMeta.label}
-                      </span>
-                    )}
                     {trend && trend.trend !== "flat" && (
                       <span className={`text-[9px] ${trend.trend === "up" ? "text-green-400" : "text-red-400"}`} data-testid={`trend-mobile-${recruit.id}`}>
                         {trend.trend === "up" ? <TrendingUp className="w-3 h-3 inline" /> : <TrendingDown className="w-3 h-3 inline" />}
                       </span>
                     )}
-                    <span>{scoutPct}%</span>
+                    <span className="text-[9px]">{scoutPct}%</span>
                   </div>
                 </div>
                 <Progress value={scoutPct} className="h-1.5" />
+                <div className="flex justify-between items-center">
+                  <span className="text-[9px] text-muted-foreground">Interest</span>
+                  {interestMeta ? (
+                    <div className="flex items-center gap-1" data-testid={`interest-bar-mobile-${recruit.id}`}>
+                      <div className="w-16 h-1.5 bg-muted/40 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${getInterestBarColor(recruit.interest!.interestLevel)}`}
+                          style={{ width: `${recruit.interest!.interestLevel}%` }}
+                        />
+                      </div>
+                      <span className={`text-[9px] font-bold ${interestMeta.color}`}>{interestMeta.label}</span>
+                    </div>
+                  ) : (
+                    <span className="text-[9px] text-muted-foreground/50">—</span>
+                  )}
+                </div>
               </div>
               <RetroButton
                 variant="outline"
@@ -2198,20 +2225,20 @@ function RecruitRow({
                     <button
                       className="flex items-center gap-2 w-full text-left px-2 py-1.5 rounded text-xs text-foreground hover:bg-muted/50 transition-colors disabled:opacity-50"
                       onClick={() => { setShowPhonePicker(true); setShowEmailPicker(false); setSelectedPhonePitches([]); setShowMobileMore(false); }}
-                      disabled={isPhoning || !recruit.interest || outOfRecruitingActions}
+                      disabled={isPhoning || !recruit.interest || outOfRecruitingActions || phonedThisWeek}
                       data-testid={`button-phone-mobile-${recruit.id}`}
                     >
                       <Phone className="w-3 h-3 flex-shrink-0" />
-                      Call (1 pt)
+                      {phonedThisWeek ? "Called (limit)" : "Call (1 pt)"}
                     </button>
                     <button
                       className="flex items-center gap-2 w-full text-left px-2 py-1.5 rounded text-xs text-foreground hover:bg-muted/50 transition-colors disabled:opacity-50"
                       onClick={() => { setShowEmailPicker(true); setShowPhonePicker(false); setSelectedEmailPitch(null); setShowMobileMore(false); }}
-                      disabled={isEmailing || !recruit.interest || outOfRecruitingActions}
+                      disabled={isEmailing || !recruit.interest || outOfRecruitingActions || emailedThisWeek}
                       data-testid={`button-email-mobile-${recruit.id}`}
                     >
                       <Mail className="w-3 h-3 flex-shrink-0" />
-                      Email (1 pt)
+                      {emailedThisWeek ? "Emailed (limit)" : "Email (1 pt)"}
                     </button>
                     <button
                       className={`flex items-center gap-2 w-full text-left px-2 py-1.5 rounded text-xs transition-colors ${hasVisited ? "text-gold bg-gold/10" : "text-foreground hover:bg-muted/50"} disabled:opacity-50`}
@@ -2264,33 +2291,52 @@ function RecruitRow({
               </Popover>
             </div>
 
-            {/* Desktop full actions — unchanged, hidden on mobile */}
+            {/* Desktop full actions — hidden on mobile */}
             <div className="hidden lg:flex items-center gap-4 flex-wrap">
-              <div className="w-32">
-                <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                  <span>Scout</span>
-                  <div className="flex items-center gap-1.5">
-                    {interestMeta && (
+              <div className="w-36 space-y-1.5">
+                <div>
+                  <div className="flex justify-between text-xs text-muted-foreground mb-0.5">
+                    <span className="text-[9px]">Scout</span>
+                    <div className="flex items-center gap-1">
+                      {trend && trend.trend !== "flat" && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className={`text-[9px] cursor-default ${trend.trend === "up" ? "text-green-400" : "text-red-400"}`} data-testid={`trend-${recruit.id}`}>
+                              {trend.trend === "up" ? <TrendingUp className="w-3 h-3 inline" /> : <TrendingDown className="w-3 h-3 inline" />}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {trend.trend === "up" ? `Interest rising (+${trend.recentGain} recently)` : `Interest falling (${trend.recentGain} recently)`}
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                      <span className="text-[9px]">{scoutPct}%</span>
+                    </div>
+                  </div>
+                  <Progress value={scoutPct} className="h-1.5" />
+                </div>
+                <div>
+                  <div className="flex justify-between items-center mb-0.5">
+                    <span className="text-[9px] text-muted-foreground">Interest</span>
+                    {interestMeta ? (
                       <span className={`text-[9px] font-bold ${interestMeta.color}`} data-testid={`interest-label-${recruit.id}`}>
                         {interestMeta.label}
                       </span>
+                    ) : (
+                      <span className="text-[9px] text-muted-foreground/50">—</span>
                     )}
-                    {trend && trend.trend !== "flat" && (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className={`text-[9px] cursor-default ${trend.trend === "up" ? "text-green-400" : "text-red-400"}`} data-testid={`trend-${recruit.id}`}>
-                            {trend.trend === "up" ? <TrendingUp className="w-3 h-3 inline" /> : <TrendingDown className="w-3 h-3 inline" />}
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {trend.trend === "up" ? `Interest rising (+${trend.recentGain} recently)` : `Interest falling (${trend.recentGain} recently)`}
-                        </TooltipContent>
-                      </Tooltip>
-                    )}
-                    <span>{scoutPct}%</span>
                   </div>
+                  {interestMeta ? (
+                    <div className="w-full h-1.5 bg-muted/40 rounded-full overflow-hidden" data-testid={`interest-bar-${recruit.id}`}>
+                      <div
+                        className={`h-full rounded-full transition-all ${getInterestBarColor(recruit.interest!.interestLevel)}`}
+                        style={{ width: `${recruit.interest!.interestLevel}%` }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-full h-1.5 bg-muted/20 rounded-full" />
+                  )}
                 </div>
-                <Progress value={scoutPct} className="h-2" />
               </div>
 
               <div className="flex gap-1.5 flex-wrap">
@@ -2327,32 +2373,32 @@ function RecruitRow({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <RetroButton
-                      variant={showPhonePicker ? "primary" : "outline"}
+                      variant={phonedThisWeek ? "primary" : showPhonePicker ? "primary" : "outline"}
                       size="sm"
-                      onClick={() => { setShowPhonePicker(!showPhonePicker); setShowEmailPicker(false); setSelectedPhonePitches([]); }}
-                      disabled={isPhoning || !recruit.interest || outOfRecruitingActions}
+                      onClick={() => { if (!phonedThisWeek) { setShowPhonePicker(!showPhonePicker); setShowEmailPicker(false); setSelectedPhonePitches([]); } }}
+                      disabled={isPhoning || !recruit.interest || outOfRecruitingActions || phonedThisWeek}
                       data-testid={`button-phone-${recruit.id}`}
                     >
                       <Phone className="w-3 h-3 mr-1" />
-                      <span className="text-[9px]">Call (1)</span>
+                      <span className="text-[9px]">{phonedThisWeek ? "Called" : "Call (1)"}</span>
                     </RetroButton>
                   </TooltipTrigger>
-                  <TooltipContent>Phone Call - 1 recruiting point (3 pitches)</TooltipContent>
+                  <TooltipContent>{phonedThisWeek ? "Already called this recruit this week (1 per week max)" : "Phone Call - 1 recruiting point (3 pitches)"}</TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <RetroButton
-                      variant={showEmailPicker ? "primary" : "outline"}
+                      variant={emailedThisWeek ? "primary" : showEmailPicker ? "primary" : "outline"}
                       size="sm"
-                      onClick={() => { setShowEmailPicker(!showEmailPicker); setShowPhonePicker(false); setSelectedEmailPitch(null); }}
-                      disabled={isEmailing || !recruit.interest || outOfRecruitingActions}
+                      onClick={() => { if (!emailedThisWeek) { setShowEmailPicker(!showEmailPicker); setShowPhonePicker(false); setSelectedEmailPitch(null); } }}
+                      disabled={isEmailing || !recruit.interest || outOfRecruitingActions || emailedThisWeek}
                       data-testid={`button-email-${recruit.id}`}
                     >
                       <Mail className="w-3 h-3 mr-1" />
-                      <span className="text-[9px]">Email (1)</span>
+                      <span className="text-[9px]">{emailedThisWeek ? "Emailed" : "Email (1)"}</span>
                     </RetroButton>
                   </TooltipTrigger>
-                  <TooltipContent>Send Email - 1 recruiting point (1 pitch)</TooltipContent>
+                  <TooltipContent>{emailedThisWeek ? "Already emailed this recruit this week (1 per week max)" : "Send Email - 1 recruiting point (1 pitch)"}</TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>

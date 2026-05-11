@@ -938,6 +938,7 @@ export async function registerRoutes(
 
       const allTeamActions = await storage.getRecruitingActionsLogByTeam(userTeam.id, league.id);
       const premiumActionsUsed: Record<string, string[]> = {};
+      const weeklyActionsUsed: Record<string, string[]> = {};
       for (const action of allTeamActions) {
         if (action.actionType === "visit" || action.actionType === "head_coach_visit") {
           if (!premiumActionsUsed[action.recruitId]) {
@@ -945,6 +946,15 @@ export async function registerRoutes(
           }
           if (!premiumActionsUsed[action.recruitId].includes(action.actionType)) {
             premiumActionsUsed[action.recruitId].push(action.actionType);
+          }
+        }
+        if ((action.actionType === "phone" || action.actionType === "email")
+            && action.week === league.currentWeek && action.season === league.currentSeason) {
+          if (!weeklyActionsUsed[action.recruitId]) {
+            weeklyActionsUsed[action.recruitId] = [];
+          }
+          if (!weeklyActionsUsed[action.recruitId].includes(action.actionType)) {
+            weeklyActionsUsed[action.recruitId].push(action.actionType);
           }
         }
       }
@@ -975,6 +985,7 @@ export async function registerRoutes(
         nextYearRosterSize,
         seniorsGraduating: seniorsCount,
         premiumActionsUsed,
+        weeklyActionsUsed,
         recruitPointCosts,
       });
     } catch (error) {
