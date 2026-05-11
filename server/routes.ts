@@ -10109,8 +10109,16 @@ export async function registerRoutes(
         return res.status(404).json({ message: "League not found" });
       }
 
+      // Commissioner-only: only the commissioner (or their own coach) should see full team readiness
+      const allLeagueCoaches = await storage.getCoachesByLeague(league.id);
+      const requestingCoach = allLeagueCoaches.find(c => c.userId === req.session.userId);
+      const isCommissioner = league.commissionerId === req.session.userId;
+      if (!isCommissioner && !requestingCoach) {
+        return res.status(403).json({ message: "Not authorized to view readiness data" });
+      }
+
       const teams = await storage.getTeamsByLeague(league.id);
-      const coaches = await storage.getCoachesByLeague(league.id);
+      const coaches = allLeagueCoaches;
       const games = await storage.getGamesByLeague(league.id);
       
       // Get current week's games that need scores
@@ -10126,13 +10134,35 @@ export async function registerRoutes(
       // Get this week's recruiting actions for per-team action counts and last-activity timestamps
       const weekActions = await storage.getRecruitingActionsLogByLeagueWeek(league.id, league.currentSeason, league.currentWeek);
 
-      // Get recent league events (current season, non-system events) as activity signals for non-recruiting phases
+      // Get recent league events (current season, non-nudge) as activity signals for non-recruiting phases
       const recentLeagueEvents = await storage.getLeagueEvents(league.id, 200);
       const currentSeasonEvents = recentLeagueEvents.filter(e =>
         e.season === league.currentSeason &&
         e.teamId !== null &&
         !e.description.startsWith("[COMMISSIONER NUDGE]")
       );
+
+      // Pre-group by teamId to avoid repeated filter+sort inside map
+      const interestsByTeam = new Map<string, typeof allInterests>();
+      for (const i of allInterests) {
+        if (!interestsByTeam.has(i.teamId)) interestsByTeam.set(i.teamId, []);
+        interestsByTeam.get(i.teamId)!.push(i);
+      }
+
+      const weekActionsByTeam = new Map<string, typeof weekActions>();
+      for (const a of weekActions) {
+        if (!weekActionsByTeam.has(a.teamId)) weekActionsByTeam.set(a.teamId, []);
+        weekActionsByTeam.get(a.teamId)!.push(a);
+      }
+
+      // Latest event timestamp per team (events already sorted desc by storage)
+      const latestEventByTeam = new Map<string, number>();
+      for (const e of currentSeasonEvents) {
+        const tid = e.teamId!;
+        if (!latestEventByTeam.has(tid)) {
+          latestEventByTeam.set(tid, new Date(e.createdAt).getTime());
+        }
+      }
 
       const readyStatus = teams.map(team => {
         const coach = coaches.find(c => c.teamId === team.id);
@@ -10146,27 +10176,23 @@ export async function registerRoutes(
           pendingGames.every(g => g.homeScore !== null && g.awayScore !== null);
 
         // Calculate actual scout and recruit actions from interests
-        const teamInterests = allInterests.filter(i => i.teamId === team.id);
+        const teamInterests = interestsByTeam.get(team.id) ?? [];
         const scoutActionsUsed = teamInterests.filter(i => i.scoutPercentage > 0).length;
         const recruitActionsUsed = teamInterests.filter(i => i.interestLevel > 0).length;
 
         // Per-team actions this week and last activity timestamp from recruiting log
-        const teamWeekActions = weekActions.filter(a => a.teamId === team.id);
+        const teamWeekActions = weekActionsByTeam.get(team.id) ?? [];
         const currentWeekActionCount = teamWeekActions.length;
-        const latestRecruitAction = teamWeekActions.sort((a, b) => 
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        )[0];
+        const latestRecruitTs = teamWeekActions.reduce((best, a) => {
+          const t = new Date(a.createdAt).getTime();
+          return t > best ? t : best;
+        }, 0);
 
-        // Also check league events for current-phase activity (covers departures, walk-ons, readiness toggles)
-        const teamEvents = currentSeasonEvents.filter(e => e.teamId === team.id);
-        const latestEvent = teamEvents.sort((a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        )[0];
+        // Latest event timestamp (pre-grouped above)
+        const latestEventTs = latestEventByTeam.get(team.id) ?? 0;
 
         // Use the most recent signal across both sources
-        const recruitTs = latestRecruitAction ? new Date(latestRecruitAction.createdAt).getTime() : 0;
-        const eventTs = latestEvent ? new Date(latestEvent.createdAt).getTime() : 0;
-        const bestTs = Math.max(recruitTs, eventTs);
+        const bestTs = Math.max(latestRecruitTs, latestEventTs);
         const lastActivityAt = bestTs > 0
           ? new Date(bestTs).toISOString()
           : null;
