@@ -63,6 +63,7 @@ export interface ArchetypeEventTemplate {
   scenePrompt?: string;         // pixel art scene image prompt — default (hitter/neutral)
   scenePromptPitcher?: string;  // pitcher-specific override; used when recruit is a pitcher
   eventText: string;
+  eventTextPitcher?: string;    // pitcher-specific override for event body text
   choiceA: string; choiceAOutcome: string; choiceAWeights: ChoiceWeights;
   choiceB: string; choiceBOutcome: string; choiceBWeights: ChoiceWeights;
   choiceC: string; choiceCOutcome: string; choiceCWeights: ChoiceWeights;
@@ -329,6 +330,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
         scenePrompt: "Pixel art scene: fall baseball game at dusk, player pressing badly at the plate, stance tight and mechanical compared to the summer, a distant scout lowering his binoculars slowly, the player's father watching alone in empty bleachers looking worried. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         scenePromptPitcher: "Pixel art scene: fall baseball game at dusk, pitcher struggling on the mound, delivery stiff and labored compared to the summer, a distant scout lowering his binoculars slowly, the player's father watching alone in empty bleachers looking worried. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name} is 2-for-18 in fall ball against real competition and visibly pressing. The agent has stopped responding to scout emails. Two programs quietly rescinded their offers without explanation. His father texted you at midnight: 'He's not sleeping. He thinks he fooled everyone this summer and now they know. Can you call him?' What do you do?",
+        eventTextPitcher: "{name} has posted a 7.40 ERA in fall ball against real competition and is visibly unraveling on the mound — windup short, release point all over the place, walking batters he'd have blown away in June. The agent has stopped responding to scout emails. Two programs quietly rescinded their offers without explanation. His father texted you at midnight: 'He's not sleeping. He thinks he fooled everyone this summer and now they know. Can you call him?' What do you do?",
         choiceA: "Call him immediately — not as a recruiter, as someone who believes him", choiceAOutcome: "Your presence at the moment he's convinced he's a fraud is the thing he will carry for years.", choiceAWeights: W.bold_pos,
         choiceB: "Call the father first — understand the full picture before reaching out to the player", choiceBOutcome: "The father's trust becomes the gateway to the player at the right moment. You earn both.", choiceBWeights: W.safe_pos,
         choiceC: "Send him the summer film — specific clips of what made the showcase real", choiceCOutcome: "The visual evidence of what you saw, curated by someone who watched closely, cuts through the doubt.", choiceCWeights: W.neutral_up,
@@ -372,6 +374,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
         scenePrompt: "Pixel art scene: player alone at the far end of an empty dugout, helmet in his hands, staring at the dirt floor, an empty batting cage behind him, the stadium completely still, a small photo visible tucked inside his helmet. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         scenePromptPitcher: "Pixel art scene: pitcher alone at the far end of an empty dugout, cap pulled down, staring at his hand, an empty bullpen mound behind him, stadium completely still, a small photo tucked inside his hat band. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name}'s father built a batting cage in their backyard when he was six years old and coached him every single day for twelve years. He passed away in October. {name} still shows up to every practice. He still takes every at-bat. He just hasn't had a hit since the funeral, and every scout who sees him says the same thing: 'Something's gone.' What do you do when the thing that's gone isn't fixable by a pitching coach?",
+        eventTextPitcher: "{name}'s father built a pitching mound in their backyard when he was six years old and coached him every single day for twelve years. He passed away in October. {name} still shows up to every bullpen session. He still takes the mound for every start. He just hasn't thrown a clean inning since the funeral — walked 14 in his last two outings — and every scout who sees him says the same thing: 'Something's gone.' What do you do when the thing that's gone can't be fixed with mechanics?",
         choiceA: "Show up to a game — just to sit in the stands, not to recruit", choiceAOutcome: "Being physically present with no agenda is an act of humanity that coaches almost never do. He notices.", choiceAWeights: W.bold_pos,
         choiceB: "Write him a real letter — not about baseball, about loss and what it means to keep going", choiceBOutcome: "The letter arrives on a bad day and becomes the thing he reads three times. Your name is different to him now.", choiceBWeights: W.safe_pos,
         choiceC: "Connect him with a current player who lost a parent and came through it", choiceCOutcome: "Peer understanding of this specific kind of grief is something no coach can manufacture. The connection is real.", choiceCWeights: W.neutral_up,
@@ -382,6 +385,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
         scenePrompt: "Pixel art scene: player sitting alone in a dugout after a walk-off hit, teammates celebrating on the field, the player quietly crying with his hands in his lap while everyone else erupts around him, a scout in the stands already on the phone, another one crying too. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         scenePromptPitcher: "Pixel art scene: pitcher sitting alone in a dugout after a game-ending strikeout, teammates celebrating on the field, the player quietly crying with his hands on his knees while everyone else erupts, a scout in the stands already on the phone, another one wiping his eye. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name} hit a walk-off in a meaningless fall scrimmage and sobbed in the dugout for ten minutes afterward while his teammates celebrated without him. His teammate told you afterward: 'He said it was the first time he felt anything at the plate since his dad died.' Two scouts in the stands saw it. One of them called you right after. The other one was crying and couldn't talk yet.",
+        eventTextPitcher: "{name} struck out the side in a meaningless fall scrimmage and sobbed in the dugout for ten minutes afterward while his teammates celebrated without him. His teammate told you afterward: 'He said it was the first time he felt anything on the mound since his dad died.' Two scouts in the stands saw it. One of them called you right after. The other one was crying and couldn't talk yet.",
         choiceA: "Don't call. Write. Tell him what watching that meant — one coach to one person", choiceAOutcome: "The written word at the right moment becomes the thing he keeps. The relationship changes permanently.", choiceAWeights: W.safe_pos,
         choiceB: "Call him the next morning — just to check in, not to recruit", choiceBOutcome: "The call with no agenda lands exactly right. He talks for 40 minutes. You mostly listen.", choiceBWeights: W.high_risk,
         choiceC: "Reach out to his mother first — tell her what you saw from the stands", choiceCOutcome: "The mother becomes your strongest ally. She calls her son that night and tells him what you said.", choiceCWeights: W.bold_pos,
@@ -981,11 +985,15 @@ export function generateStorylineEvent(
     return out;
   };
 
-  // Select position-aware scene prompt: prefer the pitcher variant for pitchers when available,
-  // otherwise fall back to the default (hitter/neutral) scenePrompt.
-  const scenePrompt = (position && isPitcher(position) && template.scenePromptPitcher)
+  // Select position-aware scene prompt and event text: prefer the pitcher variant for pitchers
+  // when available, otherwise fall back to the default (hitter/neutral) variant.
+  const pitcherMode = Boolean(position && isPitcher(position));
+  const scenePrompt = (pitcherMode && template.scenePromptPitcher)
     ? template.scenePromptPitcher
     : template.scenePrompt;
+  const resolvedEventText = (pitcherMode && template.eventTextPitcher)
+    ? template.eventTextPitcher
+    : template.eventText;
 
   return {
     storylineRecruitId,
@@ -994,7 +1002,7 @@ export function generateStorylineEvent(
     week,
     templateId: template.id,
     scenePrompt,
-    eventText: interpolate(template.eventText),
+    eventText: interpolate(resolvedEventText),
     choiceA: template.choiceA,
     choiceAOutcome: interpolate(template.choiceAOutcome),
     choiceAWeights: template.choiceAWeights,
