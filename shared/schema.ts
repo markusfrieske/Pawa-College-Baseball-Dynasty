@@ -1,5 +1,5 @@
 import { sql, relations } from "drizzle-orm";
-import { pgTable, text, varchar, integer, boolean, timestamp, json, real } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, boolean, timestamp, json, real, uniqueIndex } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -1268,7 +1268,9 @@ export const storylineVotes = pgTable("storyline_votes", {
   teamId: varchar("team_id").notNull().references(() => teams.id),
   choice: text("choice").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (t) => ({
+  uniqueEventTeam: uniqueIndex("storyline_votes_event_team_unique").on(t.eventId, t.teamId),
+}));
 
 export const insertStorylineVoteSchema = createInsertSchema(storylineVotes).omit({ id: true, createdAt: true });
 export type InsertStorylineVote = z.infer<typeof insertStorylineVoteSchema>;

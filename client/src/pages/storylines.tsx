@@ -28,6 +28,7 @@ interface StorylineEventFull {
   resolvedChoice: string | null;
   resolvedOutcomeText: string | null;
   ovrDelta: number | null;
+  archetypeAtEvent?: string | null;
 }
 
 interface StorylineRecruit {
@@ -123,7 +124,36 @@ function VoteBar({ counts, total, myVote }: { counts: Record<string, number>; to
   );
 }
 
-function ArcTimeline({ events, leagueId }: { events: StorylineEventFull[]; leagueId: string }) {
+// Position silhouette fallback rendered when AI image is unavailable
+function PositionSilhouette({ position, isLegendary }: { position?: string; isLegendary: boolean }) {
+  const pos = position ?? "?";
+  const isPitcher = pos === "P" || pos === "SP" || pos === "RP" || pos === "CL";
+  return (
+    <svg viewBox="0 0 56 56" className="w-full h-full" style={{ imageRendering: "pixelated" }}>
+      {/* Background */}
+      <rect width="56" height="56" fill={isLegendary ? "#2a1f00" : "#111a12"} />
+      {/* Simple pixel-art silhouette: head + body + bat/glove */}
+      <rect x="22" y="8" width="12" height="12" fill={isLegendary ? "#c9a227" : "#4a7a52"} />
+      <rect x="20" y="20" width="16" height="18" fill={isLegendary ? "#c9a227" : "#4a7a52"} />
+      <rect x="16" y="38" width="8" height="10" fill={isLegendary ? "#c9a227" : "#4a7a52"} />
+      <rect x="32" y="38" width="8" height="10" fill={isLegendary ? "#c9a227" : "#4a7a52"} />
+      {isPitcher ? (
+        /* Pitching arm raised */
+        <rect x="8" y="16" width="12" height="6" fill={isLegendary ? "#c9a227" : "#4a7a52"} />
+      ) : (
+        /* Batting stance — bat */
+        <>
+          <rect x="36" y="14" width="4" height="20" fill={isLegendary ? "#f5d060" : "#8ab88e"} />
+          <rect x="36" y="12" width="6" height="4" fill={isLegendary ? "#f5d060" : "#8ab88e"} />
+        </>
+      )}
+      {/* Position label */}
+      <text x="28" y="54" textAnchor="middle" fontSize="6" fontFamily="monospace" fill={isLegendary ? "#c9a227" : "#5a9464"}>{pos}</text>
+    </svg>
+  );
+}
+
+function ArcTimeline({ events }: { events: StorylineEventFull[] }) {
   if (events.length === 0) return null;
   const resolved = events.filter(e => e.resolvedChoice);
   if (resolved.length === 0) return null;
@@ -134,25 +164,35 @@ function ArcTimeline({ events, leagueId }: { events: StorylineEventFull[]; leagu
         <span className="text-[9px] font-pixel text-muted-foreground">ARC HISTORY</span>
       </div>
       <div className="space-y-2">
-        {resolved.map((e, idx) => (
-          <div key={e.id} className="flex items-start gap-2">
-            <div className="flex flex-col items-center">
-              <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 ${e.ovrDelta && e.ovrDelta > 0 ? "border-green-500/50 bg-green-500/10" : e.ovrDelta && e.ovrDelta < 0 ? "border-red-500/50 bg-red-500/10" : "border-border/50 bg-muted/20"}`}>
-                <span className="text-[7px] font-pixel font-bold">{idx + 1}</span>
+        {resolved.map((e, idx) => {
+          const prevArchetype = idx > 0 ? resolved[idx - 1].archetypeAtEvent : null;
+          const archetypeChanged = prevArchetype && e.archetypeAtEvent && prevArchetype !== e.archetypeAtEvent;
+          return (
+            <div key={e.id} className="flex items-start gap-2">
+              <div className="flex flex-col items-center">
+                <div className={`w-5 h-5 rounded-full border flex items-center justify-center flex-shrink-0 ${e.ovrDelta && e.ovrDelta > 0 ? "border-green-500/50 bg-green-500/10" : e.ovrDelta && e.ovrDelta < 0 ? "border-red-500/50 bg-red-500/10" : "border-border/50 bg-muted/20"}`}>
+                  <span className="text-[7px] font-pixel font-bold">{idx + 1}</span>
+                </div>
+                {idx < resolved.length - 1 && <div className="w-px h-3 bg-border/40 my-0.5" />}
               </div>
-              {idx < resolved.length - 1 && <div className="w-px h-3 bg-border/40 my-0.5" />}
-            </div>
-            <div className="flex-1 min-w-0 pb-1">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-[9px] font-pixel text-muted-foreground">Wk {e.week} — Choice {e.resolvedChoice}</span>
-                {e.ovrDelta !== null && e.ovrDelta !== 0 && <OvrDeltaBadge delta={e.ovrDelta} />}
+              <div className="flex-1 min-w-0 pb-1">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[9px] font-pixel text-muted-foreground">Wk {e.week} — Choice {e.resolvedChoice}</span>
+                  {e.ovrDelta !== null && e.ovrDelta !== 0 && <OvrDeltaBadge delta={e.ovrDelta} />}
+                </div>
+                {archetypeChanged && (
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <GitBranch className="w-2.5 h-2.5 text-amber-400" />
+                    <span className="text-[9px] text-amber-400/80 font-pixel">Arc shift → {e.archetypeAtEvent?.replace(/_/g, " ")}</span>
+                  </div>
+                )}
+                {e.resolvedOutcomeText && (
+                  <p className="text-[10px] text-muted-foreground/70 italic mt-0.5 leading-relaxed">"{e.resolvedOutcomeText}"</p>
+                )}
               </div>
-              {e.resolvedOutcomeText && (
-                <p className="text-[10px] text-muted-foreground/70 italic mt-0.5 leading-relaxed">"{e.resolvedOutcomeText}"</p>
-              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -222,17 +262,17 @@ function StorylineCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: strin
                 style={{ imageRendering: "pixelated" }}
               />
             ) : (
-              <div className={`w-14 h-14 rounded-lg border flex items-center justify-center group cursor-pointer ${sl.isLegendary ? "border-gold/50 bg-gold/10" : "border-border/50 bg-muted/30"}`}
+              <div
+                className={`w-14 h-14 rounded-lg border overflow-hidden group cursor-pointer relative ${sl.isLegendary ? "border-gold/50" : "border-border/50"}`}
                 onClick={() => generateImageMutation.mutate()}
                 title="Click to generate AI portrait"
               >
-                {generateImageMutation.isPending ? (
-                  <Sparkles className="w-5 h-5 text-gold animate-spin" />
-                ) : sl.isLegendary ? (
-                  <Crown className="w-6 h-6 text-gold" />
-                ) : (
-                  <Image className="w-5 h-5 text-muted-foreground/50 group-hover:text-gold transition-colors" />
-                )}
+                <PositionSilhouette position={r?.position} isLegendary={sl.isLegendary} />
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/50">
+                  {generateImageMutation.isPending
+                    ? <Sparkles className="w-4 h-4 text-gold animate-spin" />
+                    : <Image className="w-4 h-4 text-gold" />}
+                </div>
               </div>
             )}
           </div>
@@ -385,7 +425,7 @@ function StorylineCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: strin
               {showTimeline ? "Hide" : "Show"} arc history ({sl.allEvents.filter(e => e.resolvedChoice).length} resolved)
               {showTimeline ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
             </button>
-            {showTimeline && <ArcTimeline events={sl.allEvents} leagueId={leagueId} />}
+            {showTimeline && <ArcTimeline events={sl.allEvents} />}
           </div>
         )}
       </div>
