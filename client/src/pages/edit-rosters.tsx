@@ -10,13 +10,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Save, RotateCcw, ChevronUp, ChevronDown } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, getQueryFn } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Player, Team } from "@shared/schema";
 import { ALL_PITCHER_ABILITIES, ALL_FIELDER_ABILITIES, getAbilityByName, type Ability } from "@shared/abilities";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface LeagueData {
+  commissionerId: string;
   teams: (Team & { coach?: { firstName: string; lastName: string } })[];
 }
 
@@ -55,6 +56,14 @@ export default function EditRostersPage() {
   const { data: leagueData, isLoading: leagueLoading } = useQuery<LeagueData>({
     queryKey: ["/api/leagues", id],
   });
+
+  const { data: authData, isLoading: authLoading } = useQuery<{ id: string; email: string } | null>({
+    queryKey: ["/api/auth/me"],
+    queryFn: getQueryFn({ on401: "returnNull" }),
+  });
+
+  const isCommissioner = !!(authData?.id && leagueData?.commissionerId && authData.id === leagueData.commissionerId);
+  const isGuest = authData?.email === "guest@guest.com";
 
   const { data: rosterData, isLoading: rosterLoading } = useQuery<{ players: Player[] }>({
     queryKey: ["/api/leagues", id, "roster", selectedTeamId],
@@ -195,11 +204,32 @@ export default function EditRostersPage() {
     </th>
   );
 
-  if (leagueLoading) {
+  if (leagueLoading || authLoading) {
     return (
       <div className="p-6 space-y-4">
         <Skeleton className="h-10 w-48" />
         <Skeleton className="h-[600px] w-full" />
+      </div>
+    );
+  }
+
+  if (!isCommissioner) {
+    return (
+      <div className="min-h-screen bg-background p-4 flex items-center justify-center">
+        <div className="text-center space-y-4 max-w-md">
+          <h1 className="font-pixel text-2xl text-red-500">ACCESS DENIED</h1>
+          <p className="text-muted-foreground text-sm">
+            {isGuest
+              ? "Guests cannot edit rosters. Only the league commissioner has access to this page."
+              : "Only the league commissioner can access roster editing."}
+          </p>
+          <Link href={`/league/${id}/commissioner`}>
+            <RetroButton variant="outline" data-testid="button-back-denied">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Commissioner
+            </RetroButton>
+          </Link>
+        </div>
       </div>
     );
   }

@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Save, RotateCcw, ChevronUp, ChevronDown, Filter } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, getQueryFn } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Recruit } from "@shared/schema";
 import { ALL_PITCHER_ABILITIES, ALL_FIELDER_ABILITIES, getAbilityByName, type Ability } from "@shared/abilities";
@@ -17,6 +17,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 
 interface RecruitingData {
   recruits: Recruit[];
+}
+
+interface LeagueData {
+  commissionerId: string;
 }
 
 type SortField = "lastName" | "position" | "overall" | "starRating" | "classRank";
@@ -48,6 +52,18 @@ export default function EditRecruitsPage() {
   const [sortField, setSortField] = useState<SortField>("classRank");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [positionFilter, setPositionFilter] = useState<string>("all");
+
+  const { data: leagueData, isLoading: leagueLoading } = useQuery<LeagueData>({
+    queryKey: ["/api/leagues", id],
+  });
+
+  const { data: authData, isLoading: authLoading } = useQuery<{ id: string; email: string } | null>({
+    queryKey: ["/api/auth/me"],
+    queryFn: getQueryFn({ on401: "returnNull" }),
+  });
+
+  const isCommissioner = !!(authData?.id && leagueData?.commissionerId && authData.id === leagueData.commissionerId);
+  const isGuest = authData?.email === "guest@guest.com";
 
   const { data: recruitingData, isLoading } = useQuery<RecruitingData>({
     queryKey: ["/api/leagues", id, "recruiting"],
@@ -199,11 +215,32 @@ export default function EditRecruitsPage() {
     </th>
   );
 
-  if (isLoading) {
+  if (isLoading || leagueLoading || authLoading) {
     return (
       <div className="p-6 space-y-4">
         <Skeleton className="h-10 w-48" />
         <Skeleton className="h-[600px] w-full" />
+      </div>
+    );
+  }
+
+  if (!isCommissioner) {
+    return (
+      <div className="min-h-screen bg-background p-4 flex items-center justify-center">
+        <div className="text-center space-y-4 max-w-md">
+          <h1 className="font-pixel text-2xl text-red-500">ACCESS DENIED</h1>
+          <p className="text-muted-foreground text-sm">
+            {isGuest
+              ? "Guests cannot edit recruiting classes. Only the league commissioner has access to this page."
+              : "Only the league commissioner can access recruiting class editing."}
+          </p>
+          <Link href={`/league/${id}/commissioner`}>
+            <RetroButton variant="outline" data-testid="button-back-denied">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Commissioner
+            </RetroButton>
+          </Link>
+        </div>
       </div>
     );
   }
