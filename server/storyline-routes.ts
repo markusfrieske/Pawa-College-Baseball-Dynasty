@@ -42,6 +42,17 @@ export function registerStorylineRoutes(app: Express) {
         }
 
         const archetypeDef = ARCHETYPE_DEFS[sl.archetype as Archetype];
+
+        // Resolve overlapping recruit name if linked
+        let overlappingRecruitName: string | null = null;
+        if (sl.overlappingRecruitId) {
+          const ovlSl = await storage.getStorylineRecruit(sl.overlappingRecruitId);
+          if (ovlSl) {
+            const ovlR = await storage.getRecruit(ovlSl.recruitId);
+            if (ovlR) overlappingRecruitName = `${ovlR.firstName} ${ovlR.lastName}`;
+          }
+        }
+
         return {
           ...sl,
           recruit,
@@ -49,14 +60,16 @@ export function registerStorylineRoutes(app: Express) {
           archetypeDescription: archetypeDef?.description ?? "",
           archetypeFlavor: archetypeDef?.flavor ?? "",
           latestEvent,
+          allEvents: events,
           totalEvents: events.length,
           resolvedEvents: events.filter(e => e.resolvedChoice).length,
           voteCounts,
           myVote,
+          overlappingRecruitName,
         };
       }));
 
-      res.json(enriched);
+      res.json({ storylines: enriched });
     } catch (err) {
       console.error("[storylines] GET error:", err);
       res.status(500).json({ message: "Failed to fetch storylines" });
@@ -189,6 +202,52 @@ export function registerStorylineRoutes(app: Express) {
     }
   });
 
+  // POST /api/leagues/:id/storylines/:storylineId/generate-image — async AI image generation
+  app.post("/api/leagues/:id/storylines/:storylineId/generate-image", requireAuth, async (req, res) => {
+    try {
+      const leagueId = String(req.params.id);
+      const storylineId = String(req.params.storylineId);
+      const sl = await storage.getStorylineRecruit(storylineId);
+      if (!sl) return res.status(404).json({ message: "Storyline not found" });
+      if (sl.leagueId !== leagueId) return res.status(403).json({ message: "Storyline does not belong to this league" });
+      if (sl.imageUrl) return res.json({ imageUrl: sl.imageUrl, cached: true });
+
+      // Attempt OpenAI image generation via REST API (no SDK needed); fall back gracefully
+      const apiKey = process.env.OPENAI_API_KEY;
+      if (apiKey) {
+        try {
+          const prompt = sl.imagePrompt
+            || `A pixel-art portrait of a college baseball player silhouette, retro 8-bit style, dark forest green background, gold accents, mysterious and dramatic atmosphere, no text`;
+          const openaiRes = await fetch("https://api.openai.com/v1/images/generations", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
+            body: JSON.stringify({ model: "dall-e-3", prompt, n: 1, size: "1024x1024", response_format: "url" }),
+          });
+          if (openaiRes.ok) {
+            const json = await openaiRes.json() as { data?: Array<{ url?: string }> };
+            const imageUrl = json.data?.[0]?.url ?? null;
+            if (imageUrl) {
+              await storage.updateStorylineRecruit(storylineId, { imageUrl });
+              return res.json({ imageUrl, cached: false });
+            }
+          } else {
+            console.warn("[storylines] OpenAI image API error:", openaiRes.status, await openaiRes.text());
+          }
+        } catch (imgErr) {
+          console.warn("[storylines] image generation failed, using fallback silhouette:", imgErr);
+        }
+      } else {
+        console.warn("[storylines] OPENAI_API_KEY not set — skipping image generation");
+      }
+
+      // Fallback: UI already handles null imageUrl with a silhouette placeholder icon
+      res.json({ imageUrl: null, cached: false, fallback: true });
+    } catch (err) {
+      console.error("[storylines] generate-image error:", err);
+      res.status(500).json({ message: "Failed to generate image" });
+    }
+  });
+
   // POST /api/leagues/:id/storylines/generate — generate new weekly events (commissioner only, or from advance)
   app.post("/api/leagues/:id/storylines/generate", requireAuth, async (req, res) => {
     try {
@@ -229,8 +288,9 @@ export async function initializeStorylineRecruits(leagueId: string, season: numb
       position: r.position,
     })));
 
+    const created: import("@shared/schema").StorylineRecruit[] = [];
     for (const pick of picks) {
-      await storage.createStorylineRecruit({
+      const sl = await storage.createStorylineRecruit({
         leagueId,
         recruitId: pick.recruitId,
         season,
@@ -242,6 +302,16 @@ export async function initializeStorylineRecruits(leagueId: string, season: numb
         currentArcStage: 0,
         resolvedOvrDelta: 0,
       });
+      created.push(sl);
+    }
+
+    // Link ~15% of storyline pairs (overlapping arcs)
+    const shuffledCreated = [...created].sort(() => Math.random() - 0.5);
+    for (let i = 0; i < shuffledCreated.length - 1; i += 2) {
+      if (Math.random() < 0.15) {
+        await storage.updateStorylineRecruit(shuffledCreated[i].id, { overlappingRecruitId: shuffledCreated[i + 1].id });
+        await storage.updateStorylineRecruit(shuffledCreated[i + 1].id, { overlappingRecruitId: shuffledCreated[i].id });
+      }
     }
 
     // Generate first event for each storyline recruit
