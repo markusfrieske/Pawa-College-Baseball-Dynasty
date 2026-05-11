@@ -605,10 +605,16 @@ async function generateWeeklyStorylineEvents(leagueId: string, season: number, w
 
     if (ready.length === 0) return 0;
 
-    // Throttle: pick 2–4 recruits to generate events for this week
+    // Hard cap: count existing unresolved events across the whole league to enforce the 4-event ceiling.
+    // This prevents multiple triggers in the same week from stacking beyond the 2–4 intended throttle.
+    const currentUnresolved = await storage.getUnresolvedStorylineEvents(leagueId);
+    const remainingSlots = Math.max(0, 4 - currentUnresolved.length);
+    if (remainingSlots === 0) return 0;
+
+    // Throttle: pick 2–4 recruits to generate events for this week (capped by remaining slots)
     // Non-legendary pool is shuffled each call so all 10 recruits rotate fairly over time;
     // legendary recruits are still prioritized but non-legendary order is random each week.
-    const maxEvents = Math.min(ready.length, 2 + Math.floor(Math.random() * 3)); // 2, 3, or 4
+    const maxEvents = Math.min(ready.length, remainingSlots, 2 + Math.floor(Math.random() * 3)); // 2–4, never exceeding cap
     const legendaryReady = ready.filter(sl => sl.isLegendary);
     const nonLegendaryReady = ready.filter(sl => !sl.isLegendary).sort(() => Math.random() - 0.5);
     const prioritized = [...legendaryReady, ...nonLegendaryReady].slice(0, maxEvents);
@@ -640,7 +646,8 @@ async function generateWeeklyStorylineEvents(leagueId: string, season: number, w
         linkedRecruitName ?? undefined,
       );
 
-      await storage.createStorylineEvent(eventData);
+      // Persist archetype snapshot at event creation time so timeline can render transitions
+      await storage.createStorylineEvent({ ...eventData, archetypeAtEvent: sl.archetype });
       count++;
     }
   } catch (err) {

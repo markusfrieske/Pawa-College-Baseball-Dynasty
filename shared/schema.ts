@@ -1250,6 +1250,7 @@ export const storylineEvents = pgTable("storyline_events", {
   choiceD: text("choice_d"),
   choiceDOutcome: text("choice_d_outcome"),
   choiceDWeights: json("choice_d_weights").$type<ChoiceWeights>(),
+  archetypeAtEvent: text("archetype_at_event"),  // recruit's archetype snapshot when this event was created
   resolvedChoice: text("resolved_choice"),
   resolvedOutcomeText: text("resolved_outcome_text"),
   ovrDelta: integer("ovr_delta"),
