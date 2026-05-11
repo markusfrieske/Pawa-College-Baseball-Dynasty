@@ -458,6 +458,9 @@ interface StorylineWidgetItem {
   isLegendary: boolean;
   archetypeName: string;
   overlappingRecruitName?: string | null;
+  currentArcStage?: number;
+  resolvedOvrDelta?: number;
+  totalEvents?: number;
   recruit?: {
     firstName: string;
     lastName: string;
@@ -469,6 +472,7 @@ interface StorylineWidgetItem {
     eventText: string;
     resolvedChoice?: string | null;
     ovrDelta?: number | null;
+    voteCounts?: Record<string, number>;
   } | null;
 }
 
@@ -485,8 +489,19 @@ function StorylinesDashboardWidget({ leagueId }: { leagueId: string }) {
   });
   const storylines = storylinesResp?.storylines ?? [];
 
+  // Real activity score: open votes get 2x weight, arc stage progress, OVR momentum, and legendary bonus
+  const activityScore = (s: StorylineWidgetItem) => {
+    const totalVotes = s.latestEvent?.voteCounts
+      ? Object.values(s.latestEvent.voteCounts).reduce((a: number, b: number) => a + b, 0)
+      : 0;
+    const hasOpenVote = s.latestEvent && !s.latestEvent.resolvedChoice ? 10 : 0;
+    return hasOpenVote + totalVotes * 2 + (s.currentArcStage ?? 0) * 3 + Math.abs(s.resolvedOvrDelta ?? 0) + (s.isLegendary ? 5 : 0);
+  };
+
   const activeVotes = storylines.filter((s) => s.latestEvent && !s.latestEvent.resolvedChoice);
   const legendary = storylines.filter((s) => s.isLegendary);
+  // Top 3 most active storylines by real activity score
+  const mostActive = [...storylines].sort((a, b) => activityScore(b) - activityScore(a)).slice(0, 3);
 
   if (isLoading) return null;
   if (storylines.length === 0) return null;
@@ -526,30 +541,37 @@ function StorylinesDashboardWidget({ leagueId }: { leagueId: string }) {
           </div>
         </div>
 
-        {activeVotes.length > 0 && (
+        {mostActive.length > 0 && (
           <div className="space-y-2">
-            <div className="font-pixel text-[8px] text-muted-foreground mb-1">ACTIVE THIS WEEK</div>
-            {activeVotes.slice(0, 3).map((sl) => (
-              <Link key={sl.id} href={`/league/${leagueId}/storylines`}>
-                <div className="flex items-center gap-2 px-3 py-2 bg-muted/20 rounded-md border border-border/40 hover:border-gold/40 hover:bg-gold/5 transition-all cursor-pointer" data-testid={`widget-storyline-${sl.id}`}>
-                  {sl.isLegendary && <Star className="w-3 h-3 text-gold flex-shrink-0" />}
-                  <div className="flex-1 min-w-0">
-                    <span className="text-xs font-medium truncate block">
-                      {sl.recruit?.firstName} {sl.recruit?.lastName}
-                    </span>
-                    <span className="text-[9px] text-muted-foreground">{sl.archetypeName}</span>
+            <div className="font-pixel text-[8px] text-muted-foreground mb-1">MOST ACTIVE</div>
+            {mostActive.map((sl) => {
+              const hasOpenVote = sl.latestEvent && !sl.latestEvent.resolvedChoice;
+              return (
+                <Link key={sl.id} href={`/league/${leagueId}/storylines`}>
+                  <div className="flex items-center gap-2 px-3 py-2 bg-muted/20 rounded-md border border-border/40 hover:border-gold/40 hover:bg-gold/5 transition-all cursor-pointer" data-testid={`widget-storyline-${sl.id}`}>
+                    {sl.isLegendary && <Star className="w-3 h-3 text-gold flex-shrink-0" />}
+                    <div className="flex-1 min-w-0">
+                      <span className="text-xs font-medium truncate block">
+                        {sl.recruit?.firstName} {sl.recruit?.lastName}
+                      </span>
+                      <span className="text-[9px] text-muted-foreground">{sl.archetypeName}</span>
+                    </div>
+                    {hasOpenVote ? (
+                      <div className="flex items-center gap-1 text-[9px] text-gold">
+                        <Zap className="w-3 h-3" />
+                        Vote
+                      </div>
+                    ) : (
+                      <span className="text-[9px] text-muted-foreground">Wk {sl.currentArcStage ?? 0}</span>
+                    )}
                   </div>
-                  <div className="flex items-center gap-1 text-[9px] text-gold">
-                    <Zap className="w-3 h-3" />
-                    Vote
-                  </div>
-                </div>
-              </Link>
-            ))}
-            {activeVotes.length > 3 && (
+                </Link>
+              );
+            })}
+            {storylines.length > 3 && (
               <Link href={`/league/${leagueId}/storylines`}>
                 <p className="text-[10px] text-muted-foreground text-center hover:text-gold cursor-pointer transition-colors" data-testid="widget-more-storylines">
-                  +{activeVotes.length - 3} more storylines waiting...
+                  +{storylines.length - 3} more storylines...
                 </p>
               </Link>
             )}

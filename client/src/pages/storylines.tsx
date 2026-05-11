@@ -482,9 +482,35 @@ function TrendingRecruits({ storylines, leagueId }: { storylines: StorylineRecru
   );
 }
 
+function ArcInterestBar({ arcStage, totalEvents, ovrDelta }: { arcStage: number; totalEvents: number; ovrDelta: number }) {
+  // Derive a 0–100 arc interest score: arc stage progress + OVR trajectory
+  const progressPct = totalEvents > 0 ? Math.min(100, Math.round((arcStage / Math.max(3, totalEvents)) * 100)) : 0;
+  const trend = ovrDelta > 5 ? "rising" : ovrDelta < -5 ? "falling" : "stable";
+  return (
+    <div className="flex items-center gap-1.5 min-w-0">
+      <div className="flex-1 h-1 bg-muted/40 rounded-full overflow-hidden" style={{ minWidth: "40px" }}>
+        <div
+          className={`h-full rounded-full ${trend === "rising" ? "bg-green-400" : trend === "falling" ? "bg-red-400" : "bg-muted-foreground/60"}`}
+          style={{ width: `${progressPct}%` }}
+        />
+      </div>
+      {trend === "rising" && <TrendingUp className="w-2.5 h-2.5 text-green-400 flex-shrink-0" />}
+      {trend === "falling" && <TrendingDown className="w-2.5 h-2.5 text-red-400 flex-shrink-0" />}
+      {trend === "stable" && <Minus className="w-2.5 h-2.5 text-muted-foreground/60 flex-shrink-0" />}
+    </div>
+  );
+}
+
 function CommitmentTracker({ storylines }: { storylines: StorylineRecruit[] }) {
   const committed = storylines.filter(sl => sl.recruit?.stage === "signed" || sl.recruit?.stage === "committed");
   const pending = storylines.filter(sl => sl.recruit?.stage !== "signed" && sl.recruit?.stage !== "committed");
+
+  // Sort pending by arc interest: most active arcs (high arcStage + OVR momentum) first
+  const sortedPending = [...pending].sort((a, b) => {
+    const scoreA = (a.currentArcStage * 3) + Math.abs(a.resolvedOvrDelta ?? 0) + (a.totalEvents ?? 0);
+    const scoreB = (b.currentArcStage * 3) + Math.abs(b.resolvedOvrDelta ?? 0) + (b.totalEvents ?? 0);
+    return scoreB - scoreA;
+  });
 
   return (
     <RetroCard variant="bordered" className="p-4 mb-6" data-testid="card-commitment-tracker">
@@ -495,10 +521,11 @@ function CommitmentTracker({ storylines }: { storylines: StorylineRecruit[] }) {
           {committed.length}/{storylines.length} committed
         </Badge>
       </div>
-      {committed.length === 0 ? (
-        <p className="text-[10px] text-muted-foreground italic">No storyline recruits have committed yet.</p>
-      ) : (
-        <div className="space-y-1.5">
+      {committed.length === 0 && pending.length === 0 && (
+        <p className="text-[10px] text-muted-foreground italic">No storyline recruits this season.</p>
+      )}
+      {committed.length > 0 && (
+        <div className="space-y-1.5 mb-2">
           {committed.map(sl => {
             const r = sl.recruit!;
             const ovrDelta = sl.resolvedOvrDelta ?? 0;
@@ -524,9 +551,24 @@ function CommitmentTracker({ storylines }: { storylines: StorylineRecruit[] }) {
           })}
         </div>
       )}
-      {pending.length > 0 && committed.length > 0 && (
-        <div className="mt-2 pt-2 border-t border-border/30">
-          <p className="text-[9px] text-muted-foreground">{pending.length} recruits still undecided</p>
+      {sortedPending.length > 0 && (
+        <div className={`space-y-1.5 ${committed.length > 0 ? "border-t border-border/30 pt-2" : ""}`}>
+          <div className="font-pixel text-[8px] text-muted-foreground mb-1">UNDECIDED — ARC INTEREST</div>
+          {sortedPending.map(sl => {
+            const r = sl.recruit;
+            const ovrDelta = sl.resolvedOvrDelta ?? 0;
+            return (
+              <div key={sl.id} className="flex items-center gap-2 px-2 py-1.5 bg-muted/10 rounded-md">
+                <Clock className="w-3 h-3 text-muted-foreground flex-shrink-0" />
+                <Link href={`/league/${sl.leagueId}/recruit/${r?.id ?? ""}`} className="text-[10px] font-medium hover:text-gold truncate" style={{ minWidth: "80px", maxWidth: "120px" }}>
+                  {r?.firstName} {r?.lastName}
+                </Link>
+                <span className="text-[9px] text-muted-foreground flex-shrink-0">{r?.position}</span>
+                <ArcInterestBar arcStage={sl.currentArcStage} totalEvents={sl.totalEvents} ovrDelta={ovrDelta} />
+                <span className="text-[9px] text-muted-foreground flex-shrink-0">Wk {sl.currentArcStage}</span>
+              </div>
+            );
+          })}
         </div>
       )}
     </RetroCard>
