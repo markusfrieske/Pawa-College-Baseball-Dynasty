@@ -28,6 +28,7 @@ import CommitsPage from "@/pages/commits";
 import DeparturesPage from "@/pages/departures";
 import WalkonsPage from "@/pages/walkons";
 import ManageRostersPage from "@/pages/manage-rosters";
+import StorylinesPage from "@/pages/storylines";
 import ManageRecruitingPage from "@/pages/manage-recruiting";
 import PlayByPlayPage from "@/pages/play-by-play";
 import { useState } from "react";
@@ -65,6 +66,7 @@ function Router() {
       <Route path="/league/:id/commits" component={CommitsPage} />
       <Route path="/league/:id/departures" component={DeparturesPage} />
       <Route path="/league/:id/walkons" component={WalkonsPage} />
+      <Route path="/league/:id/storylines" component={StorylinesPage} />
       <Route path="/league/:id/game/:gameId/play-by-play" component={PlayByPlayPage} />
       <Route path="/league/:id/team/:teamId" component={TeamViewPage} />
       <Route path="/league/:id/recruit/:recruitId" component={RecruitProfilePage} />

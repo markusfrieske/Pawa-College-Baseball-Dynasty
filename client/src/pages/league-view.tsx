@@ -392,6 +392,7 @@ export default function LeagueViewPage() {
           </TabsContent>
 
           <TabsContent value="news">
+            <StorylinesDashboardWidget leagueId={league.id} />
             <ActivityFeed leagueId={league.id} />
             <div className="mt-4">
               <StoryEngineHub leagueId={league.id} teamId={userTeam?.id} />
@@ -450,6 +451,94 @@ function QuickActionCard({
   );
 }
 
+// ============ STORYLINES DASHBOARD WIDGET ============
+
+function StorylinesDashboardWidget({ leagueId }: { leagueId: string }) {
+  const { data: storylines = [], isLoading } = useQuery<any[]>({
+    queryKey: ["/api/leagues", leagueId, "storylines"],
+    queryFn: async () => {
+      const res = await fetch(`/api/leagues/${leagueId}/storylines`, { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    staleTime: 60000,
+  });
+
+  const activeVotes = storylines.filter((s: any) => s.latestEvent && !s.latestEvent.resolvedChoice);
+  const legendary = storylines.filter((s: any) => s.isLegendary);
+
+  if (isLoading) return null;
+  if (storylines.length === 0) return null;
+
+  return (
+    <RetroCard variant="bordered" className="mb-3" data-testid="storylines-dashboard-widget">
+      <RetroCardHeader className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Swords className="w-4 h-4 text-gold" />
+          <span className="font-pixel text-xs text-gold">Recruit Storylines</span>
+          {activeVotes.length > 0 && (
+            <span className="font-pixel text-[9px] bg-gold/20 text-gold border border-gold/40 px-1.5 py-0.5 rounded animate-pulse">
+              {activeVotes.length} vote{activeVotes.length !== 1 ? "s" : ""} open
+            </span>
+          )}
+        </div>
+        <Link href={`/league/${leagueId}/storylines`}>
+          <RetroButton variant="outline" size="sm" data-testid="button-view-storylines">
+            View All
+            <ChevronRight className="w-3 h-3 ml-1" />
+          </RetroButton>
+        </Link>
+      </RetroCardHeader>
+      <RetroCardContent>
+        <div className="grid grid-cols-3 gap-2 mb-3">
+          <div className="bg-muted/30 rounded-md px-2 py-2 text-center">
+            <div className="font-pixel text-[7px] text-muted-foreground mb-1">STORYLINES</div>
+            <div className="text-lg font-bold">{storylines.length}</div>
+          </div>
+          <div className="bg-muted/30 rounded-md px-2 py-2 text-center">
+            <div className="font-pixel text-[7px] text-muted-foreground mb-1">VOTES OPEN</div>
+            <div className={`text-lg font-bold ${activeVotes.length > 0 ? "text-gold" : ""}`}>{activeVotes.length}</div>
+          </div>
+          <div className="bg-muted/30 rounded-md px-2 py-2 text-center">
+            <div className="font-pixel text-[7px] text-muted-foreground mb-1">LEGENDARY</div>
+            <div className="text-lg font-bold text-gold">{legendary.length}</div>
+          </div>
+        </div>
+
+        {activeVotes.length > 0 && (
+          <div className="space-y-2">
+            <div className="font-pixel text-[8px] text-muted-foreground mb-1">ACTIVE THIS WEEK</div>
+            {activeVotes.slice(0, 3).map((sl: any) => (
+              <Link key={sl.id} href={`/league/${leagueId}/storylines`}>
+                <div className="flex items-center gap-2 px-3 py-2 bg-muted/20 rounded-md border border-border/40 hover:border-gold/40 hover:bg-gold/5 transition-all cursor-pointer" data-testid={`widget-storyline-${sl.id}`}>
+                  {sl.isLegendary && <Star className="w-3 h-3 text-gold flex-shrink-0" />}
+                  <div className="flex-1 min-w-0">
+                    <span className="text-xs font-medium truncate block">
+                      {sl.recruit?.firstName} {sl.recruit?.lastName}
+                    </span>
+                    <span className="text-[9px] text-muted-foreground">{sl.archetypeName}</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-[9px] text-gold">
+                    <Zap className="w-3 h-3" />
+                    Vote
+                  </div>
+                </div>
+              </Link>
+            ))}
+            {activeVotes.length > 3 && (
+              <Link href={`/league/${leagueId}/storylines`}>
+                <p className="text-[10px] text-muted-foreground text-center hover:text-gold cursor-pointer transition-colors" data-testid="widget-more-storylines">
+                  +{activeVotes.length - 3} more storylines waiting...
+                </p>
+              </Link>
+            )}
+          </div>
+        )}
+      </RetroCardContent>
+    </RetroCard>
+  );
+}
+
 // ============ ACTIVITY FEED ============
 
 const EVENT_FILTERS = [
@@ -458,6 +547,7 @@ const EVENT_FILTERS = [
   { key: "GAME_RESULT", label: "Games" },
   { key: "TRANSFER,DRAFT,ROSTER_CUT,WALKON", label: "Roster" },
   { key: "AWARD,PHASE_CHANGE", label: "League" },
+  { key: "STORYLINE", label: "Storylines" },
 ] as const;
 
 type FilterKey = (typeof EVENT_FILTERS)[number]["key"];
@@ -471,6 +561,7 @@ const eventTypeConfig: Record<string, { icon: React.ReactNode; color: string; la
   PHASE_CHANGE: { icon: <Calendar className="w-3 h-3" />, color: "text-cyan-400 bg-cyan-500/15 border-cyan-500/30", label: "Phase" },
   ROSTER_CUT: { icon: <FileX className="w-3 h-3" />, color: "text-red-400 bg-red-500/15 border-red-500/30", label: "Cut" },
   WALKON: { icon: <UserCheck className="w-3 h-3" />, color: "text-emerald-400 bg-emerald-500/15 border-emerald-500/30", label: "Walk-On" },
+  STORYLINE: { icon: <Swords className="w-3 h-3" />, color: "text-amber-300 bg-amber-400/15 border-amber-400/30", label: "Storyline" },
 };
 
 function formatRelativeTime(date: string | Date): string {

@@ -4,6 +4,7 @@ import {
   recruitingActionsLog, recruitTopSchools, transferPortalInterests, playerHistory, playerPromises,
   playerSeasonStats, walkonPool,
   leagueEvents,
+  storylineRecruits, storylineEvents, storylineVotes,
   type User, type InsertUser,
   type League, type InsertLeague,
   type Conference, type InsertConference,
@@ -29,6 +30,9 @@ import {
   type SavedRoster, type InsertSavedRoster,
   type SavedRecruitingClass, type InsertSavedRecruitingClass,
   type LeagueEvent, type InsertLeagueEvent,
+  type StorylineRecruit, type InsertStorylineRecruit,
+  type StorylineEvent, type InsertStorylineEvent,
+  type StorylineVote, type InsertStorylineVote,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, or, inArray, isNotNull, sql } from "drizzle-orm";
@@ -160,6 +164,26 @@ export interface IStorage {
   createSavedRecruitingClass(data: InsertSavedRecruitingClass): Promise<SavedRecruitingClass>;
   updateSavedRecruitingClass(id: string, data: Partial<SavedRecruitingClass>): Promise<SavedRecruitingClass | undefined>;
   deleteSavedRecruitingClass(id: string): Promise<void>;
+
+  // Storyline system
+  getStorylineRecruitsByLeague(leagueId: string, season?: number): Promise<StorylineRecruit[]>;
+  getStorylineRecruit(id: string): Promise<StorylineRecruit | undefined>;
+  getStorylineRecruitByRecruitId(recruitId: string): Promise<StorylineRecruit | undefined>;
+  createStorylineRecruit(data: InsertStorylineRecruit): Promise<StorylineRecruit>;
+  updateStorylineRecruit(id: string, data: Partial<StorylineRecruit>): Promise<StorylineRecruit | undefined>;
+  deleteStorylineRecruitsByLeague(leagueId: string, season: number): Promise<void>;
+
+  getStorylineEventsByLeague(leagueId: string, season?: number): Promise<StorylineEvent[]>;
+  getStorylineEventsByRecruit(storylineRecruitId: string): Promise<StorylineEvent[]>;
+  getUnresolvedStorylineEvents(leagueId: string): Promise<StorylineEvent[]>;
+  getStorylineEvent(id: string): Promise<StorylineEvent | undefined>;
+  createStorylineEvent(data: InsertStorylineEvent): Promise<StorylineEvent>;
+  updateStorylineEvent(id: string, data: Partial<StorylineEvent>): Promise<StorylineEvent | undefined>;
+
+  getStorylineVotesByEvent(eventId: string): Promise<StorylineVote[]>;
+  getStorylineVoteByTeam(eventId: string, teamId: string): Promise<StorylineVote | undefined>;
+  createStorylineVote(data: InsertStorylineVote): Promise<StorylineVote>;
+  updateStorylineVote(id: string, data: Partial<StorylineVote>): Promise<StorylineVote | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -800,6 +824,103 @@ export class DatabaseStorage implements IStorage {
 
   async deleteSavedRecruitingClass(id: string): Promise<void> {
     await db.delete(savedRecruitingClasses).where(eq(savedRecruitingClasses.id, id));
+  }
+
+  // ─── Storyline Recruits ──────────────────────────────────────────────────────
+  async getStorylineRecruitsByLeague(leagueId: string, season?: number): Promise<StorylineRecruit[]> {
+    if (season !== undefined) {
+      return db.select().from(storylineRecruits)
+        .where(and(eq(storylineRecruits.leagueId, leagueId), eq(storylineRecruits.season, season)))
+        .orderBy(desc(storylineRecruits.createdAt));
+    }
+    return db.select().from(storylineRecruits)
+      .where(eq(storylineRecruits.leagueId, leagueId))
+      .orderBy(desc(storylineRecruits.createdAt));
+  }
+
+  async getStorylineRecruit(id: string): Promise<StorylineRecruit | undefined> {
+    const [r] = await db.select().from(storylineRecruits).where(eq(storylineRecruits.id, id));
+    return r || undefined;
+  }
+
+  async getStorylineRecruitByRecruitId(recruitId: string): Promise<StorylineRecruit | undefined> {
+    const [r] = await db.select().from(storylineRecruits).where(eq(storylineRecruits.recruitId, recruitId));
+    return r || undefined;
+  }
+
+  async createStorylineRecruit(data: InsertStorylineRecruit): Promise<StorylineRecruit> {
+    const [r] = await db.insert(storylineRecruits).values(data).returning();
+    return r;
+  }
+
+  async updateStorylineRecruit(id: string, data: Partial<StorylineRecruit>): Promise<StorylineRecruit | undefined> {
+    const [r] = await db.update(storylineRecruits).set(data).where(eq(storylineRecruits.id, id)).returning();
+    return r || undefined;
+  }
+
+  async deleteStorylineRecruitsByLeague(leagueId: string, season: number): Promise<void> {
+    await db.delete(storylineRecruits)
+      .where(and(eq(storylineRecruits.leagueId, leagueId), eq(storylineRecruits.season, season)));
+  }
+
+  // ─── Storyline Events ────────────────────────────────────────────────────────
+  async getStorylineEventsByLeague(leagueId: string, season?: number): Promise<StorylineEvent[]> {
+    if (season !== undefined) {
+      return db.select().from(storylineEvents)
+        .where(and(eq(storylineEvents.leagueId, leagueId), eq(storylineEvents.season, season)))
+        .orderBy(desc(storylineEvents.createdAt));
+    }
+    return db.select().from(storylineEvents)
+      .where(eq(storylineEvents.leagueId, leagueId))
+      .orderBy(desc(storylineEvents.createdAt));
+  }
+
+  async getStorylineEventsByRecruit(storylineRecruitId: string): Promise<StorylineEvent[]> {
+    return db.select().from(storylineEvents)
+      .where(eq(storylineEvents.storylineRecruitId, storylineRecruitId))
+      .orderBy(desc(storylineEvents.createdAt));
+  }
+
+  async getUnresolvedStorylineEvents(leagueId: string): Promise<StorylineEvent[]> {
+    return db.select().from(storylineEvents)
+      .where(and(eq(storylineEvents.leagueId, leagueId), sql`${storylineEvents.resolvedChoice} IS NULL`))
+      .orderBy(desc(storylineEvents.createdAt));
+  }
+
+  async getStorylineEvent(id: string): Promise<StorylineEvent | undefined> {
+    const [e] = await db.select().from(storylineEvents).where(eq(storylineEvents.id, id));
+    return e || undefined;
+  }
+
+  async createStorylineEvent(data: InsertStorylineEvent): Promise<StorylineEvent> {
+    const [e] = await db.insert(storylineEvents).values(data).returning();
+    return e;
+  }
+
+  async updateStorylineEvent(id: string, data: Partial<StorylineEvent>): Promise<StorylineEvent | undefined> {
+    const [e] = await db.update(storylineEvents).set(data).where(eq(storylineEvents.id, id)).returning();
+    return e || undefined;
+  }
+
+  // ─── Storyline Votes ─────────────────────────────────────────────────────────
+  async getStorylineVotesByEvent(eventId: string): Promise<StorylineVote[]> {
+    return db.select().from(storylineVotes).where(eq(storylineVotes.eventId, eventId));
+  }
+
+  async getStorylineVoteByTeam(eventId: string, teamId: string): Promise<StorylineVote | undefined> {
+    const [v] = await db.select().from(storylineVotes)
+      .where(and(eq(storylineVotes.eventId, eventId), eq(storylineVotes.teamId, teamId)));
+    return v || undefined;
+  }
+
+  async createStorylineVote(data: InsertStorylineVote): Promise<StorylineVote> {
+    const [v] = await db.insert(storylineVotes).values(data).returning();
+    return v;
+  }
+
+  async updateStorylineVote(id: string, data: Partial<StorylineVote>): Promise<StorylineVote | undefined> {
+    const [v] = await db.update(storylineVotes).set(data).where(eq(storylineVotes.id, id)).returning();
+    return v || undefined;
   }
 }
 

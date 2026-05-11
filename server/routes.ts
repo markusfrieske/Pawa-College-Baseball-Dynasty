@@ -1,6 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { registerStorylineRoutes, initializeStorylineRecruits, generateAndResolveStorylineEvents } from "./storyline-routes";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import bcrypt from "bcrypt";
@@ -5220,6 +5221,15 @@ export async function registerRoutes(
       // ============ CPU RECRUITING AI ============
       if (league.currentPhase === "recruiting" || league.currentPhase === "preseason" || league.currentPhase === "regular_season") {
         await runCpuRecruiting(leagueId, currentWeek, league.currentSeason);
+      }
+
+      // ============ STORYLINE EVENTS ============
+      if (["recruiting", "preseason", "regular_season", "offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4"].includes(league.currentPhase)) {
+        try {
+          await generateAndResolveStorylineEvents(leagueId, league.currentSeason, nextWeek);
+        } catch (err) {
+          console.error("[storylines] Failed to generate/resolve storyline events:", err);
+        }
       }
       
       // ============ RECRUIT STAGE PROGRESSION ============
@@ -11268,6 +11278,8 @@ export async function registerRoutes(
     }
   });
 
+  registerStorylineRoutes(app);
+
   return httpServer;
 }
 
@@ -11662,6 +11674,16 @@ async function generateRecruits(leagueId: string, count: number) {
   }
 
   await generateTopSchoolsForLeague(leagueId);
+
+  // Initialize storyline recruits after recruit class generation
+  const leagueForStoryline = await storage.getLeague(leagueId);
+  if (leagueForStoryline) {
+    try {
+      await initializeStorylineRecruits(leagueId, leagueForStoryline.currentSeason);
+    } catch (err) {
+      console.error("[storylines] Failed to initialize storyline recruits:", err);
+    }
+  }
 }
 
 // Generate top schools for all recruits in a league based on their priorities

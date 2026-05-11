@@ -1185,8 +1185,96 @@ export const insertSavedRecruitingClassSchema = createInsertSchema(savedRecruiti
 export type InsertSavedRecruitingClass = z.infer<typeof insertSavedRecruitingClassSchema>;
 export type SavedRecruitingClass = typeof savedRecruitingClasses.$inferSelect;
 
+// ─── Storyline Recruit System ─────────────────────────────────────────────────
+
+export interface StorylineHiddenVars {
+  storyMomentum: number;   // 1-10: narrative energy this recruit carries
+  volatility: number;      // 1-10: likelihood of major rating swings
+  stability: number;       // 1-10: resistance to negative outcomes
+  pressure: number;        // 1-10: current mental/physical pressure
+  breakoutSeed: boolean;   // chance of breakout event this season
+  collapseSeed: boolean;   // chance of collapse event this season
+  ceilingModifier: number; // -20 to +20: permanent OVR ceiling shift from storyline
+  loyaltySeed: number;     // 1-10: loyalty to their current top school
+}
+
+export interface ChoiceWeights {
+  minor_pos: number;   // probability of minor positive (+1-3)
+  moderate_pos: number;
+  major_pos: number;
+  legendary_pos: number;
+  minor_neg: number;   // probability of minor negative (-1-3)
+  moderate_neg: number;
+  major_neg: number;
+  legendary_neg: number;
+  neutral: number;
+}
+
+export const storylineRecruits = pgTable("storyline_recruits", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  leagueId: varchar("league_id").notNull().references(() => leagues.id),
+  recruitId: varchar("recruit_id").notNull().references(() => recruits.id),
+  season: integer("season").notNull().default(1),
+  archetype: text("archetype").notNull(),
+  tier: text("tier").notNull(),
+  hiddenVars: json("hidden_vars").$type<StorylineHiddenVars>().notNull(),
+  currentArcStage: integer("current_arc_stage").notNull().default(0),
+  isLegendary: boolean("is_legendary").notNull().default(false),
+  imageUrl: text("image_url"),
+  imagePrompt: text("image_prompt"),
+  overlappingRecruitId: varchar("overlapping_recruit_id"),
+  resolvedOvrDelta: integer("resolved_ovr_delta").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertStorylineRecruitSchema = createInsertSchema(storylineRecruits).omit({ id: true, createdAt: true });
+export type InsertStorylineRecruit = z.infer<typeof insertStorylineRecruitSchema>;
+export type StorylineRecruit = typeof storylineRecruits.$inferSelect;
+
+export const storylineEvents = pgTable("storyline_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  leagueId: varchar("league_id").notNull().references(() => leagues.id),
+  storylineRecruitId: varchar("storyline_recruit_id").notNull().references(() => storylineRecruits.id),
+  season: integer("season").notNull().default(1),
+  week: integer("week").notNull().default(1),
+  eventText: text("event_text").notNull(),
+  choiceA: text("choice_a").notNull(),
+  choiceAOutcome: text("choice_a_outcome").notNull(),
+  choiceAWeights: json("choice_a_weights").$type<ChoiceWeights>().notNull(),
+  choiceB: text("choice_b").notNull(),
+  choiceBOutcome: text("choice_b_outcome").notNull(),
+  choiceBWeights: json("choice_b_weights").$type<ChoiceWeights>().notNull(),
+  choiceC: text("choice_c").notNull(),
+  choiceCOutcome: text("choice_c_outcome").notNull(),
+  choiceCWeights: json("choice_c_weights").$type<ChoiceWeights>().notNull(),
+  choiceD: text("choice_d"),
+  choiceDOutcome: text("choice_d_outcome"),
+  choiceDWeights: json("choice_d_weights").$type<ChoiceWeights>(),
+  resolvedChoice: text("resolved_choice"),
+  resolvedOutcomeText: text("resolved_outcome_text"),
+  ovrDelta: integer("ovr_delta"),
+  resolvedAt: timestamp("resolved_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertStorylineEventSchema = createInsertSchema(storylineEvents).omit({ id: true, createdAt: true });
+export type InsertStorylineEvent = z.infer<typeof insertStorylineEventSchema>;
+export type StorylineEvent = typeof storylineEvents.$inferSelect;
+
+export const storylineVotes = pgTable("storyline_votes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  eventId: varchar("event_id").notNull().references(() => storylineEvents.id),
+  teamId: varchar("team_id").notNull().references(() => teams.id),
+  choice: text("choice").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertStorylineVoteSchema = createInsertSchema(storylineVotes).omit({ id: true, createdAt: true });
+export type InsertStorylineVote = z.infer<typeof insertStorylineVoteSchema>;
+export type StorylineVote = typeof storylineVotes.$inferSelect;
+
 // League Events table - activity feed for league news
-const LEAGUE_EVENT_TYPES = ["SIGNING", "TRANSFER", "DRAFT", "GAME_RESULT", "AWARD", "PHASE_CHANGE", "ROSTER_CUT", "WALKON"] as const;
+const LEAGUE_EVENT_TYPES = ["SIGNING", "TRANSFER", "DRAFT", "GAME_RESULT", "AWARD", "PHASE_CHANGE", "ROSTER_CUT", "WALKON", "STORYLINE"] as const;
 export type LeagueEventType = (typeof LEAGUE_EVENT_TYPES)[number];
 
 export const leagueEvents = pgTable("league_events", {
