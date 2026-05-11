@@ -417,7 +417,40 @@ function StorylineCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: strin
               {showTimeline ? "Hide" : "Show"} arc history ({sl.allEvents.filter(e => e.resolvedChoice).length} resolved)
               {showTimeline ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
             </button>
-            {showTimeline && <ArcTimeline events={sl.allEvents} />}
+            {showTimeline && (
+              <div className="flex items-start gap-3 mt-2">
+                <div className="flex-shrink-0">
+                  {sl.imageUrl ? (
+                    <img
+                      src={sl.imageUrl}
+                      alt={r ? `${r.firstName} ${r.lastName}` : "Recruit"}
+                      className="w-20 h-20 rounded-lg border border-border/50 object-cover"
+                      style={{ imageRendering: "pixelated" }}
+                      data-testid={`img-portrait-expanded-${sl.id}`}
+                    />
+                  ) : r ? (
+                    <div className={`w-20 h-20 rounded-lg border overflow-hidden ${sl.isLegendary ? "border-gold/50" : "border-border/50"}`} data-testid={`portrait-expanded-${sl.id}`}>
+                      <PlayerPortrait
+                        skinTone={r.skinTone ?? "light"}
+                        hairColor={r.hairColor ?? "brown"}
+                        hairStyle={r.hairStyle ?? "short"}
+                        facialHair={r.facialHair ?? "none"}
+                        eyeStyle={r.eyeStyle || undefined}
+                        eyebrowStyle={r.eyebrowStyle || undefined}
+                        mouthStyle={r.mouthStyle || undefined}
+                        eyeBlack={r.eyeBlack ?? undefined}
+                        playerId={r.id}
+                        isRecruit={true}
+                        className="w-full h-full"
+                      />
+                    </div>
+                  ) : null}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <ArcTimeline events={sl.allEvents} />
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
