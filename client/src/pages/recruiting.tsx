@@ -2187,7 +2187,7 @@ function RecruitRow({
                       <span className={`text-[9px] font-bold ${interestMeta.color}`}>{interestMeta.label}</span>
                     </div>
                   ) : (
-                    <span className="text-[9px] text-muted-foreground/50">—</span>
+                    <span className="text-[9px] text-muted-foreground/50">?</span>
                   )}
                 </div>
               </div>
@@ -2323,7 +2323,7 @@ function RecruitRow({
                         {interestMeta.label}
                       </span>
                     ) : (
-                      <span className="text-[9px] text-muted-foreground/50">—</span>
+                      <span className="text-[9px] text-muted-foreground/50">?</span>
                     )}
                   </div>
                   {interestMeta ? (
