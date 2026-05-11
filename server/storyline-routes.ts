@@ -346,7 +346,7 @@ export function registerStorylineRoutes(app: Express) {
         return res.status(403).json({ message: "Only the commissioner can manually trigger storyline events" });
       }
 
-      const unresolvedEvents = await storage.getUnresolvedStorylineEvents(leagueId);
+      const unresolvedEvents = await storage.getUnresolvedStorylineEvents(leagueId, league.currentSeason);
       if (unresolvedEvents.length >= 4) {
         return res.status(409).json({
           message: "Weekly event cap reached (4 active events). Advance the week or resolve pending events before generating more.",
@@ -443,7 +443,8 @@ export async function generateAndResolveStorylineEvents(
   let generated = 0;
 
   try {
-    const unresolved = await storage.getUnresolvedStorylineEvents(leagueId);
+    // Season-scoped: only resolve events from the current season to prevent cross-season bleed
+    const unresolved = await storage.getUnresolvedStorylineEvents(leagueId, season);
     for (const event of unresolved) {
       if (event.week >= currentWeek) continue;
 
@@ -597,7 +598,8 @@ async function generateWeeklyStorylineEvents(leagueId: string, season: number, w
     if (ready.length === 0) return 0;
 
     // Enforce 4-event weekly ceiling across all triggers
-    const currentUnresolved = await storage.getUnresolvedStorylineEvents(leagueId);
+    // Season-scoped slot cap: only count unresolved events from the current season
+    const currentUnresolved = await storage.getUnresolvedStorylineEvents(leagueId, season);
     const remainingSlots = Math.max(0, 4 - currentUnresolved.length);
     if (remainingSlots === 0) return 0;
 
@@ -675,7 +677,10 @@ async function simulateCpuVotes(leagueId: string): Promise<void> {
     const cpuTeams = teams.filter(t => t.isCpu);
     if (cpuTeams.length === 0) return;
 
-    const unresolved = await storage.getUnresolvedStorylineEvents(leagueId);
+    const league = await storage.getLeague(leagueId);
+    const currentSeason = league?.currentSeason ?? 1;
+    // Season-scoped: only simulate CPU votes for current-season unresolved events
+    const unresolved = await storage.getUnresolvedStorylineEvents(leagueId, currentSeason);
 
     for (const event of unresolved) {
       const scores: Record<string, number> = {

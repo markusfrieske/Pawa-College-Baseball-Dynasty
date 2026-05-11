@@ -176,7 +176,7 @@ export interface IStorage {
 
   getStorylineEventsByLeague(leagueId: string, season?: number): Promise<StorylineEvent[]>;
   getStorylineEventsByRecruit(storylineRecruitId: string): Promise<StorylineEvent[]>;
-  getUnresolvedStorylineEvents(leagueId: string): Promise<StorylineEvent[]>;
+  getUnresolvedStorylineEvents(leagueId: string, season: number): Promise<StorylineEvent[]>;
   getStorylineEvent(id: string): Promise<StorylineEvent | undefined>;
   createStorylineEvent(data: InsertStorylineEvent): Promise<StorylineEvent>;
   updateStorylineEvent(id: string, data: Partial<StorylineEvent>): Promise<StorylineEvent | undefined>;
@@ -897,9 +897,13 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(storylineEvents.createdAt));
   }
 
-  async getUnresolvedStorylineEvents(leagueId: string): Promise<StorylineEvent[]> {
+  async getUnresolvedStorylineEvents(leagueId: string, season: number): Promise<StorylineEvent[]> {
     return db.select().from(storylineEvents)
-      .where(and(eq(storylineEvents.leagueId, leagueId), sql`${storylineEvents.resolvedChoice} IS NULL`))
+      .where(and(
+        eq(storylineEvents.leagueId, leagueId),
+        eq(storylineEvents.season, season),
+        sql`${storylineEvents.resolvedChoice} IS NULL`,
+      ))
       .orderBy(desc(storylineEvents.createdAt));
   }
 
