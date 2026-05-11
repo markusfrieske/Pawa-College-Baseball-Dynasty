@@ -2,26 +2,28 @@
  * validate-all — runs every roster validator in sequence and fails fast on
  * the first error.  Exits 0 only when all checks pass.
  *
- * Validators run in this order:
- *   1. validate-abilities      — ability names, position fit, required fields
- *   2. validate-pitch-mix      — pitch-mix field ranges
- *   3. validate-roster-structure — roster size, FR count, position-group counts
- *   4. validate-duplicates     — same-team duplicate player names
- *   5. validate-attributes     — attribute/position consistency (pitcher vs fielder attrs)
+ * Validators are auto-discovered: any scripts/validate-*.ts file (excluding
+ * this file itself) is picked up automatically when it is created.
+ * Files run in alphabetical order.
  *
- * Adding a new validator: append its script path to the VALIDATORS array below.
+ * Adding a new validator: just create scripts/validate-<name>.ts — it will
+ * be included automatically on the next run.
  */
 
 import { spawnSync } from "child_process";
-import { resolve } from "path";
+import { readdirSync } from "fs";
+import { resolve, join } from "path";
 
-const VALIDATORS = [
-  { label: "validate-abilities",        script: "scripts/validate-abilities.ts" },
-  { label: "validate-pitch-mix",        script: "scripts/validate-pitch-mix.ts" },
-  { label: "validate-roster-structure", script: "scripts/validate-roster-structure.ts" },
-  { label: "validate-duplicates",       script: "scripts/validate-duplicates.ts" },
-  { label: "validate-attributes",       script: "scripts/validate-attributes.ts" },
-];
+const scriptDir = join(process.cwd(), "scripts");
+
+// Auto-discover every validate-*.ts except this file
+const VALIDATORS = readdirSync(scriptDir)
+  .filter(f => /^validate-.+\.ts$/.test(f) && f !== "validate-all.ts")
+  .sort()
+  .map(f => ({
+    label: f.replace(/\.ts$/, ""),
+    script: `scripts/${f}`,
+  }));
 
 const divider = "─".repeat(60);
 let allPassed = true;
@@ -42,7 +44,7 @@ for (const { label, script } of VALIDATORS) {
   if (result.status !== 0) {
     console.error(`\n✗  ${label} FAILED (exit ${result.status ?? "signal"})\n`);
     allPassed = false;
-    break; // fail fast
+    break;
   }
 
   console.log(`\n✓  ${label} passed\n`);

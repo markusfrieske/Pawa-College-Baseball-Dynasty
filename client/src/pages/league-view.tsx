@@ -4006,6 +4006,27 @@ function PhaseDeadline({ deadline }: { deadline: Date | string }) {
       setShowWarning(true);
       localStorage.setItem(warnKey, "1");
     }
+
+    // #31 — browser Notification API: fire a native notification when < 1 hour remains
+    const notifyKey = `deadline-notified-${end}`;
+    const isVeryNear = diffMs > 0 && diffMs < 3600000;
+    if (isVeryNear && !localStorage.getItem(notifyKey) && "Notification" in window) {
+      localStorage.setItem(notifyKey, "1");
+      const fireNotification = () => {
+        const mins = Math.max(1, Math.floor(diffMs / 60000));
+        new Notification("Phase Deadline — College Baseball Dynasty", {
+          body: `You have ${mins} minute${mins !== 1 ? "s" : ""} left to complete your actions or you may be auto-advanced.`,
+          icon: "/favicon.ico",
+        });
+      };
+      if (Notification.permission === "granted") {
+        fireNotification();
+      } else if (Notification.permission !== "denied") {
+        Notification.requestPermission().then(perm => {
+          if (perm === "granted") fireNotification();
+        });
+      }
+    }
   }, [end]);
 
   useEffect(() => {

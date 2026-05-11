@@ -22,7 +22,7 @@ import {
 } from "./news-engine";
 import { SEC_REAL_ROSTERS } from "./realRosters";
 import { generateRecruitClass } from "./recruit-generator";
-import { validateLeagueRosters } from "./rosterValidation";
+import { validateLeagueRosters, checkTeamRosterStructure } from "./rosterValidation";
 
 function potentialGradeToNumber(grade: string): number {
   const map: Record<string, number> = {
@@ -716,6 +716,13 @@ export async function registerRoutes(
         if (existingPlayers.length === 0) {
           const confName = team.conferenceId ? confNameById[team.conferenceId] : undefined;
           await generatePlayersForTeam(team.id, progressionOn, team.name, confName);
+          // #9 — validate immediately so bad CPU rosters are caught at dynasty creation time
+          const genPlayers = await storage.getPlayersByTeam(team.id);
+          const setupViolations = checkTeamRosterStructure(team.name, genPlayers);
+          if (setupViolations.length > 0) {
+            console.error(`[roster-validation:dynasty-setup] ${setupViolations.length} violation(s) for "${team.name}":`);
+            for (const v of setupViolations) console.error(`  [${v.teamName}]: ${v.message}`);
+          }
         }
       }
 
@@ -8220,6 +8227,21 @@ export async function registerRoutes(
           })[0];
           if (best) {
             await storage.updateRecruit(best.id, { signedTeamId: entry.team.id });
+            // #26 — log CPU auto-signing in the activity feed so human coaches can see it
+            try {
+              await storage.createLeagueEvent({
+                leagueId,
+                teamId: entry.team.id,
+                teamName: entry.team.name,
+                teamAbbreviation: entry.team.abbreviation || entry.team.name.slice(0, 4).toUpperCase(),
+                eventType: "SIGNING",
+                description: `${entry.team.name} signed ${best.firstName} ${best.lastName} (${best.position}, ${best.starRating ?? 0}★) — CPU auto-signed`,
+                season: completedSeason,
+                week: 0,
+              });
+            } catch (evErr) {
+              console.error("[finalizeSigningDay] Failed to create CPU signing event:", evErr);
+            }
             claimed.add(best.id);
             entry.positionCounts[best.position] = (entry.positionCounts[best.position] || 0) + 1;
             entry.needed--;
@@ -8390,17 +8412,30 @@ export async function registerRoutes(
       }
     }
 
-    await validateLeagueRosters(
+    // #87 — surface roster violations in the activity feed so coaches see them, not just server logs
+    const signingDayValidation = await validateLeagueRosters(
       leagueId,
       (id) => storage.getTeamsByLeague(id),
       (teamId) => storage.getPlayersByTeam(teamId),
       "post-signing-day"
     );
+    if (signingDayValidation.violations > 0) {
+      try {
+        await storage.createLeagueEvent({
+          leagueId,
+          eventType: "PHASE_CHANGE",
+          description: `⚠ Roster check: ${signingDayValidation.violations} structure violation(s) detected across ${signingDayValidation.teamsChecked} teams after Signing Day. Check server logs for details.`,
+          season: completedSeason,
+          week: 0,
+        });
+      } catch (e) { console.error("[finalizeSigningDay] Failed to create violation event:", e); }
+    }
 
     return {
       recruitsAdded: totalRecruitsAdded,
       transferred: totalTransferred,
       playersProgressed: progressionResult.progressed,
+      rosterViolations: signingDayValidation.violations,
     };
   }
 
@@ -11882,6 +11917,55 @@ function getRandomAppearance() {
   };
 }
 
+/**
+ * #66 — Conference-flavored ability selection for CPU-generated players.
+ * HBCU teams lean athletic/scrappy; Ivy League teams lean cerebral/strategic.
+ * All other conferences use the standard randomized ability pool.
+ */
+function getConferenceFlavoredAbilities(
+  conference: string | undefined,
+  position: string,
+  count: number,
+  preferGold: boolean
+): string[] {
+  const isPitcher = ["P", "SP", "RP", "CP"].includes(position);
+
+  if (conference === "HBCU") {
+    const pitcherPool = [
+      "Indomitable Soul", "Big Boy Speed", "Groundball Pitcher", "Straddle",
+      "Slugger Killer", "Guts", "Strikeout", "Inside Pitch", "Intimidator",
+      "Pace", "Heavy Ball", "Houdini", "Natural Shuuto", "Fireman",
+    ];
+    const hitterPool = [
+      "Express Baserunning", "High Speed Charge", "Unrelenting", "Walkoff Hitter",
+      "Late Night Hero", "Contact Hitter", "Resilient", "Slap Happy", "Good Bunt",
+      "vs. Ace", "Shock Commander", "Artist", "High Ball Hitter", "First Pitch King",
+      "Bunt Artisan", "Insurer", "Outside Hitter", "Bases Loaded Slugger",
+    ];
+    const pool = isPitcher ? pitcherPool : hitterPool;
+    const shuffled = [...pool].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, Math.min(count, pool.length));
+  }
+
+  if (conference === "Ivy League") {
+    const pitcherPool = [
+      "Sangfroid", "Decisive", "Tunneling", "High Spin Gyroball", "Sharpness",
+      "Perfect Combustion", "Halting Quickness", "Monster Stuff", "Doctor K",
+      "Precision Instrument", "Winner's Luck", "Release", "Escape Pitch", "Painter",
+    ];
+    const hitterPool = [
+      "Good Bunt", "vs. Ace", "Artist", "Consigliere", "Trickster", "Disturbance",
+      "Opposite Field Hitter", "Spray Hitter", "Pinch Hitter", "Counterattack",
+      "High-Speed Laser", "Milliner", "Final Hit", "Surprise!", "Inside Hitter",
+    ];
+    const pool = isPitcher ? pitcherPool : hitterPool;
+    const shuffled = [...pool].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, Math.min(count, pool.length));
+  }
+
+  return getRandomAbilities(position, count, preferGold);
+}
+
 async function generatePlayersForTeam(teamId: string, progressionEnabled: boolean = false, teamName?: string, conferenceName?: string) {
   // Conference tier → attribute scale factor (keeps cross-conference OVR spread realistic)
   const CONF_TIER_SCALE: Record<string, number> = {
@@ -11922,6 +12006,26 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
         wRISP: scaleAttr(rp.wRISP), vsLefty: scaleAttr(rp.vsLefty), poise: scaleAttr(rp.poise), heater: scaleAttr(rp.heater), agile: scaleAttr(rp.agile),
         abilities: rp.abilities,
       };
+
+      // #12 — Big 12 marquee boost: A/A+ potential players get a +10% lift on key
+      // positional attributes so they feel genuinely elite relative to the field.
+      if (conferenceName === "Big 12" && (rp.potential === "A+" || rp.potential === "A")) {
+        const marquee = (v: number) => Math.max(1, Math.min(97, Math.round(v * 1.10)));
+        if (rp.position === "P") {
+          playerData.velocity = marquee(playerData.velocity);
+          playerData.stuff    = marquee(playerData.stuff);
+          playerData.control  = marquee(playerData.control);
+          playerData.stamina  = marquee(playerData.stamina);
+          playerData.clutch   = marquee(playerData.clutch);
+          playerData.poise    = marquee(playerData.poise);
+        } else {
+          playerData.hitForAvg = marquee(playerData.hitForAvg);
+          playerData.power     = marquee(playerData.power);
+          playerData.clutch    = marquee(playerData.clutch);
+          playerData.wRISP     = marquee(playerData.wRISP);
+          playerData.grit      = marquee(playerData.grit);
+        }
+      }
 
       const rawOverall = calculateOVR(playerData);
       const overall = Math.max(159, Math.min(650, rawOverall));
@@ -12098,7 +12202,8 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
                          starTier === 3 ? 1 + Math.floor(Math.random() * 3) :   // 1-3
                          starTier === 2 ? Math.floor(Math.random() * 3) :       // 0-2
                          Math.random() < 0.5 ? 1 : 0;                            // 1★: 50% of 1
-    const abilities = getRandomAbilities(position, abilityCount, starTier >= 4);
+    // #66 — use conference-flavored ability pools for HBCU/Ivy; generic pool for all others
+    const abilities = getConferenceFlavoredAbilities(conferenceName, position, abilityCount, starTier >= 4);
 
     const appearance = getRandomAppearance();
 
