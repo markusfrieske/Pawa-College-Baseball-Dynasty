@@ -11,7 +11,7 @@ import {
   ArrowLeft, BookOpen, Sparkles, TrendingUp, TrendingDown, Minus,
   ChevronRight, ChevronDown, Users, Trophy, Flame, Skull, Crown, Zap,
   Vote, Clock, CheckCircle, BarChart2, Link2, Image, Calendar,
-  Target, History, GitBranch,
+  Target, History, GitBranch, Activity,
 } from "lucide-react";
 
 interface StorylineEventFull {
@@ -393,6 +393,55 @@ function StorylineCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: strin
   );
 }
 
+// Trending Recruits: top-3 storyline recruits by arc activity (votes cast + OVR impact)
+function TrendingRecruits({ storylines, leagueId }: { storylines: StorylineRecruit[]; leagueId: string }) {
+  const ranked = [...storylines]
+    .map(sl => {
+      const totalVotes = Object.values(sl.voteCounts).reduce((s, v) => s + v, 0);
+      const activityScore = totalVotes * 2 + Math.abs(sl.resolvedOvrDelta ?? 0) + (sl.currentArcStage * 3);
+      return { sl, activityScore };
+    })
+    .sort((a, b) => b.activityScore - a.activityScore)
+    .slice(0, 3)
+    .filter(({ activityScore }) => activityScore > 0);
+
+  if (ranked.length === 0) return null;
+
+  return (
+    <RetroCard variant="bordered" className="p-4 mb-4" data-testid="card-trending-recruits">
+      <div className="flex items-center gap-2 mb-3">
+        <Activity className="w-4 h-4 text-gold" />
+        <span className="font-pixel text-[10px] text-gold">TRENDING RECRUITS</span>
+        <span className="text-[9px] text-muted-foreground ml-1">most arc activity</span>
+      </div>
+      <div className="space-y-2">
+        {ranked.map(({ sl, activityScore }, idx) => {
+          const r = sl.recruit;
+          if (!r) return null;
+          const totalVotes = Object.values(sl.voteCounts).reduce((s, v) => s + v, 0);
+          const ovrDelta = sl.resolvedOvrDelta ?? 0;
+          return (
+            <div key={sl.id} className="flex items-center gap-2" data-testid={`trending-recruit-${sl.id}`}>
+              <span className="font-pixel text-[9px] text-muted-foreground w-4">{idx + 1}.</span>
+              <div className={`w-2 h-2 rounded-full flex-shrink-0 ${sl.isLegendary ? "bg-gold" : "bg-muted-foreground/40"}`} />
+              <Link href={`/league/${leagueId}/recruit/${r.id}`} className="text-[10px] font-medium hover:text-gold flex-1 truncate">
+                {r.firstName} {r.lastName}
+              </Link>
+              <span className="text-[9px] text-muted-foreground">{r.position}</span>
+              <StarRating rating={r.starRank} size="sm" />
+              <span className="text-[9px] text-muted-foreground flex items-center gap-0.5">
+                <Vote className="w-2.5 h-2.5" />{totalVotes}v
+              </span>
+              {ovrDelta !== 0 && <OvrDeltaBadge delta={ovrDelta} />}
+              <span className="text-[8px] text-muted-foreground/50">({activityScore}pts)</span>
+            </div>
+          );
+        })}
+      </div>
+    </RetroCard>
+  );
+}
+
 function CommitmentTracker({ storylines }: { storylines: StorylineRecruit[] }) {
   const committed = storylines.filter(sl => sl.recruit?.stage === "signed" || sl.recruit?.stage === "committed");
   const pending = storylines.filter(sl => sl.recruit?.stage !== "signed" && sl.recruit?.stage !== "committed");
@@ -547,7 +596,10 @@ export default function StorylinesPage() {
         </div>
 
         {storylines.length > 0 && !filterLegendary && !filterLinked && (
-          <CommitmentTracker storylines={storylines} />
+          <>
+            <TrendingRecruits storylines={storylines} leagueId={leagueId!} />
+            <CommitmentTracker storylines={storylines} />
+          </>
         )}
 
         {isLoading ? (

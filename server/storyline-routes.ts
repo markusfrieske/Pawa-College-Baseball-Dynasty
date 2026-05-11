@@ -3,6 +3,7 @@ import { storage } from "./storage";
 import { generateStorylineEvent, resolveVotes, pickStorylineRecruits, ARCHETYPE_DEFS } from "./storylineEngine";
 import type { Archetype } from "./storylineEngine";
 import type { ChoiceWeights } from "@shared/schema";
+import { getAbilitiesForPosition } from "@shared/abilities";
 
 function requireAuth(req: Request, res: Response, next: () => void) {
   if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
@@ -45,6 +46,24 @@ async function generateStorylineImage(storylineId: string, imagePrompt: string |
   }
 }
 
+// Helper: resolve coach teamId for a league+user — used across multiple endpoints
+async function resolveCoachTeamId(leagueId: string, userId: string): Promise<string | null> {
+  try {
+    const coaches = await storage.getCoachesByLeague(leagueId);
+    return coaches.find(c => c.userId === userId)?.teamId ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// Helper: verify requesting user is a member of the league (has a team/coach)
+async function assertLeagueMember(leagueId: string, userId: string | undefined, res: Response): Promise<boolean> {
+  if (!userId) { res.status(401).json({ message: "Not authenticated" }); return false; }
+  const teamId = await resolveCoachTeamId(leagueId, userId);
+  if (!teamId) { res.status(403).json({ message: "You are not a member of this league" }); return false; }
+  return true;
+}
+
 export function registerStorylineRoutes(app: Express) {
 
   // GET /api/leagues/:id/storylines — all storyline recruits with recruit data + latest events
@@ -54,8 +73,14 @@ export function registerStorylineRoutes(app: Express) {
       const league = await storage.getLeague(leagueId);
       if (!league) return res.status(404).json({ message: "League not found" });
 
+      // Enforce league membership
+      if (!await assertLeagueMember(leagueId, req.session.userId, res)) return;
+
       const season = req.query.season ? parseInt(req.query.season as string) : league.currentSeason;
       const storylines = await storage.getStorylineRecruitsByLeague(leagueId, season);
+
+      // Resolve current user's teamId once (not per-storyline to avoid N+1)
+      const myTeamId = await resolveCoachTeamId(leagueId, req.session.userId!);
 
       const enriched = await Promise.all(storylines.map(async (sl) => {
         const recruit = await storage.getRecruit(sl.recruitId);
@@ -68,12 +93,9 @@ export function registerStorylineRoutes(app: Express) {
           const votes = await storage.getStorylineVotesByEvent(latestEvent.id);
           for (const v of votes) voteCounts[v.choice] = (voteCounts[v.choice] || 0) + 1;
 
-          if (req.session.userId) {
-            const coach = await storage.getCoach(req.session.userId).catch(() => undefined);
-            if (coach?.teamId) {
-              const myVoteRow = await storage.getStorylineVoteByTeam(latestEvent.id, coach.teamId);
-              myVote = myVoteRow?.choice ?? null;
-            }
+          if (myTeamId) {
+            const myVoteRow = await storage.getStorylineVoteByTeam(latestEvent.id, myTeamId);
+            myVote = myVoteRow?.choice ?? null;
           }
         }
 
@@ -246,7 +268,9 @@ export function registerStorylineRoutes(app: Express) {
       const sl = await storage.getStorylineRecruit(storylineId);
       if (!sl) return res.status(404).json({ message: "Storyline not found" });
       if (sl.leagueId !== leagueId) return res.status(403).json({ message: "Storyline does not belong to this league" });
-      if (sl.imageUrl) return res.json({ imageUrl: sl.imageUrl, cached: true });
+      // League membership guard: only members may trigger AI image generation (cost control)
+      if (!await assertLeagueMember(leagueId, req.session.userId, res)) return;
+      // Note: cached image can be force-refreshed by calling this endpoint again; no short-circuit on imageUrl
 
       // Use Replit OpenAI integration (AI_INTEGRATIONS env vars) — no user API key needed
       const imageUrl = await generateStorylineImage(storylineId, sl.imagePrompt ?? null);
@@ -389,15 +413,54 @@ export async function generateAndResolveStorylineEvents(
           await storage.updateRecruit(recruit.id, { overall: newOvr });
         }
 
+        // Ability side effects based on arc outcome magnitude
+        // Positive outcome: chance to gain a blue/gold ability from position pool
+        // Negative outcome: chance to gain a red (negative) ability
+        try {
+          const allPositionAbilities = getAbilitiesForPosition(recruit.position ?? "P");
+          const currentAbilities: string[] = (recruit.abilities as string[]) ?? [];
+          const storyLocked: string[] = (recruit.storyLockedAbilities as string[]) ?? [];
+
+          if (ovrDelta >= 15 || (ovrDelta >= 8 && Math.random() < 0.50)) {
+            // Positive arc outcome: grant a new ability (gold if legendary, else blue)
+            const tier = sl.isLegendary && Math.random() < 0.30 ? "gold" : "blue";
+            const pool = allPositionAbilities
+              .filter(a => a.tier === tier && !currentAbilities.includes(a.name))
+              .sort(() => Math.random() - 0.5);
+            if (pool.length > 0 && currentAbilities.length < 7) {
+              const gained = pool[0].name;
+              const newAbilities = [...currentAbilities, gained];
+              await storage.updateRecruit(recruit.id, { abilities: newAbilities });
+              if (!storyLocked.includes(gained)) {
+                await storage.updateRecruit(recruit.id, { storyLockedAbilities: [...storyLocked, gained] });
+              }
+            }
+          } else if (ovrDelta <= -15 || (ovrDelta <= -8 && Math.random() < 0.50)) {
+            // Negative arc outcome: grant a red (negative) ability OR remove a blue one
+            const redPool = allPositionAbilities
+              .filter(a => a.tier === "red" && !currentAbilities.includes(a.name))
+              .sort(() => Math.random() - 0.5);
+            if (redPool.length > 0) {
+              const gained = redPool[0].name;
+              const newAbilities = [...currentAbilities, gained];
+              await storage.updateRecruit(recruit.id, { abilities: newAbilities });
+              if (!storyLocked.includes(gained)) {
+                await storage.updateRecruit(recruit.id, { storyLockedAbilities: [...storyLocked, gained] });
+              }
+            }
+          }
+        } catch (abilityErr) {
+          console.warn("[storylines] ability side effect error (non-critical):", abilityErr);
+        }
+
         await storage.updateStorylineRecruit(sl.id, {
           resolvedOvrDelta: (sl.resolvedOvrDelta ?? 0) + ovrDelta,
           currentArcStage: sl.currentArcStage + 1,
         });
 
-        // Auto-generate image on arc stage change (fire-and-forget)
-        if (!sl.imageUrl) {
-          generateStorylineImage(sl.id, sl.imagePrompt ?? null).catch(() => {});
-        }
+        // Auto-generate/refresh image on EVERY arc stage change (fire-and-forget)
+        // Portrait evolves with the recruit's story — no imageUrl short-circuit here
+        generateStorylineImage(sl.id, sl.imagePrompt ?? null).catch(() => {});
 
         // Always post STORYLINE league event (activity feed)
         const ovrStr = ovrDelta > 0 ? `+${ovrDelta}` : ovrDelta === 0 ? "±0" : `${ovrDelta}`;
