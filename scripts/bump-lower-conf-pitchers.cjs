@@ -1,4 +1,8 @@
 'use strict';
+// ⚠ ONE-TIME MIGRATION SCRIPT — DO NOT RUN AGAIN
+// Applied once as part of Task #182 (fix lower-conference pitcher OVR).
+// Tier 3-5 pitcher attributes have already been bumped. Re-running will
+// double-boost those attrs and break the calibration.
 const fs = require('fs');
 const path = require('path');
 
