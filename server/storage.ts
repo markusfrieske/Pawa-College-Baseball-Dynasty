@@ -172,6 +172,7 @@ export interface IStorage {
   createStorylineRecruit(data: InsertStorylineRecruit): Promise<StorylineRecruit>;
   updateStorylineRecruit(id: string, data: Partial<StorylineRecruit>): Promise<StorylineRecruit | undefined>;
   deleteStorylineRecruitsByLeague(leagueId: string, season: number): Promise<void>;
+  deleteStorylineEventsByLeague(leagueId: string, season: number): Promise<void>;
 
   getStorylineEventsByLeague(leagueId: string, season?: number): Promise<StorylineEvent[]>;
   getStorylineEventsByRecruit(storylineRecruitId: string): Promise<StorylineEvent[]>;
@@ -858,7 +859,15 @@ export class DatabaseStorage implements IStorage {
     return r || undefined;
   }
 
+  async deleteStorylineEventsByLeague(leagueId: string, season: number): Promise<void> {
+    // Deletes all events (and cascade-deletes votes via FK) for the given league+season
+    await db.delete(storylineEvents)
+      .where(and(eq(storylineEvents.leagueId, leagueId), eq(storylineEvents.season, season)));
+  }
+
   async deleteStorylineRecruitsByLeague(leagueId: string, season: number): Promise<void> {
+    // Events/votes must be deleted before recruits to avoid FK constraint violations
+    await this.deleteStorylineEventsByLeague(leagueId, season);
     await db.delete(storylineRecruits)
       .where(and(eq(storylineRecruits.leagueId, leagueId), eq(storylineRecruits.season, season)));
   }

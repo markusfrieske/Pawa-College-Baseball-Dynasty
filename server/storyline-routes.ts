@@ -1,6 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { storage } from "./storage";
-import { generateStorylineEvent, resolveVotes, pickStorylineRecruits, ARCHETYPE_DEFS } from "./storylineEngine";
+import { generateStorylineEvent, resolveVotes, pickStorylineRecruits, ARCHETYPE_DEFS, maybeTransitionArchetype } from "./storylineEngine";
 import type { Archetype } from "./storylineEngine";
 import type { ChoiceWeights } from "@shared/schema";
 import { getAbilitiesForPosition } from "@shared/abilities";
@@ -347,8 +347,17 @@ export async function initializeStorylineRecruits(leagueId: string, season: numb
     const recruits = await storage.getRecruitsByLeague(leagueId);
     if (recruits.length === 0) return 0;
 
-    // Remove any existing storylines for this season
+    // Remove any existing storylines for this season (events/votes deleted first for integrity)
     await storage.deleteStorylineRecruitsByLeague(leagueId, season);
+
+    // Count legendaries from recent seasons (up to 4 seasons back) for quota smoothing
+    let recentLegendaryCount = 0;
+    try {
+      for (let s = Math.max(1, season - 4); s < season; s++) {
+        const prev = await storage.getStorylineRecruitsByLeague(leagueId, s);
+        recentLegendaryCount += prev.filter(sl => sl.isLegendary).length;
+      }
+    } catch {}
 
     const picks = pickStorylineRecruits(recruits.map(r => ({
       id: r.id,
@@ -359,7 +368,7 @@ export async function initializeStorylineRecruits(leagueId: string, season: numb
       firstName: r.firstName,
       lastName: r.lastName,
       position: r.position,
-    })));
+    })), { recentLegendaryCount });
 
     const created: import("@shared/schema").StorylineRecruit[] = [];
     for (const pick of picks) {
@@ -473,16 +482,31 @@ export async function generateAndResolveStorylineEvents(
               }
             }
           } else if (ovrDelta <= -15 || (ovrDelta <= -8 && Math.random() < 0.50)) {
-            // Negative arc outcome: grant a red (negative) ability OR remove a blue one
-            const redPool = allPositionAbilities
-              .filter(a => a.tier === "red" && !currentAbilities.includes(a.name))
+            // Negative arc outcome: remove a blue/gold ability if one exists, then add a red one
+            const removableAbilities = allPositionAbilities
+              .filter(a => (a.tier === "blue" || a.tier === "gold") && currentAbilities.includes(a.name) && storyLocked.includes(a.name))
               .sort(() => Math.random() - 0.5);
-            if (redPool.length > 0) {
+
+            let updatedAbilities = [...currentAbilities];
+            if (removableAbilities.length > 0) {
+              // Remove a story-granted positive ability
+              const toRemove = removableAbilities[0].name;
+              updatedAbilities = updatedAbilities.filter(a => a !== toRemove);
+              const newStoryLocked = storyLocked.filter(a => a !== toRemove);
+              await storage.updateRecruit(recruit.id, { abilities: updatedAbilities, storyLockedAbilities: newStoryLocked });
+            }
+
+            // Also add a red (negative) ability if space allows (cap at 7 total)
+            const redPool = allPositionAbilities
+              .filter(a => a.tier === "red" && !updatedAbilities.includes(a.name))
+              .sort(() => Math.random() - 0.5);
+            if (redPool.length > 0 && updatedAbilities.length < 7) {
               const gained = redPool[0].name;
-              const newAbilities = [...currentAbilities, gained];
+              const newAbilities = [...updatedAbilities, gained];
               await storage.updateRecruit(recruit.id, { abilities: newAbilities });
-              if (!storyLocked.includes(gained)) {
-                await storage.updateRecruit(recruit.id, { storyLockedAbilities: [...storyLocked, gained] });
+              const latestLocked = (await storage.getRecruit(recruit.id))?.storyLockedAbilities as string[] ?? storyLocked;
+              if (!latestLocked.includes(gained)) {
+                await storage.updateRecruit(recruit.id, { storyLockedAbilities: [...latestLocked, gained] });
               }
             }
           }
@@ -490,9 +514,21 @@ export async function generateAndResolveStorylineEvents(
           console.warn("[storylines] ability side effect error (non-critical):", abilityErr);
         }
 
+        // Archetype transition: apply evolving archetype rules at arcStage >= 2
+        const newCumulativeDelta = (sl.resolvedOvrDelta ?? 0) + ovrDelta;
+        const newArcStage = sl.currentArcStage + 1;
+        const transitionedArchetype = maybeTransitionArchetype(
+          sl.archetype as Archetype,
+          newCumulativeDelta,
+          newArcStage,
+          sl.isLegendary,
+        );
+        const archetypeChanged = transitionedArchetype !== sl.archetype;
+
         await storage.updateStorylineRecruit(sl.id, {
-          resolvedOvrDelta: (sl.resolvedOvrDelta ?? 0) + ovrDelta,
-          currentArcStage: sl.currentArcStage + 1,
+          resolvedOvrDelta: newCumulativeDelta,
+          currentArcStage: newArcStage,
+          ...(archetypeChanged ? { archetype: transitionedArchetype } : {}),
         });
 
         // Auto-generate/refresh image on EVERY arc stage change (fire-and-forget)

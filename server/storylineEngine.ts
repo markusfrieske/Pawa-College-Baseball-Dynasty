@@ -63,6 +63,49 @@ export type Archetype =
   | "injury_risk" | "academic_concern" | "transfer_rumors" | "two_sport_athlete"
   | "knuckleball_specialist" | "rivalry_recruit" | "generational_prodigy";
 
+// ─── Archetype Transition Rules ───────────────────────────────────────────────
+// Defines which archetype a recruit can evolve into based on cumulative OVR outcome.
+// "positive" = cumulative arc delta >= +15, "negative" = cumulative delta <= -15.
+// Transitions fire at arcStage >= 2 (mid-to-late arc) to reflect meaningful story change.
+export const ARCHETYPE_TRANSITIONS: Record<Archetype, { positive?: Archetype; negative?: Archetype }> = {
+  late_bloomer:         { positive: "summer_breakout",      negative: "confidence_crisis" },
+  velocity_freak:       { positive: "generational_prodigy",  negative: "burnout_candidate" },
+  swing_rebuild:        { positive: "summer_breakout",      negative: "injury_risk" },
+  position_change:      { positive: "late_bloomer",          negative: "academic_concern" },
+  summer_breakout:      { positive: "generational_prodigy",  negative: "confidence_crisis" },
+  social_media_star:    { positive: "rivalry_recruit",       negative: "burnout_candidate" },
+  confidence_crisis:    { positive: "late_bloomer",          negative: "academic_concern" },
+  burnout_candidate:    { positive: "swing_rebuild",         negative: "injury_risk" },
+  injury_risk:          { positive: "late_bloomer",          negative: "academic_concern" },
+  academic_concern:     { positive: "rivalry_recruit",       negative: "transfer_rumors" },
+  transfer_rumors:      { positive: "rivalry_recruit",       negative: "academic_concern" },
+  two_sport_athlete:    { positive: "summer_breakout",      negative: "burnout_candidate" },
+  knuckleball_specialist: { positive: "velocity_freak",     negative: "injury_risk" },
+  rivalry_recruit:      { positive: "generational_prodigy",  negative: "confidence_crisis" },
+  generational_prodigy: { positive: "generational_prodigy",  negative: "velocity_freak" },
+};
+
+/**
+ * Determine if a recruit's archetype should transition after an arc stage.
+ * Returns the new archetype (or the same one if no transition fires).
+ * Transition fires at arcStage >= 2 with a 35% base chance, boosted to 60% for legendary.
+ */
+export function maybeTransitionArchetype(
+  currentArchetype: Archetype,
+  cumulativeOvrDelta: number,
+  arcStage: number,
+  isLegendary: boolean,
+): Archetype {
+  if (arcStage < 2) return currentArchetype;
+  const transitionChance = isLegendary ? 0.60 : 0.35;
+  if (Math.random() > transitionChance) return currentArchetype;
+
+  const transitions = ARCHETYPE_TRANSITIONS[currentArchetype];
+  if (cumulativeOvrDelta >= 15 && transitions.positive) return transitions.positive;
+  if (cumulativeOvrDelta <= -15 && transitions.negative) return transitions.negative;
+  return currentArchetype;
+}
+
 export const ARCHETYPES: Archetype[] = [
   "late_bloomer", "velocity_freak", "swing_rebuild", "position_change",
   "summer_breakout", "social_media_star", "confidence_crisis", "burnout_candidate",
@@ -478,6 +521,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
 export interface StorylinePickConfig {
   count: number;        // how many storyline recruits to pick (default 10)
   legendaryCount: number; // how many should be legendary (default 1)
+  recentLegendaryCount?: number; // legendaries in recent past cohorts — used for quota smoothing
 }
 
 // Tier distribution: exactly 2/2/2/2/2 = 10 total
@@ -501,7 +545,7 @@ function shuffle<T>(arr: T[]): T[] {
 
 export function pickStorylineRecruits(
   recruits: Array<{ id: string; overall: number; starRank: number; isBlueChip?: boolean | null; isGenerationalGem?: boolean | null; firstName: string; lastName: string; position: string }>,
-  config: StorylinePickConfig = { count: 10, legendaryCount: Math.random() < 0.40 ? 1 : 0 },
+  config?: Partial<StorylinePickConfig>,
 ): Array<{
   recruitId: string;
   archetype: Archetype;
@@ -566,15 +610,33 @@ export function pickStorylineRecruits(
     }
   }
 
+  // ── Legendary quota selection ─────────────────────────────────────────────
+  // Target: ~2 legendaries per 50 storyline recruits (5 classes × 10 = 50).
+  // Per-class: 40% base chance for 1 legendary, reduced to 20% if recentLegendaryCount >= 2
+  // (cool-down after a run of legendaries), forced to 1 if recentLegendaryCount === 0 and
+  // recruits span 3+ classes without one (guarantee via forcedLegendary flag).
+  const count = config?.count ?? 10;
+  const recentLegendaryCount = config?.recentLegendaryCount ?? 0;
+  let legendaryCount: number;
+  if (config?.legendaryCount !== undefined) {
+    legendaryCount = config.legendaryCount;
+  } else {
+    // Quota-aware probability: throttle when over-represented, guarantee when starved
+    const overloaded = recentLegendaryCount >= 2;
+    const starved     = recentLegendaryCount === 0;
+    const prob = overloaded ? 0.15 : starved ? 1.0 : 0.40;
+    legendaryCount = Math.random() < prob ? 1 : 0;
+  }
+
   // Pick legendary slot: best available from picked (gem > bluechip > 4-star+)
   const sorted = [...picked].sort((a, b) => {
     const scoreA = (a.recruit.isGenerationalGem ? 3 : 0) + (a.recruit.isBlueChip ? 2 : 0) + (a.recruit.starRank >= 4 ? 1 : 0);
     const scoreB = (b.recruit.isGenerationalGem ? 3 : 0) + (b.recruit.isBlueChip ? 2 : 0) + (b.recruit.starRank >= 4 ? 1 : 0);
     return scoreB - scoreA;
   });
-  const legendaryId = config.legendaryCount > 0 && sorted.length > 0 ? sorted[0].recruit.id : null;
+  const legendaryId = legendaryCount > 0 && sorted.length > 0 ? sorted[0].recruit.id : null;
 
-  return picked.slice(0, config.count).map(({ recruit: r, tier }) => {
+  return picked.slice(0, count).map(({ recruit: r, tier }) => {
     const isLegendary = r.id === legendaryId;
     const archetype = pickArchetypeForRecruit(r, isLegendary);
     const hiddenVars = rollHiddenVars(r.starRank, r.isBlueChip ?? false, isLegendary);
