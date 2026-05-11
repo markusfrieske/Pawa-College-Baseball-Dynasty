@@ -35,7 +35,7 @@ import {
   type StorylineVote, type InsertStorylineVote,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, or, inArray, isNotNull, sql } from "drizzle-orm";
+import { eq, and, desc, or, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -182,6 +182,8 @@ export interface IStorage {
   createStorylineEvent(data: InsertStorylineEvent): Promise<StorylineEvent>;
   updateStorylineEvent(id: string, data: Partial<StorylineEvent>): Promise<StorylineEvent | undefined>;
   getFirstStorylineEventImageByTemplateId(templateId: string): Promise<string | null>;
+  getStorylineEventsWithMissingImages(): Promise<StorylineEvent[]>;
+  updateStorylineEventImageByTemplateId(templateId: string, imageUrl: string): Promise<void>;
 
   getStorylineVotesByEvent(eventId: string): Promise<StorylineVote[]>;
   getStorylineVoteByTeam(eventId: string, teamId: string): Promise<StorylineVote | undefined>;
@@ -951,6 +953,17 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(storylineEvents.templateId, templateId), isNotNull(storylineEvents.eventImageUrl)))
       .limit(1);
     return e?.eventImageUrl ?? null;
+  }
+
+  async getStorylineEventsWithMissingImages(): Promise<StorylineEvent[]> {
+    return db.select().from(storylineEvents)
+      .where(and(isNotNull(storylineEvents.templateId), isNull(storylineEvents.eventImageUrl)));
+  }
+
+  async updateStorylineEventImageByTemplateId(templateId: string, imageUrl: string): Promise<void> {
+    await db.update(storylineEvents)
+      .set({ eventImageUrl: imageUrl })
+      .where(and(eq(storylineEvents.templateId, templateId), isNull(storylineEvents.eventImageUrl)));
   }
 
   // ─── Storyline Votes ─────────────────────────────────────────────────────────

@@ -129,11 +129,52 @@ async function generateEventSceneImage(
   }
 
   if (dataUrl) {
-    await storage.updateStorylineEvent(eventId, { eventImageUrl: dataUrl }).catch(err =>
-      console.warn("[storylines] failed to persist event image:", err),
+    await storage.updateStorylineEventImageByTemplateId(templateId, dataUrl).catch(err =>
+      console.warn("[storylines] failed to backfill event images by templateId:", err),
     );
   }
   return dataUrl;
+}
+
+// Runs at startup to backfill scene images for any existing events that are missing them.
+// Groups events by templateId, looks up each template's scenePrompt, generates once per
+// unique template (with a 2-second throttle between requests), then updates all matching rows.
+export async function warmupEventSceneImages(): Promise<void> {
+  try {
+    const eventsWithoutImages = await storage.getStorylineEventsWithMissingImages();
+    if (eventsWithoutImages.length === 0) return;
+
+    const seenTemplates = new Set<string>();
+    const toProcess: Array<{ eventId: string; templateId: string; scenePrompt: string }> = [];
+
+    for (const event of eventsWithoutImages) {
+      if (!event.templateId || seenTemplates.has(event.templateId)) continue;
+      seenTemplates.add(event.templateId);
+
+      // Find scenePrompt by looking up the template in ARCHETYPE_DEFS
+      let scenePrompt: string | undefined;
+      for (const def of Object.values(ARCHETYPE_DEFS)) {
+        const all = [...def.events, ...(def.legendaryEvents ?? [])];
+        const t = all.find(e => e.id === event.templateId);
+        if (t?.scenePrompt) { scenePrompt = t.scenePrompt; break; }
+      }
+      if (scenePrompt) {
+        toProcess.push({ eventId: event.id, templateId: event.templateId, scenePrompt });
+      }
+    }
+
+    if (toProcess.length === 0) return;
+    console.log(`[storylines] warmup: ${toProcess.length} unique template(s) need scene images`);
+
+    for (const item of toProcess) {
+      await generateEventSceneImage(item.eventId, item.templateId, item.scenePrompt).catch(err =>
+        console.warn(`[storylines] warmup failed for template ${item.templateId}:`, err),
+      );
+      await new Promise(r => setTimeout(r, 2000));
+    }
+  } catch (err) {
+    console.warn("[storylines] warmupEventSceneImages error:", err);
+  }
 }
 
 async function resolveCoachTeamId(leagueId: string, userId: string): Promise<string | null> {
@@ -695,11 +736,14 @@ async function generateWeeklyStorylineEvents(leagueId: string, season: number, w
         linkedRecruitName,
       );
 
-      const createdEvent = await storage.createStorylineEvent({ ...eventData, archetypeAtEvent: sl.archetype });
+      const { scenePrompt: _scenePrompt, ...insertableEventData } = eventData;
+      const createdEvent = await storage.createStorylineEvent({ ...insertableEventData, archetypeAtEvent: sl.archetype });
       count++;
 
       if (eventData.templateId && eventData.scenePrompt) {
-        const { id: evId, templateId, scenePrompt } = { id: createdEvent.id, templateId: eventData.templateId, scenePrompt: eventData.scenePrompt };
+        const evId = createdEvent.id;
+        const templateId = eventData.templateId;
+        const scenePrompt = eventData.scenePrompt;
         generateEventSceneImage(evId, templateId, scenePrompt).catch(err =>
           console.warn("[storylines] async event image gen failed:", err),
         );

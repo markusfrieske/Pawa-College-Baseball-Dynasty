@@ -1,7 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { registerStorylineRoutes, initializeStorylineRecruits, generateAndResolveStorylineEvents } from "./storyline-routes";
+import { registerStorylineRoutes, initializeStorylineRecruits, generateAndResolveStorylineEvents, warmupEventSceneImages } from "./storyline-routes";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import bcrypt from "bcrypt";
@@ -11535,6 +11535,10 @@ export async function registerRoutes(
   });
 
   registerStorylineRoutes(app);
+
+  // Backfill scene images for any existing events created before image generation was added.
+  // Runs non-blocking in the background; safe to run on every startup (skips if no images are missing).
+  warmupEventSceneImages().catch(err => console.warn("[startup] warmupEventSceneImages error:", err));
 
   return httpServer;
 }
