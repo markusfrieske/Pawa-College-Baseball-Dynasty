@@ -152,6 +152,7 @@ export interface IStorage {
   getPlayerSeasonStats(playerId: string, leagueId: string): Promise<PlayerSeasonStats[]>;
   getPlayerSeasonStatsBySeason(leagueId: string, season: number): Promise<PlayerSeasonStats[]>;
   upsertPlayerSeasonStats(data: InsertPlayerSeasonStats): Promise<PlayerSeasonStats>;
+  updatePlayerSeasonStatsPosition(playerId: string, leagueId: string, season: number, position: string): Promise<void>;
 
   getSavedRostersByUser(userId: string): Promise<SavedRoster[]>;
   getSavedRoster(id: string): Promise<SavedRoster | undefined>;
@@ -779,6 +780,16 @@ export class DatabaseStorage implements IStorage {
 
     const [created] = await db.insert(playerSeasonStats).values(data).returning();
     return created;
+  }
+
+  async updatePlayerSeasonStatsPosition(playerId: string, leagueId: string, season: number, position: string): Promise<void> {
+    await db.update(playerSeasonStats)
+      .set({ position })
+      .where(and(
+        eq(playerSeasonStats.playerId, playerId),
+        eq(playerSeasonStats.leagueId, leagueId),
+        eq(playerSeasonStats.season, season)
+      ));
   }
 
   async getSavedRostersByUser(userId: string): Promise<SavedRoster[]> {

@@ -313,7 +313,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
         </div>
 
         {leagueId && (
-          <CareerStatsSection playerId={player.id} leagueId={leagueId} isPitcher={isPitcher} />
+          <CareerStatsSection playerId={player.id} leagueId={leagueId} />
         )}
 
         {/* Draft Declaration Status */}
@@ -414,21 +414,112 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
   );
 }
 
-function CareerStatsSection({ playerId, leagueId, isPitcher }: { playerId: string; leagueId: string; isPitcher: boolean }) {
+type CareerSeasonRow = {
+  season: number;
+  position: string;
+  games: number;
+  ab: number; r: number; h: number; doubles: number; triples: number;
+  hr: number; rbi: number; bb: number; so: number; sb: number;
+  avg: string; obp: string; slg: string; ops: string;
+  babip: string; wOBA: string; avgExitVelo: string; barrelPct: string; hardHitPct: string; fldPct: string;
+  pitchingGames: number; wins: number; losses: number;
+  ipDisplay: string; pHits: number; pEr: number; pBb: number; pSo: number; pHr: number;
+  era: string; fip: string; whip: string; kPct: string; whiffRate: string; avgSpinRate: number;
+};
+
+function PitchingStatsTable({ seasons, label }: { seasons: CareerSeasonRow[]; label?: string }) {
+  return (
+    <div>
+      {label && <p className="font-pixel text-[8px] text-muted-foreground mb-1">{label}</p>}
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs" data-testid="table-career-pitching">
+          <thead>
+            <tr className="border-b border-border text-left">
+              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground">SZN</th>
+              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">G</th>
+              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">W</th>
+              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">L</th>
+              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">ERA</th>
+              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">IP</th>
+              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">SO</th>
+              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">FIP</th>
+              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">WHIP</th>
+              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">K%</th>
+              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">Whiff%</th>
+            </tr>
+          </thead>
+          <tbody>
+            {seasons.map((s) => (
+              <tr key={s.season} className="border-b border-border/30" data-testid={`row-career-season-${s.season}`}>
+                <td className="py-1 px-1 font-pixel text-[7px] text-gold">S{s.season}</td>
+                <td className="py-1 px-1 text-center">{s.pitchingGames}</td>
+                <td className="py-1 px-1 text-center">{s.wins}</td>
+                <td className="py-1 px-1 text-center">{s.losses}</td>
+                <td className="py-1 px-1 text-center font-medium text-gold">{s.era}</td>
+                <td className="py-1 px-1 text-center">{s.ipDisplay}</td>
+                <td className="py-1 px-1 text-center">{s.pSo}</td>
+                <td className="py-1 px-1 text-center">{s.fip}</td>
+                <td className="py-1 px-1 text-center">{s.whip}</td>
+                <td className="py-1 px-1 text-center">{s.kPct}%</td>
+                <td className="py-1 px-1 text-center">{s.whiffRate}%</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function BattingStatsTable({ seasons, label }: { seasons: CareerSeasonRow[]; label?: string }) {
+  return (
+    <div>
+      {label && <p className="font-pixel text-[8px] text-muted-foreground mb-1">{label}</p>}
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs" data-testid="table-career-batting">
+          <thead>
+            <tr className="border-b border-border text-left">
+              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground">SZN</th>
+              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">G</th>
+              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">AB</th>
+              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">AVG</th>
+              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">OPS</th>
+              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">HR</th>
+              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">RBI</th>
+              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">SB</th>
+              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">wOBA</th>
+              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">EV</th>
+              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">Brl%</th>
+            </tr>
+          </thead>
+          <tbody>
+            {seasons.map((s) => (
+              <tr key={s.season} className="border-b border-border/30" data-testid={`row-career-season-${s.season}`}>
+                <td className="py-1 px-1 font-pixel text-[7px] text-gold">S{s.season}</td>
+                <td className="py-1 px-1 text-center">{s.games}</td>
+                <td className="py-1 px-1 text-center">{s.ab}</td>
+                <td className="py-1 px-1 text-center font-medium text-gold">{s.avg}</td>
+                <td className="py-1 px-1 text-center font-medium">{s.ops}</td>
+                <td className="py-1 px-1 text-center">{s.hr}</td>
+                <td className="py-1 px-1 text-center">{s.rbi}</td>
+                <td className="py-1 px-1 text-center">{s.sb}</td>
+                <td className="py-1 px-1 text-center">{s.wOBA}</td>
+                <td className="py-1 px-1 text-center">{s.avgExitVelo}</td>
+                <td className="py-1 px-1 text-center">{s.barrelPct}%</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function CareerStatsSection({ playerId, leagueId }: { playerId: string; leagueId: string }) {
   const { data, isLoading } = useQuery<{
     playerId: string;
     leagueId: string;
-    seasons: Array<{
-      season: number;
-      games: number;
-      ab: number; r: number; h: number; doubles: number; triples: number;
-      hr: number; rbi: number; bb: number; so: number; sb: number;
-      avg: string; obp: string; slg: string; ops: string;
-      babip: string; wOBA: string; avgExitVelo: string; barrelPct: string; hardHitPct: string; fldPct: string;
-      pitchingGames: number; wins: number; losses: number;
-      ipDisplay: string; pHits: number; pEr: number; pBb: number; pSo: number; pHr: number;
-      era: string; fip: string; whip: string; kPct: string; whiffRate: string; avgSpinRate: number;
-    }>;
+    seasons: CareerSeasonRow[];
   }>({
     queryKey: ["/api/leagues", leagueId, "players", playerId, "career-stats"],
     enabled: !!leagueId && !!playerId,
@@ -452,88 +543,29 @@ function CareerStatsSection({ playerId, leagueId, isPitcher }: { playerId: strin
     );
   }
 
-  if (isPitcher) {
-    return (
-      <div className="p-4 border-b border-border">
-        <h3 className="font-pixel text-gold text-xs mb-3">CAREER STATS</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs" data-testid="table-career-pitching">
-            <thead>
-              <tr className="border-b border-border text-left">
-                <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground">SZN</th>
-                <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">G</th>
-                <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">W</th>
-                <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">L</th>
-                <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">ERA</th>
-                <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">IP</th>
-                <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">SO</th>
-                <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">FIP</th>
-                <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">WHIP</th>
-                <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">K%</th>
-                <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">Whiff%</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.seasons.map((s) => (
-                <tr key={s.season} className="border-b border-border/30" data-testid={`row-career-season-${s.season}`}>
-                  <td className="py-1 px-1 font-pixel text-[7px] text-gold">S{s.season}</td>
-                  <td className="py-1 px-1 text-center">{s.pitchingGames}</td>
-                  <td className="py-1 px-1 text-center">{s.wins}</td>
-                  <td className="py-1 px-1 text-center">{s.losses}</td>
-                  <td className="py-1 px-1 text-center font-medium text-gold">{s.era}</td>
-                  <td className="py-1 px-1 text-center">{s.ipDisplay}</td>
-                  <td className="py-1 px-1 text-center">{s.pSo}</td>
-                  <td className="py-1 px-1 text-center">{s.fip}</td>
-                  <td className="py-1 px-1 text-center">{s.whip}</td>
-                  <td className="py-1 px-1 text-center">{s.kPct}%</td>
-                  <td className="py-1 px-1 text-center">{s.whiffRate}%</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
-  }
+  // Route each season row to the correct table using its stored position.
+  // A position-converted player may have rows under both position types;
+  // both tables are shown so no stats are hidden.
+  const pitchingSeasons = data.seasons.filter(s => s.position === "P");
+  const battingSeasons = data.seasons.filter(s => s.position !== "P");
+  const isConverted = pitchingSeasons.length > 0 && battingSeasons.length > 0;
 
   return (
     <div className="p-4 border-b border-border">
       <h3 className="font-pixel text-gold text-xs mb-3">CAREER STATS</h3>
-      <div className="overflow-x-auto">
-        <table className="w-full text-xs" data-testid="table-career-batting">
-          <thead>
-            <tr className="border-b border-border text-left">
-              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground">SZN</th>
-              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">G</th>
-              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">AB</th>
-              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">AVG</th>
-              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">OPS</th>
-              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">HR</th>
-              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">RBI</th>
-              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">SB</th>
-              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">wOBA</th>
-              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">EV</th>
-              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">Brl%</th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.seasons.map((s) => (
-              <tr key={s.season} className="border-b border-border/30" data-testid={`row-career-season-${s.season}`}>
-                <td className="py-1 px-1 font-pixel text-[7px] text-gold">S{s.season}</td>
-                <td className="py-1 px-1 text-center">{s.games}</td>
-                <td className="py-1 px-1 text-center">{s.ab}</td>
-                <td className="py-1 px-1 text-center font-medium text-gold">{s.avg}</td>
-                <td className="py-1 px-1 text-center font-medium">{s.ops}</td>
-                <td className="py-1 px-1 text-center">{s.hr}</td>
-                <td className="py-1 px-1 text-center">{s.rbi}</td>
-                <td className="py-1 px-1 text-center">{s.sb}</td>
-                <td className="py-1 px-1 text-center">{s.wOBA}</td>
-                <td className="py-1 px-1 text-center">{s.avgExitVelo}</td>
-                <td className="py-1 px-1 text-center">{s.barrelPct}%</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="space-y-4">
+        {pitchingSeasons.length > 0 && (
+          <PitchingStatsTable
+            seasons={pitchingSeasons}
+            label={isConverted ? "PITCHING" : undefined}
+          />
+        )}
+        {battingSeasons.length > 0 && (
+          <BattingStatsTable
+            seasons={battingSeasons}
+            label={isConverted ? "BATTING" : undefined}
+          />
+        )}
       </div>
     </div>
   );

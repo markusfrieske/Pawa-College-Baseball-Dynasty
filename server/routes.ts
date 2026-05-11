@@ -2378,6 +2378,8 @@ export async function registerRoutes(
       }
 
       const mergedPlayer = { ...player, ...req.body };
+      // Recalculate OVR using the new (merged) position — converted players get the
+      // correct positional attribute weights applied immediately.
       const recalcedOverall = calculateOVR(mergedPlayer);
       const recalcedStar = getStarRatingFromOVR(recalcedOverall);
       const positionChanged = req.body.position != null && req.body.position !== player.position;
@@ -2388,6 +2390,17 @@ export async function registerRoutes(
         starRating: recalcedStar,
         ...(shouldSetOriginal ? { originalPosition: player.position } : {}),
       });
+
+      // Sync the current-season stat row's position so the career stats display
+      // immediately reflects the new position after conversion.
+      if (positionChanged) {
+        await storage.updatePlayerSeasonStatsPosition(
+          req.params.playerId,
+          req.params.id,
+          league.currentSeason,
+          req.body.position,
+        );
+      }
       
       await storage.createAuditLog({
         leagueId: req.params.id,
@@ -3216,10 +3229,23 @@ export async function registerRoutes(
           if (positionChanged && !player.originalPosition) {
             sanitizedData['originalPosition'] = player.position;
           }
+          // Recalculate OVR using the new (merged) position — converted players get
+          // the correct positional attribute weights applied immediately.
           sanitizedData['overall'] = calculateOVR(mergedPlayer as any);
           sanitizedData['starRating'] = getStarRatingFromOVR(sanitizedData['overall'] as number);
           const updated = await storage.updatePlayer(update.id, sanitizedData);
           results.push(updated);
+
+          // Sync current-season stat row's position so career stats display reflects
+          // the new position without waiting for the next game to be simulated.
+          if (positionChanged) {
+            await storage.updatePlayerSeasonStatsPosition(
+              update.id,
+              req.params.id,
+              league.currentSeason,
+              sanitizedData['position'] as string,
+            );
+          }
         }
       }
 
