@@ -5,11 +5,11 @@ const DELTAS = {
   minor_pos:    [1, 3],
   moderate_pos: [4, 8],
   major_pos:    [9, 15],
-  legendary_pos:[16, 22],
+  legendary_pos:[16, 20],
   minor_neg:    [-3, -1],
   moderate_neg: [-8, -4],
   major_neg:    [-15, -9],
-  legendary_neg:[-22, -16],
+  legendary_neg:[-20, -16],
   neutral:      [0, 0],
 } as const;
 
@@ -480,13 +480,14 @@ export interface StorylinePickConfig {
   legendaryCount: number; // how many should be legendary (default 1)
 }
 
-// Tier distribution: 1 legendary, 2 elite, 2 above_average, 3 average, 2 below_average = 10 total
+// Tier distribution: exactly 2/2/2/2/2 = 10 total
+// "unknown" = two recruits whose tier is deliberately hidden (fog of war)
 const TIER_DISTRIBUTION: Record<string, number> = {
-  legendary: 1,
   elite: 2,
   above_average: 2,
-  average: 3,
+  average: 2,
   below_average: 2,
+  unknown: 2,
 };
 
 function shuffle<T>(arr: T[]): T[] {
@@ -510,59 +511,72 @@ export function pickStorylineRecruits(
   imagePrompt: string;
 }> {
   const usedIds = new Set<string>();
-  const result: typeof recruits = [];
 
-  // 1. Pick legendary slot (gems first, then blue chips, then high-star)
-  const legendaryCandidates = shuffle(
-    recruits.filter(r => r.isGenerationalGem || r.isBlueChip || r.starRank >= 4)
-  );
-  let legendaryPick: typeof recruits[0] | null = null;
-  for (const r of legendaryCandidates) {
-    if (!usedIds.has(r.id)) { legendaryPick = r; usedIds.add(r.id); break; }
-  }
-  if (legendaryPick) result.push(legendaryPick);
-
-  // 2. Pick by tier buckets
-  const tierBuckets: Record<string, typeof recruits> = {
-    elite: shuffle(recruits.filter(r => r.overall >= 500 && !usedIds.has(r.id))),
-    above_average: shuffle(recruits.filter(r => r.overall >= 350 && r.overall < 500 && !usedIds.has(r.id))),
-    average: shuffle(recruits.filter(r => r.overall >= 250 && r.overall < 350 && !usedIds.has(r.id))),
-    below_average: shuffle(recruits.filter(r => r.overall < 250 && !usedIds.has(r.id))),
+  // Strict 2/2/2/2/2 tier pick from bucketed pools
+  const tierBuckets = {
+    elite:         shuffle(recruits.filter(r => r.overall >= 500)),
+    above_average: shuffle(recruits.filter(r => r.overall >= 350 && r.overall < 500)),
+    average:       shuffle(recruits.filter(r => r.overall >= 250 && r.overall < 350)),
+    below_average: shuffle(recruits.filter(r => r.overall < 250)),
   };
 
-  const tierOrder: Array<keyof typeof TIER_DISTRIBUTION> = ["elite", "above_average", "average", "below_average"];
-  for (const tier of tierOrder) {
+  const picked: Array<{ recruit: typeof recruits[0]; tier: string }> = [];
+  const tieredOrder = ["elite", "above_average", "average", "below_average"] as const;
+
+  for (const tier of tieredOrder) {
     const needed = TIER_DISTRIBUTION[tier];
-    const pool = tierBuckets[tier];
     let filled = 0;
-    for (const r of pool) {
+    for (const r of tierBuckets[tier]) {
       if (filled >= needed) break;
       if (!usedIds.has(r.id)) {
-        result.push(r);
+        picked.push({ recruit: r, tier });
         usedIds.add(r.id);
         filled++;
       }
     }
-    // If a tier bucket is short, fill from any remaining recruit
+    // Fallback: pull from any remaining recruit if bucket is short
     if (filled < needed) {
-      const fallback = shuffle(recruits.filter(r => !usedIds.has(r.id)));
-      for (const r of fallback) {
+      for (const r of shuffle(recruits.filter(r => !usedIds.has(r.id)))) {
         if (filled >= needed) break;
-        result.push(r);
+        picked.push({ recruit: r, tier });
         usedIds.add(r.id);
         filled++;
       }
     }
   }
 
-  // Trim to target count if somehow over
-  const selected = result.slice(0, config.count);
-  const legendaryId = legendaryPick?.id;
+  // Pick 2 "unknown" recruits from any remaining (or from the pool) — fog-of-war tier
+  const unknownPool = shuffle(recruits.filter(r => !usedIds.has(r.id)));
+  let unknownFilled = 0;
+  for (const r of unknownPool) {
+    if (unknownFilled >= TIER_DISTRIBUTION.unknown) break;
+    picked.push({ recruit: r, tier: "unknown" });
+    usedIds.add(r.id);
+    unknownFilled++;
+  }
+  // Fallback if not enough recruits remain for unknown slots: re-use from below_average pool
+  if (unknownFilled < TIER_DISTRIBUTION.unknown) {
+    for (const r of tierBuckets.below_average) {
+      if (unknownFilled >= TIER_DISTRIBUTION.unknown) break;
+      if (!usedIds.has(r.id)) {
+        picked.push({ recruit: r, tier: "unknown" });
+        usedIds.add(r.id);
+        unknownFilled++;
+      }
+    }
+  }
 
-  return selected.map(r => {
+  // Pick legendary slot: best available from picked (gem > bluechip > 4-star+)
+  const sorted = [...picked].sort((a, b) => {
+    const scoreA = (a.recruit.isGenerationalGem ? 3 : 0) + (a.recruit.isBlueChip ? 2 : 0) + (a.recruit.starRank >= 4 ? 1 : 0);
+    const scoreB = (b.recruit.isGenerationalGem ? 3 : 0) + (b.recruit.isBlueChip ? 2 : 0) + (b.recruit.starRank >= 4 ? 1 : 0);
+    return scoreB - scoreA;
+  });
+  const legendaryId = config.legendaryCount > 0 && sorted.length > 0 ? sorted[0].recruit.id : null;
+
+  return picked.slice(0, config.count).map(({ recruit: r, tier }) => {
     const isLegendary = r.id === legendaryId;
     const archetype = pickArchetypeForRecruit(r, isLegendary);
-    const tier = isLegendary ? "legendary" : getTierFromOVR(r.overall);
     const hiddenVars = rollHiddenVars(r.starRank, r.isBlueChip ?? false, isLegendary);
     const imagePrompt = buildImagePrompt(r.firstName, r.lastName, r.position, archetype, isLegendary);
     return { recruitId: r.id, archetype, tier, hiddenVars, isLegendary, imagePrompt };

@@ -65,6 +65,8 @@ const TIER_CONFIG: Record<string, { label: string; color: string }> = {
   above_average: { label: "Above Avg", color: "text-blue-400 bg-blue-500/15 border-blue-500/30" },
   average: { label: "Average", color: "text-green-400 bg-green-500/15 border-green-500/30" },
   below_average: { label: "Below Avg", color: "text-gray-400 bg-gray-500/15 border-gray-500/30" },
+  unknown: { label: "Unknown", color: "text-purple-400 bg-purple-500/15 border-purple-500/30" },
+  legendary: { label: "Legendary", color: "text-gold bg-gold/15 border-gold/30" },
 };
 
 const CHOICE_LABELS = ["A", "B", "C", "D"] as const;

@@ -14,7 +14,7 @@ export function registerStorylineRoutes(app: Express) {
   // GET /api/leagues/:id/storylines — all storyline recruits with recruit data + latest events
   app.get("/api/leagues/:id/storylines", requireAuth, async (req, res) => {
     try {
-      const leagueId = req.params.id;
+      const leagueId = String(req.params.id);
       const league = await storage.getLeague(leagueId);
       if (!league) return res.status(404).json({ message: "League not found" });
 
@@ -66,7 +66,7 @@ export function registerStorylineRoutes(app: Express) {
   // GET /api/leagues/:id/storylines/events — all events for the current week
   app.get("/api/leagues/:id/storylines/events", requireAuth, async (req, res) => {
     try {
-      const leagueId = req.params.id;
+      const leagueId = String(req.params.id);
       const league = await storage.getLeague(leagueId);
       if (!league) return res.status(404).json({ message: "League not found" });
 
@@ -106,10 +106,10 @@ export function registerStorylineRoutes(app: Express) {
   // GET /api/leagues/:id/storylines/:storylineId — single storyline detail
   app.get("/api/leagues/:id/storylines/:storylineId", requireAuth, async (req, res) => {
     try {
-      const sl = await storage.getStorylineRecruit(req.params.storylineId);
+      const sl = await storage.getStorylineRecruit(String(req.params.storylineId));
       if (!sl) return res.status(404).json({ message: "Storyline not found" });
       // Security: verify this storyline belongs to the requested league
-      if (sl.leagueId !== req.params.id) return res.status(403).json({ message: "Storyline does not belong to this league" });
+      if (sl.leagueId !== String(req.params.id)) return res.status(403).json({ message: "Storyline does not belong to this league" });
 
       const recruit = await storage.getRecruit(sl.recruitId);
       const events = await storage.getStorylineEventsByRecruit(sl.id);
@@ -122,7 +122,7 @@ export function registerStorylineRoutes(app: Express) {
         let myVote: string | null = null;
         if (req.session.userId) {
           try {
-            const coaches = await storage.getCoachesByLeague(req.params.id);
+            const coaches = await storage.getCoachesByLeague(String(req.params.id));
             const myCoach = coaches.find(c => c.userId === req.session.userId);
             if (myCoach?.teamId) {
               const myVoteRow = await storage.getStorylineVoteByTeam(event.id, myCoach.teamId);
@@ -152,8 +152,8 @@ export function registerStorylineRoutes(app: Express) {
   // POST /api/leagues/:id/storylines/events/:eventId/vote — cast or change vote
   app.post("/api/leagues/:id/storylines/events/:eventId/vote", requireAuth, async (req, res) => {
     try {
-      const leagueId = req.params.id;
-      const eventId = req.params.eventId;
+      const leagueId = String(req.params.id);
+      const eventId = String(req.params.eventId);
       const { choice } = req.body;
 
       if (!["A", "B", "C", "D"].includes(choice)) {
@@ -192,7 +192,7 @@ export function registerStorylineRoutes(app: Express) {
   // POST /api/leagues/:id/storylines/generate — generate new weekly events (commissioner only, or from advance)
   app.post("/api/leagues/:id/storylines/generate", requireAuth, async (req, res) => {
     try {
-      const leagueId = req.params.id;
+      const leagueId = String(req.params.id);
       const league = await storage.getLeague(leagueId);
       if (!league) return res.status(404).json({ message: "League not found" });
       if (league.commissionerId !== req.session.userId) {
@@ -306,7 +306,7 @@ export async function generateAndResolveStorylineEvents(
           currentArcStage: sl.currentArcStage + 1,
         });
 
-        // Always post STORYLINE league event
+        // Always post STORYLINE league event (activity feed)
         const ovrStr = ovrDelta > 0 ? `+${ovrDelta}` : ovrDelta === 0 ? "±0" : `${ovrDelta}`;
         await storage.createLeagueEvent({
           leagueId,
@@ -315,6 +315,22 @@ export async function generateAndResolveStorylineEvents(
           season,
           week: currentWeek,
         });
+
+        // Also post to dynasty news (Sully Pump as recruiting analyst journalist)
+        try {
+          await storage.createDynastyNews({
+            leagueId,
+            title: `Storyline Update: ${recruit.firstName} ${recruit.lastName}`,
+            content: `Week ${currentWeek} arc resolution — Choice ${winningChoice} carried the vote.\n\n"${outcomeText}"\n\nOVR impact: ${ovrStr}`,
+            category: "recruiting",
+            journalist: "sully",
+            authorName: "Sully Pump",
+            season,
+            week: currentWeek,
+          });
+        } catch {
+          // Dynasty news creation is non-critical
+        }
       }
 
       resolved++;
@@ -379,27 +395,64 @@ async function generateWeeklyStorylineEvents(leagueId: string, season: number, w
   return count;
 }
 
-// Simulate CPU team votes on all unresolved events
+// Compute a positivity score for a choice's weights — used for CPU weighted voting
+function choicePositivityScore(weights: ChoiceWeights): number {
+  return (
+    (weights.minor_pos ?? 0) * 1 +
+    (weights.moderate_pos ?? 0) * 2 +
+    (weights.major_pos ?? 0) * 3 +
+    (weights.legendary_pos ?? 0) * 4 -
+    (weights.minor_neg ?? 0) * 1 -
+    (weights.moderate_neg ?? 0) * 2 -
+    (weights.major_neg ?? 0) * 3 -
+    (weights.legendary_neg ?? 0) * 4
+  );
+}
+
+function weightedRandomChoice(scores: Record<string, number>): string {
+  const entries = Object.entries(scores).filter(([, v]) => v > 0);
+  if (entries.length === 0) {
+    const keys = Object.keys(scores);
+    return keys[Math.floor(Math.random() * keys.length)];
+  }
+  const total = entries.reduce((s, [, v]) => s + v, 0);
+  let rng = Math.random() * total;
+  for (const [choice, score] of entries) {
+    rng -= score;
+    if (rng <= 0) return choice;
+  }
+  return entries[entries.length - 1][0];
+}
+
+// Simulate CPU team votes on all unresolved events (weighted by choice positivity)
 async function simulateCpuVotes(leagueId: string): Promise<void> {
   try {
     const teams = await storage.getTeamsByLeague(leagueId);
-    const cpuTeams = teams.filter(t => !t.userId);
+    const cpuTeams = teams.filter(t => t.isCpu);
     if (cpuTeams.length === 0) return;
 
     const unresolved = await storage.getUnresolvedStorylineEvents(leagueId);
 
     for (const event of unresolved) {
-      const availableChoices = event.choiceD ? ["A", "B", "C", "D"] : ["A", "B", "C"];
+      // Build positivity scores for each available choice
+      const scores: Record<string, number> = {
+        A: Math.max(0.1, choicePositivityScore(event.choiceAWeights as ChoiceWeights)),
+        B: Math.max(0.1, choicePositivityScore(event.choiceBWeights as ChoiceWeights)),
+        C: Math.max(0.1, choicePositivityScore(event.choiceCWeights as ChoiceWeights)),
+      };
+      if (event.choiceD && event.choiceDWeights) {
+        scores.D = Math.max(0.1, choicePositivityScore(event.choiceDWeights as ChoiceWeights));
+      }
 
       for (const team of cpuTeams) {
-        // Check if this CPU team already voted
         const existing = await storage.getStorylineVoteByTeam(event.id, team.id);
         if (existing) continue;
 
-        // 70% chance a CPU team bothers to vote on any given event
+        // 70% chance a CPU team votes on any given event
         if (Math.random() > 0.70) continue;
 
-        const choice = availableChoices[Math.floor(Math.random() * availableChoices.length)];
+        // CPU votes weighted by choice positivity (safer choices preferred)
+        const choice = weightedRandomChoice(scores);
         await storage.createStorylineVote({ eventId: event.id, teamId: team.id, choice });
       }
     }

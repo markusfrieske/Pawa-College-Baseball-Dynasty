@@ -74,6 +74,7 @@ interface FilterPreset {
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Recruit, RecruitingInterest, Team } from "@shared/schema";
+import { BookOpen } from "lucide-react";
 
 function getInterestLabel(level: number): { label: string; color: string } {
   if (level >= 90) return { label: "On Fire", color: "text-red-400" };
@@ -309,6 +310,12 @@ export default function RecruitingPage() {
   const { data: leagueData } = useQuery<{ id: string; currentWeek: number; currentSeason: number; progressionEnabled?: boolean }>({
     queryKey: ["/api/leagues", id],
   });
+
+  const { data: storylinesData } = useQuery<{ storylines: Array<{ recruitId: string }> }>({
+    queryKey: ["/api/leagues", id, "storylines"],
+    staleTime: 60000,
+  });
+  const storylineRecruitIds = new Set((storylinesData?.storylines ?? []).map(s => s.recruitId));
 
   const { data: historyData } = useQuery<{
     actions: Array<{
@@ -1473,6 +1480,7 @@ export default function RecruitingPage() {
               trend={trendsData?.trends?.[recruit.id]}
               userTeamId={data?.team?.id}
               positionNeed={pipelineData?.positionNeeds?.find(p => p.position === recruit.position)?.need}
+              isStorylineRecruit={storylineRecruitIds.has(recruit.id)}
               outOfRecruitingActions={(data?.remainingPoints ?? 1) <= 0}
               remainingPoints={data?.remainingPoints ?? 0}
               visitCost={data?.recruitPointCosts?.[recruit.id]?.visit ?? 2}
@@ -1781,6 +1789,7 @@ function RecruitRow({
   onBulkSelect,
   trend,
   userTeamId,
+  isStorylineRecruit,
   positionNeed,
   outOfRecruitingActions,
   remainingPoints,
@@ -1824,6 +1833,7 @@ function RecruitRow({
   progressionEnabled?: boolean;
   hasVisited?: boolean;
   hasHeadCoachVisited?: boolean;
+  isStorylineRecruit?: boolean;
 }) {
   const [showNotesDialog, setShowNotesDialog] = useState(false);
   const [notesValue, setNotesValue] = useState(recruit.interest?.notes || "");
@@ -1982,6 +1992,16 @@ function RecruitRow({
                 <Badge variant="outline" className="text-[8px] border-red-500/50 text-red-400">
                   NEED
                 </Badge>
+              )}
+              {isStorylineRecruit && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge variant="outline" className="text-[8px] border-purple-500/50 text-purple-400 bg-purple-500/10 no-default-hover-elevate no-default-active-elevate" data-testid={`badge-storyline-${recruit.id}`}>
+                      <BookOpen className="w-2.5 h-2.5 mr-0.5" />STORY
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>This recruit has an active storyline arc</TooltipContent>
+                </Tooltip>
               )}
               {recruit.competingIntensity && (
                 <Tooltip>
