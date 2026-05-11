@@ -220,7 +220,7 @@ export default function EditRostersPage() {
           <h1 className="font-pixel text-2xl text-red-500">ACCESS DENIED</h1>
           <p className="text-muted-foreground text-sm">
             {isGuest
-              ? "Guests cannot edit rosters. Only the league commissioner has access to this page."
+              ? "Guests cannot edit rosters. Join the league via an invite link and take over a team to access roster management."
               : "Only the league commissioner can access roster editing."}
           </p>
           <Link href={`/league/${id}/commissioner`}>

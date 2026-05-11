@@ -232,7 +232,7 @@ export default function EditRecruitsPage() {
           <h1 className="font-pixel text-2xl text-red-500">ACCESS DENIED</h1>
           <p className="text-muted-foreground text-sm">
             {isGuest
-              ? "Guests cannot edit recruiting classes. Only the league commissioner has access to this page."
+              ? "Guests cannot edit recruiting classes. Join the league via an invite link and take over a team to access this page."
               : "Only the league commissioner can access recruiting class editing."}
           </p>
           <Link href={`/league/${id}/commissioner`}>
