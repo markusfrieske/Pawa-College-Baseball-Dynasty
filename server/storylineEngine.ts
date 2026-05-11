@@ -118,6 +118,11 @@ export const ARCHETYPE_TRANSITIONS: Record<Archetype, { positive?: Archetype; ne
 // When a transition target is position-incompatible, substitute with a narratively
 // equivalent archetype that works for that position rather than blocking the transition.
 // Keys are pitcher-only or hitter-only archetypes; values are position-safe alternatives.
+//
+// AUDIT (keep in sync with PITCHER_ONLY_ARCHETYPES / HITTER_ONLY_ARCHETYPES):
+//   PITCHER_ONLY covered: velocity_freak ✓  knuckleball_specialist ✓  injury_risk ✓
+//   HITTER_ONLY  covered: swing_rebuild ✓
+// When adding a new position-specific archetype, add a fallback entry here too.
 const PITCHER_FALLBACK_FOR_NONPITCHER: Partial<Record<Archetype, Archetype>> = {
   velocity_freak:          "burnout_candidate",   // same negative energy, position-agnostic
   knuckleball_specialist:  "confidence_crisis",   // quirky → self-doubt arc, works for any player
@@ -126,6 +131,11 @@ const PITCHER_FALLBACK_FOR_NONPITCHER: Partial<Record<Archetype, Archetype>> = {
 const HITTER_FALLBACK_FOR_PITCHER: Partial<Record<Archetype, Archetype>> = {
   swing_rebuild:           "late_bloomer",        // positive development arc, position-agnostic
 };
+
+// Safe universal default used when a position-specific archetype has no fallback entry.
+// This should only fire if a new archetype was added to a position-only set without
+// a corresponding fallback — the [archetype-guard] warning surfaces the gap immediately.
+const ARCHETYPE_GUARD_DEFAULT: Archetype = "confidence_crisis";
 
 /**
  * Potentially transitions a player's storyline archetype based on accumulated OVR delta.
@@ -152,13 +162,33 @@ export function maybeTransitionArchetype(
 
   // Resolve a transition target to a position-appropriate archetype.
   // If the target is incompatible, use the defined fallback rather than blocking the transition.
+  // If no fallback entry exists, warn and return the universal safe default so a future expansion
+  // gap is surfaced immediately rather than silently assigning a mismatched archetype.
   const resolveTarget = (target: Archetype): Archetype => {
     const pitcherPos = isPitcher(position);
     if (!pitcherPos && PITCHER_ONLY_ARCHETYPES.has(target)) {
-      return PITCHER_FALLBACK_FOR_NONPITCHER[target] ?? target;
+      const fallback = PITCHER_FALLBACK_FOR_NONPITCHER[target];
+      if (fallback === undefined) {
+        console.warn(
+          `[archetype-guard] No PITCHER_FALLBACK_FOR_NONPITCHER entry for "${target}" ` +
+          `(position=${position}). Add a fallback to keep transitions narratively consistent. ` +
+          `Falling back to "${ARCHETYPE_GUARD_DEFAULT}".`
+        );
+        return ARCHETYPE_GUARD_DEFAULT;
+      }
+      return fallback;
     }
     if (pitcherPos && HITTER_ONLY_ARCHETYPES.has(target)) {
-      return HITTER_FALLBACK_FOR_PITCHER[target] ?? target;
+      const fallback = HITTER_FALLBACK_FOR_PITCHER[target];
+      if (fallback === undefined) {
+        console.warn(
+          `[archetype-guard] No HITTER_FALLBACK_FOR_PITCHER entry for "${target}" ` +
+          `(position=${position}). Add a fallback to keep transitions narratively consistent. ` +
+          `Falling back to "${ARCHETYPE_GUARD_DEFAULT}".`
+        );
+        return ARCHETYPE_GUARD_DEFAULT;
+      }
+      return fallback;
     }
     return target;
   };
