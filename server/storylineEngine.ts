@@ -123,6 +123,18 @@ export const ARCHETYPES: Archetype[] = [
   "knuckleball_specialist", "rivalry_recruit", "generational_prodigy",
 ];
 
+// Archetypes whose event text is specific to pitchers (velocity, arm injuries, bullpen, etc.)
+const PITCHER_ONLY_ARCHETYPES = new Set<Archetype>([
+  "velocity_freak",
+  "knuckleball_specialist",
+  "injury_risk",        // events reference Tommy John, bullpen sessions, arm velocity
+]);
+
+// Archetypes whose event text is specific to hitters (swing, batting cage, hit counts, etc.)
+const HITTER_ONLY_ARCHETYPES = new Set<Archetype>([
+  "swing_rebuild",      // events reference swing mechanics, batter at tee, homers
+]);
+
 export interface ArchetypeDefinition {
   name: string;
   description: string;
@@ -850,19 +862,27 @@ function pickArchetypeForRecruit(
   if (isLegendary) {
     return LEGENDARY_ARCHETYPES[Math.floor(Math.random() * LEGENDARY_ARCHETYPES.length)];
   }
+  const isPitcher = r.position === "P";
   if (r.isBlueChip) {
-    const elite: Archetype[] = ["summer_breakout", "velocity_freak", "rivalry_recruit", "social_media_star", "generational_prodigy"];
+    const eliteAll: Archetype[] = ["summer_breakout", "velocity_freak", "rivalry_recruit", "social_media_star", "generational_prodigy"];
+    // velocity_freak (pitcher-only) must be excluded for position players
+    const elite = isPitcher
+      ? eliteAll.filter(a => !HITTER_ONLY_ARCHETYPES.has(a))
+      : eliteAll.filter(a => !PITCHER_ONLY_ARCHETYPES.has(a));
     return elite[Math.floor(Math.random() * elite.length)];
   }
-  if (r.position === "P") {
+  if (isPitcher) {
     const pitcherArch: Archetype[] = ["velocity_freak", "knuckleball_specialist", "burnout_candidate", "injury_risk", "late_bloomer"];
     return pitcherArch[Math.floor(Math.random() * pitcherArch.length)];
   }
   if (r.starRank <= 2) {
+    // Low-star position players: none of these contain pitcher-only archetypes
     const lowArch: Archetype[] = ["late_bloomer", "academic_concern", "position_change", "confidence_crisis"];
     return lowArch[Math.floor(Math.random() * lowArch.length)];
   }
-  return ARCHETYPES[Math.floor(Math.random() * ARCHETYPES.length)];
+  // General fallback for position players: exclude pitcher-only archetypes
+  const generalPool = ARCHETYPES.filter(a => !PITCHER_ONLY_ARCHETYPES.has(a));
+  return generalPool[Math.floor(Math.random() * generalPool.length)];
 }
 
 function getTierFromOVR(ovr: number): string {
