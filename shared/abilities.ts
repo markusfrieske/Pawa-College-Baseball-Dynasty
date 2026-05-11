@@ -362,7 +362,7 @@ export function calculateOVR(attrs: {
     const pitchCommon =
       (attrs.heater ?? 0) + (attrs.poise ?? 0) + (attrs.recovery ?? 0) +
       (attrs.wRISP ?? 0) + (attrs.vsLefty ?? 0);
-    const raw = Math.round(pitchCore * 1.02 + pitchField * 0.21 + pitchCommon * 0.37 + specialBonus);
+    const raw = Math.round(pitchCore * 0.85 + pitchField * 0.20 + pitchCommon * 0.25 + specialBonus);
     return Math.max(150, Math.min(650, raw));
   }
 

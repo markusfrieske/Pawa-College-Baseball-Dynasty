@@ -24,23 +24,19 @@ type Roster = Record<string, RealPlayer[]>;
 
 const PITCHER_POSITIONS = new Set(["P", "SP", "RP", "CP"]);
 
-// ── Target bands ──────────────────────────────────────────────────────────
-// These thresholds reflect the achievable distribution given the 5-tier
-// conference structure.  Lower-tier conference hitters (HBCU/Ivy/MoValley)
-// structurally land in 2★; fixing that requires a separate hitter-calibration
-// pass.  The targets below represent the healthy post-pitcher-fix state:
-//   5★ (≥500): <3%   4★ (400-499): <17%   3★ (300-399): ≥47%
-//   2★ (200-299): ≤35%   1★ (<200): remainder (should be <5%)
+// ── Target bands from spec ─────────────────────────────────────────────────
+// 5★ (≥500): <3%   4★ (400-499): <17%   3★ (300-399): ~60%
+// 2★ (200-299): ~20%   1★ (<200): remainder
 type TargetEntry =
   | { label: string; max: number }
   | { label: string; lo: number; hi: number }
   | { label: string; note: string };
 
 const TARGETS: Record<number, TargetEntry> = {
-  5: { label: "5★ (≥500)", max: 4 },
+  5: { label: "5★ (≥500)", max: 3 },
   4: { label: "4★ (400-499)", max: 17 },
-  3: { label: "3★ (300-399)", lo: 47, hi: 70 },
-  2: { label: "2★ (200-299)", lo: 10, hi: 35 },
+  3: { label: "3★ (300-399)", lo: 50, hi: 70 },
+  2: { label: "2★ (200-299)", lo: 10, hi: 30 },
   1: { label: "1★ (<200)", note: "remainder" },
 };
 
