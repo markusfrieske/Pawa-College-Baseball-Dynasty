@@ -453,21 +453,40 @@ function QuickActionCard({
 
 // ============ STORYLINES DASHBOARD WIDGET ============
 
+interface StorylineWidgetItem {
+  id: string;
+  isLegendary: boolean;
+  archetypeName: string;
+  overlappingRecruitName?: string | null;
+  recruit?: {
+    firstName: string;
+    lastName: string;
+    position?: string;
+    starRank?: number;
+  } | null;
+  latestEvent?: {
+    id: string;
+    eventText: string;
+    resolvedChoice?: string | null;
+    ovrDelta?: number | null;
+  } | null;
+}
+
 function StorylinesDashboardWidget({ leagueId }: { leagueId: string }) {
-  const { data: storylinesResp, isLoading } = useQuery<{ storylines: any[] }>({
+  const { data: storylinesResp, isLoading } = useQuery<{ storylines: StorylineWidgetItem[] }>({
     queryKey: ["/api/leagues", leagueId, "storylines"],
     queryFn: async () => {
       const res = await fetch(`/api/leagues/${leagueId}/storylines`, { credentials: "include" });
       if (!res.ok) return { storylines: [] };
       const json = await res.json();
-      return Array.isArray(json) ? { storylines: json } : json;
+      return Array.isArray(json) ? { storylines: json } : (json as { storylines: StorylineWidgetItem[] });
     },
     staleTime: 60000,
   });
   const storylines = storylinesResp?.storylines ?? [];
 
-  const activeVotes = storylines.filter((s: any) => s.latestEvent && !s.latestEvent.resolvedChoice);
-  const legendary = storylines.filter((s: any) => s.isLegendary);
+  const activeVotes = storylines.filter((s) => s.latestEvent && !s.latestEvent.resolvedChoice);
+  const legendary = storylines.filter((s) => s.isLegendary);
 
   if (isLoading) return null;
   if (storylines.length === 0) return null;
@@ -510,7 +529,7 @@ function StorylinesDashboardWidget({ leagueId }: { leagueId: string }) {
         {activeVotes.length > 0 && (
           <div className="space-y-2">
             <div className="font-pixel text-[8px] text-muted-foreground mb-1">ACTIVE THIS WEEK</div>
-            {activeVotes.slice(0, 3).map((sl: any) => (
+            {activeVotes.slice(0, 3).map((sl) => (
               <Link key={sl.id} href={`/league/${leagueId}/storylines`}>
                 <div className="flex items-center gap-2 px-3 py-2 bg-muted/20 rounded-md border border-border/40 hover:border-gold/40 hover:bg-gold/5 transition-all cursor-pointer" data-testid={`widget-storyline-${sl.id}`}>
                   {sl.isLegendary && <Star className="w-3 h-3 text-gold flex-shrink-0" />}

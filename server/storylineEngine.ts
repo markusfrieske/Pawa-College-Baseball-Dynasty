@@ -61,7 +61,9 @@ export type Archetype =
   | "late_bloomer" | "velocity_freak" | "swing_rebuild" | "position_change"
   | "summer_breakout" | "social_media_star" | "confidence_crisis" | "burnout_candidate"
   | "injury_risk" | "academic_concern" | "transfer_rumors" | "two_sport_athlete"
-  | "knuckleball_specialist" | "rivalry_recruit" | "generational_prodigy";
+  | "knuckleball_specialist" | "rivalry_recruit" | "generational_prodigy"
+  // ─── Five distinct legendary storyline templates ──────────────────────────
+  | "the_phenom" | "the_collapse" | "the_two_sport_icon" | "the_scientist" | "folk_hero";
 
 // ─── Archetype Transition Rules ───────────────────────────────────────────────
 // Defines which archetype a recruit can evolve into based on cumulative OVR outcome.
@@ -83,6 +85,12 @@ export const ARCHETYPE_TRANSITIONS: Record<Archetype, { positive?: Archetype; ne
   knuckleball_specialist: { positive: "velocity_freak",     negative: "injury_risk" },
   rivalry_recruit:      { positive: "generational_prodigy",  negative: "confidence_crisis" },
   generational_prodigy: { positive: "generational_prodigy",  negative: "velocity_freak" },
+  // Legendary template transitions
+  the_phenom:           { positive: "generational_prodigy",  negative: "the_collapse" },
+  the_collapse:         { positive: "folk_hero",             negative: "burnout_candidate" },
+  the_two_sport_icon:   { positive: "the_phenom",            negative: "the_collapse" },
+  the_scientist:        { positive: "the_phenom",            negative: "academic_concern" },
+  folk_hero:            { positive: "generational_prodigy",  negative: "confidence_crisis" },
 };
 
 /**
@@ -476,6 +484,157 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
     ],
   },
 
+  // ─── Five Distinct Legendary Storyline Templates ─────────────────────────────
+  the_phenom: {
+    name: "The Phenom",
+    description: "Once-in-a-generation talent whose ceiling scouts argue about in hushed tones.",
+    flavor: "The numbers don't capture what he is. The eye test barely does.",
+    events: [
+      {
+        id: "ph_1",
+        eventText: "{name}'s showcase footage went viral overnight. Every major program's DM is full. He has 40+ scholarship offers and hasn't returned a single call. How do you cut through the noise?",
+        choiceA: "Send a handwritten letter — analog in a digital world", choiceAOutcome: "The personal touch lands differently when everyone else is flooding his inbox.", choiceAWeights: W.bold_pos,
+        choiceB: "Fly out with your head coach — show the full commitment", choiceBOutcome: "The in-person visit from your entire staff signals seriousness.", choiceBWeights: W.safe_pos,
+        choiceC: "Connect with his high school coach first — earn trust through respect", choiceCOutcome: "Going through trusted relationships opens doors that cold contact can't.", choiceCWeights: W.neutral_up,
+        choiceD: "Make a public offer — highest NIL deal in your program's history", choiceDOutcome: "Public money plays either excite him or set an uncomfortable precedent.", choiceDWeights: W.high_risk,
+      },
+      {
+        id: "ph_2",
+        eventText: "A scout pulls you aside after a {name} workout: 'I've seen one player like this in 30 years.' He's choosing between five elite programs next week. What's your closing argument?",
+        choiceA: "Development path — show exactly how your program elevates phenoms to pros", choiceAOutcome: "The program's track record of developing elite talent speaks for itself.", choiceAWeights: W.bold_pos,
+        choiceB: "Culture — let current players tell the story of what it means to be here", choiceBOutcome: "Peer testimonials from players he admires carry enormous weight.", choiceBWeights: W.safe_pos,
+        choiceC: "Legacy — paint the picture of what his impact on your program's history could be", choiceCOutcome: "Elite players respond to the chance to define an era.", choiceCWeights: W.neutral_up,
+      },
+      {
+        id: "ph_3",
+        eventText: "Commitment day. {name} has narrowed it to two schools — yours and a rival. His family calls with one hour left. His mother says: 'Tell us one thing no one else has said.' What do you say?",
+        choiceA: "Name a specific player you developed and what his life looks like now", choiceAOutcome: "The concrete, personal story is more powerful than any promise.", choiceAWeights: W.bold_pos,
+        choiceB: "Tell her that her son is more than a prospect — you see the whole person", choiceBOutcome: "The statement that transcends baseball is the one she remembers.", choiceBWeights: W.safe_pos,
+        choiceC: "Be honest about what you don't know — and how you'll face it together", choiceCOutcome: "Vulnerability from a head coach is disarming and memorable.", choiceCWeights: W.neutral_up,
+      },
+    ],
+  },
+
+  the_collapse: {
+    name: "The Collapse",
+    description: "A top-ranked recruit whose world is falling apart — and how they respond defines everything.",
+    flavor: "The talent was never the question. The question was always the person.",
+    events: [
+      {
+        id: "tc_1",
+        eventText: "{name} was the top recruit in his region six months ago. Now there are whispers — family situation, attitude issues, a drop in grades. His ranking has collapsed. Is this still a player worth recruiting?",
+        choiceA: "Go deeper — reach out privately and hear the real story", choiceAOutcome: "Understanding what's actually happening puts you in a unique position of trust.", choiceAWeights: W.bold_pos,
+        choiceB: "Watch from a distance — monitor the situation without committing", choiceBOutcome: "Cautious observation avoids risk but also avoids the relationship.", choiceBWeights: W.cautious,
+        choiceC: "Pull back — the uncertainty is too great for a scholarship offer", choiceCOutcome: "Protecting your class from uncertainty is responsible — and costly if wrong.", choiceCWeights: W.risky_neg,
+        choiceD: "Reach out through a trusted mentor in his community", choiceDOutcome: "Going through the right intermediary can open a door that direct contact can't.", choiceDWeights: W.neutral_up,
+      },
+      {
+        id: "tc_2",
+        eventText: "{name} opens up to you. His family is going through something serious. He says: 'I need a school that won't give up on me when things get hard.' The coaches who backed off are calling again now that he's stabilizing.",
+        choiceA: "Stay steady — you were there when others weren't, and that matters", choiceAOutcome: "The coaches who showed up in the dark earn loyalty that doesn't fade.", choiceAWeights: W.bold_pos,
+        choiceB: "Offer a hardship support framework — concrete help, not just words", choiceBOutcome: "Translating care into a real support plan signals a program built for people.", choiceBWeights: W.safe_pos,
+        choiceC: "Be honest about the expectations — great relationships require honesty", choiceCOutcome: "Grounded honesty in this moment builds something real.", choiceCWeights: W.neutral_up,
+      },
+      {
+        id: "tc_3",
+        eventText: "{name} is back. His performance is trending up, his grades are recovering. The programs that left are now calling. He's told you: 'You were the only one who didn't ghost me.' How do you close?",
+        choiceA: "Reference specific moments — show him you paid attention throughout", choiceAOutcome: "Remembering the details of someone's struggle is a profound form of respect.", choiceAWeights: W.bold_pos,
+        choiceB: "Let him lead — ask what he wants from this chapter of his life", choiceBOutcome: "Putting him in control of the conversation gives him agency after a period of chaos.", choiceBWeights: W.safe_pos,
+        choiceC: "Make the offer now — signal certainty in an uncertain time", choiceCOutcome: "A scholarship offer in the middle of a comeback is an act of faith with real power.", choiceCWeights: W.neutral_up,
+      },
+    ],
+  },
+
+  the_two_sport_icon: {
+    name: "The Two-Sport Icon",
+    description: "Exceptional in two sports — and every program wants a piece of him, including football.",
+    flavor: "He's the most recruited player in his county. In two sports.",
+    events: [
+      {
+        id: "tsi_1",
+        eventText: "{name} is a top baseball and football recruit. Both programs are making their pitches simultaneously. His agent — yes, he has an agent at 17 — says he's leaning toward the sport that shows him the clearest path. What's your argument for baseball?",
+        choiceA: "Draft projection — show him the MLB path and the timeline", choiceAOutcome: "Elite baseball players often go pro faster than football. That story matters.", choiceAWeights: W.bold_pos,
+        choiceB: "Health — baseball careers last longer, the body takes less punishment", choiceBOutcome: "The longevity argument lands differently when framed around his future.", choiceBWeights: W.safe_pos,
+        choiceC: "Identity — he was born to play baseball, and your program will prove it", choiceCOutcome: "The emotional argument about who he really is cuts through the spreadsheets.", choiceCWeights: W.neutral_up,
+        choiceD: "Flexibility — structure his commitment so he can explore both for longer", choiceDOutcome: "Offering the most flexibility either wins him or loses him to indecision.", choiceDWeights: W.high_risk,
+      },
+      {
+        id: "tsi_2",
+        eventText: "{name}'s football coach went public saying baseball would 'waste his potential.' It's created a media circus. He's being pulled in two directions and his commitment has been postponed indefinitely. How do you respond?",
+        choiceA: "Stay entirely above the drama — let your program speak for itself", choiceAOutcome: "Dignity under fire signals a program with strong values.", choiceAWeights: W.bold_pos,
+        choiceB: "Reach out privately to check in on him — not about baseball, about him", choiceBOutcome: "Checking on the person, not the recruit, is what rare coaches do.", choiceBWeights: W.safe_pos,
+        choiceC: "Request a private meeting — present your full vision with no outside noise", choiceCOutcome: "The direct, quiet conversation is often the most powerful one.", choiceCWeights: W.neutral_up,
+      },
+      {
+        id: "tsi_3",
+        eventText: "{name} has made his decision — baseball. He tells you privately before the announcement. He says your program was 'the only one that made him feel like a baseball player, not a recruiting trophy.' How do you respond?",
+        choiceA: "Tell him the story of a similar player who chose baseball and never looked back", choiceAOutcome: "Grounding the moment in someone else's success gives him something to hold.", choiceAWeights: W.safe_pos,
+        choiceB: "Make him the centerpiece of your program's identity immediately", choiceBOutcome: "Investing fully from day one sets the tone for the entire relationship.", choiceBWeights: W.bold_pos,
+        choiceC: "Keep it quiet — respect his timeline, let him control the announcement", choiceCOutcome: "Giving him control in a moment when everyone wanted to control him is meaningful.", choiceCWeights: W.neutral_up,
+      },
+    ],
+  },
+
+  the_scientist: {
+    name: "The Scientist",
+    description: "A cerebral, analytically gifted recruit who evaluates programs the way scouts evaluate players.",
+    flavor: "He's read every paper written about spin rate. He's cross-referencing your pitching staff with Statcast data.",
+    events: [
+      {
+        id: "sci_1",
+        eventText: "{name} sent your program a 12-page PDF comparing your pitching development metrics to eight other programs. He highlighted gaps. He called it 'preliminary diligence.' How do you respond to a 17-year-old who just audited your program?",
+        choiceA: "Respond in kind — build a counter-presentation using your own data", choiceAOutcome: "Meeting him at his level signals a program that respects intelligence.", choiceAWeights: W.bold_pos,
+        choiceB: "Set up a meeting with your analytics staff — let the numbers people talk", choiceBOutcome: "Connecting him with his future teammates in the data room is the right move.", choiceBWeights: W.safe_pos,
+        choiceC: "Address his gaps directly — acknowledge what he found and your response plan", choiceCOutcome: "Intellectual honesty under scrutiny builds trust faster than defensiveness.", choiceCWeights: W.neutral_up,
+        choiceD: "Call his coach — this level of formality from a recruit is a concern", choiceDOutcome: "Treating his intelligence as a problem is exactly the wrong read of who he is.", choiceDWeights: W.risky_neg,
+      },
+      {
+        id: "sci_2",
+        eventText: "{name} has narrowed his list by projected WAR contribution of recruits from each program over five years. He requests a 90-minute call specifically about your development philosophy. Your most analytical coach is traveling. How do you handle this?",
+        choiceA: "Take the call yourself and be transparent about what you know and don't know", choiceAOutcome: "Intellectual humility from the head coach is exactly what a scientist respects.", choiceAWeights: W.bold_pos,
+        choiceB: "Reschedule — get the right people on the call, don't wing it", choiceBOutcome: "Respecting the process shows you understand what he values.", choiceBWeights: W.safe_pos,
+        choiceC: "Send a pre-call brief with your current data before the conversation", choiceCOutcome: "Arriving prepared signals a program that takes the conversation seriously.", choiceCWeights: W.neutral_up,
+      },
+      {
+        id: "sci_3",
+        eventText: "{name} has completed his analysis. He's chosen three finalists — your program is one of them. His final question: 'What would you do differently if you could rebuild your program with perfect data?' What's your answer?",
+        choiceA: "Give a specific, honest answer — name a decision you'd change", choiceAOutcome: "The willingness to name a real mistake is the highest form of intellectual honesty.", choiceAWeights: W.bold_pos,
+        choiceB: "Turn it back to him — ask what his model would change and engage with the answer", choiceBOutcome: "Making his insight part of the actual conversation elevates the relationship.", choiceBWeights: W.neutral_up,
+        choiceC: "Describe your current data infrastructure and how you're already evolving", choiceCOutcome: "Showing the work in progress is better than describing the finished product.", choiceCWeights: W.safe_pos,
+      },
+    ],
+  },
+
+  folk_hero: {
+    name: "The Folk Hero",
+    description: "A recruit from a small town whose story has captured the imagination of an entire region.",
+    flavor: "The whole county shuts down on his game days. He's never played before a crowd smaller than two thousand.",
+    events: [
+      {
+        id: "fh_1",
+        eventText: "{name} plays for a town of 800 people. His games draw crowds of 3,000. Local TV has done six features. He's the most famous person in his county, and he's never left the state. How do you build a relationship with someone whose entire world is in one place?",
+        choiceA: "Go to his town — attend a game, walk the main street, meet the community", choiceAOutcome: "Showing up in someone's world sends a message that no zoom call can replicate.", choiceAWeights: W.bold_pos,
+        choiceB: "Connect with his coach, his pastor, his neighbors — learn who he is through them", choiceBOutcome: "Understanding his world through the people who shaped it is the deepest kind of research.", choiceBWeights: W.safe_pos,
+        choiceC: "Send a video from current players who came from similar backgrounds", choiceCOutcome: "Peer connection to players who understand the transition from small-town to college is powerful.", choiceCWeights: W.neutral_up,
+        choiceD: "Lead with the academics — show how the education transforms family trajectories", choiceDOutcome: "For some recruits, the family's future matters more than the program's ranking.", choiceDWeights: W.neutral_up,
+      },
+      {
+        id: "fh_2",
+        eventText: "A national outlet writes a feature on {name}. Suddenly 30 new programs are calling. He tells you he's overwhelmed. 'I just want to play ball,' he says. 'Not perform for people.' How do you stand out in a suddenly crowded field?",
+        choiceA: "Be direct: 'We won't make this bigger than it needs to be. Here's what we offer.'", choiceAOutcome: "Simplicity in a circus is its own kind of power.", choiceAWeights: W.bold_pos,
+        choiceB: "Invite him for a quiet, private visit — no fanfare, just the program", choiceBOutcome: "A quiet visit signals you understand what he's asking for.", choiceBWeights: W.safe_pos,
+        choiceC: "Acknowledge the noise and ask what he needs to tune it out", choiceCOutcome: "Recognizing the problem before offering a solution shows real listening.", choiceCWeights: W.neutral_up,
+      },
+      {
+        id: "fh_3",
+        eventText: "{name} has committed to your program. At the announcement, he says: 'I picked the school that felt like home.' The room cheers. His town cheers. You've gained not just a player — but a story. How do you honor that?",
+        choiceA: "Invite the town — host a group visit from his community early in the season", choiceAOutcome: "Bringing his world into yours is an act of respect that defines the relationship.", choiceAWeights: W.bold_pos,
+        choiceB: "Let him be the bridge — give him the platform to represent where he came from", choiceBOutcome: "Making him an ambassador for his story gives him something bigger to carry.", choiceBWeights: W.safe_pos,
+        choiceC: "Keep it quiet — let the baseball speak for itself, the way he's always preferred", choiceCOutcome: "Respecting his preference for substance over spectacle is how you keep the trust.", choiceCWeights: W.neutral_up,
+      },
+    ],
+  },
+
   generational_prodigy: {
     name: "The Generational Prodigy",
     description: "Once-in-a-decade talent. The pressure, the expectations, the weight of greatness.",
@@ -645,11 +804,19 @@ export function pickStorylineRecruits(
   });
 }
 
+// Five distinct legendary template archetypes — randomly assigned to legendary recruits
+const LEGENDARY_ARCHETYPES: Archetype[] = [
+  "the_phenom", "the_collapse", "the_two_sport_icon", "the_scientist", "folk_hero",
+];
+
 function pickArchetypeForRecruit(
   r: { starRank: number; isBlueChip?: boolean | null; isGenerationalGem?: boolean | null; position: string },
   isLegendary: boolean,
 ): Archetype {
-  if (isLegendary) return "generational_prodigy";
+  if (isLegendary) {
+    // Legendary recruits use one of the five distinct legendary templates
+    return LEGENDARY_ARCHETYPES[Math.floor(Math.random() * LEGENDARY_ARCHETYPES.length)];
+  }
   if (r.isBlueChip) {
     const elite: Archetype[] = ["summer_breakout", "velocity_freak", "rivalry_recruit", "social_media_star", "generational_prodigy"];
     return elite[Math.floor(Math.random() * elite.length)];
