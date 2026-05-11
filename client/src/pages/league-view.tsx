@@ -68,6 +68,12 @@ interface TeamWithCoach extends Team {
   } | null;
 }
 
+// Format NIL budget values: ≥1M → "$X.XM", otherwise "$XK"
+function formatNil(value: number): string {
+  if (value >= 1_000_000) return `$${(value / 1_000_000).toFixed(1)}M`;
+  return `$${Math.round(value / 1000)}K`;
+}
+
 // Helper to get display name from user email/username
 function getDisplayName(user?: { email: string; username?: string | null } | null): string {
   if (!user) return "";
@@ -320,10 +326,10 @@ export default function LeagueViewPage() {
               <div className="text-center">
                 <p className="font-pixel text-[8px] text-muted-foreground mb-1">NIL BUDGET</p>
                 <p className="text-xl font-bold text-gold">
-                  ${Math.round((overview.nilBudget - overview.nilSpent) / 1000)}K
+                  {formatNil(overview.nilBudget - overview.nilSpent)}
                 </p>
                 <p className="text-[10px] text-muted-foreground">
-                  of ${Math.round(overview.nilBudget / 1000)}K total
+                  of {formatNil(overview.nilBudget)} total
                 </p>
               </div>
             </RetroCard>
@@ -392,8 +398,8 @@ export default function LeagueViewPage() {
           </TabsContent>
 
           <TabsContent value="news">
-            <StorylinesDashboardWidget leagueId={league.id} />
             <ActivityFeed leagueId={league.id} />
+            <StorylinesDashboardWidget leagueId={league.id} />
             <div className="mt-4">
               <StoryEngineHub leagueId={league.id} teamId={userTeam?.id} />
             </div>

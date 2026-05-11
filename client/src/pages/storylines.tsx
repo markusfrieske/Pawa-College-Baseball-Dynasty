@@ -625,7 +625,7 @@ export default function StorylinesPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-4 gap-3 mb-6">
+        <div className="grid grid-cols-3 gap-3 mb-6">
           <RetroCard className="p-3 text-center" data-testid="card-storylines-total">
             <div className="font-pixel text-[8px] text-muted-foreground mb-1">STORYLINES</div>
             <div className="text-2xl font-bold">{storylines.length}</div>
@@ -641,11 +641,6 @@ export default function StorylinesPage() {
             <div className={`text-2xl font-bold ${committedCount > 0 ? "text-green-400" : ""}`}>{committedCount}</div>
             <div className="text-[10px] text-muted-foreground">signed/committed</div>
           </RetroCard>
-          <RetroCard className="p-3 text-center" data-testid="card-storylines-legendary">
-            <div className="font-pixel text-[8px] text-muted-foreground mb-1">LEGENDARY</div>
-            <div className="text-2xl font-bold text-gold">{legendaryCount}</div>
-            <div className="text-[10px] text-muted-foreground">generational</div>
-          </RetroCard>
         </div>
 
         <div className="flex items-center gap-2 mb-4 flex-wrap">
@@ -657,15 +652,6 @@ export default function StorylinesPage() {
           >
             <Users className="w-3 h-3 mr-1" />
             All ({storylines.length})
-          </RetroButton>
-          <RetroButton
-            variant={filterLegendary ? "primary" : "outline"}
-            size="sm"
-            onClick={() => { setFilterLegendary(true); setFilterLinked(false); }}
-            data-testid="filter-legendary-storylines"
-          >
-            <Crown className="w-3 h-3 mr-1" />
-            Legendary ({legendaryCount})
           </RetroButton>
           {linkedCount > 0 && (
             <RetroButton
