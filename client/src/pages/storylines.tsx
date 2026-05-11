@@ -704,21 +704,51 @@ export default function StorylinesPage() {
                 : "Storyline recruits are generated when your recruiting class is created. Advance the week to see their stories unfold."}
             </p>
           </RetroCard>
-        ) : (
-          <div className="space-y-4">
-            {filtered
-              .sort((a, b) => {
-                if (a.isLegendary && !b.isLegendary) return -1;
-                if (!a.isLegendary && b.isLegendary) return 1;
-                const aHasVote = a.latestEvent && !a.latestEvent.resolvedChoice ? 1 : 0;
-                const bHasVote = b.latestEvent && !b.latestEvent.resolvedChoice ? 1 : 0;
-                return bHasVote - aHasVote;
-              })
-              .map(sl => (
-                <StorylineCard key={sl.id} sl={sl} leagueId={leagueId!} />
-              ))}
-          </div>
-        )}
+        ) : (() => {
+          const sorted = [...filtered].sort((a, b) => {
+            if (a.isLegendary && !b.isLegendary) return -1;
+            if (!a.isLegendary && b.isLegendary) return 1;
+            const aHasVote = a.latestEvent && !a.latestEvent.resolvedChoice ? 1 : 0;
+            const bHasVote = b.latestEvent && !b.latestEvent.resolvedChoice ? 1 : 0;
+            return bHasVote - aHasVote;
+          });
+          const votePending = sorted.filter(sl => sl.latestEvent && !sl.latestEvent.resolvedChoice);
+          const noActivePending = sorted.filter(sl => !sl.latestEvent || sl.latestEvent.resolvedChoice);
+          return (
+            <div className="space-y-6">
+              {votePending.length > 0 && (
+                <section data-testid="section-vote-center">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Vote className="w-4 h-4 text-gold" />
+                    <span className="font-pixel text-[10px] text-gold">VOTE CENTER</span>
+                    <span className="font-pixel text-[9px] bg-gold/20 text-gold border border-gold/40 px-1.5 py-0.5 rounded animate-pulse">
+                      {votePending.length} open
+                    </span>
+                  </div>
+                  <div className="space-y-4">
+                    {votePending.map(sl => (
+                      <StorylineCard key={sl.id} sl={sl} leagueId={leagueId!} />
+                    ))}
+                  </div>
+                </section>
+              )}
+              {noActivePending.length > 0 && (
+                <section data-testid="section-storyline-feed">
+                  <div className="flex items-center gap-2 mb-3">
+                    <BookOpen className="w-4 h-4 text-muted-foreground" />
+                    <span className="font-pixel text-[10px] text-muted-foreground">STORYLINE FEED</span>
+                    <span className="text-[9px] text-muted-foreground/60">{noActivePending.length} recruit{noActivePending.length !== 1 ? "s" : ""}</span>
+                  </div>
+                  <div className="space-y-4">
+                    {noActivePending.map(sl => (
+                      <StorylineCard key={sl.id} sl={sl} leagueId={leagueId!} />
+                    ))}
+                  </div>
+                </section>
+              )}
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
