@@ -32,6 +32,15 @@ export function resolveWeights(weights: ChoiceWeights): number {
   return 0;
 }
 
+// Apply a recruit's volatility (1–10) to an OVR delta.
+// High volatility amplifies swings; low volatility dampens them.
+// Neutral zone (volatility 5) = ×1.0 multiplier; range ≈ ×0.6–×1.4.
+export function applyVolatilityModifier(delta: number, volatility: number): number {
+  if (delta === 0) return 0;
+  const multiplier = 0.6 + (Math.max(1, Math.min(10, volatility)) - 1) * (0.8 / 9);
+  return Math.round(delta * multiplier);
+}
+
 // ─── Hidden Variable Generation ───────────────────────────────────────────────
 export function rollHiddenVars(starRank: number, isBlueChip: boolean, isLegendary: boolean): StorylineHiddenVars {
   const base = starRank / 5;

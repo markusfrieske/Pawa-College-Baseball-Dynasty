@@ -1,6 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { storage } from "./storage";
-import { generateStorylineEvent, resolveVotes, pickStorylineRecruits, ARCHETYPE_DEFS, maybeTransitionArchetype } from "./storylineEngine";
+import { generateStorylineEvent, resolveVotes, pickStorylineRecruits, ARCHETYPE_DEFS, maybeTransitionArchetype, applyVolatilityModifier } from "./storylineEngine";
 import type { Archetype } from "./storylineEngine";
 import type { ChoiceWeights } from "@shared/schema";
 import { getAbilitiesForPosition } from "@shared/abilities";
@@ -50,20 +50,29 @@ async function generateStorylineImage(
     return b64 ? `data:image/png;base64,${b64}` : null;
   }
 
-  try {
-    let dataUrl = await attemptGenerate(basePrompt);
-    if (!dataUrl) {
-      await new Promise(r => setTimeout(r, 2000));
-      dataUrl = await attemptGenerate(
-        "A retro pixel-art silhouette of a college baseball player, dark background, gold lighting, 8-bit style",
-      );
+  // 3 attempts with exponential backoff (1s, 2s, 4s), falling back to simplified prompt on attempt 3
+  const fallbackPrompt = "A retro pixel-art silhouette of a college baseball player, dark background, gold lighting, 8-bit style";
+  const delays = [1000, 2000, 4000];
+  let dataUrl: string | null = null;
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const prompt = attempt < 2 ? basePrompt : fallbackPrompt;
+      dataUrl = await attemptGenerate(prompt);
+      if (dataUrl) break;
+      if (attempt < 2) await new Promise(r => setTimeout(r, delays[attempt]));
+    } catch (err) {
+      console.warn(`[storylines] image gen attempt ${attempt + 1} threw:`, err);
+      if (attempt < 2) await new Promise(r => setTimeout(r, delays[attempt]));
     }
-    if (dataUrl) await storage.updateStorylineRecruit(storylineId, { imageUrl: dataUrl });
-    return dataUrl;
-  } catch (err) {
-    console.warn("[storylines] image generation failed:", err);
-    return null;
   }
+
+  if (dataUrl) {
+    await storage.updateStorylineRecruit(storylineId, { imageUrl: dataUrl }).catch(err =>
+      console.warn("[storylines] failed to persist image URL:", err),
+    );
+  }
+  return dataUrl;
 }
 
 async function resolveCoachTeamId(leagueId: string, userId: string): Promise<string | null> {
@@ -432,13 +441,17 @@ export async function generateAndResolveStorylineEvents(
       const sl = await storage.getStorylineRecruit(event.storylineRecruitId);
       if (!sl) continue;
 
-      const { winningChoice, ovrDelta } = resolveVotes(
+      const { winningChoice, ovrDelta: rawDelta } = resolveVotes(
         votes,
         event.choiceAWeights as ChoiceWeights,
         event.choiceBWeights as ChoiceWeights,
         event.choiceCWeights as ChoiceWeights,
         event.choiceDWeights as ChoiceWeights | null,
       );
+
+      // Apply recruit's volatility hidden variable to amplify/dampen the OVR swing
+      const volatility = (sl.hiddenVars as { volatility?: number })?.volatility ?? 5;
+      const ovrDelta = applyVolatilityModifier(rawDelta, volatility);
 
       const outcomeText = winningChoice === "A" ? event.choiceAOutcome
         : winningChoice === "B" ? event.choiceBOutcome
