@@ -501,7 +501,7 @@ function shuffle<T>(arr: T[]): T[] {
 
 export function pickStorylineRecruits(
   recruits: Array<{ id: string; overall: number; starRank: number; isBlueChip?: boolean | null; isGenerationalGem?: boolean | null; firstName: string; lastName: string; position: string }>,
-  config: StorylinePickConfig = { count: 10, legendaryCount: 1 },
+  config: StorylinePickConfig = { count: 10, legendaryCount: Math.random() < 0.40 ? 1 : 0 },
 ): Array<{
   recruitId: string;
   archetype: Archetype;

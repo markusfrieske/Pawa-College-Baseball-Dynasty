@@ -9,6 +9,42 @@ function requireAuth(req: Request, res: Response, next: () => void) {
   next();
 }
 
+// ─── AI Image Generation (Replit OpenAI Integration — no user API key needed) ──
+// Uses AI_INTEGRATIONS_OPENAI_BASE_URL + AI_INTEGRATIONS_OPENAI_API_KEY set by Replit.
+// gpt-image-1 always returns base64; stored as a data URL in imageUrl.
+async function generateStorylineImage(storylineId: string, imagePrompt: string | null): Promise<string | null> {
+  const baseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
+  const apiKey  = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
+  if (!baseURL || !apiKey) {
+    console.warn("[storylines] Replit OpenAI integration not configured — skipping image generation");
+    return null;
+  }
+  try {
+    const prompt = imagePrompt
+      || "A pixel-art portrait silhouette of a college baseball player, retro 8-bit style, dark forest green background, gold rim lighting, mysterious and dramatic atmosphere, no text";
+    const res = await fetch(`${baseURL}/images/generations`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
+      body: JSON.stringify({ model: "gpt-image-1", prompt, n: 1, size: "1024x1024" }),
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      console.warn("[storylines] gpt-image-1 error:", res.status, errText);
+      return null;
+    }
+    const json = await res.json() as { data?: Array<{ b64_json?: string }> };
+    const b64 = json.data?.[0]?.b64_json;
+    if (!b64) return null;
+    const dataUrl = `data:image/png;base64,${b64}`;
+    // Persist to DB so subsequent requests return the cached version
+    await storage.updateStorylineRecruit(storylineId, { imageUrl: dataUrl });
+    return dataUrl;
+  } catch (err) {
+    console.warn("[storylines] image generation failed:", err);
+    return null;
+  }
+}
+
 export function registerStorylineRoutes(app: Express) {
 
   // GET /api/leagues/:id/storylines — all storyline recruits with recruit data + latest events
@@ -212,34 +248,11 @@ export function registerStorylineRoutes(app: Express) {
       if (sl.leagueId !== leagueId) return res.status(403).json({ message: "Storyline does not belong to this league" });
       if (sl.imageUrl) return res.json({ imageUrl: sl.imageUrl, cached: true });
 
-      // Attempt OpenAI image generation via REST API (no SDK needed); fall back gracefully
-      const apiKey = process.env.OPENAI_API_KEY;
-      if (apiKey) {
-        try {
-          const prompt = sl.imagePrompt
-            || `A pixel-art portrait of a college baseball player silhouette, retro 8-bit style, dark forest green background, gold accents, mysterious and dramatic atmosphere, no text`;
-          const openaiRes = await fetch("https://api.openai.com/v1/images/generations", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
-            body: JSON.stringify({ model: "dall-e-3", prompt, n: 1, size: "1024x1024", response_format: "url" }),
-          });
-          if (openaiRes.ok) {
-            const json = await openaiRes.json() as { data?: Array<{ url?: string }> };
-            const imageUrl = json.data?.[0]?.url ?? null;
-            if (imageUrl) {
-              await storage.updateStorylineRecruit(storylineId, { imageUrl });
-              return res.json({ imageUrl, cached: false });
-            }
-          } else {
-            console.warn("[storylines] OpenAI image API error:", openaiRes.status, await openaiRes.text());
-          }
-        } catch (imgErr) {
-          console.warn("[storylines] image generation failed, using fallback silhouette:", imgErr);
-        }
-      } else {
-        console.warn("[storylines] OPENAI_API_KEY not set — skipping image generation");
+      // Use Replit OpenAI integration (AI_INTEGRATIONS env vars) — no user API key needed
+      const imageUrl = await generateStorylineImage(storylineId, sl.imagePrompt ?? null);
+      if (imageUrl) {
+        return res.json({ imageUrl, cached: false });
       }
-
       // Fallback: UI already handles null imageUrl with a silhouette placeholder icon
       res.json({ imageUrl: null, cached: false, fallback: true });
     } catch (err) {
@@ -317,6 +330,11 @@ export async function initializeStorylineRecruits(leagueId: string, season: numb
     // Generate first event for each storyline recruit
     await generateWeeklyStorylineEvents(leagueId, season, 1);
 
+    // Kick off background image generation for each storyline (fire-and-forget)
+    for (const sl of created) {
+      generateStorylineImage(sl.id, sl.imagePrompt ?? null).catch(() => {});
+    }
+
     return picks.length;
   } catch (err) {
     console.error("[storylines] initializeStorylineRecruits error:", err);
@@ -375,6 +393,11 @@ export async function generateAndResolveStorylineEvents(
           resolvedOvrDelta: (sl.resolvedOvrDelta ?? 0) + ovrDelta,
           currentArcStage: sl.currentArcStage + 1,
         });
+
+        // Auto-generate image on arc stage change (fire-and-forget)
+        if (!sl.imageUrl) {
+          generateStorylineImage(sl.id, sl.imagePrompt ?? null).catch(() => {});
+        }
 
         // Always post STORYLINE league event (activity feed)
         const ovrStr = ovrDelta > 0 ? `+${ovrDelta}` : ovrDelta === 0 ? "±0" : `${ovrDelta}`;

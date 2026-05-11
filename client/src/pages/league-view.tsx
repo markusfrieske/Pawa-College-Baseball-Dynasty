@@ -454,15 +454,17 @@ function QuickActionCard({
 // ============ STORYLINES DASHBOARD WIDGET ============
 
 function StorylinesDashboardWidget({ leagueId }: { leagueId: string }) {
-  const { data: storylines = [], isLoading } = useQuery<any[]>({
+  const { data: storylinesResp, isLoading } = useQuery<{ storylines: any[] }>({
     queryKey: ["/api/leagues", leagueId, "storylines"],
     queryFn: async () => {
       const res = await fetch(`/api/leagues/${leagueId}/storylines`, { credentials: "include" });
-      if (!res.ok) return [];
-      return res.json();
+      if (!res.ok) return { storylines: [] };
+      const json = await res.json();
+      return Array.isArray(json) ? { storylines: json } : json;
     },
     staleTime: 60000,
   });
+  const storylines = storylinesResp?.storylines ?? [];
 
   const activeVotes = storylines.filter((s: any) => s.latestEvent && !s.latestEvent.resolvedChoice);
   const legendary = storylines.filter((s: any) => s.isLegendary);

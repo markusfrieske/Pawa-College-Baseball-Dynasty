@@ -9691,6 +9691,10 @@ export async function registerRoutes(
     
     const allCoaches = await storage.getCoachesByLeague(leagueId);
 
+    // Storyline recruits get visible interest fluctuation (±15% volatility swing per action)
+    const storylineRows = league ? await storage.getStorylineRecruitsByLeague(leagueId, league.currentSeason) : [];
+    const storylineRecruitIds = new Set(storylineRows.map(sl => sl.recruitId));
+
     for (const team of cpuTeams) {
       const teamCoach = allCoaches.find(c => c.teamId === team.id);
       // Use the same coach-driven budget as humans so archetype/skill perks
@@ -9792,6 +9796,11 @@ export async function registerRoutes(
           baseGain = r.baseGain;
           interestGain = Math.round(r.interestGain * config.gainMultiplier);
         }
+        // Storyline recruits: apply ±15% interest volatility for dramatic swings
+        if (storylineRecruitIds.has(recruit.id)) {
+          const swing = (Math.random() * 0.30) - 0.15; // -15% to +15%
+          interestGain = Math.max(0, Math.round(interestGain * (1 + swing)));
+        }
         assertInterestGainSane(`cpu_${actionType}`, interestGain, baseGain);
         weeklyActionsThisWeek.add(weeklyActionKey(recruit.id, actionType));
         pointsSpent += cost;
@@ -9828,6 +9837,13 @@ export async function registerRoutes(
   async function updateRecruitStages(leagueId: string, week: number) {
     const recruits = await storage.getRecruitsByLeague(leagueId);
     const unsignedRecruits = recruits.filter(r => !r.signedTeamId);
+
+    // Storyline recruits commit later — fetch their IDs once for the whole batch
+    const league = await storage.getLeague(leagueId);
+    const storylineRecruits = league
+      ? await storage.getStorylineRecruitsByLeague(leagueId, league.currentSeason)
+      : [];
+    const storylineRecruitIds = new Set(storylineRecruits.map(sl => sl.recruitId));
     
     for (const recruit of unsignedRecruits) {
       const allInterests = await storage.getRecruitingInterestsByRecruit(recruit.id);
@@ -9845,11 +9861,15 @@ export async function registerRoutes(
       // Star-based thresholds: higher-rated recruits take longer to decide
       const starRating = recruit.starRating || 3;
       const isBlueChip = recruit.isBlueChip || false;
+      // Storyline recruits hold out longer — +2 week delay, +10 interest required
+      const isStoryline = storylineRecruitIds.has(recruit.id);
+      const storylineWeekBonus = isStoryline ? 2 : 0;
+      const storylineInterestBonus = isStoryline ? 10 : 0;
       
       // Signing thresholds scale with star rating
-      const verbalWeek = isBlueChip ? 11 : starRating >= 5 ? 10 : starRating >= 4 ? 8 : 6;
-      const verbalInterest = isBlueChip ? 85 : starRating >= 5 ? 80 : starRating >= 4 ? 70 : 60;
-      const signInterest = isBlueChip ? 90 : starRating >= 5 ? 85 : starRating >= 4 ? 75 : 65;
+      const verbalWeek = (isBlueChip ? 11 : starRating >= 5 ? 10 : starRating >= 4 ? 8 : 6) + storylineWeekBonus;
+      const verbalInterest = (isBlueChip ? 85 : starRating >= 5 ? 80 : starRating >= 4 ? 70 : 60) + storylineInterestBonus;
+      const signInterest = (isBlueChip ? 90 : starRating >= 5 ? 85 : starRating >= 4 ? 75 : 65) + storylineInterestBonus;
       
       if (sortedInterests.length >= 1) {
         if (week >= verbalWeek && topInterestLevel >= verbalInterest && sortedInterests.some(i => i.hasOffer)) {
