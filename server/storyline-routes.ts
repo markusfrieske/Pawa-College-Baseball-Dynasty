@@ -735,6 +735,7 @@ async function generateWeeklyStorylineEvents(leagueId: string, season: number, w
         sl.isLegendary,
         recruitName,
         linkedRecruitName,
+        recruit.position ?? undefined,
       );
 
       const { scenePrompt: _scenePrompt, ...insertableEventData } = eventData;

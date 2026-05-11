@@ -59,7 +59,8 @@ export function rollHiddenVars(starRank: number, isBlueChip: boolean, isLegendar
 // ─── Archetype Definitions ────────────────────────────────────────────────────
 export interface ArchetypeEventTemplate {
   id: string;
-  scenePrompt?: string;  // pixel art scene image prompt for this event template
+  scenePrompt?: string;         // pixel art scene image prompt — default (hitter/neutral)
+  scenePromptPitcher?: string;  // pitcher-specific override; used when recruit is a pitcher
   eventText: string;
   choiceA: string; choiceAOutcome: string; choiceAWeights: ChoiceWeights;
   choiceB: string; choiceBOutcome: string; choiceBWeights: ChoiceWeights;
@@ -194,7 +195,8 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
     events: [
       {
         id: "lb_1",
-        scenePrompt: "Pixel art scene: lone pitcher in an empty bullpen under amber stadium lights at dusk, pitching coach watching through a chain-link fence with a notepad, overcast sky. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
+        scenePrompt: "Pixel art scene: lone infielder taking extra ground balls alone in an empty stadium under amber lights at dusk, a fielding coach watching from the side with a notepad, overcast sky. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
+        scenePromptPitcher: "Pixel art scene: lone pitcher in an empty bullpen under amber stadium lights at dusk, pitching coach watching through a chain-link fence with a notepad, overcast sky. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name} has been putting in quiet extra work with the pitching coach after every practice. Sources say his stuff has noticeably ticked up. How does the coaching staff approach this development moment?",
         choiceA: "Push him harder — structured elite workload", choiceAOutcome: "The intense program pays dividends. His mechanics sharpen dramatically.", choiceAWeights: W.bold_pos,
         choiceB: "Let it breathe — controlled organic growth", choiceBOutcome: "He develops at his own pace, steady and sure.", choiceBWeights: W.safe_pos,
@@ -212,6 +214,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
       {
         id: "lb_3",
         scenePrompt: "Pixel art scene: phone screen glowing with a viral batting practice clip, crowd gathered around a batting cage under bright spotlights, social media notification icons floating up. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
+        scenePromptPitcher: "Pixel art scene: phone screen glowing with a viral bullpen session clip, crowd gathered around a pitching mound under bright spotlights, social media notification icons floating up. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name} posted a viral batting practice video that has every scout's inbox flooded. He looks like a different player. The question is whether it translates to game action.",
         choiceA: "Offer a scholarship now — before others do", choiceAOutcome: "Moving first locks him in and provides a stability boost.", choiceAWeights: W.bold_pos,
         choiceB: "Schedule a head coach visit this weekend", choiceBOutcome: "The personal touch from the head coach strengthens the relationship.", choiceBWeights: W.safe_pos,
@@ -313,6 +316,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
       {
         id: "sb_1",
         scenePrompt: "Pixel art scene: summer showcase stadium packed with scouts and tents, a batter at the plate under blazing sun, colorful program banners lining the outfield fence, prospect rankings board visible. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
+        scenePromptPitcher: "Pixel art scene: summer showcase stadium packed with scouts and tents, a pitcher in full windup on the mound under blazing sun, colorful program banners lining the outfield fence, prospect rankings board visible. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name} dominated three consecutive showcase events over the summer, launching himself from unranked to a top-30 prospect in his state. The attention is new — and overwhelming.",
         choiceA: "Strike fast: official offer before the buzz fades", choiceAOutcome: "Being first with an offer in a hot market is decisive.", choiceAWeights: W.bold_pos,
         choiceB: "Build a personal relationship amid the chaos", choiceBOutcome: "While others throw scholarships, you listen. He notices.", choiceBWeights: W.safe_pos,
@@ -322,6 +326,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
       {
         id: "sb_2",
         scenePrompt: "Pixel art scene: fall baseball game at dusk, batter in a strained pressing stance, empty concrete bleachers behind, binoculars visible from a distant scout. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
+        scenePromptPitcher: "Pixel art scene: fall baseball game at dusk, pitcher on the mound in a tight strained windup, empty concrete bleachers behind, binoculars visible from a distant scout. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name}'s fall season results are under a microscope. Everyone wants to see if the summer performance was real. He's pressing — and it shows in early fall games.",
         choiceA: "Encourage him: remind him of what you saw this summer", choiceAOutcome: "Your belief in him when he's pressing steadies him.", choiceAWeights: W.safe_pos,
         choiceB: "Reduce pressure: let him know the offer stands regardless", choiceBOutcome: "Unconditional support unlocks his natural game.", choiceBWeights: W.bold_pos,
@@ -338,6 +343,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
       {
         id: "sm_1",
         scenePrompt: "Pixel art scene: player filming a training montage on a phone mounted on a tripod in a batting cage, phone screen showing a subscriber count in the millions, ring lights casting a glow. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
+        scenePromptPitcher: "Pixel art scene: player filming a training montage on a phone mounted on a tripod beside a pitching mound, bullpen session in the background, phone screen showing a subscriber count in the millions, ring lights casting a glow. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name}'s latest training montage has 8 million views. Corporate sponsorship inquiries are pouring in. His focus on his brand is raising legitimate questions about his priorities.",
         choiceA: "Embrace the platform — help him leverage it", choiceAOutcome: "Working with the brand instead of against it creates a motivated and focused player.", choiceAWeights: W.bold_pos,
         choiceB: "Have a frank conversation about priorities", choiceBOutcome: "The honest discussion either refocuses him or creates friction.", choiceBWeights: W.high_risk,
@@ -363,6 +369,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
       {
         id: "cc_1",
         scenePrompt: "Pixel art scene: batter sitting alone at the far end of a dugout bench, bat across his knees, head bowed, empty stadium seats stretching behind him in shadow. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
+        scenePromptPitcher: "Pixel art scene: pitcher sitting alone at the far end of a dugout bench, cap pulled low over his face, head bowed, empty stadium seats stretching behind him in shadow. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name} went 0-for-12 in his last three games and is visibly struggling mentally. Scouts who watched him six weeks ago are confused — this doesn't look like the same player.",
         choiceA: "Send a handwritten letter emphasizing your belief in him", choiceAOutcome: "The personal gesture cuts through the noise and reignites his confidence.", choiceAWeights: W.bold_pos,
         choiceB: "Schedule a phone call — just to talk, not recruit", choiceBOutcome: "Human connection over recruiting tactics changes the dynamic.", choiceBWeights: W.safe_pos,
@@ -372,6 +379,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
       {
         id: "cc_2",
         scenePrompt: "Pixel art scene: walk-off home run celebration, teammates mobbing the batter at home plate in an explosion of joy, stadium lights blazing, confetti-like dirt and dust in the air. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
+        scenePromptPitcher: "Pixel art scene: pitcher pumping his fist on the mound after a game-sealing strikeout, teammates rushing from the dugout in celebration, stadium lights blazing, dust rising from the rubber. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name} had a breakthrough game — 4 hits including a walk-off homer. He's riding a wave of emotion. This is the moment to build a foundation, not exploit it.",
         choiceA: "Be there immediately — share the joy genuinely", choiceAOutcome: "Your authentic celebration of his success deepens trust.", choiceAWeights: W.safe_pos,
         choiceB: "Offer a scholarship in the moment — capitalize on the high", choiceBOutcome: "The timing either feels inspired or opportunistic.", choiceBWeights: W.high_risk,
@@ -387,7 +395,8 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
     events: [
       {
         id: "bc_1",
-        scenePrompt: "Pixel art scene: exhausted pitcher at a summer showcase, dark circles under his eyes, travel bags piled beside the dugout, overcast hazy sky over the field. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
+        scenePrompt: "Pixel art scene: exhausted position player at a summer showcase, dark circles under his eyes, travel bags piled beside the dugout, overcast hazy sky over the field. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
+        scenePromptPitcher: "Pixel art scene: exhausted pitcher at a summer showcase, dark circles under his eyes, travel bags piled beside the dugout, overcast hazy sky over the field. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "{name} showed up to a summer showcase visibly exhausted. He's been pitching for three different travel teams simultaneously. His performance was below expectations but scouts are still watching.",
         choiceA: "Encourage a rest period — champion his recovery", choiceAOutcome: "Advocating for his health builds enormous trust and enables a comeback.", choiceAWeights: W.bold_pos,
         choiceB: "Schedule a lighter showcase opportunity instead", choiceBOutcome: "A smaller stage with lower stakes lets him perform authentically.", choiceBWeights: W.safe_pos,
@@ -396,7 +405,8 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
       },
       {
         id: "bc_2",
-        scenePrompt: "Pixel art scene: pitcher sitting alone on outfield grass watching teammates practice from a distance, long afternoon shadows stretching across the field, a contemplative stillness. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
+        scenePrompt: "Pixel art scene: position player sitting alone on outfield grass watching teammates take batting practice from a distance, long afternoon shadows stretching across the field, a contemplative stillness. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
+        scenePromptPitcher: "Pixel art scene: pitcher sitting alone on outfield grass watching teammates practice from a distance, long afternoon shadows stretching across the field, a contemplative stillness. Retro 16-bit SNES style, dark forest green background, gold accent lighting, no text.",
         eventText: "Reports surface that {name} is seriously considering stepping away from baseball for a semester to recover mentally. His family supports the idea. This is a crucial moment.",
         choiceA: "Support the break — promise his spot will be here when he returns", choiceAOutcome: "Showing you value him as a person over a recruit creates lifelong loyalty.", choiceAWeights: W.bold_pos,
         choiceB: "Offer flexible program options — reduced schedule freshman year", choiceBOutcome: "Creative solutions address his real concerns.", choiceBWeights: W.safe_pos,
@@ -936,6 +946,7 @@ export function generateStorylineEvent(
   isLegendary: boolean,
   recruitName: string,
   linkedRecruitName?: string,   // name of linked/overlapping arc recruit for narrative injection
+  position?: string,            // recruit's field position — used to select position-aware scene prompts
 ): {
   storylineRecruitId: string;
   leagueId: string;
@@ -969,13 +980,19 @@ export function generateStorylineEvent(
     return out;
   };
 
+  // Select position-aware scene prompt: prefer the pitcher variant for pitchers when available,
+  // otherwise fall back to the default (hitter/neutral) scenePrompt.
+  const scenePrompt = (position === "P" && template.scenePromptPitcher)
+    ? template.scenePromptPitcher
+    : template.scenePrompt;
+
   return {
     storylineRecruitId,
     leagueId,
     season,
     week,
     templateId: template.id,
-    scenePrompt: template.scenePrompt,
+    scenePrompt,
     eventText: interpolate(template.eventText),
     choiceA: template.choiceA,
     choiceAOutcome: interpolate(template.choiceAOutcome),
