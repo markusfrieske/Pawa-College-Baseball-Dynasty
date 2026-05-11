@@ -742,22 +742,24 @@ export function pickStorylineRecruits(
         filled++;
       }
     }
-    // Hard invariant: if pool was completely exhausted, backfill by re-assigning from already-
-    // used recruits with a new tier label (guarantees exactly TARGET_COUNT total picks).
+    // If pool is exhausted for this tier, log a warning and accept fewer — never re-insert
+    // a duplicate recruitId since that would violate the DB unique index.
     if (filled < needed) {
-      for (const { recruit: r } of [...picked].reverse()) {
-        if (filled >= needed) break;
-        // Only re-label if this recruit hasn't already been given a second label
-        if (!picked.some(p => p.tier === name && p.recruit.id === r.id)) {
-          picked.push({ recruit: r, tier: name });
-          filled++;
-        }
-      }
+      console.warn(`[storyline-pick] pool exhausted for tier "${name}": got ${filled}/${needed}`);
     }
   }
 
-  // Trim to exactly TARGET_COUNT (handles edge case where fallback overfilled)
-  const finalPicked = picked.slice(0, TARGET_COUNT);
+  // Deduplicate by recruitId before trimming (safety net — primary/fallback logic should
+  // already prevent duplicates, but this guards against any edge-case double-insertion).
+  const seenIds = new Set<string>();
+  const dedupedPicked = picked.filter(p => {
+    if (seenIds.has(p.recruit.id)) return false;
+    seenIds.add(p.recruit.id);
+    return true;
+  });
+
+  // Trim to exactly TARGET_COUNT
+  const finalPicked = dedupedPicked.slice(0, TARGET_COUNT);
 
   // Legendary quota: throttle to 15% when over-represented, guarantee 100% when starved.
   const recentLegendaryCount = config?.recentLegendaryCount ?? 0;
