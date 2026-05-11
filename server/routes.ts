@@ -12156,6 +12156,10 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
         hairStyle: rp.hairStyle || randomAppearance.hairStyle,
         headwear: randomAppearance.headwear,
         facialHair: randomAppearance.facialHair,
+        eyeStyle: randomAppearance.eyeStyle,
+        eyebrowStyle: randomAppearance.eyebrowStyle,
+        mouthStyle: randomAppearance.mouthStyle,
+        eyeBlack: randomAppearance.eyeBlack,
       };
       usedJerseyNumbers.add(rp.jerseyNumber);
       const playerData = {
