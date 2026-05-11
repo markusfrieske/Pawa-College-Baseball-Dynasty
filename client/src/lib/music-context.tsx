@@ -26,20 +26,18 @@ const TRACK_URLS: Record<Exclude<TrackId, "none">, string> = {
   predictions: "/music/Predictions.mp3",
 };
 
-// Which tracks are likely to play next for each track, in priority order.
-// Used to pre-buffer audio so the first play is instant.
 const LIKELY_NEXT: Record<TrackId, TrackId[]> = {
-  game_start:       ["standings", "league_management"],
-  standings:        ["league_management", "recruiting"],
-  league_management:["recruiting", "final_score", "standings"],
-  recruiting:       ["league_management", "predictions"],
-  graduation:       ["offseason", "interview"],
-  final_score:      ["playoffs", "league_management"],
-  playoffs:         ["interview", "standings"],
-  interview:        ["offseason", "standings"],
-  offseason:        ["predictions", "recruiting"],
-  predictions:      ["league_management", "game_start"],
-  none:             ["game_start"],
+  game_start:        ["standings", "league_management"],
+  standings:         ["league_management", "recruiting"],
+  league_management: ["recruiting", "final_score", "standings"],
+  recruiting:        ["league_management", "predictions"],
+  graduation:        ["offseason", "interview"],
+  final_score:       ["playoffs", "league_management"],
+  playoffs:          ["interview", "standings"],
+  interview:         ["offseason", "standings"],
+  offseason:         ["predictions", "recruiting"],
+  predictions:       ["league_management", "game_start"],
+  none:              ["game_start"],
 };
 
 interface MusicContextValue {
@@ -55,20 +53,19 @@ interface MusicContextValue {
 const MusicContext = createContext<MusicContextValue | null>(null);
 
 const STORAGE_KEY_VOLUME = "cbd_music_volume";
-const STORAGE_KEY_MUTED = "cbd_music_muted";
+const STORAGE_KEY_MUTED  = "cbd_music_muted";
 const STORAGE_KEY_PRELOADED = "cbd_music_preloaded";
 // Crossfade duration in ms — long enough to be smooth, short enough to feel snappy.
 const FADE_DURATION = 1000;
-// Seconds before a looping track ends when we start the next loop crossfade.
+// Seconds before a looping track ends when we fire the next loop crossfade.
 const LOOP_LOOKAHEAD = 0.5;
+// How long to wait for `canplaythrough` before we play anyway.
+const READINESS_TIMEOUT_MS = 300;
 
 function getSessionPreloaded(): Set<TrackId> {
   try {
     const raw = sessionStorage.getItem(STORAGE_KEY_PRELOADED);
-    if (raw) {
-      const ids = JSON.parse(raw) as string[];
-      return new Set(ids as TrackId[]);
-    }
+    if (raw) return new Set(JSON.parse(raw) as TrackId[]);
   } catch {}
   return new Set();
 }
@@ -88,20 +85,28 @@ function getStoredVolume(): number {
 }
 
 function getStoredMuted(): boolean {
-  try {
-    return localStorage.getItem(STORAGE_KEY_MUTED) === "true";
-  } catch {}
+  try { return localStorage.getItem(STORAGE_KEY_MUTED) === "true"; } catch {}
   return false;
 }
 
-// Internal crossfade state tracked as a ref so it can be cancelled at any time.
+// Returns a promise that resolves as soon as the audio element fires
+// `canplaythrough`, or after READINESS_TIMEOUT_MS — whichever comes first.
+function waitForReady(audio: HTMLAudioElement): Promise<void> {
+  return new Promise<void>((resolve) => {
+    let resolved = false;
+    const done = () => { if (!resolved) { resolved = true; resolve(); } };
+    audio.addEventListener("canplaythrough", done, { once: true });
+    setTimeout(done, READINESS_TIMEOUT_MS);
+  });
+}
+
 type CrossfadeState = {
   rafId: number;
   startTime: number;
   outgoing: HTMLAudioElement | null;
   incoming: HTMLAudioElement;
   startOutVol: number;
-  /** Current target volume for the incoming element (updated on volume/mute changes). */
+  /** Current target volume for incoming — updated by volume/mute changes. */
   targetIn: number;
   onDone?: () => void;
 };
@@ -112,42 +117,41 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   const [muted, setMuted] = useState(getStoredMuted);
   const [isPlaying, setIsPlaying] = useState(false);
 
-  // Two audio elements — we ping-pong between them for gapless crossfades.
-  // slot 0 = element A, slot 1 = element B.
+  // Two audio elements — ping-pong between them for gapless crossfades.
+  // slot 0 = element A, slot 1 = element B. Neither has `loop = true`;
+  // looping is handled via setupLoop (timeupdate crossfade) to eliminate
+  // the audible gap that browser-native looping produces.
   const elemsRef = useRef<[HTMLAudioElement, HTMLAudioElement] | null>(null);
-  // Which slot is currently "active" (audible).
   const activeSlotRef = useRef<0 | 1>(0);
 
-  // In-flight crossfade. A single rAF loop drives both fade-out and fade-in.
+  // In-flight crossfade state. A single rAF loop drives both elements.
   const xfRef = useRef<CrossfadeState | null>(null);
 
-  // Cleanup function for the loop-gap timeupdate listener.
+  // Cleanup fn for the loop-end timeupdate listener.
   const loopCleanupRef = useRef<(() => void) | null>(null);
 
-  const pendingTrackRef = useRef<TrackId>("none");
-  const currentTrackRef = useRef<TrackId>("none");
-  const volumeRef = useRef(getStoredVolume());
-  const mutedRef = useRef(getStoredMuted());
+  const pendingTrackRef  = useRef<TrackId>("none");
+  const currentTrackRef  = useRef<TrackId>("none");
+  const volumeRef        = useRef(getStoredVolume());
+  const mutedRef         = useRef(getStoredMuted());
   const hasInteractedRef = useRef(false);
+  // Incremented on every setTrack call so stale async continuations bail out.
+  const trackGenRef      = useRef(0);
 
-  // Incremented on every setTrack call so stale continuations bail out.
-  const trackGenRef = useRef(0);
-
-  // Pre-buffer cache: retained Audio elements keyed by TrackId.
-  const preloadMapRef = useRef<Map<TrackId, HTMLAudioElement>>(new Map());
-  const preloadIdleIdsRef = useRef<number[]>([]);
+  const preloadMapRef       = useRef<Map<TrackId, HTMLAudioElement>>(new Map());
+  const preloadIdleIdsRef   = useRef<number[]>([]);
   const sessionPreloadedRef = useRef<Set<TrackId>>(getSessionPreloaded());
 
-  // Keep state refs in sync
+  // Keep state refs in sync with React state
   useEffect(() => { currentTrackRef.current = currentTrack; }, [currentTrack]);
   useEffect(() => { volumeRef.current = volume; }, [volume]);
   useEffect(() => { mutedRef.current = muted; }, [muted]);
 
   const schedulePreload = useCallback((tracks: TrackId[]) => {
     const needed = tracks.filter(
-      id => id !== "none" &&
-        !preloadMapRef.current.has(id) &&
-        !sessionPreloadedRef.current.has(id)
+      id => id !== "none"
+        && !preloadMapRef.current.has(id)
+        && !sessionPreloadedRef.current.has(id)
     );
     if (needed.length === 0) return;
 
@@ -166,32 +170,28 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     };
 
     if (typeof requestIdleCallback !== "undefined") {
-      const handle = requestIdleCallback(run, { timeout: 4000 }) as unknown as number;
-      preloadIdleIdsRef.current.push(handle);
+      const h = requestIdleCallback(run, { timeout: 4000 }) as unknown as number;
+      preloadIdleIdsRef.current.push(h);
     } else {
-      const handle = window.setTimeout(run, 2000);
-      preloadIdleIdsRef.current.push(handle);
+      const h = window.setTimeout(run, 2000);
+      preloadIdleIdsRef.current.push(h);
     }
   }, []);
 
   // Cancel any in-flight crossfade, snapping both elements to their end-state
-  // volumes so the audio stays at a consistent level (no sudden jumps).
+  // volumes instantly (avoids sudden jumps when a fade is cut short).
   const cancelCrossfade = useCallback(() => {
     const xf = xfRef.current;
     if (!xf) return;
     cancelAnimationFrame(xf.rafId);
-    if (xf.outgoing) {
-      xf.outgoing.pause();
-    }
+    if (xf.outgoing) xf.outgoing.pause();
     xf.incoming.volume = xf.targetIn;
     xfRef.current = null;
   }, []);
 
-  // Start a dual-element crossfade. Both elements' volumes are driven by a
-  // single rAF loop so they stay perfectly in sync.
-  // - outgoing: element currently playing (null → incoming fades in from silence)
-  // - incoming: element to fade in (must already be playing or about to play)
-  // - targetVol: the volume incoming should reach at the end of the fade
+  // Start a dual-element rAF crossfade.
+  // outgoing fades from its current volume to 0; incoming fades from 0 to targetVol.
+  // Pass outgoing = null to do a plain fade-in with no simultaneous fade-out.
   const startCrossfade = useCallback((
     outgoing: HTMLAudioElement | null,
     incoming: HTMLAudioElement,
@@ -212,7 +212,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     xfRef.current = state;
 
     const tick = (now: number) => {
-      if (xfRef.current !== state) return; // superseded by a newer crossfade
+      if (xfRef.current !== state) return; // superseded
       const progress = Math.min(1, (now - state.startTime) / FADE_DURATION);
 
       if (state.outgoing && !state.outgoing.paused) {
@@ -237,9 +237,10 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   }, [cancelCrossfade]);
 
   // Attach a timeupdate listener so that when the active element approaches
-  // the end of its track we seamlessly loop via a crossfade rather than
-  // relying on the browser's built-in gapless loop (which has an audible gap).
+  // its end we crossfade seamlessly into a fresh playback on the other element,
+  // avoiding the audible gap that the browser's native loop produces.
   const setupLoop = useCallback((audio: HTMLAudioElement, url: string) => {
+    // Remove any previous loop listener first.
     if (loopCleanupRef.current) {
       loopCleanupRef.current();
       loopCleanupRef.current = null;
@@ -247,13 +248,13 @@ export function MusicProvider({ children }: { children: ReactNode }) {
 
     const onTimeUpdate = () => {
       if (!audio.duration || isNaN(audio.duration)) return;
-      const timeLeft = audio.duration - audio.currentTime;
-      if (timeLeft > LOOP_LOOKAHEAD) return;
-      // Remove listener immediately to prevent re-entry.
+      if (audio.duration - audio.currentTime > LOOP_LOOKAHEAD) return;
+
+      // Remove immediately to prevent re-entry.
       audio.removeEventListener("timeupdate", onTimeUpdate);
       loopCleanupRef.current = null;
 
-      // Skip if a track switch is already underway or music is off.
+      // Skip if a track-switch crossfade is already in flight or music is off.
       if (xfRef.current !== null || currentTrackRef.current === "none") return;
       if (!elemsRef.current || !hasInteractedRef.current) return;
 
@@ -267,8 +268,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       const targetVol = mutedRef.current ? 0 : volumeRef.current;
       loopElem.play().catch(() => {});
       startCrossfade(audio, loopElem, targetVol, () => {
-        // Recurse: set up the next loop crossfade on the new active element.
-        setupLoop(loopElem, url);
+        setupLoop(loopElem, url); // recurse for the next loop iteration
       });
     };
 
@@ -276,29 +276,28 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     loopCleanupRef.current = () => audio.removeEventListener("timeupdate", onTimeUpdate);
   }, [startCrossfade]);
 
-  // Create both audio elements once on mount.
+  // Initialize both audio elements once on mount.
   useEffect(() => {
     const a = new Audio();
     const b = new Audio();
     a.preload = "auto";
     b.preload = "auto";
+    // NOTE: loop is intentionally NOT set — looping is handled by setupLoop.
     elemsRef.current = [a, b];
 
-    const onPlay = () => setIsPlaying(true);
+    const onPlay  = () => setIsPlaying(true);
     const onPause = () => {
-      // Only reflect not-playing if the active element stopped.
       if (elemsRef.current) {
         const active = elemsRef.current[activeSlotRef.current];
         if (active.paused) setIsPlaying(false);
       }
     };
     for (const el of [a, b]) {
-      el.addEventListener("play", onPlay);
+      el.addEventListener("play",  onPlay);
       el.addEventListener("pause", onPause);
     }
 
-    // Pre-buffer the initial track and likely-next neighbours when the browser
-    // is idle so the first play starts within 200ms on a warm cache.
+    // Pre-buffer the initial track and its likely-next neighbours when idle.
     const initialTrack = resolveTrackForRoute(window.location.pathname);
     const initialPreload: TrackId[] = initialTrack !== "none"
       ? [initialTrack, ...LIKELY_NEXT[initialTrack]]
@@ -308,13 +307,13 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelCrossfade();
       if (loopCleanupRef.current) loopCleanupRef.current();
-      for (const handle of preloadIdleIdsRef.current) {
-        if (typeof cancelIdleCallback !== "undefined") cancelIdleCallback(handle);
-        else clearTimeout(handle);
+      for (const h of preloadIdleIdsRef.current) {
+        if (typeof cancelIdleCallback !== "undefined") cancelIdleCallback(h);
+        else clearTimeout(h);
       }
       preloadIdleIdsRef.current = [];
       for (const el of [a, b]) {
-        el.removeEventListener("play", onPlay);
+        el.removeEventListener("play",  onPlay);
         el.removeEventListener("pause", onPause);
         el.pause();
         el.src = "";
@@ -322,35 +321,70 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     };
   }, [schedulePreload, cancelCrossfade]);
 
+  // Shared helper used both by handleInteraction (first play unlock) and
+  // setTrack (subsequent track switches).  Waits for readiness, plays, and
+  // attaches the loop listener so the track loops gaplessly.
+  const playAndSetupLoop = useCallback((
+    active: HTMLAudioElement,
+    url: string,
+    outgoing: HTMLAudioElement | null,
+    targetVol: number,
+    gen: number,
+  ) => {
+    let played = false;
+    const doPlay = () => {
+      if (played) return;
+      played = true;
+      if (gen !== trackGenRef.current) return; // stale — another setTrack won the race
+      active.volume = 0;
+      active.play().catch(() => {});
+      startCrossfade(outgoing, active, targetVol, () => {
+        if (gen === trackGenRef.current) setupLoop(active, url);
+      });
+    };
+    // Fire as soon as the browser has enough data, or after 300 ms.
+    active.addEventListener("canplaythrough", doPlay, { once: true });
+    setTimeout(doPlay, READINESS_TIMEOUT_MS);
+  }, [startCrossfade, setupLoop]);
+
   // Unlock autoplay on first user interaction and play any pending track.
+  // This also attaches setupLoop so the first track loops gaplessly.
   useEffect(() => {
     const handleInteraction = () => {
       hasInteractedRef.current = true;
-      document.removeEventListener("click", handleInteraction);
+      document.removeEventListener("click",   handleInteraction);
       document.removeEventListener("keydown", handleInteraction);
 
       const track = pendingTrackRef.current;
       if (track === "none" || !elemsRef.current) return;
+
       const active = elemsRef.current[activeSlotRef.current];
-      if (!active.paused) return; // already playing via a previous interaction
+      if (!active.paused) return; // already playing from a prior interaction
+
       const url = TRACK_URLS[track as Exclude<TrackId, "none">];
       if (!url) return;
-      // The src/volume should already be set from setTrack; just hit play.
-      if (!active.src || active.src.endsWith("/") || active.src === "") {
+
+      // Ensure src is set (setTrack should have set it; guard for edge cases).
+      if (!active.src || active.src === window.location.origin + "/") {
         active.src = url;
       }
-      active.volume = mutedRef.current ? 0 : volumeRef.current;
-      active.play().catch(() => {});
+
+      // setTrack already swapped the activeSlot and pointed the element at
+      // the correct src; no outgoing element to fade out on first play.
+      const targetVol = mutedRef.current ? 0 : volumeRef.current;
+      const gen = trackGenRef.current;
+      playAndSetupLoop(active, url, null, targetVol, gen);
     };
-    document.addEventListener("click", handleInteraction);
+
+    document.addEventListener("click",   handleInteraction);
     document.addEventListener("keydown", handleInteraction);
     return () => {
-      document.removeEventListener("click", handleInteraction);
+      document.removeEventListener("click",   handleInteraction);
       document.removeEventListener("keydown", handleInteraction);
     };
-  }, []);
+  }, [playAndSetupLoop]);
 
-  const setTrack = useCallback((track: TrackId) => {
+  const setTrack = useCallback(async (track: TrackId) => {
     if (track === currentTrackRef.current) return;
 
     const gen = ++trackGenRef.current;
@@ -360,37 +394,34 @@ export function MusicProvider({ children }: { children: ReactNode }) {
 
     if (!elemsRef.current) return;
 
-    // Always tear down the previous loop listener before switching.
+    // Always tear down the previous loop listener before doing anything else.
     if (loopCleanupRef.current) {
       loopCleanupRef.current();
       loopCleanupRef.current = null;
     }
 
     if (track === "none") {
-      // Fade out the active element and stop.
+      // Simple fade-out of the active element.
       const active = elemsRef.current[activeSlotRef.current];
       if (!active.paused) {
-        const startVol = active.volume;
+        const startVol  = active.volume;
         const startTime = performance.now();
         cancelCrossfade();
         const state: CrossfadeState = {
-          rafId: 0,
-          startTime,
-          outgoing: null,
-          incoming: active, // we reuse "incoming" field to drive the fade-out
-          startOutVol: startVol,
-          targetIn: 0,
+          rafId: 0, startTime,
+          outgoing: null, incoming: active,
+          startOutVol: startVol, targetIn: 0,
         };
         xfRef.current = state;
         const tick = (now: number) => {
           if (xfRef.current !== state || gen !== trackGenRef.current) return;
-          const progress = Math.min(1, (now - startTime) / FADE_DURATION);
-          active.volume = Math.max(0, startVol * (1 - progress));
-          if (progress < 1) {
+          const p = Math.min(1, (now - startTime) / FADE_DURATION);
+          active.volume = Math.max(0, startVol * (1 - p));
+          if (p < 1) {
             state.rafId = requestAnimationFrame(tick);
           } else {
             active.pause();
-            active.volume = startVol; // restore for next play
+            active.volume = startVol;
             xfRef.current = null;
           }
         };
@@ -402,40 +433,47 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     const url = TRACK_URLS[track];
     if (!url) return;
 
-    // Determine which element is outgoing and which will be the new active.
-    const outgoingSlot = activeSlotRef.current;
+    // Identify outgoing (current active) and swap to the incoming slot.
+    const outgoingSlot  = activeSlotRef.current;
     const incomingSlot: 0 | 1 = outgoingSlot === 0 ? 1 : 0;
     activeSlotRef.current = incomingSlot;
 
     const outgoing = elemsRef.current[outgoingSlot];
     const incoming = elemsRef.current[incomingSlot];
 
-    // Prepare incoming element.
-    // Setting src before play() allows the browser to begin buffering immediately
-    // with preload="auto", ensuring play starts within ~200ms on a warm cache.
+    // Point the incoming element at the new track and start buffering.
+    // preload="auto" means the browser will start filling its buffer immediately.
     incoming.src = url;
     incoming.currentTime = 0;
     incoming.volume = 0;
 
-    const targetVol = mutedRef.current ? 0 : volumeRef.current;
-
-    if (hasInteractedRef.current) {
-      // Start the incoming element playing from silence, then crossfade.
-      incoming.play().catch(() => {});
-      startCrossfade(
-        outgoing.paused ? null : outgoing,
-        incoming,
-        targetVol,
-        () => {
-          if (gen === trackGenRef.current) {
-            setupLoop(incoming, url);
-          }
-        },
-      );
+    if (!hasInteractedRef.current) {
+      // Autoplay locked — handleInteraction will call playAndSetupLoop when
+      // the user first interacts. Nothing else to do here.
+      schedulePreload(LIKELY_NEXT[track]);
+      return;
     }
 
+    // Wait for enough data or the readiness timeout, whichever fires first,
+    // to guarantee < 300 ms startup silence on a warm cache.
+    await waitForReady(incoming);
+    if (gen !== trackGenRef.current) {
+      // A newer setTrack superseded us while we were awaiting — clean up.
+      incoming.src = "";
+      return;
+    }
+
+    const targetVol = mutedRef.current ? 0 : volumeRef.current;
+    incoming.play().catch(() => {});
+    startCrossfade(
+      outgoing.paused ? null : outgoing,
+      incoming,
+      targetVol,
+      () => { if (gen === trackGenRef.current) setupLoop(incoming, url); },
+    );
+
     schedulePreload(LIKELY_NEXT[track]);
-  }, [cancelCrossfade, startCrossfade, setupLoop, schedulePreload]);
+  }, [cancelCrossfade, startCrossfade, setupLoop, schedulePreload, playAndSetupLoop]);
 
   const setVolume = useCallback((v: number) => {
     const clamped = Math.max(0, Math.min(1, v));
@@ -443,12 +481,11 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     setVolumeState(clamped);
     try { localStorage.setItem(STORAGE_KEY_VOLUME, String(clamped)); } catch {}
     if (!mutedRef.current && elemsRef.current) {
-      // Apply to all elements that are currently playing.
       for (const el of elemsRef.current) {
         if (!el.paused) el.volume = clamped;
       }
-      // Also update the crossfade target so the in-progress fade ramps to
-      // the new volume rather than the old one.
+      // Keep the in-flight crossfade target in sync so the ramp reaches the
+      // correct destination volume.
       if (xfRef.current) xfRef.current.targetIn = clamped;
     }
   }, []);
@@ -503,26 +540,15 @@ export function resolveTrackForRoute(
   if (pathname === "/" || pathname === "/login" || pathname === "/register" || pathname === "/guest") {
     return "game_start";
   }
-
-  if (pathname.includes("/play-by-play")) {
-    return "interview";
-  }
-
-  if (pathname.includes("/recruiting") || pathname.includes("/recruit/")) {
-    return "recruiting";
-  }
-
+  if (pathname.includes("/play-by-play")) return "interview";
+  if (pathname.includes("/recruiting") || pathname.includes("/recruit/")) return "recruiting";
   if (pathname.includes("/commissioner") || pathname.includes("/edit-rosters") || pathname.includes("/edit-recruits")) {
     return "graduation";
   }
-
   if (pathname.includes("/departures") || pathname.includes("/players-leaving") || pathname.includes("/transfer-portal")) {
     return "offseason";
   }
-
-  if (pathname.includes("/commits")) {
-    return "predictions";
-  }
+  if (pathname.includes("/commits")) return "predictions";
 
   if (leaguePhase) {
     switch (leaguePhase) {
@@ -544,9 +570,7 @@ export function resolveTrackForRoute(
       case "offseason_walkons":
         return "offseason";
       default:
-        if (leaguePhase.startsWith("offseason_recruiting")) {
-          return "recruiting";
-        }
+        if (leaguePhase.startsWith("offseason_recruiting")) return "recruiting";
         return "standings";
     }
   }
