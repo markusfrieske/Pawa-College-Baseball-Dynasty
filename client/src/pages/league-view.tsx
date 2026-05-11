@@ -532,7 +532,7 @@ function StorylinesDashboardWidget({ leagueId }: { leagueId: string }) {
         </Link>
       </RetroCardHeader>
       <RetroCardContent>
-        <div className="grid grid-cols-3 gap-2 mb-3">
+        <div className="grid grid-cols-2 gap-2 mb-3">
           <div className="bg-muted/30 rounded-md px-2 py-2 text-center">
             <div className="font-pixel text-[7px] text-muted-foreground mb-1">STORYLINES</div>
             <div className="text-lg font-bold">{storylines.length}</div>
@@ -540,10 +540,6 @@ function StorylinesDashboardWidget({ leagueId }: { leagueId: string }) {
           <div className="bg-muted/30 rounded-md px-2 py-2 text-center">
             <div className="font-pixel text-[7px] text-muted-foreground mb-1">VOTES OPEN</div>
             <div className={`text-lg font-bold ${activeVotes.length > 0 ? "text-gold" : ""}`}>{activeVotes.length}</div>
-          </div>
-          <div className="bg-muted/30 rounded-md px-2 py-2 text-center">
-            <div className="font-pixel text-[7px] text-muted-foreground mb-1">LEGENDARY</div>
-            <div className="text-lg font-bold text-gold">{legendary.length}</div>
           </div>
         </div>
 
