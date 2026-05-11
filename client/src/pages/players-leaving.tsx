@@ -66,6 +66,10 @@ function PlayerMiniCard({ player, reason }: { player: Player; reason: "graduate"
         hairColor={player.hairColor}
         hairStyle={player.hairStyle}
         facialHair={player.facialHair || "none"}
+        eyeStyle={player.eyeStyle || undefined}
+        eyebrowStyle={player.eyebrowStyle || undefined}
+        mouthStyle={player.mouthStyle || undefined}
+        eyeBlack={player.eyeBlack ?? undefined}
         playerId={player.id}
         className="w-8 h-8"
       />

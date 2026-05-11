@@ -436,6 +436,10 @@ function PositionSection({ title, players, onSelectPlayer, teamPrimaryColor, pro
                 hairColor={player.hairColor || "brown"}
                 hairStyle={player.hairStyle || "short"}
                 facialHair={player.facialHair || "none"}
+                eyeStyle={player.eyeStyle || undefined}
+                eyebrowStyle={player.eyebrowStyle || undefined}
+                mouthStyle={player.mouthStyle || undefined}
+                eyeBlack={player.eyeBlack ?? undefined}
                 playerId={player.id}
                 className="w-9 h-9 flex-shrink-0"
                 jerseyColor={teamPrimaryColor}
@@ -515,6 +519,10 @@ function PositionSection({ title, players, onSelectPlayer, teamPrimaryColor, pro
                       hairColor={player.hairColor || "brown"}
                       hairStyle={player.hairStyle || "short"}
                       facialHair={player.facialHair || "none"}
+                      eyeStyle={player.eyeStyle || undefined}
+                      eyebrowStyle={player.eyebrowStyle || undefined}
+                      mouthStyle={player.mouthStyle || undefined}
+                      eyeBlack={player.eyeBlack ?? undefined}
                       playerId={player.id}
                       className="w-8 h-8 flex-shrink-0"
                       jerseyColor={teamPrimaryColor}
@@ -1109,6 +1117,10 @@ function DepthPlayerRow({ p, idx, position, teamPrimaryColor, draggable, onSelec
             hairColor={p.hairColor || "brown"}
             hairStyle={p.hairStyle || "short"}
             facialHair={p.facialHair || "none"}
+            eyeStyle={p.eyeStyle || undefined}
+            eyebrowStyle={p.eyebrowStyle || undefined}
+            mouthStyle={p.mouthStyle || undefined}
+            eyeBlack={p.eyeBlack ?? undefined}
             playerId={p.id}
             className="w-6 h-6 flex-shrink-0"
             jerseyColor={teamPrimaryColor}
@@ -1452,6 +1464,10 @@ function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leagueId, i
             hairColor={player.hairColor || "brown"}
             hairStyle={player.hairStyle || "short"}
             facialHair={player.facialHair || "none"}
+            eyeStyle={player.eyeStyle || undefined}
+            eyebrowStyle={player.eyebrowStyle || undefined}
+            mouthStyle={player.mouthStyle || undefined}
+            eyeBlack={player.eyeBlack ?? undefined}
             playerId={player.id}
             className="w-6 h-6 flex-shrink-0"
             jerseyColor={teamPrimaryColor}
@@ -1496,6 +1512,10 @@ function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leagueId, i
           hairColor={player.hairColor || "brown"}
           hairStyle={player.hairStyle || "short"}
           facialHair={player.facialHair || "none"}
+          eyeStyle={player.eyeStyle || undefined}
+          eyebrowStyle={player.eyebrowStyle || undefined}
+          mouthStyle={player.mouthStyle || undefined}
+          eyeBlack={player.eyeBlack ?? undefined}
           playerId={player.id}
           className="w-5 h-5 flex-shrink-0"
           jerseyColor={teamPrimaryColor}

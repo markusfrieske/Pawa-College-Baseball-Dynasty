@@ -670,7 +670,7 @@ export default function PlayByPlayPage() {
                     data-testid={`away-lineup-${i}`}
                   >
                     <span className={`w-4 text-center text-[9px] ${isActive ? "text-gold" : "text-muted-foreground"}`}>{i + 1}</span>
-                    <PlayerAvatar skinTone={p.skinTone} hairColor={p.hairColor} hairStyle={p.hairStyle} facialHair={p.facialHair || "none"} playerId={p.id} headwear={p.headwear} size="sm" jerseyColor={pbpData.awayTeam.primaryColor} className="w-6 h-6 shrink-0" />
+                    <PlayerAvatar skinTone={p.skinTone} hairColor={p.hairColor} hairStyle={p.hairStyle} facialHair={p.facialHair || "none"} eyeStyle={p.eyeStyle || undefined} eyebrowStyle={p.eyebrowStyle || undefined} mouthStyle={p.mouthStyle || undefined} eyeBlack={p.eyeBlack ?? undefined} playerId={p.id} headwear={p.headwear} size="sm" jerseyColor={pbpData.awayTeam.primaryColor} className="w-6 h-6 shrink-0" />
                     <span className={`${positionColor(p.position)} text-white text-[8px] px-1 py-0.5 rounded leading-none min-w-[24px] text-center`}>{p.position}</span>
                     <span className={`text-[10px] truncate flex-1 ${isActive ? "text-gold font-bold" : "text-foreground"}`}>{p.lastName}</span>
                     <div className="flex items-center gap-0.5 shrink-0" title={`OVR: ${p.overall || 300}`}>
@@ -683,7 +683,7 @@ export default function PlayByPlayPage() {
               <div className="border-t border-border/50 mt-1 pt-1 px-1.5">
                 <div className="flex items-center gap-1">
                   <span className="w-4 text-center text-[9px] text-muted-foreground">P</span>
-                  <PlayerAvatar skinTone={pbpData.awayPitcher.skinTone} hairColor={pbpData.awayPitcher.hairColor} hairStyle={pbpData.awayPitcher.hairStyle} facialHair={pbpData.awayPitcher.facialHair || "none"} playerId={pbpData.awayPitcher.id} headwear={pbpData.awayPitcher.headwear} size="sm" jerseyColor={pbpData.awayTeam.primaryColor} className="w-6 h-6 shrink-0" />
+                  <PlayerAvatar skinTone={pbpData.awayPitcher.skinTone} hairColor={pbpData.awayPitcher.hairColor} hairStyle={pbpData.awayPitcher.hairStyle} facialHair={pbpData.awayPitcher.facialHair || "none"} eyeStyle={pbpData.awayPitcher.eyeStyle || undefined} eyebrowStyle={pbpData.awayPitcher.eyebrowStyle || undefined} mouthStyle={pbpData.awayPitcher.mouthStyle || undefined} eyeBlack={pbpData.awayPitcher.eyeBlack ?? undefined} playerId={pbpData.awayPitcher.id} headwear={pbpData.awayPitcher.headwear} size="sm" jerseyColor={pbpData.awayTeam.primaryColor} className="w-6 h-6 shrink-0" />
                   <span className="bg-red-500 text-white text-[8px] px-1 py-0.5 rounded leading-none min-w-[24px] text-center">P</span>
                   <span className="text-[10px] text-muted-foreground truncate">{pbpData.awayPitcher.lastName}</span>
                 </div>
@@ -815,6 +815,10 @@ export default function PlayByPlayPage() {
                             hairColor={currentLineup[currentAtBat.batterIndex]?.hairColor}
                             hairStyle={currentLineup[currentAtBat.batterIndex]?.hairStyle}
                             facialHair={currentLineup[currentAtBat.batterIndex]?.facialHair || "none"}
+                            eyeStyle={currentLineup[currentAtBat.batterIndex]?.eyeStyle || undefined}
+                            eyebrowStyle={currentLineup[currentAtBat.batterIndex]?.eyebrowStyle || undefined}
+                            mouthStyle={currentLineup[currentAtBat.batterIndex]?.mouthStyle || undefined}
+                            eyeBlack={currentLineup[currentAtBat.batterIndex]?.eyeBlack ?? undefined}
                             playerId={currentLineup[currentAtBat.batterIndex]?.id}
                             headwear={currentLineup[currentAtBat.batterIndex]?.headwear}
                             size="sm"
@@ -1011,7 +1015,7 @@ export default function PlayByPlayPage() {
                     data-testid={`home-lineup-${i}`}
                   >
                     <span className={`w-4 text-center text-[9px] ${isActive ? "text-gold" : "text-muted-foreground"}`}>{i + 1}</span>
-                    <PlayerAvatar skinTone={p.skinTone} hairColor={p.hairColor} hairStyle={p.hairStyle} facialHair={p.facialHair || "none"} playerId={p.id} headwear={p.headwear} size="sm" jerseyColor={pbpData.homeTeam.primaryColor} className="w-6 h-6 shrink-0" />
+                    <PlayerAvatar skinTone={p.skinTone} hairColor={p.hairColor} hairStyle={p.hairStyle} facialHair={p.facialHair || "none"} eyeStyle={p.eyeStyle || undefined} eyebrowStyle={p.eyebrowStyle || undefined} mouthStyle={p.mouthStyle || undefined} eyeBlack={p.eyeBlack ?? undefined} playerId={p.id} headwear={p.headwear} size="sm" jerseyColor={pbpData.homeTeam.primaryColor} className="w-6 h-6 shrink-0" />
                     <span className={`${positionColor(p.position)} text-white text-[8px] px-1 py-0.5 rounded leading-none min-w-[24px] text-center`}>{p.position}</span>
                     <span className={`text-[10px] truncate flex-1 ${isActive ? "text-gold font-bold" : "text-foreground"}`}>{p.lastName}</span>
                     <div className="flex items-center gap-0.5 shrink-0" title={`OVR: ${p.overall || 300}`}>
@@ -1024,7 +1028,7 @@ export default function PlayByPlayPage() {
               <div className="border-t border-border/50 mt-1 pt-1 px-1.5">
                 <div className="flex items-center gap-1">
                   <span className="w-4 text-center text-[9px] text-muted-foreground">P</span>
-                  <PlayerAvatar skinTone={pbpData.homePitcher.skinTone} hairColor={pbpData.homePitcher.hairColor} hairStyle={pbpData.homePitcher.hairStyle} facialHair={pbpData.homePitcher.facialHair || "none"} playerId={pbpData.homePitcher.id} headwear={pbpData.homePitcher.headwear} size="sm" jerseyColor={pbpData.homeTeam.primaryColor} className="w-6 h-6 shrink-0" />
+                  <PlayerAvatar skinTone={pbpData.homePitcher.skinTone} hairColor={pbpData.homePitcher.hairColor} hairStyle={pbpData.homePitcher.hairStyle} facialHair={pbpData.homePitcher.facialHair || "none"} eyeStyle={pbpData.homePitcher.eyeStyle || undefined} eyebrowStyle={pbpData.homePitcher.eyebrowStyle || undefined} mouthStyle={pbpData.homePitcher.mouthStyle || undefined} eyeBlack={pbpData.homePitcher.eyeBlack ?? undefined} playerId={pbpData.homePitcher.id} headwear={pbpData.homePitcher.headwear} size="sm" jerseyColor={pbpData.homeTeam.primaryColor} className="w-6 h-6 shrink-0" />
                   <span className="bg-red-500 text-white text-[8px] px-1 py-0.5 rounded leading-none min-w-[24px] text-center">P</span>
                   <span className="text-[10px] text-muted-foreground truncate">{pbpData.homePitcher.lastName}</span>
                 </div>
@@ -1108,6 +1112,10 @@ export default function PlayByPlayPage() {
                     hairColor={statsModalPlayer.appearance?.hairColor}
                     hairStyle={statsModalPlayer.appearance?.hairStyle}
                     facialHair={statsModalPlayer.appearance?.facialHair || "none"}
+                    eyeStyle={statsModalPlayer.appearance?.eyeStyle || undefined}
+                    eyebrowStyle={statsModalPlayer.appearance?.eyebrowStyle || undefined}
+                    mouthStyle={statsModalPlayer.appearance?.mouthStyle || undefined}
+                    eyeBlack={statsModalPlayer.appearance?.eyeBlack ?? undefined}
                     playerId={statsModalPlayer.id}
                     headwear={statsModalPlayer.appearance?.headwear}
                     size="md"
@@ -1396,6 +1404,10 @@ function PlayerCard({ type, name, position, stats, gameStats, seasonStats, team,
           hairColor={appearance?.hairColor}
           hairStyle={appearance?.hairStyle}
           facialHair={appearance?.facialHair || "none"}
+          eyeStyle={appearance?.eyeStyle || undefined}
+          eyebrowStyle={appearance?.eyebrowStyle || undefined}
+          mouthStyle={appearance?.mouthStyle || undefined}
+          eyeBlack={appearance?.eyeBlack ?? undefined}
           headwear={appearance?.headwear}
           size="md"
           jerseyColor={team.primaryColor}

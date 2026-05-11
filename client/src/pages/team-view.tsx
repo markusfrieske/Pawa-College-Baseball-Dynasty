@@ -310,6 +310,10 @@ function SummaryTab({ team, leagueId }: { team: TeamDetails; leagueId: string })
                       hairColor={player.hairColor || "brown"}
                       hairStyle={player.hairStyle || "short"}
                       facialHair={player.facialHair || "none"}
+                      eyeStyle={player.eyeStyle || undefined}
+                      eyebrowStyle={player.eyebrowStyle || undefined}
+                      mouthStyle={player.mouthStyle || undefined}
+                      eyeBlack={player.eyeBlack ?? undefined}
                       playerId={player.id}
                       headwear="none"
                       size="sm"

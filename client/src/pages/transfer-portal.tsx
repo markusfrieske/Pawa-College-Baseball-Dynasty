@@ -58,6 +58,10 @@ function PortalPlayerCard({
             hairColor={player.hairColor}
             hairStyle={player.hairStyle}
             facialHair={player.facialHair || "none"}
+            eyeStyle={player.eyeStyle || undefined}
+            eyebrowStyle={player.eyebrowStyle || undefined}
+            mouthStyle={player.mouthStyle || undefined}
+            eyeBlack={player.eyeBlack ?? undefined}
             playerId={player.id}
             className="w-12 h-12"
           />

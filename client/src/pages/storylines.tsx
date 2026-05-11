@@ -252,6 +252,10 @@ function StorylineCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: strin
                   hairColor={r?.hairColor ?? "brown"}
                   hairStyle={r?.hairStyle ?? "short"}
                   facialHair={r?.facialHair ?? "none"}
+                  eyeStyle={r?.eyeStyle || undefined}
+                  eyebrowStyle={r?.eyebrowStyle || undefined}
+                  mouthStyle={r?.mouthStyle || undefined}
+                  eyeBlack={r?.eyeBlack ?? undefined}
                   playerId={r?.id}
                   isRecruit={true}
                   className="w-full h-full"

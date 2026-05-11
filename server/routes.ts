@@ -12038,8 +12038,11 @@ function getRandomAppearance(conferenceName?: string, eligibility?: string) {
   const hairColors = ["black", "brown", "blonde", "red", "gray"];
   const hairStyles = ["short", "buzz", "medium", "fade", "curly", "mullet", "long", "bald"];
   const headwears = ["cap", "helmet", "batting_helmet", "none"];
+  const eyeStyles: string[] = ["standard", "standard", "narrow", "wide", "heavy"];
+  const eyebrowStyles: string[] = ["flat", "flat", "arched", "thick", "furrowed"];
+  const mouthStyles: string[] = ["neutral", "neutral", "smile", "smirk"];
 
-  // Facial hair weighted by eligibility
+  // Facial hair weighted by eligibility (players only — not recruits)
   let facialHair = "none";
   const fhRoll = Math.random();
   if (eligibility === "SR") {
@@ -12058,12 +12061,19 @@ function getRandomAppearance(conferenceName?: string, eligibility?: string) {
     if (fhRoll < 0.04) facialHair = "stubble";
   }
 
+  // Eye black only for players (not recruits — caller decides); ~28% chance
+  const eyeBlack = Math.random() < 0.28;
+
   return {
-    skinTone:  skinTones[Math.floor(Math.random() * skinTones.length)],
-    hairColor: hairColors[Math.floor(Math.random() * hairColors.length)],
-    hairStyle: hairStyles[Math.floor(Math.random() * hairStyles.length)],
-    headwear:  headwears[Math.floor(Math.random() * headwears.length)],
+    skinTone:     skinTones[Math.floor(Math.random() * skinTones.length)],
+    hairColor:    hairColors[Math.floor(Math.random() * hairColors.length)],
+    hairStyle:    hairStyles[Math.floor(Math.random() * hairStyles.length)],
+    headwear:     headwears[Math.floor(Math.random() * headwears.length)],
     facialHair,
+    eyeStyle:     eyeStyles[Math.floor(Math.random() * eyeStyles.length)],
+    eyebrowStyle: eyebrowStyles[Math.floor(Math.random() * eyebrowStyles.length)],
+    mouthStyle:   mouthStyles[Math.floor(Math.random() * mouthStyles.length)],
+    eyeBlack,
   };
 }
 
@@ -12199,6 +12209,10 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
         hairColor: appearance.hairColor,
         hairStyle: appearance.hairStyle,
         facialHair: appearance.facialHair,
+        eyeStyle: appearance.eyeStyle,
+        eyebrowStyle: appearance.eyebrowStyle,
+        mouthStyle: appearance.mouthStyle,
+        eyeBlack: appearance.eyeBlack,
         headwear: appearance.headwear,
         potential: typeof rp.potential === 'string' ? potentialGradeToNumber(rp.potential as string) : (rp.potential ?? 71),
         pitchFB: rp.pitchFB,
@@ -12235,7 +12249,8 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
       const fillerEligibilities = ["FR", "SO", "JR"];
 
       for (let f = 0; f < remaining; f++) {
-        const appearance = getRandomAppearance(conferenceName);
+        const fillerElig = fillerEligibilities[Math.floor(Math.random() * fillerEligibilities.length)];
+        const appearance = getRandomAppearance(conferenceName, fillerElig);
         const targetAvg = 25 + Math.floor(Math.random() * 15);
         const genAttr = () => Math.max(1, Math.min(99, targetAvg + Math.floor(Math.random() * 21) - 10));
         const pos = fillerPositions[f];
@@ -12261,7 +12276,7 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
           firstName: fillerNames[Math.floor(Math.random() * fillerNames.length)],
           lastName: fillerLastNames[Math.floor(Math.random() * fillerLastNames.length)],
           position: pos,
-          eligibility: fillerEligibilities[Math.floor(Math.random() * fillerEligibilities.length)],
+          eligibility: fillerElig,
           homeState: stEntry.state,
           hometown: stEntry.cities[Math.floor(Math.random() * stEntry.cities.length)],
           jerseyNumber: jerseyNum,
@@ -12273,6 +12288,10 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
           hairColor: appearance.hairColor,
           hairStyle: appearance.hairStyle,
           facialHair: appearance.facialHair,
+          eyeStyle: appearance.eyeStyle,
+          eyebrowStyle: appearance.eyebrowStyle,
+          mouthStyle: appearance.mouthStyle,
+          eyeBlack: appearance.eyeBlack,
           headwear: appearance.headwear,
           potential: rollWeightedPotential(),
           pitchFB: pos === "P" ? 1 : 0,
@@ -12412,6 +12431,10 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
       hairColor: appearance.hairColor,
       hairStyle: appearance.hairStyle,
       facialHair: appearance.facialHair,
+      eyeStyle: appearance.eyeStyle,
+      eyebrowStyle: appearance.eyebrowStyle,
+      mouthStyle: appearance.mouthStyle,
+      eyeBlack: appearance.eyeBlack,
       headwear: appearance.headwear,
       potential: rollWeightedPotential(),
       pitchFB: position === "P" ? 1 : 0,

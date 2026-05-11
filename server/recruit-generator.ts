@@ -9,17 +9,26 @@ export function getRandomRecruitingTheme(): RecruitingTheme {
 }
 
 function getRandomAppearance() {
-  const skinTones = ["light", "medium", "tan", "olive", "dark", "deep"];
+  const skinTones = ["light", "light", "medium", "medium", "tan", "olive", "dark", "deep"];
   const hairColors = ["black", "brown", "blonde", "red", "gray"];
   const hairStyles = ["short", "buzz", "medium", "fade", "curly", "mullet", "long", "bald"];
   const headwears = ["cap", "helmet", "batting_helmet", "none"];
   const facialHairs = ["none", "none", "none", "none", "none", "stubble", "stubble", "goatee", "mustache"];
+  const eyeStyles = ["standard", "standard", "narrow", "wide", "heavy"];
+  const eyebrowStyles = ["flat", "flat", "arched", "thick", "furrowed"];
+  const mouthStyles = ["neutral", "neutral", "smile", "smirk"];
+  // Recruits: eye black sparingly (~15%), reflects younger players
+  const eyeBlack = Math.random() < 0.15;
   return {
-    skinTone: skinTones[Math.floor(Math.random() * skinTones.length)],
-    hairColor: hairColors[Math.floor(Math.random() * hairColors.length)],
-    hairStyle: hairStyles[Math.floor(Math.random() * hairStyles.length)],
-    headwear: headwears[Math.floor(Math.random() * headwears.length)],
-    facialHair: facialHairs[Math.floor(Math.random() * facialHairs.length)],
+    skinTone:     skinTones[Math.floor(Math.random() * skinTones.length)],
+    hairColor:    hairColors[Math.floor(Math.random() * hairColors.length)],
+    hairStyle:    hairStyles[Math.floor(Math.random() * hairStyles.length)],
+    headwear:     headwears[Math.floor(Math.random() * headwears.length)],
+    facialHair:   facialHairs[Math.floor(Math.random() * facialHairs.length)],
+    eyeStyle:     eyeStyles[Math.floor(Math.random() * eyeStyles.length)],
+    eyebrowStyle: eyebrowStyles[Math.floor(Math.random() * eyebrowStyles.length)],
+    mouthStyle:   mouthStyles[Math.floor(Math.random() * mouthStyles.length)],
+    eyeBlack,
   };
 }
 
@@ -540,6 +549,10 @@ export function generateRecruitClass(
       hairColor: appearance.hairColor,
       hairStyle: appearance.hairStyle,
       facialHair: appearance.facialHair,
+      eyeStyle: appearance.eyeStyle,
+      eyebrowStyle: appearance.eyebrowStyle,
+      mouthStyle: appearance.mouthStyle,
+      eyeBlack: appearance.eyeBlack,
       headwear: appearance.headwear,
     });
   }

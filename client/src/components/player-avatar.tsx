@@ -5,8 +5,11 @@ interface PlayerAvatarProps {
   hairColor?: string;
   hairStyle?: string;
   facialHair?: string;
-  headwear?: string;
+  eyeStyle?: string;
+  eyebrowStyle?: string;
+  mouthStyle?: string;
   eyeBlack?: boolean;
+  headwear?: string;
   playerId?: string;
   size?: "sm" | "md" | "lg";
   className?: string;
@@ -71,8 +74,11 @@ export function PlayerAvatar({
   hairColor = "brown",
   hairStyle = "short",
   facialHair = "none",
-  headwear = "none",
+  eyeStyle,
+  eyebrowStyle,
+  mouthStyle,
   eyeBlack,
+  headwear = "none",
   playerId,
   size = "md",
   className,
@@ -100,18 +106,19 @@ export function PlayerAvatar({
 
   const bgColor = "#f5f0e6";
 
-  // Deterministic face features
+  // DB-stored values take priority. Fall back to hash derivation for legacy rows.
   const seed = playerId ? hashStr(playerId) : 0;
   const EYE_STYLES     = ["standard", "narrow", "wide", "heavy"] as const;
   const EYEBROW_STYLES = ["flat", "arched", "thick", "furrowed"] as const;
   const MOUTH_STYLES   = ["neutral", "smile", "smirk"] as const;
 
-  const derivedEyeStyle     = playerId ? EYE_STYLES[seed % 4]           : "standard";
-  const derivedEyebrowStyle = playerId ? EYEBROW_STYLES[(seed >> 3) % 4] : "flat";
-  const derivedMouthStyle   = playerId ? MOUTH_STYLES[(seed >> 6) % 3]   : "neutral";
-  const derivedEyeBlack     = eyeBlack !== undefined ? eyeBlack : (!!playerId && ((seed >> 9) % 10) < 3);
+  const resolvedEyeStyle     = eyeStyle     || (playerId ? EYE_STYLES[seed % 4]            : "standard");
+  const resolvedEyebrowStyle = eyebrowStyle || (playerId ? EYEBROW_STYLES[(seed >> 3) % 4]  : "flat");
+  const resolvedMouthStyle   = mouthStyle   || (playerId ? MOUTH_STYLES[(seed >> 6) % 3]    : "neutral");
+  const resolvedEyeBlack     = eyeBlack     !== undefined ? eyeBlack
+                                             : (playerId  ? ((seed >> 9) % 10) < 3
+                                                          : false);
 
-  // Normalise hair style name
   const normHairStyle = hairStyle === "buzzcut" ? "buzz" : hairStyle;
 
   return (
@@ -153,13 +160,13 @@ export function PlayerAvatar({
         <rect x="23" y="12" width="2" height="4" fill={skin} />
 
         {/* ── Eyebrows ── */}
-        {derivedEyebrowStyle === "flat" && (
+        {resolvedEyebrowStyle === "flat" && (
           <>
             <rect x="11" y="11" width="4" height="1" fill={hairShade} />
             <rect x="17" y="11" width="4" height="1" fill={hairShade} />
           </>
         )}
-        {derivedEyebrowStyle === "arched" && (
+        {resolvedEyebrowStyle === "arched" && (
           <>
             <rect x="11" y="12" width="2" height="1" fill={hairShade} />
             <rect x="13" y="11" width="2" height="1" fill={hairShade} />
@@ -167,13 +174,13 @@ export function PlayerAvatar({
             <rect x="19" y="11" width="2" height="1" fill={hairShade} />
           </>
         )}
-        {derivedEyebrowStyle === "thick" && (
+        {resolvedEyebrowStyle === "thick" && (
           <>
             <rect x="11" y="10" width="4" height="2" fill={hairShade} />
             <rect x="17" y="10" width="4" height="2" fill={hairShade} />
           </>
         )}
-        {derivedEyebrowStyle === "furrowed" && (
+        {resolvedEyebrowStyle === "furrowed" && (
           <>
             <rect x="11" y="11" width="3" height="1" fill={hairShade} />
             <rect x="14" y="10" width="1" height="1" fill={hairShade} />
@@ -183,7 +190,7 @@ export function PlayerAvatar({
         )}
 
         {/* ── Eyes ── */}
-        {derivedEyeStyle === "standard" && (
+        {resolvedEyeStyle === "standard" && (
           <>
             <rect x="11" y="13" width="3" height="3" fill="#1a1a1a" />
             <rect x="18" y="13" width="3" height="3" fill="#1a1a1a" />
@@ -191,7 +198,7 @@ export function PlayerAvatar({
             <rect x="18" y="13" width="1" height="1" fill="#ffffff" />
           </>
         )}
-        {derivedEyeStyle === "narrow" && (
+        {resolvedEyeStyle === "narrow" && (
           <>
             <rect x="11" y="13" width="3" height="2" fill="#1a1a1a" />
             <rect x="18" y="13" width="3" height="2" fill="#1a1a1a" />
@@ -199,7 +206,7 @@ export function PlayerAvatar({
             <rect x="18" y="13" width="1" height="1" fill="#ffffff" />
           </>
         )}
-        {derivedEyeStyle === "wide" && (
+        {resolvedEyeStyle === "wide" && (
           <>
             <rect x="10" y="13" width="4" height="3" fill="#1a1a1a" />
             <rect x="18" y="13" width="4" height="3" fill="#1a1a1a" />
@@ -207,7 +214,7 @@ export function PlayerAvatar({
             <rect x="18" y="13" width="1" height="1" fill="#ffffff" />
           </>
         )}
-        {derivedEyeStyle === "heavy" && (
+        {resolvedEyeStyle === "heavy" && (
           <>
             <rect x="11" y="12" width="3" height="1" fill={skinShade} opacity="0.7" />
             <rect x="18" y="12" width="3" height="1" fill={skinShade} opacity="0.7" />
@@ -219,7 +226,7 @@ export function PlayerAvatar({
         )}
 
         {/* Eye black */}
-        {derivedEyeBlack && (
+        {resolvedEyeBlack && (
           <>
             <rect x="11" y="16" width="3" height="1" fill="#111111" opacity="0.75" />
             <rect x="18" y="16" width="3" height="1" fill="#111111" opacity="0.75" />
@@ -230,17 +237,17 @@ export function PlayerAvatar({
         <rect x="15" y="15" width="2" height="3" fill={skinShade} />
 
         {/* ── Mouth ── */}
-        {derivedMouthStyle === "neutral" && (
+        {resolvedMouthStyle === "neutral" && (
           <rect x="13" y="19" width="6" height="1" fill="#444444" />
         )}
-        {derivedMouthStyle === "smile" && (
+        {resolvedMouthStyle === "smile" && (
           <>
             <rect x="14" y="19" width="4" height="1" fill="#444444" />
             <rect x="13" y="18" width="2" height="1" fill="#444444" />
             <rect x="17" y="18" width="2" height="1" fill="#444444" />
           </>
         )}
-        {derivedMouthStyle === "smirk" && (
+        {resolvedMouthStyle === "smirk" && (
           <>
             <rect x="13" y="20" width="4" height="1" fill="#444444" />
             <rect x="17" y="19" width="2" height="1" fill="#444444" />
@@ -329,7 +336,6 @@ export function PlayerAvatar({
             <rect x="22" y="8" width="1" height="14" fill={hairShade} />
           </>
         )}
-        {/* Fallback for unknown styles */}
         {!["short","medium","long","fade","buzz","bald","curly","mullet"].includes(normHairStyle) && (
           <>
             <rect x="9" y="5" width="14" height="4" fill={hair} />

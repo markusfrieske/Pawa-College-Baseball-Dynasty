@@ -1941,6 +1941,10 @@ function RecruitRow({
               hairColor={recruit.hairColor || "brown"}
               hairStyle={recruit.hairStyle || "short"}
               facialHair={recruit.facialHair || "none"}
+              eyeStyle={recruit.eyeStyle || undefined}
+              eyebrowStyle={recruit.eyebrowStyle || undefined}
+              mouthStyle={recruit.mouthStyle || undefined}
+              eyeBlack={recruit.eyeBlack ?? undefined}
               playerId={recruit.id}
               className="w-12 h-12"
               isRecruit={true}
@@ -2773,6 +2777,10 @@ function RecruitDetailModal({
         hairColor={recruit.hairColor || "brown"}
         hairStyle={recruit.hairStyle || "short"}
         facialHair={recruit.facialHair || "none"}
+        eyeStyle={recruit.eyeStyle || undefined}
+        eyebrowStyle={recruit.eyebrowStyle || undefined}
+        mouthStyle={recruit.mouthStyle || undefined}
+        eyeBlack={recruit.eyeBlack ?? undefined}
         playerId={recruit.id}
         className="w-16 h-16 flex-shrink-0"
         isRecruit={true}
@@ -3691,6 +3699,10 @@ function CompareModal({
                     hairColor={recruit.hairColor || "brown"}
                     hairStyle={recruit.hairStyle || "short"}
                     facialHair={recruit.facialHair || "none"}
+                    eyeStyle={recruit.eyeStyle || undefined}
+                    eyebrowStyle={recruit.eyebrowStyle || undefined}
+                    mouthStyle={recruit.mouthStyle || undefined}
+                    eyeBlack={recruit.eyeBlack ?? undefined}
                     playerId={recruit.id}
                     className="w-12 h-12"
                     isRecruit={true}
