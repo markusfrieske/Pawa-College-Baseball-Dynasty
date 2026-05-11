@@ -3650,6 +3650,8 @@ export async function registerRoutes(
           eligibility: p.eligibility,
           overall: p.overall ?? 0,
           starRating: p.starRating ?? 1,
+          batHand: p.batHand ?? "R",
+          throwHand: p.throwHand ?? "R",
           teamId: p.teamId,
           teamName: team?.name ?? "Unknown",
           teamAbbreviation: team?.abbreviation ?? "???",

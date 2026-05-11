@@ -2667,6 +2667,8 @@ interface ProspectEntry {
   eligibility: string;
   overall: number;
   starRating: number;
+  batHand: string;
+  throwHand: string;
   teamId: string;
   teamName: string;
   teamAbbreviation: string;
@@ -2836,13 +2838,40 @@ function ProspectsTab({ leagueId, currentSeason }: { leagueId: string; currentSe
                       </span>
                     </td>
                     <td className="py-2.5 px-2">
-                      <button
-                        onClick={() => setSelectedPlayerId(prospect.id)}
-                        className="font-medium text-xs hover:text-gold transition-colors text-left"
-                        data-testid={`button-prospect-name-${prospect.id}`}
-                      >
-                        {prospect.firstName} {prospect.lastName}
-                      </button>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => setSelectedPlayerId(prospect.id)}
+                          className="font-medium text-xs hover:text-gold transition-colors text-left"
+                          data-testid={`button-prospect-name-${prospect.id}`}
+                        >
+                          {prospect.firstName} {prospect.lastName}
+                        </button>
+                        {prospect.category === "pitcher" ? (
+                          <span
+                            className={`font-pixel text-[7px] px-1 py-0.5 rounded border ${
+                              prospect.throwHand === "L"
+                                ? "bg-blue-500/15 text-blue-400 border-blue-500/40"
+                                : "bg-muted/40 text-muted-foreground border-border/60"
+                            }`}
+                            data-testid={`badge-hand-${prospect.id}`}
+                          >
+                            {prospect.throwHand}HP
+                          </span>
+                        ) : (
+                          <span
+                            className={`font-pixel text-[7px] px-1 py-0.5 rounded border ${
+                              prospect.batHand === "L"
+                                ? "bg-blue-500/15 text-blue-400 border-blue-500/40"
+                                : prospect.batHand === "S"
+                                ? "bg-purple-500/15 text-purple-400 border-purple-500/40"
+                                : "bg-muted/40 text-muted-foreground border-border/60"
+                            }`}
+                            data-testid={`badge-hand-${prospect.id}`}
+                          >
+                            {prospect.batHand}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-2.5 px-1 text-center">
                       <span className="text-[10px] text-muted-foreground">{prospect.position}</span>

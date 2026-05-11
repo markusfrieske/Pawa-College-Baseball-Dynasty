@@ -201,6 +201,23 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
                     conv. from {player.originalPosition}
                   </Badge>
                 )}
+                {isPitcher ? (
+                  <Badge
+                    variant="outline"
+                    className={`text-[9px] ${throws === "L" ? "border-blue-500/60 text-blue-400 bg-blue-500/10" : "border-border text-muted-foreground"}`}
+                    data-testid="badge-handedness"
+                  >
+                    {throws}HP
+                  </Badge>
+                ) : (
+                  <Badge
+                    variant="outline"
+                    className={`text-[9px] ${bats === "L" ? "border-blue-500/60 text-blue-400 bg-blue-500/10" : bats === "S" ? "border-purple-500/60 text-purple-400 bg-purple-500/10" : "border-border text-muted-foreground"}`}
+                    data-testid="badge-handedness"
+                  >
+                    Bats {bats}
+                  </Badge>
+                )}
                 <div className="flex items-center gap-0.5">
                   {Array.from({ length: 5 }).map((_, i) => (
                     <Star
@@ -216,7 +233,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
               </h2>
               <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
                 <span>{eligibilityLabel[player.eligibility] || player.eligibility}</span>
-                <span>Bats {bats} / Throws {throws}</span>
+                {!isPitcher && <span className="text-[10px]">Throws {throws}</span>}
               </div>
             </div>
           </div>
