@@ -65,10 +65,7 @@ export type Archetype =
   // ─── Five distinct legendary storyline templates ──────────────────────────
   | "the_phenom" | "the_collapse" | "the_two_sport_icon" | "the_scientist" | "folk_hero";
 
-// ─── Archetype Transition Rules ───────────────────────────────────────────────
-// Defines which archetype a recruit can evolve into based on cumulative OVR outcome.
-// "positive" = cumulative arc delta >= +15, "negative" = cumulative delta <= -15.
-// Transitions fire at arcStage >= 2 (mid-to-late arc) to reflect meaningful story change.
+// Archetype evolves at arcStage >= 2 when cumulative delta crosses +15 or -15.
 export const ARCHETYPE_TRANSITIONS: Record<Archetype, { positive?: Archetype; negative?: Archetype }> = {
   late_bloomer:         { positive: "summer_breakout",      negative: "confidence_crisis" },
   velocity_freak:       { positive: "generational_prodigy",  negative: "burnout_candidate" },
@@ -93,11 +90,6 @@ export const ARCHETYPE_TRANSITIONS: Record<Archetype, { positive?: Archetype; ne
   folk_hero:            { positive: "generational_prodigy",  negative: "confidence_crisis" },
 };
 
-/**
- * Determine if a recruit's archetype should transition after an arc stage.
- * Returns the new archetype (or the same one if no transition fires).
- * Transition fires at arcStage >= 2 with a 35% base chance, boosted to 60% for legendary.
- */
 export function maybeTransitionArchetype(
   currentArchetype: Archetype,
   cumulativeOvrDelta: number,
@@ -769,21 +761,14 @@ export function pickStorylineRecruits(
     }
   }
 
-  // ── Legendary quota selection ─────────────────────────────────────────────
-  // Target: ~2 legendaries per 50 storyline recruits (5 classes × 10 = 50).
-  // Per-class: 40% base chance for 1 legendary, reduced to 20% if recentLegendaryCount >= 2
-  // (cool-down after a run of legendaries), forced to 1 if recentLegendaryCount === 0 and
-  // recruits span 3+ classes without one (guarantee via forcedLegendary flag).
+  // Legendary quota: throttle to 15% when over-represented, guarantee 100% when starved.
   const count = config?.count ?? 10;
   const recentLegendaryCount = config?.recentLegendaryCount ?? 0;
   let legendaryCount: number;
   if (config?.legendaryCount !== undefined) {
     legendaryCount = config.legendaryCount;
   } else {
-    // Quota-aware probability: throttle when over-represented, guarantee when starved
-    const overloaded = recentLegendaryCount >= 2;
-    const starved     = recentLegendaryCount === 0;
-    const prob = overloaded ? 0.15 : starved ? 1.0 : 0.40;
+    const prob = recentLegendaryCount >= 2 ? 0.15 : recentLegendaryCount === 0 ? 1.0 : 0.40;
     legendaryCount = Math.random() < prob ? 1 : 0;
   }
 
@@ -814,7 +799,6 @@ function pickArchetypeForRecruit(
   isLegendary: boolean,
 ): Archetype {
   if (isLegendary) {
-    // Legendary recruits use one of the five distinct legendary templates
     return LEGENDARY_ARCHETYPES[Math.floor(Math.random() * LEGENDARY_ARCHETYPES.length)];
   }
   if (r.isBlueChip) {
@@ -874,11 +858,8 @@ export function generateStorylineEvent(
   }
   const template = pool[arcStage % pool.length];
 
-  // Interpolate {name} and optionally inject linked recruit into event narrative
   const interpolate = (text: string) => {
     let out = text.replace(/\{name\}/g, recruitName);
-    // If a linked recruit exists and the event text doesn't already mention them,
-    // append a brief "rival/connection" mention to the event narrative on final arc stages
     if (linkedRecruitName && arcStage >= 2 && !out.includes(linkedRecruitName)) {
       const linkedPhrases = [
         ` Meanwhile, ${linkedRecruitName} — another top recruit in this class — is watching how this unfolds.`,
@@ -924,7 +905,6 @@ export function resolveVotes(
     counts[v.choice] = (counts[v.choice] || 0) + 1;
   }
 
-  // CPU simulation: if no votes, pick randomly weighted by choice count
   if (votes.length === 0) {
     const choices = choiceDWeights ? ["A", "B", "C", "D"] : ["A", "B", "C"];
     const winningChoice = choices[Math.floor(Math.random() * choices.length)];
@@ -932,11 +912,9 @@ export function resolveVotes(
     return { winningChoice, ovrDelta: resolveWeights(weights) };
   }
 
-  // Find the maximum vote count, then collect all choices tied at that count
   const choices = choiceDWeights ? (["A", "B", "C", "D"] as const) : (["A", "B", "C"] as const);
   const maxCount = Math.max(...choices.map(c => counts[c]));
   const tiedChoices = choices.filter(c => counts[c] === maxCount);
-  // Random tie-break among equally-voted options to avoid systematic choice ordering bias
   const winningChoice = tiedChoices[Math.floor(Math.random() * tiedChoices.length)];
   const weights = winningChoice === "A" ? choiceAWeights : winningChoice === "B" ? choiceBWeights : winningChoice === "C" ? choiceCWeights : (choiceDWeights ?? choiceCWeights);
   return { winningChoice, ovrDelta: resolveWeights(weights) };

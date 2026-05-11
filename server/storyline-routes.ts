@@ -10,10 +10,8 @@ function requireAuth(req: Request, res: Response, next: () => void) {
   next();
 }
 
-// ─── AI Image Generation (Replit OpenAI Integration — no user API key needed) ──
-// Uses AI_INTEGRATIONS_OPENAI_BASE_URL + AI_INTEGRATIONS_OPENAI_API_KEY set by Replit.
-// gpt-image-1 always returns base64; stored as a data URL in imageUrl.
-// Accepts optional arcStage for stage-aware prompt evolution; retries once on transient failure.
+// AI image generation via Replit OpenAI integration (gpt-image-1, base64 response stored as data URL).
+// arcStage drives stage-specific prompt phrasing; retries once with a simplified prompt on failure.
 async function generateStorylineImage(
   storylineId: string,
   imagePrompt: string | null,
@@ -22,11 +20,10 @@ async function generateStorylineImage(
   const baseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
   const apiKey  = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
   if (!baseURL || !apiKey) {
-    console.warn("[storylines] Replit OpenAI integration not configured — skipping image generation");
+    console.warn("[storylines] OpenAI integration not configured — skipping image generation");
     return null;
   }
 
-  // Build a stage-aware prompt so the portrait evolves across the recruit's arc
   const stageDescriptors = [
     "at the start of their college baseball recruitment journey, uncertain but hopeful",
     "gaining attention from top programs, building confidence",
@@ -45,33 +42,23 @@ async function generateStorylineImage(
       body: JSON.stringify({ model: "gpt-image-1", prompt, n: 1, size: "1024x1024" }),
     });
     if (!res.ok) {
-      const errText = await res.text();
-      console.warn("[storylines] gpt-image-1 error:", res.status, errText);
+      console.warn("[storylines] gpt-image-1 error:", res.status, await res.text());
       return null;
     }
     const json = await res.json() as { data?: Array<{ b64_json?: string }> };
     const b64 = json.data?.[0]?.b64_json;
-    if (!b64) return null;
-    return `data:image/png;base64,${b64}`;
+    return b64 ? `data:image/png;base64,${b64}` : null;
   }
 
   try {
-    // First attempt
     let dataUrl = await attemptGenerate(basePrompt);
-
-    // Retry once on failure with a simplified prompt (reduces moderation/timeout risk)
     if (!dataUrl) {
-      console.info("[storylines] retrying image generation with simplified prompt...");
       await new Promise(r => setTimeout(r, 2000));
       dataUrl = await attemptGenerate(
         "A retro pixel-art silhouette of a college baseball player, dark background, gold lighting, 8-bit style",
       );
     }
-
-    if (dataUrl) {
-      // Persist to DB so subsequent arc-stage regenerations can be compared
-      await storage.updateStorylineRecruit(storylineId, { imageUrl: dataUrl });
-    }
+    if (dataUrl) await storage.updateStorylineRecruit(storylineId, { imageUrl: dataUrl });
     return dataUrl;
   } catch (err) {
     console.warn("[storylines] image generation failed:", err);
@@ -79,17 +66,11 @@ async function generateStorylineImage(
   }
 }
 
-// Helper: resolve coach teamId for a league+user — used across multiple endpoints
 async function resolveCoachTeamId(leagueId: string, userId: string): Promise<string | null> {
-  try {
-    const coaches = await storage.getCoachesByLeague(leagueId);
-    return coaches.find(c => c.userId === userId)?.teamId ?? null;
-  } catch {
-    return null;
-  }
+  const coaches = await storage.getCoachesByLeague(leagueId);
+  return coaches.find(c => c.userId === userId)?.teamId ?? null;
 }
 
-// Helper: verify requesting user is a member of the league (has a team/coach)
 async function assertLeagueMember(leagueId: string, userId: string | undefined, res: Response): Promise<boolean> {
   if (!userId) { res.status(401).json({ message: "Not authenticated" }); return false; }
   const teamId = await resolveCoachTeamId(leagueId, userId);
@@ -99,20 +80,16 @@ async function assertLeagueMember(leagueId: string, userId: string | undefined, 
 
 export function registerStorylineRoutes(app: Express) {
 
-  // GET /api/leagues/:id/storylines — all storyline recruits with recruit data + latest events
+  // GET /api/leagues/:id/storylines
   app.get("/api/leagues/:id/storylines", requireAuth, async (req, res) => {
     try {
       const leagueId = String(req.params.id);
       const league = await storage.getLeague(leagueId);
       if (!league) return res.status(404).json({ message: "League not found" });
-
-      // Enforce league membership
       if (!await assertLeagueMember(leagueId, req.session.userId, res)) return;
 
       const season = req.query.season ? parseInt(req.query.season as string) : league.currentSeason;
       const storylines = await storage.getStorylineRecruitsByLeague(leagueId, season);
-
-      // Resolve current user's teamId once (not per-storyline to avoid N+1)
       const myTeamId = await resolveCoachTeamId(leagueId, req.session.userId!);
 
       const enriched = await Promise.all(storylines.map(async (sl) => {
@@ -125,7 +102,6 @@ export function registerStorylineRoutes(app: Express) {
         if (latestEvent) {
           const votes = await storage.getStorylineVotesByEvent(latestEvent.id);
           for (const v of votes) voteCounts[v.choice] = (voteCounts[v.choice] || 0) + 1;
-
           if (myTeamId) {
             const myVoteRow = await storage.getStorylineVoteByTeam(latestEvent.id, myTeamId);
             myVote = myVoteRow?.choice ?? null;
@@ -134,7 +110,6 @@ export function registerStorylineRoutes(app: Express) {
 
         const archetypeDef = ARCHETYPE_DEFS[sl.archetype as Archetype];
 
-        // Resolve overlapping recruit name if linked
         let overlappingRecruitName: string | null = null;
         if (sl.overlappingRecruitId) {
           const ovlSl = await storage.getStorylineRecruit(sl.overlappingRecruitId);
@@ -167,7 +142,7 @@ export function registerStorylineRoutes(app: Express) {
     }
   });
 
-  // GET /api/leagues/:id/storylines/events — all events for the current week
+  // GET /api/leagues/:id/storylines/events
   app.get("/api/leagues/:id/storylines/events", requireAuth, async (req, res) => {
     try {
       const leagueId = String(req.params.id);
@@ -187,15 +162,11 @@ export function registerStorylineRoutes(app: Express) {
         const recruit = sl ? await storage.getRecruit(sl.recruitId) : null;
 
         let myVote: string | null = null;
-        if (req.session.userId) {
-          try {
-            const coaches = await storage.getCoachesByLeague(leagueId);
-            const myCoach = coaches.find(c => c.userId === req.session.userId);
-            if (myCoach?.teamId) {
-              const myVoteRow = await storage.getStorylineVoteByTeam(event.id, myCoach.teamId);
-              myVote = myVoteRow?.choice ?? null;
-            }
-          } catch {}
+        const coaches = await storage.getCoachesByLeague(leagueId);
+        const myCoach = coaches.find(c => c.userId === req.session.userId);
+        if (myCoach?.teamId) {
+          const myVoteRow = await storage.getStorylineVoteByTeam(event.id, myCoach.teamId);
+          myVote = myVoteRow?.choice ?? null;
         }
 
         return { ...event, voteCounts: counts, myVote, storylineRecruit: sl, recruit };
@@ -208,13 +179,12 @@ export function registerStorylineRoutes(app: Express) {
     }
   });
 
-  // GET /api/leagues/:id/storylines/:storylineId — single storyline detail
+  // GET /api/leagues/:id/storylines/:storylineId
   app.get("/api/leagues/:id/storylines/:storylineId", requireAuth, async (req, res) => {
     try {
       const leagueId = String(req.params.id);
       const sl = await storage.getStorylineRecruit(String(req.params.storylineId));
       if (!sl) return res.status(404).json({ message: "Storyline not found" });
-      // Security: verify this storyline belongs to the requested league AND user is a member
       if (sl.leagueId !== leagueId) return res.status(403).json({ message: "Storyline does not belong to this league" });
       if (!await assertLeagueMember(leagueId, req.session.userId, res)) return;
 
@@ -227,15 +197,11 @@ export function registerStorylineRoutes(app: Express) {
         for (const v of votes) counts[v.choice] = (counts[v.choice] || 0) + 1;
 
         let myVote: string | null = null;
-        if (req.session.userId) {
-          try {
-            const coaches = await storage.getCoachesByLeague(String(req.params.id));
-            const myCoach = coaches.find(c => c.userId === req.session.userId);
-            if (myCoach?.teamId) {
-              const myVoteRow = await storage.getStorylineVoteByTeam(event.id, myCoach.teamId);
-              myVote = myVoteRow?.choice ?? null;
-            }
-          } catch {}
+        const coaches = await storage.getCoachesByLeague(leagueId);
+        const myCoach = coaches.find(c => c.userId === req.session.userId);
+        if (myCoach?.teamId) {
+          const myVoteRow = await storage.getStorylineVoteByTeam(event.id, myCoach.teamId);
+          myVote = myVoteRow?.choice ?? null;
         }
         return { ...event, voteCounts: counts, myVote };
       }));
@@ -256,72 +222,64 @@ export function registerStorylineRoutes(app: Express) {
     }
   });
 
-  // POST /api/leagues/:id/storylines/events/:eventId/vote — cast or change vote
-  app.post("/api/leagues/:id/storylines/events/:eventId/vote", requireAuth, async (req, res) => {
+  // POST /api/leagues/:id/storylines/:storylineId/vote
+  app.post("/api/leagues/:id/storylines/:storylineId/vote", requireAuth, async (req, res) => {
     try {
       const leagueId = String(req.params.id);
-      const eventId = String(req.params.eventId);
-      const { choice } = req.body;
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
 
-      if (!["A", "B", "C", "D"].includes(choice)) {
-        return res.status(400).json({ message: "Invalid choice. Must be A, B, C, or D" });
+      const teamId = await resolveCoachTeamId(leagueId, req.session.userId!);
+      if (!teamId) return res.status(403).json({ message: "You are not a member of this league" });
+
+      const { eventId, choice } = req.body;
+      if (!eventId || !["A", "B", "C", "D"].includes(choice)) {
+        return res.status(400).json({ message: "Invalid vote: eventId and choice (A-D) required" });
       }
 
       const event = await storage.getStorylineEvent(eventId);
       if (!event) return res.status(404).json({ message: "Event not found" });
-      // Security: verify event belongs to the requested league
-      if (event.leagueId !== leagueId) return res.status(403).json({ message: "Event does not belong to this league" });
       if (event.resolvedChoice) return res.status(400).json({ message: "This event has already been resolved" });
-      if (!event.choiceD && choice === "D") return res.status(400).json({ message: "Choice D is not available for this event" });
 
-      const coaches = await storage.getCoachesByLeague(leagueId);
-      const myCoach = coaches.find(c => c.userId === req.session.userId);
-      if (!myCoach?.teamId) return res.status(403).json({ message: "You must be part of this league to vote" });
+      const sl = await storage.getStorylineRecruit(event.storylineRecruitId);
+      if (!sl || sl.leagueId !== leagueId) return res.status(403).json({ message: "Event does not belong to this league" });
 
-      const existing = await storage.getStorylineVoteByTeam(eventId, myCoach.teamId);
+      const existing = await storage.getStorylineVoteByTeam(eventId, teamId);
       if (existing) {
-        await storage.updateStorylineVote(existing.id, { choice });
-      } else {
-        await storage.createStorylineVote({ eventId, teamId: myCoach.teamId, choice });
+        const updated = await storage.updateStorylineVote(existing.id, { choice });
+        return res.json(updated);
       }
 
-      const votes = await storage.getStorylineVotesByEvent(eventId);
-      const counts: Record<string, number> = { A: 0, B: 0, C: 0, D: 0 };
-      for (const v of votes) counts[v.choice] = (counts[v.choice] || 0) + 1;
-
-      res.json({ success: true, voteCounts: counts, myVote: choice });
+      const vote = await storage.createStorylineVote({ eventId, teamId, choice });
+      res.json(vote);
     } catch (err) {
       console.error("[storylines] VOTE error:", err);
       res.status(500).json({ message: "Failed to cast vote" });
     }
   });
 
-  // POST /api/leagues/:id/storylines/:storylineId/generate-image — async AI image generation
+  // POST /api/leagues/:id/storylines/:storylineId/generate-image
   app.post("/api/leagues/:id/storylines/:storylineId/generate-image", requireAuth, async (req, res) => {
     try {
       const leagueId = String(req.params.id);
-      const storylineId = String(req.params.storylineId);
-      const sl = await storage.getStorylineRecruit(storylineId);
-      if (!sl) return res.status(404).json({ message: "Storyline not found" });
-      if (sl.leagueId !== leagueId) return res.status(403).json({ message: "Storyline does not belong to this league" });
-      // League membership guard: only members may trigger AI image generation (cost control)
       if (!await assertLeagueMember(leagueId, req.session.userId, res)) return;
-      // Note: cached image can be force-refreshed by calling this endpoint again; no short-circuit on imageUrl
 
-      // Use Replit OpenAI integration (AI_INTEGRATIONS env vars) — no user API key needed
-      const imageUrl = await generateStorylineImage(storylineId, sl.imagePrompt ?? null);
-      if (imageUrl) {
-        return res.json({ imageUrl, cached: false });
-      }
-      // Fallback: UI already handles null imageUrl with a silhouette placeholder icon
-      res.json({ imageUrl: null, cached: false, fallback: true });
+      const sl = await storage.getStorylineRecruit(String(req.params.storylineId));
+      if (!sl || sl.leagueId !== leagueId) return res.status(404).json({ message: "Storyline not found" });
+
+      // Fire async — don't block the response
+      generateStorylineImage(sl.id, sl.imagePrompt ?? null, sl.currentArcStage).catch(err =>
+        console.warn("[storylines] background image gen failed:", err),
+      );
+
+      res.json({ success: true, message: "Image generation started" });
     } catch (err) {
       console.error("[storylines] generate-image error:", err);
       res.status(500).json({ message: "Failed to generate image" });
     }
   });
 
-  // POST /api/leagues/:id/storylines/generate — generate new weekly events (commissioner only, or from advance)
+  // POST /api/leagues/:id/storylines/generate — commissioner-only manual trigger
   app.post("/api/leagues/:id/storylines/generate", requireAuth, async (req, res) => {
     try {
       const leagueId = String(req.params.id);
@@ -331,8 +289,6 @@ export function registerStorylineRoutes(app: Express) {
         return res.status(403).json({ message: "Only the commissioner can manually trigger storyline events" });
       }
 
-      // Idempotency guard: enforce weekly cap of 4 unresolved events per league.
-      // Prevents repeated manual triggers from bypassing the 2–4 throttle.
       const unresolvedEvents = await storage.getUnresolvedStorylineEvents(leagueId);
       if (unresolvedEvents.length >= 4) {
         return res.status(409).json({
@@ -350,24 +306,24 @@ export function registerStorylineRoutes(app: Express) {
   });
 }
 
-// ─── Core Storyline Logic (also called from advance-week) ─────────────────────
+// ─── Core Storyline Logic ──────────────────────────────────────────────────────
 
 export async function initializeStorylineRecruits(leagueId: string, season: number): Promise<number> {
   try {
     const recruits = await storage.getRecruitsByLeague(leagueId);
     if (recruits.length === 0) return 0;
 
-    // Remove any existing storylines for this season (events/votes deleted first for integrity)
     await storage.deleteStorylineRecruitsByLeague(leagueId, season);
 
-    // Count legendaries from recent seasons (up to 4 seasons back) for quota smoothing
     let recentLegendaryCount = 0;
-    try {
-      for (let s = Math.max(1, season - 4); s < season; s++) {
+    for (let s = Math.max(1, season - 4); s < season; s++) {
+      try {
         const prev = await storage.getStorylineRecruitsByLeague(leagueId, s);
         recentLegendaryCount += prev.filter(sl => sl.isLegendary).length;
+      } catch (err) {
+        console.warn(`[storylines] failed to fetch season ${s} legendaries for quota:`, err);
       }
-    } catch {}
+    }
 
     const picks = pickStorylineRecruits(recruits.map(r => ({
       id: r.id,
@@ -397,7 +353,7 @@ export async function initializeStorylineRecruits(leagueId: string, season: numb
       created.push(sl);
     }
 
-    // Link ~15% of storyline pairs (overlapping arcs)
+    // Link ~15% of storyline pairs as overlapping arcs
     const shuffledCreated = [...created].sort(() => Math.random() - 0.5);
     for (let i = 0; i < shuffledCreated.length - 1; i += 2) {
       if (Math.random() < 0.15) {
@@ -406,13 +362,12 @@ export async function initializeStorylineRecruits(leagueId: string, season: numb
       }
     }
 
-    // Generate first event for each storyline recruit
     await generateWeeklyStorylineEvents(leagueId, season, 1);
 
-    // Kick off background image generation for each storyline (fire-and-forget)
-    // Stage 0 = arc beginning — portrait shows recruit at the start of their journey
     for (const sl of created) {
-      generateStorylineImage(sl.id, sl.imagePrompt ?? null, 0).catch(() => {});
+      generateStorylineImage(sl.id, sl.imagePrompt ?? null, 0).catch(err =>
+        console.warn("[storylines] initial image gen failed for", sl.id, err),
+      );
     }
 
     return picks.length;
@@ -431,7 +386,6 @@ export async function generateAndResolveStorylineEvents(
   let generated = 0;
 
   try {
-    // 1. Resolve all unresolved events from previous weeks
     const unresolved = await storage.getUnresolvedStorylineEvents(leagueId);
     for (const event of unresolved) {
       if (event.week >= currentWeek) continue;
@@ -460,60 +414,51 @@ export async function generateAndResolveStorylineEvents(
         resolvedAt: new Date(),
       });
 
-      // Always advance arc stage and post activity feed event, even if OVR delta is 0
       const recruit = await storage.getRecruit(sl.recruitId);
       if (recruit) {
-        // Apply OVR delta (even 0 is fine — just no change)
         if (ovrDelta !== 0) {
           const newOvr = Math.max(100, Math.min(720, (recruit.overall ?? 250) + ovrDelta));
           await storage.updateRecruit(recruit.id, { overall: newOvr });
         }
 
-        // Ability side effects based on arc outcome magnitude
-        // Positive outcome: chance to gain a blue/gold ability from position pool
-        // Negative outcome: chance to gain a red (negative) ability
         try {
           const allPositionAbilities = getAbilitiesForPosition(recruit.position ?? "P");
           const currentAbilities: string[] = (recruit.abilities as string[]) ?? [];
           const storyLocked: string[] = (recruit.storyLockedAbilities as string[]) ?? [];
 
           if (ovrDelta >= 15 || (ovrDelta >= 8 && Math.random() < 0.50)) {
-            // Positive arc outcome: grant a new ability (gold if legendary, else blue)
             const tier = sl.isLegendary && Math.random() < 0.30 ? "gold" : "blue";
             const pool = allPositionAbilities
               .filter(a => a.tier === tier && !currentAbilities.includes(a.name))
               .sort(() => Math.random() - 0.5);
             if (pool.length > 0 && currentAbilities.length < 7) {
               const gained = pool[0].name;
-              const newAbilities = [...currentAbilities, gained];
-              await storage.updateRecruit(recruit.id, { abilities: newAbilities });
+              await storage.updateRecruit(recruit.id, { abilities: [...currentAbilities, gained] });
               if (!storyLocked.includes(gained)) {
                 await storage.updateRecruit(recruit.id, { storyLockedAbilities: [...storyLocked, gained] });
               }
             }
           } else if (ovrDelta <= -15 || (ovrDelta <= -8 && Math.random() < 0.50)) {
-            // Negative arc outcome: remove a blue/gold ability if one exists, then add a red one
-            const removableAbilities = allPositionAbilities
+            const removable = allPositionAbilities
               .filter(a => (a.tier === "blue" || a.tier === "gold") && currentAbilities.includes(a.name) && storyLocked.includes(a.name))
               .sort(() => Math.random() - 0.5);
 
-            let updatedAbilities = [...currentAbilities];
-            if (removableAbilities.length > 0) {
-              // Remove a story-granted positive ability
-              const toRemove = removableAbilities[0].name;
-              updatedAbilities = updatedAbilities.filter(a => a !== toRemove);
-              const newStoryLocked = storyLocked.filter(a => a !== toRemove);
-              await storage.updateRecruit(recruit.id, { abilities: updatedAbilities, storyLockedAbilities: newStoryLocked });
+            let updated = [...currentAbilities];
+            if (removable.length > 0) {
+              const toRemove = removable[0].name;
+              updated = updated.filter(a => a !== toRemove);
+              await storage.updateRecruit(recruit.id, {
+                abilities: updated,
+                storyLockedAbilities: storyLocked.filter(a => a !== toRemove),
+              });
             }
 
-            // Also add a red (negative) ability if space allows (cap at 7 total)
             const redPool = allPositionAbilities
-              .filter(a => a.tier === "red" && !updatedAbilities.includes(a.name))
+              .filter(a => a.tier === "red" && !updated.includes(a.name))
               .sort(() => Math.random() - 0.5);
-            if (redPool.length > 0 && updatedAbilities.length < 7) {
+            if (redPool.length > 0 && updated.length < 7) {
               const gained = redPool[0].name;
-              const newAbilities = [...updatedAbilities, gained];
-              await storage.updateRecruit(recruit.id, { abilities: newAbilities });
+              await storage.updateRecruit(recruit.id, { abilities: [...updated, gained] });
               const latestLocked = (await storage.getRecruit(recruit.id))?.storyLockedAbilities as string[] ?? storyLocked;
               if (!latestLocked.includes(gained)) {
                 await storage.updateRecruit(recruit.id, { storyLockedAbilities: [...latestLocked, gained] });
@@ -521,10 +466,9 @@ export async function generateAndResolveStorylineEvents(
             }
           }
         } catch (abilityErr) {
-          console.warn("[storylines] ability side effect error (non-critical):", abilityErr);
+          console.warn("[storylines] ability side effect error:", abilityErr);
         }
 
-        // Archetype transition: apply evolving archetype rules at arcStage >= 2
         const newCumulativeDelta = (sl.resolvedOvrDelta ?? 0) + ovrDelta;
         const newArcStage = sl.currentArcStage + 1;
         const transitionedArchetype = maybeTransitionArchetype(
@@ -533,19 +477,17 @@ export async function generateAndResolveStorylineEvents(
           newArcStage,
           sl.isLegendary,
         );
-        const archetypeChanged = transitionedArchetype !== sl.archetype;
 
         await storage.updateStorylineRecruit(sl.id, {
           resolvedOvrDelta: newCumulativeDelta,
           currentArcStage: newArcStage,
-          ...(archetypeChanged ? { archetype: transitionedArchetype } : {}),
+          ...(transitionedArchetype !== sl.archetype ? { archetype: transitionedArchetype } : {}),
         });
 
-        // Auto-generate/refresh image on EVERY arc stage change (fire-and-forget)
-        // Portrait evolves with the recruit's story — stage passed for scenario-specific prompt
-        generateStorylineImage(sl.id, sl.imagePrompt ?? null, sl.currentArcStage + 1).catch(() => {});
+        generateStorylineImage(sl.id, sl.imagePrompt ?? null, sl.currentArcStage + 1).catch(err =>
+          console.warn("[storylines] arc stage image gen failed:", err),
+        );
 
-        // Always post STORYLINE league event (activity feed)
         const ovrStr = ovrDelta > 0 ? `+${ovrDelta}` : ovrDelta === 0 ? "±0" : `${ovrDelta}`;
         await storage.createLeagueEvent({
           leagueId,
@@ -555,30 +497,22 @@ export async function generateAndResolveStorylineEvents(
           week: currentWeek,
         });
 
-        // Also post to dynasty news (Sully Pump as recruiting analyst journalist)
-        try {
-          await storage.createDynastyNews({
-            leagueId,
-            title: `Storyline Update: ${recruit.firstName} ${recruit.lastName}`,
-            content: `Week ${currentWeek} arc resolution — Choice ${winningChoice} carried the vote.\n\n"${outcomeText}"\n\nOVR impact: ${ovrStr}`,
-            category: "recruiting",
-            journalist: "sully",
-            authorName: "Sully Pump",
-            season,
-            week: currentWeek,
-          });
-        } catch {
-          // Dynasty news creation is non-critical
-        }
+        storage.createDynastyNews({
+          leagueId,
+          title: `Storyline Update: ${recruit.firstName} ${recruit.lastName}`,
+          content: `Week ${currentWeek} arc resolution — Choice ${winningChoice} carried the vote.\n\n"${outcomeText}"\n\nOVR impact: ${ovrStr}`,
+          category: "recruiting",
+          journalist: "sully",
+          authorName: "Sully Pump",
+          season,
+          week: currentWeek,
+        }).catch(err => console.warn("[storylines] dynasty news creation failed:", err));
       }
 
       resolved++;
     }
 
-    // 2. Generate 2–4 new events for this week (throttled)
     generated = await generateWeeklyStorylineEvents(leagueId, season, currentWeek);
-
-    // 3. Simulate CPU team votes on newly generated events
     await simulateCpuVotes(leagueId);
   } catch (err) {
     console.error("[storylines] generateAndResolve error:", err);
@@ -587,54 +521,45 @@ export async function generateAndResolveStorylineEvents(
   return { resolved, generated };
 }
 
-// Throttle to 2–4 active events per week, rotating through storyline recruits
 async function generateWeeklyStorylineEvents(leagueId: string, season: number, week: number): Promise<number> {
   let count = 0;
   try {
     const storylines = await storage.getStorylineRecruitsByLeague(leagueId, season);
 
-    // Only generate for recruits without an active (unresolved) event
     const eligible = await Promise.all(
       storylines.map(async (sl) => {
         const events = await storage.getStorylineEventsByRecruit(sl.id);
-        const hasActive = events.some(e => !e.resolvedChoice);
-        return hasActive ? null : sl;
+        return events.some(e => !e.resolvedChoice) ? null : sl;
       })
     );
     const ready = eligible.filter((sl): sl is NonNullable<typeof sl> => sl !== null);
-
     if (ready.length === 0) return 0;
 
-    // Hard cap: count existing unresolved events across the whole league to enforce the 4-event ceiling.
-    // This prevents multiple triggers in the same week from stacking beyond the 2–4 intended throttle.
+    // Enforce 4-event weekly ceiling across all triggers
     const currentUnresolved = await storage.getUnresolvedStorylineEvents(leagueId);
     const remainingSlots = Math.max(0, 4 - currentUnresolved.length);
     if (remainingSlots === 0) return 0;
 
-    // Throttle: pick 2–4 recruits to generate events for this week (capped by remaining slots)
-    // Non-legendary pool is shuffled each call so all 10 recruits rotate fairly over time;
-    // legendary recruits are still prioritized but non-legendary order is random each week.
-    const maxEvents = Math.min(ready.length, remainingSlots, 2 + Math.floor(Math.random() * 3)); // 2–4, never exceeding cap
-    const legendaryReady = ready.filter(sl => sl.isLegendary);
-    const nonLegendaryReady = ready.filter(sl => !sl.isLegendary).sort(() => Math.random() - 0.5);
-    const prioritized = [...legendaryReady, ...nonLegendaryReady].slice(0, maxEvents);
+    // Legendary-first, non-legendary shuffled so all 10 recruits rotate fairly
+    const maxEvents = Math.min(ready.length, remainingSlots, 2 + Math.floor(Math.random() * 3));
+    const prioritized = [
+      ...ready.filter(sl => sl.isLegendary),
+      ...ready.filter(sl => !sl.isLegendary).sort(() => Math.random() - 0.5),
+    ].slice(0, maxEvents);
 
     for (const sl of prioritized) {
       const recruit = await storage.getRecruit(sl.recruitId);
       if (!recruit) continue;
 
       const recruitName = `${recruit.firstName} ${recruit.lastName}`;
+      let linkedRecruitName: string | undefined;
 
-      // Resolve linked (overlapping) recruit name for narrative injection
-      let linkedRecruitName: string | null = null;
       if (sl.overlappingRecruitId) {
-        try {
-          const linkedSl = await storage.getStorylineRecruit(sl.overlappingRecruitId);
-          if (linkedSl) {
-            const linkedR = await storage.getRecruit(linkedSl.recruitId);
-            if (linkedR) linkedRecruitName = `${linkedR.firstName} ${linkedR.lastName}`;
-          }
-        } catch {}
+        const linkedSl = await storage.getStorylineRecruit(sl.overlappingRecruitId).catch(() => null);
+        if (linkedSl) {
+          const linkedR = await storage.getRecruit(linkedSl.recruitId).catch(() => null);
+          if (linkedR) linkedRecruitName = `${linkedR.firstName} ${linkedR.lastName}`;
+        }
       }
 
       const eventData = generateStorylineEvent(
@@ -643,10 +568,9 @@ async function generateWeeklyStorylineEvents(leagueId: string, season: number, w
         sl.currentArcStage,
         sl.isLegendary,
         recruitName,
-        linkedRecruitName ?? undefined,
+        linkedRecruitName,
       );
 
-      // Persist archetype snapshot at event creation time so timeline can render transitions
       await storage.createStorylineEvent({ ...eventData, archetypeAtEvent: sl.archetype });
       count++;
     }
@@ -656,7 +580,6 @@ async function generateWeeklyStorylineEvents(leagueId: string, season: number, w
   return count;
 }
 
-// Compute a positivity score for a choice's weights — used for CPU weighted voting
 function choicePositivityScore(weights: ChoiceWeights): number {
   return (
     (weights.minor_pos ?? 0) * 1 +
@@ -685,7 +608,6 @@ function weightedRandomChoice(scores: Record<string, number>): string {
   return entries[entries.length - 1][0];
 }
 
-// Simulate CPU team votes on all unresolved events (weighted by choice positivity)
 async function simulateCpuVotes(leagueId: string): Promise<void> {
   try {
     const teams = await storage.getTeamsByLeague(leagueId);
@@ -695,7 +617,6 @@ async function simulateCpuVotes(leagueId: string): Promise<void> {
     const unresolved = await storage.getUnresolvedStorylineEvents(leagueId);
 
     for (const event of unresolved) {
-      // Build positivity scores for each available choice
       const scores: Record<string, number> = {
         A: Math.max(0.1, choicePositivityScore(event.choiceAWeights as ChoiceWeights)),
         B: Math.max(0.1, choicePositivityScore(event.choiceBWeights as ChoiceWeights)),
@@ -708,13 +629,8 @@ async function simulateCpuVotes(leagueId: string): Promise<void> {
       for (const team of cpuTeams) {
         const existing = await storage.getStorylineVoteByTeam(event.id, team.id);
         if (existing) continue;
-
-        // 70% chance a CPU team votes on any given event
         if (Math.random() > 0.70) continue;
-
-        // CPU votes weighted by choice positivity (safer choices preferred)
-        const choice = weightedRandomChoice(scores);
-        await storage.createStorylineVote({ eventId: event.id, teamId: team.id, choice });
+        await storage.createStorylineVote({ eventId: event.id, teamId: team.id, choice: weightedRandomChoice(scores) });
       }
     }
   } catch (err) {
