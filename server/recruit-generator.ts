@@ -431,16 +431,20 @@ export function generateRecruitClass(
       stamina = 15 + Math.floor(Math.random() * 25);
       stuff = 15 + Math.floor(Math.random() * 25);
     } else {
-      hitForAvg = genAttr(targetAttrAvg);
-      power = genAttr(targetAttrAvg);
-      speed = genAttr(targetAttrAvg);
+      // Hitters get a +6 boost to core hitting attrs; pitchers get a -3 reduction
+      // to velocity/stuff to match the balance applied to real roster data.
+      const hitBoost = isPitcher ? 0 : 6;
+      const pitchPenalty = isPitcher ? 3 : 0;
+      hitForAvg = genAttr(targetAttrAvg + hitBoost);
+      power = genAttr(targetAttrAvg + hitBoost);
+      speed = genAttr(targetAttrAvg + hitBoost);
       arm = genAttr(targetAttrAvg);
       fielding = genAttr(targetAttrAvg);
       errorResistance = genAttr(targetAttrAvg);
-      velocity = genAttr(targetAttrAvg);
+      velocity = genAttr(targetAttrAvg - pitchPenalty);
       control = genAttr(targetAttrAvg);
       stamina = genAttr(targetAttrAvg);
-      stuff = genAttr(targetAttrAvg);
+      stuff = genAttr(targetAttrAvg - pitchPenalty);
     }
 
     if (themeBoost.attr === "velocity") velocity = Math.min(99, velocity + themeBoost.boost);
