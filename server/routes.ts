@@ -5550,6 +5550,7 @@ export async function registerRoutes(
               teamId: winner.id,
               teamName: winner.name,
               teamAbbreviation: winner.abbreviation,
+              teamPrimaryColor: winner.primaryColor ?? null,
               eventType: "GAME_RESULT",
               description: `${winner.abbreviation} def. ${loser.abbreviation} ${winScore}-${lossScore}${game.isConference ? " (Conf)" : ""}`,
               season: league.currentSeason,
@@ -5572,6 +5573,26 @@ export async function registerRoutes(
             await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, isComplete: true, boxScore: result.boxScore });
             await updateStandingsForGame(leagueId, league.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore);
             try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, league.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, league.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
+            try {
+              const homeWon = result.homeScore > result.awayScore;
+              const confWinner = leagueTeamsForSim.find(t => t.id === (homeWon ? game.homeTeamId : game.awayTeamId));
+              const confLoser = leagueTeamsForSim.find(t => t.id === (homeWon ? game.awayTeamId : game.homeTeamId));
+              if (confWinner && confLoser) {
+                const winScore = homeWon ? result.homeScore : result.awayScore;
+                const lossScore = homeWon ? result.awayScore : result.homeScore;
+                await storage.createLeagueEvent({
+                  leagueId,
+                  teamId: confWinner.id,
+                  teamName: confWinner.name,
+                  teamAbbreviation: confWinner.abbreviation,
+                  teamPrimaryColor: confWinner.primaryColor ?? null,
+                  eventType: "GAME_RESULT",
+                  description: `${confWinner.abbreviation} def. ${confLoser.abbreviation} ${winScore}-${lossScore} (Conf Champ)`,
+                  season: league.currentSeason,
+                  week: currentWeek,
+                });
+              }
+            } catch (e) { console.error("Conf champ feed event error:", e); }
           }
 
           try {
@@ -5589,6 +5610,7 @@ export async function registerRoutes(
                   teamId: champT.id,
                   teamName: champT.name,
                   teamAbbreviation: champT.abbreviation,
+                  teamPrimaryColor: champT.primaryColor ?? null,
                   eventType: "AWARD",
                   description: `${champT.name} wins the Conference Championship! Season ${league.currentSeason}.`,
                   season: league.currentSeason,
@@ -7210,6 +7232,7 @@ export async function registerRoutes(
   async function advanceSuperRegionals(leagueId: string, season: number): Promise<{ done: boolean; champion1?: string; champion2?: string }> {
     const allGames = await storage.getGamesByLeague(leagueId);
     const srGames = allGames.filter(g => g.phase === "super_regionals" && g.season === season);
+    const srTeams = await storage.getTeamsByLeague(leagueId);
     
     const incompleteGames = srGames.filter(g => !g.isComplete);
     
@@ -7234,6 +7257,26 @@ export async function registerRoutes(
           boxScore: result.boxScore,
         });
         try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, season, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, season, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
+        try {
+          const srHomeWon = result.homeScore > result.awayScore;
+          const srWinnerT = srTeams.find(t => t.id === (srHomeWon ? game.homeTeamId : game.awayTeamId));
+          const srLoserT = srTeams.find(t => t.id === (srHomeWon ? game.awayTeamId : game.homeTeamId));
+          if (srWinnerT && srLoserT) {
+            const srWinScore = srHomeWon ? result.homeScore : result.awayScore;
+            const srLossScore = srHomeWon ? result.awayScore : result.homeScore;
+            await storage.createLeagueEvent({
+              leagueId,
+              teamId: srWinnerT.id,
+              teamName: srWinnerT.name,
+              teamAbbreviation: srWinnerT.abbreviation,
+              teamPrimaryColor: srWinnerT.primaryColor ?? null,
+              eventType: "GAME_RESULT",
+              description: `${srWinnerT.abbreviation} def. ${srLoserT.abbreviation} ${srWinScore}-${srLossScore} (Super Regionals)`,
+              season,
+              week: 0,
+            });
+          }
+        } catch (e) { console.error("Super Regionals feed event error:", e); }
       }
     }
     
@@ -7396,6 +7439,7 @@ export async function registerRoutes(
   async function advanceCWS(leagueId: string, season: number): Promise<{ done: boolean; champion?: string; runnerUp?: string }> {
     const allGames = await storage.getGamesByLeague(leagueId);
     const cwsGames = allGames.filter(g => g.phase === "cws" && g.season === season);
+    const cwsTeams = await storage.getTeamsByLeague(leagueId);
     
     const incompleteGames = cwsGames.filter(g => !g.isComplete);
     const cwsRotation = ["friday", "saturday", "sunday"];
@@ -7410,6 +7454,26 @@ export async function registerRoutes(
         boxScore: result.boxScore,
       });
       try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, season, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, season, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
+      try {
+        const cwsHomeWon = result.homeScore > result.awayScore;
+        const cwsWinnerT = cwsTeams.find(t => t.id === (cwsHomeWon ? game.homeTeamId : game.awayTeamId));
+        const cwsLoserT = cwsTeams.find(t => t.id === (cwsHomeWon ? game.awayTeamId : game.homeTeamId));
+        if (cwsWinnerT && cwsLoserT) {
+          const cwsWinScore = cwsHomeWon ? result.homeScore : result.awayScore;
+          const cwsLossScore = cwsHomeWon ? result.awayScore : result.homeScore;
+          await storage.createLeagueEvent({
+            leagueId,
+            teamId: cwsWinnerT.id,
+            teamName: cwsWinnerT.name,
+            teamAbbreviation: cwsWinnerT.abbreviation,
+            teamPrimaryColor: cwsWinnerT.primaryColor ?? null,
+            eventType: "GAME_RESULT",
+            description: `${cwsWinnerT.abbreviation} def. ${cwsLoserT.abbreviation} ${cwsWinScore}-${cwsLossScore} (CWS)`,
+            season,
+            week: 0,
+          });
+        }
+      } catch (e) { console.error("CWS feed event error:", e); }
     }
     
     const updatedGames = await storage.getGamesByLeague(leagueId);

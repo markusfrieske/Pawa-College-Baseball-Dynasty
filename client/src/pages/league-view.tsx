@@ -880,7 +880,7 @@ function ActivityFeed({ leagueId }: { leagueId: string }) {
                   <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                     <span className={`text-[9px] font-pixel px-1 py-0.5 rounded border ${cfg.color}`}>{cfg.label}</span>
                     {event.teamAbbreviation && (
-                      <TeamBadge abbreviation={event.teamAbbreviation} primaryColor="#2d4a2d" size="sm" className="!w-5 !h-5 !text-[7px]" />
+                      <TeamBadge abbreviation={event.teamAbbreviation} primaryColor={event.teamPrimaryColor ?? "#2d4a2d"} size="sm" className="!w-5 !h-5 !text-[7px]" />
                     )}
                     {event.teamName && (
                       <span className="text-[10px] text-muted-foreground font-medium truncate max-w-[120px]">{event.teamName}</span>

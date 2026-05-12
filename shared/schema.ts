@@ -1311,6 +1311,7 @@ export const leagueEvents = pgTable("league_events", {
   teamId: varchar("team_id").references(() => teams.id),
   teamName: text("team_name"),
   teamAbbreviation: text("team_abbreviation"),
+  teamPrimaryColor: text("team_primary_color"),
   eventType: text("event_type").notNull(),
   description: text("description").notNull(),
   season: integer("season").notNull().default(1),
