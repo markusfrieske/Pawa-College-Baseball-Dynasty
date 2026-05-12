@@ -105,19 +105,21 @@ function OvrDeltaBadge({ delta }: { delta: number }) {
   return <span className="text-red-400 text-xs font-bold flex items-center gap-1"><TrendingDown className="w-3 h-3" /> {delta} OVR</span>;
 }
 
-function VoteBar({ counts, total, myVote }: { counts: Record<string, number>; total: number; myVote: string | null }) {
+function VoteBar({ counts, total, myVote, resolvedChoice }: { counts: Record<string, number>; total: number; myVote: string | null; resolvedChoice?: string | null }) {
   return (
     <div className="space-y-1.5">
       {CHOICE_LABELS.map(c => {
         const count = counts[c] || 0;
         const pct = total > 0 ? Math.round((count / total) * 100) : 0;
-        const isWinning = total > 0 && count === Math.max(...CHOICE_LABELS.map(x => counts[x] || 0));
+        const isWinner = resolvedChoice
+          ? c === resolvedChoice
+          : (total > 0 && count === Math.max(...CHOICE_LABELS.map(x => counts[x] || 0)));
         return (
           <div key={c} className="flex items-center gap-2">
-            <span className={`w-4 text-[9px] font-pixel font-bold ${myVote === c ? "text-gold" : "text-muted-foreground"}`}>{c}</span>
+            <span className={`w-4 text-[9px] font-pixel font-bold ${(myVote === c || c === resolvedChoice) ? "text-gold" : "text-muted-foreground"}`}>{c}</span>
             <div className="flex-1 h-1.5 bg-muted/40 rounded-full overflow-hidden">
               <div
-                className={`h-full rounded-full transition-all ${isWinning && total > 0 ? "bg-gold" : "bg-muted-foreground/40"}`}
+                className={`h-full rounded-full transition-all ${isWinner && total > 0 ? "bg-gold" : "bg-muted-foreground/40"}`}
                 style={{ width: `${pct}%` }}
               />
             </div>
@@ -351,11 +353,30 @@ function StorylineCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: strin
               </div>
               <p className="text-xs leading-relaxed text-foreground/90">{event.eventText}</p>
 
-              {isResolved && event.resolvedOutcomeText && (
-                <div className="mt-2 pt-2 border-t border-border/30">
-                  <p className="text-xs text-muted-foreground italic">"{event.resolvedOutcomeText}"</p>
-                  {event.ovrDelta !== null && event.ovrDelta !== 0 && (
-                    <OvrDeltaBadge delta={event.ovrDelta} />
+              {isResolved && (
+                <div className="mt-2 pt-2 border-t border-border/30 space-y-2">
+                  {(() => {
+                    const wc = event.resolvedChoice;
+                    const wcText = wc === "A" ? event.choiceA : wc === "B" ? event.choiceB : wc === "C" ? event.choiceC : (event.choiceD || "");
+                    return wc && wcText ? (
+                      <div className={`flex items-start gap-2 px-3 py-2 rounded-md border ${CHOICE_ACTIVE[wc] ?? ""}`} data-testid={`box-winning-choice-${event.id}`}>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[9px] font-pixel text-muted-foreground/70 mb-0.5">WINNING CHOICE</p>
+                          <p className="text-xs leading-snug">
+                            <span className="font-pixel text-[9px] mr-1.5">{wc}.</span>
+                            {wcText}
+                          </p>
+                        </div>
+                        {event.ovrDelta !== null && event.ovrDelta !== 0 && (
+                          <div className="flex-shrink-0 mt-0.5">
+                            <OvrDeltaBadge delta={event.ovrDelta} />
+                          </div>
+                        )}
+                      </div>
+                    ) : null;
+                  })()}
+                  {event.resolvedOutcomeText && (
+                    <p className="text-xs text-muted-foreground italic">"{event.resolvedOutcomeText}"</p>
                   )}
                 </div>
               )}
@@ -439,7 +460,13 @@ function StorylineCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: strin
             )}
 
             {isResolved && totalVotes > 0 && (
-              <VoteBar counts={sl.voteCounts} total={totalVotes} myVote={sl.myVote} />
+              <div className="space-y-1.5" data-testid={`section-final-votes-${sl.id}`}>
+                <div className="flex items-center gap-1 text-[9px] text-muted-foreground">
+                  <BarChart2 className="w-3 h-3" />
+                  Final vote distribution
+                </div>
+                <VoteBar counts={sl.voteCounts} total={totalVotes} myVote={sl.myVote} resolvedChoice={event?.resolvedChoice} />
+              </div>
             )}
           </div>
         )}
