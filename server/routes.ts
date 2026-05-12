@@ -4406,9 +4406,13 @@ export async function registerRoutes(
       // Determine which team submitted the report (reporter's team)
       const reporterCoach = coaches.find(c => c.userId === report.reporterUserId);
       const reporterTeamId = reporterCoach?.teamId ?? report.reporterTeamId;
-      // The opposing team is whichever of home/away is NOT the reporter's team
-      const opposingTeamId = reporterTeamId === game.homeTeamId ? game.awayTeamId : game.homeTeamId;
-      const isOpposingCoach = userTeamId != null && userTeamId === opposingTeamId;
+      // When commissioner submitted (reporterTeamId null), any involved coach may confirm.
+      // Otherwise only the opposing team's coach may confirm.
+      const isInvolvedCoach = userTeamId != null && (userTeamId === game.homeTeamId || userTeamId === game.awayTeamId);
+      const opposingTeamId = reporterTeamId != null
+        ? (reporterTeamId === game.homeTeamId ? game.awayTeamId : game.homeTeamId)
+        : null;
+      const isOpposingCoach = reporterTeamId == null ? isInvolvedCoach : (userTeamId != null && userTeamId === opposingTeamId);
 
       if (!isCommissioner && !isOpposingCoach) {
         return res.status(403).json({ message: "Only the opposing team's coach or the commissioner can confirm this report" });
@@ -4450,8 +4454,11 @@ export async function registerRoutes(
       const userTeamId = coach?.teamId ?? null;
       const reporterCoach = coaches.find(c => c.userId === report.reporterUserId);
       const reporterTeamId = reporterCoach?.teamId ?? report.reporterTeamId;
-      const opposingTeamId = reporterTeamId === game.homeTeamId ? game.awayTeamId : game.homeTeamId;
-      const isOpposingCoach = userTeamId != null && userTeamId === opposingTeamId;
+      const isInvolvedCoach = userTeamId != null && (userTeamId === game.homeTeamId || userTeamId === game.awayTeamId);
+      const opposingTeamId = reporterTeamId != null
+        ? (reporterTeamId === game.homeTeamId ? game.awayTeamId : game.homeTeamId)
+        : null;
+      const isOpposingCoach = reporterTeamId == null ? isInvolvedCoach : (userTeamId != null && userTeamId === opposingTeamId);
 
       if (!isCommissioner && !isOpposingCoach) {
         return res.status(403).json({ message: "Only the opposing team's coach or the commissioner can dispute this report" });
