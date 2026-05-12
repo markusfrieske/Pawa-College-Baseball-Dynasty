@@ -112,13 +112,14 @@ async function generateEventSceneImage(
     return b64 ? `data:image/png;base64,${b64}` : null;
   }
 
-  const fallbackPrompt = "Retro pixel art college baseball scene, 16-bit SNES style, dark forest green background, gold accent lighting, dramatic atmosphere, no text";
+  const styledPrompt = `Retro 16-bit pixel art, SNES-era style, vivid saturated colors, dynamic composition — ${scenePrompt}`;
+  const fallbackPrompt = "Retro 16-bit pixel art, SNES-era style, vivid saturated colors, dynamic composition — college baseball recruitment drama, bold pixel characters, bright stadium lights, no text";
   const delays = [1000, 2000, 4000];
   let dataUrl: string | null = null;
 
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
-      const prompt = attempt < 2 ? scenePrompt : fallbackPrompt;
+      const prompt = attempt < 2 ? styledPrompt : fallbackPrompt;
       dataUrl = await attemptGenerate(prompt);
       if (dataUrl) break;
       if (attempt < 2) await new Promise(r => setTimeout(r, delays[attempt]));

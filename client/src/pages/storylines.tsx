@@ -11,7 +11,7 @@ import { apiRequest } from "@/lib/queryClient";
 import {
   ArrowLeft, BookOpen, Sparkles, TrendingUp, TrendingDown, Minus,
   ChevronRight, ChevronDown, Users, Trophy, Flame, Skull, Crown, Zap,
-  Vote, Clock, CheckCircle, BarChart2, Link2, Image, Calendar,
+  Vote, Clock, CheckCircle, BarChart2, Link2, Calendar,
   Target, History, GitBranch, Activity,
 } from "lucide-react";
 
@@ -214,14 +214,6 @@ function StorylineCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: strin
     },
   });
 
-  const generateImageMutation = useMutation({
-    mutationFn: () =>
-      apiRequest("POST", `/api/leagues/${leagueId}/storylines/${sl.id}/generate-image`, {}),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "storylines"] });
-    },
-  });
-
   const hasChoiceD = !!event?.choiceD;
   const availableChoices = hasChoiceD ? CHOICE_LABELS : (["A", "B", "C"] as const);
 
@@ -249,39 +241,21 @@ function StorylineCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: strin
       <div className="p-4">
         <div className="flex items-start gap-3">
           <div className="relative flex-shrink-0">
-            {sl.imageUrl ? (
-              <img
-                src={sl.imageUrl}
-                alt={r ? `${r.firstName} ${r.lastName}` : "Recruit"}
-                className="w-14 h-14 rounded-lg border border-border/50 object-cover"
-                style={{ imageRendering: "pixelated" }}
+            <div className={`w-14 h-14 rounded-lg border overflow-hidden ${sl.isLegendary ? "border-gold/50" : "border-border/50"}`}>
+              <PlayerPortrait
+                skinTone={r?.skinTone ?? "light"}
+                hairColor={r?.hairColor ?? "brown"}
+                hairStyle={r?.hairStyle ?? "short"}
+                facialHair={r?.facialHair ?? "none"}
+                eyeStyle={r?.eyeStyle || undefined}
+                eyebrowStyle={r?.eyebrowStyle || undefined}
+                mouthStyle={r?.mouthStyle || undefined}
+                eyeBlack={r?.eyeBlack ?? undefined}
+                playerId={r?.id}
+                isRecruit={true}
+                className="w-full h-full"
               />
-            ) : (
-              <div
-                className={`w-14 h-14 rounded-lg border overflow-hidden group cursor-pointer relative ${sl.isLegendary ? "border-gold/50" : "border-border/50"}`}
-                onClick={() => generateImageMutation.mutate()}
-                title="Click to generate AI portrait"
-              >
-                <PlayerPortrait
-                  skinTone={r?.skinTone ?? "light"}
-                  hairColor={r?.hairColor ?? "brown"}
-                  hairStyle={r?.hairStyle ?? "short"}
-                  facialHair={r?.facialHair ?? "none"}
-                  eyeStyle={r?.eyeStyle || undefined}
-                  eyebrowStyle={r?.eyebrowStyle || undefined}
-                  mouthStyle={r?.mouthStyle || undefined}
-                  eyeBlack={r?.eyeBlack ?? undefined}
-                  playerId={r?.id}
-                  isRecruit={true}
-                  className="w-full h-full"
-                />
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/50">
-                  {generateImageMutation.isPending
-                    ? <Sparkles className="w-4 h-4 text-gold animate-spin" />
-                    : <Image className="w-4 h-4 text-gold" />}
-                </div>
-              </div>
-            )}
+            </div>
           </div>
 
           <div className="flex-1 min-w-0">
@@ -340,11 +314,12 @@ function StorylineCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: strin
           <div className="mt-4 space-y-3">
             <div className={`rounded-md border overflow-hidden ${isResolved ? "bg-muted/20 border-border/40" : "bg-card/80 border-gold/20"}`}>
               {event.eventImageUrl && (
-                <div className="w-full aspect-[16/5] overflow-hidden">
+                <div className="w-full aspect-[16/7] overflow-hidden border-b border-gold/20">
                   <img
                     src={event.eventImageUrl}
                     alt="Scene"
                     className="w-full h-full object-cover"
+                    style={{ imageRendering: "pixelated" }}
                     loading="lazy"
                   />
                 </div>
@@ -501,33 +476,23 @@ function StorylineCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: strin
             </button>
             {showTimeline && (
               <div className="flex items-start gap-3 mt-2">
-                <div className="flex-shrink-0">
-                  {sl.imageUrl ? (
-                    <img
-                      src={sl.imageUrl}
-                      alt={r ? `${r.firstName} ${r.lastName}` : "Recruit"}
-                      className="w-20 h-20 rounded-lg border border-border/50 object-cover"
-                      style={{ imageRendering: "pixelated" }}
-                      data-testid={`img-portrait-expanded-${sl.id}`}
+                {r && (
+                  <div className={`flex-shrink-0 w-20 h-20 rounded-lg border overflow-hidden ${sl.isLegendary ? "border-gold/50" : "border-border/50"}`} data-testid={`portrait-expanded-${sl.id}`}>
+                    <PlayerPortrait
+                      skinTone={r.skinTone ?? "light"}
+                      hairColor={r.hairColor ?? "brown"}
+                      hairStyle={r.hairStyle ?? "short"}
+                      facialHair={r.facialHair ?? "none"}
+                      eyeStyle={r.eyeStyle || undefined}
+                      eyebrowStyle={r.eyebrowStyle || undefined}
+                      mouthStyle={r.mouthStyle || undefined}
+                      eyeBlack={r.eyeBlack ?? undefined}
+                      playerId={r.id}
+                      isRecruit={true}
+                      className="w-full h-full"
                     />
-                  ) : r ? (
-                    <div className={`w-20 h-20 rounded-lg border overflow-hidden ${sl.isLegendary ? "border-gold/50" : "border-border/50"}`} data-testid={`portrait-expanded-${sl.id}`}>
-                      <PlayerPortrait
-                        skinTone={r.skinTone ?? "light"}
-                        hairColor={r.hairColor ?? "brown"}
-                        hairStyle={r.hairStyle ?? "short"}
-                        facialHair={r.facialHair ?? "none"}
-                        eyeStyle={r.eyeStyle || undefined}
-                        eyebrowStyle={r.eyebrowStyle || undefined}
-                        mouthStyle={r.mouthStyle || undefined}
-                        eyeBlack={r.eyeBlack ?? undefined}
-                        playerId={r.id}
-                        isRecruit={true}
-                        className="w-full h-full"
-                      />
-                    </div>
-                  ) : null}
-                </div>
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
                   <ArcTimeline events={sl.allEvents} />
                 </div>
