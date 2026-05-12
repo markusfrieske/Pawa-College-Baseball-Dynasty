@@ -4445,12 +4445,13 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Only the opposing team's coach or the commissioner can confirm this report" });
       }
 
+      // Finalize first; only update status if finalization succeeds (prevents partial state)
+      await finalizeReportedGame(report, game, leagueId);
+
       await storage.updateGameReport(report.id, {
         status: "confirmed",
         confirmedByUserId: req.session.userId,
       });
-
-      await finalizeReportedGame(report, game, leagueId);
 
       res.json({ message: "Report confirmed and game finalized" });
     } catch (error) {

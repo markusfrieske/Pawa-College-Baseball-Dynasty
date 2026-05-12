@@ -2194,7 +2194,7 @@ interface GameReport {
   awayErrors: number;
   status: string;
   disputeReason: string | null;
-  inningScores: string | null;
+  inningScores: number[][] | string | null;
   createdAt: string;
 }
 
@@ -2257,7 +2257,10 @@ function GameReportsTab({ leagueId }: { leagueId: string }) {
     const parsedInnings: Array<[number, number]> | null = (() => {
       if (!report.inningScores) return null;
       try {
-        const raw = JSON.parse(report.inningScores);
+        // DB JSON column returns a parsed array; legacy text columns return a string
+        const raw = typeof report.inningScores === "string"
+          ? JSON.parse(report.inningScores)
+          : report.inningScores;
         if (Array.isArray(raw) && raw.length > 0 && Array.isArray(raw[0])) return raw as Array<[number, number]>;
         return null;
       } catch { return null; }
