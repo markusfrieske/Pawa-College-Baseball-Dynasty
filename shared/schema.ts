@@ -1309,7 +1309,7 @@ export type StorylineVote = typeof storylineVotes.$inferSelect;
 // Game Reports table (manual reporting for multiplayer leagues)
 export const gameReports = pgTable("game_reports", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  gameId: varchar("game_id").notNull().references(() => games.id),
+  gameId: varchar("game_id").notNull().references(() => games.id).unique(),
   leagueId: varchar("league_id").notNull().references(() => leagues.id),
   reporterUserId: varchar("reporter_user_id").notNull(),
   reporterTeamId: varchar("reporter_team_id").references(() => teams.id),
