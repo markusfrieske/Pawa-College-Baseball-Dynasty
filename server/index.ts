@@ -124,6 +124,12 @@ app.use((req, res, next) => {
   // One-time migration: clear stale storyline scene images generated with the old
   // green-tinted prompt style so the warmup re-generates them with the new vivid palette.
   try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS one_time_migrations (
+        name TEXT PRIMARY KEY,
+        applied_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
     const { rowCount } = await pool.query(`
       INSERT INTO one_time_migrations (name)
       VALUES ('clear_stale_storyline_scene_images_v2')
