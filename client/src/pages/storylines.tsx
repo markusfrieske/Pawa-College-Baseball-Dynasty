@@ -43,8 +43,6 @@ interface StorylineRecruit {
   isLegendary: boolean;
   currentArcStage: number;
   resolvedOvrDelta: number;
-  imageUrl: string | null;
-  imagePrompt: string | null;
   overlappingRecruitId: string | null;
   overlappingRecruitName: string | null;
   recruit: {

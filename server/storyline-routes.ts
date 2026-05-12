@@ -11,71 +11,6 @@ function requireAuth(req: Request, res: Response, next: () => void) {
   next();
 }
 
-// AI image generation via Replit OpenAI integration (gpt-image-1, base64 response stored as data URL).
-// arcStage drives stage-specific prompt phrasing; retries once with a simplified prompt on failure.
-async function generateStorylineImage(
-  storylineId: string,
-  imagePrompt: string | null,
-  arcStage?: number,
-): Promise<string | null> {
-  const baseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
-  const apiKey  = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
-  if (!baseURL || !apiKey) {
-    console.warn("[storylines] OpenAI integration not configured — skipping image generation");
-    return null;
-  }
-
-  const stageDescriptors = [
-    "at the start of their college baseball recruitment journey, uncertain but hopeful",
-    "gaining attention from top programs, building confidence",
-    "at a crossroads in their recruitment, weighing major decisions",
-    "a recruit whose story has unfolded — seasoned by key choices",
-    "a recruit who has fully emerged, defined by the arc of their recruitment",
-  ];
-  const stageDesc = stageDescriptors[Math.min(arcStage ?? 0, stageDescriptors.length - 1)];
-  const basePrompt = imagePrompt
-    || `A pixel-art portrait silhouette of a college baseball player ${stageDesc}, retro 8-bit style, dark forest green background, gold rim lighting, mysterious and dramatic atmosphere, no text`;
-
-  async function attemptGenerate(prompt: string): Promise<string | null> {
-    const res = await fetch(`${baseURL}/images/generations`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
-      body: JSON.stringify({ model: "gpt-image-1", prompt, n: 1, size: "1024x1024" }),
-    });
-    if (!res.ok) {
-      console.warn("[storylines] gpt-image-1 error:", res.status, await res.text());
-      return null;
-    }
-    const json = await res.json() as { data?: Array<{ b64_json?: string }> };
-    const b64 = json.data?.[0]?.b64_json;
-    return b64 ? `data:image/png;base64,${b64}` : null;
-  }
-
-  // 3 attempts with exponential backoff (1s, 2s, 4s), falling back to simplified prompt on attempt 3
-  const fallbackPrompt = "A retro pixel-art silhouette of a college baseball player, dark background, gold lighting, 8-bit style";
-  const delays = [1000, 2000, 4000];
-  let dataUrl: string | null = null;
-
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      const prompt = attempt < 2 ? basePrompt : fallbackPrompt;
-      dataUrl = await attemptGenerate(prompt);
-      if (dataUrl) break;
-      if (attempt < 2) await new Promise(r => setTimeout(r, delays[attempt]));
-    } catch (err) {
-      console.warn(`[storylines] image gen attempt ${attempt + 1} threw:`, err);
-      if (attempt < 2) await new Promise(r => setTimeout(r, delays[attempt]));
-    }
-  }
-
-  if (dataUrl) {
-    await storage.updateStorylineRecruit(storylineId, { imageUrl: dataUrl }).catch(err =>
-      console.warn("[storylines] failed to persist image URL:", err),
-    );
-  }
-  return dataUrl;
-}
-
 // Core image generation helper — builds the styled prompt, calls OpenAI with retries,
 // and optionally stores the result via updateStorylineEventImageByTemplateId (global NULL-only backfill).
 // Pass skipGlobalBackfill=true when the caller will handle persistence itself (e.g. league-scoped forced regen).
@@ -463,27 +398,6 @@ export function registerStorylineRoutes(app: Express) {
     }
   });
 
-  // POST /api/leagues/:id/storylines/:storylineId/generate-image
-  app.post("/api/leagues/:id/storylines/:storylineId/generate-image", requireAuth, async (req, res) => {
-    try {
-      const leagueId = String(req.params.id);
-      if (!await assertLeagueMember(leagueId, req.session.userId, res)) return;
-
-      const sl = await storage.getStorylineRecruit(String(req.params.storylineId));
-      if (!sl || sl.leagueId !== leagueId) return res.status(404).json({ message: "Storyline not found" });
-
-      // Fire async — don't block the response
-      generateStorylineImage(sl.id, sl.imagePrompt ?? null, sl.currentArcStage).catch(err =>
-        console.warn("[storylines] background image gen failed:", err),
-      );
-
-      res.json({ success: true, message: "Image generation started" });
-    } catch (err) {
-      console.error("[storylines] generate-image error:", err);
-      res.status(500).json({ message: "Failed to generate image" });
-    }
-  });
-
   // POST /api/leagues/:id/storylines/events/:eventId/regenerate-image — commissioner-only
   // Bypasses the templateId cache and generates a fresh scene image for the given event.
   app.post("/api/leagues/:id/storylines/events/:eventId/regenerate-image", requireAuth, async (req, res) => {
@@ -612,7 +526,6 @@ export async function initializeStorylineRecruits(leagueId: string, season: numb
         tier: pick.tier,
         hiddenVars: pick.hiddenVars,
         isLegendary: pick.isLegendary,
-        imagePrompt: pick.imagePrompt,
         currentArcStage: 0,
         resolvedOvrDelta: 0,
       });
@@ -629,12 +542,6 @@ export async function initializeStorylineRecruits(leagueId: string, season: numb
     }
 
     await generateWeeklyStorylineEvents(leagueId, season, 1);
-
-    for (const sl of created) {
-      generateStorylineImage(sl.id, sl.imagePrompt ?? null, 0).catch(err =>
-        console.warn("[storylines] initial image gen failed for", sl.id, err),
-      );
-    }
 
     return picks.length;
   } catch (err) {
@@ -755,10 +662,6 @@ export async function generateAndResolveStorylineEvents(
           currentArcStage: newArcStage,
           ...(transitionedArchetype !== sl.archetype ? { archetype: transitionedArchetype } : {}),
         });
-
-        generateStorylineImage(sl.id, sl.imagePrompt ?? null, sl.currentArcStage + 1).catch(err =>
-          console.warn("[storylines] arc stage image gen failed:", err),
-        );
 
         const ovrStr = ovrDelta > 0 ? `+${ovrDelta}` : ovrDelta === 0 ? "±0" : `${ovrDelta}`;
         await storage.createLeagueEvent({

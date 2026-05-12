@@ -121,9 +121,8 @@ app.use((req, res, next) => {
     console.warn("[startup-migration] recruits pitch_ch constraint failed:", e);
   }
 
-  // One-time migration: clear stale storyline scene images generated with the old
-  // green-tinted prompt style so the warmup re-generates them with the new vivid palette.
-  // Tracked in a one_time_migrations table so this runs exactly once per environment.
+  // One-time migration: null out storyline_recruits.image_url and image_prompt — the AI portrait
+  // feature that used those columns was removed; data is stale and no longer read by the frontend.
   try {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS one_time_migrations (
@@ -131,6 +130,24 @@ app.use((req, res, next) => {
         applied_at TIMESTAMPTZ DEFAULT NOW()
       )
     `);
+    const { rowCount: porRowCount } = await pool.query(`
+      INSERT INTO one_time_migrations (name)
+      VALUES ('clear_storyline_recruit_portrait_data_v1')
+      ON CONFLICT (name) DO NOTHING
+    `);
+    if (porRowCount && porRowCount > 0) {
+      const result = await pool.query(
+        "UPDATE storyline_recruits SET image_url = NULL, image_prompt = NULL WHERE image_url IS NOT NULL OR image_prompt IS NOT NULL"
+      );
+      console.log(`[startup-migration] cleared portrait data from ${result.rowCount} storyline_recruits row(s)`);
+    }
+  } catch (e) {
+    console.warn("[startup-migration] clear storyline_recruits portrait data failed:", e);
+  }
+
+  // One-time migration: clear stale storyline scene images generated with the old
+  // green-tinted prompt style so the warmup re-generates them with the new vivid palette.
+  try {
     const { rowCount } = await pool.query(`
       INSERT INTO one_time_migrations (name)
       VALUES ('clear_stale_storyline_scene_images_v2')
