@@ -507,18 +507,33 @@ export async function registerRoutes(
 
       const myInterests = await storage.getRecruitingInterestsByTeam(userCoach.teamId);
 
+      const PITCHER_POS_SET = new Set(["P", "SP", "RP", "CL", "LHP", "RHP"]);
       let totalOverall = 0;
-      let topPlayer: { name: string; position: string; overall: number } | null = null;
+      let hitterTotal = 0, hitterCount = 0;
+      let pitcherTotal = 0, pitcherCount = 0;
+      const starDist: Record<string, number> = { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0 };
+
       for (const p of roster) {
-        totalOverall += (p.overall || 0);
-        if (!topPlayer || (p.overall || 0) > topPlayer.overall) {
-          topPlayer = {
-            name: `${p.firstName} ${p.lastName}`,
-            position: p.position,
-            overall: p.overall || 0,
-          };
+        const ovr = p.overall || 0;
+        totalOverall += ovr;
+        const stars = getStarRatingFromOVR(ovr);
+        starDist[String(stars)] = (starDist[String(stars)] || 0) + 1;
+        if (PITCHER_POS_SET.has(p.position)) {
+          pitcherTotal += ovr; pitcherCount++;
+        } else {
+          hitterTotal += ovr; hitterCount++;
         }
       }
+
+      const top5Players = [...roster]
+        .sort((a, b) => (b.overall || 0) - (a.overall || 0))
+        .slice(0, 5)
+        .map(p => ({
+          name: `${p.firstName} ${p.lastName}`,
+          position: p.position,
+          overall: p.overall || 0,
+          starRating: getStarRatingFromOVR(p.overall || 0),
+        }));
 
       res.json({
         rosterSize: roster.length,
@@ -531,7 +546,10 @@ export async function registerRoutes(
         recruitingSigned: mySignedRecruits.length,
         recruitingInterested: myInterests.length,
         averageOverall: roster.length > 0 ? Math.round(totalOverall / roster.length) : 0,
-        topPlayer,
+        hitterAvg: hitterCount > 0 ? Math.round(hitterTotal / hitterCount) : 0,
+        pitcherAvg: pitcherCount > 0 ? Math.round(pitcherTotal / pitcherCount) : 0,
+        starDist,
+        top5Players,
       });
     } catch (error) {
       console.error("Failed to fetch dashboard overview:", error);
