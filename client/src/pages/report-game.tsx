@@ -363,6 +363,8 @@ export default function ReportGamePage() {
                 awayInnings={awayInnings}
                 homeErrors={homeErrors}
                 awayErrors={awayErrors}
+                homeHits={homeHits}
+                awayHits={awayHits}
                 homeTeam={homeTeam}
                 awayTeam={awayTeam}
                 onChangeInnings={changeInnings}
@@ -469,6 +471,8 @@ interface LinescoreStepProps {
   awayInnings: number[];
   homeErrors: number;
   awayErrors: number;
+  homeHits: number;
+  awayHits: number;
   homeTeam: Team;
   awayTeam: Team;
   onChangeInnings: (n: number) => void;
@@ -478,7 +482,7 @@ interface LinescoreStepProps {
   onChangeAwayErrors: (v: number) => void;
 }
 
-function LinescoreStep({ numInnings, homeInnings, awayInnings, homeErrors, awayErrors, homeTeam, awayTeam, onChangeInnings, onChangeHomeInning, onChangeAwayInning, onChangeHomeErrors, onChangeAwayErrors }: LinescoreStepProps) {
+function LinescoreStep({ numInnings, homeInnings, awayInnings, homeErrors, awayErrors, homeHits, awayHits, homeTeam, awayTeam, onChangeInnings, onChangeHomeInning, onChangeAwayInning, onChangeHomeErrors, onChangeAwayErrors }: LinescoreStepProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3 flex-wrap">
@@ -519,6 +523,7 @@ function LinescoreStep({ numInnings, homeInnings, awayInnings, homeErrors, awayE
                 <th key={i} className="text-center p-1 text-gold/80 w-10">{i + 1}</th>
               ))}
               <th className="text-center p-1 text-gold/80 w-10 border-l border-gold/30">R</th>
+              <th className="text-center p-1 text-gold/80 w-10">H</th>
               <th className="text-center p-1 text-gold/80 w-10">E</th>
             </tr>
           </thead>
@@ -543,6 +548,9 @@ function LinescoreStep({ numInnings, homeInnings, awayInnings, homeErrors, awayE
               ))}
               <td className="p-1 text-center font-bold text-gold border-l border-gold/30">
                 {awayInnings.reduce((a: number, b: number) => a + b, 0)}
+              </td>
+              <td className="p-1 text-center text-muted-foreground text-xs" title="Hits total from batting step">
+                {awayHits > 0 ? awayHits : "—"}
               </td>
               <td className="p-1">
                 <input
@@ -575,6 +583,9 @@ function LinescoreStep({ numInnings, homeInnings, awayInnings, homeErrors, awayE
               ))}
               <td className="p-1 text-center font-bold text-gold border-l border-gold/30">
                 {homeInnings.reduce((a: number, b: number) => a + b, 0)}
+              </td>
+              <td className="p-1 text-center text-muted-foreground text-xs" title="Hits total from batting step">
+                {homeHits > 0 ? homeHits : "—"}
               </td>
               <td className="p-1">
                 <input
@@ -756,7 +767,7 @@ function PitchingStep({ homeTeam, awayTeam, homePlayers, awayPlayers, homePitchi
     onRemove: (i: number) => void;
   }
 
-  function PitcherTable({ team, players: _players, pitching, onUpdate, onAdd, onRemove }: PitcherTableProps) {
+  function PitcherTable({ team, players, pitching, onUpdate, onAdd, onRemove }: PitcherTableProps) {
     return (
       <div className="space-y-2">
         <div className="flex items-center justify-between">
@@ -783,7 +794,24 @@ function PitchingStep({ homeTeam, awayTeam, homePlayers, awayPlayers, homePitchi
             <tbody>
               {pitching.map((p: PitcherEntry, i: number) => (
                 <tr key={p.playerId} className="border-b border-gold/10">
-                  <td className="p-1 text-foreground font-medium">{p.name}</td>
+                  <td className="p-1">
+                    <select
+                      value={p.playerId}
+                      onChange={e => {
+                        const pl = players.find(pl => pl.id === e.target.value);
+                        if (pl) {
+                          onUpdate(i, "playerId", pl.id);
+                          onUpdate(i, "name", `${pl.firstName} ${pl.lastName}`);
+                        }
+                      }}
+                      className="w-36 h-7 text-xs bg-muted/40 border border-border rounded focus:outline-none focus:border-gold text-foreground px-1"
+                      data-testid={`select-pitcher-${i}-player`}
+                    >
+                      {players.filter(pl => pl.position === "P" || pl.id === p.playerId).map(pl => (
+                        <option key={pl.id} value={pl.id}>{pl.firstName} {pl.lastName}</option>
+                      ))}
+                    </select>
+                  </td>
                   <td className="p-0.5">
                     {(() => {
                       const ipValid = /^\d+(\.[012])?$/.test(p.ip);

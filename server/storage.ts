@@ -173,6 +173,8 @@ export interface IStorage {
   // Game reports (manual reporting)
   getGameReport(gameId: string): Promise<GameReport | undefined>;
   getGameReportsByLeague(leagueId: string): Promise<GameReport[]>;
+  getDisputedReports(leagueId: string): Promise<GameReport[]>;
+  getPendingReportsForTeam(leagueId: string, teamId: string): Promise<GameReport[]>;
   createGameReport(data: InsertGameReport): Promise<GameReport>;
   updateGameReport(id: string, data: Partial<GameReport>): Promise<GameReport | undefined>;
 
@@ -1039,6 +1041,16 @@ export class DatabaseStorage implements IStorage {
 
   async getGameReportsByLeague(leagueId: string): Promise<GameReport[]> {
     return db.select().from(gameReports).where(eq(gameReports.leagueId, leagueId)).orderBy(desc(gameReports.createdAt));
+  }
+
+  async getDisputedReports(leagueId: string): Promise<GameReport[]> {
+    const all = await this.getGameReportsByLeague(leagueId);
+    return all.filter(r => r.status === "disputed");
+  }
+
+  async getPendingReportsForTeam(leagueId: string, teamId: string): Promise<GameReport[]> {
+    const all = await this.getGameReportsByLeague(leagueId);
+    return all.filter(r => r.status === "pending" && (r.reporterTeamId === teamId || r.reporterTeamId === null));
   }
 
   async createGameReport(data: InsertGameReport): Promise<GameReport> {
