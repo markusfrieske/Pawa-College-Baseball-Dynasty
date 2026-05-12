@@ -77,11 +77,13 @@ async function generateStorylineImage(
 }
 
 // Core image generation helper — builds the styled prompt, calls OpenAI with retries,
-// and stores the result via updateStorylineEventImageByTemplateId (backfills all matching rows).
+// and optionally stores the result via updateStorylineEventImageByTemplateId (global NULL-only backfill).
+// Pass skipGlobalBackfill=true when the caller will handle persistence itself (e.g. league-scoped forced regen).
 async function generateEventSceneImageCore(
   templateId: string,
   scenePrompt: string,
   logTag: string,
+  skipGlobalBackfill = false,
 ): Promise<string | null> {
   const baseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
   const apiKey  = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
@@ -122,7 +124,7 @@ async function generateEventSceneImageCore(
     }
   }
 
-  if (dataUrl) {
+  if (dataUrl && !skipGlobalBackfill) {
     await storage.updateStorylineEventImageByTemplateId(templateId, dataUrl).catch(err =>
       console.warn(`[storylines] failed to backfill ${logTag} by templateId:`, err),
     );
@@ -148,12 +150,12 @@ async function generateEventSceneImage(
 }
 
 // Generates a fresh scene image unconditionally, bypassing the templateId cache.
-// Used by the commissioner regenerate endpoint to force fresh art.
+// Skips the global backfill so the caller can scope persistence to its own league.
 async function generateEventSceneImageForced(
   templateId: string,
   scenePrompt: string,
 ): Promise<string | null> {
-  return generateEventSceneImageCore(templateId, scenePrompt, "forced scene image regen");
+  return generateEventSceneImageCore(templateId, scenePrompt, "forced scene image regen", true);
 }
 
 // Runs at startup to backfill scene images for any existing events that are missing them.
