@@ -481,7 +481,7 @@ interface LinescoreStepProps {
 function LinescoreStep({ numInnings, homeInnings, awayInnings, homeErrors, awayErrors, homeTeam, awayTeam, onChangeInnings, onChangeHomeInning, onChangeAwayInning, onChangeHomeErrors, onChangeAwayErrors }: LinescoreStepProps) {
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
         <label className="text-sm text-muted-foreground whitespace-nowrap">Innings Played:</label>
         <div className="flex gap-2">
           {[7, 9].map(n => (
@@ -489,6 +489,15 @@ function LinescoreStep({ numInnings, homeInnings, awayInnings, homeErrors, awayE
               {n}
             </RetroButton>
           ))}
+          <RetroButton
+            size="sm"
+            variant="outline"
+            onClick={() => onChangeInnings(numInnings + 1)}
+            data-testid="button-extra-inning"
+            title="Add extra inning"
+          >
+            + Extra
+          </RetroButton>
         </div>
         <RetroInput
           type="number"

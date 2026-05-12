@@ -4274,7 +4274,13 @@ export async function registerRoutes(
 
   app.get("/api/leagues/:id/game-reports", requireAuth, async (req, res) => {
     try {
-      const reports = await storage.getGameReportsByLeague(req.params.id as string);
+      const reportLeagueId = req.params.id as string;
+      const reportLeague = await storage.getLeague(reportLeagueId);
+      if (!reportLeague) return res.status(404).json({ message: "League not found" });
+      if (reportLeague.commissionerId !== req.session.userId) {
+        return res.status(403).json({ message: "Only the commissioner can view all game reports" });
+      }
+      const reports = await storage.getGameReportsByLeague(reportLeagueId);
       res.json(reports);
     } catch (error) {
       console.error("Failed to fetch game reports:", error);
@@ -4284,7 +4290,13 @@ export async function registerRoutes(
 
   app.get("/api/leagues/:id/game-reports/pending", requireAuth, async (req, res) => {
     try {
-      const allReports = await storage.getGameReportsByLeague(req.params.id as string);
+      const reportLeagueId = req.params.id as string;
+      const reportLeague = await storage.getLeague(reportLeagueId);
+      if (!reportLeague) return res.status(404).json({ message: "League not found" });
+      if (reportLeague.commissionerId !== req.session.userId) {
+        return res.status(403).json({ message: "Only the commissioner can view pending game reports" });
+      }
+      const allReports = await storage.getGameReportsByLeague(reportLeagueId);
       res.json(allReports.filter(r => r.status === "pending" || r.status === "disputed"));
     } catch (error) {
       console.error("Failed to fetch pending game reports:", error);
@@ -4389,13 +4401,17 @@ export async function registerRoutes(
       const isCommissioner = league.commissionerId === req.session.userId;
       const coaches = await storage.getCoachesByLeague(leagueId);
       const coach = coaches.find(c => c.userId === req.session.userId);
-      const isInvolvedTeam = coach != null && (game.homeTeamId === coach.teamId || game.awayTeamId === coach.teamId);
+      // Determine which team the current user coaches
+      const userTeamId = coach?.teamId ?? null;
+      // Determine which team submitted the report (reporter's team)
+      const reporterCoach = coaches.find(c => c.userId === report.reporterUserId);
+      const reporterTeamId = reporterCoach?.teamId ?? report.reporterTeamId;
+      // The opposing team is whichever of home/away is NOT the reporter's team
+      const opposingTeamId = reporterTeamId === game.homeTeamId ? game.awayTeamId : game.homeTeamId;
+      const isOpposingCoach = userTeamId != null && userTeamId === opposingTeamId;
 
-      if (!isCommissioner && !isInvolvedTeam) {
-        return res.status(403).json({ message: "Only an involved team's coach or the commissioner can confirm this report" });
-      }
-      if (!isCommissioner && report.reporterUserId === req.session.userId) {
-        return res.status(400).json({ message: "You cannot confirm your own report" });
+      if (!isCommissioner && !isOpposingCoach) {
+        return res.status(403).json({ message: "Only the opposing team's coach or the commissioner can confirm this report" });
       }
 
       await storage.updateGameReport(report.id, {
@@ -4431,10 +4447,14 @@ export async function registerRoutes(
       const isCommissioner = league.commissionerId === req.session.userId;
       const coaches = await storage.getCoachesByLeague(leagueId);
       const coach = coaches.find(c => c.userId === req.session.userId);
-      const isInvolvedTeam = coach != null && (game.homeTeamId === coach.teamId || game.awayTeamId === coach.teamId);
+      const userTeamId = coach?.teamId ?? null;
+      const reporterCoach = coaches.find(c => c.userId === report.reporterUserId);
+      const reporterTeamId = reporterCoach?.teamId ?? report.reporterTeamId;
+      const opposingTeamId = reporterTeamId === game.homeTeamId ? game.awayTeamId : game.homeTeamId;
+      const isOpposingCoach = userTeamId != null && userTeamId === opposingTeamId;
 
-      if (!isCommissioner && !isInvolvedTeam) {
-        return res.status(403).json({ message: "Only an involved team's coach or the commissioner can dispute this report" });
+      if (!isCommissioner && !isOpposingCoach) {
+        return res.status(403).json({ message: "Only the opposing team's coach or the commissioner can dispute this report" });
       }
       if (!isCommissioner && report.reporterUserId === req.session.userId) {
         return res.status(400).json({ message: "You cannot dispute your own report" });
