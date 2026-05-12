@@ -2239,7 +2239,6 @@ function GameReportsTab({ leagueId }: { leagueId: string }) {
 
   const pending = reports?.filter(r => r.status === "pending") ?? [];
   const disputed = reports?.filter(r => r.status === "disputed") ?? [];
-  const confirmed = reports?.filter(r => r.status === "confirmed") ?? [];
 
   const getGameInfo = (report: GameReport): ScheduleGame | undefined => {
     return scheduleData?.games?.find(g => g.id === report.gameId);
@@ -2360,20 +2359,9 @@ function GameReportsTab({ leagueId }: { leagueId: string }) {
         </RetroCard>
       )}
 
-      {confirmed.length > 0 && (
-        <RetroCard>
-          <RetroCardHeader>
-            <span>Confirmed Reports ({confirmed.length})</span>
-          </RetroCardHeader>
-          <RetroCardContent className="space-y-3">
-            {confirmed.map(r => <ReportCard key={r.id} report={r} />)}
-          </RetroCardContent>
-        </RetroCard>
-      )}
-
       {(reports?.length ?? 0) === 0 && (
         <div className="text-center py-12 text-muted-foreground text-sm">
-          No game reports yet. Reports appear here when human coaches submit game results.
+          No pending or disputed reports. Reports appear here when human coaches submit game results.
         </div>
       )}
     </div>
