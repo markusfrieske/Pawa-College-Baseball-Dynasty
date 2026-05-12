@@ -100,7 +100,7 @@ args = "npx tsx scripts/validate-roster-structure.ts"
 isValidation = true
 
 [agent]
-integrations = ["javascript_database:1.0.0"]
+integrations = ["javascript_database:1.0.0", "javascript_openai_ai_integrations:2.0.0"]
 
 [postMerge]
 path = "scripts/post-merge.sh"
