@@ -2619,11 +2619,9 @@ function RecruitRow({
                 const visibleSchools = recruit.topSchools!.slice(0, visibleCount);
                 const userIdx = visibleSchools.findIndex(s => s.teamId === userTeamId);
                 if (userIdx >= 0) {
-                  const userSchool = visibleSchools[userIdx];
-                  const interestInfo = getInterestLabel(userSchool.interestLevel);
                   return (
-                    <span className={`text-[9px] font-pixel ${interestInfo.color}`} data-testid={`text-user-school-rank-${recruit.id}`}>
-                      #{userIdx + 1} {interestInfo.label}
+                    <span className="text-[9px] font-pixel text-gold" data-testid={`text-user-school-rank-${recruit.id}`}>
+                      #{userIdx + 1} of {visibleSchools.length}
                     </span>
                   );
                 }
