@@ -160,9 +160,19 @@ function ArcTimeline({ events }: { events: StorylineEventFull[] }) {
               </div>
               <div className="flex-1 min-w-0 pb-1">
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <span className="text-[9px] font-pixel text-muted-foreground">Wk {e.week} — Choice {e.resolvedChoice}</span>
+                  <span className="text-[9px] font-pixel text-muted-foreground">Wk {e.week}</span>
                   {e.ovrDelta !== null && e.ovrDelta !== 0 && <OvrDeltaBadge delta={e.ovrDelta} />}
                 </div>
+                {(() => {
+                  const wc = e.resolvedChoice;
+                  const wcText = wc === "A" ? e.choiceA : wc === "B" ? e.choiceB : wc === "C" ? e.choiceC : (e.choiceD || "");
+                  return wc && wcText ? (
+                    <p className="text-[10px] text-foreground/80 mt-0.5 leading-snug" data-testid={`text-arc-choice-${e.id}`}>
+                      <span className={`font-pixel text-[9px] mr-1 ${CHOICE_ACTIVE[wc] ? wc === "A" ? "text-blue-300" : wc === "B" ? "text-green-300" : wc === "C" ? "text-amber-300" : "text-purple-300" : "text-gold"}`}>{wc}.</span>
+                      {wcText}
+                    </p>
+                  ) : null;
+                })()}
                 {archetypeChanged && (
                   <div className="flex items-center gap-1 mt-0.5">
                     <GitBranch className="w-2.5 h-2.5 text-amber-400" />
