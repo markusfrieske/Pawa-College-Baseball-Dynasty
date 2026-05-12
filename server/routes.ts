@@ -92,9 +92,7 @@ async function autoAssignLineup(storage: any, teamPlayers: Player[], teamId: str
   const positionPlayers = teamPlayers.filter(p => p.position !== "P");
   const pitchers = teamPlayers.filter(p => p.position === "P");
 
-  const hittingScore = (p: Player) =>
-    (p.hitForAvg || 0) * 0.4 + (p.power || 0) * 0.3 + (p.speed || 0) * 0.2 + (p.clutch || 0) * 0.1;
-
+  // ── STEP 1: pick one starter per defensive position ──────────────────────
   const positionSlots = ["C", "1B", "2B", "SS", "3B", "LF", "CF", "RF"];
   const starters: Player[] = [];
   const usedIds = new Set<string>();
@@ -109,6 +107,7 @@ async function autoAssignLineup(storage: any, teamPlayers: Player[], teamId: str
     }
   }
 
+  // Fill 9th spot (DH) with the best remaining position player
   if (starters.length < 9) {
     const dhCandidates = positionPlayers
       .filter(p => !usedIds.has(p.id))
@@ -119,43 +118,126 @@ async function autoAssignLineup(storage: any, teamPlayers: Player[], teamId: str
     }
   }
 
-  starters.sort((a, b) => hittingScore(b) - hittingScore(a));
+  // ── STEP 2: assign batting order slots using baseball-role logic ──────────
+  // Each slot greedily picks the best match from a remaining pool to avoid
+  // double-assigning the same player.
 
+  const remaining = [...starters];
+
+  const pickBest = (scoreFn: (p: Player) => number): Player => {
+    remaining.sort((a, b) => scoreFn(b) - scoreFn(a));
+    const picked = remaining.shift()!;
+    return picked;
+  };
+
+  const slotAssignments: Player[] = [];
+
+  // Slot 1 — Leadoff: best OPS proxy (hitForAvg + power, balanced)
+  slotAssignments.push(pickBest(p => (p.hitForAvg || 0) + (p.power || 0)));
+
+  // Slot 2 — Contact: highest hitForAvg
+  slotAssignments.push(pickBest(p => (p.hitForAvg || 0)));
+
+  // Slot 3 — Power: highest power
+  slotAssignments.push(pickBest(p => (p.power || 0)));
+
+  // Slot 4 — Cleanup/Slugging: highest power + clutch
+  slotAssignments.push(pickBest(p => (p.power || 0) + (p.clutch || 0)));
+
+  // Slot 5 — Balanced
+  slotAssignments.push(pickBest(p => (p.hitForAvg || 0) * 0.35 + (p.power || 0) * 0.35 + (p.speed || 0) * 0.15 + (p.clutch || 0) * 0.15));
+
+  // Slot 6 — Balanced (same composite)
+  slotAssignments.push(pickBest(p => (p.hitForAvg || 0) * 0.35 + (p.power || 0) * 0.35 + (p.speed || 0) * 0.15 + (p.clutch || 0) * 0.15));
+
+  // Slot 7 — Contact
+  slotAssignments.push(pickBest(p => (p.hitForAvg || 0)));
+
+  // Slot 8 — Speed
+  slotAssignments.push(pickBest(p => (p.speed || 0)));
+
+  // Slot 9 — Second leadoff: hitForAvg + speed
+  slotAssignments.push(pickBest(p => (p.hitForAvg || 0) + (p.speed || 0)));
+
+  // Persist batting orders
   for (const p of positionPlayers) {
-    const idx = starters.indexOf(p);
-    if (idx !== -1) {
-      await storage.updatePlayer(p.id, { battingOrder: idx + 1 });
+    const slot = slotAssignments.indexOf(p);
+    if (slot !== -1) {
+      await storage.updatePlayer(p.id, { battingOrder: slot + 1 });
     } else {
       await storage.updatePlayer(p.id, { battingOrder: null });
     }
   }
 
-  pitchers.sort((a, b) => (b.overall || 0) - (a.overall || 0));
+  // ── STEP 3: assign pitching roles ─────────────────────────────────────────
+  // Sort by overall as a baseline, then deviate for specialist roles.
+  const pitcherPool = [...pitchers].sort((a, b) => (b.overall || 0) - (a.overall || 0));
+  const pitcherRemaining = [...pitcherPool];
+  const assignedPitcherIds = new Set<string>();
 
-  const rotationRoles = ["FRI", "SAT", "SUN", "MID"];
-  for (let i = 0; i < pitchers.length; i++) {
-    let role: string | null = null;
-    if (i < rotationRoles.length) {
-      role = rotationRoles[i];
-    } else {
-      const bullpenIdx = i - rotationRoles.length;
-      if (bullpenIdx === 0) {
-        role = "CP";
-      } else if (bullpenIdx === 1) {
-        role = "SU";
-      } else if (bullpenIdx === 2) {
-        role = "MR1";
-      } else if (bullpenIdx === 3) {
-        role = "MR2";
-      } else if (bullpenIdx === 4) {
-        role = "MR3";
-      } else if (bullpenIdx === 5) {
-        role = "LRP";
-      } else {
-        role = null;
-      }
-    }
-    await storage.updatePlayer(pitchers[i].id, { pitchingRole: role });
+  const pickPitcher = (scoreFn: (p: Player) => number): Player | null => {
+    const pool = pitcherRemaining.filter(p => !assignedPitcherIds.has(p.id));
+    if (pool.length === 0) return null;
+    pool.sort((a, b) => scoreFn(b) - scoreFn(a));
+    const picked = pool[0];
+    assignedPitcherIds.add(picked.id);
+    return picked;
+  };
+
+  const roleMap = new Map<string, string>();
+
+  // FRI — best overall starter
+  const fri = pickPitcher(p => (p.overall || 0));
+  if (fri) roleMap.set(fri.id, "FRI");
+
+  // SAT — second best overall
+  const sat = pickPitcher(p => (p.overall || 0));
+  if (sat) roleMap.set(sat.id, "SAT");
+
+  // SUN — third best overall
+  const sun = pickPitcher(p => (p.overall || 0));
+  if (sun) roleMap.set(sun.id, "SUN");
+
+  // MID — young future star: FR/SO with best potential; fallback to best potential overall
+  const eligibilityOrder: Record<string, number> = { FR: 0, SO: 1, JR: 2, SR: 3 };
+  const youngPool = pitcherRemaining.filter(p => !assignedPitcherIds.has(p.id) && (p.eligibility === "FR" || p.eligibility === "SO"));
+  const midPool = youngPool.length > 0
+    ? youngPool
+    : pitcherRemaining.filter(p => !assignedPitcherIds.has(p.id));
+  const mid = midPool.length > 0
+    ? midPool.sort((a, b) => {
+        const potDiff = (b.potential || 0) - (a.potential || 0);
+        if (potDiff !== 0) return potDiff;
+        return (eligibilityOrder[a.eligibility || "SR"] ?? 3) - (eligibilityOrder[b.eligibility || "SR"] ?? 3);
+      })[0]
+    : null;
+  if (mid) {
+    assignedPitcherIds.add(mid.id);
+    roleMap.set(mid.id, "MID");
+  }
+
+  // CP — Closer: low stamina + high velocity/control; score = (velocity + control) - stamina * 0.5
+  const cp = pickPitcher(p => (p.velocity || 0) + (p.control || 0) - (p.stamina || 0) * 0.5);
+  if (cp) roleMap.set(cp.id, "CP");
+
+  // SU — Setup: highest stuff (specialty pitches)
+  const su = pickPitcher(p => (p.stuff || 0));
+  if (su) roleMap.set(su.id, "SU");
+
+  // Remaining → MR1, MR2, MR3, LRP in overall order
+  const bullpenRoles = ["MR1", "MR2", "MR3", "LRP"];
+  const remainingBullpen = pitcherRemaining
+    .filter(p => !assignedPitcherIds.has(p.id))
+    .sort((a, b) => (b.overall || 0) - (a.overall || 0));
+  for (let i = 0; i < remainingBullpen.length; i++) {
+    const role = bullpenRoles[i] ?? null;
+    roleMap.set(remainingBullpen[i].id, role ?? "");
+  }
+
+  // Persist pitcher roles
+  for (const p of pitchers) {
+    const role = roleMap.get(p.id) ?? null;
+    await storage.updatePlayer(p.id, { pitchingRole: role || null });
   }
 }
 
