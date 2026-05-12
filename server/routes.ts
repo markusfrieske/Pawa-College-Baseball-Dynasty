@@ -4339,9 +4339,14 @@ export async function registerRoutes(
       }
 
       const existing = await storage.getGameReport(gameId);
-      // Only block if an active (pending or disputed) report already exists
-      if (existing && (existing.status === "pending" || existing.status === "disputed")) {
-        return res.status(400).json({ message: "An active report already exists for this game. Wait for it to be confirmed or disputed." });
+      // Block re-reporting entirely: game_reports.gameId is unique, so any
+      // existing row (pending, disputed, or confirmed) prevents a new insert.
+      // A confirmed report means the game should already be complete (caught above).
+      if (existing) {
+        const statusMsg = existing.status === "confirmed"
+          ? "This game has already been confirmed and finalized."
+          : "An active report already exists for this game. Wait for it to be resolved before submitting a new one.";
+        return res.status(400).json({ message: statusMsg });
       }
 
       // Manual reporting is only for human-vs-human games
@@ -4539,8 +4544,9 @@ export async function registerRoutes(
       if (game.leagueId !== leagueId) return res.status(404).json({ message: "Game not found in this league" });
       if (game.isComplete) return res.status(400).json({ message: "Game is already complete" });
 
-      await storage.updateGameReport(report.id, { status: "confirmed", confirmedByUserId: req.session.userId });
+      // Finalize first; only mark confirmed if finalization succeeds (prevents partial state)
       await finalizeReportedGame(report, game, leagueId);
+      await storage.updateGameReport(report.id, { status: "confirmed", confirmedByUserId: req.session.userId });
 
       await storage.createAuditLog({
         leagueId,
