@@ -546,6 +546,7 @@ export async function registerRoutes(
         recruitingSigned: mySignedRecruits.length,
         recruitingInterested: myInterests.length,
         averageOverall: roster.length > 0 ? Math.round(totalOverall / roster.length) : 0,
+        topPlayer: top5Players.length > 0 ? { name: top5Players[0].name, position: top5Players[0].position, overall: top5Players[0].overall } : null,
         hitterAvg: hitterCount > 0 ? Math.round(hitterTotal / hitterCount) : 0,
         pitcherAvg: pitcherCount > 0 ? Math.round(pitcherTotal / pitcherCount) : 0,
         starDist,

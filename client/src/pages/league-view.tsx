@@ -253,6 +253,7 @@ export default function LeagueViewPage() {
   const { data: overview } = useQuery<DashboardOverview>({
     queryKey: ["/api/leagues", id, "dashboard-overview"],
     enabled: !!league && league.currentPhase !== "dynasty_setup",
+    staleTime: 0,
   });
 
   useEffect(() => {
