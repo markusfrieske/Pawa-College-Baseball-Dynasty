@@ -1049,8 +1049,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPendingReportsForTeam(leagueId: string, teamId: string): Promise<GameReport[]> {
+    // Returns pending reports where `teamId` is the OPPOSING team that needs to confirm.
+    // i.e., reporterTeamId is set and is NOT this team (when commissioner submitted,
+    // reporterTeamId is null and any involved coach can confirm — those are excluded here
+    // since we can't determine game membership without a join at the storage layer).
     const all = await this.getGameReportsByLeague(leagueId);
-    return all.filter(r => r.status === "pending" && (r.reporterTeamId === teamId || r.reporterTeamId === null));
+    return all.filter(r => r.status === "pending" && r.reporterTeamId !== null && r.reporterTeamId !== teamId);
   }
 
   async createGameReport(data: InsertGameReport): Promise<GameReport> {
