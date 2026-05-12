@@ -11,6 +11,7 @@ export type TrackId =
   | "interview"
   | "offseason"
   | "predictions"
+  | "drama"
   | "none";
 
 const TRACK_URLS: Record<Exclude<TrackId, "none">, string> = {
@@ -24,12 +25,13 @@ const TRACK_URLS: Record<Exclude<TrackId, "none">, string> = {
   interview: "/music/Interview.mp3",
   offseason: "/music/Offseason.mp3",
   predictions: "/music/Predictions.mp3",
+  drama: "/music/Drama.mp3",
 };
 
 const LIKELY_NEXT: Record<TrackId, TrackId[]> = {
   game_start:        ["standings", "league_management"],
   standings:         ["league_management", "recruiting"],
-  league_management: ["recruiting", "final_score", "standings"],
+  league_management: ["recruiting", "final_score", "standings", "drama"],
   recruiting:        ["league_management", "predictions"],
   graduation:        ["offseason", "interview"],
   final_score:       ["playoffs", "league_management"],
@@ -37,6 +39,7 @@ const LIKELY_NEXT: Record<TrackId, TrackId[]> = {
   interview:         ["offseason", "standings"],
   offseason:         ["predictions", "recruiting"],
   predictions:       ["league_management", "game_start"],
+  drama:             ["league_management", "standings"],
   none:              ["game_start"],
 };
 
@@ -550,6 +553,7 @@ export function resolveTrackForRoute(
     return "offseason";
   }
   if (pathname.includes("/commits")) return "predictions";
+  if (pathname.includes("/storylines")) return "drama";
 
   if (leaguePhase) {
     switch (leaguePhase) {

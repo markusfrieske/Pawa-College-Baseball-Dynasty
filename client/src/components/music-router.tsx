@@ -94,6 +94,7 @@ export function MusicRouter() {
       "/edit-rosters", "/edit-recruits", "/departures",
       "/players-leaving", "/transfer-portal", "/commits",
       "/dynasty-setup", "/league-setup", "/team-selection",
+      "/storylines",
     ];
     const isScreenSpecific = screenSpecificRoutes.some(r => location.includes(r));
 
