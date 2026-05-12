@@ -4355,7 +4355,11 @@ export async function registerRoutes(
         gameId: game.id,
         leagueId,
         reporterUserId: req.session.userId!,
-        reporterTeamId: coach?.teamId ?? null,
+        // Only set reporterTeamId if the reporter's coached team is one of the game's two teams.
+        // Commissioners who coach an unrelated team (or no team) get null so any involved coach can confirm.
+        reporterTeamId: (coach?.teamId && (coach.teamId === game.homeTeamId || coach.teamId === game.awayTeamId))
+          ? coach.teamId
+          : null,
         homeScore,
         awayScore,
         homeHits: homeHits ?? 0,
@@ -4408,7 +4412,11 @@ export async function registerRoutes(
       const userTeamId = coach?.teamId ?? null;
       // Determine which team submitted the report (reporter's team)
       const reporterCoach = coaches.find(c => c.userId === report.reporterUserId);
-      const reporterTeamId = reporterCoach?.teamId ?? report.reporterTeamId;
+      const rawReporterTeamId = reporterCoach?.teamId ?? report.reporterTeamId;
+      // Only treat reporterTeamId as valid if it's actually one of the game's two teams.
+      // Commissioners acting outside their own matchup have null here.
+      const reporterTeamId = (rawReporterTeamId === game.homeTeamId || rawReporterTeamId === game.awayTeamId)
+        ? rawReporterTeamId : null;
       // When commissioner submitted (reporterTeamId null), any involved coach may confirm.
       // Otherwise only the opposing team's coach may confirm.
       const isInvolvedCoach = userTeamId != null && (userTeamId === game.homeTeamId || userTeamId === game.awayTeamId);
@@ -4456,7 +4464,9 @@ export async function registerRoutes(
       const coach = coaches.find(c => c.userId === req.session.userId);
       const userTeamId = coach?.teamId ?? null;
       const reporterCoach = coaches.find(c => c.userId === report.reporterUserId);
-      const reporterTeamId = reporterCoach?.teamId ?? report.reporterTeamId;
+      const rawReporterTeamId = reporterCoach?.teamId ?? report.reporterTeamId;
+      const reporterTeamId = (rawReporterTeamId === game.homeTeamId || rawReporterTeamId === game.awayTeamId)
+        ? rawReporterTeamId : null;
       const isInvolvedCoach = userTeamId != null && (userTeamId === game.homeTeamId || userTeamId === game.awayTeamId);
       const opposingTeamId = reporterTeamId != null
         ? (reporterTeamId === game.homeTeamId ? game.awayTeamId : game.homeTeamId)
