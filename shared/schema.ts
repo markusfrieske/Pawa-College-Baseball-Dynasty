@@ -1321,6 +1321,8 @@ export const gameReports = pgTable("game_reports", {
   awayErrors: integer("away_errors").notNull().default(0),
   // inningScores shape: number[][] where each element is [awayRuns, homeRuns] for that inning.
   // e.g. [[0,1],[2,0],[0,3]] = away 2 runs, home 4 runs across 3 innings.
+  // Note: columns are named homeScore/awayScore (not homeRuns/awayRuns) to align with the
+  // game table naming convention. Both refer to the final run totals.
   inningScores: json("inning_scores").$type<number[][]>(),
   homeBoxData: json("home_box_data").$type<Record<string, unknown>>(),
   awayBoxData: json("away_box_data").$type<Record<string, unknown>>(),

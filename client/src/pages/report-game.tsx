@@ -738,9 +738,12 @@ interface PitchingStepProps {
 }
 
 function PitchingStep({ homeTeam, awayTeam, homePlayers, awayPlayers, homePitching, awayPitching, onChangeHome, onChangeAway, onInit }: PitchingStepProps) {
-  if (homePitching.length === 0 && awayPitching.length === 0) {
-    onInit();
-  }
+  useEffect(() => {
+    if (homePitching.length === 0 && awayPitching.length === 0 && (homePlayers.length > 0 || awayPlayers.length > 0)) {
+      onInit();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [homePlayers.length, awayPlayers.length]);
 
   function updatePitcher<K extends keyof PitcherEntry>(list: PitcherEntry[], setList: (l: PitcherEntry[]) => void, idx: number, field: K, value: PitcherEntry[K]) {
     const next = [...list];

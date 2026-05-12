@@ -77,6 +77,8 @@ export default function SchedulePage() {
   const [editingGame, setEditingGame] = useState<GameWithTeams | null>(null);
   const [boxScoreGame, setBoxScoreGame] = useState<GameWithTeams | null>(null);
   const [showMyTeam, setShowMyTeam] = useState(true);
+  const [disputeGameId, setDisputeGameId] = useState<string | null>(null);
+  const [disputeReason, setDisputeReason] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -212,7 +214,7 @@ export default function SchedulePage() {
                     humanTeamIds={data?.humanTeamIds ?? []}
                     report={data?.reportsByGameId?.[game.id] ?? null}
                     onConfirm={() => confirmReportMutation.mutate(game.id)}
-                    onDispute={() => disputeReportMutation.mutate({ gameId: game.id, reason: "Score is incorrect" })}
+                    onDispute={() => { setDisputeGameId(game.id); setDisputeReason(""); }}
                     isConfirming={confirmReportMutation.isPending}
                     isDisputing={disputeReportMutation.isPending}
                     isCommissioner={data?.isCommissioner}
@@ -246,6 +248,47 @@ export default function SchedulePage() {
         game={boxScoreGame}
         onClose={() => setBoxScoreGame(null)}
       />
+
+      <Dialog open={!!disputeGameId} onOpenChange={open => { if (!open) setDisputeGameId(null); }}>
+        <DialogContent className="bg-[#1a2e1a] border-gold/50 max-w-md" data-testid="dialog-dispute-reason">
+          <DialogHeader>
+            <DialogTitle className="font-pixel text-gold text-sm">Dispute Reported Score</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <p className="text-sm text-muted-foreground">
+              Explain why the reported score is incorrect. The commissioner will review and resolve the dispute.
+            </p>
+            <textarea
+              value={disputeReason}
+              onChange={e => setDisputeReason(e.target.value)}
+              placeholder="e.g. Final score was 5-3, not 4-3 as reported..."
+              maxLength={500}
+              rows={4}
+              className="w-full text-sm bg-muted/40 border border-border rounded p-2 focus:outline-none focus:border-gold text-foreground resize-none"
+              data-testid="textarea-dispute-reason"
+            />
+            <div className="flex gap-3 justify-end">
+              <RetroButton variant="outline" size="sm" onClick={() => setDisputeGameId(null)} data-testid="button-cancel-dispute">
+                Cancel
+              </RetroButton>
+              <RetroButton
+                variant="primary"
+                size="sm"
+                disabled={!disputeReason.trim() || disputeReportMutation.isPending}
+                onClick={() => {
+                  if (disputeGameId && disputeReason.trim()) {
+                    disputeReportMutation.mutate({ gameId: disputeGameId, reason: disputeReason.trim() });
+                    setDisputeGameId(null);
+                  }
+                }}
+                data-testid="button-submit-dispute"
+              >
+                Submit Dispute
+              </RetroButton>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
