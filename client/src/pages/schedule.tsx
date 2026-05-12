@@ -8,7 +8,7 @@ import { TeamBadge } from "@/components/ui/team-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Calendar, Check, Edit2, Lock, Play } from "lucide-react";
+import { ArrowLeft, Calendar, Check, Edit2, Lock, Play, FileText, AlertTriangle, CheckCircle, XCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Game, Team } from "@shared/schema";
@@ -18,11 +18,28 @@ interface GameWithTeams extends Game {
   awayTeam: Team;
 }
 
+interface GameReport {
+  id: string;
+  gameId: string;
+  reporterUserId: string;
+  reporterTeamId: string;
+  homeScore: number;
+  awayScore: number;
+  homeHits: number;
+  awayHits: number;
+  homeErrors: number;
+  awayErrors: number;
+  status: string;
+  disputeReason: string | null;
+}
+
 interface ScheduleData {
   games: GameWithTeams[];
   currentWeek: number;
   currentSeason: number;
   userTeamId: string | null;
+  humanTeamIds: string[];
+  reportsByGameId: Record<string, GameReport>;
 }
 
 interface BoxScoreBatter {
@@ -74,6 +91,32 @@ export default function SchedulePage() {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "schedule"] });
       toast({ title: "Score submitted", description: "Game result has been recorded." });
       setEditingGame(null);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const confirmReportMutation = useMutation({
+    mutationFn: async (gameId: string) => {
+      return apiRequest("POST", `/api/leagues/${id}/games/${gameId}/report/confirm`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "schedule"] });
+      toast({ title: "Report Confirmed", description: "Game result has been finalized." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const disputeReportMutation = useMutation({
+    mutationFn: async ({ gameId, reason }: { gameId: string; reason: string }) => {
+      return apiRequest("POST", `/api/leagues/${id}/games/${gameId}/report/dispute`, { reason });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "schedule"] });
+      toast({ title: "Report Disputed", description: "Commissioner will review the discrepancy." });
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -165,6 +208,12 @@ export default function SchedulePage() {
                     onViewBoxScore={() => setBoxScoreGame(game)}
                     userTeamId={data?.userTeamId}
                     leagueId={id!}
+                    humanTeamIds={data?.humanTeamIds ?? []}
+                    report={data?.reportsByGameId?.[game.id] ?? null}
+                    onConfirm={() => confirmReportMutation.mutate(game.id)}
+                    onDispute={() => disputeReportMutation.mutate({ gameId: game.id, reason: "Score is incorrect" })}
+                    isConfirming={confirmReportMutation.isPending}
+                    isDisputing={disputeReportMutation.isPending}
                   />
                 ))}
               </div>
@@ -199,13 +248,31 @@ export default function SchedulePage() {
   );
 }
 
-function GameRow({ game, allGamesInGroup, onEdit, onViewBoxScore, userTeamId, leagueId }: { game: GameWithTeams; allGamesInGroup: GameWithTeams[]; onEdit: () => void; onViewBoxScore: () => void; userTeamId?: string | null; leagueId: string }) {
+function GameRow({ game, allGamesInGroup, onEdit, onViewBoxScore, userTeamId, leagueId, humanTeamIds, report, onConfirm, onDispute, isConfirming, isDisputing }: {
+  game: GameWithTeams;
+  allGamesInGroup: GameWithTeams[];
+  onEdit: () => void;
+  onViewBoxScore: () => void;
+  userTeamId?: string | null;
+  leagueId: string;
+  humanTeamIds: string[];
+  report: GameReport | null;
+  onConfirm: () => void;
+  onDispute: () => void;
+  isConfirming: boolean;
+  isDisputing: boolean;
+}) {
   const isUserGame = userTeamId && (game.homeTeamId === userTeamId || game.awayTeamId === userTeamId);
   const userWon = isUserGame && game.isComplete && (
     (game.homeTeamId === userTeamId && (game.homeScore ?? 0) > (game.awayScore ?? 0)) ||
     (game.awayTeamId === userTeamId && (game.awayScore ?? 0) > (game.homeScore ?? 0))
   );
   const userLost = isUserGame && game.isComplete && !userWon;
+
+  const isHumanVsHuman = humanTeamIds.includes(game.homeTeamId) && humanTeamIds.includes(game.awayTeamId);
+  const opposingTeamId = game.homeTeamId === userTeamId ? game.awayTeamId : game.homeTeamId;
+  const userIsOpposingTeam = report && userTeamId && report.reporterTeamId !== userTeamId &&
+    (game.homeTeamId === userTeamId || game.awayTeamId === userTeamId);
 
   const gameTypeOrder = ["friday", "saturday", "sunday"];
   const currentIdx = game.gameType ? gameTypeOrder.indexOf(game.gameType) : -1;
@@ -224,94 +291,149 @@ function GameRow({ game, allGamesInGroup, onEdit, onViewBoxScore, userTeamId, le
   })();
 
   return (
-    <div 
-      className={`flex items-center gap-4 p-4 rounded ${
-        game.isComplete && isUserGame
-          ? userWon ? "bg-green-900/20 border border-green-800/30" : "bg-red-900/20 border border-red-800/30"
-          : "bg-muted/30"
-      }`} 
-      data-testid={`card-game-${game.id}`}
-    >
-      <div className="flex-1 flex items-center gap-3">
-        <TeamBadge
-          abbreviation={game.awayTeam.abbreviation}
-          primaryColor={game.awayTeam.primaryColor}
-          secondaryColor={game.awayTeam.secondaryColor}
-          size="sm"
-        />
-        <span className="font-medium text-sm">{game.awayTeam.name}</span>
-      </div>
-
-      {game.isComplete ? (
-        <button
-          onClick={onViewBoxScore}
-          className="flex items-center gap-4 cursor-pointer hover:opacity-80 transition-opacity"
-          data-testid={`button-box-score-${game.id}`}
-        >
-          <span className={`text-xl font-bold ${(game.awayScore || 0) > (game.homeScore || 0) ? "text-gold" : "text-muted-foreground"}`}>
-            {game.awayScore}
-          </span>
-          <span className="text-muted-foreground">@</span>
-          <span className={`text-xl font-bold ${(game.homeScore || 0) > (game.awayScore || 0) ? "text-gold" : "text-muted-foreground"}`}>
-            {game.homeScore}
-          </span>
-          {isUserGame && (
-            <Badge variant="outline" className={`text-[9px] ml-1 ${userWon ? "border-green-600 text-green-400" : "border-red-600 text-red-400"}`}>
-              {userWon ? "W" : "L"}
-            </Badge>
-          )}
-        </button>
-      ) : (
-        <div className="flex items-center gap-4">
-          <span className="text-muted-foreground">@</span>
+    <div className="space-y-2">
+      <div 
+        className={`flex items-center gap-4 p-4 rounded ${
+          game.isComplete && isUserGame
+            ? userWon ? "bg-green-900/20 border border-green-800/30" : "bg-red-900/20 border border-red-800/30"
+            : "bg-muted/30"
+        }`} 
+        data-testid={`card-game-${game.id}`}
+      >
+        <div className="flex-1 flex items-center gap-3">
+          <TeamBadge
+            abbreviation={game.awayTeam.abbreviation}
+            primaryColor={game.awayTeam.primaryColor}
+            secondaryColor={game.awayTeam.secondaryColor}
+            size="sm"
+          />
+          <span className="font-medium text-sm">{game.awayTeam.name}</span>
         </div>
-      )}
 
-      <div className="flex-1 flex items-center justify-end gap-3">
-        <span className="font-medium text-sm">{game.homeTeam.name}</span>
-        <TeamBadge
-          abbreviation={game.homeTeam.abbreviation}
-          primaryColor={game.homeTeam.primaryColor}
-          secondaryColor={game.homeTeam.secondaryColor}
-          size="sm"
-        />
-      </div>
+        {game.isComplete ? (
+          <button
+            onClick={onViewBoxScore}
+            className="flex items-center gap-4 cursor-pointer hover:opacity-80 transition-opacity"
+            data-testid={`button-box-score-${game.id}`}
+          >
+            <span className={`text-xl font-bold ${(game.awayScore || 0) > (game.homeScore || 0) ? "text-gold" : "text-muted-foreground"}`}>
+              {game.awayScore}
+            </span>
+            <span className="text-muted-foreground">@</span>
+            <span className={`text-xl font-bold ${(game.homeScore || 0) > (game.awayScore || 0) ? "text-gold" : "text-muted-foreground"}`}>
+              {game.homeScore}
+            </span>
+            {isUserGame && (
+              <Badge variant="outline" className={`text-[9px] ml-1 ${userWon ? "border-green-600 text-green-400" : "border-red-600 text-red-400"}`}>
+                {userWon ? "W" : "L"}
+              </Badge>
+            )}
+            {game.isManuallyReported && (
+              <Badge variant="outline" className="text-[9px] ml-1 border-blue-600 text-blue-400">Reported</Badge>
+            )}
+          </button>
+        ) : (
+          <div className="flex items-center gap-4">
+            <span className="text-muted-foreground">@</span>
+          </div>
+        )}
 
-      <div className="flex items-center gap-1">
-        {!game.isComplete && (
-          isSeriesLocked ? (
+        <div className="flex-1 flex items-center justify-end gap-3">
+          <span className="font-medium text-sm">{game.homeTeam.name}</span>
+          <TeamBadge
+            abbreviation={game.homeTeam.abbreviation}
+            primaryColor={game.homeTeam.primaryColor}
+            secondaryColor={game.homeTeam.secondaryColor}
+            size="sm"
+          />
+        </div>
+
+        <div className="flex items-center gap-1">
+          {!game.isComplete && (
+            <>
+              {isHumanVsHuman && isUserGame && !report && (
+                isSeriesLocked ? (
+                  <RetroButton variant="outline" size="sm" disabled className="opacity-40 cursor-not-allowed" data-testid={`button-report-locked-${game.id}`}>
+                    <Lock className="w-3 h-3" />
+                  </RetroButton>
+                ) : (
+                  <Link href={`/league/${leagueId}/report-game/${game.id}`}>
+                    <RetroButton variant="outline" size="sm" title="Report Game Result" data-testid={`button-report-${game.id}`}>
+                      <FileText className="w-3 h-3" />
+                    </RetroButton>
+                  </Link>
+                )
+              )}
+              {!isHumanVsHuman && (
+                isSeriesLocked ? (
+                  <RetroButton
+                    variant="outline"
+                    size="sm"
+                    title="Complete earlier games in this series first"
+                    disabled
+                    className="opacity-40 cursor-not-allowed"
+                    data-testid={`button-pbp-locked-${game.id}`}
+                  >
+                    <Lock className="w-3 h-3" />
+                  </RetroButton>
+                ) : (
+                  <Link href={`/league/${leagueId}/game/${game.id}/play-by-play`}>
+                    <RetroButton
+                      variant="outline"
+                      size="sm"
+                      title="Play by Play"
+                      data-testid={`button-pbp-${game.id}`}
+                    >
+                      <Play className="w-3 h-3" />
+                    </RetroButton>
+                  </Link>
+                )
+              )}
+            </>
+          )}
+          {(!isHumanVsHuman || game.isComplete) && (
             <RetroButton
               variant="outline"
               size="sm"
-              title="Complete earlier games in this series first"
-              disabled
-              className="opacity-40 cursor-not-allowed"
-              data-testid={`button-pbp-locked-${game.id}`}
+              onClick={onEdit}
+              data-testid={`button-edit-game-${game.id}`}
             >
-              <Lock className="w-3 h-3" />
+              {game.isComplete ? <Check className="w-3 h-3" /> : <Edit2 className="w-3 h-3" />}
             </RetroButton>
-          ) : (
-            <Link href={`/league/${leagueId}/game/${game.id}/play-by-play`}>
-              <RetroButton
-                variant="outline"
-                size="sm"
-                title="Play by Play"
-                data-testid={`button-pbp-${game.id}`}
-              >
-                <Play className="w-3 h-3" />
-              </RetroButton>
-            </Link>
-          )
-        )}
-        <RetroButton
-          variant="outline"
-          size="sm"
-          onClick={onEdit}
-          data-testid={`button-edit-game-${game.id}`}
-        >
-          {game.isComplete ? <Check className="w-3 h-3" /> : <Edit2 className="w-3 h-3" />}
-        </RetroButton>
+          )}
+        </div>
       </div>
+
+      {!game.isComplete && report && isUserGame && (
+        <div className={`flex items-center gap-3 px-4 py-2 rounded text-xs ${
+          report.status === "disputed" ? "bg-red-900/20 border border-red-800/30" : "bg-yellow-900/20 border border-yellow-700/30"
+        }`} data-testid={`report-status-${game.id}`}>
+          {report.status === "pending" && <AlertTriangle className="w-3 h-3 text-yellow-400 shrink-0" />}
+          {report.status === "disputed" && <XCircle className="w-3 h-3 text-red-400 shrink-0" />}
+          <div className="flex-1">
+            {report.status === "pending" && (
+              <span className="text-yellow-300">
+                Score reported: {report.awayScore} - {report.homeScore}. Awaiting opponent confirmation.
+              </span>
+            )}
+            {report.status === "disputed" && (
+              <span className="text-red-300">
+                Score disputed. Commissioner will resolve. Reason: {report.disputeReason}
+              </span>
+            )}
+          </div>
+          {report.status === "pending" && userIsOpposingTeam && (
+            <div className="flex gap-2">
+              <RetroButton size="sm" variant="primary" onClick={onConfirm} disabled={isConfirming} data-testid={`button-confirm-report-${game.id}`}>
+                <CheckCircle className="w-3 h-3 mr-1" /> Confirm
+              </RetroButton>
+              <RetroButton size="sm" variant="outline" onClick={onDispute} disabled={isDisputing} data-testid={`button-dispute-report-${game.id}`} className="border-red-600 text-red-400 hover:bg-red-900/20">
+                <XCircle className="w-3 h-3 mr-1" /> Dispute
+              </RetroButton>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

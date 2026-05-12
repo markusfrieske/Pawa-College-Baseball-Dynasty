@@ -4146,11 +4146,17 @@ export async function registerRoutes(
       const coach = coaches.find(c => c.userId === req.session.userId);
       const userTeam = coach ? leagueTeams.find(t => t.id === coach.teamId) : null;
 
+      const humanTeamIds = leagueTeams.filter(t => !t.isCpu).map(t => t.id);
+      const gameReportsList = await storage.getGameReportsByLeague(league.id);
+      const reportsByGameId = Object.fromEntries(gameReportsList.map(r => [r.gameId, r]));
+
       res.json({
         games: gamesWithTeams,
         currentWeek: league.currentWeek,
         currentSeason: league.currentSeason,
         userTeamId: userTeam?.id || null,
+        humanTeamIds,
+        reportsByGameId,
       });
     } catch (error) {
       console.error("Failed to fetch schedule:", error);
@@ -4237,6 +4243,251 @@ export async function registerRoutes(
       res.status(500).json({ message: "Failed to update game" });
     }
   });
+
+  // ============ MANUAL GAME REPORTING ============
+
+  app.get("/api/leagues/:id/games/:gameId/report", requireAuth, async (req, res) => {
+    try {
+      const report = await storage.getGameReport(req.params.gameId);
+      res.json(report || null);
+    } catch (error) {
+      console.error("Failed to fetch game report:", error);
+      res.status(500).json({ message: "Failed to fetch game report" });
+    }
+  });
+
+  app.get("/api/leagues/:id/game-reports", requireAuth, async (req, res) => {
+    try {
+      const reports = await storage.getGameReportsByLeague(req.params.id);
+      res.json(reports);
+    } catch (error) {
+      console.error("Failed to fetch game reports:", error);
+      res.status(500).json({ message: "Failed to fetch game reports" });
+    }
+  });
+
+  app.post("/api/leagues/:id/games/:gameId/report", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      const game = await storage.getGame(req.params.gameId);
+      if (!game) return res.status(404).json({ message: "Game not found" });
+      if (game.isComplete) return res.status(400).json({ message: "Game is already complete" });
+
+      const existing = await storage.getGameReport(req.params.gameId);
+      if (existing) return res.status(400).json({ message: "A report already exists for this game" });
+
+      const coaches = await storage.getCoachesByLeague(req.params.id);
+      const coach = coaches.find(c => c.userId === req.session.userId);
+      if (!coach) return res.status(403).json({ message: "You are not a coach in this league" });
+
+      const { homeScore, awayScore, homeHits, awayHits, homeErrors, awayErrors, inningScores, homeBoxData, awayBoxData } = req.body;
+
+      if (typeof homeScore !== "number" || typeof awayScore !== "number") {
+        return res.status(400).json({ message: "homeScore and awayScore are required" });
+      }
+
+      const report = await storage.createGameReport({
+        gameId: game.id,
+        leagueId: req.params.id,
+        reporterUserId: req.session.userId!,
+        reporterTeamId: coach.teamId,
+        homeScore,
+        awayScore,
+        homeHits: homeHits ?? 0,
+        awayHits: awayHits ?? 0,
+        homeErrors: homeErrors ?? 0,
+        awayErrors: awayErrors ?? 0,
+        inningScores: inningScores ? JSON.stringify(inningScores) : null,
+        homeBoxData: homeBoxData ? JSON.stringify(homeBoxData) : null,
+        awayBoxData: awayBoxData ? JSON.stringify(awayBoxData) : null,
+        status: "pending",
+        confirmedByUserId: null,
+        disputedByUserId: null,
+        disputeReason: null,
+      });
+
+      await storage.createAuditLog({
+        leagueId: req.params.id,
+        userId: req.session.userId,
+        action: "Game Report Submitted",
+        details: `Reported: ${awayScore}-${homeScore}`,
+      });
+
+      res.json(report);
+    } catch (error) {
+      console.error("Failed to create game report:", error);
+      res.status(500).json({ message: "Failed to create game report" });
+    }
+  });
+
+  app.post("/api/leagues/:id/games/:gameId/report/confirm", requireAuth, async (req, res) => {
+    try {
+      const report = await storage.getGameReport(req.params.gameId);
+      if (!report) return res.status(404).json({ message: "No report found for this game" });
+      if (report.status !== "pending") return res.status(400).json({ message: "Report is not pending" });
+      if (report.reporterUserId === req.session.userId) {
+        return res.status(400).json({ message: "You cannot confirm your own report" });
+      }
+
+      const coaches = await storage.getCoachesByLeague(req.params.id);
+      const coach = coaches.find(c => c.userId === req.session.userId);
+      if (!coach) return res.status(403).json({ message: "You are not a coach in this league" });
+
+      const game = await storage.getGame(req.params.gameId);
+      if (!game) return res.status(404).json({ message: "Game not found" });
+
+      const isInvolvedTeam = game.homeTeamId === coach.teamId || game.awayTeamId === coach.teamId;
+      if (!isInvolvedTeam) return res.status(403).json({ message: "You are not involved in this game" });
+
+      await storage.updateGameReport(report.id, {
+        status: "confirmed",
+        confirmedByUserId: req.session.userId,
+      });
+
+      await finalizeReportedGame(report, game, req.params.id, league => league);
+
+      res.json({ message: "Report confirmed and game finalized" });
+    } catch (error) {
+      console.error("Failed to confirm game report:", error);
+      res.status(500).json({ message: "Failed to confirm game report" });
+    }
+  });
+
+  app.post("/api/leagues/:id/games/:gameId/report/dispute", requireAuth, async (req, res) => {
+    try {
+      const report = await storage.getGameReport(req.params.gameId);
+      if (!report) return res.status(404).json({ message: "No report found for this game" });
+      if (report.status !== "pending") return res.status(400).json({ message: "Report is not pending" });
+      if (report.reporterUserId === req.session.userId) {
+        return res.status(400).json({ message: "You cannot dispute your own report" });
+      }
+
+      const coaches = await storage.getCoachesByLeague(req.params.id);
+      const coach = coaches.find(c => c.userId === req.session.userId);
+      if (!coach) return res.status(403).json({ message: "You are not a coach in this league" });
+
+      const game = await storage.getGame(req.params.gameId);
+      if (!game) return res.status(404).json({ message: "Game not found" });
+
+      const isInvolvedTeam = game.homeTeamId === coach.teamId || game.awayTeamId === coach.teamId;
+      if (!isInvolvedTeam) return res.status(403).json({ message: "You are not involved in this game" });
+
+      const { reason } = req.body;
+
+      await storage.updateGameReport(report.id, {
+        status: "disputed",
+        disputedByUserId: req.session.userId,
+        disputeReason: reason || "Score disputed by opposing coach",
+      });
+
+      await storage.createAuditLog({
+        leagueId: req.params.id,
+        userId: req.session.userId,
+        action: "Game Report Disputed",
+        details: reason || "Score disputed by opposing coach",
+      });
+
+      res.json({ message: "Report disputed. Commissioner will review." });
+    } catch (error) {
+      console.error("Failed to dispute game report:", error);
+      res.status(500).json({ message: "Failed to dispute game report" });
+    }
+  });
+
+  app.post("/api/leagues/:id/games/:gameId/report/finalize", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      if (league.commissionerUserId !== req.session.userId) {
+        return res.status(403).json({ message: "Only the commissioner can force-finalize a game report" });
+      }
+
+      const report = await storage.getGameReport(req.params.gameId);
+      if (!report) return res.status(404).json({ message: "No report found for this game" });
+
+      const game = await storage.getGame(req.params.gameId);
+      if (!game) return res.status(404).json({ message: "Game not found" });
+      if (game.isComplete) return res.status(400).json({ message: "Game is already complete" });
+
+      await storage.updateGameReport(report.id, { status: "confirmed", confirmedByUserId: req.session.userId });
+      await finalizeReportedGame(report, game, req.params.id, () => league);
+
+      await storage.createAuditLog({
+        leagueId: req.params.id,
+        userId: req.session.userId,
+        action: "Game Report Force-Finalized",
+        details: `Commissioner finalized: ${report.awayScore}-${report.homeScore}`,
+      });
+
+      res.json({ message: "Game finalized by commissioner" });
+    } catch (error) {
+      console.error("Failed to finalize game report:", error);
+      res.status(500).json({ message: "Failed to finalize game report" });
+    }
+  });
+
+  async function finalizeReportedGame(report: any, game: any, leagueId: string, _unused: any) {
+    const { homeScore, awayScore } = report;
+    const homeBoxData = report.homeBoxData ? JSON.parse(report.homeBoxData) : null;
+    const awayBoxData = report.awayBoxData ? JSON.parse(report.awayBoxData) : null;
+    const inningScores = report.inningScores ? JSON.parse(report.inningScores) : [];
+
+    const homeHits = report.homeHits ?? 0;
+    const awayHits = report.awayHits ?? 0;
+    const homeErrors = report.homeErrors ?? 0;
+    const awayErrors = report.awayErrors ?? 0;
+
+    const boxScore = {
+      innings: inningScores,
+      home: homeBoxData
+        ? { ...homeBoxData, errors: homeErrors }
+        : { batting: [], pitching: [], totals: { ab: 0, r: homeScore, h: homeHits, rbi: 0, bb: 0, so: 0 }, errors: homeErrors },
+      away: awayBoxData
+        ? { ...awayBoxData, errors: awayErrors }
+        : { batting: [], pitching: [], totals: { ab: 0, r: awayScore, h: awayHits, rbi: 0, bb: 0, so: 0 }, errors: awayErrors },
+    };
+
+    await storage.updateGame(game.id, {
+      homeScore,
+      awayScore,
+      isComplete: true,
+      isManuallyReported: true,
+      reportedByUserId: report.reporterUserId,
+      boxScore: JSON.stringify(boxScore),
+    });
+
+    const league = await storage.getLeague(leagueId);
+    if (league) {
+      await updateStandingsForGame(leagueId, game.season, game.homeTeamId, game.awayTeamId, homeScore, awayScore, game.isConference);
+
+      if (homeBoxData) {
+        await accumulatePlayerStats(leagueId, game.season, game.homeTeamId, homeBoxData);
+      }
+      if (awayBoxData) {
+        await accumulatePlayerStats(leagueId, game.season, game.awayTeamId, awayBoxData);
+      }
+
+      const leagueTeams = await storage.getTeamsByLeague(leagueId);
+      const homeTeam = leagueTeams.find(t => t.id === game.homeTeamId);
+      const awayTeam = leagueTeams.find(t => t.id === game.awayTeamId);
+      const homeWon = homeScore > awayScore;
+      const desc = `${awayTeam?.name || "Away"} ${awayScore}, ${homeTeam?.name || "Home"} ${homeScore} (Reported)`;
+
+      await storage.createLeagueEvent({
+        leagueId,
+        teamId: homeWon ? game.homeTeamId : game.awayTeamId,
+        teamName: homeWon ? (homeTeam?.name || null) : (awayTeam?.name || null),
+        teamAbbreviation: homeWon ? (homeTeam?.abbreviation || null) : (awayTeam?.abbreviation || null),
+        teamPrimaryColor: homeWon ? (homeTeam?.primaryColor || null) : (awayTeam?.primaryColor || null),
+        eventType: "GAME_RESULT",
+        description: desc,
+        season: game.season,
+        week: game.week,
+      });
+    }
+  }
 
   // ============ PLAY-BY-PLAY SIMULATION ============
   app.post("/api/leagues/:id/games/:gameId/play-by-play", requireAuth, async (req, res) => {

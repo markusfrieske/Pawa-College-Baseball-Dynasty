@@ -813,6 +813,8 @@ export const games = pgTable("games", {
   bracketSide: text("bracket_side"),
   bracketRound: integer("bracket_round"),
   bracketType: text("bracket_type"),
+  isManuallyReported: boolean("is_manually_reported").notNull().default(false),
+  reportedByUserId: varchar("reported_by_user_id"),
 });
 
 export const insertGameSchema = createInsertSchema(games).pick({
@@ -831,6 +833,8 @@ export const insertGameSchema = createInsertSchema(games).pick({
   bracketSide: true,
   bracketRound: true,
   bracketType: true,
+  isManuallyReported: true,
+  reportedByUserId: true,
 });
 
 export type InsertGame = z.infer<typeof insertGameSchema>;
@@ -1302,6 +1306,34 @@ export type InsertStorylineVote = z.infer<typeof insertStorylineVoteSchema>;
 export type StorylineVote = typeof storylineVotes.$inferSelect;
 
 // League Events table - activity feed for league news
+// Game Reports table (manual reporting for multiplayer leagues)
+export const gameReports = pgTable("game_reports", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  gameId: varchar("game_id").notNull().references(() => games.id),
+  leagueId: varchar("league_id").notNull().references(() => leagues.id),
+  reporterUserId: varchar("reporter_user_id").notNull(),
+  reporterTeamId: varchar("reporter_team_id").notNull().references(() => teams.id),
+  homeScore: integer("home_score").notNull(),
+  awayScore: integer("away_score").notNull(),
+  homeHits: integer("home_hits").notNull().default(0),
+  awayHits: integer("away_hits").notNull().default(0),
+  homeErrors: integer("home_errors").notNull().default(0),
+  awayErrors: integer("away_errors").notNull().default(0),
+  inningScores: text("inning_scores"),
+  homeBoxData: text("home_box_data"),
+  awayBoxData: text("away_box_data"),
+  status: text("status").notNull().default("pending"),
+  confirmedByUserId: varchar("confirmed_by_user_id"),
+  disputedByUserId: varchar("disputed_by_user_id"),
+  disputeReason: text("dispute_reason"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertGameReportSchema = createInsertSchema(gameReports).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertGameReport = z.infer<typeof insertGameReportSchema>;
+export type GameReport = typeof gameReports.$inferSelect;
+
 const LEAGUE_EVENT_TYPES = ["SIGNING", "TRANSFER", "DRAFT", "GAME_RESULT", "AWARD", "PHASE_CHANGE", "ROSTER_CUT", "WALKON", "STORYLINE"] as const;
 export type LeagueEventType = (typeof LEAGUE_EVENT_TYPES)[number];
 

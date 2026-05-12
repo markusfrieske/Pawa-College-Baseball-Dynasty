@@ -4,6 +4,7 @@ import {
   recruitingActionsLog, recruitTopSchools, transferPortalInterests, playerHistory, playerPromises,
   playerSeasonStats, walkonPool,
   leagueEvents,
+  gameReports,
   storylineRecruits, storylineEvents, storylineVotes,
   type User, type InsertUser,
   type League, type InsertLeague,
@@ -30,6 +31,7 @@ import {
   type SavedRoster, type InsertSavedRoster,
   type SavedRecruitingClass, type InsertSavedRecruitingClass,
   type LeagueEvent, type InsertLeagueEvent,
+  type GameReport, type InsertGameReport,
   type StorylineRecruit, type InsertStorylineRecruit,
   type StorylineEvent, type InsertStorylineEvent,
   type StorylineVote, type InsertStorylineVote,
@@ -167,6 +169,12 @@ export interface IStorage {
   createSavedRecruitingClass(data: InsertSavedRecruitingClass): Promise<SavedRecruitingClass>;
   updateSavedRecruitingClass(id: string, data: Partial<SavedRecruitingClass>): Promise<SavedRecruitingClass | undefined>;
   deleteSavedRecruitingClass(id: string): Promise<void>;
+
+  // Game reports (manual reporting)
+  getGameReport(gameId: string): Promise<GameReport | undefined>;
+  getGameReportsByLeague(leagueId: string): Promise<GameReport[]>;
+  createGameReport(data: InsertGameReport): Promise<GameReport>;
+  updateGameReport(id: string, data: Partial<GameReport>): Promise<GameReport | undefined>;
 
   // Storyline system
   getStorylineRecruitsByLeague(leagueId: string, season?: number): Promise<StorylineRecruit[]>;
@@ -1021,6 +1029,26 @@ export class DatabaseStorage implements IStorage {
     await db.update(storylineEvents)
       .set({ eventImageUrl: imageUrl })
       .where(and(eq(storylineEvents.templateId, templateId), isNull(storylineEvents.eventImageUrl)));
+  }
+
+  // ─── Game Reports ─────────────────────────────────────────────────────────────
+  async getGameReport(gameId: string): Promise<GameReport | undefined> {
+    const [r] = await db.select().from(gameReports).where(eq(gameReports.gameId, gameId));
+    return r || undefined;
+  }
+
+  async getGameReportsByLeague(leagueId: string): Promise<GameReport[]> {
+    return db.select().from(gameReports).where(eq(gameReports.leagueId, leagueId)).orderBy(desc(gameReports.createdAt));
+  }
+
+  async createGameReport(data: InsertGameReport): Promise<GameReport> {
+    const [r] = await db.insert(gameReports).values(data).returning();
+    return r;
+  }
+
+  async updateGameReport(id: string, data: Partial<GameReport>): Promise<GameReport | undefined> {
+    const [r] = await db.update(gameReports).set({ ...data, updatedAt: new Date() }).where(eq(gameReports.id, id)).returning();
+    return r || undefined;
   }
 
   // ─── Storyline Votes ─────────────────────────────────────────────────────────

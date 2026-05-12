@@ -433,6 +433,9 @@ export default function CommissionerPage() {
               <TabsTrigger value="invites" className="font-pixel text-[8px] whitespace-nowrap data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
                 Invites
               </TabsTrigger>
+              <TabsTrigger value="reports" className="font-pixel text-[8px] whitespace-nowrap data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
+                Reports
+              </TabsTrigger>
             </TabsList>
           </div>
 
@@ -474,6 +477,10 @@ export default function CommissionerPage() {
 
           <TabsContent value="invites">
             <InvitesTab leagueId={id!} invites={data?.invites || []} />
+          </TabsContent>
+
+          <TabsContent value="reports">
+            <GameReportsTab leagueId={id!} />
           </TabsContent>
         </Tabs>
       </main>
@@ -2160,6 +2167,169 @@ function CWSSeriesStatus({ games }: { games: PostseasonGame[] }) {
         simSummary={simSummary}
         data-testid="sim-progress-overlay"
       />
+    </div>
+  );
+}
+
+interface GameReport {
+  id: string;
+  gameId: string;
+  leagueId: string;
+  reporterUserId: string;
+  reporterTeamId: string;
+  homeScore: number;
+  awayScore: number;
+  homeHits: number;
+  awayHits: number;
+  homeErrors: number;
+  awayErrors: number;
+  status: string;
+  disputeReason: string | null;
+  createdAt: string;
+}
+
+function GameReportsTab({ leagueId }: { leagueId: string }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const { data: reports, isLoading } = useQuery<GameReport[]>({
+    queryKey: ["/api/leagues", leagueId, "game-reports"],
+    queryFn: async () => {
+      const res = await fetch(`/api/leagues/${leagueId}/game-reports`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch reports");
+      return res.json();
+    },
+  });
+
+  const { data: scheduleData } = useQuery<{ games: any[]; humanTeamIds: string[] }>({
+    queryKey: ["/api/leagues", leagueId, "schedule"],
+  });
+
+  const finalizeMutation = useMutation({
+    mutationFn: async (gameId: string) => {
+      return apiRequest("POST", `/api/leagues/${leagueId}/games/${gameId}/report/finalize`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "game-reports"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "schedule"] });
+      toast({ title: "Game Finalized", description: "The reported score has been accepted." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        {[1, 2].map(i => <Skeleton key={i} className="h-24 w-full" />)}
+      </div>
+    );
+  }
+
+  const pending = reports?.filter(r => r.status === "pending") ?? [];
+  const disputed = reports?.filter(r => r.status === "disputed") ?? [];
+  const confirmed = reports?.filter(r => r.status === "confirmed") ?? [];
+
+  const getGameInfo = (report: GameReport) => {
+    const game = scheduleData?.games?.find((g: any) => g.id === report.gameId);
+    return game;
+  };
+
+  function ReportCard({ report }: { report: GameReport }) {
+    const game = getGameInfo(report);
+    const isDisputed = report.status === "disputed";
+    const isPending = report.status === "pending";
+
+    return (
+      <div className={`p-4 rounded border ${isDisputed ? "bg-red-900/20 border-red-800/40" : isPending ? "bg-yellow-900/10 border-yellow-700/30" : "bg-green-900/10 border-green-800/30"}`} data-testid={`report-card-${report.id}`}>
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className={`text-[9px] ${isDisputed ? "border-red-600 text-red-400" : isPending ? "border-yellow-600 text-yellow-400" : "border-green-600 text-green-400"}`}>
+                {report.status.toUpperCase()}
+              </Badge>
+              {game && (
+                <span className="text-sm font-medium">
+                  {game.awayTeam?.name ?? "Away"} @ {game.homeTeam?.name ?? "Home"}
+                </span>
+              )}
+            </div>
+            <p className="text-sm text-foreground font-bold">
+              Score: {report.awayScore} - {report.homeScore}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {report.awayHits}H / {report.homeHits}H &nbsp;|&nbsp; {report.awayErrors}E / {report.homeErrors}E
+            </p>
+            {report.disputeReason && (
+              <p className="text-xs text-red-400 flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3" />
+                {report.disputeReason}
+              </p>
+            )}
+            <p className="text-[9px] text-muted-foreground">
+              Submitted {new Date(report.createdAt).toLocaleDateString()}
+            </p>
+          </div>
+          {(isPending || isDisputed) && (
+            <RetroButton
+              size="sm"
+              variant="primary"
+              onClick={() => finalizeMutation.mutate(report.gameId)}
+              disabled={finalizeMutation.isPending}
+              data-testid={`button-finalize-${report.id}`}
+            >
+              <Check className="w-3 h-3 mr-1" /> Force Finalize
+            </RetroButton>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {disputed.length > 0 && (
+        <RetroCard>
+          <RetroCardHeader>
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-red-400" />
+              <span className="text-red-400">Disputed Reports ({disputed.length})</span>
+            </div>
+          </RetroCardHeader>
+          <RetroCardContent className="space-y-3">
+            {disputed.map(r => <ReportCard key={r.id} report={r} />)}
+          </RetroCardContent>
+        </RetroCard>
+      )}
+
+      {pending.length > 0 && (
+        <RetroCard>
+          <RetroCardHeader>
+            <span className="text-yellow-400">Pending Reports ({pending.length})</span>
+          </RetroCardHeader>
+          <RetroCardContent className="space-y-3">
+            {pending.map(r => <ReportCard key={r.id} report={r} />)}
+          </RetroCardContent>
+        </RetroCard>
+      )}
+
+      {confirmed.length > 0 && (
+        <RetroCard>
+          <RetroCardHeader>
+            <span>Confirmed Reports ({confirmed.length})</span>
+          </RetroCardHeader>
+          <RetroCardContent className="space-y-3">
+            {confirmed.map(r => <ReportCard key={r.id} report={r} />)}
+          </RetroCardContent>
+        </RetroCard>
+      )}
+
+      {(reports?.length ?? 0) === 0 && (
+        <div className="text-center py-12 text-muted-foreground text-sm">
+          No game reports yet. Reports appear here when human coaches submit game results.
+        </div>
+      )}
     </div>
   );
 }
