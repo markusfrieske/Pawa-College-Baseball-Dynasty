@@ -4306,6 +4306,9 @@ export async function registerRoutes(
         }
       }
 
+      // Returns the report in whatever status it is currently in (pending, disputed, confirmed,
+      // or null if no report exists yet). Callers should inspect report.status rather than
+      // assuming the response is always a pending report.
       const report = await storage.getGameReport(fetchGameId);
       res.json(report || null);
     } catch (error) {
