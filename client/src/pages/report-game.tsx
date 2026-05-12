@@ -619,12 +619,22 @@ function BattingStep({ label, players, batting, onChange, onInit }: { label: str
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-medium text-gold">{label} Batting</h3>
-        {batting.length === 0 && (
-          <RetroButton size="sm" variant="outline" onClick={onInit} data-testid="button-load-lineup">
-            Load Starting Lineup
-          </RetroButton>
-        )}
+        <div className="flex items-center gap-2">
+          <span className={`text-[10px] font-pixel ${batting.length < 9 ? "text-red-400" : "text-green-400"}`} data-testid="text-batter-count">
+            {batting.length}/9 batters
+          </span>
+          {batting.length === 0 && (
+            <RetroButton size="sm" variant="outline" onClick={onInit} data-testid="button-load-lineup">
+              Load Starting Lineup
+            </RetroButton>
+          )}
+        </div>
       </div>
+      {batting.length > 0 && batting.length < 9 && (
+        <div className="flex items-center gap-1 text-[10px] text-red-400" data-testid="text-batter-count-warning">
+          <AlertTriangle className="w-3 h-3" /> Need at least 9 batters to continue
+        </div>
+      )}
 
       {available.length > 0 && (
         <div>
@@ -770,14 +780,24 @@ function PitchingStep({ homeTeam, awayTeam, homePlayers, awayPlayers, homePitchi
                 <tr key={p.playerId} className="border-b border-gold/10">
                   <td className="p-1 text-foreground font-medium">{p.name}</td>
                   <td className="p-0.5">
-                    <input
-                      type="text"
-                      value={p.ip}
-                      onChange={e => onUpdate(i, "ip", e.target.value)}
-                      className="w-12 h-7 text-center text-xs bg-muted/40 border border-border rounded focus:outline-none focus:border-gold text-foreground"
-                      placeholder="0.0"
-                      data-testid={`input-pitcher-${i}-ip`}
-                    />
+                    {(() => {
+                      const ipValid = /^\d+(\.[012])?$/.test(p.ip);
+                      return (
+                        <div className="flex flex-col items-center gap-0.5">
+                          <input
+                            type="text"
+                            value={p.ip}
+                            onChange={e => onUpdate(i, "ip", e.target.value)}
+                            className={`w-12 h-7 text-center text-xs bg-muted/40 border rounded focus:outline-none text-foreground ${ipValid ? "border-border focus:border-gold" : "border-red-500 focus:border-red-400"}`}
+                            placeholder="0.0"
+                            data-testid={`input-pitcher-${i}-ip`}
+                          />
+                          {!ipValid && p.ip.length > 0 && (
+                            <span className="text-[8px] text-red-400 leading-none" data-testid={`text-ip-error-${i}`}>bad format</span>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </td>
                   {(["h", "r", "er", "bb", "so", "hr"] as (keyof PitcherEntry)[]).map(field => (
                     <td key={field} className="p-0.5">
@@ -918,12 +938,32 @@ function ReviewStep({ homeTeam, awayTeam, homeScore, awayScore, homeHits, awayHi
     );
   }
 
+  const homeBattingRuns = homeBatting.reduce((a, b) => a + b.r, 0);
+  const awayBattingRuns = awayBatting.reduce((a, b) => a + b.r, 0);
+  const homeRunsMismatch = homeBatting.length > 0 && homeBattingRuns !== homeScore;
+  const awayRunsMismatch = awayBatting.length > 0 && awayBattingRuns !== awayScore;
+
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-2 p-3 bg-yellow-900/20 border border-yellow-700/40 rounded text-xs text-yellow-300">
         <AlertTriangle className="w-4 h-4 shrink-0" />
         <span>Review your box score carefully. Once submitted, the opposing coach must confirm or dispute this report.</span>
       </div>
+
+      {(homeRunsMismatch || awayRunsMismatch) && (
+        <div className="space-y-1">
+          {awayRunsMismatch && (
+            <div className="flex items-center gap-1 text-[10px] text-red-400" data-testid="text-away-runs-mismatch">
+              <AlertTriangle className="w-3 h-3" /> {awayTeam.abbreviation} batting runs ({awayBattingRuns}) don't match linescore ({awayScore}) — go back to fix
+            </div>
+          )}
+          {homeRunsMismatch && (
+            <div className="flex items-center gap-1 text-[10px] text-red-400" data-testid="text-home-runs-mismatch">
+              <AlertTriangle className="w-3 h-3" /> {homeTeam.abbreviation} batting runs ({homeBattingRuns}) don't match linescore ({homeScore}) — go back to fix
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="overflow-x-auto">
         <table className="w-full text-xs border-collapse">
@@ -941,7 +981,7 @@ function ReviewStep({ homeTeam, awayTeam, homeScore, awayScore, homeHits, awayHi
                 <TeamBadge abbreviation={awayTeam.abbreviation} primaryColor={awayTeam.primaryColor} secondaryColor={awayTeam.secondaryColor} size="sm" />
                 {awayTeam.name}
               </td>
-              <td className={`text-center p-2 font-bold ${awayScore > homeScore ? "text-gold" : "text-muted-foreground"}`}>{awayScore}</td>
+              <td className={`text-center p-2 font-bold ${awayRunsMismatch ? "text-red-400" : awayScore > homeScore ? "text-gold" : "text-muted-foreground"}`}>{awayScore}</td>
               <td className="text-center p-2">{awayHits}</td>
               <td className="text-center p-2">{awayErrors}</td>
             </tr>
@@ -950,7 +990,7 @@ function ReviewStep({ homeTeam, awayTeam, homeScore, awayScore, homeHits, awayHi
                 <TeamBadge abbreviation={homeTeam.abbreviation} primaryColor={homeTeam.primaryColor} secondaryColor={homeTeam.secondaryColor} size="sm" />
                 {homeTeam.name}
               </td>
-              <td className={`text-center p-2 font-bold ${homeScore > awayScore ? "text-gold" : "text-muted-foreground"}`}>{homeScore}</td>
+              <td className={`text-center p-2 font-bold ${homeRunsMismatch ? "text-red-400" : homeScore > awayScore ? "text-gold" : "text-muted-foreground"}`}>{homeScore}</td>
               <td className="text-center p-2">{homeHits}</td>
               <td className="text-center p-2">{homeErrors}</td>
             </tr>
