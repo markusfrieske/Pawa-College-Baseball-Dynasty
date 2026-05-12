@@ -1,7 +1,8 @@
 import type { Express, Request, Response } from "express";
 import { storage } from "./storage";
-import { generateStorylineEvent, resolveVotes, pickStorylineRecruits, ARCHETYPE_DEFS, maybeTransitionArchetype, applyVolatilityModifier } from "./storylineEngine";
+import { generateStorylineEvent, resolveVotes, pickStorylineRecruits, ARCHETYPE_DEFS, maybeTransitionArchetype, applyVolatilityModifier, positionToSceneGroupKey } from "./storylineEngine";
 import type { Archetype } from "./storylineEngine";
+import { isPitcher } from "@shared/positions";
 import type { ChoiceWeights } from "@shared/schema";
 import { getAbilitiesForPosition } from "@shared/abilities";
 
@@ -112,8 +113,8 @@ async function generateEventSceneImage(
     return b64 ? `data:image/png;base64,${b64}` : null;
   }
 
-  const styledPrompt = `Retro 16-bit pixel art, SNES-era style, vivid saturated colors, dynamic composition — ${scenePrompt}`;
-  const fallbackPrompt = "Retro 16-bit pixel art, SNES-era style, vivid saturated colors, dynamic composition — college baseball recruitment drama, bold pixel characters, bright stadium lights, no text";
+  const styledPrompt = `High-quality modern pixel art, vivid saturated colors, diverse rich palette, no green color cast, Shovel Knight and Octopath Traveler aesthetic, cinematic dramatic lighting, no text — ${scenePrompt}`;
+  const fallbackPrompt = "High-quality modern pixel art, vivid saturated colors, diverse rich palette, no green color cast, Shovel Knight and Octopath Traveler aesthetic, cinematic dramatic lighting, college baseball recruitment drama, bold pixel characters, bright stadium lights, no text";
   const delays = [1000, 2000, 4000];
   let dataUrl: string | null = null;
 
@@ -138,8 +139,9 @@ async function generateEventSceneImage(
 }
 
 // Runs at startup to backfill scene images for any existing events that are missing them.
-// Groups events by templateId, looks up each template's scenePrompt, generates once per
-// unique template (with a 2-second throttle between requests), then updates all matching rows.
+// Groups events by templateId, resolves the recruit's position for the first event per template,
+// selects the most-specific scenePrompt variant (by position → pitcher → default), then generates
+// once per unique template (with a 2-second throttle between requests) and updates all matching rows.
 export async function warmupEventSceneImages(): Promise<void> {
   try {
     const eventsWithoutImages = await storage.getStorylineEventsWithMissingImages();
@@ -152,13 +154,33 @@ export async function warmupEventSceneImages(): Promise<void> {
       if (!event.templateId || seenTemplates.has(event.templateId)) continue;
       seenTemplates.add(event.templateId);
 
-      // Find scenePrompt by looking up the template in ARCHETYPE_DEFS
-      let scenePrompt: string | undefined;
+      // Find the matching template definition
+      let template: import("./storylineEngine").ArchetypeEventTemplate | undefined;
       for (const def of Object.values(ARCHETYPE_DEFS)) {
         const all = [...def.events, ...(def.legendaryEvents ?? [])];
         const t = all.find(e => e.id === event.templateId);
-        if (t?.scenePrompt) { scenePrompt = t.scenePrompt; break; }
+        if (t) { template = t; break; }
       }
+      if (!template) continue;
+
+      // Resolve the recruit's position so we can pick the most-specific prompt variant.
+      // Chain: scenePromptByPosition[groupKey] → scenePromptPitcher → scenePrompt (default)
+      let position: string | null = null;
+      if (event.storylineRecruitId) {
+        const sr = await storage.getStorylineRecruit(event.storylineRecruitId).catch(() => null);
+        if (sr?.recruitId) {
+          const recruit = await storage.getRecruit(sr.recruitId).catch(() => null);
+          position = recruit?.position ?? null;
+        }
+      }
+
+      const pitcherMode = Boolean(position && isPitcher(position));
+      const posGroupKey = position ? positionToSceneGroupKey(position) : null;
+      const scenePrompt =
+        (posGroupKey && template.scenePromptByPosition?.[posGroupKey]) ||
+        (pitcherMode && template.scenePromptPitcher) ||
+        template.scenePrompt;
+
       if (scenePrompt) {
         toProcess.push({ eventId: event.id, templateId: event.templateId, scenePrompt });
       }
