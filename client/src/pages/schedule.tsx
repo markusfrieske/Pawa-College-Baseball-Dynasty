@@ -40,6 +40,7 @@ interface ScheduleData {
   userTeamId: string | null;
   humanTeamIds: string[];
   reportsByGameId: Record<string, GameReport>;
+  isCommissioner: boolean;
 }
 
 interface BoxScoreBatter {
@@ -214,6 +215,7 @@ export default function SchedulePage() {
                     onDispute={() => disputeReportMutation.mutate({ gameId: game.id, reason: "Score is incorrect" })}
                     isConfirming={confirmReportMutation.isPending}
                     isDisputing={disputeReportMutation.isPending}
+                    isCommissioner={data?.isCommissioner}
                   />
                 ))}
               </div>
@@ -248,7 +250,7 @@ export default function SchedulePage() {
   );
 }
 
-function GameRow({ game, allGamesInGroup, onEdit, onViewBoxScore, userTeamId, leagueId, humanTeamIds, report, onConfirm, onDispute, isConfirming, isDisputing }: {
+function GameRow({ game, allGamesInGroup, onEdit, onViewBoxScore, userTeamId, leagueId, humanTeamIds, report, onConfirm, onDispute, isConfirming, isDisputing, isCommissioner }: {
   game: GameWithTeams;
   allGamesInGroup: GameWithTeams[];
   onEdit: () => void;
@@ -261,6 +263,7 @@ function GameRow({ game, allGamesInGroup, onEdit, onViewBoxScore, userTeamId, le
   onDispute: () => void;
   isConfirming: boolean;
   isDisputing: boolean;
+  isCommissioner?: boolean;
 }) {
   const isUserGame = userTeamId && (game.homeTeamId === userTeamId || game.awayTeamId === userTeamId);
   const userWon = isUserGame && game.isComplete && (
@@ -351,7 +354,7 @@ function GameRow({ game, allGamesInGroup, onEdit, onViewBoxScore, userTeamId, le
         <div className="flex items-center gap-1">
           {!game.isComplete && (
             <>
-              {isHumanVsHuman && isUserGame && !report && (
+              {isHumanVsHuman && (isUserGame || isCommissioner) && !report && (
                 isSeriesLocked ? (
                   <RetroButton variant="outline" size="sm" disabled className="opacity-40 cursor-not-allowed" data-testid={`button-report-locked-${game.id}`}>
                     <Lock className="w-3 h-3" />

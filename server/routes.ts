@@ -4157,6 +4157,7 @@ export async function registerRoutes(
         userTeamId: userTeam?.id || null,
         humanTeamIds,
         reportsByGameId,
+        isCommissioner: league.commissionerId === req.session.userId,
       });
     } catch (error) {
       console.error("Failed to fetch schedule:", error);
@@ -4287,13 +4288,14 @@ export async function registerRoutes(
       const existing = await storage.getGameReport(gameId);
       if (existing) return res.status(400).json({ message: "A report already exists for this game" });
 
+      const isCommissioner = league.commissionerId === req.session.userId;
       const coaches = await storage.getCoachesByLeague(leagueId);
       const coach = coaches.find(c => c.userId === req.session.userId);
-      if (!coach) return res.status(403).json({ message: "You are not a coach in this league" });
-      if (!coach.teamId) return res.status(403).json({ message: "You do not have a team assigned" });
+      const isInvolvedCoach = coach?.teamId && (game.homeTeamId === coach.teamId || game.awayTeamId === coach.teamId);
 
-      const isInvolvedCoach = game.homeTeamId === coach.teamId || game.awayTeamId === coach.teamId;
-      if (!isInvolvedCoach) return res.status(403).json({ message: "You are not a coach of either team in this game" });
+      if (!isCommissioner && !isInvolvedCoach) {
+        return res.status(403).json({ message: "Only an involved team's coach or the commissioner can report game results" });
+      }
 
       const { homeScore, awayScore, homeHits, awayHits, homeErrors, awayErrors, inningScores, homeBoxData, awayBoxData } = req.body;
 
@@ -4305,7 +4307,7 @@ export async function registerRoutes(
         gameId: game.id,
         leagueId,
         reporterUserId: req.session.userId!,
-        reporterTeamId: coach.teamId,
+        reporterTeamId: coach?.teamId ?? null,
         homeScore,
         awayScore,
         homeHits: homeHits ?? 0,

@@ -1312,7 +1312,7 @@ export const gameReports = pgTable("game_reports", {
   gameId: varchar("game_id").notNull().references(() => games.id),
   leagueId: varchar("league_id").notNull().references(() => leagues.id),
   reporterUserId: varchar("reporter_user_id").notNull(),
-  reporterTeamId: varchar("reporter_team_id").notNull().references(() => teams.id),
+  reporterTeamId: varchar("reporter_team_id").references(() => teams.id),
   homeScore: integer("home_score").notNull(),
   awayScore: integer("away_score").notNull(),
   homeHits: integer("home_hits").notNull().default(0),

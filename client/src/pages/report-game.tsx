@@ -226,7 +226,7 @@ export default function ReportGamePage() {
     if (step === 3) {
       if (homePitching.length < 1) return "Home team needs at least 1 pitcher";
       if (awayPitching.length < 1) return "Away team needs at least 1 pitcher";
-      const ipRe = /^\d+\.\d?$/;
+      const ipRe = /^\d+(\.[012])?$/;
       for (const p of homePitching) {
         if (!ipRe.test(p.ip)) return `Invalid IP format "${p.ip}" for ${p.name}. Use format like "6.0" or "2.1"`;
       }
@@ -797,7 +797,7 @@ function PitchingStep({ homeTeam, awayTeam, homePlayers, awayPlayers, homePitchi
         team={homeTeam}
         players={homePlayers}
         pitching={homePitching}
-        onUpdate={(i: number, f: keyof PitcherEntry, v: any) => updatePitcher(homePitching, onChangeHome, i, f, v)}
+        onUpdate={(i, f, v) => updatePitcher(homePitching, onChangeHome, i, f, v)}
         onAdd={() => addPitcher(homePitching, onChangeHome, homePlayers)}
         onRemove={(i: number) => removePitcher(homePitching, onChangeHome, i)}
       />
@@ -805,7 +805,7 @@ function PitchingStep({ homeTeam, awayTeam, homePlayers, awayPlayers, homePitchi
         team={awayTeam}
         players={awayPlayers}
         pitching={awayPitching}
-        onUpdate={(i: number, f: keyof PitcherEntry, v: any) => updatePitcher(awayPitching, onChangeAway, i, f, v)}
+        onUpdate={(i, f, v) => updatePitcher(awayPitching, onChangeAway, i, f, v)}
         onAdd={() => addPitcher(awayPitching, onChangeAway, awayPlayers)}
         onRemove={(i: number) => removePitcher(awayPitching, onChangeAway, i)}
       />
