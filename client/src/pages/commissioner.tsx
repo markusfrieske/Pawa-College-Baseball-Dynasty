@@ -2215,6 +2215,16 @@ function GameReportsTab({ leagueId }: { leagueId: string }) {
     queryKey: ["/api/leagues", leagueId, "schedule"],
   });
 
+  // Reuse the already-cached commissioner data to build a userId → coachName lookup.
+  const { data: commissionerData } = useQuery<{ readyStatus: Array<{ userId: string | null; coachName: string }> }>({
+    queryKey: ["/api/leagues", leagueId, "commissioner"],
+  });
+  const coachNameByUserId = new Map<string, string>(
+    (commissionerData?.readyStatus ?? [])
+      .filter(s => s.userId)
+      .map(s => [s.userId!, s.coachName])
+  );
+
   const finalizeMutation = useMutation({
     mutationFn: async (gameId: string) => {
       return apiRequest("POST", `/api/leagues/${leagueId}/games/${gameId}/report/finalize`, {});
@@ -2252,6 +2262,10 @@ function GameReportsTab({ leagueId }: { leagueId: string }) {
     const reporterTeamName = report.reporterTeamId
       ? (game?.homeTeamId === report.reporterTeamId ? game?.homeTeam?.name : game?.awayTeam?.name) ?? "Unknown team"
       : "Commissioner";
+    const reporterCoachName = coachNameByUserId.get(report.reporterUserId) ?? null;
+    const reporterLabel = reporterCoachName
+      ? `${reporterCoachName} (${reporterTeamName})`
+      : reporterTeamName;
 
     const parsedInnings: Array<[number, number]> | null = (() => {
       if (!report.inningScores) return null;
@@ -2286,7 +2300,7 @@ function GameReportsTab({ leagueId }: { leagueId: string }) {
               {report.awayHits}H / {report.homeHits}H &nbsp;|&nbsp; {report.awayErrors}E / {report.homeErrors}E
             </p>
             <p className="text-xs text-muted-foreground">
-              Reported by: <span className="text-foreground">{reporterTeamName}</span>
+              Reported by: <span className="text-foreground">{reporterLabel}</span>
             </p>
             {parsedInnings && parsedInnings.length > 0 && (
               <div className="text-[9px] font-mono text-muted-foreground overflow-x-auto">
