@@ -121,6 +121,31 @@ app.use((req, res, next) => {
     console.warn("[startup-migration] recruits pitch_ch constraint failed:", e);
   }
 
+  // One-time migration: clear stale storyline scene images generated with the old
+  // green-tinted prompt style so the warmup re-generates them with the new vivid palette.
+  // Tracked in a one_time_migrations table so this runs exactly once per environment.
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS one_time_migrations (
+        name TEXT PRIMARY KEY,
+        applied_at TIMESTAMPTZ DEFAULT NOW()
+      )
+    `);
+    const { rowCount } = await pool.query(`
+      INSERT INTO one_time_migrations (name)
+      VALUES ('clear_stale_storyline_scene_images_v2')
+      ON CONFLICT (name) DO NOTHING
+    `);
+    if (rowCount && rowCount > 0) {
+      const result = await pool.query(
+        "UPDATE storyline_events SET event_image_url = NULL WHERE event_image_url IS NOT NULL"
+      );
+      console.log(`[startup-migration] cleared ${result.rowCount} stale storyline scene image(s) for prompt-style regeneration`);
+    }
+  } catch (e) {
+    console.warn("[startup-migration] clear stale storyline scene images failed:", e);
+  }
+
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {

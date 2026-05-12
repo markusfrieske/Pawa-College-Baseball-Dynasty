@@ -1,7 +1,6 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { pool } from "./db";
 import { registerStorylineRoutes, initializeStorylineRecruits, generateAndResolveStorylineEvents, warmupEventSceneImages } from "./storyline-routes";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
@@ -12262,13 +12261,6 @@ export async function registerRoutes(
   });
 
   registerStorylineRoutes(app);
-
-  // One-time cache clear: null out all stale event_image_url values so the warmup re-generates
-  // them with the updated prompts (green tint removed, modern pixel art style applied).
-  // Safe to run every startup — warmup skips rows that already have images.
-  pool.query("UPDATE storyline_events SET event_image_url = NULL WHERE event_image_url IS NOT NULL")
-    .then(r => { if (r.rowCount && r.rowCount > 0) console.log(`[startup] cleared ${r.rowCount} stale storyline scene image(s) for regeneration`); })
-    .catch(err => console.warn("[startup] failed to clear stale scene images:", err));
 
   // Backfill scene images for any existing events created before image generation was added.
   // Runs non-blocking in the background; safe to run on every startup (skips if no images are missing).
