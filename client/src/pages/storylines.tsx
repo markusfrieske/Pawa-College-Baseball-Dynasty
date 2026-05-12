@@ -314,11 +314,11 @@ function StorylineCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: strin
           <div className="mt-4 space-y-3">
             <div className={`rounded-md border overflow-hidden ${isResolved ? "bg-muted/20 border-border/40" : "bg-card/80 border-gold/20"}`}>
               {event.eventImageUrl && (
-                <div className="w-full aspect-[16/7] overflow-hidden border-b border-gold/20">
+                <div className="w-full aspect-[16/7] overflow-hidden border-b border-gold/20 bg-black flex items-center justify-center">
                   <img
                     src={event.eventImageUrl}
                     alt="Scene"
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain"
                     style={{ imageRendering: "pixelated" }}
                     loading="lazy"
                   />
