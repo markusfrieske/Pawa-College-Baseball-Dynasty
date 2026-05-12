@@ -196,7 +196,7 @@ export interface IStorage {
   getFirstStorylineEventImageByTemplateId(templateId: string): Promise<string | null>;
   getStorylineEventsWithMissingImages(): Promise<StorylineEvent[]>;
   updateStorylineEventImageByTemplateId(templateId: string, imageUrl: string): Promise<void>;
-  setStorylineEventImageByTemplateId(templateId: string, imageUrl: string): Promise<void>;
+  setStorylineEventImageByLeagueAndTemplate(leagueId: string, templateId: string, imageUrl: string): Promise<void>;
 
   getStorylineVotesByEvent(eventId: string): Promise<StorylineVote[]>;
   getStorylineVoteByTeam(eventId: string, teamId: string): Promise<StorylineVote | undefined>;
@@ -1034,10 +1034,10 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(storylineEvents.templateId, templateId), isNull(storylineEvents.eventImageUrl)));
   }
 
-  async setStorylineEventImageByTemplateId(templateId: string, imageUrl: string): Promise<void> {
+  async setStorylineEventImageByLeagueAndTemplate(leagueId: string, templateId: string, imageUrl: string): Promise<void> {
     await db.update(storylineEvents)
       .set({ eventImageUrl: imageUrl })
-      .where(eq(storylineEvents.templateId, templateId));
+      .where(and(eq(storylineEvents.leagueId, leagueId), eq(storylineEvents.templateId, templateId)));
   }
 
   // ─── Game Reports ─────────────────────────────────────────────────────────────
