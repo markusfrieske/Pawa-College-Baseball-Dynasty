@@ -4362,8 +4362,9 @@ export async function registerRoutes(
       if (game.leagueId !== leagueId) return res.status(404).json({ message: "Game not found in this league" });
       if (game.isComplete) return res.status(400).json({ message: "Game is already complete" });
 
-      if (game.phase !== "regular") {
-        return res.status(400).json({ message: "Manual reporting is only available for regular-season games" });
+      const reportablePhases = ["regular", "conference_championship", "super_regionals", "cws"];
+      if (!reportablePhases.includes(game.phase ?? "")) {
+        return res.status(400).json({ message: "Manual reporting is not available for this game phase" });
       }
 
       const existing = await storage.getGameReport(gameId);
