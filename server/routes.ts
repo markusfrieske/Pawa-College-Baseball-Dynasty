@@ -4197,6 +4197,18 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Only the commissioner can submit quick scores. Coaches must use the Report Game flow." });
       }
 
+      // Block quick-score when a pending or disputed report exists for this game.
+      // Coaches must use the Report Game flow; commissioner must resolve the report first.
+      const existingReport = await storage.getGameReport(patchGameId);
+      if (existingReport && (existingReport.status === "pending" || existingReport.status === "disputed")) {
+        return res.status(409).json({
+          message: `Cannot quick-score: a ${existingReport.status} game report exists. Use Force Finalize on the commissioner page to resolve it.`,
+        });
+      }
+
+      const patchGame = await storage.getGame(patchGameId);
+      if (!patchGame) return res.status(404).json({ message: "Game not found" });
+
       const game = await storage.updateGame(patchGameId, {
         homeScore,
         awayScore,
@@ -4517,6 +4529,16 @@ export async function registerRoutes(
 
       if (!isCommissioner && !isOpposingCoach) {
         return res.status(403).json({ message: "Only the opposing team's coach or the commissioner can confirm this report" });
+      }
+
+      if (game.isComplete) {
+        // Game was already finalized (e.g. quick-scored before guard was added, or other race).
+        // Just mark the report confirmed without re-running standings/stats accumulation.
+        await storage.updateGameReport(report.id, {
+          status: "confirmed",
+          confirmedByUserId: req.session.userId,
+        });
+        return res.json({ message: "Report confirmed (game was already finalized)" });
       }
 
       // Finalize first; only update status if finalization succeeds (prevents partial state)
