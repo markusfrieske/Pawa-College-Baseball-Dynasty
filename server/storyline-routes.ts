@@ -82,6 +82,7 @@ async function generateEventSceneImageCore(
   templateId: string,
   scenePrompt: string,
   logTag: string,
+  overwrite = false,
 ): Promise<string | null> {
   const baseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
   const apiKey  = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
@@ -123,8 +124,11 @@ async function generateEventSceneImageCore(
   }
 
   if (dataUrl) {
-    await storage.updateStorylineEventImageByTemplateId(templateId, dataUrl).catch(err =>
-      console.warn(`[storylines] failed to backfill ${logTag} by templateId:`, err),
+    const update = overwrite
+      ? storage.setStorylineEventImageByTemplateId(templateId, dataUrl)
+      : storage.updateStorylineEventImageByTemplateId(templateId, dataUrl);
+    await update.catch(err =>
+      console.warn(`[storylines] failed to ${overwrite ? "set" : "backfill"} ${logTag} by templateId:`, err),
     );
   }
   return dataUrl;
@@ -153,7 +157,7 @@ async function generateEventSceneImageForced(
   templateId: string,
   scenePrompt: string,
 ): Promise<string | null> {
-  return generateEventSceneImageCore(templateId, scenePrompt, "forced scene image regen");
+  return generateEventSceneImageCore(templateId, scenePrompt, "forced scene image regen", true);
 }
 
 // Runs at startup to backfill scene images for any existing events that are missing them.
@@ -528,13 +532,12 @@ export function registerStorylineRoutes(app: Express) {
       if (!scenePrompt) return res.status(400).json({ message: "No scene prompt available for this template" });
 
       // Generate first — existing images are untouched until we have a successful result.
+      // generateEventSceneImageForced unconditionally overwrites all events sharing the templateId
+      // (via setStorylineEventImageByTemplateId inside generateEventSceneImageCore with overwrite=true).
       const newImageUrl = await generateEventSceneImageForced(event.templateId, scenePrompt);
       if (!newImageUrl) {
         return res.status(500).json({ message: "Image generation failed — check OpenAI configuration" });
       }
-
-      // Unconditionally overwrite all events sharing this templateId so every card refreshes.
-      await storage.setStorylineEventImageByTemplateId(event.templateId, newImageUrl);
 
       res.json({ eventImageUrl: newImageUrl });
     } catch (err) {
