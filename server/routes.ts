@@ -4173,8 +4173,24 @@ export async function registerRoutes(
       }
 
       const { homeScore, awayScore } = result.data;
-      
-      const game = await storage.updateGame(req.params.gameId, {
+
+      // For human-vs-human games, only the commissioner may use the quick-score path
+      const patchLeagueId = req.params.id as string;
+      const patchGameId = req.params.gameId as string;
+      const patchLeague = await storage.getLeague(patchLeagueId);
+      if (!patchLeague) return res.status(404).json({ message: "League not found" });
+      const patchGame = await storage.getGame(patchGameId);
+      if (patchGame) {
+        const patchTeams = await storage.getTeamsByLeague(patchLeagueId);
+        const patchHome = patchTeams.find(t => t.id === patchGame.homeTeamId);
+        const patchAway = patchTeams.find(t => t.id === patchGame.awayTeamId);
+        const patchIsHvH = patchHome && !patchHome.isCpu && patchAway && !patchAway.isCpu;
+        if (patchIsHvH && patchLeague.commissionerId !== req.session.userId) {
+          return res.status(403).json({ message: "Only the commissioner can submit quick scores for human-vs-human games. Use the Report Game flow instead." });
+        }
+      }
+
+      const game = await storage.updateGame(patchGameId, {
         homeScore,
         awayScore,
         isComplete: true,
@@ -4185,10 +4201,10 @@ export async function registerRoutes(
       }
 
       // Update standings
-      await updateStandingsForGame(req.params.id as string, game.season, game.homeTeamId, game.awayTeamId, homeScore, awayScore, game.isConference);
+      await updateStandingsForGame(patchLeagueId, game.season, game.homeTeamId, game.awayTeamId, homeScore, awayScore, game.isConference);
 
       // Award XP to coaches for wins
-      const leagueTeams = await storage.getTeamsByLeague(req.params.id as string);
+      const leagueTeams = await storage.getTeamsByLeague(patchLeagueId);
       const homeTeam = leagueTeams.find(t => t.id === game.homeTeamId);
       const awayTeam = leagueTeams.find(t => t.id === game.awayTeamId);
       const homeWon = homeScore > awayScore;
@@ -4232,7 +4248,7 @@ export async function registerRoutes(
       }
 
       await storage.createAuditLog({
-        leagueId: req.params.id,
+        leagueId: patchLeagueId,
         userId: req.session.userId,
         action: "Game Score Submitted",
         details: `Final: ${awayScore} - ${homeScore}`,

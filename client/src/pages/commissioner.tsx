@@ -2171,12 +2171,21 @@ function CWSSeriesStatus({ games }: { games: PostseasonGame[] }) {
   );
 }
 
+interface ScheduleGame {
+  id: string;
+  homeTeamId: string;
+  awayTeamId: string;
+  homeTeam?: { name: string; abbreviation: string };
+  awayTeam?: { name: string; abbreviation: string };
+  isComplete: boolean;
+}
+
 interface GameReport {
   id: string;
   gameId: string;
   leagueId: string;
   reporterUserId: string;
-  reporterTeamId: string;
+  reporterTeamId: string | null;
   homeScore: number;
   awayScore: number;
   homeHits: number;
@@ -2185,6 +2194,7 @@ interface GameReport {
   awayErrors: number;
   status: string;
   disputeReason: string | null;
+  inningScores: string | null;
   createdAt: string;
 }
 
@@ -2201,7 +2211,7 @@ function GameReportsTab({ leagueId }: { leagueId: string }) {
     },
   });
 
-  const { data: scheduleData } = useQuery<{ games: any[]; humanTeamIds: string[] }>({
+  const { data: scheduleData } = useQuery<{ games: ScheduleGame[]; humanTeamIds: string[] }>({
     queryKey: ["/api/leagues", leagueId, "schedule"],
   });
 
@@ -2231,9 +2241,8 @@ function GameReportsTab({ leagueId }: { leagueId: string }) {
   const disputed = reports?.filter(r => r.status === "disputed") ?? [];
   const confirmed = reports?.filter(r => r.status === "confirmed") ?? [];
 
-  const getGameInfo = (report: GameReport) => {
-    const game = scheduleData?.games?.find((g: any) => g.id === report.gameId);
-    return game;
+  const getGameInfo = (report: GameReport): ScheduleGame | undefined => {
+    return scheduleData?.games?.find(g => g.id === report.gameId);
   };
 
   function ReportCard({ report }: { report: GameReport }) {
@@ -2241,11 +2250,20 @@ function GameReportsTab({ leagueId }: { leagueId: string }) {
     const isDisputed = report.status === "disputed";
     const isPending = report.status === "pending";
 
+    const reporterTeamName = report.reporterTeamId
+      ? (game?.homeTeamId === report.reporterTeamId ? game?.homeTeam?.name : game?.awayTeam?.name) ?? "Unknown team"
+      : "Commissioner";
+
+    const parsedInnings: number[][] | null = (() => {
+      if (!report.inningScores) return null;
+      try { return JSON.parse(report.inningScores); } catch { return null; }
+    })();
+
     return (
       <div className={`p-4 rounded border ${isDisputed ? "bg-red-900/20 border-red-800/40" : isPending ? "bg-yellow-900/10 border-yellow-700/30" : "bg-green-900/10 border-green-800/30"}`} data-testid={`report-card-${report.id}`}>
         <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
+          <div className="space-y-1 flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
               <Badge variant="outline" className={`text-[9px] ${isDisputed ? "border-red-600 text-red-400" : isPending ? "border-yellow-600 text-yellow-400" : "border-green-600 text-green-400"}`}>
                 {report.status.toUpperCase()}
               </Badge>
@@ -2261,6 +2279,27 @@ function GameReportsTab({ leagueId }: { leagueId: string }) {
             <p className="text-xs text-muted-foreground">
               {report.awayHits}H / {report.homeHits}H &nbsp;|&nbsp; {report.awayErrors}E / {report.homeErrors}E
             </p>
+            <p className="text-xs text-muted-foreground">
+              Reported by: <span className="text-foreground">{reporterTeamName}</span>
+            </p>
+            {parsedInnings && parsedInnings.length === 2 && (
+              <div className="text-[9px] font-mono text-muted-foreground overflow-x-auto">
+                <div className="flex gap-1">
+                  <span className="w-14 shrink-0 text-right pr-1">Away</span>
+                  {parsedInnings[0].map((r: number, i: number) => (
+                    <span key={i} className="w-5 text-center">{r}</span>
+                  ))}
+                  <span className="w-6 text-center font-bold text-foreground">{report.awayScore}</span>
+                </div>
+                <div className="flex gap-1">
+                  <span className="w-14 shrink-0 text-right pr-1">Home</span>
+                  {parsedInnings[1].map((r: number, i: number) => (
+                    <span key={i} className="w-5 text-center">{r}</span>
+                  ))}
+                  <span className="w-6 text-center font-bold text-foreground">{report.homeScore}</span>
+                </div>
+              </div>
+            )}
             {report.disputeReason && (
               <p className="text-xs text-red-400 flex items-center gap-1">
                 <AlertTriangle className="w-3 h-3" />
