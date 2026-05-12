@@ -4323,7 +4323,10 @@ export async function registerRoutes(
       }
 
       const existing = await storage.getGameReport(gameId);
-      if (existing) return res.status(400).json({ message: "A report already exists for this game" });
+      // Only block if an active (pending or disputed) report already exists
+      if (existing && (existing.status === "pending" || existing.status === "disputed")) {
+        return res.status(400).json({ message: "An active report already exists for this game. Wait for it to be confirmed or disputed." });
+      }
 
       // Manual reporting is only for human-vs-human games
       const allTeams = await storage.getTeamsByLeague(leagueId);
@@ -4359,9 +4362,9 @@ export async function registerRoutes(
         awayHits: awayHits ?? 0,
         homeErrors: homeErrors ?? 0,
         awayErrors: awayErrors ?? 0,
-        inningScores: inningScores ? JSON.stringify(inningScores) : null,
-        homeBoxData: homeBoxData ? JSON.stringify(homeBoxData) : null,
-        awayBoxData: awayBoxData ? JSON.stringify(awayBoxData) : null,
+        inningScores: inningScores ?? null,
+        homeBoxData: homeBoxData ?? null,
+        awayBoxData: awayBoxData ?? null,
         status: "pending",
         confirmedByUserId: null,
         disputedByUserId: null,
@@ -4528,9 +4531,9 @@ export async function registerRoutes(
 
   async function finalizeReportedGame(report: GameReport, game: Game, leagueId: string) {
     const { homeScore, awayScore } = report;
-    const homeBoxData = report.homeBoxData ? JSON.parse(report.homeBoxData) : null;
-    const awayBoxData = report.awayBoxData ? JSON.parse(report.awayBoxData) : null;
-    const inningScores = report.inningScores ? JSON.parse(report.inningScores) : [];
+    const homeBoxData = report.homeBoxData as Record<string, unknown> | null;
+    const awayBoxData = report.awayBoxData as Record<string, unknown> | null;
+    const inningScores = (report.inningScores as number[][] | null) ?? [];
 
     const homeHits = report.homeHits ?? 0;
     const awayHits = report.awayHits ?? 0;
