@@ -4260,10 +4260,26 @@ export async function registerRoutes(
     try {
       const fetchLeagueId = req.params.id as string;
       const fetchGameId = req.params.gameId as string;
+
+      const fetchLeague = await storage.getLeague(fetchLeagueId);
+      if (!fetchLeague) return res.status(404).json({ message: "League not found" });
+
       const fetchGame = await storage.getGame(fetchGameId);
       if (!fetchGame || fetchGame.leagueId !== fetchLeagueId) {
         return res.status(404).json({ message: "Game not found in this league" });
       }
+
+      // Only involved coaches or the commissioner may read a game report
+      const isCommissioner = fetchLeague.commissionerId === req.session.userId;
+      if (!isCommissioner) {
+        const fetchCoaches = await storage.getCoachesByLeague(fetchLeagueId);
+        const fetchCoach = fetchCoaches.find(c => c.userId === req.session.userId);
+        const isInvolved = fetchCoach?.teamId && (fetchCoach.teamId === fetchGame.homeTeamId || fetchCoach.teamId === fetchGame.awayTeamId);
+        if (!isInvolved) {
+          return res.status(403).json({ message: "Only involved coaches or the commissioner can view this game report" });
+        }
+      }
+
       const report = await storage.getGameReport(fetchGameId);
       res.json(report || null);
     } catch (error) {
