@@ -183,6 +183,7 @@ function StorylineCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: strin
   const queryClient = useQueryClient();
   const [expanded, setExpanded] = useState(false);
   const [showTimeline, setShowTimeline] = useState(false);
+  const [pendingChoice, setPendingChoice] = useState<string | null>(null);
   const r = sl.recruit;
   const event = sl.latestEvent;
   const isResolved = !!event?.resolvedChoice;
@@ -196,6 +197,7 @@ function StorylineCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: strin
     mutationFn: ({ choice }: { choice: string }) =>
       apiRequest("POST", `/api/leagues/${leagueId}/storylines/events/${event!.id}/vote`, { choice }),
     onSuccess: () => {
+      setPendingChoice(null);
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "storylines"] });
     },
   });
@@ -374,23 +376,53 @@ function StorylineCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: strin
 
                 {expanded && (
                   <div className="space-y-2">
-                    {availableChoices.map((c) => {
-                      const text = c === "A" ? event.choiceA : c === "B" ? event.choiceB : c === "C" ? event.choiceC : event.choiceD || "";
-                      const isMyVote = sl.myVote === c;
-                      return (
+                    {sl.myVote ? (
+                      // Already voted — show confirmed choice, no submit button
+                      availableChoices.map((c) => {
+                        const text = c === "A" ? event.choiceA : c === "B" ? event.choiceB : c === "C" ? event.choiceC : event.choiceD || "";
+                        const isMyVote = sl.myVote === c;
+                        return (
+                          <div
+                            key={c}
+                            className={`w-full text-left px-3 py-2 rounded-md border text-xs ${isMyVote ? CHOICE_ACTIVE[c] : "bg-muted/10 text-muted-foreground/50 border-border/30"}`}
+                            data-testid={`button-vote-${c}-${event.id}`}
+                          >
+                            <span className="font-pixel text-[9px] mr-2">{c}.</span>
+                            {text}
+                            {isMyVote && <span className="ml-2 text-[9px] opacity-70">(your vote — locked)</span>}
+                          </div>
+                        );
+                      })
+                    ) : (
+                      // Not yet voted — two-step: select then submit
+                      <>
+                        {availableChoices.map((c) => {
+                          const text = c === "A" ? event.choiceA : c === "B" ? event.choiceB : c === "C" ? event.choiceC : event.choiceD || "";
+                          const isSelected = pendingChoice === c;
+                          return (
+                            <button
+                              key={c}
+                              onClick={() => setPendingChoice(isSelected ? null : c)}
+                              disabled={voteMutation.isPending}
+                              className={`w-full text-left px-3 py-2 rounded-md border text-xs transition-all ${isSelected ? CHOICE_ACTIVE[c] : `bg-muted/20 text-foreground ${CHOICE_COLORS[c]}`}`}
+                              data-testid={`button-vote-${c}-${event.id}`}
+                            >
+                              <span className="font-pixel text-[9px] mr-2">{c}.</span>
+                              {text}
+                              {isSelected && <span className="ml-2 text-[9px] opacity-70">(selected)</span>}
+                            </button>
+                          );
+                        })}
                         <button
-                          key={c}
-                          onClick={() => voteMutation.mutate({ choice: c })}
-                          disabled={voteMutation.isPending}
-                          className={`w-full text-left px-3 py-2 rounded-md border text-xs transition-all ${isMyVote ? CHOICE_ACTIVE[c] : `bg-muted/20 text-foreground ${CHOICE_COLORS[c]}`}`}
-                          data-testid={`button-vote-${c}-${event.id}`}
+                          onClick={() => pendingChoice && voteMutation.mutate({ choice: pendingChoice })}
+                          disabled={!pendingChoice || voteMutation.isPending}
+                          className={`w-full px-3 py-2 rounded-md border text-xs font-pixel transition-all ${pendingChoice ? "border-gold bg-gold/10 text-gold hover:bg-gold/20" : "border-border/30 bg-muted/10 text-muted-foreground/40 cursor-not-allowed"}`}
+                          data-testid={`button-submit-vote-${event.id}`}
                         >
-                          <span className="font-pixel text-[9px] mr-2">{c}.</span>
-                          {text}
-                          {isMyVote && <span className="ml-2 text-[9px] opacity-70">(your vote)</span>}
+                          {voteMutation.isPending ? "Submitting…" : pendingChoice ? `Submit Vote — Choice ${pendingChoice}` : "Select a choice above"}
                         </button>
-                      );
-                    })}
+                      </>
+                    )}
 
                     {totalVotes > 0 && (
                       <div className="pt-1">
@@ -634,7 +666,8 @@ export default function StorylinesPage() {
   let filtered = filterLegendary ? storylines.filter(s => s.isLegendary) : storylines;
   if (filterLinked) filtered = filtered.filter(s => !!s.overlappingRecruitId);
 
-  const activeVotes = storylines.filter(s => s.latestEvent && !s.latestEvent.resolvedChoice).length;
+  // Count only events the current coach has NOT yet voted on (not all unresolved events).
+  const activeVotes = storylines.filter(s => s.latestEvent && !s.latestEvent.resolvedChoice && !s.myVote).length;
   const legendaryCount = storylines.filter(s => s.isLegendary).length;
   const linkedCount = storylines.filter(s => !!s.overlappingRecruitId).length;
   const committedCount = storylines.filter(s => s.recruit?.stage === "signed" || s.recruit?.stage === "committed").length;

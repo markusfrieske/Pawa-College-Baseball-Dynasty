@@ -211,6 +211,7 @@ export default function RecruitingPage() {
   const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
   const [showTopAvailable, setShowTopAvailable] = useState<boolean>((sf.showTopAvailable as boolean) ?? false);
   const [showContested, setShowContested] = useState<boolean>((sf.showContested as boolean) ?? false);
+  const [showStory, setShowStory] = useState<boolean>((sf.showStory as boolean) ?? false);
   const [showHistory, setShowHistory] = useState(false);
   const [actionResultModal, setActionResultModal] = useState<{
     title: string;
@@ -249,9 +250,10 @@ export default function RecruitingPage() {
       showWatchlistOnly,
       showTopAvailable,
       showContested,
+      showStory,
       searchQuery,
     }));
-  }, [id, positionFilter, starFilter, stateFilter, typeFilter, sortBy, showTeamNeeds, showPipeline, showWatchlistOnly, showTopAvailable, showContested, searchQuery]);
+  }, [id, positionFilter, starFilter, stateFilter, typeFilter, sortBy, showTeamNeeds, showPipeline, showWatchlistOnly, showTopAvailable, showContested, showStory, searchQuery]);
 
   const toggleCompare = (recruit: RecruitWithInterest) => {
     if (compareRecruits.find(r => r.id === recruit.id)) {
@@ -570,6 +572,7 @@ export default function RecruitingPage() {
     }
     if (showWatchlistOnly && !r.interest?.isTargeted) return false;
     if (showContested && !r.competingIntensity) return false;
+    if (showStory && !storylineRecruitIds.has(r.id)) return false;
     if (showTopAvailable && pipelineData?.positionNeeds) {
       const needPositions = pipelineData.positionNeeds.filter(p => p.need).map(p => p.position);
       if (!needPositions.includes(r.position)) return false;
@@ -760,7 +763,7 @@ export default function RecruitingPage() {
 
             {/* Mobile: compact filter trigger row */}
             {(() => {
-              const activeCount = (positionFilter !== "all" ? 1 : 0) + (starFilter !== "all" ? 1 : 0) + (typeFilter !== "all" ? 1 : 0) + (stateFilter !== "all" ? 1 : 0) + (showWatchlistOnly ? 1 : 0) + (showTopAvailable ? 1 : 0) + (showTeamNeeds ? 1 : 0) + (showPipeline ? 1 : 0) + (showContested ? 1 : 0);
+              const activeCount = (positionFilter !== "all" ? 1 : 0) + (starFilter !== "all" ? 1 : 0) + (typeFilter !== "all" ? 1 : 0) + (stateFilter !== "all" ? 1 : 0) + (showWatchlistOnly ? 1 : 0) + (showTopAvailable ? 1 : 0) + (showTeamNeeds ? 1 : 0) + (showPipeline ? 1 : 0) + (showContested ? 1 : 0) + (showStory ? 1 : 0);
               return (
                 <div className="flex items-center gap-2 sm:hidden">
                   <RetroSelect
@@ -896,6 +899,16 @@ export default function RecruitingPage() {
                   >
                     <Flame className="w-3 h-3 mr-1" />
                     Contested
+                  </RetroButton>
+                  <RetroButton
+                    variant={showStory ? "primary" : "outline"}
+                    size="sm"
+                    onClick={() => setShowStory(!showStory)}
+                    className="w-full justify-center"
+                    data-testid="button-toggle-story"
+                  >
+                    <BookOpen className="w-3 h-3 mr-1" />
+                    Story
                   </RetroButton>
                 </div>
               </div>
@@ -1119,6 +1132,16 @@ export default function RecruitingPage() {
                         <Flame className="w-3 h-3 mr-1" />
                         Contested
                       </RetroButton>
+                      <RetroButton
+                        variant={showStory ? "primary" : "outline"}
+                        size="sm"
+                        onClick={() => setShowStory(!showStory)}
+                        className="w-full justify-center"
+                        data-testid="button-toggle-story-sheet"
+                      >
+                        <BookOpen className="w-3 h-3 mr-1" />
+                        Story
+                      </RetroButton>
                     </div>
                   </div>
                   <RetroButton
@@ -1136,6 +1159,7 @@ export default function RecruitingPage() {
                       setShowTeamNeeds(false);
                       setShowPipeline(false);
                       setShowContested(false);
+                      setShowStory(false);
                       setShowFilterSheet(false);
                     }}
                     className="w-full justify-center"
@@ -2613,7 +2637,7 @@ function RecruitRow({
             data-testid={`button-toggle-top-schools-${recruit.id}`}
           >
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Top Schools</span>
+              <span className="text-xs text-muted-foreground">Your Rank</span>
               {(() => {
                 const visibleCount = recruit.stage === "top3" ? 3 : recruit.stage === "top5" ? 5 : 8;
                 const visibleSchools = recruit.topSchools!.slice(0, visibleCount);
