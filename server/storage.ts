@@ -197,6 +197,7 @@ export interface IStorage {
   getStorylineEventsWithMissingImages(): Promise<StorylineEvent[]>;
   updateStorylineEventImageByTemplateId(templateId: string, imageUrl: string): Promise<void>;
   clearStorylineEventImageByTemplateId(templateId: string): Promise<void>;
+  setStorylineEventImageByTemplateId(templateId: string, imageUrl: string): Promise<void>;
 
   getStorylineVotesByEvent(eventId: string): Promise<StorylineVote[]>;
   getStorylineVoteByTeam(eventId: string, teamId: string): Promise<StorylineVote | undefined>;
@@ -1037,6 +1038,12 @@ export class DatabaseStorage implements IStorage {
   async clearStorylineEventImageByTemplateId(templateId: string): Promise<void> {
     await db.update(storylineEvents)
       .set({ eventImageUrl: null })
+      .where(eq(storylineEvents.templateId, templateId));
+  }
+
+  async setStorylineEventImageByTemplateId(templateId: string, imageUrl: string): Promise<void> {
+    await db.update(storylineEvents)
+      .set({ eventImageUrl: imageUrl })
       .where(eq(storylineEvents.templateId, templateId));
   }
 

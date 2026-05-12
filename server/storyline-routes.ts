@@ -527,13 +527,14 @@ export function registerStorylineRoutes(app: Express) {
 
       if (!scenePrompt) return res.status(400).json({ message: "No scene prompt available for this template" });
 
-      // Clear all cached images for this templateId so every event sharing it gets the fresh image.
-      await storage.clearStorylineEventImageByTemplateId(event.templateId).catch(() => {});
-
+      // Generate first — existing images are untouched until we have a successful result.
       const newImageUrl = await generateEventSceneImageForced(event.templateId, scenePrompt);
       if (!newImageUrl) {
         return res.status(500).json({ message: "Image generation failed — check OpenAI configuration" });
       }
+
+      // Unconditionally overwrite all events sharing this templateId so every card refreshes.
+      await storage.setStorylineEventImageByTemplateId(event.templateId, newImageUrl);
 
       res.json({ eventImageUrl: newImageUrl });
     } catch (err) {
