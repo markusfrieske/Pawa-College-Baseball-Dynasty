@@ -237,6 +237,9 @@ export default function WalkonsPage() {
                           {player.potential != null && (
                             <span>Pot: {getPotentialGrade(player.potential)}</span>
                           )}
+                          <span className={`font-pixel text-[7px] px-1.5 py-0.5 rounded border ${player.batHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : player.batHand === "S" ? "bg-purple-500/15 text-purple-400 border-purple-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`} data-testid={`badge-hand-roster-${player.id}`}>
+                            B:{player.batHand || "R"} T:{player.throwHand || "R"}
+                          </span>
                         </div>
                       </div>
                       <RetroButton
@@ -328,6 +331,9 @@ export default function WalkonsPage() {
                             {walkon.potential && (
                               <span>Pot: {getPotentialGrade(walkon.potential)}</span>
                             )}
+                            <span className={`font-pixel text-[7px] px-1.5 py-0.5 rounded border ${walkon.batHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : walkon.batHand === "S" ? "bg-purple-500/15 text-purple-400 border-purple-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`} data-testid={`badge-hand-walkon-${walkon.id}`}>
+                              B:{walkon.batHand || "R"} T:{walkon.throwHand || "R"}
+                            </span>
                             <span className="flex items-center">
                               <MapPin className="w-2.5 h-2.5 mr-0.5" />
                               {walkon.homeState}

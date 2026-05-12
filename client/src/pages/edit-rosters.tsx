@@ -311,8 +311,7 @@ export default function EditRostersPage() {
                             <SortHeader field="eligibility" label="ELIG" />
                             <SortHeader field="overall" label="OVR" />
                             <SortHeader field="starRating" label="STARS" />
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">BATS</th>
-                            <th className="px-2 py-2 text-xs font-pixel text-gold">THROWS</th>
+                            <th className="px-2 py-2 text-xs font-pixel text-gold">B/T</th>
                             <th className="px-2 py-2 text-xs font-pixel text-gold">HOMETOWN</th>
                             <th className="px-2 py-2 text-xs font-pixel text-gold">STATE</th>
                             <th className="px-2 py-2 text-xs font-pixel text-gold">CONTACT</th>
@@ -440,37 +439,38 @@ export default function EditRostersPage() {
                                     </SelectContent>
                                   </Select>
                                 </td>
-                                {/* Bats */}
+                                {/* B/T */}
                                 <td className="px-2 py-1">
-                                  <Select
-                                    value={getPlayerValue(player, "batHand")}
-                                    onValueChange={(v) => updatePlayer(player.id, "batHand", v)}
-                                  >
-                                    <SelectTrigger className="h-7 w-12 text-xs">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {hands.map(h => (
-                                        <SelectItem key={h} value={h}>{h}</SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                </td>
-                                {/* Throws */}
-                                <td className="px-2 py-1">
-                                  <Select
-                                    value={getPlayerValue(player, "throwHand")}
-                                    onValueChange={(v) => updatePlayer(player.id, "throwHand", v)}
-                                  >
-                                    <SelectTrigger className="h-7 w-12 text-xs">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {hands.map(h => (
-                                        <SelectItem key={h} value={h}>{h}</SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-[9px] text-muted-foreground font-pixel">B:</span>
+                                    <Select
+                                      value={getPlayerValue(player, "batHand")}
+                                      onValueChange={(v) => updatePlayer(player.id, "batHand", v)}
+                                    >
+                                      <SelectTrigger className="h-7 w-12 text-xs" data-testid={`select-bats-${player.id}`}>
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {hands.map(h => (
+                                          <SelectItem key={h} value={h}>{h}</SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                    <span className="text-[9px] text-muted-foreground font-pixel">T:</span>
+                                    <Select
+                                      value={getPlayerValue(player, "throwHand")}
+                                      onValueChange={(v) => updatePlayer(player.id, "throwHand", v)}
+                                    >
+                                      <SelectTrigger className="h-7 w-12 text-xs" data-testid={`select-throws-${player.id}`}>
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {hands.map(h => (
+                                          <SelectItem key={h} value={h}>{h}</SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  </div>
                                 </td>
                                 {/* Hometown */}
                                 <td className="px-2 py-1">

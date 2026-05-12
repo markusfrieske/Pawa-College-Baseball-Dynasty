@@ -761,6 +761,7 @@ function RosterTab({ team, onSelectPlayer }: { team: TeamDetails; onSelectPlayer
                   <th className="text-center py-3 px-2">Year</th>
                   <th className="text-center py-3 px-2">OVR</th>
                   <th className="text-center py-3 px-2">Rank</th>
+                  <th className="text-center py-3 px-2">B/T</th>
                   <th className="text-left py-3 px-2 hidden sm:table-cell">Hometown</th>
                 </tr>
               </thead>
@@ -796,6 +797,11 @@ function RosterTab({ team, onSelectPlayer }: { team: TeamDetails; onSelectPlayer
                           : "text-muted-foreground"
                       }`}>
                         {"★".repeat(player.starRating || 1)}
+                      </span>
+                    </td>
+                    <td className="text-center py-3 px-2">
+                      <span className={`font-pixel text-[7px] px-1.5 py-0.5 rounded border ${player.batHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : player.batHand === "S" ? "bg-purple-500/15 text-purple-400 border-purple-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`} data-testid={`badge-hand-${player.id}`}>
+                        B:{player.batHand || "R"} T:{player.throwHand || "R"}
                       </span>
                     </td>
                     <td className="py-3 px-2 text-muted-foreground hidden sm:table-cell">
