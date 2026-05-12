@@ -4289,6 +4289,16 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/leagues/:id/game-reports/pending", requireAuth, async (req, res) => {
+    try {
+      const allReports = await storage.getGameReportsByLeague(req.params.id as string);
+      res.json(allReports.filter(r => r.status === "pending" || r.status === "disputed"));
+    } catch (error) {
+      console.error("Failed to fetch pending game reports:", error);
+      res.status(500).json({ message: "Failed to fetch pending game reports" });
+    }
+  });
+
   app.post("/api/leagues/:id/games/:gameId/report", requireAuth, async (req, res) => {
     try {
       const leagueId = req.params.id as string;

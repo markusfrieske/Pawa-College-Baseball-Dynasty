@@ -177,17 +177,26 @@ export default function ReportGamePage() {
     });
   }
 
+  function sortByBattingOrder(players: Player[]): Player[] {
+    const ordered = players
+      .filter(p => (p as Player & { battingOrder?: number | null }).battingOrder != null)
+      .sort((a, b) => ((a as Player & { battingOrder?: number }).battingOrder ?? 99) - ((b as Player & { battingOrder?: number }).battingOrder ?? 99));
+    if (ordered.length >= 9) return ordered.slice(0, 9);
+    const remaining = players
+      .filter(p => (p as Player & { battingOrder?: number | null }).battingOrder == null)
+      .sort((a, b) => (b.overall ?? 0) - (a.overall ?? 0));
+    return [...ordered, ...remaining].slice(0, 9);
+  }
+
   function initHomeBatting() {
     if (homePlayers && homeBatting.length === 0) {
-      const starters = [...homePlayers].sort((a, b) => (b.overall ?? 0) - (a.overall ?? 0)).slice(0, 9);
-      setHomeBatting(starters.map(defaultBatter));
+      setHomeBatting(sortByBattingOrder(homePlayers).map(defaultBatter));
     }
   }
 
   function initAwayBatting() {
     if (awayPlayers && awayBatting.length === 0) {
-      const starters = [...awayPlayers].sort((a, b) => (b.overall ?? 0) - (a.overall ?? 0)).slice(0, 9);
-      setAwayBatting(starters.map(defaultBatter));
+      setAwayBatting(sortByBattingOrder(awayPlayers).map(defaultBatter));
     }
   }
 
