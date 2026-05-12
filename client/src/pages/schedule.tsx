@@ -451,7 +451,7 @@ function GameRow({ game, allGamesInGroup, onEdit, onViewBoxScore, userTeamId, le
               )}
             </>
           )}
-          {(game.isComplete || isCommissioner) && (
+          {isCommissioner && (
             <RetroButton
               variant="outline"
               size="sm"

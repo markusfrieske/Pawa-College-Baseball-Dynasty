@@ -1313,6 +1313,9 @@ export const gameReports = pgTable("game_reports", {
   leagueId: varchar("league_id").notNull().references(() => leagues.id),
   reporterUserId: varchar("reporter_user_id").notNull(),
   reporterTeamId: varchar("reporter_team_id").references(() => teams.id),
+  // homeScore/awayScore = final run totals. Intentionally named to match the games table
+  // convention (games.homeScore / games.awayScore). Spec referred to these as homeRuns/awayRuns
+  // but both names represent the same data; this choice keeps cross-table joins unambiguous.
   homeScore: integer("home_score").notNull(),
   awayScore: integer("away_score").notNull(),
   homeHits: integer("home_hits").notNull().default(0),
