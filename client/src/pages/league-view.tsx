@@ -523,10 +523,6 @@ export default function LeagueViewPage() {
           </div>
         )}
 
-        {overview && (
-          <RosterStrengthCard overview={overview} leagueId={id!} />
-        )}
-
         <OffseasonSummary league={league} />
 
         <Tabs defaultValue="news" className="space-y-4">
@@ -584,6 +580,11 @@ export default function LeagueViewPage() {
             <div className="mt-4">
               <StoryEngineHub leagueId={league.id} teamId={userTeam?.id} />
             </div>
+            {overview && (
+              <div className="mt-4">
+                <RosterStrengthCard overview={overview} leagueId={league.id} />
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="stats">
