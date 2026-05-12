@@ -336,6 +336,20 @@ function GameRow({ game, allGamesInGroup, onEdit, onViewBoxScore, userTeamId, le
             )}
           </button>
         ) : (
+          <div className="flex items-center gap-2">
+            {report?.status === "pending" && (
+              <Badge variant="outline" className="text-[9px] border-yellow-600 text-yellow-400" data-testid={`badge-report-pending-${game.id}`}>
+                PENDING
+              </Badge>
+            )}
+            {report?.status === "disputed" && (
+              <Badge variant="outline" className="text-[9px] border-red-600 text-red-400" data-testid={`badge-report-disputed-${game.id}`}>
+                DISPUTED
+              </Badge>
+            )}
+          </div>
+        )}
+        {!game.isComplete && (
           <div className="flex items-center gap-4">
             <span className="text-muted-foreground">@</span>
           </div>

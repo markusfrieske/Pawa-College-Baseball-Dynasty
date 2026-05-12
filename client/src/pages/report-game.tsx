@@ -426,6 +426,8 @@ export default function ReportGamePage() {
                 awayBatting={awayBatting}
                 homePitching={homePitching}
                 awayPitching={awayPitching}
+                homeInnings={homeInnings}
+                awayInnings={awayInnings}
               />
             )}
           </RetroCardContent>
@@ -867,9 +869,11 @@ interface ReviewStepProps {
   awayBatting: BatterEntry[];
   homePitching: PitcherEntry[];
   awayPitching: PitcherEntry[];
+  homeInnings: number[];
+  awayInnings: number[];
 }
 
-function ReviewStep({ homeTeam, awayTeam, homeScore, awayScore, homeHits, awayHits, homeErrors, awayErrors, homeBatting, awayBatting, homePitching, awayPitching }: ReviewStepProps) {
+function ReviewStep({ homeTeam, awayTeam, homeScore, awayScore, homeHits, awayHits, homeErrors, awayErrors, homeBatting, awayBatting, homePitching, awayPitching, homeInnings, awayInnings }: ReviewStepProps) {
   function BatterTable({ label, batting }: { label: string; batting: BatterEntry[] }) {
     return (
       <div>
@@ -965,6 +969,46 @@ function ReviewStep({ homeTeam, awayTeam, homeScore, awayScore, homeHits, awayHi
               <AlertTriangle className="w-3 h-3" /> {homeTeam.abbreviation} batting runs ({homeBattingRuns}) don't match linescore ({homeScore}) — go back to fix
             </div>
           )}
+        </div>
+      )}
+
+      {awayInnings.length > 0 && (
+        <div className="overflow-x-auto" data-testid="table-linescore-review">
+          <table className="w-full text-xs border-collapse">
+            <thead>
+              <tr className="border-b border-gold/30">
+                <th className="text-left p-2 text-gold/80 min-w-[80px]">Team</th>
+                {awayInnings.map((_, i) => (
+                  <th key={i} className="text-center px-2 py-1 text-gold/80 w-7">{i + 1}</th>
+                ))}
+                <th className="text-center px-2 py-1 text-gold/80 w-7 border-l border-gold/30">R</th>
+                <th className="text-center px-2 py-1 text-gold/80 w-7">H</th>
+                <th className="text-center px-2 py-1 text-gold/80 w-7">E</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="border-b border-gold/20">
+                <td className="p-2 text-xs flex items-center gap-1">
+                  <span className="font-medium">{awayTeam.abbreviation}</span>
+                </td>
+                {awayInnings.map((v, i) => (
+                  <td key={i} className="text-center px-2 py-1">{v}</td>
+                ))}
+                <td className={`text-center px-2 py-1 border-l border-gold/30 font-bold ${awayRunsMismatch ? "text-red-400" : awayScore > homeScore ? "text-gold" : ""}`}>{awayScore}</td>
+                <td className="text-center px-2 py-1">{awayHits}</td>
+                <td className="text-center px-2 py-1">{awayErrors}</td>
+              </tr>
+              <tr>
+                <td className="p-2 text-xs font-medium">{homeTeam.abbreviation}</td>
+                {homeInnings.map((v, i) => (
+                  <td key={i} className="text-center px-2 py-1">{v}</td>
+                ))}
+                <td className={`text-center px-2 py-1 border-l border-gold/30 font-bold ${homeRunsMismatch ? "text-red-400" : homeScore > awayScore ? "text-gold" : ""}`}>{homeScore}</td>
+                <td className="text-center px-2 py-1">{homeHits}</td>
+                <td className="text-center px-2 py-1">{homeErrors}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       )}
 
