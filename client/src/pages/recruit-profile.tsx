@@ -1024,8 +1024,10 @@ export default function RecruitProfilePage() {
               <RetroCardContent>
                 {(topSchools || recruit.topSchools)?.length ? (
                   <div className="space-y-2">
-                    {(topSchools || recruit.topSchools)?.slice(0, recruit.stage === "top3" ? 3 : recruit.stage === "top5" ? 5 : 8).map((school, i) => (
-                      <div key={school.teamId} className="flex items-center gap-2">
+                    {(topSchools || recruit.topSchools)?.slice(0, recruit.stage === "top3" ? 3 : recruit.stage === "top5" ? 5 : 8).map((school, i) => {
+                    const isUserSchool = data?.team?.id && school.teamId === data.team.id;
+                    return (
+                      <div key={school.teamId} className={`flex items-center gap-2 ${isUserSchool ? "bg-gold/10 border border-gold/40 -mx-1 px-1 rounded" : ""}`}>
                         <TeamBadge
                           abbreviation={school.abbreviation}
                           primaryColor={school.primaryColor}
@@ -1040,7 +1042,8 @@ export default function RecruitProfilePage() {
                         </div>
                         <span className={`text-xs font-bold w-16 text-right ${getInterestLabel(school.interestLevel).color}`}>{getInterestLabel(school.interestLevel).label}</span>
                       </div>
-                    ))}
+                    );
+                  })}
                   </div>
                 ) : (
                   <p className="text-muted-foreground text-sm text-center py-4">No top schools yet</p>
