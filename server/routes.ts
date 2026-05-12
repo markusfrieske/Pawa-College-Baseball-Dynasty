@@ -10,7 +10,7 @@ import { randomUUID } from "crypto";
 import { getRandomAbilities, getAbilitiesForPosition, calculateOVR, getStarRatingFromOVR } from "@shared/abilities";
 import { getPotentialRange, getProgressionZone, rollWeightedPotential, getPotentialGrade } from "@shared/potential";
 import { getActionPointCost } from "@shared/stateDistance";
-import type { Player, TransferPortalInterest, Game, InsertPlayerSeasonStats } from "@shared/schema";
+import type { Player, TransferPortalInterest, Game, InsertPlayerSeasonStats, GameReport } from "@shared/schema";
 import {
   generateGameNewsArticles,
   generateCWSChampionNewsArticle,
@@ -4248,7 +4248,7 @@ export async function registerRoutes(
 
   app.get("/api/leagues/:id/games/:gameId/report", requireAuth, async (req, res) => {
     try {
-      const report = await storage.getGameReport(req.params.gameId);
+      const report = await storage.getGameReport(req.params.gameId as string);
       res.json(report || null);
     } catch (error) {
       console.error("Failed to fetch game report:", error);
@@ -4258,7 +4258,7 @@ export async function registerRoutes(
 
   app.get("/api/leagues/:id/game-reports", requireAuth, async (req, res) => {
     try {
-      const reports = await storage.getGameReportsByLeague(req.params.id);
+      const reports = await storage.getGameReportsByLeague(req.params.id as string);
       res.json(reports);
     } catch (error) {
       console.error("Failed to fetch game reports:", error);
@@ -4268,19 +4268,32 @@ export async function registerRoutes(
 
   app.post("/api/leagues/:id/games/:gameId/report", requireAuth, async (req, res) => {
     try {
-      const league = await storage.getLeague(req.params.id);
+      const leagueId = req.params.id as string;
+      const gameId = req.params.gameId as string;
+
+      const league = await storage.getLeague(leagueId);
       if (!league) return res.status(404).json({ message: "League not found" });
 
-      const game = await storage.getGame(req.params.gameId);
+      const game = await storage.getGame(gameId);
       if (!game) return res.status(404).json({ message: "Game not found" });
+      if (game.leagueId !== leagueId) return res.status(404).json({ message: "Game not found in this league" });
       if (game.isComplete) return res.status(400).json({ message: "Game is already complete" });
 
-      const existing = await storage.getGameReport(req.params.gameId);
+      const postseasonPhases = ["conference_championship", "super_regionals", "cws"];
+      if (postseasonPhases.includes(game.phase ?? "")) {
+        return res.status(400).json({ message: "Manual reporting is only available for regular-season games" });
+      }
+
+      const existing = await storage.getGameReport(gameId);
       if (existing) return res.status(400).json({ message: "A report already exists for this game" });
 
-      const coaches = await storage.getCoachesByLeague(req.params.id);
+      const coaches = await storage.getCoachesByLeague(leagueId);
       const coach = coaches.find(c => c.userId === req.session.userId);
       if (!coach) return res.status(403).json({ message: "You are not a coach in this league" });
+      if (!coach.teamId) return res.status(403).json({ message: "You do not have a team assigned" });
+
+      const isInvolvedCoach = game.homeTeamId === coach.teamId || game.awayTeamId === coach.teamId;
+      if (!isInvolvedCoach) return res.status(403).json({ message: "You are not a coach of either team in this game" });
 
       const { homeScore, awayScore, homeHits, awayHits, homeErrors, awayErrors, inningScores, homeBoxData, awayBoxData } = req.body;
 
@@ -4290,7 +4303,7 @@ export async function registerRoutes(
 
       const report = await storage.createGameReport({
         gameId: game.id,
-        leagueId: req.params.id,
+        leagueId,
         reporterUserId: req.session.userId!,
         reporterTeamId: coach.teamId,
         homeScore,
@@ -4309,7 +4322,7 @@ export async function registerRoutes(
       });
 
       await storage.createAuditLog({
-        leagueId: req.params.id,
+        leagueId,
         userId: req.session.userId,
         action: "Game Report Submitted",
         details: `Reported: ${awayScore}-${homeScore}`,
@@ -4324,29 +4337,38 @@ export async function registerRoutes(
 
   app.post("/api/leagues/:id/games/:gameId/report/confirm", requireAuth, async (req, res) => {
     try {
-      const report = await storage.getGameReport(req.params.gameId);
+      const leagueId = req.params.id as string;
+      const gameId = req.params.gameId as string;
+
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      const report = await storage.getGameReport(gameId);
       if (!report) return res.status(404).json({ message: "No report found for this game" });
       if (report.status !== "pending") return res.status(400).json({ message: "Report is not pending" });
-      if (report.reporterUserId === req.session.userId) {
+
+      const game = await storage.getGame(gameId);
+      if (!game) return res.status(404).json({ message: "Game not found" });
+      if (game.leagueId !== leagueId) return res.status(404).json({ message: "Game not found in this league" });
+
+      const isCommissioner = league.commissionerId === req.session.userId;
+      const coaches = await storage.getCoachesByLeague(leagueId);
+      const coach = coaches.find(c => c.userId === req.session.userId);
+      const isInvolvedTeam = coach != null && (game.homeTeamId === coach.teamId || game.awayTeamId === coach.teamId);
+
+      if (!isCommissioner && !isInvolvedTeam) {
+        return res.status(403).json({ message: "Only an involved team's coach or the commissioner can confirm this report" });
+      }
+      if (!isCommissioner && report.reporterUserId === req.session.userId) {
         return res.status(400).json({ message: "You cannot confirm your own report" });
       }
-
-      const coaches = await storage.getCoachesByLeague(req.params.id);
-      const coach = coaches.find(c => c.userId === req.session.userId);
-      if (!coach) return res.status(403).json({ message: "You are not a coach in this league" });
-
-      const game = await storage.getGame(req.params.gameId);
-      if (!game) return res.status(404).json({ message: "Game not found" });
-
-      const isInvolvedTeam = game.homeTeamId === coach.teamId || game.awayTeamId === coach.teamId;
-      if (!isInvolvedTeam) return res.status(403).json({ message: "You are not involved in this game" });
 
       await storage.updateGameReport(report.id, {
         status: "confirmed",
         confirmedByUserId: req.session.userId,
       });
 
-      await finalizeReportedGame(report, game, req.params.id, league => league);
+      await finalizeReportedGame(report, game, leagueId);
 
       res.json({ message: "Report confirmed and game finalized" });
     } catch (error) {
@@ -4357,22 +4379,31 @@ export async function registerRoutes(
 
   app.post("/api/leagues/:id/games/:gameId/report/dispute", requireAuth, async (req, res) => {
     try {
-      const report = await storage.getGameReport(req.params.gameId);
+      const leagueId = req.params.id as string;
+      const gameId = req.params.gameId as string;
+
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      const report = await storage.getGameReport(gameId);
       if (!report) return res.status(404).json({ message: "No report found for this game" });
       if (report.status !== "pending") return res.status(400).json({ message: "Report is not pending" });
-      if (report.reporterUserId === req.session.userId) {
+
+      const game = await storage.getGame(gameId);
+      if (!game) return res.status(404).json({ message: "Game not found" });
+      if (game.leagueId !== leagueId) return res.status(404).json({ message: "Game not found in this league" });
+
+      const isCommissioner = league.commissionerId === req.session.userId;
+      const coaches = await storage.getCoachesByLeague(leagueId);
+      const coach = coaches.find(c => c.userId === req.session.userId);
+      const isInvolvedTeam = coach != null && (game.homeTeamId === coach.teamId || game.awayTeamId === coach.teamId);
+
+      if (!isCommissioner && !isInvolvedTeam) {
+        return res.status(403).json({ message: "Only an involved team's coach or the commissioner can dispute this report" });
+      }
+      if (!isCommissioner && report.reporterUserId === req.session.userId) {
         return res.status(400).json({ message: "You cannot dispute your own report" });
       }
-
-      const coaches = await storage.getCoachesByLeague(req.params.id);
-      const coach = coaches.find(c => c.userId === req.session.userId);
-      if (!coach) return res.status(403).json({ message: "You are not a coach in this league" });
-
-      const game = await storage.getGame(req.params.gameId);
-      if (!game) return res.status(404).json({ message: "Game not found" });
-
-      const isInvolvedTeam = game.homeTeamId === coach.teamId || game.awayTeamId === coach.teamId;
-      if (!isInvolvedTeam) return res.status(403).json({ message: "You are not involved in this game" });
 
       const { reason } = req.body;
 
@@ -4383,7 +4414,7 @@ export async function registerRoutes(
       });
 
       await storage.createAuditLog({
-        leagueId: req.params.id,
+        leagueId,
         userId: req.session.userId,
         action: "Game Report Disputed",
         details: reason || "Score disputed by opposing coach",
@@ -4398,24 +4429,27 @@ export async function registerRoutes(
 
   app.post("/api/leagues/:id/games/:gameId/report/finalize", requireAuth, async (req, res) => {
     try {
-      const league = await storage.getLeague(req.params.id);
+      const leagueId = req.params.id as string;
+      const gameId = req.params.gameId as string;
+
+      const league = await storage.getLeague(leagueId);
       if (!league) return res.status(404).json({ message: "League not found" });
-      if (league.commissionerUserId !== req.session.userId) {
+      if (league.commissionerId !== req.session.userId) {
         return res.status(403).json({ message: "Only the commissioner can force-finalize a game report" });
       }
 
-      const report = await storage.getGameReport(req.params.gameId);
+      const report = await storage.getGameReport(gameId);
       if (!report) return res.status(404).json({ message: "No report found for this game" });
 
-      const game = await storage.getGame(req.params.gameId);
+      const game = await storage.getGame(gameId);
       if (!game) return res.status(404).json({ message: "Game not found" });
       if (game.isComplete) return res.status(400).json({ message: "Game is already complete" });
 
       await storage.updateGameReport(report.id, { status: "confirmed", confirmedByUserId: req.session.userId });
-      await finalizeReportedGame(report, game, req.params.id, () => league);
+      await finalizeReportedGame(report, game, leagueId);
 
       await storage.createAuditLog({
-        leagueId: req.params.id,
+        leagueId,
         userId: req.session.userId,
         action: "Game Report Force-Finalized",
         details: `Commissioner finalized: ${report.awayScore}-${report.homeScore}`,
@@ -4428,7 +4462,7 @@ export async function registerRoutes(
     }
   });
 
-  async function finalizeReportedGame(report: any, game: any, leagueId: string, _unused: any) {
+  async function finalizeReportedGame(report: GameReport, game: Game, leagueId: string) {
     const { homeScore, awayScore } = report;
     const homeBoxData = report.homeBoxData ? JSON.parse(report.homeBoxData) : null;
     const awayBoxData = report.awayBoxData ? JSON.parse(report.awayBoxData) : null;

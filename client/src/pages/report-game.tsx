@@ -127,8 +127,20 @@ export default function ReportGamePage() {
     },
   });
 
+  interface ReportPayload {
+    homeScore: number;
+    awayScore: number;
+    homeHits: number;
+    awayHits: number;
+    homeErrors: number;
+    awayErrors: number;
+    inningScores: number[][];
+    homeBoxData: { batting: BatterEntry[]; pitching: PitcherEntry[]; totals: Record<string, number> };
+    awayBoxData: { batting: BatterEntry[]; pitching: PitcherEntry[]; totals: Record<string, number> };
+  }
+
   const submitMutation = useMutation({
-    mutationFn: async (payload: any) => {
+    mutationFn: async (payload: ReportPayload) => {
       return apiRequest("POST", `/api/leagues/${id}/games/${gameId}/report`, payload);
     },
     onSuccess: () => {
@@ -193,6 +205,9 @@ export default function ReportGamePage() {
   }
 
   function goNext() {
+    const err = validateStep();
+    if (err) { setValidationError(err); return; }
+    setValidationError(null);
     if (step === 1) initHomeBatting();
     if (step === 2) initAwayBatting();
     if (step === 3) initPitchers();
@@ -203,7 +218,39 @@ export default function ReportGamePage() {
     setStep(s => Math.max(s - 1, 0));
   }
 
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  function validateStep(): string | null {
+    if (step === 1 && homeBatting.length < 9) return `Home team needs at least 9 batters (currently ${homeBatting.length})`;
+    if (step === 2 && awayBatting.length < 9) return `Away team needs at least 9 batters (currently ${awayBatting.length})`;
+    if (step === 3) {
+      if (homePitching.length < 1) return "Home team needs at least 1 pitcher";
+      if (awayPitching.length < 1) return "Away team needs at least 1 pitcher";
+      const ipRe = /^\d+\.\d?$/;
+      for (const p of homePitching) {
+        if (!ipRe.test(p.ip)) return `Invalid IP format "${p.ip}" for ${p.name}. Use format like "6.0" or "2.1"`;
+      }
+      for (const p of awayPitching) {
+        if (!ipRe.test(p.ip)) return `Invalid IP format "${p.ip}" for ${p.name}. Use format like "6.0" or "2.1"`;
+      }
+    }
+    if (step === 4) {
+      const homeBattingRuns = homeBatting.reduce((a, b) => a + b.r, 0);
+      const awayBattingRuns = awayBatting.reduce((a, b) => a + b.r, 0);
+      if (homeBatting.length > 0 && homeBattingRuns !== homeScore) {
+        return `Home team runs in batting (${homeBattingRuns}) don't match linescore total (${homeScore})`;
+      }
+      if (awayBatting.length > 0 && awayBattingRuns !== awayScore) {
+        return `Away team runs in batting (${awayBattingRuns}) don't match linescore total (${awayScore})`;
+      }
+    }
+    return null;
+  }
+
   function handleSubmit() {
+    const err = validateStep();
+    if (err) { setValidationError(err); return; }
+    setValidationError(null);
     const inningScores = awayInnings.map((a, i) => [a, homeInnings[i] ?? 0]);
 
     const homeBoxData = {
@@ -377,6 +424,13 @@ export default function ReportGamePage() {
           </RetroCardContent>
         </RetroCard>
 
+        {validationError && (
+          <div className="flex items-center gap-2 p-3 bg-red-900/20 border border-red-700/40 rounded text-xs text-red-300" data-testid="text-validation-error">
+            <AlertTriangle className="w-4 h-4 shrink-0" />
+            <span>{validationError}</span>
+          </div>
+        )}
+
         <div className="flex gap-3 justify-between">
           <RetroButton variant="outline" onClick={goPrev} disabled={step === 0} data-testid="button-prev-step">
             <ChevronLeft className="w-4 h-4 mr-1" /> Back
@@ -400,7 +454,22 @@ export default function ReportGamePage() {
   );
 }
 
-function LinescoreStep({ numInnings, homeInnings, awayInnings, homeErrors, awayErrors, homeTeam, awayTeam, onChangeInnings, onChangeHomeInning, onChangeAwayInning, onChangeHomeErrors, onChangeAwayErrors }: any) {
+interface LinescoreStepProps {
+  numInnings: number;
+  homeInnings: number[];
+  awayInnings: number[];
+  homeErrors: number;
+  awayErrors: number;
+  homeTeam: Team;
+  awayTeam: Team;
+  onChangeInnings: (n: number) => void;
+  onChangeHomeInning: (i: number, v: number) => void;
+  onChangeAwayInning: (i: number, v: number) => void;
+  onChangeHomeErrors: (v: number) => void;
+  onChangeAwayErrors: (v: number) => void;
+}
+
+function LinescoreStep({ numInnings, homeInnings, awayInnings, homeErrors, awayErrors, homeTeam, awayTeam, onChangeInnings, onChangeHomeInning, onChangeAwayInning, onChangeHomeErrors, onChangeAwayErrors }: LinescoreStepProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
@@ -417,7 +486,7 @@ function LinescoreStep({ numInnings, homeInnings, awayInnings, homeErrors, awayE
           min={1}
           max={18}
           value={numInnings}
-          onChange={(e: any) => onChangeInnings(Math.max(1, Math.min(18, parseInt(e.target.value) || 9)))}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChangeInnings(Math.max(1, Math.min(18, parseInt(e.target.value) || 9)))}
           className="w-16 text-center"
           data-testid="input-num-innings"
         />
@@ -448,7 +517,7 @@ function LinescoreStep({ numInnings, homeInnings, awayInnings, homeErrors, awayE
                     min={0}
                     max={99}
                     value={v}
-                    onChange={(e: any) => onChangeAwayInning(i, parseInt(e.target.value) || 0)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChangeAwayInning(i, parseInt(e.target.value) || 0)}
                     className="w-9 h-8 text-center text-sm bg-muted/40 border border-border rounded focus:outline-none focus:border-gold text-foreground"
                     data-testid={`input-away-inning-${i}`}
                   />
@@ -462,7 +531,7 @@ function LinescoreStep({ numInnings, homeInnings, awayInnings, homeErrors, awayE
                   type="number"
                   min={0}
                   value={awayErrors}
-                  onChange={(e: any) => onChangeAwayErrors(parseInt(e.target.value) || 0)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChangeAwayErrors(parseInt(e.target.value) || 0)}
                   className="w-9 h-8 text-center text-sm bg-muted/40 border border-border rounded focus:outline-none focus:border-gold text-foreground"
                   data-testid="input-away-errors"
                 />
@@ -480,7 +549,7 @@ function LinescoreStep({ numInnings, homeInnings, awayInnings, homeErrors, awayE
                     min={0}
                     max={99}
                     value={v}
-                    onChange={(e: any) => onChangeHomeInning(i, parseInt(e.target.value) || 0)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChangeHomeInning(i, parseInt(e.target.value) || 0)}
                     className="w-9 h-8 text-center text-sm bg-muted/40 border border-border rounded focus:outline-none focus:border-gold text-foreground"
                     data-testid={`input-home-inning-${i}`}
                   />
@@ -494,7 +563,7 @@ function LinescoreStep({ numInnings, homeInnings, awayInnings, homeErrors, awayE
                   type="number"
                   min={0}
                   value={homeErrors}
-                  onChange={(e: any) => onChangeHomeErrors(parseInt(e.target.value) || 0)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => onChangeHomeErrors(parseInt(e.target.value) || 0)}
                   className="w-9 h-8 text-center text-sm bg-muted/40 border border-border rounded focus:outline-none focus:border-gold text-foreground"
                   data-testid="input-home-errors"
                 />
@@ -519,9 +588,9 @@ function BattingStep({ label, players, batting, onChange, onInit }: { label: str
     onChange(batting.filter((_, i) => i !== idx));
   }
 
-  function updateBatter(idx: number, field: keyof BatterEntry, value: any) {
+  function updateBatter<K extends keyof BatterEntry>(idx: number, field: K, value: BatterEntry[K]) {
     const next = [...batting];
-    (next[idx] as any)[field] = value;
+    next[idx] = { ...next[idx], [field]: value };
     onChange(next);
   }
 
@@ -612,14 +681,26 @@ function BattingStep({ label, players, batting, onChange, onInit }: { label: str
   );
 }
 
-function PitchingStep({ homeTeam, awayTeam, homePlayers, awayPlayers, homePitching, awayPitching, onChangeHome, onChangeAway, onInit }: any) {
+interface PitchingStepProps {
+  homeTeam: Team;
+  awayTeam: Team;
+  homePlayers: Player[];
+  awayPlayers: Player[];
+  homePitching: PitcherEntry[];
+  awayPitching: PitcherEntry[];
+  onChangeHome: (l: PitcherEntry[]) => void;
+  onChangeAway: (l: PitcherEntry[]) => void;
+  onInit: () => void;
+}
+
+function PitchingStep({ homeTeam, awayTeam, homePlayers, awayPlayers, homePitching, awayPitching, onChangeHome, onChangeAway, onInit }: PitchingStepProps) {
   if (homePitching.length === 0 && awayPitching.length === 0) {
     onInit();
   }
 
-  function updatePitcher(list: PitcherEntry[], setList: (l: PitcherEntry[]) => void, idx: number, field: keyof PitcherEntry, value: any) {
+  function updatePitcher<K extends keyof PitcherEntry>(list: PitcherEntry[], setList: (l: PitcherEntry[]) => void, idx: number, field: K, value: PitcherEntry[K]) {
     const next = [...list];
-    (next[idx] as any)[field] = value;
+    next[idx] = { ...next[idx], [field]: value };
     setList(next);
   }
 
@@ -633,7 +714,16 @@ function PitchingStep({ homeTeam, awayTeam, homePlayers, awayPlayers, homePitchi
     setList(list.filter((_, i) => i !== idx));
   }
 
-  function PitcherTable({ team, players, pitching, onUpdate, onAdd, onRemove }: any) {
+  interface PitcherTableProps {
+    team: Team;
+    players: Player[];
+    pitching: PitcherEntry[];
+    onUpdate: <K extends keyof PitcherEntry>(i: number, f: K, v: PitcherEntry[K]) => void;
+    onAdd: () => void;
+    onRemove: (i: number) => void;
+  }
+
+  function PitcherTable({ team, players: _players, pitching, onUpdate, onAdd, onRemove }: PitcherTableProps) {
     return (
       <div className="space-y-2">
         <div className="flex items-center justify-between">
@@ -723,7 +813,22 @@ function PitchingStep({ homeTeam, awayTeam, homePlayers, awayPlayers, homePitchi
   );
 }
 
-function ReviewStep({ homeTeam, awayTeam, homeScore, awayScore, homeHits, awayHits, homeErrors, awayErrors, homeBatting, awayBatting, homePitching, awayPitching }: any) {
+interface ReviewStepProps {
+  homeTeam: Team;
+  awayTeam: Team;
+  homeScore: number;
+  awayScore: number;
+  homeHits: number;
+  awayHits: number;
+  homeErrors: number;
+  awayErrors: number;
+  homeBatting: BatterEntry[];
+  awayBatting: BatterEntry[];
+  homePitching: PitcherEntry[];
+  awayPitching: PitcherEntry[];
+}
+
+function ReviewStep({ homeTeam, awayTeam, homeScore, awayScore, homeHits, awayHits, homeErrors, awayErrors, homeBatting, awayBatting, homePitching, awayPitching }: ReviewStepProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 p-3 bg-yellow-900/20 border border-yellow-700/40 rounded text-xs text-yellow-300">

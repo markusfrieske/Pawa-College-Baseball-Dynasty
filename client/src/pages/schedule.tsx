@@ -391,16 +391,14 @@ function GameRow({ game, allGamesInGroup, onEdit, onViewBoxScore, userTeamId, le
               )}
             </>
           )}
-          {(!isHumanVsHuman || game.isComplete) && (
-            <RetroButton
-              variant="outline"
-              size="sm"
-              onClick={onEdit}
-              data-testid={`button-edit-game-${game.id}`}
-            >
-              {game.isComplete ? <Check className="w-3 h-3" /> : <Edit2 className="w-3 h-3" />}
-            </RetroButton>
-          )}
+          <RetroButton
+            variant="outline"
+            size="sm"
+            onClick={onEdit}
+            data-testid={`button-edit-game-${game.id}`}
+          >
+            {game.isComplete ? <Check className="w-3 h-3" /> : <Edit2 className="w-3 h-3" />}
+          </RetroButton>
         </div>
       </div>
 
