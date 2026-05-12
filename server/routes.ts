@@ -4174,20 +4174,13 @@ export async function registerRoutes(
 
       const { homeScore, awayScore } = result.data;
 
-      // For human-vs-human games, only the commissioner may use the quick-score path
+      // Quick-score is commissioner-only; all coaches must use the Report Game flow
       const patchLeagueId = req.params.id as string;
       const patchGameId = req.params.gameId as string;
       const patchLeague = await storage.getLeague(patchLeagueId);
       if (!patchLeague) return res.status(404).json({ message: "League not found" });
-      const patchGame = await storage.getGame(patchGameId);
-      if (patchGame) {
-        const patchTeams = await storage.getTeamsByLeague(patchLeagueId);
-        const patchHome = patchTeams.find(t => t.id === patchGame.homeTeamId);
-        const patchAway = patchTeams.find(t => t.id === patchGame.awayTeamId);
-        const patchIsHvH = patchHome && !patchHome.isCpu && patchAway && !patchAway.isCpu;
-        if (patchIsHvH && patchLeague.commissionerId !== req.session.userId) {
-          return res.status(403).json({ message: "Only the commissioner can submit quick scores for human-vs-human games. Use the Report Game flow instead." });
-        }
+      if (patchLeague.commissionerId !== req.session.userId) {
+        return res.status(403).json({ message: "Only the commissioner can submit quick scores. Coaches must use the Report Game flow." });
       }
 
       const game = await storage.updateGame(patchGameId, {
@@ -4319,6 +4312,14 @@ export async function registerRoutes(
 
       const existing = await storage.getGameReport(gameId);
       if (existing) return res.status(400).json({ message: "A report already exists for this game" });
+
+      // Manual reporting is only for human-vs-human games
+      const allTeams = await storage.getTeamsByLeague(leagueId);
+      const homeTeam = allTeams.find(t => t.id === game.homeTeamId);
+      const awayTeam = allTeams.find(t => t.id === game.awayTeamId);
+      if (!homeTeam || !awayTeam || homeTeam.isCpu || awayTeam.isCpu) {
+        return res.status(400).json({ message: "Manual reporting is only available for human-vs-human games" });
+      }
 
       const isCommissioner = league.commissionerId === req.session.userId;
       const coaches = await storage.getCoachesByLeague(leagueId);
