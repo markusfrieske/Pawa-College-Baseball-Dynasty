@@ -852,7 +852,7 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
       ...noPitches },
     { firstName: "Hunter", lastName: "Teplanszky", position: "OF", eligibility: "SR", homeState: "TX", hometown: "Spring", jerseyNumber: 4,
       hitForAvg: 95, power: 91, speed: 54, arm: 60, fielding: 60, errorResistance: 56, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 86, vsLHP: 78, grit: 82, stealing: 18, running: 46, throwing: 60, recovery: 50, wRISP: 90, vsLefty: 78, poise: 84, heater: 0, agile: 50,
+      clutch: 86, vsLHP: 78, grit: 82, stealing: 18, running: 46, throwing: 60, recovery: 50, wRISP: 89, vsLefty: 78, poise: 84, heater: 0, agile: 50,
       abilities: ["Hit Machine", "Contact Hitter", "Push"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...noPitches },
