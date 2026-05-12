@@ -995,7 +995,27 @@ export default function RecruitProfilePage() {
             <RetroCard>
               <RetroCardHeader>
                 <div className="flex items-center justify-between w-full">
-                  <span>Top Schools Interest</span>
+                  <div className="flex items-center gap-2">
+                    <span>Top Schools</span>
+                    {(() => {
+                      const visibleCount = recruit.stage === "top3" ? 3 : recruit.stage === "top5" ? 5 : 8;
+                      const schools = (topSchools || recruit.topSchools) ?? [];
+                      const visibleSchools = schools.slice(0, visibleCount);
+                      const userIdx = visibleSchools.findIndex(s => s.teamId === data?.team?.id);
+                      if (userIdx >= 0) {
+                        return (
+                          <span className="text-[9px] font-pixel text-gold" data-testid="text-user-school-rank-profile">
+                            #{userIdx + 1} of {visibleSchools.length}
+                          </span>
+                        );
+                      }
+                      return (
+                        <span className="text-[9px] text-muted-foreground/60" data-testid="text-user-school-absent-profile">
+                          Not Listed
+                        </span>
+                      );
+                    })()}
+                  </div>
                   <Badge variant="outline" className="text-[10px]">
                     {recruit.stage === "top3" ? "Top 3" : recruit.stage === "top5" ? "Top 5" : recruit.stage === "top8" ? "Top 8" : "Open"}
                   </Badge>
