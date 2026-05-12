@@ -4265,7 +4265,13 @@ export async function registerRoutes(
 
   app.get("/api/leagues/:id/games/:gameId/report", requireAuth, async (req, res) => {
     try {
-      const report = await storage.getGameReport(req.params.gameId as string);
+      const fetchLeagueId = req.params.id as string;
+      const fetchGameId = req.params.gameId as string;
+      const fetchGame = await storage.getGame(fetchGameId);
+      if (!fetchGame || fetchGame.leagueId !== fetchLeagueId) {
+        return res.status(404).json({ message: "Game not found in this league" });
+      }
+      const report = await storage.getGameReport(fetchGameId);
       res.json(report || null);
     } catch (error) {
       console.error("Failed to fetch game report:", error);

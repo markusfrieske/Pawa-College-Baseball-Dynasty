@@ -829,8 +829,79 @@ interface ReviewStepProps {
 }
 
 function ReviewStep({ homeTeam, awayTeam, homeScore, awayScore, homeHits, awayHits, homeErrors, awayErrors, homeBatting, awayBatting, homePitching, awayPitching }: ReviewStepProps) {
+  function BatterTable({ label, batting }: { label: string; batting: BatterEntry[] }) {
+    return (
+      <div>
+        <p className="text-gold text-[9px] font-pixel mb-1">{label} — Batting</p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-[9px] border-collapse">
+            <thead>
+              <tr className="border-b border-gold/20">
+                <th className="text-left py-1 pr-2 text-muted-foreground w-28">Player</th>
+                {(["ab","r","h","2B","3B","hr","rbi","bb","so","sb"] as const).map(f => (
+                  <th key={f} className="text-center px-1 py-1 text-muted-foreground w-6">{f.toUpperCase()}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {batting.map((b, i) => (
+                <tr key={i} className="border-b border-gold/10">
+                  <td className="py-1 pr-2 truncate max-w-[7rem]">{b.name} <span className="text-muted-foreground">{b.position}</span></td>
+                  <td className="text-center px-1 py-1">{b.ab}</td>
+                  <td className="text-center px-1 py-1">{b.r}</td>
+                  <td className="text-center px-1 py-1">{b.h}</td>
+                  <td className="text-center px-1 py-1">{b.doubles}</td>
+                  <td className="text-center px-1 py-1">{b.triples}</td>
+                  <td className="text-center px-1 py-1">{b.hr}</td>
+                  <td className="text-center px-1 py-1">{b.rbi}</td>
+                  <td className="text-center px-1 py-1">{b.bb}</td>
+                  <td className="text-center px-1 py-1">{b.so}</td>
+                  <td className="text-center px-1 py-1">{b.sb}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
+
+  function PitcherTable({ label, pitching }: { label: string; pitching: PitcherEntry[] }) {
+    return (
+      <div>
+        <p className="text-gold text-[9px] font-pixel mb-1">{label} — Pitching</p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-[9px] border-collapse">
+            <thead>
+              <tr className="border-b border-gold/20">
+                <th className="text-left py-1 pr-2 text-muted-foreground w-28">Player</th>
+                {(["ip","h","r","er","bb","so","hr"] as const).map(f => (
+                  <th key={f} className="text-center px-1 py-1 text-muted-foreground w-6">{f.toUpperCase()}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {pitching.map((p, i) => (
+                <tr key={i} className="border-b border-gold/10">
+                  <td className="py-1 pr-2 truncate max-w-[7rem]">{p.name}</td>
+                  <td className="text-center px-1 py-1">{p.ip}</td>
+                  <td className="text-center px-1 py-1">{p.h}</td>
+                  <td className="text-center px-1 py-1">{p.r}</td>
+                  <td className="text-center px-1 py-1">{p.er}</td>
+                  <td className="text-center px-1 py-1">{p.bb}</td>
+                  <td className="text-center px-1 py-1">{p.so}</td>
+                  <td className="text-center px-1 py-1">{p.hr}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="flex items-center gap-2 p-3 bg-yellow-900/20 border border-yellow-700/40 rounded text-xs text-yellow-300">
         <AlertTriangle className="w-4 h-4 shrink-0" />
         <span>Review your box score carefully. Once submitted, the opposing coach must confirm or dispute this report.</span>
@@ -869,15 +940,11 @@ function ReviewStep({ homeTeam, awayTeam, homeScore, awayScore, homeHits, awayHi
         </table>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 text-xs text-muted-foreground">
-        <div>
-          <p className="text-gold mb-1">{homeTeam.name} Batters: {homeBatting.length}</p>
-          <p>{homeTeam.name} Pitchers: {homePitching.length}</p>
-        </div>
-        <div>
-          <p className="text-gold mb-1">{awayTeam.name} Batters: {awayBatting.length}</p>
-          <p>{awayTeam.name} Pitchers: {awayPitching.length}</p>
-        </div>
+      <div className="space-y-4">
+        <BatterTable label={awayTeam.name} batting={awayBatting} />
+        <BatterTable label={homeTeam.name} batting={homeBatting} />
+        <PitcherTable label={awayTeam.name} pitching={awayPitching} />
+        <PitcherTable label={homeTeam.name} pitching={homePitching} />
       </div>
     </div>
   );

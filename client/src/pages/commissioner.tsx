@@ -2254,9 +2254,13 @@ function GameReportsTab({ leagueId }: { leagueId: string }) {
       ? (game?.homeTeamId === report.reporterTeamId ? game?.homeTeam?.name : game?.awayTeam?.name) ?? "Unknown team"
       : "Commissioner";
 
-    const parsedInnings: number[][] | null = (() => {
+    const parsedInnings: Array<[number, number]> | null = (() => {
       if (!report.inningScores) return null;
-      try { return JSON.parse(report.inningScores); } catch { return null; }
+      try {
+        const raw = JSON.parse(report.inningScores);
+        if (Array.isArray(raw) && raw.length > 0 && Array.isArray(raw[0])) return raw as Array<[number, number]>;
+        return null;
+      } catch { return null; }
     })();
 
     return (
@@ -2282,19 +2286,19 @@ function GameReportsTab({ leagueId }: { leagueId: string }) {
             <p className="text-xs text-muted-foreground">
               Reported by: <span className="text-foreground">{reporterTeamName}</span>
             </p>
-            {parsedInnings && parsedInnings.length === 2 && (
+            {parsedInnings && parsedInnings.length > 0 && (
               <div className="text-[9px] font-mono text-muted-foreground overflow-x-auto">
                 <div className="flex gap-1">
                   <span className="w-14 shrink-0 text-right pr-1">Away</span>
-                  {parsedInnings[0].map((r: number, i: number) => (
-                    <span key={i} className="w-5 text-center">{r}</span>
+                  {parsedInnings.map(([away], i) => (
+                    <span key={i} className="w-5 text-center">{away}</span>
                   ))}
                   <span className="w-6 text-center font-bold text-foreground">{report.awayScore}</span>
                 </div>
                 <div className="flex gap-1">
                   <span className="w-14 shrink-0 text-right pr-1">Home</span>
-                  {parsedInnings[1].map((r: number, i: number) => (
-                    <span key={i} className="w-5 text-center">{r}</span>
+                  {parsedInnings.map(([, home], i) => (
+                    <span key={i} className="w-5 text-center">{home}</span>
                   ))}
                   <span className="w-6 text-center font-bold text-foreground">{report.homeScore}</span>
                 </div>
