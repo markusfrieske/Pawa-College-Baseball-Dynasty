@@ -4372,6 +4372,33 @@ export async function registerRoutes(
         return res.status(400).json({ message: "homeScore and awayScore are required" });
       }
 
+      // Server-side consistency validation
+      if (homeScore < 0 || awayScore < 0) {
+        return res.status(400).json({ message: "Scores cannot be negative" });
+      }
+      if (Array.isArray(inningScores) && inningScores.length > 0) {
+        const inningHomeTotal = inningScores.reduce((sum: number, inn: number[]) => sum + (inn[1] ?? 0), 0);
+        const inningAwayTotal = inningScores.reduce((sum: number, inn: number[]) => sum + (inn[0] ?? 0), 0);
+        if (inningHomeTotal !== homeScore) {
+          return res.status(400).json({ message: `Home inning totals (${inningHomeTotal}) must match reported home score (${homeScore})` });
+        }
+        if (inningAwayTotal !== awayScore) {
+          return res.status(400).json({ message: `Away inning totals (${inningAwayTotal}) must match reported away score (${awayScore})` });
+        }
+      }
+      if (homeBoxData?.batting && Array.isArray(homeBoxData.batting)) {
+        const battingRuns = homeBoxData.batting.reduce((s: number, b: { r?: number }) => s + (b.r ?? 0), 0);
+        if (battingRuns !== homeScore) {
+          return res.status(400).json({ message: `Home batting runs (${battingRuns}) must match reported home score (${homeScore})` });
+        }
+      }
+      if (awayBoxData?.batting && Array.isArray(awayBoxData.batting)) {
+        const battingRuns = awayBoxData.batting.reduce((s: number, b: { r?: number }) => s + (b.r ?? 0), 0);
+        if (battingRuns !== awayScore) {
+          return res.status(400).json({ message: `Away batting runs (${battingRuns}) must match reported away score (${awayScore})` });
+        }
+      }
+
       const report = await storage.createGameReport({
         gameId: game.id,
         leagueId,

@@ -2203,9 +2203,9 @@ function GameReportsTab({ leagueId }: { leagueId: string }) {
   const queryClient = useQueryClient();
 
   const { data: reports, isLoading } = useQuery<GameReport[]>({
-    queryKey: ["/api/leagues", leagueId, "game-reports"],
+    queryKey: ["/api/leagues", leagueId, "game-reports", "pending"],
     queryFn: async () => {
-      const res = await fetch(`/api/leagues/${leagueId}/game-reports`, { credentials: "include" });
+      const res = await fetch(`/api/leagues/${leagueId}/game-reports/pending`, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch reports");
       return res.json();
     },
@@ -2220,7 +2220,7 @@ function GameReportsTab({ leagueId }: { leagueId: string }) {
       return apiRequest("POST", `/api/leagues/${leagueId}/games/${gameId}/report/finalize`, {});
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "game-reports"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "game-reports", "pending"] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "schedule"] });
       toast({ title: "Game Finalized", description: "The reported score has been accepted." });
     },

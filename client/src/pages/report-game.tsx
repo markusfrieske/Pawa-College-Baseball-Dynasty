@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useLocation, Link } from "wouter";
 import { ArrowLeft, ChevronRight, ChevronLeft, Check, AlertTriangle } from "lucide-react";
@@ -380,9 +380,8 @@ export default function ReportGamePage() {
                 players={homePlayers ?? []}
                 batting={homeBatting}
                 onChange={setHomeBatting}
-                onInit={() => {
-                  if (homeBatting.length === 0) initHomeBatting();
-                }}
+                onInit={initHomeBatting}
+                autoInit
               />
             )}
 
@@ -393,9 +392,8 @@ export default function ReportGamePage() {
                 players={awayPlayers ?? []}
                 batting={awayBatting}
                 onChange={setAwayBatting}
-                onInit={() => {
-                  if (awayBatting.length === 0) initAwayBatting();
-                }}
+                onInit={initAwayBatting}
+                autoInit
               />
             )}
 
@@ -594,7 +592,12 @@ function LinescoreStep({ numInnings, homeInnings, awayInnings, homeErrors, awayE
   );
 }
 
-function BattingStep({ label, players, batting, onChange, onInit }: { label: string; players: Player[]; batting: BatterEntry[]; onChange: (b: BatterEntry[]) => void; onInit: () => void }) {
+function BattingStep({ label, players, batting, onChange, onInit, autoInit }: { label: string; players: Player[]; batting: BatterEntry[]; onChange: (b: BatterEntry[]) => void; onInit: () => void; autoInit?: boolean }) {
+  useEffect(() => {
+    if (autoInit && batting.length === 0 && players.length > 0) onInit();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoInit, players.length]);
+
   const activeBatters = batting.length > 0 ? batting : [];
 
   function addBatter(player: Player) {
