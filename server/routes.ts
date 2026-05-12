@@ -4502,9 +4502,11 @@ export async function registerRoutes(
 
       const report = await storage.getGameReport(gameId);
       if (!report) return res.status(404).json({ message: "No report found for this game" });
+      if (report.leagueId !== leagueId) return res.status(404).json({ message: "Report not found in this league" });
 
       const game = await storage.getGame(gameId);
       if (!game) return res.status(404).json({ message: "Game not found" });
+      if (game.leagueId !== leagueId) return res.status(404).json({ message: "Game not found in this league" });
       if (game.isComplete) return res.status(400).json({ message: "Game is already complete" });
 
       await storage.updateGameReport(report.id, { status: "confirmed", confirmedByUserId: req.session.userId });
