@@ -206,7 +206,10 @@ export function registerStorylineRoutes(app: Express) {
       const enriched = await Promise.all(storylines.map(async (sl) => {
         const recruit = await storage.getRecruit(sl.recruitId);
         const events = await storage.getStorylineEventsByRecruit(sl.id);
-        const latestEvent = events.find(e => !e.resolvedChoice) || events[0] || null;
+        // Only surface an unresolved event. If no unresolved event exists this week
+        // (recruit hit the 4-event cap), return null so the frontend shows "no active event"
+        // rather than re-displaying the already-resolved event from the prior week.
+        const latestEvent = events.find(e => !e.resolvedChoice) ?? null;
 
         let myVote: string | null = null;
         let voteCounts: Record<string, number> = { A: 0, B: 0, C: 0, D: 0 };
@@ -694,7 +697,10 @@ async function generateWeeklyStorylineEvents(leagueId: string, season: number, w
     const eligible = await Promise.all(
       storylines.map(async (sl) => {
         const events = await storage.getStorylineEventsByRecruit(sl.id);
-        return events.some(e => !e.resolvedChoice) ? null : sl;
+        // Scope the pending-event check to the current season so resolved events from
+        // a prior season don't permanently block new event generation for this recruit.
+        const currentSeasonEvents = events.filter(e => e.season === season);
+        return currentSeasonEvents.some(e => !e.resolvedChoice) ? null : sl;
       })
     );
     const ready = eligible.filter((sl): sl is NonNullable<typeof sl> => sl !== null);
