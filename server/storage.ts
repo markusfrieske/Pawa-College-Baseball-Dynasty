@@ -1049,12 +1049,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPendingReportsForTeam(leagueId: string, teamId: string): Promise<GameReport[]> {
-    // Returns pending reports where `teamId` is the OPPOSING team that needs to confirm.
-    // i.e., reporterTeamId is set and is NOT this team (when commissioner submitted,
-    // reporterTeamId is null and any involved coach can confirm — those are excluded here
-    // since we can't determine game membership without a join at the storage layer).
-    const all = await this.getGameReportsByLeague(leagueId);
-    return all.filter(r => r.status === "pending" && r.reporterTeamId !== null && r.reporterTeamId !== teamId);
+    // Returns pending reports where `teamId` is the opposing team that needs to confirm.
+    // Requires a game-data join to verify teamId is actually in the matchup.
+    // Case 1: reporter is identified (reporterTeamId set) → teamId must be the other team in the game.
+    // Case 2: commissioner reported (reporterTeamId null) → teamId must be one of the two game teams.
+    const [pendingReports, leagueGames] = await Promise.all([
+      this.getGameReportsByLeague(leagueId).then(rs => rs.filter(r => r.status === "pending")),
+      db.select().from(games).where(eq(games.leagueId, leagueId)),
+    ]);
+    const gameById = new Map(leagueGames.map(g => [g.id, g]));
+    return pendingReports.filter(r => {
+      const game = gameById.get(r.gameId);
+      if (!game) return false;
+      const isInMatchup = game.homeTeamId === teamId || game.awayTeamId === teamId;
+      if (!isInMatchup) return false;
+      if (r.reporterTeamId === null) return true; // commissioner submitted — any involved coach can confirm
+      return r.reporterTeamId !== teamId; // team is the opponent, not the submitter
+    });
   }
 
   async createGameReport(data: InsertGameReport): Promise<GameReport> {
