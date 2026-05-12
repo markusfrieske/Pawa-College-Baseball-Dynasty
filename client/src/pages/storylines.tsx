@@ -12,7 +12,7 @@ import {
   ArrowLeft, BookOpen, Sparkles, TrendingUp, TrendingDown, Minus,
   ChevronRight, ChevronDown, Users, Trophy, Flame, Skull, Crown, Zap,
   Vote, Clock, CheckCircle, BarChart2, Link2, Calendar,
-  Target, History, GitBranch, Activity,
+  Target, History, GitBranch, Activity, RefreshCw, Loader2,
 } from "lucide-react";
 
 interface StorylineEventFull {
@@ -191,7 +191,7 @@ function ArcTimeline({ events }: { events: StorylineEventFull[] }) {
   );
 }
 
-function StorylineCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: string }) {
+function StorylineCard({ sl, leagueId, isCommissioner }: { sl: StorylineRecruit; leagueId: string; isCommissioner: boolean }) {
   const queryClient = useQueryClient();
   const [expanded, setExpanded] = useState(false);
   const [showTimeline, setShowTimeline] = useState(false);
@@ -210,6 +210,14 @@ function StorylineCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: strin
       apiRequest("POST", `/api/leagues/${leagueId}/storylines/events/${event!.id}/vote`, { choice }),
     onSuccess: () => {
       setPendingChoice(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "storylines"] });
+    },
+  });
+
+  const regenMutation = useMutation({
+    mutationFn: (eventId: string) =>
+      apiRequest("POST", `/api/leagues/${leagueId}/storylines/events/${eventId}/regenerate-image`),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "storylines"] });
     },
   });
@@ -314,7 +322,7 @@ function StorylineCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: strin
           <div className="mt-4 space-y-3">
             <div className={`rounded-md border overflow-hidden ${isResolved ? "bg-muted/20 border-border/40" : "bg-card/80 border-gold/20"}`}>
               {event.eventImageUrl && (
-                <div className="w-full aspect-[16/7] overflow-hidden border-b border-gold/20 bg-black flex items-center justify-center">
+                <div className="relative w-full aspect-[16/7] overflow-hidden border-b border-gold/20 bg-black flex items-center justify-center group">
                   <img
                     src={event.eventImageUrl}
                     alt="Scene"
@@ -322,6 +330,20 @@ function StorylineCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: strin
                     style={{ imageRendering: "pixelated" }}
                     loading="lazy"
                   />
+                  {isCommissioner && (
+                    <button
+                      onClick={() => regenMutation.mutate(event.id)}
+                      disabled={regenMutation.isPending}
+                      className="absolute top-2 right-2 p-1.5 rounded-md bg-black/70 border border-gold/40 text-gold/70 hover:text-gold hover:border-gold/70 transition-all opacity-0 group-hover:opacity-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Regenerate scene image"
+                      data-testid={`button-regen-image-${event.id}`}
+                    >
+                      {regenMutation.isPending
+                        ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        : <RefreshCw className="w-3.5 h-3.5" />
+                      }
+                    </button>
+                  )}
                 </div>
               )}
               <div className="px-3 py-2.5">
@@ -652,6 +674,13 @@ export default function StorylinesPage() {
   const [filterLegendary, setFilterLegendary] = useState(false);
   const [filterLinked, setFilterLinked] = useState(false);
 
+  const { data: authData } = useQuery<{ id: string }>({ queryKey: ["/api/auth/me"] });
+  const { data: leagueData } = useQuery<{ commissionerId: string }>({
+    queryKey: ["/api/leagues", leagueId],
+    enabled: !!leagueId,
+  });
+  const isCommissioner = !!(authData?.id && leagueData?.commissionerId && authData.id === leagueData.commissionerId);
+
   const { data: storylinesResp, isLoading } = useQuery<{ storylines: StorylineRecruit[] }>({
     queryKey: ["/api/leagues", leagueId, "storylines"],
     queryFn: async () => {
@@ -786,7 +815,7 @@ export default function StorylinesPage() {
                   </div>
                   <div className="space-y-4">
                     {votePending.map(sl => (
-                      <StorylineCard key={sl.id} sl={sl} leagueId={leagueId!} />
+                      <StorylineCard key={sl.id} sl={sl} leagueId={leagueId!} isCommissioner={isCommissioner} />
                     ))}
                   </div>
                 </section>
@@ -800,7 +829,7 @@ export default function StorylinesPage() {
                   </div>
                   <div className="space-y-4">
                     {noActivePending.map(sl => (
-                      <StorylineCard key={sl.id} sl={sl} leagueId={leagueId!} />
+                      <StorylineCard key={sl.id} sl={sl} leagueId={leagueId!} isCommissioner={isCommissioner} />
                     ))}
                   </div>
                 </section>

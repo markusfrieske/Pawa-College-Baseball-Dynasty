@@ -76,26 +76,18 @@ async function generateStorylineImage(
   return dataUrl;
 }
 
-// Generates a wide retro scene image for a specific storyline event template.
-// Checks the templateId cache first to avoid re-generating the same scene.
-async function generateEventSceneImage(
-  eventId: string,
+// Core image generation helper — builds the styled prompt, calls OpenAI with retries,
+// and stores the result via updateStorylineEventImageByTemplateId (backfills all matching rows).
+async function generateEventSceneImageCore(
   templateId: string,
   scenePrompt: string,
+  logTag: string,
 ): Promise<string | null> {
   const baseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
   const apiKey  = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
   if (!baseURL || !apiKey) {
-    console.warn("[storylines] OpenAI not configured — skipping event image generation");
+    console.warn(`[storylines] OpenAI not configured — skipping ${logTag}`);
     return null;
-  }
-
-  const cached = await storage.getFirstStorylineEventImageByTemplateId(templateId).catch(() => null);
-  if (cached) {
-    await storage.updateStorylineEvent(eventId, { eventImageUrl: cached }).catch(err =>
-      console.warn("[storylines] failed to copy cached event image:", err),
-    );
-    return cached;
   }
 
   async function attemptGenerate(prompt: string): Promise<string | null> {
@@ -105,7 +97,7 @@ async function generateEventSceneImage(
       body: JSON.stringify({ model: "gpt-image-1", prompt, n: 1, size: "1536x1024" }),
     });
     if (!res.ok) {
-      console.warn("[storylines] event scene image error:", res.status, await res.text());
+      console.warn(`[storylines] ${logTag} error:`, res.status, await res.text());
       return null;
     }
     const json = await res.json() as { data?: Array<{ b64_json?: string }> };
@@ -125,17 +117,43 @@ async function generateEventSceneImage(
       if (dataUrl) break;
       if (attempt < 2) await new Promise(r => setTimeout(r, delays[attempt]));
     } catch (err) {
-      console.warn(`[storylines] event image gen attempt ${attempt + 1} threw:`, err);
+      console.warn(`[storylines] ${logTag} attempt ${attempt + 1} threw:`, err);
       if (attempt < 2) await new Promise(r => setTimeout(r, delays[attempt]));
     }
   }
 
   if (dataUrl) {
     await storage.updateStorylineEventImageByTemplateId(templateId, dataUrl).catch(err =>
-      console.warn("[storylines] failed to backfill event images by templateId:", err),
+      console.warn(`[storylines] failed to backfill ${logTag} by templateId:`, err),
     );
   }
   return dataUrl;
+}
+
+// Generates a wide retro scene image for a specific storyline event template.
+// Checks the templateId cache first to avoid re-generating the same scene.
+async function generateEventSceneImage(
+  eventId: string,
+  templateId: string,
+  scenePrompt: string,
+): Promise<string | null> {
+  const cached = await storage.getFirstStorylineEventImageByTemplateId(templateId).catch(() => null);
+  if (cached) {
+    await storage.updateStorylineEvent(eventId, { eventImageUrl: cached }).catch(err =>
+      console.warn("[storylines] failed to copy cached event image:", err),
+    );
+    return cached;
+  }
+  return generateEventSceneImageCore(templateId, scenePrompt, "event scene image");
+}
+
+// Generates a fresh scene image unconditionally, bypassing the templateId cache.
+// Used by the commissioner regenerate endpoint to force fresh art.
+async function generateEventSceneImageForced(
+  templateId: string,
+  scenePrompt: string,
+): Promise<string | null> {
+  return generateEventSceneImageCore(templateId, scenePrompt, "forced scene image regen");
 }
 
 // Runs at startup to backfill scene images for any existing events that are missing them.
@@ -461,6 +479,66 @@ export function registerStorylineRoutes(app: Express) {
     } catch (err) {
       console.error("[storylines] generate-image error:", err);
       res.status(500).json({ message: "Failed to generate image" });
+    }
+  });
+
+  // POST /api/leagues/:id/storylines/events/:eventId/regenerate-image — commissioner-only
+  // Bypasses the templateId cache and generates a fresh scene image for the given event.
+  app.post("/api/leagues/:id/storylines/events/:eventId/regenerate-image", requireAuth, async (req, res) => {
+    try {
+      const leagueId = String(req.params.id);
+      const eventId  = String(req.params.eventId);
+
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      if (league.commissionerId !== req.session.userId) {
+        return res.status(403).json({ message: "Only the commissioner can regenerate scene images" });
+      }
+
+      const event = await storage.getStorylineEvent(eventId);
+      if (!event) return res.status(404).json({ message: "Event not found" });
+      if (event.leagueId !== leagueId) return res.status(403).json({ message: "Event does not belong to this league" });
+      if (!event.templateId) return res.status(400).json({ message: "Event has no template — cannot regenerate" });
+
+      // Resolve position-specific prompt using the same priority chain as generation
+      let position: string | null = null;
+      if (event.storylineRecruitId) {
+        const sr = await storage.getStorylineRecruit(event.storylineRecruitId).catch(() => null);
+        if (sr?.recruitId) {
+          const recruit = await storage.getRecruit(sr.recruitId).catch(() => null);
+          position = recruit?.position ?? null;
+        }
+      }
+
+      let template: import("./storylineEngine").ArchetypeEventTemplate | undefined;
+      for (const def of Object.values(ARCHETYPE_DEFS)) {
+        const all = [...def.events, ...(def.legendaryEvents ?? [])];
+        const t = all.find(e => e.id === event.templateId);
+        if (t) { template = t; break; }
+      }
+      if (!template) return res.status(400).json({ message: "Template not found in definitions" });
+
+      const pitcherMode = Boolean(position && isPitcher(position));
+      const posGroupKey = position ? positionToSceneGroupKey(position) : null;
+      const scenePrompt =
+        (posGroupKey && template.scenePromptByPosition?.[posGroupKey]) ||
+        (pitcherMode && template.scenePromptPitcher) ||
+        template.scenePrompt;
+
+      if (!scenePrompt) return res.status(400).json({ message: "No scene prompt available for this template" });
+
+      // Clear all cached images for this templateId so every event sharing it gets the fresh image.
+      await storage.clearStorylineEventImageByTemplateId(event.templateId).catch(() => {});
+
+      const newImageUrl = await generateEventSceneImageForced(event.templateId, scenePrompt);
+      if (!newImageUrl) {
+        return res.status(500).json({ message: "Image generation failed — check OpenAI configuration" });
+      }
+
+      res.json({ eventImageUrl: newImageUrl });
+    } catch (err) {
+      console.error("[storylines] regenerate-image error:", err);
+      res.status(500).json({ message: "Failed to regenerate scene image" });
     }
   });
 
