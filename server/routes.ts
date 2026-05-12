@@ -4359,8 +4359,7 @@ export async function registerRoutes(
       if (game.leagueId !== leagueId) return res.status(404).json({ message: "Game not found in this league" });
       if (game.isComplete) return res.status(400).json({ message: "Game is already complete" });
 
-      const postseasonPhases = ["conference_championship", "super_regionals", "cws"];
-      if (postseasonPhases.includes(game.phase ?? "")) {
+      if (game.phase !== "regular") {
         return res.status(400).json({ message: "Manual reporting is only available for regular-season games" });
       }
 
@@ -4396,6 +4395,23 @@ export async function registerRoutes(
 
       if (typeof homeScore !== "number" || typeof awayScore !== "number") {
         return res.status(400).json({ message: "homeScore and awayScore are required" });
+      }
+
+      // Require full box score payload — missing sections would leave stats unaccumulated
+      if (!Array.isArray(inningScores) || inningScores.length === 0) {
+        return res.status(400).json({ message: "inningScores is required and must be a non-empty array" });
+      }
+      if (!homeBoxData || !Array.isArray(homeBoxData.batting) || homeBoxData.batting.length === 0) {
+        return res.status(400).json({ message: "homeBoxData.batting is required and must be a non-empty array" });
+      }
+      if (!homeBoxData || !Array.isArray(homeBoxData.pitching) || homeBoxData.pitching.length === 0) {
+        return res.status(400).json({ message: "homeBoxData.pitching is required and must be a non-empty array" });
+      }
+      if (!awayBoxData || !Array.isArray(awayBoxData.batting) || awayBoxData.batting.length === 0) {
+        return res.status(400).json({ message: "awayBoxData.batting is required and must be a non-empty array" });
+      }
+      if (!awayBoxData || !Array.isArray(awayBoxData.pitching) || awayBoxData.pitching.length === 0) {
+        return res.status(400).json({ message: "awayBoxData.pitching is required and must be a non-empty array" });
       }
 
       // Server-side consistency validation
