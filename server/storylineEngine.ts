@@ -1302,9 +1302,19 @@ export function generateStorylineEvent(
     pool = [...pool, ...def.legendaryEvents];
   }
   // Filter out templates already used this season to avoid weekly duplicates.
-  // Fall back to the full pool if all templates have been used.
+  // Callers MUST pre-filter exhausted recruits before invoking (the routes-level
+  // nonExhausted filter enforces this for weekly generation).  If unusedPool is
+  // unexpectedly empty — a caller contract violation — fall back to the full pool
+  // to prevent a runtime crash and emit an explicit warning for debugging.
   const usedSet = new Set(usedTemplateIds ?? []);
   const unusedPool = pool.filter(t => !usedSet.has(t.id));
+  if (unusedPool.length === 0 && usedSet.size > 0) {
+    console.warn(
+      `[storylineEngine] generateStorylineEvent: all ${pool.length} template(s) exhausted ` +
+      `for archetype "${archetype}" (recruit "${recruitId}") — falling back to full pool. ` +
+      `Caller should have filtered exhausted recruits before invoking this function.`
+    );
+  }
   const availablePool = unusedPool.length > 0 ? unusedPool : pool;
   const template = availablePool[Math.floor(Math.random() * availablePool.length)];
 

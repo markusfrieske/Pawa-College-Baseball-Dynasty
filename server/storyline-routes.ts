@@ -713,6 +713,22 @@ async function generateWeeklyStorylineEvents(leagueId: string, season: number, w
     const ready = eligible.filter((sl): sl is NonNullable<typeof sl> => sl !== null);
     if (ready.length === 0) return 0;
 
+    // Filter to non-exhausted recruits FIRST so maxEvents reflects actual capacity
+    // and the weekly floor is computed from recruits we can actually generate for.
+    const nonExhausted = ready.filter((sl) => {
+      const def = ARCHETYPE_DEFS[sl.archetype as Archetype];
+      const currentUsed = (sl.usedTemplateIds as string[] | null) ?? [];
+      const allTemplateIds = [
+        ...def.events.map((e) => e.id),
+        ...(sl.isLegendary && def.legendaryEvents ? def.legendaryEvents.map((e) => e.id) : []),
+      ];
+      return !(currentUsed.length > 0 && allTemplateIds.every((id) => currentUsed.includes(id)));
+    });
+    if (nonExhausted.length === 0) {
+      console.log(`[storylines] all ready recruits have exhausted their templates — skipping`);
+      return 0;
+    }
+
     // Enforce absolute cap of 4 unresolved events while guaranteeing a floor of
     // min(2, slotsRemaining) new events each week so the feed stays active.
     const currentUnresolved = await storage.getUnresolvedStorylineEvents(leagueId, season);
@@ -728,31 +744,19 @@ async function generateWeeklyStorylineEvents(leagueId: string, season: number, w
 
     // Target 2–4 events per week; floor at min(2, slotsRemaining) so available
     // capacity is always used. Hard cap ensures total unresolved never exceeds 4.
+    // maxEvents is bounded by nonExhausted.length so the floor is always reachable.
     const targetEvents = Math.max(Math.min(2, slotsRemaining), 2 + Math.floor(Math.random() * 3));
-    const maxEvents = Math.min(ready.length, slotsRemaining, targetEvents);
+    const maxEvents = Math.min(nonExhausted.length, slotsRemaining, targetEvents);
 
     // Legendary-first, non-legendary shuffled so all 10 recruits rotate fairly
     const prioritized = [
-      ...ready.filter(sl => sl.isLegendary),
-      ...ready.filter(sl => !sl.isLegendary).sort(() => Math.random() - 0.5),
+      ...nonExhausted.filter(sl => sl.isLegendary),
+      ...nonExhausted.filter(sl => !sl.isLegendary).sort(() => Math.random() - 0.5),
     ].slice(0, maxEvents);
 
     for (const sl of prioritized) {
       const recruit = await storage.getRecruit(sl.recruitId);
       if (!recruit) continue;
-
-      // Skip recruits who have exhausted all templates for their archetype to
-      // guarantee no duplicate event templates are shown within a season.
-      const def = ARCHETYPE_DEFS[sl.archetype as Archetype];
-      const currentUsed = (sl.usedTemplateIds as string[] | null) ?? [];
-      const allTemplateIds = [
-        ...def.events.map((e) => e.id),
-        ...(sl.isLegendary && def.legendaryEvents ? def.legendaryEvents.map((e) => e.id) : []),
-      ];
-      if (currentUsed.length > 0 && allTemplateIds.every((id) => currentUsed.includes(id))) {
-        console.log(`[storylines] recruit ${sl.id} exhausted all ${allTemplateIds.length} templates for ${sl.archetype} — skipping`);
-        continue;
-      }
 
       const recruitName = `${recruit.firstName} ${recruit.lastName}`;
       let linkedRecruitName: string | undefined;
