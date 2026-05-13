@@ -426,6 +426,48 @@ export function registerStorylineRoutes(app: Express) {
     }
   });
 
+  // GET /api/leagues/:id/storyline-season-wrap/:season — season wrap summary for offseason recap
+  app.get("/api/leagues/:id/storyline-season-wrap/:season", requireAuth, async (req, res) => {
+    try {
+      const leagueId = String(req.params.id);
+      const season = parseInt(String(req.params.season));
+      if (isNaN(season)) return res.status(400).json({ message: "Invalid season" });
+
+      if (!await assertLeagueMember(leagueId, req.session.userId, res)) return;
+
+      const storylines = await storage.getStorylineRecruitsByLeague(leagueId, season);
+
+      const entries = await Promise.all(storylines.map(async (sl) => {
+        const recruit = await storage.getRecruit(sl.recruitId);
+        const archetypeDef = ARCHETYPE_DEFS[sl.archetype as Archetype];
+        return {
+          storylineRecruitId: sl.id,
+          recruitId: sl.recruitId,
+          firstName: recruit?.firstName ?? "Unknown",
+          lastName: recruit?.lastName ?? "Recruit",
+          position: recruit?.position ?? "",
+          archetype: sl.archetype,
+          archetypeName: archetypeDef?.name ?? sl.archetype,
+          isLegendary: sl.isLegendary,
+          resolvedOvrDelta: sl.resolvedOvrDelta,
+          committed: !!recruit?.signedTeamId,
+          signedTeamId: recruit?.signedTeamId ?? null,
+        };
+      }));
+
+      // Sort: legendary first, then by absolute OVR impact descending
+      entries.sort((a, b) => {
+        if (a.isLegendary !== b.isLegendary) return a.isLegendary ? -1 : 1;
+        return Math.abs(b.resolvedOvrDelta) - Math.abs(a.resolvedOvrDelta);
+      });
+
+      res.json({ season, entries });
+    } catch (err) {
+      console.error("[storylines] GET season wrap error:", err);
+      res.status(500).json({ message: "Failed to fetch storyline season wrap" });
+    }
+  });
+
   // POST /api/leagues/:id/storylines/events/:eventId/vote  (frontend contract)
   app.post("/api/leagues/:id/storylines/events/:eventId/vote", requireAuth, async (req, res) => {
     try {
