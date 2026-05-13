@@ -3320,12 +3320,12 @@ function AwardsTab({ leagueId }: { leagueId: string }) {
               </div>
               <div className="flex items-center gap-2 text-right">
                 {entry.player.era != null && entry.player.strikeouts != null && (
-                  <span className="text-[10px] text-muted-foreground hidden sm:inline">
+                  <span className="text-[10px] text-muted-foreground">
                     {entry.player.era} ERA / {entry.player.strikeouts} K
                   </span>
                 )}
                 {entry.player.avg != null && entry.player.hr != null && entry.player.rbi != null && (
-                  <span className="text-[10px] text-muted-foreground hidden sm:inline">
+                  <span className="text-[10px] text-muted-foreground">
                     {entry.player.avg} / {entry.player.hr} HR / {entry.player.rbi} RBI
                   </span>
                 )}
