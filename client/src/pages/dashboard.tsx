@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
+import { parseErrorMessage } from "@/lib/errorUtils";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
 import { TeamBadge } from "@/components/ui/team-badge";
@@ -402,7 +403,7 @@ function LeagueCard({ league }: { league: LeagueWithDetails }) {
       toast({ title: "League Deleted", description: `"${league.name}" has been deleted.` });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
     },
   });
 

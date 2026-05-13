@@ -1,4 +1,5 @@
 import { useState, useEffect, Fragment } from "react";
+import { parseErrorMessage } from "@/lib/errorUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link, useLocation } from "wouter";
 import { useUpdateMusicPhase } from "@/lib/music-context";
@@ -246,7 +247,7 @@ export default function LeagueViewPage() {
       navigate("/dashboard");
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
     },
   });
 

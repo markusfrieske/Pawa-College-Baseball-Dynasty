@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { parseErrorMessage } from "@/lib/errorUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link, useLocation } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
@@ -52,20 +53,6 @@ interface CommissionerData {
   readyCoaches: string[];
   totalCoaches: number;
   invites: LeagueInvite[];
-}
-
-function parseErrorMessage(error: Error): string {
-  const msg = error.message;
-  const colonIdx = msg.indexOf(": ");
-  if (colonIdx !== -1) {
-    try {
-      const parsed = JSON.parse(msg.slice(colonIdx + 2));
-      if (parsed?.message) return String(parsed.message);
-    } catch {
-      // not JSON — fall through to raw message
-    }
-  }
-  return msg;
 }
 
 export default function CommissionerPage() {

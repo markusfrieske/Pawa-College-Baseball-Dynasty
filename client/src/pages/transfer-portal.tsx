@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
+import { parseErrorMessage } from "@/lib/errorUtils";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
 import { Badge } from "@/components/ui/badge";
@@ -166,7 +167,7 @@ export default function TransferPortalPage() {
       queryClient.invalidateQueries({ queryKey: [`/api/leagues/${id}/transfer-portal`] });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
     },
   });
 
@@ -181,7 +182,7 @@ export default function TransferPortalPage() {
       toast({ title: "Notes saved" });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
     },
   });
 
@@ -197,7 +198,7 @@ export default function TransferPortalPage() {
       toast({ title: "Transfer Complete", description: result.message });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
     },
   });
 
