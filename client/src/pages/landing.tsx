@@ -450,7 +450,7 @@ const DEMO_PHASES = [
   { label: "SCHOLARSHIP OFFER", sub: "Close the deal with NIL money", img: "/screenshots/recruiting.jpg", alt: "Recruiting board showing scholarship offer actions" },
   { label: "REGULAR SEASON", sub: "Simulate games and track standings", img: "/screenshots/commissioner.jpg", alt: "Commissioner dashboard showing league phase, advance week, and quick actions" },
   { label: "POWER RANKINGS", sub: "Composite scores updated weekly", img: "/screenshots/commissioner.jpg", alt: "Commissioner dashboard showing league standings and power rankings" },
-  { label: "COLLEGE WORLD SERIES", sub: "Best-of-3 bracket for the title", img: "/screenshots/pipeline.jpg", alt: "Postseason pipeline showing College World Series bracket progression" },
+  { label: "COLLEGE WORLD SERIES", sub: "Best-of-3 bracket for the title", img: "/screenshots/postseason.jpg", alt: "Commissioner dashboard showing season phase, advance week controls, and postseason progression" },
   { label: "TRANSFER PORTAL", sub: "Sign portal players or lose yours", img: "/screenshots/walkons.jpg", alt: "Cuts and Walk-Ons offseason phase with roster management and walk-on pool" },
 ];
 
