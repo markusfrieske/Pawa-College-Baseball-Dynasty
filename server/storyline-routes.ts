@@ -81,7 +81,13 @@ async function generateEventSceneImage(
     );
     return cached;
   }
-  return generateEventSceneImageCore(templateId, scenePrompt, "event scene image");
+  const dataUrl = await generateEventSceneImageCore(templateId, scenePrompt, "event scene image");
+  if (dataUrl) {
+    await storage.updateStorylineEvent(eventId, { eventImageUrl: dataUrl }).catch(err =>
+      console.warn("[storylines] failed to persist generated event image:", err),
+    );
+  }
+  return dataUrl;
 }
 
 // Generates a fresh scene image unconditionally, bypassing the templateId cache.
@@ -505,9 +511,9 @@ export function registerStorylineRoutes(app: Express) {
       }
 
       const unresolvedEvents = await storage.getUnresolvedStorylineEvents(leagueId, league.currentSeason);
-      if (unresolvedEvents.length >= 4) {
+      if (unresolvedEvents.length >= 10) {
         return res.status(409).json({
-          message: "Weekly event cap reached (4 active events). Advance the week or resolve pending events before generating more.",
+          message: "Weekly event cap reached (10 active events). Advance the week or resolve pending events before generating more.",
           unresolvedCount: unresolvedEvents.length,
         });
       }
@@ -523,8 +529,16 @@ export function registerStorylineRoutes(app: Express) {
 
 // ─── Core Storyline Logic ──────────────────────────────────────────────────────
 
-export async function initializeStorylineRecruits(leagueId: string, season: number): Promise<number> {
+export async function initializeStorylineRecruits(leagueId: string, season: number, force = false): Promise<number> {
   try {
+    if (!force) {
+      const existing = await storage.getStorylineRecruitsByLeague(leagueId, season);
+      if (existing.length > 0) {
+        console.log(`[storylines] initializeStorylineRecruits: skipping — ${existing.length} records already exist for league ${leagueId} season ${season}`);
+        return existing.length;
+      }
+    }
+
     const recruits = await storage.getRecruitsByLeague(leagueId);
     if (recruits.length === 0) return 0;
 
@@ -750,43 +764,62 @@ async function generateWeeklyStorylineEvents(leagueId: string, season: number, w
 
     // Filter to non-exhausted recruits FIRST so maxEvents reflects actual capacity
     // and the weekly floor is computed from recruits we can actually generate for.
-    const nonExhausted = ready.filter((sl) => {
+    const isExhausted = (sl: typeof ready[0]) => {
       const def = ARCHETYPE_DEFS[sl.archetype as Archetype];
       const currentUsed = (sl.usedTemplateIds as string[] | null) ?? [];
       const allTemplateIds = [
         ...def.events.map((e) => e.id),
         ...(sl.isLegendary && def.legendaryEvents ? def.legendaryEvents.map((e) => e.id) : []),
       ];
-      return !(currentUsed.length > 0 && allTemplateIds.every((id) => currentUsed.includes(id)));
-    });
+      return currentUsed.length > 0 && allTemplateIds.every((id) => currentUsed.includes(id));
+    };
+
+    let nonExhausted = ready.filter((sl) => !isExhausted(sl));
+
+    // When every recruit has exhausted their templates, reset usedTemplateIds for all
+    // so the arcs can loop and continue rather than permanently stalling.
     if (nonExhausted.length === 0) {
-      console.log(`[storylines] all ready recruits have exhausted their templates — skipping`);
-      return 0;
+      console.log(`[storylines] all ready recruits exhausted — resetting usedTemplateIds to allow arc continuation`);
+      for (const sl of ready) {
+        await storage.updateStorylineRecruit(sl.id, { usedTemplateIds: [] });
+        sl.usedTemplateIds = [];
+      }
+      nonExhausted = ready;
     }
 
-    // Enforce absolute cap of 4 unresolved events while guaranteeing a floor of
-    // min(2, slotsRemaining) new events each week so the feed stays active.
+    // Build per-recruit unresolved map so we can enforce a per-recruit cap of 1
+    // (no recruit gets a second event until their first one is resolved).
     const currentUnresolved = await storage.getUnresolvedStorylineEvents(leagueId, season);
+    const unresolvedByRecruit = new Set(currentUnresolved.map(e => e.storylineRecruitId));
+
+    // Apply per-recruit cap: skip any recruit that already has an unresolved event.
+    const cappedNonExhausted = nonExhausted.filter(sl => !unresolvedByRecruit.has(sl.id));
+
+    // Enforce absolute cap of 10 total unresolved events.
     const unresolvedCount = currentUnresolved.length;
-    const slotsRemaining = Math.max(0, 4 - unresolvedCount);
+    const slotsRemaining = Math.max(0, 10 - unresolvedCount);
     if (slotsRemaining === 0) {
-      console.log(`[storylines] 4 unresolved events already — skipping generation this week`);
+      console.log(`[storylines] 10 unresolved events already — skipping generation this week`);
       return 0;
     }
     if (unresolvedCount > 0) {
       console.log(`[storylines] ${unresolvedCount} unresolved events — ${slotsRemaining} slot(s) remaining`);
     }
 
+    if (cappedNonExhausted.length === 0) {
+      console.log(`[storylines] all non-exhausted recruits already have an active event — skipping`);
+      return 0;
+    }
+
     // Target 2–3 events per week; floor at min(2, slotsRemaining) so available
-    // capacity is always used. Hard cap ensures total unresolved never exceeds 4.
-    // maxEvents is bounded by nonExhausted.length so the floor is always reachable.
+    // capacity is always used. Hard cap ensures total unresolved never exceeds 10.
     const targetEvents = Math.max(Math.min(2, slotsRemaining), 2 + Math.floor(Math.random() * 2));
-    const maxEvents = Math.min(nonExhausted.length, slotsRemaining, targetEvents);
+    const maxEvents = Math.min(cappedNonExhausted.length, slotsRemaining, targetEvents);
 
     // Legendary-first, non-legendary shuffled so all 10 recruits rotate fairly
     const prioritized = [
-      ...nonExhausted.filter(sl => sl.isLegendary),
-      ...nonExhausted.filter(sl => !sl.isLegendary).sort(() => Math.random() - 0.5),
+      ...cappedNonExhausted.filter(sl => sl.isLegendary),
+      ...cappedNonExhausted.filter(sl => !sl.isLegendary).sort(() => Math.random() - 0.5),
     ].slice(0, maxEvents);
 
     for (const sl of prioritized) {

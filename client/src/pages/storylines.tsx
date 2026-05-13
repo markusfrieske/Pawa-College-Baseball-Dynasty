@@ -874,6 +874,16 @@ export default function StorylinesPage() {
           </>
         )}
 
+        {storylines.length > 0 && activeVotes === 0 && !isLoading && !filterLegendary && !filterLinked && (
+          <div
+            className="mb-4 px-4 py-3 rounded border border-gold/30 bg-gold/5 text-xs text-muted-foreground flex items-center gap-2"
+            data-testid="banner-storylines-between-chapters"
+          >
+            <span className="text-gold font-pixel text-[8px]">■</span>
+            All storyline arcs are between chapters — advance the week to generate new events.
+          </div>
+        )}
+
         {isLoading ? (
           <div className="space-y-4">
             {[1, 2, 3, 4, 5].map(i => (

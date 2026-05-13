@@ -5987,9 +5987,10 @@ export async function registerRoutes(
       }
 
       // ============ STORYLINE EVENTS ============
-      // Constrained to recruiting phases only — narrative is centered on the recruiting cycle,
-      // not regular season or preseason gameplay. offseason_recruiting covers all 4 sub-phases.
-      if (["recruiting", "offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4"].includes(league.currentPhase)) {
+      // Active during all major phases — recruiting, season, and offseason — so the narrative
+      // stays alive throughout the dynasty. offseason_recruiting covers all 4 sub-phases.
+      if (["recruiting", "preseason", "spring_training", "regular_season", "offseason",
+           "offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4"].includes(league.currentPhase)) {
         try {
           await generateAndResolveStorylineEvents(leagueId, league.currentSeason, nextWeek);
         } catch (err) {
@@ -6383,7 +6384,18 @@ export async function registerRoutes(
         
         const phaseIndex = offseasonPhases.indexOf(league.currentPhase);
         const nextPhase = offseasonPhases[phaseIndex + 1];
-        
+
+        // Final storyline resolution sweep when transitioning out of the last recruiting week.
+        // Ensures all unresolved storyline events are settled before signing day begins.
+        if (league.currentPhase === "offseason_recruiting_4" && nextPhase === "offseason_signing_day") {
+          try {
+            const sweepResult = await generateAndResolveStorylineEvents(leagueId, league.currentSeason, nextWeek);
+            console.log(`[storylines] end-of-phase sweep resolved ${sweepResult.resolved} events before signing day`);
+          } catch (sweepErr) {
+            console.warn("[storylines] end-of-phase resolution sweep failed:", sweepErr);
+          }
+        }
+
         const updatedLeague = await storage.updateLeague(league.id, { currentPhase: nextPhase, currentWeek: nextWeek });
         await storage.createAuditLog({
           leagueId, userId: req.session.userId,
@@ -12749,7 +12761,9 @@ async function generateRecruits(leagueId: string, count: number) {
   const leagueForStoryline = await storage.getLeague(leagueId);
   if (leagueForStoryline) {
     try {
-      await initializeStorylineRecruits(leagueId, leagueForStoryline.currentSeason);
+      console.log(`[storylines] Initializing storyline recruits for league ${leagueId} season ${leagueForStoryline.currentSeason}…`);
+      const storylineCount = await initializeStorylineRecruits(leagueId, leagueForStoryline.currentSeason);
+      console.log(`[storylines] Storyline initialization complete — ${storylineCount} recruits assigned arcs for season ${leagueForStoryline.currentSeason}`);
     } catch (err) {
       console.error("[storylines] Failed to initialize storyline recruits:", err);
     }

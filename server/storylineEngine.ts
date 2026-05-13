@@ -164,8 +164,8 @@ export function maybeTransitionArchetype(
   isLegendary: boolean,
   position: string,
 ): Archetype {
-  if (arcStage < 2) return currentArchetype;
-  const transitionChance = isLegendary ? 0.60 : 0.35;
+  if (arcStage < 1) return currentArchetype;
+  const transitionChance = isLegendary ? 0.75 : 0.50;
   if (Math.random() > transitionChance) return currentArchetype;
 
   // Resolve a transition target to a position-appropriate archetype.
@@ -202,8 +202,8 @@ export function maybeTransitionArchetype(
   };
 
   const transitions = ARCHETYPE_TRANSITIONS[currentArchetype];
-  if (cumulativeOvrDelta >= 15 && transitions.positive) return resolveTarget(transitions.positive);
-  if (cumulativeOvrDelta <= -15 && transitions.negative) return resolveTarget(transitions.negative);
+  if (cumulativeOvrDelta >= 8 && transitions.positive) return resolveTarget(transitions.positive);
+  if (cumulativeOvrDelta <= -8 && transitions.negative) return resolveTarget(transitions.negative);
   return currentArchetype;
 }
 
@@ -1304,7 +1304,7 @@ export function generateStorylineEvent(
 } {
   const def = ARCHETYPE_DEFS[archetype];
   let pool = [...def.events];
-  if (isLegendary && def.legendaryEvents && arcStage >= 2) {
+  if (isLegendary && def.legendaryEvents && arcStage >= 1) {
     pool = [...pool, ...def.legendaryEvents];
   }
   // Filter out templates already used this season to avoid weekly duplicates.
