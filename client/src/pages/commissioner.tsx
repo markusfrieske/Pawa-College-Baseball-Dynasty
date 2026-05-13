@@ -635,7 +635,12 @@ function ActionsTab({
 
   return (
     <div className="space-y-6">
-      <ReadyStatusSection leagueId={league?.id || ""} commissionerUserId={league?.commissionerId} />
+      <ReadyStatusSection
+        leagueId={league?.id || ""}
+        commissionerUserId={league?.commissionerId}
+        onAdvanceWeek={onAdvanceWeek}
+        isAdvancing={isAdvancing}
+      />
       
       {isPostseason && <PostseasonBracket leagueId={league?.id || ""} phase={league?.currentPhase || ""} />}
       
@@ -1207,7 +1212,7 @@ function formatLastActivity(lastActivityAt: string | null): string {
   return `${days}d ago`;
 }
 
-function ReadyStatusSection({ leagueId, commissionerUserId }: { leagueId: string; commissionerUserId?: string }) {
+function ReadyStatusSection({ leagueId, commissionerUserId, onAdvanceWeek, isAdvancing }: { leagueId: string; commissionerUserId?: string; onAdvanceWeek?: () => void; isAdvancing?: boolean }) {
   const { toast } = useToast();
   const qc = useQueryClient();
 
@@ -1248,23 +1253,6 @@ function ReadyStatusSection({ leagueId, commissionerUserId }: { leagueId: string
       const team = data?.readyStatus.find(s => s.teamId === teamId);
       toast({ title: "Nudge Sent", description: `Reminder logged for ${team?.coachName ?? "coach"}.` });
       qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "ready-status"] });
-    },
-    onError: (error: Error) => {
-      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
-    },
-  });
-
-  const advanceMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", `/api/leagues/${leagueId}/advance`, {});
-      return res.json();
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId] });
-      qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "ready-status"] });
-      qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "commissioner"] });
-      qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting"] });
-      window.dispatchEvent(new CustomEvent("league-phase-changed"));
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
@@ -1323,16 +1311,16 @@ function ReadyStatusSection({ leagueId, commissionerUserId }: { leagueId: string
               {data.readyCount}/{data.humanCount} Ready
             </Badge>
           </div>
-          {isCommissioner && data.allHumansReady && humanTeams.length > 0 && (
+          {isCommissioner && onAdvanceWeek && data.allHumansReady && humanTeams.length > 0 && (
             <RetroButton
               size="sm"
-              onClick={() => advanceMutation.mutate()}
-              disabled={advanceMutation.isPending}
+              onClick={onAdvanceWeek}
+              disabled={isAdvancing}
               className="border-green-500 bg-green-600/20 text-green-300 hover:bg-green-600/40 shrink-0"
               data-testid="button-advance-now-ready-section"
             >
               <Play className="w-3.5 h-3.5 mr-1" />
-              {advanceMutation.isPending ? "Advancing..." : "Advance Now"}
+              {isAdvancing ? "Advancing..." : "Advance Now"}
             </RetroButton>
           )}
         </div>
@@ -1535,23 +1523,9 @@ function ReadyStatusSection({ leagueId, commissionerUserId }: { leagueId: string
             )}
 
             {data.allHumansReady && humanTeams.length > 0 && (
-              <div className="flex items-center justify-between gap-3 p-2 rounded bg-green-950/30 border border-green-500/30">
-                <div className="flex items-center gap-2">
-                  <Check className="w-4 h-4 text-green-500 shrink-0" />
-                  <span className="text-sm text-green-400">All coaches are ready.</span>
-                </div>
-                {isCommissioner && (
-                  <RetroButton
-                    size="sm"
-                    onClick={() => advanceMutation.mutate()}
-                    disabled={advanceMutation.isPending}
-                    className="border-green-500 bg-green-600/20 text-green-300 hover:bg-green-600/40 shrink-0"
-                    data-testid="button-advance-now-footer"
-                  >
-                    <Play className="w-3.5 h-3.5 mr-1" />
-                    {advanceMutation.isPending ? "Advancing..." : "Advance Now"}
-                  </RetroButton>
-                )}
+              <div className="flex items-center gap-2 p-2 rounded bg-green-950/30 border border-green-500/30">
+                <Check className="w-4 h-4 text-green-500 shrink-0" />
+                <span className="text-sm text-green-400">All coaches are ready — use the button above to advance.</span>
               </div>
             )}
           </div>
