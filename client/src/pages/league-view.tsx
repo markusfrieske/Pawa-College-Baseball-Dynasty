@@ -261,7 +261,7 @@ export default function LeagueViewPage() {
     staleTime: 0,
   });
 
-  const storylineActivePhase = league ? STORYLINE_ACTIVE_PHASES.has(league.currentPhase) : false;
+  const storylineActivePhase = league ? STORYLINE_VOTE_CALLOUT_PHASES.has(league.currentPhase) : false;
   const { data: storylinesNavResp } = useQuery<{ storylines: StorylineWidgetItem[] }>({
     queryKey: ["/api/leagues", id, "storylines"],
     queryFn: async () => {
@@ -444,7 +444,7 @@ export default function LeagueViewPage() {
       <main className="container mx-auto px-4 py-6">
         <PhaseGuidanceBanner phase={league.currentPhase} leagueId={id!} />
 
-        <WaitingOnWidget leagueId={id!} league={league} />
+        <WaitingOnWidget leagueId={id!} league={league} pendingVoteCount={storylinePendingVotes} />
 
         <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-8 gap-2 sm:gap-3 mb-6">
           <QuickActionCard
@@ -1922,18 +1922,18 @@ function getEffectiveReady(
   return !!entry.isReady;
 }
 
-const STORYLINE_ACTIVE_PHASES = new Set([
+const STORYLINE_VOTE_CALLOUT_PHASES = new Set([
   "recruiting", "preseason", "spring_training", "regular_season",
-  "offseason", "offseason_recruiting_1", "offseason_recruiting_2",
-  "offseason_recruiting_3", "offseason_recruiting_4",
 ]);
 
 function WaitingOnWidget({
   leagueId,
   league,
+  pendingVoteCount = 0,
 }: {
   leagueId: string;
   league: LeagueDetails;
+  pendingVoteCount?: number;
 }) {
   const queryClient = useQueryClient();
 
@@ -1946,21 +1946,7 @@ function WaitingOnWidget({
     refetchInterval: 30000,
   });
 
-  const showStorylineVotes = STORYLINE_ACTIVE_PHASES.has(league.currentPhase);
-  const { data: storylinesResp } = useQuery<{ storylines: StorylineWidgetItem[] }>({
-    queryKey: ["/api/leagues", leagueId, "storylines"],
-    queryFn: async () => {
-      const res = await fetch(`/api/leagues/${leagueId}/storylines`, { credentials: "include" });
-      if (!res.ok) return { storylines: [] };
-      const json = await res.json();
-      return Array.isArray(json) ? { storylines: json } : (json as { storylines: StorylineWidgetItem[] });
-    },
-    enabled: showStorylineVotes,
-    staleTime: 60000,
-  });
-  const pendingVoteCount = (storylinesResp?.storylines ?? []).filter(
-    (s) => !!s.activeEvent && !s.myVote,
-  ).length;
+  const showStorylineVotes = STORYLINE_VOTE_CALLOUT_PHASES.has(league.currentPhase);
 
   const toggleReady = useMutation({
     mutationFn: async () => {
