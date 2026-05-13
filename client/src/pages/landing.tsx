@@ -6,7 +6,8 @@ import { RetroSelect } from "@/components/ui/retro-select";
 import {
   Trophy, Star, User, Bug, Layers, LogOut,
   DollarSign, X, Search, Binoculars,
-  Crown, Eye, Zap, Swords, ClipboardList, UserPlus, ChevronRight
+  Crown, Eye, Zap, Swords, ClipboardList, UserPlus, ChevronRight,
+  ArrowRight, GitMerge, TrendingUp, BarChart3
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -112,7 +113,16 @@ export default function LandingPage() {
             </p>
 
             <div className="flex flex-wrap justify-center gap-2 mb-10">
-              {["130+ Programs", "3,500+ Real Players", "13 Conferences", "20-Season Dynasties", "Multiplayer Leagues"].map((pill) => (
+              {[
+                "130+ Programs",
+                "3,500+ Real Players",
+                "13 Conferences",
+                "Transfer Portal",
+                "MLB Draft",
+                "43+ Tracked Stats",
+                "Postseason Bracket",
+                "Multiplayer Leagues",
+              ].map((pill) => (
                 <span key={pill} className="border border-gold/25 bg-gold/5 text-gold/70 text-[9px] font-pixel px-3 py-1.5 tracking-wide">
                   {pill}
                 </span>
@@ -155,7 +165,7 @@ export default function LandingPage() {
                 <div className="w-2.5 h-2.5 rounded-full bg-red-500/70" />
                 <div className="w-2.5 h-2.5 rounded-full bg-amber-500/70" />
                 <div className="w-2.5 h-2.5 rounded-full bg-green-500/70" />
-                <span className="font-pixel text-[8px] text-gold/40 ml-2 tracking-widest">RECRUITING · SEASON 1 · WEEK 4</span>
+                <span className="font-pixel text-[8px] text-gold/40 ml-2 tracking-widest" id="terminal-phase-label">RECRUITING · SEASON 1 · WEEK 4</span>
               </div>
               <div className="p-0 overflow-hidden">
                 <HeroVideoPlayer />
@@ -173,9 +183,9 @@ export default function LandingPage() {
             <h2 className="font-pixel text-gold text-center text-lg mb-12">How It Works</h2>
             <div className="grid sm:grid-cols-3 gap-px bg-border">
               {[
-                { step: "01", icon: <Crown className="w-7 h-7" />, title: "Create Your League", desc: "Set up a dynasty with 4-16 teams across real conferences. Invite friends or fill slots with CPU opponents." },
-                { step: "02", icon: <Binoculars className="w-7 h-7" />, title: "Scout & Recruit", desc: "80 recruits per class with hidden ratings. Spend actions on visits, phone calls, and NIL offers to land top talent." },
-                { step: "03", icon: <Trophy className="w-7 h-7" />, title: "Compete & Advance", desc: "Simulate games weekly, track standings, win Conference Championships and the College World Series." },
+                { step: "01", icon: <Crown className="w-7 h-7" />, title: "Create Your League", desc: "Set up a dynasty with 4–16 teams across real conferences. Invite friends or fill CPU slots — then set the difficulty." },
+                { step: "02", icon: <Binoculars className="w-7 h-7" />, title: "Scout & Recruit", desc: "80 recruits per class with fog-of-war ratings. Spend weekly actions on calls, visits, and NIL offers to land talent, then manage the transfer portal and walk-on pool each offseason." },
+                { step: "03", icon: <Trophy className="w-7 h-7" />, title: "Compete Every Week", desc: "Advance through Preseason, Regular Season, Conference Championships, Super Regionals, and the College World Series. Every result is permanent dynasty history." },
               ].map((item) => (
                 <div key={item.step} className="bg-background p-8 flex flex-col items-center text-center gap-4">
                   <div className="font-pixel text-[10px] text-gold/40 tracking-widest">{item.step}</div>
@@ -200,10 +210,11 @@ export default function LandingPage() {
                 </p>
                 <ul className="space-y-3">
                   {[
-                    "80 recruits per class with star-distribution fog of war",
-                    "Blue Chips, Gems, and Busts hidden in every class",
-                    "State-based proximity bonuses shape your recruiting territory",
-                    "CPU teams compete against you using the same action system",
+                    "80 recruits per class — Blue Chips, Generational Gems, and Busts hidden in every class",
+                    "Scouting progressively narrows ratings from unknown ranges to exact values",
+                    "Per-recruit weekly action limits: 1 phone call, 1 email, 1 visit, 1 offer per dynasty",
+                    "Priority color-coding shows which school factors each recruit actually cares about",
+                    "CPU teams use the same multiplier stack as human coaches — no artificial advantages",
                   ].map((pt) => (
                     <li key={pt} className="flex items-start gap-2 text-sm text-muted-foreground">
                       <ChevronRight className="w-4 h-4 text-gold mt-0.5 shrink-0" />
@@ -238,14 +249,15 @@ export default function LandingPage() {
                 <div className="font-pixel text-[9px] text-gold/60 tracking-widest mb-3">FEATURE 02</div>
                 <h2 className="font-pixel text-gold text-xl leading-relaxed mb-5">Deep Player Systems</h2>
                 <p className="text-muted-foreground leading-relaxed mb-6">
-                  Every player carries 22 numeric attributes, letter grades across 8 common skills, and up to 7 special ability badges. Real 2026 rosters for all 13 conferences — 3,500+ actual players.
+                  Every player carries 22 numeric attributes, letter grades across 8 common skills, and up to 7 special ability badges. Real 2026 rosters for all 13 conferences — 3,500+ actual players. Advanced stats track 43+ fields including Statcast metrics, wOBA, wRC+, and OAA.
                 </p>
                 <ul className="space-y-3">
                   {[
-                    "150-650 overall scale translates to 1-5 star ratings",
-                    "Gold, Blue, and Red special ability tiers",
-                    "Sophomore progression and eligibility tracking each season",
-                    "MLB Draft projections for departing seniors and juniors",
+                    "150–650 overall scale translates to 1–5 star ratings",
+                    "Gold, Blue, and Red special ability badge tiers with 0–7 per player",
+                    "Advanced stats: wOBA, wRC+, BABIP, SIERA, exit velocity, barrel%, OAA",
+                    "Eligibility tracking, sophomore progression, and career season-by-season history",
+                    "MLB Draft projections for departing seniors and declared juniors",
                   ].map((pt) => (
                     <li key={pt} className="flex items-start gap-2 text-sm text-muted-foreground">
                       <ChevronRight className="w-4 h-4 text-gold mt-0.5 shrink-0" />
@@ -266,14 +278,15 @@ export default function LandingPage() {
                 <div className="font-pixel text-[9px] text-gold/60 tracking-widest mb-3">FEATURE 03</div>
                 <h2 className="font-pixel text-gold text-xl leading-relaxed mb-5">League-First Competition</h2>
                 <p className="text-muted-foreground leading-relaxed mb-6">
-                  Designed for multiplayer from the ground up. Compete against other coaches in a persistent dynasty where every recruiting decision, every week advance, and every championship win is recorded forever.
+                  Designed for multiplayer from the ground up. Every recruiting decision, week advance, and championship win is permanent dynasty history. The commissioner system keeps leagues moving — deadlines, audit logs, and stall detection included.
                 </p>
                 <ul className="space-y-3">
                   {[
-                    "Conference Championships, Super Regionals, and College World Series",
-                    "Power Rankings updated with composite scores each week",
-                    "Commissioner tools: deadlines, bulk editing, audit logs",
-                    "Transfer portal and JUCO pipelines between seasons",
+                    "Conference Championships, Super Regionals, and College World Series postseason",
+                    "Power Rankings with composite scores, week-over-week trend tracking, and sortable grades",
+                    "Notification center — activity feed tracks CPU signings, portal moves, and phase changes",
+                    "Commissioner tools: phase deadlines, bulk roster editing, stall detection, audit logs",
+                    "Invite links for easy multiplayer onboarding — no email verification required",
                   ].map((pt) => (
                     <li key={pt} className="flex items-start gap-2 text-sm text-muted-foreground">
                       <ChevronRight className="w-4 h-4 text-gold mt-0.5 shrink-0" />
@@ -301,8 +314,8 @@ export default function LandingPage() {
               {[
                 { num: "130+", label: "Programs", sub: "All major conferences" },
                 { num: "3,500+", label: "Real Players", sub: "2026 rosters" },
+                { num: "43+", label: "Tracked Stats", sub: "Including Statcast" },
                 { num: "13", label: "Conferences", sub: "SEC to HBCU" },
-                { num: "20", label: "Max Seasons", sub: "Per dynasty" },
               ].map((stat) => (
                 <div key={stat.label} className="bg-background p-8 text-center">
                   <div className="font-pixel text-gold text-2xl sm:text-3xl mb-1">{stat.num}</div>
@@ -328,6 +341,38 @@ export default function LandingPage() {
               <div className="border border-border bg-card/40 p-5">
                 <div className="font-pixel text-[8px] text-gold/50 mb-4 tracking-widest">SKILL TREES</div>
                 <CoachSkillsPreview />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── FEATURE: OFFSEASON PIPELINE ─────────────────────── */}
+        <section className="py-20 px-4 border-t border-border bg-card/30">
+          <div className="container mx-auto max-w-5xl">
+            <div className="grid md:grid-cols-2 gap-12 items-center">
+              <div className="order-2 md:order-1">
+                <div className="font-pixel text-[9px] text-gold/60 tracking-widest mb-3">FEATURE 05</div>
+                <h2 className="font-pixel text-gold text-xl leading-relaxed mb-5">Full Offseason Pipeline</h2>
+                <p className="text-muted-foreground leading-relaxed mb-6">
+                  The offseason is just as competitive as the season. Every player departure triggers a cascade — transfer portal, JUCO development, MLB Draft projections, walk-on signings, and a brand-new recruiting class all happen in sequence. Roster management never stops.
+                </p>
+                <ul className="space-y-3">
+                  {[
+                    "Transfer portal opens — players enter and you can recruit them directly",
+                    "Unsigned portal players sign with JUCO and return next year with an OVR boost",
+                    "Top departing seniors and juniors projected into a 3-round MLB Draft",
+                    "Cuts & Walk-Ons phase: trim rosters to 25 and sign unsigned recruits",
+                    "New 80-recruit class generates at season start — the cycle begins again",
+                  ].map((pt) => (
+                    <li key={pt} className="flex items-start gap-2 text-sm text-muted-foreground">
+                      <ChevronRight className="w-4 h-4 text-gold mt-0.5 shrink-0" />
+                      {pt}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="order-1 md:order-2">
+                <OffseasonPipelineVisual />
               </div>
             </div>
           </div>
@@ -396,6 +441,10 @@ const DEMO_PHASES = [
   { label: "PHONE CALL", sub: "Build interest with your top targets" },
   { label: "CAMPUS VISIT", sub: "Show off your facilities" },
   { label: "SCHOLARSHIP OFFER", sub: "Close the deal with NIL money" },
+  { label: "REGULAR SEASON", sub: "Simulate games and track standings" },
+  { label: "POWER RANKINGS", sub: "Composite scores updated weekly" },
+  { label: "COLLEGE WORLD SERIES", sub: "Best-of-3 bracket for the title" },
+  { label: "TRANSFER PORTAL", sub: "Sign portal players or lose yours" },
 ];
 
 const PHASE_DURATION = 3200;
@@ -448,6 +497,79 @@ function HeroVideoPlayer() {
           ))}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── OFFSEASON PIPELINE VISUAL ─────────────────────────────────
+
+function OffseasonPipelineVisual() {
+  const steps = [
+    {
+      icon: GitMerge,
+      color: "text-purple-400",
+      border: "border-purple-400/30",
+      bg: "bg-purple-400/5",
+      label: "Transfer Portal",
+      sub: "Players enter — recruit them directly",
+    },
+    {
+      icon: TrendingUp,
+      color: "text-cyan-400",
+      border: "border-cyan-400/30",
+      bg: "bg-cyan-400/5",
+      label: "JUCO Development",
+      sub: "Unsigned players return with +5–15 OVR boost",
+    },
+    {
+      icon: Trophy,
+      color: "text-amber-400",
+      border: "border-amber-400/30",
+      bg: "bg-amber-400/5",
+      label: "MLB Draft",
+      sub: "Top departing players projected Rounds 1–3",
+    },
+    {
+      icon: ClipboardList,
+      color: "text-green-400",
+      border: "border-green-400/30",
+      bg: "bg-green-400/5",
+      label: "Cuts & Walk-Ons",
+      sub: "Trim to 25 — sign unsigned recruits",
+    },
+    {
+      icon: BarChart3,
+      color: "text-gold",
+      border: "border-gold/30",
+      bg: "bg-gold/5",
+      label: "New Recruiting Class",
+      sub: "80 fresh recruits — the cycle begins again",
+    },
+  ];
+  return (
+    <div className="border border-border bg-card/60 p-5 space-y-1">
+      <div className="font-pixel text-[8px] text-gold/50 mb-4 tracking-widest">OFFSEASON SEQUENCE</div>
+      {steps.map((s, i) => (
+        <div key={s.label}>
+          <div className={`flex items-center gap-3 p-3 border ${s.border} ${s.bg}`}>
+            <div className={`shrink-0 ${s.color}`}>
+              <s.icon className="w-4 h-4" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className={`font-pixel text-[9px] ${s.color} tracking-wide`}>{s.label}</div>
+              <div className="text-[10px] text-muted-foreground mt-0.5 leading-snug">{s.sub}</div>
+            </div>
+            <div className="font-pixel text-[9px] text-muted-foreground/40 shrink-0">
+              {String(i + 1).padStart(2, "0")}
+            </div>
+          </div>
+          {i < steps.length - 1 && (
+            <div className="flex justify-start pl-5">
+              <ArrowRight className="w-3 h-3 text-gold/20 rotate-90" />
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
