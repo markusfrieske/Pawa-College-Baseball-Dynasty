@@ -87,6 +87,8 @@ export type Archetype =
   | "summer_breakout" | "social_media_star" | "confidence_crisis" | "burnout_candidate"
   | "injury_risk" | "academic_concern" | "transfer_rumors" | "two_sport_athlete"
   | "knuckleball_specialist" | "rivalry_recruit" | "generational_prodigy"
+  | "financial_pressure" | "coaching_change" | "first_gen_student"
+  | "draft_agent_pressure" | "small_town_hero"
   // ─── Five distinct legendary storyline templates ──────────────────────────
   | "the_phenom" | "the_collapse" | "the_two_sport_icon" | "the_scientist" | "folk_hero";
 
@@ -113,6 +115,12 @@ export const ARCHETYPE_TRANSITIONS: Record<Archetype, { positive?: Archetype; ne
   the_two_sport_icon:   { positive: "the_phenom",            negative: "the_collapse" },
   the_scientist:        { positive: "the_phenom",            negative: "academic_concern" },
   folk_hero:            { positive: "generational_prodigy",  negative: "confidence_crisis" },
+  // ─── New regular archetypes ──────────────────────────────────────────────
+  financial_pressure:   { positive: "summer_breakout",       negative: "burnout_candidate" },
+  coaching_change:      { positive: "late_bloomer",          negative: "confidence_crisis" },
+  first_gen_student:    { positive: "summer_breakout",       negative: "academic_concern" },
+  draft_agent_pressure: { positive: "generational_prodigy",  negative: "transfer_rumors" },
+  small_town_hero:      { positive: "rivalry_recruit",       negative: "confidence_crisis" },
 };
 
 // When a transition target is position-incompatible, substitute with a narratively
@@ -204,6 +212,8 @@ export const ARCHETYPES: Archetype[] = [
   "summer_breakout", "social_media_star", "confidence_crisis", "burnout_candidate",
   "injury_risk", "academic_concern", "transfer_rumors", "two_sport_athlete",
   "knuckleball_specialist", "rivalry_recruit", "generational_prodigy",
+  "financial_pressure", "coaching_change", "first_gen_student",
+  "draft_agent_pressure", "small_town_hero",
 ];
 
 // Archetypes whose event text is specific to pitchers (velocity, arm injuries, bullpen, etc.)
@@ -460,6 +470,16 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
         choiceB: "Call him the next morning — just to check in, not to recruit", choiceBOutcome: "The call with no agenda lands exactly right. He talks for 40 minutes. You mostly listen.", choiceBWeights: W.high_risk,
         choiceC: "Reach out to his mother first — tell her what you saw from the stands", choiceCOutcome: "The mother becomes your strongest ally. She calls her son that night and tells him what you said.", choiceCWeights: W.bold_pos,
       },
+      {
+        id: "cc_3",
+        scenePrompt: "Pixel art scene: player standing at the plate in a key game moment, a single beam of stadium light cutting through the dust onto him, his stance quietly transformed from the rigid thing it was three months ago, his hands loose, breath visible in the cold air, one scout lowering his binoculars slowly with the look of someone seeing a ghost come back to life.",
+        scenePromptPitcher: "Pixel art scene: pitcher stepping onto the mound in a key game moment, a single beam of stadium light cutting through the dust onto him, his set and exhale quietly transformed from the mechanical thing it was three months ago, one scout lowering his binoculars slowly with the look of someone seeing a ghost come back to life.",
+        eventText: "{name} stepped into the batter's box in the seventh inning last Friday and looked different. Not physically — his stance. Loose. Present. The thing he lost in October was suddenly, improbably back. He hit a line drive to left center. Jogged to second. Stood there looking at the sky for a moment before anyone could make sense of what they'd just seen. His high school coach texted you after: 'He's coming back. I thought you should know first.'",
+        eventTextPitcher: "{name} stepped onto the mound in the seventh inning last Friday and looked different. Not physically — his grip, his set, his exhale before the wind-up. The thing he lost in October was suddenly, improbably back. He struck out the side on nine pitches. Walked to the dugout without a word. His high school coach texted you after: 'He's coming back. I thought you should know first.'",
+        choiceA: "Call him immediately — acknowledge what you saw without making it bigger than he needs it to be", choiceAOutcome: "The call that names the moment without dramatizing it is exactly the right register. He says: 'I feel like myself again.' You say: 'I know. I could tell.'", choiceAWeights: W.bold_pos,
+        choiceB: "Send him a simple message — two sentences, nothing more", choiceBOutcome: "The restraint of two sentences in a moment everyone is rushing to claim lands like a deep breath. He reads it four times.", choiceBWeights: W.safe_pos,
+        choiceC: "Give it another week — make sure this is real before reinvesting fully", choiceCOutcome: "The week of caution is reasonable and costs you nothing except first-mover advantage. Other programs notice the same thing.", choiceCWeights: W.cautious,
+      },
     ],
   },
 
@@ -495,6 +515,16 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
         choiceB: "Wait until he comes back — then call and ask what he needs, not what happened", choiceBOutcome: "Asking what he needs instead of demanding an explanation is the rarest response. He wasn't expecting it.", choiceBWeights: W.safe_pos,
         choiceC: "Connect him with a current player who nearly walked away and chose to stay", choiceCOutcome: "The story of someone who almost quit — told by that person, not a coach — resonates in a way nothing else can.", choiceCWeights: W.neutral_up,
       },
+      {
+        id: "bc_3",
+        scenePrompt: "Pixel art scene: player alone in a high school gym in December, just him and a tee and complete silence, working without the crowd or the pressure or the travel bags — a single light overhead — smiling at the ball before he hits it, nobody watching.",
+        scenePromptPitcher: "Pixel art scene: pitcher alone in a high school gym in December, just him and a net and complete silence, working without the crowd or the pressure or the radar gun — a single light overhead — smiling before each throw, nobody watching.",
+        eventText: "{name} called you in December. It was the first call he'd initiated in six months. He said: 'I think I needed to remember why I started. I went home, hit in my dad's gym for a week. Nobody watching. No showcases. I figured something out.' He paused. 'I'm ready to make a decision. But I wanted to talk to you first, before I talked to anyone else.' He sounds different — quieter and more certain at the same time.",
+        eventTextPitcher: "{name} called you in December. It was the first call he'd initiated in six months. He said: 'I think I needed to remember why I started. I went home, threw in my dad's garage for a week. Nobody watching. No radar gun. I figured something out.' He paused. 'I'm ready to make a decision. But I wanted to talk to you first, before I talked to anyone else.' He sounds different — quieter and more certain at the same time.",
+        choiceA: "Let him lead — ask what he figured out and genuinely listen to the answer", choiceAOutcome: "What he figured out turns out to be the most important thing he's said to you in months. You learn something about him — and he sees that you learned it.", choiceAWeights: W.bold_pos,
+        choiceB: "Acknowledge the call first — tell him you've been thinking about him", choiceBOutcome: "The acknowledgment that he was in your thoughts when he went quiet is something he didn't expect. It matters.", choiceBWeights: W.safe_pos,
+        choiceC: "Keep the conversation light — don't push for the decision, let it come naturally", choiceCOutcome: "The absence of pressure after months of everyone pressing him is the thing that finally makes him exhale. He commits that same week.", choiceCWeights: W.neutral_up,
+      },
     ],
   },
 
@@ -519,6 +549,14 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
         choiceA: "Support whatever timeline he needs — tell him explicitly that patience is your plan", choiceAOutcome: "The unconditional timeline removes the pressure that has haunted every previous comeback attempt. Something visibly settles in him.", choiceAWeights: W.risky_neg,
         choiceB: "Offer specialized biomechanics consultation — give him elite resources, not just words", choiceBOutcome: "The specific medical offer translates care into action. It's the thing that makes the difference between feeling supported and being supported.", choiceBWeights: W.safe_pos,
         choiceC: "Reach out to encourage the aggressive timeline — showcase while the momentum is there", choiceCOutcome: "Pushing the timeline on an arm that has failed twice before is a risk he knows better than anyone. He hears the pressure. The relationship cools.", choiceCWeights: W.bold_pos,
+      },
+      {
+        id: "ir_3",
+        scenePrompt: "Pixel art scene: medical consultation room, pitcher and his parents sitting across from two surgeons with differing body language — one leaning forward with a pen, the other sitting back with arms folded — an MRI image on the light board between them, the pitcher looking not at either surgeon but at a spot on the wall where no one is looking.",
+        eventText: "The medical news on {name} came back ambiguous. One surgeon recommends shutting the arm down for eight months. Another says there's no structural reason he can't pitch through it with careful management. Two programs quietly withdrew. Four others are waiting. He told you what neither surgeon said: 'I feel fine. I just don't know who to trust anymore.' He's never said that to another coach.",
+        choiceA: "Get him a third opinion — on your program's dime, no strings, just information", choiceAOutcome: "The offer of independent information with no agenda signals that you're solving his problem, not yours. He calls the next morning.", choiceAWeights: W.bold_pos,
+        choiceB: "Tell him honestly what you would do if it were your arm — give him a real answer", choiceBOutcome: "The personal answer, not the coaching answer, is something he wasn't expecting. It becomes the conversation he references when he announces his decision.", choiceBWeights: W.safe_pos,
+        choiceC: "Tell him you'll support whatever he decides — and that the offer stands regardless", choiceCOutcome: "The unconditional commitment through the medical uncertainty is the most powerful thing a program can offer. He files it differently from every other pitch.", choiceCWeights: W.neutral_up,
       },
     ],
   },
@@ -545,6 +583,14 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
         choiceB: "Call instead of writing — show you can operate outside the format he set", choiceBOutcome: "The call surprises him. The directness and the willingness to be human over formal is exactly what he was testing for.", choiceBWeights: W.safe_pos,
         choiceC: "Have your academic dean reach out — show you take the question seriously at an institutional level", choiceCOutcome: "Elevating the response to an institutional level signals genuine investment in the academic side of his experience.", choiceCWeights: W.neutral_up,
       },
+      {
+        id: "ac_3",
+        scenePrompt: "Pixel art scene: academic advisor's office, the recruit sitting across a desk with a letter visible — the phrase 'Eligible to Enroll' barely readable — the advisor and recruit shaking hands across the desk, the recruit's phone lit up with twelve unread messages from coaches.",
+        eventText: "{name} cleared full academic eligibility — just barely, again, but this time without any asterisks. His advisor sent a letter. His mother framed it. He texted you the photo of the framed letter and one line: 'It's real now.' He hasn't responded to eleven coaches who reached out since the news broke. Your message was the twelfth. He responded to yours.",
+        choiceA: "Ask him one question: 'What made you text me that photo?'", choiceAOutcome: "The question cuts directly to what matters. The answer tells you more about where this is heading than any amount of recruiting talk.", choiceAWeights: W.bold_pos,
+        choiceB: "Respond simply — acknowledge the moment, tell him you're proud, and leave it there", choiceBOutcome: "The cleanest response to a moment that's already been through enough complexity is the one that says 'I see you' without needing anything back.", choiceBWeights: W.safe_pos,
+        choiceC: "Ask him when he wants to visit — make the next step concrete while the energy is real", choiceCOutcome: "The forward motion captures the momentum before it dissipates. He picks a date before the call ends.", choiceCWeights: W.neutral_up,
+      },
     ],
   },
 
@@ -569,6 +615,14 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
         choiceA: "Call him — ask if the story is true, directly and without panic", choiceAOutcome: "The direct, calm question in a moment of chaos reads as confidence. He laughs. He tells you what's actually happening.", choiceAWeights: W.safe_pos,
         choiceB: "Ignore the story entirely — continue your normal relationship without referencing it", choiceBOutcome: "The refusal to react to noise is noticed. He's been watching which programs panic. Yours didn't.", choiceBWeights: W.neutral_up,
         choiceC: "Make a public counter-move — escalate your offer and visibility", choiceCOutcome: "The public escalation either swings the narrative back or creates pressure he didn't want. It depends entirely on his personality.", choiceCWeights: W.high_risk,
+      },
+      {
+        id: "tr_3",
+        scenePrompt: "Pixel art scene: phone screen showing a text conversation with a simple message — 'Can we talk tomorrow? Just you and me. No handlers.' — sent at 10:14pm, phone resting face-up on a dark desk, a single notification light blinking, the rest of the room completely dark and still.",
+        eventText: "{name} texted you at 10:14pm on a Wednesday. One message: 'Can we talk tomorrow? Just you and me. No handlers.' The handler doesn't know. The rival programs don't know. His family doesn't know. He's given you a window that nobody else has been offered. Tomorrow morning he has a formal commitment meeting with two other schools. He hasn't told you that part — but you know.",
+        choiceA: "Call at 7am — be first, be present, and ask him what he actually wants", choiceAOutcome: "The early call cuts through everything scheduled after it. He's direct in a way he hasn't been with anyone else. The conversation changes the math.", choiceAWeights: W.bold_pos,
+        choiceB: "Text back simply: 'Of course. I'll be ready whenever you are.' — let him set the terms", choiceBOutcome: "Giving him the control he asked for is exactly the right response. He calls at 6:45. He says: 'I wanted to hear your voice before the day starts.'", choiceBWeights: W.safe_pos,
+        choiceC: "Prepare a single, honest pitch — no frills, just the truth about what you can offer", choiceCOutcome: "The preparation for honesty produces the most direct conversation you've had. He responds to clarity the way he hasn't responded to anything else.", choiceCWeights: W.neutral_up,
       },
     ],
   },
@@ -595,6 +649,14 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
         choiceB: "Text back: 'Of course. Tomorrow morning, whenever you're up.' — give him space to set the terms", choiceBOutcome: "Letting him control the timing of a conversation he initiated shows respect for his pace. He calls at 7am.", choiceBWeights: W.risky_neg,
         choiceC: "Respond warmly but wait for him to schedule it — don't pounce on the opening", choiceCOutcome: "The measured response is respectful. The conversation happens on his terms and goes deeper than expected.", choiceCWeights: W.safe_pos,
       },
+      {
+        id: "ts_3",
+        scenePrompt: "Pixel art scene: football coach's office, a college football program banner on the wall, the recruit sitting across from his longtime football coach — the man who recruited him, mentored him — the coach's desk cleared of everything except one document, the player's phone face-down in his lap, a baseball hat barely visible in his jacket pocket.",
+        eventText: "{name}'s football coach called a private meeting. Nobody outside the two of them knows what was said. What happened after: {name} texted you within the hour. The message was two lines: 'I've made my decision. Baseball. I need you to trust that I'm sure.' He didn't tell you what was said in that room. He didn't owe you that. He offered you the outcome instead.",
+        choiceA: "Tell him you trust him and ask one thing: what he needs from you right now", choiceAOutcome: "The immediate pivot to 'what do you need' before anything about your program signals that you understand what he actually went through.", choiceAWeights: W.bold_pos,
+        choiceB: "Accept without any questions — confirm the offer and welcome him", choiceBOutcome: "Taking the decision at face value without requiring explanation is a form of respect he didn't know he needed until it arrived.", choiceBWeights: W.safe_pos,
+        choiceC: "Ask him to take 24 hours — make sure the decision holds after a night's sleep", choiceCOutcome: "The brief check shows care rather than desperation. He calls back in eight hours, more certain than before.", choiceCWeights: W.neutral_up,
+      },
     ],
   },
 
@@ -620,6 +682,14 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
         choiceB: "Reach out to MLB teams quietly — ask if there's a professional development interest", choiceBOutcome: "Showing a professional pipeline for his specific gift is the most exciting thing you can offer a pitcher no one has a template for.", choiceBWeights: W.cautious,
         choiceC: "Make the offer and let the results speak — stop analyzing and just commit", choiceCOutcome: "The offer without caveats or qualifiers is what a 9-0 pitcher with a 0.84 ERA deserves. He accepts before the call ends.", choiceCWeights: W.bold_pos,
       },
+      {
+        id: "kb_3",
+        scenePrompt: "Pixel art scene: high school pitching coach's office, a new coach sitting at a desk that used to belong to someone else, the knuckleball pitcher standing in the doorway with a bag over his shoulder looking at a whiteboard covered in conventional pitching diagrams, a knuckleball grip diagram in a frame on the wall behind him — the only thing not erased.",
+        eventText: "The high school coach who built {name}'s entire development around the knuckleball retired in December. The new coach held a team meeting in January and said the words: 'We're running a conventional program now.' {name} is 17, his identity is the knuckleball, and the one adult who understood what he was doing just left the building. He called you the night of the meeting. He didn't say much. Neither did you. But he stayed on the phone for 45 minutes.",
+        choiceA: "Offer your pitching staff as his new development home — make the program the place the knuckleball gets built", choiceAOutcome: "Positioning your staff as the successor to his mentor fills the gap in a way no other program can claim. He commits before the spring.", choiceAWeights: W.bold_pos,
+        choiceB: "Connect him with a professional knuckleball pitcher — give him a mentor the new coach can't take away", choiceBOutcome: "The external mentor transforms his development from program-dependent to pitcher-owned. He sees a future that doesn't require anyone's permission.", choiceBWeights: W.safe_pos,
+        choiceC: "Invite him to your campus to throw — let him feel what it's like to be surrounded by coaches who don't flinch", choiceCOutcome: "The visit is the first time he's thrown the knuckleball for coaches who leaned in instead of looking away. He cries in the parking lot after.", choiceCWeights: W.neutral_up,
+      },
     ],
   },
 
@@ -644,6 +714,14 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
         choiceA: "Text back two words: 'We're steady.' Nothing else.", choiceAOutcome: "Two words in 200 messages of noise. He reads it five times. He tells his mother what you said. She calls you.", choiceAWeights: W.bold_pos,
         choiceB: "Call and ask how he's doing — not about the decision, about him", choiceBOutcome: "Being the coach who asks about the person in the middle of the storm is what separates you from everyone screaming about baseball.", choiceBWeights: W.safe_pos,
         choiceC: "Invite him for a quiet visit this week — get him out of the noise and into a real environment", choiceCOutcome: "The visit away from the chaos provides perspective that no phone call can deliver.", choiceCWeights: W.neutral_up,
+      },
+      {
+        id: "rr_3",
+        scenePrompt: "Pixel art scene: commitment announcement in a home living room — family gathered around a table, rival team's pennant visible on the wall, the recruit reaching forward to flip it face-down before placing a new pennant from your program in its place, his father's expression unreadable, his mother already crying, the player's face showing the calm of someone who has already made peace with the weight of this.",
+        eventText: "{name} told you last night. He's choosing your program. He grew up in their city, wore their gear, his father played there — and he's choosing you. He says he needs one thing from you before he announces: 'Don't make me into a story about them. Let me be a story about you.' He's been carrying this for three months. He's about to face the fallout. He just needs to know you see who he actually is.",
+        choiceA: "Tell him exactly who you see — not the rivalry, not the story — just him", choiceAOutcome: "The answer that has nothing to do with the rivalry is the one he needed. He hangs up, makes the call to his father, and sleeps for the first time in two weeks.", choiceAWeights: W.bold_pos,
+        choiceB: "Promise to stand beside him publicly when the reaction comes — he won't face it alone", choiceBOutcome: "The commitment to show up in the storm is the thing he didn't know to ask for. Knowing you'll be there changes the weight of the decision.", choiceBWeights: W.safe_pos,
+        choiceC: "Keep it quiet as long as he needs — give him full control of the timeline", choiceCOutcome: "The control over his own story is the gift no other program thought to offer. He uses it wisely. When he announces, it's on his terms.", choiceCWeights: W.neutral_up,
       },
     ],
   },
@@ -857,6 +935,180 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
       },
     ],
   },
+
+  // ─── Five New Regular Archetypes ─────────────────────────────────────────────
+
+  financial_pressure: {
+    name: "The Scholarship Kid",
+    description: "His father works double shifts. His mother asked if the scholarship covers books. His dream costs money they don't have.",
+    flavor: "He told you he's never been on a plane. He said it quietly, like it was something he was confessing.",
+    events: [
+      {
+        id: "fp_1",
+        scenePrompt: "Pixel art scene: kitchen table at night, two adults in work clothes across from their son with recruitment brochures spread out, a calculator open on the table, a handwritten budget visible at one corner, the son looking at the brochure photos like they belong to a different world.",
+        eventText: "{name}'s father works double shifts. His mother asked you — directly, the first time she spoke — whether the scholarship covers books. His family has never watched a college game in person. He's never flown on a plane. He told you all of this quietly, like it was something he was confessing. He can play. Everyone can see that. The question nobody has thought to answer is whether someone will make this actually possible.",
+        choiceA: "Walk his family through every dollar — the full scholarship breakdown, meal plans, textbooks, travel", choiceAOutcome: "The specific dollar breakdown transforms the abstract into the possible. His mother takes notes. His father stops looking at the floor.", choiceAWeights: W.bold_pos,
+        choiceB: "Connect him with a current player who came from the same financial situation and made it work", choiceBOutcome: "The peer testimony of someone who had the same kitchen conversation and came out the other side changes everything in the room.", choiceBWeights: W.safe_pos,
+        choiceC: "Offer to arrange a campus visit — let him see it with his own eyes before the financial details become the obstacle", choiceCOutcome: "The visit makes the destination real before the cost becomes the only story. He comes back quieter and more certain.", choiceCWeights: W.neutral_up,
+        choiceD: "Lead with the scholarship dollar amount — make the financial case before anything else", choiceDOutcome: "The number lands before the relationship does. He nods. His mother writes it down. But nothing in the room feels connected yet.", choiceDWeights: W.cautious,
+      },
+      {
+        id: "fp_2",
+        scenePrompt: "Pixel art scene: recruit reading a letter from a rival school on his phone while riding a bus, the offer number visible on the screen, his work uniform partially visible under an open jacket, his stop coming up, the look on his face not excited — calculating.",
+        eventText: "A rival program offered {name} a full scholarship plus a $12,000 NIL package his first year — more money than anyone in his family has ever been offered for anything. He texted you the number. Not to negotiate. He texted it because he needed someone to tell him honestly whether it was enough to say yes to a program he doesn't love as much as yours. He's waiting for your answer.",
+        choiceA: "Be honest — tell him what you can offer and what it means, dollar for dollar", choiceAOutcome: "The honesty about what you have and why it's still the right choice builds a trust the rival's number cannot buy.", choiceAWeights: W.bold_pos,
+        choiceB: "Ask what his family actually needs — find the specific number that makes this possible for them", choiceBOutcome: "The question of what they need — not what the rival offered — shifts the conversation to something you can actually solve.", choiceBWeights: W.safe_pos,
+        choiceC: "Tell him the rival's offer is real and fair and ask what would make your program worth the difference to him", choiceCOutcome: "Acknowledging the rival's offer without panic or politics earns a respect no competing bid can replicate.", choiceCWeights: W.neutral_up,
+      },
+      {
+        id: "fp_3",
+        scenePrompt: "Pixel art scene: scholarship letter spread open on the kitchen table, his mother's handwriting circling the total dollar figure, his father standing in the doorway in work clothes reading it over her shoulder, the player watching their faces — not the letter — with an expression of quiet resolve.",
+        eventText: "The scholarship letter arrived. His mother called you before {name} did. She said three words: 'We can do this.' Then she passed the phone to his father, who said: 'Thank you for explaining it the way you did.' Then she got back on and said: 'He wants to come. He just doesn't know how to say it yet.' {name} gets on the phone ten seconds later and says: 'I'm in.' He says it the way people say things they've been rehearsing for months.",
+        choiceA: "Welcome him fully — make the first moments of his commitment feel like the beginning, not the finish", choiceAOutcome: "The warmth of the welcome is what he carries into his first day on campus. He brings his family for every home game.", choiceAWeights: W.bold_pos,
+        choiceB: "Tell him what comes next — the practical steps, so the family knows the path is clear", choiceBOutcome: "The roadmap removes the final uncertainty. His mother relaxes in a way she hasn't in months. The family starts planning.", choiceBWeights: W.safe_pos,
+        choiceC: "Ask him if he has questions — give him space to voice whatever he's been holding back", choiceCOutcome: "The question opens the real conversation. What he says next tells you more about him than anything in his film.", choiceCWeights: W.neutral_up,
+      },
+    ],
+  },
+
+  coaching_change: {
+    name: "The Orphaned Prospect",
+    description: "His coach — the man who built him, believed in him first, and made the call that started everything — retired in March.",
+    flavor: "He told three programs he was 'figuring things out.' He told you he didn't know who he was without his coach.",
+    events: [
+      {
+        id: "coc_1",
+        scenePrompt: "Pixel art scene: high school dugout after the final practice of the season, the retiring coach and the player sitting on the bench alone with the field lights still on, the coach's keys to the equipment shed on the bench between them, other players' cleats hanging on the wall still dusty from the last game.",
+        scenePromptPitcher: "Pixel art scene: bullpen at the end of the season, the retiring pitching coach and the pitcher sitting on the mound together after everyone else has left, the coach's radar gun on the rubber between them, the field lights still on.",
+        eventText: "{name}'s high school coach — the man who found him, built his mechanics, made the call to three college programs that started everything — retired in March. He didn't announce it. He told the players first, then their parents, then sent one email to coaches he trusted. You were on the list. {name} hasn't spoken publicly. He pulled out of two scheduled showcases. He told your assistant coach he's 'figuring things out.' He told you something different: 'I don't know who I am without him.'",
+        choiceA: "Drive to one of his games — show up without an agenda and just be present", choiceAOutcome: "Being there when his baseball world has lost its center is an act of steadiness no phone call can replicate.", choiceAWeights: W.bold_pos,
+        choiceB: "Reach out to his coach — ask if he's willing to stay involved as a bridge to the transition", choiceBOutcome: "The retired coach agrees to make one more call on his behalf. It's the call that changes the trajectory.", choiceBWeights: W.safe_pos,
+        choiceC: "Give him space — check in once a week without pressure until he finds his footing", choiceCOutcome: "The consistent, low-pressure contact over six weeks becomes the relationship he leans on when he's ready to move forward.", choiceCWeights: W.neutral_up,
+        choiceD: "Make an offer now — give him something concrete to hold in the uncertainty", choiceDOutcome: "The offer lands before the ground is solid. He appreciates it. He's not ready to accept it. The relationship doesn't break, but it pauses.", choiceDWeights: W.cautious,
+      },
+      {
+        id: "coc_2",
+        scenePrompt: "Pixel art scene: new high school coach's first practice, clipboard in front of him like a shield, skeptical expression, while the player performs at another level entirely — the gap between them visible in every body language cue, two scouts in the stands watching the dynamic more than the play.",
+        scenePromptPitcher: "Pixel art scene: new high school pitching coach's first bullpen session, clipboard in front of him like a shield, skeptical expression, while the pitcher on the mound delivers something clearly extraordinary — the gap between them visible in every body language cue, two scouts in the stands watching the dynamic more than the velocity readout.",
+        eventText: "The new coach isn't sure what to do with {name}. He treats him like any other player, which is the problem. {name} spent five years being treated as someone particular. The shift is visible: his mechanics are intact but something in his approach has flattened. His old coach called you last week and said: 'Someone needs to remind him why he's different. I can't be that person anymore.'",
+        choiceA: "Call him and tell him what his old coach told you — with permission — so he knows he's still being seen", choiceAOutcome: "The message from his old coach, carried by you, is the most credible affirmation available. He plays the next game differently.", choiceAWeights: W.bold_pos,
+        choiceB: "Invite him for a campus visit focused entirely on development — show him what a staff that sees him looks like", choiceBOutcome: "The visit surrounded by coaches who respond specifically to who he is restores something he didn't know had gone missing.", choiceBWeights: W.safe_pos,
+        choiceC: "Connect him with a player on your roster who navigated a coaching transition in high school", choiceCOutcome: "The peer story of how to perform when the person who believed in you first is gone lands in exactly the right place.", choiceCWeights: W.neutral_up,
+      },
+      {
+        id: "coc_3",
+        scenePrompt: "Pixel art scene: video call at night — recruit at his desk, old coach visible on a laptop screen behind him with a baseball from their first season hanging on the wall, the recruit holding his phone showing a text with your program's logo — asking his old mentor for the last guidance he'll ever need to ask for.",
+        eventText: "{name} called his old coach before making his decision. The coach told you afterward — unprompted, in a message you weren't expecting: 'He asked me which program would take care of him the way I did. I told him yours. I hope that's true.' There's a weight to that sentence that doesn't leave easily. It's also the clearest endorsement any mentor has ever given you.",
+        choiceA: "Call the retired coach and thank him — and tell him exactly how you plan to honor his investment", choiceAOutcome: "The coach tells {name} about the call. {name} says: 'That's the only confirmation I needed.' He commits that evening.", choiceAWeights: W.bold_pos,
+        choiceB: "Call {name} and acknowledge what his coach said — make the relationship explicit", choiceBOutcome: "Naming the trust that's been passed to you is the most honest thing you can do with it. He hears it as a commitment, not a pitch.", choiceBWeights: W.safe_pos,
+        choiceC: "Let it speak for itself — make the offer and let the endorsement do the work", choiceCOutcome: "The offer alongside the knowledge of what his coach said is enough. He calls back in two hours.", choiceCWeights: W.neutral_up,
+      },
+    ],
+  },
+
+  first_gen_student: {
+    name: "The First One",
+    description: "Nobody in his family has ever been to college. His grandmother keeps the recruiting letters in a shoebox she hides under her bed.",
+    flavor: "He asked you what office hours were. He wasn't joking. He asked it quietly, like he'd been afraid to ask.",
+    events: [
+      {
+        id: "fgs_1",
+        scenePrompt: "Pixel art scene: grandmother's bedroom, a shoebox open on the bed containing a collection of college recruitment letters sorted by color, each envelope carefully resealed after reading, the grandmother holding one up toward the window light to read it better, her face a mixture of pride and complete unfamiliarity with the institutions named inside.",
+        eventText: "{name} is the first person in his family to be recruited by a four-year college. His grandmother collects every letter — sorts them, keeps them in a shoebox under her bed, asks him to read them aloud to her in the evenings. She calls every school 'The University.' He told you this. He also told you that he asked his guidance counselor what 'office hours' meant and felt embarrassed about it for a week. He's brilliant. He's terrified. He needs someone to tell him both of those things are okay at the same time.",
+        choiceA: "Walk him through exactly what college is — the practical, unglamorous reality — and let him ask anything", choiceAOutcome: "The conversation that demystifies the institution — with no condescension and no glossing — is the one that makes college feel like something he could actually belong to.", choiceAWeights: W.bold_pos,
+        choiceB: "Connect him with a first-gen player on your roster who knows this exact feeling", choiceBOutcome: "The peer who has already crossed this distance and survived is the guide no coach can be. They talk for three hours.", choiceBWeights: W.safe_pos,
+        choiceC: "Invite the family for a campus visit — let his grandmother see it in person", choiceCOutcome: "The grandmother's reaction to the visit is the thing that resolves months of uncertainty. She holds her son's hand and says: 'This is where you go.'", choiceCWeights: W.neutral_up,
+        choiceD: "Focus on the baseball — keep the conversation on what he knows and is confident about", choiceDOutcome: "The baseball conversation is comfortable. But the fear underneath the baseball decision doesn't go away because you didn't address it.", choiceDWeights: W.cautious,
+      },
+      {
+        id: "fgs_2",
+        scenePrompt: "Pixel art scene: campus tour in the evening with the rest of his family — parents, grandmother, and two younger siblings all in a line behind a tour guide — the recruit looking not at the buildings but at his family's faces as they look at the buildings, the youngest sibling pointing at the library with wide eyes.",
+        eventText: "He brought his whole family to the campus visit. His grandmother. His parents. Two younger siblings. They walked in a single-file line behind the tour guide and asked questions about everything — the dining hall, the library, the academic advising office, the weight room. His grandmother asked if students were allowed to keep food in their rooms. {name} looked mortified. The tour guide smiled and answered perfectly. {name} looked at you afterward and said: 'Nobody made them feel small.' He was surprised. He shouldn't have had to be.",
+        choiceA: "Tell him directly: 'Nobody here will ever make your family feel small. That's not who we are.'", choiceAOutcome: "The direct commitment to something he hadn't dared to ask for fills the silence that's followed him through every other campus visit.", choiceAWeights: W.bold_pos,
+        choiceB: "Follow up with the tour guide — make sure his family knows they're welcome back anytime", choiceBOutcome: "The follow-up demonstrates institutional warmth, not individual courtesy. He tells his grandmother. She calls the school directly.", choiceBWeights: W.safe_pos,
+        choiceC: "Ask him what the visit meant to him — let him process it out loud before you say anything", choiceCOutcome: "What he says takes you by surprise. It has almost nothing to do with baseball and everything to do with the look on his mother's face.", choiceCWeights: W.neutral_up,
+      },
+      {
+        id: "fgs_3",
+        scenePrompt: "Pixel art scene: nighttime phone call, recruit at his kitchen table with his acceptance letter spread open in front of him, his parents visible through a doorway watching the call without trying to look like they're watching, the word 'ADMITTED' barely visible on the letter, a first-generation college student sticker on the corner of his laptop.",
+        eventText: "The acceptance letter came. {name} called you before he called anyone else in his family — before his parents even knew. He said: 'I got in. I'm the first one.' Then the line went quiet for almost ten seconds. When he came back he said: 'My dad's going to cry when I tell him. I know it.' He paused. 'I'm going to your school. I just needed to tell someone first who would understand what this actually is.'",
+        choiceA: "Tell him what it actually is — in specific terms that honor the weight of what he just said", choiceAOutcome: "The acknowledgment that matches the magnitude — without diminishing or dramatizing it — is the last thing he needs before the new chapter starts.", choiceAWeights: W.bold_pos,
+        choiceB: "Tell him to go tell his dad — and let him know you'll be here when the dust settles", choiceBOutcome: "Sending him to the moment instead of keeping him on the phone is the most generous response available. He calls back two hours later, voice still shaking.", choiceBWeights: W.safe_pos,
+        choiceC: "Ask him how he feels — give him the space to say something he hasn't said yet", choiceCOutcome: "What he says next is something you write down. It stays with you for the rest of your career.", choiceCWeights: W.neutral_up,
+      },
+    ],
+  },
+
+  draft_agent_pressure: {
+    name: "The Early Declare Candidate",
+    description: "His agent called two MLB teams before his high school graduation. One of them called back.",
+    flavor: "He told you the number. You knew what it meant. He asked you to tell him it wasn't enough. You couldn't.",
+    events: [
+      {
+        id: "dap_1",
+        scenePrompt: "Pixel art scene: agent on a phone call in a glass-walled office, documents visible on the desk, the recruit sitting across from him looking at his hands rather than the papers, an MLB logo faintly visible on one of the pages, the player's high school jersey hanging framed on the wall behind the agent — the only thing in the room that still belongs to him.",
+        scenePromptPitcher: "Pixel art scene: agent on a phone call in a glass-walled office, a radar gun printout visible on the desk, the pitcher sitting across from him looking at his hand rather than the papers, an MLB logo faintly visible on one of the pages, the player's high school jersey hanging framed on the wall behind the agent — the only thing in the room that still belongs to him.",
+        eventText: "{name}'s agent initiated contact with three MLB teams before graduation. One responded with a preliminary slot value number. The agent shared it with the family. The family shared it with {name}. {name} shared it with you — not to negotiate, but because he trusts you and he's scared. He said: 'They want me to skip college entirely. Tell me it's not the right move.' He's asking you to make a case you may not be able to make honestly.",
+        choiceA: "Be honest — tell him exactly what college offers and what going pro now costs him in development time", choiceAOutcome: "The honest comparison — both sides, no spin — is what he was actually asking for. He makes a different decision than his agent expected.", choiceAWeights: W.bold_pos,
+        choiceB: "Ask him what he wants — before any of the numbers, just what he actually wants", choiceBOutcome: "The question before the answer reveals that his first instinct, before the agent, was always college. He needed someone to ask.", choiceBWeights: W.safe_pos,
+        choiceC: "Connect him with a player who chose college over a draft slot and has no regrets", choiceCOutcome: "The peer story of the road not taken — told by someone who took yours — is the most persuasive narrative available.", choiceCWeights: W.neutral_up,
+        choiceD: "Tell him the number isn't enough — even if you're not entirely sure that's true", choiceDOutcome: "The confident dismissal of the number provides short-term direction. But if the slot is real, the advice has a shelf life.", choiceDWeights: W.high_risk,
+      },
+      {
+        id: "dap_2",
+        scenePrompt: "Pixel art scene: pro scout sitting across a kitchen table from the player's parents, a one-page letter face-up between them with a dollar figure highlighted, the player standing in the doorway not having been invited to sit down, watching his parents' body language change as they read the number.",
+        scenePromptPitcher: "Pixel art scene: pro scout sitting across a kitchen table from the pitcher's parents, a one-page letter face-up between them with a slot bonus figure highlighted, the pitcher standing in the doorway not having been invited to sit down, watching his parents' body language change as they read the number.",
+        eventText: "An MLB scout visited {name}'s home — without the agent, with the family. {name} wasn't invited to the first part of the meeting. He watched from the doorway while a pro scout explained what a slot bonus could do for his parents. His mother called you afterward, not to tell you the number — to ask you a question: 'Is he ready? Truly ready? Because they're not going to wait for him to be.' She wasn't asking about his ability. She was asking about the rest of him.",
+        choiceA: "Answer honestly — tell her what you believe about his readiness, including the parts that aren't about baseball", choiceAOutcome: "The honest assessment — not just the scouting report but the full person — is the answer she was looking for. She thanks you. She doesn't share what she decides.", choiceAWeights: W.bold_pos,
+        choiceB: "Tell her what college offers that the slot bonus cannot — the full picture of what four years becomes", choiceBOutcome: "The articulation of what money can't buy — in specific, credible terms — shifts the room's center of gravity.", choiceBWeights: W.safe_pos,
+        choiceC: "Ask her what she wants for him — not the contract, not the career, just what she wants for her son", choiceCOutcome: "The question is the one nobody else thought to ask. The answer changes the conversation they have with {name} that night.", choiceCWeights: W.neutral_up,
+      },
+      {
+        id: "dap_3",
+        scenePrompt: "Pixel art scene: draft decision deadline calendar on a wall with a date circled in red, the player alone in his bedroom at midnight reading a printed offer letter on one side and a college program information sheet on the other, a phone on the nightstand with three missed calls from the agent, one unanswered text from you that just reads 'We're here either way.'",
+        scenePromptPitcher: "Pixel art scene: draft decision deadline calendar on a wall with a date circled in red, the pitcher alone in his bedroom at midnight reading a printed bonus offer on one side and a college program information sheet on the other, a phone on the nightstand with three missed calls from the agent, one unanswered text from you that just reads 'We're here either way.'",
+        eventText: "The deadline is in 48 hours. {name} has read every offer letter, every projection, every development timeline. His agent has called six times today. His family has stopped weighing in — they've made their peace with whatever he decides. At midnight he texts you: 'I haven't made up my mind. I keep thinking about what you said. I think I know what I want. I just need to hear someone say it's okay to want it.'",
+        choiceA: "Tell him: 'It's okay to want it. Whatever it is — it's okay.' And mean it.", choiceAOutcome: "The unconditional permission is the last thing he needed. He makes his decision that night. He texts you before he texts his agent.", choiceAWeights: W.bold_pos,
+        choiceB: "Ask him what he wants — and tell him you'll support it regardless of which direction it goes", choiceBOutcome: "The open question with no agenda is the safest ground he's stood on in weeks. The answer surprises him as much as it surprises you.", choiceBWeights: W.safe_pos,
+        choiceC: "Remind him of a specific reason he said he wanted college — something from early in your relationship", choiceCOutcome: "The callback to his own words, spoken before the pressure arrived, reconnects him to the person who was sure before the money made it complicated.", choiceCWeights: W.neutral_up,
+      },
+    ],
+  },
+
+  small_town_hero: {
+    name: "The Local Legend",
+    description: "He's played against maybe 40 quality arms his entire life. His region is so thin that nobody knows how good he actually is.",
+    flavor: "His coach drove six hours to get him to a real showcase. He was the best player there by a distance. Nobody had heard of him.",
+    events: [
+      {
+        id: "sth_1",
+        scenePrompt: "Pixel art scene: regional showcase event at dusk, player standing out in every drill while scouts check their clipboards looking for a name they can't find, one scout finally tapping another on the shoulder and pointing with a question on his face — neither of them has any film on this player.",
+        scenePromptPitcher: "Pixel art scene: regional showcase event at dusk, pitcher dealing with unprecedented stuff while scouts check their clipboards looking for a name they can't find, one scout finally tapping another on the shoulder and pointing with a question on his face — neither of them has any prior data on this arm.",
+        eventText: "{name} drove six hours to his first real showcase. His coach arranged it. His parents followed in their own car. He was the best player on the field by a distance — and nobody there had any film on him, any scouting report, any context at all. Two scouts stood in the parking lot for fifteen minutes just trying to figure out who he was. His coach handed them a one-page handwritten player note. It's the only document that exists on him. You were the first program to call.",
+        choiceA: "Call the same day — be first, establish the relationship before anyone else catches up", choiceAOutcome: "The immediate call signals that someone saw what happened and moved on it. He's never received a college call before. He answers on the second ring.", choiceAWeights: W.bold_pos,
+        choiceB: "Ask his coach to arrange a private workout before anyone else can see him", choiceBOutcome: "The private workout gives you a complete picture before the field fills. What you see confirms the showcase wasn't a fluke.", choiceBWeights: W.safe_pos,
+        choiceC: "Research his high school program first — understand the competition level before assigning weight to the numbers", choiceCOutcome: "The research reveals the context: he's dominated genuinely thin competition. The showcase, though, was not thin. You proceed with confidence.", choiceCWeights: W.neutral_up,
+        choiceD: "Wait for more exposure events before committing resources — one showcase isn't enough data", choiceDOutcome: "By the second showcase, four programs have already called. Your caution costs you first-mover advantage in a market you didn't know existed.", choiceDWeights: W.risky_neg,
+      },
+      {
+        id: "sth_2",
+        scenePrompt: "Pixel art scene: player on a campus visit tour looking at everything with wide eyes — not the facilities, but the players around him — realizing for the first time that the gap between himself and elite competition might be smaller than he thought, a coach watching his face rather than pointing at the buildings.",
+        eventText: "{name} visited your campus and watched a practice for the first time. He's never seen players this good in person. Afterward, he sat in the parking lot for twenty minutes before calling his parents. He told you later: 'I thought I might not be good enough. Then I watched. And I thought — I might actually be better than most of those guys. I don't know how to feel about that.' He's never had competition that could tell him who he is. Your program might be the first place that can.",
+        choiceA: "Tell him what you actually see — compare him directly to players you've coached, specifically and honestly", choiceAOutcome: "The specific comparison — by name, by metric, by what you observed — is the most credible response to a question he's been carrying his whole career.", choiceAWeights: W.bold_pos,
+        choiceB: "Put him in a drill with your players — let the competition answer the question he can't ask out loud", choiceBOutcome: "The drill session answers everything. He performs. He knows. You both know. No words required for the next ten minutes.", choiceBWeights: W.safe_pos,
+        choiceC: "Acknowledge the uncertainty — tell him you didn't know either and you found out together", choiceCOutcome: "The honesty about the discovery process removes the pressure to pretend certainty nobody has yet. He exhales visibly.", choiceCWeights: W.neutral_up,
+      },
+      {
+        id: "sth_3",
+        scenePrompt: "Pixel art scene: small-town gym on a weeknight, the player's commitment announcement watched on a laptop by his entire hometown — parents, old coaches, teachers, the scout who drove six hours — everyone crammed into a room designed for fifteen, someone's phone held up showing a livestream, a handwritten banner in the background.",
+        scenePromptPitcher: "Pixel art scene: small-town gym on a weeknight, the pitcher's commitment announcement watched on a laptop by his entire hometown — parents, old coaches, teachers, the scout who drove six hours — everyone crammed into a room designed for fifteen, someone's phone held up showing a livestream, a handwritten banner in the background.",
+        eventText: "{name} committed to your program. His hometown watched the announcement on a laptop in his old high school gym. Forty people in a room designed for fifteen. His elementary school coach was there. The scout who drove six hours to get him to that first showcase was there. His announcement was 38 words. When he finished, his old coach stood up and said: 'That's our boy.' The room erupted. You got a text from his coach the next morning. It said: 'Don't waste him.'",
+        choiceA: "Call his coach and tell him exactly what you plan to do — make a specific promise", choiceAOutcome: "The specific promise to the person who made this possible is a commitment that travels back through the community. {name} hears about the call. He shows up to your campus three weeks early.", choiceAWeights: W.bold_pos,
+        choiceB: "Call {name} and acknowledge the whole town — let him know what his commitment means beyond baseball", choiceBOutcome: "Acknowledging the community as part of what he brought with him is the most respectful welcome you can offer. He repeats it to his parents word for word.", choiceBWeights: W.safe_pos,
+        choiceC: "Let him settle in — reach out in a week when the excitement has calmed and the real work begins", choiceCOutcome: "The measured approach respects the magnitude of the moment without manufacturing more noise. When you call, he's ready to talk about baseball.", choiceCWeights: W.neutral_up,
+      },
+    ],
+  },
 };
 
 // ─── Storyline Recruit Selection ──────────────────────────────────────────────
@@ -984,7 +1236,7 @@ function pickArchetypeForRecruit(
   }
   const isPitcherPos = isPitcher(r.position);
   if (r.isBlueChip) {
-    const eliteAll: Archetype[] = ["summer_breakout", "velocity_freak", "rivalry_recruit", "social_media_star", "generational_prodigy"];
+    const eliteAll: Archetype[] = ["summer_breakout", "velocity_freak", "rivalry_recruit", "social_media_star", "generational_prodigy", "draft_agent_pressure"];
     // velocity_freak (pitcher-only) must be excluded for position players
     const elite = isPitcherPos
       ? eliteAll.filter(a => !HITTER_ONLY_ARCHETYPES.has(a))
@@ -992,12 +1244,12 @@ function pickArchetypeForRecruit(
     return elite[Math.floor(Math.random() * elite.length)];
   }
   if (isPitcherPos) {
-    const pitcherArch: Archetype[] = ["velocity_freak", "knuckleball_specialist", "burnout_candidate", "injury_risk", "late_bloomer"];
+    const pitcherArch: Archetype[] = ["velocity_freak", "knuckleball_specialist", "burnout_candidate", "injury_risk", "late_bloomer", "coaching_change", "financial_pressure"];
     return pitcherArch[Math.floor(Math.random() * pitcherArch.length)];
   }
   if (r.starRank <= 2) {
     // Low-star position players: none of these contain pitcher-only archetypes
-    const lowArch: Archetype[] = ["late_bloomer", "academic_concern", "position_change", "confidence_crisis"];
+    const lowArch: Archetype[] = ["late_bloomer", "academic_concern", "position_change", "confidence_crisis", "financial_pressure", "first_gen_student", "small_town_hero"];
     return lowArch[Math.floor(Math.random() * lowArch.length)];
   }
   // General fallback for position players: exclude pitcher-only archetypes
@@ -1030,6 +1282,7 @@ export function generateStorylineEvent(
   recruitName: string,
   linkedRecruitName?: string,   // name of linked/overlapping arc recruit for narrative injection
   position?: string,            // recruit's field position — used to select position-aware scene prompts
+  usedTemplateIds?: string[],   // template IDs already used this season for this recruit
 ): {
   storylineRecruitId: string;
   leagueId: string;
@@ -1048,7 +1301,12 @@ export function generateStorylineEvent(
   if (isLegendary && def.legendaryEvents && arcStage >= 2) {
     pool = [...pool, ...def.legendaryEvents];
   }
-  const template = pool[arcStage % pool.length];
+  // Filter out templates already used this season to avoid weekly duplicates.
+  // Fall back to the full pool if all templates have been used.
+  const usedSet = new Set(usedTemplateIds ?? []);
+  const unusedPool = pool.filter(t => !usedSet.has(t.id));
+  const availablePool = unusedPool.length > 0 ? unusedPool : pool;
+  const template = availablePool[Math.floor(Math.random() * availablePool.length)];
 
   const interpolate = (text: string) => {
     let out = text.replace(/\{name\}/g, recruitName);

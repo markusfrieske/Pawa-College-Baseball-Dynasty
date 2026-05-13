@@ -713,14 +713,15 @@ async function generateWeeklyStorylineEvents(leagueId: string, season: number, w
     const ready = eligible.filter((sl): sl is NonNullable<typeof sl> => sl !== null);
     if (ready.length === 0) return 0;
 
-    // Enforce 4-event weekly ceiling across all triggers
-    // Season-scoped slot cap: only count unresolved events from the current season
+    // Always generate at least 2 events per week regardless of unresolved count.
+    // The unresolved count is logged for monitoring but no longer blocks generation.
     const currentUnresolved = await storage.getUnresolvedStorylineEvents(leagueId, season);
-    const remainingSlots = Math.max(0, 4 - currentUnresolved.length);
-    if (remainingSlots === 0) return 0;
+    if (currentUnresolved.length > 0) {
+      console.log(`[storylines] ${currentUnresolved.length} unresolved events this season — generating new events anyway (floor ≥ 2)`);
+    }
 
     // Legendary-first, non-legendary shuffled so all 10 recruits rotate fairly
-    const maxEvents = Math.min(ready.length, remainingSlots, 2 + Math.floor(Math.random() * 3));
+    const maxEvents = Math.min(ready.length, Math.max(2, 2 + Math.floor(Math.random() * 3)));
     const prioritized = [
       ...ready.filter(sl => sl.isLegendary),
       ...ready.filter(sl => !sl.isLegendary).sort(() => Math.random() - 0.5),
@@ -749,11 +750,20 @@ async function generateWeeklyStorylineEvents(leagueId: string, season: number, w
         recruitName,
         linkedRecruitName,
         recruit.position ?? undefined,
+        (sl.usedTemplateIds as string[] | null) ?? [],
       );
 
       const { scenePrompt: _scenePrompt, ...insertableEventData } = eventData;
       const createdEvent = await storage.createStorylineEvent({ ...insertableEventData, archetypeAtEvent: sl.archetype });
       count++;
+
+      // Track which template was used so we don't repeat it for this recruit this season
+      if (eventData.templateId) {
+        const currentUsed = (sl.usedTemplateIds as string[] | null) ?? [];
+        await storage.updateStorylineRecruit(sl.id, {
+          usedTemplateIds: [...currentUsed, eventData.templateId],
+        });
+      }
 
       if (eventData.templateId && eventData.scenePrompt) {
         const evId = createdEvent.id;
