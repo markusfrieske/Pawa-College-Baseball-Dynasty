@@ -5988,10 +5988,8 @@ export async function registerRoutes(
       }
 
       // ============ STORYLINE EVENTS ============
-      // Active during all major phases — recruiting, season, and offseason — so the narrative
-      // stays alive throughout the dynasty. offseason_recruiting covers all 4 sub-phases.
-      if (["recruiting", "preseason", "spring_training", "regular_season", "offseason",
-           "offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4"].includes(league.currentPhase)) {
+      // Active only during the in-season phases so all arcs conclude before offseason begins.
+      if (["recruiting", "preseason", "spring_training", "regular_season"].includes(league.currentPhase)) {
         try {
           await generateAndResolveStorylineEvents(leagueId, league.currentSeason, nextWeek);
         } catch (err) {
@@ -6307,6 +6305,17 @@ export async function registerRoutes(
       const offseasonPhases = ["offseason_departures", "offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4", "offseason_signing_day", "offseason_walkons"];
       
       if (league.currentPhase === "offseason_departures") {
+        // Sweep any unresolved storyline arc events before offseason processing begins.
+        // This ensures all arcs are concluded by the time the coaching staff turns to the portal.
+        try {
+          const swept = await resolveAllPendingStorylineEvents(leagueId, league.currentSeason, nextWeek);
+          if (swept > 0) {
+            console.log(`[storylines] offseason_departures entry sweep resolved ${swept} pending arc events`);
+          }
+        } catch (sweepErr) {
+          console.warn("[storylines] offseason_departures sweep failed:", sweepErr);
+        }
+
         const existingPending = await storage.getPendingDeparturesByLeague(leagueId);
         
         if (existingPending.length === 0) {
@@ -6385,17 +6394,6 @@ export async function registerRoutes(
         
         const phaseIndex = offseasonPhases.indexOf(league.currentPhase);
         const nextPhase = offseasonPhases[phaseIndex + 1];
-
-        // Final storyline resolution sweep when transitioning out of the last recruiting week.
-        // Ensures all unresolved storyline events are settled before signing day begins.
-        if (league.currentPhase === "offseason_recruiting_4" && nextPhase === "offseason_signing_day") {
-          try {
-            const resolvedCount = await resolveAllPendingStorylineEvents(leagueId, league.currentSeason, nextWeek);
-            console.log(`[storylines] end-of-phase resolve sweep settled ${resolvedCount} events before signing day`);
-          } catch (sweepErr) {
-            console.warn("[storylines] end-of-phase resolution sweep failed:", sweepErr);
-          }
-        }
 
         const updatedLeague = await storage.updateLeague(league.id, { currentPhase: nextPhase, currentWeek: nextWeek });
         await storage.createAuditLog({
@@ -6768,6 +6766,10 @@ export async function registerRoutes(
                 invalidateGameCache();
                 currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "cws" })) as any;
               } else {
+                try {
+                  const swept = await resolveAllPendingStorylineEvents(leagueId, currentLeague.currentSeason, currentLeague.currentWeek ?? 1);
+                  if (swept > 0) console.log(`[storylines] sim-advance sr sweep resolved ${swept} arc events`);
+                } catch (e) { console.warn("[storylines] sim-advance sr sweep failed:", e); }
                 currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "offseason_departures" })) as any;
               }
             }
@@ -6793,6 +6795,10 @@ export async function registerRoutes(
           } catch (e) {
             console.error("Departure processing error during sim:", e);
           }
+          try {
+            const swept = await resolveAllPendingStorylineEvents(leagueId, currentLeague.currentSeason, currentLeague.currentWeek ?? 1);
+            if (swept > 0) console.log(`[storylines] sim-advance cws sweep resolved ${swept} arc events`);
+          } catch (e) { console.warn("[storylines] sim-advance cws sweep failed:", e); }
           currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "offseason_departures" })) as any;
           continue;
         }
