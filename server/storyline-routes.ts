@@ -355,6 +355,67 @@ export function registerStorylineRoutes(app: Express) {
     }
   });
 
+  // GET /api/leagues/:id/recruits/:recruitId/storyline — arc history for a specific recruit
+  app.get("/api/leagues/:id/recruits/:recruitId/storyline", requireAuth, async (req, res) => {
+    try {
+      const leagueId = String(req.params.id);
+      const recruitId = String(req.params.recruitId);
+
+      if (!await assertLeagueMember(leagueId, req.session.userId, res)) return;
+
+      const sl = await storage.getStorylineRecruitByRecruitId(recruitId);
+      if (!sl || sl.leagueId !== leagueId) {
+        return res.json({ storylineRecruit: null, events: [] });
+      }
+
+      const allEvents = await storage.getStorylineEventsByRecruit(sl.id);
+      // Only return resolved events for history, oldest first
+      const resolvedEvents = allEvents
+        .filter(e => e.resolvedChoice !== null && e.resolvedAt !== null)
+        .sort((a, b) => new Date(a.resolvedAt!).getTime() - new Date(b.resolvedAt!).getTime())
+        .map(e => {
+          const choiceMap: Record<string, string> = {
+            A: e.choiceA,
+            B: e.choiceB,
+            C: e.choiceC,
+            D: e.choiceD ?? "",
+          };
+          return {
+            id: e.id,
+            week: e.week,
+            season: e.season,
+            eventText: e.eventText,
+            archetypeAtEvent: e.archetypeAtEvent,
+            resolvedChoice: e.resolvedChoice,
+            resolvedChoiceLabel: choiceMap[e.resolvedChoice!] ?? e.resolvedChoice,
+            resolvedOutcomeText: e.resolvedOutcomeText,
+            ovrDelta: e.ovrDelta,
+            resolvedAt: e.resolvedAt,
+          };
+        });
+
+      const archetypeDef = ARCHETYPE_DEFS[sl.archetype as Archetype];
+
+      res.json({
+        storylineRecruit: {
+          id: sl.id,
+          archetype: sl.archetype,
+          archetypeName: archetypeDef?.name ?? sl.archetype,
+          archetypeDescription: archetypeDef?.description ?? "",
+          tier: sl.tier,
+          currentArcStage: sl.currentArcStage,
+          isLegendary: sl.isLegendary,
+          resolvedOvrDelta: sl.resolvedOvrDelta,
+          imageUrl: sl.imageUrl,
+        },
+        events: resolvedEvents,
+      });
+    } catch (err) {
+      console.error("[storylines] GET recruit arc history error:", err);
+      res.status(500).json({ message: "Failed to fetch storyline arc history" });
+    }
+  });
+
   // POST /api/leagues/:id/storylines/events/:eventId/vote  (frontend contract)
   app.post("/api/leagues/:id/storylines/events/:eventId/vote", requireAuth, async (req, res) => {
     try {

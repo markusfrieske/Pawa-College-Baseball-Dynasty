@@ -37,7 +37,12 @@ import {
   Building2,
   Crown,
   CheckCircle,
-  Flame
+  Flame,
+  BookOpen,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  Sparkles,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Recruit, RecruitingInterest, Team, League } from "@shared/schema";
@@ -157,6 +162,38 @@ export default function RecruitProfilePage() {
   const { data: recruitingData, isLoading: isRecruitingLoading } = useQuery<any>({
     queryKey: ["/api/leagues", id, "recruiting"],
     enabled: !!id,
+  });
+
+  interface StorylineArcEvent {
+    id: string;
+    week: number;
+    season: number;
+    eventText: string;
+    archetypeAtEvent: string | null;
+    resolvedChoice: string | null;
+    resolvedChoiceLabel: string | null;
+    resolvedOutcomeText: string | null;
+    ovrDelta: number | null;
+    resolvedAt: string | null;
+  }
+  interface StorylineArcData {
+    storylineRecruit: {
+      id: string;
+      archetype: string;
+      archetypeName: string;
+      archetypeDescription: string;
+      tier: string;
+      currentArcStage: number;
+      isLegendary: boolean;
+      resolvedOvrDelta: number;
+      imageUrl: string | null;
+    } | null;
+    events: StorylineArcEvent[];
+  }
+
+  const { data: storylineArcData } = useQuery<StorylineArcData>({
+    queryKey: ["/api/leagues", id, "recruits", recruitId, "storyline"],
+    enabled: !!id && !!recruitId,
   });
 
   const currentWeek = leagueData?.league?.currentWeek ?? 1;
@@ -1080,6 +1117,99 @@ export default function RecruitProfilePage() {
                 )}
               </RetroCardContent>
             </RetroCard>
+
+            {/* Storyline Arc History */}
+            {storylineArcData?.storylineRecruit && (
+              <RetroCard data-testid="storyline-arc-card">
+                <RetroCardHeader>
+                  <div className="flex items-center gap-2 w-full">
+                    <BookOpen className="w-4 h-4 text-gold" />
+                    <span>Storyline Arc</span>
+                    {storylineArcData.storylineRecruit.isLegendary && (
+                      <Badge className="ml-auto bg-yellow-500/20 text-yellow-300 border-yellow-500/50 text-[9px] font-pixel flex items-center gap-1">
+                        <Sparkles className="w-3 h-3" />
+                        Legendary
+                      </Badge>
+                    )}
+                  </div>
+                </RetroCardHeader>
+                <RetroCardContent>
+                  <div className="mb-3">
+                    <p className="text-xs text-muted-foreground">Archetype</p>
+                    <p className="text-sm font-bold text-gold" data-testid="text-storyline-archetype">
+                      {storylineArcData.storylineRecruit.archetypeName}
+                    </p>
+                    {storylineArcData.storylineRecruit.archetypeDescription && (
+                      <p className="text-xs text-muted-foreground mt-0.5 italic">
+                        {storylineArcData.storylineRecruit.archetypeDescription}
+                      </p>
+                    )}
+                    {storylineArcData.storylineRecruit.resolvedOvrDelta !== 0 && (
+                      <div className="flex items-center gap-1 mt-1">
+                        {storylineArcData.storylineRecruit.resolvedOvrDelta > 0 ? (
+                          <TrendingUp className="w-3 h-3 text-green-400" />
+                        ) : (
+                          <TrendingDown className="w-3 h-3 text-red-400" />
+                        )}
+                        <span className={`text-xs font-bold ${storylineArcData.storylineRecruit.resolvedOvrDelta > 0 ? "text-green-400" : "text-red-400"}`} data-testid="text-storyline-ovr-total">
+                          {storylineArcData.storylineRecruit.resolvedOvrDelta > 0 ? "+" : ""}{storylineArcData.storylineRecruit.resolvedOvrDelta} OVR total
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {storylineArcData.events.length === 0 ? (
+                    <p className="text-xs text-muted-foreground italic text-center py-2">No chapters resolved yet</p>
+                  ) : (
+                    <div className="space-y-3 max-h-72 overflow-y-auto">
+                      {storylineArcData.events.map((event, idx) => (
+                        <div
+                          key={event.id}
+                          className="p-2 bg-muted/30 rounded border border-border/50"
+                          data-testid={`storyline-event-${event.id}`}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-[10px] text-muted-foreground">
+                              Ch. {idx + 1} — Wk {event.week}
+                              {event.archetypeAtEvent && event.archetypeAtEvent !== storylineArcData.storylineRecruit?.archetype && (
+                                <span className="ml-1 text-gold/70">({event.archetypeAtEvent})</span>
+                              )}
+                            </span>
+                            {event.ovrDelta !== null && event.ovrDelta !== 0 && (
+                              <span className={`text-[10px] font-bold flex items-center gap-0.5 ${event.ovrDelta > 0 ? "text-green-400" : "text-red-400"}`} data-testid={`text-ovr-delta-${event.id}`}>
+                                {event.ovrDelta > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                                {event.ovrDelta > 0 ? "+" : ""}{event.ovrDelta} OVR
+                              </span>
+                            )}
+                            {(event.ovrDelta === null || event.ovrDelta === 0) && (
+                              <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                                <Minus className="w-3 h-3" /> No change
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-foreground/80 mb-1 line-clamp-2" data-testid={`text-event-snippet-${event.id}`}>
+                            {event.eventText}
+                          </p>
+                          {event.resolvedChoiceLabel && (
+                            <div className="flex items-start gap-1 mt-1">
+                              <Badge variant="outline" className="text-[9px] text-gold border-gold/40 shrink-0">
+                                {event.resolvedChoice}
+                              </Badge>
+                              <span className="text-[10px] text-muted-foreground">{event.resolvedChoiceLabel}</span>
+                            </div>
+                          )}
+                          {event.resolvedOutcomeText && (
+                            <p className="text-[10px] text-muted-foreground/70 mt-1 italic line-clamp-2" data-testid={`text-outcome-${event.id}`}>
+                              {event.resolvedOutcomeText}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </RetroCardContent>
+              </RetroCard>
+            )}
 
             {/* Dealbreaker Warning */}
             {recruit.dealbreaker && (
