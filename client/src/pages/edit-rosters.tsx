@@ -354,20 +354,101 @@ export default function EditRostersPage() {
                           {sortedPlayers.map((player, idx) => {
                             const isPitcher = player.position === "P";
                             const isChanged = !!changes[player.id];
+                            const baseAppearance = (player.appearance as Record<string, string> | null) ?? {};
+                            const pendingAppearance = (changes[player.id]?.appearance as Record<string, string> | null) ?? {};
+                            const effectiveAppearance = { ...baseAppearance, ...pendingAppearance };
+                            const currentSkinTone = effectiveAppearance.skinTone || "light";
+                            const currentHairColor = effectiveAppearance.hairColor || "brown";
+                            const currentHairStyle = effectiveAppearance.hairStyle || "short";
+                            const updateAppearance = (field: string, value: string) => {
+                              setChanges(prev => {
+                                const prevBase = (player.appearance as Record<string, string> | null) ?? {};
+                                const prevPending = (prev[player.id]?.appearance as Record<string, string> | null) ?? {};
+                                return {
+                                  ...prev,
+                                  [player.id]: {
+                                    ...prev[player.id],
+                                    appearance: { ...prevBase, ...prevPending, [field]: value },
+                                  },
+                                };
+                              });
+                            };
                             return (
                               <tr 
                                 key={player.id} 
                                 className={`border-b border-border ${isChanged ? "bg-yellow-500/10" : idx % 2 === 0 ? "bg-muted/10" : ""}`}
                               >
-                                {/* Portrait */}
+                                {/* Portrait — click to edit appearance */}
                                 <td className="px-2 py-1">
-                                  <PlayerPortrait
-                                    skinTone={(player.appearance as { skinTone?: string } | null)?.skinTone || "light"}
-                                    hairColor={(player.appearance as { hairColor?: string } | null)?.hairColor || "brown"}
-                                    hairStyle={(player.appearance as { hairStyle?: string } | null)?.hairStyle || "short"}
-                                    jerseyColor={teamPrimaryColor}
-                                    className="w-7 h-7 flex-shrink-0"
-                                  />
+                                  <Popover>
+                                    <PopoverTrigger asChild>
+                                      <button
+                                        className="cursor-pointer hover:opacity-75 transition-opacity rounded focus:outline-none focus:ring-1 focus:ring-gold"
+                                        title="Edit appearance"
+                                        data-testid={`button-appearance-${player.id}`}
+                                      >
+                                        <PlayerPortrait
+                                          skinTone={currentSkinTone}
+                                          hairColor={currentHairColor}
+                                          hairStyle={currentHairStyle}
+                                          jerseyColor={teamPrimaryColor}
+                                          className="w-7 h-7 flex-shrink-0"
+                                        />
+                                      </button>
+                                    </PopoverTrigger>
+                                    <PopoverContent className="w-52 p-3 bg-background border-border" align="start" side="right">
+                                      <div className="space-y-2">
+                                        <div className="flex justify-center pb-1 border-b border-border">
+                                          <PlayerPortrait
+                                            skinTone={currentSkinTone}
+                                            hairColor={currentHairColor}
+                                            hairStyle={currentHairStyle}
+                                            jerseyColor={teamPrimaryColor}
+                                            className="w-12 h-12"
+                                          />
+                                        </div>
+                                        <div className="space-y-0.5">
+                                          <p className="font-pixel text-[7px] text-gold uppercase tracking-wide">Skin Tone</p>
+                                          <Select value={currentSkinTone} onValueChange={(v) => updateAppearance("skinTone", v)}>
+                                            <SelectTrigger className="h-6 text-xs" data-testid={`select-skintone-${player.id}`}>
+                                              <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              {skinTones.map(s => (
+                                                <SelectItem key={s} value={s} className="text-xs capitalize">{s}</SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                        </div>
+                                        <div className="space-y-0.5">
+                                          <p className="font-pixel text-[7px] text-gold uppercase tracking-wide">Hair Color</p>
+                                          <Select value={currentHairColor} onValueChange={(v) => updateAppearance("hairColor", v)}>
+                                            <SelectTrigger className="h-6 text-xs" data-testid={`select-haircolor-${player.id}`}>
+                                              <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              {hairColors.map(h => (
+                                                <SelectItem key={h} value={h} className="text-xs capitalize">{h}</SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                        </div>
+                                        <div className="space-y-0.5">
+                                          <p className="font-pixel text-[7px] text-gold uppercase tracking-wide">Hair Style</p>
+                                          <Select value={currentHairStyle} onValueChange={(v) => updateAppearance("hairStyle", v)}>
+                                            <SelectTrigger className="h-6 text-xs" data-testid={`select-hairstyle-${player.id}`}>
+                                              <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              {hairStyles.map(h => (
+                                                <SelectItem key={h} value={h} className="text-xs capitalize">{h}</SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                        </div>
+                                      </div>
+                                    </PopoverContent>
+                                  </Popover>
                                 </td>
                                 {/* Name */}
                                 <td className="px-2 py-1">
