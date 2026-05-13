@@ -122,5 +122,9 @@ export function getActionPointCost(actionType: string, teamState: string, recrui
     return getStateDistance(teamState, recruitState);
   }
 
+  if (lowerAction === "phone") {
+    return 2;
+  }
+
   return 1;
 }

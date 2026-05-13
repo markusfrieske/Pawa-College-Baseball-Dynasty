@@ -1733,8 +1733,8 @@ export async function registerRoutes(
       }
 
       const maxRecruitingActions = getMaxRecruitingActions(userCoach);
-      if ((userCoach?.recruitActionsUsed || 0) >= maxRecruitingActions) {
-        return res.status(400).json({ message: `You've used all ${maxRecruitingActions} recruiting points this week` });
+      if ((userCoach?.recruitActionsUsed || 0) + 2 > maxRecruitingActions) {
+        return res.status(400).json({ message: `Phone calls cost 2 recruiting points. You don't have enough points remaining this week.` });
       }
 
       const { totalInterestGain, pitchResults } = computePhoneGain(recruit, userTeam, userCoach, topics);
@@ -1776,11 +1776,11 @@ export async function registerRoutes(
 
       if (userCoach) {
         await storage.updateCoach(userCoach.id, {
-          recruitActionsUsed: (userCoach.recruitActionsUsed || 0) + 1,
+          recruitActionsUsed: (userCoach.recruitActionsUsed || 0) + 2,
         });
       }
 
-      const actionsRemaining = maxRecruitingActions - ((userCoach?.recruitActionsUsed || 0) + 1);
+      const actionsRemaining = maxRecruitingActions - ((userCoach?.recruitActionsUsed || 0) + 2);
       res.json({ 
         interest, 
         interestGain: totalInterestGain, 

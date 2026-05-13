@@ -2250,11 +2250,11 @@ function RecruitRow({
                     <button
                       className="flex items-center gap-2 w-full text-left px-2 py-1.5 rounded text-xs text-foreground hover:bg-muted/50 transition-colors disabled:opacity-50"
                       onClick={() => { setShowPhonePicker(true); setShowEmailPicker(false); setSelectedPhonePitches([]); setShowMobileMore(false); }}
-                      disabled={isPhoning || !recruit.interest || outOfRecruitingActions || phonedThisWeek}
+                      disabled={isPhoning || !recruit.interest || outOfRecruitingActions || phonedThisWeek || remainingPoints < 2}
                       data-testid={`button-phone-mobile-${recruit.id}`}
                     >
                       <Phone className="w-3 h-3 flex-shrink-0" />
-                      {phonedThisWeek ? "Called (limit)" : "Call (1 pt)"}
+                      {phonedThisWeek ? "Called (limit)" : "Call (2 pts)"}
                     </button>
                     <button
                       className="flex items-center gap-2 w-full text-left px-2 py-1.5 rounded text-xs text-foreground hover:bg-muted/50 transition-colors disabled:opacity-50"
@@ -2401,14 +2401,14 @@ function RecruitRow({
                       variant={phonedThisWeek ? "primary" : showPhonePicker ? "primary" : "outline"}
                       size="sm"
                       onClick={() => { if (!phonedThisWeek) { setShowPhonePicker(!showPhonePicker); setShowEmailPicker(false); setSelectedPhonePitches([]); } }}
-                      disabled={isPhoning || !recruit.interest || outOfRecruitingActions || phonedThisWeek}
+                      disabled={isPhoning || !recruit.interest || outOfRecruitingActions || phonedThisWeek || remainingPoints < 2}
                       data-testid={`button-phone-${recruit.id}`}
                     >
                       <Phone className="w-3 h-3 mr-1" />
-                      <span className="text-[9px]">{phonedThisWeek ? "Called" : "Call (1)"}</span>
+                      <span className="text-[9px]">{phonedThisWeek ? "Called" : "Call (2)"}</span>
                     </RetroButton>
                   </TooltipTrigger>
-                  <TooltipContent>{phonedThisWeek ? "Already called this recruit this week (1 per week max)" : "Phone Call - 1 recruiting point (3 pitches)"}</TooltipContent>
+                  <TooltipContent>{phonedThisWeek ? "Already called this recruit this week (1 per week max)" : "Phone Call - 2 recruiting points (3 pitches)"}</TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
