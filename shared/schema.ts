@@ -1341,7 +1341,7 @@ export const insertGameReportSchema = createInsertSchema(gameReports).omit({ id:
 export type InsertGameReport = z.infer<typeof insertGameReportSchema>;
 export type GameReport = typeof gameReports.$inferSelect;
 
-const LEAGUE_EVENT_TYPES = ["SIGNING", "TRANSFER", "DRAFT", "GAME_RESULT", "AWARD", "PHASE_CHANGE", "ROSTER_CUT", "WALKON", "STORYLINE"] as const;
+const LEAGUE_EVENT_TYPES = ["SIGNING", "TRANSFER", "DRAFT", "GAME_RESULT", "AWARD", "PHASE_CHANGE", "ROSTER_CUT", "WALKON", "STORYLINE", "NUDGE"] as const;
 export type LeagueEventType = (typeof LEAGUE_EVENT_TYPES)[number];
 
 export const leagueEvents = pgTable("league_events", {

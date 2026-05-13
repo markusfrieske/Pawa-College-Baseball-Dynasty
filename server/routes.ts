@@ -10906,7 +10906,7 @@ export async function registerRoutes(
       const currentSeasonEvents = recentLeagueEvents.filter(e =>
         e.season === league.currentSeason &&
         e.teamId !== null &&
-        !e.description.startsWith("[COMMISSIONER NUDGE]")
+        e.eventType !== "NUDGE"
       );
 
       // Pre-group by teamId to avoid repeated filter+sort inside map
@@ -11051,8 +11051,8 @@ export async function registerRoutes(
         teamId,
         teamName: team.name,
         teamAbbreviation: team.abbreviation,
-        eventType: "PHASE_CHANGE",
-        description: `[COMMISSIONER NUDGE] ${team.abbreviation} (${targetCoach.firstName} ${targetCoach.lastName}) has been reminded to ${action}.`,
+        eventType: "NUDGE",
+        description: `${team.abbreviation} (${targetCoach.firstName} ${targetCoach.lastName}) has been reminded to ${action}.`,
         season: league.currentSeason,
         week: league.currentWeek,
       });
@@ -11358,7 +11358,18 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Only the commissioner can generate invite links" });
       }
 
-      const { label } = req.body || {};
+      const { label, expiresIn } = req.body || {};
+
+      // Parse optional expiry duration like "24h", "3d", "7d"
+      let expiresAt: Date | undefined;
+      if (expiresIn) {
+        const match = String(expiresIn).match(/^(\d+)(h|d)$/);
+        if (match) {
+          const amount = parseInt(match[1]);
+          const ms = match[2] === "h" ? amount * 3_600_000 : amount * 86_400_000;
+          expiresAt = new Date(Date.now() + ms);
+        }
+      }
 
       let inviteCode: string;
       let attempts = 0;
@@ -11378,6 +11389,7 @@ export async function registerRoutes(
         inviteCode,
         invitedById: req.session.userId!,
         label: label || null,
+        expiresAt: expiresAt ?? null,
       });
 
       await storage.createAuditLog({
@@ -11408,6 +11420,10 @@ export async function registerRoutes(
         return res.status(400).json({ message: statusMsg });
       }
 
+      if (invite.expiresAt && new Date(invite.expiresAt) <= new Date()) {
+        return res.status(400).json({ message: "This invite link has expired" });
+      }
+
       const league = await storage.getLeague(invite.leagueId);
       const teams = await storage.getTeamsByLeague(invite.leagueId);
       const availableTeams = teams.filter(t => t.isCpu); // Only show CPU teams as available
@@ -11432,6 +11448,10 @@ export async function registerRoutes(
 
       if (invite.status !== "pending") {
         return res.status(400).json({ message: "This invite link has already been used or revoked" });
+      }
+
+      if (invite.expiresAt && new Date(invite.expiresAt) <= new Date()) {
+        return res.status(400).json({ message: "This invite link has expired" });
       }
 
       const userId = req.session.userId!;

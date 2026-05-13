@@ -66,14 +66,24 @@ export default function InvitePage() {
   }
 
   if (error || !data) {
+    let errorMessage = "This invite link is invalid, expired, or has already been used.";
+    if (error instanceof Error) {
+      const colonIdx = error.message.indexOf(": ");
+      if (colonIdx !== -1) {
+        try {
+          const parsed = JSON.parse(error.message.slice(colonIdx + 2));
+          if (parsed?.message) errorMessage = parsed.message;
+        } catch {}
+      }
+    }
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <RetroCard className="w-full max-w-md text-center">
           <RetroCardContent>
             <AlertTriangle className="w-16 h-16 text-red-400 mx-auto mb-4" />
             <h2 className="font-pixel text-gold text-lg mb-2">Invalid Invite</h2>
-            <p className="text-muted-foreground mb-6">
-              This invite link is invalid, expired, or has already been used.
+            <p className="text-muted-foreground mb-6" data-testid="text-invite-error">
+              {errorMessage}
             </p>
             <RetroButton onClick={() => setLocation("/")} data-testid="button-go-home">
               Go Home

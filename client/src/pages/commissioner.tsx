@@ -1796,20 +1796,34 @@ function AuditLogTab({ logs }: { logs: AuditLog[] }) {
   );
 }
 
+const EXPIRY_OPTIONS = [
+  { value: "", label: "No expiry" },
+  { value: "24h", label: "24 hours" },
+  { value: "3d", label: "3 days" },
+  { value: "7d", label: "7 days" },
+  { value: "14d", label: "14 days" },
+  { value: "30d", label: "30 days" },
+];
+
 function InvitesTab({ leagueId, invites }: { leagueId: string; invites: LeagueInvite[] }) {
   const [copied, setCopied] = useState<string | null>(null);
   const [label, setLabel] = useState("");
+  const [expiresIn, setExpiresIn] = useState("");
   const { toast } = useToast();
   const qc = useQueryClient();
 
   const generateLinkMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", `/api/leagues/${leagueId}/invites`, { label: label || undefined });
+      const res = await apiRequest("POST", `/api/leagues/${leagueId}/invites`, {
+        label: label || undefined,
+        expiresIn: expiresIn || undefined,
+      });
       return res.json();
     },
     onSuccess: (data: LeagueInvite) => {
       qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "commissioner"] });
       setLabel("");
+      setExpiresIn("");
       const link = `${window.location.origin}/invite/${data.inviteCode}`;
       navigator.clipboard.writeText(link);
       toast({ title: "Invite Link Created", description: "Link copied to clipboard." });
@@ -1870,19 +1884,30 @@ function InvitesTab({ leagueId, invites }: { leagueId: string; invites: LeagueIn
           <p className="text-muted-foreground mb-4">
             Generate a shareable link that anyone can use to join your dynasty and claim an available CPU team.
           </p>
-          <div className="flex gap-3">
+          <div className="flex gap-2 flex-wrap sm:flex-nowrap">
             <RetroInput
               type="text"
               placeholder="Label (optional, e.g. 'For Mike')"
               value={label}
               onChange={(e) => setLabel(e.target.value)}
-              className="flex-1"
+              className="flex-1 min-w-0"
               data-testid="input-invite-label"
             />
+            <select
+              value={expiresIn}
+              onChange={(e) => setExpiresIn(e.target.value)}
+              className="bg-card border border-border rounded px-2 py-1 text-sm focus:outline-none focus:border-gold shrink-0"
+              data-testid="select-invite-expiry"
+            >
+              {EXPIRY_OPTIONS.map(o => (
+                <option key={o.value} value={o.value} className="bg-forest-card">{o.label}</option>
+              ))}
+            </select>
             <RetroButton
               onClick={() => generateLinkMutation.mutate()}
               disabled={generateLinkMutation.isPending}
               data-testid="button-generate-invite"
+              className="shrink-0"
             >
               <LinkIcon className="w-4 h-4 mr-2" />
               {generateLinkMutation.isPending ? "Generating..." : "Generate Link"}
@@ -1909,6 +1934,11 @@ function InvitesTab({ leagueId, invites }: { leagueId: string; invites: LeagueIn
                     </p>
                     <p className="text-[10px] text-muted-foreground mt-1">
                       Created: {new Date(invite.createdAt).toLocaleDateString()}
+                      {invite.expiresAt && (
+                        <span className={new Date(invite.expiresAt) <= new Date() ? " text-red-400" : " text-yellow-400/80"}>
+                          {" · "}Expires: {new Date(invite.expiresAt).toLocaleDateString()}
+                        </span>
+                      )}
                     </p>
                   </div>
                 </div>
