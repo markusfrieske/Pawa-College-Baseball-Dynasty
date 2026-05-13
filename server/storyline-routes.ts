@@ -369,10 +369,15 @@ export function registerStorylineRoutes(app: Express) {
       }
 
       const allEvents = await storage.getStorylineEventsByRecruit(sl.id);
-      // Only return resolved events for history, oldest first
+      // Return all resolved events (resolvedChoice set), sorted oldest-first.
+      // Use resolvedAt if available, otherwise fall back to createdAt for sort.
       const resolvedEvents = allEvents
-        .filter(e => e.resolvedChoice !== null && e.resolvedAt !== null)
-        .sort((a, b) => new Date(a.resolvedAt!).getTime() - new Date(b.resolvedAt!).getTime())
+        .filter(e => e.resolvedChoice !== null)
+        .sort((a, b) => {
+          const aTime = a.resolvedAt ? new Date(a.resolvedAt).getTime() : new Date(a.createdAt).getTime();
+          const bTime = b.resolvedAt ? new Date(b.resolvedAt).getTime() : new Date(b.createdAt).getTime();
+          return aTime - bTime;
+        })
         .map(e => {
           const choiceMap: Record<string, string> = {
             A: e.choiceA,
@@ -380,12 +385,17 @@ export function registerStorylineRoutes(app: Express) {
             C: e.choiceC,
             D: e.choiceD ?? "",
           };
+          const archetypeKey = e.archetypeAtEvent ?? null;
+          const archetypeNameAtEvent = archetypeKey
+            ? (ARCHETYPE_DEFS[archetypeKey as Archetype]?.name ?? archetypeKey)
+            : null;
           return {
             id: e.id,
             week: e.week,
             season: e.season,
             eventText: e.eventText,
-            archetypeAtEvent: e.archetypeAtEvent,
+            archetypeAtEvent: archetypeKey,
+            archetypeNameAtEvent,
             resolvedChoice: e.resolvedChoice,
             resolvedChoiceLabel: choiceMap[e.resolvedChoice!] ?? e.resolvedChoice,
             resolvedOutcomeText: e.resolvedOutcomeText,

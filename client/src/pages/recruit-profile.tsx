@@ -170,6 +170,7 @@ export default function RecruitProfilePage() {
     season: number;
     eventText: string;
     archetypeAtEvent: string | null;
+    archetypeNameAtEvent: string | null;
     resolvedChoice: string | null;
     resolvedChoiceLabel: string | null;
     resolvedOutcomeText: string | null;
@@ -1171,8 +1172,8 @@ export default function RecruitProfilePage() {
                           <div className="flex items-center justify-between mb-1">
                             <span className="text-[10px] text-muted-foreground">
                               Ch. {idx + 1} — Wk {event.week}
-                              {event.archetypeAtEvent && event.archetypeAtEvent !== storylineArcData.storylineRecruit?.archetype && (
-                                <span className="ml-1 text-gold/70">({event.archetypeAtEvent})</span>
+                              {event.archetypeNameAtEvent && event.archetypeAtEvent !== storylineArcData.storylineRecruit?.archetype && (
+                                <span className="ml-1 text-gold/70">({event.archetypeNameAtEvent})</span>
                               )}
                             </span>
                             {event.ovrDelta !== null && event.ovrDelta !== 0 && (
