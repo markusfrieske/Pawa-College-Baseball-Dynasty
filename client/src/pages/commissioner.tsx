@@ -54,6 +54,20 @@ interface CommissionerData {
   invites: LeagueInvite[];
 }
 
+function parseErrorMessage(error: Error): string {
+  const msg = error.message;
+  const colonIdx = msg.indexOf(": ");
+  if (colonIdx !== -1) {
+    try {
+      const parsed = JSON.parse(msg.slice(colonIdx + 2));
+      if (parsed?.message) return String(parsed.message);
+    } catch {
+      // not JSON — fall through to raw message
+    }
+  }
+  return msg;
+}
+
 export default function CommissionerPage() {
   const { id } = useParams<{ id: string }>();
   const { toast } = useToast();
@@ -148,7 +162,7 @@ export default function CommissionerPage() {
       }
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
     },
   });
 
@@ -168,7 +182,7 @@ export default function CommissionerPage() {
       });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
     },
   });
 
@@ -181,7 +195,7 @@ export default function CommissionerPage() {
       toast({ title: "Settings Updated" });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
     },
   });
 
@@ -194,7 +208,7 @@ export default function CommissionerPage() {
       toast({ title: "Difficulty Updated", description: "CPU difficulty has been changed." });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
     },
   });
 
@@ -218,7 +232,7 @@ export default function CommissionerPage() {
       }
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
     },
   });
 
@@ -254,7 +268,7 @@ export default function CommissionerPage() {
       }
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
     },
   });
 
@@ -280,7 +294,7 @@ export default function CommissionerPage() {
       }
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
     },
   });
 
@@ -306,7 +320,7 @@ export default function CommissionerPage() {
       }
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
     },
   });
 
@@ -320,7 +334,7 @@ export default function CommissionerPage() {
       toast({ title: "Week Simulated", description: "All games have been auto-resolved." });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
     },
   });
 
@@ -338,7 +352,7 @@ export default function CommissionerPage() {
       });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
     },
   });
 
@@ -485,6 +499,19 @@ export default function CommissionerPage() {
         </Tabs>
       </main>
 
+      <SimProgressOverlay
+        open={showSimOverlay}
+        onClose={() => {
+          setShowSimOverlay(false);
+          if (pendingSeasonSummary !== null) {
+            setSummaryCompletedSeason(pendingSeasonSummary);
+            setShowSeasonSummary(true);
+            setPendingSeasonSummary(null);
+          }
+        }}
+        simSummary={simSummary}
+        data-testid="sim-progress-overlay"
+      />
       <SeasonSummaryModal
         open={showSeasonSummary}
         onClose={() => setShowSeasonSummary(false)}
@@ -1077,7 +1104,7 @@ function PhaseDeadlineControl({ leagueId, currentDeadline }: { leagueId: string;
       toast({ title: "Deadline Updated" });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
     },
   });
 
@@ -1215,7 +1242,7 @@ function ReadyStatusSection({ leagueId, commissionerUserId }: { leagueId: string
       toast({ title: "Coach Removed", description: "The coach has been removed. Their team is now CPU-controlled." });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
     },
   });
 
@@ -1236,7 +1263,7 @@ function ReadyStatusSection({ leagueId, commissionerUserId }: { leagueId: string
       qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "ready-status"] });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
     },
   });
 
@@ -1605,7 +1632,7 @@ function TransferCommissionerSection({ leagueId, commissionerId }: { leagueId: s
       navigate(`/league/${leagueId}`);
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
       setShowConfirm(false);
     },
   });
@@ -1829,7 +1856,7 @@ function InvitesTab({ leagueId, invites }: { leagueId: string; invites: LeagueIn
       toast({ title: "Invite Link Created", description: "Link copied to clipboard." });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
     },
   });
 
@@ -1843,7 +1870,7 @@ function InvitesTab({ leagueId, invites }: { leagueId: string; invites: LeagueIn
       toast({ title: "Invite Revoked", description: "The invite link has been disabled." });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
     },
   });
 
@@ -2184,19 +2211,6 @@ function CWSSeriesStatus({ games }: { games: PostseasonGame[] }) {
         </div>
       )}
 
-      <SimProgressOverlay
-        open={showSimOverlay}
-        onClose={() => {
-          setShowSimOverlay(false);
-          if (pendingSeasonSummary !== null) {
-            setSummaryCompletedSeason(pendingSeasonSummary);
-            setShowSeasonSummary(true);
-            setPendingSeasonSummary(null);
-          }
-        }}
-        simSummary={simSummary}
-        data-testid="sim-progress-overlay"
-      />
     </div>
   );
 }
@@ -2265,7 +2279,7 @@ function GameReportsTab({ leagueId }: { leagueId: string }) {
       toast({ title: "Game Finalized", description: "The reported score has been accepted." });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
     },
   });
 
