@@ -359,7 +359,7 @@ function StorylineCard({ sl, leagueId, isCommissioner }: { sl: StorylineRecruit;
                     <span className="ml-auto"><OvrDeltaBadge delta={resolvedEvent.ovrDelta} /></span>
                   )}
                 </div>
-                <p className="text-xs leading-relaxed text-foreground/70 line-clamp-2">{resolvedEvent.eventText}</p>
+                <p className="text-xs leading-relaxed text-foreground/70 line-clamp-1">{resolvedEvent.eventText}</p>
                 {(() => {
                   const wc = resolvedEvent.resolvedChoice;
                   const wcText = wc === "A" ? resolvedEvent.choiceA : wc === "B" ? resolvedEvent.choiceB : wc === "C" ? resolvedEvent.choiceC : (resolvedEvent.choiceD || "");
@@ -433,7 +433,7 @@ function StorylineCard({ sl, leagueId, isCommissioner }: { sl: StorylineRecruit;
                   <div className="flex items-center gap-1.5 mb-1.5">
                     <Vote className="w-3 h-3 text-gold animate-pulse" />
                     <span className="text-[9px] font-pixel text-muted-foreground">
-                      VOTE OPEN — Week {activeEvent.week}
+                      CHAPTER {activeEvent.week} OPEN
                     </span>
                     <span className="ml-auto text-[9px] text-muted-foreground">{totalVotes} vote{totalVotes !== 1 ? "s" : ""}</span>
                   </div>
