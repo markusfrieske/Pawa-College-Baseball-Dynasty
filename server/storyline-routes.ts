@@ -188,11 +188,16 @@ export function registerStorylineRoutes(app: Express) {
         // activeEvent: the current unresolved event coaches can vote on (null if none pending)
         const activeEvent = events.find(e => !e.resolvedChoice) ?? null;
 
-        // latestResolvedEvent: the most recently resolved event (by week desc) so coaches
-        // always see what just happened even when no new event has been generated yet.
+        // latestResolvedEvent: the most recently resolved event.
+        // Primary sort: week desc. Tiebreaker: resolvedAt desc, then createdAt desc.
         const resolvedEvents = events.filter(e => e.resolvedChoice);
         const latestResolvedEvent = resolvedEvents.length > 0
-          ? resolvedEvents.reduce((best, e) => e.week > best.week ? e : best, resolvedEvents[0])
+          ? resolvedEvents.reduce((best, e) => {
+              if (e.week !== best.week) return e.week > best.week ? e : best;
+              const eTs = e.resolvedAt ? new Date(e.resolvedAt).getTime() : new Date(e.createdAt).getTime();
+              const bestTs = best.resolvedAt ? new Date(best.resolvedAt).getTime() : new Date(best.createdAt).getTime();
+              return eTs > bestTs ? e : best;
+            }, resolvedEvents[0])
           : null;
 
         // Keep latestEvent as an alias for activeEvent for backwards compatibility
@@ -208,6 +213,14 @@ export function registerStorylineRoutes(app: Express) {
             const myVoteRow = await storage.getStorylineVoteByTeam(activeEvent.id, myTeamId);
             myVote = myVoteRow?.choice ?? null;
           }
+        }
+
+        // latestResolvedVoteCounts: vote distribution for the most recent resolved event.
+        // Always fetched independently so it remains visible even while an active vote is open.
+        let latestResolvedVoteCounts: Record<string, number> = { A: 0, B: 0, C: 0, D: 0 };
+        if (latestResolvedEvent) {
+          const resolvedVotes = await storage.getStorylineVotesByEvent(latestResolvedEvent.id);
+          for (const v of resolvedVotes) latestResolvedVoteCounts[v.choice] = (latestResolvedVoteCounts[v.choice] || 0) + 1;
         }
 
         const archetypeDef = ARCHETYPE_DEFS[sl.archetype as Archetype];
@@ -229,6 +242,7 @@ export function registerStorylineRoutes(app: Express) {
           archetypeFlavor: archetypeDef?.flavor ?? "",
           activeEvent,
           latestResolvedEvent,
+          latestResolvedVoteCounts,
           latestEvent,
           allEvents: events,
           totalEvents: events.length,

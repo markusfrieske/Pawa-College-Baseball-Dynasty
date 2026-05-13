@@ -68,6 +68,7 @@ interface StorylineRecruit {
   archetypeFlavor: string;
   activeEvent: StorylineEventFull | null;
   latestResolvedEvent: StorylineEventFull | null;
+  latestResolvedVoteCounts: Record<string, number>;
   latestEvent: StorylineEventFull | null;
   allEvents: StorylineEventFull[];
   totalEvents: number;
@@ -376,15 +377,18 @@ function StorylineCard({ sl, leagueId, isCommissioner }: { sl: StorylineRecruit;
                 {resolvedEvent.resolvedOutcomeText && (
                   <p className="text-xs text-muted-foreground italic mt-2">"{resolvedEvent.resolvedOutcomeText}"</p>
                 )}
-                {totalVotes > 0 && !activeEvent && (
-                  <div className="mt-2 pt-2 border-t border-border/20 space-y-1">
-                    <div className="flex items-center gap-1 text-[9px] text-muted-foreground">
-                      <BarChart2 className="w-3 h-3" />
-                      Final vote distribution
+                {(() => {
+                  const resolvedTotal = Object.values(sl.latestResolvedVoteCounts).reduce((s, v) => s + v, 0);
+                  return resolvedTotal > 0 ? (
+                    <div className="mt-2 pt-2 border-t border-border/20 space-y-1">
+                      <div className="flex items-center gap-1 text-[9px] text-muted-foreground">
+                        <BarChart2 className="w-3 h-3" />
+                        Final vote distribution
+                      </div>
+                      <VoteBar counts={sl.latestResolvedVoteCounts} total={resolvedTotal} myVote={sl.myVote} resolvedChoice={resolvedEvent.resolvedChoice} />
                     </div>
-                    <VoteBar counts={sl.voteCounts} total={totalVotes} myVote={sl.myVote} resolvedChoice={resolvedEvent.resolvedChoice} />
-                  </div>
-                )}
+                  ) : null;
+                })()}
               </div>
             </div>
           )}
