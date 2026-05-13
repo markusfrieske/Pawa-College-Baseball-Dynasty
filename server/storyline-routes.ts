@@ -99,6 +99,53 @@ async function generateEventSceneImageForced(
   return generateEventSceneImageCore(templateId, scenePrompt, "forced scene image regen", true);
 }
 
+// Generates a single arc-level scene image for a storyline recruit.
+// Uses the archetype's first event scene prompt, resolved position-aware.
+// Stores to storyline_recruits.imageUrl (one image per arc, stable for the season).
+async function generateArcSceneImage(
+  sl: { id: string; archetype: string; isLegendary: boolean },
+  position: string | null,
+): Promise<string | null> {
+  const def = ARCHETYPE_DEFS[sl.archetype as Archetype];
+  if (!def) return null;
+  const events = [...def.events, ...(sl.isLegendary && def.legendaryEvents ? def.legendaryEvents : [])];
+  if (events.length === 0) return null;
+
+  const firstEvent = events[0];
+  const pitcherMode = Boolean(position && isPitcher(position));
+  const posGroupKey = position ? positionToSceneGroupKey(position) : null;
+  const scenePrompt =
+    (posGroupKey && firstEvent.scenePromptByPosition?.[posGroupKey]) ||
+    (pitcherMode && firstEvent.scenePromptPitcher) ||
+    firstEvent.scenePrompt;
+  if (!scenePrompt) return null;
+
+  // Use a unique arc-scoped key so it never collides with per-event template cache entries.
+  const arcKey = `arc-${sl.id}`;
+  return generateEventSceneImageCore(arcKey, scenePrompt, `arc image ${sl.id}`, true);
+}
+
+// Generates arc images for a list of storyline recruits.
+// Runs in the background (fire-and-forget), throttled 2 s between each to avoid rate limits.
+async function generateArcImagesForStorylines(
+  storylines: import("@shared/schema").StorylineRecruit[],
+): Promise<void> {
+  for (const sl of storylines) {
+    try {
+      const recruit = await storage.getRecruit(sl.recruitId);
+      const position = recruit?.position ?? null;
+      const imageUrl = await generateArcSceneImage(sl, position);
+      if (imageUrl) {
+        await storage.updateStorylineRecruit(sl.id, { imageUrl });
+        console.log(`[storylines] arc image saved for recruit ${sl.recruitId}`);
+      }
+    } catch (err) {
+      console.warn(`[storylines] arc image gen failed for ${sl.id}:`, err);
+    }
+    await new Promise(r => setTimeout(r, 2000));
+  }
+}
+
 // Runs at startup to backfill scene images for any existing events that are missing them.
 // Groups events by templateId, resolves the recruit's position for the first event per template,
 // selects the most-specific scenePrompt variant (by position → pitcher → default), then generates
@@ -613,6 +660,39 @@ export function registerStorylineRoutes(app: Express) {
     }
   });
 
+  // POST /api/leagues/:id/storylines/recruits/:slId/regenerate-image — commissioner-only
+  // Regenerates the stable arc-level image and saves it to storyline_recruits.imageUrl.
+  app.post("/api/leagues/:id/storylines/recruits/:slId/regenerate-image", requireAuth, async (req, res) => {
+    try {
+      const leagueId = String(req.params.id);
+      const slId = String(req.params.slId);
+
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      if (league.commissionerId !== req.session.userId) {
+        return res.status(403).json({ message: "Only the commissioner can regenerate arc images" });
+      }
+
+      const sl = await storage.getStorylineRecruit(slId);
+      if (!sl) return res.status(404).json({ message: "Storyline recruit not found" });
+      if (sl.leagueId !== leagueId) return res.status(403).json({ message: "Arc does not belong to this league" });
+
+      const recruit = await storage.getRecruit(sl.recruitId).catch(() => null);
+      const position = recruit?.position ?? null;
+
+      const newImageUrl = await generateArcSceneImage(sl, position);
+      if (!newImageUrl) {
+        return res.status(500).json({ message: "Image generation failed — check OpenAI configuration" });
+      }
+
+      await storage.updateStorylineRecruit(sl.id, { imageUrl: newImageUrl });
+      res.json({ imageUrl: newImageUrl });
+    } catch (err) {
+      console.error("[storylines] regenerate-arc-image error:", err);
+      res.status(500).json({ message: "Failed to regenerate arc image" });
+    }
+  });
+
   // POST /api/leagues/:id/storylines/generate — commissioner-only manual trigger
   app.post("/api/leagues/:id/storylines/generate", requireAuth, async (req, res) => {
     try {
@@ -702,6 +782,12 @@ export async function initializeStorylineRecruits(leagueId: string, season: numb
         await storage.updateStorylineRecruit(shuffledCreated[i + 1].id, { overlappingRecruitId: shuffledCreated[i].id });
       }
     }
+
+    // Kick off arc image generation in the background — one image per arc, stable for the season.
+    // Non-blocking: init returns immediately; images arrive within ~20-30 seconds.
+    generateArcImagesForStorylines(created).catch(err =>
+      console.warn("[storylines] background arc image generation failed:", err),
+    );
 
     await generateWeeklyStorylineEvents(leagueId, season, 1);
 
@@ -1118,25 +1204,8 @@ async function generateWeeklyStorylineEvents(leagueId: string, season: number, w
         await storage.updateStorylineRecruit(sl.id, { usedTemplateIds: dedupedUsed });
       }
 
-      if (eventData.templateId && eventData.scenePrompt) {
-        const evId = createdEvent.id;
-        const templateId = eventData.templateId;
-        const scenePrompt = eventData.scenePrompt;
-        generateEventSceneImage(evId, templateId, scenePrompt).catch(err =>
-          console.warn("[storylines] async event image gen failed:", err),
-        );
-      }
     }
 
-    // Schedule a 30-second delayed backfill to catch any events whose images
-    // failed due to rate limits or transient OpenAI errors during generation.
-    if (count > 0) {
-      setTimeout(() => {
-        warmupEventSceneImages().catch(err =>
-          console.warn("[storylines] delayed image backfill failed:", err),
-        );
-      }, 30_000);
-    }
   } catch (err) {
     console.error("[storylines] generateWeeklyEvents error:", err);
   }

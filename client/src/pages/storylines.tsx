@@ -66,6 +66,7 @@ interface StorylineRecruit {
   archetypeName: string;
   archetypeDescription: string;
   archetypeFlavor: string;
+  imageUrl: string | null;
   archetypeImageUrl: string | null;
   totalArcEvents: number;
   activeEvent: StorylineEventFull | null;
@@ -219,8 +220,8 @@ function StorylineCard({ sl, leagueId, isCommissioner }: { sl: StorylineRecruit;
   });
 
   const regenMutation = useMutation({
-    mutationFn: (eventId: string) =>
-      apiRequest("POST", `/api/leagues/${leagueId}/storylines/events/${eventId}/regenerate-image`),
+    mutationFn: () =>
+      apiRequest("POST", `/api/leagues/${leagueId}/storylines/recruits/${sl.id}/regenerate-image`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "storylines"] });
     },
@@ -317,11 +318,11 @@ function StorylineCard({ sl, leagueId, isCommissioner }: { sl: StorylineRecruit;
               isLegendary={sl.isLegendary}
             />
 
-            {sl.archetypeImageUrl ? (
-              <div className="mt-2 rounded-md overflow-hidden border border-border/30" data-testid={`archetype-banner-${sl.id}`}>
+            {sl.imageUrl ? (
+              <div className="mt-2 rounded-md overflow-hidden border border-border/30 group" data-testid={`archetype-banner-${sl.id}`}>
                 <div className="relative w-full overflow-hidden bg-black" style={{ aspectRatio: "16/5" }}>
                   <img
-                    src={sl.archetypeImageUrl}
+                    src={sl.imageUrl}
                     alt={sl.archetypeName}
                     className="w-full h-full object-cover opacity-70"
                     style={{ imageRendering: "pixelated" }}
@@ -335,6 +336,17 @@ function StorylineCard({ sl, leagueId, isCommissioner }: { sl: StorylineRecruit;
                     </div>
                     <p className="text-[10px] text-muted-foreground/90 italic mt-0.5 line-clamp-1">{sl.archetypeFlavor}</p>
                   </div>
+                  {isCommissioner && (
+                    <button
+                      onClick={() => regenMutation.mutate()}
+                      disabled={regenMutation.isPending}
+                      className="absolute top-2 right-2 p-1.5 rounded-md bg-black/70 border border-gold/40 text-gold/70 hover:text-gold hover:border-gold/70 transition-all opacity-0 group-hover:opacity-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                      title="Regenerate arc image"
+                      data-testid={`button-regen-image-${sl.id}`}
+                    >
+                      {regenMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                    </button>
+                  )}
                 </div>
               </div>
             ) : (
@@ -356,28 +368,6 @@ function StorylineCard({ sl, leagueId, isCommissioner }: { sl: StorylineRecruit;
               className={`rounded-md border overflow-hidden ${resolvedEvent.ovrDelta && resolvedEvent.ovrDelta > 0 ? "bg-green-950/20 border-green-500/30" : resolvedEvent.ovrDelta && resolvedEvent.ovrDelta < 0 ? "bg-red-950/20 border-red-500/30" : "bg-muted/20 border-border/40"}`}
               data-testid={`section-resolved-${sl.id}`}
             >
-              {resolvedEvent.eventImageUrl && (
-                <div className="relative w-full aspect-[16/7] overflow-hidden border-b border-border/20 bg-black flex items-center justify-center group">
-                  <img
-                    src={resolvedEvent.eventImageUrl}
-                    alt="Scene"
-                    className="w-full h-full object-contain opacity-80"
-                    style={{ imageRendering: "pixelated" }}
-                    loading="lazy"
-                  />
-                  {isCommissioner && (
-                    <button
-                      onClick={() => regenMutation.mutate(resolvedEvent.id)}
-                      disabled={regenMutation.isPending}
-                      className="absolute top-2 right-2 p-1.5 rounded-md bg-black/70 border border-gold/40 text-gold/70 hover:text-gold hover:border-gold/70 transition-all opacity-0 group-hover:opacity-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="Regenerate scene image"
-                      data-testid={`button-regen-image-${resolvedEvent.id}`}
-                    >
-                      {regenMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-                    </button>
-                  )}
-                </div>
-              )}
               <div className="px-3 py-2.5">
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <CheckCircle className="w-3 h-3 text-green-400" />
@@ -436,28 +426,6 @@ function StorylineCard({ sl, leagueId, isCommissioner }: { sl: StorylineRecruit;
           {activeEvent && (
             <div className="space-y-3">
               <div className="rounded-md border overflow-hidden bg-card/80 border-gold/20">
-                {activeEvent.eventImageUrl && (
-                  <div className="relative w-full aspect-[16/7] overflow-hidden border-b border-gold/20 bg-black flex items-center justify-center group">
-                    <img
-                      src={activeEvent.eventImageUrl}
-                      alt="Scene"
-                      className="w-full h-full object-contain"
-                      style={{ imageRendering: "pixelated" }}
-                      loading="lazy"
-                    />
-                    {isCommissioner && (
-                      <button
-                        onClick={() => regenMutation.mutate(activeEvent.id)}
-                        disabled={regenMutation.isPending}
-                        className="absolute top-2 right-2 p-1.5 rounded-md bg-black/70 border border-gold/40 text-gold/70 hover:text-gold hover:border-gold/70 transition-all opacity-0 group-hover:opacity-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="Regenerate scene image"
-                        data-testid={`button-regen-image-${activeEvent.id}`}
-                      >
-                        {regenMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-                      </button>
-                    )}
-                  </div>
-                )}
                 <div className="px-3 py-2.5">
                   <div className="flex items-center gap-1.5 mb-1.5">
                     <Vote className="w-3 h-3 text-gold animate-pulse" />
