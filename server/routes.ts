@@ -10806,7 +10806,12 @@ export async function registerRoutes(
         details: `Generated ${recruitCount} new recruits for the recruiting class`,
       });
 
-      res.json({ success: true, count: recruitCount });
+      res.json({
+        success: true,
+        count: recruitCount,
+        storylineReset: true,
+        storylineResetWarning: "Existing storyline arcs and events for this season were wiped and rebuilt for the new recruiting class.",
+      });
     } catch (error) {
       console.error("Failed to generate recruiting class:", error);
       res.status(500).json({ message: "Failed to generate recruiting class" });
@@ -11295,7 +11300,12 @@ export async function registerRoutes(
         });
       }
 
-      res.json({ success: true, count: recruitCount });
+      res.json({
+        success: true,
+        count: recruitCount,
+        storylineReset: true,
+        storylineResetWarning: "Existing storyline arcs and events for this season were wiped and rebuilt for the new recruiting class.",
+      });
     } catch (error) {
       console.error("Failed to import recruiting class:", error);
       res.status(500).json({ message: "Failed to import recruiting class" });
