@@ -880,7 +880,11 @@ export default function StorylinesPage() {
             data-testid="banner-storylines-between-chapters"
           >
             <span className="text-gold font-pixel text-[8px]">■</span>
-            All storyline arcs are between chapters — advance the week to generate new events.
+            <span>
+              All {storylines.length} storyline arcs are between chapters.{" "}
+              {committedCount > 0 && <span className="text-green-400">{committedCount} committed.</span>}{" "}
+              Advance the week to generate new events.
+            </span>
           </div>
         )}
 

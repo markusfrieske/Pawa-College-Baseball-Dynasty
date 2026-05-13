@@ -12762,7 +12762,11 @@ async function generateRecruits(leagueId: string, count: number) {
   if (leagueForStoryline) {
     try {
       console.log(`[storylines] Initializing storyline recruits for league ${leagueId} season ${leagueForStoryline.currentSeason}…`);
-      const storylineCount = await initializeStorylineRecruits(leagueId, leagueForStoryline.currentSeason, true);
+      // generateRecruits always creates a fresh class — delete any stale storyline recruits from
+      // a prior run (e.g., commissioner reset) so the guard in initializeStorylineRecruits sees
+      // an empty slate and proceeds normally with force=false (the safe default).
+      await storage.deleteStorylineRecruitsByLeague(leagueId, leagueForStoryline.currentSeason);
+      const storylineCount = await initializeStorylineRecruits(leagueId, leagueForStoryline.currentSeason);
       console.log(`[storylines] Storyline initialization complete — ${storylineCount} recruits assigned arcs for season ${leagueForStoryline.currentSeason}`);
     } catch (err) {
       console.error("[storylines] Failed to initialize storyline recruits:", err);

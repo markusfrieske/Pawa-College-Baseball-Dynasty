@@ -201,9 +201,13 @@ export function maybeTransitionArchetype(
     return target;
   };
 
+  // Legendary recruits require a slightly higher cumulative delta to trigger a transition
+  // (±10) compared to regular recruits (±8), reflecting greater narrative stability for
+  // top-tier arcs. Both thresholds are lower than the original ±15 to prevent stalling.
+  const threshold = isLegendary ? 10 : 8;
   const transitions = ARCHETYPE_TRANSITIONS[currentArchetype];
-  if (cumulativeOvrDelta >= 8 && transitions.positive) return resolveTarget(transitions.positive);
-  if (cumulativeOvrDelta <= -8 && transitions.negative) return resolveTarget(transitions.negative);
+  if (cumulativeOvrDelta >= threshold && transitions.positive) return resolveTarget(transitions.positive);
+  if (cumulativeOvrDelta <= -threshold && transitions.negative) return resolveTarget(transitions.negative);
   return currentArchetype;
 }
 
