@@ -11364,11 +11364,12 @@ export async function registerRoutes(
       let expiresAt: Date | undefined;
       if (expiresIn) {
         const match = String(expiresIn).match(/^(\d+)(h|d)$/);
-        if (match) {
-          const amount = parseInt(match[1]);
-          const ms = match[2] === "h" ? amount * 3_600_000 : amount * 86_400_000;
-          expiresAt = new Date(Date.now() + ms);
+        if (!match) {
+          return res.status(400).json({ message: "Invalid expiry format. Use values like '24h', '3d', '7d'." });
         }
+        const amount = parseInt(match[1]);
+        const ms = match[2] === "h" ? amount * 3_600_000 : amount * 86_400_000;
+        expiresAt = new Date(Date.now() + ms);
       }
 
       let inviteCode: string;
