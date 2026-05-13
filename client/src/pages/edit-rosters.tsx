@@ -41,9 +41,9 @@ const valueToGrade = (v: number): string => {
   return "G";
 };
 const priorityOptions = ["Not Important", "Somewhat", "Very", "Extremely"];
-const skinTones = ["light", "medium", "tan", "dark", "deep"];
-const hairColors = ["black", "brown", "blonde", "red", "gray"];
-const hairStyles = ["short", "buzzcut", "curly", "mullet", "bald"];
+const skinTones = ["light", "medium", "tan", "olive", "dark", "deep"];
+const hairColors = ["black", "brown", "blonde", "red", "gray", "white"];
+const hairStyles = ["short", "medium", "long", "buzzcut", "fade", "curly", "mullet", "bald"];
 
 export default function EditRostersPage() {
   const { id } = useParams<{ id: string }>();
