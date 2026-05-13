@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { parseErrorMessage } from "@/lib/errorUtils";
 import { useLocation } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroInput } from "@/components/ui/retro-input";
@@ -114,7 +115,7 @@ export default function LeagueCreatePage() {
     onError: (error: Error) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to create dynasty. Please try again.",
+        description: parseErrorMessage(error),
         variant: "destructive",
       });
     },

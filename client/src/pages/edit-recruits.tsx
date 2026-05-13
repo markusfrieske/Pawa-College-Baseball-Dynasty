@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, KeyboardEvent } from "react";
+import { parseErrorMessage } from "@/lib/errorUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
@@ -80,7 +81,7 @@ export default function EditRecruitsPage() {
       toast({ title: "Recruits Saved", description: "All changes have been saved." });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
     },
   });
 

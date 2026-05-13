@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { parseErrorMessage } from "@/lib/errorUtils";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { RetroButton } from "@/components/ui/retro-button";
@@ -130,7 +131,7 @@ export default function DeparturesPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "departures"] });
     },
     onError: (err: any) => {
-      toast({ title: "Failed", description: err.message || "Could not process retention offer", variant: "destructive" });
+      toast({ title: "Failed", description: parseErrorMessage(err), variant: "destructive" });
     },
   });
 
@@ -150,7 +151,7 @@ export default function DeparturesPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "departures"] });
     },
     onError: (err: any) => {
-      toast({ title: "Failed", description: err.message || "Could not process retention offer", variant: "destructive" });
+      toast({ title: "Failed", description: parseErrorMessage(err), variant: "destructive" });
     },
   });
 
@@ -170,7 +171,7 @@ export default function DeparturesPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId] });
     },
     onError: (err: any) => {
-      toast({ title: "Failed", description: err.message || "Could not finalize departures", variant: "destructive" });
+      toast({ title: "Failed", description: parseErrorMessage(err), variant: "destructive" });
     },
   });
 

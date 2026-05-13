@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { parseErrorMessage } from "@/lib/errorUtils";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { RetroButton } from "@/components/ui/retro-button";
@@ -63,7 +64,7 @@ export default function TeamSelectionPage() {
       setLocation(`/league/${id}/setup`);
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
     },
   });
 

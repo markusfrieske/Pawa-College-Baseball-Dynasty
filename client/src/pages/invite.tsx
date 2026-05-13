@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { parseErrorMessage } from "@/lib/errorUtils";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, useLocation, Link } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
@@ -49,7 +50,7 @@ export default function InvitePage() {
       setLocation(`/league/${result.leagueId}`);
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
     },
   });
 
@@ -68,10 +69,10 @@ export default function InvitePage() {
   if (error || !data) {
     let errorMessage = "This invite link is invalid, expired, or has already been used.";
     if (error instanceof Error) {
-      const colonIdx = error.message.indexOf(": ");
+      const colonIdx = parseErrorMessage(error).indexOf(": ");
       if (colonIdx !== -1) {
         try {
-          const parsed = JSON.parse(error.message.slice(colonIdx + 2));
+          const parsed = JSON.parse(parseErrorMessage(error).slice(colonIdx + 2));
           if (parsed?.message) errorMessage = parsed.message;
         } catch {}
       }

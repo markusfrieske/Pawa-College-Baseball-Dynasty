@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { parseErrorMessage } from "@/lib/errorUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useLocation, Link } from "wouter";
 import { ArrowLeft, ChevronRight, ChevronLeft, Check, AlertTriangle } from "lucide-react";
@@ -149,7 +150,7 @@ export default function ReportGamePage() {
       setLocation(`/league/${id}/schedule`);
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
     },
   });
 

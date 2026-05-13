@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { parseErrorMessage } from "@/lib/errorUtils";
 import { Link, useLocation } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroInput } from "@/components/ui/retro-input";
@@ -36,7 +37,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
     onError: (error: Error) => {
       toast({
         title: "Error",
-        description: error.message || "An error occurred. Please try again.",
+        description: parseErrorMessage(error),
         variant: "destructive",
       });
     },

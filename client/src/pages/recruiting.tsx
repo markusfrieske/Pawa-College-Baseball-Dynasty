@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { parseErrorMessage } from "@/lib/errorUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
@@ -418,7 +419,7 @@ export default function RecruitingPage() {
       setActionResultModal({ title: "Scouting Complete", description: "New attributes revealed!", type: "success", icon: "scout" });
     },
     onError: (error: Error) => {
-      setActionResultModal({ title: "Scouting Failed", description: error.message, type: "error" });
+      setActionResultModal({ title: "Scouting Failed", description: parseErrorMessage(error), type: "error" });
     },
   });
 
@@ -431,7 +432,7 @@ export default function RecruitingPage() {
       setActionResultModal({ title: "Recruit Targeted", description: "Added to your target list.", type: "success", icon: "check" });
     },
     onError: (error: Error) => {
-      setActionResultModal({ title: "Error", description: error.message, type: "error" });
+      setActionResultModal({ title: "Error", description: parseErrorMessage(error), type: "error" });
     },
   });
 
@@ -444,7 +445,7 @@ export default function RecruitingPage() {
       toast({ title: "Notes saved", description: "Your notes have been updated." });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
     },
   });
 
@@ -461,7 +462,7 @@ export default function RecruitingPage() {
       setActionResultModal({ title: "Phone Call Made", description: changeLabel.label, type: "success", icon: "phone" });
     },
     onError: (error: Error) => {
-      setActionResultModal({ title: "Phone Call Failed", description: error.message, type: "error" });
+      setActionResultModal({ title: "Phone Call Failed", description: parseErrorMessage(error), type: "error" });
     },
   });
 
@@ -477,7 +478,7 @@ export default function RecruitingPage() {
       setActionResultModal({ title: "Email Sent", description: changeLabel.label, type: "success", icon: "email" });
     },
     onError: (error: Error) => {
-      setActionResultModal({ title: "Email Failed", description: error.message, type: "error" });
+      setActionResultModal({ title: "Email Failed", description: parseErrorMessage(error), type: "error" });
     },
   });
 
@@ -493,7 +494,7 @@ export default function RecruitingPage() {
       setActionResultModal({ title: "Campus Visit Scheduled", description: changeLabel.label, type: "success", icon: "visit" });
     },
     onError: (error: Error) => {
-      setActionResultModal({ title: "Visit Failed", description: error.message, type: "error" });
+      setActionResultModal({ title: "Visit Failed", description: parseErrorMessage(error), type: "error" });
     },
   });
 
@@ -509,7 +510,7 @@ export default function RecruitingPage() {
       setActionResultModal({ title: "Head Coach Visit Complete", description: changeLabel.label, type: "success", icon: "coach" });
     },
     onError: (error: Error) => {
-      setActionResultModal({ title: "HC Visit Failed", description: error.message, type: "error" });
+      setActionResultModal({ title: "HC Visit Failed", description: parseErrorMessage(error), type: "error" });
     },
   });
 
@@ -525,7 +526,7 @@ export default function RecruitingPage() {
       setActionResultModal({ title: "Scholarship Offered", description: changeLabel.label, type: "success", icon: "offer" });
     },
     onError: (error: Error) => {
-      setActionResultModal({ title: "Offer Failed", description: error.message, type: "error" });
+      setActionResultModal({ title: "Offer Failed", description: parseErrorMessage(error), type: "error" });
     },
   });
 
@@ -544,7 +545,7 @@ export default function RecruitingPage() {
       setActionResultModal({ title: "Bulk Scouting Complete", description: `Scouted ${recruitIds.length} recruits!`, type: "success", icon: "scout" });
     },
     onError: (error: Error) => {
-      setActionResultModal({ title: "Scouting Failed", description: error.message, type: "error" });
+      setActionResultModal({ title: "Scouting Failed", description: parseErrorMessage(error), type: "error" });
     },
   });
 

@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { parseErrorMessage } from "@/lib/errorUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
@@ -199,7 +200,7 @@ export default function RecruitProfilePage() {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting", recruitId, "actions"] });
     },
     onError: (error: Error) => {
-      setActionResultModal({ title: "Scouting Failed", description: error.message, type: "error" });
+      setActionResultModal({ title: "Scouting Failed", description: parseErrorMessage(error), type: "error" });
     },
   });
 
@@ -215,7 +216,7 @@ export default function RecruitProfilePage() {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting", recruitId, "actions"] });
     },
     onError: (error: Error) => {
-      setActionResultModal({ title: "Phone Call Failed", description: error.message, type: "error" });
+      setActionResultModal({ title: "Phone Call Failed", description: parseErrorMessage(error), type: "error" });
     },
   });
 
@@ -231,7 +232,7 @@ export default function RecruitProfilePage() {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting", recruitId, "actions"] });
     },
     onError: (error: Error) => {
-      setActionResultModal({ title: "Email Failed", description: error.message, type: "error" });
+      setActionResultModal({ title: "Email Failed", description: parseErrorMessage(error), type: "error" });
     },
   });
 
@@ -247,7 +248,7 @@ export default function RecruitProfilePage() {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting", recruitId, "actions"] });
     },
     onError: (error: Error) => {
-      setActionResultModal({ title: "Visit Failed", description: error.message, type: "error" });
+      setActionResultModal({ title: "Visit Failed", description: parseErrorMessage(error), type: "error" });
     },
   });
 
@@ -263,7 +264,7 @@ export default function RecruitProfilePage() {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting", recruitId, "actions"] });
     },
     onError: (error: Error) => {
-      setActionResultModal({ title: "HC Visit Failed", description: error.message, type: "error" });
+      setActionResultModal({ title: "HC Visit Failed", description: parseErrorMessage(error), type: "error" });
     },
   });
 
@@ -279,7 +280,7 @@ export default function RecruitProfilePage() {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting", recruitId, "actions"] });
     },
     onError: (error: Error) => {
-      setActionResultModal({ title: "Offer Failed", description: error.message, type: "error" });
+      setActionResultModal({ title: "Offer Failed", description: parseErrorMessage(error), type: "error" });
     },
   });
 

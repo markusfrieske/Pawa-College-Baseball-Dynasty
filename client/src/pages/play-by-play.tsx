@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { parseErrorMessage } from "@/lib/errorUtils";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { RetroButton } from "@/components/ui/retro-button";
@@ -238,7 +239,7 @@ export default function PlayByPlayPage() {
       setLocation(`/league/${id}/schedule`);
     },
     onError: (err: Error) => {
-      toast({ title: "Error saving game", description: err.message, variant: "destructive" });
+      toast({ title: "Error saving game", description: parseErrorMessage(err), variant: "destructive" });
     },
   });
 

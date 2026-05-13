@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { parseErrorMessage } from "@/lib/errorUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
@@ -62,7 +63,7 @@ export default function CoachProfilePage() {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "coach"] });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message || "Failed to upgrade skill", variant: "destructive" });
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
     },
   });
 

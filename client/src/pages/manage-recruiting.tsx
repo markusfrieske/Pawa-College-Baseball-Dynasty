@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef } from "react";
+import { parseErrorMessage } from "@/lib/errorUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
@@ -531,7 +532,7 @@ export default function ManageRecruitingPage() {
       setSaveDialogOpen(false);
     },
     onError: (err: Error) => {
-      toast({ title: "Error Saving", description: err.message, variant: "destructive" });
+      toast({ title: "Error Saving", description: parseErrorMessage(err), variant: "destructive" });
     },
   });
 
@@ -552,7 +553,7 @@ export default function ManageRecruitingPage() {
       }
     },
     onError: (err: Error) => {
-      toast({ title: "Error Deleting", description: err.message, variant: "destructive" });
+      toast({ title: "Error Deleting", description: parseErrorMessage(err), variant: "destructive" });
     },
   });
 

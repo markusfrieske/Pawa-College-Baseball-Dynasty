@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { parseErrorMessage } from "@/lib/errorUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
@@ -96,7 +97,7 @@ export default function SchedulePage() {
       setEditingGame(null);
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
     },
   });
 
@@ -109,7 +110,7 @@ export default function SchedulePage() {
       toast({ title: "Report Confirmed", description: "Game result has been finalized." });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
     },
   });
 
@@ -122,7 +123,7 @@ export default function SchedulePage() {
       toast({ title: "Report Disputed", description: "Commissioner will review the discrepancy." });
     },
     onError: (error: Error) => {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
     },
   });
 

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { parseErrorMessage } from "@/lib/errorUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
@@ -95,7 +96,7 @@ export default function WalkonsPage() {
       toast({ title: "Walk-on signed", description: "Player added to your roster." });
     },
     onError: (err: any) => {
-      toast({ title: "Cannot sign", description: err.message || "Failed to sign walk-on.", variant: "destructive" });
+      toast({ title: "Cannot sign", description: parseErrorMessage(err), variant: "destructive" });
     },
   });
 
@@ -111,7 +112,7 @@ export default function WalkonsPage() {
       toast({ title: "Player cut", description: "Player has been released to JUCO." });
     },
     onError: (err: any) => {
-      toast({ title: "Cannot cut", description: err.message || "Failed to cut player.", variant: "destructive" });
+      toast({ title: "Cannot cut", description: parseErrorMessage(err), variant: "destructive" });
     },
   });
 

@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef } from "react";
+import { parseErrorMessage } from "@/lib/errorUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
@@ -167,7 +168,7 @@ export default function ManageRostersPage() {
       toast({ title: "Roster Saved", description: "Custom roster saved to your account." });
     },
     onError: (err: Error) => {
-      toast({ title: "Save Failed", description: err.message, variant: "destructive" });
+      toast({ title: "Save Failed", description: parseErrorMessage(err), variant: "destructive" });
     },
   });
 
@@ -180,7 +181,7 @@ export default function ManageRostersPage() {
       toast({ title: "Roster Deleted" });
     },
     onError: (err: Error) => {
-      toast({ title: "Delete Failed", description: err.message, variant: "destructive" });
+      toast({ title: "Delete Failed", description: parseErrorMessage(err), variant: "destructive" });
     },
   });
 

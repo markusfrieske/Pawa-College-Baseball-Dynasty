@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from "react";
+import { parseErrorMessage } from "@/lib/errorUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link, useLocation } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
@@ -144,7 +145,7 @@ export default function RosterPage() {
       setSelectedPlayer(null);
     },
     onError: (error: Error) => {
-      toast({ title: "Cannot Declare", description: error.message, variant: "destructive" });
+      toast({ title: "Cannot Declare", description: parseErrorMessage(error), variant: "destructive" });
     },
   });
 

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { parseErrorMessage } from "@/lib/errorUtils";
 import { useParams, Link, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { RetroButton } from "@/components/ui/retro-button";
@@ -95,7 +96,7 @@ export default function DynastySetupPage() {
       }
       setInviteLabel("");
     },
-    onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+    onError: (err: Error) => toast({ title: "Error", description: parseErrorMessage(err), variant: "destructive" }),
   });
 
   const revokeMutation = useMutation({
@@ -107,7 +108,7 @@ export default function DynastySetupPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "dynasty-setup"] });
       toast({ title: "Invite Revoked", description: "The invite link has been disabled." });
     },
-    onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+    onError: (err: Error) => toast({ title: "Error", description: parseErrorMessage(err), variant: "destructive" }),
   });
 
   const copyInviteLink = (code: string) => {
@@ -138,7 +139,7 @@ export default function DynastySetupPage() {
       toast({ title: "Dynasty Started!", description: "Let the games begin!" });
       setLocation(`/league/${id}`);
     },
-    onError: (err: Error) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+    onError: (err: Error) => toast({ title: "Error", description: parseErrorMessage(err), variant: "destructive" }),
   });
 
   if (isLoading) {
