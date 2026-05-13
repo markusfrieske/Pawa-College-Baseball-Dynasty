@@ -599,8 +599,12 @@ export async function initializeStorylineRecruits(leagueId: string, season: numb
   }
 }
 
-// Resolve-only sweep: settles all pending unresolved storyline events without generating new ones.
-// Used at phase boundaries (e.g. offseason_recruiting_4 → signing_day) to clear the slate cleanly.
+// Resolve-only sweep: settles all pending storyline events that are overdue (week < currentWeek)
+// without generating any new events. Uses the same full resolution pipeline as normal weekly
+// progression — archetype transitions, ability side effects, league events, dynasty news —
+// so phase-boundary resolution is behaviorally consistent with normal weekly resolution.
+// Events generated for currentWeek or later are intentionally skipped to preserve the
+// commissioner voting window on newly-created arcs.
 export async function resolveAllPendingStorylineEvents(
   leagueId: string,
   season: number,
@@ -610,6 +614,9 @@ export async function resolveAllPendingStorylineEvents(
   try {
     const unresolved = await storage.getUnresolvedStorylineEvents(leagueId, season);
     for (const event of unresolved) {
+      // Skip events generated for the current week or later — only resolve overdue arcs.
+      if (event.week >= currentWeek) continue;
+
       const votes = await storage.getStorylineVotesByEvent(event.id);
       const sl = await storage.getStorylineRecruit(event.storylineRecruitId);
       if (!sl) continue;
@@ -638,17 +645,96 @@ export async function resolveAllPendingStorylineEvents(
       });
 
       const recruit = await storage.getRecruit(sl.recruitId);
-      if (recruit && ovrDelta !== 0) {
-        const newOvr = Math.max(100, Math.min(720, (recruit.overall ?? 250) + ovrDelta));
-        await storage.updateRecruit(recruit.id, { overall: newOvr });
-      }
+      if (recruit) {
+        if (ovrDelta !== 0) {
+          const newOvr = Math.max(100, Math.min(720, (recruit.overall ?? 250) + ovrDelta));
+          await storage.updateRecruit(recruit.id, { overall: newOvr });
+        }
 
-      const newCumulativeDelta = (sl.resolvedOvrDelta ?? 0) + ovrDelta;
-      const newArcStage = sl.currentArcStage + 1;
-      await storage.updateStorylineRecruit(sl.id, {
-        resolvedOvrDelta: newCumulativeDelta,
-        currentArcStage: newArcStage,
-      });
+        try {
+          const allPositionAbilities = getAbilitiesForPosition(recruit.position ?? "P");
+          const currentAbilities: string[] = (recruit.abilities as string[]) ?? [];
+          const storyLocked: string[] = (recruit.storyLockedAbilities as string[]) ?? [];
+
+          if (ovrDelta >= 15 || (ovrDelta >= 8 && Math.random() < 0.50)) {
+            const tier = sl.isLegendary && Math.random() < 0.30 ? "gold" : "blue";
+            const pool = allPositionAbilities
+              .filter(a => a.tier === tier && !currentAbilities.includes(a.name))
+              .sort(() => Math.random() - 0.5);
+            if (pool.length > 0 && currentAbilities.length < 7) {
+              const gained = pool[0].name;
+              await storage.updateRecruit(recruit.id, { abilities: [...currentAbilities, gained] });
+              if (!storyLocked.includes(gained)) {
+                await storage.updateRecruit(recruit.id, { storyLockedAbilities: [...storyLocked, gained] });
+              }
+            }
+          } else if (ovrDelta <= -15 || (ovrDelta <= -8 && Math.random() < 0.50)) {
+            const removable = allPositionAbilities
+              .filter(a => (a.tier === "blue" || a.tier === "gold") && currentAbilities.includes(a.name) && storyLocked.includes(a.name))
+              .sort(() => Math.random() - 0.5);
+
+            let updated = [...currentAbilities];
+            if (removable.length > 0) {
+              const toRemove = removable[0].name;
+              updated = updated.filter(a => a !== toRemove);
+              await storage.updateRecruit(recruit.id, {
+                abilities: updated,
+                storyLockedAbilities: storyLocked.filter(a => a !== toRemove),
+              });
+            }
+
+            const redPool = allPositionAbilities
+              .filter(a => a.tier === "red" && !updated.includes(a.name))
+              .sort(() => Math.random() - 0.5);
+            if (redPool.length > 0 && updated.length < 7) {
+              const gained = redPool[0].name;
+              await storage.updateRecruit(recruit.id, { abilities: [...updated, gained] });
+              const latestLocked = (await storage.getRecruit(recruit.id))?.storyLockedAbilities as string[] ?? storyLocked;
+              if (!latestLocked.includes(gained)) {
+                await storage.updateRecruit(recruit.id, { storyLockedAbilities: [...latestLocked, gained] });
+              }
+            }
+          }
+        } catch (abilityErr) {
+          console.warn("[storylines] sweep ability side effect error:", abilityErr);
+        }
+
+        const newCumulativeDelta = (sl.resolvedOvrDelta ?? 0) + ovrDelta;
+        const newArcStage = sl.currentArcStage + 1;
+        const transitionedArchetype = maybeTransitionArchetype(
+          sl.archetype as Archetype,
+          newCumulativeDelta,
+          newArcStage,
+          sl.isLegendary,
+          recruit.position,
+        );
+
+        await storage.updateStorylineRecruit(sl.id, {
+          resolvedOvrDelta: newCumulativeDelta,
+          currentArcStage: newArcStage,
+          ...(transitionedArchetype !== sl.archetype ? { archetype: transitionedArchetype } : {}),
+        });
+
+        const ovrStr = ovrDelta > 0 ? `+${ovrDelta}` : ovrDelta === 0 ? "±0" : `${ovrDelta}`;
+        await storage.createLeagueEvent({
+          leagueId,
+          eventType: "STORYLINE",
+          description: `STORYLINE (sweep): ${recruit.firstName} ${recruit.lastName} — Choice ${winningChoice} wins. ${outcomeText} (OVR ${ovrStr})`,
+          season,
+          week: currentWeek,
+        });
+
+        storage.createDynastyNews({
+          leagueId,
+          title: `Storyline Update: ${recruit.firstName} ${recruit.lastName}`,
+          content: `Pre-signing day arc resolution — Choice ${winningChoice} carried the vote.\n\n"${outcomeText}"\n\nOVR impact: ${ovrStr}`,
+          category: "recruiting",
+          journalist: "sully",
+          authorName: "Sully Pump",
+          season,
+          week: currentWeek,
+        }).catch(err => console.warn("[storylines] sweep dynasty news creation failed:", err));
+      }
 
       resolved++;
     }

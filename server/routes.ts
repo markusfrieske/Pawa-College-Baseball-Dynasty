@@ -12762,7 +12762,7 @@ async function generateRecruits(leagueId: string, count: number) {
   if (leagueForStoryline) {
     try {
       console.log(`[storylines] Initializing storyline recruits for league ${leagueId} season ${leagueForStoryline.currentSeason}…`);
-      const storylineCount = await initializeStorylineRecruits(leagueId, leagueForStoryline.currentSeason);
+      const storylineCount = await initializeStorylineRecruits(leagueId, leagueForStoryline.currentSeason, true);
       console.log(`[storylines] Storyline initialization complete — ${storylineCount} recruits assigned arcs for season ${leagueForStoryline.currentSeason}`);
     } catch (err) {
       console.error("[storylines] Failed to initialize storyline recruits:", err);
