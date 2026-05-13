@@ -67,16 +67,9 @@ export default function InvitePage() {
   }
 
   if (error || !data) {
-    let errorMessage = "This invite link is invalid, expired, or has already been used.";
-    if (error instanceof Error) {
-      const colonIdx = parseErrorMessage(error).indexOf(": ");
-      if (colonIdx !== -1) {
-        try {
-          const parsed = JSON.parse(parseErrorMessage(error).slice(colonIdx + 2));
-          if (parsed?.message) errorMessage = parsed.message;
-        } catch {}
-      }
-    }
+    const errorMessage = error instanceof Error
+      ? parseErrorMessage(error)
+      : "This invite link is invalid, expired, or has already been used.";
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <RetroCard className="w-full max-w-md text-center">
