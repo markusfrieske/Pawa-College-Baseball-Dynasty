@@ -354,25 +354,9 @@ export default function EditRostersPage() {
                           {sortedPlayers.map((player, idx) => {
                             const isPitcher = player.position === "P";
                             const isChanged = !!changes[player.id];
-                            const baseAppearance = (player.appearance as Record<string, string> | null) ?? {};
-                            const pendingAppearance = (changes[player.id]?.appearance as Record<string, string> | null) ?? {};
-                            const effectiveAppearance = { ...baseAppearance, ...pendingAppearance };
-                            const currentSkinTone = effectiveAppearance.skinTone || "light";
-                            const currentHairColor = effectiveAppearance.hairColor || "brown";
-                            const currentHairStyle = effectiveAppearance.hairStyle || "short";
-                            const updateAppearance = (field: string, value: string) => {
-                              setChanges(prev => {
-                                const prevBase = (player.appearance as Record<string, string> | null) ?? {};
-                                const prevPending = (prev[player.id]?.appearance as Record<string, string> | null) ?? {};
-                                return {
-                                  ...prev,
-                                  [player.id]: {
-                                    ...prev[player.id],
-                                    appearance: { ...prevBase, ...prevPending, [field]: value },
-                                  },
-                                };
-                              });
-                            };
+                            const currentSkinTone = (changes[player.id]?.skinTone as string | undefined) ?? player.skinTone ?? "light";
+                            const currentHairColor = (changes[player.id]?.hairColor as string | undefined) ?? player.hairColor ?? "brown";
+                            const currentHairStyle = (changes[player.id]?.hairStyle as string | undefined) ?? player.hairStyle ?? "short";
                             return (
                               <tr 
                                 key={player.id} 
@@ -409,7 +393,7 @@ export default function EditRostersPage() {
                                         </div>
                                         <div className="space-y-0.5">
                                           <p className="font-pixel text-[7px] text-gold uppercase tracking-wide">Skin Tone</p>
-                                          <Select value={currentSkinTone} onValueChange={(v) => updateAppearance("skinTone", v)}>
+                                          <Select value={currentSkinTone} onValueChange={(v) => updatePlayer(player.id, "skinTone", v)}>
                                             <SelectTrigger className="h-6 text-xs" data-testid={`select-skintone-${player.id}`}>
                                               <SelectValue />
                                             </SelectTrigger>
@@ -422,7 +406,7 @@ export default function EditRostersPage() {
                                         </div>
                                         <div className="space-y-0.5">
                                           <p className="font-pixel text-[7px] text-gold uppercase tracking-wide">Hair Color</p>
-                                          <Select value={currentHairColor} onValueChange={(v) => updateAppearance("hairColor", v)}>
+                                          <Select value={currentHairColor} onValueChange={(v) => updatePlayer(player.id, "hairColor", v)}>
                                             <SelectTrigger className="h-6 text-xs" data-testid={`select-haircolor-${player.id}`}>
                                               <SelectValue />
                                             </SelectTrigger>
@@ -435,7 +419,7 @@ export default function EditRostersPage() {
                                         </div>
                                         <div className="space-y-0.5">
                                           <p className="font-pixel text-[7px] text-gold uppercase tracking-wide">Hair Style</p>
-                                          <Select value={currentHairStyle} onValueChange={(v) => updateAppearance("hairStyle", v)}>
+                                          <Select value={currentHairStyle} onValueChange={(v) => updatePlayer(player.id, "hairStyle", v)}>
                                             <SelectTrigger className="h-6 text-xs" data-testid={`select-hairstyle-${player.id}`}>
                                               <SelectValue />
                                             </SelectTrigger>
