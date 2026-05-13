@@ -1254,6 +1254,23 @@ function ReadyStatusSection({ leagueId, commissionerUserId }: { leagueId: string
     },
   });
 
+  const advanceMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/leagues/${leagueId}/advance`, {});
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId] });
+      qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "ready-status"] });
+      qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "commissioner"] });
+      qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting"] });
+      window.dispatchEvent(new CustomEvent("league-phase-changed"));
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
+    },
+  });
+
   if (isLoading || !data) {
     return (
       <RetroCard>
@@ -1291,7 +1308,7 @@ function ReadyStatusSection({ leagueId, commissionerUserId }: { leagueId: string
   return (
     <RetroCard>
       <RetroCardHeader>
-        <div className="flex items-center justify-between w-full">
+        <div className="flex items-center justify-between w-full gap-3">
           <div className="flex items-center gap-2">
             {stalledTeams.length > 0 && !data.allHumansReady ? (
               <BellRing className="w-4 h-4 text-amber-400" />
@@ -1299,13 +1316,25 @@ function ReadyStatusSection({ leagueId, commissionerUserId }: { leagueId: string
               <Bell className="w-4 h-4 text-green-500" />
             )}
             <span>{sectionTitle}</span>
+            <Badge
+              variant="outline"
+              className={data.allHumansReady ? "border-green-500 text-green-500" : "border-amber-400 text-amber-400"}
+            >
+              {data.readyCount}/{data.humanCount} Ready
+            </Badge>
           </div>
-          <Badge
-            variant="outline"
-            className={data.allHumansReady ? "border-green-500 text-green-500" : "border-amber-400 text-amber-400"}
-          >
-            {data.readyCount}/{data.humanCount} Ready
-          </Badge>
+          {isCommissioner && data.allHumansReady && humanTeams.length > 0 && (
+            <RetroButton
+              size="sm"
+              onClick={() => advanceMutation.mutate()}
+              disabled={advanceMutation.isPending}
+              className="border-green-500 bg-green-600/20 text-green-300 hover:bg-green-600/40 shrink-0"
+              data-testid="button-advance-now-ready-section"
+            >
+              <Play className="w-3.5 h-3.5 mr-1" />
+              {advanceMutation.isPending ? "Advancing..." : "Advance Now"}
+            </RetroButton>
+          )}
         </div>
       </RetroCardHeader>
       <RetroCardContent>
@@ -1506,9 +1535,23 @@ function ReadyStatusSection({ leagueId, commissionerUserId }: { leagueId: string
             )}
 
             {data.allHumansReady && humanTeams.length > 0 && (
-              <div className="flex items-center gap-2 p-2 rounded bg-green-950/30 border border-green-500/30">
-                <Check className="w-4 h-4 text-green-500" />
-                <span className="text-sm text-green-400">All coaches are ready — you can advance now.</span>
+              <div className="flex items-center justify-between gap-3 p-2 rounded bg-green-950/30 border border-green-500/30">
+                <div className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-green-500 shrink-0" />
+                  <span className="text-sm text-green-400">All coaches are ready.</span>
+                </div>
+                {isCommissioner && (
+                  <RetroButton
+                    size="sm"
+                    onClick={() => advanceMutation.mutate()}
+                    disabled={advanceMutation.isPending}
+                    className="border-green-500 bg-green-600/20 text-green-300 hover:bg-green-600/40 shrink-0"
+                    data-testid="button-advance-now-footer"
+                  >
+                    <Play className="w-3.5 h-3.5 mr-1" />
+                    {advanceMutation.isPending ? "Advancing..." : "Advance Now"}
+                  </RetroButton>
+                )}
               </div>
             )}
           </div>
