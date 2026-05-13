@@ -393,7 +393,6 @@ export default function LeagueViewPage() {
               </RetroButton>
             )}
             <NotificationCenter leagueId={id!} />
-            <ReadyButton leagueId={id} phase={league.currentPhase} />
           </div>
 
           <AlertDialog open={showLeaveConfirm} onOpenChange={setShowLeaveConfirm}>
@@ -1876,78 +1875,6 @@ interface ReadyStatusData {
   currentUserId?: string;
 }
 
-function ReadyButton({ leagueId, phase }: { leagueId: string; phase?: string }) {
-  const queryClient = useQueryClient();
-  
-  const { data: user } = useQuery<{ id: string; email: string }>({
-    queryKey: ["/api/auth/me"],
-  });
-
-  const { data: readyData, isLoading } = useQuery<ReadyStatusData>({
-    queryKey: ["/api/leagues", leagueId, "ready-status"],
-  });
-
-  const toggleReady = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", `/api/leagues/${leagueId}/ready`);
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "ready-status"] });
-    },
-  });
-
-  if (isLoading || !readyData || !user) {
-    return <Skeleton className="h-9 w-24" />;
-  }
-
-  // During phases where readiness is driven by a page action (not the isReady toggle),
-  // suppress the header button — the WaitingOnWidget provides the correct readiness view
-  const isPageActionPhase =
-    phase === "offseason_departures" || phase === "offseason_walkons";
-  if (isPageActionPhase) return null;
-
-  const myTeamStatus = readyData.readyStatus.find(s => s.userId === user.id);
-  const isReady = myTeamStatus?.isReady ?? false;
-
-  return (
-    <div className="flex items-center gap-3">
-      <span className="text-xs text-muted-foreground">
-        {readyData.readyCount}/{readyData.humanCount} Ready
-      </span>
-      <RetroButton
-        size="sm"
-        variant={isReady ? "outline" : "primary"}
-        onClick={() => toggleReady.mutate()}
-        disabled={toggleReady.isPending}
-        className={isReady ? "border-green-500 text-green-500" : ""}
-        data-testid="button-ready"
-      >
-        {isReady ? (
-          <>
-            <Check className="w-4 h-4 mr-1" />
-            Ready
-          </>
-        ) : (
-          <>
-            <Clock className="w-4 h-4 mr-1" />
-            Mark Ready
-          </>
-        )}
-      </RetroButton>
-    </div>
-  );
-}
-
-const READINESS_PHASES = [
-  "offseason_departures",
-  "offseason_recruiting_1",
-  "offseason_recruiting_2",
-  "offseason_recruiting_3",
-  "offseason_recruiting_4",
-  "offseason_signing_day",
-  "offseason_walkons",
-];
 
 function getEffectiveReady(
   entry: ReadyStatusData["readyStatus"][0],
@@ -2002,8 +1929,6 @@ function WaitingOnWidget({
       window.dispatchEvent(new CustomEvent("league-phase-changed"));
     },
   });
-
-  if (!READINESS_PHASES.includes(league.currentPhase)) return null;
 
   const phase = league.currentPhase;
   const humanTeams = readyData?.readyStatus.filter((s) => s.isHumanControlled) ?? [];
