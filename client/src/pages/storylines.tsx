@@ -69,6 +69,7 @@ interface StorylineRecruit {
   activeEvent: StorylineEventFull | null;
   latestResolvedEvent: StorylineEventFull | null;
   latestResolvedVoteCounts: Record<string, number>;
+  latestResolvedMyVote: string | null;
   latestEvent: StorylineEventFull | null;
   allEvents: StorylineEventFull[];
   totalEvents: number;
@@ -385,7 +386,7 @@ function StorylineCard({ sl, leagueId, isCommissioner }: { sl: StorylineRecruit;
                         <BarChart2 className="w-3 h-3" />
                         Final vote distribution
                       </div>
-                      <VoteBar counts={sl.latestResolvedVoteCounts} total={resolvedTotal} myVote={sl.myVote} resolvedChoice={resolvedEvent.resolvedChoice} />
+                      <VoteBar counts={sl.latestResolvedVoteCounts} total={resolvedTotal} myVote={sl.latestResolvedMyVote} resolvedChoice={resolvedEvent.resolvedChoice} />
                     </div>
                   ) : null;
                 })()}

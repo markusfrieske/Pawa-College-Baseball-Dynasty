@@ -215,12 +215,18 @@ export function registerStorylineRoutes(app: Express) {
           }
         }
 
-        // latestResolvedVoteCounts: vote distribution for the most recent resolved event.
-        // Always fetched independently so it remains visible even while an active vote is open.
+        // latestResolvedVoteCounts + latestResolvedMyVote: vote distribution and
+        // the current coach's own choice for the most recent resolved event.
+        // Fetched independently so they remain visible even when an active vote is open.
         let latestResolvedVoteCounts: Record<string, number> = { A: 0, B: 0, C: 0, D: 0 };
+        let latestResolvedMyVote: string | null = null;
         if (latestResolvedEvent) {
           const resolvedVotes = await storage.getStorylineVotesByEvent(latestResolvedEvent.id);
           for (const v of resolvedVotes) latestResolvedVoteCounts[v.choice] = (latestResolvedVoteCounts[v.choice] || 0) + 1;
+          if (myTeamId) {
+            const resolvedMyVoteRow = await storage.getStorylineVoteByTeam(latestResolvedEvent.id, myTeamId);
+            latestResolvedMyVote = resolvedMyVoteRow?.choice ?? null;
+          }
         }
 
         const archetypeDef = ARCHETYPE_DEFS[sl.archetype as Archetype];
@@ -243,6 +249,7 @@ export function registerStorylineRoutes(app: Express) {
           activeEvent,
           latestResolvedEvent,
           latestResolvedVoteCounts,
+          latestResolvedMyVote,
           latestEvent,
           allEvents: events,
           totalEvents: events.length,
