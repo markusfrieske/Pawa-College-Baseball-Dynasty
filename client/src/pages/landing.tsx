@@ -160,19 +160,9 @@ export default function LandingPage() {
         {/* ── GAME PREVIEW TERMINAL ─────────────────────────── */}
         <section className="px-4 pb-20">
           <div className="container mx-auto max-w-4xl">
-            <div className="border-2 border-gold/20 bg-card/60" style={{ boxShadow: "0 0 40px rgba(212,168,67,0.08)" }}>
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-gold/15 bg-black/30">
-                <div className="w-2.5 h-2.5 rounded-full bg-red-500/70" />
-                <div className="w-2.5 h-2.5 rounded-full bg-amber-500/70" />
-                <div className="w-2.5 h-2.5 rounded-full bg-green-500/70" />
-                <span className="font-pixel text-[8px] text-gold/40 ml-2 tracking-widest" id="terminal-phase-label">RECRUITING · SEASON 1 · WEEK 4</span>
-              </div>
-              <div className="p-0 overflow-hidden">
-                <HeroVideoPlayer />
-              </div>
-            </div>
+            <GamePreviewTerminal />
             <p className="text-center text-[10px] font-pixel text-muted-foreground/50 mt-3 tracking-wider">
-              REAL PLAYERS · FOG OF WAR SCOUTING · INTEREST TRACKING
+              REAL PLAYERS · FULL SEASON CYCLE · FOG OF WAR RECRUITING
             </p>
           </div>
         </section>
@@ -441,22 +431,22 @@ export default function LandingPage() {
   );
 }
 
-// ── HERO VIDEO PLAYER ─────────────────────────────────────────
+// ── GAME PREVIEW TERMINAL ─────────────────────────────────────
 
 const DEMO_PHASES = [
-  { label: "SCOUTING REVEAL", sub: "Uncover hidden recruit ratings", img: "/screenshots/recruiting.jpg", alt: "Recruiting board with fog-of-war scouting and position filters" },
-  { label: "PHONE CALL", sub: "Build interest with your top targets", img: "/screenshots/recruiting.jpg", alt: "Recruiting board showing interest tracking and watchlist" },
-  { label: "CAMPUS VISIT", sub: "Show off your facilities", img: "/screenshots/recruiting.jpg", alt: "Recruiting pipeline with campus visit stage and interest bars" },
-  { label: "SCHOLARSHIP OFFER", sub: "Close the deal with NIL money", img: "/screenshots/recruiting.jpg", alt: "Recruiting board showing scholarship offer actions" },
-  { label: "REGULAR SEASON", sub: "Simulate games and track standings", img: "/screenshots/commissioner.jpg", alt: "Commissioner dashboard showing league phase, advance week, and quick actions" },
-  { label: "POWER RANKINGS", sub: "Composite scores updated weekly", img: "/screenshots/commissioner.jpg", alt: "Commissioner dashboard showing league standings and power rankings" },
-  { label: "COLLEGE WORLD SERIES", sub: "Best-of-3 bracket for the title", img: "/screenshots/postseason.jpg", alt: "Commissioner dashboard showing season phase, advance week controls, and postseason progression" },
-  { label: "TRANSFER PORTAL", sub: "Sign portal players or lose yours", img: "/screenshots/walkons.jpg", alt: "Cuts and Walk-Ons offseason phase with roster management and walk-on pool" },
+  { label: "SCOUTING REVEAL", sub: "Uncover hidden recruit ratings", context: "RECRUITING · SEASON 1 · WEEK 2", img: "/screenshots/recruiting.jpg", alt: "Recruiting board with fog-of-war scouting, position filters, and stage-view buttons" },
+  { label: "PHONE CALL", sub: "Build interest with your top targets", context: "RECRUITING · SEASON 1 · WEEK 3", img: "/screenshots/recruiting.jpg", alt: "Recruiting board showing interest tracking, watchlist, and weekly action limits" },
+  { label: "CAMPUS VISIT", sub: "Show off your facilities to top recruits", context: "RECRUITING · SEASON 1 · WEEK 5", img: "/screenshots/recruiting.jpg", alt: "Recruiting pipeline with campus visit stage and contested-recruit filter" },
+  { label: "SCHOLARSHIP OFFER", sub: "Close the deal with NIL money", context: "RECRUITING · SEASON 1 · WEEK 7", img: "/screenshots/recruiting.jpg", alt: "Recruiting board showing scholarship offer actions and commit tracking" },
+  { label: "REGULAR SEASON", sub: "Simulate games and track standings", context: "REGULAR SEASON · SEASON 1 · WEEK 1", img: "/screenshots/commissioner.jpg", alt: "Commissioner dashboard showing Spring Training phase, Advance Week button, and Quick Actions menu" },
+  { label: "POWER RANKINGS", sub: "Composite scores updated every week", context: "REGULAR SEASON · SEASON 1 · WEEK 8", img: "/screenshots/rankings.jpg", alt: "In-game power rankings table showing team grades, week-over-week trends, and composite scores" },
+  { label: "PLAYER PROFILE", sub: "Deep stats on every player on your roster", context: "REGULAR SEASON · SEASON 1 · WEEK 6", img: "/screenshots/player-card.jpg", alt: "In-game player profile card showing attributes, special ability badges, and career season stats" },
+  { label: "TRANSFER PORTAL", sub: "Sign portal players or lose yours", context: "OFFSEASON · SEASON 1", img: "/screenshots/walkons.jpg", alt: "Cuts and Walk-Ons offseason page showing roster panel and walk-on pool with position filters" },
 ];
 
 const PHASE_DURATION = 3200;
 
-function HeroVideoPlayer() {
+function GamePreviewTerminal() {
   const [phaseIndex, setPhaseIndex] = useState(0);
   const [visible, setVisible] = useState(true);
 
@@ -478,35 +468,50 @@ function HeroVideoPlayer() {
   const phase = DEMO_PHASES[phaseIndex];
 
   return (
-    <div className="relative overflow-hidden">
-      <img
-        key={phase.img}
-        src={phase.img}
-        alt={phase.alt}
-        className="w-full h-auto block"
-        style={{
-          opacity: visible ? 1 : 0,
-          transition: "opacity 0.28s ease",
-        }}
-      />
-      <div
-        className="absolute top-0 left-0 right-0 flex items-center gap-3 px-4 py-2.5 bg-black/70 border-b border-gold/20"
-        style={{
-          opacity: visible ? 1 : 0,
-          transform: visible ? "translateY(0)" : "translateY(-6px)",
-          transition: "opacity 0.28s ease, transform 0.28s ease",
-        }}
-      >
-        <span className="font-pixel text-[9px] text-gold tracking-widest">{phase.label}</span>
-        <span className="text-[9px] text-muted-foreground hidden sm:inline">—</span>
-        <span className="text-[9px] text-muted-foreground hidden sm:inline">{phase.sub}</span>
-        <div className="ml-auto flex gap-1">
-          {DEMO_PHASES.map((_, i) => (
-            <div
-              key={i}
-              className={`h-1 rounded-full transition-all duration-300 ${i === phaseIndex ? "w-5 bg-gold" : "w-1.5 bg-gold/25"}`}
-            />
-          ))}
+    <div className="border-2 border-gold/20 bg-card/60" style={{ boxShadow: "0 0 40px rgba(212,168,67,0.08)" }}>
+      {/* Chrome bar — context label synced to active phase */}
+      <div className="flex items-center gap-2 px-4 py-3 border-b border-gold/15 bg-black/30">
+        <div className="w-2.5 h-2.5 rounded-full bg-red-500/70" />
+        <div className="w-2.5 h-2.5 rounded-full bg-amber-500/70" />
+        <div className="w-2.5 h-2.5 rounded-full bg-green-500/70" />
+        <span
+          className="font-pixel text-[8px] text-gold/40 ml-2 tracking-widest transition-opacity duration-300"
+          style={{ opacity: visible ? 1 : 0 }}
+        >
+          {phase.context}
+        </span>
+      </div>
+      {/* Screenshot cycling */}
+      <div className="relative overflow-hidden">
+        <img
+          key={phase.img + phaseIndex}
+          src={phase.img}
+          alt={phase.alt}
+          className="w-full h-auto block"
+          style={{
+            opacity: visible ? 1 : 0,
+            transition: "opacity 0.28s ease",
+          }}
+        />
+        <div
+          className="absolute top-0 left-0 right-0 flex items-center gap-3 px-4 py-2.5 bg-black/70 border-b border-gold/20"
+          style={{
+            opacity: visible ? 1 : 0,
+            transform: visible ? "translateY(0)" : "translateY(-6px)",
+            transition: "opacity 0.28s ease, transform 0.28s ease",
+          }}
+        >
+          <span className="font-pixel text-[9px] text-gold tracking-widest">{phase.label}</span>
+          <span className="text-[9px] text-muted-foreground hidden sm:inline">—</span>
+          <span className="text-[9px] text-muted-foreground hidden sm:inline">{phase.sub}</span>
+          <div className="ml-auto flex gap-1">
+            {DEMO_PHASES.map((_, i) => (
+              <div
+                key={i}
+                className={`h-1 rounded-full transition-all duration-300 ${i === phaseIndex ? "w-5 bg-gold" : "w-1.5 bg-gold/25"}`}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </div>
