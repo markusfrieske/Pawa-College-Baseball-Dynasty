@@ -66,6 +66,8 @@ interface StorylineRecruit {
   archetypeName: string;
   archetypeDescription: string;
   archetypeFlavor: string;
+  activeEvent: StorylineEventFull | null;
+  latestResolvedEvent: StorylineEventFull | null;
   latestEvent: StorylineEventFull | null;
   allEvents: StorylineEventFull[];
   totalEvents: number;
@@ -195,8 +197,8 @@ function StorylineCard({ sl, leagueId, isCommissioner }: { sl: StorylineRecruit;
   const [showTimeline, setShowTimeline] = useState(false);
   const [pendingChoice, setPendingChoice] = useState<string | null>(null);
   const r = sl.recruit;
-  const event = sl.latestEvent;
-  const isResolved = !!event?.resolvedChoice;
+  const activeEvent = sl.activeEvent;
+  const resolvedEvent = sl.latestResolvedEvent;
   const totalVotes = Object.values(sl.voteCounts).reduce((s, v) => s + v, 0);
   const tierCfg = TIER_CONFIG[sl.tier] || TIER_CONFIG.average;
   const ovrDelta = sl.resolvedOvrDelta ?? 0;
@@ -205,7 +207,7 @@ function StorylineCard({ sl, leagueId, isCommissioner }: { sl: StorylineRecruit;
 
   const voteMutation = useMutation({
     mutationFn: ({ choice }: { choice: string }) =>
-      apiRequest("POST", `/api/leagues/${leagueId}/storylines/events/${event!.id}/vote`, { choice }),
+      apiRequest("POST", `/api/leagues/${leagueId}/storylines/events/${activeEvent!.id}/vote`, { choice }),
     onSuccess: () => {
       setPendingChoice(null);
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "storylines"] });
@@ -220,7 +222,7 @@ function StorylineCard({ sl, leagueId, isCommissioner }: { sl: StorylineRecruit;
     },
   });
 
-  const hasChoiceD = !!event?.choiceD;
+  const hasChoiceD = !!activeEvent?.choiceD;
   const availableChoices = hasChoiceD ? CHOICE_LABELS : (["A", "B", "C"] as const);
 
   return (
@@ -316,79 +318,124 @@ function StorylineCard({ sl, leagueId, isCommissioner }: { sl: StorylineRecruit;
           </div>
         </div>
 
-        {event && (
-          <div className="mt-4 space-y-3">
-            <div className={`rounded-md border overflow-hidden ${isResolved ? "bg-muted/20 border-border/40" : "bg-card/80 border-gold/20"}`}>
-              {event.eventImageUrl && (
-                <div className="relative w-full aspect-[16/7] overflow-hidden border-b border-gold/20 bg-black flex items-center justify-center group">
+        <div className="mt-4 space-y-3">
+          {/* ── CHAPTER RESOLVED section ── shown whenever a resolved event exists */}
+          {resolvedEvent && (
+            <div
+              className={`rounded-md border overflow-hidden ${resolvedEvent.ovrDelta && resolvedEvent.ovrDelta > 0 ? "bg-green-950/20 border-green-500/30" : resolvedEvent.ovrDelta && resolvedEvent.ovrDelta < 0 ? "bg-red-950/20 border-red-500/30" : "bg-muted/20 border-border/40"}`}
+              data-testid={`section-resolved-${sl.id}`}
+            >
+              {resolvedEvent.eventImageUrl && (
+                <div className="relative w-full aspect-[16/7] overflow-hidden border-b border-border/20 bg-black flex items-center justify-center group">
                   <img
-                    src={event.eventImageUrl}
+                    src={resolvedEvent.eventImageUrl}
                     alt="Scene"
-                    className="w-full h-full object-contain"
+                    className="w-full h-full object-contain opacity-80"
                     style={{ imageRendering: "pixelated" }}
                     loading="lazy"
                   />
                   {isCommissioner && (
                     <button
-                      onClick={() => regenMutation.mutate(event.id)}
+                      onClick={() => regenMutation.mutate(resolvedEvent.id)}
                       disabled={regenMutation.isPending}
                       className="absolute top-2 right-2 p-1.5 rounded-md bg-black/70 border border-gold/40 text-gold/70 hover:text-gold hover:border-gold/70 transition-all opacity-0 group-hover:opacity-100 disabled:opacity-50 disabled:cursor-not-allowed"
                       title="Regenerate scene image"
-                      data-testid={`button-regen-image-${event.id}`}
+                      data-testid={`button-regen-image-${resolvedEvent.id}`}
                     >
-                      {regenMutation.isPending
-                        ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        : <RefreshCw className="w-3.5 h-3.5" />
-                      }
+                      {regenMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
                     </button>
                   )}
                 </div>
               )}
               <div className="px-3 py-2.5">
-              <div className="flex items-center gap-1.5 mb-1.5">
-                {isResolved ? (
+                <div className="flex items-center gap-1.5 mb-1.5">
                   <CheckCircle className="w-3 h-3 text-green-400" />
-                ) : (
-                  <Vote className="w-3 h-3 text-gold animate-pulse" />
-                )}
-                <span className="text-[9px] font-pixel text-muted-foreground">
-                  {isResolved ? `RESOLVED — Choice ${event.resolvedChoice} Won` : `VOTE OPEN — Week ${event.week}`}
-                </span>
-                <span className="ml-auto text-[9px] text-muted-foreground">{totalVotes} vote{totalVotes !== 1 ? "s" : ""}</span>
-              </div>
-              <p className="text-xs leading-relaxed text-foreground/90">{event.eventText}</p>
-
-              {isResolved && (
-                <div className="mt-2 pt-2 border-t border-border/30 space-y-2">
-                  {(() => {
-                    const wc = event.resolvedChoice;
-                    const wcText = wc === "A" ? event.choiceA : wc === "B" ? event.choiceB : wc === "C" ? event.choiceC : (event.choiceD || "");
-                    return wc && wcText ? (
-                      <div className={`flex items-start gap-2 px-3 py-2 rounded-md border ${CHOICE_ACTIVE[wc] ?? ""}`} data-testid={`box-winning-choice-${event.id}`}>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[9px] font-pixel text-muted-foreground/70 mb-0.5">WINNING CHOICE</p>
-                          <p className="text-xs leading-snug">
-                            <span className="font-pixel text-[9px] mr-1.5">{wc}.</span>
-                            {wcText}
-                          </p>
-                        </div>
-                        {event.ovrDelta !== null && event.ovrDelta !== 0 && (
-                          <div className="flex-shrink-0 mt-0.5">
-                            <OvrDeltaBadge delta={event.ovrDelta} />
-                          </div>
-                        )}
-                      </div>
-                    ) : null;
-                  })()}
-                  {event.resolvedOutcomeText && (
-                    <p className="text-xs text-muted-foreground italic">"{event.resolvedOutcomeText}"</p>
+                  <span className="text-[9px] font-pixel text-muted-foreground">
+                    CHAPTER {resolvedEvent.week} RESOLVED — Choice {resolvedEvent.resolvedChoice} Won
+                  </span>
+                  {resolvedEvent.ovrDelta !== null && resolvedEvent.ovrDelta !== 0 && (
+                    <span className="ml-auto"><OvrDeltaBadge delta={resolvedEvent.ovrDelta} /></span>
                   )}
                 </div>
-              )}
+                <p className="text-xs leading-relaxed text-foreground/70 line-clamp-2">{resolvedEvent.eventText}</p>
+                {(() => {
+                  const wc = resolvedEvent.resolvedChoice;
+                  const wcText = wc === "A" ? resolvedEvent.choiceA : wc === "B" ? resolvedEvent.choiceB : wc === "C" ? resolvedEvent.choiceC : (resolvedEvent.choiceD || "");
+                  return wc && wcText ? (
+                    <div className={`mt-2 flex items-start gap-2 px-3 py-2 rounded-md border ${CHOICE_ACTIVE[wc] ?? ""}`} data-testid={`box-winning-choice-${resolvedEvent.id}`}>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[9px] font-pixel text-muted-foreground/70 mb-0.5">WINNING CHOICE</p>
+                        <p className="text-xs leading-snug">
+                          <span className="font-pixel text-[9px] mr-1.5">{wc}.</span>
+                          {wcText}
+                        </p>
+                      </div>
+                    </div>
+                  ) : null;
+                })()}
+                {resolvedEvent.resolvedOutcomeText && (
+                  <p className="text-xs text-muted-foreground italic mt-2">"{resolvedEvent.resolvedOutcomeText}"</p>
+                )}
+                {totalVotes > 0 && !activeEvent && (
+                  <div className="mt-2 pt-2 border-t border-border/20 space-y-1">
+                    <div className="flex items-center gap-1 text-[9px] text-muted-foreground">
+                      <BarChart2 className="w-3 h-3" />
+                      Final vote distribution
+                    </div>
+                    <VoteBar counts={sl.voteCounts} total={totalVotes} myVote={sl.myVote} resolvedChoice={resolvedEvent.resolvedChoice} />
+                  </div>
+                )}
               </div>
             </div>
+          )}
 
-            {!isResolved && (
+          {/* ── Separator between resolved result and next chapter ── */}
+          {resolvedEvent && activeEvent && (
+            <div className="flex items-center gap-2 py-1" data-testid={`separator-next-chapter-${sl.id}`}>
+              <div className="flex-1 h-px bg-gold/20" />
+              <span className="text-[8px] font-pixel text-gold/60 tracking-widest">NEXT CHAPTER</span>
+              <div className="flex-1 h-px bg-gold/20" />
+            </div>
+          )}
+
+          {/* ── ACTIVE VOTE section ── shown when there is an open vote */}
+          {activeEvent && (
+            <div className="space-y-3">
+              <div className="rounded-md border overflow-hidden bg-card/80 border-gold/20">
+                {activeEvent.eventImageUrl && (
+                  <div className="relative w-full aspect-[16/7] overflow-hidden border-b border-gold/20 bg-black flex items-center justify-center group">
+                    <img
+                      src={activeEvent.eventImageUrl}
+                      alt="Scene"
+                      className="w-full h-full object-contain"
+                      style={{ imageRendering: "pixelated" }}
+                      loading="lazy"
+                    />
+                    {isCommissioner && (
+                      <button
+                        onClick={() => regenMutation.mutate(activeEvent.id)}
+                        disabled={regenMutation.isPending}
+                        className="absolute top-2 right-2 p-1.5 rounded-md bg-black/70 border border-gold/40 text-gold/70 hover:text-gold hover:border-gold/70 transition-all opacity-0 group-hover:opacity-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Regenerate scene image"
+                        data-testid={`button-regen-image-${activeEvent.id}`}
+                      >
+                        {regenMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+                      </button>
+                    )}
+                  </div>
+                )}
+                <div className="px-3 py-2.5">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <Vote className="w-3 h-3 text-gold animate-pulse" />
+                    <span className="text-[9px] font-pixel text-muted-foreground">
+                      VOTE OPEN — Week {activeEvent.week}
+                    </span>
+                    <span className="ml-auto text-[9px] text-muted-foreground">{totalVotes} vote{totalVotes !== 1 ? "s" : ""}</span>
+                  </div>
+                  <p className="text-xs leading-relaxed text-foreground/90">{activeEvent.eventText}</p>
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <button
                   onClick={() => setExpanded(!expanded)}
@@ -403,15 +450,14 @@ function StorylineCard({ sl, leagueId, isCommissioner }: { sl: StorylineRecruit;
                 {expanded && (
                   <div className="space-y-2">
                     {sl.myVote ? (
-                      // Already voted — show confirmed choice, no submit button
                       availableChoices.map((c) => {
-                        const text = c === "A" ? event.choiceA : c === "B" ? event.choiceB : c === "C" ? event.choiceC : event.choiceD || "";
+                        const text = c === "A" ? activeEvent.choiceA : c === "B" ? activeEvent.choiceB : c === "C" ? activeEvent.choiceC : activeEvent.choiceD || "";
                         const isMyVote = sl.myVote === c;
                         return (
                           <div
                             key={c}
                             className={`w-full text-left px-3 py-2 rounded-md border text-xs ${isMyVote ? CHOICE_ACTIVE[c] : "bg-muted/10 text-muted-foreground/50 border-border/30"}`}
-                            data-testid={`button-vote-${c}-${event.id}`}
+                            data-testid={`button-vote-${c}-${activeEvent.id}`}
                           >
                             <span className="font-pixel text-[9px] mr-2">{c}.</span>
                             {text}
@@ -420,10 +466,9 @@ function StorylineCard({ sl, leagueId, isCommissioner }: { sl: StorylineRecruit;
                         );
                       })
                     ) : (
-                      // Not yet voted — two-step: select then submit
                       <>
                         {availableChoices.map((c) => {
-                          const text = c === "A" ? event.choiceA : c === "B" ? event.choiceB : c === "C" ? event.choiceC : event.choiceD || "";
+                          const text = c === "A" ? activeEvent.choiceA : c === "B" ? activeEvent.choiceB : c === "C" ? activeEvent.choiceC : activeEvent.choiceD || "";
                           const isSelected = pendingChoice === c;
                           return (
                             <button
@@ -431,7 +476,7 @@ function StorylineCard({ sl, leagueId, isCommissioner }: { sl: StorylineRecruit;
                               onClick={() => setPendingChoice(isSelected ? null : c)}
                               disabled={voteMutation.isPending}
                               className={`w-full text-left px-3 py-2 rounded-md border text-xs transition-all ${isSelected ? CHOICE_ACTIVE[c] : `bg-muted/20 text-foreground ${CHOICE_COLORS[c]}`}`}
-                              data-testid={`button-vote-${c}-${event.id}`}
+                              data-testid={`button-vote-${c}-${activeEvent.id}`}
                             >
                               <span className="font-pixel text-[9px] mr-2">{c}.</span>
                               {text}
@@ -443,7 +488,7 @@ function StorylineCard({ sl, leagueId, isCommissioner }: { sl: StorylineRecruit;
                           onClick={() => pendingChoice && voteMutation.mutate({ choice: pendingChoice })}
                           disabled={!pendingChoice || voteMutation.isPending}
                           className={`w-full px-3 py-2 rounded-md border text-xs font-pixel transition-all ${pendingChoice ? "border-gold bg-gold/10 text-gold hover:bg-gold/20" : "border-border/30 bg-muted/10 text-muted-foreground/40 cursor-not-allowed"}`}
-                          data-testid={`button-submit-vote-${event.id}`}
+                          data-testid={`button-submit-vote-${activeEvent.id}`}
                         >
                           {voteMutation.isPending ? "Submitting…" : pendingChoice ? `Submit Vote — Choice ${pendingChoice}` : "Select a choice above"}
                         </button>
@@ -462,26 +507,25 @@ function StorylineCard({ sl, leagueId, isCommissioner }: { sl: StorylineRecruit;
                   </div>
                 )}
               </div>
-            )}
+            </div>
+          )}
 
-            {isResolved && totalVotes > 0 && (
-              <div className="space-y-1.5" data-testid={`section-final-votes-${sl.id}`}>
-                <div className="flex items-center gap-1 text-[9px] text-muted-foreground">
-                  <BarChart2 className="w-3 h-3" />
-                  Final vote distribution
-                </div>
-                <VoteBar counts={sl.voteCounts} total={totalVotes} myVote={sl.myVote} resolvedChoice={event?.resolvedChoice} />
-              </div>
-            )}
-          </div>
-        )}
+          {/* ── Waiting for next chapter (resolved exists, no active vote yet) ── */}
+          {resolvedEvent && !activeEvent && (
+            <div className="text-center py-2 text-muted-foreground" data-testid={`section-waiting-${sl.id}`}>
+              <Clock className="w-3.5 h-3.5 mx-auto mb-1 opacity-40" />
+              <p className="text-[10px]">Advance the week to unlock the next chapter</p>
+            </div>
+          )}
 
-        {!event && (
-          <div className="mt-3 text-center py-2 text-muted-foreground">
-            <Clock className="w-4 h-4 mx-auto mb-1 opacity-50" />
-            <p className="text-[10px]">No active event — advance the week to generate one</p>
-          </div>
-        )}
+          {/* ── True empty state: no events at all yet ── */}
+          {!resolvedEvent && !activeEvent && (
+            <div className="text-center py-2 text-muted-foreground" data-testid={`section-no-event-${sl.id}`}>
+              <Clock className="w-4 h-4 mx-auto mb-1 opacity-50" />
+              <p className="text-[10px]">No active event — advance the week to generate one</p>
+            </div>
+          )}
+        </div>
 
         {sl.allEvents.filter(e => e.resolvedChoice).length > 0 && (
           <div className="mt-2">
@@ -696,7 +740,7 @@ export default function StorylinesPage() {
   if (filterLinked) filtered = filtered.filter(s => !!s.overlappingRecruitId);
 
   // Count only events the current coach has NOT yet voted on (not all unresolved events).
-  const activeVotes = storylines.filter(s => s.latestEvent && !s.latestEvent.resolvedChoice && !s.myVote).length;
+  const activeVotes = storylines.filter(s => s.activeEvent && !s.myVote).length;
   const legendaryCount = storylines.filter(s => s.isLegendary).length;
   const linkedCount = storylines.filter(s => !!s.overlappingRecruitId).length;
   const committedCount = storylines.filter(s => s.recruit?.stage === "signed" || s.recruit?.stage === "committed").length;
@@ -794,12 +838,12 @@ export default function StorylinesPage() {
           const sorted = [...filtered].sort((a, b) => {
             if (a.isLegendary && !b.isLegendary) return -1;
             if (!a.isLegendary && b.isLegendary) return 1;
-            const aHasVote = a.latestEvent && !a.latestEvent.resolvedChoice ? 1 : 0;
-            const bHasVote = b.latestEvent && !b.latestEvent.resolvedChoice ? 1 : 0;
+            const aHasVote = a.activeEvent ? 1 : 0;
+            const bHasVote = b.activeEvent ? 1 : 0;
             return bHasVote - aHasVote;
           });
-          const votePending = sorted.filter(sl => sl.latestEvent && !sl.latestEvent.resolvedChoice);
-          const noActivePending = sorted.filter(sl => !sl.latestEvent || sl.latestEvent.resolvedChoice);
+          const votePending = sorted.filter(sl => !!sl.activeEvent);
+          const noActivePending = sorted.filter(sl => !sl.activeEvent);
           return (
             <div className="space-y-6">
               {votePending.length > 0 && (

@@ -184,18 +184,28 @@ export function registerStorylineRoutes(app: Express) {
       const enriched = await Promise.all(storylines.map(async (sl) => {
         const recruit = await storage.getRecruit(sl.recruitId);
         const events = await storage.getStorylineEventsByRecruit(sl.id);
-        // Only surface an unresolved event. If no unresolved event exists this week
-        // (recruit hit the 4-event cap), return null so the frontend shows "no active event"
-        // rather than re-displaying the already-resolved event from the prior week.
-        const latestEvent = events.find(e => !e.resolvedChoice) ?? null;
+
+        // activeEvent: the current unresolved event coaches can vote on (null if none pending)
+        const activeEvent = events.find(e => !e.resolvedChoice) ?? null;
+
+        // latestResolvedEvent: the most recently resolved event (by week desc) so coaches
+        // always see what just happened even when no new event has been generated yet.
+        const resolvedEvents = events.filter(e => e.resolvedChoice);
+        const latestResolvedEvent = resolvedEvents.length > 0
+          ? resolvedEvents.reduce((best, e) => e.week > best.week ? e : best, resolvedEvents[0])
+          : null;
+
+        // Keep latestEvent as an alias for activeEvent for backwards compatibility
+        // with any other code paths that still reference it.
+        const latestEvent = activeEvent;
 
         let myVote: string | null = null;
         let voteCounts: Record<string, number> = { A: 0, B: 0, C: 0, D: 0 };
-        if (latestEvent) {
-          const votes = await storage.getStorylineVotesByEvent(latestEvent.id);
+        if (activeEvent) {
+          const votes = await storage.getStorylineVotesByEvent(activeEvent.id);
           for (const v of votes) voteCounts[v.choice] = (voteCounts[v.choice] || 0) + 1;
           if (myTeamId) {
-            const myVoteRow = await storage.getStorylineVoteByTeam(latestEvent.id, myTeamId);
+            const myVoteRow = await storage.getStorylineVoteByTeam(activeEvent.id, myTeamId);
             myVote = myVoteRow?.choice ?? null;
           }
         }
@@ -217,10 +227,12 @@ export function registerStorylineRoutes(app: Express) {
           archetypeName: archetypeDef?.name ?? sl.archetype,
           archetypeDescription: archetypeDef?.description ?? "",
           archetypeFlavor: archetypeDef?.flavor ?? "",
+          activeEvent,
+          latestResolvedEvent,
           latestEvent,
           allEvents: events,
           totalEvents: events.length,
-          resolvedEvents: events.filter(e => e.resolvedChoice).length,
+          resolvedEvents: resolvedEvents.length,
           voteCounts,
           myVote,
           overlappingRecruitName,

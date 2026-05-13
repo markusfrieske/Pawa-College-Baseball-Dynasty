@@ -655,13 +655,13 @@ interface StorylineWidgetItem {
     position?: string;
     starRank?: number;
   } | null;
-  latestEvent?: {
+  activeEvent?: {
     id: string;
     eventText: string;
     resolvedChoice?: string | null;
     ovrDelta?: number | null;
-    voteCounts?: Record<string, number>;
   } | null;
+  voteCounts?: Record<string, number>;
 }
 
 function StorylinesDashboardWidget({ leagueId }: { leagueId: string }) {
@@ -679,14 +679,14 @@ function StorylinesDashboardWidget({ leagueId }: { leagueId: string }) {
 
   // Real activity score: open votes get 2x weight, arc stage progress, OVR momentum, and legendary bonus
   const activityScore = (s: StorylineWidgetItem) => {
-    const totalVotes = s.latestEvent?.voteCounts
-      ? Object.values(s.latestEvent.voteCounts).reduce((a: number, b: number) => a + b, 0)
+    const totalVotes = s.voteCounts
+      ? Object.values(s.voteCounts).reduce((a: number, b: number) => a + b, 0)
       : 0;
-    const hasOpenVote = s.latestEvent && !s.latestEvent.resolvedChoice ? 10 : 0;
+    const hasOpenVote = s.activeEvent ? 10 : 0;
     return hasOpenVote + totalVotes * 2 + (s.currentArcStage ?? 0) * 3 + Math.abs(s.resolvedOvrDelta ?? 0) + (s.isLegendary ? 5 : 0);
   };
 
-  const activeVotes = storylines.filter((s) => s.latestEvent && !s.latestEvent.resolvedChoice);
+  const activeVotes = storylines.filter((s) => !!s.activeEvent);
   // Top 3 most active storylines by real activity score
   const mostActive = [...storylines].sort((a, b) => activityScore(b) - activityScore(a)).slice(0, 3);
 
@@ -728,7 +728,7 @@ function StorylinesDashboardWidget({ leagueId }: { leagueId: string }) {
           <div className="space-y-2">
             <div className="font-pixel text-[8px] text-muted-foreground mb-1">MOST ACTIVE</div>
             {mostActive.map((sl) => {
-              const hasOpenVote = sl.latestEvent && !sl.latestEvent.resolvedChoice;
+              const hasOpenVote = !!sl.activeEvent;
               return (
                 <Link key={sl.id} href={`/league/${leagueId}/storylines`}>
                   <div className="flex items-center gap-2 px-3 py-2 bg-muted/20 rounded-md border border-border/40 hover:border-gold/40 hover:bg-gold/5 transition-all cursor-pointer" data-testid={`widget-storyline-${sl.id}`}>
