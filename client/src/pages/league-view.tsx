@@ -3222,6 +3222,11 @@ type AwardPlayer = {
   teamName: string;
   abbreviation: string;
   primaryColor: string;
+  avg?: string | null;
+  hr?: number | null;
+  rbi?: number | null;
+  era?: string | null;
+  strikeouts?: number | null;
 } | null;
 
 interface SeasonAwardsData {
@@ -3313,9 +3318,19 @@ function AwardsTab({ leagueId }: { leagueId: string }) {
                 <Badge variant="outline" className="text-[7px] min-w-[28px] justify-center">{entry.position}</Badge>
                 <span>{entry.player.playerName}</span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 text-right">
+                {entry.player.era != null && entry.player.strikeouts != null && (
+                  <span className="text-[10px] text-muted-foreground hidden sm:inline">
+                    {entry.player.era} ERA / {entry.player.strikeouts} K
+                  </span>
+                )}
+                {entry.player.avg != null && entry.player.hr != null && entry.player.rbi != null && (
+                  <span className="text-[10px] text-muted-foreground hidden sm:inline">
+                    {entry.player.avg} / {entry.player.hr} HR / {entry.player.rbi} RBI
+                  </span>
+                )}
                 <span className="text-gold font-bold">{entry.player.overall}</span>
-                <span className="text-muted-foreground">{entry.player.abbreviation}</span>
+                <span className="text-muted-foreground w-10 text-right">{entry.player.abbreviation}</span>
               </div>
             </div>
           ))}

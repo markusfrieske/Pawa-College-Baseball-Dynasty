@@ -10045,36 +10045,77 @@ export async function registerRoutes(
           allPlayers.push({ player: p, team });
         }
       }
+
+      const seasonStatsRows = await storage.getPlayerSeasonStatsBySeason(leagueId, league.currentSeason);
+      const seasonStatsMap: Record<string, any> = {};
+      for (const s of seasonStatsRows) {
+        const avg = s.ab > 0 ? (s.h / s.ab).toFixed(3).replace(/^0/, "") : null;
+        const era = s.ipOuts > 0 ? ((s.pEr * 27) / s.ipOuts).toFixed(2) : null;
+        seasonStatsMap[s.playerId] = { avg, hr: s.hr, rbi: s.rbi, era, strikeouts: s.pSo };
+      }
       
       const nonPitchers = allPlayers.filter(x => x.player.position !== "P").sort((a, b) => b.player.overall - a.player.overall);
       const pitchers = allPlayers.filter(x => x.player.position === "P").sort((a, b) => b.player.overall - a.player.overall);
       const freshmen = allPlayers.filter(x => x.player.eligibility === "FR").sort((a, b) => b.player.overall - a.player.overall);
       
-      const formatAward = (x: { player: any; team: any } | undefined) => x ? {
-        playerName: `${x.player.firstName} ${x.player.lastName}`,
-        position: x.player.position,
-        overall: x.player.overall,
-        eligibility: x.player.eligibility,
-        teamName: x.team.name,
-        abbreviation: x.team.abbreviation,
-        primaryColor: x.team.primaryColor,
-      } : null;
+      const formatAward = (x: { player: any; team: any } | undefined) => {
+        if (!x) return null;
+        const stats = seasonStatsMap[x.player.id] ?? null;
+        const isPitcher = x.player.position === "P";
+        return {
+          playerName: `${x.player.firstName} ${x.player.lastName}`,
+          position: x.player.position,
+          overall: x.player.overall,
+          eligibility: x.player.eligibility,
+          teamName: x.team.name,
+          abbreviation: x.team.abbreviation,
+          primaryColor: x.team.primaryColor,
+          avg: !isPitcher ? (stats?.avg ?? null) : null,
+          hr: !isPitcher ? (stats?.hr ?? null) : null,
+          rbi: !isPitcher ? (stats?.rbi ?? null) : null,
+          era: isPitcher ? (stats?.era ?? null) : null,
+          strikeouts: isPitcher ? (stats?.strikeouts ?? null) : null,
+        };
+      };
 
-      const allPositions = ["C", "1B", "2B", "SS", "3B", "LF", "CF", "RF", "P", "DH"];
+      // Positional slots: 3 OF, 3 SP, 1 R (reliever), 1 CL (closer)
+      const fieldingSlots = ["C", "1B", "2B", "SS", "3B", "OF", "OF", "OF"];
+      const pitcherSlots = ["SP", "SP", "SP", "R", "CL"];
+      const allSlots = [...fieldingSlots, ...pitcherSlots, "DH"];
 
       const buildPositionTeam = (pool: { player: any; team: any }[]) => {
         const result: { position: string; player: any }[] = [];
         const used = new Set<string>();
-        for (const pos of allPositions) {
-          const candidates = pool
-            .filter(x => {
-              if (pos === "DH") return x.player.position !== "P" && !used.has(x.player.id);
-              return x.player.position === pos && !used.has(x.player.id);
-            })
-            .sort((a, b) => b.player.overall - a.player.overall);
-          if (candidates.length > 0) {
-            used.add(candidates[0].player.id);
-            result.push({ position: pos, player: formatAward(candidates[0]) });
+        const pitcherPool = pool.filter(x => x.player.position === "P").sort((a, b) => b.player.overall - a.player.overall);
+        let pitcherIdx = 0;
+
+        for (const slot of allSlots) {
+          const isPitcherSlot = slot === "SP" || slot === "R" || slot === "CL";
+          const isDH = slot === "DH";
+
+          if (isPitcherSlot) {
+            while (pitcherIdx < pitcherPool.length && used.has(pitcherPool[pitcherIdx].player.id)) pitcherIdx++;
+            if (pitcherIdx < pitcherPool.length) {
+              used.add(pitcherPool[pitcherIdx].player.id);
+              result.push({ position: slot, player: formatAward(pitcherPool[pitcherIdx]) });
+              pitcherIdx++;
+            }
+          } else if (isDH) {
+            const dhCandidates = pool
+              .filter(x => x.player.position !== "P" && !used.has(x.player.id))
+              .sort((a, b) => b.player.overall - a.player.overall);
+            if (dhCandidates.length > 0) {
+              used.add(dhCandidates[0].player.id);
+              result.push({ position: "DH", player: formatAward(dhCandidates[0]) });
+            }
+          } else {
+            const candidates = pool
+              .filter(x => x.player.position === slot && !used.has(x.player.id))
+              .sort((a, b) => b.player.overall - a.player.overall);
+            if (candidates.length > 0) {
+              used.add(candidates[0].player.id);
+              result.push({ position: slot, player: formatAward(candidates[0]) });
+            }
           }
         }
         return result;
