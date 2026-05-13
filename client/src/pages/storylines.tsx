@@ -66,6 +66,7 @@ interface StorylineRecruit {
   archetypeName: string;
   archetypeDescription: string;
   archetypeFlavor: string;
+  archetypeImageUrl: string | null;
   activeEvent: StorylineEventFull | null;
   latestResolvedEvent: StorylineEventFull | null;
   latestResolvedVoteCounts: Record<string, number>;
@@ -310,13 +311,35 @@ function StorylineCard({ sl, leagueId, isCommissioner }: { sl: StorylineRecruit;
               </div>
             </div>
 
-            <div className="mt-2 bg-muted/20 rounded-md px-3 py-1.5">
-              <div className="flex items-center gap-1.5">
-                <BookOpen className="w-3 h-3 text-gold flex-shrink-0" />
-                <span className="text-[10px] font-pixel text-gold">{sl.archetypeName}</span>
+            {sl.archetypeImageUrl ? (
+              <div className="mt-2 rounded-md overflow-hidden border border-border/30" data-testid={`archetype-banner-${sl.id}`}>
+                <div className="relative w-full overflow-hidden bg-black" style={{ aspectRatio: "16/5" }}>
+                  <img
+                    src={sl.archetypeImageUrl}
+                    alt={sl.archetypeName}
+                    className="w-full h-full object-cover opacity-70"
+                    style={{ imageRendering: "pixelated" }}
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 px-3 py-2">
+                    <div className="flex items-center gap-1.5">
+                      <BookOpen className="w-3 h-3 text-gold flex-shrink-0" />
+                      <span className="text-[10px] font-pixel text-gold">{sl.archetypeName}</span>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground/90 italic mt-0.5 line-clamp-1">{sl.archetypeFlavor}</p>
+                  </div>
+                </div>
               </div>
-              <p className="text-[10px] text-muted-foreground italic mt-0.5">{sl.archetypeFlavor}</p>
-            </div>
+            ) : (
+              <div className="mt-2 bg-muted/20 rounded-md px-3 py-1.5">
+                <div className="flex items-center gap-1.5">
+                  <BookOpen className="w-3 h-3 text-gold flex-shrink-0" />
+                  <span className="text-[10px] font-pixel text-gold">{sl.archetypeName}</span>
+                </div>
+                <p className="text-[10px] text-muted-foreground italic mt-0.5">{sl.archetypeFlavor}</p>
+              </div>
+            )}
           </div>
         </div>
 

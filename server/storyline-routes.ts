@@ -246,6 +246,7 @@ export function registerStorylineRoutes(app: Express) {
           archetypeName: archetypeDef?.name ?? sl.archetype,
           archetypeDescription: archetypeDef?.description ?? "",
           archetypeFlavor: archetypeDef?.flavor ?? "",
+          archetypeImageUrl: archetypeDef?.imageUrl ?? null,
           activeEvent,
           latestResolvedEvent,
           latestResolvedVoteCounts,

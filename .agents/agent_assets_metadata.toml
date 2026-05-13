@@ -1,0 +1,32 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "ZLy5iUDnFxDc6WsvVjQFl"
+uri = "file://client/public/storyline-images/financial_pressure.png"
+type = "image"
+title = "scholarship kid kitchen table night"
+
+[[generated]]
+id = "aVs8TRhQk9MsE_NTK0iUi"
+uri = "file://client/public/storyline-images/coaching_change.png"
+type = "image"
+title = "orphaned prospect coach farewell dugout night"
+
+[[generated]]
+id = "HMx0lujCza2mCPwkXPLV9"
+uri = "file://client/public/storyline-images/first_gen_student.png"
+type = "image"
+title = "first gen student grandmother shoebox letters"
+
+[[generated]]
+id = "eSyqbf6LAIfeK1c3dAn50"
+uri = "file://client/public/storyline-images/draft_agent_pressure.png"
+type = "image"
+title = "draft agent pressure glass office MLB prospect"
+
+[[generated]]
+id = "kiHa1IF4jTuyNNaKB4auW"
+uri = "file://client/public/storyline-images/small_town_hero.png"
+type = "image"
+title = "small town hero community baseball field water tower"

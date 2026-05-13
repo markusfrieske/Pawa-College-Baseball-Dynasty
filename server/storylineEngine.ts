@@ -232,6 +232,7 @@ export interface ArchetypeDefinition {
   name: string;
   description: string;
   flavor: string;
+  imageUrl?: string;
   events: ArchetypeEventTemplate[];
   legendaryEvents?: ArchetypeEventTemplate[];
 }
@@ -942,6 +943,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
     name: "The Scholarship Kid",
     description: "His father works double shifts. His mother asked if the scholarship covers books. His dream costs money they don't have.",
     flavor: "He told you he's never been on a plane. He said it quietly, like it was something he was confessing.",
+    imageUrl: "/storyline-images/financial_pressure.png",
     events: [
       {
         id: "fp_1",
@@ -975,6 +977,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
     name: "The Orphaned Prospect",
     description: "His coach — the man who built him, believed in him first, and made the call that started everything — retired in March.",
     flavor: "He told three programs he was 'figuring things out.' He told you he didn't know who he was without his coach.",
+    imageUrl: "/storyline-images/coaching_change.png",
     events: [
       {
         id: "coc_1",
@@ -1010,6 +1013,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
     name: "The First One",
     description: "Nobody in his family has ever been to college. His grandmother keeps the recruiting letters in a shoebox she hides under her bed.",
     flavor: "He asked you what office hours were. He wasn't joking. He asked it quietly, like he'd been afraid to ask.",
+    imageUrl: "/storyline-images/first_gen_student.png",
     events: [
       {
         id: "fgs_1",
@@ -1043,6 +1047,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
     name: "The Early Declare Candidate",
     description: "His agent called two MLB teams before his high school graduation. One of them called back.",
     flavor: "He told you the number. You knew what it meant. He asked you to tell him it wasn't enough. You couldn't.",
+    imageUrl: "/storyline-images/draft_agent_pressure.png",
     events: [
       {
         id: "dap_1",
@@ -1079,6 +1084,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
     name: "The Local Legend",
     description: "He's played against maybe 40 quality arms his entire life. His region is so thin that nobody knows how good he actually is.",
     flavor: "His coach drove six hours to get him to a real showcase. He was the best player there by a distance. Nobody had heard of him.",
+    imageUrl: "/storyline-images/small_town_hero.png",
     events: [
       {
         id: "sth_1",
