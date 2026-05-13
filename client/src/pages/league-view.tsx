@@ -4096,9 +4096,13 @@ function SeasonRecapDialog({ leagueId, season, open, onClose }: { leagueId: stri
                             Legendary
                           </span>
                         )}
-                        {entry.committed && (
+                        {entry.committed ? (
                           <span className="text-[9px] text-green-400 bg-green-500/10 border border-green-500/30 rounded px-1 py-0.5">
                             Committed
+                          </span>
+                        ) : (
+                          <span className="text-[9px] text-muted-foreground bg-muted/30 border border-border/40 rounded px-1 py-0.5">
+                            Not Committed
                           </span>
                         )}
                       </div>
