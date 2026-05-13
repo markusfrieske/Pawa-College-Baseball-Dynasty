@@ -5831,15 +5831,32 @@ export async function registerRoutes(
         return res.status(404).json({ message: "League not found" });
       }
 
-      const auditLogsData = await storage.getAuditLogsByLeague(league.id);
-      const leagueTeams = await storage.getTeamsByLeague(league.id);
+      const [auditLogsData, leagueTeams, coaches, invites] = await Promise.all([
+        storage.getAuditLogsByLeague(league.id),
+        storage.getTeamsByLeague(league.id),
+        storage.getCoachesByLeague(league.id),
+        storage.getLeagueInvitesByLeague(league.id),
+      ]);
       const humanTeams = leagueTeams.filter(t => !t.isCpu);
-      const invites = await storage.getLeagueInvitesByLeague(league.id);
+      const humanTeamIds = new Set(humanTeams.map(t => t.id));
+
+      const isDeparturesPhase = league.currentPhase === "offseason_departures";
+      const isWalkonsPhase = league.currentPhase === "offseason_walkons";
+      const teamById = new Map(leagueTeams.map(t => [t.id, t]));
+
+      const readyCoaches = coaches
+        .filter(c => c.teamId && humanTeamIds.has(c.teamId))
+        .filter(c => {
+          if (isDeparturesPhase) return teamById.get(c.teamId!)?.departuresFinalized ?? false;
+          if (isWalkonsPhase) return teamById.get(c.teamId!)?.walkonReady ?? false;
+          return c.isReady ?? false;
+        })
+        .map(c => c.id);
 
       res.json({
         league,
         auditLogs: auditLogsData,
-        readyCoaches: [],
+        readyCoaches,
         totalCoaches: humanTeams.length,
         invites,
       });
@@ -5854,6 +5871,9 @@ export async function registerRoutes(
       const league = await storage.getLeague(req.params.id as string);
       if (!league) {
         return res.status(404).json({ message: "League not found" });
+      }
+      if (league.commissionerId !== req.session.userId) {
+        return res.status(403).json({ message: "Only the commissioner can advance the league" });
       }
 
       const leagueId = league.id;
@@ -5905,6 +5925,15 @@ export async function registerRoutes(
         const nonReadyHumanCoaches = allLeagueCoaches.filter(c => c.teamId && humanTeamIds.has(c.teamId) && !c.isReady);
         if (nonReadyHumanCoaches.length > 0) {
           await Promise.all(nonReadyHumanCoaches.map(c => storage.updateCoach(c.id, { isReady: true })));
+          // For the walk-on phase the advance gate checks team.walkonReady, not coach.isReady.
+          // Auto-set walkonReady on each human team that was just forced ready so the gate unblocks.
+          if (league.currentPhase === "offseason_walkons") {
+            const forcedTeamIds = new Set(nonReadyHumanCoaches.map(c => c.teamId!));
+            const teamsToUnblock = allLeagueTeams.filter(t => forcedTeamIds.has(t.id) && !t.walkonReady);
+            if (teamsToUnblock.length > 0) {
+              await Promise.all(teamsToUnblock.map(t => storage.updateTeam(t.id, { walkonReady: true })));
+            }
+          }
           try {
             await storage.createLeagueEvent({
               leagueId,
@@ -5914,6 +5943,33 @@ export async function registerRoutes(
               week: currentWeek,
             });
           } catch (e) { console.error("Deadline auto-ready feed error:", e); }
+        }
+      }
+
+      // ============ HUMAN READINESS GATE ============
+      // For preseason, spring_training, and regular_season: block the advance when any human
+      // coach hasn't marked ready and the phase deadline hasn't yet passed.
+      // (Deadline-passed path is already handled above, so if we reach here the deadline is future/unset.)
+      const readinessGatedPhases = ["preseason", "spring_training", "regular_season"];
+      if (readinessGatedPhases.includes(league.currentPhase)) {
+        const deadlinePassed = league.phaseDeadline && new Date(league.phaseDeadline) <= new Date();
+        if (!deadlinePassed) {
+          const gateCoaches = await storage.getCoachesByLeague(leagueId);
+          const gateTeams = await storage.getTeamsByLeague(leagueId);
+          const humanGateTeams = gateTeams.filter(t => !t.isCpu);
+          const humanTeamIdSet = new Set(humanGateTeams.map(t => t.id));
+          const notReadyCoaches = gateCoaches.filter(c => c.teamId && humanTeamIdSet.has(c.teamId) && !c.isReady);
+          if (notReadyCoaches.length > 0) {
+            const notReadyTeamIds = new Set(notReadyCoaches.map(c => c.teamId!));
+            const waitingTeams = humanGateTeams.filter(t => notReadyTeamIds.has(t.id)).map(t => t.name);
+            const readyCount = humanGateTeams.length - waitingTeams.length;
+            return res.status(400).json({
+              message: `Not all coaches have marked ready. ${readyCount}/${humanGateTeams.length} ready. Waiting on: ${waitingTeams.join(", ")}`,
+              readyCount,
+              totalHumanTeams: humanGateTeams.length,
+              waitingOn: waitingTeams,
+            });
+          }
         }
       }
 
@@ -5945,11 +6001,13 @@ export async function registerRoutes(
       await updateRecruitStages(leagueId, nextWeek);
       
       // ============ RESET WEEKLY ACTIONS ============
+      // Also reset isReady so coaches must re-confirm readiness each week.
       const coaches = await storage.getCoachesByLeague(leagueId);
       await Promise.all(coaches.map(coach => 
         storage.updateCoach(coach.id, {
           scoutActionsUsed: 0,
           recruitActionsUsed: 0,
+          isReady: false,
         })
       ));
 
@@ -11250,6 +11308,11 @@ export async function registerRoutes(
 
   app.patch("/api/leagues/:id/settings", requireAuth, async (req, res) => {
     try {
+      const league = await storage.getLeague(req.params.id as string);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      if (league.commissionerId !== req.session.userId) {
+        return res.status(403).json({ message: "Only the commissioner can change league settings" });
+      }
       const result = settingsSchema.safeParse(req.body);
       if (!result.success) {
         return res.status(400).json({ message: "Invalid settings data" });
@@ -11258,8 +11321,8 @@ export async function registerRoutes(
       const updateData: Record<string, any> = {};
       if (result.data.auditLogPublic !== undefined) updateData.auditLogPublic = result.data.auditLogPublic;
       if (result.data.cpuDifficulty !== undefined) updateData.cpuDifficulty = result.data.cpuDifficulty;
-      const league = await storage.updateLeague(req.params.id, updateData);
-      res.json(league);
+      const updated = await storage.updateLeague(req.params.id, updateData);
+      res.json(updated);
     } catch (error) {
       console.error("Failed to update settings:", error);
       res.status(500).json({ message: "Failed to update settings" });
