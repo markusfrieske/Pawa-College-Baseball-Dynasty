@@ -164,7 +164,7 @@ export function maybeTransitionArchetype(
   isLegendary: boolean,
   position: string,
 ): Archetype {
-  if (arcStage < 1) return currentArchetype;
+  if (arcStage < 2) return currentArchetype;
   const transitionChance = isLegendary ? 0.75 : 0.50;
   if (Math.random() > transitionChance) return currentArchetype;
 

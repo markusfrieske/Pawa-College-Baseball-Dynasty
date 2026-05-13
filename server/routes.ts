@@ -1,7 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { registerStorylineRoutes, initializeStorylineRecruits, generateAndResolveStorylineEvents, warmupEventSceneImages } from "./storyline-routes";
+import { registerStorylineRoutes, initializeStorylineRecruits, generateAndResolveStorylineEvents, resolveAllPendingStorylineEvents, warmupEventSceneImages } from "./storyline-routes";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import bcrypt from "bcrypt";
@@ -6389,8 +6389,8 @@ export async function registerRoutes(
         // Ensures all unresolved storyline events are settled before signing day begins.
         if (league.currentPhase === "offseason_recruiting_4" && nextPhase === "offseason_signing_day") {
           try {
-            const sweepResult = await generateAndResolveStorylineEvents(leagueId, league.currentSeason, nextWeek);
-            console.log(`[storylines] end-of-phase sweep resolved ${sweepResult.resolved} events before signing day`);
+            const resolvedCount = await resolveAllPendingStorylineEvents(leagueId, league.currentSeason, nextWeek);
+            console.log(`[storylines] end-of-phase resolve sweep settled ${resolvedCount} events before signing day`);
           } catch (sweepErr) {
             console.warn("[storylines] end-of-phase resolution sweep failed:", sweepErr);
           }

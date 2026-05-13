@@ -599,6 +599,65 @@ export async function initializeStorylineRecruits(leagueId: string, season: numb
   }
 }
 
+// Resolve-only sweep: settles all pending unresolved storyline events without generating new ones.
+// Used at phase boundaries (e.g. offseason_recruiting_4 → signing_day) to clear the slate cleanly.
+export async function resolveAllPendingStorylineEvents(
+  leagueId: string,
+  season: number,
+  currentWeek: number,
+): Promise<number> {
+  let resolved = 0;
+  try {
+    const unresolved = await storage.getUnresolvedStorylineEvents(leagueId, season);
+    for (const event of unresolved) {
+      const votes = await storage.getStorylineVotesByEvent(event.id);
+      const sl = await storage.getStorylineRecruit(event.storylineRecruitId);
+      if (!sl) continue;
+
+      const { winningChoice, ovrDelta: rawDelta } = resolveVotes(
+        votes,
+        event.choiceAWeights as ChoiceWeights,
+        event.choiceBWeights as ChoiceWeights,
+        event.choiceCWeights as ChoiceWeights,
+        event.choiceDWeights as ChoiceWeights | null,
+      );
+
+      const volatility = (sl.hiddenVars as { volatility?: number })?.volatility ?? 5;
+      const ovrDelta = applyVolatilityModifier(rawDelta, volatility);
+
+      const outcomeText = winningChoice === "A" ? event.choiceAOutcome
+        : winningChoice === "B" ? event.choiceBOutcome
+        : winningChoice === "C" ? event.choiceCOutcome
+        : (event.choiceDOutcome ?? event.choiceCOutcome);
+
+      await storage.updateStorylineEvent(event.id, {
+        resolvedChoice: winningChoice,
+        resolvedOutcomeText: outcomeText,
+        ovrDelta,
+        resolvedAt: new Date(),
+      });
+
+      const recruit = await storage.getRecruit(sl.recruitId);
+      if (recruit && ovrDelta !== 0) {
+        const newOvr = Math.max(100, Math.min(720, (recruit.overall ?? 250) + ovrDelta));
+        await storage.updateRecruit(recruit.id, { overall: newOvr });
+      }
+
+      const newCumulativeDelta = (sl.resolvedOvrDelta ?? 0) + ovrDelta;
+      const newArcStage = sl.currentArcStage + 1;
+      await storage.updateStorylineRecruit(sl.id, {
+        resolvedOvrDelta: newCumulativeDelta,
+        currentArcStage: newArcStage,
+      });
+
+      resolved++;
+    }
+  } catch (err) {
+    console.error("[storylines] resolveAllPendingStorylineEvents error:", err);
+  }
+  return resolved;
+}
+
 export async function generateAndResolveStorylineEvents(
   leagueId: string,
   season: number,
@@ -856,7 +915,7 @@ async function generateWeeklyStorylineEvents(leagueId: string, season: number, w
       // Use Set semantics to deduplicate against retries or concurrency races.
       if (eventData.templateId) {
         const currentUsed = (sl.usedTemplateIds as string[] | null) ?? [];
-        const dedupedUsed = [...new Set([...currentUsed, eventData.templateId])];
+        const dedupedUsed = Array.from(new Set([...currentUsed, eventData.templateId]));
         await storage.updateStorylineRecruit(sl.id, { usedTemplateIds: dedupedUsed });
       }
 
@@ -868,6 +927,16 @@ async function generateWeeklyStorylineEvents(leagueId: string, season: number, w
           console.warn("[storylines] async event image gen failed:", err),
         );
       }
+    }
+
+    // Schedule a 30-second delayed backfill to catch any events whose images
+    // failed due to rate limits or transient OpenAI errors during generation.
+    if (count > 0) {
+      setTimeout(() => {
+        warmupEventSceneImages().catch(err =>
+          console.warn("[storylines] delayed image backfill failed:", err),
+        );
+      }, 30_000);
     }
   } catch (err) {
     console.error("[storylines] generateWeeklyEvents error:", err);
