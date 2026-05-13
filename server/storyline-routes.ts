@@ -742,10 +742,10 @@ async function generateWeeklyStorylineEvents(leagueId: string, season: number, w
       console.log(`[storylines] ${unresolvedCount} unresolved events — ${slotsRemaining} slot(s) remaining`);
     }
 
-    // Target 2–4 events per week; floor at min(2, slotsRemaining) so available
+    // Target 2–3 events per week; floor at min(2, slotsRemaining) so available
     // capacity is always used. Hard cap ensures total unresolved never exceeds 4.
     // maxEvents is bounded by nonExhausted.length so the floor is always reachable.
-    const targetEvents = Math.max(Math.min(2, slotsRemaining), 2 + Math.floor(Math.random() * 3));
+    const targetEvents = Math.max(Math.min(2, slotsRemaining), 2 + Math.floor(Math.random() * 2));
     const maxEvents = Math.min(nonExhausted.length, slotsRemaining, targetEvents);
 
     // Legendary-first, non-legendary shuffled so all 10 recruits rotate fairly
