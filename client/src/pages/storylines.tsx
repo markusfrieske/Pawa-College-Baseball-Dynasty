@@ -67,6 +67,7 @@ interface StorylineRecruit {
   archetypeDescription: string;
   archetypeFlavor: string;
   archetypeImageUrl: string | null;
+  totalArcEvents: number;
   activeEvent: StorylineEventFull | null;
   latestResolvedEvent: StorylineEventFull | null;
   latestResolvedVoteCounts: Record<string, number>;
@@ -306,10 +307,15 @@ function StorylineCard({ sl, leagueId, isCommissioner }: { sl: StorylineRecruit;
               </div>
 
               <div className="text-right flex-shrink-0">
-                <div className="text-[9px] font-pixel text-muted-foreground">Arc {sl.currentArcStage}/{sl.totalEvents}</div>
                 <OvrDeltaBadge delta={ovrDelta} />
               </div>
             </div>
+
+            <ArcProgressPips
+              arcStage={sl.currentArcStage}
+              totalArcEvents={sl.totalArcEvents}
+              isLegendary={sl.isLegendary}
+            />
 
             {sl.archetypeImageUrl ? (
               <div className="mt-2 rounded-md overflow-hidden border border-border/30" data-testid={`archetype-banner-${sl.id}`}>
@@ -643,6 +649,32 @@ function TrendingRecruits({ storylines, leagueId }: { storylines: StorylineRecru
         })}
       </div>
     </RetroCard>
+  );
+}
+
+function ArcProgressPips({ arcStage, totalArcEvents, isLegendary }: { arcStage: number; totalArcEvents: number; isLegendary: boolean }) {
+  const total = Math.max(3, totalArcEvents);
+  const filled = Math.min(arcStage, total);
+  return (
+    <div className="flex items-center gap-1 mt-1.5" data-testid="arc-progress-pips">
+      {Array.from({ length: total }).map((_, i) => (
+        <div
+          key={i}
+          className={`h-1.5 flex-1 rounded-sm transition-colors ${
+            i < filled
+              ? isLegendary
+                ? "bg-gold/80"
+                : "bg-muted-foreground/55"
+              : isLegendary
+              ? "bg-gold/15"
+              : "bg-muted/40"
+          }`}
+        />
+      ))}
+      <span className={`text-[8px] font-pixel flex-shrink-0 ml-0.5 ${isLegendary ? "text-gold/70" : "text-muted-foreground/50"}`}>
+        {filled}/{total}
+      </span>
+    </div>
   );
 }
 

@@ -247,6 +247,7 @@ export function registerStorylineRoutes(app: Express) {
           archetypeDescription: archetypeDef?.description ?? "",
           archetypeFlavor: archetypeDef?.flavor ?? "",
           archetypeImageUrl: archetypeDef?.imageUrl ?? null,
+          totalArcEvents: (archetypeDef?.events.length ?? 3) + (sl.isLegendary ? (archetypeDef?.legendaryEvents?.length ?? 0) : 0),
           activeEvent,
           latestResolvedEvent,
           latestResolvedVoteCounts,
