@@ -297,8 +297,8 @@ export default function LandingPage() {
               </div>
               <div className="border border-border bg-card/40 overflow-hidden">
                 <img
-                  src="/screenshots/rankings.jpg"
-                  alt="In-game power rankings table showing team grades, trends, and composite scores"
+                  src="/screenshots/commissioner.jpg"
+                  alt="In-game commissioner dashboard showing league phase (Spring Training), advance week controls, and quick action menu"
                   className="w-full h-auto block"
                 />
               </div>
@@ -371,7 +371,14 @@ export default function LandingPage() {
                   ))}
                 </ul>
               </div>
-              <div className="order-1 md:order-2">
+              <div className="order-1 md:order-2 space-y-4">
+                <div className="border border-border bg-card/60 overflow-hidden">
+                  <img
+                    src="/screenshots/walkons.jpg"
+                    alt="In-game Cuts and Walk-Ons page showing current roster panel and walk-on pool with position filters"
+                    className="w-full h-auto block"
+                  />
+                </div>
                 <OffseasonPipelineVisual />
               </div>
             </div>
@@ -437,14 +444,14 @@ export default function LandingPage() {
 // ── HERO VIDEO PLAYER ─────────────────────────────────────────
 
 const DEMO_PHASES = [
-  { label: "SCOUTING REVEAL", sub: "Uncover hidden recruit ratings" },
-  { label: "PHONE CALL", sub: "Build interest with your top targets" },
-  { label: "CAMPUS VISIT", sub: "Show off your facilities" },
-  { label: "SCHOLARSHIP OFFER", sub: "Close the deal with NIL money" },
-  { label: "REGULAR SEASON", sub: "Simulate games and track standings" },
-  { label: "POWER RANKINGS", sub: "Composite scores updated weekly" },
-  { label: "COLLEGE WORLD SERIES", sub: "Best-of-3 bracket for the title" },
-  { label: "TRANSFER PORTAL", sub: "Sign portal players or lose yours" },
+  { label: "SCOUTING REVEAL", sub: "Uncover hidden recruit ratings", img: "/screenshots/recruiting.jpg", alt: "Recruiting board with fog-of-war scouting and position filters" },
+  { label: "PHONE CALL", sub: "Build interest with your top targets", img: "/screenshots/recruiting.jpg", alt: "Recruiting board showing interest tracking and watchlist" },
+  { label: "CAMPUS VISIT", sub: "Show off your facilities", img: "/screenshots/recruiting.jpg", alt: "Recruiting pipeline with campus visit stage and interest bars" },
+  { label: "SCHOLARSHIP OFFER", sub: "Close the deal with NIL money", img: "/screenshots/recruiting.jpg", alt: "Recruiting board showing scholarship offer actions" },
+  { label: "REGULAR SEASON", sub: "Simulate games and track standings", img: "/screenshots/commissioner.jpg", alt: "Commissioner dashboard showing league phase, advance week, and quick actions" },
+  { label: "POWER RANKINGS", sub: "Composite scores updated weekly", img: "/screenshots/commissioner.jpg", alt: "Commissioner dashboard showing league standings and power rankings" },
+  { label: "COLLEGE WORLD SERIES", sub: "Best-of-3 bracket for the title", img: "/screenshots/pipeline.jpg", alt: "Postseason pipeline showing College World Series bracket progression" },
+  { label: "TRANSFER PORTAL", sub: "Sign portal players or lose yours", img: "/screenshots/walkons.jpg", alt: "Cuts and Walk-Ons offseason phase with roster management and walk-on pool" },
 ];
 
 const PHASE_DURATION = 3200;
@@ -471,11 +478,16 @@ function HeroVideoPlayer() {
   const phase = DEMO_PHASES[phaseIndex];
 
   return (
-    <div className="relative">
+    <div className="relative overflow-hidden">
       <img
-        src="/screenshots/recruiting.jpg"
-        alt="In-game recruiting board showing real players with star ratings, interest bars, and fog-of-war scouting"
+        key={phase.img}
+        src={phase.img}
+        alt={phase.alt}
         className="w-full h-auto block"
+        style={{
+          opacity: visible ? 1 : 0,
+          transition: "opacity 0.28s ease",
+        }}
       />
       <div
         className="absolute top-0 left-0 right-0 flex items-center gap-3 px-4 py-2.5 bg-black/70 border-b border-gold/20"
