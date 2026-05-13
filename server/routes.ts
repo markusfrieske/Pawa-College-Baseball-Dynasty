@@ -8765,8 +8765,8 @@ export async function registerRoutes(
           firstName,
           lastName,
           position: pos,
-          throwHand: Math.random() > 0.7 ? "L" : "R",
-          batHand: Math.random() > 0.65 ? "L" : "R",
+          throwHand: pos === "P" ? (Math.random() < 0.30 ? "L" : "R") : (Math.random() < 0.10 ? "L" : "R"),
+          batHand: pos === "P" ? (Math.random() < 0.15 ? "L" : "R") : (() => { const r = Math.random(); return r < 0.28 ? "L" : r < 0.31 ? "S" : "R"; })(),
           homeState,
           hometown,
           eligibility: "FR",
@@ -13098,6 +13098,8 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
         overall,
         starRating,
         ...playerData,
+        batHand: rp.batHand || "R",
+        throwHand: rp.throwHand || "R",
         catcherAbility: rp.catcherAbility,
         skinTone: appearance.skinTone,
         hairColor: appearance.hairColor,
@@ -13165,6 +13167,19 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
         usedJerseyNumbers.add(jerseyNum);
         const stEntry = fillerStates[Math.floor(Math.random() * fillerStates.length)];
 
+        const fillerThrowHand = (() => {
+          const r = Math.random();
+          if (pos === "P") return r < 0.30 ? "L" : "R";
+          return r < 0.10 ? "L" : "R";
+        })();
+        const fillerBatHand = (() => {
+          if (pos === "P") return Math.random() < 0.15 ? "L" : "R";
+          const r = Math.random();
+          if (r < 0.28) return "L";
+          if (r < 0.31) return "S";
+          return "R";
+        })();
+
         await storage.createPlayer({
           teamId,
           firstName: fillerNames[Math.floor(Math.random() * fillerNames.length)],
@@ -13177,6 +13192,8 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
           overall: ovr,
           starRating: getStarRatingFromOVR(ovr),
           ...playerData,
+          batHand: fillerBatHand,
+          throwHand: fillerThrowHand,
           catcherAbility: pos === "C" ? genAttr() : null,
           skinTone: appearance.skinTone,
           hairColor: appearance.hairColor,
