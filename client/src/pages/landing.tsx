@@ -441,6 +441,7 @@ const DEMO_PHASES = [
   { label: "REGULAR SEASON", sub: "Simulate games and track standings", context: "REGULAR SEASON · SEASON 1 · WEEK 1", img: "/screenshots/commissioner.jpg", alt: "Commissioner dashboard showing Spring Training phase, Advance Week button, and Quick Actions menu" },
   { label: "POWER RANKINGS", sub: "Composite scores updated every week", context: "REGULAR SEASON · SEASON 1 · WEEK 8", img: "/screenshots/rankings.jpg", alt: "In-game power rankings table showing team grades, week-over-week trends, and composite scores" },
   { label: "PLAYER PROFILE", sub: "Deep stats on every player on your roster", context: "REGULAR SEASON · SEASON 1 · WEEK 6", img: "/screenshots/player-card.jpg", alt: "In-game player profile card showing attributes, special ability badges, and career season stats" },
+  { label: "COLLEGE WORLD SERIES", sub: "Seeded double-elimination bracket for the title", context: "POSTSEASON · SEASON 1 · CWS", img: "/screenshots/postseason.jpg", alt: "College World Series bracket view showing Super Regionals results, CWS Bracket A and B with winners/losers matchups, seeded teams, and CWS BOUND advancement tags" },
   { label: "TRANSFER PORTAL", sub: "Sign portal players or lose yours", context: "OFFSEASON · SEASON 1", img: "/screenshots/walkons.jpg", alt: "Cuts and Walk-Ons offseason page showing roster panel and walk-on pool with position filters" },
 ];
 
