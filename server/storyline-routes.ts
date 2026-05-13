@@ -784,12 +784,12 @@ async function generateWeeklyStorylineEvents(leagueId: string, season: number, w
       const createdEvent = await storage.createStorylineEvent({ ...insertableEventData, archetypeAtEvent: sl.archetype });
       count++;
 
-      // Track which template was used so we don't repeat it for this recruit this season
+      // Track which template was used so we don't repeat it for this recruit this season.
+      // Use Set semantics to deduplicate against retries or concurrency races.
       if (eventData.templateId) {
         const currentUsed = (sl.usedTemplateIds as string[] | null) ?? [];
-        await storage.updateStorylineRecruit(sl.id, {
-          usedTemplateIds: [...currentUsed, eventData.templateId],
-        });
+        const dedupedUsed = [...new Set([...currentUsed, eventData.templateId])];
+        await storage.updateStorylineRecruit(sl.id, { usedTemplateIds: dedupedUsed });
       }
 
       if (eventData.templateId && eventData.scenePrompt) {

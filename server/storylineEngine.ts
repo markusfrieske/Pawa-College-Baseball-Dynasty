@@ -1311,7 +1311,7 @@ export function generateStorylineEvent(
   if (unusedPool.length === 0 && usedSet.size > 0) {
     console.warn(
       `[storylineEngine] generateStorylineEvent: all ${pool.length} template(s) exhausted ` +
-      `for archetype "${archetype}" (recruit "${recruitId}") — falling back to full pool. ` +
+      `for archetype "${archetype}" (storylineRecruitId="${storylineRecruitId}") — falling back to full pool. ` +
       `Caller should have filtered exhausted recruits before invoking this function.`
     );
   }
