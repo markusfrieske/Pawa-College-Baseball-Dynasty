@@ -12,7 +12,7 @@ import { ArrowLeft, Save, Plus, Upload, Trash2, Download, RefreshCw, ChevronDown
 import { apiRequest, queryClient, getQueryFn } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { CoachAvatar } from "@/components/coach-avatar";
+import { PlayerPortrait } from "@/components/ui/player-portrait";
 import { ALL_ABILITIES, getAbilitiesForPosition } from "@shared/abilities";
 
 interface PlayerAppearance {
@@ -890,12 +890,12 @@ export default function ManageRecruitingPage() {
                               <td className="px-2 py-1 text-muted-foreground text-xs">{idx + 1}</td>
                               <td className="px-2 py-1">
                                 <div className="flex items-center gap-2">
-                                  <CoachAvatar
+                                  <PlayerPortrait
                                     skinTone={recruit.appearance?.skinTone || "light"}
                                     hairColor={recruit.appearance?.hairColor || "brown"}
                                     hairStyle={recruit.appearance?.hairStyle || "short"}
-                                    size="sm"
-                                    className="w-6 h-6"
+                                    isRecruit={true}
+                                    className="w-6 h-6 flex-shrink-0"
                                   />
                                   <span className="text-foreground text-xs whitespace-nowrap">
                                     {recruit.firstName} {recruit.lastName}
@@ -1071,11 +1071,12 @@ function RecruitEditPanel({
         <div className="space-y-2">
           <p className="font-pixel text-[10px] text-gold mb-1">RECRUIT AVATAR</p>
           <div className="flex items-center gap-4">
-            <CoachAvatar
+            <PlayerPortrait
               skinTone={appearance.skinTone}
               hairColor={appearance.hairColor}
               hairStyle={appearance.hairStyle}
-              size="lg"
+              isRecruit={true}
+              className="w-20 h-20"
             />
             <div className="space-y-2">
               <div className="space-y-0.5">

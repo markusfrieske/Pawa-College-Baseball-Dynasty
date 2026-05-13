@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Save, RotateCcw, ChevronUp, ChevronDown } from "lucide-react";
 import { apiRequest, getQueryFn } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { PlayerPortrait } from "@/components/ui/player-portrait";
 import type { Player, Team } from "@shared/schema";
 import { ALL_PITCHER_ABILITIES, ALL_FIELDER_ABILITIES, getAbilityByName, type Ability } from "@shared/abilities";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -191,6 +192,9 @@ export default function EditRostersPage() {
 
   const hasChanges = Object.keys(changes).length > 0;
 
+  const currentTeam = teams.find(t => t.id === selectedTeamId);
+  const teamPrimaryColor = currentTeam?.primaryColor || "#2563eb";
+
   const SortHeader = ({ field, label }: { field: SortField; label: string }) => (
     <th
       className="px-2 py-2 text-left cursor-pointer hover:bg-muted/50 whitespace-nowrap"
@@ -307,6 +311,7 @@ export default function EditRostersPage() {
                       <table className="w-full text-sm">
                         <thead className="bg-muted/30 sticky top-0">
                           <tr>
+                            <th className="px-2 py-2 text-xs font-pixel text-gold w-8"></th>
                             <SortHeader field="lastName" label="NAME" />
                             <SortHeader field="position" label="POS" />
                             <SortHeader field="eligibility" label="ELIG" />
@@ -354,6 +359,16 @@ export default function EditRostersPage() {
                                 key={player.id} 
                                 className={`border-b border-border ${isChanged ? "bg-yellow-500/10" : idx % 2 === 0 ? "bg-muted/10" : ""}`}
                               >
+                                {/* Portrait */}
+                                <td className="px-2 py-1">
+                                  <PlayerPortrait
+                                    skinTone={(player.appearance as { skinTone?: string } | null)?.skinTone || "light"}
+                                    hairColor={(player.appearance as { hairColor?: string } | null)?.hairColor || "brown"}
+                                    hairStyle={(player.appearance as { hairStyle?: string } | null)?.hairStyle || "short"}
+                                    jerseyColor={teamPrimaryColor}
+                                    className="w-7 h-7 flex-shrink-0"
+                                  />
+                                </td>
                                 {/* Name */}
                                 <td className="px-2 py-1">
                                   <div className="flex gap-1">
