@@ -46,6 +46,7 @@ import {
   Swords,
   BookOpen,
   Sparkles,
+  Vote,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -260,6 +261,22 @@ export default function LeagueViewPage() {
     staleTime: 0,
   });
 
+  const storylineActivePhase = league ? STORYLINE_ACTIVE_PHASES.has(league.currentPhase) : false;
+  const { data: storylinesNavResp } = useQuery<{ storylines: StorylineWidgetItem[] }>({
+    queryKey: ["/api/leagues", id, "storylines"],
+    queryFn: async () => {
+      const res = await fetch(`/api/leagues/${id}/storylines`, { credentials: "include" });
+      if (!res.ok) return { storylines: [] };
+      const json = await res.json();
+      return Array.isArray(json) ? { storylines: json } : (json as { storylines: StorylineWidgetItem[] });
+    },
+    enabled: storylineActivePhase,
+    staleTime: 60000,
+  });
+  const storylinePendingVotes = (storylinesNavResp?.storylines ?? []).filter(
+    (s) => !!s.activeEvent && !s.myVote,
+  ).length;
+
   useEffect(() => {
     if (league?.currentPhase) {
       updateMusicPhase(league.currentPhase);
@@ -429,7 +446,7 @@ export default function LeagueViewPage() {
 
         <WaitingOnWidget leagueId={id!} league={league} />
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2 sm:gap-3 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-8 gap-2 sm:gap-3 mb-6">
           <QuickActionCard
             href={`/league/${id}/coach`}
             icon={<Award className="w-6 h-6" />}
@@ -465,6 +482,13 @@ export default function LeagueViewPage() {
             icon={<Trophy className="w-6 h-6" />}
             title="Commits"
             subtitle="Class leaderboard"
+          />
+          <QuickActionCard
+            href={`/league/${id}/storylines`}
+            icon={<Swords className="w-6 h-6" />}
+            title="Storylines"
+            subtitle="Vote on arcs"
+            badge={storylinePendingVotes || undefined}
           />
           <QuickActionCard
             href={`/league/${id}/commissioner`}
@@ -622,16 +646,26 @@ function QuickActionCard({
   href, 
   icon, 
   title, 
-  subtitle 
+  subtitle,
+  badge,
 }: { 
   href: string;
   icon: React.ReactNode;
   title: string;
   subtitle: string;
+  badge?: number;
 }) {
   return (
     <Link href={href}>
-      <RetroCard className="hover:border-gold/50 transition-colors cursor-pointer h-full" data-testid={`card-action-${title.toLowerCase()}`}>
+      <RetroCard className="hover:border-gold/50 transition-colors cursor-pointer h-full relative" data-testid={`card-action-${title.toLowerCase()}`}>
+        {badge != null && badge > 0 && (
+          <span
+            className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-gold text-forest-dark font-pixel text-[7px] px-1 z-10 animate-pulse"
+            data-testid={`badge-action-${title.toLowerCase()}`}
+          >
+            {badge}
+          </span>
+        )}
         <div className="flex flex-col items-center text-center gap-1 py-1">
           <div className="text-gold">{icon}</div>
           <h3 className="font-pixel text-[9px] text-foreground leading-tight">{title}</h3>
@@ -665,6 +699,7 @@ interface StorylineWidgetItem {
     ovrDelta?: number | null;
   } | null;
   voteCounts?: Record<string, number>;
+  myVote?: string | null;
 }
 
 function StorylinesDashboardWidget({ leagueId }: { leagueId: string }) {
@@ -690,6 +725,8 @@ function StorylinesDashboardWidget({ leagueId }: { leagueId: string }) {
   };
 
   const activeVotes = storylines.filter((s) => !!s.activeEvent);
+  // Votes the current coach hasn't cast yet
+  const unvotedCount = storylines.filter((s) => !!s.activeEvent && !s.myVote).length;
   // Top 3 most active storylines by real activity score
   const mostActive = [...storylines].sort((a, b) => activityScore(b) - activityScore(a)).slice(0, 3);
 
@@ -702,9 +739,9 @@ function StorylinesDashboardWidget({ leagueId }: { leagueId: string }) {
         <div className="flex items-center gap-2">
           <Swords className="w-4 h-4 text-gold" />
           <span className="font-pixel text-xs text-gold">Recruit Storylines</span>
-          {activeVotes.length > 0 && (
-            <span className="font-pixel text-[9px] bg-gold/20 text-gold border border-gold/40 px-1.5 py-0.5 rounded animate-pulse">
-              {activeVotes.length} vote{activeVotes.length !== 1 ? "s" : ""} open
+          {unvotedCount > 0 && (
+            <span className="font-pixel text-[9px] bg-gold/20 text-gold border border-gold/40 px-1.5 py-0.5 rounded animate-pulse" data-testid="badge-unvoted-storylines">
+              {unvotedCount} vote{unvotedCount !== 1 ? "s" : ""} pending
             </span>
           )}
         </div>
@@ -722,8 +759,8 @@ function StorylinesDashboardWidget({ leagueId }: { leagueId: string }) {
             <div className="text-lg font-bold">{storylines.length}</div>
           </div>
           <div className="bg-muted/30 rounded-md px-2 py-2 text-center">
-            <div className="font-pixel text-[7px] text-muted-foreground mb-1">VOTES OPEN</div>
-            <div className={`text-lg font-bold ${activeVotes.length > 0 ? "text-gold" : ""}`}>{activeVotes.length}</div>
+            <div className="font-pixel text-[7px] text-muted-foreground mb-1">MY VOTES</div>
+            <div className={`text-lg font-bold ${unvotedCount > 0 ? "text-gold" : ""}`}>{unvotedCount}</div>
           </div>
         </div>
 
@@ -1885,6 +1922,12 @@ function getEffectiveReady(
   return !!entry.isReady;
 }
 
+const STORYLINE_ACTIVE_PHASES = new Set([
+  "recruiting", "preseason", "spring_training", "regular_season",
+  "offseason", "offseason_recruiting_1", "offseason_recruiting_2",
+  "offseason_recruiting_3", "offseason_recruiting_4",
+]);
+
 function WaitingOnWidget({
   leagueId,
   league,
@@ -1902,6 +1945,22 @@ function WaitingOnWidget({
     queryKey: ["/api/leagues", leagueId, "ready-status"],
     refetchInterval: 30000,
   });
+
+  const showStorylineVotes = STORYLINE_ACTIVE_PHASES.has(league.currentPhase);
+  const { data: storylinesResp } = useQuery<{ storylines: StorylineWidgetItem[] }>({
+    queryKey: ["/api/leagues", leagueId, "storylines"],
+    queryFn: async () => {
+      const res = await fetch(`/api/leagues/${leagueId}/storylines`, { credentials: "include" });
+      if (!res.ok) return { storylines: [] };
+      const json = await res.json();
+      return Array.isArray(json) ? { storylines: json } : (json as { storylines: StorylineWidgetItem[] });
+    },
+    enabled: showStorylineVotes,
+    staleTime: 60000,
+  });
+  const pendingVoteCount = (storylinesResp?.storylines ?? []).filter(
+    (s) => !!s.activeEvent && !s.myVote,
+  ).length;
 
   const toggleReady = useMutation({
     mutationFn: async () => {
@@ -2051,6 +2110,20 @@ function WaitingOnWidget({
           <p className="mt-2 text-[10px] text-green-400">
             All coaches are ready — waiting for the commissioner to advance.
           </p>
+        )}
+
+        {showStorylineVotes && pendingVoteCount > 0 && (
+          <div className="mt-2 pt-2 border-t border-border/30">
+            <Link href={`/league/${leagueId}/storylines`}>
+              <div className="flex items-center gap-2 text-[10px] text-gold hover:text-gold/80 transition-colors cursor-pointer" data-testid="storyline-votes-callout">
+                <Vote className="w-3 h-3 shrink-0 animate-pulse" />
+                <span>
+                  {pendingVoteCount} storyline vote{pendingVoteCount !== 1 ? "s" : ""} pending — cast your vote
+                </span>
+                <ChevronRight className="w-3 h-3 ml-auto shrink-0" />
+              </div>
+            </Link>
+          </div>
         )}
       </div>
     </RetroCard>
