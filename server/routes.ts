@@ -10794,8 +10794,10 @@ export async function registerRoutes(
       await storage.deleteRecruitsByLeague(req.params.id as string);
 
       // Generate new recruiting class (80 recruits)
+      // forceStorylineReset=true: commissioner explicitly regenerated the class, so existing
+      // storyline data for this season must be wiped and rebuilt for the new recruits.
       const recruitCount = 80;
-      await generateRecruits(req.params.id as string, recruitCount);
+      await generateRecruits(req.params.id as string, recruitCount, true);
 
       await storage.createAuditLog({
         leagueId: league.id,
@@ -11280,8 +11282,10 @@ export async function registerRoutes(
         });
       } else {
         // Generate new recruiting class (80 recruits)
+        // forceStorylineReset=true: commissioner-initiated generation, so existing storyline data
+        // for this season is wiped and rebuilt for the newly generated recruits.
         recruitCount = 80;
-        await generateRecruits(req.params.id as string, recruitCount);
+        await generateRecruits(req.params.id as string, recruitCount, true);
 
         await storage.createAuditLog({
           leagueId: league.id,
@@ -12735,7 +12739,7 @@ function getTeamsForConference(conferenceName: string) {
   return conferenceTeams[conferenceName] || [];
 }
 
-async function generateRecruits(leagueId: string, count: number) {
+async function generateRecruits(leagueId: string, count: number, forceStorylineReset = false) {
   const leagueForProgression = await storage.getLeague(leagueId);
   const progressionEnabled = leagueForProgression?.progressionEnabled ?? false;
 
@@ -12761,12 +12765,11 @@ async function generateRecruits(leagueId: string, count: number) {
   const leagueForStoryline = await storage.getLeague(leagueId);
   if (leagueForStoryline) {
     try {
-      console.log(`[storylines] Initializing storyline recruits for league ${leagueId} season ${leagueForStoryline.currentSeason}…`);
-      // generateRecruits always creates a fresh class — delete any stale storyline recruits from
-      // a prior run (e.g., commissioner reset) so the guard in initializeStorylineRecruits sees
-      // an empty slate and proceeds normally with force=false (the safe default).
-      await storage.deleteStorylineRecruitsByLeague(leagueId, leagueForStoryline.currentSeason);
-      const storylineCount = await initializeStorylineRecruits(leagueId, leagueForStoryline.currentSeason);
+      console.log(`[storylines] Initializing storyline recruits for league ${leagueId} season ${leagueForStoryline.currentSeason} (force=${forceStorylineReset})…`);
+      if (forceStorylineReset) {
+        console.warn(`[storylines] Commissioner-triggered recruit class reset — existing storyline data for season ${leagueForStoryline.currentSeason} will be wiped and regenerated.`);
+      }
+      const storylineCount = await initializeStorylineRecruits(leagueId, leagueForStoryline.currentSeason, forceStorylineReset);
       console.log(`[storylines] Storyline initialization complete — ${storylineCount} recruits assigned arcs for season ${leagueForStoryline.currentSeason}`);
     } catch (err) {
       console.error("[storylines] Failed to initialize storyline recruits:", err);
