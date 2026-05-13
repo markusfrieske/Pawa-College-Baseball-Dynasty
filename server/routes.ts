@@ -6185,6 +6185,11 @@ export async function registerRoutes(
           const srResult = await advanceSuperRegionals(leagueId, league.currentSeason);
           
           if (srResult.done && !srResult.champion1) {
+            // Resolve any unresolved storyline arcs before entering offseason.
+            try {
+              const swept = await resolveAllPendingStorylineEvents(leagueId, league.currentSeason, league.currentWeek ?? 1);
+              if (swept > 0) console.log(`[storylines] sr→offseason sweep resolved ${swept} arc events`);
+            } catch (e) { console.warn("[storylines] sr→offseason sweep failed:", e); }
             const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "offseason_departures", currentWeek: nextWeek });
             await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "Postseason Skipped", details: "Not enough teams for postseason bracket." });
             return res.json(updatedLeague);
@@ -6214,6 +6219,12 @@ export async function registerRoutes(
             const leagueTeams = await storage.getTeamsByLeague(leagueId);
             const champTeam = leagueTeams.find(t => t.id === cwsResult.champion);
             const runnerUpTeam = leagueTeams.find(t => t.id === cwsResult.runnerUp);
+
+            // Resolve any unresolved storyline arcs before entering offseason.
+            try {
+              const swept = await resolveAllPendingStorylineEvents(leagueId, league.currentSeason, league.currentWeek ?? 1);
+              if (swept > 0) console.log(`[storylines] cws→offseason sweep resolved ${swept} arc events`);
+            } catch (e) { console.warn("[storylines] cws→offseason sweep failed:", e); }
             
             const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "offseason_departures", currentWeek: nextWeek });
             await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "CWS Champion Crowned!", details: `${champTeam?.name || "Unknown"} wins the College World Series over ${runnerUpTeam?.name || "Unknown"}!` });
@@ -6305,15 +6316,16 @@ export async function registerRoutes(
       const offseasonPhases = ["offseason_departures", "offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4", "offseason_signing_day", "offseason_walkons"];
       
       if (league.currentPhase === "offseason_departures") {
-        // Sweep any unresolved storyline arc events before offseason processing begins.
-        // This ensures all arcs are concluded by the time the coaching staff turns to the portal.
+        // Safety-net sweep: resolve any unresolved arc events that slipped through.
+        // The authoritative sweep runs at the transition point (sr/cws → offseason_departures).
+        // Using currentWeek keeps dynasty-news timestamps aligned with end-of-season.
         try {
-          const swept = await resolveAllPendingStorylineEvents(leagueId, league.currentSeason, nextWeek);
+          const swept = await resolveAllPendingStorylineEvents(leagueId, league.currentSeason, league.currentWeek ?? 1);
           if (swept > 0) {
-            console.log(`[storylines] offseason_departures entry sweep resolved ${swept} pending arc events`);
+            console.log(`[storylines] offseason_departures safety sweep resolved ${swept} pending arc events`);
           }
         } catch (sweepErr) {
-          console.warn("[storylines] offseason_departures sweep failed:", sweepErr);
+          console.warn("[storylines] offseason_departures safety sweep failed:", sweepErr);
         }
 
         const existingPending = await storage.getPendingDeparturesByLeague(leagueId);
