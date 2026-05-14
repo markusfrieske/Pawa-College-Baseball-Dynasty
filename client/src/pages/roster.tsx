@@ -191,8 +191,13 @@ export default function RosterPage() {
   const allSorted = [...filteredPlayers].sort((a, b) => b.starRating - a.starRating || b.overall - a.overall);
 
   const positionPlayersAll = (data?.players || []).filter(p => !isPitcher(p.position));
+  const allPitchersAll = (data?.players || []).filter(p => isPitcher(p.position));
   const assignedBattingCount = positionPlayersAll.filter(p => p.battingOrder != null && p.battingOrder >= 1 && p.battingOrder <= 9).length;
-  const isLineupIncomplete = !viewingTeamId && positionPlayersAll.length >= 9 && assignedBattingCount < 9;
+  const requiredRotationRoles = ["FRI", "SAT", "SUN", "MID"];
+  const assignedRotationCount = requiredRotationRoles.filter(role => allPitchersAll.some(p => p.pitchingRole === role)).length;
+  const battingIncomplete = !viewingTeamId && positionPlayersAll.length >= 9 && assignedBattingCount < 9;
+  const pitchingIncomplete = !viewingTeamId && allPitchersAll.length >= 4 && assignedRotationCount < 4;
+  const isLineupIncomplete = battingIncomplete || pitchingIncomplete;
 
   if (isLoading) {
     return <RosterSkeleton />;
@@ -211,11 +216,11 @@ export default function RosterPage() {
             </h1>
             {isLineupIncomplete && (
               <button
-                onClick={() => setViewMode("depth")}
+                onClick={() => { setViewMode("depth"); }}
                 className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-500/20 border border-yellow-500/40 text-yellow-400 text-[10px] font-pixel hover:bg-yellow-500/30 transition-colors"
                 data-testid="badge-lineup-incomplete"
               >
-                ⚠ Lineup Incomplete ({assignedBattingCount}/9)
+                ⚠ Lineup Incomplete{battingIncomplete ? ` (Bat ${assignedBattingCount}/9)` : ""}{pitchingIncomplete ? ` (Rot ${assignedRotationCount}/4)` : ""}
               </button>
             )}
             <div className="ml-auto flex items-center gap-2 sm:gap-4 flex-wrap">
@@ -1715,7 +1720,7 @@ function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leagueId, i
                         <PositionBadge position={player.position} size="sm" />
                         <span className="text-xs truncate flex-1">{player.firstName.charAt(0)}. {player.lastName}</span>
                         <span className="text-[9px] text-muted-foreground hidden sm:inline">
-                          {isPitcher(player.position) ? `VEL ${player.velocity || 0}` : `CON ${player.hitForAvg || 0} / PWR ${player.power || 0}`}
+                          {isPitcher(player.position) ? `VEL ${player.velocity || 0} / CTL ${player.control || 0}` : `HIT ${player.hitForAvg || 0} / PWR ${player.power || 0} / SPD ${player.speed || 0}`}
                         </span>
                         <span className="text-[9px] text-muted-foreground">{player.eligibility}</span>
                         <span className="text-xs font-bold text-gold">{player.overall}</span>
@@ -1756,7 +1761,7 @@ function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leagueId, i
                   ? [...unassignedBatters, ...battingSlots.filter(s => s.player && s.slot !== selectingSlot.slot).map(s => s.player!)]
                   : unassignedBatters
                 ).map(p => {
-                  const keyStats = `CON ${p.hitForAvg || 0} / PWR ${p.power || 0} / SPD ${p.speed || 0}`;
+                  const keyStats = `HIT ${p.hitForAvg || 0} / PWR ${p.power || 0} / SPD ${p.speed || 0}`;
                   return (
                     <div
                       key={p.id}
@@ -1803,49 +1808,110 @@ function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leagueId, i
       {lineupTab === "pitching" && (
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="space-y-4">
-            <div className="bg-card/90 border border-border rounded-lg overflow-visible" data-testid="starting-rotation-section">
-              <div className="bg-gold/20 px-3 py-2 border-b border-border">
-                <span className="font-pixel text-gold text-xs">STARTING ROTATION</span>
+            {([
+              { sectionLabel: "STARTING ROTATION", slots: rotationSlots, testId: "starting-rotation-section" },
+              { sectionLabel: "BULLPEN", slots: bullpenSlots, testId: "bullpen-section" },
+            ] as const).map(({ sectionLabel, slots, testId }) => (
+              <div key={sectionLabel} className="bg-card/90 border border-border rounded-lg overflow-visible" data-testid={testId}>
+                <div className="bg-gold/20 px-3 py-2 border-b border-border flex items-center justify-between">
+                  <span className="font-pixel text-gold text-xs">{sectionLabel}</span>
+                  {canDrag && <span className="text-[9px] text-muted-foreground">Drag or click</span>}
+                </div>
+                <div className="p-2 space-y-1">
+                  {slots.map(({ role, label, player }) => {
+                    const isActive = selectingSlot?.type === "pitching" && selectingSlot.role === role;
+                    const isDragTarget = dragOverPitchingRole === role;
+                    return (
+                      <div
+                        key={role}
+                        className={`flex items-center gap-2 px-3 py-2 rounded border transition-colors cursor-pointer ${
+                          isDragTarget ? 'border-gold bg-gold/20 scale-[1.01]' :
+                          isActive ? 'border-gold bg-gold/10' : 'border-border bg-card/90 hover:border-border/80'
+                        }`}
+                        onClick={() => canDrag ? setSelectingSlot(isActive ? null : { type: "pitching", role }) : undefined}
+                        onDragOver={(e) => {
+                          if (!canDrag) return;
+                          e.preventDefault();
+                          e.dataTransfer.dropEffect = "move";
+                          setDragOverPitchingRole(role);
+                        }}
+                        onDragLeave={() => setDragOverPitchingRole(null)}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          setDragOverPitchingRole(null);
+                          if (dragPitchingSource) {
+                            handleAssignPitchingRole(role, dragPitchingSource.player);
+                            setDragPitchingSource(null);
+                            setSelectingSlot(null);
+                          }
+                        }}
+                        data-testid={`slot-pitching-${role}`}
+                      >
+                        <span className="font-pixel text-gold text-[9px] w-10 flex-shrink-0">{label}</span>
+                        {player ? (
+                          <div
+                            className="flex items-center gap-2 flex-1 min-w-0"
+                            draggable={canDrag}
+                            onDragStart={(e) => {
+                              e.dataTransfer.effectAllowed = "move";
+                              setDragPitchingSource({ player, fromRole: role });
+                              setSelectingSlot(null);
+                            }}
+                            onDragEnd={() => { setDragPitchingSource(null); setDragOverPitchingRole(null); }}
+                            onClick={(e) => e.stopPropagation()}
+                            data-testid={`pitching-slot-player-${role}`}
+                          >
+                            {canDrag && <GripVertical className="w-3 h-3 text-muted-foreground/40 flex-shrink-0 cursor-grab" />}
+                            <PlayerPortrait
+                              skinTone={player.skinTone || "light"}
+                              hairColor={player.hairColor || "brown"}
+                              hairStyle={player.hairStyle || "short"}
+                              facialHair={player.facialHair || "none"}
+                              eyeStyle={player.eyeStyle || undefined}
+                              eyebrowStyle={player.eyebrowStyle || undefined}
+                              mouthStyle={player.mouthStyle || undefined}
+                              eyeBlack={player.eyeBlack ?? undefined}
+                              playerId={player.id}
+                              className="w-6 h-6 flex-shrink-0"
+                              jerseyColor={teamPrimaryColor}
+                            />
+                            <PositionBadge position={player.position} size="sm" />
+                            <span className="text-xs truncate flex-1">{player.firstName.charAt(0)}. {player.lastName}</span>
+                            <span className="text-[9px] text-muted-foreground hidden sm:inline">
+                              VEL {player.velocity || 0} / CTL {player.control || 0} / STM {player.stamina || 0}
+                            </span>
+                            <span className="text-[9px] text-muted-foreground">{player.eligibility}</span>
+                            <span className={`font-pixel text-[7px] px-1 py-0.5 rounded border ${player.throwHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`}>
+                              {player.throwHand}HP
+                            </span>
+                            <span className="text-xs font-bold text-gold">{player.overall}</span>
+                            {canDrag && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleClearPitchingRole(role); }}
+                                className="text-muted-foreground hover:text-red-400 transition-colors ml-1"
+                                data-testid={`clear-pitching-${role}`}
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground italic flex-1">
+                            {isDragTarget ? "Drop here" : "Empty"}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-              <div className="p-2 space-y-1">
-                {rotationSlots.map(({ role, label, player }) => {
-                  const isActive = selectingSlot?.type === "pitching" && selectingSlot.role === role;
-                  return renderSlotRow(
-                    label,
-                    player,
-                    () => canDrag ? setSelectingSlot(isActive ? null : { type: "pitching", role }) : undefined,
-                    () => handleClearPitchingRole(role),
-                    `rotation-${role}`,
-                    isActive
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="bg-card/90 border border-border rounded-lg overflow-visible" data-testid="bullpen-section">
-              <div className="bg-gold/20 px-3 py-2 border-b border-border">
-                <span className="font-pixel text-gold text-xs">BULLPEN</span>
-              </div>
-              <div className="p-2 space-y-1">
-                {bullpenSlots.map(({ role, label, player }) => {
-                  const isActive = selectingSlot?.type === "pitching" && selectingSlot.role === role;
-                  return renderSlotRow(
-                    label,
-                    player,
-                    () => canDrag ? setSelectingSlot(isActive ? null : { type: "pitching", role }) : undefined,
-                    () => handleClearPitchingRole(role),
-                    `bullpen-${role}`,
-                    isActive
-                  );
-                })}
-              </div>
-            </div>
+            ))}
           </div>
 
           <div className="bg-card/90 border border-border rounded-lg overflow-visible" data-testid="available-pitchers-section">
             <div className="bg-gold/20 px-3 py-2 border-b border-border">
               <span className="font-pixel text-gold text-xs">
-                {selectingSlot?.type === "pitching" ? `SELECT FOR ${[...rotationRoles, ...bullpenRoles].find(r => r.role === selectingSlot.role)?.label || selectingSlot.role}` : "AVAILABLE PITCHERS"}
+                {selectingSlot?.type === "pitching" ? `SELECT FOR ${[...rotationRoles, ...bullpenRoles].find(r => r.role === selectingSlot.role)?.label?.toUpperCase() || selectingSlot.role}` : "AVAILABLE PITCHERS"}
               </span>
             </div>
             <div className="p-2 space-y-0.5 max-h-[500px] overflow-y-auto">
@@ -1860,11 +1926,48 @@ function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leagueId, i
                 (selectingSlot?.type === "pitching"
                   ? [...unassignedPitchers, ...[...rotationSlots, ...bullpenSlots].filter(s => s.player && s.role !== selectingSlot.role).map(s => s.player!)]
                   : unassignedPitchers
-                ).map(p => renderAvailablePlayer(
-                  p,
-                  () => selectingSlot?.type === "pitching" ? handleAssignPitchingRole(selectingSlot.role, p) : undefined,
-                  "pitcher"
-                ))
+                ).map(p => {
+                  const keyStats = `VEL ${p.velocity || 0} / CTL ${p.control || 0} / STM ${p.stamina || 0}`;
+                  return (
+                    <div
+                      key={p.id}
+                      className={`flex items-center gap-2 px-3 py-2 rounded border transition-colors ${
+                        canDrag ? 'cursor-grab hover:bg-gold/10 hover:border-gold/30 border-transparent' : 'cursor-pointer hover:bg-gold/10 border-transparent'
+                      } ${dragPitchingSource?.player.id === p.id ? 'opacity-40' : ''}`}
+                      draggable={canDrag}
+                      onDragStart={(e) => {
+                        e.dataTransfer.effectAllowed = "move";
+                        setDragPitchingSource({ player: p });
+                        setSelectingSlot(null);
+                      }}
+                      onDragEnd={() => { setDragPitchingSource(null); setDragOverPitchingRole(null); }}
+                      onClick={() => selectingSlot?.type === "pitching" ? handleAssignPitchingRole(selectingSlot.role, p) : undefined}
+                      data-testid={`available-pitcher-${p.id}`}
+                    >
+                      {canDrag && <GripVertical className="w-3 h-3 text-muted-foreground/40 flex-shrink-0" />}
+                      <PlayerPortrait
+                        skinTone={p.skinTone || "light"}
+                        hairColor={p.hairColor || "brown"}
+                        hairStyle={p.hairStyle || "short"}
+                        facialHair={p.facialHair || "none"}
+                        eyeStyle={p.eyeStyle || undefined}
+                        eyebrowStyle={p.eyebrowStyle || undefined}
+                        mouthStyle={p.mouthStyle || undefined}
+                        eyeBlack={p.eyeBlack ?? undefined}
+                        playerId={p.id}
+                        className="w-5 h-5 flex-shrink-0"
+                        jerseyColor={teamPrimaryColor}
+                      />
+                      <PositionBadge position={p.position} size="sm" />
+                      <span className="text-xs truncate flex-1">{p.firstName.charAt(0)}. {p.lastName}</span>
+                      <span className="text-[9px] text-muted-foreground hidden sm:inline">{keyStats}</span>
+                      <span className={`font-pixel text-[7px] px-1 py-0.5 rounded border ${p.throwHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`}>
+                        {p.throwHand}HP
+                      </span>
+                      <span className="text-xs font-bold text-gold">{p.overall}</span>
+                    </div>
+                  );
+                })
               )}
             </div>
           </div>

@@ -311,11 +311,15 @@ export default function LeagueViewPage() {
   const activeLineupPhases = ["preseason", "spring_training", "regular_season", "conference_championship", "super_regionals", "cws"];
   const shouldCheckLineup = !!myTeam && activeLineupPhases.includes(league.currentPhase);
 
-  const { data: ownRosterData } = useQuery<{ players: { position: string; battingOrder: number | null }[] }>({
+  const { data: ownRosterData } = useQuery({
     queryKey: [`/api/leagues/${id}/roster`],
     enabled: shouldCheckLineup,
-    select: (data) => ({
-      players: (data as any).players?.map((p: any) => ({ position: p.position, battingOrder: p.battingOrder })) ?? [],
+    select: (data: { players: Player[]; team: Team }) => ({
+      players: data.players.map((p) => ({
+        position: p.position,
+        battingOrder: p.battingOrder,
+        pitchingRole: p.pitchingRole,
+      })),
     }),
   });
 
@@ -327,12 +331,15 @@ export default function LeagueViewPage() {
     try { localStorage.setItem(`lineup-banner-dismissed-${id}`, "1"); } catch {}
   };
 
-  const ownPositionPlayers = (ownRosterData?.players ?? []).filter((p) => {
-    const pitcherPositions = ["P", "SP", "RP", "CL", "LHP", "RHP"];
-    return !pitcherPositions.includes(p.position);
-  });
+  const PITCHER_POS = ["P", "SP", "RP", "CL", "LHP", "RHP"];
+  const ownPositionPlayers = (ownRosterData?.players ?? []).filter((p) => !PITCHER_POS.includes(p.position));
+  const ownPitchers = (ownRosterData?.players ?? []).filter((p) => PITCHER_POS.includes(p.position));
   const ownBattingAssigned = ownPositionPlayers.filter(p => p.battingOrder != null && p.battingOrder >= 1 && p.battingOrder <= 9).length;
-  const showLineupBanner = shouldCheckLineup && !lineupBannerDismissed && ownPositionPlayers.length >= 9 && ownBattingAssigned < 9;
+  const requiredRotation = ["FRI", "SAT", "SUN", "MID"];
+  const ownRotationAssigned = requiredRotation.filter(role => ownPitchers.some(p => p.pitchingRole === role)).length;
+  const ownBattingIncomplete = ownPositionPlayers.length >= 9 && ownBattingAssigned < 9;
+  const ownPitchingIncomplete = ownPitchers.length >= 4 && ownRotationAssigned < 4;
+  const showLineupBanner = shouldCheckLineup && !lineupBannerDismissed && (ownBattingIncomplete || ownPitchingIncomplete);
 
   if (league.currentPhase === "dynasty_setup" || (!league.teams || league.teams.length === 0)) {
     return (
@@ -478,8 +485,13 @@ export default function LeagueViewPage() {
           <div className="flex items-center gap-3 px-4 py-3 mb-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30" data-testid="banner-lineup-incomplete">
             <AlertTriangle className="w-4 h-4 text-yellow-400 flex-shrink-0" />
             <div className="flex-1 min-w-0">
-              <span className="text-yellow-300 text-sm font-medium">Batting order not set</span>
-              <span className="text-yellow-400/70 text-xs ml-2">({ownBattingAssigned}/9 slots filled)</span>
+              <span className="text-yellow-300 text-sm font-medium">Lineup incomplete</span>
+              <span className="text-yellow-400/70 text-xs ml-2">
+                {[
+                  ownBattingIncomplete ? `Batting ${ownBattingAssigned}/9` : null,
+                  ownPitchingIncomplete ? `Rotation ${ownRotationAssigned}/4` : null,
+                ].filter(Boolean).join(" · ")}
+              </span>
             </div>
             <Link href={`/league/${id}/roster?view=depth&sub=lineup`}>
               <RetroButton variant="outline" size="sm" className="border-yellow-500/40 text-yellow-300 hover:bg-yellow-500/10 text-xs" data-testid="button-set-lineup">
