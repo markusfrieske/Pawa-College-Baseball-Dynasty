@@ -1342,6 +1342,28 @@ export const insertGameReportSchema = createInsertSchema(gameReports).omit({ id:
 export type InsertGameReport = z.infer<typeof insertGameReportSchema>;
 export type GameReport = typeof gameReports.$inferSelect;
 
+// Recruiting Class Snapshots — final class rankings captured at signing day finalization
+export const recruitingClassSnapshots = pgTable("recruiting_class_snapshots", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  leagueId: varchar("league_id").notNull().references(() => leagues.id),
+  season: integer("season").notNull(),
+  teamId: varchar("team_id").notNull().references(() => teams.id),
+  classRank: integer("class_rank").notNull().default(0),
+  classScore: real("class_score").notNull().default(0),
+  totalCommits: integer("total_commits").notNull().default(0),
+  fiveStars: integer("five_stars").notNull().default(0),
+  fourStars: integer("four_stars").notNull().default(0),
+  threeStars: integer("three_stars").notNull().default(0),
+  twoStars: integer("two_stars").notNull().default(0),
+  oneStars: integer("one_stars").notNull().default(0),
+  avgOverall: real("avg_overall").notNull().default(0),
+  avgStarRating: real("avg_star_rating").notNull().default(0),
+});
+
+export const insertRecruitingClassSnapshotSchema = createInsertSchema(recruitingClassSnapshots).omit({ id: true });
+export type InsertRecruitingClassSnapshot = z.infer<typeof insertRecruitingClassSnapshotSchema>;
+export type RecruitingClassSnapshot = typeof recruitingClassSnapshots.$inferSelect;
+
 const LEAGUE_EVENT_TYPES = ["SIGNING", "TRANSFER", "DRAFT", "GAME_RESULT", "AWARD", "PHASE_CHANGE", "ROSTER_CUT", "WALKON", "STORYLINE", "NUDGE"] as const;
 export type LeagueEventType = (typeof LEAGUE_EVENT_TYPES)[number];
 

@@ -3142,8 +3142,9 @@ function DynastyHistoryTab({ leagueId }: { leagueId: string }) {
       cwsChampion: { name: string; abbreviation: string; primaryColor: string } | null;
       cwsRunnerUp: { name: string; abbreviation: string; primaryColor: string } | null;
       conferenceChampions: { name: string; abbreviation: string }[];
-      teamRecords: { name: string; abbreviation: string; teamId: string; wins: number; losses: number; conferenceWins: number; conferenceLosses: number }[];
+      teamRecords: { name: string; abbreviation: string; teamId: string; wins: number; losses: number; conferenceWins: number; conferenceLosses: number; classRank: number | null }[];
       hasCWSData: boolean;
+      topClassRankings: { classRank: number; teamId: string; teamAbbr: string; teamName: string; totalCommits: number; fiveStars: number }[];
     }[];
     currentSeason: number;
   }>({
@@ -3211,9 +3212,29 @@ function DynastyHistoryTab({ leagueId }: { leagueId: string }) {
                     {season.teamRecords.slice(0, 8).map(team => (
                       <div key={team.teamId} className="flex items-center justify-between px-2 py-0.5">
                         <span className="text-muted-foreground">{team.abbreviation}</span>
-                        <span>{team.wins || 0}-{team.losses || 0}</span>
+                        <div className="flex items-center gap-1">
+                          <span>{team.wins || 0}-{team.losses || 0}</span>
+                          {team.classRank && team.classRank <= 3 && (
+                            <Badge variant="outline" className="text-[7px] px-1 py-0 h-3 border-gold/50 text-gold">#{team.classRank} class</Badge>
+                          )}
+                        </div>
                       </div>
                     ))}
+                  </div>
+                )}
+                {season.topClassRankings && season.topClassRankings.length > 0 && (
+                  <div className="mt-2 pt-2 border-t border-border/30">
+                    <p className="font-pixel text-[8px] text-muted-foreground mb-1">TOP RECRUITING CLASSES</p>
+                    <div className="flex flex-wrap gap-1">
+                      {season.topClassRankings.map(cls => (
+                        <div key={cls.teamId} className="flex items-center gap-1 text-[10px]">
+                          <span className={`font-pixel text-[8px] ${cls.classRank === 1 ? "text-gold" : "text-muted-foreground"}`}>#{cls.classRank}</span>
+                          <span className="text-foreground">{cls.teamAbbr}</span>
+                          <span className="text-muted-foreground">({cls.totalCommits} commits{cls.fiveStars > 0 ? `, ${cls.fiveStars}x5★` : ""})</span>
+                          {cls.classRank < season.topClassRankings.length && <span className="text-border">·</span>}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>

@@ -9125,6 +9125,49 @@ export async function registerRoutes(
       }
     }
 
+    // Snapshot class rankings before recruits are converted to players
+    try {
+      const snapRecruits = await storage.getRecruitsByLeague(leagueId);
+      const snapByTeam = teams.map(team => {
+        const teamCommits = snapRecruits.filter(r => r.signedTeamId === team.id);
+        const avgStarRating = teamCommits.length > 0 ? teamCommits.reduce((s, r) => s + (r.starRating || 3), 0) / teamCommits.length : 0;
+        const avgOverall = teamCommits.length > 0 ? teamCommits.reduce((s, r) => s + (r.overall || 300), 0) / teamCommits.length : 0;
+        const fiveStars = teamCommits.filter(r => r.starRating === 5).length;
+        const fourStars = teamCommits.filter(r => r.starRating >= 4).length;
+        const threeStars = teamCommits.filter(r => r.starRating === 3).length;
+        const twoStars = teamCommits.filter(r => r.starRating === 2).length;
+        const oneStars = teamCommits.filter(r => r.starRating === 1).length;
+        const classScore = teamCommits.length > 0
+          ? (avgStarRating * 20) + (avgOverall / 50) + (fiveStars * 15) + (fourStars * 5) + (teamCommits.length * 3)
+          : 0;
+        return { team, teamCommits, avgStarRating, avgOverall, fiveStars, fourStars, threeStars, twoStars, oneStars, classScore };
+      }).sort((a, b) => b.classScore - a.classScore);
+
+      let snapRank = 1;
+      for (const entry of snapByTeam) {
+        if (entry.teamCommits.length > 0) {
+          await storage.createRecruitingClassSnapshot({
+            leagueId,
+            season: completedSeason,
+            teamId: entry.team.id,
+            classRank: snapRank++,
+            classScore: entry.classScore,
+            totalCommits: entry.teamCommits.length,
+            fiveStars: entry.fiveStars,
+            fourStars: entry.fourStars,
+            threeStars: entry.threeStars,
+            twoStars: entry.twoStars,
+            oneStars: entry.oneStars,
+            avgOverall: entry.avgOverall,
+            avgStarRating: entry.avgStarRating,
+          });
+        }
+      }
+      console.log(`[finalizeSigningDay] Snapshotted class rankings for season ${completedSeason}`);
+    } catch (snapErr) {
+      console.error("[finalizeSigningDay] Failed to snapshot class rankings:", snapErr);
+    }
+
     console.log(`[finalizeSigningDay] Processing ${teams.length} teams for transfers/eligibility/recruits`);
     for (const team of teams) {
       const roster = await storage.getPlayersByTeam(team.id);
@@ -10509,15 +10552,61 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/leagues/:id/class-rankings", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      const leagueTeams = await storage.getTeamsByLeague(req.params.id);
+      const teamsMap = new Map(leagueTeams.map(t => [t.id, t]));
+
+      const enrichSnap = (s: any) => ({
+        ...s,
+        teamName: teamsMap.get(s.teamId)?.name || "Unknown",
+        teamAbbr: teamsMap.get(s.teamId)?.abbreviation || "???",
+        teamColor: teamsMap.get(s.teamId)?.primaryColor || "#666",
+        teamSecondaryColor: teamsMap.get(s.teamId)?.secondaryColor || "#333",
+        isCpu: teamsMap.get(s.teamId)?.isCpu ?? true,
+      });
+
+      const seasonParam = req.query.season ? parseInt(req.query.season as string) : null;
+      if (seasonParam !== null) {
+        const snapshots = await storage.getRecruitingClassSnapshotsByLeague(req.params.id, seasonParam);
+        return res.json({ season: seasonParam, snapshots: snapshots.map(enrichSnap) });
+      }
+
+      const allSnapshots = await storage.getRecruitingClassSnapshotsAllSeasons(req.params.id);
+      const bySeason: Record<number, any[]> = {};
+      for (const s of allSnapshots) {
+        if (!bySeason[s.season]) bySeason[s.season] = [];
+        bySeason[s.season].push(enrichSnap(s));
+      }
+      const availableSeasons = Object.keys(bySeason).map(Number).sort((a, b) => b - a);
+      return res.json({ bySeason, availableSeasons });
+    } catch (error) {
+      console.error("Failed to fetch class rankings:", error);
+      res.status(500).json({ message: "Failed to fetch class rankings" });
+    }
+  });
+
   app.get("/api/leagues/:id/dynasty-history", requireAuth, async (req, res) => {
     try {
       const leagueId = req.params.id as string;
       const league = await storage.getLeague(leagueId);
       if (!league) return res.status(404).json({ message: "League not found" });
       
-      const allGames = await storage.getGamesByLeague(leagueId);
-      const leagueTeams = await storage.getTeamsByLeague(leagueId);
+      const [allGames, leagueTeams, allClassSnapshots] = await Promise.all([
+        storage.getGamesByLeague(leagueId),
+        storage.getTeamsByLeague(leagueId),
+        storage.getRecruitingClassSnapshotsAllSeasons(leagueId),
+      ]);
       const teamMap = Object.fromEntries(leagueTeams.map(t => [t.id, { name: t.name, abbreviation: t.abbreviation, primaryColor: t.primaryColor }]));
+
+      // Index class snapshots by season for O(1) lookup
+      const classBySeasonTeam = new Map<string, number>();
+      for (const snap of allClassSnapshots) {
+        classBySeasonTeam.set(`${snap.season}_${snap.teamId}`, snap.classRank);
+      }
       
       const seasons: any[] = [];
       
@@ -10555,7 +10644,22 @@ export async function registerRoutes(
           losses: st.losses,
           conferenceWins: st.conferenceWins,
           conferenceLosses: st.conferenceLosses,
+          classRank: classBySeasonTeam.get(`${s}_${st.teamId}`) ?? null,
         })).sort((a, b) => (b.wins || 0) - (a.wins || 0));
+
+        // Top 3 class snapshots for this season summary
+        const seasonSnapshots = allClassSnapshots
+          .filter(snap => snap.season === s)
+          .sort((a, b) => a.classRank - b.classRank)
+          .slice(0, 3)
+          .map(snap => ({
+            classRank: snap.classRank,
+            teamId: snap.teamId,
+            teamAbbr: teamMap[snap.teamId]?.abbreviation || "???",
+            teamName: teamMap[snap.teamId]?.name || "Unknown",
+            totalCommits: snap.totalCommits,
+            fiveStars: snap.fiveStars,
+          }));
         
         seasons.push({
           season: s,
@@ -10564,6 +10668,7 @@ export async function registerRoutes(
           conferenceChampions: confChampions,
           teamRecords,
           hasCWSData: cwsGames.length > 0,
+          topClassRankings: seasonSnapshots,
         });
       }
       

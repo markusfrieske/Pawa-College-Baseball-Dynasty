@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
@@ -12,7 +13,8 @@ import {
   Users,
   Trophy,
   TrendingUp,
-  MapPin
+  MapPin,
+  History,
 } from "lucide-react";
 
 interface CommitInfo {
@@ -54,6 +56,33 @@ interface CommitsData {
   commitsByTeam: TeamCommits[];
   totalCommits: number;
   totalRecruits: number;
+}
+
+interface SnapshotEntry {
+  id: string;
+  leagueId: string;
+  season: number;
+  teamId: string;
+  classRank: number;
+  classScore: number;
+  totalCommits: number;
+  fiveStars: number;
+  fourStars: number;
+  threeStars: number;
+  twoStars: number;
+  oneStars: number;
+  avgOverall: number;
+  avgStarRating: number;
+  teamName: string;
+  teamAbbr: string;
+  teamColor: string;
+  teamSecondaryColor: string;
+  isCpu: boolean;
+}
+
+interface ClassRankingsData {
+  bySeason: Record<number, SnapshotEntry[]>;
+  availableSeasons: number[];
 }
 
 function CommitMiniCard({ commit }: { commit: CommitInfo }) {
@@ -144,6 +173,108 @@ function TeamCommitCard({ teamData }: { teamData: TeamCommits }) {
         )}
       </RetroCardContent>
     </RetroCard>
+  );
+}
+
+function PastClassesSection({ leagueId }: { leagueId: string }) {
+  const { data, isLoading } = useQuery<ClassRankingsData>({
+    queryKey: ["/api/leagues", leagueId, "class-rankings"],
+    queryFn: async () => {
+      const res = await fetch(`/api/leagues/${leagueId}/class-rankings`);
+      if (!res.ok) throw new Error("Failed to fetch class rankings");
+      return res.json();
+    },
+    enabled: !!leagueId,
+  });
+
+  const [selectedSeason, setSelectedSeason] = useState<number | null>(null);
+
+  if (isLoading) return <Skeleton className="h-48" />;
+  if (!data || data.availableSeasons.length === 0) return null;
+
+  const activeSeason = selectedSeason ?? data.availableSeasons[0];
+  const snapshots = data.bySeason[activeSeason] ?? [];
+
+  return (
+    <div className="mt-10">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <History className="w-5 h-5 text-[#C4A35A]" />
+          <h2 className="font-pixel text-sm text-[#C4A35A]">PAST CLASS RANKINGS</h2>
+        </div>
+        {data.availableSeasons.length > 1 && (
+          <div className="flex gap-1 flex-wrap">
+            {data.availableSeasons.map(s => (
+              <RetroButton
+                key={s}
+                variant={activeSeason === s ? "primary" : "outline"}
+                size="sm"
+                onClick={() => setSelectedSeason(s)}
+                data-testid={`past-class-season-${s}`}
+              >
+                S{s}
+              </RetroButton>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {snapshots.length === 0 ? (
+        <p className="text-xs text-gray-500">No class data for season {activeSeason}.</p>
+      ) : (
+        <RetroCard>
+          <RetroCardContent className="pt-4">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm" data-testid="table-past-classes">
+                <thead>
+                  <tr className="border-b border-border text-left">
+                    <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">#</th>
+                    <th className="py-2 px-2 font-pixel text-[8px] text-gold">Team</th>
+                    <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">Commits</th>
+                    <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">5★</th>
+                    <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">4★+</th>
+                    <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">3★</th>
+                    <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">Avg OVR</th>
+                    <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">Avg Stars</th>
+                    <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">Score</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {snapshots.map((snap, idx) => (
+                    <tr
+                      key={snap.teamId}
+                      className={`border-b border-border/30 ${idx % 2 === 0 ? "" : "bg-muted/10"}`}
+                      data-testid={`row-past-class-${snap.teamAbbr}`}
+                    >
+                      <td className="py-2 px-2 text-center">
+                        <span className={`font-pixel text-[9px] ${snap.classRank === 1 ? "text-gold" : snap.classRank <= 3 ? "text-yellow-400" : "text-muted-foreground"}`}>
+                          #{snap.classRank}
+                        </span>
+                      </td>
+                      <td className="py-2 px-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: snap.teamColor }} />
+                          <span className="font-pixel text-[8px]">{snap.teamAbbr}</span>
+                          <span className="text-xs text-muted-foreground truncate hidden sm:inline">{snap.teamName}</span>
+                          {!snap.isCpu && <Badge variant="outline" className="text-[7px] px-1 py-0 h-3">You</Badge>}
+                        </div>
+                      </td>
+                      <td className="py-2 px-2 text-center text-xs font-medium">{snap.totalCommits}</td>
+                      <td className="py-2 px-2 text-center text-xs text-gold">{snap.fiveStars || 0}</td>
+                      <td className="py-2 px-2 text-center text-xs">{snap.fourStars || 0}</td>
+                      <td className="py-2 px-2 text-center text-xs">{snap.threeStars || 0}</td>
+                      <td className="py-2 px-2 text-center text-xs">{Math.round(snap.avgOverall)}</td>
+                      <td className="py-2 px-2 text-center text-xs">{snap.avgStarRating.toFixed(1)}</td>
+                      <td className="py-2 px-2 text-center text-xs font-medium text-gold">{snap.classScore.toFixed(1)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </RetroCardContent>
+        </RetroCard>
+      )}
+    </div>
   );
 }
 
@@ -275,6 +406,8 @@ export default function CommitsPage() {
           </div>
         </>
       )}
+
+      <PastClassesSection leagueId={leagueId!} />
     </div>
   );
 }

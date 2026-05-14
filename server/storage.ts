@@ -5,6 +5,7 @@ import {
   playerSeasonStats, walkonPool,
   leagueEvents,
   gameReports,
+  recruitingClassSnapshots,
   storylineRecruits, storylineEvents, storylineVotes,
   type User, type InsertUser,
   type League, type InsertLeague,
@@ -32,6 +33,7 @@ import {
   type SavedRecruitingClass, type InsertSavedRecruitingClass,
   type LeagueEvent, type InsertLeagueEvent,
   type GameReport, type InsertGameReport,
+  type RecruitingClassSnapshot, type InsertRecruitingClassSnapshot,
   type StorylineRecruit, type InsertStorylineRecruit,
   type StorylineEvent, type InsertStorylineEvent,
   type StorylineVote, type InsertStorylineVote,
@@ -177,6 +179,11 @@ export interface IStorage {
   getPendingReportsForTeam(leagueId: string, teamId: string): Promise<GameReport[]>;
   createGameReport(data: InsertGameReport): Promise<GameReport>;
   updateGameReport(id: string, data: Partial<GameReport>): Promise<GameReport | undefined>;
+
+  // Recruiting class snapshots
+  createRecruitingClassSnapshot(data: InsertRecruitingClassSnapshot): Promise<RecruitingClassSnapshot>;
+  getRecruitingClassSnapshotsByLeague(leagueId: string, season: number): Promise<RecruitingClassSnapshot[]>;
+  getRecruitingClassSnapshotsAllSeasons(leagueId: string): Promise<RecruitingClassSnapshot[]>;
 
   // Storyline system
   getStorylineRecruitsByLeague(leagueId: string, season?: number): Promise<StorylineRecruit[]>;
@@ -918,6 +925,24 @@ export class DatabaseStorage implements IStorage {
 
   async deleteSavedRecruitingClass(id: string): Promise<void> {
     await db.delete(savedRecruitingClasses).where(eq(savedRecruitingClasses.id, id));
+  }
+
+  // ─── Recruiting Class Snapshots ──────────────────────────────────────────────
+  async createRecruitingClassSnapshot(data: InsertRecruitingClassSnapshot): Promise<RecruitingClassSnapshot> {
+    const [snap] = await db.insert(recruitingClassSnapshots).values(data).returning();
+    return snap;
+  }
+
+  async getRecruitingClassSnapshotsByLeague(leagueId: string, season: number): Promise<RecruitingClassSnapshot[]> {
+    return db.select().from(recruitingClassSnapshots)
+      .where(and(eq(recruitingClassSnapshots.leagueId, leagueId), eq(recruitingClassSnapshots.season, season)))
+      .orderBy(recruitingClassSnapshots.classRank);
+  }
+
+  async getRecruitingClassSnapshotsAllSeasons(leagueId: string): Promise<RecruitingClassSnapshot[]> {
+    return db.select().from(recruitingClassSnapshots)
+      .where(eq(recruitingClassSnapshots.leagueId, leagueId))
+      .orderBy(recruitingClassSnapshots.season, recruitingClassSnapshots.classRank);
   }
 
   // ─── Storyline Recruits ──────────────────────────────────────────────────────
