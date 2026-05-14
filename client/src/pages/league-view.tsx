@@ -49,6 +49,9 @@ import {
   Vote,
   ClipboardList,
   AlertTriangle,
+  FileText,
+  Home,
+  Plane,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -621,6 +624,8 @@ export default function LeagueViewPage() {
 
         <OffseasonSummary league={league} />
 
+        <NextGameWidget leagueId={id!} league={league} myTeam={myTeam} />
+
         <Tabs defaultValue="news" className="space-y-4">
           <div className="overflow-x-auto -mx-4 px-4 pb-2 scrollbar-hide">
             <TabsList className="bg-card border border-border inline-flex w-auto gap-0">
@@ -743,6 +748,234 @@ function QuickActionCard({
         </div>
       </RetroCard>
     </Link>
+  );
+}
+
+// ============ NEXT GAME WIDGET ============
+
+interface GameForWidget {
+  id: string;
+  week: number;
+  phase: string;
+  homeTeamId: string;
+  awayTeamId: string;
+  homeScore: number | null;
+  awayScore: number | null;
+  isComplete: boolean;
+  isConference: boolean;
+  gameType: string | null;
+  homeTeam: Team;
+  awayTeam: Team;
+}
+
+interface ScheduleForWidget {
+  games: GameForWidget[];
+  currentWeek: number;
+  humanTeamIds: string[];
+}
+
+const NEXT_GAME_PHASES = new Set(["regular_season", "conference_championship", "super_regionals", "cws"]);
+
+function NextGameWidget({ leagueId, league, myTeam }: { leagueId: string; league: LeagueDetails; myTeam: TeamWithCoach | undefined }) {
+  const isActive = NEXT_GAME_PHASES.has(league.currentPhase);
+
+  const { data: scheduleData } = useQuery<ScheduleForWidget>({
+    queryKey: ["/api/leagues", leagueId, "schedule"],
+    enabled: isActive,
+    staleTime: 30000,
+  });
+
+  if (!isActive || !scheduleData) return null;
+
+  const { games, currentWeek, humanTeamIds } = scheduleData;
+  const humanTeamSet = new Set(humanTeamIds);
+  const isPostseason = ["conference_championship", "super_regionals", "cws"].includes(league.currentPhase);
+
+  const weekGames = isPostseason
+    ? games.filter(g => g.phase === league.currentPhase)
+    : games.filter(g => g.week === currentWeek);
+
+  const myGames = myTeam
+    ? weekGames.filter(g => g.homeTeamId === myTeam.id || g.awayTeamId === myTeam.id)
+    : [];
+
+  const nextIncomplete = myGames.find(g => !g.isComplete);
+  const lastCompleted = myGames.filter(g => g.isComplete).slice(-1)[0];
+  const featured = nextIncomplete ?? lastCompleted;
+
+  if (myTeam && myGames.length === 0) {
+    return (
+      <div className="mb-4 px-4 py-3 rounded-lg bg-card/60 border border-border/40 flex items-center gap-3" data-testid="widget-next-game-bye">
+        <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+        <div>
+          <p className="font-pixel text-[9px] text-muted-foreground mb-0.5">WEEK {currentWeek}</p>
+          <p className="text-sm text-muted-foreground">Bye week — no game scheduled</p>
+        </div>
+      </div>
+    );
+  }
+
+  let displayGame: GameForWidget | null = featured ?? null;
+
+  if (!myTeam && !displayGame) {
+    const incomplete = weekGames.filter(g => !g.isComplete);
+    const getPrestige = (g: GameForWidget) => {
+      const h = league.teams.find(t => t.id === g.homeTeamId);
+      const a = league.teams.find(t => t.id === g.awayTeamId);
+      return (h?.prestige ?? 0) + (a?.prestige ?? 0) + (h?.standings?.wins ?? 0) + (a?.standings?.wins ?? 0);
+    };
+    displayGame = incomplete.sort((a, b) => getPrestige(b) - getPrestige(a))[0] ?? null;
+  }
+
+  if (!displayGame) return null;
+
+  const game = displayGame;
+  const isUserGame = !!myTeam;
+  const userIsHome = !!myTeam && game.homeTeamId === myTeam.id;
+  const opponent = isUserGame ? (userIsHome ? game.awayTeam : game.homeTeam) : null;
+  const opponentTeamData = opponent ? league.teams.find(t => t.id === opponent.id) : null;
+  const homeTeamData = league.teams.find(t => t.id === game.homeTeamId);
+  const awayTeamData = league.teams.find(t => t.id === game.awayTeamId);
+
+  const isHvH = humanTeamSet.has(game.homeTeamId) && humanTeamSet.has(game.awayTeamId);
+  const phaseLabel = {
+    conference_championship: "CONF CHAMPS",
+    super_regionals: "SUPER REGIONALS",
+    cws: "COLLEGE WORLD SERIES",
+  }[league.currentPhase] ?? `WEEK ${currentWeek}`;
+
+  const gameTypeLabel = game.gameType
+    ? { friday: "FRI", saturday: "SAT", sunday: "SUN", midweek: "MID" }[game.gameType] ?? game.gameType.toUpperCase()
+    : null;
+
+  const userScore = game.isComplete ? (userIsHome ? game.homeScore : game.awayScore) : null;
+  const oppScore = game.isComplete ? (userIsHome ? game.awayScore : game.homeScore) : null;
+  const userWon = game.isComplete && userScore != null && oppScore != null && userScore > oppScore;
+  const userLost = game.isComplete && !userWon;
+
+  return (
+    <div
+      className={`mb-4 bg-card/90 border rounded-lg overflow-hidden ${
+        game.isComplete && isUserGame
+          ? userWon ? "border-green-700/40" : "border-red-700/40"
+          : "border-border"
+      }`}
+      data-testid="widget-next-game"
+    >
+      <div className="bg-gold/10 px-3 py-1.5 border-b border-border flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className="font-pixel text-gold text-[9px]">
+            {game.isComplete ? "RESULT" : "NEXT GAME"} — {phaseLabel}
+          </span>
+          {gameTypeLabel && (
+            <span className="font-pixel text-[7px] px-1 py-0.5 rounded bg-muted/60 text-muted-foreground">{gameTypeLabel}</span>
+          )}
+        </div>
+        <span className={`font-pixel text-[8px] px-1.5 py-0.5 rounded ${game.isConference ? "bg-blue-500/20 text-blue-400" : "bg-muted/50 text-muted-foreground"}`}>
+          {game.isConference ? "CONF" : "OOC"}
+        </span>
+      </div>
+
+      <div className="px-3 py-3 flex items-center gap-3">
+        {isUserGame && myTeam && opponent ? (
+          <>
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <TeamBadge abbreviation={myTeam.abbreviation} primaryColor={myTeam.primaryColor} secondaryColor={myTeam.secondaryColor} size="md" />
+              <div className="min-w-0">
+                <p className="text-sm font-medium truncate leading-tight">{myTeam.name}</p>
+                <div className="flex items-center gap-1 mt-0.5">
+                  {userIsHome
+                    ? <Home className="w-2.5 h-2.5 text-gold" />
+                    : <Plane className="w-2.5 h-2.5 text-muted-foreground" />}
+                  <span className="font-pixel text-[7px] text-muted-foreground">{userIsHome ? "HOME" : "AWAY"}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="text-center flex-shrink-0 w-16">
+              {game.isComplete ? (
+                <div className={`font-pixel text-sm leading-none ${userWon ? "text-green-400" : "text-red-400"}`} data-testid="text-next-game-score">
+                  {userScore} – {oppScore}
+                </div>
+              ) : (
+                <div className="font-pixel text-muted-foreground text-[10px]">VS</div>
+              )}
+              {game.isComplete && (
+                <div className={`font-pixel text-[8px] mt-0.5 ${userWon ? "text-green-400" : "text-red-400"}`}>
+                  {userWon ? "W" : "L"}
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 min-w-0 flex-1 justify-end">
+              <div className="min-w-0 text-right">
+                <p className="text-sm font-medium truncate leading-tight">{opponent.name}</p>
+                {opponentTeamData?.standings && (
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    {opponentTeamData.standings.wins ?? 0}–{opponentTeamData.standings.losses ?? 0}
+                  </p>
+                )}
+              </div>
+              <TeamBadge abbreviation={opponent.abbreviation} primaryColor={opponent.primaryColor} secondaryColor={opponent.secondaryColor} size="md" />
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <TeamBadge abbreviation={game.homeTeam.abbreviation} primaryColor={game.homeTeam.primaryColor} secondaryColor={game.homeTeam.secondaryColor} size="md" />
+              <div className="min-w-0">
+                <p className="text-sm font-medium truncate">{game.homeTeam.name}</p>
+                {homeTeamData?.standings && (
+                  <p className="text-[10px] text-muted-foreground">{homeTeamData.standings.wins ?? 0}–{homeTeamData.standings.losses ?? 0}</p>
+                )}
+              </div>
+            </div>
+            <div className="font-pixel text-muted-foreground text-[10px] flex-shrink-0">
+              {game.isComplete ? `${game.awayScore ?? 0} – ${game.homeScore ?? 0}` : "VS"}
+            </div>
+            <div className="flex items-center gap-2 min-w-0 flex-1 justify-end">
+              <div className="min-w-0 text-right">
+                <p className="text-sm font-medium truncate">{game.awayTeam.name}</p>
+                {awayTeamData?.standings && (
+                  <p className="text-[10px] text-muted-foreground">{awayTeamData.standings.wins ?? 0}–{awayTeamData.standings.losses ?? 0}</p>
+                )}
+              </div>
+              <TeamBadge abbreviation={game.awayTeam.abbreviation} primaryColor={game.awayTeam.primaryColor} secondaryColor={game.awayTeam.secondaryColor} size="md" />
+            </div>
+          </>
+        )}
+
+        {!game.isComplete && (
+          <div className="flex-shrink-0 ml-1">
+            {isHvH ? (
+              <Link href={`/league/${leagueId}/schedule`}>
+                <RetroButton variant="outline" size="sm" data-testid="button-next-game-report">
+                  <FileText className="w-3 h-3 mr-1" />
+                  Report
+                </RetroButton>
+              </Link>
+            ) : (
+              <Link href={`/league/${leagueId}/game/${game.id}/play-by-play`}>
+                <RetroButton variant="primary" size="sm" data-testid="button-next-game-simulate">
+                  <Play className="w-3 h-3 mr-1" />
+                  Simulate
+                </RetroButton>
+              </Link>
+            )}
+          </div>
+        )}
+        {game.isComplete && (
+          <div className="flex-shrink-0 ml-1">
+            <Link href={`/league/${leagueId}/schedule`}>
+              <RetroButton variant="outline" size="sm" data-testid="button-next-game-results">
+                <FileText className="w-3 h-3 mr-1" />
+                Results
+              </RetroButton>
+            </Link>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
