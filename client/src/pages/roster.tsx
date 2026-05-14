@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from "react";
 import { parseErrorMessage } from "@/lib/errorUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useParams, Link, useLocation } from "wouter";
+import { useParams, Link, useLocation, useSearch } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
 import { RetroSelect } from "@/components/ui/retro-select";
@@ -70,12 +70,23 @@ const eligibilityOptions = [
 
 export default function RosterPage() {
   const { id } = useParams<{ id: string }>();
+  const search = useSearch();
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [positionFilter, setPositionFilter] = useState("all");
   const [eligibilityFilter, setEligibilityFilter] = useState("all");
   const [viewingTeamId, setViewingTeamId] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<"list" | "depth">("list");
+  const [viewMode, setViewMode] = useState<"list" | "depth">(() => {
+    const params = new URLSearchParams(search);
+    return params.get("view") === "depth" ? "depth" : "list";
+  });
+  const [initialLineupTab] = useState<"field" | "lineup" | "pitching">(() => {
+    const params = new URLSearchParams(search);
+    const sub = params.get("sub");
+    if (sub === "lineup") return "lineup";
+    if (sub === "pitching") return "pitching";
+    return "field";
+  });
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [saveFileName, setSaveFileName] = useState("");
   const { toast } = useToast();
@@ -179,6 +190,10 @@ export default function RosterPage() {
   const grouped = groupPlayersByCategory(filteredPlayers);
   const allSorted = [...filteredPlayers].sort((a, b) => b.starRating - a.starRating || b.overall - a.overall);
 
+  const positionPlayersAll = (data?.players || []).filter(p => !isPitcher(p.position));
+  const assignedBattingCount = positionPlayersAll.filter(p => p.battingOrder != null && p.battingOrder >= 1 && p.battingOrder <= 9).length;
+  const isLineupIncomplete = !viewingTeamId && positionPlayersAll.length >= 9 && assignedBattingCount < 9;
+
   if (isLoading) {
     return <RosterSkeleton />;
   }
@@ -194,6 +209,15 @@ export default function RosterPage() {
             <h1 className="font-pixel text-gold text-base sm:text-lg truncate">
               {data?.team ? `${data.team.name} Roster` : 'Roster'}
             </h1>
+            {isLineupIncomplete && (
+              <button
+                onClick={() => setViewMode("depth")}
+                className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-500/20 border border-yellow-500/40 text-yellow-400 text-[10px] font-pixel hover:bg-yellow-500/30 transition-colors"
+                data-testid="badge-lineup-incomplete"
+              >
+                ⚠ Lineup Incomplete ({assignedBattingCount}/9)
+              </button>
+            )}
             <div className="ml-auto flex items-center gap-2 sm:gap-4 flex-wrap">
               {leagueData?.teams && leagueData.teams.length > 1 && (
                 <div className="flex items-center gap-1.5">
@@ -279,7 +303,7 @@ export default function RosterPage() {
         </RetroCard>
 
         {viewMode === "depth" ? (
-          <DepthChartView players={data?.players || []} onSelectPlayer={setSelectedPlayer} teamPrimaryColor={data?.team?.primaryColor} leagueId={id} isOwnTeam={!viewingTeamId} rosterUrl={rosterUrl} />
+          <DepthChartView players={data?.players || []} onSelectPlayer={setSelectedPlayer} teamPrimaryColor={data?.team?.primaryColor} leagueId={id} isOwnTeam={!viewingTeamId} rosterUrl={rosterUrl} initialLineupTab={initialLineupTab} />
         ) : positionFilter === "all" ? (
           <>
             <PositionSection 
@@ -1245,18 +1269,23 @@ function PositionCard({ position, players, onSelectPlayer, maxPlayers = 3, teamP
   );
 }
 
-function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leagueId, isOwnTeam, rosterUrl }: {
+function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leagueId, isOwnTeam, rosterUrl, initialLineupTab = "field" }: {
   players: Player[];
   onSelectPlayer: (p: Player) => void;
   teamPrimaryColor?: string;
   leagueId?: string;
   isOwnTeam?: boolean;
   rosterUrl?: string;
+  initialLineupTab?: "field" | "lineup" | "pitching";
 }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [lineupTab, setLineupTab] = useState<"field" | "lineup" | "pitching">("field");
+  const [lineupTab, setLineupTab] = useState<"field" | "lineup" | "pitching">(initialLineupTab);
   const [selectingSlot, setSelectingSlot] = useState<{ type: "batting"; slot: number } | { type: "pitching"; role: string } | null>(null);
+  const [dragBattingSource, setDragBattingSource] = useState<{ player: Player; fromSlot?: number } | null>(null);
+  const [dragOverBattingSlot, setDragOverBattingSlot] = useState<number | null>(null);
+  const [dragPitchingSource, setDragPitchingSource] = useState<{ player: Player; fromRole?: string } | null>(null);
+  const [dragOverPitchingRole, setDragOverPitchingRole] = useState<string | null>(null);
 
   const depthOrderMutation = useMutation({
     mutationFn: async (orders: { playerId: string; depthOrder: number }[]) => {
@@ -1619,19 +1648,93 @@ function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leagueId, i
       {lineupTab === "lineup" && (
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="bg-card/90 border border-border rounded-lg overflow-visible" data-testid="batting-order-section">
-            <div className="bg-gold/20 px-3 py-2 border-b border-border">
+            <div className="bg-gold/20 px-3 py-2 border-b border-border flex items-center justify-between">
               <span className="font-pixel text-gold text-xs">BATTING ORDER</span>
+              {canDrag && (
+                <span className="text-[9px] text-muted-foreground">Drag or click to assign</span>
+              )}
             </div>
             <div className="p-2 space-y-1">
               {battingSlots.map(({ slot, player }) => {
                 const isActive = selectingSlot?.type === "batting" && selectingSlot.slot === slot;
-                return renderSlotRow(
-                  `#${slot}`,
-                  player,
-                  () => canDrag ? setSelectingSlot(isActive ? null : { type: "batting", slot }) : undefined,
-                  () => handleClearBatter(slot),
-                  `batting-${slot}`,
-                  isActive
+                const isDragTarget = dragOverBattingSlot === slot;
+                return (
+                  <div
+                    key={slot}
+                    className={`flex items-center gap-2 px-3 py-2 rounded border transition-colors cursor-pointer ${
+                      isDragTarget ? 'border-gold bg-gold/20 scale-[1.01]' :
+                      isActive ? 'border-gold bg-gold/10' : 'border-border bg-card/90 hover:border-border/80'
+                    }`}
+                    onClick={() => canDrag ? setSelectingSlot(isActive ? null : { type: "batting", slot }) : undefined}
+                    onDragOver={(e) => {
+                      if (!canDrag) return;
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = "move";
+                      setDragOverBattingSlot(slot);
+                    }}
+                    onDragLeave={() => setDragOverBattingSlot(null)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setDragOverBattingSlot(null);
+                      if (dragBattingSource) {
+                        handleAssignBatter(slot, dragBattingSource.player);
+                        setDragBattingSource(null);
+                        setSelectingSlot(null);
+                      }
+                    }}
+                    data-testid={`slot-batting-${slot}`}
+                  >
+                    <span className="font-pixel text-gold text-[10px] w-6 flex-shrink-0 text-center">{slot}</span>
+                    {player ? (
+                      <div
+                        className="flex items-center gap-2 flex-1 min-w-0"
+                        draggable={canDrag}
+                        onDragStart={(e) => {
+                          e.dataTransfer.effectAllowed = "move";
+                          setDragBattingSource({ player, fromSlot: slot });
+                          setSelectingSlot(null);
+                        }}
+                        onDragEnd={() => { setDragBattingSource(null); setDragOverBattingSlot(null); }}
+                        onClick={(e) => e.stopPropagation()}
+                        data-testid={`batting-slot-player-${slot}`}
+                      >
+                        {canDrag && <GripVertical className="w-3 h-3 text-muted-foreground/40 flex-shrink-0 cursor-grab" />}
+                        <PlayerPortrait
+                          skinTone={player.skinTone || "light"}
+                          hairColor={player.hairColor || "brown"}
+                          hairStyle={player.hairStyle || "short"}
+                          facialHair={player.facialHair || "none"}
+                          eyeStyle={player.eyeStyle || undefined}
+                          eyebrowStyle={player.eyebrowStyle || undefined}
+                          mouthStyle={player.mouthStyle || undefined}
+                          eyeBlack={player.eyeBlack ?? undefined}
+                          playerId={player.id}
+                          className="w-6 h-6 flex-shrink-0"
+                          jerseyColor={teamPrimaryColor}
+                        />
+                        <PositionBadge position={player.position} size="sm" />
+                        <span className="text-xs truncate flex-1">{player.firstName.charAt(0)}. {player.lastName}</span>
+                        <span className="text-[9px] text-muted-foreground hidden sm:inline">
+                          {isPitcher(player.position) ? `VEL ${player.velocity || 0}` : `CON ${player.hitForAvg || 0} / PWR ${player.power || 0}`}
+                        </span>
+                        <span className="text-[9px] text-muted-foreground">{player.eligibility}</span>
+                        <span className="text-xs font-bold text-gold">{player.overall}</span>
+                        {canDrag && (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleClearBatter(slot); }}
+                            className="text-muted-foreground hover:text-red-400 transition-colors ml-1"
+                            data-testid={`clear-batting-${slot}`}
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground italic flex-1">
+                        {isDragTarget ? "Drop here" : "Empty"}
+                      </span>
+                    )}
+                  </div>
                 );
               })}
             </div>
@@ -1640,10 +1743,10 @@ function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leagueId, i
           <div className="bg-card/90 border border-border rounded-lg overflow-visible" data-testid="available-batters-section">
             <div className="bg-gold/20 px-3 py-2 border-b border-border">
               <span className="font-pixel text-gold text-xs">
-                {selectingSlot?.type === "batting" ? `SELECT FOR #${selectingSlot.slot}` : "AVAILABLE PLAYERS"}
+                {selectingSlot?.type === "batting" ? `SELECT FOR SLOT #${selectingSlot.slot}` : "AVAILABLE PLAYERS"}
               </span>
             </div>
-            <div className="p-2 space-y-0.5 max-h-[400px] overflow-y-auto">
+            <div className="p-2 space-y-0.5 max-h-[420px] overflow-y-auto">
               {(selectingSlot?.type === "batting" ? [...unassignedBatters, ...battingSlots.filter(s => s.player && s.slot !== selectingSlot.slot).map(s => s.player!)] : unassignedBatters).length === 0 ? (
                 <div className="text-muted-foreground text-xs py-4 text-center">
                   {selectingSlot?.type === "batting" ? "No available players" : "All position players assigned"}
@@ -1652,11 +1755,45 @@ function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leagueId, i
                 (selectingSlot?.type === "batting"
                   ? [...unassignedBatters, ...battingSlots.filter(s => s.player && s.slot !== selectingSlot.slot).map(s => s.player!)]
                   : unassignedBatters
-                ).map(p => renderAvailablePlayer(
-                  p,
-                  () => selectingSlot?.type === "batting" ? handleAssignBatter(selectingSlot.slot, p) : undefined,
-                  "batter"
-                ))
+                ).map(p => {
+                  const keyStats = `CON ${p.hitForAvg || 0} / PWR ${p.power || 0} / SPD ${p.speed || 0}`;
+                  return (
+                    <div
+                      key={p.id}
+                      className={`flex items-center gap-2 px-3 py-2 rounded border transition-colors ${
+                        canDrag ? 'cursor-grab hover:bg-gold/10 hover:border-gold/30 border-transparent' : 'cursor-pointer hover:bg-gold/10 border-transparent'
+                      } ${dragBattingSource?.player.id === p.id ? 'opacity-40' : ''}`}
+                      draggable={canDrag}
+                      onDragStart={(e) => {
+                        e.dataTransfer.effectAllowed = "move";
+                        setDragBattingSource({ player: p });
+                        setSelectingSlot(null);
+                      }}
+                      onDragEnd={() => { setDragBattingSource(null); setDragOverBattingSlot(null); }}
+                      onClick={() => selectingSlot?.type === "batting" ? handleAssignBatter(selectingSlot.slot, p) : canDrag ? setSelectingSlot(null) : undefined}
+                      data-testid={`available-batter-${p.id}`}
+                    >
+                      {canDrag && <GripVertical className="w-3 h-3 text-muted-foreground/40 flex-shrink-0" />}
+                      <PlayerPortrait
+                        skinTone={p.skinTone || "light"}
+                        hairColor={p.hairColor || "brown"}
+                        hairStyle={p.hairStyle || "short"}
+                        facialHair={p.facialHair || "none"}
+                        eyeStyle={p.eyeStyle || undefined}
+                        eyebrowStyle={p.eyebrowStyle || undefined}
+                        mouthStyle={p.mouthStyle || undefined}
+                        eyeBlack={p.eyeBlack ?? undefined}
+                        playerId={p.id}
+                        className="w-5 h-5 flex-shrink-0"
+                        jerseyColor={teamPrimaryColor}
+                      />
+                      <PositionBadge position={p.position} size="sm" />
+                      <span className="text-xs truncate flex-1">{p.firstName.charAt(0)}. {p.lastName}</span>
+                      <span className="text-[9px] text-muted-foreground hidden sm:inline">{keyStats}</span>
+                      <span className="text-xs font-bold text-gold">{p.overall}</span>
+                    </div>
+                  );
+                })
               )}
             </div>
           </div>

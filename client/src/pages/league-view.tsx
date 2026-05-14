@@ -47,6 +47,8 @@ import {
   BookOpen,
   Sparkles,
   Vote,
+  ClipboardList,
+  AlertTriangle,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -306,6 +308,32 @@ export default function LeagueViewPage() {
   const isCommissioner = !!currentUser && currentUser.id === league.commissionerId;
   const canLeave = !!myCoach && !isCommissioner;
 
+  const activeLineupPhases = ["preseason", "spring_training", "regular_season", "conference_championship", "super_regionals", "cws"];
+  const shouldCheckLineup = !!myTeam && activeLineupPhases.includes(league.currentPhase);
+
+  const { data: ownRosterData } = useQuery<{ players: { position: string; battingOrder: number | null }[] }>({
+    queryKey: [`/api/leagues/${id}/roster`],
+    enabled: shouldCheckLineup,
+    select: (data) => ({
+      players: (data as any).players?.map((p: any) => ({ position: p.position, battingOrder: p.battingOrder })) ?? [],
+    }),
+  });
+
+  const [lineupBannerDismissed, setLineupBannerDismissed] = useState(() => {
+    try { return localStorage.getItem(`lineup-banner-dismissed-${id}`) === "1"; } catch { return false; }
+  });
+  const dismissLineupBanner = () => {
+    setLineupBannerDismissed(true);
+    try { localStorage.setItem(`lineup-banner-dismissed-${id}`, "1"); } catch {}
+  };
+
+  const ownPositionPlayers = (ownRosterData?.players ?? []).filter((p) => {
+    const pitcherPositions = ["P", "SP", "RP", "CL", "LHP", "RHP"];
+    return !pitcherPositions.includes(p.position);
+  });
+  const ownBattingAssigned = ownPositionPlayers.filter(p => p.battingOrder != null && p.battingOrder >= 1 && p.battingOrder <= 9).length;
+  const showLineupBanner = shouldCheckLineup && !lineupBannerDismissed && ownPositionPlayers.length >= 9 && ownBattingAssigned < 9;
+
   if (league.currentPhase === "dynasty_setup" || (!league.teams || league.teams.length === 0)) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -446,7 +474,29 @@ export default function LeagueViewPage() {
 
         <WaitingOnWidget leagueId={id!} league={league} pendingVoteCount={storylinePendingVotes} />
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-8 gap-2 sm:gap-3 mb-6">
+        {showLineupBanner && (
+          <div className="flex items-center gap-3 px-4 py-3 mb-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30" data-testid="banner-lineup-incomplete">
+            <AlertTriangle className="w-4 h-4 text-yellow-400 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <span className="text-yellow-300 text-sm font-medium">Batting order not set</span>
+              <span className="text-yellow-400/70 text-xs ml-2">({ownBattingAssigned}/9 slots filled)</span>
+            </div>
+            <Link href={`/league/${id}/roster?view=depth&sub=lineup`}>
+              <RetroButton variant="outline" size="sm" className="border-yellow-500/40 text-yellow-300 hover:bg-yellow-500/10 text-xs" data-testid="button-set-lineup">
+                Set Lineup
+              </RetroButton>
+            </Link>
+            <button
+              onClick={dismissLineupBanner}
+              className="text-yellow-400/60 hover:text-yellow-300 transition-colors"
+              data-testid="button-dismiss-lineup-banner"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-9 gap-2 sm:gap-3 mb-6">
           <QuickActionCard
             href={`/league/${id}/coach`}
             icon={<Award className="w-6 h-6" />}
@@ -464,6 +514,13 @@ export default function LeagueViewPage() {
             icon={<Users className="w-6 h-6" />}
             title="Roster"
             subtitle="Manage your team"
+          />
+          <QuickActionCard
+            href={`/league/${id}/roster?view=depth&sub=lineup`}
+            icon={<ClipboardList className="w-6 h-6" />}
+            title="Lineup"
+            subtitle="Set batting order"
+            badge={showLineupBanner ? "!" : undefined}
           />
           <QuickActionCard
             href={`/league/${id}/schedule`}
@@ -653,12 +710,13 @@ function QuickActionCard({
   icon: React.ReactNode;
   title: string;
   subtitle: string;
-  badge?: number;
+  badge?: number | string;
 }) {
+  const showBadge = badge != null && badge !== 0 && badge !== "";
   return (
     <Link href={href}>
       <RetroCard className="hover:border-gold/50 transition-colors cursor-pointer h-full relative" data-testid={`card-action-${title.toLowerCase()}`}>
-        {badge != null && badge > 0 && (
+        {showBadge && (
           <span
             className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-gold text-forest-dark font-pixel text-[7px] px-1 z-10 animate-pulse"
             data-testid={`badge-action-${title.toLowerCase()}`}
