@@ -615,7 +615,7 @@ export default function LeagueViewPage() {
           </TabsContent>
 
           <TabsContent value="stats">
-            <StatsTab leagueId={league.id} currentSeason={league.currentSeason} />
+            <StatsTab leagueId={league.id} currentSeason={league.currentSeason} conferences={league.conferences} teams={league.teams} />
           </TabsContent>
 
           <TabsContent value="postseason">
@@ -2337,9 +2337,10 @@ interface StatsData {
   totalGames: number;
 }
 
-function StatsTab({ leagueId, currentSeason }: { leagueId: string; currentSeason: number }) {
+function StatsTab({ leagueId, currentSeason, conferences, teams }: { leagueId: string; currentSeason: number; conferences: Conference[]; teams: Team[] }) {
   const [view, setView] = useState<"team" | "batting" | "pitching">("team");
   const [selectedSeason, setSelectedSeason] = useState<number | null>(null);
+  const [selectedConference, setSelectedConference] = useState<string>("all");
   const [battingSort, setBattingSort] = useState<"avg" | "ops" | "hr" | "rbi" | "war" | "wOBA" | "wRCplus" | "opsPlus" | "babip" | "exitVelo" | "barrelPct" | "oaa" | "fldPct">("avg");
   const [pitchingSort, setPitchingSort] = useState<"era" | "fip" | "so" | "whip" | "war" | "siera" | "kPct" | "whiffRate" | "spinRate">("era");
   const [battingView, setBattingView] = useState<"traditional" | "advanced" | "statcast" | "defense">("traditional");
@@ -2374,35 +2375,47 @@ function StatsTab({ leagueId, currentSeason }: { leagueId: string; currentSeason
     );
   }
 
-  const sortedBatters = [...data.battingLeaders].sort((a, b) => {
-    if (battingSort === "avg") return parseFloat(b.avg) - parseFloat(a.avg);
-    if (battingSort === "ops") return parseFloat(b.ops) - parseFloat(a.ops);
-    if (battingSort === "hr") return b.hr - a.hr;
-    if (battingSort === "rbi") return b.rbi - a.rbi;
-    if (battingSort === "war") return parseFloat(b.war) - parseFloat(a.war);
-    if (battingSort === "wOBA") return parseFloat(b.wOBA) - parseFloat(a.wOBA);
-    if (battingSort === "wRCplus") return b.wRCplus - a.wRCplus;
-    if (battingSort === "opsPlus") return b.opsPlus - a.opsPlus;
-    if (battingSort === "babip") return parseFloat(b.babip) - parseFloat(a.babip);
-    if (battingSort === "exitVelo") return parseFloat(b.avgExitVelo) - parseFloat(a.avgExitVelo);
-    if (battingSort === "barrelPct") return parseFloat(b.barrelPct) - parseFloat(a.barrelPct);
-    if (battingSort === "oaa") return b.oaa - a.oaa;
-    if (battingSort === "fldPct") return parseFloat(b.fldPct) - parseFloat(a.fldPct);
-    return 0;
-  }).slice(0, 25);
+  const conferenceTeamIds = selectedConference !== "all"
+    ? new Set(teams.filter(t => t.conferenceId === selectedConference).map(t => t.id))
+    : null;
 
-  const sortedPitchers = [...data.pitchingLeaders].sort((a, b) => {
-    if (pitchingSort === "era") return parseFloat(a.era) - parseFloat(b.era);
-    if (pitchingSort === "fip") return parseFloat(a.fip) - parseFloat(b.fip);
-    if (pitchingSort === "so") return b.so - a.so;
-    if (pitchingSort === "whip") return parseFloat(a.whip) - parseFloat(b.whip);
-    if (pitchingSort === "war") return parseFloat(b.war) - parseFloat(a.war);
-    if (pitchingSort === "siera") return parseFloat(a.siera) - parseFloat(b.siera);
-    if (pitchingSort === "kPct") return parseFloat(b.kPct) - parseFloat(a.kPct);
-    if (pitchingSort === "whiffRate") return parseFloat(b.whiffRate) - parseFloat(a.whiffRate);
-    if (pitchingSort === "spinRate") return b.avgSpinRate - a.avgSpinRate;
-    return 0;
-  }).slice(0, 25);
+  const sortedBatters = [...data.battingLeaders]
+    .filter(b => !conferenceTeamIds || conferenceTeamIds.has(b.teamId))
+    .sort((a, b) => {
+      if (battingSort === "avg") return parseFloat(b.avg) - parseFloat(a.avg);
+      if (battingSort === "ops") return parseFloat(b.ops) - parseFloat(a.ops);
+      if (battingSort === "hr") return b.hr - a.hr;
+      if (battingSort === "rbi") return b.rbi - a.rbi;
+      if (battingSort === "war") return parseFloat(b.war) - parseFloat(a.war);
+      if (battingSort === "wOBA") return parseFloat(b.wOBA) - parseFloat(a.wOBA);
+      if (battingSort === "wRCplus") return b.wRCplus - a.wRCplus;
+      if (battingSort === "opsPlus") return b.opsPlus - a.opsPlus;
+      if (battingSort === "babip") return parseFloat(b.babip) - parseFloat(a.babip);
+      if (battingSort === "exitVelo") return parseFloat(b.avgExitVelo) - parseFloat(a.avgExitVelo);
+      if (battingSort === "barrelPct") return parseFloat(b.barrelPct) - parseFloat(a.barrelPct);
+      if (battingSort === "oaa") return b.oaa - a.oaa;
+      if (battingSort === "fldPct") return parseFloat(b.fldPct) - parseFloat(a.fldPct);
+      return 0;
+    }).slice(0, 25);
+
+  const sortedPitchers = [...data.pitchingLeaders]
+    .filter(p => !conferenceTeamIds || conferenceTeamIds.has(p.teamId))
+    .sort((a, b) => {
+      if (pitchingSort === "era") return parseFloat(a.era) - parseFloat(b.era);
+      if (pitchingSort === "fip") return parseFloat(a.fip) - parseFloat(b.fip);
+      if (pitchingSort === "so") return b.so - a.so;
+      if (pitchingSort === "whip") return parseFloat(a.whip) - parseFloat(b.whip);
+      if (pitchingSort === "war") return parseFloat(b.war) - parseFloat(a.war);
+      if (pitchingSort === "siera") return parseFloat(a.siera) - parseFloat(b.siera);
+      if (pitchingSort === "kPct") return parseFloat(b.kPct) - parseFloat(a.kPct);
+      if (pitchingSort === "whiffRate") return parseFloat(b.whiffRate) - parseFloat(a.whiffRate);
+      if (pitchingSort === "spinRate") return b.avgSpinRate - a.avgSpinRate;
+      return 0;
+    }).slice(0, 25);
+
+  const filteredTeamStats = conferenceTeamIds
+    ? data.teamStats.filter(ts => conferenceTeamIds.has(ts.teamId))
+    : data.teamStats;
 
   return (
     <div className="space-y-4">
@@ -2410,21 +2423,35 @@ function StatsTab({ leagueId, currentSeason }: { leagueId: string; currentSeason
         <BarChart className="w-5 h-5 text-gold" />
         <span className="font-pixel text-gold text-xs">Season {data.season} Stats</span>
         <span className="text-xs text-muted-foreground">({data.totalGames} games played)</span>
-        {currentSeason > 1 && (
-          <div className="flex gap-1 ml-auto" data-testid="season-selector">
-            {Array.from({ length: currentSeason }, (_, i) => i + 1).map(s => (
-              <RetroButton
-                key={s}
-                variant={(selectedSeason === s || (!selectedSeason && data.season === s)) ? "primary" : "outline"}
-                size="sm"
-                onClick={() => setSelectedSeason(s)}
-                data-testid={`season-select-${s}`}
-              >
-                S{s}
-              </RetroButton>
-            ))}
-          </div>
-        )}
+        <div className="flex items-center gap-2 ml-auto flex-wrap">
+          {conferences.length > 1 && (
+            <select
+              value={selectedConference}
+              onChange={e => setSelectedConference(e.target.value)}
+              className="bg-card border border-border text-xs text-foreground px-2 py-1 rounded font-pixel"
+              style={{ fontSize: "9px" }}
+              data-testid="conference-filter"
+            >
+              <option value="all">All Conferences</option>
+              {conferences.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          )}
+          {currentSeason > 1 && (
+            <select
+              value={selectedSeason ?? data.season}
+              onChange={e => setSelectedSeason(parseInt(e.target.value))}
+              className="bg-card border border-border text-xs text-foreground px-2 py-1 rounded font-pixel"
+              style={{ fontSize: "9px" }}
+              data-testid="season-selector"
+            >
+              {Array.from({ length: currentSeason }, (_, i) => i + 1).map(s => (
+                <option key={s} value={s} data-testid={`season-select-${s}`}>Season {s}</option>
+              ))}
+            </select>
+          )}
+        </div>
       </div>
 
       <div className="flex gap-2 flex-wrap">
@@ -2466,7 +2493,7 @@ function StatsTab({ leagueId, currentSeason }: { leagueId: string; currentSeason
                   </tr>
                 </thead>
                 <tbody>
-                  {data.teamStats.map((ts, idx) => (
+                  {filteredTeamStats.map((ts, idx) => (
                     <tr key={ts.teamId} className={`border-b border-border/30 ${idx % 2 === 0 ? "" : "bg-muted/10"}`} data-testid={`row-team-stats-${ts.teamAbbr}`}>
                       <td className="py-2 px-2">
                         <div className="flex items-center gap-2">
