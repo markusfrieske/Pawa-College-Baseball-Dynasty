@@ -75,7 +75,6 @@ const DEVELOPMENT_PHASES = new Set([
   "offseason_departures",
   "offseason_walkons",
   "signing_day",
-  "preseason",
 ]);
 
 function ovrToStar(ovr: number): number {
@@ -135,6 +134,11 @@ export default function RosterPage() {
   });
 
   const isCommissioner = authData?.id && leagueData?.league?.commissionerId === authData.id;
+
+  const canViewDevelopment =
+    !viewingTeamId &&
+    DEVELOPMENT_PHASES.has(leagueData?.league?.currentPhase ?? "") &&
+    !!leagueData?.progressionEnabled;
 
   const updatePlayerMutation = useMutation({
     mutationFn: async (updates: Partial<Player> & { id: string }) => {
@@ -330,7 +334,7 @@ export default function RosterPage() {
                 <LayoutGrid className="w-3 h-3 mr-1" />
                 Depth Chart
               </RetroButton>
-              {!viewingTeamId && DEVELOPMENT_PHASES.has(leagueData?.league?.currentPhase ?? "") && leagueData?.progressionEnabled && (
+              {canViewDevelopment && (
                 <RetroButton
                   variant={viewMode === "development" ? "primary" : "outline"}
                   size="sm"
@@ -350,7 +354,7 @@ export default function RosterPage() {
           </div>
         </RetroCard>
 
-        {viewMode === "development" ? (
+        {viewMode === "development" && canViewDevelopment ? (
           <DevelopmentTab
             players={data?.players || []}
             onSelectPlayer={setSelectedPlayer}
@@ -399,7 +403,7 @@ export default function RosterPage() {
           />
         )}
 
-        {filteredPlayers.length === 0 && (
+        {filteredPlayers.length === 0 && viewMode !== "development" && (
           <RetroCard>
             <div className="text-center py-12 text-muted-foreground">
               <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
