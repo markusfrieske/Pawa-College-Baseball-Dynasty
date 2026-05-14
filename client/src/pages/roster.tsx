@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { parseErrorMessage } from "@/lib/errorUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link, useLocation, useSearch } from "wouter";
@@ -80,13 +80,18 @@ export default function RosterPage() {
     const params = new URLSearchParams(search);
     return params.get("view") === "depth" ? "depth" : "list";
   });
-  const [initialLineupTab] = useState<"field" | "lineup" | "pitching">(() => {
+  const initialLineupTab = useMemo<"field" | "lineup" | "pitching">(() => {
     const params = new URLSearchParams(search);
     const sub = params.get("sub");
     if (sub === "lineup") return "lineup";
     if (sub === "pitching") return "pitching";
     return "field";
-  });
+  }, [search]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(search);
+    if (params.get("view") === "depth") setViewMode("depth");
+  }, [search]);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [saveFileName, setSaveFileName] = useState("");
   const { toast } = useToast();
@@ -1286,6 +1291,7 @@ function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leagueId, i
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [lineupTab, setLineupTab] = useState<"field" | "lineup" | "pitching">(initialLineupTab);
+  useEffect(() => { setLineupTab(initialLineupTab); }, [initialLineupTab]);
   const [selectingSlot, setSelectingSlot] = useState<{ type: "batting"; slot: number } | { type: "pitching"; role: string } | null>(null);
   const [dragBattingSource, setDragBattingSource] = useState<{ player: Player; fromSlot?: number } | null>(null);
   const [dragOverBattingSlot, setDragOverBattingSlot] = useState<number | null>(null);
