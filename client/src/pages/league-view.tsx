@@ -2446,7 +2446,7 @@ function StatsTab({ leagueId, currentSeason, conferences, teams }: { leagueId: s
               style={{ fontSize: "9px" }}
               data-testid="season-selector"
             >
-              {Array.from({ length: currentSeason }, (_, i) => i + 1).map(s => (
+              {Array.from({ length: currentSeason }, (_, i) => currentSeason - i).map(s => (
                 <option key={s} value={s} data-testid={`season-select-${s}`}>Season {s}</option>
               ))}
             </select>
