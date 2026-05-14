@@ -851,7 +851,6 @@ function NextGameWidget({ leagueId, league, myTeam }: { leagueId: string; league
   const userScore = game.isComplete ? (userIsHome ? game.homeScore : game.awayScore) : null;
   const oppScore = game.isComplete ? (userIsHome ? game.awayScore : game.homeScore) : null;
   const userWon = game.isComplete && userScore != null && oppScore != null && userScore > oppScore;
-  const userLost = game.isComplete && !userWon;
 
   return (
     <div
@@ -948,7 +947,7 @@ function NextGameWidget({ leagueId, league, myTeam }: { leagueId: string; league
         {!game.isComplete && (
           <div className="flex-shrink-0 ml-1">
             {isHvH ? (
-              <Link href={`/league/${leagueId}/schedule`}>
+              <Link href={`/league/${leagueId}/report-game/${game.id}`}>
                 <RetroButton variant="outline" size="sm" data-testid="button-next-game-report">
                   <FileText className="w-3 h-3 mr-1" />
                   Report
