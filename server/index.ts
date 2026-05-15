@@ -86,6 +86,15 @@ app.use((req, res, next) => {
     console.warn("[startup-migration] league_events.metadata column check failed:", e);
   }
 
+  // Ensure top recruit columns exist on recruiting_class_snapshots (for signing day summary card)
+  try {
+    await pool.query("ALTER TABLE recruiting_class_snapshots ADD COLUMN IF NOT EXISTS top_recruit_name text");
+    await pool.query("ALTER TABLE recruiting_class_snapshots ADD COLUMN IF NOT EXISTS top_recruit_ovr integer");
+    await pool.query("ALTER TABLE recruiting_class_snapshots ADD COLUMN IF NOT EXISTS top_recruit_stars integer");
+  } catch (e) {
+    console.warn("[startup-migration] recruiting_class_snapshots top_recruit columns check failed:", e);
+  }
+
   // Ensure pitch_ch is constrained to 0 or 1 on both players and recruits tables.
   // Step 1: clamp any existing out-of-range values so the constraint can be added cleanly.
   // Step 2: add the CHECK constraint idempotently (skipped if it already exists).

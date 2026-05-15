@@ -1360,6 +1360,9 @@ export const recruitingClassSnapshots = pgTable("recruiting_class_snapshots", {
   oneStars: integer("one_stars").notNull().default(0),
   avgOverall: real("avg_overall").notNull().default(0),
   avgStarRating: real("avg_star_rating").notNull().default(0),
+  topRecruitName: text("top_recruit_name"),
+  topRecruitOvr: integer("top_recruit_ovr"),
+  topRecruitStars: integer("top_recruit_stars"),
 });
 
 export const insertRecruitingClassSnapshotSchema = createInsertSchema(recruitingClassSnapshots).omit({ id: true });

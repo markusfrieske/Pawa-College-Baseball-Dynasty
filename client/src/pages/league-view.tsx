@@ -623,6 +623,8 @@ export default function LeagueViewPage() {
           </div>
         )}
 
+        <SigningDaySummaryCard league={league} />
+
         <OffseasonSummary league={league} />
 
         <NextGameWidget leagueId={id!} league={league} myTeam={myTeam} />
@@ -4658,6 +4660,180 @@ function SeasonRecapDialog({ leagueId, season, open, onClose }: { leagueId: stri
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+type ClassSnapshot = {
+  teamId: string;
+  classRank: number;
+  classScore: number;
+  totalCommits: number;
+  fiveStars: number;
+  fourStars: number;
+  threeStars: number;
+  avgOverall: number;
+  avgStarRating: number;
+  topRecruitName?: string | null;
+  topRecruitOvr?: number | null;
+  topRecruitStars?: number | null;
+  teamName: string;
+  teamAbbr: string;
+  teamColor: string;
+  isCpu: boolean;
+};
+
+function getClassGrade(rank: number, total: number): string {
+  const pct = rank / total;
+  if (pct <= 0.10) return "A+";
+  if (pct <= 0.20) return "A";
+  if (pct <= 0.30) return "A-";
+  if (pct <= 0.40) return "B+";
+  if (pct <= 0.55) return "B";
+  if (pct <= 0.70) return "B-";
+  if (pct <= 0.80) return "C+";
+  if (pct <= 0.90) return "C";
+  return "D";
+}
+
+function getGradeColor(grade: string): string {
+  if (grade === "A+" || grade === "A") return "text-green-400";
+  if (grade === "A-" || grade === "B+") return "text-lime-400";
+  if (grade === "B") return "text-yellow-400";
+  if (grade === "B-" || grade === "C+") return "text-orange-400";
+  return "text-red-400";
+}
+
+function getGradeBg(grade: string): string {
+  if (grade === "A+" || grade === "A") return "bg-green-400/10 border-green-400/30";
+  if (grade === "A-" || grade === "B+") return "bg-lime-400/10 border-lime-400/30";
+  if (grade === "B") return "bg-yellow-400/10 border-yellow-400/30";
+  if (grade === "B-" || grade === "C+") return "bg-orange-400/10 border-orange-400/30";
+  return "bg-red-400/10 border-red-400/30";
+}
+
+function SigningDaySummaryCard({ league }: { league: LeagueDetails }) {
+  const showPhases = ["offseason_walkons", "preseason"];
+  const isVisible = showPhases.includes(league.currentPhase ?? "");
+
+  const dismissKey = `signing-day-summary-dismissed-${league.id}-${league.currentSeason}`;
+  const [dismissed, setDismissed] = useState(() => localStorage.getItem(dismissKey) === "1");
+  useEffect(() => {
+    setDismissed(localStorage.getItem(dismissKey) === "1");
+  }, [dismissKey]);
+
+  const { data: rankingsData } = useQuery<{
+    bySeason: Record<number, ClassSnapshot[]>;
+    availableSeasons: number[];
+  }>({
+    queryKey: ["/api/leagues", league.id, "class-rankings"],
+    enabled: isVisible && !dismissed,
+  });
+
+  if (!isVisible || dismissed) return null;
+
+  const userTeam = league.teams?.find(t => !t.isCpu);
+  if (!userTeam) return null;
+
+  const latestSeason = rankingsData?.availableSeasons?.[0];
+  const snaps: ClassSnapshot[] = latestSeason != null ? (rankingsData?.bySeason?.[latestSeason] ?? []) : [];
+  if (snaps.length === 0) return null;
+
+  const mySnap = snaps.find(s => s.teamId === userTeam.id);
+  if (!mySnap) return null;
+
+  const total = snaps.length;
+  const grade = getClassGrade(mySnap.classRank, total);
+  const gradeColor = getGradeColor(grade);
+  const gradeBg = getGradeBg(grade);
+
+  const dismiss = () => {
+    localStorage.setItem(dismissKey, "1");
+    setDismissed(true);
+  };
+
+  return (
+    <RetroCard className="border-gold/40 mb-4 relative overflow-hidden" data-testid="signing-day-summary-card">
+      <div className="absolute inset-0 bg-gradient-to-r from-gold/5 to-transparent pointer-events-none" />
+      <button
+        onClick={dismiss}
+        className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition-colors z-10"
+        data-testid="button-dismiss-signing-day-summary"
+        aria-label="Dismiss signing day summary"
+      >
+        <X className="w-4 h-4" />
+      </button>
+
+      <div className="flex items-start gap-3 pr-8">
+        <Trophy className="w-5 h-5 text-gold flex-shrink-0 mt-0.5" />
+        <div className="flex-1 min-w-0">
+          <p className="font-pixel text-gold text-[10px] mb-0.5">NATIONAL SIGNING DAY</p>
+          <p className="text-[10px] text-muted-foreground mb-3">
+            Season {latestSeason} Recruiting Class — {mySnap.totalCommits} commits signed
+          </p>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+            {/* Class Grade */}
+            <div className={`rounded border p-3 text-center ${gradeBg}`}>
+              <p className="font-pixel text-[8px] text-muted-foreground mb-1">CLASS GRADE</p>
+              <p className={`font-pixel text-2xl font-bold ${gradeColor}`} data-testid="text-signing-day-grade">{grade}</p>
+            </div>
+
+            {/* National Rank */}
+            <div className="bg-muted/30 rounded border border-border p-3 text-center">
+              <p className="font-pixel text-[8px] text-muted-foreground mb-1">NATIONAL RANK</p>
+              <p className="font-bold text-xl text-foreground" data-testid="text-signing-day-rank">
+                #{mySnap.classRank}
+              </p>
+              <p className="text-[9px] text-muted-foreground">of {total} teams</p>
+            </div>
+
+            {/* Total Commits */}
+            <div className="bg-muted/30 rounded border border-border p-3 text-center">
+              <p className="font-pixel text-[8px] text-muted-foreground mb-1">COMMITS</p>
+              <p className="font-bold text-xl text-foreground" data-testid="text-signing-day-commits">
+                {mySnap.totalCommits}
+              </p>
+              <div className="flex justify-center gap-1 mt-0.5 flex-wrap">
+                {mySnap.fiveStars > 0 && <span className="text-[8px] text-yellow-400">{mySnap.fiveStars}x 5★</span>}
+                {mySnap.fourStars > 0 && <span className="text-[8px] text-yellow-300">{mySnap.fourStars}x 4★</span>}
+                {mySnap.threeStars > 0 && <span className="text-[8px] text-muted-foreground">{mySnap.threeStars}x 3★</span>}
+              </div>
+            </div>
+
+            {/* Top Recruit */}
+            <div className="bg-muted/30 rounded border border-border p-3 text-center">
+              <p className="font-pixel text-[8px] text-muted-foreground mb-1">TOP RECRUIT</p>
+              {mySnap.topRecruitName ? (
+                <>
+                  <p className="text-xs font-bold text-foreground leading-tight" data-testid="text-signing-day-top-recruit">
+                    {mySnap.topRecruitName}
+                  </p>
+                  <div className="flex items-center justify-center gap-1 mt-0.5">
+                    {mySnap.topRecruitStars != null && (
+                      <span className="text-[9px] text-yellow-400">{"★".repeat(mySnap.topRecruitStars)}</span>
+                    )}
+                    {mySnap.topRecruitOvr != null && (
+                      <span className="text-[9px] text-muted-foreground">{mySnap.topRecruitOvr} OVR</span>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <p className="text-xs text-muted-foreground">—</p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <Link href={`/league/${league.id}/recruiting`}>
+              <RetroButton variant="outline" size="sm" data-testid="button-signing-day-view-class">
+                <Target className="w-3 h-3 mr-1" />
+                View Full Rankings
+              </RetroButton>
+            </Link>
+          </div>
+        </div>
+      </div>
+    </RetroCard>
   );
 }
 

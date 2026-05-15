@@ -9590,6 +9590,9 @@ export async function registerRoutes(
       let snapRank = 1;
       for (const entry of snapByTeam) {
         if (entry.teamCommits.length > 0) {
+          const topRecruit = entry.teamCommits.reduce((best: any, r: any) =>
+            (r.overall ?? 0) > (best.overall ?? 0) ? r : best
+          , entry.teamCommits[0]);
           await storage.createRecruitingClassSnapshot({
             leagueId,
             season: completedSeason,
@@ -9604,6 +9607,9 @@ export async function registerRoutes(
             oneStars: entry.oneStars,
             avgOverall: entry.avgOverall,
             avgStarRating: entry.avgStarRating,
+            topRecruitName: topRecruit ? `${topRecruit.firstName} ${topRecruit.lastName}` : null,
+            topRecruitOvr: topRecruit?.overall ?? null,
+            topRecruitStars: topRecruit?.starRating ?? null,
           });
         }
       }
