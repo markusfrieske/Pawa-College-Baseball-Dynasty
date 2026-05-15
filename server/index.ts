@@ -79,6 +79,13 @@ app.use((req, res, next) => {
     console.warn("[startup-migration] phase_deadline column check failed:", e);
   }
 
+  // Ensure metadata column exists on league_events (for decommit alert structured data)
+  try {
+    await pool.query("ALTER TABLE league_events ADD COLUMN IF NOT EXISTS metadata jsonb");
+  } catch (e) {
+    console.warn("[startup-migration] league_events.metadata column check failed:", e);
+  }
+
   // Ensure pitch_ch is constrained to 0 or 1 on both players and recruits tables.
   // Step 1: clamp any existing out-of-range values so the constraint can be added cleanly.
   // Step 2: add the CHECK constraint idempotently (skipped if it already exists).
