@@ -330,17 +330,20 @@ export default function PlayByPlayPage() {
   }, [pbpData, currentInning, currentHalf, currentAtBatIndex]);
 
   const showResultFlash = useCallback((result: string) => {
+    const noFlash = ["pitching_change", "runner_placed"];
+    if (noFlash.includes(result)) return;
     const hitResults = ["single", "double", "triple"];
-    const outResults = ["strikeout", "groundout", "flyout", "lineout", "popout", "double_play"];
     const walkResults = ["walk", "hbp"];
     const labels: Record<string, string> = {
       single: "SINGLE", double: "DOUBLE", triple: "TRIPLE", homerun: "HOME RUN",
       strikeout: "K", groundout: "GROUND OUT", flyout: "FLY OUT", lineout: "LINE OUT",
       popout: "POP OUT", double_play: "DOUBLE PLAY", walk: "BB", hbp: "HBP",
       error: "ERROR", sacrifice_fly: "SAC FLY", fielders_choice: "FC",
+      stolen_base: "SB", caught_stealing: "CS",
     };
     const type = result === "homerun" ? "hr" : hitResults.includes(result) ? "hit" :
-      walkResults.includes(result) ? "walk" : result === "error" ? "error" : "out";
+      walkResults.includes(result) ? "walk" : result === "error" ? "error" :
+      result === "stolen_base" ? "hit" : "out";
     setResultFlash({ text: labels[result] || result.toUpperCase(), type });
     setTimeout(() => setResultFlash(null), 1200);
   }, []);

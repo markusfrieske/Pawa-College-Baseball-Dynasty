@@ -4841,6 +4841,10 @@ export async function registerRoutes(
             power: p.power || 50,
             speed: p.speed || 50,
             fielding: p.fielding || 50,
+            vsLHP: p.vsLHP || 50,
+            clutch: p.clutch || 50,
+            stealing: p.stealing || 50,
+            batHand: p.batHand || "R",
             skinTone: p.skinTone || "light",
             hairColor: p.hairColor || "brown",
             hairStyle: p.hairStyle || "short",
@@ -4861,6 +4865,7 @@ export async function registerRoutes(
             position: "DH",
             order: lineup.length + 1,
             contact: 50, power: 40, speed: 50, fielding: 50,
+            vsLHP: 50, clutch: 50, stealing: 40, batHand: "R" as string,
             skinTone: "light",
             hairColor: "brown",
             hairStyle: "short",
@@ -4881,6 +4886,9 @@ export async function registerRoutes(
         control: number;
         velocity: number;
         stamina: number;
+        throwHand: string;
+        wRISP: number;
+        pitchingRole: string;
         skinTone: string;
         hairColor: string;
         hairStyle: string;
@@ -4894,6 +4902,9 @@ export async function registerRoutes(
           playerId: p.id, firstName: p.firstName, lastName: p.lastName,
           stuff: p.stuff || 50, control: p.control || 50, velocity: p.velocity || 50,
           stamina: p.stamina || 60,
+          throwHand: p.throwHand || "R",
+          wRISP: p.wRISP || 50,
+          pitchingRole: p.pitchingRole || "",
           skinTone: p.skinTone || "light",
           hairColor: p.hairColor || "brown",
           hairStyle: p.hairStyle || "short",
@@ -5081,6 +5092,10 @@ export async function registerRoutes(
         batterIndexRef: { value: number },
         defFielding: number,
         isHome: boolean,
+        inning: number = 1,
+        battingTeamScore: number = 0,
+        pitchingTeamScore: number = 0,
+        manfredRunner: string | null = null,
       ): HalfInningResult {
         let outs = 0;
         let runs = 0;
@@ -5089,14 +5104,61 @@ export async function registerRoutes(
         let bases: [string | null, string | null, string | null] = [null, null, null];
         const atBats: AtBatResult[] = [];
 
+        // College baseball extra-inning rule: Manfred runner starts on 2nd
+        if (manfredRunner) {
+          bases[1] = manfredRunner;
+          atBats.push({
+            batterIndex: -1,
+            batterName: battingLineup.find(b => b.playerId === manfredRunner)
+              ? `${battingLineup.find(b => b.playerId === manfredRunner)!.firstName[0]}. ${battingLineup.find(b => b.playerId === manfredRunner)!.lastName}`
+              : "Runner",
+            pitchSequence: [],
+            result: "runner_placed",
+            description: `Automatic runner placed on second base to start the inning`,
+            runnersAfter: [false, true, false],
+            runsScored: 0,
+            outs: 0,
+          });
+        }
+
+        // Quick-lookup map for steal attempts (need runner's stealing/speed attrs)
+        const lineupMap = new Map(battingLineup.map(p => [p.playerId, p]));
+
+        // Score-state bullpen: enter inning with CP (save sit) or SU (setup) if appropriate
+        const leadMargin = pitchingTeamScore - battingTeamScore;
+        const isSaveSituation = inning >= 9 && leadMargin >= 1 && leadMargin <= 3;
+        const isSetupSituation = inning === 8 && leadMargin >= 1 && leadMargin <= 3;
+
+        if ((isSaveSituation || isSetupSituation) && pitcherState.bullpenIdx < pitcherState.bullpen.length) {
+          const targetRole = isSaveSituation ? "CP" : "SU";
+          const roleIdx = pitcherState.bullpen.findIndex(
+            (p, i) => i >= pitcherState.bullpenIdx && p.pitchingRole === targetRole
+          );
+          if (roleIdx >= 0) {
+            const incoming = pitcherState.bullpen[roleIdx];
+            const outgoing = pitcherState.current;
+            pitcherState.current = incoming;
+            pitcherState.bullpenIdx = roleIdx + 1;
+            pitcherState.pitchCount = 0;
+            const situationLabel = isSaveSituation ? "save situation" : "setup situation";
+            atBats.push({
+              batterIndex: -1,
+              batterName: "",
+              pitchSequence: [],
+              result: "pitching_change",
+              description: `Pitching change — ${incoming.firstName[0]}. ${incoming.lastName} enters for ${outgoing.firstName[0]}. ${outgoing.lastName} (${situationLabel})`,
+              runnersAfter: [bases[0] !== null, bases[1] !== null, bases[2] !== null],
+              runsScored: 0,
+              outs,
+            });
+          }
+        }
+
         while (outs < 3) {
           const batterIdx = batterIndexRef.value % 9;
           const batter = battingLineup[batterIdx];
           batterIndexRef.value++;
 
-          const contact = batter.contact;
-          const power = batter.power;
-          const speed = batter.speed;
           const fieldingAvg = defFielding;
 
           const fatigueFactor = pitcherState.pitchCount > pitcherState.current.stamina * 0.8
@@ -5105,6 +5167,30 @@ export async function registerRoutes(
           const stuff = pitcherState.current.stuff * fatigueFactor;
           const control = pitcherState.current.control * fatigueFactor;
           const velocity = pitcherState.current.velocity;
+
+          // Platoon split: batter's vsLHP boosts contact/power when facing a lefty pitcher
+          const pHand = pitcherState.current.throwHand;
+          const bHand = batter.batHand || "R";
+          let platoonMult = 1.0;
+          if (pHand === "L" && bHand !== "L") {
+            // RHB or SHB vs LHP: vsLHP determines how well batter handles lefties
+            platoonMult = 1 + (batter.vsLHP - 50) / 300; // ±0.167 at extremes
+          } else if (pHand === "R" && bHand === "L") {
+            // LHB vs RHP: slight natural advantage
+            platoonMult = 1.04;
+          }
+
+          // Clutch / RISP: runners on base amplify batter's clutch and pitcher's wRISP
+          const runnersOn = bases.filter(b => b !== null).length;
+          const isRISP = bases[1] !== null || bases[2] !== null;
+          const clutchBoost = isRISP ? (batter.clutch - 50) / 400 : 0;    // ±0.125
+          const wRISPSuppress = isRISP ? (pitcherState.current.wRISP - 50) / 400 : 0; // ±0.125
+
+          const rawContact = batter.contact * platoonMult * (1 + clutchBoost - wRISPSuppress);
+          const rawPower = batter.power * platoonMult * (1 + clutchBoost * 0.5);
+          const contact = Math.max(10, Math.min(99, rawContact));
+          const power = Math.max(10, Math.min(99, rawPower));
+          const speed = batter.speed;
 
           const contactNorm = contact / 100;
           const powerNorm = power / 100;
@@ -5125,7 +5211,6 @@ export async function registerRoutes(
           const tripleChance = Math.max(0.002, 0.004 + speedNorm * 0.006);
           const doubleChance = Math.max(0.01, 0.035 + powerNorm * 0.02 - stuffNorm * 0.01);
 
-          const runnersOn = bases.filter(b => b !== null).length;
           const dpChance = (bases[0] !== null && outs < 2)
             ? Math.max(0.03, 0.10 - speedNorm * 0.05)
             : 0;
@@ -5366,26 +5451,47 @@ export async function registerRoutes(
           if (isOut) pitcherStats[pId].outs += outsAdded;
 
           const bn = `${batter.firstName[0]}. ${batter.lastName}`;
+          const loc = locations[Math.floor(Math.random() * locations.length)];
+          const gLoc = groundLocations[Math.floor(Math.random() * groundLocations.length)];
+          const isLateGame = inning >= 7;
+          const isCloseGame = Math.abs(battingTeamScore - pitchingTeamScore) <= 2;
+          const isClutchMoment = isLateGame && isCloseGame && isRISP;
           let description = "";
           switch (result) {
-            case "strikeout": description = `${bn} strikes out`; break;
-            case "walk": description = `${bn} walks`; break;
+            case "strikeout": description = `${bn} strikes out${isClutchMoment ? " looking" : ""}`; break;
+            case "walk": description = isRISP ? `${bn} walks, loading the bases` : `${bn} walks`; break;
             case "hbp": description = `${bn} hit by pitch`; break;
-            case "single": description = `${bn} singles ${locations[Math.floor(Math.random() * locations.length)]}`; break;
-            case "double": description = `${bn} doubles ${locations[Math.floor(Math.random() * locations.length)]}`; break;
-            case "triple": description = `${bn} triples ${locations[Math.floor(Math.random() * locations.length)]}`; break;
-            case "homerun": description = runsScored > 1 ? `${bn} hits a ${runsScored}-run home run!` : `${bn} hits a solo home run!`; break;
-            case "groundout": description = `${bn} grounds out ${groundLocations[Math.floor(Math.random() * groundLocations.length)]}`; break;
-            case "flyout": description = `${bn} flies out ${locations[Math.floor(Math.random() * locations.length)]}`; break;
-            case "lineout": description = `${bn} lines out ${locations[Math.floor(Math.random() * locations.length)]}`; break;
+            case "single": {
+              const qualifier = isClutchMoment && runsScored > 0 ? " clutch" : "";
+              description = `${bn} hits a${qualifier} single ${loc}`;
+              break;
+            }
+            case "double": {
+              description = `${bn} doubles ${loc}`;
+              break;
+            }
+            case "triple": description = `${bn} triples ${loc}`; break;
+            case "homerun": {
+              if (runsScored >= 4) description = `${bn} hits a grand slam!`;
+              else if (runsScored > 1) description = `${bn} hits a ${runsScored}-run home run!`;
+              else if (isCloseGame && isLateGame) description = `${bn} hits a go-ahead solo home run!`;
+              else description = `${bn} hits a solo home run!`;
+              break;
+            }
+            case "groundout": description = `${bn} grounds out ${gLoc}`; break;
+            case "flyout": description = `${bn} flies out ${loc}`; break;
+            case "lineout": description = `${bn} lines out ${loc}`; break;
             case "popout": description = `${bn} pops out to the infield`; break;
             case "error": description = `${bn} reaches on an error`; break;
             case "fielders_choice": description = `${bn} reaches on fielder's choice`; break;
-            case "sacrifice_fly": description = `${bn} hits a sacrifice fly ${locations[Math.floor(Math.random() * locations.length)]}`; break;
+            case "sacrifice_fly": description = `${bn} hits a sacrifice fly ${loc}`; break;
             case "double_play": description = `${bn} grounds into a double play`; break;
           }
-          if (runsScored > 0 && result !== "homerun") {
-            description += `. ${runsScored} run${runsScored > 1 ? "s" : ""} score${runsScored === 1 ? "s" : ""}`;
+          if (runsScored === 1 && result !== "homerun") {
+            const scorerBase = bases[2] !== null ? "third" : bases[1] !== null ? "second" : "first";
+            description += `. Run scores from ${scorerBase}`;
+          } else if (runsScored > 1 && result !== "homerun") {
+            description += `. ${runsScored} runs score`;
           }
 
           const pitchSequence = generatePitchSequence(
@@ -5406,11 +5512,65 @@ export async function registerRoutes(
           });
 
           pitcherState.pitchCount += pitchSequence.length;
+
+          // Stolen base attempt: runner on 1st with fewer than 2 outs
+          if (outs < 2 && bases[0] !== null && bases[1] === null) {
+            const runner = lineupMap.get(bases[0]);
+            if (runner) {
+              const stealAttemptProb = Math.max(0, (runner.stealing - 45) / 100) * 0.28;
+              if (Math.random() < stealAttemptProb) {
+                const successProb = Math.max(0.25, Math.min(0.88,
+                  0.60 + (runner.stealing - velocity) / 200
+                ));
+                const rn = `${runner.firstName[0]}. ${runner.lastName}`;
+                if (Math.random() < successProb) {
+                  bases[1] = bases[0];
+                  bases[0] = null;
+                  atBats.push({
+                    batterIndex: -1,
+                    batterName: `${runner.firstName} ${runner.lastName}`,
+                    pitchSequence: [],
+                    result: "stolen_base",
+                    description: `${rn} steals second base`,
+                    runnersAfter: [false, true, bases[2] !== null],
+                    runsScored: 0,
+                    outs,
+                  });
+                } else {
+                  bases[0] = null;
+                  outs = Math.min(3, outs + 1);
+                  atBats.push({
+                    batterIndex: -1,
+                    batterName: `${runner.firstName} ${runner.lastName}`,
+                    pitchSequence: [],
+                    result: "caught_stealing",
+                    description: `${rn} caught stealing`,
+                    runnersAfter: [false, bases[1] !== null, bases[2] !== null],
+                    runsScored: 0,
+                    outs,
+                  });
+                }
+              }
+            }
+          }
+
           const maxPitches = Math.floor(pitcherState.current.stamina * 1.2) + 20;
           if (pitcherState.pitchCount > maxPitches && pitcherState.bullpenIdx < pitcherState.bullpen.length) {
+            const outgoing = pitcherState.current;
             pitcherState.current = pitcherState.bullpen[pitcherState.bullpenIdx];
             pitcherState.bullpenIdx++;
             pitcherState.pitchCount = 0;
+            const incoming = pitcherState.current;
+            atBats.push({
+              batterIndex: -1,
+              batterName: "",
+              pitchSequence: [],
+              result: "pitching_change",
+              description: `Pitching change — ${incoming.firstName[0]}. ${incoming.lastName} enters for ${outgoing.firstName[0]}. ${outgoing.lastName}`,
+              runnersAfter: [bases[0] !== null, bases[1] !== null, bases[2] !== null],
+              runsScored: 0,
+              outs,
+            });
           }
         }
 
@@ -5424,14 +5584,14 @@ export async function registerRoutes(
       const awayPitcherState = { current: currentAwayPitcher, pitchCount: awayPitchCount, bullpen: awayStaff.bullpen, bullpenIdx: awayBullpenIdx };
 
       for (let inn = 1; inn <= 9; inn++) {
-        const topHalf = simulateHalfInning(awayLineup, homePitcherState, awayIdx, homeFielding, false);
+        const topHalf = simulateHalfInning(awayLineup, homePitcherState, awayIdx, homeFielding, false, inn, totalAwayScore, totalHomeScore);
         totalAwayScore += topHalf.runs;
 
         let bottomHalf: HalfInningResult;
         if (inn === 9 && totalHomeScore > totalAwayScore) {
           bottomHalf = { atBats: [], runs: 0, hits: 0, errors: 0 };
         } else {
-          bottomHalf = simulateHalfInning(homeLineup, awayPitcherState, homeIdx, awayFielding, true);
+          bottomHalf = simulateHalfInning(homeLineup, awayPitcherState, homeIdx, awayFielding, true, inn, totalHomeScore, totalAwayScore);
           totalHomeScore += bottomHalf.runs;
         }
 
@@ -5440,10 +5600,14 @@ export async function registerRoutes(
 
       let extraInning = 10;
       while (totalHomeScore === totalAwayScore && extraInning <= 12) {
-        const topHalf = simulateHalfInning(awayLineup, homePitcherState, awayIdx, homeFielding, false);
+        // College baseball: automatic runner on 2nd to start each extra inning
+        const awayManfredIdx = ((awayIdx.value - 1) % 9 + 9) % 9;
+        const homeManfredIdx = ((homeIdx.value - 1) % 9 + 9) % 9;
+
+        const topHalf = simulateHalfInning(awayLineup, homePitcherState, awayIdx, homeFielding, false, extraInning, totalAwayScore, totalHomeScore, awayLineup[awayManfredIdx].playerId);
         totalAwayScore += topHalf.runs;
 
-        const bottomHalf = simulateHalfInning(homeLineup, awayPitcherState, homeIdx, awayFielding, true);
+        const bottomHalf = simulateHalfInning(homeLineup, awayPitcherState, homeIdx, awayFielding, true, extraInning, totalHomeScore, totalAwayScore, homeLineup[homeManfredIdx].playerId);
         totalHomeScore += bottomHalf.runs;
 
         innings.push({ inning: extraInning, topHalf, bottomHalf });
@@ -6594,6 +6758,9 @@ export async function registerRoutes(
         if (!rosterCache.has(p.teamId)) rosterCache.set(p.teamId, []);
         rosterCache.get(p.teamId)!.push(p);
       }
+      const allTeamsForSim = await storage.getTeamsByLeague(leagueId);
+      const teamStadiumMap = new Map<string, number>();
+      for (const t of allTeamsForSim) teamStadiumMap.set(t.id, t.stadium ?? 5);
 
       let standingsCache = await storage.getStandingsByLeague(leagueId, startSeason);
       const standingsMap = new Map<string, typeof standingsCache[0]>();
@@ -6665,7 +6832,7 @@ export async function registerRoutes(
           const simResults = weekGames.map(game => {
             const homePlayers = rosterCache.get(game.homeTeamId) || [];
             const awayPlayers = rosterCache.get(game.awayTeamId) || [];
-            return { game, result: simulateGameWithRosters(homePlayers, awayPlayers, game.gameType) };
+            return { game, result: simulateGameWithRosters(homePlayers, awayPlayers, game.gameType, teamStadiumMap.get(game.homeTeamId), teamStadiumMap.get(game.awayTeamId)) };
           });
 
           await Promise.all(simResults.map(async ({ game, result }) => {
@@ -6726,7 +6893,7 @@ export async function registerRoutes(
           const simResults = ccGames.map(game => {
             const homePlayers = rosterCache.get(game.homeTeamId) || [];
             const awayPlayers = rosterCache.get(game.awayTeamId) || [];
-            return { game, result: simulateGameWithRosters(homePlayers, awayPlayers, game.gameType || "friday") };
+            return { game, result: simulateGameWithRosters(homePlayers, awayPlayers, game.gameType || "friday", teamStadiumMap.get(game.homeTeamId), teamStadiumMap.get(game.awayTeamId)) };
           });
 
           await Promise.all(simResults.map(async ({ game, result }) => {
@@ -7156,21 +7323,73 @@ export async function registerRoutes(
   });
 
   // ============ GAME SIMULATION FUNCTION ============
-  function simulateGameWithRosters(homePlayers: Player[], awayPlayers: Player[], gameType?: string | null): { homeScore: number; awayScore: number; boxScore: string } {
+  function simulateGameWithRosters(
+    homePlayers: Player[], awayPlayers: Player[], gameType?: string | null,
+    homeStadium?: number, awayStadium?: number
+  ): { homeScore: number; awayScore: number; boxScore: string } {
 
-    const homeStrength = homePlayers.length > 0
-      ? homePlayers.reduce((sum, p) => sum + (p.overall || 300), 0) / homePlayers.length
-      : 300;
-    const awayStrength = awayPlayers.length > 0
-      ? awayPlayers.reduce((sum, p) => sum + (p.overall || 300), 0) / awayPlayers.length
-      : 300;
+    const gameTypeToRole: Record<string, string> = { friday: "FRI", saturday: "SAT", sunday: "SUN", midweek: "MID" };
+    const starterRoles = ["FRI", "SAT", "SUN", "MID"];
 
-    const strengthDiff = (homeStrength - awayStrength) / 300;
+    function findStartingPitcher(players: Player[]): Player | undefined {
+      const pitchers = players.filter(p => p.position === "P");
+      const targetRole = gameType ? gameTypeToRole[gameType] : null;
+      let sp = targetRole ? pitchers.find(p => p.pitchingRole === targetRole) : undefined;
+      if (!sp) sp = pitchers.find(p => starterRoles.includes(p.pitchingRole || ""));
+      if (!sp) sp = [...pitchers].sort((a, b) => (b.overall || 0) - (a.overall || 0))[0];
+      return sp;
+    }
+
+    const homeSP = findStartingPitcher(homePlayers);
+    const awaySP = findStartingPitcher(awayPlayers);
+
+    // SP pitching quality: (velocity + control + stuff) / 3, normalized around 50
+    const spQuality = (sp: Player | undefined) =>
+      sp ? ((sp.velocity || 50) + (sp.control || 50) + (sp.stuff || 50)) / 3 : 50;
+    const homeSpQ = spQuality(homeSP);
+    const awaySpQ = spQuality(awaySP);
+
+    // Strong SP suppresses opponent runs (elite SP at 75+ quality = ~1.25 fewer runs)
+    const homeSpSuppression = (homeSpQ - 50) / 20 * 1.25;
+    const awaySpSuppression = (awaySpQ - 50) / 20 * 1.25;
+
+    // Platoon bonus: left-handed SP vs a predominantly right-handed lineup
+    const platoonBonus = (spHand: string, batters: Player[]): number => {
+      if (spHand !== "L") return 0;
+      const rhb = batters.filter(p => p.position !== "P" && (p.batHand || "R") !== "L");
+      if (rhb.length === 0) return 0;
+      const avgVsLHP = rhb.reduce((s, p) => s + (p.vsLHP || 50), 0) / rhb.length;
+      // Above-average vsLHP (>50) reduces the platoon penalty; below = more suppression
+      return (avgVsLHP - 50) / 100 * 0.4;
+    };
+    const homeSpHand = homeSP?.throwHand || "R";
+    const awaySpHand = awaySP?.throwHand || "R";
+
+    // Offensive lineup strength (position players only)
+    const offPos = (pl: Player[]) => pl.filter(p => p.position !== "P");
+    const homeOff = offPos(homePlayers);
+    const awayOff = offPos(awayPlayers);
+    const homeOffStr = homeOff.length > 0 ? homeOff.reduce((s, p) => s + (p.overall || 300), 0) / homeOff.length : 300;
+    const awayOffStr = awayOff.length > 0 ? awayOff.reduce((s, p) => s + (p.overall || 300), 0) / awayOff.length : 300;
+    const offDiff = (homeOffStr - awayOffStr) / 300;
+
+    // Stadium park factor: rating 1-10, 5 = neutral; each point = ±0.07 runs
+    const homePark = ((homeStadium ?? 5) - 5) * 0.07;
+
     const homeAdv = 0.25;
-    // Base of 5.75 targets 5-8 RPG per team for evenly matched college teams.
-    // Previously 4.5, which produced ~4.5-4.8 RPG (below the 5-8 college baseball range).
-    let homeExpected = 5.75 + strengthDiff * 5.0 + homeAdv;
-    let awayExpected = 5.75 - strengthDiff * 5.0;
+    let homeExpected = 5.75
+      + offDiff * 4.0
+      + homeAdv
+      - awaySpSuppression
+      + platoonBonus(awaySpHand, homePlayers)
+      + homePark;
+
+    let awayExpected = 5.75
+      - offDiff * 4.0
+      - homeSpSuppression
+      + platoonBonus(homeSpHand, awayPlayers)
+      + homePark * 0.5;
+
     homeExpected = Math.max(1.0, Math.min(13, homeExpected));
     awayExpected = Math.max(1.0, Math.min(13, awayExpected));
 
@@ -7188,17 +7407,21 @@ export async function registerRoutes(
       if (Math.random() > 0.5) homeScore++; else awayScore++;
     }
 
-    const boxScore = generateBoxScore(homeScore, awayScore, homePlayers, awayPlayers, gameType);
+    const boxScore = generateBoxScore(homeScore, awayScore, homePlayers, awayPlayers, gameType, homeStadium);
     return { homeScore, awayScore, boxScore: JSON.stringify(boxScore) };
   }
 
   async function simulateGame(homeTeamId: string, awayTeamId: string, gameType?: string | null): Promise<{ homeScore: number; awayScore: number; boxScore: string }> {
-    const homePlayers = await storage.getPlayersByTeam(homeTeamId);
-    const awayPlayers = await storage.getPlayersByTeam(awayTeamId);
-    return simulateGameWithRosters(homePlayers, awayPlayers, gameType);
+    const [homePlayers, awayPlayers, homeTeam, awayTeam] = await Promise.all([
+      storage.getPlayersByTeam(homeTeamId),
+      storage.getPlayersByTeam(awayTeamId),
+      storage.getTeam(homeTeamId),
+      storage.getTeam(awayTeamId),
+    ]);
+    return simulateGameWithRosters(homePlayers, awayPlayers, gameType, homeTeam?.stadium, awayTeam?.stadium);
   }
 
-  function generateBoxScore(homeScore: number, awayScore: number, homePlayers: Player[], awayPlayers: Player[], gameType?: string | null) {
+  function generateBoxScore(homeScore: number, awayScore: number, homePlayers: Player[], awayPlayers: Player[], gameType?: string | null, homeStadium?: number) {
     function distributeRuns(totalRuns: number, numInnings: number): number[] {
       const innings = new Array(numInnings).fill(0);
       for (let i = 0; i < totalRuns; i++) {
@@ -7325,7 +7548,9 @@ export async function registerRoutes(
 
         let doubles = 0, triples = 0, hr = 0;
         const powerFactor = batter.power / 100;
-        let rawHR = 0.12 * Math.pow(powerFactor, 1.5) + 0.01;
+        // Park factor: high stadium rating boosts HR (hitter-friendly), low suppresses
+        const stadiumHRMult = 1 + ((homeStadium ?? 5) - 5) * 0.04;
+        let rawHR = (0.12 * Math.pow(powerFactor, 1.5) + 0.01) * stadiumHRMult;
         let rawTriples = 0.006 * powerFactor + 0.005;
         let rawDoubles = 0.22 * powerFactor + 0.08;
         const rawTotal = rawHR + rawTriples + rawDoubles;
