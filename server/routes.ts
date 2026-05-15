@@ -6384,7 +6384,7 @@ export async function registerRoutes(
         return { game, result };
       }));
 
-      const coachXpAccum = new Map<string, { xp: number; wins: number; losses: number }>();
+      const coachXpAccum = new Map<string, { xp: number; wins: number; losses: number; confWins: number; confLosses: number }>();
 
       for (const { game, result } of gameResults) {
         await updateStandingsForGame(leagueId, league.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, game.isConference);
@@ -6395,17 +6395,21 @@ export async function registerRoutes(
         const homeWonSim = result.homeScore > result.awayScore;
 
         if (homeTeamSim?.coachId) {
-          const acc = coachXpAccum.get(homeTeamSim.coachId) || { xp: 0, wins: 0, losses: 0 };
+          const acc = coachXpAccum.get(homeTeamSim.coachId) || { xp: 0, wins: 0, losses: 0, confWins: 0, confLosses: 0 };
           acc.xp += homeWonSim ? WIN_XP : LOSS_XP;
           acc.wins += homeWonSim ? 1 : 0;
           acc.losses += homeWonSim ? 0 : 1;
+          acc.confWins += game.isConference && homeWonSim ? 1 : 0;
+          acc.confLosses += game.isConference && !homeWonSim ? 1 : 0;
           coachXpAccum.set(homeTeamSim.coachId, acc);
         }
         if (awayTeamSim?.coachId) {
-          const acc = coachXpAccum.get(awayTeamSim.coachId) || { xp: 0, wins: 0, losses: 0 };
+          const acc = coachXpAccum.get(awayTeamSim.coachId) || { xp: 0, wins: 0, losses: 0, confWins: 0, confLosses: 0 };
           acc.xp += homeWonSim ? LOSS_XP : WIN_XP;
           acc.wins += homeWonSim ? 0 : 1;
           acc.losses += homeWonSim ? 1 : 0;
+          acc.confWins += game.isConference && !homeWonSim ? 1 : 0;
+          acc.confLosses += game.isConference && homeWonSim ? 1 : 0;
           coachXpAccum.set(awayTeamSim.coachId, acc);
         }
       }
@@ -6416,12 +6420,18 @@ export async function registerRoutes(
           const newXp = coach.xp + acc.xp;
           const newLevel = Math.floor(newXp / 1000) + 1;
           const skillPointsGained = Math.max(0, newLevel - coach.level);
+          const newCareerWins = coach.careerWins + acc.wins;
+          const newConfWins = coach.confWins + acc.confWins;
+          const newConfLosses = coach.confLosses + acc.confLosses;
           await storage.updateCoach(coach.id, {
             xp: newXp,
             level: newLevel,
             skillPoints: coach.skillPoints + skillPointsGained,
-            careerWins: coach.careerWins + acc.wins,
+            careerWins: newCareerWins,
             careerLosses: coach.careerLosses + acc.losses,
+            confWins: newConfWins,
+            confLosses: newConfLosses,
+            legacyScore: computeLegacyScore({ ...coach, careerWins: newCareerWins }),
           });
         }
       }
