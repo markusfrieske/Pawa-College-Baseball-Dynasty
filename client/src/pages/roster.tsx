@@ -338,24 +338,20 @@ export default function RosterPage() {
       <main className="container mx-auto px-4 py-6">
         <RetroCard className="mb-6">
           <div className="flex flex-wrap gap-4 items-center">
-            {viewMode !== "development" && (
-              <>
-                <RetroSelect
-                  options={positionOptions}
-                  value={positionFilter}
-                  onChange={(e) => setPositionFilter(e.target.value)}
-                  className="w-40"
-                  data-testid="select-position-filter"
-                />
-                <RetroSelect
-                  options={eligibilityOptions}
-                  value={eligibilityFilter}
-                  onChange={(e) => setEligibilityFilter(e.target.value)}
-                  className="w-40"
-                  data-testid="select-eligibility-filter"
-                />
-              </>
-            )}
+            <RetroSelect
+              options={positionOptions}
+              value={positionFilter}
+              onChange={(e) => setPositionFilter(e.target.value)}
+              className="w-40"
+              data-testid="select-position-filter"
+            />
+            <RetroSelect
+              options={eligibilityOptions}
+              value={eligibilityFilter}
+              onChange={(e) => setEligibilityFilter(e.target.value)}
+              className="w-40"
+              data-testid="select-eligibility-filter"
+            />
             <div className="flex items-center gap-2 ml-auto">
               <RetroButton
                 variant={viewMode === "list" ? "primary" : "outline"}
@@ -387,17 +383,15 @@ export default function RosterPage() {
                 </RetroButton>
               )}
             </div>
-            {viewMode !== "development" && (
-              <span className="text-sm text-muted-foreground">
-                {filteredPlayers.length} players shown
-              </span>
-            )}
+            <span className="text-sm text-muted-foreground">
+              {filteredPlayers.length} players shown
+            </span>
           </div>
         </RetroCard>
 
         {viewMode === "development" && canViewDevelopment ? (
           <DevelopmentTab
-            players={data?.players || []}
+            players={filteredPlayers}
             onSelectPlayer={setSelectedPlayer}
             teamPrimaryColor={data?.team?.primaryColor}
           />
