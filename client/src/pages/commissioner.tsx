@@ -199,6 +199,19 @@ export default function CommissionerPage() {
     },
   });
 
+  const updateAggressionMutation = useMutation({
+    mutationFn: async (cpuRecruitingAggression: number) => {
+      return apiRequest("PATCH", `/api/leagues/${id}/settings`, { cpuRecruitingAggression });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "commissioner"] });
+      toast({ title: "Aggression Updated", description: "CPU recruiting aggressiveness has been changed." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
+    },
+  });
+
   const simToSigningDayMutation = useMutation({
     mutationFn: async () => {
       return apiRequest("POST", `/api/leagues/${id}/sim-to-signing-day`, {});
@@ -471,6 +484,7 @@ export default function CommissionerPage() {
               league={data?.league}
               onToggleAuditLog={(isPublic) => toggleAuditLogMutation.mutate(isPublic)}
               onChangeDifficulty={(difficulty) => updateDifficultyMutation.mutate(difficulty)}
+              onChangeAggression={(aggression) => updateAggressionMutation.mutate(aggression)}
             />
           </TabsContent>
 
@@ -1710,15 +1724,26 @@ function TransferCommissionerSection({ leagueId, commissionerId }: { leagueId: s
   );
 }
 
+const aggressionOptions = [
+  { value: 1, label: "Conservative", description: "CPU offers late, easy to out-recruit" },
+  { value: 2, label: "Cautious", description: "CPU moves carefully, slightly slower" },
+  { value: 3, label: "Standard", description: "Default CPU recruiting pace" },
+  { value: 4, label: "Aggressive", description: "CPU offers earlier, harder to sign recruits" },
+  { value: 5, label: "Ultra", description: "CPU offers immediately, maximum competition" },
+];
+
 function SettingsTab({
   league,
   onToggleAuditLog,
   onChangeDifficulty,
+  onChangeAggression,
 }: {
   league?: League;
   onToggleAuditLog: (isPublic: boolean) => void;
   onChangeDifficulty: (difficulty: string) => void;
+  onChangeAggression: (aggression: number) => void;
 }) {
+  const currentAggression = (league as any)?.cpuRecruitingAggression ?? 3;
   return (
     <div className="space-y-6">
     <RetroCard>
@@ -1761,6 +1786,34 @@ function SettingsTab({
                   >
                     <div className="font-medium text-sm">{opt.label}</div>
                     <div className="text-xs opacity-70 mt-1">{opt.description}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-border pt-6">
+            <div className="mb-4">
+              <p className="font-medium mb-2">CPU Recruiting Aggressiveness</p>
+              <p className="text-sm text-muted-foreground mb-3">
+                Fine-tunes how early CPU teams extend offers within the 4-week recruiting window. Stacks on top of the difficulty tier.
+              </p>
+              <div className="grid grid-cols-5 gap-1.5">
+                {aggressionOptions.map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => onChangeAggression(opt.value)}
+                    className={`p-2 rounded-md border text-center transition-all ${
+                      currentAggression === opt.value
+                        ? "bg-gold/20 border-gold text-gold"
+                        : "bg-card border-border text-muted-foreground hover:border-gold/50"
+                    }`}
+                    data-testid={`button-aggression-${opt.value}`}
+                    title={opt.description}
+                  >
+                    <div className="font-medium text-xs">{opt.label}</div>
+                    <div className="text-[10px] opacity-60 mt-0.5 leading-tight hidden sm:block">{opt.description}</div>
                   </button>
                 ))}
               </div>

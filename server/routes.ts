@@ -77,6 +77,7 @@ const setupSchema = z.object({
 const settingsSchema = z.object({
   auditLogPublic: z.boolean().optional(),
   cpuDifficulty: z.enum(["beginner", "high_school", "all_american", "elite"]).optional(),
+  cpuRecruitingAggression: z.number().int().min(1).max(5).optional(),
 });
 
 const SALT_ROUNDS = 10;
@@ -11597,7 +11598,16 @@ export async function registerRoutes(
       all_american: { minActions: 6, maxActions: 11, gainMultiplier: 1.15, targetingBonus: 10, offerThreshold: 10, visitThreshold: 25 },
       elite:        { minActions: 7, maxActions: 13, gainMultiplier: 1.30, targetingBonus: 15, offerThreshold: 5,  visitThreshold: 20 },
     };
-    const config = difficultyConfig[difficulty] || difficultyConfig.high_school;
+    const baseConfig = difficultyConfig[difficulty] || difficultyConfig.high_school;
+    // cpuRecruitingAggression: 1=Conservative (+10 to thresholds), 3=Standard (no change), 5=Ultra (-10).
+    // Formula: offset = (3 - aggression) * 5  →  1→+10, 2→+5, 3→0, 4→-5, 5→-10
+    const aggression = Math.max(1, Math.min(5, league?.cpuRecruitingAggression ?? 3));
+    const aggressionOffset = (3 - aggression) * 5;
+    const config = {
+      ...baseConfig,
+      offerThreshold:  Math.max(0, baseConfig.offerThreshold  + aggressionOffset),
+      visitThreshold:  Math.max(0, baseConfig.visitThreshold  + aggressionOffset),
+    };
     
     const teams = await storage.getTeamsByLeague(leagueId);
     const cpuTeams = teams.filter(t => t.isCpu);
@@ -12474,6 +12484,7 @@ export async function registerRoutes(
       const updateData: Record<string, any> = {};
       if (result.data.auditLogPublic !== undefined) updateData.auditLogPublic = result.data.auditLogPublic;
       if (result.data.cpuDifficulty !== undefined) updateData.cpuDifficulty = result.data.cpuDifficulty;
+      if (result.data.cpuRecruitingAggression !== undefined) updateData.cpuRecruitingAggression = result.data.cpuRecruitingAggression;
       const updated = await storage.updateLeague(req.params.id, updateData);
       res.json(updated);
     } catch (error) {
