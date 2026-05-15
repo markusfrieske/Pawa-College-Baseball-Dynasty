@@ -1743,7 +1743,7 @@ function SettingsTab({
   onChangeDifficulty: (difficulty: string) => void;
   onChangeAggression: (aggression: number) => void;
 }) {
-  const currentAggression = (league as any)?.cpuRecruitingAggression ?? 3;
+  const currentAggression = league?.cpuRecruitingAggression ?? 3;
   return (
     <div className="space-y-6">
     <RetroCard>
