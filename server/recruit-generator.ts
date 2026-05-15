@@ -108,7 +108,9 @@ export function generateRecruitClass(
 ): GeneratedRecruit[] {
   const firstNames = ["Marcus", "Tyler", "Jordan", "Chris", "Devon", "Aaron", "Ryan", "Justin", "Brandon", "Cameron", "Dylan", "Jake", "Austin", "Kyle", "Cole", "Mason", "Logan", "Ethan", "Noah", "Caleb", "Jayden", "Bryce", "Hunter", "Chase", "Trey"];
   const lastNames = ["Johnson", "Williams", "Brown", "Davis", "Miller", "Wilson", "Moore", "Taylor", "Anderson", "Thomas", "Jackson", "White", "Harris", "Martin", "Thompson", "Garcia", "Martinez", "Robinson", "Clark", "Rodriguez", "Lewis", "Walker", "Hall", "Young", "King"];
-  const fieldPositions = ["C", "1B", "2B", "SS", "3B", "LF", "CF", "RF"];
+  // OF positions (LF/CF/RF) get 2× weight vs each infield slot to ensure teams
+  // can field enough outfielders each class.
+  const fieldPositions = ["C", "1B", "2B", "SS", "3B", "LF", "LF", "CF", "CF", "RF", "RF"];
   const stateData: { state: string; cities: string[]; pct: number }[] = [
     { state: "AL", cities: ["Birmingham", "Tuscaloosa", "Mobile", "Huntsville"], pct: 1.5 },
     { state: "AK", cities: ["Anchorage", "Fairbanks", "Juneau"], pct: 0.1 },
@@ -184,10 +186,10 @@ export function generateRecruitClass(
     switch (theme) {
       case "high_velocity": return 0.55;
       case "sluggers": return 0.35;
-      case "balanced": return 0.45;
-      case "top_heavy": return 0.45;
-      case "hidden_gems": return 0.45;
-      default: return 0.45;
+      case "balanced": return 0.40;
+      case "top_heavy": return 0.40;
+      case "hidden_gems": return 0.40;
+      default: return 0.40;
     }
   };
 
@@ -229,11 +231,13 @@ export function generateRecruitClass(
     if (isBlueChip) return isPitcher ? 80 + Math.floor(Math.random() * 5) : 68 + Math.floor(Math.random() * 5);
     if (isGem) {
       if (isPitcher) {
+        // Gem pitchers still punch well above their star tier, but bands are
+        // scaled down proportionally with the regular pitcher deflation.
         switch (starRank) {
-          case 3: return 77 + Math.floor(Math.random() * 12);
-          case 2: return 67 + Math.floor(Math.random() * 12);
-          case 1: return 60 + Math.floor(Math.random() * 12);
-          default: return 77 + Math.floor(Math.random() * 10);
+          case 3: return 67 + Math.floor(Math.random() * 10);  // was 77-88
+          case 2: return 58 + Math.floor(Math.random() * 10);  // was 67-78
+          case 1: return 51 + Math.floor(Math.random() * 10);  // was 60-71
+          default: return 67 + Math.floor(Math.random() * 10);
         }
       }
       switch (starRank) {
@@ -251,19 +255,19 @@ export function generateRecruitClass(
       }
     }
     if (isPitcher) {
-      // Pitcher-specific bands calibrated to the pitcher OVR formula output.
-      // Empirically verified over 30 recruit classes (≈30 pitchers/class):
-      //   5★ avg OVR ≈ 480-590 (ability variance; ~70% clear the 500 floor)
-      //   4★ avg OVR ≈ 400-480 (~82% in-band)
-      //   3★ avg OVR ≈ 310-380, avg ≈ 368 (~82% in-band)
-      //   2★ avg OVR ≈ 230-280 (~81% in-band)
-      //   1★ avg OVR ≈ 159-200, floor-clamped at 159 (~86% in-band)
+      // Pitcher-specific bands recalibrated so regular recruits stay well below 400 OVR.
+      // Target OVR bands (before per-star cap):
+      //   5★ → 350-499 (capped at 499; only blue chips touch 500+)
+      //   4★ → 280-449 (capped at 449)
+      //   3★ → 220-374 (capped at 374; avg ≈ 290)
+      //   2★ → 170-299 (capped at 299)
+      //   1★ → 159-224 (floor-clamped at 159)
       switch (starRank) {
-        case 5: return 80 + Math.floor(Math.random() * 10);
-        case 4: return 70 + Math.floor(Math.random() * 8);
-        case 3: return 60 + Math.floor(Math.random() * 10);
-        case 2: return 44 + Math.floor(Math.random() * 10);
-        default: return 30 + Math.floor(Math.random() * 8);
+        case 5: return 65 + Math.floor(Math.random() * 7);   // 65-71 (was 80-89)
+        case 4: return 54 + Math.floor(Math.random() * 7);   // 54-60 (was 70-77)
+        case 3: return 43 + Math.floor(Math.random() * 7);   // 43-49 (was 60-69)
+        case 2: return 31 + Math.floor(Math.random() * 7);   // 31-37 (was 44-53)
+        default: return 19 + Math.floor(Math.random() * 6);  // 19-24 (was 30-37)
       }
     }
     switch (starRank) {
@@ -288,9 +292,10 @@ export function generateRecruitClass(
 
   const generatePitchMix = (isPitcher: boolean) => {
     const empty = {
-      pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0,
-      pitchSNK: 0, pitchSPL: 0, pitchSHU: 0, pitchCCH: 0, pitchHSL: 0, pitchSWP: 0,
-      pitchKN: 0, pitchVSL: 0, pitchSFF: 0, pitchFK: 0, pitchSCB: 0, pitchPCB: 0,
+      pitchFB: 0 as (0 | 1), pitch2S: 0 as (0 | 1), pitchSL: 0, pitchCB: 0,
+      pitchCH: 0 as (0 | 1), pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchSHU: 0,
+      pitchCCH: 0, pitchHSL: 0, pitchSWP: 0, pitchKN: 0, pitchVSL: 0,
+      pitchSFF: 0, pitchFK: 0, pitchSCB: 0, pitchPCB: 0,
     };
     if (!isPitcher) return empty;
 
@@ -316,7 +321,7 @@ export function generateRecruitClass(
       pitchFB, pitch2S,
       pitchSL: selectedSecondary.has('SL') ? rndRating() : 0,
       pitchCB: selectedSecondary.has('CB') ? rndRating() : 0,
-      pitchCH: selectedSecondary.has('CH') ? 1 : 0,
+      pitchCH: (selectedSecondary.has('CH') ? 1 : 0) as 0 | 1,
       pitchCT: selectedSecondary.has('CT') ? rndRating() : 0,
       pitchSNK: selectedSecondary.has('SNK') ? rndRating() : 0,
       pitchSPL: selectedSecondary.has('SPL') ? rndRating() : 0,
@@ -637,8 +642,15 @@ export function generateRecruitClass(
       overall = Math.min(overall, 149);
     } else if (isBlueChip) {
       overall = Math.max(500, Math.min(650, overall));
-    } else {
+    } else if (isGem || isBust) {
+      // Gems punch above their star band; busts below. Neither gets a per-star cap.
       overall = Math.max(159, Math.min(650, overall));
+    } else {
+      // Regular recruits: per-star ceiling so 500+ stays blue-chip territory
+      // and the overall average stays realistic.
+      const starCaps: Record<number, number> = { 5: 499, 4: 449, 3: 374, 2: 299, 1: 224 };
+      const cap = starCaps[starRank] ?? 499;
+      overall = Math.max(159, Math.min(cap, overall));
     }
     const computedStarRating = getStarRatingFromOVR(overall);
 

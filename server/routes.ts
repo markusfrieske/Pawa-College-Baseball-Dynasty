@@ -9668,7 +9668,10 @@ export async function registerRoutes(
   async function processCpuWalkons(leagueId: string) {
     const teams = await storage.getTeamsByLeague(leagueId);
     const MAX_ROSTER = 25;
-    
+    const currentLeagueData = await storage.getLeague(leagueId);
+    const currentSeason = currentLeagueData?.currentSeason || 1;
+    const eligMap: Record<string, number> = { "FR": 1, "SO": 2, "JR": 3, "SR": 4, "RS": 5 };
+
     for (const team of teams) {
       if (!team.isCpu) continue;
       
@@ -9682,13 +9685,10 @@ export async function registerRoutes(
           .sort((a, b) => (a.overall || 0) - (b.overall || 0));
         
         let toCut = roster.length - MAX_ROSTER;
-        const currentLeagueData = await storage.getLeague(leagueId);
-        const currentSeason = currentLeagueData?.currentSeason || 1;
         
         for (const player of cuttable) {
           if (toCut <= 0) break;
           if ((positionCounts[player.position] || 0) > 1) {
-            const eligMap: Record<string, number> = { "FR": 1, "SO": 2, "JR": 3, "SR": 4, "RS": 5 };
             await storage.createPlayerHistory({
               leagueId,
               teamId: team.id,
@@ -9755,6 +9755,73 @@ export async function registerRoutes(
             }
           }
         }
+      }
+
+      // Upgrade pass: swap the weakest duplicate-position player for a walk-on
+      // that is meaningfully better, up to MAX_UPGRADES swaps per team.
+      // This prevents CPU teams from sitting on weak recruited players when
+      // better talent is available in the walk-on pool.
+      const UPGRADE_THRESHOLD = 15;
+      const MAX_UPGRADES = 5;
+      let upgradeCount = 0;
+      roster = await storage.getPlayersByTeam(team.id);
+      const upgradePool = await storage.getWalkonsByLeague(leagueId);
+      let availableUpgrades = upgradePool.filter(w => !w.signedTeamId);
+
+      while (upgradeCount < MAX_UPGRADES && availableUpgrades.length > 0) {
+        const rosterPosCounts: Record<string, number> = {};
+        for (const p of roster) rosterPosCounts[p.position] = (rosterPosCounts[p.position] || 0) + 1;
+
+        const eligiblePositions = Object.entries(rosterPosCounts)
+          .filter(([, cnt]) => cnt > 1)
+          .map(([pos]) => pos);
+
+        let bestGain = UPGRADE_THRESHOLD - 1;
+        let bestPlayer: (typeof roster)[0] | null = null;
+        let bestWalkon: (typeof availableUpgrades)[0] | null = null;
+
+        for (const pos of eligiblePositions) {
+          const weakest = roster
+            .filter(p => p.position === pos)
+            .sort((a, b) => (a.overall || 0) - (b.overall || 0))[0];
+          const topWalkon = availableUpgrades
+            .filter(w => w.position === pos)
+            .sort((a, b) => (b.overall || 0) - (a.overall || 0))[0];
+
+          if (weakest && topWalkon) {
+            const gain = (topWalkon.overall || 0) - (weakest.overall || 0);
+            if (gain > bestGain) {
+              bestGain = gain;
+              bestPlayer = weakest;
+              bestWalkon = topWalkon;
+            }
+          }
+        }
+
+        if (!bestPlayer || !bestWalkon) break;
+
+        await storage.createPlayerHistory({
+          leagueId,
+          teamId: team.id,
+          firstName: bestPlayer.firstName,
+          lastName: bestPlayer.lastName,
+          position: bestPlayer.position,
+          finalEligibility: bestPlayer.eligibility,
+          overall: bestPlayer.overall,
+          starRating: bestPlayer.starRating,
+          departureType: "cut_juco",
+          departedSeason: currentSeason,
+          seasonsPlayed: eligMap[bestPlayer.eligibility] || 1,
+          abilities: bestPlayer.abilities || [],
+          homeState: bestPlayer.homeState,
+          hometown: bestPlayer.hometown,
+        });
+        await storage.deletePlayer(bestPlayer.id);
+        await storage.updateWalkon(bestWalkon.id, { signedTeamId: team.id, signedTeamName: team.name });
+
+        roster = roster.filter(p => p.id !== bestPlayer!.id);
+        availableUpgrades = availableUpgrades.filter(w => w.id !== bestWalkon!.id);
+        upgradeCount++;
       }
     }
   }
