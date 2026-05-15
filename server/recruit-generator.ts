@@ -1,6 +1,69 @@
 import { getRandomAbilities, getAbilitiesForPosition, calculateOVR, getStarRatingFromOVR } from "@shared/abilities";
 import type { InsertRecruit } from "@shared/schema";
 
+// ── Tool archetype system ─────────────────────────────────────────────────────
+// Each player is assigned a set of "tools" — areas of specialisation.
+// Tool attributes are boosted well above the tier baseline; non-tool attributes
+// are mildly penalised below it.  This makes low-star players feel distinct
+// rather than uniformly poor across the board.
+
+export const HITTER_TOOL_GROUPS: Record<string, string[]> = {
+  Speed:    ["speed", "running", "stealing"],
+  Power:    ["power"],
+  Hit:      ["hitForAvg", "clutch", "wRISP"],
+  Fielding: ["fielding", "agile", "errorResistance"],
+  Arm:      ["arm", "throwing"],
+};
+
+export const PITCHER_TOOL_GROUPS: Record<string, string[]> = {
+  Velocity: ["velocity"],
+  Control:  ["control"],
+  Stuff:    ["stuff"],
+  Stamina:  ["stamina"],
+};
+
+/**
+ * Randomly choose how many tools a player gets by star tier and pick which ones.
+ * Returns an array of tool-name strings (e.g. ["Speed", "Fielding"]).
+ */
+export function selectTools(starRank: number, isPitcher: boolean): string[] {
+  const groups = isPitcher ? PITCHER_TOOL_GROUPS : HITTER_TOOL_GROUPS;
+  const allToolNames = Object.keys(groups);
+
+  let count: number;
+  switch (starRank) {
+    case 5:  count = 3 + Math.floor(Math.random() * 3); break; // 3–5
+    case 4:  count = 2 + Math.floor(Math.random() * 3); break; // 2–4
+    case 3:  count = 1 + Math.floor(Math.random() * 3); break; // 1–3
+    case 2:  count = 1 + Math.floor(Math.random() * 2); break; // 1–2
+    default: count = Math.random() < 0.5 ? 1 : 0;     break; // 0–1
+  }
+  count = Math.min(count, allToolNames.length);
+  if (count === 0) return [];
+  const shuffled = [...allToolNames].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, count);
+}
+
+/**
+ * Generate a single attribute value with a tool boost or non-tool penalty.
+ *
+ * @param base     - The tier baseline (already includes position adjustments
+ *                   like hitBoost or pitchPenalty).
+ * @param isTool   - Whether this attribute belongs to one of the player's tools.
+ * @returns        A value clamped to [10, 99].
+ */
+export function genToolAttr(base: number, isTool: boolean): number {
+  if (isTool) {
+    // +20 to +35 above the baseline
+    const boost = 20 + Math.floor(Math.random() * 16);
+    return Math.max(10, Math.min(99, base + boost));
+  } else {
+    // -5 to -10 below the baseline
+    const penalty = 5 + Math.floor(Math.random() * 6);
+    return Math.max(10, Math.min(99, base - penalty));
+  }
+}
+
 export type RecruitingTheme = "high_velocity" | "sluggers" | "balanced" | "top_heavy" | "hidden_gems";
 
 export function getRandomRecruitingTheme(): RecruitingTheme {
@@ -298,16 +361,28 @@ export function generateRecruitClass(
     return Math.max(1, Math.min(100, targetAvg + variance));
   };
 
-  const generateCommonAbilities = (isPitcher: boolean, position: string, targetAvg: number) => {
+  // When tooledAttrs is provided, common abilities that belong to a tool group
+  // are boosted/penalised via genToolAttr; otherwise the flat variance is used.
+  const generateCommonAbilities = (
+    isPitcher: boolean,
+    position: string,
+    targetAvg: number,
+    tooledAttrs?: Set<string>,
+  ) => {
+    const val = (attrName: string) =>
+      tooledAttrs
+        ? genToolAttr(targetAvg, tooledAttrs.has(attrName))
+        : generateCommonAbilityValue(targetAvg);
+
     if (isPitcher) {
       return {
-        wRISP: generateCommonAbilityValue(targetAvg),
-        vsLefty: generateCommonAbilityValue(targetAvg),
-        poise: generateCommonAbilityValue(targetAvg),
-        grit: generateCommonAbilityValue(targetAvg),
-        heater: generateCommonAbilityValue(targetAvg),
-        agile: generateCommonAbilityValue(targetAvg),
-        recovery: generateCommonAbilityValue(targetAvg),
+        wRISP: val("wRISP"),
+        vsLefty: val("vsLefty"),
+        poise: val("poise"),
+        grit: val("grit"),
+        heater: val("heater"),
+        agile: val("agile"),
+        recovery: val("recovery"),
         clutch: 50,
         vsLHP: 50,
         stealing: 50,
@@ -317,19 +392,19 @@ export function generateRecruitClass(
       };
     } else {
       return {
-        clutch: generateCommonAbilityValue(targetAvg),
-        vsLHP: generateCommonAbilityValue(targetAvg),
-        grit: generateCommonAbilityValue(targetAvg),
-        stealing: generateCommonAbilityValue(targetAvg),
-        running: generateCommonAbilityValue(targetAvg),
-        throwing: generateCommonAbilityValue(targetAvg),
-        recovery: generateCommonAbilityValue(targetAvg),
-        catcherAbility: position === 'C' ? generateCommonAbilityValue(targetAvg) : 50,
+        clutch: val("clutch"),
+        vsLHP: val("vsLHP"),
+        grit: val("grit"),
+        stealing: val("stealing"),
+        running: val("running"),
+        throwing: val("throwing"),
+        recovery: val("recovery"),
+        catcherAbility: position === 'C' ? val("catcherAbility") : 50,
         wRISP: 50,
         vsLefty: 50,
         poise: 50,
         heater: 50,
-        agile: 50,
+        agile: val("agile"),
       };
     }
   };
@@ -436,6 +511,8 @@ export function generateRecruitClass(
     let control: number;
     let stamina: number;
     let stuff: number;
+    let selectedTools: string[] = [];
+    let playerTooledAttrs: Set<string> | undefined;
 
     if (isGenerationalGem) {
       hitForAvg = 85 + Math.floor(Math.random() * 15);
@@ -460,22 +537,29 @@ export function generateRecruitClass(
       stamina = 15 + Math.floor(Math.random() * 25);
       stuff = 15 + Math.floor(Math.random() * 25);
     } else {
+      // Select tools for this player and build the set of all tooled attribute keys.
+      selectedTools = selectTools(starRank, isPitcher);
+      const toolGroups = isPitcher ? PITCHER_TOOL_GROUPS : HITTER_TOOL_GROUPS;
+      playerTooledAttrs = new Set<string>(selectedTools.flatMap(t => toolGroups[t] ?? []));
+      const genT = (base: number, attr: string) => genToolAttr(base, playerTooledAttrs!.has(attr));
+
       // Hitters get a +6 boost to core hitting attrs; pitchers use a higher
       // targetAttrAvg (from getTargetAttrAvgForRecruit) to compensate for the
       // pitcher OVR formula producing ~90 fewer points than the hitter formula
       // at the same raw attribute average.
       const hitBoost = isPitcher ? 0 : 6;
       const pitchPenalty = isPitcher ? 3 : 0;
-      hitForAvg = genAttr(targetAttrAvg + hitBoost);
-      power = genAttr(targetAttrAvg + hitBoost);
-      speed = genAttr(targetAttrAvg + hitBoost);
-      arm = genAttr(targetAttrAvg);
-      fielding = genAttr(targetAttrAvg);
-      errorResistance = genAttr(targetAttrAvg);
-      velocity = genAttr(targetAttrAvg - pitchPenalty);
-      control = genAttr(targetAttrAvg);
-      stamina = genAttr(targetAttrAvg);
-      stuff = genAttr(targetAttrAvg - pitchPenalty);
+
+      hitForAvg = genT(targetAttrAvg + hitBoost, "hitForAvg");
+      power     = genT(targetAttrAvg + hitBoost, "power");
+      speed     = genT(targetAttrAvg + hitBoost, "speed");
+      arm       = genT(targetAttrAvg,            "arm");
+      fielding  = genT(targetAttrAvg,            "fielding");
+      errorResistance = genT(targetAttrAvg,      "errorResistance");
+      velocity  = genT(targetAttrAvg - pitchPenalty, "velocity");
+      control   = genT(targetAttrAvg,               "control");
+      stamina   = genT(targetAttrAvg,               "stamina");
+      stuff     = genT(targetAttrAvg - pitchPenalty, "stuff");
     }
 
     if (themeBoost.attr === "velocity") velocity = Math.min(99, velocity + themeBoost.boost);
@@ -517,7 +601,7 @@ export function generateRecruitClass(
         };
       }
     } else {
-      commonAbilities = generateCommonAbilities(isPitcher, position, targetAttrAvg);
+      commonAbilities = generateCommonAbilities(isPitcher, position, targetAttrAvg, playerTooledAttrs);
     }
 
     const scoutingOrder = generateScoutingOrder(isPitcher, position);
@@ -576,6 +660,7 @@ export function generateRecruitClass(
       prestigePriority: priorities[Math.floor(Math.random() * priorities.length)],
       facilitiesPriority: priorities[Math.floor(Math.random() * priorities.length)],
       commitmentThreshold: 300 + Math.floor(Math.random() * 400),
+      tools: selectedTools,
       isBlueChip,
       isGem,
       isBust,

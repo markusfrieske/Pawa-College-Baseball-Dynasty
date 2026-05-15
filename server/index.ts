@@ -95,6 +95,14 @@ app.use((req, res, next) => {
     console.warn("[startup-migration] recruiting_class_snapshots top_recruit columns check failed:", e);
   }
 
+  // Ensure tools column exists on players and recruits (tool archetype system)
+  try {
+    await pool.query("ALTER TABLE players ADD COLUMN IF NOT EXISTS tools jsonb DEFAULT '[]'::jsonb");
+    await pool.query("ALTER TABLE recruits ADD COLUMN IF NOT EXISTS tools jsonb DEFAULT '[]'::jsonb");
+  } catch (e) {
+    console.warn("[startup-migration] tools column check failed:", e);
+  }
+
   // Ensure pitch_ch is constrained to 0 or 1 on both players and recruits tables.
   // Step 1: clamp any existing out-of-range values so the constraint can be added cleanly.
   // Step 2: add the CHECK constraint idempotently (skipped if it already exists).

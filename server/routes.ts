@@ -22,7 +22,7 @@ import {
   generateDeparturesSummaryNews,
 } from "./news-engine";
 import { SEC_REAL_ROSTERS } from "./realRosters";
-import { generateRecruitClass } from "./recruit-generator";
+import { generateRecruitClass, selectTools, genToolAttr, HITTER_TOOL_GROUPS, PITCHER_TOOL_GROUPS } from "./recruit-generator";
 import { validateLeagueRosters, checkTeamRosterStructure } from "./rosterValidation";
 
 function potentialGradeToNumber(grade: string): number {
@@ -14136,6 +14136,13 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
     const rosterStateEntry = rosterStates[Math.floor(Math.random() * rosterStates.length)];
 
     const { avg: targetAvg, starTier } = getTargetAttrAvg();
+    const isPitcherPos = position === "P";
+
+    // Apply tool archetype system — same logic as recruit-generator.ts
+    const cpuTools = selectTools(starTier, isPitcherPos);
+    const cpuToolGroups = isPitcherPos ? PITCHER_TOOL_GROUPS : HITTER_TOOL_GROUPS;
+    const cpuTooledAttrs = new Set<string>(cpuTools.flatMap(t => cpuToolGroups[t] ?? []));
+    const genT = (attr: string) => genToolAttr(targetAvg, cpuTooledAttrs.has(attr));
 
     const abilityCount = starTier === 5 ? 3 + Math.floor(Math.random() * 3) :   // 3-5
                          starTier === 4 ? 2 + Math.floor(Math.random() * 3) :   // 2-4
@@ -14147,28 +14154,28 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
 
     const appearance = getRandomAppearance(conferenceName, eligibility);
 
-    const hitForAvg = genAttrAroundAvg(targetAvg);
-    const power = genAttrAroundAvg(targetAvg);
-    const speed = genAttrAroundAvg(targetAvg);
-    const arm = genAttrAroundAvg(targetAvg);
-    const fielding = genAttrAroundAvg(targetAvg);
-    const errorResistance = genAttrAroundAvg(targetAvg);
-    const velocity = genAttrAroundAvg(targetAvg);
-    const control = genAttrAroundAvg(targetAvg);
-    const stamina = genAttrAroundAvg(targetAvg);
-    const stuff = genAttrAroundAvg(targetAvg);
-    const clutch = genAttrAroundAvg(targetAvg);
-    const vsLHPVal = genAttrAroundAvg(targetAvg);
-    const grit = genAttrAroundAvg(targetAvg);
-    const stealing = genAttrAroundAvg(targetAvg);
-    const running = genAttrAroundAvg(targetAvg);
-    const throwing = genAttrAroundAvg(targetAvg);
-    const recovery = genAttrAroundAvg(targetAvg);
-    const wRISP = genAttrAroundAvg(targetAvg);
-    const vsLefty = genAttrAroundAvg(targetAvg);
-    const poise = genAttrAroundAvg(targetAvg);
-    const heater = genAttrAroundAvg(targetAvg);
-    const agile = genAttrAroundAvg(targetAvg);
+    const hitForAvg = genT("hitForAvg");
+    const power = genT("power");
+    const speed = genT("speed");
+    const arm = genT("arm");
+    const fielding = genT("fielding");
+    const errorResistance = genT("errorResistance");
+    const velocity = genT("velocity");
+    const control = genT("control");
+    const stamina = genT("stamina");
+    const stuff = genT("stuff");
+    const clutch = genT("clutch");
+    const vsLHPVal = genAttrAroundAvg(targetAvg); // not in any tool group — flat variance
+    const grit = genAttrAroundAvg(targetAvg);     // not in any tool group — flat variance
+    const stealing = genT("stealing");
+    const running = genT("running");
+    const throwing = genT("throwing");
+    const recovery = genAttrAroundAvg(targetAvg); // not in any tool group — flat variance
+    const wRISP = genT("wRISP");
+    const vsLefty = genAttrAroundAvg(targetAvg);  // not in any tool group — flat variance
+    const poise = genAttrAroundAvg(targetAvg);    // not in any tool group — flat variance
+    const heater = genAttrAroundAvg(targetAvg);   // not in any tool group — flat variance
+    const agile = genT("agile");
 
     const playerData = {
       hitForAvg, power, speed, arm, fielding, errorResistance,
@@ -14213,6 +14220,7 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
       pitchCT: position === "P" && Math.random() < 0.4 ? 1 + Math.floor(Math.random() * 7) : 0,
       pitchSNK: position === "P" && Math.random() < 0.3 ? 1 + Math.floor(Math.random() * 7) : 0,
       pitchSPL: position === "P" && Math.random() < 0.3 ? 1 + Math.floor(Math.random() * 7) : 0,
+      tools: cpuTools,
     });
   }
 }

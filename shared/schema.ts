@@ -298,6 +298,7 @@ export const players = pgTable("players", {
   lineupPosition: text("lineup_position"),
   originalPosition: text("original_position"),
   progressionDeltas: json("progression_deltas").$type<Record<string, number>>(),
+  tools: json("tools").$type<string[]>().default([]),
 });
 
 export const insertPlayerSchema = createInsertSchema(players).pick({
@@ -382,6 +383,7 @@ export const insertPlayerSchema = createInsertSchema(players).pick({
   battingOrder: true,
   pitchingRole: true,
   lineupPosition: true,
+  tools: true,
 }).extend({
   pitchCH: z.union([z.literal(0), z.literal(1)]).optional(),
 });
@@ -487,6 +489,7 @@ export const recruits = pgTable("recruits", {
   potential: integer("potential"),
   potentialFloor: integer("potential_floor"),
   potentialCeiling: integer("potential_ceiling"),
+  tools: json("tools").$type<string[]>().default([]),
 });
 
 export const insertRecruitSchema = createInsertSchema(recruits).pick({
@@ -581,6 +584,7 @@ export const insertRecruitSchema = createInsertSchema(recruits).pick({
   potential: true,
   potentialFloor: true,
   potentialCeiling: true,
+  tools: true,
 }).extend({
   pitchCH: z.union([z.literal(0), z.literal(1)]).optional(),
 });
