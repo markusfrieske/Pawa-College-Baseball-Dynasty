@@ -4783,7 +4783,7 @@ export async function registerRoutes(
       const homePlayers = await storage.getPlayersByTeam(game.homeTeamId);
       const awayPlayers = await storage.getPlayersByTeam(game.awayTeamId);
 
-      function buildLineup(players: Player[]) {
+      function buildLineup(players: Player[], opposingSpHand?: string) {
         const positionPlayers = players.filter(p => p.position !== "P");
         const pitchers = players.filter(p => p.position === "P");
         const selected: Player[] = [];
@@ -4822,10 +4822,37 @@ export async function registerRoutes(
           }
         }
 
-        selected.sort((a, b) => ((b.hitForAvg || 0) + (b.power || 0)) - ((a.hitForAvg || 0) + (a.power || 0)));
+        // ── Batting order construction ──────────────────────────────────────
+        // Platoon: reward vsLHP for RHBs/SHBs when facing a LH starter
+        const platoonOBPBonus = (p: Player) =>
+          opposingSpHand === "L" && (p.batHand || "R") !== "L"
+            ? (p.vsLHP || 50) * 0.25 : 0;
+        const obpScore   = (p: Player) => (p.hitForAvg || 50) * 0.50 + (p.speed || 50) * 0.25 + platoonOBPBonus(p);
+        const powerScore = (p: Player) => (p.power    || 50) * 0.65 + (p.hitForAvg || 50) * 0.20 + platoonOBPBonus(p) * 0.5;
+        const ovScore    = (p: Player) => (p.overall  || 300) / 6   + platoonOBPBonus(p) * 0.5;
+
+        const byOBP = [...selected].sort((a, b) => obpScore(b) - obpScore(a));
+        const byPwr = [...selected].sort((a, b) => powerScore(b) - powerScore(a));
+        const byOv  = [...selected].sort((a, b) => ovScore(b) - ovScore(a));
+
+        const ordered: (Player | null)[] = new Array(9).fill(null);
+        const slotted = new Set<string>();
+        const pick = (arr: Player[]) => arr.find(p => !slotted.has(p.id));
+        const assign = (slot: number, arr: Player[]) => {
+          const p = pick(arr);
+          if (p) { ordered[slot] = p; slotted.add(p.id); }
+        };
+
+        assign(3, byPwr);          // 4-hole: best power (cleanup)
+        assign(2, byOv);           // 3-hole: best overall hitter
+        assign(0, byOBP);          // leadoff: best OBP/speed
+        assign(1, byOBP);          // 2-hole: second-best OBP
+        assign(4, byPwr);          // 5-hole: second power bat
+        for (let slot = 5; slot < 9; slot++) assign(slot, byOv);
+        for (let slot = 0; slot < 9; slot++) { if (!ordered[slot]) assign(slot, byOv); }
 
         let ofIdx = 0;
-        const lineup = selected.map((p, i) => {
+        const lineup = (ordered as Player[]).map((p, i) => {
           let displayPos = p.position;
           if (p.position === "OF") {
             displayPos = ofPositions[ofIdx] || "OF";
@@ -4952,12 +4979,13 @@ export async function registerRoutes(
         };
       }
 
-      const homeLineup = buildLineup(homePlayers);
-      const awayLineup = buildLineup(awayPlayers);
+      // Compute staffs first so we know SP throwHand for platoon-aware lineup construction
       const homeStaff = pickPitchingStaff(homePlayers, game.gameType);
       const awayStaff = pickPitchingStaff(awayPlayers, game.gameType);
       const homePitcher = homeStaff.starter;
       const awayPitcher = awayStaff.starter;
+      const homeLineup = buildLineup(homePlayers, awayStaff.starter.throwHand);
+      const awayLineup = buildLineup(awayPlayers, homeStaff.starter.throwHand);
 
       let currentHomePitcher = homeStaff.starter;
       let currentAwayPitcher = awayStaff.starter;
@@ -5160,6 +5188,7 @@ export async function registerRoutes(
           batterIndexRef.value++;
 
           const fieldingAvg = defFielding;
+          const bnEarly = `${batter.firstName[0]}. ${batter.lastName}`;
 
           const fatigueFactor = pitcherState.pitchCount > pitcherState.current.stamina * 0.8
             ? Math.max(0.7, 1 - (pitcherState.pitchCount - pitcherState.current.stamina * 0.8) / 100)
@@ -5167,6 +5196,24 @@ export async function registerRoutes(
           const stuff = pitcherState.current.stuff * fatigueFactor;
           const control = pitcherState.current.control * fatigueFactor;
           const velocity = pitcherState.current.velocity;
+
+          // ── Intentional walk: dangerous batter, first base open, runners in scoring pos, late ──
+          const isBatterDangerous = (batter.clutch + batter.contact) > 155;
+          const runnersInScoringPos = bases[1] !== null || bases[2] !== null;
+          if (isBatterDangerous && bases[0] === null && runnersInScoringPos && inning >= 8 && Math.random() < 0.38) {
+            bases[0] = batter.playerId;
+            atBats.push({
+              batterIndex: batterIdx,
+              batterName: `${batter.firstName} ${batter.lastName}`,
+              pitchSequence: [],
+              result: "intentional_walk",
+              description: `${bnEarly} intentionally walked`,
+              runnersAfter: [true, bases[1] !== null, bases[2] !== null],
+              runsScored: 0,
+              outs,
+            });
+            continue;
+          }
 
           // Platoon split: batter's vsLHP boosts contact/power when facing a lefty pitcher
           const pHand = pitcherState.current.throwHand;
@@ -5191,6 +5238,29 @@ export async function registerRoutes(
           const contact = Math.max(10, Math.min(99, rawContact));
           const power = Math.max(10, Math.min(99, rawPower));
           const speed = batter.speed;
+
+          // ── Sac bunt: runner on 1st only, 0 outs, late game, close, slots 7-9 ──
+          const pId0 = pitcherState.current.playerId;
+          if (!pitcherStats[pId0]) pitcherStats[pId0] = { outs: 0, h: 0, r: 0, er: 0, bb: 0, so: 0 };
+          const isBuntSituation = outs === 0 && bases[0] !== null && bases[1] === null &&
+            inning >= 7 && Math.abs(battingTeamScore - pitchingTeamScore) <= 2 && batterIdx >= 6;
+          if (isBuntSituation && Math.random() < 0.40) {
+            bases[1] = bases[0];
+            bases[0] = null;
+            outs = Math.min(3, outs + 1);
+            pitcherStats[pId0].outs++;
+            atBats.push({
+              batterIndex: batterIdx,
+              batterName: `${batter.firstName} ${batter.lastName}`,
+              pitchSequence: ["ball", "foul", "foul"],
+              result: "sacrifice_bunt",
+              description: `${bnEarly} lays down a sacrifice bunt, advancing the runner to second`,
+              runnersAfter: [false, true, bases[2] !== null],
+              runsScored: 0,
+              outs,
+            });
+            continue;
+          }
 
           const contactNorm = contact / 100;
           const powerNorm = power / 100;
@@ -5551,6 +5621,42 @@ export async function registerRoutes(
                   });
                 }
               }
+            }
+          }
+
+          // ── Wild pitch / passed ball: advances all runners one base ──────────
+          if (outs < 3) {
+            const hasRunners = bases[0] !== null || bases[1] !== null || bases[2] !== null;
+            const wpProb = hasRunners ? Math.max(0, (56 - control) / 650) : 0;
+            if (Math.random() < wpProb) {
+              const pIdWP = pitcherState.current.playerId;
+              let wpRuns = 0;
+              if (bases[2] !== null) {
+                if (batterStats[bases[2]]) batterStats[bases[2]].r++;
+                if (!pitcherStats[pIdWP]) pitcherStats[pIdWP] = { outs: 0, h: 0, r: 0, er: 0, bb: 0, so: 0 };
+                pitcherStats[pIdWP].r++;
+                pitcherStats[pIdWP].er++;
+                wpRuns++;
+                runs++;
+                bases[2] = null;
+              }
+              bases[2] = bases[1];
+              bases[1] = bases[0];
+              bases[0] = null;
+              const isWP = Math.random() < 0.70;
+              const wpDesc = wpRuns > 0
+                ? `${isWP ? "Wild pitch" : "Passed ball"} — runner scores from third!`
+                : `${isWP ? "Wild pitch" : "Passed ball"} — runner(s) advance`;
+              atBats.push({
+                batterIndex: -1,
+                batterName: "",
+                pitchSequence: [],
+                result: isWP ? "wild_pitch" : "passed_ball",
+                description: wpDesc,
+                runnersAfter: [bases[0] !== null, bases[1] !== null, bases[2] !== null],
+                runsScored: wpRuns,
+                outs,
+              });
             }
           }
 
@@ -6829,11 +6935,36 @@ export async function registerRoutes(
           const allSeasonGames = await getSeasonGames();
           const weekGames = allSeasonGames.filter(g => g.week === currentLeague.currentWeek && !g.isComplete);
 
-          const simResults = weekGames.map(game => {
+          // Sort within week by day order so fatigue carries Fri → Sat → Sun
+        const dayOrder: Record<string, number> = { friday: 0, saturday: 1, sunday: 2, midweek: 3 };
+        const sortedWeekGames = [...weekGames].sort((a, b) =>
+          (dayOrder[a.gameType || ""] ?? 4) - (dayOrder[b.gameType || ""] ?? 4));
+
+        // Per-team reliever pitch accumulation for the week (resets each week)
+        const weekPitcherPitches: Map<string, Record<string, number>> = new Map();
+
+        const simResults: { game: typeof weekGames[0]; result: ReturnType<typeof simulateGameWithRosters> }[] = [];
+        for (const game of sortedWeekGames) {
             const homePlayers = rosterCache.get(game.homeTeamId) || [];
             const awayPlayers = rosterCache.get(game.awayTeamId) || [];
-            return { game, result: simulateGameWithRosters(homePlayers, awayPlayers, game.gameType, teamStadiumMap.get(game.homeTeamId), teamStadiumMap.get(game.awayTeamId)) };
-          });
+            const homeFatigue = weekPitcherPitches.get(game.homeTeamId) || {};
+            const awayFatigue = weekPitcherPitches.get(game.awayTeamId) || {};
+            const result = simulateGameWithRosters(homePlayers, awayPlayers, game.gameType,
+              teamStadiumMap.get(game.homeTeamId), teamStadiumMap.get(game.awayTeamId),
+              { home: homeFatigue, away: awayFatigue });
+
+            // Accumulate reliever pitch counts (add to existing, not replace)
+            const mergePitches = (existing: Record<string, number>, incoming: Record<string, number>) => {
+              const merged = { ...existing };
+              for (const [pid, pitches] of Object.entries(incoming)) {
+                merged[pid] = (merged[pid] || 0) + pitches;
+              }
+              return merged;
+            };
+            weekPitcherPitches.set(game.homeTeamId, mergePitches(homeFatigue, result.homePitcherPitches));
+            weekPitcherPitches.set(game.awayTeamId, mergePitches(awayFatigue, result.awayPitcherPitches));
+            simResults.push({ game, result });
+          }
 
           await Promise.all(simResults.map(async ({ game, result }) => {
             await storage.updateGame(game.id, {
@@ -6895,6 +7026,7 @@ export async function registerRoutes(
             const awayPlayers = rosterCache.get(game.awayTeamId) || [];
             return { game, result: simulateGameWithRosters(homePlayers, awayPlayers, game.gameType || "friday", teamStadiumMap.get(game.homeTeamId), teamStadiumMap.get(game.awayTeamId)) };
           });
+          // (CC games are one-off single games; no within-week series fatigue applies)
 
           await Promise.all(simResults.map(async ({ game, result }) => {
             await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, boxScore: result.boxScore, isComplete: true });
@@ -7325,8 +7457,9 @@ export async function registerRoutes(
   // ============ GAME SIMULATION FUNCTION ============
   function simulateGameWithRosters(
     homePlayers: Player[], awayPlayers: Player[], gameType?: string | null,
-    homeStadium?: number, awayStadium?: number
-  ): { homeScore: number; awayScore: number; boxScore: string } {
+    homeStadium?: number, awayStadium?: number,
+    pitcherFatigueIn?: { home: Record<string, number>; away: Record<string, number> }
+  ): { homeScore: number; awayScore: number; boxScore: string; homePitcherPitches: Record<string, number>; awayPitcherPitches: Record<string, number> } {
 
     const gameTypeToRole: Record<string, string> = { friday: "FRI", saturday: "SAT", sunday: "SUN", midweek: "MID" };
     const starterRoles = ["FRI", "SAT", "SUN", "MID"];
@@ -7376,19 +7509,33 @@ export async function registerRoutes(
     // Stadium park factor: rating 1-10, 5 = neutral; each point = ±0.07 runs
     const homePark = ((homeStadium ?? 5) - 5) * 0.07;
 
+    // Bullpen fatigue: heavy recent usage degrades reliever effectiveness → extra runs for opponent
+    const relieverRolesFatigue = ["LRP", "MR", "MR1", "MR2", "MR3", "SU", "CP"];
+    const calcBullpenFatiguePenalty = (players: Player[], fatigueMap: Record<string, number>) => {
+      const relievers = players.filter(p => p.position === "P" && relieverRolesFatigue.includes(p.pitchingRole || ""));
+      if (relievers.length === 0) return 0;
+      const totalFatigue = relievers.reduce((s, p) => s + (fatigueMap[p.id] || 0), 0);
+      const avgFatigue = totalFatigue / relievers.length;
+      return Math.min(0.80, avgFatigue / 100 * 0.80); // max +0.80 runs to opponent
+    };
+    const homeBullpenFatigued = calcBullpenFatiguePenalty(homePlayers, pitcherFatigueIn?.home || {});
+    const awayBullpenFatigued = calcBullpenFatiguePenalty(awayPlayers, pitcherFatigueIn?.away || {});
+
     const homeAdv = 0.25;
     let homeExpected = 5.75
       + offDiff * 4.0
       + homeAdv
       - awaySpSuppression
       + platoonBonus(awaySpHand, homePlayers)
-      + homePark;
+      + homePark
+      + awayBullpenFatigued;    // fatigued away bullpen gives up more home runs
 
     let awayExpected = 5.75
       - offDiff * 4.0
       - homeSpSuppression
       + platoonBonus(homeSpHand, awayPlayers)
-      + homePark * 0.5;
+      + homePark * 0.5
+      + homeBullpenFatigued;    // fatigued home bullpen gives up more away runs
 
     homeExpected = Math.max(1.0, Math.min(13, homeExpected));
     awayExpected = Math.max(1.0, Math.min(13, awayExpected));
@@ -7407,8 +7554,22 @@ export async function registerRoutes(
       if (Math.random() > 0.5) homeScore++; else awayScore++;
     }
 
-    const boxScore = generateBoxScore(homeScore, awayScore, homePlayers, awayPlayers, gameType, homeStadium);
-    return { homeScore, awayScore, boxScore: JSON.stringify(boxScore) };
+    const boxScoreObj = generateBoxScore(homeScore, awayScore, homePlayers, awayPlayers, gameType, homeStadium);
+
+    // Extract reliever pitch counts from box score for next-game fatigue tracking
+    const extractPitcherPitches = (pitching: Array<{ playerId: string; totalPitches: number }>, spId: string | undefined) => {
+      const usage: Record<string, number> = {};
+      for (const p of pitching) {
+        if (p.playerId && !p.playerId.startsWith("fake_") && p.playerId !== spId) {
+          usage[p.playerId] = (usage[p.playerId] || 0) + (p.totalPitches || 0);
+        }
+      }
+      return usage;
+    };
+    const homePitcherPitches = extractPitcherPitches(boxScoreObj.home.pitching || [], homeSP?.id);
+    const awayPitcherPitches = extractPitcherPitches(boxScoreObj.away.pitching || [], awaySP?.id);
+
+    return { homeScore, awayScore, boxScore: JSON.stringify(boxScoreObj), homePitcherPitches, awayPitcherPitches };
   }
 
   async function simulateGame(homeTeamId: string, awayTeamId: string, gameType?: string | null): Promise<{ homeScore: number; awayScore: number; boxScore: string }> {
@@ -7418,7 +7579,8 @@ export async function registerRoutes(
       storage.getTeam(homeTeamId),
       storage.getTeam(awayTeamId),
     ]);
-    return simulateGameWithRosters(homePlayers, awayPlayers, gameType, homeTeam?.stadium, awayTeam?.stadium);
+    const result = simulateGameWithRosters(homePlayers, awayPlayers, gameType, homeTeam?.stadium, awayTeam?.stadium);
+    return { homeScore: result.homeScore, awayScore: result.awayScore, boxScore: result.boxScore };
   }
 
   function generateBoxScore(homeScore: number, awayScore: number, homePlayers: Player[], awayPlayers: Player[], gameType?: string | null, homeStadium?: number) {

@@ -275,9 +275,14 @@ export default function PlayByPlayPage() {
           if (!pitching[currentPitcherId]) pitching[currentPitcherId] = { outs: 0, h: 0, r: 0, er: 0, bb: 0, so: 0 };
 
           const result = ab.result;
+          // Non-batter events: skip all stat tracking
+          const nonBatterEvents = ["pitching_change", "runner_placed", "stolen_base", "caught_stealing", "wild_pitch", "passed_ball"];
+          if (nonBatterEvents.includes(result)) continue;
+
           const isHit = hitResults.includes(result);
           const isOut = outResults.includes(result);
-          const noAb = result === "walk" || result === "hbp" || result === "sacrifice_fly";
+          const noAb = result === "walk" || result === "hbp" || result === "sacrifice_fly" ||
+            result === "intentional_walk" || result === "sacrifice_bunt";
 
           if (!noAb) batting[bId].ab++;
           if (isHit) {
@@ -285,7 +290,7 @@ export default function PlayByPlayPage() {
             pitching[currentPitcherId].h++;
           }
           if (result === "homerun") batting[bId].hr++;
-          if (result === "walk" || result === "hbp") {
+          if (result === "walk" || result === "hbp" || result === "intentional_walk") {
             batting[bId].bb++;
             pitching[currentPitcherId].bb++;
           }
@@ -297,7 +302,7 @@ export default function PlayByPlayPage() {
           pitching[currentPitcherId].r += ab.runsScored;
           pitching[currentPitcherId].er += ab.runsScored;
 
-          if (isOut) {
+          if (isOut || result === "sacrifice_bunt") {
             const outsFromPlay = result === "double_play" ? 2 : 1;
             pitching[currentPitcherId].outs += outsFromPlay;
           }
@@ -330,20 +335,22 @@ export default function PlayByPlayPage() {
   }, [pbpData, currentInning, currentHalf, currentAtBatIndex]);
 
   const showResultFlash = useCallback((result: string) => {
-    const noFlash = ["pitching_change", "runner_placed"];
+    const noFlash = ["pitching_change", "runner_placed", "wild_pitch", "passed_ball"];
     if (noFlash.includes(result)) return;
     const hitResults = ["single", "double", "triple"];
-    const walkResults = ["walk", "hbp"];
+    const walkResults = ["walk", "hbp", "intentional_walk"];
     const labels: Record<string, string> = {
       single: "SINGLE", double: "DOUBLE", triple: "TRIPLE", homerun: "HOME RUN",
       strikeout: "K", groundout: "GROUND OUT", flyout: "FLY OUT", lineout: "LINE OUT",
       popout: "POP OUT", double_play: "DOUBLE PLAY", walk: "BB", hbp: "HBP",
       error: "ERROR", sacrifice_fly: "SAC FLY", fielders_choice: "FC",
       stolen_base: "SB", caught_stealing: "CS",
+      intentional_walk: "IBB", sacrifice_bunt: "BUNT",
     };
     const type = result === "homerun" ? "hr" : hitResults.includes(result) ? "hit" :
       walkResults.includes(result) ? "walk" : result === "error" ? "error" :
-      result === "stolen_base" ? "hit" : "out";
+      result === "stolen_base" ? "hit" :
+      result === "sacrifice_bunt" ? "out" : "out";
     setResultFlash({ text: labels[result] || result.toUpperCase(), type });
     setTimeout(() => setResultFlash(null), 1200);
   }, []);
