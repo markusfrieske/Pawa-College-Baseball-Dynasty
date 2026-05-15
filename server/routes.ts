@@ -4309,7 +4309,7 @@ export async function registerRoutes(
             careerLosses: hcLosses,
             confWins: hcConfWins,
             confLosses: hcConfLosses,
-            legacyScore: computeLegacyScore({ ...homeCoach, careerWins: hcWins, confWins: hcConfWins, confLosses: hcConfLosses }),
+            legacyScore: computeLegacyScore({ ...homeCoach, careerWins: hcWins }),
           });
         }
       }
@@ -4333,7 +4333,7 @@ export async function registerRoutes(
             careerLosses: acLosses,
             confWins: acConfWins,
             confLosses: acConfLosses,
-            legacyScore: computeLegacyScore({ ...awayCoach, careerWins: acWins, confWins: acConfWins, confLosses: acConfLosses }),
+            legacyScore: computeLegacyScore({ ...awayCoach, careerWins: acWins }),
           });
         }
       }
@@ -6137,7 +6137,7 @@ export async function registerRoutes(
             careerLosses: hcLosses,
             confWins: hcConfWins,
             confLosses: hcConfLosses,
-            legacyScore: computeLegacyScore({ ...homeCoach, careerWins: hcWins, confWins: hcConfWins, confLosses: hcConfLosses }),
+            legacyScore: computeLegacyScore({ ...homeCoach, careerWins: hcWins }),
           });
         }
       }
@@ -6160,7 +6160,7 @@ export async function registerRoutes(
             careerLosses: acLosses,
             confWins: acConfWins,
             confLosses: acConfLosses,
-            legacyScore: computeLegacyScore({ ...awayCoach, careerWins: acWins, confWins: acConfWins, confLosses: acConfLosses }),
+            legacyScore: computeLegacyScore({ ...awayCoach, careerWins: acWins }),
           });
         }
       }
@@ -6616,31 +6616,11 @@ export async function registerRoutes(
               }
             } catch (e) { console.error("National championship coach stats error:", e); }
 
-            // Track allAmericans: fill positional All-American slots by OVR and count per team's coach
+            // Track allAmericans using the same pipeline as the Awards tab
+            // (All-American + All-Conference teams, both built via positional slot logic)
             try {
-              const aaPool: { id: string; overall: number; position: string; teamId: string }[] = [];
-              for (const t of leagueTeams) {
-                const roster = await storage.getPlayersByTeam(t.id);
-                for (const p of roster) aaPool.push({ id: p.id, overall: p.overall, position: p.position, teamId: p.teamId });
-              }
-              const aaSlots = ["C", "1B", "2B", "SS", "3B", "OF", "OF", "OF", "SP", "SP", "SP", "R", "CL", "DH"];
-              const aaPitchers = aaPool.filter(p => p.position === "P").sort((a, b) => (b.overall || 0) - (a.overall || 0));
-              const aaUsed = new Set<string>();
-              const aaTeamCounts = new Map<string, number>();
-              let aaPIdx = 0;
-              for (const slot of aaSlots) {
-                if (slot === "SP" || slot === "R" || slot === "CL") {
-                  while (aaPIdx < aaPitchers.length && aaUsed.has(aaPitchers[aaPIdx].id)) aaPIdx++;
-                  if (aaPIdx < aaPitchers.length) { const s = aaPitchers[aaPIdx]; aaUsed.add(s.id); aaTeamCounts.set(s.teamId, (aaTeamCounts.get(s.teamId) || 0) + 1); aaPIdx++; }
-                } else if (slot === "DH") {
-                  const cands = aaPool.filter(p => p.position !== "P" && !aaUsed.has(p.id)).sort((a, b) => (b.overall || 0) - (a.overall || 0));
-                  if (cands.length > 0) { aaUsed.add(cands[0].id); aaTeamCounts.set(cands[0].teamId, (aaTeamCounts.get(cands[0].teamId) || 0) + 1); }
-                } else {
-                  const cands = aaPool.filter(p => p.position === slot && !aaUsed.has(p.id)).sort((a, b) => (b.overall || 0) - (a.overall || 0));
-                  if (cands.length > 0) { aaUsed.add(cands[0].id); aaTeamCounts.set(cands[0].teamId, (aaTeamCounts.get(cands[0].teamId) || 0) + 1); }
-                }
-              }
-              for (const [tId, aaCount] of aaTeamCounts.entries()) {
+              const aaSelections = await countAllAmericanSelectionsForLeague(leagueId);
+              for (const [tId, aaCount] of aaSelections.entries()) {
                 const aaTeamEntry = leagueTeams.find(t => t.id === tId);
                 if (aaTeamEntry?.coachId) {
                   const aaCoach = await storage.getCoach(aaTeamEntry.coachId);
@@ -7300,30 +7280,10 @@ export async function registerRoutes(
                 }
               }
             } catch (e) { console.error("National championship coach stats error (sim):", e); }
+            // Track allAmericans using the same pipeline as the Awards tab (sim-to-offseason path)
             try {
-              const simAaPool: { id: string; overall: number; position: string; teamId: string }[] = [];
-              for (const t of simLeagueTeams) {
-                const roster = await storage.getPlayersByTeam(t.id);
-                for (const p of roster) simAaPool.push({ id: p.id, overall: p.overall, position: p.position, teamId: p.teamId });
-              }
-              const simAaSlots = ["C", "1B", "2B", "SS", "3B", "OF", "OF", "OF", "SP", "SP", "SP", "R", "CL", "DH"];
-              const simAaPitchers = simAaPool.filter(p => p.position === "P").sort((a, b) => (b.overall || 0) - (a.overall || 0));
-              const simAaUsed = new Set<string>();
-              const simAaTeamCounts = new Map<string, number>();
-              let simAaPIdx = 0;
-              for (const slot of simAaSlots) {
-                if (slot === "SP" || slot === "R" || slot === "CL") {
-                  while (simAaPIdx < simAaPitchers.length && simAaUsed.has(simAaPitchers[simAaPIdx].id)) simAaPIdx++;
-                  if (simAaPIdx < simAaPitchers.length) { const s = simAaPitchers[simAaPIdx]; simAaUsed.add(s.id); simAaTeamCounts.set(s.teamId, (simAaTeamCounts.get(s.teamId) || 0) + 1); simAaPIdx++; }
-                } else if (slot === "DH") {
-                  const cands = simAaPool.filter(p => p.position !== "P" && !simAaUsed.has(p.id)).sort((a, b) => (b.overall || 0) - (a.overall || 0));
-                  if (cands.length > 0) { simAaUsed.add(cands[0].id); simAaTeamCounts.set(cands[0].teamId, (simAaTeamCounts.get(cands[0].teamId) || 0) + 1); }
-                } else {
-                  const cands = simAaPool.filter(p => p.position === slot && !simAaUsed.has(p.id)).sort((a, b) => (b.overall || 0) - (a.overall || 0));
-                  if (cands.length > 0) { simAaUsed.add(cands[0].id); simAaTeamCounts.set(cands[0].teamId, (simAaTeamCounts.get(cands[0].teamId) || 0) + 1); }
-                }
-              }
-              for (const [tId, aaCount] of simAaTeamCounts.entries()) {
+              const simAaSelections = await countAllAmericanSelectionsForLeague(leagueId);
+              for (const [tId, aaCount] of simAaSelections.entries()) {
                 const aaTeamEntry = simLeagueTeams.find(t => t.id === tId);
                 if (aaTeamEntry?.coachId) {
                   const aaCoach = await storage.getCoach(aaTeamEntry.coachId);
@@ -8358,6 +8318,58 @@ export async function registerRoutes(
   // ============ COACH LEGACY SCORE HELPER ============
   function computeLegacyScore(coach: { careerWins: number; confChampionships: number; cwsAppearances: number; nationalChampionships: number; allAmericans: number; draftPicks: number }): number {
     return coach.careerWins + (coach.confChampionships * 5) + (coach.cwsAppearances * 10) + (coach.nationalChampionships * 20) + coach.allAmericans + coach.draftPicks;
+  }
+
+  // ============ ALL-AMERICAN SELECTIONS COUNTER ============
+  // Returns a Map<teamId, selectionCount> counting All-American + All-Conference
+  // selections using the exact same positional slot logic as the Awards tab.
+  async function countAllAmericanSelectionsForLeague(leagueId: string): Promise<Map<string, number>> {
+    const fieldingSlots = ["C", "1B", "2B", "SS", "3B", "OF", "OF", "OF"];
+    const pitcherSlots = ["SP", "SP", "SP", "R", "CL"];
+    const slots = [...fieldingSlots, ...pitcherSlots, "DH"];
+
+    function selectTeamIds(pool: { id: string; overall: number; position: string; teamId: string }[]): string[] {
+      const selected: string[] = [];
+      const used = new Set<string>();
+      const pitchers = pool.filter(p => p.position === "P").sort((a, b) => (b.overall || 0) - (a.overall || 0));
+      let pIdx = 0;
+      for (const slot of slots) {
+        if (slot === "SP" || slot === "R" || slot === "CL") {
+          while (pIdx < pitchers.length && used.has(pitchers[pIdx].id)) pIdx++;
+          if (pIdx < pitchers.length) { used.add(pitchers[pIdx].id); selected.push(pitchers[pIdx].teamId); pIdx++; }
+        } else if (slot === "DH") {
+          const cands = pool.filter(p => p.position !== "P" && !used.has(p.id)).sort((a, b) => (b.overall || 0) - (a.overall || 0));
+          if (cands.length > 0) { used.add(cands[0].id); selected.push(cands[0].teamId); }
+        } else {
+          const cands = pool.filter(p => p.position === slot && !used.has(p.id)).sort((a, b) => (b.overall || 0) - (a.overall || 0));
+          if (cands.length > 0) { used.add(cands[0].id); selected.push(cands[0].teamId); }
+        }
+      }
+      return selected;
+    }
+
+    const allTeams = await storage.getTeamsByLeague(leagueId);
+    const allConfs = await storage.getConferencesByLeague(leagueId);
+    const allPool: { id: string; overall: number; position: string; teamId: string }[] = [];
+    for (const t of allTeams) {
+      const roster = await storage.getPlayersByTeam(t.id);
+      for (const p of roster) allPool.push({ id: p.id, overall: p.overall, position: p.position, teamId: p.teamId });
+    }
+
+    const teamCounts = new Map<string, number>();
+    const inc = (tId: string) => teamCounts.set(tId, (teamCounts.get(tId) || 0) + 1);
+
+    // All-American team (league-wide)
+    for (const tId of selectTeamIds(allPool)) inc(tId);
+
+    // All-Conference team per conference (matching Awards tab)
+    for (const conf of allConfs) {
+      const confTeamIds = new Set(allTeams.filter(t => t.conferenceId === conf.id).map(t => t.id));
+      const confPool = allPool.filter(p => confTeamIds.has(p.teamId));
+      for (const tId of selectTeamIds(confPool)) inc(tId);
+    }
+
+    return teamCounts;
   }
 
   // ============ STANDINGS UPDATE HELPER ============
