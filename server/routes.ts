@@ -3484,12 +3484,14 @@ export async function registerRoutes(
         }
       }
 
+      const PITCHER_POS_LP = ["P", "SP", "RP", "CL", "LHP", "RHP"];
       const teamId = userCoach?.teamId;
       for (const a of assignments) {
         const player = await storage.getPlayer(a.playerId);
-        if (player && (isCommissioner || player.teamId === teamId)) {
-          await storage.updatePlayer(a.playerId, { lineupPosition: a.lineupPosition });
-        }
+        if (!player) continue;
+        if (!isCommissioner && player.teamId !== teamId) continue;
+        if (PITCHER_POS_LP.includes(player.position)) continue;
+        await storage.updatePlayer(a.playerId, { lineupPosition: a.lineupPosition });
       }
 
       res.json({ success: true, count: assignments.length });
