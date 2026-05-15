@@ -8285,6 +8285,7 @@ export async function registerRoutes(
           isComplete: true,
           boxScore: result.boxScore,
         });
+        await updateStandingsForGame(leagueId, season, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore);
         try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, season, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, season, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
         try {
           const srHomeWon = result.homeScore > result.awayScore;
@@ -8482,6 +8483,7 @@ export async function registerRoutes(
         isComplete: true,
         boxScore: result.boxScore,
       });
+      await updateStandingsForGame(leagueId, season, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore);
       try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, season, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, season, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
       try {
         const cwsHomeWon = result.homeScore > result.awayScore;
@@ -10350,7 +10352,8 @@ export async function registerRoutes(
       let srGames = allGames.filter(g => g.phase === "super_regionals" && g.season === season);
       let cwsGames = allGames.filter(g => g.phase === "cws" && g.season === season);
       
-      if (confChampGames.length === 0 && srGames.length === 0 && cwsGames.length === 0 && season > 1 && !req.query.season) {
+      const activePostseasonPhases = ["conference_championship", "super_regionals", "cws"];
+      if (confChampGames.length === 0 && srGames.length === 0 && cwsGames.length === 0 && season > 1 && !req.query.season && !activePostseasonPhases.includes(league.currentPhase)) {
         season = league.currentSeason - 1;
         confChampGames = allGames.filter(g => g.phase === "conference_championship" && g.season === season);
         srGames = allGames.filter(g => g.phase === "super_regionals" && g.season === season);

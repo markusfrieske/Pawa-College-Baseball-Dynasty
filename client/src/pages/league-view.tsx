@@ -2437,6 +2437,8 @@ function WaitingOnWidget({
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "recruiting"] });
       queryClient.invalidateQueries({ queryKey: [`/api/leagues/${leagueId}/roster`] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "walkons"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "schedule"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "postseason"] });
       window.dispatchEvent(new CustomEvent("league-phase-changed"));
     },
   });
@@ -4080,44 +4082,60 @@ function PostseasonGameCard({ game, leagueId }: { game: PostseasonGame; leagueId
 
   return (
     <div className="bg-muted/30 rounded p-3 border border-border" data-testid={`postseason-game-${game.id}`}>
-      <div className={`flex items-center justify-between gap-2 py-1 ${homeWon ? "text-gold font-medium" : awayWon ? "text-muted-foreground" : ""}`}>
-        <div className="flex items-center gap-2">
-          {game.homeSeed && <span className="text-[9px] font-pixel text-gold w-4">{game.homeSeed}</span>}
-          <span className="text-xs">{game.homeTeam?.name || "TBD"}</span>
-          <Badge variant="outline" className="text-[8px]">{game.homeTeam?.abbreviation}</Badge>
+      <div className="flex items-center gap-2">
+        <div className="flex-1 flex items-center gap-2 min-w-0">
+          {game.awaySeed != null && game.awaySeed > 0 && (
+            <span className="text-[9px] font-pixel text-gold flex-shrink-0 w-4">{game.awaySeed}</span>
+          )}
+          <span className={`text-xs truncate ${awayWon ? "text-gold font-medium" : game.isComplete ? "text-muted-foreground" : ""}`}>
+            {game.awayTeam?.name || "TBD"}
+          </span>
+          {game.awayTeam?.abbreviation && (
+            <Badge variant="outline" className="text-[8px] flex-shrink-0">{game.awayTeam.abbreviation}</Badge>
+          )}
         </div>
-        <span className="text-sm font-pixel">{game.isComplete ? game.homeScore : "-"}</span>
-      </div>
-      <div className="border-t border-border/50 my-1" />
-      <div className={`flex items-center justify-between gap-2 py-1 ${awayWon ? "text-gold font-medium" : homeWon ? "text-muted-foreground" : ""}`}>
-        <div className="flex items-center gap-2">
-          {game.awaySeed && <span className="text-[9px] font-pixel text-gold w-4">{game.awaySeed}</span>}
-          <span className="text-xs">{game.awayTeam?.name || "TBD"}</span>
-          <Badge variant="outline" className="text-[8px]">{game.awayTeam?.abbreviation}</Badge>
+
+        <div className="flex items-center gap-1 flex-shrink-0 text-center min-w-[60px] justify-center">
+          {game.isComplete ? (
+            <>
+              <span className={`text-sm font-pixel ${awayWon ? "text-gold" : "text-muted-foreground"}`}>
+                {game.awayScore}
+              </span>
+              <span className="text-muted-foreground text-xs">–</span>
+              <span className={`text-sm font-pixel ${homeWon ? "text-gold" : "text-muted-foreground"}`}>
+                {game.homeScore}
+              </span>
+            </>
+          ) : (
+            <span className="text-[9px] font-pixel text-muted-foreground">
+              {game.homeTeam && game.awayTeam ? "vs" : "TBD"}
+            </span>
+          )}
         </div>
-        <span className="text-sm font-pixel">{game.isComplete ? game.awayScore : "-"}</span>
-      </div>
-      {!game.isComplete && game.homeTeam && game.awayTeam && (
-        <div className="flex items-center justify-center gap-2 mt-2">
-          <Badge variant="outline" className="text-[8px]">Upcoming</Badge>
+
+        <div className="flex-1 flex items-center justify-end gap-2 min-w-0">
+          {game.homeTeam?.abbreviation && (
+            <Badge variant="outline" className="text-[8px] flex-shrink-0">{game.homeTeam.abbreviation}</Badge>
+          )}
+          <span className={`text-xs truncate text-right ${homeWon ? "text-gold font-medium" : game.isComplete ? "text-muted-foreground" : ""}`}>
+            {game.homeTeam?.name || "TBD"}
+          </span>
+          {game.homeSeed != null && game.homeSeed > 0 && (
+            <span className="text-[9px] font-pixel text-gold flex-shrink-0 w-4 text-right">{game.homeSeed}</span>
+          )}
+        </div>
+
+        {!game.isComplete && game.homeTeam && game.awayTeam && (
           <Link href={`/league/${leagueId}/game/${game.id}/play-by-play`}>
             <RetroButton variant="outline" size="sm" title="Play by Play" data-testid={`button-pbp-postseason-${game.id}`}>
-              <Play className="w-3 h-3 mr-1" />
-              <span className="text-[8px] font-pixel">PBP</span>
+              <Play className="w-3 h-3" />
             </RetroButton>
           </Link>
-        </div>
-      )}
-      {!game.isComplete && !(game.homeTeam && game.awayTeam) && (
-        <div className="text-center mt-2">
-          <Badge variant="outline" className="text-[8px]">Upcoming</Badge>
-        </div>
-      )}
-      {game.isComplete && (
-        <div className="text-center mt-2">
-          <Badge className="text-[8px] bg-green-500/20 text-green-400 border-green-500/30">Final</Badge>
-        </div>
-      )}
+        )}
+        {game.isComplete && (
+          <Badge className="text-[8px] bg-green-500/20 text-green-400 border-green-500/30 flex-shrink-0">Final</Badge>
+        )}
+      </div>
     </div>
   );
 }
