@@ -205,9 +205,9 @@ export default function CommissionerPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "commissioner"] });
-      const duringRecruiting = RECRUITING_PHASES.includes(data?.league?.currentPhase || "");
+      const duringRecruiting = (RECRUITING_PHASES as readonly string[]).includes(data?.league?.currentPhase || "");
       toast({
-        title: "Aggression Updated",
+        title: duringRecruiting ? "Aggression Saved (Next Cycle)" : "Aggression Updated",
         description: duringRecruiting
           ? "Change saved — takes effect next recruiting cycle. Current recruiting is already underway."
           : "CPU recruiting aggressiveness has been changed.",
