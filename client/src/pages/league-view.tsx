@@ -4737,9 +4737,12 @@ function SigningDaySummaryCard({ league, myTeam }: { league: LeagueDetails; myTe
   const snaps: ClassSnapshot[] = latestSeason != null ? (rankingsData?.bySeason?.[latestSeason] ?? []) : [];
   const mySnap = myTeam ? snaps.find(s => s.teamId === myTeam.id) : null;
 
-  if (!isVisible || dismissed || !myTeam || snaps.length === 0 || !mySnap) return null;
+  // Don't render until latestSeason is known — avoids a dismissed-card flash on first paint
+  if (!isVisible || !myTeam || latestSeason == null) return null;
+  if (dismissed || snaps.length === 0 || !mySnap) return null;
 
-  const total = snaps.length;
+  // Use total league teams as denominator (not just teams with commits) for an accurate rank context
+  const total = league.teams?.length ?? snaps.length;
   const grade = getClassGrade(mySnap.classRank, total);
   const gradeColor = getGradeColor(grade);
   const gradeBg = getGradeBg(grade);
