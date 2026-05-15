@@ -11553,21 +11553,25 @@ export async function registerRoutes(
     const league = await storage.getLeague(leagueId);
     const difficulty = league?.cpuDifficulty || "high_school";
     
-    // CPU difficulty balance (rebalanced):
-    //   gainMultiplier applies on top of the same compute* functions humans use.
-    //   Previous elite=1.5× was too strong (50% stronger per action + more actions).
-    //   New values keep CPU competitive without being unfair at default (high_school).
+    // CPU difficulty balance (rebalanced for 4-week recruiting window):
+    //   The recruiting phase has exactly 4 weeks. With the old offerThreshold values,
+    //   CPU teams often failed to extend offers in time (needed 3 weeks to reach 35%
+    //   interest before offering, leaving only 1 week to reach 60% verbal).
+    //   Lowered offerThresholds let CPU offer after 1-2 actions, enabling proper
+    //   commitment pipelines within the 4-week window.
     //
-    //   Effective human-equivalent actions:
-    //     beginner:     budget≈6 × 0.70 = 4.2 → meaningfully easier than human (12)
-    //     high_school:  budget≈9 × 1.00 = 9.0 → slightly below human baseline
-    //     all_american: budget≈11 × 1.15 = 12.6 → roughly matches a skilled human
-    //     elite:        budget≈13 × 1.30 = 16.9 → challenging but not cheating
+    //   gainMultiplier applies on top of the same compute* functions humans use.
+    //
+    //   Effective human-equivalent actions (with new difficultyStretch):
+    //     beginner:     budget≈12 × 0.75 = 9  → meaningfully easier than human (12)
+    //     high_school:  budget≈12 × 1.0  = 12 → matches human baseline
+    //     all_american: budget≈12 × 1.2  = 14 → slightly above human
+    //     elite:        budget≈12 × 1.4  = 17 → challenging but not cheating
     const difficultyConfig: Record<string, { minActions: number; maxActions: number; gainMultiplier: number; targetingBonus: number; offerThreshold: number; visitThreshold: number }> = {
-      beginner:     { minActions: 3, maxActions: 5,  gainMultiplier: 0.70, targetingBonus: 0,  offerThreshold: 50, visitThreshold: 65 },
-      high_school:  { minActions: 4, maxActions: 7,  gainMultiplier: 1.00, targetingBonus: 5,  offerThreshold: 35, visitThreshold: 50 },
-      all_american: { minActions: 5, maxActions: 8,  gainMultiplier: 1.15, targetingBonus: 10, offerThreshold: 25, visitThreshold: 40 },
-      elite:        { minActions: 6, maxActions: 10, gainMultiplier: 1.30, targetingBonus: 15, offerThreshold: 20, visitThreshold: 30 },
+      beginner:     { minActions: 4, maxActions: 7,  gainMultiplier: 0.70, targetingBonus: 0,  offerThreshold: 25, visitThreshold: 45 },
+      high_school:  { minActions: 5, maxActions: 9,  gainMultiplier: 1.00, targetingBonus: 5,  offerThreshold: 15, visitThreshold: 35 },
+      all_american: { minActions: 6, maxActions: 11, gainMultiplier: 1.15, targetingBonus: 10, offerThreshold: 10, visitThreshold: 25 },
+      elite:        { minActions: 7, maxActions: 13, gainMultiplier: 1.30, targetingBonus: 15, offerThreshold: 5,  visitThreshold: 20 },
     };
     const config = difficultyConfig[difficulty] || difficultyConfig.high_school;
     
@@ -11589,7 +11593,8 @@ export async function registerRoutes(
       // Use the same coach-driven budget as humans so archetype/skill perks
       // measurably affect CPU action throughput too. Difficulty stretches it.
       const baseBudget = getMaxRecruitingActions(teamCoach);
-      const difficultyStretch = { beginner: 0.6, high_school: 0.8, all_american: 1.0, elite: 1.2 }[difficulty] ?? 0.8;
+      // Increased stretch so high_school CPU matches human budget baseline.
+      const difficultyStretch = { beginner: 0.75, high_school: 1.0, all_american: 1.2, elite: 1.4 }[difficulty] ?? 1.0;
       const actionsBudget = Math.max(2, Math.round(baseBudget * difficultyStretch));
       
       const [teamInterests, roster, teamActionsLog] = await Promise.all([
@@ -11616,15 +11621,26 @@ export async function registerRoutes(
         .map(r => {
           const interest = teamInterests.find(i => i.recruitId === r.id);
           const prestigeMatch = Math.abs((team.prestige || 5) - (r.starRating || 3) * 2);
-          const positionNeed = (positionCounts[r.position] || 0) < 2 ? 10 : 0;
+          // positionNeed boosted (+15 vs +10) so CPU fills position gaps more aggressively.
+          // interestLevel*3 (was *2) creates stronger commitment momentum — CPU keeps
+          // investing in recruits they've already built interest with rather than bouncing.
+          // hasOffer bonus (+20) ensures CPU prioritises closing recruits with active offers.
+          const positionNeed = (positionCounts[r.position] || 0) < 2 ? 15 : 0;
           const currentInterest = interest?.interestLevel || 0;
+          const offerBonus = interest?.hasOffer ? 20 : 0;
           return { 
             recruit: r, 
             interest,
-            score: currentInterest * 2 + positionNeed - prestigeMatch + config.targetingBonus + Math.random() * 5 
+            score: currentInterest * 3 + offerBonus + positionNeed - Math.min(5, prestigeMatch) + config.targetingBonus + Math.random() * 5 
           };
         })
         .sort((a, b) => b.score - a.score);
+
+      // Focus on top N recruits per week. Going deeper on fewer targets ensures
+      // recruits actually reach signing thresholds (60–65% interest) within the
+      // 4-week recruiting window rather than spreading actions thin across all 80.
+      const MAX_WEEKLY_TARGETS = 16;
+      const focusedRecruits = sortedRecruits.slice(0, MAX_WEEKLY_TARGETS);
       
       // Pick the recruit's strongest priority topic so CPU benefits from
       // priority/school/proximity multipliers the way humans do.
@@ -11640,8 +11656,8 @@ export async function registerRoutes(
       }
       
       let pointsSpent = 0;
-      for (let i = 0; i < sortedRecruits.length && pointsSpent < actionsBudget; i++) {
-        const { recruit, interest } = sortedRecruits[i];
+      for (let i = 0; i < focusedRecruits.length && pointsSpent < actionsBudget; i++) {
+        const { recruit, interest } = focusedRecruits[i];
         const remaining = actionsBudget - pointsSpent;
         
         const candidateActions: string[] = [];
