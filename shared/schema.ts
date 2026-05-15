@@ -1366,7 +1366,7 @@ export const insertRecruitingClassSnapshotSchema = createInsertSchema(recruiting
 export type InsertRecruitingClassSnapshot = z.infer<typeof insertRecruitingClassSnapshotSchema>;
 export type RecruitingClassSnapshot = typeof recruitingClassSnapshots.$inferSelect;
 
-const LEAGUE_EVENT_TYPES = ["SIGNING", "TRANSFER", "DRAFT", "GAME_RESULT", "AWARD", "PHASE_CHANGE", "ROSTER_CUT", "WALKON", "STORYLINE", "NUDGE"] as const;
+const LEAGUE_EVENT_TYPES = ["SIGNING", "TRANSFER", "DRAFT", "GAME_RESULT", "AWARD", "PHASE_CHANGE", "ROSTER_CUT", "WALKON", "STORYLINE", "NUDGE", "DECOMMIT"] as const;
 export type LeagueEventType = (typeof LEAGUE_EVENT_TYPES)[number];
 
 export const leagueEvents = pgTable("league_events", {

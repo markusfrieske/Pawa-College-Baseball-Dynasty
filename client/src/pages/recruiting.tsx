@@ -423,6 +423,30 @@ export default function RecruitingPage() {
     setRecapDismissed(true);
   };
 
+  const { data: decommitAlerts } = useQuery<{ id: string; description: string; week: number; season: number }[]>({
+    queryKey: ["/api/leagues", id, "decommit-alerts", data?.team?.id],
+    queryFn: async () => {
+      const res = await fetch(`/api/leagues/${id}/decommit-alerts?teamId=${data?.team?.id}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch");
+      return res.json();
+    },
+    enabled: !!id && !!data?.team?.id,
+    staleTime: 30000,
+  });
+
+  const [dismissedDecommits, setDismissedDecommits] = useState<Set<string>>(() => {
+    try {
+      const raw = localStorage.getItem(`decommit-dismissed-${id}`);
+      return raw ? new Set(JSON.parse(raw)) : new Set();
+    } catch { return new Set(); }
+  });
+  const dismissDecommit = (eventId: string) => {
+    const updated = new Set([...dismissedDecommits, eventId]);
+    setDismissedDecommits(updated);
+    localStorage.setItem(`decommit-dismissed-${id}`, JSON.stringify([...updated]));
+  };
+  const visibleDecommits = (decommitAlerts ?? []).filter(e => !dismissedDecommits.has(e.id));
+
   const saveClassMutation = useMutation({
     mutationFn: async (name: string) => {
       const recruits = data?.recruits || [];
@@ -1500,6 +1524,52 @@ export default function RecruitingPage() {
             </div>
           );
         })()}
+
+        {/* Decommit Alert Banners */}
+        {visibleDecommits.length > 0 && visibleDecommits.map(alert => {
+          const isPositive = alert.description.includes("your program is now leading");
+          const recruitName = alert.description.split(" (")[0];
+          const matchedRecruit = data?.recruits.find(r => `${r.firstName} ${r.lastName}` === recruitName);
+          return (
+            <div
+              key={alert.id}
+              className={`mb-4 rounded border px-4 py-3 flex items-start justify-between gap-3 ${
+                isPositive
+                  ? "bg-emerald-500/10 border-emerald-500/40"
+                  : "bg-amber-500/10 border-amber-500/40"
+              }`}
+              data-testid={`decommit-alert-${alert.id}`}
+            >
+              <div className="flex items-start gap-2 min-w-0">
+                <AlertTriangle className={`w-4 h-4 mt-0.5 shrink-0 ${isPositive ? "text-emerald-400" : "text-amber-400"}`} />
+                <div className="min-w-0">
+                  <p className={`font-pixel text-[9px] uppercase tracking-wider mb-1 ${isPositive ? "text-emerald-400" : "text-amber-400"}`}>
+                    {isPositive ? "Decommit Opportunity" : "Decommitment Alert"}
+                    <span className="ml-2 text-muted-foreground normal-case font-sans text-[10px]">Week {alert.week}</span>
+                  </p>
+                  <p className="text-sm text-foreground leading-snug">{alert.description}</p>
+                  {matchedRecruit && (
+                    <button
+                      className={`mt-1.5 text-[11px] font-medium underline underline-offset-2 ${isPositive ? "text-emerald-400 hover:text-emerald-300" : "text-amber-400 hover:text-amber-300"}`}
+                      onClick={() => setSelectedRecruit(matchedRecruit)}
+                      data-testid={`decommit-alert-view-${alert.id}`}
+                    >
+                      {isPositive ? "View recruit →" : "Re-recruit now →"}
+                    </button>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={() => dismissDecommit(alert.id)}
+                className="text-muted-foreground hover:text-foreground p-1 shrink-0"
+                data-testid={`decommit-alert-dismiss-${alert.id}`}
+                title="Dismiss"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          );
+        })}
 
         {/* Rival Scout Report — Week Recap */}
         {weekRecapData && !recapDismissed && (weekRecapData.myRecruits.length > 0 || weekRecapData.hotMissed.length > 0) && (

@@ -118,6 +118,7 @@ export interface IStorage {
 
   createLeagueEvent(event: InsertLeagueEvent): Promise<LeagueEvent>;
   getLeagueEvents(leagueId: string, limit?: number, eventType?: string): Promise<LeagueEvent[]>;
+  getLeagueEventsByTeam(teamId: string, eventType: string, limit?: number): Promise<LeagueEvent[]>;
 
   getRecruitingActionsLog(recruitId: string, teamId: string): Promise<RecruitingActionsLog[]>;
   getRecruitingActionsLogByTeam(teamId: string, leagueId: string): Promise<RecruitingActionsLog[]>;
@@ -587,6 +588,13 @@ export class DatabaseStorage implements IStorage {
     }
     return await db.select().from(leagueEvents)
       .where(eq(leagueEvents.leagueId, leagueId))
+      .orderBy(desc(leagueEvents.createdAt))
+      .limit(limit);
+  }
+
+  async getLeagueEventsByTeam(teamId: string, eventType: string, limit = 50): Promise<LeagueEvent[]> {
+    return await db.select().from(leagueEvents)
+      .where(and(eq(leagueEvents.teamId, teamId), eq(leagueEvents.eventType, eventType)))
       .orderBy(desc(leagueEvents.createdAt))
       .limit(limit);
   }

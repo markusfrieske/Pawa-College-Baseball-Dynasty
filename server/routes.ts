@@ -11459,7 +11459,19 @@ export async function registerRoutes(
                   teamName: leaderTeam.name,
                   teamAbbreviation: leaderTeam.abbreviation || leaderTeam.name.slice(0, 4).toUpperCase(),
                   eventType: "DECOMMIT",
-                  description: `${recruit.firstName} ${recruit.lastName} (${recruit.position}, ${recruit.starRating ?? 0}★) has decommitted from ${leaderTeam.name} — ${rivalTeam?.name ?? "a rival"} is closing the gap`,
+                  description: `${recruit.firstName} ${recruit.lastName} (${recruit.position}, ${recruit.starRating ?? 0}★) has decommitted from your program — ${rivalTeam?.name ?? "a rival"} is closing the gap`,
+                  season: leagueForDecommit?.currentSeason ?? 1,
+                  week,
+                });
+              }
+              if (rivalTeam) {
+                await storage.createLeagueEvent({
+                  leagueId,
+                  teamId: rival.teamId,
+                  teamName: rivalTeam.name,
+                  teamAbbreviation: rivalTeam.abbreviation || rivalTeam.name.slice(0, 4).toUpperCase(),
+                  eventType: "DECOMMIT",
+                  description: `${recruit.firstName} ${recruit.lastName} (${recruit.position}, ${recruit.starRating ?? 0}★) decommitted from ${leaderTeam.name} and is now reconsidering — your program is now leading their recruitment`,
                   season: leagueForDecommit?.currentSeason ?? 1,
                   week,
                 });
@@ -12779,6 +12791,24 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to fetch league events:", error);
       res.status(500).json({ message: "Failed to fetch events" });
+    }
+  });
+
+  // Decommit Alerts — DECOMMIT events scoped to a specific team
+  app.get("/api/leagues/:id/decommit-alerts", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const teamId = req.query.teamId as string;
+      if (!teamId) return res.status(400).json({ message: "teamId required" });
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      const events = await storage.getLeagueEventsByTeam(teamId, "DECOMMIT", 20);
+      const currentSeason = league.currentSeason;
+      const filtered = events.filter(e => e.season === currentSeason);
+      res.json(filtered);
+    } catch (error) {
+      console.error("Failed to fetch decommit alerts:", error);
+      res.status(500).json({ message: "Failed to fetch decommit alerts" });
     }
   });
 
