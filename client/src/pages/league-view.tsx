@@ -4485,30 +4485,30 @@ function SeasonRecapDialog({ leagueId, season, open, onClose }: { leagueId: stri
 
 function OffseasonSummary({ league }: { league: LeagueDetails }) {
   const isOffseasonPhase = ["offseason", "offseason_departures", "offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4", "offseason_signing_day", "offseason_walkons"].includes(league.currentPhase);
-  
-  if (!isOffseasonPhase) return null;
-  
-  const userTeam = league.teams?.find(t => !t.isCpu);
-  if (!userTeam) return null;
 
   const { data: historyData } = useQuery<{
     history: { departureType: string; teamId: string; position: string; firstName: string; lastName: string; overall: number; departedSeason: number }[];
   }>({
     queryKey: ["/api/leagues", league.id, "player-history"],
-    enabled: league.currentPhase !== "offseason_departures",
+    enabled: isOffseasonPhase && league.currentPhase !== "offseason_departures",
   });
 
   const { data: pendingData } = useQuery<{
     teams: Record<string, { graduates: any[]; draftDeclarations: any[]; transfers: any[]; totalLeaving: number }>;
   }>({
     queryKey: ["/api/leagues", league.id, "players-leaving"],
-    enabled: league.currentPhase === "offseason_departures",
+    enabled: isOffseasonPhase && league.currentPhase === "offseason_departures",
   });
 
   const { data: signingDayData } = useQuery<SigningDayData>({
     queryKey: ["/api/leagues", league.id, "signing-day"],
-    enabled: league.currentPhase === "offseason_signing_day",
+    enabled: isOffseasonPhase && league.currentPhase === "offseason_signing_day",
   });
+
+  if (!isOffseasonPhase) return null;
+
+  const userTeam = league.teams?.find(t => !t.isCpu);
+  if (!userTeam) return null;
 
   let graduated: any[] = [];
   let drafted: any[] = [];
