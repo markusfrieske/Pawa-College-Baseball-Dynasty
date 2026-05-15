@@ -11472,7 +11472,7 @@ export async function registerRoutes(
                   teamName: rivalTeam.name,
                   teamAbbreviation: rivalTeam.abbreviation || rivalTeam.name.slice(0, 4).toUpperCase(),
                   eventType: "DECOMMIT",
-                  description: `${recruit.firstName} ${recruit.lastName} (${recruit.position}, ${recruit.starRating ?? 0}★) decommitted from ${leaderTeam.name} — ${rivalTeam.name} is now showing interest in your program`,
+                  description: `${recruit.firstName} ${recruit.lastName} (${recruit.position}, ${recruit.starRating ?? 0}★) decommitted from ${leaderTeam.name} and is now showing increased interest in ${rivalTeam.name}`,
                   season: leagueForDecommit?.currentSeason ?? 1,
                   week,
                   metadata: { recruitId: recruit.id, alertType: "gain", leaderTeamName: leaderTeam.name, rivalTeamName: rivalTeam.name },

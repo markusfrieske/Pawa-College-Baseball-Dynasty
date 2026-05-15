@@ -440,6 +440,12 @@ export default function RecruitingPage() {
       return raw ? new Set(JSON.parse(raw)) : new Set();
     } catch { return new Set(); }
   });
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(`decommit-dismissed-${id}`);
+      setDismissedDecommits(raw ? new Set(JSON.parse(raw)) : new Set());
+    } catch { setDismissedDecommits(new Set()); }
+  }, [id]);
   const dismissDecommit = (eventId: string) => {
     const updated = new Set([...dismissedDecommits, eventId]);
     setDismissedDecommits(updated);
