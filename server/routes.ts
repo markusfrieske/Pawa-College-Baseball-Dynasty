@@ -919,6 +919,21 @@ export async function registerRoutes(
         rivalryMap.set(ts.recruitId, (rivalryMap.get(ts.recruitId) || 0) + 1);
       }
 
+      // teamsIn map: recruitId -> { teamsIn, offersOut } from recruiting_interests table.
+      // Counts rival teams that have either extended an offer OR accumulated >20% interest.
+      // More precise than rivalryMap (which uses recruit_top_schools prestige baseline).
+      // Revealed once the user has scouted >= 10% of the recruit.
+      const allLeagueInterests = await storage.getRecruitingInterestsByLeague(league.id);
+      const teamsInMap = new Map<string, { teamsIn: number; offersOut: number }>();
+      for (const ri of allLeagueInterests) {
+        if (ri.teamId === userTeam.id) continue;
+        if ((ri.interestLevel || 0) <= 20 && !ri.hasOffer) continue;
+        const entry = teamsInMap.get(ri.recruitId) ?? { teamsIn: 0, offersOut: 0 };
+        entry.teamsIn++;
+        if (ri.hasOffer) entry.offersOut++;
+        teamsInMap.set(ri.recruitId, entry);
+      }
+
       const recruitsWithInterest = await Promise.all(leagueRecruits.map(async (recruit) => {
         const interest = interests.find((i) => i.recruitId === recruit.id);
         
@@ -1008,6 +1023,13 @@ export async function registerRoutes(
           competingCount < RIVALRY_INTENSITY_CUTOFFS.moderate ? "Light" :
           competingCount < RIVALRY_INTENSITY_CUTOFFS.heavy ? "Moderate" : "Heavy";
 
+        // teamsIn / offersOut: revealed once user has scouted >= 10%.
+        // Sourced from recruiting_interests (hasOffer OR interestLevel > 20) — more
+        // precise than the prestige-baseline rivalryMap used for competingCount.
+        const rawTeamsIn = teamsInMap.get(recruit.id) ?? { teamsIn: 0, offersOut: 0 };
+        const teamsIn: number | null = userScoutPct >= 10 ? rawTeamsIn.teamsIn : null;
+        const offersOut: number | null = userScoutPct >= 10 ? rawTeamsIn.offersOut : null;
+
         return {
           ...recruit,
           potential: actualPotential,
@@ -1021,6 +1043,8 @@ export async function registerRoutes(
           signedTeamSecondaryColor: signedTeam?.secondaryColor || null,
           competingCount,
           competingIntensity,
+          teamsIn,
+          offersOut,
         };
       }));
 

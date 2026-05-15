@@ -117,6 +117,8 @@ interface RecruitWithInterest extends Recruit {
   signedTeamSecondaryColor?: string | null;
   competingCount?: number | null;
   competingIntensity?: string | null;
+  teamsIn?: number | null;
+  offersOut?: number | null;
 }
 
 interface RecruitingData {
@@ -638,7 +640,7 @@ export default function RecruitingPage() {
       if (typeFilter === "JUCO" && rt !== "JUCO") return false;
     }
     if (showWatchlistOnly && !r.interest?.isTargeted) return false;
-    if (showContested && !r.competingIntensity) return false;
+    if (showContested && !(r.teamsIn && r.teamsIn >= 1)) return false;
     if (showStory && !storylineRecruitIds.has(r.id)) return false;
     if (showTopAvailable && pipelineData?.positionNeeds) {
       const needPositions = pipelineData.positionNeeds.filter(p => p.need).map(p => p.position);
@@ -731,15 +733,7 @@ export default function RecruitingPage() {
         return (b.interest?.interestLevel || 0) - (a.interest?.interestLevel || 0);
       }
       case "competition": {
-        const intensityScore = (r: RecruitWithInterest) => {
-          if (r.competingIntensity === "Heavy") return 3;
-          if (r.competingIntensity === "Moderate") return 2;
-          if (r.competingIntensity === "Light") return 1;
-          return 0;
-        };
-        const diff = intensityScore(b) - intensityScore(a);
-        if (diff !== 0) return diff;
-        return (b.competingCount || 0) - (a.competingCount || 0);
+        return (b.teamsIn || 0) - (a.teamsIn || 0);
       }
       default:
         return (a.classRank || 999) - (b.classRank || 999);
@@ -2252,26 +2246,26 @@ function RecruitRow({
                   <TooltipContent>This recruit has an active storyline arc</TooltipContent>
                 </Tooltip>
               )}
-              {recruit.competingIntensity && (
+              {recruit.teamsIn != null && recruit.teamsIn > 0 && (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Badge
                       variant="outline"
                       className={`text-[8px] no-default-hover-elevate no-default-active-elevate ${
-                        recruit.competingIntensity === "Heavy"
+                        recruit.teamsIn >= 5
                           ? "border-red-500/60 text-red-400 bg-red-500/10"
-                          : recruit.competingIntensity === "Moderate"
+                          : recruit.teamsIn >= 3
                           ? "border-orange-500/60 text-orange-400 bg-orange-500/10"
                           : "border-yellow-500/60 text-yellow-400 bg-yellow-500/10"
                       }`}
                       data-testid={`badge-rivalry-${recruit.id}`}
                     >
                       <Flame className="w-2.5 h-2.5 mr-0.5" />
-                      {recruit.competingCount} {recruit.competingCount === 1 ? "school" : "schools"}
+                      {recruit.teamsIn} {recruit.teamsIn === 1 ? "team" : "teams"} in
                     </Badge>
                   </TooltipTrigger>
                   <TooltipContent>
-                    {recruit.competingIntensity} competition — {recruit.competingCount} {recruit.competingCount === 1 ? "school is" : "schools are"} also recruiting this player
+                    {recruit.teamsIn >= 5 ? "Heavy" : recruit.teamsIn >= 3 ? "Moderate" : "Light"} competition — {recruit.teamsIn} {recruit.teamsIn === 1 ? "rival has" : "rivals have"} this player at {">"}20% interest{recruit.offersOut && recruit.offersOut > 0 ? `, ${recruit.offersOut} with an offer out` : ""}
                   </TooltipContent>
                 </Tooltip>
               )}
