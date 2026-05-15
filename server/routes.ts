@@ -11639,7 +11639,8 @@ export async function registerRoutes(
       // Focus on top N recruits per week. Going deeper on fewer targets ensures
       // recruits actually reach signing thresholds (60–65% interest) within the
       // 4-week recruiting window rather than spreading actions thin across all 80.
-      const MAX_WEEKLY_TARGETS = 16;
+      // Scale with difficulty so high-budget elite CPU can reach more recruits.
+      const MAX_WEEKLY_TARGETS = { beginner: 12, high_school: 16, all_american: 20, elite: 24 }[difficulty] ?? 16;
       const focusedRecruits = sortedRecruits.slice(0, MAX_WEEKLY_TARGETS);
       
       // Pick the recruit's strongest priority topic so CPU benefits from
