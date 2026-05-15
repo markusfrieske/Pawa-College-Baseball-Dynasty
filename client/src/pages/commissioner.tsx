@@ -205,7 +205,13 @@ export default function CommissionerPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "commissioner"] });
-      toast({ title: "Aggression Updated", description: "CPU recruiting aggressiveness has been changed." });
+      const duringRecruiting = RECRUITING_PHASES.includes(data?.league?.currentPhase || "");
+      toast({
+        title: "Aggression Updated",
+        description: duringRecruiting
+          ? "Change saved — takes effect next recruiting cycle. Current recruiting is already underway."
+          : "CPU recruiting aggressiveness has been changed.",
+      });
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
@@ -1724,6 +1730,8 @@ function TransferCommissionerSection({ leagueId, commissionerId }: { leagueId: s
   );
 }
 
+const RECRUITING_PHASES = ["offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4"] as const;
+
 const aggressionOptions = [
   { value: 1, label: "Conservative", description: "CPU offers late, easy to out-recruit" },
   { value: 2, label: "Cautious", description: "CPU moves carefully, slightly slower" },
@@ -1798,6 +1806,12 @@ function SettingsTab({
               <p className="text-sm text-muted-foreground mb-3">
                 Fine-tunes how early CPU teams extend offers within the 4-week recruiting window. Stacks on top of the difficulty tier.
               </p>
+              {(RECRUITING_PHASES as readonly string[]).includes(league?.currentPhase || "") && (
+                <div className="flex items-start gap-2 mb-3 p-3 rounded-md border border-yellow-500/40 bg-yellow-500/10 text-yellow-400 text-xs">
+                  <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                  <span>Recruiting is currently active — any change will take effect at the start of the next recruiting cycle.</span>
+                </div>
+              )}
               <div className="grid grid-cols-5 gap-1.5">
                 {aggressionOptions.map(opt => (
                   <button
