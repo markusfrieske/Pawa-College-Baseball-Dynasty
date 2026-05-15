@@ -230,6 +230,13 @@ export default function WalkonsPage() {
           </div>
         )}
 
+        {allReady && !isCommissioner && (
+          <div className="mb-4 p-3 rounded border border-gold/40 bg-gold/5 flex items-center gap-2" data-testid="banner-waiting-commissioner">
+            <CheckCircle className="w-4 h-4 text-gold flex-shrink-0" />
+            <p className="text-xs text-gold">All teams are ready — waiting for the commissioner to advance to Spring Training.</p>
+          </div>
+        )}
+
         <div className="grid lg:grid-cols-2 gap-6">
           <div>
             <RetroCard data-testid="current-roster-section">

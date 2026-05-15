@@ -10198,7 +10198,10 @@ export async function registerRoutes(
       if (!team) return res.status(404).json({ message: "Team not found" });
       
       const roster = await storage.getPlayersByTeam(team.id);
-      if (roster.length >= 25) {
+      // Use the same "active roster" filter as the /roster endpoint so that
+      // draft-declared and pending-departure players don't inflate the count.
+      const activeRoster = roster.filter(p => !p.declaredForDraft && !p.pendingDeparture);
+      if (activeRoster.length >= 25) {
         return res.status(400).json({ message: "Roster is full (25 players). Cut a player first." });
       }
       
