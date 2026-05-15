@@ -1380,11 +1380,13 @@ export const leagueEvents = pgTable("league_events", {
   description: text("description").notNull(),
   season: integer("season").notNull().default(1),
   week: integer("week").notNull().default(1),
+  metadata: json("metadata").$type<Record<string, unknown>>(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const insertLeagueEventSchema = createInsertSchema(leagueEvents).omit({ id: true, createdAt: true }).extend({
   eventType: z.enum(LEAGUE_EVENT_TYPES),
+  metadata: z.record(z.unknown()).optional(),
 });
 export type InsertLeagueEvent = z.infer<typeof insertLeagueEventSchema>;
 export type LeagueEvent = typeof leagueEvents.$inferSelect;

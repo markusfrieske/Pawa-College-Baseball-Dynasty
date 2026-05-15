@@ -423,7 +423,7 @@ export default function RecruitingPage() {
     setRecapDismissed(true);
   };
 
-  const { data: decommitAlerts } = useQuery<{ id: string; description: string; week: number; season: number }[]>({
+  const { data: decommitAlerts } = useQuery<{ id: string; description: string; week: number; season: number; metadata?: { recruitId?: string; alertType?: string } | null }[]>({
     queryKey: ["/api/leagues", id, "decommit-alerts", data?.team?.id],
     queryFn: async () => {
       const res = await fetch(`/api/leagues/${id}/decommit-alerts?teamId=${data?.team?.id}`, { credentials: "include" });
@@ -1530,11 +1530,8 @@ export default function RecruitingPage() {
 
         {/* Decommit Alert Banners */}
         {visibleDecommits.length > 0 && visibleDecommits.map(alert => {
-          const typeMatch = alert.description.match(/\|type:(lost|gain)/);
-          const isPositive = typeMatch?.[1] === "gain";
-          const ridMatch = alert.description.match(/\|rid:([^|]+)/);
-          const recruitId = ridMatch ? ridMatch[1] : null;
-          const displayDescription = alert.description.replace(/\|rid:[^|]+/g, "").replace(/\|type:[^|]+/g, "").trim();
+          const isPositive = alert.metadata?.alertType === "gain";
+          const recruitId = alert.metadata?.recruitId ?? null;
           const matchedRecruit = recruitId ? data?.recruits.find(r => r.id === recruitId) : null;
           return (
             <div
@@ -1553,7 +1550,7 @@ export default function RecruitingPage() {
                     {isPositive ? "Decommit Opportunity" : "Decommitment Alert"}
                     <span className="ml-2 text-muted-foreground normal-case font-sans text-[10px]">Week {alert.week}</span>
                   </p>
-                  <p className="text-sm text-foreground leading-snug">{displayDescription}</p>
+                  <p className="text-sm text-foreground leading-snug">{alert.description}</p>
                   {matchedRecruit && (
                     <button
                       className={`mt-1.5 text-[11px] font-medium underline underline-offset-2 ${isPositive ? "text-emerald-400 hover:text-emerald-300" : "text-amber-400 hover:text-amber-300"}`}
