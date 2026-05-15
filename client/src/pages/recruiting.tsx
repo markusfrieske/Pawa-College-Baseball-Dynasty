@@ -56,7 +56,8 @@ import {
   Telescope,
   Zap,
   Filter,
-  MoreHorizontal
+  MoreHorizontal,
+  Trophy
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -320,9 +321,41 @@ export default function RecruitingPage() {
     queryKey: ["/api/leagues", id, "recruiting", "trends"],
   });
 
-  const { data: leagueData } = useQuery<{ id: string; currentWeek: number; currentSeason: number; progressionEnabled?: boolean }>({
+  const { data: leagueData } = useQuery<{ id: string; currentWeek: number; currentSeason: number; currentPhase?: string; progressionEnabled?: boolean }>({
     queryKey: ["/api/leagues", id],
   });
+
+  const isPostSigningDay = ["offseason_walkons", "preseason", "spring_training", "regular_season", "conference_championship", "super_regionals", "cws", "offseason"].includes(leagueData?.currentPhase ?? "");
+  const { data: classRankingsData } = useQuery<{
+    season: number;
+    snapshots: {
+      id: string;
+      teamId: string;
+      season: number;
+      classRank: number;
+      classScore: number;
+      totalCommits: number;
+      fiveStars: number;
+      fourStars: number;
+      avgOverall: number;
+      avgStarRating: number;
+      teamName: string;
+      teamAbbr: string;
+      teamColor: string;
+      isCpu: boolean;
+    }[];
+  }>({
+    queryKey: [`/api/leagues/${id}/class-rankings?season=${leagueData?.currentSeason ?? 1}`],
+    queryFn: async () => {
+      const res = await fetch(`/api/leagues/${id}/class-rankings?season=${leagueData?.currentSeason ?? 1}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch");
+      return res.json();
+    },
+    enabled: !!id && !!leagueData && isPostSigningDay,
+    staleTime: 60000,
+  });
+
+  const [showClassRankings, setShowClassRankings] = useState(true);
 
   const { data: storylinesData } = useQuery<{ storylines: Array<{ recruitId: string }> }>({
     queryKey: ["/api/leagues", id, "storylines"],
@@ -1267,6 +1300,96 @@ export default function RecruitingPage() {
             </div>
           )}
         </RetroCard>
+
+        {/* Class Rankings Panel — shown after signing day completes */}
+        {isPostSigningDay && classRankingsData?.snapshots && classRankingsData.snapshots.length > 0 && (() => {
+          const snaps = classRankingsData.snapshots;
+          const total = snaps.length;
+          const myTeamId = data?.team?.id;
+
+          function getClassGrade(rank: number): string {
+            const pct = rank / total;
+            if (pct <= 0.10) return "A+";
+            if (pct <= 0.20) return "A";
+            if (pct <= 0.30) return "A-";
+            if (pct <= 0.40) return "B+";
+            if (pct <= 0.55) return "B";
+            if (pct <= 0.70) return "B-";
+            if (pct <= 0.80) return "C+";
+            if (pct <= 0.90) return "C";
+            return "D";
+          }
+
+          function getGradeColor(grade: string): string {
+            if (grade === "A+" || grade === "A") return "text-green-400";
+            if (grade === "A-" || grade === "B+") return "text-lime-400";
+            if (grade === "B") return "text-yellow-400";
+            if (grade === "B-" || grade === "C+") return "text-orange-400";
+            return "text-red-400";
+          }
+
+          const mySnap = snaps.find(s => s.teamId === myTeamId);
+          const myGrade = mySnap ? getClassGrade(mySnap.classRank) : null;
+
+          return (
+            <div className="mb-6" data-testid="class-rankings-panel">
+              <RetroCard variant="default">
+                <button
+                  className="w-full flex items-center justify-between gap-2 cursor-pointer"
+                  onClick={() => setShowClassRankings(!showClassRankings)}
+                  data-testid="button-toggle-class-rankings"
+                >
+                  <div className="flex items-center gap-2">
+                    <Trophy className="w-4 h-4 text-gold" />
+                    <span className="font-pixel text-gold text-sm uppercase tracking-wider">
+                      Class Rankings — Season {classRankingsData.season}
+                    </span>
+                    {myGrade && (
+                      <span className={`font-pixel text-sm ${getGradeColor(myGrade)}`}>
+                        ({myGrade})
+                      </span>
+                    )}
+                  </div>
+                  {showClassRankings ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+                </button>
+
+                {showClassRankings && (
+                  <div className="mt-4 space-y-1">
+                    <div className="grid grid-cols-[2rem_1fr_2.5rem_3rem_3.5rem_3.5rem] gap-2 text-[9px] font-pixel text-muted-foreground px-1 pb-1 border-b border-border/40">
+                      <span>#</span>
+                      <span>Team</span>
+                      <span className="text-center">Grd</span>
+                      <span className="text-center">Commits</span>
+                      <span className="text-center">5★</span>
+                      <span className="text-center">Avg OVR</span>
+                    </div>
+                    {snaps.map((snap) => {
+                      const grade = getClassGrade(snap.classRank);
+                      const isMe = snap.teamId === myTeamId;
+                      return (
+                        <div
+                          key={snap.teamId}
+                          className={`grid grid-cols-[2rem_1fr_2.5rem_3rem_3.5rem_3.5rem] gap-2 items-center px-1 py-1 rounded text-xs transition-colors ${isMe ? "bg-gold/10 border border-gold/30" : "hover:bg-card/60"}`}
+                          data-testid={`class-rank-row-${snap.teamId}`}
+                        >
+                          <span className="text-muted-foreground font-mono text-[10px]">{snap.classRank}</span>
+                          <span className={`truncate text-[10px] ${isMe ? "text-gold font-semibold" : "text-foreground"}`}>
+                            {snap.teamName}
+                            {isMe && <span className="ml-1 text-gold text-[8px]">★</span>}
+                          </span>
+                          <span className={`text-center font-pixel text-sm font-bold ${getGradeColor(grade)}`}>{grade}</span>
+                          <span className="text-center text-muted-foreground">{snap.totalCommits}</span>
+                          <span className="text-center text-muted-foreground">{snap.fiveStars}</span>
+                          <span className="text-center text-muted-foreground">{Math.round(snap.avgOverall)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </RetroCard>
+            </div>
+          );
+        })()}
 
         {/* Scouting History Panel */}
         {(() => {

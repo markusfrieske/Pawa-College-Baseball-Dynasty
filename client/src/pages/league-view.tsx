@@ -2229,6 +2229,166 @@ const STORYLINE_VOTE_CALLOUT_PHASES = new Set([
   "recruiting", "preseason", "spring_training", "regular_season",
 ]);
 
+interface SigningDayPreviewRecruit {
+  id: string;
+  firstName: string;
+  lastName: string;
+  position: string;
+  starRating: number;
+  homeState: string;
+  topSchools: { teamId: string; teamName: string; teamAbbr: string; primaryColor: string; interestLevel: number; hasOffer: boolean }[];
+  committingTo: { teamId: string; teamName: string; teamAbbr: string; primaryColor: string } | null;
+}
+
+function SigningDayRevealModal({
+  leagueId,
+  open,
+  onClose,
+  onComplete,
+}: {
+  leagueId: string;
+  open: boolean;
+  onClose: () => void;
+  onComplete: () => void;
+}) {
+  const [currentIdx, setCurrentIdx] = useState(0);
+  const [animPhase, setAnimPhase] = useState<"deciding" | "reveal" | "done">("deciding");
+  const [isCompleting, setIsCompleting] = useState(false);
+
+  const { data, isLoading } = useQuery<{ recruits: SigningDayPreviewRecruit[] }>({
+    queryKey: ["/api/leagues", leagueId, "signing-day-preview"],
+    enabled: open,
+    staleTime: 0,
+  });
+
+  const recruits = data?.recruits ?? [];
+
+  useEffect(() => {
+    if (!open) {
+      setCurrentIdx(0);
+      setAnimPhase("deciding");
+      setIsCompleting(false);
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || isLoading || recruits.length === 0) return;
+    if (animPhase === "deciding") {
+      const t = setTimeout(() => setAnimPhase("reveal"), 2000);
+      return () => clearTimeout(t);
+    }
+    if (animPhase === "reveal") {
+      const t = setTimeout(() => {
+        if (currentIdx < recruits.length - 1) {
+          setCurrentIdx(i => i + 1);
+          setAnimPhase("deciding");
+        } else {
+          setAnimPhase("done");
+        }
+      }, 1800);
+      return () => clearTimeout(t);
+    }
+  }, [open, isLoading, recruits.length, animPhase, currentIdx]);
+
+  const current = recruits[currentIdx];
+  const school1 = current?.topSchools[0];
+  const school2 = current?.topSchools[1];
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="bg-background border-gold/40 max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="font-pixel text-gold text-[10px] flex items-center gap-2">
+            <Award className="w-4 h-4" />
+            NATIONAL SIGNING DAY
+          </DialogTitle>
+        </DialogHeader>
+
+        {isLoading ? (
+          <div className="py-8 text-center text-muted-foreground text-sm">Loading recruit decisions...</div>
+        ) : recruits.length === 0 || animPhase === "done" ? (
+          <div className="py-6 text-center space-y-4">
+            {recruits.length === 0 ? (
+              <p className="text-sm text-muted-foreground">All recruits have already committed.</p>
+            ) : (
+              <p className="text-sm text-muted-foreground">All {recruits.length} decisions revealed.</p>
+            )}
+            <RetroButton
+              variant="primary"
+              onClick={() => { setIsCompleting(true); onComplete(); }}
+              disabled={isCompleting}
+              className="w-full"
+              data-testid="button-complete-signing-day"
+            >
+              {isCompleting ? "Finalizing..." : "Complete Signing Day"}
+            </RetroButton>
+          </div>
+        ) : (
+          <div className="py-2 space-y-4">
+            <div className="text-center text-[10px] text-muted-foreground font-pixel">
+              {currentIdx + 1} / {recruits.length} UNDECIDED
+            </div>
+            <div className="text-center space-y-1">
+              <StarRating rating={current.starRating} />
+              <p className="font-pixel text-white text-sm mt-1">{current.firstName} {current.lastName}</p>
+              <p className="text-xs text-muted-foreground">{current.position} · {current.homeState}</p>
+            </div>
+
+            {animPhase === "deciding" && (
+              <div className="bg-card border border-border rounded p-4 text-center space-y-3">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Deciding between...</p>
+                <div className="flex items-center justify-center gap-3 flex-wrap">
+                  {school1 && (
+                    <span className="font-semibold text-sm" style={{ color: school1.primaryColor || undefined }}>
+                      {school1.teamName}
+                    </span>
+                  )}
+                  {school2 && (
+                    <>
+                      <span className="text-muted-foreground text-xs">vs</span>
+                      <span className="font-semibold text-sm" style={{ color: school2.primaryColor || undefined }}>
+                        {school2.teamName}
+                      </span>
+                    </>
+                  )}
+                </div>
+                <div className="flex justify-center gap-1 pt-1">
+                  {[0, 1, 2].map(i => (
+                    <div
+                      key={i}
+                      className="w-2 h-2 rounded-full bg-gold animate-bounce"
+                      style={{ animationDelay: `${i * 0.18}s` }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {animPhase === "reveal" && (
+              <div className="bg-gold/10 border border-gold/50 rounded p-4 text-center space-y-1 animate-in fade-in duration-300">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">commits to</p>
+                <p className="font-pixel text-gold text-base">
+                  {current.committingTo?.teamName ?? school1?.teamName ?? "Undecided"}
+                </p>
+              </div>
+            )}
+
+            <RetroButton
+              variant="outline"
+              size="sm"
+              onClick={() => setAnimPhase("done")}
+              className="w-full text-xs"
+              data-testid="button-skip-signing-reveal"
+            >
+              Skip to Complete
+            </RetroButton>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function WaitingOnWidget({
   leagueId,
   league,
@@ -2238,6 +2398,7 @@ function WaitingOnWidget({
   league: LeagueDetails;
   pendingVoteCount?: number;
 }) {
+  const [showSigningReveal, setShowSigningReveal] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: user } = useQuery<{ id: string; email: string }>({
@@ -2345,13 +2506,19 @@ function WaitingOnWidget({
               <RetroButton
                 size="sm"
                 variant="primary"
-                onClick={() => advanceMutation.mutate()}
+                onClick={() => {
+                  if (phase === "offseason_signing_day") {
+                    setShowSigningReveal(true);
+                  } else {
+                    advanceMutation.mutate();
+                  }
+                }}
                 disabled={advanceMutation.isPending}
                 className="border-green-500 bg-green-600/20 text-green-300 hover:bg-green-600/40"
                 data-testid="button-advance-now-widget"
               >
                 <Play className="w-3.5 h-3.5 mr-1" />
-                {advanceMutation.isPending ? "Advancing..." : "Advance Now"}
+                {advanceMutation.isPending ? "Advancing..." : phase === "offseason_signing_day" ? "Signing Day Reveal" : "Advance Now"}
               </RetroButton>
             )}
           </div>
@@ -2400,6 +2567,16 @@ function WaitingOnWidget({
             All coaches are ready — waiting for the commissioner to advance.
           </p>
         )}
+
+        <SigningDayRevealModal
+          leagueId={leagueId}
+          open={showSigningReveal}
+          onClose={() => setShowSigningReveal(false)}
+          onComplete={() => {
+            setShowSigningReveal(false);
+            advanceMutation.mutate();
+          }}
+        />
 
         {showStorylineVotes && pendingVoteCount > 0 && (
           <div className="mt-2 pt-2 border-t border-border/30">

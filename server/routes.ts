@@ -11033,6 +11033,55 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/leagues/:id/signing-day-preview", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      const [allRecruits, teams] = await Promise.all([
+        storage.getRecruitsByLeague(req.params.id),
+        storage.getTeamsByLeague(req.params.id),
+      ]);
+      const teamsMap = new Map(teams.map(t => [t.id, t]));
+
+      const undecided = allRecruits.filter(r =>
+        !r.signedTeamId && ["top3", "top5", "verbal"].includes(r.stage || "open")
+      );
+
+      const previewRecruits = await Promise.all(undecided.map(async (recruit) => {
+        const interests = await storage.getRecruitingInterestsByRecruit(recruit.id);
+        const topInterests = interests
+          .filter(i => (i.interestLevel || 0) > 0)
+          .sort((a, b) => (b.interestLevel || 0) - (a.interestLevel || 0))
+          .slice(0, 2)
+          .map(i => ({
+            teamId: i.teamId,
+            teamName: teamsMap.get(i.teamId)?.name || "Unknown",
+            teamAbbr: teamsMap.get(i.teamId)?.abbreviation || "???",
+            primaryColor: teamsMap.get(i.teamId)?.primaryColor || "#888",
+            interestLevel: i.interestLevel || 0,
+            hasOffer: i.hasOffer || false,
+          }));
+        const committingTo = topInterests.find(i => i.hasOffer) || topInterests[0] || null;
+        return {
+          id: recruit.id,
+          firstName: recruit.firstName,
+          lastName: recruit.lastName,
+          position: recruit.position,
+          starRating: recruit.starRating || 3,
+          homeState: recruit.homeState,
+          topSchools: topInterests,
+          committingTo,
+        };
+      }));
+
+      res.json({ recruits: previewRecruits.filter(r => r.topSchools.length > 0) });
+    } catch (error) {
+      console.error("Failed to fetch signing day preview:", error);
+      res.status(500).json({ message: "Failed to fetch signing day preview" });
+    }
+  });
+
   app.get("/api/leagues/:id/dynasty-history", requireAuth, async (req, res) => {
     try {
       const leagueId = req.params.id as string;
@@ -11368,6 +11417,7 @@ export async function registerRoutes(
         }
       }
       
+      let justSigned = false;
       if (currentStage === "verbal") {
         const topSchoolWithOffer = sortedInterests.filter(i => i.hasOffer).sort((a, b) => (b.interestLevel || 0) - (a.interestLevel || 0))[0];
         if (topSchoolWithOffer && topSchoolWithOffer.interestLevel >= signInterest) {
@@ -11380,6 +11430,43 @@ export async function registerRoutes(
               stage: "signed",
               signedTeamId: topSchoolWithOffer.teamId,
             });
+            justSigned = true;
+          }
+        }
+      }
+
+      // Decommitment check: verbal recruit can flip if a rival with an offer closes the gap
+      const FLIP_THRESHOLD = 15;
+      if (currentStage === "verbal" && !justSigned) {
+        const schoolsWithOffers = sortedInterests
+          .filter(i => i.hasOffer)
+          .sort((a, b) => (b.interestLevel || 0) - (a.interestLevel || 0));
+        if (schoolsWithOffers.length >= 2) {
+          const leader = schoolsWithOffers[0];
+          const rival = schoolsWithOffers[1];
+          const gap = (leader.interestLevel || 0) - (rival.interestLevel || 0);
+          if (gap < FLIP_THRESHOLD && (rival.interestLevel || 0) > 40 && Math.random() < 0.35) {
+            await storage.updateRecruit(recruit.id, { stage: "top3" });
+            try {
+              const leagueForDecommit = await storage.getLeague(leagueId);
+              const teamsForDecommit = await storage.getTeamsByLeague(leagueId);
+              const leaderTeam = teamsForDecommit.find(t => t.id === leader.teamId);
+              const rivalTeam = teamsForDecommit.find(t => t.id === rival.teamId);
+              if (leaderTeam) {
+                await storage.createLeagueEvent({
+                  leagueId,
+                  teamId: leader.teamId,
+                  teamName: leaderTeam.name,
+                  teamAbbreviation: leaderTeam.abbreviation || leaderTeam.name.slice(0, 4).toUpperCase(),
+                  eventType: "DECOMMIT",
+                  description: `${recruit.firstName} ${recruit.lastName} (${recruit.position}, ${recruit.starRating ?? 0}★) has decommitted from ${leaderTeam.name} — ${rivalTeam?.name ?? "a rival"} is closing the gap`,
+                  season: leagueForDecommit?.currentSeason ?? 1,
+                  week,
+                });
+              }
+            } catch (e) {
+              console.error("[decommit] Failed to create decommit event:", e);
+            }
           }
         }
       }
