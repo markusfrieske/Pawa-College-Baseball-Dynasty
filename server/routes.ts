@@ -4286,7 +4286,7 @@ export async function registerRoutes(
       const patchGameId = req.params.gameId as string;
       const patchLeague = await storage.getLeague(patchLeagueId);
       if (!patchLeague) return res.status(404).json({ message: "League not found" });
-      if (patchLeague.commissionerId !== req.session.userId) {
+      if (!hasCommissionerAccess(patchLeague, req.session.userId)) {
         return res.status(403).json({ message: "Only the commissioner can submit quick scores. Coaches must use the Report Game flow." });
       }
 
@@ -4429,7 +4429,7 @@ export async function registerRoutes(
       const reportLeagueId = req.params.id as string;
       const reportLeague = await storage.getLeague(reportLeagueId);
       if (!reportLeague) return res.status(404).json({ message: "League not found" });
-      if (reportLeague.commissionerId !== req.session.userId) {
+      if (!hasCommissionerAccess(reportLeague, req.session.userId)) {
         return res.status(403).json({ message: "Only the commissioner can view all game reports" });
       }
       const reports = await storage.getGameReportsByLeague(reportLeagueId);
@@ -4445,7 +4445,7 @@ export async function registerRoutes(
       const reportLeagueId = req.params.id as string;
       const reportLeague = await storage.getLeague(reportLeagueId);
       if (!reportLeague) return res.status(404).json({ message: "League not found" });
-      if (reportLeague.commissionerId !== req.session.userId) {
+      if (!hasCommissionerAccess(reportLeague, req.session.userId)) {
         return res.status(403).json({ message: "Only the commissioner can view pending game reports" });
       }
       const allReports = await storage.getGameReportsByLeague(reportLeagueId);
@@ -4749,7 +4749,7 @@ export async function registerRoutes(
 
       const league = await storage.getLeague(leagueId);
       if (!league) return res.status(404).json({ message: "League not found" });
-      if (league.commissionerId !== req.session.userId) {
+      if (!hasCommissionerAccess(league, req.session.userId)) {
         return res.status(403).json({ message: "Only the commissioner can force-finalize a game report" });
       }
 
@@ -6221,11 +6221,10 @@ export async function registerRoutes(
       if (!league) {
         return res.status(404).json({ message: "League not found" });
       }
-      // Must be a commissioner or a coach in the league
+      // Only commissioners and co-commissioners can access commissioner data
       const allCoaches = await storage.getCoachesByLeague(league.id);
-      const isLeagueMember = allCoaches.some(c => c.userId === req.session.userId);
-      if (!hasCommissionerAccess(league, req.session.userId) && !isLeagueMember) {
-        return res.status(403).json({ message: "Not authorized to view commissioner data" });
+      if (!hasCommissionerAccess(league, req.session.userId)) {
+        return res.status(403).json({ message: "Only the commissioner can access this page" });
       }
 
       const [auditLogsData, leagueTeams, invites] = await Promise.all([
@@ -11953,8 +11952,8 @@ export async function registerRoutes(
       }
       
       // Commissioner-only action
-      if (league.commissionerId !== req.session.userId) {
-        return res.status(403).json({ message: "Only commissioner can generate recruiting class" });
+      if (!hasCommissionerAccess(league, req.session.userId)) {
+        return res.status(403).json({ message: "Only the commissioner can generate a recruiting class" });
       }
 
       // Delete existing recruits for this league
@@ -12204,7 +12203,7 @@ export async function registerRoutes(
 
       const league = await storage.getLeague(leagueId);
       if (!league) return res.status(404).json({ message: "League not found" });
-      if (league.commissionerId !== req.session.userId) {
+      if (!hasCommissionerAccess(league, req.session.userId)) {
         return res.status(403).json({ message: "Only the commissioner can send nudges" });
       }
 

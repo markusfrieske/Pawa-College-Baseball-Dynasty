@@ -699,6 +699,7 @@ function ActionsTab({
       <ReadyStatusSection
         leagueId={league?.id || ""}
         commissionerUserId={league?.commissionerId}
+        coCommissionerIds={Array.isArray(league?.coCommissionerIds) ? (league!.coCommissionerIds as string[]) : []}
         onAdvanceWeek={onAdvanceWeek}
         isAdvancing={isAdvancing}
       />
@@ -1273,7 +1274,7 @@ function formatLastActivity(lastActivityAt: string | null): string {
   return `${days}d ago`;
 }
 
-function ReadyStatusSection({ leagueId, commissionerUserId, onAdvanceWeek, isAdvancing }: { leagueId: string; commissionerUserId?: string; onAdvanceWeek?: () => void; isAdvancing?: boolean }) {
+function ReadyStatusSection({ leagueId, commissionerUserId, coCommissionerIds, onAdvanceWeek, isAdvancing }: { leagueId: string; commissionerUserId?: string; coCommissionerIds?: string[]; onAdvanceWeek?: () => void; isAdvancing?: boolean }) {
   const { toast } = useToast();
   const qc = useQueryClient();
 
@@ -1281,7 +1282,10 @@ function ReadyStatusSection({ leagueId, commissionerUserId, onAdvanceWeek, isAdv
     queryKey: ["/api/auth/me"],
   });
 
-  const isCommissioner = !!currentUser && currentUser.id === commissionerUserId;
+  const isCommissioner = !!currentUser && (
+    currentUser.id === commissionerUserId ||
+    (coCommissionerIds ?? []).includes(currentUser.id)
+  );
 
   const removeCoachMutation = useMutation({
     mutationFn: async (coachId: string) => {

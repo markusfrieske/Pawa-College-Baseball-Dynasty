@@ -5,7 +5,8 @@ import { parseErrorMessage } from "@/lib/errorUtils";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
 import { TeamBadge } from "@/components/ui/team-badge";
-import { Plus, Trophy, Users, Calendar, LogOut, Trash2, UserCheck, BookOpen, FolderOpen, GraduationCap, Eye } from "lucide-react";
+import { Plus, Trophy, Users, Calendar, LogOut, Trash2, UserCheck, BookOpen, FolderOpen, GraduationCap, Eye, Crown } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { League, Team, Coach } from "@shared/schema";
@@ -114,7 +115,7 @@ export default function DashboardPage() {
         ) : leagues && leagues.length > 0 ? (
           <div className="grid md:grid-cols-2 gap-6">
             {leagues.map((league) => (
-              <LeagueCard key={league.id} league={league} />
+              <LeagueCard key={league.id} league={league} userId={user?.id} />
             ))}
           </div>
         ) : (
@@ -392,7 +393,7 @@ function SavedRecruitingClassCard({ rc }: { rc: SavedRecruitingClass }) {
   );
 }
 
-function LeagueCard({ league }: { league: LeagueWithDetails }) {
+function LeagueCard({ league, userId }: { league: LeagueWithDetails; userId?: string }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -423,11 +424,29 @@ function LeagueCard({ league }: { league: LeagueWithDetails }) {
     signing_day: "Signing Day",
   };
 
+  const isPrimaryCommissioner = !!userId && userId === league.commissionerId;
+  const coCommIds: string[] = Array.isArray(league.coCommissionerIds) ? (league.coCommissionerIds as string[]) : [];
+  const isDelegate = !isPrimaryCommissioner && !!userId && coCommIds.includes(userId);
+
   return (
     <RetroCard className="hover:border-gold/50 transition-colors" data-testid={`card-league-${league.id}`}>
       <RetroCardHeader className="flex items-center justify-between gap-4">
         <Link href={league.currentPhase === "dynasty_setup" ? `/league/${league.id}/dynasty-setup` : `/league/${league.id}`} className="truncate cursor-pointer hover:text-gold transition-colors">
-          <span>{league.name}</span>
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="truncate">{league.name}</span>
+            {isPrimaryCommissioner && (
+              <div className="flex items-center gap-1 shrink-0" data-testid={`badge-commissioner-${league.id}`}>
+                <Crown className="w-3 h-3 text-gold" />
+                <Badge variant="outline" className="font-pixel text-[7px] text-gold border-gold/40 bg-gold/10">COMM</Badge>
+              </div>
+            )}
+            {isDelegate && (
+              <div className="flex items-center gap-1 shrink-0" data-testid={`badge-delegate-${league.id}`}>
+                <Crown className="w-3 h-3 text-blue-400" />
+                <Badge variant="outline" className="font-pixel text-[7px] text-blue-400 border-blue-400/40 bg-blue-400/10">DELEGATE</Badge>
+              </div>
+            )}
+          </div>
         </Link>
         <div className="flex items-center gap-2">
           <span className="text-[8px] text-muted-foreground whitespace-nowrap">

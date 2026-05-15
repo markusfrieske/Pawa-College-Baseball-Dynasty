@@ -578,12 +578,14 @@ export default function LeagueViewPage() {
             subtitle="Vote on arcs"
             badge={storylinePendingVotes || undefined}
           />
-          <QuickActionCard
-            href={`/league/${id}/commissioner`}
-            icon={<Settings className="w-6 h-6" />}
-            title="Commissioner"
-            subtitle="Dynasty settings"
-          />
+          {isCommissioner && (
+            <QuickActionCard
+              href={`/league/${id}/commissioner`}
+              icon={<Settings className="w-6 h-6" />}
+              title="Commissioner"
+              subtitle="Dynasty settings"
+            />
+          )}
         </div>
 
         {overview && (
