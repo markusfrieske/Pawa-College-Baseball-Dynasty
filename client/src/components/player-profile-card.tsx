@@ -14,7 +14,7 @@ import { velocityToMPH } from "@/lib/playerUtils";
 import { getPotentialGrade, getProgressionZone, getProgressionColor } from "@shared/potential";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-interface Player {
+export interface Player {
   id: string;
   firstName: string;
   lastName: string;

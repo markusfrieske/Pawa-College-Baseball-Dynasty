@@ -6318,7 +6318,7 @@ export async function registerRoutes(
       // Active only during the in-season phases so all arcs conclude before offseason begins.
       if (["recruiting", "preseason", "spring_training", "regular_season"].includes(league.currentPhase)) {
         try {
-          await generateAndResolveStorylineEvents(leagueId, league.currentSeason, nextWeek);
+          await generateAndResolveStorylineEvents(leagueId, league.currentSeason, nextWeek, league.seasonLength ?? "medium");
         } catch (err) {
           console.error("[storylines] Failed to generate/resolve storyline events:", err);
         }

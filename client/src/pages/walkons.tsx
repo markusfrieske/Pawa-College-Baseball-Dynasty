@@ -363,8 +363,8 @@ export default function WalkonsPage() {
                             <span>{walkon.eligibility}</span>
                             <span>{walkon.overall} OVR</span>
                             <span className="flex">{starDisplay(walkon.starRating || 1)}</span>
-                            {walkon.signedTeamId && walkon.potential && (
-                              <span>Pot: {getPotentialGrade(walkon.potential)}</span>
+                            {walkon.potential != null && (
+                              <span>Pot: {walkon.signedTeamId ? getPotentialGrade(walkon.potential) : "???"}</span>
                             )}
                             <span className={`font-pixel text-[7px] px-1.5 py-0.5 rounded border ${walkon.batHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : walkon.batHand === "S" ? "bg-purple-500/15 text-purple-400 border-purple-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`} data-testid={`badge-hand-walkon-${walkon.id}`}>
                               B:{walkon.batHand || "R"} T:{walkon.throwHand || "R"}

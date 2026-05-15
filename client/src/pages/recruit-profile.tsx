@@ -82,6 +82,10 @@ interface RecruitWithInterest extends Recruit {
   topSchools?: TopSchool[];
   competingCount?: number | null;
   competingIntensity?: string | null;
+  signedTeamName?: string | null;
+  signedTeamAbbreviation?: string | null;
+  signedTeamPrimaryColor?: string | null;
+  signedTeamSecondaryColor?: string | null;
 }
 
 interface RecruitData {
@@ -633,10 +637,21 @@ export default function RecruitProfilePage() {
         {recruit.stage === "signed" && (
           <div className="mb-6 flex items-center gap-3 p-3 border border-green-600/50 bg-green-900/20">
             <CheckCircle className="w-5 h-5 text-green-400 shrink-0" />
-            <div>
+            <div className="flex-1">
               <p className="font-pixel text-green-400 text-[10px] uppercase">Committed</p>
-              <p className="text-xs text-muted-foreground">This recruit has committed to a program. Recruiting actions are no longer available.</p>
+              <p className="text-xs text-muted-foreground">Recruiting actions are no longer available.</p>
             </div>
+            {recruit.signedTeamName && (
+              <div className="flex items-center gap-1.5 shrink-0">
+                <TeamBadge
+                  abbreviation={recruit.signedTeamAbbreviation || recruit.signedTeamName.slice(0, 3).toUpperCase()}
+                  primaryColor={recruit.signedTeamPrimaryColor || "#888888"}
+                  secondaryColor={recruit.signedTeamSecondaryColor || undefined}
+                  size="sm"
+                />
+                <span className="text-xs font-medium text-foreground">{recruit.signedTeamName}</span>
+              </div>
+            )}
           </div>
         )}
 
@@ -1107,6 +1122,17 @@ export default function RecruitProfilePage() {
                 <div className="flex flex-col items-center gap-3 py-4 text-center">
                   <CheckCircle className="w-10 h-10 text-green-400" />
                   <p className="font-pixel text-green-400 text-[10px] uppercase">Committed</p>
+                  {recruit.signedTeamName && (
+                    <div className="flex items-center gap-2 mt-1">
+                      <TeamBadge
+                        abbreviation={recruit.signedTeamAbbreviation || recruit.signedTeamName.slice(0, 3).toUpperCase()}
+                        primaryColor={recruit.signedTeamPrimaryColor || "#888888"}
+                        secondaryColor={recruit.signedTeamSecondaryColor || undefined}
+                        size="md"
+                      />
+                      <span className="font-pixel text-xs text-foreground">{recruit.signedTeamName}</span>
+                    </div>
+                  )}
                   <p className="text-sm text-muted-foreground">This recruit has made their decision and signed with a program.</p>
                 </div>
               </RetroCardContent>

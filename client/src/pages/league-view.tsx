@@ -2809,7 +2809,7 @@ function StatsTab({ leagueId, currentSeason, conferences, teams }: { leagueId: s
   const [view, setView] = useState<"team" | "batting" | "pitching">("team");
   const [selectedSeason, setSelectedSeason] = useState<number | null>(null);
   const [selectedStatsPlayerId, setSelectedStatsPlayerId] = useState<string | null>(null);
-  const { data: statsPlayerData } = useQuery<any>({
+  const { data: statsPlayerData } = useQuery<Player>({
     queryKey: ["/api/leagues", leagueId, "players", selectedStatsPlayerId],
     queryFn: async () => {
       const res = await fetch(`/api/leagues/${leagueId}/players/${selectedStatsPlayerId}`, { credentials: "include" });

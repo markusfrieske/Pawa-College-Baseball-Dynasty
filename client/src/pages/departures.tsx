@@ -14,7 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { PlayerProfileCard } from "@/components/player-profile-card";
+import { PlayerProfileCard, Player } from "@/components/player-profile-card";
 import {
   ArrowLeft,
   GraduationCap,
@@ -98,7 +98,7 @@ const DIFFICULTY_OPTIONS = [
 export default function DeparturesPage() {
   const { id: leagueId } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
-  const [activeTab, setActiveTab] = useState<"myTeam" | "leagueWide">("myTeam");
+  const [activeTab, setActiveTab] = useState<"myTeam" | "leagueWide" | "rosterPreview">("myTeam");
   const [draftRetainPlayer, setDraftRetainPlayer] = useState<DeparturePlayer | null>(null);
   const [transferRetainPlayer, setTransferRetainPlayer] = useState<DeparturePlayer | null>(null);
   const [nilOfferAmount, setNilOfferAmount] = useState<number>(0);
@@ -112,7 +112,7 @@ export default function DeparturesPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: viewPlayerData } = useQuery<any>({
+  const { data: viewPlayerData } = useQuery<Player>({
     queryKey: ["/api/leagues", leagueId, "players", viewPlayer?.id],
     queryFn: async () => {
       const res = await fetch(`/api/leagues/${leagueId}/players/${viewPlayer!.id}`, { credentials: "include" });
@@ -120,6 +120,16 @@ export default function DeparturesPage() {
       return res.json();
     },
     enabled: !!viewPlayer,
+  });
+
+  const { data: rosterData } = useQuery<{ players: Player[]; team: any }>({
+    queryKey: ["/api/leagues", leagueId, "roster"],
+    queryFn: async () => {
+      const res = await fetch(`/api/leagues/${leagueId}/roster`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to load roster");
+      return res.json();
+    },
+    enabled: !!leagueId && activeTab === "rosterPreview",
   });
 
   const { data, isLoading } = useQuery<DeparturesData>({
@@ -372,6 +382,16 @@ export default function DeparturesPage() {
           >
             My Team
           </RetroButton>
+          {userTeam && (
+            <RetroButton
+              variant={activeTab === "rosterPreview" ? "primary" : "outline"}
+              size="sm"
+              onClick={() => setActiveTab("rosterPreview")}
+              data-testid="button-tab-roster-preview"
+            >
+              Roster Preview
+            </RetroButton>
+          )}
           <RetroButton
             variant={activeTab === "leagueWide" ? "primary" : "outline"}
             size="sm"
@@ -525,6 +545,97 @@ export default function DeparturesPage() {
                     </AlertDialog>
                   )}
                 </div>
+              </RetroCardContent>
+            </RetroCard>
+          </div>
+        )}
+
+        {/* Roster Preview Tab */}
+        {activeTab === "rosterPreview" && userTeam && (
+          <div className="space-y-4" data-testid="section-roster-preview">
+            <RetroCard>
+              <RetroCardHeader>
+                <div className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-gold" />
+                  <span>Roster After Departures</span>
+                </div>
+              </RetroCardHeader>
+              <RetroCardContent>
+                {(() => {
+                  const departingIds = new Set([
+                    ...userTeam.graduates.map(p => p.id),
+                    ...userTeam.draftDeclarations.map(p => p.id),
+                    ...userTeam.transfers.map(p => p.id),
+                  ]);
+                  const departureMap = new Map<string, { type: string; label: string }>();
+                  userTeam.graduates.forEach(p => departureMap.set(p.id, { type: "graduated", label: "Graduated" }));
+                  userTeam.draftDeclarations.forEach(p => departureMap.set(p.id, { type: "draft", label: p.draftRound ? `Rd ${p.draftRound} Pick` : "Draft" }));
+                  userTeam.transfers.forEach(p => departureMap.set(p.id, { type: "transfer", label: "Transfer" }));
+
+                  const allPlayers = [
+                    ...(rosterData?.players ?? []),
+                    ...userTeam.graduates,
+                    ...userTeam.draftDeclarations,
+                    ...userTeam.transfers,
+                  ];
+                  const seen = new Set<string>();
+                  const deduped = allPlayers.filter(p => { if (seen.has(p.id)) return false; seen.add(p.id); return true; });
+                  const sorted = [...deduped].sort((a, b) => (b.overall ?? 0) - (a.overall ?? 0));
+                  const staying = sorted.filter(p => !departingIds.has(p.id));
+                  const departing = sorted.filter(p => departingIds.has(p.id));
+
+                  const typeColor: Record<string, string> = {
+                    graduated: "bg-blue-900/40 border-blue-700 text-blue-300",
+                    draft: "bg-amber-900/40 border-amber-700 text-amber-300",
+                    transfer: "bg-purple-900/40 border-purple-700 text-purple-300",
+                  };
+
+                  return (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground pb-2 border-b border-border/50">
+                        <span><span className="text-foreground font-medium">{staying.length}</span> staying</span>
+                        <span><span className="text-red-400 font-medium">{departing.length}</span> departing</span>
+                        <span><span className="text-foreground font-medium">{25 - staying.length}</span> roster spots open</span>
+                      </div>
+                      {departing.length > 0 && (
+                        <div>
+                          <p className="text-[10px] font-pixel text-muted-foreground mb-2 uppercase">Departing</p>
+                          <div className="space-y-1">
+                            {departing.map(p => {
+                              const dep = departureMap.get(p.id);
+                              return (
+                                <div key={p.id} className="flex items-center gap-2 p-2 rounded bg-red-950/20 border border-red-900/30 cursor-pointer hover:bg-red-950/30" onClick={() => setViewPlayer({ id: p.id, teamId: userTeam.teamId })} data-testid={`roster-departing-${p.id}`}>
+                                  <Badge variant="outline" className="text-[7px] font-mono shrink-0 w-8 text-center">{p.position}</Badge>
+                                  <span className="text-xs flex-1">{(p as any).firstName} {(p as any).lastName}</span>
+                                  <span className="text-xs text-muted-foreground">{p.overall} OVR</span>
+                                  {dep && <Badge className={`text-[7px] ${typeColor[dep.type]} no-default-hover-elevate no-default-active-elevate`}>{dep.label}</Badge>}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      {staying.length > 0 && (
+                        <div>
+                          <p className="text-[10px] font-pixel text-muted-foreground mb-2 uppercase">Returning</p>
+                          <div className="space-y-1">
+                            {staying.map(p => (
+                              <div key={p.id} className="flex items-center gap-2 p-2 rounded bg-muted/20 cursor-pointer hover:bg-muted/30" onClick={() => setViewPlayer({ id: p.id, teamId: userTeam.teamId })} data-testid={`roster-staying-${p.id}`}>
+                                <Badge variant="outline" className="text-[7px] font-mono shrink-0 w-8 text-center">{p.position}</Badge>
+                                <span className="text-xs flex-1">{(p as any).firstName} {(p as any).lastName}</span>
+                                <span className="text-xs text-muted-foreground">{p.overall} OVR</span>
+                                <Badge className="text-[7px] bg-green-900/30 border-green-800 text-green-400 no-default-hover-elevate no-default-active-elevate">Returning</Badge>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {!rosterData && staying.length === 0 && (
+                        <p className="text-sm text-muted-foreground text-center py-4">Loading roster...</p>
+                      )}
+                    </div>
+                  );
+                })()}
               </RetroCardContent>
             </RetroCard>
           </div>

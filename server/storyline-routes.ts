@@ -947,6 +947,7 @@ export async function generateAndResolveStorylineEvents(
   leagueId: string,
   season: number,
   currentWeek: number,
+  seasonLength: string = "medium",
 ): Promise<{ resolved: number; generated: number }> {
   let resolved = 0;
   let generated = 0;
@@ -1080,7 +1081,8 @@ export async function generateAndResolveStorylineEvents(
       resolved++;
     }
 
-    generated = await generateWeeklyStorylineEvents(leagueId, season, currentWeek);
+    const totalWeeks = seasonLength === "long" ? 10 : 5;
+    generated = await generateWeeklyStorylineEvents(leagueId, season, currentWeek, totalWeeks);
     await simulateCpuVotes(leagueId);
   } catch (err) {
     console.error("[storylines] generateAndResolve error:", err);
@@ -1089,7 +1091,7 @@ export async function generateAndResolveStorylineEvents(
   return { resolved, generated };
 }
 
-async function generateWeeklyStorylineEvents(leagueId: string, season: number, week: number): Promise<number> {
+async function generateWeeklyStorylineEvents(leagueId: string, season: number, week: number, totalWeeks = 5): Promise<number> {
   let count = 0;
   try {
     const storylines = await storage.getStorylineRecruitsByLeague(leagueId, season);
@@ -1155,9 +1157,13 @@ async function generateWeeklyStorylineEvents(leagueId: string, season: number, w
       return 0;
     }
 
-    // Target 2–3 events per week; floor at min(2, slotsRemaining) so available
-    // capacity is always used. Hard cap ensures total unresolved never exceeds 10.
-    const targetEvents = Math.max(Math.min(2, slotsRemaining), 2 + Math.floor(Math.random() * 2));
+    // Target 2–3 events per week; scale upward for short seasons so all arcs
+    // complete before the season ends. With 5 total weeks, use a higher floor
+    // to ensure each recruit gets enough events across the season.
+    const weeksRemaining = Math.max(1, totalWeeks - week + 1);
+    const urgencyBoost = weeksRemaining <= 2 ? 2 : weeksRemaining <= 3 ? 1 : 0;
+    const baseTarget = 2 + Math.floor(Math.random() * 2) + urgencyBoost;
+    const targetEvents = Math.max(Math.min(2, slotsRemaining), baseTarget);
     const maxEvents = Math.min(cappedNonExhausted.length, slotsRemaining, targetEvents);
 
     // Legendary-first, non-legendary shuffled so all 10 recruits rotate fairly
