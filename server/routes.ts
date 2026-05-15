@@ -9757,14 +9757,16 @@ export async function registerRoutes(
         }
       }
 
-      // Upgrade pass: swap the weakest duplicate-position player for a walk-on
-      // that is meaningfully better, up to MAX_UPGRADES swaps per team.
+      // Upgrade pass: only runs when the roster is at the 25-player max.
+      // Swaps the weakest duplicate-position player for a walk-on that is
+      // meaningfully better, up to MAX_UPGRADES swaps per team.
       // This prevents CPU teams from sitting on weak recruited players when
       // better talent is available in the walk-on pool.
       const UPGRADE_THRESHOLD = 15;
       const MAX_UPGRADES = 5;
       let upgradeCount = 0;
       roster = await storage.getPlayersByTeam(team.id);
+      if (roster.length < MAX_ROSTER) continue;  // only upgrade when full
       const upgradePool = await storage.getWalkonsByLeague(leagueId);
       let availableUpgrades = upgradePool.filter(w => !w.signedTeamId);
 
