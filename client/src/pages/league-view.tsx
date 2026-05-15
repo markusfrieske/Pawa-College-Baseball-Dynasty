@@ -282,6 +282,25 @@ export default function LeagueViewPage() {
     (s) => !!s.activeEvent && !s.myVote,
   ).length;
 
+  const activeLineupPhases = ["preseason", "spring_training", "regular_season", "conference_championship", "super_regionals", "cws"];
+  const shouldCheckLineup = !!(league?.teams?.find(t => t.coach?.userId === currentUser?.id)) && activeLineupPhases.includes(league?.currentPhase ?? "");
+
+  const { data: ownRosterData } = useQuery({
+    queryKey: [`/api/leagues/${id}/roster`],
+    enabled: shouldCheckLineup,
+    select: (data: { players: Player[]; team: Team }) => ({
+      players: data.players.map((p) => ({
+        position: p.position,
+        battingOrder: p.battingOrder,
+        pitchingRole: p.pitchingRole,
+      })),
+    }),
+  });
+
+  const [lineupBannerDismissed, setLineupBannerDismissed] = useState(() => {
+    try { return localStorage.getItem(`lineup-banner-dismissed-${id}`) === "1"; } catch { return false; }
+  });
+
   useEffect(() => {
     if (league?.currentPhase) {
       updateMusicPhase(league.currentPhase);
@@ -311,24 +330,6 @@ export default function LeagueViewPage() {
   const isCommissioner = !!currentUser && currentUser.id === league.commissionerId;
   const canLeave = !!myCoach && !isCommissioner;
 
-  const activeLineupPhases = ["preseason", "spring_training", "regular_season", "conference_championship", "super_regionals", "cws"];
-  const shouldCheckLineup = !!myTeam && activeLineupPhases.includes(league.currentPhase);
-
-  const { data: ownRosterData } = useQuery({
-    queryKey: [`/api/leagues/${id}/roster`],
-    enabled: shouldCheckLineup,
-    select: (data: { players: Player[]; team: Team }) => ({
-      players: data.players.map((p) => ({
-        position: p.position,
-        battingOrder: p.battingOrder,
-        pitchingRole: p.pitchingRole,
-      })),
-    }),
-  });
-
-  const [lineupBannerDismissed, setLineupBannerDismissed] = useState(() => {
-    try { return localStorage.getItem(`lineup-banner-dismissed-${id}`) === "1"; } catch { return false; }
-  });
   const dismissLineupBanner = () => {
     setLineupBannerDismissed(true);
     try { localStorage.setItem(`lineup-banner-dismissed-${id}`, "1"); } catch {}
