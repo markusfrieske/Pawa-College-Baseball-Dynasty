@@ -300,11 +300,12 @@ for (let season = 1; season <= NUM_SEASONS; season++) {
     }
   }
 
-  // 7. Upgrade pass
+  // 7. Upgrade pass — all teams share the same pool so a walk-on claimed
+  // by one team is unavailable to the next, matching server behavior where
+  // signedTeamId is persisted and subsequent team loops see it as taken.
   let totalUpgradeSwaps = 0;
   for (let t = 0; t < NUM_TEAMS; t++) {
-    const freshPool = walkonPoolWithClaim.map(w => ({ ...w }));
-    const { newRoster, swaps } = runUpgradePass(newRosters[t], freshPool);
+    const { newRoster, swaps } = runUpgradePass(newRosters[t], walkonPoolWithClaim);
     newRosters[t] = newRoster;
     totalUpgradeSwaps += swaps;
   }

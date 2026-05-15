@@ -9776,12 +9776,15 @@ export async function registerRoutes(
       let availableUpgrades = upgradePool.filter(w => !w.signedTeamId);
 
       while (upgradeCount < MAX_UPGRADES && availableUpgrades.length > 0) {
-        // Use the projected position counts (DB players + walk-ons signed above).
-        // Swaps within the same position leave projectedPosCounts unchanged so
-        // we can read it directly each iteration.
-        const rosterPosCounts = { ...projectedPosCounts };
+        // Only cut from positions where the DB roster has 2+ actual players.
+        // Walk-ons signed during the fill loop are not yet in the players table
+        // so they cannot be "cut" here; using the live DB roster ensures the
+        // weakest-player lookup and the duplicate-position eligibility check
+        // are always consistent with each other.
+        const dbPosCounts: Record<string, number> = {};
+        for (const p of roster) dbPosCounts[p.position] = (dbPosCounts[p.position] || 0) + 1;
 
-        const eligiblePositions = Object.entries(rosterPosCounts)
+        const eligiblePositions = Object.entries(dbPosCounts)
           .filter(([, cnt]) => cnt > 1)
           .map(([pos]) => pos);
 
