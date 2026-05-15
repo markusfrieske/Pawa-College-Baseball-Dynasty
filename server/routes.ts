@@ -4297,12 +4297,19 @@ export async function registerRoutes(
           const newXp = homeCoach.xp + (homeWon ? WIN_XP : LOSS_XP);
           const newLevel = Math.floor(newXp / 1000) + 1;
           const skillPointsGained = newLevel > homeCoach.level ? 1 : 0;
+          const hcWins = homeCoach.careerWins + (homeWon ? 1 : 0);
+          const hcLosses = homeCoach.careerLosses + (homeWon ? 0 : 1);
+          const hcConfWins = homeCoach.confWins + (game.isConference && homeWon ? 1 : 0);
+          const hcConfLosses = homeCoach.confLosses + (game.isConference && !homeWon ? 1 : 0);
           await storage.updateCoach(homeCoach.id, {
             xp: newXp,
             level: newLevel,
             skillPoints: homeCoach.skillPoints + skillPointsGained,
-            careerWins: homeCoach.careerWins + (homeWon ? 1 : 0),
-            careerLosses: homeCoach.careerLosses + (homeWon ? 0 : 1),
+            careerWins: hcWins,
+            careerLosses: hcLosses,
+            confWins: hcConfWins,
+            confLosses: hcConfLosses,
+            legacyScore: computeLegacyScore({ ...homeCoach, careerWins: hcWins, confWins: hcConfWins, confLosses: hcConfLosses }),
           });
         }
       }
@@ -4314,12 +4321,19 @@ export async function registerRoutes(
           const newXp = awayCoach.xp + (homeWon ? LOSS_XP : WIN_XP);
           const newLevel = Math.floor(newXp / 1000) + 1;
           const skillPointsGained = newLevel > awayCoach.level ? 1 : 0;
+          const acWins = awayCoach.careerWins + (homeWon ? 0 : 1);
+          const acLosses = awayCoach.careerLosses + (homeWon ? 1 : 0);
+          const acConfWins = awayCoach.confWins + (game.isConference && !homeWon ? 1 : 0);
+          const acConfLosses = awayCoach.confLosses + (game.isConference && homeWon ? 1 : 0);
           await storage.updateCoach(awayCoach.id, {
             xp: newXp,
             level: newLevel,
             skillPoints: awayCoach.skillPoints + skillPointsGained,
-            careerWins: awayCoach.careerWins + (homeWon ? 0 : 1),
-            careerLosses: awayCoach.careerLosses + (homeWon ? 1 : 0),
+            careerWins: acWins,
+            careerLosses: acLosses,
+            confWins: acConfWins,
+            confLosses: acConfLosses,
+            legacyScore: computeLegacyScore({ ...awayCoach, careerWins: acWins, confWins: acConfWins, confLosses: acConfLosses }),
           });
         }
       }
@@ -6111,12 +6125,19 @@ export async function registerRoutes(
           const newXp = homeCoach.xp + (homeWon ? WIN_XP : LOSS_XP);
           const newLevel = Math.floor(newXp / 1000) + 1;
           const skillPointsGained = newLevel > homeCoach.level ? 1 : 0;
+          const hcWins = homeCoach.careerWins + (homeWon ? 1 : 0);
+          const hcLosses = homeCoach.careerLosses + (homeWon ? 0 : 1);
+          const hcConfWins = homeCoach.confWins + (game.isConference && homeWon ? 1 : 0);
+          const hcConfLosses = homeCoach.confLosses + (game.isConference && !homeWon ? 1 : 0);
           await storage.updateCoach(homeCoach.id, {
             xp: newXp,
             level: newLevel,
             skillPoints: homeCoach.skillPoints + skillPointsGained,
-            careerWins: homeCoach.careerWins + (homeWon ? 1 : 0),
-            careerLosses: homeCoach.careerLosses + (homeWon ? 0 : 1),
+            careerWins: hcWins,
+            careerLosses: hcLosses,
+            confWins: hcConfWins,
+            confLosses: hcConfLosses,
+            legacyScore: computeLegacyScore({ ...homeCoach, careerWins: hcWins, confWins: hcConfWins, confLosses: hcConfLosses }),
           });
         }
       }
@@ -6127,12 +6148,19 @@ export async function registerRoutes(
           const newXp = awayCoach.xp + (homeWon ? LOSS_XP : WIN_XP);
           const newLevel = Math.floor(newXp / 1000) + 1;
           const skillPointsGained = newLevel > awayCoach.level ? 1 : 0;
+          const acWins = awayCoach.careerWins + (homeWon ? 0 : 1);
+          const acLosses = awayCoach.careerLosses + (homeWon ? 1 : 0);
+          const acConfWins = awayCoach.confWins + (game.isConference && !homeWon ? 1 : 0);
+          const acConfLosses = awayCoach.confLosses + (game.isConference && homeWon ? 1 : 0);
           await storage.updateCoach(awayCoach.id, {
             xp: newXp,
             level: newLevel,
             skillPoints: awayCoach.skillPoints + skillPointsGained,
-            careerWins: awayCoach.careerWins + (homeWon ? 0 : 1),
-            careerLosses: awayCoach.careerLosses + (homeWon ? 1 : 0),
+            careerWins: acWins,
+            careerLosses: acLosses,
+            confWins: acConfWins,
+            confLosses: acConfLosses,
+            legacyScore: computeLegacyScore({ ...awayCoach, careerWins: acWins, confWins: acConfWins, confLosses: acConfLosses }),
           });
         }
       }
@@ -6500,7 +6528,24 @@ export async function registerRoutes(
               }
             }
           } catch (e) { console.error("Postseason news error:", e); }
-          
+
+          // Track confChampionships for each winning coach
+          try {
+            const finalConfGames = (await storage.getGamesByLeague(leagueId)).filter(g => g.phase === "conference_championship" && g.season === league.currentSeason && g.isComplete);
+            for (const cg of finalConfGames) {
+              const homeWonCg = (cg.homeScore ?? 0) > (cg.awayScore ?? 0);
+              const champTeamId = homeWonCg ? cg.homeTeamId : cg.awayTeamId;
+              const champTeamForCoach = leagueTeamsForSim.find(t => t.id === champTeamId);
+              if (champTeamForCoach?.coachId) {
+                const champCoach = await storage.getCoach(champTeamForCoach.coachId);
+                if (champCoach) {
+                  const newConfChamp = champCoach.confChampionships + 1;
+                  await storage.updateCoach(champCoach.id, { confChampionships: newConfChamp, legacyScore: computeLegacyScore({ ...champCoach, confChampionships: newConfChamp }) });
+                }
+              }
+            }
+          } catch (e) { console.error("Conf champ coach stats error:", e); }
+
           await generateSuperRegionalBracket(leagueId, league.currentSeason);
           
           const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "super_regionals", currentWeek: nextWeek });
@@ -6528,6 +6573,19 @@ export async function registerRoutes(
               homeTeamId: srResult.champion1, awayTeamId: srResult.champion2,
               phase: "cws",
             });
+            // Track cwsAppearances for both CWS teams' coaches
+            try {
+              for (const cwsTeamId of [srResult.champion1, srResult.champion2]) {
+                const cwsTeamEntry = leagueTeamsForSim.find(t => t.id === cwsTeamId);
+                if (cwsTeamEntry?.coachId) {
+                  const cwsCoach = await storage.getCoach(cwsTeamEntry.coachId);
+                  if (cwsCoach) {
+                    const newCwsApp = cwsCoach.cwsAppearances + 1;
+                    await storage.updateCoach(cwsCoach.id, { cwsAppearances: newCwsApp, legacyScore: computeLegacyScore({ ...cwsCoach, cwsAppearances: newCwsApp }) });
+                  }
+                }
+              }
+            } catch (e) { console.error("CWS appearances coach stats error:", e); }
             const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "cws", currentWeek: nextWeek });
             await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "Super Regionals Complete", details: "The final two teams advance to the College World Series!" });
             return res.json(updatedLeague);
@@ -6546,6 +6604,53 @@ export async function registerRoutes(
             const leagueTeams = await storage.getTeamsByLeague(leagueId);
             const champTeam = leagueTeams.find(t => t.id === cwsResult.champion);
             const runnerUpTeam = leagueTeams.find(t => t.id === cwsResult.runnerUp);
+
+            // Track nationalChampionships for champion coach
+            try {
+              if (champTeam?.coachId) {
+                const champCoach = await storage.getCoach(champTeam.coachId);
+                if (champCoach) {
+                  const newNatl = champCoach.nationalChampionships + 1;
+                  await storage.updateCoach(champCoach.id, { nationalChampionships: newNatl, legacyScore: computeLegacyScore({ ...champCoach, nationalChampionships: newNatl }) });
+                }
+              }
+            } catch (e) { console.error("National championship coach stats error:", e); }
+
+            // Track allAmericans: fill positional All-American slots by OVR and count per team's coach
+            try {
+              const aaPool: { id: string; overall: number; position: string; teamId: string }[] = [];
+              for (const t of leagueTeams) {
+                const roster = await storage.getPlayersByTeam(t.id);
+                for (const p of roster) aaPool.push({ id: p.id, overall: p.overall, position: p.position, teamId: p.teamId });
+              }
+              const aaSlots = ["C", "1B", "2B", "SS", "3B", "OF", "OF", "OF", "SP", "SP", "SP", "R", "CL", "DH"];
+              const aaPitchers = aaPool.filter(p => p.position === "P").sort((a, b) => (b.overall || 0) - (a.overall || 0));
+              const aaUsed = new Set<string>();
+              const aaTeamCounts = new Map<string, number>();
+              let aaPIdx = 0;
+              for (const slot of aaSlots) {
+                if (slot === "SP" || slot === "R" || slot === "CL") {
+                  while (aaPIdx < aaPitchers.length && aaUsed.has(aaPitchers[aaPIdx].id)) aaPIdx++;
+                  if (aaPIdx < aaPitchers.length) { const s = aaPitchers[aaPIdx]; aaUsed.add(s.id); aaTeamCounts.set(s.teamId, (aaTeamCounts.get(s.teamId) || 0) + 1); aaPIdx++; }
+                } else if (slot === "DH") {
+                  const cands = aaPool.filter(p => p.position !== "P" && !aaUsed.has(p.id)).sort((a, b) => (b.overall || 0) - (a.overall || 0));
+                  if (cands.length > 0) { aaUsed.add(cands[0].id); aaTeamCounts.set(cands[0].teamId, (aaTeamCounts.get(cands[0].teamId) || 0) + 1); }
+                } else {
+                  const cands = aaPool.filter(p => p.position === slot && !aaUsed.has(p.id)).sort((a, b) => (b.overall || 0) - (a.overall || 0));
+                  if (cands.length > 0) { aaUsed.add(cands[0].id); aaTeamCounts.set(cands[0].teamId, (aaTeamCounts.get(cands[0].teamId) || 0) + 1); }
+                }
+              }
+              for (const [tId, aaCount] of aaTeamCounts.entries()) {
+                const aaTeamEntry = leagueTeams.find(t => t.id === tId);
+                if (aaTeamEntry?.coachId) {
+                  const aaCoach = await storage.getCoach(aaTeamEntry.coachId);
+                  if (aaCoach) {
+                    const newAAs = aaCoach.allAmericans + aaCount;
+                    await storage.updateCoach(aaCoach.id, { allAmericans: newAAs, legacyScore: computeLegacyScore({ ...aaCoach, allAmericans: newAAs }) });
+                  }
+                }
+              }
+            } catch (e) { console.error("All-Americans coach stats error:", e); }
 
             // Resolve any unresolved storyline arcs before entering offseason.
             try {
@@ -7111,6 +7216,21 @@ export async function registerRoutes(
               await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away);
             } catch (e) { console.error("Stat accumulation error:", e); }
           }
+          // Track confChampionships for each winning coach (sim-to-offseason path)
+          try {
+            for (const { game, result } of simResults) {
+              const homeWonSim2 = result.homeScore > result.awayScore;
+              const confChampTeamId = homeWonSim2 ? game.homeTeamId : game.awayTeamId;
+              const confChampTeam = allTeamsForSim.find(t => t.id === confChampTeamId);
+              if (confChampTeam?.coachId) {
+                const confChampCoach = await storage.getCoach(confChampTeam.coachId);
+                if (confChampCoach) {
+                  const newCC = confChampCoach.confChampionships + 1;
+                  await storage.updateCoach(confChampCoach.id, { confChampionships: newCC, legacyScore: computeLegacyScore({ ...confChampCoach, confChampionships: newCC }) });
+                }
+              }
+            }
+          } catch (e) { console.error("Conf champ coach stats error (sim):", e); }
           invalidateGameCache();
           await generateSuperRegionalBracket(leagueId, currentLeague.currentSeason);
           currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "super_regionals" })) as any;
@@ -7131,6 +7251,19 @@ export async function registerRoutes(
                   homeTeamId: srResult.champion1, awayTeamId: srResult.champion2,
                   phase: "cws",
                 });
+                // Track cwsAppearances for both CWS teams (sim-to-offseason path)
+                try {
+                  for (const cwsTeamId of [srResult.champion1, srResult.champion2]) {
+                    const cwsTeamSim = allTeamsForSim.find(t => t.id === cwsTeamId);
+                    if (cwsTeamSim?.coachId) {
+                      const cwsCoachSim = await storage.getCoach(cwsTeamSim.coachId);
+                      if (cwsCoachSim) {
+                        const newCwsApp = cwsCoachSim.cwsAppearances + 1;
+                        await storage.updateCoach(cwsCoachSim.id, { cwsAppearances: newCwsApp, legacyScore: computeLegacyScore({ ...cwsCoachSim, cwsAppearances: newCwsApp }) });
+                      }
+                    }
+                  }
+                } catch (e) { console.error("CWS appearances coach stats error (sim):", e); }
                 invalidateGameCache();
                 currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "cws" })) as any;
               } else {
@@ -7148,10 +7281,59 @@ export async function registerRoutes(
         if (phase === "cws") {
           let cwsDone = false;
           let cwsIterations = 0;
+          let lastCwsResult: { done: boolean; champion?: string; runnerUp?: string } = { done: false };
           while (!cwsDone && cwsIterations < 10) {
             cwsIterations++;
-            const cwsResult = await advanceCWS(leagueId, currentLeague.currentSeason);
-            cwsDone = cwsResult.done;
+            lastCwsResult = await advanceCWS(leagueId, currentLeague.currentSeason);
+            cwsDone = lastCwsResult.done;
+          }
+          // Track nationalChampionships + allAmericans (sim-to-offseason path)
+          if (lastCwsResult.champion) {
+            const simLeagueTeams = await storage.getTeamsByLeague(leagueId);
+            try {
+              const simChampTeam = simLeagueTeams.find(t => t.id === lastCwsResult.champion);
+              if (simChampTeam?.coachId) {
+                const simChampCoach = await storage.getCoach(simChampTeam.coachId);
+                if (simChampCoach) {
+                  const newNatl = simChampCoach.nationalChampionships + 1;
+                  await storage.updateCoach(simChampCoach.id, { nationalChampionships: newNatl, legacyScore: computeLegacyScore({ ...simChampCoach, nationalChampionships: newNatl }) });
+                }
+              }
+            } catch (e) { console.error("National championship coach stats error (sim):", e); }
+            try {
+              const simAaPool: { id: string; overall: number; position: string; teamId: string }[] = [];
+              for (const t of simLeagueTeams) {
+                const roster = await storage.getPlayersByTeam(t.id);
+                for (const p of roster) simAaPool.push({ id: p.id, overall: p.overall, position: p.position, teamId: p.teamId });
+              }
+              const simAaSlots = ["C", "1B", "2B", "SS", "3B", "OF", "OF", "OF", "SP", "SP", "SP", "R", "CL", "DH"];
+              const simAaPitchers = simAaPool.filter(p => p.position === "P").sort((a, b) => (b.overall || 0) - (a.overall || 0));
+              const simAaUsed = new Set<string>();
+              const simAaTeamCounts = new Map<string, number>();
+              let simAaPIdx = 0;
+              for (const slot of simAaSlots) {
+                if (slot === "SP" || slot === "R" || slot === "CL") {
+                  while (simAaPIdx < simAaPitchers.length && simAaUsed.has(simAaPitchers[simAaPIdx].id)) simAaPIdx++;
+                  if (simAaPIdx < simAaPitchers.length) { const s = simAaPitchers[simAaPIdx]; simAaUsed.add(s.id); simAaTeamCounts.set(s.teamId, (simAaTeamCounts.get(s.teamId) || 0) + 1); simAaPIdx++; }
+                } else if (slot === "DH") {
+                  const cands = simAaPool.filter(p => p.position !== "P" && !simAaUsed.has(p.id)).sort((a, b) => (b.overall || 0) - (a.overall || 0));
+                  if (cands.length > 0) { simAaUsed.add(cands[0].id); simAaTeamCounts.set(cands[0].teamId, (simAaTeamCounts.get(cands[0].teamId) || 0) + 1); }
+                } else {
+                  const cands = simAaPool.filter(p => p.position === slot && !simAaUsed.has(p.id)).sort((a, b) => (b.overall || 0) - (a.overall || 0));
+                  if (cands.length > 0) { simAaUsed.add(cands[0].id); simAaTeamCounts.set(cands[0].teamId, (simAaTeamCounts.get(cands[0].teamId) || 0) + 1); }
+                }
+              }
+              for (const [tId, aaCount] of simAaTeamCounts.entries()) {
+                const aaTeamEntry = simLeagueTeams.find(t => t.id === tId);
+                if (aaTeamEntry?.coachId) {
+                  const aaCoach = await storage.getCoach(aaTeamEntry.coachId);
+                  if (aaCoach) {
+                    const newAAs = aaCoach.allAmericans + aaCount;
+                    await storage.updateCoach(aaCoach.id, { allAmericans: newAAs, legacyScore: computeLegacyScore({ ...aaCoach, allAmericans: newAAs }) });
+                  }
+                }
+              }
+            } catch (e) { console.error("All-Americans coach stats error (sim):", e); }
           }
           try {
             await evaluatePlayerPromises(leagueId, currentLeague.currentSeason);
@@ -7469,6 +7651,21 @@ export async function registerRoutes(
               })),
             });
           }
+          // Track confChampionships for each winning coach (sim-to-CWS path)
+          try {
+            for (const { game, result } of ccResults) {
+              const homeWonCg2 = result.homeScore > result.awayScore;
+              const ccChampTeamId = homeWonCg2 ? game.homeTeamId : game.awayTeamId;
+              const ccChampTeam = cwsTeams.find(t => t.id === ccChampTeamId);
+              if (ccChampTeam?.coachId) {
+                const ccChampCoach = await storage.getCoach(ccChampTeam.coachId);
+                if (ccChampCoach) {
+                  const newCC = ccChampCoach.confChampionships + 1;
+                  await storage.updateCoach(ccChampCoach.id, { confChampionships: newCC, legacyScore: computeLegacyScore({ ...ccChampCoach, confChampionships: newCC }) });
+                }
+              }
+            }
+          } catch (e) { console.error("Conf champ coach stats error (sim-to-cws):", e); }
           await generateSuperRegionalBracket(leagueId, currentLeague.currentSeason);
           currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "super_regionals" })) as any;
           continue;
@@ -7488,6 +7685,19 @@ export async function registerRoutes(
                   homeTeamId: srResult.champion1, awayTeamId: srResult.champion2,
                   phase: "cws",
                 });
+                // Track cwsAppearances for both CWS teams (sim-to-CWS path)
+                try {
+                  for (const cwsTeamId of [srResult.champion1, srResult.champion2]) {
+                    const cwsTeamEntry2 = cwsTeams.find(t => t.id === cwsTeamId);
+                    if (cwsTeamEntry2?.coachId) {
+                      const cwsCoach2 = await storage.getCoach(cwsTeamEntry2.coachId);
+                      if (cwsCoach2) {
+                        const newCwsApp = cwsCoach2.cwsAppearances + 1;
+                        await storage.updateCoach(cwsCoach2.id, { cwsAppearances: newCwsApp, legacyScore: computeLegacyScore({ ...cwsCoach2, cwsAppearances: newCwsApp }) });
+                      }
+                    }
+                  }
+                } catch (e) { console.error("CWS appearances coach stats error (sim-to-cws):", e); }
                 currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "cws" })) as any;
               } else {
                 currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "offseason_departures" })) as any;
@@ -8143,6 +8353,11 @@ export async function registerRoutes(
     await Promise.all(
       Array.from(playerStatsMap.values()).map(stats => storage.upsertPlayerSeasonStats(stats))
     );
+  }
+
+  // ============ COACH LEGACY SCORE HELPER ============
+  function computeLegacyScore(coach: { careerWins: number; confChampionships: number; cwsAppearances: number; nationalChampionships: number; allAmericans: number; draftPicks: number }): number {
+    return coach.careerWins + (coach.confChampionships * 5) + (coach.cwsAppearances * 10) + (coach.nationalChampionships * 20) + coach.allAmericans + coach.draftPicks;
   }
 
   // ============ STANDINGS UPDATE HELPER ============
@@ -9028,7 +9243,24 @@ export async function registerRoutes(
       const round = i < round1Picks ? 1 : i < round1Picks + round2Picks ? 2 : 3;
       draftProjections.set(sortedByOvr[i].player.id, round);
     }
-    
+
+    // Track draftPicks for each team's coach
+    try {
+      const teamDraftCounts = new Map<string, number>();
+      for (let i = 0; i < Math.min(sortedByOvr.length, draftPicks); i++) {
+        const tId = sortedByOvr[i].team.id;
+        teamDraftCounts.set(tId, (teamDraftCounts.get(tId) || 0) + 1);
+      }
+      const leagueCoaches = await storage.getCoachesByLeague(leagueId);
+      for (const [tId, count] of teamDraftCounts.entries()) {
+        const dpCoach = leagueCoaches.find(c => c.teamId === tId);
+        if (dpCoach) {
+          const newDraftPicks = dpCoach.draftPicks + count;
+          await storage.updateCoach(dpCoach.id, { draftPicks: newDraftPicks, legacyScore: computeLegacyScore({ ...dpCoach, draftPicks: newDraftPicks }) });
+        }
+      }
+    } catch (e) { console.error("Draft picks coach stats error:", e); }
+
     // Phase 3: Process each team's departures
     for (const team of teams) {
       const roster = await storage.getPlayersByTeam(team.id);
