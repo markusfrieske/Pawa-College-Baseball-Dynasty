@@ -11459,7 +11459,7 @@ export async function registerRoutes(
                   teamName: leaderTeam.name,
                   teamAbbreviation: leaderTeam.abbreviation || leaderTeam.name.slice(0, 4).toUpperCase(),
                   eventType: "DECOMMIT",
-                  description: `${recruit.firstName} ${recruit.lastName} (${recruit.position}, ${recruit.starRating ?? 0}★) has decommitted from your program — ${rivalTeam?.name ?? "a rival"} is closing the gap|rid:${recruit.id}`,
+                  description: `${recruit.firstName} ${recruit.lastName} (${recruit.position}, ${recruit.starRating ?? 0}★) decommitted from ${leaderTeam.name} — ${rivalTeam?.name ?? "a rival"} is closing the gap|rid:${recruit.id}|type:lost`,
                   season: leagueForDecommit?.currentSeason ?? 1,
                   week,
                 });
@@ -11471,7 +11471,7 @@ export async function registerRoutes(
                   teamName: rivalTeam.name,
                   teamAbbreviation: rivalTeam.abbreviation || rivalTeam.name.slice(0, 4).toUpperCase(),
                   eventType: "DECOMMIT",
-                  description: `${recruit.firstName} ${recruit.lastName} (${recruit.position}, ${recruit.starRating ?? 0}★) decommitted from ${leaderTeam.name} and is now reconsidering — your program is now leading their recruitment|rid:${recruit.id}`,
+                  description: `${recruit.firstName} ${recruit.lastName} (${recruit.position}, ${recruit.starRating ?? 0}★) decommitted from ${leaderTeam.name} — ${rivalTeam.name} is now in the lead|rid:${recruit.id}|type:gain`,
                   season: leagueForDecommit?.currentSeason ?? 1,
                   week,
                 });
@@ -12804,8 +12804,10 @@ export async function registerRoutes(
       const league = await storage.getLeague(leagueId);
       if (!league) return res.status(404).json({ message: "League not found" });
       const coaches = await storage.getCoachesByLeague(leagueId);
-      const isMember = coaches.some(c => c.userId === userId) || league.commissionerId === userId;
-      if (!isMember) return res.status(403).json({ message: "Not a member of this league" });
+      const isCommissioner = league.commissionerId === userId;
+      const myCoach = coaches.find(c => c.userId === userId);
+      if (!isCommissioner && !myCoach) return res.status(403).json({ message: "Not a member of this league" });
+      if (!isCommissioner && myCoach?.teamId !== teamId) return res.status(403).json({ message: "Not authorized for this team" });
       const leagueTeams = await storage.getTeamsByLeague(leagueId);
       const teamBelongsToLeague = leagueTeams.some(t => t.id === teamId);
       if (!teamBelongsToLeague) return res.status(403).json({ message: "Team does not belong to this league" });

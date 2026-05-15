@@ -1530,10 +1530,11 @@ export default function RecruitingPage() {
 
         {/* Decommit Alert Banners */}
         {visibleDecommits.length > 0 && visibleDecommits.map(alert => {
-          const isPositive = alert.description.includes("your program is now leading");
-          const ridMatch = alert.description.match(/\|rid:([^|]+)$/);
+          const typeMatch = alert.description.match(/\|type:(lost|gain)/);
+          const isPositive = typeMatch?.[1] === "gain";
+          const ridMatch = alert.description.match(/\|rid:([^|]+)/);
           const recruitId = ridMatch ? ridMatch[1] : null;
-          const displayDescription = alert.description.replace(/\|rid:[^|]+$/, "");
+          const displayDescription = alert.description.replace(/\|rid:[^|]+/g, "").replace(/\|type:[^|]+/g, "").trim();
           const matchedRecruit = recruitId ? data?.recruits.find(r => r.id === recruitId) : null;
           return (
             <div
