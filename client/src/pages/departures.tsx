@@ -606,7 +606,7 @@ export default function DeparturesPage() {
                               return (
                                 <div key={p.id} className="flex items-center gap-2 p-2 rounded bg-red-950/20 border border-red-900/30 cursor-pointer hover:bg-red-950/30" onClick={() => setViewPlayer({ id: p.id, teamId: userTeam.teamId })} data-testid={`roster-departing-${p.id}`}>
                                   <Badge variant="outline" className="text-[7px] font-mono shrink-0 w-8 text-center">{p.position}</Badge>
-                                  <span className="text-xs flex-1">{(p as any).firstName} {(p as any).lastName}</span>
+                                  <span className="text-xs flex-1">{p.firstName} {p.lastName}</span>
                                   <span className="text-xs text-muted-foreground">{p.overall} OVR</span>
                                   {dep && <Badge className={`text-[7px] ${typeColor[dep.type]} no-default-hover-elevate no-default-active-elevate`}>{dep.label}</Badge>}
                                 </div>
@@ -622,7 +622,7 @@ export default function DeparturesPage() {
                             {staying.map(p => (
                               <div key={p.id} className="flex items-center gap-2 p-2 rounded bg-muted/20 cursor-pointer hover:bg-muted/30" onClick={() => setViewPlayer({ id: p.id, teamId: userTeam.teamId })} data-testid={`roster-staying-${p.id}`}>
                                 <Badge variant="outline" className="text-[7px] font-mono shrink-0 w-8 text-center">{p.position}</Badge>
-                                <span className="text-xs flex-1">{(p as any).firstName} {(p as any).lastName}</span>
+                                <span className="text-xs flex-1">{p.firstName} {p.lastName}</span>
                                 <span className="text-xs text-muted-foreground">{p.overall} OVR</span>
                                 <Badge className="text-[7px] bg-green-900/30 border-green-800 text-green-400 no-default-hover-elevate no-default-active-elevate">Returning</Badge>
                               </div>

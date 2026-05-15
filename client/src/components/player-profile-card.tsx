@@ -60,6 +60,11 @@ export interface Player {
   skinTone?: string;
   hairColor?: string;
   hairStyle?: string;
+  facialHair?: string | null;
+  eyeStyle?: string | null;
+  eyebrowStyle?: string | null;
+  mouthStyle?: string | null;
+  eyeBlack?: boolean | null;
   declaredForDraft?: boolean;
   progressionDeltas?: Record<string, number> | null;
   originalPosition?: string | null;

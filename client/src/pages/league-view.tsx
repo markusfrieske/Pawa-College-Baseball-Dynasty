@@ -4450,11 +4450,11 @@ function TeamCompareDialog({ leagueId, teamAId, teamBId, open, onClose }: { leag
             <div className="grid grid-cols-3 gap-2">
               <div className="flex items-center justify-end gap-2">
                 <span className="font-pixel text-xs text-right">{data.teamA.name}</span>
-                <TeamBadge name={data.teamA.name} abbreviation={data.teamA.abbreviation} primaryColor={data.teamA.primaryColor} size="md" />
+                <TeamBadge abbreviation={data.teamA.abbreviation} primaryColor={data.teamA.primaryColor} size="md" />
               </div>
               <div className="text-center text-muted-foreground text-xs pt-2">VS</div>
               <div className="flex items-center gap-2">
-                <TeamBadge name={data.teamB.name} abbreviation={data.teamB.abbreviation} primaryColor={data.teamB.primaryColor} size="md" />
+                <TeamBadge abbreviation={data.teamB.abbreviation} primaryColor={data.teamB.primaryColor} size="md" />
                 <span className="font-pixel text-xs">{data.teamB.name}</span>
               </div>
             </div>
@@ -4560,7 +4560,6 @@ function SeasonRecapDialog({ leagueId, season, open, onClose }: { leagueId: stri
                 <p className="text-xs text-muted-foreground mb-1">CWS CHAMPION</p>
                 <div className="flex items-center justify-center gap-2">
                   <TeamBadge
-                    name={data.cwsChampion.name}
                     abbreviation={data.cwsChampion.abbreviation}
                     primaryColor={data.cwsChampion.primaryColor}
                     size="md"
@@ -4591,7 +4590,6 @@ function SeasonRecapDialog({ leagueId, season, open, onClose }: { leagueId: stri
                   >
                     <span className="text-muted-foreground w-5 text-right text-xs">{i + 1}.</span>
                     <TeamBadge
-                      name={team.name}
                       abbreviation={team.abbreviation}
                       primaryColor={team.primaryColor}
                       size="sm"

@@ -12508,6 +12508,7 @@ export async function registerRoutes(
         }
       }
 
+      const signedTeam = recruit.signedTeamId ? teamMap.get(recruit.signedTeamId) : null;
       res.json({
         recruit: {
           ...recruit,
@@ -12515,6 +12516,10 @@ export async function registerRoutes(
           potentialFloor: dynamicPotentialFloor,
           potentialCeiling: dynamicPotentialCeiling,
           interest,
+          signedTeamName: signedTeam?.name ?? null,
+          signedTeamAbbreviation: signedTeam?.abbreviation ?? null,
+          signedTeamPrimaryColor: signedTeam?.primaryColor ?? null,
+          signedTeamSecondaryColor: signedTeam?.secondaryColor ?? null,
         },
         topSchools,
       });

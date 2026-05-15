@@ -1157,19 +1157,36 @@ async function generateWeeklyStorylineEvents(leagueId: string, season: number, w
       return 0;
     }
 
-    // Target 2–3 events per week; scale upward for short seasons so all arcs
-    // complete before the season ends. With 5 total weeks, use a higher floor
-    // to ensure each recruit gets enough events across the season.
-    const weeksRemaining = Math.max(1, totalWeeks - week + 1);
-    const urgencyBoost = weeksRemaining <= 2 ? 2 : weeksRemaining <= 3 ? 1 : 0;
-    const baseTarget = 2 + Math.floor(Math.random() * 2) + urgencyBoost;
-    const targetEvents = Math.max(Math.min(2, slotsRemaining), baseTarget);
-    const maxEvents = Math.min(cappedNonExhausted.length, slotsRemaining, targetEvents);
+    // Proportional arc-week mapping: only include recruits whose next arc event
+    // is proportionally due given the current week and total season weeks.
+    // For a recruit at arc stage S with T total events, the ideal trigger week is:
+    //   round((S + 1) / T * totalWeeks)
+    // Recruits are included if week >= idealWeek (on schedule or overdue).
+    const proportionalReady = cappedNonExhausted.filter(sl => {
+      const def = ARCHETYPE_DEFS[sl.archetype as Archetype];
+      const totalArcEvents = def.events.length + (sl.isLegendary && def.legendaryEvents ? def.legendaryEvents.length : 0);
+      if (totalArcEvents === 0) return true;
+      const stage = sl.currentArcStage;
+      const idealWeek = Math.round((stage + 1) / totalArcEvents * totalWeeks);
+      return week >= idealWeek;
+    });
+
+    // Fall back to all cappedNonExhausted if no proportional matches (avoids stall)
+    const effectivePool = proportionalReady.length > 0 ? proportionalReady : cappedNonExhausted;
+
+    if (effectivePool.length === 0) {
+      console.log(`[storylines] no recruits ready for proportional arc this week — skipping`);
+      return 0;
+    }
+
+    // Target 2–3 events per week, capped by slots and pool size.
+    const targetEvents = Math.max(Math.min(2, slotsRemaining), 2 + Math.floor(Math.random() * 2));
+    const maxEvents = Math.min(effectivePool.length, slotsRemaining, targetEvents);
 
     // Legendary-first, non-legendary shuffled so all 10 recruits rotate fairly
     const prioritized = [
-      ...cappedNonExhausted.filter(sl => sl.isLegendary),
-      ...cappedNonExhausted.filter(sl => !sl.isLegendary).sort(() => Math.random() - 0.5),
+      ...effectivePool.filter(sl => sl.isLegendary),
+      ...effectivePool.filter(sl => !sl.isLegendary).sort(() => Math.random() - 0.5),
     ].slice(0, maxEvents);
 
     for (const sl of prioritized) {
