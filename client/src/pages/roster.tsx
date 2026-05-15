@@ -117,10 +117,13 @@ function getTopAttrDeltas(
 ): Array<{ label: string; delta: number }> {
   if (!deltas) return [];
   return Object.entries(deltas)
-    .filter(([key, val]) => key !== "overall" && val !== 0 && ATTR_LABELS[key])
+    .filter(([key, val]) => key !== "overall" && val !== 0)
     .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
     .slice(0, limit)
-    .map(([key, val]) => ({ label: ATTR_LABELS[key], delta: val }));
+    .map(([key, val]) => ({
+      label: ATTR_LABELS[key] ?? key.replace(/([A-Z])/g, " $1").trim(),
+      delta: val,
+    }));
 }
 
 export default function RosterPage() {
@@ -818,6 +821,7 @@ function DevelopmentTab({
             const prevOvr = p.overall - delta;
             const prevStar = ovrToStar(prevOvr);
             const starChanged = prevStar !== p.starRating;
+            const topAttrs = getTopAttrDeltas(p.progressionDeltas);
             return (
               <button
                 key={p.id}
@@ -844,22 +848,18 @@ function DevelopmentTab({
                     <PositionBadge position={p.position} size="sm" />
                     <span className="text-xs text-muted-foreground">{p.eligibility}</span>
                   </div>
-                  {(() => {
-                    const topAttrs = getTopAttrDeltas(p.progressionDeltas);
-                    if (topAttrs.length === 0) return null;
-                    return (
-                      <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-1" data-testid={`text-dev-attrs-${p.id}`}>
-                        {topAttrs.map((attr, i) => (
-                          <span key={attr.label} className="flex items-center gap-0.5">
-                            {i > 0 && <span className="text-muted-foreground/40 text-[10px]">·</span>}
-                            <span className={`font-pixel text-[8px] ${attr.delta > 0 ? "text-green-400" : "text-red-400"}`}>
-                              {attr.label} {attr.delta > 0 ? "+" : ""}{attr.delta}
-                            </span>
+                  {topAttrs.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-1" data-testid={`text-dev-attrs-${p.id}`}>
+                      {topAttrs.map((attr, i) => (
+                        <span key={attr.label} className="flex items-center gap-0.5">
+                          {i > 0 && <span className="text-muted-foreground/40 text-[10px]">·</span>}
+                          <span className={`font-pixel text-[8px] ${attr.delta > 0 ? "text-green-400" : "text-red-400"}`}>
+                            {attr.label} {attr.delta > 0 ? "+" : ""}{attr.delta}
                           </span>
-                        ))}
-                      </div>
-                    );
-                  })()}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="text-right flex-shrink-0 space-y-0.5">
                   <div className="flex items-center gap-2 justify-end">
