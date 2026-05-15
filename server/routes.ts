@@ -11459,7 +11459,7 @@ export async function registerRoutes(
                   teamName: leaderTeam.name,
                   teamAbbreviation: leaderTeam.abbreviation || leaderTeam.name.slice(0, 4).toUpperCase(),
                   eventType: "DECOMMIT",
-                  description: `${recruit.firstName} ${recruit.lastName} (${recruit.position}, ${recruit.starRating ?? 0}★) has decommitted from your program — ${rivalTeam?.name ?? "a rival"} is closing the gap`,
+                  description: `${recruit.firstName} ${recruit.lastName} (${recruit.position}, ${recruit.starRating ?? 0}★) has decommitted from your program — ${rivalTeam?.name ?? "a rival"} is closing the gap|rid:${recruit.id}`,
                   season: leagueForDecommit?.currentSeason ?? 1,
                   week,
                 });
@@ -11471,7 +11471,7 @@ export async function registerRoutes(
                   teamName: rivalTeam.name,
                   teamAbbreviation: rivalTeam.abbreviation || rivalTeam.name.slice(0, 4).toUpperCase(),
                   eventType: "DECOMMIT",
-                  description: `${recruit.firstName} ${recruit.lastName} (${recruit.position}, ${recruit.starRating ?? 0}★) decommitted from ${leaderTeam.name} and is now reconsidering — your program is now leading their recruitment`,
+                  description: `${recruit.firstName} ${recruit.lastName} (${recruit.position}, ${recruit.starRating ?? 0}★) decommitted from ${leaderTeam.name} and is now reconsidering — your program is now leading their recruitment|rid:${recruit.id}`,
                   season: leagueForDecommit?.currentSeason ?? 1,
                   week,
                 });
@@ -12794,17 +12794,23 @@ export async function registerRoutes(
     }
   });
 
-  // Decommit Alerts — DECOMMIT events scoped to a specific team
+  // Decommit Alerts — DECOMMIT events scoped to a specific team for the current week
   app.get("/api/leagues/:id/decommit-alerts", requireAuth, async (req, res) => {
     try {
       const leagueId = req.params.id as string;
+      const userId = req.session.userId!;
       const teamId = req.query.teamId as string;
       if (!teamId) return res.status(400).json({ message: "teamId required" });
       const league = await storage.getLeague(leagueId);
       if (!league) return res.status(404).json({ message: "League not found" });
-      const events = await storage.getLeagueEventsByTeam(teamId, "DECOMMIT", 20);
-      const currentSeason = league.currentSeason;
-      const filtered = events.filter(e => e.season === currentSeason);
+      const coaches = await storage.getCoachesByLeague(leagueId);
+      const isMember = coaches.some(c => c.userId === userId) || league.commissionerId === userId;
+      if (!isMember) return res.status(403).json({ message: "Not a member of this league" });
+      const leagueTeams = await storage.getTeamsByLeague(leagueId);
+      const teamBelongsToLeague = leagueTeams.some(t => t.id === teamId);
+      if (!teamBelongsToLeague) return res.status(403).json({ message: "Team does not belong to this league" });
+      const events = await storage.getLeagueEventsByTeam(teamId, "DECOMMIT", 30);
+      const filtered = events.filter(e => e.season === league.currentSeason && e.week >= league.currentWeek - 1);
       res.json(filtered);
     } catch (error) {
       console.error("Failed to fetch decommit alerts:", error);

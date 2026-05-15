@@ -445,7 +445,10 @@ export default function RecruitingPage() {
     setDismissedDecommits(updated);
     localStorage.setItem(`decommit-dismissed-${id}`, JSON.stringify([...updated]));
   };
-  const visibleDecommits = (decommitAlerts ?? []).filter(e => !dismissedDecommits.has(e.id));
+  const currentWeek = leagueData?.currentWeek ?? 1;
+  const visibleDecommits = (decommitAlerts ?? []).filter(e =>
+    !dismissedDecommits.has(e.id) && e.week >= currentWeek - 1
+  );
 
   const saveClassMutation = useMutation({
     mutationFn: async (name: string) => {
@@ -1528,8 +1531,10 @@ export default function RecruitingPage() {
         {/* Decommit Alert Banners */}
         {visibleDecommits.length > 0 && visibleDecommits.map(alert => {
           const isPositive = alert.description.includes("your program is now leading");
-          const recruitName = alert.description.split(" (")[0];
-          const matchedRecruit = data?.recruits.find(r => `${r.firstName} ${r.lastName}` === recruitName);
+          const ridMatch = alert.description.match(/\|rid:([^|]+)$/);
+          const recruitId = ridMatch ? ridMatch[1] : null;
+          const displayDescription = alert.description.replace(/\|rid:[^|]+$/, "");
+          const matchedRecruit = recruitId ? data?.recruits.find(r => r.id === recruitId) : null;
           return (
             <div
               key={alert.id}
@@ -1547,7 +1552,7 @@ export default function RecruitingPage() {
                     {isPositive ? "Decommit Opportunity" : "Decommitment Alert"}
                     <span className="ml-2 text-muted-foreground normal-case font-sans text-[10px]">Week {alert.week}</span>
                   </p>
-                  <p className="text-sm text-foreground leading-snug">{alert.description}</p>
+                  <p className="text-sm text-foreground leading-snug">{displayDescription}</p>
                   {matchedRecruit && (
                     <button
                       className={`mt-1.5 text-[11px] font-medium underline underline-offset-2 ${isPositive ? "text-emerald-400 hover:text-emerald-300" : "text-amber-400 hover:text-amber-300"}`}
