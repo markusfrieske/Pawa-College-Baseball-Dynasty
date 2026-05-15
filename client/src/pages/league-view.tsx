@@ -1648,7 +1648,6 @@ function RankingsTab({ league }: { league: LeagueDetails }) {
               const rosterGrade = ovrToGrade(entry.rosterOvr);
               const pitchGrade = ovrToGrade(entry.pitchingOvr);
               const hitGrade = ovrToGrade(entry.hittingOvr);
-              const recGrade = percentileToGrade(entry.recruitingPercentile);
               const compGrade = ovrToGrade(entry.composite);
 
               return (
