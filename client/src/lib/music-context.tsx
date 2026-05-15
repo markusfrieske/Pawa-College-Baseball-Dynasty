@@ -189,7 +189,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     if (!xf) return;
     cancelAnimationFrame(xf.rafId);
     if (xf.outgoing) xf.outgoing.pause();
-    xf.incoming.volume = xf.targetIn;
+    xf.incoming.volume = Math.max(0, Math.min(1, xf.targetIn));
     xfRef.current = null;
   }, []);
 
@@ -217,12 +217,12 @@ export function MusicProvider({ children }: { children: ReactNode }) {
 
     const tick = (now: number) => {
       if (xfRef.current !== state) return; // superseded
-      const progress = Math.min(1, (now - state.startTime) / FADE_DURATION);
+      const progress = Math.max(0, Math.min(1, (now - state.startTime) / FADE_DURATION));
 
       if (state.outgoing && !state.outgoing.paused) {
-        state.outgoing.volume = Math.max(0, state.startOutVol * (1 - progress));
+        state.outgoing.volume = Math.max(0, Math.min(1, state.startOutVol * (1 - progress)));
       }
-      state.incoming.volume = Math.min(state.targetIn, state.targetIn * progress);
+      state.incoming.volume = Math.max(0, Math.min(state.targetIn, state.targetIn * progress));
 
       if (progress < 1) {
         state.rafId = requestAnimationFrame(tick);
@@ -232,7 +232,7 @@ export function MusicProvider({ children }: { children: ReactNode }) {
           state.outgoing.pause();
           state.outgoing.src = "";
         }
-        state.incoming.volume = state.targetIn;
+        state.incoming.volume = Math.max(0, Math.min(1, state.targetIn));
         state.onDone?.();
       }
     };
@@ -419,13 +419,13 @@ export function MusicProvider({ children }: { children: ReactNode }) {
         xfRef.current = state;
         const tick = (now: number) => {
           if (xfRef.current !== state || gen !== trackGenRef.current) return;
-          const p = Math.min(1, (now - startTime) / FADE_DURATION);
-          active.volume = Math.max(0, startVol * (1 - p));
+          const p = Math.max(0, Math.min(1, (now - startTime) / FADE_DURATION));
+          active.volume = Math.max(0, Math.min(1, startVol * (1 - p)));
           if (p < 1) {
             state.rafId = requestAnimationFrame(tick);
           } else {
             active.pause();
-            active.volume = startVol;
+            active.volume = Math.max(0, Math.min(1, startVol));
             xfRef.current = null;
           }
         };
