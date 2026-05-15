@@ -1623,6 +1623,20 @@ function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leagueId, i
     },
   });
 
+  const lineupPositionMutation = useMutation({
+    mutationFn: async (assignments: { playerId: string; lineupPosition: string | null }[]) => {
+      return apiRequest("PUT", `/api/leagues/${leagueId}/lineup-position`, { assignments });
+    },
+    onSuccess: () => {
+      if (rosterUrl) queryClient.invalidateQueries({ queryKey: [rosterUrl] });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to save defensive position", variant: "destructive" });
+    },
+  });
+
+  const [openLineupPosId, setOpenLineupPosId] = useState<string | null>(null);
+
   const handleReorder = useCallback((position: string, reorderedPlayers: Player[]) => {
     const orders = reorderedPlayers.map((p, idx) => ({
       playerId: p.id,
@@ -1863,7 +1877,7 @@ function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leagueId, i
                       isDragTarget ? 'border-gold bg-gold/20 scale-[1.01]' :
                       isActive ? 'border-gold bg-gold/10' : 'border-border bg-card/90 hover:border-border/80'
                     }`}
-                    onClick={() => canDrag ? setSelectingSlot(isActive ? null : { type: "batting", slot }) : undefined}
+                    onClick={() => { setOpenLineupPosId(null); if (canDrag) setSelectingSlot(isActive ? null : { type: "batting", slot }); }}
                     onDragOver={(e) => {
                       if (!canDrag) return;
                       e.preventDefault();
@@ -1911,6 +1925,48 @@ function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leagueId, i
                           jerseyColor={teamPrimaryColor}
                         />
                         <PositionBadge position={player.position} size="sm" />
+                        {(() => {
+                          const defPos = player.lineupPosition || player.position;
+                          const DEF_POSITIONS = ["C", "1B", "2B", "SS", "3B", "LF", "CF", "RF", "DH"];
+                          const isOpen = openLineupPosId === player.id;
+                          return (
+                            <div className="relative flex-shrink-0" onClick={e => e.stopPropagation()}>
+                              <button
+                                className={`text-[9px] font-bold px-1.5 py-0.5 rounded border transition-colors ${
+                                  canDrag
+                                    ? "border-border/60 bg-muted/30 hover:border-gold/60 hover:bg-gold/10 cursor-pointer text-muted-foreground hover:text-gold"
+                                    : "border-transparent bg-muted/20 text-muted-foreground cursor-default"
+                                }`}
+                                onClick={() => canDrag && setOpenLineupPosId(isOpen ? null : player.id)}
+                                title={canDrag ? "Click to change defensive position" : "Defensive position"}
+                                data-testid={`lineup-pos-badge-${slot}`}
+                              >
+                                {defPos}
+                              </button>
+                              {canDrag && isOpen && (
+                                <div className="absolute top-full left-0 mt-1 z-50 bg-card border border-border rounded shadow-lg p-1 grid grid-cols-3 gap-0.5 min-w-[100px]">
+                                  {DEF_POSITIONS.map(pos => (
+                                    <button
+                                      key={pos}
+                                      className={`text-[9px] font-bold px-1.5 py-1 rounded transition-colors ${
+                                        pos === defPos
+                                          ? "bg-gold text-black"
+                                          : "hover:bg-gold/20 text-muted-foreground hover:text-gold"
+                                      }`}
+                                      onClick={() => {
+                                        lineupPositionMutation.mutate([{ playerId: player.id, lineupPosition: pos }]);
+                                        setOpenLineupPosId(null);
+                                      }}
+                                      data-testid={`lineup-pos-option-${pos}`}
+                                    >
+                                      {pos}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
                         <span className="text-xs truncate flex-1">{player.firstName.charAt(0)}. {player.lastName}</span>
                         <span className="text-[9px] text-muted-foreground hidden sm:inline">
                           {isPitcher(player.position) ? `VEL ${player.velocity || 0} / CTL ${player.control || 0}` : `HIT ${player.hitForAvg || 0} / PWR ${player.power || 0} / SPD ${player.speed || 0}`}

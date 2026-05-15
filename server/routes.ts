@@ -89,21 +89,34 @@ const requireAuth = (req: Request, res: Response, next: NextFunction) => {
 };
 
 async function autoAssignLineup(storage: any, teamPlayers: Player[], teamId: string): Promise<void> {
-  const positionPlayers = teamPlayers.filter(p => p.position !== "P");
-  const pitchers = teamPlayers.filter(p => p.position === "P");
+  const PITCHER_POSITIONS = ["P", "SP", "RP", "CL", "LHP", "RHP"];
+  const OF_POSITIONS = ["LF", "CF", "RF"];
+  const positionPlayers = teamPlayers.filter(p => !PITCHER_POSITIONS.includes(p.position));
+  const pitchers = teamPlayers.filter(p => PITCHER_POSITIONS.includes(p.position));
 
   // ── STEP 1: pick one starter per defensive position ──────────────────────
-  const positionSlots = ["C", "1B", "2B", "SS", "3B", "LF", "CF", "RF"];
+  // For outfield slots, include both specific (LF/CF/RF) AND generic (OF) players.
+  // Preferred OF assignment order: CF first (best), then LF, then RF.
+  const positionSlots = ["C", "1B", "2B", "SS", "3B", "CF", "LF", "RF"];
   const starters: Player[] = [];
+  const starterLineupPositions = new Map<string, string>(); // playerId → defensive position
   const usedIds = new Set<string>();
 
   for (const pos of positionSlots) {
-    const candidates = positionPlayers
-      .filter(p => p.position === pos && !usedIds.has(p.id))
-      .sort((a, b) => (b.overall || 0) - (a.overall || 0));
+    let candidates: Player[];
+    if (OF_POSITIONS.includes(pos)) {
+      candidates = positionPlayers
+        .filter(p => (p.position === pos || p.position === "OF") && !usedIds.has(p.id))
+        .sort((a, b) => (b.overall || 0) - (a.overall || 0));
+    } else {
+      candidates = positionPlayers
+        .filter(p => p.position === pos && !usedIds.has(p.id))
+        .sort((a, b) => (b.overall || 0) - (a.overall || 0));
+    }
     if (candidates.length > 0) {
       starters.push(candidates[0]);
       usedIds.add(candidates[0].id);
+      starterLineupPositions.set(candidates[0].id, pos);
     }
   }
 
@@ -115,6 +128,7 @@ async function autoAssignLineup(storage: any, teamPlayers: Player[], teamId: str
     if (dhCandidates.length > 0) {
       starters.push(dhCandidates[0]);
       usedIds.add(dhCandidates[0].id);
+      starterLineupPositions.set(dhCandidates[0].id, "DH");
     }
   }
 
@@ -159,13 +173,14 @@ async function autoAssignLineup(storage: any, teamPlayers: Player[], teamId: str
   // Slot 9 — Second leadoff: hitForAvg + speed
   slotAssignments.push(pickBest(p => (p.hitForAvg || 0) + (p.speed || 0)));
 
-  // Persist batting orders
+  // Persist batting orders and lineup positions
   for (const p of positionPlayers) {
     const slot = slotAssignments.indexOf(p);
+    const lineupPos = starterLineupPositions.get(p.id) ?? null;
     if (slot !== -1) {
-      await storage.updatePlayer(p.id, { battingOrder: slot + 1 });
+      await storage.updatePlayer(p.id, { battingOrder: slot + 1, lineupPosition: lineupPos });
     } else {
-      await storage.updatePlayer(p.id, { battingOrder: null });
+      await storage.updatePlayer(p.id, { battingOrder: null, lineupPosition: null });
     }
   }
 
@@ -3441,6 +3456,46 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to update batting order:", error);
       res.status(500).json({ message: "Failed to update batting order" });
+    }
+  });
+
+  // Lineup position - set the defensive position each batter plays in the lineup
+  app.put("/api/leagues/:id/lineup-position", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      const coaches = await storage.getCoachesByLeague(req.params.id);
+      const userCoach = coaches.find(c => c.userId === req.session.userId);
+      const isCommissioner = league.commissionerId === req.session.userId;
+      if (!userCoach && !isCommissioner) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+
+      const validPositions = ["C", "1B", "2B", "SS", "3B", "LF", "CF", "RF", "DH"];
+      const { assignments } = req.body as { assignments: { playerId: string; lineupPosition: string | null }[] };
+      if (!Array.isArray(assignments)) {
+        return res.status(400).json({ message: "Assignments must be an array" });
+      }
+
+      for (const a of assignments) {
+        if (a.lineupPosition !== null && !validPositions.includes(a.lineupPosition)) {
+          return res.status(400).json({ message: `Invalid lineup position: ${a.lineupPosition}` });
+        }
+      }
+
+      const teamId = userCoach?.teamId;
+      for (const a of assignments) {
+        const player = await storage.getPlayer(a.playerId);
+        if (player && (isCommissioner || player.teamId === teamId)) {
+          await storage.updatePlayer(a.playerId, { lineupPosition: a.lineupPosition });
+        }
+      }
+
+      res.json({ success: true, count: assignments.length });
+    } catch (error) {
+      console.error("Failed to update lineup positions:", error);
+      res.status(500).json({ message: "Failed to update lineup positions" });
     }
   });
 

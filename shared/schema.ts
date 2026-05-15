@@ -295,6 +295,7 @@ export const players = pgTable("players", {
   depthOrder: integer("depth_order").notNull().default(0),
   battingOrder: integer("batting_order"),
   pitchingRole: text("pitching_role"),
+  lineupPosition: text("lineup_position"),
   originalPosition: text("original_position"),
   progressionDeltas: json("progression_deltas").$type<Record<string, number>>(),
 });
@@ -380,6 +381,7 @@ export const insertPlayerSchema = createInsertSchema(players).pick({
   depthOrder: true,
   battingOrder: true,
   pitchingRole: true,
+  lineupPosition: true,
 }).extend({
   pitchCH: z.union([z.literal(0), z.literal(1)]).optional(),
 });
