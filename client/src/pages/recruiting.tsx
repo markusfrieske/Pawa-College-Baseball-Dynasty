@@ -640,7 +640,7 @@ export default function RecruitingPage() {
       if (typeFilter === "JUCO" && rt !== "JUCO") return false;
     }
     if (showWatchlistOnly && !r.interest?.isTargeted) return false;
-    if (showContested && !(r.teamsIn && r.teamsIn >= 1)) return false;
+    if (showContested && !(r.teamsIn && r.teamsIn >= 3)) return false;
     if (showStory && !storylineRecruitIds.has(r.id)) return false;
     if (showTopAvailable && pipelineData?.positionNeeds) {
       const needPositions = pipelineData.positionNeeds.filter(p => p.need).map(p => p.position);
@@ -2265,7 +2265,7 @@ function RecruitRow({
                     </Badge>
                   </TooltipTrigger>
                   <TooltipContent>
-                    {recruit.teamsIn >= 5 ? "Heavy" : recruit.teamsIn >= 3 ? "Moderate" : "Light"} competition — {recruit.teamsIn} {recruit.teamsIn === 1 ? "rival has" : "rivals have"} this player at {">"}20% interest{recruit.offersOut && recruit.offersOut > 0 ? `, ${recruit.offersOut} with an offer out` : ""}
+                    {recruit.teamsIn >= 5 ? "Heavy" : recruit.teamsIn >= 3 ? "Moderate" : "Light"} competition — {recruit.teamsIn} {recruit.teamsIn === 1 ? "rival has" : "rivals have"} {">"} 20% interest or an offer out{recruit.offersOut && recruit.offersOut > 0 ? ` (${recruit.offersOut} with offer)` : ""}
                   </TooltipContent>
                 </Tooltip>
               )}
