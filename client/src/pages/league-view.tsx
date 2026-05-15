@@ -623,7 +623,7 @@ export default function LeagueViewPage() {
           </div>
         )}
 
-        <SigningDaySummaryCard league={league} />
+        <SigningDaySummaryCard league={league} myTeam={myTeam} />
 
         <OffseasonSummary league={league} />
 
@@ -4711,35 +4711,33 @@ function getGradeBg(grade: string): string {
   return "bg-red-400/10 border-red-400/30";
 }
 
-function SigningDaySummaryCard({ league }: { league: LeagueDetails }) {
+function SigningDaySummaryCard({ league, myTeam }: { league: LeagueDetails; myTeam: TeamWithCoach | undefined | null }) {
   const showPhases = ["offseason_walkons", "preseason"];
   const isVisible = showPhases.includes(league.currentPhase ?? "");
-
-  const dismissKey = `signing-day-summary-dismissed-${league.id}-${league.currentSeason}`;
-  const [dismissed, setDismissed] = useState(() => localStorage.getItem(dismissKey) === "1");
-  useEffect(() => {
-    setDismissed(localStorage.getItem(dismissKey) === "1");
-  }, [dismissKey]);
 
   const { data: rankingsData } = useQuery<{
     bySeason: Record<number, ClassSnapshot[]>;
     availableSeasons: number[];
   }>({
     queryKey: ["/api/leagues", league.id, "class-rankings"],
-    enabled: isVisible && !dismissed,
+    enabled: isVisible && !!myTeam,
   });
 
-  if (!isVisible || dismissed) return null;
-
-  const userTeam = league.teams?.find(t => !t.isCpu);
-  if (!userTeam) return null;
-
   const latestSeason = rankingsData?.availableSeasons?.[0];
-  const snaps: ClassSnapshot[] = latestSeason != null ? (rankingsData?.bySeason?.[latestSeason] ?? []) : [];
-  if (snaps.length === 0) return null;
 
-  const mySnap = snaps.find(s => s.teamId === userTeam.id);
-  if (!mySnap) return null;
+  // Dismiss key uses the snapshot's own season — stable across walk-ons → preseason transition
+  const dismissKey = `signing-day-summary-dismissed-${league.id}-${latestSeason ?? "none"}`;
+  const [dismissed, setDismissed] = useState(false);
+  useEffect(() => {
+    if (latestSeason != null) {
+      setDismissed(localStorage.getItem(dismissKey) === "1");
+    }
+  }, [dismissKey, latestSeason]);
+
+  const snaps: ClassSnapshot[] = latestSeason != null ? (rankingsData?.bySeason?.[latestSeason] ?? []) : [];
+  const mySnap = myTeam ? snaps.find(s => s.teamId === myTeam.id) : null;
+
+  if (!isVisible || dismissed || !myTeam || snaps.length === 0 || !mySnap) return null;
 
   const total = snaps.length;
   const grade = getClassGrade(mySnap.classRank, total);

@@ -10,7 +10,7 @@ import { randomUUID } from "crypto";
 import { getRandomAbilities, getAbilitiesForPosition, calculateOVR, getStarRatingFromOVR } from "@shared/abilities";
 import { getPotentialRange, getProgressionZone, rollWeightedPotential, getPotentialGrade } from "@shared/potential";
 import { getActionPointCost } from "@shared/stateDistance";
-import type { Player, TransferPortalInterest, Game, InsertPlayerSeasonStats, GameReport } from "@shared/schema";
+import type { Player, Recruit, TransferPortalInterest, Game, InsertPlayerSeasonStats, GameReport } from "@shared/schema";
 import {
   generateGameNewsArticles,
   generateCWSChampionNewsArticle,
@@ -9590,7 +9590,7 @@ export async function registerRoutes(
       let snapRank = 1;
       for (const entry of snapByTeam) {
         if (entry.teamCommits.length > 0) {
-          const topRecruit = entry.teamCommits.reduce((best: any, r: any) =>
+          const topRecruit = entry.teamCommits.reduce((best: Recruit, r: Recruit) =>
             (r.overall ?? 0) > (best.overall ?? 0) ? r : best
           , entry.teamCommits[0]);
           await storage.createRecruitingClassSnapshot({
