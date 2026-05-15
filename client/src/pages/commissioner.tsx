@@ -228,7 +228,7 @@ export default function CommissionerPage() {
   });
 
   const { data: currentUser } = useQuery<{ id: string; email: string }>({
-    queryKey: ["/api/users/me"],
+    queryKey: ["/api/auth/me"],
   });
   const isPrimaryCommissioner = !!currentUser && currentUser.id === data?.league?.commissionerId;
 
@@ -1912,7 +1912,7 @@ function SettingsTab({
         </RetroCardHeader>
         <RetroCardContent>
           <p className="text-sm text-muted-foreground mb-4">
-            Delegates can advance the league, simulate games, and import recruiting classes — but cannot manage delegates, invites, or league settings.
+            Delegates can advance the league, simulate games, and import recruiting classes. Only the primary commissioner can manage delegates, invites, or league settings.
           </p>
           <div className="space-y-2">
             {humanCoaches.map(coach => {

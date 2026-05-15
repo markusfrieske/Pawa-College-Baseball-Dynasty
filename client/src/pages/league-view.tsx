@@ -52,6 +52,7 @@ import {
   FileText,
   Home,
   Plane,
+  Crown,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -417,6 +418,18 @@ export default function LeagueViewPage() {
                 <span className="text-gold font-medium">
                   {userTeam.name}: {userTeam.standings.wins ?? 0}-{userTeam.standings.losses ?? 0}
                 </span>
+              </div>
+            )}
+            {isPrimaryCommissioner && (
+              <div className="flex items-center gap-1 shrink-0" data-testid="badge-primary-commissioner">
+                <Crown className="w-3 h-3 text-gold" />
+                <Badge variant="outline" className="font-pixel text-[7px] text-gold border-gold/40 bg-gold/10">COMMISSIONER</Badge>
+              </div>
+            )}
+            {!isPrimaryCommissioner && isCommissioner && (
+              <div className="flex items-center gap-1 shrink-0" data-testid="badge-co-commissioner">
+                <Crown className="w-3 h-3 text-blue-400" />
+                <Badge variant="outline" className="font-pixel text-[7px] text-blue-400 border-blue-400/40 bg-blue-400/10">DELEGATE</Badge>
               </div>
             )}
             {canShowRecap && (

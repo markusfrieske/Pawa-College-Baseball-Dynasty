@@ -6221,13 +6221,19 @@ export async function registerRoutes(
       if (!league) {
         return res.status(404).json({ message: "League not found" });
       }
+      // Must be a commissioner or a coach in the league
+      const allCoaches = await storage.getCoachesByLeague(league.id);
+      const isLeagueMember = allCoaches.some(c => c.userId === req.session.userId);
+      if (!hasCommissionerAccess(league, req.session.userId) && !isLeagueMember) {
+        return res.status(403).json({ message: "Not authorized to view commissioner data" });
+      }
 
-      const [auditLogsData, leagueTeams, coaches, invites] = await Promise.all([
+      const [auditLogsData, leagueTeams, invites] = await Promise.all([
         storage.getAuditLogsByLeague(league.id),
         storage.getTeamsByLeague(league.id),
-        storage.getCoachesByLeague(league.id),
         storage.getLeagueInvitesByLeague(league.id),
       ]);
+      const coaches = allCoaches;
       const humanTeams = leagueTeams.filter(t => !t.isCpu);
       const humanTeamIds = new Set(humanTeams.map(t => t.id));
 
