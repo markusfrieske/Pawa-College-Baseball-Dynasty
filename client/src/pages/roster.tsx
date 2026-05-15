@@ -85,6 +85,44 @@ function ovrToStar(ovr: number): number {
   return 1;
 }
 
+const ATTR_LABELS: Record<string, string> = {
+  hitForAvg: "Contact",
+  power: "Power",
+  speed: "Speed",
+  arm: "Arm",
+  fielding: "Fielding",
+  errorResistance: "Errors",
+  clutch: "Clutch",
+  vsLHP: "vs LHP",
+  grit: "Grit",
+  stealing: "Stealing",
+  running: "Running",
+  throwing: "Throwing",
+  recovery: "Recovery",
+  catcherAbility: "Catcher",
+  velocity: "Velocity",
+  control: "Control",
+  stamina: "Stamina",
+  stuff: "Stuff",
+  wRISP: "W/RISP",
+  vsLefty: "vs Lefty",
+  poise: "Poise",
+  heater: "Heater",
+  agile: "Agile",
+};
+
+function getTopAttrDeltas(
+  deltas: Record<string, number> | null | undefined,
+  limit = 3
+): Array<{ label: string; delta: number }> {
+  if (!deltas) return [];
+  return Object.entries(deltas)
+    .filter(([key, val]) => key !== "overall" && val !== 0 && ATTR_LABELS[key])
+    .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
+    .slice(0, limit)
+    .map(([key, val]) => ({ label: ATTR_LABELS[key], delta: val }));
+}
+
 export default function RosterPage() {
   const { id } = useParams<{ id: string }>();
   const search = useSearch();
@@ -806,6 +844,22 @@ function DevelopmentTab({
                     <PositionBadge position={p.position} size="sm" />
                     <span className="text-xs text-muted-foreground">{p.eligibility}</span>
                   </div>
+                  {(() => {
+                    const topAttrs = getTopAttrDeltas(p.progressionDeltas);
+                    if (topAttrs.length === 0) return null;
+                    return (
+                      <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5 mt-1" data-testid={`text-dev-attrs-${p.id}`}>
+                        {topAttrs.map((attr, i) => (
+                          <span key={attr.label} className="flex items-center gap-0.5">
+                            {i > 0 && <span className="text-muted-foreground/40 text-[10px]">·</span>}
+                            <span className={`font-pixel text-[8px] ${attr.delta > 0 ? "text-green-400" : "text-red-400"}`}>
+                              {attr.label} {attr.delta > 0 ? "+" : ""}{attr.delta}
+                            </span>
+                          </span>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
                 <div className="text-right flex-shrink-0 space-y-0.5">
                   <div className="flex items-center gap-2 justify-end">
