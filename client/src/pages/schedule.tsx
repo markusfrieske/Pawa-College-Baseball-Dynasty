@@ -363,15 +363,15 @@ function GameRow({ game, allGamesInGroup, onEdit, onViewBoxScore, userTeamId, le
             className="flex items-center gap-4 cursor-pointer hover:opacity-80 transition-opacity"
             data-testid={`button-box-score-${game.id}`}
           >
-            <span className={`text-xl font-bold ${(game.awayScore || 0) > (game.homeScore || 0) ? "text-gold" : "text-muted-foreground"}`}>
+            <span className={`text-xl font-bold ${(game.awayScore ?? 0) > (game.homeScore ?? 0) ? "text-gold" : "text-muted-foreground"}`} data-testid={`score-away-${game.id}`}>
               {game.awayScore}
             </span>
             <span className="text-muted-foreground">@</span>
-            <span className={`text-xl font-bold ${(game.homeScore || 0) > (game.awayScore || 0) ? "text-gold" : "text-muted-foreground"}`}>
+            <span className={`text-xl font-bold ${(game.homeScore ?? 0) > (game.awayScore ?? 0) ? "text-gold" : "text-muted-foreground"}`} data-testid={`score-home-${game.id}`}>
               {game.homeScore}
             </span>
             {isUserGame && (
-              <Badge variant="outline" className={`text-[9px] ml-1 ${userWon ? "border-green-600 text-green-400" : "border-red-600 text-red-400"}`}>
+              <Badge variant="outline" className={`text-[9px] ml-1 ${userWon ? "border-green-600 text-green-400" : "border-red-600 text-red-400"}`} data-testid={`badge-result-${game.id}`}>
                 {userWon ? "W" : "L"}
               </Badge>
             )}

@@ -317,6 +317,8 @@ export default function CommissionerPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "schedule"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "postseason"] });
       window.dispatchEvent(new CustomEvent("league-phase-changed"));
       toast({ title: "Week Simulated", description: "All games have been auto-resolved." });
     },

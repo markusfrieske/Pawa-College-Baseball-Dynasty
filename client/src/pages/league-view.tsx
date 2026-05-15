@@ -4084,26 +4084,26 @@ function PostseasonGameCard({ game, leagueId }: { game: PostseasonGame; leagueId
     <div className="bg-muted/30 rounded p-3 border border-border" data-testid={`postseason-game-${game.id}`}>
       <div className="flex items-center gap-2">
         <div className="flex-1 flex items-center gap-2 min-w-0">
-          {game.awaySeed != null && game.awaySeed > 0 && (
-            <span className="text-[9px] font-pixel text-gold flex-shrink-0 w-4">{game.awaySeed}</span>
+          {game.homeSeed != null && game.homeSeed > 0 && (
+            <span className="text-[9px] font-pixel text-gold flex-shrink-0 w-4">{game.homeSeed}</span>
           )}
-          <span className={`text-xs truncate ${awayWon ? "text-gold font-medium" : game.isComplete ? "text-muted-foreground" : ""}`}>
-            {game.awayTeam?.name || "TBD"}
+          <span className={`text-xs truncate ${homeWon ? "text-gold font-medium" : game.isComplete ? "text-muted-foreground" : ""}`}>
+            {game.homeTeam?.name || "TBD"}
           </span>
-          {game.awayTeam?.abbreviation && (
-            <Badge variant="outline" className="text-[8px] flex-shrink-0">{game.awayTeam.abbreviation}</Badge>
+          {game.homeTeam?.abbreviation && (
+            <Badge variant="outline" className="text-[8px] flex-shrink-0">{game.homeTeam.abbreviation}</Badge>
           )}
         </div>
 
         <div className="flex items-center gap-1 flex-shrink-0 text-center min-w-[60px] justify-center">
           {game.isComplete ? (
             <>
-              <span className={`text-sm font-pixel ${awayWon ? "text-gold" : "text-muted-foreground"}`}>
-                {game.awayScore}
+              <span className={`text-sm font-pixel ${homeWon ? "text-gold" : "text-muted-foreground"}`} data-testid={`score-home-${game.id}`}>
+                {game.homeScore}
               </span>
               <span className="text-muted-foreground text-xs">–</span>
-              <span className={`text-sm font-pixel ${homeWon ? "text-gold" : "text-muted-foreground"}`}>
-                {game.homeScore}
+              <span className={`text-sm font-pixel ${awayWon ? "text-gold" : "text-muted-foreground"}`} data-testid={`score-away-${game.id}`}>
+                {game.awayScore}
               </span>
             </>
           ) : (
@@ -4114,14 +4114,14 @@ function PostseasonGameCard({ game, leagueId }: { game: PostseasonGame; leagueId
         </div>
 
         <div className="flex-1 flex items-center justify-end gap-2 min-w-0">
-          {game.homeTeam?.abbreviation && (
-            <Badge variant="outline" className="text-[8px] flex-shrink-0">{game.homeTeam.abbreviation}</Badge>
+          {game.awayTeam?.abbreviation && (
+            <Badge variant="outline" className="text-[8px] flex-shrink-0">{game.awayTeam.abbreviation}</Badge>
           )}
-          <span className={`text-xs truncate text-right ${homeWon ? "text-gold font-medium" : game.isComplete ? "text-muted-foreground" : ""}`}>
-            {game.homeTeam?.name || "TBD"}
+          <span className={`text-xs truncate text-right ${awayWon ? "text-gold font-medium" : game.isComplete ? "text-muted-foreground" : ""}`}>
+            {game.awayTeam?.name || "TBD"}
           </span>
-          {game.homeSeed != null && game.homeSeed > 0 && (
-            <span className="text-[9px] font-pixel text-gold flex-shrink-0 w-4 text-right">{game.homeSeed}</span>
+          {game.awaySeed != null && game.awaySeed > 0 && (
+            <span className="text-[9px] font-pixel text-gold flex-shrink-0 w-4 text-right">{game.awaySeed}</span>
           )}
         </div>
 
