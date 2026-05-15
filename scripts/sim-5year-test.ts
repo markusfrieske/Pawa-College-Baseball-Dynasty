@@ -29,8 +29,9 @@ const NUM_SEASONS   = 5;
 const CLASS_SIZE    = 80;
 const NUM_TEAMS     = 12;
 const MAX_ROSTER    = 25;
-const RETURNS_AFTER_SENIORS = 21;   // each team retains ~21 after ~4 seniors leave
-const SIGNINGS_PER_TEAM = 4;        // each team targets ~4 signings (up to 7 max)
+// Each season ~6 players leave (seniors graduate + transfers). Teams carry 19
+// returning players into recruiting, then sign recruits/walk-ons to fill to 25.
+const RETURNS_AFTER_GRADUATION = 19;
 const MAX_SIGNINGS  = 7;
 const UPGRADE_THRESHOLD = 15;
 const MAX_UPGRADES  = 5;
@@ -82,27 +83,22 @@ function randomOvr(lo: number, hi: number) {
 
 function buildInitialTeam(id: number): SimTeam {
   const roster: SimPlayer[] = [];
-  const eligs: SimPlayer["eligibility"][] = ["SO","SO","SO","SO","SO","JR","JR","JR","JR","SR"];
-  for (let i = 0; i < RETURNS_AFTER_SENIORS; i++) {
+  for (let i = 0; i < RETURNS_AFTER_GRADUATION; i++) {
     const pos = ALL_POSITIONS[i % ALL_POSITIONS.length];
     const ovr = randomOvr(200, 400);
-    const elig = eligs[Math.floor(Math.random() * eligs.length)];
-    roster.push(mkPlayer(pos, ovr, elig));
+    roster.push(mkPlayer(pos, ovr, "SO"));
   }
   return { id, name: `Team ${id}`, roster };
 }
 
 function advanceEligibility(team: SimTeam): SimPlayer[] {
-  // Seniors graduate, everyone else advances
+  // Simulate graduation of ~6 players (seniors + some transfers each year).
+  // Keep the best RETURNS_AFTER_GRADUATION players so every season has a
+  // consistent number of roster spots to fill, avoiding runaway full-roster
+  // states where no recruits can be signed.
   return team.roster
-    .filter(p => p.eligibility !== "SR")
-    .map(p => ({
-      ...p,
-      eligibility: (
-        p.eligibility === "SO" ? "JR" :
-        p.eligibility === "JR" ? "SR" : "SO"
-      ) as SimPlayer["eligibility"],
-    }));
+    .sort((a, b) => b.overall - a.overall)
+    .slice(0, RETURNS_AFTER_GRADUATION);
 }
 
 function positionNeed(roster: SimPlayer[]): Record<string, number> {

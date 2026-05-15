@@ -9714,17 +9714,22 @@ export async function registerRoutes(
         roster = await storage.getPlayersByTeam(team.id);
       }
       
+      // Build projected position counts after any over-max cuts.
+      // These counts grow as walk-ons are signed in the fill loop below, so
+      // the upgrade pass can see the true projected 25-man composition even
+      // though walk-ons are not yet finalized into the players table.
+      const projectedPosCounts: Record<string, number> = {};
+      for (const p of roster) projectedPosCounts[p.position] = (projectedPosCounts[p.position] || 0) + 1;
+      let projectedSize = roster.length;
+
       if (roster.length < MAX_ROSTER) {
-        const positionCounts: Record<string, number> = {};
-        for (const p of roster) positionCounts[p.position] = (positionCounts[p.position] || 0) + 1;
-        
         let pool = await storage.getWalkonsByLeague(leagueId);
         let available = pool.filter(w => !w.signedTeamId);
         let slotsToFill = MAX_ROSTER - roster.length;
         
         while (slotsToFill > 0 && available.length > 0) {
           const allPositions = ["P", "C", "1B", "2B", "SS", "3B", "LF", "CF", "RF"];
-          const posNeeds = allPositions.map(pos => ({ pos, count: positionCounts[pos] || 0 }))
+          const posNeeds = allPositions.map(pos => ({ pos, count: projectedPosCounts[pos] || 0 }))
             .sort((a, b) => a.count - b.count);
           
           let signed = false;
@@ -9735,7 +9740,8 @@ export async function registerRoutes(
             if (candidates.length > 0) {
               const best = candidates[0];
               await storage.updateWalkon(best.id, { signedTeamId: team.id, signedTeamName: team.name });
-              positionCounts[need.pos] = (positionCounts[need.pos] || 0) + 1;
+              projectedPosCounts[need.pos] = (projectedPosCounts[need.pos] || 0) + 1;
+              projectedSize++;
               slotsToFill--;
               signed = true;
               available = available.filter(w => w.id !== best.id);
@@ -9747,7 +9753,8 @@ export async function registerRoutes(
             const bestAvail = available.sort((a, b) => (b.overall || 0) - (a.overall || 0))[0];
             if (bestAvail) {
               await storage.updateWalkon(bestAvail.id, { signedTeamId: team.id, signedTeamName: team.name });
-              positionCounts[bestAvail.position] = (positionCounts[bestAvail.position] || 0) + 1;
+              projectedPosCounts[bestAvail.position] = (projectedPosCounts[bestAvail.position] || 0) + 1;
+              projectedSize++;
               slotsToFill--;
               available = available.filter(w => w.id !== bestAvail.id);
             } else {
@@ -9757,22 +9764,22 @@ export async function registerRoutes(
         }
       }
 
-      // Upgrade pass: only runs when the roster is at the 25-player max.
-      // Swaps the weakest duplicate-position player for a walk-on that is
-      // meaningfully better, up to MAX_UPGRADES swaps per team.
-      // This prevents CPU teams from sitting on weak recruited players when
-      // better talent is available in the walk-on pool.
+      // Upgrade pass: only runs when the projected roster (players + signed walk-ons)
+      // is at the 25-player max.  We use projectedSize so teams that reached 25 via
+      // walk-ons in the fill loop above are included, not just teams that already had
+      // 25 finalized DB players.
       const UPGRADE_THRESHOLD = 15;
       const MAX_UPGRADES = 5;
       let upgradeCount = 0;
-      roster = await storage.getPlayersByTeam(team.id);
-      if (roster.length < MAX_ROSTER) continue;  // only upgrade when full
+      if (projectedSize < MAX_ROSTER) continue;
       const upgradePool = await storage.getWalkonsByLeague(leagueId);
       let availableUpgrades = upgradePool.filter(w => !w.signedTeamId);
 
       while (upgradeCount < MAX_UPGRADES && availableUpgrades.length > 0) {
-        const rosterPosCounts: Record<string, number> = {};
-        for (const p of roster) rosterPosCounts[p.position] = (rosterPosCounts[p.position] || 0) + 1;
+        // Use the projected position counts (DB players + walk-ons signed above).
+        // Swaps within the same position leave projectedPosCounts unchanged so
+        // we can read it directly each iteration.
+        const rosterPosCounts = { ...projectedPosCounts };
 
         const eligiblePositions = Object.entries(rosterPosCounts)
           .filter(([, cnt]) => cnt > 1)
