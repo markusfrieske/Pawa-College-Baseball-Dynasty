@@ -1626,7 +1626,7 @@ function RankingsTab({ league }: { league: LeagueDetails }) {
         </div>
       </RetroCardHeader>
       <p className="text-[10px] text-muted-foreground mb-4">
-        Composite: Roster OVR (40%) · Pitching OVR (30%) · Hitting OVR (20%) · Recruiting (10%). Click a team to compare.
+        Composite: Roster OVR (40%) · Pitching OVR (30%) · Hitting OVR (20%) · Recruiting (10%). Click a rival to compare.
       </p>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -1638,7 +1638,6 @@ function RankingsTab({ league }: { league: LeagueDetails }) {
               <th className="text-center py-2 px-1 cursor-pointer hover:text-gold select-none" onClick={() => handleSort("roster")}>Roster{sortArrow("roster")}</th>
               <th className="text-center py-2 px-1 hidden sm:table-cell cursor-pointer hover:text-gold select-none" onClick={() => handleSort("pitching")}>Pitch{sortArrow("pitching")}</th>
               <th className="text-center py-2 px-1 hidden sm:table-cell cursor-pointer hover:text-gold select-none" onClick={() => handleSort("hitting")}>Hit{sortArrow("hitting")}</th>
-              <th className="text-center py-2 px-1 hidden md:table-cell cursor-pointer hover:text-gold select-none" onClick={() => handleSort("recruiting")}>Rec{sortArrow("recruiting")}</th>
               <th className="py-2 px-1 w-6" />
             </tr>
           </thead>
@@ -1735,23 +1734,6 @@ function RankingsTab({ league }: { league: LeagueDetails }) {
                         <TooltipContent>{percentileLabel(entry.hittingPercentile)} in Hitting OVR</TooltipContent>
                       </Tooltip>
                     </td>
-                    <td className="py-3 px-1 text-center hidden md:table-cell">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="flex flex-col items-center cursor-default">
-                            <span className={`font-bold text-xs ${gradeColor(recGrade)}`}>{recGrade}</span>
-                            <span className="text-[9px] text-muted-foreground">
-                              {entry.hasSignedRecruits ? entry.recruitingScore : "0"}
-                            </span>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          {entry.hasSignedRecruits
-                            ? `${percentileLabel(entry.recruitingPercentile)} in Recruiting Class OVR`
-                            : "No signed recruits yet"}
-                        </TooltipContent>
-                      </Tooltip>
-                    </td>
                     <td className="py-3 px-1 text-center">
                       {!isUser && (
                         isExpanded
@@ -1763,7 +1745,7 @@ function RankingsTab({ league }: { league: LeagueDetails }) {
 
                   {isExpanded && userEntry && (
                     <tr className="border-b border-gold/20">
-                      <td colSpan={8} className="px-2 py-3 bg-card/40">
+                      <td colSpan={7} className="px-2 py-3 bg-card/40">
                         <PowerComparePanel userEntry={userEntry} rivalEntry={entry} />
                       </td>
                     </tr>
@@ -2722,6 +2704,7 @@ interface PostseasonData {
 
 interface BattingLeader {
   name: string;
+  playerId: string;
   teamId: string;
   games: number;
   ab: number;
@@ -2758,6 +2741,7 @@ interface BattingLeader {
 
 interface PitchingLeader {
   name: string;
+  playerId: string;
   teamId: string;
   games: number;
   ip: number;
@@ -2824,6 +2808,16 @@ interface StatsData {
 function StatsTab({ leagueId, currentSeason, conferences, teams }: { leagueId: string; currentSeason: number; conferences: Conference[]; teams: Team[] }) {
   const [view, setView] = useState<"team" | "batting" | "pitching">("team");
   const [selectedSeason, setSelectedSeason] = useState<number | null>(null);
+  const [selectedStatsPlayerId, setSelectedStatsPlayerId] = useState<string | null>(null);
+  const { data: statsPlayerData } = useQuery<any>({
+    queryKey: ["/api/leagues", leagueId, "players", selectedStatsPlayerId],
+    queryFn: async () => {
+      const res = await fetch(`/api/leagues/${leagueId}/players/${selectedStatsPlayerId}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch player");
+      return res.json();
+    },
+    enabled: !!selectedStatsPlayerId,
+  });
   const [selectedConference, setSelectedConference] = useState<string>("all");
   const [battingSort, setBattingSort] = useState<"avg" | "ops" | "hr" | "rbi" | "war" | "wOBA" | "wRCplus" | "opsPlus" | "babip" | "exitVelo" | "barrelPct" | "oaa" | "fldPct">("avg");
   const [pitchingSort, setPitchingSort] = useState<"era" | "fip" | "so" | "whip" | "war" | "siera" | "kPct" | "whiffRate" | "spinRate">("era");
@@ -3099,7 +3093,7 @@ function StatsTab({ leagueId, currentSeason, conferences, teams }: { leagueId: s
                   </thead>
                   <tbody>
                     {sortedBatters.map((b, idx) => (
-                      <tr key={`${b.name}-${b.teamId}`} className={`border-b border-border/30 ${idx % 2 === 0 ? "" : "bg-muted/10"}`} data-testid={`row-batter-${idx}`}>
+                      <tr key={`${b.name}-${b.teamId}`} className={`border-b border-border/30 ${idx % 2 === 0 ? "" : "bg-muted/10"} ${b.playerId ? "cursor-pointer hover:bg-gold/5" : ""}`} data-testid={`row-batter-${idx}`} onClick={() => b.playerId && setSelectedStatsPlayerId(b.playerId)}>
                         <td className="py-2 px-1 text-center text-xs text-muted-foreground">{idx + 1}</td>
                         <td className="py-2 px-1 text-xs font-medium">{b.name}</td>
                         <td className="py-2 px-1">
@@ -3224,7 +3218,7 @@ function StatsTab({ leagueId, currentSeason, conferences, teams }: { leagueId: s
                   </thead>
                   <tbody>
                     {sortedPitchers.map((p, idx) => (
-                      <tr key={`${p.name}-${p.teamId}`} className={`border-b border-border/30 ${idx % 2 === 0 ? "" : "bg-muted/10"}`} data-testid={`row-pitcher-${idx}`}>
+                      <tr key={`${p.name}-${p.teamId}`} className={`border-b border-border/30 ${idx % 2 === 0 ? "" : "bg-muted/10"} ${p.playerId ? "cursor-pointer hover:bg-gold/5" : ""}`} data-testid={`row-pitcher-${idx}`} onClick={() => p.playerId && setSelectedStatsPlayerId(p.playerId)}>
                         <td className="py-2 px-1 text-center text-xs text-muted-foreground">{idx + 1}</td>
                         <td className="py-2 px-1 text-xs font-medium">{p.name}</td>
                         <td className="py-2 px-1">
@@ -3263,6 +3257,15 @@ function StatsTab({ leagueId, currentSeason, conferences, teams }: { leagueId: s
             </RetroCardContent>
           </RetroCard>
         </div>
+      )}
+
+      {statsPlayerData && (
+        <PlayerProfileCard
+          player={statsPlayerData}
+          open={!!selectedStatsPlayerId}
+          onClose={() => setSelectedStatsPlayerId(null)}
+          leagueId={leagueId}
+        />
       )}
     </div>
   );

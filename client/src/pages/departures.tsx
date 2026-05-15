@@ -14,6 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { PlayerProfileCard } from "@/components/player-profile-card";
 import {
   ArrowLeft,
   GraduationCap,
@@ -107,8 +108,19 @@ export default function DeparturesPage() {
   const [teamPromiseDifficulty, setTeamPromiseDifficulty] = useState<string>("easy");
   const [expandedTeams, setExpandedTeams] = useState<Set<string>>(new Set());
   const [retentionResult, setRetentionResult] = useState<{ success: boolean; playerName: string; chance: number } | null>(null);
+  const [viewPlayer, setViewPlayer] = useState<{ id: string; teamId: string } | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  const { data: viewPlayerData } = useQuery<any>({
+    queryKey: ["/api/leagues", leagueId, "players", viewPlayer?.id],
+    queryFn: async () => {
+      const res = await fetch(`/api/leagues/${leagueId}/players/${viewPlayer!.id}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch player");
+      return res.json();
+    },
+    enabled: !!viewPlayer,
+  });
 
   const { data, isLoading } = useQuery<DeparturesData>({
     queryKey: ["/api/leagues", leagueId, "departures"],
@@ -385,7 +397,7 @@ export default function DeparturesPage() {
                 ) : (
                   <div className="space-y-2">
                     {userTeam.graduates.map(player => (
-                      <PlayerDepartureRow key={player.id} player={player} type="graduated" />
+                      <PlayerDepartureRow key={player.id} player={player} type="graduated" onView={() => setViewPlayer({ id: player.id, teamId: player.teamId })} />
                     ))}
                   </div>
                 )}
@@ -412,6 +424,7 @@ export default function DeparturesPage() {
                         player={player}
                         type="draft"
                         onRetain={() => openDraftRetain(player)}
+                        onView={() => setViewPlayer({ id: player.id, teamId: player.teamId })}
                         nilRemaining={userTeam.nilRemaining}
                       />
                     ))}
@@ -440,6 +453,7 @@ export default function DeparturesPage() {
                         player={player}
                         type="transfer"
                         onRetain={() => openTransferRetain(player)}
+                        onView={() => setViewPlayer({ id: player.id, teamId: player.teamId })}
                         nilRemaining={userTeam.nilRemaining}
                       />
                     ))}
@@ -582,7 +596,7 @@ export default function DeparturesPage() {
                             <GraduationCap className="w-3 h-3" /> Graduates
                           </p>
                           {team.graduates.map(p => (
-                            <PlayerDepartureRow key={p.id} player={p} type="graduated" compact />
+                            <PlayerDepartureRow key={p.id} player={p} type="graduated" compact onView={() => setViewPlayer({ id: p.id, teamId: p.teamId })} />
                           ))}
                         </div>
                       )}
@@ -592,7 +606,7 @@ export default function DeparturesPage() {
                             <Trophy className="w-3 h-3" /> Draft Declarations
                           </p>
                           {team.draftDeclarations.map(p => (
-                            <PlayerDepartureRow key={p.id} player={p} type="draft" compact />
+                            <PlayerDepartureRow key={p.id} player={p} type="draft" compact onView={() => setViewPlayer({ id: p.id, teamId: p.teamId })} />
                           ))}
                         </div>
                       )}
@@ -602,7 +616,7 @@ export default function DeparturesPage() {
                             <ArrowRightLeft className="w-3 h-3" /> Transfer Portal
                           </p>
                           {team.transfers.map(p => (
-                            <PlayerDepartureRow key={p.id} player={p} type="transfer" compact />
+                            <PlayerDepartureRow key={p.id} player={p} type="transfer" compact onView={() => setViewPlayer({ id: p.id, teamId: p.teamId })} />
                           ))}
                         </div>
                       )}
@@ -929,6 +943,16 @@ export default function DeparturesPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Player Profile Card */}
+      {viewPlayerData && (
+        <PlayerProfileCard
+          player={viewPlayerData}
+          open={!!viewPlayer}
+          onClose={() => setViewPlayer(null)}
+          leagueId={leagueId}
+        />
+      )}
+
       {/* Retention Result Dialog */}
       <Dialog open={!!retentionResult} onOpenChange={(open) => !open && setRetentionResult(null)}>
         <DialogContent className="bg-card border-2 border-gold max-w-sm text-center">
@@ -969,12 +993,14 @@ function PlayerDepartureRow({
   player,
   type,
   onRetain,
+  onView,
   nilRemaining,
   compact = false,
 }: {
   player: DeparturePlayer;
   type: "graduated" | "draft" | "transfer";
   onRetain?: () => void;
+  onView?: () => void;
   nilRemaining?: number;
   compact?: boolean;
 }) {
@@ -992,8 +1018,9 @@ function PlayerDepartureRow({
 
   return (
     <div
-      className={`flex items-center justify-between gap-3 p-2 border border-border hover-elevate ${compact ? "py-1" : ""}`}
+      className={`flex items-center justify-between gap-3 p-2 border border-border hover-elevate cursor-pointer ${compact ? "py-1" : ""}`}
       data-testid={`row-departure-${player.id}`}
+      onClick={onView}
     >
       <div className="flex items-center gap-3 min-w-0">
         {statusIcon}

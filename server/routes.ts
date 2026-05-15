@@ -3857,13 +3857,13 @@ export async function registerRoutes(
       const teamsMap = new Map(teams.map(t => [t.id, t]));
 
       interface BatterAgg {
-        name: string; teamId: string; games: number; ab: number; r: number; h: number;
+        name: string; playerId: string; teamId: string; games: number; ab: number; r: number; h: number;
         doubles: number; triples: number; hr: number; rbi: number; bb: number; hbp: number; so: number; sb: number;
         cs: number; exitVeloTotal: number; barrels: number; ballsInPlay: number; hardHits: number;
         putouts: number; assists: number; fieldingErrors: number; totalChances: number;
       }
       interface PitcherAgg {
-        name: string; teamId: string; games: number; ip: number; h: number; r: number; er: number;
+        name: string; playerId: string; teamId: string; games: number; ip: number; h: number; r: number; er: number;
         bb: number; so: number; hr: number; wins: number; losses: number;
         totalPitches: number; whiffs: number; spinRateTotal: number;
       }
@@ -3919,7 +3919,7 @@ export async function registerRoutes(
               const bKey = `${b.name}_${side.teamId}`;
               if (!batters.has(bKey)) {
                 batters.set(bKey, {
-                  name: b.name, teamId: side.teamId, games: 0, ab: 0, r: 0, h: 0,
+                  name: b.name, playerId: b.playerId || "", teamId: side.teamId, games: 0, ab: 0, r: 0, h: 0,
                   doubles: 0, triples: 0, hr: 0, rbi: 0, bb: 0, hbp: 0, so: 0, sb: 0,
                   cs: 0, exitVeloTotal: 0, barrels: 0, ballsInPlay: 0, hardHits: 0,
                   putouts: 0, assists: 0, fieldingErrors: 0, totalChances: 0,
@@ -3956,7 +3956,7 @@ export async function registerRoutes(
               const pKey = `${p.name}_${side.teamId}`;
               if (!pitchers.has(pKey)) {
                 pitchers.set(pKey, {
-                  name: p.name, teamId: side.teamId, games: 0, ip: 0, h: 0, r: 0, er: 0,
+                  name: p.name, playerId: p.playerId || "", teamId: side.teamId, games: 0, ip: 0, h: 0, r: 0, er: 0,
                   bb: 0, so: 0, hr: 0, wins: 0, losses: 0,
                   totalPitches: 0, whiffs: 0, spinRateTotal: 0,
                 });

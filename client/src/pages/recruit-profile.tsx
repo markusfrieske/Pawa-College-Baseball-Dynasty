@@ -568,8 +568,8 @@ export default function RecruitProfilePage() {
       </header>
 
       <main className="container mx-auto px-4 py-6">
-        {/* Action Buttons */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+        {/* Action Buttons — hidden once recruit has committed */}
+        {recruit.stage !== "signed" && <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
           <RetroButton 
             variant="outline" 
             className="border-green-500 text-green-400"
@@ -628,7 +628,17 @@ export default function RecruitProfilePage() {
             <Gift className="w-4 h-4 mr-2" />
             {offerMutation.isPending ? "Offering..." : recruit.interest?.hasOffer ? "Offered" : "Offer"}
           </RetroButton>
-        </div>
+        </div>}
+
+        {recruit.stage === "signed" && (
+          <div className="mb-6 flex items-center gap-3 p-3 border border-green-600/50 bg-green-900/20">
+            <CheckCircle className="w-5 h-5 text-green-400 shrink-0" />
+            <div>
+              <p className="font-pixel text-green-400 text-[10px] uppercase">Committed</p>
+              <p className="text-xs text-muted-foreground">This recruit has committed to a program. Recruiting actions are no longer available.</p>
+            </div>
+          </div>
+        )}
 
         {showProfilePhonePicker && (
           <div className="p-3 bg-muted/30 border border-border rounded" data-testid="profile-pitch-picker-phone">
@@ -1030,7 +1040,8 @@ export default function RecruitProfilePage() {
 
           {/* Right Column - Top Schools & Activity Log */}
           <div className="space-y-6">
-            {/* Top Schools Interest */}
+            {/* Top Schools Interest — hidden when signed */}
+            {recruit.stage !== "signed" ? (
             <RetroCard>
               <RetroCardHeader>
                 <div className="flex items-center justify-between w-full">
@@ -1089,6 +1100,18 @@ export default function RecruitProfilePage() {
                 )}
               </RetroCardContent>
             </RetroCard>
+            ) : (
+            <RetroCard>
+              <RetroCardHeader>Decision</RetroCardHeader>
+              <RetroCardContent>
+                <div className="flex flex-col items-center gap-3 py-4 text-center">
+                  <CheckCircle className="w-10 h-10 text-green-400" />
+                  <p className="font-pixel text-green-400 text-[10px] uppercase">Committed</p>
+                  <p className="text-sm text-muted-foreground">This recruit has made their decision and signed with a program.</p>
+                </div>
+              </RetroCardContent>
+            </RetroCard>
+            )}
 
             {/* Activity Log */}
             <RetroCard>
