@@ -89,6 +89,16 @@ const requireAuth = (req: Request, res: Response, next: NextFunction) => {
   next();
 };
 
+function hasCommissionerAccess(
+  league: { commissionerId: string; coCommissionerIds?: unknown },
+  userId: string | undefined,
+): boolean {
+  if (!userId) return false;
+  if (league.commissionerId === userId) return true;
+  const coIds = Array.isArray(league.coCommissionerIds) ? (league.coCommissionerIds as string[]) : [];
+  return coIds.includes(userId);
+}
+
 async function autoAssignLineup(storage: any, teamPlayers: Player[], teamId: string): Promise<void> {
   const PITCHER_POSITIONS = ["P", "SP", "RP", "CL", "LHP", "RHP"];
   const OF_POSITIONS = ["LF", "CF", "RF"];
@@ -6234,12 +6244,26 @@ export async function registerRoutes(
         })
         .map(c => c.id);
 
+      // Build human coaches list for delegation UI
+      const humanCoachEntries = coaches.filter(c => c.userId && c.teamId && humanTeamIds.has(c.teamId));
+      const userIds = humanCoachEntries.map(c => c.userId!).filter(Boolean);
+      const userLookups = await Promise.all(userIds.map(uid => storage.getUser(uid)));
+      const userMap = new Map(userLookups.filter(Boolean).map(u => [u!.id, u!]));
+      const humanCoaches = humanCoachEntries.map(c => ({
+        coachId: c.id,
+        userId: c.userId!,
+        firstName: c.firstName,
+        lastName: c.lastName,
+        email: userMap.get(c.userId!)?.email ?? "",
+      }));
+
       res.json({
         league,
         auditLogs: auditLogsData,
         readyCoaches,
         totalCoaches: humanTeams.length,
         invites,
+        humanCoaches,
       });
     } catch (error) {
       console.error("Failed to fetch commissioner data:", error);
@@ -6253,7 +6277,7 @@ export async function registerRoutes(
       if (!league) {
         return res.status(404).json({ message: "League not found" });
       }
-      if (league.commissionerId !== req.session.userId) {
+      if (!hasCommissionerAccess(league, req.session.userId)) {
         return res.status(403).json({ message: "Only the commissioner can advance the league" });
       }
 
@@ -6992,7 +7016,7 @@ export async function registerRoutes(
       const leagueId = req.params.id;
       const league = await storage.getLeague(leagueId);
       if (!league) return res.status(404).json({ message: "League not found" });
-      if (!req.session.userId || league.commissionerId !== req.session.userId) {
+      if (!hasCommissionerAccess(league, req.session.userId)) {
         return res.status(403).json({ message: "Only the commissioner can sim the full season." });
       }
 
@@ -7370,7 +7394,7 @@ export async function registerRoutes(
       const leagueId = req.params.id;
       const league = await storage.getLeague(leagueId);
       if (!league) return res.status(404).json({ message: "League not found" });
-      if (!req.session.userId || league.commissionerId !== req.session.userId) {
+      if (!hasCommissionerAccess(league, req.session.userId)) {
         return res.status(403).json({ message: "Only the commissioner can sim the offseason." });
       }
 
@@ -7459,7 +7483,7 @@ export async function registerRoutes(
       const leagueId = req.params.id;
       const league = await storage.getLeague(leagueId);
       if (!league) return res.status(404).json({ message: "League not found" });
-      if (!req.session.userId || league.commissionerId !== req.session.userId) {
+      if (!hasCommissionerAccess(league, req.session.userId)) {
         return res.status(403).json({ message: "Only the commissioner can sim." });
       }
 
@@ -7550,7 +7574,7 @@ export async function registerRoutes(
       const leagueId = req.params.id;
       const league = await storage.getLeague(leagueId);
       if (!league) return res.status(404).json({ message: "League not found" });
-      if (!req.session.userId || league.commissionerId !== req.session.userId) {
+      if (!hasCommissionerAccess(league, req.session.userId)) {
         return res.status(403).json({ message: "Only the commissioner can sim." });
       }
 
@@ -10500,7 +10524,7 @@ export async function registerRoutes(
         return res.status(404).json({ message: "League not found" });
       }
       
-      if (league.commissionerId !== req.session.userId) {
+      if (!hasCommissionerAccess(league, req.session.userId)) {
         return res.status(403).json({ message: "Only commissioner can advance the season" });
       }
       
@@ -11963,7 +11987,7 @@ export async function registerRoutes(
         return res.status(404).json({ message: "League not found" });
       }
 
-      if (league.commissionerId !== req.session.userId) {
+      if (!hasCommissionerAccess(league, req.session.userId)) {
         return res.status(403).json({ message: "Only the commissioner can simulate games" });
       }
 
@@ -12256,8 +12280,8 @@ export async function registerRoutes(
       }
       
       // Commissioner-only action
-      if (league.commissionerId !== req.session.userId) {
-        return res.status(403).json({ message: "Only commissioner can import recruiting class" });
+      if (!hasCommissionerAccess(league, req.session.userId)) {
+        return res.status(403).json({ message: "Only the commissioner can import a recruiting class" });
       }
 
       // Delete existing recruits for this league
@@ -12490,6 +12514,48 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to update settings:", error);
       res.status(500).json({ message: "Failed to update settings" });
+    }
+  });
+
+  app.patch("/api/leagues/:id/co-commissioners", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id as string);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      if (league.commissionerId !== req.session.userId) {
+        return res.status(403).json({ message: "Only the primary commissioner can manage delegates" });
+      }
+      const { userId, action } = req.body as { userId: string; action: "add" | "remove" };
+      if (!userId || !["add", "remove"].includes(action)) {
+        return res.status(400).json({ message: "userId and action (add|remove) are required" });
+      }
+      if (userId === league.commissionerId) {
+        return res.status(400).json({ message: "The primary commissioner cannot be a co-commissioner" });
+      }
+      // Verify target user is a coach in this league
+      const coaches = await storage.getCoachesByLeague(league.id);
+      const targetCoach = coaches.find(c => c.userId === userId);
+      if (!targetCoach) {
+        return res.status(400).json({ message: "Target user is not a coach in this league" });
+      }
+      const current: string[] = Array.isArray(league.coCommissionerIds) ? (league.coCommissionerIds as string[]) : [];
+      let updated: string[];
+      if (action === "add") {
+        updated = current.includes(userId) ? current : [...current, userId];
+      } else {
+        updated = current.filter(id => id !== userId);
+      }
+      const updatedLeague = await storage.updateLeague(league.id, { coCommissionerIds: updated });
+      const targetCoachName = `${targetCoach.firstName} ${targetCoach.lastName}`;
+      await storage.createAuditLog({
+        leagueId: league.id,
+        userId: req.session.userId,
+        action: action === "add" ? "Delegate Added" : "Delegate Removed",
+        details: `${targetCoachName} was ${action === "add" ? "granted" : "revoked"} co-commissioner access`,
+      });
+      res.json(updatedLeague);
+    } catch (error) {
+      console.error("Failed to update co-commissioners:", error);
+      res.status(500).json({ message: "Failed to update co-commissioners" });
     }
   });
 

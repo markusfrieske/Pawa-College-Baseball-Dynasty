@@ -37,6 +37,7 @@ export const leagues = pgTable("leagues", {
   phaseDeadline: timestamp("phase_deadline"),
   prevPowerRankings: json("prev_power_rankings"),
   cpuRecruitingAggression: integer("cpu_recruiting_aggression").notNull().default(3),
+  coCommissionerIds: json("co_commissioner_ids").$type<string[]>().default([]),
 });
 
 export const insertLeagueSchema = createInsertSchema(leagues).pick({

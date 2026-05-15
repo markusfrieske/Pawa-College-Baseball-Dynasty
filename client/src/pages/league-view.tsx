@@ -327,8 +327,10 @@ export default function LeagueViewPage() {
   const userTeam = league.teams?.find(t => !t.isCpu);
   const myTeam = league.teams?.find(t => t.coach?.userId === currentUser?.id);
   const myCoach = myTeam?.coach ?? null;
-  const isCommissioner = !!currentUser && currentUser.id === league.commissionerId;
-  const canLeave = !!myCoach && !isCommissioner;
+  const coCommIds: string[] = Array.isArray(league.coCommissionerIds) ? (league.coCommissionerIds as string[]) : [];
+  const isPrimaryCommissioner = !!currentUser && currentUser.id === league.commissionerId;
+  const isCommissioner = isPrimaryCommissioner || (!!currentUser && coCommIds.includes(currentUser.id));
+  const canLeave = !!myCoach && !isPrimaryCommissioner;
 
   const dismissLineupBanner = () => {
     setLineupBannerDismissed(true);

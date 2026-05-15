@@ -47,12 +47,21 @@ import type { League, AuditLog, LeagueInvite } from "@shared/schema";
 import { SimProgressOverlay, type SimSummary } from "@/components/sim-progress-overlay";
 import { SeasonSummaryModal } from "@/components/season-summary-modal";
 
+interface HumanCoach {
+  coachId: string;
+  userId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
 interface CommissionerData {
   league: League;
   auditLogs: AuditLog[];
   readyCoaches: string[];
   totalCoaches: number;
   invites: LeagueInvite[];
+  humanCoaches: HumanCoach[];
 }
 
 export default function CommissionerPage() {
@@ -211,6 +220,30 @@ export default function CommissionerPage() {
         description: duringRecruiting
           ? "Change saved — takes effect next recruiting cycle. Current recruiting is already underway."
           : "CPU recruiting aggressiveness has been changed.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
+    },
+  });
+
+  const { data: currentUser } = useQuery<{ id: string; email: string }>({
+    queryKey: ["/api/users/me"],
+  });
+  const isPrimaryCommissioner = !!currentUser && currentUser.id === data?.league?.commissionerId;
+
+  const delegateMutation = useMutation({
+    mutationFn: async ({ userId, action }: { userId: string; action: "add" | "remove" }) => {
+      return apiRequest("PATCH", `/api/leagues/${id}/co-commissioners`, { userId, action });
+    },
+    onSuccess: (_response, vars) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "commissioner"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id] });
+      toast({
+        title: vars.action === "add" ? "Delegate Added" : "Delegate Removed",
+        description: vars.action === "add"
+          ? "Coach can now perform commissioner actions."
+          : "Co-commissioner access has been revoked.",
       });
     },
     onError: (error: Error) => {
@@ -488,9 +521,15 @@ export default function CommissionerPage() {
           <TabsContent value="settings">
             <SettingsTab
               league={data?.league}
+              humanCoaches={data?.humanCoaches ?? []}
+              isPrimaryCommissioner={isPrimaryCommissioner}
               onToggleAuditLog={(isPublic) => toggleAuditLogMutation.mutate(isPublic)}
               onChangeDifficulty={(difficulty) => updateDifficultyMutation.mutate(difficulty)}
               onChangeAggression={(aggression) => updateAggressionMutation.mutate(aggression)}
+              onToggleDelegate={(userId, isDelegate) =>
+                delegateMutation.mutate({ userId, action: isDelegate ? "remove" : "add" })
+              }
+              isDelegating={delegateMutation.isPending}
             />
           </TabsContent>
 
@@ -1742,14 +1781,22 @@ const aggressionOptions = [
 
 function SettingsTab({
   league,
+  humanCoaches,
+  isPrimaryCommissioner,
   onToggleAuditLog,
   onChangeDifficulty,
   onChangeAggression,
+  onToggleDelegate,
+  isDelegating,
 }: {
   league?: League;
+  humanCoaches: HumanCoach[];
+  isPrimaryCommissioner: boolean;
   onToggleAuditLog: (isPublic: boolean) => void;
   onChangeDifficulty: (difficulty: string) => void;
   onChangeAggression: (aggression: number) => void;
+  onToggleDelegate: (userId: string, isDelegate: boolean) => void;
+  isDelegating: boolean;
 }) {
   const currentAggression = league?.cpuRecruitingAggression ?? 3;
   return (
@@ -1854,6 +1901,67 @@ function SettingsTab({
         </div>
       </RetroCardContent>
     </RetroCard>
+
+    {isPrimaryCommissioner && humanCoaches.length > 0 && (
+      <RetroCard>
+        <RetroCardHeader>
+          <div className="flex items-center gap-2">
+            <Crown className="w-4 h-4 text-gold" />
+            <span>Co-Commissioner Delegates</span>
+          </div>
+        </RetroCardHeader>
+        <RetroCardContent>
+          <p className="text-sm text-muted-foreground mb-4">
+            Delegates can advance the league, simulate games, and import recruiting classes — but cannot manage delegates, invites, or league settings.
+          </p>
+          <div className="space-y-2">
+            {humanCoaches.map(coach => {
+              const coIds: string[] = Array.isArray(league?.coCommissionerIds) ? (league!.coCommissionerIds as string[]) : [];
+              const isDelegate = coIds.includes(coach.userId);
+              const isPrimary = coach.userId === league?.commissionerId;
+              return (
+                <div
+                  key={coach.userId}
+                  className="flex items-center justify-between p-3 rounded-md bg-muted/30 border border-border"
+                  data-testid={`row-delegate-${coach.coachId}`}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">
+                        {coach.firstName} {coach.lastName}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">{coach.email}</p>
+                    </div>
+                    {isPrimary && (
+                      <Badge className="text-[8px] bg-gold/20 text-gold border-gold/40 shrink-0">COMMISSIONER</Badge>
+                    )}
+                    {isDelegate && !isPrimary && (
+                      <Badge className="text-[8px] bg-blue-500/20 text-blue-400 border-blue-500/40 shrink-0">DELEGATE</Badge>
+                    )}
+                  </div>
+                  {!isPrimary && (
+                    <button
+                      type="button"
+                      disabled={isDelegating}
+                      onClick={() => onToggleDelegate(coach.userId, isDelegate)}
+                      className={`ml-3 shrink-0 px-3 py-1.5 rounded text-xs font-medium border transition-all ${
+                        isDelegate
+                          ? "bg-red-500/20 border-red-500/40 text-red-400 hover:bg-red-500/30"
+                          : "bg-gold/20 border-gold/40 text-gold hover:bg-gold/30"
+                      }`}
+                      data-testid={`button-delegate-${isDelegate ? "remove" : "add"}-${coach.coachId}`}
+                    >
+                      {isDelegate ? "Revoke" : "Grant"}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </RetroCardContent>
+      </RetroCard>
+    )}
+
     {league?.id && (
       <TransferCommissionerSection leagueId={league.id} commissionerId={league.commissionerId ?? undefined} />
     )}
