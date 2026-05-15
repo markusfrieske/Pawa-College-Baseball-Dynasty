@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { parseErrorMessage } from "@/lib/errorUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useParams, Link } from "wouter";
+import { useParams, Link, useLocation } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +10,7 @@ import { PositionBadge } from "@/components/ui/position-badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { ArrowLeft, Users, UserPlus, Scissors, CheckCircle, Filter, Star, MapPin } from "lucide-react";
+import { ArrowLeft, Users, UserPlus, Scissors, CheckCircle, Filter, Star, MapPin, FastForward } from "lucide-react";
 import { getPotentialGrade } from "@shared/potential";
 import { PlayerProfileCard } from "@/components/player-profile-card";
 import type { Player, Team, League } from "@shared/schema";
@@ -51,6 +51,7 @@ const MAX_ROSTER = 25;
 
 export default function WalkonsPage() {
   const { id } = useParams<{ id: string }>();
+  const [, setLocation] = useLocation();
   const [posFilter, setPosFilter] = useState("all");
   const [showSigned, setShowSigned] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
@@ -78,11 +79,25 @@ export default function WalkonsPage() {
     queryKey: ["/api/auth/me"],
   });
 
-  const coaches = leagueData?.league ? undefined : undefined;
+  const advanceMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", `/api/leagues/${id}/advance`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id] });
+      toast({ title: "Season Advanced", description: "Welcome to Spring Training!" });
+      setLocation(`/league/${id}`);
+    },
+    onError: (err: any) => {
+      toast({ title: "Cannot advance", description: parseErrorMessage(err), variant: "destructive" });
+    },
+  });
 
   const myTeam = rosterData?.team;
   const myReadiness = readiness?.find(r => r.teamId === myTeam?.id);
   const isReady = myReadiness?.walkonReady || false;
+  const allReady = readiness ? readiness.every(r => r.walkonReady) : false;
+  const isCommissioner = !!(leagueData?.league?.commissionerId && authData?.id && leagueData.league.commissionerId === authData.id);
 
   const signMutation = useMutation({
     mutationFn: async (walkonId: string) => {
@@ -181,6 +196,18 @@ export default function WalkonsPage() {
                 <CheckCircle className={`w-4 h-4 mr-1 ${isReady ? "text-green-300" : ""}`} />
                 {isReady ? "Ready" : "Mark Ready"}
               </RetroButton>
+              {isCommissioner && allReady && (
+                <RetroButton
+                  variant="primary"
+                  size="sm"
+                  onClick={() => advanceMutation.mutate()}
+                  disabled={advanceMutation.isPending}
+                  data-testid="button-advance-season"
+                >
+                  <FastForward className="w-4 h-4 mr-1" />
+                  {advanceMutation.isPending ? "Advancing..." : "Advance to Spring Training"}
+                </RetroButton>
+              )}
             </div>
           </div>
         </div>

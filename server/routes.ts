@@ -2452,8 +2452,8 @@ export async function registerRoutes(
 
       const teamPlayers = await storage.getPlayersByTeam(team.id);
       
-      // Filter out players who have declared for the draft
-      const activePlayers = teamPlayers.filter(p => !p.declaredForDraft);
+      // Filter out players who have declared for the draft or are otherwise flagged as departing
+      const activePlayers = teamPlayers.filter(p => !p.declaredForDraft && !p.pendingDeparture);
 
       res.json({
         players: activePlayers,
@@ -9569,6 +9569,35 @@ export async function registerRoutes(
       }
     }
 
+    // Auto-commit remaining undecided recruits (top3/top5/verbal stage) to their
+    // highest-interest team that has made them an offer.  This ensures the signing-day
+    // preview and the actual outcome are consistent – previously these recruits were
+    // only auto-signed to CPU teams below the MIN_ROSTER threshold, which meant the
+    // preview "committingTo" value often didn't match what happened in the DB.
+    {
+      const stillUnsigned = (await storage.getRecruitsByLeague(leagueId)).filter(
+        r => !r.signedTeamId && ["top3", "top5", "verbal"].includes(r.stage || "")
+      );
+      for (const recruit of stillUnsigned) {
+        try {
+          const interests = await storage.getRecruitingInterestsByRecruit(recruit.id);
+          const eligible = interests
+            .filter(i => (i.interestLevel || 0) > 0)
+            .sort((a, b) => (b.interestLevel || 0) - (a.interestLevel || 0));
+          // Prefer a team that has made an offer; fall back to highest raw interest
+          const target = eligible.find(i => i.hasOffer) ?? eligible[0];
+          if (target?.teamId) {
+            await storage.updateRecruit(recruit.id, { signedTeamId: target.teamId });
+          }
+        } catch (e) {
+          console.error(`[finalizeSigningDay] Failed to auto-commit recruit ${recruit.id}:`, e);
+        }
+      }
+      if (stillUnsigned.length > 0) {
+        console.log(`[finalizeSigningDay] Auto-committed ${stillUnsigned.length} undecided recruits based on interest`);
+      }
+    }
+
     // Snapshot class rankings before recruits are converted to players
     try {
       const snapRecruits = await storage.getRecruitsByLeague(leagueId);
@@ -9870,7 +9899,9 @@ export async function registerRoutes(
     await storage.deleteRecruitsByLeague(leagueId);
 
     const recruitCount = 80;
-    await generateRecruits(leagueId, recruitCount);
+    // Pass completedSeason + 1 so storyline recruits are keyed to the UPCOMING season,
+    // not the season that just ended (the DB counter is bumped after this function returns).
+    await generateRecruits(leagueId, recruitCount, false, completedSeason + 1);
 
     let jucoRecruitsCreated = 0;
     for (const walkon of unsignedRealWalkons) {
@@ -13491,7 +13522,7 @@ function getTeamsForConference(conferenceName: string) {
   return conferenceTeams[conferenceName] || [];
 }
 
-async function generateRecruits(leagueId: string, count: number, forceStorylineReset = false) {
+async function generateRecruits(leagueId: string, count: number, forceStorylineReset = false, targetSeason?: number) {
   const leagueForProgression = await storage.getLeague(leagueId);
   const progressionEnabled = leagueForProgression?.progressionEnabled ?? false;
 
@@ -13516,13 +13547,16 @@ async function generateRecruits(leagueId: string, count: number, forceStorylineR
   // Initialize storyline recruits after recruit class generation
   const leagueForStoryline = await storage.getLeague(leagueId);
   if (leagueForStoryline) {
+    // Use targetSeason if provided (e.g., when called from finalizeWalkonsPhase before the season
+    // counter is bumped in the DB), otherwise fall back to the league's current season.
+    const storylineSeason = targetSeason ?? leagueForStoryline.currentSeason;
     try {
-      console.log(`[storylines] Initializing storyline recruits for league ${leagueId} season ${leagueForStoryline.currentSeason} (force=${forceStorylineReset})…`);
+      console.log(`[storylines] Initializing storyline recruits for league ${leagueId} season ${storylineSeason} (force=${forceStorylineReset})…`);
       if (forceStorylineReset) {
-        console.warn(`[storylines] Commissioner-triggered recruit class reset — existing storyline data for season ${leagueForStoryline.currentSeason} will be wiped and regenerated.`);
+        console.warn(`[storylines] Commissioner-triggered recruit class reset — existing storyline data for season ${storylineSeason} will be wiped and regenerated.`);
       }
-      const storylineCount = await initializeStorylineRecruits(leagueId, leagueForStoryline.currentSeason, forceStorylineReset);
-      console.log(`[storylines] Storyline initialization complete — ${storylineCount} recruits assigned arcs for season ${leagueForStoryline.currentSeason}`);
+      const storylineCount = await initializeStorylineRecruits(leagueId, storylineSeason, forceStorylineReset);
+      console.log(`[storylines] Storyline initialization complete — ${storylineCount} recruits assigned arcs for season ${storylineSeason}`);
     } catch (err) {
       console.error("[storylines] Failed to initialize storyline recruits:", err);
     }
