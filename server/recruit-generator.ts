@@ -362,20 +362,32 @@ export function generateRecruitClass(
   };
 
   // When tooledAttrs is provided, common abilities that belong to a tool group
-  // are boosted/penalised via genToolAttr; otherwise the flat variance is used.
+  // are boosted/penalised via genToolAttr; attrs NOT in any tool group always use
+  // flat variance regardless (consistent with CPU roster generation in routes.ts).
   const generateCommonAbilities = (
     isPitcher: boolean,
     position: string,
     targetAvg: number,
     tooledAttrs?: Set<string>,
   ) => {
-    const val = (attrName: string) =>
-      tooledAttrs
-        ? genToolAttr(targetAvg, tooledAttrs.has(attrName))
-        : generateCommonAbilityValue(targetAvg);
+    // Pre-compute the full set of keys that appear in ANY group for this player type
+    // so we never apply a tool penalty to flavour/utility attrs that aren't grouped.
+    const allGroupKeys = new Set<string>(
+      Object.values(isPitcher ? PITCHER_TOOL_GROUPS : HITTER_TOOL_GROUPS).flat(),
+    );
+
+    const val = (attrName: string) => {
+      if (tooledAttrs && allGroupKeys.has(attrName)) {
+        // Only apply boost/penalty to attrs that are in at least one tool group
+        return genToolAttr(targetAvg, tooledAttrs.has(attrName));
+      }
+      return generateCommonAbilityValue(targetAvg);
+    };
 
     if (isPitcher) {
       return {
+        // In-tool-group for pitchers: velocity/control/stuff/stamina (handled above in main attrs).
+        // All common pitcher abilities fall outside PITCHER_TOOL_GROUPS → flat variance.
         wRISP: val("wRISP"),
         vsLefty: val("vsLefty"),
         poise: val("poise"),
@@ -392,15 +404,19 @@ export function generateRecruitClass(
       };
     } else {
       return {
+        // In-tool-group for hitters: hitForAvg/power/speed/arm/fielding/errorResistance
+        // handled above.  Common hitter abilities that ARE in groups: clutch, wRISP (Hit),
+        // stealing/running (Speed), throwing (Arm), agile (Fielding).
+        // Not in any hitter group → flat: vsLHP, grit, recovery, vsLefty, poise, heater.
         clutch: val("clutch"),
-        vsLHP: val("vsLHP"),
-        grit: val("grit"),
+        vsLHP: val("vsLHP"),        // not in any hitter group → flat
+        grit: val("grit"),          // not in any hitter group → flat
         stealing: val("stealing"),
         running: val("running"),
         throwing: val("throwing"),
-        recovery: val("recovery"),
+        recovery: val("recovery"),  // not in any hitter group → flat
         catcherAbility: position === 'C' ? val("catcherAbility") : 50,
-        wRISP: 50,
+        wRISP: val("wRISP"),        // in Hit group → boosted/penalised
         vsLefty: 50,
         poise: 50,
         heater: 50,
