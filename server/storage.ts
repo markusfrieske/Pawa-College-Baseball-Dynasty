@@ -6,6 +6,7 @@ import {
   leagueEvents,
   gameReports,
   recruitingClassSnapshots,
+  coachSeasonHistory,
   storylineRecruits, storylineEvents, storylineVotes,
   type User, type InsertUser,
   type League, type InsertLeague,
@@ -34,6 +35,7 @@ import {
   type LeagueEvent, type InsertLeagueEvent,
   type GameReport, type InsertGameReport,
   type RecruitingClassSnapshot, type InsertRecruitingClassSnapshot,
+  type CoachSeasonHistory, type InsertCoachSeasonHistory,
   type StorylineRecruit, type InsertStorylineRecruit,
   type StorylineEvent, type InsertStorylineEvent,
   type StorylineVote, type InsertStorylineVote,
@@ -69,6 +71,11 @@ export interface IStorage {
   updateCoach(id: string, data: Partial<Coach>): Promise<Coach | undefined>;
   leaveLeague(coachId: string, leagueId: string, actorUserId: string): Promise<void>;
   transferCommissioner(leagueId: string, newUserId: string, currentUserId: string): Promise<void>;
+
+  getCoachSeasonHistory(coachId: string): Promise<CoachSeasonHistory[]>;
+  getCoachSeasonHistoryByLeague(leagueId: string): Promise<CoachSeasonHistory[]>;
+  createCoachSeasonHistory(data: InsertCoachSeasonHistory): Promise<CoachSeasonHistory>;
+  upsertCoachSeasonHistory(data: InsertCoachSeasonHistory): Promise<CoachSeasonHistory>;
 
   getScoutsByLeague(leagueId: string): Promise<Scout[]>;
   createScout(scout: InsertScout): Promise<Scout>;
@@ -322,6 +329,40 @@ export class DatabaseStorage implements IStorage {
   async updateCoach(id: string, data: Partial<Coach>): Promise<Coach | undefined> {
     const [coach] = await db.update(coaches).set(data).where(eq(coaches.id, id)).returning();
     return coach;
+  }
+
+  async getCoachSeasonHistory(coachId: string): Promise<CoachSeasonHistory[]> {
+    return db.select().from(coachSeasonHistory)
+      .where(eq(coachSeasonHistory.coachId, coachId))
+      .orderBy(desc(coachSeasonHistory.season));
+  }
+
+  async getCoachSeasonHistoryByLeague(leagueId: string): Promise<CoachSeasonHistory[]> {
+    return db.select().from(coachSeasonHistory)
+      .where(eq(coachSeasonHistory.leagueId, leagueId))
+      .orderBy(desc(coachSeasonHistory.season));
+  }
+
+  async createCoachSeasonHistory(data: InsertCoachSeasonHistory): Promise<CoachSeasonHistory> {
+    const [row] = await db.insert(coachSeasonHistory).values(data).returning();
+    return row;
+  }
+
+  async upsertCoachSeasonHistory(data: InsertCoachSeasonHistory): Promise<CoachSeasonHistory> {
+    const existing = await db.select().from(coachSeasonHistory)
+      .where(and(
+        eq(coachSeasonHistory.coachId, data.coachId),
+        eq(coachSeasonHistory.season, data.season),
+        eq(coachSeasonHistory.leagueId, data.leagueId),
+      ));
+    if (existing.length > 0) {
+      const [updated] = await db.update(coachSeasonHistory)
+        .set(data)
+        .where(eq(coachSeasonHistory.id, existing[0].id))
+        .returning();
+      return updated;
+    }
+    return this.createCoachSeasonHistory(data);
   }
 
   async leaveLeague(coachId: string, leagueId: string, actorUserId: string): Promise<void> {

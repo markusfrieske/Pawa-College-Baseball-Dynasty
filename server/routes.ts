@@ -10,6 +10,7 @@ import { randomUUID } from "crypto";
 import { getRandomAbilities, getAbilitiesForPosition, calculateOVR, getStarRatingFromOVR } from "@shared/abilities";
 import { getPotentialRange, getProgressionZone, rollWeightedPotential, getPotentialGrade } from "@shared/potential";
 import { getActionPointCost } from "@shared/stateDistance";
+import { getPersonalityForArchetype, getTraitBadgesForArchetype, getPhilosophyForArchetype, evaluateMilestones } from "@shared/coachTraits";
 import type { Player, Recruit, TransferPortalInterest, Game, InsertPlayerSeasonStats, GameReport } from "@shared/schema";
 import {
   generateGameNewsArticles,
@@ -3834,10 +3835,12 @@ export async function registerRoutes(
   // View any coach by ID (for viewing other coaches)
   app.get("/api/coaches/:coachId", requireAuth, async (req, res) => {
     try {
-      const coach = await storage.getCoach(req.params.coachId as string);
+      let coach = await storage.getCoach(req.params.coachId as string);
       if (!coach) {
         return res.status(404).json({ message: "Coach not found" });
       }
+
+      try { await ensureCoachTraits(coach); coach = (await storage.getCoach(coach.id)) ?? coach; } catch {}
 
       const team = coach.teamId ? await storage.getTeam(coach.teamId) : undefined;
       const isOwnCoach = coach.userId === req.session.userId;
@@ -3850,6 +3853,32 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to fetch coach:", error);
       res.status(500).json({ message: "Failed to fetch coach" });
+    }
+  });
+
+  // Coach season history by coach ID
+  app.get("/api/coaches/:coachId/season-history", requireAuth, async (req, res) => {
+    try {
+      const history = await storage.getCoachSeasonHistory(req.params.coachId as string);
+      res.json(history);
+    } catch (error) {
+      console.error("Failed to fetch coach season history:", error);
+      res.status(500).json({ message: "Failed to fetch coach season history" });
+    }
+  });
+
+  // Coach season history for the current user in a league
+  app.get("/api/leagues/:id/coach/season-history", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const coaches = await storage.getCoachesByLeague(leagueId);
+      const userCoach = coaches.find(c => c.userId === req.session.userId);
+      if (!userCoach) return res.status(404).json({ message: "No coach found" });
+      const history = await storage.getCoachSeasonHistory(userCoach.id);
+      res.json(history);
+    } catch (error) {
+      console.error("Failed to fetch coach season history:", error);
+      res.status(500).json({ message: "Failed to fetch coach season history" });
     }
   });
 
@@ -8829,6 +8858,38 @@ export async function registerRoutes(
     return coach.careerWins + (coach.confChampionships * 5) + (coach.cwsAppearances * 10) + (coach.nationalChampionships * 20) + coach.allAmericans + coach.draftPicks;
   }
 
+  // ============ COACH TRAITS AUTO-ASSIGN HELPER ============
+  async function ensureCoachTraits(coach: { id: string; archetype: string; personality?: string | null; traitBadges?: string[] | null; coachingPhilosophy?: {statement: string; importance: string}[] | null; careerMilestones?: string[] | null; careerWins: number; careerLosses: number; level: number; confChampionships: number; cwsAppearances: number; nationalChampionships: number; allAmericans: number; draftPicks: number }) {
+    const updates: Record<string, unknown> = {};
+    if (!coach.personality) {
+      updates.personality = getPersonalityForArchetype(coach.archetype).id;
+    }
+    if (!coach.traitBadges || (coach.traitBadges as string[]).length === 0) {
+      updates.traitBadges = getTraitBadgesForArchetype(coach.archetype, coach.personality ?? "");
+    }
+    if (!coach.coachingPhilosophy || (coach.coachingPhilosophy as unknown[]).length === 0) {
+      updates.coachingPhilosophy = getPhilosophyForArchetype(coach.archetype);
+    }
+    const currentMilestones = coach.careerMilestones ?? [];
+    const earnedMilestones = evaluateMilestones({
+      careerWins: coach.careerWins,
+      careerLosses: coach.careerLosses,
+      level: coach.level,
+      confChampionships: coach.confChampionships,
+      cwsAppearances: coach.cwsAppearances,
+      nationalChampionships: coach.nationalChampionships,
+      allAmericans: coach.allAmericans,
+      draftPicks: coach.draftPicks,
+      careerMilestones: currentMilestones,
+    });
+    if (earnedMilestones.length > currentMilestones.length) {
+      updates.careerMilestones = earnedMilestones;
+    }
+    if (Object.keys(updates).length > 0) {
+      await storage.updateCoach(coach.id, updates as Parameters<typeof storage.updateCoach>[1]);
+    }
+  }
+
   // ============ ALL-AMERICAN SELECTIONS COUNTER ============
   // Returns a Map<teamId, selectionCount> counting All-American + All-Conference
   // selections using the exact same positional slot logic as the Awards tab.
@@ -10497,6 +10558,100 @@ export async function registerRoutes(
       console.log(`[finalizeSigningDay] Snapshotted class rankings for season ${completedSeason}`);
     } catch (snapErr) {
       console.error("[finalizeSigningDay] Failed to snapshot class rankings:", snapErr);
+    }
+
+    // Record per-coach season history
+    try {
+      const allCoaches = await storage.getCoachesByLeague(leagueId);
+      const snapRecruits2 = await storage.getRecruitsByLeague(leagueId);
+      const leagueTeamsForHistory = await storage.getTeamsByLeague(leagueId);
+
+      // Determine postseason result for each team using already-snapshotted data
+      const seasonStandings = await storage.getStandingsByLeague(leagueId, completedSeason);
+      const allGames = await storage.getGamesByLeague(leagueId);
+      const seasonGames = allGames.filter(g => g.season === completedSeason && g.isComplete);
+
+      const cwsWinnerTeamId = (() => {
+        const cwsGames = seasonGames.filter(g => g.phase === "cws");
+        if (cwsGames.length === 0) return null;
+        const last = cwsGames[cwsGames.length - 1];
+        if (!last.homeScore || !last.awayScore) return null;
+        return last.homeScore > last.awayScore ? last.homeTeamId : last.awayTeamId;
+      })();
+
+      // Getting postseason participation per team
+      const cwsTeamIds = new Set(seasonGames.filter(g => g.phase === "cws").flatMap(g => [g.homeTeamId, g.awayTeamId]));
+      const srTeamIds = new Set(seasonGames.filter(g => g.phase === "super_regionals").flatMap(g => [g.homeTeamId, g.awayTeamId]));
+      const ccTeamIds = new Set(seasonGames.filter(g => g.phase === "conference_championship").flatMap(g => [g.homeTeamId, g.awayTeamId]));
+
+      for (const coach of allCoaches) {
+        if (!coach.teamId) continue;
+        const team = leagueTeamsForHistory.find(t => t.id === coach.teamId);
+        if (!team) continue;
+        const st = seasonStandings.find(s => s.teamId === coach.teamId);
+        const wins = st?.wins ?? 0;
+        const losses = st?.losses ?? 0;
+        const confWins = st?.conferenceWins ?? 0;
+        const confLosses = st?.conferenceLosses ?? 0;
+
+        let phaseResult = "regular_season";
+        if (cwsWinnerTeamId === coach.teamId) phaseResult = "national_champion";
+        else if (cwsTeamIds.has(coach.teamId ?? "")) phaseResult = "cws";
+        else if (srTeamIds.has(coach.teamId ?? "")) phaseResult = "super_regionals";
+        else if (ccTeamIds.has(coach.teamId ?? "")) phaseResult = "conf_championship";
+
+        const teamCommits = snapRecruits2.filter(r => r.signedTeamId === coach.teamId);
+        const topRecruit = teamCommits.length > 0
+          ? teamCommits.reduce((best, r) => ((r.overall ?? 0) > (best.overall ?? 0) ? r : best), teamCommits[0])
+          : null;
+        const classScore = teamCommits.length > 0
+          ? (teamCommits.reduce((s, r) => s + (r.starRating || 3), 0) / teamCommits.length * 20)
+            + (teamCommits.reduce((s, r) => s + (r.overall || 300), 0) / teamCommits.length / 50)
+            + (teamCommits.filter(r => r.starRating === 5).length * 15)
+            + (teamCommits.filter(r => r.starRating >= 4).length * 5)
+            + (teamCommits.length * 3)
+          : 0;
+
+        // Rank: how many teams have a higher class score (in the snap already created)
+        // Just use classScore ordering
+        const allTeamScores = teams.map(t => ({
+          teamId: t.id,
+          score: snapRecruits2.filter(r => r.signedTeamId === t.id).length > 0
+            ? snapRecruits2.filter(r => r.signedTeamId === t.id).reduce((s: number, r) => {
+                const commits = snapRecruits2.filter(rc => rc.signedTeamId === t.id);
+                const avgStar = commits.reduce((a, b) => a + (b.starRating || 3), 0) / commits.length;
+                const avgOvr = commits.reduce((a, b) => a + (b.overall || 300), 0) / commits.length;
+                return (avgStar * 20) + (avgOvr / 50) + (commits.filter(r => r.starRating === 5).length * 15) + (commits.filter(r => r.starRating >= 4).length * 5) + (commits.length * 3);
+              }, 0)
+            : 0,
+        })).sort((a, b) => b.score - a.score);
+        const classRank = allTeamScores.findIndex(e => e.teamId === coach.teamId) + 1;
+
+        await storage.upsertCoachSeasonHistory({
+          coachId: coach.id,
+          leagueId,
+          season: completedSeason,
+          wins,
+          losses,
+          confWins,
+          confLosses,
+          phaseResult,
+          classRank: classRank > 0 ? classRank : null,
+          classScore: classScore > 0 ? classScore : null,
+          totalSigned: teamCommits.length,
+          topRecruitName: topRecruit ? `${topRecruit.firstName} ${topRecruit.lastName}` : null,
+          topRecruitOvr: topRecruit?.overall ?? null,
+          topRecruitStars: topRecruit?.starRating ?? null,
+          teamName: team.name,
+          teamAbbr: team.abbreviation,
+        });
+
+        // Also refresh milestones after recording season
+        try { await ensureCoachTraits(coach); } catch {}
+      }
+      console.log(`[finalizeSigningDay] Recorded season history for ${allCoaches.length} coaches`);
+    } catch (histErr) {
+      console.error("[finalizeSigningDay] Failed to record coach season history:", histErr);
     }
 
     console.log(`[finalizeSigningDay] Processing ${teams.length} teams for transfers/eligibility/recruits`);

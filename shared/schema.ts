@@ -165,6 +165,11 @@ export const coaches = pgTable("coaches", {
   isReady: boolean("is_ready").notNull().default(false),
   scoutActionsUsed: integer("scout_actions_used").notNull().default(0),
   recruitActionsUsed: integer("recruit_actions_used").notNull().default(0),
+  // Personality & philosophy
+  personality: text("personality"),
+  coachingPhilosophy: json("coaching_philosophy").$type<{statement: string; importance: string}[]>().default([]),
+  traitBadges: json("trait_badges").$type<string[]>().default([]),
+  careerMilestones: json("career_milestones").$type<string[]>().default([]),
 }, (t) => [
   index("idx_coaches_team_id").on(t.teamId),
   index("idx_coaches_league_id").on(t.leagueId),
@@ -1411,6 +1416,34 @@ export const recruitingClassSnapshots = pgTable("recruiting_class_snapshots", {
 export const insertRecruitingClassSnapshotSchema = createInsertSchema(recruitingClassSnapshots).omit({ id: true });
 export type InsertRecruitingClassSnapshot = z.infer<typeof insertRecruitingClassSnapshotSchema>;
 export type RecruitingClassSnapshot = typeof recruitingClassSnapshots.$inferSelect;
+
+// Coach season history — one row per coach per completed season
+export const coachSeasonHistory = pgTable("coach_season_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  coachId: varchar("coach_id").notNull().references(() => coaches.id),
+  leagueId: varchar("league_id").notNull().references(() => leagues.id),
+  season: integer("season").notNull(),
+  wins: integer("wins").notNull().default(0),
+  losses: integer("losses").notNull().default(0),
+  confWins: integer("conf_wins").notNull().default(0),
+  confLosses: integer("conf_losses").notNull().default(0),
+  phaseResult: text("phase_result").notNull().default("regular_season"),
+  classRank: integer("class_rank"),
+  classScore: real("class_score"),
+  totalSigned: integer("total_signed").notNull().default(0),
+  topRecruitName: text("top_recruit_name"),
+  topRecruitOvr: integer("top_recruit_ovr"),
+  topRecruitStars: integer("top_recruit_stars"),
+  teamName: text("team_name").notNull().default(""),
+  teamAbbr: text("team_abbr").notNull().default(""),
+}, (t) => [
+  index("idx_coach_season_history_coach_id").on(t.coachId),
+  index("idx_coach_season_history_league_id").on(t.leagueId),
+]);
+
+export const insertCoachSeasonHistorySchema = createInsertSchema(coachSeasonHistory).omit({ id: true });
+export type InsertCoachSeasonHistory = z.infer<typeof insertCoachSeasonHistorySchema>;
+export type CoachSeasonHistory = typeof coachSeasonHistory.$inferSelect;
 
 const LEAGUE_EVENT_TYPES = ["SIGNING", "TRANSFER", "DRAFT", "GAME_RESULT", "RIVALRY_RESULT", "AWARD", "PHASE_CHANGE", "ROSTER_CUT", "WALKON", "STORYLINE", "NUDGE", "DECOMMIT"] as const;
 export type LeagueEventType = (typeof LEAGUE_EVENT_TYPES)[number];
