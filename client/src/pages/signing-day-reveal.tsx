@@ -74,18 +74,24 @@ function useReducedMotion(): boolean {
 // ── StadiumBackground ─────────────────────────────────────────
 // Pixel art top-down baseball diamond rendered in SVG.
 // Excluded from html2canvas because it lives outside cardGridRef.
-function StadiumBackground() {
+function StadiumBackground({ isBuildup }: { isBuildup: boolean }) {
   return (
     <div
       className="absolute inset-0 overflow-hidden pointer-events-none"
       aria-hidden
       data-testid="stadium-background"
+      // Opacity is controlled here (not on the SVG) so sdStadiumRumble can modulate it directly.
+      style={
+        isBuildup
+          ? { animation: "sdStadiumRumble 1.5s ease-in-out forwards" }
+          : { opacity: 0.16 }
+      }
     >
       <svg
         viewBox="0 0 800 680"
         xmlns="http://www.w3.org/2000/svg"
         preserveAspectRatio="xMidYMid slice"
-        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.16 }}
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
         shapeRendering="crispEdges"
       >
         {/* Dark base field */}
@@ -489,7 +495,7 @@ export default function SigningDayRevealPage() {
   return (
     <div className="relative min-h-screen">
       {/* ── Pixel stadium background (not in html2canvas) ── */}
-      <StadiumBackground />
+      <StadiumBackground isBuildup={!reducedMotion && cinemaPhase === "buildup"} />
 
       {/* ── Cinematic effect layers (fixed, not in html2canvas) ── */}
       {!reducedMotion && (
@@ -634,7 +640,8 @@ export default function SigningDayRevealPage() {
                           style={{ flexShrink: 0 }}
                           data-testid={`card-wrapper-${recruit.id}`}
                         >
-                          {/* Spark / shockwave ring — positioned outside card, not in download */}
+                          {/* Spark / shockwave ring — inside cardGridRef but animation
+                              completes in <1s (at opacity:0 by download time). */}
                           {!reducedMotion && (
                             <div
                               className="absolute pointer-events-none"

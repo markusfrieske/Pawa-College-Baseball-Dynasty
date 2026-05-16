@@ -706,6 +706,17 @@ html[data-mood="offseason"] nav {
   100% { transform: translateY(-95vh) translateX(var(--sd-drift, 20px)); opacity: 0; }
 }
 
+/* Stadium background rumble / pulse during buildup phase */
+@keyframes sdStadiumRumble {
+  0%   { opacity: 0.16; filter: brightness(1);    transform: scale(1);     }
+  15%  { opacity: 0.22; filter: brightness(1.35); transform: scale(1.003); }
+  30%  { opacity: 0.13; filter: brightness(0.80); transform: scale(0.998); }
+  50%  { opacity: 0.24; filter: brightness(1.50); transform: scale(1.005); }
+  65%  { opacity: 0.14; filter: brightness(0.75); transform: scale(0.997); }
+  80%  { opacity: 0.20; filter: brightness(1.30); transform: scale(1.002); }
+  100% { opacity: 0.16; filter: brightness(1);    transform: scale(1);     }
+}
+
 /* Standard card-entrance spark ring */
 @keyframes sdSparkRing {
   0%   { box-shadow: 0 0 0 0px rgba(196,163,90,0.85); opacity: 1; }
