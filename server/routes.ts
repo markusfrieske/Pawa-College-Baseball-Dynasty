@@ -2361,8 +2361,12 @@ export async function registerRoutes(
 
   app.patch("/api/leagues/:id/recruiting/:recruitId/board-rank", requireAuth, async (req, res) => {
     try {
-      const leagueTeams = await storage.getTeamsByLeague(req.params.id);
-      const userTeam = leagueTeams.find((t) => !t.isCpu);
+      const [leagueTeams, coaches] = await Promise.all([
+        storage.getTeamsByLeague(req.params.id),
+        storage.getCoachesByLeague(req.params.id),
+      ]);
+      const userCoach = coaches.find(c => c.userId === req.session.userId);
+      const userTeam = leagueTeams.find((t) => t.id === userCoach?.teamId);
 
       if (!userTeam) {
         return res.status(400).json({ message: "No team assigned" });

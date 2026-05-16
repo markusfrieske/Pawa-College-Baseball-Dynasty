@@ -2129,6 +2129,7 @@ function RecruitRow({
   const [notesValue, setNotesValue] = useState(recruit.interest?.notes || "");
   const [showRankEditor, setShowRankEditor] = useState(false);
   const [rankInputValue, setRankInputValue] = useState(String(recruit.interest?.boardRank ?? ""));
+  const rankCommittedRef = useRef(false);
   const [showPhonePicker, setShowPhonePicker] = useState(false);
   const [showEmailPicker, setShowEmailPicker] = useState(false);
   const [selectedPhonePitches, setSelectedPhonePitches] = useState<string[]>([]);
@@ -2450,15 +2451,21 @@ function RecruitRow({
                   onChange={(e) => setRankInputValue(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
+                      rankCommittedRef.current = true;
                       const n = parseInt(rankInputValue, 10);
                       onSetBoardRank(isNaN(n) || n < 1 ? null : Math.min(n, 99));
                       setShowRankEditor(false);
                     } else if (e.key === "Escape") {
+                      rankCommittedRef.current = true;
                       setRankInputValue(String(recruit.interest?.boardRank ?? ""));
                       setShowRankEditor(false);
                     }
                   }}
                   onBlur={() => {
+                    if (rankCommittedRef.current) {
+                      rankCommittedRef.current = false;
+                      return;
+                    }
                     const n = parseInt(rankInputValue, 10);
                     onSetBoardRank(isNaN(n) || n < 1 ? null : Math.min(n, 99));
                     setShowRankEditor(false);
@@ -2468,6 +2475,7 @@ function RecruitRow({
                   data-testid={`input-board-rank-${recruit.id}`}
                 />
                 <button
+                  onMouseDown={(e) => e.preventDefault()}
                   onClick={() => { onSetBoardRank(null); setRankInputValue(""); setShowRankEditor(false); }}
                   className="text-muted-foreground hover:text-red-400 text-[9px] leading-none"
                   title="Clear rank"
