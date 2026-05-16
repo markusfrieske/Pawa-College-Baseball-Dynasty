@@ -1916,7 +1916,7 @@ function SettingsTab({
         </RetroCardHeader>
         <RetroCardContent>
           <p className="text-sm text-muted-foreground mb-4">
-            Delegates can advance the league, simulate games, and import recruiting classes. Only the primary commissioner can manage delegates, invites, or league settings.
+            Delegates can perform all commissioner actions — advance, simulate, manage settings, and more. Only the primary commissioner can manage delegates or invite links.
           </p>
           <div className="space-y-2">
             {humanCoaches.map(coach => {

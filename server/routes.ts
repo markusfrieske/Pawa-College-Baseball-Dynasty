@@ -12482,7 +12482,7 @@ export async function registerRoutes(
     try {
       const league = await storage.getLeague(req.params.id as string);
       if (!league) return res.status(404).json({ message: "League not found" });
-      if (league.commissionerId !== req.session.userId) {
+      if (!hasCommissionerAccess(league, req.session.userId)) {
         return res.status(403).json({ message: "Only the commissioner can set a deadline" });
       }
       const { deadline } = req.body;
@@ -12502,7 +12502,7 @@ export async function registerRoutes(
     try {
       const league = await storage.getLeague(req.params.id as string);
       if (!league) return res.status(404).json({ message: "League not found" });
-      if (league.commissionerId !== req.session.userId) {
+      if (!hasCommissionerAccess(league, req.session.userId)) {
         return res.status(403).json({ message: "Only the commissioner can change league settings" });
       }
       const result = settingsSchema.safeParse(req.body);
