@@ -627,7 +627,8 @@ function PositionSection({ title, players, onSelectPlayer, teamPrimaryColor, pro
             {players.map((player) => (
               <tr 
                 key={player.id} 
-                className="border-b border-border/50 hover:bg-card/50"
+                className="border-b border-border/50 hover:bg-card/50 transition-colors"
+                style={player.starRating >= 5 ? { borderLeft: "3px solid rgba(196,163,90,0.7)", background: "rgba(196,163,90,0.04)" } : undefined}
                 data-testid={`row-player-desktop-${player.id}`}
               >
                 <td className="py-3 px-2 text-muted-foreground font-mono">

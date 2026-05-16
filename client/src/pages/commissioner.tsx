@@ -754,6 +754,7 @@ function ActionsTab({
               </div>
             )}
             <RetroButton
+              variant="shimmer"
               onClick={onAdvanceWeek}
               disabled={anySim}
               className="w-full"
@@ -1412,10 +1413,11 @@ function ReadyStatusSection({ leagueId, commissionerUserId, coCommissionerIds, o
           </div>
           {isCommissioner && onAdvanceWeek && data.allHumansReady && humanTeams.length > 0 && (
             <RetroButton
+              variant="shimmer"
               size="sm"
               onClick={onAdvanceWeek}
               disabled={isAdvancing}
-              className="border-green-500 bg-green-600/20 text-green-300 hover:bg-green-600/40 shrink-0"
+              className="shrink-0"
               data-testid="button-advance-now-ready-section"
             >
               <Play className="w-3.5 h-3.5 mr-1" />

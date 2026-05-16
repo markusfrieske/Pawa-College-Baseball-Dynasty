@@ -176,14 +176,20 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
           className="p-4 border-b border-border relative overflow-hidden"
           style={{ background: "linear-gradient(135deg, hsl(120 22% 16%) 0%, hsl(120 20% 13%) 100%)" }}
         >
-          {/* 5-star gold stripe across top edge */}
+          {/* 5-star animated shimmer stripe across top edge */}
           {player.starRating >= 5 && (
             <span
-              className="pointer-events-none absolute top-0 h-[2px] left-0 right-0"
-              style={{
-                background: "linear-gradient(90deg, transparent 0%, rgba(196,163,90,0.9) 50%, transparent 100%)",
-              }}
-            />
+              className="pointer-events-none absolute top-0 h-[2px] left-0 right-0 overflow-hidden"
+            >
+              <span
+                className="absolute top-0 h-full"
+                style={{
+                  width: "40%",
+                  background: "linear-gradient(90deg, transparent, rgba(196,163,90,0.9), transparent)",
+                  animation: "btn-shimmer 3s ease-in-out infinite",
+                }}
+              />
+            </span>
           )}
           <div className="flex items-center gap-3">
             <PlayerPortrait

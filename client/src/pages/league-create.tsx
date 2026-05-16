@@ -272,6 +272,7 @@ export default function LeagueCreatePage() {
               <div className="pt-4">
                 <RetroButton
                   type="submit"
+                  variant="shimmer"
                   className="w-full"
                   loading={createLeagueMutation.isPending}
                   data-testid="button-create-dynasty"

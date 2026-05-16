@@ -2142,11 +2142,21 @@ function RecruitRow({
     ? getInterestLabel(recruit.interest.interestLevel)
     : null;
 
+  const rowStyle = (() => {
+    if (isSigned && recruit.signedTeamPrimaryColor) {
+      return { borderLeft: `4px solid ${recruit.signedTeamPrimaryColor}` };
+    }
+    if (isFullyRevealed && recruit.starRating >= 5) {
+      return { borderLeft: "3px solid rgba(196,163,90,0.75)", background: "rgba(196,163,90,0.03)" };
+    }
+    return undefined;
+  })();
+
   return (
     <RetroCard 
       className={`hover:border-gold/30 transition-colors ${isSelected ? "border-gold ring-1 ring-gold/50" : ""}`} 
       data-testid={`card-recruit-${recruit.id}`}
-      style={isSigned && recruit.signedTeamPrimaryColor ? { borderLeft: `4px solid ${recruit.signedTeamPrimaryColor}` } : undefined}
+      style={rowStyle}
     >
       <div className="flex flex-col lg:flex-row lg:items-center gap-4">
         <div className="flex items-center gap-4 flex-1">
