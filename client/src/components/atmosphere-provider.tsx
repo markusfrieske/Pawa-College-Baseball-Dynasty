@@ -99,18 +99,25 @@ export function PostseasonBanner() {
   );
 }
 
+function prefersReducedMotion(): boolean {
+  try {
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  } catch {
+    return false;
+  }
+}
+
 export function SigningDayBurst() {
   const { phase } = useAtmosphere();
   const [visible, setVisible] = useState(false);
   const prevPhaseRef = useRef<string>("neutral");
-  const firedRef = useRef(false);
 
   useEffect(() => {
     const prev = prevPhaseRef.current;
     prevPhaseRef.current = phase;
 
-    if (phase === "offseason_signing_day" && prev !== "offseason_signing_day" && !firedRef.current) {
-      firedRef.current = true;
+    if (phase === "offseason_signing_day" && prev !== "offseason_signing_day") {
+      if (prefersReducedMotion()) return;
       setVisible(true);
       const timer = setTimeout(() => setVisible(false), 2500);
       return () => clearTimeout(timer);

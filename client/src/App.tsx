@@ -38,6 +38,7 @@ import { MusicProvider } from "@/lib/music-context";
 import { MusicRouter } from "@/components/music-router";
 import { VolumeControl } from "@/components/volume-control";
 import { AtmosphereProvider, AtmosphereOverlay, SigningDayBurst } from "@/components/atmosphere-provider";
+import { AtmosphereRouter } from "@/components/atmosphere-router";
 import { useToast } from "@/hooks/use-toast";
 
 function Router() {
@@ -148,6 +149,7 @@ function App() {
           <MusicProvider>
             <AtmosphereOverlay />
             <SigningDayBurst />
+            <AtmosphereRouter />
             <MusicRouter />
             <div className="fixed bottom-16 right-3 sm:bottom-auto sm:top-3 z-50" data-testid="music-controls-floating">
               <VolumeControl />

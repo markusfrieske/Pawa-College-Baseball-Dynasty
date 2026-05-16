@@ -511,3 +511,37 @@ input[type="number"].no-spinner {
   40%  { opacity: 0.20; background-size: 120% 120%; }
   100% { opacity: 0;    background-size: 220% 220%; }
 }
+
+/* ── Header & sidebar tinting per mood ─────────────────────── */
+html[data-mood="postseason"] header {
+  border-bottom-color: rgba(196, 163, 90, 0.35);
+  box-shadow: 0 1px 12px rgba(196, 163, 90, 0.12);
+}
+
+html[data-mood="recruiting"] header {
+  border-bottom-color: hsl(245 35% 55% / 0.28);
+}
+
+html[data-mood="spring"] header {
+  border-bottom-color: hsl(85 45% 50% / 0.22);
+}
+
+html[data-mood="signing_day"] header {
+  border-bottom-color: rgba(196, 163, 90, 0.25);
+}
+
+/* Sidebar left border tinting */
+html[data-mood="postseason"] aside,
+html[data-mood="postseason"] nav {
+  border-right-color: rgba(196, 163, 90, 0.28);
+}
+
+html[data-mood="recruiting"] aside,
+html[data-mood="recruiting"] nav {
+  border-right-color: hsl(245 35% 55% / 0.22);
+}
+
+html[data-mood="spring"] aside,
+html[data-mood="spring"] nav {
+  border-right-color: hsl(85 45% 50% / 0.18);
+}
