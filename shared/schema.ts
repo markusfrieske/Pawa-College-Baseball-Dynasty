@@ -1441,6 +1441,7 @@ export const coachSeasonHistory = pgTable("coach_season_history", {
 }, (t) => [
   index("idx_coach_season_history_coach_id").on(t.coachId),
   index("idx_coach_season_history_league_id").on(t.leagueId),
+  uniqueIndex("idx_coach_season_history_unique").on(t.coachId, t.leagueId, t.season),
 ]);
 
 export const insertCoachSeasonHistorySchema = createInsertSchema(coachSeasonHistory).omit({ id: true });
