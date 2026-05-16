@@ -3878,16 +3878,26 @@ export async function registerRoutes(
         const hitters = players.filter(p => p.position !== "P");
         const signed = signedByTeam.get(team.id) || [];
 
-        const rosterOvr = avg(players.map(p => p.overall));
-        const pitchingOvr = avg(pitchers.map(p => p.overall));
-        const hittingOvr = avg(hitters.map(p => p.overall));
+        const avgAttr = (arr: number[]): number =>
+          arr.length === 0 ? 0 : Math.round(arr.reduce((s, v) => s + v, 0) / arr.length);
+
+        const pitchingScore = avgAttr(
+          pitchers.map(p => ((p.velocity ?? 50) + (p.stuff ?? 50) + (p.control ?? 50) + (p.stamina ?? 50)) / 4)
+        );
+        const hittingScore = avgAttr(
+          hitters.map(p => ((p.hitForAvg ?? 50) + (p.power ?? 50)) / 2)
+        );
+        const fieldingScore = avgAttr(
+          players.map(p => ((p.fielding ?? 50) + (p.arm ?? 50)) / 2)
+        );
+        const speedScore = avgAttr(players.map(p => p.speed ?? 50));
         const recruitingScore = avg(signed.map(r => r.overall));
 
         const composite = Math.round(
-          rosterOvr * 0.4 +
-          pitchingOvr * 0.3 +
-          hittingOvr * 0.2 +
-          recruitingScore * 0.1
+          pitchingScore * 0.35 +
+          hittingScore * 0.30 +
+          fieldingScore * 0.20 +
+          speedScore * 0.15
         );
 
         return {
@@ -3899,9 +3909,10 @@ export async function registerRoutes(
           secondaryColor: team.secondaryColor,
           isCpu: team.isCpu,
           composite,
-          rosterOvr,
-          pitchingOvr,
-          hittingOvr,
+          pitchingScore,
+          hittingScore,
+          fieldingScore,
+          speedScore,
           recruitingScore,
           hasSignedRecruits: signed.length > 0,
         };
@@ -3915,9 +3926,10 @@ export async function registerRoutes(
         return n <= 1 ? 100 : Math.round((rank / (n - 1)) * 100);
       };
 
-      const rosterVals = teamData.map(t => t.rosterOvr);
-      const pitchVals = teamData.map(t => t.pitchingOvr);
-      const hitVals = teamData.map(t => t.hittingOvr);
+      const pitchVals = teamData.map(t => t.pitchingScore);
+      const hitVals = teamData.map(t => t.hittingScore);
+      const fieldVals = teamData.map(t => t.fieldingScore);
+      const speedVals = teamData.map(t => t.speedScore);
       const recruVals = teamData.map(t => t.recruitingScore);
       const compositeVals = teamData.map(t => t.composite);
 
@@ -3933,9 +3945,10 @@ export async function registerRoutes(
           rank: currentRank,
           rankDelta,
           ...t,
-          rosterPercentile: computePercentile(rosterVals, t.rosterOvr),
-          pitchingPercentile: computePercentile(pitchVals, t.pitchingOvr),
-          hittingPercentile: computePercentile(hitVals, t.hittingOvr),
+          pitchingPercentile: computePercentile(pitchVals, t.pitchingScore),
+          hittingPercentile: computePercentile(hitVals, t.hittingScore),
+          fieldingPercentile: computePercentile(fieldVals, t.fieldingScore),
+          speedPercentile: computePercentile(speedVals, t.speedScore),
           recruitingPercentile: computePercentile(recruVals, t.recruitingScore),
           compositePercentile: computePercentile(compositeVals, t.composite),
         };
