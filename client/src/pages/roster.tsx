@@ -335,7 +335,7 @@ export default function RosterPage() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-4 py-6 pb-20 md:pb-6">
         <RetroCard className="mb-6">
           <div className="flex flex-wrap gap-4 items-center">
             <RetroSelect
@@ -900,7 +900,7 @@ function RosterSkeleton() {
           </div>
         </div>
       </header>
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-4 py-6 pb-20 md:pb-6">
         <div className="flex items-center justify-between mb-6">
           <Skeleton className="h-8 w-40" />
           <div className="flex gap-2">

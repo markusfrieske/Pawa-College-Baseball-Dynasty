@@ -325,7 +325,7 @@ export default function ReportGamePage() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6 max-w-3xl space-y-6">
+      <main className="container mx-auto px-4 py-6 max-w-3xl space-y-6 pb-20 md:pb-6">
         <RetroCard>
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-3">

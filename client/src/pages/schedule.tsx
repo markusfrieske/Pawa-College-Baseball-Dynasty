@@ -192,7 +192,7 @@ export default function SchedulePage() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6 space-y-6">
+      <main className="container mx-auto px-4 py-6 space-y-6 pb-20 md:pb-6">
         {groups.map(([key, group]) => (
           <RetroCard key={key}>
             <RetroCardHeader className="flex items-center justify-between gap-4">
@@ -787,7 +787,7 @@ function ScheduleSkeleton() {
           </div>
         </div>
       </header>
-      <main className="container mx-auto px-4 py-6 space-y-6">
+      <main className="container mx-auto px-4 py-6 space-y-6 pb-20 md:pb-6">
         {[1, 2, 3].map((week) => (
           <div key={week} className="rounded-md border border-border/50 bg-card/30">
             <div className="px-4 py-3 border-b border-border/50">

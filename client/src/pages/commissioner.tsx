@@ -460,7 +460,7 @@ export default function CommissionerPage() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-4 py-6 pb-20 md:pb-6">
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 mb-6">
           <RetroCard>
             <div className="flex items-center gap-4">
@@ -2673,7 +2673,7 @@ function CommissionerSkeleton() {
           <Skeleton className="h-6 w-48" />
         </div>
       </header>
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-4 py-6 pb-20 md:pb-6">
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6 mb-6">
           {[1, 2, 3].map((i) => (
             <Skeleton key={i} className="h-24" />

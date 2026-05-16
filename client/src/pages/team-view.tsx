@@ -119,7 +119,7 @@ export default function TeamViewPage() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border">
-        <div className="container mx-auto px-4 py-6">
+        <div className="container mx-auto px-4 py-6 pb-20 md:pb-6">
           <div className="flex items-center gap-4 mb-4">
             <Link href={`/league/${id}`} className="text-muted-foreground hover:text-gold transition-colors">
               <ArrowLeft className="w-5 h-5" />
@@ -170,7 +170,7 @@ export default function TeamViewPage() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-4 py-6 pb-20 md:pb-6">
         <Tabs defaultValue="summary" className="space-y-6">
           <TabsList className="bg-card border border-border flex-wrap gap-1">
             <TabsTrigger value="summary" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
@@ -831,7 +831,7 @@ function TeamViewSkeleton() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border">
-        <div className="container mx-auto px-4 py-6">
+        <div className="container mx-auto px-4 py-6 pb-20 md:pb-6">
           <Skeleton className="h-6 w-32 mb-4" />
           <div className="flex items-center gap-6">
             <Skeleton className="w-16 h-16 rounded-full" />
@@ -842,7 +842,7 @@ function TeamViewSkeleton() {
           </div>
         </div>
       </header>
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-4 py-6 pb-20 md:pb-6">
         <Skeleton className="h-96" />
       </main>
     </div>

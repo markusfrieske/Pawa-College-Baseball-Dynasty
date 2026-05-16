@@ -39,6 +39,7 @@ import { MusicRouter } from "@/components/music-router";
 import { VolumeControl } from "@/components/volume-control";
 import { AtmosphereProvider, AtmosphereOverlay, SigningDayBurst, PostseasonBanner } from "@/components/atmosphere-provider";
 import { AtmosphereRouter } from "@/components/atmosphere-router";
+import { MobileNav } from "@/components/mobile-nav";
 import { useToast } from "@/hooks/use-toast";
 
 function Router() {
@@ -156,6 +157,7 @@ function App() {
               <VolumeControl />
             </div>
             <Toaster />
+            <MobileNav />
             <Router />
           </MusicProvider>
         </AtmosphereProvider>

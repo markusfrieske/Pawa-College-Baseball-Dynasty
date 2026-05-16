@@ -130,7 +130,7 @@ export default function CoachProfilePage() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-4 py-6 pb-20 md:pb-6">
         <RetroCard variant="bordered" className="mb-6">
           <RetroCardContent className="p-6">
             <div className="flex flex-col md:flex-row gap-6">
@@ -658,7 +658,7 @@ function CoachProfileSkeleton() {
           </div>
         </div>
       </header>
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-4 py-6 pb-20 md:pb-6">
         <div className="p-6 rounded-md border border-border/50 bg-card/30 mb-6">
           <div className="flex items-start gap-4">
             <Skeleton className="h-24 w-24 rounded" />
@@ -744,7 +744,7 @@ export function CoachProfileByIdPage() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-4 py-6 pb-20 md:pb-6">
         <RetroCard variant="bordered" className="mb-6">
           <RetroCardContent className="p-6">
             <div className="flex flex-col md:flex-row gap-6">

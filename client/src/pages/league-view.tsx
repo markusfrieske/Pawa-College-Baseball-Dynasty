@@ -529,7 +529,7 @@ export default function LeagueViewPage() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-4 py-6 pb-20 md:pb-6">
         <PhaseGuidanceBanner phase={league.currentPhase} leagueId={id!} />
 
         <WaitingOnWidget leagueId={id!} league={league} pendingVoteCount={storylinePendingVotes} />
@@ -2208,7 +2208,7 @@ function LeagueViewSkeleton() {
           <Skeleton className="h-2 w-full mt-3 rounded-full" />
         </div>
       </header>
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-4 py-6 pb-20 md:pb-6">
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-2 sm:gap-3 mb-6">
           {Array.from({ length: 7 }).map((_, i) => (
             <div key={i} className="p-3 rounded-md border border-border/50 bg-card/30 text-center">

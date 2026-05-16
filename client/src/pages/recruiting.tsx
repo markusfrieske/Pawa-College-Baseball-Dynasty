@@ -808,7 +808,7 @@ export default function RecruitingPage() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-4 py-6 pb-20 md:pb-6">
         <RetroCard className="mb-6">
           <div className="space-y-4">
             <div className="relative">
@@ -4180,7 +4180,7 @@ function RecruitingSkeleton() {
           </div>
         </div>
       </header>
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-4 py-6 pb-20 md:pb-6">
         <div className="flex flex-wrap gap-2 mb-4">
           <Skeleton className="h-9 w-48" />
           <Skeleton className="h-9 w-28" />
