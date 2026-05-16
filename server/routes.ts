@@ -3902,16 +3902,43 @@ export async function registerRoutes(
     if (history.length === 0) {
       return {
         totalSigned: 0, fiveStars: 0, fourStars: 0, threeStars: 0, twoStars: 0, oneStars: 0,
+        blueChipsSigned: 0,
         avgClassRank: null as number | null, bestClassRank: null as number | null,
         topClassSeason: null as number | null, topRecruitName: null as string | null,
         topRecruitOvr: null as number | null, topRecruitStars: null as number | null,
         draftPicksDeveloped: 0, allAmericansDeveloped: 0, seasonsRecorded: 0,
+        seasonHistory: [] as Array<{
+          season: number; classRank: number | null; classScore: number | null;
+          totalSigned: number; fiveStars: number; fourStars: number;
+          threeStars: number; twoStars: number; oneStars: number;
+          classStarAvg: number | null; topRecruitName: string | null; topRecruitStars: number | null;
+        }>,
       };
     }
 
     // Aggregate from class snapshots for star breakdown
     let fiveStars = 0, fourStars = 0, threeStars = 0, twoStars = 0, oneStars = 0;
     const leagueSnaps = await storage.getRecruitingClassSnapshotsAllSeasons(coach.leagueId);
+
+    // Season-by-season history with star breakdown from snapshots
+    const seasonHistory = history.map(entry => {
+      const snap = leagueSnaps.find(s => s.teamId === (coach.teamId ?? "") && s.season === entry.season);
+      return {
+        season: entry.season,
+        classRank: entry.classRank ?? null,
+        classScore: entry.classScore ?? null,
+        totalSigned: entry.totalSigned,
+        fiveStars: snap?.fiveStars ?? 0,
+        fourStars: snap?.fourStars ?? 0,
+        threeStars: snap?.threeStars ?? 0,
+        twoStars: snap?.twoStars ?? 0,
+        oneStars: snap?.oneStars ?? 0,
+        classStarAvg: entry.classStarAvg ?? null,
+        topRecruitName: entry.topRecruitName ?? null,
+        topRecruitStars: entry.topRecruitStars ?? null,
+      };
+    }).sort((a, b) => b.season - a.season); // most recent first
+
     for (const entry of history) {
       const snap = leagueSnaps.find(s => s.teamId === (coach.teamId ?? "") && s.season === entry.season);
       if (snap) {
@@ -3940,7 +3967,7 @@ export async function registerRoutes(
       // Blue chips signed — from recruits with isBlueChip=true signed to this team
       const allRecruits = await storage.getRecruitsByLeague(coach.leagueId);
       blueChipsSigned = allRecruits.filter(
-        r => r.signedTeamId === coach.teamId && (r as any).isBlueChip === true && r.starRating === 5
+        r => r.signedTeamId === coach.teamId && r.isBlueChip === true && r.starRating === 5
       ).length;
     }
 
@@ -3957,6 +3984,7 @@ export async function registerRoutes(
       draftPicksDeveloped,
       allAmericansDeveloped: 0,
       seasonsRecorded: history.length,
+      seasonHistory,
     };
   }
 
@@ -9004,7 +9032,7 @@ export async function registerRoutes(
         // Count signed blue chips from recruits table
         const allRecruits = await storage.getRecruitsByLeague(coach.leagueId);
         recruitingStats.blueChipsSigned = allRecruits.filter(
-          r => r.signedTeamId === coach.teamId && (r as any).isBlueChip === true && r.starRating === 5
+          r => r.signedTeamId === coach.teamId && r.isBlueChip === true && r.starRating === 5
         ).length;
       }
     } catch (err) {

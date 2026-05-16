@@ -48,19 +48,16 @@ function getXpProgress(xp: number, level: number): number {
 }
 
 // ── Coaching competency grades derived from career stats ──────────────────────
+// Grade ladder: S / A+ / A / B+ / B / C+ / C / D / F  (matches recruit-style)
 function deriveCoachingGrades(coach: Coach): Record<string, string> {
   const scoreToGrade = (score: number): string => {
     if (score >= 95) return "S";
     if (score >= 87) return "A+";
-    if (score >= 80) return "A";
-    if (score >= 75) return "A-";
+    if (score >= 78) return "A";
     if (score >= 70) return "B+";
-    if (score >= 65) return "B";
-    if (score >= 60) return "B-";
-    if (score >= 55) return "C+";
-    if (score >= 50) return "C";
-    if (score >= 45) return "C-";
-    if (score >= 40) return "D+";
+    if (score >= 62) return "B";
+    if (score >= 54) return "C+";
+    if (score >= 46) return "C";
     if (score >= 35) return "D";
     return "F";
   };
@@ -72,30 +69,22 @@ function deriveCoachingGrades(coach: Coach): Record<string, string> {
   // Game Management: win% + CWS appearances + conf championships
   const gm = Math.min(100, winPct * 45 + coach.cwsAppearances * 5 + coach.confChampionships * 3 + 30);
 
-  // Player Development: allAmericans + draftPicks + levels
+  // Player Development: allAmericans + draftPicks + level progression
   const pd = Math.min(100, coach.allAmericans * 3 + coach.draftPicks * 4 + coach.level * 2.5 + 30);
 
-  // Program Building: legacy score component
+  // Program Builder: conference + national titles + win longevity
   const pb = Math.min(100, winPct * 30 + coach.confChampionships * 5 + coach.nationalChampionships * 10 + 30);
 
-  // Media Relations: archetype-based + career wins baseline
-  const archBonuses: Record<string, number> = {
-    "Dealmaker": 20, "Pure CEO": 15, "Player's Coach": 12, "Showman": 18,
-    "Balanced": 8, "Old School": 5, "Tactician": 6, "Scout Master": 5, "Academic Dean": 10,
-  };
-  const mr = Math.min(100, (archBonuses[coach.archetype] ?? 8) + winPct * 25 + coach.level * 1.5 + 30);
-
-  // Clutch Coaching: postseason performance
+  // Clutch Coaching: postseason run performance
   const cc = Math.min(100, coach.nationalChampionships * 15 + coach.cwsAppearances * 7 + coach.confChampionships * 4 + winPct * 20 + 25);
 
-  // Recruiting: skill tree levels
+  // Recruiting: skill tree depth + development track record
   const rc = Math.min(100, skillAvg * 5 + 35 + coach.draftPicks * 2);
 
   return {
     "Game Management": scoreToGrade(gm),
     "Player Development": scoreToGrade(pd),
     "Program Builder": scoreToGrade(pb),
-    "Media Relations": scoreToGrade(mr),
     "Clutch Coaching": scoreToGrade(cc),
     "Recruiting": scoreToGrade(rc),
   };
@@ -484,9 +473,25 @@ function CoachHeader({
 }
 
 // ── Recruiting record type from API ──────────────────────────────────────────
+interface RecruitingSeasonRow {
+  season: number;
+  classRank: number | null;
+  classScore: number | null;
+  totalSigned: number;
+  fiveStars: number;
+  fourStars: number;
+  threeStars: number;
+  twoStars: number;
+  oneStars: number;
+  classStarAvg: number | null;
+  topRecruitName: string | null;
+  topRecruitStars: number | null;
+}
+
 interface RecruitingRecord {
   totalSigned: number;
   fiveStars: number; fourStars: number; threeStars: number; twoStars: number; oneStars: number;
+  blueChipsSigned: number;
   avgClassRank: number | null;
   bestClassRank: number | null;
   topClassSeason: number | null;
@@ -496,6 +501,7 @@ interface RecruitingRecord {
   draftPicksDeveloped: number;
   allAmericansDeveloped: number;
   seasonsRecorded: number;
+  seasonHistory: RecruitingSeasonRow[];
 }
 
 // ── Career tab ────────────────────────────────────────────────────────────────
@@ -645,6 +651,53 @@ function CareerTab({
                       {Array.from({ length: recruitingRecord.topRecruitStars ?? 3 }, () => "★").join("")} {recruitingRecord.topRecruitName}
                     </p>
                     <p className="text-sm font-bold text-gold">{recruitingRecord.topRecruitOvr} OVR</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Season-by-season class history */}
+              {recruitingRecord.seasonHistory && recruitingRecord.seasonHistory.length > 0 && (
+                <div>
+                  <p className="text-xs text-muted-foreground font-medium mb-2">Class History by Season</p>
+                  <div className="rounded-lg border border-border/30 overflow-hidden">
+                    <table className="w-full text-xs">
+                      <thead className="bg-muted/40">
+                        <tr>
+                          <th className="text-left px-3 py-2 text-muted-foreground font-medium">Yr</th>
+                          <th className="text-center px-2 py-2 text-muted-foreground font-medium">Rank</th>
+                          <th className="text-center px-2 py-2 text-yellow-400">5★</th>
+                          <th className="text-center px-2 py-2 text-orange-400">4★</th>
+                          <th className="text-center px-2 py-2 text-blue-400">3★</th>
+                          <th className="text-center px-2 py-2 text-muted-foreground">2★</th>
+                          <th className="text-center px-2 py-2 text-muted-foreground">1★</th>
+                          <th className="text-right px-3 py-2 text-muted-foreground font-medium">Signed</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {recruitingRecord.seasonHistory.map((row, i) => (
+                          <tr
+                            key={row.season}
+                            className={`border-t border-border/20 ${i % 2 === 0 ? "bg-muted/10" : ""}`}
+                            data-testid={`recruiting-season-row-${row.season}`}
+                          >
+                            <td className="px-3 py-2 font-medium">{row.season}</td>
+                            <td className="px-2 py-2 text-center">
+                              {row.classRank != null ? (
+                                <span className={row.classRank <= 5 ? "text-gold font-bold" : row.classRank <= 15 ? "text-yellow-400" : ""}>
+                                  #{row.classRank}
+                                </span>
+                              ) : "—"}
+                            </td>
+                            <td className="px-2 py-2 text-center text-yellow-400 font-medium">{row.fiveStars || "—"}</td>
+                            <td className="px-2 py-2 text-center text-orange-400 font-medium">{row.fourStars || "—"}</td>
+                            <td className="px-2 py-2 text-center text-blue-400">{row.threeStars || "—"}</td>
+                            <td className="px-2 py-2 text-center text-muted-foreground">{row.twoStars || "—"}</td>
+                            <td className="px-2 py-2 text-center text-muted-foreground/60">{row.oneStars || "—"}</td>
+                            <td className="px-3 py-2 text-right font-medium text-gold">{row.totalSigned}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               )}
