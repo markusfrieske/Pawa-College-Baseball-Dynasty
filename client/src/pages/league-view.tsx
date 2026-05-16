@@ -1313,26 +1313,26 @@ function StandingsTab({ league }: { league: LeagueDetails }) {
       {standingsByConference.map((conf) => (
         <RetroCard key={conf.id}>
           <RetroCardHeader>{conf.name} Standings</RetroCardHeader>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto -mx-4 px-0 sm:mx-0 sm:px-0">
+            <table className="w-full text-sm min-w-[320px]">
               <thead>
                 <tr className="border-b border-border text-muted-foreground">
-                  <th className="text-left py-3 px-2 w-10">#</th>
-                  <th className="text-left py-3 px-2 min-w-[150px]">Team</th>
+                  <th className="text-left py-3 px-2 w-8 sticky left-0 bg-card z-10">#</th>
+                  <th className="text-left py-3 px-2 min-w-[130px] sticky left-8 bg-card z-10">Team</th>
                   <th className="text-left py-3 px-2 hidden lg:table-cell min-w-[150px]">Coach</th>
-                  <th className="text-center py-3 px-2 w-12">W</th>
-                  <th className="text-center py-3 px-2 w-12">L</th>
+                  <th className="text-center py-3 px-2 w-10">W</th>
+                  <th className="text-center py-3 px-2 w-10">L</th>
                   <th className="text-center py-3 px-2 w-16 hidden sm:table-cell">Conf</th>
-                  <th className="text-center py-3 px-2 w-12 hidden md:table-cell">RS</th>
-                  <th className="text-center py-3 px-2 w-12 hidden md:table-cell">RA</th>
+                  <th className="text-center py-3 px-2 w-10 hidden md:table-cell">RS</th>
+                  <th className="text-center py-3 px-2 w-10 hidden md:table-cell">RA</th>
                 </tr>
               </thead>
               <tbody>
                 {conf.teams.map((team, index) => (
                   <tr key={team.id} className="border-b border-border/50 hover:bg-card/50">
-                    <td className="py-3 px-2 text-muted-foreground">{index + 1}</td>
-                    <td className="py-3 px-2">
-                      <div className="flex items-center gap-3">
+                    <td className="py-3 px-2 text-muted-foreground sticky left-0 bg-card z-10">{index + 1}</td>
+                    <td className="py-3 px-2 sticky left-8 bg-card z-10">
+                      <div className="flex items-center gap-2">
                         <TeamBadge
                           abbreviation={team.abbreviation}
                           primaryColor={team.primaryColor}
@@ -1342,7 +1342,7 @@ function StandingsTab({ league }: { league: LeagueDetails }) {
                           size="sm"
                         />
                         <Link href={`/league/${league.id}/team/${team.id}`}>
-                          <span className="font-medium hover:text-gold cursor-pointer" data-testid={`link-team-standings-${team.id}`}>{team.name}</span>
+                          <span className="font-medium hover:text-gold cursor-pointer truncate max-w-[90px] sm:max-w-none block" data-testid={`link-team-standings-${team.id}`}>{team.name}</span>
                         </Link>
                       </div>
                     </td>

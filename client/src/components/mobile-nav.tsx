@@ -22,25 +22,23 @@ export function MobileNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-[100] md:hidden bg-card border-t border-border safe-area-inset-bottom"
+      className="fixed bottom-0 left-0 right-0 z-[100] md:hidden bg-card border-t border-border"
       data-testid="mobile-nav"
     >
       <div className="grid grid-cols-5 h-16">
         {tabs.map(({ href, icon: Icon, label, testId, exact }) => {
           const isActive = exact ? location === href : location.startsWith(href);
           return (
-            <Link key={href} href={href}>
-              <button
-                className={`flex flex-col items-center justify-center w-full h-full gap-1 transition-colors active:bg-white/5 ${
-                  isActive
-                    ? "text-gold"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-                data-testid={testId}
-              >
-                <Icon className={`w-5 h-5 ${isActive ? "text-gold" : ""}`} />
-                <span className={`font-pixel text-[7px] ${isActive ? "text-gold" : ""}`}>{label}</span>
-              </button>
+            <Link
+              key={href}
+              href={href}
+              className={`flex flex-col items-center justify-center w-full h-full gap-1 transition-colors active:bg-white/5 min-h-[44px] ${
+                isActive ? "text-gold" : "text-muted-foreground hover:text-foreground"
+              }`}
+              data-testid={testId}
+            >
+              <Icon className="w-5 h-5" />
+              <span className="font-pixel text-[7px]">{label}</span>
             </Link>
           );
         })}

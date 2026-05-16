@@ -270,12 +270,12 @@ function SavedRosterCard({ roster }: { roster: SavedRoster }) {
             <DialogTitle className="font-pixel text-gold text-sm">{roster.name}</DialogTitle>
             {roster.basedOn && <p className="text-xs text-muted-foreground">{roster.basedOn}</p>}
           </DialogHeader>
-          <div className="space-y-1 text-sm">
-            <div className="grid grid-cols-4 gap-2 text-xs font-semibold text-muted-foreground border-b border-border pb-1 mb-2">
+          <div className="space-y-1 text-sm overflow-x-auto">
+            <div className="grid grid-cols-4 gap-2 text-xs font-semibold text-muted-foreground border-b border-border pb-1 mb-2 min-w-[280px]">
               <span>Name</span><span>Pos</span><span>Year</span><span className="text-right">OVR</span>
             </div>
             {players.sort((a, b) => (b.overall || 0) - (a.overall || 0)).map((p: any, i: number) => (
-              <div key={i} className="grid grid-cols-4 gap-2 text-xs py-0.5 border-b border-border/30">
+              <div key={i} className="grid grid-cols-4 gap-2 text-xs py-0.5 border-b border-border/30 min-w-[280px]">
                 <span className="truncate">{p.name || `Player ${i + 1}`}</span>
                 <span className="text-muted-foreground">{p.position || "—"}</span>
                 <span className="text-muted-foreground">{p.year || p.eligibility || "—"}</span>
