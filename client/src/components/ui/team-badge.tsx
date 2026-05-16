@@ -28,9 +28,7 @@ export function TeamBadge({
   const archetype = name ? getMascotArchetype(name) : null;
 
   if (archetype) {
-    // Accent color: secondary if available, otherwise white
     const acc = secondaryColor || "#ffffff";
-    // Detail color: rendered on top of acc fill — use primary for visibility
     const det = primaryColor;
 
     return (
@@ -82,210 +80,248 @@ export function TeamBadge({
 
 function renderArchetype(archetype: MascotArchetype, acc: string, det: string) {
   switch (archetype) {
+
+    // ── FELINE (cat face) ────────────────────────────────────────────────────
     case "feline":
       return (
         <>
           {/* Pointed ears */}
           <polygon points="3,14 8,2 13,14" fill={acc} />
           <polygon points="19,14 24,2 29,14" fill={acc} />
-          <polygon points="5,13 8,5 11,13" fill={det} />
-          <polygon points="21,13 24,5 27,13" fill={det} />
-          {/* Head */}
-          <ellipse cx="16" cy="21" rx="13" ry="11" fill={acc} />
-          {/* Eyes */}
-          <ellipse cx="11" cy="18" rx="3" ry="3.5" fill={det} />
-          <ellipse cx="21" cy="18" rx="3" ry="3.5" fill={det} />
-          <ellipse cx="11" cy="18.5" rx="1.5" ry="2" fill={acc} />
-          <ellipse cx="21" cy="18.5" rx="1.5" ry="2" fill={acc} />
+          <polygon points="5,13 8,6 11,13" fill={det} />
+          <polygon points="21,13 24,6 27,13" fill={det} />
+          {/* Head — blocky octagon */}
+          <polygon points="6,12 10,8 22,8 26,12 28,20 26,26 22,30 10,30 6,26 4,20" fill={acc} />
+          {/* Left eye */}
+          <rect x="9" y="16" width="5" height="5" fill={det} />
+          <rect x="10" y="17" width="2" height="2" fill={acc} />
+          {/* Right eye */}
+          <rect x="18" y="16" width="5" height="5" fill={det} />
+          <rect x="19" y="17" width="2" height="2" fill={acc} />
           {/* Nose */}
-          <polygon points="14,23 16,26 18,23" fill={det} />
+          <polygon points="14,22 16,25 18,22" fill={det} />
+          {/* Mouth */}
+          <rect x="15" y="25" width="2" height="3" fill={det} />
         </>
       );
 
+    // ── CANINE (dog face) ────────────────────────────────────────────────────
     case "canine":
       return (
         <>
-          {/* Floppy ears */}
-          <ellipse cx="5" cy="21" rx="5" ry="8" fill={acc} />
-          <ellipse cx="27" cy="21" rx="5" ry="8" fill={acc} />
+          {/* Left floppy ear */}
+          <polygon points="0,12 6,10 8,26 0,28" fill={acc} />
+          {/* Right floppy ear */}
+          <polygon points="32,12 26,10 24,26 32,28" fill={acc} />
           {/* Head */}
-          <ellipse cx="16" cy="18" rx="12" ry="11" fill={acc} />
-          {/* Eyes */}
-          <circle cx="11" cy="15" r="2.5" fill={det} />
-          <circle cx="21" cy="15" r="2.5" fill={det} />
-          <circle cx="11.5" cy="14.5" r="1" fill={acc} />
-          <circle cx="21.5" cy="14.5" r="1" fill={acc} />
+          <polygon points="6,10 10,6 22,6 26,10 28,20 24,28 8,28 4,20" fill={acc} />
+          {/* Left eye */}
+          <rect x="9" y="13" width="5" height="5" fill={det} />
+          <rect x="10" y="14" width="2" height="2" fill={acc} />
+          {/* Right eye */}
+          <rect x="18" y="13" width="5" height="5" fill={det} />
+          <rect x="19" y="14" width="2" height="2" fill={acc} />
           {/* Muzzle */}
-          <ellipse cx="16" cy="23" rx="6" ry="4" fill={det} />
-          <circle cx="14" cy="22" r="1.5" fill={acc} />
-          <circle cx="18" cy="22" r="1.5" fill={acc} />
+          <rect x="10" y="20" width="12" height="7" fill={det} />
+          <rect x="11" y="21" width="4" height="3" fill={acc} />
+          <rect x="17" y="21" width="4" height="3" fill={acc} />
+          {/* Nose */}
+          <rect x="13" y="20" width="6" height="3" fill={det} />
         </>
       );
 
+    // ── RAPTOR (bird face) ───────────────────────────────────────────────────
     case "raptor":
       return (
         <>
-          {/* Head feather crest */}
-          <polygon points="8,6 12,1 16,6 20,1 24,6" fill={acc} />
+          {/* Crest feathers */}
+          <polygon points="10,8 12,0 14,8" fill={acc} />
+          <polygon points="14,6 16,0 18,6" fill={acc} />
+          <polygon points="18,8 20,0 22,8" fill={acc} />
           {/* Head */}
-          <ellipse cx="16" cy="16" rx="12" ry="11" fill={acc} />
-          {/* Eyes */}
-          <circle cx="10" cy="13" r="3.5" fill={det} />
-          <circle cx="22" cy="13" r="3.5" fill={det} />
-          <circle cx="10" cy="13" r="1.8" fill={acc} />
-          <circle cx="22" cy="13" r="1.8" fill={acc} />
-          <circle cx="10.5" cy="12.5" r="0.7" fill={det} />
-          <circle cx="22.5" cy="12.5" r="0.7" fill={det} />
+          <polygon points="6,10 10,6 22,6 26,10 28,20 24,28 8,28 4,20" fill={acc} />
+          {/* Left eye ring + pupil */}
+          <rect x="8" y="12" width="7" height="7" fill={det} />
+          <rect x="9" y="13" width="4" height="4" fill={acc} />
+          <rect x="10" y="14" width="2" height="2" fill={det} />
+          {/* Right eye ring + pupil */}
+          <rect x="17" y="12" width="7" height="7" fill={det} />
+          <rect x="18" y="13" width="4" height="4" fill={acc} />
+          <rect x="19" y="14" width="2" height="2" fill={det} />
           {/* Hooked beak */}
-          <polygon points="12,20 16,17 20,20 16,26" fill={det} />
-          <polygon points="12,20 20,20 16,23" fill={acc} />
+          <polygon points="12,20 20,20 19,26 16,28 13,26" fill={det} />
+          <polygon points="13,20 19,20 18,24 16,26 14,24" fill={acc} />
         </>
       );
 
+    // ── BEAR ─────────────────────────────────────────────────────────────────
     case "bear":
       return (
         <>
-          {/* Ears */}
-          <circle cx="8" cy="9" r="5.5" fill={acc} />
-          <circle cx="24" cy="9" r="5.5" fill={acc} />
-          <circle cx="8" cy="9" r="3" fill={det} />
-          <circle cx="24" cy="9" r="3" fill={det} />
+          {/* Left ear */}
+          <rect x="3" y="4" width="8" height="8" fill={acc} />
+          <rect x="5" y="6" width="4" height="4" fill={det} />
+          {/* Right ear */}
+          <rect x="21" y="4" width="8" height="8" fill={acc} />
+          <rect x="23" y="6" width="4" height="4" fill={det} />
           {/* Head */}
-          <ellipse cx="16" cy="20" rx="13" ry="11" fill={acc} />
-          {/* Eyes */}
-          <circle cx="11" cy="17" r="2.5" fill={det} />
-          <circle cx="21" cy="17" r="2.5" fill={det} />
-          <circle cx="11.5" cy="16.5" r="1" fill={acc} />
-          <circle cx="21.5" cy="16.5" r="1" fill={acc} />
+          <polygon points="4,12 8,8 24,8 28,12 28,26 24,30 8,30 4,26" fill={acc} />
+          {/* Left eye */}
+          <rect x="9" y="14" width="5" height="5" fill={det} />
+          <rect x="10" y="15" width="2" height="2" fill={acc} />
+          {/* Right eye */}
+          <rect x="18" y="14" width="5" height="5" fill={det} />
+          <rect x="19" y="15" width="2" height="2" fill={acc} />
           {/* Snout */}
-          <ellipse cx="16" cy="24" rx="5.5" ry="4" fill={det} />
-          <ellipse cx="15" cy="23" rx="1.5" ry="1" fill={acc} />
-          <ellipse cx="17" cy="23" rx="1.5" ry="1" fill={acc} />
+          <rect x="11" y="21" width="10" height="7" fill={det} />
+          <rect x="12" y="22" width="3" height="3" fill={acc} />
+          <rect x="17" y="22" width="3" height="3" fill={acc} />
+          {/* Nose */}
+          <rect x="13" y="21" width="6" height="3" fill={det} />
         </>
       );
 
+    // ── WARRIOR (helmet) ─────────────────────────────────────────────────────
     case "warrior":
       return (
         <>
           {/* Helmet dome */}
-          <path d="M4 20 Q4 3 16 2 Q28 3 28 20Z" fill={acc} />
-          {/* Cheek guards */}
-          <rect x="4" y="19" width="4" height="9" rx="2" fill={acc} />
-          <rect x="24" y="19" width="4" height="9" rx="2" fill={acc} />
+          <polygon points="6,22 4,16 5,10 9,5 16,3 23,5 27,10 28,16 26,22" fill={acc} />
+          {/* Left cheek guard */}
+          <rect x="4" y="21" width="5" height="9" fill={acc} />
+          {/* Right cheek guard */}
+          <rect x="23" y="21" width="5" height="9" fill={acc} />
           {/* Neck guard */}
-          <rect x="6" y="22" width="20" height="5" rx="2" fill={acc} />
+          <rect x="6" y="25" width="20" height="5" fill={acc} />
           {/* Visor slot */}
-          <rect x="7" y="14" width="18" height="7" rx="1" fill={det} />
-          {/* Visor interior */}
-          <rect x="9" y="16" width="14" height="3" rx="1" fill={acc} />
-          {/* Crest line */}
-          <rect x="15" y="2" width="2" height="6" rx="1" fill={det} />
-          {/* Nasal */}
-          <rect x="15" y="14" width="2" height="7" rx="0.5" fill={acc} />
+          <rect x="7" y="14" width="18" height="8" fill={det} />
+          {/* Visor interior highlight */}
+          <rect x="9" y="16" width="14" height="4" fill={acc} />
+          {/* Nasal guard */}
+          <rect x="15" y="13" width="2" height="10" fill={acc} />
+          {/* Crest */}
+          <rect x="15" y="0" width="2" height="5" fill={det} />
         </>
       );
 
+    // ── REPTILE (gator / croc) ───────────────────────────────────────────────
     case "reptile":
       return (
         <>
-          {/* Eye bumps */}
-          <circle cx="9" cy="10" r="5" fill={acc} />
-          <circle cx="23" cy="10" r="5" fill={acc} />
-          <circle cx="9" cy="10" r="2.5" fill={det} />
-          <circle cx="23" cy="10" r="2.5" fill={det} />
-          <circle cx="9" cy="10" r="1" fill={acc} />
-          <circle cx="23" cy="10" r="1" fill={acc} />
-          {/* Head / snout */}
-          <ellipse cx="16" cy="20" rx="14" ry="9" fill={acc} />
-          {/* Nostrils */}
-          <circle cx="13" cy="17" r="1.5" fill={det} />
-          <circle cx="19" cy="17" r="1.5" fill={det} />
+          {/* Eye bumps (raised top of skull) */}
+          <rect x="6" y="4" width="7" height="7" fill={acc} />
+          <rect x="19" y="4" width="7" height="7" fill={acc} />
+          {/* Eyes */}
+          <rect x="8" y="5" width="4" height="4" fill={det} />
+          <rect x="20" y="5" width="4" height="4" fill={det} />
+          <rect x="9" y="6" width="2" height="2" fill={acc} />
+          <rect x="21" y="6" width="2" height="2" fill={acc} />
+          {/* Upper head / snout */}
+          <rect x="2" y="9" width="28" height="12" fill={acc} />
+          {/* Lower jaw */}
+          <rect x="2" y="19" width="28" height="8" fill={acc} />
           {/* Teeth row */}
-          <rect x="7" y="22" width="3" height="4" rx="0.5" fill="#ffffff" />
-          <rect x="12" y="22" width="3" height="4" rx="0.5" fill="#ffffff" />
-          <rect x="17" y="22" width="3" height="4" rx="0.5" fill="#ffffff" />
-          <rect x="22" y="22" width="3" height="4" rx="0.5" fill="#ffffff" />
+          <rect x="4" y="25" width="3" height="5" fill="#ffffff" />
+          <rect x="9" y="25" width="3" height="5" fill="#ffffff" />
+          <rect x="14" y="25" width="3" height="5" fill="#ffffff" />
+          <rect x="19" y="25" width="3" height="5" fill="#ffffff" />
+          <rect x="24" y="25" width="3" height="5" fill="#ffffff" />
+          {/* Nostrils */}
+          <rect x="12" y="14" width="3" height="3" fill={det} />
+          <rect x="17" y="14" width="3" height="3" fill={det} />
         </>
       );
 
+    // ── BOVINE (bull with horns) ─────────────────────────────────────────────
     case "bovine":
       return (
         <>
-          {/* Horns */}
-          <path d="M6 14 Q1 6 5 3 Q9 3 11 12" fill={acc} />
-          <path d="M26 14 Q31 6 27 3 Q23 3 21 12" fill={acc} />
+          {/* Left horn */}
+          <polygon points="4,16 2,6 8,4 12,14" fill={acc} />
+          {/* Right horn */}
+          <polygon points="28,16 30,6 24,4 20,14" fill={acc} />
           {/* Head */}
-          <ellipse cx="16" cy="21" rx="12" ry="10" fill={acc} />
-          {/* Eyes */}
-          <circle cx="11" cy="18" r="2.5" fill={det} />
-          <circle cx="21" cy="18" r="2.5" fill={det} />
-          <circle cx="11.5" cy="17.5" r="1" fill={acc} />
-          <circle cx="21.5" cy="17.5" r="1" fill={acc} />
-          {/* Nose ring area */}
-          <ellipse cx="16" cy="26" rx="5.5" ry="4" fill={det} />
-          <ellipse cx="16" cy="25.5" rx="3" ry="2.5" fill={acc} />
+          <polygon points="4,14 8,10 24,10 28,14 28,26 24,30 8,30 4,26" fill={acc} />
+          {/* Left eye */}
+          <rect x="9" y="15" width="5" height="5" fill={det} />
+          <rect x="10" y="16" width="2" height="2" fill={acc} />
+          {/* Right eye */}
+          <rect x="18" y="15" width="5" height="5" fill={det} />
+          <rect x="19" y="16" width="2" height="2" fill={acc} />
+          {/* Nose plate */}
+          <rect x="10" y="23" width="12" height="6" fill={det} />
+          <rect x="11" y="24" width="4" height="3" fill={acc} />
+          <rect x="17" y="24" width="4" height="3" fill={acc} />
           {/* Nose ring */}
-          <circle cx="16" cy="26" r="2" fill="none" stroke={det} strokeWidth="1.5" />
+          <rect x="14" y="27" width="4" height="2" fill={det} />
         </>
       );
 
+    // ── INSECT (bee / wasp / hornet) ─────────────────────────────────────────
     case "insect":
       return (
         <>
-          {/* Wings */}
-          <ellipse cx="8" cy="14" rx="8" ry="5" fill={acc} opacity="0.85" />
-          <ellipse cx="24" cy="14" rx="8" ry="5" fill={acc} opacity="0.85" />
+          {/* Left wing */}
+          <polygon points="2,10 0,18 10,18 12,10" fill={acc} />
+          {/* Right wing */}
+          <polygon points="30,10 32,18 22,18 20,10" fill={acc} />
           {/* Head */}
-          <circle cx="16" cy="9" r="5.5" fill={acc} />
-          {/* Antennae */}
-          <line x1="13" y1="5" x2="9" y2="1" stroke={acc} strokeWidth="1.8" />
-          <line x1="19" y1="5" x2="23" y2="1" stroke={acc} strokeWidth="1.8" />
-          <circle cx="9" cy="1" r="2" fill={det} />
-          <circle cx="23" cy="1" r="2" fill={det} />
+          <polygon points="11,2 21,2 23,6 23,12 21,14 11,14 9,12 9,6" fill={acc} />
+          {/* Left antenna */}
+          <rect x="12" y="0" width="2" height="4" fill={acc} />
+          <rect x="10" y="0" width="4" height="2" fill={det} />
+          {/* Right antenna */}
+          <rect x="18" y="0" width="2" height="4" fill={acc} />
+          <rect x="18" y="0" width="4" height="2" fill={det} />
           {/* Eyes */}
-          <circle cx="13" cy="9" r="2" fill={det} />
-          <circle cx="19" cy="9" r="2" fill={det} />
+          <rect x="11" y="5" width="3" height="3" fill={det} />
+          <rect x="18" y="5" width="3" height="3" fill={det} />
           {/* Body */}
-          <ellipse cx="16" cy="22" rx="6.5" ry="8.5" fill={acc} />
+          <rect x="11" y="14" width="10" height="16" fill={acc} />
           {/* Stripes */}
-          <path d="M10 19 Q16 17 22 19" stroke={det} strokeWidth="2.5" fill="none" />
-          <path d="M10 23 Q16 21 22 23" stroke={det} strokeWidth="2.5" fill="none" />
-          <path d="M11 27 Q16 25 21 27" stroke={det} strokeWidth="2" fill="none" />
+          <rect x="11" y="17" width="10" height="3" fill={det} />
+          <rect x="11" y="23" width="10" height="3" fill={det} />
         </>
       );
 
+    // ── NAUTICAL (anchor) ────────────────────────────────────────────────────
     case "nautical":
       return (
         <>
-          {/* Anchor ring */}
-          <circle cx="16" cy="8" r="6" fill="none" stroke={acc} strokeWidth="3" />
-          <circle cx="16" cy="8" r="2.5" fill={det} />
+          {/* Anchor ring (square approximation) */}
+          <rect x="12" y="2" width="8" height="2" fill={acc} />
+          <rect x="10" y="4" width="2" height="6" fill={acc} />
+          <rect x="20" y="4" width="2" height="6" fill={acc} />
+          <rect x="12" y="8" width="8" height="2" fill={acc} />
+          {/* Center dot */}
+          <rect x="14" y="3" width="4" height="4" fill={det} />
           {/* Shaft */}
-          <rect x="14.5" y="6" width="3" height="20" rx="1.5" fill={acc} />
+          <rect x="15" y="6" width="2" height="20" fill={acc} />
           {/* Crossbar */}
-          <rect x="7" y="13" width="18" height="3" rx="1.5" fill={acc} />
-          {/* Flukes */}
-          <path d="M14.5 26 Q6 31 4 28 Q4 24 9 24 L14.5 26Z" fill={acc} />
-          <path d="M17.5 26 Q26 31 28 28 Q28 24 23 24 L17.5 26Z" fill={acc} />
-          {/* Wave decoration */}
-          <path d="M4 31 Q8 28 12 31 Q16 34 20 31 Q24 28 28 31" fill="none" stroke={det} strokeWidth="2" />
+          <rect x="7" y="13" width="18" height="3" fill={acc} />
+          {/* Left fluke */}
+          <polygon points="15,26 3,30 5,26 11,24" fill={acc} />
+          {/* Right fluke */}
+          <polygon points="17,26 29,30 27,26 21,24" fill={acc} />
         </>
       );
 
+    // ── ABSTRACT (lightning bolt) ─────────────────────────────────────────────
     case "abstract":
     default:
       return (
         <>
-          {/* Lightning bolt */}
+          {/* Lightning bolt — polygon only, no curves */}
           <polygon
-            points="22,1 9,18 17,18 10,31 23,14 15,14"
+            points="21,1 8,18 17,18 11,31 24,14 15,14"
             fill={acc}
           />
+          {/* Outline layer for contrast */}
           <polygon
-            points="22,1 9,18 17,18 10,31 23,14 15,14"
+            points="21,1 8,18 17,18 11,31 24,14 15,14"
             fill="none"
             stroke={det}
-            strokeWidth="1.5"
+            strokeWidth="2"
           />
         </>
       );

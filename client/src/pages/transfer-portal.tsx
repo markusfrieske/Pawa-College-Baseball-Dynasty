@@ -84,6 +84,7 @@ function PortalPlayerCard({
                   abbreviation={player.originalTeam.abbreviation}
                   primaryColor={player.originalTeam.primaryColor}
                   secondaryColor={player.originalTeam.secondaryColor}
+                  name={player.originalTeam.name}
                   size="sm"
                 />
                 <span className="text-xs text-gray-400">
