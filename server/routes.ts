@@ -2616,7 +2616,7 @@ export async function registerRoutes(
       const coaches = await storage.getCoachesByLeague(req.params.id);
       const userCoach = coaches.find(c => c.userId === req.session.userId);
       
-      const isCommissioner = league.commissionerId === req.session.userId;
+      const isCommissioner = hasCommissionerAccess(league, req.session.userId);
       const isTeamCoach = userCoach && team && userCoach.teamId === team.id;
       
       if (!isCommissioner && !isTeamCoach) {
@@ -2716,7 +2716,7 @@ export async function registerRoutes(
       const coaches = await storage.getCoachesByLeague(req.params.id);
       const userCoach = coaches.find(c => c.userId === req.session.userId);
       
-      const isCommissioner = league.commissionerId === req.session.userId;
+      const isCommissioner = hasCommissionerAccess(league, req.session.userId);
       const isTeamCoach = userCoach && userCoach.teamId === team.id;
       
       if (!isCommissioner && !isTeamCoach) {
@@ -3220,7 +3220,7 @@ export async function registerRoutes(
       res.json({
         players: playersWithDetails,
         myTeamId: userCoach?.teamId || null,
-        isCommissioner: league.commissionerId === req.session.userId,
+        isCommissioner: hasCommissionerAccess(league, req.session.userId),
       });
     } catch (error) {
       console.error("Failed to get transfer portal:", error);
@@ -3441,7 +3441,7 @@ export async function registerRoutes(
 
       const coaches = await storage.getCoachesByLeague(req.params.id);
       const userCoach = coaches.find(c => c.userId === req.session.userId);
-      const isCommissioner = league.commissionerId === req.session.userId;
+      const isCommissioner = hasCommissionerAccess(league, req.session.userId);
       if (!userCoach && !isCommissioner) {
         return res.status(403).json({ message: "Not authorized" });
       }
@@ -3474,7 +3474,7 @@ export async function registerRoutes(
 
       const coaches = await storage.getCoachesByLeague(req.params.id);
       const userCoach = coaches.find(c => c.userId === req.session.userId);
-      const isCommissioner = league.commissionerId === req.session.userId;
+      const isCommissioner = hasCommissionerAccess(league, req.session.userId);
       if (!userCoach && !isCommissioner) {
         return res.status(403).json({ message: "Not authorized" });
       }
@@ -3520,7 +3520,7 @@ export async function registerRoutes(
 
       const coaches = await storage.getCoachesByLeague(req.params.id);
       const userCoach = coaches.find(c => c.userId === req.session.userId);
-      const isCommissioner = league.commissionerId === req.session.userId;
+      const isCommissioner = hasCommissionerAccess(league, req.session.userId);
       if (!userCoach && !isCommissioner) {
         return res.status(403).json({ message: "Not authorized" });
       }
@@ -3562,7 +3562,7 @@ export async function registerRoutes(
 
       const coaches = await storage.getCoachesByLeague(req.params.id);
       const userCoach = coaches.find(c => c.userId === req.session.userId);
-      const isCommissioner = league.commissionerId === req.session.userId;
+      const isCommissioner = hasCommissionerAccess(league, req.session.userId);
       if (!userCoach && !isCommissioner) {
         return res.status(403).json({ message: "Not authorized" });
       }
@@ -3605,7 +3605,7 @@ export async function registerRoutes(
 
       const coaches = await storage.getCoachesByLeague(req.params.id);
       const userCoach = coaches.find(c => c.userId === req.session.userId);
-      const isCommissioner = league.commissionerId === req.session.userId;
+      const isCommissioner = hasCommissionerAccess(league, req.session.userId);
       if (!userCoach && !isCommissioner) {
         return res.status(403).json({ message: "Not authorized" });
       }
@@ -4282,7 +4282,7 @@ export async function registerRoutes(
         userTeamId: userTeam?.id || null,
         humanTeamIds,
         reportsByGameId,
-        isCommissioner: league.commissionerId === req.session.userId,
+        isCommissioner: hasCommissionerAccess(league, req.session.userId),
       });
     } catch (error) {
       console.error("Failed to fetch schedule:", error);
@@ -4421,7 +4421,7 @@ export async function registerRoutes(
       }
 
       // Only involved coaches or the commissioner may read a game report
-      const isCommissioner = fetchLeague.commissionerId === req.session.userId;
+      const isCommissioner = hasCommissionerAccess(fetchLeague, req.session.userId);
       if (!isCommissioner) {
         const fetchCoaches = await storage.getCoachesByLeague(fetchLeagueId);
         const fetchCoach = fetchCoaches.find(c => c.userId === req.session.userId);
@@ -4511,7 +4511,7 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Manual reporting is only available for human-vs-human games" });
       }
 
-      const isCommissioner = league.commissionerId === req.session.userId;
+      const isCommissioner = hasCommissionerAccess(league, req.session.userId);
       const coaches = await storage.getCoachesByLeague(leagueId);
       const coach = coaches.find(c => c.userId === req.session.userId);
       const isInvolvedCoach = coach?.teamId && (game.homeTeamId === coach.teamId || game.awayTeamId === coach.teamId);
@@ -4652,7 +4652,7 @@ export async function registerRoutes(
       if (!game) return res.status(404).json({ message: "Game not found" });
       if (game.leagueId !== leagueId) return res.status(404).json({ message: "Game not found in this league" });
 
-      const isCommissioner = league.commissionerId === req.session.userId;
+      const isCommissioner = hasCommissionerAccess(league, req.session.userId);
       const coaches = await storage.getCoachesByLeague(leagueId);
       const coach = coaches.find(c => c.userId === req.session.userId);
       // Determine which team the current user coaches
@@ -4717,7 +4717,7 @@ export async function registerRoutes(
       if (!game) return res.status(404).json({ message: "Game not found" });
       if (game.leagueId !== leagueId) return res.status(404).json({ message: "Game not found in this league" });
 
-      const isCommissioner = league.commissionerId === req.session.userId;
+      const isCommissioner = hasCommissionerAccess(league, req.session.userId);
       const coaches = await storage.getCoachesByLeague(leagueId);
       const coach = coaches.find(c => c.userId === req.session.userId);
       const userTeamId = coach?.teamId ?? null;
@@ -12082,7 +12082,7 @@ export async function registerRoutes(
       // Commissioner-only: only the commissioner (or their own coach) should see full team readiness
       const allLeagueCoaches = await storage.getCoachesByLeague(league.id);
       const requestingCoach = allLeagueCoaches.find(c => c.userId === req.session.userId);
-      const isCommissioner = league.commissionerId === req.session.userId;
+      const isCommissioner = hasCommissionerAccess(league, req.session.userId);
       if (!isCommissioner && !requestingCoach) {
         return res.status(403).json({ message: "Not authorized to view readiness data" });
       }
@@ -13161,7 +13161,7 @@ export async function registerRoutes(
         return { ...team, coach, user };
       }));
       
-      const isCommissioner = league.commissionerId === userId;
+      const isCommissioner = hasCommissionerAccess(league, userId);
       
       res.json({
         league,
@@ -13328,7 +13328,7 @@ export async function registerRoutes(
       const league = await storage.getLeague(leagueId);
       if (!league) return res.status(404).json({ message: "League not found" });
       const coaches = await storage.getCoachesByLeague(leagueId);
-      const isCommissioner = league.commissionerId === userId;
+      const isCommissioner = hasCommissionerAccess(league, userId);
       const myCoach = coaches.find(c => c.userId === userId);
       if (!isCommissioner && !myCoach) return res.status(403).json({ message: "Not a member of this league" });
       if (!isCommissioner && myCoach?.teamId !== teamId) return res.status(403).json({ message: "Not authorized for this team" });
