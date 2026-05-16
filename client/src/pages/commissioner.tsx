@@ -39,7 +39,8 @@ import {
   BellRing,
   Bot,
   UserX,
-  Crown
+  Crown,
+  Loader2
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -1948,14 +1949,18 @@ function SettingsTab({
                       type="button"
                       disabled={isDelegating}
                       onClick={() => onToggleDelegate(coach.userId, isDelegate)}
-                      className={`ml-3 shrink-0 px-3 py-1.5 rounded text-xs font-medium border transition-all ${
+                      className={`ml-3 shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium border transition-all ${
                         isDelegate
-                          ? "bg-red-500/20 border-red-500/40 text-red-400 hover:bg-red-500/30"
-                          : "bg-gold/20 border-gold/40 text-gold hover:bg-gold/30"
+                          ? "bg-red-500/20 border-red-500/40 text-red-400 hover:bg-red-500/30 disabled:opacity-50"
+                          : "bg-gold/20 border-gold/40 text-gold hover:bg-gold/30 disabled:opacity-50"
                       }`}
                       data-testid={`button-delegate-${isDelegate ? "remove" : "add"}-${coach.coachId}`}
                     >
-                      {isDelegate ? "Revoke" : "Grant"}
+                      {isDelegating ? (
+                        <><Loader2 className="w-3 h-3 animate-spin" /><span>...</span></>
+                      ) : (
+                        isDelegate ? "Revoke" : "Grant"
+                      )}
                     </button>
                   )}
                 </div>

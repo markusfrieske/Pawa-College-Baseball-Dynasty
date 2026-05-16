@@ -420,18 +420,39 @@ export default function LeagueViewPage() {
                 </span>
               </div>
             )}
-            {isPrimaryCommissioner && (
-              <div className="flex items-center gap-1 shrink-0" data-testid="badge-primary-commissioner">
-                <Crown className="w-3 h-3 text-gold" />
-                <Badge variant="outline" className="font-pixel text-[7px] text-gold border-gold/40 bg-gold/10">COMMISSIONER</Badge>
-              </div>
-            )}
-            {!isPrimaryCommissioner && isCommissioner && (
-              <div className="flex items-center gap-1 shrink-0" data-testid="badge-co-commissioner">
-                <Crown className="w-3 h-3 text-blue-400" />
-                <Badge variant="outline" className="font-pixel text-[7px] text-blue-400 border-blue-400/40 bg-blue-400/10">DELEGATE</Badge>
-              </div>
-            )}
+            {(() => {
+              const commTeam = league.teams?.find(t => t.coach?.userId === league.commissionerId);
+              const commLabel = commTeam?.abbreviation ?? "COMM";
+              const coCommTeams = coCommIds.map(uid => league.teams?.find(t => t.coach?.userId === uid)).filter(Boolean);
+              return (
+                <>
+                  <div className="flex items-center gap-1 shrink-0" data-testid="badge-commissioner-identity">
+                    <Crown className="w-3 h-3 text-gold" />
+                    <Badge variant="outline" className="font-pixel text-[7px] text-gold border-gold/40 bg-gold/10">
+                      {isPrimaryCommissioner ? "COMMISSIONER" : `COMM: ${commLabel}`}
+                    </Badge>
+                  </div>
+                  {coCommTeams.length > 0 && coCommIds.some(uid => uid !== currentUser?.id) && (
+                    coCommTeams.map(t => (
+                      t && t.coach?.userId !== currentUser?.id && (
+                        <div key={t.id} className="flex items-center gap-1 shrink-0" data-testid={`badge-delegate-identity-${t.id}`}>
+                          <Crown className="w-3 h-3 text-blue-400" />
+                          <Badge variant="outline" className="font-pixel text-[7px] text-blue-400 border-blue-400/40 bg-blue-400/10">
+                            DEL: {t.abbreviation}
+                          </Badge>
+                        </div>
+                      )
+                    ))
+                  )}
+                  {!isPrimaryCommissioner && isCommissioner && (
+                    <div className="flex items-center gap-1 shrink-0" data-testid="badge-co-commissioner">
+                      <Crown className="w-3 h-3 text-blue-400" />
+                      <Badge variant="outline" className="font-pixel text-[7px] text-blue-400 border-blue-400/40 bg-blue-400/10">DELEGATE</Badge>
+                    </div>
+                  )}
+                </>
+              );
+            })()}
             {canShowRecap && (
               <button
                 onClick={() => { setRecapSeason(recapSeasonNum); setShowRecap(true); }}
