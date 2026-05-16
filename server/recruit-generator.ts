@@ -250,9 +250,10 @@ export function generateRecruitClass(
     { value: 3, weight: 7 },
   ]);
   const numGenBusts = rollWeighted([
-    { value: 0, weight: 22 },
+    { value: 0, weight: 20 },
     { value: 1, weight: 55 },
-    { value: 2, weight: 23 },
+    { value: 2, weight: 22 },
+    { value: 3, weight: 3 },
   ]);
 
   const getTargetAttrAvgForRecruit = (starRank: number, isBlueChip: boolean, isGem: boolean, isBust: boolean, isPitcher: boolean): number => {
@@ -626,6 +627,7 @@ export function generateRecruitClass(
     }
 
     if (themeBoost.attr === "velocity") velocity = Math.min(99, velocity + themeBoost.boost);
+    if (theme === "elite_pitching" && isPitcher) stuff = Math.min(99, stuff + 10);
     if (themeBoost.attr === "power") power = Math.min(99, power + themeBoost.boost);
 
     const pitchMix = generatePitchMix(isPitcher);
@@ -718,21 +720,39 @@ export function generateRecruitClass(
       potentialCeiling = Math.min(57, potential + 4);
     }
 
+    // Weighted trait distribution: low 20%, below-avg 30%, avg 35%, good 12%, elite 3%
+    const rollTraitScore = (biasHigh = false, biasLow = false): number => {
+      const buckets = biasHigh
+        ? [{ min: 60, max: 72, w: 10 }, { min: 73, max: 82, w: 30 }, { min: 83, max: 90, w: 40 }, { min: 91, max: 96, w: 15 }, { min: 97, max: 99, w: 5 }]
+        : biasLow
+        ? [{ min: 50, max: 59, w: 35 }, { min: 60, max: 69, w: 40 }, { min: 70, max: 78, w: 20 }, { min: 79, max: 85, w: 5 }, { min: 86, max: 90, w: 0 }]
+        : [{ min: 50, max: 64, w: 20 }, { min: 65, max: 74, w: 30 }, { min: 75, max: 84, w: 35 }, { min: 85, max: 92, w: 12 }, { min: 93, max: 99, w: 3 }];
+      const total = buckets.reduce((s, b) => s + b.w, 0);
+      let roll = Math.random() * total;
+      for (const b of buckets) {
+        roll -= b.w;
+        if (roll <= 0) return b.min + Math.floor(Math.random() * (b.max - b.min + 1));
+      }
+      return buckets[buckets.length - 1].min;
+    };
+
     const workEthicScore = isGenerationalBust
       ? 50 + Math.floor(Math.random() * 10)
       : isGenerationalGem
         ? 88 + Math.floor(Math.random() * 12)
-        : 50 + Math.floor(Math.random() * 50);
+        : playerArchetype === "late_bloomer"
+          ? rollTraitScore(true, false)
+          : rollTraitScore();
 
     const coachability = isGenerationalBust
       ? 50 + Math.floor(Math.random() * 10)
       : isGenerationalGem
         ? 85 + Math.floor(Math.random() * 15)
         : playerArchetype === "late_bloomer"
-          ? 72 + Math.floor(Math.random() * 20)
+          ? rollTraitScore(true, false)
           : playerArchetype === "overdraft"
-            ? 50 + Math.floor(Math.random() * 18)
-            : 50 + Math.floor(Math.random() * 50);
+            ? rollTraitScore(false, true)
+            : rollTraitScore();
 
     out.push({
       firstName: firstNames[Math.floor(Math.random() * firstNames.length)],
