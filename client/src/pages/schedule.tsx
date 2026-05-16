@@ -9,7 +9,7 @@ import { TeamBadge } from "@/components/ui/team-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Calendar, Check, Edit2, Lock, Play, FileText, AlertTriangle, CheckCircle, XCircle } from "lucide-react";
+import { ArrowLeft, Calendar, Check, Edit2, Lock, Play, FileText, AlertTriangle, CheckCircle, XCircle, Swords, User, Star } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Game, Team } from "@shared/schema";
@@ -73,6 +73,28 @@ interface BoxScoreData {
   away: BoxScoreTeam;
 }
 
+interface MatchupPreviewTeam {
+  id: string;
+  name: string;
+  abbreviation: string;
+  primaryColor: string;
+  secondaryColor: string;
+  mascot: string;
+  prestige: number;
+  isCpu: boolean;
+  coachName: string;
+  coachArchetype: string | null;
+  record: { wins: number; losses: number };
+  top3: { name: string; position: string; overall: number; starRating: number }[];
+}
+
+interface MatchupPreviewData {
+  homeTeam: MatchupPreviewTeam;
+  awayTeam: MatchupPreviewTeam;
+  h2h: { homeWins: number; awayWins: number; totalGames: number };
+  game: { id: string; isComplete: boolean; isConference: boolean; gameType: string | null; week: number; season: number };
+}
+
 export default function SchedulePage() {
   const { id } = useParams<{ id: string }>();
   const [editingGame, setEditingGame] = useState<GameWithTeams | null>(null);
@@ -80,6 +102,7 @@ export default function SchedulePage() {
   const [showMyTeam, setShowMyTeam] = useState(true);
   const [disputeGameId, setDisputeGameId] = useState<string | null>(null);
   const [disputeReason, setDisputeReason] = useState("");
+  const [matchupPreviewGameId, setMatchupPreviewGameId] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -210,6 +233,7 @@ export default function SchedulePage() {
                     allGamesInGroup={group.games}
                     onEdit={() => setEditingGame(game)}
                     onViewBoxScore={() => setBoxScoreGame(game)}
+                    onMatchupPreview={() => setMatchupPreviewGameId(game.id)}
                     userTeamId={data?.userTeamId}
                     leagueId={id!}
                     humanTeamIds={data?.humanTeamIds ?? []}
@@ -290,15 +314,22 @@ export default function SchedulePage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <MatchupPreviewModal
+        leagueId={id!}
+        gameId={matchupPreviewGameId}
+        onClose={() => setMatchupPreviewGameId(null)}
+      />
     </div>
   );
 }
 
-function GameRow({ game, allGamesInGroup, onEdit, onViewBoxScore, userTeamId, leagueId, humanTeamIds, report, onConfirm, onDispute, isConfirming, isDisputing, isCommissioner }: {
+function GameRow({ game, allGamesInGroup, onEdit, onViewBoxScore, onMatchupPreview, userTeamId, leagueId, humanTeamIds, report, onConfirm, onDispute, isConfirming, isDisputing, isCommissioner }: {
   game: GameWithTeams;
   allGamesInGroup: GameWithTeams[];
   onEdit: () => void;
   onViewBoxScore: () => void;
+  onMatchupPreview: () => void;
   userTeamId?: string | null;
   leagueId: string;
   humanTeamIds: string[];
@@ -347,7 +378,7 @@ function GameRow({ game, allGamesInGroup, onEdit, onViewBoxScore, userTeamId, le
         }`} 
         data-testid={`card-game-${game.id}`}
       >
-        <div className="flex-1 flex items-center gap-3">
+        <div className="flex-1 flex items-center gap-3 min-w-0">
           <TeamBadge
             abbreviation={game.awayTeam.abbreviation}
             primaryColor={game.awayTeam.primaryColor}
@@ -356,7 +387,14 @@ function GameRow({ game, allGamesInGroup, onEdit, onViewBoxScore, userTeamId, le
             mascot={game.awayTeam.mascot}
             size="sm"
           />
-          <span className="font-medium text-sm">{game.awayTeam.name}</span>
+          <div className="min-w-0">
+            <span className="font-medium text-sm block truncate">{game.awayTeam.name}</span>
+            {isHumanVsHuman && !game.isComplete && (
+              <span className="font-pixel text-[7px] text-amber-400 flex items-center gap-1 mt-0.5">
+                <Swords className="w-2.5 h-2.5" /> RIVALRY
+              </span>
+            )}
+          </div>
         </div>
 
         {game.isComplete ? (
@@ -414,6 +452,18 @@ function GameRow({ game, allGamesInGroup, onEdit, onViewBoxScore, userTeamId, le
         </div>
 
         <div className="flex items-center gap-1">
+          {!game.isComplete && isHumanVsHuman && (
+            <RetroButton
+              variant="outline"
+              size="sm"
+              onClick={onMatchupPreview}
+              title="View Matchup Preview"
+              data-testid={`button-matchup-preview-${game.id}`}
+              className="border-gold/60 text-gold/80 hover:text-gold hover:border-gold"
+            >
+              <Swords className="w-3 h-3" />
+            </RetroButton>
+          )}
           {!game.isComplete && (
             <>
               {isHumanVsHuman && (isUserGame || isCommissioner) && !report && (
@@ -500,6 +550,116 @@ function GameRow({ game, allGamesInGroup, onEdit, onViewBoxScore, userTeamId, le
         </div>
       )}
     </div>
+  );
+}
+
+function MatchupPreviewModal({ leagueId, gameId, onClose }: { leagueId: string; gameId: string | null; onClose: () => void }) {
+  const { data, isLoading } = useQuery<MatchupPreviewData>({
+    queryKey: ["/api/leagues", leagueId, "games", gameId, "matchup-preview"],
+    enabled: !!gameId,
+  });
+
+  const starColor = (s: number) => s >= 5 ? "text-amber-400" : s >= 4 ? "text-gold" : s >= 3 ? "text-yellow-200" : "text-muted-foreground";
+
+  const TeamPanel = ({ team, h2hWins, isHome }: { team: MatchupPreviewTeam; h2hWins: number; isHome: boolean }) => (
+    <div className={`flex-1 min-w-0 ${isHome ? "text-right" : "text-left"}`}>
+      <div className={`flex items-center gap-2 mb-2 ${isHome ? "flex-row-reverse" : ""}`}>
+        <TeamBadge
+          abbreviation={team.abbreviation}
+          primaryColor={team.primaryColor}
+          secondaryColor={team.secondaryColor}
+          name={team.name}
+          mascot={team.mascot}
+          size="md"
+        />
+        <div className={isHome ? "text-right" : ""}>
+          <p className="font-medium text-sm leading-tight">{team.name}</p>
+          <p className="text-xs text-muted-foreground">{team.record.wins}-{team.record.losses}</p>
+        </div>
+      </div>
+      <div className={`flex items-center gap-1 text-xs text-muted-foreground mb-2 ${isHome ? "justify-end" : ""}`}>
+        {team.isCpu ? null : <User className="w-3 h-3 text-gold" />}
+        <span>{team.coachName}</span>
+        {team.coachArchetype && <span className="text-[10px] text-muted-foreground/60">({team.coachArchetype})</span>}
+      </div>
+      <div className="space-y-1">
+        <p className="font-pixel text-[8px] text-muted-foreground mb-1">TOP PLAYERS</p>
+        {team.top3.map((p, i) => (
+          <div key={i} className={`flex items-center gap-2 text-xs ${isHome ? "flex-row-reverse" : ""}`}>
+            <span className={`font-pixel text-[8px] ${starColor(p.starRating)}`}>{Array.from({ length: Math.min(p.starRating, 5) }, () => "★").join("")}</span>
+            <span className="text-foreground">{p.name}</span>
+            <span className="text-muted-foreground text-[10px]">{p.position}</span>
+            <span className="font-mono text-[10px] text-gold/70">{p.overall}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  return (
+    <Dialog open={!!gameId} onOpenChange={open => { if (!open) onClose(); }}>
+      <DialogContent className="bg-[#1a2e1a] border-gold/50 max-w-2xl" data-testid="dialog-matchup-preview">
+        <DialogHeader>
+          <DialogTitle className="font-pixel text-gold text-sm flex items-center gap-2">
+            <Swords className="w-4 h-4" /> Rivalry Matchup Preview
+          </DialogTitle>
+        </DialogHeader>
+
+        {isLoading ? (
+          <div className="py-10 flex items-center justify-center">
+            <div className="font-pixel text-[9px] text-muted-foreground">Loading matchup data...</div>
+          </div>
+        ) : !data ? (
+          <div className="py-10 text-center text-muted-foreground text-sm">Matchup data unavailable.</div>
+        ) : (
+          <div className="space-y-4">
+            {/* Game context */}
+            <div className="flex items-center justify-center gap-2 text-[10px] text-muted-foreground">
+              <span className={`px-2 py-0.5 rounded font-pixel text-[8px] ${data.game.isConference ? "bg-blue-500/20 text-blue-400" : "bg-muted/50"}`}>
+                {data.game.isConference ? "CONF" : "OOC"}
+              </span>
+              <span>Week {data.game.week}</span>
+              {data.game.gameType && (
+                <span className="capitalize">{data.game.gameType}</span>
+              )}
+            </div>
+
+            {/* Teams */}
+            <div className="flex items-start gap-4">
+              <TeamPanel team={data.awayTeam} h2hWins={data.h2h.awayWins} isHome={false} />
+
+              <div className="flex-shrink-0 text-center px-2 pt-2">
+                <div className="font-pixel text-muted-foreground text-[10px] mb-1">@</div>
+                {data.h2h.totalGames > 0 ? (
+                  <div className="mt-4">
+                    <p className="font-pixel text-[7px] text-muted-foreground mb-1">ALL-TIME H2H</p>
+                    <p className="font-pixel text-xs text-gold">
+                      {data.h2h.awayWins}–{data.h2h.homeWins}
+                    </p>
+                    <p className="text-[9px] text-muted-foreground mt-0.5">
+                      {data.h2h.awayWins === data.h2h.homeWins ? "Tied" : data.h2h.awayWins > data.h2h.homeWins ? `${data.awayTeam.abbreviation} leads` : `${data.homeTeam.abbreviation} leads`}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="mt-4">
+                    <p className="font-pixel text-[7px] text-muted-foreground">FIRST</p>
+                    <p className="font-pixel text-[7px] text-muted-foreground">MEETING</p>
+                  </div>
+                )}
+              </div>
+
+              <TeamPanel team={data.homeTeam} h2hWins={data.h2h.homeWins} isHome={true} />
+            </div>
+
+            <div className="text-center">
+              <RetroButton variant="outline" size="sm" onClick={onClose} data-testid="button-close-matchup-preview">
+                Close
+              </RetroButton>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 

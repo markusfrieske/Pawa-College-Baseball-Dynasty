@@ -1375,6 +1375,15 @@ function StandingsTab({ league }: { league: LeagueDetails }) {
                         <Link href={`/league/${league.id}/team/${team.id}`}>
                           <span className="font-medium hover:text-gold cursor-pointer truncate max-w-[90px] sm:max-w-none block" data-testid={`link-team-standings-${team.id}`}>{team.name}</span>
                         </Link>
+                        {!team.isCpu && (
+                          <span
+                            className="hidden sm:inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-gold/20 border border-gold/40 flex-shrink-0"
+                            title="Human-controlled team"
+                            data-testid={`badge-human-team-${team.id}`}
+                          >
+                            <User className="w-2 h-2 text-gold" />
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td className="py-3 px-2 hidden lg:table-cell">

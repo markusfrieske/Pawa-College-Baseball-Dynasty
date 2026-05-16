@@ -4431,6 +4431,97 @@ export async function registerRoutes(
     }
   });
 
+  // Matchup preview — head-to-head data for a specific game
+  app.get("/api/leagues/:id/games/:gameId/matchup-preview", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      const allLeagueGames = await storage.getGamesByLeague(league.id);
+      const game = allLeagueGames.find(g => g.id === req.params.gameId);
+      if (!game) return res.status(404).json({ message: "Game not found" });
+
+      const leagueTeams = await storage.getTeamsByLeague(league.id);
+      const homeTeam = leagueTeams.find(t => t.id === game.homeTeamId);
+      const awayTeam = leagueTeams.find(t => t.id === game.awayTeamId);
+      if (!homeTeam || !awayTeam) return res.status(404).json({ message: "Teams not found" });
+
+      const [coaches, allStandings, homePlayers, awayPlayers] = await Promise.all([
+        storage.getCoachesByLeague(league.id),
+        storage.getStandingsByLeague(league.id, league.currentSeason),
+        storage.getPlayersByTeam(homeTeam.id),
+        storage.getPlayersByTeam(awayTeam.id),
+      ]);
+
+      const homeCoach = coaches.find(c => c.teamId === homeTeam.id);
+      const awayCoach = coaches.find(c => c.teamId === awayTeam.id);
+      const homeStandings = allStandings.find(s => s.teamId === homeTeam.id);
+      const awayStandings = allStandings.find(s => s.teamId === awayTeam.id);
+
+      const top3 = (playerList: typeof homePlayers) =>
+        [...playerList]
+          .sort((a, b) => (b.overall || 0) - (a.overall || 0))
+          .slice(0, 3)
+          .map(p => ({ name: `${p.firstName} ${p.lastName}`, position: p.position, overall: p.overall, starRating: p.starRating }));
+
+      // H2H all-time record (excluding the current game itself)
+      const h2hGames = allLeagueGames.filter(g =>
+        g.isComplete && g.id !== game.id && (
+          (g.homeTeamId === homeTeam.id && g.awayTeamId === awayTeam.id) ||
+          (g.homeTeamId === awayTeam.id && g.awayTeamId === homeTeam.id)
+        )
+      );
+      const homeH2HWins = h2hGames.filter(g =>
+        (g.homeTeamId === homeTeam.id && (g.homeScore ?? 0) > (g.awayScore ?? 0)) ||
+        (g.awayTeamId === homeTeam.id && (g.awayScore ?? 0) > (g.homeScore ?? 0))
+      ).length;
+      const awayH2HWins = h2hGames.length - homeH2HWins;
+
+      res.json({
+        homeTeam: {
+          id: homeTeam.id,
+          name: homeTeam.name,
+          abbreviation: homeTeam.abbreviation,
+          primaryColor: homeTeam.primaryColor,
+          secondaryColor: homeTeam.secondaryColor,
+          mascot: homeTeam.mascot,
+          prestige: homeTeam.prestige,
+          isCpu: homeTeam.isCpu,
+          coachName: homeCoach ? `${homeCoach.firstName} ${homeCoach.lastName}` : "CPU Coach",
+          coachArchetype: homeCoach?.archetype ?? null,
+          record: { wins: homeStandings?.wins ?? 0, losses: homeStandings?.losses ?? 0 },
+          top3: top3(homePlayers),
+        },
+        awayTeam: {
+          id: awayTeam.id,
+          name: awayTeam.name,
+          abbreviation: awayTeam.abbreviation,
+          primaryColor: awayTeam.primaryColor,
+          secondaryColor: awayTeam.secondaryColor,
+          mascot: awayTeam.mascot,
+          prestige: awayTeam.prestige,
+          isCpu: awayTeam.isCpu,
+          coachName: awayCoach ? `${awayCoach.firstName} ${awayCoach.lastName}` : "CPU Coach",
+          coachArchetype: awayCoach?.archetype ?? null,
+          record: { wins: awayStandings?.wins ?? 0, losses: awayStandings?.losses ?? 0 },
+          top3: top3(awayPlayers),
+        },
+        h2h: { homeWins: homeH2HWins, awayWins: awayH2HWins, totalGames: h2hGames.length },
+        game: {
+          id: game.id,
+          isComplete: game.isComplete,
+          isConference: game.isConference,
+          gameType: game.gameType,
+          week: game.week,
+          season: game.season,
+        },
+      });
+    } catch (error) {
+      console.error("Failed to fetch matchup preview:", error);
+      res.status(500).json({ message: "Failed to fetch matchup preview" });
+    }
+  });
+
   app.patch("/api/leagues/:id/games/:gameId", requireAuth, async (req, res) => {
     try {
       const result = gameScoreSchema.safeParse(req.body);
@@ -6705,6 +6796,10 @@ export async function registerRoutes(
         }
         // ======= ACTIVITY FEED: log notable game results =======
         try {
+          // Pre-compute H2H records for human-vs-human pairs from already-completed games
+          const allCompletedBeforeSim = (await storage.getGamesByLeague(leagueId)).filter(g => g.isComplete);
+          const humanTeamIdsSet = new Set(leagueTeamsForSim.filter(t => !t.isCpu).map(t => t.id));
+
           for (const { game, result } of gameResults) {
             const homeTeamFeed = leagueTeamsForSim.find(t => t.id === game.homeTeamId);
             const awayTeamFeed = leagueTeamsForSim.find(t => t.id === game.awayTeamId);
@@ -6714,14 +6809,34 @@ export async function registerRoutes(
             const loser = homeWon ? awayTeamFeed : homeTeamFeed;
             const winScore = homeWon ? result.homeScore : result.awayScore;
             const lossScore = homeWon ? result.awayScore : result.homeScore;
+            const isRivalry = humanTeamIdsSet.has(homeTeamFeed.id) && humanTeamIdsSet.has(awayTeamFeed.id);
+
+            let description = `${winner.abbreviation} def. ${loser.abbreviation} ${winScore}-${lossScore}${game.isConference ? " (Conf)" : ""}`;
+            if (isRivalry) {
+              // Compute updated H2H record including this result
+              const h2hPrior = allCompletedBeforeSim.filter(g =>
+                (g.homeTeamId === homeTeamFeed.id && g.awayTeamId === awayTeamFeed.id) ||
+                (g.homeTeamId === awayTeamFeed.id && g.awayTeamId === homeTeamFeed.id)
+              );
+              const winnerPriorWins = h2hPrior.filter(g =>
+                (g.homeTeamId === winner.id && (g.homeScore ?? 0) > (g.awayScore ?? 0)) ||
+                (g.awayTeamId === winner.id && (g.awayScore ?? 0) > (g.homeScore ?? 0))
+              ).length;
+              const loserPriorWins = h2hPrior.length - winnerPriorWins;
+              const winnerNewWins = winnerPriorWins + 1;
+              const margin = winScore - lossScore;
+              const resultFlair = margin === 1 ? "edges" : margin <= 3 ? "defeats" : "handles";
+              description = `RIVALRY: ${winner.abbreviation} ${resultFlair} ${loser.abbreviation} ${winScore}-${lossScore}${game.isConference ? " (Conf)" : ""} — Series ${winnerNewWins}-${loserPriorWins} ${winner.abbreviation}`;
+            }
+
             await storage.createLeagueEvent({
               leagueId,
               teamId: winner.id,
               teamName: winner.name,
               teamAbbreviation: winner.abbreviation,
               teamPrimaryColor: winner.primaryColor ?? null,
-              eventType: "GAME_RESULT",
-              description: `${winner.abbreviation} def. ${loser.abbreviation} ${winScore}-${lossScore}${game.isConference ? " (Conf)" : ""}`,
+              eventType: isRivalry ? "RIVALRY_RESULT" : "GAME_RESULT",
+              description,
               season: league.currentSeason,
               week: currentWeek,
             });
