@@ -42,47 +42,63 @@ import { AtmosphereRouter } from "@/components/atmosphere-router";
 import { MobileNav } from "@/components/mobile-nav";
 import { useToast } from "@/hooks/use-toast";
 
-function Router() {
+/**
+ * Thin page-transition wrapper — applies a quick fade+slide-up
+ * whenever the active route changes, keyed on the pathname.
+ */
+function PageTransition({ children, location }: { children: React.ReactNode; location: string }) {
   return (
-    <Switch>
-      <Route path="/" component={LandingPage} />
-      <Route path="/login">
-        <AuthPage mode="login" />
-      </Route>
-      <Route path="/register">
-        <AuthPage mode="register" />
-      </Route>
-      <Route path="/guest" component={GuestPage} />
-      <Route path="/dashboard" component={DashboardPage} />
-      <Route path="/league/create" component={LeagueCreatePage} />
-      <Route path="/league/:id" component={LeagueViewPage} />
-      <Route path="/league/:id/team-selection" component={TeamSelectionPage} />
-      <Route path="/league/:id/setup" component={LeagueSetupPage} />
-      <Route path="/league/:id/dynasty-setup" component={DynastySetupPage} />
-      <Route path="/league/:id/recruiting" component={RecruitingPage} />
-      <Route path="/league/:id/roster" component={RosterPage} />
-      <Route path="/league/:id/schedule" component={SchedulePage} />
-      <Route path="/league/:id/commissioner" component={CommissionerPage} />
-      <Route path="/league/:id/edit-rosters" component={EditRostersPage} />
-      <Route path="/league/:id/edit-recruits" component={EditRecruitsPage} />
-      <Route path="/league/:id/players-leaving" component={PlayersLeavingPage} />
-      <Route path="/league/:id/transfer-portal" component={TransferPortalPage} />
-      <Route path="/league/:id/commits" component={CommitsPage} />
-      <Route path="/league/:id/departures" component={DeparturesPage} />
-      <Route path="/league/:id/walkons" component={WalkonsPage} />
-      <Route path="/league/:id/storylines" component={StorylinesPage} />
-      <Route path="/league/:id/game/:gameId/play-by-play" component={PlayByPlayPage} />
-      <Route path="/league/:id/report-game/:gameId" component={ReportGamePage} />
-      <Route path="/league/:id/team/:teamId" component={TeamViewPage} />
-      <Route path="/league/:id/recruit/:recruitId" component={RecruitProfilePage} />
-      <Route path="/league/:id/coach" component={CoachProfilePage} />
-      <Route path="/league/:id/coach/:coachId" component={CoachProfileByIdPage} />
-      <Route path="/coach/:coachId" component={CoachProfileByIdPage} />
-      <Route path="/manage-rosters" component={ManageRostersPage} />
-      <Route path="/manage-recruiting" component={ManageRecruitingPage} />
-      <Route path="/invite/:code" component={InvitePage} />
-      <Route component={NotFound} />
-    </Switch>
+    <div key={location} className="page-fade-in">
+      {children}
+    </div>
+  );
+}
+
+function Router() {
+  const [location] = useLocation();
+
+  return (
+    <PageTransition location={location}>
+      <Switch>
+        <Route path="/" component={LandingPage} />
+        <Route path="/login">
+          <AuthPage mode="login" />
+        </Route>
+        <Route path="/register">
+          <AuthPage mode="register" />
+        </Route>
+        <Route path="/guest" component={GuestPage} />
+        <Route path="/dashboard" component={DashboardPage} />
+        <Route path="/league/create" component={LeagueCreatePage} />
+        <Route path="/league/:id" component={LeagueViewPage} />
+        <Route path="/league/:id/team-selection" component={TeamSelectionPage} />
+        <Route path="/league/:id/setup" component={LeagueSetupPage} />
+        <Route path="/league/:id/dynasty-setup" component={DynastySetupPage} />
+        <Route path="/league/:id/recruiting" component={RecruitingPage} />
+        <Route path="/league/:id/roster" component={RosterPage} />
+        <Route path="/league/:id/schedule" component={SchedulePage} />
+        <Route path="/league/:id/commissioner" component={CommissionerPage} />
+        <Route path="/league/:id/edit-rosters" component={EditRostersPage} />
+        <Route path="/league/:id/edit-recruits" component={EditRecruitsPage} />
+        <Route path="/league/:id/players-leaving" component={PlayersLeavingPage} />
+        <Route path="/league/:id/transfer-portal" component={TransferPortalPage} />
+        <Route path="/league/:id/commits" component={CommitsPage} />
+        <Route path="/league/:id/departures" component={DeparturesPage} />
+        <Route path="/league/:id/walkons" component={WalkonsPage} />
+        <Route path="/league/:id/storylines" component={StorylinesPage} />
+        <Route path="/league/:id/game/:gameId/play-by-play" component={PlayByPlayPage} />
+        <Route path="/league/:id/report-game/:gameId" component={ReportGamePage} />
+        <Route path="/league/:id/team/:teamId" component={TeamViewPage} />
+        <Route path="/league/:id/recruit/:recruitId" component={RecruitProfilePage} />
+        <Route path="/league/:id/coach" component={CoachProfilePage} />
+        <Route path="/league/:id/coach/:coachId" component={CoachProfileByIdPage} />
+        <Route path="/coach/:coachId" component={CoachProfileByIdPage} />
+        <Route path="/manage-rosters" component={ManageRostersPage} />
+        <Route path="/manage-recruiting" component={ManageRecruitingPage} />
+        <Route path="/invite/:code" component={InvitePage} />
+        <Route component={NotFound} />
+      </Switch>
+    </PageTransition>
   );
 }
 

@@ -172,7 +172,19 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
   const cardContent = (
     <>
         {/* Name, Bio & Details Section */}
-        <div className="p-4 border-b border-border">
+        <div
+          className="p-4 border-b border-border relative overflow-hidden"
+          style={{ background: "linear-gradient(135deg, hsl(120 22% 16%) 0%, hsl(120 20% 13%) 100%)" }}
+        >
+          {/* 5-star gold stripe across top edge */}
+          {player.starRating >= 5 && (
+            <span
+              className="pointer-events-none absolute top-0 h-[2px] left-0 right-0"
+              style={{
+                background: "linear-gradient(90deg, transparent 0%, rgba(196,163,90,0.9) 50%, transparent 100%)",
+              }}
+            />
+          )}
           <div className="flex items-center gap-3">
             <PlayerPortrait
               skinTone={player.skinTone || "light"}
@@ -250,7 +262,19 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
             </div>
             <div className="flex items-center gap-3 ml-auto">
               <div className="flex items-center gap-1">
-                <span className="font-pixel text-gold text-lg" data-testid="text-overall">{player.overall}</span>
+                <span
+                  className="font-pixel text-gold text-lg"
+                  data-testid="text-overall"
+                  style={{
+                    textShadow: player.starRating >= 5
+                      ? "0 0 10px rgba(196,163,90,0.9), 0 0 24px rgba(196,163,90,0.5)"
+                      : player.starRating >= 4
+                      ? "0 0 8px rgba(196,163,90,0.65), 0 0 18px rgba(196,163,90,0.30)"
+                      : player.starRating >= 3
+                      ? "0 0 5px rgba(196,163,90,0.40)"
+                      : undefined,
+                  }}
+                >{player.overall}</span>
                 <span className="text-xs">OVR</span>
                 {player.progressionDeltas?.overall != null && player.progressionDeltas.overall !== 0 && (
                   <span className={`flex items-center text-xs font-bold ${player.progressionDeltas.overall > 0 ? "text-green-400" : "text-red-400"}`} data-testid="text-ovr-delta">
@@ -311,17 +335,29 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
             <div className="flex flex-wrap gap-2">
               {player.abilities.map((abilityName, idx) => {
                 const ability = getAbilityByName(abilityName);
-                const tierColors = {
-                  gold: "bg-yellow-600/20 border-yellow-500 text-yellow-400",
-                  blue: "bg-blue-600/20 border-blue-500 text-blue-400",
-                  red: "bg-red-600/20 border-red-500 text-red-400",
+                const tierStyles: Record<string, { className: string; style: React.CSSProperties }> = {
+                  gold: {
+                    className: "bg-yellow-600/20 border-yellow-500 text-yellow-400",
+                    style: { textShadow: "0 0 8px rgba(196,163,90,0.70)", boxShadow: "0 0 6px rgba(196,163,90,0.25)" },
+                  },
+                  blue: {
+                    className: "bg-blue-600/20 border-blue-500 text-blue-400",
+                    style: { textShadow: "0 0 8px rgba(59,130,246,0.70)", boxShadow: "0 0 6px rgba(59,130,246,0.22)" },
+                  },
+                  red: {
+                    className: "bg-red-600/20 border-red-500 text-red-400",
+                    style: { textShadow: "0 0 8px rgba(239,68,68,0.70)", boxShadow: "0 0 6px rgba(239,68,68,0.22)" },
+                  },
                 };
+                const tier = ability?.tier;
+                const tierStyle = tier ? tierStyles[tier] : null;
                 
                 return (
                   <Badge 
                     key={idx}
                     variant="outline"
-                    className={`text-xs ${ability ? tierColors[ability.tier] : ""}`}
+                    className={`text-xs ${tierStyle ? tierStyle.className : ""}`}
+                    style={tierStyle ? tierStyle.style : undefined}
                     title={ability?.description}
                   >
                     {abilityName}

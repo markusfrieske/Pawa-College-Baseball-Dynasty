@@ -6,7 +6,7 @@ const Table = React.forwardRef<
   HTMLTableElement,
   React.HTMLAttributes<HTMLTableElement>
 >(({ className, ...props }, ref) => (
-  <div className="relative w-full overflow-auto">
+  <div className="relative w-full overflow-auto scrollbar-gold">
     <table
       ref={ref}
       className={cn("w-full caption-bottom text-sm", className)}
@@ -30,7 +30,11 @@ const TableBody = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <tbody
     ref={ref}
-    className={cn("[&_tr:last-child]:border-0", className)}
+    className={cn(
+      "[&_tr:last-child]:border-0",
+      "[&_tr:nth-child(odd)]:bg-white/[0.02]",
+      className
+    )}
     {...props}
   />
 ))
@@ -58,7 +62,9 @@ const TableRow = React.forwardRef<
   <tr
     ref={ref}
     className={cn(
-      "border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted",
+      "border-b transition-colors",
+      "hover:bg-gold/[0.06] hover:border-l-2 hover:border-l-gold/30",
+      "data-[state=selected]:bg-muted",
       className
     )}
     {...props}
@@ -73,7 +79,8 @@ const TableHead = React.forwardRef<
   <th
     ref={ref}
     className={cn(
-      "h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0",
+      "h-10 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0",
+      "bg-white/[0.03] border-b-2 border-border",
       className
     )}
     {...props}

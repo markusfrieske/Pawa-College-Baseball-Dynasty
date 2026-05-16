@@ -47,14 +47,27 @@
   --font-serif: Georgia, serif;
   --font-mono: Menlo, monospace;
   --radius: .5rem;
-  --shadow-2xs: 0px 2px 0px 0px hsl(120 25% 5% / 0.00);
-  --shadow-xs: 0px 2px 0px 0px hsl(120 25% 5% / 0.00);
-  --shadow-sm: 0px 2px 0px 0px hsl(120 25% 5% / 0.00), 0px 1px 2px -1px hsl(120 25% 5% / 0.15);
-  --shadow: 0px 2px 0px 0px hsl(120 25% 5% / 0.00), 0px 1px 2px -1px hsl(120 25% 5% / 0.20);
-  --shadow-md: 0px 2px 0px 0px hsl(120 25% 5% / 0.00), 0px 2px 4px -1px hsl(120 25% 5% / 0.25);
-  --shadow-lg: 0px 2px 0px 0px hsl(120 25% 5% / 0.00), 0px 4px 6px -1px hsl(120 25% 5% / 0.30);
-  --shadow-xl: 0px 2px 0px 0px hsl(120 25% 5% / 0.00), 0px 8px 10px -1px hsl(120 25% 5% / 0.35);
-  --shadow-2xl: 0px 2px 0px 0px hsl(120 25% 5% / 0.00);
+
+  /* ── Fixed shadow tokens (real visible drop shadows) ── */
+  --shadow-2xs: 0px 1px 2px 0px hsl(120 25% 5% / 0.20);
+  --shadow-xs:  0px 1px 3px 0px hsl(120 25% 5% / 0.25);
+  --shadow-sm:  0px 2px 4px 0px hsl(120 25% 5% / 0.30), 0px 1px 2px -1px hsl(120 25% 5% / 0.20);
+  --shadow:     0px 3px 6px 0px hsl(120 25% 5% / 0.30), 0px 2px 4px -1px hsl(120 25% 5% / 0.20);
+  --shadow-md:  0px 4px 8px -1px hsl(120 25% 5% / 0.35), 0px 2px 4px -1px hsl(120 25% 5% / 0.25);
+  --shadow-lg:  0px 8px 16px -2px hsl(120 25% 5% / 0.40), 0px 4px 6px -1px hsl(120 25% 5% / 0.28);
+  --shadow-xl:  0px 14px 28px -4px hsl(120 25% 5% / 0.45), 0px 8px 12px -2px hsl(120 25% 5% / 0.30);
+  --shadow-2xl: 0px 24px 48px -8px hsl(120 25% 5% / 0.55);
+
+  /* ── Glow tokens ── */
+  --glow-gold: 0 0 8px rgba(196,163,90,0.45), 0 0 20px rgba(196,163,90,0.18);
+  --glow-gold-sm: 0 0 5px rgba(196,163,90,0.50), 0 0 12px rgba(196,163,90,0.22);
+  --glow-blue: 0 0 8px rgba(59,130,246,0.45), 0 0 20px rgba(59,130,246,0.18);
+  --glow-red:  0 0 8px rgba(239,68,68,0.45),  0 0 20px rgba(239,68,68,0.18);
+
+  /* ── Scrollbar token ── */
+  --scrollbar-thumb: rgba(196,163,90,0.35);
+  --scrollbar-thumb-hover: rgba(196,163,90,0.55);
+
   --tracking-normal: 0em;
   --spacing: 0.25rem;
 
@@ -120,14 +133,16 @@
   --chart-3: 180 60% 45%;
   --chart-4: 0 72% 50%;
   --chart-5: 280 65% 55%;
-  --shadow-2xs: 0px 2px 0px 0px hsl(120 25% 5% / 0.00);
-  --shadow-xs: 0px 2px 0px 0px hsl(120 25% 5% / 0.00);
-  --shadow-sm: 0px 2px 0px 0px hsl(120 25% 5% / 0.00), 0px 1px 2px -1px hsl(120 25% 5% / 0.15);
-  --shadow: 0px 2px 0px 0px hsl(120 25% 5% / 0.00), 0px 1px 2px -1px hsl(120 25% 5% / 0.20);
-  --shadow-md: 0px 2px 0px 0px hsl(120 25% 5% / 0.00), 0px 2px 4px -1px hsl(120 25% 5% / 0.25);
-  --shadow-lg: 0px 2px 0px 0px hsl(120 25% 5% / 0.00), 0px 4px 6px -1px hsl(120 25% 5% / 0.30);
-  --shadow-xl: 0px 2px 0px 0px hsl(120 25% 5% / 0.00), 0px 8px 10px -1px hsl(120 25% 5% / 0.35);
-  --shadow-2xl: 0px 2px 0px 0px hsl(120 25% 5% / 0.00);
+
+  /* Fixed shadow tokens for dark mode */
+  --shadow-2xs: 0px 1px 2px 0px hsl(120 25% 5% / 0.20);
+  --shadow-xs:  0px 1px 3px 0px hsl(120 25% 5% / 0.25);
+  --shadow-sm:  0px 2px 4px 0px hsl(120 25% 5% / 0.30), 0px 1px 2px -1px hsl(120 25% 5% / 0.20);
+  --shadow:     0px 3px 6px 0px hsl(120 25% 5% / 0.30), 0px 2px 4px -1px hsl(120 25% 5% / 0.20);
+  --shadow-md:  0px 4px 8px -1px hsl(120 25% 5% / 0.35), 0px 2px 4px -1px hsl(120 25% 5% / 0.25);
+  --shadow-lg:  0px 8px 16px -2px hsl(120 25% 5% / 0.40), 0px 4px 6px -1px hsl(120 25% 5% / 0.28);
+  --shadow-xl:  0px 14px 28px -4px hsl(120 25% 5% / 0.45), 0px 8px 12px -2px hsl(120 25% 5% / 0.30);
+  --shadow-2xl: 0px 24px 48px -8px hsl(120 25% 5% / 0.55);
 
   --sidebar-primary-border: hsl(var(--sidebar-primary));
   --sidebar-primary-border: hsl(from hsl(var(--sidebar-primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
@@ -271,6 +286,47 @@
   .border.hover-elevate:not(.no-hover-interaction-elevate)::after {
     inset: -1px;
   }
+
+  /* ── Glow utility classes ── */
+  .glow-border-gold {
+    box-shadow: var(--glow-gold);
+  }
+  .glow-text-gold {
+    text-shadow: 0 0 8px rgba(196,163,90,0.70), 0 0 20px rgba(196,163,90,0.35);
+  }
+  .glow-text-blue {
+    text-shadow: 0 0 8px rgba(59,130,246,0.70), 0 0 20px rgba(59,130,246,0.35);
+  }
+  .glow-text-red {
+    text-shadow: 0 0 8px rgba(239,68,68,0.70), 0 0 20px rgba(239,68,68,0.35);
+  }
+
+  /* ── Page fade-in transition ── */
+  .page-fade-in {
+    animation: page-fade 120ms ease-out both;
+  }
+  @keyframes page-fade {
+    from { opacity: 0; transform: translateY(4px); }
+    to   { opacity: 1; transform: translateY(0);   }
+  }
+
+  /* ── Shimmer button sweep ── */
+  @keyframes btn-shimmer {
+    0%        { left: -80%; }
+    60%, 100% { left: 130%; }
+  }
+
+  /* ── Star glow ── */
+  .star-glow {
+    filter: drop-shadow(0 0 3px rgba(196,163,90,0.7));
+  }
+
+  /* ── Sidebar active glow ── */
+  .sidebar-active-item {
+    border-left: 3px solid hsl(var(--primary));
+    background: rgba(196,163,90,0.08);
+    box-shadow: inset 0 0 12px rgba(196,163,90,0.06);
+  }
 }
 
 /* Hide number input spinner arrows */
@@ -290,6 +346,26 @@ input[type="number"].no-spinner {
 }
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
+}
+
+/* ── Themed scrollbars ── */
+.scrollbar-gold {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+.scrollbar-gold::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.scrollbar-gold::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-gold::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 2px;
+}
+.scrollbar-gold::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
 }
 
 /* =============================================================

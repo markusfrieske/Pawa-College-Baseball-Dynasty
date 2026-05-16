@@ -87,9 +87,15 @@ export default function LandingPage() {
       <main>
         {/* ── HERO ─────────────────────────────────────────── */}
         <section className="relative py-20 sm:py-28 px-4 overflow-hidden">
+          {/* Pixel grid */}
           <div
             className="absolute inset-0 opacity-[0.04] pointer-events-none"
             style={{ backgroundImage: "linear-gradient(#d4a843 1px, transparent 1px), linear-gradient(90deg, #d4a843 1px, transparent 1px)", backgroundSize: "48px 48px" }}
+          />
+          {/* Radial gold bloom — cinematic hero atmosphere */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{ background: "radial-gradient(ellipse 65% 55% at 50% 30%, rgba(196,163,90,0.09) 0%, transparent 70%)" }}
           />
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-background/80 pointer-events-none" />
 
@@ -100,11 +106,24 @@ export default function LandingPage() {
 
             <div className="flex justify-center gap-1.5 mb-5">
               {[1, 2, 3, 4, 5].map((i) => (
-                <Star key={i} className="w-5 h-5 text-gold fill-gold animate-pulse" style={{ animationDelay: `${i * 0.12}s` }} />
+                <Star
+                  key={i}
+                  className="w-5 h-5 text-gold fill-gold animate-pulse"
+                  style={{
+                    animationDelay: `${i * 0.12}s`,
+                    filter: "drop-shadow(0 0 4px rgba(196,163,90,0.75))",
+                  }}
+                />
               ))}
             </div>
 
-            <h1 className="font-pixel text-gold leading-tight mb-6" style={{ fontSize: "clamp(1.8rem, 6vw, 3.5rem)" }}>
+            <h1
+              className="font-pixel text-gold leading-tight mb-6"
+              style={{
+                fontSize: "clamp(1.8rem, 6vw, 3.5rem)",
+                textShadow: "0 0 24px rgba(196,163,90,0.30), 0 0 60px rgba(196,163,90,0.12)",
+              }}
+            >
               College<br />Baseball<br />Dynasty
             </h1>
 
@@ -112,6 +131,7 @@ export default function LandingPage() {
               The most immersive college baseball management sim. Recruit real talent, build your program, and compete against other coaches in a persistent league.
             </p>
 
+            {/* Feature pills with staggered fade-in */}
             <div className="flex flex-wrap justify-center gap-2 mb-10">
               {[
                 "130+ Programs",
@@ -122,8 +142,15 @@ export default function LandingPage() {
                 "43+ Tracked Stats",
                 "Postseason Bracket",
                 "Multiplayer Leagues",
-              ].map((pill) => (
-                <span key={pill} className="border border-gold/25 bg-gold/5 text-gold/70 text-[9px] font-pixel px-3 py-1.5 tracking-wide">
+              ].map((pill, i) => (
+                <span
+                  key={pill}
+                  className="border border-gold/25 bg-gold/5 text-gold/70 text-[9px] font-pixel px-3 py-1.5 tracking-wide"
+                  style={{
+                    animation: "page-fade 200ms ease-out both",
+                    animationDelay: `${60 + i * 40}ms`,
+                  }}
+                >
                   {pill}
                 </span>
               ))}
@@ -131,7 +158,7 @@ export default function LandingPage() {
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
               <Link href="/register">
-                <RetroButton size="lg" className="w-full sm:w-auto px-10" data-testid="button-get-started">
+                <RetroButton variant="shimmer" size="lg" className="w-full sm:w-auto px-10" data-testid="button-get-started">
                   Start Your Dynasty
                 </RetroButton>
               </Link>

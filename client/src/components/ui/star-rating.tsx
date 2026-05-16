@@ -35,6 +35,7 @@ export function StarRating({ rating, maxRating = 5, size = "md", showEmpty = tru
               filled ? cn("fill-current", starColors[rating]) : "text-muted-foreground/30",
               !filled && !showEmpty && "hidden"
             )}
+            style={filled ? { filter: "drop-shadow(0 0 3px rgba(196,163,90,0.65))" } : undefined}
           />
         );
       })}

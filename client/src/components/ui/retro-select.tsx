@@ -23,7 +23,8 @@ export const RetroSelect = forwardRef<HTMLSelectElement, RetroSelectProps>(
             className={cn(
               "w-full bg-input border-2 border-border text-foreground px-4 py-3 font-pixel text-[10px]",
               "appearance-none cursor-pointer focus:outline-none focus:border-gold",
-              "transition-colors duration-150",
+              "transition-[border-color,box-shadow] duration-150",
+              "focus:[box-shadow:var(--glow-gold-sm)]",
               className
             )}
             {...props}
