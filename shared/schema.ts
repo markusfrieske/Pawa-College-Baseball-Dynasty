@@ -728,7 +728,7 @@ export const recruitingInterests = pgTable("recruiting_interests", {
   revealedAbilitiesCount: integer("revealed_abilities_count").notNull().default(0),
   notes: text("notes"),
 }, (t) => [
-  index("idx_recruiting_interests_recruit_id").on(t.recruitId),
+  index("idx_recruiting_interests_recruit_team").on(t.recruitId, t.teamId),
   index("idx_recruiting_interests_team_id").on(t.teamId),
 ]);
 
@@ -812,7 +812,7 @@ export const recruitTopSchools = pgTable("recruit_top_schools", {
   isActive: boolean("is_active").notNull().default(true), // Whether still in consideration
   accumulatedInterest: integer("accumulated_interest").notNull().default(0), // Total interest accumulated from recruiting actions
 }, (t) => [
-  index("idx_recruit_top_schools_recruit_id").on(t.recruitId),
+  index("idx_recruit_top_schools_recruit_team").on(t.recruitId, t.teamId),
   index("idx_recruit_top_schools_team_id").on(t.teamId),
 ]);
 

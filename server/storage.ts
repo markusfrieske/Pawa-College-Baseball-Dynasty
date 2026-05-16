@@ -56,6 +56,7 @@ export interface IStorage {
   createConference(conference: InsertConference): Promise<Conference>;
 
   getTeamsByLeague(leagueId: string): Promise<Team[]>;
+  getTeamsByLeagueIds(leagueIds: string[]): Promise<Team[]>;
   getTeam(id: string): Promise<Team | undefined>;
   createTeam(team: InsertTeam): Promise<Team>;
   updateTeam(id: string, data: Partial<Team>): Promise<Team | undefined>;
@@ -63,6 +64,7 @@ export interface IStorage {
   getCoach(id: string): Promise<Coach | undefined>;
   getCoachByTeam(teamId: string): Promise<Coach | undefined>;
   getCoachesByLeague(leagueId: string): Promise<Coach[]>;
+  getCoachesByLeagueIds(leagueIds: string[]): Promise<Coach[]>;
   createCoach(coach: InsertCoach): Promise<Coach>;
   updateCoach(id: string, data: Partial<Coach>): Promise<Coach | undefined>;
   leaveLeague(coachId: string, leagueId: string, actorUserId: string): Promise<void>;
@@ -271,6 +273,11 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(teams).where(eq(teams.leagueId, leagueId));
   }
 
+  async getTeamsByLeagueIds(leagueIds: string[]): Promise<Team[]> {
+    if (leagueIds.length === 0) return [];
+    return await db.select().from(teams).where(inArray(teams.leagueId, leagueIds));
+  }
+
   async getTeam(id: string): Promise<Team | undefined> {
     const [team] = await db.select().from(teams).where(eq(teams.id, id));
     return team || undefined;
@@ -298,6 +305,11 @@ export class DatabaseStorage implements IStorage {
 
   async getCoachesByLeague(leagueId: string): Promise<Coach[]> {
     return await db.select().from(coaches).where(eq(coaches.leagueId, leagueId));
+  }
+
+  async getCoachesByLeagueIds(leagueIds: string[]): Promise<Coach[]> {
+    if (leagueIds.length === 0) return [];
+    return await db.select().from(coaches).where(inArray(coaches.leagueId, leagueIds));
   }
 
   async createCoach(insertCoach: InsertCoach): Promise<Coach> {
@@ -677,10 +689,45 @@ export class DatabaseStorage implements IStorage {
 
   async batchUpdatePlayersLineup(updates: Array<{id: string; data: Partial<Player>}>): Promise<void> {
     if (updates.length === 0) return;
+
+    // Split into two groups so we can emit at most 2 SQL statements
+    const positionUpdates = updates.filter(u => 'battingOrder' in u.data || 'lineupPosition' in u.data);
+    const pitcherUpdates  = updates.filter(u => 'pitchingRole' in u.data);
+
     await db.transaction(async (tx) => {
-      await Promise.all(updates.map(u =>
-        tx.update(players).set(u.data).where(eq(players.id, u.id))
-      ));
+      if (positionUpdates.length > 0) {
+        // Build a single UPDATE … SET … CASE WHEN for all position players
+        const battingWhen = sql.join(
+          positionUpdates.map(u => sql`WHEN ${u.id} THEN ${u.data.battingOrder ?? null}`),
+          sql` `,
+        );
+        const lineupWhen = sql.join(
+          positionUpdates.map(u => sql`WHEN ${u.id} THEN ${u.data.lineupPosition ?? null}`),
+          sql` `,
+        );
+        const posIds = sql.join(positionUpdates.map(u => sql`${u.id}`), sql`, `);
+
+        await tx.execute(sql`
+          UPDATE players
+          SET batting_order    = CASE id ${battingWhen} END,
+              lineup_position  = CASE id ${lineupWhen}  END
+          WHERE id IN (${posIds})
+        `);
+      }
+
+      if (pitcherUpdates.length > 0) {
+        const roleWhen = sql.join(
+          pitcherUpdates.map(u => sql`WHEN ${u.id} THEN ${u.data.pitchingRole ?? null}`),
+          sql` `,
+        );
+        const pitIds = sql.join(pitcherUpdates.map(u => sql`${u.id}`), sql`, `);
+
+        await tx.execute(sql`
+          UPDATE players
+          SET pitching_role = CASE id ${roleWhen} END
+          WHERE id IN (${pitIds})
+        `);
+      }
     });
   }
 

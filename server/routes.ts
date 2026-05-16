@@ -439,40 +439,55 @@ export async function registerRoutes(
       const userId = req.session.userId!;
       const userLeagues = await storage.getLeaguesByUser(userId);
       
-      const leaguesWithDetails = await Promise.all(
-        userLeagues.map(async (league) => {
-          const [leagueTeams, allCoaches] = await Promise.all([
-            storage.getTeamsByLeague(league.id),
-            storage.getCoachesByLeague(league.id),
-          ]);
-          const userCoach = allCoaches.find(c => c.userId === userId);
-          const userTeam = userCoach
-            ? leagueTeams.find(t => t.coachId === userCoach.id)
-            : leagueTeams.find(t => !t.isCpu);
+      // Batch-fetch all teams and coaches across all leagues in 2 queries, then group in memory
+      const leagueIds = userLeagues.map(l => l.id);
+      const [allTeams, allCoaches] = await Promise.all([
+        storage.getTeamsByLeagueIds(leagueIds),
+        storage.getCoachesByLeagueIds(leagueIds),
+      ]);
 
-          // Identify commissioner's team for display to all coaches
-          const commCoach = allCoaches.find(c => c.userId === league.commissionerId);
-          const commTeam = commCoach ? leagueTeams.find(t => t.coachId === commCoach.id) : undefined;
-          const commissionerTeamAbbr = commTeam?.abbreviation ?? null;
+      const teamsByLeague = new Map<string, typeof allTeams>();
+      for (const t of allTeams) {
+        if (!teamsByLeague.has(t.leagueId)) teamsByLeague.set(t.leagueId, []);
+        teamsByLeague.get(t.leagueId)!.push(t);
+      }
+      const coachesByLeague = new Map<string, typeof allCoaches>();
+      for (const c of allCoaches) {
+        if (!coachesByLeague.has(c.leagueId)) coachesByLeague.set(c.leagueId, []);
+        coachesByLeague.get(c.leagueId)!.push(c);
+      }
 
-          // Identify co-commissioner teams
-          const coCommIds: string[] = Array.isArray(league.coCommissionerIds) ? (league.coCommissionerIds as string[]) : [];
-          const coCommTeams = coCommIds.map(uid => {
-            const coach = allCoaches.find(c => c.userId === uid);
-            return coach ? leagueTeams.find(t => t.coachId === coach.id) : undefined;
-          }).filter(Boolean);
-          const coCommTeamAbbrs: string[] = coCommTeams.map(t => t!.abbreviation);
+      const leaguesWithDetails = userLeagues.map(league => {
+        const leagueTeams = teamsByLeague.get(league.id) ?? [];
+        const leagueCoaches = coachesByLeague.get(league.id) ?? [];
 
-          return {
-            ...league,
-            teams: leagueTeams,
-            userTeam,
-            userCoach,
-            commissionerTeamAbbr,
-            coCommTeamAbbrs,
-          };
-        })
-      );
+        const userCoach = leagueCoaches.find(c => c.userId === userId);
+        const userTeam = userCoach
+          ? leagueTeams.find(t => t.coachId === userCoach.id)
+          : leagueTeams.find(t => !t.isCpu);
+
+        // Identify commissioner's team for display to all coaches
+        const commCoach = leagueCoaches.find(c => c.userId === league.commissionerId);
+        const commTeam = commCoach ? leagueTeams.find(t => t.coachId === commCoach.id) : undefined;
+        const commissionerTeamAbbr = commTeam?.abbreviation ?? null;
+
+        // Identify co-commissioner teams
+        const coCommIds: string[] = Array.isArray(league.coCommissionerIds) ? (league.coCommissionerIds as string[]) : [];
+        const coCommTeams = coCommIds.map(uid => {
+          const coach = leagueCoaches.find(c => c.userId === uid);
+          return coach ? leagueTeams.find(t => t.coachId === coach.id) : undefined;
+        }).filter(Boolean);
+        const coCommTeamAbbrs: string[] = coCommTeams.map(t => t!.abbreviation);
+
+        return {
+          ...league,
+          teams: leagueTeams,
+          userTeam,
+          userCoach,
+          commissionerTeamAbbr,
+          coCommTeamAbbrs,
+        };
+      });
 
       res.json(leaguesWithDetails);
     } catch (error) {
@@ -496,11 +511,10 @@ export async function registerRoutes(
 
         if (!userTeam) return null;
 
-        const [allLeaguePlayers, recruits] = await Promise.all([
-          storage.getPlayersByLeague(league.id),
+        const [players, recruits] = await Promise.all([
+          storage.getPlayersByTeam(userTeam.id),
           storage.getRecruitsByLeague(league.id),
         ]);
-        const players = allLeaguePlayers.filter(p => p.teamId === userTeam.id);
 
         const activePlayers = players.filter(p => !p.declaredForDraft);
         const avgOvr = activePlayers.length > 0
