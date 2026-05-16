@@ -33,9 +33,9 @@ interface HoFPlayer {
   position: string;
   overall: number;
   starRating: number;
-  departureType: string;
+  status: string;
   draftRound: number | null;
-  departedSeason: number;
+  season: number | null;
   abilities: string[];
 }
 
@@ -71,6 +71,7 @@ interface ProgramProfileData {
     userId: string | null;
   } | null;
   isCommissioner: boolean;
+  commissionerSeasons: number;
   currentSeason: number;
   allTimeWins: number;
   allTimeLosses: number;
@@ -153,7 +154,7 @@ export default function ProgramProfilePage() {
     );
   }
 
-  const { team, coach, isCommissioner, allTimeWins, allTimeLosses, confChampionships, superRegionalsAppearances, cwsAppearances, cwsTitles, seasonHistory, recruitingHoF, topDraftedPlayers } = data;
+  const { team, coach, isCommissioner, commissionerSeasons, allTimeWins, allTimeLosses, confChampionships, superRegionalsAppearances, cwsAppearances, cwsTitles, seasonHistory, recruitingHoF, topDraftedPlayers } = data;
   const totalGames = allTimeWins + allTimeLosses;
   const winPct = totalGames > 0 ? ((allTimeWins / totalGames) * 100).toFixed(1) : "0.0";
 
@@ -191,7 +192,7 @@ export default function ProgramProfilePage() {
                   )}
                   {isCommissioner && (
                     <Badge variant="outline" className="text-[9px] border-gold text-gold font-pixel" data-testid="badge-commissioner-team">
-                      COMMISSIONER
+                      COMMISSIONER · {commissionerSeasons}S
                     </Badge>
                   )}
                   {team.isCpu && (
@@ -302,6 +303,13 @@ export default function ProgramProfilePage() {
               <div className="space-y-2">
                 {recruitingHoF.map((player, i) => {
                   const draftBadge = draftRoundLabel(player.draftRound);
+                  const statusConfig: Record<string, { label: string; cls: string }> = {
+                    active: { label: "Active", cls: "border-green-500/60 text-green-400" },
+                    graduated: { label: "Graduated", cls: "border-muted-foreground/40 text-muted-foreground" },
+                    drafted: { label: "MLB Draft", cls: "border-amber-500/50 text-amber-400" },
+                    transferred: { label: "Transferred", cls: "border-purple-500/50 text-purple-400" },
+                  };
+                  const statusStyle = statusConfig[player.status] ?? { label: player.status, cls: "border-border text-muted-foreground" };
                   return (
                     <div key={i} className="flex items-center gap-3 p-2 rounded bg-muted/20 hover:bg-muted/30 transition-colors" data-testid={`row-hof-${i}`}>
                       <span className="font-pixel text-[10px] text-muted-foreground w-4 text-right flex-shrink-0">#{i + 1}</span>
@@ -311,16 +319,18 @@ export default function ProgramProfilePage() {
                             {player.firstName} {player.lastName}
                           </span>
                           <span className="text-[10px] text-muted-foreground">{player.position}</span>
-                          {draftBadge && (
+                          <Badge variant="outline" className={`text-[8px] ${statusStyle.cls}`}>
+                            {statusStyle.label}
+                          </Badge>
+                          {draftBadge && player.status !== "drafted" && (
                             <Badge variant="outline" className={`text-[8px] ${draftBadge.cls}`}>
                               {draftBadge.label}
                             </Badge>
                           )}
-                          {player.departureType === "transferred" && (
-                            <Badge variant="outline" className="text-[8px] border-purple-500/50 text-purple-300">Transfer</Badge>
-                          )}
                         </div>
-                        <div className="text-[9px] text-muted-foreground mt-0.5">Season {player.departedSeason}</div>
+                        {player.season && (
+                          <div className="text-[9px] text-muted-foreground mt-0.5">Season {player.season}</div>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <StarsDisplay stars={player.starRating} />

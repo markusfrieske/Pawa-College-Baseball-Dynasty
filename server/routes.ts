@@ -13378,17 +13378,25 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Team not found" });
       }
 
-      const [coach, conferences, teamStandings, allLeagueStandings, teamHistory, teamGames] = await Promise.all([
+      // Security: ensure team belongs to this league
+      if (team.leagueId !== leagueId) {
+        return res.status(403).json({ message: "Team does not belong to this league" });
+      }
+
+      const [coach, conferences, teamStandings, allLeagueStandings, teamHistory, teamGames, currentRoster] = await Promise.all([
         team.coachId ? storage.getCoach(team.coachId) : Promise.resolve(undefined),
         storage.getConferencesByLeague(leagueId),
         storage.getStandingsByTeam(teamId),
         storage.getAllStandingsByLeague(leagueId),
         storage.getPlayerHistoryByTeam(teamId),
         storage.getGamesByTeam(teamId),
+        storage.getPlayersByTeam(teamId),
       ]);
 
       // Determine if the coach is the commissioner
       const isCommissioner = !!(coach?.userId && league.commissionerId === coach.userId);
+      // Commissioner tenure: seasons they've served (best proxy — full league run)
+      const commissionerSeasons = isCommissioner ? league.currentSeason : 0;
 
       // Conference for this team
       const teamConferenceId = team.conferenceId;
@@ -13445,8 +13453,8 @@ export async function registerRoutes(
         }
       }
 
-      // Detect CWS champion: team with more cws wins than losses in final round
-      // Simplified: if team won in cws but not every game, check if they're the last standing
+      // Detect CWS champion: CWS is best-of-3, champion wins 2 games total.
+      // Track wins/losses per season from this team's CWS games.
       const cwsWinsBySeasonCount: Record<number, { wins: number; losses: number }> = {};
       for (const game of teamGames) {
         if (!game.isComplete || game.phase !== "cws") continue;
@@ -13478,11 +13486,8 @@ export async function registerRoutes(
         if (ps) {
           const cwsRecord = cwsWinsBySeasonCount[season];
           if (ps.cws.played) {
-            if (cwsRecord && cwsRecord.wins > 0 && cwsRecord.losses === 0) {
-              postseasonResult = "CWS Champion";
-            } else if (cwsRecord && cwsRecord.wins >= cwsRecord.losses && cwsRecord.wins > 0 && cwsRecord.losses === 0) {
-              postseasonResult = "CWS Champion";
-            } else if (ps.cws.won) {
+            // CWS champion wins 2 games in best-of-3 format
+            if (cwsRecord && cwsRecord.wins >= 2) {
               postseasonResult = "CWS Champion";
             } else {
               postseasonResult = "CWS";
@@ -13509,23 +13514,50 @@ export async function registerRoutes(
       const confChampionships = Object.values(postseasonBySeason).filter(ps => ps.confChamp.won).length;
       const superRegionalsAppearances = Object.values(postseasonBySeason).filter(ps => ps.superRegionals.played).length;
       const cwsAppearances = Object.values(postseasonBySeason).filter(ps => ps.cws.played).length;
-      const cwsTitles = Object.entries(cwsWinsBySeasonCount).filter(([, r]) => r.losses === 0 && r.wins > 0).length;
+      // CWS champion: won at least 2 CWS games (best-of-3)
+      const cwsTitles = Object.values(cwsWinsBySeasonCount).filter(r => r.wins >= 2).length;
 
       // Recruiting Hall of Fame — top 5 players ever on this roster by OVR
-      const hofPlayers = [...teamHistory]
-        .sort((a, b) => b.overall - a.overall)
-        .slice(0, 5)
+      // Include active players on current roster + departed alumni (excluding cut/JUCO)
+      const activePlayerEntries = currentRoster
+        .filter(p => !p.inTransferPortal)
         .map(p => ({
           firstName: p.firstName,
           lastName: p.lastName,
           position: p.position,
           overall: p.overall,
           starRating: p.starRating,
-          departureType: p.departureType,
-          draftRound: p.draftRound,
-          departedSeason: p.departedSeason,
-          abilities: p.abilities,
+          status: "active" as const,
+          draftRound: null as number | null,
+          season: null as number | null,
+          abilities: (p.abilities ?? []) as string[],
         }));
+
+      const departureStatusMap: Record<string, string> = {
+        graduated: "graduated",
+        draft: "drafted",
+        transfer_portal: "transferred",
+        transfer_signed: "transferred",
+        transfer_juco: "transferred",
+      };
+
+      const historicPlayerEntries = teamHistory
+        .filter(p => !["cut_juco"].includes(p.departureType))
+        .map(p => ({
+          firstName: p.firstName,
+          lastName: p.lastName,
+          position: p.position,
+          overall: p.overall,
+          starRating: p.starRating,
+          status: (departureStatusMap[p.departureType] ?? p.departureType) as string,
+          draftRound: p.draftRound,
+          season: p.departedSeason,
+          abilities: (p.abilities ?? []) as string[],
+        }));
+
+      const hofPlayers = [...activePlayerEntries, ...historicPlayerEntries]
+        .sort((a, b) => b.overall - a.overall)
+        .slice(0, 5);
 
       // Top drafted players (draftRound is set), sorted by draft round asc then OVR desc
       const draftedPlayers = teamHistory
@@ -13564,6 +13596,7 @@ export async function registerRoutes(
           userId: coach.userId,
         } : null,
         isCommissioner,
+        commissionerSeasons,
         currentSeason: league.currentSeason,
         allTimeWins,
         allTimeLosses,
