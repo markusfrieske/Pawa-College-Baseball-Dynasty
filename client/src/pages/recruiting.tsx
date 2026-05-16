@@ -2439,61 +2439,59 @@ function RecruitRow({
             </p>
             <p className="text-[10px] text-muted-foreground">{recruit.position}</p>
           </div>
-          {recruit.interest && (
-            <div className="text-center min-w-[40px]">
-              {showRankEditor ? (
-                <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
-                  <input
-                    type="number"
-                    min={1}
-                    max={99}
-                    value={rankInputValue}
-                    onChange={(e) => setRankInputValue(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        const n = parseInt(rankInputValue, 10);
-                        onSetBoardRank(isNaN(n) || n < 1 ? null : Math.min(n, 99));
-                        setShowRankEditor(false);
-                      } else if (e.key === "Escape") {
-                        setRankInputValue(String(recruit.interest?.boardRank ?? ""));
-                        setShowRankEditor(false);
-                      }
-                    }}
-                    onBlur={() => {
+          <div className="text-center min-w-[40px]">
+            {showRankEditor ? (
+              <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
+                <input
+                  type="number"
+                  min={1}
+                  max={99}
+                  value={rankInputValue}
+                  onChange={(e) => setRankInputValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
                       const n = parseInt(rankInputValue, 10);
                       onSetBoardRank(isNaN(n) || n < 1 ? null : Math.min(n, 99));
                       setShowRankEditor(false);
-                    }}
-                    autoFocus
-                    className="w-8 text-center text-xs bg-background border border-gold/50 rounded px-0.5 py-0.5 text-gold focus:outline-none focus:border-gold"
-                    data-testid={`input-board-rank-${recruit.id}`}
-                  />
+                    } else if (e.key === "Escape") {
+                      setRankInputValue(String(recruit.interest?.boardRank ?? ""));
+                      setShowRankEditor(false);
+                    }
+                  }}
+                  onBlur={() => {
+                    const n = parseInt(rankInputValue, 10);
+                    onSetBoardRank(isNaN(n) || n < 1 ? null : Math.min(n, 99));
+                    setShowRankEditor(false);
+                  }}
+                  autoFocus
+                  className="w-8 text-center text-xs bg-background border border-gold/50 rounded px-0.5 py-0.5 text-gold focus:outline-none focus:border-gold"
+                  data-testid={`input-board-rank-${recruit.id}`}
+                />
+                <button
+                  onClick={() => { onSetBoardRank(null); setRankInputValue(""); setShowRankEditor(false); }}
+                  className="text-muted-foreground hover:text-red-400 text-[9px] leading-none"
+                  title="Clear rank"
+                >✕</button>
+              </div>
+            ) : (
+              <Tooltip>
+                <TooltipTrigger asChild>
                   <button
-                    onClick={() => { onSetBoardRank(null); setRankInputValue(""); setShowRankEditor(false); }}
-                    className="text-muted-foreground hover:text-red-400 text-[9px] leading-none"
-                    title="Clear rank"
-                  >✕</button>
-                </div>
-              ) : (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setRankInputValue(String(recruit.interest?.boardRank ?? "")); setShowRankEditor(true); }}
-                      disabled={isSavingBoardRank}
-                      className={`font-bold text-sm transition-colors ${recruit.interest?.boardRank != null ? "text-gold hover:text-gold/70" : "text-muted-foreground/30 hover:text-muted-foreground/60"}`}
-                      data-testid={`button-board-rank-${recruit.id}`}
-                    >
-                      {recruit.interest?.boardRank != null ? `#${recruit.interest.boardRank}` : "—"}
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {recruit.interest?.boardRank != null ? `Board rank #${recruit.interest.boardRank} — click to edit` : "Click to set your board rank"}
-                  </TooltipContent>
-                </Tooltip>
-              )}
-              <p className="text-[10px] text-muted-foreground">BOARD</p>
-            </div>
-          )}
+                    onClick={(e) => { e.stopPropagation(); setRankInputValue(String(recruit.interest?.boardRank ?? "")); setShowRankEditor(true); }}
+                    disabled={isSavingBoardRank}
+                    className={`font-bold text-sm transition-colors ${recruit.interest?.boardRank != null ? "text-gold hover:text-gold/70" : "text-muted-foreground/30 hover:text-muted-foreground/60"}`}
+                    data-testid={`button-board-rank-${recruit.id}`}
+                  >
+                    {recruit.interest?.boardRank != null ? `#${recruit.interest.boardRank}` : "—"}
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {recruit.interest?.boardRank != null ? `Board rank #${recruit.interest.boardRank} — click to edit` : "Click to set your board rank"}
+                </TooltipContent>
+              </Tooltip>
+            )}
+            <p className="text-[10px] text-muted-foreground">BOARD</p>
+          </div>
           {recruit.potentialFloor != null && recruit.potentialCeiling != null && scoutPct >= 100 && (
             <div className="text-center min-w-[50px]">
               <p className="font-bold text-sm text-amber-400">

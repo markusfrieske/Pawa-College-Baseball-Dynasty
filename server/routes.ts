@@ -2373,9 +2373,25 @@ export async function registerRoutes(
         return res.status(400).json({ message: "boardRank must be a number or null" });
       }
 
-      const interest = await storage.getRecruitingInterest(req.params.recruitId, userTeam.id);
+      let interest = await storage.getRecruitingInterest(req.params.recruitId, userTeam.id);
       if (!interest) {
-        return res.status(404).json({ message: "Recruit interest not found" });
+        interest = await storage.createRecruitingInterest({
+          recruitId: req.params.recruitId,
+          teamId: userTeam.id,
+          interestLevel: 0,
+          scoutPercentage: 0,
+          isTargeted: false,
+          hasOffer: false,
+          revealedAttributes: [],
+          minOverall: 150,
+          maxOverall: 650,
+          minStar: 1,
+          maxStar: 5,
+          revealedAbilitiesCount: 0,
+          notes: null,
+          boardRank: boardRank ?? null,
+        });
+        return res.json(interest);
       }
 
       await storage.updateRecruitingInterest(interest.id, { boardRank: boardRank ?? null });
