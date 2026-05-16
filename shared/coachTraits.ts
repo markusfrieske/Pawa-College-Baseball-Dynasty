@@ -72,16 +72,16 @@ export const TRAIT_BADGES: TraitBadge[] = [
 
 export function getTraitBadgesForArchetype(archetype: string, personality: string): string[] {
   const byArchetype: Record<string, string[]> = {
-    "Balanced": ["consistent_winner", "recruiting_ace"],
-    "Pure CEO": ["conference_king", "consistent_winner"],
-    "Player's Coach": ["community_builder", "recruiting_ace"],
-    "Tactician": ["game_manager", "iron_evaluator"],
-    "Old School": ["consistent_winner", "game_manager"],
-    "Scout Master": ["iron_evaluator", "recruiting_ace"],
-    "Academic Dean": ["community_builder", "consistent_winner"],
-    "Dealmaker": ["pit_bull_recruiter", "closer"],
+    "Balanced":        ["consistent_winner", "recruiting_ace", "game_manager"],
+    "Pure CEO":        ["conference_king", "consistent_winner", "pit_bull_recruiter"],
+    "Player's Coach":  ["community_builder", "recruiting_ace", "closer"],
+    "Tactician":       ["game_manager", "iron_evaluator", "consistent_winner"],
+    "Old School":      ["consistent_winner", "game_manager", "development_machine"],
+    "Scout Master":    ["iron_evaluator", "recruiting_ace", "pit_bull_recruiter"],
+    "Academic Dean":   ["community_builder", "consistent_winner", "development_machine"],
+    "Dealmaker":       ["pit_bull_recruiter", "closer", "recruiting_ace"],
   };
-  return byArchetype[archetype] ?? ["consistent_winner"];
+  return byArchetype[archetype] ?? ["consistent_winner", "recruiting_ace"];
 }
 
 export interface CoachingPhilosophy {

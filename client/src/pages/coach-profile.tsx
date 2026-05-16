@@ -14,7 +14,7 @@ import { apiRequest } from "@/lib/queryClient";
 import {
   ArrowLeft, Trophy, Award, Target, Users, Star, Zap, Shield, Swords,
   GraduationCap, Plus, Mail, TrendingUp, Calendar, Crown, Medal, Flame,
-  BookOpen, ChevronRight, Info, ChevronDown, ChevronUp
+  BookOpen, ChevronRight, Info, ChevronDown, ChevronUp, Settings, Bell
 } from "lucide-react";
 import type { Coach, Team, CoachSeasonHistory } from "@shared/schema";
 import {
@@ -991,11 +991,59 @@ function SkillsTab({
   );
 }
 
+// ── Settings tab (email preferences + notification panel) ─────────────────────
+function SettingsTab({
+  currentUser,
+  emailPrefMutation,
+}: {
+  currentUser: { id: string; email: string; emailOptOut: boolean } | undefined;
+  emailPrefMutation: { mutate: (v: boolean) => void; isPending: boolean };
+}) {
+  if (!currentUser) return (
+    <RetroCard><RetroCardContent className="py-8 text-center text-muted-foreground">Sign in to manage settings.</RetroCardContent></RetroCard>
+  );
+
+  return (
+    <div className="space-y-4">
+      <RetroCard>
+        <RetroCardHeader>
+          <div className="flex items-center gap-2">
+            <Bell className="w-4 h-4 text-primary" />
+            <h3 className="font-semibold text-sm">Email Notifications</h3>
+          </div>
+        </RetroCardHeader>
+        <RetroCardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <p className="text-sm font-medium">Weekly Digest</p>
+              <p className="text-xs text-muted-foreground">
+                Receive a weekly summary email after each phase advance — standings, top performances, and recruiting news.
+              </p>
+            </div>
+            <Switch
+              checked={!currentUser.emailOptOut}
+              onCheckedChange={(checked) => emailPrefMutation.mutate(!checked)}
+              disabled={emailPrefMutation.isPending}
+              data-testid="switch-email-digest-settings"
+            />
+          </div>
+          <div className="border-t border-border pt-3">
+            <p className="text-xs text-muted-foreground">
+              Digest emails are sent to <span className="text-foreground font-medium">{currentUser.email}</span>. You can unsubscribe at any time using the link at the bottom of any email.
+            </p>
+          </div>
+        </RetroCardContent>
+      </RetroCard>
+    </div>
+  );
+}
+
 // ── Tab nav ───────────────────────────────────────────────────────────────────
 const TABS = [
   { id: "career", label: "Career", icon: <Trophy className="w-4 h-4" /> },
   { id: "attributes", label: "Attributes", icon: <Target className="w-4 h-4" /> },
   { id: "skills", label: "Skills", icon: <GraduationCap className="w-4 h-4" /> },
+  { id: "settings", label: "Settings", icon: <Settings className="w-4 h-4" /> },
 ] as const;
 
 type TabId = typeof TABS[number]["id"];
@@ -1111,6 +1159,9 @@ export default function CoachProfilePage() {
         {activeTab === "skills" && (
           <SkillsTab coach={coach} isOwnCoach onUpgrade={(skill) => upgradeSkillMutation.mutate(skill)} />
         )}
+        {activeTab === "settings" && (
+          <SettingsTab currentUser={currentUser} emailPrefMutation={emailPrefMutation} />
+        )}
       </main>
     </div>
   );
@@ -1156,7 +1207,7 @@ export function CoachProfileByIdPage() {
         <CoachHeader coach={coach} team={team} isOwnCoach={isOwnCoach} />
 
         <div className="flex gap-2 mb-6 flex-wrap">
-          {TABS.map(tab => (
+          {TABS.filter(tab => tab.id !== "settings").map(tab => (
             <RetroButton
               key={tab.id}
               variant={activeTab === tab.id ? "primary" : "outline"}
