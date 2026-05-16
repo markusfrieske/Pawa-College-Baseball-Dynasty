@@ -1,5 +1,4 @@
 import { cn } from "@/lib/utils";
-import { getMascotAvatar } from "@/lib/mascot-avatar";
 
 interface TeamBadgeProps {
   abbreviation: string;
@@ -17,7 +16,6 @@ export function TeamBadge({
   secondaryColor,
   size = "md",
   name,
-  mascot,
   className,
 }: TeamBadgeProps) {
   const sizes = {
@@ -25,28 +23,6 @@ export function TeamBadge({
     md: "w-12 h-12 text-xs",
     lg: "w-16 h-16 text-sm",
   };
-
-  const avatar = getMascotAvatar(mascot ?? name, primaryColor, secondaryColor);
-
-  if (avatar) {
-    return (
-      <div
-        className={cn(
-          "rounded-full flex items-center justify-center border-2 overflow-hidden shrink-0",
-          sizes[size],
-          className,
-        )}
-        style={{
-          backgroundColor: primaryColor,
-          borderColor: secondaryColor || primaryColor,
-        }}
-        aria-label={name ?? abbreviation}
-        data-testid="team-badge-avatar"
-      >
-        {avatar}
-      </div>
-    );
-  }
 
   return (
     <div
@@ -60,6 +36,7 @@ export function TeamBadge({
         borderColor: secondaryColor || primaryColor,
         color: isLightColor(primaryColor) ? "#1a2b1a" : "#ffffff",
       }}
+      aria-label={name ?? abbreviation}
       data-testid="team-badge-letter"
     >
       {abbreviation}
