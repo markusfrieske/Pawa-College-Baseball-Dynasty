@@ -2520,7 +2520,7 @@ export async function registerRoutes(
         return res.status(404).json({ message: "League not found" });
       }
 
-      if (league.commissionerId !== req.session.userId) {
+      if (!hasCommissionerAccess(league, req.session.userId)) {
         return res.status(403).json({ message: "Only the commissioner can edit players" });
       }
 
@@ -3339,7 +3339,7 @@ export async function registerRoutes(
         return res.status(404).json({ message: "League not found" });
       }
 
-      if (league.commissionerId !== req.session.userId) {
+      if (!hasCommissionerAccess(league, req.session.userId)) {
         return res.status(403).json({ message: "Only the commissioner can edit players" });
       }
 
@@ -12993,7 +12993,7 @@ export async function registerRoutes(
         return res.status(404).json({ message: "League not found" });
       }
 
-      if (league.commissionerId !== req.session.userId) {
+      if (!hasCommissionerAccess(league, req.session.userId)) {
         return res.status(403).json({ message: "Only the commissioner can edit recruits" });
       }
 
@@ -13058,7 +13058,7 @@ export async function registerRoutes(
         return res.status(404).json({ message: "League not found" });
       }
 
-      if (league.commissionerId !== req.session.userId) {
+      if (!hasCommissionerAccess(league, req.session.userId)) {
         return res.status(403).json({ message: "Only the commissioner can edit recruits" });
       }
 
