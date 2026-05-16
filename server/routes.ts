@@ -3853,7 +3853,7 @@ export async function registerRoutes(
     }
   });
 
-  // Power Rankings — composite OVR-based team strength ranking
+  // Power Rankings — star/attribute-based team strength ranking
   app.get("/api/leagues/:id/power-rankings", requireAuth, async (req, res) => {
     try {
       const leagueId = req.params.id as string;
@@ -3887,10 +3887,11 @@ export async function registerRoutes(
       const avg = (nums: number[]): number =>
         nums.length === 0 ? 0 : Math.round(nums.reduce((s, v) => s + v, 0) / nums.length);
 
+      const PITCHER_POS_SET = new Set(["P", "SP", "RP", "CL", "LHP", "RHP"]);
+
       // Build raw data per team
       const teamData = leagueTeams.map(team => {
         const players = playersByTeam.get(team.id) || [];
-        const PITCHER_POS_SET = new Set(["P", "SP", "RP", "CL", "LHP", "RHP"]);
         const pitchers = players.filter(p => PITCHER_POS_SET.has(p.position));
         const hitters = players.filter(p => !PITCHER_POS_SET.has(p.position));
         const signed = signedByTeam.get(team.id) || [];
