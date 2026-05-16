@@ -6523,6 +6523,8 @@ export async function registerRoutes(
               homeErrors: box.home?.errors ?? 0,
               awayErrors: box.away?.errors ?? 0,
               isHome: userGame.game.homeTeamId === simUserTeamId,
+              homeColor: homeTeamObj?.primaryColor ?? "#FFD700",
+              awayColor: awayTeamObj?.primaryColor ?? "#7eb8f7",
             };
           } catch { /* non-critical */ }
         }
