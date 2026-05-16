@@ -276,12 +276,14 @@ function FireworksCanvas({ teamColor, active }: { teamColor: string; active: boo
 
     const tick = () => {
       const elapsed = Date.now() - startTime;
-      // Dense phase: 0–8s (two rockets per launch, edge launches enabled)
-      // Medium phase: 8–16s (single rocket, bottom only, moderate cadence)
-      // Sparse phase: 16s+ (slow occasional launches)
+      // Dense phase:       0–8s  — 2 rockets/launch, edge launches enabled
+      // Medium phase:    8–16s  — 1 rocket/launch, bottom only
+      // Sparse phase:   16–28s  — occasional rocket
+      // Taper phase:      28s+  — near-zero cadence (one rocket every ~10s)
       const dense  = elapsed < 8000;
       const medium = elapsed < 16000;
-      const interval = dense ? 650 : medium ? 1500 : 3000;
+      const sparse = elapsed < 28000;
+      const interval = dense ? 650 : medium ? 1500 : sparse ? 3200 : 9000;
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
