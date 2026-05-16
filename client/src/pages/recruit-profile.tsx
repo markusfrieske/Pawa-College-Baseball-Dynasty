@@ -647,6 +647,7 @@ export default function RecruitProfilePage() {
                   abbreviation={recruit.signedTeamAbbreviation || recruit.signedTeamName.slice(0, 3).toUpperCase()}
                   primaryColor={recruit.signedTeamPrimaryColor || "#888888"}
                   secondaryColor={recruit.signedTeamSecondaryColor || undefined}
+                  name={recruit.signedTeamName || ""}
                   size="sm"
                 />
                 <span className="text-xs font-medium text-foreground">{recruit.signedTeamName}</span>
@@ -1096,6 +1097,7 @@ export default function RecruitProfilePage() {
                         <TeamBadge
                           abbreviation={school.abbreviation}
                           primaryColor={school.primaryColor}
+                          name={school.teamName}
                           size="sm"
                         />
                         <span className="text-xs flex-1">{school.abbreviation}</span>
@@ -1128,6 +1130,7 @@ export default function RecruitProfilePage() {
                         abbreviation={recruit.signedTeamAbbreviation || recruit.signedTeamName.slice(0, 3).toUpperCase()}
                         primaryColor={recruit.signedTeamPrimaryColor || "#888888"}
                         secondaryColor={recruit.signedTeamSecondaryColor || undefined}
+                        name={recruit.signedTeamName || ""}
                         size="md"
                       />
                       <span className="font-pixel text-xs text-foreground">{recruit.signedTeamName}</span>

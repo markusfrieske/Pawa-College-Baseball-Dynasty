@@ -249,6 +249,7 @@ export default function DynastySetupPage() {
                         abbreviation={team.abbreviation}
                         primaryColor={team.primaryColor}
                         secondaryColor={team.secondaryColor}
+                        name={team.name}
                         size="sm"
                       />
                       <div>

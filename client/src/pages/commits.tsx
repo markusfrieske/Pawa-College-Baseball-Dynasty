@@ -130,6 +130,7 @@ function TeamCommitCard({ teamData }: { teamData: TeamCommits }) {
             abbreviation={team.abbreviation}
             primaryColor={team.primaryColor}
             secondaryColor={team.secondaryColor}
+            name={team.name}
             size="sm"
           />
           <div className="flex-1">
@@ -398,6 +399,7 @@ export default function CommitsPage() {
                   abbreviation={teamData.team.abbreviation}
                   primaryColor={teamData.team.primaryColor}
                   secondaryColor={teamData.team.secondaryColor}
+                  name={teamData.team.name}
                   size="sm"
                 />
                 <span className="text-xs text-gray-400 truncate">{teamData.team.abbreviation}</span>

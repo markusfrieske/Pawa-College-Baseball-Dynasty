@@ -508,6 +508,7 @@ function LeagueCard({ league, userId }: { league: LeagueWithDetails; userId?: st
                   abbreviation={league.userTeam.abbreviation}
                   primaryColor={league.userTeam.primaryColor}
                   secondaryColor={league.userTeam.secondaryColor}
+                  name={league.userTeam.name}
                 />
                 <div>
                   <p className="font-medium text-foreground">

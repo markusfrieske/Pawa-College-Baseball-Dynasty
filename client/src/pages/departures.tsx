@@ -343,6 +343,7 @@ export default function DeparturesPage() {
                     abbreviation={userTeam.abbreviation}
                     primaryColor={userTeam.primaryColor}
                     secondaryColor={userTeam.secondaryColor}
+                    name={userTeam.teamName}
                     size="md"
                   />
                   <div>
@@ -675,6 +676,7 @@ export default function DeparturesPage() {
                         abbreviation={team.abbreviation}
                         primaryColor={team.primaryColor}
                         secondaryColor={team.secondaryColor}
+                        name={team.teamName}
                         size="sm"
                       />
                       <div>

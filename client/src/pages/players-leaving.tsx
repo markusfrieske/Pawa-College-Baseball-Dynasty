@@ -108,6 +108,7 @@ function TeamLeavingCard({ teamData }: { teamData: TeamPlayersLeaving }) {
             abbreviation={teamData.abbreviation}
             primaryColor={teamData.primaryColor}
             secondaryColor={teamData.secondaryColor}
+            name={teamData.teamName}
             size="sm"
           />
           <div className="flex-1 min-w-0">

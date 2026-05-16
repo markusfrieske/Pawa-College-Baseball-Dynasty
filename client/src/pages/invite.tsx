@@ -189,6 +189,7 @@ export default function InvitePage() {
                         abbreviation={team.abbreviation}
                         primaryColor={team.primaryColor}
                         secondaryColor={team.secondaryColor || undefined}
+                        name={team.name}
                         size="md"
                       />
                       <div className="flex-1">

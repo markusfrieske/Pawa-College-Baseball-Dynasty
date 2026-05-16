@@ -383,6 +383,7 @@ function TeamCard({
           abbreviation={team.abbreviation}
           primaryColor={team.primaryColor}
           secondaryColor={team.secondaryColor}
+          name={team.name}
         />
         <div className="flex-1 min-w-0">
           <p className="font-medium truncate">{team.name}</p>
@@ -528,6 +529,7 @@ function CoachCreationStep({
               abbreviation={selectedTeam.abbreviation}
               primaryColor={selectedTeam.primaryColor}
               secondaryColor={selectedTeam.secondaryColor}
+              name={selectedTeam.name}
               size="sm"
             />
             <span className="text-sm">{selectedTeam.name}</span>

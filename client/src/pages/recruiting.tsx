@@ -2361,6 +2361,7 @@ function RecruitRow({
                 abbreviation={recruit.signedTeamAbbreviation || "?"} 
                 primaryColor={recruit.signedTeamPrimaryColor || "#666"} 
                 secondaryColor={recruit.signedTeamSecondaryColor || "#fff"} 
+                name={recruit.signedTeamName || ""}
                 size="sm" 
               />
               <span className="text-xs font-medium" style={{ color: recruit.signedTeamPrimaryColor || "#ccc" }}>
@@ -2870,6 +2871,7 @@ function RecruitRow({
                     <TeamBadge
                       abbreviation={school.abbreviation}
                       primaryColor={school.primaryColor}
+                      name={school.teamName}
                       size="sm"
                     />
                     <span className="text-[10px] text-muted-foreground w-8">{school.abbreviation}</span>

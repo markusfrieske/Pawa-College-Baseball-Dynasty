@@ -132,6 +132,7 @@ export default function TeamViewPage() {
                 abbreviation={team.abbreviation}
                 primaryColor={team.primaryColor}
                 secondaryColor={team.secondaryColor}
+                name={team.name}
                 size="lg"
               />
               <div>

@@ -352,6 +352,7 @@ function GameRow({ game, allGamesInGroup, onEdit, onViewBoxScore, userTeamId, le
             abbreviation={game.awayTeam.abbreviation}
             primaryColor={game.awayTeam.primaryColor}
             secondaryColor={game.awayTeam.secondaryColor}
+            name={game.awayTeam.name}
             size="sm"
           />
           <span className="font-medium text-sm">{game.awayTeam.name}</span>
@@ -405,6 +406,7 @@ function GameRow({ game, allGamesInGroup, onEdit, onViewBoxScore, userTeamId, le
             abbreviation={game.homeTeam.abbreviation}
             primaryColor={game.homeTeam.primaryColor}
             secondaryColor={game.homeTeam.secondaryColor}
+            name={game.homeTeam.name}
             size="sm"
           />
         </div>
@@ -543,7 +545,7 @@ function BoxScoreModal({ game, onClose }: { game: GameWithTeams | null; onClose:
                 <tbody>
                   <tr className="border-b border-gold/20">
                     <td className="p-2 font-medium text-foreground flex items-center gap-2">
-                      <TeamBadge abbreviation={game.awayTeam.abbreviation} primaryColor={game.awayTeam.primaryColor} secondaryColor={game.awayTeam.secondaryColor} size="sm" />
+                      <TeamBadge abbreviation={game.awayTeam.abbreviation} primaryColor={game.awayTeam.primaryColor} secondaryColor={game.awayTeam.secondaryColor} name={game.awayTeam.name} size="sm" />
                       <span className="truncate">{game.awayTeam.abbreviation}</span>
                     </td>
                     {boxScore.innings.map((inning, i) => (
@@ -555,7 +557,7 @@ function BoxScoreModal({ game, onClose }: { game: GameWithTeams | null; onClose:
                   </tr>
                   <tr>
                     <td className="p-2 font-medium text-foreground flex items-center gap-2">
-                      <TeamBadge abbreviation={game.homeTeam.abbreviation} primaryColor={game.homeTeam.primaryColor} secondaryColor={game.homeTeam.secondaryColor} size="sm" />
+                      <TeamBadge abbreviation={game.homeTeam.abbreviation} primaryColor={game.homeTeam.primaryColor} secondaryColor={game.homeTeam.secondaryColor} name={game.homeTeam.name} size="sm" />
                       <span className="truncate">{game.homeTeam.abbreviation}</span>
                     </td>
                     {boxScore.innings.map((inning, i) => (
@@ -710,6 +712,7 @@ function ScoreEntryModal({
                 abbreviation={game.awayTeam.abbreviation}
                 primaryColor={game.awayTeam.primaryColor}
                 secondaryColor={game.awayTeam.secondaryColor}
+                name={game.awayTeam.name}
                 className="mx-auto mb-2"
               />
               <p className="text-sm font-medium mb-3">{game.awayTeam.name}</p>
@@ -728,6 +731,7 @@ function ScoreEntryModal({
                 abbreviation={game.homeTeam.abbreviation}
                 primaryColor={game.homeTeam.primaryColor}
                 secondaryColor={game.homeTeam.secondaryColor}
+                name={game.homeTeam.name}
                 className="mx-auto mb-2"
               />
               <p className="text-sm font-medium mb-3">{game.homeTeam.name}</p>

@@ -921,7 +921,7 @@ function NextGameWidget({ leagueId, league, myTeam }: { leagueId: string; league
         {isUserGame && myTeam && opponent ? (
           <>
             <div className="flex items-center gap-2 min-w-0 flex-1">
-              <TeamBadge abbreviation={myTeam.abbreviation} primaryColor={myTeam.primaryColor} secondaryColor={myTeam.secondaryColor} size="md" />
+              <TeamBadge abbreviation={myTeam.abbreviation} primaryColor={myTeam.primaryColor} secondaryColor={myTeam.secondaryColor} name={myTeam.name} size="md" />
               <div className="min-w-0">
                 <p className="text-sm font-medium truncate leading-tight">{myTeam.name}</p>
                 <div className="flex items-center gap-1 mt-0.5">
@@ -957,13 +957,13 @@ function NextGameWidget({ leagueId, league, myTeam }: { leagueId: string; league
                   </p>
                 )}
               </div>
-              <TeamBadge abbreviation={opponent.abbreviation} primaryColor={opponent.primaryColor} secondaryColor={opponent.secondaryColor} size="md" />
+              <TeamBadge abbreviation={opponent.abbreviation} primaryColor={opponent.primaryColor} secondaryColor={opponent.secondaryColor} name={opponent.name} size="md" />
             </div>
           </>
         ) : (
           <>
             <div className="flex items-center gap-2 min-w-0 flex-1">
-              <TeamBadge abbreviation={game.homeTeam.abbreviation} primaryColor={game.homeTeam.primaryColor} secondaryColor={game.homeTeam.secondaryColor} size="md" />
+              <TeamBadge abbreviation={game.homeTeam.abbreviation} primaryColor={game.homeTeam.primaryColor} secondaryColor={game.homeTeam.secondaryColor} name={game.homeTeam.name} size="md" />
               <div className="min-w-0">
                 <p className="text-sm font-medium truncate">{game.homeTeam.name}</p>
                 {homeTeamData?.standings && (
@@ -981,7 +981,7 @@ function NextGameWidget({ leagueId, league, myTeam }: { leagueId: string; league
                   <p className="text-[10px] text-muted-foreground">{awayTeamData.standings.wins ?? 0}–{awayTeamData.standings.losses ?? 0}</p>
                 )}
               </div>
-              <TeamBadge abbreviation={game.awayTeam.abbreviation} primaryColor={game.awayTeam.primaryColor} secondaryColor={game.awayTeam.secondaryColor} size="md" />
+              <TeamBadge abbreviation={game.awayTeam.abbreviation} primaryColor={game.awayTeam.primaryColor} secondaryColor={game.awayTeam.secondaryColor} name={game.awayTeam.name} size="md" />
             </div>
           </>
         )}
@@ -1264,7 +1264,7 @@ function ActivityFeed({ leagueId }: { leagueId: string }) {
                   <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                     <span className={`text-[9px] font-pixel px-1 py-0.5 rounded border ${cfg.color}`}>{cfg.label}</span>
                     {event.teamAbbreviation && (
-                      <TeamBadge abbreviation={event.teamAbbreviation} primaryColor={event.teamPrimaryColor ?? "#2d4a2d"} size="sm" className="!w-5 !h-5 !text-[7px]" />
+                      <TeamBadge abbreviation={event.teamAbbreviation} primaryColor={event.teamPrimaryColor ?? "#2d4a2d"} name={event.teamName || ""} size="sm" className="!w-5 !h-5 !text-[7px]" />
                     )}
                     {event.teamName && (
                       <span className="text-[10px] text-muted-foreground font-medium truncate max-w-[120px]">{event.teamName}</span>
@@ -1325,6 +1325,7 @@ function StandingsTab({ league }: { league: LeagueDetails }) {
                           abbreviation={team.abbreviation}
                           primaryColor={team.primaryColor}
                           secondaryColor={team.secondaryColor}
+                          name={team.name}
                           size="sm"
                         />
                         <Link href={`/league/${league.id}/team/${team.id}`}>
@@ -1503,6 +1504,7 @@ function TeamsTab({ league }: { league: LeagueDetails }) {
                       abbreviation={team.abbreviation}
                       primaryColor={team.primaryColor}
                       secondaryColor={team.secondaryColor}
+                      name={team.name}
                     />
                     <div>
                       <p className="font-medium text-foreground">{team.name}</p>
@@ -1721,6 +1723,7 @@ function RankingsTab({ league }: { league: LeagueDetails }) {
                           abbreviation={entry.abbreviation}
                           primaryColor={entry.primaryColor}
                           secondaryColor={entry.secondaryColor}
+                          name={entry.teamName}
                           size="sm"
                         />
                         <div>
@@ -1810,13 +1813,13 @@ function PowerComparePanel({ userEntry, rivalEntry }: { userEntry: PowerRankingE
     <div className="space-y-3">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <TeamBadge abbreviation={userEntry.abbreviation} primaryColor={userEntry.primaryColor} secondaryColor={userEntry.secondaryColor} size="sm" />
+          <TeamBadge abbreviation={userEntry.abbreviation} primaryColor={userEntry.primaryColor} secondaryColor={userEntry.secondaryColor} name={userEntry.teamName} size="sm" />
           <span className="font-pixel text-gold text-[9px]">YOU</span>
         </div>
         <span className="font-pixel text-[9px] text-muted-foreground">HEAD-TO-HEAD</span>
         <div className="flex items-center gap-2">
           <span className="font-pixel text-[9px] text-foreground">{rivalEntry.teamName}</span>
-          <TeamBadge abbreviation={rivalEntry.abbreviation} primaryColor={rivalEntry.primaryColor} secondaryColor={rivalEntry.secondaryColor} size="sm" />
+          <TeamBadge abbreviation={rivalEntry.abbreviation} primaryColor={rivalEntry.primaryColor} secondaryColor={rivalEntry.secondaryColor} name={rivalEntry.teamName} size="sm" />
         </div>
       </div>
 
@@ -3617,6 +3620,7 @@ function ProspectsTab({ leagueId, currentSeason }: { leagueId: string; currentSe
                           abbreviation={prospect.teamAbbreviation}
                           primaryColor={prospect.teamPrimaryColor}
                           secondaryColor={prospect.teamSecondaryColor}
+                          name={prospect.teamName}
                           size="sm"
                         />
                         <span className="text-[10px] text-muted-foreground truncate max-w-[100px]">
@@ -4501,11 +4505,11 @@ function TeamCompareDialog({ leagueId, teamAId, teamBId, open, onClose }: { leag
             <div className="grid grid-cols-3 gap-2">
               <div className="flex items-center justify-end gap-2">
                 <span className="font-pixel text-xs text-right">{data.teamA.name}</span>
-                <TeamBadge abbreviation={data.teamA.abbreviation} primaryColor={data.teamA.primaryColor} size="md" />
+                <TeamBadge abbreviation={data.teamA.abbreviation} primaryColor={data.teamA.primaryColor} name={data.teamA.name} size="md" />
               </div>
               <div className="text-center text-muted-foreground text-xs pt-2">VS</div>
               <div className="flex items-center gap-2">
-                <TeamBadge abbreviation={data.teamB.abbreviation} primaryColor={data.teamB.primaryColor} size="md" />
+                <TeamBadge abbreviation={data.teamB.abbreviation} primaryColor={data.teamB.primaryColor} name={data.teamB.name} size="md" />
                 <span className="font-pixel text-xs">{data.teamB.name}</span>
               </div>
             </div>
@@ -4613,6 +4617,7 @@ function SeasonRecapDialog({ leagueId, season, open, onClose }: { leagueId: stri
                   <TeamBadge
                     abbreviation={data.cwsChampion.abbreviation}
                     primaryColor={data.cwsChampion.primaryColor}
+                    name={data.cwsChampion.name}
                     size="md"
                   />
                   <span className="font-pixel text-gold text-sm">{data.cwsChampion.name}</span>
@@ -4643,6 +4648,7 @@ function SeasonRecapDialog({ leagueId, season, open, onClose }: { leagueId: stri
                     <TeamBadge
                       abbreviation={team.abbreviation}
                       primaryColor={team.primaryColor}
+                      name={team.name}
                       size="sm"
                     />
                     <span className="flex-1 truncate">{team.name}</span>
@@ -5069,7 +5075,7 @@ function OffseasonSummary({ league }: { league: LeagueDetails }) {
                 {signingDayData.teamSignings.map((team, rank) => (
                   <div key={team.teamId} className="flex items-center gap-2 p-2 rounded bg-muted/20" data-testid={`signing-day-team-${team.abbreviation}`}>
                     <span className="font-pixel text-gold text-xs w-6 text-center">#{rank + 1}</span>
-                    <TeamBadge abbreviation={team.abbreviation} primaryColor={team.primaryColor} secondaryColor={team.secondaryColor} size="sm" />
+                    <TeamBadge abbreviation={team.abbreviation} primaryColor={team.primaryColor} secondaryColor={team.secondaryColor} name={team.teamName} size="sm" />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium truncate">{team.teamName}</p>
                       <div className="flex flex-wrap gap-1 mt-1">

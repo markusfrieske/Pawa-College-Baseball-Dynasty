@@ -248,6 +248,7 @@ export default function TeamSelectionPage() {
                               abbreviation={team.abbreviation}
                               primaryColor={team.primaryColor}
                               secondaryColor={team.secondaryColor}
+                              name={team.name}
                               size="sm"
                             />
                             <div className="flex-1 min-w-0">
