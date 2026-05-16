@@ -192,7 +192,7 @@ async function autoAssignLineup(storage: any, teamPlayers: Player[], teamId: str
     const lineupPos = starterLineupPositions.get(p.id) ?? null;
     return slot !== -1
       ? { id: p.id, data: { battingOrder: slot + 1, lineupPosition: lineupPos } }
-      : { id: p.id, data: { battingOrder: null as null, lineupPosition: null as null } };
+      : { id: p.id, data: { battingOrder: null, lineupPosition: null } };
   });
 
   // ── STEP 3: assign pitching roles ─────────────────────────────────────────
@@ -263,7 +263,7 @@ async function autoAssignLineup(storage: any, teamPlayers: Player[], teamId: str
   // Collect pitcher role updates, then flush all writes in one batch
   const pitcherUpdates = pitchers.map(p => ({
     id: p.id,
-    data: { pitchingRole: roleMap.get(p.id) || null as null },
+    data: { pitchingRole: roleMap.get(p.id) ?? null },
   }));
 
   await storage.batchUpdatePlayersLineup([...hitterUpdates, ...pitcherUpdates]);
