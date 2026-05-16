@@ -47,8 +47,10 @@ function getXpProgress(xp: number, level: number): number {
   return Math.min(100, (currentLevelXp / xpNeeded) * 100);
 }
 
-// ── Coaching competency grades derived from career stats ──────────────────────
+// ── Coaching competency grades derived from career stats + archetype ──────────
 // Grade ladder: S / A+ / A / B+ / B / C+ / C / D / F  (matches recruit-style)
+// Five competencies: Game Management, Player Development, Program Builder,
+//                    Media Relations, Clutch Coaching
 function deriveCoachingGrades(coach: Coach): Record<string, string> {
   const scoreToGrade = (score: number): string => {
     if (score >= 95) return "S";
@@ -62,31 +64,45 @@ function deriveCoachingGrades(coach: Coach): Record<string, string> {
     return "F";
   };
 
+  // Per-archetype bonuses for each competency (0 = no bonus, higher = stronger)
+  const archetypeWeights: Record<string, {gm: number; pd: number; pb: number; mr: number; cc: number}> = {
+    "Tactician":      { gm: 18, pd:  8, pb: 10, mr:  4, cc: 14 },
+    "Old School":     { gm: 12, pd: 12, pb:  8, mr:  6, cc: 10 },
+    "Dealmaker":      { gm:  6, pd:  6, pb: 16, mr: 20, cc:  6 },
+    "Pure CEO":       { gm:  8, pd:  8, pb: 18, mr: 16, cc:  4 },
+    "Player's Coach": { gm:  8, pd: 18, pb: 10, mr: 14, cc: 10 },
+    "Showman":        { gm:  6, pd:  6, pb: 12, mr: 20, cc:  8 },
+    "Scout Master":   { gm: 10, pd: 16, pb:  8, mr:  4, cc: 10 },
+    "Academic Dean":  { gm:  8, pd: 14, pb: 14, mr: 10, cc:  6 },
+    "Balanced":       { gm: 10, pd: 10, pb: 10, mr: 10, cc: 10 },
+  };
+  const aw = archetypeWeights[coach.archetype] ?? archetypeWeights["Balanced"];
+
   const totalGames = coach.careerWins + coach.careerLosses;
   const winPct = totalGames > 0 ? coach.careerWins / totalGames : 0;
-  const skillAvg = (coach.scoutingSkill + coach.evaluationSkill + coach.pitchingRecruitingSkill + coach.hittingRecruitingSkill) / 4;
 
-  // Game Management: win% + CWS appearances + conf championships
-  const gm = Math.min(100, winPct * 45 + coach.cwsAppearances * 5 + coach.confChampionships * 3 + 30);
+  // Game Management: win% + postseason presence + archetype tactical bonus
+  const gm = Math.min(100, winPct * 40 + coach.cwsAppearances * 4 + coach.confChampionships * 3 + aw.gm + 22);
 
-  // Player Development: allAmericans + draftPicks + level progression
-  const pd = Math.min(100, coach.allAmericans * 3 + coach.draftPicks * 4 + coach.level * 2.5 + 30);
+  // Player Development: all-americans + draft picks + level + archetype dev bonus
+  const pd = Math.min(100, coach.allAmericans * 3 + coach.draftPicks * 4 + coach.level * 2 + aw.pd + 22);
 
-  // Program Builder: conference + national titles + win longevity
-  const pb = Math.min(100, winPct * 30 + coach.confChampionships * 5 + coach.nationalChampionships * 10 + 30);
+  // Program Builder: sustained winning + titles + archetype admin/builder bonus
+  const pb = Math.min(100, winPct * 28 + coach.confChampionships * 5 + coach.nationalChampionships * 10 + aw.pb + 22);
 
-  // Clutch Coaching: postseason run performance
-  const cc = Math.min(100, coach.nationalChampionships * 15 + coach.cwsAppearances * 7 + coach.confChampionships * 4 + winPct * 20 + 25);
+  // Media Relations: archetype visibility/relationships + career profile baseline
+  // Archetype is the primary driver here; career wins/titles provide baseline
+  const mr = Math.min(100, aw.mr * 2 + winPct * 18 + coach.level * 1.5 + coach.nationalChampionships * 4 + 22);
 
-  // Recruiting: skill tree depth + development track record
-  const rc = Math.min(100, skillAvg * 5 + 35 + coach.draftPicks * 2);
+  // Clutch Coaching: postseason success + archetype composure bonus
+  const cc = Math.min(100, coach.nationalChampionships * 14 + coach.cwsAppearances * 7 + coach.confChampionships * 3 + winPct * 18 + aw.cc + 18);
 
   return {
     "Game Management": scoreToGrade(gm),
     "Player Development": scoreToGrade(pd),
     "Program Builder": scoreToGrade(pb),
+    "Media Relations": scoreToGrade(mr),
     "Clutch Coaching": scoreToGrade(cc),
-    "Recruiting": scoreToGrade(rc),
   };
 }
 
