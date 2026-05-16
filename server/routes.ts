@@ -9511,6 +9511,7 @@ export async function registerRoutes(
               finalEligibility: player.eligibility,
               overall: player.overall ?? 300,
               starRating: player.starRating ?? 3,
+              signingOvr: player.signingOvr ?? player.overall ?? 300,
               departureType: player.departureType,
               draftRound: player.draftRound || null,
               departedSeason: league.currentSeason,
@@ -9536,6 +9537,7 @@ export async function registerRoutes(
               finalEligibility: player.eligibility,
               overall: player.overall ?? 300,
               starRating: player.starRating ?? 3,
+              signingOvr: player.signingOvr ?? player.overall ?? 300,
               departureType: "transfer_portal",
               departedSeason: league.currentSeason,
               seasonsPlayed: eligMap[player.eligibility] || 1,
@@ -10116,6 +10118,7 @@ export async function registerRoutes(
               finalEligibility: player.eligibility,
               overall: player.overall,
               starRating: player.starRating,
+              signingOvr: player.signingOvr ?? player.overall,
               departureType: "cut_juco",
               departedSeason: currentSeason,
               seasonsPlayed: eligMap[player.eligibility] || 1,
@@ -10210,6 +10213,7 @@ export async function registerRoutes(
               finalEligibility: player.eligibility,
               overall: player.overall,
               starRating: player.starRating,
+              signingOvr: player.signingOvr ?? player.overall,
               departureType: "cut_juco",
               departedSeason: currentSeason,
               seasonsPlayed: eligMap[player.eligibility] || 1,
@@ -10333,6 +10337,7 @@ export async function registerRoutes(
           finalEligibility: bestPlayer.eligibility,
           overall: bestPlayer.overall,
           starRating: bestPlayer.starRating,
+          signingOvr: bestPlayer.signingOvr ?? bestPlayer.overall,
           departureType: "cut_juco",
           departedSeason: currentSeason,
           seasonsPlayed: eligMap[bestPlayer.eligibility] || 1,
@@ -10513,6 +10518,7 @@ export async function registerRoutes(
           finalEligibility: player.eligibility,
           overall: player.overall,
           starRating: player.starRating,
+          signingOvr: player.signingOvr ?? player.overall,
           departureType: wasSignedAsRecruit ? "transfer_signed" : "transfer_juco",
           departedSeason: completedSeason,
           seasonsPlayed: eligMap[player.eligibility] || 1,
@@ -10612,6 +10618,7 @@ export async function registerRoutes(
           hometown: recruit.hometown,
           jerseyNumber,
           overall: recruit.overall,
+          signingOvr: recruit.overall,
           starRating: recruit.starRating,
           hitForAvg: recruit.hitForAvg || 50,
           power: recruit.power || 50,
@@ -11112,6 +11119,7 @@ export async function registerRoutes(
         finalEligibility: player.eligibility,
         overall: player.overall,
         starRating: player.starRating,
+        signingOvr: player.signingOvr ?? player.overall,
         departureType: "cut_juco",
         departedSeason: league.currentSeason,
         seasonsPlayed: eligMap[player.eligibility] || 1,
@@ -13538,11 +13546,10 @@ export async function registerRoutes(
       // CWS champion: won at least 2 CWS games (best-of-3)
       const cwsTitles = Object.values(cwsWinsBySeasonCount).filter(r => r.wins >= 2).length;
 
-      // Recruiting Hall of Fame — top 5 all-time players ever on this roster, ranked by best known OVR.
-      // NOTE: The recruits table is cleared each season (deleteRecruitsByLeague), so it cannot serve as
-      // a persistent historical record. player_history is the authoritative source for departed players,
-      // and the current active roster covers still-enrolled players. Signing-time OVR is not separately
-      // persisted; departure OVR from player_history is the best available historical metric.
+      // Recruiting Hall of Fame — top 5 all-time players ever on this roster, ranked by signing-time OVR.
+      // signingOvr is captured in finalizeSigningDay when a recruit converts to a player, and is copied
+      // into player_history when the player departs. This is the authoritative pre-development baseline.
+      // Falls back to departure/current OVR for pre-migration rows where signingOvr is null.
       // Excluded: players who were cut and sent to JUCO (departureType = cut_juco).
       const departureStatusMap: Record<string, string> = {
         graduated: "graduated",
@@ -13559,6 +13566,7 @@ export async function registerRoutes(
           lastName: p.lastName,
           position: p.position,
           overall: p.overall,
+          signingOvr: p.signingOvr ?? p.overall,
           starRating: p.starRating,
           status: "active" as const,
           draftRound: null as number | null,
@@ -13573,6 +13581,7 @@ export async function registerRoutes(
           lastName: p.lastName,
           position: p.position,
           overall: p.overall,
+          signingOvr: p.signingOvr ?? p.overall,
           starRating: p.starRating,
           status: (departureStatusMap[p.departureType] ?? p.departureType) as string,
           draftRound: p.draftRound,
@@ -13581,7 +13590,7 @@ export async function registerRoutes(
         }));
 
       const hofPlayers = [...activePlayerEntries, ...historicPlayerEntries]
-        .sort((a, b) => b.overall - a.overall)
+        .sort((a, b) => b.signingOvr - a.signingOvr)
         .slice(0, 5);
 
       // Top drafted players: combine player_history + active roster players with draftRound set

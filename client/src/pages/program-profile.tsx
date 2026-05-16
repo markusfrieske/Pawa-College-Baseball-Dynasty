@@ -32,6 +32,7 @@ interface HoFPlayer {
   lastName: string;
   position: string;
   overall: number;
+  signingOvr: number;
   starRating: number;
   status: string;
   draftRound: number | null;
@@ -380,12 +381,18 @@ export default function ProgramProfilePage() {
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <StarsDisplay stars={player.starRating} />
-                        <span className={`font-bold text-sm ${ovRColor(player.overall)}`}>{player.overall}</span>
+                        <div className="text-right">
+                          <div className={`font-bold text-sm ${ovRColor(player.signingOvr)}`}>{player.signingOvr}</div>
+                          {player.overall !== player.signingOvr && (
+                            <div className="text-[8px] text-muted-foreground">→ {player.overall}</div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   );
                 })}
               </div>
+              <p className="text-[9px] text-muted-foreground mt-2 text-right">Ranked by signing OVR · developed OVR shown when different</p>
             </RetroCardContent>
           </RetroCard>
         )}
