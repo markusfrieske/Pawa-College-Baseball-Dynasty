@@ -30,7 +30,5 @@ CREATE INDEX IF NOT EXISTS idx_coach_season_history_coach_id ON coach_season_his
 CREATE INDEX IF NOT EXISTS idx_coach_season_history_league_id ON coach_season_history(league_id);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_coach_season_history_unique ON coach_season_history(coach_id, league_id, season);
 
--- Add class_star_avg to existing coach_season_history rows that may exist (idempotent)
-ALTER TABLE coach_season_history ADD COLUMN IF NOT EXISTS class_star_avg real;
 -- Add team_id for per-season team attribution (coaches may change teams across dynasties)
 ALTER TABLE coach_season_history ADD COLUMN IF NOT EXISTS team_id varchar;

@@ -198,6 +198,7 @@ export function evaluateMilestones(
     draftPicks: number;
     careerMilestones?: MilestoneEntry[] | null;
     seasonsCoached?: number;
+    bestSeasonWins?: number;
   },
   recruiting: {
     totalSigned: number;
@@ -215,6 +216,7 @@ export function evaluateMilestones(
   const result: MilestoneEntry[] = [...existing.entries()].map(([id, season]) => ({ id, season }));
 
   const totalGames = coach.careerWins + coach.careerLosses;
+  const bestSeasonWins = coach.bestSeasonWins ?? 0;
 
   const check = (id: string, condition: boolean) => {
     if (condition && !existing.has(id)) {
@@ -222,17 +224,18 @@ export function evaluateMilestones(
     }
   };
 
-  // Wins-based
+  // Wins-based — career totals
   check("first_win", coach.careerWins >= 1);
   check("winning_record", coach.careerWins > coach.careerLosses && totalGames > 0);
-  check("ten_wins", coach.careerWins >= 10);
-  check("twenty_win_season", coach.careerWins >= 20);
   check("wins_50", coach.careerWins >= 50);
   check("wins_100", coach.careerWins >= 100);
   check("wins_250", coach.careerWins >= 250);
+  // Single-season win thresholds — require per-season history data
+  check("ten_wins", bestSeasonWins >= 10);
+  check("twenty_win_season", bestSeasonWins >= 20);
 
   // Career progression
-  check("first_season", totalGames >= 10);
+  check("first_season", (coach.seasonsCoached ?? 0) >= 1);
   check("level_5", coach.level >= 5);
   check("level_10", coach.level >= 10);
   check("dynasty_five_seasons", (coach.seasonsCoached ?? 0) >= 5);

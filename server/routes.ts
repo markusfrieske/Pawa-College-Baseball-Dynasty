@@ -3966,16 +3966,19 @@ export async function registerRoutes(
       ? Math.round(rankedSeasons.reduce((s, h) => s + (h.classRank ?? 0), 0) / rankedSeasons.length)
       : null;
 
-    // Draft picks developed — count from player history for coach's team across all recorded seasons
+    // Draft picks developed — use all historical teamIds from season history rows (cross-program aware)
     let draftPicksDeveloped = 0;
     let blueChipsSigned = 0;
-    if (coach.teamId) {
+    const allHistoricalTeamIds = new Set(
+      history.map(h => h.teamId ?? coach.teamId).filter(Boolean) as string[]
+    );
+    if (allHistoricalTeamIds.size > 0) {
       const playerHist = await storage.getPlayerHistoryByLeague(coach.leagueId);
-      draftPicksDeveloped = playerHist.filter(ph => ph.teamId === coach.teamId && ph.draftRound != null).length;
-      // Blue chips signed — from recruits with isBlueChip=true signed to this team
+      draftPicksDeveloped = playerHist.filter(ph => ph.teamId && allHistoricalTeamIds.has(ph.teamId) && ph.draftRound != null).length;
+      // Blue chips signed — across all historical teams
       const allRecruits = await storage.getRecruitsByLeague(coach.leagueId);
       blueChipsSigned = allRecruits.filter(
-        r => r.signedTeamId === coach.teamId && r.isBlueChip === true && r.starRating === 5
+        r => r.signedTeamId && allHistoricalTeamIds.has(r.signedTeamId) && r.isBlueChip === true && r.starRating === 5
       ).length;
     }
 
@@ -9050,13 +9053,14 @@ export async function registerRoutes(
     const league = await storage.getLeague(coach.leagueId).catch(() => null);
     const season = currentSeason ?? league?.currentSeason ?? 1;
 
-    // Compute seasonsCoached from history so dynasty milestone can unlock
+    // Compute seasonsCoached and bestSeasonWins from history for accurate milestone evaluation
     const coachHistory = await storage.getCoachSeasonHistory(coach.id).catch(() => [] as typeof import("../shared/schema").coachSeasonHistory.$inferSelect[]);
     const seasonsCoached = coachHistory.length;
+    const bestSeasonWins = coachHistory.reduce((max, h) => Math.max(max, h.wins), 0);
 
     const currentMilestones = coach.careerMilestones ?? [];
     const earnedMilestones = evaluateMilestones(
-      { ...coach, careerMilestones: currentMilestones, seasonsCoached },
+      { ...coach, careerMilestones: currentMilestones, seasonsCoached, bestSeasonWins },
       recruitingStats,
       season,
     );
