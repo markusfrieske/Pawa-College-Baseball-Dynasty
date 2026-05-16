@@ -13383,7 +13383,7 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Team does not belong to this league" });
       }
 
-      const [coach, conferences, teamStandings, allLeagueStandings, teamHistory, teamGames, currentRoster] = await Promise.all([
+      const [coach, conferences, teamStandings, allLeagueStandings, teamHistory, teamGames, currentRoster, leagueRecruits] = await Promise.all([
         team.coachId ? storage.getCoach(team.coachId) : Promise.resolve(undefined),
         storage.getConferencesByLeague(leagueId),
         storage.getStandingsByTeam(teamId),
@@ -13391,6 +13391,7 @@ export async function registerRoutes(
         storage.getPlayerHistoryByTeam(teamId),
         storage.getGamesByTeam(teamId),
         storage.getPlayersByTeam(teamId),
+        storage.getRecruitsByLeague(leagueId),
       ]);
 
       // Determine if the coach is the commissioner
@@ -13466,8 +13467,19 @@ export async function registerRoutes(
         else cwsWinsBySeasonCount[game.season].losses++;
       }
 
-      // Build season history
-      const seasonHistory = teamStandings.map((standing) => {
+      // Current season stat block (may be in-progress)
+      const currentStanding = teamStandings.find(s => s.season === league.currentSeason);
+      const currentSeasonStats = currentStanding ? {
+        season: currentStanding.season,
+        wins: currentStanding.wins,
+        losses: currentStanding.losses,
+        confWins: currentStanding.conferenceWins,
+        confLosses: currentStanding.conferenceLosses,
+      } : null;
+
+      // Build season history — only completed seasons (season < currentSeason)
+      const completedStandings = teamStandings.filter(s => s.season < league.currentSeason);
+      const seasonHistory = completedStandings.map((standing) => {
         const season = standing.season;
 
         // Conference finish
@@ -13518,23 +13530,9 @@ export async function registerRoutes(
       // CWS champion: won at least 2 CWS games (best-of-3)
       const cwsTitles = Object.values(cwsWinsBySeasonCount).filter(r => r.wins >= 2).length;
 
-      // Recruiting Hall of Fame — top 5 players ever on this roster by OVR
-      // Active players use current OVR; departed alumni use departure-time OVR from player_history.
-      // Excludes players who were cut/sent to JUCO (departureType = cut_juco).
-      const activePlayerEntries = currentRoster
-        .filter(p => !p.inTransferPortal)
-        .map(p => ({
-          firstName: p.firstName,
-          lastName: p.lastName,
-          position: p.position,
-          overall: p.overall,
-          starRating: p.starRating,
-          status: "active" as const,
-          draftRound: null as number | null,
-          season: null as number | null,
-          abilities: (p.abilities ?? []) as string[],
-        }));
-
+      // Recruiting Hall of Fame — top 5 recruits ever signed by this team, ranked by signing OVR
+      // Source: recruits table (signedTeamId === teamId), sorted by overall (signing-time OVR).
+      // Status is resolved against current roster (active) or player_history (departed).
       const departureStatusMap: Record<string, string> = {
         graduated: "graduated",
         draft: "drafted",
@@ -13543,38 +13541,76 @@ export async function registerRoutes(
         transfer_juco: "transferred",
       };
 
-      const historicPlayerEntries = teamHistory
-        .filter(p => !["cut_juco"].includes(p.departureType))
-        .map(p => ({
-          firstName: p.firstName,
-          lastName: p.lastName,
-          position: p.position,
-          overall: p.overall,
-          starRating: p.starRating,
-          status: (departureStatusMap[p.departureType] ?? p.departureType) as string,
-          draftRound: p.draftRound,
-          season: p.departedSeason,
-          abilities: (p.abilities ?? []) as string[],
-        }));
+      // Build lookup structures for status resolution
+      const activeRosterByName = new Map<string, typeof currentRoster[0]>();
+      for (const p of currentRoster) {
+        if (!p.inTransferPortal) {
+          activeRosterByName.set(`${p.firstName}|${p.lastName}`, p);
+        }
+      }
+      const historyByName = new Map<string, typeof teamHistory[0]>();
+      for (const p of teamHistory) {
+        historyByName.set(`${p.firstName}|${p.lastName}`, p);
+      }
 
-      const hofPlayers = [...activePlayerEntries, ...historicPlayerEntries]
+      const signedRecruits = leagueRecruits
+        .filter(r => r.signedTeamId === teamId)
         .sort((a, b) => b.overall - a.overall)
         .slice(0, 5);
 
-      // Top drafted players (draftRound is set), sorted by draft round asc then OVR desc
-      const draftedPlayers = teamHistory
+      const hofPlayers = signedRecruits.map(r => {
+        const key = `${r.firstName}|${r.lastName}`;
+        const activeMatch = activeRosterByName.get(key);
+        const historyMatch = historyByName.get(key);
+        let status = "unknown";
+        let season: number | null = null;
+        let draftRound: number | null = null;
+        if (activeMatch) {
+          status = "active";
+        } else if (historyMatch) {
+          status = departureStatusMap[historyMatch.departureType] ?? historyMatch.departureType;
+          season = historyMatch.departedSeason;
+          draftRound = historyMatch.draftRound;
+        }
+        return {
+          firstName: r.firstName,
+          lastName: r.lastName,
+          position: r.position,
+          overall: r.overall,
+          starRating: r.starRating,
+          status,
+          draftRound,
+          season,
+          abilities: (r.abilities ?? []) as string[],
+        };
+      });
+
+      // Top drafted players: combine player_history + active roster players with draftRound set
+      // Sorted by draft round asc then OVR desc — no arbitrary cap
+      const activeDraftedPlayers = currentRoster
         .filter(p => p.draftRound != null)
-        .sort((a, b) => (a.draftRound ?? 99) - (b.draftRound ?? 99) || b.overall - a.overall)
-        .slice(0, 10)
         .map(p => ({
           firstName: p.firstName,
           lastName: p.lastName,
           position: p.position,
           overall: p.overall,
           starRating: p.starRating,
-          draftRound: p.draftRound,
+          draftRound: p.draftRound as number,
+          departedSeason: league.currentSeason,
+        }));
+      const historicDraftedPlayers = teamHistory
+        .filter(p => p.draftRound != null)
+        .map(p => ({
+          firstName: p.firstName,
+          lastName: p.lastName,
+          position: p.position,
+          overall: p.overall,
+          starRating: p.starRating,
+          draftRound: p.draftRound as number,
           departedSeason: p.departedSeason,
         }));
+      const draftedPlayers = [...activeDraftedPlayers, ...historicDraftedPlayers]
+        .sort((a, b) => a.draftRound - b.draftRound || b.overall - a.overall);
 
       res.json({
         team: {
@@ -13607,6 +13643,7 @@ export async function registerRoutes(
         superRegionalsAppearances,
         cwsAppearances,
         cwsTitles,
+        currentSeasonStats,
         seasonHistory,
         recruitingHoF: hofPlayers,
         topDraftedPlayers: draftedPlayers,

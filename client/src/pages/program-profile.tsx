@@ -80,6 +80,13 @@ interface ProgramProfileData {
   superRegionalsAppearances: number;
   cwsAppearances: number;
   cwsTitles: number;
+  currentSeasonStats: {
+    season: number;
+    wins: number;
+    losses: number;
+    confWins: number;
+    confLosses: number;
+  } | null;
   seasonHistory: SeasonHistoryRow[];
   recruitingHoF: HoFPlayer[];
   topDraftedPlayers: DraftedPlayer[];
@@ -155,7 +162,7 @@ export default function ProgramProfilePage() {
     );
   }
 
-  const { team, coach, isCommissioner, commissionerSeasons, allTimeWins, allTimeLosses, confChampAppearances, confChampionships, superRegionalsAppearances, cwsAppearances, cwsTitles, seasonHistory, recruitingHoF, topDraftedPlayers } = data;
+  const { team, coach, isCommissioner, commissionerSeasons, allTimeWins, allTimeLosses, confChampAppearances, confChampionships, superRegionalsAppearances, cwsAppearances, cwsTitles, currentSeasonStats, currentSeason, seasonHistory, recruitingHoF, topDraftedPlayers } = data;
   const totalGames = allTimeWins + allTimeLosses;
   const winPct = totalGames > 0 ? ((allTimeWins / totalGames) * 100).toFixed(1) : "0.0";
 
@@ -246,6 +253,39 @@ export default function ProgramProfilePage() {
           <StatTile icon={<Star className="w-4 h-4" />} label="Super Regionals" value={String(superRegionalsAppearances)} sub="appearances" />
           <StatTile icon={<Medal className="w-4 h-4" />} label="CWS" value={String(cwsAppearances)} sub="appearances" />
         </div>
+
+        {/* Current Season Stats */}
+        {currentSeasonStats && (
+          <RetroCard data-testid="section-current-season">
+            <RetroCardHeader>
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-gold" />
+                Season {currentSeason} — Current
+                <Badge variant="outline" className="text-[8px] border-green-500/60 text-green-400 font-pixel">LIVE</Badge>
+              </div>
+            </RetroCardHeader>
+            <RetroCardContent>
+              <div className="flex items-center gap-6">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-foreground">{currentSeasonStats.wins}-{currentSeasonStats.losses}</div>
+                  <div className="text-[9px] text-muted-foreground font-pixel mt-0.5">OVERALL</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-foreground">{currentSeasonStats.confWins}-{currentSeasonStats.confLosses}</div>
+                  <div className="text-[9px] text-muted-foreground font-pixel mt-0.5">CONFERENCE</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-foreground">
+                    {(currentSeasonStats.wins + currentSeasonStats.losses) > 0
+                      ? ((currentSeasonStats.wins / (currentSeasonStats.wins + currentSeasonStats.losses)) * 100).toFixed(1)
+                      : "0.0"}%
+                  </div>
+                  <div className="text-[9px] text-muted-foreground font-pixel mt-0.5">WIN %</div>
+                </div>
+              </div>
+            </RetroCardContent>
+          </RetroCard>
+        )}
 
         {/* Season-by-Season History */}
         {seasonHistory.length > 0 && (
