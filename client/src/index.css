@@ -514,35 +514,66 @@ input[type="number"].no-spinner {
 }
 
 /* ── Header & sidebar tinting per mood ─────────────────────── */
+
+/* Base: atmosphere overlay tint bleeds into header/sidebar borders */
+html[data-mood] header,
+html[data-mood] aside,
+html[data-mood] nav {
+  transition: border-color 0.8s ease, box-shadow 0.8s ease, background-color 0.8s ease;
+}
+
+/* postseason — gold accent */
 html[data-mood="postseason"] header {
-  border-bottom-color: rgba(196, 163, 90, 0.35);
-  box-shadow: 0 1px 12px rgba(196, 163, 90, 0.12);
+  border-bottom-color: rgba(196, 163, 90, 0.40);
+  box-shadow: 0 1px 14px rgba(196, 163, 90, 0.15);
+  background-color: hsl(43 20% 8% / 0.92);
 }
-
-html[data-mood="recruiting"] header {
-  border-bottom-color: hsl(245 35% 55% / 0.28);
-}
-
-html[data-mood="spring"] header {
-  border-bottom-color: hsl(85 45% 50% / 0.22);
-}
-
-html[data-mood="signing_day"] header {
-  border-bottom-color: rgba(196, 163, 90, 0.25);
-}
-
-/* Sidebar left border tinting */
 html[data-mood="postseason"] aside,
 html[data-mood="postseason"] nav {
-  border-right-color: rgba(196, 163, 90, 0.28);
+  border-right-color: rgba(196, 163, 90, 0.30);
+  background-color: hsl(43 15% 7% / 0.90);
 }
 
+/* signing_day — warm gold, more pronounced */
+html[data-mood="signing_day"] header {
+  border-bottom-color: rgba(196, 163, 90, 0.32);
+  box-shadow: 0 1px 10px rgba(196, 163, 90, 0.10);
+  background-color: hsl(43 18% 8% / 0.90);
+}
+html[data-mood="signing_day"] aside,
+html[data-mood="signing_day"] nav {
+  border-right-color: rgba(196, 163, 90, 0.22);
+}
+
+/* recruiting — indigo/purple tint */
+html[data-mood="recruiting"] header {
+  border-bottom-color: hsl(245 35% 55% / 0.30);
+  box-shadow: 0 1px 10px hsl(245 35% 40% / 0.10);
+  background-color: hsl(245 12% 8% / 0.90);
+}
 html[data-mood="recruiting"] aside,
 html[data-mood="recruiting"] nav {
-  border-right-color: hsl(245 35% 55% / 0.22);
+  border-right-color: hsl(245 35% 55% / 0.24);
+  background-color: hsl(245 10% 7% / 0.90);
 }
 
+/* spring — fresh green tint */
+html[data-mood="spring"] header {
+  border-bottom-color: hsl(85 45% 50% / 0.26);
+  box-shadow: 0 1px 10px hsl(85 45% 35% / 0.08);
+  background-color: hsl(120 12% 8% / 0.90);
+}
 html[data-mood="spring"] aside,
 html[data-mood="spring"] nav {
-  border-right-color: hsl(85 45% 50% / 0.18);
+  border-right-color: hsl(85 45% 50% / 0.20);
+  background-color: hsl(120 10% 7% / 0.90);
+}
+
+/* active (regular season) — subtle warm green, near-neutral */
+html[data-mood="active"] header {
+  border-bottom-color: hsl(120 18% 45% / 0.22);
+}
+html[data-mood="active"] aside,
+html[data-mood="active"] nav {
+  border-right-color: hsl(120 18% 45% / 0.16);
 }

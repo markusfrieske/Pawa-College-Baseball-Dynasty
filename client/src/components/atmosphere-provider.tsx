@@ -128,11 +128,15 @@ function prefersReducedMotion(): boolean {
 export function SigningDayBurst() {
   const { phase } = useAtmosphere();
   const [visible, setVisible] = useState(false);
-  const prevPhaseRef = useRef<string>("neutral");
+  const prevPhaseRef = useRef<string | null>(null);
 
   useEffect(() => {
     const prev = prevPhaseRef.current;
     prevPhaseRef.current = phase;
+
+    if (prev === null) {
+      return;
+    }
 
     if (phase === "offseason_signing_day" && prev !== "offseason_signing_day") {
       if (prefersReducedMotion()) return;
