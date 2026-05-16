@@ -3132,12 +3132,15 @@ function RecruitDetailModal({
   if (!recruit) return null;
 
   const scoutPct = recruit.interest?.scoutPercentage || 0;
-  const isFullyRevealed = recruit.isBlueChip || scoutPct >= 100;
+  // Set of fields locked until signing day reveal (server has already nulled their values)
+  const sdLocked = new Set<string>(recruit.signingDayLockedFields || []);
+  // isFullyRevealed: blue chips always show everything; otherwise 100% scouting reveals
+  // non-locked fields, but signing-day-locked fields remain hidden until signingDayRevealed.
+  // sdLocked.size > 0 means holdback is active, so 100% scouting does not fully unlock.
+  const isFullyRevealed = recruit.isBlueChip || (scoutPct >= 100 && sdLocked.size === 0);
   const revealedAttrs = recruit.isBlueChip 
     ? ["hitForAvg", "power", "speed", "arm", "fielding", "errorResistance", "velocity", "control", "stamina"]
     : (recruit.interest?.revealedAttributes || []);
-  // Set of fields locked until signing day reveal (server has already nulled their values)
-  const sdLocked = new Set<string>(recruit.signingDayLockedFields || []);
 
   // Progressive reveal display functions for modal
   const getOverallDisplay = (): string => {
@@ -3274,6 +3277,13 @@ function RecruitDetailModal({
               <span>Bats {recruit.batHand || "R"} / Throws {recruit.throwHand || "R"}</span>
             </div>
           </div>
+
+          {sdLocked.size > 0 && (
+            <div className="flex items-center gap-2 px-2 py-1.5 bg-gold/10 border border-gold/30 rounded" data-testid="signing-day-locked-banner">
+              <Lock className="w-3 h-3 text-gold/70 shrink-0" />
+              <span className="text-[9px] text-gold/80 font-pixel">{sdLocked.size} attribute{sdLocked.size !== 1 ? "s" : ""} revealed on Signing Day</span>
+            </div>
+          )}
 
           {recruit.position === "P" ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -3743,6 +3753,13 @@ function RecruitDetailModal({
               <span>Bats {recruit.batHand || "R"} / Throws {recruit.throwHand || "R"}</span>
             </div>
           </div>
+
+          {sdLocked.size > 0 && (
+            <div className="flex items-center gap-2 px-2 py-1.5 bg-gold/10 border border-gold/30 rounded" data-testid="signing-day-locked-banner">
+              <Lock className="w-3 h-3 text-gold/70 shrink-0" />
+              <span className="text-[9px] text-gold/80 font-pixel">{sdLocked.size} attribute{sdLocked.size !== 1 ? "s" : ""} revealed on Signing Day</span>
+            </div>
+          )}
 
           {recruit.position === "P" ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -4348,7 +4365,8 @@ function CommonAbilityRow({
   const revealed = isFullyRevealed || scoutPct >= 75;
   const displayValue = value ?? 50;
 
-  if (isSigningDayLocked && !isFullyRevealed) {
+  // Signing-day lock always wins — even at 100% scouting, locked fields stay hidden
+  if (isSigningDayLocked) {
     return (
       <div className="flex items-center justify-between p-2 bg-muted/50 rounded" data-testid={`common-ability-${label.toLowerCase().replace(/\s/g, "-")}`}>
         <span className="text-sm text-muted-foreground">{label}</span>
