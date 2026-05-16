@@ -2839,6 +2839,7 @@ export async function registerRoutes(
         playersLeavingByTeam[team.id] = {
           teamId: team.id,
           teamName: team.name,
+          mascot: team.mascot,
           abbreviation: team.abbreviation,
           primaryColor: team.primaryColor,
           secondaryColor: team.secondaryColor,
@@ -2915,6 +2916,7 @@ export async function registerRoutes(
         departuresByTeam[team.id] = {
           teamId: team.id,
           teamName: team.name,
+          mascot: team.mascot,
           abbreviation: team.abbreviation,
           primaryColor: team.primaryColor,
           secondaryColor: team.secondaryColor,

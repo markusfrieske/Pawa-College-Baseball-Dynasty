@@ -20,6 +20,7 @@ import type { Player } from "@shared/schema";
 interface TeamPlayersLeaving {
   teamId: string;
   teamName: string;
+  mascot?: string;
   abbreviation: string;
   primaryColor: string;
   secondaryColor: string;
@@ -109,6 +110,7 @@ function TeamLeavingCard({ teamData }: { teamData: TeamPlayersLeaving }) {
             primaryColor={teamData.primaryColor}
             secondaryColor={teamData.secondaryColor}
             name={teamData.teamName}
+            mascot={teamData.mascot}
             size="sm"
           />
           <div className="flex-1 min-w-0">

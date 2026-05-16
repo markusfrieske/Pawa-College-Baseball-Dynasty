@@ -55,6 +55,7 @@ interface DeparturePlayer {
 interface TeamDepartures {
   teamId: string;
   teamName: string;
+  mascot?: string;
   abbreviation: string;
   primaryColor: string;
   secondaryColor: string;
@@ -344,6 +345,7 @@ export default function DeparturesPage() {
                     primaryColor={userTeam.primaryColor}
                     secondaryColor={userTeam.secondaryColor}
                     name={userTeam.teamName}
+                    mascot={userTeam.mascot}
                     size="md"
                   />
                   <div>
@@ -677,6 +679,7 @@ export default function DeparturesPage() {
                         primaryColor={team.primaryColor}
                         secondaryColor={team.secondaryColor}
                         name={team.teamName}
+                        mascot={team.mascot}
                         size="sm"
                       />
                       <div>
