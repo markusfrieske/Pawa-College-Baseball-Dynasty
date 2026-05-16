@@ -303,6 +303,8 @@ export const players = pgTable("players", {
   originalPosition: text("original_position"),
   progressionDeltas: json("progression_deltas").$type<Record<string, number>>(),
   tools: json("tools").$type<string[]>().default([]),
+  workEthicScore: integer("work_ethic_score").notNull().default(70),
+  coachability: integer("coachability").notNull().default(70),
 });
 
 export const insertPlayerSchema = createInsertSchema(players).pick({
@@ -494,6 +496,10 @@ export const recruits = pgTable("recruits", {
   potentialFloor: integer("potential_floor"),
   potentialCeiling: integer("potential_ceiling"),
   tools: json("tools").$type<string[]>().default([]),
+  playerArchetype: text("player_archetype").notNull().default("normal"),
+  workEthicScore: integer("work_ethic_score").notNull().default(70),
+  coachability: integer("coachability").notNull().default(70),
+  classVintage: text("class_vintage"),
 });
 
 export const insertRecruitSchema = createInsertSchema(recruits).pick({
@@ -589,6 +595,10 @@ export const insertRecruitSchema = createInsertSchema(recruits).pick({
   potentialFloor: true,
   potentialCeiling: true,
   tools: true,
+  playerArchetype: true,
+  workEthicScore: true,
+  coachability: true,
+  classVintage: true,
 }).extend({
   pitchCH: z.union([z.literal(0), z.literal(1)]).optional(),
 });

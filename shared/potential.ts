@@ -91,3 +91,7 @@ export function getProgressionColor(zone: ProgressionZone): string {
     case "improving": return "text-green-400";
   }
 }
+
+export function getDevTraitGrade(score: number): string {
+  return getPotentialGrade(score);
+}

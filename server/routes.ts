@@ -9072,6 +9072,14 @@ export async function registerRoutes(
 
         const targetOvrDelta = getOvrDeltaFromPotential(player.potential);
 
+        const weScore = (player as any).workEthicScore as number | null | undefined;
+        const coachScore = (player as any).coachability as number | null | undefined;
+        const traitMult = 1 +
+          ((weScore ?? 70) - 70) / 700 +
+          ((coachScore ?? 70) - 70) / 700;
+
+        const scaledDelta = targetOvrDelta * Math.max(0.6, Math.min(1.4, traitMult));
+
         const updates: Record<string, number> = {};
         const deltas: Record<string, number> = {};
 
@@ -9080,7 +9088,7 @@ export async function registerRoutes(
         const totalFields = presentAttrFields.length + presentCommonFields.length;
         if (totalFields === 0) continue;
 
-        const targetAvgAttrDelta = targetOvrDelta / 10;
+        const targetAvgAttrDelta = scaledDelta / 10;
 
         const rawAttrDeltas: number[] = [];
         for (const attr of presentAttrFields) {

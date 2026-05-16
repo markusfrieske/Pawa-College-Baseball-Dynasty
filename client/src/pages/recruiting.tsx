@@ -1574,6 +1574,34 @@ export default function RecruitingPage() {
           );
         })}
 
+        {/* Class Vintage Banner */}
+        {(() => {
+          const vintage = (data?.recruits?.[0] as any)?.classVintage as string | undefined;
+          if (!vintage || isPostSigningDay) return null;
+          const vintageConfig: Record<string, { label: string; sub: string; colors: string }> = {
+            elite:         { label: "ELITE CLASS", sub: "Top-heavy with blue chips and high ceilings", colors: "bg-amber-500/10 border-amber-500/30 text-amber-400" },
+            gem_heavy:     { label: "GEM-HEAVY CLASS", sub: "Multiple generational talents hidden in the class", colors: "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" },
+            strong:        { label: "STRONG CLASS", sub: "Above-average talent from top to bottom", colors: "bg-green-500/10 border-green-500/30 text-green-400" },
+            balanced:      { label: "BALANCED CLASS", sub: "Steady talent across all position groups", colors: "bg-blue-500/10 border-blue-500/30 text-blue-400" },
+            pitching_rich: { label: "PITCHING-RICH CLASS", sub: "Loaded with quality arms this year", colors: "bg-sky-500/10 border-sky-500/30 text-sky-400" },
+            raw_talent:    { label: "RAW TALENT CLASS", sub: "High upside, high variance — scout carefully", colors: "bg-orange-500/10 border-orange-500/30 text-orange-400" },
+            volatile:      { label: "VOLATILE CLASS", sub: "Mixed signals — expect surprises both ways", colors: "bg-yellow-500/10 border-yellow-500/30 text-yellow-400" },
+            bust_year:     { label: "BUST-HEAVY CLASS", sub: "Multiple generational busts lurk in the rankings", colors: "bg-red-500/10 border-red-500/30 text-red-400" },
+            weak:          { label: "DOWN YEAR", sub: "Thin class overall — value in the late rounds", colors: "bg-muted/20 border-border/40 text-muted-foreground" },
+          };
+          const cfg = vintageConfig[vintage];
+          if (!cfg) return null;
+          return (
+            <div className={`mb-4 rounded border px-4 py-2.5 flex items-center gap-2 ${cfg.colors}`} data-testid="class-vintage-banner">
+              <Zap className="w-3.5 h-3.5 shrink-0" />
+              <div>
+                <span className="font-pixel text-[9px] uppercase tracking-wider">{cfg.label}</span>
+                <span className="ml-3 text-[11px] opacity-80">{cfg.sub}</span>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* Rival Scout Report — Week Recap */}
         {weekRecapData && !recapDismissed && (weekRecapData.myRecruits.length > 0 || weekRecapData.hotMissed.length > 0) && (
           <div className="mb-6" data-testid="week-recap-panel">
@@ -2319,6 +2347,36 @@ function RecruitRow({
                     </div>
                   </TooltipTrigger>
                   <TooltipContent>Bust - Worse than ranking suggests</TooltipContent>
+                </Tooltip>
+              )}
+              {scoutPct >= 50 && (recruit as any).playerArchetype === "late_bloomer" && (
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Badge className="text-[8px] bg-emerald-500/15 text-emerald-400 border-emerald-500/40 no-default-hover-elevate no-default-active-elevate" data-testid={`badge-upside-${recruit.id}`}>
+                      <TrendingUp className="w-2.5 h-2.5 mr-0.5" />UPSIDE
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>Late Bloomer - Higher ceiling than current rating suggests</TooltipContent>
+                </Tooltip>
+              )}
+              {scoutPct >= 75 && (recruit as any).playerArchetype === "overdraft" && (
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Badge className="text-[8px] bg-orange-500/15 text-orange-400 border-orange-500/40 no-default-hover-elevate no-default-active-elevate" data-testid={`badge-ceiling-${recruit.id}`}>
+                      <TrendingDown className="w-2.5 h-2.5 mr-0.5" />CEILING
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>Overdraft - Lower ceiling than current rating suggests</TooltipContent>
+                </Tooltip>
+              )}
+              {scoutPct >= 50 && (recruit as any).playerArchetype === "raw" && (
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Badge className="text-[8px] bg-yellow-500/15 text-yellow-400 border-yellow-500/40 no-default-hover-elevate no-default-active-elevate" data-testid={`badge-raw-${recruit.id}`}>
+                      <Zap className="w-2.5 h-2.5 mr-0.5" />RAW
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>Raw Prospect - Extreme tool variance, high risk/high reward</TooltipContent>
                 </Tooltip>
               )}
             </div>
@@ -3291,6 +3349,52 @@ function RecruitDetailModal({
                     <span className="text-sm font-medium text-foreground capitalize">{recruit.workEthic as string}</span>
                   </div>
                 )}
+                {(recruit as any).workEthicScore != null && scoutPct >= 75 && (
+                  <div className="bg-muted/30 rounded p-2.5 border border-border/50">
+                    <span className="text-[10px] text-muted-foreground block mb-1">Work Ethic (Scouted)</span>
+                    <span className={`text-sm font-medium ${
+                      (recruit as any).workEthicScore >= 90 ? "text-emerald-400" :
+                      (recruit as any).workEthicScore >= 78 ? "text-green-400" :
+                      (recruit as any).workEthicScore >= 66 ? "text-foreground" : "text-orange-400"
+                    }`}>
+                      {(recruit as any).workEthicScore >= 90 ? "Elite" :
+                       (recruit as any).workEthicScore >= 78 ? "High" :
+                       (recruit as any).workEthicScore >= 66 ? "Average" : "Low"}
+                      <span className="text-[10px] text-muted-foreground ml-1">({(recruit as any).workEthicScore}/99)</span>
+                    </span>
+                  </div>
+                )}
+                {(recruit as any).coachability != null && scoutPct >= 75 && (
+                  <div className="bg-muted/30 rounded p-2.5 border border-border/50">
+                    <span className="text-[10px] text-muted-foreground block mb-1">Coachability</span>
+                    <span className={`text-sm font-medium ${
+                      (recruit as any).coachability >= 90 ? "text-emerald-400" :
+                      (recruit as any).coachability >= 78 ? "text-green-400" :
+                      (recruit as any).coachability >= 66 ? "text-foreground" : "text-orange-400"
+                    }`}>
+                      {(recruit as any).coachability >= 90 ? "Elite" :
+                       (recruit as any).coachability >= 78 ? "High" :
+                       (recruit as any).coachability >= 66 ? "Average" : "Low"}
+                      <span className="text-[10px] text-muted-foreground ml-1">({(recruit as any).coachability}/99)</span>
+                    </span>
+                  </div>
+                )}
+                {(recruit as any).playerArchetype && (recruit as any).playerArchetype !== "normal" && scoutPct >= 50 && (
+                  <div className="bg-muted/30 rounded p-2.5 border border-border/50 col-span-2">
+                    <span className="text-[10px] text-muted-foreground block mb-1">Development Profile</span>
+                    <span className={`text-sm font-medium ${
+                      (recruit as any).playerArchetype === "late_bloomer" ? "text-emerald-400" :
+                      (recruit as any).playerArchetype === "overdraft" ? "text-orange-400" :
+                      "text-yellow-400"
+                    }`}>
+                      {(recruit as any).playerArchetype === "late_bloomer"
+                        ? "Late Bloomer — ceiling higher than current rating implies"
+                        : (recruit as any).playerArchetype === "overdraft"
+                        ? "Overdraft — ceiling lower than current rating implies"
+                        : "Raw Prospect — extreme tool variance, high risk/high reward"}
+                    </span>
+                  </div>
+                )}
                 {recruit.gemBustRevealed && (
                   <div className={`rounded p-2.5 border col-span-2 ${
                     (recruit as any).isGenerationalGem ? "bg-amber-500/15 border-amber-500/40" :
@@ -3700,6 +3804,52 @@ function RecruitDetailModal({
                   <div className="bg-muted/30 rounded p-2.5 border border-border/50">
                     <span className="text-[10px] text-muted-foreground block mb-1">Work Ethic</span>
                     <span className="text-sm font-medium text-foreground capitalize">{recruit.workEthic as string}</span>
+                  </div>
+                )}
+                {(recruit as any).workEthicScore != null && scoutPct >= 75 && (
+                  <div className="bg-muted/30 rounded p-2.5 border border-border/50">
+                    <span className="text-[10px] text-muted-foreground block mb-1">Work Ethic (Scouted)</span>
+                    <span className={`text-sm font-medium ${
+                      (recruit as any).workEthicScore >= 90 ? "text-emerald-400" :
+                      (recruit as any).workEthicScore >= 78 ? "text-green-400" :
+                      (recruit as any).workEthicScore >= 66 ? "text-foreground" : "text-orange-400"
+                    }`}>
+                      {(recruit as any).workEthicScore >= 90 ? "Elite" :
+                       (recruit as any).workEthicScore >= 78 ? "High" :
+                       (recruit as any).workEthicScore >= 66 ? "Average" : "Low"}
+                      <span className="text-[10px] text-muted-foreground ml-1">({(recruit as any).workEthicScore}/99)</span>
+                    </span>
+                  </div>
+                )}
+                {(recruit as any).coachability != null && scoutPct >= 75 && (
+                  <div className="bg-muted/30 rounded p-2.5 border border-border/50">
+                    <span className="text-[10px] text-muted-foreground block mb-1">Coachability</span>
+                    <span className={`text-sm font-medium ${
+                      (recruit as any).coachability >= 90 ? "text-emerald-400" :
+                      (recruit as any).coachability >= 78 ? "text-green-400" :
+                      (recruit as any).coachability >= 66 ? "text-foreground" : "text-orange-400"
+                    }`}>
+                      {(recruit as any).coachability >= 90 ? "Elite" :
+                       (recruit as any).coachability >= 78 ? "High" :
+                       (recruit as any).coachability >= 66 ? "Average" : "Low"}
+                      <span className="text-[10px] text-muted-foreground ml-1">({(recruit as any).coachability}/99)</span>
+                    </span>
+                  </div>
+                )}
+                {(recruit as any).playerArchetype && (recruit as any).playerArchetype !== "normal" && scoutPct >= 50 && (
+                  <div className="bg-muted/30 rounded p-2.5 border border-border/50 col-span-2">
+                    <span className="text-[10px] text-muted-foreground block mb-1">Development Profile</span>
+                    <span className={`text-sm font-medium ${
+                      (recruit as any).playerArchetype === "late_bloomer" ? "text-emerald-400" :
+                      (recruit as any).playerArchetype === "overdraft" ? "text-orange-400" :
+                      "text-yellow-400"
+                    }`}>
+                      {(recruit as any).playerArchetype === "late_bloomer"
+                        ? "Late Bloomer — ceiling higher than current rating implies"
+                        : (recruit as any).playerArchetype === "overdraft"
+                        ? "Overdraft — ceiling lower than current rating implies"
+                        : "Raw Prospect — extreme tool variance, high risk/high reward"}
+                    </span>
                   </div>
                 )}
                 {recruit.gemBustRevealed && (

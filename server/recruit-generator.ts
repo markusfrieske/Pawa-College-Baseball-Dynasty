@@ -1,12 +1,6 @@
 import { getRandomAbilities, getAbilitiesForPosition, calculateOVR, getStarRatingFromOVR } from "@shared/abilities";
 import type { InsertRecruit } from "@shared/schema";
 
-// ── Tool archetype system ─────────────────────────────────────────────────────
-// Each player is assigned a set of "tools" — areas of specialisation.
-// Tool attributes are boosted well above the tier baseline; non-tool attributes
-// are mildly penalised below it.  This makes low-star players feel distinct
-// rather than uniformly poor across the board.
-
 export const HITTER_TOOL_GROUPS: Record<string, string[]> = {
   Speed:    ["speed", "running", "stealing"],
   Power:    ["power"],
@@ -22,21 +16,17 @@ export const PITCHER_TOOL_GROUPS: Record<string, string[]> = {
   Stamina:  ["stamina"],
 };
 
-/**
- * Randomly choose how many tools a player gets by star tier and pick which ones.
- * Returns an array of tool-name strings (e.g. ["Speed", "Fielding"]).
- */
 export function selectTools(starRank: number, isPitcher: boolean): string[] {
   const groups = isPitcher ? PITCHER_TOOL_GROUPS : HITTER_TOOL_GROUPS;
   const allToolNames = Object.keys(groups);
 
   let count: number;
   switch (starRank) {
-    case 5:  count = 3 + Math.floor(Math.random() * 3); break; // 3–5
-    case 4:  count = 2 + Math.floor(Math.random() * 3); break; // 2–4
-    case 3:  count = 1 + Math.floor(Math.random() * 3); break; // 1–3
-    case 2:  count = 1 + Math.floor(Math.random() * 2); break; // 1–2
-    default: count = Math.random() < 0.5 ? 1 : 0;     break; // 0–1
+    case 5:  count = 3 + Math.floor(Math.random() * 3); break;
+    case 4:  count = 2 + Math.floor(Math.random() * 3); break;
+    case 3:  count = 1 + Math.floor(Math.random() * 3); break;
+    case 2:  count = 1 + Math.floor(Math.random() * 2); break;
+    default: count = Math.random() < 0.5 ? 1 : 0;     break;
   }
   count = Math.min(count, allToolNames.length);
   if (count === 0) return [];
@@ -44,31 +34,60 @@ export function selectTools(starRank: number, isPitcher: boolean): string[] {
   return shuffled.slice(0, count);
 }
 
-/**
- * Generate a single attribute value with a tool boost or non-tool penalty.
- *
- * @param base     - The tier baseline (already includes position adjustments
- *                   like hitBoost or pitchPenalty).
- * @param isTool   - Whether this attribute belongs to one of the player's tools.
- * @returns        A value clamped to [10, 99].
- */
+export function selectRawTools(isPitcher: boolean): string[] {
+  const groups = isPitcher ? PITCHER_TOOL_GROUPS : HITTER_TOOL_GROUPS;
+  const allToolNames = Object.keys(groups);
+  const count = 2 + Math.floor(Math.random() * 2);
+  const shuffled = [...allToolNames].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, Math.min(count, allToolNames.length));
+}
+
 export function genToolAttr(base: number, isTool: boolean): number {
   if (isTool) {
-    // +20 to +35 above the baseline
     const boost = 20 + Math.floor(Math.random() * 16);
     return Math.max(10, Math.min(99, base + boost));
   } else {
-    // -5 to -10 below the baseline
     const penalty = 5 + Math.floor(Math.random() * 6);
     return Math.max(10, Math.min(99, base - penalty));
   }
 }
 
-export type RecruitingTheme = "high_velocity" | "sluggers" | "balanced" | "top_heavy" | "hidden_gems";
+function genRawToolAttr(base: number, isTool: boolean): number {
+  if (isTool) {
+    const boost = 18 + Math.floor(Math.random() * 25);
+    return Math.max(10, Math.min(99, base + boost));
+  } else {
+    const penalty = 15 + Math.floor(Math.random() * 16);
+    return Math.max(10, Math.min(99, base - penalty));
+  }
+}
+
+export type RecruitingTheme =
+  | "high_velocity"
+  | "sluggers"
+  | "balanced"
+  | "top_heavy"
+  | "hidden_gems"
+  | "bust_heavy"
+  | "elite_pitching"
+  | "raw_talent";
 
 export function getRandomRecruitingTheme(): RecruitingTheme {
-  const themes: RecruitingTheme[] = ["high_velocity", "sluggers", "balanced", "top_heavy", "hidden_gems"];
+  const themes: RecruitingTheme[] = [
+    "high_velocity", "sluggers", "balanced", "top_heavy", "hidden_gems",
+    "bust_heavy", "elite_pitching", "raw_talent",
+  ];
   return themes[Math.floor(Math.random() * themes.length)];
+}
+
+function rollWeighted<T>(entries: { value: T; weight: number }[]): T {
+  const total = entries.reduce((s, e) => s + e.weight, 0);
+  let roll = Math.random() * total;
+  for (const e of entries) {
+    roll -= e.weight;
+    if (roll <= 0) return e.value;
+  }
+  return entries[entries.length - 1].value;
 }
 
 function getRandomAppearance() {
@@ -80,8 +99,6 @@ function getRandomAppearance() {
   const eyeStyles = ["standard", "standard", "narrow", "wide", "heavy"];
   const eyebrowStyles = ["flat", "flat", "arched", "thick", "furrowed"];
   const mouthStyles = ["neutral", "neutral", "smile", "smirk"];
-  // Recruits may wear eye black, but less commonly than active players (~15% vs ~28%).
-  // High school & incoming college players wear it selectively — not player-only restriction.
   const eyeBlack = Math.random() < 0.15;
   return {
     skinTone:     skinTones[Math.floor(Math.random() * skinTones.length)],
@@ -108,8 +125,6 @@ export function generateRecruitClass(
 ): GeneratedRecruit[] {
   const firstNames = ["Marcus", "Tyler", "Jordan", "Chris", "Devon", "Aaron", "Ryan", "Justin", "Brandon", "Cameron", "Dylan", "Jake", "Austin", "Kyle", "Cole", "Mason", "Logan", "Ethan", "Noah", "Caleb", "Jayden", "Bryce", "Hunter", "Chase", "Trey"];
   const lastNames = ["Johnson", "Williams", "Brown", "Davis", "Miller", "Wilson", "Moore", "Taylor", "Anderson", "Thomas", "Jackson", "White", "Harris", "Martin", "Thompson", "Garcia", "Martinez", "Robinson", "Clark", "Rodriguez", "Lewis", "Walker", "Hall", "Young", "King"];
-  // OF positions (LF/CF/RF) get 2× weight vs each infield slot to ensure teams
-  // can field enough outfielders each class.
   const fieldPositions = ["C", "1B", "2B", "SS", "3B", "LF", "LF", "CF", "CF", "RF", "RF"];
   const stateData: { state: string; cities: string[]; pct: number }[] = [
     { state: "AL", cities: ["Birmingham", "Tuscaloosa", "Mobile", "Huntsville"], pct: 1.5 },
@@ -182,22 +197,25 @@ export function generateRecruitClass(
 
   const theme = opts.theme ?? getRandomRecruitingTheme();
 
-  const getPitcherRatio = (theme: RecruitingTheme): number => {
-    switch (theme) {
-      case "high_velocity": return 0.55;
-      case "sluggers": return 0.35;
-      case "balanced": return 0.40;
-      case "top_heavy": return 0.40;
-      case "hidden_gems": return 0.40;
-      default: return 0.40;
+  const getPitcherRatio = (t: RecruitingTheme): number => {
+    switch (t) {
+      case "high_velocity":    return 0.55;
+      case "elite_pitching":   return 0.60;
+      case "sluggers":         return 0.35;
+      case "balanced":         return 0.40;
+      case "top_heavy":        return 0.40;
+      case "hidden_gems":      return 0.40;
+      case "bust_heavy":       return 0.40;
+      case "raw_talent":       return 0.45;
+      default:                 return 0.40;
     }
   };
 
   const pitcherRatio = getPitcherRatio(theme);
 
-  const getStarRank = (idx: number, total: number, theme: RecruitingTheme): number => {
+  const getStarRank = (idx: number, total: number, t: RecruitingTheme): number => {
     const pct = idx / total;
-    if (theme === "top_heavy") {
+    if (t === "top_heavy") {
       if (pct < 0.10) return 5;
       if (pct < 0.25) return 4;
       if (pct < 0.70) return 3;
@@ -213,30 +231,39 @@ export function generateRecruitClass(
 
   const numBlueChips = Math.max(2, Math.floor(count * 0.03) + (Math.random() < 0.5 ? 1 : 0));
 
-  const getGemBustModifier = (theme: RecruitingTheme, starRank: number): { isGem: boolean; isBust: boolean } => {
+  const getGemBustModifier = (t: RecruitingTheme, starRank: number): { isGem: boolean; isBust: boolean } => {
     const roll = Math.random();
-    const gemChance = theme === "hidden_gems" ? 0.18 : 0.10;
-    const bustChance = theme === "hidden_gems" ? 0.04 : 0.08;
+    let gemChance: number;
+    let bustChance: number;
+    if (t === "hidden_gems") { gemChance = 0.24; bustChance = 0.06; }
+    else if (t === "bust_heavy") { gemChance = 0.10; bustChance = 0.20; }
+    else { gemChance = 0.14; bustChance = 0.12; }
     if (starRank >= 1 && starRank <= 3 && roll < gemChance) return { isGem: true, isBust: false };
     if (starRank >= 3 && starRank <= 5 && roll < bustChance) return { isGem: false, isBust: true };
     return { isGem: false, isBust: false };
   };
 
-  // Pitcher OVR formula: pitchCore*0.85 + pitchField*0.20 + pitchCommon*0.25
-  // produces ~90 fewer OVR points than the hitter formula at the same raw attribute
-  // average (e.g. hitter at avg=43 → OVR ~317; pitcher at avg=43 → OVR ~237).
-  // Pitcher bands are therefore calibrated ~22 points higher than hitter bands so
-  // generated pitcher recruits land in the correct OVR tier for their star rank.
+  const numGenGems = rollWeighted([
+    { value: 0, weight: 15 },
+    { value: 1, weight: 50 },
+    { value: 2, weight: 28 },
+    { value: 3, weight: 7 },
+  ]);
+  const numGenBusts = rollWeighted([
+    { value: 0, weight: 20 },
+    { value: 1, weight: 55 },
+    { value: 2, weight: 22 },
+    { value: 3, weight: 3 },
+  ]);
+
   const getTargetAttrAvgForRecruit = (starRank: number, isBlueChip: boolean, isGem: boolean, isBust: boolean, isPitcher: boolean): number => {
     if (isBlueChip) return isPitcher ? 80 + Math.floor(Math.random() * 5) : 68 + Math.floor(Math.random() * 5);
     if (isGem) {
       if (isPitcher) {
-        // Gem pitchers still punch well above their star tier, but bands are
-        // scaled down proportionally with the regular pitcher deflation.
         switch (starRank) {
-          case 3: return 67 + Math.floor(Math.random() * 10);  // was 77-88
-          case 2: return 58 + Math.floor(Math.random() * 10);  // was 67-78
-          case 1: return 51 + Math.floor(Math.random() * 10);  // was 60-71
+          case 3: return 67 + Math.floor(Math.random() * 10);
+          case 2: return 58 + Math.floor(Math.random() * 10);
+          case 1: return 51 + Math.floor(Math.random() * 10);
           default: return 67 + Math.floor(Math.random() * 10);
         }
       }
@@ -255,19 +282,12 @@ export function generateRecruitClass(
       }
     }
     if (isPitcher) {
-      // Pitcher-specific bands recalibrated so regular recruits stay well below 400 OVR.
-      // Target OVR bands (before per-star cap):
-      //   5★ → 350-499 (capped at 499; only blue chips touch 500+)
-      //   4★ → 280-449 (capped at 449)
-      //   3★ → 220-374 (capped at 374; avg ≈ 290)
-      //   2★ → 170-299 (capped at 299)
-      //   1★ → 159-224 (floor-clamped at 159)
       switch (starRank) {
-        case 5: return 65 + Math.floor(Math.random() * 7);   // 65-71 (was 80-89)
-        case 4: return 54 + Math.floor(Math.random() * 7);   // 54-60 (was 70-77)
-        case 3: return 43 + Math.floor(Math.random() * 7);   // 43-49 (was 60-69)
-        case 2: return 31 + Math.floor(Math.random() * 7);   // 31-37 (was 44-53)
-        default: return 19 + Math.floor(Math.random() * 6);  // 19-24 (was 30-37)
+        case 5: return 65 + Math.floor(Math.random() * 7);
+        case 4: return 54 + Math.floor(Math.random() * 7);
+        case 3: return 43 + Math.floor(Math.random() * 7);
+        case 2: return 31 + Math.floor(Math.random() * 7);
+        default: return 19 + Math.floor(Math.random() * 6);
       }
     }
     switch (starRank) {
@@ -301,22 +321,17 @@ export function generateRecruitClass(
 
     const pitchFB = 1;
     const pitch2S = Math.random() < 0.5 ? 1 : 0;
-
     const commonPool = ['SL', 'CB', 'CH', 'CT', 'SNK', 'SPL'];
     const rarePool = ['SHU', 'CCH', 'HSL', 'SWP', 'KN', 'VSL', 'SFF', 'FK', 'SCB', 'PCB'];
-
     const shuffledCommon = [...commonPool].sort(() => Math.random() - 0.5);
     const shuffledRare = [...rarePool].sort(() => Math.random() - 0.5);
-
     const numCommon = 2 + Math.floor(Math.random() * 2);
     const numRare = Math.random() < 0.3 ? 1 : 0;
     const selectedSecondary = new Set([
       ...shuffledCommon.slice(0, numCommon),
       ...shuffledRare.slice(0, numRare),
     ]);
-
     const rndRating = () => 1 + Math.floor(Math.random() * 7);
-
     return {
       pitchFB, pitch2S,
       pitchSL: selectedSecondary.has('SL') ? rndRating() : 0,
@@ -352,47 +367,43 @@ export function generateRecruitClass(
     } else {
       allFields = [...fielderAttributes, ...fielderAbilities, ...catcherAbility];
     }
-
     for (let i = allFields.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [allFields[i], allFields[j]] = [allFields[j], allFields[i]];
     }
-
     return allFields;
   };
 
-  const generateCommonAbilityValue = (targetAvg: number): number => {
-    const variance = Math.floor(Math.random() * 21) - 10;
+  const generateCommonAbilityValue = (targetAvg: number, wide = false): number => {
+    const range = wide ? 37 : 37;
+    const variance = Math.floor(Math.random() * range) - (wide ? 18 : 18);
     return Math.max(1, Math.min(100, targetAvg + variance));
   };
 
-  // When tooledAttrs is provided, common abilities that belong to a tool group
-  // are boosted/penalised via genToolAttr; attrs NOT in any tool group always use
-  // flat variance regardless (consistent with CPU roster generation in routes.ts).
+  const allGroupKeys = {
+    hitter: new Set<string>(Object.values(HITTER_TOOL_GROUPS).flat()),
+    pitcher: new Set<string>(Object.values(PITCHER_TOOL_GROUPS).flat()),
+  };
+
   const generateCommonAbilities = (
     isPitcher: boolean,
     position: string,
     targetAvg: number,
     tooledAttrs?: Set<string>,
+    isRaw = false,
   ) => {
-    // Pre-compute the full set of keys that appear in ANY group for this player type
-    // so we never apply a tool penalty to flavour/utility attrs that aren't grouped.
-    const allGroupKeys = new Set<string>(
-      Object.values(isPitcher ? PITCHER_TOOL_GROUPS : HITTER_TOOL_GROUPS).flat(),
-    );
-
+    const groupKeys = isPitcher ? allGroupKeys.pitcher : allGroupKeys.hitter;
     const val = (attrName: string) => {
-      if (tooledAttrs && allGroupKeys.has(attrName)) {
-        // Only apply boost/penalty to attrs that are in at least one tool group
-        return genToolAttr(targetAvg, tooledAttrs.has(attrName));
+      if (tooledAttrs && groupKeys.has(attrName)) {
+        return isRaw
+          ? genRawToolAttr(targetAvg, tooledAttrs.has(attrName))
+          : genToolAttr(targetAvg, tooledAttrs.has(attrName));
       }
-      return generateCommonAbilityValue(targetAvg);
+      return generateCommonAbilityValue(targetAvg, isRaw);
     };
 
     if (isPitcher) {
       return {
-        // In-tool-group for pitchers: velocity/control/stuff/stamina (handled above in main attrs).
-        // All common pitcher abilities fall outside PITCHER_TOOL_GROUPS → flat variance.
         wRISP: val("wRISP"),
         vsLefty: val("vsLefty"),
         poise: val("poise"),
@@ -400,39 +411,28 @@ export function generateRecruitClass(
         heater: val("heater"),
         agile: val("agile"),
         recovery: val("recovery"),
-        clutch: 50,
-        vsLHP: 50,
-        stealing: 50,
-        running: 50,
-        throwing: 50,
-        catcherAbility: 50,
+        clutch: 50, vsLHP: 50, stealing: 50, running: 50, throwing: 50, catcherAbility: 50,
       };
     } else {
       return {
-        // In-tool-group for hitters: hitForAvg/power/speed/arm/fielding/errorResistance
-        // handled above.  Common hitter abilities that ARE in groups: clutch, wRISP (Hit),
-        // stealing/running (Speed), throwing (Arm), agile (Fielding).
-        // Not in any hitter group → flat: vsLHP, grit, recovery, vsLefty, poise, heater.
         clutch: val("clutch"),
-        vsLHP: val("vsLHP"),        // not in any hitter group → flat
-        grit: val("grit"),          // not in any hitter group → flat
+        vsLHP: val("vsLHP"),
+        grit: val("grit"),
         stealing: val("stealing"),
         running: val("running"),
         throwing: val("throwing"),
-        recovery: val("recovery"),  // not in any hitter group → flat
+        recovery: val("recovery"),
         catcherAbility: position === 'C' ? val("catcherAbility") : 50,
-        wRISP: val("wRISP"),        // in Hit group → boosted/penalised
-        vsLefty: 50,
-        poise: 50,
-        heater: 50,
+        wRISP: val("wRISP"),
+        vsLefty: 50, poise: 50, heater: 50,
         agile: val("agile"),
       };
     }
   };
 
-  const getThemeBoost = (theme: RecruitingTheme, isPitcher: boolean): { attr: string; boost: number } => {
-    if (theme === "high_velocity" && isPitcher) return { attr: "velocity", boost: 15 };
-    if (theme === "sluggers" && !isPitcher) return { attr: "power", boost: 15 };
+  const getThemeBoost = (t: RecruitingTheme, isPitcher: boolean): { attr: string; boost: number } => {
+    if ((t === "high_velocity" || t === "elite_pitching") && isPitcher) return { attr: "velocity", boost: 15 };
+    if (t === "sluggers" && !isPitcher) return { attr: "power", boost: 15 };
     return { attr: "", boost: 0 };
   };
 
@@ -440,13 +440,44 @@ export function generateRecruitClass(
   for (let i = 0; i < count; i++) {
     starRanks.push(getStarRank(i, count, theme));
   }
-  const gemCandidates = starRanks.map((sr, idx) => ({ sr, idx })).filter(x => (x.sr >= 1 && x.sr <= 3) && x.idx >= numBlueChips);
-  const bustCandidates = starRanks.map((sr, idx) => ({ sr, idx })).filter(x => (x.sr >= 3 && x.sr <= 5) && x.idx >= numBlueChips);
-  const generationalGemIdx = gemCandidates.length > 0 ? gemCandidates[Math.floor(Math.random() * gemCandidates.length)].idx : -1;
-  // Prevent collision: if gem and bust would land on the same index, the
-  // recruit gets contradictory flags. Exclude the gem index from the bust pool.
-  const bustCandidatesFiltered = bustCandidates.filter(x => x.idx !== generationalGemIdx);
-  const generationalBustIdx = bustCandidatesFiltered.length > 0 ? bustCandidatesFiltered[Math.floor(Math.random() * bustCandidatesFiltered.length)].idx : -1;
+
+  const gemCandidates = starRanks.map((sr, idx) => ({ sr, idx }))
+    .filter(x => x.sr >= 1 && x.sr <= 3 && x.idx >= numBlueChips);
+  const bustCandidates = starRanks.map((sr, idx) => ({ sr, idx }))
+    .filter(x => x.sr >= 3 && x.sr <= 5 && x.idx >= numBlueChips);
+
+  const shuffledGemCandidates = [...gemCandidates].sort(() => Math.random() - 0.5);
+  const generationalGemIdxSet = new Set<number>();
+  for (let g = 0; g < Math.min(numGenGems, shuffledGemCandidates.length); g++) {
+    generationalGemIdxSet.add(shuffledGemCandidates[g].idx);
+  }
+
+  const bustCandidatesFiltered = bustCandidates.filter(x => !generationalGemIdxSet.has(x.idx));
+  const shuffledBustCandidates = [...bustCandidatesFiltered].sort(() => Math.random() - 0.5);
+  const generationalBustIdxSet = new Set<number>();
+  for (let b = 0; b < Math.min(numGenBusts, shuffledBustCandidates.length); b++) {
+    generationalBustIdxSet.add(shuffledBustCandidates[b].idx);
+  }
+
+  const archetypePool: ("normal" | "late_bloomer" | "overdraft" | "raw")[] = [];
+  const playerArchetypes: ("normal" | "late_bloomer" | "overdraft" | "raw")[] = new Array(count).fill("normal");
+
+  const rawRatio = theme === "raw_talent" ? 0.20 : 0.08;
+  const lbRate  = 0.07;
+  const odRate  = 0.07;
+  for (let i = numBlueChips; i < count; i++) {
+    const sr = starRanks[i];
+    if (generationalGemIdxSet.has(i) || generationalBustIdxSet.has(i)) continue;
+    const roll = Math.random();
+    if (roll < rawRatio) {
+      playerArchetypes[i] = "raw";
+    } else if (roll < rawRatio + lbRate && sr >= 2 && sr <= 4) {
+      playerArchetypes[i] = "late_bloomer";
+    } else if (roll < rawRatio + lbRate + odRate && sr >= 3 && sr <= 5) {
+      playerArchetypes[i] = "overdraft";
+    }
+  }
+  void archetypePool;
 
   const out: GeneratedRecruit[] = [];
 
@@ -459,8 +490,12 @@ export function generateRecruitClass(
     const recruitState = stateData[stateIdx];
     const recruitCity = recruitState.cities[Math.floor(Math.random() * recruitState.cities.length)];
     const isBlueChip = i < numBlueChips;
-    const isGenerationalGem = i === generationalGemIdx;
-    const isGenerationalBust = i === generationalBustIdx;
+    const isGenerationalGem = generationalGemIdxSet.has(i);
+    const isGenerationalBust = generationalBustIdxSet.has(i);
+    const playerArchetype = isGenerationalGem || isGenerationalBust || isBlueChip
+      ? "normal"
+      : playerArchetypes[i];
+    const isRawArchetype = playerArchetype === "raw";
 
     let isGem = false;
     let isBust = false;
@@ -520,7 +555,7 @@ export function generateRecruitClass(
     }
 
     const themeBoost = getThemeBoost(theme, isPitcher);
-    const genAttr = (avg: number) => Math.max(1, Math.min(100, avg + Math.floor(Math.random() * 21) - 10));
+    const genAttr = (avg: number) => Math.max(1, Math.min(100, avg + Math.floor(Math.random() * 37) - 18));
 
     let velocity: number;
     let power: number;
@@ -557,20 +592,30 @@ export function generateRecruitClass(
       control = 15 + Math.floor(Math.random() * 25);
       stamina = 15 + Math.floor(Math.random() * 25);
       stuff = 15 + Math.floor(Math.random() * 25);
+    } else if (isRawArchetype) {
+      selectedTools = selectRawTools(isPitcher);
+      const toolGroups = isPitcher ? PITCHER_TOOL_GROUPS : HITTER_TOOL_GROUPS;
+      playerTooledAttrs = new Set<string>(selectedTools.flatMap(t => toolGroups[t] ?? []));
+      const genR = (base: number, attr: string) => genRawToolAttr(base, playerTooledAttrs!.has(attr));
+      const hitBoost = isPitcher ? 0 : 6;
+      const pitchPenalty = isPitcher ? 3 : 0;
+      hitForAvg = genR(targetAttrAvg + hitBoost, "hitForAvg");
+      power     = genR(targetAttrAvg + hitBoost, "power");
+      speed     = genR(targetAttrAvg + hitBoost, "speed");
+      arm       = genR(targetAttrAvg,            "arm");
+      fielding  = genR(targetAttrAvg,            "fielding");
+      errorResistance = genR(targetAttrAvg,      "errorResistance");
+      velocity  = genR(targetAttrAvg - pitchPenalty, "velocity");
+      control   = genR(targetAttrAvg,               "control");
+      stamina   = genR(targetAttrAvg,               "stamina");
+      stuff     = genR(targetAttrAvg - pitchPenalty, "stuff");
     } else {
-      // Select tools for this player and build the set of all tooled attribute keys.
       selectedTools = selectTools(starRank, isPitcher);
       const toolGroups = isPitcher ? PITCHER_TOOL_GROUPS : HITTER_TOOL_GROUPS;
       playerTooledAttrs = new Set<string>(selectedTools.flatMap(t => toolGroups[t] ?? []));
       const genT = (base: number, attr: string) => genToolAttr(base, playerTooledAttrs!.has(attr));
-
-      // Hitters get a +6 boost to core hitting attrs; pitchers use a higher
-      // targetAttrAvg (from getTargetAttrAvgForRecruit) to compensate for the
-      // pitcher OVR formula producing ~90 fewer points than the hitter formula
-      // at the same raw attribute average.
       const hitBoost = isPitcher ? 0 : 6;
       const pitchPenalty = isPitcher ? 3 : 0;
-
       hitForAvg = genT(targetAttrAvg + hitBoost, "hitForAvg");
       power     = genT(targetAttrAvg + hitBoost, "power");
       speed     = genT(targetAttrAvg + hitBoost, "speed");
@@ -622,17 +667,14 @@ export function generateRecruitClass(
         };
       }
     } else {
-      commonAbilities = generateCommonAbilities(isPitcher, position, targetAttrAvg, playerTooledAttrs);
+      commonAbilities = generateCommonAbilities(isPitcher, position, targetAttrAvg, playerTooledAttrs, isRawArchetype);
     }
 
     const scoutingOrder = generateScoutingOrder(isPitcher, position);
 
     const recruitOvrData = {
-      position,
-      hitForAvg, power, speed, arm, fielding, errorResistance,
-      velocity, control, stamina, stuff,
-      ...commonAbilities,
-      abilities,
+      position, hitForAvg, power, speed, arm, fielding, errorResistance,
+      velocity, control, stamina, stuff, ...commonAbilities, abilities,
     };
     let overall = calculateOVR(recruitOvrData);
 
@@ -643,16 +685,43 @@ export function generateRecruitClass(
     } else if (isBlueChip) {
       overall = Math.max(500, Math.min(650, overall));
     } else if (isGem || isBust) {
-      // Gems punch above their star band; busts below. Neither gets a per-star cap.
       overall = Math.max(159, Math.min(650, overall));
     } else {
-      // Regular recruits: per-star ceiling so 500+ stays blue-chip territory
-      // and the overall average stays realistic.
       const starCaps: Record<number, number> = { 5: 499, 4: 449, 3: 374, 2: 299, 1: 224 };
       const cap = starCaps[starRank] ?? 499;
       overall = Math.max(159, Math.min(cap, overall));
     }
     const computedStarRating = getStarRatingFromOVR(overall);
+
+    let potential: number | undefined;
+    let potentialFloor: number | undefined;
+    let potentialCeiling: number | undefined;
+
+    if (playerArchetype === "late_bloomer") {
+      potential = 90 + Math.floor(Math.random() * 10);
+      potentialFloor = potential - 4;
+      potentialCeiling = Math.min(99, potential + 4);
+    } else if (playerArchetype === "overdraft") {
+      potential = 50 + Math.floor(Math.random() * 8);
+      potentialFloor = potential;
+      potentialCeiling = Math.min(57, potential + 4);
+    }
+
+    const workEthicScore = isGenerationalBust
+      ? 50 + Math.floor(Math.random() * 10)
+      : isGenerationalGem
+        ? 88 + Math.floor(Math.random() * 12)
+        : 50 + Math.floor(Math.random() * 50);
+
+    const coachability = isGenerationalBust
+      ? 50 + Math.floor(Math.random() * 10)
+      : isGenerationalGem
+        ? 85 + Math.floor(Math.random() * 15)
+        : playerArchetype === "late_bloomer"
+          ? 72 + Math.floor(Math.random() * 20)
+          : playerArchetype === "overdraft"
+            ? 50 + Math.floor(Math.random() * 18)
+            : 50 + Math.floor(Math.random() * 50);
 
     out.push({
       firstName: firstNames[Math.floor(Math.random() * firstNames.length)],
@@ -667,16 +736,8 @@ export function generateRecruitClass(
       recruitYear,
       overall,
       starRating: isBlueChip || isGem || isBust || isGenerationalGem || isGenerationalBust ? starRating : computedStarRating,
-      hitForAvg,
-      power,
-      speed,
-      arm,
-      fielding,
-      errorResistance,
-      velocity,
-      control,
-      stamina,
-      stuff,
+      hitForAvg, power, speed, arm, fielding, errorResistance,
+      velocity, control, stamina, stuff,
       ...pitchMix,
       ...commonAbilities,
       abilities,
@@ -703,7 +764,44 @@ export function generateRecruitClass(
       mouthStyle: appearance.mouthStyle,
       eyeBlack: appearance.eyeBlack,
       headwear: appearance.headwear,
+      ...(potential != null ? { potential } : {}),
+      ...(potentialFloor != null ? { potentialFloor } : {}),
+      ...(potentialCeiling != null ? { potentialCeiling } : {}),
+      playerArchetype,
+      workEthicScore,
+      coachability,
     });
+  }
+
+  const gemCount = out.filter(r => r.isGenerationalGem).length;
+  const bustCount = out.filter(r => r.isGenerationalBust).length;
+  const bcCount = out.filter(r => r.isBlueChip).length;
+  const top20 = [...out].sort((a, b) => (b.overall ?? 0) - (a.overall ?? 0)).slice(0, 20);
+  const avgTop20 = top20.reduce((s, r) => s + (r.overall ?? 300), 0) / Math.max(1, top20.length);
+
+  let classVintage: string;
+  if (gemCount >= 2) {
+    classVintage = "gem_heavy";
+  } else if (bustCount >= 2) {
+    classVintage = "bust_year";
+  } else if (theme === "elite_pitching") {
+    classVintage = "pitching_rich";
+  } else if (theme === "raw_talent") {
+    classVintage = "raw_talent";
+  } else if (bcCount >= 4 && avgTop20 >= 430) {
+    classVintage = "elite";
+  } else if (avgTop20 >= 400) {
+    classVintage = "strong";
+  } else if (avgTop20 >= 360) {
+    classVintage = "balanced";
+  } else if (theme === "bust_heavy" || bustCount >= 1) {
+    classVintage = "volatile";
+  } else {
+    classVintage = "weak";
+  }
+
+  for (const recruit of out) {
+    (recruit as any).classVintage = classVintage;
   }
 
   return out;
