@@ -41,7 +41,6 @@ import {
   UserX,
   Crown,
   Loader2,
-  Sparkles,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";

@@ -159,6 +159,8 @@ function CardFront({ recruit, primaryColor, secondaryColor }: { recruit: RevealR
         )}
         {isGen && <div className="absolute top-1 right-1"><Gem className="w-4 h-4 text-amber-400 drop-shadow-lg" /></div>}
         {isBustGen && <div className="absolute top-1 right-1"><Skull className="w-4 h-4 text-red-400 drop-shadow-lg" /></div>}
+        {recruit.isGem && !isGen && recruit.gemBustRevealed && <div className="absolute top-1 right-1"><Gem className="w-3.5 h-3.5 text-emerald-400 drop-shadow-lg" /></div>}
+        {recruit.isBust && !isBustGen && recruit.gemBustRevealed && <div className="absolute top-1 right-1"><Skull className="w-3.5 h-3.5 text-orange-400 drop-shadow-lg" /></div>}
         {recruit.isBlueChip && !isGen && !isBustGen && <div className="absolute top-1 right-1"><Crown className="w-4 h-4 text-blue-400 drop-shadow-lg" /></div>}
       </div>
 
@@ -266,10 +268,12 @@ function CardBack({ recruit }: { recruit: RevealRecruit }) {
       </div>
 
       {/* Gem/bust/bluechip badges */}
-      {(isGen || isBustGen || recruit.isBlueChip) && (
-        <div className="px-2 pt-1 flex gap-1">
+      {(isGen || isBustGen || (recruit.isGem && recruit.gemBustRevealed) || (recruit.isBust && recruit.gemBustRevealed) || recruit.isBlueChip) && (
+        <div className="px-2 pt-1 flex gap-1 flex-wrap">
           {isGen && <span className="text-[6px] text-amber-400 font-pixel flex items-center gap-0.5"><Gem className="w-2.5 h-2.5" />GEN GEM</span>}
           {isBustGen && <span className="text-[6px] text-red-400 font-pixel flex items-center gap-0.5"><Skull className="w-2.5 h-2.5" />GEN BUST</span>}
+          {recruit.isGem && !isGen && recruit.gemBustRevealed && <span className="text-[6px] text-emerald-400 font-pixel flex items-center gap-0.5"><Gem className="w-2.5 h-2.5" />GEM</span>}
+          {recruit.isBust && !isBustGen && recruit.gemBustRevealed && <span className="text-[6px] text-orange-400 font-pixel flex items-center gap-0.5"><Skull className="w-2.5 h-2.5" />BUST</span>}
           {recruit.isBlueChip && !isGen && !isBustGen && <span className="text-[6px] text-blue-400 font-pixel flex items-center gap-0.5"><Crown className="w-2.5 h-2.5" />BLUE CHIP</span>}
         </div>
       )}
