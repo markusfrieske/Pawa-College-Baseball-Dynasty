@@ -1,14 +1,13 @@
 import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import { StarRating } from "@/components/ui/star-rating";
-import { LetterGrade, getLetterGrade } from "@/components/ui/letter-grade";
+import { getLetterGrade } from "@/components/ui/letter-grade";
 import { BatterFigure, PitcherFigure } from "@/components/pixel-player-figure";
 import { isPitcher, isCatcher } from "@shared/positions";
 import { getAbilityByName } from "@shared/abilities";
 import { getPotentialGrade } from "@shared/potential";
 import { Gem, Skull, Crown, Zap } from "lucide-react";
 
-interface RevealRecruit {
+export interface RevealRecruit {
   id: string;
   firstName: string;
   lastName: string;
@@ -80,9 +79,44 @@ function getOvrGlowBorder(ovr: number): string {
   return "#2d3d2d";
 }
 
+function getTierColor(tier: string): string {
+  const map: Record<string, string> = {
+    s: "#fda4d5",
+    a: "#f472b6",
+    b: "#ef4444",
+    c: "#f97316",
+    d: "#eab308",
+    f: "#60a5fa",
+    g: "#9ca3af",
+  };
+  return map[tier] ?? "#9ca3af";
+}
+
+function getCommonAbilityTierColor(tier: string): string {
+  const map: Record<string, string> = {
+    s: "#f59e0b",
+    a: "#3b82f6",
+    b: "#3b82f6",
+    c: "#38bdf8",
+    d: "#38bdf8",
+    f: "#ef4444",
+    g: "#ef4444",
+  };
+  return map[tier] ?? "#9ca3af";
+}
+
+function isLightColor(color: string): boolean {
+  const hex = color.replace("#", "");
+  if (hex.length < 6) return false;
+  const r = parseInt(hex.substr(0, 2), 16);
+  const g = parseInt(hex.substr(2, 2), 16);
+  const b = parseInt(hex.substr(4, 2), 16);
+  return (r * 299 + g * 587 + b * 114) / 1000 > 128;
+}
+
 function getRecruitTypeBadge(type: string) {
-  if (type === "TRANSFER") return { label: "TRANSFER", className: "bg-purple-600 text-white text-[8px] px-1.5 py-0.5" };
-  if (type === "JUCO") return { label: "JUCO", className: "bg-cyan-600 text-white text-[8px] px-1.5 py-0.5" };
+  if (type === "TRANSFER") return { label: "TR", className: "bg-purple-600 text-white" };
+  if (type === "JUCO") return { label: "JC", className: "bg-cyan-600 text-white" };
   return null;
 }
 
@@ -91,84 +125,51 @@ function CardFront({ recruit, primaryColor, secondaryColor }: { recruit: RevealR
   const glowBorder = getOvrGlowBorder(recruit.overall);
   const typeBadge = getRecruitTypeBadge(recruit.recruitType);
   const usePitcher = isPitcher(recruit.position) || isCatcher(recruit.position);
-
   const isGen = recruit.isGenerationalGem && recruit.gemBustRevealed;
   const isBustGen = recruit.isGenerationalBust && recruit.gemBustRevealed;
 
   return (
     <div
       className="w-full h-full flex flex-col overflow-hidden"
-      style={{
-        background: `linear-gradient(160deg, #0d1f0d 0%, #162616 50%, #1a2e1a 100%)`,
-        borderRadius: "8px",
-      }}
+      style={{ background: "linear-gradient(160deg, #0d1f0d 0%, #162616 50%, #1a2e1a 100%)", borderRadius: "8px" }}
     >
       {/* Header band in team primary color */}
       <div
         className="flex items-center justify-between px-2 py-1"
         style={{ background: primaryColor, minHeight: "28px" }}
       >
-        <span className="font-pixel text-[7px] font-bold" style={{ color: secondaryColor === "#ffffff" || isLightColor(secondaryColor) ? "#1a1a1a" : "#ffffff" }}>
+        <span className="font-pixel text-[7px] font-bold" style={{ color: isLightColor(primaryColor) ? "#1a1a1a" : "#ffffff" }}>
           {recruit.position}
         </span>
         <StarRating rating={recruit.starRating} size="sm" />
         {typeBadge && (
-          <span className={`rounded font-pixel ${typeBadge.className}`}>{typeBadge.label}</span>
+          <span className={`rounded font-pixel text-[7px] px-1 py-0.5 ${typeBadge.className}`}>{typeBadge.label}</span>
         )}
       </div>
 
-      {/* Player figure area */}
+      {/* Player figure */}
       <div
         className="flex-1 flex items-center justify-center relative"
-        style={{
-          background: `radial-gradient(ellipse at center, ${primaryColor}22 0%, transparent 70%)`,
-        }}
+        style={{ background: `radial-gradient(ellipse at center, ${primaryColor}22 0%, transparent 70%)` }}
       >
         {usePitcher ? (
-          <PitcherFigure
-            primaryColor={primaryColor}
-            secondaryColor={secondaryColor}
-            skinTone={recruit.skinTone ?? "medium"}
-            size={96}
-          />
+          <PitcherFigure primaryColor={primaryColor} secondaryColor={secondaryColor} skinTone={recruit.skinTone ?? "medium"} size={96} />
         ) : (
-          <BatterFigure
-            primaryColor={primaryColor}
-            secondaryColor={secondaryColor}
-            skinTone={recruit.skinTone ?? "medium"}
-            size={96}
-          />
+          <BatterFigure primaryColor={primaryColor} secondaryColor={secondaryColor} skinTone={recruit.skinTone ?? "medium"} size={96} />
         )}
-
-        {/* Generational badges */}
-        {isGen && (
-          <div className="absolute top-1 right-1">
-            <Gem className="w-4 h-4 text-amber-400 drop-shadow-lg" />
-          </div>
-        )}
-        {isBustGen && (
-          <div className="absolute top-1 right-1">
-            <Skull className="w-4 h-4 text-red-400 drop-shadow-lg" />
-          </div>
-        )}
-        {recruit.isBlueChip && !isGen && (
-          <div className="absolute top-1 right-1">
-            <Crown className="w-4 h-4 text-blue-400 drop-shadow-lg" />
-          </div>
-        )}
+        {isGen && <div className="absolute top-1 right-1"><Gem className="w-4 h-4 text-amber-400 drop-shadow-lg" /></div>}
+        {isBustGen && <div className="absolute top-1 right-1"><Skull className="w-4 h-4 text-red-400 drop-shadow-lg" /></div>}
+        {recruit.isBlueChip && !isGen && !isBustGen && <div className="absolute top-1 right-1"><Crown className="w-4 h-4 text-blue-400 drop-shadow-lg" /></div>}
       </div>
 
-      {/* Name / info footer */}
+      {/* Footer info */}
       <div className="px-2 pb-2 pt-1 space-y-0.5">
         <div className="font-pixel text-[8px] text-white leading-tight truncate">
           {recruit.firstName} {recruit.lastName}
         </div>
         <div className="flex items-center justify-between">
           <span className="text-[9px] text-gray-400">{recruit.homeState}</span>
-          <span
-            className="font-pixel text-[10px] font-bold"
-            style={{ color: glowBorder !== "#2d3d2d" ? glowBorder : "#C4A35A" }}
-          >
+          <span className="font-pixel text-[10px] font-bold" style={{ color: glowBorder !== "#2d3d2d" ? glowBorder : "#C4A35A" }}>
             {recruit.overall}
           </span>
         </div>
@@ -182,123 +183,146 @@ function CardFront({ recruit, primaryColor, secondaryColor }: { recruit: RevealR
   );
 }
 
+function AttrPill({ label, value, isCommon = false }: { label: string; value: number; isCommon?: boolean }) {
+  const { letter, tier } = getLetterGrade(value);
+  const color = isCommon ? getCommonAbilityTierColor(tier) : getTierColor(tier);
+  return (
+    <div className="flex items-center gap-0.5">
+      <span className="text-[6px] text-gray-500 w-[18px] leading-none">{label}</span>
+      <span className="font-pixel text-[8px] font-bold leading-none" style={{ color }}>{letter}</span>
+    </div>
+  );
+}
+
 function CardBack({ recruit }: { recruit: RevealRecruit }) {
   const pitcher = isPitcher(recruit.position);
   const catcher = isCatcher(recruit.position);
 
-  const hitterAttrs: { label: string; key: keyof RevealRecruit }[] = [
-    { label: "HIT", key: "hitForAvg" },
-    { label: "PWR", key: "power" },
-    { label: "SPD", key: "speed" },
-    { label: "FLD", key: "fielding" },
-    { label: "ARM", key: "arm" },
-    { label: "CLT", key: "clutch" },
+  // Primary numeric attributes
+  const primaryAttrs: { label: string; val: number }[] = pitcher ? [
+    { label: "VEL", val: recruit.velocity ?? 50 },
+    { label: "CTL", val: recruit.control ?? 50 },
+    { label: "STM", val: recruit.stamina ?? 50 },
+    { label: "STF", val: recruit.stuff ?? 50 },
+    { label: "ARM", val: recruit.arm ?? 50 },
+    { label: "ERR", val: recruit.errorResistance ?? 50 },
+  ] : [
+    { label: "HIT", val: recruit.hitForAvg ?? 50 },
+    { label: "PWR", val: recruit.power ?? 50 },
+    { label: "SPD", val: recruit.speed ?? 50 },
+    { label: "FLD", val: recruit.fielding ?? 50 },
+    { label: "ARM", val: recruit.arm ?? 50 },
+    { label: "ERR", val: recruit.errorResistance ?? 50 },
   ];
 
-  const pitcherAttrs: { label: string; key: keyof RevealRecruit }[] = [
-    { label: "VEL", key: "velocity" },
-    { label: "CTL", key: "control" },
-    { label: "STM", key: "stamina" },
-    { label: "STF", key: "stuff" },
-    { label: "PSE", key: "poise" },
-    { label: "RCP", key: "recovery" },
+  // Common abilities (secondary skills displayed with common ability coloring)
+  const commonAbils: { label: string; val: number }[] = pitcher ? [
+    { label: "RISP", val: recruit.wRISP ?? 50 },
+    { label: "LFT", val: recruit.vsLefty ?? 50 },
+    { label: "PSE", val: recruit.poise ?? 50 },
+    { label: "GRIT", val: recruit.grit ?? 50 },
+    { label: "HTR", val: recruit.heater ?? 50 },
+    { label: "AGL", val: recruit.agile ?? 50 },
+    { label: "RCV", val: recruit.recovery ?? 50 },
+  ] : [
+    { label: "CLT", val: recruit.clutch ?? 50 },
+    { label: "LHP", val: recruit.vsLHP ?? 50 },
+    { label: "GRIT", val: recruit.grit ?? 50 },
+    { label: "STL", val: recruit.stealing ?? 50 },
+    { label: "RUN", val: recruit.running ?? 50 },
+    { label: "THW", val: recruit.throwing ?? 50 },
+    { label: "RCV", val: recruit.recovery ?? 50 },
+    ...(catcher ? [{ label: "CAT", val: recruit.catcherAbility ?? 50 }] : []),
   ];
 
-  const attrs = pitcher ? pitcherAttrs : hitterAttrs;
+  // Special abilities (gold/blue/red named abilities)
   const abilities: string[] = recruit.abilities ?? [];
   const specialAbilities = abilities.filter(name => {
     const a = getAbilityByName(name);
     return a && (a.tier === "gold" || a.tier === "blue" || a.tier === "red");
   });
+
   const potGrade = recruit.potential ? getPotentialGrade(recruit.potential) : "?";
+  const isGen = recruit.isGenerationalGem && recruit.gemBustRevealed;
+  const isBustGen = recruit.isGenerationalBust && recruit.gemBustRevealed;
 
   return (
     <div
       className="w-full h-full flex flex-col overflow-hidden"
-      style={{
-        background: `linear-gradient(160deg, #0d1f0d 0%, #162616 50%, #1a2e1a 100%)`,
-        borderRadius: "8px",
-      }}
+      style={{ background: "linear-gradient(160deg, #0d1f0d 0%, #162616 50%, #1a2e1a 100%)", borderRadius: "8px" }}
     >
       {/* Back header */}
-      <div className="px-2 py-1.5 border-b border-[#2d3d2d]">
-        <div className="font-pixel text-[7px] text-[#C4A35A] truncate">
-          {recruit.firstName} {recruit.lastName}
+      <div className="px-2 py-1 border-b border-[#2d3d2d] flex items-center justify-between gap-1">
+        <div className="min-w-0">
+          <div className="font-pixel text-[7px] text-[#C4A35A] truncate leading-tight">
+            {recruit.firstName} {recruit.lastName}
+          </div>
+          <div className="text-[7px] text-gray-500">{recruit.position} · {recruit.overall} OVR</div>
         </div>
-        <div className="flex items-center justify-between">
-          <span className="text-[8px] text-gray-400">{recruit.position}</span>
-          <span className="font-pixel text-[9px] text-white">{recruit.overall} OVR</span>
-        </div>
-      </div>
-
-      {/* Attributes */}
-      <div className="px-2 pt-1.5 pb-1 grid grid-cols-3 gap-x-1 gap-y-0.5">
-        {attrs.map(({ label, key }) => {
-          const val = (recruit[key] as number | null | undefined) ?? 50;
-          const { letter, tier } = getLetterGrade(val);
-          const tierColorMap: Record<string, string> = {
-            s: "#fda4d5",
-            a: "#f472b6",
-            b: "#ef4444",
-            c: "#f97316",
-            d: "#eab308",
-            f: "#60a5fa",
-            g: "#9ca3af",
-          };
-          return (
-            <div key={label} className="flex items-center gap-0.5">
-              <span className="text-[7px] text-gray-500 w-5">{label}</span>
-              <span
-                className="font-pixel text-[9px] font-bold"
-                style={{ color: tierColorMap[tier] ?? "#9ca3af" }}
-              >
-                {letter}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Potential */}
-      <div className="px-2 py-1 border-t border-[#2d3d2d]">
-        <div className="flex items-center justify-between">
-          <span className="text-[7px] text-gray-500">Potential</span>
-          <span className="font-pixel text-[9px] text-[#C4A35A]">{potGrade}</span>
-        </div>
-        <div className="flex items-center justify-between mt-0.5">
+        <div className="flex flex-col items-end gap-0.5 shrink-0">
           <StarRating rating={recruit.starRating} size="sm" />
-          {recruit.isBlueChip && <span className="text-[7px] text-blue-400 font-pixel">BLUE CHIP</span>}
-          {(recruit.isGenerationalGem && recruit.gemBustRevealed) && <span className="text-[7px] text-amber-400 font-pixel flex items-center gap-0.5"><Gem className="w-2.5 h-2.5" />GEM</span>}
-          {(recruit.isGenerationalBust && recruit.gemBustRevealed) && <span className="text-[7px] text-red-400 font-pixel flex items-center gap-0.5"><Skull className="w-2.5 h-2.5" />BUST</span>}
+          <span className="font-pixel text-[7px] text-[#C4A35A]">POT: {potGrade}</span>
+        </div>
+      </div>
+
+      {/* Gem/bust/bluechip badges */}
+      {(isGen || isBustGen || recruit.isBlueChip) && (
+        <div className="px-2 pt-1 flex gap-1">
+          {isGen && <span className="text-[6px] text-amber-400 font-pixel flex items-center gap-0.5"><Gem className="w-2.5 h-2.5" />GEN GEM</span>}
+          {isBustGen && <span className="text-[6px] text-red-400 font-pixel flex items-center gap-0.5"><Skull className="w-2.5 h-2.5" />GEN BUST</span>}
+          {recruit.isBlueChip && !isGen && !isBustGen && <span className="text-[6px] text-blue-400 font-pixel flex items-center gap-0.5"><Crown className="w-2.5 h-2.5" />BLUE CHIP</span>}
+        </div>
+      )}
+
+      {/* Primary numeric attributes */}
+      <div className="px-2 pt-1.5 pb-0.5">
+        <div className="text-[6px] text-gray-600 uppercase mb-0.5">Attributes</div>
+        <div className="grid grid-cols-3 gap-x-2 gap-y-0.5">
+          {primaryAttrs.map(({ label, val }) => (
+            <AttrPill key={label} label={label} value={val} isCommon={false} />
+          ))}
+        </div>
+      </div>
+
+      {/* Common abilities */}
+      <div className="px-2 py-0.5 border-t border-[#1a2e1a]">
+        <div className="text-[6px] text-gray-600 uppercase mb-0.5">Common</div>
+        <div className="grid grid-cols-4 gap-x-1 gap-y-0.5">
+          {commonAbils.map(({ label, val }) => (
+            <AttrPill key={label} label={label} value={val} isCommon={true} />
+          ))}
         </div>
       </div>
 
       {/* Special abilities */}
-      {specialAbilities.length > 0 && (
-        <div className="px-2 pb-2 flex-1">
-          <div className="text-[7px] text-gray-500 mb-0.5 flex items-center gap-1">
-            <Zap className="w-2.5 h-2.5" /> Abilities
-          </div>
+      <div className="px-2 py-0.5 border-t border-[#1a2e1a] flex-1">
+        <div className="text-[6px] text-gray-600 uppercase mb-0.5 flex items-center gap-0.5">
+          <Zap className="w-2 h-2" />Special
+        </div>
+        {specialAbilities.length === 0 ? (
+          <div className="text-[6px] text-gray-600 italic">None</div>
+        ) : (
           <div className="flex flex-wrap gap-0.5">
-            {specialAbilities.slice(0, 4).map(name => {
+            {specialAbilities.slice(0, 5).map(name => {
               const a = getAbilityByName(name);
               if (!a) return null;
-              const tierColor = a.tier === "gold" ? "text-amber-400 border-amber-500/40" : a.tier === "blue" ? "text-blue-400 border-blue-500/40" : "text-red-400 border-red-500/40";
+              const tierColor = a.tier === "gold"
+                ? "text-amber-400 border-amber-500/40"
+                : a.tier === "blue"
+                ? "text-blue-400 border-blue-500/40"
+                : "text-red-400 border-red-500/40";
               return (
-                <span
-                  key={name}
-                  className={`text-[6px] border rounded px-0.5 py-0 font-pixel leading-tight ${tierColor}`}
-                >
-                  {name}
+                <span key={name} className={`text-[5.5px] border rounded px-0.5 font-pixel leading-tight ${tierColor}`}>
+                  {name.length > 12 ? name.slice(0, 12) + "…" : name}
                 </span>
               );
             })}
-            {specialAbilities.length > 4 && (
-              <span className="text-[6px] text-gray-500">+{specialAbilities.length - 4}</span>
+            {specialAbilities.length > 5 && (
+              <span className="text-[6px] text-gray-500">+{specialAbilities.length - 5}</span>
             )}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
@@ -321,7 +345,7 @@ export function RecruitCard({ recruit, primaryColor, secondaryColor, animationDe
       }}
       onClick={() => setFlipped(f => !f)}
       data-testid={`recruit-card-${recruit.id}`}
-      title={flipped ? "Click to see front" : "Click to see full profile"}
+      title={flipped ? "Click to see front" : "Click to flip and see full profile"}
     >
       <div
         style={{
@@ -366,13 +390,4 @@ export function RecruitCard({ recruit, primaryColor, secondaryColor, animationDe
       </div>
     </div>
   );
-}
-
-function isLightColor(color: string): boolean {
-  const hex = color.replace("#", "");
-  if (hex.length < 6) return false;
-  const r = parseInt(hex.substr(0, 2), 16);
-  const g = parseInt(hex.substr(2, 2), 16);
-  const b = parseInt(hex.substr(4, 2), 16);
-  return (r * 299 + g * 587 + b * 114) / 1000 > 128;
 }

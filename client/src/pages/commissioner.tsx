@@ -40,7 +40,8 @@ import {
   Bot,
   UserX,
   Crown,
-  Loader2
+  Loader2,
+  Sparkles,
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -1006,6 +1007,14 @@ function ActionsTab({
               href={`/league/${league?.id}/edit-rosters`}
               dataTestId="button-edit-rosters"
             />
+            {league?.currentPhase === "offseason_signing_day" && (
+              <ActionButton
+                label="View Class Reveal"
+                description="See all signed recruits as flippable baseball cards"
+                href={`/league/${league?.id}/signing-day-reveal`}
+                dataTestId="button-view-class-reveal"
+              />
+            )}
             <ActionButton 
               label="Edit Recruiting Class" 
               description="Bulk edit all recruits" 

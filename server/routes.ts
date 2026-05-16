@@ -2696,6 +2696,14 @@ export async function registerRoutes(
       const recruits = await storage.getRecruitsByLeague(league.id);
       const signedRecruits = recruits.filter(r => r.signedTeamId);
 
+      // Resolve the authenticated user's team so the UI can default to it
+      let myTeamId: string | null = null;
+      if (req.session.userId && !req.session.isGuest) {
+        const leagueCoaches = await storage.getCoachesByLeague(league.id);
+        const myCoach = leagueCoaches.find(c => c.userId === req.session.userId);
+        if (myCoach?.teamId) myTeamId = myCoach.teamId;
+      }
+
       const targetTeams = teamId
         ? leagueTeams.filter(t => t.id === teamId)
         : leagueTeams;
@@ -2772,6 +2780,7 @@ export async function registerRoutes(
       res.json({
         league: { id: league.id, name: league.name, currentSeason: league.currentSeason },
         teamData,
+        myTeamId,
         allTeams: leagueTeams.map(t => ({
           id: t.id,
           name: t.name,
