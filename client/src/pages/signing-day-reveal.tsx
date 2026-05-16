@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, Link, useSearch } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
@@ -54,18 +54,366 @@ function getClassRank(allTeams: TeamEntry[], targetTeamId: string): number {
   return idx >= 0 ? idx + 1 : 0;
 }
 
+// ── useReducedMotion ──────────────────────────────────────────
+function useReducedMotion(): boolean {
+  const [reduced, setReduced] = useState<boolean>(() => {
+    try { return window.matchMedia("(prefers-reduced-motion: reduce)").matches; }
+    catch { return false; }
+  });
+  useEffect(() => {
+    try {
+      const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+      const handle = (e: MediaQueryListEvent) => setReduced(e.matches);
+      mq.addEventListener("change", handle);
+      return () => mq.removeEventListener("change", handle);
+    } catch {}
+  }, []);
+  return reduced;
+}
+
+// ── StadiumBackground ─────────────────────────────────────────
+// Pixel art top-down baseball diamond rendered in SVG.
+// Excluded from html2canvas because it lives outside cardGridRef.
+function StadiumBackground() {
+  return (
+    <div
+      className="absolute inset-0 overflow-hidden pointer-events-none"
+      aria-hidden
+      data-testid="stadium-background"
+    >
+      <svg
+        viewBox="0 0 800 680"
+        xmlns="http://www.w3.org/2000/svg"
+        preserveAspectRatio="xMidYMid slice"
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.16 }}
+        shapeRendering="crispEdges"
+      >
+        {/* Dark base field */}
+        <rect x="0" y="0" width="800" height="680" fill="#060e06" />
+
+        {/* Outfield grass oval */}
+        <ellipse cx="400" cy="370" rx="368" ry="305" fill="#0b1a0b" />
+
+        {/* Warning track */}
+        <ellipse cx="400" cy="370" rx="368" ry="305" fill="none" stroke="#1e1006" strokeWidth="30" />
+
+        {/* Inner grass */}
+        <ellipse cx="400" cy="370" rx="338" ry="275" fill="#0d1e0d" />
+
+        {/* Infield dirt circle */}
+        <circle cx="400" cy="420" r="158" fill="#1c0f06" />
+
+        {/* Infield grass diamond cutout */}
+        <polygon points="400,278 512,420 400,532 288,420" fill="#0d1e0d" />
+
+        {/* Pitcher's mound */}
+        <circle cx="400" cy="415" r="22" fill="#221208" />
+        <circle cx="400" cy="415" r="8" fill="#2a1610" />
+
+        {/* Base paths (dirt strips) */}
+        <line x1="400" y1="532" x2="512" y2="420" stroke="#1c1008" strokeWidth="14" />
+        <line x1="512" y1="420" x2="400" y2="278" stroke="#1c1008" strokeWidth="14" />
+        <line x1="400" y1="278" x2="288" y2="420" stroke="#1c1008" strokeWidth="14" />
+        <line x1="288" y1="420" x2="400" y2="532" stroke="#1c1008" strokeWidth="14" />
+
+        {/* Bases */}
+        <rect x="502" y="410" width="20" height="20" fill="#181818" />
+        <rect x="390" y="268" width="20" height="20" fill="#181818" />
+        <rect x="278" y="410" width="20" height="20" fill="#181818" />
+
+        {/* Home plate */}
+        <polygon points="400,522 416,538 416,552 384,552 384,538" fill="#181818" />
+
+        {/* Batter boxes outlines */}
+        <rect x="372" y="534" width="16" height="28" fill="none" stroke="#141408" strokeWidth="2" />
+        <rect x="412" y="534" width="16" height="28" fill="none" stroke="#141408" strokeWidth="2" />
+
+        {/* Foul lines */}
+        <line x1="400" y1="532" x2="42" y2="80" stroke="#161606" strokeWidth="4" strokeDasharray="14,10" />
+        <line x1="400" y1="532" x2="758" y2="80" stroke="#161606" strokeWidth="4" strokeDasharray="14,10" />
+
+        {/* Stadium wall arc (top of field) */}
+        <ellipse cx="400" cy="370" rx="368" ry="305" fill="none" stroke="#182018" strokeWidth="8" />
+
+        {/* Outfield wall padding marks */}
+        {Array.from({ length: 18 }, (_, i) => {
+          const frac = i / 17;
+          const angle = Math.PI * frac;
+          const wx = 400 + 368 * Math.cos(Math.PI - angle);
+          const wy = 370 - 305 * Math.sin(Math.PI - angle);
+          return <rect key={i} x={wx - 3} y={wy - 8} width="6" height="16" fill="#1a2a1a" />;
+        })}
+
+        {/* Stadium light towers */}
+        {[0.08, 0.22, 0.38, 0.62, 0.78, 0.92].map((frac, i) => {
+          const angle = Math.PI * frac;
+          const lx = 400 + 368 * Math.cos(Math.PI - angle);
+          const ly = 370 - 305 * Math.sin(Math.PI - angle) - 12;
+          return (
+            <g key={i}>
+              <rect x={lx - 4} y={ly - 22} width="8" height="22" fill="#101e10" />
+              <rect x={lx - 10} y={ly - 28} width="20" height="8" fill="#121e12" />
+              <circle cx={lx - 5} cy={ly - 24} r="3" fill="#1c2e1c" />
+              <circle cx={lx + 5} cy={ly - 24} r="3" fill="#1c2e1c" />
+            </g>
+          );
+        })}
+
+        {/* Center field distance marker */}
+        <text x="400" y="180" textAnchor="middle" fill="#0e1e0e" fontSize="18" fontFamily="monospace" fontWeight="bold">400</text>
+
+        {/* Foul pole markers */}
+        <line x1="42" y1="80" x2="42" y2="55" stroke="#1a2a0a" strokeWidth="3" />
+        <line x1="758" y1="80" x2="758" y2="55" stroke="#1a2a0a" strokeWidth="3" />
+      </svg>
+    </div>
+  );
+}
+
+// ── FireworksCanvas ────────────────────────────────────────────
+interface FWRocket {
+  x: number; y: number; vx: number; vy: number;
+  color: string;
+  trail: Array<{ x: number; y: number }>;
+}
+interface FWParticle {
+  x: number; y: number; vx: number; vy: number;
+  alpha: number; color: string; radius: number;
+}
+
+function FireworksCanvas({ teamColor, active }: { teamColor: string; active: boolean }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const colorsRef = useRef<string[]>([teamColor, "#C4A35A", "#ffffff", "#ffd700"]);
+
+  useEffect(() => {
+    colorsRef.current = [teamColor, "#C4A35A", "#ffffff", "#ffd700"];
+  }, [teamColor]);
+
+  useEffect(() => {
+    if (!active) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    resize();
+    window.addEventListener("resize", resize);
+
+    const rockets: FWRocket[] = [];
+    const particles: FWParticle[] = [];
+    const startTime = Date.now();
+    let lastLaunch = 0;
+    let animId = 0;
+
+    const randColor = () => colorsRef.current[Math.floor(Math.random() * colorsRef.current.length)];
+
+    const launch = () => {
+      const x = 60 + Math.random() * (canvas.width - 120);
+      const travelFrames = 48 + Math.random() * 32;
+      const targetY = canvas.height * (0.08 + Math.random() * 0.38);
+      rockets.push({
+        x, y: canvas.height,
+        vx: (Math.random() - 0.5) * 1.8,
+        vy: -(canvas.height - targetY) / travelFrames,
+        color: randColor(),
+        trail: [],
+      });
+    };
+
+    const explode = (r: FWRocket) => {
+      const count = 36 + Math.floor(Math.random() * 28);
+      const baseColor = randColor();
+      for (let i = 0; i < count; i++) {
+        const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.4;
+        const speed = 1.5 + Math.random() * 3.8;
+        particles.push({
+          x: r.x, y: r.y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed - 0.6,
+          alpha: 1,
+          color: Math.random() < 0.35 ? randColor() : baseColor,
+          radius: 1 + Math.random() * 2.2,
+        });
+      }
+    };
+
+    const tick = () => {
+      const elapsed = Date.now() - startTime;
+      const dense = elapsed < 6000;
+      const interval = dense ? 650 : 2600;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (elapsed - lastLaunch > interval * (0.75 + Math.random() * 0.5)) {
+        launch();
+        if (dense) launch();
+        lastLaunch = elapsed;
+      }
+
+      for (let i = rockets.length - 1; i >= 0; i--) {
+        const r = rockets[i];
+        r.trail.push({ x: r.x, y: r.y });
+        if (r.trail.length > 10) r.trail.shift();
+        r.x += r.vx;
+        r.y += r.vy;
+        r.vy += 0.055;
+
+        r.trail.forEach((pt, idx) => {
+          ctx.globalAlpha = ((idx + 1) / r.trail.length) * 0.45;
+          ctx.fillStyle = r.color;
+          ctx.beginPath();
+          ctx.arc(pt.x, pt.y, 1.4, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = r.color;
+        ctx.beginPath();
+        ctx.arc(r.x, r.y, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        if (r.vy >= 0) {
+          explode(r);
+          rockets.splice(i, 1);
+        }
+      }
+
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx; p.y += p.vy;
+        p.vy += 0.09;
+        p.vx *= 0.97;
+        p.alpha -= 0.017;
+        if (p.alpha <= 0) { particles.splice(i, 1); continue; }
+        ctx.globalAlpha = p.alpha;
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+
+      animId = requestAnimationFrame(tick);
+    };
+
+    animId = requestAnimationFrame(tick);
+    return () => {
+      window.removeEventListener("resize", resize);
+      cancelAnimationFrame(animId);
+    };
+  }, [active]);
+
+  if (!active) return null;
+
+  return (
+    <canvas
+      ref={canvasRef}
+      style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 5 }}
+      aria-hidden
+      data-testid="fireworks-canvas"
+    />
+  );
+}
+
+// ── SmokeEmbers ────────────────────────────────────────────────
+// Slow-rising semi-transparent particles simulating stadium atmosphere.
+function SmokeEmbers() {
+  const embers = useMemo(() =>
+    Array.from({ length: 16 }, (_, i) => ({
+      left: `${(i * 6.4) % 96}%`,
+      delay: `${(i * 1.15) % 8}s`,
+      duration: `${6.5 + (i * 0.85) % 5}s`,
+      size: `${3 + (i * 1.2) % 7}px`,
+      drift: `${i % 2 === 0 ? 22 + (i * 3) % 16 : -(22 + (i * 3) % 16)}px`,
+      opacity: 0.18 + (i * 0.04) % 0.28,
+    }))
+  , []);
+
+  return (
+    <div
+      className="fixed inset-0 pointer-events-none overflow-hidden"
+      style={{ zIndex: 4 }}
+      aria-hidden
+    >
+      {embers.map((e, i) => (
+        <div
+          key={i}
+          style={{
+            position: "absolute",
+            bottom: "-16px",
+            left: e.left,
+            width: e.size,
+            height: e.size,
+            borderRadius: "50%",
+            background: `rgba(170, 210, 170, ${e.opacity})`,
+            animation: `sdEmberRise ${e.duration} ease-in ${e.delay} infinite`,
+            "--sd-drift": e.drift,
+          } as React.CSSProperties}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ── FlickerOverlay ─────────────────────────────────────────────
+// White light flicker simulating stadium lights turning on during buildup.
+function FlickerOverlay({ active }: { active: boolean }) {
+  if (!active) return null;
+  return (
+    <div
+      aria-hidden
+      style={{
+        position: "fixed",
+        inset: 0,
+        pointerEvents: "none",
+        zIndex: 15,
+        background: "rgba(200,240,200,0.18)",
+        animation: "sdFlicker 1.5s ease-out forwards",
+      }}
+    />
+  );
+}
+
+// ── CinematicBurst ─────────────────────────────────────────────
+// Team-color radial flash that expands then fades during the burst phase.
+function CinematicBurst({ color, active }: { color: string; active: boolean }) {
+  if (!active) return null;
+  return (
+    <div
+      aria-hidden
+      data-testid="cinematic-burst"
+      style={{
+        position: "fixed",
+        inset: 0,
+        pointerEvents: "none",
+        zIndex: 20,
+        background: `radial-gradient(ellipse at center, ${color}cc 0%, ${color}66 28%, transparent 62%)`,
+        animation: "sdBurstExpand 0.5s ease-out forwards",
+        transformOrigin: "center center",
+      }}
+    />
+  );
+}
+
+// ── SigningDayRevealPage ───────────────────────────────────────
+type CinemaPhase = "idle" | "buildup" | "burst" | "cards";
+
 export default function SigningDayRevealPage() {
   const { id: leagueId } = useParams<{ id: string }>();
   const search = useSearch();
   const params = new URLSearchParams(search);
   const initialTeamId = params.get("teamId") ?? undefined;
 
-  // Start with the query-param team (if any); otherwise resolved below from myTeamId
   const [selectedTeamId, setSelectedTeamId] = useState<string | undefined>(initialTeamId);
   const [isDownloading, setIsDownloading] = useState(false);
   const cardGridRef = useRef<HTMLDivElement>(null);
 
-  // Fetch all teams' data initially (no teamId filter) to get myTeamId and all-team list
+  const reducedMotion = useReducedMotion();
+  const [cinemaPhase, setCinemaPhase] = useState<CinemaPhase>("idle");
+
   const { data, isLoading } = useQuery<RevealData>({
     queryKey: ["/api/leagues", leagueId, "signing-day-reveal"],
     queryFn: async () => {
@@ -76,13 +424,28 @@ export default function SigningDayRevealPage() {
     enabled: !!leagueId,
   });
 
-  // After data loads, resolve the effective selected team
   const effectiveTeamId: string | undefined =
     selectedTeamId ??
     (data?.myTeamId ?? data?.allTeams?.[0]?.id);
 
-  // Derive current team entry from the full dataset
   const currentEntry = data?.teamData?.find(t => t.team.id === effectiveTeamId) ?? null;
+  const teamColor = currentEntry?.team.primaryColor ?? "#C4A35A";
+
+  // ── Cinematic phase state machine ──────────────────────────
+  // Re-runs when the selected team changes (or data first arrives).
+  useEffect(() => {
+    if (!currentEntry) return;
+
+    if (reducedMotion) {
+      setCinemaPhase("cards");
+      return;
+    }
+
+    setCinemaPhase("buildup");
+    const t1 = setTimeout(() => setCinemaPhase("burst"), 1500);
+    const t2 = setTimeout(() => setCinemaPhase("cards"), 2000);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [currentEntry?.team.id, reducedMotion]);
 
   const handleDownload = async () => {
     if (!cardGridRef.current || !currentEntry) return;
@@ -121,171 +484,232 @@ export default function SigningDayRevealPage() {
 
   const classRank = data && currentEntry ? getClassRank(data.teamData, currentEntry.team.id) : 0;
   const classScore = currentEntry ? getClassScore(currentEntry.recruits) : 0;
+  const showCards = cinemaPhase === "cards";
 
   return (
-    <div className="p-4 max-w-7xl mx-auto">
-      {/* Page header */}
-      <div className="flex flex-wrap items-center gap-3 mb-6">
-        <Link href={`/league/${leagueId}/commits`}>
-          <RetroButton variant="outline" size="sm" data-testid="button-back-to-commits">
-            <ArrowLeft className="w-4 h-4 mr-1" />
-            Commits
-          </RetroButton>
-        </Link>
-        <div className="flex-1 min-w-0">
-          <h1 className="font-pixel text-lg text-[#C4A35A] leading-tight">SIGNING DAY REVEAL</h1>
-          <p className="text-xs text-gray-400">
-            Season {data?.league.currentSeason} · Click any card to flip it
-          </p>
-        </div>
-        {currentEntry && (
-          <RetroButton
-            variant="primary"
-            size="sm"
-            onClick={handleDownload}
-            disabled={isDownloading}
-            data-testid="button-download-class-photo"
-          >
-            <Download className="w-4 h-4 mr-1" />
-            {isDownloading ? "Saving..." : "Download Class Photo"}
-          </RetroButton>
-        )}
-      </div>
+    <div className="relative min-h-screen">
+      {/* ── Pixel stadium background (not in html2canvas) ── */}
+      <StadiumBackground />
 
-      {/* Team selector */}
-      {data && data.allTeams.length > 1 && (
-        <div className="mb-6">
-          <p className="text-xs text-gray-500 mb-2 font-pixel">SELECT TEAM</p>
-          <div className="flex flex-wrap gap-2">
-            {data.allTeams.map(team => (
-              <button
-                key={team.id}
-                onClick={() => setSelectedTeamId(team.id)}
-                data-testid={`team-selector-${team.abbreviation}`}
-                className="flex items-center gap-1.5 px-2 py-1 rounded border transition-all text-xs"
-                style={{
-                  borderColor: effectiveTeamId === team.id ? team.primaryColor : "#2d3d2d",
-                  background: effectiveTeamId === team.id ? `${team.primaryColor}22` : "transparent",
-                  color: effectiveTeamId === team.id ? "#ffffff" : "#9ca3af",
-                }}
-              >
-                <TeamBadge
-                  abbreviation={team.abbreviation}
-                  primaryColor={team.primaryColor}
-                  secondaryColor={team.secondaryColor}
-                  size="sm"
-                />
-                <span className="hidden sm:inline">{team.name}</span>
-                <span className="sm:hidden">{team.abbreviation}</span>
-                {data.myTeamId === team.id && (
-                  <span className="text-[8px] font-pixel text-[#C4A35A] ml-0.5">(You)</span>
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
+      {/* ── Cinematic effect layers (fixed, not in html2canvas) ── */}
+      {!reducedMotion && (
+        <>
+          <FireworksCanvas teamColor={teamColor} active={cinemaPhase !== "idle"} />
+          <SmokeEmbers />
+          <FlickerOverlay active={cinemaPhase === "buildup"} />
+          <CinematicBurst color={teamColor} active={cinemaPhase === "burst"} />
+        </>
       )}
 
-      {/* Active team class display */}
-      {currentEntry ? (
-        <div>
-          {/* Card grid — captured by html2canvas */}
-          <div
-            ref={cardGridRef}
-            className="rounded-lg p-4"
-            style={{ background: "#0d1f0d" }}
-          >
-            {/* Watermark header (included in download) */}
-            <div className="flex items-center gap-3 mb-4 pb-3 border-b border-[#2d3d2d]">
-              <TeamBadge
-                abbreviation={currentEntry.team.abbreviation}
-                primaryColor={currentEntry.team.primaryColor}
-                secondaryColor={currentEntry.team.secondaryColor}
-                name={currentEntry.team.name}
-                size="lg"
-              />
-              <div className="flex-1 min-w-0">
-                <div className="font-pixel text-sm text-[#C4A35A]">{currentEntry.team.name}</div>
-                {currentEntry.team.conference && (
-                  <div className="text-xs text-gray-400">{currentEntry.team.conference}</div>
-                )}
-                <div className="flex items-center flex-wrap gap-3 text-xs text-gray-400 mt-0.5">
-                  <span className="flex items-center gap-1">
-                    <Trophy className="w-3 h-3 text-[#C4A35A]" />
-                    Season {data.league.currentSeason} Signing Class
-                  </span>
-                  <span>{currentEntry.recruits.length} commits</span>
-                </div>
-              </div>
-              {/* Class rank badge */}
-              {classRank > 0 && (
-                <div className="shrink-0 text-right">
-                  <div
-                    className="font-pixel text-xl leading-none"
-                    style={{ color: classRank === 1 ? "#C4A35A" : classRank <= 3 ? "#facc15" : "#9ca3af" }}
-                  >
-                    #{classRank}
+      {/* ── Main content (z-10, above the background layers) ── */}
+      <div className="relative z-10 p-4 max-w-7xl mx-auto">
+
+        {/* Page header */}
+        <div className="flex flex-wrap items-center gap-3 mb-6">
+          <Link href={`/league/${leagueId}/commits`}>
+            <RetroButton variant="outline" size="sm" data-testid="button-back-to-commits">
+              <ArrowLeft className="w-4 h-4 mr-1" />
+              Commits
+            </RetroButton>
+          </Link>
+          <div className="flex-1 min-w-0">
+            <h1 className="font-pixel text-lg text-[#C4A35A] leading-tight">SIGNING DAY REVEAL</h1>
+            <p className="text-xs text-gray-400">
+              Season {data?.league.currentSeason} · Click any card to flip it
+            </p>
+          </div>
+          {currentEntry && (
+            <RetroButton
+              variant="primary"
+              size="sm"
+              onClick={handleDownload}
+              disabled={isDownloading}
+              data-testid="button-download-class-photo"
+            >
+              <Download className="w-4 h-4 mr-1" />
+              {isDownloading ? "Saving..." : "Download Class Photo"}
+            </RetroButton>
+          )}
+        </div>
+
+        {/* Team selector */}
+        {data && data.allTeams.length > 1 && (
+          <div className="mb-6">
+            <p className="text-xs text-gray-500 mb-2 font-pixel">SELECT TEAM</p>
+            <div className="flex flex-wrap gap-2">
+              {data.allTeams.map(team => (
+                <button
+                  key={team.id}
+                  onClick={() => setSelectedTeamId(team.id)}
+                  data-testid={`team-selector-${team.abbreviation}`}
+                  className="flex items-center gap-1.5 px-2 py-1 rounded border transition-all text-xs"
+                  style={{
+                    borderColor: effectiveTeamId === team.id ? team.primaryColor : "#2d3d2d",
+                    background: effectiveTeamId === team.id ? `${team.primaryColor}22` : "transparent",
+                    color: effectiveTeamId === team.id ? "#ffffff" : "#9ca3af",
+                  }}
+                >
+                  <TeamBadge
+                    abbreviation={team.abbreviation}
+                    primaryColor={team.primaryColor}
+                    secondaryColor={team.secondaryColor}
+                    size="sm"
+                  />
+                  <span className="hidden sm:inline">{team.name}</span>
+                  <span className="sm:hidden">{team.abbreviation}</span>
+                  {data.myTeamId === team.id && (
+                    <span className="text-[8px] font-pixel text-[#C4A35A] ml-0.5">(You)</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Active team class display */}
+        {showCards && currentEntry ? (
+          <div>
+            {/* Card grid — captured by html2canvas (no background effects inside) */}
+            <div
+              ref={cardGridRef}
+              className="rounded-lg p-4"
+              style={{ background: "#0d1f0d" }}
+            >
+              {/* Watermark header (included in download) */}
+              <div className="flex items-center gap-3 mb-4 pb-3 border-b border-[#2d3d2d]">
+                <TeamBadge
+                  abbreviation={currentEntry.team.abbreviation}
+                  primaryColor={currentEntry.team.primaryColor}
+                  secondaryColor={currentEntry.team.secondaryColor}
+                  name={currentEntry.team.name}
+                  size="lg"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="font-pixel text-sm text-[#C4A35A]">{currentEntry.team.name}</div>
+                  {currentEntry.team.conference && (
+                    <div className="text-xs text-gray-400">{currentEntry.team.conference}</div>
+                  )}
+                  <div className="flex items-center flex-wrap gap-3 text-xs text-gray-400 mt-0.5">
+                    <span className="flex items-center gap-1">
+                      <Trophy className="w-3 h-3 text-[#C4A35A]" />
+                      Season {data.league.currentSeason} Signing Class
+                    </span>
+                    <span>{currentEntry.recruits.length} commits</span>
                   </div>
-                  <div className="text-[9px] text-gray-500">Natl Rank</div>
-                  <div className="font-pixel text-[9px] text-[#C4A35A]">{classScore.toFixed(1)} pts</div>
+                </div>
+                {/* Class rank badge */}
+                {classRank > 0 && (
+                  <div className="shrink-0 text-right">
+                    <div
+                      className="font-pixel text-xl leading-none"
+                      style={{ color: classRank === 1 ? "#C4A35A" : classRank <= 3 ? "#facc15" : "#9ca3af" }}
+                    >
+                      #{classRank}
+                    </div>
+                    <div className="text-[9px] text-gray-500">Natl Rank</div>
+                    <div className="font-pixel text-[9px] text-[#C4A35A]">{classScore.toFixed(1)} pts</div>
+                  </div>
+                )}
+              </div>
+
+              {/* Card grid */}
+              {currentEntry.recruits.length === 0 ? (
+                <div className="text-center text-gray-500 py-16">
+                  <p className="font-pixel text-sm">No commits yet</p>
+                  <p className="text-xs mt-2">Recruits will appear here once they sign</p>
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-3 justify-start">
+                  {currentEntry.recruits
+                    .sort((a, b) => b.overall - a.overall)
+                    .map((recruit, idx) => {
+                      const animDelay = idx * 0.06;
+                      const isSpecial =
+                        (recruit.isGenerationalGem && recruit.gemBustRevealed) ||
+                        (recruit.isBlueChip && !recruit.isGenerationalBust && !recruit.isGenerationalGem);
+                      return (
+                        <div
+                          key={recruit.id}
+                          className="relative"
+                          style={{ flexShrink: 0 }}
+                          data-testid={`card-wrapper-${recruit.id}`}
+                        >
+                          {/* Spark / shockwave ring — positioned outside card, not in download */}
+                          {!reducedMotion && (
+                            <div
+                              className="absolute pointer-events-none"
+                              style={{
+                                inset: -4,
+                                borderRadius: "10px",
+                                zIndex: 10,
+                                animation: isSpecial
+                                  ? `sdShockwave 0.85s ease-out ${animDelay + 0.55}s both`
+                                  : `sdSparkRing 0.5s ease-out ${animDelay + 0.45}s both`,
+                              }}
+                              aria-hidden
+                            />
+                          )}
+                          <RecruitCard
+                            recruit={recruit}
+                            primaryColor={currentEntry.team.primaryColor}
+                            secondaryColor={currentEntry.team.secondaryColor}
+                            animationDelay={animDelay}
+                          />
+                        </div>
+                      );
+                    })}
                 </div>
               )}
             </div>
 
-            {/* Card grid */}
-            {currentEntry.recruits.length === 0 ? (
-              <div className="text-center text-gray-500 py-16">
-                <p className="font-pixel text-sm">No commits yet</p>
-                <p className="text-xs mt-2">Recruits will appear here once they sign</p>
-              </div>
-            ) : (
-              <div className="flex flex-wrap gap-3 justify-start">
-                {currentEntry.recruits
-                  .sort((a, b) => b.overall - a.overall)
-                  .map((recruit, idx) => (
-                    <RecruitCard
-                      key={recruit.id}
-                      recruit={recruit}
-                      primaryColor={currentEntry.team.primaryColor}
-                      secondaryColor={currentEntry.team.secondaryColor}
-                      animationDelay={idx * 0.06}
-                    />
-                  ))}
+            {/* Class summary stats below cards (not in download) */}
+            {currentEntry.recruits.length > 0 && (
+              <RetroCard className="mt-4">
+                <RetroCardContent className="py-3">
+                  <div className="flex flex-wrap gap-4 text-sm">
+                    {[
+                      { label: "Total", value: currentEntry.recruits.length },
+                      { label: "5-Star", value: currentEntry.recruits.filter(r => r.starRating === 5).length },
+                      { label: "4-Star", value: currentEntry.recruits.filter(r => r.starRating === 4).length },
+                      { label: "3-Star", value: currentEntry.recruits.filter(r => r.starRating === 3).length },
+                      { label: "Avg OVR", value: Math.round(currentEntry.recruits.reduce((s, r) => s + r.overall, 0) / currentEntry.recruits.length) },
+                      { label: "Blue Chips", value: currentEntry.recruits.filter(r => r.isBlueChip).length },
+                      { label: "Transfers", value: currentEntry.recruits.filter(r => r.recruitType === "TRANSFER").length },
+                      { label: "JUCO", value: currentEntry.recruits.filter(r => r.recruitType === "JUCO").length },
+                    ].map(({ label, value }) => (
+                      <div key={label} className="flex flex-col items-center min-w-[48px]">
+                        <span className="font-pixel text-lg text-white">{value}</span>
+                        <span className="text-[10px] text-gray-400">{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </RetroCardContent>
+              </RetroCard>
+            )}
+          </div>
+        ) : !showCards && currentEntry ? (
+          /* Cinematic intro playing — show a dramatic holding area */
+          <div className="flex flex-col items-center justify-center py-24 gap-6">
+            <div
+              className="font-pixel text-2xl text-[#C4A35A] animate-pulse"
+              style={{ textShadow: "0 0 20px rgba(196,163,90,0.6), 0 0 40px rgba(196,163,90,0.3)" }}
+              data-testid="cinematic-loading-text"
+            >
+              {cinemaPhase === "buildup" ? "SIGNING DAY" : ""}
+            </div>
+            {cinemaPhase === "buildup" && (
+              <div className="text-xs text-gray-500 font-pixel tracking-widest animate-pulse">
+                THE MOMENT IS HERE
               </div>
             )}
           </div>
-
-          {/* Class summary stats below cards (not in download) */}
-          {currentEntry.recruits.length > 0 && (
-            <RetroCard className="mt-4">
-              <RetroCardContent className="py-3">
-                <div className="flex flex-wrap gap-4 text-sm">
-                  {[
-                    { label: "Total", value: currentEntry.recruits.length },
-                    { label: "5-Star", value: currentEntry.recruits.filter(r => r.starRating === 5).length },
-                    { label: "4-Star", value: currentEntry.recruits.filter(r => r.starRating === 4).length },
-                    { label: "3-Star", value: currentEntry.recruits.filter(r => r.starRating === 3).length },
-                    { label: "Avg OVR", value: Math.round(currentEntry.recruits.reduce((s, r) => s + r.overall, 0) / currentEntry.recruits.length) },
-                    { label: "Blue Chips", value: currentEntry.recruits.filter(r => r.isBlueChip).length },
-                    { label: "Transfers", value: currentEntry.recruits.filter(r => r.recruitType === "TRANSFER").length },
-                    { label: "JUCO", value: currentEntry.recruits.filter(r => r.recruitType === "JUCO").length },
-                  ].map(({ label, value }) => (
-                    <div key={label} className="flex flex-col items-center min-w-[48px]">
-                      <span className="font-pixel text-lg text-white">{value}</span>
-                      <span className="text-[10px] text-gray-400">{label}</span>
-                    </div>
-                  ))}
-                </div>
-              </RetroCardContent>
-            </RetroCard>
-          )}
-        </div>
-      ) : (
-        <div className="text-center text-gray-500 py-16">
-          <p className="font-pixel text-sm">No team data available</p>
-          <p className="text-xs mt-2">Select a team above to view their signing class</p>
-        </div>
-      )}
+        ) : (
+          <div className="text-center text-gray-500 py-16">
+            <p className="font-pixel text-sm">No team data available</p>
+            <p className="text-xs mt-2">Select a team above to view their signing class</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

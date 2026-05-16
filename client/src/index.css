@@ -673,6 +673,52 @@ html[data-mood="offseason"] nav {
   background-color: hsl(200 6% 7% / 0.86);
 }
 
+/* ── Signing Day Reveal cinematic keyframes ─────────────────
+   All of these are gated in React via useReducedMotion(), so
+   no @media wrapper is strictly required here. ────────────── */
+
+/* Stadium lights flickering on during buildup phase */
+@keyframes sdFlicker {
+  0%   { opacity: 0; }
+  8%   { opacity: 1; }
+  14%  { opacity: 0; }
+  26%  { opacity: 0.8; }
+  30%  { opacity: 0; }
+  46%  { opacity: 0.6; }
+  50%  { opacity: 0; }
+  68%  { opacity: 0.9; }
+  72%  { opacity: 0; }
+  88%  { opacity: 0.55; }
+  100% { opacity: 0; }
+}
+
+/* Team-color burst expanding from center */
+@keyframes sdBurstExpand {
+  0%   { opacity: 0;    transform: scale(0.3); }
+  35%  { opacity: 1;    transform: scale(0.9); }
+  100% { opacity: 0;    transform: scale(1.8); }
+}
+
+/* Ember / smoke rising from bottom edge */
+@keyframes sdEmberRise {
+  0%   { transform: translateY(0)     translateX(0);                  opacity: 0.7; }
+  60%  { opacity: 0.35; }
+  100% { transform: translateY(-95vh) translateX(var(--sd-drift, 20px)); opacity: 0; }
+}
+
+/* Standard card-entrance spark ring */
+@keyframes sdSparkRing {
+  0%   { box-shadow: 0 0 0 0px rgba(196,163,90,0.85); opacity: 1; }
+  100% { box-shadow: 0 0 0 22px rgba(196,163,90,0);   opacity: 0; }
+}
+
+/* Generational Gem / Blue Chip golden shockwave */
+@keyframes sdShockwave {
+  0%   { box-shadow: 0 0 0  0px rgba(196,163,90,0.9),  0 0  6px  0px rgba(255,210,0,0.7); opacity: 1;   }
+  45%  { box-shadow: 0 0 0 18px rgba(196,163,90,0.35), 0 0 14px  8px rgba(255,210,0,0.25); opacity: 0.8; }
+  100% { box-shadow: 0 0 0 42px rgba(196,163,90,0),    0 0 24px 22px rgba(255,210,0,0);    opacity: 0;   }
+}
+
 /* ── prefers-reduced-motion: disable all atmosphere animations/transitions ── */
 @media (prefers-reduced-motion: reduce) {
   .atm-overlay,
