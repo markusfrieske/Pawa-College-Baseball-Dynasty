@@ -709,7 +709,7 @@ export async function registerRoutes(
         return res.status(404).json({ message: "League not found" });
       }
 
-      if (league.commissionerId !== userId) {
+      if (!hasCommissionerAccess(league, userId)) {
         return res.status(403).json({ message: "Only the commissioner can set up the dynasty" });
       }
 
@@ -13172,8 +13172,8 @@ export async function registerRoutes(
         return res.status(404).json({ message: "League not found" });
       }
       
-      if (league.commissionerId !== userId) {
-        return res.status(403).json({ message: "Only commissioner can start dynasty" });
+      if (!hasCommissionerAccess(league, userId)) {
+        return res.status(403).json({ message: "Only the commissioner can start dynasty" });
       }
       
       // Apply saved roster if specified
@@ -13266,8 +13266,8 @@ export async function registerRoutes(
         return res.status(404).json({ message: "League not found" });
       }
       
-      if (league.commissionerId !== userId) {
-        return res.status(403).json({ message: "Only commissioner can generate schedule" });
+      if (!hasCommissionerAccess(league, userId)) {
+        return res.status(403).json({ message: "Only the commissioner can generate schedule" });
       }
       
       await generateSchedule(leagueId);
@@ -13382,8 +13382,8 @@ export async function registerRoutes(
         return res.status(404).json({ message: "League not found" });
       }
 
-      if (league.commissionerId !== userId) {
-        return res.status(403).json({ message: "Only commissioner can delete news" });
+      if (!hasCommissionerAccess(league, userId)) {
+        return res.status(403).json({ message: "Only the commissioner can delete news" });
       }
 
       await storage.deleteDynastyNews(newsId);
@@ -13575,7 +13575,7 @@ export async function registerRoutes(
       const userId = req.session.userId!;
       const league = await storage.getLeague(leagueId);
       if (!league) return res.status(404).json({ message: "League not found" });
-      if (league.commissionerId !== userId) return res.status(403).json({ message: "Only the commissioner can remove coaches" });
+      if (!hasCommissionerAccess(league, userId)) return res.status(403).json({ message: "Only the commissioner can remove coaches" });
       const coach = await storage.getCoach(coachId);
       if (!coach) return res.status(404).json({ message: "Coach not found" });
       if (coach.leagueId !== leagueId) return res.status(400).json({ message: "Coach not in this league" });
