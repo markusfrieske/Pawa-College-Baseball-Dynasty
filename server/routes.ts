@@ -24,6 +24,7 @@ import {
 import { SEC_REAL_ROSTERS } from "./realRosters";
 import { generateRecruitClass, selectTools, genToolAttr, HITTER_TOOL_GROUPS, PITCHER_TOOL_GROUPS } from "./recruit-generator";
 import { validateLeagueRosters, checkTeamRosterStructure } from "./rosterValidation";
+import { sendWeeklyDigests } from "./digestEmail";
 
 function potentialGradeToNumber(grade: string): number {
   const map: Record<string, number> = {
@@ -78,6 +79,7 @@ const settingsSchema = z.object({
   auditLogPublic: z.boolean().optional(),
   cpuDifficulty: z.enum(["beginner", "high_school", "all_american", "elite"]).optional(),
   cpuRecruitingAggression: z.number().int().min(1).max(5).optional(),
+  emailDigestsEnabled: z.boolean().optional(),
 });
 
 const SALT_ROUNDS = 10;
@@ -346,17 +348,57 @@ export async function registerRoutes(
 
   app.get("/api/auth/me", (req, res) => {
     if (req.session.isGuest) {
-      res.json({ id: req.session.userId || "guest", email: "guest@guest.com" });
+      res.json({ id: req.session.userId || "guest", email: "guest@guest.com", emailOptOut: false });
     } else if (req.session.userId) {
       storage.getUser(req.session.userId).then((user) => {
         if (user) {
-          res.json({ id: user.id, email: user.email });
+          res.json({ id: user.id, email: user.email, emailOptOut: (user as any).emailOptOut ?? false });
         } else {
           res.status(401).json({ message: "Not authenticated" });
         }
       });
     } else {
       res.status(401).json({ message: "Not authenticated" });
+    }
+  });
+
+  app.patch("/api/users/email-preferences", requireAuth, async (req, res) => {
+    try {
+      if (!req.session.userId) return res.status(401).json({ message: "Unauthorized" });
+      const schema = z.object({ emailOptOut: z.boolean() });
+      const result = schema.safeParse(req.body);
+      if (!result.success) return res.status(400).json({ message: "emailOptOut (boolean) is required" });
+      const updated = await storage.updateUser(req.session.userId, { emailOptOut: result.data.emailOptOut } as any);
+      res.json({ emailOptOut: (updated as any)?.emailOptOut ?? result.data.emailOptOut });
+    } catch (error) {
+      console.error("Failed to update email preferences:", error);
+      res.status(500).json({ message: "Failed to update email preferences" });
+    }
+  });
+
+  app.get("/api/users/unsubscribe", async (req, res) => {
+    try {
+      const { token } = req.query as { token?: string };
+      if (!token) return res.status(400).send("Missing token");
+      let userId: string;
+      try {
+        const payload = JSON.parse(Buffer.from(token, "base64url").toString());
+        userId = payload.userId;
+      } catch {
+        return res.status(400).send("Invalid token");
+      }
+      await storage.updateUser(userId, { emailOptOut: true } as any);
+      res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Unsubscribed</title></head>
+<body style="background:#0a1a0a;color:#d4d4aa;font-family:'Courier New',monospace;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0">
+<div style="text-align:center;max-width:400px;padding:40px">
+  <div style="font-size:32px;color:#FFD700;margin-bottom:16px;">⚾</div>
+  <h1 style="color:#FFD700;font-size:18px;margin:0 0 12px">Unsubscribed</h1>
+  <p style="color:#8aaa8a;font-size:14px;margin:0 0 20px">You've been unsubscribed from weekly digest emails. You can re-enable them anytime from your coach profile.</p>
+  <a href="/" style="color:#FFD700;font-size:12px;text-decoration:none;border:1px solid #FFD700;padding:8px 20px;border-radius:4px">Return to Dynasty</a>
+</div></body></html>`);
+    } catch (error) {
+      console.error("Failed to process unsubscribe:", error);
+      res.status(500).send("Failed to process unsubscribe");
     }
   });
 
@@ -7028,6 +7070,8 @@ export async function registerRoutes(
       });
 
       res.json(updatedLeague);
+      // Fire-and-forget digest emails (non-blocking)
+      sendWeeklyDigests(leagueId, storage).catch(e => console.error("[digest] advance hook:", e));
     } catch (error: any) {
       console.error("Failed to advance week:", error);
       res.status(500).json({ message: "Failed to advance week", detail: error?.message || String(error) });
@@ -12532,6 +12576,7 @@ export async function registerRoutes(
       if (result.data.auditLogPublic !== undefined) updateData.auditLogPublic = result.data.auditLogPublic;
       if (result.data.cpuDifficulty !== undefined) updateData.cpuDifficulty = result.data.cpuDifficulty;
       if (result.data.cpuRecruitingAggression !== undefined) updateData.cpuRecruitingAggression = result.data.cpuRecruitingAggression;
+      if (result.data.emailDigestsEnabled !== undefined) updateData.emailDigestsEnabled = result.data.emailDigestsEnabled;
       const updated = await storage.updateLeague(req.params.id, updateData);
       res.json(updated);
     } catch (error) {

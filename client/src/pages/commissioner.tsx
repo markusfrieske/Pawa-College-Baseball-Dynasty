@@ -196,6 +196,19 @@ export default function CommissionerPage() {
     },
   });
 
+  const toggleEmailDigestsMutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      return apiRequest("PATCH", `/api/leagues/${id}/settings`, { emailDigestsEnabled: enabled });
+    },
+    onSuccess: (_r, enabled) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "commissioner"] });
+      toast({ title: enabled ? "Email Digests Enabled" : "Email Digests Disabled" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
+    },
+  });
+
   const updateDifficultyMutation = useMutation({
     mutationFn: async (cpuDifficulty: string) => {
       return apiRequest("PATCH", `/api/leagues/${id}/settings`, { cpuDifficulty });
@@ -531,6 +544,7 @@ export default function CommissionerPage() {
                 delegateMutation.mutate({ userId, action: isDelegate ? "remove" : "add" })
               }
               isDelegating={delegateMutation.isPending}
+              onToggleEmailDigests={(enabled) => toggleEmailDigestsMutation.mutate(enabled)}
             />
           </TabsContent>
 
@@ -1793,6 +1807,7 @@ function SettingsTab({
   onChangeAggression,
   onToggleDelegate,
   isDelegating,
+  onToggleEmailDigests,
 }: {
   league?: League;
   humanCoaches: HumanCoach[];
@@ -1802,6 +1817,7 @@ function SettingsTab({
   onChangeAggression: (aggression: number) => void;
   onToggleDelegate: (userId: string, isDelegate: boolean) => void;
   isDelegating: boolean;
+  onToggleEmailDigests: (enabled: boolean) => void;
 }) {
   const currentAggression = league?.cpuRecruitingAggression ?? 3;
   return (
@@ -1822,6 +1838,20 @@ function SettingsTab({
               checked={league?.auditLogPublic || false}
               onCheckedChange={onToggleAuditLog}
               data-testid="switch-audit-log-public"
+            />
+          </div>
+
+          <div className="flex items-center justify-between border-t border-border pt-6">
+            <div>
+              <p className="font-medium">Weekly Email Digests</p>
+              <p className="text-sm text-muted-foreground">
+                Send coaches a recap email after each phase advance
+              </p>
+            </div>
+            <Switch
+              checked={(league as any)?.emailDigestsEnabled ?? true}
+              onCheckedChange={onToggleEmailDigests}
+              data-testid="switch-email-digests"
             />
           </div>
 

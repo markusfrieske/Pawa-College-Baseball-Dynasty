@@ -8,6 +8,7 @@ export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   email: text("email").notNull().unique(),
   password: text("password").notNull(),
+  emailOptOut: boolean("email_opt_out").notNull().default(false),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -38,6 +39,7 @@ export const leagues = pgTable("leagues", {
   prevPowerRankings: json("prev_power_rankings"),
   cpuRecruitingAggression: integer("cpu_recruiting_aggression").notNull().default(3),
   coCommissionerIds: json("co_commissioner_ids").$type<string[]>().default([]),
+  emailDigestsEnabled: boolean("email_digests_enabled").notNull().default(true),
 });
 
 export const insertLeagueSchema = createInsertSchema(leagues).pick({

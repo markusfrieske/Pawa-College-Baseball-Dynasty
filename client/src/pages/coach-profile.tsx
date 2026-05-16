@@ -7,6 +7,7 @@ import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/re
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
+import { Switch } from "@/components/ui/switch";
 import { CoachAvatar } from "@/components/coach-avatar";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -21,7 +22,8 @@ import {
   Shield,
   Swords,
   GraduationCap,
-  Plus
+  Plus,
+  Mail
 } from "lucide-react";
 import type { Coach, Team } from "@shared/schema";
 
@@ -52,6 +54,29 @@ export default function CoachProfilePage() {
 
   const { data, isLoading } = useQuery<CoachData>({
     queryKey: ["/api/leagues", id, "coach"],
+  });
+
+  const { data: currentUser } = useQuery<{ id: string; email: string; emailOptOut: boolean }>({
+    queryKey: ["/api/auth/me"],
+  });
+
+  const emailPrefMutation = useMutation({
+    mutationFn: async (emailOptOut: boolean) => {
+      const res = await apiRequest("PATCH", "/api/users/email-preferences", { emailOptOut });
+      return res.json();
+    },
+    onSuccess: (_data, emailOptOut) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      toast({
+        title: emailOptOut ? "Unsubscribed" : "Subscribed",
+        description: emailOptOut
+          ? "You'll no longer receive weekly digest emails."
+          : "You'll receive weekly digest emails after each phase advance.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
+    },
   });
 
   const upgradeSkillMutation = useMutation({
@@ -175,6 +200,36 @@ export default function CoachProfilePage() {
 
         {activeTab === "skills" && (
           <SkillsTab coach={coach} leagueId={id} onUpgrade={handleUpgradeSkill} />
+        )}
+
+        {currentUser && !currentUser.id.startsWith("guest") && (
+          <RetroCard variant="bordered" className="mt-6">
+            <RetroCardHeader>
+              <div className="flex items-center gap-2">
+                <Mail className="w-4 h-4 text-gold" />
+                <span>Email Preferences</span>
+              </div>
+            </RetroCardHeader>
+            <RetroCardContent>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Weekly Digest Emails</p>
+                  <p className="text-sm text-muted-foreground">
+                    Receive a summary email after each phase advance — scores, standings, and recruiting updates.
+                  </p>
+                  {currentUser.email && (
+                    <p className="text-xs text-muted-foreground mt-1">Sent to: {currentUser.email}</p>
+                  )}
+                </div>
+                <Switch
+                  checked={!currentUser.emailOptOut}
+                  onCheckedChange={(checked) => emailPrefMutation.mutate(!checked)}
+                  disabled={emailPrefMutation.isPending}
+                  data-testid="switch-email-digest-opt-in"
+                />
+              </div>
+            </RetroCardContent>
+          </RetroCard>
         )}
       </main>
     </div>
