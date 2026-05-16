@@ -1435,6 +1435,7 @@ export const coachSeasonHistory = pgTable("coach_season_history", {
   topRecruitName: text("top_recruit_name"),
   topRecruitOvr: integer("top_recruit_ovr"),
   topRecruitStars: integer("top_recruit_stars"),
+  teamId: varchar("team_id"),
   teamName: text("team_name").notNull().default(""),
   teamAbbr: text("team_abbr").notNull().default(""),
 }, (t) => [

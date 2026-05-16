@@ -3926,8 +3926,10 @@ export async function registerRoutes(
     const leagueSnaps = await storage.getRecruitingClassSnapshotsAllSeasons(coach.leagueId);
 
     // Season-by-season history with star breakdown from snapshots
+    // Uses per-row teamId (stored at season finalization) for accurate team-season attribution
     const seasonHistory = history.map(entry => {
-      const snap = leagueSnaps.find(s => s.teamId === (coach.teamId ?? "") && s.season === entry.season);
+      const rowTeamId = entry.teamId ?? coach.teamId ?? "";
+      const snap = leagueSnaps.find(s => s.teamId === rowTeamId && s.season === entry.season);
       return {
         season: entry.season,
         classRank: entry.classRank ?? null,
@@ -3945,7 +3947,8 @@ export async function registerRoutes(
     }).sort((a, b) => b.season - a.season); // most recent first
 
     for (const entry of history) {
-      const snap = leagueSnaps.find(s => s.teamId === (coach.teamId ?? "") && s.season === entry.season);
+      const rowTeamId = entry.teamId ?? coach.teamId ?? "";
+      const snap = leagueSnaps.find(s => s.teamId === rowTeamId && s.season === entry.season);
       if (snap) {
         fiveStars += snap.fiveStars;
         fourStars += snap.fourStars;
@@ -10820,6 +10823,7 @@ export async function registerRoutes(
           topRecruitName: topRecruit ? `${topRecruit.firstName} ${topRecruit.lastName}` : null,
           topRecruitOvr: topRecruit?.overall ?? null,
           topRecruitStars: topRecruit?.starRating ?? null,
+          teamId: coach.teamId ?? null,
           teamName: team.name,
           teamAbbr: team.abbreviation,
         });

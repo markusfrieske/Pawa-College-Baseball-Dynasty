@@ -80,28 +80,30 @@ function deriveCoachingGrades(coach: Coach): Record<string, string> {
 
   const totalGames = coach.careerWins + coach.careerLosses;
   const winPct = totalGames > 0 ? coach.careerWins / totalGames : 0;
+  const confGames = (coach.confWins ?? 0) + (coach.confLosses ?? 0);
+  const confWinPct = confGames > 0 ? (coach.confWins ?? 0) / confGames : 0;
 
   // Skill-tree level totals influence grade derivation (0-20 range each)
-  const scoutLevel = coach.scoutingSkill ?? 0;         // 0-20
-  const evalLevel  = coach.evaluationSkill ?? 0;        // 0-20
+  const scoutLevel = coach.scoutingSkill ?? 0;          // 0-20
+  const evalLevel  = coach.evaluationSkill ?? 0;         // 0-20
   const pitchRec   = coach.pitchingRecruitingSkill ?? 0; // 0-20
   const hitRec     = coach.hittingRecruitingSkill ?? 0;  // 0-20
   const recSkillAvg = (scoutLevel + evalLevel + pitchRec + hitRec) / 4;
 
-  // Game Management: win% + postseason presence + archetype tactical bonus + eval skills
-  const gm = Math.min(100, winPct * 38 + coach.cwsAppearances * 4 + coach.confChampionships * 3 + aw.gm + evalLevel * 0.8 + 18);
+  // Game Management: overall win% + postseason presence + archetype tactical bonus + eval skills
+  const gm = Math.min(100, winPct * 35 + coach.cwsAppearances * 4 + coach.confChampionships * 3 + aw.gm + evalLevel * 0.8 + 18);
 
   // Player Development: all-americans + draft picks + scouting/eval depth + archetype dev bonus
   const pd = Math.min(100, coach.allAmericans * 3 + coach.draftPicks * 4 + coach.level * 1.5 + (scoutLevel + evalLevel) * 0.6 + aw.pd + 18);
 
   // Program Builder: sustained winning + titles + overall recruiting depth + archetype builder bonus
-  const pb = Math.min(100, winPct * 25 + coach.confChampionships * 5 + coach.nationalChampionships * 10 + recSkillAvg * 0.8 + aw.pb + 18);
+  const pb = Math.min(100, winPct * 22 + coach.confChampionships * 5 + coach.nationalChampionships * 10 + recSkillAvg * 0.8 + aw.pb + 18);
 
   // Media Relations: archetype (primary driver) + career wins + national profile + level
-  const mr = Math.min(100, aw.mr * 2 + winPct * 16 + coach.level * 1.5 + coach.nationalChampionships * 4 + 18);
+  const mr = Math.min(100, aw.mr * 2 + winPct * 14 + coach.level * 1.5 + coach.nationalChampionships * 4 + 18);
 
-  // Clutch Coaching: postseason success + archetype composure bonus + skill depth
-  const cc = Math.min(100, coach.nationalChampionships * 14 + coach.cwsAppearances * 7 + coach.confChampionships * 3 + winPct * 16 + (evalLevel + hitRec) * 0.5 + aw.cc + 14);
+  // Clutch Coaching: conference win% (primary) + postseason titles/runs + archetype composure + skill depth
+  const cc = Math.min(100, confWinPct * 30 + coach.nationalChampionships * 14 + coach.cwsAppearances * 7 + coach.confChampionships * 3 + (evalLevel + hitRec) * 0.5 + aw.cc + 12);
 
   return {
     "Game Management": scoreToGrade(gm),
