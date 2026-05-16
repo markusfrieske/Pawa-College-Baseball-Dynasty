@@ -7073,6 +7073,16 @@ export async function registerRoutes(
       // Active only during the in-season phases so all arcs conclude before offseason begins.
       if (["recruiting", "preseason", "spring_training", "regular_season"].includes(league.currentPhase)) {
         try {
+          // Self-heal: if no storyline recruits exist but recruits do exist, this dynasty
+          // was started with a saved class before the fix — initialize them now.
+          const existingStorylines = await storage.getStorylineRecruitsByLeague(leagueId, league.currentSeason);
+          if (existingStorylines.length === 0) {
+            const existingRecruits = await storage.getRecruitsByLeague(leagueId);
+            if (existingRecruits.length > 0) {
+              console.log(`[storylines] self-heal: no storyline recruits found for league ${leagueId} season ${league.currentSeason}, initializing now`);
+              await initializeStorylineRecruits(leagueId, league.currentSeason);
+            }
+          }
           await generateAndResolveStorylineEvents(leagueId, league.currentSeason, nextWeek, league.seasonLength ?? "medium");
         } catch (err) {
           console.error("[storylines] Failed to generate/resolve storyline events:", err);
@@ -14524,6 +14534,14 @@ export async function registerRoutes(
                   ...recruitData,
                   leagueId,
                 });
+              }
+              // Saved-class path bypasses generateRecruits(), so storylines must be
+              // initialized explicitly here to match the auto-generate path.
+              try {
+                await initializeStorylineRecruits(leagueId, league.currentSeason);
+                console.log(`[storylines] initialized for saved-class dynasty ${leagueId}`);
+              } catch (err) {
+                console.error("[storylines] Failed to initialize for saved-class dynasty:", err);
               }
             }
           }

@@ -762,6 +762,15 @@ export default function StorylinesPage() {
     refetchInterval: 30000,
   });
 
+  const queryClient = useQueryClient();
+
+  const repairMutation = useMutation({
+    mutationFn: () => apiRequest("POST", `/api/leagues/${leagueId}/storylines/repair`, {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "storylines"] });
+    },
+  });
+
   const storylines = storylinesResp?.storylines ?? [];
 
   let filtered = filterLegendary ? storylines.filter(s => s.isLegendary) : storylines;
@@ -875,6 +884,27 @@ export default function StorylinesPage() {
                 ? "No linked storyline arcs were generated for this class. About 15% of classes feature connected arcs."
                 : "Storyline recruits are generated when your recruiting class is created. Advance the week to see their stories unfold."}
             </p>
+            {!filterLegendary && !filterLinked && isCommissioner && (
+              <div className="mt-2">
+                <p className="text-xs text-muted-foreground mb-3">
+                  If this dynasty was started with a saved recruiting class, storylines may need to be initialized.
+                </p>
+                <RetroButton
+                  variant="outline"
+                  size="sm"
+                  onClick={() => repairMutation.mutate()}
+                  disabled={repairMutation.isPending}
+                  data-testid="button-repair-storylines"
+                >
+                  {repairMutation.isPending ? (
+                    <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+                  )}
+                  Repair Storylines
+                </RetroButton>
+              </div>
+            )}
           </RetroCard>
         ) : (() => {
           const sorted = [...filtered].sort((a, b) => {

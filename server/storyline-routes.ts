@@ -718,6 +718,37 @@ export function registerStorylineRoutes(app: Express) {
       res.status(500).json({ message: "Failed to generate storyline events" });
     }
   });
+
+  // POST /api/leagues/:id/storylines/repair
+  // Commissioner-only: initializes storyline recruits if missing for the current season.
+  // Repairs dynasties started with a saved recruiting class before the auto-init fix.
+  app.post("/api/leagues/:id/storylines/repair", requireAuth, async (req, res) => {
+    try {
+      const leagueId = String(req.params.id);
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      if (league.commissionerId !== req.session.userId) {
+        return res.status(403).json({ message: "Only the commissioner can repair storylines" });
+      }
+
+      const existing = await storage.getStorylineRecruitsByLeague(leagueId, league.currentSeason);
+      if (existing.length > 0) {
+        return res.json({ success: true, initialized: existing.length, alreadyPresent: true });
+      }
+
+      const recruits = await storage.getRecruitsByLeague(leagueId);
+      if (recruits.length === 0) {
+        return res.status(409).json({ message: "No recruits found — cannot initialize storylines without a recruiting class" });
+      }
+
+      const count = await initializeStorylineRecruits(leagueId, league.currentSeason);
+      console.log(`[storylines] repair: initialized ${count} storyline recruits for league ${leagueId}`);
+      res.json({ success: true, initialized: count, alreadyPresent: false });
+    } catch (err) {
+      console.error("[storylines] REPAIR error:", err);
+      res.status(500).json({ message: "Failed to repair storylines" });
+    }
+  });
 }
 
 // ─── Core Storyline Logic ──────────────────────────────────────────────────────
