@@ -14,7 +14,7 @@ import { apiRequest } from "@/lib/queryClient";
 import {
   ArrowLeft, Trophy, Award, Target, Users, Star, Zap, Shield, Swords,
   GraduationCap, Plus, Mail, TrendingUp, Calendar, Crown, Medal, Flame,
-  BookOpen, ChevronRight, Info
+  BookOpen, ChevronRight, Info, ChevronDown, ChevronUp
 } from "lucide-react";
 import type { Coach, Team, CoachSeasonHistory } from "@shared/schema";
 import {
@@ -374,6 +374,7 @@ function CoachHeader({
 }: {
   coach: Coach; team?: Team; isOwnCoach: boolean; leagueId?: string;
 }) {
+  const [showArchetype, setShowArchetype] = useState(false);
   const personality = PERSONALITY_TYPES.find(p => p.id === (coach.personality ?? "")) ?? PERSONALITY_TYPES[0];
   const earnedTraitIds = new Set(Array.isArray(coach.traitBadges) ? coach.traitBadges as string[] : []);
   const earnedTraits = TRAIT_BADGES.filter(b => earnedTraitIds.has(b.id));
@@ -413,7 +414,16 @@ function CoachHeader({
                 <div>
                   <h1 className="font-pixel text-gold text-lg">HC {coach.firstName} {coach.lastName}</h1>
                   <div className="flex items-center gap-2 flex-wrap text-sm text-muted-foreground mt-0.5">
-                    <Badge variant="outline" className="text-xs">{coach.archetype}</Badge>
+                    {/* Clickable archetype badge — expands breakdown panel */}
+                    <button
+                      onClick={() => setShowArchetype(v => !v)}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-border/60 text-xs text-muted-foreground hover:border-gold/60 hover:text-gold transition-colors"
+                      data-testid="button-toggle-archetype"
+                      title="Click to view archetype breakdown"
+                    >
+                      {coach.archetype}
+                      {showArchetype ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                    </button>
                     {!isOwnCoach && <Badge variant="secondary" className="text-xs">Rival Coach</Badge>}
                   </div>
                 </div>
@@ -454,9 +464,31 @@ function CoachHeader({
             </div>
           )}
         </div>
+
+        {/* Expandable archetype breakdown */}
+        {showArchetype && (
+          <div className="mt-4 pt-4 border-t border-border/40" data-testid="archetype-breakdown-panel">
+            <ArchetypeCard archetype={coach.archetype} />
+          </div>
+        )}
       </RetroCardContent>
     </RetroCard>
   );
+}
+
+// ── Recruiting record type from API ──────────────────────────────────────────
+interface RecruitingRecord {
+  totalSigned: number;
+  fiveStars: number; fourStars: number; threeStars: number; twoStars: number; oneStars: number;
+  avgClassRank: number | null;
+  bestClassRank: number | null;
+  topClassSeason: number | null;
+  topRecruitName: string | null;
+  topRecruitOvr: number | null;
+  topRecruitStars: number | null;
+  draftPicksDeveloped: number;
+  allAmericansDeveloped: number;
+  seasonsRecorded: number;
 }
 
 // ── Career tab ────────────────────────────────────────────────────────────────
@@ -469,8 +501,17 @@ function CareerTab({
     ? ["/api/leagues", leagueId, "coach/season-history"]
     : ["/api/coaches", coachId ?? "", "season-history"];
 
+  const recruitingRecordKey = leagueId
+    ? ["/api/leagues", leagueId, "coach/recruiting-record"]
+    : ["/api/coaches", coachId ?? "", "recruiting-record"];
+
   const { data: seasonHistory, isLoading: histLoading } = useQuery<CoachSeasonHistory[]>({
     queryKey: historyKey,
+    enabled: !!(leagueId ?? coachId),
+  });
+
+  const { data: recruitingRecord, isLoading: recLoading } = useQuery<RecruitingRecord>({
+    queryKey: recruitingRecordKey,
     enabled: !!(leagueId ?? coachId),
   });
 
@@ -527,66 +568,79 @@ function CareerTab({
         </RetroCardContent>
       </RetroCard>
 
-      {/* Recruiting track record */}
+      {/* Recruiting track record — from dedicated API endpoint */}
       <RetroCard variant="bordered">
         <RetroCardHeader>
           <div className="flex items-center gap-2">
             <Star className="w-4 h-4 text-gold" />
             <h3 className="font-pixel text-sm">Recruiting Track Record</h3>
           </div>
+          <p className="text-xs text-muted-foreground">Career class rankings, star breakdown, and draft development</p>
         </RetroCardHeader>
         <RetroCardContent className="p-4">
-          {histLoading ? (
+          {recLoading ? (
             <Skeleton className="h-32 rounded" />
-          ) : !seasonHistory || seasonHistory.length === 0 ? (
+          ) : !recruitingRecord || recruitingRecord.seasonsRecorded === 0 ? (
             <p className="text-muted-foreground text-sm text-center py-4">No recruiting history yet</p>
           ) : (
             <div className="space-y-4">
-              {/* Summary row */}
-              <div className="grid grid-cols-3 gap-3">
+              {/* Top-level summary tiles */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="bg-muted/30 rounded-lg p-3 text-center">
-                  <p className="text-xl font-bold text-gold">
-                    {seasonHistory.reduce((s, h) => s + h.totalSigned, 0)}
-                  </p>
+                  <p className="text-xl font-bold text-gold">{recruitingRecord.totalSigned}</p>
                   <p className="text-xs text-muted-foreground">Total Signed</p>
                 </div>
                 <div className="bg-muted/30 rounded-lg p-3 text-center">
                   <p className="text-xl font-bold text-gold">
-                    {seasonHistory.filter(h => h.classRank != null && h.classRank <= 5).length}
+                    {recruitingRecord.bestClassRank != null ? `#${recruitingRecord.bestClassRank}` : "—"}
                   </p>
-                  <p className="text-xs text-muted-foreground">Top-5 Classes</p>
+                  <p className="text-xs text-muted-foreground">Best Class Rank</p>
+                  {recruitingRecord.topClassSeason && (
+                    <p className="text-xs text-muted-foreground/60">Yr {recruitingRecord.topClassSeason}</p>
+                  )}
                 </div>
                 <div className="bg-muted/30 rounded-lg p-3 text-center">
                   <p className="text-xl font-bold text-gold">
-                    {seasonHistory.filter(h => h.topRecruitStars != null && h.topRecruitStars >= 4).length}
+                    {recruitingRecord.avgClassRank != null ? `#${recruitingRecord.avgClassRank}` : "—"}
                   </p>
-                  <p className="text-xs text-muted-foreground">4-5★ Classes</p>
+                  <p className="text-xs text-muted-foreground">Avg. Class Rank</p>
+                </div>
+                <div className="bg-muted/30 rounded-lg p-3 text-center">
+                  <p className="text-xl font-bold text-gold">{recruitingRecord.draftPicksDeveloped}</p>
+                  <p className="text-xs text-muted-foreground">Draft Picks Dev.</p>
                 </div>
               </div>
-              {/* Best class */}
-              {(() => {
-                const best = [...seasonHistory].sort((a, b) => (b.classScore ?? 0) - (a.classScore ?? 0))[0];
-                if (!best) return null;
-                return (
-                  <div className="bg-muted/20 rounded-lg p-3 border border-border/40">
-                    <p className="text-xs text-muted-foreground font-medium mb-1">Best Recruiting Class</p>
-                    <div className="flex items-center justify-between flex-wrap gap-2">
-                      <div>
-                        <p className="text-sm font-medium">Season {best.season} — {best.teamAbbr || best.teamName}</p>
-                        {best.topRecruitName && (
-                          <p className="text-xs text-gold">
-                            Top: {Array.from({ length: best.topRecruitStars ?? 3 }, () => "★").join("")} {best.topRecruitName} ({best.topRecruitOvr} OVR)
-                          </p>
-                        )}
+
+              {/* Star-tier breakdown */}
+              <div>
+                <p className="text-xs text-muted-foreground font-medium mb-2">Career Signed by Star Rating</p>
+                <div className="grid grid-cols-5 gap-2">
+                  {([5, 4, 3, 2, 1] as const).map(stars => {
+                    const key = (["fiveStars", "fourStars", "threeStars", "twoStars", "oneStars"] as const)[5 - stars];
+                    const count = recruitingRecord[key];
+                    const starColors = ["text-yellow-400", "text-orange-400", "text-blue-400", "text-muted-foreground", "text-muted-foreground/60"];
+                    return (
+                      <div key={stars} className="bg-muted/20 rounded-lg p-2 text-center border border-border/30">
+                        <p className={`text-lg font-bold ${starColors[5 - stars]}`}>{count}</p>
+                        <p className="text-xs text-muted-foreground">{Array.from({ length: stars }, () => "★").join("")}</p>
                       </div>
-                      <div className="text-right">
-                        <p className="text-sm font-bold text-gold">#{best.classRank ?? "—"} Nationally</p>
-                        <p className="text-xs text-muted-foreground">{best.totalSigned} signed</p>
-                      </div>
-                    </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Best recruit */}
+              {recruitingRecord.topRecruitName && (
+                <div className="bg-muted/20 rounded-lg p-3 border border-border/40">
+                  <p className="text-xs text-muted-foreground font-medium mb-1">Best Signed Recruit (Career)</p>
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <p className="text-sm font-medium">
+                      {Array.from({ length: recruitingRecord.topRecruitStars ?? 3 }, () => "★").join("")} {recruitingRecord.topRecruitName}
+                    </p>
+                    <p className="text-sm font-bold text-gold">{recruitingRecord.topRecruitOvr} OVR</p>
                   </div>
-                );
-              })()}
+                </div>
+              )}
             </div>
           )}
         </RetroCardContent>

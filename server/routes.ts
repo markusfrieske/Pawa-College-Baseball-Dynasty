@@ -3771,6 +3771,9 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Team not found" });
       }
 
+      // Auto-assign personality/traits/philosophy/milestones on first render
+      try { await ensureCoachTraits(userCoach); const fresh = await storage.getCoach(userCoach.id); if (fresh) { res.json({ coach: fresh, team, isOwnCoach: true }); return; } } catch {}
+
       res.json({
         coach: userCoach,
         team,
@@ -3879,6 +3882,91 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to fetch coach season history:", error);
       res.status(500).json({ message: "Failed to fetch coach season history" });
+    }
+  });
+
+  // Recruiting record helper — builds aggregated stats from class snapshots + player history
+  async function buildRecruitingRecord(coach: { id: string; teamId?: string | null; leagueId: string }) {
+    const history = await storage.getCoachSeasonHistory(coach.id);
+    if (history.length === 0) {
+      return {
+        totalSigned: 0, fiveStars: 0, fourStars: 0, threeStars: 0, twoStars: 0, oneStars: 0,
+        avgClassRank: null as number | null, bestClassRank: null as number | null,
+        topClassSeason: null as number | null, topRecruitName: null as string | null,
+        topRecruitOvr: null as number | null, topRecruitStars: null as number | null,
+        draftPicksDeveloped: 0, allAmericansDeveloped: 0, seasonsRecorded: 0,
+      };
+    }
+
+    // Aggregate from class snapshots for star breakdown
+    let fiveStars = 0, fourStars = 0, threeStars = 0, twoStars = 0, oneStars = 0;
+    const leagueSnaps = await storage.getRecruitingClassSnapshotsAllSeasons(coach.leagueId);
+    for (const entry of history) {
+      const snap = leagueSnaps.find(s => s.teamId === (coach.teamId ?? "") && s.season === entry.season);
+      if (snap) {
+        fiveStars += snap.fiveStars;
+        fourStars += snap.fourStars;
+        threeStars += snap.threeStars;
+        twoStars += snap.twoStars;
+        oneStars += snap.oneStars;
+      }
+    }
+
+    // Best recruit across all seasons
+    const bestEntry = [...history].sort((a, b) => (b.topRecruitOvr ?? 0) - (a.topRecruitOvr ?? 0))[0];
+    const bestClassEntry = [...history].filter(h => h.classRank != null).sort((a, b) => (a.classRank ?? 999) - (b.classRank ?? 999))[0];
+    const rankedSeasons = history.filter(h => h.classRank != null);
+    const avgClassRank = rankedSeasons.length > 0
+      ? Math.round(rankedSeasons.reduce((s, h) => s + (h.classRank ?? 0), 0) / rankedSeasons.length)
+      : null;
+
+    // Draft picks developed — count from player history for coach's team across all recorded seasons
+    const draftPicksDeveloped = coach.teamId
+      ? (await storage.getPlayerHistoryByLeague(coach.leagueId)).filter(
+          ph => ph.teamId === coach.teamId && ph.draftRound != null
+        ).length
+      : 0;
+
+    return {
+      totalSigned: history.reduce((s, h) => s + h.totalSigned, 0),
+      fiveStars, fourStars, threeStars, twoStars, oneStars,
+      avgClassRank,
+      bestClassRank: bestClassEntry?.classRank ?? null,
+      topClassSeason: bestClassEntry?.season ?? null,
+      topRecruitName: bestEntry?.topRecruitName ?? null,
+      topRecruitOvr: bestEntry?.topRecruitOvr ?? null,
+      topRecruitStars: bestEntry?.topRecruitStars ?? null,
+      draftPicksDeveloped,
+      allAmericansDeveloped: 0,
+      seasonsRecorded: history.length,
+    };
+  }
+
+  // Recruiting record — own coach in a league
+  app.get("/api/leagues/:id/coach/recruiting-record", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const coaches = await storage.getCoachesByLeague(leagueId);
+      const userCoach = coaches.find(c => c.userId === req.session.userId);
+      if (!userCoach) return res.status(404).json({ message: "No coach found" });
+      const record = await buildRecruitingRecord({ id: userCoach.id, teamId: userCoach.teamId, leagueId });
+      res.json(record);
+    } catch (error) {
+      console.error("Failed to fetch recruiting record:", error);
+      res.status(500).json({ message: "Failed to fetch recruiting record" });
+    }
+  });
+
+  // Recruiting record — any coach by ID
+  app.get("/api/coaches/:coachId/recruiting-record", requireAuth, async (req, res) => {
+    try {
+      const coach = await storage.getCoach(req.params.coachId as string);
+      if (!coach) return res.status(404).json({ message: "Coach not found" });
+      const record = await buildRecruitingRecord({ id: coach.id, teamId: coach.teamId, leagueId: coach.leagueId });
+      res.json(record);
+    } catch (error) {
+      console.error("Failed to fetch recruiting record:", error);
+      res.status(500).json({ message: "Failed to fetch recruiting record" });
     }
   });
 
@@ -10612,19 +10700,17 @@ export async function registerRoutes(
             + (teamCommits.length * 3)
           : 0;
 
-        // Rank: how many teams have a higher class score (in the snap already created)
-        // Just use classScore ordering
-        const allTeamScores = teams.map(t => ({
-          teamId: t.id,
-          score: snapRecruits2.filter(r => r.signedTeamId === t.id).length > 0
-            ? snapRecruits2.filter(r => r.signedTeamId === t.id).reduce((s: number, r) => {
-                const commits = snapRecruits2.filter(rc => rc.signedTeamId === t.id);
-                const avgStar = commits.reduce((a, b) => a + (b.starRating || 3), 0) / commits.length;
-                const avgOvr = commits.reduce((a, b) => a + (b.overall || 300), 0) / commits.length;
-                return (avgStar * 20) + (avgOvr / 50) + (commits.filter(r => r.starRating === 5).length * 15) + (commits.filter(r => r.starRating >= 4).length * 5) + (commits.length * 3);
-              }, 0)
-            : 0,
-        })).sort((a, b) => b.score - a.score);
+        // Rank: compute one class score per team and sort
+        const allTeamScores = teams.map(t => {
+          const commits = snapRecruits2.filter(r => r.signedTeamId === t.id);
+          if (commits.length === 0) return { teamId: t.id, score: 0 };
+          const avgStar = commits.reduce((a, b) => a + (b.starRating || 3), 0) / commits.length;
+          const avgOvr = commits.reduce((a, b) => a + (b.overall || 300), 0) / commits.length;
+          const fiveStars = commits.filter(r => r.starRating === 5).length;
+          const fourStars = commits.filter(r => r.starRating >= 4).length;
+          const score = (avgStar * 20) + (avgOvr / 50) + (fiveStars * 15) + (fourStars * 5) + (commits.length * 3);
+          return { teamId: t.id, score };
+        }).sort((a, b) => b.score - a.score);
         const classRank = allTeamScores.findIndex(e => e.teamId === coach.teamId) + 1;
 
         await storage.upsertCoachSeasonHistory({
