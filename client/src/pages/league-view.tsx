@@ -1376,6 +1376,11 @@ function StandingsTab({ league }: { league: LeagueDetails }) {
                         <Link href={`/league/${league.id}/team/${team.id}`}>
                           <span className="font-medium hover:text-gold cursor-pointer truncate max-w-[90px] sm:max-w-none block" data-testid={`link-team-standings-${team.id}`}>{team.name}</span>
                         </Link>
+                        <Link href={`/league/${league.id}/team/${team.id}/profile`}>
+                          <span className="hidden sm:inline-flex items-center justify-center w-3.5 h-3.5 text-muted-foreground hover:text-gold transition-colors cursor-pointer" title="View Program Profile" data-testid={`link-profile-standings-${team.id}`}>
+                            <Trophy className="w-3 h-3" />
+                          </span>
+                        </Link>
                         {!team.isCpu && (
                           <span
                             className="hidden sm:inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-gold/20 border border-gold/40 flex-shrink-0"
@@ -1798,9 +1803,11 @@ function RankingsTab({ league }: { league: LeagueDetails }) {
                           size="sm"
                         />
                         <div>
-                          <span className={`font-medium text-xs ${isUser ? "text-gold font-semibold" : ""}`}>
-                            {entry.teamName}
-                          </span>
+                          <Link href={`/league/${league.id}/team/${entry.teamId}/profile`}>
+                            <span className={`font-medium text-xs hover:text-gold transition-colors cursor-pointer ${isUser ? "text-gold font-semibold" : ""}`} data-testid={`link-profile-powerrank-${entry.teamId}`}>
+                              {entry.teamName}
+                            </span>
+                          </Link>
                           {isUser && (
                             <span className="ml-1.5 text-[9px] font-pixel text-gold/70">YOU</span>
                           )}

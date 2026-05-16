@@ -19,6 +19,7 @@ import DynastySetupPage from "@/pages/dynasty-setup";
 import TeamSelectionPage from "@/pages/team-selection";
 import InvitePage from "@/pages/invite";
 import CoachProfilePage, { CoachProfileByIdPage } from "@/pages/coach-profile";
+import ProgramProfilePage from "@/pages/program-profile";
 import RecruitProfilePage from "@/pages/recruit-profile";
 import EditRostersPage from "@/pages/edit-rosters";
 import EditRecruitsPage from "@/pages/edit-recruits";
@@ -88,6 +89,7 @@ function Router() {
         <Route path="/league/:id/storylines" component={StorylinesPage} />
         <Route path="/league/:id/game/:gameId/play-by-play" component={PlayByPlayPage} />
         <Route path="/league/:id/report-game/:gameId" component={ReportGamePage} />
+        <Route path="/league/:id/team/:teamId/profile" component={ProgramProfilePage} />
         <Route path="/league/:id/team/:teamId" component={TeamViewPage} />
         <Route path="/league/:id/recruit/:recruitId" component={RecruitProfilePage} />
         <Route path="/league/:id/coach" component={CoachProfilePage} />

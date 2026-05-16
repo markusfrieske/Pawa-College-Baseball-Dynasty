@@ -103,6 +103,8 @@ export interface IStorage {
   updateGame(id: string, data: Partial<Game>): Promise<Game | undefined>;
 
   getStandingsByLeague(leagueId: string, season: number): Promise<Standings[]>;
+  getAllStandingsByLeague(leagueId: string): Promise<Standings[]>;
+  getStandingsByTeam(teamId: string): Promise<Standings[]>;
   createStandings(standings: InsertStandings): Promise<Standings>;
   updateStandings(id: string, data: Partial<Standings>): Promise<Standings | undefined>;
 
@@ -526,6 +528,18 @@ export class DatabaseStorage implements IStorage {
   async getStandingsByLeague(leagueId: string, season: number): Promise<Standings[]> {
     return await db.select().from(standings)
       .where(and(eq(standings.leagueId, leagueId), eq(standings.season, season)));
+  }
+
+  async getAllStandingsByLeague(leagueId: string): Promise<Standings[]> {
+    return await db.select().from(standings)
+      .where(eq(standings.leagueId, leagueId))
+      .orderBy(standings.season);
+  }
+
+  async getStandingsByTeam(teamId: string): Promise<Standings[]> {
+    return await db.select().from(standings)
+      .where(eq(standings.teamId, teamId))
+      .orderBy(standings.season);
   }
 
   async createStandings(insertStandings: InsertStandings): Promise<Standings> {

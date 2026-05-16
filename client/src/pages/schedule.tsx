@@ -394,7 +394,9 @@ function GameRow({ game, allGamesInGroup, onEdit, onViewBoxScore, onMatchupPrevi
             size="sm"
           />
           <div className="min-w-0">
-            <span className="font-medium text-sm block truncate">{game.awayTeam.name}</span>
+            <Link href={`/league/${leagueId}/team/${game.awayTeamId}/profile`} onClick={e => e.stopPropagation()}>
+              <span className="font-medium text-sm block truncate hover:text-gold transition-colors cursor-pointer" data-testid={`link-profile-away-${game.id}`}>{game.awayTeam.name}</span>
+            </Link>
             {isHumanVsHuman && !game.isComplete && (() => {
               const opponentId = userTeamId === game.awayTeamId ? game.homeTeamId : game.awayTeamId;
               const coachName = humanCoachNames[opponentId];
@@ -454,7 +456,9 @@ function GameRow({ game, allGamesInGroup, onEdit, onViewBoxScore, onMatchupPrevi
         )}
 
         <div className="flex-1 flex items-center justify-end gap-3">
-          <span className="font-medium text-sm">{game.homeTeam.name}</span>
+          <Link href={`/league/${leagueId}/team/${game.homeTeamId}/profile`} onClick={e => e.stopPropagation()}>
+            <span className="font-medium text-sm hover:text-gold transition-colors cursor-pointer" data-testid={`link-profile-home-${game.id}`}>{game.homeTeam.name}</span>
+          </Link>
           <TeamBadge
             abbreviation={game.homeTeam.abbreviation}
             primaryColor={game.homeTeam.primaryColor}

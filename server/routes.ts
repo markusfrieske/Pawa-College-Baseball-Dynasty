@@ -13362,6 +13362,225 @@ export async function registerRoutes(
     }
   });
 
+  // Program profile endpoint
+  app.get("/api/leagues/:id/teams/:teamId/program-profile", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const teamId = req.params.teamId as string;
+
+      const [team, league, allTeams] = await Promise.all([
+        storage.getTeam(teamId),
+        storage.getLeague(leagueId),
+        storage.getTeamsByLeague(leagueId),
+      ]);
+
+      if (!team || !league) {
+        return res.status(404).json({ message: "Team not found" });
+      }
+
+      const [coach, conferences, teamStandings, allLeagueStandings, teamHistory, teamGames] = await Promise.all([
+        team.coachId ? storage.getCoach(team.coachId) : Promise.resolve(undefined),
+        storage.getConferencesByLeague(leagueId),
+        storage.getStandingsByTeam(teamId),
+        storage.getAllStandingsByLeague(leagueId),
+        storage.getPlayerHistoryByTeam(teamId),
+        storage.getGamesByTeam(teamId),
+      ]);
+
+      // Determine if the coach is the commissioner
+      const isCommissioner = !!(coach?.userId && league.commissionerId === coach.userId);
+
+      // Conference for this team
+      const teamConferenceId = team.conferenceId;
+
+      // Compute all-time W/L from standings
+      const allTimeWins = teamStandings.reduce((s, r) => s + r.wins, 0);
+      const allTimeLosses = teamStandings.reduce((s, r) => s + r.losses, 0);
+
+      // Group all league standings by season for conference finish calculation
+      const standingsBySeason: Record<number, typeof allLeagueStandings> = {};
+      for (const s of allLeagueStandings) {
+        if (!standingsBySeason[s.season]) standingsBySeason[s.season] = [];
+        standingsBySeason[s.season].push(s);
+      }
+
+      // Build team lookup for conference filtering
+      const teamConferenceMap: Record<string, string | null> = {};
+      for (const t of allTeams) {
+        teamConferenceMap[t.id] = t.conferenceId;
+      }
+
+      // Determine postseason outcomes per season from team games
+      interface PostseasonGames {
+        confChamp: { played: boolean; won: boolean };
+        superRegionals: { played: boolean; won: boolean };
+        cws: { played: boolean; won: boolean };
+      }
+      const postseasonBySeason: Record<number, PostseasonGames> = {};
+      for (const game of teamGames) {
+        if (!game.isComplete) continue;
+        const phase = game.phase;
+        if (!["conference_championship", "super_regionals", "cws"].includes(phase)) continue;
+        const season = game.season;
+        if (!postseasonBySeason[season]) {
+          postseasonBySeason[season] = {
+            confChamp: { played: false, won: false },
+            superRegionals: { played: false, won: false },
+            cws: { played: false, won: false },
+          };
+        }
+        const isHome = game.homeTeamId === teamId;
+        const ourScore = isHome ? (game.homeScore ?? 0) : (game.awayScore ?? 0);
+        const theirScore = isHome ? (game.awayScore ?? 0) : (game.homeScore ?? 0);
+        const won = ourScore > theirScore;
+        if (phase === "conference_championship") {
+          postseasonBySeason[season].confChamp.played = true;
+          if (won) postseasonBySeason[season].confChamp.won = true;
+        } else if (phase === "super_regionals") {
+          postseasonBySeason[season].superRegionals.played = true;
+          if (won) postseasonBySeason[season].superRegionals.won = true;
+        } else if (phase === "cws") {
+          postseasonBySeason[season].cws.played = true;
+          if (won) postseasonBySeason[season].cws.won = true;
+        }
+      }
+
+      // Detect CWS champion: team with more cws wins than losses in final round
+      // Simplified: if team won in cws but not every game, check if they're the last standing
+      const cwsWinsBySeasonCount: Record<number, { wins: number; losses: number }> = {};
+      for (const game of teamGames) {
+        if (!game.isComplete || game.phase !== "cws") continue;
+        if (!cwsWinsBySeasonCount[game.season]) cwsWinsBySeasonCount[game.season] = { wins: 0, losses: 0 };
+        const isHome = game.homeTeamId === teamId;
+        const ourScore = isHome ? (game.homeScore ?? 0) : (game.awayScore ?? 0);
+        const theirScore = isHome ? (game.awayScore ?? 0) : (game.homeScore ?? 0);
+        if (ourScore > theirScore) cwsWinsBySeasonCount[game.season].wins++;
+        else cwsWinsBySeasonCount[game.season].losses++;
+      }
+
+      // Build season history
+      const seasonHistory = teamStandings.map((standing) => {
+        const season = standing.season;
+
+        // Conference finish
+        const seasonStandings = standingsBySeason[season] || [];
+        const confTeamStandings = seasonStandings
+          .filter(s => teamConferenceMap[s.teamId] === teamConferenceId)
+          .sort((a, b) => {
+            if (b.wins !== a.wins) return b.wins - a.wins;
+            return a.losses - b.losses;
+          });
+        const confFinish = confTeamStandings.findIndex(s => s.teamId === teamId) + 1 || null;
+
+        // Postseason result label
+        const ps = postseasonBySeason[season];
+        let postseasonResult = "—";
+        if (ps) {
+          const cwsRecord = cwsWinsBySeasonCount[season];
+          if (ps.cws.played) {
+            if (cwsRecord && cwsRecord.wins > 0 && cwsRecord.losses === 0) {
+              postseasonResult = "CWS Champion";
+            } else if (cwsRecord && cwsRecord.wins >= cwsRecord.losses && cwsRecord.wins > 0 && cwsRecord.losses === 0) {
+              postseasonResult = "CWS Champion";
+            } else if (ps.cws.won) {
+              postseasonResult = "CWS Champion";
+            } else {
+              postseasonResult = "CWS";
+            }
+          } else if (ps.superRegionals.played) {
+            postseasonResult = "Super Regionals";
+          } else if (ps.confChamp.played) {
+            postseasonResult = "Conf. Champ.";
+          }
+        }
+
+        return {
+          season,
+          wins: standing.wins,
+          losses: standing.losses,
+          confWins: standing.conferenceWins,
+          confLosses: standing.conferenceLosses,
+          confFinish,
+          postseasonResult,
+        };
+      }).sort((a, b) => b.season - a.season);
+
+      // Aggregate postseason milestones
+      const confChampionships = Object.values(postseasonBySeason).filter(ps => ps.confChamp.won).length;
+      const superRegionalsAppearances = Object.values(postseasonBySeason).filter(ps => ps.superRegionals.played).length;
+      const cwsAppearances = Object.values(postseasonBySeason).filter(ps => ps.cws.played).length;
+      const cwsTitles = Object.entries(cwsWinsBySeasonCount).filter(([, r]) => r.losses === 0 && r.wins > 0).length;
+
+      // Recruiting Hall of Fame — top 5 players ever on this roster by OVR
+      const hofPlayers = [...teamHistory]
+        .sort((a, b) => b.overall - a.overall)
+        .slice(0, 5)
+        .map(p => ({
+          firstName: p.firstName,
+          lastName: p.lastName,
+          position: p.position,
+          overall: p.overall,
+          starRating: p.starRating,
+          departureType: p.departureType,
+          draftRound: p.draftRound,
+          departedSeason: p.departedSeason,
+          abilities: p.abilities,
+        }));
+
+      // Top drafted players (draftRound is set), sorted by draft round asc then OVR desc
+      const draftedPlayers = teamHistory
+        .filter(p => p.draftRound != null)
+        .sort((a, b) => (a.draftRound ?? 99) - (b.draftRound ?? 99) || b.overall - a.overall)
+        .slice(0, 10)
+        .map(p => ({
+          firstName: p.firstName,
+          lastName: p.lastName,
+          position: p.position,
+          overall: p.overall,
+          starRating: p.starRating,
+          draftRound: p.draftRound,
+          departedSeason: p.departedSeason,
+        }));
+
+      res.json({
+        team: {
+          id: team.id,
+          name: team.name,
+          abbreviation: team.abbreviation,
+          primaryColor: team.primaryColor,
+          secondaryColor: team.secondaryColor,
+          mascot: team.mascot,
+          prestige: team.prestige,
+          isCpu: team.isCpu,
+          conferenceName: conferences.find(c => c.id === team.conferenceId)?.name ?? null,
+        },
+        coach: coach ? {
+          id: coach.id,
+          firstName: coach.firstName,
+          lastName: coach.lastName,
+          archetype: coach.archetype,
+          level: coach.level,
+          xp: coach.xp,
+          userId: coach.userId,
+        } : null,
+        isCommissioner,
+        currentSeason: league.currentSeason,
+        allTimeWins,
+        allTimeLosses,
+        confChampionships,
+        superRegionalsAppearances,
+        cwsAppearances,
+        cwsTitles,
+        seasonHistory,
+        recruitingHoF: hofPlayers,
+        topDraftedPlayers: draftedPlayers,
+      });
+    } catch (error) {
+      console.error("Failed to fetch program profile:", error);
+      res.status(500).json({ message: "Failed to fetch program profile" });
+    }
+  });
+
   // Single recruit route
   app.get("/api/leagues/:id/recruits/:recruitId", requireAuth, async (req, res) => {
     try {
