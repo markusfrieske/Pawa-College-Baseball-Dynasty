@@ -117,6 +117,10 @@ interface DashboardOverview {
   starDist: Record<string, number>;
   top5Players: { name: string; position: string; overall: number; starRating: number }[];
   topPlayer: { name: string; position: string; overall: number } | null;
+  hittingScore?: number;
+  fieldingScore?: number;
+  speedScore?: number;
+  pitchingScore?: number;
 }
 
 const STAR_COLORS: Record<number, string> = {
@@ -220,6 +224,33 @@ function RosterStrengthCard({ overview, leagueId }: { overview: DashboardOvervie
           </div>
 
         </div>
+
+        {(overview.hittingScore !== undefined) && (
+          <div className="mt-4 pt-4 border-t border-border/50">
+            <p className="font-pixel text-[7px] text-muted-foreground mb-2">TEAM BREAKDOWN</p>
+            <div className="grid grid-cols-4 gap-2">
+              {[
+                { label: "HIT", val: overview.hittingScore, grade: attrToGrade(overview.hittingScore), isStar: false },
+                { label: "FIELD", val: overview.fieldingScore ?? 0, grade: attrToGrade(overview.fieldingScore ?? 0), isStar: false },
+                { label: "SPEED", val: overview.speedScore ?? 0, grade: attrToGrade(overview.speedScore ?? 0), isStar: false },
+                { label: "PITCH", val: overview.pitchingScore ?? 0, grade: starToGrade(overview.pitchingScore ?? 0), isStar: true },
+              ].map(({ label, val, grade, isStar }) => (
+                <div key={label} className="text-center p-2 bg-background/50 rounded border border-border/50 space-y-1" data-testid={`breakdown-${label.toLowerCase()}`}>
+                  <p className="font-pixel text-[7px] text-muted-foreground">{label}</p>
+                  <p className={`text-lg font-bold ${gradeColor(grade)}`}>{grade}</p>
+                  <div className="w-full bg-background/60 rounded-full h-1.5 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${gradeColor(grade).replace("text-", "bg-")}`}
+                      style={{ width: `${isStar ? Math.round((val / 5) * 100) : val}%` }}
+                    />
+                  </div>
+                  <p className="text-[9px] text-muted-foreground">{isStar ? `${val.toFixed(1)}★` : val}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
       </RetroCardContent>
     </RetroCard>
   );
@@ -1568,6 +1599,7 @@ interface PowerRankingEntry {
   secondaryColor: string;
   isCpu: boolean;
   composite: number;
+  overallStarAvg: number;
   pitchingScore: number;
   hittingScore: number;
   fieldingScore: number;
@@ -1594,18 +1626,26 @@ function percentileToGrade(pct: number): string {
   return "F";
 }
 
-// Grade based on attribute averages (0-100 scale). Thresholds calibrated so
-// that a typical Tier-1 team's pitching/hitting averages around B–B+ and a
-// mid-major averages C–C+, avoiding F grades for competitive programs.
 function attrToGrade(val: number): string {
-  if (val >= 72) return "A+";
-  if (val >= 63) return "A";
-  if (val >= 55) return "B+";
-  if (val >= 47) return "B";
-  if (val >= 39) return "C+";
-  if (val >= 31) return "C";
-  if (val >= 23) return "D+";
-  if (val >= 15) return "D";
+  if (val >= 80) return "A+";
+  if (val >= 72) return "A";
+  if (val >= 65) return "B+";
+  if (val >= 58) return "B";
+  if (val >= 50) return "C+";
+  if (val >= 42) return "C";
+  if (val >= 35) return "D+";
+  if (val >= 28) return "D";
+  return "F";
+}
+
+function starToGrade(stars: number): string {
+  if (stars >= 4.5) return "A+";
+  if (stars >= 4.0) return "A";
+  if (stars >= 3.5) return "B+";
+  if (stars >= 3.0) return "B";
+  if (stars >= 2.5) return "C+";
+  if (stars >= 2.0) return "C";
+  if (stars >= 1.5) return "D+";
   return "F";
 }
 
@@ -1685,7 +1725,7 @@ function RankingsTab({ league }: { league: LeagueDetails }) {
         </div>
       </RetroCardHeader>
       <p className="text-[10px] text-muted-foreground mb-4">
-        Composite: Pitching (35%) · Hitting (30%) · Fielding (20%) · Speed (15%). Scores are attribute averages (0-100). Click a rival to compare.
+        Composite: Avg Star Rating of full roster. Sub-scores: Hitting (Contact + Power), Fielding (Defense + Err Resist + Throwing), Speed (Running), Pitching (Avg Star — pitchers only). Click a rival to compare.
       </p>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -1694,10 +1734,10 @@ function RankingsTab({ league }: { league: LeagueDetails }) {
               <th className="text-left py-2 px-2">#</th>
               <th className="text-left py-2 px-2">Team</th>
               <th className="text-center py-2 px-1 cursor-pointer hover:text-gold select-none" onClick={() => handleSort("composite")}>Score{sortArrow("composite")}</th>
-              <th className="text-center py-2 px-1 cursor-pointer hover:text-gold select-none" onClick={() => handleSort("pitching")}>Pitch{sortArrow("pitching")}</th>
               <th className="text-center py-2 px-1 cursor-pointer hover:text-gold select-none" onClick={() => handleSort("hitting")}>Hit{sortArrow("hitting")}</th>
               <th className="text-center py-2 px-1 hidden sm:table-cell cursor-pointer hover:text-gold select-none" onClick={() => handleSort("fielding")}>Field{sortArrow("fielding")}</th>
               <th className="text-center py-2 px-1 hidden sm:table-cell cursor-pointer hover:text-gold select-none" onClick={() => handleSort("speed")}>Spd{sortArrow("speed")}</th>
+              <th className="text-center py-2 px-1 cursor-pointer hover:text-gold select-none" onClick={() => handleSort("pitching")}>Pitch{sortArrow("pitching")}</th>
               <th className="py-2 px-1 w-6" />
             </tr>
           </thead>
@@ -1705,11 +1745,11 @@ function RankingsTab({ league }: { league: LeagueDetails }) {
             {rankings.map((entry) => {
               const isUser = entry.teamId === userTeamId;
               const isExpanded = expandedTeam === entry.teamId;
-              const compGrade = attrToGrade(entry.composite);
-              const pitchGrade = attrToGrade(entry.pitchingScore);
+              const compGrade = starToGrade(entry.overallStarAvg);
               const hitGrade = attrToGrade(entry.hittingScore);
               const fieldGrade = attrToGrade(entry.fieldingScore);
               const spdGrade = attrToGrade(entry.speedScore);
+              const pitchGrade = starToGrade(entry.pitchingScore);
 
               return (
                 <Fragment key={entry.teamId}>
@@ -1758,20 +1798,14 @@ function RankingsTab({ league }: { league: LeagueDetails }) {
                       </div>
                     </td>
                     <td className="py-3 px-1 text-center">
-                      <div className="flex flex-col items-center">
-                        <span className={`font-bold text-sm ${gradeColor(compGrade)}`}>{compGrade}</span>
-                        <span className="text-[9px] text-muted-foreground">{entry.composite}</span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-1 text-center">
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <div className="flex flex-col items-center cursor-default">
-                            <span className={`font-bold text-xs ${gradeColor(pitchGrade)}`}>{pitchGrade}</span>
-                            <span className="text-[9px] text-muted-foreground">{entry.pitchingScore}</span>
+                            <span className={`font-bold text-sm ${gradeColor(compGrade)}`}>{compGrade}</span>
+                            <span className="text-[9px] text-muted-foreground">{entry.overallStarAvg.toFixed(1)}★</span>
                           </div>
                         </TooltipTrigger>
-                        <TooltipContent>{percentileLabel(entry.pitchingPercentile)} in Pitching (vel+stuff+ctrl+sta)</TooltipContent>
+                        <TooltipContent>{percentileLabel(entry.compositePercentile)} overall (avg star rating)</TooltipContent>
                       </Tooltip>
                     </td>
                     <td className="py-3 px-1 text-center">
@@ -1793,7 +1827,7 @@ function RankingsTab({ league }: { league: LeagueDetails }) {
                             <span className="text-[9px] text-muted-foreground">{entry.fieldingScore}</span>
                           </div>
                         </TooltipTrigger>
-                        <TooltipContent>{percentileLabel(entry.fieldingPercentile)} in Fielding (glove+arm)</TooltipContent>
+                        <TooltipContent>{percentileLabel(entry.fieldingPercentile)} in Fielding (defense+err resist+throwing)</TooltipContent>
                       </Tooltip>
                     </td>
                     <td className="py-3 px-1 text-center hidden sm:table-cell">
@@ -1804,7 +1838,18 @@ function RankingsTab({ league }: { league: LeagueDetails }) {
                             <span className="text-[9px] text-muted-foreground">{entry.speedScore}</span>
                           </div>
                         </TooltipTrigger>
-                        <TooltipContent>{percentileLabel(entry.speedPercentile)} in Speed</TooltipContent>
+                        <TooltipContent>{percentileLabel(entry.speedPercentile)} in Speed (running)</TooltipContent>
+                      </Tooltip>
+                    </td>
+                    <td className="py-3 px-1 text-center">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex flex-col items-center cursor-default">
+                            <span className={`font-bold text-xs ${gradeColor(pitchGrade)}`}>{pitchGrade}</span>
+                            <span className="text-[9px] text-muted-foreground">{entry.pitchingScore.toFixed(1)}★</span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>{percentileLabel(entry.pitchingPercentile)} in Pitching (avg star — pitchers only)</TooltipContent>
                       </Tooltip>
                     </td>
                     <td className="py-3 px-1 text-center">
@@ -1835,10 +1880,11 @@ function RankingsTab({ league }: { league: LeagueDetails }) {
 
 function PowerComparePanel({ userEntry, rivalEntry }: { userEntry: PowerRankingEntry; rivalEntry: PowerRankingEntry }) {
   const components = [
-    { label: "Pitching", userVal: userEntry.pitchingScore, rivalVal: rivalEntry.pitchingScore, weight: "35%" },
-    { label: "Hitting", userVal: userEntry.hittingScore, rivalVal: rivalEntry.hittingScore, weight: "30%" },
-    { label: "Fielding", userVal: userEntry.fieldingScore, rivalVal: rivalEntry.fieldingScore, weight: "20%" },
-    { label: "Speed", userVal: userEntry.speedScore, rivalVal: rivalEntry.speedScore, weight: "15%" },
+    { label: "Overall (Avg Stars)", userVal: Math.round(userEntry.overallStarAvg * 20), rivalVal: Math.round(rivalEntry.overallStarAvg * 20) },
+    { label: "Hitting", userVal: userEntry.hittingScore, rivalVal: rivalEntry.hittingScore },
+    { label: "Fielding", userVal: userEntry.fieldingScore, rivalVal: rivalEntry.fieldingScore },
+    { label: "Speed", userVal: userEntry.speedScore, rivalVal: rivalEntry.speedScore },
+    { label: "Pitching (Avg Stars)", userVal: Math.round(userEntry.pitchingScore * 20), rivalVal: Math.round(rivalEntry.pitchingScore * 20) },
   ];
 
   return (

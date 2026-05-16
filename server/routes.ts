@@ -703,6 +703,18 @@ export async function registerRoutes(
         }
       }
 
+      const dashHitters = roster.filter(p => !PITCHER_POS_SET.has(p.position));
+      const dashPitchers = roster.filter(p => PITCHER_POS_SET.has(p.position));
+      const dashAttrAvg = (nums: number[]) =>
+        nums.length === 0 ? 0 : Math.round(nums.reduce((a, b) => a + b, 0) / nums.length);
+      const dashAvgStar = (arr: { starRating: number }[]) =>
+        arr.length === 0 ? 0 : arr.reduce((s, p) => s + (p.starRating || 1), 0) / arr.length;
+
+      const dashHittingScore = dashAttrAvg(dashHitters.flatMap(p => [p.hitForAvg ?? 50, p.power ?? 50]));
+      const dashFieldingScore = dashAttrAvg(dashHitters.flatMap(p => [p.fielding ?? 50, p.errorResistance ?? 50, p.throwing ?? 50]));
+      const dashSpeedScore = dashAttrAvg(roster.map(p => p.running ?? 50));
+      const dashPitchingScore = dashAvgStar(dashPitchers);
+
       const top5Players = [...roster]
         .sort((a, b) => (b.overall || 0) - (a.overall || 0))
         .slice(0, 5)
@@ -729,6 +741,10 @@ export async function registerRoutes(
         pitcherAvg: pitcherCount > 0 ? Math.round(pitcherTotal / pitcherCount) : 0,
         starDist,
         top5Players,
+        hittingScore: dashHittingScore,
+        fieldingScore: dashFieldingScore,
+        speedScore: dashSpeedScore,
+        pitchingScore: dashPitchingScore,
       });
     } catch (error) {
       console.error("Failed to fetch dashboard overview:", error);
@@ -3880,25 +3896,21 @@ export async function registerRoutes(
 
         const avgAttr = (arr: number[]): number =>
           arr.length === 0 ? 0 : Math.round(arr.reduce((s, v) => s + v, 0) / arr.length);
+        const avgStar = (arr: { starRating: number }[]): number =>
+          arr.length === 0 ? 0 : arr.reduce((s, p) => s + (p.starRating || 1), 0) / arr.length;
 
-        const pitchingScore = avgAttr(
-          pitchers.map(p => ((p.velocity ?? 50) + (p.stuff ?? 50) + (p.control ?? 50) + (p.stamina ?? 50)) / 4)
-        );
+        const overallStarAvg = avgStar(players);
         const hittingScore = avgAttr(
-          hitters.map(p => ((p.hitForAvg ?? 50) + (p.power ?? 50)) / 2)
+          hitters.flatMap(p => [p.hitForAvg ?? 50, p.power ?? 50])
         );
         const fieldingScore = avgAttr(
-          players.map(p => ((p.fielding ?? 50) + (p.arm ?? 50)) / 2)
+          hitters.flatMap(p => [p.fielding ?? 50, p.errorResistance ?? 50, p.throwing ?? 50])
         );
-        const speedScore = avgAttr(players.map(p => p.speed ?? 50));
+        const speedScore = avgAttr(players.map(p => p.running ?? 50));
+        const pitchingScore = avgStar(pitchers);
         const recruitingScore = avg(signed.map(r => r.overall));
 
-        const composite = Math.round(
-          pitchingScore * 0.35 +
-          hittingScore * 0.30 +
-          fieldingScore * 0.20 +
-          speedScore * 0.15
-        );
+        const composite = Math.round(overallStarAvg * 20);
 
         return {
           teamId: team.id,
@@ -3909,6 +3921,7 @@ export async function registerRoutes(
           secondaryColor: team.secondaryColor,
           isCpu: team.isCpu,
           composite,
+          overallStarAvg,
           pitchingScore,
           hittingScore,
           fieldingScore,
