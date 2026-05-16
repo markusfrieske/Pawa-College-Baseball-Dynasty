@@ -6638,6 +6638,25 @@ export async function registerRoutes(
             await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, isComplete: true, boxScore: result.boxScore });
             await updateStandingsForGame(leagueId, league.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore);
             try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, league.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, league.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
+            if (simUserTeamId && !userTeamGame &&
+                (game.homeTeamId === simUserTeamId || game.awayTeamId === simUserTeamId)) {
+              try {
+                const ccBox = JSON.parse(result.boxScore);
+                const ccHt = leagueTeamsForSim.find((t: any) => t.id === game.homeTeamId);
+                const ccAt = leagueTeamsForSim.find((t: any) => t.id === game.awayTeamId);
+                userTeamGame = {
+                  homeTeam: ccHt?.name ?? "Home", awayTeam: ccAt?.name ?? "Away",
+                  homeAbbr: ccHt?.abbreviation ?? "HME", awayAbbr: ccAt?.abbreviation ?? "AWY",
+                  homeScore: result.homeScore, awayScore: result.awayScore,
+                  inningScores: ccBox.innings ?? [],
+                  homeHits: ccBox.home?.totals?.h ?? 0, awayHits: ccBox.away?.totals?.h ?? 0,
+                  homeErrors: ccBox.home?.errors ?? 0, awayErrors: ccBox.away?.errors ?? 0,
+                  isHome: game.homeTeamId === simUserTeamId,
+                  homeColor: ccHt?.primaryColor ?? "#FFD700",
+                  awayColor: ccAt?.primaryColor ?? "#7eb8f7",
+                };
+              } catch { /* non-critical */ }
+            }
             try {
               const homeWon = result.homeScore > result.awayScore;
               const confWinner = leagueTeamsForSim.find(t => t.id === (homeWon ? game.homeTeamId : game.awayTeamId));
@@ -6708,11 +6727,39 @@ export async function registerRoutes(
           await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "Conference Championships Complete", details: "Conference championship games have been played. Super Regionals begin!" });
           sendWeeklyDigests(leagueId, storage, league.currentSeason, currentWeek, league.currentPhase)
             .catch(e => console.error("[digest] conf-champ hook:", e));
-          return res.json(updatedLeague);
+          return res.json({ ...updatedLeague, userTeamGame });
         }
         
         if (league.currentPhase === "super_regionals") {
+          // Snapshot which SR games involving the user are currently incomplete
+          const srPreSnap = simUserTeamId ? (await storage.getGamesByLeague(leagueId)).filter((g: any) =>
+            g.phase === "super_regionals" && g.season === league.currentSeason && !g.isComplete &&
+            (g.homeTeamId === simUserTeamId || g.awayTeamId === simUserTeamId)
+          ).map((g: any) => g.id) : [] as string[];
           const srResult = await advanceSuperRegionals(leagueId, league.currentSeason);
+          // Extract the user's just-completed SR game
+          if (!userTeamGame && srPreSnap.length > 0) {
+            try {
+              const srAllGames = await storage.getGamesByLeague(leagueId);
+              const srDone = (srAllGames as any[]).find((g: any) => srPreSnap.includes(g.id) && g.isComplete);
+              if (srDone) {
+                const srBox = JSON.parse(srDone.boxScore ?? "{}");
+                const srHt = leagueTeamsForSim.find((t: any) => t.id === srDone.homeTeamId);
+                const srAt = leagueTeamsForSim.find((t: any) => t.id === srDone.awayTeamId);
+                userTeamGame = {
+                  homeTeam: srHt?.name ?? "Home", awayTeam: srAt?.name ?? "Away",
+                  homeAbbr: srHt?.abbreviation ?? "HME", awayAbbr: srAt?.abbreviation ?? "AWY",
+                  homeScore: srDone.homeScore ?? 0, awayScore: srDone.awayScore ?? 0,
+                  inningScores: srBox.innings ?? [],
+                  homeHits: srBox.home?.totals?.h ?? 0, awayHits: srBox.away?.totals?.h ?? 0,
+                  homeErrors: srBox.home?.errors ?? 0, awayErrors: srBox.away?.errors ?? 0,
+                  isHome: srDone.homeTeamId === simUserTeamId,
+                  homeColor: srHt?.primaryColor ?? "#FFD700",
+                  awayColor: srAt?.primaryColor ?? "#7eb8f7",
+                };
+              }
+            } catch { /* non-critical */ }
+          }
           
           if (srResult.done && !srResult.champion1) {
             // Resolve any unresolved storyline arcs before entering offseason.
@@ -6724,7 +6771,7 @@ export async function registerRoutes(
             await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "Postseason Skipped", details: "Not enough teams for postseason bracket." });
             sendWeeklyDigests(leagueId, storage, league.currentSeason, currentWeek, league.currentPhase)
               .catch(e => console.error("[digest] sr-skipped hook:", e));
-            return res.json(updatedLeague);
+            return res.json({ ...updatedLeague, userTeamGame });
           }
           
           if (srResult.done && srResult.champion1 && srResult.champion2) {
@@ -6750,7 +6797,7 @@ export async function registerRoutes(
             await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "Super Regionals Complete", details: "The final two teams advance to the College World Series!" });
             sendWeeklyDigests(leagueId, storage, league.currentSeason, currentWeek, league.currentPhase)
               .catch(e => console.error("[digest] sr-complete hook:", e));
-            return res.json(updatedLeague);
+            return res.json({ ...updatedLeague, userTeamGame });
           }
           
           await storage.updateLeague(league.id, { currentWeek: nextWeek });
@@ -6758,11 +6805,39 @@ export async function registerRoutes(
           const updatedLeague = await storage.getLeague(leagueId);
           sendWeeklyDigests(leagueId, storage, league.currentSeason, currentWeek, league.currentPhase)
             .catch(e => console.error("[digest] sr-round hook:", e));
-          return res.json(updatedLeague);
+          return res.json({ ...updatedLeague, userTeamGame });
         }
         
         if (league.currentPhase === "cws") {
+          // Snapshot which CWS games involving the user are currently incomplete
+          const cwsPreSnap = simUserTeamId ? (await storage.getGamesByLeague(leagueId)).filter((g: any) =>
+            g.phase === "cws" && g.season === league.currentSeason && !g.isComplete &&
+            (g.homeTeamId === simUserTeamId || g.awayTeamId === simUserTeamId)
+          ).map((g: any) => g.id) : [] as string[];
           const cwsResult = await advanceCWS(leagueId, league.currentSeason);
+          // Extract the user's just-completed CWS game
+          if (!userTeamGame && cwsPreSnap.length > 0) {
+            try {
+              const cwsAllGames = await storage.getGamesByLeague(leagueId);
+              const cwsDone = (cwsAllGames as any[]).find((g: any) => cwsPreSnap.includes(g.id) && g.isComplete);
+              if (cwsDone) {
+                const cwsBox = JSON.parse(cwsDone.boxScore ?? "{}");
+                const cwsHt = leagueTeamsForSim.find((t: any) => t.id === cwsDone.homeTeamId);
+                const cwsAt = leagueTeamsForSim.find((t: any) => t.id === cwsDone.awayTeamId);
+                userTeamGame = {
+                  homeTeam: cwsHt?.name ?? "Home", awayTeam: cwsAt?.name ?? "Away",
+                  homeAbbr: cwsHt?.abbreviation ?? "HME", awayAbbr: cwsAt?.abbreviation ?? "AWY",
+                  homeScore: cwsDone.homeScore ?? 0, awayScore: cwsDone.awayScore ?? 0,
+                  inningScores: cwsBox.innings ?? [],
+                  homeHits: cwsBox.home?.totals?.h ?? 0, awayHits: cwsBox.away?.totals?.h ?? 0,
+                  homeErrors: cwsBox.home?.errors ?? 0, awayErrors: cwsBox.away?.errors ?? 0,
+                  isHome: cwsDone.homeTeamId === simUserTeamId,
+                  homeColor: cwsHt?.primaryColor ?? "#FFD700",
+                  awayColor: cwsAt?.primaryColor ?? "#7eb8f7",
+                };
+              }
+            } catch { /* non-critical */ }
+          }
           
           if (cwsResult.done && cwsResult.champion) {
             const leagueTeams = await storage.getTeamsByLeague(leagueId);
@@ -6880,7 +6955,7 @@ export async function registerRoutes(
             
             sendWeeklyDigests(leagueId, storage, league.currentSeason, currentWeek, league.currentPhase)
               .catch(e => console.error("[digest] cws-champion hook:", e));
-            return res.json({ ...updatedLeague, cwsChampion: cwsResult.champion, cwsRunnerUp: cwsResult.runnerUp });
+            return res.json({ ...updatedLeague, cwsChampion: cwsResult.champion, cwsRunnerUp: cwsResult.runnerUp, userTeamGame });
           }
           
           await storage.updateLeague(league.id, { currentWeek: nextWeek });
@@ -6888,7 +6963,7 @@ export async function registerRoutes(
           const updatedLeague = await storage.getLeague(leagueId);
           sendWeeklyDigests(leagueId, storage, league.currentSeason, currentWeek, league.currentPhase)
             .catch(e => console.error("[digest] cws-round hook:", e));
-          return res.json(updatedLeague);
+          return res.json({ ...updatedLeague, userTeamGame });
         }
       }
 
