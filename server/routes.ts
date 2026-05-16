@@ -320,7 +320,10 @@ async function ensureCoachTraits(
     }
 
     // Compute seasonsCoached and bestSeasonWins from history for accurate milestone evaluation
-    const coachHistory = await storage.getCoachSeasonHistory(coach.id).catch(() => [] as import("../shared/schema").CoachSeasonHistory[]);
+    const coachHistory = await storage.getCoachSeasonHistory(coach.id).catch((err: unknown) => {
+      console.error("[ensureCoachTraits] Failed to load season history for coach", coach.id, ":", err);
+      return [] as import("../shared/schema").CoachSeasonHistory[];
+    });
     const seasonsCoached = coachHistory.length;
     const bestSeasonWins = coachHistory.reduce((max, h) => Math.max(max, h.wins), 0);
 
