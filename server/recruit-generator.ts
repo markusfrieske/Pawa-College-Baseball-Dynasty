@@ -44,7 +44,7 @@ export function selectRawTools(isPitcher: boolean): string[] {
 
 export function genToolAttr(base: number, isTool: boolean): number {
   if (isTool) {
-    const boost = 20 + Math.floor(Math.random() * 16);
+    const boost = 18 + Math.floor(Math.random() * 25);
     return Math.max(10, Math.min(99, base + boost));
   } else {
     const penalty = 5 + Math.floor(Math.random() * 6);
@@ -236,7 +236,7 @@ export function generateRecruitClass(
     let gemChance: number;
     let bustChance: number;
     if (t === "hidden_gems") { gemChance = 0.24; bustChance = 0.06; }
-    else if (t === "bust_heavy") { gemChance = 0.10; bustChance = 0.20; }
+    else if (t === "bust_heavy") { gemChance = 0.05; bustChance = 0.18; }
     else { gemChance = 0.14; bustChance = 0.12; }
     if (starRank >= 1 && starRank <= 3 && roll < gemChance) return { isGem: true, isBust: false };
     if (starRank >= 3 && starRank <= 5 && roll < bustChance) return { isGem: false, isBust: true };
@@ -250,10 +250,9 @@ export function generateRecruitClass(
     { value: 3, weight: 7 },
   ]);
   const numGenBusts = rollWeighted([
-    { value: 0, weight: 20 },
+    { value: 0, weight: 22 },
     { value: 1, weight: 55 },
-    { value: 2, weight: 22 },
-    { value: 3, weight: 3 },
+    { value: 2, weight: 23 },
   ]);
 
   const getTargetAttrAvgForRecruit = (starRank: number, isBlueChip: boolean, isGem: boolean, isBust: boolean, isPitcher: boolean): number => {
@@ -375,8 +374,8 @@ export function generateRecruitClass(
   };
 
   const generateCommonAbilityValue = (targetAvg: number, wide = false): number => {
-    const range = wide ? 37 : 37;
-    const variance = Math.floor(Math.random() * range) - (wide ? 18 : 18);
+    const halfRange = wide ? 24 : 18;
+    const variance = Math.floor(Math.random() * (halfRange * 2 + 1)) - halfRange;
     return Math.max(1, Math.min(100, targetAvg + variance));
   };
 
@@ -459,7 +458,6 @@ export function generateRecruitClass(
     generationalBustIdxSet.add(shuffledBustCandidates[b].idx);
   }
 
-  const archetypePool: ("normal" | "late_bloomer" | "overdraft" | "raw")[] = [];
   const playerArchetypes: ("normal" | "late_bloomer" | "overdraft" | "raw")[] = new Array(count).fill("normal");
 
   const rawRatio = theme === "raw_talent" ? 0.20 : 0.08;
@@ -477,7 +475,6 @@ export function generateRecruitClass(
       playerArchetypes[i] = "overdraft";
     }
   }
-  void archetypePool;
 
   const out: GeneratedRecruit[] = [];
 
