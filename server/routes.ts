@@ -6944,7 +6944,9 @@ export async function registerRoutes(
           action: `Offseason Recruiting Week ${phaseIndex}`,
           details: `Offseason recruiting week ${phaseIndex} complete. CPU teams continue recruiting.`,
         });
-        
+        // Fire digest for the completed offseason recruiting week (non-blocking)
+        sendWeeklyDigests(leagueId, storage, league.currentSeason, currentWeek, league.currentPhase)
+          .catch(e => console.error("[digest] offseason-recruiting hook:", e));
         return res.json(updatedLeague);
       }
       
@@ -7040,6 +7042,9 @@ export async function registerRoutes(
         try {
           await storage.createLeagueEvent({ leagueId, eventType: "PHASE_CHANGE", description: `Regular season complete — Conference Championships begin (Season ${league.currentSeason})`, season: league.currentSeason, week: nextWeek });
         } catch (e) { console.error("League event error:", e); }
+        // Fire digest for the final regular-season week (non-blocking)
+        sendWeeklyDigests(leagueId, storage, league.currentSeason, currentWeek, league.currentPhase)
+          .catch(e => console.error("[digest] end-of-regular-season hook:", e));
         return res.json(updatedLeague);
       }
 

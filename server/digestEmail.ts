@@ -2,28 +2,29 @@ import crypto from "crypto";
 import { sendEmail } from "./email";
 import type { IStorage } from "./storage";
 
-const HMAC_SECRET = process.env.SESSION_SECRET || "digest-fallback-secret";
+// Fail closed if SESSION_SECRET is not configured — no signed tokens without it.
+const HMAC_SECRET = process.env.SESSION_SECRET;
 
-export function signUnsubToken(userId: string): string {
-  const payload = `${userId}:${Math.floor(Date.now() / 86400000)}`; // day-granularity
+export function signUnsubToken(userId: string): string | null {
+  if (!HMAC_SECRET) return null;
+  const day = Math.floor(Date.now() / 86400000);
+  const payload = `${userId}:${day}`;
   const sig = crypto.createHmac("sha256", HMAC_SECRET).update(payload).digest("base64url");
-  return Buffer.from(JSON.stringify({ userId, sig })).toString("base64url");
+  return Buffer.from(JSON.stringify({ userId, sig, day })).toString("base64url");
 }
 
 export function verifyUnsubToken(token: string): string | null {
+  if (!HMAC_SECRET) return null;
   try {
-    const { userId, sig } = JSON.parse(Buffer.from(token, "base64url").toString());
-    if (!userId || !sig) return null;
-    // Accept tokens from today or yesterday (handle day-boundary edge cases)
+    const { userId, sig, day } = JSON.parse(Buffer.from(token, "base64url").toString());
+    if (!userId || !sig || day == null) return null;
+    // Accept tokens up to 30 days old to handle emails sitting in inboxes
     const now = Math.floor(Date.now() / 86400000);
-    for (const day of [now, now - 1]) {
-      const payload = `${userId}:${day}`;
-      const expected = crypto.createHmac("sha256", HMAC_SECRET).update(payload).digest("base64url");
-      if (crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) {
-        return userId;
-      }
-    }
-    return null;
+    if (now - day > 30) return null;
+    const payload = `${userId}:${day}`;
+    const expected = crypto.createHmac("sha256", HMAC_SECRET).update(payload).digest("base64url");
+    if (!crypto.timingSafeEqual(Buffer.from(sig, "base64url"), Buffer.from(expected, "base64url"))) return null;
+    return userId;
   } catch {
     return null;
   }
@@ -65,8 +66,8 @@ function buildDigestHtml(opts: {
   totalTeams: number;
   wins: number;
   losses: number;
-  topRecruits: Array<{ name: string; position: string; stars: number; interest: number }>;
-  unsubUrl: string;
+  topRecruits: Array<{ name: string; position: string; stars: number; interest: number; weeklyGain: number }>;
+  unsubUrl: string | null;
 }): string {
   const { coachName, leagueName, teamName, teamAbbr, season, week, phase, games, standingsRank, totalTeams, wins, losses, topRecruits, unsubUrl } = opts;
 
@@ -87,17 +88,23 @@ function buildDigestHtml(opts: {
       }).join("");
 
   const recruitRows = topRecruits.length === 0
-    ? `<tr><td colspan="3" style="padding:12px;text-align:center;color:#8aaa8a;">No active recruits</td></tr>`
+    ? `<tr><td colspan="4" style="padding:12px;text-align:center;color:#8aaa8a;">No active recruits</td></tr>`
     : topRecruits.slice(0, 5).map(r => {
         const interestColor = r.interest >= 70 ? "#FFD700" : r.interest >= 40 ? "#88cc88" : "#8aaa8a";
+        const gainStr = r.weeklyGain > 0 ? `<span style="color:#88cc88;font-size:10px;">+${r.weeklyGain}%</span>` : "";
         return `<tr>
           <td style="padding:8px 12px;color:#d4d4aa;">${r.name}</td>
           <td style="padding:8px 12px;text-align:center;color:#aac8aa;">${r.position} · ${starStr(r.stars)}</td>
           <td style="padding:8px 12px;text-align:center;font-weight:bold;color:${interestColor};">${r.interest}%</td>
+          <td style="padding:8px 12px;text-align:center;">${gainStr}</td>
         </tr>`;
       }).join("");
 
   const rankOrdinal = standingsRank === 1 ? "1st" : standingsRank === 2 ? "2nd" : standingsRank === 3 ? "3rd" : `${standingsRank}th`;
+
+  const unsubLine = unsubUrl
+    ? `<p style="margin:8px 0 0;font-size:11px;"><a href="${unsubUrl}" style="color:#8aaa8a;text-decoration:underline;">Unsubscribe from digest emails</a></p>`
+    : `<p style="margin:8px 0 0;font-size:11px;color:#5a7a5a;">To unsubscribe, visit your coach profile settings.</p>`;
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -165,13 +172,14 @@ function buildDigestHtml(opts: {
       <tr>
         <td style="background:#0a1a0a;border-left:2px solid #FFD700;border-right:2px solid #FFD700;padding:16px 28px 0;">
           <p style="margin:0 0 4px;color:#FFD700;font-size:11px;letter-spacing:2px;text-transform:uppercase;">Top Recruiting Targets</p>
-          <p style="margin:0 0 10px;color:#5a7a5a;font-size:10px;">Sorted by current interest level</p>
+          <p style="margin:0 0 10px;color:#5a7a5a;font-size:10px;">Sorted by current interest · weekly gain shown in green</p>
           <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
             <thead>
               <tr style="border-bottom:1px solid #1e3a1e;">
                 <th style="padding:6px 12px;text-align:left;color:#5a7a5a;font-size:10px;font-weight:normal;letter-spacing:1px;">RECRUIT</th>
                 <th style="padding:6px 12px;text-align:center;color:#5a7a5a;font-size:10px;font-weight:normal;letter-spacing:1px;">POS / STARS</th>
                 <th style="padding:6px 12px;text-align:center;color:#5a7a5a;font-size:10px;font-weight:normal;letter-spacing:1px;">INTEREST</th>
+                <th style="padding:6px 12px;text-align:center;color:#5a7a5a;font-size:10px;font-weight:normal;letter-spacing:1px;">THIS WEEK</th>
               </tr>
             </thead>
             <tbody>${recruitRows}</tbody>
@@ -192,9 +200,7 @@ function buildDigestHtml(opts: {
           <p style="margin:0;font-size:11px;color:#5a7a5a;">
             You're receiving this because you're a coach in <strong style="color:#8aaa8a;">${leagueName}</strong>.
           </p>
-          <p style="margin:8px 0 0;font-size:11px;">
-            <a href="${unsubUrl}" style="color:#8aaa8a;text-decoration:underline;">Unsubscribe from digest emails</a>
-          </p>
+          ${unsubLine}
         </td>
       </tr>
 
@@ -233,9 +239,22 @@ export async function sendWeeklyDigests(
     });
     const rankMap = new Map(rankedTeams.map((t, i) => [t.id, i + 1]));
 
-    // Hoist recruit list fetch outside per-team loop to avoid N+1 queries
+    // Hoist recruit list fetch outside per-team loop (avoids N+1 queries)
     const allRecruits = await storage.getRecruitsByLeague(leagueId);
     const recruitById = new Map(allRecruits.map(r => [r.id, r]));
+
+    // Fetch this week's recruiting actions log once for the whole league
+    const weekActions = await storage.getRecruitingActionsLogByLeagueWeek(leagueId, completedSeason, completedWeek);
+
+    // Build a map: teamId -> recruitId -> total interestChange this week
+    const weeklyGainByTeamRecruit = new Map<string, Map<string, number>>();
+    for (const action of weekActions) {
+      if (!weeklyGainByTeamRecruit.has(action.teamId)) {
+        weeklyGainByTeamRecruit.set(action.teamId, new Map());
+      }
+      const teamMap = weeklyGainByTeamRecruit.get(action.teamId)!;
+      teamMap.set(action.recruitId, (teamMap.get(action.recruitId) ?? 0) + action.interestChange);
+    }
 
     for (const team of humanTeams) {
       const coach = allCoaches.find(c => c.teamId === team.id);
@@ -250,7 +269,7 @@ export async function sendWeeklyDigests(
         storage.getRecruitingInterestsByTeam(team.id),
       ]);
 
-      // Use the completed week's games, not the newly-advanced week
+      // Use the completed week's games (before week increment)
       const thisWeekGames = teamGames.filter(
         g => g.season === completedSeason && g.week === completedWeek && g.isComplete,
       );
@@ -265,7 +284,8 @@ export async function sendWeeklyDigests(
         isComplete: !!g.isComplete,
       }));
 
-      // Top recruits sorted by highest interest level (most engaged targets this week)
+      // Top recruits sorted by current interest level; include weekly gain delta from actions log
+      const teamWeekGains = weeklyGainByTeamRecruit.get(team.id) ?? new Map<string, number>();
       const topInterests = [...interests]
         .filter(i => (i.interestLevel ?? 0) > 0)
         .sort((a, b) => (b.interestLevel ?? 0) - (a.interestLevel ?? 0))
@@ -275,11 +295,13 @@ export async function sendWeeklyDigests(
         .map(i => {
           const recruit = recruitById.get(i.recruitId);
           if (!recruit) return null;
+          const weeklyGain = Math.max(0, Math.round(teamWeekGains.get(i.recruitId) ?? 0));
           return {
             name: `${recruit.firstName} ${recruit.lastName}`,
             position: recruit.position,
             stars: recruit.starRating ?? 3,
             interest: Math.round(i.interestLevel ?? 0),
+            weeklyGain,
           };
         })
         .filter((r): r is NonNullable<typeof r> => r !== null);
@@ -289,7 +311,8 @@ export async function sendWeeklyDigests(
       const losses = standing?.losses ?? 0;
       const rank = rankMap.get(team.id) ?? allTeams.length;
 
-      const unsubUrl = `${appBaseUrl}/api/users/unsubscribe?token=${signUnsubToken(user.id)}`;
+      const token = signUnsubToken(user.id);
+      const unsubUrl = token ? `${appBaseUrl}/api/users/unsubscribe?token=${token}` : null;
 
       const html = buildDigestHtml({
         coachName: `${coach.firstName} ${coach.lastName}`,
