@@ -13383,7 +13383,7 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Team does not belong to this league" });
       }
 
-      const [coach, conferences, teamStandings, allLeagueStandings, teamHistory, teamGames, currentRoster, leagueRecruits] = await Promise.all([
+      const [coach, conferences, teamStandings, allLeagueStandings, teamHistory, teamGames, currentRoster] = await Promise.all([
         team.coachId ? storage.getCoach(team.coachId) : Promise.resolve(undefined),
         storage.getConferencesByLeague(leagueId),
         storage.getStandingsByTeam(teamId),
@@ -13391,7 +13391,6 @@ export async function registerRoutes(
         storage.getPlayerHistoryByTeam(teamId),
         storage.getGamesByTeam(teamId),
         storage.getPlayersByTeam(teamId),
-        storage.getRecruitsByLeague(leagueId),
       ]);
 
       // Determine if the coach is the commissioner
@@ -13539,9 +13538,12 @@ export async function registerRoutes(
       // CWS champion: won at least 2 CWS games (best-of-3)
       const cwsTitles = Object.values(cwsWinsBySeasonCount).filter(r => r.wins >= 2).length;
 
-      // Recruiting Hall of Fame — top 5 recruits ever signed by this team, ranked by signing OVR
-      // Source: recruits table (signedTeamId === teamId), sorted by overall (signing-time OVR).
-      // Status is resolved against current roster (active) or player_history (departed).
+      // Recruiting Hall of Fame — top 5 all-time players ever on this roster, ranked by best known OVR.
+      // NOTE: The recruits table is cleared each season (deleteRecruitsByLeague), so it cannot serve as
+      // a persistent historical record. player_history is the authoritative source for departed players,
+      // and the current active roster covers still-enrolled players. Signing-time OVR is not separately
+      // persisted; departure OVR from player_history is the best available historical metric.
+      // Excluded: players who were cut and sent to JUCO (departureType = cut_juco).
       const departureStatusMap: Record<string, string> = {
         graduated: "graduated",
         draft: "drafted",
@@ -13550,49 +13552,37 @@ export async function registerRoutes(
         transfer_juco: "transferred",
       };
 
-      // Build lookup structures for status resolution
-      const activeRosterByName = new Map<string, typeof currentRoster[0]>();
-      for (const p of currentRoster) {
-        if (!p.inTransferPortal) {
-          activeRosterByName.set(`${p.firstName}|${p.lastName}`, p);
-        }
-      }
-      const historyByName = new Map<string, typeof teamHistory[0]>();
-      for (const p of teamHistory) {
-        historyByName.set(`${p.firstName}|${p.lastName}`, p);
-      }
+      const activePlayerEntries = currentRoster
+        .filter(p => !p.inTransferPortal)
+        .map(p => ({
+          firstName: p.firstName,
+          lastName: p.lastName,
+          position: p.position,
+          overall: p.overall,
+          starRating: p.starRating,
+          status: "active" as const,
+          draftRound: null as number | null,
+          season: null as number | null,
+          abilities: (p.abilities ?? []) as string[],
+        }));
 
-      const signedRecruits = leagueRecruits
-        .filter(r => r.signedTeamId === teamId)
+      const historicPlayerEntries = teamHistory
+        .filter(p => p.departureType !== "cut_juco")
+        .map(p => ({
+          firstName: p.firstName,
+          lastName: p.lastName,
+          position: p.position,
+          overall: p.overall,
+          starRating: p.starRating,
+          status: (departureStatusMap[p.departureType] ?? p.departureType) as string,
+          draftRound: p.draftRound,
+          season: p.departedSeason,
+          abilities: (p.abilities ?? []) as string[],
+        }));
+
+      const hofPlayers = [...activePlayerEntries, ...historicPlayerEntries]
         .sort((a, b) => b.overall - a.overall)
         .slice(0, 5);
-
-      const hofPlayers = signedRecruits.map(r => {
-        const key = `${r.firstName}|${r.lastName}`;
-        const activeMatch = activeRosterByName.get(key);
-        const historyMatch = historyByName.get(key);
-        let status = "unknown";
-        let season: number | null = null;
-        let draftRound: number | null = null;
-        if (activeMatch) {
-          status = "active";
-        } else if (historyMatch) {
-          status = departureStatusMap[historyMatch.departureType] ?? historyMatch.departureType;
-          season = historyMatch.departedSeason;
-          draftRound = historyMatch.draftRound;
-        }
-        return {
-          firstName: r.firstName,
-          lastName: r.lastName,
-          position: r.position,
-          overall: r.overall,
-          starRating: r.starRating,
-          status,
-          draftRound,
-          season,
-          abilities: (r.abilities ?? []) as string[],
-        };
-      });
 
       // Top drafted players: combine player_history + active roster players with draftRound set
       // Sorted by draft round asc then OVR desc — no arbitrary cap
