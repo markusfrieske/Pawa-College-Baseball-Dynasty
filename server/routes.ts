@@ -2373,8 +2373,10 @@ export async function registerRoutes(
       }
 
       const { boardRank } = req.body;
-      if (boardRank !== null && boardRank !== undefined && typeof boardRank !== "number") {
-        return res.status(400).json({ message: "boardRank must be a number or null" });
+      if (boardRank !== null && boardRank !== undefined) {
+        if (typeof boardRank !== "number" || !Number.isInteger(boardRank) || boardRank < 1 || boardRank > 99) {
+          return res.status(400).json({ message: "boardRank must be an integer between 1 and 99, or null" });
+        }
       }
 
       let interest = await storage.getRecruitingInterest(req.params.recruitId, userTeam.id);
