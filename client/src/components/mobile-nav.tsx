@@ -1,15 +1,19 @@
 import { useLocation, Link } from "wouter";
 import { Home, Users, Target, Calendar, Settings } from "lucide-react";
 
-const SETUP_ROUTES = /(\/setup|\/dynasty-setup|\/team-selection|\/invite)/;
+const EXCLUDED_SEGMENTS = new Set(["create", "setup", "join"]);
+const EXCLUDED_PATTERNS = /(\/dynasty-setup|\/team-selection|\/invite|\/setup)/;
 
 export function MobileNav() {
   const [location] = useLocation();
 
   const leagueMatch = location.match(/^\/league\/([^/]+)/);
-  if (!leagueMatch || SETUP_ROUTES.test(location)) return null;
+  if (!leagueMatch) return null;
 
   const leagueId = leagueMatch[1];
+  if (EXCLUDED_SEGMENTS.has(leagueId)) return null;
+  if (EXCLUDED_PATTERNS.test(location)) return null;
+
   const leagueBase = `/league/${leagueId}`;
 
   const tabs = [
@@ -17,7 +21,7 @@ export function MobileNav() {
     { href: `${leagueBase}/roster`, icon: Users, label: "Roster", testId: "mobile-nav-roster", exact: false },
     { href: `${leagueBase}/recruiting`, icon: Target, label: "Recruit", testId: "mobile-nav-recruiting", exact: false },
     { href: `${leagueBase}/schedule`, icon: Calendar, label: "Schedule", testId: "mobile-nav-schedule", exact: false },
-    { href: `${leagueBase}/commissioner`, icon: Settings, label: "Settings", testId: "mobile-nav-commissioner", exact: false },
+    { href: `${leagueBase}/commissioner`, icon: Settings, label: "Commissioner", testId: "mobile-nav-commissioner", exact: false },
   ] as const;
 
   return (
@@ -32,13 +36,13 @@ export function MobileNav() {
             <Link
               key={href}
               href={href}
-              className={`flex flex-col items-center justify-center w-full h-full gap-1 transition-colors active:bg-white/5 min-h-[44px] ${
+              aria-label={label}
+              className={`flex flex-col items-center justify-center w-full h-full transition-colors active:bg-white/5 min-h-[44px] ${
                 isActive ? "text-gold" : "text-muted-foreground hover:text-foreground"
               }`}
               data-testid={testId}
             >
-              <Icon className="w-5 h-5" />
-              <span className="font-pixel text-[7px]">{label}</span>
+              <Icon className="w-6 h-6" />
             </Link>
           );
         })}
