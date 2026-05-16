@@ -76,7 +76,7 @@ export function SeasonSummaryModal({ open, onClose, leagueId, season }: SeasonSu
                     <RetroCardHeader>Your Team</RetroCardHeader>
                     <RetroCardContent>
                       <div className="flex items-center gap-3 mb-3">
-                        <TeamBadge abbreviation={data.userTeam.abbreviation} primaryColor={data.userTeam.primaryColor} name={data.userTeam.name} mascot={data.userTeam.mascot} size="md" />
+                        <TeamBadge abbreviation={data.userTeam.abbreviation} primaryColor={data.userTeam.primaryColor} name={data.userTeam.name} size="md" />
                         <div>
                           <p className="font-bold text-lg" data-testid="text-user-team-name">{data.userTeam.name}</p>
                           <p className="text-muted-foreground text-sm">
@@ -103,7 +103,7 @@ export function SeasonSummaryModal({ open, onClose, leagueId, season }: SeasonSu
                   <RetroCardContent>
                     {data.cwsChampion ? (
                       <div className="flex items-center gap-3">
-                        <TeamBadge abbreviation={data.cwsChampion.abbreviation} primaryColor={data.cwsChampion.primaryColor} name={data.cwsChampion.name} mascot={data.cwsChampion.mascot} size="md" />
+                        <TeamBadge abbreviation={data.cwsChampion.abbreviation} primaryColor={data.cwsChampion.primaryColor} name={data.cwsChampion.name} size="md" />
                         <div>
                           <p className="text-gold font-bold text-lg" data-testid="text-cws-champion">{data.cwsChampion.name}</p>
                           <p className="text-muted-foreground text-sm">CWS Champion</p>
@@ -199,7 +199,7 @@ export function SeasonSummaryModal({ open, onClose, leagueId, season }: SeasonSu
                     {data.standings.slice(0, 5).map((team, i) => (
                       <div key={i} className="flex items-center gap-3 text-sm" data-testid={`standing-${i}`}>
                         <span className="text-muted-foreground font-mono w-5 text-right">{i + 1}.</span>
-                        <TeamBadge abbreviation={team.abbreviation} primaryColor={team.primaryColor} name={team.name} mascot={team.mascot} size="sm" />
+                        <TeamBadge abbreviation={team.abbreviation} primaryColor={team.primaryColor} name={team.name} size="sm" />
                         <span className="font-medium flex-1">{team.name}</span>
                         <span className="text-muted-foreground">{team.wins}-{team.losses}</span>
                       </div>

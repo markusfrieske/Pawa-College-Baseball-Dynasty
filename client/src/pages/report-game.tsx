@@ -329,7 +329,7 @@ export default function ReportGamePage() {
         <RetroCard>
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-3">
-              <TeamBadge abbreviation={awayTeam.abbreviation} primaryColor={awayTeam.primaryColor} secondaryColor={awayTeam.secondaryColor} name={awayTeam.name} mascot={awayTeam.mascot} size="sm" />
+              <TeamBadge abbreviation={awayTeam.abbreviation} primaryColor={awayTeam.primaryColor} secondaryColor={awayTeam.secondaryColor} name={awayTeam.name} size="sm" />
               <span className="font-medium">{awayTeam.name}</span>
             </div>
             <div className="flex items-center gap-4 font-pixel text-2xl">
@@ -339,7 +339,7 @@ export default function ReportGamePage() {
             </div>
             <div className="flex items-center gap-3">
               <span className="font-medium">{homeTeam.name}</span>
-              <TeamBadge abbreviation={homeTeam.abbreviation} primaryColor={homeTeam.primaryColor} secondaryColor={homeTeam.secondaryColor} name={homeTeam.name} mascot={homeTeam.mascot} size="sm" />
+              <TeamBadge abbreviation={homeTeam.abbreviation} primaryColor={homeTeam.primaryColor} secondaryColor={homeTeam.secondaryColor} name={homeTeam.name} size="sm" />
             </div>
           </div>
         </RetroCard>
@@ -531,7 +531,7 @@ function LinescoreStep({ numInnings, homeInnings, awayInnings, homeErrors, awayE
           <tbody>
             <tr className="border-b border-gold/20">
               <td className="p-2 font-medium flex items-center gap-2">
-                <TeamBadge abbreviation={awayTeam.abbreviation} primaryColor={awayTeam.primaryColor} secondaryColor={awayTeam.secondaryColor} name={awayTeam.name} mascot={awayTeam.mascot} size="sm" />
+                <TeamBadge abbreviation={awayTeam.abbreviation} primaryColor={awayTeam.primaryColor} secondaryColor={awayTeam.secondaryColor} name={awayTeam.name} size="sm" />
                 <span>{awayTeam.abbreviation}</span>
               </td>
               {awayInnings.map((v: number, i: number) => (
@@ -566,7 +566,7 @@ function LinescoreStep({ numInnings, homeInnings, awayInnings, homeErrors, awayE
             </tr>
             <tr>
               <td className="p-2 font-medium flex items-center gap-2">
-                <TeamBadge abbreviation={homeTeam.abbreviation} primaryColor={homeTeam.primaryColor} secondaryColor={homeTeam.secondaryColor} name={homeTeam.name} mascot={homeTeam.mascot} size="sm" />
+                <TeamBadge abbreviation={homeTeam.abbreviation} primaryColor={homeTeam.primaryColor} secondaryColor={homeTeam.secondaryColor} name={homeTeam.name} size="sm" />
                 <span>{homeTeam.abbreviation}</span>
               </td>
               {homeInnings.map((v: number, i: number) => (
@@ -1057,7 +1057,7 @@ function ReviewStep({ homeTeam, awayTeam, homeScore, awayScore, homeHits, awayHi
           <tbody>
             <tr className="border-b border-gold/20">
               <td className="p-2 font-medium flex items-center gap-2">
-                <TeamBadge abbreviation={awayTeam.abbreviation} primaryColor={awayTeam.primaryColor} secondaryColor={awayTeam.secondaryColor} name={awayTeam.name} mascot={awayTeam.mascot} size="sm" />
+                <TeamBadge abbreviation={awayTeam.abbreviation} primaryColor={awayTeam.primaryColor} secondaryColor={awayTeam.secondaryColor} name={awayTeam.name} size="sm" />
                 {awayTeam.name}
               </td>
               <td className={`text-center p-2 font-bold ${awayRunsMismatch ? "text-red-400" : awayScore > homeScore ? "text-gold" : "text-muted-foreground"}`}>{awayScore}</td>
@@ -1066,7 +1066,7 @@ function ReviewStep({ homeTeam, awayTeam, homeScore, awayScore, homeHits, awayHi
             </tr>
             <tr>
               <td className="p-2 font-medium flex items-center gap-2">
-                <TeamBadge abbreviation={homeTeam.abbreviation} primaryColor={homeTeam.primaryColor} secondaryColor={homeTeam.secondaryColor} name={homeTeam.name} mascot={homeTeam.mascot} size="sm" />
+                <TeamBadge abbreviation={homeTeam.abbreviation} primaryColor={homeTeam.primaryColor} secondaryColor={homeTeam.secondaryColor} name={homeTeam.name} size="sm" />
                 {homeTeam.name}
               </td>
               <td className={`text-center p-2 font-bold ${homeRunsMismatch ? "text-red-400" : homeScore > awayScore ? "text-gold" : "text-muted-foreground"}`}>{homeScore}</td>

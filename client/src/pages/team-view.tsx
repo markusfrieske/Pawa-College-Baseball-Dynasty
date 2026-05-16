@@ -133,7 +133,7 @@ export default function TeamViewPage() {
                 primaryColor={team.primaryColor}
                 secondaryColor={team.secondaryColor}
                 name={team.name}
-                mascot={team.mascot}
+               
                 size="lg"
               />
               <div>

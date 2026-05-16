@@ -6,7 +6,6 @@ interface TeamBadgeProps {
   secondaryColor?: string;
   size?: "sm" | "md" | "lg";
   name?: string;
-  mascot?: string;
   className?: string;
 }
 

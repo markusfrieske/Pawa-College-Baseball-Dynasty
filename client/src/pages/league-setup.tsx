@@ -384,7 +384,7 @@ function TeamCard({
           primaryColor={team.primaryColor}
           secondaryColor={team.secondaryColor}
           name={team.name}
-          mascot={team.mascot}
+         
         />
         <div className="flex-1 min-w-0">
           <p className="font-medium truncate">{team.name}</p>
@@ -531,7 +531,7 @@ function CoachCreationStep({
               primaryColor={selectedTeam.primaryColor}
               secondaryColor={selectedTeam.secondaryColor}
               name={selectedTeam.name}
-              mascot={selectedTeam.mascot}
+             
               size="sm"
             />
             <span className="text-sm">{selectedTeam.name}</span>

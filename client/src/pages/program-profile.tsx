@@ -188,7 +188,7 @@ export default function ProgramProfilePage() {
                 primaryColor={team.primaryColor}
                 secondaryColor={team.secondaryColor}
                 name={team.name}
-                mascot={team.mascot}
+               
                 size="lg"
               />
               <div className="flex-1 min-w-0">
