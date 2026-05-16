@@ -388,14 +388,19 @@ export default function CommissionerPage() {
 
   const simulateWeekMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("POST", `/api/leagues/${id}/simulate`, {});
+      const res = await apiRequest("POST", `/api/leagues/${id}/simulate`, {});
+      return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "schedule"] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "postseason"] });
       window.dispatchEvent(new CustomEvent("league-phase-changed"));
       toast({ title: "Week Simulated", description: "All games have been auto-resolved." });
+      if (data?.userTeamGame && scoreboardEnabled) {
+        setScoreboardData(data.userTeamGame as InningScoreboardData);
+        setShowScoreboard(true);
+      }
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });

@@ -12118,6 +12118,16 @@ export async function registerRoutes(
         !g.isComplete
       );
 
+      const simTeams = await storage.getTeamsByLeague(league.id);
+      const simUserCoachForSim = (await storage.getCoachesByLeague(league.id)).find((c: any) => c.userId === req.session.userId);
+      const simUserTeamIdForSim = simUserCoachForSim?.teamId;
+      let simUserTeamGame: {
+        homeTeam: string; awayTeam: string; homeAbbr: string; awayAbbr: string;
+        homeScore: number; awayScore: number; inningScores: number[][];
+        homeHits: number; awayHits: number; homeErrors: number; awayErrors: number;
+        isHome: boolean; homeColor?: string; awayColor?: string;
+      } | undefined;
+
       for (const game of currentWeekGames) {
         const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType);
         await storage.updateGame(game.id, {
@@ -12127,6 +12137,25 @@ export async function registerRoutes(
           boxScore: result.boxScore,
         });
         try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(league.id, league.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(league.id, league.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
+        if (simUserTeamIdForSim && !simUserTeamGame &&
+            (game.homeTeamId === simUserTeamIdForSim || game.awayTeamId === simUserTeamIdForSim)) {
+          try {
+            const box = JSON.parse(result.boxScore);
+            const ht = simTeams.find((t: any) => t.id === game.homeTeamId);
+            const at = simTeams.find((t: any) => t.id === game.awayTeamId);
+            simUserTeamGame = {
+              homeTeam: ht?.name ?? "Home", awayTeam: at?.name ?? "Away",
+              homeAbbr: ht?.abbreviation ?? "HME", awayAbbr: at?.abbreviation ?? "AWY",
+              homeScore: result.homeScore, awayScore: result.awayScore,
+              inningScores: box.innings ?? [],
+              homeHits: box.home?.totals?.h ?? 0, awayHits: box.away?.totals?.h ?? 0,
+              homeErrors: box.home?.errors ?? 0, awayErrors: box.away?.errors ?? 0,
+              isHome: game.homeTeamId === simUserTeamIdForSim,
+              homeColor: ht?.primaryColor ?? "#FFD700",
+              awayColor: at?.primaryColor ?? "#7eb8f7",
+            };
+          } catch { /* non-critical */ }
+        }
       }
 
       await storage.createAuditLog({
@@ -12136,7 +12165,7 @@ export async function registerRoutes(
         details: `Auto-resolved ${currentWeekGames.length} games for week ${league.currentWeek}`,
       });
 
-      res.json({ success: true, gamesSimulated: currentWeekGames.length });
+      res.json({ success: true, gamesSimulated: currentWeekGames.length, userTeamGame: simUserTeamGame });
     } catch (error) {
       console.error("Failed to simulate week:", error);
       res.status(500).json({ message: "Failed to simulate week" });
