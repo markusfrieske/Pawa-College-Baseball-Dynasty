@@ -338,6 +338,7 @@ export function RecruitCard({ recruit, primaryColor, secondaryColor, animationDe
   const glowBorder = getOvrGlowBorder(recruit.overall);
 
   return (
+    // recruit-card-wrapper class is targeted by the prefers-reduced-motion CSS failsafe in index.css
     <div
       className="recruit-card-wrapper"
       style={{
