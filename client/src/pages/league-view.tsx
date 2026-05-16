@@ -66,6 +66,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import addieFriskImg from "@/assets/images/addie-frisk.png";
 import sullyPumpImg from "@/assets/images/sully-pump.png";
 import { StoryEngineHub } from "@/components/story-engine-hub";
+import { InningScoreboard, useScoreboardEnabled, type InningScoreboardData } from "@/components/inning-scoreboard";
 
 interface TeamWithCoach extends Team {
   standings?: Standings;
@@ -2420,6 +2421,9 @@ function WaitingOnWidget({
   pendingVoteCount?: number;
 }) {
   const [showSigningReveal, setShowSigningReveal] = useState(false);
+  const [showScoreboard, setShowScoreboard] = useState(false);
+  const [scoreboardData, setScoreboardData] = useState<InningScoreboardData | null>(null);
+  const scoreboardEnabled = useScoreboardEnabled();
   const queryClient = useQueryClient();
 
   const { data: user } = useQuery<{ id: string; email: string }>({
@@ -2449,7 +2453,7 @@ function WaitingOnWidget({
       const res = await apiRequest("POST", `/api/leagues/${leagueId}/advance`, {});
       return res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "ready-status"] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "commissioner"] });
@@ -2459,6 +2463,10 @@ function WaitingOnWidget({
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "schedule"] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "postseason"] });
       window.dispatchEvent(new CustomEvent("league-phase-changed"));
+      if (data?.userTeamGame && scoreboardEnabled) {
+        setScoreboardData(data.userTeamGame as InningScoreboardData);
+        setShowScoreboard(true);
+      }
     },
   });
 
@@ -2599,6 +2607,12 @@ function WaitingOnWidget({
             setShowSigningReveal(false);
             advanceMutation.mutate();
           }}
+        />
+
+        <InningScoreboard
+          open={showScoreboard}
+          onClose={() => { setShowScoreboard(false); setScoreboardData(null); }}
+          data={scoreboardData}
         />
 
         {showStorylineVotes && pendingVoteCount > 0 && (

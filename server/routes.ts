@@ -6493,6 +6493,41 @@ export async function registerRoutes(
         return { game, result };
       }));
 
+      // Build per-user inning scoreboard data (non-blocking, best-effort)
+      const simUserCoach = coaches.find((c: any) => c.userId === req.session.userId);
+      const simUserTeamId = simUserCoach?.teamId;
+      let userTeamGame: {
+        homeTeam: string; awayTeam: string; homeAbbr: string; awayAbbr: string;
+        homeScore: number; awayScore: number; inningScores: number[][];
+        homeHits: number; awayHits: number; homeErrors: number; awayErrors: number; isHome: boolean;
+      } | undefined;
+      if (simUserTeamId && gameResults.length > 0) {
+        const userGame = gameResults.find(({ game }) =>
+          game.homeTeamId === simUserTeamId || game.awayTeamId === simUserTeamId
+        );
+        if (userGame) {
+          try {
+            const box = JSON.parse(userGame.result.boxScore);
+            const homeTeamObj = leagueTeamsForSim.find((t: any) => t.id === userGame.game.homeTeamId);
+            const awayTeamObj = leagueTeamsForSim.find((t: any) => t.id === userGame.game.awayTeamId);
+            userTeamGame = {
+              homeTeam: homeTeamObj?.name ?? "Home",
+              awayTeam: awayTeamObj?.name ?? "Away",
+              homeAbbr: homeTeamObj?.abbreviation ?? "HME",
+              awayAbbr: awayTeamObj?.abbreviation ?? "AWY",
+              homeScore: userGame.result.homeScore,
+              awayScore: userGame.result.awayScore,
+              inningScores: box.innings ?? [],
+              homeHits: box.home?.totals?.h ?? 0,
+              awayHits: box.away?.totals?.h ?? 0,
+              homeErrors: box.home?.errors ?? 0,
+              awayErrors: box.away?.errors ?? 0,
+              isHome: userGame.game.homeTeamId === simUserTeamId,
+            };
+          } catch { /* non-critical */ }
+        }
+      }
+
       const coachXpAccum = new Map<string, { xp: number; wins: number; losses: number; confWins: number; confLosses: number }>();
 
       for (const { game, result } of gameResults) {
@@ -7059,7 +7094,7 @@ export async function registerRoutes(
         // Fire digest for the final regular-season week (non-blocking)
         sendWeeklyDigests(leagueId, storage, league.currentSeason, currentWeek, league.currentPhase)
           .catch(e => console.error("[digest] end-of-regular-season hook:", e));
-        return res.json(updatedLeague);
+        return res.json({ ...updatedLeague, userTeamGame });
       }
 
       const newPhase = league.currentPhase === "preseason" && nextWeek >= 2 ? "regular_season" : league.currentPhase;
@@ -7083,7 +7118,7 @@ export async function registerRoutes(
         details: `Advanced to Week ${nextWeek}`,
       });
 
-      res.json(updatedLeague);
+      res.json({ ...updatedLeague, userTeamGame });
       // Fire-and-forget digest emails after a regular-season/preseason week advance (non-blocking).
       // Pass the completed week/season/phase (before incrementing) so the digest reflects the games that just finished.
       sendWeeklyDigests(leagueId, storage, league.currentSeason, currentWeek, league.currentPhase)

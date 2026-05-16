@@ -47,6 +47,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { League, AuditLog, LeagueInvite } from "@shared/schema";
 import { SimProgressOverlay, type SimSummary } from "@/components/sim-progress-overlay";
 import { SeasonSummaryModal } from "@/components/season-summary-modal";
+import { InningScoreboard, useScoreboardEnabled, type InningScoreboardData } from "@/components/inning-scoreboard";
 
 interface HumanCoach {
   coachId: string;
@@ -77,6 +78,9 @@ export default function CommissionerPage() {
   const [showSeasonSummary, setShowSeasonSummary] = useState(false);
   const [summaryCompletedSeason, setSummaryCompletedSeason] = useState(1);
   const [pendingSeasonSummary, setPendingSeasonSummary] = useState<number | null>(null);
+  const [showScoreboard, setShowScoreboard] = useState(false);
+  const [scoreboardData, setScoreboardData] = useState<InningScoreboardData | null>(null);
+  const scoreboardEnabled = useScoreboardEnabled();
 
   const toggleAutoAdvance = (val: boolean) => {
     setAutoAdvance(val);
@@ -89,7 +93,8 @@ export default function CommissionerPage() {
 
   const advanceWeekMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("POST", `/api/leagues/${id}/advance`, {});
+      const res = await apiRequest("POST", `/api/leagues/${id}/advance`, {});
+      return res.json();
     },
     onSuccess: (response: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id] });
@@ -103,6 +108,10 @@ export default function CommissionerPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "roster"] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "walkons"] });
       window.dispatchEvent(new CustomEvent("league-phase-changed"));
+      if (response?.userTeamGame && scoreboardEnabled) {
+        setScoreboardData(response.userTeamGame as InningScoreboardData);
+        setShowScoreboard(true);
+      }
       if (response?.seasonTransition) {
         const t = response.seasonTransition;
         toast({ 
@@ -580,6 +589,11 @@ export default function CommissionerPage() {
         onClose={() => setShowSeasonSummary(false)}
         leagueId={id!}
         season={summaryCompletedSeason}
+      />
+      <InningScoreboard
+        open={showScoreboard}
+        onClose={() => { setShowScoreboard(false); setScoreboardData(null); }}
+        data={scoreboardData}
       />
     </div>
   );
