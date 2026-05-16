@@ -123,6 +123,18 @@ export const PHASE_MOODS: Record<string, MoodConfig> = {
     isPostseason: true,
     postseasonLabel: "Conference Championships",
   },
+  conference_championships: {
+    ...DEFAULTS,
+    mood: "postseason",
+    overlayH: 43,
+    overlayS: 56,
+    overlayOpacity: 0.06,
+    particleOpacity: 0.06,
+    particleType: "sparkles",
+    shimmer: true,
+    isPostseason: true,
+    postseasonLabel: "Conference Championships",
+  },
   super_regionals: {
     ...DEFAULTS,
     mood: "postseason",

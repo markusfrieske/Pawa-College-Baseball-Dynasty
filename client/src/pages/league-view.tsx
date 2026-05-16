@@ -3,7 +3,7 @@ import { parseErrorMessage } from "@/lib/errorUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link, useLocation } from "wouter";
 import { useUpdateMusicPhase } from "@/lib/music-context";
-import { useUpdateAtmospherePhase, PostseasonBanner } from "@/components/atmosphere-provider";
+import { useUpdateAtmospherePhase, useSetAtmosphereBurstColor, PostseasonBanner } from "@/components/atmosphere-provider";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroInput } from "@/components/ui/retro-input";
 import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
@@ -235,6 +235,7 @@ export default function LeagueViewPage() {
   const [, navigate] = useLocation();
   const updateMusicPhase = useUpdateMusicPhase();
   const updateAtmospherePhase = useUpdateAtmospherePhase();
+  const setAtmosphereBurstColor = useSetAtmosphereBurstColor();
   const { toast } = useToast();
   const qc = useQueryClient();
   const [showRecap, setShowRecap] = useState(false);
@@ -311,6 +312,14 @@ export default function LeagueViewPage() {
       updateAtmospherePhase(league.currentPhase);
     }
   }, [league?.currentPhase, updateMusicPhase, updateAtmospherePhase]);
+
+  useEffect(() => {
+    if (!league?.teams || !currentUser?.id) return;
+    const myTeamLocal = league.teams.find((t: TeamWithCoach) => t.coach?.userId === currentUser.id);
+    if (myTeamLocal?.primaryColor) {
+      setAtmosphereBurstColor(myTeamLocal.primaryColor);
+    }
+  }, [league?.teams, currentUser?.id, setAtmosphereBurstColor]);
 
   if (isLoading) {
     return <LeagueViewSkeleton />;

@@ -303,6 +303,7 @@ input[type="number"].no-spinner {
   --atm-overlay-s: 25%;
   --atm-overlay-opacity: 0;
   --atm-particle-opacity: 0;
+  --atm-burst-color: #C4A35A;
 }
 
 /* ── Atmosphere overlay container ─────────────────────────── */
@@ -482,25 +483,25 @@ input[type="number"].no-spinner {
   }
 }
 
-/* ── Signing day burst ─────────────────────────────────────── */
+/* ── Signing day burst (team primary color via --atm-burst-color) ── */
 .atm-signing-burst {
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 9998;
   background-image:
-    radial-gradient(2px 2px at 12% 20%, #C4A35A, transparent),
-    radial-gradient(3px 3px at 28% 55%, #FFD700, transparent),
-    radial-gradient(2px 2px at 45% 15%, #C4A35A, transparent),
-    radial-gradient(3px 3px at 60% 75%, #FFD700, transparent),
-    radial-gradient(2px 2px at 75% 30%, #C4A35A, transparent),
-    radial-gradient(3px 3px at 20% 80%, #FFD700, transparent),
-    radial-gradient(2px 2px at 50% 50%, #C4A35A, transparent),
-    radial-gradient(3px 3px at 85% 65%, #FFD700, transparent),
-    radial-gradient(2px 2px at 35% 40%, #C4A35A, transparent),
-    radial-gradient(3px 3px at 70% 20%, #FFD700, transparent),
-    radial-gradient(2px 2px at 92% 45%, #C4A35A, transparent),
-    radial-gradient(3px 3px at 5%  60%, #FFD700, transparent);
+    radial-gradient(2px 2px at 12% 20%, var(--atm-burst-color, #C4A35A), transparent),
+    radial-gradient(3px 3px at 28% 55%, var(--atm-burst-color, #C4A35A), transparent),
+    radial-gradient(2px 2px at 45% 15%, var(--atm-burst-color, #C4A35A), transparent),
+    radial-gradient(3px 3px at 60% 75%, var(--atm-burst-color, #C4A35A), transparent),
+    radial-gradient(2px 2px at 75% 30%, var(--atm-burst-color, #C4A35A), transparent),
+    radial-gradient(3px 3px at 20% 80%, var(--atm-burst-color, #C4A35A), transparent),
+    radial-gradient(2px 2px at 50% 50%, var(--atm-burst-color, #C4A35A), transparent),
+    radial-gradient(3px 3px at 85% 65%, var(--atm-burst-color, #C4A35A), transparent),
+    radial-gradient(2px 2px at 35% 40%, var(--atm-burst-color, #C4A35A), transparent),
+    radial-gradient(3px 3px at 70% 20%, var(--atm-burst-color, #C4A35A), transparent),
+    radial-gradient(2px 2px at 92% 45%, var(--atm-burst-color, #C4A35A), transparent),
+    radial-gradient(3px 3px at 5%  60%, var(--atm-burst-color, #C4A35A), transparent);
   background-size: 100% 100%;
   animation: atm-signing-burst 2.5s ease-out forwards;
 }

@@ -1,4 +1,4 @@
-import { createContext, useContext, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { getMoodForPhase, type MoodConfig } from "@/lib/atmosphere";
 import { X, Trophy } from "lucide-react";
 
@@ -13,9 +13,11 @@ const AtmosphereContext = createContext<AtmosphereContextValue>({
 });
 
 const AtmosphereSetContext = createContext<(phase: string) => void>(() => {});
+const AtmosphereSetBurstColorContext = createContext<(color: string) => void>(() => {});
 
 export function AtmosphereProvider({ children }: { children: ReactNode }) {
   const [phase, setPhase] = useState("neutral");
+  const [burstColor, setBurstColor] = useState("#C4A35A");
   const mood = getMoodForPhase(phase);
 
   useEffect(() => {
@@ -33,17 +35,27 @@ export function AtmosphereProvider({ children }: { children: ReactNode }) {
     }
   }, [mood]);
 
+  useEffect(() => {
+    document.documentElement.style.setProperty("--atm-burst-color", burstColor);
+  }, [burstColor]);
+
   return (
-    <AtmosphereSetContext.Provider value={setPhase}>
-      <AtmosphereContext.Provider value={{ phase, mood }}>
-        {children}
-      </AtmosphereContext.Provider>
-    </AtmosphereSetContext.Provider>
+    <AtmosphereSetBurstColorContext.Provider value={setBurstColor}>
+      <AtmosphereSetContext.Provider value={setPhase}>
+        <AtmosphereContext.Provider value={{ phase, mood }}>
+          {children}
+        </AtmosphereContext.Provider>
+      </AtmosphereSetContext.Provider>
+    </AtmosphereSetBurstColorContext.Provider>
   );
 }
 
 export function useUpdateAtmospherePhase() {
   return useContext(AtmosphereSetContext);
+}
+
+export function useSetAtmosphereBurstColor() {
+  return useContext(AtmosphereSetBurstColorContext);
 }
 
 export function useAtmosphere() {

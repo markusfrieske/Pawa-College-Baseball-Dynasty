@@ -3,6 +3,19 @@ import { useLocation } from "wouter";
 import { useUpdateAtmospherePhase } from "@/components/atmosphere-provider";
 import { queryClient } from "@/lib/queryClient";
 
+interface LeagueData {
+  currentPhase: string;
+}
+
+function isLeagueData(data: unknown): data is LeagueData {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    "currentPhase" in data &&
+    typeof (data as Record<string, unknown>).currentPhase === "string"
+  );
+}
+
 export function AtmosphereRouter() {
   const [location] = useLocation();
   const updateAtmospherePhase = useUpdateAtmospherePhase();
@@ -20,16 +33,18 @@ export function AtmosphereRouter() {
           if (!res.ok) throw new Error("fetch failed");
           return res.json();
         })
-        .then((league) => {
+        .then((league: unknown) => {
           if (controller.signal.aborted) return;
           abortRef.current = null;
-          if (league?.currentPhase) {
+          if (isLeagueData(league)) {
             cachedPhaseRef.current = { leagueId, phase: league.currentPhase };
             updateAtmospherePhase(league.currentPhase);
           }
         })
-        .catch((err) => {
-          if (err.name !== "AbortError") abortRef.current = null;
+        .catch((err: unknown) => {
+          if (err instanceof Error && err.name !== "AbortError") {
+            abortRef.current = null;
+          }
         });
     },
     [updateAtmospherePhase],
@@ -37,7 +52,7 @@ export function AtmosphereRouter() {
 
   useEffect(() => {
     const unsubscribe = queryClient.getQueryCache().subscribe((event) => {
-      if (event.type === "updated" && (event.action as any).type === "success") {
+      if (event.type === "updated" && event.action.type === "success") {
         const queryKey = event.query.queryKey;
         if (
           Array.isArray(queryKey) &&
@@ -45,9 +60,9 @@ export function AtmosphereRouter() {
           queryKey.length === 2 &&
           typeof queryKey[1] === "string"
         ) {
-          const data = event.query.state.data as any;
-          if (data?.currentPhase) {
-            const leagueId = queryKey[1] as string;
+          const data = event.query.state.data;
+          if (isLeagueData(data)) {
+            const leagueId = queryKey[1];
             const oldPhase =
               cachedPhaseRef.current?.leagueId === leagueId
                 ? cachedPhaseRef.current.phase
@@ -82,8 +97,8 @@ export function AtmosphereRouter() {
       return;
     }
 
-    const cached = queryClient.getQueryData(["/api/leagues", leagueId]) as any;
-    if (cached?.currentPhase) {
+    const cached = queryClient.getQueryData<LeagueData>(["/api/leagues", leagueId]);
+    if (cached && isLeagueData(cached)) {
       cachedPhaseRef.current = { leagueId, phase: cached.currentPhase };
       updateAtmospherePhase(cached.currentPhase);
     } else {
