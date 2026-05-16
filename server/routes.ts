@@ -3890,8 +3890,9 @@ export async function registerRoutes(
       // Build raw data per team
       const teamData = leagueTeams.map(team => {
         const players = playersByTeam.get(team.id) || [];
-        const pitchers = players.filter(p => p.position === "P");
-        const hitters = players.filter(p => p.position !== "P");
+        const PITCHER_POS_SET = new Set(["P", "SP", "RP", "CL", "LHP", "RHP"]);
+        const pitchers = players.filter(p => PITCHER_POS_SET.has(p.position));
+        const hitters = players.filter(p => !PITCHER_POS_SET.has(p.position));
         const signed = signedByTeam.get(team.id) || [];
 
         const avgAttr = (arr: number[]): number =>

@@ -1802,7 +1802,7 @@ function RankingsTab({ league }: { league: LeagueDetails }) {
                         <TooltipTrigger asChild>
                           <div className="flex flex-col items-center cursor-default">
                             <span className={`font-bold text-sm ${gradeColor(compGrade)}`}>{compGrade}</span>
-                            <span className="text-[9px] text-muted-foreground">{entry.overallStarAvg.toFixed(1)}★</span>
+                            <span className="text-[9px] text-muted-foreground">{entry.composite}</span>
                           </div>
                         </TooltipTrigger>
                         <TooltipContent>{percentileLabel(entry.compositePercentile)} overall (avg star rating)</TooltipContent>
@@ -1901,7 +1901,7 @@ function PowerComparePanel({ userEntry, rivalEntry }: { userEntry: PowerRankingE
         </div>
       </div>
 
-      {components.map(({ label, userVal, rivalVal, weight }) => {
+      {components.map(({ label, userVal, rivalVal }) => {
         const delta = userVal - rivalVal;
         const maxVal = Math.max(userVal, rivalVal, 1);
         const userPct = Math.round((userVal / maxVal) * 100);
@@ -1913,7 +1913,7 @@ function PowerComparePanel({ userEntry, rivalEntry }: { userEntry: PowerRankingE
           <div key={label} className="space-y-1" data-testid={`compare-row-${label.replace(/\s/g, "-").toLowerCase()}`}>
             <div className="flex justify-between text-[9px] text-muted-foreground">
               <span className={userWins ? "text-green-400 font-semibold" : ""}>{userVal}</span>
-              <span>{label} <span className="text-muted-foreground/50">({weight})</span></span>
+              <span>{label}</span>
               <span className={rivalWins ? "text-green-400 font-semibold" : ""}>{rivalVal}</span>
             </div>
             <div className="flex gap-1 items-center h-2">
