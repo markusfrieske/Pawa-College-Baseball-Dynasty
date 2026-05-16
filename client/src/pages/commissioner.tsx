@@ -131,7 +131,7 @@ export default function CommissionerPage() {
           offseason_recruiting_2: "Offseason recruiting week 2 underway.",
           offseason_recruiting_3: "Offseason recruiting week 3 underway.",
           offseason_recruiting_4: "Final week of offseason recruiting.",
-          offseason_signing_day: "Recruiting is over! Signing Day results are in.",
+          offseason_signing_day: "Recruiting is over! Decision Day results are in.",
           offseason_walkons: "Teams are finalizing roster cuts and walk-on signings.",
         };
         const phaseTitle: Record<string, string> = {
@@ -143,7 +143,7 @@ export default function CommissionerPage() {
           offseason_recruiting_2: "Offseason Recruiting",
           offseason_recruiting_3: "Offseason Recruiting",
           offseason_recruiting_4: "Offseason Recruiting",
-          offseason_signing_day: "Signing Day",
+          offseason_signing_day: "Decision Day",
           offseason_walkons: "Walk-Ons",
         };
         toast({ 
@@ -443,7 +443,7 @@ export default function CommissionerPage() {
     offseason_recruiting_2: "Offseason Recruiting (Wk 2)",
     offseason_recruiting_3: "Offseason Recruiting (Wk 3)",
     offseason_recruiting_4: "Offseason Recruiting (Wk 4)",
-    offseason_signing_day: "Signing Day",
+    offseason_signing_day: "Decision Day",
     offseason_walkons: "Walk-Ons",
   };
 
@@ -703,7 +703,7 @@ function ActionsTab({
       case "offseason_recruiting_3":
       case "offseason_recruiting_4":
         return "Continue recruiting unsigned recruits and transfer portal players. CPU teams are also actively recruiting during this period.";
-      case "offseason_signing_day": return "Signing Day! Finalize all commits, add signed recruits to rosters, and advance eligibility. Teams will then manage roster cuts and walk-on signings.";
+      case "offseason_signing_day": return "Decision Day! Finalize all commits, add signed recruits to rosters, and advance eligibility. Teams will then manage roster cuts and walk-on signings.";
       case "offseason_walkons": return "All teams must finalize their roster cuts and walk-on signings before advancing. Once all teams are ready, rosters will be locked and the new season begins.";
       case "offseason": return "Begin the offseason process. Players will be leaving, recruiting continues, and a new season awaits.";
       default: return "Move the league forward to the next week. This will process recruiting updates, trigger story events, and update standings.";
@@ -929,7 +929,7 @@ function ActionsTab({
                       <AlertDialogHeader>
                         <AlertDialogTitle className="font-pixel text-gold text-sm">Sim to Next Season?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          This will simulate the entire offseason including recruiting, signing day, and walk-ons. Your recruiting actions won't be applied. This action cannot be undone.
+                          This will simulate the entire offseason including recruiting, decision day, and walk-ons. Your recruiting actions won't be applied. This action cannot be undone.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
@@ -948,7 +948,7 @@ function ActionsTab({
                     ? "Review your departing players before advancing, or sim through the entire offseason."
                     : league?.currentPhase?.startsWith("offseason_recruiting")
                     ? "Use the Recruiting Board, or sim to skip remaining offseason weeks."
-                    : "Fast-forward through recruiting, signing day, and start the next season."}
+                    : "Fast-forward through recruiting, decision day, and start the next season."}
                 </p>
               )}
             </div>

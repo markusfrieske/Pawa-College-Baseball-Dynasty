@@ -430,7 +430,7 @@ export default function LeagueViewPage() {
     offseason_recruiting_2: "Offseason Recruiting (Week 2)",
     offseason_recruiting_3: "Offseason Recruiting (Week 3)",
     offseason_recruiting_4: "Offseason Recruiting (Week 4)",
-    offseason_signing_day: "Signing Day",
+    offseason_signing_day: "Decision Day",
     offseason_walkons: "Cuts & Walk-Ons",
   };
 
@@ -2539,7 +2539,7 @@ function SigningDayRevealModal({
         <DialogHeader>
           <DialogTitle className="font-pixel text-gold text-[10px] flex items-center gap-2">
             <Award className="w-4 h-4" />
-            NATIONAL SIGNING DAY
+            DECISION DAY
           </DialogTitle>
         </DialogHeader>
 
@@ -2559,7 +2559,7 @@ function SigningDayRevealModal({
               className="w-full"
               data-testid="button-complete-signing-day"
             >
-              {isCompleting ? "Finalizing..." : "Complete Signing Day"}
+              {isCompleting ? "Finalizing..." : "Complete Decision Day"}
             </RetroButton>
           </div>
         ) : (
@@ -2874,7 +2874,7 @@ function PhaseGuidanceBanner({ phase, leagueId }: { phase: string; leagueId: str
       case "offseason_recruiting_4":
         return { text: "Recruiting is open. Scout, contact, and offer scholarships to build your next class.", action: { label: "Recruiting", href: `/league/${leagueId}/recruiting` } };
       case "offseason_signing_day":
-        return { text: "Signing Day is here. Finalize your recruiting class from the Commissioner page.", action: { label: "Commissioner", href: `/league/${leagueId}/commissioner` } };
+        return { text: "Decision Day is here. Finalize your recruiting class from the Commissioner page.", action: { label: "Commissioner", href: `/league/${leagueId}/commissioner` } };
       case "offseason_walkons":
         return { text: "Time to finalize your roster. Cut players to get to 25 and sign walk-ons to fill gaps.", action: { label: "Walk-Ons", href: `/league/${leagueId}/walkons` } };
       default:
@@ -5060,7 +5060,7 @@ function SigningDaySummaryCard({ league, myTeam }: { league: LeagueDetails; myTe
       <div className="flex items-start gap-3 pr-8">
         <Trophy className="w-5 h-5 text-gold flex-shrink-0 mt-0.5" />
         <div className="flex-1 min-w-0">
-          <p className="font-pixel text-gold text-[10px] mb-0.5">NATIONAL SIGNING DAY</p>
+          <p className="font-pixel text-gold text-[10px] mb-0.5">DECISION DAY</p>
           <p className="text-[10px] text-muted-foreground mb-3">
             Season {latestSeason} Recruiting Class — {mySnap.totalCommits} commits signed
           </p>
@@ -5181,7 +5181,7 @@ function OffseasonSummary({ league }: { league: LeagueDetails }) {
   }
 
   const phaseTitle = league.currentPhase === "offseason_departures" ? "PLAYERS LEAVING" 
-    : league.currentPhase === "offseason_signing_day" ? "SIGNING DAY"
+    : league.currentPhase === "offseason_signing_day" ? "DECISION DAY"
     : league.currentPhase === "offseason_walkons" ? "CUTS & WALK-ONS"
     : league.currentPhase?.startsWith("offseason_recruiting") ? "OFFSEASON RECRUITING"
     : "OFFSEASON";

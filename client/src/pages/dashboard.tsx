@@ -423,7 +423,7 @@ function LeagueCard({ league, userId }: { league: LeagueWithDetails; userId?: st
     offseason_recruiting_2: "Mid Recruiting",
     offseason_recruiting_3: "Late Recruiting",
     offseason_recruiting_4: "Final Recruiting",
-    signing_day: "Signing Day",
+    signing_day: "Decision Day",
   };
 
   const isPrimaryCommissioner = !!userId && userId === league.commissionerId;

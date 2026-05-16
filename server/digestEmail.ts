@@ -43,7 +43,7 @@ function phaseLabel(phase: string): string {
     offseason_recruiting_2: "Offseason Recruiting (Wk 2)",
     offseason_recruiting_3: "Offseason Recruiting (Wk 3)",
     offseason_recruiting_4: "Offseason Recruiting (Wk 4)",
-    offseason_signing_day: "Signing Day",
+    offseason_signing_day: "Decision Day",
     offseason_walkons: "Walk-Ons",
   };
   return labels[phase] || phase;

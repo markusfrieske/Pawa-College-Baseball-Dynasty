@@ -3281,7 +3281,7 @@ function RecruitDetailModal({
           {sdLocked.size > 0 && (
             <div className="flex items-center gap-2 px-2 py-1.5 bg-gold/10 border border-gold/30 rounded" data-testid="signing-day-locked-banner">
               <Lock className="w-3 h-3 text-gold/70 shrink-0" />
-              <span className="text-[9px] text-gold/80 font-pixel">{sdLocked.size} attribute{sdLocked.size !== 1 ? "s" : ""} revealed on Signing Day</span>
+              <span className="text-[9px] text-gold/80 font-pixel">{sdLocked.size} attribute{sdLocked.size !== 1 ? "s" : ""} revealed on Decision Day</span>
             </div>
           )}
 
@@ -3302,7 +3302,7 @@ function RecruitDetailModal({
                         <span className="text-sm text-muted-foreground">{attr.label}</span>
                         {isSigningDayLocked ? (
                           <span className="flex items-center gap-1 text-[10px] text-gold/70 font-pixel">
-                            <Lock className="w-3 h-3" /> Signing Day
+                            <Lock className="w-3 h-3" /> Decision Day
                           </span>
                         ) : (
                           <span className={`font-bold ${revealed ? "text-foreground" : "text-muted-foreground"}`}>
@@ -3331,7 +3331,7 @@ function RecruitDetailModal({
                       <span className="text-sm text-muted-foreground">{attr.label}</span>
                       {isSigningDayLocked ? (
                         <span className="flex items-center gap-1 text-[10px] text-gold/70 font-pixel">
-                          <Lock className="w-3 h-3" /> Signing Day
+                          <Lock className="w-3 h-3" /> Decision Day
                         </span>
                       ) : (
                         <span className={`font-bold ${revealed ? "text-foreground" : "text-muted-foreground"}`}>
@@ -3757,7 +3757,7 @@ function RecruitDetailModal({
           {sdLocked.size > 0 && (
             <div className="flex items-center gap-2 px-2 py-1.5 bg-gold/10 border border-gold/30 rounded" data-testid="signing-day-locked-banner">
               <Lock className="w-3 h-3 text-gold/70 shrink-0" />
-              <span className="text-[9px] text-gold/80 font-pixel">{sdLocked.size} attribute{sdLocked.size !== 1 ? "s" : ""} revealed on Signing Day</span>
+              <span className="text-[9px] text-gold/80 font-pixel">{sdLocked.size} attribute{sdLocked.size !== 1 ? "s" : ""} revealed on Decision Day</span>
             </div>
           )}
 
@@ -3778,7 +3778,7 @@ function RecruitDetailModal({
                         <span className="text-sm text-muted-foreground">{attr.label}</span>
                         {isSigningDayLocked ? (
                           <span className="flex items-center gap-1 text-[10px] text-gold/70 font-pixel">
-                            <Lock className="w-3 h-3" /> Signing Day
+                            <Lock className="w-3 h-3" /> Decision Day
                           </span>
                         ) : (
                           <span className={`font-bold ${revealed ? "text-foreground" : "text-muted-foreground"}`}>
@@ -3807,7 +3807,7 @@ function RecruitDetailModal({
                       <span className="text-sm text-muted-foreground">{attr.label}</span>
                       {isSigningDayLocked ? (
                         <span className="flex items-center gap-1 text-[10px] text-gold/70 font-pixel">
-                          <Lock className="w-3 h-3" /> Signing Day
+                          <Lock className="w-3 h-3" /> Decision Day
                         </span>
                       ) : (
                         <span className={`font-bold ${revealed ? "text-foreground" : "text-muted-foreground"}`}>
@@ -4371,7 +4371,7 @@ function CommonAbilityRow({
       <div className="flex items-center justify-between p-2 bg-muted/50 rounded" data-testid={`common-ability-${label.toLowerCase().replace(/\s/g, "-")}`}>
         <span className="text-sm text-muted-foreground">{label}</span>
         <span className="flex items-center gap-1 text-[10px] text-gold/70 font-pixel">
-          <Lock className="w-3 h-3" /> Signing Day
+          <Lock className="w-3 h-3" /> Decision Day
         </span>
       </div>
     );
