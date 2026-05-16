@@ -217,10 +217,11 @@ function FireworksCanvas({ teamColor, active }: { teamColor: string; active: boo
 
     const randColor = () => colorsRef.current[Math.floor(Math.random() * colorsRef.current.length)];
 
-    const launch = () => {
-      const x = 60 + Math.random() * (canvas.width - 120);
+    // Launch a rocket from the bottom edge (classic ground fireworks)
+    const launchFromBottom = () => {
+      const x = 40 + Math.random() * (canvas.width - 80);
       const travelFrames = 48 + Math.random() * 32;
-      const targetY = canvas.height * (0.08 + Math.random() * 0.38);
+      const targetY = canvas.height * (0.07 + Math.random() * 0.38);
       rockets.push({
         x, y: canvas.height,
         vx: (Math.random() - 0.5) * 1.8,
@@ -228,6 +229,32 @@ function FireworksCanvas({ teamColor, active }: { teamColor: string; active: boo
         color: randColor(),
         trail: [],
       });
+    };
+
+    // Launch a rocket from a left or right edge (angled inward and upward)
+    const launchFromSide = () => {
+      const fromLeft = Math.random() < 0.5;
+      const x = fromLeft ? -4 : canvas.width + 4;
+      const y = canvas.height * (0.5 + Math.random() * 0.35);
+      const targetX = canvas.width * (fromLeft ? 0.25 + Math.random() * 0.5 : 0.25 + Math.random() * 0.5);
+      const targetY = canvas.height * (0.1 + Math.random() * 0.32);
+      const frames = 44 + Math.random() * 28;
+      rockets.push({
+        x, y,
+        vx: (targetX - x) / frames,
+        vy: (targetY - y) / frames,
+        color: randColor(),
+        trail: [],
+      });
+    };
+
+    // 25% of dense-phase launches come from screen edges for variety
+    const launch = (allowEdge = false) => {
+      if (allowEdge && Math.random() < 0.25) {
+        launchFromSide();
+      } else {
+        launchFromBottom();
+      }
     };
 
     const explode = (r: FWRocket) => {
@@ -249,14 +276,18 @@ function FireworksCanvas({ teamColor, active }: { teamColor: string; active: boo
 
     const tick = () => {
       const elapsed = Date.now() - startTime;
-      const dense = elapsed < 6000;
-      const interval = dense ? 650 : 2600;
+      // Dense phase: 0–8s (two rockets per launch, edge launches enabled)
+      // Medium phase: 8–16s (single rocket, bottom only, moderate cadence)
+      // Sparse phase: 16s+ (slow occasional launches)
+      const dense  = elapsed < 8000;
+      const medium = elapsed < 16000;
+      const interval = dense ? 650 : medium ? 1500 : 3000;
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       if (elapsed - lastLaunch > interval * (0.75 + Math.random() * 0.5)) {
-        launch();
-        if (dense) launch();
+        launch(dense);          // edge launches only during dense phase
+        if (dense) launch(true); // second rocket during dense phase
         lastLaunch = elapsed;
       }
 
