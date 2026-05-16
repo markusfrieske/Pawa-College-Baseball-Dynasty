@@ -9078,7 +9078,12 @@ export async function registerRoutes(
           ((weScore ?? 70) - 70) / 700 +
           ((coachScore ?? 70) - 70) / 700;
 
-        const scaledDelta = targetOvrDelta * Math.max(0.6, Math.min(1.4, traitMult));
+        // For positive deltas (growth), multiply — high traits amplify improvement.
+        // For negative deltas (decline), divide — high traits dampen regression.
+        const clampedMult = Math.max(0.6, Math.min(1.4, traitMult));
+        const scaledDelta = targetOvrDelta >= 0
+          ? targetOvrDelta * clampedMult
+          : targetOvrDelta / clampedMult;
 
         const updates: Record<string, number> = {};
         const deltas: Record<string, number> = {};
