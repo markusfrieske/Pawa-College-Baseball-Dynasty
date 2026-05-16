@@ -250,6 +250,7 @@ export default function DynastySetupPage() {
                         primaryColor={team.primaryColor}
                         secondaryColor={team.secondaryColor}
                         name={team.name}
+                        mascot={team.mascot}
                         size="sm"
                       />
                       <div>

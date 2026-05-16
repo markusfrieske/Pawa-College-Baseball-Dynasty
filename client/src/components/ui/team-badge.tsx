@@ -6,8 +6,10 @@ interface TeamBadgeProps {
   primaryColor: string;
   secondaryColor?: string;
   size?: "sm" | "md" | "lg";
-  /** Full team name (e.g. "Alabama Crimson Tide") used to derive the mascot archetype. */
+  /** School name (e.g. "Alabama") — used for aria-label. */
   name?: string;
+  /** Mascot name (e.g. "Crimson Tide") — used to derive the pixel-art archetype. Takes precedence over name for lookup. */
+  mascot?: string;
   className?: string;
 }
 
@@ -17,6 +19,7 @@ export function TeamBadge({
   secondaryColor,
   size = "md",
   name,
+  mascot,
   className,
 }: TeamBadgeProps) {
   const sizes = {
@@ -25,7 +28,11 @@ export function TeamBadge({
     lg: "w-16 h-16 text-sm",
   };
 
-  const archetype = name ? getMascotArchetype(name) : null;
+  const archetype = mascot
+    ? getMascotArchetype(mascot)
+    : name
+    ? getMascotArchetype(name)
+    : null;
 
   if (archetype) {
     const acc = secondaryColor || "#ffffff";

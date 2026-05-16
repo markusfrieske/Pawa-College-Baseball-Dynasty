@@ -34,6 +34,7 @@ const KEYWORD_MAP: Array<[string, MascotArchetype]> = [
   ["nittany lion", "feline"],
   ["mean green", "abstract"],
   ["big red", "abstract"],
+  ["big green", "abstract"],
   ["ragin cajun", "warrior"],
   ["thunder herd", "bovine"],
   ["thundering herd", "bovine"],
@@ -147,6 +148,8 @@ const KEYWORD_MAP: Array<[string, MascotArchetype]> = [
   ["rebel", "warrior"],
   ["brave", "warrior"],
   ["aztec", "warrior"],
+  ["gaucho", "warrior"],
+  ["cajun", "warrior"],
   ["gael", "warrior"],
   ["friar", "warrior"],
   ["quaker", "warrior"],
@@ -156,7 +159,8 @@ const KEYWORD_MAP: Array<[string, MascotArchetype]> = [
   ["duke", "warrior"],
   ["don", "warrior"],
   ["illini", "warrior"],
-  // Reptile
+  // Reptile / Aquatic
+  ["triton", "nautical"],
   ["rattler", "reptile"],
   ["gator", "reptile"],
   ["alligator", "reptile"],

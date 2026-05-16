@@ -3818,6 +3818,7 @@ export async function registerRoutes(
         return {
           teamId: team.id,
           teamName: team.name,
+          mascot: team.mascot,
           abbreviation: team.abbreviation,
           primaryColor: team.primaryColor,
           secondaryColor: team.secondaryColor,
@@ -11348,6 +11349,7 @@ export async function registerRoutes(
 
       const userTeam = userTeamData && userTeamStandings ? {
         name: userTeamData.name,
+        mascot: userTeamData.mascot,
         abbreviation: userTeamData.abbreviation,
         primaryColor: userTeamData.primaryColor,
         wins: userTeamStandings.wins ?? 0,
@@ -11361,7 +11363,7 @@ export async function registerRoutes(
       const standings = leagueTeams.map(t => {
         const s = seasonStandings.find(st => st.teamId === t.id);
         return {
-          name: t.name, abbreviation: t.abbreviation, primaryColor: t.primaryColor,
+          name: t.name, mascot: t.mascot, abbreviation: t.abbreviation, primaryColor: t.primaryColor,
           wins: s?.wins ?? 0, losses: s?.losses ?? 0,
         };
       }).sort((a, b) => b.wins - a.wins || a.losses - b.losses).slice(0, 10);
@@ -11381,7 +11383,7 @@ export async function registerRoutes(
           || cwsGames.map(g => g.homeTeamId === champId ? g.awayTeamId : g.homeTeamId).find(id => id !== champId);
         const champTeam = champId ? teamMap[champId] : null;
         const runnerTeam = runnerId ? teamMap[runnerId] : null;
-        cwsChampion = champTeam ? { name: champTeam.name, abbreviation: champTeam.abbreviation, primaryColor: champTeam.primaryColor } : null;
+        cwsChampion = champTeam ? { name: champTeam.name, mascot: champTeam.mascot, abbreviation: champTeam.abbreviation, primaryColor: champTeam.primaryColor } : null;
         cwsRunnerUp = runnerTeam ? { name: runnerTeam.name, abbreviation: runnerTeam.abbreviation } : null;
       }
 
@@ -11548,7 +11550,7 @@ export async function registerRoutes(
         }));
 
         return {
-          id: team!.id, name: team!.name, abbreviation: team!.abbreviation,
+          id: team!.id, name: team!.name, mascot: team!.mascot, abbreviation: team!.abbreviation,
           primaryColor: team!.primaryColor, secondaryColor: team!.secondaryColor,
           prestige: team!.prestige, facilities: team!.facilities,
           wins: standings?.wins ?? 0, losses: standings?.losses ?? 0,

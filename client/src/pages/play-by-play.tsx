@@ -15,6 +15,7 @@ type SpeedMode = "pause" | "slow" | "fast";
 
 interface LineupPlayer {
   playerId: string;
+  id?: string;
   firstName: string;
   lastName: string;
   position: string;
@@ -27,12 +28,18 @@ interface LineupPlayer {
   hairColor?: string;
   hairStyle?: string;
   headwear?: string;
+  facialHair?: string;
+  eyeStyle?: string;
+  eyebrowStyle?: string;
+  mouthStyle?: string;
+  eyeBlack?: boolean;
   overall?: number;
   abilities?: string[];
 }
 
 interface PitcherInfo {
   playerId: string;
+  id?: string;
   firstName: string;
   lastName: string;
   stuff: number;
@@ -43,6 +50,11 @@ interface PitcherInfo {
   hairColor?: string;
   hairStyle?: string;
   headwear?: string;
+  facialHair?: string;
+  eyeStyle?: string;
+  eyebrowStyle?: string;
+  mouthStyle?: string;
+  eyeBlack?: boolean;
   overall?: number;
   abilities?: string[];
 }
@@ -195,8 +207,9 @@ export default function PlayByPlayPage() {
     type: "batter" | "pitcher";
     seasonStats?: SeasonStatLine;
     gameStats?: Record<string, number | string>;
-    appearance?: { skinTone?: string; hairColor?: string; hairStyle?: string; headwear?: string };
+    appearance?: { skinTone?: string; hairColor?: string; hairStyle?: string; headwear?: string; facialHair?: string; eyeStyle?: string; eyebrowStyle?: string; mouthStyle?: string; eyeBlack?: boolean };
     overall?: number;
+    id?: string;
     team: TeamInfo;
   } | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -658,7 +671,7 @@ export default function PlayByPlayPage() {
         <div className="flex-1 flex flex-col lg:flex-row gap-0 min-h-0">
           <div className="hidden lg:flex flex-col w-56 xl:w-64 border-r border-border p-3 overflow-y-auto">
             <div className="flex items-center gap-2 mb-3 px-1">
-              <TeamBadge abbreviation={pbpData.awayTeam.abbreviation} primaryColor={pbpData.awayTeam.primaryColor} secondaryColor={pbpData.awayTeam.secondaryColor} name={pbpData.awayTeam.name} size="sm" />
+              <TeamBadge abbreviation={pbpData.awayTeam.abbreviation} primaryColor={pbpData.awayTeam.primaryColor} secondaryColor={pbpData.awayTeam.secondaryColor} name={pbpData.awayTeam.name} mascot={pbpData.awayTeam.mascot} size="sm" />
               <div className="min-w-0 flex-1">
                 <span className="text-[11px] text-foreground truncate block">{pbpData.awayTeam.name}</span>
                 {awayRecord && (
@@ -705,7 +718,7 @@ export default function PlayByPlayPage() {
           <div className={`flex-1 flex flex-col items-center p-4 lg:p-5 gap-3 relative ${gameOver ? "overflow-y-auto" : ""}`}>
             <div className="flex items-center gap-6 sm:gap-10 lg:gap-14">
               <div className="flex items-center gap-3 lg:gap-5">
-                <TeamBadge abbreviation={pbpData.awayTeam.abbreviation} primaryColor={pbpData.awayTeam.primaryColor} secondaryColor={pbpData.awayTeam.secondaryColor} name={pbpData.awayTeam.name} size="lg" />
+                <TeamBadge abbreviation={pbpData.awayTeam.abbreviation} primaryColor={pbpData.awayTeam.primaryColor} secondaryColor={pbpData.awayTeam.secondaryColor} name={pbpData.awayTeam.name} mascot={pbpData.awayTeam.mascot} size="lg" />
                 <div className="flex flex-col items-center gap-0.5">
                   <span className="text-[10px] text-muted-foreground uppercase">{pbpData.awayTeam.abbreviation}</span>
                   {awayRecord && <span className="text-[8px] text-muted-foreground mb-1">({awayRecord.wins}-{awayRecord.losses})</span>}
@@ -729,7 +742,7 @@ export default function PlayByPlayPage() {
                   {homeRecord && <span className="text-[8px] text-muted-foreground mb-1">({homeRecord.wins}-{homeRecord.losses})</span>}
                   <span className={`text-5xl sm:text-6xl lg:text-7xl text-foreground transition-transform duration-300 ${scorePulse === "home" ? "scale-110 text-gold" : ""}`} data-testid="score-home">{runningHomeScore}</span>
                 </div>
-                <TeamBadge abbreviation={pbpData.homeTeam.abbreviation} primaryColor={pbpData.homeTeam.primaryColor} secondaryColor={pbpData.homeTeam.secondaryColor} name={pbpData.homeTeam.name} size="lg" />
+                <TeamBadge abbreviation={pbpData.homeTeam.abbreviation} primaryColor={pbpData.homeTeam.primaryColor} secondaryColor={pbpData.homeTeam.secondaryColor} name={pbpData.homeTeam.name} mascot={pbpData.homeTeam.mascot} size="lg" />
               </div>
             </div>
 
@@ -1003,7 +1016,7 @@ export default function PlayByPlayPage() {
 
           <div className="hidden lg:flex flex-col w-56 xl:w-64 border-l border-border p-3 overflow-y-auto">
             <div className="flex items-center gap-2 mb-3 px-1">
-              <TeamBadge abbreviation={pbpData.homeTeam.abbreviation} primaryColor={pbpData.homeTeam.primaryColor} secondaryColor={pbpData.homeTeam.secondaryColor} name={pbpData.homeTeam.name} size="sm" />
+              <TeamBadge abbreviation={pbpData.homeTeam.abbreviation} primaryColor={pbpData.homeTeam.primaryColor} secondaryColor={pbpData.homeTeam.secondaryColor} name={pbpData.homeTeam.name} mascot={pbpData.homeTeam.mascot} size="sm" />
               <div className="min-w-0 flex-1">
                 <span className="text-[11px] text-foreground truncate block">{pbpData.homeTeam.name}</span>
                 {homeRecord && (
@@ -1070,7 +1083,7 @@ export default function PlayByPlayPage() {
           <div className="flex gap-3 overflow-x-auto">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1 mb-1">
-                <TeamBadge abbreviation={pbpData.awayTeam.abbreviation} primaryColor={pbpData.awayTeam.primaryColor} secondaryColor={pbpData.awayTeam.secondaryColor} name={pbpData.awayTeam.name} size="sm" />
+                <TeamBadge abbreviation={pbpData.awayTeam.abbreviation} primaryColor={pbpData.awayTeam.primaryColor} secondaryColor={pbpData.awayTeam.secondaryColor} name={pbpData.awayTeam.name} mascot={pbpData.awayTeam.mascot} size="sm" />
                 <span className="text-[7px] truncate">{pbpData.awayTeam.abbreviation}</span>
               </div>
               <div className="flex flex-wrap gap-x-1.5 gap-y-0.5">
@@ -1090,7 +1103,7 @@ export default function PlayByPlayPage() {
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1 mb-1">
-                <TeamBadge abbreviation={pbpData.homeTeam.abbreviation} primaryColor={pbpData.homeTeam.primaryColor} secondaryColor={pbpData.homeTeam.secondaryColor} name={pbpData.homeTeam.name} size="sm" />
+                <TeamBadge abbreviation={pbpData.homeTeam.abbreviation} primaryColor={pbpData.homeTeam.primaryColor} secondaryColor={pbpData.homeTeam.secondaryColor} name={pbpData.homeTeam.name} mascot={pbpData.homeTeam.mascot} size="sm" />
                 <span className="text-[7px] truncate">{pbpData.homeTeam.abbreviation}</span>
               </div>
               <div className="flex flex-wrap gap-x-1.5 gap-y-0.5">
@@ -1139,7 +1152,7 @@ export default function PlayByPlayPage() {
                       <span className="text-sm truncate">{statsModalPlayer.name}</span>
                     </div>
                     <div className="flex items-center gap-1 mt-0.5">
-                      <TeamBadge abbreviation={statsModalPlayer.team.abbreviation} primaryColor={statsModalPlayer.team.primaryColor} secondaryColor={statsModalPlayer.team.secondaryColor} name={statsModalPlayer.team.name} size="sm" />
+                      <TeamBadge abbreviation={statsModalPlayer.team.abbreviation} primaryColor={statsModalPlayer.team.primaryColor} secondaryColor={statsModalPlayer.team.secondaryColor} name={statsModalPlayer.team.name} mascot={statsModalPlayer.team.mascot} size="sm" />
                       <span className="text-[10px] text-muted-foreground">{statsModalPlayer.team.name}</span>
                       {statsModalPlayer.overall && (
                         <span className="text-[10px] text-muted-foreground ml-1">OVR {statsModalPlayer.overall}</span>
@@ -1361,7 +1374,7 @@ function PlayerCard({ type, name, position, stats, gameStats, seasonStats, team,
   gameStats?: Record<string, number | string>;
   seasonStats?: SeasonStatLine;
   team: TeamInfo;
-  appearance?: { skinTone?: string; hairColor?: string; hairStyle?: string; headwear?: string };
+  appearance?: { skinTone?: string; hairColor?: string; hairStyle?: string; headwear?: string; facialHair?: string; eyeStyle?: string; eyebrowStyle?: string; mouthStyle?: string; eyeBlack?: boolean };
   overall?: number;
   onClickStats?: () => void;
 }) {
@@ -1595,7 +1608,7 @@ function BoxScoreView({ data, inningScores }: { data: PlayByPlayData; inningScor
       <div className="grid lg:grid-cols-2 gap-6">
         <div>
           <h3 className="text-[11px] text-gold mb-2 flex items-center gap-2">
-            <TeamBadge abbreviation={data.awayTeam.abbreviation} primaryColor={data.awayTeam.primaryColor} secondaryColor={data.awayTeam.secondaryColor} name={data.awayTeam.name} size="sm" />
+            <TeamBadge abbreviation={data.awayTeam.abbreviation} primaryColor={data.awayTeam.primaryColor} secondaryColor={data.awayTeam.secondaryColor} name={data.awayTeam.name} mascot={data.awayTeam.mascot} size="sm" />
             {data.awayTeam.name} Batting
           </h3>
           <BattingTable stats={data.awayBatting} />
@@ -1604,7 +1617,7 @@ function BoxScoreView({ data, inningScores }: { data: PlayByPlayData; inningScor
         </div>
         <div>
           <h3 className="text-[11px] text-gold mb-2 flex items-center gap-2">
-            <TeamBadge abbreviation={data.homeTeam.abbreviation} primaryColor={data.homeTeam.primaryColor} secondaryColor={data.homeTeam.secondaryColor} name={data.homeTeam.name} size="sm" />
+            <TeamBadge abbreviation={data.homeTeam.abbreviation} primaryColor={data.homeTeam.primaryColor} secondaryColor={data.homeTeam.secondaryColor} name={data.homeTeam.name} mascot={data.homeTeam.mascot} size="sm" />
             {data.homeTeam.name} Batting
           </h3>
           <BattingTable stats={data.homeBatting} />

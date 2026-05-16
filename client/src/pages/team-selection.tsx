@@ -249,6 +249,7 @@ export default function TeamSelectionPage() {
                               primaryColor={team.primaryColor}
                               secondaryColor={team.secondaryColor}
                               name={team.name}
+                              mascot={team.mascot}
                               size="sm"
                             />
                             <div className="flex-1 min-w-0">
