@@ -380,7 +380,8 @@ function GameRow({ game, allGamesInGroup, onEdit, onViewBoxScore, onMatchupPrevi
           game.isComplete && isUserGame
             ? userWon ? "bg-green-900/20 border border-green-800/30" : "bg-red-900/20 border border-red-800/30"
             : "bg-muted/30"
-        }`} 
+        } ${isHumanVsHuman && !game.isComplete ? "cursor-pointer hover:bg-amber-500/5 hover:border hover:border-amber-500/20 transition-colors" : ""}`} 
+        onClick={isHumanVsHuman && !game.isComplete ? onMatchupPreview : undefined}
         data-testid={`card-game-${game.id}`}
       >
         <div className="flex-1 flex items-center gap-3 min-w-0">
@@ -469,7 +470,7 @@ function GameRow({ game, allGamesInGroup, onEdit, onViewBoxScore, onMatchupPrevi
             <RetroButton
               variant="outline"
               size="sm"
-              onClick={onMatchupPreview}
+              onClick={(e) => { e.stopPropagation(); onMatchupPreview(); }}
               title="View Matchup Preview"
               data-testid={`button-matchup-preview-${game.id}`}
               className="border-gold/60 text-gold/80 hover:text-gold hover:border-gold"
@@ -648,13 +649,14 @@ function MatchupPreviewModal({ leagueId, gameId, onClose }: { leagueId: string; 
               <div className="flex-shrink-0 text-center px-2 pt-2">
                 <div className="font-pixel text-muted-foreground text-[10px] mb-1">@</div>
                 {data.h2h.totalGames > 0 ? (
-                  <div className="mt-4">
-                    <p className="font-pixel text-[7px] text-muted-foreground mb-1">ALL-TIME H2H</p>
-                    <p className="font-pixel text-xs text-gold">
-                      {data.h2h.awayWins}–{data.h2h.homeWins}
+                  <div className="mt-4 space-y-1 max-w-[90px]">
+                    <p className="font-pixel text-[6px] text-muted-foreground leading-tight">ALL-TIME vs {data.awayTeam.abbreviation}</p>
+                    <p className="font-pixel text-[9px] text-gold">
+                      {data.h2h.homeWins}–{data.h2h.awayWins}
                     </p>
-                    <p className="text-[9px] text-muted-foreground mt-0.5">
-                      {data.h2h.awayWins === data.h2h.homeWins ? "Tied" : data.h2h.awayWins > data.h2h.homeWins ? `${data.awayTeam.abbreviation} leads` : `${data.homeTeam.abbreviation} leads`}
+                    <p className="font-pixel text-[6px] text-muted-foreground leading-tight">ALL-TIME vs {data.homeTeam.abbreviation}</p>
+                    <p className="font-pixel text-[9px] text-gold">
+                      {data.h2h.awayWins}–{data.h2h.homeWins}
                     </p>
                   </div>
                 ) : (
