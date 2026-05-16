@@ -15,6 +15,7 @@ import {
   TrendingUp,
   MapPin,
   History,
+  Sparkles,
 } from "lucide-react";
 
 interface CommitInfo {
@@ -318,7 +319,7 @@ export default function CommitsPage() {
 
   return (
     <div className="p-4 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div className="flex items-center gap-4">
           <Link href={`/league/${leagueId}`}>
             <RetroButton variant="outline" size="sm" data-testid="button-back">
@@ -333,6 +334,14 @@ export default function CommitsPage() {
             </p>
           </div>
         </div>
+        {data.totalCommits > 0 && (
+          <Link href={`/league/${leagueId}/signing-day-reveal`}>
+            <RetroButton variant="primary" size="sm" data-testid="button-view-class-reveal">
+              <Sparkles className="w-4 h-4 mr-2" />
+              View Class Reveal
+            </RetroButton>
+          </Link>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">

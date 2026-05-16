@@ -2685,6 +2685,108 @@ export async function registerRoutes(
     }
   });
 
+  // Signing-day reveal: full recruit data for signed recruits on a team
+  app.get("/api/leagues/:id/signing-day-reveal", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id as string);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      const teamId = req.query.teamId as string | undefined;
+      const leagueTeams = await storage.getTeamsByLeague(league.id);
+      const recruits = await storage.getRecruitsByLeague(league.id);
+      const signedRecruits = recruits.filter(r => r.signedTeamId);
+
+      const targetTeams = teamId
+        ? leagueTeams.filter(t => t.id === teamId)
+        : leagueTeams;
+
+      const teamData = targetTeams.map(team => {
+        const teamRecruits = signedRecruits.filter(r => r.signedTeamId === team.id);
+        return {
+          team: {
+            id: team.id,
+            name: team.name,
+            abbreviation: team.abbreviation,
+            primaryColor: team.primaryColor,
+            secondaryColor: team.secondaryColor,
+            conference: team.conference,
+            prestige: team.prestige,
+            isCpu: team.isCpu,
+          },
+          recruits: teamRecruits.map(r => ({
+            id: r.id,
+            firstName: r.firstName,
+            lastName: r.lastName,
+            position: r.position,
+            throwHand: r.throwHand,
+            batHand: r.batHand,
+            homeState: r.homeState,
+            hometown: r.hometown,
+            starRating: r.starRating,
+            overall: r.overall,
+            classRank: r.classRank,
+            positionRank: r.positionRank,
+            recruitType: r.recruitType,
+            recruitYear: r.recruitYear,
+            isBlueChip: r.isBlueChip,
+            isGem: r.isGem,
+            isBust: r.isBust,
+            isGenerationalGem: r.isGenerationalGem,
+            isGenerationalBust: r.isGenerationalBust,
+            gemBustRevealed: r.gemBustRevealed,
+            potential: r.potential,
+            abilities: r.abilities,
+            hitForAvg: r.hitForAvg,
+            power: r.power,
+            speed: r.speed,
+            arm: r.arm,
+            fielding: r.fielding,
+            errorResistance: r.errorResistance,
+            clutch: r.clutch,
+            stealing: r.stealing,
+            running: r.running,
+            throwing: r.throwing,
+            recovery: r.recovery,
+            catcherAbility: r.catcherAbility,
+            vsLHP: r.vsLHP,
+            grit: r.grit,
+            velocity: r.velocity,
+            control: r.control,
+            stamina: r.stamina,
+            stuff: r.stuff,
+            wRISP: r.wRISP,
+            vsLefty: r.vsLefty,
+            poise: r.poise,
+            heater: r.heater,
+            agile: r.agile,
+            skinTone: r.skinTone,
+            hairColor: r.hairColor,
+            hairStyle: r.hairStyle,
+            facialHair: r.facialHair,
+            eyeBlack: r.eyeBlack,
+            headwear: r.headwear,
+          })),
+        };
+      });
+
+      res.json({
+        league: { id: league.id, name: league.name, currentSeason: league.currentSeason },
+        teamData,
+        allTeams: leagueTeams.map(t => ({
+          id: t.id,
+          name: t.name,
+          abbreviation: t.abbreviation,
+          primaryColor: t.primaryColor,
+          secondaryColor: t.secondaryColor,
+          isCpu: t.isCpu,
+        })),
+      });
+    } catch (error) {
+      console.error("Failed to fetch signing-day reveal data:", error);
+      res.status(500).json({ message: "Failed to fetch reveal data" });
+    }
+  });
+
   // Roster routes
   app.get("/api/leagues/:id/roster", requireAuth, async (req, res) => {
     try {

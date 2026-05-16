@@ -26,6 +26,7 @@ import EditRecruitsPage from "@/pages/edit-recruits";
 import PlayersLeavingPage from "@/pages/players-leaving";
 import TransferPortalPage from "@/pages/transfer-portal";
 import CommitsPage from "@/pages/commits";
+import SigningDayRevealPage from "@/pages/signing-day-reveal";
 import DeparturesPage from "@/pages/departures";
 import WalkonsPage from "@/pages/walkons";
 import ManageRostersPage from "@/pages/manage-rosters";
@@ -84,6 +85,7 @@ function Router() {
         <Route path="/league/:id/players-leaving" component={PlayersLeavingPage} />
         <Route path="/league/:id/transfer-portal" component={TransferPortalPage} />
         <Route path="/league/:id/commits" component={CommitsPage} />
+        <Route path="/league/:id/signing-day-reveal" component={SigningDayRevealPage} />
         <Route path="/league/:id/departures" component={DeparturesPage} />
         <Route path="/league/:id/walkons" component={WalkonsPage} />
         <Route path="/league/:id/storylines" component={StorylinesPage} />

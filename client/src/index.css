@@ -310,6 +310,12 @@
     to   { opacity: 1; transform: translateY(0);   }
   }
 
+  /* ── Recruit card staggered entrance ── */
+  @keyframes cardSlideIn {
+    from { opacity: 0; transform: translateY(20px) scale(0.92); }
+    to   { opacity: 1; transform: translateY(0)    scale(1);    }
+  }
+
   /* ── Shimmer button sweep ── */
   @keyframes btn-shimmer {
     0%        { left: -80%; }
