@@ -404,17 +404,35 @@ export async function registerRoutes(
       
       const leaguesWithDetails = await Promise.all(
         userLeagues.map(async (league) => {
-          const leagueTeams = await storage.getTeamsByLeague(league.id);
-          const userTeam = leagueTeams.find((t) => !t.isCpu);
-          const userCoach = userTeam?.coachId 
-            ? await storage.getCoach(userTeam.coachId) 
-            : undefined;
-          
+          const [leagueTeams, allCoaches] = await Promise.all([
+            storage.getTeamsByLeague(league.id),
+            storage.getCoachesByLeague(league.id),
+          ]);
+          const userCoach = allCoaches.find(c => c.userId === userId);
+          const userTeam = userCoach
+            ? leagueTeams.find(t => t.coachId === userCoach.id)
+            : leagueTeams.find(t => !t.isCpu);
+
+          // Identify commissioner's team for display to all coaches
+          const commCoach = allCoaches.find(c => c.userId === league.commissionerId);
+          const commTeam = commCoach ? leagueTeams.find(t => t.coachId === commCoach.id) : undefined;
+          const commissionerTeamAbbr = commTeam?.abbreviation ?? null;
+
+          // Identify co-commissioner teams
+          const coCommIds: string[] = Array.isArray(league.coCommissionerIds) ? (league.coCommissionerIds as string[]) : [];
+          const coCommTeams = coCommIds.map(uid => {
+            const coach = allCoaches.find(c => c.userId === uid);
+            return coach ? leagueTeams.find(t => t.coachId === coach.id) : undefined;
+          }).filter(Boolean);
+          const coCommTeamAbbrs: string[] = coCommTeams.map(t => t!.abbreviation);
+
           return {
             ...league,
             teams: leagueTeams,
             userTeam,
             userCoach,
+            commissionerTeamAbbr,
+            coCommTeamAbbrs,
           };
         })
       );

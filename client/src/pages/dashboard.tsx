@@ -18,6 +18,8 @@ interface LeagueWithDetails extends League {
   teams?: Team[];
   userCoach?: Coach;
   userTeam?: Team;
+  commissionerTeamAbbr?: string | null;
+  coCommTeamAbbrs?: string[];
 }
 
 interface SavedRoster {
@@ -427,17 +429,24 @@ function LeagueCard({ league, userId }: { league: LeagueWithDetails; userId?: st
   const isPrimaryCommissioner = !!userId && userId === league.commissionerId;
   const coCommIds: string[] = Array.isArray(league.coCommissionerIds) ? (league.coCommissionerIds as string[]) : [];
   const isDelegate = !isPrimaryCommissioner && !!userId && coCommIds.includes(userId);
+  const commLabel = league.commissionerTeamAbbr ?? "COMM";
+  const coCommAbbrs: string[] = league.coCommTeamAbbrs ?? [];
 
   return (
     <RetroCard className="hover:border-gold/50 transition-colors" data-testid={`card-league-${league.id}`}>
       <RetroCardHeader className="flex items-center justify-between gap-4">
         <Link href={league.currentPhase === "dynasty_setup" ? `/league/${league.id}/dynasty-setup` : `/league/${league.id}`} className="truncate cursor-pointer hover:text-gold transition-colors">
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center gap-2 min-w-0 flex-wrap">
             <span className="truncate">{league.name}</span>
-            {isPrimaryCommissioner && (
+            {isPrimaryCommissioner ? (
               <div className="flex items-center gap-1 shrink-0" data-testid={`badge-commissioner-${league.id}`}>
                 <Crown className="w-3 h-3 text-gold" />
-                <Badge variant="outline" className="font-pixel text-[7px] text-gold border-gold/40 bg-gold/10">COMM</Badge>
+                <Badge variant="outline" className="font-pixel text-[7px] text-gold border-gold/40 bg-gold/10">COMMISSIONER</Badge>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 shrink-0" data-testid={`badge-commissioner-identity-${league.id}`}>
+                <Crown className="w-3 h-3 text-gold" />
+                <Badge variant="outline" className="font-pixel text-[7px] text-gold border-gold/40 bg-gold/10">COMM: {commLabel}</Badge>
               </div>
             )}
             {isDelegate && (
@@ -446,6 +455,12 @@ function LeagueCard({ league, userId }: { league: LeagueWithDetails; userId?: st
                 <Badge variant="outline" className="font-pixel text-[7px] text-blue-400 border-blue-400/40 bg-blue-400/10">DELEGATE</Badge>
               </div>
             )}
+            {coCommAbbrs.filter(a => !(isDelegate && a === commLabel)).map(abbr => (
+              <div key={abbr} className="flex items-center gap-1 shrink-0" data-testid={`badge-delegate-identity-${abbr}-${league.id}`}>
+                <Crown className="w-3 h-3 text-blue-400" />
+                <Badge variant="outline" className="font-pixel text-[7px] text-blue-400 border-blue-400/40 bg-blue-400/10">DEL: {abbr}</Badge>
+              </div>
+            ))}
           </div>
         </Link>
         <div className="flex items-center gap-2">
