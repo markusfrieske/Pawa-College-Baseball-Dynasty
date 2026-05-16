@@ -12435,11 +12435,13 @@ export async function registerRoutes(
       const league = await storage.getLeague(req.params.id);
       if (!league) return res.status(404).json({ message: "League not found" });
 
-      const [allRecruits, teams] = await Promise.all([
+      const [allRecruits, teams, storylineRows] = await Promise.all([
         storage.getRecruitsByLeague(req.params.id),
         storage.getTeamsByLeague(req.params.id),
+        storage.getStorylineRecruitsByLeague(req.params.id, league.currentSeason),
       ]);
       const teamsMap = new Map(teams.map(t => [t.id, t]));
+      const storylineRecruitIds = new Set(storylineRows.map(sl => sl.recruitId));
 
       const undecided = allRecruits.filter(r =>
         !r.signedTeamId && ["top3", "top5", "verbal"].includes(r.stage || "open")
@@ -12469,6 +12471,14 @@ export async function registerRoutes(
           homeState: recruit.homeState,
           topSchools: topInterests,
           committingTo,
+          isGenerationalGem: recruit.isGenerationalGem,
+          isGenerationalBust: recruit.isGenerationalBust,
+          isGem: recruit.isGem,
+          isBust: recruit.isBust,
+          isBlueChip: recruit.isBlueChip,
+          isStoryline: storylineRecruitIds.has(recruit.id),
+          recruitType: recruit.recruitType || "HS",
+          fromTeamName: recruit.fromTeamName || null,
         };
       }));
 

@@ -54,6 +54,8 @@ import {
   Home,
   Plane,
   Crown,
+  Skull,
+  Diamond,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -2353,6 +2355,128 @@ interface SigningDayPreviewRecruit {
   homeState: string;
   topSchools: { teamId: string; teamName: string; teamAbbr: string; primaryColor: string; interestLevel: number; hasOffer: boolean }[];
   committingTo: { teamId: string; teamName: string; teamAbbr: string; primaryColor: string } | null;
+  isGenerationalGem?: boolean;
+  isGenerationalBust?: boolean;
+  isGem?: boolean;
+  isBust?: boolean;
+  isBlueChip?: boolean;
+  isStoryline?: boolean;
+  recruitType?: string;
+  fromTeamName?: string | null;
+}
+
+function SigningDayBadgeRow({ recruit }: { recruit: SigningDayPreviewRecruit }) {
+  const badges: React.ReactNode[] = [];
+
+  if (recruit.isGenerationalGem) {
+    badges.push(
+      <span
+        key="gen-gem"
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/50 animate-in fade-in duration-500"
+        style={{ animationDelay: "300ms" }}
+        data-testid="badge-generational-gem"
+      >
+        <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+        GENERATIONAL GEM
+      </span>
+    );
+  } else if (recruit.isGenerationalBust) {
+    badges.push(
+      <span
+        key="gen-bust"
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold bg-red-900/30 text-red-300 border border-red-700/50 animate-in fade-in duration-500"
+        style={{ animationDelay: "300ms" }}
+        data-testid="badge-generational-bust"
+      >
+        <Skull className="w-3 h-3" />
+        GENERATIONAL BUST
+      </span>
+    );
+  } else if (recruit.isGem) {
+    badges.push(
+      <span
+        key="gem"
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold bg-green-900/30 text-green-300 border border-green-700/50 animate-in fade-in duration-500"
+        style={{ animationDelay: "300ms" }}
+        data-testid="badge-gem"
+      >
+        <Star className="w-3 h-3" />
+        GEM
+      </span>
+    );
+  } else if (recruit.isBust) {
+    badges.push(
+      <span
+        key="bust"
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold bg-red-900/30 text-red-400 border border-red-700/50 animate-in fade-in duration-500"
+        style={{ animationDelay: "300ms" }}
+        data-testid="badge-bust"
+      >
+        <Skull className="w-3 h-3" />
+        BUST
+      </span>
+    );
+  }
+
+  if (recruit.isStoryline) {
+    badges.push(
+      <span
+        key="storyline"
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold bg-violet-900/30 text-violet-300 border border-violet-700/50 animate-in fade-in duration-500"
+        style={{ animationDelay: "400ms" }}
+        data-testid="badge-storyline"
+      >
+        <ScrollText className="w-3 h-3" />
+        STORYLINE
+      </span>
+    );
+  }
+
+  if (recruit.recruitType === "TRANSFER") {
+    badges.push(
+      <span
+        key="transfer"
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold bg-purple-600/30 text-purple-300 border border-purple-600/50 animate-in fade-in duration-500"
+        style={{ animationDelay: "450ms" }}
+        data-testid="badge-transfer"
+      >
+        TRANSFER{recruit.fromTeamName ? ` (${recruit.fromTeamName})` : ""}
+      </span>
+    );
+  } else if (recruit.recruitType === "JUCO") {
+    badges.push(
+      <span
+        key="juco"
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold bg-cyan-600/30 text-cyan-300 border border-cyan-600/50 animate-in fade-in duration-500"
+        style={{ animationDelay: "450ms" }}
+        data-testid="badge-juco"
+      >
+        JUCO{recruit.fromTeamName ? ` (${recruit.fromTeamName})` : ""}
+      </span>
+    );
+  }
+
+  if (recruit.isBlueChip && !recruit.isGem && !recruit.isGenerationalGem) {
+    badges.push(
+      <span
+        key="bluechip"
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold bg-blue-900/30 text-blue-300 border border-blue-700/50 animate-in fade-in duration-500"
+        style={{ animationDelay: "500ms" }}
+        data-testid="badge-blue-chip"
+      >
+        <Diamond className="w-3 h-3" />
+        BLUE CHIP
+      </span>
+    );
+  }
+
+  if (badges.length === 0) return null;
+
+  return (
+    <div className="flex flex-wrap justify-center gap-1.5 pt-1">
+      {badges}
+    </div>
+  );
 }
 
 function SigningDayRevealModal({
@@ -2480,12 +2604,15 @@ function SigningDayRevealModal({
             )}
 
             {animPhase === "reveal" && (
-              <div className="bg-gold/10 border border-gold/50 rounded p-4 text-center space-y-1 animate-in fade-in duration-300">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">commits to</p>
-                <p className="font-pixel text-gold text-base">
-                  {current.committingTo?.teamName ?? school1?.teamName ?? "Undecided"}
-                </p>
-              </div>
+              <>
+                <div className="bg-gold/10 border border-gold/50 rounded p-4 text-center space-y-1 animate-in fade-in duration-300">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">commits to</p>
+                  <p className="font-pixel text-gold text-base">
+                    {current.committingTo?.teamName ?? school1?.teamName ?? "Undecided"}
+                  </p>
+                </div>
+                <SigningDayBadgeRow recruit={current} />
+              </>
             )}
 
             <RetroButton
