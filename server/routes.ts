@@ -6669,6 +6669,8 @@ export async function registerRoutes(
           
           const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "super_regionals", currentWeek: nextWeek });
           await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "Conference Championships Complete", details: "Conference championship games have been played. Super Regionals begin!" });
+          sendWeeklyDigests(leagueId, storage, league.currentSeason, currentWeek, league.currentPhase)
+            .catch(e => console.error("[digest] conf-champ hook:", e));
           return res.json(updatedLeague);
         }
         
@@ -6683,6 +6685,8 @@ export async function registerRoutes(
             } catch (e) { console.warn("[storylines] sr→offseason sweep failed:", e); }
             const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "offseason_departures", currentWeek: nextWeek });
             await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "Postseason Skipped", details: "Not enough teams for postseason bracket." });
+            sendWeeklyDigests(leagueId, storage, league.currentSeason, currentWeek, league.currentPhase)
+              .catch(e => console.error("[digest] sr-skipped hook:", e));
             return res.json(updatedLeague);
           }
           
@@ -6707,6 +6711,8 @@ export async function registerRoutes(
             } catch (e) { console.error("CWS appearances coach stats error:", e); }
             const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "cws", currentWeek: nextWeek });
             await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "Super Regionals Complete", details: "The final two teams advance to the College World Series!" });
+            sendWeeklyDigests(leagueId, storage, league.currentSeason, currentWeek, league.currentPhase)
+              .catch(e => console.error("[digest] sr-complete hook:", e));
             return res.json(updatedLeague);
           }
           
@@ -6833,12 +6839,16 @@ export async function registerRoutes(
               console.error("Auto-process departures error:", e);
             }
             
+            sendWeeklyDigests(leagueId, storage, league.currentSeason, currentWeek, league.currentPhase)
+              .catch(e => console.error("[digest] cws-champion hook:", e));
             return res.json({ ...updatedLeague, cwsChampion: cwsResult.champion, cwsRunnerUp: cwsResult.runnerUp });
           }
           
           await storage.updateLeague(league.id, { currentWeek: nextWeek });
           await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "CWS Game Complete", details: "A game of the College World Series has been played." });
           const updatedLeague = await storage.getLeague(leagueId);
+          sendWeeklyDigests(leagueId, storage, league.currentSeason, currentWeek, league.currentPhase)
+            .catch(e => console.error("[digest] cws-round hook:", e));
           return res.json(updatedLeague);
         }
       }
@@ -6922,6 +6932,8 @@ export async function registerRoutes(
             details: `${finalizeResult.graduated} graduated, ${finalizeResult.drafted} entered MLB draft, ${finalizeResult.transferred} entered transfer portal.`,
           });
           
+          sendWeeklyDigests(leagueId, storage, league.currentSeason, currentWeek, league.currentPhase)
+            .catch(e => console.error("[digest] departures-finalized hook:", e));
           return res.json({ 
             ...finalizeResult.updatedLeague,
             departed: { graduated: finalizeResult.graduated, drafted: finalizeResult.drafted, transferred: finalizeResult.transferred },

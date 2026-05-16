@@ -190,7 +190,7 @@ function buildDigestHtml(opts: {
       <!-- CTA -->
       <tr>
         <td style="background:#0a1a0a;border-left:2px solid #FFD700;border-right:2px solid #FFD700;padding:20px 28px;text-align:center;">
-          <a href="/" style="display:inline-block;background:#FFD700;color:#0a1a0a;font-size:12px;font-weight:bold;letter-spacing:1px;text-transform:uppercase;text-decoration:none;padding:10px 28px;border-radius:3px;">Open Dynasty</a>
+          <a href="${appBaseUrl}" style="display:inline-block;background:#FFD700;color:#0a1a0a;font-size:12px;font-weight:bold;letter-spacing:1px;text-transform:uppercase;text-decoration:none;padding:10px 28px;border-radius:3px;">Open Dynasty</a>
         </td>
       </tr>
 
