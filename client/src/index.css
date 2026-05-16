@@ -730,6 +730,16 @@ html[data-mood="offseason"] nav {
   100% { box-shadow: 0 0 0 42px rgba(196,163,90,0),    0 0 24px 22px rgba(255,210,0,0);    opacity: 0;   }
 }
 
+/* ── prefers-reduced-motion: disable recruit card animations as a failsafe ── */
+@media (prefers-reduced-motion: reduce) {
+  .recruit-card-wrapper {
+    animation: none !important;
+  }
+  .recruit-card-wrapper > div {
+    transition: none !important;
+  }
+}
+
 /* ── prefers-reduced-motion: disable all atmosphere animations/transitions ── */
 @media (prefers-reduced-motion: reduce) {
   .atm-overlay,

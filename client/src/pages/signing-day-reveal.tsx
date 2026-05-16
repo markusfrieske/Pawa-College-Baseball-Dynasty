@@ -692,6 +692,7 @@ export default function SigningDayRevealPage() {
                             primaryColor={currentEntry.team.primaryColor}
                             secondaryColor={currentEntry.team.secondaryColor}
                             animationDelay={animDelay}
+                            disableAnimation={reducedMotion}
                           />
                         </div>
                       );

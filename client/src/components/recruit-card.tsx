@@ -61,6 +61,7 @@ interface RecruitCardProps {
   primaryColor: string;
   secondaryColor: string;
   animationDelay?: number;
+  disableAnimation?: boolean;
 }
 
 function getOvrGlow(ovr: number): string {
@@ -331,7 +332,7 @@ function CardBack({ recruit }: { recruit: RevealRecruit }) {
   );
 }
 
-export function RecruitCard({ recruit, primaryColor, secondaryColor, animationDelay = 0 }: RecruitCardProps) {
+export function RecruitCard({ recruit, primaryColor, secondaryColor, animationDelay = 0, disableAnimation = false }: RecruitCardProps) {
   const [flipped, setFlipped] = useState(false);
   const glow = getOvrGlow(recruit.overall);
   const glowBorder = getOvrGlowBorder(recruit.overall);
@@ -344,7 +345,7 @@ export function RecruitCard({ recruit, primaryColor, secondaryColor, animationDe
         height: "220px",
         perspective: "800px",
         flexShrink: 0,
-        animation: `cardSlideIn 0.5s ease-out ${animationDelay}s both`,
+        animation: disableAnimation ? "none" : `cardSlideIn 0.5s ease-out ${animationDelay}s both`,
         cursor: "pointer",
       }}
       onClick={() => setFlipped(f => !f)}
@@ -357,7 +358,7 @@ export function RecruitCard({ recruit, primaryColor, secondaryColor, animationDe
           height: "100%",
           position: "relative",
           transformStyle: "preserve-3d",
-          transition: "transform 0.6s cubic-bezier(0.4,0,0.2,1)",
+          transition: disableAnimation ? "none" : "transform 0.6s cubic-bezier(0.4,0,0.2,1)",
           transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
           borderRadius: "8px",
           boxShadow: glow,
