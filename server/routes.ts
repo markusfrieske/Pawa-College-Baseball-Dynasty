@@ -14234,6 +14234,12 @@ async function generateRecruits(leagueId: string, count: number, forceStorylineR
       leagueId,
       ...r,
       ...(progressionEnabled ? (() => {
+        // Preserve archetype-forced potential (late_bloomer forces high; overdraft forces low).
+        // Only roll a fresh potential when the generator left it unset.
+        if (r.potential != null) {
+          const range = getPotentialRange(r.potential);
+          return { potentialFloor: range.floor, potentialCeiling: range.ceiling };
+        }
         let pot = rollWeightedPotential();
         if (r.isBlueChip) pot = Math.max(78, pot);
         if (r.isGenerationalGem) pot = Math.max(74, pot);
