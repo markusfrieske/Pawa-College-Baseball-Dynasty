@@ -1389,7 +1389,7 @@ function StandingsTab({ league }: { league: LeagueDetails }) {
                     </td>
                     <td className="py-3 px-2 hidden lg:table-cell">
                       {team.coach ? (
-                        <Link href={`/league/${league.id}/coach/${team.coach.id}`}>
+                        <Link href={`/league/${league.id}/team/${team.id}/profile`}>
                           <div className="flex items-center gap-2 hover:text-gold cursor-pointer">
                             {team.coach.userId ? (
                               <User className="w-3 h-3 text-gold" />

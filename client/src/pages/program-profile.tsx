@@ -75,6 +75,7 @@ interface ProgramProfileData {
   currentSeason: number;
   allTimeWins: number;
   allTimeLosses: number;
+  confChampAppearances: number;
   confChampionships: number;
   superRegionalsAppearances: number;
   cwsAppearances: number;
@@ -154,7 +155,7 @@ export default function ProgramProfilePage() {
     );
   }
 
-  const { team, coach, isCommissioner, commissionerSeasons, allTimeWins, allTimeLosses, confChampionships, superRegionalsAppearances, cwsAppearances, cwsTitles, seasonHistory, recruitingHoF, topDraftedPlayers } = data;
+  const { team, coach, isCommissioner, commissionerSeasons, allTimeWins, allTimeLosses, confChampAppearances, confChampionships, superRegionalsAppearances, cwsAppearances, cwsTitles, seasonHistory, recruitingHoF, topDraftedPlayers } = data;
   const totalGames = allTimeWins + allTimeLosses;
   const winPct = totalGames > 0 ? ((allTimeWins / totalGames) * 100).toFixed(1) : "0.0";
 
@@ -234,11 +235,16 @@ export default function ProgramProfilePage() {
         </RetroCard>
 
         {/* All-time stats strip */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <StatTile icon={<TrendingUp className="w-4 h-4" />} label="All-Time Record" value={`${allTimeWins}-${allTimeLosses}`} sub={`${winPct}%`} />
           <StatTile icon={<Trophy className="w-4 h-4" />} label="CWS Titles" value={String(cwsTitles)} gold={cwsTitles > 0} />
-          <StatTile icon={<Star className="w-4 h-4" />} label="CWS Appearances" value={String(cwsAppearances)} />
-          <StatTile icon={<Award className="w-4 h-4" />} label="Conf. Titles" value={String(confChampionships)} />
+          <StatTile icon={<Crown className="w-4 h-4" />} label="Conf. Titles" value={String(confChampionships)} gold={confChampionships > 0} />
+        </div>
+        {/* Postseason appearances */}
+        <div className="grid grid-cols-3 gap-3">
+          <StatTile icon={<Award className="w-4 h-4" />} label="Conf. Champ." value={String(confChampAppearances)} sub="appearances" />
+          <StatTile icon={<Star className="w-4 h-4" />} label="Super Regionals" value={String(superRegionalsAppearances)} sub="appearances" />
+          <StatTile icon={<Medal className="w-4 h-4" />} label="CWS" value={String(cwsAppearances)} sub="appearances" />
         </div>
 
         {/* Season-by-Season History */}

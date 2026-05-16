@@ -13511,6 +13511,7 @@ export async function registerRoutes(
       }).sort((a, b) => b.season - a.season);
 
       // Aggregate postseason milestones
+      const confChampAppearances = Object.values(postseasonBySeason).filter(ps => ps.confChamp.played).length;
       const confChampionships = Object.values(postseasonBySeason).filter(ps => ps.confChamp.won).length;
       const superRegionalsAppearances = Object.values(postseasonBySeason).filter(ps => ps.superRegionals.played).length;
       const cwsAppearances = Object.values(postseasonBySeason).filter(ps => ps.cws.played).length;
@@ -13518,7 +13519,8 @@ export async function registerRoutes(
       const cwsTitles = Object.values(cwsWinsBySeasonCount).filter(r => r.wins >= 2).length;
 
       // Recruiting Hall of Fame — top 5 players ever on this roster by OVR
-      // Include active players on current roster + departed alumni (excluding cut/JUCO)
+      // Active players use current OVR; departed alumni use departure-time OVR from player_history.
+      // Excludes players who were cut/sent to JUCO (departureType = cut_juco).
       const activePlayerEntries = currentRoster
         .filter(p => !p.inTransferPortal)
         .map(p => ({
@@ -13600,6 +13602,7 @@ export async function registerRoutes(
         currentSeason: league.currentSeason,
         allTimeWins,
         allTimeLosses,
+        confChampAppearances,
         confChampionships,
         superRegionalsAppearances,
         cwsAppearances,
