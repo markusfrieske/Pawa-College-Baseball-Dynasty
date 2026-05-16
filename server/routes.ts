@@ -6719,6 +6719,8 @@ export async function registerRoutes(
           await storage.updateLeague(league.id, { currentWeek: nextWeek });
           await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "Super Regionals Round Complete", details: "A round of the Super Regionals has been completed." });
           const updatedLeague = await storage.getLeague(leagueId);
+          sendWeeklyDigests(leagueId, storage, league.currentSeason, currentWeek, league.currentPhase)
+            .catch(e => console.error("[digest] sr-round hook:", e));
           return res.json(updatedLeague);
         }
         
