@@ -71,7 +71,6 @@ function deriveCoachingGrades(coach: Coach): Record<string, string> {
     "Dealmaker":      { gm:  6, pd:  6, pb: 16, mr: 20, cc:  6 },
     "Pure CEO":       { gm:  8, pd:  8, pb: 18, mr: 16, cc:  4 },
     "Player's Coach": { gm:  8, pd: 18, pb: 10, mr: 14, cc: 10 },
-    "Showman":        { gm:  6, pd:  6, pb: 12, mr: 20, cc:  8 },
     "Scout Master":   { gm: 10, pd: 16, pb:  8, mr:  4, cc: 10 },
     "Academic Dean":  { gm:  8, pd: 14, pb: 14, mr: 10, cc:  6 },
     "Balanced":       { gm: 10, pd: 10, pb: 10, mr: 10, cc: 10 },

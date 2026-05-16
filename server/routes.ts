@@ -288,7 +288,7 @@ async function ensureCoachTraits(
     updates.personality = getPersonalityForArchetype(coach.archetype).id;
   }
   if (!coach.traitBadges || (coach.traitBadges as string[]).length === 0) {
-    updates.traitBadges = getTraitBadgesForArchetype(coach.archetype, coach.personality ?? "");
+    updates.traitBadges = getTraitBadgesForArchetype(coach.archetype);
   }
   if (!coach.coachingPhilosophy || (coach.coachingPhilosophy as unknown[]).length === 0) {
     updates.coachingPhilosophy = getPhilosophyForArchetype(coach.archetype);

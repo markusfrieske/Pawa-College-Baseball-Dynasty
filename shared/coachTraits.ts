@@ -70,7 +70,7 @@ export const TRAIT_BADGES: TraitBadge[] = [
   { id: "game_manager", name: "Game Manager", description: "Puts players in position to succeed situationally", tier: "bronze", category: "game" },
 ];
 
-export function getTraitBadgesForArchetype(archetype: string, personality: string): string[] {
+export function getTraitBadgesForArchetype(archetype: string): string[] {
   const byArchetype: Record<string, string[]> = {
     "Balanced":        ["consistent_winner", "recruiting_ace", "game_manager"],
     "Pure CEO":        ["conference_king", "consistent_winner", "pit_bull_recruiter"],
