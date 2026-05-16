@@ -19,7 +19,7 @@ import {
 import type { Coach, Team, CoachSeasonHistory } from "@shared/schema";
 import {
   PERSONALITY_TYPES, TRAIT_BADGES, CAREER_MILESTONES, ARCHETYPE_METADATA,
-  type TraitBadge, type CareerMilestone,
+  type TraitBadge, type CareerMilestone, type MilestoneEntry,
 } from "@shared/coachTraits";
 
 interface CoachData {
@@ -175,7 +175,8 @@ function PhaseResultBadge({ result }: { result: string }) {
 }
 
 // ── Milestone badge display ───────────────────────────────────────────────────
-function MilestoneBadge({ milestone, earned }: { milestone: CareerMilestone; earned: boolean }) {
+function MilestoneBadge({ milestone, earnedEntry }: { milestone: CareerMilestone; earnedEntry: MilestoneEntry | null }) {
+  const earned = earnedEntry != null;
   const tierColors = {
     gold: earned ? "border-yellow-600 bg-yellow-900/30 text-yellow-300" : "border-border/30 bg-muted/10 text-muted-foreground/40",
     silver: earned ? "border-slate-400 bg-slate-700/30 text-slate-200" : "border-border/30 bg-muted/10 text-muted-foreground/40",
@@ -186,14 +187,20 @@ function MilestoneBadge({ milestone, earned }: { milestone: CareerMilestone; ear
     silver: <Medal className="w-3.5 h-3.5" />,
     bronze: <Award className="w-3.5 h-3.5" />,
   };
+  const tooltip = earned
+    ? `${milestone.description} (Season ${earnedEntry!.season})`
+    : milestone.description;
   return (
     <div
       className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border text-center transition-all ${tierColors[milestone.tier]}`}
-      title={milestone.description}
+      title={tooltip}
       data-testid={`milestone-${milestone.id}`}
     >
       <div className={earned ? "" : "opacity-30"}>{tierIcon[milestone.tier]}</div>
       <span className="text-xs font-medium leading-tight">{milestone.name}</span>
+      {earned && earnedEntry!.season > 0 && (
+        <span className="text-xs opacity-60">Yr {earnedEntry!.season}</span>
+      )}
     </div>
   );
 }
@@ -751,7 +758,13 @@ function SkillsTab({
 }: {
   coach: Coach; isOwnCoach: boolean; onUpgrade?: (skill: string) => void;
 }) {
-  const earnedMilestoneIds = new Set(Array.isArray(coach.careerMilestones) ? coach.careerMilestones as string[] : []);
+  // Build a map from milestone id → {id, season} entry for earned milestones
+  const earnedMilestoneMap = new Map<string, MilestoneEntry>(
+    (Array.isArray(coach.careerMilestones)
+      ? (coach.careerMilestones as MilestoneEntry[]).filter(m => m && typeof m === "object" && "id" in m)
+      : []
+    ).map(m => [m.id, m])
+  );
 
   const milestonesByTier = {
     gold: CAREER_MILESTONES.filter(m => m.tier === "gold"),
@@ -759,7 +772,7 @@ function SkillsTab({
     bronze: CAREER_MILESTONES.filter(m => m.tier === "bronze"),
   };
 
-  const totalEarned = earnedMilestoneIds.size;
+  const totalEarned = earnedMilestoneMap.size;
   const totalMilestones = CAREER_MILESTONES.length;
 
   return (
@@ -785,7 +798,7 @@ function SkillsTab({
                 <p className={`text-xs font-semibold mb-2 ${tierColor}`}>{tierLabel}</p>
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
                   {milestonesByTier[tier].map(m => (
-                    <MilestoneBadge key={m.id} milestone={m} earned={earnedMilestoneIds.has(m.id)} />
+                    <MilestoneBadge key={m.id} milestone={m} earnedEntry={earnedMilestoneMap.get(m.id) ?? null} />
                   ))}
                 </div>
               </div>

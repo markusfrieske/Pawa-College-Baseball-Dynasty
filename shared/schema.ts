@@ -169,7 +169,7 @@ export const coaches = pgTable("coaches", {
   personality: text("personality"),
   coachingPhilosophy: json("coaching_philosophy").$type<{statement: string; importance: string}[]>().default([]),
   traitBadges: json("trait_badges").$type<string[]>().default([]),
-  careerMilestones: json("career_milestones").$type<string[]>().default([]),
+  careerMilestones: json("career_milestones").$type<{id: string; season: number}[]>().default([]),
 }, (t) => [
   index("idx_coaches_team_id").on(t.teamId),
   index("idx_coaches_league_id").on(t.leagueId),
@@ -1430,6 +1430,7 @@ export const coachSeasonHistory = pgTable("coach_season_history", {
   phaseResult: text("phase_result").notNull().default("regular_season"),
   classRank: integer("class_rank"),
   classScore: real("class_score"),
+  classStarAvg: real("class_star_avg"),
   totalSigned: integer("total_signed").notNull().default(0),
   topRecruitName: text("top_recruit_name"),
   topRecruitOvr: integer("top_recruit_ovr"),

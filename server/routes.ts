@@ -3772,7 +3772,13 @@ export async function registerRoutes(
       }
 
       // Auto-assign personality/traits/philosophy/milestones on first render
-      try { await ensureCoachTraits(userCoach); const fresh = await storage.getCoach(userCoach.id); if (fresh) { res.json({ coach: fresh, team, isOwnCoach: true }); return; } } catch {}
+      try {
+        await ensureCoachTraits(userCoach);
+        const fresh = await storage.getCoach(userCoach.id);
+        if (fresh) { res.json({ coach: fresh, team, isOwnCoach: true }); return; }
+      } catch (traitErr) {
+        console.error("[coach-profile] ensureCoachTraits failed:", traitErr);
+      }
 
       res.json({
         coach: userCoach,
@@ -3843,7 +3849,12 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Coach not found" });
       }
 
-      try { await ensureCoachTraits(coach); coach = (await storage.getCoach(coach.id)) ?? coach; } catch {}
+      try {
+        await ensureCoachTraits(coach);
+        coach = (await storage.getCoach(coach.id)) ?? coach;
+      } catch (traitErr) {
+        console.error("[coach-by-id] ensureCoachTraits failed:", traitErr);
+      }
 
       const team = coach.teamId ? await storage.getTeam(coach.teamId) : undefined;
       const isOwnCoach = coach.userId === req.session.userId;
@@ -3921,15 +3932,22 @@ export async function registerRoutes(
       : null;
 
     // Draft picks developed — count from player history for coach's team across all recorded seasons
-    const draftPicksDeveloped = coach.teamId
-      ? (await storage.getPlayerHistoryByLeague(coach.leagueId)).filter(
-          ph => ph.teamId === coach.teamId && ph.draftRound != null
-        ).length
-      : 0;
+    let draftPicksDeveloped = 0;
+    let blueChipsSigned = 0;
+    if (coach.teamId) {
+      const playerHist = await storage.getPlayerHistoryByLeague(coach.leagueId);
+      draftPicksDeveloped = playerHist.filter(ph => ph.teamId === coach.teamId && ph.draftRound != null).length;
+      // Blue chips signed — from recruits with isBlueChip=true signed to this team
+      const allRecruits = await storage.getRecruitsByLeague(coach.leagueId);
+      blueChipsSigned = allRecruits.filter(
+        r => r.signedTeamId === coach.teamId && (r as any).isBlueChip === true && r.starRating === 5
+      ).length;
+    }
 
     return {
       totalSigned: history.reduce((s, h) => s + h.totalSigned, 0),
       fiveStars, fourStars, threeStars, twoStars, oneStars,
+      blueChipsSigned,
       avgClassRank,
       bestClassRank: bestClassEntry?.classRank ?? null,
       topClassSeason: bestClassEntry?.season ?? null,
@@ -8947,7 +8965,18 @@ export async function registerRoutes(
   }
 
   // ============ COACH TRAITS AUTO-ASSIGN HELPER ============
-  async function ensureCoachTraits(coach: { id: string; archetype: string; personality?: string | null; traitBadges?: string[] | null; coachingPhilosophy?: {statement: string; importance: string}[] | null; careerMilestones?: string[] | null; careerWins: number; careerLosses: number; level: number; confChampionships: number; cwsAppearances: number; nationalChampionships: number; allAmericans: number; draftPicks: number }) {
+  async function ensureCoachTraits(
+    coach: {
+      id: string; archetype: string; leagueId: string; teamId?: string | null;
+      personality?: string | null; traitBadges?: string[] | null;
+      coachingPhilosophy?: {statement: string; importance: string}[] | null;
+      careerMilestones?: {id: string; season: number}[] | null;
+      careerWins: number; careerLosses: number; level: number;
+      confChampionships: number; cwsAppearances: number; nationalChampionships: number;
+      allAmericans: number; draftPicks: number;
+    },
+    currentSeason?: number,
+  ) {
     const updates: Record<string, unknown> = {};
     if (!coach.personality) {
       updates.personality = getPersonalityForArchetype(coach.archetype).id;
@@ -8958,18 +8987,39 @@ export async function registerRoutes(
     if (!coach.coachingPhilosophy || (coach.coachingPhilosophy as unknown[]).length === 0) {
       updates.coachingPhilosophy = getPhilosophyForArchetype(coach.archetype);
     }
+
+    // Build recruiting data for milestone evaluation from class snapshots
+    let recruitingStats = { totalSigned: 0, threeStars: 0, fourStars: 0, fiveStars: 0, blueChipsSigned: 0 };
+    try {
+      if (coach.teamId) {
+        const snaps = await storage.getRecruitingClassSnapshotsAllSeasons(coach.leagueId);
+        const teamSnaps = snaps.filter(s => s.teamId === coach.teamId);
+        recruitingStats = {
+          totalSigned: teamSnaps.reduce((s, sn) => s + sn.totalCommits, 0),
+          threeStars: teamSnaps.reduce((s, sn) => s + sn.threeStars, 0),
+          fourStars: teamSnaps.reduce((s, sn) => s + sn.fourStars, 0),
+          fiveStars: teamSnaps.reduce((s, sn) => s + sn.fiveStars, 0),
+          blueChipsSigned: 0, // approximated below from raw recruits
+        };
+        // Count signed blue chips from recruits table
+        const allRecruits = await storage.getRecruitsByLeague(coach.leagueId);
+        recruitingStats.blueChipsSigned = allRecruits.filter(
+          r => r.signedTeamId === coach.teamId && (r as any).isBlueChip === true && r.starRating === 5
+        ).length;
+      }
+    } catch (err) {
+      console.error("[ensureCoachTraits] Failed to load recruiting stats for milestones:", err);
+    }
+
+    const league = await storage.getLeague(coach.leagueId).catch(() => null);
+    const season = currentSeason ?? league?.currentSeason ?? 1;
+
     const currentMilestones = coach.careerMilestones ?? [];
-    const earnedMilestones = evaluateMilestones({
-      careerWins: coach.careerWins,
-      careerLosses: coach.careerLosses,
-      level: coach.level,
-      confChampionships: coach.confChampionships,
-      cwsAppearances: coach.cwsAppearances,
-      nationalChampionships: coach.nationalChampionships,
-      allAmericans: coach.allAmericans,
-      draftPicks: coach.draftPicks,
-      careerMilestones: currentMilestones,
-    });
+    const earnedMilestones = evaluateMilestones(
+      { ...coach, careerMilestones: currentMilestones },
+      recruitingStats,
+      season,
+    );
     if (earnedMilestones.length > currentMilestones.length) {
       updates.careerMilestones = earnedMilestones;
     }
@@ -10713,6 +10763,10 @@ export async function registerRoutes(
         }).sort((a, b) => b.score - a.score);
         const classRank = allTeamScores.findIndex(e => e.teamId === coach.teamId) + 1;
 
+        const classStarAvg = teamCommits.length > 0
+          ? teamCommits.reduce((s, r) => s + (r.starRating || 3), 0) / teamCommits.length
+          : null;
+
         await storage.upsertCoachSeasonHistory({
           coachId: coach.id,
           leagueId,
@@ -10724,6 +10778,7 @@ export async function registerRoutes(
           phaseResult,
           classRank: classRank > 0 ? classRank : null,
           classScore: classScore > 0 ? classScore : null,
+          classStarAvg,
           totalSigned: teamCommits.length,
           topRecruitName: topRecruit ? `${topRecruit.firstName} ${topRecruit.lastName}` : null,
           topRecruitOvr: topRecruit?.overall ?? null,
@@ -10733,7 +10788,9 @@ export async function registerRoutes(
         });
 
         // Also refresh milestones after recording season
-        try { await ensureCoachTraits(coach); } catch {}
+        try { await ensureCoachTraits(coach, completedSeason); } catch (traitErr) {
+          console.error("[finalizeSigningDay] ensureCoachTraits failed for coach", coach.id, ":", traitErr);
+        }
       }
       console.log(`[finalizeSigningDay] Recorded season history for ${allCoaches.length} coaches`);
     } catch (histErr) {

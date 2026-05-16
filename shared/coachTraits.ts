@@ -143,6 +143,11 @@ export interface CareerMilestone {
   category: "wins" | "recruiting" | "postseason" | "development" | "career";
 }
 
+export interface MilestoneEntry {
+  id: string;
+  season: number;
+}
+
 export const CAREER_MILESTONES: CareerMilestone[] = [
   // Bronze milestones
   { id: "first_win", name: "First Win", description: "Won your first career game", tier: "bronze", category: "wins" },
@@ -172,49 +177,85 @@ export const CAREER_MILESTONES: CareerMilestone[] = [
   { id: "signed_blue_chip", name: "Blue Chip Closer", description: "Signed a Blue Chip 5-star recruit", tier: "gold", category: "recruiting" },
 ];
 
-export function evaluateMilestones(coach: {
-  careerWins: number;
-  careerLosses: number;
-  level: number;
-  confChampionships: number;
-  cwsAppearances: number;
-  nationalChampionships: number;
-  allAmericans: number;
-  draftPicks: number;
-  careerMilestones?: string[] | null;
-  seasonsCoached?: number;
-}): string[] {
-  const existing = new Set(coach.careerMilestones ?? []);
-  const earned: string[] = [...existing];
+/**
+ * Evaluate which career milestones a coach has earned.
+ * Returns a full {id, season} array — preserving existing unlock seasons and
+ * stamping newly unlocked milestones with the provided currentSeason.
+ *
+ * @param coach        - Career stats used to evaluate condition milestones
+ * @param recruiting   - Aggregated recruiting data for star-tier milestones
+ * @param currentSeason - The season to stamp on newly-unlocked milestones
+ */
+export function evaluateMilestones(
+  coach: {
+    careerWins: number;
+    careerLosses: number;
+    level: number;
+    confChampionships: number;
+    cwsAppearances: number;
+    nationalChampionships: number;
+    allAmericans: number;
+    draftPicks: number;
+    careerMilestones?: MilestoneEntry[] | null;
+    seasonsCoached?: number;
+  },
+  recruiting: {
+    totalSigned: number;
+    threeStars: number;
+    fourStars: number;
+    fiveStars: number;
+    blueChipsSigned: number;
+  } = { totalSigned: 0, threeStars: 0, fourStars: 0, fiveStars: 0, blueChipsSigned: 0 },
+  currentSeason = 1,
+): MilestoneEntry[] {
+  const existing = new Map<string, number>(
+    (coach.careerMilestones ?? []).map(m => [m.id, m.season])
+  );
+
+  const result: MilestoneEntry[] = [...existing.entries()].map(([id, season]) => ({ id, season }));
 
   const totalGames = coach.careerWins + coach.careerLosses;
 
   const check = (id: string, condition: boolean) => {
-    if (condition && !existing.has(id)) earned.push(id);
+    if (condition && !existing.has(id)) {
+      result.push({ id, season: currentSeason });
+    }
   };
 
+  // Wins-based
   check("first_win", coach.careerWins >= 1);
-  check("first_season", totalGames >= 10);
-  check("first_signing", true); // All coaches have signed at least 1 recruit
   check("winning_record", coach.careerWins > coach.careerLosses && totalGames > 0);
   check("ten_wins", coach.careerWins >= 10);
-  check("signed_3star", true); // Assume all active coaches have signed a 3-star
-  check("level_5", coach.level >= 5);
+  check("twenty_win_season", coach.careerWins >= 20);
   check("wins_50", coach.careerWins >= 50);
   check("wins_100", coach.careerWins >= 100);
-  check("first_conf_championship", coach.confChampionships >= 1);
-  check("first_cws", coach.cwsAppearances >= 1);
-  check("first_draft_pick", coach.draftPicks >= 1);
-  check("twenty_win_season", coach.careerWins >= 20);
-  check("all_american_coach", coach.allAmericans >= 1);
-  check("level_10", coach.level >= 10);
-  check("national_champion", coach.nationalChampionships >= 1);
-  check("dynasty_five_seasons", (coach.seasonsCoached ?? 0) >= 5);
   check("wins_250", coach.careerWins >= 250);
-  check("five_draft_picks", coach.draftPicks >= 5);
-  check("three_conf_championships", coach.confChampionships >= 3);
 
-  return earned;
+  // Career progression
+  check("first_season", totalGames >= 10);
+  check("level_5", coach.level >= 5);
+  check("level_10", coach.level >= 10);
+  check("dynasty_five_seasons", (coach.seasonsCoached ?? 0) >= 5);
+
+  // Postseason
+  check("first_conf_championship", coach.confChampionships >= 1);
+  check("three_conf_championships", coach.confChampionships >= 3);
+  check("first_cws", coach.cwsAppearances >= 1);
+  check("national_champion", coach.nationalChampionships >= 1);
+
+  // Development
+  check("all_american_coach", coach.allAmericans >= 1);
+  check("first_draft_pick", coach.draftPicks >= 1);
+  check("five_draft_picks", coach.draftPicks >= 5);
+
+  // Recruiting — driven by actual aggregated signing data
+  check("first_signing", recruiting.totalSigned >= 1);
+  check("signed_3star", recruiting.threeStars >= 1);
+  check("signed_4star", recruiting.fourStars >= 1);
+  check("signed_5star", recruiting.fiveStars >= 1);
+  check("signed_blue_chip", recruiting.blueChipsSigned >= 1);
+
+  return result;
 }
 
 export interface ArchetypeMetadata {
@@ -271,7 +312,7 @@ export const ARCHETYPE_METADATA: Record<string, ArchetypeMetadata> = {
     name: "Scout Master",
     tagline: "I'll Find Them First",
     description: "You find talent before anyone else knows it exists. The scouting advantage is real.",
-    bonuses: ["+15% evaluation skill effectiveness", "+25% scouting speed"], 
+    bonuses: ["+15% evaluation skill effectiveness", "+25% scouting speed"],
     penalties: ["Weaker marketing/brand recruiting pitches"],
     personalityAlignment: "The Grinder",
   },
