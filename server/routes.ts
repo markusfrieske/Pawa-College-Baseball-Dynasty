@@ -13580,6 +13580,7 @@ export async function registerRoutes(
       if (!coach) return res.status(404).json({ message: "Coach not found" });
       if (coach.leagueId !== leagueId) return res.status(400).json({ message: "Coach not in this league" });
       if (coach.userId === userId) return res.status(400).json({ message: "Commissioners cannot remove themselves" });
+      if (coach.userId === league.commissionerId) return res.status(403).json({ message: "The primary commissioner cannot be removed" });
       await storage.leaveLeague(coachId, leagueId, userId);
       res.json({ message: "Coach removed from league" });
     } catch (error) {
