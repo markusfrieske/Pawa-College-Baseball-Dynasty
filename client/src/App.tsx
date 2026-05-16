@@ -37,7 +37,7 @@ import { useLocation, useSearch } from "wouter";
 import { MusicProvider } from "@/lib/music-context";
 import { MusicRouter } from "@/components/music-router";
 import { VolumeControl } from "@/components/volume-control";
-import { AtmosphereProvider, AtmosphereOverlay, SigningDayBurst } from "@/components/atmosphere-provider";
+import { AtmosphereProvider, AtmosphereOverlay, SigningDayBurst, PostseasonBanner } from "@/components/atmosphere-provider";
 import { AtmosphereRouter } from "@/components/atmosphere-router";
 import { useToast } from "@/hooks/use-toast";
 
@@ -148,6 +148,7 @@ function App() {
         <AtmosphereProvider>
           <MusicProvider>
             <AtmosphereOverlay />
+            <PostseasonBanner />
             <SigningDayBurst />
             <AtmosphereRouter />
             <MusicRouter />

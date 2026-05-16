@@ -1,10 +1,20 @@
 import { useEffect, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
-import { useUpdateAtmospherePhase } from "@/components/atmosphere-provider";
+import { useUpdateAtmospherePhase, useSetAtmosphereBurstColor } from "@/components/atmosphere-provider";
 import { queryClient } from "@/lib/queryClient";
+
+interface TeamData {
+  primaryColor?: string | null;
+  coach?: { userId: string } | null;
+}
 
 interface LeagueData {
   currentPhase: string;
+  teams?: TeamData[];
+}
+
+interface AuthData {
+  id: string;
 }
 
 function isLeagueData(data: unknown): data is LeagueData {
@@ -16,11 +26,42 @@ function isLeagueData(data: unknown): data is LeagueData {
   );
 }
 
+function isAuthData(data: unknown): data is AuthData {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    "id" in data &&
+    typeof (data as Record<string, unknown>).id === "string"
+  );
+}
+
+/** League IDs that are actually static routes — never fetch these as real league IDs. */
+const STATIC_LEAGUE_SEGMENTS = new Set(["create"]);
+
 export function AtmosphereRouter() {
   const [location] = useLocation();
   const updateAtmospherePhase = useUpdateAtmospherePhase();
+  const setAtmosphereBurstColor = useSetAtmosphereBurstColor();
   const cachedPhaseRef = useRef<{ leagueId: string; phase: string } | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  const applyLeagueData = useCallback(
+    (leagueId: string, league: LeagueData) => {
+      cachedPhaseRef.current = { leagueId, phase: league.currentPhase };
+      updateAtmospherePhase(league.currentPhase);
+
+      if (Array.isArray(league.teams)) {
+        const authData = queryClient.getQueryData<AuthData>(["/api/auth/me"]);
+        if (isAuthData(authData)) {
+          const myTeam = league.teams.find((t) => t.coach?.userId === authData.id);
+          if (myTeam?.primaryColor) {
+            setAtmosphereBurstColor(myTeam.primaryColor);
+          }
+        }
+      }
+    },
+    [updateAtmospherePhase, setAtmosphereBurstColor],
+  );
 
   const fetchAndSetPhase = useCallback(
     (leagueId: string) => {
@@ -37,8 +78,7 @@ export function AtmosphereRouter() {
           if (controller.signal.aborted) return;
           abortRef.current = null;
           if (isLeagueData(league)) {
-            cachedPhaseRef.current = { leagueId, phase: league.currentPhase };
-            updateAtmospherePhase(league.currentPhase);
+            applyLeagueData(leagueId, league);
           }
         })
         .catch((err: unknown) => {
@@ -47,7 +87,7 @@ export function AtmosphereRouter() {
           }
         });
     },
-    [updateAtmospherePhase],
+    [applyLeagueData],
   );
 
   useEffect(() => {
@@ -68,8 +108,7 @@ export function AtmosphereRouter() {
                 ? cachedPhaseRef.current.phase
                 : null;
             if (oldPhase !== data.currentPhase) {
-              cachedPhaseRef.current = { leagueId, phase: data.currentPhase };
-              updateAtmospherePhase(data.currentPhase);
+              applyLeagueData(leagueId, data);
             }
           }
         }
@@ -80,12 +119,13 @@ export function AtmosphereRouter() {
       unsubscribe();
       if (abortRef.current) abortRef.current.abort();
     };
-  }, [updateAtmospherePhase]);
+  }, [applyLeagueData]);
 
   useEffect(() => {
     const leagueMatch = location.match(/^\/league\/([^/]+)/);
 
-    if (!leagueMatch) {
+    if (!leagueMatch || STATIC_LEAGUE_SEGMENTS.has(leagueMatch[1])) {
+      if (abortRef.current) abortRef.current.abort();
       cachedPhaseRef.current = null;
       updateAtmospherePhase("neutral");
       return;
@@ -99,12 +139,11 @@ export function AtmosphereRouter() {
 
     const cached = queryClient.getQueryData<LeagueData>(["/api/leagues", leagueId]);
     if (cached && isLeagueData(cached)) {
-      cachedPhaseRef.current = { leagueId, phase: cached.currentPhase };
-      updateAtmospherePhase(cached.currentPhase);
+      applyLeagueData(leagueId, cached);
     } else {
       fetchAndSetPhase(leagueId);
     }
-  }, [location, updateAtmospherePhase, fetchAndSetPhase]);
+  }, [location, updateAtmospherePhase, applyLeagueData, fetchAndSetPhase]);
 
   return null;
 }

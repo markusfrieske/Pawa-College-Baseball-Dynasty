@@ -3,7 +3,7 @@ import { parseErrorMessage } from "@/lib/errorUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link, useLocation } from "wouter";
 import { useUpdateMusicPhase } from "@/lib/music-context";
-import { useUpdateAtmospherePhase, useSetAtmosphereBurstColor, PostseasonBanner } from "@/components/atmosphere-provider";
+import { useUpdateAtmospherePhase, useSetAtmosphereBurstColor } from "@/components/atmosphere-provider";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroInput } from "@/components/ui/retro-input";
 import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
@@ -407,7 +407,6 @@ export default function LeagueViewPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <PostseasonBanner />
       <header className="border-b border-border">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-3 mb-3 min-w-0">

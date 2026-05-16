@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { useLocation } from "wouter";
 import { getMoodForPhase, type MoodConfig } from "@/lib/atmosphere";
 import { X, Trophy } from "lucide-react";
 
@@ -66,11 +67,16 @@ export function AtmosphereOverlay() {
   return <div className="atm-overlay" aria-hidden data-testid="atmosphere-overlay" />;
 }
 
+/** Matches real league IDs — excludes /league/create and similar static segments. */
+const LEAGUE_ROUTE_RE = /^\/league\/(?!create(?:\/|$))[^/]+/;
 const BANNER_DISMISS_KEY = "atm-postseason-banner-dismissed";
 
 export function PostseasonBanner() {
   const { mood, phase } = useAtmosphere();
+  const [location] = useLocation();
   const [dismissed, setDismissed] = useState(false);
+
+  const isLeagueContext = LEAGUE_ROUTE_RE.test(location);
 
   useEffect(() => {
     try {
@@ -80,7 +86,7 @@ export function PostseasonBanner() {
     }
   }, [phase]);
 
-  if (!mood.isPostseason || dismissed) return null;
+  if (!mood.isPostseason || dismissed || !isLeagueContext) return null;
 
   const handleDismiss = () => {
     setDismissed(true);
