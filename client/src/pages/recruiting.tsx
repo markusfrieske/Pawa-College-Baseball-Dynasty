@@ -3375,7 +3375,9 @@ function RecruitDetailModal({
                     </span>
                   </div>
                 )}
-                {recruit.playerArchetype && recruit.playerArchetype !== "normal" && scoutPct >= 50 && (
+                {recruit.playerArchetype && recruit.playerArchetype !== "normal" && (
+                  recruit.playerArchetype === "overdraft" ? scoutPct >= 75 : scoutPct >= 50
+                ) && (
                   <div className="bg-muted/30 rounded p-2.5 border border-border/50 col-span-2">
                     <span className="text-[10px] text-muted-foreground block mb-1">Development Profile</span>
                     <span className={`text-sm font-medium ${
@@ -3828,7 +3830,9 @@ function RecruitDetailModal({
                     </span>
                   </div>
                 )}
-                {recruit.playerArchetype && recruit.playerArchetype !== "normal" && scoutPct >= 50 && (
+                {recruit.playerArchetype && recruit.playerArchetype !== "normal" && (
+                  recruit.playerArchetype === "overdraft" ? scoutPct >= 75 : scoutPct >= 50
+                ) && (
                   <div className="bg-muted/30 rounded p-2.5 border border-border/50 col-span-2">
                     <span className="text-[10px] text-muted-foreground block mb-1">Development Profile</span>
                     <span className={`text-sm font-medium ${

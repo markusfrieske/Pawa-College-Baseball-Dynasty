@@ -798,7 +798,7 @@ export function generateRecruitClass(
   }
 
   for (const recruit of out) {
-    (recruit as any).classVintage = classVintage;
+    recruit.classVintage = classVintage;
   }
 
   return out;

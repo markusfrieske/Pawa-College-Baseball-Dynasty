@@ -10393,6 +10393,8 @@ export async function registerRoutes(
           hairStyle: recruit.hairStyle || "short",
           headwear: recruit.headwear || "cap",
           potential: recruit.potential ?? null,
+          workEthicScore: recruit.workEthicScore ?? 70,
+          coachability: recruit.coachability ?? 70,
         });
         totalRecruitsAdded++;
       }

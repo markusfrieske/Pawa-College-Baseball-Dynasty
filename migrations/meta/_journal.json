@@ -22,6 +22,34 @@
       "when": 1747184000000,
       "tag": "0002_add_lineup_position_to_players",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1747270000000,
+      "tag": "0003_add_cpu_recruiting_aggression_to_leagues",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1747356000000,
+      "tag": "0004_add_co_commissioner_ids_to_leagues",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1747442000000,
+      "tag": "0005_add_email_preferences",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1747528000000,
+      "tag": "0006_add_dev_traits_and_archetypes",
+      "breakpoints": true
     }
   ]
 }
