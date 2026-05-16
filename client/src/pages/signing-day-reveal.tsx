@@ -531,7 +531,7 @@ export default function SigningDayRevealPage() {
       {/* ── Cinematic effect layers (fixed, not in html2canvas) ── */}
       {!reducedMotion && (
         <>
-          <FireworksCanvas teamColor={teamColor} active={cinemaPhase !== "idle"} />
+          <FireworksCanvas key={currentEntry?.team.id ?? "default"} teamColor={teamColor} active={cinemaPhase !== "idle"} />
           <SmokeEmbers />
           <FlickerOverlay active={cinemaPhase === "buildup"} />
           <CinematicBurst color={teamColor} active={cinemaPhase === "burst"} />
