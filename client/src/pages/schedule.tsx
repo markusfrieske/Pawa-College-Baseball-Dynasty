@@ -40,6 +40,7 @@ interface ScheduleData {
   currentSeason: number;
   userTeamId: string | null;
   humanTeamIds: string[];
+  humanCoachNames: Record<string, string>;
   reportsByGameId: Record<string, GameReport>;
   isCommissioner: boolean;
 }
@@ -85,6 +86,8 @@ interface MatchupPreviewTeam {
   coachName: string;
   coachArchetype: string | null;
   record: { wins: number; losses: number };
+  powerRank: number;
+  composite: number;
   top3: { name: string; position: string; overall: number; starRating: number }[];
 }
 
@@ -237,6 +240,7 @@ export default function SchedulePage() {
                     userTeamId={data?.userTeamId}
                     leagueId={id!}
                     humanTeamIds={data?.humanTeamIds ?? []}
+                    humanCoachNames={data?.humanCoachNames ?? {}}
                     report={data?.reportsByGameId?.[game.id] ?? null}
                     onConfirm={() => confirmReportMutation.mutate(game.id)}
                     onDispute={() => { setDisputeGameId(game.id); setDisputeReason(""); }}
@@ -324,7 +328,7 @@ export default function SchedulePage() {
   );
 }
 
-function GameRow({ game, allGamesInGroup, onEdit, onViewBoxScore, onMatchupPreview, userTeamId, leagueId, humanTeamIds, report, onConfirm, onDispute, isConfirming, isDisputing, isCommissioner }: {
+function GameRow({ game, allGamesInGroup, onEdit, onViewBoxScore, onMatchupPreview, userTeamId, leagueId, humanTeamIds, humanCoachNames, report, onConfirm, onDispute, isConfirming, isDisputing, isCommissioner }: {
   game: GameWithTeams;
   allGamesInGroup: GameWithTeams[];
   onEdit: () => void;
@@ -333,6 +337,7 @@ function GameRow({ game, allGamesInGroup, onEdit, onViewBoxScore, onMatchupPrevi
   userTeamId?: string | null;
   leagueId: string;
   humanTeamIds: string[];
+  humanCoachNames: Record<string, string>;
   report: GameReport | null;
   onConfirm: () => void;
   onDispute: () => void;
@@ -389,11 +394,19 @@ function GameRow({ game, allGamesInGroup, onEdit, onViewBoxScore, onMatchupPrevi
           />
           <div className="min-w-0">
             <span className="font-medium text-sm block truncate">{game.awayTeam.name}</span>
-            {isHumanVsHuman && !game.isComplete && (
-              <span className="font-pixel text-[7px] text-amber-400 flex items-center gap-1 mt-0.5">
-                <Swords className="w-2.5 h-2.5" /> RIVALRY
-              </span>
-            )}
+            {isHumanVsHuman && !game.isComplete && (() => {
+              const opponentId = userTeamId === game.awayTeamId ? game.homeTeamId : game.awayTeamId;
+              const coachName = humanCoachNames[opponentId];
+              return coachName ? (
+                <span className="font-pixel text-[7px] text-amber-400 flex items-center gap-1 mt-0.5 truncate">
+                  <Swords className="w-2.5 h-2.5 shrink-0" /> vs {coachName}
+                </span>
+              ) : (
+                <span className="font-pixel text-[7px] text-amber-400 flex items-center gap-1 mt-0.5">
+                  <Swords className="w-2.5 h-2.5" /> RIVALRY
+                </span>
+              );
+            })()}
           </div>
         </div>
 
@@ -561,9 +574,9 @@ function MatchupPreviewModal({ leagueId, gameId, onClose }: { leagueId: string; 
 
   const starColor = (s: number) => s >= 5 ? "text-amber-400" : s >= 4 ? "text-gold" : s >= 3 ? "text-yellow-200" : "text-muted-foreground";
 
-  const TeamPanel = ({ team, h2hWins, isHome }: { team: MatchupPreviewTeam; h2hWins: number; isHome: boolean }) => (
+  const TeamPanel = ({ team, isHome }: { team: MatchupPreviewTeam; isHome: boolean }) => (
     <div className={`flex-1 min-w-0 ${isHome ? "text-right" : "text-left"}`}>
-      <div className={`flex items-center gap-2 mb-2 ${isHome ? "flex-row-reverse" : ""}`}>
+      <div className={`flex items-center gap-2 mb-1 ${isHome ? "flex-row-reverse" : ""}`}>
         <TeamBadge
           abbreviation={team.abbreviation}
           primaryColor={team.primaryColor}
@@ -576,6 +589,10 @@ function MatchupPreviewModal({ leagueId, gameId, onClose }: { leagueId: string; 
           <p className="font-medium text-sm leading-tight">{team.name}</p>
           <p className="text-xs text-muted-foreground">{team.record.wins}-{team.record.losses}</p>
         </div>
+      </div>
+      <div className={`flex items-center gap-2 mb-2 ${isHome ? "justify-end" : ""}`}>
+        <span className="font-pixel text-[8px] text-gold/80">#{team.powerRank}</span>
+        <span className="text-[10px] text-muted-foreground">PWR {team.composite}</span>
       </div>
       <div className={`flex items-center gap-1 text-xs text-muted-foreground mb-2 ${isHome ? "justify-end" : ""}`}>
         {team.isCpu ? null : <User className="w-3 h-3 text-gold" />}
@@ -626,7 +643,7 @@ function MatchupPreviewModal({ leagueId, gameId, onClose }: { leagueId: string; 
 
             {/* Teams */}
             <div className="flex items-start gap-4">
-              <TeamPanel team={data.awayTeam} h2hWins={data.h2h.awayWins} isHome={false} />
+              <TeamPanel team={data.awayTeam} isHome={false} />
 
               <div className="flex-shrink-0 text-center px-2 pt-2">
                 <div className="font-pixel text-muted-foreground text-[10px] mb-1">@</div>
@@ -648,7 +665,7 @@ function MatchupPreviewModal({ leagueId, gameId, onClose }: { leagueId: string; 
                 )}
               </div>
 
-              <TeamPanel team={data.homeTeam} h2hWins={data.h2h.homeWins} isHome={true} />
+              <TeamPanel team={data.homeTeam} isHome={true} />
             </div>
 
             <div className="text-center">

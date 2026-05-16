@@ -1197,7 +1197,7 @@ function StorylinesDashboardWidget({ leagueId }: { leagueId: string }) {
 const EVENT_FILTERS = [
   { key: "ALL", label: "All" },
   { key: "SIGNING", label: "Recruiting" },
-  { key: "GAME_RESULT", label: "Games" },
+  { key: "GAME_RESULT,RIVALRY_RESULT", label: "Games" },
   { key: "TRANSFER,DRAFT,ROSTER_CUT,WALKON", label: "Roster" },
   { key: "AWARD,PHASE_CHANGE", label: "League" },
   { key: "STORYLINE", label: "Storylines" },
@@ -1208,6 +1208,7 @@ type FilterKey = (typeof EVENT_FILTERS)[number]["key"];
 const eventTypeConfig: Record<string, { icon: React.ReactNode; color: string; label: string }> = {
   SIGNING: { icon: <Pen className="w-3 h-3" />, color: "text-green-400 bg-green-500/15 border-green-500/30", label: "Signed" },
   GAME_RESULT: { icon: <Trophy className="w-3 h-3" />, color: "text-gold bg-gold/10 border-gold/30", label: "Game" },
+  RIVALRY_RESULT: { icon: <Swords className="w-3 h-3" />, color: "text-amber-400 bg-amber-500/15 border-amber-500/30", label: "Rivalry" },
   TRANSFER: { icon: <GitMerge className="w-3 h-3" />, color: "text-blue-400 bg-blue-500/15 border-blue-500/30", label: "Transfer" },
   DRAFT: { icon: <GraduationCap className="w-3 h-3" />, color: "text-purple-400 bg-purple-500/15 border-purple-500/30", label: "Draft" },
   AWARD: { icon: <Award className="w-3 h-3" />, color: "text-amber-400 bg-amber-500/15 border-amber-500/30", label: "Award" },
@@ -5232,7 +5233,7 @@ function NotificationCenter({ leagueId }: { leagueId: string }) {
       headline: e.eventType.replace(/_/g, " "),
       body: e.description,
       createdAt: e.createdAt,
-      dotColor: e.eventType === "PHASE_CHANGE" ? "bg-purple-500" : e.eventType === "GAME_RESULT" ? "bg-blue-400" : "bg-muted-foreground",
+      dotColor: e.eventType === "PHASE_CHANGE" ? "bg-purple-500" : (e.eventType === "GAME_RESULT" || e.eventType === "RIVALRY_RESULT") ? "bg-blue-400" : "bg-muted-foreground",
     })) || []),
   ]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())

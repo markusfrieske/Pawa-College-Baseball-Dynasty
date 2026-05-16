@@ -4399,6 +4399,13 @@ export async function registerRoutes(
       const userTeam = coach ? leagueTeams.find(t => t.id === coach.teamId) : null;
 
       const humanTeamIds = leagueTeams.filter(t => !t.isCpu).map(t => t.id);
+      // Map human team IDs to their coach last names for H2H badge display
+      const humanCoachNames: Record<string, string> = {};
+      for (const c of coaches) {
+        if (c.teamId && humanTeamIds.includes(c.teamId)) {
+          humanCoachNames[c.teamId] = `${c.firstName} ${c.lastName}`;
+        }
+      }
       const gameReportsList = await storage.getGameReportsByLeague(league.id);
       // Narrow report payload: only expose status-level fields needed by schedule UI
       // (avoid leaking full box score data to all league members)
@@ -4422,6 +4429,7 @@ export async function registerRoutes(
         currentSeason: league.currentSeason,
         userTeamId: userTeam?.id || null,
         humanTeamIds,
+        humanCoachNames,
         reportsByGameId,
         isCommissioner: hasCommissionerAccess(league, req.session.userId),
       });
@@ -4446,11 +4454,12 @@ export async function registerRoutes(
       const awayTeam = leagueTeams.find(t => t.id === game.awayTeamId);
       if (!homeTeam || !awayTeam) return res.status(404).json({ message: "Teams not found" });
 
-      const [coaches, allStandings, homePlayers, awayPlayers] = await Promise.all([
+      const [coaches, allStandings, homePlayers, awayPlayers, allLeaguePlayers] = await Promise.all([
         storage.getCoachesByLeague(league.id),
         storage.getStandingsByLeague(league.id, league.currentSeason),
         storage.getPlayersByTeam(homeTeam.id),
         storage.getPlayersByTeam(awayTeam.id),
+        storage.getPlayersByLeague(league.id),
       ]);
 
       const homeCoach = coaches.find(c => c.teamId === homeTeam.id);
@@ -4463,6 +4472,28 @@ export async function registerRoutes(
           .sort((a, b) => (b.overall || 0) - (a.overall || 0))
           .slice(0, 3)
           .map(p => ({ name: `${p.firstName} ${p.lastName}`, position: p.position, overall: p.overall, starRating: p.starRating }));
+
+      // Compute power ranking composite for each team (same formula as /power-rankings)
+      const computeComposite = (playerList: typeof homePlayers): number => {
+        if (playerList.length === 0) return 0;
+        const avgStar = playerList.reduce((s, p) => s + (p.starRating || 1), 0) / playerList.length;
+        return Math.round(avgStar * 20);
+      };
+
+      // Compute league-wide power rank positions
+      const playersByTeamId = new Map<string, typeof allLeaguePlayers>();
+      for (const p of allLeaguePlayers) {
+        if (!playersByTeamId.has(p.teamId)) playersByTeamId.set(p.teamId, []);
+        playersByTeamId.get(p.teamId)!.push(p);
+      }
+      const teamComposites = leagueTeams.map(t => ({
+        teamId: t.id,
+        composite: computeComposite(playersByTeamId.get(t.id) || []),
+      })).sort((a, b) => b.composite - a.composite);
+      const homeRank = teamComposites.findIndex(t => t.teamId === homeTeam.id) + 1;
+      const awayRank = teamComposites.findIndex(t => t.teamId === awayTeam.id) + 1;
+      const homeComposite = computeComposite(homePlayers);
+      const awayComposite = computeComposite(awayPlayers);
 
       // H2H all-time record (excluding the current game itself)
       const h2hGames = allLeagueGames.filter(g =>
@@ -4490,6 +4521,8 @@ export async function registerRoutes(
           coachName: homeCoach ? `${homeCoach.firstName} ${homeCoach.lastName}` : "CPU Coach",
           coachArchetype: homeCoach?.archetype ?? null,
           record: { wins: homeStandings?.wins ?? 0, losses: homeStandings?.losses ?? 0 },
+          powerRank: homeRank,
+          composite: homeComposite,
           top3: top3(homePlayers),
         },
         awayTeam: {
@@ -4504,6 +4537,8 @@ export async function registerRoutes(
           coachName: awayCoach ? `${awayCoach.firstName} ${awayCoach.lastName}` : "CPU Coach",
           coachArchetype: awayCoach?.archetype ?? null,
           record: { wins: awayStandings?.wins ?? 0, losses: awayStandings?.losses ?? 0 },
+          powerRank: awayRank,
+          composite: awayComposite,
           top3: top3(awayPlayers),
         },
         h2h: { homeWins: homeH2HWins, awayWins: awayH2HWins, totalGames: h2hGames.length },
@@ -6681,7 +6716,10 @@ export async function registerRoutes(
       const leagueTeamsForSim = await storage.getTeamsByLeague(leagueId);
       const WIN_XP = 100;
       const LOSS_XP = 25;
-      
+
+      // Fetch prior completed games BEFORE simulation so H2H records are accurate
+      const priorCompletedGames = (await storage.getGamesByLeague(leagueId)).filter(g => g.isComplete);
+
       const gameResults = await Promise.all(incompleteGames.map(async (game) => {
         const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType);
         await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, isComplete: true, boxScore: result.boxScore });
@@ -6796,8 +6834,6 @@ export async function registerRoutes(
         }
         // ======= ACTIVITY FEED: log notable game results =======
         try {
-          // Pre-compute H2H records for human-vs-human pairs from already-completed games
-          const allCompletedBeforeSim = (await storage.getGamesByLeague(leagueId)).filter(g => g.isComplete);
           const humanTeamIdsSet = new Set(leagueTeamsForSim.filter(t => !t.isCpu).map(t => t.id));
 
           for (const { game, result } of gameResults) {
@@ -6813,8 +6849,8 @@ export async function registerRoutes(
 
             let description = `${winner.abbreviation} def. ${loser.abbreviation} ${winScore}-${lossScore}${game.isConference ? " (Conf)" : ""}`;
             if (isRivalry) {
-              // Compute updated H2H record including this result
-              const h2hPrior = allCompletedBeforeSim.filter(g =>
+              // Use priorCompletedGames (fetched before simulation) for accurate H2H record
+              const h2hPrior = priorCompletedGames.filter(g =>
                 (g.homeTeamId === homeTeamFeed.id && g.awayTeamId === awayTeamFeed.id) ||
                 (g.homeTeamId === awayTeamFeed.id && g.awayTeamId === homeTeamFeed.id)
               );
