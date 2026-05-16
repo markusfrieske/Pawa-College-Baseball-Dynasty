@@ -917,6 +917,9 @@ export async function registerRoutes(
         hairStyle: coachData.hairStyle || "short",
       });
 
+      // Initialize personality/traits/philosophy at creation time
+      try { await ensureCoachTraits(coach, 1); } catch {}
+
       await storage.updateTeam(teamId, { coachId: coach.id, isCpu: false });
 
       const leagueForGen = await storage.getLeague(req.params.id);
@@ -9042,9 +9045,13 @@ export async function registerRoutes(
     const league = await storage.getLeague(coach.leagueId).catch(() => null);
     const season = currentSeason ?? league?.currentSeason ?? 1;
 
+    // Compute seasonsCoached from history so dynasty milestone can unlock
+    const coachHistory = await storage.getCoachSeasonHistory(coach.id).catch(() => [] as typeof import("../shared/schema").coachSeasonHistory.$inferSelect[]);
+    const seasonsCoached = coachHistory.length;
+
     const currentMilestones = coach.careerMilestones ?? [];
     const earnedMilestones = evaluateMilestones(
-      { ...coach, careerMilestones: currentMilestones },
+      { ...coach, careerMilestones: currentMilestones, seasonsCoached },
       recruitingStats,
       season,
     );
@@ -13565,6 +13572,7 @@ export async function registerRoutes(
           hairColor: coachData.hairColor || "brown",
           hairStyle: coachData.hairStyle || "short",
         });
+        try { await ensureCoachTraits(coach, 1); } catch {}
         coachId = coach.id;
       } else {
         // Create default coach if no data provided
@@ -13580,6 +13588,7 @@ export async function registerRoutes(
           pitchingRecruitingSkill: 1,
           hittingRecruitingSkill: 1,
         });
+        try { await ensureCoachTraits(coach, 1); } catch {}
         coachId = coach.id;
       }
 
@@ -15939,6 +15948,9 @@ async function generateCpuCoaches(leagueId: string) {
       allAmericans,
       draftPicks,
     });
+
+    // Initialize personality/traits/philosophy at creation time
+    try { await ensureCoachTraits(coach, 1); } catch {}
     
     // Link coach to team
     await storage.updateTeam(team.id, { coachId: coach.id });
