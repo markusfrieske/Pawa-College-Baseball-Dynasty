@@ -29,6 +29,8 @@ export function AtmosphereProvider({ children }: { children: ReactNode }) {
     el.style.setProperty("--atm-overlay-s", `${mood.overlayS}%`);
     el.style.setProperty("--atm-overlay-opacity", String(mood.overlayOpacity));
     el.style.setProperty("--atm-particle-opacity", String(mood.particleOpacity));
+    el.style.setProperty("--atm-accent", mood.accentColor ?? "196 163 90");
+    el.style.setProperty("--atm-glow", mood.glowColor ?? "196 163 90");
     if (mood.shimmer) {
       el.setAttribute("data-shimmer", "true");
     } else {
@@ -138,10 +140,14 @@ export function SigningDayBurst() {
       return;
     }
 
-    if (phase === "offseason_signing_day" && prev !== "offseason_signing_day") {
+    if (
+      phase === "offseason_signing_day" &&
+      prev !== "offseason_signing_day" &&
+      prev !== "neutral"
+    ) {
       if (prefersReducedMotion()) return;
       setVisible(true);
-      const timer = setTimeout(() => setVisible(false), 2500);
+      const timer = setTimeout(() => setVisible(false), 2000);
       return () => clearTimeout(timer);
     }
   }, [phase]);

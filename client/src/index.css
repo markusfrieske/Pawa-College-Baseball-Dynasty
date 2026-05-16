@@ -304,6 +304,8 @@ input[type="number"].no-spinner {
   --atm-overlay-opacity: 0;
   --atm-particle-opacity: 0;
   --atm-burst-color: #C4A35A;
+  --atm-accent: 196 163 90;
+  --atm-glow: 196 163 90;
 }
 
 /* ── Atmosphere overlay container ─────────────────────────── */
@@ -327,7 +329,12 @@ input[type="number"].no-spinner {
     radial-gradient(ellipse 60% 40% at 85% 90%,
       hsl(var(--atm-overlay-h) var(--atm-overlay-s) 50% / var(--atm-overlay-opacity)) 0%,
       transparent 70%);
-  transition: opacity 2s ease;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .atm-overlay::before {
+    transition: opacity 2s ease;
+  }
 }
 
 /* ── Particle layer (pseudo-element on overlay) ───────────── */
@@ -513,67 +520,78 @@ input[type="number"].no-spinner {
   100% { opacity: 0;    background-size: 220% 220%; }
 }
 
-/* ── Header & sidebar tinting per mood ─────────────────────── */
+/* ── Header & sidebar tinting per mood (driven by --atm-accent / --atm-glow) ── */
 
-/* Base: atmosphere overlay tint bleeds into header/sidebar borders */
-html[data-mood] header,
-html[data-mood] aside,
-html[data-mood] nav {
-  transition: border-color 0.8s ease, box-shadow 0.8s ease, background-color 0.8s ease;
+@media (prefers-reduced-motion: no-preference) {
+  html[data-mood] header,
+  html[data-mood] aside,
+  html[data-mood] nav {
+    transition: border-color 0.8s ease, box-shadow 0.8s ease, background-color 0.8s ease;
+  }
 }
 
-/* postseason — gold accent */
 html[data-mood="postseason"] header {
-  border-bottom-color: rgba(196, 163, 90, 0.40);
-  box-shadow: 0 1px 14px rgba(196, 163, 90, 0.15);
+  border-bottom-color: rgb(var(--atm-accent) / 0.40);
+  box-shadow: 0 1px 14px rgb(var(--atm-glow) / 0.15);
   background-color: hsl(43 20% 8% / 0.92);
 }
 html[data-mood="postseason"] aside,
 html[data-mood="postseason"] nav {
-  border-right-color: rgba(196, 163, 90, 0.30);
+  border-right-color: rgb(var(--atm-accent) / 0.30);
   background-color: hsl(43 15% 7% / 0.90);
 }
 
-/* signing_day — warm gold, more pronounced */
 html[data-mood="signing_day"] header {
-  border-bottom-color: rgba(196, 163, 90, 0.32);
-  box-shadow: 0 1px 10px rgba(196, 163, 90, 0.10);
+  border-bottom-color: rgb(var(--atm-accent) / 0.32);
+  box-shadow: 0 1px 10px rgb(var(--atm-glow) / 0.10);
   background-color: hsl(43 18% 8% / 0.90);
 }
 html[data-mood="signing_day"] aside,
 html[data-mood="signing_day"] nav {
-  border-right-color: rgba(196, 163, 90, 0.22);
+  border-right-color: rgb(var(--atm-accent) / 0.22);
 }
 
-/* recruiting — indigo/purple tint */
 html[data-mood="recruiting"] header {
-  border-bottom-color: hsl(245 35% 55% / 0.30);
-  box-shadow: 0 1px 10px hsl(245 35% 40% / 0.10);
+  border-bottom-color: rgb(var(--atm-accent) / 0.30);
+  box-shadow: 0 1px 10px rgb(var(--atm-glow) / 0.10);
   background-color: hsl(245 12% 8% / 0.90);
 }
 html[data-mood="recruiting"] aside,
 html[data-mood="recruiting"] nav {
-  border-right-color: hsl(245 35% 55% / 0.24);
+  border-right-color: rgb(var(--atm-accent) / 0.24);
   background-color: hsl(245 10% 7% / 0.90);
 }
 
-/* spring — fresh green tint */
 html[data-mood="spring"] header {
-  border-bottom-color: hsl(85 45% 50% / 0.26);
-  box-shadow: 0 1px 10px hsl(85 45% 35% / 0.08);
+  border-bottom-color: rgb(var(--atm-accent) / 0.28);
+  box-shadow: 0 1px 10px rgb(var(--atm-glow) / 0.08);
   background-color: hsl(120 12% 8% / 0.90);
 }
 html[data-mood="spring"] aside,
 html[data-mood="spring"] nav {
-  border-right-color: hsl(85 45% 50% / 0.20);
+  border-right-color: rgb(var(--atm-accent) / 0.20);
   background-color: hsl(120 10% 7% / 0.90);
 }
 
-/* active (regular season) — subtle warm green, near-neutral */
 html[data-mood="active"] header {
-  border-bottom-color: hsl(120 18% 45% / 0.22);
+  border-bottom-color: rgb(var(--atm-accent) / 0.22);
 }
 html[data-mood="active"] aside,
 html[data-mood="active"] nav {
-  border-right-color: hsl(120 18% 45% / 0.16);
+  border-right-color: rgb(var(--atm-accent) / 0.16);
+}
+
+/* ── prefers-reduced-motion: disable all atmosphere animations/transitions ── */
+@media (prefers-reduced-motion: reduce) {
+  .atm-overlay,
+  .atm-overlay::before,
+  .atm-overlay::after,
+  .atm-postseason-banner,
+  .atm-signing-burst,
+  html[data-mood] header,
+  html[data-mood] aside,
+  html[data-mood] nav {
+    transition: none !important;
+    animation: none !important;
+  }
 }

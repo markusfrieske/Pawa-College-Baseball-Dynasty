@@ -11,6 +11,10 @@ export interface MoodConfig {
   shimmer: boolean;
   isPostseason: boolean;
   postseasonLabel: string;
+  /** RGB triplet as space-separated integers e.g. "196 163 90" for use with rgb(var(--atm-accent) / alpha) */
+  accentColor: string;
+  /** RGB triplet for glow effects */
+  glowColor: string;
 }
 
 const DEFAULTS: MoodConfig = {
@@ -23,12 +27,16 @@ const DEFAULTS: MoodConfig = {
   shimmer: false,
   isPostseason: false,
   postseasonLabel: "",
+  accentColor: "196 163 90",
+  glowColor: "196 163 90",
 };
 
 export const PHASE_MOODS: Record<string, MoodConfig> = {
   regular_season: {
     ...DEFAULTS,
     mood: "active",
+    accentColor: "80 160 90",
+    glowColor: "60 140 70",
   },
   preseason: {
     ...DEFAULTS,
@@ -38,6 +46,8 @@ export const PHASE_MOODS: Record<string, MoodConfig> = {
     overlayOpacity: 0.04,
     particleOpacity: 0.05,
     particleType: "leaves",
+    accentColor: "110 180 70",
+    glowColor: "90 160 55",
   },
   spring_training: {
     ...DEFAULTS,
@@ -47,6 +57,8 @@ export const PHASE_MOODS: Record<string, MoodConfig> = {
     overlayOpacity: 0.04,
     particleOpacity: 0.05,
     particleType: "leaves",
+    accentColor: "110 180 70",
+    glowColor: "90 160 55",
   },
   offseason_departures: {
     ...DEFAULTS,
@@ -56,6 +68,8 @@ export const PHASE_MOODS: Record<string, MoodConfig> = {
     overlayOpacity: 0.04,
     particleOpacity: 0.04,
     particleType: "snow",
+    accentColor: "120 110 200",
+    glowColor: "100 90 180",
   },
   offseason_recruiting_1: {
     ...DEFAULTS,
@@ -65,6 +79,8 @@ export const PHASE_MOODS: Record<string, MoodConfig> = {
     overlayOpacity: 0.05,
     particleOpacity: 0.05,
     particleType: "snow",
+    accentColor: "120 110 200",
+    glowColor: "100 90 180",
   },
   offseason_recruiting_2: {
     ...DEFAULTS,
@@ -74,6 +90,8 @@ export const PHASE_MOODS: Record<string, MoodConfig> = {
     overlayOpacity: 0.05,
     particleOpacity: 0.05,
     particleType: "snow",
+    accentColor: "120 110 200",
+    glowColor: "100 90 180",
   },
   offseason_recruiting_3: {
     ...DEFAULTS,
@@ -83,6 +101,8 @@ export const PHASE_MOODS: Record<string, MoodConfig> = {
     overlayOpacity: 0.05,
     particleOpacity: 0.05,
     particleType: "snow",
+    accentColor: "120 110 200",
+    glowColor: "100 90 180",
   },
   offseason_recruiting_4: {
     ...DEFAULTS,
@@ -92,6 +112,8 @@ export const PHASE_MOODS: Record<string, MoodConfig> = {
     overlayOpacity: 0.05,
     particleOpacity: 0.05,
     particleType: "snow",
+    accentColor: "120 110 200",
+    glowColor: "100 90 180",
   },
   offseason_walkons: {
     ...DEFAULTS,
@@ -101,6 +123,8 @@ export const PHASE_MOODS: Record<string, MoodConfig> = {
     overlayOpacity: 0.04,
     particleOpacity: 0.04,
     particleType: "snow",
+    accentColor: "120 110 200",
+    glowColor: "100 90 180",
   },
   offseason_signing_day: {
     ...DEFAULTS,
@@ -110,6 +134,8 @@ export const PHASE_MOODS: Record<string, MoodConfig> = {
     overlayOpacity: 0.03,
     particleOpacity: 0.06,
     particleType: "sparkles",
+    accentColor: "196 163 90",
+    glowColor: "220 190 110",
   },
   conference_championship: {
     ...DEFAULTS,
@@ -122,6 +148,8 @@ export const PHASE_MOODS: Record<string, MoodConfig> = {
     shimmer: true,
     isPostseason: true,
     postseasonLabel: "Conference Championships",
+    accentColor: "196 163 90",
+    glowColor: "220 190 100",
   },
   conference_championships: {
     ...DEFAULTS,
@@ -134,6 +162,8 @@ export const PHASE_MOODS: Record<string, MoodConfig> = {
     shimmer: true,
     isPostseason: true,
     postseasonLabel: "Conference Championships",
+    accentColor: "196 163 90",
+    glowColor: "220 190 100",
   },
   super_regionals: {
     ...DEFAULTS,
@@ -146,6 +176,8 @@ export const PHASE_MOODS: Record<string, MoodConfig> = {
     shimmer: true,
     isPostseason: true,
     postseasonLabel: "Super Regionals",
+    accentColor: "210 175 90",
+    glowColor: "230 200 105",
   },
   cws: {
     ...DEFAULTS,
@@ -158,6 +190,8 @@ export const PHASE_MOODS: Record<string, MoodConfig> = {
     shimmer: true,
     isPostseason: true,
     postseasonLabel: "College World Series",
+    accentColor: "220 185 90",
+    glowColor: "240 210 110",
   },
 };
 
