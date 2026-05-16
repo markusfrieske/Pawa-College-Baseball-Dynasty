@@ -918,7 +918,9 @@ export async function registerRoutes(
       });
 
       // Initialize personality/traits/philosophy at creation time
-      try { await ensureCoachTraits(coach, 1); } catch {}
+      try { await ensureCoachTraits(coach, 1); } catch (traitErr) {
+        console.error("[createCoach] ensureCoachTraits failed:", traitErr);
+      }
 
       await storage.updateTeam(teamId, { coachId: coach.id, isCpu: false });
 
@@ -13572,7 +13574,9 @@ export async function registerRoutes(
           hairColor: coachData.hairColor || "brown",
           hairStyle: coachData.hairStyle || "short",
         });
-        try { await ensureCoachTraits(coach, 1); } catch {}
+        try { await ensureCoachTraits(coach, 1); } catch (traitErr) {
+          console.error("[inviteJoin] ensureCoachTraits (with data) failed:", traitErr);
+        }
         coachId = coach.id;
       } else {
         // Create default coach if no data provided
@@ -13588,7 +13592,9 @@ export async function registerRoutes(
           pitchingRecruitingSkill: 1,
           hittingRecruitingSkill: 1,
         });
-        try { await ensureCoachTraits(coach, 1); } catch {}
+        try { await ensureCoachTraits(coach, 1); } catch (traitErr) {
+          console.error("[inviteJoin] ensureCoachTraits (default) failed:", traitErr);
+        }
         coachId = coach.id;
       }
 
@@ -15950,7 +15956,9 @@ async function generateCpuCoaches(leagueId: string) {
     });
 
     // Initialize personality/traits/philosophy at creation time
-    try { await ensureCoachTraits(coach, 1); } catch {}
+    try { await ensureCoachTraits(coach, 1); } catch (traitErr) {
+      console.error("[generateCpuCoach] ensureCoachTraits failed:", traitErr);
+    }
     
     // Link coach to team
     await storage.updateTeam(team.id, { coachId: coach.id });
