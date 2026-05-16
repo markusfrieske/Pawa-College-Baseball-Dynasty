@@ -294,45 +294,47 @@ async function ensureCoachTraits(
     updates.coachingPhilosophy = getPhilosophyForArchetype(coach.archetype);
   }
 
-  // Build recruiting data for milestone evaluation from class snapshots
-  let recruitingStats = { totalSigned: 0, threeStars: 0, fourStars: 0, fiveStars: 0, blueChipsSigned: 0 };
-  try {
-    if (coach.teamId) {
-      const snaps = await storage.getRecruitingClassSnapshotsAllSeasons(coach.leagueId);
-      const teamSnaps = snaps.filter(s => s.teamId === coach.teamId);
-      recruitingStats = {
-        totalSigned: teamSnaps.reduce((s, sn) => s + sn.totalCommits, 0),
-        threeStars: teamSnaps.reduce((s, sn) => s + sn.threeStars, 0),
-        fourStars: teamSnaps.reduce((s, sn) => s + sn.fourStars, 0),
-        fiveStars: teamSnaps.reduce((s, sn) => s + sn.fiveStars, 0),
-        blueChipsSigned: 0,
-      };
-      const allRecruits = await storage.getRecruitsByLeague(coach.leagueId);
-      recruitingStats.blueChipsSigned = allRecruits.filter(
-        r => r.signedTeamId === coach.teamId && r.isBlueChip === true && r.starRating === 5
-      ).length;
+  // Milestone evaluation is expensive (needs season history + recruiting snapshots + league read).
+  // Only run it at explicit phase boundaries where currentSeason is provided — not on profile GETs.
+  // Phase hooks (finalizeSigningDay, coach creation) always pass currentSeason.
+  if (currentSeason != null) {
+    let recruitingStats = { totalSigned: 0, threeStars: 0, fourStars: 0, fiveStars: 0, blueChipsSigned: 0 };
+    try {
+      if (coach.teamId) {
+        const snaps = await storage.getRecruitingClassSnapshotsAllSeasons(coach.leagueId);
+        const teamSnaps = snaps.filter(s => s.teamId === coach.teamId);
+        recruitingStats = {
+          totalSigned: teamSnaps.reduce((s, sn) => s + sn.totalCommits, 0),
+          threeStars: teamSnaps.reduce((s, sn) => s + sn.threeStars, 0),
+          fourStars: teamSnaps.reduce((s, sn) => s + sn.fourStars, 0),
+          fiveStars: teamSnaps.reduce((s, sn) => s + sn.fiveStars, 0),
+          blueChipsSigned: 0,
+        };
+        const allRecruits = await storage.getRecruitsByLeague(coach.leagueId);
+        recruitingStats.blueChipsSigned = allRecruits.filter(
+          r => r.signedTeamId === coach.teamId && r.isBlueChip === true && r.starRating === 5
+        ).length;
+      }
+    } catch (err) {
+      console.error("[ensureCoachTraits] Failed to load recruiting stats for milestones:", err);
     }
-  } catch (err) {
-    console.error("[ensureCoachTraits] Failed to load recruiting stats for milestones:", err);
+
+    // Compute seasonsCoached and bestSeasonWins from history for accurate milestone evaluation
+    const coachHistory = await storage.getCoachSeasonHistory(coach.id).catch(() => [] as import("../shared/schema").CoachSeasonHistory[]);
+    const seasonsCoached = coachHistory.length;
+    const bestSeasonWins = coachHistory.reduce((max, h) => Math.max(max, h.wins), 0);
+
+    const currentMilestones = coach.careerMilestones ?? [];
+    const earnedMilestones = evaluateMilestones(
+      { ...coach, careerMilestones: currentMilestones, seasonsCoached, bestSeasonWins },
+      recruitingStats,
+      currentSeason,
+    );
+    if (earnedMilestones.length > currentMilestones.length) {
+      updates.careerMilestones = earnedMilestones;
+    }
   }
 
-  const league = await storage.getLeague(coach.leagueId).catch(() => null);
-  const season = currentSeason ?? league?.currentSeason ?? 1;
-
-  // Compute seasonsCoached and bestSeasonWins from history for accurate milestone evaluation
-  const coachHistory = await storage.getCoachSeasonHistory(coach.id).catch(() => [] as import("../shared/schema").CoachSeasonHistory[]);
-  const seasonsCoached = coachHistory.length;
-  const bestSeasonWins = coachHistory.reduce((max, h) => Math.max(max, h.wins), 0);
-
-  const currentMilestones = coach.careerMilestones ?? [];
-  const earnedMilestones = evaluateMilestones(
-    { ...coach, careerMilestones: currentMilestones, seasonsCoached, bestSeasonWins },
-    recruitingStats,
-    season,
-  );
-  if (earnedMilestones.length > currentMilestones.length) {
-    updates.careerMilestones = earnedMilestones;
-  }
   if (Object.keys(updates).length > 0) {
     await storage.updateCoach(coach.id, updates as Parameters<typeof storage.updateCoach>[1]);
   }
