@@ -324,7 +324,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 16, power: 12, speed: 38, arm: 65, fielding: 41, errorResistance: 54, velocity: 61, control: 69, stamina: 69, stuff: 71,
         clutch: 80, vsLHP: 90, grit: 80, stealing: 8, running: 32, throwing: 78, recovery: 57, wRISP: 65, vsLefty: 69, poise: 65, heater: 65, agile: 44,
         abilities: ["Star of Victory", "Inside Pitch", "Intimidator", "Heavy Ball", "Winner's Luck"], potential: "A+", catcherAbility: null,
-        throwHand: "R", batHand: "R",
+        throwHand: "L", batHand: "L",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [6, 0, 0, 1, 0, 6, 0]) },
       // Grant Govel — RHP SO Friday/weekend, 9-1/2.55
@@ -340,7 +340,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 13, power: 10, speed: 32, arm: 55, fielding: 33, errorResistance: 44, velocity: 52, control: 55, stamina: 55, stuff: 53,
         clutch: 64, vsLHP: 60, grit: 66, stealing: 8, running: 30, throwing: 68, recovery: 47, wRISP: 47, vsLefty: 48, poise: 52, heater: 56, agile: 40,
         abilities: ["Strong Starter", "Halting Quickness", "Intimidator"], potential: "A-", catcherAbility: null,
-        throwHand: "L", batHand: "L",
+        throwHand: "R", batHand: "R",
         skinTone: "tan", hairColor: "black", hairStyle: "short",
         ...pitchMix(1, [0, 6, 5, 1, 0, 0, 0]) },
       // Andrew Johnson — SO RHP swing, 4-2/3.75 in 60 IP (14 apps)
@@ -364,7 +364,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 14, power: 11, speed: 32, arm: 51, fielding: 32, errorResistance: 44, velocity: 48, control: 51, stamina: 49, stuff: 48,
         clutch: 60, vsLHP: 56, grit: 62, stealing: 8, running: 28, throwing: 64, recovery: 45, wRISP: 45, vsLefty: 46, poise: 48, heater: 52, agile: 36,
         abilities: ["Guts", "Crossfire"], potential: "B+", catcherAbility: null,
-        throwHand: "L", batHand: "L",
+        throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 6, 5, 1, 0, 0, 0]) },
       // Landon Sims — JR RP
@@ -388,7 +388,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 10, power: 8, speed: 28, arm: 32, fielding: 20, errorResistance: 32, velocity: 30, control: 31, stamina: 29, stuff: 30,
         clutch: 38, vsLHP: 36, grit: 40, stealing: 9, running: 26, throwing: 46, recovery: 25, wRISP: 24, vsLefty: 27, poise: 27, heater: 33, agile: 32,
         abilities: ["Groundball Pitcher"], potential: "B+", catcherAbility: null,
-        throwHand: "L", batHand: "L",
+        throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 4, 4, 1, 0, 0, 0]) },
       // Alex Williams — SO RHP depth
@@ -589,7 +589,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 10, power: 7, speed: 28, arm: 41, fielding: 23, errorResistance: 36, velocity: 39, control: 51, stamina: 28, stuff: 39,
       clutch: 50, vsLHP: 48, grit: 52, stealing: 6, running: 25, throwing: 56, recovery: 32, wRISP: 36, vsLefty: 36, poise: 38, heater: 41, agile: 36,
       abilities: ["Inside Pitch"], potential: "A-", catcherAbility: null,
-      throwHand: "L", batHand: "L",
+      throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "blonde", hairStyle: "short",
       ...pitchMix(1, [0, 4, 3, 1, 0, 0, 0]) },
     // Ian May — RS-Sr LHP, multi-inning long man
@@ -597,7 +597,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 12, power: 9, speed: 26, arm: 44, fielding: 30, errorResistance: 46, velocity: 38, control: 47, stamina: 41, stuff: 38,
       clutch: 54, vsLHP: 70, grit: 56, stealing: 5, running: 22, throwing: 56, recovery: 38, wRISP: 38, vsLefty: 52, poise: 41, heater: 37, agile: 32,
       abilities: ["Fireman", "Guts", "Houdini"], potential: "B", catcherAbility: null,
-      throwHand: "R", batHand: "R",
+      throwHand: "L", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 4, 4, 1, 0, 0, 0]) },
     // Jake Swenson — JR depth pitcher

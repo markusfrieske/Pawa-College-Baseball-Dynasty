@@ -35,7 +35,7 @@ export const SUN_BELT_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 13, power: 10, speed: 32, arm: 61, fielding: 37, errorResistance: 48, velocity: 58, control: 61, stamina: 57, stuff: 60,
       clutch: 72, vsLHP: 80, grit: 72, stealing: 8, running: 30, throwing: 72, recovery: 49, wRISP: 54, vsLefty: 64, poise: 57, heater: 61, agile: 40,
       abilities: ["Strong Starter", "Fireman", "Staredown", "Precision Instrument", "Inside Pitch"], potential: "A", catcherAbility: null,
-      throwHand: "R", batHand: "R",
+      throwHand: "L", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 6, 6, 1, 0, 0, 0]) },
     // Darin Horn — Closer RHP, 6-1/3.26/70K/7SV (national K/9 leader 12.68)
@@ -43,7 +43,7 @@ export const SUN_BELT_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 12, power: 10, speed: 34, arm: 67, fielding: 37, errorResistance: 48, velocity: 66, control: 60, stamina: 33, stuff: 65,
       clutch: 84, vsLHP: 76, grit: 80, stealing: 8, running: 30, throwing: 80, recovery: 46, wRISP: 64, vsLefty: 60, poise: 64, heater: 68, agile: 42,
       abilities: ["Fireman", "Doctor K", "Intimidator", "True Slider"], potential: "A", catcherAbility: null,
-      throwHand: "L", batHand: "L",
+      throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 6, 6, 1, 0, 0, 0]) },
     // Ryan Lynch — Elite RP GR, 0.56 ERA / 9 SV in 2025
@@ -75,7 +75,7 @@ export const SUN_BELT_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 11, power: 8, speed: 32, arm: 42, fielding: 25, errorResistance: 38, velocity: 43, control: 35, stamina: 28, stuff: 40,
       clutch: 38, vsLHP: 36, grit: 40, stealing: 8, running: 30, throwing: 56, recovery: 27, wRISP: 25, vsLefty: 28, poise: 27, heater: 45, agile: 36,
       abilities: ["Straddle"], potential: "A", catcherAbility: null,
-      throwHand: "L", batHand: "R",
+      throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 4, 4, 1, 0, 0, 0]) },
     // Max Galvin — FR RHP
@@ -83,7 +83,7 @@ export const SUN_BELT_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 9, power: 7, speed: 30, arm: 39, fielding: 23, errorResistance: 36, velocity: 38, control: 33, stamina: 28, stuff: 37,
       clutch: 36, vsLHP: 34, grit: 36, stealing: 7, running: 28, throwing: 54, recovery: 25, wRISP: 23, vsLefty: 25, poise: 25, heater: 41, agile: 34,
       abilities: ["Glass Heart"], potential: "A-", catcherAbility: null,
-      throwHand: "L", batHand: "L",
+      throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 4, 4, 1, 0, 0, 0]) },
     // CATCHERS (2) — replacing 1st-rd pick Caden Bodine; Schnall says "4 catchers"
@@ -225,7 +225,7 @@ export const SUN_BELT_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 14, power: 10, speed: 34, arm: 61, fielding: 35, errorResistance: 46, velocity: 61, control: 57, stamina: 61, stuff: 60,
         clutch: 70, vsLHP: 64, grit: 70, stealing: 9, running: 32, throwing: 74, recovery: 51, wRISP: 51, vsLefty: 51, poise: 56, heater: 64, agile: 42,
         abilities: ["Strong Starter", "Doctor K", "Heavy Ball", "Intimidator"], potential: "A", catcherAbility: null,
-        throwHand: "L", batHand: "L",
+        throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 6, 5, 1, 0, 0, 0]) },
       // Camden Clark — Sunday SO RHP (PRCC transfer), 4 shutout IP / 8K debut
@@ -249,7 +249,7 @@ export const SUN_BELT_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 12, power: 9, speed: 30, arm: 55, fielding: 31, errorResistance: 42, velocity: 54, control: 53, stamina: 53, stuff: 53,
         clutch: 62, vsLHP: 58, grit: 64, stealing: 8, running: 30, throwing: 68, recovery: 45, wRISP: 45, vsLefty: 47, poise: 50, heater: 58, agile: 38,
         abilities: ["Strong Starter", "Big Boy Speed", "Intimidator", "Strength Distribution"], potential: "A-", catcherAbility: null,
-        throwHand: "L", batHand: "L",
+        throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 5, 5, 1, 0, 0, 0]) },
       // Camden Sunstrom — SO RHP long reliever, 1 ER in 4.2 IP vs Miami in regional
@@ -257,7 +257,7 @@ export const SUN_BELT_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 12, power: 9, speed: 30, arm: 54, fielding: 31, errorResistance: 42, velocity: 54, control: 54, stamina: 50, stuff: 52,
         clutch: 64, vsLHP: 60, grit: 66, stealing: 8, running: 30, throwing: 68, recovery: 45, wRISP: 47, vsLefty: 47, poise: 51, heater: 56, agile: 38,
         abilities: ["Guts", "Perfect Combustion"], potential: "B+", catcherAbility: null,
-        throwHand: "L", batHand: "L",
+        throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 5, 5, 1, 0, 0, 0]) },
       // Justin Storm — JR RHP depth

@@ -489,7 +489,7 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 14, power: 11, speed: 36, arm: 61, fielding: 37, errorResistance: 48, velocity: 60, control: 56, stamina: 57, stuff: 59,
         clutch: 70, vsLHP: 80, grit: 70, stealing: 10, running: 32, throwing: 74, recovery: 51, wRISP: 51, vsLefty: 64, poise: 56, heater: 64, agile: 42,
         abilities: ["Strong Starter", "Fireman", "Explosive Fastball", "Intimidator"], potential: "A", catcherAbility: null,
-        throwHand: "R", batHand: "R",
+        throwHand: "L", batHand: "L",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [6, 0, 5, 1, 0, 0, 0]) },
       // Cord Rager — Sunday FR LHP, highly regarded prep recruit
@@ -537,7 +537,7 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 13, power: 10, speed: 32, arm: 49, fielding: 30, errorResistance: 42, velocity: 45, control: 50, stamina: 45, stuff: 44,
         clutch: 60, vsLHP: 56, grit: 62, stealing: 8, running: 28, throwing: 62, recovery: 42, wRISP: 44, vsLefty: 45, poise: 47, heater: 49, agile: 36,
         abilities: ["Guts", "Quick Hands"], potential: "B+", catcherAbility: null,
-        throwHand: "L", batHand: "L",
+        throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 6, 5, 1, 0, 0, 0]) },
       // Mason Bixby — JR RHP RP
@@ -545,7 +545,7 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 14, power: 12, speed: 36, arm: 55, fielding: 34, errorResistance: 46, velocity: 51, control: 55, stamina: 55, stuff: 52,
         clutch: 64, vsLHP: 60, grit: 66, stealing: 10, running: 32, throwing: 68, recovery: 47, wRISP: 47, vsLefty: 50, poise: 52, heater: 56, agile: 40,
         abilities: ["Fireman", "True Slider", "Perfect Combustion", "Guts"], potential: "B+", catcherAbility: null,
-        throwHand: "L", batHand: "L",
+        throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 5, 4, 1, 0, 0, 0]) },
       // Jaden Barfield — SO RHP
@@ -706,7 +706,7 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 12, power: 10, speed: 30, arm: 55, fielding: 35, errorResistance: 48, velocity: 52, control: 60, stamina: 60, stuff: 54,
       clutch: 70, vsLHP: 80, grit: 78, stealing: 7, running: 28, throwing: 68, recovery: 55, wRISP: 52, vsLefty: 63, poise: 59, heater: 51, agile: 38,
       abilities: ["Strong Starter", "Guts", "Fireman"], potential: "B+", catcherAbility: null,
-      throwHand: "R", batHand: "R",
+      throwHand: "L", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [4, 4, 6, 1, 0, 0, 0]) },
     // Thomas Burns — closer JR RHP, hard-throwing
@@ -738,7 +738,7 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 11, power: 9, speed: 30, arm: 48, fielding: 30, errorResistance: 42, velocity: 43, control: 49, stamina: 30, stuff: 45,
       clutch: 56, vsLHP: 70, grit: 60, stealing: 6, running: 26, throwing: 62, recovery: 37, wRISP: 42, vsLefty: 52, poise: 45, heater: 45, agile: 38,
       abilities: ["Fireman", "Crossfire"], potential: "B+", catcherAbility: null,
-      throwHand: "R", batHand: "R",
+      throwHand: "L", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 4, 5, 1, 0, 0, 0]) },
     // Ethan Walker — LHP sidearm, late-season key in 2025 (SEC tourney start, NCAA opener)
@@ -754,7 +754,7 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 10, power: 8, speed: 28, arm: 41, fielding: 26, errorResistance: 40, velocity: 41, control: 51, stamina: 26, stuff: 39,
       clutch: 56, vsLHP: 66, grit: 60, stealing: 6, running: 25, throwing: 56, recovery: 32, wRISP: 39, vsLefty: 48, poise: 42, heater: 41, agile: 36,
       abilities: ["Inside Pitch", "Good Pickoff"], potential: "B", catcherAbility: null,
-      throwHand: "R", batHand: "R",
+      throwHand: "L", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 4, 4, 1, 0, 0, 0]) },
     // Cal Higgins — RHP transfer

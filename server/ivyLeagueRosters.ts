@@ -44,7 +44,7 @@ export const IVY_LEAGUE_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 9, power: 8, speed: 30, arm: 28, fielding: 21, errorResistance: 34, velocity: 42, control: 38, stamina: 40, stuff: 42,
       clutch: 37, vsLHP: 34, grit: 38, stealing: 8, running: 27, throwing: 43, recovery: 32, wRISP: 30, vsLefty: 32, poise: 32, heater: 36, agile: 33,
       abilities: ["Winner's Luck"], potential: "B", catcherAbility: null,
-      throwHand: "L", batHand: "L",
+      throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 3, 3, 1, 0, 0, 0]) },
     { firstName: "Nate", lastName: "Callahan", position: "P", eligibility: "JR", homeState: "PA", hometown: "Philadelphia", jerseyNumber: 44,
       hitForAvg: 12, power: 9, speed: 31, arm: 35, fielding: 26, errorResistance: 40, velocity: 45, control: 46, stamina: 46, stuff: 45,

@@ -332,7 +332,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 16, power: 13, speed: 38, arm: 65, fielding: 41, errorResistance: 54, velocity: 64, control: 62, stamina: 65, stuff: 65,
         clutch: 80, vsLHP: 84, grit: 76, stealing: 10, running: 34, throwing: 78, recovery: 57, wRISP: 62, vsLefty: 68, poise: 65, heater: 68, agile: 44,
         abilities: ["Strong Starter", "Fireman", "Doctor K", "Intimidator"], potential: "A", catcherAbility: null,
-        throwHand: "R", batHand: "R",
+        throwHand: "L", batHand: "L",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [6, 0, 5, 1, 0, 0, 0]) },
       // Tyler Kapa — Sunday/Stopper JR RHP, "unicorn" outlier metrics, Stopper of Year semi, 90K/66IP last yr
@@ -340,7 +340,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 14, power: 11, speed: 36, arm: 68, fielding: 40, errorResistance: 54, velocity: 64, control: 56, stamina: 56, stuff: 68,
         clutch: 76, vsLHP: 70, grit: 76, stealing: 10, running: 32, throwing: 80, recovery: 51, wRISP: 56, vsLefty: 56, poise: 61, heater: 68, agile: 42,
         abilities: ["Doctor K", "Intimidator", "Sharpness", "Heavy Ball"], potential: "A+", catcherAbility: null,
-        throwHand: "L", batHand: "S",
+        throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 7, 6, 1, 0, 0, 0]) },
       // Lucas Hartman — closer JR, 12 G (T-3rd nation), NPOY + SOY semi, Midseason 2nd Team All-Am — TEAM ELITE STUFF
@@ -356,7 +356,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 13, power: 10, speed: 34, arm: 48, fielding: 30, errorResistance: 42, velocity: 45, control: 48, stamina: 38, stuff: 45,
         clutch: 60, vsLHP: 56, grit: 60, stealing: 9, running: 32, throwing: 62, recovery: 39, wRISP: 42, vsLefty: 44, poise: 45, heater: 50, agile: 38,
         abilities: ["Fireman", "Winner's Luck", "Poker Face"], potential: "B+", catcherAbility: null,
-        throwHand: "L", batHand: "L",
+        throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 5, 5, 1, 0, 0, 0]) },
       // Max Stammel — JR RHP rotation depth
@@ -396,7 +396,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 12, power: 10, speed: 30, arm: 34, fielding: 22, errorResistance: 34, velocity: 30, control: 32, stamina: 30, stuff: 30,
         clutch: 40, vsLHP: 38, grit: 42, stealing: 10, running: 26, throwing: 46, recovery: 27, wRISP: 26, vsLefty: 27, poise: 28, heater: 34, agile: 30,
         abilities: ["Gyroball"], potential: "B", catcherAbility: null,
-        throwHand: "L", batHand: "L",
+        throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 5, 4, 1, 0, 3, 0]) },
       // CATCHERS (2)
@@ -854,7 +854,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 14, power: 11, speed: 34, arm: 61, fielding: 35, errorResistance: 46, velocity: 57, control: 61, stamina: 61, stuff: 59,
         clutch: 76, vsLHP: 80, grit: 70, stealing: 8, running: 32, throwing: 74, recovery: 51, wRISP: 56, vsLefty: 64, poise: 61, heater: 61, agile: 42,
         abilities: ["Strong Starter", "Fireman", "Doctor K"], potential: "A", catcherAbility: null,
-        throwHand: "R", batHand: "R",
+        throwHand: "L", batHand: "L",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [6, 0, 5, 1, 0, 0, 0]) },
       // Drew Grumbles — Sunday RHP JR (Johns Hopkins transfer), 2.66 ERA / 103 K in 91.1 IP, D3 COY 2025
@@ -870,7 +870,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 13, power: 10, speed: 32, arm: 55, fielding: 33, errorResistance: 44, velocity: 51, control: 53, stamina: 55, stuff: 55,
         clutch: 64, vsLHP: 60, grit: 64, stealing: 8, running: 30, throwing: 68, recovery: 45, wRISP: 47, vsLefty: 47, poise: 50, heater: 56, agile: 40,
         abilities: ["Strong Starter", "Doctor K"], potential: "A-", catcherAbility: null,
-        throwHand: "L", batHand: "L",
+        throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 5, 6, 1, 0, 0, 0]) },
       // Sean Hard — RHP NJ (NY Yankees draft pick from HS, command issues but throws hard)
@@ -886,7 +886,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 12, power: 10, speed: 32, arm: 58, fielding: 33, errorResistance: 44, velocity: 56, control: 56, stamina: 39, stuff: 56,
         clutch: 76, vsLHP: 70, grit: 70, stealing: 8, running: 30, throwing: 70, recovery: 44, wRISP: 55, vsLefty: 50, poise: 59, heater: 59, agile: 40,
         abilities: ["Fireman", "Doctor K"], potential: "A", catcherAbility: null,
-        throwHand: "L", batHand: "L",
+        throwHand: "R", batHand: "R",
         skinTone: "tan", hairColor: "black", hairStyle: "short",
         ...pitchMix(1, [0, 6, 0, 1, 0, 4, 0]) },
       // Cesar Gonzalez — closer (15 saves)
@@ -902,7 +902,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 14, power: 12, speed: 34, arm: 48, fielding: 30, errorResistance: 42, velocity: 44, control: 45, stamina: 45, stuff: 44,
         clutch: 56, vsLHP: 54, grit: 58, stealing: 9, running: 32, throwing: 62, recovery: 39, wRISP: 39, vsLefty: 42, poise: 42, heater: 48, agile: 38,
         abilities: ["Guts", "Staredown", "Intimidator"], potential: "B+", catcherAbility: null,
-        throwHand: "L", batHand: "L",
+        throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 6, 4, 1, 0, 0, 0]) },
       // Henry Leake — JR RHP RP
@@ -918,7 +918,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 12, power: 9, speed: 34, arm: 36, fielding: 22, errorResistance: 34, velocity: 34, control: 30, stamina: 27, stuff: 32,
         clutch: 36, vsLHP: 34, grit: 38, stealing: 12, running: 32, throwing: 52, recovery: 24, wRISP: 23, vsLefty: 24, poise: 24, heater: 38, agile: 36,
         abilities: ["Explosive Fastball"], potential: "A-", catcherAbility: null,
-        throwHand: "L", batHand: "L",
+        throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 5, 4, 1, 0, 0, 0]) },
       // CATCHERS (2)

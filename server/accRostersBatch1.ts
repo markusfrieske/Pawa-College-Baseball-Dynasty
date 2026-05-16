@@ -316,7 +316,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 14, power: 10, speed: 32, arm: 65, fielding: 36, errorResistance: 48, velocity: 60, control: 62, stamina: 68, stuff: 70,
         clutch: 80, vsLHP: 90, grit: 80, stealing: 8, running: 30, throwing: 76, recovery: 57, wRISP: 62, vsLefty: 68, poise: 65, heater: 63, agile: 40,
         abilities: ["Star of Victory", "Intimidator", "Fireman", "Heavy Ball", "Strong Finisher", "Winner's Luck"], potential: "A+", catcherAbility: null,
-        throwHand: "R", batHand: "R",
+        throwHand: "L", batHand: "L",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [7, 0, 0, 1, 0, 6, 0]) },
       // Cooper Whited — LHP JR Saturday starter, confirmed in starting mix
@@ -324,7 +324,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 14, power: 10, speed: 32, arm: 59, fielding: 35, errorResistance: 46, velocity: 56, control: 57, stamina: 60, stuff: 56,
         clutch: 70, vsLHP: 76, grit: 70, stealing: 8, running: 30, throwing: 72, recovery: 51, wRISP: 51, vsLefty: 60, poise: 56, heater: 60, agile: 40,
         abilities: ["Strong Starter", "Fireman", "Perfect Combustion", "Heavy Ball", "Bad Ball Hitter"], potential: "A-", catcherAbility: null,
-        throwHand: "R", batHand: "R",
+        throwHand: "L", batHand: "L",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [6, 0, 0, 1, 0, 5, 0]) },
       // John Abraham — JR RHP Sunday/rotation
@@ -372,7 +372,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 11, power: 9, speed: 30, arm: 49, fielding: 29, errorResistance: 40, velocity: 46, control: 50, stamina: 46, stuff: 46,
         clutch: 60, vsLHP: 56, grit: 60, stealing: 8, running: 28, throwing: 62, recovery: 41, wRISP: 43, vsLefty: 44, poise: 46, heater: 50, agile: 36,
         abilities: ["Inside Pitch", "Fireman"], potential: "B+", catcherAbility: null,
-        throwHand: "L", batHand: "L",
+        throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 5, 0, 1, 4, 0, 0]) },
       // Marcus Harrell — FR RHP depth
@@ -549,7 +549,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 12, power: 10, speed: 32, arm: 51, fielding: 32, errorResistance: 46, velocity: 47, control: 54, stamina: 46, stuff: 51,
       clutch: 64, vsLHP: 76, grit: 66, stealing: 7, running: 28, throwing: 62, recovery: 45, wRISP: 46, vsLefty: 59, poise: 51, heater: 46, agile: 36,
       abilities: ["Fireman", "Inside Pitch"], potential: "A-", catcherAbility: null,
-      throwHand: "R", batHand: "R",
+      throwHand: "L", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [4, 5, 4, 1, 0, 0, 0]) },
     // Cooper Underwood — top FR RHP, 12th-round MLB pick chose college, 2025 Prep BB GA Player of Year
@@ -557,7 +557,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 11, power: 9, speed: 32, arm: 56, fielding: 29, errorResistance: 40, velocity: 53, control: 46, stamina: 38, stuff: 55,
       clutch: 50, vsLHP: 48, grit: 52, stealing: 7, running: 28, throwing: 70, recovery: 38, wRISP: 36, vsLefty: 38, poise: 38, heater: 53, agile: 40,
       abilities: ["Strong Starter", "Sharpness", "True Slider"], potential: "A+", catcherAbility: null,
-      throwHand: "L", batHand: "L",
+      throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 5, 5, 1, 0, 0, 0]) },
     // Charlie Willcox — FR RHP depth
@@ -581,7 +581,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 11, power: 9, speed: 28, arm: 40, fielding: 26, errorResistance: 40, velocity: 38, control: 40, stamina: 26, stuff: 40,
       clutch: 50, vsLHP: 48, grit: 52, stealing: 6, running: 26, throwing: 54, recovery: 33, wRISP: 34, vsLefty: 36, poise: 36, heater: 40, agile: 32,
       abilities: ["Painter", "Intimidator"], potential: "B", catcherAbility: null,
-      throwHand: "L", batHand: "L",
+      throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 4, 3, 1, 0, 0, 0]) },
     // Iyan Wilson — RHP RP
@@ -589,7 +589,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 10, power: 8, speed: 28, arm: 37, fielding: 24, errorResistance: 36, velocity: 35, control: 35, stamina: 25, stuff: 36,
       clutch: 42, vsLHP: 40, grit: 44, stealing: 6, running: 26, throwing: 52, recovery: 28, wRISP: 28, vsLefty: 29, poise: 29, heater: 39, agile: 30,
       abilities: ["Winner's Luck", "Tunneling", "Perfect Combustion"], potential: "B+", catcherAbility: null,
-      throwHand: "L", batHand: "L",
+      throwHand: "R", batHand: "R",
       skinTone: "deep", hairColor: "black", hairStyle: "fade",
       ...pitchMix(1, [0, 4, 4, 1, 0, 0, 0]) },
     // Cade Brown — depth RP

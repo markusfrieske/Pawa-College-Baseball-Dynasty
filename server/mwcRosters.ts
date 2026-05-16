@@ -1,5 +1,6 @@
 import type { RealPlayer } from "./realRosters";
 
+
   export const MWC_ROSTERS: Record<string, RealPlayer[]> = {
     "Fresno State": [
     { firstName: "Joe", lastName: "Yost", position: "P", eligibility: "JR", homeState: "CA", hometown: "Fresno", jerseyNumber: 35,
@@ -275,7 +276,7 @@ import type { RealPlayer } from "./realRosters";
         hitForAvg: 75, power: 70, speed: 71, arm: 71, fielding: 70, errorResistance: 69, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 65, vsLHP: 61, grit: 62, stealing: 57, running: 56, throwing: 64, recovery: 54, wRISP: 60, vsLefty: 61, poise: 64, heater: 0, agile: 64,
         abilities: ["Iron Man", "Tough Out"], potential: "A", catcherAbility: null,
-        throwHand: "R", batHand: "R",
+        throwHand: "R", batHand: "S", // Colorado Rockies SS prospect — confirmed Switch/Throws Right (Baseball America/MLB.com)
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0 },
     { firstName: "Ian", lastName: "Phillips", position: "2B", eligibility: "SR", homeState: "CA", hometown: "Region 3", jerseyNumber: 45,

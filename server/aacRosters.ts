@@ -1,12 +1,13 @@
 import type { RealPlayer } from "./realRosters";
 
+
   export const AAC_ROSTERS: Record<string, RealPlayer[]> = {
     "East Carolina": [
     { firstName: "Carter", lastName: "Spivey", position: "P", eligibility: "JR", homeState: "NC", hometown: "Greenville", jerseyNumber: 29,
         hitForAvg: 17, power: 7, speed: 34, arm: 58, fielding: 30, errorResistance: 39, velocity: 58, control: 60, stamina: 60, stuff: 58,
         clutch: 59, vsLHP: 67, grit: 68, stealing: 10, running: 29, throwing: 68, recovery: 49, wRISP: 50, vsLefty: 53, poise: 49, heater: 58, agile: 39,
         abilities: ["Explosive Fastball", "Crossfire", "Heavy Ball"], potential: "A", catcherAbility: null,
-        throwHand: "L", batHand: "L",
+        throwHand: "R", batHand: "R", // ECU Pirates RHP — confirmed Right/Right (D1Baseball)
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         pitchFB: 1, pitch2S: 0, pitchSL: 5, pitchCB: 4, pitchCH: 1, pitchCT: 0, pitchSNK: 0, pitchSPL: 0 },
     { firstName: "Khalil", lastName: "Patterson", position: "P", eligibility: "JR", homeState: "NC", hometown: "Region 2", jerseyNumber: 5,
@@ -97,8 +98,7 @@ import type { RealPlayer } from "./realRosters";
         hitForAvg: 74, power: 69, speed: 70, arm: 68, fielding: 68, errorResistance: 65, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 65, vsLHP: 65, grit: 64, stealing: 65, running: 59, throwing: 71, recovery: 58, wRISP: 65, vsLefty: 65, poise: 69, heater: 0, agile: 59,
         abilities: ["Iron Man", "Tough Out"], potential: "A", catcherAbility: null,
-        throwHand: "R", batHand: "S",
-        skinTone: "light", hairColor: "brown", hairStyle: "short",
+        throwHand: "L", batHand: "L",
         pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0 },
     { firstName: "Damon", lastName: "Morris", position: "2B", eligibility: "SR", homeState: "NC", hometown: "Region 3", jerseyNumber: 11,
         hitForAvg: 68, power: 66, speed: 67, arm: 66, fielding: 67, errorResistance: 63, velocity: 0, control: 0, stamina: 0, stuff: 0,

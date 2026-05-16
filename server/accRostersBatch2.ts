@@ -341,7 +341,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 11, power: 8, speed: 36, arm: 61, fielding: 34, errorResistance: 48, velocity: 58, control: 54, stamina: 28, stuff: 58,
       clutch: 76, vsLHP: 70, grit: 72, stealing: 8, running: 32, throwing: 74, recovery: 44, wRISP: 57, vsLefty: 56, poise: 59, heater: 56, agile: 46,
       abilities: ["Fireman", "Doctor K", "Groundball Pitcher"], potential: "A-", catcherAbility: null,
-      throwHand: "L", batHand: "S",
+      throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 5, 0, 1, 0, 0, 0]) },
     // Ryan Lynch — SO RHP Saturday SP, 4-4 / 3.75 / 12 GS / 69 IP / 66K
@@ -357,7 +357,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 14, power: 11, speed: 32, arm: 49, fielding: 32, errorResistance: 46, velocity: 45, control: 54, stamina: 46, stuff: 47,
       clutch: 60, vsLHP: 72, grit: 62, stealing: 6, running: 28, throwing: 60, recovery: 43, wRISP: 43, vsLefty: 55, poise: 47, heater: 46, agile: 36,
       abilities: ["Fireman", "Inside Pitch"], potential: "B+", catcherAbility: null,
-      throwHand: "R", batHand: "R",
+      throwHand: "L", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 4, 5, 1, 0, 0, 0]) },
     // Jackson Rose — JR RHP swing/long, 3-0 / 1.59 / 5 GS / 34 IP / 32K
@@ -381,7 +381,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 12, power: 9, speed: 32, arm: 44, fielding: 28, errorResistance: 40, velocity: 41, control: 41, stamina: 37, stuff: 41,
       clutch: 52, vsLHP: 50, grit: 54, stealing: 6, running: 28, throwing: 58, recovery: 37, wRISP: 37, vsLefty: 38, poise: 40, heater: 44, agile: 36,
       abilities: ["Guts", "True Slider", "Bad Ball Hitter"], potential: "B+", catcherAbility: null,
-      throwHand: "L", batHand: "L",
+      throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 4, 4, 1, 0, 0, 0]) },
     // Matthew Matthijs — RP returning from arm injury, 5.32 / 22 IP / 26K / 2 SV

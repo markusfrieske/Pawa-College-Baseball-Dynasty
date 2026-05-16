@@ -1,6 +1,7 @@
 import type { RealPlayer } from "./realRosters";
 import { pitchMix, noPitches } from "./pitchMixHelpers";
 
+
 export const BIG_WEST_ROSTERS: Record<string, RealPlayer[]> = {
   "Cal State Fullerton": [
     // PITCHERS (10)
@@ -639,7 +640,7 @@ export const BIG_WEST_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 15, power: 10, speed: 39, arm: 49, fielding: 34, errorResistance: 47, velocity: 58, control: 59, stamina: 60, stuff: 57,
       clutch: 58, vsLHP: 53, grit: 60, stealing: 10, running: 35, throwing: 62, recovery: 53, wRISP: 53, vsLefty: 54, poise: 56, heater: 59, agile: 43,
       abilities: ["Star of Victory", "Poker Face", "Natural Shuuto"], potential: "B+", catcherAbility: null,
-      throwHand: "L", batHand: "R",
+      throwHand: "L", batHand: "R", // LHP cross-bats right — unverified, no public source found
       ...pitchMix(1, [0, 5, 5, 1, 0, 0, 0]) },
     { firstName: "Nolan", lastName: "Pratt", position: "P", eligibility: "SR", homeState: "CA", hometown: "Poway", jerseyNumber: 29,
       hitForAvg: 13, power: 9, speed: 33, arm: 39, fielding: 27, errorResistance: 40, velocity: 48, control: 49, stamina: 50, stuff: 47,
@@ -1027,7 +1028,7 @@ export const BIG_WEST_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 52, power: 43, speed: 50, arm: 51, fielding: 51, errorResistance: 50, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 47, vsLHP: 44, grit: 48, stealing: 33, running: 47, throwing: 53, recovery: 39, wRISP: 45, vsLefty: 42, poise: 47, heater: 0, agile: 50,
       abilities: ["Defensive Artisan"], potential: "B+", catcherAbility: null,
-      throwHand: "R", batHand: "L",
+      throwHand: "R", batHand: "S", // Minnesota Twins SS — confirmed Switch/Throws Right (MLB.com)
       ...noPitches },
     { firstName: "Colton", lastName: "Meyer", position: "1B", eligibility: "SR", homeState: "CA", hometown: "Bakersfield", jerseyNumber: 8,
       hitForAvg: 52, power: 49, speed: 33, arm: 44, fielding: 45, errorResistance: 44, velocity: 0, control: 0, stamina: 0, stuff: 0,

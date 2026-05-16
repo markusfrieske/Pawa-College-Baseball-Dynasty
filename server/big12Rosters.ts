@@ -108,7 +108,7 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 87, power: 87, speed: 60, arm: 64, fielding: 70, errorResistance: 64, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 80, vsLHP: 72, grit: 78, stealing: 24, running: 50, throwing: 62, recovery: 52, wRISP: 80, vsLefty: 72, poise: 80, heater: 0, agile: 60,
       abilities: ["Artist", "Consigliere", "Defensive Artisan"], potential: "A+", catcherAbility: null,
-      throwHand: "R", batHand: "S",
+      throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...noPitches },
     // Dariel Osoria — 2B JR, All-Big 12 2nd, .324/9HR/47RBI
@@ -166,7 +166,7 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 95, power: 87, speed: 54, arm: 56, fielding: 56, errorResistance: 52, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 86, vsLHP: 80, grit: 84, stealing: 16, running: 44, throwing: 56, recovery: 50, wRISP: 86, vsLefty: 80, poise: 84, heater: 0, agile: 50,
       abilities: ["Contact Hitter", "Artist", "Consigliere"], potential: "A+", catcherAbility: null,
-      throwHand: "R", batHand: "L",
+      throwHand: "L", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...noPitches },
     // Macon Winslow — JR OF/INF, 3-for-4 5RBI vs ASU
@@ -220,7 +220,7 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 13, power: 11, speed: 34, arm: 74, fielding: 41, errorResistance: 54, velocity: 67, control: 69, stamina: 71, stuff: 69,
       clutch: 90, vsLHP: 84, grit: 84, stealing: 8, running: 30, throwing: 82, recovery: 58, wRISP: 66, vsLefty: 69, poise: 71, heater: 71, agile: 42,
       abilities: ["Star of Victory", "Intimidator", "Fireman"], potential: "A", catcherAbility: null,
-      throwHand: "R", batHand: "R",
+      throwHand: "L", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 7, 6, 1, 0, 0, 0]) },
     // Chansen Cole — Saturday SO RHP, Big 12 Newcomer of Week, CG vs KSt 9K
@@ -236,7 +236,7 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 12, power: 10, speed: 30, arm: 57, fielding: 35, errorResistance: 46, velocity: 53, control: 57, stamina: 57, stuff: 54,
       clutch: 66, vsLHP: 62, grit: 66, stealing: 7, running: 28, throwing: 70, recovery: 47, wRISP: 49, vsLefty: 50, poise: 52, heater: 58, agile: 38,
       abilities: ["Strong Starter"], potential: "B+", catcherAbility: null,
-      throwHand: "L", batHand: "L",
+      throwHand: "R", batHand: "R",
       skinTone: "tan", hairColor: "black", hairStyle: "short",
       ...pitchMix(1, [0, 6, 5, 1, 0, 0, 0]) },
     // David Perez — Closer transfer Seton Hill, 3.22/1.03 WHIP

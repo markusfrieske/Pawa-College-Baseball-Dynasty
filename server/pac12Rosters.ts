@@ -35,7 +35,7 @@ export const PAC12_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 14, power: 11, speed: 34, arm: 64, fielding: 37, errorResistance: 50, velocity: 62, control: 59, stamina: 48, stuff: 62,
       clutch: 76, vsLHP: 70, grit: 74, stealing: 9, running: 32, throwing: 76, recovery: 48, wRISP: 57, vsLefty: 56, poise: 60, heater: 65, agile: 42,
       abilities: ["Fireman", "Explosive Fastball", "Strikeout", "Intimidator"], potential: "A", catcherAbility: null,
-      throwHand: "L", batHand: "L",
+      throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 7, 6, 1, 0, 0, 0]) },
     // Trey Morris — RHP, 4 wins, 5 IP CSUN
@@ -67,7 +67,7 @@ export const PAC12_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 12, power: 9, speed: 30, arm: 49, fielding: 30, errorResistance: 42, velocity: 47, control: 49, stamina: 45, stuff: 47,
       clutch: 60, vsLHP: 56, grit: 60, stealing: 8, running: 28, throwing: 62, recovery: 41, wRISP: 42, vsLefty: 42, poise: 45, heater: 50, agile: 36,
       abilities: ["Guts", "Flyball Pitcher", "Cross Cannon"], potential: "B+", catcherAbility: null,
-      throwHand: "L", batHand: "L",
+      throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 5, 5, 1, 0, 0, 0]) },
     // Sam Keller — SO RHP RP

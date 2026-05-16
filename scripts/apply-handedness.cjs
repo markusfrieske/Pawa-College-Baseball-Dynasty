@@ -2,6 +2,56 @@
 const fs = require('fs');
 const path = require('path');
 
+// ============================================================
+// WARNING: DO NOT RE-RUN THIS SCRIPT ON REAL ROSTER FILES.
+//
+// The 19 canonical roster files listed in PROTECTED_ROSTER_FILES
+// below have had their handedness data partially audited and
+// corrected:
+//   - 77 pitcher LHP/RHP mismatches corrected from inline comments
+//   - 13+ position-player fixes via Baseball Reference / team pages
+//   - Remaining players retain probabilistic assignments pending
+//     further individual verification (see handedness_coverage.csv)
+//
+// Re-running this script would OVERWRITE all corrections with
+// fresh probabilistic assignments, erasing all research-backed
+// accuracy work to date.
+//
+// This script is preserved for reference only.  Apply it ONLY
+// to brand-new generated roster files, then manually verify.
+// ============================================================
+
+
+// ============================================================
+// HARD-FAIL GUARD: Protected canonical roster files.
+// This script will EXIT WITH CODE 1 if pointed at any of the
+// 19 real roster files that have been individually audited.
+// ============================================================
+const PROTECTED_ROSTER_FILES = new Set([
+  'secBatch1.ts', 'secBatch2.ts', 'secBatch3.ts',
+  'accRostersBatch1.ts', 'accRostersBatch2.ts', 'accRostersBatch3.ts',
+  'bigTenBatch1.ts', 'bigTenBatch2.ts', 'bigTenBatch3.ts',
+  'big12Rosters.ts', 'pac12Rosters.ts', 'aacRosters.ts',
+  'sunBeltRosters.ts', 'wccRosters.ts', 'mwcRosters.ts',
+  'bigWestRosters.ts', 'moValleyRosters.ts', 'ivyLeagueRosters.ts',
+  'hbcuRosters.ts',
+]);
+
+// Also block if target is listed in batchFiles array below
+function checkProtected(filepath) {
+  const basename = path.basename(filepath);
+  if (PROTECTED_ROSTER_FILES.has(basename)) {
+    console.error('\n╔══════════════════════════════════════════════════════════════╗');
+    console.error('║  ABORTED: Protected roster file detected.                    ║');
+    console.error(`║  File: ${basename.padEnd(54)}║`);
+    console.error('║  This file has been individually audited for handedness.     ║');
+    console.error('║  Re-running would overwrite research-backed corrections.     ║');
+    console.error('║  See scripts/apply-handedness.cjs header for details.       ║');
+    console.error('╚══════════════════════════════════════════════════════════════╝\n');
+    process.exit(1);
+  }
+}
+
 // Deterministic hash so the same player always gets the same handedness
 function hash(s) {
   let h = 5381;
@@ -82,6 +132,7 @@ function getHandedness(firstName, lastName, position) {
 }
 
 function processFile(filepath) {
+  checkProtected(filepath);
   const raw = fs.readFileSync(filepath, 'utf8');
   const lines = raw.split('\n');
   const result = [];

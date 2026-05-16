@@ -1,6 +1,7 @@
 import { RealPlayer } from "./realRosters";
 import { pitchMix, noPitches } from "./pitchMixHelpers";
 
+
 export const BIG_TEN_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
   "Illinois": [
     // PITCHERS (10)
@@ -165,8 +166,8 @@ export const BIG_TEN_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 20, power: 16, speed: 41, arm: 68, fielding: 40, errorResistance: 51, velocity: 69, control: 62, stamina: 63, stuff: 65,
       clutch: 74, vsLHP: 70, grit: 76, stealing: 12, running: 37, throwing: 90, recovery: 57, wRISP: 58, vsLefty: 60, poise: 62, heater: 68, agile: 45,
       abilities: ["Star of Victory", "Intimidator", "Strong Starter", "Heavy Ball", "Winner's Luck", "Pace", "Straddle"], potential: "B+", catcherAbility: null,
-      throwHand: "R", batHand: "R",
-      ...pitchMix(1, [0, 7, 5, 1, 0, 0, 0]) },
+      throwHand: "L", batHand: "L",
+      ...pitchMix(1, [0, 6, 5, 1, 0, 0, 0]) },
     { firstName: "Jackson", lastName: "Bergman", position: "P", eligibility: "SR", homeState: "OH", hometown: "Toledo", jerseyNumber: 29,
       hitForAvg: 16, power: 13, speed: 35, arm: 55, fielding: 34, errorResistance: 46, velocity: 52, control: 53, stamina: 53, stuff: 52,
       clutch: 65, vsLHP: 60, grit: 67, stealing: 9, running: 32, throwing: 68, recovery: 48, wRISP: 48, vsLefty: 51, poise: 52, heater: 55, agile: 41,
@@ -793,7 +794,7 @@ export const BIG_TEN_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 21, power: 16, speed: 47, arm: 71, fielding: 46, errorResistance: 59, velocity: 70, control: 69, stamina: 71, stuff: 68,
       clutch: 79, vsLHP: 75, grit: 82, stealing: 14, running: 42, throwing: 90, recovery: 63, wRISP: 63, vsLefty: 65, poise: 67, heater: 71, agile: 52,
       abilities: ["Star of Victory", "Strong Starter", "Gyroball", "Intimidator"], potential: "B+", catcherAbility: null,
-      throwHand: "R", batHand: "R",
+      throwHand: "L", batHand: "L",
       ...pitchMix(1, [0, 6, 5, 1, 0, 0, 0]) },
     { firstName: "Derek", lastName: "Kontul", position: "P", eligibility: "SR", homeState: "MI", hometown: "Midland", jerseyNumber: 29,
       hitForAvg: 14, power: 12, speed: 30, arm: 43, fielding: 28, errorResistance: 40, velocity: 40, control: 43, stamina: 43, stuff: 40,
@@ -867,8 +868,8 @@ export const BIG_TEN_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 78, power: 65, speed: 66, arm: 64, fielding: 71, errorResistance: 69, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 69, vsLHP: 66, grit: 71, stealing: 47, running: 59, throwing: 66, recovery: 56, wRISP: 67, vsLefty: 64, poise: 69, heater: 0, agile: 66,
       abilities: ["Contact Hitter", "Defensive Artisan", "Chance Maker"], potential: "A-", catcherAbility: null,
-      throwHand: "R", batHand: "R",
-      ...noPitches },
+      throwHand: "R", batHand: "L",
+        ...noPitches },
     { firstName: "Brendan", lastName: "Walsh", position: "1B", eligibility: "JR", homeState: "IL", hometown: "Naperville", jerseyNumber: 8,
       hitForAvg: 58, power: 57, speed: 38, arm: 48, fielding: 50, errorResistance: 48, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 51, vsLHP: 48, grit: 53, stealing: 12, running: 32, throwing: 50, recovery: 43, wRISP: 50, vsLefty: 46, poise: 51, heater: 0, agile: 36,

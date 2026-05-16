@@ -215,7 +215,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 14, power: 12, speed: 36, arm: 54, fielding: 36, errorResistance: 48, velocity: 52, control: 54, stamina: 47, stuff: 51,
         clutch: 66, vsLHP: 62, grit: 68, stealing: 9, running: 34, throwing: 66, recovery: 47, wRISP: 50, vsLefty: 50, poise: 53, heater: 56, agile: 40,
         abilities: ["Fireman", "Guts", "Doctor K", "Inside Pitch"], potential: "B+", catcherAbility: null,
-        throwHand: "L", batHand: "L",
+        throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 5, 0, 1, 4, 0, 0]) },
       // Cooper Timmerman — JR RHP
@@ -697,7 +697,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 14, power: 10, speed: 32, arm: 59, fielding: 35, errorResistance: 46, velocity: 55, control: 62, stamina: 60, stuff: 54,
         clutch: 70, vsLHP: 64, grit: 70, stealing: 9, running: 30, throwing: 72, recovery: 51, wRISP: 51, vsLefty: 52, poise: 56, heater: 59, agile: 40,
         abilities: ["Strong Starter", "Inside Pitch", "Poker Face"], potential: "A-", catcherAbility: null,
-        throwHand: "L", batHand: "L",
+        throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 6, 0, 1, 5, 0, 0]) },
       // Cal Scolari — Sunday RS-SO RHP (USD transfer), All-WCC, 4-0/2.81 early, BA top-300
@@ -705,7 +705,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 13, power: 10, speed: 32, arm: 60, fielding: 33, errorResistance: 44, velocity: 59, control: 59, stamina: 57, stuff: 57,
         clutch: 70, vsLHP: 64, grit: 70, stealing: 8, running: 30, throwing: 72, recovery: 49, wRISP: 51, vsLefty: 52, poise: 56, heater: 62, agile: 40,
         abilities: ["Strong Starter", "Doctor K", "Heavy Ball", "Sharpness"], potential: "A", catcherAbility: null,
-        throwHand: "L", batHand: "L",
+        throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 7, 5, 1, 0, 0, 0]) },
       // Ryan Featherston — JR RHP rotation depth/midweek
@@ -713,7 +713,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 13, power: 10, speed: 32, arm: 55, fielding: 33, errorResistance: 44, velocity: 52, control: 55, stamina: 56, stuff: 52,
         clutch: 64, vsLHP: 60, grit: 66, stealing: 8, running: 30, throwing: 68, recovery: 47, wRISP: 47, vsLefty: 48, poise: 52, heater: 56, agile: 40,
         abilities: ["Guts", "Fighting Spirit", "Strikeout", "Quick Hands"], potential: "B+", catcherAbility: null,
-        throwHand: "L", batHand: "L",
+        throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 6, 5, 1, 0, 0, 0]) },
       // Toby Twist — JR RHP closer/RP
@@ -737,7 +737,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 13, power: 10, speed: 32, arm: 51, fielding: 32, errorResistance: 44, velocity: 49, control: 51, stamina: 51, stuff: 48,
         clutch: 60, vsLHP: 58, grit: 62, stealing: 8, running: 30, throwing: 64, recovery: 45, wRISP: 45, vsLefty: 46, poise: 48, heater: 54, agile: 40,
         abilities: ["Guts", "Flyball Pitcher"], potential: "B", catcherAbility: null,
-        throwHand: "L", batHand: "L",
+        throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 5, 5, 1, 0, 0, 0]) },
       // Tyler Jones — SO RP
