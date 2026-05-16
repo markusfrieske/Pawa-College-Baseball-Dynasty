@@ -186,16 +186,14 @@ async function autoAssignLineup(storage: any, teamPlayers: Player[], teamId: str
   // Slot 9 — Second leadoff: hitForAvg + speed
   slotAssignments.push(pickBest(p => (p.hitForAvg || 0) + (p.speed || 0)));
 
-  // Persist batting orders and lineup positions
-  for (const p of positionPlayers) {
+  // Collect batting order / lineup position updates for batch write
+  const hitterUpdates = positionPlayers.map(p => {
     const slot = slotAssignments.indexOf(p);
     const lineupPos = starterLineupPositions.get(p.id) ?? null;
-    if (slot !== -1) {
-      await storage.updatePlayer(p.id, { battingOrder: slot + 1, lineupPosition: lineupPos });
-    } else {
-      await storage.updatePlayer(p.id, { battingOrder: null, lineupPosition: null });
-    }
-  }
+    return slot !== -1
+      ? { id: p.id, data: { battingOrder: slot + 1, lineupPosition: lineupPos } }
+      : { id: p.id, data: { battingOrder: null as null, lineupPosition: null as null } };
+  });
 
   // ── STEP 3: assign pitching roles ─────────────────────────────────────────
   // Sort by overall as a baseline, then deviate for specialist roles.
@@ -262,11 +260,13 @@ async function autoAssignLineup(storage: any, teamPlayers: Player[], teamId: str
     roleMap.set(remainingBullpen[i].id, role ?? "");
   }
 
-  // Persist pitcher roles
-  for (const p of pitchers) {
-    const role = roleMap.get(p.id) ?? null;
-    await storage.updatePlayer(p.id, { pitchingRole: role || null });
-  }
+  // Collect pitcher role updates, then flush all writes in one batch
+  const pitcherUpdates = pitchers.map(p => ({
+    id: p.id,
+    data: { pitchingRole: roleMap.get(p.id) || null as null },
+  }));
+
+  await storage.batchUpdatePlayersLineup([...hitterUpdates, ...pitcherUpdates]);
 }
 
 export async function registerRoutes(
@@ -496,10 +496,11 @@ export async function registerRoutes(
 
         if (!userTeam) return null;
 
-        const [players, recruits] = await Promise.all([
-          storage.getPlayersByTeam(userTeam.id),
+        const [allLeaguePlayers, recruits] = await Promise.all([
+          storage.getPlayersByLeague(league.id),
           storage.getRecruitsByLeague(league.id),
         ]);
+        const players = allLeaguePlayers.filter(p => p.teamId === userTeam.id);
 
         const activePlayers = players.filter(p => !p.declaredForDraft);
         const avgOvr = activePlayers.length > 0
@@ -1000,11 +1001,18 @@ export async function registerRoutes(
         teamsInMap.set(ri.recruitId, entry);
       }
 
+      // Build a per-recruit map from the already-fetched allLeagueTopSchools to avoid N+1 queries
+      const topSchoolsByRecruit = new Map<string, (typeof allLeagueTopSchools)[number][]>();
+      for (const ts of allLeagueTopSchools) {
+        if (!topSchoolsByRecruit.has(ts.recruitId)) topSchoolsByRecruit.set(ts.recruitId, []);
+        topSchoolsByRecruit.get(ts.recruitId)!.push(ts);
+      }
+
       const recruitsWithInterest = await Promise.all(leagueRecruits.map(async (recruit) => {
         const interest = interests.find((i) => i.recruitId === recruit.id);
         
-        // Fetch stored top schools from database (only includes teams in the league)
-        const storedTopSchools = await storage.getRecruitTopSchools(recruit.id);
+        // Use pre-fetched top schools map — no extra DB query per recruit
+        const storedTopSchools = topSchoolsByRecruit.get(recruit.id) ?? [];
         
         // Stage values are lowercase: "open", "top8", "top5", "top3", "verbal", "signed"
         const stage = (recruit.stage || "open").toLowerCase();

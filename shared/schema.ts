@@ -1,5 +1,5 @@
 import { sql, relations } from "drizzle-orm";
-import { pgTable, text, varchar, integer, boolean, timestamp, json, real, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, boolean, timestamp, json, real, uniqueIndex, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -165,7 +165,10 @@ export const coaches = pgTable("coaches", {
   isReady: boolean("is_ready").notNull().default(false),
   scoutActionsUsed: integer("scout_actions_used").notNull().default(0),
   recruitActionsUsed: integer("recruit_actions_used").notNull().default(0),
-});
+}, (t) => [
+  index("idx_coaches_team_id").on(t.teamId),
+  index("idx_coaches_league_id").on(t.leagueId),
+]);
 
 export const insertCoachSchema = createInsertSchema(coaches).pick({
   userId: true,
@@ -305,7 +308,9 @@ export const players = pgTable("players", {
   tools: json("tools").$type<string[]>().default([]),
   workEthicScore: integer("work_ethic_score").notNull().default(70),
   coachability: integer("coachability").notNull().default(70),
-});
+}, (t) => [
+  index("idx_players_team_id").on(t.teamId),
+]);
 
 export const insertPlayerSchema = createInsertSchema(players).pick({
   teamId: true,
@@ -500,7 +505,9 @@ export const recruits = pgTable("recruits", {
   workEthicScore: integer("work_ethic_score").notNull().default(70),
   coachability: integer("coachability").notNull().default(70),
   classVintage: text("class_vintage"),
-});
+}, (t) => [
+  index("idx_recruits_league_id").on(t.leagueId),
+]);
 
 export const insertRecruitSchema = createInsertSchema(recruits).pick({
   leagueId: true,
@@ -720,7 +727,10 @@ export const recruitingInterests = pgTable("recruiting_interests", {
   maxStar: integer("max_star").notNull().default(5),
   revealedAbilitiesCount: integer("revealed_abilities_count").notNull().default(0),
   notes: text("notes"),
-});
+}, (t) => [
+  index("idx_recruiting_interests_recruit_id").on(t.recruitId),
+  index("idx_recruiting_interests_team_id").on(t.teamId),
+]);
 
 export const insertRecruitingInterestSchema = createInsertSchema(recruitingInterests).pick({
   recruitId: true,
@@ -801,7 +811,10 @@ export const recruitTopSchools = pgTable("recruit_top_schools", {
   rank: integer("rank"), // Position in top schools list (1-8 during Open, 1-5 during Top 5, 1-3 during Top 3)
   isActive: boolean("is_active").notNull().default(true), // Whether still in consideration
   accumulatedInterest: integer("accumulated_interest").notNull().default(0), // Total interest accumulated from recruiting actions
-});
+}, (t) => [
+  index("idx_recruit_top_schools_recruit_id").on(t.recruitId),
+  index("idx_recruit_top_schools_team_id").on(t.teamId),
+]);
 
 export const insertRecruitTopSchoolsSchema = createInsertSchema(recruitTopSchools).pick({
   recruitId: true,
@@ -835,7 +848,9 @@ export const games = pgTable("games", {
   bracketType: text("bracket_type"),
   isManuallyReported: boolean("is_manually_reported").notNull().default(false),
   reportedByUserId: varchar("reported_by_user_id"),
-});
+}, (t) => [
+  index("idx_games_league_season_week").on(t.leagueId, t.season, t.week),
+]);
 
 export const insertGameSchema = createInsertSchema(games).pick({
   leagueId: true,
@@ -989,7 +1004,10 @@ export const playerHistory = pgTable("player_history", {
   abilities: json("abilities").$type<string[]>().default([]),
   homeState: text("home_state").notNull().default(""),
   hometown: text("hometown").notNull().default(""),
-});
+}, (t) => [
+  index("idx_player_history_league_id").on(t.leagueId),
+  index("idx_player_history_team_id").on(t.teamId),
+]);
 
 export const insertPlayerHistorySchema = createInsertSchema(playerHistory).pick({
   leagueId: true,
@@ -1192,7 +1210,9 @@ export const playerSeasonStats = pgTable("player_season_stats", {
   fieldingErrors: integer("fielding_errors").notNull().default(0),
   totalChances: integer("total_chances").notNull().default(0),
   wpa: real("wpa").notNull().default(0),
-});
+}, (t) => [
+  index("idx_player_season_stats_player_league").on(t.playerId, t.leagueId, t.season),
+]);
 
 export const insertPlayerSeasonStatsSchema = createInsertSchema(playerSeasonStats).omit({ id: true });
 export type InsertPlayerSeasonStats = z.infer<typeof insertPlayerSeasonStatsSchema>;

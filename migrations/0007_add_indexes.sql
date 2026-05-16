@@ -1,0 +1,12 @@
+CREATE INDEX IF NOT EXISTS idx_coaches_team_id ON coaches(team_id);
+CREATE INDEX IF NOT EXISTS idx_coaches_league_id ON coaches(league_id);
+CREATE INDEX IF NOT EXISTS idx_players_team_id ON players(team_id);
+CREATE INDEX IF NOT EXISTS idx_recruits_league_id ON recruits(league_id);
+CREATE INDEX IF NOT EXISTS idx_recruiting_interests_recruit_id ON recruiting_interests(recruit_id);
+CREATE INDEX IF NOT EXISTS idx_recruiting_interests_team_id ON recruiting_interests(team_id);
+CREATE INDEX IF NOT EXISTS idx_recruit_top_schools_recruit_id ON recruit_top_schools(recruit_id);
+CREATE INDEX IF NOT EXISTS idx_recruit_top_schools_team_id ON recruit_top_schools(team_id);
+CREATE INDEX IF NOT EXISTS idx_games_league_season_week ON games(league_id, season, week);
+CREATE INDEX IF NOT EXISTS idx_player_history_league_id ON player_history(league_id);
+CREATE INDEX IF NOT EXISTS idx_player_history_team_id ON player_history(team_id);
+CREATE INDEX IF NOT EXISTS idx_player_season_stats_player_league ON player_season_stats(player_id, league_id, season);

@@ -134,6 +134,7 @@ export interface IStorage {
   updateRecruitTopSchool(id: string, data: Partial<RecruitTopSchools>): Promise<RecruitTopSchools | undefined>;
   
   updatePlayer(id: string, data: Partial<Player>): Promise<Player | undefined>;
+  batchUpdatePlayersLineup(updates: Array<{id: string; data: Partial<Player>}>): Promise<void>;
   getPlayer(id: string): Promise<Player | undefined>;
   clearProgressionDeltasForLeague(leagueId: string): Promise<number>;
   
@@ -672,6 +673,15 @@ export class DatabaseStorage implements IStorage {
   async updatePlayer(id: string, data: Partial<Player>): Promise<Player | undefined> {
     const [player] = await db.update(players).set(data).where(eq(players.id, id)).returning();
     return player || undefined;
+  }
+
+  async batchUpdatePlayersLineup(updates: Array<{id: string; data: Partial<Player>}>): Promise<void> {
+    if (updates.length === 0) return;
+    await db.transaction(async (tx) => {
+      await Promise.all(updates.map(u =>
+        tx.update(players).set(u.data).where(eq(players.id, u.id))
+      ));
+    });
   }
 
   async clearProgressionDeltasForLeague(leagueId: string): Promise<number> {
