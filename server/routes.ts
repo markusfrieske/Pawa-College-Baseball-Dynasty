@@ -10741,7 +10741,7 @@ export async function registerRoutes(
         const cwsGames = seasonGames.filter(g => g.phase === "cws");
         if (cwsGames.length === 0) return null;
         const last = cwsGames[cwsGames.length - 1];
-        if (!last.homeScore || !last.awayScore) return null;
+        if (last.homeScore == null || last.awayScore == null) return null;
         return last.homeScore > last.awayScore ? last.homeTeamId : last.awayTeamId;
       })();
 

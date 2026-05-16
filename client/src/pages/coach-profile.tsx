@@ -81,21 +81,27 @@ function deriveCoachingGrades(coach: Coach): Record<string, string> {
   const totalGames = coach.careerWins + coach.careerLosses;
   const winPct = totalGames > 0 ? coach.careerWins / totalGames : 0;
 
-  // Game Management: win% + postseason presence + archetype tactical bonus
-  const gm = Math.min(100, winPct * 40 + coach.cwsAppearances * 4 + coach.confChampionships * 3 + aw.gm + 22);
+  // Skill-tree level totals influence grade derivation (0-20 range each)
+  const scoutLevel = coach.scoutingSkill ?? 0;         // 0-20
+  const evalLevel  = coach.evaluationSkill ?? 0;        // 0-20
+  const pitchRec   = coach.pitchingRecruitingSkill ?? 0; // 0-20
+  const hitRec     = coach.hittingRecruitingSkill ?? 0;  // 0-20
+  const recSkillAvg = (scoutLevel + evalLevel + pitchRec + hitRec) / 4;
 
-  // Player Development: all-americans + draft picks + level + archetype dev bonus
-  const pd = Math.min(100, coach.allAmericans * 3 + coach.draftPicks * 4 + coach.level * 2 + aw.pd + 22);
+  // Game Management: win% + postseason presence + archetype tactical bonus + eval skills
+  const gm = Math.min(100, winPct * 38 + coach.cwsAppearances * 4 + coach.confChampionships * 3 + aw.gm + evalLevel * 0.8 + 18);
 
-  // Program Builder: sustained winning + titles + archetype admin/builder bonus
-  const pb = Math.min(100, winPct * 28 + coach.confChampionships * 5 + coach.nationalChampionships * 10 + aw.pb + 22);
+  // Player Development: all-americans + draft picks + scouting/eval depth + archetype dev bonus
+  const pd = Math.min(100, coach.allAmericans * 3 + coach.draftPicks * 4 + coach.level * 1.5 + (scoutLevel + evalLevel) * 0.6 + aw.pd + 18);
 
-  // Media Relations: archetype visibility/relationships + career profile baseline
-  // Archetype is the primary driver here; career wins/titles provide baseline
-  const mr = Math.min(100, aw.mr * 2 + winPct * 18 + coach.level * 1.5 + coach.nationalChampionships * 4 + 22);
+  // Program Builder: sustained winning + titles + overall recruiting depth + archetype builder bonus
+  const pb = Math.min(100, winPct * 25 + coach.confChampionships * 5 + coach.nationalChampionships * 10 + recSkillAvg * 0.8 + aw.pb + 18);
 
-  // Clutch Coaching: postseason success + archetype composure bonus
-  const cc = Math.min(100, coach.nationalChampionships * 14 + coach.cwsAppearances * 7 + coach.confChampionships * 3 + winPct * 18 + aw.cc + 18);
+  // Media Relations: archetype (primary driver) + career wins + national profile + level
+  const mr = Math.min(100, aw.mr * 2 + winPct * 16 + coach.level * 1.5 + coach.nationalChampionships * 4 + 18);
+
+  // Clutch Coaching: postseason success + archetype composure bonus + skill depth
+  const cc = Math.min(100, coach.nationalChampionships * 14 + coach.cwsAppearances * 7 + coach.confChampionships * 3 + winPct * 16 + (evalLevel + hitRec) * 0.5 + aw.cc + 14);
 
   return {
     "Game Management": scoreToGrade(gm),
@@ -298,6 +304,46 @@ function SeasonRow({ entry }: { entry: CoachSeasonHistory }) {
           </p>
         )}
       </div>
+    </div>
+  );
+}
+
+// ── Collapsible season history timeline ───────────────────────────────────────
+const SEASON_HISTORY_DEFAULT_VISIBLE = 4;
+
+function CollapsibleSeasonHistory({ seasons }: { seasons: CoachSeasonHistory[] }) {
+  const [expanded, setExpanded] = useState(false);
+  const visible = expanded ? seasons : seasons.slice(0, SEASON_HISTORY_DEFAULT_VISIBLE);
+  const hasMore = seasons.length > SEASON_HISTORY_DEFAULT_VISIBLE;
+  return (
+    <div>
+      <div className="relative">
+        {visible.map((entry, i) => (
+          <div key={`${entry.season}-${entry.leagueId}`} className="relative flex gap-3">
+            {/* Timeline vertical line */}
+            <div className="flex flex-col items-center">
+              <div className="w-2 h-2 rounded-full bg-gold mt-3 shrink-0" />
+              {i < visible.length - 1 && <div className="w-px flex-1 bg-border/40 mt-0.5" />}
+            </div>
+            <div className="flex-1 pb-3">
+              <SeasonRow entry={entry} />
+            </div>
+          </div>
+        ))}
+      </div>
+      {hasMore && (
+        <button
+          onClick={() => setExpanded(e => !e)}
+          className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-gold transition-colors"
+          data-testid="button-season-history-toggle"
+        >
+          {expanded ? (
+            <><ChevronUp className="w-3.5 h-3.5" /> Show fewer seasons</>
+          ) : (
+            <><ChevronDown className="w-3.5 h-3.5" /> Show all {seasons.length} seasons</>
+          )}
+        </button>
+      )}
     </div>
   );
 }
@@ -574,12 +620,15 @@ function CareerTab({
         </RetroCardContent>
       </RetroCard>
 
-      {/* Season history */}
+      {/* Season history — collapsible timeline */}
       <RetroCard variant="bordered">
         <RetroCardHeader>
           <div className="flex items-center gap-2">
             <Calendar className="w-4 h-4 text-gold" />
             <h3 className="font-pixel text-sm">Season History</h3>
+            {seasonHistory && seasonHistory.length > 0 && (
+              <span className="text-xs text-muted-foreground ml-auto">{seasonHistory.length} season{seasonHistory.length !== 1 ? "s" : ""}</span>
+            )}
           </div>
         </RetroCardHeader>
         <RetroCardContent className="p-4">
@@ -590,9 +639,7 @@ function CareerTab({
           ) : !seasonHistory || seasonHistory.length === 0 ? (
             <p className="text-muted-foreground text-sm text-center py-4">No completed seasons yet</p>
           ) : (
-            <div>
-              {seasonHistory.map(entry => <SeasonRow key={`${entry.season}-${entry.leagueId}`} entry={entry} />)}
-            </div>
+            <CollapsibleSeasonHistory seasons={seasonHistory} />
           )}
         </RetroCardContent>
       </RetroCard>
