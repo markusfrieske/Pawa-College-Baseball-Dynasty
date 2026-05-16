@@ -1213,8 +1213,22 @@ export async function registerRoutes(
         const teamsIn: number | null = userScoutPct >= 10 ? rawTeamsIn.teamsIn : null;
         const offersOut: number | null = userScoutPct >= 10 ? rawTeamsIn.offersOut : null;
 
+        // Signing-day holdback: last 35% of scoutingOrder stays masked until signingDayRevealed = true.
+        // Blue chips are fully exempt — they always show all attributes.
+        const scoutingOrder = (recruit.scoutingOrder as string[]) || [];
+        const holdbackCutoff = Math.floor(scoutingOrder.length * 0.65);
+        const holdbackFields: string[] = (recruit.isBlueChip || recruit.signingDayRevealed)
+          ? []
+          : scoutingOrder.slice(holdbackCutoff);
+
+        // Null out holdback field values so they never reach the client before signing day
+        const maskedRecruit: Record<string, unknown> = { ...recruit };
+        for (const field of holdbackFields) {
+          maskedRecruit[field] = null;
+        }
+
         return {
-          ...recruit,
+          ...maskedRecruit,
           potential: actualPotential,
           potentialFloor: dynamicPotentialFloor,
           potentialCeiling: dynamicPotentialCeiling,
@@ -1228,6 +1242,8 @@ export async function registerRoutes(
           competingIntensity,
           teamsIn,
           offersOut,
+          // Tell the client which fields are signing-day locked vs just unscouted
+          signingDayLockedFields: holdbackFields,
         };
       }));
 
@@ -10820,6 +10836,16 @@ export async function registerRoutes(
       if (stillUnsigned.length > 0) {
         console.log(`[finalizeSigningDay] Auto-committed ${stillUnsigned.length} undecided recruits based on interest`);
       }
+    }
+
+    // Mark all signed recruits as signing-day revealed so the reveal screen can show full data
+    {
+      const allForReveal = await storage.getRecruitsByLeague(leagueId);
+      const toReveal = allForReveal.filter(r => r.signedTeamId && !r.signingDayRevealed);
+      for (const r of toReveal) {
+        await storage.updateRecruit(r.id, { signingDayRevealed: true });
+      }
+      console.log(`[finalizeSigningDay] Set signingDayRevealed=true for ${toReveal.length} signed recruits`);
     }
 
     // Snapshot class rankings before recruits are converted to players

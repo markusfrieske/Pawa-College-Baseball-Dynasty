@@ -57,7 +57,8 @@ import {
   Zap,
   Filter,
   MoreHorizontal,
-  Trophy
+  Trophy,
+  Lock
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -119,6 +120,8 @@ interface RecruitWithInterest extends Recruit {
   competingIntensity?: string | null;
   teamsIn?: number | null;
   offersOut?: number | null;
+  // Fields locked until signing day reveal (last 35% of scoutingOrder)
+  signingDayLockedFields?: string[] | null;
 }
 
 interface RecruitingData {
@@ -3133,6 +3136,8 @@ function RecruitDetailModal({
   const revealedAttrs = recruit.isBlueChip 
     ? ["hitForAvg", "power", "speed", "arm", "fielding", "errorResistance", "velocity", "control", "stamina"]
     : (recruit.interest?.revealedAttributes || []);
+  // Set of fields locked until signing day reveal (server has already nulled their values)
+  const sdLocked = new Set<string>(recruit.signingDayLockedFields || []);
 
   // Progressive reveal display functions for modal
   const getOverallDisplay = (): string => {
@@ -3276,7 +3281,8 @@ function RecruitDetailModal({
                 <h4 className="font-pixel text-[10px] text-gold mb-3">Attributes</h4>
                 <div className="grid grid-cols-2 gap-3">
                   {attrs.map((attr) => {
-                    const revealed = isFullyRevealed || revealedAttrs.includes(attr.key);
+                    const isSigningDayLocked = sdLocked.has(attr.key);
+                    const revealed = !isSigningDayLocked && (isFullyRevealed || revealedAttrs.includes(attr.key));
                     const isVelocity = attr.key === "velocity";
                     const displayValue = isVelocity && revealed 
                       ? `${velocityToMPH(attr.value)} MPH`
@@ -3284,9 +3290,15 @@ function RecruitDetailModal({
                     return (
                       <div key={attr.key} className="flex items-center justify-between p-2 bg-muted/50 rounded">
                         <span className="text-sm text-muted-foreground">{attr.label}</span>
-                        <span className={`font-bold ${revealed ? "text-foreground" : "text-muted-foreground"}`}>
-                          {displayValue}
-                        </span>
+                        {isSigningDayLocked ? (
+                          <span className="flex items-center gap-1 text-[10px] text-gold/70 font-pixel">
+                            <Lock className="w-3 h-3" /> Signing Day
+                          </span>
+                        ) : (
+                          <span className={`font-bold ${revealed ? "text-foreground" : "text-muted-foreground"}`}>
+                            {displayValue}
+                          </span>
+                        )}
                       </div>
                     );
                   })}
@@ -3302,13 +3314,20 @@ function RecruitDetailModal({
               <h4 className="font-pixel text-[10px] text-gold mb-3">Attributes</h4>
               <div className="grid grid-cols-2 gap-3">
                 {attrs.map((attr) => {
-                  const revealed = isFullyRevealed || revealedAttrs.includes(attr.key);
+                  const isSigningDayLocked = sdLocked.has(attr.key);
+                  const revealed = !isSigningDayLocked && (isFullyRevealed || revealedAttrs.includes(attr.key));
                   return (
                     <div key={attr.key} className="flex items-center justify-between p-2 bg-muted/50 rounded">
                       <span className="text-sm text-muted-foreground">{attr.label}</span>
-                      <span className={`font-bold ${revealed ? "text-foreground" : "text-muted-foreground"}`}>
-                        {revealed ? attr.value : "??"}
-                      </span>
+                      {isSigningDayLocked ? (
+                        <span className="flex items-center gap-1 text-[10px] text-gold/70 font-pixel">
+                          <Lock className="w-3 h-3" /> Signing Day
+                        </span>
+                      ) : (
+                        <span className={`font-bold ${revealed ? "text-foreground" : "text-muted-foreground"}`}>
+                          {revealed ? attr.value : "??"}
+                        </span>
+                      )}
                     </div>
                   );
                 })}
@@ -3322,25 +3341,25 @@ function RecruitDetailModal({
             <div className="grid grid-cols-2 gap-2">
               {recruit.position === "P" ? (
                 <>
-                  <CommonAbilityRow label="W/RISP" value={recruit.wRISP} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
-                  <CommonAbilityRow label="vs Lefty" value={recruit.vsLefty} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
-                  <CommonAbilityRow label="Poise" value={recruit.poise} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
-                  <CommonAbilityRow label="Grit" value={recruit.grit} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
-                  <CommonAbilityRow label="Heater" value={recruit.heater} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
-                  <CommonAbilityRow label="Agile" value={recruit.agile} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
-                  <CommonAbilityRow label="Recovery" value={recruit.recovery} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
+                  <CommonAbilityRow label="W/RISP" value={recruit.wRISP} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("wRISP")} />
+                  <CommonAbilityRow label="vs Lefty" value={recruit.vsLefty} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("vsLefty")} />
+                  <CommonAbilityRow label="Poise" value={recruit.poise} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("poise")} />
+                  <CommonAbilityRow label="Grit" value={recruit.grit} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("grit")} />
+                  <CommonAbilityRow label="Heater" value={recruit.heater} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("heater")} />
+                  <CommonAbilityRow label="Agile" value={recruit.agile} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("agile")} />
+                  <CommonAbilityRow label="Recovery" value={recruit.recovery} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("recovery")} />
                 </>
               ) : (
                 <>
-                  <CommonAbilityRow label="Clutch" value={recruit.clutch} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
-                  <CommonAbilityRow label="vs LHP" value={recruit.vsLHP} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
-                  <CommonAbilityRow label="Grit" value={recruit.grit} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
-                  <CommonAbilityRow label="Stealing" value={recruit.stealing} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
-                  <CommonAbilityRow label="Running" value={recruit.running} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
-                  <CommonAbilityRow label="Throwing" value={recruit.throwing} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
-                  <CommonAbilityRow label="Recovery" value={recruit.recovery} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
+                  <CommonAbilityRow label="Clutch" value={recruit.clutch} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("clutch")} />
+                  <CommonAbilityRow label="vs LHP" value={recruit.vsLHP} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("vsLHP")} />
+                  <CommonAbilityRow label="Grit" value={recruit.grit} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("grit")} />
+                  <CommonAbilityRow label="Stealing" value={recruit.stealing} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("stealing")} />
+                  <CommonAbilityRow label="Running" value={recruit.running} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("running")} />
+                  <CommonAbilityRow label="Throwing" value={recruit.throwing} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("throwing")} />
+                  <CommonAbilityRow label="Recovery" value={recruit.recovery} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("recovery")} />
                   {recruit.position === "C" && (
-                    <CommonAbilityRow label="Catcher" value={recruit.catcherAbility} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
+                    <CommonAbilityRow label="Catcher" value={recruit.catcherAbility} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("catcherAbility")} />
                   )}
                 </>
               )}
@@ -3731,7 +3750,8 @@ function RecruitDetailModal({
                 <h4 className="font-pixel text-[10px] text-gold mb-3">Attributes</h4>
                 <div className="grid grid-cols-2 gap-3">
                   {attrs.map((attr) => {
-                    const revealed = isFullyRevealed || revealedAttrs.includes(attr.key);
+                    const isSigningDayLocked = sdLocked.has(attr.key);
+                    const revealed = !isSigningDayLocked && (isFullyRevealed || revealedAttrs.includes(attr.key));
                     const isVelocity = attr.key === "velocity";
                     const displayValue = isVelocity && revealed 
                       ? `${velocityToMPH(attr.value)} MPH`
@@ -3739,9 +3759,15 @@ function RecruitDetailModal({
                     return (
                       <div key={attr.key} className="flex items-center justify-between p-2 bg-muted/50 rounded">
                         <span className="text-sm text-muted-foreground">{attr.label}</span>
-                        <span className={`font-bold ${revealed ? "text-foreground" : "text-muted-foreground"}`}>
-                          {displayValue}
-                        </span>
+                        {isSigningDayLocked ? (
+                          <span className="flex items-center gap-1 text-[10px] text-gold/70 font-pixel">
+                            <Lock className="w-3 h-3" /> Signing Day
+                          </span>
+                        ) : (
+                          <span className={`font-bold ${revealed ? "text-foreground" : "text-muted-foreground"}`}>
+                            {displayValue}
+                          </span>
+                        )}
                       </div>
                     );
                   })}
@@ -3757,13 +3783,20 @@ function RecruitDetailModal({
               <h4 className="font-pixel text-[10px] text-gold mb-3">Attributes</h4>
               <div className="grid grid-cols-2 gap-3">
                 {attrs.map((attr) => {
-                  const revealed = isFullyRevealed || revealedAttrs.includes(attr.key);
+                  const isSigningDayLocked = sdLocked.has(attr.key);
+                  const revealed = !isSigningDayLocked && (isFullyRevealed || revealedAttrs.includes(attr.key));
                   return (
                     <div key={attr.key} className="flex items-center justify-between p-2 bg-muted/50 rounded">
                       <span className="text-sm text-muted-foreground">{attr.label}</span>
-                      <span className={`font-bold ${revealed ? "text-foreground" : "text-muted-foreground"}`}>
-                        {revealed ? attr.value : "??"}
-                      </span>
+                      {isSigningDayLocked ? (
+                        <span className="flex items-center gap-1 text-[10px] text-gold/70 font-pixel">
+                          <Lock className="w-3 h-3" /> Signing Day
+                        </span>
+                      ) : (
+                        <span className={`font-bold ${revealed ? "text-foreground" : "text-muted-foreground"}`}>
+                          {revealed ? attr.value : "??"}
+                        </span>
+                      )}
                     </div>
                   );
                 })}
@@ -3777,25 +3810,25 @@ function RecruitDetailModal({
             <div className="grid grid-cols-2 gap-2">
               {recruit.position === "P" ? (
                 <>
-                  <CommonAbilityRow label="W/RISP" value={recruit.wRISP} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
-                  <CommonAbilityRow label="vs Lefty" value={recruit.vsLefty} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
-                  <CommonAbilityRow label="Poise" value={recruit.poise} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
-                  <CommonAbilityRow label="Grit" value={recruit.grit} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
-                  <CommonAbilityRow label="Heater" value={recruit.heater} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
-                  <CommonAbilityRow label="Agile" value={recruit.agile} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
-                  <CommonAbilityRow label="Recovery" value={recruit.recovery} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
+                  <CommonAbilityRow label="W/RISP" value={recruit.wRISP} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("wRISP")} />
+                  <CommonAbilityRow label="vs Lefty" value={recruit.vsLefty} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("vsLefty")} />
+                  <CommonAbilityRow label="Poise" value={recruit.poise} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("poise")} />
+                  <CommonAbilityRow label="Grit" value={recruit.grit} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("grit")} />
+                  <CommonAbilityRow label="Heater" value={recruit.heater} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("heater")} />
+                  <CommonAbilityRow label="Agile" value={recruit.agile} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("agile")} />
+                  <CommonAbilityRow label="Recovery" value={recruit.recovery} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("recovery")} />
                 </>
               ) : (
                 <>
-                  <CommonAbilityRow label="Clutch" value={recruit.clutch} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
-                  <CommonAbilityRow label="vs LHP" value={recruit.vsLHP} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
-                  <CommonAbilityRow label="Grit" value={recruit.grit} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
-                  <CommonAbilityRow label="Stealing" value={recruit.stealing} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
-                  <CommonAbilityRow label="Running" value={recruit.running} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
-                  <CommonAbilityRow label="Throwing" value={recruit.throwing} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
-                  <CommonAbilityRow label="Recovery" value={recruit.recovery} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
+                  <CommonAbilityRow label="Clutch" value={recruit.clutch} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("clutch")} />
+                  <CommonAbilityRow label="vs LHP" value={recruit.vsLHP} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("vsLHP")} />
+                  <CommonAbilityRow label="Grit" value={recruit.grit} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("grit")} />
+                  <CommonAbilityRow label="Stealing" value={recruit.stealing} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("stealing")} />
+                  <CommonAbilityRow label="Running" value={recruit.running} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("running")} />
+                  <CommonAbilityRow label="Throwing" value={recruit.throwing} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("throwing")} />
+                  <CommonAbilityRow label="Recovery" value={recruit.recovery} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("recovery")} />
                   {recruit.position === "C" && (
-                    <CommonAbilityRow label="Catcher" value={recruit.catcherAbility} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} />
+                    <CommonAbilityRow label="Catcher" value={recruit.catcherAbility} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("catcherAbility")} />
                   )}
                 </>
               )}
@@ -4303,15 +4336,28 @@ function CommonAbilityRow({
   label, 
   value, 
   scoutPct, 
-  isFullyRevealed 
+  isFullyRevealed,
+  isSigningDayLocked = false,
 }: { 
   label: string; 
   value?: number | null; 
   scoutPct: number;
   isFullyRevealed: boolean;
+  isSigningDayLocked?: boolean;
 }) {
   const revealed = isFullyRevealed || scoutPct >= 75;
   const displayValue = value ?? 50;
+
+  if (isSigningDayLocked && !isFullyRevealed) {
+    return (
+      <div className="flex items-center justify-between p-2 bg-muted/50 rounded" data-testid={`common-ability-${label.toLowerCase().replace(/\s/g, "-")}`}>
+        <span className="text-sm text-muted-foreground">{label}</span>
+        <span className="flex items-center gap-1 text-[10px] text-gold/70 font-pixel">
+          <Lock className="w-3 h-3" /> Signing Day
+        </span>
+      </div>
+    );
+  }
   
   return (
     <div className="flex items-center justify-between p-2 bg-muted/50 rounded" data-testid={`common-ability-${label.toLowerCase().replace(/\s/g, "-")}`}>

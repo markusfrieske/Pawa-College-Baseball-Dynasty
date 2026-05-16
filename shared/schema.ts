@@ -511,6 +511,8 @@ export const recruits = pgTable("recruits", {
   workEthicScore: integer("work_ethic_score").notNull().default(70),
   coachability: integer("coachability").notNull().default(70),
   classVintage: text("class_vintage"),
+  // Set to true after finalizeSigningDay runs — unlocks all attributes for the signing day reveal screen
+  signingDayRevealed: boolean("signing_day_revealed").notNull().default(false),
 }, (t) => [
   index("idx_recruits_league_id").on(t.leagueId),
 ]);
