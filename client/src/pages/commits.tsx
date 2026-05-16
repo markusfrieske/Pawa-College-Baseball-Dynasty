@@ -53,7 +53,7 @@ interface TeamCommits {
 }
 
 interface CommitsData {
-  league: { id: string; name: string; currentSeason: number };
+  league: { id: string; name: string; currentSeason: number; currentPhase?: string };
   commitsByTeam: TeamCommits[];
   totalCommits: number;
   totalRecruits: number;
@@ -334,7 +334,7 @@ export default function CommitsPage() {
             </p>
           </div>
         </div>
-        {data.totalCommits > 0 && (
+        {data.totalCommits > 0 && data.league.currentPhase === "offseason_signing_day" && (
           <Link href={`/league/${leagueId}/signing-day-reveal`}>
             <RetroButton variant="primary" size="sm" data-testid="button-view-class-reveal">
               <Sparkles className="w-4 h-4 mr-2" />

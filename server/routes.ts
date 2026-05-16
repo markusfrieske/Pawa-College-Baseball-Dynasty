@@ -2674,7 +2674,7 @@ export async function registerRoutes(
       });
 
       res.json({
-        league: { id: league.id, name: league.name, currentSeason: league.currentSeason },
+        league: { id: league.id, name: league.name, currentSeason: league.currentSeason, currentPhase: league.currentPhase },
         commitsByTeam,
         totalCommits: signedRecruits.length,
         totalRecruits: recruits.length,

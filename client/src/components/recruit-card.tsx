@@ -115,8 +115,8 @@ function isLightColor(color: string): boolean {
 }
 
 function getRecruitTypeBadge(type: string) {
-  if (type === "TRANSFER") return { label: "TR", className: "bg-purple-600 text-white" };
-  if (type === "JUCO") return { label: "JC", className: "bg-cyan-600 text-white" };
+  if (type === "TRANSFER") return { label: "TRANSFER", className: "bg-purple-600 text-white" };
+  if (type === "JUCO") return { label: "JUCO", className: "bg-cyan-600 text-white" };
   return null;
 }
 
@@ -176,7 +176,7 @@ function CardFront({ recruit, primaryColor, secondaryColor }: { recruit: RevealR
           </span>
         </div>
         <div className="text-[8px] text-gray-500">
-          {isPitcher(recruit.position) ? `${recruit.throwHand}HP` : `${recruit.batHand}/${recruit.throwHand}`}
+          {`B:${recruit.batHand} T:${recruit.throwHand}`}
           {" · "}{recruit.recruitYear}
         </div>
         <div className="text-[8px] text-gray-600">#{recruit.classRank} Natl</div>
