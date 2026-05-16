@@ -697,8 +697,9 @@ export class DatabaseStorage implements IStorage {
     await db.transaction(async (tx) => {
       if (positionUpdates.length > 0) {
         // Build a single UPDATE … SET … CASE WHEN for all position players
+        // battingOrder must be cast to integer — Drizzle binds JS values as text by default
         const battingWhen = sql.join(
-          positionUpdates.map(u => sql`WHEN ${u.id} THEN ${u.data.battingOrder ?? null}`),
+          positionUpdates.map(u => sql`WHEN ${u.id} THEN ${u.data.battingOrder ?? null}::integer`),
           sql` `,
         );
         const lineupWhen = sql.join(
