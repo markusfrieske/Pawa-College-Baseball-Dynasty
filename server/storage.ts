@@ -830,6 +830,16 @@ export class DatabaseStorage implements IStorage {
         await tx.delete(recruitingInterests).where(inArray(recruitingInterests.recruitId, recruitIds));
       }
 
+      // Delete storyline data before recruits/teams (FK constraints)
+      await tx.delete(storylineVotes).where(
+        inArray(storylineVotes.eventId,
+          db.select({ id: storylineEvents.id }).from(storylineEvents).where(eq(storylineEvents.leagueId, id))
+        )
+      );
+      await tx.delete(storylineEvents).where(eq(storylineEvents.leagueId, id));
+      await tx.delete(storylineRecruits).where(eq(storylineRecruits.leagueId, id));
+      await tx.delete(walkonPool).where(eq(walkonPool.leagueId, id));
+
       await tx.delete(recruits).where(eq(recruits.leagueId, id));
       await tx.delete(games).where(eq(games.leagueId, id));
       await tx.delete(standings).where(eq(standings.leagueId, id));
