@@ -68,8 +68,9 @@ function buildDigestHtml(opts: {
   losses: number;
   topRecruits: Array<{ name: string; position: string; stars: number; interest: number; weeklyGain: number }>;
   unsubUrl: string | null;
+  appBaseUrl: string;
 }): string {
-  const { coachName, leagueName, teamName, teamAbbr, season, week, phase, games, standingsRank, totalTeams, wins, losses, topRecruits, unsubUrl } = opts;
+  const { coachName, leagueName, teamName, teamAbbr, season, week, phase, games, standingsRank, totalTeams, wins, losses, topRecruits, unsubUrl, appBaseUrl } = opts;
 
   const gameRows = games.length === 0
     ? `<tr><td colspan="3" style="padding:12px;text-align:center;color:#8aaa8a;">No games this week</td></tr>`
@@ -329,6 +330,7 @@ export async function sendWeeklyDigests(
         losses,
         topRecruits: recruitData,
         unsubUrl,
+        appBaseUrl,
       });
 
       const subject = `[${team.abbreviation}] Season ${completedSeason} Week ${completedWeek} Digest — ${league.name}`;
