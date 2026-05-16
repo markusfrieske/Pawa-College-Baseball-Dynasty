@@ -455,7 +455,7 @@ function LeagueCard({ league, userId }: { league: LeagueWithDetails; userId?: st
                 <Badge variant="outline" className="font-pixel text-[7px] text-blue-400 border-blue-400/40 bg-blue-400/10">DELEGATE</Badge>
               </div>
             )}
-            {coCommAbbrs.filter(a => !(isDelegate && a === commLabel)).map(abbr => (
+            {coCommAbbrs.filter(a => a !== league.userTeam?.abbreviation).map(abbr => (
               <div key={abbr} className="flex items-center gap-1 shrink-0" data-testid={`badge-delegate-identity-${abbr}-${league.id}`}>
                 <Crown className="w-3 h-3 text-blue-400" />
                 <Badge variant="outline" className="font-pixel text-[7px] text-blue-400 border-blue-400/40 bg-blue-400/10">DEL: {abbr}</Badge>
