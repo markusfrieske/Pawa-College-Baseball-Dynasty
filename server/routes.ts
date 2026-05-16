@@ -24,7 +24,7 @@ import {
 import { SEC_REAL_ROSTERS } from "./realRosters";
 import { generateRecruitClass, selectTools, genToolAttr, HITTER_TOOL_GROUPS, PITCHER_TOOL_GROUPS } from "./recruit-generator";
 import { validateLeagueRosters, checkTeamRosterStructure } from "./rosterValidation";
-import { sendWeeklyDigests } from "./digestEmail";
+import { sendWeeklyDigests, verifyUnsubToken } from "./digestEmail";
 
 function potentialGradeToNumber(grade: string): number {
   const map: Record<string, number> = {
@@ -352,7 +352,7 @@ export async function registerRoutes(
     } else if (req.session.userId) {
       storage.getUser(req.session.userId).then((user) => {
         if (user) {
-          res.json({ id: user.id, email: user.email, emailOptOut: (user as any).emailOptOut ?? false });
+          res.json({ id: user.id, email: user.email, emailOptOut: user.emailOptOut ?? false });
         } else {
           res.status(401).json({ message: "Not authenticated" });
         }
@@ -368,8 +368,8 @@ export async function registerRoutes(
       const schema = z.object({ emailOptOut: z.boolean() });
       const result = schema.safeParse(req.body);
       if (!result.success) return res.status(400).json({ message: "emailOptOut (boolean) is required" });
-      const updated = await storage.updateUser(req.session.userId, { emailOptOut: result.data.emailOptOut } as any);
-      res.json({ emailOptOut: (updated as any)?.emailOptOut ?? result.data.emailOptOut });
+      const updated = await storage.updateUser(req.session.userId, { emailOptOut: result.data.emailOptOut });
+      res.json({ emailOptOut: updated?.emailOptOut ?? result.data.emailOptOut });
     } catch (error) {
       console.error("Failed to update email preferences:", error);
       res.status(500).json({ message: "Failed to update email preferences" });
@@ -380,14 +380,9 @@ export async function registerRoutes(
     try {
       const { token } = req.query as { token?: string };
       if (!token) return res.status(400).send("Missing token");
-      let userId: string;
-      try {
-        const payload = JSON.parse(Buffer.from(token, "base64url").toString());
-        userId = payload.userId;
-      } catch {
-        return res.status(400).send("Invalid token");
-      }
-      await storage.updateUser(userId, { emailOptOut: true } as any);
+      const userId = verifyUnsubToken(token);
+      if (!userId) return res.status(400).send("Invalid or expired unsubscribe link");
+      await storage.updateUser(userId, { emailOptOut: true });
       res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Unsubscribed</title></head>
 <body style="background:#0a1a0a;color:#d4d4aa;font-family:'Courier New',monospace;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0">
 <div style="text-align:center;max-width:400px;padding:40px">
@@ -7070,8 +7065,10 @@ export async function registerRoutes(
       });
 
       res.json(updatedLeague);
-      // Fire-and-forget digest emails (non-blocking)
-      sendWeeklyDigests(leagueId, storage).catch(e => console.error("[digest] advance hook:", e));
+      // Fire-and-forget digest emails after a regular-season/preseason week advance (non-blocking).
+      // Pass the completed week/season/phase (before incrementing) so the digest reflects the games that just finished.
+      sendWeeklyDigests(leagueId, storage, league.currentSeason, currentWeek, league.currentPhase)
+        .catch(e => console.error("[digest] advance hook:", e));
     } catch (error: any) {
       console.error("Failed to advance week:", error);
       res.status(500).json({ message: "Failed to advance week", detail: error?.message || String(error) });

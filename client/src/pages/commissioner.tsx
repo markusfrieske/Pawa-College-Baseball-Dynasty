@@ -1849,7 +1849,7 @@ function SettingsTab({
               </p>
             </div>
             <Switch
-              checked={(league as any)?.emailDigestsEnabled ?? true}
+              checked={league?.emailDigestsEnabled ?? true}
               onCheckedChange={onToggleEmailDigests}
               data-testid="switch-email-digests"
             />
