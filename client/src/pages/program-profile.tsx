@@ -452,7 +452,7 @@ function StatTile({ icon, label, value, sub, gold }: { icon: React.ReactNode; la
           <span className="font-pixel text-[7px]">{label.toUpperCase()}</span>
         </div>
         <div className={`text-2xl font-bold ${gold ? "text-amber-400" : "text-foreground"}`}>{value}</div>
-        {sub && <div className="text-[10px] text-muted-foreground">{sub} win %</div>}
+        {sub && <div className="text-[10px] text-muted-foreground">{sub}</div>}
       </RetroCardContent>
     </RetroCard>
   );

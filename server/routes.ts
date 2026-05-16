@@ -13402,9 +13402,18 @@ export async function registerRoutes(
       // Conference for this team
       const teamConferenceId = team.conferenceId;
 
-      // Compute all-time W/L from standings
-      const allTimeWins = teamStandings.reduce((s, r) => s + r.wins, 0);
-      const allTimeLosses = teamStandings.reduce((s, r) => s + r.losses, 0);
+      // Compute all-time W/L from completed regular-season and postseason game results
+      // (standings can exclude certain phases; game results are the authoritative source)
+      let allTimeWins = 0;
+      let allTimeLosses = 0;
+      for (const game of teamGames) {
+        if (!game.isComplete) continue;
+        const isHome = game.homeTeamId === teamId;
+        const ourScore = isHome ? (game.homeScore ?? 0) : (game.awayScore ?? 0);
+        const theirScore = isHome ? (game.awayScore ?? 0) : (game.homeScore ?? 0);
+        if (ourScore > theirScore) allTimeWins++;
+        else allTimeLosses++;
+      }
 
       // Group all league standings by season for conference finish calculation
       const standingsBySeason: Record<number, typeof allLeagueStandings> = {};
