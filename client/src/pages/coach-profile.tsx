@@ -505,7 +505,7 @@ function CoachHeader({
               {/* Personality + traits */}
               <div className="flex flex-wrap gap-2 items-center">
                 <PersonalityBadge personalityId={coach.personality} />
-                {earnedTraits.slice(0, 3).map(t => <TraitBadgeChip key={t.id} badge={t} />)}
+                {earnedTraits.map(t => <TraitBadgeChip key={t.id} badge={t} />)}
               </div>
             </div>
           </div>

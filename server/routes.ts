@@ -4034,19 +4034,33 @@ export async function registerRoutes(
       ? Math.round(rankedSeasons.reduce((s, h) => s + (h.classRank ?? 0), 0) / rankedSeasons.length)
       : null;
 
-    // Draft picks developed — use all historical teamIds from season history rows (cross-program aware)
+    // Draft picks developed — bounded to team+season windows from coach_season_history
+    // This avoids overcounting inherited production from before/after coach tenure
     let draftPicksDeveloped = 0;
     let blueChipsSigned = 0;
-    const allHistoricalTeamIds = new Set(
-      history.map(h => h.teamId ?? coach.teamId).filter(Boolean) as string[]
-    );
-    if (allHistoricalTeamIds.size > 0) {
+    // Build map: teamId -> Set of seasons the coach was at that team
+    const coachTeamSeasons = new Map<string, Set<number>>();
+    for (const h of history) {
+      const tid = h.teamId ?? coach.teamId ?? "";
+      if (!tid) continue;
+      if (!coachTeamSeasons.has(tid)) coachTeamSeasons.set(tid, new Set());
+      coachTeamSeasons.get(tid)!.add(h.season);
+    }
+    if (coachTeamSeasons.size > 0) {
       const playerHist = await storage.getPlayerHistoryByLeague(coach.leagueId);
-      draftPicksDeveloped = playerHist.filter(ph => ph.teamId && allHistoricalTeamIds.has(ph.teamId) && ph.draftRound != null).length;
-      // Blue chips signed — across all historical teams
+      draftPicksDeveloped = playerHist.filter(ph => {
+        if (!ph.teamId || ph.draftRound == null) return false;
+        const seasons = coachTeamSeasons.get(ph.teamId);
+        return seasons != null && seasons.has(ph.season);
+      }).length;
+      // Blue chips signed — bounded to teams coach was at; recruits schema has no signedSeason
+      // so team-match is the tightest bound possible without a schema addition
       const allRecruits = await storage.getRecruitsByLeague(coach.leagueId);
-      blueChipsSigned = allRecruits.filter(
-        r => r.signedTeamId && allHistoricalTeamIds.has(r.signedTeamId) && r.isBlueChip === true && r.starRating === 5
+      blueChipsSigned = allRecruits.filter(r =>
+        r.signedTeamId != null &&
+        coachTeamSeasons.has(r.signedTeamId) &&
+        r.isBlueChip === true &&
+        r.starRating === 5
       ).length;
     }
 
