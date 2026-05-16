@@ -3332,10 +3332,10 @@ function RecruitDetailModal({
             </div>
           )}
 
-          {/* Story-Revealed Traits */}
-          {(recruit.personality || recruit.workEthic || recruit.gemBustRevealed) && (
+          {/* Intangibles / Dev Traits */}
+          {(recruit.personality || recruit.workEthic || recruit.gemBustRevealed || scoutPct >= 50) && (
             <div>
-              <h4 className="font-pixel text-[10px] text-gold mb-3">Intangibles (Story Revealed)</h4>
+              <h4 className="font-pixel text-[10px] text-gold mb-3">Intangibles</h4>
               <div className="grid grid-cols-2 gap-3">
                 {recruit.personality && (
                   <div className="bg-muted/30 rounded p-2.5 border border-border/50">
@@ -3420,10 +3420,10 @@ function RecruitDetailModal({
             </div>
           )}
 
-          {!recruit.personality && !recruit.workEthic && !recruit.gemBustRevealed && (
+          {scoutPct < 50 && !recruit.personality && !recruit.workEthic && !recruit.gemBustRevealed && (
             <div className="bg-muted/20 rounded p-3 border border-dashed border-border/40">
               <h4 className="font-pixel text-[10px] text-muted-foreground mb-1">Intangibles</h4>
-              <p className="text-xs text-muted-foreground italic">Unknown - Follow this recruit's story arc to reveal personality, work ethic, and true potential.</p>
+              <p className="text-xs text-muted-foreground italic">Unknown — scout to 50% to begin revealing work ethic and development traits.</p>
             </div>
           )}
 
@@ -3787,10 +3787,10 @@ function RecruitDetailModal({
             </div>
           )}
 
-          {/* Story-Revealed Traits */}
-          {(recruit.personality || recruit.workEthic || recruit.gemBustRevealed) && (
+          {/* Intangibles / Dev Traits */}
+          {(recruit.personality || recruit.workEthic || recruit.gemBustRevealed || scoutPct >= 50) && (
             <div>
-              <h4 className="font-pixel text-[10px] text-gold mb-3">Intangibles (Story Revealed)</h4>
+              <h4 className="font-pixel text-[10px] text-gold mb-3">Intangibles</h4>
               <div className="grid grid-cols-2 gap-3">
                 {recruit.personality && (
                   <div className="bg-muted/30 rounded p-2.5 border border-border/50">
@@ -3875,10 +3875,10 @@ function RecruitDetailModal({
             </div>
           )}
 
-          {!recruit.personality && !recruit.workEthic && !recruit.gemBustRevealed && (
+          {scoutPct < 50 && !recruit.personality && !recruit.workEthic && !recruit.gemBustRevealed && (
             <div className="bg-muted/20 rounded p-3 border border-dashed border-border/40">
               <h4 className="font-pixel text-[10px] text-muted-foreground mb-1">Intangibles</h4>
-              <p className="text-xs text-muted-foreground italic">Unknown - Follow this recruit's story arc to reveal personality, work ethic, and true potential.</p>
+              <p className="text-xs text-muted-foreground italic">Unknown — scout to 50% to begin revealing work ethic and development traits.</p>
             </div>
           )}
 

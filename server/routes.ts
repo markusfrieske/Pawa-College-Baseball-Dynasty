@@ -9072,8 +9072,8 @@ export async function registerRoutes(
 
         const targetOvrDelta = getOvrDeltaFromPotential(player.potential);
 
-        const weScore = (player as any).workEthicScore as number | null | undefined;
-        const coachScore = (player as any).coachability as number | null | undefined;
+        const weScore = player.workEthicScore as number | null | undefined;
+        const coachScore = player.coachability as number | null | undefined;
         const traitMult = 1 +
           ((weScore ?? 70) - 70) / 700 +
           ((coachScore ?? 70) - 70) / 700;
