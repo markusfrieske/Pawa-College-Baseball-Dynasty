@@ -38,10 +38,11 @@ export type MascotArchetype =
 
 /**
  * Ordered keyword → archetype table.
- * Multi-word / more-specific entries come first to prevent partial matches.
+ * Multi-word / more-specific entries come first to prevent partial matches
+ * (e.g. "bulldog" before "bull", "wolverine" before "wolf").
  */
 const KEYWORD_MAP: Array<[string, MascotArchetype]> = [
-  // ── multi-word compound phrases (most specific first) ─────────────────────
+  // multi-word compound phrases (most specific first)
   ["fighting irish",   "knight_spartan"],
   ["fighting illini",  "native_warrior"],
   ["yellow jacket",    "insect"],
@@ -65,7 +66,7 @@ const KEYWORD_MAP: Array<[string, MascotArchetype]> = [
   ["thundering herd",  "bison_buffalo"],
   ["purple ace",       "abstract"],
   ["black knight",     "knight_spartan"],
-  // ── longer compound-style words before shorter substrings ──────────────────
+  // longer compound-style words before shorter substrings
   ["bulldog",          "bulldog"],
   ["wolverine",        "wolverine"],
   ["wolfpack",         "wolf"],
@@ -75,7 +76,7 @@ const KEYWORD_MAP: Array<[string, MascotArchetype]> = [
   ["jayhawk",          "hawk"],
   ["hawkeye",          "hawk"],
   ["gamecock",         "gamecock"],
-  ["roadrunner",       "hawk"],
+  ["roadrunner",       "falcon"],
   ["bearcat",          "bear"],
   ["warhawk",          "hawk"],
   ["chanticleer",      "gamecock"],
@@ -125,7 +126,7 @@ const KEYWORD_MAP: Array<[string, MascotArchetype]> = [
   ["phoenix",          "eagle"],
   ["osprey",           "eagle"],
   ["penguin",          "duck"],
-  // ── single-word feline ────────────────────────────────────────────────────
+  // single-word feline
   ["jaguar",           "panther"],
   ["tiger",            "tiger"],
   ["wildcat",          "wildcat"],
@@ -134,7 +135,7 @@ const KEYWORD_MAP: Array<[string, MascotArchetype]> = [
   ["bobcat",           "wildcat"],
   ["lynx",             "wildcat"],
   ["lion",             "lion"],
-  // ── single-word canine ────────────────────────────────────────────────────
+  // single-word canine
   ["saluki",           "wolf"],
   ["retriever",        "wolf"],
   ["husky",            "husky"],
@@ -143,7 +144,7 @@ const KEYWORD_MAP: Array<[string, MascotArchetype]> = [
   ["wolf",             "wolf"],
   ["coyote",           "wolf"],
   ["lobo",             "wolf"],
-  // ── single-word raptor/bird ───────────────────────────────────────────────
+  // single-word raptor/bird
   ["eagle",            "eagle"],
   ["falcon",           "falcon"],
   ["hawk",             "hawk"],
@@ -156,13 +157,13 @@ const KEYWORD_MAP: Array<[string, MascotArchetype]> = [
   ["mockingbird",      "cardinal_bird"],
   ["redbird",          "cardinal_bird"],
   ["heron",            "duck"],
-  // ── single-word bear ─────────────────────────────────────────────────────
+  // single-word bear
   ["badger",           "badger"],
   ["beaver",           "beaver"],
   ["bear",             "bear"],
   ["grizzly",          "bear"],
   ["bruin",            "bear"],
-  // ── single-word warrior / human ───────────────────────────────────────────
+  // single-word warrior / human
   ["warrior",          "native_warrior"],
   ["knight",           "knight_spartan"],
   ["cowboy",           "cowboy"],
@@ -183,7 +184,7 @@ const KEYWORD_MAP: Array<[string, MascotArchetype]> = [
   ["duke",             "knight_spartan"],
   ["don",              "knight_spartan"],
   ["illini",           "native_warrior"],
-  // ── single-word reptile ───────────────────────────────────────────────────
+  // single-word reptile
   ["triton",           "nautical"],
   ["rattler",          "rattler"],
   ["gator",            "gator"],
@@ -193,21 +194,21 @@ const KEYWORD_MAP: Array<[string, MascotArchetype]> = [
   ["lizard",           "gator"],
   ["gecko",            "gator"],
   ["tortoise",         "terrapin"],
-  // ── single-word bovine / livestock ────────────────────────────────────────
+  // single-word bovine / livestock
   ["ram",              "ram_mustang"],
   ["bull",             "longhorn"],
   ["steer",            "longhorn"],
   ["herd",             "bison_buffalo"],
-  // ── single-word insect ────────────────────────────────────────────────────
+  // single-word insect
   ["hornet",           "insect"],
   ["wasp",             "insect"],
   ["beetle",           "insect"],
   ["yellowjacket",     "insect"],
-  // ── single-word nautical ──────────────────────────────────────────────────
+  // single-word nautical
   ["tide",             "nautical"],
   ["wave",             "nautical"],
   ["seawolf",          "nautical"],
-  // ── catch-all abstract ───────────────────────────────────────────────────
+  // catch-all abstract
   ["flame",            "abstract"],
   ["beacon",           "abstract"],
   ["ace",              "abstract"],
