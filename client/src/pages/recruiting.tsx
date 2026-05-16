@@ -164,6 +164,7 @@ const starOptions = [
 ];
 
 const sortOptions = [
+  { value: "boardRank", label: "My Board Rank" },
   { value: "classRank", label: "Class Rank" },
   { value: "positionRank", label: "Position Rank" },
   { value: "overall", label: "Overall (High to Low)" },
@@ -517,6 +518,18 @@ export default function RecruitingPage() {
     },
   });
 
+  const boardRankMutation = useMutation({
+    mutationFn: async ({ recruitId, boardRank }: { recruitId: string; boardRank: number | null }) => {
+      return apiRequest("PATCH", `/api/leagues/${id}/recruiting/${recruitId}/board-rank`, { boardRank });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
+    },
+  });
+
   const phoneMutation = useMutation({
     mutationFn: async ({ recruitId, pitchTopic }: { recruitId: string; pitchTopic?: string }) => {
       const pitchTopics = pitchTopic ? pitchTopic.split(",") : undefined;
@@ -734,6 +747,12 @@ export default function RecruitingPage() {
       }
       case "competition": {
         return (b.teamsIn || 0) - (a.teamsIn || 0);
+      }
+      case "boardRank": {
+        const aRank = a.interest?.boardRank ?? 9999;
+        const bRank = b.interest?.boardRank ?? 9999;
+        if (aRank !== bRank) return aRank - bRank;
+        return (a.classRank || 999) - (b.classRank || 999);
       }
       default:
         return (a.classRank || 999) - (b.classRank || 999);
@@ -1722,6 +1741,7 @@ export default function RecruitingPage() {
               onHeadCoachVisit={() => headCoachVisitMutation.mutate(recruit.id)}
               onOffer={() => offerMutation.mutate(recruit.id)}
               onSaveNotes={(notes) => notesMutation.mutate({ recruitId: recruit.id, notes })}
+              onSetBoardRank={(boardRank) => boardRankMutation.mutate({ recruitId: recruit.id, boardRank })}
               onToggleCompare={() => toggleCompare(recruit)}
               isTargeting={targetMutation.isPending}
               isScouting={scoutMutation.isPending}
@@ -1735,6 +1755,7 @@ export default function RecruitingPage() {
               phonedThisWeek={data?.weeklyActionsUsed?.[recruit.id]?.includes("phone") ?? false}
               emailedThisWeek={data?.weeklyActionsUsed?.[recruit.id]?.includes("email") ?? false}
               isSavingNotes={notesMutation.isPending}
+              isSavingBoardRank={boardRankMutation.isPending}
               isSelected={compareRecruits.some(r => r.id === recruit.id)}
               isBulkSelected={bulkSelected.has(recruit.id)}
               onBulkSelect={() => toggleBulkSelect(recruit.id)}
@@ -2036,6 +2057,7 @@ function RecruitRow({
   onHeadCoachVisit,
   onOffer,
   onSaveNotes,
+  onSetBoardRank,
   onToggleCompare,
   isTargeting,
   isScouting,
@@ -2045,6 +2067,7 @@ function RecruitRow({
   isHeadCoachVisiting,
   isOffering,
   isSavingNotes,
+  isSavingBoardRank,
   isSelected,
   isBulkSelected,
   onBulkSelect,
@@ -2073,6 +2096,7 @@ function RecruitRow({
   onHeadCoachVisit: () => void;
   onOffer: () => void;
   onSaveNotes: (notes: string) => void;
+  onSetBoardRank: (boardRank: number | null) => void;
   onToggleCompare: () => void;
   isTargeting: boolean;
   isScouting: boolean;
@@ -2082,6 +2106,7 @@ function RecruitRow({
   isHeadCoachVisiting: boolean;
   isOffering: boolean;
   isSavingNotes: boolean;
+  isSavingBoardRank: boolean;
   isSelected: boolean;
   isBulkSelected: boolean;
   onBulkSelect: () => void;
@@ -2102,6 +2127,8 @@ function RecruitRow({
 }) {
   const [showNotesDialog, setShowNotesDialog] = useState(false);
   const [notesValue, setNotesValue] = useState(recruit.interest?.notes || "");
+  const [showRankEditor, setShowRankEditor] = useState(false);
+  const [rankInputValue, setRankInputValue] = useState(String(recruit.interest?.boardRank ?? ""));
   const [showPhonePicker, setShowPhonePicker] = useState(false);
   const [showEmailPicker, setShowEmailPicker] = useState(false);
   const [selectedPhonePitches, setSelectedPhonePitches] = useState<string[]>([]);
@@ -2412,6 +2439,61 @@ function RecruitRow({
             </p>
             <p className="text-[10px] text-muted-foreground">{recruit.position}</p>
           </div>
+          {recruit.interest && (
+            <div className="text-center min-w-[40px]">
+              {showRankEditor ? (
+                <div className="flex items-center gap-0.5" onClick={(e) => e.stopPropagation()}>
+                  <input
+                    type="number"
+                    min={1}
+                    max={99}
+                    value={rankInputValue}
+                    onChange={(e) => setRankInputValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        const n = parseInt(rankInputValue, 10);
+                        onSetBoardRank(isNaN(n) || n < 1 ? null : Math.min(n, 99));
+                        setShowRankEditor(false);
+                      } else if (e.key === "Escape") {
+                        setRankInputValue(String(recruit.interest?.boardRank ?? ""));
+                        setShowRankEditor(false);
+                      }
+                    }}
+                    onBlur={() => {
+                      const n = parseInt(rankInputValue, 10);
+                      onSetBoardRank(isNaN(n) || n < 1 ? null : Math.min(n, 99));
+                      setShowRankEditor(false);
+                    }}
+                    autoFocus
+                    className="w-8 text-center text-xs bg-background border border-gold/50 rounded px-0.5 py-0.5 text-gold focus:outline-none focus:border-gold"
+                    data-testid={`input-board-rank-${recruit.id}`}
+                  />
+                  <button
+                    onClick={() => { onSetBoardRank(null); setRankInputValue(""); setShowRankEditor(false); }}
+                    className="text-muted-foreground hover:text-red-400 text-[9px] leading-none"
+                    title="Clear rank"
+                  >✕</button>
+                </div>
+              ) : (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setRankInputValue(String(recruit.interest?.boardRank ?? "")); setShowRankEditor(true); }}
+                      disabled={isSavingBoardRank}
+                      className={`font-bold text-sm transition-colors ${recruit.interest?.boardRank != null ? "text-gold hover:text-gold/70" : "text-muted-foreground/30 hover:text-muted-foreground/60"}`}
+                      data-testid={`button-board-rank-${recruit.id}`}
+                    >
+                      {recruit.interest?.boardRank != null ? `#${recruit.interest.boardRank}` : "—"}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {recruit.interest?.boardRank != null ? `Board rank #${recruit.interest.boardRank} — click to edit` : "Click to set your board rank"}
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              <p className="text-[10px] text-muted-foreground">BOARD</p>
+            </div>
+          )}
           {recruit.potentialFloor != null && recruit.potentialCeiling != null && scoutPct >= 100 && (
             <div className="text-center min-w-[50px]">
               <p className="font-bold text-sm text-amber-400">

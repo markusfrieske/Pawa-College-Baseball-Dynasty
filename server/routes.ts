@@ -2359,6 +2359,35 @@ export async function registerRoutes(
     }
   });
 
+  app.patch("/api/leagues/:id/recruiting/:recruitId/board-rank", requireAuth, async (req, res) => {
+    try {
+      const leagueTeams = await storage.getTeamsByLeague(req.params.id);
+      const userTeam = leagueTeams.find((t) => !t.isCpu);
+
+      if (!userTeam) {
+        return res.status(400).json({ message: "No team assigned" });
+      }
+
+      const { boardRank } = req.body;
+      if (boardRank !== null && boardRank !== undefined && typeof boardRank !== "number") {
+        return res.status(400).json({ message: "boardRank must be a number or null" });
+      }
+
+      const interest = await storage.getRecruitingInterest(req.params.recruitId, userTeam.id);
+      if (!interest) {
+        return res.status(404).json({ message: "Recruit interest not found" });
+      }
+
+      await storage.updateRecruitingInterest(interest.id, { boardRank: boardRank ?? null });
+      const updated = await storage.getRecruitingInterest(req.params.recruitId, userTeam.id);
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Failed to update board rank:", error);
+      res.status(500).json({ message: "Failed to update board rank" });
+    }
+  });
+
   // Sign/commit a recruit to your team
   app.post("/api/leagues/:id/recruiting/:recruitId/sign", requireAuth, async (req, res) => {
     try {

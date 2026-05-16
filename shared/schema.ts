@@ -727,6 +727,7 @@ export const recruitingInterests = pgTable("recruiting_interests", {
   maxStar: integer("max_star").notNull().default(5),
   revealedAbilitiesCount: integer("revealed_abilities_count").notNull().default(0),
   notes: text("notes"),
+  boardRank: integer("board_rank"),
 }, (t) => [
   index("idx_recruiting_interests_recruit_team").on(t.recruitId, t.teamId),
   index("idx_recruiting_interests_team_id").on(t.teamId),
@@ -746,6 +747,7 @@ export const insertRecruitingInterestSchema = createInsertSchema(recruitingInter
   maxStar: true,
   revealedAbilitiesCount: true,
   notes: true,
+  boardRank: true,
 });
 
 export type InsertRecruitingInterest = z.infer<typeof insertRecruitingInterestSchema>;
