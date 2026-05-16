@@ -581,6 +581,16 @@ html[data-mood="active"] nav {
   border-right-color: rgb(var(--atm-accent) / 0.16);
 }
 
+html[data-mood="offseason"] header {
+  border-bottom-color: rgb(var(--atm-accent) / 0.18);
+  background-color: hsl(200 8% 7% / 0.88);
+}
+html[data-mood="offseason"] aside,
+html[data-mood="offseason"] nav {
+  border-right-color: rgb(var(--atm-accent) / 0.14);
+  background-color: hsl(200 6% 7% / 0.86);
+}
+
 /* ── prefers-reduced-motion: disable all atmosphere animations/transitions ── */
 @media (prefers-reduced-motion: reduce) {
   .atm-overlay,
