@@ -37,6 +37,7 @@ import { useLocation, useSearch } from "wouter";
 import { MusicProvider } from "@/lib/music-context";
 import { MusicRouter } from "@/components/music-router";
 import { VolumeControl } from "@/components/volume-control";
+import { AtmosphereProvider, AtmosphereOverlay, SigningDayBurst } from "@/components/atmosphere-provider";
 import { useToast } from "@/hooks/use-toast";
 
 function Router() {
@@ -143,14 +144,18 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <MusicProvider>
-          <MusicRouter />
-          <div className="fixed bottom-16 right-3 sm:bottom-auto sm:top-3 z-50" data-testid="music-controls-floating">
-            <VolumeControl />
-          </div>
-          <Toaster />
-          <Router />
-        </MusicProvider>
+        <AtmosphereProvider>
+          <MusicProvider>
+            <AtmosphereOverlay />
+            <SigningDayBurst />
+            <MusicRouter />
+            <div className="fixed bottom-16 right-3 sm:bottom-auto sm:top-3 z-50" data-testid="music-controls-floating">
+              <VolumeControl />
+            </div>
+            <Toaster />
+            <Router />
+          </MusicProvider>
+        </AtmosphereProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );
