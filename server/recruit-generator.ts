@@ -243,18 +243,8 @@ export function generateRecruitClass(
     return { isGem: false, isBust: false };
   };
 
-  const numGenGems = rollWeighted([
-    { value: 0, weight: 15 },
-    { value: 1, weight: 50 },
-    { value: 2, weight: 28 },
-    { value: 3, weight: 7 },
-  ]);
-  const numGenBusts = rollWeighted([
-    { value: 0, weight: 20 },
-    { value: 1, weight: 55 },
-    { value: 2, weight: 22 },
-    { value: 3, weight: 3 },
-  ]);
+  const numGenGems = 1;
+  const numGenBusts = 1;
 
   const getTargetAttrAvgForRecruit = (starRank: number, isBlueChip: boolean, isGem: boolean, isBust: boolean, isPitcher: boolean): number => {
     if (isBlueChip) return isPitcher ? 80 + Math.floor(Math.random() * 5) : 68 + Math.floor(Math.random() * 5);
