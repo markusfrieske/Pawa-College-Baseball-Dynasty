@@ -137,6 +137,14 @@ export default function WalkonsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [persistedOutcomes]);
 
+  // Once auction results are available, auto-show all walk-on cards (including awarded ones)
+  // so coaches can see which players were won by other teams
+  useEffect(() => {
+    if (auctionResults && auctionResults.length > 0) {
+      setShowSigned(true);
+    }
+  }, [auctionResults]);
+
   const advanceMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("POST", `/api/leagues/${id}/advance`);

@@ -11691,7 +11691,7 @@ export async function registerRoutes(
           position: walkon.position,
           overall: walkon.overall,
           won: bid.teamId === winner!.teamId,
-          pricePaid: bid.teamId === winner!.teamId ? pricePaid : pricePaid, // winner's paid price shown to all
+          pricePaid,
           winnerTeamName: bid.teamId === winner!.teamId ? null : winnerName,
           yourBid: bid.bidAmount,
         });
