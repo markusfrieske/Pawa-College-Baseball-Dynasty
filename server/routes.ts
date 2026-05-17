@@ -12217,6 +12217,15 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Unmark ready before changing bids" });
       }
 
+      // Roster-cap check: team must have at least one open slot to place a bid
+      const currentRoster = await storage.getPlayersByTeam(team.id);
+      const MAX_WALKON_BID_ROSTER = 25;
+      if (currentRoster.length >= MAX_WALKON_BID_ROSTER) {
+        return res.status(400).json({
+          message: `Roster is full (${currentRoster.length}/${MAX_WALKON_BID_ROSTER}). Cut a player before bidding.`
+        });
+      }
+
       const walkons = await storage.getWalkonsByLeague(leagueId);
       const walkon = walkons.find(w => w.id === walkonId);
       if (!walkon) return res.status(404).json({ message: "Walk-on not found" });

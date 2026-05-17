@@ -11,7 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { ArrowLeft, Users, Scissors, CheckCircle, Filter, Star, MapPin, FastForward, DollarSign, Gavel, Trophy, X, TrendingUp } from "lucide-react";
+import { ArrowLeft, Users, Scissors, CheckCircle, Filter, Star, MapPin, FastForward, DollarSign, Gavel, Trophy, X, TrendingUp, AlertTriangle } from "lucide-react";
 import { getPotentialGrade } from "@shared/potential";
 import { PlayerProfileCard } from "@/components/player-profile-card";
 import type { Player, Team, League } from "@shared/schema";
@@ -472,6 +472,15 @@ export default function WalkonsPage() {
                 <div className="mb-3 p-2 rounded bg-muted/10 border border-border/40 text-[9px] text-muted-foreground leading-relaxed">
                   Submit your max bid (in thousands) for any walk-on. Bids are blind. Winner pays the second-highest bid + $1 (Vickrey pricing). Enter "150" to bid $150,000.
                 </div>
+
+                {roster.length >= 25 && (
+                  <div className="mb-3 p-2 rounded bg-red-900/20 border border-red-600/50 flex items-center gap-2" data-testid="banner-roster-full">
+                    <AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                    <p className="text-[9px] text-red-300">
+                      Roster is full ({roster.length}/25). Cut a player first — bids placed while at 25 will be rejected.
+                    </p>
+                  </div>
+                )}
 
                 <div className="flex items-center gap-2 mb-3 flex-wrap">
                   <Filter className="w-3 h-3 text-muted-foreground" />
