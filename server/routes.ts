@@ -11611,15 +11611,20 @@ export async function registerRoutes(
         }
       }
 
-      // ── Postseason bonus
+      // ── Postseason bonuses (stackable — each level is independent)
       const history = coachHistoryByTeam.get(team.id);
       if (history) {
         const pr = history.phaseResult;
+        // CWS/national champion
         if (pr === "national_champion" || pr === "cws") {
           earnings.push({ category: "cws_appearance", amount: 750_000, description: "College World Series appearance" });
-        } else if (pr === "super_regionals") {
+        }
+        // Super Regionals reached (awarded at this level AND to CWS teams)
+        if (pr === "national_champion" || pr === "cws" || pr === "super_regionals") {
           earnings.push({ category: "super_regionals", amount: 400_000, description: "Super Regionals appearance" });
-        } else if (pr === "conf_championship") {
+        }
+        // Conference Championship won (awarded at this level AND above)
+        if (pr === "national_champion" || pr === "cws" || pr === "super_regionals" || pr === "conf_championship") {
           earnings.push({ category: "conf_championship", amount: 200_000, description: "Conference Championship win" });
         }
 
@@ -11960,13 +11965,9 @@ export async function registerRoutes(
       "post-walkons"
     );
 
-    // Compute NIL budgets for the new season
-    try {
-      await computeSeasonNilBudget(leagueId, completedSeason);
-      console.log(`[NIL] Season ${completedSeason + 1} budgets computed for league ${leagueId}`);
-    } catch (err) {
-      console.error("[NIL] computeSeasonNilBudget failed:", err);
-    }
+    // Compute NIL budgets for the new season — failure is intentionally non-silent
+    await computeSeasonNilBudget(leagueId, completedSeason);
+    console.log(`[NIL] Season ${completedSeason + 1} budgets computed for league ${leagueId}`);
 
     return {
       walkonsAdded: totalWalkonsAdded,
@@ -13077,6 +13078,18 @@ export async function registerRoutes(
         const earnings = await storage.getNilEarningsByTeam(leagueId, teamId, season);
         const team = teamById.get(teamId);
         const conf = team?.conferenceId ? confById.get(team.conferenceId) : undefined;
+
+        // Build conference peer comparison
+        const confPeers = conf
+          ? leagueTeams.filter(t => t.conferenceId === conf.id)
+          : [];
+        const confBudgets = confPeers.map(t => t.nilBudget).sort((a, b) => b - a);
+        const confRank = confBudgets.indexOf(team?.nilBudget ?? 0) + 1;
+        const confAvg = confPeers.length > 0
+          ? Math.round(confPeers.reduce((s, t) => s + t.nilBudget, 0) / confPeers.length)
+          : 0;
+        const confMax = confBudgets[0] ?? 0;
+
         return res.json({
           season,
           teamId,
@@ -13087,6 +13100,12 @@ export async function registerRoutes(
           nilSpent: team?.nilSpent ?? 0,
           nilRemaining: (team?.nilBudget ?? 0) - (team?.nilSpent ?? 0),
           earnings: earnings.filter(e => e.category !== "prestige_baseline"),
+          confPeer: {
+            rank: confRank,
+            total: confPeers.length,
+            avg: confAvg,
+            max: confMax,
+          },
         });
       }
 

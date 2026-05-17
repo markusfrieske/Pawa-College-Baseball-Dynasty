@@ -266,6 +266,12 @@ interface NilTeamData {
   nilSpent: number;
   nilRemaining: number;
   earnings: NilEarning[];
+  confPeer?: {
+    rank: number;
+    total: number;
+    avg: number;
+    max: number;
+  };
 }
 
 function NilCard({ leagueId, teamId }: { leagueId: string; teamId: string }) {
@@ -356,6 +362,35 @@ function NilCard({ leagueId, teamId }: { leagueId: string; teamId: string }) {
                 </div>
               )}
             </>
+          )}
+
+          {nilData.confPeer && nilData.confPeer.total > 1 && (
+            <div className="border-t border-border/40 pt-1.5 mt-1.5">
+              <p className="text-[9px] text-gold font-pixel mb-1.5">CONFERENCE COMPARISON</p>
+              <div className="grid grid-cols-3 gap-1.5 text-center">
+                <div className="p-1.5 bg-muted/20 rounded">
+                  <p className="font-bold text-xs text-foreground">
+                    #{nilData.confPeer.rank}<span className="text-muted-foreground">/{nilData.confPeer.total}</span>
+                  </p>
+                  <p className="text-[8px] text-muted-foreground">Conf Rank</p>
+                </div>
+                <div className="p-1.5 bg-muted/20 rounded">
+                  <p className="font-bold text-xs text-muted-foreground">${(nilData.confPeer.avg / 1_000_000).toFixed(2)}M</p>
+                  <p className="text-[8px] text-muted-foreground">Conf Avg</p>
+                </div>
+                <div className="p-1.5 bg-muted/20 rounded">
+                  <p className="font-bold text-xs text-muted-foreground">${(nilData.confPeer.max / 1_000_000).toFixed(2)}M</p>
+                  <p className="text-[8px] text-muted-foreground">Conf High</p>
+                </div>
+              </div>
+              <div className="mt-1.5 w-full bg-muted/30 rounded h-1">
+                <div
+                  className="bg-gold/60 h-1 rounded"
+                  style={{ width: `${nilData.confPeer.max > 0 ? Math.round((nilData.nilBudget / nilData.confPeer.max) * 100) : 0}%` }}
+                />
+              </div>
+              <p className="text-[8px] text-muted-foreground text-right mt-0.5">vs conference leader</p>
+            </div>
           )}
         </div>
       </RetroCardContent>
