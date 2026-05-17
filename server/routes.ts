@@ -10608,7 +10608,12 @@ export async function registerRoutes(
       }
     }
 
-    // Place bids — compute bid amounts based on OVR and difficulty
+    // Place bids — compute bid amounts based on OVR and difficulty.
+    // bid = random value in [floor, floor + floor*difficultyMult], then clamped
+    // to min(40% remainingNil, remainingNil).
+    // Note: when 40% of remainingNil < floor, the cap dominates and the bid
+    // can fall below the OVR-based floor — this is intentional (CPU won't
+    // overcommit its budget just to meet a floor).
     let remainingNil = team.nilBudget - team.nilSpent;
     for (const walkon of desired) {
       if (remainingNil <= 0) break;

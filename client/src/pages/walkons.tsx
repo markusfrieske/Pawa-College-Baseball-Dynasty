@@ -114,6 +114,14 @@ export default function WalkonsPage() {
 
   const { data: leagueData } = useQuery<{ league?: League }>({
     queryKey: ["/api/leagues", id],
+    // Poll every 10 s during the walk-on phase so non-commissioner coaches
+    // automatically detect when the commissioner resolves the auction and
+    // advances to Spring Training — triggering the result modal without a
+    // manual page refresh.
+    refetchInterval: (query) => {
+      const phase = (query.state.data as { league?: { currentPhase?: string } } | undefined)?.league?.currentPhase;
+      return phase === "offseason_walkons" ? 10_000 : false;
+    },
   });
 
   const { data: authData } = useQuery<{ id: string }>({
