@@ -1889,8 +1889,9 @@ function RecruitAttributesSection({
   };
   
   const renderAttribute = (label: string, fieldName: string, value: number | null | undefined) => {
-    const isRevealed = shouldRevealField(fieldName);
-    const displayValue = isRevealed ? (value ?? 50) : null;
+    // Treat null as unrevealed — server already nulls signing-day-locked fields
+    const isRevealed = shouldRevealField(fieldName) && value !== null && value !== undefined;
+    const displayValue = isRevealed ? value : null;
     const isVelocity = label === "Velocity";
     
     return (
@@ -1973,8 +1974,9 @@ function RecruitCommonAbilitiesSection({
   };
   
   const renderAbility = (label: string, fieldName: string, value: number | null | undefined) => {
-    const isRevealed = shouldRevealField(fieldName);
-    const displayValue = isRevealed ? (value ?? 50) : null;
+    // Treat null as unrevealed — server already nulls signing-day-locked fields
+    const isRevealed = shouldRevealField(fieldName) && value !== null && value !== undefined;
+    const displayValue = isRevealed ? value : null;
     
     return (
       <div className="flex items-center justify-between p-2 bg-muted/30 rounded">
@@ -2053,9 +2055,10 @@ function RecruitPitchMixSection({
   ] as const;
   
   const renderPitch = (key: string, label: string) => {
-    const isRevealed = shouldRevealField(key);
     const value = recruit[key as keyof typeof recruit] as number | null | undefined;
-    const displayValue = isRevealed ? (value || 0) : null;
+    // Treat null as unrevealed — server already nulls signing-day-locked fields
+    const isRevealed = shouldRevealField(key) && value !== null && value !== undefined;
+    const displayValue = isRevealed ? value : null;
     
     if (!isRevealed) {
       return (
