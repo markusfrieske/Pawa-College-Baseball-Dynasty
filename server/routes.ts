@@ -11615,51 +11615,82 @@ export async function registerRoutes(
       yourBid: number;
     }>>();
 
-    // Pre-load current roster counts for cap enforcement (MAX 25)
+    // ── Two-phase simultaneous Vickrey auction ───────────────────────────────────
+    // Phase 1 (pure Vickrey, no cap): For each walk-on independently compute the
+    //   raw winner (highest bid) and raw price (second-highest submitted bid + 1,
+    //   clamped to winner's bid).  All submitted bids are used — no eligibility
+    //   filtering — preserving true sealed-bid pricing.
+    // Phase 2 (cap enforcement): Sort raw awards by winning-bid descending so the
+    //   highest-value commitments are honored first (deterministic, bid-based order).
+    //   If the raw winner's team is already at the 25-player cap, find the next
+    //   bidder in the original sorted list who still has room; they win at their own
+    //   bid (their "second price" is the cap-disqualified bid above them, which by
+    //   definition exceeds their amount, so they pay their full bid).
+    //   If nobody is eligible the walk-on goes unawarded.
+
     const MAX_WALKON_ROSTER = 25;
+
+    // Phase 1 — compute raw (winner, price) per walk-on from all submitted bids
+    type RawAward = {
+      walkon: (typeof walkons)[0];
+      bids: typeof allBids;         // sorted descending by bidAmount
+      rawWinner: (typeof allBids)[0];
+      rawPrice: number;
+    };
+    const rawAwards: RawAward[] = [];
+    for (const walkon of walkons) {
+      const bids = (bidsByWalkon.get(walkon.id) || []).sort((a, b) => b.bidAmount - a.bidAmount);
+      if (bids.length === 0) continue;
+      const rawWinner = bids[0];
+      // Second-highest submitted bid (all bidders), + 1, clamped to winner's bid
+      const secondBidAmt = bids[1]?.bidAmount ?? 0;
+      const rawPrice = Math.min(rawWinner.bidAmount, bids.length > 1 ? secondBidAmt + 1 : rawWinner.bidAmount);
+      rawAwards.push({ walkon, bids, rawWinner, rawPrice });
+    }
+
+    // Phase 2 — enforce cap in winning-bid descending order (bid-based determinism)
+    rawAwards.sort((a, b) => b.rawWinner.bidAmount - a.rawWinner.bidAmount ||
+      (b.walkon.overall || 0) - (a.walkon.overall || 0));
+
     const rosterCounts = new Map<string, number>();
     for (const team of teams) {
       const players = await storage.getPlayersByTeam(team.id);
       rosterCounts.set(team.id, players.length);
     }
-    // Track how many walkons each team has already been awarded in this auction
-    const awardedCounts = new Map<string, number>();
+    const awardedCounts = new Map<string, number>(); // wins granted in phase 2
 
-    // Resolve auctions in OVR-descending order — higher-quality players are awarded first
-    // so roster-cap slots are filled with the best available players, making outcomes
-    // predictable and team-cap skipping canonical (not iteration-order dependent).
-    const sortedWalkons = [...walkons].sort((a, b) => (b.overall || 0) - (a.overall || 0));
+    const isUnderCap = (teamId: string) =>
+      (rosterCounts.get(teamId) || 0) + (awardedCounts.get(teamId) || 0) < MAX_WALKON_ROSTER;
 
-    for (const walkon of sortedWalkons) {
-      const bids = (bidsByWalkon.get(walkon.id) || []).sort((a, b) => b.bidAmount - a.bidAmount);
-      if (bids.length === 0) continue;
-
-      // Helper: check if a team still has roster room at this point in the auction
-      const isEligible = (teamId: string) =>
-        (rosterCounts.get(teamId) || 0) + (awardedCounts.get(teamId) || 0) < MAX_WALKON_ROSTER;
-
-      // Find the highest bidder who still has roster room — skip over cap-busting winners
+    for (const { walkon, bids, rawWinner, rawPrice } of rawAwards) {
+      // Determine the final winner respecting cap
       let winner: (typeof bids)[0] | null = null;
-      for (const bid of bids) {
-        if (isEligible(bid.teamId)) {
-          winner = bid;
-          break;
+      let pricePaid = 0;
+
+      if (isUnderCap(rawWinner.teamId)) {
+        // Happy path: raw winner has room — pay Vickrey price
+        winner = rawWinner;
+        pricePaid = rawPrice;
+      } else {
+        // Raw winner is over cap — find next eligible bidder
+        // They pay their own bid (the highest bidder above them is disqualified,
+        // so there is no lower competing bid to set a Vickrey price against them)
+        console.log(`[Auction] ${rawWinner.teamId} (raw winner) is at cap for ${walkon.firstName} ${walkon.lastName}`);
+        for (let i = 1; i < bids.length; i++) {
+          if (isUnderCap(bids[i].teamId)) {
+            winner = bids[i];
+            pricePaid = winner.bidAmount; // no eligible bidder above them
+            break;
+          }
         }
-        console.log(`[Auction] ${bid.teamId} skipped (roster full) for ${walkon.firstName} ${walkon.lastName}`);
       }
+
       if (!winner) {
-        console.log(`[Auction] No eligible bidder for ${walkon.firstName} ${walkon.lastName} — all at cap`);
+        console.log(`[Auction] No eligible bidder for ${walkon.firstName} ${walkon.lastName}`);
         continue;
       }
 
-      // Vickrey second price: use the highest bid from an *eligible* runner-up (not the winner).
-      // This avoids overstating price when ineligible bids sit between the winner and a real competitor.
-      const eligibleRunnerUps = bids.filter(b => b !== winner && isEligible(b.teamId));
-      const secondBid = eligibleRunnerUps[0]?.bidAmount ?? 0;
-      // Winner pays second-highest eligible bid + 1, clamped to their own bid
-      const pricePaid = Math.min(winner.bidAmount, eligibleRunnerUps.length > 0 ? secondBid + 1 : winner.bidAmount);
-
-      // Mark the walkon as awarded (used for display; signedTeamId drives player creation)
+      // Mark awarded
       await storage.updateWalkon(walkon.id, {
         signedTeamId: winner.teamId,
         signedTeamName: teamMap.get(winner.teamId)?.name || null,
@@ -11667,16 +11698,13 @@ export async function registerRoutes(
         awardedTeamName: teamMap.get(winner.teamId)?.name || null,
         awardedPrice: pricePaid,
       });
-
-      // Update local cap tracking
       awardedCounts.set(winner.teamId, (awardedCounts.get(winner.teamId) || 0) + 1);
 
-      // Deduct the awarded price from the winning team's nilSpent
+      // Deduct NIL from winner
       const winnerTeam = teamMap.get(winner.teamId);
       if (winnerTeam) {
         const newNilSpent = (winnerTeam.nilSpent || 0) + pricePaid;
         await storage.updateTeam(winnerTeam.id, { nilSpent: newNilSpent });
-        // Update our local cache so subsequent bids see the updated nilSpent
         winnerTeam.nilSpent = newNilSpent;
       }
 

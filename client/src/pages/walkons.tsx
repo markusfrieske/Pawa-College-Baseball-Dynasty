@@ -387,6 +387,76 @@ export default function WalkonsPage() {
           </div>
         )}
 
+        {/* Post-resolution results panel — rendered from persisted lastWalkonAuction,
+            durable even after walk-on pool rows are deleted during phase finalization */}
+        {!isWalkonsPhase && persistedOutcomes && persistedOutcomes.length > 0 && (
+          <div className="mb-6" data-testid="post-auction-results-panel">
+            <RetroCard>
+              <RetroCardHeader>
+                <div className="flex items-center gap-2">
+                  <Trophy className="w-4 h-4 text-gold" />
+                  <span>Auction Results</span>
+                </div>
+              </RetroCardHeader>
+              <RetroCardContent>
+                {persistedOutcomes.filter(r => r.won).length > 0 && (
+                  <div className="mb-4">
+                    <h3 className="font-pixel text-[9px] text-green-400 mb-2">SIGNED</h3>
+                    <div className="space-y-1.5">
+                      {persistedOutcomes.filter(r => r.won).map(r => (
+                        <div
+                          key={r.walkonId}
+                          className="flex items-center justify-between p-2 rounded bg-green-900/10 border border-green-700/30"
+                          data-testid={`panel-won-${r.walkonId}`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="w-3.5 h-3.5 text-green-400 shrink-0" />
+                            <div>
+                              <p className="text-xs font-medium">{r.firstName} {r.lastName}</p>
+                              <p className="text-[9px] text-muted-foreground">{r.position} • {r.overall} OVR</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-medium text-green-400">{fmtK(r.pricePaid)}</p>
+                            <p className="text-[8px] text-muted-foreground">your bid: {fmtK(r.yourBid)}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {persistedOutcomes.filter(r => !r.won).length > 0 && (
+                  <div>
+                    <h3 className="font-pixel text-[9px] text-red-400 mb-2">OUTBID ON</h3>
+                    <div className="space-y-1.5">
+                      {persistedOutcomes.filter(r => !r.won).map(r => (
+                        <div
+                          key={r.walkonId}
+                          className="flex items-center justify-between p-2 rounded bg-red-900/10 border border-red-700/30"
+                          data-testid={`panel-lost-${r.walkonId}`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <X className="w-3.5 h-3.5 text-red-400 shrink-0" />
+                            <div>
+                              <p className="text-xs font-medium">{r.firstName} {r.lastName}</p>
+                              <p className="text-[9px] text-muted-foreground">{r.position} • {r.overall} OVR</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-[9px] text-muted-foreground">won by {r.winnerTeamName}</p>
+                            <p className="text-sm font-medium text-red-400">{fmtK(r.pricePaid)}</p>
+                            <p className="text-[8px] text-muted-foreground">your bid: {fmtK(r.yourBid)}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </RetroCardContent>
+            </RetroCard>
+          </div>
+        )}
+
         <div className="grid lg:grid-cols-2 gap-6">
           {/* Current Roster */}
           <div>
