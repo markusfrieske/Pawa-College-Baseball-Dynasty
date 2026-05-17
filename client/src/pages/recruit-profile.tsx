@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { parseErrorMessage } from "@/lib/errorUtils";
+import { pickCampusVisitEvent, pickHeadCoachVisitEvent, type VisitEvent } from "@/lib/visit-events";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
@@ -118,6 +119,7 @@ export default function RecruitProfilePage() {
     description: string;
     type: "success" | "error";
     icon?: "check" | "phone" | "email" | "visit" | "coach" | "offer" | "scout";
+    eventCard?: VisitEvent;
   } | null>(null);
   const setActionResultModal = useCallback((modal: typeof actionResultModal) => {
     if (modal) {
@@ -165,6 +167,16 @@ export default function RecruitProfilePage() {
 
   const { data: recruitingData, isLoading: isRecruitingLoading } = useQuery<any>({
     queryKey: ["/api/leagues", id, "recruiting"],
+    enabled: !!id,
+  });
+
+  const { data: coachData } = useQuery<{
+    firstName: string;
+    lastName: string;
+    archetype: string;
+    level: number;
+  }>({
+    queryKey: ["/api/leagues", id, "coach"],
     enabled: !!id,
   });
 
@@ -282,10 +294,16 @@ export default function RecruitProfilePage() {
     mutationFn: async () => {
       return apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/visit`, {});
     },
-    onSuccess: (data: any) => {
-      const gain = data.interestGain || 0;
+    onSuccess: (responseData: any) => {
+      const gain = responseData.interestGain || 0;
       const changeLabel = getInterestChangeLabel(gain);
-      setActionResultModal({ title: "Campus Visit Scheduled", description: changeLabel.label, type: "success", icon: "visit" });
+      const currentRecruit = data?.recruit;
+      const teamName = recruitingData?.team?.name ?? data?.team?.name ?? "our program";
+      const coachLast = coachData?.lastName ?? "Coach";
+      const eventCard = currentRecruit
+        ? pickCampusVisitEvent(gain, currentRecruit, teamName, coachLast)
+        : undefined;
+      setActionResultModal({ title: "Campus Visit Scheduled", description: changeLabel.label, type: "success", icon: "visit", eventCard });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruits", recruitId] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting", recruitId, "actions"] });
     },
@@ -298,10 +316,17 @@ export default function RecruitProfilePage() {
     mutationFn: async () => {
       return apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/head-coach-visit`, {});
     },
-    onSuccess: (data: any) => {
-      const gain = data.interestGain || 0;
+    onSuccess: (responseData: any) => {
+      const gain = responseData.interestGain || 0;
       const changeLabel = getInterestChangeLabel(gain);
-      setActionResultModal({ title: "Head Coach Visit Complete", description: changeLabel.label, type: "success", icon: "coach" });
+      const currentRecruit = data?.recruit;
+      const teamName = recruitingData?.team?.name ?? data?.team?.name ?? "our program";
+      const coachLast = coachData?.lastName ?? "Coach";
+      const archetype = coachData?.archetype ?? "Balanced";
+      const eventCard = currentRecruit
+        ? pickHeadCoachVisitEvent(gain, currentRecruit, teamName, coachLast, archetype)
+        : undefined;
+      setActionResultModal({ title: "Head Coach Visit Complete", description: changeLabel.label, type: "success", icon: "coach", eventCard });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruits", recruitId] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting", recruitId, "actions"] });
     },
@@ -1291,7 +1316,10 @@ export default function RecruitProfilePage() {
       )}
 
       <Dialog open={!!actionResultModal} onOpenChange={() => setActionResultModal(null)}>
-        <DialogContent className="max-w-sm border-2 border-[#1a3a1a] bg-[#0d1f0d]" data-testid="action-result-modal">
+        <DialogContent
+          className={`border-2 border-[#1a3a1a] bg-[#0d1f0d] ${actionResultModal?.eventCard ? "max-w-md" : "max-w-sm"}`}
+          data-testid="action-result-modal"
+        >
           <div className="flex flex-col items-center gap-4 py-4">
             {actionResultModal?.type === "success" ? (
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#1a3a1a]">
@@ -1309,6 +1337,19 @@ export default function RecruitProfilePage() {
                 <XCircle className="h-7 w-7 text-red-400" />
               </div>
             )}
+
+            {actionResultModal?.eventCard && (
+              <div className="w-full rounded border border-[#c8aa6e]/30 bg-[#0a1a0a] px-4 py-3" data-testid="visit-event-card">
+                <p className="font-['Press_Start_2P'] text-[10px] leading-relaxed text-[#c8aa6e]" data-testid="visit-event-headline">
+                  {actionResultModal.eventCard.headline}
+                </p>
+                <div className="my-2 h-px bg-[#c8aa6e]/20" />
+                <p className="text-xs leading-relaxed text-gray-300" data-testid="visit-event-body">
+                  {actionResultModal.eventCard.body}
+                </p>
+              </div>
+            )}
+
             <div className="text-center">
               <h3 className="font-['Press_Start_2P'] text-sm text-[#c8aa6e]" data-testid="action-result-title">
                 {actionResultModal?.title}
