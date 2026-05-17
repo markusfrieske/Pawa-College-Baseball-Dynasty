@@ -1440,11 +1440,13 @@ export async function registerRoutes(
         const currentPct = interest.scoutPercentage || 0;
         const newPct = Math.min(100, currentPct + revealAmount);
         
-        // Add more revealed attributes, capping effective percentage at 65% before signing day
+        // Add more revealed attributes using target-based count (prevents floor compounding).
+        // Cap target at 65% of all attrs — the remaining 35% unlocks at signing day.
         const currentAttrs = (interest.revealedAttributes as string[]) || [];
-        const effectiveCurrentPct = Math.min(currentPct, 65);
         const effectiveNewPct = Math.min(newPct, 65);
-        const additionalAttrs = getAttributesToReveal(effectiveNewPct - effectiveCurrentPct, currentAttrs);
+        const targetTotal = Math.floor(effectiveNewPct / 100 * SCOUT_ATTRS.length);
+        const needToReveal = Math.max(0, targetTotal - currentAttrs.length);
+        const additionalAttrs = getAttributesToRevealCount(needToReveal, currentAttrs);
         const allAttrs = [...currentAttrs, ...additionalAttrs];
         
         // Narrow down the rating ranges
@@ -15707,19 +15709,28 @@ export async function registerRoutes(
 }
 
 // Helper functions
-function getAttributesToReveal(percentage: number, existing: string[] = []): string[] {
-  const allAttrs = ["hitForAvg", "power", "speed", "arm", "fielding", "errorResistance", "velocity", "control", "stamina", "stuff"];
-  const remaining = allAttrs.filter(a => !existing.includes(a));
-  
-  const countToReveal = Math.floor((percentage / 100) * allAttrs.length);
+
+const SCOUT_ATTRS = ["hitForAvg", "power", "speed", "arm", "fielding", "errorResistance", "velocity", "control", "stamina", "stuff"] as const;
+
+/** Reveal exactly `count` new attributes chosen at random from those not yet in `existing`. */
+function getAttributesToRevealCount(count: number, existing: string[] = []): string[] {
+  const remaining = SCOUT_ATTRS.filter(a => !existing.includes(a));
   const toReveal: string[] = [];
-  
-  for (let i = 0; i < countToReveal && remaining.length > 0; i++) {
+  for (let i = 0; i < count && remaining.length > 0; i++) {
     const idx = Math.floor(Math.random() * remaining.length);
-    toReveal.push(remaining.splice(idx, 1)[0]);
+    toReveal.push(...remaining.splice(idx, 1));
   }
-  
   return toReveal;
+}
+
+/**
+ * Percentage-based wrapper used for the **first** scout action (no existing attrs).
+ * Uses target-based count so the floor is applied once, not compounded across calls.
+ */
+function getAttributesToReveal(percentage: number, existing: string[] = []): string[] {
+  const targetTotal = Math.floor((percentage / 100) * SCOUT_ATTRS.length);
+  const needToReveal = Math.max(0, targetTotal - existing.length);
+  return getAttributesToRevealCount(needToReveal, existing);
 }
 
 async function generateSchedule(leagueId: string, season: number = 1) {
