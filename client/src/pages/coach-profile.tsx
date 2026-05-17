@@ -557,6 +557,18 @@ function CoachHeader({
   );
 }
 
+// ── Recruiting breakdown categories (shared across CareerTab sections) ────────
+const RECRUITING_BREAKDOWN_LABELS: Record<string, { label: string; weight: string }> = {
+  classQuality: { label: "Class Quality", weight: "20%" },
+  classRank: { label: "Class Rank", weight: "15%" },
+  hitRate: { label: "Hit Rate", weight: "15%" },
+  starEfficiency: { label: "Star Efficiency", weight: "15%" },
+  positionalBalance: { label: "Positional Balance", weight: "10%" },
+  blueChipHaul: { label: "Blue Chip Haul", weight: "10%" },
+  actionEfficiency: { label: "Action Efficiency", weight: "10%" },
+  gemDetection: { label: "Gem Detection", weight: "5%" },
+};
+
 // ── Recruiting record type from API ──────────────────────────────────────────
 interface RecruitingSeasonRow {
   season: number;
@@ -761,18 +773,8 @@ function CareerTab({
                 const latestGraded = recruitingRecord.seasonHistory?.find(s => s.recruitingGrade != null);
                 if (!latestGraded) return null;
                 const bd = latestGraded.recruitingBreakdown;
-                const BREAKDOWN_LABELS: Record<string, { label: string; weight: string }> = {
-                  classQuality: { label: "Class Quality", weight: "20%" },
-                  classRank: { label: "Class Rank", weight: "15%" },
-                  hitRate: { label: "Hit Rate", weight: "15%" },
-                  starEfficiency: { label: "Star Efficiency", weight: "15%" },
-                  positionalBalance: { label: "Positional Balance", weight: "10%" },
-                  blueChipHaul: { label: "Blue Chip Haul", weight: "10%" },
-                  actionEfficiency: { label: "Action Efficiency", weight: "10%" },
-                  gemDetection: { label: "Gem Detection", weight: "5%" },
-                };
-                const strengths = bd ? Object.entries(bd).filter(([, v]) => v >= 75).map(([k]) => BREAKDOWN_LABELS[k]?.label).filter(Boolean) : [];
-                const weaknesses = bd ? Object.entries(bd).filter(([, v]) => v < 50).map(([k]) => BREAKDOWN_LABELS[k]?.label).filter(Boolean) : [];
+                const strengths = bd ? Object.entries(bd).filter(([, v]) => v >= 75).map(([k]) => RECRUITING_BREAKDOWN_LABELS[k]?.label).filter(Boolean) : [];
+                const weaknesses = bd ? Object.entries(bd).filter(([, v]) => v < 50).map(([k]) => RECRUITING_BREAKDOWN_LABELS[k]?.label).filter(Boolean) : [];
                 const summary = (() => {
                   const parts: string[] = [];
                   if (strengths.length > 0) parts.push(`Strong in ${strengths.slice(0, 2).join(" and ")}.`);
@@ -798,7 +800,7 @@ function CareerTab({
                     <p className="text-[10px] text-muted-foreground mb-3 italic">{summary}</p>
                     {bd && (
                       <div className="space-y-1.5">
-                        {Object.entries(BREAKDOWN_LABELS).map(([key, { label, weight }]) => {
+                        {Object.entries(RECRUITING_BREAKDOWN_LABELS).map(([key, { label, weight }]) => {
                           const val = bd[key] ?? 0;
                           const barColor = val >= 75 ? "bg-gold" : val >= 50 ? "bg-green-500" : "bg-muted-foreground/40";
                           return (
@@ -869,53 +871,88 @@ function CareerTab({
               {recruitingRecord.seasonHistory && recruitingRecord.seasonHistory.length > 0 && (
                 <div>
                   <p className="text-xs text-muted-foreground font-medium mb-2">Class History by Season</p>
-                  <div className="rounded-lg border border-border/30 overflow-hidden">
-                    <table className="w-full text-xs">
-                      <thead className="bg-muted/40">
-                        <tr>
-                          <th className="text-left px-3 py-2 text-muted-foreground font-medium">Yr</th>
-                          <th className="text-center px-2 py-2 text-muted-foreground font-medium">Rank</th>
-                          <th className="text-center px-2 py-2 text-yellow-400">5★</th>
-                          <th className="text-center px-2 py-2 text-orange-400">4★</th>
-                          <th className="text-center px-2 py-2 text-blue-400">3★</th>
-                          <th className="text-center px-2 py-2 text-muted-foreground">2★</th>
-                          <th className="text-center px-2 py-2 text-muted-foreground">1★</th>
-                          <th className="text-right px-2 py-2 text-muted-foreground font-medium">Signed</th>
-                          <th className="text-center px-3 py-2 text-gold font-medium">Grade</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {recruitingRecord.seasonHistory.map((row, i) => (
-                          <tr
-                            key={row.season}
-                            className={`border-t border-border/20 ${i % 2 === 0 ? "bg-muted/10" : ""}`}
-                            data-testid={`recruiting-season-row-${row.season}`}
-                          >
-                            <td className="px-3 py-2 font-medium">{row.season}</td>
-                            <td className="px-2 py-2 text-center">
-                              {row.classRank != null ? (
-                                <span className={row.classRank <= 5 ? "text-gold font-bold" : row.classRank <= 15 ? "text-yellow-400" : ""}>
-                                  #{row.classRank}
+                  <div className="rounded-lg border border-border/30 overflow-hidden divide-y divide-border/20">
+                    {recruitingRecord.seasonHistory.map((row, i) => {
+                      const hasBreakdown = !!row.recruitingBreakdown;
+                      const rowContent = (
+                        <>
+                          <span className="text-xs font-medium w-7 shrink-0">{row.season}</span>
+                          <span className="text-xs w-10 shrink-0 text-center">
+                            {row.classRank != null ? (
+                              <span className={row.classRank <= 5 ? "text-gold font-bold" : row.classRank <= 15 ? "text-yellow-400" : ""}>
+                                #{row.classRank}
+                              </span>
+                            ) : "—"}
+                          </span>
+                          <span className="flex items-center gap-1 text-[10px] flex-1 min-w-0">
+                            {row.fiveStars > 0 && <span className="text-yellow-400 font-medium">{row.fiveStars}★★★★★</span>}
+                            {row.fourStars > 0 && <span className="text-orange-400">{row.fourStars}★★★★</span>}
+                            {row.threeStars > 0 && <span className="text-blue-400">{row.threeStars}★★★</span>}
+                            {(row.twoStars > 0 || row.oneStars > 0) && (
+                              <span className="text-muted-foreground">{row.twoStars + row.oneStars}★/★★</span>
+                            )}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground shrink-0">{row.totalSigned} signed</span>
+                          <span className="shrink-0 w-8 text-center">
+                            {row.recruitingGrade != null ? (
+                              <span className={`font-bold font-pixel text-[10px] ${recruitingGradeColor(row.recruitingGrade)}`}>
+                                {row.recruitingGrade}
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-muted-foreground">—</span>
+                            )}
+                          </span>
+                          <span className="w-3 h-3 shrink-0 flex items-center justify-center">
+                            {hasBreakdown && <ChevronDown className="w-3 h-3 text-muted-foreground group-open:rotate-180 transition-transform" />}
+                          </span>
+                        </>
+                      );
+                      const breakdownPanel = hasBreakdown && (
+                        <div className="px-4 py-3 bg-muted/10 space-y-1.5">
+                          {row.recruitingScore != null && (
+                            <p className="text-[9px] text-muted-foreground mb-2">
+                              Overall score: <span className="font-medium text-foreground">{row.recruitingScore.toFixed(1)}/100</span>
+                            </p>
+                          )}
+                          {Object.entries(RECRUITING_BREAKDOWN_LABELS).map(([key, { label, weight }]) => {
+                            const val = row.recruitingBreakdown![key] ?? 0;
+                            const barColor = val >= 75 ? "bg-gold" : val >= 50 ? "bg-green-500" : "bg-muted-foreground/40";
+                            const textColor = val >= 75 ? "text-gold" : val >= 50 ? "text-green-400" : "text-muted-foreground";
+                            return (
+                              <div key={key} className="flex items-center gap-2">
+                                <span className="text-[9px] text-muted-foreground w-32 shrink-0">
+                                  {label} <span className="text-muted-foreground/50">({weight})</span>
                                 </span>
-                              ) : "—"}
-                            </td>
-                            <td className="px-2 py-2 text-center text-yellow-400 font-medium">{row.fiveStars || "—"}</td>
-                            <td className="px-2 py-2 text-center text-orange-400 font-medium">{row.fourStars || "—"}</td>
-                            <td className="px-2 py-2 text-center text-blue-400">{row.threeStars || "—"}</td>
-                            <td className="px-2 py-2 text-center text-muted-foreground">{row.twoStars || "—"}</td>
-                            <td className="px-2 py-2 text-center text-muted-foreground/60">{row.oneStars || "—"}</td>
-                            <td className="px-2 py-2 text-right font-medium text-gold">{row.totalSigned}</td>
-                            <td className="px-3 py-2 text-center">
-                              {row.recruitingGrade != null ? (
-                                <span className={`font-bold font-pixel text-[10px] ${recruitingGradeColor(row.recruitingGrade)}`}>
-                                  {row.recruitingGrade}
-                                </span>
-                              ) : "—"}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                                <div className="flex-1 bg-muted/40 rounded-full h-1.5">
+                                  <div className={`${barColor} rounded-full h-1.5 transition-all`} style={{ width: `${val}%` }} />
+                                </div>
+                                <span className={`text-[9px] w-6 text-right font-medium ${textColor}`}>{val}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                      return hasBreakdown ? (
+                        <details
+                          key={row.season}
+                          className="group"
+                          data-testid={`recruiting-season-row-${row.season}`}
+                        >
+                          <summary className={`flex items-center gap-2 px-3 py-2 cursor-pointer list-none hover:bg-muted/20 ${i % 2 === 0 ? "bg-muted/10" : ""}`}>
+                            {rowContent}
+                          </summary>
+                          {breakdownPanel}
+                        </details>
+                      ) : (
+                        <div
+                          key={row.season}
+                          className={`flex items-center gap-2 px-3 py-2 ${i % 2 === 0 ? "bg-muted/10" : ""}`}
+                          data-testid={`recruiting-season-row-${row.season}`}
+                        >
+                          {rowContent}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
