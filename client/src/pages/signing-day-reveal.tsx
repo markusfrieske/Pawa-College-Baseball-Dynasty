@@ -188,13 +188,17 @@ interface FWParticle {
   alpha: number; color: string; radius: number;
 }
 
-function FireworksCanvas({ teamColor, active }: { teamColor: string; active: boolean }) {
+function FireworksCanvas({ teamColor, active, overrideColors }: { teamColor: string; active: boolean; overrideColors?: string[] | null }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const colorsRef = useRef<string[]>([teamColor, "#C4A35A", "#ffffff", "#ffd700"]);
 
   useEffect(() => {
-    colorsRef.current = [teamColor, "#C4A35A", "#ffffff", "#ffd700"];
-  }, [teamColor]);
+    if (overrideColors && overrideColors.length > 0) {
+      colorsRef.current = overrideColors;
+    } else {
+      colorsRef.current = [teamColor, "#C4A35A", "#ffffff", "#ffd700"];
+    }
+  }, [teamColor, overrideColors]);
 
   useEffect(() => {
     if (!active) return;
@@ -438,8 +442,51 @@ function CinematicBurst({ color, active }: { color: string; active: boolean }) {
   );
 }
 
+// ── GemSpotlight ───────────────────────────────────────────────
+// Dark radial vignette that draws the eye to center screen during
+// the gem ceremony spotlight phase.
+function GemSpotlight({ active }: { active: boolean }) {
+  if (!active) return null;
+  return (
+    <div
+      aria-hidden
+      data-testid="gem-spotlight"
+      style={{
+        position: "fixed",
+        inset: 0,
+        pointerEvents: "none",
+        zIndex: 25,
+        background: "radial-gradient(ellipse 48% 52% at center, transparent 0%, rgba(0,4,0,0.90) 100%)",
+        animation: "sdGemSpotlight 0.45s ease-out forwards",
+      }}
+    />
+  );
+}
+
+// ── GemBurst ───────────────────────────────────────────────────
+// Amber/gold radial flash distinct from the team-color CinematicBurst.
+function GemBurst({ active }: { active: boolean }) {
+  if (!active) return null;
+  return (
+    <div
+      aria-hidden
+      data-testid="gem-burst"
+      style={{
+        position: "fixed",
+        inset: 0,
+        pointerEvents: "none",
+        zIndex: 28,
+        background: "radial-gradient(ellipse at center, #FFD70099 0%, #C4A35A55 35%, transparent 68%)",
+        animation: "sdGemBurstExpand 0.8s ease-out forwards",
+        transformOrigin: "center center",
+      }}
+    />
+  );
+}
+
 // ── SigningDayRevealPage ───────────────────────────────────────
 type CinemaPhase = "idle" | "buildup" | "burst" | "cards";
+type GemPhase = "waiting" | "spotlight" | "burst" | "revealed";
 
 export default function SigningDayRevealPage() {
   const { id: leagueId } = useParams<{ id: string }>();
@@ -453,6 +500,12 @@ export default function SigningDayRevealPage() {
 
   const reducedMotion = useReducedMotion();
   const [cinemaPhase, setCinemaPhase] = useState<CinemaPhase>("idle");
+
+  // ── Gem ceremony state ──────────────────────────────────────
+  const [gemPhase, setGemPhase] = useState<GemPhase>("waiting");
+  const [gemColorOverride, setGemColorOverride] = useState<string[] | null>(null);
+  // Once fired, the ceremony never repeats even on team switch.
+  const gemCeremonyFired = useRef(false);
 
   const { data, isLoading } = useQuery<RevealData>({
     queryKey: ["/api/leagues", leagueId, "signing-day-reveal"],
@@ -502,6 +555,50 @@ export default function SigningDayRevealPage() {
       .catch((err) => console.error("[reveal-complete] failed:", err));
   }, [cinemaPhase, currentEntry?.team.id, leagueId]);
 
+  // ── Derived: split recruits for gem ceremony ─────────────────
+  // When reducedMotion is true, gemRecruit stays null so the gem
+  // renders in the normal grid with no held-back slot.
+  const sortedRecruits = useMemo(
+    () => [...(currentEntry?.recruits ?? [])].sort((a, b) => b.overall - a.overall),
+    [currentEntry]
+  );
+  const gemRecruit = useMemo(
+    () => (!reducedMotion ? (sortedRecruits.find(r => r.isGenerationalGem && r.gemBustRevealed) ?? null) : null),
+    [sortedRecruits, reducedMotion]
+  );
+  const regularRecruits = useMemo(
+    () => gemRecruit ? sortedRecruits.filter(r => !(r.isGenerationalGem && r.gemBustRevealed)) : sortedRecruits,
+    [sortedRecruits, gemRecruit]
+  );
+
+  // ── Reset gem phase when team changes ───────────────────────
+  useEffect(() => {
+    setGemPhase("waiting");
+    setGemColorOverride(null);
+  }, [currentEntry?.team.id]);
+
+  // ── Gem ceremony timer ───────────────────────────────────────
+  // Fires 1.5s after cards are visible — once per page load.
+  useEffect(() => {
+    if (cinemaPhase !== "cards" || !gemRecruit || gemCeremonyFired.current) return;
+    gemCeremonyFired.current = true;
+
+    // Regular cards take ~(n * 0.06)s to stagger in; 1.5s is well past
+    // the last card for most class sizes.
+    const t1 = setTimeout(() => setGemPhase("spotlight"), 1500);
+    const t2 = setTimeout(() => setGemPhase("burst"),     2100);
+    const t3 = setTimeout(() => {
+      setGemPhase("revealed");
+      setGemColorOverride(["#FFD700", "#FFA500", "#FFEC00", "#C4A35A"]);
+    }, 2600);
+    // Return to team colors after 4 seconds of gold fireworks
+    const t4 = setTimeout(() => setGemColorOverride(null), 6600);
+
+    return () => {
+      clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4);
+    };
+  }, [cinemaPhase, gemRecruit]);
+
   const handleDownload = async () => {
     if (!cardGridRef.current || !currentEntry) return;
     setIsDownloading(true);
@@ -549,10 +646,17 @@ export default function SigningDayRevealPage() {
       {/* ── Cinematic effect layers (fixed, not in html2canvas) ── */}
       {!reducedMotion && (
         <>
-          <FireworksCanvas key={currentEntry?.team.id ?? "default"} teamColor={teamColor} active={cinemaPhase !== "idle"} />
+          <FireworksCanvas
+            key={currentEntry?.team.id ?? "default"}
+            teamColor={teamColor}
+            active={cinemaPhase !== "idle"}
+            overrideColors={gemColorOverride}
+          />
           <SmokeEmbers />
           <FlickerOverlay active={cinemaPhase === "buildup"} />
           <CinematicBurst color={teamColor} active={cinemaPhase === "burst"} />
+          <GemSpotlight active={gemPhase === "spotlight" || gemPhase === "burst"} />
+          <GemBurst active={gemPhase === "burst"} />
         </>
       )}
 
@@ -667,7 +771,7 @@ export default function SigningDayRevealPage() {
                 )}
               </div>
 
-              {/* Card grid */}
+              {/* Card grid — regular recruits (gem held back for ceremony) */}
               {currentEntry.recruits.length === 0 ? (
                 <div className="text-center text-gray-500 py-16">
                   <p className="font-pixel text-sm">No commits yet</p>
@@ -675,49 +779,103 @@ export default function SigningDayRevealPage() {
                 </div>
               ) : (
                 <div className="flex flex-wrap gap-3 justify-start">
-                  {currentEntry.recruits
-                    .sort((a, b) => b.overall - a.overall)
-                    .map((recruit, idx) => {
-                      const animDelay = idx * 0.06;
-                      const isSpecial =
-                        (recruit.isGenerationalGem && recruit.gemBustRevealed) ||
-                        (recruit.isBlueChip && !recruit.isGenerationalBust && !recruit.isGenerationalGem);
-                      return (
-                        <div
-                          key={recruit.id}
-                          className="relative"
-                          style={{ flexShrink: 0 }}
-                          data-testid={`card-wrapper-${recruit.id}`}
-                        >
-                          {/* Spark / shockwave ring — inside cardGridRef but animation
-                              completes in <1s (at opacity:0 by download time). */}
-                          {!reducedMotion && (
-                            <div
-                              className="absolute pointer-events-none"
-                              style={{
-                                inset: -4,
-                                borderRadius: "10px",
-                                zIndex: 10,
-                                animation: isSpecial
-                                  ? `sdShockwave 0.85s ease-out ${animDelay + 0.55}s both`
-                                  : `sdSparkRing 0.5s ease-out ${animDelay + 0.45}s both`,
-                              }}
-                              aria-hidden
-                            />
-                          )}
-                          <RecruitCard
-                            recruit={recruit}
-                            primaryColor={currentEntry.team.primaryColor}
-                            secondaryColor={currentEntry.team.secondaryColor}
-                            animationDelay={animDelay}
-                            disableAnimation={reducedMotion}
+                  {regularRecruits.map((recruit, idx) => {
+                    const animDelay = idx * 0.06;
+                    const isSpecial =
+                      (recruit.isBlueChip && !recruit.isGenerationalBust && !recruit.isGenerationalGem);
+                    return (
+                      <div
+                        key={recruit.id}
+                        className="relative"
+                        style={{ flexShrink: 0 }}
+                        data-testid={`card-wrapper-${recruit.id}`}
+                      >
+                        {!reducedMotion && (
+                          <div
+                            className="absolute pointer-events-none"
+                            style={{
+                              inset: -4,
+                              borderRadius: "10px",
+                              zIndex: 10,
+                              animation: isSpecial
+                                ? `sdShockwave 0.85s ease-out ${animDelay + 0.55}s both`
+                                : `sdSparkRing 0.5s ease-out ${animDelay + 0.45}s both`,
+                            }}
+                            aria-hidden
                           />
-                        </div>
-                      );
-                    })}
+                        )}
+                        <RecruitCard
+                          recruit={recruit}
+                          primaryColor={currentEntry.team.primaryColor}
+                          secondaryColor={currentEntry.team.secondaryColor}
+                          animationDelay={animDelay}
+                          disableAnimation={reducedMotion}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
+
+            {/* ── Generational Gem ceremony reveal ── */}
+            {gemRecruit && (
+              <div
+                className="mt-8 flex flex-col items-center gap-3"
+                data-testid="gem-card-section"
+              >
+                {gemPhase === "revealed" && (
+                  <>
+                    {/* "GENERATIONAL TALENT" pixel label */}
+                    <div
+                      className="font-pixel text-amber-400 text-[9px] tracking-widest"
+                      style={{ animation: "sdGemLabelPulse 2.2s ease-in-out infinite" }}
+                      data-testid="gem-label"
+                    >
+                      ✦ GENERATIONAL TALENT ✦
+                    </div>
+
+                    {/* Gem card wrapper with slide-in animation + persistent glow */}
+                    <div
+                      className="relative"
+                      style={{ animation: "sdGemSlideIn 0.7s ease-out both" }}
+                      data-testid="gem-card-wrapper"
+                    >
+                      {/* Shockwave ring fires on arrival */}
+                      <div
+                        className="absolute pointer-events-none"
+                        style={{
+                          inset: -4,
+                          borderRadius: "10px",
+                          zIndex: 10,
+                          animation: "sdShockwave 0.9s ease-out 0.25s both",
+                        }}
+                        aria-hidden
+                      />
+                      {/* Persistent amber glow border */}
+                      <div
+                        className="absolute pointer-events-none"
+                        style={{
+                          inset: -3,
+                          borderRadius: "11px",
+                          zIndex: 8,
+                          boxShadow:
+                            "0 0 18px 4px rgba(251,191,36,0.45), 0 0 38px 8px rgba(251,191,36,0.18), inset 0 0 10px 2px rgba(251,191,36,0.08)",
+                        }}
+                        aria-hidden
+                      />
+                      <RecruitCard
+                        recruit={gemRecruit}
+                        primaryColor={currentEntry.team.primaryColor}
+                        secondaryColor={currentEntry.team.secondaryColor}
+                        animationDelay={0}
+                        disableAnimation={false}
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
 
             {/* Class summary stats below cards (not in download) */}
             {currentEntry.recruits.length > 0 && (
