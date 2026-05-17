@@ -1215,13 +1215,22 @@ export async function registerRoutes(
         const teamsIn: number | null = userScoutPct >= 10 ? rawTeamsIn.teamsIn : null;
         const offersOut: number | null = userScoutPct >= 10 ? rawTeamsIn.offersOut : null;
 
-        // Signing-day holdback: last 35% of scoutingOrder stays masked until signingDayRevealed = true.
-        // Blue chips are fully exempt — they always show all attributes.
+        // Signing-day holdback: hold back last 40% of attribute fields and last 50% of common-ability
+        // fields until signingDayRevealed = true.  Blue chips are fully exempt.
+        const SIGNING_ATTR_KEYS = new Set([
+          'hitForAvg', 'power', 'speed', 'arm', 'fielding', 'errorResistance',
+          'velocity', 'control', 'stamina',
+          'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL',
+        ]);
         const scoutingOrder = (recruit.scoutingOrder as string[]) || [];
-        const holdbackCutoff = Math.floor(scoutingOrder.length * 0.65);
+        const attrOrder    = scoutingOrder.filter(f => SIGNING_ATTR_KEYS.has(f));
+        const commonOrder  = scoutingOrder.filter(f => !SIGNING_ATTR_KEYS.has(f));
         const holdbackFields: string[] = (recruit.isBlueChip || recruit.signingDayRevealed)
           ? []
-          : scoutingOrder.slice(holdbackCutoff);
+          : [
+              ...attrOrder.slice(Math.floor(attrOrder.length * 0.60)),    // hold back last 40%
+              ...commonOrder.slice(Math.floor(commonOrder.length * 0.50)), // hold back last 50%
+            ];
 
         // Null out holdback field values so they never reach the client before signing day
         const maskedRecruit: Record<string, unknown> = { ...recruit };
@@ -1379,8 +1388,8 @@ export async function registerRoutes(
       // Scouting is capped at 65% reveal — the remaining 35% unlocks only at signing-day cinematic.
       const narrowRange = (min: number, max: number, actual: number, pct: number): { newMin: number; newMax: number } => {
         const range = max - min;
-        // Cap effective pct at 65: even fully-scouted recruits stay as a range until signing day.
-        const cappedPct = Math.min(pct, 65);
+        // Cap effective pct at 60: even fully-scouted recruits stay as a range until signing day.
+        const cappedPct = Math.min(pct, 60);
         const effectivePct = Math.min(100, cappedPct * potentialNarrowMultiplier);
         const narrowFactor = effectivePct / 100;
         const newRange = Math.max(0, range * (1 - narrowFactor * 0.8));
@@ -1388,6 +1397,11 @@ export async function registerRoutes(
         // Hard floor of 150 so displayed minimum never dips unrealistically low
         let newMin = Math.max(150, Math.max(min, actual - halfRange));
         let newMax = Math.min(max, actual + halfRange);
+        // Enforce minimum display width of 150 before signing day
+        if (newMax - newMin < 150) {
+          newMin = Math.max(150, actual - 75);
+          newMax = Math.min(650, newMin + 150);
+        }
         return { newMin, newMax };
       };
 
@@ -1416,16 +1430,16 @@ export async function registerRoutes(
       };
       
       if (!interest) {
-        // Determine which attributes to reveal — capped at 65% before signing day
-        const revealedAttrs = getAttributesToReveal(Math.min(revealAmount, 65));
+        // Determine which attributes to reveal — capped at 60% before signing day
+        const revealedAttrs = getAttributesToReveal(Math.min(revealAmount, 60));
         
         // Calculate initial ranges based on reveal amount
         const ovrRange = narrowRange(150, 650, recruit.overall, revealAmount);
         const starRange = narrowStarRange(1, 5, recruit.starRating, revealAmount);
         
-        // Reveal abilities based on percentage, capped at 65% — rest unlocks at signing day
+        // Reveal abilities based on percentage, capped at 50% — rest unlocks at signing day
         const totalAbilities = (recruit.abilities as string[] || []).length;
-        const revealedAbilitiesCount = Math.min(totalAbilities, Math.floor(totalAbilities * (Math.min(revealAmount, 65) / 100)));
+        const revealedAbilitiesCount = Math.min(totalAbilities, Math.floor(totalAbilities * (Math.min(revealAmount, 50) / 100)));
         
         interest = await storage.createRecruitingInterest({
           recruitId: req.params.recruitId as string,
@@ -1443,9 +1457,9 @@ export async function registerRoutes(
         const newPct = Math.min(100, currentPct + revealAmount);
         
         // Add more revealed attributes using target-based count (prevents floor compounding).
-        // Cap target at 65% of all attrs — the remaining 35% unlocks at signing day.
+        // Cap target at 60% of all attrs — the remaining 40% unlocks at signing day.
         const currentAttrs = (interest.revealedAttributes as string[]) || [];
-        const effectiveNewPct = Math.min(newPct, 65);
+        const effectiveNewPct = Math.min(newPct, 60);
         const targetTotal = Math.floor(effectiveNewPct / 100 * SCOUT_ATTRS.length);
         const needToReveal = Math.max(0, targetTotal - currentAttrs.length);
         const additionalAttrs = getAttributesToRevealCount(needToReveal, currentAttrs);
@@ -1460,9 +1474,9 @@ export async function registerRoutes(
         const ovrRange = narrowRange(currentMinOvr, currentMaxOvr, recruit.overall, newPct);
         const starRange = narrowStarRange(currentMinStar, currentMaxStar, recruit.starRating, newPct);
         
-        // Reveal more abilities, capped at 65% — rest unlocks at signing day
+        // Reveal more abilities, capped at 50% — rest unlocks at signing day
         const totalAbilities = (recruit.abilities as string[] || []).length;
-        const revealedAbilitiesCount = Math.min(totalAbilities, Math.floor(totalAbilities * (Math.min(newPct, 65) / 100)));
+        const revealedAbilitiesCount = Math.min(totalAbilities, Math.floor(totalAbilities * (Math.min(newPct, 50) / 100)));
         
         interest = await storage.updateRecruitingInterest(interest.id, {
           scoutPercentage: newPct,

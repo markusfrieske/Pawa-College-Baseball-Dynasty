@@ -3299,9 +3299,7 @@ function RecruitDetailModal({
                       <div key={attr.key} className="flex items-center justify-between p-2 bg-muted/50 rounded">
                         <span className="text-sm text-muted-foreground">{attr.label}</span>
                         {isSigningDayLocked ? (
-                          <span className="flex items-center gap-1 text-[10px] text-gold/70 font-pixel">
-                            <Lock className="w-3 h-3" /> Signing Day Reveal
-                          </span>
+                          <SeeUponSigningBadge />
                         ) : (
                           <span className={`font-bold ${revealed ? "text-foreground" : "text-muted-foreground"}`}>
                             {displayValue}
@@ -3328,9 +3326,7 @@ function RecruitDetailModal({
                     <div key={attr.key} className="flex items-center justify-between p-2 bg-muted/50 rounded">
                       <span className="text-sm text-muted-foreground">{attr.label}</span>
                       {isSigningDayLocked ? (
-                        <span className="flex items-center gap-1 text-[10px] text-gold/70 font-pixel">
-                          <Lock className="w-3 h-3" /> Signing Day Reveal
-                        </span>
+                        <SeeUponSigningBadge />
                       ) : (
                         <span className={`font-bold ${revealed ? "text-foreground" : "text-muted-foreground"}`}>
                           {revealed ? attr.value : "??"}
@@ -3420,9 +3416,7 @@ function RecruitDetailModal({
                   
                   if (!isAbilityRevealed) {
                     return (
-                      <Badge key={idx} variant="outline" className="text-xs border-muted-foreground/50 text-muted-foreground">
-                        ???
-                      </Badge>
+                      <SeeUponSigningBadge key={idx} />
                     );
                   }
                   
@@ -3775,9 +3769,7 @@ function RecruitDetailModal({
                       <div key={attr.key} className="flex items-center justify-between p-2 bg-muted/50 rounded">
                         <span className="text-sm text-muted-foreground">{attr.label}</span>
                         {isSigningDayLocked ? (
-                          <span className="flex items-center gap-1 text-[10px] text-gold/70 font-pixel">
-                            <Lock className="w-3 h-3" /> Signing Day Reveal
-                          </span>
+                          <SeeUponSigningBadge />
                         ) : (
                           <span className={`font-bold ${revealed ? "text-foreground" : "text-muted-foreground"}`}>
                             {displayValue}
@@ -3804,9 +3796,7 @@ function RecruitDetailModal({
                     <div key={attr.key} className="flex items-center justify-between p-2 bg-muted/50 rounded">
                       <span className="text-sm text-muted-foreground">{attr.label}</span>
                       {isSigningDayLocked ? (
-                        <span className="flex items-center gap-1 text-[10px] text-gold/70 font-pixel">
-                          <Lock className="w-3 h-3" /> Signing Day Reveal
-                        </span>
+                        <SeeUponSigningBadge />
                       ) : (
                         <span className={`font-bold ${revealed ? "text-foreground" : "text-muted-foreground"}`}>
                           {revealed ? attr.value : "??"}
@@ -3896,9 +3886,7 @@ function RecruitDetailModal({
                   
                   if (!isAbilityRevealed) {
                     return (
-                      <Badge key={idx} variant="outline" className="text-xs border-muted-foreground/50 text-muted-foreground">
-                        ???
-                      </Badge>
+                      <SeeUponSigningBadge key={idx} />
                     );
                   }
                   
@@ -4347,6 +4335,15 @@ function CompareModal({
   );
 }
 
+function SeeUponSigningBadge() {
+  return (
+    <span className="flex items-center gap-1 text-[9px] text-amber-400 font-pixel border border-amber-400/40 bg-amber-400/10 rounded px-1.5 py-0.5 whitespace-nowrap">
+      <AlertTriangle className="w-3 h-3 shrink-0" />
+      See Upon Signing
+    </span>
+  );
+}
+
 function CommonAbilityRow({ 
   label, 
   value, 
@@ -4368,9 +4365,7 @@ function CommonAbilityRow({
     return (
       <div className="flex items-center justify-between p-2 bg-muted/50 rounded" data-testid={`common-ability-${label.toLowerCase().replace(/\s/g, "-")}`}>
         <span className="text-sm text-muted-foreground">{label}</span>
-        <span className="flex items-center gap-1 text-[10px] text-gold/70 font-pixel">
-          <Lock className="w-3 h-3" /> Signing Day Reveal
-        </span>
+        <SeeUponSigningBadge />
       </div>
     );
   }
