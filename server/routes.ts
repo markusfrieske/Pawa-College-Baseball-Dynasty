@@ -4190,6 +4190,9 @@ export async function registerRoutes(
         classStarAvg: entry.classStarAvg ?? null,
         topRecruitName: entry.topRecruitName ?? null,
         topRecruitStars: entry.topRecruitStars ?? null,
+        recruitingScore: entry.recruitingScore ?? null,
+        recruitingGrade: entry.recruitingGrade ?? null,
+        recruitingBreakdown: entry.recruitingBreakdown ?? null,
       };
     }).sort((a, b) => b.season - a.season); // most recent first
 
@@ -4243,6 +4246,10 @@ export async function registerRoutes(
       ).length;
     }
 
+    // Use stored career recruiting score (rolling weighted avg + milestone bonuses, computed at signing day)
+    const coachFull = await storage.getCoach(coach.id);
+    const careerRecruitingScore = coachFull?.careerRecruitingScore ?? null;
+
     return {
       totalSigned: history.reduce((s, h) => s + h.totalSigned, 0),
       fiveStars, fourStars, threeStars, twoStars, oneStars,
@@ -4256,6 +4263,7 @@ export async function registerRoutes(
       draftPicksDeveloped,
       allAmericansDeveloped: 0,
       seasonsRecorded: history.length,
+      careerRecruitingScore,
       seasonHistory,
     };
   }
@@ -10800,6 +10808,132 @@ export async function registerRoutes(
     }
   }
 
+  // ── Recruiting Evaluator helpers ────────────────────────────────────────────
+  function computeRecruitingGrade(score: number): string {
+    if (score >= 95) return "A+";
+    if (score >= 90) return "A";
+    if (score >= 85) return "A-";
+    if (score >= 80) return "B+";
+    if (score >= 75) return "B";
+    if (score >= 70) return "B-";
+    if (score >= 65) return "C+";
+    if (score >= 60) return "C";
+    if (score >= 55) return "C-";
+    if (score >= 50) return "D";
+    return "F";
+  }
+
+  interface ScoredRecruit {
+    id: string;
+    overall: number;
+    starRating: number | null;
+    position: string;
+    isBlueChip: boolean | null;
+    isGenerationalGem: boolean | null;
+  }
+  interface TeamCommitEntry {
+    teamId: string;
+    commits: ScoredRecruit[];
+    prestige: number;
+  }
+
+  async function computeRecruitingScore(
+    teamId: string,
+    leagueId: string,
+    season: number,
+    teamCommits: ScoredRecruit[],
+    allTeamCommits: TeamCommitEntry[],
+    teamPrestige: number,
+    seasonRecruitIds: Set<string>,
+  ): Promise<{ score: number; grade: string; breakdown: Record<string, number> }> {
+    const numTeams = allTeamCommits.length;
+
+    // 1. Class Quality (20%): team avg OVR relative to league range
+    const teamAvgOvr = teamCommits.length > 0
+      ? teamCommits.reduce((s, r) => s + r.overall, 0) / teamCommits.length
+      : 150;
+    const allAvgOvrs = allTeamCommits.filter(t => t.commits.length > 0)
+      .map(t => t.commits.reduce((s, r) => s + r.overall, 0) / t.commits.length);
+    const leagueBestAvg = allAvgOvrs.length > 0 ? Math.max(...allAvgOvrs) : 300;
+    const leagueWorstAvg = allAvgOvrs.length > 0 ? Math.min(...allAvgOvrs) : 150;
+    const classQualityScore = (leagueBestAvg > leagueWorstAvg)
+      ? Math.min(100, Math.max(0, Math.round(((teamAvgOvr - leagueWorstAvg) / (leagueBestAvg - leagueWorstAvg)) * 100)))
+      : (teamCommits.length > 0 ? 50 : 0);
+
+    // 2. Class Rank (15%): rank by classic class score formula
+    const allScores = allTeamCommits.map(t => {
+      const c = t.commits;
+      if (c.length === 0) return { teamId: t.teamId, score: 0 };
+      const avgStar = c.reduce((a, r) => a + (r.starRating ?? 3), 0) / c.length;
+      const avgOvr = c.reduce((a, r) => a + r.overall, 0) / c.length;
+      const fiveStars = c.filter(r => r.starRating === 5).length;
+      const fourStars = c.filter(r => (r.starRating ?? 0) >= 4).length;
+      return { teamId: t.teamId, score: (avgStar * 20) + (avgOvr / 50) + (fiveStars * 15) + (fourStars * 5) + (c.length * 3) };
+    }).sort((a, b) => b.score - a.score);
+    const myRank = allScores.findIndex(e => e.teamId === teamId) + 1;
+    const classRankScore = numTeams <= 1 ? 50 : Math.round((1 - (myRank - 1) / (numTeams - 1)) * 100);
+
+    // 3. Hit Rate (15%): targeted recruits in this season's class who actually signed with this team
+    const teamInterests = await storage.getRecruitingInterestsByTeam(teamId);
+    const targeted = teamInterests.filter(i => i.isTargeted && seasonRecruitIds.has(i.recruitId));
+    const signedTargeted = targeted.filter(i => teamCommits.some(c => c.id === i.recruitId));
+    const hitRate = targeted.length > 0 ? signedTargeted.length / targeted.length : (teamCommits.length > 0 ? 0.25 : 0);
+    const hitRateScore = Math.min(100, Math.round(hitRate * 100));
+
+    // 4. Star Efficiency (15%): punching above/below prestige weight
+    const expectedAvgStar = Math.max(1, Math.min(5, teamPrestige / 2));
+    const actualAvgStar = teamCommits.length > 0
+      ? teamCommits.reduce((s, r) => s + (r.starRating ?? 3), 0) / teamCommits.length
+      : expectedAvgStar;
+    const starEffScore = Math.min(100, Math.max(0, Math.round(50 + (actualAvgStar - expectedAvgStar) * 15)));
+
+    // 5. Positional Balance (10%): unique positions covered (P, C, 1B…)
+    const positionsSet = new Set<string>();
+    for (const r of teamCommits) {
+      positionsSet.add(["SP","RP","CL","LHP","RHP"].includes(r.position) ? "P" : r.position);
+    }
+    const posBalanceScore = teamCommits.length > 0 ? Math.min(100, Math.round((positionsSet.size / 9) * 100)) : 0;
+
+    // 6. Blue Chip Haul (10%): blue chips vs league max
+    const blueChipsSigned = teamCommits.filter(r => r.isBlueChip).length;
+    const maxBlueChips = Math.max(...allTeamCommits.map(t => t.commits.filter(r => r.isBlueChip).length), 1);
+    const blueChipScore = Math.min(100, Math.round((blueChipsSigned / maxBlueChips) * 100));
+
+    // 7. Action Efficiency (10%): commits per non-scout action
+    const actionsLog = await storage.getRecruitingActionsLogByTeam(teamId, leagueId);
+    const nonScoutActions = actionsLog.filter(a => a.season === season && a.actionType !== "scout");
+    const recruitsPerAction = nonScoutActions.length > 0 ? teamCommits.length / nonScoutActions.length : (teamCommits.length > 0 ? 0.3 : 0);
+    const actionEffScore = Math.min(100, Math.round(recruitsPerAction * 200));
+
+    // 8. Gem Detection (5%): signed a generational gem
+    const gemScore = teamCommits.some(r => r.isGenerationalGem) ? 100 : 0;
+
+    const breakdown: Record<string, number> = {
+      classQuality: classQualityScore,
+      classRank: classRankScore,
+      hitRate: hitRateScore,
+      starEfficiency: starEffScore,
+      positionalBalance: posBalanceScore,
+      blueChipHaul: blueChipScore,
+      actionEfficiency: actionEffScore,
+      gemDetection: gemScore,
+    };
+
+    const score = Math.round(
+      breakdown.classQuality * 0.20 +
+      breakdown.classRank * 0.15 +
+      breakdown.hitRate * 0.15 +
+      breakdown.starEfficiency * 0.15 +
+      breakdown.positionalBalance * 0.10 +
+      breakdown.blueChipHaul * 0.10 +
+      breakdown.actionEfficiency * 0.10 +
+      breakdown.gemDetection * 0.05,
+    );
+
+    return { score, grade: computeRecruitingGrade(score), breakdown };
+  }
+  // ────────────────────────────────────────────────────────────────────────────
+
   async function finalizeSigningDay(leagueId: string, completedSeason: number) {
     console.log(`[finalizeSigningDay] Starting for league ${leagueId}, season ${completedSeason}`);
     const progressionResult = await applyPlayerProgression(leagueId);
@@ -11017,6 +11151,51 @@ export async function registerRoutes(
           ? teamCommits.reduce((s, r) => s + (r.starRating || 3), 0) / teamCommits.length
           : null;
 
+        // Compute recruiting evaluator score for this coach's season
+        const allTeamCommitsForScore: TeamCommitEntry[] = leagueTeamsForHistory.map(t => ({
+          teamId: t.id,
+          commits: snapRecruits2.filter(r => r.signedTeamId === t.id).map(r => ({
+            id: r.id,
+            overall: r.overall ?? 300,
+            starRating: r.starRating ?? null,
+            position: r.position,
+            isBlueChip: r.isBlueChip ?? null,
+            isGenerationalGem: r.isGenerationalGem ?? null,
+          })),
+          prestige: t.prestige ?? 5,
+        }));
+        const seasonRecruitIds = new Set(snapRecruits2.map(r => r.id));
+        const typedTeamCommits: ScoredRecruit[] = teamCommits.map(r => ({
+          id: r.id,
+          overall: r.overall ?? 300,
+          starRating: r.starRating ?? null,
+          position: r.position,
+          isBlueChip: r.isBlueChip ?? null,
+          isGenerationalGem: r.isGenerationalGem ?? null,
+        }));
+
+        // Explicit null — only set score/grade/breakdown if computation succeeds
+        let recruitingScore: number | null = null;
+        let recruitingGrade: string | null = null;
+        let recruitingBreakdown: Record<string, number> | null = null;
+        try {
+          const result = await computeRecruitingScore(
+            coach.teamId!,
+            leagueId,
+            completedSeason,
+            typedTeamCommits,
+            allTeamCommitsForScore,
+            team.prestige ?? 5,
+            seasonRecruitIds,
+          );
+          recruitingScore = result.score;
+          recruitingGrade = result.grade;
+          recruitingBreakdown = result.breakdown;
+        } catch (scoreErr) {
+          console.error("[finalizeSigningDay] Could not compute recruiting score for coach", coach.id, "— stored as null:", scoreErr);
+          // Leave as null — explicit unscored state, not a misleading default F/0
+        }
+
         await storage.upsertCoachSeasonHistory({
           coachId: coach.id,
           leagueId,
@@ -11036,6 +11215,9 @@ export async function registerRoutes(
           teamId: coach.teamId ?? null,
           teamName: team.name,
           teamAbbr: team.abbreviation,
+          recruitingScore,
+          recruitingGrade,
+          recruitingBreakdown,
         });
 
         // Also refresh milestones after recording season
@@ -11044,6 +11226,96 @@ export async function registerRoutes(
         }
       }
       console.log(`[finalizeSigningDay] Recorded season history for ${allCoaches.length} coaches`);
+
+      // Integrity check: log any active coaches that ended up with a null score this season
+      const postScoreHistory = await storage.getCoachSeasonHistoryByLeague(leagueId);
+      const unscoredThisSeason = allCoaches.filter(c => c.teamId && !postScoreHistory.some(
+        h => h.coachId === c.id && h.season === completedSeason && h.recruitingScore != null,
+      ));
+      if (unscoredThisSeason.length > 0) {
+        console.warn(`[finalizeSigningDay] ${unscoredThisSeason.length} coach(es) received no recruiting score this season:`, unscoredThisSeason.map(c => c.id));
+      }
+
+      // Update career recruiting scores for all coaches — rolling weighted average + milestone bonuses
+      // Fetch league history once and reuse across all coaches to avoid O(coaches × seasons) DB calls
+      const allLeagueHistoryForCareer = await storage.getCoachSeasonHistoryByLeague(leagueId);
+      for (const coach of allCoaches) {
+        if (!coach.teamId) continue;
+        try {
+          const scoredSeasons = allLeagueHistoryForCareer
+            .filter(h => h.coachId === coach.id && h.leagueId === leagueId && h.recruitingScore != null)
+            .sort((a, b) => a.season - b.season);
+          if (scoredSeasons.length === 0) continue;
+          const N = scoredSeasons.length;
+          // Rolling weighted average: more recent seasons get higher weight (1.0 → 2.0)
+          let weightSum = 0;
+          let weightedScoreSum = 0;
+          scoredSeasons.forEach((h, idx) => {
+            const weight = 1.0 + (N > 1 ? idx / (N - 1) : 0);
+            weightedScoreSum += (h.recruitingScore || 0) * weight;
+            weightSum += weight;
+          });
+          const rollingAvg = weightedScoreSum / weightSum;
+          // Milestone bonuses (capped at 5 total) — use already-fetched league history
+          let milestoneBonus = 0;
+          for (const h of scoredSeasons) {
+            const seasonRanked = allLeagueHistoryForCareer
+              .filter(x => x.season === h.season && x.recruitingScore != null)
+              .sort((a, b) => (b.recruitingScore ?? 0) - (a.recruitingScore ?? 0));
+            const seasonBest = seasonRanked[0];
+            if (seasonBest?.coachId === coach.id) {
+              milestoneBonus += 1.5; // Recruiter of Year
+            } else {
+              const rank = seasonRanked.findIndex(x => x.coachId === coach.id);
+              if (rank >= 0 && rank < 3) milestoneBonus += 0.5; // top-3 finish
+            }
+            const breakdown = h.recruitingBreakdown as Record<string, number> | null;
+            if (breakdown?.gemDetection === 100) milestoneBonus += 0.5; // gem signed
+          }
+          milestoneBonus = Math.min(5, milestoneBonus);
+          const careerScore = Math.min(100, rollingAvg + milestoneBonus);
+          await storage.updateCoach(coach.id, { careerRecruitingScore: Math.round(careerScore * 10) / 10 });
+        } catch (careerErr) {
+          console.error("[finalizeSigningDay] Failed to update career recruiting score for coach", coach.id, ":", careerErr);
+        }
+      }
+
+      // Persist Recruiter of the Year award to league_events (idempotent: skip if already written this season)
+      try {
+        const updatedHistory = await storage.getCoachSeasonHistoryByLeague(leagueId);
+        const thisSeasonHistory = updatedHistory
+          .filter(h => h.season === completedSeason && h.recruitingScore != null)
+          .sort((a, b) => (b.recruitingScore ?? 0) - (a.recruitingScore ?? 0));
+        if (thisSeasonHistory.length > 0) {
+          const winner = thisSeasonHistory[0];
+          const winnerCoach = allCoaches.find(c => c.id === winner.coachId);
+          const winnerTeam = leagueTeamsForHistory.find(t => t.id === winner.teamId);
+          if (winnerCoach && winnerTeam) {
+            // Idempotency guard: query exactly this season's AWARD events — deterministic, no window cap
+            const seasonAwards = await storage.getLeagueEventsBySeason(leagueId, completedSeason, "AWARD");
+            const royAlreadyWritten = seasonAwards.some(
+              e => e.description?.includes("Recruiter of the Year"),
+            );
+            if (!royAlreadyWritten) {
+              await storage.createLeagueEvent({
+                leagueId,
+                teamId: winnerTeam.id,
+                teamName: winnerTeam.name,
+                teamAbbreviation: winnerTeam.abbreviation,
+                teamPrimaryColor: winnerTeam.primaryColor ?? null,
+                eventType: "AWARD",
+                description: `${winnerCoach.firstName} ${winnerCoach.lastName} (${winnerTeam.name}) wins Recruiter of the Year with a ${winner.recruitingGrade} recruiting class (${winner.recruitingScore?.toFixed(1)}/100) — Season ${completedSeason}.`,
+                season: completedSeason,
+                week: 0,
+              });
+            } else {
+              console.log(`[finalizeSigningDay] ROY award already persisted for season ${completedSeason}, skipping.`);
+            }
+          }
+        }
+      } catch (awardErr) {
+        console.error("[finalizeSigningDay] Failed to persist Recruiter of Year award:", awardErr);
+      }
     } catch (histErr) {
       console.error("[finalizeSigningDay] Failed to record coach season history:", histErr);
     }
@@ -12131,6 +12403,34 @@ export async function registerRoutes(
         };
       }) : [];
       
+      // Recruiter of the Year — top recruiting score this season
+      let recruiterOfYear: { coachName: string; teamName: string; teamAbbr: string; primaryColor: string | null; recruitingScore: number; recruitingGrade: string } | null = null;
+      try {
+        const allCoachHistory = await storage.getCoachSeasonHistoryByLeague(leagueId);
+        const allCoachesInLeague = await storage.getCoachesByLeague(leagueId);
+        const coachMapForAward = Object.fromEntries(allCoachesInLeague.map(c => [c.id, c]));
+        const thisSeasonScored = allCoachHistory
+          .filter(h => h.season === season && h.recruitingScore != null)
+          .sort((a, b) => (b.recruitingScore ?? 0) - (a.recruitingScore ?? 0));
+        if (thisSeasonScored.length > 0) {
+          const topH = thisSeasonScored[0];
+          const topCoach = coachMapForAward[topH.coachId];
+          const topTeam = topH.teamId ? teamMap[topH.teamId] : null;
+          if (topCoach) {
+            recruiterOfYear = {
+              coachName: `${topCoach.firstName} ${topCoach.lastName}`,
+              teamName: topH.teamName,
+              teamAbbr: topH.teamAbbr,
+              primaryColor: topTeam?.primaryColor ?? null,
+              recruitingScore: topH.recruitingScore!,
+              recruitingGrade: topH.recruitingGrade ?? "F",
+            };
+          }
+        }
+      } catch (royErr) {
+        console.error("[season-awards] Failed to derive Recruiter of Year:", royErr);
+      }
+
       res.json({
         season: league.currentSeason,
         awardsAvailable: true,
@@ -12139,6 +12439,7 @@ export async function registerRoutes(
           pitcherOfYear: formatAward(pitchers[0]),
           freshmanOfYear: formatAward(freshmen[0]),
         },
+        recruiterOfYear,
         conferenceChampionshipMVPs,
         cwsMVP,
         allAmericanTeam,
@@ -12546,12 +12847,15 @@ export async function registerRoutes(
       const league = await storage.getLeague(leagueId);
       if (!league) return res.status(404).json({ message: "League not found" });
       
-      const [allGames, leagueTeams, allClassSnapshots] = await Promise.all([
+      const [allGames, leagueTeams, allClassSnapshots, allCoachHistory, allCoaches] = await Promise.all([
         storage.getGamesByLeague(leagueId),
         storage.getTeamsByLeague(leagueId),
         storage.getRecruitingClassSnapshotsAllSeasons(leagueId),
+        storage.getCoachSeasonHistoryByLeague(leagueId),
+        storage.getCoachesByLeague(leagueId),
       ]);
       const teamMap = Object.fromEntries(leagueTeams.map(t => [t.id, { name: t.name, abbreviation: t.abbreviation, primaryColor: t.primaryColor }]));
+      const coachMap = Object.fromEntries(allCoaches.map(c => [c.id, c]));
 
       // Index class snapshots by season for O(1) lookup
       const classBySeasonTeam = new Map<string, number>();
@@ -12612,6 +12916,23 @@ export async function registerRoutes(
             fiveStars: snap.fiveStars,
           }));
         
+        // Recruiter of Year: coach with highest recruitingScore this season
+        const seasonCoachHistory = allCoachHistory.filter(h => h.season === s && h.recruitingScore != null);
+        let recruiterOfYear: { coachName: string; teamName: string; teamAbbr: string; recruitingScore: number; recruitingGrade: string } | null = null;
+        if (seasonCoachHistory.length > 0) {
+          const best = seasonCoachHistory.reduce((a, b) => (b.recruitingScore ?? 0) > (a.recruitingScore ?? 0) ? b : a);
+          const bestCoach = coachMap[best.coachId];
+          if (bestCoach) {
+            recruiterOfYear = {
+              coachName: `${bestCoach.firstName} ${bestCoach.lastName}`,
+              teamName: best.teamName,
+              teamAbbr: best.teamAbbr,
+              recruitingScore: best.recruitingScore!,
+              recruitingGrade: best.recruitingGrade ?? "F",
+            };
+          }
+        }
+
         seasons.push({
           season: s,
           cwsChampion,
@@ -12620,6 +12941,7 @@ export async function registerRoutes(
           teamRecords,
           hasCWSData: cwsGames.length > 0,
           topClassRankings: seasonSnapshots,
+          recruiterOfYear,
         });
       }
       
@@ -12627,6 +12949,166 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to fetch dynasty history:", error);
       res.status(500).json({ message: "Failed to fetch dynasty history" });
+    }
+  });
+
+  // ── Per-Coach Recruiting History ───────────────────────────────────────────
+  app.get("/api/leagues/:leagueId/coaches/:coachId/recruiting-history", requireAuth, async (req, res) => {
+    try {
+      const { leagueId, coachId } = req.params as { leagueId: string; coachId: string };
+      const [coachHistory, coach, leagueTeams, allHistory, allLeagueCoaches] = await Promise.all([
+        storage.getCoachSeasonHistory(coachId),
+        storage.getCoach(coachId),
+        storage.getTeamsByLeague(leagueId),
+        storage.getCoachSeasonHistoryByLeague(leagueId),
+        storage.getCoachesByLeague(leagueId),
+      ]);
+      const teamMap = Object.fromEntries(leagueTeams.map(t => [t.id, t]));
+      const leagueRows = coachHistory
+        .filter(h => h.leagueId === leagueId && h.recruitingScore != null)
+        .sort((a, b) => a.season - b.season);
+
+      const seasons = leagueRows.map(h => {
+        const seasonRows = allHistory
+          .filter(x => x.season === h.season && x.recruitingScore != null)
+          .sort((a, b) => (b.recruitingScore ?? 0) - (a.recruitingScore ?? 0));
+        const rank = seasonRows.findIndex(x => x.coachId === coachId) + 1;
+        const isRecruiterOfYear = rank === 1;
+        const team = h.teamId ? teamMap[h.teamId] : null;
+        return {
+          season: h.season,
+          recruitingScore: h.recruitingScore,
+          recruitingGrade: h.recruitingGrade,
+          recruitingBreakdown: h.recruitingBreakdown,
+          rank,
+          totalTeams: seasonRows.length,
+          isRecruiterOfYear,
+          teamName: h.teamName,
+          teamAbbr: h.teamAbbr,
+          primaryColor: team?.primaryColor ?? null,
+          totalSigned: h.totalSigned,
+          classRank: h.classRank,
+          classScore: h.classScore,
+          classStarAvg: h.classStarAvg,
+          topRecruitName: h.topRecruitName,
+          topRecruitOvr: h.topRecruitOvr,
+          topRecruitStars: h.topRecruitStars,
+        };
+      });
+
+      // All-time career rank: rank this coach among all league coaches by careerRecruitingScore
+      const careerRanked = allLeagueCoaches
+        .filter(c => c.careerRecruitingScore != null)
+        .sort((a, b) => (b.careerRecruitingScore ?? 0) - (a.careerRecruitingScore ?? 0));
+      const allTimeRank = careerRanked.findIndex(c => c.id === coachId) + 1;
+      const totalRanked = careerRanked.length;
+
+      res.json({
+        coachId,
+        coachName: coach ? `${coach.firstName} ${coach.lastName}` : "Unknown",
+        careerRecruitingScore: coach?.careerRecruitingScore ?? null,
+        allTimeRank: allTimeRank > 0 ? allTimeRank : null,
+        totalRanked,
+        seasons,
+      });
+    } catch (error) {
+      console.error("Failed to fetch coach recruiting history:", error);
+      res.status(500).json({ message: "Failed to fetch coach recruiting history" });
+    }
+  });
+
+  // ── Recruiting Scores Leaderboard ──────────────────────────────────────────
+  app.get("/api/leagues/:leagueId/recruiting-scores", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.leagueId as string;
+      const season = req.query.season ? parseInt(req.query.season as string) : undefined;
+
+      const [allHistory, leagueTeams, allCoaches] = await Promise.all([
+        storage.getCoachSeasonHistoryByLeague(leagueId),
+        storage.getTeamsByLeague(leagueId),
+        storage.getCoachesByLeague(leagueId),
+      ]);
+
+      const teamMap = Object.fromEntries(leagueTeams.map(t => [t.id, t]));
+      const coachMap = Object.fromEntries(allCoaches.map(c => [c.id, c]));
+
+      const filtered = season != null
+        ? allHistory.filter(h => h.season === season)
+        : allHistory;
+
+      const leaderboard = filtered
+        .filter(h => h.recruitingScore != null)
+        .sort((a, b) => (b.recruitingScore ?? 0) - (a.recruitingScore ?? 0))
+        .map((h, idx) => {
+          const coach = coachMap[h.coachId];
+          const team = h.teamId ? teamMap[h.teamId] : null;
+          return {
+            rank: idx + 1,
+            coachId: h.coachId,
+            coachName: coach ? `${coach.firstName} ${coach.lastName}` : "Unknown",
+            season: h.season,
+            teamId: h.teamId,
+            teamName: h.teamName,
+            teamAbbr: h.teamAbbr,
+            primaryColor: team?.primaryColor,
+            recruitingScore: h.recruitingScore,
+            recruitingGrade: h.recruitingGrade,
+            recruitingBreakdown: h.recruitingBreakdown,
+            classRank: h.classRank,
+            classStarAvg: h.classStarAvg,
+            totalSigned: h.totalSigned,
+            topRecruitName: h.topRecruitName,
+            topRecruitOvr: h.topRecruitOvr,
+            topRecruitStars: h.topRecruitStars,
+            careerRecruitingScore: coach?.careerRecruitingScore ?? null,
+          };
+        });
+
+      // Career leaderboard (one row per coach, averaged across seasons)
+      const careerMap: Record<string, { coachId: string; coachName: string; teamId: string | null; teamName: string; teamAbbr: string; primaryColor: string | null; careerRecruitingScore: number | null; seasonCount: number; bestScore: number; bestGrade: string }> = {};
+      for (const h of allHistory.filter(h => h.recruitingScore != null)) {
+        const coach = coachMap[h.coachId];
+        if (!careerMap[h.coachId]) {
+          const team = h.teamId ? teamMap[h.teamId] : null;
+          careerMap[h.coachId] = {
+            coachId: h.coachId,
+            coachName: coach ? `${coach.firstName} ${coach.lastName}` : "Unknown",
+            teamId: h.teamId ?? null,
+            teamName: h.teamName,
+            teamAbbr: h.teamAbbr,
+            primaryColor: team?.primaryColor ?? null,
+            careerRecruitingScore: coach?.careerRecruitingScore ?? null,
+            seasonCount: 0,
+            bestScore: 0,
+            bestGrade: "F",
+          };
+        }
+        careerMap[h.coachId].seasonCount++;
+        if ((h.recruitingScore ?? 0) > careerMap[h.coachId].bestScore) {
+          careerMap[h.coachId].bestScore = h.recruitingScore ?? 0;
+          careerMap[h.coachId].bestGrade = h.recruitingGrade ?? "F";
+        }
+        // Keep team info up-to-date with current team assignment
+        const currentCoach = coachMap[h.coachId];
+        if (currentCoach?.teamId) {
+          const currentTeam = teamMap[currentCoach.teamId];
+          if (currentTeam) {
+            careerMap[h.coachId].teamId = currentCoach.teamId;
+            careerMap[h.coachId].teamName = currentTeam.name;
+            careerMap[h.coachId].teamAbbr = currentTeam.abbreviation;
+            careerMap[h.coachId].primaryColor = currentTeam.primaryColor;
+          }
+        }
+      }
+      const careerLeaderboard = Object.values(careerMap)
+        .filter(e => e.careerRecruitingScore != null)
+        .sort((a, b) => (b.careerRecruitingScore ?? 0) - (a.careerRecruitingScore ?? 0))
+        .map((e, idx) => ({ ...e, rank: idx + 1 }));
+
+      res.json({ season: season ?? null, leaderboard, careerLeaderboard });
+    } catch (error) {
+      console.error("Failed to fetch recruiting scores:", error);
+      res.status(500).json({ message: "Failed to fetch recruiting scores" });
     }
   });
 

@@ -33,6 +33,28 @@ interface CoachDataById {
   isOwnCoach: boolean;
 }
 
+function computeRecruitingGradeClient(score: number): string {
+  if (score >= 95) return "A+";
+  if (score >= 90) return "A";
+  if (score >= 85) return "A-";
+  if (score >= 80) return "B+";
+  if (score >= 75) return "B";
+  if (score >= 70) return "B-";
+  if (score >= 65) return "C+";
+  if (score >= 60) return "C";
+  if (score >= 55) return "C-";
+  if (score >= 50) return "D";
+  return "F";
+}
+
+function recruitingGradeColor(grade: string): string {
+  if (grade.startsWith("A")) return "text-gold";
+  if (grade.startsWith("B")) return "text-green-400";
+  if (grade.startsWith("C")) return "text-yellow-400";
+  if (grade === "D") return "text-orange-400";
+  return "text-red-400";
+}
+
 const XP_PER_LEVEL = 1000;
 
 function getXpForNextLevel(level: number): number {
@@ -549,6 +571,9 @@ interface RecruitingSeasonRow {
   classStarAvg: number | null;
   topRecruitName: string | null;
   topRecruitStars: number | null;
+  recruitingScore: number | null;
+  recruitingGrade: string | null;
+  recruitingBreakdown: Record<string, number> | null;
 }
 
 interface RecruitingRecord {
@@ -557,6 +582,7 @@ interface RecruitingRecord {
   blueChipsSigned: number;
   avgClassRank: number | null;
   bestClassRank: number | null;
+  careerRecruitingScore: number | null;
   topClassSeason: number | null;
   topRecruitName: string | null;
   topRecruitOvr: number | null;
@@ -589,6 +615,17 @@ function CareerTab({
   const { data: recruitingRecord, isLoading: recLoading } = useQuery<RecruitingRecord>({
     queryKey: recruitingRecordKey,
     enabled: !!(leagueId ?? coachId),
+  });
+
+  // Per-coach recruiting history with rank + ROY flag + all-time rank (league context only)
+  const { data: coachRecruitingHistory } = useQuery<{
+    coachId: string; coachName: string; careerRecruitingScore: number | null;
+    allTimeRank: number | null; totalRanked: number;
+    seasons: { season: number; recruitingScore: number | null; recruitingGrade: string | null; rank: number; totalTeams: number; isRecruiterOfYear: boolean; recruitingBreakdown: Record<string, number> | null }[]
+  }>({
+    queryKey: ["/api/leagues", leagueId, "coaches", coach.id, "recruiting-history"],
+    queryFn: () => fetch(`/api/leagues/${leagueId}/coaches/${coach.id}/recruiting-history`, { credentials: "include" }).then(r => r.json()),
+    enabled: !!leagueId,
   });
 
   const totalGames = coach.careerWins + coach.careerLosses;
@@ -719,6 +756,115 @@ function CareerTab({
                 </div>
               )}
 
+              {/* Recruiting Report Card — most recent graded season */}
+              {(() => {
+                const latestGraded = recruitingRecord.seasonHistory?.find(s => s.recruitingGrade != null);
+                if (!latestGraded) return null;
+                const bd = latestGraded.recruitingBreakdown;
+                const BREAKDOWN_LABELS: Record<string, { label: string; weight: string }> = {
+                  classQuality: { label: "Class Quality", weight: "20%" },
+                  classRank: { label: "Class Rank", weight: "15%" },
+                  hitRate: { label: "Hit Rate", weight: "15%" },
+                  starEfficiency: { label: "Star Efficiency", weight: "15%" },
+                  positionalBalance: { label: "Positional Balance", weight: "10%" },
+                  blueChipHaul: { label: "Blue Chip Haul", weight: "10%" },
+                  actionEfficiency: { label: "Action Efficiency", weight: "10%" },
+                  gemDetection: { label: "Gem Detection", weight: "5%" },
+                };
+                const strengths = bd ? Object.entries(bd).filter(([, v]) => v >= 75).map(([k]) => BREAKDOWN_LABELS[k]?.label).filter(Boolean) : [];
+                const weaknesses = bd ? Object.entries(bd).filter(([, v]) => v < 50).map(([k]) => BREAKDOWN_LABELS[k]?.label).filter(Boolean) : [];
+                const summary = (() => {
+                  const parts: string[] = [];
+                  if (strengths.length > 0) parts.push(`Strong in ${strengths.slice(0, 2).join(" and ")}.`);
+                  if (weaknesses.length > 0) parts.push(`${weaknesses.slice(0, 2).join(" and ")} ${weaknesses.length === 1 ? "was" : "were"} a weakness.`);
+                  if (parts.length === 0) parts.push("Solid across the board — no major strengths or weaknesses.");
+                  return parts.join(" ");
+                })();
+                return (
+                  <div className="bg-muted/20 rounded-lg p-3 border border-gold/30">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs text-muted-foreground font-medium">Report Card — Season {latestGraded.season}</p>
+                      <div className="flex items-center gap-2">
+                        {latestGraded.recruitingScore != null && (
+                          <span className="text-xs text-muted-foreground tabular-nums">
+                            {latestGraded.recruitingScore.toFixed(1)}/100
+                          </span>
+                        )}
+                        <span className={`font-bold text-2xl font-pixel ${recruitingGradeColor(latestGraded.recruitingGrade!)}`}>
+                          {latestGraded.recruitingGrade}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mb-3 italic">{summary}</p>
+                    {bd && (
+                      <div className="space-y-1.5">
+                        {Object.entries(BREAKDOWN_LABELS).map(([key, { label, weight }]) => {
+                          const val = bd[key] ?? 0;
+                          const barColor = val >= 75 ? "bg-gold" : val >= 50 ? "bg-green-500" : "bg-muted-foreground/40";
+                          return (
+                            <div key={key} className="flex items-center gap-2">
+                              <span className="text-[9px] text-muted-foreground w-28 shrink-0">{label} <span className="text-muted-foreground/50">({weight})</span></span>
+                              <div className="flex-1 bg-muted/40 rounded-full h-1.5">
+                                <div className={`${barColor} rounded-full h-1.5 transition-all`} style={{ width: `${val}%` }} />
+                              </div>
+                              <span className={`text-[9px] w-6 text-right font-medium ${val >= 75 ? "text-gold" : val >= 50 ? "text-green-400" : "text-muted-foreground"}`}>{val}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* Career recruiting evaluator score + rank + milestones */}
+              {recruitingRecord.careerRecruitingScore != null && (
+                <div className="bg-muted/20 rounded-lg p-3 border border-gold/20 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground font-medium">Career Recruiting Grade</p>
+                    <div className="flex items-center gap-2">
+                      {coachRecruitingHistory && coachRecruitingHistory.allTimeRank != null && (
+                        <Badge variant="outline" className="text-[7px] border-gold/40 text-gold">
+                          #{coachRecruitingHistory.allTimeRank} all-time in league
+                        </Badge>
+                      )}
+                      <span className="text-gold font-bold text-lg font-pixel">
+                        {computeRecruitingGradeClient(recruitingRecord.careerRecruitingScore)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 bg-muted/40 rounded-full h-2">
+                      <div
+                        className="bg-gold rounded-full h-2 transition-all"
+                        style={{ width: `${Math.min(100, recruitingRecord.careerRecruitingScore)}%` }}
+                      />
+                    </div>
+                    <span className="text-xs text-muted-foreground w-10 text-right">{recruitingRecord.careerRecruitingScore.toFixed(1)}</span>
+                  </div>
+                  {/* Career milestones */}
+                  {coachRecruitingHistory && coachRecruitingHistory.seasons.length > 0 && (() => {
+                    const royCount = coachRecruitingHistory.seasons.filter(s => s.isRecruiterOfYear).length;
+                    const top3Count = coachRecruitingHistory.seasons.filter(s => s.rank <= 3).length;
+                    const gemSeasons = coachRecruitingHistory.seasons.filter(s => (s.recruitingBreakdown as Record<string, number> | null)?.gemDetection === 100).length;
+                    const bestRank = coachRecruitingHistory.seasons.reduce((best, s) => Math.min(best, s.rank), 999);
+                    const milestones: string[] = [];
+                    if (royCount > 0) milestones.push(`${royCount}× Recruiter of the Year`);
+                    else if (top3Count > 0) milestones.push(`${top3Count}× Top-3 recruiting class`);
+                    if (gemSeasons > 0) milestones.push(`${gemSeasons} generational gem${gemSeasons !== 1 ? "s" : ""} signed`);
+                    if (bestRank <= 3 && royCount === 0 && top3Count === 0) milestones.push(`Best class rank: #${bestRank}`);
+                    if (milestones.length === 0 && coachRecruitingHistory.seasons.length > 0) milestones.push(`Best class rank: #${bestRank}`);
+                    return milestones.length > 0 ? (
+                      <div className="flex flex-wrap gap-1 pt-1">
+                        {milestones.map((m, i) => (
+                          <span key={i} className="text-[9px] text-muted-foreground bg-muted/30 rounded px-2 py-0.5">{m}</span>
+                        ))}
+                      </div>
+                    ) : null;
+                  })()}
+                </div>
+              )}
+
               {/* Season-by-season class history */}
               {recruitingRecord.seasonHistory && recruitingRecord.seasonHistory.length > 0 && (
                 <div>
@@ -734,7 +880,8 @@ function CareerTab({
                           <th className="text-center px-2 py-2 text-blue-400">3★</th>
                           <th className="text-center px-2 py-2 text-muted-foreground">2★</th>
                           <th className="text-center px-2 py-2 text-muted-foreground">1★</th>
-                          <th className="text-right px-3 py-2 text-muted-foreground font-medium">Signed</th>
+                          <th className="text-right px-2 py-2 text-muted-foreground font-medium">Signed</th>
+                          <th className="text-center px-3 py-2 text-gold font-medium">Grade</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -757,7 +904,14 @@ function CareerTab({
                             <td className="px-2 py-2 text-center text-blue-400">{row.threeStars || "—"}</td>
                             <td className="px-2 py-2 text-center text-muted-foreground">{row.twoStars || "—"}</td>
                             <td className="px-2 py-2 text-center text-muted-foreground/60">{row.oneStars || "—"}</td>
-                            <td className="px-3 py-2 text-right font-medium text-gold">{row.totalSigned}</td>
+                            <td className="px-2 py-2 text-right font-medium text-gold">{row.totalSigned}</td>
+                            <td className="px-3 py-2 text-center">
+                              {row.recruitingGrade != null ? (
+                                <span className={`font-bold font-pixel text-[10px] ${recruitingGradeColor(row.recruitingGrade)}`}>
+                                  {row.recruitingGrade}
+                                </span>
+                              ) : "—"}
+                            </td>
                           </tr>
                         ))}
                       </tbody>

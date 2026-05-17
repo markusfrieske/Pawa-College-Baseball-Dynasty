@@ -3904,6 +3904,7 @@ function DynastyHistoryTab({ leagueId }: { leagueId: string }) {
       teamRecords: { name: string; abbreviation: string; teamId: string; wins: number; losses: number; conferenceWins: number; conferenceLosses: number; classRank: number | null }[];
       hasCWSData: boolean;
       topClassRankings: { classRank: number; teamId: string; teamAbbr: string; teamName: string; totalCommits: number; fiveStars: number }[];
+      recruiterOfYear: { coachName: string; teamName: string; teamAbbr: string; recruitingScore: number; recruitingGrade: string } | null;
     }[];
     currentSeason: number;
   }>({
@@ -3994,6 +3995,18 @@ function DynastyHistoryTab({ leagueId }: { leagueId: string }) {
                         </div>
                       ))}
                     </div>
+                  </div>
+                )}
+                {season.recruiterOfYear && (
+                  <div className="mt-2 pt-2 border-t border-border/30 flex items-center gap-2">
+                    <Star className="w-3 h-3 text-gold flex-shrink-0" />
+                    <span className="font-pixel text-[8px] text-gold">RECRUITER OF THE YEAR</span>
+                    <span className="text-[10px] font-medium">{season.recruiterOfYear.coachName}</span>
+                    <Badge variant="outline" className="text-[7px]">{season.recruiterOfYear.teamAbbr}</Badge>
+                    <span className={`font-pixel text-[9px] font-bold ml-auto ${
+                      season.recruiterOfYear.recruitingGrade.startsWith("A") ? "text-gold" :
+                      season.recruiterOfYear.recruitingGrade.startsWith("B") ? "text-green-400" : "text-yellow-400"
+                    }`}>{season.recruiterOfYear.recruitingGrade}</span>
                   </div>
                 )}
               </div>
@@ -4258,7 +4271,193 @@ function AwardsTab({ leagueId }: { leagueId: string }) {
           </RetroCardContent>
         </RetroCard>
       </div>
+
+      <RecruitingLeaderboardCard leagueId={leagueId} season={data.season} />
+      <AllTimeRecruitingLeaderboard leagueId={leagueId} />
     </div>
+  );
+}
+
+function gradeColorLV(grade: string): string {
+  if (grade.startsWith("A")) return "text-gold";
+  if (grade.startsWith("B")) return "text-green-400";
+  if (grade.startsWith("C")) return "text-yellow-400";
+  if (grade === "D") return "text-orange-400";
+  return "text-red-400";
+}
+
+interface RecruitingLeaderEntry {
+  rank: number;
+  coachId: string;
+  coachName: string;
+  season: number;
+  teamId: string | null;
+  teamName: string;
+  teamAbbr: string;
+  primaryColor: string | null;
+  recruitingScore: number | null;
+  recruitingGrade: string | null;
+  recruitingBreakdown: Record<string, number> | null;
+  classRank: number | null;
+  classStarAvg: number | null;
+  totalSigned: number;
+  topRecruitName: string | null;
+  topRecruitOvr: number | null;
+  topRecruitStars: number | null;
+  careerRecruitingScore: number | null;
+}
+
+function RecruitingLeaderboardCard({ leagueId, season }: { leagueId: string; season: number }) {
+  const { data, isLoading } = useQuery<{ season: number | null; leaderboard: RecruitingLeaderEntry[] }>({
+    queryKey: ["/api/leagues", leagueId, "recruiting-scores", season],
+    queryFn: () => fetch(`/api/leagues/${leagueId}/recruiting-scores?season=${season}`, { credentials: "include" }).then(r => r.json()),
+  });
+
+  const BREAKDOWN_LABELS: Record<string, { label: string; weight: string }> = {
+    classQuality: { label: "Class Quality", weight: "20%" },
+    classRank: { label: "Class Rank", weight: "15%" },
+    hitRate: { label: "Hit Rate", weight: "15%" },
+    starEfficiency: { label: "Star Efficiency", weight: "15%" },
+    positionalBalance: { label: "Positional Balance", weight: "10%" },
+    blueChipHaul: { label: "Blue Chip Haul", weight: "10%" },
+    actionEfficiency: { label: "Action Efficiency", weight: "10%" },
+    gemDetection: { label: "Gem Detection", weight: "5%" },
+  };
+
+  return (
+    <RetroCard data-testid="recruiting-leaderboard">
+      <RetroCardHeader>
+        <div className="flex items-center gap-2 w-full">
+          <Star className="w-4 h-4 text-gold" />
+          <span>Recruiter of the Year Leaderboard</span>
+          <Badge variant="outline" className="text-[8px] ml-auto">Season {season}</Badge>
+        </div>
+      </RetroCardHeader>
+      <RetroCardContent>
+        {isLoading ? (
+          <Skeleton className="h-32" />
+        ) : !data || data.leaderboard.length === 0 ? (
+          <p className="text-xs text-muted-foreground text-center py-4">
+            Recruiting grades are calculated at the end of signing day.
+          </p>
+        ) : (
+          <div className="space-y-1">
+            {data.leaderboard.map((entry, i) => (
+              <details key={entry.coachId} className="group" data-testid={`recruiting-leader-${i}`}>
+                <summary className="flex items-center justify-between py-2 px-1 rounded cursor-pointer hover:bg-muted/20 list-none border-b border-border/20">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`font-pixel text-[9px] w-5 ${i === 0 ? "text-gold" : "text-muted-foreground"}`}>
+                      {i === 0 ? "★" : `#${entry.rank}`}
+                    </span>
+                    <span className="text-sm font-medium">{entry.coachName}</span>
+                    <Badge variant="outline" className="text-[7px]">{entry.teamAbbr}</Badge>
+                    {entry.classRank != null && (
+                      <Badge variant="outline" className={`text-[7px] ${entry.classRank <= 3 ? "border-gold/50 text-gold" : ""}`}>
+                        #{entry.classRank} class
+                      </Badge>
+                    )}
+                    {entry.classStarAvg != null && (
+                      <span className="text-[9px] text-yellow-400">{entry.classStarAvg.toFixed(1)}★ avg</span>
+                    )}
+                    {entry.topRecruitName && (
+                      <span className="text-[9px] text-muted-foreground hidden sm:inline">
+                        Top: {entry.topRecruitName}{entry.topRecruitOvr != null ? ` (${entry.topRecruitOvr})` : ""}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">{entry.totalSigned} signed</span>
+                    <span className={`font-bold font-pixel text-[11px] ${gradeColorLV(entry.recruitingGrade || "F")}`}>
+                      {entry.recruitingGrade || "—"}
+                    </span>
+                    <span className="text-xs text-muted-foreground">{entry.recruitingScore?.toFixed(0)}</span>
+                    <ChevronDown className="w-3 h-3 text-muted-foreground group-open:rotate-180 transition-transform" />
+                  </div>
+                </summary>
+                {entry.recruitingBreakdown && (
+                  <div className="px-6 py-2 grid grid-cols-2 sm:grid-cols-4 gap-2 bg-muted/10 rounded-b border-b border-border/20">
+                    {Object.entries(BREAKDOWN_LABELS).map(([key, { label, weight }]) => (
+                      <div key={key} className="text-center">
+                        <p className="text-[9px] text-muted-foreground">{label}</p>
+                        <p className="text-[9px] text-muted-foreground/60">{weight}</p>
+                        <p className={`text-sm font-bold ${(entry.recruitingBreakdown![key] ?? 0) >= 75 ? "text-gold" : (entry.recruitingBreakdown![key] ?? 0) >= 50 ? "text-green-400" : "text-muted-foreground"}`}>
+                          {entry.recruitingBreakdown![key] ?? 0}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </details>
+            ))}
+          </div>
+        )}
+      </RetroCardContent>
+    </RetroCard>
+  );
+}
+
+interface CareerLeaderEntry {
+  rank: number;
+  coachId: string;
+  coachName: string;
+  teamId: string | null;
+  teamName: string;
+  teamAbbr: string;
+  primaryColor: string | null;
+  careerRecruitingScore: number | null;
+  seasonCount: number;
+  bestScore: number;
+  bestGrade: string;
+}
+
+function AllTimeRecruitingLeaderboard({ leagueId }: { leagueId: string }) {
+  const { data, isLoading } = useQuery<{ careerLeaderboard: CareerLeaderEntry[] }>({
+    queryKey: ["/api/leagues", leagueId, "recruiting-scores"],
+    queryFn: () => fetch(`/api/leagues/${leagueId}/recruiting-scores`, { credentials: "include" }).then(r => r.json()),
+  });
+
+  const leaders = data?.careerLeaderboard ?? [];
+
+  return (
+    <RetroCard data-testid="all-time-recruiting-leaderboard">
+      <RetroCardHeader>
+        <div className="flex items-center gap-2 w-full">
+          <Crown className="w-4 h-4 text-gold" />
+          <span>All-Time Recruiting Leaders</span>
+          <Badge variant="outline" className="text-[8px] ml-auto">Career</Badge>
+        </div>
+      </RetroCardHeader>
+      <RetroCardContent>
+        {isLoading ? (
+          <Skeleton className="h-32" />
+        ) : leaders.length === 0 ? (
+          <p className="text-xs text-muted-foreground text-center py-4">
+            Career grades appear after the first signing day completes.
+          </p>
+        ) : (
+          <div className="space-y-1">
+            {leaders.map((entry, i) => (
+              <div key={entry.coachId} className="flex items-center justify-between py-2 px-1 border-b border-border/20" data-testid={`all-time-leader-${i}`}>
+                <div className="flex items-center gap-2">
+                  <span className={`font-pixel text-[9px] w-5 ${i === 0 ? "text-gold" : "text-muted-foreground"}`}>
+                    {i === 0 ? "★" : `#${entry.rank}`}
+                  </span>
+                  <span className="text-sm font-medium">{entry.coachName}</span>
+                  <Badge variant="outline" className="text-[7px]">{entry.teamAbbr}</Badge>
+                  <span className="text-[9px] text-muted-foreground">{entry.seasonCount} season{entry.seasonCount !== 1 ? "s" : ""}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`font-bold font-pixel text-[11px] ${gradeColorLV(entry.bestGrade)}`}>
+                    Best: {entry.bestGrade}
+                  </span>
+                  <span className="text-xs text-muted-foreground">{entry.careerRecruitingScore?.toFixed(1)}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </RetroCardContent>
+    </RetroCard>
   );
 }
 

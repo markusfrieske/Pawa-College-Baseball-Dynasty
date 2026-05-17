@@ -161,6 +161,7 @@ export const coaches = pgTable("coaches", {
   allAmericans: integer("all_americans").notNull().default(0),
   draftPicks: integer("draft_picks").notNull().default(0),
   legacyScore: integer("legacy_score").notNull().default(0),
+  careerRecruitingScore: real("career_recruiting_score"),
   skillPoints: integer("skill_points").notNull().default(0),
   isReady: boolean("is_ready").notNull().default(false),
   scoutActionsUsed: integer("scout_actions_used").notNull().default(0),
@@ -1440,6 +1441,9 @@ export const coachSeasonHistory = pgTable("coach_season_history", {
   teamId: varchar("team_id"),
   teamName: text("team_name").notNull().default(""),
   teamAbbr: text("team_abbr").notNull().default(""),
+  recruitingScore: real("recruiting_score"),
+  recruitingGrade: text("recruiting_grade"),
+  recruitingBreakdown: json("recruiting_breakdown").$type<Record<string, number>>(),
 }, (t) => [
   index("idx_coach_season_history_coach_id").on(t.coachId),
   index("idx_coach_season_history_league_id").on(t.leagueId),
