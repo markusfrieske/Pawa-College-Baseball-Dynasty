@@ -4014,6 +4014,8 @@ function DynastyHistoryTab({ leagueId }: { leagueId: string }) {
           </div>
         </RetroCardContent>
       </RetroCard>
+
+      <AllTimeRecruitingLeaderboard leagueId={leagueId} />
     </div>
   );
 }
