@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { StarRating } from "@/components/ui/star-rating";
 import { getLetterGrade } from "@/components/ui/letter-grade";
-import { BatterFigure, PitcherFigure } from "@/components/pixel-player-figure";
+import { PlayerAvatar } from "@/components/player-avatar";
 import { isPitcher, isCatcher } from "@shared/positions";
 import { getAbilityByName } from "@shared/abilities";
 import { getPotentialGrade } from "@shared/potential";
@@ -28,6 +28,7 @@ export interface RevealRecruit {
   isGenerationalGem?: boolean;
   isGenerationalBust?: boolean;
   gemBustRevealed?: boolean;
+  fromTeamName?: string;
   potential?: number | null;
   abilities?: string[];
   hitForAvg?: number | null;
@@ -115,72 +116,116 @@ function isLightColor(color: string): boolean {
   return (r * 299 + g * 587 + b * 114) / 1000 > 128;
 }
 
-function getRecruitTypeBadge(type: string) {
-  if (type === "TRANSFER") return { label: "TRANSFER", className: "bg-purple-600 text-white" };
-  if (type === "JUCO") return { label: "JUCO", className: "bg-cyan-600 text-white" };
+function getTypeBadge(recruit: RevealRecruit): { label: string; className: string; pulse?: boolean } | null {
+  const isGen = recruit.isGenerationalGem && recruit.gemBustRevealed;
+  const isBustGen = recruit.isGenerationalBust && recruit.gemBustRevealed;
+  if (isGen)    return { label: "GEM ✦",    className: "bg-amber-500 text-black",   pulse: true };
+  if (isBustGen) return { label: "BUST ✦",  className: "bg-red-900 text-white",     pulse: true };
+  if (recruit.isGem  && !isGen    && recruit.gemBustRevealed)
+                return { label: "GEM",       className: "bg-emerald-600 text-white" };
+  if (recruit.isBust && !isBustGen && recruit.gemBustRevealed)
+                return { label: "BUST",      className: "bg-red-600 text-white" };
+  if (recruit.recruitType === "STORYLINE")
+                return { label: "STORYLINE", className: "bg-purple-600 text-white" };
+  if (recruit.recruitType === "TRANSFER")
+                return { label: recruit.fromTeamName ? `XFER · ${recruit.fromTeamName.slice(0, 9)}` : "TRANSFER", className: "bg-purple-600 text-white" };
+  if (recruit.recruitType === "JUCO")
+                return { label: recruit.fromTeamName ? `JUCO · ${recruit.fromTeamName.slice(0, 9)}` : "JUCO", className: "bg-cyan-700 text-white" };
   return null;
 }
 
-function CardFront({ recruit, primaryColor, secondaryColor }: { recruit: RevealRecruit; primaryColor: string; secondaryColor: string }) {
-  const glow = getOvrGlow(recruit.overall);
+function CardFront({ recruit, primaryColor }: { recruit: RevealRecruit; primaryColor: string; secondaryColor: string }) {
   const glowBorder = getOvrGlowBorder(recruit.overall);
-  const typeBadge = getRecruitTypeBadge(recruit.recruitType);
-  const usePitcher = isPitcher(recruit.position) || isCatcher(recruit.position);
   const isGen = recruit.isGenerationalGem && recruit.gemBustRevealed;
   const isBustGen = recruit.isGenerationalBust && recruit.gemBustRevealed;
+  const typeBadge = getTypeBadge(recruit);
+  const foilTier = (isGen || recruit.starRating >= 5) ? "gold" : recruit.starRating === 4 ? "silver" : null;
+  const ovrColor = glowBorder !== "#2d3d2d" ? glowBorder : "#555555";
 
   return (
-    <div
-      className="w-full h-full flex flex-col overflow-hidden"
-      style={{ background: "linear-gradient(160deg, #0d1f0d 0%, #162616 50%, #1a2e1a 100%)", borderRadius: "8px" }}
-    >
-      {/* Header band in team primary color */}
-      <div
-        className="flex items-center justify-between px-2 py-1"
-        style={{ background: primaryColor, minHeight: "28px" }}
-      >
-        <span className="font-pixel text-[7px] font-bold" style={{ color: isLightColor(primaryColor) ? "#1a1a1a" : "#ffffff" }}>
-          {recruit.position}
-        </span>
-        <StarRating rating={recruit.starRating} size="sm" />
-        {typeBadge && (
-          <span className={`rounded font-pixel text-[7px] px-1 py-0.5 ${typeBadge.className}`}>{typeBadge.label}</span>
-        )}
-      </div>
+    <div className="w-full h-full flex flex-col overflow-hidden relative" style={{ borderRadius: "8px" }}>
 
-      {/* Player figure */}
-      <div
-        className="flex-1 flex items-center justify-center relative"
-        style={{ background: `radial-gradient(ellipse at center, ${primaryColor}22 0%, transparent 70%)` }}
-      >
-        {usePitcher ? (
-          <PitcherFigure primaryColor={primaryColor} secondaryColor={secondaryColor} skinTone={recruit.skinTone ?? "medium"} size={96} />
-        ) : (
-          <BatterFigure primaryColor={primaryColor} secondaryColor={secondaryColor} skinTone={recruit.skinTone ?? "medium"} size={96} />
-        )}
-        {isGen && <div className="absolute top-1 right-1"><Gem className="w-4 h-4 text-amber-400 drop-shadow-lg" /></div>}
-        {isBustGen && <div className="absolute top-1 right-1"><Skull className="w-4 h-4 text-red-400 drop-shadow-lg" /></div>}
-        {recruit.isGem && !isGen && recruit.gemBustRevealed && <div className="absolute top-1 right-1"><Gem className="w-3.5 h-3.5 text-emerald-400 drop-shadow-lg" /></div>}
-        {recruit.isBust && !isBustGen && recruit.gemBustRevealed && <div className="absolute top-1 right-1"><Skull className="w-3.5 h-3.5 text-orange-400 drop-shadow-lg" /></div>}
-        {recruit.isBlueChip && !isGen && !isBustGen && <div className="absolute top-1 right-1"><Crown className="w-4 h-4 text-blue-400 drop-shadow-lg" /></div>}
-      </div>
-
-      {/* Footer info */}
-      <div className="px-2 pb-2 pt-1 space-y-0.5">
-        <div className="font-pixel text-[8px] text-white leading-tight truncate">
-          {recruit.firstName} {recruit.lastName}
+      {/* Foil shimmer overlay — covers entire card front */}
+      {foilTier && (
+        <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 20, borderRadius: "inherit" }}>
+          <div className={foilTier === "gold" ? "card-shimmer-gold" : "card-shimmer-silver"} />
         </div>
-        <div className="flex items-center justify-between">
-          <span className="text-[9px] text-gray-400">{recruit.homeState}</span>
-          <span className="font-pixel text-[10px] font-bold" style={{ color: glowBorder !== "#2d3d2d" ? glowBorder : "#C4A35A" }}>
-            {recruit.overall}
+      )}
+
+      {/* ── Portrait zone (top ~60%) ── */}
+      <div
+        className="relative flex flex-col overflow-hidden"
+        style={{
+          flex: "0 0 136px",
+          background: `linear-gradient(170deg, ${primaryColor}ee 0%, ${primaryColor}99 55%, #0d1a0d 100%)`,
+        }}
+      >
+        {/* Top row: position badge left, blue chip right */}
+        <div className="relative z-10 flex items-center justify-between px-2 pt-1.5">
+          <span
+            className="font-pixel text-[7px] font-bold px-1.5 py-0.5 rounded"
+            style={{ background: "rgba(0,0,0,0.55)", color: "#fff" }}
+            data-testid={`card-position-${recruit.id}`}
+          >
+            {recruit.position}
           </span>
+          {recruit.isBlueChip && !isGen && !isBustGen && (
+            <Crown className="w-3.5 h-3.5 text-blue-400 drop-shadow" />
+          )}
         </div>
-        <div className="text-[8px] text-gray-500">
-          {`B:${recruit.batHand} T:${recruit.throwHand}`}
-          {" · "}{recruit.recruitYear}
+
+        {/* Avatar centered */}
+        <div className="relative z-10 flex-1 flex items-center justify-center">
+          <PlayerAvatar
+            skinTone={recruit.skinTone ?? "medium"}
+            playerId={recruit.id}
+            size="lg"
+            className="w-28 h-28"
+            jerseyColor={primaryColor}
+            isRecruit={false}
+          />
         </div>
-        <div className="text-[8px] text-gray-600">#{recruit.classRank} Natl</div>
+
+        {/* Type badge — bottom of portrait */}
+        {typeBadge ? (
+          <div className="relative z-10 flex justify-center pb-1.5">
+            <span
+              className={`font-pixel text-[7px] px-2 py-0.5 rounded ${typeBadge.className} ${typeBadge.pulse ? "animate-pulse" : ""}`}
+              data-testid={`card-type-badge-${recruit.id}`}
+            >
+              {typeBadge.label}
+            </span>
+          </div>
+        ) : (
+          <div className="h-4" />
+        )}
+      </div>
+
+      {/* ── Team-color accent strip ── */}
+      <div style={{ height: "3px", background: primaryColor, flexShrink: 0 }} />
+
+      {/* ── Info zone (cream baseball-card face) ── */}
+      <div
+        className="flex-1 px-2 pt-1.5 pb-1.5 flex flex-col justify-between"
+        style={{ background: "#f5f0e6" }}
+      >
+        <div>
+          <StarRating rating={recruit.starRating} size="sm" />
+          <div className="font-pixel text-[7.5px] text-gray-900 leading-snug truncate mt-0.5">
+            {recruit.firstName} {recruit.lastName}
+          </div>
+        </div>
+        <div>
+          <div className="flex items-center justify-between">
+            <span className="text-[9px] text-gray-500 leading-none">{recruit.homeState}</span>
+            <span className="font-pixel text-[11px] font-bold leading-none" style={{ color: ovrColor }}>
+              {recruit.overall}
+            </span>
+          </div>
+          <div className="text-[7px] text-gray-400 mt-0.5">
+            B:{recruit.batHand} T:{recruit.throwHand} · #{recruit.classRank}
+          </div>
+        </div>
       </div>
     </div>
   );

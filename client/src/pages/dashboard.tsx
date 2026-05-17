@@ -5,7 +5,7 @@ import { parseErrorMessage } from "@/lib/errorUtils";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
 import { TeamBadge } from "@/components/ui/team-badge";
-import { Plus, Trophy, Users, Calendar, LogOut, Trash2, UserCheck, BookOpen, FolderOpen, GraduationCap, Eye, Crown } from "lucide-react";
+import { Plus, Trophy, Users, Calendar, LogOut, Trash2, UserCheck, BookOpen, FolderOpen, GraduationCap, Eye, Crown, RotateCcw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -499,6 +499,22 @@ function LeagueCard({ league, userId }: { league: LeagueWithDetails; userId?: st
           </AlertDialog>
         </div>
       </RetroCardHeader>
+      {(league.currentPhase === "signing_day" || league.currentPhase === "offseason_walkons") && (
+        <div className="px-4 pb-2 pt-1">
+          <Link href={`/league/${league.id}/signing-day-reveal`}>
+            <RetroButton
+              variant="outline"
+              size="sm"
+              className="w-full text-gold border-gold/40 hover:border-gold"
+              data-testid={`button-replay-signing-day-${league.id}`}
+            >
+              <RotateCcw className="w-3 h-3 mr-1.5" />
+              Replay Signing Day →
+            </RetroButton>
+          </Link>
+        </div>
+      )}
+
       <Link href={`/league/${league.id}`} className="cursor-pointer">
         <RetroCardContent>
           <div className="flex items-center gap-4 mb-4">

@@ -316,6 +316,30 @@
     to   { opacity: 1; transform: translateY(0)    scale(1);    }
   }
 
+  /* ── Baseball card foil shimmer sweep ── */
+  @keyframes card-shimmer-sweep {
+    0%   { transform: translateX(-180%) skewX(-15deg); opacity: 0; }
+    12%  { opacity: 1; }
+    88%  { opacity: 1; }
+    100% { transform: translateX(260%) skewX(-15deg); opacity: 0; }
+  }
+  .card-shimmer-gold {
+    position: absolute;
+    top: -30px; bottom: -30px;
+    width: 48%;
+    background: linear-gradient(90deg, transparent, rgba(255,215,0,0.28), rgba(255,215,0,0.14), transparent);
+    animation: card-shimmer-sweep 3.5s ease-in-out 0.8s infinite;
+    pointer-events: none;
+  }
+  .card-shimmer-silver {
+    position: absolute;
+    top: -30px; bottom: -30px;
+    width: 42%;
+    background: linear-gradient(90deg, transparent, rgba(210,210,224,0.22), rgba(200,200,215,0.11), transparent);
+    animation: card-shimmer-sweep 4.2s ease-in-out 1.2s infinite;
+    pointer-events: none;
+  }
+
   /* ── Shimmer button sweep ── */
   @keyframes btn-shimmer {
     0%        { left: -80%; }
