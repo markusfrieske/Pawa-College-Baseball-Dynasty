@@ -15,7 +15,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { Star, ArrowRight, ArrowLeft, Search, Target, GraduationCap, Building2, User, Cpu, Eye, Zap } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Team, Coach, Conference, League } from "@shared/schema";
-import { getPhilosophyForArchetype, getTraitBadgesForArchetype, TRAIT_BADGES, type TraitBadge } from "@shared/coachTraits";
+import { getPhilosophyForArchetype, getTraitBadgesForArchetype, TRAIT_BADGES, PHILOSOPHY_DESCRIPTIONS, type TraitBadge } from "@shared/coachTraits";
 
 interface TeamCoachInfo {
   id: string;
@@ -560,32 +560,6 @@ function SetupSkeleton() {
   );
 }
 
-const PHILOSOPHY_DESCRIPTIONS: Record<string, string> = {
-  "Recruit for the Long Term":   "Prioritizes future roster depth over short-term recruiting wins",
-  "Build Team Chemistry":        "Boosts retention and campus visit effectiveness",
-  "Play Small Ball":             "Improves situational play and late-game decision-making",
-  "Win Now":                     "Aggressive pursuit of top talent for immediate results",
-  "Elite Program Standards":     "Campus visits convert at a higher rate",
-  "Build a National Brand":      "Expands recruiting reach beyond your home region",
-  "Player Development First":    "Players improve faster; evaluation skill converts more efficiently",
-  "Positive Culture":            "Higher retention and better player satisfaction in recruiting",
-  "Trust the Process":           "Long-term recruits grow more loyal over multiple contacts",
-  "Pitching Wins Championships": "Head coach visits with pitching recruits generate more interest",
-  "Game Management Mastery":     "Head coach visits are significantly more effective overall",
-  "Exploit Every Matchup":       "Recruits who fit your system respond better to scouting pitches",
-  "Play the Right Way":          "Local and in-region recruits respond with higher interest gains",
-  "Defense and Pitching":        "Phone calls with pitching prospects earn a proximity bonus",
-  "Earn Everything":             "Sustained performance builds prestige more reliably each season",
-  "Scouting Advantage":          "Reveals recruit attributes faster and more accurately each week",
-  "Find Hidden Gems":            "Lower-rated recruits with upside are identified sooner",
-  "Build Through Recruiting":    "Scouting actions yield wider attribute reveals per action",
-  "Academic Excellence":         "Academics-focused recruits respond better to all contact actions",
-  "Graduation Rate Matters":     "Player retention and campus visit conversions are stronger",
-  "Character Counts":            "Phone calls and emails with character-driven recruits gain more interest",
-  "Land the Blue Chips":         "Scholarship offers generate significantly more interest from top recruits",
-  "NIL Budget Mastery":          "Higher-priority recruits respond better to your offer calls",
-  "Close Every Deal":            "Recruits in late pipeline stages are more likely to commit",
-};
 
 const IMPORTANCE_LABELS: Record<string, { label: string; color: string; dot: string }> = {
   "extremely": { label: "Core",      color: "text-gold",             dot: "bg-gold" },
