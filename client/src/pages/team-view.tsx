@@ -287,7 +287,7 @@ function NilCard({ leagueId, teamId }: { leagueId: string; teamId: string }) {
         <RetroCardHeader><DollarSign className="w-4 h-4 inline mr-2 text-gold" />NIL Budget</RetroCardHeader>
         <RetroCardContent>
           <div className="text-center py-4">
-            <p className="text-2xl font-bold text-gold">${(nilData?.nilBudget ?? 0 / 1_000_000).toFixed(2)}M</p>
+            <p className="text-2xl font-bold text-gold">${((nilData?.nilBudget ?? 0) / 1_000_000).toFixed(2)}M</p>
             <p className="text-xs text-muted-foreground mt-1">Season budget (no breakdown available yet)</p>
           </div>
         </RetroCardContent>
