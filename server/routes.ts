@@ -16603,6 +16603,8 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
         clutch: scaleAttr(rp.clutch), vsLHP: scaleAttr(rp.vsLHP), grit: scaleAttr(rp.grit), stealing: scaleAttr(rp.stealing),
         running: scaleAttr(rp.running), throwing: scaleAttr(rp.throwing), recovery: scaleAttr(rp.recovery),
         wRISP: scaleAttr(rp.wRISP), vsLefty: scaleAttr(rp.vsLefty), poise: scaleAttr(rp.poise), heater: scaleAttr(rp.heater), agile: scaleAttr(rp.agile),
+        // catcherAbility included so normalization can adjust it for catchers
+        catcherAbility: rp.catcherAbility ?? null,
         abilities: rp.abilities,
       };
 
@@ -16626,12 +16628,12 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
         }
       }
 
-      // Normalize common ability F/G distribution by conference tier
-      const normalizedPlayerData = normalizeCommonAbilities(
-        { ...playerData, firstName: rp.firstName, lastName: rp.lastName, position: rp.position },
+      // Normalize common ability F/G distribution by conference tier.
+      // normalizeCommonAbilities returns ONLY common ability keys — no identity fields leak back.
+      Object.assign(playerData, normalizeCommonAbilities(
+        { position: rp.position, firstName: rp.firstName, lastName: rp.lastName, ...playerData },
         conferenceName ?? "",
-      );
-      Object.assign(playerData, normalizedPlayerData);
+      ));
 
       const rawOverall = calculateOVR(playerData);
       const overall = Math.max(159, Math.min(650, rawOverall));
@@ -16651,7 +16653,7 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
         ...playerData,
         batHand: rp.batHand || "R",
         throwHand: rp.throwHand || "R",
-        catcherAbility: rp.catcherAbility,
+        // Use playerData.catcherAbility — may have been adjusted by normalizeCommonAbilities for catchers
         skinTone: appearance.skinTone,
         hairColor: appearance.hairColor,
         hairStyle: appearance.hairStyle,
@@ -16709,14 +16711,16 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
           clutch: genAttr(), vsLHP: genAttr(), grit: genAttr(), stealing: genAttr(),
           running: genAttr(), throwing: genAttr(), recovery: genAttr(),
           wRISP: genAttr(), vsLefty: genAttr(), poise: genAttr(), heater: genAttr(), agile: genAttr(),
+          // catcherAbility included so normalization can adjust it for catchers
+          catcherAbility: pos === "C" ? genAttr() : null,
           abilities,
         };
-        // Normalize common ability distribution by conference tier
-        const normFiller = normalizeCommonAbilities(
-          { ...playerData, firstName: `Filler${f}`, lastName: `${teamId}`, position: pos },
+        // Normalize common ability distribution by conference tier.
+        // Returns ONLY common ability keys — no identity fields leak back.
+        Object.assign(playerData, normalizeCommonAbilities(
+          { position: pos, firstName: `Filler${f}`, lastName: `${teamId}`, ...playerData },
           conferenceName ?? "",
-        );
-        Object.assign(playerData, normFiller);
+        ));
         const rawOvr = calculateOVR(playerData);
         const ovr = Math.max(159, Math.min(650, rawOvr));
         let jerseyNum = realRoster.length + f + 1;
@@ -16751,7 +16755,7 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
           ...playerData,
           batHand: fillerBatHand,
           throwHand: fillerThrowHand,
-          catcherAbility: pos === "C" ? genAttr() : null,
+          // catcherAbility already in playerData (possibly normalized for catchers)
           skinTone: appearance.skinTone,
           hairColor: appearance.hairColor,
           hairStyle: appearance.hairStyle,

@@ -1,14 +1,16 @@
 /**
  * normalizeCommonAbilities
  *
- * Ensures the number of F/G-grade common ability fields (value < 50) on a player
- * does not exceed the tier-adjusted target. If the player has too many, the
- * highest-valued (least-bad) sub-50 fields are boosted into the 50-58 range.
+ * Returns a plain object containing ONLY the common ability fields, with any
+ * F/G-grade values (< 50) boosted as needed so the total F/G count stays within
+ * the tier-adjusted target.  Seed fields (firstName, lastName, position) are
+ * never present in the returned object, preventing them from accidentally being
+ * spread into player/recruit payloads.
  *
- * Only common ability fields are ever modified:
+ * Common ability field sets:
  *   - Pitchers  : wRISP, vsLefty, poise, grit, heater, agile, recovery
  *   - Fielders  : clutch, vsLHP, grit, stealing, running, throwing, recovery
- *   - Catchers  : the fielder set + catcherAbility
+ *   - Catchers  : fielder set + catcherAbility
  *
  * Primary attributes (hitForAvg, power, velocity, control, etc.) are never touched.
  */
@@ -35,6 +37,45 @@ const TIER1_DIST: [number, number][] = [
 ];
 const DIST_TOTAL = TIER1_DIST.reduce((s, [, w]) => s + w, 0); // 100
 
+const PITCHER_FIELDS = ["wRISP", "vsLefty", "poise", "grit", "heater", "agile", "recovery"] as const;
+const FIELDER_FIELDS = ["clutch", "vsLHP", "grit", "stealing", "running", "throwing", "recovery"] as const;
+const CATCHER_FIELDS = [...FIELDER_FIELDS, "catcherAbility"] as const;
+
+export type PitcherCommonKey = typeof PITCHER_FIELDS[number];
+export type FielderCommonKey = typeof FIELDER_FIELDS[number];
+export type CatcherCommonKey = typeof CATCHER_FIELDS[number];
+export type CommonAbilityKey = PitcherCommonKey | CatcherCommonKey;
+
+/** All unique common-ability field names — exported for migration/validation consumers. */
+export const ALL_COMMON_FIELDS = Array.from(
+  new Set([...PITCHER_FIELDS, ...CATCHER_FIELDS]),
+) as readonly string[];
+
+/** Minimal input contract: only the fields the normalizer reads. */
+export interface NormalizerInput {
+  position: string;
+  firstName?: string;
+  lastName?: string;
+  wRISP?: number | null;
+  vsLefty?: number | null;
+  poise?: number | null;
+  grit?: number | null;
+  heater?: number | null;
+  agile?: number | null;
+  recovery?: number | null;
+  clutch?: number | null;
+  vsLHP?: number | null;
+  stealing?: number | null;
+  running?: number | null;
+  throwing?: number | null;
+  catcherAbility?: number | null;
+}
+
+/** The return type: ONLY common ability fields — never seed or identity fields. */
+export type NormalizerOutput = {
+  [K in CommonAbilityKey]?: number | null;
+};
+
 /** Simple deterministic hash so the same player always gets the same bucket. */
 function nameHash(s: string): number {
   let h = 0;
@@ -46,11 +87,12 @@ function nameHash(s: string): number {
 
 /**
  * Sample the maximum allowed F/G count for this player given their conference tier.
- * Each tier step below Tier 1 shifts the distribution one slot to the right
- * (allows +1 extra F/G at the margin).
+ * Tier shift is capped at 2 to prevent over-permissiveness in lower-tier conferences:
+ *   Tier 1 → shift 0, Tier 2 → shift 1, Tier 3-5 → shift 2 (max).
+ * This keeps HBCU/Ivy players in the 1–3 F/G range rather than 4–9.
  */
 function sampleMaxFG(tier: number, seed: number): number {
-  const shift = tier - 1; // 0 for T1, 4 for T5
+  const shift = Math.min(2, tier - 1);
   const r = seed % DIST_TOTAL;
   let cumulative = 0;
   for (const [maxFG, weight] of TIER1_DIST) {
@@ -60,51 +102,23 @@ function sampleMaxFG(tier: number, seed: number): number {
   return TIER1_DIST[TIER1_DIST.length - 1][0] + shift;
 }
 
-const PITCHER_COMMON = ["wRISP", "vsLefty", "poise", "grit", "heater", "agile", "recovery"] as const;
-const FIELDER_COMMON = ["clutch", "vsLHP", "grit", "stealing", "running", "throwing", "recovery"] as const;
-const CATCHER_COMMON = [...FIELDER_COMMON, "catcherAbility"] as const;
-
-export type CommonAbilityKey =
-  | typeof PITCHER_COMMON[number]
-  | typeof CATCHER_COMMON[number];
-
-/** All common-ability field names — used by external callers (e.g., migration). */
-export const ALL_COMMON_FIELDS: readonly CommonAbilityKey[] = [
-  ...new Set([...PITCHER_COMMON, ...CATCHER_COMMON]),
-] as unknown as readonly CommonAbilityKey[];
-
-export interface PlayerCommonFields {
-  position: string;
-  firstName?: string;
-  lastName?: string;
-  /** Pitcher common abilities */
-  wRISP?: number | null;
-  vsLefty?: number | null;
-  poise?: number | null;
-  grit?: number | null;
-  heater?: number | null;
-  agile?: number | null;
-  recovery?: number | null;
-  /** Fielder common abilities */
-  clutch?: number | null;
-  vsLHP?: number | null;
-  stealing?: number | null;
-  running?: number | null;
-  throwing?: number | null;
-  catcherAbility?: number | null;
-}
-
 function getCommonFields(position: string): readonly string[] {
-  const isPitcher = ["P", "SP", "RP", "CP", "CL"].includes(position);
-  if (isPitcher) return PITCHER_COMMON;
-  if (position === "C") return CATCHER_COMMON;
-  return FIELDER_COMMON;
+  if (["P", "SP", "RP", "CP", "CL"].includes(position)) return PITCHER_FIELDS;
+  if (position === "C") return CATCHER_FIELDS;
+  return FIELDER_FIELDS;
 }
 
-export function normalizeCommonAbilities<T extends PlayerCommonFields>(
-  player: T,
+/**
+ * Normalizes the common ability F/G distribution for a player.
+ *
+ * Returns a plain object with ONLY the common ability field keys.
+ * The caller merges these onto the player data — seed/identity fields
+ * (firstName, lastName, position) are never present in the output.
+ */
+export function normalizeCommonAbilities(
+  player: NormalizerInput,
   conferenceName: string,
-): T {
+): NormalizerOutput {
   const tier = CONFERENCE_TIERS[conferenceName] ?? 1;
   const fields = getCommonFields(player.position);
 
@@ -113,35 +127,38 @@ export function normalizeCommonAbilities<T extends PlayerCommonFields>(
   );
   const maxFG = sampleMaxFG(tier, seed);
 
-  // Collect fields whose value is < 50 (F or G grade)
-  const subFifty = fields.filter((f) => {
-    const v = (player as Record<string, unknown>)[f];
-    return typeof v === "number" && v < 50;
-  });
+  // Build the initial output from only the relevant common ability fields
+  const out: Record<string, number | null> = {};
+  for (const f of fields) {
+    const v = (player as unknown as Record<string, unknown>)[f];
+    out[f] = typeof v === "number" ? v : null;
+  }
 
-  if (subFifty.length <= maxFG) return player; // already within target
+  // Count fields whose value is < 50 (F or G grade)
+  const subFifty = fields.filter((f) => typeof out[f] === "number" && (out[f] as number) < 50);
+
+  if (subFifty.length <= maxFG) {
+    return out as NormalizerOutput; // already within target
+  }
 
   // Sort descending by current value — boost the highest (least-bad) ones first
   const sorted = [...subFifty].sort(
-    (a, b) =>
-      ((player as Record<string, unknown>)[b] as number) -
-      ((player as Record<string, unknown>)[a] as number),
+    (a, b) => (out[b] as number) - (out[a] as number),
   );
 
   const toBoost = subFifty.length - maxFG;
-  const result = { ...player } as T & Record<string, unknown>;
 
   for (let i = 0; i < toBoost; i++) {
     const field = sorted[i];
-    const cur = result[field] as number;
+    const cur = out[field] as number;
     // G (<30) → land in 50-54; F (30-49) → land in 51-58
     const base = cur < 30 ? 50 : 51;
     const range = cur < 30 ? 5 : 8;
     const fieldSeed = nameHash(
       `${player.firstName ?? ""}${player.lastName ?? ""}${field}${i}`,
     );
-    result[field] = base + (fieldSeed % range);
+    out[field] = base + (fieldSeed % range);
   }
 
-  return result as T;
+  return out as NormalizerOutput;
 }

@@ -662,12 +662,12 @@ export function generateRecruitClass(
 
     // Normalize common ability F/G distribution.
     // Recruits are a national pool with no conference context; use "" (Tier 1 defaults).
-    // We use position + loop index as a deterministic seed surrogate since names
-    // are not yet assigned at this point in the generation loop.
-    commonAbilities = normalizeCommonAbilities(
-      { ...commonAbilities, firstName: `R${i}`, lastName: `C${i}`, position },
+    // We use R{i}/C{i} as a deterministic seed surrogate since names are not assigned yet.
+    // normalizeCommonAbilities returns ONLY common ability keys — merging is safe.
+    Object.assign(commonAbilities, normalizeCommonAbilities(
+      { position, firstName: `R${i}`, lastName: `C${i}`, ...commonAbilities },
       "",
-    ) as typeof commonAbilities;
+    ));
 
     const scoutingOrder = generateScoutingOrder(isPitcher, position);
 
