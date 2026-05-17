@@ -11625,31 +11625,39 @@ export async function registerRoutes(
     // Track how many walkons each team has already been awarded in this auction
     const awardedCounts = new Map<string, number>();
 
-    for (const walkon of walkons) {
+    // Resolve auctions in OVR-descending order — higher-quality players are awarded first
+    // so roster-cap slots are filled with the best available players, making outcomes
+    // predictable and team-cap skipping canonical (not iteration-order dependent).
+    const sortedWalkons = [...walkons].sort((a, b) => (b.overall || 0) - (a.overall || 0));
+
+    for (const walkon of sortedWalkons) {
       const bids = (bidsByWalkon.get(walkon.id) || []).sort((a, b) => b.bidAmount - a.bidAmount);
       if (bids.length === 0) continue;
+
+      // Helper: check if a team still has roster room at this point in the auction
+      const isEligible = (teamId: string) =>
+        (rosterCounts.get(teamId) || 0) + (awardedCounts.get(teamId) || 0) < MAX_WALKON_ROSTER;
 
       // Find the highest bidder who still has roster room — skip over cap-busting winners
       let winner: (typeof bids)[0] | null = null;
       for (const bid of bids) {
-        const currentCount = (rosterCounts.get(bid.teamId) || 0) + (awardedCounts.get(bid.teamId) || 0);
-        if (currentCount < MAX_WALKON_ROSTER) {
+        if (isEligible(bid.teamId)) {
           winner = bid;
           break;
         }
-        console.log(`[Auction] ${bid.teamId} skipped (roster full at ${currentCount}) for ${walkon.firstName} ${walkon.lastName}`);
+        console.log(`[Auction] ${bid.teamId} skipped (roster full) for ${walkon.firstName} ${walkon.lastName}`);
       }
       if (!winner) {
         console.log(`[Auction] No eligible bidder for ${walkon.firstName} ${walkon.lastName} — all at cap`);
         continue;
       }
 
-      // Determine Vickrey price: second-highest bid from an *eligible* bidder or next eligible bid
-      const remainingBids = bids.filter(b => b !== winner);
-      const secondBid = remainingBids[0]?.bidAmount ?? 0;
-      // Vickrey: winner pays second-highest + 1, clamped to their own bid
-      // (prevents overcharge on ties where both bids are equal)
-      const pricePaid = Math.min(winner.bidAmount, remainingBids.length > 0 ? secondBid + 1 : winner.bidAmount);
+      // Vickrey second price: use the highest bid from an *eligible* runner-up (not the winner).
+      // This avoids overstating price when ineligible bids sit between the winner and a real competitor.
+      const eligibleRunnerUps = bids.filter(b => b !== winner && isEligible(b.teamId));
+      const secondBid = eligibleRunnerUps[0]?.bidAmount ?? 0;
+      // Winner pays second-highest eligible bid + 1, clamped to their own bid
+      const pricePaid = Math.min(winner.bidAmount, eligibleRunnerUps.length > 0 ? secondBid + 1 : winner.bidAmount);
 
       // Mark the walkon as awarded (used for display; signedTeamId drives player creation)
       await storage.updateWalkon(walkon.id, {
