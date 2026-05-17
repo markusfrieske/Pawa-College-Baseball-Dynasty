@@ -8,6 +8,8 @@ import {
   recruitingClassSnapshots,
   coachSeasonHistory,
   storylineRecruits, storylineEvents, storylineVotes,
+  nilSeasonEarnings,
+  type NilSeasonEarning, type InsertNilSeasonEarning,
   type User, type InsertUser,
   type League, type InsertLeague,
   type Conference, type InsertConference,
@@ -224,6 +226,12 @@ export interface IStorage {
   getStorylineVoteByTeam(eventId: string, teamId: string): Promise<StorylineVote | undefined>;
   createStorylineVote(data: InsertStorylineVote): Promise<StorylineVote>;
   updateStorylineVote(id: string, data: Partial<StorylineVote>): Promise<StorylineVote | undefined>;
+
+  // NIL season earnings
+  createNilSeasonEarning(data: InsertNilSeasonEarning): Promise<NilSeasonEarning>;
+  getNilEarningsByTeam(leagueId: string, teamId: string, season: number): Promise<NilSeasonEarning[]>;
+  getNilEarningsByLeague(leagueId: string, season: number): Promise<NilSeasonEarning[]>;
+  hasNilEarningCategory(leagueId: string, teamId: string, category: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1282,6 +1290,53 @@ export class DatabaseStorage implements IStorage {
   async updateStorylineVote(id: string, data: Partial<StorylineVote>): Promise<StorylineVote | undefined> {
     const [v] = await db.update(storylineVotes).set(data).where(eq(storylineVotes.id, id)).returning();
     return v || undefined;
+  }
+
+  // ─── NIL Season Earnings ─────────────────────────────────────────────────────
+  async createNilSeasonEarning(data: InsertNilSeasonEarning): Promise<NilSeasonEarning> {
+    const [row] = await db.insert(nilSeasonEarnings).values(data).onConflictDoNothing().returning();
+    if (!row) {
+      const [existing] = await db.select().from(nilSeasonEarnings).where(
+        and(
+          eq(nilSeasonEarnings.leagueId, data.leagueId),
+          eq(nilSeasonEarnings.teamId, data.teamId),
+          eq(nilSeasonEarnings.season, data.season),
+          eq(nilSeasonEarnings.category, data.category),
+        )
+      );
+      return existing;
+    }
+    return row;
+  }
+
+  async getNilEarningsByTeam(leagueId: string, teamId: string, season: number): Promise<NilSeasonEarning[]> {
+    return db.select().from(nilSeasonEarnings).where(
+      and(
+        eq(nilSeasonEarnings.leagueId, leagueId),
+        eq(nilSeasonEarnings.teamId, teamId),
+        eq(nilSeasonEarnings.season, season),
+      )
+    ).orderBy(nilSeasonEarnings.createdAt);
+  }
+
+  async getNilEarningsByLeague(leagueId: string, season: number): Promise<NilSeasonEarning[]> {
+    return db.select().from(nilSeasonEarnings).where(
+      and(
+        eq(nilSeasonEarnings.leagueId, leagueId),
+        eq(nilSeasonEarnings.season, season),
+      )
+    ).orderBy(nilSeasonEarnings.teamId, nilSeasonEarnings.createdAt);
+  }
+
+  async hasNilEarningCategory(leagueId: string, teamId: string, category: string): Promise<boolean> {
+    const [row] = await db.select({ id: nilSeasonEarnings.id }).from(nilSeasonEarnings).where(
+      and(
+        eq(nilSeasonEarnings.leagueId, leagueId),
+        eq(nilSeasonEarnings.teamId, teamId),
+        eq(nilSeasonEarnings.category, category),
+      )
+    ).limit(1);
+    return !!row;
   }
 }
 

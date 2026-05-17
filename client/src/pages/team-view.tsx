@@ -29,7 +29,8 @@ import {
   Award,
   ChevronDown,
   Eye,
-  Edit
+  Edit,
+  Zap,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { RetroInput } from "@/components/ui/retro-input";
@@ -250,6 +251,118 @@ export default function TeamViewPage() {
   );
 }
 
+interface NilEarning {
+  id: string;
+  category: string;
+  amount: number;
+  description: string;
+}
+
+interface NilTeamData {
+  season: number;
+  teamId: string;
+  conferenceName: string;
+  nilBudget: number;
+  nilSpent: number;
+  nilRemaining: number;
+  earnings: NilEarning[];
+}
+
+function NilCard({ leagueId, teamId }: { leagueId: string; teamId: string }) {
+  const { data: nilData, isLoading } = useQuery<NilTeamData>({
+    queryKey: ["/api/leagues", leagueId, "nil-earnings", "team", teamId],
+    queryFn: () => fetch(`/api/leagues/${leagueId}/nil-earnings?teamId=${teamId}`).then(r => r.json()),
+  });
+
+  if (isLoading) return (
+    <RetroCard data-testid="nil-card-loading">
+      <RetroCardHeader><DollarSign className="w-4 h-4 inline mr-2 text-gold" />NIL Budget</RetroCardHeader>
+      <RetroCardContent><div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-4 bg-muted/30 rounded animate-pulse" />)}</div></RetroCardContent>
+    </RetroCard>
+  );
+
+  if (!nilData || nilData.earnings.length === 0) {
+    return (
+      <RetroCard data-testid="nil-card">
+        <RetroCardHeader><DollarSign className="w-4 h-4 inline mr-2 text-gold" />NIL Budget</RetroCardHeader>
+        <RetroCardContent>
+          <div className="text-center py-4">
+            <p className="text-2xl font-bold text-gold">${(nilData?.nilBudget ?? 0 / 1_000_000).toFixed(2)}M</p>
+            <p className="text-xs text-muted-foreground mt-1">Season budget (no breakdown available yet)</p>
+          </div>
+        </RetroCardContent>
+      </RetroCard>
+    );
+  }
+
+  const baseRow = nilData.earnings.find(e => e.category === "base");
+  const bonusRows = nilData.earnings.filter(e => e.category !== "base");
+  const totalBonus = bonusRows.reduce((s, e) => s + e.amount, 0);
+  const spentPct = nilData.nilBudget > 0 ? Math.min(100, Math.round((nilData.nilSpent / nilData.nilBudget) * 100)) : 0;
+
+  return (
+    <RetroCard data-testid="nil-card">
+      <RetroCardHeader>
+        <div className="flex items-center gap-2">
+          <DollarSign className="w-4 h-4 text-gold" />
+          <span>NIL Budget — Season {nilData.season}</span>
+        </div>
+      </RetroCardHeader>
+      <RetroCardContent>
+        <div className="grid grid-cols-3 gap-2 mb-4 text-center">
+          <div className="p-2 bg-gold/10 rounded">
+            <p className="text-gold font-bold text-sm">${(nilData.nilBudget / 1_000_000).toFixed(2)}M</p>
+            <p className="text-[9px] text-muted-foreground">Total Budget</p>
+          </div>
+          <div className="p-2 bg-red-500/10 rounded">
+            <p className="text-red-400 font-bold text-sm">${(nilData.nilSpent / 1_000_000).toFixed(2)}M</p>
+            <p className="text-[9px] text-muted-foreground">Spent</p>
+          </div>
+          <div className="p-2 bg-green-500/10 rounded">
+            <p className="text-green-400 font-bold text-sm">${(nilData.nilRemaining / 1_000_000).toFixed(2)}M</p>
+            <p className="text-[9px] text-muted-foreground">Remaining</p>
+          </div>
+        </div>
+
+        <div className="w-full bg-muted/30 rounded h-1.5 mb-4">
+          <div className="bg-red-500/70 h-1.5 rounded" style={{ width: `${spentPct}%` }} />
+        </div>
+
+        <div className="space-y-1.5">
+          {baseRow && (
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">{baseRow.description}</span>
+              <span className="text-foreground font-medium">${(baseRow.amount / 1_000_000).toFixed(2)}M</span>
+            </div>
+          )}
+          {bonusRows.length > 0 && (
+            <>
+              <div className="border-t border-border/40 pt-1.5 mt-1.5">
+                <p className="text-[9px] text-gold font-pixel mb-1">PERFORMANCE BONUSES</p>
+              </div>
+              {bonusRows.map(e => (
+                <div key={e.id} className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground flex items-center gap-1">
+                    <Zap className="w-2.5 h-2.5 text-gold flex-shrink-0" />
+                    {e.description}
+                  </span>
+                  <span className="text-gold font-medium">+${(e.amount / 1_000).toFixed(0)}K</span>
+                </div>
+              ))}
+              {totalBonus > 0 && (
+                <div className="flex items-center justify-between text-xs border-t border-border/40 pt-1.5 mt-1">
+                  <span className="text-muted-foreground font-medium">Total bonuses earned</span>
+                  <span className="text-gold font-bold">+${(totalBonus / 1_000_000).toFixed(2)}M</span>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </RetroCardContent>
+    </RetroCard>
+  );
+}
+
 function SummaryTab({ team, leagueId }: { team: TeamDetails; leagueId: string }) {
   const players = team.players || [];
   const impactPlayers = [...players]
@@ -400,6 +513,8 @@ function SummaryTab({ team, leagueId }: { team: TeamDetails; leagueId: string })
             </div>
           </RetroCardContent>
         </RetroCard>
+
+        <NilCard leagueId={leagueId} teamId={team.id} />
 
         <RetroCard>
           <RetroCardHeader>Quick Links</RetroCardHeader>

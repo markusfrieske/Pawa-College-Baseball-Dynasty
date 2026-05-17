@@ -11529,6 +11529,173 @@ export async function registerRoutes(
     };
   }
 
+  // ─── Conference Tier NIL Base Allocations ────────────────────────────────────
+  const CONFERENCE_TIER_NIL: Record<string, number> = {
+    // Tier 1: $3.5M
+    "SEC": 3_500_000,
+    "ACC": 3_500_000,
+    "Big Ten": 3_500_000,
+    "Big 12": 3_500_000,
+    // Tier 2: $2.5M
+    "Pac-12": 2_500_000,
+    "AAC": 2_500_000,
+    "Sun Belt": 2_500_000,
+    // Tier 3: $1.75M
+    "WCC": 1_750_000,
+    "Mountain West": 1_750_000,
+    "Big West": 1_750_000,
+    "Missouri Valley": 1_750_000,
+    // Tier 4: $1.5M
+    "Ivy League": 1_500_000,
+    // Tier 5: $1.25M
+    "HBCU": 1_250_000,
+  };
+  const DEFAULT_CONFERENCE_NIL = 2_000_000;
+
+  async function computeSeasonNilBudget(leagueId: string, completedSeason: number): Promise<void> {
+    const newSeason = completedSeason + 1;
+    const [teams, conferences, allCoachHistory, recruitingSnapshots] = await Promise.all([
+      storage.getTeamsByLeague(leagueId),
+      storage.getConferencesByLeague(leagueId),
+      storage.getCoachSeasonHistoryByLeague(leagueId),
+      storage.getRecruitingClassSnapshotsByLeague(leagueId, completedSeason),
+    ]);
+
+    const confById = new Map(conferences.map(c => [c.id, c]));
+    const totalTeams = teams.length;
+
+    // Prior-season coach history keyed by teamId
+    const coachHistoryByTeam = new Map<string, import("@shared/schema").CoachSeasonHistory>();
+    for (const h of allCoachHistory) {
+      if (h.season === completedSeason && h.teamId) {
+        coachHistoryByTeam.set(h.teamId, h);
+      }
+    }
+
+    // Recruiting class rank keyed by teamId
+    const classRankByTeam = new Map<string, number>();
+    const validSnapshots = recruitingSnapshots.filter(s => s.classRank > 0);
+    for (const s of validSnapshots) {
+      classRankByTeam.set(s.teamId, s.classRank);
+    }
+
+    // Prior-season prestige baseline keyed by teamId
+    const priorNilRows = await storage.getNilEarningsByLeague(leagueId, completedSeason);
+    const priorPrestigeByTeam = new Map<string, number>();
+    for (const row of priorNilRows) {
+      if (row.category === "prestige_baseline") {
+        const match = row.description.match(/prestige:(\d+)/);
+        if (match) priorPrestigeByTeam.set(row.teamId, parseInt(match[1], 10));
+      }
+    }
+
+    for (const team of teams) {
+      const conf = team.conferenceId ? confById.get(team.conferenceId) : undefined;
+      const confName = conf?.name ?? "";
+      const baseNil = CONFERENCE_TIER_NIL[confName] ?? DEFAULT_CONFERENCE_NIL;
+
+      const earnings: Array<{ category: string; amount: number; description: string }> = [];
+
+      earnings.push({ category: "base", amount: baseNil, description: `${confName || "Unknown"} conference base allocation` });
+
+      // ── Recruiting class rank bonus
+      const classRank = classRankByTeam.get(team.id);
+      if (classRank != null && totalTeams > 0) {
+        const pctile = classRank / totalTeams;
+        if (pctile <= 0.10) {
+          earnings.push({ category: "recruiting_top10", amount: 400_000, description: "Top 10% recruiting class" });
+        } else if (pctile <= 0.25) {
+          earnings.push({ category: "recruiting_top25", amount: 200_000, description: "Top 25% recruiting class" });
+        } else if (pctile <= 0.50) {
+          earnings.push({ category: "recruiting_top50", amount: 100_000, description: "Top 50% recruiting class" });
+        }
+      }
+
+      // ── Postseason bonus
+      const history = coachHistoryByTeam.get(team.id);
+      if (history) {
+        const pr = history.phaseResult;
+        if (pr === "national_champion" || pr === "cws") {
+          earnings.push({ category: "cws_appearance", amount: 750_000, description: "College World Series appearance" });
+        } else if (pr === "super_regionals") {
+          earnings.push({ category: "super_regionals", amount: 400_000, description: "Super Regionals appearance" });
+        } else if (pr === "conf_championship") {
+          earnings.push({ category: "conf_championship", amount: 200_000, description: "Conference Championship win" });
+        }
+
+        // ── Win percentage bonus
+        const totalGames = (history.wins || 0) + (history.losses || 0);
+        if (totalGames > 0) {
+          const winPct = history.wins / totalGames;
+          if (winPct >= 0.700) {
+            earnings.push({ category: "win_pct_700", amount: 150_000, description: ".700+ win percentage" });
+          } else if (winPct >= 0.600) {
+            earnings.push({ category: "win_pct_600", amount: 75_000, description: ".600+ win percentage" });
+          }
+        }
+      }
+
+      // ── Coach level milestones (one-time)
+      const coach = await storage.getCoachByTeam(team.id);
+      if (coach) {
+        const level = coach.level || 1;
+        const milestones = [
+          { level: 15, category: "coach_level_15", amount: 150_000, description: "Coach reached Level 15" },
+          { level: 10, category: "coach_level_10", amount: 100_000, description: "Coach reached Level 10" },
+          { level: 5, category: "coach_level_5", amount: 50_000, description: "Coach reached Level 5" },
+        ];
+        for (const m of milestones) {
+          if (level >= m.level) {
+            const alreadyAwarded = await storage.hasNilEarningCategory(leagueId, team.id, m.category);
+            if (!alreadyAwarded) {
+              earnings.push({ category: m.category, amount: m.amount, description: m.description });
+            }
+          }
+        }
+      }
+
+      // ── Prestige growth bonus
+      const priorPrestige = priorPrestigeByTeam.get(team.id);
+      if (priorPrestige != null && team.prestige > priorPrestige) {
+        earnings.push({ category: "prestige_growth", amount: 50_000, description: `Prestige increased from ${priorPrestige} to ${team.prestige}` });
+      }
+
+      // ── Insert all earnings rows for the new season
+      for (const e of earnings) {
+        try {
+          await storage.createNilSeasonEarning({
+            leagueId,
+            teamId: team.id,
+            season: newSeason,
+            category: e.category,
+            amount: e.amount,
+            description: e.description,
+          });
+        } catch (err) {
+          console.warn(`[NIL] Skipped duplicate earning for team ${team.id} category ${e.category}:`, err);
+        }
+      }
+
+      // ── Record prestige baseline for next season
+      try {
+        await storage.createNilSeasonEarning({
+          leagueId,
+          teamId: team.id,
+          season: newSeason,
+          category: "prestige_baseline",
+          amount: 0,
+          description: `prestige:${team.prestige}`,
+        });
+      } catch (_) { /* already recorded */ }
+
+      // ── Reset nilBudget and nilSpent
+      const totalNil = earnings.reduce((s, e) => s + e.amount, 0);
+      await storage.updateTeam(team.id, { nilBudget: totalNil, nilSpent: 0 });
+
+      console.log(`[NIL] Season ${newSeason} | Team ${team.abbreviation}: base $${(baseNil / 1000).toFixed(0)}K + bonuses $${((totalNil - baseNil) / 1000).toFixed(0)}K = $${(totalNil / 1000).toFixed(0)}K total`);
+    }
+  }
+
   async function finalizeWalkonsPhase(leagueId: string, completedSeason: number) {
     const teams = await storage.getTeamsByLeague(leagueId);
     let totalWalkonsAdded = 0;
@@ -11792,6 +11959,14 @@ export async function registerRoutes(
       (teamId) => storage.getPlayersByTeam(teamId),
       "post-walkons"
     );
+
+    // Compute NIL budgets for the new season
+    try {
+      await computeSeasonNilBudget(leagueId, completedSeason);
+      console.log(`[NIL] Season ${completedSeason + 1} budgets computed for league ${leagueId}`);
+    } catch (err) {
+      console.error("[NIL] computeSeasonNilBudget failed:", err);
+    }
 
     return {
       walkonsAdded: totalWalkonsAdded,
@@ -12878,6 +13053,76 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to fetch class rankings:", error);
       res.status(500).json({ message: "Failed to fetch class rankings" });
+    }
+  });
+
+  // ─── NIL Season Earnings endpoint ────────────────────────────────────────────
+  app.get("/api/leagues/:id/nil-earnings", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id;
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      const season = req.query.season ? parseInt(req.query.season as string) : league.currentSeason;
+      const teamId = req.query.teamId as string | undefined;
+
+      const [leagueTeams, conferences] = await Promise.all([
+        storage.getTeamsByLeague(leagueId),
+        storage.getConferencesByLeague(leagueId),
+      ]);
+      const confById = new Map(conferences.map(c => [c.id, c]));
+      const teamById = new Map(leagueTeams.map(t => [t.id, t]));
+
+      if (teamId) {
+        const earnings = await storage.getNilEarningsByTeam(leagueId, teamId, season);
+        const team = teamById.get(teamId);
+        const conf = team?.conferenceId ? confById.get(team.conferenceId) : undefined;
+        return res.json({
+          season,
+          teamId,
+          teamName: team?.name ?? "Unknown",
+          teamAbbr: team?.abbreviation ?? "???",
+          conferenceName: conf?.name ?? "Unknown",
+          nilBudget: team?.nilBudget ?? 0,
+          nilSpent: team?.nilSpent ?? 0,
+          nilRemaining: (team?.nilBudget ?? 0) - (team?.nilSpent ?? 0),
+          earnings: earnings.filter(e => e.category !== "prestige_baseline"),
+        });
+      }
+
+      // League-wide overview — all teams with their NIL data
+      const allEarnings = await storage.getNilEarningsByLeague(leagueId, season);
+      const earningsByTeam: Record<string, typeof allEarnings> = {};
+      for (const e of allEarnings) {
+        if (!earningsByTeam[e.teamId]) earningsByTeam[e.teamId] = [];
+        if (e.category !== "prestige_baseline") earningsByTeam[e.teamId].push(e);
+      }
+
+      const overview = leagueTeams.map(t => {
+        const conf = t.conferenceId ? confById.get(t.conferenceId) : undefined;
+        const rows = earningsByTeam[t.id] ?? [];
+        const baseRow = rows.find(r => r.category === "base");
+        const bonusTotal = rows.filter(r => r.category !== "base").reduce((s, r) => s + r.amount, 0);
+        return {
+          teamId: t.id,
+          teamName: t.name,
+          teamAbbr: t.abbreviation,
+          primaryColor: t.primaryColor,
+          isCpu: t.isCpu,
+          conferenceName: conf?.name ?? "Unknown",
+          nilBudget: t.nilBudget,
+          nilSpent: t.nilSpent,
+          nilRemaining: t.nilBudget - (t.nilSpent ?? 0),
+          baseAllocation: baseRow?.amount ?? 0,
+          bonusTotal,
+          earnings: rows,
+        };
+      }).sort((a, b) => b.nilBudget - a.nilBudget);
+
+      return res.json({ season, overview });
+    } catch (error) {
+      console.error("Failed to fetch NIL earnings:", error);
+      res.status(500).json({ message: "Failed to fetch NIL earnings" });
     }
   });
 

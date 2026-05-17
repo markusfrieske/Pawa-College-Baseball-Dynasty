@@ -1457,6 +1457,25 @@ export type CoachSeasonHistory = typeof coachSeasonHistory.$inferSelect;
 const LEAGUE_EVENT_TYPES = ["SIGNING", "TRANSFER", "DRAFT", "GAME_RESULT", "RIVALRY_RESULT", "AWARD", "PHASE_CHANGE", "ROSTER_CUT", "WALKON", "STORYLINE", "NUDGE", "DECOMMIT"] as const;
 export type LeagueEventType = (typeof LEAGUE_EVENT_TYPES)[number];
 
+// NIL Season Earnings table — records every NIL bonus awarded each season per team
+export const nilSeasonEarnings = pgTable("nil_season_earnings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  leagueId: varchar("league_id").notNull().references(() => leagues.id),
+  teamId: varchar("team_id").notNull().references(() => teams.id),
+  season: integer("season").notNull(),
+  category: text("category").notNull(),
+  amount: integer("amount").notNull().default(0),
+  description: text("description").notNull().default(""),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (t) => [
+  uniqueIndex("nil_season_earnings_unique").on(t.leagueId, t.teamId, t.season, t.category),
+  index("idx_nil_season_earnings_league_team").on(t.leagueId, t.teamId),
+]);
+
+export const insertNilSeasonEarningSchema = createInsertSchema(nilSeasonEarnings).omit({ id: true, createdAt: true });
+export type InsertNilSeasonEarning = z.infer<typeof insertNilSeasonEarningSchema>;
+export type NilSeasonEarning = typeof nilSeasonEarnings.$inferSelect;
+
 export const leagueEvents = pgTable("league_events", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   leagueId: varchar("league_id").notNull().references(() => leagues.id),
