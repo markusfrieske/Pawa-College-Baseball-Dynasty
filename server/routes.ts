@@ -11611,20 +11611,20 @@ export async function registerRoutes(
         }
       }
 
-      // ── Postseason bonuses (stackable — each level is independent)
+      // ── Postseason bonuses (exclusive tiers — award only for that exact achievement level)
       const history = coachHistoryByTeam.get(team.id);
       if (history) {
         const pr = history.phaseResult;
-        // CWS/national champion
+        // CWS appearance (best result was making or winning the CWS)
         if (pr === "national_champion" || pr === "cws") {
           earnings.push({ category: "cws_appearance", amount: 750_000, description: "College World Series appearance" });
         }
-        // Super Regionals reached (awarded at this level AND to CWS teams)
-        if (pr === "national_champion" || pr === "cws" || pr === "super_regionals") {
+        // Super Regionals (best result was reaching Super Regionals, but not advancing to CWS)
+        if (pr === "super_regionals") {
           earnings.push({ category: "super_regionals", amount: 400_000, description: "Super Regionals appearance" });
         }
-        // Conference Championship won (awarded at this level AND above)
-        if (pr === "national_champion" || pr === "cws" || pr === "super_regionals" || pr === "conf_championship") {
+        // Conference Championship (best result was winning the conference title, did not advance further)
+        if (pr === "conf_championship") {
           earnings.push({ category: "conf_championship", amount: 200_000, description: "Conference Championship win" });
         }
 
