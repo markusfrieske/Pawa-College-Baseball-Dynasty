@@ -2812,6 +2812,36 @@ export async function registerRoutes(
     }
   });
 
+  // Mark signed recruits as revealed after the coach watches the Signing Day Reveal screen.
+  // Accepts optional ?teamId= to reveal only one team's class at a time.
+  app.post("/api/leagues/:id/signing-day-reveal/complete", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id as string);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      const teamId = req.query.teamId as string | undefined;
+
+      const recruits = await storage.getRecruitsByLeague(league.id);
+      const toReveal = recruits.filter(r =>
+        r.signedTeamId &&
+        !r.signingDayRevealed &&
+        (!teamId || r.signedTeamId === teamId)
+      );
+
+      for (const r of toReveal) {
+        await storage.updateRecruit(r.id, { signingDayRevealed: true });
+      }
+
+      console.log(`[signing-day-reveal/complete] Set signingDayRevealed=true for ${toReveal.length} recruits` +
+        (teamId ? ` (teamId=${teamId})` : " (all teams)"));
+
+      res.json({ revealed: toReveal.length });
+    } catch (error) {
+      console.error("Failed to complete signing-day reveal:", error);
+      res.status(500).json({ message: "Failed to complete reveal" });
+    }
+  });
+
   // Roster routes
   app.get("/api/leagues/:id/roster", requireAuth, async (req, res) => {
     try {
@@ -10848,15 +10878,9 @@ export async function registerRoutes(
       }
     }
 
-    // Mark all signed recruits as signing-day revealed so the reveal screen can show full data
-    {
-      const allForReveal = await storage.getRecruitsByLeague(leagueId);
-      const toReveal = allForReveal.filter(r => r.signedTeamId && !r.signingDayRevealed);
-      for (const r of toReveal) {
-        await storage.updateRecruit(r.id, { signingDayRevealed: true });
-      }
-      console.log(`[finalizeSigningDay] Set signingDayRevealed=true for ${toReveal.length} signed recruits`);
-    }
+    // NOTE: signingDayRevealed is NOT set here anymore.
+    // The 35% holdback stays in place until coaches watch the Signing Day Reveal screen.
+    // The reveal screen calls POST /api/leagues/:id/signing-day-reveal/complete to lift it.
 
     // Snapshot class rankings before recruits are converted to players
     try {

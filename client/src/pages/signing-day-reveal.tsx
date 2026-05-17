@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, Link, useSearch } from "wouter";
+import { apiRequest } from "@/lib/queryClient";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard, RetroCardContent } from "@/components/ui/retro-card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -470,6 +471,9 @@ export default function SigningDayRevealPage() {
   const currentEntry = data?.teamData?.find(t => t.team.id === effectiveTeamId) ?? null;
   const teamColor = currentEntry?.team.primaryColor ?? "#C4A35A";
 
+  // Track teams that have already had the reveal POST fired to avoid duplicate calls.
+  const revealedTeams = useRef<Set<string>>(new Set());
+
   // ── Cinematic phase state machine ──────────────────────────
   // Re-runs when the selected team changes (or data first arrives).
   useEffect(() => {
@@ -485,6 +489,18 @@ export default function SigningDayRevealPage() {
     const t2 = setTimeout(() => setCinemaPhase("cards"), 2000);
     return () => { clearTimeout(t1); clearTimeout(t2); };
   }, [currentEntry?.team.id, reducedMotion]);
+
+  // ── Fire reveal-complete when cards become visible ──────────
+  // Marks recruits as signingDayRevealed so the recruiting board
+  // shows full attributes after the coach has watched the reveal.
+  useEffect(() => {
+    if (cinemaPhase !== "cards" || !currentEntry || !leagueId) return;
+    const teamId = currentEntry.team.id;
+    if (revealedTeams.current.has(teamId)) return;
+    revealedTeams.current.add(teamId);
+    apiRequest("POST", `/api/leagues/${leagueId}/signing-day-reveal/complete?teamId=${teamId}`)
+      .catch((err) => console.error("[reveal-complete] failed:", err));
+  }, [cinemaPhase, currentEntry?.team.id, leagueId]);
 
   const handleDownload = async () => {
     if (!cardGridRef.current || !currentEntry) return;
