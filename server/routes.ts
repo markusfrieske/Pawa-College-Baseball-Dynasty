@@ -1222,9 +1222,13 @@ export async function registerRoutes(
           'velocity', 'control', 'stamina',
           'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL',
         ]);
+        const SIGNING_COMMON_KEYS = new Set([
+          'clutch', 'vsLHP', 'grit', 'stealing', 'running', 'throwing', 'recovery',
+          'wRISP', 'vsLefty', 'poise', 'heater', 'agile', 'catcherAbility',
+        ]);
         const scoutingOrder = (recruit.scoutingOrder as string[]) || [];
         const attrOrder    = scoutingOrder.filter(f => SIGNING_ATTR_KEYS.has(f));
-        const commonOrder  = scoutingOrder.filter(f => !SIGNING_ATTR_KEYS.has(f));
+        const commonOrder  = scoutingOrder.filter(f => SIGNING_COMMON_KEYS.has(f));
         const holdbackFields: string[] = (recruit.isBlueChip || recruit.signingDayRevealed)
           ? []
           : [
@@ -1385,7 +1389,8 @@ export async function registerRoutes(
       const potentialNarrowMultiplier = ARCHETYPE_POTENTIAL_NARROWING[userCoach?.archetype] || 1.0;
 
       // Helper function to narrow down a range (with archetype potential narrowing bonus).
-      // Scouting is capped at 65% reveal — the remaining 35% unlocks only at signing-day cinematic.
+      // Scouting is partially capped before signing day — attrs cap at 60%, common abilities at 50%.
+      // The held-back portion unlocks only at the signing-day cinematic.
       const narrowRange = (min: number, max: number, actual: number, pct: number): { newMin: number; newMax: number } => {
         const range = max - min;
         // Cap effective pct at 60: even fully-scouted recruits stay as a range until signing day.
@@ -10982,7 +10987,7 @@ export async function registerRoutes(
     }
 
     // NOTE: signingDayRevealed is NOT set here anymore.
-    // The 35% holdback stays in place until coaches watch the Signing Day Reveal screen.
+    // The attr/common-ability holdback (40%/50%) stays in place until coaches watch the Signing Day screen.
     // The reveal screen calls POST /api/leagues/:id/signing-day-reveal/complete to lift it.
 
     // Snapshot class rankings before recruits are converted to players
