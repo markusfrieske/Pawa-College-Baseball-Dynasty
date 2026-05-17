@@ -11789,6 +11789,45 @@ export async function registerRoutes(
       lastWalkonAuction: JSON.stringify(Object.fromEntries(auctionResultsByTeam)),
     });
 
+    // Write activity feed event per human team so coaches can see their auction
+    // summary in the News/Activity tab even if they missed the live resolution.
+    for (const team of teams) {
+      if (team.isCpu) continue;
+      const teamResults = auctionResultsByTeam.get(team.id) ?? [];
+      const signed = teamResults.filter(r => r.won).length;
+      const outbid = teamResults.filter(r => !r.won).length;
+
+      let description: string;
+      if (teamResults.length === 0) {
+        description = `${team.name} did not place any bids in the walk-on auction.`;
+      } else {
+        const parts: string[] = [];
+        if (signed > 0) parts.push(`signed ${signed} walk-on${signed !== 1 ? "s" : ""}`);
+        if (outbid > 0) parts.push(`were outbid on ${outbid} player${outbid !== 1 ? "s" : ""}`);
+        description = `Walk-on auction results for ${team.name}: ${parts.join(" and ")}.`;
+      }
+
+      try {
+        await storage.createLeagueEvent({
+          leagueId,
+          teamId: team.id,
+          teamName: team.name,
+          teamAbbreviation: team.abbreviation,
+          eventType: "WALKON",
+          description,
+          season: completedSeason,
+          week: 99,
+          metadata: {
+            signed,
+            outbid,
+            results: teamResults,
+          },
+        });
+      } catch (err) {
+        console.error(`[finalizeWalkonsPhase] Failed to write activity event for team ${team.id}:`, err);
+      }
+    }
+
     await storage.deleteWalkonsByLeague(leagueId);
 
     await storage.deleteRecruitsByLeague(leagueId);
