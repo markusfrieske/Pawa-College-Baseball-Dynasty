@@ -13,7 +13,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Star, ArrowRight, ArrowLeft, Search, Target, GraduationCap, Building2, User, Cpu, Eye, Zap } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Team, Coach, Conference, League } from "@shared/schema";
+import { getPhilosophyForArchetype, getTraitBadgesForArchetype, TRAIT_BADGES, type TraitBadge } from "@shared/coachTraits";
 
 interface TeamCoachInfo {
   id: string;
@@ -558,42 +560,134 @@ function SetupSkeleton() {
   );
 }
 
+const PHILOSOPHY_DESCRIPTIONS: Record<string, string> = {
+  "Recruit for the Long Term":   "Prioritizes future roster depth over short-term recruiting wins",
+  "Build Team Chemistry":        "Boosts retention and campus visit effectiveness",
+  "Play Small Ball":             "Improves situational play and late-game decision-making",
+  "Win Now":                     "Aggressive pursuit of top talent for immediate results",
+  "Elite Program Standards":     "Campus visits convert at a higher rate",
+  "Build a National Brand":      "Expands recruiting reach beyond your home region",
+  "Player Development First":    "Players improve faster; evaluation skill converts more efficiently",
+  "Positive Culture":            "Higher retention and better player satisfaction in recruiting",
+  "Trust the Process":           "Long-term recruits grow more loyal over multiple contacts",
+  "Pitching Wins Championships": "Head coach visits with pitching recruits generate more interest",
+  "Game Management Mastery":     "Head coach visits are significantly more effective overall",
+  "Exploit Every Matchup":       "Recruits who fit your system respond better to scouting pitches",
+  "Play the Right Way":          "Local and in-region recruits respond with higher interest gains",
+  "Defense and Pitching":        "Phone calls with pitching prospects earn a proximity bonus",
+  "Earn Everything":             "Sustained performance builds prestige more reliably each season",
+  "Scouting Advantage":          "Reveals recruit attributes faster and more accurately each week",
+  "Find Hidden Gems":            "Lower-rated recruits with upside are identified sooner",
+  "Build Through Recruiting":    "Scouting actions yield wider attribute reveals per action",
+  "Academic Excellence":         "Academics-focused recruits respond better to all contact actions",
+  "Graduation Rate Matters":     "Player retention and campus visit conversions are stronger",
+  "Character Counts":            "Phone calls and emails with character-driven recruits gain more interest",
+  "Land the Blue Chips":         "Scholarship offers generate significantly more interest from top recruits",
+  "NIL Budget Mastery":          "Higher-priority recruits respond better to your offer calls",
+  "Close Every Deal":            "Recruits in late pipeline stages are more likely to commit",
+};
+
+const IMPORTANCE_LABELS: Record<string, { label: string; color: string; dot: string }> = {
+  "extremely": { label: "Core",      color: "text-gold",             dot: "bg-gold" },
+  "very":      { label: "Important", color: "text-blue-400",         dot: "bg-blue-400" },
+  "somewhat":  { label: "Secondary", color: "text-muted-foreground", dot: "bg-muted-foreground" },
+};
+
+const TRAIT_TIER_COLORS: Record<string, string> = {
+  gold:   "bg-yellow-600/20 border-yellow-500 text-yellow-400",
+  silver: "bg-slate-500/20  border-slate-400  text-slate-300",
+  bronze: "bg-orange-700/20 border-orange-600 text-orange-400",
+};
+
 function SkillTreeDisplay({ archetype }: { archetype: string }) {
-  const skills = archetypeSkillTrees[archetype] || archetypeSkillTrees["Balanced"];
-  
+  const skills     = archetypeSkillTrees[archetype] || archetypeSkillTrees["Balanced"];
+  const philosophy = getPhilosophyForArchetype(archetype);
+  const traitIds   = getTraitBadgesForArchetype(archetype);
+  const traits     = traitIds
+    .map(id => TRAIT_BADGES.find(b => b.id === id))
+    .filter((b): b is TraitBadge => !!b);
+
   const skillItems = [
-    { key: "scouting", label: "Scouting", icon: Search, color: "text-blue-400", value: skills.scouting, maxValue: 4 },
-    { key: "evaluation", label: "Evaluation", icon: Eye, color: "text-purple-400", value: skills.evaluation, maxValue: 4 },
-    { key: "pitchers", label: "Pitchers", icon: Target, color: "text-green-400", value: skills.pitchers, maxValue: 4 },
-    { key: "hitters", label: "Hitters", icon: Zap, color: "text-orange-400", value: skills.hitters, maxValue: 4 },
+    { key: "scouting",    label: "Scouting",    icon: Search, color: "text-blue-400",   value: skills.scouting },
+    { key: "evaluation",  label: "Evaluation",  icon: Eye,    color: "text-purple-400", value: skills.evaluation },
+    { key: "pitchers",    label: "Pitchers",    icon: Target, color: "text-green-400",  value: skills.pitchers },
+    { key: "hitters",     label: "Hitters",     icon: Zap,    color: "text-orange-400", value: skills.hitters },
   ];
 
   return (
-    <div className="mt-6 p-4 bg-background/50 border border-border rounded">
-      <h4 className="font-pixel text-[10px] text-muted-foreground uppercase mb-2">Archetype Skill Boosts</h4>
-      <p className="text-[10px] text-muted-foreground mb-4">Higher bars mean faster progress in that skill tree. Scouting reveals recruit attributes faster. Evaluation improves accuracy of player ratings. Pitchers/Hitters boost recruiting effectiveness for those positions.</p>
-      <div className="grid grid-cols-4 gap-3">
-        {skillItems.map((skill) => (
-          <div key={skill.key} className="flex flex-col items-center gap-2" data-testid={`skill-${skill.key}`}>
-            <div className={`p-2 bg-card border border-border rounded ${skill.color}`}>
-              <skill.icon className="w-4 h-4" />
-            </div>
-            <span className="text-[8px] text-muted-foreground font-pixel">{skill.label}</span>
-            <div className="flex items-center gap-1">
-              <div className="flex gap-0.5">
-                {[1, 2, 3, 4].map((n) => (
-                  <div
-                    key={n}
-                    className={`w-2 h-4 rounded-sm transition-all ${
-                      n <= skill.value ? "bg-gold" : "bg-border"
-                    }`}
-                  />
-                ))}
+    <div className="mt-6 space-y-3">
+      {/* Philosophy */}
+      <div className="p-4 bg-background/50 border border-border rounded" data-testid="starter-perks-philosophy">
+        <h4 className="font-pixel text-[10px] text-gold uppercase mb-3">Coaching Philosophy</h4>
+        <div className="space-y-2.5">
+          {philosophy.map((p) => {
+            const { label, color, dot } = IMPORTANCE_LABELS[p.importance] ?? IMPORTANCE_LABELS["somewhat"];
+            const desc = PHILOSOPHY_DESCRIPTIONS[p.statement] ?? "";
+            return (
+              <div key={p.statement} className="flex items-start gap-3">
+                <div className="flex items-center gap-1.5 w-20 shrink-0 pt-0.5">
+                  <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${dot}`} />
+                  <span className={`font-pixel text-[8px] ${color}`}>{label}</span>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-medium leading-tight">{p.statement}</p>
+                  <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">{desc}</p>
+                </div>
               </div>
-              <span className="font-pixel text-[10px] text-gold w-4">+{skill.value}</span>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Starting Traits */}
+      <div className="p-4 bg-background/50 border border-border rounded" data-testid="starter-perks-traits">
+        <h4 className="font-pixel text-[10px] text-gold uppercase mb-3">Starting Traits</h4>
+        <div className="flex flex-wrap gap-2">
+          <TooltipProvider>
+            {traits.map((trait) => (
+              <Tooltip key={trait.id}>
+                <TooltipTrigger asChild>
+                  <span
+                    className={`text-[10px] px-2 py-1 rounded border cursor-default font-medium ${TRAIT_TIER_COLORS[trait.tier]}`}
+                    data-testid={`trait-badge-${trait.id}`}
+                  >
+                    {trait.name}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-[220px]">
+                  <p className="text-xs">{trait.description}</p>
+                </TooltipContent>
+              </Tooltip>
+            ))}
+          </TooltipProvider>
+        </div>
+      </div>
+
+      {/* Skill Boosts */}
+      <div className="p-4 bg-background/50 border border-border rounded" data-testid="starter-perks-skills">
+        <h4 className="font-pixel text-[10px] text-gold uppercase mb-1">Skill Boosts</h4>
+        <p className="text-[10px] text-muted-foreground mb-4">Higher bars mean faster skill-tree progress. Scouting reveals recruit attributes faster. Evaluation sharpens player ratings. Pitchers/Hitters boost recruiting for those positions.</p>
+        <div className="grid grid-cols-4 gap-3">
+          {skillItems.map((skill) => (
+            <div key={skill.key} className="flex flex-col items-center gap-2" data-testid={`skill-${skill.key}`}>
+              <div className={`p-2 bg-card border border-border rounded ${skill.color}`}>
+                <skill.icon className="w-4 h-4" />
+              </div>
+              <span className="text-[8px] text-muted-foreground font-pixel">{skill.label}</span>
+              <div className="flex items-center gap-1">
+                <div className="flex gap-0.5">
+                  {[1, 2, 3, 4].map((n) => (
+                    <div
+                      key={n}
+                      className={`w-2 h-4 rounded-sm transition-all ${n <= skill.value ? "bg-gold" : "bg-border"}`}
+                    />
+                  ))}
+                </div>
+                <span className="font-pixel text-[10px] text-gold w-4">+{skill.value}</span>
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );
