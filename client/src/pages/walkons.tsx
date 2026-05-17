@@ -70,6 +70,12 @@ interface AuctionOutcome {
   yourBid: number;
 }
 
+interface AdvanceResponse {
+  seasonTransition?: {
+    auctionResultsByTeam?: Record<string, AuctionOutcome[]>;
+  };
+}
+
 const MAX_ROSTER = 25;
 
 function fmtK(n: number): string {
@@ -145,24 +151,25 @@ export default function WalkonsPage() {
     }
   }, [auctionResults]);
 
-  const advanceMutation = useMutation({
+  const advanceMutation = useMutation<AdvanceResponse, Error>({
     mutationFn: async () => {
       const res = await apiRequest("POST", `/api/leagues/${id}/advance`);
-      return res.json() as Promise<any>;
+      return res.json() as Promise<AdvanceResponse>;
     },
-    onSuccess: (data: any) => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "walkons", "auction-results"] });
       const myTeamId = myTeam?.id;
-      if (myTeamId && data?.seasonTransition?.auctionResultsByTeam?.[myTeamId]) {
-        setAuctionResults(data.seasonTransition.auctionResultsByTeam[myTeamId]);
+      const teamResults = myTeamId ? data?.seasonTransition?.auctionResultsByTeam?.[myTeamId] : undefined;
+      if (teamResults && teamResults.length > 0) {
+        setAuctionResults(teamResults);
       } else {
         // Commissioner may not have bids — show persisted results after invalidation
         toast({ title: "Auction Resolved", description: "Advancing to Spring Training…" });
         setLocation(`/league/${id}`);
       }
     },
-    onError: (err: any) => {
+    onError: (err) => {
       toast({ title: "Cannot advance", description: parseErrorMessage(err), variant: "destructive" });
     },
   });
@@ -182,17 +189,17 @@ export default function WalkonsPage() {
     mutationFn: async ({ walkonId, bidAmount }: { walkonId: string; bidAmount: number }) => {
       return apiRequest("POST", `/api/leagues/${id}/walkons/${walkonId}/bid`, { bidAmount });
     },
-    onSuccess: (_data: any, { walkonId }: { walkonId: string; bidAmount: number }) => {
+    onSuccess: (_data: unknown, { walkonId }: { walkonId: string; bidAmount: number }) => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "walkons", "bids"] });
       setBidInputs(prev => ({ ...prev, [walkonId]: "" }));
       toast({ title: "Bid placed", description: "Your sealed bid has been submitted." });
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast({ title: "Cannot place bid", description: parseErrorMessage(err), variant: "destructive" });
     },
   });
 
-  const removeBidMutation = useMutation({
+  const removeBidMutation = useMutation<unknown, Error, string>({
     mutationFn: async (walkonId: string) => {
       return apiRequest("DELETE", `/api/leagues/${id}/walkons/${walkonId}/bid`);
     },
@@ -200,12 +207,12 @@ export default function WalkonsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "walkons", "bids"] });
       toast({ title: "Bid withdrawn" });
     },
-    onError: (err: any) => {
+    onError: (err) => {
       toast({ title: "Cannot withdraw bid", description: parseErrorMessage(err), variant: "destructive" });
     },
   });
 
-  const cutMutation = useMutation({
+  const cutMutation = useMutation<unknown, Error, string>({
     mutationFn: async (playerId: string) => {
       return apiRequest("POST", `/api/leagues/${id}/walkons/cut/${playerId}`);
     },
@@ -216,7 +223,7 @@ export default function WalkonsPage() {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "commissioner"] });
       toast({ title: "Player cut", description: "Player has been released to JUCO." });
     },
-    onError: (err: any) => {
+    onError: (err) => {
       toast({ title: "Cannot cut", description: parseErrorMessage(err), variant: "destructive" });
     },
   });
@@ -736,10 +743,50 @@ export default function WalkonsPage() {
                       </div>
                     );
                   })}
-                  {filteredPool.length === 0 && (
+                  {filteredPool.length === 0 && !persistedOutcomes && (
                     <p className="text-sm text-muted-foreground text-center py-4">
                       {posFilter !== "all" ? `No walk-ons at ${posFilter}` : "No available walk-ons"}
                     </p>
+                  )}
+                  {/* Per-player card-level outcome display from persisted auction data.
+                      Walk-on pool rows are deleted at phase advance; this renders from
+                      the durable lastWalkonAuction snapshot so Won/Lost status remains
+                      visible on individual player cards after resolution. */}
+                  {filteredPool.length === 0 && persistedOutcomes && persistedOutcomes.length > 0 && (
+                    <div className="space-y-2">
+                      {persistedOutcomes.map(r => (
+                        <div
+                          key={r.walkonId}
+                          className={`flex items-center justify-between p-2.5 rounded border ${
+                            r.won
+                              ? "bg-green-900/10 border-green-700/30"
+                              : "bg-red-900/10 border-red-700/20"
+                          }`}
+                          data-testid={`pool-result-card-${r.walkonId}`}
+                        >
+                          <div className="flex items-center gap-2">
+                            {r.won
+                              ? <CheckCircle className="w-3.5 h-3.5 text-green-400 shrink-0" />
+                              : <X className="w-3.5 h-3.5 text-red-400 shrink-0" />}
+                            <div>
+                              <p className="text-xs font-medium">{r.firstName} {r.lastName}</p>
+                              <p className="text-[9px] text-muted-foreground">{r.position} • {r.overall} OVR</p>
+                              {!r.won && r.winnerTeamName && (
+                                <p className="text-[9px] text-muted-foreground">won by {r.winnerTeamName}</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className={`text-sm font-medium ${r.won ? "text-green-400" : "text-red-400"}`}>
+                              {fmtK(r.pricePaid)}
+                            </p>
+                            <p className="text-[8px] text-muted-foreground">
+                              {r.won ? "paid" : "winner paid"} • your bid: {fmtK(r.yourBid)}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
               </RetroCardContent>
