@@ -11,7 +11,7 @@
 import { db } from "../server/db";
 import { players, teams, conferences } from "../shared/schema";
 import { eq, sql } from "drizzle-orm";
-import { normalizeCommonAbilities, ALL_COMMON_FIELDS } from "../server/normalizeCommonAbilities";
+import { normalizeCommonAbilities, ALL_COMMON_FIELDS, CONFERENCE_TIERS } from "../server/normalizeCommonAbilities";
 
 // --- types ---------------------------------------------------------------
 
@@ -128,13 +128,19 @@ async function run() {
     }
     byConference[confName].total++;
 
+    // normalizeCommonAbilities returns ONLY position-relevant common ability keys.
+    // Compare only those keys against the existing row so we never overwrite
+    // unrelated columns (e.g. clutch for a pitcher) or produce false positives.
     const after = normalizeCommonAbilities(row, confName);
+    const afterKeys = Object.keys(after) as (keyof typeof after)[];
 
-    const changed = ALL_COMMON_FIELDS.some(
-      (f) => (row as Record<string, unknown>)[f] !== (after as Record<string, unknown>)[f],
-    );
+    const changedKeys = afterKeys.filter((f) => {
+      const before = (row as Record<string, unknown>)[f];
+      const next = after[f];
+      return before !== next;
+    });
 
-    if (!changed) {
+    if (changedKeys.length === 0) {
       unchanged++;
       addToBuckets(byConference[confName].afterBuckets, countFG(row));
       continue;
@@ -142,25 +148,23 @@ async function run() {
 
     adjusted++;
     byConference[confName].adjusted++;
-    addToBuckets(byConference[confName].afterBuckets, countFG(after));
+
+    // Build the merged "after" row for bucket counting (only changed fields differ)
+    const mergedRow = { ...row };
+    for (const k of changedKeys) {
+      (mergedRow as Record<string, unknown>)[k] = after[k] ?? null;
+    }
+    addToBuckets(byConference[confName].afterBuckets, countFG(mergedRow));
+
+    // Build update set containing ONLY position-relevant fields that actually changed
+    const updateSet: Record<string, number | null> = {};
+    for (const k of changedKeys) {
+      updateSet[k] = typeof after[k] === "number" ? (after[k] as number) : null;
+    }
 
     await db
       .update(players)
-      .set({
-        wRISP: after.wRISP ?? null,
-        vsLefty: after.vsLefty ?? null,
-        poise: after.poise ?? null,
-        grit: after.grit ?? null,
-        heater: after.heater ?? null,
-        agile: after.agile ?? null,
-        recovery: after.recovery ?? null,
-        clutch: after.clutch ?? null,
-        vsLHP: after.vsLHP ?? null,
-        stealing: after.stealing ?? null,
-        running: after.running ?? null,
-        throwing: after.throwing ?? null,
-        catcherAbility: after.catcherAbility ?? null,
-      })
+      .set(updateSet as Partial<typeof players.$inferSelect>)
       .where(eq(players.id, row.id));
   }
 
@@ -183,34 +187,15 @@ async function run() {
     console.error(`  ✗ ${ovrDriftCount} player(s) had OVR values change — investigate!\n`);
   }
 
-  // --- Global distribution summary ------------------------------------
-  const afterBucketsGlobal: FGBuckets = emptyBuckets();
-  Object.values(byConference).forEach((c) => {
-    afterBucketsGlobal[0] += c.afterBuckets[0];
-    afterBucketsGlobal[1] += c.afterBuckets[1];
-    afterBucketsGlobal[2] += c.afterBuckets[2];
-    afterBucketsGlobal[3] += c.afterBuckets[3];
-    afterBucketsGlobal[4] += c.afterBuckets[4];
-    afterBucketsGlobal["5+"] += c.afterBuckets["5+"];
-    afterBucketsGlobal.total += c.afterBuckets.total;
-  });
-  // Include unchanged players in after global
-  rows.forEach((r, idx) => {
-    const confName = r.conferenceName ?? "Unknown";
-    const c = byConference[confName];
-    // only count unchanged ones (already added adjusted above)
-    // recalculate: simpler to just recount all with final state
-  });
-
-  console.log("=== Global F/G Distribution BEFORE ===");
-  printBuckets(beforeBuckets);
-
-  console.log("\n=== Global F/G Distribution AFTER ===");
-  // Re-fetch for accurate after buckets
+  // --- Re-fetch all players with conference for accurate AFTER distributions ---
   const afterRows = await db
     .select({
       id: players.id,
+      teamId: players.teamId,
+      firstName: players.firstName,
+      lastName: players.lastName,
       position: players.position,
+      overall: players.overall,
       wRISP: players.wRISP,
       vsLefty: players.vsLefty,
       poise: players.poise,
@@ -224,32 +209,92 @@ async function run() {
       running: players.running,
       throwing: players.throwing,
       catcherAbility: players.catcherAbility,
-      overall: players.overall,
+      conferenceName: conferences.name,
     })
-    .from(players);
+    .from(players)
+    .innerJoin(teams, eq(players.teamId, teams.id))
+    .leftJoin(conferences, eq(teams.conferenceId, conferences.id));
 
-  const afterBucketsReal: FGBuckets = emptyBuckets();
-  afterRows.forEach((r) => addToBuckets(afterBucketsReal, countFG(r as PlayerRow)));
-  printBuckets(afterBucketsReal);
+  // Build global and per-conference AFTER buckets from the live DB state
+  const afterGlobal: FGBuckets = emptyBuckets();
+  const afterByConf: Record<string, FGBuckets> = {};
+  for (const r of afterRows) {
+    const conf = r.conferenceName ?? "Unknown";
+    if (!afterByConf[conf]) afterByConf[conf] = emptyBuckets();
+    const fg = countFG(r as PlayerRow);
+    addToBuckets(afterGlobal, fg);
+    addToBuckets(afterByConf[conf], fg);
+  }
 
-  // --- Per-conference summary -----------------------------------------
-  console.log("\n=== By Conference (adjusted count) ===");
-  const sortedConfs = Object.entries(byConference).sort(
-    (a, b) => b[1].adjusted - a[1].adjusted,
+  // Tier-aware per-conference pass/fail thresholds.
+  // The normalizer caps tier shift at min(2, tier-1), so the worst-case theoretical
+  // max for "5+ F/G" in Tier 3-5 is ~9% (6+2+1 from the sampling distribution).
+  // Thresholds are calibrated to the actual expected output, not the global target:
+  //   Tier 1 (shift 0): same as global  — 5+ ≤3%, 4 ≤5%,  3 ≤10%
+  //   Tier 2 (shift 1): loosened once   — 5+ ≤8%, 4 ≤13%, 3 ≤22%
+  //   Tier 3+ (shift 2): loosened twice — 5+ ≤13%, 4 ≤21%, 3 ≤34%
+  // No minimum-0 F/G threshold for Tier 2+ — low-tier rosters have very low base
+  // attribute values, so 0 F/G naturally drops toward 0% even after normalization.
+  function confThresholds(confName: string): { min0: number; max5p: number; max4: number; max3: number } {
+    const tier = CONFERENCE_TIERS[confName] ?? 1;
+    const shift = Math.min(2, tier - 1);
+    return {
+      min0:  shift > 0 ? 0 : 49,   // only enforce 0 F/G minimum for Tier 1
+      max5p:  3 + shift * 5,        // T1: 3%, T2: 8%, T3+: 13%
+      max4:   5 + shift * 8,        // T1: 5%, T2: 13%, T3+: 21%
+      max3:  10 + shift * 12,       // T1: 10%, T2: 22%, T3+: 34%
+    };
+  }
+
+  function checkConf(buckets: FGBuckets, confName: string): boolean {
+    if (buckets.total === 0) return true;
+    const t = confThresholds(confName);
+    const pct0  = buckets[0]    / buckets.total * 100;
+    const pct3  = buckets[3]    / buckets.total * 100;
+    const pct4  = buckets[4]    / buckets.total * 100;
+    const pct5p = buckets["5+"] / buckets.total * 100;
+    return pct0 >= t.min0 && pct5p <= t.max5p && pct4 <= t.max4 && pct3 <= t.max3;
+  }
+
+  console.log("=== Global F/G Distribution BEFORE ===");
+  printBuckets(beforeBuckets);
+
+  console.log("\n=== Global F/G Distribution AFTER (live DB) ===");
+  printBuckets(afterGlobal);
+  const globalPass =
+    afterGlobal.total > 0 &&
+    afterGlobal[0] / afterGlobal.total >= 0.49 &&
+    afterGlobal["5+"] / afterGlobal.total <= 0.03 &&
+    afterGlobal[4] / afterGlobal.total <= 0.05 &&
+    afterGlobal[3] / afterGlobal.total <= 0.10;
+  console.log(`  Global targets: ${globalPass ? "✓ PASS" : "✗ FAIL"}`);
+
+  // --- Per-conference full distributions with tier-aware pass/fail ----
+  console.log("\n=== By Conference — full distribution, adjusted/total, tier-aware PASS/FAIL ===");
+  const sortedConfs = Object.entries(afterByConf).sort(
+    ([a], [b]) => (CONFERENCE_TIERS[a] ?? 1) - (CONFERENCE_TIERS[b] ?? 1) || a.localeCompare(b),
   );
-  for (const [conf, stats] of sortedConfs) {
-    const pct = stats.total > 0 ? Math.round((stats.adjusted / stats.total) * 100) : 0;
-    const bar = "█".repeat(Math.min(20, Math.round(pct / 5)));
-    console.log(`  ${conf.padEnd(20)} ${stats.adjusted}/${stats.total} (${pct}%) ${bar}`);
-    if (stats.adjusted > 0) {
-      printBuckets(stats.afterBuckets);
-    }
+  let confFails = 0;
+  for (const [conf, buckets] of sortedConfs) {
+    const tier = CONFERENCE_TIERS[conf] ?? 1;
+    const adj  = byConference[conf]?.adjusted ?? 0;
+    const tot  = buckets.total;
+    const pass = checkConf(buckets, conf);
+    if (!pass) confFails++;
+    const t = confThresholds(conf);
+    console.log(
+      `\n  [Tier ${tier}] ${conf} — ${adj} adjusted / ${tot} total — ${pass ? "✓ PASS" : "✗ FAIL"}`
+      + ` (thresholds: 0 F/G ≥${t.min0}%, 3+ F/G ≤${t.max3}%, 4+ F/G ≤${t.max4}%, 5+ F/G ≤${t.max5p}%)`,
+    );
+    printBuckets(buckets);
   }
 
   console.log(`\n=== Summary ===`);
-  console.log(`Adjusted : ${adjusted}`);
-  console.log(`Unchanged: ${unchanged}`);
-  console.log(`OVR drift: ${ovrDriftCount}`);
+  console.log(`Adjusted      : ${adjusted}`);
+  console.log(`Unchanged     : ${unchanged}`);
+  console.log(`OVR drift     : ${ovrDriftCount}`);
+  console.log(`Global targets: ${globalPass ? "✓ PASS" : "✗ FAIL"}`);
+  console.log(`Conf failures : ${confFails}`);
   console.log(`Migration complete.`);
 }
 
