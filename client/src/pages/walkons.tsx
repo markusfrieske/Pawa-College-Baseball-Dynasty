@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { parseErrorMessage } from "@/lib/errorUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link, useLocation } from "wouter";
@@ -114,17 +114,39 @@ export default function WalkonsPage() {
     queryKey: ["/api/auth/me"],
   });
 
+  // Persistent results for non-commissioner coaches — reads from league.lastWalkonAuction
+  // via GET /walkons/auction-results after the commissioner has resolved the auction.
+  const league = leagueData?.league;
+  const isWalkonsPhase = league?.currentPhase === "offseason_walkons";
+  const { data: persistedResults } = useQuery<{ results: AuctionOutcome[] }>({
+    queryKey: ["/api/leagues", id, "walkons", "auction-results"],
+    enabled: !isWalkonsPhase && !!myTeam,
+    refetchOnMount: true,
+  });
+
+  // Auto-show results modal for non-commissioner coaches who didn't trigger the advance
+  const persistedOutcomes = persistedResults?.results;
+  useEffect(() => {
+    if (persistedOutcomes && persistedOutcomes.length > 0 && !auctionResults) {
+      setAuctionResults(persistedOutcomes);
+    }
+    // Only run when persisted outcomes first arrive
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [persistedOutcomes]);
+
   const advanceMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest("POST", `/api/leagues/${id}/advance`);
+      const res = await apiRequest("POST", `/api/leagues/${id}/advance`);
+      return res.json() as Promise<any>;
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "walkons", "auction-results"] });
       const myTeamId = rosterData?.team?.id;
       if (myTeamId && data?.seasonTransition?.auctionResultsByTeam?.[myTeamId]) {
         setAuctionResults(data.seasonTransition.auctionResultsByTeam[myTeamId]);
       } else {
-        toast({ title: "Season Advanced", description: "Welcome to Spring Training!" });
+        toast({ title: "Auction Resolved", description: "Advancing to Spring Training…" });
         setLocation(`/league/${id}`);
       }
     },

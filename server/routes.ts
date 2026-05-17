@@ -11621,7 +11621,9 @@ export async function registerRoutes(
 
       const winner = bids[0];
       const secondBid = bids[1]?.bidAmount ?? 0;
-      const pricePaid = bids.length > 1 ? secondBid + 1 : winner.bidAmount;
+      // Vickrey: winner pays second-highest + 1, clamped to their own bid
+      // (prevents overcharge on ties where both bids are equal)
+      const pricePaid = Math.min(winner.bidAmount, bids.length > 1 ? secondBid + 1 : winner.bidAmount);
 
       // Mark the walkon as awarded (used for display; signedTeamId drives player creation)
       await storage.updateWalkon(walkon.id, {
@@ -11733,6 +11735,12 @@ export async function registerRoutes(
         }
       }
     }
+
+    // Persist auction results to league before walkons are deleted so all coaches
+    // can retrieve their outcomes via GET /walkons/auction-results even after the phase advances.
+    await storage.updateLeague(leagueId, {
+      lastWalkonAuction: JSON.stringify(Object.fromEntries(auctionResultsByTeam)),
+    });
 
     await storage.deleteWalkonsByLeague(leagueId);
 
@@ -12114,6 +12122,36 @@ export async function registerRoutes(
       });
     } catch (error) {
       res.status(500).json({ message: "Failed to get bid data" });
+    }
+  });
+
+  // GET post-auction results for the requesting team.
+  // Reads from league.lastWalkonAuction (persisted before walkons are deleted)
+  // so all coaches can see their won/lost summary after the phase advances.
+  // Returns { results: [] } when no auction has been resolved this season.
+  app.get("/api/leagues/:id/walkons/auction-results", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id;
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      const coaches = await storage.getCoachesByLeague(leagueId);
+      const userCoach = coaches.find(c => c.userId === req.session.userId);
+      if (!userCoach || !userCoach.teamId) return res.json({ results: [] });
+
+      if (!league.lastWalkonAuction) return res.json({ results: [] });
+
+      let allTeamResults: Record<string, unknown[]>;
+      try {
+        allTeamResults = JSON.parse(league.lastWalkonAuction);
+      } catch {
+        return res.json({ results: [] });
+      }
+
+      const teamResults = (allTeamResults[userCoach.teamId] as unknown[]) || [];
+      res.json({ results: teamResults });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get auction results" });
     }
   });
 
