@@ -11,7 +11,7 @@
 import { db } from "../server/db";
 import { players, teams, conferences } from "../shared/schema";
 import { eq, sql } from "drizzle-orm";
-import { normalizeCommonAbilities, ALL_COMMON_FIELDS, CONFERENCE_TIERS } from "../server/normalizeCommonAbilities";
+import { normalizeCommonAbilities, CONFERENCE_TIERS } from "../server/normalizeCommonAbilities";
 
 // --- types ---------------------------------------------------------------
 
@@ -120,6 +120,18 @@ async function run() {
   let adjusted = 0;
   let unchanged = 0;
   const byConference: Record<string, { adjusted: number; total: number; afterBuckets: FGBuckets }> = {};
+  const BATCH_SIZE = 250;
+  const pendingUpdates: { id: string; updateSet: Record<string, number | null> }[] = [];
+
+  async function flushUpdates() {
+    for (const { id, updateSet } of pendingUpdates) {
+      await db
+        .update(players)
+        .set(updateSet as Partial<typeof players.$inferSelect>)
+        .where(eq(players.id, id));
+    }
+    pendingUpdates.length = 0;
+  }
 
   for (const row of rows) {
     const confName = row.conferenceName ?? "Unknown";
@@ -156,17 +168,20 @@ async function run() {
     }
     addToBuckets(byConference[confName].afterBuckets, countFG(mergedRow));
 
-    // Build update set containing ONLY position-relevant fields that actually changed
+    // Collect update for batch flush
     const updateSet: Record<string, number | null> = {};
     for (const k of changedKeys) {
       updateSet[k] = typeof after[k] === "number" ? (after[k] as number) : null;
     }
+    pendingUpdates.push({ id: row.id, updateSet });
 
-    await db
-      .update(players)
-      .set(updateSet as Partial<typeof players.$inferSelect>)
-      .where(eq(players.id, row.id));
+    // Flush in chunks to keep transaction size reasonable
+    if (pendingUpdates.length >= BATCH_SIZE) {
+      await flushUpdates();
+    }
   }
+  // Flush remaining
+  await flushUpdates();
 
   // --- OVR unchanged verification -------------------------------------
   console.log("Verifying OVR values are unchanged…");
@@ -235,25 +250,33 @@ async function run() {
   //   Tier 3+ (shift 2): loosened twice — 5+ ≤13%, 4 ≤21%, 3 ≤34%
   // No minimum-0 F/G threshold for Tier 2+ — low-tier rosters have very low base
   // attribute values, so 0 F/G naturally drops toward 0% even after normalization.
-  function confThresholds(confName: string): { min0: number; max5p: number; max4: number; max3: number } {
+  function confThresholds(confName: string): {
+    min0: number; max1: number; max2: number; max3: number; max4: number; max5p: number;
+  } {
     const tier = CONFERENCE_TIERS[confName] ?? 1;
     const shift = Math.min(2, tier - 1);
     return {
-      min0:  shift > 0 ? 0 : 49,   // only enforce 0 F/G minimum for Tier 1
-      max5p:  3 + shift * 5,        // T1: 3%, T2: 8%, T3+: 13%
-      max4:   5 + shift * 8,        // T1: 5%, T2: 13%, T3+: 21%
-      max3:  10 + shift * 12,       // T1: 10%, T2: 22%, T3+: 34%
+      min0:  shift > 0 ? 0  : 49,  // only enforce 0 F/G minimum for Tier 1
+      max1:  shift > 0 ? 100 : 45, // T1: <45%, T2+: no upper limit (natural spread)
+      max2:  25 + shift * 12,      // T1: 25%, T2: 37%, T3+: 49%
+      max3:  10 + shift * 12,      // T1: 10%, T2: 22%, T3+: 34%
+      max4:   5 + shift * 8,       // T1: 5%,  T2: 13%, T3+: 21%
+      max5p:  3 + shift * 5,       // T1: 3%,  T2: 8%,  T3+: 13%
     };
   }
 
   function checkConf(buckets: FGBuckets, confName: string): boolean {
     if (buckets.total === 0) return true;
     const t = confThresholds(confName);
-    const pct0  = buckets[0]    / buckets.total * 100;
-    const pct3  = buckets[3]    / buckets.total * 100;
-    const pct4  = buckets[4]    / buckets.total * 100;
-    const pct5p = buckets["5+"] / buckets.total * 100;
-    return pct0 >= t.min0 && pct5p <= t.max5p && pct4 <= t.max4 && pct3 <= t.max3;
+    const pct = (n: number) => n / buckets.total * 100;
+    return (
+      pct(buckets[0])    >= t.min0  &&
+      pct(buckets[1])    <= t.max1  &&
+      pct(buckets[2])    <= t.max2  &&
+      pct(buckets[3])    <= t.max3  &&
+      pct(buckets[4])    <= t.max4  &&
+      pct(buckets["5+"]) <= t.max5p
+    );
   }
 
   console.log("=== Global F/G Distribution BEFORE ===");
@@ -263,10 +286,12 @@ async function run() {
   printBuckets(afterGlobal);
   const globalPass =
     afterGlobal.total > 0 &&
-    afterGlobal[0] / afterGlobal.total >= 0.49 &&
-    afterGlobal["5+"] / afterGlobal.total <= 0.03 &&
-    afterGlobal[4] / afterGlobal.total <= 0.05 &&
-    afterGlobal[3] / afterGlobal.total <= 0.10;
+    afterGlobal[0]    / afterGlobal.total >= 0.49 &&
+    afterGlobal[1]    / afterGlobal.total <= 0.45 &&
+    afterGlobal[2]    / afterGlobal.total <= 0.25 &&
+    afterGlobal[3]    / afterGlobal.total <= 0.10 &&
+    afterGlobal[4]    / afterGlobal.total <= 0.05 &&
+    afterGlobal["5+"] / afterGlobal.total <= 0.03;
   console.log(`  Global targets: ${globalPass ? "✓ PASS" : "✗ FAIL"}`);
 
   // --- Per-conference full distributions with tier-aware pass/fail ----
