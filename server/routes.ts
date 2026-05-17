@@ -1397,10 +1397,17 @@ export async function registerRoutes(
         // Hard floor of 150 so displayed minimum never dips unrealistically low
         let newMin = Math.max(150, Math.max(min, actual - halfRange));
         let newMax = Math.min(max, actual + halfRange);
-        // Enforce minimum display width of 150 before signing day
+        // Enforce minimum display width of 150 before signing day.
+        // Expand symmetrically around actual, then shift window if clipped at boundary.
         if (newMax - newMin < 150) {
-          newMin = Math.max(150, actual - 75);
-          newMax = Math.min(650, newMin + 150);
+          let newMinAdj = Math.max(150, actual - 75);
+          let newMaxAdj = Math.min(650, newMinAdj + 150);
+          // If upper-bound clip made range too narrow, push window left
+          if (newMaxAdj - newMinAdj < 150) {
+            newMinAdj = Math.max(150, newMaxAdj - 150);
+          }
+          newMin = newMinAdj;
+          newMax = newMaxAdj;
         }
         return { newMin, newMax };
       };

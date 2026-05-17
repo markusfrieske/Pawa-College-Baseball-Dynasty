@@ -3298,10 +3298,10 @@ function RecruitDetailModal({
                     return (
                       <div key={attr.key} className="flex items-center justify-between p-2 bg-muted/50 rounded">
                         <span className="text-sm text-muted-foreground">{attr.label}</span>
-                        {isSigningDayLocked ? (
+                        {isSigningDayLocked || !revealed ? (
                           <SeeUponSigningBadge />
                         ) : (
-                          <span className={`font-bold ${revealed ? "text-foreground" : "text-muted-foreground"}`}>
+                          <span className="font-bold text-foreground">
                             {displayValue}
                           </span>
                         )}
@@ -3325,11 +3325,11 @@ function RecruitDetailModal({
                   return (
                     <div key={attr.key} className="flex items-center justify-between p-2 bg-muted/50 rounded">
                       <span className="text-sm text-muted-foreground">{attr.label}</span>
-                      {isSigningDayLocked ? (
+                      {isSigningDayLocked || !revealed ? (
                         <SeeUponSigningBadge />
                       ) : (
-                        <span className={`font-bold ${revealed ? "text-foreground" : "text-muted-foreground"}`}>
-                          {revealed ? attr.value : "??"}
+                        <span className="font-bold text-foreground">
+                          {attr.value}
                         </span>
                       )}
                     </div>
@@ -3768,10 +3768,10 @@ function RecruitDetailModal({
                     return (
                       <div key={attr.key} className="flex items-center justify-between p-2 bg-muted/50 rounded">
                         <span className="text-sm text-muted-foreground">{attr.label}</span>
-                        {isSigningDayLocked ? (
+                        {isSigningDayLocked || !revealed ? (
                           <SeeUponSigningBadge />
                         ) : (
-                          <span className={`font-bold ${revealed ? "text-foreground" : "text-muted-foreground"}`}>
+                          <span className="font-bold text-foreground">
                             {displayValue}
                           </span>
                         )}
@@ -3795,11 +3795,11 @@ function RecruitDetailModal({
                   return (
                     <div key={attr.key} className="flex items-center justify-between p-2 bg-muted/50 rounded">
                       <span className="text-sm text-muted-foreground">{attr.label}</span>
-                      {isSigningDayLocked ? (
+                      {isSigningDayLocked || !revealed ? (
                         <SeeUponSigningBadge />
                       ) : (
-                        <span className={`font-bold ${revealed ? "text-foreground" : "text-muted-foreground"}`}>
-                          {revealed ? attr.value : "??"}
+                        <span className="font-bold text-foreground">
+                          {attr.value}
                         </span>
                       )}
                     </div>
