@@ -550,7 +550,7 @@ export default function WalkonsPage() {
               </RetroCardHeader>
               <RetroCardContent>
                 <div className="mb-3 p-2 rounded bg-muted/10 border border-border/40 text-[9px] text-muted-foreground leading-relaxed">
-                  Submit your max bid (in thousands) for any walk-on. Bids are blind. Winner pays the second-highest bid + $1 (Vickrey pricing). Enter "150" to bid $150,000.
+                  Submit your max bid (in thousands) for any walk-on. Bids are blind — no team sees another's bid until the commissioner resolves the auction. Winner pays the second-highest bid + $1 (Vickrey pricing). Enter "150" to bid $150,000. Tied bids are broken by submission time — first to submit wins.
                 </div>
 
                 {openSlots === 0 && (

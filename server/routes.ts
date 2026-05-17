@@ -7811,8 +7811,11 @@ export async function registerRoutes(
           await storage.updateTeam(team.id, { walkonReady: team.isCpu });
         }
         
+        // Clear any previous season's auction results so the /walkons/auction-results
+        // endpoint never returns stale data from a prior cycle.
         const updatedLeague = await storage.updateLeague(league.id, {
           currentPhase: "offseason_walkons",
+          lastWalkonAuction: null,
         });
         
         await storage.createAuditLog({
