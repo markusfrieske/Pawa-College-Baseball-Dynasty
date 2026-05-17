@@ -3597,7 +3597,8 @@ export async function registerRoutes(
       });
 
       const teams = await storage.getTeamsByLeague(req.params.id);
-      const humanTeams = teams.filter(t => !t.isCpu);
+      // Auto-pilot teams are always treated as departed-ready (CPU manages them)
+      const humanTeams = teams.filter(t => !t.isCpu && !t.isAutoPilot);
       const allReady = humanTeams.every(t => t.departuresFinalized);
 
       res.json({ 
@@ -7047,6 +7048,111 @@ export async function registerRoutes(
     }
   });
 
+  // ============ AUTO-PILOT TOGGLE ============
+  app.patch("/api/leagues/:id/teams/:teamId/autopilot", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id as string);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      if (!hasCommissionerAccess(league, req.session.userId)) {
+        return res.status(403).json({ message: "Only the commissioner can toggle auto-pilot" });
+      }
+
+      const team = await storage.getTeam(req.params.teamId as string);
+      if (!team || team.leagueId !== league.id) {
+        return res.status(404).json({ message: "Team not found in this league" });
+      }
+      if (team.isCpu) {
+        return res.status(400).json({ message: "Team is already CPU-controlled" });
+      }
+
+      // Cannot set auto-pilot on the commissioner's own team
+      const allCoaches = await storage.getCoachesByLeague(league.id);
+      const teamCoach = allCoaches.find(c => c.teamId === team.id);
+      if (teamCoach?.userId === league.commissionerId) {
+        return res.status(400).json({ message: "Cannot put the commissioner's own team on auto-pilot" });
+      }
+
+      const newState = !team.isAutoPilot;
+      await storage.updateTeam(team.id, { isAutoPilot: newState });
+
+      const coachName = teamCoach ? `${teamCoach.firstName} ${teamCoach.lastName}` : "Unknown coach";
+      await storage.createAuditLog({
+        leagueId: league.id,
+        userId: req.session.userId!,
+        action: newState ? "Auto-Pilot Enabled" : "Auto-Pilot Disabled",
+        details: `${coachName} (${team.name}) was ${newState ? "placed on" : "removed from"} auto-pilot by the commissioner. ${newState ? "CPU will manage their team until disabled." : "Coach has regained full control."}`,
+      });
+
+      return res.json({ success: true, isAutoPilot: newState, teamId: team.id });
+    } catch (error) {
+      console.error("Failed to toggle auto-pilot:", error);
+      return res.status(500).json({ message: "Failed to toggle auto-pilot" });
+    }
+  });
+
+  // ============ FORCE ADVANCE ============
+  app.post("/api/leagues/:id/force-advance", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id as string);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      if (!hasCommissionerAccess(league, req.session.userId)) {
+        return res.status(403).json({ message: "Only the commissioner can force-advance" });
+      }
+
+      const allCoaches = await storage.getCoachesByLeague(league.id);
+      const allTeams = await storage.getTeamsByLeague(league.id);
+      // Human teams that are NOT on auto-pilot (auto-pilot teams are already treated as CPU-ready)
+      const humanNonAutoPilotTeams = allTeams.filter(t => !t.isCpu && !t.isAutoPilot);
+      const humanTeamIdSet = new Set(humanNonAutoPilotTeams.map(t => t.id));
+      const notReadyCoaches = allCoaches.filter(c => c.teamId && humanTeamIdSet.has(c.teamId) && !c.isReady);
+
+      const forcedAuditParts: string[] = [];
+
+      // Force-mark all non-ready coaches as ready (works for regular season and recruiting phases)
+      if (notReadyCoaches.length > 0) {
+        await Promise.all(notReadyCoaches.map(c => storage.updateCoach(c.id, { isReady: true })));
+        forcedAuditParts.push(`${notReadyCoaches.length} coach${notReadyCoaches.length !== 1 ? "es" : ""} marked ready: ${notReadyCoaches.map(c => `${c.firstName} ${c.lastName}`).join(", ")}`);
+      }
+
+      // For walk-on phase, force walkonReady on all non-ready non-auto-pilot human teams
+      if (league.currentPhase === "offseason_walkons") {
+        const notWalkonReady = humanNonAutoPilotTeams.filter(t => !t.walkonReady);
+        if (notWalkonReady.length > 0) {
+          await Promise.all(notWalkonReady.map(t => storage.updateTeam(t.id, { walkonReady: true })));
+          forcedAuditParts.push(`${notWalkonReady.length} team${notWalkonReady.length !== 1 ? "s" : ""} forced ready for walk-on phase`);
+        }
+      }
+
+      // For departures phase, force departuresFinalized on all non-ready non-auto-pilot human teams
+      if (league.currentPhase === "offseason_departures") {
+        const notDepartureReady = humanNonAutoPilotTeams.filter(t => !t.departuresFinalized);
+        if (notDepartureReady.length > 0) {
+          await Promise.all(notDepartureReady.map(t => storage.updateTeam(t.id, { departuresFinalized: true })));
+          forcedAuditParts.push(`${notDepartureReady.length} team${notDepartureReady.length !== 1 ? "s" : ""} forced ready for departures phase`);
+        }
+      }
+
+      // Always audit-log force-advance, even when nothing was pending
+      await storage.createAuditLog({
+        leagueId: league.id,
+        userId: req.session.userId!,
+        action: "Force Advance",
+        details: forcedAuditParts.length > 0
+          ? `Commissioner force-advanced the phase. ${forcedAuditParts.join("; ")}.`
+          : `Commissioner force-advanced the phase (all coaches were already ready).`,
+      });
+
+      // Now call the normal advance endpoint logic by forwarding internally
+      // We do this by making the advance call with forced readiness already set
+      // Simply redirect to the advance route by calling it programmatically:
+      req.url = `/api/leagues/${league.id}/advance`;
+      return res.redirect(307, `/api/leagues/${league.id}/advance`);
+    } catch (error) {
+      console.error("Failed to force-advance:", error);
+      return res.status(500).json({ message: "Failed to force-advance" });
+    }
+  });
+
   app.post("/api/leagues/:id/advance", requireAuth, async (req, res) => {
     try {
       const league = await storage.getLeague(req.params.id as string);
@@ -7131,13 +7237,15 @@ export async function registerRoutes(
       // For preseason, spring_training, and regular_season: block the advance when any human
       // coach hasn't marked ready and the phase deadline hasn't yet passed.
       // (Deadline-passed path is already handled above, so if we reach here the deadline is future/unset.)
+      // Auto-pilot teams are treated as always ready — skip them in the gate check.
       const readinessGatedPhases = ["preseason", "spring_training", "regular_season"];
       if (readinessGatedPhases.includes(league.currentPhase)) {
         const deadlinePassed = league.phaseDeadline && new Date(league.phaseDeadline) <= new Date();
         if (!deadlinePassed) {
           const gateCoaches = await storage.getCoachesByLeague(leagueId);
           const gateTeams = await storage.getTeamsByLeague(leagueId);
-          const humanGateTeams = gateTeams.filter(t => !t.isCpu);
+          // Auto-pilot teams count as ready — exclude them from the gate
+          const humanGateTeams = gateTeams.filter(t => !t.isCpu && !t.isAutoPilot);
           const humanTeamIdSet = new Set(humanGateTeams.map(t => t.id));
           const notReadyCoaches = gateCoaches.filter(c => c.teamId && humanTeamIdSet.has(c.teamId) && !c.isReady);
           if (notReadyCoaches.length > 0) {
@@ -7768,7 +7876,8 @@ export async function registerRoutes(
           });
         } else {
           const leagueTeams = await storage.getTeamsByLeague(leagueId);
-          const humanTeams = leagueTeams.filter(t => !t.isCpu);
+          // Auto-pilot teams are always treated as ready for departures (CPU manages them)
+          const humanTeams = leagueTeams.filter(t => !t.isCpu && !t.isAutoPilot);
           const allReady = humanTeams.every(t => t.departuresFinalized);
           
           if (!allReady) {
@@ -7835,7 +7944,8 @@ export async function registerRoutes(
         
         const allTeams = await storage.getTeamsByLeague(leagueId);
         for (const team of allTeams) {
-          await storage.updateTeam(team.id, { walkonReady: team.isCpu });
+          // CPU teams and auto-pilot teams are immediately ready for walk-on phase
+          await storage.updateTeam(team.id, { walkonReady: team.isCpu || team.isAutoPilot });
         }
         
         // Clear any previous season's auction results so the /walkons/auction-results
@@ -10419,7 +10529,8 @@ export async function registerRoutes(
   // ============ CPU TRANSFER PORTAL RECRUITING ============
   async function runCpuTransferPortalRecruiting(leagueId: string) {
     const teams = await storage.getTeamsByLeague(leagueId);
-    const cpuTeams = teams.filter(t => t.isCpu);
+    // Auto-pilot human teams behave like CPU for transfer portal recruiting too
+    const cpuTeams = teams.filter(t => t.isCpu || t.isAutoPilot);
     
     // Get all transfer portal players
     const allPlayers: any[] = [];
@@ -10719,7 +10830,8 @@ export async function registerRoutes(
     const eligMap: Record<string, number> = { "FR": 1, "SO": 2, "JR": 3, "SR": 4, "RS": 5 };
 
     for (const team of teams) {
-      if (!team.isCpu) continue;
+      // Auto-pilot human teams get the same CPU walk-on management
+      if (!team.isCpu && !team.isAutoPilot) continue;
       
       let roster = await storage.getPlayersByTeam(team.id);
       
@@ -10906,7 +11018,8 @@ export async function registerRoutes(
     const allRecruitsPreCheck = await storage.getRecruitsByLeague(leagueId);
 
     for (const team of teams) {
-      if (!team.isCpu) continue;
+      // Auto-pilot human teams get the same CPU minimum-roster auto-fill
+      if (!team.isCpu && !team.isAutoPilot) continue;
       const currentRoster = await storage.getPlayersByTeam(team.id);
       const alreadySignedCount = allRecruitsPreCheck.filter(r => r.signedTeamId === team.id).length;
       const projectedSize = currentRoster.length + alreadySignedCount;
@@ -13887,7 +14000,8 @@ export async function registerRoutes(
     };
     
     const teams = await storage.getTeamsByLeague(leagueId);
-    const cpuTeams = teams.filter(t => t.isCpu);
+    // Auto-pilot human teams behave exactly like CPU for recruiting
+    const cpuTeams = teams.filter(t => t.isCpu || t.isAutoPilot);
     const recruits = await storage.getRecruitsByLeague(leagueId);
     const unsignedRecruits = recruits.filter(r => !r.signedTeamId);
     
@@ -14435,6 +14549,7 @@ export async function registerRoutes(
           coachId: coach?.id ?? null,
           coachName: coach ? `${coach.firstName} ${coach.lastName}` : "CPU",
           isReady: coach?.isReady ?? false,
+          isAutoPilot: team.isAutoPilot ?? false,
           departuresFinalized: team.departuresFinalized,
           walkonReady: team.walkonReady ?? false,
           scoutActionsUsed,
@@ -14449,6 +14564,8 @@ export async function registerRoutes(
       const isWalkonsPhase = league.currentPhase === "offseason_walkons";
       
       const getReadyState = (s: typeof readyStatus[0]) => {
+        // Auto-pilot teams are always treated as ready — CPU manages them
+        if (s.isAutoPilot) return true;
         if (isDeparturesPhase) return s.departuresFinalized;
         if (isWalkonsPhase) return s.walkonReady;
         return s.isReady;

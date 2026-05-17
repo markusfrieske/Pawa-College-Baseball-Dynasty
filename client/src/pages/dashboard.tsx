@@ -5,7 +5,7 @@ import { parseErrorMessage } from "@/lib/errorUtils";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
 import { TeamBadge } from "@/components/ui/team-badge";
-import { Plus, Trophy, Users, Calendar, LogOut, Trash2, UserCheck, BookOpen, FolderOpen, GraduationCap, Eye, Crown, RotateCcw } from "lucide-react";
+import { Plus, Trophy, Users, Calendar, LogOut, Trash2, UserCheck, BookOpen, FolderOpen, GraduationCap, Eye, Crown, RotateCcw, Bot } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -499,6 +499,17 @@ function LeagueCard({ league, userId }: { league: LeagueWithDetails; userId?: st
           </AlertDialog>
         </div>
       </RetroCardHeader>
+      {league.userTeam?.isAutoPilot && (
+        <div className="px-4 pb-2 pt-1">
+          <div
+            className="flex items-center gap-2 px-3 py-2 rounded border border-blue-400/40 bg-blue-950/30 text-blue-300 text-xs"
+            data-testid={`banner-autopilot-${league.id}`}
+          >
+            <Bot className="w-3.5 h-3.5 shrink-0 text-blue-400" />
+            <span>Your team is on <span className="font-pixel text-[9px] text-blue-400">AUTO-PILOT</span> — the CPU is managing your actions. Contact your commissioner to regain control.</span>
+          </div>
+        </div>
+      )}
       {(league.currentPhase === "offseason_signing_day" || league.currentPhase === "offseason_walkons") && (
         <div className="px-4 pb-2 pt-1">
           <Link href={`/league/${league.id}/signing-day-reveal`}>

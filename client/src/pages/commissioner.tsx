@@ -1327,6 +1327,7 @@ interface ReadyStatusData {
     coachId: string | null;
     coachName: string;
     isReady: boolean;
+    isAutoPilot: boolean;
     departuresFinalized: boolean;
     walkonReady: boolean;
     scoutActionsUsed: number;
@@ -1357,6 +1358,8 @@ function formatLastActivity(lastActivityAt: string | null): string {
 function ReadyStatusSection({ leagueId, commissionerUserId, coCommissionerIds, onAdvanceWeek, isAdvancing }: { leagueId: string; commissionerUserId?: string; coCommissionerIds?: string[]; onAdvanceWeek?: () => void; isAdvancing?: boolean }) {
   const { toast } = useToast();
   const qc = useQueryClient();
+  const [showForceAdvanceConfirm, setShowForceAdvanceConfirm] = useState(false);
+  const [autoPilotConfirmTeam, setAutoPilotConfirmTeam] = useState<{ teamId: string; coachName: string; teamName: string } | null>(null);
 
   const { data: currentUser } = useQuery<{ id: string; email: string }>({
     queryKey: ["/api/auth/me"],
@@ -1380,6 +1383,60 @@ function ReadyStatusSection({ leagueId, commissionerUserId, coCommissionerIds, o
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
+    },
+  });
+
+  const autoPilotMutation = useMutation<{ success: boolean; isAutoPilot: boolean; teamId: string }, Error, string>({
+    mutationFn: async (teamId: string) => {
+      const res = await apiRequest("PATCH", `/api/leagues/${leagueId}/teams/${teamId}/autopilot`, {});
+      return res.json();
+    },
+    onSuccess: (result) => {
+      qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "ready-status"] });
+      qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "commissioner"] });
+      toast({
+        title: result.isAutoPilot ? "Auto-Pilot Enabled" : "Auto-Pilot Disabled",
+        description: result.isAutoPilot
+          ? "The CPU will now manage this team automatically."
+          : "The coach has regained full control of their team.",
+      });
+      setAutoPilotConfirmTeam(null);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
+      setAutoPilotConfirmTeam(null);
+    },
+  });
+
+  type ForceAdvanceResponse = {
+    currentSeason?: number;
+    seasonTransition?: { graduated: number; recruitsAdded: number };
+    [key: string]: unknown;
+  };
+
+  const forceAdvanceMutation = useMutation<ForceAdvanceResponse, Error, void>({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/leagues/${leagueId}/force-advance`, {});
+      return res.json();
+    },
+    onSuccess: (response) => {
+      qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId] });
+      qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "ready-status"] });
+      qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "commissioner"] });
+      qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "schedule"] });
+      qc.invalidateQueries({ queryKey: [`/api/leagues/${leagueId}/roster`] });
+      qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "walkons"] });
+      window.dispatchEvent(new CustomEvent("league-phase-changed"));
+      setShowForceAdvanceConfirm(false);
+      toast({ title: "Phase Force-Advanced", description: "All non-ready coaches were bypassed and the phase has advanced." });
+      if (response?.seasonTransition) {
+        const t = response.seasonTransition;
+        toast({ title: "Season Complete!", description: `${t.graduated} graduated, ${t.recruitsAdded} recruits joined. Welcome to Season ${response.currentSeason}!` });
+      }
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
+      setShowForceAdvanceConfirm(false);
     },
   });
 
@@ -1422,6 +1479,8 @@ function ReadyStatusSection({ leagueId, commissionerUserId, coCommissionerIds, o
   const isRecruitingPhase = ["offseason_recruiting_1","offseason_recruiting_2","offseason_recruiting_3","offseason_recruiting_4"].includes(data.currentPhase);
 
   const getTeamReady = (team: typeof humanTeams[0]) => {
+    // Auto-pilot teams are always treated as ready — CPU manages them
+    if (team.isAutoPilot) return true;
     if (isDeparturesPhase) return team.departuresFinalized;
     if (isWalkonsPhase) return team.walkonReady;
     return team.isReady;
@@ -1456,21 +1515,93 @@ function ReadyStatusSection({ leagueId, commissionerUserId, coCommissionerIds, o
               {data.readyCount}/{data.humanCount} Ready
             </Badge>
           </div>
-          {isCommissioner && onAdvanceWeek && data.allHumansReady && humanTeams.length > 0 && (
-            <RetroButton
-              variant="shimmer"
-              size="sm"
-              onClick={onAdvanceWeek}
-              disabled={isAdvancing}
-              className="shrink-0"
-              data-testid="button-advance-now-ready-section"
-            >
-              <Play className="w-3.5 h-3.5 mr-1" />
-              {isAdvancing ? "Advancing..." : "Advance Now"}
-            </RetroButton>
-          )}
+          <div className="flex items-center gap-2 shrink-0">
+            {isCommissioner && onAdvanceWeek && data.allHumansReady && humanTeams.length > 0 && (
+              <RetroButton
+                variant="shimmer"
+                size="sm"
+                onClick={onAdvanceWeek}
+                disabled={isAdvancing || forceAdvanceMutation.isPending}
+                className="shrink-0"
+                data-testid="button-advance-now-ready-section"
+              >
+                <Play className="w-3.5 h-3.5 mr-1" />
+                {isAdvancing ? "Advancing..." : "Advance Now"}
+              </RetroButton>
+            )}
+            {isCommissioner && stalledTeams.filter(t => !t.isAutoPilot).length > 0 && (
+              <RetroButton
+                variant="outline"
+                size="sm"
+                onClick={() => setShowForceAdvanceConfirm(true)}
+                disabled={isAdvancing || forceAdvanceMutation.isPending}
+                className="shrink-0 border-orange-500/50 text-orange-400 hover:bg-orange-500/10"
+                data-testid="button-force-advance"
+              >
+                <Zap className="w-3.5 h-3.5 mr-1" />
+                Force Advance
+              </RetroButton>
+            )}
+          </div>
         </div>
       </RetroCardHeader>
+
+      {/* Force Advance Confirmation Dialog */}
+      <AlertDialog open={showForceAdvanceConfirm} onOpenChange={setShowForceAdvanceConfirm}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-pixel text-orange-400 text-sm">Force Advance Phase?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>This will bypass all coaches who haven't marked ready and immediately advance the phase.</p>
+                {stalledTeams.filter(t => !t.isAutoPilot).length > 0 && (
+                  <div className="rounded border border-orange-500/30 bg-orange-950/20 p-2 text-xs">
+                    <p className="font-medium text-orange-400 mb-1">Coaches being bypassed:</p>
+                    <ul className="space-y-0.5">
+                      {stalledTeams.filter(t => !t.isAutoPilot).map(t => (
+                        <li key={t.teamId} className="text-muted-foreground">· {t.coachName} ({t.abbreviation})</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-background border-border">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => forceAdvanceMutation.mutate()}
+              className="bg-orange-600 hover:bg-orange-700 text-white"
+              data-testid="button-confirm-force-advance"
+            >
+              {forceAdvanceMutation.isPending ? "Advancing..." : "Force Advance"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Auto-Pilot Enable Confirmation Dialog */}
+      <AlertDialog open={!!autoPilotConfirmTeam} onOpenChange={(open) => { if (!open) setAutoPilotConfirmTeam(null); }}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-pixel text-gold text-sm">Enable Auto-Pilot?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Put <strong>{autoPilotConfirmTeam?.coachName}</strong>'s team ({autoPilotConfirmTeam?.teamName}) on auto-pilot? The CPU will manage their recruiting, readiness, and phase actions until you disable it. The coach account remains intact.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-background border-border">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => autoPilotConfirmTeam && autoPilotMutation.mutate(autoPilotConfirmTeam.teamId)}
+              className="bg-gold text-forest-dark hover:bg-gold/90"
+              data-testid="button-confirm-autopilot-enable"
+            >
+              {autoPilotMutation.isPending ? "Enabling..." : "Enable Auto-Pilot"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <RetroCardContent>
         {humanTeams.length === 0 ? (
           <p className="text-muted-foreground text-sm">No human coaches in this dynasty.</p>
@@ -1494,21 +1625,30 @@ function ReadyStatusSection({ leagueId, commissionerUserId, coCommissionerIds, o
                       ? `${Math.ceil(deadlineDiffMs / 3600000)}h left`
                       : null;
                     const canRemove = isCommissioner && team.userId !== commissionerUserId;
+                    const canAutoPilot = isCommissioner && team.userId !== commissionerUserId;
 
                     return (
                       <div
                         key={team.teamId}
-                        className="flex items-center justify-between gap-3 p-2.5 rounded border border-amber-400/30 bg-amber-950/20"
+                        className={`flex items-center justify-between gap-3 p-2.5 rounded border ${team.isAutoPilot ? "border-blue-400/30 bg-blue-950/20" : "border-amber-400/30 bg-amber-950/20"}`}
                         data-testid={`stall-row-${team.teamId}`}
                       >
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-pixel text-[10px] text-gold">{team.abbreviation}</span>
                             <span className="text-sm">{team.coachName}</span>
-                            <span className="text-[9px] font-pixel text-amber-400 border border-amber-400/40 px-1 py-0.5 rounded">WAITING</span>
+                            {team.isAutoPilot ? (
+                              <span className="text-[9px] font-pixel text-blue-400 border border-blue-400/40 px-1 py-0.5 rounded flex items-center gap-0.5">
+                                <Bot className="w-2.5 h-2.5" /> AUTO-PILOT
+                              </span>
+                            ) : (
+                              <span className="text-[9px] font-pixel text-amber-400 border border-amber-400/40 px-1 py-0.5 rounded">WAITING</span>
+                            )}
                           </div>
                           <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground flex-wrap">
-                            {isDeparturesPhase ? (
+                            {team.isAutoPilot ? (
+                              <span className="text-blue-400/70">CPU is managing this team</span>
+                            ) : isDeparturesPhase ? (
                               <span>Departures not submitted</span>
                             ) : isWalkonsPhase ? (
                               <span>Roster not finalized</span>
@@ -1521,17 +1661,17 @@ function ReadyStatusSection({ leagueId, commissionerUserId, coCommissionerIds, o
                             ) : (
                               <span>Not marked ready</span>
                             )}
-                            {team.lastActivityAt && (
+                            {!team.isAutoPilot && team.lastActivityAt && (
                               <>
                                 <span>·</span>
                                 <span className="text-muted-foreground/70">Last active: {formatLastActivity(team.lastActivityAt)}</span>
                               </>
                             )}
-                            {!team.lastActivityAt && (
+                            {!team.isAutoPilot && !team.lastActivityAt && (
                               <span className="text-muted-foreground/50">No activity yet this week</span>
                             )}
                           </div>
-                          {timeLeft && (
+                          {!team.isAutoPilot && timeLeft && (
                             <div className="flex items-center gap-1 mt-1">
                               <Timer className="w-3 h-3 text-amber-400" />
                               <span className="text-[10px] text-amber-400">{timeLeft}</span>
@@ -1539,17 +1679,41 @@ function ReadyStatusSection({ leagueId, commissionerUserId, coCommissionerIds, o
                           )}
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
-                          <RetroButton
-                            variant="outline"
-                            size="sm"
-                            onClick={() => nudgeMutation.mutate(team.teamId)}
-                            disabled={nudgeMutation.isPending}
-                            data-testid={`button-nudge-${team.teamId}`}
-                            className="border-amber-400/40 text-amber-400 hover:bg-amber-400/10"
-                          >
-                            <BellRing className="w-3 h-3 mr-1" />
-                            Nudge
-                          </RetroButton>
+                          {!team.isAutoPilot && (
+                            <RetroButton
+                              variant="outline"
+                              size="sm"
+                              onClick={() => nudgeMutation.mutate(team.teamId)}
+                              disabled={nudgeMutation.isPending}
+                              data-testid={`button-nudge-${team.teamId}`}
+                              className="border-amber-400/40 text-amber-400 hover:bg-amber-400/10"
+                            >
+                              <BellRing className="w-3 h-3 mr-1" />
+                              Nudge
+                            </RetroButton>
+                          )}
+                          {canAutoPilot && (
+                            <RetroButton
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                if (team.isAutoPilot) {
+                                  autoPilotMutation.mutate(team.teamId);
+                                } else {
+                                  setAutoPilotConfirmTeam({ teamId: team.teamId, coachName: team.coachName, teamName: team.teamName });
+                                }
+                              }}
+                              disabled={autoPilotMutation.isPending}
+                              data-testid={`button-autopilot-${team.teamId}`}
+                              className={team.isAutoPilot
+                                ? "border-blue-400/40 text-blue-400 hover:bg-blue-400/10"
+                                : "border-blue-500/40 text-blue-400/70 hover:bg-blue-500/10 hover:text-blue-400"
+                              }
+                              title={team.isAutoPilot ? "Disable Auto-Pilot" : "Enable Auto-Pilot"}
+                            >
+                              <Bot className="w-3 h-3" />
+                            </RetroButton>
+                          )}
                           {canRemove && (
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
@@ -1601,23 +1765,49 @@ function ReadyStatusSection({ leagueId, commissionerUserId, coCommissionerIds, o
                 <div className="space-y-1">
                   {readyTeams.map((team) => {
                     const canRemove = isCommissioner && team.userId !== commissionerUserId;
+                    const canAutoPilot = isCommissioner && team.userId !== commissionerUserId;
                     return (
                     <div
                       key={team.teamId}
-                      className="flex items-center justify-between gap-2 py-1.5 px-2 rounded bg-green-950/20 border border-green-500/20"
+                      className={`flex items-center justify-between gap-2 py-1.5 px-2 rounded border ${team.isAutoPilot ? "border-blue-400/20 bg-blue-950/10" : "border-green-500/20 bg-green-950/20"}`}
                       data-testid={`ready-row-${team.teamId}`}
                     >
                       <div className="flex items-center gap-2">
-                        <Check className="w-3.5 h-3.5 text-green-500 shrink-0" />
+                        {team.isAutoPilot ? (
+                          <Bot className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                        ) : (
+                          <Check className="w-3.5 h-3.5 text-green-500 shrink-0" />
+                        )}
                         <span className="font-pixel text-[10px] text-gold">{team.abbreviation}</span>
                         <span className="text-sm text-muted-foreground">{team.coachName}</span>
+                        {team.isAutoPilot && (
+                          <span className="text-[9px] font-pixel text-blue-400 border border-blue-400/40 px-1 py-0.5 rounded">AUTO-PILOT</span>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                        {isRecruitingPhase && (
+                        {isRecruitingPhase && !team.isAutoPilot && (
                           <span>{team.currentWeekActionCount} action{team.currentWeekActionCount !== 1 ? "s" : ""}</span>
                         )}
-                        {team.lastActivityAt && (
+                        {!team.isAutoPilot && team.lastActivityAt && (
                           <span className="opacity-60">{formatLastActivity(team.lastActivityAt)}</span>
+                        )}
+                        {canAutoPilot && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (team.isAutoPilot) {
+                                autoPilotMutation.mutate(team.teamId);
+                              } else {
+                                setAutoPilotConfirmTeam({ teamId: team.teamId, coachName: team.coachName, teamName: team.teamName });
+                              }
+                            }}
+                            disabled={autoPilotMutation.isPending}
+                            title={team.isAutoPilot ? "Disable Auto-Pilot" : "Enable Auto-Pilot"}
+                            data-testid={`button-autopilot-${team.teamId}`}
+                            className={`transition-colors ${team.isAutoPilot ? "text-blue-400 hover:text-blue-300" : "text-muted-foreground/40 hover:text-blue-400"}`}
+                          >
+                            <Bot className="w-3.5 h-3.5" />
+                          </button>
                         )}
                         {canRemove && (
                           <AlertDialog>

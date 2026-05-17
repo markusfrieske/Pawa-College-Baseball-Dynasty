@@ -99,6 +99,7 @@ export const teams = pgTable("teams", {
   isCpu: boolean("is_cpu").notNull().default(true),
   departuresFinalized: boolean("departures_finalized").notNull().default(false),
   walkonReady: boolean("walkon_ready").notNull().default(false),
+  isAutoPilot: boolean("is_auto_pilot").notNull().default(false),
 });
 
 export const insertTeamSchema = createInsertSchema(teams).pick({
