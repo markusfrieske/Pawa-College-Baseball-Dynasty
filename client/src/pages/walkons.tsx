@@ -237,6 +237,9 @@ export default function WalkonsPage() {
   const roster = rosterData?.players || [];
   const rosterCount = roster.length;
   const sortedRoster = [...roster].sort((a, b) => (b.overall || 0) - (a.overall || 0));
+  // Open roster slots = how many more walk-ons you can win (and bid on)
+  const openSlots = Math.max(0, MAX_ROSTER - rosterCount);
+  const activeBidCount = Object.keys(bids).length;
 
   const positions = ["all", "P", "C", "1B", "2B", "SS", "3B", "LF", "CF", "RF"];
 
@@ -543,11 +546,19 @@ export default function WalkonsPage() {
                   Submit your max bid (in thousands) for any walk-on. Bids are blind. Winner pays the second-highest bid + $1 (Vickrey pricing). Enter "150" to bid $150,000.
                 </div>
 
-                {roster.length >= 25 && (
+                {openSlots === 0 && (
                   <div className="mb-3 p-2 rounded bg-red-900/20 border border-red-600/50 flex items-center gap-2" data-testid="banner-roster-full">
                     <AlertTriangle className="w-3.5 h-3.5 text-red-400 shrink-0" />
                     <p className="text-[9px] text-red-300">
-                      Roster is full ({roster.length}/25). Cut a player first — bids placed while at 25 will be rejected.
+                      Roster is full ({roster.length}/25). Cut a player first — new bids are blocked until you have open slots.
+                    </p>
+                  </div>
+                )}
+                {openSlots > 0 && activeBidCount >= openSlots && (
+                  <div className="mb-3 p-2 rounded bg-amber-900/20 border border-amber-600/50 flex items-center gap-2" data-testid="banner-bids-at-limit">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <p className="text-[9px] text-amber-300">
+                      Bid slots full ({activeBidCount}/{openSlots}). Remove a bid or cut a player to bid on more walk-ons.
                     </p>
                   </div>
                 )}
