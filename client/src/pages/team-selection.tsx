@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { parseErrorMessage } from "@/lib/errorUtils";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -139,17 +139,18 @@ export default function TeamSelectionPage() {
     saveMutation.mutate(teamsPayload);
   };
 
-  if (isLoading) {
+  useEffect(() => {
+    if (data?.teamsAlreadySelected) {
+      setLocation(`/league/${id}/dynasty-setup`);
+    }
+  }, [data?.teamsAlreadySelected, id, setLocation]);
+
+  if (isLoading || data?.teamsAlreadySelected) {
     return <SetupSkeleton />;
   }
 
   if (!data) {
     return <div className="p-8 text-center text-muted-foreground">League not found</div>;
-  }
-
-  if (data.teamsAlreadySelected) {
-    setLocation(`/league/${id}/dynasty-setup`);
-    return <SetupSkeleton />;
   }
 
   return (
