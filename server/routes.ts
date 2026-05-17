@@ -2821,6 +2821,7 @@ export async function registerRoutes(
             facialHair: r.facialHair,
             eyeBlack: r.eyeBlack,
             headwear: r.headwear,
+            fromTeamName: r.fromTeamName,
           })),
         };
       });

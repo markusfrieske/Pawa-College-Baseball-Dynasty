@@ -379,8 +379,36 @@ function CardBack({ recruit }: { recruit: RevealRecruit }) {
 
 export function RecruitCard({ recruit, primaryColor, secondaryColor, animationDelay = 0, disableAnimation = false }: RecruitCardProps) {
   const [flipped, setFlipped] = useState(false);
-  const glow = getOvrGlow(recruit.overall);
-  const glowBorder = getOvrGlowBorder(recruit.overall);
+
+  const isGenGem  = !!(recruit.isGenerationalGem  && recruit.gemBustRevealed);
+  const isGenBust = !!(recruit.isGenerationalBust && recruit.gemBustRevealed);
+
+  // Distinct visual treatment by card tier:
+  // Gen Gem  → bright gold border + gold multi-layer glow (distinct from any OVR-based glow)
+  // Gen Bust → deep crimson border + crimson glow
+  // 5★       → cream outer frame + red glow (OVR-based)
+  // 4★       → cream outer frame + gold glow (OVR-based)
+  // ≤3★      → cream outer frame, dark border
+  let cardBorder: string;
+  let cardGlow: string;
+  if (isGenGem) {
+    cardBorder = "3px solid #FFD700";
+    cardGlow   = "0 0 22px #FFD700, 0 0 44px #FFD70099, 0 0 70px #FFD70033, inset 0 0 8px #FFD70022";
+  } else if (isGenBust) {
+    cardBorder = "3px solid #7f1d1d";
+    cardGlow   = "0 0 16px #7f1d1d, 0 0 32px #7f1d1d88";
+  } else {
+    const ovrGlow   = getOvrGlow(recruit.overall);
+    const ovrBorder = getOvrGlowBorder(recruit.overall);
+    // Cream outer frame for ≤3★, star-tier tint for 4★+
+    const frameBorder = recruit.starRating >= 5
+      ? `2px solid ${ovrBorder}`
+      : recruit.starRating >= 4
+        ? "2px solid #C4A35A"
+        : "2px solid #d4c9a0";
+    cardBorder = frameBorder;
+    cardGlow   = ovrGlow;
+  }
 
   return (
     // recruit-card-wrapper class is targeted by the prefers-reduced-motion CSS failsafe in index.css
@@ -407,8 +435,8 @@ export function RecruitCard({ recruit, primaryColor, secondaryColor, animationDe
           transition: disableAnimation ? "none" : "transform 0.6s cubic-bezier(0.4,0,0.2,1)",
           transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
           borderRadius: "8px",
-          boxShadow: glow,
-          border: `2px solid ${glowBorder}`,
+          boxShadow: cardGlow,
+          border: cardBorder,
         }}
       >
         {/* Front */}
