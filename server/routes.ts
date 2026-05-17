@@ -10613,7 +10613,7 @@ export async function registerRoutes(
       const floor = Math.max(5000, ovr * 400);
       const spread = floor * difficultyMult;
       const raw = floor + Math.floor(Math.random() * spread);
-      const cap = Math.floor(remainingNil * 0.30);
+      const cap = Math.floor(remainingNil * 0.40);
       const bidAmount = Math.min(raw, cap, remainingNil);
       if (bidAmount <= 0) continue;
       try {
@@ -11610,7 +11610,7 @@ export async function registerRoutes(
       position: string;
       overall: number;
       won: boolean;
-      pricePaid: number | null;
+      pricePaid: number;
       winnerTeamName: string | null;
       yourBid: number;
     }>>();
@@ -11683,7 +11683,7 @@ export async function registerRoutes(
           position: walkon.position,
           overall: walkon.overall,
           won: bid.teamId === winner!.teamId,
-          pricePaid: bid.teamId === winner!.teamId ? pricePaid : null,
+          pricePaid: bid.teamId === winner!.teamId ? pricePaid : pricePaid, // winner's paid price shown to all
           winnerTeamName: bid.teamId === winner!.teamId ? null : winnerName,
           yourBid: bid.bidAmount,
         });

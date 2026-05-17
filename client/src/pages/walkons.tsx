@@ -65,7 +65,7 @@ interface AuctionOutcome {
   position: string;
   overall: number;
   won: boolean;
-  pricePaid: number | null;
+  pricePaid: number;
   winnerTeamName: string | null;
   yourBid: number;
 }
@@ -748,6 +748,7 @@ export default function WalkonsPage() {
                           </div>
                           <div className="text-right">
                             <p className="text-[9px] text-muted-foreground">won by {r.winnerTeamName}</p>
+                            <p className="text-sm font-medium text-red-400">{fmtK(r.pricePaid)}</p>
                             <p className="text-[8px] text-muted-foreground">your bid: {fmtK(r.yourBid)}</p>
                           </div>
                         </div>
