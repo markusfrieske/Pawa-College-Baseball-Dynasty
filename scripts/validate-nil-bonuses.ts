@@ -2,21 +2,13 @@
  * Validates NIL bonus computation logic for key postseason scenarios.
  * Tests that bonuses are awarded correctly as exclusive tiers.
  */
+import { CONFERENCE_TIER_NIL, DEFAULT_CONFERENCE_NIL } from "@shared/nilConfig";
 
 interface EarningRow {
   category: string;
   amount: number;
   description: string;
 }
-
-// Mirror of CONFERENCE_TIER_NIL from routes.ts
-const CONFERENCE_TIER_NIL: Record<string, number> = {
-  "SEC": 3_500_000, "ACC": 3_500_000, "Big Ten": 3_500_000, "Big 12": 3_500_000,
-  "Pac-12": 2_500_000, "AAC": 2_500_000, "Sun Belt": 2_500_000,
-  "WCC": 1_750_000, "Mountain West": 1_750_000, "Big West": 1_750_000, "Missouri Valley": 1_750_000,
-  "Ivy League": 1_500_000,
-  "HBCU": 1_250_000,
-};
 
 function computePostseasonBonuses(phaseResult: string): EarningRow[] {
   const bonuses: EarningRow[] = [];
@@ -120,7 +112,7 @@ function assert(condition: boolean, message: string) {
   assert(bottom50.length === 0, "rank 12/16 → no recruiting bonus");
 }
 
-// ── Test 7: Conference tier base allocations
+// ── Test 7: Conference tier base allocations (from shared nilConfig)
 {
   console.log("Test 7: conference tier base allocations");
   assert(CONFERENCE_TIER_NIL["SEC"] === 3_500_000, "SEC = $3.5M");
@@ -129,6 +121,7 @@ function assert(condition: boolean, message: string) {
   assert(CONFERENCE_TIER_NIL["Ivy League"] === 1_500_000, "Ivy League = $1.5M");
   assert(CONFERENCE_TIER_NIL["HBCU"] === 1_250_000, "HBCU = $1.25M");
   assert(Object.keys(CONFERENCE_TIER_NIL).length === 13, "all 13 conferences mapped");
+  assert(DEFAULT_CONFERENCE_NIL === 2_000_000, "default fallback = $2.0M");
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

@@ -11,6 +11,7 @@ import { getRandomAbilities, getAbilitiesForPosition, calculateOVR, getStarRatin
 import { getPotentialRange, getProgressionZone, rollWeightedPotential, getPotentialGrade } from "@shared/potential";
 import { getActionPointCost } from "@shared/stateDistance";
 import { getPersonalityForArchetype, getTraitBadgesForArchetype, getPhilosophyForArchetype, evaluateMilestones } from "@shared/coachTraits";
+import { CONFERENCE_TIER_NIL, DEFAULT_CONFERENCE_NIL } from "@shared/nilConfig";
 import type { Player, Recruit, TransferPortalInterest, Game, InsertPlayerSeasonStats, GameReport } from "@shared/schema";
 import {
   generateGameNewsArticles,
@@ -11529,28 +11530,7 @@ export async function registerRoutes(
     };
   }
 
-  // ─── Conference Tier NIL Base Allocations ────────────────────────────────────
-  const CONFERENCE_TIER_NIL: Record<string, number> = {
-    // Tier 1: $3.5M
-    "SEC": 3_500_000,
-    "ACC": 3_500_000,
-    "Big Ten": 3_500_000,
-    "Big 12": 3_500_000,
-    // Tier 2: $2.5M
-    "Pac-12": 2_500_000,
-    "AAC": 2_500_000,
-    "Sun Belt": 2_500_000,
-    // Tier 3: $1.75M
-    "WCC": 1_750_000,
-    "Mountain West": 1_750_000,
-    "Big West": 1_750_000,
-    "Missouri Valley": 1_750_000,
-    // Tier 4: $1.5M
-    "Ivy League": 1_500_000,
-    // Tier 5: $1.25M
-    "HBCU": 1_250_000,
-  };
-  const DEFAULT_CONFERENCE_NIL = 2_000_000;
+  // CONFERENCE_TIER_NIL and DEFAULT_CONFERENCE_NIL are imported at the top of this file from "@shared/nilConfig"
 
   async function computeSeasonNilBudget(leagueId: string, completedSeason: number): Promise<void> {
     const newSeason = completedSeason + 1;
@@ -11666,32 +11646,28 @@ export async function registerRoutes(
       }
 
       // ── Insert all earnings rows for the new season
+      // onConflictDoNothing in storage already handles the unique constraint;
+      // no try/catch needed — unexpected DB errors should bubble up to fail the transition.
       for (const e of earnings) {
-        try {
-          await storage.createNilSeasonEarning({
-            leagueId,
-            teamId: team.id,
-            season: newSeason,
-            category: e.category,
-            amount: e.amount,
-            description: e.description,
-          });
-        } catch (err) {
-          console.warn(`[NIL] Skipped duplicate earning for team ${team.id} category ${e.category}:`, err);
-        }
-      }
-
-      // ── Record prestige baseline for next season
-      try {
         await storage.createNilSeasonEarning({
           leagueId,
           teamId: team.id,
           season: newSeason,
-          category: "prestige_baseline",
-          amount: 0,
-          description: `prestige:${team.prestige}`,
+          category: e.category,
+          amount: e.amount,
+          description: e.description,
         });
-      } catch (_) { /* already recorded */ }
+      }
+
+      // ── Record prestige baseline for next season (idempotent via onConflictDoNothing)
+      await storage.createNilSeasonEarning({
+        leagueId,
+        teamId: team.id,
+        season: newSeason,
+        category: "prestige_baseline",
+        amount: 0,
+        description: `prestige:${team.prestige}`,
+      });
 
       // ── Reset nilBudget and nilSpent
       const totalNil = earnings.reduce((s, e) => s + e.amount, 0);
