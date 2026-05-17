@@ -13152,6 +13152,21 @@ export async function registerRoutes(
         historyBySeason.get(h.season)!.push(h);
       }
 
+      // Preload action logs for all teams that have unscored rows (avoids N+1)
+      const uniqueTeamIds = [...new Set(unscoredRows.map(r => r.teamId).filter(Boolean) as string[])];
+      const actionLogResults = await Promise.allSettled(
+        uniqueTeamIds.map(teamId => storage.getRecruitingActionsLogByTeam(teamId, leagueId))
+      );
+      const actionLogsByTeam = new Map<string, Awaited<ReturnType<typeof storage.getRecruitingActionsLogByTeam>>>();
+      actionLogResults.forEach((result, idx) => {
+        const teamId = uniqueTeamIds[idx];
+        if (result.status === "fulfilled") {
+          actionLogsByTeam.set(teamId, result.value);
+        } else {
+          console.warn(`[backfill-recruiting-scores] Failed to load action log for team ${teamId}:`, result.reason);
+        }
+      });
+
       let updatedCount = 0;
 
       for (const row of unscoredRows) {
@@ -13201,17 +13216,20 @@ export async function registerRoutes(
         const maxFiveStars = Math.max(...seasonSnaps.map(s => s.fiveStars ?? 0), 1);
         const blueChipScore = Math.min(100, Math.round((teamFiveStars / maxFiveStars) * 100));
 
-        // ── 7. Action Efficiency (10%): compute from actions log (has season field) ─
-        // The recruiting actions log retains a season field, so this is exact.
+        // ── 7. Action Efficiency (10%): from preloaded action logs (season-filtered) ─
+        // Action logs have a season field, so this is computed from real historical data.
+        // If a team's log failed to load (logged as a warning above), fall back to 30.
         let actionEffScore = 0;
-        try {
-          const actionsLog = await storage.getRecruitingActionsLogByTeam(row.teamId!, leagueId);
-          const nonScoutActions = actionsLog.filter(a => a.season === row.season && a.actionType !== "scout");
+        const teamActionLog = row.teamId ? actionLogsByTeam.get(row.teamId) : undefined;
+        if (teamActionLog !== undefined) {
+          const nonScoutActions = teamActionLog.filter(a => a.season === row.season && a.actionType !== "scout");
           const recruitsPerAction = nonScoutActions.length > 0
             ? (totalSigned / nonScoutActions.length)
             : (totalSigned > 0 ? 0.3 : 0);
           actionEffScore = Math.min(100, Math.round(recruitsPerAction * 200));
-        } catch {
+        } else {
+          // Log missing (either load failed or team had no actions) — use conservative default
+          console.warn(`[backfill-recruiting-scores] No action log available for team ${row.teamId} season ${row.season}; using default actionEff=30`);
           actionEffScore = totalSigned > 0 ? 30 : 0;
         }
 
