@@ -11622,11 +11622,15 @@ export async function registerRoutes(
     // roster slots), so no cap adjustments are needed here.
 
     for (const walkon of walkons) {
-      // Tie-break: equal bids sorted by bid insertion order (earlier bid wins),
-      // which maps to ascending createdAt / ascending id for rows created via upsert.
-      // This rule is documented: "first to submit a tied bid wins".
-      const bids = (bidsByWalkon.get(walkon.id) || [])
-        .sort((a, b) => b.bidAmount - a.bidAmount || a.id.localeCompare(b.id));
+      // Tie-break: equal bids resolved by submission time (earlier createdAt wins).
+      // Documented rule: "first to submit a tied bid wins."
+      // Fallback to id lexical order for any rows with identical createdAt timestamps.
+      const bids = (bidsByWalkon.get(walkon.id) || []).sort((a, b) => {
+        if (b.bidAmount !== a.bidAmount) return b.bidAmount - a.bidAmount;
+        const tA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const tB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return tA !== tB ? tA - tB : a.id.localeCompare(b.id);
+      });
       if (bids.length === 0) continue;
 
       const winner = bids[0];
@@ -12189,14 +12193,17 @@ export async function registerRoutes(
       }
 
       // Roster-slot cap: max active bids ≤ open roster slots.
+      // Active roster excludes players with departureType set (draft-declared seniors,
+      // transfers, etc.) since those slots will be vacated before the new season.
       // This ensures the highest bidder can always honor their win — no
       // cap-based reassignment is needed at auction resolution time.
-      const currentRoster = await storage.getPlayersByTeam(team.id);
+      const allRoster = await storage.getPlayersByTeam(team.id);
+      const activeRoster = allRoster.filter(p => !p.departureType);
       const MAX_WALKON_BID_ROSTER = 25;
-      const openSlots = MAX_WALKON_BID_ROSTER - currentRoster.length;
+      const openSlots = MAX_WALKON_BID_ROSTER - activeRoster.length;
       if (openSlots <= 0) {
         return res.status(400).json({
-          message: `Roster is full (${currentRoster.length}/${MAX_WALKON_BID_ROSTER}). Cut a player before bidding.`
+          message: `Roster is full (${activeRoster.length}/${MAX_WALKON_BID_ROSTER} active players). Cut a player before bidding.`
         });
       }
       // Count current active bids (excluding any existing bid on this walk-on, which will be replaced)
