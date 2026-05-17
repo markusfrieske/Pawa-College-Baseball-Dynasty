@@ -412,7 +412,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 5, 4, 0, 4, 0, 0]) },
     { firstName: "Tyler", lastName: "Chadwick", position: "P", eligibility: "SO", homeState: "IL", hometown: "Wilmette", jerseyNumber: 46,
-      hitForAvg: 11, power: 9, speed: 31, arm: 33, fielding: 21, errorResistance: 33, velocity: 40, control: 29, stamina: 29, stuff: 30,
+      hitForAvg: 11, power: 9, speed: 31, arm: 33, fielding: 21, errorResistance: 33, velocity: 31, control: 29, stamina: 29, stuff: 30,
       clutch: 39, vsLHP: 37, grit: 40, stealing: 10, running: 29, throwing: 48, recovery: 26, wRISP: 25, vsLefty: 26, poise: 26, heater: 35, agile: 34,
       abilities: ["Gas Tank", "Intimidator"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -750,7 +750,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         ...pitchMix(1, [0, 5, 4, 1, 0, 0, 0]) },
       // Sean Murphy — SO depth
       { firstName: "Sean", lastName: "Murphy", position: "P", eligibility: "SO", homeState: "OR", hometown: "Eugene", jerseyNumber: 42,
-        hitForAvg: 10, power: 8, speed: 28, arm: 34, fielding: 22, errorResistance: 34, velocity: 40, control: 31, stamina: 31, stuff: 31,
+        hitForAvg: 10, power: 8, speed: 28, arm: 34, fielding: 22, errorResistance: 34, velocity: 31, control: 31, stamina: 31, stuff: 31,
         clutch: 40, vsLHP: 38, grit: 42, stealing: 8, running: 26, throwing: 48, recovery: 27, wRISP: 26, vsLefty: 27, poise: 29, heater: 35, agile: 32,
         abilities: ["Intimidator", "Constant Speed"], potential: "B+", catcherAbility: null,
         throwHand: "R", batHand: "R",

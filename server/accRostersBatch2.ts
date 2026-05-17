@@ -198,7 +198,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 5, 4, 1, 0, 0, 0]) },
     { firstName: "Sam", lastName: "Harris", position: "P", eligibility: "FR", homeState: "NC", hometown: "Durham", jerseyNumber: 47,
-      hitForAvg: 10, power: 8, speed: 26, arm: 27, fielding: 15, errorResistance: 26, velocity: 40, control: 23, stamina: 21, stuff: 30,
+      hitForAvg: 10, power: 8, speed: 26, arm: 27, fielding: 15, errorResistance: 26, velocity: 30, control: 23, stamina: 21, stuff: 30,
       clutch: 29, vsLHP: 28, grit: 30, stealing: 8, running: 25, throwing: 43, recovery: 18, wRISP: 17, vsLefty: 18, poise: 18, heater: 29, agile: 29,
       abilities: ["Decisive", "Iron Arm", "Kageura"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",

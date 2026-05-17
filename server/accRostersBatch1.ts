@@ -193,7 +193,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 5, 0, 1, 3, 0, 0]) },
     { firstName: "Drew", lastName: "Hartigan", position: "P", eligibility: "SO", homeState: "MD", hometown: "Bethesda", jerseyNumber: 45,
-      hitForAvg: 9, power: 9, speed: 28, arm: 27, fielding: 16, errorResistance: 27, velocity: 40, control: 22, stamina: 20, stuff: 30,
+      hitForAvg: 9, power: 9, speed: 28, arm: 27, fielding: 16, errorResistance: 27, velocity: 30, control: 22, stamina: 20, stuff: 30,
       clutch: 29, vsLHP: 28, grit: 31, stealing: 9, running: 26, throwing: 43, recovery: 18, wRISP: 17, vsLefty: 19, poise: 18, heater: 29, agile: 29,
       abilities: ["Top Gear", "Intimidator", "Groundball Pitcher"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -562,7 +562,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       ...pitchMix(1, [0, 5, 5, 1, 0, 0, 0]) },
     // Charlie Willcox — FR RHP depth
     { firstName: "Charlie", lastName: "Willcox", position: "P", eligibility: "FR", homeState: "GA", hometown: "Cumming", jerseyNumber: 48,
-      hitForAvg: 10, power: 9, speed: 28, arm: 39, fielding: 22, errorResistance: 34, velocity: 40, control: 35, stamina: 28, stuff: 36,
+      hitForAvg: 10, power: 9, speed: 28, arm: 39, fielding: 22, errorResistance: 34, velocity: 37, control: 35, stamina: 28, stuff: 36,
       clutch: 36, vsLHP: 34, grit: 38, stealing: 6, running: 26, throwing: 54, recovery: 26, wRISP: 25, vsLefty: 26, poise: 26, heater: 42, agile: 32,
       abilities: ["Top Gear"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "R",

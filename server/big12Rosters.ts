@@ -495,7 +495,7 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
       ...pitchMix(1, [0, 5, 4, 1, 0, 0, 0]) },
     // FR P
     { firstName: "Mason", lastName: "Russell", position: "P", eligibility: "FR", homeState: "AZ", hometown: "Chandler", jerseyNumber: 49,
-      hitForAvg: 9, power: 7, speed: 30, arm: 39, fielding: 23, errorResistance: 36, velocity: 40, control: 33, stamina: 28, stuff: 36,
+      hitForAvg: 9, power: 7, speed: 30, arm: 39, fielding: 23, errorResistance: 36, velocity: 37, control: 33, stamina: 28, stuff: 36,
       clutch: 36, vsLHP: 34, grit: 36, stealing: 7, running: 28, throwing: 54, recovery: 25, wRISP: 23, vsLefty: 25, poise: 25, heater: 41, agile: 34,
       abilities: ["Flyball Pitcher", "Showtime", "Confusion"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
