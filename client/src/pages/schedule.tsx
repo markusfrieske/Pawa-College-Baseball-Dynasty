@@ -455,10 +455,12 @@ function GameRow({ game, allGamesInGroup, onEdit, onViewBoxScore, onMatchupPrevi
           </div>
         )}
 
-        <div className="flex-1 flex items-center justify-end gap-3">
-          <Link href={`/league/${leagueId}/team/${game.homeTeamId}/profile`} onClick={e => e.stopPropagation()}>
-            <span className="font-medium text-sm hover:text-gold transition-colors cursor-pointer" data-testid={`link-profile-home-${game.id}`}>{game.homeTeam.name}</span>
-          </Link>
+        <div className="flex-1 flex items-center justify-end gap-3 min-w-0">
+          <div className="min-w-0">
+            <Link href={`/league/${leagueId}/team/${game.homeTeamId}/profile`} onClick={e => e.stopPropagation()}>
+              <span className="font-medium text-sm block truncate hover:text-gold transition-colors cursor-pointer" data-testid={`link-profile-home-${game.id}`}>{game.homeTeam.name}</span>
+            </Link>
+          </div>
           <TeamBadge
             abbreviation={game.homeTeam.abbreviation}
             primaryColor={game.homeTeam.primaryColor}
