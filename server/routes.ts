@@ -10556,96 +10556,120 @@ export async function registerRoutes(
     }
   }
 
+  // Place bids for a team (used by both CPU-only and fast-forward paths).
+  // difficultyMult controls the randomness ceiling for bid amounts:
+  //   beginner=0.3, high_school=0.7, all_american=1.2, elite=2.0
+  async function placeCpuWalkonBids(
+    leagueId: string,
+    team: { id: string; name: string; nilBudget: number; nilSpent: number },
+    difficultyMult: number,
+  ) {
+    const roster = await storage.getPlayersByTeam(team.id);
+    const positionCounts: Record<string, number> = {};
+    for (const p of roster) positionCounts[p.position] = (positionCounts[p.position] || 0) + 1;
+
+    const slotsNeeded = Math.max(0, 25 - roster.length);
+    if (slotsNeeded === 0) return;
+
+    const pool = await storage.getWalkonsByLeague(leagueId);
+    const allPositions = ["P", "C", "1B", "2B", "SS", "3B", "LF", "CF", "RF"];
+    // Build list of (walkon, positionPriority) sorted by need then OVR
+    const desired: (typeof pool)[number][] = [];
+    const usedIds = new Set<string>();
+
+    for (let pass = 0; pass < slotsNeeded; pass++) {
+      const posNeeds = allPositions.map(pos => ({ pos, count: positionCounts[pos] || 0 }))
+        .sort((a, b) => a.count - b.count);
+      let picked = false;
+      for (const need of posNeeds) {
+        const candidates = pool
+          .filter(w => w.position === need.pos && !usedIds.has(w.id))
+          .sort((a, b) => (b.overall || 0) - (a.overall || 0));
+        if (candidates.length > 0) {
+          desired.push(candidates[0]);
+          usedIds.add(candidates[0].id);
+          positionCounts[need.pos] = (positionCounts[need.pos] || 0) + 1;
+          picked = true;
+          break;
+        }
+      }
+      if (!picked) {
+        const fallback = pool.filter(w => !usedIds.has(w.id)).sort((a, b) => (b.overall || 0) - (a.overall || 0));
+        if (fallback.length > 0) {
+          desired.push(fallback[0]);
+          usedIds.add(fallback[0].id);
+          positionCounts[fallback[0].position] = (positionCounts[fallback[0].position] || 0) + 1;
+        } else {
+          break;
+        }
+      }
+    }
+
+    // Place bids — compute bid amounts based on OVR and difficulty
+    let remainingNil = team.nilBudget - team.nilSpent;
+    for (const walkon of desired) {
+      if (remainingNil <= 0) break;
+      const ovr = walkon.overall || 200;
+      const floor = Math.max(5000, ovr * 400);
+      const spread = floor * difficultyMult;
+      const raw = floor + Math.floor(Math.random() * spread);
+      const cap = Math.floor(remainingNil * 0.30);
+      const bidAmount = Math.min(raw, cap, remainingNil);
+      if (bidAmount <= 0) continue;
+      try {
+        await storage.upsertWalkonBid(leagueId, walkon.id, team.id, bidAmount);
+        remainingNil -= bidAmount;
+      } catch (e) {
+        console.error(`[CPU bid] Failed to place bid for team ${team.id} on walkon ${walkon.id}:`, e);
+      }
+    }
+  }
+
   async function processAllTeamWalkons(leagueId: string) {
     const teams = await storage.getTeamsByLeague(leagueId);
     const MAX_ROSTER = 25;
-    
+    const currentLeagueData = await storage.getLeague(leagueId);
+    const currentSeason = currentLeagueData?.currentSeason || 1;
+    const eligMap: Record<string, number> = { "FR": 1, "SO": 2, "JR": 3, "SR": 4, "RS": 5 };
+    const difficulty = currentLeagueData?.cpuDifficulty || "high_school";
+    const difficultyMults: Record<string, number> = { beginner: 0.3, high_school: 0.7, all_american: 1.2, elite: 2.0 };
+    const diffMult = difficultyMults[difficulty] ?? 0.7;
+
+    // Clear any previous bids for this league
+    await storage.deleteWalkonBidsByLeague(leagueId);
+
     for (const team of teams) {
       let roster = await storage.getPlayersByTeam(team.id);
-      
-      if (roster.length > MAX_ROSTER && team.isCpu) {
-        const positionCounts: Record<string, number> = {};
-        for (const p of roster) positionCounts[p.position] = (positionCounts[p.position] || 0) + 1;
-        
-        const cuttable = roster.filter(p => (positionCounts[p.position] || 0) > 1)
+
+      // Cut over-limit players (all teams in fast-forward)
+      if (roster.length > MAX_ROSTER) {
+        const posCounts: Record<string, number> = {};
+        for (const p of roster) posCounts[p.position] = (posCounts[p.position] || 0) + 1;
+        const cuttable = roster.filter(p => (posCounts[p.position] || 0) > 1)
           .sort((a, b) => (a.overall || 0) - (b.overall || 0));
-        
         let toCut = roster.length - MAX_ROSTER;
-        const currentLeagueData = await storage.getLeague(leagueId);
-        const currentSeason = currentLeagueData?.currentSeason || 1;
-        
         for (const player of cuttable) {
           if (toCut <= 0) break;
-          if ((positionCounts[player.position] || 0) > 1) {
-            const eligMap: Record<string, number> = { "FR": 1, "SO": 2, "JR": 3, "SR": 4, "RS": 5 };
+          if ((posCounts[player.position] || 0) > 1) {
             await storage.createPlayerHistory({
-              leagueId,
-              teamId: team.id,
-              firstName: player.firstName,
-              lastName: player.lastName,
-              position: player.position,
-              finalEligibility: player.eligibility,
-              overall: player.overall,
-              starRating: player.starRating,
-              signingOvr: player.signingOvr ?? player.overall,
-              departureType: "cut_juco",
-              departedSeason: currentSeason,
-              seasonsPlayed: eligMap[player.eligibility] || 1,
-              abilities: player.abilities || [],
-              homeState: player.homeState,
-              hometown: player.hometown,
+              leagueId, teamId: team.id,
+              firstName: player.firstName, lastName: player.lastName,
+              position: player.position, finalEligibility: player.eligibility,
+              overall: player.overall, starRating: player.starRating,
+              signingOvr: player.signingOvr ?? player.overall, departureType: "cut_juco",
+              departedSeason: currentSeason, seasonsPlayed: eligMap[player.eligibility] || 1,
+              abilities: player.abilities || [], homeState: player.homeState, hometown: player.hometown,
             });
             await storage.deletePlayer(player.id);
-            positionCounts[player.position]--;
+            posCounts[player.position]--;
             toCut--;
           }
         }
-        
         roster = await storage.getPlayersByTeam(team.id);
       }
-      
-      if (roster.length < MAX_ROSTER) {
-        const positionCounts: Record<string, number> = {};
-        for (const p of roster) positionCounts[p.position] = (positionCounts[p.position] || 0) + 1;
-        
-        let pool = await storage.getWalkonsByLeague(leagueId);
-        let available = pool.filter(w => !w.signedTeamId);
-        let slotsToFill = MAX_ROSTER - roster.length;
-        
-        while (slotsToFill > 0 && available.length > 0) {
-          const allPositions = ["P", "C", "1B", "2B", "SS", "3B", "LF", "CF", "RF"];
-          const posNeeds = allPositions.map(pos => ({ pos, count: positionCounts[pos] || 0 }))
-            .sort((a, b) => a.count - b.count);
-          
-          let signed = false;
-          for (const need of posNeeds) {
-            const candidates = available.filter(w => w.position === need.pos)
-              .sort((a, b) => (b.overall || 0) - (a.overall || 0));
-            
-            if (candidates.length > 0) {
-              const best = candidates[0];
-              await storage.updateWalkon(best.id, { signedTeamId: team.id, signedTeamName: team.name });
-              positionCounts[need.pos] = (positionCounts[need.pos] || 0) + 1;
-              slotsToFill--;
-              signed = true;
-              available = available.filter(w => w.id !== best.id);
-              break;
-            }
-          }
-          
-          if (!signed) {
-            const bestAvail = available.sort((a, b) => (b.overall || 0) - (a.overall || 0))[0];
-            if (bestAvail) {
-              await storage.updateWalkon(bestAvail.id, { signedTeamId: team.id, signedTeamName: team.name });
-              positionCounts[bestAvail.position] = (positionCounts[bestAvail.position] || 0) + 1;
-              slotsToFill--;
-              available = available.filter(w => w.id !== bestAvail.id);
-            } else {
-              break;
-            }
-          }
-        }
-      }
+
+      // All teams in fast-forward place bids (treated as CPU)
+      await placeCpuWalkonBids(leagueId, team, diffMult);
     }
   }
 
@@ -10654,6 +10678,9 @@ export async function registerRoutes(
     const MAX_ROSTER = 25;
     const currentLeagueData = await storage.getLeague(leagueId);
     const currentSeason = currentLeagueData?.currentSeason || 1;
+    const difficulty = currentLeagueData?.cpuDifficulty || "high_school";
+    const difficultyMults: Record<string, number> = { beginner: 0.3, high_school: 0.7, all_american: 1.2, elite: 2.0 };
+    const diffMult = difficultyMults[difficulty] ?? 0.7;
     const eligMap: Record<string, number> = { "FR": 1, "SO": 2, "JR": 3, "SR": 4, "RS": 5 };
 
     for (const team of teams) {
@@ -10699,128 +10726,8 @@ export async function registerRoutes(
         roster = await storage.getPlayersByTeam(team.id);
       }
       
-      // Build projected position counts after any over-max cuts.
-      // These counts grow as walk-ons are signed in the fill loop below, so
-      // the upgrade pass can see the true projected 25-man composition even
-      // though walk-ons are not yet finalized into the players table.
-      const projectedPosCounts: Record<string, number> = {};
-      for (const p of roster) projectedPosCounts[p.position] = (projectedPosCounts[p.position] || 0) + 1;
-      let projectedSize = roster.length;
-
-      if (roster.length < MAX_ROSTER) {
-        let pool = await storage.getWalkonsByLeague(leagueId);
-        let available = pool.filter(w => !w.signedTeamId);
-        let slotsToFill = MAX_ROSTER - roster.length;
-        
-        while (slotsToFill > 0 && available.length > 0) {
-          const allPositions = ["P", "C", "1B", "2B", "SS", "3B", "LF", "CF", "RF"];
-          const posNeeds = allPositions.map(pos => ({ pos, count: projectedPosCounts[pos] || 0 }))
-            .sort((a, b) => a.count - b.count);
-          
-          let signed = false;
-          for (const need of posNeeds) {
-            const candidates = available.filter(w => w.position === need.pos)
-              .sort((a, b) => (b.overall || 0) - (a.overall || 0));
-            
-            if (candidates.length > 0) {
-              const best = candidates[0];
-              await storage.updateWalkon(best.id, { signedTeamId: team.id, signedTeamName: team.name });
-              projectedPosCounts[need.pos] = (projectedPosCounts[need.pos] || 0) + 1;
-              projectedSize++;
-              slotsToFill--;
-              signed = true;
-              available = available.filter(w => w.id !== best.id);
-              break;
-            }
-          }
-          
-          if (!signed) {
-            const bestAvail = available.sort((a, b) => (b.overall || 0) - (a.overall || 0))[0];
-            if (bestAvail) {
-              await storage.updateWalkon(bestAvail.id, { signedTeamId: team.id, signedTeamName: team.name });
-              projectedPosCounts[bestAvail.position] = (projectedPosCounts[bestAvail.position] || 0) + 1;
-              projectedSize++;
-              slotsToFill--;
-              available = available.filter(w => w.id !== bestAvail.id);
-            } else {
-              break;
-            }
-          }
-        }
-      }
-
-      // Upgrade pass: only runs when the projected roster (players + signed walk-ons)
-      // is at the 25-player max.  We use projectedSize so teams that reached 25 via
-      // walk-ons in the fill loop above are included, not just teams that already had
-      // 25 finalized DB players.
-      const UPGRADE_THRESHOLD = 15;
-      const MAX_UPGRADES = 5;
-      let upgradeCount = 0;
-      if (projectedSize < MAX_ROSTER) continue;
-      const upgradePool = await storage.getWalkonsByLeague(leagueId);
-      let availableUpgrades = upgradePool.filter(w => !w.signedTeamId);
-
-      while (upgradeCount < MAX_UPGRADES && availableUpgrades.length > 0) {
-        // Only cut from positions where the DB roster has 2+ actual players.
-        // Walk-ons signed during the fill loop are not yet in the players table
-        // so they cannot be "cut" here; using the live DB roster ensures the
-        // weakest-player lookup and the duplicate-position eligibility check
-        // are always consistent with each other.
-        const dbPosCounts: Record<string, number> = {};
-        for (const p of roster) dbPosCounts[p.position] = (dbPosCounts[p.position] || 0) + 1;
-
-        const eligiblePositions = Object.entries(dbPosCounts)
-          .filter(([, cnt]) => cnt > 1)
-          .map(([pos]) => pos);
-
-        let bestGain = UPGRADE_THRESHOLD - 1;
-        let bestPlayer: (typeof roster)[0] | null = null;
-        let bestWalkon: (typeof availableUpgrades)[0] | null = null;
-
-        for (const pos of eligiblePositions) {
-          const weakest = roster
-            .filter(p => p.position === pos)
-            .sort((a, b) => (a.overall || 0) - (b.overall || 0))[0];
-          const topWalkon = availableUpgrades
-            .filter(w => w.position === pos)
-            .sort((a, b) => (b.overall || 0) - (a.overall || 0))[0];
-
-          if (weakest && topWalkon) {
-            const gain = (topWalkon.overall || 0) - (weakest.overall || 0);
-            if (gain > bestGain) {
-              bestGain = gain;
-              bestPlayer = weakest;
-              bestWalkon = topWalkon;
-            }
-          }
-        }
-
-        if (!bestPlayer || !bestWalkon) break;
-
-        await storage.createPlayerHistory({
-          leagueId,
-          teamId: team.id,
-          firstName: bestPlayer.firstName,
-          lastName: bestPlayer.lastName,
-          position: bestPlayer.position,
-          finalEligibility: bestPlayer.eligibility,
-          overall: bestPlayer.overall,
-          starRating: bestPlayer.starRating,
-          signingOvr: bestPlayer.signingOvr ?? bestPlayer.overall,
-          departureType: "cut_juco",
-          departedSeason: currentSeason,
-          seasonsPlayed: eligMap[bestPlayer.eligibility] || 1,
-          abilities: bestPlayer.abilities || [],
-          homeState: bestPlayer.homeState,
-          hometown: bestPlayer.hometown,
-        });
-        await storage.deletePlayer(bestPlayer.id);
-        await storage.updateWalkon(bestWalkon.id, { signedTeamId: team.id, signedTeamName: team.name });
-
-        roster = roster.filter(p => p.id !== bestPlayer!.id);
-        availableUpgrades = availableUpgrades.filter(w => w.id !== bestWalkon!.id);
-        upgradeCount++;
-      }
+      // Place bids for this CPU team using difficulty-scaled amounts
+      await placeCpuWalkonBids(leagueId, team, diffMult);
     }
   }
 
@@ -11679,12 +11586,85 @@ export async function registerRoutes(
 
   async function finalizeWalkonsPhase(leagueId: string, completedSeason: number) {
     const teams = await storage.getTeamsByLeague(leagueId);
+    const teamMap = new Map(teams.map(t => [t.id, t]));
     let totalWalkonsAdded = 0;
+
+    // ── Auction resolution ──────────────────────────────────────────────────────
+    // For each walkon in the pool, resolve all submitted bids into a winner.
+    // Vickrey pricing: winner pays second-highest bid + 1 (or their full bid if uncontested).
+    const allBids = await storage.getWalkonBidsByLeague(leagueId);
+    const bidsByWalkon = new Map<string, (typeof allBids)>();
+    for (const bid of allBids) {
+      if (!bidsByWalkon.has(bid.walkonPoolId)) bidsByWalkon.set(bid.walkonPoolId, []);
+      bidsByWalkon.get(bid.walkonPoolId)!.push(bid);
+    }
 
     const walkons = await storage.getWalkonsByLeague(leagueId);
 
+    // Track auction results for the summary returned to the advance endpoint.
+    // keyed by teamId → array of outcomes for that team
+    const auctionResultsByTeam = new Map<string, Array<{
+      walkonId: string;
+      firstName: string;
+      lastName: string;
+      position: string;
+      overall: number;
+      won: boolean;
+      pricePaid: number | null;
+      winnerTeamName: string | null;
+      yourBid: number;
+    }>>();
+
+    for (const walkon of walkons) {
+      const bids = (bidsByWalkon.get(walkon.id) || []).sort((a, b) => b.bidAmount - a.bidAmount);
+      if (bids.length === 0) continue;
+
+      const winner = bids[0];
+      const secondBid = bids[1]?.bidAmount ?? 0;
+      const pricePaid = bids.length > 1 ? secondBid + 1 : winner.bidAmount;
+
+      // Mark the walkon as awarded (used for display; signedTeamId drives player creation)
+      await storage.updateWalkon(walkon.id, {
+        signedTeamId: winner.teamId,
+        signedTeamName: teamMap.get(winner.teamId)?.name || null,
+        awardedTeamId: winner.teamId,
+        awardedTeamName: teamMap.get(winner.teamId)?.name || null,
+        awardedPrice: pricePaid,
+      });
+
+      // Deduct the awarded price from the winning team's nilSpent
+      const winnerTeam = teamMap.get(winner.teamId);
+      if (winnerTeam) {
+        const newNilSpent = (winnerTeam.nilSpent || 0) + pricePaid;
+        await storage.updateTeam(winnerTeam.id, { nilSpent: newNilSpent });
+        // Update our local cache so subsequent bids see the updated nilSpent
+        winnerTeam.nilSpent = newNilSpent;
+      }
+
+      // Record outcomes for all bidding teams
+      const winnerName = teamMap.get(winner.teamId)?.name || null;
+      for (const bid of bids) {
+        if (!auctionResultsByTeam.has(bid.teamId)) auctionResultsByTeam.set(bid.teamId, []);
+        auctionResultsByTeam.get(bid.teamId)!.push({
+          walkonId: walkon.id,
+          firstName: walkon.firstName,
+          lastName: walkon.lastName,
+          position: walkon.position,
+          overall: walkon.overall,
+          won: bid.teamId === winner.teamId,
+          pricePaid: bid.teamId === winner.teamId ? pricePaid : null,
+          winnerTeamName: bid.teamId === winner.teamId ? null : winnerName,
+          yourBid: bid.bidAmount,
+        });
+      }
+      console.log(`[Auction] ${walkon.firstName} ${walkon.lastName} (${walkon.position}) → ${winnerName} paid $${pricePaid.toLocaleString()} (${bids.length} bid${bids.length > 1 ? "s" : ""})`);
+    }
+
+    // Reload walkons with awarded data for the player creation loop
+    const updatedWalkons = await storage.getWalkonsByLeague(leagueId);
+
     for (const team of teams) {
-      const signedWalkons = walkons.filter(w => w.signedTeamId === team.id);
+      const signedWalkons = updatedWalkons.filter(w => w.signedTeamId === team.id);
       for (const walkon of signedWalkons) {
         const jerseyNumber = 1 + Math.floor(Math.random() * 99);
         await storage.createPlayer({
@@ -11734,7 +11714,7 @@ export async function registerRoutes(
       }
     }
 
-    const unsignedRealWalkons = walkons.filter(w => !w.signedTeamId && !w.isGenerated);
+    const unsignedRealWalkons = updatedWalkons.filter(w => !w.signedTeamId && !w.isGenerated);
 
     // Collect scouting/interest data for JUCO-bound walk-ons before deletion.
     // Walk-ons that came from unsigned transfer portal players carry a sourceRecruitId
@@ -11948,6 +11928,7 @@ export async function registerRoutes(
     return {
       walkonsAdded: totalWalkonsAdded,
       newRecruits: recruitCount,
+      auctionResultsByTeam: Object.fromEntries(auctionResultsByTeam),
     };
   }
 
@@ -12109,56 +12090,99 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/leagues/:id/walkons/:walkonId/sign", requireAuth, async (req, res) => {
+  // GET team's bids + NIL summary for the walk-on bid page
+  app.get("/api/leagues/:id/walkons/bids", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id;
+      const coaches = await storage.getCoachesByLeague(leagueId);
+      const userCoach = coaches.find(c => c.userId === req.session.userId);
+      if (!userCoach || !userCoach.teamId) return res.json({ bids: {}, nilBudget: 0, nilSpent: 0, committedBids: 0 });
+      const team = await storage.getTeam(userCoach.teamId);
+      if (!team) return res.json({ bids: {}, nilBudget: 0, nilSpent: 0, committedBids: 0 });
+      const teamBids = await storage.getWalkonBidsByTeam(leagueId, team.id);
+      const bids: Record<string, number> = {};
+      let committedBids = 0;
+      for (const b of teamBids) {
+        bids[b.walkonPoolId] = b.bidAmount;
+        committedBids += b.bidAmount;
+      }
+      res.json({
+        bids,
+        nilBudget: team.nilBudget,
+        nilSpent: team.nilSpent,
+        committedBids,
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get bid data" });
+    }
+  });
+
+  // POST blind bid on a walk-on (upsert — teams can change their bid before ready-up)
+  app.post("/api/leagues/:id/walkons/:walkonId/bid", requireAuth, async (req, res) => {
     try {
       const { id: leagueId, walkonId } = req.params;
       const league = await storage.getLeague(leagueId);
       if (!league || league.currentPhase !== "offseason_walkons") {
         return res.status(400).json({ message: "Not in walk-on phase" });
       }
-      
+
+      const bidSchema = z.object({ bidAmount: z.number().int().min(1) });
+      const parsed = bidSchema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "bidAmount must be a positive integer" });
+      const { bidAmount } = parsed.data;
+
       const coaches = await storage.getCoachesByLeague(leagueId);
       const userCoach = coaches.find(c => c.userId === req.session.userId);
-      if (!userCoach || !userCoach.teamId) {
-        return res.status(403).json({ message: "No team found" });
-      }
+      if (!userCoach || !userCoach.teamId) return res.status(403).json({ message: "No team found" });
       const team = await storage.getTeam(userCoach.teamId);
       if (!team) return res.status(404).json({ message: "Team not found" });
-      
-      const roster = await storage.getPlayersByTeam(team.id);
-      // Use the same "active roster" filter as the /roster endpoint so that
-      // draft-declared and pending-departure players don't inflate the count.
-      const activeRoster = roster.filter(p => !p.declaredForDraft && !p.pendingDeparture);
-      if (activeRoster.length >= 25) {
-        return res.status(400).json({ message: "Roster is full (25 players). Cut a player first." });
+
+      if (team.walkonReady) {
+        return res.status(400).json({ message: "Unmark ready before changing bids" });
       }
-      
+
       const walkons = await storage.getWalkonsByLeague(leagueId);
       const walkon = walkons.find(w => w.id === walkonId);
       if (!walkon) return res.status(404).json({ message: "Walk-on not found" });
-      if (walkon.signedTeamId) {
-        return res.status(400).json({ message: `Already signed by ${walkon.signedTeamName || "another team"}` });
+      if (walkon.awardedTeamId) return res.status(400).json({ message: "Auction already resolved" });
+
+      // Validate bid against available NIL (nilBudget - nilSpent - other committed bids + existing bid on this walkon)
+      const existingBids = await storage.getWalkonBidsByTeam(leagueId, team.id);
+      const currentBidOnThis = existingBids.find(b => b.walkonPoolId === walkonId)?.bidAmount ?? 0;
+      const committedOther = existingBids.reduce((s, b) => b.walkonPoolId === walkonId ? s : s + b.bidAmount, 0);
+      const available = (team.nilBudget - team.nilSpent) - committedOther;
+      if (bidAmount > available) {
+        return res.status(400).json({ message: `Bid exceeds available NIL. Available: $${available.toLocaleString()}` });
       }
-      
-      const updated = await storage.updateWalkon(walkonId, { signedTeamId: team.id, signedTeamName: team.name });
 
-      try {
-        const leagueForEvent = await storage.getLeague(leagueId);
-        await storage.createLeagueEvent({
-          leagueId,
-          teamId: team.id,
-          eventType: "WALKON",
-          teamName: team.name,
-          teamAbbreviation: team.abbreviation,
-          description: `${team.name} signed walk-on ${walkon.firstName} ${walkon.lastName} (${walkon.position})`,
-          season: leagueForEvent?.currentSeason || 1,
-          week: leagueForEvent?.currentWeek || 1,
-        });
-      } catch (e) { console.error("League event error:", e); }
-
-      res.json(updated);
+      const bid = await storage.upsertWalkonBid(leagueId, walkonId, team.id, bidAmount);
+      res.json(bid);
     } catch (error) {
-      res.status(500).json({ message: "Failed to sign walk-on" });
+      console.error("Bid error:", error);
+      res.status(500).json({ message: "Failed to place bid" });
+    }
+  });
+
+  // DELETE — withdraw a bid on a walk-on
+  app.delete("/api/leagues/:id/walkons/:walkonId/bid", requireAuth, async (req, res) => {
+    try {
+      const { id: leagueId, walkonId } = req.params;
+      const league = await storage.getLeague(leagueId);
+      if (!league || league.currentPhase !== "offseason_walkons") {
+        return res.status(400).json({ message: "Not in walk-on phase" });
+      }
+      const coaches = await storage.getCoachesByLeague(leagueId);
+      const userCoach = coaches.find(c => c.userId === req.session.userId);
+      if (!userCoach || !userCoach.teamId) return res.status(403).json({ message: "No team found" });
+      const team = await storage.getTeam(userCoach.teamId);
+      if (!team) return res.status(404).json({ message: "Team not found" });
+      if (team.walkonReady) {
+        return res.status(400).json({ message: "Unmark ready before changing bids" });
+      }
+      await storage.deleteWalkonBid(walkonId, team.id);
+      res.json({ message: "Bid withdrawn" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to withdraw bid" });
     }
   });
 

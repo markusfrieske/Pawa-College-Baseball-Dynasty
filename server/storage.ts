@@ -2,7 +2,7 @@ import {
   users, leagues, conferences, teams, coaches, scouts,
   players, recruits, recruitingInterests, games, standings, auditLogs, leagueInvites, dynastyNews,
   recruitingActionsLog, recruitTopSchools, transferPortalInterests, playerHistory, playerPromises,
-  playerSeasonStats, walkonPool,
+  playerSeasonStats, walkonPool, walkonBids,
   leagueEvents,
   gameReports,
   recruitingClassSnapshots,
@@ -10,6 +10,7 @@ import {
   storylineRecruits, storylineEvents, storylineVotes,
   nilSeasonEarnings,
   type NilSeasonEarning, type InsertNilSeasonEarning,
+  type WalkonBid, type InsertWalkonBid,
   type User, type InsertUser,
   type League, type InsertLeague,
   type Conference, type InsertConference,
@@ -95,6 +96,13 @@ export interface IStorage {
   createWalkon(walkon: InsertWalkon): Promise<Walkon>;
   updateWalkon(id: string, data: Partial<Walkon>): Promise<Walkon | undefined>;
   deleteWalkonsByLeague(leagueId: string): Promise<void>;
+
+  getWalkonBidsByLeague(leagueId: string): Promise<WalkonBid[]>;
+  getWalkonBidsByTeam(leagueId: string, teamId: string): Promise<WalkonBid[]>;
+  getWalkonBidsByWalkon(walkonPoolId: string): Promise<WalkonBid[]>;
+  upsertWalkonBid(leagueId: string, walkonPoolId: string, teamId: string, bidAmount: number): Promise<WalkonBid>;
+  deleteWalkonBid(walkonPoolId: string, teamId: string): Promise<void>;
+  deleteWalkonBidsByLeague(leagueId: string): Promise<void>;
 
   getRecruitingInterestsByTeam(teamId: string): Promise<RecruitingInterest[]>;
   getRecruitingInterestsByLeague(leagueId: string): Promise<RecruitingInterest[]>;
@@ -503,7 +511,47 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteWalkonsByLeague(leagueId: string): Promise<void> {
+    await db.delete(walkonBids).where(eq(walkonBids.leagueId, leagueId));
     await db.delete(walkonPool).where(eq(walkonPool.leagueId, leagueId));
+  }
+
+  async getWalkonBidsByLeague(leagueId: string): Promise<WalkonBid[]> {
+    return await db.select().from(walkonBids).where(eq(walkonBids.leagueId, leagueId));
+  }
+
+  async getWalkonBidsByTeam(leagueId: string, teamId: string): Promise<WalkonBid[]> {
+    return await db.select().from(walkonBids).where(
+      and(eq(walkonBids.leagueId, leagueId), eq(walkonBids.teamId, teamId))
+    );
+  }
+
+  async getWalkonBidsByWalkon(walkonPoolId: string): Promise<WalkonBid[]> {
+    return await db.select().from(walkonBids).where(eq(walkonBids.walkonPoolId, walkonPoolId));
+  }
+
+  async upsertWalkonBid(leagueId: string, walkonPoolId: string, teamId: string, bidAmount: number): Promise<WalkonBid> {
+    const existing = await db.select().from(walkonBids).where(
+      and(eq(walkonBids.walkonPoolId, walkonPoolId), eq(walkonBids.teamId, teamId))
+    );
+    if (existing.length > 0) {
+      const [updated] = await db.update(walkonBids)
+        .set({ bidAmount })
+        .where(and(eq(walkonBids.walkonPoolId, walkonPoolId), eq(walkonBids.teamId, teamId)))
+        .returning();
+      return updated;
+    }
+    const [created] = await db.insert(walkonBids).values({ leagueId, walkonPoolId, teamId, bidAmount }).returning();
+    return created;
+  }
+
+  async deleteWalkonBid(walkonPoolId: string, teamId: string): Promise<void> {
+    await db.delete(walkonBids).where(
+      and(eq(walkonBids.walkonPoolId, walkonPoolId), eq(walkonBids.teamId, teamId))
+    );
+  }
+
+  async deleteWalkonBidsByLeague(leagueId: string): Promise<void> {
+    await db.delete(walkonBids).where(eq(walkonBids.leagueId, leagueId));
   }
 
   async getRecruitingInterestsByTeam(teamId: string): Promise<RecruitingInterest[]> {
@@ -918,6 +966,7 @@ export class DatabaseStorage implements IStorage {
       );
       await tx.delete(storylineEvents).where(eq(storylineEvents.leagueId, id));
       await tx.delete(storylineRecruits).where(eq(storylineRecruits.leagueId, id));
+      await tx.delete(walkonBids).where(eq(walkonBids.leagueId, id));
       await tx.delete(walkonPool).where(eq(walkonPool.leagueId, id));
 
       await tx.delete(recruits).where(eq(recruits.leagueId, id));

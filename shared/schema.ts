@@ -668,6 +668,9 @@ export const walkonPool = pgTable("walkon_pool", {
   hairColor: text("hair_color").notNull().default("brown"),
   hairStyle: text("hair_style").notNull().default("short"),
   headwear: text("headwear").notNull().default("cap"),
+  awardedTeamId: varchar("awarded_team_id"),
+  awardedTeamName: text("awarded_team_name"),
+  awardedPrice: integer("awarded_price"),
 });
 
 export const insertWalkonSchema = createInsertSchema(walkonPool).pick({
@@ -719,6 +722,24 @@ export const insertWalkonSchema = createInsertSchema(walkonPool).pick({
 
 export type InsertWalkon = z.infer<typeof insertWalkonSchema>;
 export type Walkon = typeof walkonPool.$inferSelect;
+
+export const walkonBids = pgTable("walkon_bids", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  leagueId: varchar("league_id").notNull().references(() => leagues.id),
+  walkonPoolId: varchar("walkon_pool_id").notNull().references(() => walkonPool.id),
+  teamId: varchar("team_id").notNull().references(() => teams.id),
+  bidAmount: integer("bid_amount").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertWalkonBidSchema = createInsertSchema(walkonBids).pick({
+  leagueId: true,
+  walkonPoolId: true,
+  teamId: true,
+  bidAmount: true,
+});
+export type InsertWalkonBid = z.infer<typeof insertWalkonBidSchema>;
+export type WalkonBid = typeof walkonBids.$inferSelect;
 
 // Recruiting interest (team interest in recruit)
 export const recruitingInterests = pgTable("recruiting_interests", {
