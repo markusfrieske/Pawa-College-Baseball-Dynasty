@@ -1414,8 +1414,8 @@ export async function registerRoutes(
       };
       
       if (!interest) {
-        // Determine which attributes to reveal
-        const revealedAttrs = getAttributesToReveal(revealAmount);
+        // Determine which attributes to reveal — capped at 65% before signing day
+        const revealedAttrs = getAttributesToReveal(Math.min(revealAmount, 65));
         
         // Calculate initial ranges based on reveal amount
         const ovrRange = narrowRange(150, 650, recruit.overall, revealAmount);
@@ -1440,9 +1440,11 @@ export async function registerRoutes(
         const currentPct = interest.scoutPercentage || 0;
         const newPct = Math.min(100, currentPct + revealAmount);
         
-        // Add more revealed attributes based on new percentage
+        // Add more revealed attributes, capping effective percentage at 65% before signing day
         const currentAttrs = (interest.revealedAttributes as string[]) || [];
-        const additionalAttrs = getAttributesToReveal(newPct - currentPct, currentAttrs);
+        const effectiveCurrentPct = Math.min(currentPct, 65);
+        const effectiveNewPct = Math.min(newPct, 65);
+        const additionalAttrs = getAttributesToReveal(effectiveNewPct - effectiveCurrentPct, currentAttrs);
         const allAttrs = [...currentAttrs, ...additionalAttrs];
         
         // Narrow down the rating ranges
