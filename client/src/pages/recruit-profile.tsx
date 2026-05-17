@@ -324,7 +324,7 @@ export default function RecruitProfilePage() {
       const coachLast = coachData?.lastName ?? "Coach";
       const archetype = coachData?.archetype ?? "Balanced";
       const eventCard = currentRecruit
-        ? pickHeadCoachVisitEvent(gain, currentRecruit, teamName, coachLast, archetype)
+        ? pickHeadCoachVisitEvent(gain, currentRecruit, teamName, coachLast, archetype, coachData?.level)
         : undefined;
       setActionResultModal({ title: "Head Coach Visit Complete", description: changeLabel.label, type: "success", icon: "coach", eventCard });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruits", recruitId] });
