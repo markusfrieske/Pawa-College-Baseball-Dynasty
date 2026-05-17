@@ -2777,7 +2777,7 @@ function WaitingOnWidget({
                 data-testid="button-advance-now-widget"
               >
                 <Play className="w-3.5 h-3.5 mr-1" />
-                {advanceMutation.isPending ? "Advancing..." : phase === "offseason_signing_day" ? "Signing Day Reveal" : "Advance Now"}
+                {advanceMutation.isPending ? "Advancing..." : phase === "offseason_signing_day" ? "Decision Day" : "Advance Now"}
               </RetroButton>
             )}
           </div>
