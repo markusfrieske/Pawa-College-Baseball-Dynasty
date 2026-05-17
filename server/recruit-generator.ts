@@ -1,5 +1,6 @@
 import { getRandomAbilities, getAbilitiesForPosition, calculateOVR, getStarRatingFromOVR } from "@shared/abilities";
 import type { InsertRecruit } from "@shared/schema";
+import { normalizeCommonAbilities } from "./normalizeCommonAbilities";
 
 export const HITTER_TOOL_GROUPS: Record<string, string[]> = {
   Speed:    ["speed", "running", "stealing"],
@@ -658,6 +659,15 @@ export function generateRecruitClass(
     } else {
       commonAbilities = generateCommonAbilities(isPitcher, position, targetAttrAvg, playerTooledAttrs, isRawArchetype);
     }
+
+    // Normalize common ability F/G distribution.
+    // Recruits are a national pool with no conference context; use "" (Tier 1 defaults).
+    // We use position + loop index as a deterministic seed surrogate since names
+    // are not yet assigned at this point in the generation loop.
+    commonAbilities = normalizeCommonAbilities(
+      { ...commonAbilities, firstName: `R${i}`, lastName: `C${i}`, position },
+      "",
+    ) as typeof commonAbilities;
 
     const scoutingOrder = generateScoutingOrder(isPitcher, position);
 
