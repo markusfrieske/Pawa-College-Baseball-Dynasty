@@ -499,7 +499,7 @@ function LeagueCard({ league, userId }: { league: LeagueWithDetails; userId?: st
           </AlertDialog>
         </div>
       </RetroCardHeader>
-      {(league.currentPhase === "signing_day" || league.currentPhase === "offseason_walkons") && (
+      {(league.currentPhase === "offseason_signing_day" || league.currentPhase === "offseason_walkons") && (
         <div className="px-4 pb-2 pt-1">
           <Link href={`/league/${league.id}/signing-day-reveal`}>
             <RetroButton
