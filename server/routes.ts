@@ -24,6 +24,7 @@ import {
 } from "./news-engine";
 import { SEC_REAL_ROSTERS } from "./realRosters";
 import { generateRecruitClass, selectTools, genToolAttr, HITTER_TOOL_GROUPS, PITCHER_TOOL_GROUPS } from "./recruit-generator";
+import { normalizeCommonAbilities } from "./normalizeCommonAbilities";
 import { validateLeagueRosters, checkTeamRosterStructure } from "./rosterValidation";
 import { sendWeeklyDigests, verifyUnsubToken } from "./digestEmail";
 
@@ -16625,6 +16626,13 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
         }
       }
 
+      // Normalize common ability F/G distribution by conference tier
+      const normalizedPlayerData = normalizeCommonAbilities(
+        { ...playerData, firstName: rp.firstName, lastName: rp.lastName, position: rp.position },
+        conferenceName ?? "",
+      );
+      Object.assign(playerData, normalizedPlayerData);
+
       const rawOverall = calculateOVR(playerData);
       const overall = Math.max(159, Math.min(650, rawOverall));
       const starRating = getStarRatingFromOVR(overall);
@@ -16703,6 +16711,12 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
           wRISP: genAttr(), vsLefty: genAttr(), poise: genAttr(), heater: genAttr(), agile: genAttr(),
           abilities,
         };
+        // Normalize common ability distribution by conference tier
+        const normFiller = normalizeCommonAbilities(
+          { ...playerData, firstName: `Filler${f}`, lastName: `${teamId}`, position: pos },
+          conferenceName ?? "",
+        );
+        Object.assign(playerData, normFiller);
         const rawOvr = calculateOVR(playerData);
         const ovr = Math.max(159, Math.min(650, rawOvr));
         let jerseyNum = realRoster.length + f + 1;
