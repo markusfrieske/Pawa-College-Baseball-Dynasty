@@ -410,9 +410,9 @@ export default function CommissionerPage() {
   const backfillScoresMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("POST", `/api/leagues/${id}/backfill-recruiting-scores`, {});
-      return res.json();
+      return res.json() as Promise<{ updated: number; message: string }>;
     },
-    onSuccess: (data: any) => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting-scores"] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "dynasty-history"] });
       toast({ title: "Backfill Complete", description: data?.message ?? "Recruiting scores updated." });

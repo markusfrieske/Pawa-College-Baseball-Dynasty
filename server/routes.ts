@@ -13186,16 +13186,38 @@ export async function registerRoutes(
         const actualAvgStar = teamSnap?.avgStarRating ?? row.classStarAvg ?? expectedAvgStar;
         const starEffScore = Math.min(100, Math.max(0, Math.round(50 + (actualAvgStar - expectedAvgStar) * 15)));
 
-        // ── 5. Positional Balance (10%): unknown from snapshots → neutral default ─
-        const posBalanceScore = (row.totalSigned ?? 0) > 0 ? 50 : 0;
+        // ── 5. Positional Balance (10%): estimate from snapshot totalCommits ──────
+        // More commits → more likely to cover all 9 positions. Using totalCommits/9
+        // as a stable, snapshot-derived proxy for position coverage.
+        const totalSigned = teamSnap?.totalCommits ?? row.totalSigned ?? 0;
+        const posBalanceScore = totalSigned > 0
+          ? Math.min(100, Math.round((totalSigned / 9) * 100))
+          : 0;
 
-        // ── 6. Blue Chip Haul (10%): unknown from snapshots → conservative default ─
-        const blueChipScore = 0;
+        // ── 6. Blue Chip Haul (10%): use snapshot fiveStars as blue chip proxy ──
+        // Blue chips are a subset of 4-5★ recruits; fiveStars from the snapshot
+        // is the closest stable approximation available without per-recruit data.
+        const teamFiveStars = teamSnap?.fiveStars ?? 0;
+        const maxFiveStars = Math.max(...seasonSnaps.map(s => s.fiveStars ?? 0), 1);
+        const blueChipScore = Math.min(100, Math.round((teamFiveStars / maxFiveStars) * 100));
 
-        // ── 7. Action Efficiency (10%): unknown historically → conservative default ─
-        const actionEffScore = (row.totalSigned ?? 0) > 0 ? 30 : 0;
+        // ── 7. Action Efficiency (10%): compute from actions log (has season field) ─
+        // The recruiting actions log retains a season field, so this is exact.
+        let actionEffScore = 0;
+        try {
+          const actionsLog = await storage.getRecruitingActionsLogByTeam(row.teamId!, leagueId);
+          const nonScoutActions = actionsLog.filter(a => a.season === row.season && a.actionType !== "scout");
+          const recruitsPerAction = nonScoutActions.length > 0
+            ? (totalSigned / nonScoutActions.length)
+            : (totalSigned > 0 ? 0.3 : 0);
+          actionEffScore = Math.min(100, Math.round(recruitsPerAction * 200));
+        } catch {
+          actionEffScore = totalSigned > 0 ? 30 : 0;
+        }
 
-        // ── 8. Gem Detection (5%): unknown from snapshots → 0 ──────────────────
+        // ── 8. Gem Detection (5%): unavailable from historical data → 0 ──────────
+        // Generational gem flags are not captured in snapshots and cannot be
+        // recovered from aggregate data for seasons before tracking launched.
         const gemScore = 0;
 
         const breakdown: Record<string, number> = {
@@ -13287,7 +13309,9 @@ export async function registerRoutes(
 
       res.json({
         updated: updatedCount,
-        message: `Backfilled recruiting scores for ${updatedCount} coach-season record${updatedCount !== 1 ? "s" : ""}. Scores for hit rate, positional balance, blue chip haul, action efficiency, and gem detection are approximated for historical seasons.`,
+        message: updatedCount === 0
+          ? "All seasons already had recruiting scores — nothing to backfill."
+          : `Backfilled grades for ${updatedCount} coach-season record${updatedCount !== 1 ? "s" : ""}. Class quality, rank, star efficiency, blue chip haul (5★ proxy), positional balance (class size proxy), and action efficiency are derived from stable historical data. Hit rate and gem detection use conservative defaults.`,
       });
     } catch (error) {
       console.error("Failed to backfill recruiting scores:", error);
