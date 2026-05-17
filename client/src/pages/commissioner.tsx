@@ -407,6 +407,21 @@ export default function CommissionerPage() {
     },
   });
 
+  const backfillScoresMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/leagues/${id}/backfill-recruiting-scores`, {});
+      return res.json();
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting-scores"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "dynasty-history"] });
+      toast({ title: "Backfill Complete", description: data?.message ?? "Recruiting scores updated." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Backfill Failed", description: parseErrorMessage(error), variant: "destructive" });
+    },
+  });
+
   const importRecruitingMutation = useMutation({
     mutationFn: async (csvData?: string) => {
       const res = await apiRequest("POST", `/api/leagues/${id}/recruiting/import`, { csvData });
@@ -541,6 +556,8 @@ export default function CommissionerPage() {
               isSimToPostseason={simToPostseasonMutation.isPending}
               onSimToCws={() => simToCwsMutation.mutate()}
               isSimToCws={simToCwsMutation.isPending}
+              onBackfillScores={() => backfillScoresMutation.mutate()}
+              isBackfilling={backfillScoresMutation.isPending}
               autoAdvance={autoAdvance}
               toggleAutoAdvance={toggleAutoAdvance}
             />
@@ -622,6 +639,8 @@ function ActionsTab({
   isSimToPostseason,
   onSimToCws,
   isSimToCws,
+  onBackfillScores,
+  isBackfilling,
   autoAdvance,
   toggleAutoAdvance,
 }: {
@@ -642,6 +661,8 @@ function ActionsTab({
   isSimToPostseason: boolean;
   onSimToCws: () => void;
   isSimToCws: boolean;
+  onBackfillScores: () => void;
+  isBackfilling: boolean;
   autoAdvance: boolean;
   toggleAutoAdvance: (val: boolean) => void;
 }) {
@@ -1019,6 +1040,13 @@ function ActionsTab({
               description="Bulk edit all recruits" 
               href={`/league/${league?.id}/edit-recruits`}
               dataTestId="button-edit-recruits"
+            />
+            <ActionButton
+              label={isBackfilling ? "Backfilling..." : "Backfill Recruiting Grades"}
+              description="Compute grades for seasons before this feature launched"
+              onClick={onBackfillScores}
+              disabled={isBackfilling}
+              dataTestId="button-backfill-recruiting-scores"
             />
             <ActionButton 
               label={isSimulating ? "Simulating..." : "Simulate Week"}
