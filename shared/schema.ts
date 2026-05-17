@@ -732,7 +732,7 @@ export const walkonBids = pgTable("walkon_bids", {
   bidAmount: integer("bid_amount").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow(),
 }, (t) => ({
-  uniqBidPerWalkonTeam: uniqueIndex("walkon_bids_walkon_team_unique").on(t.walkonPoolId, t.teamId),
+  uniqBidPerWalkonTeam: uniqueIndex("walkon_bids_unique").on(t.walkonPoolId, t.teamId),
 }));
 
 export const insertWalkonBidSchema = createInsertSchema(walkonBids).pick({
