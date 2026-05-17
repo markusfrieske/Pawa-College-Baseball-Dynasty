@@ -114,6 +114,9 @@ export default function WalkonsPage() {
     queryKey: ["/api/auth/me"],
   });
 
+  // Declare myTeam early so it can be used in query enabled guards below
+  const myTeam = rosterData?.team;
+
   // Persistent results for non-commissioner coaches — reads from league.lastWalkonAuction
   // via GET /walkons/auction-results after the commissioner has resolved the auction.
   const league = leagueData?.league;
@@ -142,10 +145,11 @@ export default function WalkonsPage() {
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "walkons", "auction-results"] });
-      const myTeamId = rosterData?.team?.id;
+      const myTeamId = myTeam?.id;
       if (myTeamId && data?.seasonTransition?.auctionResultsByTeam?.[myTeamId]) {
         setAuctionResults(data.seasonTransition.auctionResultsByTeam[myTeamId]);
       } else {
+        // Commissioner may not have bids — show persisted results after invalidation
         toast({ title: "Auction Resolved", description: "Advancing to Spring Training…" });
         setLocation(`/league/${id}`);
       }
@@ -154,8 +158,6 @@ export default function WalkonsPage() {
       toast({ title: "Cannot advance", description: parseErrorMessage(err), variant: "destructive" });
     },
   });
-
-  const myTeam = rosterData?.team;
   const myReadiness = readiness?.find(r => r.teamId === myTeam?.id);
   const isReady = myReadiness?.walkonReady || false;
   const allReady = readiness ? readiness.every(r => r.walkonReady) : false;

@@ -11615,15 +11615,41 @@ export async function registerRoutes(
       yourBid: number;
     }>>();
 
+    // Pre-load current roster counts for cap enforcement (MAX 25)
+    const MAX_WALKON_ROSTER = 25;
+    const rosterCounts = new Map<string, number>();
+    for (const team of teams) {
+      const players = await storage.getPlayersByTeam(team.id);
+      rosterCounts.set(team.id, players.length);
+    }
+    // Track how many walkons each team has already been awarded in this auction
+    const awardedCounts = new Map<string, number>();
+
     for (const walkon of walkons) {
       const bids = (bidsByWalkon.get(walkon.id) || []).sort((a, b) => b.bidAmount - a.bidAmount);
       if (bids.length === 0) continue;
 
-      const winner = bids[0];
-      const secondBid = bids[1]?.bidAmount ?? 0;
+      // Find the highest bidder who still has roster room — skip over cap-busting winners
+      let winner: (typeof bids)[0] | null = null;
+      for (const bid of bids) {
+        const currentCount = (rosterCounts.get(bid.teamId) || 0) + (awardedCounts.get(bid.teamId) || 0);
+        if (currentCount < MAX_WALKON_ROSTER) {
+          winner = bid;
+          break;
+        }
+        console.log(`[Auction] ${bid.teamId} skipped (roster full at ${currentCount}) for ${walkon.firstName} ${walkon.lastName}`);
+      }
+      if (!winner) {
+        console.log(`[Auction] No eligible bidder for ${walkon.firstName} ${walkon.lastName} — all at cap`);
+        continue;
+      }
+
+      // Determine Vickrey price: second-highest bid from an *eligible* bidder or next eligible bid
+      const remainingBids = bids.filter(b => b !== winner);
+      const secondBid = remainingBids[0]?.bidAmount ?? 0;
       // Vickrey: winner pays second-highest + 1, clamped to their own bid
       // (prevents overcharge on ties where both bids are equal)
-      const pricePaid = Math.min(winner.bidAmount, bids.length > 1 ? secondBid + 1 : winner.bidAmount);
+      const pricePaid = Math.min(winner.bidAmount, remainingBids.length > 0 ? secondBid + 1 : winner.bidAmount);
 
       // Mark the walkon as awarded (used for display; signedTeamId drives player creation)
       await storage.updateWalkon(walkon.id, {
@@ -11633,6 +11659,9 @@ export async function registerRoutes(
         awardedTeamName: teamMap.get(winner.teamId)?.name || null,
         awardedPrice: pricePaid,
       });
+
+      // Update local cap tracking
+      awardedCounts.set(winner.teamId, (awardedCounts.get(winner.teamId) || 0) + 1);
 
       // Deduct the awarded price from the winning team's nilSpent
       const winnerTeam = teamMap.get(winner.teamId);
@@ -11653,9 +11682,9 @@ export async function registerRoutes(
           lastName: walkon.lastName,
           position: walkon.position,
           overall: walkon.overall,
-          won: bid.teamId === winner.teamId,
-          pricePaid: bid.teamId === winner.teamId ? pricePaid : null,
-          winnerTeamName: bid.teamId === winner.teamId ? null : winnerName,
+          won: bid.teamId === winner!.teamId,
+          pricePaid: bid.teamId === winner!.teamId ? pricePaid : null,
+          winnerTeamName: bid.teamId === winner!.teamId ? null : winnerName,
           yourBid: bid.bidAmount,
         });
       }
@@ -11949,6 +11978,7 @@ export async function registerRoutes(
       recruitsAdded: signingResult.recruitsAdded + walkonResult.walkonsAdded,
       newRecruits: walkonResult.newRecruits,
       playersProgressed: signingResult.playersProgressed,
+      auctionResultsByTeam: walkonResult.auctionResultsByTeam,
     };
   }
   
