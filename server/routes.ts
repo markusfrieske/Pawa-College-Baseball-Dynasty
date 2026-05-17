@@ -2819,7 +2819,24 @@ export async function registerRoutes(
       const league = await storage.getLeague(req.params.id as string);
       if (!league) return res.status(404).json({ message: "League not found" });
 
+      // Enforce league membership: caller must be a coach in this league
+      const userId = req.session.userId;
+      const leagueCoaches = await storage.getCoachesByLeague(league.id);
+      const isMember = leagueCoaches.some(c => c.userId === userId);
+      if (!isMember) {
+        return res.status(403).json({ message: "Not a member of this league" });
+      }
+
       const teamId = req.query.teamId as string | undefined;
+
+      // Validate teamId belongs to this league if provided
+      if (teamId) {
+        const leagueTeams = await storage.getTeamsByLeague(league.id);
+        const validTeam = leagueTeams.some(t => t.id === teamId);
+        if (!validTeam) {
+          return res.status(400).json({ message: "Team not found in this league" });
+        }
+      }
 
       const recruits = await storage.getRecruitsByLeague(league.id);
       const toReveal = recruits.filter(r =>
