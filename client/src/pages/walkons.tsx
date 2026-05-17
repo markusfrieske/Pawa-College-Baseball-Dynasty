@@ -242,7 +242,10 @@ export default function WalkonsPage() {
   });
 
   const roster = rosterData?.players || [];
-  const rosterCount = roster.length;
+  // Active roster mirrors server logic: exclude players already marked as departing
+  // (draft-declared, transfers, etc.) so their vacating slots count as open.
+  const activeRoster = roster.filter((p: { departureType?: string | null }) => !p.departureType);
+  const rosterCount = activeRoster.length;
   const sortedRoster = [...roster].sort((a, b) => (b.overall || 0) - (a.overall || 0));
   // Open roster slots = how many more walk-ons you can win (and bid on)
   const openSlots = Math.max(0, MAX_ROSTER - rosterCount);

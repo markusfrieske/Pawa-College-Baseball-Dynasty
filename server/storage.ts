@@ -534,6 +534,9 @@ export class DatabaseStorage implements IStorage {
       and(eq(walkonBids.walkonPoolId, walkonPoolId), eq(walkonBids.teamId, teamId))
     );
     if (existing.length > 0) {
+      // Only update bidAmount — intentionally preserve original createdAt so that
+      // tie-break order ("first to submit wins") is based on when the team first
+      // bid on this walk-on, not the most recent edit.
       const [updated] = await db.update(walkonBids)
         .set({ bidAmount })
         .where(and(eq(walkonBids.walkonPoolId, walkonPoolId), eq(walkonBids.teamId, teamId)))
