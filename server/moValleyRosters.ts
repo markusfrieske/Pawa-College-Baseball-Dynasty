@@ -1851,8 +1851,8 @@ export const MO_VALLEY_ROSTERS: Record<string, RealPlayer[]> = {
       ...noPitches },
     // OUTFIELDERS (6)
     { firstName: "Markus", lastName: "Frieske", position: "OF", eligibility: "SR", homeState: "WA", hometown: "Spokane", jerseyNumber: 3,
-      hitForAvg: 81, power: 42, speed: 89, arm: 79, fielding: 75, errorResistance: 62, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 82, vsLHP: 90, grit: 82, stealing: 65, running: 88, throwing: 82, recovery: 88, wRISP: 68, vsLefty: 60, poise: 55, heater: 0, agile: 72,
+      hitForAvg: 81, power: 42, speed: 88, arm: 79, fielding: 75, errorResistance: 62, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 82, vsLHP: 88, grit: 82, stealing: 65, running: 88, throwing: 82, recovery: 84, wRISP: 68, vsLefty: 60, poise: 55, heater: 0, agile: 72,
       abilities: ["Contact Hitter", "Consigliere", "High-Speed Laser"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "S",
       ...noPitches },
