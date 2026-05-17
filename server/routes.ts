@@ -13175,13 +13175,15 @@ export async function registerRoutes(
         const teamSnap = seasonSnaps.find(s => s.teamId === row.teamId);
 
         // ── 1. Class Quality (20%): team avgOvr vs league range ────────────────
+        // Only use snapshot avgOverall (OVR scale ~150-650). row.classScore is a
+        // composite on a different scale and must NOT be used as a substitute here.
         const leagueAvgOvrs = seasonSnaps.filter(s => (s.totalCommits ?? 0) > 0).map(s => s.avgOverall ?? 0);
-        const leagueBestAvg = leagueAvgOvrs.length > 0 ? Math.max(...leagueAvgOvrs) : 300;
-        const leagueWorstAvg = leagueAvgOvrs.length > 0 ? Math.min(...leagueAvgOvrs) : 150;
-        const teamAvgOvr = teamSnap?.avgOverall ?? row.classScore ?? 0;
-        const classQualityScore = (leagueBestAvg > leagueWorstAvg)
+        const leagueBestAvg = leagueAvgOvrs.length > 0 ? Math.max(...leagueAvgOvrs) : 0;
+        const leagueWorstAvg = leagueAvgOvrs.length > 0 ? Math.min(...leagueAvgOvrs) : 0;
+        const teamAvgOvr = teamSnap?.avgOverall ?? null;
+        const classQualityScore = (teamAvgOvr !== null && leagueBestAvg > leagueWorstAvg)
           ? Math.min(100, Math.max(0, Math.round(((teamAvgOvr - leagueWorstAvg) / (leagueBestAvg - leagueWorstAvg)) * 100)))
-          : (teamAvgOvr > 0 ? 50 : 0);
+          : 50; // neutral when snapshot data unavailable — avoids cross-scale contamination
 
         // ── 2. Class Rank (15%): re-rank using stored classScore ────────────────
         const allClassScores = seasonHistory
