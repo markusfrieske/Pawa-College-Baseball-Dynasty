@@ -107,15 +107,6 @@ function getCommonAbilityTierColor(tier: string): string {
   return map[tier] ?? "#9ca3af";
 }
 
-function isLightColor(color: string): boolean {
-  const hex = color.replace("#", "");
-  if (hex.length < 6) return false;
-  const r = parseInt(hex.substr(0, 2), 16);
-  const g = parseInt(hex.substr(2, 2), 16);
-  const b = parseInt(hex.substr(4, 2), 16);
-  return (r * 299 + g * 587 + b * 114) / 1000 > 128;
-}
-
 function getTypeBadge(recruit: RevealRecruit): { label: string; className: string; pulse?: boolean } | null {
   const isGen = recruit.isGenerationalGem && recruit.gemBustRevealed;
   const isBustGen = recruit.isGenerationalBust && recruit.gemBustRevealed;
@@ -128,13 +119,13 @@ function getTypeBadge(recruit: RevealRecruit): { label: string; className: strin
   if (recruit.recruitType === "STORYLINE")
                 return { label: "STORYLINE", className: "bg-purple-600 text-white" };
   if (recruit.recruitType === "TRANSFER")
-                return { label: recruit.fromTeamName ? `XFER · ${recruit.fromTeamName.slice(0, 9)}` : "TRANSFER", className: "bg-purple-600 text-white" };
+                return { label: recruit.fromTeamName ? `TRANSFER · ${recruit.fromTeamName.slice(0, 8)}` : "TRANSFER", className: "bg-purple-600 text-white" };
   if (recruit.recruitType === "JUCO")
                 return { label: recruit.fromTeamName ? `JUCO · ${recruit.fromTeamName.slice(0, 9)}` : "JUCO", className: "bg-cyan-700 text-white" };
   return null;
 }
 
-function CardFront({ recruit, primaryColor }: { recruit: RevealRecruit; primaryColor: string; secondaryColor: string }) {
+function CardFront({ recruit, primaryColor }: { recruit: RevealRecruit; primaryColor: string }) {
   const glowBorder = getOvrGlowBorder(recruit.overall);
   const isGen = recruit.isGenerationalGem && recruit.gemBustRevealed;
   const isBustGen = recruit.isGenerationalBust && recruit.gemBustRevealed;
