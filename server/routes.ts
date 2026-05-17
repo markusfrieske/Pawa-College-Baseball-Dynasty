@@ -11366,6 +11366,7 @@ export async function registerRoutes(
           const jucoEligMap: Record<string, string> = { "FR": "SO", "SO": "JR", "JR": "SR" };
           const newElig = jucoEligMap[player.eligibility] || player.eligibility;
           if (newElig !== "SR") {
+            const transferRecruit = recruits.find(r => r.sourcePlayerId === player.id);
             await storage.createWalkon({
               leagueId,
               firstName: player.firstName,
@@ -11408,6 +11409,7 @@ export async function registerRoutes(
               hairColor: player.hairColor || "brown",
               hairStyle: player.hairStyle || "short",
               headwear: player.headwear || "cap",
+              sourceRecruitId: transferRecruit?.id ?? null,
             });
           }
         }
@@ -11585,6 +11587,24 @@ export async function registerRoutes(
 
     const unsignedRealWalkons = walkons.filter(w => !w.signedTeamId && !w.isGenerated);
 
+    // Collect scouting/interest data for JUCO-bound walk-ons before deletion.
+    // Walk-ons that came from unsigned transfer portal players carry a sourceRecruitId
+    // pointing to their TRANSFER recruit row from the previous recruiting season.
+    // We snapshot those interests now so they can be re-attached to the new JUCO recruit.
+    const walkonInterestMap = new Map<string, import("@shared/schema").RecruitingInterest[]>();
+    for (const walkon of unsignedRealWalkons) {
+      if (walkon.sourceRecruitId) {
+        try {
+          const priorInterests = await storage.getRecruitingInterestsByRecruit(walkon.sourceRecruitId);
+          if (priorInterests.length > 0) {
+            walkonInterestMap.set(walkon.id, priorInterests);
+          }
+        } catch (e) {
+          console.error(`[JUCO carryover] Failed to fetch interests for walkon ${walkon.id}:`, e);
+        }
+      }
+    }
+
     await storage.deleteWalkonsByLeague(leagueId);
 
     await storage.deleteRecruitsByLeague(leagueId);
@@ -11631,7 +11651,7 @@ export async function registerRoutes(
         const posRecruits = currentRecruits.filter(r => r.position === walkon.position);
         const posRank = posRecruits.filter(r => (r.overall || 0) >= boostedOverall).length + 1;
 
-        await storage.createRecruit({
+        const jucoRecruit = await storage.createRecruit({
           leagueId,
           firstName: walkon.firstName,
           lastName: walkon.lastName,
@@ -11679,6 +11699,70 @@ export async function registerRoutes(
           sourcePlayerId: null,
           fromTeamName: null,
         });
+
+        // Carry over scouting progress and interest from the prior TRANSFER recruiting season.
+        // scoutPercentage is reduced to reflect the offseason gap; coaches at 65%+ retain
+        // meaningful partial credit, lower scouts get a smaller but non-zero head start.
+        const priorInterests = walkonInterestMap.get(walkon.id);
+        if (priorInterests && priorInterests.length > 0) {
+          let carryoverErrors = 0;
+          for (const prior of priorInterests) {
+            try {
+              let carriedScout: number;
+              if (prior.scoutPercentage >= 65) {
+                carriedScout = Math.round(prior.scoutPercentage * 0.55);
+              } else if (prior.scoutPercentage >= 40) {
+                carriedScout = Math.round(prior.scoutPercentage * 0.40);
+              } else {
+                carriedScout = Math.round(prior.scoutPercentage * 0.25);
+              }
+              carriedScout = Math.max(0, Math.min(99, carriedScout));
+
+              // Trim revealedAttributes proportionally to the carried scout percentage
+              // so it stays consistent with how deep the scout actually is.
+              const priorAttrs = prior.revealedAttributes || [];
+              let carriedAttrs: string[];
+              if (prior.scoutPercentage > 0 && priorAttrs.length > 0) {
+                const ratio = carriedScout / prior.scoutPercentage;
+                const keepCount = Math.max(0, Math.round(priorAttrs.length * ratio));
+                carriedAttrs = priorAttrs.slice(0, keepCount);
+              } else {
+                carriedAttrs = [];
+              }
+
+              // Scale revealed abilities count proportionally as well
+              const carriedAbilitiesCount = prior.scoutPercentage > 0
+                ? Math.max(0, Math.round(prior.revealedAbilitiesCount * (carriedScout / prior.scoutPercentage)))
+                : 0;
+
+              await storage.createRecruitingInterest({
+                recruitId: jucoRecruit.id,
+                teamId: prior.teamId,
+                interestLevel: prior.interestLevel,
+                scoutPercentage: carriedScout,
+                isTargeted: false,
+                hasOffer: false,
+                revealedAttributes: carriedAttrs,
+                minOverall: prior.minOverall,
+                maxOverall: prior.maxOverall,
+                minStar: prior.minStar,
+                maxStar: prior.maxStar,
+                revealedAbilitiesCount: carriedAbilitiesCount,
+                notes: prior.notes ?? null,
+                boardRank: null,
+              });
+            } catch (e) {
+              carryoverErrors++;
+              console.error(`[JUCO carryover] Failed to copy interest for team ${prior.teamId} to JUCO recruit ${jucoRecruit.id}:`, e);
+            }
+          }
+          if (carryoverErrors > 0) {
+            console.warn(`[JUCO carryover] WARNING: ${carryoverErrors}/${priorInterests.length} interest row(s) failed to copy for JUCO recruit ${walkon.firstName} ${walkon.lastName} — some scouting progress may be lost`);
+          } else {
+            console.log(`[JUCO carryover] Carried ${priorInterests.length} interest(s) to JUCO recruit ${walkon.firstName} ${walkon.lastName}`);
+          }
+        }
+
         jucoRecruitsCreated++;
       } catch (e) {
         console.error(`Failed to create JUCO recruit for ${walkon.firstName} ${walkon.lastName}:`, e);
