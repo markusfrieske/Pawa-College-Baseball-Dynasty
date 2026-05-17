@@ -1043,7 +1043,7 @@ function ActionsTab({
             />
             <ActionButton
               label={isBackfilling ? "Backfilling..." : "Backfill Recruiting Grades"}
-              description="Compute grades for seasons before this feature launched"
+              description="Scores seasons with no recruiting grade yet. Class quality, rank, star efficiency, blue chip haul, positional balance, and action efficiency use historical data. Hit rate and gem detection default to conservative estimates."
               onClick={onBackfillScores}
               disabled={isBackfilling}
               dataTestId="button-backfill-recruiting-scores"
