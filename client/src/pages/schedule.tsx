@@ -416,7 +416,7 @@ function GameRow({ game, allGamesInGroup, onEdit, onViewBoxScore, onMatchupPrevi
         {game.isComplete ? (
           <button
             onClick={onViewBoxScore}
-            className="flex flex-nowrap items-center gap-4 whitespace-nowrap cursor-pointer hover:opacity-80 transition-opacity shrink-0"
+            className="flex flex-nowrap items-center gap-4 whitespace-nowrap cursor-pointer hover:opacity-80 transition-opacity shrink-0 min-w-[96px]"
             data-testid={`button-box-score-${game.id}`}
           >
             <span className={`text-xl font-bold ${(game.awayScore ?? 0) > (game.homeScore ?? 0) ? "text-gold" : "text-muted-foreground"}`} data-testid={`score-away-${game.id}`}>
