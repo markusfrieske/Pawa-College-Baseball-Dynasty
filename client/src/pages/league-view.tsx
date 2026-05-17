@@ -2645,6 +2645,7 @@ function WaitingOnWidget({
   const [scoreboardData, setScoreboardData] = useState<InningScoreboardData | null>(null);
   const scoreboardEnabled = useScoreboardEnabled();
   const queryClient = useQueryClient();
+  const [, navigate] = useLocation();
 
   const { data: user } = useQuery<{ id: string; email: string }>({
     queryKey: ["/api/auth/me"],
@@ -2668,6 +2669,9 @@ function WaitingOnWidget({
     },
   });
 
+  // Capture the phase before any advance so onSuccess knows what transitioned.
+  const phase = league.currentPhase;
+
   const advanceMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("POST", `/api/leagues/${leagueId}/advance`, {});
@@ -2683,14 +2687,18 @@ function WaitingOnWidget({
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "schedule"] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "postseason"] });
       window.dispatchEvent(new CustomEvent("league-phase-changed"));
+      // After signing day is finalized all recruits have signedTeamId set.
+      // Navigate the commissioner directly to the cinematic card-flip reveal.
+      if (phase === "offseason_signing_day") {
+        navigate(`/league/${leagueId}/signing-day-reveal`);
+        return;
+      }
       if (data?.userTeamGame && scoreboardEnabled) {
         setScoreboardData(data.userTeamGame as InningScoreboardData);
         setShowScoreboard(true);
       }
     },
   });
-
-  const phase = league.currentPhase;
   const humanTeams = readyData?.readyStatus.filter((s) => s.isHumanControlled) ?? [];
   const myStatus = readyData?.readyStatus.find((s) => s.userId === user?.id);
   const isCommissioner = !!user && user.id === league.commissionerId;
@@ -2835,6 +2843,19 @@ function WaitingOnWidget({
           data={scoreboardData}
         />
 
+        {/* Signing day reveal callout — appears during offseason_walkons for non-commissioners
+            (commissioners are auto-navigated there after the signing day advance). */}
+        {phase === "offseason_walkons" && !isCommissioner && (
+          <div className="mt-2 pt-2 border-t border-border/30">
+            <Link href={`/league/${leagueId}/signing-day-reveal`}>
+              <div className="flex items-center gap-2 text-[10px] text-gold hover:text-gold/80 transition-colors cursor-pointer" data-testid="signing-day-reveal-callout">
+                <Trophy className="w-3 h-3 shrink-0 animate-pulse" />
+                <span>Signing day is over — watch the class reveal with card flips</span>
+                <ChevronRight className="w-3 h-3 ml-auto shrink-0" />
+              </div>
+            </Link>
+          </div>
+        )}
         {showStorylineVotes && pendingVoteCount > 0 && (
           <div className="mt-2 pt-2 border-t border-border/30">
             <Link href={`/league/${leagueId}/storylines`}>

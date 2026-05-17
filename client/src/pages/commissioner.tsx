@@ -1036,7 +1036,7 @@ function ActionsTab({
               href={`/league/${league?.id}/edit-rosters`}
               dataTestId="button-edit-rosters"
             />
-            {league?.currentPhase === "offseason_signing_day" && (
+            {(league?.currentPhase === "offseason_signing_day" || league?.currentPhase === "offseason_walkons") && (
               <ActionButton
                 label="View Class Reveal"
                 description="See all signed recruits as flippable baseball cards"
