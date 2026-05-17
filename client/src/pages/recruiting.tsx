@@ -2168,8 +2168,8 @@ function RecruitRow({
 
   const stage = stageBadges[recruit.stage] || stageBadges.open;
   const scoutPct = recruit.interest?.scoutPercentage || 0;
-  // Blue chips always have ratings revealed
-  const isFullyRevealed = recruit.isBlueChip || scoutPct >= 100;
+  // Blue chips always show full details; everyone else must wait for the signing-day reveal
+  const isFullyRevealed = recruit.isBlueChip || !!recruit.signingDayRevealed;
 
   // Get display strings for overall and star rating based on scouting progress
   const getOverallDisplay = (): string => {
@@ -3134,10 +3134,8 @@ function RecruitDetailModal({
   const scoutPct = recruit.interest?.scoutPercentage || 0;
   // Set of fields locked until signing day reveal (server has already nulled their values)
   const sdLocked = new Set<string>(recruit.signingDayLockedFields || []);
-  // isFullyRevealed: blue chips always show everything; otherwise 100% scouting reveals
-  // non-locked fields, but signing-day-locked fields remain hidden until signingDayRevealed.
-  // sdLocked.size > 0 means holdback is active, so 100% scouting does not fully unlock.
-  const isFullyRevealed = recruit.isBlueChip || (scoutPct >= 100 && sdLocked.size === 0);
+  // Blue chips always show everything; all others unlock only at the signing-day cinematic.
+  const isFullyRevealed = recruit.isBlueChip || !!recruit.signingDayRevealed;
   const revealedAttrs = recruit.isBlueChip 
     ? ["hitForAvg", "power", "speed", "arm", "fielding", "errorResistance", "velocity", "control", "stamina"]
     : (recruit.interest?.revealedAttributes || []);

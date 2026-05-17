@@ -384,7 +384,8 @@ export default function RecruitProfilePage() {
 
   const { recruit, topSchools } = data;
   const scoutPct = recruit.interest?.scoutPercentage || 0;
-  const isFullyRevealed = recruit.isBlueChip || scoutPct >= 100;
+  // Blue chips always show full details; everyone else must wait for the signing-day reveal
+  const isFullyRevealed = recruit.isBlueChip || !!recruit.signingDayRevealed;
 
   const stageBadges: Record<string, { label: string; color: string }> = {
     open: { label: "Open", color: "bg-gray-500" },

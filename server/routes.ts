@@ -1373,19 +1373,19 @@ export async function registerRoutes(
       const revealAmount = 15 + Math.floor(Math.random() * 11) + scoutSkillBonus + archEfficiency;
       const potentialNarrowMultiplier = ARCHETYPE_POTENTIAL_NARROWING[userCoach?.archetype] || 1.0;
 
-      // Helper function to narrow down a range (with archetype potential narrowing bonus)
+      // Helper function to narrow down a range (with archetype potential narrowing bonus).
+      // Scouting is capped at 65% reveal — the remaining 35% unlocks only at signing-day cinematic.
       const narrowRange = (min: number, max: number, actual: number, pct: number): { newMin: number; newMax: number } => {
         const range = max - min;
-        // Apply archetype bonus to how quickly ranges narrow
-        const effectivePct = Math.min(100, pct * potentialNarrowMultiplier);
+        // Cap effective pct at 65: even fully-scouted recruits stay as a range until signing day.
+        const cappedPct = Math.min(pct, 65);
+        const effectivePct = Math.min(100, cappedPct * potentialNarrowMultiplier);
         const narrowFactor = effectivePct / 100;
         const newRange = Math.max(0, range * (1 - narrowFactor * 0.8));
         const halfRange = Math.floor(newRange / 2);
-        let newMin = Math.max(min, actual - halfRange);
+        // Hard floor of 150 so displayed minimum never dips unrealistically low
+        let newMin = Math.max(150, Math.max(min, actual - halfRange));
         let newMax = Math.min(max, actual + halfRange);
-        if (pct >= 100) {
-          return { newMin: actual, newMax: actual };
-        }
         return { newMin, newMax };
       };
 
@@ -1421,9 +1421,9 @@ export async function registerRoutes(
         const ovrRange = narrowRange(150, 650, recruit.overall, revealAmount);
         const starRange = narrowStarRange(1, 5, recruit.starRating, revealAmount);
         
-        // Reveal abilities based on percentage
+        // Reveal abilities based on percentage, capped at 65% — rest unlocks at signing day
         const totalAbilities = (recruit.abilities as string[] || []).length;
-        const revealedAbilitiesCount = Math.min(totalAbilities, Math.floor(totalAbilities * (revealAmount / 100)));
+        const revealedAbilitiesCount = Math.min(totalAbilities, Math.floor(totalAbilities * (Math.min(revealAmount, 65) / 100)));
         
         interest = await storage.createRecruitingInterest({
           recruitId: req.params.recruitId as string,
@@ -1454,9 +1454,9 @@ export async function registerRoutes(
         const ovrRange = narrowRange(currentMinOvr, currentMaxOvr, recruit.overall, newPct);
         const starRange = narrowStarRange(currentMinStar, currentMaxStar, recruit.starRating, newPct);
         
-        // Reveal more abilities
+        // Reveal more abilities, capped at 65% — rest unlocks at signing day
         const totalAbilities = (recruit.abilities as string[] || []).length;
-        const revealedAbilitiesCount = Math.min(totalAbilities, Math.floor(totalAbilities * (newPct / 100)));
+        const revealedAbilitiesCount = Math.min(totalAbilities, Math.floor(totalAbilities * (Math.min(newPct, 65) / 100)));
         
         interest = await storage.updateRecruitingInterest(interest.id, {
           scoutPercentage: newPct,
@@ -2847,6 +2847,16 @@ export async function registerRoutes(
 
       for (const r of toReveal) {
         await storage.updateRecruit(r.id, { signingDayRevealed: true });
+        // Also unlock exact OVR and full abilities in every team's recruiting_interests row
+        const interests = await storage.getRecruitingInterestsByRecruit(r.id);
+        const totalAbilities = (r.abilities as string[] || []).length;
+        for (const interest of interests) {
+          await storage.updateRecruitingInterest(interest.id, {
+            minOverall: r.overall,
+            maxOverall: r.overall,
+            revealedAbilitiesCount: totalAbilities,
+          });
+        }
       }
 
       console.log(`[signing-day-reveal/complete] Set signingDayRevealed=true for ${toReveal.length} recruits` +
