@@ -11622,7 +11622,11 @@ export async function registerRoutes(
     // roster slots), so no cap adjustments are needed here.
 
     for (const walkon of walkons) {
-      const bids = (bidsByWalkon.get(walkon.id) || []).sort((a, b) => b.bidAmount - a.bidAmount);
+      // Tie-break: equal bids sorted by bid insertion order (earlier bid wins),
+      // which maps to ascending createdAt / ascending id for rows created via upsert.
+      // This rule is documented: "first to submit a tied bid wins".
+      const bids = (bidsByWalkon.get(walkon.id) || [])
+        .sort((a, b) => b.bidAmount - a.bidAmount || a.id.localeCompare(b.id));
       if (bids.length === 0) continue;
 
       const winner = bids[0];
@@ -12209,9 +12213,8 @@ export async function registerRoutes(
       if (!walkon) return res.status(404).json({ message: "Walk-on not found" });
       if (walkon.awardedTeamId) return res.status(400).json({ message: "Auction already resolved" });
 
-      // Validate bid against available NIL (nilBudget - nilSpent - other committed bids + existing bid on this walkon)
+      // Validate bid against available NIL (nilBudget - nilSpent - other committed bids)
       const existingBids = await storage.getWalkonBidsByTeam(leagueId, team.id);
-      const currentBidOnThis = existingBids.find(b => b.walkonPoolId === walkonId)?.bidAmount ?? 0;
       const committedOther = existingBids.reduce((s, b) => b.walkonPoolId === walkonId ? s : s + b.bidAmount, 0);
       const available = (team.nilBudget - team.nilSpent) - committedOther;
       if (bidAmount > available) {
