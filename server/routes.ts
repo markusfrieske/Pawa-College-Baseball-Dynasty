@@ -4155,10 +4155,20 @@ export async function registerRoutes(
       const team = coach.teamId ? await storage.getTeam(coach.teamId) : undefined;
       const isOwnCoach = coach.userId === req.session.userId;
 
+      // Check if requesting user is commissioner of the coach's league
+      let isCommissioner = false;
+      if (coach.leagueId) {
+        const coachLeague = await storage.getLeague(coach.leagueId);
+        if (coachLeague) {
+          isCommissioner = hasCommissionerAccess(coachLeague, req.session.userId);
+        }
+      }
+
       res.json({
         coach,
         team,
         isOwnCoach,
+        isCommissioner,
       });
     } catch (error) {
       console.error("Failed to fetch coach:", error);
@@ -9049,7 +9059,7 @@ export async function registerRoutes(
         leagueId,
         userId: req.session.userId,
         action: "Sim to Offseason",
-        details: `Simulated ${iterations} advances from ${phasesVisited[0] || "unknown"} to ${currentLeague.currentPhase}. Season ${startSeason}.`,
+        details: `Commissioner sim from ${phasesVisited[0] || "unknown"} → ${currentLeague.currentPhase}. Season ${startSeason}, ${iterations} advances.`,
       });
 
       res.json({ ...currentLeague, simSummary });
@@ -9173,6 +9183,17 @@ export async function registerRoutes(
 
       let currentLeague = league;
       const startSeason = currentLeague.currentSeason;
+      const startPhase = currentLeague.currentPhase;
+      let weeksSimulated = 0;
+
+      // Build per-team game philosophy map for strategy-aware simulation in all phases
+      const fsPhilosophyMap = new Map<string, string>();
+      {
+        const fsPhilosophyCoaches = await storage.getCoachesByLeague(leagueId);
+        for (const c of fsPhilosophyCoaches) {
+          if (c.teamId) fsPhilosophyMap.set(c.teamId, (c as any).gamePhilosophyStrategy ?? "balanced");
+        }
+      }
 
       // Phase 1: Sim through all game phases to offseason_departures
       if (gamePhases.includes(currentLeague.currentPhase)) {
@@ -9188,7 +9209,7 @@ export async function registerRoutes(
             const weekGames = (await storage.getGamesByLeague(leagueId))
               .filter(g => g.season === currentLeague.currentSeason && g.week === currentLeague.currentWeek && !g.isComplete);
             for (const game of weekGames) {
-              const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType);
+              const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType, fsPhilosophyMap.get(game.homeTeamId), fsPhilosophyMap.get(game.awayTeamId));
               await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, boxScore: result.boxScore, isComplete: true });
               await updateStandingsForGame(leagueId, currentLeague.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, game.isConference);
               try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away); } catch (e) { /* ignore */ }
@@ -9302,10 +9323,12 @@ export async function registerRoutes(
         const allTeamsFs = await storage.getTeamsByLeague(leagueId);
         for (const team of allTeamsFs) await storage.updateTeam(team.id, { walkonReady: true });
         const walkonResult = await finalizeWalkonsPhase(leagueId, currentLeague.currentSeason);
+        // Advance past preseason into spring_training so coaches see their roster
+        // before the regular season starts (not stuck in preseason limbo).
         currentLeague = (await storage.updateLeague(leagueId, {
-          currentWeek: 1,
+          currentWeek: 2,
           currentSeason: currentLeague.currentSeason + 1,
-          currentPhase: "preseason",
+          currentPhase: "spring_training",
         })) as any;
         try {
           const allTeamsForLineup = await storage.getTeamsByLeague(leagueId);
@@ -9323,7 +9346,7 @@ export async function registerRoutes(
         leagueId,
         userId: req.session.userId,
         action: "Simulate Full Season",
-        details: `Commissioner fast-forwarded entire Season ${startSeason} including postseason, recruiting, and signing day. Now in Season ${currentLeague.currentSeason} preseason.`,
+        details: `Commissioner fast-forwarded Season ${startSeason} from ${startPhase} through postseason + 4 recruiting weeks + signing day. Now in Season ${currentLeague.currentSeason} spring_training.`,
       });
 
       res.json({ ...currentLeague, seasonTransition });
@@ -9363,6 +9386,7 @@ export async function registerRoutes(
       const MAX_ITERATIONS = 100;
       let currentLeague = league;
       let iterations = 0;
+      const psStartPhase = league.currentPhase;
 
       while (iterations < MAX_ITERATIONS) {
         iterations++;
@@ -9415,7 +9439,7 @@ export async function registerRoutes(
 
       await storage.createAuditLog({
         leagueId, userId: req.session.userId, action: "Sim to Postseason",
-        details: `Simulated ${iterations} advances to ${currentLeague.currentPhase}.`,
+        details: `Commissioner sim from ${psStartPhase} → ${currentLeague.currentPhase}. Season ${league.currentSeason}, ${iterations} advances.`,
       });
       res.json({ ...currentLeague, simSummary });
     } catch (error) {
@@ -9731,14 +9755,14 @@ export async function registerRoutes(
     return { homeScore, awayScore, boxScore: JSON.stringify(boxScoreObj), homePitcherPitches, awayPitcherPitches };
   }
 
-  async function simulateGame(homeTeamId: string, awayTeamId: string, gameType?: string | null): Promise<{ homeScore: number; awayScore: number; boxScore: string }> {
+  async function simulateGame(homeTeamId: string, awayTeamId: string, gameType?: string | null, homePhilosophy?: string, awayPhilosophy?: string): Promise<{ homeScore: number; awayScore: number; boxScore: string }> {
     const [homePlayers, awayPlayers, homeTeam, awayTeam] = await Promise.all([
       storage.getPlayersByTeam(homeTeamId),
       storage.getPlayersByTeam(awayTeamId),
       storage.getTeam(homeTeamId),
       storage.getTeam(awayTeamId),
     ]);
-    const result = simulateGameWithRosters(homePlayers, awayPlayers, gameType, homeTeam?.stadium, awayTeam?.stadium);
+    const result = simulateGameWithRosters(homePlayers, awayPlayers, gameType, homeTeam?.stadium, awayTeam?.stadium, undefined, homePhilosophy, awayPhilosophy);
     return { homeScore: result.homeScore, awayScore: result.awayScore, boxScore: result.boxScore };
   }
 
@@ -14976,6 +15000,10 @@ export async function registerRoutes(
         positionCounts[player.position] = (positionCounts[player.position] || 0) + 1;
       }
       
+      // Read coach strategy for geography and style targeting
+      const geoStrategy = (teamCoach as any)?.recruitingGeographyStrategy ?? "national";
+      const styleStrategy = (teamCoach as any)?.recruitingStyleStrategy ?? "best_available";
+
       const sortedRecruits = unsignedRecruits
         .map(r => {
           const interest = teamInterests.find(i => i.recruitId === r.id);
@@ -14987,10 +15015,39 @@ export async function registerRoutes(
           const positionNeed = (positionCounts[r.position] || 0) < 2 ? 15 : 0;
           const currentInterest = interest?.interestLevel || 0;
           const offerBonus = interest?.hasOffer ? 20 : 0;
+
+          // Geography strategy: bonus for recruits from targeted state(s)
+          let geoBonus = 0;
+          const rState = r.homeState || "";
+          if (geoStrategy === "texas" && rState === "TX") geoBonus = 18;
+          else if (geoStrategy === "california" && rState === "CA") geoBonus = 18;
+          else if (geoStrategy === "florida" && rState === "FL") geoBonus = 18;
+          else if (geoStrategy === "local_regional") {
+            if (rState === team.state) geoBonus = 15;
+            else {
+              const westStates = ["CA","OR","WA","NV","AZ","UT","CO","ID","MT","WY","NM","AK","HI"];
+              const southStates = ["TX","FL","GA","AL","MS","LA","AR","TN","SC","NC","KY","VA","WV","OK"];
+              const midwestStates = ["IL","OH","IN","MI","WI","MN","IA","MO","ND","SD","NE","KS"];
+              const northeast = ["NY","PA","NJ","MA","CT","RI","NH","VT","ME","MD","DE","DC"];
+              const inRegion = (states: string[]) => states.includes(rState) && states.includes(team.state || "");
+              if (inRegion(westStates) || inRegion(southStates) || inRegion(midwestStates) || inRegion(northeast)) geoBonus = 8;
+            }
+          }
+
+          // Recruiting style strategy: bonus for preferred recruit profiles
+          let styleBonus = 0;
+          const stars = r.starRating || 3;
+          if (styleStrategy === "top_prospects" && stars >= 4) styleBonus = 12;
+          else if (styleStrategy === "high_potential" && (r.potential === "A" || r.potential === "B" || r.potential === "B+")) styleBonus = 10;
+          else if (styleStrategy === "all_in_few") {
+            // Heavy interest bonus — go deep on already-engaged recruits
+            styleBonus = Math.min(15, currentInterest * 0.2);
+          }
+
           return { 
             recruit: r, 
             interest,
-            score: currentInterest * 3 + offerBonus + positionNeed - Math.min(5, prestigeMatch) + config.targetingBonus + Math.random() * 5 
+            score: currentInterest * 3 + offerBonus + positionNeed - Math.min(5, prestigeMatch) + config.targetingBonus + geoBonus + styleBonus + Math.random() * 5 
           };
         })
         .sort((a, b) => b.score - a.score);
@@ -14999,7 +15056,10 @@ export async function registerRoutes(
       // recruits actually reach signing thresholds (60–65% interest) within the
       // 4-week recruiting window rather than spreading actions thin across all 80.
       // Scale with difficulty so high-budget elite CPU can reach more recruits.
-      const MAX_WEEKLY_TARGETS = { beginner: 12, high_school: 16, all_american: 20, elite: 24 }[difficulty] ?? 16;
+      // Strategy: spread_wide increases targets; all_in_few reduces to focus depth.
+      let MAX_WEEKLY_TARGETS = { beginner: 12, high_school: 16, all_american: 20, elite: 24 }[difficulty] ?? 16;
+      if (styleStrategy === "spread_wide") MAX_WEEKLY_TARGETS = Math.min(30, MAX_WEEKLY_TARGETS + 8);
+      else if (styleStrategy === "all_in_few") MAX_WEEKLY_TARGETS = Math.max(6, MAX_WEEKLY_TARGETS - 6);
       const focusedRecruits = sortedRecruits.slice(0, MAX_WEEKLY_TARGETS);
       
       // Pick the recruit's strongest priority topic so CPU benefits from

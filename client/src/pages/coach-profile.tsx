@@ -31,6 +31,7 @@ interface CoachDataById {
   coach: Coach;
   team?: Team;
   isOwnCoach: boolean;
+  isCommissioner?: boolean;
 }
 
 function computeRecruitingGradeClient(score: number): string {
@@ -1273,7 +1274,7 @@ function StrategySelector({
   );
 }
 
-function StrategyTab({ coach, isOwnCoach }: { coach: Coach; isOwnCoach: boolean }) {
+function StrategyTab({ coach, isOwnCoach, isCommissioner }: { coach: Coach; isOwnCoach: boolean; isCommissioner?: boolean }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -1304,13 +1305,19 @@ function StrategyTab({ coach, isOwnCoach }: { coach: Coach; isOwnCoach: boolean 
   const styleValue = (coach as any).recruitingStyleStrategy ?? "best_available";
   const philoValue = (coach as any).gamePhilosophyStrategy ?? "balanced";
 
-  const readOnly = !isOwnCoach;
+  const canEdit = isOwnCoach || !!isCommissioner;
+  const readOnly = !canEdit;
 
   return (
     <div className="space-y-6">
       {readOnly && (
         <div className="bg-muted/20 rounded-lg px-4 py-3 border border-border/40">
-          <p className="text-sm text-muted-foreground">Viewing this coach's strategy settings (read-only).</p>
+          <p className="text-sm text-muted-foreground">Viewing this coach's strategy settings (read-only). Only the coach or the league commissioner can edit these.</p>
+        </div>
+      )}
+      {isCommissioner && !isOwnCoach && (
+        <div className="bg-gold/10 rounded-lg px-4 py-3 border border-gold/30">
+          <p className="text-sm text-gold font-medium">Commissioner Edit Mode — you can adjust this coach's strategy on their behalf.</p>
         </div>
       )}
       <StrategySelector
@@ -1574,7 +1581,7 @@ export function CoachProfileByIdPage() {
           <SkillsTab coach={coach} isOwnCoach={isOwnCoach} />
         )}
         {activeTab === "strategy" && (
-          <StrategyTab coach={coach} isOwnCoach={isOwnCoach} />
+          <StrategyTab coach={coach} isOwnCoach={isOwnCoach} isCommissioner={data?.isCommissioner} />
         )}
       </main>
     </div>
