@@ -7837,6 +7837,31 @@ export async function registerRoutes(
     }
   });
 
+  // ============ ADVANCE PROGRESS STORE ============
+  // In-memory map: leagueId -> { stage, pct, updatedAt }
+  const advanceProgress = new Map<string, { stage: string; pct: number; updatedAt: number }>();
+
+  function setAdvanceProgress(leagueId: string, stage: string, pct: number) {
+    advanceProgress.set(leagueId, { stage, pct, updatedAt: Date.now() });
+  }
+
+  function clearAdvanceProgress(leagueId: string) {
+    advanceProgress.delete(leagueId);
+  }
+
+  app.get("/api/leagues/:id/advance-progress", requireAuth, async (req, res) => {
+    const entry = advanceProgress.get(req.params.id);
+    if (!entry) {
+      return res.json({ active: false, stage: "idle", pct: 0 });
+    }
+    // Auto-expire stale entries (>60s) so clients don't hang
+    if (Date.now() - entry.updatedAt > 60_000) {
+      advanceProgress.delete(req.params.id);
+      return res.json({ active: false, stage: "idle", pct: 0 });
+    }
+    return res.json({ active: true, stage: entry.stage, pct: entry.pct });
+  });
+
   // ============ FORCE ADVANCE ============
   app.post("/api/leagues/:id/force-advance", requireAuth, async (req, res) => {
     try {
@@ -7914,6 +7939,10 @@ export async function registerRoutes(
       const currentWeek = league.currentWeek;
       const nextWeek = currentWeek + 1;
 
+      setAdvanceProgress(leagueId, "initializing", 5);
+      // Auto-clear progress once the response is fully sent
+      res.on("finish", () => clearAdvanceProgress(leagueId));
+
       // ============ POWER RANKINGS SNAPSHOT ============
       // Capture rankings before any changes via SQL aggregation (3 aggregate queries vs 3 full-table loads)
       try {
@@ -7990,6 +8019,7 @@ export async function registerRoutes(
       const maxWeeks = seasonWeeks[league.seasonLength || "medium"] || 5;
       
       // ============ CPU RECRUITING AI ============
+      setAdvanceProgress(leagueId, "cpu_recruiting", 15);
       if (league.currentPhase === "recruiting" || league.currentPhase === "preseason" || league.currentPhase === "regular_season") {
         console.time("[advance-perf] cpu-recruiting");
         await runCpuRecruiting(leagueId, currentWeek, league.currentSeason);
@@ -8017,6 +8047,7 @@ export async function registerRoutes(
       }
       
       // ============ RECRUIT STAGE PROGRESSION ============
+      setAdvanceProgress(leagueId, "recruit_stages", 45);
       console.time("[advance-perf] recruit-stages");
       await updateRecruitStages(leagueId, nextWeek);
       console.timeEnd("[advance-perf] recruit-stages");
@@ -8033,6 +8064,7 @@ export async function registerRoutes(
       ));
 
       // ============ AUTO-SIMULATE REGULAR SEASON GAMES ============
+      setAdvanceProgress(leagueId, "game_sim", 60);
       const seasonGames = await storage.getGamesByLeagueSeason(leagueId, league.currentSeason);
       const incompleteGames = seasonGames.filter(g => 
         g.week === currentWeek && 
@@ -8095,6 +8127,7 @@ export async function registerRoutes(
       const coachXpAccum = new Map<string, { xp: number; wins: number; losses: number; confWins: number; confLosses: number }>();
 
       // Parallelize standings updates and stat accumulation — each game is independent
+      setAdvanceProgress(leagueId, "standings", 80);
       console.time("[advance-perf] standings-and-stats");
       await Promise.all(gameResults.map(async ({ game, result }) => {
         await updateStandingsForGame(leagueId, league.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, game.isConference);
@@ -8216,6 +8249,8 @@ export async function registerRoutes(
             .catch(e => console.error("Game feed event error:", e));
         } catch (e) { console.error("Game feed event error:", e); }
       }
+
+      setAdvanceProgress(leagueId, "finalizing", 95);
 
       // ============ POSTSEASON / SEASON PROGRESSION ============
       const isPostseason = ["conference_championship", "super_regionals", "cws"].includes(league.currentPhase);

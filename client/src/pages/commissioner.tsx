@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { AdvanceProgressBar } from "@/components/advance-progress-bar";
 import { parseErrorMessage } from "@/lib/errorUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link, useLocation } from "wouter";
@@ -827,6 +828,8 @@ function ActionsTab({
               {advanceIcon}
               {advanceLabel}
             </RetroButton>
+
+            <AdvanceProgressBar leagueId={league?.id || ""} isAdvancing={isAdvancing} />
 
             <div className="mt-4 pt-4 border-t border-border">
               <p className="font-pixel text-[8px] text-gold uppercase mb-3">Quick Sim</p>
