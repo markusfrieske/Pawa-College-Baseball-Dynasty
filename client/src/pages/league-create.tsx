@@ -20,18 +20,18 @@ const difficultyOptions = [
 ];
 
 const availableConferences = [
-  { id: "SEC",            abbr: "SEC",  teams: 16, primaryColor: "#1a3a1a", secondaryColor: "#cfb53b", fullName: "Southeastern Conference" },
-  { id: "ACC",            abbr: "ACC",  teams: 17, primaryColor: "#003087", secondaryColor: "#f47920", fullName: "Atlantic Coast Conference" },
-  { id: "Big 12",         abbr: "B12",  teams: 14, primaryColor: "#1b3a8c", secondaryColor: "#cc0000", fullName: "Big 12 Conference" },
-  { id: "Big Ten",        abbr: "B10",  teams: 18, primaryColor: "#0d3090", secondaryColor: "#ffffff", fullName: "Big Ten Conference" },
-  { id: "Pac-12",         abbr: "P12",  teams: 8,  primaryColor: "#003b5c", secondaryColor: "#f5a623", fullName: "Pac-12 Conference" },
-  { id: "AAC",            abbr: "AAC",  teams: 11, primaryColor: "#002244", secondaryColor: "#c8102e", fullName: "American Athletic Conference" },
-  { id: "WCC",            abbr: "WCC",  teams: 8,  primaryColor: "#002147", secondaryColor: "#c8a96e", fullName: "West Coast Conference" },
-  { id: "Ivy League",     abbr: "IVY",  teams: 8,  primaryColor: "#2d5016", secondaryColor: "#d4af37", fullName: "Ivy League" },
-  { id: "Sun Belt",       abbr: "SB",   teams: 13, primaryColor: "#002d72", secondaryColor: "#c8b900", fullName: "Sun Belt Conference" },
-  { id: "Big West",       abbr: "BW",   teams: 10, primaryColor: "#003366", secondaryColor: "#e87722", fullName: "Big West Conference" },
-  { id: "HBCU",           abbr: "HBCU", teams: 16, primaryColor: "#1a1a1a", secondaryColor: "#d4af37", fullName: "HBCU Conferences" },
-  { id: "Missouri Valley",abbr: "MVC",  teams: 13, primaryColor: "#002d62", secondaryColor: "#ffd100", fullName: "Missouri Valley Conference" },
+  { id: "SEC",            abbr: "SEC",  teams: 16, primaryColor: "#002D72", secondaryColor: "#CFB53B", fullName: "Southeastern Conference" },
+  { id: "ACC",            abbr: "ACC",  teams: 17, primaryColor: "#003087", secondaryColor: "#F47920", fullName: "Atlantic Coast Conference" },
+  { id: "Big 12",         abbr: "B12",  teams: 14, primaryColor: "#00205B", secondaryColor: "#CC0000", fullName: "Big 12 Conference" },
+  { id: "Big Ten",        abbr: "B10",  teams: 18, primaryColor: "#0032A0", secondaryColor: "#E8C84A", fullName: "Big Ten Conference" },
+  { id: "Pac-12",         abbr: "P12",  teams: 8,  primaryColor: "#003DA5", secondaryColor: "#C4A962", fullName: "Pac-12 Conference" },
+  { id: "AAC",            abbr: "AAC",  teams: 11, primaryColor: "#007A53", secondaryColor: "#003087", fullName: "American Athletic Conference" },
+  { id: "WCC",            abbr: "WCC",  teams: 8,  primaryColor: "#6B1D3E", secondaryColor: "#C8A96E", fullName: "West Coast Conference" },
+  { id: "Ivy League",     abbr: "IVY",  teams: 8,  primaryColor: "#006438", secondaryColor: "#D4AF37", fullName: "Ivy League" },
+  { id: "Sun Belt",       abbr: "SB",   teams: 13, primaryColor: "#003087", secondaryColor: "#FFD100", fullName: "Sun Belt Conference" },
+  { id: "Big West",       abbr: "BW",   teams: 10, primaryColor: "#00539C", secondaryColor: "#E87722", fullName: "Big West Conference" },
+  { id: "HBCU",           abbr: "HBCU", teams: 16, primaryColor: "#1A1A1A", secondaryColor: "#FFD700", fullName: "HBCU Conferences" },
+  { id: "Missouri Valley",abbr: "MVC",  teams: 13, primaryColor: "#5B2C6B", secondaryColor: "#FFD100", fullName: "Missouri Valley Conference" },
 ];
 
 const seasonLengthOptions = [

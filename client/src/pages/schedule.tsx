@@ -121,18 +121,18 @@ interface WeekData {
 const GAME_TYPE_ORDER = ["friday", "saturday", "sunday"];
 
 const CONF_COLORS: Record<string, string> = {
-  SEC: "#002868",
+  SEC: "#002D72",
   ACC: "#003087",
   "Big Ten": "#0032A0",
-  "Big 12": "#BF0000",
+  "Big 12": "#00205B",
   "Pac-12": "#003DA5",
   AAC: "#007A53",
   "Sun Belt": "#003087",
-  WCC: "#5B2C6F",
+  WCC: "#6B1D3E",
   "Big West": "#00539C",
-  "Missouri Valley": "#6B2C6B",
-  "Ivy League": "#990000",
-  HBCU: "#2E7D32",
+  "Missouri Valley": "#5B2C6B",
+  "Ivy League": "#006438",
+  HBCU: "#1A1A1A",
 };
 
 function getConfColor(team: Team): string {
