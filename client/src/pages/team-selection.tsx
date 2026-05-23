@@ -86,15 +86,6 @@ function TeamTile({
         )}
       </div>
 
-      {/* Team name */}
-      <p
-        className={`text-[9px] font-pixel text-center leading-tight max-w-[56px] truncate ${
-          active ? "text-gold" : "text-muted-foreground"
-        }`}
-        title={team.name}
-      >
-        {team.name}
-      </p>
     </button>
   );
 }
