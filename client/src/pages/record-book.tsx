@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useParams } from "wouter";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
@@ -24,20 +24,21 @@ interface SeasonEntry {
   avgLeader: { name: string; value: string; teamId: string; playerId?: string } | null;
   eraLeader: { name: string; value: string; teamId: string; playerId?: string } | null;
   recruitingGrade: string | null;
+  winsLeader: { name: string; teamId: string; wins: number; losses: number } | null;
 }
 
 interface CareerBatter {
   playerId: string; name: string; teamName: string; teamAbbr: string; teamColor: string;
   position: string; seasons: number; games: number; ab: number;
   avg: string; hr: number; rbi: number; ops: string; war: string;
-  status: "active" | "graduated" | "drafted";
+  status: "active" | "graduated" | "drafted"; lastSeason: number;
 }
 
 interface CareerPitcher {
   playerId: string; name: string; teamName: string; teamAbbr: string; teamColor: string;
   position: string; seasons: number; games: number; wins: number; losses: number;
   ip: string; era: string; whip: string; so: number; war: string;
-  status: "active" | "graduated" | "drafted";
+  status: "active" | "graduated" | "drafted"; lastSeason: number;
 }
 
 interface CareerFielder {
@@ -67,6 +68,7 @@ interface RecruitingSnapshot {
   classRank: number; grade: string; classScore: number;
   totalCommits: number; fiveStars: number; fourStars: number;
   topRecruitName: string | null; topRecruitOvr: number | null; topRecruitStars: number | null;
+  signedPlayers: { name: string; position: string }[];
 }
 
 interface RecruitingSeason {
@@ -181,6 +183,16 @@ function SeasonHistorySection({ seasons, leagueId }: { seasons: SeasonEntry[]; l
           {expanded === s.season && (
             <div className="border-t border-border/50 px-4 pb-4 pt-3">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                {s.winsLeader && (
+                  <div className="sm:col-span-3 bg-card/60 border border-border/40 rounded p-2 flex items-center gap-2">
+                    <Trophy className="w-3.5 h-3.5 text-gold flex-shrink-0" />
+                    <span className="font-pixel text-[7px] text-muted-foreground">BEST RECORD:</span>
+                    <Link href={`/league/${leagueId}/team/${s.winsLeader.teamId}/profile`}>
+                      <span className="text-[10px] font-medium hover:text-gold transition-colors cursor-pointer">{s.winsLeader.name}</span>
+                    </Link>
+                    <span className="text-[10px] text-emerald-400 ml-auto">{s.winsLeader.wins}–{s.winsLeader.losses}</span>
+                  </div>
+                )}
                 <div>
                   <p className="font-pixel text-[8px] text-muted-foreground mb-2">STAT LEADERS</p>
                   <div className="space-y-1.5">
@@ -250,14 +262,17 @@ function CareerBattingSection({ leaders, leagueId, onPlayerClick }: { leaders: C
   const [sort, setSort] = useState<BattingSort>("war");
   const [posFilter, setPosFilter] = useState<string>("ALL");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [yearFilter, setYearFilter] = useState<number | "ALL">("ALL");
 
   const BATTER_POSITIONS = ["ALL", "C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "DH", "OF", "IF"];
   const posOptions = BATTER_POSITIONS.filter(p => p === "ALL" || leaders.some(l => l.position === p));
   const STATUS_OPTIONS = ["ALL", "active", "graduated", "drafted"] as const;
+  const yearOptions = ["ALL", ...[...new Set(leaders.filter(b => b.lastSeason > 0).map(b => b.lastSeason))].sort((a, b) => b - a)] as (number | "ALL")[];
 
   const sorted = [...leaders]
     .filter(b => posFilter === "ALL" || b.position === posFilter)
     .filter(b => statusFilter === "ALL" || b.status === statusFilter)
+    .filter(b => yearFilter === "ALL" || b.lastSeason === yearFilter)
     .sort((a, b) => {
       if (sort === "war") return parseFloat(b.war) - parseFloat(a.war);
       if (sort === "avg") return parseFloat(b.avg) - parseFloat(a.avg);
@@ -295,6 +310,18 @@ function CareerBattingSection({ leaders, leagueId, onPlayerClick }: { leaders: C
             </RetroButton>
           ))}
         </div>
+        {yearOptions.length > 1 && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-muted-foreground">Season:</span>
+            <select
+              value={yearFilter}
+              onChange={e => setYearFilter(e.target.value === "ALL" ? "ALL" : parseInt(e.target.value))}
+              className="text-xs bg-background border border-border rounded px-2 py-1 text-foreground"
+              data-testid="batting-year-filter">
+              {yearOptions.map(y => <option key={y} value={y}>{y === "ALL" ? "All Seasons" : `Season ${y}`}</option>)}
+            </select>
+          </div>
+        )}
         {posOptions.length > 1 && (
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs text-muted-foreground">Position:</span>
@@ -371,14 +398,17 @@ function CareerPitchingSection({ leaders, leagueId, onPlayerClick }: { leaders: 
   const [sort, setSort] = useState<PitchingSort>("era");
   const [posFilter, setPosFilter] = useState<string>("ALL");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [yearFilter, setYearFilter] = useState<number | "ALL">("ALL");
 
   const PITCHER_POSITIONS = ["ALL", "SP", "RP", "CL", "P", "LHP", "RHP"];
   const posOptions = PITCHER_POSITIONS.filter(p => p === "ALL" || leaders.some(l => l.position === p));
   const STATUS_OPTIONS = ["ALL", "active", "graduated", "drafted"] as const;
+  const yearOptions = ["ALL", ...[...new Set(leaders.filter(p => p.lastSeason > 0).map(p => p.lastSeason))].sort((a, b) => b - a)] as (number | "ALL")[];
 
   const sorted = [...leaders]
     .filter(p => posFilter === "ALL" || p.position === posFilter)
     .filter(p => statusFilter === "ALL" || p.status === statusFilter)
+    .filter(p => yearFilter === "ALL" || p.lastSeason === yearFilter)
     .sort((a, b) => {
       if (sort === "era") return parseFloat(a.era) - parseFloat(b.era);
       if (sort === "whip") return parseFloat(a.whip) - parseFloat(b.whip);
@@ -416,6 +446,18 @@ function CareerPitchingSection({ leaders, leagueId, onPlayerClick }: { leaders: 
             </RetroButton>
           ))}
         </div>
+        {yearOptions.length > 1 && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-muted-foreground">Season:</span>
+            <select
+              value={yearFilter}
+              onChange={e => setYearFilter(e.target.value === "ALL" ? "ALL" : parseInt(e.target.value))}
+              className="text-xs bg-background border border-border rounded px-2 py-1 text-foreground"
+              data-testid="pitching-year-filter">
+              {yearOptions.map(y => <option key={y} value={y}>{y === "ALL" ? "All Seasons" : `Season ${y}`}</option>)}
+            </select>
+          </div>
+        )}
         {posOptions.length > 1 && (
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs text-muted-foreground">Position:</span>
@@ -802,30 +844,47 @@ function RecruitingHistorySection({ history }: { history: RecruitingSeason[] }) 
                     </thead>
                     <tbody>
                       {sortedSnaps.map((s, i) => (
-                        <tr key={s.teamId} className={`border-b border-border/20 ${i % 2 === 0 ? "" : "bg-muted/10"}`}
-                          data-testid={`recruiting-row-${s.teamAbbr}`}>
-                          <td className="py-1.5 px-2 text-center text-xs text-muted-foreground">{i + 1}</td>
-                          <td className="py-1.5 px-2">
-                            <div className="flex items-center gap-1.5">
-                              <TeamDot color={s.teamColor} />
-                              <span className="font-pixel text-[7px]">{s.teamAbbr}</span>
-                            </div>
-                          </td>
-                          <td className="py-1.5 px-2 text-center">
-                            <span className={`font-pixel text-[7px] border rounded px-1 py-0.5 ${gradeColor(s.grade)}`}>{s.grade}</span>
-                          </td>
-                          <td className="py-1.5 px-2 text-center text-xs">{s.totalCommits}</td>
-                          <td className="py-1.5 px-2 text-center text-xs text-orange-400">{s.fiveStars}</td>
-                          <td className="py-1.5 px-2 text-center text-xs text-yellow-400">{s.fourStars}</td>
-                          <td className="py-1.5 px-2">
-                            {s.topRecruitName ? (
-                              <div className="flex items-center gap-1">
-                                <span className="text-[10px]">{s.topRecruitName}</span>
-                                {s.topRecruitStars && <StarBadge stars={s.topRecruitStars} />}
+                        <React.Fragment key={s.teamId}>
+                          {/* row + optional signed class below */}
+                          <tr className={`border-b border-border/20 ${i % 2 === 0 ? "" : "bg-muted/10"}`}
+                            data-testid={`recruiting-row-${s.teamAbbr}`}>
+                            <td className="py-1.5 px-2 text-center text-xs text-muted-foreground">{i + 1}</td>
+                            <td className="py-1.5 px-2">
+                              <div className="flex items-center gap-1.5">
+                                <TeamDot color={s.teamColor} />
+                                <span className="font-pixel text-[7px]">{s.teamAbbr}</span>
                               </div>
-                            ) : <span className="text-[10px] text-muted-foreground">—</span>}
-                          </td>
-                        </tr>
+                            </td>
+                            <td className="py-1.5 px-2 text-center">
+                              <span className={`font-pixel text-[7px] border rounded px-1 py-0.5 ${gradeColor(s.grade)}`}>{s.grade}</span>
+                            </td>
+                            <td className="py-1.5 px-2 text-center text-xs">{s.totalCommits}</td>
+                            <td className="py-1.5 px-2 text-center text-xs text-orange-400">{s.fiveStars}</td>
+                            <td className="py-1.5 px-2 text-center text-xs text-yellow-400">{s.fourStars}</td>
+                            <td className="py-1.5 px-2">
+                              {s.topRecruitName ? (
+                                <div className="flex items-center gap-1">
+                                  <span className="text-[10px]">{s.topRecruitName}</span>
+                                  {s.topRecruitStars && <StarBadge stars={s.topRecruitStars} />}
+                                </div>
+                              ) : <span className="text-[10px] text-muted-foreground">—</span>}
+                            </td>
+                          </tr>
+                          {s.signedPlayers.length > 0 && (
+                            <tr className="bg-muted/5 border-b border-border/10">
+                              <td colSpan={7} className="px-3 pb-2 pt-0">
+                                <div className="flex flex-wrap gap-1 pt-1">
+                                  {s.signedPlayers.map((p, pi) => (
+                                    <span key={pi} className="text-[9px] bg-background/60 border border-border/40 rounded px-1.5 py-0.5">
+                                      <span className="text-muted-foreground mr-0.5">{p.position}</span>
+                                      {p.name}
+                                    </span>
+                                  ))}
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
                       ))}
                     </tbody>
                   </table>

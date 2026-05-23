@@ -4943,6 +4943,12 @@ export async function registerRoutes(
             teamId: eraLeader.teamId, playerId: eraLeader.playerId,
           } : null,
           recruitingGrade: gradeFromScore(avgScore),
+          winsLeader: sorted[0] ? {
+            name: teamMap.get(sorted[0].teamId)?.name ?? "",
+            teamId: sorted[0].teamId,
+            wins: sorted[0].wins,
+            losses: sorted[0].losses,
+          } : null,
         };
       });
 
@@ -4979,6 +4985,13 @@ export async function registerRoutes(
         agg.teamId = row.teamId;
       }
 
+      // Build last season per player (for graduation year filter)
+      const playerLastSeason = new Map<string, number>();
+      for (const row of allSeasonStats) {
+        const cur = playerLastSeason.get(row.playerId);
+        if (cur === undefined || row.season > cur) playerLastSeason.set(row.playerId, row.season);
+      }
+
       const careerBatting = Array.from(battersByPlayer.values())
         .filter(b => b.ab >= 30)
         .map(b => {
@@ -5002,6 +5015,7 @@ export async function registerRoutes(
             teamColor: team?.primaryColor ?? "#888", position: b.position, seasons: b.seasons,
             games: b.games, ab: b.ab, avg: avg.toFixed(3), hr: b.hr, rbi: b.rbi,
             ops: ops.toFixed(3), war: war.toFixed(1), status,
+            lastSeason: playerLastSeason.get(b.playerId) ?? 0,
           };
         })
         .sort((a, b) => parseFloat(b.war) - parseFloat(a.war));
@@ -5052,6 +5066,7 @@ export async function registerRoutes(
             teamColor: team?.primaryColor ?? "#888", position: p.position, seasons: p.seasons,
             games: p.games, wins: p.wins, losses: p.losses,
             ip: ip.toFixed(1), era: era.toFixed(2), whip: whip.toFixed(2), so: p.pSo, war: war.toFixed(1), status,
+            lastSeason: playerLastSeason.get(p.playerId) ?? 0,
           };
         })
         .sort((a, b) => parseFloat(a.era) - parseFloat(b.era));
@@ -5141,10 +5156,27 @@ export async function registerRoutes(
       }).sort((a, b) => b.legacyScore - a.legacyScore);
 
       // ── Recruiting History ──────────────────────────────────────────────────
+      // Build first-season per player (for signed class derivation from stats)
+      const playerTeamFirstSeason = new Map<string, { season: number; name: string; position: string; teamId: string }>();
+      for (const row of [...allSeasonStats].sort((a, b) => a.season - b.season)) {
+        if (!playerTeamFirstSeason.has(row.playerId)) {
+          playerTeamFirstSeason.set(row.playerId, { season: row.season, name: row.playerName, position: row.position, teamId: row.teamId });
+        }
+      }
+      // Group signed class by season+team
+      const signedClassBySeason = new Map<number, Map<string, { name: string; position: string }[]>>();
+      for (const data of playerTeamFirstSeason.values()) {
+        if (!signedClassBySeason.has(data.season)) signedClassBySeason.set(data.season, new Map());
+        const teamMap2 = signedClassBySeason.get(data.season)!;
+        if (!teamMap2.has(data.teamId)) teamMap2.set(data.teamId, []);
+        teamMap2.get(data.teamId)!.push({ name: data.name, position: data.position });
+      }
+
       const recruitingSeasons = [...new Set(recruitingSnaps.map(s => s.season))].sort((a, b) => b - a);
       const recruitingHistory = recruitingSeasons.map(season => {
         const snaps = recruitingSnaps.filter(s => s.season === season)
           .sort((a, b) => a.classRank - b.classRank);
+        const seasonSignedClass = signedClassBySeason.get(season);
         return {
           season,
           snapshots: snaps.map(s => {
@@ -5166,6 +5198,7 @@ export async function registerRoutes(
               grade: gradeFromScore2(s.classScore), classScore: s.classScore,
               totalCommits: s.totalCommits, fiveStars: s.fiveStars, fourStars: s.fourStars,
               topRecruitName: s.topRecruitName, topRecruitOvr: s.topRecruitOvr, topRecruitStars: s.topRecruitStars,
+              signedPlayers: (seasonSignedClass?.get(s.teamId) ?? []).sort((a, b) => a.position.localeCompare(b.position)),
             };
           }),
         };

@@ -777,7 +777,7 @@ export default function LeagueViewPage() {
                 Rank
               </TabsTrigger>
               <TabsTrigger value="stats" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-stats">
-                Records
+                Record Book
               </TabsTrigger>
               <TabsTrigger value="prospects" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-prospects">
                 Top 100
