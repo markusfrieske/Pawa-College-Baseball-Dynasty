@@ -676,6 +676,7 @@ function BattingStep({ label, players, batting, onChange, onInit, autoInit }: { 
           <table className="w-full text-xs border-collapse">
             <thead>
               <tr className="border-b border-gold/30">
+                <th className="text-center p-1 text-gold/80 w-6">#</th>
                 <th className="text-left p-1 text-gold/80">Player</th>
                 <th className="text-center p-1 text-gold/80 w-8">AB</th>
                 <th className="text-center p-1 text-gold/80 w-8">R</th>
@@ -685,7 +686,7 @@ function BattingStep({ label, players, batting, onChange, onInit, autoInit }: { 
                 <th className="text-center p-1 text-gold/80 w-8">HR</th>
                 <th className="text-center p-1 text-gold/80 w-8">RBI</th>
                 <th className="text-center p-1 text-gold/80 w-8">BB</th>
-                <th className="text-center p-1 text-gold/80 w-8">SO</th>
+                <th className="text-center p-1 text-red-400 w-8">SO</th>
                 <th className="text-center p-1 text-gold/80 w-8">SB</th>
                 <th className="w-6"></th>
               </tr>
@@ -693,6 +694,7 @@ function BattingStep({ label, players, batting, onChange, onInit, autoInit }: { 
             <tbody>
               {activeBatters.map((b, i) => (
                 <tr key={b.playerId} className="border-b border-gold/10">
+                  <td className="p-1 text-center text-muted-foreground font-pixel text-[8px]">{i + 1}</td>
                   <td className="p-1 text-foreground">
                     <span className="font-medium">{b.name}</span>
                     <span className="text-muted-foreground ml-1 text-[9px]">({b.position})</span>

@@ -5552,6 +5552,37 @@ export async function registerRoutes(
     }
   });
 
+  function ipToDecimalRep(ip: string): number {
+    const [whole, frac] = ip.split(".");
+    return (parseInt(whole) || 0) + (parseInt(frac) || 0) / 3;
+  }
+  function fmtAvg(ab: number, h: number): string {
+    if (ab <= 0) return ".000";
+    const v = h / ab;
+    return v >= 1 ? "1.000" : v.toFixed(3).slice(1); // ".xyz" format
+  }
+  function fmtEra(er: number, ip: string): string {
+    const dec = ipToDecimalRep(ip);
+    if (dec <= 0) return "--";
+    return (9 * er / dec).toFixed(2);
+  }
+  function enrichBoxData(raw: Record<string, unknown> | null, errors: number): Record<string, unknown> {
+    if (!raw) return { batting: [], pitching: [], totals: { ab: 0, r: 0, h: 0, rbi: 0, bb: 0, so: 0 }, errors };
+    const batting = Array.isArray(raw.batting)
+      ? (raw.batting as Array<Record<string, unknown>>).map(b => ({
+          ...b,
+          avg: b.avg ?? fmtAvg((b.ab as number) ?? 0, (b.h as number) ?? 0),
+        }))
+      : raw.batting;
+    const pitching = Array.isArray(raw.pitching)
+      ? (raw.pitching as Array<Record<string, unknown>>).map(p => ({
+          ...p,
+          era: p.era ?? fmtEra((p.er as number) ?? 0, (p.ip as string) ?? "0.0"),
+        }))
+      : raw.pitching;
+    return { ...raw, batting, pitching, errors };
+  }
+
   async function finalizeReportedGame(report: GameReport, game: Game, leagueId: string) {
     const { homeScore, awayScore } = report;
     const homeBoxData = report.homeBoxData as Record<string, unknown> | null;
@@ -5565,12 +5596,8 @@ export async function registerRoutes(
 
     const boxScore = {
       innings: inningScores,
-      home: homeBoxData
-        ? { ...homeBoxData, errors: homeErrors }
-        : { batting: [], pitching: [], totals: { ab: 0, r: homeScore, h: homeHits, rbi: 0, bb: 0, so: 0 }, errors: homeErrors },
-      away: awayBoxData
-        ? { ...awayBoxData, errors: awayErrors }
-        : { batting: [], pitching: [], totals: { ab: 0, r: awayScore, h: awayHits, rbi: 0, bb: 0, so: 0 }, errors: awayErrors },
+      home: enrichBoxData(homeBoxData, homeErrors),
+      away: enrichBoxData(awayBoxData, awayErrors),
     };
 
     await storage.updateGame(game.id, {

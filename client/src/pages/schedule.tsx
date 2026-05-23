@@ -9,6 +9,7 @@ import { TeamBadge } from "@/components/ui/team-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Calendar, Check, Edit2, Lock, Play, FileText, AlertTriangle, CheckCircle, XCircle, Swords, User, ChevronDown, ChevronRight, ChevronUp } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -1331,12 +1332,16 @@ function BoxScoreModal({ game, onClose }: { game: GameWithTeams | null; onClose:
 
   const totalAwayH = boxScore?.away.totals.h ?? 0;
   const totalHomeH = boxScore?.home.totals.h ?? 0;
+  const awayWon = (game.awayScore ?? 0) > (game.homeScore ?? 0);
+  const homeWon = (game.homeScore ?? 0) > (game.awayScore ?? 0);
 
   return (
     <Dialog open={!!game} onOpenChange={() => onClose()}>
       <DialogContent className="bg-[#1a2e1a] border-gold/50 max-w-4xl max-h-[90vh] overflow-y-auto" data-testid="dialog-box-score">
         <DialogHeader>
-          <DialogTitle className="font-pixel text-gold text-sm">Box Score</DialogTitle>
+          <DialogTitle className="font-pixel text-gold text-sm">
+            {game.awayTeam.abbreviation} {game.awayScore} @ {game.homeTeam.abbreviation} {game.homeScore}
+          </DialogTitle>
         </DialogHeader>
 
         {!boxScore ? (
@@ -1344,42 +1349,45 @@ function BoxScoreModal({ game, onClose }: { game: GameWithTeams | null; onClose:
             <p className="text-muted-foreground text-sm">Box score not available for this game.</p>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4">
+            {/* Linescore */}
             <div className="overflow-x-auto">
               <table className="w-full text-xs border-collapse" data-testid="table-line-score">
                 <thead>
                   <tr className="border-b border-gold/30">
-                    <th className="font-pixel text-gold text-left p-2 min-w-[120px]">Team</th>
+                    <th className="font-pixel text-gold/80 text-left p-2 min-w-[110px]">Team</th>
                     {boxScore.innings.map((_, i) => (
-                      <th key={i} className="font-pixel text-gold text-center p-2 w-8">{i + 1}</th>
+                      <th key={i} className="font-pixel text-gold/80 text-center p-2 w-7">{i + 1}</th>
                     ))}
                     <th className="font-pixel text-gold text-center p-2 w-8 border-l border-gold/30">R</th>
-                    <th className="font-pixel text-gold text-center p-2 w-8">H</th>
-                    <th className="font-pixel text-gold text-center p-2 w-8">E</th>
+                    <th className="font-pixel text-gold/80 text-center p-2 w-8">H</th>
+                    <th className="font-pixel text-gold/80 text-center p-2 w-8">E</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr className="border-b border-gold/20">
+                  <tr className={`border-b border-gold/20 ${awayWon ? "bg-gold/5" : ""}`}>
                     <td className="p-2 font-medium text-foreground flex items-center gap-2">
                       <TeamBadge abbreviation={game.awayTeam.abbreviation} primaryColor={game.awayTeam.primaryColor} secondaryColor={game.awayTeam.secondaryColor} name={game.awayTeam.name} size="sm" />
-                      <span className="truncate">{game.awayTeam.abbreviation}</span>
+                      <span className={`truncate ${awayWon ? "text-gold font-bold" : ""}`}>{game.awayTeam.abbreviation}</span>
+                      {awayWon && <span className="text-[8px] font-pixel text-gold ml-1">W</span>}
                     </td>
                     {boxScore.innings.map((inning, i) => (
                       <td key={i} className="text-center p-2 text-foreground">{inning[0]}</td>
                     ))}
-                    <td className="text-center p-2 font-bold text-gold border-l border-gold/30">{game.awayScore}</td>
+                    <td className={`text-center p-2 font-bold border-l border-gold/30 ${awayWon ? "text-gold" : "text-foreground"}`}>{game.awayScore}</td>
                     <td className="text-center p-2 text-foreground">{totalAwayH}</td>
                     <td className="text-center p-2 text-foreground">{boxScore.away.errors ?? 0}</td>
                   </tr>
-                  <tr>
+                  <tr className={homeWon ? "bg-gold/5" : ""}>
                     <td className="p-2 font-medium text-foreground flex items-center gap-2">
                       <TeamBadge abbreviation={game.homeTeam.abbreviation} primaryColor={game.homeTeam.primaryColor} secondaryColor={game.homeTeam.secondaryColor} name={game.homeTeam.name} size="sm" />
-                      <span className="truncate">{game.homeTeam.abbreviation}</span>
+                      <span className={`truncate ${homeWon ? "text-gold font-bold" : ""}`}>{game.homeTeam.abbreviation}</span>
+                      {homeWon && <span className="text-[8px] font-pixel text-gold ml-1">W</span>}
                     </td>
                     {boxScore.innings.map((inning, i) => (
                       <td key={i} className="text-center p-2 text-foreground">{inning[1]}</td>
                     ))}
-                    <td className="text-center p-2 font-bold text-gold border-l border-gold/30">{game.homeScore}</td>
+                    <td className={`text-center p-2 font-bold border-l border-gold/30 ${homeWon ? "text-gold" : "text-foreground"}`}>{game.homeScore}</td>
                     <td className="text-center p-2 text-foreground">{totalHomeH}</td>
                     <td className="text-center p-2 text-foreground">{boxScore.home.errors ?? 0}</td>
                   </tr>
@@ -1387,10 +1395,27 @@ function BoxScoreModal({ game, onClose }: { game: GameWithTeams | null; onClose:
               </table>
             </div>
 
-            <TeamBattingTable label={game.awayTeam.name} team={boxScore.away} />
-            <TeamBattingTable label={game.homeTeam.name} team={boxScore.home} />
-            <TeamPitchingTable label={game.awayTeam.name} pitching={boxScore.away.pitching} />
-            <TeamPitchingTable label={game.homeTeam.name} pitching={boxScore.home.pitching} />
+            {/* Home / Away tabs */}
+            <Tabs defaultValue="away" className="w-full">
+              <TabsList className="bg-[#0f1f0f] border border-gold/30 w-full grid grid-cols-2">
+                <TabsTrigger value="away" className="font-pixel text-[10px] data-[state=active]:bg-gold/20 data-[state=active]:text-gold" data-testid="tab-away-box">
+                  {game.awayTeam.abbreviation}
+                  {awayWon && <span className="ml-1 text-gold">W</span>}
+                </TabsTrigger>
+                <TabsTrigger value="home" className="font-pixel text-[10px] data-[state=active]:bg-gold/20 data-[state=active]:text-gold" data-testid="tab-home-box">
+                  {game.homeTeam.abbreviation}
+                  {homeWon && <span className="ml-1 text-gold">W</span>}
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="away" className="space-y-4 mt-3">
+                <TeamBattingTable label={game.awayTeam.name} team={boxScore.away} />
+                <TeamPitchingTable label={game.awayTeam.name} pitching={boxScore.away.pitching} />
+              </TabsContent>
+              <TabsContent value="home" className="space-y-4 mt-3">
+                <TeamBattingTable label={game.homeTeam.name} team={boxScore.home} />
+                <TeamPitchingTable label={game.homeTeam.name} pitching={boxScore.home.pitching} />
+              </TabsContent>
+            </Tabs>
           </div>
         )}
       </DialogContent>
@@ -1401,10 +1426,11 @@ function BoxScoreModal({ game, onClose }: { game: GameWithTeams | null; onClose:
 function TeamBattingTable({ label, team }: { label: string; team: BoxScoreTeam }) {
   return (
     <div className="overflow-x-auto">
-      <h3 className="font-pixel text-gold text-xs mb-2">{label} - Batting</h3>
+      <h3 className="font-pixel text-gold text-xs mb-2">{label} — Batting</h3>
       <table className="w-full text-xs border-collapse" data-testid={`table-batting-${label}`}>
         <thead>
           <tr className="border-b border-gold/30">
+            <th className="text-center p-1.5 text-gold/60 w-6">#</th>
             <th className="text-left p-1.5 text-gold/80">Batting</th>
             <th className="text-center p-1.5 text-gold/80 w-8">AB</th>
             <th className="text-center p-1.5 text-gold/80 w-8">R</th>
@@ -1414,7 +1440,7 @@ function TeamBattingTable({ label, team }: { label: string; team: BoxScoreTeam }
             <th className="text-center p-1.5 text-gold/80 w-8">HR</th>
             <th className="text-center p-1.5 text-gold/80 w-8">RBI</th>
             <th className="text-center p-1.5 text-gold/80 w-8">BB</th>
-            <th className="text-center p-1.5 text-gold/80 w-8">SO</th>
+            <th className="text-center p-1.5 text-red-400 w-8">SO</th>
             <th className="text-center p-1.5 text-gold/80 w-8">SB</th>
             <th className="text-center p-1.5 text-gold/80 w-12">AVG</th>
           </tr>
@@ -1422,6 +1448,7 @@ function TeamBattingTable({ label, team }: { label: string; team: BoxScoreTeam }
         <tbody>
           {team.batting.map((batter, i) => (
             <tr key={i} className="border-b border-gold/10">
+              <td className="text-center p-1.5 text-muted-foreground font-pixel text-[8px]">{i + 1}</td>
               <td className="p-1.5 text-foreground">
                 <span>{batter.name}</span>
                 <span className="text-muted-foreground ml-1">({batter.position})</span>
@@ -1436,10 +1463,11 @@ function TeamBattingTable({ label, team }: { label: string; team: BoxScoreTeam }
               <td className="text-center p-1.5 text-foreground">{batter.bb}</td>
               <td className="text-center p-1.5 text-foreground">{batter.so}</td>
               <td className="text-center p-1.5 text-foreground">{batter.sb ?? 0}</td>
-              <td className="text-center p-1.5 text-foreground">{batter.avg}</td>
+              <td className="text-center p-1.5 text-foreground">{batter.avg ?? "--"}</td>
             </tr>
           ))}
           <tr className="border-t border-gold/30 font-bold">
+            <td className="p-1.5"></td>
             <td className="p-1.5 text-gold">Totals</td>
             <td className="text-center p-1.5 text-gold">{team.totals.ab}</td>
             <td className="text-center p-1.5 text-gold">{team.totals.r}</td>
