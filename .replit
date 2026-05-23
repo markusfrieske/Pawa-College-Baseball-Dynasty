@@ -46,6 +46,10 @@ args = "validate-all"
 task = "workflow.run"
 args = "validate-rosters"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "e2e-season-flow"
+
 [[workflows.workflow]]
 name = "Start application"
 author = "agent"
@@ -95,6 +99,17 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npx tsx scripts/validate-roster-structure.ts"
+
+[workflows.workflow.metadata]
+isValidation = true
+
+[[workflows.workflow]]
+name = "e2e-season-flow"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npx playwright test tests/e2e/season-flow.test.ts --timeout=300000"
 
 [workflows.workflow.metadata]
 isValidation = true
