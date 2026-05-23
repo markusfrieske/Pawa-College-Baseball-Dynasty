@@ -10901,6 +10901,8 @@ export async function registerRoutes(
       "recovery", "wRISP", "vsLefty", "poise", "heater", "agile",
     ] as const;
 
+    const gradeStats: Record<string, { count: number; totalDelta: number; gainers: number; decliners: number }> = {};
+
     for (const team of teams) {
       const roster = await storage.getPlayersByTeam(team.id);
       for (const player of roster) {
@@ -10910,12 +10912,17 @@ export async function registerRoutes(
 
         const weScore = player.workEthicScore as number | null | undefined;
         const coachScore = player.coachability as number | null | undefined;
+        // Divisor 150: allows the 0.6–1.4 clamp range to actually be reached.
+        // Both at 100 → 1 + 60/150 = 1.4; both at 0 → 1 + (−140)/150 = 0.067 → clamped at 0.6.
+        // Old divisor of 700 produced a tiny 0.80–1.09 range, making traits nearly invisible.
         const traitMult = 1 +
-          ((weScore ?? 70) - 70) / 700 +
-          ((coachScore ?? 70) - 70) / 700;
+          ((weScore ?? 70) - 70) / 150 +
+          ((coachScore ?? 70) - 70) / 150;
 
         // For positive deltas (growth), multiply — high traits amplify improvement.
         // For negative deltas (decline), divide — high traits dampen regression.
+        // Example: D-potential player with max coachability (mult 1.4) declines 1/1.4 = 0.71x as fast.
+        //          D-potential player with min coachability (mult 0.6) declines 1/0.6 = 1.67x as fast.
         const clampedMult = Math.max(0.6, Math.min(1.4, traitMult));
         const scaledDelta = targetOvrDelta >= 0
           ? targetOvrDelta * clampedMult
@@ -10929,11 +10936,20 @@ export async function registerRoutes(
         const totalFields = presentAttrFields.length + presentCommonFields.length;
         if (totalFields === 0) continue;
 
-        const targetAvgAttrDelta = scaledDelta / 10;
+        // Divide by 5 (not 10) to produce per-attribute deltas that, when passed through
+        // the weighted OVR formula (pitchers: core×0.85 + field×0.20 + common×0.25;
+        // hitters: hitCore×0.75 + hitCommon×0.22), actually produce OVR changes close to
+        // the targetOvrDelta from getOvrDeltaFromPotential().
+        //
+        // Old divisor of 10 was calibrated as if OVR = simple average of all attributes,
+        // but the real formula weights attrs differently and excludes irrelevant attrs per
+        // position (e.g. velocity/control don't count for hitter OVR). At divisor 10,
+        // A+ players only gained ~22 OVR/season instead of the intended 40-50.
+        const targetAvgAttrDelta = scaledDelta / 5;
 
         const rawAttrDeltas: number[] = [];
         for (const attr of presentAttrFields) {
-          rawAttrDeltas.push(targetAvgAttrDelta + (Math.random() - 0.5) * 2);
+          rawAttrDeltas.push(targetAvgAttrDelta + (Math.random() - 0.5) * 3);
         }
         if (rawAttrDeltas.length > 0) {
           const rawAvg = rawAttrDeltas.reduce((s, d) => s + d, 0) / rawAttrDeltas.length;
@@ -10955,7 +10971,7 @@ export async function registerRoutes(
 
         for (const attr of presentCommonFields) {
           const val = (player as any)[attr] as number;
-          const variance = (Math.random() - 0.5) * 2;
+          const variance = (Math.random() - 0.5) * 3;
           const delta = Math.round(targetAvgAttrDelta * 0.8 + variance);
           const newVal = Math.max(1, Math.min(100, val + delta));
           updates[attr] = newVal;
@@ -10978,8 +10994,28 @@ export async function registerRoutes(
 
         await storage.updatePlayer(player.id, updates);
         progressed++;
+
+        // Accumulate per-potential-grade OVR changes for the verification summary log.
+        const potGrade = getPotentialGrade(player.potential);
+        if (!gradeStats[potGrade]) gradeStats[potGrade] = { count: 0, totalDelta: 0, gainers: 0, decliners: 0 };
+        gradeStats[potGrade].count++;
+        gradeStats[potGrade].totalDelta += ovrDelta;
+        if (ovrDelta > 0) gradeStats[potGrade].gainers++;
+        else if (ovrDelta < 0) gradeStats[potGrade].decliners++;
       }
     }
+
+    // Log a verification summary so it's easy to confirm potential tiers are differentiated.
+    const gradeOrder = ["A+", "A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D+", "D", "D-", "F"];
+    const summaryLines = gradeOrder
+      .filter(g => gradeStats[g]?.count > 0)
+      .map(g => {
+        const s = gradeStats[g];
+        const avg = (s.totalDelta / s.count).toFixed(1);
+        return `${g}: n=${s.count} avgOVR=${avg > 0 ? "+" : ""}${avg} (↑${s.gainers} ↓${s.decliners})`;
+      });
+    console.log(`[Progression] League ${leagueId} — per-grade OVR summary:\n  ${summaryLines.join("\n  ")}`);
+
     return { progressed };
   }
 
