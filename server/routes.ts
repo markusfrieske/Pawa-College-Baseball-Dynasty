@@ -14158,7 +14158,8 @@ export async function registerRoutes(
           season: season,
           actionType: actionType,
           interestChange: interestGain,
-          notes: `CPU ${actionType} action`,
+          notes: team.isAutoPilot ? `CPU (Auto-Pilot) ${actionType}` : `CPU ${actionType} action`,
+          isAutoPilot: team.isAutoPilot ?? false,
         });
       }
     }

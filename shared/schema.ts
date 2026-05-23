@@ -821,6 +821,7 @@ export const recruitingActionsLog = pgTable("recruiting_actions_log", {
   actionType: text("action_type").notNull(), // 'scout', 'phone', 'email', 'offer', 'visit'
   interestChange: integer("interest_change").notNull().default(0),
   notes: text("notes"),
+  isAutoPilot: boolean("is_auto_pilot").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -833,6 +834,7 @@ export const insertRecruitingActionsLogSchema = createInsertSchema(recruitingAct
   actionType: true,
   interestChange: true,
   notes: true,
+  isAutoPilot: true,
 });
 
 export type InsertRecruitingActionsLog = z.infer<typeof insertRecruitingActionsLogSchema>;

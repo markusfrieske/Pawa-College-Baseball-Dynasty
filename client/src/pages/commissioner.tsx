@@ -1647,7 +1647,11 @@ function ReadyStatusSection({ leagueId, commissionerUserId, coCommissionerIds, o
                           </div>
                           <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground flex-wrap">
                             {team.isAutoPilot ? (
-                              <span className="text-blue-400/70">CPU is managing this team</span>
+                              isRecruitingPhase ? (
+                                <span className="text-blue-400/70">CPU took {team.currentWeekActionCount} action{team.currentWeekActionCount !== 1 ? "s" : ""} this week</span>
+                              ) : (
+                                <span className="text-blue-400/70">CPU is managing this team</span>
+                              )
                             ) : isDeparturesPhase ? (
                               <span>Departures not submitted</span>
                             ) : isWalkonsPhase ? (
@@ -1787,6 +1791,9 @@ function ReadyStatusSection({ leagueId, commissionerUserId, coCommissionerIds, o
                       <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
                         {isRecruitingPhase && !team.isAutoPilot && (
                           <span>{team.currentWeekActionCount} action{team.currentWeekActionCount !== 1 ? "s" : ""}</span>
+                        )}
+                        {isRecruitingPhase && team.isAutoPilot && (
+                          <span className="text-blue-400/70">{team.currentWeekActionCount} CPU action{team.currentWeekActionCount !== 1 ? "s" : ""}</span>
                         )}
                         {!team.isAutoPilot && team.lastActivityAt && (
                           <span className="opacity-60">{formatLastActivity(team.lastActivityAt)}</span>

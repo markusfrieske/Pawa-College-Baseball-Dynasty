@@ -380,6 +380,7 @@ export default function RecruitingPage() {
       actionType: string;
       interestChange: number;
       notes: string | null;
+      isAutoPilot: boolean;
       createdAt: string;
       recruitName: string;
       recruitPosition: string;
@@ -4390,6 +4391,7 @@ function RecruitActionsLog({ recruitId, leagueId }: { recruitId: string; leagueI
     actionType: string;
     interestChange: number;
     notes: string | null;
+    isAutoPilot: boolean;
     createdAt: string;
   }> }>({
     queryKey: ["/api/leagues", leagueId, "recruiting", recruitId, "actions"],
@@ -4447,8 +4449,12 @@ function RecruitActionsLog({ recruitId, leagueId }: { recruitId: string; leagueI
               Wk {action.week}, S{action.season}
             </span>
             <span className="text-foreground capitalize">{action.actionType}</span>
-            {action.notes && (
-              <span className="text-muted-foreground truncate flex-1">{action.notes}</span>
+            {action.isAutoPilot ? (
+              <span className="text-blue-400/80 flex-1">by CPU (Auto-Pilot)</span>
+            ) : (
+              action.notes && (
+                <span className="text-muted-foreground truncate flex-1">{action.notes}</span>
+              )
             )}
             {action.interestChange !== 0 && (
               <span className={action.interestChange > 0 ? getInterestChangeLabel(action.interestChange).color : "text-red-400"}>

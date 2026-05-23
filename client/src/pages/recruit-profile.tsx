@@ -102,6 +102,7 @@ interface ActionLog {
   actionType: string;
   interestChange: number;
   notes: string | null;
+  isAutoPilot: boolean;
   createdAt: string;
 }
 
@@ -1183,7 +1184,12 @@ export default function RecruitProfilePage() {
                         <span className={actionColors[action.actionType] || "text-muted-foreground"}>
                           {actionIcons[action.actionType] || <HelpCircle className="w-3 h-3" />}
                         </span>
-                        <span className="capitalize flex-1">{action.actionType}</span>
+                        <span className="capitalize">{action.actionType}</span>
+                        {action.isAutoPilot ? (
+                          <span className="text-blue-400/80 flex-1">by CPU (Auto-Pilot)</span>
+                        ) : (
+                          <span className="flex-1" />
+                        )}
                         {action.interestChange > 0 && (
                           <span className={getInterestChangeLabel(action.interestChange).color}>↑ {getInterestChangeLabel(action.interestChange).label}</span>
                         )}
