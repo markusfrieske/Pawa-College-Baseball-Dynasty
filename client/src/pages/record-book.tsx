@@ -7,6 +7,7 @@ import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard, RetroCardContent, RetroCardHeader } from "@/components/ui/retro-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { PlayerProfileCard } from "@/components/player-profile-card";
 
 interface SeasonEntry {
   season: number;
@@ -17,10 +18,11 @@ interface SeasonEntry {
   runnerUpName: string | null;
   runnerUpW: number;
   runnerUpL: number;
+  isCwsChampion: boolean;
   confChampions: { teamId: string; teamName: string; confId: string | null }[];
-  hrLeader: { name: string; value: number; teamId: string } | null;
-  avgLeader: { name: string; value: string; teamId: string } | null;
-  eraLeader: { name: string; value: string; teamId: string } | null;
+  hrLeader: { name: string; value: number; teamId: string; playerId?: string } | null;
+  avgLeader: { name: string; value: string; teamId: string; playerId?: string } | null;
+  eraLeader: { name: string; value: string; teamId: string; playerId?: string } | null;
   recruitingGrade: string | null;
 }
 
@@ -69,6 +71,8 @@ interface HoFPlayer {
   departureType: string; draftRound: number | null; departedSeason: number;
   abilities: string[];
   bestSeasonStat: string | null;
+  careerWar: number;
+  legacyScore: number;
 }
 
 interface RecordBookData {
@@ -136,6 +140,9 @@ function SeasonHistorySection({ seasons, leagueId }: { seasons: SeasonEntry[]; l
                       <span className="font-pixel text-[9px] text-foreground truncate">
                         {s.championName} ({s.championW}-{s.championL})
                       </span>
+                    )}
+                    {s.isCwsChampion && (
+                      <span className="font-pixel text-[7px] bg-gold/15 text-gold border border-gold/40 rounded px-1 py-0.5">CWS</span>
                     )}
                     {!s.championName && <span className="text-xs text-muted-foreground">No champion recorded</span>}
                   </div>
@@ -220,7 +227,7 @@ function SeasonHistorySection({ seasons, leagueId }: { seasons: SeasonEntry[]; l
   );
 }
 
-function CareerBattingSection({ leaders, leagueId }: { leaders: CareerBatter[]; leagueId: string }) {
+function CareerBattingSection({ leaders, leagueId, onPlayerClick }: { leaders: CareerBatter[]; leagueId: string; onPlayerClick: (playerId: string) => void }) {
   type BattingSort = "war" | "avg" | "hr" | "rbi" | "ops";
   const [sort, setSort] = useState<BattingSort>("war");
 
@@ -276,8 +283,14 @@ function CareerBattingSection({ leaders, leagueId }: { leaders: CareerBatter[]; 
                     data-testid={`row-career-batter-${i}`}>
                     <td className="py-2 px-2 text-center text-xs text-muted-foreground">{i + 1}</td>
                     <td className="py-2 px-2">
-                      <span className="text-xs font-medium">{b.name}</span>
-                      <span className="text-[9px] text-muted-foreground ml-1">({b.position})</span>
+                      <button
+                        onClick={() => b.playerId && onPlayerClick(b.playerId)}
+                        className="text-left hover:text-gold transition-colors group"
+                        data-testid={`link-player-${b.playerId}`}
+                      >
+                        <span className="text-xs font-medium group-hover:underline">{b.name}</span>
+                        <span className="text-[9px] text-muted-foreground ml-1">({b.position})</span>
+                      </button>
                     </td>
                     <td className="py-2 px-2">
                       <div className="flex items-center gap-1">
@@ -304,7 +317,7 @@ function CareerBattingSection({ leaders, leagueId }: { leaders: CareerBatter[]; 
   );
 }
 
-function CareerPitchingSection({ leaders, leagueId }: { leaders: CareerPitcher[]; leagueId: string }) {
+function CareerPitchingSection({ leaders, leagueId, onPlayerClick }: { leaders: CareerPitcher[]; leagueId: string; onPlayerClick: (playerId: string) => void }) {
   type PitchingSort = "era" | "whip" | "so" | "wins" | "war";
   const [sort, setSort] = useState<PitchingSort>("era");
 
@@ -360,8 +373,14 @@ function CareerPitchingSection({ leaders, leagueId }: { leaders: CareerPitcher[]
                     data-testid={`row-career-pitcher-${i}`}>
                     <td className="py-2 px-2 text-center text-xs text-muted-foreground">{i + 1}</td>
                     <td className="py-2 px-2">
-                      <span className="text-xs font-medium">{p.name}</span>
-                      <span className="text-[9px] text-muted-foreground ml-1">({p.position})</span>
+                      <button
+                        onClick={() => p.playerId && onPlayerClick(p.playerId)}
+                        className="text-left hover:text-gold transition-colors group"
+                        data-testid={`link-pitcher-${p.playerId}`}
+                      >
+                        <span className="text-xs font-medium group-hover:underline">{p.name}</span>
+                        <span className="text-[9px] text-muted-foreground ml-1">({p.position})</span>
+                      </button>
                     </td>
                     <td className="py-2 px-2">
                       <div className="flex items-center gap-1">
@@ -632,18 +651,22 @@ function HallOfFameSection({ players }: { players: HoFPlayer[] }) {
                       </span>
                     )}
                   </div>
-                  <div className="grid grid-cols-3 gap-1 mt-2">
+                  <div className="grid grid-cols-4 gap-1 mt-2">
                     <div className="text-center bg-background/50 rounded p-1 border border-border/40">
                       <div className="font-pixel text-[6px] text-muted-foreground">OVR</div>
                       <div className="text-xs font-bold text-gold">{p.overall}</div>
                     </div>
                     <div className="text-center bg-background/50 rounded p-1 border border-border/40">
-                      <div className="font-pixel text-[6px] text-muted-foreground">Years</div>
+                      <div className="font-pixel text-[6px] text-muted-foreground">WAR</div>
+                      <div className="text-xs font-bold text-emerald-400">{p.careerWar}</div>
+                    </div>
+                    <div className="text-center bg-background/50 rounded p-1 border border-border/40">
+                      <div className="font-pixel text-[6px] text-muted-foreground">Yrs</div>
                       <div className="text-xs font-bold">{p.seasonsPlayed}</div>
                     </div>
                     <div className="text-center bg-background/50 rounded p-1 border border-border/40">
-                      <div className="font-pixel text-[6px] text-muted-foreground">Era</div>
-                      <div className="text-xs font-bold">S{p.departedSeason}</div>
+                      <div className="font-pixel text-[6px] text-muted-foreground">Legacy</div>
+                      <div className="text-xs font-bold text-gold">{p.legacyScore}</div>
                     </div>
                   </div>
                   {p.bestSeasonStat && (
@@ -662,11 +685,18 @@ function HallOfFameSection({ players }: { players: HoFPlayer[] }) {
 export default function RecordBookPage() {
   const { id: leagueId } = useParams<{ id: string }>();
   const [activeSection, setActiveSection] = useState<ActiveSection>("seasons");
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery<RecordBookData>({
     queryKey: ["/api/leagues", leagueId, "record-book"],
     queryFn: () => fetch(`/api/leagues/${leagueId}/record-book`, { credentials: "include" }).then(r => r.json()),
     enabled: !!leagueId,
+  });
+
+  const { data: selectedPlayerData } = useQuery<any>({
+    queryKey: ["/api/leagues", leagueId, "players", selectedPlayerId],
+    queryFn: () => fetch(`/api/leagues/${leagueId}/players/${selectedPlayerId}`, { credentials: "include" }).then(r => r.json()),
+    enabled: !!leagueId && !!selectedPlayerId,
   });
 
   const navItems: { key: ActiveSection; label: string; icon: React.ReactNode }[] = [
@@ -747,16 +777,16 @@ export default function RecordBookPage() {
             {activeSection === "batting" && (
               <>
                 <SectionHeader icon={<BarChart2 className="w-5 h-5" />} title="CAREER BATTING LEADERS"
-                  subtitle="All-time top 25 hitters — min 30 career at-bats" />
-                <CareerBattingSection leaders={data.careerBattingLeaders} leagueId={leagueId!} />
+                  subtitle="All-time top 25 hitters — min 30 career at-bats. Click a name to view profile." />
+                <CareerBattingSection leaders={data.careerBattingLeaders} leagueId={leagueId!} onPlayerClick={setSelectedPlayerId} />
               </>
             )}
 
             {activeSection === "pitching" && (
               <>
                 <SectionHeader icon={<TrendingUp className="w-5 h-5" />} title="CAREER PITCHING LEADERS"
-                  subtitle="All-time top 25 arms — min 3 career innings" />
-                <CareerPitchingSection leaders={data.careerPitchingLeaders} leagueId={leagueId!} />
+                  subtitle="All-time top 25 arms — min 3 career innings. Click a name to view profile." />
+                <CareerPitchingSection leaders={data.careerPitchingLeaders} leagueId={leagueId!} onPlayerClick={setSelectedPlayerId} />
               </>
             )}
 
@@ -810,6 +840,15 @@ export default function RecordBookPage() {
           </div>
         )}
       </div>
+
+      {selectedPlayerData && (
+        <PlayerProfileCard
+          player={selectedPlayerData}
+          open={!!selectedPlayerId}
+          onClose={() => setSelectedPlayerId(null)}
+          leagueId={leagueId}
+        />
+      )}
     </div>
   );
 }

@@ -777,9 +777,6 @@ export default function LeagueViewPage() {
                 Rank
               </TabsTrigger>
               <TabsTrigger value="stats" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-stats">
-                Stats
-              </TabsTrigger>
-              <TabsTrigger value="records" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-records">
                 Records
               </TabsTrigger>
               <TabsTrigger value="prospects" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-prospects">
@@ -827,9 +824,6 @@ export default function LeagueViewPage() {
           </TabsContent>
 
           <TabsContent value="stats">
-            <StatsTab leagueId={league.id} currentSeason={league.currentSeason} conferences={league.conferences} teams={league.teams} />
-          </TabsContent>
-          <TabsContent value="records">
             <RecordBookSummaryTab leagueId={league.id} currentSeason={league.currentSeason} />
           </TabsContent>
 

@@ -4816,7 +4816,7 @@ export async function registerRoutes(
       const league = await storage.getLeague(leagueId);
       if (!league) return res.status(404).json({ message: "League not found" });
 
-      const [teams, allStandings, allPlayerHistory, allSeasonStats, allCoaches, coachHistory, recruitingSnaps] =
+      const [teams, allStandings, allPlayerHistory, allSeasonStats, allCoaches, coachHistory, recruitingSnaps, allGames] =
         await Promise.all([
           storage.getTeamsByLeague(leagueId),
           storage.getAllStandingsByLeague(leagueId),
@@ -4825,12 +4825,26 @@ export async function registerRoutes(
           storage.getCoachesByLeague(leagueId),
           storage.getCoachSeasonHistoryByLeague(leagueId),
           storage.getRecruitingClassSnapshotsAllSeasons(leagueId),
+          storage.getGamesByLeague(leagueId),
         ]);
 
       const teamMap = new Map(teams.map(t => [t.id, t]));
 
       // ── Season History ──────────────────────────────────────────────────────
       const seasonNums = [...new Set(allStandings.map(s => s.season))].sort((a, b) => b - a);
+
+      const gradeFromScore = (score: number | null) => {
+        if (score === null) return null;
+        if (score >= 95) return "A+";
+        if (score >= 88) return "A";
+        if (score >= 80) return "A-";
+        if (score >= 72) return "B+";
+        if (score >= 65) return "B";
+        if (score >= 58) return "B-";
+        if (score >= 50) return "C+";
+        if (score >= 42) return "C";
+        return "C-";
+      };
 
       const seasonHistory = seasonNums.map(season => {
         const seasonStandings = allStandings.filter(s => s.season === season);
@@ -4839,20 +4853,49 @@ export async function registerRoutes(
           const bwPct = (b.wins + b.losses) > 0 ? b.wins / (b.wins + b.losses) : 0;
           return bwPct - awPct;
         });
-        const champion = sorted[0];
-        const runnerUp = sorted[1];
-        const champTeam = champion ? teamMap.get(champion.teamId) : null;
-        const ruTeam = runnerUp ? teamMap.get(runnerUp.teamId) : null;
 
-        // conf champions = first in each conference
+        // Determine CWS champion/runner-up from game results (most accurate)
+        const cwsGames = allGames.filter(g => g.phase === "cws" && g.season === season && g.isComplete);
+        let cwsChampionId: string | null = null;
+        let cwsRunnerUpId: string | null = null;
+        if (cwsGames.length >= 2) {
+          const winsMap: Record<string, number> = {};
+          for (const g of cwsGames) {
+            const winnerId = (g.homeScore ?? 0) > (g.awayScore ?? 0) ? g.homeTeamId : g.awayTeamId;
+            winsMap[winnerId] = (winsMap[winnerId] || 0) + 1;
+          }
+          cwsChampionId = Object.entries(winsMap).find(([_, w]) => w >= 2)?.[0] ?? null;
+          const otherIds = Object.keys(winsMap).filter(id => id !== cwsChampionId);
+          cwsRunnerUpId = otherIds.length > 0 ? otherIds[0] : null;
+        }
+
+        // Fall back to standings leader if no CWS game data
+        const champTeamId = cwsChampionId ?? (sorted[0]?.teamId ?? null);
+        const runnerUpTeamId = cwsRunnerUpId ?? (sorted[1]?.teamId ?? null);
+        const champTeam = champTeamId ? teamMap.get(champTeamId) : null;
+        const ruTeam = runnerUpTeamId ? teamMap.get(runnerUpTeamId) : null;
+        const champStandings = seasonStandings.find(s => s.teamId === champTeamId);
+        const ruStandings = seasonStandings.find(s => s.teamId === runnerUpTeamId);
+
+        // conf champions from conference_championship game results
+        const confChampGames = allGames.filter(g => g.phase === "conference_championship" && g.season === season && g.isComplete);
         const confChamps: { teamId: string; teamName: string; confId: string | null }[] = [];
-        const seen = new Set<string | null>();
-        for (const s of sorted) {
-          const t = teamMap.get(s.teamId);
-          const confId = t?.conferenceId ?? null;
-          if (!seen.has(confId)) {
-            seen.add(confId);
-            confChamps.push({ teamId: s.teamId, teamName: t?.name ?? "", confId });
+        if (confChampGames.length > 0) {
+          for (const g of confChampGames) {
+            const winnerId = (g.homeScore ?? 0) > (g.awayScore ?? 0) ? g.homeTeamId : g.awayTeamId;
+            const t = teamMap.get(winnerId);
+            if (t) confChamps.push({ teamId: winnerId, teamName: t.name, confId: t.conferenceId ?? null });
+          }
+        } else {
+          // Fall back to standings-based conf leaders
+          const seen = new Set<string | null>();
+          for (const s of sorted) {
+            const t = teamMap.get(s.teamId);
+            const confId = t?.conferenceId ?? null;
+            if (!seen.has(confId)) {
+              seen.add(confId);
+              confChamps.push({ teamId: s.teamId, teamName: t?.name ?? "", confId });
+            }
           }
         }
 
@@ -4876,39 +4919,28 @@ export async function registerRoutes(
         // recruiting class grade for this season (avg classScore normalized to letter)
         const snapshots = recruitingSnaps.filter(s => s.season === season);
         const avgScore = snapshots.length ? snapshots.reduce((sum, s) => sum + s.classScore, 0) / snapshots.length : null;
-        const gradeFromScore = (score: number | null) => {
-          if (score === null) return null;
-          if (score >= 95) return "A+";
-          if (score >= 88) return "A";
-          if (score >= 80) return "A-";
-          if (score >= 72) return "B+";
-          if (score >= 65) return "B";
-          if (score >= 58) return "B-";
-          if (score >= 50) return "C+";
-          if (score >= 42) return "C";
-          return "C-";
-        };
 
         return {
           season,
           championTeamId: champTeam?.id ?? null,
           championName: champTeam?.name ?? null,
-          championW: champion?.wins ?? 0,
-          championL: champion?.losses ?? 0,
+          championW: champStandings?.wins ?? 0,
+          championL: champStandings?.losses ?? 0,
           runnerUpName: ruTeam?.name ?? null,
-          runnerUpW: runnerUp?.wins ?? 0,
-          runnerUpL: runnerUp?.losses ?? 0,
+          runnerUpW: ruStandings?.wins ?? 0,
+          runnerUpL: ruStandings?.losses ?? 0,
+          isCwsChampion: cwsChampionId !== null,
           confChampions: confChamps,
-          hrLeader: hrLeader ? { name: hrLeader.playerName, value: hrLeader.hr, teamId: hrLeader.teamId } : null,
+          hrLeader: hrLeader ? { name: hrLeader.playerName, value: hrLeader.hr, teamId: hrLeader.teamId, playerId: hrLeader.playerId } : null,
           avgLeader: avgLeader ? {
             name: avgLeader.playerName,
             value: avgLeader.ab > 0 ? (avgLeader.h / avgLeader.ab).toFixed(3) : ".000",
-            teamId: avgLeader.teamId,
+            teamId: avgLeader.teamId, playerId: avgLeader.playerId,
           } : null,
           eraLeader: eraLeader ? {
             name: eraLeader.playerName,
             value: eraLeader.ipOuts > 0 ? ((eraLeader.pEr * 27) / eraLeader.ipOuts).toFixed(2) : "0.00",
-            teamId: eraLeader.teamId,
+            teamId: eraLeader.teamId, playerId: eraLeader.playerId,
           } : null,
           recruitingGrade: gradeFromScore(avgScore),
         };
@@ -5109,37 +5141,64 @@ export async function registerRoutes(
       });
 
       // ── Hall of Fame ────────────────────────────────────────────────────────
-      const hofEligible = allPlayerHistory.filter(p =>
-        (p.departureType === "graduated" || p.departureType === "drafted" || p.departureType === "declared") &&
-        p.overall >= 400
-      );
+      // Build career WAR map for HoF eligibility: WAR >= 2 OR OVR >= 400
+      const careerWarByName = new Map<string, number>();
+      for (const row of allSeasonStats) {
+        const PITCHER_POS_HOF = ["P", "SP", "RP", "CL", "LHP", "RHP"];
+        const key = `${row.playerName}|${row.teamId}`;
+        let war = 0;
+        if (PITCHER_POS_HOF.includes(row.position)) {
+          const ip = row.ipOuts / 3;
+          war = Math.max(0, (4.0 - (ip > 0 ? (row.pEr * 9) / ip : 99)) * ip / 9);
+        } else {
+          const singles = row.h - row.doubles - row.triples - row.hr;
+          const wOBA = (row.ab + row.bb + row.hbp) > 0
+            ? (0.69 * row.bb + 0.72 * row.hbp + 0.89 * singles + 1.27 * row.doubles + 1.62 * row.triples + 2.10 * row.hr) / (row.ab + row.bb + row.hbp)
+            : 0;
+          war = ((wOBA - 0.320) / 1.25) * (row.ab + row.bb + row.hbp) / 10;
+        }
+        careerWarByName.set(key, (careerWarByName.get(key) ?? 0) + war);
+      }
+
+      const DEPARTURES_HOF = new Set(["graduated", "drafted", "declared"]);
+      const hofEligible = allPlayerHistory.filter(p => {
+        if (!DEPARTURES_HOF.has(p.departureType ?? "")) return false;
+        const careerWar = careerWarByName.get(`${p.firstName} ${p.lastName}|${p.teamId}`) ?? 0;
+        return p.overall >= 400 || careerWar >= 2;
+      });
 
       const hallOfFame = hofEligible.map(p => {
         const t = teamMap.get(p.teamId);
-        const playerStats = allSeasonStats.filter(s => s.playerId && p.id && s.playerName === `${p.firstName} ${p.lastName}` && s.teamId === p.teamId);
+        const pName = `${p.firstName} ${p.lastName}`;
+        const PITCHER_POS2 = ["P", "SP", "RP", "CL", "LHP", "RHP"];
+        const playerStats = allSeasonStats.filter(s => s.playerName === pName && s.teamId === p.teamId);
         const bestSeason = playerStats.length ? playerStats.reduce((best, s) => {
-          const PITCHER_POS = ["P", "SP", "RP", "CL", "LHP", "RHP"];
-          if (PITCHER_POS.includes(p.position)) {
+          if (PITCHER_POS2.includes(p.position)) {
             const era = s.ipOuts > 0 ? (s.pEr * 27) / s.ipOuts : 99;
             const bEra = best.ipOuts > 0 ? (best.pEr * 27) / best.ipOuts : 99;
             return era < bEra ? s : best;
           }
           return s.hr > best.hr ? s : best;
         }) : null;
-        const PITCHER_POS2 = ["P", "SP", "RP", "CL", "LHP", "RHP"];
         const bestStatStr = bestSeason ? (PITCHER_POS2.includes(p.position)
           ? `${bestSeason.pSo} SO, ${((bestSeason.pEr * 27) / Math.max(bestSeason.ipOuts, 1)).toFixed(2)} ERA`
           : `${bestSeason.hr} HR, .${Math.round(bestSeason.ab > 0 ? bestSeason.h / bestSeason.ab * 1000 : 0).toString().padStart(3, "0")} AVG`
         ) : null;
+        const careerWar = careerWarByName.get(`${pName}|${p.teamId}`) ?? 0;
+        // Legacy score: OVR contribution + career WAR + draft round bonus
+        const draftBonus = p.draftRound === 1 ? 30 : p.draftRound === 2 ? 20 : p.draftRound === 3 ? 10 : 0;
+        const legacyScore = Math.round(p.overall + careerWar * 5 + draftBonus);
         return {
-          id: p.id, name: `${p.firstName} ${p.lastName}`, position: p.position,
+          id: p.id, name: pName, position: p.position,
           teamName: t?.name ?? "", teamAbbr: t?.abbreviation ?? "", teamColor: t?.primaryColor ?? "#888",
           overall: p.overall, starRating: p.starRating, seasonsPlayed: p.seasonsPlayed,
           departureType: p.departureType, draftRound: p.draftRound, departedSeason: p.departedSeason,
           abilities: p.abilities ?? [],
           bestSeasonStat: bestStatStr,
+          careerWar: parseFloat(careerWar.toFixed(1)),
+          legacyScore,
         };
-      }).sort((a, b) => b.overall - a.overall).slice(0, 50);
+      }).sort((a, b) => b.legacyScore - a.legacyScore).slice(0, 50);
 
       res.json({
         seasons: seasonHistory,
