@@ -89,6 +89,7 @@ export interface IStorage {
   getRecruitsByLeague(leagueId: string): Promise<Recruit[]>;
   getRecruit(id: string): Promise<Recruit | undefined>;
   createRecruit(recruit: InsertRecruit): Promise<Recruit>;
+  batchCreateRecruits(recruitsData: InsertRecruit[]): Promise<Recruit[]>;
   updateRecruit(id: string, data: Partial<Recruit>): Promise<Recruit | undefined>;
   deleteRecruitsByLeague(leagueId: string): Promise<void>;
 
@@ -153,6 +154,7 @@ export interface IStorage {
   getRecruitTopSchool(recruitId: string, teamId: string): Promise<RecruitTopSchools | undefined>;
   getTopSchoolsByTeam(teamId: string): Promise<RecruitTopSchools[]>;
   createRecruitTopSchool(topSchool: InsertRecruitTopSchools): Promise<RecruitTopSchools>;
+  batchCreateRecruitTopSchools(topSchools: InsertRecruitTopSchools[]): Promise<void>;
   updateRecruitTopSchool(id: string, data: Partial<RecruitTopSchools>): Promise<RecruitTopSchools | undefined>;
   
   updatePlayer(id: string, data: Partial<Player>): Promise<Player | undefined>;
@@ -471,6 +473,17 @@ export class DatabaseStorage implements IStorage {
   async createRecruit(insertRecruit: InsertRecruit): Promise<Recruit> {
     const [recruit] = await db.insert(recruits).values(insertRecruit).returning();
     return recruit;
+  }
+
+  async batchCreateRecruits(recruitsData: InsertRecruit[]): Promise<Recruit[]> {
+    if (recruitsData.length === 0) return [];
+    const CHUNK = 100;
+    const results: Recruit[] = [];
+    for (let i = 0; i < recruitsData.length; i += CHUNK) {
+      const chunk = await db.insert(recruits).values(recruitsData.slice(i, i + CHUNK)).returning();
+      results.push(...chunk);
+    }
+    return results;
   }
 
   async updateRecruit(id: string, data: Partial<Recruit>): Promise<Recruit | undefined> {
@@ -804,6 +817,14 @@ export class DatabaseStorage implements IStorage {
   async createRecruitTopSchool(topSchool: InsertRecruitTopSchools): Promise<RecruitTopSchools> {
     const [created] = await db.insert(recruitTopSchools).values(topSchool).returning();
     return created;
+  }
+
+  async batchCreateRecruitTopSchools(topSchoolsData: InsertRecruitTopSchools[]): Promise<void> {
+    if (topSchoolsData.length === 0) return;
+    const CHUNK = 200;
+    for (let i = 0; i < topSchoolsData.length; i += CHUNK) {
+      await db.insert(recruitTopSchools).values(topSchoolsData.slice(i, i + CHUNK));
+    }
   }
 
   async updateRecruitTopSchool(id: string, data: Partial<RecruitTopSchools>): Promise<RecruitTopSchools | undefined> {

@@ -17220,12 +17220,10 @@ export async function registerRoutes(
               }
               // Saved-class path bypasses generateRecruits(), so storylines must be
               // initialized explicitly here to match the auto-generate path.
-              try {
-                await initializeStorylineRecruits(leagueId, league.currentSeason);
-                console.log(`[storylines] initialized for saved-class dynasty ${leagueId}`);
-              } catch (err) {
-                console.error("[storylines] Failed to initialize for saved-class dynasty:", err);
-              }
+              // Fire-and-forget so the HTTP response is not delayed.
+              initializeStorylineRecruits(leagueId, league.currentSeason)
+                .then(n => console.log(`[storylines] initialized ${n} recruits for saved-class dynasty ${leagueId}`))
+                .catch(err => console.error("[storylines] Failed to initialize for saved-class dynasty:", err));
             }
           }
         } else {
@@ -18085,45 +18083,48 @@ async function generateRecruits(leagueId: string, count: number, forceStorylineR
   const progressionEnabled = leagueForProgression?.progressionEnabled ?? false;
 
   const recruits = generateRecruitClass(count);
-  for (const r of recruits) {
-    await storage.createRecruit({
-      leagueId,
-      ...r,
-      ...(progressionEnabled ? (() => {
-        // Preserve archetype-forced potential (late_bloomer forces high; overdraft forces low).
-        // Only roll a fresh potential when the generator left it unset.
-        if (r.potential != null) {
-          const range = getPotentialRange(r.potential);
-          return { potentialFloor: range.floor, potentialCeiling: range.ceiling };
-        }
-        let pot = rollWeightedPotential();
-        if (r.isBlueChip) pot = Math.max(78, pot);
-        if (r.isGenerationalGem) pot = Math.max(74, pot);
-        if (r.isGem && !r.isGenerationalGem) pot = Math.max(74, pot);
-        const range = getPotentialRange(pot);
-        return { potential: pot, potentialFloor: range.floor, potentialCeiling: range.ceiling };
-      })() : {}),
-    });
-  }
+
+  // Build all recruit rows in memory, then batch-insert to avoid N sequential round-trips
+  const recruitRows = recruits.map(r => ({
+    leagueId,
+    ...r,
+    ...(progressionEnabled ? (() => {
+      if (r.potential != null) {
+        const range = getPotentialRange(r.potential);
+        return { potentialFloor: range.floor, potentialCeiling: range.ceiling };
+      }
+      let pot = rollWeightedPotential();
+      if (r.isBlueChip) pot = Math.max(78, pot);
+      if (r.isGenerationalGem) pot = Math.max(74, pot);
+      if (r.isGem && !r.isGenerationalGem) pot = Math.max(74, pot);
+      const range = getPotentialRange(pot);
+      return { potential: pot, potentialFloor: range.floor, potentialCeiling: range.ceiling };
+    })() : {}),
+  }));
+
+  await storage.batchCreateRecruits(recruitRows);
 
   await generateTopSchoolsForLeague(leagueId);
 
-  // Initialize storyline recruits after recruit class generation
+  // Initialize storyline recruits after recruit class generation — fire-and-forget so the
+  // caller (e.g. /api/leagues/:id/start) can respond before the heavyweight arc setup runs.
   const leagueForStoryline = await storage.getLeague(leagueId);
   if (leagueForStoryline) {
-    // Use targetSeason if provided (e.g., when called from finalizeWalkonsPhase before the season
-    // counter is bumped in the DB), otherwise fall back to the league's current season.
     const storylineSeason = targetSeason ?? leagueForStoryline.currentSeason;
-    try {
-      console.log(`[storylines] Initializing storyline recruits for league ${leagueId} season ${storylineSeason} (force=${forceStorylineReset})…`);
-      if (forceStorylineReset) {
-        console.warn(`[storylines] Commissioner-triggered recruit class reset — existing storyline data for season ${storylineSeason} will be wiped and regenerated.`);
+    const doInit = async () => {
+      try {
+        console.log(`[storylines] Initializing storyline recruits for league ${leagueId} season ${storylineSeason} (force=${forceStorylineReset})…`);
+        if (forceStorylineReset) {
+          console.warn(`[storylines] Commissioner-triggered recruit class reset — existing storyline data for season ${storylineSeason} will be wiped and regenerated.`);
+        }
+        const storylineCount = await initializeStorylineRecruits(leagueId, storylineSeason, forceStorylineReset);
+        console.log(`[storylines] Storyline initialization complete — ${storylineCount} recruits assigned arcs for season ${storylineSeason}`);
+      } catch (err) {
+        console.error("[storylines] Failed to initialize storyline recruits:", err);
       }
-      const storylineCount = await initializeStorylineRecruits(leagueId, storylineSeason, forceStorylineReset);
-      console.log(`[storylines] Storyline initialization complete — ${storylineCount} recruits assigned arcs for season ${storylineSeason}`);
-    } catch (err) {
-      console.error("[storylines] Failed to initialize storyline recruits:", err);
-    }
+    };
+    // Run asynchronously — do not await so generateRecruits returns sooner
+    doInit().catch(err => console.error("[storylines] generateRecruits background init threw:", err));
   }
 }
 
@@ -18337,32 +18338,27 @@ async function generateTopSchoolsForLeague(leagueId: string) {
     }
   }
   
-  // Create database entries with RECALCULATED interest levels based on final ranks
+  // Collect all top-school rows, then batch-insert in one shot
+  const allTopSchoolRows: import("@shared/schema").InsertRecruitTopSchools[] = [];
   for (const [recruitId, topSchools] of recruitTopSchoolsData.entries()) {
-    // Sort by final rank
     topSchools.sort((a, b) => a.rank - b.rank);
-    
-    // Interest levels: #1 gets highest (70-80), lower ranks get proportionally less
-    // This ensures #1 always has highest interest regardless of original score
+    const maxScore = Math.max(...topSchools.map(t => t.score)) || 100;
     for (let i = 0; i < topSchools.length; i++) {
       const ts = topSchools[i];
-      // Base interest by rank: #1=75, #2=65, #3=55, etc. with some variation
       const baseInterest = Math.max(30, 80 - (i * 8));
-      // Add small variation based on original score
-      const maxScore = Math.max(...topSchools.map(t => t.score)) || 100;
       const scoreBonus = Math.floor((ts.score / maxScore) * 5);
       const interestLevel = Math.min(80, baseInterest + scoreBonus);
-      
-      await storage.createRecruitTopSchool({
+      allTopSchoolRows.push({
         recruitId,
         teamId: ts.teamId,
         interestLevel,
-        rank: i + 1, // Use array index + 1 as final rank
+        rank: i + 1,
         isActive: true,
         accumulatedInterest: 0,
       });
     }
   }
+  await storage.batchCreateRecruitTopSchools(allTopSchoolRows);
 }
 
 // Random appearance generator for players/recruits

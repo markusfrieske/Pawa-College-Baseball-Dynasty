@@ -146,6 +146,22 @@ export default function DynastySetupPage() {
     return <DynastySetupSkeleton />;
   }
 
+  if (startDynastyMutation.isPending) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <RetroCard variant="bordered" className="text-center p-10 max-w-sm w-full">
+          <div className="flex flex-col items-center gap-6">
+            <div className="w-8 h-8 border-4 border-gold border-t-transparent rounded-full animate-spin" />
+            <div>
+              <h2 className="font-pixel text-gold text-xs mb-3">Starting Dynasty...</h2>
+              <p className="text-muted-foreground text-sm">Generating rosters, schedules, and recruiting class. This may take a moment.</p>
+            </div>
+          </div>
+        </RetroCard>
+      </div>
+    );
+  }
+
   if (!data) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">

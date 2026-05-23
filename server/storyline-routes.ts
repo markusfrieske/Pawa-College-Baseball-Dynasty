@@ -134,19 +134,36 @@ async function generateArcSceneImage(
   return generateEventSceneImageCore(arcKey, scenePrompt, `arc image ${sl.id}`, true);
 }
 
+// Retry helper: calls fn up to maxAttempts times with exponential backoff.
+async function withRetry<T>(fn: () => Promise<T>, maxAttempts = 3, baseDelayMs = 500): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      if (attempt < maxAttempts - 1) {
+        await new Promise(r => setTimeout(r, baseDelayMs * Math.pow(2, attempt)));
+      }
+    }
+  }
+  throw lastErr;
+}
+
 // Generates arc images for a list of storyline recruits.
 // Runs in the background (fire-and-forget), throttled 2 s between each to avoid rate limits.
+// DB persistence calls use retry logic to handle terminated PostgreSQL connections (error 57P01).
 async function generateArcImagesForStorylines(
   storylines: import("@shared/schema").StorylineRecruit[],
 ): Promise<void> {
   for (const sl of storylines) {
     if (sl.imageUrl) continue;
     try {
-      const recruit = await storage.getRecruit(sl.recruitId);
+      const recruit = await withRetry(() => storage.getRecruit(sl.recruitId));
       const position = recruit?.position ?? null;
       const imageUrl = await generateArcSceneImage(sl, position);
       if (imageUrl) {
-        await storage.updateStorylineRecruit(sl.id, { imageUrl });
+        await withRetry(() => storage.updateStorylineRecruit(sl.id, { imageUrl }));
         console.log(`[storylines] arc image saved for recruit ${sl.recruitId}`);
       }
     } catch (err) {
