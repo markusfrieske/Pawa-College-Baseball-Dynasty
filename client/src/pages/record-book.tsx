@@ -38,10 +38,18 @@ interface CareerPitcher {
   ip: string; era: string; whip: string; so: number; war: string;
 }
 
+interface CareerFielder {
+  playerId: string; name: string; teamName: string; teamAbbr: string; teamColor: string;
+  position: string; seasons: number; games: number;
+  putouts: number; assists: number; errors: number; totalChances: number;
+  fldPct: string; oaa: number;
+}
+
 interface TeamRecord {
   teamId: string; teamName: string; teamAbbr: string; teamColor: string;
   allTimeW: number; allTimeL: number; pct: string;
   championships: number; bestSeasonW: number;
+  postseasonApps: number; allTimeFiveStars: number;
 }
 
 interface CoachStat {
@@ -79,6 +87,7 @@ interface RecordBookData {
   seasons: SeasonEntry[];
   careerBattingLeaders: CareerBatter[];
   careerPitchingLeaders: CareerPitcher[];
+  careerFieldingLeaders: CareerFielder[];
   teamRecords: TeamRecord[];
   coachStats: CoachStat[];
   recruitingHistory: RecruitingSeason[];
@@ -86,7 +95,7 @@ interface RecordBookData {
   meta: { currentSeason: number; totalSeasons: number };
 }
 
-type ActiveSection = "seasons" | "batting" | "pitching" | "teams" | "coaches" | "recruiting" | "hof";
+type ActiveSection = "seasons" | "batting" | "pitching" | "fielding" | "teams" | "coaches" | "recruiting" | "hof";
 
 function gradeColor(grade: string) {
   if (grade.startsWith("A")) return "text-emerald-400 bg-emerald-500/10 border-emerald-500/30";
@@ -230,15 +239,21 @@ function SeasonHistorySection({ seasons, leagueId }: { seasons: SeasonEntry[]; l
 function CareerBattingSection({ leaders, leagueId, onPlayerClick }: { leaders: CareerBatter[]; leagueId: string; onPlayerClick: (playerId: string) => void }) {
   type BattingSort = "war" | "avg" | "hr" | "rbi" | "ops";
   const [sort, setSort] = useState<BattingSort>("war");
+  const [posFilter, setPosFilter] = useState<string>("ALL");
 
-  const sorted = [...leaders].sort((a, b) => {
-    if (sort === "war") return parseFloat(b.war) - parseFloat(a.war);
-    if (sort === "avg") return parseFloat(b.avg) - parseFloat(a.avg);
-    if (sort === "hr") return b.hr - a.hr;
-    if (sort === "rbi") return b.rbi - a.rbi;
-    if (sort === "ops") return parseFloat(b.ops) - parseFloat(a.ops);
-    return 0;
-  }).slice(0, 25);
+  const BATTER_POSITIONS = ["ALL", "C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "DH", "OF", "IF"];
+  const posOptions = BATTER_POSITIONS.filter(p => p === "ALL" || leaders.some(l => l.position === p));
+
+  const sorted = [...leaders]
+    .filter(b => posFilter === "ALL" || b.position === posFilter)
+    .sort((a, b) => {
+      if (sort === "war") return parseFloat(b.war) - parseFloat(a.war);
+      if (sort === "avg") return parseFloat(b.avg) - parseFloat(a.avg);
+      if (sort === "hr") return b.hr - a.hr;
+      if (sort === "rbi") return b.rbi - a.rbi;
+      if (sort === "ops") return parseFloat(b.ops) - parseFloat(a.ops);
+      return 0;
+    }).slice(0, 25);
 
   const sortButtons: { key: BattingSort; label: string }[] = [
     { key: "war", label: "WAR" }, { key: "avg", label: "AVG" },
@@ -249,14 +264,27 @@ function CareerBattingSection({ leaders, leagueId, onPlayerClick }: { leaders: C
 
   return (
     <div className="space-y-3" data-testid="section-career-batting">
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-xs text-muted-foreground">Sort by:</span>
-        {sortButtons.map(b => (
-          <RetroButton key={b.key} variant={sort === b.key ? "primary" : "outline"} size="sm"
-            onClick={() => setSort(b.key)} data-testid={`batting-sort-${b.key}`}>
-            {b.label}
-          </RetroButton>
-        ))}
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-muted-foreground">Sort by:</span>
+          {sortButtons.map(b => (
+            <RetroButton key={b.key} variant={sort === b.key ? "primary" : "outline"} size="sm"
+              onClick={() => setSort(b.key)} data-testid={`batting-sort-${b.key}`}>
+              {b.label}
+            </RetroButton>
+          ))}
+        </div>
+        {posOptions.length > 1 && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-muted-foreground">Position:</span>
+            {posOptions.map(p => (
+              <RetroButton key={p} variant={posFilter === p ? "primary" : "outline"} size="sm"
+                onClick={() => setPosFilter(p)} data-testid={`batting-pos-${p}`}>
+                {p}
+              </RetroButton>
+            ))}
+          </div>
+        )}
       </div>
       <RetroCard variant="bordered">
         <RetroCardContent className="p-0">
@@ -320,15 +348,21 @@ function CareerBattingSection({ leaders, leagueId, onPlayerClick }: { leaders: C
 function CareerPitchingSection({ leaders, leagueId, onPlayerClick }: { leaders: CareerPitcher[]; leagueId: string; onPlayerClick: (playerId: string) => void }) {
   type PitchingSort = "era" | "whip" | "so" | "wins" | "war";
   const [sort, setSort] = useState<PitchingSort>("era");
+  const [posFilter, setPosFilter] = useState<string>("ALL");
 
-  const sorted = [...leaders].sort((a, b) => {
-    if (sort === "era") return parseFloat(a.era) - parseFloat(b.era);
-    if (sort === "whip") return parseFloat(a.whip) - parseFloat(b.whip);
-    if (sort === "so") return b.so - a.so;
-    if (sort === "wins") return b.wins - a.wins;
-    if (sort === "war") return parseFloat(b.war) - parseFloat(a.war);
-    return 0;
-  }).slice(0, 25);
+  const PITCHER_POSITIONS = ["ALL", "SP", "RP", "CL", "P", "LHP", "RHP"];
+  const posOptions = PITCHER_POSITIONS.filter(p => p === "ALL" || leaders.some(l => l.position === p));
+
+  const sorted = [...leaders]
+    .filter(p => posFilter === "ALL" || p.position === posFilter)
+    .sort((a, b) => {
+      if (sort === "era") return parseFloat(a.era) - parseFloat(b.era);
+      if (sort === "whip") return parseFloat(a.whip) - parseFloat(b.whip);
+      if (sort === "so") return b.so - a.so;
+      if (sort === "wins") return b.wins - a.wins;
+      if (sort === "war") return parseFloat(b.war) - parseFloat(a.war);
+      return 0;
+    }).slice(0, 25);
 
   const sortButtons: { key: PitchingSort; label: string }[] = [
     { key: "era", label: "ERA" }, { key: "whip", label: "WHIP" },
@@ -339,14 +373,27 @@ function CareerPitchingSection({ leaders, leagueId, onPlayerClick }: { leaders: 
 
   return (
     <div className="space-y-3" data-testid="section-career-pitching">
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-xs text-muted-foreground">Sort by:</span>
-        {sortButtons.map(b => (
-          <RetroButton key={b.key} variant={sort === b.key ? "primary" : "outline"} size="sm"
-            onClick={() => setSort(b.key)} data-testid={`pitching-sort-${b.key}`}>
-            {b.label}
-          </RetroButton>
-        ))}
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-muted-foreground">Sort by:</span>
+          {sortButtons.map(b => (
+            <RetroButton key={b.key} variant={sort === b.key ? "primary" : "outline"} size="sm"
+              onClick={() => setSort(b.key)} data-testid={`pitching-sort-${b.key}`}>
+              {b.label}
+            </RetroButton>
+          ))}
+        </div>
+        {posOptions.length > 1 && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-muted-foreground">Position:</span>
+            {posOptions.map(p => (
+              <RetroButton key={p} variant={posFilter === p ? "primary" : "outline"} size="sm"
+                onClick={() => setPosFilter(p)} data-testid={`pitching-pos-${p}`}>
+                {p}
+              </RetroButton>
+            ))}
+          </div>
+        )}
       </div>
       <RetroCard variant="bordered">
         <RetroCardContent className="p-0">
@@ -407,6 +454,115 @@ function CareerPitchingSection({ leaders, leagueId, onPlayerClick }: { leaders: 
   );
 }
 
+function CareerFieldingSection({ leaders, onPlayerClick }: { leaders: CareerFielder[]; onPlayerClick: (playerId: string) => void }) {
+  type FieldingSort = "fldPct" | "oaa" | "putouts" | "assists" | "totalChances";
+  const [sort, setSort] = useState<FieldingSort>("fldPct");
+  const [posFilter, setPosFilter] = useState<string>("ALL");
+
+  const FIELD_POSITIONS = ["ALL", "C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "OF", "IF"];
+  const posOptions = FIELD_POSITIONS.filter(p => p === "ALL" || leaders.some(l => l.position === p));
+
+  const sorted = [...leaders]
+    .filter(f => posFilter === "ALL" || f.position === posFilter)
+    .sort((a, b) => {
+      if (sort === "fldPct") return parseFloat(b.fldPct) - parseFloat(a.fldPct);
+      if (sort === "oaa") return b.oaa - a.oaa;
+      if (sort === "putouts") return b.putouts - a.putouts;
+      if (sort === "assists") return b.assists - a.assists;
+      if (sort === "totalChances") return b.totalChances - a.totalChances;
+      return 0;
+    }).slice(0, 25);
+
+  const sortButtons: { key: FieldingSort; label: string }[] = [
+    { key: "fldPct", label: "FLD%" }, { key: "oaa", label: "OAA" },
+    { key: "putouts", label: "PO" }, { key: "assists", label: "A" }, { key: "totalChances", label: "TC" },
+  ];
+
+  if (!leaders.length) return <p className="text-sm text-muted-foreground text-center py-8">No fielding stats accumulated yet.</p>;
+
+  return (
+    <div className="space-y-3" data-testid="section-career-fielding">
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-muted-foreground">Sort by:</span>
+          {sortButtons.map(b => (
+            <RetroButton key={b.key} variant={sort === b.key ? "primary" : "outline"} size="sm"
+              onClick={() => setSort(b.key)} data-testid={`fielding-sort-${b.key}`}>
+              {b.label}
+            </RetroButton>
+          ))}
+        </div>
+        {posOptions.length > 1 && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-muted-foreground">Position:</span>
+            {posOptions.map(p => (
+              <RetroButton key={p} variant={posFilter === p ? "primary" : "outline"} size="sm"
+                onClick={() => setPosFilter(p)} data-testid={`fielding-pos-${p}`}>
+                {p}
+              </RetroButton>
+            ))}
+          </div>
+        )}
+      </div>
+      <RetroCard variant="bordered">
+        <RetroCardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm" data-testid="table-career-fielding">
+              <thead>
+                <tr className="border-b border-border text-left">
+                  <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center w-8">#</th>
+                  <th className="py-2 px-2 font-pixel text-[8px] text-gold">Player</th>
+                  <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground">Team</th>
+                  <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">Yrs</th>
+                  <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">G</th>
+                  <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">PO</th>
+                  <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">A</th>
+                  <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">E</th>
+                  <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">TC</th>
+                  <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">FLD%</th>
+                  <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">OAA</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sorted.map((f, i) => (
+                  <tr key={f.playerId} className={`border-b border-border/30 ${i % 2 === 0 ? "" : "bg-muted/10"}`}
+                    data-testid={`row-career-fielder-${i}`}>
+                    <td className="py-2 px-2 text-center text-xs text-muted-foreground">{i + 1}</td>
+                    <td className="py-2 px-2">
+                      <button
+                        onClick={() => f.playerId && onPlayerClick(f.playerId)}
+                        className="text-left hover:text-gold transition-colors group"
+                        data-testid={`link-fielder-${f.playerId}`}
+                      >
+                        <span className="text-xs font-medium group-hover:underline">{f.name}</span>
+                        <span className="text-[9px] text-muted-foreground ml-1">({f.position})</span>
+                      </button>
+                    </td>
+                    <td className="py-2 px-2">
+                      <div className="flex items-center gap-1">
+                        <TeamDot color={f.teamColor} />
+                        <span className="font-pixel text-[7px]">{f.teamAbbr}</span>
+                      </div>
+                    </td>
+                    <td className="py-2 px-2 text-center text-xs">{f.seasons}</td>
+                    <td className="py-2 px-2 text-center text-xs">{f.games}</td>
+                    <td className="py-2 px-2 text-center text-xs">{f.putouts}</td>
+                    <td className="py-2 px-2 text-center text-xs">{f.assists}</td>
+                    <td className="py-2 px-2 text-center text-xs text-red-400">{f.errors}</td>
+                    <td className="py-2 px-2 text-center text-xs">{f.totalChances}</td>
+                    <td className={`py-2 px-2 text-center text-xs font-bold ${sort === "fldPct" ? "text-gold" : ""}`}>{f.fldPct}</td>
+                    <td className={`py-2 px-2 text-center text-xs font-medium ${sort === "oaa" ? "text-gold" : f.oaa > 0 ? "text-emerald-400" : f.oaa < 0 ? "text-red-400" : ""}`}>{f.oaa > 0 ? "+" : ""}{f.oaa}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </RetroCardContent>
+      </RetroCard>
+    </div>
+  );
+}
+
 function TeamRecordsSection({ records, leagueId }: { records: TeamRecord[]; leagueId: string }) {
   if (!records.length) return <p className="text-sm text-muted-foreground text-center py-8">No team records yet.</p>;
   return (
@@ -422,6 +578,8 @@ function TeamRecordsSection({ records, leagueId }: { records: TeamRecord[]; leag
                   <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">L</th>
                   <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">Pct</th>
                   <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">Titles</th>
+                  <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">PS App</th>
+                  <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">5★ Recruits</th>
                   <th className="py-2 px-2 font-pixel text-[8px] text-muted-foreground text-center">Best W</th>
                 </tr>
               </thead>
@@ -451,6 +609,8 @@ function TeamRecordsSection({ records, leagueId }: { records: TeamRecord[]; leag
                         </span>
                       ) : <span className="text-xs text-muted-foreground">—</span>}
                     </td>
+                    <td className="py-2 px-2 text-center text-xs">{t.postseasonApps > 0 ? t.postseasonApps : "—"}</td>
+                    <td className="py-2 px-2 text-center text-xs font-medium text-orange-400">{t.allTimeFiveStars > 0 ? t.allTimeFiveStars : "—"}</td>
                     <td className="py-2 px-2 text-center text-xs">{t.bestSeasonW}</td>
                   </tr>
                 ))}
@@ -703,9 +863,10 @@ export default function RecordBookPage() {
     { key: "seasons", label: "Season History", icon: <Trophy className="w-4 h-4" /> },
     { key: "batting", label: "Career Batting", icon: <BarChart2 className="w-4 h-4" /> },
     { key: "pitching", label: "Career Pitching", icon: <TrendingUp className="w-4 h-4" /> },
+    { key: "fielding", label: "Career Fielding", icon: <Target className="w-4 h-4" /> },
     { key: "teams", label: "Team Records", icon: <Users className="w-4 h-4" /> },
     { key: "coaches", label: "Coach HOF", icon: <Award className="w-4 h-4" /> },
-    { key: "recruiting", label: "Recruiting", icon: <Target className="w-4 h-4" /> },
+    { key: "recruiting", label: "Recruiting", icon: <BookOpen className="w-4 h-4" /> },
     { key: "hof", label: "Hall of Fame", icon: <Star className="w-4 h-4" /> },
   ];
 
@@ -787,6 +948,14 @@ export default function RecordBookPage() {
                 <SectionHeader icon={<TrendingUp className="w-5 h-5" />} title="CAREER PITCHING LEADERS"
                   subtitle="All-time top 25 arms — min 3 career innings. Click a name to view profile." />
                 <CareerPitchingSection leaders={data.careerPitchingLeaders} leagueId={leagueId!} onPlayerClick={setSelectedPlayerId} />
+              </>
+            )}
+
+            {activeSection === "fielding" && (
+              <>
+                <SectionHeader icon={<Target className="w-5 h-5" />} title="CAREER FIELDING LEADERS"
+                  subtitle="All-time top defenders — min 10 career chances. Sort by FLD%, OAA, putouts, or assists." />
+                <CareerFieldingSection leaders={data.careerFieldingLeaders ?? []} onPlayerClick={setSelectedPlayerId} />
               </>
             )}
 

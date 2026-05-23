@@ -5073,6 +5073,30 @@ export async function registerRoutes(
         }
       }
 
+      // Count postseason appearances per team (super_regionals or CWS)
+      const postseasonTeamSet = new Map<string, Set<number>>();
+      for (const g of allGames) {
+        if (g.phase !== "super_regionals" && g.phase !== "cws") continue;
+        const addTeam = (tid: string | null) => {
+          if (!tid) return;
+          if (!postseasonTeamSet.has(tid)) postseasonTeamSet.set(tid, new Set());
+          postseasonTeamSet.get(tid)!.add(g.season);
+        };
+        addTeam(g.homeTeamId);
+        addTeam(g.awayTeamId);
+      }
+      for (const [tid, seasons] of postseasonTeamSet) {
+        if (teamRecordsMap.has(tid)) {
+          teamRecordsMap.get(tid)!.postseasonApps = seasons.size;
+        }
+      }
+
+      // Count all-time 5-star recruits per team
+      const fiveStarByTeam = new Map<string, number>();
+      for (const snap of recruitingSnaps) {
+        fiveStarByTeam.set(snap.teamId, (fiveStarByTeam.get(snap.teamId) ?? 0) + (snap.fiveStars ?? 0));
+      }
+
       const teamRecords = Array.from(teamRecordsMap.values()).map(rec => {
         const t = teamMap.get(rec.teamId);
         const pct = (rec.w + rec.l) > 0 ? rec.w / (rec.w + rec.l) : 0;
@@ -5081,6 +5105,8 @@ export async function registerRoutes(
           teamColor: t?.primaryColor ?? "#888",
           allTimeW: rec.w, allTimeL: rec.l, pct: pct.toFixed(3),
           championships: rec.championships, bestSeasonW: rec.bestSeasonW,
+          postseasonApps: rec.postseasonApps,
+          allTimeFiveStars: fiveStarByTeam.get(rec.teamId) ?? 0,
         };
       }).sort((a, b) => parseFloat(b.pct) - parseFloat(a.pct));
 
@@ -5140,12 +5166,52 @@ export async function registerRoutes(
         };
       });
 
-      // ── Hall of Fame ────────────────────────────────────────────────────────
-      // Build career WAR map for HoF eligibility: WAR >= 2 OR OVR >= 400
-      const careerWarByName = new Map<string, number>();
+      // ── Career Fielding Leaders ──────────────────────────────────────────────
+      const fieldersByPlayer = new Map<string, {
+        playerId: string; name: string; teamId: string; position: string;
+        seasons: number; games: number; putouts: number; assists: number;
+        errors: number; totalChances: number;
+      }>();
       for (const row of allSeasonStats) {
-        const PITCHER_POS_HOF = ["P", "SP", "RP", "CL", "LHP", "RHP"];
-        const key = `${row.playerName}|${row.teamId}`;
+        if ((row.putouts + row.assists + row.fieldingErrors + row.totalChances) === 0) continue;
+        const key = row.playerId;
+        if (!fieldersByPlayer.has(key)) {
+          fieldersByPlayer.set(key, {
+            playerId: row.playerId, name: row.playerName, teamId: row.teamId, position: row.position,
+            seasons: 0, games: 0, putouts: 0, assists: 0, errors: 0, totalChances: 0,
+          });
+        }
+        const agg = fieldersByPlayer.get(key)!;
+        agg.seasons++;
+        agg.games += row.games;
+        agg.putouts += row.putouts;
+        agg.assists += row.assists;
+        agg.errors += row.fieldingErrors;
+        agg.totalChances += row.totalChances;
+        agg.teamId = row.teamId;
+      }
+
+      const careerFielding = Array.from(fieldersByPlayer.values())
+        .filter(f => f.totalChances >= 10)
+        .map(f => {
+          const fldPct = f.totalChances > 0 ? ((f.totalChances - f.errors) / f.totalChances) : 1.0;
+          const oaa = f.putouts + f.assists - Math.round(f.totalChances * 0.95);
+          const team = teamMap.get(f.teamId);
+          return {
+            playerId: f.playerId, name: f.name, teamName: team?.name ?? "", teamAbbr: team?.abbreviation ?? "",
+            teamColor: team?.primaryColor ?? "#888", position: f.position, seasons: f.seasons,
+            games: f.games, putouts: f.putouts, assists: f.assists, errors: f.errors,
+            totalChances: f.totalChances, fldPct: fldPct.toFixed(3), oaa,
+          };
+        })
+        .sort((a, b) => parseFloat(b.fldPct) - parseFloat(a.fldPct))
+        .slice(0, 25);
+
+      // ── Hall of Fame ────────────────────────────────────────────────────────
+      // Build career WAR map keyed by playerId (correct aggregation, handles transfers)
+      const PITCHER_POS_HOF = ["P", "SP", "RP", "CL", "LHP", "RHP"];
+      const careerWarById = new Map<string, number>();
+      for (const row of allSeasonStats) {
         let war = 0;
         if (PITCHER_POS_HOF.includes(row.position)) {
           const ip = row.ipOuts / 3;
@@ -5157,13 +5223,23 @@ export async function registerRoutes(
             : 0;
           war = ((wOBA - 0.320) / 1.25) * (row.ab + row.bb + row.hbp) / 10;
         }
-        careerWarByName.set(key, (careerWarByName.get(key) ?? 0) + war);
+        careerWarById.set(row.playerId, (careerWarById.get(row.playerId) ?? 0) + war);
+      }
+
+      // Build lookup: playerName|teamId -> most recent playerId (for history-to-stats linkage)
+      // We sort by season desc so the "latest" playerId wins if a player changed name
+      const nameTeamToPlayerId = new Map<string, string>();
+      for (const row of [...allSeasonStats].sort((a, b) => a.season - b.season)) {
+        nameTeamToPlayerId.set(`${row.playerName}|${row.teamId}`, row.playerId);
       }
 
       const DEPARTURES_HOF = new Set(["graduated", "drafted", "declared"]);
       const hofEligible = allPlayerHistory.filter(p => {
         if (!DEPARTURES_HOF.has(p.departureType ?? "")) return false;
-        const careerWar = careerWarByName.get(`${p.firstName} ${p.lastName}|${p.teamId}`) ?? 0;
+        const pName = `${p.firstName} ${p.lastName}`;
+        // Resolve playerId from season stats for WAR lookup
+        const resolvedPlayerId = nameTeamToPlayerId.get(`${pName}|${p.teamId}`);
+        const careerWar = resolvedPlayerId ? (careerWarById.get(resolvedPlayerId) ?? 0) : 0;
         return p.overall >= 400 || careerWar >= 2;
       });
 
@@ -5171,7 +5247,11 @@ export async function registerRoutes(
         const t = teamMap.get(p.teamId);
         const pName = `${p.firstName} ${p.lastName}`;
         const PITCHER_POS2 = ["P", "SP", "RP", "CL", "LHP", "RHP"];
-        const playerStats = allSeasonStats.filter(s => s.playerName === pName && s.teamId === p.teamId);
+        const resolvedPlayerId = nameTeamToPlayerId.get(`${pName}|${p.teamId}`);
+        const careerWar = resolvedPlayerId ? (careerWarById.get(resolvedPlayerId) ?? 0) : 0;
+        const playerStats = resolvedPlayerId
+          ? allSeasonStats.filter(s => s.playerId === resolvedPlayerId)
+          : allSeasonStats.filter(s => s.playerName === pName && s.teamId === p.teamId);
         const bestSeason = playerStats.length ? playerStats.reduce((best, s) => {
           if (PITCHER_POS2.includes(p.position)) {
             const era = s.ipOuts > 0 ? (s.pEr * 27) / s.ipOuts : 99;
@@ -5184,8 +5264,7 @@ export async function registerRoutes(
           ? `${bestSeason.pSo} SO, ${((bestSeason.pEr * 27) / Math.max(bestSeason.ipOuts, 1)).toFixed(2)} ERA`
           : `${bestSeason.hr} HR, .${Math.round(bestSeason.ab > 0 ? bestSeason.h / bestSeason.ab * 1000 : 0).toString().padStart(3, "0")} AVG`
         ) : null;
-        const careerWar = careerWarByName.get(`${pName}|${p.teamId}`) ?? 0;
-        // Legacy score: OVR contribution + career WAR + draft round bonus
+        // Legacy score: OVR + careerWAR*5 + draft bonus
         const draftBonus = p.draftRound === 1 ? 30 : p.draftRound === 2 ? 20 : p.draftRound === 3 ? 10 : 0;
         const legacyScore = Math.round(p.overall + careerWar * 5 + draftBonus);
         return {
@@ -5204,6 +5283,7 @@ export async function registerRoutes(
         seasons: seasonHistory,
         careerBattingLeaders: careerBatting,
         careerPitchingLeaders: careerPitching,
+        careerFieldingLeaders: careerFielding,
         teamRecords,
         coachStats,
         recruitingHistory,
