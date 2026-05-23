@@ -17623,31 +17623,38 @@ async function generateSchedule(leagueId: string, season: number = 1) {
     const shuffledOrder = shuffle(weekRounds.map((_, i) => i));
     let ordered = shuffledOrder.map(i => weekRounds[i]);
 
-    // Prevent any team from facing the same conference opponent in back-to-back weeks.
-    // Try up to 20 swaps: when a consecutive pair repeats a matchup, swap the later
-    // week with a random week further in the schedule.
-    for (let attempt = 0; attempt < 20; attempt++) {
-      let foundConflict = false;
-      for (let w = 0; w < ordered.length - 1; w++) {
-        const roundA = ordered[w];
-        const roundB = ordered[w + 1];
-        const hasSameOpponent = roundA.some(mA =>
-          roundB.some(mB =>
-            (mA.home.id === mB.home.id && mA.away.id === mB.away.id) ||
-            (mA.home.id === mB.away.id && mA.away.id === mB.home.id)
-          )
-        );
-        if (hasSameOpponent) {
-          const candidates = ordered.length - w - 2;
-          if (candidates > 0) {
-            const swapWith = w + 2 + Math.floor(Math.random() * candidates);
-            [ordered[w + 1], ordered[swapWith]] = [ordered[swapWith], ordered[w + 1]];
-          }
-          foundConflict = true;
-          break;
-        }
+    // Enforce no back-to-back same-conference-opponent constraint.
+    // Strategy: scan left-to-right; on conflict at week w, try every possible swap
+    // partner (w+2 … end) deterministically and keep the first one that resolves
+    // the conflict. If no single swap works, re-shuffle and retry up to 5 times.
+    // For typical season lengths (5–10 weeks) this always resolves.
+    function hasConflict(rounds: typeof ordered): number {
+      for (let w = 0; w < rounds.length - 1; w++) {
+        const A = rounds[w];
+        const B = rounds[w + 1];
+        if (A.some(mA => B.some(mB =>
+          (mA.home.id === mB.home.id && mA.away.id === mB.away.id) ||
+          (mA.home.id === mB.away.id && mA.away.id === mB.home.id)
+        ))) return w;
       }
-      if (!foundConflict) break;
+      return -1;
+    }
+
+    let resolved = false;
+    for (let outerAttempt = 0; outerAttempt < 5 && !resolved; outerAttempt++) {
+      let conflictW: number;
+      while ((conflictW = hasConflict(ordered)) !== -1) {
+        let swapped = false;
+        for (let swapWith = conflictW + 2; swapWith < ordered.length; swapWith++) {
+          [ordered[conflictW + 1], ordered[swapWith]] = [ordered[swapWith], ordered[conflictW + 1]];
+          if (hasConflict(ordered) !== conflictW) { swapped = true; break; }
+          // Revert — this swap introduced an equal or earlier conflict
+          [ordered[conflictW + 1], ordered[swapWith]] = [ordered[swapWith], ordered[conflictW + 1]];
+        }
+        if (!swapped) break; // No single swap resolved it — fall through to re-shuffle
+      }
+      if (hasConflict(ordered) === -1) { resolved = true; break; }
+      ordered = shuffle([...ordered]); // Re-shuffle and try again
     }
 
     confWeeklyRounds.set(cid, ordered);

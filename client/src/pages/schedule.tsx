@@ -923,8 +923,8 @@ function CompactGameRow({
             <RetroButton variant="outline" size="sm" onClick={() => callbacks.onViewBoxScore(game)} data-testid={`button-box-score-action-${game.id}`} title="View Box Score">
               <Check className="w-3 h-3" />
             </RetroButton>
-          ) : callbacks.isCommissioner && (
-            <RetroButton variant="outline" size="sm" onClick={() => callbacks.onEdit(game)} data-testid={`button-edit-game-${game.id}`}>
+          ) : (
+            <RetroButton variant="outline" size="sm" onClick={() => callbacks.onEdit(game)} data-testid={`button-edit-game-${game.id}`} title="Enter Score">
               <Edit2 className="w-3 h-3" />
             </RetroButton>
           )}
@@ -1183,12 +1183,13 @@ function StandaloneGameRow({
             >
               <Check className="w-3 h-3" />
             </RetroButton>
-          ) : callbacks.isCommissioner && (
+          ) : (
             <RetroButton
               variant="outline"
               size="sm"
               onClick={(e) => { e.stopPropagation(); callbacks.onEdit(game); }}
               data-testid={`button-edit-game-${game.id}`}
+              title="Enter Score"
             >
               <Edit2 className="w-3 h-3" />
             </RetroButton>

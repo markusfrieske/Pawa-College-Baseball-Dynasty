@@ -102,10 +102,19 @@ async function generateEventSceneImageForced(
 // Generates a single arc-level scene image for a storyline recruit.
 // Uses the archetype's first event scene prompt, resolved position-aware.
 // Stores to storyline_recruits.imageUrl (one image per arc, stable for the season).
+// Pass forceRegen=true to bypass the persisted-image check (e.g. explicit commissioner regen).
 async function generateArcSceneImage(
   sl: { id: string; archetype: string; isLegendary: boolean },
   position: string | null,
+  forceRegen = false,
 ): Promise<string | null> {
+  // Idempotency guard: if an arc image is already persisted in the DB, return it as-is
+  // to avoid burning OpenAI quota. Skip this check when the caller explicitly requests regen.
+  if (!forceRegen) {
+    const current = await storage.getStorylineRecruit(sl.id).catch(() => null);
+    if (current?.imageUrl) return current.imageUrl;
+  }
+
   const def = ARCHETYPE_DEFS[sl.archetype as Archetype];
   if (!def) return null;
   const events = [...def.events, ...(sl.isLegendary && def.legendaryEvents ? def.legendaryEvents : [])];
@@ -681,7 +690,7 @@ export function registerStorylineRoutes(app: Express) {
       const recruit = await storage.getRecruit(sl.recruitId).catch(() => null);
       const position = recruit?.position ?? null;
 
-      const newImageUrl = await generateArcSceneImage(sl, position);
+      const newImageUrl = await generateArcSceneImage(sl, position, true);
       if (!newImageUrl) {
         return res.status(500).json({ message: "Image generation failed — check OpenAI configuration" });
       }
