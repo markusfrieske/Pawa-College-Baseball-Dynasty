@@ -1277,6 +1277,9 @@ function StrategySelector({
 function StrategyTab({ coach, isOwnCoach, isCommissioner }: { coach: Coach; isOwnCoach: boolean; isCommissioner?: boolean }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [isEditing, setIsEditing] = useState(false);
+
+  const canEdit = isOwnCoach || !!isCommissioner;
 
   const strategyMutation = useMutation({
     mutationFn: async (update: Record<string, string>) => {
@@ -1293,7 +1296,7 @@ function StrategyTab({ coach, isOwnCoach, isCommissioner }: { coach: Coach; isOw
         recruitingStyleStrategy: "Recruiting Style",
         gamePhilosophyStrategy: "Game Philosophy",
       };
-      toast({ title: `${labels[field] ?? "Strategy"} Updated`, description: "Your coaching strategy has been saved." });
+      toast({ title: `${labels[field] ?? "Strategy"} Updated`, description: "Coaching strategy saved." });
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
@@ -1305,19 +1308,34 @@ function StrategyTab({ coach, isOwnCoach, isCommissioner }: { coach: Coach; isOw
   const styleValue = (coach as any).recruitingStyleStrategy ?? "best_available";
   const philoValue = (coach as any).gamePhilosophyStrategy ?? "balanced";
 
-  const canEdit = isOwnCoach || !!isCommissioner;
-  const readOnly = !canEdit;
+  const readOnly = !canEdit || !isEditing;
 
   return (
     <div className="space-y-6">
-      {readOnly && (
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-sm font-semibold text-foreground">Coaching Strategy</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Shapes how the CPU acts on your behalf during fast-forward simulations.</p>
+        </div>
+        {canEdit && !isEditing && (
+          <RetroButton size="sm" variant="secondary" onClick={() => setIsEditing(true)} data-testid="button-edit-strategy">
+            Edit Strategy
+          </RetroButton>
+        )}
+        {canEdit && isEditing && (
+          <RetroButton size="sm" variant="secondary" onClick={() => setIsEditing(false)} data-testid="button-done-strategy">
+            Done
+          </RetroButton>
+        )}
+      </div>
+      {!canEdit && (
         <div className="bg-muted/20 rounded-lg px-4 py-3 border border-border/40">
           <p className="text-sm text-muted-foreground">Viewing this coach's strategy settings (read-only). Only the coach or the league commissioner can edit these.</p>
         </div>
       )}
-      {isCommissioner && !isOwnCoach && (
+      {isCommissioner && !isOwnCoach && isEditing && (
         <div className="bg-gold/10 rounded-lg px-4 py-3 border border-gold/30">
-          <p className="text-sm text-gold font-medium">Commissioner Edit Mode — you can adjust this coach's strategy on their behalf.</p>
+          <p className="text-sm text-gold font-medium">Commissioner Edit Mode — adjusting this coach's strategy on their behalf.</p>
         </div>
       )}
       <StrategySelector

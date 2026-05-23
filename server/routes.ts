@@ -9214,6 +9214,7 @@ export async function registerRoutes(
               await updateStandingsForGame(leagueId, currentLeague.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, game.isConference);
               try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away); } catch (e) { /* ignore */ }
             }
+            weeksSimulated++;
             if (nextWeek > maxWeeks) {
               await generateConferenceChampionships(leagueId, currentLeague.currentSeason);
               currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "conference_championship", currentWeek: nextWeek })) as any;
@@ -9228,7 +9229,7 @@ export async function registerRoutes(
           if (phase === "conference_championship") {
             const ccGames = (await storage.getGamesByLeague(leagueId)).filter(g => g.phase === "conference_championship" && !g.isComplete && g.season === currentLeague.currentSeason);
             for (const game of ccGames) {
-              const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType);
+              const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType, fsPhilosophyMap.get(game.homeTeamId), fsPhilosophyMap.get(game.awayTeamId));
               await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, boxScore: result.boxScore, isComplete: true });
               await updateStandingsForGame(leagueId, currentLeague.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, false);
             }
@@ -9346,7 +9347,7 @@ export async function registerRoutes(
         leagueId,
         userId: req.session.userId,
         action: "Simulate Full Season",
-        details: `Commissioner fast-forwarded Season ${startSeason} from ${startPhase} through postseason + 4 recruiting weeks + signing day. Now in Season ${currentLeague.currentSeason} spring_training.`,
+        details: `Commissioner fast-forwarded Season ${startSeason} from ${startPhase} → spring_training (${weeksSimulated} weeks simulated, + postseason + 4 recruiting weeks + signing day). Now Season ${currentLeague.currentSeason}.`,
       });
 
       res.json({ ...currentLeague, seasonTransition });
@@ -9378,6 +9379,12 @@ export async function registerRoutes(
       const psUserCoach = psCoaches.find(c => c.userId === req.session.userId);
       const psUserTeamId = psUserCoach?.teamId || null;
 
+      // Build philosophy map for strategy-aware game simulation
+      const psPhilosophyMap = new Map<string, string>();
+      for (const c of psCoaches) {
+        if (c.teamId) psPhilosophyMap.set(c.teamId, (c as any).gamePhilosophyStrategy ?? "balanced");
+      }
+
       const simSummary: {
         weekResults: Array<{ week: number; phase: string; games: Array<{ homeTeam: string; awayTeam: string; homeScore: number; awayScore: number; isConference: boolean; isUserTeam: boolean }> }>;
         postseasonResults: Array<{ phase: string; games: Array<{ homeTeam: string; awayTeam: string; homeScore: number; awayScore: number; isUserTeam: boolean }> }>;
@@ -9402,7 +9409,7 @@ export async function registerRoutes(
             .filter(g => g.season === currentLeague.currentSeason && g.week === currentLeague.currentWeek && !g.isComplete);
           const weekSimResults: Array<{ game: Game; result: { homeScore: number; awayScore: number; boxScore: string } }> = [];
           for (const game of weekGames) {
-            const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType);
+            const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType, psPhilosophyMap.get(game.homeTeamId), psPhilosophyMap.get(game.awayTeamId));
             await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, boxScore: result.boxScore, isComplete: true });
             await updateStandingsForGame(leagueId, currentLeague.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, game.isConference);
             try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
@@ -11619,18 +11626,39 @@ export async function registerRoutes(
     const difficultyMults: Record<string, number> = { beginner: 0.3, high_school: 0.7, all_american: 1.2, elite: 2.0 };
     const diffMult = difficultyMults[difficulty] ?? 0.7;
 
+    const allCoachesWo = await storage.getCoachesByLeague(leagueId);
+
+    // rosterStrategy position priority maps
+    // Players in "keep" positions are last to be cut; others are cut first.
+    const rosterStrategyKeepPositions: Record<string, string[]> = {
+      pitching_first: ["P"],
+      contact_hitting: ["SS", "2B", "OF", "C"],
+      power_hitting: ["1B", "3B", "OF", "DH"],
+      speed_defense: ["CF", "OF", "SS", "2B"],
+      balanced: [],
+    };
+
     // Clear any previous bids for this league
     await storage.deleteWalkonBidsByLeague(leagueId);
 
     for (const team of teams) {
       let roster = await storage.getPlayersByTeam(team.id);
+      const teamCoachWo = allCoachesWo.find(c => c.teamId === team.id);
+      const rosterStrat = (teamCoachWo as any)?.rosterStrategy ?? "balanced";
+      const keepPositions = rosterStrategyKeepPositions[rosterStrat] || [];
 
       // Cut over-limit players (all teams in fast-forward)
       if (roster.length > MAX_ROSTER) {
         const posCounts: Record<string, number> = {};
         for (const p of roster) posCounts[p.position] = (posCounts[p.position] || 0) + 1;
+        // Sort: players in keep positions are cut last; among others, cut weakest overall first
         const cuttable = roster.filter(p => (posCounts[p.position] || 0) > 1)
-          .sort((a, b) => (a.overall || 0) - (b.overall || 0));
+          .sort((a, b) => {
+            const aKeep = keepPositions.includes(a.position) ? 1 : 0;
+            const bKeep = keepPositions.includes(b.position) ? 1 : 0;
+            if (aKeep !== bKeep) return aKeep - bKeep; // non-keep positions cut first
+            return (a.overall || 0) - (b.overall || 0); // weakest first within same priority
+          });
         let toCut = roster.length - MAX_ROSTER;
         for (const player of cuttable) {
           if (toCut <= 0) break;
