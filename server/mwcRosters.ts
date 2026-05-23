@@ -380,7 +380,7 @@ import type { RealPlayer } from "./realRosters";
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         pitchFB: 1, pitch2S: 0, pitchSL: 5, pitchCB: 5, pitchCH: 1, pitchCT: 0, pitchSNK: 0, pitchSPL: 0 },
-    { firstName: "Dylan", lastName: "Rogers", position: "P", eligibility: "JR", homeState: "CA", hometown: "Belmont", jerseyNumber: 1,
+    { firstName: "Brandon", lastName: "Mejia", position: "P", eligibility: "JR", homeState: "NV", hometown: "North Las Vegas", jerseyNumber: 1,
         hitForAvg: 8, power: 10, speed: 37, arm: 40, fielding: 29, errorResistance: 45, velocity: 59, control: 50, stamina: 50, stuff: 53,
         clutch: 43, vsLHP: 45, grit: 46, stealing: 9, running: 31, throwing: 64, recovery: 45, wRISP: 43, vsLefty: 47, poise: 45, heater: 45, agile: 35,
         abilities: ["Grit", "Heavy Ball"], potential: "B+", catcherAbility: null,
