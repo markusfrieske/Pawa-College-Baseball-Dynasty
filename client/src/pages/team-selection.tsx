@@ -4,7 +4,6 @@ import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
-import { TeamBadge } from "@/components/ui/team-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -41,12 +40,71 @@ interface TeamSelectionData {
   teamsAlreadySelected?: boolean;
 }
 
+function TeamTile({
+  team,
+  isSelected,
+  isFocused,
+  onClick,
+}: {
+  team: TeamTemplate;
+  isSelected: boolean;
+  isFocused: boolean;
+  onClick: () => void;
+}) {
+  const active = isFocused || isSelected;
+  return (
+    <button
+      onClick={onClick}
+      className={`relative flex flex-col items-center gap-1.5 p-2 rounded-lg border-2 transition-all focus:outline-none ${
+        isFocused
+          ? "border-gold ring-1 ring-gold/40 bg-gold/10"
+          : isSelected
+          ? "border-gold bg-gold/5"
+          : "border-border hover:border-gold/40 bg-background/40"
+      }`}
+      data-testid={`button-team-${team.abbreviation}`}
+    >
+      {/* Circle badge */}
+      <div className="relative">
+        <div
+          className={`w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all ${
+            active ? "border-gold shadow-[0_0_8px_rgba(212,175,55,0.4)]" : "border-border/60"
+          }`}
+          style={{ backgroundColor: team.primaryColor }}
+        >
+          <span
+            className="font-pixel text-[8px] leading-none text-center px-0.5"
+            style={{ color: team.secondaryColor || "#ffffff" }}
+          >
+            {team.abbreviation}
+          </span>
+        </div>
+        {isSelected && (
+          <div className="absolute -top-1 -right-1 w-4 h-4 bg-gold rounded-full flex items-center justify-center">
+            <Check className="w-2.5 h-2.5 text-forest-dark" strokeWidth={3} />
+          </div>
+        )}
+      </div>
+
+      {/* Team name */}
+      <p
+        className={`text-[9px] font-pixel text-center leading-tight max-w-[56px] truncate ${
+          active ? "text-gold" : "text-muted-foreground"
+        }`}
+        title={team.name}
+      >
+        {team.name}
+      </p>
+    </button>
+  );
+}
+
 export default function TeamSelectionPage() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   const [selectedTeamNames, setSelectedTeamNames] = useState<Set<string>>(new Set());
   const [teamSort, setTeamSort] = useState("name");
   const [focusedTeam, setFocusedTeam] = useState<string | null>(null);
@@ -109,10 +167,10 @@ export default function TeamSelectionPage() {
         next.delete(teamName);
       } else {
         if (data && next.size >= data.league.maxTeams) {
-          toast({ 
-            title: "Limit Reached", 
+          toast({
+            title: "Limit Reached",
             description: `You can only select ${data.league.maxTeams} teams.`,
-            variant: "destructive" 
+            variant: "destructive",
           });
           return prev;
         }
@@ -124,12 +182,12 @@ export default function TeamSelectionPage() {
 
   const handleContinue = () => {
     if (!data) return;
-    
+
     if (selectedTeamNames.size !== data.league.maxTeams) {
-      toast({ 
-        title: "Select More Teams", 
+      toast({
+        title: "Select More Teams",
         description: `Please select exactly ${data.league.maxTeams} teams.`,
-        variant: "destructive" 
+        variant: "destructive",
       });
       return;
     }
@@ -163,7 +221,7 @@ export default function TeamSelectionPage() {
   const focusedInfo = focusedTeam && scoutingMap ? scoutingMap[focusedTeam] : null;
 
   return (
-    <div className={`min-h-screen bg-background p-4 ${focusedInfo ? "pb-56" : ""}`}>
+    <div className={`min-h-screen bg-background p-4 ${focusedInfo ? "pb-52" : ""}`}>
       <div className="container mx-auto max-w-5xl">
         <div className="mb-6">
           <Link href="/dashboard" className="inline-flex items-center gap-2 text-muted-foreground hover:text-gold transition-colors">
@@ -179,7 +237,7 @@ export default function TeamSelectionPage() {
           </div>
           <h1 className="font-pixel text-gold text-xl mb-2" data-testid="text-select-teams-title">Select Teams</h1>
           <p className="text-muted-foreground text-sm">
-            Choose {data.league.maxTeams} teams for your dynasty. Teams will be auto-distributed across {data.conferences.length} conferences.
+            Choose {data.league.maxTeams} teams for your dynasty across {data.conferences.length} conferences.
           </p>
           <div className="flex justify-center gap-1 mt-4">
             <Star className="w-5 h-5 text-gold fill-gold" />
@@ -189,7 +247,7 @@ export default function TeamSelectionPage() {
 
         <div className="flex justify-between items-center mb-4">
           <div className="text-sm text-muted-foreground">
-            <span className="text-gold font-bold" data-testid="text-selected-count">{selectedTeamNames.size}</span> / {data.league.maxTeams} teams selected
+            <span className="text-gold font-bold" data-testid="text-selected-count">{selectedTeamNames.size}</span> / {data.league.maxTeams} selected
           </div>
           <RetroButton
             onClick={handleContinue}
@@ -224,7 +282,7 @@ export default function TeamSelectionPage() {
           ))}
         </div>
 
-        <div className="space-y-8">
+        <div className="space-y-6">
           {data.conferenceTeamPools.map(({ conference, teams: poolTeams }) => {
             const sortedPoolTeams = sortedTeams.filter(t => t.sourceConferenceId === conference.id);
             const confSelectedCount = sortedPoolTeams.filter(t => selectedTeamNames.has(t.name)).length;
@@ -232,64 +290,25 @@ export default function TeamSelectionPage() {
               <RetroCard key={conference.id}>
                 <RetroCardHeader>
                   <div className="flex justify-between items-center gap-2">
-                    <span>{conference.name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {confSelectedCount} selected
-                    </span>
+                    <span className="text-sm">{conference.name}</span>
+                    {confSelectedCount > 0 && (
+                      <span className="text-xs text-gold font-pixel">
+                        {confSelectedCount} selected
+                      </span>
+                    )}
                   </div>
                 </RetroCardHeader>
                 <RetroCardContent>
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                    {sortedPoolTeams.map((team) => {
-                      const isSelected = selectedTeamNames.has(team.name);
-                      const isFocused = focusedTeam === team.name;
-                      return (
-                        <button
-                          key={team.name}
-                          onClick={() => toggleTeam(team.name)}
-                          className={`p-3 rounded border-2 text-left transition-all ${
-                            isFocused
-                              ? "border-gold ring-1 ring-gold/40 bg-gold/20"
-                              : isSelected
-                              ? "border-gold bg-gold/10"
-                              : "border-border hover:border-gold/50"
-                          }`}
-                          data-testid={`button-team-${team.abbreviation}`}
-                        >
-                          <div className="flex items-center gap-2 mb-2">
-                            <TeamBadge
-                              abbreviation={team.abbreviation}
-                              primaryColor={team.primaryColor}
-                              secondaryColor={team.secondaryColor}
-                              name={team.name}
-                             
-                              size="sm"
-                            />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium truncate">{team.name}</p>
-                              <p className="text-xs text-muted-foreground truncate">{team.mascot}</p>
-                            </div>
-                            {isSelected && (
-                              <Check className="w-4 h-4 text-gold flex-shrink-0" />
-                            )}
-                          </div>
-                          <div className="grid grid-cols-3 gap-1 text-center text-[10px]">
-                            <div>
-                              <p className="text-gold font-bold">{team.prestige}</p>
-                              <p className="text-muted-foreground">Prestige</p>
-                            </div>
-                            <div>
-                              <p className="font-bold">{team.facilities}</p>
-                              <p className="text-muted-foreground">Facilities</p>
-                            </div>
-                            <div>
-                              <p className="font-bold">{team.academics}</p>
-                              <p className="text-muted-foreground">Academics</p>
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
+                  <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2">
+                    {sortedPoolTeams.map((team) => (
+                      <TeamTile
+                        key={team.name}
+                        team={team}
+                        isSelected={selectedTeamNames.has(team.name)}
+                        isFocused={focusedTeam === team.name}
+                        onClick={() => toggleTeam(team.name)}
+                      />
+                    ))}
                   </div>
                 </RetroCardContent>
               </RetroCard>
@@ -322,9 +341,9 @@ function SetupSkeleton() {
           {[1, 2].map((i) => (
             <div key={i}>
               <Skeleton className="h-6 w-32 mb-4" />
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                {[1, 2, 3, 4, 5, 6].map((j) => (
-                  <Skeleton key={j} className="h-24" />
+              <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 gap-2">
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((j) => (
+                  <Skeleton key={j} className="h-20" />
                 ))}
               </div>
             </div>

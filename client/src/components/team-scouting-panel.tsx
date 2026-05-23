@@ -1,4 +1,4 @@
-import { X, MapPin, DollarSign, Trophy, TrendingUp } from "lucide-react";
+import { X, MapPin, DollarSign, Trophy, Flame, Target, Shield, Zap, TrendingUp } from "lucide-react";
 
 export interface TeamScoutingInfo {
   talentRank: number;
@@ -55,33 +55,47 @@ function GradeBar({ score }: { score: number }) {
   );
 }
 
-function UnitGradeCell({ label, grade }: { label: string; grade: { letter: string; score: number } }) {
+function UnitGradeCell({
+  icon: Icon,
+  iconColor,
+  grade,
+}: {
+  icon: React.ElementType;
+  iconColor: string;
+  grade: { letter: string; score: number };
+}) {
   return (
-    <div className="p-2.5 bg-background/60 rounded border border-border/50">
-      <div className="flex items-baseline justify-between mb-1">
-        <span className="text-[9px] font-pixel text-muted-foreground uppercase">{label}</span>
-        <span className={`text-base font-bold font-pixel ${gradeColor(grade.letter)}`}>{grade.letter}</span>
-      </div>
+    <div className="p-2 bg-background/60 rounded border border-border/50 flex flex-col items-center gap-0.5">
+      <Icon className={`w-4 h-4 ${iconColor}`} />
+      <span className={`text-lg font-bold font-pixel leading-none ${gradeColor(grade.letter)}`}>
+        {grade.letter}
+      </span>
       <GradeBar score={grade.score} />
     </div>
   );
 }
 
-function PlayerChip({ label, player }: { label: string; player: TeamScoutingInfo["topFielder"] }) {
+function PlayerChip({ label, icon: Icon, player }: { label: string; icon: React.ElementType; player: TeamScoutingInfo["topFielder"] }) {
   if (!player) return (
-    <div className="flex-1 p-2.5 bg-background/60 rounded border border-border/50 opacity-40">
-      <p className="text-[9px] font-pixel text-muted-foreground mb-1">{label}</p>
+    <div className="flex-1 p-2 bg-background/60 rounded border border-border/50 opacity-40">
+      <div className="flex items-center gap-1 mb-1">
+        <Icon className="w-3 h-3 text-muted-foreground" />
+        <p className="text-[9px] font-pixel text-muted-foreground">{label}</p>
+      </div>
       <p className="text-xs text-muted-foreground">—</p>
     </div>
   );
   return (
-    <div className="flex-1 p-2.5 bg-background/60 rounded border border-border/50" data-testid={`scouting-player-${label.toLowerCase().replace(/\s+/g, "-")}`}>
-      <p className="text-[9px] font-pixel text-muted-foreground mb-1">{label}</p>
+    <div className="flex-1 p-2 bg-background/60 rounded border border-border/50" data-testid={`scouting-player-${label.toLowerCase().replace(/\s+/g, "-")}`}>
+      <div className="flex items-center gap-1 mb-1">
+        <Icon className="w-3 h-3 text-muted-foreground" />
+        <p className="text-[9px] font-pixel text-muted-foreground">{label}</p>
+      </div>
       <p className="text-xs font-medium truncate leading-tight">{player.name}</p>
-      <div className="flex items-center gap-1.5 mt-1">
+      <div className="flex items-center gap-1 mt-0.5">
         <span className="text-[9px] text-muted-foreground">{player.position} · {player.eligibility}</span>
       </div>
-      <div className="flex items-center justify-between mt-1.5">
+      <div className="flex items-center justify-between mt-1">
         <StarDots count={player.starRating} />
         <span className="text-[10px] text-muted-foreground font-mono">{player.overall}</span>
       </div>
@@ -113,21 +127,20 @@ export function TeamScoutingPanel({ teamName, info, onClose, variant = "fixed" }
       data-testid={`scouting-panel-${teamName.toLowerCase().replace(/\s+/g, "-")}`}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/50">
-        <div className="flex items-center gap-3">
-          <span className="font-pixel text-gold text-[11px]">{teamName}</span>
-          <span className="text-[10px] text-muted-foreground font-pixel">— Team Scouting</span>
-          <div className="flex items-center gap-1 ml-2">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-border/50">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="font-pixel text-gold text-[11px] truncate">{teamName}</span>
+          <div className="flex items-center gap-1 shrink-0">
             <Trophy className="w-3 h-3 text-gold" />
             <span className="font-pixel text-[10px] text-gold">
-              #{info.talentRank} <span className="text-muted-foreground">/ {info.totalTeams}</span>
+              #{info.talentRank}<span className="text-muted-foreground">/{info.totalTeams}</span>
             </span>
           </div>
         </div>
         {onClose && (
           <button
             onClick={onClose}
-            className="text-muted-foreground hover:text-white transition-colors p-1"
+            className="text-muted-foreground hover:text-white transition-colors p-1 ml-2 shrink-0"
             data-testid="button-close-scouting-panel"
           >
             <X className="w-3.5 h-3.5" />
@@ -135,59 +148,47 @@ export function TeamScoutingPanel({ teamName, info, onClose, variant = "fixed" }
         )}
       </div>
 
-      <div className="px-4 py-3 space-y-3">
-        {/* Unit Grades */}
-        <div className="grid grid-cols-4 gap-2">
-          <UnitGradeCell label="Pitching" grade={info.pitchingGrade} />
-          <UnitGradeCell label="Hitting" grade={info.hittingGrade} />
-          <UnitGradeCell label="Fielding" grade={info.fieldingGrade} />
-          <UnitGradeCell label="Speed" grade={info.speedGrade} />
+      <div className="px-3 py-2 space-y-2">
+        {/* Unit Grades — icon + letter grade, no text labels */}
+        <div className="grid grid-cols-4 gap-1.5">
+          <UnitGradeCell icon={Flame}  iconColor="text-orange-400" grade={info.pitchingGrade} />
+          <UnitGradeCell icon={Target} iconColor="text-blue-400"   grade={info.hittingGrade} />
+          <UnitGradeCell icon={Shield} iconColor="text-green-400"  grade={info.fieldingGrade} />
+          <UnitGradeCell icon={Zap}    iconColor="text-yellow-400" grade={info.speedGrade} />
         </div>
 
         {/* Top Players */}
-        <div className="flex gap-2">
-          <PlayerChip label="Top Fielder" player={info.topFielder} />
-          <PlayerChip label="Top Pitcher" player={info.topPitcher} />
-          <PlayerChip label="Top Underclassman" player={info.topUnderclassman} />
+        <div className="flex gap-1.5">
+          <PlayerChip label="Fielder"      icon={Shield} player={info.topFielder} />
+          <PlayerChip label="Pitcher"      icon={Flame}  player={info.topPitcher} />
+          <PlayerChip label="Underclass"   icon={Zap}    player={info.topUnderclassman} />
         </div>
 
-        {/* Metadata Row */}
-        <div className="grid grid-cols-4 gap-2">
-          <div className="p-2 bg-background/60 rounded border border-border/50">
-            <div className="flex items-center gap-1 mb-1">
-              <DollarSign className="w-2.5 h-2.5 text-gold" />
-              <span className="text-[9px] font-pixel text-muted-foreground">NIL Budget</span>
-            </div>
-            <p className="text-sm font-bold text-gold">{nilFormatted}</p>
+        {/* Metadata Row — icon-forward, minimal text */}
+        <div className="grid grid-cols-4 gap-1.5">
+          <div className="p-2 bg-background/60 rounded border border-border/50 flex flex-col items-center gap-0.5">
+            <DollarSign className="w-3.5 h-3.5 text-gold" />
+            <p className="text-sm font-bold text-gold leading-none">{nilFormatted}</p>
+            <p className="text-[8px] text-muted-foreground font-pixel">NIL</p>
           </div>
-          <div className="p-2 bg-background/60 rounded border border-border/50">
-            <div className="flex items-center gap-1 mb-1">
-              <MapPin className="w-2.5 h-2.5 text-muted-foreground" />
-              <span className="text-[9px] font-pixel text-muted-foreground">Location</span>
-            </div>
-            <p className="text-xs font-medium truncate">{info.city}, {info.state}</p>
+          <div className="p-2 bg-background/60 rounded border border-border/50 flex flex-col items-center gap-0.5">
+            <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
+            <p className="text-[10px] font-medium text-center leading-tight truncate w-full text-center">{info.city}</p>
+            <p className="text-[8px] text-muted-foreground">{info.state}</p>
           </div>
-          <div className="p-2 bg-background/60 rounded border border-border/50">
-            <div className="flex items-center gap-1 mb-1">
-              <TrendingUp className="w-2.5 h-2.5 text-muted-foreground" />
-              <span className="text-[9px] font-pixel text-muted-foreground">Recruiting Area</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className={`text-sm font-bold font-pixel ${gradeColor(info.recruitingAdvantage.grade)}`}>
-                {info.recruitingAdvantage.grade}
-              </span>
-              <span className="text-[10px] text-muted-foreground">{info.recruitingAdvantage.label}</span>
-            </div>
+          <div className="p-2 bg-background/60 rounded border border-border/50 flex flex-col items-center gap-0.5">
+            <TrendingUp className="w-3.5 h-3.5 text-muted-foreground" />
+            <span className={`text-sm font-bold font-pixel leading-none ${gradeColor(info.recruitingAdvantage.grade)}`}>
+              {info.recruitingAdvantage.grade}
+            </span>
+            <p className="text-[8px] text-muted-foreground font-pixel">Recruit</p>
           </div>
-          <div className="p-2 bg-background/60 rounded border border-border/50">
-            <div className="flex items-center gap-1 mb-1">
-              <Trophy className="w-2.5 h-2.5 text-muted-foreground" />
-              <span className="text-[9px] font-pixel text-muted-foreground">Conf Projection</span>
-            </div>
-            <p className="text-xs font-medium">
-              <span className="text-gold font-bold">{rankOrdinal(info.projectedConferenceFinish.rank)}</span>
-              <span className="text-muted-foreground"> / {info.projectedConferenceFinish.total}</span>
+          <div className="p-2 bg-background/60 rounded border border-border/50 flex flex-col items-center gap-0.5">
+            <Trophy className="w-3.5 h-3.5 text-muted-foreground" />
+            <p className="text-sm font-bold text-gold leading-none">
+              {rankOrdinal(info.projectedConferenceFinish.rank)}
             </p>
+            <p className="text-[8px] text-muted-foreground">/{info.projectedConferenceFinish.total}</p>
           </div>
         </div>
       </div>
