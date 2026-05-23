@@ -28,6 +28,7 @@ import { generateRecruitClass, selectTools, genToolAttr, HITTER_TOOL_GROUPS, PIT
 import { normalizeCommonAbilities } from "./normalizeCommonAbilities";
 import { validateLeagueRosters, checkTeamRosterStructure } from "./rosterValidation";
 import { sendWeeklyDigests, verifyUnsubToken } from "./digestEmail";
+import { pool } from "./db";
 
 function potentialGradeToNumber(grade: string): number {
   const map: Record<string, number> = {
@@ -350,6 +351,18 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
   app.set("trust proxy", 1);
+
+  // Ensure the connect-pg-simple session table exists before any request
+  // arrives. createTableIfMissing fires lazily on first store access, which
+  // can race with the very first login attempt.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS session (
+      sid varchar NOT NULL COLLATE "default" PRIMARY KEY,
+      sess json NOT NULL,
+      expire timestamp(6) NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON session (expire);
+  `);
 
   const PgStore = connectPgSimple(session);
   app.use(
