@@ -627,26 +627,12 @@ function WeekCard({ weekData, callbacks }: { weekData: WeekData; callbacks: Game
             </div>
           )}
 
-          {weekData.series.length > 0 && (
-            <div className="space-y-3">
-              {weekData.series.map(series => (
-                <SeriesRow
-                  key={series.key}
-                  series={series}
-                  callbacks={callbacks}
-                />
-              ))}
-            </div>
-          )}
-
           {weekData.midweekGames.length > 0 && (
-            <div className={`space-y-2 ${weekData.series.length > 0 ? "mt-4 pt-3 border-t border-border/40" : ""}`}>
-              {weekData.series.length > 0 && (
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="font-pixel text-[8px] text-muted-foreground">MIDWEEK</span>
-                  <div className="flex-1 border-t border-border/30" />
-                </div>
-              )}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="font-pixel text-[8px] text-muted-foreground">MIDWEEK</span>
+                <div className="flex-1 border-t border-border/30" />
+              </div>
               {weekData.midweekGames.map(game => (
                 <StandaloneGameRow
                   key={game.id}
@@ -654,6 +640,24 @@ function WeekCard({ weekData, callbacks }: { weekData: WeekData; callbacks: Game
                   allGames={weekData.midweekGames}
                   callbacks={callbacks}
                   badge="MIDWEEK"
+                />
+              ))}
+            </div>
+          )}
+
+          {weekData.series.length > 0 && (
+            <div className={`space-y-3 ${weekData.midweekGames.length > 0 ? "mt-4 pt-3 border-t border-border/40" : ""}`}>
+              {weekData.midweekGames.length > 0 && (
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="font-pixel text-[8px] text-muted-foreground">CONF SERIES</span>
+                  <div className="flex-1 border-t border-border/30" />
+                </div>
+              )}
+              {weekData.series.map(series => (
+                <SeriesRow
+                  key={series.key}
+                  series={series}
+                  callbacks={callbacks}
                 />
               ))}
             </div>
@@ -915,9 +919,13 @@ function CompactGameRow({
               </Link>
             )
           )}
-          {callbacks.isCommissioner && (
+          {game.isComplete ? (
+            <RetroButton variant="outline" size="sm" onClick={() => callbacks.onViewBoxScore(game)} data-testid={`button-box-score-action-${game.id}`} title="View Box Score">
+              <Check className="w-3 h-3" />
+            </RetroButton>
+          ) : callbacks.isCommissioner && (
             <RetroButton variant="outline" size="sm" onClick={() => callbacks.onEdit(game)} data-testid={`button-edit-game-${game.id}`}>
-              {game.isComplete ? <Check className="w-3 h-3" /> : <Edit2 className="w-3 h-3" />}
+              <Edit2 className="w-3 h-3" />
             </RetroButton>
           )}
         </div>
@@ -1074,7 +1082,7 @@ function StandaloneGameRow({
             )}
           </button>
         ) : (
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 shrink-0">
             <span className="text-muted-foreground text-sm">@</span>
             {badge && (
               <Badge variant="outline" className="text-[8px] border-purple-600/50 text-purple-400 font-pixel">{badge}</Badge>
@@ -1165,14 +1173,24 @@ function StandaloneGameRow({
               )}
             </>
           )}
-          {callbacks.isCommissioner && (
+          {game.isComplete ? (
+            <RetroButton
+              variant="outline"
+              size="sm"
+              onClick={(e) => { e.stopPropagation(); callbacks.onViewBoxScore(game); }}
+              data-testid={`button-box-score-action-${game.id}`}
+              title="View Box Score"
+            >
+              <Check className="w-3 h-3" />
+            </RetroButton>
+          ) : callbacks.isCommissioner && (
             <RetroButton
               variant="outline"
               size="sm"
               onClick={(e) => { e.stopPropagation(); callbacks.onEdit(game); }}
               data-testid={`button-edit-game-${game.id}`}
             >
-              {game.isComplete ? <Check className="w-3 h-3" /> : <Edit2 className="w-3 h-3" />}
+              <Edit2 className="w-3 h-3" />
             </RetroButton>
           )}
         </div>

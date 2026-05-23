@@ -131,6 +131,7 @@ async function generateArcImagesForStorylines(
   storylines: import("@shared/schema").StorylineRecruit[],
 ): Promise<void> {
   for (const sl of storylines) {
+    if (sl.imageUrl) continue;
     try {
       const recruit = await storage.getRecruit(sl.recruitId);
       const position = recruit?.position ?? null;

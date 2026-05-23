@@ -693,6 +693,18 @@ export default function LeagueViewPage() {
             subtitle="Vote on arcs"
             badge={storylinePendingVotes || undefined}
           />
+          <QuickActionCard
+            href={`/league/${id}/record-book`}
+            icon={<BookOpen className="w-6 h-6" />}
+            title="Record Book"
+            subtitle="Dynasty records"
+          />
+          <QuickActionCard
+            href={`/league/${id}/postseason`}
+            icon={<Crown className="w-6 h-6" />}
+            title="Postseason"
+            subtitle="Bracket & history"
+          />
           {isCommissioner && (
             <QuickActionCard
               href={`/league/${id}/commissioner`}
@@ -776,14 +788,8 @@ export default function LeagueViewPage() {
               <TabsTrigger value="rankings" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-rankings">
                 Rank
               </TabsTrigger>
-              <TabsTrigger value="stats" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-stats">
-                Record Book
-              </TabsTrigger>
               <TabsTrigger value="prospects" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-prospects">
                 Top 100
-              </TabsTrigger>
-              <TabsTrigger value="postseason" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-postseason">
-                Post
               </TabsTrigger>
               <TabsTrigger value="awards" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-awards">
                 Award
@@ -821,14 +827,6 @@ export default function LeagueViewPage() {
                 <RosterStrengthCard overview={overview} leagueId={league.id} />
               </div>
             )}
-          </TabsContent>
-
-          <TabsContent value="stats">
-            <RecordBookSummaryTab leagueId={league.id} currentSeason={league.currentSeason} />
-          </TabsContent>
-
-          <TabsContent value="postseason">
-            <PostseasonTab leagueId={league.id} />
           </TabsContent>
 
           <TabsContent value="awards">

@@ -17621,7 +17621,36 @@ async function generateSchedule(leagueId: string, season: number = 1) {
 
     weekRounds = weekRounds.slice(0, numWeeks);
     const shuffledOrder = shuffle(weekRounds.map((_, i) => i));
-    confWeeklyRounds.set(cid, shuffledOrder.map(i => weekRounds[i]));
+    let ordered = shuffledOrder.map(i => weekRounds[i]);
+
+    // Prevent any team from facing the same conference opponent in back-to-back weeks.
+    // Try up to 20 swaps: when a consecutive pair repeats a matchup, swap the later
+    // week with a random week further in the schedule.
+    for (let attempt = 0; attempt < 20; attempt++) {
+      let foundConflict = false;
+      for (let w = 0; w < ordered.length - 1; w++) {
+        const roundA = ordered[w];
+        const roundB = ordered[w + 1];
+        const hasSameOpponent = roundA.some(mA =>
+          roundB.some(mB =>
+            (mA.home.id === mB.home.id && mA.away.id === mB.away.id) ||
+            (mA.home.id === mB.away.id && mA.away.id === mB.home.id)
+          )
+        );
+        if (hasSameOpponent) {
+          const candidates = ordered.length - w - 2;
+          if (candidates > 0) {
+            const swapWith = w + 2 + Math.floor(Math.random() * candidates);
+            [ordered[w + 1], ordered[swapWith]] = [ordered[swapWith], ordered[w + 1]];
+          }
+          foundConflict = true;
+          break;
+        }
+      }
+      if (!foundConflict) break;
+    }
+
+    confWeeklyRounds.set(cid, ordered);
   }
 
   // Track which teams have already faced each other as OOC opponents this season

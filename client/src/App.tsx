@@ -182,7 +182,9 @@ function App() {
             </div>
             <Toaster />
             <MobileNav />
-            <Router />
+            <div className="pb-16 md:pb-0">
+              <Router />
+            </div>
           </MusicProvider>
         </AtmosphereProvider>
       </TooltipProvider>
