@@ -182,6 +182,7 @@ export interface IStorage {
 
   getPlayerSeasonStats(playerId: string, leagueId: string): Promise<PlayerSeasonStats[]>;
   getPlayerSeasonStatsBySeason(leagueId: string, season: number): Promise<PlayerSeasonStats[]>;
+  getAllPlayerSeasonStatsByLeague(leagueId: string): Promise<PlayerSeasonStats[]>;
   upsertPlayerSeasonStats(data: InsertPlayerSeasonStats): Promise<PlayerSeasonStats>;
   updatePlayerSeasonStatsPosition(playerId: string, leagueId: string, season: number, position: string): Promise<void>;
 
@@ -1026,6 +1027,11 @@ export class DatabaseStorage implements IStorage {
   async getPlayerSeasonStatsBySeason(leagueId: string, season: number): Promise<PlayerSeasonStats[]> {
     return db.select().from(playerSeasonStats)
       .where(and(eq(playerSeasonStats.leagueId, leagueId), eq(playerSeasonStats.season, season)));
+  }
+
+  async getAllPlayerSeasonStatsByLeague(leagueId: string): Promise<PlayerSeasonStats[]> {
+    return db.select().from(playerSeasonStats)
+      .where(eq(playerSeasonStats.leagueId, leagueId));
   }
 
   async upsertPlayerSeasonStats(data: InsertPlayerSeasonStats): Promise<PlayerSeasonStats> {

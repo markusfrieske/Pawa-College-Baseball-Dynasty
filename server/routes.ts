@@ -4809,6 +4809,354 @@ export async function registerRoutes(
     }
   });
 
+  // ─── Record Book ────────────────────────────────────────────────────────────
+  app.get("/api/leagues/:id/record-book", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id;
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      const [teams, allStandings, allPlayerHistory, allSeasonStats, allCoaches, coachHistory, recruitingSnaps] =
+        await Promise.all([
+          storage.getTeamsByLeague(leagueId),
+          storage.getAllStandingsByLeague(leagueId),
+          storage.getPlayerHistoryByLeague(leagueId),
+          storage.getAllPlayerSeasonStatsByLeague(leagueId),
+          storage.getCoachesByLeague(leagueId),
+          storage.getCoachSeasonHistoryByLeague(leagueId),
+          storage.getRecruitingClassSnapshotsAllSeasons(leagueId),
+        ]);
+
+      const teamMap = new Map(teams.map(t => [t.id, t]));
+
+      // ── Season History ──────────────────────────────────────────────────────
+      const seasonNums = [...new Set(allStandings.map(s => s.season))].sort((a, b) => b - a);
+
+      const seasonHistory = seasonNums.map(season => {
+        const seasonStandings = allStandings.filter(s => s.season === season);
+        const sorted = [...seasonStandings].sort((a, b) => {
+          const awPct = (a.wins + a.losses) > 0 ? a.wins / (a.wins + a.losses) : 0;
+          const bwPct = (b.wins + b.losses) > 0 ? b.wins / (b.wins + b.losses) : 0;
+          return bwPct - awPct;
+        });
+        const champion = sorted[0];
+        const runnerUp = sorted[1];
+        const champTeam = champion ? teamMap.get(champion.teamId) : null;
+        const ruTeam = runnerUp ? teamMap.get(runnerUp.teamId) : null;
+
+        // conf champions = first in each conference
+        const confChamps: { teamId: string; teamName: string; confId: string | null }[] = [];
+        const seen = new Set<string | null>();
+        for (const s of sorted) {
+          const t = teamMap.get(s.teamId);
+          const confId = t?.conferenceId ?? null;
+          if (!seen.has(confId)) {
+            seen.add(confId);
+            confChamps.push({ teamId: s.teamId, teamName: t?.name ?? "", confId });
+          }
+        }
+
+        // stat leaders for the season from player_season_stats
+        const seasonStats = allSeasonStats.filter(p => p.season === season);
+        const batters = seasonStats.filter(p => p.ab >= 10);
+        const pitchers = seasonStats.filter(p => p.ipOuts >= 3);
+
+        const hrLeader = batters.length ? batters.reduce((best, p) => p.hr > best.hr ? p : best) : null;
+        const avgLeader = batters.length ? batters.reduce((best, p) => {
+          const avg = p.ab > 0 ? p.h / p.ab : 0;
+          const bAvg = best.ab > 0 ? best.h / best.ab : 0;
+          return avg > bAvg ? p : best;
+        }) : null;
+        const eraLeader = pitchers.length ? pitchers.reduce((best, p) => {
+          const era = p.ipOuts > 0 ? (p.pEr * 27) / p.ipOuts : 99;
+          const bEra = best.ipOuts > 0 ? (best.pEr * 27) / best.ipOuts : 99;
+          return era < bEra ? p : best;
+        }) : null;
+
+        // recruiting class grade for this season (avg classScore normalized to letter)
+        const snapshots = recruitingSnaps.filter(s => s.season === season);
+        const avgScore = snapshots.length ? snapshots.reduce((sum, s) => sum + s.classScore, 0) / snapshots.length : null;
+        const gradeFromScore = (score: number | null) => {
+          if (score === null) return null;
+          if (score >= 95) return "A+";
+          if (score >= 88) return "A";
+          if (score >= 80) return "A-";
+          if (score >= 72) return "B+";
+          if (score >= 65) return "B";
+          if (score >= 58) return "B-";
+          if (score >= 50) return "C+";
+          if (score >= 42) return "C";
+          return "C-";
+        };
+
+        return {
+          season,
+          championTeamId: champTeam?.id ?? null,
+          championName: champTeam?.name ?? null,
+          championW: champion?.wins ?? 0,
+          championL: champion?.losses ?? 0,
+          runnerUpName: ruTeam?.name ?? null,
+          runnerUpW: runnerUp?.wins ?? 0,
+          runnerUpL: runnerUp?.losses ?? 0,
+          confChampions: confChamps,
+          hrLeader: hrLeader ? { name: hrLeader.playerName, value: hrLeader.hr, teamId: hrLeader.teamId } : null,
+          avgLeader: avgLeader ? {
+            name: avgLeader.playerName,
+            value: avgLeader.ab > 0 ? (avgLeader.h / avgLeader.ab).toFixed(3) : ".000",
+            teamId: avgLeader.teamId,
+          } : null,
+          eraLeader: eraLeader ? {
+            name: eraLeader.playerName,
+            value: eraLeader.ipOuts > 0 ? ((eraLeader.pEr * 27) / eraLeader.ipOuts).toFixed(2) : "0.00",
+            teamId: eraLeader.teamId,
+          } : null,
+          recruitingGrade: gradeFromScore(avgScore),
+        };
+      });
+
+      // ── Career Batting Leaders (aggregated from player_season_stats) ─────────
+      const battersByPlayer = new Map<string, {
+        playerId: string; name: string; teamId: string; position: string;
+        seasons: number; games: number; ab: number; h: number; hr: number; rbi: number; bb: number;
+        hbp: number; doubles: number; triples: number; so: number;
+      }>();
+      for (const row of allSeasonStats) {
+        const PITCHER_POS = ["P", "SP", "RP", "CL", "LHP", "RHP"];
+        if (PITCHER_POS.includes(row.position)) continue;
+        const key = row.playerId;
+        if (!battersByPlayer.has(key)) {
+          battersByPlayer.set(key, {
+            playerId: row.playerId, name: row.playerName, teamId: row.teamId, position: row.position,
+            seasons: 0, games: 0, ab: 0, h: 0, hr: 0, rbi: 0, bb: 0,
+            hbp: 0, doubles: 0, triples: 0, so: 0,
+          });
+        }
+        const agg = battersByPlayer.get(key)!;
+        agg.seasons++;
+        agg.games += row.games;
+        agg.ab += row.ab;
+        agg.h += row.h;
+        agg.hr += row.hr;
+        agg.rbi += row.rbi;
+        agg.bb += row.bb;
+        agg.hbp += row.hbp;
+        agg.doubles += row.doubles;
+        agg.triples += row.triples;
+        agg.so += row.so;
+        // Keep most recent team
+        agg.teamId = row.teamId;
+      }
+
+      const careerBatting = Array.from(battersByPlayer.values())
+        .filter(b => b.ab >= 30)
+        .map(b => {
+          const avg = b.ab > 0 ? b.h / b.ab : 0;
+          const obp = (b.ab + b.bb + b.hbp) > 0 ? (b.h + b.bb + b.hbp) / (b.ab + b.bb + b.hbp) : 0;
+          const singles = b.h - b.doubles - b.triples - b.hr;
+          const tb = singles + b.doubles * 2 + b.triples * 3 + b.hr * 4;
+          const slg = b.ab > 0 ? tb / b.ab : 0;
+          const ops = obp + slg;
+          const wOBA = (b.ab + b.bb + b.hbp) > 0
+            ? (0.69 * b.bb + 0.72 * b.hbp + 0.89 * singles + 1.27 * b.doubles + 1.62 * b.triples + 2.10 * b.hr) / (b.ab + b.bb + b.hbp)
+            : 0;
+          const wRAA = ((wOBA - 0.320) / 1.25) * (b.ab + b.bb + b.hbp);
+          const war = wRAA / 10;
+          const team = teamMap.get(b.teamId);
+          return {
+            playerId: b.playerId, name: b.name, teamName: team?.name ?? "", teamAbbr: team?.abbreviation ?? "",
+            teamColor: team?.primaryColor ?? "#888", position: b.position, seasons: b.seasons,
+            games: b.games, ab: b.ab, avg: avg.toFixed(3), hr: b.hr, rbi: b.rbi,
+            ops: ops.toFixed(3), war: war.toFixed(1),
+          };
+        })
+        .sort((a, b) => parseFloat(b.war) - parseFloat(a.war))
+        .slice(0, 25);
+
+      // ── Career Pitching Leaders ──────────────────────────────────────────────
+      const pitchersByPlayer = new Map<string, {
+        playerId: string; name: string; teamId: string; position: string;
+        seasons: number; games: number; wins: number; losses: number; ipOuts: number;
+        pEr: number; pHits: number; pBb: number; pSo: number;
+      }>();
+      const PITCHER_POSITIONS = ["P", "SP", "RP", "CL", "LHP", "RHP"];
+      for (const row of allSeasonStats) {
+        if (!PITCHER_POSITIONS.includes(row.position) && row.ipOuts < 3) continue;
+        if (row.ipOuts < 3) continue;
+        const key = row.playerId;
+        if (!pitchersByPlayer.has(key)) {
+          pitchersByPlayer.set(key, {
+            playerId: row.playerId, name: row.playerName, teamId: row.teamId, position: row.position,
+            seasons: 0, games: 0, wins: 0, losses: 0, ipOuts: 0, pEr: 0, pHits: 0, pBb: 0, pSo: 0,
+          });
+        }
+        const agg = pitchersByPlayer.get(key)!;
+        agg.seasons++;
+        agg.games += row.pitchingGames;
+        agg.wins += row.wins;
+        agg.losses += row.losses;
+        agg.ipOuts += row.ipOuts;
+        agg.pEr += row.pEr;
+        agg.pHits += row.pHits;
+        agg.pBb += row.pBb;
+        agg.pSo += row.pSo;
+        agg.teamId = row.teamId;
+      }
+
+      const careerPitching = Array.from(pitchersByPlayer.values())
+        .filter(p => p.ipOuts >= 9)
+        .map(p => {
+          const ip = p.ipOuts / 3;
+          const era = ip > 0 ? (p.pEr * 9) / ip : 99;
+          const whip = ip > 0 ? (p.pBb + p.pHits) / ip : 99;
+          const team = teamMap.get(p.teamId);
+          const war = Math.max(0, (4.0 - era) * ip / 9);
+          return {
+            playerId: p.playerId, name: p.name, teamName: team?.name ?? "", teamAbbr: team?.abbreviation ?? "",
+            teamColor: team?.primaryColor ?? "#888", position: p.position, seasons: p.seasons,
+            games: p.games, wins: p.wins, losses: p.losses,
+            ip: ip.toFixed(1), era: era.toFixed(2), whip: whip.toFixed(2), so: p.pSo, war: war.toFixed(1),
+          };
+        })
+        .sort((a, b) => parseFloat(a.era) - parseFloat(b.era))
+        .slice(0, 25);
+
+      // ── All-Time Team Records ────────────────────────────────────────────────
+      const teamRecordsMap = new Map<string, {
+        teamId: string; w: number; l: number; championships: number; postseasonApps: number; bestSeasonW: number;
+      }>();
+      for (const s of allStandings) {
+        if (!teamRecordsMap.has(s.teamId)) {
+          teamRecordsMap.set(s.teamId, { teamId: s.teamId, w: 0, l: 0, championships: 0, postseasonApps: 0, bestSeasonW: 0 });
+        }
+        const rec = teamRecordsMap.get(s.teamId)!;
+        rec.w += s.wins;
+        rec.l += s.losses;
+        if (s.wins > rec.bestSeasonW) rec.bestSeasonW = s.wins;
+      }
+
+      // Mark CWS champions from season history
+      for (const sh of seasonHistory) {
+        if (sh.championTeamId && teamRecordsMap.has(sh.championTeamId)) {
+          teamRecordsMap.get(sh.championTeamId)!.championships++;
+        }
+      }
+
+      const teamRecords = Array.from(teamRecordsMap.values()).map(rec => {
+        const t = teamMap.get(rec.teamId);
+        const pct = (rec.w + rec.l) > 0 ? rec.w / (rec.w + rec.l) : 0;
+        return {
+          teamId: rec.teamId, teamName: t?.name ?? "", teamAbbr: t?.abbreviation ?? "",
+          teamColor: t?.primaryColor ?? "#888",
+          allTimeW: rec.w, allTimeL: rec.l, pct: pct.toFixed(3),
+          championships: rec.championships, bestSeasonW: rec.bestSeasonW,
+        };
+      }).sort((a, b) => parseFloat(b.pct) - parseFloat(a.pct));
+
+      // ── Coach Career Stats ──────────────────────────────────────────────────
+      const coachStats = allCoaches.map(coach => {
+        const history = coachHistory.filter(h => h.coachId === coach.id);
+        const totalW = history.reduce((s, h) => s + h.wins, 0);
+        const totalL = history.reduce((s, h) => s + h.losses, 0);
+        const pct = (totalW + totalL) > 0 ? totalW / (totalW + totalL) : 0;
+        const teamsCoached = [...new Set(history.map(h => h.teamName).filter(Boolean))];
+        const team = coach.teamId ? teamMap.get(coach.teamId) : null;
+        return {
+          coachId: coach.id,
+          name: `${coach.firstName} ${coach.lastName}`,
+          archetype: coach.archetype,
+          teamName: team?.name ?? "",
+          teamAbbr: team?.abbreviation ?? "",
+          teamColor: team?.primaryColor ?? "#888",
+          seasons: history.length,
+          w: totalW, l: totalL, pct: pct.toFixed(3),
+          championships: coach.nationalChampionships,
+          confChampionships: coach.confChampionships,
+          cwsAppearances: coach.cwsAppearances,
+          legacyScore: coach.legacyScore,
+          teamsCoached,
+        };
+      }).sort((a, b) => b.legacyScore - a.legacyScore);
+
+      // ── Recruiting History ──────────────────────────────────────────────────
+      const recruitingSeasons = [...new Set(recruitingSnaps.map(s => s.season))].sort((a, b) => b - a);
+      const recruitingHistory = recruitingSeasons.map(season => {
+        const snaps = recruitingSnaps.filter(s => s.season === season)
+          .sort((a, b) => a.classRank - b.classRank);
+        return {
+          season,
+          snapshots: snaps.map(s => {
+            const t = teamMap.get(s.teamId);
+            const gradeFromScore2 = (score: number) => {
+              if (score >= 95) return "A+";
+              if (score >= 88) return "A";
+              if (score >= 80) return "A-";
+              if (score >= 72) return "B+";
+              if (score >= 65) return "B";
+              if (score >= 58) return "B-";
+              if (score >= 50) return "C+";
+              if (score >= 42) return "C";
+              return "C-";
+            };
+            return {
+              teamId: s.teamId, teamName: t?.name ?? "", teamAbbr: t?.abbreviation ?? "",
+              teamColor: t?.primaryColor ?? "#888", classRank: s.classRank,
+              grade: gradeFromScore2(s.classScore), classScore: s.classScore,
+              totalCommits: s.totalCommits, fiveStars: s.fiveStars, fourStars: s.fourStars,
+              topRecruitName: s.topRecruitName, topRecruitOvr: s.topRecruitOvr, topRecruitStars: s.topRecruitStars,
+            };
+          }),
+        };
+      });
+
+      // ── Hall of Fame ────────────────────────────────────────────────────────
+      const hofEligible = allPlayerHistory.filter(p =>
+        (p.departureType === "graduated" || p.departureType === "drafted" || p.departureType === "declared") &&
+        p.overall >= 400
+      );
+
+      const hallOfFame = hofEligible.map(p => {
+        const t = teamMap.get(p.teamId);
+        const playerStats = allSeasonStats.filter(s => s.playerId && p.id && s.playerName === `${p.firstName} ${p.lastName}` && s.teamId === p.teamId);
+        const bestSeason = playerStats.length ? playerStats.reduce((best, s) => {
+          const PITCHER_POS = ["P", "SP", "RP", "CL", "LHP", "RHP"];
+          if (PITCHER_POS.includes(p.position)) {
+            const era = s.ipOuts > 0 ? (s.pEr * 27) / s.ipOuts : 99;
+            const bEra = best.ipOuts > 0 ? (best.pEr * 27) / best.ipOuts : 99;
+            return era < bEra ? s : best;
+          }
+          return s.hr > best.hr ? s : best;
+        }) : null;
+        const PITCHER_POS2 = ["P", "SP", "RP", "CL", "LHP", "RHP"];
+        const bestStatStr = bestSeason ? (PITCHER_POS2.includes(p.position)
+          ? `${bestSeason.pSo} SO, ${((bestSeason.pEr * 27) / Math.max(bestSeason.ipOuts, 1)).toFixed(2)} ERA`
+          : `${bestSeason.hr} HR, .${Math.round(bestSeason.ab > 0 ? bestSeason.h / bestSeason.ab * 1000 : 0).toString().padStart(3, "0")} AVG`
+        ) : null;
+        return {
+          id: p.id, name: `${p.firstName} ${p.lastName}`, position: p.position,
+          teamName: t?.name ?? "", teamAbbr: t?.abbreviation ?? "", teamColor: t?.primaryColor ?? "#888",
+          overall: p.overall, starRating: p.starRating, seasonsPlayed: p.seasonsPlayed,
+          departureType: p.departureType, draftRound: p.draftRound, departedSeason: p.departedSeason,
+          abilities: p.abilities ?? [],
+          bestSeasonStat: bestStatStr,
+        };
+      }).sort((a, b) => b.overall - a.overall).slice(0, 50);
+
+      res.json({
+        seasons: seasonHistory,
+        careerBattingLeaders: careerBatting,
+        careerPitchingLeaders: careerPitching,
+        teamRecords,
+        coachStats,
+        recruitingHistory,
+        hallOfFame,
+        meta: { currentSeason: league.currentSeason, totalSeasons: seasonNums.length },
+      });
+    } catch (error) {
+      console.error("Failed to fetch record book:", error);
+      res.status(500).json({ message: "Failed to fetch record book" });
+    }
+  });
+
   app.get("/api/leagues/:leagueId/players/:playerId/career-stats", requireAuth, async (req, res) => {
     try {
       const stats = await storage.getPlayerSeasonStats(req.params.playerId, req.params.leagueId);

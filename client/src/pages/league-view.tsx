@@ -779,6 +779,9 @@ export default function LeagueViewPage() {
               <TabsTrigger value="stats" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-stats">
                 Stats
               </TabsTrigger>
+              <TabsTrigger value="records" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-records">
+                Records
+              </TabsTrigger>
               <TabsTrigger value="prospects" className="font-pixel text-[8px] whitespace-nowrap px-2.5 sm:px-3 data-[state=active]:bg-gold data-[state=active]:text-forest-dark" data-testid="tab-prospects">
                 Top 100
               </TabsTrigger>
@@ -825,6 +828,9 @@ export default function LeagueViewPage() {
 
           <TabsContent value="stats">
             <StatsTab leagueId={league.id} currentSeason={league.currentSeason} conferences={league.conferences} teams={league.teams} />
+          </TabsContent>
+          <TabsContent value="records">
+            <RecordBookSummaryTab leagueId={league.id} currentSeason={league.currentSeason} />
           </TabsContent>
 
           <TabsContent value="postseason">
@@ -3640,6 +3646,113 @@ function StatsTab({ leagueId, currentSeason, conferences, teams }: { leagueId: s
           leagueId={leagueId}
         />
       )}
+    </div>
+  );
+}
+
+function RecordBookSummaryTab({ leagueId, currentSeason }: { leagueId: string; currentSeason: number }) {
+  const { data, isLoading } = useQuery<any>({
+    queryKey: ["/api/leagues", leagueId, "record-book"],
+    queryFn: () => fetch(`/api/leagues/${leagueId}/record-book`, { credentials: "include" }).then(r => r.json()),
+    enabled: !!leagueId,
+  });
+
+  const latestSeason = data?.seasons?.[0];
+  const hallOfFameCount = data?.hallOfFame?.length ?? 0;
+  const totalSeasons = data?.meta?.totalSeasons ?? 0;
+
+  return (
+    <div className="space-y-4" data-testid="record-book-summary-tab">
+      <div className="flex items-center gap-2">
+        <BookOpen className="w-5 h-5 text-gold" />
+        <span className="font-pixel text-gold text-xs">Dynasty Record Book</span>
+      </div>
+
+      {isLoading && (
+        <div className="space-y-3">
+          <Skeleton className="h-20 bg-card" />
+          <Skeleton className="h-20 bg-card" />
+        </div>
+      )}
+
+      {!isLoading && totalSeasons === 0 && (
+        <RetroCard variant="bordered">
+          <RetroCardContent className="py-8 text-center">
+            <BookOpen className="w-8 h-8 text-gold/40 mx-auto mb-3" />
+            <p className="font-pixel text-gold text-xs mb-2">No History Yet</p>
+            <p className="text-sm text-muted-foreground">Complete your first season to start building the dynasty almanac.</p>
+          </RetroCardContent>
+        </RetroCard>
+      )}
+
+      {!isLoading && totalSeasons > 0 && (
+        <>
+          {/* Latest season summary */}
+          {latestSeason && (
+            <RetroCard variant="bordered">
+              <RetroCardHeader>
+                <span className="font-pixel text-xs text-gold">Season {latestSeason.season} Champion</span>
+              </RetroCardHeader>
+              <RetroCardContent>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="text-center p-2 bg-background/50 rounded border border-border/50">
+                    <p className="font-pixel text-[7px] text-muted-foreground mb-1">CHAMPION</p>
+                    <p className="text-xs font-bold text-gold">{latestSeason.championName ?? "—"}</p>
+                    {latestSeason.championName && (
+                      <p className="text-[9px] text-muted-foreground">{latestSeason.championW}-{latestSeason.championL}</p>
+                    )}
+                  </div>
+                  <div className="text-center p-2 bg-background/50 rounded border border-border/50">
+                    <p className="font-pixel text-[7px] text-muted-foreground mb-1">HR LEADER</p>
+                    <p className="text-xs font-medium truncate">{latestSeason.hrLeader?.name ?? "—"}</p>
+                    {latestSeason.hrLeader && <p className="text-[9px] text-gold">{latestSeason.hrLeader.value} HR</p>}
+                  </div>
+                  <div className="text-center p-2 bg-background/50 rounded border border-border/50">
+                    <p className="font-pixel text-[7px] text-muted-foreground mb-1">AVG LEADER</p>
+                    <p className="text-xs font-medium truncate">{latestSeason.avgLeader?.name ?? "—"}</p>
+                    {latestSeason.avgLeader && <p className="text-[9px] text-gold">{latestSeason.avgLeader.value}</p>}
+                  </div>
+                  <div className="text-center p-2 bg-background/50 rounded border border-border/50">
+                    <p className="font-pixel text-[7px] text-muted-foreground mb-1">ERA LEADER</p>
+                    <p className="text-xs font-medium truncate">{latestSeason.eraLeader?.name ?? "—"}</p>
+                    {latestSeason.eraLeader && <p className="text-[9px] text-gold">{latestSeason.eraLeader.value} ERA</p>}
+                  </div>
+                </div>
+              </RetroCardContent>
+            </RetroCard>
+          )}
+
+          {/* Dynasty stats row */}
+          <div className="grid grid-cols-3 gap-3">
+            <RetroCard variant="bordered">
+              <RetroCardContent className="py-3 text-center">
+                <p className="font-pixel text-[7px] text-muted-foreground mb-1">SEASONS</p>
+                <p className="text-2xl font-bold text-gold">{totalSeasons}</p>
+              </RetroCardContent>
+            </RetroCard>
+            <RetroCard variant="bordered">
+              <RetroCardContent className="py-3 text-center">
+                <p className="font-pixel text-[7px] text-muted-foreground mb-1">HALL OF FAME</p>
+                <p className="text-2xl font-bold text-gold">{hallOfFameCount}</p>
+              </RetroCardContent>
+            </RetroCard>
+            <RetroCard variant="bordered">
+              <RetroCardContent className="py-3 text-center">
+                <p className="font-pixel text-[7px] text-muted-foreground mb-1">CAREER BATTERS</p>
+                <p className="text-2xl font-bold text-gold">{data?.careerBattingLeaders?.length ?? 0}</p>
+              </RetroCardContent>
+            </RetroCard>
+          </div>
+        </>
+      )}
+
+      <Link href={`/league/${leagueId}/record-book`}>
+        <RetroButton variant="primary" className="w-full gap-2" data-testid="button-full-record-book">
+          <BookOpen className="w-4 h-4" />
+          Full Record Book
+          <ChevronRight className="w-3.5 h-3.5 ml-auto" />
+        </RetroButton>
+      </Link>
     </div>
   );
 }
