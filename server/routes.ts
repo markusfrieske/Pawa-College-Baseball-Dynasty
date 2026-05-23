@@ -10638,8 +10638,8 @@ export async function registerRoutes(
       const gamesToSimulate = incompleteGames.filter(g => (g.bracketRound ?? 0) === minRound);
       
       const postseasonRotation = ["friday", "saturday", "sunday"];
-      for (let gi = 0; gi < gamesToSimulate.length; gi++) {
-        const game = gamesToSimulate[gi];
+      const _srSimStart = Date.now();
+      await Promise.all(gamesToSimulate.map(async (game, gi) => {
         const psGameType = game.gameType || postseasonRotation[gi % 3];
         const result = await simulateGame(game.homeTeamId, game.awayTeamId, psGameType);
         await storage.updateGame(game.id, {
@@ -10666,7 +10666,8 @@ export async function registerRoutes(
             });
           }
         } catch (e) { console.error("Super Regionals feed event error:", e); }
-      }
+      }));
+      console.log(`[advance-perf] super-regionals-sim: ${Date.now() - _srSimStart}ms`);
     }
     
     // Re-fetch after simulation and process each side
@@ -10811,8 +10812,8 @@ export async function registerRoutes(
     
     const incompleteGames = cwsGames.filter(g => !g.isComplete);
     const cwsRotation = ["friday", "saturday", "sunday"];
-    for (let gi = 0; gi < incompleteGames.length; gi++) {
-      const game = incompleteGames[gi];
+    const _cwsSimStart = Date.now();
+    await Promise.all(incompleteGames.map(async (game, gi) => {
       const cwsGameType = game.gameType || cwsRotation[gi % 3];
       const result = await simulateGame(game.homeTeamId, game.awayTeamId, cwsGameType);
       await storage.updateGame(game.id, {
@@ -10843,7 +10844,8 @@ export async function registerRoutes(
           });
         }
       } catch (e) { console.error("CWS feed event error:", e); }
-    }
+    }));
+    console.log(`[advance-perf] cws-sim: ${Date.now() - _cwsSimStart}ms`);
     
     const updatedGames = await storage.getGamesByLeague(leagueId);
     const completedCWS = updatedGames.filter(g => g.phase === "cws" && g.season === season && g.isComplete);
