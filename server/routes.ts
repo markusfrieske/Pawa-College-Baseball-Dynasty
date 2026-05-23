@@ -11486,11 +11486,11 @@ export async function registerRoutes(
     }
     
     // Scale filler per position to league size so the walk-on pool doesn't stay oversized
-    // when the recruiting class shrinks. Formula: max(4, round(2 × (recruitCount / 80))).
-    // At 60 recruits (12 teams) → 9 fillers/pos; at 80 recruits (16 teams) → 12 fillers/pos.
+    // when the recruiting class shrinks. Formula: max(4, round(12 × (recruitCount / 80))).
+    // At 80 recruits (16 teams) → 12 fillers/pos; at 60 recruits (12 teams) → 9 fillers/pos.
     const allLeagueTeamsWo = await storage.getTeamsByLeague(leagueId);
     const expectedRecruitCount = Math.max(40, allLeagueTeamsWo.length * 5);
-    const TARGET_PER_POS = Math.max(4, Math.round(2 * (expectedRecruitCount / 80)));
+    const TARGET_PER_POS = Math.max(4, Math.round(12 * (expectedRecruitCount / 80)));
     const fillerStates = ["TX", "CA", "FL", "GA", "NC", "AL", "SC", "LA", "AZ", "OH"];
     const fillerTowns = ["Springfield", "Franklin", "Clinton", "Madison", "Georgetown", "Salem", "Greenville", "Bristol", "Fairview", "Chester"];
     
