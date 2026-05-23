@@ -13742,7 +13742,8 @@ export async function registerRoutes(
         positionNeeds.push({ position: pos, current, graduating, need: afterGrad < 2 });
       }
       
-      res.json({ pipeline, positionNeeds, totalTargeted: interests.filter(i => i.isTargeted).length, rosterSize: roster.length, teamState });
+      const leagueTeams = await storage.getTeamsByLeague(leagueId);
+      res.json({ pipeline, positionNeeds, totalTargeted: interests.filter(i => i.isTargeted).length, rosterSize: roster.length, teamState, totalClassSize: allRecruits.length, teamCount: leagueTeams.length });
     } catch (error) {
       console.error("Failed to fetch pipeline:", error);
       res.status(500).json({ message: "Failed to fetch pipeline data" });

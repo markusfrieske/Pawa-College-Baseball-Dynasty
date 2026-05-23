@@ -317,6 +317,8 @@ export default function RecruitingPage() {
     totalTargeted: number;
     rosterSize: number;
     teamState: string;
+    totalClassSize: number;
+    teamCount: number;
   }>({
     queryKey: ["/api/leagues", id, "recruiting", "pipeline"],
   });
@@ -804,7 +806,15 @@ export default function RecruitingPage() {
                   </BreadcrumbItem>
                 </BreadcrumbList>
               </Breadcrumb>
-              <h1 className="font-pixel text-gold text-lg">Recruiting</h1>
+              <div className="flex items-baseline gap-3">
+                <h1 className="font-pixel text-gold text-lg">Recruiting</h1>
+                {pipelineData?.totalClassSize != null && (
+                  <span className="text-xs text-muted-foreground" data-testid="text-class-size">
+                    {pipelineData.totalClassSize} Recruits
+                    {pipelineData.teamCount > 0 && ` — ${pipelineData.teamCount} Teams`}
+                  </span>
+                )}
+              </div>
             </div>
             {data?.recruits && (
               <RetroButton
