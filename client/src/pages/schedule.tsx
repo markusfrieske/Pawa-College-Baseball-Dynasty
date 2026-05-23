@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { parseErrorMessage } from "@/lib/errorUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
@@ -1570,61 +1570,63 @@ function ScoreEntryModal({
           <DialogTitle className="font-pixel text-gold text-sm">Enter Game Score</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
-          <div className="flex items-center gap-4">
-            <div className="flex-1 text-center">
-              <TeamBadge
-                abbreviation={game.awayTeam.abbreviation}
-                primaryColor={game.awayTeam.primaryColor}
-                secondaryColor={game.awayTeam.secondaryColor}
-                name={game.awayTeam.name}
-                className="mx-auto mb-2"
-              />
-              <p className="text-sm font-medium mb-3">{game.awayTeam.name}</p>
-              <RetroInput
-                type="number"
-                min="0"
-                value={awayScore}
-                onChange={(e) => setAwayScore(e.target.value)}
-                className="text-center text-xl"
-                data-testid="input-away-score"
-              />
+        {game && (
+          <div className="space-y-6">
+            <div className="flex items-center gap-4">
+              <div className="flex-1 text-center">
+                <TeamBadge
+                  abbreviation={game.awayTeam.abbreviation}
+                  primaryColor={game.awayTeam.primaryColor}
+                  secondaryColor={game.awayTeam.secondaryColor}
+                  name={game.awayTeam.name}
+                  className="mx-auto mb-2"
+                />
+                <p className="text-sm font-medium mb-3">{game.awayTeam.name}</p>
+                <RetroInput
+                  type="number"
+                  min="0"
+                  value={awayScore}
+                  onChange={(e) => setAwayScore(e.target.value)}
+                  className="text-center text-xl"
+                  data-testid="input-away-score"
+                />
+              </div>
+              <span className="text-muted-foreground text-xl">@</span>
+              <div className="flex-1 text-center">
+                <TeamBadge
+                  abbreviation={game.homeTeam.abbreviation}
+                  primaryColor={game.homeTeam.primaryColor}
+                  secondaryColor={game.homeTeam.secondaryColor}
+                  name={game.homeTeam.name}
+                  className="mx-auto mb-2"
+                />
+                <p className="text-sm font-medium mb-3">{game.homeTeam.name}</p>
+                <RetroInput
+                  type="number"
+                  min="0"
+                  value={homeScore}
+                  onChange={(e) => setHomeScore(e.target.value)}
+                  className="text-center text-xl"
+                  data-testid="input-home-score"
+                />
+              </div>
             </div>
-            <span className="text-muted-foreground text-xl">@</span>
-            <div className="flex-1 text-center">
-              <TeamBadge
-                abbreviation={game.homeTeam.abbreviation}
-                primaryColor={game.homeTeam.primaryColor}
-                secondaryColor={game.homeTeam.secondaryColor}
-                name={game.homeTeam.name}
-                className="mx-auto mb-2"
-              />
-              <p className="text-sm font-medium mb-3">{game.homeTeam.name}</p>
-              <RetroInput
-                type="number"
-                min="0"
-                value={homeScore}
-                onChange={(e) => setHomeScore(e.target.value)}
-                className="text-center text-xl"
-                data-testid="input-home-score"
-              />
-            </div>
-          </div>
 
-          <div className="flex gap-3">
-            <RetroButton variant="outline" className="flex-1" onClick={onClose} disabled={isPending}>
-              Cancel
-            </RetroButton>
-            <RetroButton
-              className="flex-1"
-              onClick={() => onSubmit(parseInt(homeScore) || 0, parseInt(awayScore) || 0)}
-              disabled={isPending}
-              data-testid="button-submit-score"
-            >
-              {isPending ? "Saving..." : "Submit Score"}
-            </RetroButton>
+            <div className="flex gap-3">
+              <RetroButton variant="outline" className="flex-1" onClick={onClose} disabled={isPending}>
+                Cancel
+              </RetroButton>
+              <RetroButton
+                className="flex-1"
+                onClick={() => onSubmit(parseInt(homeScore) || 0, parseInt(awayScore) || 0)}
+                disabled={isPending}
+                data-testid="button-submit-score"
+              >
+                {isPending ? "Saving..." : "Submit Score"}
+              </RetroButton>
+            </div>
           </div>
-        </div>
+        )}
       </DialogContent>
     </Dialog>
   );
