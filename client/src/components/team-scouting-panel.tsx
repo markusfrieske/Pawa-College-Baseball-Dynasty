@@ -31,10 +31,24 @@ function BaseballIcon({ className }: { className?: string }) {
 function GloveIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 16 16" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Main mitt body: wrist at bottom, palm sides, fingers across top */}
       <path
-        d="M3 13V8.5C3 6.0 4.8 4 7 4C7.8 4 8.3 4.4 8.7 5C9 4.3 9.7 3.5 10.8 3.5C11.8 3.5 12.3 4.3 11.8 5.5L10.5 7.5C11.2 7.6 11.5 8.1 11.2 8.8L10.5 9.8C10.8 9.9 11 10.4 10.7 11L9.8 12.2C9.5 12.8 8.8 13.2 8 13.2H4.5C3.7 13.2 3 12.5 3 11.7Z"
+        d="M5.5 13 L4 13 C3 13 2.5 12 2.5 11 L2.5 9.5 C2.5 8.5 3 8 4 7.5 C4 6.5 4.5 5 5.5 4.5 L8.5 4.5 C10 4.5 11.5 5.5 12.5 7 L13.5 9 C14 10.5 13 12.5 11.5 13 Z"
         stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"
       />
+      {/* Thumb protruding left from the palm */}
+      <path
+        d="M2.5 10 C2 9.5 1.5 8.5 2 7.5 C2.5 6.5 3.5 6.5 4 7.5"
+        stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"
+      />
+      {/* Web stitching between thumb and fingers */}
+      <path
+        d="M3.5 8.5 C5 7.5 7 7.5 8.5 8"
+        stroke="currentColor" strokeWidth="1" strokeLinecap="round"
+      />
+      {/* Finger slot separators at the top of the mitt */}
+      <line x1="7.5" y1="4.5" x2="7.5" y2="7" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/>
+      <line x1="9.5" y1="4.5" x2="9.5" y2="6.5" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/>
     </svg>
   );
 }
@@ -51,13 +65,20 @@ function BatIcon({ className }: { className?: string }) {
 function CleatIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 16 16" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Shoe body: side profile — toe at left, heel at right, sole at bottom */}
       <path
-        d="M1.5 11 H13.5 C14 10 13.5 9 12.5 8.5L10 7 L9 4C8.5 3 7.2 3 6.8 4L5.5 8.5L2.5 8.5C1.5 8.5 1 9.5 1.5 11Z"
+        d="M1.5 11.5 C2.5 9.5 5 8.5 7 8.5 L10.5 8.5 C11.5 8.5 12.5 9.5 12.5 10.5 L12.5 12 L1.5 12 Z"
         stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round"
       />
-      <line x1="4" y1="11" x2="4" y2="13.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-      <line x1="7.5" y1="11" x2="7.5" y2="14" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-      <line x1="11" y1="11" x2="11" y2="13.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      {/* Ankle collar at the back of the heel */}
+      <path
+        d="M10.5 8.5 C10.5 7 11 5.5 12 5.5 C13 5.5 13.5 7 12.5 8.5"
+        stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"
+      />
+      {/* Spikes protruding down from the sole */}
+      <line x1="3.5" y1="12" x2="3.5" y2="14" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+      <line x1="6.5" y1="12" x2="6.5" y2="14.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+      <line x1="9.5" y1="12" x2="9.5" y2="14" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
     </svg>
   );
 }
