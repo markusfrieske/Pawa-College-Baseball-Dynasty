@@ -8011,48 +8011,51 @@ export async function registerRoutes(
         }
       }
 
-      for (const [coachId, acc] of coachXpAccum) {
-        const coach = await storage.getCoach(coachId);
-        if (coach) {
-          const newXp = coach.xp + acc.xp;
-          const newLevel = Math.floor(newXp / 1000) + 1;
-          const skillPointsGained = Math.max(0, newLevel - coach.level);
-          const newCareerWins = coach.careerWins + acc.wins;
-          const newConfWins = coach.confWins + acc.confWins;
-          const newConfLosses = coach.confLosses + acc.confLosses;
-          await storage.updateCoach(coach.id, {
-            xp: newXp,
-            level: newLevel,
-            skillPoints: coach.skillPoints + skillPointsGained,
-            careerWins: newCareerWins,
-            careerLosses: coach.careerLosses + acc.losses,
-            confWins: newConfWins,
-            confLosses: newConfLosses,
-            legacyScore: computeLegacyScore({ ...coach, careerWins: newCareerWins }),
-          });
-        }
-      }
+      // coaches was already fetched — build a lookup map to avoid per-coach DB round-trips
+      const coachMapForXp = new Map(coaches.map((c: any) => [c.id, c]));
+      await Promise.all([...coachXpAccum.entries()].map(async ([coachId, acc]) => {
+        const coach = coachMapForXp.get(coachId);
+        if (!coach) return;
+        const newXp = coach.xp + acc.xp;
+        const newLevel = Math.floor(newXp / 1000) + 1;
+        const skillPointsGained = Math.max(0, newLevel - coach.level);
+        const newCareerWins = coach.careerWins + acc.wins;
+        const newConfWins = coach.confWins + acc.confWins;
+        const newConfLosses = coach.confLosses + acc.confLosses;
+        await storage.updateCoach(coach.id, {
+          xp: newXp,
+          level: newLevel,
+          skillPoints: coach.skillPoints + skillPointsGained,
+          careerWins: newCareerWins,
+          careerLosses: coach.careerLosses + acc.losses,
+          confWins: newConfWins,
+          confLosses: newConfLosses,
+          legacyScore: computeLegacyScore({ ...coach, careerWins: newCareerWins }),
+        });
+      }));
 
-      // ============ AUTO-GENERATE NEWS FOR REGULAR SEASON GAMES ============
+      // ============ AUTO-GENERATE NEWS + ACTIVITY FEED (fire-and-forget) ============
+      // These are non-critical for the advance response — kick off in the background
+      // so the HTTP response is not blocked waiting for news/feed writes.
       if (incompleteGames.length > 0) {
-        try {
-          const completedThisWeek = gameResults.map(gr => ({
-            ...gr.game,
-            homeScore: gr.result.homeScore,
-            awayScore: gr.result.awayScore,
-            isComplete: true,
-            boxScore: gr.result.boxScore,
-          }));
-          await generateGameNewsArticles(leagueId, completedThisWeek, leagueTeamsForSim, league.currentSeason, currentWeek, league.currentPhase);
-          if (currentWeek % 3 === 0) {
-            await generateConferenceUpdateNews(leagueId, leagueTeamsForSim, league.currentSeason, currentWeek);
-          }
-        } catch (e) {
-          console.error("News generation error:", e);
+        const completedThisWeek = gameResults.map(gr => ({
+          ...gr.game,
+          homeScore: gr.result.homeScore,
+          awayScore: gr.result.awayScore,
+          isComplete: true,
+          boxScore: gr.result.boxScore,
+        }));
+        // News articles — fire-and-forget
+        generateGameNewsArticles(leagueId, completedThisWeek, leagueTeamsForSim, league.currentSeason, currentWeek, league.currentPhase)
+          .catch(e => console.error("News generation error:", e));
+        if (currentWeek % 3 === 0) {
+          generateConferenceUpdateNews(leagueId, leagueTeamsForSim, league.currentSeason, currentWeek)
+            .catch(e => console.error("Conference news error:", e));
         }
-        // ======= ACTIVITY FEED: log notable game results =======
+        // Activity feed — build all event payloads then batch-insert in the background
         try {
           const humanTeamIdsSet = new Set(leagueTeamsForSim.filter(t => !t.isCpu).map(t => t.id));
+          const feedEvents: any[] = [];
 
           for (const { game, result } of gameResults) {
             const homeTeamFeed = leagueTeamsForSim.find(t => t.id === game.homeTeamId);
@@ -8067,7 +8070,6 @@ export async function registerRoutes(
 
             let description = `${winner.abbreviation} def. ${loser.abbreviation} ${winScore}-${lossScore}${game.isConference ? " (Conf)" : ""}`;
             if (isRivalry) {
-              // Use priorCompletedGames (fetched before simulation) for accurate H2H record
               const h2hPrior = priorCompletedGames.filter(g =>
                 (g.homeTeamId === homeTeamFeed.id && g.awayTeamId === awayTeamFeed.id) ||
                 (g.homeTeamId === awayTeamFeed.id && g.awayTeamId === homeTeamFeed.id)
@@ -8083,7 +8085,7 @@ export async function registerRoutes(
               description = `RIVALRY: ${winner.abbreviation} ${resultFlair} ${loser.abbreviation} ${winScore}-${lossScore}${game.isConference ? " (Conf)" : ""} — Series ${winnerNewWins}-${loserPriorWins} ${winner.abbreviation}`;
             }
 
-            await storage.createLeagueEvent({
+            feedEvents.push({
               leagueId,
               teamId: winner.id,
               teamName: winner.name,
@@ -8095,6 +8097,9 @@ export async function registerRoutes(
               week: currentWeek,
             });
           }
+          // Fire-and-forget parallel inserts for all feed events
+          Promise.all(feedEvents.map(ev => storage.createLeagueEvent(ev)))
+            .catch(e => console.error("Game feed event error:", e));
         } catch (e) { console.error("Game feed event error:", e); }
       }
 
@@ -8508,11 +8513,9 @@ export async function registerRoutes(
           const finalizeResult = await finalizeDeparturesInternal(leagueId, league);
           
           // Reset departuresFinalized flags for all teams
-          for (const team of leagueTeams) {
-            if (team.departuresFinalized) {
-              await storage.updateTeam(team.id, { departuresFinalized: false });
-            }
-          }
+          await Promise.all(
+            leagueTeams.filter(t => t.departuresFinalized).map(t => storage.updateTeam(t.id, { departuresFinalized: false }))
+          );
           
           await storage.createAuditLog({
             leagueId, userId: req.session.userId,
@@ -8530,9 +8533,12 @@ export async function registerRoutes(
       }
       
       if (["offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4"].includes(league.currentPhase)) {
-        // Run CPU recruiting for leftover unsigned recruits + transfer portal
-        await runCpuRecruiting(leagueId, league.currentWeek, league.currentSeason);
-        await runCpuTransferPortalRecruiting(leagueId);
+        // Run CPU recruiting for leftover unsigned recruits + transfer portal.
+        // The two CPU recruiting tasks target independent recruit pools so they can run in parallel.
+        await Promise.all([
+          runCpuRecruiting(leagueId, league.currentWeek, league.currentSeason),
+          runCpuTransferPortalRecruiting(leagueId),
+        ]);
         await updateRecruitStages(leagueId, league.currentWeek);
         
         const phaseIndex = offseasonPhases.indexOf(league.currentPhase);
@@ -8557,10 +8563,9 @@ export async function registerRoutes(
         await processCpuWalkons(leagueId);
         
         const allTeams = await storage.getTeamsByLeague(leagueId);
-        for (const team of allTeams) {
-          // CPU teams and auto-pilot teams are immediately ready for walk-on phase
-          await storage.updateTeam(team.id, { walkonReady: team.isCpu || team.isAutoPilot });
-        }
+        await Promise.all(allTeams.map(team =>
+          storage.updateTeam(team.id, { walkonReady: !!(team.isCpu || team.isAutoPilot) })
+        ));
         
         // Clear any previous season's auction results so the /walkons/auction-results
         // endpoint never returns stale data from a prior cycle.
@@ -10950,88 +10955,109 @@ export async function registerRoutes(
 
     const eligMap: Record<string, number> = { "FR": 1, "SO": 2, "JR": 3, "SR": 4, "RS": 5 };
 
+    // Pre-load all players for the entire league at once to avoid N+1 per team
+    const allLeaguePlayers = await storage.getPlayersByLeague(leagueId);
+    const rosterByTeam = new Map<string, typeof allLeaguePlayers>();
+    for (const p of allLeaguePlayers) {
+      if (!rosterByTeam.has(p.teamId)) rosterByTeam.set(p.teamId, []);
+      rosterByTeam.get(p.teamId)!.push(p);
+    }
+
+    const historyRecords: any[] = [];
+    const playerIdsToDelete: string[] = [];
+    const transferUpdates: Array<{ id: string }> = [];
+    const retainedUpdates: Array<{ id: string }> = [];
+
     for (const team of teams) {
-      const roster = await storage.getPlayersByTeam(team.id);
+      const roster = rosterByTeam.get(team.id) ?? [];
       const pending = roster.filter(p => p.pendingDeparture && p.retentionStatus !== "retained");
 
       for (const player of pending) {
         if (player.departureType === "graduated" || player.departureType === "draft") {
-          try {
-            await storage.createPlayerHistory({
-              leagueId,
-              teamId: team.id,
-              firstName: player.firstName,
-              lastName: player.lastName,
-              position: player.position,
-              finalEligibility: player.eligibility,
-              overall: player.overall ?? 300,
-              starRating: player.starRating ?? 3,
-              signingOvr: player.signingOvr ?? player.overall ?? 300,
-              departureType: player.departureType,
-              draftRound: player.draftRound || null,
-              departedSeason: league.currentSeason,
-              seasonsPlayed: eligMap[player.eligibility] || 1,
-              abilities: player.abilities || [],
-              homeState: player.homeState || "",
-              hometown: player.hometown || "",
-            });
-          } catch (e) {
-            console.error(`Failed to create history for ${player.firstName} ${player.lastName}:`, e);
-          }
-          await storage.deletePlayer(player.id);
+          historyRecords.push({
+            leagueId,
+            teamId: team.id,
+            firstName: player.firstName,
+            lastName: player.lastName,
+            position: player.position,
+            finalEligibility: player.eligibility,
+            overall: player.overall ?? 300,
+            starRating: player.starRating ?? 3,
+            signingOvr: player.signingOvr ?? player.overall ?? 300,
+            departureType: player.departureType,
+            draftRound: player.draftRound || null,
+            departedSeason: league.currentSeason,
+            seasonsPlayed: eligMap[player.eligibility] || 1,
+            abilities: player.abilities || [],
+            homeState: player.homeState || "",
+            hometown: player.hometown || "",
+          });
+          playerIdsToDelete.push(player.id);
           if (player.departureType === "graduated") totalGraduated++;
           else totalDrafted++;
         } else if (player.departureType === "transfer") {
-          try {
-            await storage.createPlayerHistory({
-              leagueId,
-              teamId: team.id,
-              firstName: player.firstName,
-              lastName: player.lastName,
-              position: player.position,
-              finalEligibility: player.eligibility,
-              overall: player.overall ?? 300,
-              starRating: player.starRating ?? 3,
-              signingOvr: player.signingOvr ?? player.overall ?? 300,
-              departureType: "transfer_portal",
-              departedSeason: league.currentSeason,
-              seasonsPlayed: eligMap[player.eligibility] || 1,
-              abilities: player.abilities || [],
-              homeState: player.homeState || "",
-              hometown: player.hometown || "",
-            });
-          } catch (e) {
-            console.error(`Failed to create transfer history for ${player.firstName} ${player.lastName}:`, e);
-          }
-          await storage.updatePlayer(player.id, {
-            pendingDeparture: false,
-            retentionStatus: null,
-            inTransferPortal: true,
+          historyRecords.push({
+            leagueId,
+            teamId: team.id,
+            firstName: player.firstName,
+            lastName: player.lastName,
+            position: player.position,
+            finalEligibility: player.eligibility,
+            overall: player.overall ?? 300,
+            starRating: player.starRating ?? 3,
+            signingOvr: player.signingOvr ?? player.overall ?? 300,
+            departureType: "transfer_portal",
+            departedSeason: league.currentSeason,
+            seasonsPlayed: eligMap[player.eligibility] || 1,
+            abilities: player.abilities || [],
+            homeState: player.homeState || "",
+            hometown: player.hometown || "",
           });
+          transferUpdates.push({ id: player.id });
           totalTransferred++;
         }
       }
 
       const retained = roster.filter(p => p.pendingDeparture && p.retentionStatus === "retained");
       for (const player of retained) {
-        await storage.updatePlayer(player.id, {
-          pendingDeparture: false,
-          departureType: null,
-          draftRound: null,
-        });
+        retainedUpdates.push({ id: player.id });
       }
     }
+
+    // Batch-insert all history records, batch-delete all departing players, and
+    // run transfer/retained player updates in parallel
+    await Promise.all([
+      storage.batchCreatePlayerHistories(historyRecords),
+      storage.batchDeletePlayers(playerIdsToDelete),
+      Promise.all(transferUpdates.map(u => storage.updatePlayer(u.id, {
+        pendingDeparture: false,
+        retentionStatus: null,
+        inTransferPortal: true,
+      }))),
+      Promise.all(retainedUpdates.map(u => storage.updatePlayer(u.id, {
+        pendingDeparture: false,
+        departureType: null,
+        draftRound: null,
+      }))),
+    ]);
 
     // Add transfer portal players to the existing recruiting pool as TRANSFER recruits
     const existingRecruits = await storage.getRecruitsByLeague(leagueId);
     const existingSourceIds = new Set(existingRecruits.filter(r => r.sourcePlayerId).map(r => r.sourcePlayerId));
-    
-    const allTeamsForTransfers = await storage.getTeamsByLeague(leagueId);
+
+    // Re-use the already-loaded league players; refresh portal status after updates above
+    const allTeamsForTransfers = teams;
+    const allPlayersAfterUpdate = await storage.getPlayersByLeague(leagueId);
+    const portalByTeam = new Map<string, typeof allPlayersAfterUpdate>();
+    for (const p of allPlayersAfterUpdate) {
+      if (!portalByTeam.has(p.teamId)) portalByTeam.set(p.teamId, []);
+      portalByTeam.get(p.teamId)!.push(p);
+    }
+
     const transfersToAdd: Array<{ player: any; teamName: string }> = [];
     
     for (const team of allTeamsForTransfers) {
-      const roster = await storage.getPlayersByTeam(team.id);
-      const portalPlayers = roster.filter(p => p.inTransferPortal);
+      const portalPlayers = (portalByTeam.get(team.id) ?? []).filter(p => p.inTransferPortal);
       for (const player of portalPlayers) {
         if (!existingSourceIds.has(player.id)) {
           transfersToAdd.push({ player, teamName: team.name });
@@ -15200,15 +15226,33 @@ export async function registerRoutes(
     const recruits = await storage.getRecruitsByLeague(leagueId);
     const unsignedRecruits = recruits.filter(r => !r.signedTeamId);
 
-    // Storyline recruits commit later — fetch their IDs once for the whole batch
+    // Pre-load everything needed for the loop in parallel — eliminates N+1 queries
     const league = await storage.getLeague(leagueId);
-    const storylineRecruits = league
-      ? await storage.getStorylineRecruitsByLeague(leagueId, league.currentSeason)
-      : [];
-    const storylineRecruitIds = new Set(storylineRecruits.map(sl => sl.recruitId));
+    const [allLeagueInterests, allLeaguePlayers, allLeagueTeams, storylineRecruitsData] = await Promise.all([
+      storage.getRecruitingInterestsByLeague(leagueId),
+      storage.getPlayersByLeague(leagueId),
+      storage.getTeamsByLeague(leagueId),
+      league ? storage.getStorylineRecruitsByLeague(leagueId, league.currentSeason) : Promise.resolve([]),
+    ]);
+
+    // Group interests by recruitId in memory
+    const interestsByRecruit = new Map<string, typeof allLeagueInterests>();
+    for (const interest of allLeagueInterests) {
+      if (!interestsByRecruit.has(interest.recruitId)) interestsByRecruit.set(interest.recruitId, []);
+      interestsByRecruit.get(interest.recruitId)!.push(interest);
+    }
+
+    // Group players by teamId in memory
+    const playersByTeam = new Map<string, typeof allLeaguePlayers>();
+    for (const player of allLeaguePlayers) {
+      if (!playersByTeam.has(player.teamId)) playersByTeam.set(player.teamId, []);
+      playersByTeam.get(player.teamId)!.push(player);
+    }
+
+    const storylineRecruitIds = new Set(storylineRecruitsData.map(sl => sl.recruitId));
     
     for (const recruit of unsignedRecruits) {
-      const allInterests = await storage.getRecruitingInterestsByRecruit(recruit.id);
+      const allInterests = interestsByRecruit.get(recruit.id) ?? [];
       if (allInterests.length === 0) continue;
       
       const sortedInterests = allInterests
@@ -15252,7 +15296,7 @@ export async function registerRoutes(
         if (newStage === "verbal") {
           const topSchool = sortedInterests.filter(i => i.hasOffer).sort((a, b) => (b.interestLevel || 0) - (a.interestLevel || 0))[0];
           if (topSchool && topSchool.interestLevel >= signInterest) {
-            const teamRoster = await storage.getPlayersByTeam(topSchool.teamId);
+            const teamRoster = playersByTeam.get(topSchool.teamId) ?? [];
             const teamCommits = recruits.filter(r => r.signedTeamId === topSchool.teamId).length;
             const departing = teamRoster.filter(p => p.pendingDeparture && p.retentionStatus !== "retained").length;
             const portal = teamRoster.filter(p => p.inTransferPortal).length;
@@ -15270,7 +15314,7 @@ export async function registerRoutes(
       if (currentStage === "verbal") {
         const topSchoolWithOffer = sortedInterests.filter(i => i.hasOffer).sort((a, b) => (b.interestLevel || 0) - (a.interestLevel || 0))[0];
         if (topSchoolWithOffer && topSchoolWithOffer.interestLevel >= signInterest) {
-          const teamRoster = await storage.getPlayersByTeam(topSchoolWithOffer.teamId);
+          const teamRoster = playersByTeam.get(topSchoolWithOffer.teamId) ?? [];
           const teamCommits = recruits.filter(r => r.signedTeamId === topSchoolWithOffer.teamId).length;
           const departing = teamRoster.filter(p => p.pendingDeparture && p.retentionStatus !== "retained").length;
           const portal = teamRoster.filter(p => p.inTransferPortal).length;
@@ -15297,10 +15341,8 @@ export async function registerRoutes(
           if (gap < FLIP_THRESHOLD && (rival.interestLevel || 0) > 40 && Math.random() < 0.35) {
             await storage.updateRecruit(recruit.id, { stage: "top3" });
             try {
-              const leagueForDecommit = await storage.getLeague(leagueId);
-              const teamsForDecommit = await storage.getTeamsByLeague(leagueId);
-              const leaderTeam = teamsForDecommit.find(t => t.id === leader.teamId);
-              const rivalTeam = teamsForDecommit.find(t => t.id === rival.teamId);
+              const leaderTeam = allLeagueTeams.find(t => t.id === leader.teamId);
+              const rivalTeam = allLeagueTeams.find(t => t.id === rival.teamId);
               if (leaderTeam) {
                 await storage.createLeagueEvent({
                   leagueId,
@@ -15309,7 +15351,7 @@ export async function registerRoutes(
                   teamAbbreviation: leaderTeam.abbreviation || leaderTeam.name.slice(0, 4).toUpperCase(),
                   eventType: "DECOMMIT",
                   description: `${recruit.firstName} ${recruit.lastName} (${recruit.position}, ${recruit.starRating ?? 0}★) decommitted from ${leaderTeam.name} — ${rivalTeam?.name ?? "a rival"} is closing the gap`,
-                  season: leagueForDecommit?.currentSeason ?? 1,
+                  season: league?.currentSeason ?? 1,
                   week,
                   metadata: { recruitId: recruit.id, alertType: "lost", leaderTeamName: leaderTeam.name, rivalTeamName: rivalTeam?.name ?? null },
                 });
@@ -15322,7 +15364,7 @@ export async function registerRoutes(
                   teamAbbreviation: rivalTeam.abbreviation || rivalTeam.name.slice(0, 4).toUpperCase(),
                   eventType: "DECOMMIT",
                   description: `${recruit.firstName} ${recruit.lastName} (${recruit.position}, ${recruit.starRating ?? 0}★) decommitted from ${leaderTeam.name} and is now showing increased interest in ${rivalTeam.name}`,
-                  season: leagueForDecommit?.currentSeason ?? 1,
+                  season: league?.currentSeason ?? 1,
                   week,
                   metadata: { recruitId: recruit.id, alertType: "gain", leaderTeamName: leaderTeam.name, rivalTeamName: rivalTeam.name },
                 });

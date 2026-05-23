@@ -828,7 +828,9 @@ export const recruitingActionsLog = pgTable("recruiting_actions_log", {
   notes: text("notes"),
   isAutoPilot: boolean("is_auto_pilot").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (t) => ({
+  idx_recruiting_actions_team_league_season: index("idx_recruiting_actions_team_league_season").on(t.teamId, t.leagueId, t.season),
+}));
 
 export const insertRecruitingActionsLogSchema = createInsertSchema(recruitingActionsLog).pick({
   recruitId: true,

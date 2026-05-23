@@ -168,7 +168,9 @@ export interface IStorage {
   deleteTransferPortalInterestsByPlayer(playerId: string): Promise<void>;
 
   deletePlayer(id: string): Promise<void>;
+  batchDeletePlayers(ids: string[]): Promise<void>;
   createPlayerHistory(data: InsertPlayerHistory): Promise<PlayerHistory>;
+  batchCreatePlayerHistories(records: InsertPlayerHistory[]): Promise<void>;
   getPlayerHistoryByLeague(leagueId: string): Promise<PlayerHistory[]>;
   getPlayerHistoryByTeam(teamId: string): Promise<PlayerHistory[]>;
   deleteLeague(id: string): Promise<void>;
@@ -922,9 +924,24 @@ export class DatabaseStorage implements IStorage {
     await db.delete(players).where(eq(players.id, id));
   }
 
+  async batchDeletePlayers(ids: string[]): Promise<void> {
+    if (ids.length === 0) return;
+    await db.delete(transferPortalInterests).where(inArray(transferPortalInterests.playerId, ids));
+    await db.delete(playerPromises).where(inArray(playerPromises.playerId, ids));
+    await db.delete(players).where(inArray(players.id, ids));
+  }
+
   async createPlayerHistory(data: InsertPlayerHistory): Promise<PlayerHistory> {
     const [history] = await db.insert(playerHistory).values(data).returning();
     return history;
+  }
+
+  async batchCreatePlayerHistories(records: InsertPlayerHistory[]): Promise<void> {
+    if (records.length === 0) return;
+    const CHUNK = 100;
+    for (let i = 0; i < records.length; i += CHUNK) {
+      await db.insert(playerHistory).values(records.slice(i, i + CHUNK));
+    }
   }
 
   async getPlayerHistoryByLeague(leagueId: string): Promise<PlayerHistory[]> {
