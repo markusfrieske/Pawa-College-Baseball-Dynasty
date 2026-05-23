@@ -9598,10 +9598,16 @@ export async function registerRoutes(
     standingsList: { teamId: string; wins: number; losses: number; runsScored: number }[],
     confChampionIds: Set<string>
   ) {
+    const winPct = (w: number, l: number) => (w + l) > 0 ? w / (w + l) : 0;
     const withRecord = leagueTeams.map(t => {
       const s = standingsList.find(st => st.teamId === t.id);
       return { team: t as any, wins: s?.wins || 0, losses: s?.losses || 0, runsScored: s?.runsScored || 0 };
-    }).sort((a, b) => b.wins - a.wins || a.losses - b.losses || b.runsScored - a.runsScored);
+    }).sort((a, b) => {
+      const pctDiff = winPct(b.wins, b.losses) - winPct(a.wins, a.losses);
+      if (Math.abs(pctDiff) > 1e-9) return pctDiff;
+      return b.runsScored - a.runsScored;
+    });
+    // Conf champions first (ordered by win%), then at-large (ordered by win%)
     const confChamps = withRecord.filter(t => confChampionIds.has(t.team.id));
     const atLarge  = withRecord.filter(t => !confChampionIds.has(t.team.id));
     return [...confChamps, ...atLarge];

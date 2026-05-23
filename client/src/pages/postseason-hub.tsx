@@ -446,7 +446,7 @@ function ConfChampSection({
         </div>
       </div>
 
-      {/* Mini standings */}
+      {/* Conf standings — all teams */}
       {standings && (
         <div className="border-t border-border/40 px-3 py-2">
           <p className="text-[7px] font-pixel text-muted-foreground uppercase mb-1">Conf Standings</p>
@@ -454,20 +454,24 @@ function ConfChampSection({
             <thead>
               <tr className="text-[8px] text-muted-foreground">
                 <th className="text-left font-normal py-0.5">Team</th>
-                <th className="text-center font-normal w-7">CW</th>
-                <th className="text-center font-normal w-7">CL</th>
+                <th className="text-center font-normal w-12">Conf</th>
+                <th className="text-center font-normal w-10">Pct</th>
                 <th className="text-right font-normal w-12">Overall</th>
               </tr>
             </thead>
             <tbody>
-              {standings.teams.slice(0, 4).map(row => (
-                <tr key={row.teamId} className="border-t border-border/20">
-                  <td className="py-0.5 truncate max-w-[90px]">{row.abbreviation}</td>
-                  <td className="text-center">{row.confWins}</td>
-                  <td className="text-center">{row.confLosses}</td>
-                  <td className="text-right text-muted-foreground">{row.wins}-{row.losses}</td>
-                </tr>
-              ))}
+              {standings.teams.map(row => {
+                const total = row.confWins + row.confLosses;
+                const pct = total > 0 ? (row.confWins / total).toFixed(3) : ".000";
+                return (
+                  <tr key={row.teamId} className="border-t border-border/20">
+                    <td className="py-0.5 truncate max-w-[90px]">{row.abbreviation}</td>
+                    <td className="text-center">{row.confWins}-{row.confLosses}</td>
+                    <td className="text-center text-muted-foreground">{pct}</td>
+                    <td className="text-right text-muted-foreground">{row.wins}-{row.losses}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
