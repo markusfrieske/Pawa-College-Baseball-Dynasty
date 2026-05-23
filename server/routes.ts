@@ -7782,37 +7782,9 @@ export async function registerRoutes(
       const nextWeek = currentWeek + 1;
 
       // ============ POWER RANKINGS SNAPSHOT ============
-      // Capture rankings before any changes so the next view can show week-over-week movement
+      // Capture rankings before any changes via SQL aggregation (3 aggregate queries vs 3 full-table loads)
       try {
-        const snapPlayers = await storage.getPlayersByLeague(leagueId);
-        const snapRecruits = await storage.getRecruitsByLeague(leagueId);
-        const snapTeams = await storage.getTeamsByLeague(leagueId);
-        const snapPlayersByTeam = new Map<string, typeof snapPlayers>();
-        for (const p of snapPlayers) {
-          if (!snapPlayersByTeam.has(p.teamId)) snapPlayersByTeam.set(p.teamId, []);
-          snapPlayersByTeam.get(p.teamId)!.push(p);
-        }
-        const snapSignedByTeam = new Map<string, typeof snapRecruits>();
-        for (const r of snapRecruits) {
-          if (r.signedTeamId) {
-            if (!snapSignedByTeam.has(r.signedTeamId)) snapSignedByTeam.set(r.signedTeamId, []);
-            snapSignedByTeam.get(r.signedTeamId)!.push(r);
-          }
-        }
-        const avg = (nums: number[]) => nums.length === 0 ? 0 : Math.round(nums.reduce((s, v) => s + v, 0) / nums.length);
-        const snapRanked = snapTeams.map(team => {
-          const players = snapPlayersByTeam.get(team.id) || [];
-          const pitchers = players.filter(p => p.position === "P");
-          const hitters = players.filter(p => p.position !== "P");
-          const signed = snapSignedByTeam.get(team.id) || [];
-          const rosterOvr = avg(players.map(p => p.overall));
-          const pitchingOvr = avg(pitchers.map(p => p.overall));
-          const hittingOvr = avg(hitters.map(p => p.overall));
-          const recruitingScore = avg(signed.map(r => r.overall));
-          const composite = Math.round(rosterOvr * 0.4 + pitchingOvr * 0.3 + hittingOvr * 0.2 + recruitingScore * 0.1);
-          return { teamId: team.id, composite };
-        }).sort((a, b) => b.composite - a.composite);
-        const snapshot = snapRanked.map((t, i) => ({ teamId: t.teamId, rank: i + 1 }));
+        const snapshot = await storage.computeLeaguePowerRankings(leagueId);
         await storage.updateLeague(leagueId, { prevPowerRankings: snapshot } as any);
       } catch (snapErr) {
         console.error("[power-rankings-snapshot] Failed to snapshot rankings:", snapErr);
@@ -8337,16 +8309,19 @@ export async function registerRoutes(
             // (All-American + All-Conference teams, both built via positional slot logic)
             try {
               const aaSelections = await countAllAmericanSelectionsForLeague(leagueId);
-              for (const [tId, aaCount] of aaSelections.entries()) {
+              const aaCoachIds = [...aaSelections.keys()]
+                .map(tId => leagueTeams.find(t => t.id === tId)?.coachId)
+                .filter(Boolean) as string[];
+              const aaCoaches = await Promise.all(aaCoachIds.map(id => storage.getCoach(id)));
+              const aaCoachMap = new Map(aaCoaches.filter(Boolean).map(c => [c!.id, c!]));
+              await Promise.all([...aaSelections.entries()].map(async ([tId, aaCount]) => {
                 const aaTeamEntry = leagueTeams.find(t => t.id === tId);
-                if (aaTeamEntry?.coachId) {
-                  const aaCoach = await storage.getCoach(aaTeamEntry.coachId);
-                  if (aaCoach) {
-                    const newAAs = aaCoach.allAmericans + aaCount;
-                    await storage.updateCoach(aaCoach.id, { allAmericans: newAAs, legacyScore: computeLegacyScore({ ...aaCoach, allAmericans: newAAs }) });
-                  }
-                }
-              }
+                if (!aaTeamEntry?.coachId) return;
+                const aaCoach = aaCoachMap.get(aaTeamEntry.coachId);
+                if (!aaCoach) return;
+                const newAAs = aaCoach.allAmericans + aaCount;
+                await storage.updateCoach(aaCoach.id, { allAmericans: newAAs, legacyScore: computeLegacyScore({ ...aaCoach, allAmericans: newAAs }) });
+              }));
             } catch (e) { console.error("All-Americans coach stats error:", e); }
 
             // Resolve any unresolved storyline arcs before entering offseason.
@@ -8379,9 +8354,14 @@ export async function registerRoutes(
             // Emit season award events (MVP, Pitcher of Year, Freshman of Year)
             try {
               const allSeasonPlayers: { player: any; team: any }[] = [];
+              const cwsAllPlayers = await storage.getPlayersByLeague(leagueId);
+              const cwsPlayersByTeam = new Map<string, typeof cwsAllPlayers>();
+              for (const p of cwsAllPlayers) {
+                if (!cwsPlayersByTeam.has(p.teamId)) cwsPlayersByTeam.set(p.teamId, []);
+                cwsPlayersByTeam.get(p.teamId)!.push(p);
+              }
               for (const t of leagueTeams) {
-                const roster = await storage.getPlayersByTeam(t.id);
-                for (const p of roster) allSeasonPlayers.push({ player: p, team: t });
+                for (const p of cwsPlayersByTeam.get(t.id) ?? []) allSeasonPlayers.push({ player: p, team: t });
               }
               const byOVR = (a: any, b: any) => b.player.overall - a.player.overall;
               const mvpEntry = allSeasonPlayers.filter(x => x.player.position !== "P").sort(byOVR)[0];
@@ -8424,9 +8404,8 @@ export async function registerRoutes(
                 action: "Offseason: Departures Phase",
                 details: `${departureResult.graduated} graduating, ${departureResult.draftDeclared} draft eligible, ${departureResult.transferPortal} considering transfer. Review departures before finalizing.`,
               });
-              try {
-                await generateDeparturesSummaryNews(leagueId, league.currentSeason, departureResult.graduated, departureResult.draftDeclared, departureResult.transferPortal);
-              } catch (e) { console.error("Departures news error:", e); }
+              generateDeparturesSummaryNews(leagueId, league.currentSeason, departureResult.graduated, departureResult.draftDeclared, departureResult.transferPortal)
+                .catch(e => console.error("Departures news error:", e));
             } catch (e) {
               console.error("Auto-process departures error:", e);
             }
@@ -8481,11 +8460,8 @@ export async function registerRoutes(
             details: `${departureResult.graduated} graduating, ${departureResult.draftDeclared} draft eligible, ${departureResult.transferPortal} considering transfer. Review departures before finalizing.`,
           });
 
-          try {
-            await generateDeparturesSummaryNews(leagueId, league.currentSeason, departureResult.graduated, departureResult.draftDeclared, departureResult.transferPortal);
-          } catch (e) {
-            console.error("Departures news error:", e);
-          }
+          generateDeparturesSummaryNews(leagueId, league.currentSeason, departureResult.graduated, departureResult.draftDeclared, departureResult.transferPortal)
+            .catch(e => console.error("Departures news error:", e));
           
           return res.json({ 
             ...league, 
@@ -8610,13 +8586,19 @@ export async function registerRoutes(
         });
 
         try {
-          const allTeamsForLineup = await storage.getTeamsByLeague(leagueId);
-          for (const team of allTeamsForLineup) {
-            if (!team.userId || team.userId === "cpu") {
-              const teamPlayers = await storage.getPlayersByTeam(team.id);
-              await autoAssignLineup(storage, teamPlayers, team.id);
-            }
+          const [allTeamsForLineup, allPlayersForLineup] = await Promise.all([
+            storage.getTeamsByLeague(leagueId),
+            storage.getPlayersByLeague(leagueId),
+          ]);
+          const lineupPlayersByTeam = new Map<string, typeof allPlayersForLineup>();
+          for (const p of allPlayersForLineup) {
+            if (!lineupPlayersByTeam.has(p.teamId)) lineupPlayersByTeam.set(p.teamId, []);
+            lineupPlayersByTeam.get(p.teamId)!.push(p);
           }
+          await Promise.all(allTeamsForLineup
+            .filter(team => !team.userId || team.userId === "cpu")
+            .map(team => autoAssignLineup(storage, lineupPlayersByTeam.get(team.id) ?? [], team.id))
+          );
         } catch (e) {
           console.error("CPU auto-lineup error:", e);
         }
@@ -8628,12 +8610,9 @@ export async function registerRoutes(
           details: `Season ${league.currentSeason} ended. ${walkonResult.walkonsAdded} walk-ons joined rosters, ${walkonResult.newRecruits} new recruits generated. Now entering Season ${league.currentSeason + 1}.`,
         });
 
-        try {
-          const previewTeams = await storage.getTeamsByLeague(leagueId);
-          await generateSeasonPreviewNewsArticle(leagueId, previewTeams, league.currentSeason + 1);
-        } catch (e) {
-          console.error("Season preview news error:", e);
-        }
+        storage.getTeamsByLeague(leagueId).then(previewTeams =>
+          generateSeasonPreviewNewsArticle(leagueId, previewTeams, league.currentSeason + 1)
+        ).catch(e => console.error("Season preview news error:", e));
 
         return res.json({ ...updatedLeague, seasonTransition: walkonResult });
       }
@@ -9135,13 +9114,19 @@ export async function registerRoutes(
         })) as any;
 
         try {
-          const allTeamsForLineup = await storage.getTeamsByLeague(leagueId);
-          for (const team of allTeamsForLineup) {
-            if (!team.userId || team.userId === "cpu") {
-              const teamPlayers = await storage.getPlayersByTeam(team.id);
-              await autoAssignLineup(storage, teamPlayers, team.id);
-            }
+          const [allTeamsForLineup, allPlayersForLineup] = await Promise.all([
+            storage.getTeamsByLeague(leagueId),
+            storage.getPlayersByLeague(leagueId),
+          ]);
+          const lineupPlayersByTeam = new Map<string, typeof allPlayersForLineup>();
+          for (const p of allPlayersForLineup) {
+            if (!lineupPlayersByTeam.has(p.teamId)) lineupPlayersByTeam.set(p.teamId, []);
+            lineupPlayersByTeam.get(p.teamId)!.push(p);
           }
+          await Promise.all(allTeamsForLineup
+            .filter(team => !team.userId || team.userId === "cpu")
+            .map(team => autoAssignLineup(storage, lineupPlayersByTeam.get(team.id) ?? [], team.id))
+          );
         } catch (e) {
           console.error("CPU auto-lineup error:", e);
         }
@@ -9338,13 +9323,19 @@ export async function registerRoutes(
           currentPhase: "spring_training",
         })) as any;
         try {
-          const allTeamsForLineup = await storage.getTeamsByLeague(leagueId);
-          for (const team of allTeamsForLineup) {
-            if (!team.userId || team.userId === "cpu") {
-              const teamPlayers = await storage.getPlayersByTeam(team.id);
-              await autoAssignLineup(storage, teamPlayers, team.id);
-            }
+          const [allTeamsForLineup, allPlayersForLineup] = await Promise.all([
+            storage.getTeamsByLeague(leagueId),
+            storage.getPlayersByLeague(leagueId),
+          ]);
+          const lineupPlayersByTeam = new Map<string, typeof allPlayersForLineup>();
+          for (const p of allPlayersForLineup) {
+            if (!lineupPlayersByTeam.has(p.teamId)) lineupPlayersByTeam.set(p.teamId, []);
+            lineupPlayersByTeam.get(p.teamId)!.push(p);
           }
+          await Promise.all(allTeamsForLineup
+            .filter(team => !team.userId || team.userId === "cpu")
+            .map(team => autoAssignLineup(storage, lineupPlayersByTeam.get(team.id) ?? [], team.id))
+          );
         } catch (e) { console.error("Auto-lineup error:", e); }
         seasonTransition = { ...signingResult, ...walkonResult };
       }

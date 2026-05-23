@@ -171,6 +171,7 @@ export interface IStorage {
   batchDeletePlayers(ids: string[]): Promise<void>;
   createPlayerHistory(data: InsertPlayerHistory): Promise<PlayerHistory>;
   batchCreatePlayerHistories(records: InsertPlayerHistory[]): Promise<void>;
+  computeLeaguePowerRankings(leagueId: string): Promise<Array<{ teamId: string; rank: number }>>;
   getPlayerHistoryByLeague(leagueId: string): Promise<PlayerHistory[]>;
   getPlayerHistoryByTeam(teamId: string): Promise<PlayerHistory[]>;
   deleteLeague(id: string): Promise<void>;
@@ -942,6 +943,52 @@ export class DatabaseStorage implements IStorage {
     for (let i = 0; i < records.length; i += CHUNK) {
       await db.insert(playerHistory).values(records.slice(i, i + CHUNK));
     }
+  }
+
+  async computeLeaguePowerRankings(leagueId: string): Promise<Array<{ teamId: string; rank: number }>> {
+    const [playerRows, recruitRows, teamRows] = await Promise.all([
+      db.execute(sql`
+        SELECT p.team_id,
+               AVG(p.overall)::integer AS roster_ovr,
+               AVG(CASE WHEN p.position = 'P' THEN p.overall END)::integer AS pitching_ovr,
+               AVG(CASE WHEN p.position <> 'P' THEN p.overall END)::integer AS hitting_ovr
+        FROM players p
+        INNER JOIN teams t ON t.id = p.team_id
+        WHERE t.league_id = ${leagueId}
+        GROUP BY p.team_id
+      `),
+      db.execute(sql`
+        SELECT signed_team_id AS team_id,
+               AVG(overall)::integer AS recruiting_score
+        FROM recruits
+        WHERE league_id = ${leagueId}
+          AND signed_team_id IS NOT NULL
+        GROUP BY signed_team_id
+      `),
+      db.execute(sql`SELECT id FROM teams WHERE league_id = ${leagueId}`),
+    ]);
+
+    const playerMap = new Map<string, { roster: number; pitching: number; hitting: number }>();
+    for (const row of playerRows.rows as any[]) {
+      playerMap.set(row.team_id, {
+        roster: row.roster_ovr ?? 0,
+        pitching: row.pitching_ovr ?? 0,
+        hitting: row.hitting_ovr ?? 0,
+      });
+    }
+    const recruitMap = new Map<string, number>();
+    for (const row of recruitRows.rows as any[]) {
+      recruitMap.set(row.team_id, row.recruiting_score ?? 0);
+    }
+
+    const ranked = (teamRows.rows as any[]).map((t: any) => {
+      const stats = playerMap.get(t.id) ?? { roster: 0, pitching: 0, hitting: 0 };
+      const recruitScore = recruitMap.get(t.id) ?? 0;
+      const composite = Math.round(stats.roster * 0.4 + stats.pitching * 0.3 + stats.hitting * 0.2 + recruitScore * 0.1);
+      return { teamId: t.id, composite };
+    }).sort((a, b) => b.composite - a.composite);
+
+    return ranked.map((t, i) => ({ teamId: t.teamId, rank: i + 1 }));
   }
 
   async getPlayerHistoryByLeague(leagueId: string): Promise<PlayerHistory[]> {
