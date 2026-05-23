@@ -23,7 +23,7 @@ import {
   generateConferenceUpdateNews,
   generateDeparturesSummaryNews,
 } from "./news-engine";
-import { SEC_REAL_ROSTERS } from "./realRosters";
+import { SEC_REAL_ROSTERS, ALL_REAL_ROSTERS } from "./realRosters";
 import { generateRecruitClass, selectTools, genToolAttr, HITTER_TOOL_GROUPS, PITCHER_TOOL_GROUPS } from "./recruit-generator";
 import { normalizeCommonAbilities } from "./normalizeCommonAbilities";
 import { validateLeagueRosters, checkTeamRosterStructure } from "./rosterValidation";
@@ -825,6 +825,139 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to fetch dashboard overview:", error);
       res.status(500).json({ message: "Failed to fetch dashboard overview" });
+    }
+  });
+
+  // Static scouting data for all team templates — no auth required, purely derived from hardcoded rosters
+  app.get("/api/team-templates/scouting", async (_req, res) => {
+    try {
+      const ALL_CONF_NAMES = ["SEC", "ACC", "Big 12", "Big Ten", "Pac-12", "AAC", "WCC", "Mountain West", "Ivy League", "Sun Belt", "Big West", "HBCU", "Missouri Valley"];
+
+      const STATE_WEIGHTS: Record<string, number> = {
+        CA: 24, TX: 19, FL: 16, GA: 6.5, NC: 4, NJ: 2.5, IL: 2.3, PA: 2.0, OH: 1.8,
+        TN: 1.7, AZ: 1.5, MD: 1.5, VA: 1.4, SC: 1.3, AL: 1.2, LA: 1.1, IN: 0.9,
+        WA: 0.9, CO: 0.8, MA: 0.8, CT: 0.7, MS: 0.7, KY: 0.6, OK: 0.5, MO: 0.5,
+        KS: 0.5, UT: 0.4, AR: 0.4, MN: 0.4, MI: 0.4, WI: 0.4, NM: 0.3, NY: 0.3,
+        NE: 0.3, OR: 0.3, RI: 0.2, ID: 0.2, NV: 0.2, HI: 0.2, WV: 0.2, IA: 0.2,
+        DE: 0.1, NH: 0.1, ME: 0.1, VT: 0.1, ND: 0.1, SD: 0.1, WY: 0.1, MT: 0.1, AK: 0.1,
+      };
+
+      const REGIONS: string[][] = [
+        ["FL", "GA", "NC", "SC", "AL", "TN", "VA", "MS", "KY", "WV", "AR"],
+        ["TX", "LA", "OK", "AR", "MS"],
+        ["CA", "WA", "OR", "NV"],
+        ["AZ", "NM", "CO", "UT", "NV", "ID"],
+        ["OH", "IN", "IL", "MI", "WI", "MN", "IA", "MO"],
+        ["KS", "NE", "ND", "SD", "MN", "IA", "MO"],
+        ["PA", "NJ", "NY", "MD", "DE", "VA", "WV"],
+        ["MA", "CT", "RI", "NH", "VT", "ME"],
+      ];
+
+      function recruitAdv(state: string) {
+        const direct = STATE_WEIGHTS[state] ?? 0.1;
+        let bonus = 0;
+        for (const region of REGIONS) {
+          if (region.includes(state)) {
+            for (const s of region) {
+              if (s !== state) bonus += (STATE_WEIGHTS[s] ?? 0.1) * 0.4;
+            }
+          }
+        }
+        const score = Math.min(10, Math.round((direct + bonus) * 0.4));
+        const letter = score >= 9 ? "A+" : score >= 8 ? "A" : score >= 7 ? "B+" : score >= 6 ? "B" : score >= 5 ? "C+" : score >= 4 ? "C" : score >= 3 ? "D+" : score >= 2 ? "D" : "F";
+        const label = score >= 9 ? "Elite" : score >= 7 ? "Very High" : score >= 5 ? "High" : score >= 3 ? "Average" : "Low";
+        return { grade: letter, label, score };
+      }
+
+      function attrGrade(val: number) {
+        const s = val >= 70 ? 10 : val >= 65 ? 9 : val >= 60 ? 8 : val >= 55 ? 7 : val >= 50 ? 6 : val >= 45 ? 5 : val >= 40 ? 4 : val >= 35 ? 3 : 2;
+        const l = s >= 10 ? "A+" : s >= 9 ? "A" : s >= 8 ? "B+" : s >= 7 ? "B" : s >= 6 ? "C+" : s >= 5 ? "C" : s >= 4 ? "D+" : s >= 3 ? "D" : "F";
+        return { letter: l, score: s };
+      }
+
+      function mean(arr: number[]) {
+        return arr.length === 0 ? 0 : arr.reduce((a, b) => a + b, 0) / arr.length;
+      }
+
+      // Build conference → team name list and template metadata map
+      const confMap = new Map<string, string[]>();
+      const tmplMap = new Map<string, { city: string; state: string; nilBudget: number; prestige: number; conference: string }>();
+      for (const cn of ALL_CONF_NAMES) {
+        const ts = getTeamsForConference(cn);
+        confMap.set(cn, ts.map(t => t.name));
+        for (const t of ts) tmplMap.set(t.name, { city: t.city, state: t.state, nilBudget: t.nilBudget, prestige: t.prestige, conference: cn });
+      }
+
+      type PlayerInfo = { name: string; position: string; eligibility: string; overall: number; starRating: number };
+      const statsList: Array<{
+        teamName: string; rosterScore: number;
+        pitchingScore: number; hittingScore: number; fieldingScore: number; speedScore: number;
+        topFielder: PlayerInfo | null; topPitcher: PlayerInfo | null; topUnderclassman: PlayerInfo | null;
+      }> = [];
+
+      for (const [teamName, roster] of Object.entries(ALL_REAL_ROSTERS)) {
+        const pitchers = roster.filter(p => p.position === "P");
+        const hitters = roster.filter(p => p.position !== "P");
+
+        const withOvr = roster.map(p => {
+          const ovr = calculateOVR(p as Parameters<typeof calculateOVR>[0]);
+          return { ...p, computedOvr: ovr, star: getStarRatingFromOVR(ovr) };
+        });
+
+        const rosterScore = mean(withOvr.map(p => p.computedOvr));
+        const pitchingScore = mean(pitchers.flatMap(p => [p.velocity ?? 50, p.control ?? 50, p.stamina ?? 50, p.stuff ?? 50]));
+        const hittingScore = mean(hitters.flatMap(p => [p.hitForAvg ?? 50, p.power ?? 50]));
+        const fieldingScore = mean(hitters.flatMap(p => [p.fielding ?? 50, p.arm ?? 50, p.errorResistance ?? 50]));
+        const speedScore = mean(hitters.flatMap(p => [p.speed ?? 50, p.stealing ?? 50]));
+
+        const sorted = (arr: typeof withOvr) => [...arr].sort((a, b) => b.computedOvr - a.computedOvr);
+        const mkInfo = (p: (typeof withOvr)[0] | undefined): PlayerInfo | null =>
+          p ? { name: `${p.firstName} ${p.lastName}`, position: p.position, eligibility: (p as any).eligibility ?? "FR", overall: p.computedOvr, starRating: p.star } : null;
+
+        const bestHitter = sorted(withOvr.filter(p => p.position !== "P"))[0];
+        const bestPitcher = sorted(withOvr.filter(p => p.position === "P"))[0];
+        const bestFrosh = sorted(withOvr.filter(p => (p as any).eligibility === "FR" || (p as any).eligibility === "SO"))[0];
+
+        statsList.push({ teamName, rosterScore, pitchingScore, hittingScore, fieldingScore, speedScore, topFielder: mkInfo(bestHitter), topPitcher: mkInfo(bestPitcher), topUnderclassman: mkInfo(bestFrosh) });
+      }
+
+      statsList.sort((a, b) => b.rosterScore - a.rosterScore);
+      const totalTeams = statsList.length;
+
+      // Pre-sort conference rankings (statsList already sorted so filter preserves order)
+      const confRankings = new Map<string, string[]>();
+      for (const [cn, names] of confMap.entries()) {
+        confRankings.set(cn, statsList.filter(t => names.includes(t.teamName)).map(t => t.teamName));
+      }
+
+      const result: Record<string, object> = {};
+      statsList.forEach((t, i) => {
+        const tmpl = tmplMap.get(t.teamName);
+        const cn = tmpl?.conference ?? "";
+        const cr = confRankings.get(cn) ?? [];
+        result[t.teamName] = {
+          talentRank: i + 1,
+          totalTeams,
+          pitchingGrade: attrGrade(t.pitchingScore),
+          hittingGrade: attrGrade(t.hittingScore),
+          fieldingGrade: attrGrade(t.fieldingScore),
+          speedGrade: attrGrade(t.speedScore),
+          topFielder: t.topFielder,
+          topPitcher: t.topPitcher,
+          topUnderclassman: t.topUnderclassman,
+          recruitingAdvantage: recruitAdv(tmpl?.state ?? ""),
+          projectedConferenceFinish: { rank: (cr.indexOf(t.teamName) + 1) || 1, total: cr.length || 1 },
+          nilBudget: tmpl?.nilBudget ?? 2000000,
+          city: tmpl?.city ?? "",
+          state: tmpl?.state ?? "",
+          conference: cn,
+        };
+      });
+
+      res.json(result);
+    } catch (err) {
+      console.error("Scouting endpoint error:", err);
+      res.status(500).json({ message: "Failed to compute scouting data" });
     }
   });
 

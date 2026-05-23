@@ -11,6 +11,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { Star, ArrowRight, ArrowLeft, Check } from "lucide-react";
 import { Link } from "wouter";
 import type { Conference, League } from "@shared/schema";
+import { TeamScoutingPanel, type TeamScoutingInfo } from "@/components/team-scouting-panel";
 
 interface TeamTemplate {
   name: string;
@@ -48,9 +49,14 @@ export default function TeamSelectionPage() {
   
   const [selectedTeamNames, setSelectedTeamNames] = useState<Set<string>>(new Set());
   const [teamSort, setTeamSort] = useState("name");
+  const [focusedTeam, setFocusedTeam] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery<TeamSelectionData>({
     queryKey: ["/api/leagues", id, "team-selection"],
+  });
+
+  const { data: scoutingMap } = useQuery<Record<string, TeamScoutingInfo>>({
+    queryKey: ["/api/team-templates/scouting"],
   });
 
   const saveMutation = useMutation({
@@ -96,6 +102,7 @@ export default function TeamSelectionPage() {
   }, [allTeams, teamSort]);
 
   const toggleTeam = (teamName: string) => {
+    setFocusedTeam(teamName);
     setSelectedTeamNames(prev => {
       const next = new Set(prev);
       if (next.has(teamName)) {
@@ -153,8 +160,10 @@ export default function TeamSelectionPage() {
     return <div className="p-8 text-center text-muted-foreground">League not found</div>;
   }
 
+  const focusedInfo = focusedTeam && scoutingMap ? scoutingMap[focusedTeam] : null;
+
   return (
-    <div className="min-h-screen bg-background p-4">
+    <div className={`min-h-screen bg-background p-4 ${focusedInfo ? "pb-56" : ""}`}>
       <div className="container mx-auto max-w-5xl">
         <div className="mb-6">
           <Link href="/dashboard" className="inline-flex items-center gap-2 text-muted-foreground hover:text-gold transition-colors">
@@ -233,13 +242,16 @@ export default function TeamSelectionPage() {
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                     {sortedPoolTeams.map((team) => {
                       const isSelected = selectedTeamNames.has(team.name);
+                      const isFocused = focusedTeam === team.name;
                       return (
                         <button
                           key={team.name}
                           onClick={() => toggleTeam(team.name)}
                           className={`p-3 rounded border-2 text-left transition-all ${
-                            isSelected
-                              ? "border-gold bg-gold/20"
+                            isFocused
+                              ? "border-gold ring-1 ring-gold/40 bg-gold/20"
+                              : isSelected
+                              ? "border-gold bg-gold/10"
                               : "border-border hover:border-gold/50"
                           }`}
                           data-testid={`button-team-${team.abbreviation}`}
@@ -285,6 +297,18 @@ export default function TeamSelectionPage() {
           })}
         </div>
       </div>
+
+      {/* Fixed scouting panel at bottom */}
+      {focusedInfo && focusedTeam && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 animate-in slide-in-from-bottom-4 duration-200">
+          <TeamScoutingPanel
+            teamName={focusedTeam}
+            info={focusedInfo}
+            onClose={() => setFocusedTeam(null)}
+            variant="fixed"
+          />
+        </div>
+      )}
     </div>
   );
 }

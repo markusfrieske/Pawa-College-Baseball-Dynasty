@@ -15,6 +15,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { Star, ArrowRight, ArrowLeft, Search, Target, GraduationCap, Building2, User, Cpu, Eye, Zap } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Team, Coach, Conference, League } from "@shared/schema";
+import { TeamScoutingPanel, type TeamScoutingInfo } from "@/components/team-scouting-panel";
 import { getPhilosophyForArchetype, getTraitBadgesForArchetype, TRAIT_BADGES, PHILOSOPHY_DESCRIPTIONS, type TraitBadge } from "@shared/coachTraits";
 
 interface TeamCoachInfo {
@@ -258,6 +259,10 @@ function TeamSelectionStep({
   onSelect: (id: string) => void;
 }) {
   const [teamSort, setTeamSort] = useState("name");
+
+  const { data: scoutingMap } = useQuery<Record<string, TeamScoutingInfo>>({
+    queryKey: ["/api/team-templates/scouting"],
+  });
   
   const sortTeams = (teamList: TeamWithCoach[]) => {
     return [...teamList].sort((a, b) => {
@@ -283,6 +288,9 @@ function TeamSelectionStep({
 
   // Teams without a conference (unassigned)
   const unassignedTeams = teams.filter(t => !t.conferenceId);
+
+  const selectedTeam = teams.find(t => t.id === selectedTeamId);
+  const scoutingInfo = selectedTeam && scoutingMap ? scoutingMap[selectedTeam.name] : null;
 
   return (
     <div className="space-y-8">
@@ -349,6 +357,17 @@ function TeamSelectionStep({
         <RetroCard variant="bordered" className="text-center py-12">
           <p className="text-muted-foreground">No teams in this dynasty</p>
         </RetroCard>
+      )}
+
+      {/* Scouting panel for selected team */}
+      {scoutingInfo && selectedTeam && (
+        <div className="animate-in slide-in-from-bottom-2 duration-200">
+          <TeamScoutingPanel
+            teamName={selectedTeam.name}
+            info={scoutingInfo}
+            variant="inline"
+          />
+        </div>
       )}
     </div>
   );
