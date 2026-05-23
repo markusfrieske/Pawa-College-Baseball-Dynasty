@@ -1,5 +1,6 @@
 import type { RealPlayer } from "./realRosters";
 import { pitchMix, noPitches } from "./pitchMixHelpers";
+import { MWC_ROSTERS } from "./mwcRosters";
 
 export const PAC12_ROSTERS: Record<string, RealPlayer[]> = {
   "Oregon State": [
@@ -365,4 +366,5 @@ export const PAC12_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "R",
       ...noPitches },
   ],
+  ...MWC_ROSTERS,
 };

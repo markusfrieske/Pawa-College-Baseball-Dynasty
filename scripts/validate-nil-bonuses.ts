@@ -120,7 +120,7 @@ function assert(condition: boolean, message: string) {
   assert(CONFERENCE_TIER_NIL["Missouri Valley"] === 1_750_000, "Missouri Valley = $1.75M");
   assert(CONFERENCE_TIER_NIL["Ivy League"] === 1_500_000, "Ivy League = $1.5M");
   assert(CONFERENCE_TIER_NIL["HBCU"] === 1_250_000, "HBCU = $1.25M");
-  assert(Object.keys(CONFERENCE_TIER_NIL).length === 13, "all 13 conferences mapped");
+  assert(Object.keys(CONFERENCE_TIER_NIL).length === 12, "all 12 conferences mapped");
   assert(DEFAULT_CONFERENCE_NIL === 2_000_000, "default fallback = $2.0M");
 }
 

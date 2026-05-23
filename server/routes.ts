@@ -660,7 +660,7 @@ export async function registerRoutes(
       });
 
       // Create conferences - use selected conferences or default to first N
-      const allConferences = ["SEC", "ACC", "Big 12", "Big Ten", "Pac-12", "AAC", "WCC", "Mountain West", "Ivy League", "Sun Belt", "Big West", "HBCU", "Missouri Valley"];
+      const allConferences = ["SEC", "ACC", "Big 12", "Big Ten", "Pac-12", "AAC", "WCC", "Ivy League", "Sun Belt", "Big West", "HBCU", "Missouri Valley"];
       const conferenceNames = selectedConferences && selectedConferences.length > 0
         ? selectedConferences.filter(c => allConferences.includes(c))
         : allConferences.slice(0, conferenceCount);
@@ -831,7 +831,7 @@ export async function registerRoutes(
   // Static scouting data for all team templates — no auth required, purely derived from hardcoded rosters
   app.get("/api/team-templates/scouting", async (_req, res) => {
     try {
-      const ALL_CONF_NAMES = ["SEC", "ACC", "Big 12", "Big Ten", "Pac-12", "AAC", "WCC", "Mountain West", "Ivy League", "Sun Belt", "Big West", "HBCU", "Missouri Valley"];
+      const ALL_CONF_NAMES = ["SEC", "ACC", "Big 12", "Big Ten", "Pac-12", "AAC", "WCC", "Ivy League", "Sun Belt", "Big West", "HBCU", "Missouri Valley"];
 
       const STATE_WEIGHTS: Record<string, number> = {
         CA: 24, TX: 19, FL: 16, GA: 6.5, NC: 4, NJ: 2.5, IL: 2.3, PA: 2.0, OH: 1.8,
@@ -1022,7 +1022,7 @@ export async function registerRoutes(
       const conferences = await storage.getConferencesByLeague(league.id);
       let totalTeamsCreated = 0;
 
-      const allConferenceNames = ["SEC", "ACC", "Big 12", "Big Ten", "Pac-12", "AAC", "WCC", "Mountain West", "Ivy League", "Sun Belt", "Big West", "HBCU", "Missouri Valley"];
+      const allConferenceNames = ["SEC", "ACC", "Big 12", "Big Ten", "Pac-12", "AAC", "WCC", "Ivy League", "Sun Belt", "Big West", "HBCU", "Missouri Valley"];
       const allTeamPools = allConferenceNames.flatMap(name => getTeamsForConference(name));
 
       for (const selection of selectedTeams) {
@@ -17529,7 +17529,7 @@ export async function registerRoutes(
   // === Conference Teams API (for roster viewing) ===
   app.get("/api/conference-teams", async (_req, res) => {
     try {
-      const allConferences = ["SEC", "ACC", "Big 12", "Big Ten", "Pac-12", "AAC", "WCC", "Mountain West", "Ivy League", "Sun Belt", "Big West", "HBCU", "Missouri Valley"];
+      const allConferences = ["SEC", "ACC", "Big 12", "Big Ten", "Pac-12", "AAC", "WCC", "Ivy League", "Sun Belt", "Big West", "HBCU", "Missouri Valley"];
       const result = allConferences.map(conf => ({
         conference: conf,
         teams: getTeamsForConference(conf).map(t => t.name),
@@ -17976,6 +17976,12 @@ function getTeamsForConference(conferenceName: string) {
     "Pac-12": [
       { name: "Oregon State", mascot: "Beavers", abbreviation: "ORST", city: "Corvallis", state: "OR", primaryColor: "#dc4405", secondaryColor: "#000000", prestige: 9, stadium: 8, facilities: 8, collegeLife: 7, marketing: 7, academics: 7, fanbasePassion: "A", fanbaseType: "Blue Blood", enrollment: 34000, nilBudget: 3500000 },
       { name: "Washington State", mascot: "Cougars", abbreviation: "WSU", city: "Pullman", state: "WA", primaryColor: "#981e32", secondaryColor: "#5e6a71", prestige: 5, stadium: 5, facilities: 5, collegeLife: 7, marketing: 5, academics: 7, fanbasePassion: "B", fanbaseType: "Cult Following", enrollment: 30000, nilBudget: 1500000 },
+      { name: "Fresno State", mascot: "Bulldogs", abbreviation: "FRES", city: "Fresno", state: "CA", primaryColor: "#db0032", secondaryColor: "#002e6d", prestige: 7, stadium: 7, facilities: 6, collegeLife: 6, marketing: 5, academics: 5, fanbasePassion: "B", fanbaseType: "Balanced", enrollment: 25000, nilBudget: 1800000 },
+      { name: "San Diego State", mascot: "Aztecs", abbreviation: "SDSU", city: "San Diego", state: "CA", primaryColor: "#a6192e", secondaryColor: "#000000", prestige: 6, stadium: 6, facilities: 6, collegeLife: 8, marketing: 6, academics: 6, fanbasePassion: "B", fanbaseType: "Balanced", enrollment: 36000, nilBudget: 1800000 },
+      { name: "UNLV", mascot: "Rebels", abbreviation: "UNLV", city: "Las Vegas", state: "NV", primaryColor: "#cf0a2c", secondaryColor: "#666666", prestige: 5, stadium: 5, facilities: 5, collegeLife: 9, marketing: 6, academics: 5, fanbasePassion: "B", fanbaseType: "Party School", enrollment: 30000, nilBudget: 1200000 },
+      { name: "Nevada", mascot: "Wolf Pack", abbreviation: "NEV", city: "Reno", state: "NV", primaryColor: "#003366", secondaryColor: "#807f84", prestige: 4, stadium: 4, facilities: 4, collegeLife: 7, marketing: 4, academics: 6, fanbasePassion: "C", fanbaseType: "Balanced", enrollment: 21000, nilBudget: 900000 },
+      { name: "New Mexico", mascot: "Lobos", abbreviation: "UNM", city: "Albuquerque", state: "NM", primaryColor: "#ba0c2f", secondaryColor: "#a7a8aa", prestige: 5, stadium: 5, facilities: 5, collegeLife: 7, marketing: 5, academics: 6, fanbasePassion: "B", fanbaseType: "Balanced", enrollment: 22000, nilBudget: 1000000 },
+      { name: "Air Force", mascot: "Falcons", abbreviation: "AF", city: "Colorado Springs", state: "CO", primaryColor: "#003594", secondaryColor: "#8a8d8f", prestige: 4, stadium: 5, facilities: 5, collegeLife: 6, marketing: 4, academics: 8, fanbasePassion: "B", fanbaseType: "Cult Following", enrollment: 4000, nilBudget: 800000 },
     ],
     "AAC": [
       { name: "East Carolina", mascot: "Pirates", abbreviation: "ECU", city: "Greenville", state: "NC", primaryColor: "#592a8a", secondaryColor: "#fdc82f", prestige: 7, stadium: 7, facilities: 7, collegeLife: 7, marketing: 6, academics: 6, fanbasePassion: "A", fanbaseType: "Cult Following", enrollment: 28000, nilBudget: 2000000 },
@@ -17999,14 +18005,6 @@ function getTeamsForConference(conferenceName: string) {
       { name: "Santa Clara", mascot: "Broncos", abbreviation: "SCU", city: "Santa Clara", state: "CA", primaryColor: "#aa003d", secondaryColor: "#a59b80", prestige: 4, stadium: 4, facilities: 5, collegeLife: 7, marketing: 5, academics: 9, fanbasePassion: "C", fanbaseType: "Academic Elite", enrollment: 9000, nilBudget: 800000 },
       { name: "Portland", mascot: "Pilots", abbreviation: "POR", city: "Portland", state: "OR", primaryColor: "#582c83", secondaryColor: "#ffffff", prestige: 4, stadium: 4, facilities: 4, collegeLife: 7, marketing: 4, academics: 7, fanbasePassion: "C", fanbaseType: "Balanced", enrollment: 4000, nilBudget: 700000 },
       { name: "San Francisco", mascot: "Dons", abbreviation: "SFU", city: "San Francisco", state: "CA", primaryColor: "#00543c", secondaryColor: "#fdb913", prestige: 4, stadium: 4, facilities: 4, collegeLife: 8, marketing: 4, academics: 8, fanbasePassion: "C", fanbaseType: "Academic Elite", enrollment: 11000, nilBudget: 700000 },
-    ],
-    "Mountain West": [
-      { name: "Fresno State", mascot: "Bulldogs", abbreviation: "FRES", city: "Fresno", state: "CA", primaryColor: "#db0032", secondaryColor: "#002e6d", prestige: 7, stadium: 7, facilities: 6, collegeLife: 6, marketing: 5, academics: 5, fanbasePassion: "B", fanbaseType: "Balanced", enrollment: 25000, nilBudget: 1800000 },
-      { name: "San Diego State", mascot: "Aztecs", abbreviation: "SDSU", city: "San Diego", state: "CA", primaryColor: "#a6192e", secondaryColor: "#000000", prestige: 6, stadium: 6, facilities: 6, collegeLife: 8, marketing: 6, academics: 6, fanbasePassion: "B", fanbaseType: "Balanced", enrollment: 36000, nilBudget: 1800000 },
-      { name: "UNLV", mascot: "Rebels", abbreviation: "UNLV", city: "Las Vegas", state: "NV", primaryColor: "#cf0a2c", secondaryColor: "#666666", prestige: 5, stadium: 5, facilities: 5, collegeLife: 9, marketing: 6, academics: 5, fanbasePassion: "B", fanbaseType: "Party School", enrollment: 30000, nilBudget: 1200000 },
-      { name: "Nevada", mascot: "Wolf Pack", abbreviation: "NEV", city: "Reno", state: "NV", primaryColor: "#003366", secondaryColor: "#807f84", prestige: 4, stadium: 4, facilities: 4, collegeLife: 7, marketing: 4, academics: 6, fanbasePassion: "C", fanbaseType: "Balanced", enrollment: 21000, nilBudget: 900000 },
-      { name: "New Mexico", mascot: "Lobos", abbreviation: "UNM", city: "Albuquerque", state: "NM", primaryColor: "#ba0c2f", secondaryColor: "#a7a8aa", prestige: 5, stadium: 5, facilities: 5, collegeLife: 7, marketing: 5, academics: 6, fanbasePassion: "B", fanbaseType: "Balanced", enrollment: 22000, nilBudget: 1000000 },
-      { name: "Air Force", mascot: "Falcons", abbreviation: "AF", city: "Colorado Springs", state: "CO", primaryColor: "#003594", secondaryColor: "#8a8d8f", prestige: 4, stadium: 5, facilities: 5, collegeLife: 6, marketing: 4, academics: 8, fanbasePassion: "B", fanbaseType: "Cult Following", enrollment: 4000, nilBudget: 800000 },
     ],
     "Ivy League": [
       { name: "Columbia", mascot: "Lions", abbreviation: "COL", city: "New York", state: "NY", primaryColor: "#9bcbeb", secondaryColor: "#ffffff", prestige: 5, stadium: 4, facilities: 5, collegeLife: 9, marketing: 5, academics: 10, fanbasePassion: "C", fanbaseType: "Academic Elite", enrollment: 33000, nilBudget: 500000 },
@@ -18374,7 +18372,7 @@ function getRandomAppearance(conferenceName?: string, eligibility?: string) {
   let skinTones: string[];
   if (conferenceName === "HBCU") {
     skinTones = ["dark","dark","dark","deep","deep","deep","medium","tan","olive"];
-  } else if (["Pac-12","WCC","Mountain West"].includes(conferenceName ?? "")) {
+  } else if (["Pac-12","WCC"].includes(conferenceName ?? "")) {
     skinTones = ["medium","medium","tan","tan","olive","olive","light","dark"];
   } else if (["AAC","Sun Belt"].includes(conferenceName ?? "")) {
     skinTones = ["light","medium","medium","tan","tan","olive","dark","dark"];
@@ -18481,7 +18479,7 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
     // Tier 2 — mid-major conferences
     'Pac-12': 0.80, 'AAC': 0.80, 'Sun Belt': 0.80,
     // Tier 3 — lower-mid conferences
-    'WCC': 0.72, 'Mountain West': 0.72, 'Big West': 0.72, 'Missouri Valley': 0.72,
+    'WCC': 0.72, 'Big West': 0.72, 'Missouri Valley': 0.72,
     // Tier 4 — academic/non-scholarship conferences
     'Ivy League': 0.68,
     // Tier 5 — HBCU conferences

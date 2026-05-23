@@ -18,7 +18,7 @@
 export const CONFERENCE_TIERS: Record<string, number> = {
   SEC: 1, ACC: 1, "Big Ten": 1, "Big 12": 1,
   "Pac-12": 2, AAC: 2, "Sun Belt": 2,
-  WCC: 3, "Mountain West": 3, "Big West": 3, "Missouri Valley": 3,
+  WCC: 3, "Big West": 3, "Missouri Valley": 3,
   "Ivy League": 4,
   HBCU: 5,
 };

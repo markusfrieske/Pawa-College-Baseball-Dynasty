@@ -136,7 +136,7 @@ export default function LandingPage() {
               {[
                 "130+ Programs",
                 "3,500+ Real Players",
-                "13 Conferences",
+                "12 Conferences",
                 "Transfer Portal",
                 "MLB Draft",
                 "43+ Tracked Stats",
@@ -266,7 +266,7 @@ export default function LandingPage() {
                 <div className="font-pixel text-[9px] text-gold/60 tracking-widest mb-3">FEATURE 02</div>
                 <h2 className="font-pixel text-gold text-xl leading-relaxed mb-5">Deep Player Systems</h2>
                 <p className="text-muted-foreground leading-relaxed mb-6">
-                  Every player carries 22 numeric attributes, letter grades across 8 common skills, and up to 7 special ability badges. Real 2026 rosters for all 13 conferences — 3,500+ actual players. Advanced stats track 43+ fields including Statcast metrics, wOBA, wRC+, and OAA.
+                  Every player carries 22 numeric attributes, letter grades across 8 common skills, and up to 7 special ability badges. Real 2026 rosters for all 12 conferences — 3,500+ actual players. Advanced stats track 43+ fields including Statcast metrics, wOBA, wRC+, and OAA.
                 </p>
                 <ul className="space-y-3">
                   {[

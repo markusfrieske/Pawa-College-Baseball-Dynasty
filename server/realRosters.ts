@@ -16,7 +16,6 @@ import { MO_VALLEY_ROSTERS } from "./moValleyRosters";
 import { BIG_12_ROSTERS } from "./big12Rosters";
 import { AAC_ROSTERS } from "./aacRosters";
 import { WCC_ROSTERS } from "./wccRosters";
-import { MWC_ROSTERS } from "./mwcRosters";
 
 export interface RealPlayer {
   firstName: string;
@@ -85,7 +84,6 @@ const RAW_REAL_ROSTERS: Record<string, RealPlayer[]> = {
   ...BIG_12_ROSTERS,
   ...AAC_ROSTERS,
   ...WCC_ROSTERS,
-  ...MWC_ROSTERS,
 };
 
 export const SEC_REAL_ROSTERS: Record<string, RealPlayer[]> = RAW_REAL_ROSTERS;

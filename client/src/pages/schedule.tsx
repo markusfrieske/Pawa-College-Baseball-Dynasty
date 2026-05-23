@@ -129,7 +129,6 @@ const CONF_COLORS: Record<string, string> = {
   AAC: "#007A53",
   "Sun Belt": "#003087",
   WCC: "#5B2C6F",
-  "Mountain West": "#003087",
   "Big West": "#00539C",
   "Missouri Valley": "#6B2C6B",
   "Ivy League": "#990000",

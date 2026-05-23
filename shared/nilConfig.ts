@@ -15,7 +15,6 @@ export const CONFERENCE_TIER_NIL: Record<string, number> = {
   "Sun Belt": 2_500_000,
   // Tier 3: $1.75M — Mid-majors
   "WCC": 1_750_000,
-  "Mountain West": 1_750_000,
   "Big West": 1_750_000,
   "Missouri Valley": 1_750_000,
   // Tier 4: $1.5M — Ivy League

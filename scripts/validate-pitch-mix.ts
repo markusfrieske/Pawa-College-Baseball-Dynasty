@@ -33,7 +33,6 @@ import { MO_VALLEY_ROSTERS } from "../server/moValleyRosters";
 import { BIG_12_ROSTERS } from "../server/big12Rosters";
 import { AAC_ROSTERS } from "../server/aacRosters";
 import { WCC_ROSTERS } from "../server/wccRosters";
-import { MWC_ROSTERS } from "../server/mwcRosters";
 import type { RealPlayer } from "../server/realRosters";
 
 const ALL_ROSTERS: Record<string, Record<string, RealPlayer[]>> = {
@@ -55,7 +54,7 @@ const ALL_ROSTERS: Record<string, Record<string, RealPlayer[]>> = {
   "Big 12": BIG_12_ROSTERS,
   "AAC": AAC_ROSTERS,
   "WCC": WCC_ROSTERS,
-  "Mountain West": MWC_ROSTERS,
+  "Pac-12": PAC12_ROSTERS,
 };
 
 const PITCH_FIELDS = [

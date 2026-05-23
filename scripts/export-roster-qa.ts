@@ -25,7 +25,7 @@ const CONFERENCE_MAP: Record<string, string[]> = {
     "Minnesota","Nebraska","Northwestern","Ohio State","Oregon","Penn State",
     "Purdue","Rutgers","USC","UCLA","Washington","Wisconsin",
   ],
-  "Pac-12": ["Oregon State","Washington State"],
+  "Pac-12": ["Oregon State","Washington State","Fresno State","San Diego State","UNLV","Nevada","New Mexico","Air Force"],
   "AAC": [
     "East Carolina","Wichita State","Tulane","Memphis","South Florida",
     "Charlotte","UAB","Rice","Florida Atlantic","North Texas","Dallas Baptist",
@@ -33,9 +33,6 @@ const CONFERENCE_MAP: Record<string, string[]> = {
   "WCC": [
     "Pepperdine","Loyola Marymount","San Diego","Saint Mary's",
     "Gonzaga","Santa Clara","Portland","San Francisco",
-  ],
-  "Mountain West": [
-    "Fresno State","San Diego State","UNLV","Nevada","New Mexico","Air Force",
   ],
   "Ivy League": [
     "Columbia","Cornell","Dartmouth","Harvard","Penn","Princeton","Yale","Brown",

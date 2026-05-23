@@ -4,11 +4,11 @@ import { useLocation } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroInput } from "@/components/ui/retro-input";
 import { RetroSelect } from "@/components/ui/retro-select";
-import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
+import { RetroCard, RetroCardContent } from "@/components/ui/retro-card";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Star, ArrowLeft, TrendingUp } from "lucide-react";
+import { Star, ArrowLeft, TrendingUp, Check } from "lucide-react";
 import { Link } from "wouter";
 import { Switch } from "@/components/ui/switch";
 
@@ -20,19 +20,18 @@ const difficultyOptions = [
 ];
 
 const availableConferences = [
-  { id: "SEC", name: "SEC", teams: 16, description: "Southeastern Conference" },
-  { id: "ACC", name: "ACC", teams: 17, description: "Atlantic Coast Conference" },
-  { id: "Big 12", name: "Big 12", teams: 14, description: "Big 12 Conference" },
-  { id: "Big Ten", name: "Big Ten", teams: 18, description: "Big Ten Conference" },
-  { id: "Pac-12", name: "Pac-12", teams: 2, description: "Pacific-12 Conference" },
-  { id: "AAC", name: "AAC", teams: 11, description: "American Athletic Conference" },
-  { id: "WCC", name: "WCC", teams: 8, description: "West Coast Conference" },
-  { id: "Mountain West", name: "Mountain West", teams: 6, description: "Mountain West Conference" },
-  { id: "Ivy League", name: "Ivy League", teams: 8, description: "Ivy League" },
-  { id: "Sun Belt", name: "Sun Belt", teams: 13, description: "Sun Belt Conference" },
-  { id: "Big West", name: "Big West", teams: 10, description: "Big West Conference" },
-  { id: "HBCU", name: "HBCU", teams: 16, description: "Historically Black Colleges & Universities" },
-  { id: "Missouri Valley", name: "Missouri Valley", teams: 13, description: "Missouri Valley Conference" },
+  { id: "SEC",            abbr: "SEC",  teams: 16, primaryColor: "#1a3a1a", secondaryColor: "#cfb53b", fullName: "Southeastern Conference" },
+  { id: "ACC",            abbr: "ACC",  teams: 17, primaryColor: "#003087", secondaryColor: "#f47920", fullName: "Atlantic Coast Conference" },
+  { id: "Big 12",         abbr: "B12",  teams: 14, primaryColor: "#1b3a8c", secondaryColor: "#cc0000", fullName: "Big 12 Conference" },
+  { id: "Big Ten",        abbr: "B10",  teams: 18, primaryColor: "#0d3090", secondaryColor: "#ffffff", fullName: "Big Ten Conference" },
+  { id: "Pac-12",         abbr: "P12",  teams: 8,  primaryColor: "#003b5c", secondaryColor: "#f5a623", fullName: "Pac-12 Conference" },
+  { id: "AAC",            abbr: "AAC",  teams: 11, primaryColor: "#002244", secondaryColor: "#c8102e", fullName: "American Athletic Conference" },
+  { id: "WCC",            abbr: "WCC",  teams: 8,  primaryColor: "#002147", secondaryColor: "#c8a96e", fullName: "West Coast Conference" },
+  { id: "Ivy League",     abbr: "IVY",  teams: 8,  primaryColor: "#2d5016", secondaryColor: "#d4af37", fullName: "Ivy League" },
+  { id: "Sun Belt",       abbr: "SB",   teams: 13, primaryColor: "#002d72", secondaryColor: "#c8b900", fullName: "Sun Belt Conference" },
+  { id: "Big West",       abbr: "BW",   teams: 10, primaryColor: "#003366", secondaryColor: "#e87722", fullName: "Big West Conference" },
+  { id: "HBCU",           abbr: "HBCU", teams: 16, primaryColor: "#1a1a1a", secondaryColor: "#d4af37", fullName: "HBCU Conferences" },
+  { id: "Missouri Valley",abbr: "MVC",  teams: 13, primaryColor: "#002d62", secondaryColor: "#ffd100", fullName: "Missouri Valley Conference" },
 ];
 
 const seasonLengthOptions = [
@@ -72,7 +71,7 @@ export default function LeagueCreatePage() {
 
   const toggleConference = (confId: string) => {
     setSelectedConferences(prev => {
-      const next = prev.includes(confId) 
+      const next = prev.includes(confId)
         ? prev.filter(c => c !== confId)
         : [...prev, confId];
       const newTotal = next.reduce((sum, id) => {
@@ -174,6 +173,66 @@ export default function LeagueCreatePage() {
         <RetroCard variant="bordered">
           <RetroCardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
+
+              {/* Conference Picker — top of form, icon grid */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-medium text-gold uppercase tracking-widest">Conferences</label>
+                  <span className="text-xs text-muted-foreground">
+                    {selectedConferences.length > 0
+                      ? `${selectedConferences.length} selected · ${totalAvailableTeams} teams`
+                      : "Select at least one"}
+                  </span>
+                </div>
+                <div className="grid grid-cols-6 gap-2">
+                  {availableConferences.map(conf => {
+                    const isSelected = selectedConferences.includes(conf.id);
+                    return (
+                      <button
+                        key={conf.id}
+                        type="button"
+                        onClick={() => toggleConference(conf.id)}
+                        title={`${conf.fullName} (${conf.teams} teams)`}
+                        className={`relative group w-14 h-14 rounded-lg border-2 flex items-center justify-center transition-all ${
+                          isSelected
+                            ? "border-gold bg-gold/10 shadow-[0_0_8px_rgba(212,175,55,0.3)]"
+                            : "border-border hover:border-gold/40 bg-card"
+                        }`}
+                        data-testid={`checkbox-conference-${conf.id.replace(/\s/g, '-')}`}
+                      >
+                        {/* Conference badge */}
+                        <div
+                          className="w-10 h-10 rounded-full border-2 flex items-center justify-center font-pixel font-bold text-white shrink-0"
+                          style={{
+                            backgroundColor: conf.primaryColor,
+                            borderColor: conf.secondaryColor,
+                            fontSize: conf.abbr.length > 3 ? "6px" : conf.abbr.length === 3 ? "7px" : "9px",
+                          }}
+                        >
+                          {conf.abbr}
+                        </div>
+
+                        {/* Gold checkmark badge when selected */}
+                        {isSelected && (
+                          <div className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-gold rounded-full flex items-center justify-center z-10 shadow-sm">
+                            <Check className="w-2.5 h-2.5 text-black stroke-[3]" />
+                          </div>
+                        )}
+
+                        {/* Team count pill — always visible when selected, fades in on hover otherwise */}
+                        <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 px-1.5 py-0.5 rounded-full text-[8px] font-bold bg-background border whitespace-nowrap transition-opacity pointer-events-none ${
+                          isSelected
+                            ? "border-gold text-gold opacity-100"
+                            : "border-border text-muted-foreground opacity-0 group-hover:opacity-100"
+                        }`}>
+                          {conf.teams}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               <RetroInput
                 id="dynastyName"
                 label="Dynasty Name"
@@ -183,32 +242,6 @@ export default function LeagueCreatePage() {
                 required
                 data-testid="input-dynasty-name"
               />
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gold">Select Conferences</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {availableConferences.map(conf => (
-                    <button
-                      key={conf.id}
-                      type="button"
-                      onClick={() => toggleConference(conf.id)}
-                      className={`p-3 rounded-lg border text-left transition-all ${
-                        selectedConferences.includes(conf.id)
-                          ? "bg-gold/20 border-gold text-gold"
-                          : "bg-card border-border text-muted-foreground hover:border-gold/50"
-                      }`}
-                      data-testid={`checkbox-conference-${conf.id.replace(/\s/g, '-')}`}
-                    >
-                      <div className="font-medium text-sm">{conf.name}</div>
-                      <div className="text-xs opacity-70">{conf.teams} teams</div>
-                    </button>
-                  ))}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {selectedConferences.length} conference{selectedConferences.length !== 1 ? 's' : ''} selected
-                  {selectedConferences.length > 0 && ` \u00B7 ${totalAvailableTeams} teams available`}
-                </p>
-              </div>
 
               <RetroSelect
                 id="teamCount"

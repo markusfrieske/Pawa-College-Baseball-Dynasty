@@ -141,12 +141,12 @@ interface ConfTeams { conferenceName: string; teamNames: string[] }
 //   SEC       — established (tier 1, existing rosters)
 //   AAC       — newly added (tier 2)
 //   WCC       — newly added (tier 3)
-//   Mountain West — newly added (tier 3)
+//   Pac-12    — includes former Mountain West teams (Fresno State, SDSU, etc.)
 const TEAM_SELECTION: ConfTeams[] = [
-  { conferenceName: "SEC",           teamNames: ["LSU", "Tennessee", "Vanderbilt"] },
-  { conferenceName: "AAC",           teamNames: ["East Carolina", "Wichita State", "Dallas Baptist"] },
-  { conferenceName: "WCC",           teamNames: ["Gonzaga", "Pepperdine"] },
-  { conferenceName: "Mountain West", teamNames: ["Fresno State", "San Diego State"] },
+  { conferenceName: "SEC",    teamNames: ["LSU", "Tennessee", "Vanderbilt"] },
+  { conferenceName: "AAC",    teamNames: ["East Carolina", "Wichita State", "Dallas Baptist"] },
+  { conferenceName: "WCC",    teamNames: ["Gonzaga", "Pepperdine"] },
+  { conferenceName: "Pac-12", teamNames: ["Fresno State", "San Diego State"] },
 ];
 
 const TOTAL_TEAMS: number = TEAM_SELECTION.reduce((s, c) => s + c.teamNames.length, 0);

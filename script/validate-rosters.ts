@@ -16,7 +16,6 @@ import { IVY_LEAGUE_ROSTERS } from "../server/ivyLeagueRosters";
 import { HBCU_ROSTERS } from "../server/hbcuRosters";
 import { AAC_ROSTERS } from "../server/aacRosters";
 import { WCC_ROSTERS } from "../server/wccRosters";
-import { MWC_ROSTERS } from "../server/mwcRosters";
 import type { RealPlayer } from "../server/realRosters";
 
 type RosterMap = Record<string, RealPlayer[]>;
@@ -36,7 +35,6 @@ const CONFERENCES: ConferenceConfig[] = [
   { name: "AAC", tier: 2, rosters: [AAC_ROSTERS] },
   { name: "Sun Belt", tier: 2, rosters: [SUN_BELT_ROSTERS] },
   { name: "WCC", tier: 3, rosters: [WCC_ROSTERS] },
-  { name: "Mountain West", tier: 3, rosters: [MWC_ROSTERS] },
   { name: "Big West", tier: 3, rosters: [BIG_WEST_ROSTERS] },
   { name: "Missouri Valley", tier: 3, rosters: [MO_VALLEY_ROSTERS] },
   { name: "Ivy League", tier: 4, rosters: [IVY_LEAGUE_ROSTERS] },
