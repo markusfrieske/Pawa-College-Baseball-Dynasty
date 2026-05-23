@@ -9761,9 +9761,19 @@ export async function registerRoutes(
     const maxRound = Math.max(...completedSide.map(g => g.bracketRound ?? 1));
     const currentRoundGames = completedSide.filter(g => (g.bracketRound ?? 1) === maxRound);
 
-    // Exactly 1 completed game in the highest round → that winner is the side champion
+    // Exactly 1 completed game in the highest round → candidate for side champion,
+    // but only if ALL teams assigned to this side have appeared in at least one game
+    // (prevents premature champion when bye teams haven't played yet).
     if (currentRoundGames.length === 1) {
-      return getGameWinner(currentRoundGames[0]);
+      const N = seededTeams.length;
+      const sideTeamIds = seededTeams
+        .filter((_t, idx) => getSideForSeed(idx + 1, N) === side)
+        .map(t => t.team.id);
+      const playedTeamIds = new Set<string>();
+      completedSide.forEach(g => { playedTeamIds.add(g.homeTeamId); playedTeamIds.add(g.awayTeamId); });
+      const allPlayed = sideTeamIds.every(id => playedTeamIds.has(id));
+      if (allPlayed) return getGameWinner(currentRoundGames[0]);
+      // Not all teams have played yet — fall through to bye-handling below
     }
 
     // Guard: next round already exists (avoid duplicate creation across multiple calls)
@@ -12649,6 +12659,80 @@ export async function registerRoutes(
         return { id: conf.id, name: conf.name, teams: rows };
       });
 
+      // ── Postseason stats leaders (top-5 batters by AVG, top-5 pitchers by ERA) ──
+      const postseasonGames = [...confChampGames, ...srGames, ...cwsGames].filter(g => g.isComplete && g.boxScore);
+
+      const psBatters = new Map<string, { name: string; teamId: string; ab: number; h: number; hr: number; rbi: number; bb: number; hbp: number; so: number }>();
+      const psPitchers = new Map<string, { name: string; teamId: string; ip: number; er: number; so: number; bb: number; wins: number; losses: number }>();
+
+      for (const game of postseasonGames) {
+        let box: any;
+        try { box = JSON.parse(game.boxScore!); } catch { continue; }
+        if (!box.home || !box.away) continue;
+        const sides = [
+          { data: box.home, teamId: game.homeTeamId },
+          { data: box.away, teamId: game.awayTeamId },
+        ];
+        for (const side of sides) {
+          if (side.data.batting) {
+            for (const b of side.data.batting) {
+              const k = `${b.name}_${side.teamId}`;
+              if (!psBatters.has(k)) psBatters.set(k, { name: b.name, teamId: side.teamId, ab: 0, h: 0, hr: 0, rbi: 0, bb: 0, hbp: 0, so: 0 });
+              const e = psBatters.get(k)!;
+              e.ab += b.ab || 0; e.h += b.h || 0; e.hr += b.hr || 0; e.rbi += b.rbi || 0;
+              e.bb += b.bb || 0; e.hbp += b.hbp || 0; e.so += b.so || 0;
+            }
+          }
+          if (side.data.pitching) {
+            for (const p of side.data.pitching) {
+              const k = `${p.name}_${side.teamId}`;
+              if (!psPitchers.has(k)) psPitchers.set(k, { name: p.name, teamId: side.teamId, ip: 0, er: 0, so: 0, bb: 0, wins: 0, losses: 0 });
+              const e = psPitchers.get(k)!;
+              const ipParts = String(p.ip).split(".");
+              e.ip += (parseInt(ipParts[0]) || 0) + (parseInt(ipParts[1]) || 0) / 3;
+              e.er += p.er || 0; e.so += p.so || 0; e.bb += p.bb || 0;
+            }
+            if (side.data.pitching.length > 0) {
+              const starter = side.data.pitching[0];
+              const k = `${starter.name}_${side.teamId}`;
+              const e = psPitchers.get(k);
+              if (e) {
+                const isHome = side.teamId === game.homeTeamId;
+                const teamScore = isHome ? (game.homeScore ?? 0) : (game.awayScore ?? 0);
+                const oppScore  = isHome ? (game.awayScore ?? 0) : (game.homeScore ?? 0);
+                if (teamScore > oppScore) e.wins++; else e.losses++;
+              }
+            }
+          }
+        }
+      }
+
+      const topBatters = Array.from(psBatters.values())
+        .filter(b => b.ab >= 3)
+        .map(b => ({
+          name: b.name,
+          teamName: teamMap[b.teamId]?.name || "",
+          teamAbbr: teamMap[b.teamId]?.abbreviation || "",
+          ab: b.ab, h: b.h, hr: b.hr, rbi: b.rbi,
+          avg: b.ab > 0 ? (b.h / b.ab).toFixed(3) : ".000",
+          obp: (b.ab + b.bb + b.hbp) > 0 ? ((b.h + b.bb + b.hbp) / (b.ab + b.bb + b.hbp)).toFixed(3) : ".000",
+        }))
+        .sort((a, b) => parseFloat(b.avg) - parseFloat(a.avg))
+        .slice(0, 5);
+
+      const topPitchers = Array.from(psPitchers.values())
+        .filter(p => p.ip >= 1)
+        .map(p => ({
+          name: p.name,
+          teamName: teamMap[p.teamId]?.name || "",
+          teamAbbr: teamMap[p.teamId]?.abbreviation || "",
+          ip: parseFloat(p.ip.toFixed(1)), so: p.so, bb: p.bb, wins: p.wins, losses: p.losses,
+          era: p.ip > 0 ? ((p.er / p.ip) * 9).toFixed(2) : "0.00",
+          whip: p.ip > 0 ? ((p.bb + (p.bb * 0)) / p.ip).toFixed(2) : "0.00",
+        }))
+        .sort((a, b) => parseFloat(a.era) - parseFloat(b.era))
+        .slice(0, 5);
+
       res.json({
         phase: league.currentPhase,
         season,
@@ -12657,6 +12741,7 @@ export async function registerRoutes(
         cws: cwsGames.map(enrichGame),
         seeds: seedsTable,
         confStandings,
+        stats: { topBatters, topPitchers },
       });
     } catch (error) {
       console.error("Failed to fetch postseason data:", error);

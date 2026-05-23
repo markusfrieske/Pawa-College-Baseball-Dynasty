@@ -4600,120 +4600,54 @@ function PostseasonTab({ leagueId }: { leagueId: string }) {
     );
   }
 
-  // Determine current status label
-  const cwsChampionEntry = (() => {
+  const cwsChampName = (() => {
     if (!data!.cws.length) return null;
-    const completed = data!.cws.filter(g => g.isComplete);
     const wins: Record<string, { name: string; count: number }> = {};
-    for (const g of completed) {
+    for (const g of data!.cws.filter(g => g.isComplete)) {
       const wId = (g.homeScore ?? 0) > (g.awayScore ?? 0) ? g.homeTeamId : g.awayTeamId;
       const wName = wId === g.homeTeamId ? g.homeTeam?.name : g.awayTeam?.name;
       if (!wins[wId]) wins[wId] = { name: wName || "", count: 0 };
       wins[wId].count++;
     }
-    return Object.values(wins).find(e => e.count >= 2) ?? null;
+    return Object.values(wins).find(e => e.count >= 2)?.name ?? null;
   })();
 
+  const statusLabel = cwsChampName
+    ? `${cwsChampName} — CWS Champion!`
+    : data!.cws.length > 0
+    ? "College World Series in Progress"
+    : data!.superRegionals.length > 0
+    ? "Super Regionals in Progress"
+    : "Conference Championships in Progress";
+
+  const gamesSummary = [
+    data!.conferenceChampionships.length > 0 &&
+      `${data!.conferenceChampionships.filter(g => g.isComplete).length}/${data!.conferenceChampionships.length} CC`,
+    data!.superRegionals.length > 0 &&
+      `${data!.superRegionals.filter(g => g.isComplete).length}/${data!.superRegionals.length} SR`,
+    data!.cws.length > 0 &&
+      `CWS Game ${Math.min(data!.cws.filter(g => g.isComplete).length + 1, data!.cws.length)}`,
+  ].filter(Boolean).join(" · ");
+
   return (
-    <div className="space-y-4">
-      {/* Summary card */}
-      <RetroCard>
-        <RetroCardContent>
-          <div className="flex items-start gap-4">
-            <Trophy className="w-8 h-8 text-gold flex-shrink-0 mt-1" />
-            <div className="flex-1 min-w-0">
-              <p className="font-pixel text-xs text-gold mb-1">
-                {cwsChampionEntry
-                  ? `${cwsChampionEntry.name} — CWS Champion!`
-                  : data!.cws.length > 0
-                  ? "College World Series in Progress"
-                  : data!.superRegionals.length > 0
-                  ? "Super Regionals in Progress"
-                  : "Conference Championships in Progress"}
-              </p>
-              <div className="flex flex-wrap gap-2 text-[10px] text-muted-foreground mt-1">
-                {data!.conferenceChampionships.length > 0 && (
-                  <span>{data!.conferenceChampionships.filter(g => g.isComplete).length}/{data!.conferenceChampionships.length} CC games played</span>
-                )}
-                {data!.superRegionals.length > 0 && (
-                  <span>{data!.superRegionals.filter(g => g.isComplete).length}/{data!.superRegionals.length} SR games played</span>
-                )}
-                {data!.cws.length > 0 && (
-                  <span>CWS Game {data!.cws.filter(g => g.isComplete).length + 1 > data!.cws.length ? "Complete" : data!.cws.filter(g => g.isComplete).length + 1}</span>
-                )}
-              </div>
-            </div>
-            <Link href={`/league/${leagueId}/postseason`}>
-              <RetroButton variant="outline" size="sm" className="flex-shrink-0" data-testid="button-postseason-hub">
-                Full Bracket <ChevronRight className="w-3 h-3 ml-1" />
-              </RetroButton>
-            </Link>
+    <RetroCard>
+      <RetroCardContent>
+        <div className="flex items-center gap-4 py-2">
+          <Trophy className="w-8 h-8 text-gold flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="font-pixel text-xs text-gold truncate">{statusLabel}</p>
+            {gamesSummary && (
+              <p className="text-[10px] text-muted-foreground mt-1">{gamesSummary}</p>
+            )}
           </div>
-        </RetroCardContent>
-      </RetroCard>
-
-      {/* Quick game recaps */}
-      {data!.conferenceChampionships.length > 0 && (
-        <RetroCard>
-          <RetroCardHeader>
-            <div className="flex items-center gap-2 w-full">
-              <Trophy className="w-4 h-4 text-gold" />
-              <span>Conference Championships</span>
-            </div>
-          </RetroCardHeader>
-          <RetroCardContent>
-            <div className="grid sm:grid-cols-2 gap-3">
-              {data!.conferenceChampionships.map(game => (
-                <PostseasonGameCard key={game.id} game={game} leagueId={leagueId} />
-              ))}
-            </div>
-          </RetroCardContent>
-        </RetroCard>
-      )}
-
-      {data!.cws.length > 0 && (
-        <RetroCard>
-          <RetroCardHeader>
-            <div className="flex items-center gap-2 w-full">
-              <Trophy className="w-4 h-4 text-gold" />
-              <span>College World Series</span>
-            </div>
-          </RetroCardHeader>
-          <RetroCardContent>
-            <div className="space-y-3">
-              {data!.cws.map((game, i) => (
-                <div key={game.id}>
-                  <p className="text-[9px] text-muted-foreground font-pixel mb-1">Game {i + 1}</p>
-                  <PostseasonGameCard game={game} leagueId={leagueId} />
-                </div>
-              ))}
-              <CWSSeriesDisplay games={data!.cws} />
-            </div>
-          </RetroCardContent>
-        </RetroCard>
-      )}
-
-      {data!.superRegionals.length > 0 && !data!.cws.length && (
-        <RetroCard>
-          <RetroCardHeader>
-            <div className="flex items-center gap-2 w-full">
-              <Trophy className="w-4 h-4 text-gold" />
-              <span>Super Regionals</span>
-            </div>
-          </RetroCardHeader>
-          <RetroCardContent>
-            <p className="text-[10px] text-muted-foreground mb-3">
-              {data!.superRegionals.filter(g => g.isComplete).length}/{data!.superRegionals.length} games complete
-            </p>
-            <Link href={`/league/${leagueId}/postseason`}>
-              <RetroButton variant="outline" size="sm" data-testid="button-view-bracket">
-                View Full Bracket <ChevronRight className="w-3 h-3 ml-1" />
-              </RetroButton>
-            </Link>
-          </RetroCardContent>
-        </RetroCard>
-      )}
-    </div>
+          <Link href={`/league/${leagueId}/postseason`}>
+            <RetroButton variant="outline" size="sm" className="flex-shrink-0" data-testid="button-postseason-hub">
+              Full Bracket <ChevronRight className="w-3 h-3 ml-1" />
+            </RetroButton>
+          </Link>
+        </div>
+      </RetroCardContent>
+    </RetroCard>
   );
 }
 
