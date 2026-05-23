@@ -843,6 +843,8 @@ export default function SigningDayRevealPage() {
   const [selectedTeamId, setSelectedTeamId] = useState<string | undefined>(initialTeamId);
   const [isDownloading, setIsDownloading] = useState(false);
   const cardGridRef = useRef<HTMLDivElement>(null);
+  // Ref to the overflow-x-auto scroll wrapper so download can expand it before capture
+  const cardScrollRef = useRef<HTMLDivElement>(null);
 
   const reducedMotion = useReducedMotion();
   const [cinemaPhase, setCinemaPhase] = useState<CinemaPhase>("idle");
@@ -937,6 +939,24 @@ export default function SigningDayRevealPage() {
   const handleDownload = async () => {
     if (!cardGridRef.current || !currentEntry) return;
     setIsDownloading(true);
+
+    // Track styles we need to restore
+    const scrollEl  = cardScrollRef.current;
+    const innerEl   = scrollEl?.firstElementChild as HTMLElement | null;
+    const fullScrollWidth = innerEl?.scrollWidth ?? 0;
+
+    // Temporarily expand the capture target so html2canvas sees the full
+    // horizontal extent of the two-row grid (not just the visible viewport slice).
+    const prevGridWidth      = cardGridRef.current.style.width;
+    const prevGridMaxWidth   = cardGridRef.current.style.maxWidth;
+    const prevScrollOverflow = scrollEl ? scrollEl.style.overflow : "";
+
+    if (fullScrollWidth > 0) {
+      cardGridRef.current.style.width    = `${fullScrollWidth + 32}px`; // 32 = p-4 padding
+      cardGridRef.current.style.maxWidth = "none";
+      if (scrollEl) scrollEl.style.overflow = "visible";
+    }
+
     try {
       const html2canvas = (await import("html2canvas")).default;
       const canvas = await html2canvas(cardGridRef.current, {
@@ -944,6 +964,8 @@ export default function SigningDayRevealPage() {
         scale: 2,
         logging: false,
         useCORS: true,
+        width:       cardGridRef.current.offsetWidth,
+        windowWidth: cardGridRef.current.offsetWidth,
       });
       const link = document.createElement("a");
       link.download = `${currentEntry.team.abbreviation}-class-${data?.league.currentSeason ?? "season"}.png`;
@@ -952,6 +974,12 @@ export default function SigningDayRevealPage() {
     } catch (err) {
       console.error("Download failed:", err);
     } finally {
+      // Restore layout
+      if (cardGridRef.current) {
+        cardGridRef.current.style.width    = prevGridWidth;
+        cardGridRef.current.style.maxWidth = prevGridMaxWidth;
+      }
+      if (scrollEl) scrollEl.style.overflow = prevScrollOverflow;
       setIsDownloading(false);
     }
   };
@@ -1111,7 +1139,7 @@ export default function SigningDayRevealPage() {
                   <p className="text-xs mt-2">Recruits will appear here once they sign</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto overflow-y-hidden">
+                <div className="overflow-x-auto overflow-y-hidden" ref={cardScrollRef}>
                   <div style={{ minWidth: "max-content" }}>
 
                     {/* ── Row 1: Recruit portrait cards ── */}
