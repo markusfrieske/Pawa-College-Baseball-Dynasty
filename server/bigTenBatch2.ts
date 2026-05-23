@@ -540,7 +540,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       ...pitchMix(1, [0, 7, 5, 1, 0, 0, 0]) },
     { firstName: "Gavin", lastName: "Grahovac", position: "P", eligibility: "SR", homeState: "OH", hometown: "Medina", jerseyNumber: 22,
       hitForAvg: 17, power: 13, speed: 32, arm: 48, fielding: 32, errorResistance: 44, velocity: 45, control: 48, stamina: 48, stuff: 45,
-      clutch: 90, vsLHP: 57, grit: 62, stealing: 9, running: 30, throwing: 62, recovery: 45, wRISP: 45, vsLefty: 45, poise: 47, heater: 49, agile: 36,
+      clutch: 60, vsLHP: 57, grit: 62, stealing: 9, running: 30, throwing: 62, recovery: 45, wRISP: 45, vsLefty: 45, poise: 47, heater: 49, agile: 36,
       abilities: ["Guts", "Constant Speed"], potential: "B+", catcherAbility: null,
       throwHand: "L", batHand: "L",
       ...pitchMix(1, [0, 6, 5, 1, 0, 0, 0]) },
