@@ -638,7 +638,7 @@ function WeekCard({ weekData, callbacks }: { weekData: WeekData; callbacks: Game
                   game={game}
                   allGames={weekData.midweekGames}
                   callbacks={callbacks}
-                  badge="MIDWEEK"
+                  badge={null}
                 />
               ))}
             </div>
