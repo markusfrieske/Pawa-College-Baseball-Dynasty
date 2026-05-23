@@ -7991,7 +7991,9 @@ export async function registerRoutes(
       
       // ============ CPU RECRUITING AI ============
       if (league.currentPhase === "recruiting" || league.currentPhase === "preseason" || league.currentPhase === "regular_season") {
+        console.time("[advance-perf] cpu-recruiting");
         await runCpuRecruiting(leagueId, currentWeek, league.currentSeason);
+        console.timeEnd("[advance-perf] cpu-recruiting");
       }
 
       // ============ STORYLINE EVENTS ============
@@ -8015,7 +8017,9 @@ export async function registerRoutes(
       }
       
       // ============ RECRUIT STAGE PROGRESSION ============
+      console.time("[advance-perf] recruit-stages");
       await updateRecruitStages(leagueId, nextWeek);
+      console.timeEnd("[advance-perf] recruit-stages");
       
       // ============ RESET WEEKLY ACTIONS ============
       // Also reset isReady so coaches must re-confirm readiness each week.
@@ -8043,11 +8047,13 @@ export async function registerRoutes(
       // Fetch prior completed games BEFORE simulation so H2H records are accurate
       const priorCompletedGames = (await storage.getGamesByLeague(leagueId)).filter(g => g.isComplete);
 
+      console.time("[advance-perf] game-sim");
       const gameResults = await Promise.all(incompleteGames.map(async (game) => {
         const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType);
         await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, isComplete: true, boxScore: result.boxScore });
         return { game, result };
       }));
+      console.timeEnd("[advance-perf] game-sim");
 
       // Build per-user inning scoreboard data (non-blocking, best-effort)
       const simUserCoach = coaches.find((c: any) => c.userId === req.session.userId);
@@ -8088,7 +8094,9 @@ export async function registerRoutes(
 
       const coachXpAccum = new Map<string, { xp: number; wins: number; losses: number; confWins: number; confLosses: number }>();
 
-      for (const { game, result } of gameResults) {
+      // Parallelize standings updates and stat accumulation — each game is independent
+      console.time("[advance-perf] standings-and-stats");
+      await Promise.all(gameResults.map(async ({ game, result }) => {
         await updateStandingsForGame(leagueId, league.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, game.isConference);
         try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, league.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, league.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
 
@@ -8114,7 +8122,8 @@ export async function registerRoutes(
           acc.confLosses += game.isConference && homeWonSim ? 1 : 0;
           coachXpAccum.set(awayTeamSim.coachId, acc);
         }
-      }
+      }));
+      console.timeEnd("[advance-perf] standings-and-stats");
 
       // coaches was already fetched — build a lookup map to avoid per-coach DB round-trips
       const coachMapForXp = new Map(coaches.map((c: any) => [c.id, c]));
@@ -8216,30 +8225,13 @@ export async function registerRoutes(
           const confGames = (await storage.getGamesByLeague(leagueId))
             .filter(g => g.phase === "conference_championship" && g.season === league.currentSeason && !g.isComplete);
           
-          for (const game of confGames) {
+          // Parallelize all conference championship games — each matchup is independent
+          console.time("[advance-perf] conf-champ-games");
+          const confGameResults = await Promise.all(confGames.map(async (game) => {
             const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType || "friday");
             await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, isComplete: true, boxScore: result.boxScore });
             await updateStandingsForGame(leagueId, league.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore);
             try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, league.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, league.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
-            if (simUserTeamId && !userTeamGame &&
-                (game.homeTeamId === simUserTeamId || game.awayTeamId === simUserTeamId)) {
-              try {
-                const ccBox = JSON.parse(result.boxScore);
-                const ccHt = leagueTeamsForSim.find((t: any) => t.id === game.homeTeamId);
-                const ccAt = leagueTeamsForSim.find((t: any) => t.id === game.awayTeamId);
-                userTeamGame = {
-                  homeTeam: ccHt?.name ?? "Home", awayTeam: ccAt?.name ?? "Away",
-                  homeAbbr: ccHt?.abbreviation ?? "HME", awayAbbr: ccAt?.abbreviation ?? "AWY",
-                  homeScore: result.homeScore, awayScore: result.awayScore,
-                  inningScores: ccBox.innings ?? [],
-                  homeHits: ccBox.home?.totals?.h ?? 0, awayHits: ccBox.away?.totals?.h ?? 0,
-                  homeErrors: ccBox.home?.errors ?? 0, awayErrors: ccBox.away?.errors ?? 0,
-                  isHome: game.homeTeamId === simUserTeamId,
-                  homeColor: ccHt?.primaryColor ?? "#FFD700",
-                  awayColor: ccAt?.primaryColor ?? "#7eb8f7",
-                };
-              } catch { /* non-critical */ }
-            }
             try {
               const homeWon = result.homeScore > result.awayScore;
               const confWinner = leagueTeamsForSim.find(t => t.id === (homeWon ? game.homeTeamId : game.awayTeamId));
@@ -8260,6 +8252,32 @@ export async function registerRoutes(
                 });
               }
             } catch (e) { console.error("Conf champ feed event error:", e); }
+            return { game, result };
+          }));
+          console.timeEnd("[advance-perf] conf-champ-games");
+          // Extract user's conf champ game if they played one
+          if (simUserTeamId && !userTeamGame) {
+            const userCcResult = confGameResults.find(({ game }) =>
+              game.homeTeamId === simUserTeamId || game.awayTeamId === simUserTeamId
+            );
+            if (userCcResult) {
+              try {
+                const ccBox = JSON.parse(userCcResult.result.boxScore);
+                const ccHt = leagueTeamsForSim.find((t: any) => t.id === userCcResult.game.homeTeamId);
+                const ccAt = leagueTeamsForSim.find((t: any) => t.id === userCcResult.game.awayTeamId);
+                userTeamGame = {
+                  homeTeam: ccHt?.name ?? "Home", awayTeam: ccAt?.name ?? "Away",
+                  homeAbbr: ccHt?.abbreviation ?? "HME", awayAbbr: ccAt?.abbreviation ?? "AWY",
+                  homeScore: userCcResult.result.homeScore, awayScore: userCcResult.result.awayScore,
+                  inningScores: ccBox.innings ?? [],
+                  homeHits: ccBox.home?.totals?.h ?? 0, awayHits: ccBox.away?.totals?.h ?? 0,
+                  homeErrors: ccBox.home?.errors ?? 0, awayErrors: ccBox.away?.errors ?? 0,
+                  isHome: userCcResult.game.homeTeamId === simUserTeamId,
+                  homeColor: ccHt?.primaryColor ?? "#FFD700",
+                  awayColor: ccAt?.primaryColor ?? "#7eb8f7",
+                };
+              } catch { /* non-critical */ }
+            }
           }
 
           try {
@@ -15212,7 +15230,13 @@ export async function registerRoutes(
     const storylineRows = league ? await storage.getStorylineRecruitsByLeague(leagueId, league.currentSeason) : [];
     const storylineRecruitIds = new Set(storylineRows.map(sl => sl.recruitId));
 
-    for (const team of cpuTeams) {
+    // Hoist league-wide interests once before the per-team loop to avoid N redundant queries
+    const allLeagueInterestsForCpu = config.competitionAware
+      ? await storage.getRecruitingInterestsByLeague(leagueId)
+      : [] as Awaited<ReturnType<typeof storage.getRecruitingInterestsByLeague>>;
+
+    console.time("[advance-perf] cpu-recruiting-teams");
+    await Promise.all(cpuTeams.map(async (team) => {
       const teamCoach = allCoaches.find(c => c.teamId === team.id);
       // Use the same coach-driven budget as humans so archetype/skill perks
       // measurably affect CPU action throughput too. Difficulty stretches it.
@@ -15247,10 +15271,10 @@ export async function registerRoutes(
 
       // Build a per-recruit interest count map for competition awareness (AA/Elite only).
       // Key = recruitId, value = number of OTHER teams with interest >= 20.
+      // Uses snapshot fetched once outside the team loop to avoid N redundant DB queries.
       const rivalCountByRecruit = new Map<string, number>();
       if (config.competitionAware) {
-        const allLeagueInterests = await storage.getRecruitingInterestsByLeague(leagueId);
-        for (const ri of allLeagueInterests) {
+        for (const ri of allLeagueInterestsForCpu) {
           if (ri.teamId !== team.id && (ri.interestLevel || 0) >= 20) {
             rivalCountByRecruit.set(ri.recruitId, (rivalCountByRecruit.get(ri.recruitId) || 0) + 1);
           }
@@ -15448,7 +15472,8 @@ export async function registerRoutes(
           isAutoPilot: team.isAutoPilot ?? false,
         });
       }
-    }
+    }));
+    console.timeEnd("[advance-perf] cpu-recruiting-teams");
   }
   
   // ============ RECRUIT STAGE PROGRESSION FUNCTION ============
@@ -15481,9 +15506,10 @@ export async function registerRoutes(
 
     const storylineRecruitIds = new Set(storylineRecruitsData.map(sl => sl.recruitId));
     
-    for (const recruit of unsignedRecruits) {
+    // Parallelize per-recruit processing — each recruit's DB writes are independent
+    await Promise.all(unsignedRecruits.map(async (recruit) => {
       const allInterests = interestsByRecruit.get(recruit.id) ?? [];
-      if (allInterests.length === 0) continue;
+      if (allInterests.length === 0) return;
       
       const sortedInterests = allInterests
         .filter(i => i.interestLevel > 0)
@@ -15605,7 +15631,7 @@ export async function registerRoutes(
           }
         }
       }
-    }
+    }));
   }
 
   // Generate recruiting class for dynasty setup
