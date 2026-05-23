@@ -196,7 +196,7 @@ function ArcTimeline({ events }: { events: StorylineEventFull[] }) {
   );
 }
 
-function StorylineCard({ sl, leagueId, isCommissioner }: { sl: StorylineRecruit; leagueId: string; isCommissioner: boolean }) {
+function StorylineCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: string }) {
   const queryClient = useQueryClient();
   const [expanded, setExpanded] = useState(false);
   const [showTimeline, setShowTimeline] = useState(false);
@@ -215,14 +215,6 @@ function StorylineCard({ sl, leagueId, isCommissioner }: { sl: StorylineRecruit;
       apiRequest("POST", `/api/leagues/${leagueId}/storylines/events/${activeEvent!.id}/vote`, { choice }),
     onSuccess: () => {
       setPendingChoice(null);
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "storylines"] });
-    },
-  });
-
-  const regenMutation = useMutation({
-    mutationFn: () =>
-      apiRequest("POST", `/api/leagues/${leagueId}/storylines/recruits/${sl.id}/regenerate-image`),
-    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "storylines"] });
     },
   });
@@ -318,46 +310,13 @@ function StorylineCard({ sl, leagueId, isCommissioner }: { sl: StorylineRecruit;
               isLegendary={sl.isLegendary}
             />
 
-            {sl.imageUrl ? (
-              <div className="mt-2 rounded-md overflow-hidden border border-border/30 group" data-testid={`archetype-banner-${sl.id}`}>
-                <div className="relative w-full overflow-hidden bg-black" style={{ aspectRatio: "16/5" }}>
-                  <img
-                    src={sl.imageUrl}
-                    alt={sl.archetypeName}
-                    className="w-full h-full object-cover opacity-70"
-                    style={{ imageRendering: "pixelated" }}
-                    loading="lazy"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
-                  <div className="absolute bottom-0 left-0 right-0 px-3 py-2">
-                    <div className="flex items-center gap-1.5">
-                      <BookOpen className="w-3 h-3 text-gold flex-shrink-0" />
-                      <span className="text-[10px] font-pixel text-gold">{sl.archetypeName}</span>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground/90 italic mt-0.5 line-clamp-1">{sl.archetypeFlavor}</p>
-                  </div>
-                  {isCommissioner && (
-                    <button
-                      onClick={() => regenMutation.mutate()}
-                      disabled={regenMutation.isPending}
-                      className="absolute top-2 right-2 p-1.5 rounded-md bg-black/70 border border-gold/40 text-gold/70 hover:text-gold hover:border-gold/70 transition-all opacity-0 group-hover:opacity-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                      title="Regenerate arc image"
-                      data-testid={`button-regen-image-${sl.id}`}
-                    >
-                      {regenMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
-                    </button>
-                  )}
-                </div>
+            <div className="mt-2 bg-muted/20 rounded-md px-3 py-1.5" data-testid={`archetype-banner-${sl.id}`}>
+              <div className="flex items-center gap-1.5">
+                <BookOpen className="w-3 h-3 text-gold flex-shrink-0" />
+                <span className="text-[10px] font-pixel text-gold">{sl.archetypeName}</span>
               </div>
-            ) : (
-              <div className="mt-2 bg-muted/20 rounded-md px-3 py-1.5">
-                <div className="flex items-center gap-1.5">
-                  <BookOpen className="w-3 h-3 text-gold flex-shrink-0" />
-                  <span className="text-[10px] font-pixel text-gold">{sl.archetypeName}</span>
-                </div>
-                <p className="text-[10px] text-muted-foreground italic mt-0.5">{sl.archetypeFlavor}</p>
-              </div>
-            )}
+              <p className="text-[10px] text-muted-foreground italic mt-0.5">{sl.archetypeFlavor}</p>
+            </div>
           </div>
         </div>
 
@@ -929,7 +888,7 @@ export default function StorylinesPage() {
                   </div>
                   <div className="space-y-4">
                     {votePending.map(sl => (
-                      <StorylineCard key={sl.id} sl={sl} leagueId={leagueId!} isCommissioner={isCommissioner} />
+                      <StorylineCard key={sl.id} sl={sl} leagueId={leagueId!} />
                     ))}
                   </div>
                 </section>
@@ -943,7 +902,7 @@ export default function StorylinesPage() {
                   </div>
                   <div className="space-y-4">
                     {noActivePending.map(sl => (
-                      <StorylineCard key={sl.id} sl={sl} leagueId={leagueId!} isCommissioner={isCommissioner} />
+                      <StorylineCard key={sl.id} sl={sl} leagueId={leagueId!} />
                     ))}
                   </div>
                 </section>
