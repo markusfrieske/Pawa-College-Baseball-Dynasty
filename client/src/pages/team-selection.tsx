@@ -62,6 +62,7 @@ function TeamTile({
           ? "border-gold bg-gold/5"
           : "border-border hover:border-gold/40 bg-background/40"
       }`}
+      title={team.name}
       data-testid={`button-team-${team.abbreviation}`}
     >
       {/* Circle badge */}
