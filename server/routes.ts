@@ -11779,7 +11779,9 @@ export async function registerRoutes(
     const currentSeason = currentLeagueData?.currentSeason || 1;
     const eligMap: Record<string, number> = { "FR": 1, "SO": 2, "JR": 3, "SR": 4, "RS": 5 };
     const difficulty = currentLeagueData?.cpuDifficulty || "high_school";
-    const difficultyMults: Record<string, number> = { beginner: 0.3, high_school: 0.7, all_american: 1.2, elite: 2.0 };
+    // Elite walk-on bid multiplier reduced 2.0→1.3: CPU should win bids via position-gap targeting,
+    // not by throwing money indiscriminately. All_American also slightly reduced for consistency.
+    const difficultyMults: Record<string, number> = { beginner: 0.3, high_school: 0.7, all_american: 1.0, elite: 1.3 };
     const diffMult = difficultyMults[difficulty] ?? 0.7;
 
     const allCoachesWo = await storage.getCoachesByLeague(leagueId);
@@ -11847,7 +11849,8 @@ export async function registerRoutes(
     const currentLeagueData = await storage.getLeague(leagueId);
     const currentSeason = currentLeagueData?.currentSeason || 1;
     const difficulty = currentLeagueData?.cpuDifficulty || "high_school";
-    const difficultyMults: Record<string, number> = { beginner: 0.3, high_school: 0.7, all_american: 1.2, elite: 2.0 };
+    // Mirrors processAllTeamWalkons: elite reduced 2.0→1.3, all_american reduced 1.2→1.0.
+    const difficultyMults: Record<string, number> = { beginner: 0.3, high_school: 0.7, all_american: 1.0, elite: 1.3 };
     const diffMult = difficultyMults[difficulty] ?? 0.7;
     const eligMap: Record<string, number> = { "FR": 1, "SO": 2, "JR": 3, "SR": 4, "RS": 5 };
 
@@ -15121,17 +15124,32 @@ export async function registerRoutes(
     //
     //   gainMultiplier applies on top of the same compute* functions humans use.
     //
-    //   Effective human-equivalent actions (with new difficultyStretch):
+    //   Effective human-equivalent actions (with updated difficultyStretch):
     //     beginner:     budget≈12 × 0.75 = 9  → meaningfully easier than human (12)
     //     high_school:  budget≈12 × 1.0  = 12 → matches human baseline
-    //     all_american: budget≈12 × 1.2  = 14 → slightly above human
-    //     elite:        budget≈12 × 1.4  = 17 → challenging but not cheating
-    const difficultyConfig: Record<string, { minActions: number; maxActions: number; gainMultiplier: number; targetingBonus: number; offerThreshold: number; visitThreshold: number }> = {
-      beginner:     { minActions: 4, maxActions: 7,  gainMultiplier: 0.70, targetingBonus: 0,  offerThreshold: 25, visitThreshold: 45 },
-      high_school:  { minActions: 5, maxActions: 9,  gainMultiplier: 1.00, targetingBonus: 5,  offerThreshold: 15, visitThreshold: 35 },
-      all_american: { minActions: 6, maxActions: 11, gainMultiplier: 1.15, targetingBonus: 10, offerThreshold: 10, visitThreshold: 25 },
-      elite:        { minActions: 7, maxActions: 13, gainMultiplier: 1.30, targetingBonus: 15, offerThreshold: 5,  visitThreshold: 20 },
+    //     all_american: budget≈12 × 1.1  = 13 → modest edge (was 1.2 = 14)
+    //     elite:        budget≈12 × 1.2  = 14 → challenging not cheating (was 1.4 = 17)
+    //
+    //   gainMultiplier AA/Elite reduced: 1.15→1.05, 1.30→1.10.
+    //   The CPU's advantage at higher difficulties comes from:
+    //     1. Smarter position-need targeting (positionNeedWeight: 5/12/22/30)
+    //     2. Action sequencing (requireWarmup gates visit/offer behind email/phone)
+    //     3. Competition awareness (AA/Elite redirect budget away from crowded boards)
+    //     4. Modest numerical edges: gainMultiplier + slightly more actions
+    // gainMultiplier reduced for AA/Elite: edge comes from smarter decisions, not raw number inflation.
+    // difficultyStretch reduced proportionally to keep action budget differences modest.
+    const difficultyConfig: Record<string, { minActions: number; maxActions: number; gainMultiplier: number; targetingBonus: number; offerThreshold: number; visitThreshold: number; positionNeedWeight: number; requireWarmup: boolean; competitionAware: boolean }> = {
+      beginner:     { minActions: 4, maxActions: 7,  gainMultiplier: 0.70, targetingBonus: 0,  offerThreshold: 25, visitThreshold: 45, positionNeedWeight: 5,  requireWarmup: false, competitionAware: false },
+      high_school:  { minActions: 5, maxActions: 9,  gainMultiplier: 1.00, targetingBonus: 5,  offerThreshold: 15, visitThreshold: 35, positionNeedWeight: 12, requireWarmup: false, competitionAware: false },
+      all_american: { minActions: 6, maxActions: 11, gainMultiplier: 1.05, targetingBonus: 10, offerThreshold: 10, visitThreshold: 25, positionNeedWeight: 22, requireWarmup: true,  competitionAware: true  },
+      elite:        { minActions: 7, maxActions: 13, gainMultiplier: 1.10, targetingBonus: 15, offerThreshold: 5,  visitThreshold: 20, positionNeedWeight: 30, requireWarmup: true,  competitionAware: true  },
     };
+    console.log(`[cpu-difficulty] week=${week} season=${season} difficulty=${difficulty} ` +
+      `gainMult=${difficultyConfig[difficulty]?.gainMultiplier ?? 1.0} ` +
+      `stretch=${({ beginner: 0.75, high_school: 1.0, all_american: 1.1, elite: 1.2 } as Record<string,number>)[difficulty] ?? 1.0} ` +
+      `posNeedWt=${difficultyConfig[difficulty]?.positionNeedWeight ?? 12} ` +
+      `warmup=${difficultyConfig[difficulty]?.requireWarmup ?? false} ` +
+      `compAware=${difficultyConfig[difficulty]?.competitionAware ?? false}`);
     const baseConfig = difficultyConfig[difficulty] || difficultyConfig.high_school;
     // cpuRecruitingAggression: 1=Conservative (+10 to thresholds), 3=Standard (no change), 5=Ultra (-10).
     // Formula: offset = (3 - aggression) * 5  →  1→+10, 2→+5, 3→0, 4→-5, 5→-10
@@ -15163,8 +15181,8 @@ export async function registerRoutes(
       // Use the same coach-driven budget as humans so archetype/skill perks
       // measurably affect CPU action throughput too. Difficulty stretches it.
       const baseBudget = getMaxRecruitingActions(teamCoach);
-      // Increased stretch so high_school CPU matches human budget baseline.
-      const difficultyStretch = { beginner: 0.75, high_school: 1.0, all_american: 1.2, elite: 1.4 }[difficulty] ?? 1.0;
+      // Reduced stretches for AA/Elite: action volume advantage is modest; smarts do the heavy lifting.
+      const difficultyStretch = { beginner: 0.75, high_school: 1.0, all_american: 1.1, elite: 1.2 }[difficulty] ?? 1.0;
       const actionsBudget = Math.max(2, Math.round(baseBudget * difficultyStretch));
       
       const [teamInterests, roster, teamActionsLog] = await Promise.all([
@@ -15191,17 +15209,46 @@ export async function registerRoutes(
       const geoStrategy = (teamCoach as any)?.recruitingGeographyStrategy ?? "national";
       const styleStrategy = (teamCoach as any)?.recruitingStyleStrategy ?? "best_available";
 
+      // Build a per-recruit interest count map for competition awareness (AA/Elite only).
+      // Key = recruitId, value = number of OTHER teams with interest >= 20.
+      const rivalCountByRecruit = new Map<string, number>();
+      if (config.competitionAware) {
+        const allLeagueInterests = await storage.getRecruitingInterestsByLeague(leagueId);
+        for (const ri of allLeagueInterests) {
+          if (ri.teamId !== team.id && (ri.interestLevel || 0) >= 20) {
+            rivalCountByRecruit.set(ri.recruitId, (rivalCountByRecruit.get(ri.recruitId) || 0) + 1);
+          }
+        }
+      }
+
       const sortedRecruits = unsignedRecruits
         .map(r => {
           const interest = teamInterests.find(i => i.recruitId === r.id);
           const prestigeMatch = Math.abs((team.prestige || 5) - (r.starRating || 3) * 2);
-          // positionNeed boosted (+15 vs +10) so CPU fills position gaps more aggressively.
-          // interestLevel*3 (was *2) creates stronger commitment momentum — CPU keeps
-          // investing in recruits they've already built interest with rather than bouncing.
-          // hasOffer bonus (+20) ensures CPU prioritises closing recruits with active offers.
-          const positionNeed = (positionCounts[r.position] || 0) < 2 ? 15 : 0;
+
+          // Position-need scoring — weight scales with difficulty so higher tiers fill gaps more intentionally.
+          // Beginner barely notices gaps; Elite strongly prefers recruits who plug roster holes.
+          const posCount = positionCounts[r.position] || 0;
+          const positionNeed = posCount < 2
+            ? config.positionNeedWeight
+            : posCount < 3
+              ? Math.round(config.positionNeedWeight * 0.4)
+              : 0;
+
           const currentInterest = interest?.interestLevel || 0;
           const offerBonus = interest?.hasOffer ? 20 : 0;
+
+          // Competition awareness (AA/Elite only): if rivals are heavily invested,
+          // escalate scoring to fight for the recruit; if already outgunned (3+ rivals),
+          // slightly deprioritize and redirect budget to winnable targets.
+          let competitionBonus = 0;
+          if (config.competitionAware) {
+            const rivals = rivalCountByRecruit.get(r.id) || 0;
+            if (rivals === 0) competitionBonus = 8;          // uncontested — good target
+            else if (rivals <= 2) competitionBonus = 3;      // light competition — still worthwhile
+            else if (rivals <= 4) competitionBonus = -5;     // crowded — deprioritize slightly
+            else competitionBonus = -14;                     // heavily contested — redirect budget
+          }
 
           // Geography strategy: bonus for recruits from targeted state(s)
           let geoBonus = 0;
@@ -15231,10 +15278,13 @@ export async function registerRoutes(
             styleBonus = Math.min(15, currentInterest * 0.2);
           }
 
+          // Beginner adds more noise so it acts less rationally
+          const noise = difficulty === "beginner" ? Math.random() * 18 : Math.random() * 5;
+
           return { 
             recruit: r, 
             interest,
-            score: currentInterest * 3 + offerBonus + positionNeed - Math.min(5, prestigeMatch) + config.targetingBonus + geoBonus + styleBonus + Math.random() * 5 
+            score: currentInterest * 3 + offerBonus + positionNeed - Math.min(5, prestigeMatch) + config.targetingBonus + geoBonus + styleBonus + competitionBonus + noise,
           };
         })
         .sort((a, b) => b.score - a.score);
@@ -15267,15 +15317,34 @@ export async function registerRoutes(
         const { recruit, interest } = focusedRecruits[i];
         const remaining = actionsBudget - pointsSpent;
         
+        // Action sequencing intelligence:
+        // - Count how many prior interactions (email/phone) this team has had with recruit this dynasty.
+        // - At AA/Elite (requireWarmup=true), CPU must warm up with at least 1 prior interaction before
+        //   committing a visit slot, and at least 2 before extending an offer — preventing cold-offer spam.
+        // - At Beginner/HS, actions are chosen more randomly (no warmup gate).
+        const priorInteractions = teamActionsLog.filter(
+          a => a.recruitId === recruit.id && (a.actionType === "email" || a.actionType === "phone")
+        ).length;
+        const hasVisited = teamActionsLog.some(a => a.recruitId === recruit.id && a.actionType === "visit");
+        const currentInterestLevel = interest?.interestLevel || 0;
+
         const candidateActions: string[] = [];
         if (!weeklyActionsThisWeek.has(weeklyActionKey(recruit.id, "email"))) candidateActions.push("email");
         if (!weeklyActionsThisWeek.has(weeklyActionKey(recruit.id, "phone"))) candidateActions.push("phone", "phone");
-        if ((interest?.interestLevel || 0) > config.offerThreshold && !interest?.hasOffer) {
+
+        // Offer: must clear interest threshold. At AA/Elite, also require ≥2 warmup interactions
+        // so CPU doesn't scatter cold offers across the board on week 1.
+        const offerWarmupMet = !config.requireWarmup || priorInteractions >= 2;
+        if (currentInterestLevel > config.offerThreshold && !interest?.hasOffer && offerWarmupMet) {
           candidateActions.push("offer", "offer");
         }
+
+        // Visit: must clear interest threshold. At AA/Elite, require ≥1 warmup interaction
+        // before burning the one-time visit slot on a cold prospect.
+        const visitWarmupMet = !config.requireWarmup || priorInteractions >= 1;
         const visitCost = getActionPointCost("visit", team.state, recruit.homeState);
-        if ((interest?.interestLevel || 0) > config.visitThreshold && visitCost <= remaining &&
-            !teamActionsLog.some(a => a.recruitId === recruit.id && a.actionType === "visit")) {
+        if (currentInterestLevel > config.visitThreshold && visitCost <= remaining &&
+            !hasVisited && visitWarmupMet) {
           candidateActions.push("visit", "visit");
         }
         if (candidateActions.length === 0) continue;
