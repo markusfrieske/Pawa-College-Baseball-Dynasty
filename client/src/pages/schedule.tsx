@@ -9,7 +9,7 @@ import { TeamBadge } from "@/components/ui/team-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Calendar, Check, Edit2, Lock, Play, FileText, AlertTriangle, CheckCircle, XCircle, Swords, User, ChevronDown, ChevronRight } from "lucide-react";
+import { ArrowLeft, Calendar, Check, Edit2, Lock, Play, FileText, AlertTriangle, CheckCircle, XCircle, Swords, User, ChevronDown, ChevronRight, ChevronUp } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Game, Team } from "@shared/schema";
@@ -349,6 +349,12 @@ export default function SchedulePage() {
     return postMatch ? [postMatch] : weeks;
   }, [activeKey, weeks, postseasonWeeks]);
 
+  // Compute team records from ALL games (not just filtered) for accurate display
+  const teamRecords = useMemo(
+    () => computeTeamRecords(data?.games || []),
+    [data?.games]
+  );
+
   if (isLoading) return <ScheduleSkeleton />;
 
   const gameCallbacks = {
@@ -365,6 +371,7 @@ export default function SchedulePage() {
     humanCoachNames: data?.humanCoachNames ?? {},
     reportsByGameId: data?.reportsByGameId ?? {},
     isCommissioner: data?.isCommissioner,
+    teamRecords,
   };
 
   return (
@@ -544,68 +551,118 @@ type GameCallbacks = {
   humanCoachNames: Record<string, string>;
   reportsByGameId: Record<string, GameReport>;
   isCommissioner?: boolean;
+  teamRecords: Map<string, { wins: number; losses: number }>;
 };
 
+function computeTeamRecords(games: GameWithTeams[]): Map<string, { wins: number; losses: number }> {
+  const records = new Map<string, { wins: number; losses: number }>();
+  const ensure = (id: string) => { if (!records.has(id)) records.set(id, { wins: 0, losses: 0 }); };
+  for (const g of games) {
+    if (!g.isComplete) continue;
+    ensure(g.homeTeamId); ensure(g.awayTeamId);
+    if ((g.homeScore ?? 0) > (g.awayScore ?? 0)) {
+      records.get(g.homeTeamId)!.wins++;
+      records.get(g.awayTeamId)!.losses++;
+    } else {
+      records.get(g.awayTeamId)!.wins++;
+      records.get(g.homeTeamId)!.losses++;
+    }
+  }
+  return records;
+}
+
 function WeekCard({ weekData, callbacks }: { weekData: WeekData; callbacks: GameCallbacks }) {
+  const [collapsed, setCollapsed] = useState(false);
+  const totalGames = weekData.series.length + weekData.midweekGames.length + weekData.postseasonGames.length;
+  const completedCount = [
+    ...weekData.series.flatMap(s => s.games),
+    ...weekData.midweekGames,
+    ...weekData.postseasonGames,
+  ].filter(g => g.isComplete).length;
+  const totalCount = [
+    ...weekData.series.flatMap(s => s.games),
+    ...weekData.midweekGames,
+    ...weekData.postseasonGames,
+  ].length;
+
   return (
     <RetroCard data-testid={`card-week-${weekData.isPostseason ? weekData.label : weekData.weekNum}`}>
-      <RetroCardHeader className="flex items-center justify-between gap-4">
-        <span>{weekData.label}</span>
-        {weekData.isCurrentWeek && (
-          <span className="text-[8px] text-gold bg-gold/20 px-2 py-1 rounded">Current</span>
-        )}
+      <RetroCardHeader
+        className="flex items-center justify-between gap-4 cursor-pointer select-none hover:bg-white/5 transition-colors rounded-t"
+        onClick={() => setCollapsed(c => !c)}
+        data-testid={`button-collapse-week-${weekData.isPostseason ? weekData.label : weekData.weekNum}`}
+      >
+        <div className="flex items-center gap-3">
+          <span className="text-muted-foreground">
+            {collapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          </span>
+          <span>{weekData.label}</span>
+          {weekData.isCurrentWeek && (
+            <span className="text-[8px] text-gold bg-gold/20 px-2 py-1 rounded">Current</span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {totalCount > 0 && (
+            <span className="font-pixel text-[8px] text-muted-foreground">
+              {completedCount}/{totalCount}
+            </span>
+          )}
+        </div>
       </RetroCardHeader>
-      <RetroCardContent>
-        {weekData.postseasonGames.length > 0 && (
-          <div className="space-y-3">
-            {weekData.postseasonGames.map(game => (
-              <StandaloneGameRow
-                key={game.id}
-                game={game}
-                allGames={weekData.postseasonGames}
-                callbacks={callbacks}
-                badge={null}
-              />
-            ))}
-          </div>
-        )}
 
-        {weekData.series.length > 0 && (
-          <div className="space-y-3">
-            {weekData.series.map(series => (
-              <SeriesRow
-                key={series.key}
-                series={series}
-                callbacks={callbacks}
-              />
-            ))}
-          </div>
-        )}
+      {!collapsed && (
+        <RetroCardContent>
+          {weekData.postseasonGames.length > 0 && (
+            <div className="space-y-3">
+              {weekData.postseasonGames.map(game => (
+                <StandaloneGameRow
+                  key={game.id}
+                  game={game}
+                  allGames={weekData.postseasonGames}
+                  callbacks={callbacks}
+                  badge={null}
+                />
+              ))}
+            </div>
+          )}
 
-        {weekData.midweekGames.length > 0 && (
-          <div className={`space-y-2 ${weekData.series.length > 0 ? "mt-4 pt-3 border-t border-border/40" : ""}`}>
-            {weekData.series.length > 0 && (
-              <div className="flex items-center gap-2 mb-2">
-                <span className="font-pixel text-[8px] text-muted-foreground">MIDWEEK</span>
-                <div className="flex-1 border-t border-border/30" />
-              </div>
-            )}
-            {weekData.midweekGames.map(game => (
-              <StandaloneGameRow
-                key={game.id}
-                game={game}
-                allGames={weekData.midweekGames}
-                callbacks={callbacks}
-                badge="MIDWEEK"
-              />
-            ))}
-          </div>
-        )}
+          {weekData.series.length > 0 && (
+            <div className="space-y-3">
+              {weekData.series.map(series => (
+                <SeriesRow
+                  key={series.key}
+                  series={series}
+                  callbacks={callbacks}
+                />
+              ))}
+            </div>
+          )}
 
-        {weekData.series.length === 0 && weekData.midweekGames.length === 0 && weekData.postseasonGames.length === 0 && (
-          <p className="text-muted-foreground text-sm text-center py-4">No games this week</p>
-        )}
-      </RetroCardContent>
+          {weekData.midweekGames.length > 0 && (
+            <div className={`space-y-2 ${weekData.series.length > 0 ? "mt-4 pt-3 border-t border-border/40" : ""}`}>
+              {weekData.series.length > 0 && (
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="font-pixel text-[8px] text-muted-foreground">MIDWEEK</span>
+                  <div className="flex-1 border-t border-border/30" />
+                </div>
+              )}
+              {weekData.midweekGames.map(game => (
+                <StandaloneGameRow
+                  key={game.id}
+                  game={game}
+                  allGames={weekData.midweekGames}
+                  callbacks={callbacks}
+                  badge="MIDWEEK"
+                />
+              ))}
+            </div>
+          )}
+
+          {totalGames === 0 && (
+            <p className="text-muted-foreground text-sm text-center py-4">No games this week</p>
+          )}
+        </RetroCardContent>
+      )}
     </RetroCard>
   );
 }
@@ -650,23 +707,47 @@ function SeriesRow({ series, callbacks }: { series: SeriesGroup; callbacks: Game
           />
 
           <div className="flex-1 flex items-center gap-1.5 min-w-0 text-left">
-            <Link
-              href={`/league/${callbacks.leagueId}/team/${series.awayTeam.id}/profile`}
-              onClick={e => e.stopPropagation()}
-              className="font-medium text-sm truncate hover:text-gold transition-colors"
-              data-testid={`link-away-team-series-${series.key}`}
-            >
-              {series.awayTeam.name}
-            </Link>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1 min-w-0">
+                <Link
+                  href={`/league/${callbacks.leagueId}/team/${series.awayTeam.id}/profile`}
+                  onClick={e => e.stopPropagation()}
+                  className="font-medium text-sm truncate hover:text-gold transition-colors"
+                  data-testid={`link-away-team-series-${series.key}`}
+                >
+                  {series.awayTeam.name}
+                </Link>
+                {(() => {
+                  const rec = callbacks.teamRecords.get(series.awayTeam.id);
+                  return rec ? (
+                    <span className="font-pixel text-[7px] text-muted-foreground shrink-0" data-testid={`record-away-series-${series.key}`}>
+                      {rec.wins}-{rec.losses}
+                    </span>
+                  ) : null;
+                })()}
+              </div>
+            </div>
             <span className="text-muted-foreground text-xs shrink-0">@</span>
-            <Link
-              href={`/league/${callbacks.leagueId}/team/${series.homeTeam.id}/profile`}
-              onClick={e => e.stopPropagation()}
-              className="font-medium text-sm truncate hover:text-gold transition-colors"
-              data-testid={`link-home-team-series-${series.key}`}
-            >
-              {series.homeTeam.name}
-            </Link>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1 min-w-0">
+                <Link
+                  href={`/league/${callbacks.leagueId}/team/${series.homeTeam.id}/profile`}
+                  onClick={e => e.stopPropagation()}
+                  className="font-medium text-sm truncate hover:text-gold transition-colors"
+                  data-testid={`link-home-team-series-${series.key}`}
+                >
+                  {series.homeTeam.name}
+                </Link>
+                {(() => {
+                  const rec = callbacks.teamRecords.get(series.homeTeam.id);
+                  return rec ? (
+                    <span className="font-pixel text-[7px] text-muted-foreground shrink-0" data-testid={`record-home-series-${series.key}`}>
+                      {rec.wins}-{rec.losses}
+                    </span>
+                  ) : null;
+                })()}
+              </div>
+            </div>
           </div>
 
           <TeamBadge
@@ -931,11 +1012,28 @@ function StandaloneGameRow({
             size="sm"
           />
           <div className="min-w-0">
-            <Link href={`/league/${callbacks.leagueId}/team/${game.awayTeamId}/profile`} onClick={e => e.stopPropagation()}>
-              <span className="font-medium text-sm block truncate hover:text-gold transition-colors cursor-pointer" data-testid={`link-profile-away-${game.id}`}>
-                {game.awayTeam.name}
-              </span>
-            </Link>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Link href={`/league/${callbacks.leagueId}/team/${game.awayTeamId}/profile`} onClick={e => e.stopPropagation()}>
+                <span className="font-medium text-sm block truncate hover:text-gold transition-colors cursor-pointer" data-testid={`link-profile-away-${game.id}`}>
+                  {game.awayTeam.name}
+                </span>
+              </Link>
+              {(() => {
+                const rec = callbacks.teamRecords.get(game.awayTeamId);
+                return rec ? (
+                  <span className="font-pixel text-[7px] text-muted-foreground shrink-0">
+                    {rec.wins}-{rec.losses}
+                  </span>
+                ) : null;
+              })()}
+              {badge && (
+                <span
+                  className="w-2 h-2 rounded-full shrink-0"
+                  style={{ backgroundColor: game.awayTeam.primaryColor || "#555" }}
+                  title="Conference color"
+                />
+              )}
+            </div>
             {isHumanVsHuman && !game.isComplete && (() => {
               const opponentId = userTeamId === game.awayTeamId ? game.homeTeamId : game.awayTeamId;
               const coachName = callbacks.humanCoachNames[opponentId];
@@ -991,11 +1089,28 @@ function StandaloneGameRow({
 
         <div className="flex-1 flex items-center justify-end gap-2 min-w-0">
           <div className="min-w-0 text-right">
-            <Link href={`/league/${callbacks.leagueId}/team/${game.homeTeamId}/profile`} onClick={e => e.stopPropagation()}>
-              <span className="font-medium text-sm block truncate hover:text-gold transition-colors cursor-pointer" data-testid={`link-profile-home-${game.id}`}>
-                {game.homeTeam.name}
-              </span>
-            </Link>
+            <div className="flex items-center justify-end gap-1.5 min-w-0">
+              {badge && (
+                <span
+                  className="w-2 h-2 rounded-full shrink-0"
+                  style={{ backgroundColor: game.homeTeam.primaryColor || "#555" }}
+                  title="Conference color"
+                />
+              )}
+              {(() => {
+                const rec = callbacks.teamRecords.get(game.homeTeamId);
+                return rec ? (
+                  <span className="font-pixel text-[7px] text-muted-foreground shrink-0">
+                    {rec.wins}-{rec.losses}
+                  </span>
+                ) : null;
+              })()}
+              <Link href={`/league/${callbacks.leagueId}/team/${game.homeTeamId}/profile`} onClick={e => e.stopPropagation()}>
+                <span className="font-medium text-sm block truncate hover:text-gold transition-colors cursor-pointer" data-testid={`link-profile-home-${game.id}`}>
+                  {game.homeTeam.name}
+                </span>
+              </Link>
+            </div>
           </div>
           <TeamBadge
             abbreviation={game.homeTeam.abbreviation}

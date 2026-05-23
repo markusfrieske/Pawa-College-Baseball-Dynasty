@@ -16425,6 +16425,9 @@ async function generateSchedule(leagueId: string, season: number = 1) {
     confWeeklyRounds.set(cid, shuffledOrder.map(i => weekRounds[i]));
   }
 
+  // Track which teams have already faced each other as OOC opponents this season
+  const oocSeasonHistory = new Map<string, Set<string>>();
+
   let totalGames = 0;
   for (let week = 0; week < numWeeks; week++) {
     const weekConfSeries: Matchup[] = [];
@@ -16458,41 +16461,73 @@ async function generateSchedule(leagueId: string, season: number = 1) {
     const conferences = [...confMap.keys()];
 
     if (conferences.length >= 2) {
-      // Interleaved cross-conference OOC pairing:
-      // Apply a per-week rotation offset so opponents vary each week.
-      // Interleave one team from each conference per round so consecutive
-      // entries always come from different conferences — then pair them.
+      // Cross-conference OOC pairing with history tracking:
+      // 1. Interleave teams from all conferences (one per conf per round) to
+      //    front-load different-conference adjacency.
+      // 2. Use a greedy "find next unpaired from a different conference" scan
+      //    that explicitly validates confId — safe for all league sizes.
+      // 3. Prefer opponents not yet scheduled as OOC this season (oocSeasonHistory).
+
+      // Build per-conference team arrays with a week-based rotation offset
+      const confByTeamId = new Map<string, string>();
+      for (const [cid, teams] of confMap) {
+        for (const t of teams) confByTeamId.set(t.id, cid);
+      }
+
       const confArrays = conferences.map((cid, ci) => {
         const teams = shuffle([...confMap.get(cid)!]);
         const offset = (week * (ci + 1)) % teams.length;
         return [...teams.slice(offset), ...teams.slice(0, offset)];
       });
 
+      // Interleave: one team from each conference per round
       const interleaved: TeamType[] = [];
       const addedIds = new Set<string>();
       const maxPerConf = Math.max(...confArrays.map(a => a.length));
-
       for (let pos = 0; pos < maxPerConf; pos++) {
         for (let ci = 0; ci < confArrays.length; ci++) {
           if (pos < confArrays[ci].length) {
-            const team = confArrays[ci][pos];
-            if (!addedIds.has(team.id)) {
-              interleaved.push(team);
-              addedIds.add(team.id);
-            }
+            const t = confArrays[ci][pos];
+            if (!addedIds.has(t.id)) { interleaved.push(t); addedIds.add(t.id); }
           }
         }
       }
 
-      // Pair consecutive entries — different conferences by construction
-      for (let i = 0; i + 1 < interleaved.length; i += 2) {
+      // Greedy pairing: for each unpaired team find the first unpaired opponent
+      // from a different conference, preferring one not yet met this season.
+      const paired = new Set<string>();
+      for (let i = 0; i < interleaved.length; i++) {
+        if (paired.has(interleaved[i].id)) continue;
         const a = interleaved[i];
-        const b = interleaved[i + 1];
-        const home = Math.random() > 0.5 ? a : b;
-        const away = home === a ? b : a;
-        oocPairs.push({ home, away });
+        const confA = confByTeamId.get(a.id)!;
+        let freshPartner: TeamType | null = null;
+        let repeatPartner: TeamType | null = null;
+
+        for (let j = i + 1; j < interleaved.length; j++) {
+          if (paired.has(interleaved[j].id)) continue;
+          const b = interleaved[j];
+          if (confByTeamId.get(b.id) === confA) continue; // must be cross-conference
+          if (!oocSeasonHistory.get(a.id)?.has(b.id)) {
+            freshPartner = b;
+            break;
+          }
+          if (!repeatPartner) repeatPartner = b;
+        }
+
+        const partner = freshPartner ?? repeatPartner;
+        if (partner) {
+          const home = Math.random() > 0.5 ? a : partner;
+          const away = home === a ? partner : a;
+          oocPairs.push({ home, away });
+          paired.add(a.id);
+          paired.add(partner.id);
+          if (!oocSeasonHistory.has(a.id)) oocSeasonHistory.set(a.id, new Set());
+          if (!oocSeasonHistory.has(partner.id)) oocSeasonHistory.set(partner.id, new Set());
+          oocSeasonHistory.get(a.id)!.add(partner.id);
+          oocSeasonHistory.get(partner.id)!.add(a.id);
+        }
+        // If no cross-conf partner exists for this team, it gets a bye this week
       }
-      // Any lone remaining team (odd interleaved count) gets a bye — no OOC this week
     } else {
       // Single conference fallback: pair within the conference
       const available = shuffle([...leagueTeams]);
