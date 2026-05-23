@@ -55,7 +55,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
     // CATCHERS (2)
     { firstName: "Alex", lastName: "Sosa", position: "C", eligibility: "JR", homeState: "NC", hometown: "Raleigh", jerseyNumber: 12,
       hitForAvg: 60, power: 87, speed: 38, arm: 58, fielding: 55, errorResistance: 53, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 57, vsLHP: 53, grit: 58, stealing: 15, running: 32, throwing: 60, recovery: 46, wRISP: 57, vsLefty: 52, poise: 55, heater: 0, agile: 38,
+      clutch: 90, vsLHP: 53, grit: 58, stealing: 15, running: 32, throwing: 60, recovery: 46, wRISP: 57, vsLefty: 52, poise: 55, heater: 0, agile: 38,
       abilities: ["Consigliere"], potential: "A-", catcherAbility: 57,
       throwHand: "R", batHand: "L",
       ...noPitches },
@@ -105,7 +105,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
     // OUTFIELDERS (9)
     { firstName: "Derek", lastName: "Williams", position: "OF", eligibility: "SR", homeState: "GA", hometown: "Atlanta", jerseyNumber: 1,
       hitForAvg: 58, power: 86, speed: 61, arm: 51, fielding: 49, errorResistance: 48, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 51, vsLHP: 48, grit: 53, stealing: 27, running: 45, throwing: 53, recovery: 42, wRISP: 49, vsLefty: 46, poise: 49, heater: 0, agile: 48,
+      clutch: 90, vsLHP: 48, grit: 53, stealing: 27, running: 45, throwing: 53, recovery: 42, wRISP: 49, vsLefty: 46, poise: 49, heater: 0, agile: 48,
       abilities: ["Contact Hitter"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...noPitches },
@@ -470,7 +470,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
     // Owen Hull — JR CF transfer from George Mason (.367/8HR/63RBI/42SB last year), .379/4HR/57RBI/16SB at UNC, "fastest player on team", big draft prospect
     { firstName: "Owen", lastName: "Hull", position: "OF", eligibility: "JR", homeState: "VA", hometown: "Fairfax", jerseyNumber: 8,
       hitForAvg: 91, power: 63, speed: 71, arm: 64, fielding: 70, errorResistance: 64, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 78, vsLHP: 72, grit: 76, stealing: 64, running: 80, throwing: 64, recovery: 56, wRISP: 80, vsLefty: 72, poise: 76, heater: 0, agile: 80,
+      clutch: 90, vsLHP: 72, grit: 76, stealing: 64, running: 80, throwing: 64, recovery: 56, wRISP: 80, vsLefty: 72, poise: 76, heater: 0, agile: 80,
       abilities: ["Express Baserunning", "Chance Maker", "Contact Hitter", "Push"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",

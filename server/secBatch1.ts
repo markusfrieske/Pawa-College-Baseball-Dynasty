@@ -685,7 +685,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
     // Gavin Grahovac — 1B JR, top-30 draft, preseason 1st-team All-SEC
     { firstName: "Gavin", lastName: "Grahovac", position: "1B", eligibility: "JR", homeState: "TX", hometown: "Spring", jerseyNumber: 5,
       hitForAvg: 71, power: 88, speed: 44, arm: 56, fielding: 56, errorResistance: 52, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 70, vsLHP: 64, grit: 70, stealing: 12, running: 32, throwing: 56, recovery: 48, wRISP: 72, vsLefty: 64, poise: 70, heater: 0, agile: 42,
+      clutch: 90, vsLHP: 64, grit: 70, stealing: 12, running: 32, throwing: 56, recovery: 48, wRISP: 72, vsLefty: 64, poise: 70, heater: 0, agile: 42,
       abilities: ["Artist", "Consigliere"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
@@ -734,7 +734,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
     // Caden Sorrell — JR CF, top-20 draft prospect, preseason 1st-team All-SEC, multi-HR opening
     { firstName: "Caden", lastName: "Sorrell", position: "OF", eligibility: "JR", homeState: "TX", hometown: "Friendswood", jerseyNumber: 3,
       hitForAvg: 77, power: 91, speed: 63, arm: 60, fielding: 60, errorResistance: 56, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 70, vsLHP: 64, grit: 70, stealing: 28, running: 54, throwing: 60, recovery: 48, wRISP: 70, vsLefty: 64, poise: 70, heater: 0, agile: 56,
+      clutch: 90, vsLHP: 64, grit: 70, stealing: 28, running: 54, throwing: 60, recovery: 48, wRISP: 70, vsLefty: 64, poise: 70, heater: 0, agile: 56,
       abilities: ["Power Hitter", "Consigliere", "High-Speed Laser"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",

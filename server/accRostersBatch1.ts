@@ -604,7 +604,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
     // Vahn Lackey — JR C, .425/.545/.851, 9 HR, 45 RBI, .789 SLG team-leader, USA Collegiate, #2 D1B catcher, 1st Team Preseason All-American, top catcher in MLB Draft, played 8 positions in single game
     { firstName: "Vahn", lastName: "Lackey", position: "C", eligibility: "JR", homeState: "GA", hometown: "Suwanee", jerseyNumber: 25,
       hitForAvg: 93, power: 87, speed: 43, arm: 76, fielding: 78, errorResistance: 74, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 84, vsLHP: 80, grit: 82, stealing: 30, running: 50, throwing: 76, recovery: 60, wRISP: 84, vsLefty: 78, poise: 84, heater: 0, agile: 56,
+      clutch: 90, vsLHP: 80, grit: 82, stealing: 30, running: 50, throwing: 76, recovery: 60, wRISP: 84, vsLefty: 78, poise: 84, heater: 0, agile: 56,
       abilities: ["Power Hitter", "Consigliere", "High-Speed Laser"], potential: "A+", catcherAbility: 78,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
@@ -645,7 +645,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
     // Ryan Zuckerman — JR 3B (Pitt transfer), .743 SLG TEAM LEADER, 9 HR, 44 RBI, 26 R, 3.85 WAR (#1), 17-game OB streak
     { firstName: "Ryan", lastName: "Zuckerman", position: "3B", eligibility: "JR", homeState: "PA", hometown: "Pittsburgh", jerseyNumber: 17,
       hitForAvg: 87, power: 90, speed: 51, arm: 64, fielding: 60, errorResistance: 56, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 82, vsLHP: 76, grit: 78, stealing: 8, running: 34, throwing: 64, recovery: 54, wRISP: 84, vsLefty: 74, poise: 80, heater: 0, agile: 44,
+      clutch: 90, vsLHP: 76, grit: 78, stealing: 8, running: 34, throwing: 64, recovery: 54, wRISP: 84, vsLefty: 74, poise: 80, heater: 0, agile: 44,
       abilities: ["Power Hitter", "Consigliere", "Artist"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
@@ -812,7 +812,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       ...noPitches },
     { firstName: "Tague", lastName: "Davis", position: "1B", eligibility: "SO", homeState: "KY", hometown: "Frankfort", jerseyNumber: 11,
       hitForAvg: 54, power: 95, speed: 46, arm: 51, fielding: 50, errorResistance: 48, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 48, vsLHP: 45, grit: 50, stealing: 23, running: 42, throwing: 53, recovery: 42, wRISP: 47, vsLefty: 43, poise: 47, heater: 0, agile: 45,
+      clutch: 90, vsLHP: 45, grit: 50, stealing: 23, running: 42, throwing: 53, recovery: 42, wRISP: 47, vsLefty: 43, poise: 47, heater: 0, agile: 45,
       abilities: ["Multi-Hit"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "L",
       ...noPitches },
