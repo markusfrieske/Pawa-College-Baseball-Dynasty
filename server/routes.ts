@@ -4340,6 +4340,58 @@ export async function registerRoutes(
     }
   });
 
+  // Update coach strategy (roster, geography, recruiting style, game philosophy)
+  app.patch("/api/coaches/:id/strategy", requireAuth, async (req, res) => {
+    try {
+      const coach = await storage.getCoach(req.params.id as string);
+      if (!coach) return res.status(404).json({ message: "Coach not found" });
+
+      const league = await storage.getLeague(coach.leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      const isCommissioner = hasCommissionerAccess(league, req.session.userId);
+      const isOwnCoach = coach.userId === req.session.userId;
+      if (!isCommissioner && !isOwnCoach) {
+        return res.status(403).json({ message: "You can only edit your own strategy." });
+      }
+
+      const validRosterStrategies = ["pitching_first", "contact_hitting", "power_hitting", "speed_defense", "balanced"];
+      const validGeographyStrategies = ["local_regional", "texas", "california", "florida", "national"];
+      const validStyleStrategies = ["all_in_few", "spread_wide", "top_prospects", "high_potential", "best_available"];
+      const validPhilosophyStrategies = ["small_ball", "power_ball", "aggressive", "conservative", "balanced"];
+
+      const { rosterStrategy, recruitingGeographyStrategy, recruitingStyleStrategy, gamePhilosophyStrategy } = req.body;
+      const update: Record<string, string> = {};
+
+      if (rosterStrategy !== undefined) {
+        if (!validRosterStrategies.includes(rosterStrategy)) return res.status(400).json({ message: "Invalid roster strategy" });
+        update.rosterStrategy = rosterStrategy;
+      }
+      if (recruitingGeographyStrategy !== undefined) {
+        if (!validGeographyStrategies.includes(recruitingGeographyStrategy)) return res.status(400).json({ message: "Invalid geography strategy" });
+        update.recruitingGeographyStrategy = recruitingGeographyStrategy;
+      }
+      if (recruitingStyleStrategy !== undefined) {
+        if (!validStyleStrategies.includes(recruitingStyleStrategy)) return res.status(400).json({ message: "Invalid recruiting style" });
+        update.recruitingStyleStrategy = recruitingStyleStrategy;
+      }
+      if (gamePhilosophyStrategy !== undefined) {
+        if (!validPhilosophyStrategies.includes(gamePhilosophyStrategy)) return res.status(400).json({ message: "Invalid game philosophy" });
+        update.gamePhilosophyStrategy = gamePhilosophyStrategy;
+      }
+
+      if (Object.keys(update).length === 0) {
+        return res.status(400).json({ message: "No valid strategy fields provided" });
+      }
+
+      const updated = await storage.updateCoach(coach.id, update as any);
+      res.json(updated);
+    } catch (error) {
+      console.error("Failed to update coach strategy:", error);
+      res.status(500).json({ message: "Failed to update coach strategy" });
+    }
+  });
+
   // Power Rankings — star/attribute-based team strength ranking
   app.get("/api/leagues/:id/power-rankings", requireAuth, async (req, res) => {
     try {
@@ -8639,6 +8691,12 @@ export async function registerRoutes(
       const userCoach = coaches.find(c => c.userId === req.session.userId);
       const userTeamId = userCoach?.teamId || null;
 
+      // Build per-team game philosophy map for strategy-aware simulation
+      const teamPhilosophyMap = new Map<string, string>();
+      for (const c of coaches) {
+        if (c.teamId) teamPhilosophyMap.set(c.teamId, c.gamePhilosophyStrategy ?? "balanced");
+      }
+
       const simSummary: {
         weekResults: Array<{
           week: number;
@@ -8763,7 +8821,8 @@ export async function registerRoutes(
             const awayFatigue = weekPitcherPitches.get(game.awayTeamId) || {};
             const result = simulateGameWithRosters(homePlayers, awayPlayers, game.gameType,
               teamStadiumMap.get(game.homeTeamId), teamStadiumMap.get(game.awayTeamId),
-              { home: homeFatigue, away: awayFatigue });
+              { home: homeFatigue, away: awayFatigue },
+              teamPhilosophyMap.get(game.homeTeamId), teamPhilosophyMap.get(game.awayTeamId));
 
             // Accumulate reliever pitch counts (add to existing, not replace)
             const mergePitches = (existing: Record<string, number>, incoming: Record<string, number>) => {
@@ -8836,7 +8895,7 @@ export async function registerRoutes(
           const simResults = ccGames.map(game => {
             const homePlayers = rosterCache.get(game.homeTeamId) || [];
             const awayPlayers = rosterCache.get(game.awayTeamId) || [];
-            return { game, result: simulateGameWithRosters(homePlayers, awayPlayers, game.gameType || "friday", teamStadiumMap.get(game.homeTeamId), teamStadiumMap.get(game.awayTeamId)) };
+            return { game, result: simulateGameWithRosters(homePlayers, awayPlayers, game.gameType || "friday", teamStadiumMap.get(game.homeTeamId), teamStadiumMap.get(game.awayTeamId), undefined, teamPhilosophyMap.get(game.homeTeamId), teamPhilosophyMap.get(game.awayTeamId)) };
           });
           // (CC games are one-off single games; no within-week series fatigue applies)
 
@@ -9088,6 +9147,192 @@ export async function registerRoutes(
     }
   });
   
+  // Sim Full Season - advances from current phase all the way to preseason of next season
+  app.post("/api/leagues/:id/sim-full-season", async (req, res) => {
+    try {
+      const leagueId = req.params.id;
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      if (!hasCommissionerAccess(league, req.session.userId)) {
+        return res.status(403).json({ message: "Only the commissioner can simulate a full season." });
+      }
+
+      const gamePhases = ["preseason", "spring_training", "regular_season", "conference_championship", "super_regionals", "cws"];
+      const offseasonPhases = ["offseason_departures", "offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4", "offseason_signing_day", "offseason_walkons"];
+      const allValidPhases = [...gamePhases, ...offseasonPhases];
+      if (!allValidPhases.includes(league.currentPhase)) {
+        return res.status(400).json({ message: "Cannot simulate a full season from the current phase." });
+      }
+
+      const fsTeams = await storage.getTeamsByLeague(leagueId);
+      const fsTeamNameMap = new Map<string, string>();
+      for (const t of fsTeams) fsTeamNameMap.set(t.id, `${t.name} ${t.mascot}`);
+      const fsCoaches = await storage.getCoachesByLeague(leagueId);
+      const fsUserCoach = fsCoaches.find(c => c.userId === req.session.userId);
+      const fsUserTeamId = fsUserCoach?.teamId || null;
+
+      let currentLeague = league;
+      const startSeason = currentLeague.currentSeason;
+
+      // Phase 1: Sim through all game phases to offseason_departures
+      if (gamePhases.includes(currentLeague.currentPhase)) {
+        const MAX_GAME_ITER = 150;
+        let gIter = 0;
+        while (gIter < MAX_GAME_ITER && gamePhases.includes(currentLeague.currentPhase)) {
+          gIter++;
+          const phase = currentLeague.currentPhase;
+          const maxWeeks = currentLeague.seasonLength === "short" ? 5 : currentLeague.seasonLength === "long" ? 10 : 5;
+          const nextWeek = (currentLeague.currentWeek ?? 1) + 1;
+
+          if (["preseason", "spring_training", "regular_season"].includes(phase)) {
+            const weekGames = (await storage.getGamesByLeague(leagueId))
+              .filter(g => g.season === currentLeague.currentSeason && g.week === currentLeague.currentWeek && !g.isComplete);
+            for (const game of weekGames) {
+              const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType);
+              await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, boxScore: result.boxScore, isComplete: true });
+              await updateStandingsForGame(leagueId, currentLeague.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, game.isConference);
+              try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away); } catch (e) { /* ignore */ }
+            }
+            if (nextWeek > maxWeeks) {
+              await generateConferenceChampionships(leagueId, currentLeague.currentSeason);
+              currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "conference_championship", currentWeek: nextWeek })) as any;
+            } else {
+              const newPhase = phase === "preseason" && nextWeek >= 2 ? "regular_season" : phase;
+              if (newPhase === "regular_season" && phase === "preseason") await storage.clearProgressionDeltasForLeague(leagueId);
+              currentLeague = (await storage.updateLeague(leagueId, { currentWeek: nextWeek, currentPhase: newPhase })) as any;
+            }
+            continue;
+          }
+
+          if (phase === "conference_championship") {
+            const ccGames = (await storage.getGamesByLeague(leagueId)).filter(g => g.phase === "conference_championship" && !g.isComplete && g.season === currentLeague.currentSeason);
+            for (const game of ccGames) {
+              const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType);
+              await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, boxScore: result.boxScore, isComplete: true });
+              await updateStandingsForGame(leagueId, currentLeague.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, false);
+            }
+            await generateSuperRegionalBracket(leagueId, currentLeague.currentSeason);
+            currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "super_regionals" })) as any;
+            continue;
+          }
+
+          if (phase === "super_regionals") {
+            let srDone = false;
+            let srIter = 0;
+            let srChampion1: string | undefined;
+            let srChampion2: string | undefined;
+            while (!srDone && srIter < 20) {
+              srIter++;
+              const srResult = await advanceSuperRegionals(leagueId, currentLeague.currentSeason);
+              srDone = srResult.done;
+              if (srDone) {
+                srChampion1 = srResult.champion1;
+                srChampion2 = srResult.champion2;
+              }
+            }
+            if (srChampion1 && srChampion2) {
+              await storage.createGame({
+                leagueId, season: currentLeague.currentSeason, week: 0,
+                homeTeamId: srChampion1, awayTeamId: srChampion2,
+                phase: "cws",
+              });
+              currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "cws" })) as any;
+            } else {
+              // No CWS — go directly to offseason
+              await evaluatePlayerPromises(leagueId, currentLeague.currentSeason);
+              await processOffseasonDepartures(leagueId, currentLeague.currentSeason);
+              await finalizeDeparturesInternal(leagueId, currentLeague);
+              currentLeague = (await storage.getLeague(leagueId)) as any;
+              break;
+            }
+            continue;
+          }
+
+          if (phase === "cws") {
+            let cwsDone = false;
+            let cwsIter = 0;
+            while (!cwsDone && cwsIter < 10) {
+              cwsIter++;
+              const cwsResult = await advanceCWS(leagueId, currentLeague.currentSeason);
+              cwsDone = cwsResult.done;
+              if (cwsDone) break;
+            }
+            await evaluatePlayerPromises(leagueId, currentLeague.currentSeason);
+            await processOffseasonDepartures(leagueId, currentLeague.currentSeason);
+            await finalizeDeparturesInternal(leagueId, currentLeague);
+            currentLeague = (await storage.getLeague(leagueId)) as any;
+            break;
+          }
+          break;
+        }
+      }
+
+      // Phase 2: Process offseason_departures if we landed there
+      if (currentLeague.currentPhase === "offseason_departures") {
+        const existingPending = await storage.getPendingDeparturesByLeague(leagueId);
+        if (existingPending.length === 0) {
+          await evaluatePlayerPromises(leagueId, currentLeague.currentSeason);
+          await processOffseasonDepartures(leagueId, currentLeague.currentSeason);
+        }
+        await finalizeDeparturesInternal(leagueId, currentLeague);
+        currentLeague = (await storage.getLeague(leagueId)) as any;
+      }
+
+      // Phase 3: Sim through all recruiting phases
+      const recruitingPhaseList = ["offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4"];
+      for (const rphase of recruitingPhaseList) {
+        if (offseasonPhases.indexOf(currentLeague.currentPhase) <= offseasonPhases.indexOf(rphase)) {
+          await runCpuRecruiting(leagueId, currentLeague.currentWeek ?? 1, currentLeague.currentSeason);
+          await runCpuTransferPortalRecruiting(leagueId);
+          await updateRecruitStages(leagueId, currentLeague.currentWeek ?? 1);
+          const nextPhaseIdx = offseasonPhases.indexOf(rphase) + 1;
+          currentLeague = (await storage.updateLeague(leagueId, {
+            currentPhase: offseasonPhases[nextPhaseIdx],
+            currentWeek: (currentLeague.currentWeek ?? 1) + 1,
+          })) as any;
+        }
+      }
+
+      // Phase 4: Signing day + walk-ons → new season
+      let seasonTransition: any = null;
+      if (currentLeague.currentPhase === "offseason_signing_day") {
+        const signingResult = await finalizeSigningDay(leagueId, currentLeague.currentSeason);
+        await generateWalkonPool(leagueId);
+        await processAllTeamWalkons(leagueId);
+        const allTeamsFs = await storage.getTeamsByLeague(leagueId);
+        for (const team of allTeamsFs) await storage.updateTeam(team.id, { walkonReady: true });
+        const walkonResult = await finalizeWalkonsPhase(leagueId, currentLeague.currentSeason);
+        currentLeague = (await storage.updateLeague(leagueId, {
+          currentWeek: 1,
+          currentSeason: currentLeague.currentSeason + 1,
+          currentPhase: "preseason",
+        })) as any;
+        try {
+          const allTeamsForLineup = await storage.getTeamsByLeague(leagueId);
+          for (const team of allTeamsForLineup) {
+            if (!team.userId || team.userId === "cpu") {
+              const teamPlayers = await storage.getPlayersByTeam(team.id);
+              await autoAssignLineup(storage, teamPlayers, team.id);
+            }
+          }
+        } catch (e) { console.error("Auto-lineup error:", e); }
+        seasonTransition = { ...signingResult, ...walkonResult };
+      }
+
+      await storage.createAuditLog({
+        leagueId,
+        userId: req.session.userId,
+        action: "Simulate Full Season",
+        details: `Commissioner fast-forwarded entire Season ${startSeason} including postseason, recruiting, and signing day. Now in Season ${currentLeague.currentSeason} preseason.`,
+      });
+
+      res.json({ ...currentLeague, seasonTransition });
+    } catch (error) {
+      console.error("Failed to sim full season:", error);
+      res.status(500).json({ message: "Failed to simulate full season" });
+    }
+  });
+
   // Sim to Postseason - stops at conference_championship
   app.post("/api/leagues/:id/sim-to-postseason", async (req, res) => {
     try {
@@ -9355,7 +9600,8 @@ export async function registerRoutes(
   function simulateGameWithRosters(
     homePlayers: Player[], awayPlayers: Player[], gameType?: string | null,
     homeStadium?: number, awayStadium?: number,
-    pitcherFatigueIn?: { home: Record<string, number>; away: Record<string, number> }
+    pitcherFatigueIn?: { home: Record<string, number>; away: Record<string, number> },
+    homePhilosophy?: string, awayPhilosophy?: string
   ): { homeScore: number; awayScore: number; boxScore: string; homePitcherPitches: Record<string, number>; awayPitcherPitches: Record<string, number> } {
 
     const gameTypeToRole: Record<string, string> = { friday: "FRI", saturday: "SAT", sunday: "SUN", midweek: "MID" };
@@ -9418,21 +9664,37 @@ export async function registerRoutes(
     const homeBullpenFatigued = calcBullpenFatiguePenalty(homePlayers, pitcherFatigueIn?.home || {});
     const awayBullpenFatigued = calcBullpenFatiguePenalty(awayPlayers, pitcherFatigueIn?.away || {});
 
+    // Philosophy strategy: modifies offDiff multiplier and expected run baseline
+    // aggressive → more talent-based variance (±15%); conservative → tighter games (±5%)
+    // small_ball → lower scoring (-0.8); power_ball → higher scoring (+0.8)
+    const philosophyDiffMult = (() => {
+      const h = homePhilosophy ?? "balanced";
+      const a = awayPhilosophy ?? "balanced";
+      if (h === "aggressive" || a === "aggressive") return 1.15;
+      if (h === "conservative" || a === "conservative") return 0.85;
+      return 1.0;
+    })();
+    const homeRunAdj = (homePhilosophy === "power_ball" ? 0.8 : homePhilosophy === "small_ball" ? -0.8 : 0);
+    const awayRunAdj = (awayPhilosophy === "power_ball" ? 0.8 : awayPhilosophy === "small_ball" ? -0.8 : 0);
+    const adjOffDiff = offDiff * philosophyDiffMult;
+
     const homeAdv = 0.25;
     let homeExpected = 5.75
-      + offDiff * 4.0
+      + adjOffDiff * 4.0
       + homeAdv
       - awaySpSuppression
       + platoonBonus(awaySpHand, homePlayers)
       + homePark
-      + awayBullpenFatigued;    // fatigued away bullpen gives up more home runs
+      + awayBullpenFatigued    // fatigued away bullpen gives up more home runs
+      + homeRunAdj;
 
     let awayExpected = 5.75
-      - offDiff * 4.0
+      - adjOffDiff * 4.0
       - homeSpSuppression
       + platoonBonus(homeSpHand, awayPlayers)
       + homePark * 0.5
-      + homeBullpenFatigued;    // fatigued home bullpen gives up more away runs
+      + homeBullpenFatigued    // fatigued home bullpen gives up more away runs
+      + awayRunAdj;
 
     homeExpected = Math.max(1.0, Math.min(13, homeExpected));
     awayExpected = Math.max(1.0, Math.min(13, awayExpected));

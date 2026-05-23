@@ -388,6 +388,34 @@ export default function CommissionerPage() {
     },
   });
 
+  const simFullSeasonMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/leagues/${id}/sim-full-season`, {});
+      return res.json();
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "postseason"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "commissioner"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "schedule"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/leagues/${id}/roster`] });
+      window.dispatchEvent(new CustomEvent("league-phase-changed"));
+      if (data?.seasonTransition) {
+        const t = data.seasonTransition;
+        toast({
+          title: "Full Season Complete!",
+          description: `Season simulated end-to-end. ${t.recruitsAdded ?? 0} recruits signed, ${t.newRecruits ?? 0} new class generated. Welcome to Season ${data.currentSeason}!`,
+        });
+      } else {
+        toast({ title: "Full Season Simulated", description: "The entire season has been simulated through to the next preseason." });
+      }
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
+    },
+  });
+
   const simulateWeekMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("POST", `/api/leagues/${id}/simulate`, {});
@@ -561,6 +589,8 @@ export default function CommissionerPage() {
               isSimToPostseason={simToPostseasonMutation.isPending}
               onSimToCws={() => simToCwsMutation.mutate()}
               isSimToCws={simToCwsMutation.isPending}
+              onSimFullSeason={() => simFullSeasonMutation.mutate()}
+              isSimFullSeason={simFullSeasonMutation.isPending}
               onBackfillScores={() => backfillScoresMutation.mutate()}
               isBackfilling={backfillScoresMutation.isPending}
               autoAdvance={autoAdvance}
@@ -648,6 +678,8 @@ function ActionsTab({
   isSimToPostseason,
   onSimToCws,
   isSimToCws,
+  onSimFullSeason,
+  isSimFullSeason,
   onBackfillScores,
   isBackfilling,
   autoAdvance,
@@ -670,6 +702,8 @@ function ActionsTab({
   isSimToPostseason: boolean;
   onSimToCws: () => void;
   isSimToCws: boolean;
+  onSimFullSeason: () => void;
+  isSimFullSeason: boolean;
   onBackfillScores: () => void;
   isBackfilling: boolean;
   autoAdvance: boolean;
@@ -702,7 +736,7 @@ function ActionsTab({
   const isPostseason = ["conference_championship", "super_regionals", "cws"].includes(league?.currentPhase || "");
   const offseasonPhaseList = ["offseason", "offseason_departures", "offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4", "offseason_signing_day", "offseason_walkons"];
   const isOffseason = offseasonPhaseList.includes(league?.currentPhase || "");
-  const anySim = isAdvancing || isAdvancingSeason || isSimToOffseason || isSimToSigningDay || isSimToPostseason || isSimToCws;
+  const anySim = isAdvancing || isAdvancingSeason || isSimToOffseason || isSimToSigningDay || isSimToPostseason || isSimToCws || isSimFullSeason;
   
   const advanceLabel = (() => {
     if (isAdvancing) return "Processing...";
@@ -980,6 +1014,39 @@ function ActionsTab({
                     ? "Use the Recruiting Board, or sim to skip remaining offseason weeks."
                     : "Fast-forward through recruiting, decision day, and start the next season."}
                 </p>
+              )}
+              {/* Sim Full Season — always visible from any active phase */}
+              {(["preseason","spring_training","regular_season","conference_championship","super_regionals","cws","offseason_departures","offseason_recruiting_1","offseason_recruiting_2","offseason_recruiting_3","offseason_recruiting_4","offseason_signing_day","offseason_walkons"].includes(league?.currentPhase || "")) && (
+                <div className="mt-3 pt-3 border-t border-border/50">
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <RetroButton
+                        variant="secondary"
+                        disabled={anySim}
+                        className="w-full"
+                        data-testid="button-sim-full-season"
+                      >
+                        <FastForward className="w-4 h-4 mr-2" />
+                        {isSimFullSeason ? "Simulating Full Season..." : "Sim Full Season"}
+                      </RetroButton>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="bg-card border-border">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="font-pixel text-gold text-sm">Simulate Full Season?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will simulate the entire current season — all games, postseason, recruiting, and signing day — advancing to the next preseason. Your recruiting actions won't be applied. This action is irreversible.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel className="bg-background border-border">Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={onSimFullSeason} className="bg-gold text-forest-dark" data-testid="button-confirm-sim-full-season">
+                          Sim Full Season
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                  <p className="text-xs text-muted-foreground/60 mt-1.5 text-center">Skips all game phases + recruiting</p>
+                </div>
               )}
             </div>
 

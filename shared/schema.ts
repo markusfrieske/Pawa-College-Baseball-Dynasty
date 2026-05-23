@@ -173,6 +173,11 @@ export const coaches = pgTable("coaches", {
   coachingPhilosophy: json("coaching_philosophy").$type<{statement: string; importance: string}[]>().default([]),
   traitBadges: json("trait_badges").$type<string[]>().default([]),
   careerMilestones: json("career_milestones").$type<{id: string; season: number}[]>().default([]),
+  // Strategy system
+  rosterStrategy: text("roster_strategy").notNull().default("balanced"),
+  recruitingGeographyStrategy: text("recruiting_geography_strategy").notNull().default("national"),
+  recruitingStyleStrategy: text("recruiting_style_strategy").notNull().default("best_available"),
+  gamePhilosophyStrategy: text("game_philosophy_strategy").notNull().default("balanced"),
 }, (t) => [
   index("idx_coaches_team_id").on(t.teamId),
   index("idx_coaches_league_id").on(t.leagueId),

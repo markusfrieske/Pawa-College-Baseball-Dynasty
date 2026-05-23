@@ -1228,11 +1228,161 @@ function SettingsTab({
   );
 }
 
+// ── Strategy tab ──────────────────────────────────────────────────────────────
+function StrategySelector({
+  label, description, options, value, onSelect, isPending, icon
+}: {
+  label: string;
+  description: string;
+  options: { value: string; label: string; desc: string }[];
+  value: string;
+  onSelect: (v: string) => void;
+  isPending?: boolean;
+  icon?: React.ReactNode;
+}) {
+  return (
+    <RetroCard variant="bordered">
+      <RetroCardHeader>
+        <div className="flex items-center gap-2">
+          {icon}
+          <h3 className="font-pixel text-sm">{label}</h3>
+        </div>
+        <p className="text-xs text-muted-foreground">{description}</p>
+      </RetroCardHeader>
+      <RetroCardContent className="p-4">
+        <div className="grid gap-2">
+          {options.map(opt => (
+            <button
+              key={opt.value}
+              onClick={() => !isPending && onSelect(opt.value)}
+              disabled={isPending}
+              data-testid={`strategy-option-${opt.value}`}
+              className={`w-full text-left rounded-lg border px-3 py-2.5 transition-all ${
+                value === opt.value
+                  ? "border-gold bg-gold/10 text-foreground"
+                  : "border-border/40 hover:border-gold/50 hover:bg-muted/20 text-muted-foreground"
+              } ${isPending ? "opacity-60 cursor-not-allowed" : "cursor-pointer"}`}
+            >
+              <p className={`text-sm font-medium ${value === opt.value ? "text-gold" : ""}`}>{opt.label}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{opt.desc}</p>
+            </button>
+          ))}
+        </div>
+      </RetroCardContent>
+    </RetroCard>
+  );
+}
+
+function StrategyTab({ coach, isOwnCoach }: { coach: Coach; isOwnCoach: boolean }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const strategyMutation = useMutation({
+    mutationFn: async (update: Record<string, string>) => {
+      const res = await apiRequest("PATCH", `/api/coaches/${coach.id}/strategy`, update);
+      return res.json();
+    },
+    onSuccess: (_data, update) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/coaches", coach.id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues"] });
+      const field = Object.keys(update)[0];
+      const labels: Record<string, string> = {
+        rosterStrategy: "Roster Strategy",
+        recruitingGeographyStrategy: "Recruiting Geography",
+        recruitingStyleStrategy: "Recruiting Style",
+        gamePhilosophyStrategy: "Game Philosophy",
+      };
+      toast({ title: `${labels[field] ?? "Strategy"} Updated`, description: "Your coaching strategy has been saved." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
+    },
+  });
+
+  const rosterValue = (coach as any).rosterStrategy ?? "balanced";
+  const geoValue = (coach as any).recruitingGeographyStrategy ?? "national";
+  const styleValue = (coach as any).recruitingStyleStrategy ?? "best_available";
+  const philoValue = (coach as any).gamePhilosophyStrategy ?? "balanced";
+
+  const readOnly = !isOwnCoach;
+
+  return (
+    <div className="space-y-6">
+      {readOnly && (
+        <div className="bg-muted/20 rounded-lg px-4 py-3 border border-border/40">
+          <p className="text-sm text-muted-foreground">Viewing this coach's strategy settings (read-only).</p>
+        </div>
+      )}
+      <StrategySelector
+        label="Roster Strategy"
+        description="Defines how you build and prioritize your 25-man roster."
+        icon={<Users className="w-4 h-4 text-gold" />}
+        value={rosterValue}
+        onSelect={v => strategyMutation.mutate({ rosterStrategy: v })}
+        isPending={strategyMutation.isPending || readOnly}
+        options={[
+          { value: "pitching_first", label: "Pitching First", desc: "Prioritize arms — deep rotation and bullpen above all else." },
+          { value: "contact_hitting", label: "Contact Hitting", desc: "Build around high-average hitters who put the ball in play." },
+          { value: "power_hitting", label: "Power Hitting", desc: "Load up on power bats and accept strikeouts for home run upside." },
+          { value: "speed_defense", label: "Speed & Defense", desc: "Elite defenders and baserunners who manufacture runs." },
+          { value: "balanced", label: "Balanced", desc: "No strong preference — build the best available team." },
+        ]}
+      />
+      <StrategySelector
+        label="Recruiting Geography"
+        description="Where you focus your recruiting efforts geographically."
+        icon={<TrendingUp className="w-4 h-4 text-gold" />}
+        value={geoValue}
+        onSelect={v => strategyMutation.mutate({ recruitingGeographyStrategy: v })}
+        isPending={strategyMutation.isPending || readOnly}
+        options={[
+          { value: "local_regional", label: "Local / Regional", desc: "Focus on in-state and regional recruits for proximity bonus." },
+          { value: "texas", label: "Texas Pipeline", desc: "Target the deep Texas recruiting hotbed year after year." },
+          { value: "california", label: "California Pipeline", desc: "Mine the California coast for high-ceiling prospects." },
+          { value: "florida", label: "Florida Pipeline", desc: "Build from Florida's rich talent base of top prospects." },
+          { value: "national", label: "National", desc: "Cast the widest net — recruit the best player, wherever they are." },
+        ]}
+      />
+      <StrategySelector
+        label="Recruiting Style"
+        description="How you allocate your recruiting budget and attention."
+        icon={<Star className="w-4 h-4 text-gold" />}
+        value={styleValue}
+        onSelect={v => strategyMutation.mutate({ recruitingStyleStrategy: v })}
+        isPending={strategyMutation.isPending || readOnly}
+        options={[
+          { value: "all_in_few", label: "All-In on a Few", desc: "Go deep on a handful of top targets. Win or miss big." },
+          { value: "spread_wide", label: "Spread the Net", desc: "Work a large board to ensure signing day success." },
+          { value: "top_prospects", label: "Stars Only", desc: "Target exclusively top-rated recruits. Swing for the fences." },
+          { value: "high_potential", label: "High Potential", desc: "Find hidden gems and under-the-radar high-ceiling prospects." },
+          { value: "best_available", label: "Best Available", desc: "Take the best player available regardless of profile." },
+        ]}
+      />
+      <StrategySelector
+        label="Game Philosophy"
+        description="How your team approaches games on the field. Affects simulation outcomes."
+        icon={<Swords className="w-4 h-4 text-gold" />}
+        value={philoValue}
+        onSelect={v => strategyMutation.mutate({ gamePhilosophyStrategy: v })}
+        isPending={strategyMutation.isPending || readOnly}
+        options={[
+          { value: "small_ball", label: "Small Ball", desc: "Manufacturing runs through contact, bunts, and stolen bases. Lower-scoring games." },
+          { value: "power_ball", label: "Power Ball", desc: "Live by the long ball. Higher-scoring, home run–heavy approach." },
+          { value: "aggressive", label: "Aggressive", desc: "Talent shines through. Your team's edge shows up more in outcomes (±15%)." },
+          { value: "conservative", label: "Conservative", desc: "Tighter, closer games. Minimize the impact of individual talent gaps (±5%)." },
+          { value: "balanced", label: "Balanced", desc: "Standard approach. No special modifiers applied." },
+        ]}
+      />
+    </div>
+  );
+}
+
 // ── Tab nav ───────────────────────────────────────────────────────────────────
 const TABS = [
   { id: "career", label: "Career", icon: <Trophy className="w-4 h-4" /> },
   { id: "attributes", label: "Attributes", icon: <Target className="w-4 h-4" /> },
   { id: "skills", label: "Skills", icon: <GraduationCap className="w-4 h-4" /> },
+  { id: "strategy", label: "Strategy", icon: <Swords className="w-4 h-4" /> },
   { id: "settings", label: "Settings", icon: <Settings className="w-4 h-4" /> },
 ] as const;
 
@@ -1349,6 +1499,9 @@ export default function CoachProfilePage() {
         {activeTab === "skills" && (
           <SkillsTab coach={coach} isOwnCoach onUpgrade={(skill) => upgradeSkillMutation.mutate(skill)} />
         )}
+        {activeTab === "strategy" && (
+          <StrategyTab coach={coach} isOwnCoach />
+        )}
         {activeTab === "settings" && (
           <SettingsTab currentUser={currentUser} emailPrefMutation={emailPrefMutation} />
         )}
@@ -1419,6 +1572,9 @@ export function CoachProfileByIdPage() {
         )}
         {activeTab === "skills" && (
           <SkillsTab coach={coach} isOwnCoach={isOwnCoach} />
+        )}
+        {activeTab === "strategy" && (
+          <StrategyTab coach={coach} isOwnCoach={isOwnCoach} />
         )}
       </main>
     </div>
