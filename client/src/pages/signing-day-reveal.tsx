@@ -72,107 +72,57 @@ function useReducedMotion(): boolean {
   return reduced;
 }
 
-// ── StadiumBackground ─────────────────────────────────────────
-// Pixel art top-down baseball diamond rendered in SVG.
-// Excluded from html2canvas because it lives outside cardGridRef.
-function StadiumBackground({ isBuildup }: { isBuildup: boolean }) {
+// ── SkyBackground ─────────────────────────────────────────────
+// Bright cinematic sky gradient — outdoor daytime feel.
+function SkyBackground({ isBuildup }: { isBuildup: boolean }) {
   return (
     <div
       className="absolute inset-0 overflow-hidden pointer-events-none"
       aria-hidden
       data-testid="stadium-background"
-      // Opacity is controlled here (not on the SVG) so sdStadiumRumble can modulate it directly.
       style={
         isBuildup
-          ? { animation: "sdStadiumRumble 1.5s ease-in-out forwards" }
-          : { opacity: 0.16 }
+          ? { animation: "sdSkyBuild 1.5s ease-in-out forwards" }
+          : { opacity: 1 }
       }
     >
-      <svg
-        viewBox="0 0 800 680"
-        xmlns="http://www.w3.org/2000/svg"
-        preserveAspectRatio="xMidYMid slice"
-        style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
-        shapeRendering="crispEdges"
-      >
-        {/* Dark base field */}
-        <rect x="0" y="0" width="800" height="680" fill="#060e06" />
-
-        {/* Outfield grass oval */}
-        <ellipse cx="400" cy="370" rx="368" ry="305" fill="#0b1a0b" />
-
-        {/* Warning track */}
-        <ellipse cx="400" cy="370" rx="368" ry="305" fill="none" stroke="#1e1006" strokeWidth="30" />
-
-        {/* Inner grass */}
-        <ellipse cx="400" cy="370" rx="338" ry="275" fill="#0d1e0d" />
-
-        {/* Infield dirt circle */}
-        <circle cx="400" cy="420" r="158" fill="#1c0f06" />
-
-        {/* Infield grass diamond cutout */}
-        <polygon points="400,278 512,420 400,532 288,420" fill="#0d1e0d" />
-
-        {/* Pitcher's mound */}
-        <circle cx="400" cy="415" r="22" fill="#221208" />
-        <circle cx="400" cy="415" r="8" fill="#2a1610" />
-
-        {/* Base paths (dirt strips) */}
-        <line x1="400" y1="532" x2="512" y2="420" stroke="#1c1008" strokeWidth="14" />
-        <line x1="512" y1="420" x2="400" y2="278" stroke="#1c1008" strokeWidth="14" />
-        <line x1="400" y1="278" x2="288" y2="420" stroke="#1c1008" strokeWidth="14" />
-        <line x1="288" y1="420" x2="400" y2="532" stroke="#1c1008" strokeWidth="14" />
-
-        {/* Bases */}
-        <rect x="502" y="410" width="20" height="20" fill="#181818" />
-        <rect x="390" y="268" width="20" height="20" fill="#181818" />
-        <rect x="278" y="410" width="20" height="20" fill="#181818" />
-
-        {/* Home plate */}
-        <polygon points="400,522 416,538 416,552 384,552 384,538" fill="#181818" />
-
-        {/* Batter boxes outlines */}
-        <rect x="372" y="534" width="16" height="28" fill="none" stroke="#141408" strokeWidth="2" />
-        <rect x="412" y="534" width="16" height="28" fill="none" stroke="#141408" strokeWidth="2" />
-
-        {/* Foul lines */}
-        <line x1="400" y1="532" x2="42" y2="80" stroke="#161606" strokeWidth="4" strokeDasharray="14,10" />
-        <line x1="400" y1="532" x2="758" y2="80" stroke="#161606" strokeWidth="4" strokeDasharray="14,10" />
-
-        {/* Stadium wall arc (top of field) */}
-        <ellipse cx="400" cy="370" rx="368" ry="305" fill="none" stroke="#182018" strokeWidth="8" />
-
-        {/* Outfield wall padding marks */}
-        {Array.from({ length: 18 }, (_, i) => {
-          const frac = i / 17;
-          const angle = Math.PI * frac;
-          const wx = 400 + 368 * Math.cos(Math.PI - angle);
-          const wy = 370 - 305 * Math.sin(Math.PI - angle);
-          return <rect key={i} x={wx - 3} y={wy - 8} width="6" height="16" fill="#1a2a1a" />;
-        })}
-
-        {/* Stadium light towers */}
-        {[0.08, 0.22, 0.38, 0.62, 0.78, 0.92].map((frac, i) => {
-          const angle = Math.PI * frac;
-          const lx = 400 + 368 * Math.cos(Math.PI - angle);
-          const ly = 370 - 305 * Math.sin(Math.PI - angle) - 12;
-          return (
-            <g key={i}>
-              <rect x={lx - 4} y={ly - 22} width="8" height="22" fill="#101e10" />
-              <rect x={lx - 10} y={ly - 28} width="20" height="8" fill="#121e12" />
-              <circle cx={lx - 5} cy={ly - 24} r="3" fill="#1c2e1c" />
-              <circle cx={lx + 5} cy={ly - 24} r="3" fill="#1c2e1c" />
-            </g>
-          );
-        })}
-
-        {/* Center field distance marker */}
-        <text x="400" y="180" textAnchor="middle" fill="#0e1e0e" fontSize="18" fontFamily="monospace" fontWeight="bold">400</text>
-
-        {/* Foul pole markers */}
-        <line x1="42" y1="80" x2="42" y2="55" stroke="#1a2a0a" strokeWidth="3" />
-        <line x1="758" y1="80" x2="758" y2="55" stroke="#1a2a0a" strokeWidth="3" />
-      </svg>
+      {/* Main sky gradient */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background:
+            "linear-gradient(180deg, #5ba3d9 0%, #7dbde8 20%, #a8d4f0 45%, #c8e8f8 65%, #dff0d8 82%, #c8dcb0 100%)",
+        }}
+      />
+      {/* Horizon shimmer band */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: "18%",
+          left: 0,
+          right: 0,
+          height: "6%",
+          background: "linear-gradient(180deg, transparent 0%, rgba(220,235,200,0.4) 100%)",
+        }}
+      />
+      {/* Clouds */}
+      <div style={{ position: "absolute", top: "7%",  left: "10%",  width: 130, height: 40, background: "rgba(255,255,255,0.55)", borderRadius: 50 }} />
+      <div style={{ position: "absolute", top: "5%",  left: "8%",   width: 80,  height: 28, background: "rgba(255,255,255,0.45)", borderRadius: 50 }} />
+      <div style={{ position: "absolute", top: "11%", right: "18%", width: 160, height: 48, background: "rgba(255,255,255,0.50)", borderRadius: 50 }} />
+      <div style={{ position: "absolute", top: "9%",  right: "16%", width: 95,  height: 28, background: "rgba(255,255,255,0.38)", borderRadius: 50 }} />
+      <div style={{ position: "absolute", top: "4%",  left: "45%",  width: 110, height: 35, background: "rgba(255,255,255,0.42)", borderRadius: 50 }} />
+      {/* Subtle ground / outfield suggestion */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: "22%",
+          background: "linear-gradient(180deg, transparent 0%, rgba(140,180,80,0.22) 100%)",
+        }}
+      />
     </div>
   );
 }
@@ -222,7 +172,6 @@ function FireworksCanvas({ teamColor, active, overrideColors }: { teamColor: str
 
     const randColor = () => colorsRef.current[Math.floor(Math.random() * colorsRef.current.length)];
 
-    // Launch a rocket from the bottom edge (classic ground fireworks)
     const launchFromBottom = () => {
       const x = 40 + Math.random() * (canvas.width - 80);
       const travelFrames = 48 + Math.random() * 32;
@@ -236,7 +185,6 @@ function FireworksCanvas({ teamColor, active, overrideColors }: { teamColor: str
       });
     };
 
-    // Launch a rocket from a left or right edge (angled inward and upward)
     const launchFromSide = () => {
       const fromLeft = Math.random() < 0.5;
       const x = fromLeft ? -4 : canvas.width + 4;
@@ -253,7 +201,6 @@ function FireworksCanvas({ teamColor, active, overrideColors }: { teamColor: str
       });
     };
 
-    // 25% of dense-phase launches come from screen edges for variety
     const launch = (allowEdge = false) => {
       if (allowEdge && Math.random() < 0.25) {
         launchFromSide();
@@ -281,10 +228,6 @@ function FireworksCanvas({ teamColor, active, overrideColors }: { teamColor: str
 
     const tick = () => {
       const elapsed = Date.now() - startTime;
-      // Dense phase:       0–8s  — 2 rockets/launch, edge launches enabled
-      // Medium phase:    8–16s  — 1 rocket/launch, bottom only
-      // Sparse phase:   16–28s  — occasional rocket
-      // Taper phase:      28s+  — near-zero cadence (one rocket every ~10s)
       const dense  = elapsed < 8000;
       const medium = elapsed < 16000;
       const sparse = elapsed < 28000;
@@ -293,8 +236,8 @@ function FireworksCanvas({ teamColor, active, overrideColors }: { teamColor: str
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       if (elapsed - lastLaunch > interval * (0.75 + Math.random() * 0.5)) {
-        launch(dense);          // edge launches only during dense phase
-        if (dense) launch(true); // second rocket during dense phase
+        launch(dense);
+        if (dense) launch(true);
         lastLaunch = elapsed;
       }
 
@@ -362,48 +305,7 @@ function FireworksCanvas({ teamColor, active, overrideColors }: { teamColor: str
   );
 }
 
-// ── SmokeEmbers ────────────────────────────────────────────────
-// Slow-rising semi-transparent particles simulating stadium atmosphere.
-function SmokeEmbers() {
-  const embers = useMemo(() =>
-    Array.from({ length: 16 }, (_, i) => ({
-      left: `${(i * 6.4) % 96}%`,
-      delay: `${(i * 1.15) % 8}s`,
-      duration: `${6.5 + (i * 0.85) % 5}s`,
-      size: `${3 + (i * 1.2) % 7}px`,
-      drift: `${i % 2 === 0 ? 22 + (i * 3) % 16 : -(22 + (i * 3) % 16)}px`,
-      opacity: 0.18 + (i * 0.04) % 0.28,
-    }))
-  , []);
-
-  return (
-    <div
-      className="fixed inset-0 pointer-events-none overflow-hidden"
-      style={{ zIndex: 4 }}
-      aria-hidden
-    >
-      {embers.map((e, i) => (
-        <div
-          key={i}
-          style={{
-            position: "absolute",
-            bottom: "-16px",
-            left: e.left,
-            width: e.size,
-            height: e.size,
-            borderRadius: "50%",
-            background: `rgba(170, 210, 170, ${e.opacity})`,
-            animation: `sdEmberRise ${e.duration} ease-in ${e.delay} infinite`,
-            "--sd-drift": e.drift,
-          } as React.CSSProperties}
-        />
-      ))}
-    </div>
-  );
-}
-
 // ── FlickerOverlay ─────────────────────────────────────────────
-// White light flicker simulating stadium lights turning on during buildup.
 function FlickerOverlay({ active }: { active: boolean }) {
   if (!active) return null;
   return (
@@ -414,7 +316,7 @@ function FlickerOverlay({ active }: { active: boolean }) {
         inset: 0,
         pointerEvents: "none",
         zIndex: 15,
-        background: "rgba(200,240,200,0.18)",
+        background: "rgba(220,240,255,0.22)",
         animation: "sdFlicker 1.5s ease-out forwards",
       }}
     />
@@ -422,7 +324,6 @@ function FlickerOverlay({ active }: { active: boolean }) {
 }
 
 // ── CinematicBurst ─────────────────────────────────────────────
-// Team-color radial flash that expands then fades during the burst phase.
 function CinematicBurst({ color, active }: { color: string; active: boolean }) {
   if (!active) return null;
   return (
@@ -443,8 +344,6 @@ function CinematicBurst({ color, active }: { color: string; active: boolean }) {
 }
 
 // ── GemSpotlight ───────────────────────────────────────────────
-// Dark radial vignette that draws the eye to center screen during
-// the gem ceremony spotlight phase.
 function GemSpotlight({ active }: { active: boolean }) {
   if (!active) return null;
   return (
@@ -464,7 +363,6 @@ function GemSpotlight({ active }: { active: boolean }) {
 }
 
 // ── GemBurst ───────────────────────────────────────────────────
-// Amber/gold radial flash distinct from the team-color CinematicBurst.
 function GemBurst({ active }: { active: boolean }) {
   if (!active) return null;
   return (
@@ -481,6 +379,192 @@ function GemBurst({ active }: { active: boolean }) {
         transformOrigin: "center center",
       }}
     />
+  );
+}
+
+// ── Position family color ──────────────────────────────────────
+function getPositionFamilyColor(position: string): string {
+  if (position === "P")                           return "#dc2626"; // red
+  if (position === "C")                           return "#1c1c1c"; // black
+  if (["1B","2B","3B","SS"].includes(position))   return "#2563eb"; // blue
+  if (position === "OF")                          return "#16a34a"; // green
+  if (position === "DH")                          return "#7c3aed"; // purple
+  return "#6b7280";
+}
+
+// ── LetterOfIntentCard ─────────────────────────────────────────
+// Cream application form card displayed in the bottom row.
+function LetterOfIntentCard({
+  recruit,
+  isRainbow,
+  animationDelay,
+  reducedMotion,
+  gemRevealed,
+}: {
+  recruit: RevealRecruit;
+  isRainbow?: boolean;
+  animationDelay?: number;
+  reducedMotion?: boolean;
+  gemRevealed?: boolean;
+}) {
+  const delay = animationDelay ?? 0;
+  const posColor = getPositionFamilyColor(recruit.position);
+
+  return (
+    <div
+      style={{
+        width: "160px",
+        height: "220px",
+        flexShrink: 0,
+        position: "relative",
+        animation: reducedMotion ? "none" : `loiCardSlideUp 0.5s ease-out ${delay}s both`,
+      }}
+      data-testid={`loi-card-${recruit.id}`}
+    >
+      {/* Rainbow spinning border wrapper */}
+      {isRainbow && (
+        <div
+          style={{
+            position: "absolute",
+            inset: -3,
+            borderRadius: 11,
+            background: "conic-gradient(from 0deg, #ff0000, #ff8800, #ffff00, #00cc00, #0088ff, #8800ff, #ff0088, #ff0000)",
+            animation: reducedMotion ? "none" : "loiRainbowSpin 2.5s linear infinite",
+            zIndex: 0,
+          }}
+          aria-hidden
+        />
+      )}
+
+      {/* Card body */}
+      <div
+        style={{
+          position: "absolute",
+          inset: isRainbow ? 3 : 0,
+          borderRadius: isRainbow ? 9 : 8,
+          background: "#f8f4ec",
+          border: isRainbow ? "none" : "2px solid #d4c9a0",
+          overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
+          zIndex: 1,
+        }}
+      >
+        {/* Header bar */}
+        <div
+          style={{
+            background: "#1a1a1a",
+            padding: "5px 8px",
+            textAlign: "center",
+            flexShrink: 0,
+          }}
+        >
+          <span
+            className="font-pixel tracking-widest"
+            style={{ fontSize: "6px", color: "#e5c97a", letterSpacing: "0.12em" }}
+          >
+            LETTER OF INTENT
+          </span>
+        </div>
+
+        {/* Position badge strip */}
+        <div
+          style={{
+            background: posColor,
+            height: "18px",
+            display: "flex",
+            alignItems: "center",
+            paddingLeft: "8px",
+            flexShrink: 0,
+          }}
+        >
+          <span className="font-pixel" style={{ fontSize: "7px", color: "#ffffff", fontWeight: "bold" }}>
+            {recruit.position}
+          </span>
+        </div>
+
+        {/* Silhouette photo area */}
+        <div
+          style={{
+            flex: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "8px 12px 4px",
+          }}
+        >
+          <div
+            style={{
+              width: "88px",
+              height: "100px",
+              background: "#d8d3ca",
+              borderRadius: "4px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              border: "1px solid #c4bfb4",
+              overflow: "hidden",
+            }}
+          >
+            {/* Person silhouette SVG */}
+            <svg viewBox="0 0 40 52" width="68" height="88" aria-hidden>
+              {/* Head */}
+              <ellipse cx="20" cy="12" rx="8" ry="9" fill="#b8b4ac" />
+              {/* Shoulders / body */}
+              <path d="M5 52 Q5 32 20 29 Q35 32 35 52 Z" fill="#b8b4ac" />
+              {/* Subtle collar */}
+              <path d="M17 29 Q20 33 23 29" fill="none" stroke="#a8a49c" strokeWidth="1.5" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Bottom row: state label + red stamp */}
+        <div
+          style={{
+            padding: "4px 8px 8px",
+            display: "flex",
+            alignItems: "flex-end",
+            justifyContent: "space-between",
+            flexShrink: 0,
+          }}
+        >
+          <span style={{ fontSize: "8px", color: "#666", fontFamily: "monospace" }}>
+            {recruit.homeState}
+          </span>
+
+          {/* Red circular stamp seal */}
+          <div
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: "50%",
+              border: "2.5px solid #b91c1c",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: gemRevealed ? 1 : 0.82,
+              background: "rgba(185,28,28,0.06)",
+              gap: 1,
+            }}
+          >
+            <span className="font-pixel" style={{ fontSize: "5px", color: "#b91c1c", lineHeight: 1.2, textAlign: "center" }}>
+              {gemRevealed ? "★" : "SIGNED"}
+            </span>
+            {!gemRevealed && (
+              <span className="font-pixel" style={{ fontSize: "4.5px", color: "#b91c1c", lineHeight: 1 }}>
+                NLI
+              </span>
+            )}
+            {gemRevealed && (
+              <span className="font-pixel" style={{ fontSize: "4px", color: "#b91c1c", lineHeight: 1 }}>
+                GEN GEM
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -504,7 +588,6 @@ export default function SigningDayRevealPage() {
   // ── Gem ceremony state ──────────────────────────────────────
   const [gemPhase, setGemPhase] = useState<GemPhase>("waiting");
   const [gemColorOverride, setGemColorOverride] = useState<string[] | null>(null);
-  // Once fired, the ceremony never repeats even on team switch.
   const gemCeremonyFired = useRef(false);
 
   const { data, isLoading } = useQuery<RevealData>({
@@ -524,11 +607,9 @@ export default function SigningDayRevealPage() {
   const currentEntry = data?.teamData?.find(t => t.team.id === effectiveTeamId) ?? null;
   const teamColor = currentEntry?.team.primaryColor ?? "#C4A35A";
 
-  // Track teams that have already had the reveal POST fired to avoid duplicate calls.
   const revealedTeams = useRef<Set<string>>(new Set());
 
   // ── Cinematic phase state machine ──────────────────────────
-  // Re-runs when the selected team changes (or data first arrives).
   useEffect(() => {
     if (!currentEntry) return;
 
@@ -544,8 +625,6 @@ export default function SigningDayRevealPage() {
   }, [currentEntry?.team.id, reducedMotion]);
 
   // ── Fire reveal-complete when cards become visible ──────────
-  // Marks recruits as signingDayRevealed so the recruiting board
-  // shows full attributes after the coach has watched the reveal.
   useEffect(() => {
     if (cinemaPhase !== "cards" || !currentEntry || !leagueId) return;
     const teamId = currentEntry.team.id;
@@ -556,8 +635,6 @@ export default function SigningDayRevealPage() {
   }, [cinemaPhase, currentEntry?.team.id, leagueId]);
 
   // ── Derived: split recruits for gem ceremony ─────────────────
-  // When reducedMotion is true, gemRecruit stays null so the gem
-  // renders in the normal grid with no held-back slot.
   const sortedRecruits = useMemo(
     () => [...(currentEntry?.recruits ?? [])].sort((a, b) => b.overall - a.overall),
     [currentEntry]
@@ -578,20 +655,16 @@ export default function SigningDayRevealPage() {
   }, [currentEntry?.team.id]);
 
   // ── Gem ceremony timer ───────────────────────────────────────
-  // Fires 1.5s after cards are visible — once per page load.
   useEffect(() => {
     if (cinemaPhase !== "cards" || !gemRecruit || gemCeremonyFired.current) return;
     gemCeremonyFired.current = true;
 
-    // Regular cards take ~(n * 0.06)s to stagger in; 1.5s is well past
-    // the last card for most class sizes.
     const t1 = setTimeout(() => setGemPhase("spotlight"), 1500);
     const t2 = setTimeout(() => setGemPhase("burst"),     2100);
     const t3 = setTimeout(() => {
       setGemPhase("revealed");
       setGemColorOverride(["#FFD700", "#FFA500", "#FFEC00", "#C4A35A"]);
     }, 2600);
-    // Return to team colors after 4 seconds of gold fireworks
     const t4 = setTimeout(() => setGemColorOverride(null), 6600);
 
     return () => {
@@ -605,7 +678,7 @@ export default function SigningDayRevealPage() {
     try {
       const html2canvas = (await import("html2canvas")).default;
       const canvas = await html2canvas(cardGridRef.current, {
-        backgroundColor: "#0a1a0a",
+        backgroundColor: "#0e1c2e",
         scale: 2,
         logging: false,
         useCORS: true,
@@ -640,8 +713,8 @@ export default function SigningDayRevealPage() {
 
   return (
     <div className="relative min-h-screen">
-      {/* ── Pixel stadium background (not in html2canvas) ── */}
-      <StadiumBackground isBuildup={!reducedMotion && cinemaPhase === "buildup"} />
+      {/* ── Sky cinematic background ── */}
+      <SkyBackground isBuildup={!reducedMotion && cinemaPhase === "buildup"} />
 
       {/* ── Cinematic effect layers (fixed, not in html2canvas) ── */}
       {!reducedMotion && (
@@ -652,7 +725,6 @@ export default function SigningDayRevealPage() {
             active={cinemaPhase !== "idle"}
             overrideColors={gemColorOverride}
           />
-          <SmokeEmbers />
           <FlickerOverlay active={cinemaPhase === "buildup"} />
           <CinematicBurst color={teamColor} active={cinemaPhase === "burst"} />
           <GemSpotlight active={gemPhase === "spotlight" || gemPhase === "burst"} />
@@ -660,7 +732,7 @@ export default function SigningDayRevealPage() {
         </>
       )}
 
-      {/* ── Main content (z-10, above the background layers) ── */}
+      {/* ── Main content (z-10, above background layers) ── */}
       <div className="relative z-10 p-4 max-w-7xl mx-auto">
 
         {/* Page header */}
@@ -673,7 +745,7 @@ export default function SigningDayRevealPage() {
           </Link>
           <div className="flex-1 min-w-0">
             <h1 className="font-pixel text-lg text-[#C4A35A] leading-tight">SIGNING DAY REVEAL</h1>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-gray-600">
               Season {data?.league.currentSeason} · Click any card to flip it
             </p>
           </div>
@@ -694,7 +766,7 @@ export default function SigningDayRevealPage() {
         {/* Team selector */}
         {data && data.allTeams.length > 1 && (
           <div className="mb-6">
-            <p className="text-xs text-gray-500 mb-2 font-pixel">SELECT TEAM</p>
+            <p className="text-xs text-gray-600 mb-2 font-pixel">SELECT TEAM</p>
             <div className="flex flex-wrap gap-2">
               {data.allTeams.map(team => (
                 <button
@@ -704,8 +776,8 @@ export default function SigningDayRevealPage() {
                   className="flex items-center gap-1.5 px-2 py-1 rounded border transition-all text-xs"
                   style={{
                     borderColor: effectiveTeamId === team.id ? team.primaryColor : "#2d3d2d",
-                    background: effectiveTeamId === team.id ? `${team.primaryColor}22` : "transparent",
-                    color: effectiveTeamId === team.id ? "#ffffff" : "#9ca3af",
+                    background: effectiveTeamId === team.id ? `${team.primaryColor}22` : "rgba(0,0,0,0.15)",
+                    color: effectiveTeamId === team.id ? "#ffffff" : "#4b5563",
                   }}
                 >
                   <TeamBadge
@@ -728,14 +800,14 @@ export default function SigningDayRevealPage() {
         {/* Active team class display */}
         {showCards && currentEntry ? (
           <div>
-            {/* Card grid — captured by html2canvas (no background effects inside) */}
+            {/* Card grid — captured by html2canvas */}
             <div
               ref={cardGridRef}
               className="rounded-lg p-4"
-              style={{ background: "#0d1f0d" }}
+              style={{ background: "#0e1c2e" }}
             >
-              {/* Watermark header (included in download) */}
-              <div className="flex items-center gap-3 mb-4 pb-3 border-b border-[#2d3d2d]">
+              {/* Watermark header */}
+              <div className="flex items-center gap-3 mb-4 pb-3 border-b border-[#1e3050]">
                 <TeamBadge
                   abbreviation={currentEntry.team.abbreviation}
                   primaryColor={currentEntry.team.primaryColor}
@@ -751,12 +823,11 @@ export default function SigningDayRevealPage() {
                   <div className="flex items-center flex-wrap gap-3 text-xs text-gray-400 mt-0.5">
                     <span className="flex items-center gap-1">
                       <Trophy className="w-3 h-3 text-[#C4A35A]" />
-                      Season {data.league.currentSeason} Signing Class
+                      Season {data?.league.currentSeason} Signing Class
                     </span>
                     <span>{currentEntry.recruits.length} commits</span>
                   </div>
                 </div>
-                {/* Class rank badge */}
                 {classRank > 0 && (
                   <div className="shrink-0 text-right">
                     <div
@@ -771,130 +842,198 @@ export default function SigningDayRevealPage() {
                 )}
               </div>
 
-              {/* Card grid — regular recruits (gem held back for ceremony) */}
+              {/* Two-row Power Pros layout */}
               {currentEntry.recruits.length === 0 ? (
                 <div className="text-center text-gray-500 py-16">
                   <p className="font-pixel text-sm">No commits yet</p>
                   <p className="text-xs mt-2">Recruits will appear here once they sign</p>
                 </div>
               ) : (
-                <div className="flex flex-wrap gap-3 justify-start">
-                  {regularRecruits.map((recruit, idx) => {
-                    const animDelay = idx * 0.06;
-                    const isSpecial =
-                      (recruit.isBlueChip && !recruit.isGenerationalBust && !recruit.isGenerationalGem);
-                    return (
-                      <div
-                        key={recruit.id}
-                        className="relative"
-                        style={{ flexShrink: 0 }}
-                        data-testid={`card-wrapper-${recruit.id}`}
-                      >
-                        {!reducedMotion && (
+                <div className="overflow-x-auto overflow-y-hidden">
+                  <div style={{ minWidth: "max-content" }}>
+
+                    {/* ── Row 1: Recruit portrait cards ── */}
+                    <div className="flex gap-3 mb-3">
+                      {regularRecruits.map((recruit, idx) => {
+                        const animDelay = idx * 0.06;
+                        const isSpecial = recruit.isBlueChip && !recruit.isGenerationalBust && !recruit.isGenerationalGem;
+                        return (
+                          <div
+                            key={recruit.id}
+                            className="relative"
+                            style={{ flexShrink: 0 }}
+                            data-testid={`card-wrapper-${recruit.id}`}
+                          >
+                            {!reducedMotion && (
+                              <div
+                                className="absolute pointer-events-none"
+                                style={{
+                                  inset: -4,
+                                  borderRadius: "10px",
+                                  zIndex: 10,
+                                  animation: isSpecial
+                                    ? `sdShockwave 0.85s ease-out ${animDelay + 0.55}s both`
+                                    : `sdSparkRing 0.5s ease-out ${animDelay + 0.45}s both`,
+                                }}
+                                aria-hidden
+                              />
+                            )}
+                            <RecruitCard
+                              recruit={recruit}
+                              primaryColor={currentEntry.team.primaryColor}
+                              secondaryColor={currentEntry.team.secondaryColor}
+                              animationDelay={animDelay}
+                              disableAnimation={reducedMotion}
+                            />
+                          </div>
+                        );
+                      })}
+
+                      {/* Gem card in row 1 — only visible after ceremony */}
+                      {gemRecruit && gemPhase === "revealed" && (
+                        <div
+                          className="relative"
+                          style={{ flexShrink: 0, animation: "sdGemSlideIn 0.7s ease-out both" }}
+                          data-testid="gem-card-wrapper"
+                        >
+                          {/* Shockwave on arrival */}
                           <div
                             className="absolute pointer-events-none"
                             style={{
                               inset: -4,
                               borderRadius: "10px",
                               zIndex: 10,
-                              animation: isSpecial
-                                ? `sdShockwave 0.85s ease-out ${animDelay + 0.55}s both`
-                                : `sdSparkRing 0.5s ease-out ${animDelay + 0.45}s both`,
+                              animation: "sdShockwave 0.9s ease-out 0.25s both",
                             }}
                             aria-hidden
                           />
-                        )}
-                        <RecruitCard
-                          recruit={recruit}
-                          primaryColor={currentEntry.team.primaryColor}
-                          secondaryColor={currentEntry.team.secondaryColor}
-                          animationDelay={animDelay}
-                          disableAnimation={reducedMotion}
+                          {/* Persistent amber glow */}
+                          <div
+                            className="absolute pointer-events-none"
+                            style={{
+                              inset: -3,
+                              borderRadius: "11px",
+                              zIndex: 8,
+                              boxShadow:
+                                "0 0 18px 4px rgba(251,191,36,0.45), 0 0 38px 8px rgba(251,191,36,0.18), inset 0 0 10px 2px rgba(251,191,36,0.08)",
+                            }}
+                            aria-hidden
+                          />
+                          <RecruitCard
+                            recruit={gemRecruit}
+                            primaryColor={currentEntry.team.primaryColor}
+                            secondaryColor={currentEntry.team.secondaryColor}
+                            animationDelay={0}
+                            disableAnimation={false}
+                          />
+                        </div>
+                      )}
+
+                      {/* Placeholder gem slot before ceremony fires */}
+                      {gemRecruit && gemPhase !== "revealed" && (
+                        <div
+                          style={{
+                            width: "160px",
+                            height: "220px",
+                            flexShrink: 0,
+                            borderRadius: "8px",
+                            border: "2px dashed rgba(251,191,36,0.3)",
+                            background: "rgba(251,191,36,0.04)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                          aria-hidden
+                        >
+                          <span
+                            className="font-pixel text-[8px] text-amber-500/40"
+                            style={{ animation: "sdGemLabelPulse 2.2s ease-in-out infinite" }}
+                          >
+                            ✦
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* ── Row 2: Letter of Intent application cards ── */}
+                    <div className="flex gap-3">
+                      {regularRecruits.map((recruit, idx) => {
+                        const isBlueChip = !!(recruit.isBlueChip && !recruit.isGenerationalBust && !recruit.isGenerationalGem);
+                        return (
+                          <LetterOfIntentCard
+                            key={recruit.id}
+                            recruit={recruit}
+                            isRainbow={isBlueChip}
+                            animationDelay={idx * 0.06 + 0.25}
+                            reducedMotion={reducedMotion}
+                          />
+                        );
+                      })}
+
+                      {/* Gem LOI card — rainbow border, revealed after ceremony */}
+                      {gemRecruit && gemPhase === "revealed" && (
+                        <LetterOfIntentCard
+                          key={`loi-gem-${gemRecruit.id}`}
+                          recruit={gemRecruit}
+                          isRainbow={true}
+                          animationDelay={0.1}
+                          reducedMotion={reducedMotion}
+                          gemRevealed={true}
                         />
-                      </div>
-                    );
-                  })}
+                      )}
+
+                      {/* Placeholder LOI slot before ceremony */}
+                      {gemRecruit && gemPhase !== "revealed" && (
+                        <div
+                          style={{
+                            width: "160px",
+                            height: "220px",
+                            flexShrink: 0,
+                            borderRadius: "8px",
+                            border: "2px dashed rgba(251,191,36,0.2)",
+                            background: "rgba(251,191,36,0.02)",
+                          }}
+                          aria-hidden
+                        />
+                      )}
+                    </div>
+
+                  </div>
+                </div>
+              )}
+
+              {/* Gem ceremony label — shown above grid when revealed */}
+              {gemRecruit && gemPhase === "revealed" && (
+                <div className="flex justify-center mt-3" data-testid="gem-card-section">
+                  <div
+                    className="font-pixel text-amber-400 text-[9px] tracking-widest"
+                    style={{ animation: "sdGemLabelPulse 2.2s ease-in-out infinite" }}
+                    data-testid="gem-label"
+                  >
+                    ✦ GENERATIONAL TALENT ✦
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* ── Generational Gem ceremony reveal ── */}
-            {gemRecruit && (
-              <div
-                className="mt-8 flex flex-col items-center gap-3"
-                data-testid="gem-card-section"
-              >
-                {gemPhase === "revealed" && (
-                  <>
-                    {/* "GENERATIONAL TALENT" pixel label */}
-                    <div
-                      className="font-pixel text-amber-400 text-[9px] tracking-widest"
-                      style={{ animation: "sdGemLabelPulse 2.2s ease-in-out infinite" }}
-                      data-testid="gem-label"
-                    >
-                      ✦ GENERATIONAL TALENT ✦
-                    </div>
-
-                    {/* Gem card wrapper with slide-in animation + persistent glow */}
-                    <div
-                      className="relative"
-                      style={{ animation: "sdGemSlideIn 0.7s ease-out both" }}
-                      data-testid="gem-card-wrapper"
-                    >
-                      {/* Shockwave ring fires on arrival */}
-                      <div
-                        className="absolute pointer-events-none"
-                        style={{
-                          inset: -4,
-                          borderRadius: "10px",
-                          zIndex: 10,
-                          animation: "sdShockwave 0.9s ease-out 0.25s both",
-                        }}
-                        aria-hidden
-                      />
-                      {/* Persistent amber glow border */}
-                      <div
-                        className="absolute pointer-events-none"
-                        style={{
-                          inset: -3,
-                          borderRadius: "11px",
-                          zIndex: 8,
-                          boxShadow:
-                            "0 0 18px 4px rgba(251,191,36,0.45), 0 0 38px 8px rgba(251,191,36,0.18), inset 0 0 10px 2px rgba(251,191,36,0.08)",
-                        }}
-                        aria-hidden
-                      />
-                      <RecruitCard
-                        recruit={gemRecruit}
-                        primaryColor={currentEntry.team.primaryColor}
-                        secondaryColor={currentEntry.team.secondaryColor}
-                        animationDelay={0}
-                        disableAnimation={false}
-                      />
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-
-            {/* Class summary stats below cards (not in download) */}
+            {/* Class summary stats */}
             {currentEntry.recruits.length > 0 && (
               <RetroCard className="mt-4">
                 <RetroCardContent className="py-3">
                   <div className="flex flex-wrap gap-4 text-sm">
                     {[
-                      { label: "Total", value: currentEntry.recruits.length },
-                      { label: "5-Star", value: currentEntry.recruits.filter(r => r.starRating === 5).length },
-                      { label: "4-Star", value: currentEntry.recruits.filter(r => r.starRating === 4).length },
-                      { label: "3-Star", value: currentEntry.recruits.filter(r => r.starRating === 3).length },
-                      { label: "Avg OVR", value: Math.round(currentEntry.recruits.reduce((s, r) => s + r.overall, 0) / currentEntry.recruits.length) },
+                      { label: "Total",      value: currentEntry.recruits.length },
+                      { label: "5-Star",     value: currentEntry.recruits.filter(r => r.starRating === 5).length },
+                      { label: "4-Star",     value: currentEntry.recruits.filter(r => r.starRating === 4).length },
+                      { label: "3-Star",     value: currentEntry.recruits.filter(r => r.starRating === 3).length },
+                      { label: "Avg OVR",    value: Math.round(currentEntry.recruits.reduce((s, r) => s + r.overall, 0) / currentEntry.recruits.length) },
                       { label: "Blue Chips", value: currentEntry.recruits.filter(r => r.isBlueChip).length },
-                      { label: "Transfers", value: currentEntry.recruits.filter(r => r.recruitType === "TRANSFER").length },
-                      { label: "JUCO", value: currentEntry.recruits.filter(r => r.recruitType === "JUCO").length },
+                      { label: "Transfers",  value: currentEntry.recruits.filter(r => r.recruitType === "TRANSFER").length },
+                      { label: "JUCO",       value: currentEntry.recruits.filter(r => r.recruitType === "JUCO").length },
                     ].map(({ label, value }) => (
                       <div key={label} className="flex flex-col items-center min-w-[48px]">
                         <span className="font-pixel text-lg text-white">{value}</span>
-                        <span className="text-[10px] text-gray-400">{label}</span>
+                        <span className="text-[10px] text-gray-500">{label}</span>
                       </div>
                     ))}
                   </div>
@@ -903,7 +1042,7 @@ export default function SigningDayRevealPage() {
             )}
           </div>
         ) : !showCards && currentEntry ? (
-          /* Cinematic intro playing — show a dramatic holding area */
+          /* Cinematic intro playing */
           <div className="flex flex-col items-center justify-center py-24 gap-6">
             <div
               className="font-pixel text-2xl text-[#C4A35A] animate-pulse"
@@ -913,7 +1052,7 @@ export default function SigningDayRevealPage() {
               {cinemaPhase === "buildup" ? "SIGNING DAY" : ""}
             </div>
             {cinemaPhase === "buildup" && (
-              <div className="text-xs text-gray-500 font-pixel tracking-widest animate-pulse">
+              <div className="text-xs text-gray-600 font-pixel tracking-widest animate-pulse">
                 THE MOMENT IS HERE
               </div>
             )}

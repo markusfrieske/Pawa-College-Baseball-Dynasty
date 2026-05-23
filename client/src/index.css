@@ -780,6 +780,27 @@ html[data-mood="offseason"] nav {
   50%       { opacity: 0.7; text-shadow: 0 0 22px rgba(251,191,36,0.95); }
 }
 
+/* Sky background gentle brightening during buildup phase */
+@keyframes sdSkyBuild {
+  0%   { opacity: 0.85; filter: brightness(0.88); }
+  30%  { opacity: 0.95; filter: brightness(1.06); }
+  65%  { opacity: 1;    filter: brightness(1.14); }
+  100% { opacity: 1;    filter: brightness(1);    }
+}
+
+/* LOI card slides up from below */
+@keyframes loiCardSlideUp {
+  0%   { opacity: 0; transform: translateY(28px); }
+  60%  { opacity: 1; transform: translateY(-4px); }
+  100% { opacity: 1; transform: translateY(0);    }
+}
+
+/* Conic-gradient wrapper rotation for rainbow LOI border */
+@keyframes loiRainbowSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
 /* ── prefers-reduced-motion: disable recruit card animations as a failsafe ── */
 @media (prefers-reduced-motion: reduce) {
   .recruit-card-wrapper {
