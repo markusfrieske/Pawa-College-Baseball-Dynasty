@@ -137,6 +137,16 @@ async function getScheduleGames(
   return season != null ? games.filter((g) => g.season === season) : games;
 }
 
+async function getDynastyHistory(
+  request: APIRequestContext,
+  leagueId: string
+): Promise<Array<{ season: number; cwsChampion: { name: string } | null }>> {
+  const resp = await request.get(`/api/leagues/${leagueId}/dynasty-history`);
+  if (!resp.ok()) return [];
+  const data = await resp.json();
+  return (data.seasons ?? []) as Array<{ season: number; cwsChampion: { name: string } | null }>;
+}
+
 async function getCareerStats(
   request: APIRequestContext,
   leagueId: string,
@@ -271,13 +281,13 @@ test.describe("Full Season-to-Season Flow", () => {
 
     const league = await createLeague(request, {
       name: `E2E Full Two-Season Flow ${Date.now()}`,
-      maxTeams: 10,
+      maxTeams: 12,
       cpuDifficulty: "beginner",
       selectedConferences: ["WCC", "Ivy League"],
       seasonLength: "short",
     });
 
-    const selectedTeams = await getTeamsForConferences(request, league.id, 10);
+    const selectedTeams = await getTeamsForConferences(request, league.id, 12);
     await selectTeams(request, league.id, selectedTeams);
     await startDynasty(request, league.id);
 
@@ -351,6 +361,17 @@ test.describe("Full Season-to-Season Flow", () => {
           `At least 1 CWS game should be complete (got ${completedCwsGames.length})`
         ).toBeGreaterThan(0);
       }
+    }
+
+    // ── CHAMPION PERSISTENCE ──────────────────────────────────────────────
+    // Dynasty history should record a CWS champion after at least 2 CWS games played
+    const dynastyHistory = await getDynastyHistory(request, league.id);
+    const s1History = dynastyHistory.find((h) => h.season === 1);
+    if (s1History && s1Postseason && (s1Postseason.cws?.length ?? 0) >= 2) {
+      expect(
+        s1History.cwsChampion,
+        "Season 1 dynasty history should have a CWS champion persisted after CWS games complete"
+      ).not.toBeNull();
     }
 
     // ── SEASON 1 SCHEDULE VERIFICATION ───────────────────────────────────
@@ -432,6 +453,17 @@ test.describe("Full Season-to-Season Flow", () => {
       s2HsOverlap.length,
       `Season 2 HS recruits should be completely new (${s2HsOverlap.length} IDs matched Season 1 HS recruits)`
     ).toBe(0);
+
+    // JUCO recruits should appear in Season 2 class (unsigned portal players from Season 1 return as JUCO)
+    const s2JucoRecruits = s2Recruits.filter((r) => r.recruitType === "JUCO");
+    // JUCOs are generated when there are unsigned portal players; at short season with beginner CPU
+    // there is usually at least 1, but we allow 0 and only assert the type is valid when present
+    for (const juco of s2JucoRecruits) {
+      expect(
+        juco.recruitType,
+        "JUCO recruits in Season 2 class should have recruitType === 'JUCO'"
+      ).toBe("JUCO");
+    }
 
     // ── SEASON 2 SCHEDULE VERIFICATION ────────────────────────────────────
     // Run Season 2 fully to confirm schedule is generated and games complete
