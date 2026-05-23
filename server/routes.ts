@@ -9578,54 +9578,69 @@ export async function registerRoutes(
     }
   }
 
+  // ============ BRACKET SEEDING HELPERS ============
+
+  // Assigns seeds to bracket sides using standard NCAA interleaving.
+  // Seeds grouped in pairs: odd-numbered groups assign pos-0→A, pos-1→B;
+  // even-numbered groups assign pos-0→B, pos-1→A.
+  // Result: seeds 1,4,5,8,9,12 → A; seeds 2,3,6,7,10,11 → B (for 12 teams).
+  function getSideForSeed(seed: number, _n: number): string {
+    const group = Math.ceil(seed / 2);
+    const posInGroup = (seed - 1) % 2;
+    return (group % 2 === 1) === (posInGroup === 0) ? "A" : "B";
+  }
+
+  // Build the canonical seeded team list used by both bracket generation and advancement.
+  // Conference champions (identified from completed conf_championship games) get seeds 1..numConfs,
+  // ordered by regular-season win%. Remaining teams are seeded by win% for positions numConfs+1..N.
+  function buildSeededTeams(
+    leagueTeams: { id: string }[],
+    standingsList: { teamId: string; wins: number; losses: number; runsScored: number }[],
+    confChampionIds: Set<string>
+  ) {
+    const withRecord = leagueTeams.map(t => {
+      const s = standingsList.find(st => st.teamId === t.id);
+      return { team: t as any, wins: s?.wins || 0, losses: s?.losses || 0, runsScored: s?.runsScored || 0 };
+    }).sort((a, b) => b.wins - a.wins || a.losses - b.losses || b.runsScored - a.runsScored);
+    const confChamps = withRecord.filter(t => confChampionIds.has(t.team.id));
+    const atLarge  = withRecord.filter(t => !confChampionIds.has(t.team.id));
+    return [...confChamps, ...atLarge];
+  }
+
   // ============ SUPER REGIONAL BRACKET GENERATION ============
   async function generateSuperRegionalBracket(leagueId: string, season: number) {
     const leagueTeams = await storage.getTeamsByLeague(leagueId);
     const standingsList = await storage.getStandingsByLeague(leagueId, season);
-    
-    const rankedTeams = leagueTeams.map(t => {
-      const s = standingsList.find(st => st.teamId === t.id);
-      return { team: t, wins: s?.wins || 0, losses: s?.losses || 0, runsScored: s?.runsScored || 0 };
-    }).sort((a, b) => b.wins - a.wins || a.losses - b.losses || b.runsScored - a.runsScored);
-    
-    const maxBracketSize = Math.min(8, leagueTeams.length);
-    const qualifiedTeams = rankedTeams.slice(0, maxBracketSize);
-    
-    // Split into two brackets: A gets seeds 1,4,5,8 and B gets seeds 2,3,6,7
-    // Bracket A Round 1: 1v8, 4v5
-    // Bracket B Round 1: 2v7, 3v6
-    if (qualifiedTeams.length >= 8) {
+    const allGames = await storage.getGamesByLeague(leagueId);
+
+    // Identify conference champions from completed conf championship games
+    const confChampGames = allGames.filter(
+      g => g.phase === "conference_championship" && g.season === season && g.isComplete
+    );
+    const confChampionIds = new Set(confChampGames.map(g => getGameWinner(g)));
+
+    const seededTeams = buildSeededTeams(leagueTeams, standingsList, confChampionIds);
+    const N = seededTeams.length;
+    if (N < 2) return;
+
+    // Power-of-2 bracket with byes for top seeds
+    const nextPow2 = Math.pow(2, Math.ceil(Math.log2(Math.max(N, 2))));
+    const numByes  = nextPow2 - N;
+
+    // R1 games: pair seeds (numByes+1)..N using highest-vs-lowest matching
+    // numByes top seeds automatically advance to R2
+    const r1Count = (N - numByes) / 2;
+    for (let i = 0; i < r1Count; i++) {
+      const highSeed = numByes + 1 + i; // e.g. 5,6,7,8 for 12-team
+      const lowSeed  = N - i;           // e.g. 12,11,10,9 for 12-team
+      const highTeam = seededTeams[highSeed - 1];
+      const lowTeam  = seededTeams[lowSeed - 1];
+      const side = getSideForSeed(highSeed, N);
       await storage.createGame({
         leagueId, season, week: 0,
-        homeTeamId: qualifiedTeams[0].team.id, awayTeamId: qualifiedTeams[7].team.id,
-        phase: "super_regionals", bracketSide: "A", bracketRound: 1, bracketType: "winners",
+        homeTeamId: highTeam.team.id, awayTeamId: lowTeam.team.id,
+        phase: "super_regionals", bracketSide: side, bracketRound: 1, bracketType: "winners",
       });
-      await storage.createGame({
-        leagueId, season, week: 0,
-        homeTeamId: qualifiedTeams[3].team.id, awayTeamId: qualifiedTeams[4].team.id,
-        phase: "super_regionals", bracketSide: "A", bracketRound: 1, bracketType: "winners",
-      });
-      await storage.createGame({
-        leagueId, season, week: 0,
-        homeTeamId: qualifiedTeams[1].team.id, awayTeamId: qualifiedTeams[6].team.id,
-        phase: "super_regionals", bracketSide: "B", bracketRound: 1, bracketType: "winners",
-      });
-      await storage.createGame({
-        leagueId, season, week: 0,
-        homeTeamId: qualifiedTeams[2].team.id, awayTeamId: qualifiedTeams[5].team.id,
-        phase: "super_regionals", bracketSide: "B", bracketRound: 1, bracketType: "winners",
-      });
-    } else {
-      // Fallback for fewer teams - simple bracket
-      for (let i = 0; i < qualifiedTeams.length / 2; i++) {
-        await storage.createGame({
-          leagueId, season, week: 0,
-          homeTeamId: qualifiedTeams[i].team.id,
-          awayTeamId: qualifiedTeams[qualifiedTeams.length - 1 - i].team.id,
-          phase: "super_regionals", bracketSide: i < qualifiedTeams.length / 4 ? "A" : "B",
-          bracketRound: 1, bracketType: "winners",
-        });
-      }
     }
   }
 
@@ -9634,17 +9649,21 @@ export async function registerRoutes(
     const allGames = await storage.getGamesByLeague(leagueId);
     const srGames = allGames.filter(g => g.phase === "super_regionals" && g.season === season);
     const srTeams = await storage.getTeamsByLeague(leagueId);
-    
+
+    // Build canonical seeded list (same algorithm as generateSuperRegionalBracket)
+    const standingsList = await storage.getStandingsByLeague(leagueId, season);
+    const confChampGames = allGames.filter(
+      g => g.phase === "conference_championship" && g.season === season && g.isComplete
+    );
+    const confChampionIds = new Set(confChampGames.map(g => getGameWinner(g)));
+    const seededTeams = buildSeededTeams(srTeams, standingsList, confChampionIds);
+
     const incompleteGames = srGames.filter(g => !g.isComplete);
     
     if (incompleteGames.length > 0) {
-      // Find the earliest round among incomplete games to simulate only that round
+      // Simulate only the earliest incomplete round
       const minRound = Math.min(...incompleteGames.map(g => g.bracketRound ?? 0));
-      const typeOrder: Record<string, number> = { winners: 0, losers: 1, bracket_final: 2, if_necessary: 3 };
-      const currentRoundGames = incompleteGames.filter(g => (g.bracketRound ?? 0) === minRound);
-      // Among same-round games, pick the earliest type
-      const minTypeOrder = Math.min(...currentRoundGames.map(g => typeOrder[g.bracketType ?? "winners"] ?? 0));
-      const gamesToSimulate = currentRoundGames.filter(g => (typeOrder[g.bracketType ?? "winners"] ?? 0) === minTypeOrder);
+      const gamesToSimulate = incompleteGames.filter(g => (g.bracketRound ?? 0) === minRound);
       
       const postseasonRotation = ["friday", "saturday", "sunday"];
       for (let gi = 0; gi < gamesToSimulate.length; gi++) {
@@ -9662,56 +9681,49 @@ export async function registerRoutes(
         try {
           const srHomeWon = result.homeScore > result.awayScore;
           const srWinnerT = srTeams.find(t => t.id === (srHomeWon ? game.homeTeamId : game.awayTeamId));
-          const srLoserT = srTeams.find(t => t.id === (srHomeWon ? game.awayTeamId : game.homeTeamId));
+          const srLoserT  = srTeams.find(t => t.id === (srHomeWon ? game.awayTeamId : game.homeTeamId));
           if (srWinnerT && srLoserT) {
-            const srWinScore = srHomeWon ? result.homeScore : result.awayScore;
+            const srWinScore  = srHomeWon ? result.homeScore : result.awayScore;
             const srLossScore = srHomeWon ? result.awayScore : result.homeScore;
             await storage.createLeagueEvent({
-              leagueId,
-              teamId: srWinnerT.id,
-              teamName: srWinnerT.name,
-              teamAbbreviation: srWinnerT.abbreviation,
-              teamPrimaryColor: srWinnerT.primaryColor ?? null,
+              leagueId, teamId: srWinnerT.id, teamName: srWinnerT.name,
+              teamAbbreviation: srWinnerT.abbreviation, teamPrimaryColor: srWinnerT.primaryColor ?? null,
               eventType: "GAME_RESULT",
               description: `${srWinnerT.abbreviation} def. ${srLoserT.abbreviation} ${srWinScore}-${srLossScore} (Super Regionals)`,
-              season,
-              week: 0,
+              season, week: 0,
             });
           }
         } catch (e) { console.error("Super Regionals feed event error:", e); }
       }
     }
     
-    // Re-fetch all SR games after simulation
-    const updatedAllGames = await storage.getGamesByLeague(leagueId);
-    const updatedSRGames = updatedAllGames.filter(g => g.phase === "super_regionals" && g.season === season);
+    // Re-fetch after simulation and process each side
+    const updatedSRGames = (await storage.getGamesByLeague(leagueId))
+      .filter(g => g.phase === "super_regionals" && g.season === season);
     
-    // Process each bracket side to create next-round games
-    const sideAChampion = await processBracketSide(leagueId, season, updatedSRGames, "A");
-    const sideBChampion = await processBracketSide(leagueId, season, updatedSRGames, "B");
+    const sideAChampion = await processBracketSide(leagueId, season, updatedSRGames, "A", seededTeams);
+    const sideBChampion = await processBracketSide(leagueId, season, updatedSRGames, "B", seededTeams);
     
     if (sideAChampion && sideBChampion) {
       return { done: true, champion1: sideAChampion, champion2: sideBChampion };
     }
     
-    // Check if new games were just created that need to be played next advance
     const pendingGames = (await storage.getGamesByLeague(leagueId))
       .filter(g => g.phase === "super_regionals" && g.season === season && !g.isComplete);
     if (pendingGames.length > 0) {
       return { done: false };
     }
     
-    // All games complete but one side may still need game creation - re-process
-    const finalAllGames = await storage.getGamesByLeague(leagueId);
-    const finalSRGames = finalAllGames.filter(g => g.phase === "super_regionals" && g.season === season);
-    const finalA = await processBracketSide(leagueId, season, finalSRGames, "A");
-    const finalB = await processBracketSide(leagueId, season, finalSRGames, "B");
+    // All games complete — re-process to detect newly-created games or get final champions
+    const finalSRGames = (await storage.getGamesByLeague(leagueId))
+      .filter(g => g.phase === "super_regionals" && g.season === season);
+    const finalA = await processBracketSide(leagueId, season, finalSRGames, "A", seededTeams);
+    const finalB = await processBracketSide(leagueId, season, finalSRGames, "B", seededTeams);
     
     if (finalA && finalB) {
       return { done: true, champion1: finalA, champion2: finalB };
     }
     
-    // New games were created by processBracketSide
     const newPending = (await storage.getGamesByLeague(leagueId))
       .filter(g => g.phase === "super_regionals" && g.season === season && !g.isComplete);
     if (newPending.length > 0) {
@@ -9729,111 +9741,83 @@ export async function registerRoutes(
     return (game.homeScore ?? 0) > (game.awayScore ?? 0) ? game.awayTeamId : game.homeTeamId;
   }
 
-  async function processBracketSide(leagueId: string, season: number, allSRGames: Game[], side: string): Promise<string | null> {
-    const sideGames = allSRGames.filter(g => g.bracketSide === side && g.isComplete);
-    const pendingSide = allSRGames.filter(g => g.bracketSide === side && !g.isComplete);
-    
-    if (pendingSide.length > 0) return null; // Still games to play
-    
-    // Get games by round and type
-    const winnersR1 = sideGames.filter(g => g.bracketRound === 1 && g.bracketType === "winners");
-    const winnersR2 = sideGames.filter(g => g.bracketRound === 2 && g.bracketType === "winners");
-    const losersR1 = sideGames.filter(g => g.bracketRound === 1 && g.bracketType === "losers");
-    const losersR2 = sideGames.filter(g => g.bracketRound === 2 && g.bracketType === "losers");
-    const bracketFinal = sideGames.filter(g => g.bracketType === "bracket_final");
-    const ifNecessary = sideGames.filter(g => g.bracketType === "if_necessary");
-    
-    // If only 1 game in winners R1 (small bracket side), the winner is the side champion
-    if (winnersR1.length === 1 && winnersR1.length === sideGames.length) {
-      return getGameWinner(winnersR1[0]);
+  // Single-elimination bracket side processor.
+  // After each completed round it creates the next round's games (handling byes from R1→R2),
+  // and returns the side champion once a single game remains and is complete.
+  async function processBracketSide(
+    leagueId: string,
+    season: number,
+    allSRGames: Game[],
+    side: string,
+    seededTeams: { team: { id: string } }[]
+  ): Promise<string | null> {
+    const sideGames    = allSRGames.filter(g => g.bracketSide === side);
+    const pendingSide  = sideGames.filter(g => !g.isComplete);
+    const completedSide = sideGames.filter(g => g.isComplete);
+
+    if (pendingSide.length > 0) return null;
+    if (completedSide.length === 0) return null;
+
+    const maxRound = Math.max(...completedSide.map(g => g.bracketRound ?? 1));
+    const currentRoundGames = completedSide.filter(g => (g.bracketRound ?? 1) === maxRound);
+
+    // Exactly 1 completed game in the highest round → that winner is the side champion
+    if (currentRoundGames.length === 1) {
+      return getGameWinner(currentRoundGames[0]);
     }
-    
-    // If bracket has 0 winners R1 games, no champion can be determined
-    if (winnersR1.length === 0) return null;
-    
-    // If only 1 R1 game but other games exist (shouldn't happen but guard against it)
-    if (winnersR1.length === 1) {
-      // Check if all side games are complete and we have a bracket final winner
-      if (bracketFinal.length > 0) return getGameWinner(bracketFinal[0]);
-      if (ifNecessary.length > 0) return getGameWinner(ifNecessary[0]);
-      return getGameWinner(winnersR1[0]);
-    }
-    
-    // Round 1 Winners must be complete (2+ games) for full double-elimination
-    
-    // Create Winners R2 (winners semis) if not exists
-    if (winnersR2.length === 0) {
-      const w1 = getGameWinner(winnersR1[0]);
-      const w2 = getGameWinner(winnersR1[1]);
-      await storage.createGame({
-        leagueId, season, week: 0,
-        homeTeamId: w1, awayTeamId: w2,
-        phase: "super_regionals", bracketSide: side, bracketRound: 2, bracketType: "winners",
-      });
-      return null;
-    }
-    
-    // Create Losers R1 (first elimination game) if not exists
-    if (losersR1.length === 0) {
-      const l1 = getGameLoser(winnersR1[0]);
-      const l2 = getGameLoser(winnersR1[1]);
-      await storage.createGame({
-        leagueId, season, week: 0,
-        homeTeamId: l1, awayTeamId: l2,
-        phase: "super_regionals", bracketSide: side, bracketRound: 1, bracketType: "losers",
-      });
-      return null;
-    }
-    
-    // Create Losers R2 (losers bracket final): Loser of Winners R2 vs Winner of Losers R1
-    if (losersR2.length === 0 && winnersR2.length > 0 && losersR1.length > 0) {
-      const wbLoser = getGameLoser(winnersR2[0]);
-      const lbWinner = getGameWinner(losersR1[0]);
-      await storage.createGame({
-        leagueId, season, week: 0,
-        homeTeamId: lbWinner, awayTeamId: wbLoser,
-        phase: "super_regionals", bracketSide: side, bracketRound: 2, bracketType: "losers",
-      });
-      return null;
-    }
-    
-    // Create Bracket Final: Winner of Winners R2 vs Winner of Losers R2
-    if (bracketFinal.length === 0 && losersR2.length > 0) {
-      const wbChamp = getGameWinner(winnersR2[0]);
-      const lbChamp = getGameWinner(losersR2[0]);
-      await storage.createGame({
-        leagueId, season, week: 0,
-        homeTeamId: wbChamp, awayTeamId: lbChamp,
-        phase: "super_regionals", bracketSide: side, bracketRound: 3, bracketType: "bracket_final",
-      });
-      return null;
-    }
-    
-    // Check bracket final result
-    if (bracketFinal.length > 0) {
-      const wbChamp = getGameWinner(winnersR2[0]);
-      const bfWinner = getGameWinner(bracketFinal[0]);
-      
-      // If winners bracket champion won the bracket final, they're the bracket champion (undefeated)
-      if (bfWinner === wbChamp) {
-        return bfWinner;
-      }
-      
-      // If losers bracket team won, we need an if-necessary game
-      if (ifNecessary.length === 0) {
-        const bfLoser = getGameLoser(bracketFinal[0]);
-        await storage.createGame({
-          leagueId, season, week: 0,
-          homeTeamId: bfWinner, awayTeamId: bfLoser,
-          phase: "super_regionals", bracketSide: side, bracketRound: 4, bracketType: "if_necessary",
-        });
+
+    // Guard: next round already exists (avoid duplicate creation across multiple calls)
+    const nextRound = maxRound + 1;
+    const nextRoundExists = allSRGames.some(g => g.bracketSide === side && (g.bracketRound ?? 1) === nextRound);
+    if (nextRoundExists) return null;
+
+    // ── Moving from R1 to R2 with potential byes ──
+    if (maxRound === 1) {
+      const r1TeamIds = new Set<string>();
+      currentRoundGames.forEach(g => { r1TeamIds.add(g.homeTeamId); r1TeamIds.add(g.awayTeamId); });
+
+      const N = seededTeams.length;
+      // Bye teams for this side = seeded to this side but absent from all R1 games
+      const byeTeams = seededTeams
+        .filter((_t, idx) => getSideForSeed(idx + 1, N) === side && !r1TeamIds.has(seededTeams[idx].team.id))
+        .map(t => t.team.id);
+
+      if (byeTeams.length > 0) {
+        // Pair: best bye (seed 1 in side) vs winner of weakest R1 game, etc.
+        // "Weakest R1 game" = the one whose top-seed participant has the highest seed number
+        const getTeamSeed = (tid: string) => seededTeams.findIndex(t => t.team.id === tid) + 1;
+        const r1Ranked = [...currentRoundGames]
+          .map(g => ({ game: g, topSeed: Math.min(getTeamSeed(g.homeTeamId), getTeamSeed(g.awayTeamId)) }))
+          .sort((a, b) => b.topSeed - a.topSeed); // descending → weakest first
+
+        for (let i = 0; i < byeTeams.length && i < r1Ranked.length; i++) {
+          await storage.createGame({
+            leagueId, season, week: 0,
+            homeTeamId: byeTeams[i], awayTeamId: getGameWinner(r1Ranked[i].game),
+            phase: "super_regionals", bracketSide: side, bracketRound: nextRound, bracketType: "winners",
+          });
+        }
+        // Pair any leftover R1 winners (more R1 games than byes) against each other
+        for (let i = byeTeams.length; i < r1Ranked.length - 1; i += 2) {
+          await storage.createGame({
+            leagueId, season, week: 0,
+            homeTeamId: getGameWinner(r1Ranked[i].game), awayTeamId: getGameWinner(r1Ranked[i + 1].game),
+            phase: "super_regionals", bracketSide: side, bracketRound: nextRound, bracketType: "winners",
+          });
+        }
         return null;
       }
-      
-      // If-necessary game is complete, winner is bracket champion
-      return getGameWinner(ifNecessary[0]);
     }
-    
+
+    // ── General case: pair current-round winners sequentially ──
+    const winners = currentRoundGames.map(g => getGameWinner(g));
+    for (let i = 0; i + 1 < winners.length; i += 2) {
+      await storage.createGame({
+        leagueId, season, week: 0,
+        homeTeamId: winners[i], awayTeamId: winners[i + 1],
+        phase: "super_regionals", bracketSide: side, bracketRound: nextRound, bracketType: "winners",
+      });
+    }
     return null;
   }
 
@@ -12583,51 +12567,96 @@ export async function registerRoutes(
       const allGames = await storage.getGamesByLeague(leagueId);
       let season = Number(req.query.season) || league.currentSeason;
       
-      const leagueTeams = await storage.getTeamsByLeague(leagueId);
-      const teamMap = Object.fromEntries(leagueTeams.map(t => [t.id, { name: t.name, abbreviation: t.abbreviation, primaryColor: t.primaryColor, secondaryColor: t.secondaryColor }]));
+      const leagueTeams  = await storage.getTeamsByLeague(leagueId);
+      const conferences  = await storage.getConferencesByLeague(leagueId);
+      const confMap      = Object.fromEntries(conferences.map(c => [c.id, c.name]));
+      const teamMap      = Object.fromEntries(leagueTeams.map(t => [t.id, {
+        name: t.name, abbreviation: t.abbreviation,
+        primaryColor: t.primaryColor, secondaryColor: t.secondaryColor,
+        conferenceId: t.conferenceId, conferenceName: t.conferenceId ? confMap[t.conferenceId] ?? "" : "",
+      }]));
       
       let confChampGames = allGames.filter(g => g.phase === "conference_championship" && g.season === season);
-      let srGames = allGames.filter(g => g.phase === "super_regionals" && g.season === season);
-      let cwsGames = allGames.filter(g => g.phase === "cws" && g.season === season);
+      let srGames        = allGames.filter(g => g.phase === "super_regionals"          && g.season === season);
+      let cwsGames       = allGames.filter(g => g.phase === "cws"                      && g.season === season);
       
       const activePostseasonPhases = ["conference_championship", "super_regionals", "cws"];
-      if (confChampGames.length === 0 && srGames.length === 0 && cwsGames.length === 0 && season > 1 && !req.query.season && !activePostseasonPhases.includes(league.currentPhase)) {
+      if (confChampGames.length === 0 && srGames.length === 0 && cwsGames.length === 0
+          && season > 1 && !req.query.season && !activePostseasonPhases.includes(league.currentPhase)) {
         season = league.currentSeason - 1;
         confChampGames = allGames.filter(g => g.phase === "conference_championship" && g.season === season);
-        srGames = allGames.filter(g => g.phase === "super_regionals" && g.season === season);
-        cwsGames = allGames.filter(g => g.phase === "cws" && g.season === season);
+        srGames        = allGames.filter(g => g.phase === "super_regionals"          && g.season === season);
+        cwsGames       = allGames.filter(g => g.phase === "cws"                      && g.season === season);
       }
       
       const standingsList = await storage.getStandingsByLeague(leagueId, season);
-      const rankedTeamIds = leagueTeams
-        .map(t => {
-          const s = standingsList.find(st => st.teamId === t.id);
-          return { id: t.id, wins: s?.wins || 0, losses: s?.losses || 0, runsScored: s?.runsScored || 0 };
-        })
-        .sort((a, b) => b.wins - a.wins || a.losses - b.losses || b.runsScored - a.runsScored)
-        .map(t => t.id);
-      
+
+      // Identify conf champions for accurate seeding
+      const completedConfChamps = confChampGames.filter(g => g.isComplete);
+      const confChampionIds     = new Set(completedConfChamps.map(g => getGameWinner(g)));
+
+      // Canonical seeded list (conf champs first, then at-large by win%)
+      const seededList = buildSeededTeams(leagueTeams, standingsList, confChampionIds);
+      const seededIds  = seededList.map(t => t.team.id);
+
       const enrichGame = (g: any) => ({
         ...g,
         homeTeam: teamMap[g.homeTeamId],
         awayTeam: teamMap[g.awayTeamId],
-        homeSeed: rankedTeamIds.indexOf(g.homeTeamId) + 1,
-        awaySeed: rankedTeamIds.indexOf(g.awayTeamId) + 1,
+        homeSeed: seededIds.indexOf(g.homeTeamId) + 1,
+        awaySeed: seededIds.indexOf(g.awayTeamId) + 1,
       });
       
       const enrichedSR = srGames.map(enrichGame).sort((a: any, b: any) => {
         if (a.bracketSide !== b.bracketSide) return (a.bracketSide || "A") < (b.bracketSide || "B") ? -1 : 1;
         if (a.bracketRound !== b.bracketRound) return (a.bracketRound || 0) - (b.bracketRound || 0);
-        const typeOrder: Record<string, number> = { winners: 0, losers: 1, bracket_final: 2, if_necessary: 3 };
-        return (typeOrder[a.bracketType] ?? 0) - (typeOrder[b.bracketType] ?? 0);
+        return 0;
       });
-      
+
+      // Seeding table for the hub page sidebar
+      const seedsTable = seededList.map((t, idx) => {
+        const s = standingsList.find(st => st.teamId === t.team.id);
+        return {
+          seed: idx + 1,
+          teamId:         t.team.id,
+          name:           (t.team as any).name,
+          abbreviation:   (t.team as any).abbreviation,
+          primaryColor:   (t.team as any).primaryColor,
+          secondaryColor: (t.team as any).secondaryColor,
+          wins:    s?.wins    || 0,
+          losses:  s?.losses  || 0,
+          isConfChamp: confChampionIds.has(t.team.id),
+          conferenceName: (t.team as any).conferenceId ? confMap[(t.team as any).conferenceId] ?? "" : "",
+        };
+      });
+
+      // Conf standings per conference for the hub page CC section
+      const confStandings = conferences.map(conf => {
+        const confTeams = leagueTeams.filter(t => t.conferenceId === conf.id);
+        const rows = confTeams.map(t => {
+          const s = standingsList.find(st => st.teamId === t.id);
+          return {
+            teamId:       t.id,
+            name:         t.name,
+            abbreviation: t.abbreviation,
+            primaryColor: t.primaryColor,
+            confWins:     s?.conferenceWins  || 0,
+            confLosses:   s?.conferenceLosses || 0,
+            wins:         s?.wins   || 0,
+            losses:       s?.losses || 0,
+          };
+        }).sort((a, b) => b.confWins - a.confWins || b.wins - a.wins);
+        return { id: conf.id, name: conf.name, teams: rows };
+      });
+
       res.json({
         phase: league.currentPhase,
         season,
         conferenceChampionships: confChampGames.map(enrichGame),
         superRegionals: enrichedSR,
         cws: cwsGames.map(enrichGame),
+        seeds: seedsTable,
+        confStandings,
       });
     } catch (error) {
       console.error("Failed to fetch postseason data:", error);

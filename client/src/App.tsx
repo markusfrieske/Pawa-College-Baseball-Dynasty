@@ -34,6 +34,7 @@ import StorylinesPage from "@/pages/storylines";
 import ManageRecruitingPage from "@/pages/manage-recruiting";
 import PlayByPlayPage from "@/pages/play-by-play";
 import ReportGamePage from "@/pages/report-game";
+import PostseasonHubPage from "@/pages/postseason-hub";
 import { useState } from "react";
 import { useLocation, useSearch } from "wouter";
 import { MusicProvider } from "@/lib/music-context";
@@ -91,6 +92,7 @@ function Router() {
         <Route path="/league/:id/storylines" component={StorylinesPage} />
         <Route path="/league/:id/game/:gameId/play-by-play" component={PlayByPlayPage} />
         <Route path="/league/:id/report-game/:gameId" component={ReportGamePage} />
+        <Route path="/league/:id/postseason" component={PostseasonHubPage} />
         <Route path="/league/:id/team/:teamId/profile" component={ProgramProfilePage} />
         <Route path="/league/:id/team/:teamId" component={TeamViewPage} />
         <Route path="/league/:id/recruit/:recruitId" component={RecruitProfilePage} />
