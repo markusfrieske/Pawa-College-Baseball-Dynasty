@@ -29,6 +29,7 @@ import { normalizeCommonAbilities } from "./normalizeCommonAbilities";
 import { validateLeagueRosters, checkTeamRosterStructure } from "./rosterValidation";
 import { sendWeeklyDigests, verifyUnsubToken } from "./digestEmail";
 import { pool } from "./db";
+import { calibrateRpiOvr, getRpiMultiplier } from "./calibrateRpiOvr";
 
 function potentialGradeToNumber(grade: string): number {
   const map: Record<string, number> = {
@@ -17729,6 +17730,31 @@ export async function registerRoutes(
     }
   });
 
+  // ── Admin: RPI OVR Calibration ───────────────────────────────────────────
+  // One-time migration endpoint that adjusts all player OVRs in the database
+  // to match the 2026 NCAA RPI ranking order.
+  // Protected by SESSION_SECRET passed as x-admin-key header.
+  app.post("/api/admin/calibrate-rpi-ovr", async (req, res) => {
+    try {
+      const providedKey = req.headers["x-admin-key"];
+      const expectedKey = process.env.SESSION_SECRET;
+      if (!expectedKey || providedKey !== expectedKey) {
+        return res.status(403).json({ message: "Forbidden: invalid or missing admin key" });
+      }
+      const dryRun = req.query.dryRun === "true" || req.body?.dryRun === true;
+      console.log(`[calibrate-rpi] Admin endpoint triggered. dryRun=${dryRun}`);
+      const summary = await calibrateRpiOvr(dryRun);
+      return res.json({
+        success: true,
+        dryRun,
+        ...summary,
+      });
+    } catch (error) {
+      console.error("[calibrate-rpi] Admin endpoint error:", error);
+      return res.status(500).json({ message: "Calibration failed", error: String(error) });
+    }
+  });
+
   // === Default Roster Data API (returns base roster for a team) ===
   app.get("/api/default-roster/:teamName", async (req, res) => {
     try {
@@ -18672,7 +18698,11 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
     'HBCU': 0.65,
   };
   const tierScale = conferenceName ? (CONF_TIER_SCALE[conferenceName] ?? 1.00) : 1.00;
-  const scaleAttr = (v: number) => tierScale < 1.00 ? Math.max(1, Math.min(99, Math.round(v * tierScale))) : v;
+  // RPI intra-conference multiplier: adjusts attributes within a conference so
+  // stronger programs (by RPI) land higher than weaker ones in power rankings.
+  const rpiMult = (teamName && conferenceName) ? getRpiMultiplier(teamName, conferenceName) : 1.0;
+  const effectiveScale = Math.max(0.55, Math.min(1.15, tierScale * rpiMult));
+  const scaleAttr = (v: number) => effectiveScale !== 1.00 ? Math.max(1, Math.min(99, Math.round(v * effectiveScale))) : v;
 
   const realRoster = teamName ? SEC_REAL_ROSTERS[teamName] : undefined;
 
