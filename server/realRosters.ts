@@ -63,7 +63,6 @@ export interface RealPlayer {
   hairStyle?: string;
   throwHand?: string;
   batHand?: string;
-  generational?: boolean;
 }
 
 const RAW_REAL_ROSTERS: Record<string, RealPlayer[]> = {

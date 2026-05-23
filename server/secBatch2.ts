@@ -714,7 +714,6 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
     // CATCHERS (2)
     // Daniel Jackson — JR C, ELITE: .389/23 HR/21 SB, 1st player in SEC HISTORY with 20HR/20SB season, returning starter
     { firstName: "Daniel", lastName: "Jackson", position: "C", eligibility: "JR", homeState: "GA", hometown: "Lawrenceville", jerseyNumber: 3,
-      generational: true,
       hitForAvg: 95, power: 92, speed: 79, arm: 72, fielding: 70, errorResistance: 66, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 90, vsLHP: 82, grit: 84, stealing: 70, running: 70, throwing: 72, recovery: 60, wRISP: 86, vsLefty: 80, poise: 84, heater: 0, agile: 60,
       abilities: ["Artist", "Contact Hitter", "Consigliere", "Storming Home"], potential: "A+", catcherAbility: 70,
