@@ -370,7 +370,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       // Ethan Surowiec — OF/DH JR, Northwoods League MVP (.387/17 HR)
       { firstName: "Ethan", lastName: "Surowiec", position: "OF", eligibility: "JR", homeState: "MS", hometown: "Oxford", jerseyNumber: 18,
         hitForAvg: 77, power: 77, speed: 58, arm: 50, fielding: 50, errorResistance: 48, velocity: 0, control: 0, stamina: 0, stuff: 0,
-        clutch: 70, vsLHP: 64, grit: 70, stealing: 14, running: 36, throwing: 50, recovery: 42, wRISP: 70, vsLefty: 64, poise: 70, heater: 0, agile: 38,
+        clutch: 80, vsLHP: 64, grit: 70, stealing: 14, running: 36, throwing: 50, recovery: 42, wRISP: 70, vsLefty: 64, poise: 70, heater: 0, agile: 38,
         abilities: ["Artist", "Power Hitter", "Consigliere"], potential: "A", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",

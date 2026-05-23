@@ -637,7 +637,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // Mulivai Levu — 1B, .347/14HR/54RBI, All-Conference 2025
     { firstName: "Mulivai", lastName: "Levu", position: "1B", eligibility: "JR", homeState: "HI", hometown: "Honolulu", jerseyNumber: 24,
       hitForAvg: 85, power: 87, speed: 43, arm: 56, fielding: 60, errorResistance: 60, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 76, vsLHP: 70, grit: 74, stealing: 8, running: 28, throwing: 56, recovery: 54, wRISP: 78, vsLefty: 68, poise: 74, heater: 0, agile: 32,
+      clutch: 80, vsLHP: 70, grit: 74, stealing: 8, running: 28, throwing: 56, recovery: 54, wRISP: 78, vsLefty: 68, poise: 74, heater: 0, agile: 32,
       abilities: ["Power Hitter", "Consigliere"], potential: "A-", catcherAbility: null,
       throwHand: "L", batHand: "L",
       skinTone: "tan", hairColor: "black", hairStyle: "short",
@@ -686,7 +686,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // Will Gasparino — JR OF, Texas transfer, .322/18HR (team co-leader), LA/Harvard-Westlake, two-time All-Big 12, SEC All-Defense
     { firstName: "Will", lastName: "Gasparino", position: "OF", eligibility: "JR", homeState: "CA", hometown: "Los Angeles", jerseyNumber: 11,
       hitForAvg: 81, power: 88, speed: 62, arm: 70, fielding: 68, errorResistance: 64, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 72, vsLHP: 68, grit: 70, stealing: 28, running: 50, throwing: 70, recovery: 56, wRISP: 76, vsLefty: 68, poise: 72, heater: 0, agile: 56,
+      clutch: 80, vsLHP: 68, grit: 70, stealing: 28, running: 50, throwing: 70, recovery: 56, wRISP: 76, vsLefty: 68, poise: 72, heater: 0, agile: 56,
       abilities: ["Power Hitter", "High-Speed Laser", "Good Infield Hit"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "S",
       skinTone: "light", hairColor: "brown", hairStyle: "medium",

@@ -629,7 +629,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
     // Jarren Advincula — JR 2B (transfer), 2nd-Team All-ACC, leads ALL 2B nationally in WAR (3.66), Golden Spikes Watch, .613 SLG, 27 R
     { firstName: "Jarren", lastName: "Advincula", position: "2B", eligibility: "JR", homeState: "CA", hometown: "San Jose", jerseyNumber: 2,
       hitForAvg: 87, power: 71, speed: 71, arm: 60, fielding: 78, errorResistance: 70, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 76, vsLHP: 72, grit: 76, stealing: 32, running: 56, throwing: 60, recovery: 60, wRISP: 78, vsLefty: 72, poise: 76, heater: 0, agile: 64,
+      clutch: 80, vsLHP: 72, grit: 76, stealing: 32, running: 56, throwing: 60, recovery: 60, wRISP: 78, vsLefty: 72, poise: 76, heater: 0, agile: 64,
       abilities: ["Contact Hitter", "Defensive Artisan", "Power Hitter", "Storming Home"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "tan", hairColor: "black", hairStyle: "short",

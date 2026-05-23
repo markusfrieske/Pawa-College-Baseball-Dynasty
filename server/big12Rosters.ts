@@ -537,7 +537,7 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
     // Nuu Contrades — on tear during win streak
     { firstName: "Nuu", lastName: "Contrades", position: "2B", eligibility: "JR", homeState: "HI", hometown: "Honolulu", jerseyNumber: 6,
       hitForAvg: 77, power: 87, speed: 70, arm: 56, fielding: 60, errorResistance: 56, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 70, vsLHP: 64, grit: 70, stealing: 24, running: 50, throwing: 56, recovery: 46, wRISP: 70, vsLefty: 64, poise: 70, heater: 0, agile: 56,
+      clutch: 80, vsLHP: 64, grit: 70, stealing: 24, running: 50, throwing: 56, recovery: 46, wRISP: 70, vsLefty: 64, poise: 70, heater: 0, agile: 56,
       abilities: ["Contact Hitter", "Chance Maker"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "tan", hairColor: "black", hairStyle: "short",
@@ -1612,7 +1612,7 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
       ...noPitches },
     { firstName: "Colin", lastName: "Brueggemann", position: "C", eligibility: "FR", homeState: "OK", hometown: "Tulsa", jerseyNumber: 18,
       hitForAvg: 40, power: 87, speed: 36, arm: 44, fielding: 42, errorResistance: 38, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 30, vsLHP: 28, grit: 32, stealing: 8, running: 24, throwing: 44, recovery: 30, wRISP: 28, vsLefty: 26, poise: 30, heater: 0, agile: 28,
+      clutch: 80, vsLHP: 28, grit: 32, stealing: 8, running: 24, throwing: 44, recovery: 30, wRISP: 28, vsLefty: 26, poise: 30, heater: 0, agile: 28,
       abilities: ["Late Night Hero", "Contact Hitter"], potential: "A-", catcherAbility: 42,
       throwHand: "R", batHand: "R",
       ...noPitches },
