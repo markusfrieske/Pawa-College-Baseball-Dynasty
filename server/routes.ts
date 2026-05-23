@@ -16454,47 +16454,50 @@ async function generateSchedule(leagueId: string, season: number = 1) {
       }
     }
 
-    const oocUsed = new Set<string>();
-    const allTeamsShuffled = shuffle([...leagueTeams]);
     const oocPairs: Matchup[] = [];
-
     const conferences = [...confMap.keys()];
-    if (conferences.length >= 2) {
-      const confBuckets: TeamType[][] = conferences.map(cid => 
-        shuffle(confMap.get(cid)!.filter(t => !oocUsed.has(t.id)))
-      );
 
-      let changed = true;
-      while (changed) {
-        changed = false;
-        for (let ci = 0; ci < confBuckets.length && !changed; ci++) {
-          for (let cj = ci + 1; cj < confBuckets.length && !changed; cj++) {
-            const aTeam = confBuckets[ci].find(t => !oocUsed.has(t.id));
-            const bTeam = confBuckets[cj].find(t => !oocUsed.has(t.id));
-            if (aTeam && bTeam) {
-              const home = Math.random() > 0.5 ? aTeam : bTeam;
-              const away = home === aTeam ? bTeam : aTeam;
-              oocPairs.push({ home, away });
-              oocUsed.add(aTeam.id);
-              oocUsed.add(bTeam.id);
-              changed = true;
+    if (conferences.length >= 2) {
+      // Interleaved cross-conference OOC pairing:
+      // Apply a per-week rotation offset so opponents vary each week.
+      // Interleave one team from each conference per round so consecutive
+      // entries always come from different conferences — then pair them.
+      const confArrays = conferences.map((cid, ci) => {
+        const teams = shuffle([...confMap.get(cid)!]);
+        const offset = (week * (ci + 1)) % teams.length;
+        return [...teams.slice(offset), ...teams.slice(0, offset)];
+      });
+
+      const interleaved: TeamType[] = [];
+      const addedIds = new Set<string>();
+      const maxPerConf = Math.max(...confArrays.map(a => a.length));
+
+      for (let pos = 0; pos < maxPerConf; pos++) {
+        for (let ci = 0; ci < confArrays.length; ci++) {
+          if (pos < confArrays[ci].length) {
+            const team = confArrays[ci][pos];
+            if (!addedIds.has(team.id)) {
+              interleaved.push(team);
+              addedIds.add(team.id);
             }
           }
         }
       }
 
-      const remaining = allTeamsShuffled.filter(t => !oocUsed.has(t.id));
-      for (let i = 0; i < remaining.length - 1; i += 2) {
-        oocPairs.push({ home: remaining[i], away: remaining[i + 1] });
-        oocUsed.add(remaining[i].id);
-        oocUsed.add(remaining[i + 1].id);
+      // Pair consecutive entries — different conferences by construction
+      for (let i = 0; i + 1 < interleaved.length; i += 2) {
+        const a = interleaved[i];
+        const b = interleaved[i + 1];
+        const home = Math.random() > 0.5 ? a : b;
+        const away = home === a ? b : a;
+        oocPairs.push({ home, away });
       }
+      // Any lone remaining team (odd interleaved count) gets a bye — no OOC this week
     } else {
-      const available = allTeamsShuffled.filter(t => !oocUsed.has(t.id));
-      for (let i = 0; i < available.length - 1; i += 2) {
+      // Single conference fallback: pair within the conference
+      const available = shuffle([...leagueTeams]);
+      for (let i = 0; i + 1 < available.length; i += 2) {
         oocPairs.push({ home: available[i], away: available[i + 1] });
-        oocUsed.add(available[i].id);
-        oocUsed.add(available[i + 1].id);
       }
     }
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { parseErrorMessage } from "@/lib/errorUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
@@ -9,7 +9,7 @@ import { TeamBadge } from "@/components/ui/team-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Calendar, Check, Edit2, Lock, Play, FileText, AlertTriangle, CheckCircle, XCircle, Swords, User, Star } from "lucide-react";
+import { ArrowLeft, Calendar, Check, Edit2, Lock, Play, FileText, AlertTriangle, CheckCircle, XCircle, Swords, User, ChevronDown, ChevronRight } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Game, Team } from "@shared/schema";
@@ -98,6 +98,169 @@ interface MatchupPreviewData {
   game: { id: string; isComplete: boolean; isConference: boolean; gameType: string | null; week: number; season: number };
 }
 
+interface SeriesGroup {
+  key: string;
+  homeTeam: Team;
+  awayTeam: Team;
+  games: GameWithTeams[];
+  isUserSeries: boolean;
+}
+
+interface WeekData {
+  weekNum: number;
+  label: string;
+  isCurrentWeek: boolean;
+  sortOrder: number;
+  series: SeriesGroup[];
+  midweekGames: GameWithTeams[];
+  postseasonGames: GameWithTeams[];
+  isPostseason: boolean;
+}
+
+const GAME_TYPE_ORDER = ["friday", "saturday", "sunday"];
+
+const CONF_COLORS: Record<string, string> = {
+  SEC: "#002868",
+  ACC: "#003087",
+  "Big Ten": "#0032A0",
+  "Big 12": "#BF0000",
+  "Pac-12": "#003DA5",
+  AAC: "#007A53",
+  "Sun Belt": "#003087",
+  WCC: "#5B2C6F",
+  "Mountain West": "#003087",
+  "Big West": "#00539C",
+  "Missouri Valley": "#6B2C6B",
+  "Ivy League": "#990000",
+  HBCU: "#2E7D32",
+};
+
+function getConfColor(team: Team): string {
+  return team.primaryColor || "#555";
+}
+
+function buildSeriesKey(game: GameWithTeams): string {
+  const ids = [game.homeTeamId, game.awayTeamId].sort();
+  return `${game.week}_${ids[0]}_${ids[1]}`;
+}
+
+function buildWeeks(games: GameWithTeams[], userTeamId: string | null, currentWeek: number): WeekData[] {
+  const phaseLabels: Record<string, string> = {
+    conference_championship: "Conference Championship",
+    super_regionals: "Super Regionals",
+    cws: "College World Series",
+  };
+
+  const weekMap = new Map<string, WeekData>();
+
+  for (const game of games) {
+    const isPostseason = ["conference_championship", "super_regionals", "cws"].includes(game.phase || "");
+    const groupKey = isPostseason ? game.phase! : `week_${game.week}`;
+
+    if (!weekMap.has(groupKey)) {
+      weekMap.set(groupKey, {
+        weekNum: game.week ?? 0,
+        label: isPostseason ? (phaseLabels[game.phase!] || game.phase!) : `Week ${game.week}`,
+        isCurrentWeek: !isPostseason && game.week === currentWeek,
+        sortOrder: isPostseason
+          ? 1000 + (game.phase === "conference_championship" ? 1 : game.phase === "super_regionals" ? 2 : 3)
+          : game.week ?? 0,
+        series: [],
+        midweekGames: [],
+        postseasonGames: [],
+        isPostseason,
+      });
+    }
+
+    const weekData = weekMap.get(groupKey)!;
+
+    if (isPostseason) {
+      weekData.postseasonGames.push(game);
+    } else if (game.gameType === "midweek" || !game.isConference) {
+      weekData.midweekGames.push(game);
+    } else {
+      // Conference game — group into series
+      const seriesKey = buildSeriesKey(game);
+      let seriesGroup = weekData.series.find(s => s.key === seriesKey);
+      if (!seriesGroup) {
+        seriesGroup = {
+          key: seriesKey,
+          homeTeam: game.homeTeam,
+          awayTeam: game.awayTeam,
+          games: [],
+          isUserSeries: userTeamId
+            ? game.homeTeamId === userTeamId || game.awayTeamId === userTeamId
+            : false,
+        };
+        weekData.series.push(seriesGroup);
+      }
+      seriesGroup.games.push(game);
+    }
+  }
+
+  // Sort games within each series
+  for (const weekData of weekMap.values()) {
+    for (const series of weekData.series) {
+      series.games.sort((a, b) => {
+        const ai = GAME_TYPE_ORDER.indexOf(a.gameType || "");
+        const bi = GAME_TYPE_ORDER.indexOf(b.gameType || "");
+        return ai - bi;
+      });
+    }
+  }
+
+  return Array.from(weekMap.values()).sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
+function getSeriesOutcome(series: SeriesGroup, userTeamId: string | null): {
+  complete: boolean;
+  homeWins: number;
+  awayWins: number;
+  text: string;
+  userWon: boolean | null;
+} {
+  const completedGames = series.games.filter(g => g.isComplete);
+  const allComplete = completedGames.length === series.games.length && series.games.length > 0;
+
+  let homeWins = 0;
+  let awayWins = 0;
+  for (const g of completedGames) {
+    if ((g.homeScore ?? 0) > (g.awayScore ?? 0)) homeWins++;
+    else awayWins++;
+  }
+
+  let text = "";
+  let userWon: boolean | null = null;
+
+  if (allComplete && series.games.length >= 2) {
+    const homeAbbr = series.homeTeam.abbreviation;
+    const awayAbbr = series.awayTeam.abbreviation;
+    if (homeWins === series.games.length) {
+      text = `${homeAbbr} swept`;
+    } else if (awayWins === series.games.length) {
+      text = `${awayAbbr} swept`;
+    } else {
+      const winner = homeWins > awayWins ? homeAbbr : awayAbbr;
+      text = `${winner} won series ${Math.max(homeWins, awayWins)}-${Math.min(homeWins, awayWins)}`;
+    }
+
+    if (userTeamId) {
+      if (series.homeTeam.id === userTeamId) userWon = homeWins > awayWins;
+      else if (series.awayTeam.id === userTeamId) userWon = awayWins > homeWins;
+    }
+  } else if (allComplete && series.games.length === 1) {
+    const g = completedGames[0];
+    const winner = (g.homeScore ?? 0) > (g.awayScore ?? 0) ? series.homeTeam.abbreviation : series.awayTeam.abbreviation;
+    text = `${winner} won`;
+    if (userTeamId) {
+      if (series.homeTeam.id === userTeamId) userWon = (g.homeScore ?? 0) > (g.awayScore ?? 0);
+      else if (series.awayTeam.id === userTeamId) userWon = (g.awayScore ?? 0) > (g.homeScore ?? 0);
+    }
+  }
+
+  return { complete: allComplete, homeWins, awayWins, text, userWon };
+}
+
 export default function SchedulePage() {
   const { id } = useParams<{ id: string }>();
   const [editingGame, setEditingGame] = useState<GameWithTeams | null>(null);
@@ -106,6 +269,7 @@ export default function SchedulePage() {
   const [disputeGameId, setDisputeGameId] = useState<string | null>(null);
   const [disputeReason, setDisputeReason] = useState("");
   const [matchupPreviewGameId, setMatchupPreviewGameId] = useState<string | null>(null);
+  const [selectedWeekKey, setSelectedWeekKey] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -153,55 +317,82 @@ export default function SchedulePage() {
     },
   });
 
-  if (isLoading) {
-    return <ScheduleSkeleton />;
-  }
+  const filteredGames = useMemo(() => {
+    if (showMyTeam && data?.userTeamId) {
+      return (data?.games || []).filter(
+        g => g.homeTeamId === data.userTeamId || g.awayTeamId === data.userTeamId
+      );
+    }
+    return data?.games || [];
+  }, [showMyTeam, data]);
 
-  const phaseLabels: Record<string, string> = {
-    conference_championship: "Conference Championship",
-    super_regionals: "Super Regionals",
-    cws: "College World Series",
+  const weeks = useMemo(
+    () => buildWeeks(filteredGames, data?.userTeamId ?? null, data?.currentWeek ?? 0),
+    [filteredGames, data?.userTeamId, data?.currentWeek]
+  );
+
+  const regularWeeks = weeks.filter(w => !w.isPostseason);
+  const postseasonWeeks = weeks.filter(w => w.isPostseason);
+
+  const currentWeekKey = useMemo(() => {
+    const cur = regularWeeks.find(w => w.isCurrentWeek);
+    return cur ? `week_${cur.weekNum}` : (regularWeeks[0] ? `week_${regularWeeks[0].weekNum}` : null);
+  }, [regularWeeks]);
+
+  const activeKey = selectedWeekKey ?? currentWeekKey;
+
+  const activeWeeks = useMemo(() => {
+    if (!activeKey) return weeks;
+    const match = weeks.find(w => (!w.isPostseason ? `week_${w.weekNum}` : w.label) === activeKey);
+    if (match) return [match, ...postseasonWeeks.filter(w => `week_${w.weekNum}` !== activeKey)].filter(Boolean);
+    const postMatch = postseasonWeeks.find(w => w.label === activeKey);
+    return postMatch ? [postMatch] : weeks;
+  }, [activeKey, weeks, postseasonWeeks]);
+
+  if (isLoading) return <ScheduleSkeleton />;
+
+  const gameCallbacks = {
+    onEdit: (game: GameWithTeams) => setEditingGame(game),
+    onViewBoxScore: (game: GameWithTeams) => setBoxScoreGame(game),
+    onMatchupPreview: (gameId: string) => setMatchupPreviewGameId(gameId),
+    onConfirm: (gameId: string) => confirmReportMutation.mutate(gameId),
+    onDispute: (gameId: string) => { setDisputeGameId(gameId); setDisputeReason(""); },
+    isConfirming: confirmReportMutation.isPending,
+    isDisputing: disputeReportMutation.isPending,
+    userTeamId: data?.userTeamId ?? null,
+    leagueId: id!,
+    humanTeamIds: data?.humanTeamIds ?? [],
+    humanCoachNames: data?.humanCoachNames ?? {},
+    reportsByGameId: data?.reportsByGameId ?? {},
+    isCommissioner: data?.isCommissioner,
   };
-
-  const filteredGames = showMyTeam && data?.userTeamId
-    ? data.games.filter(g => g.homeTeamId === data.userTeamId || g.awayTeamId === data.userTeamId)
-    : data?.games || [];
-
-  const gamesByGroup = filteredGames.reduce((acc, game) => {
-    const isPostseason = ["conference_championship", "super_regionals", "cws"].includes(game.phase || "");
-    const groupKey = isPostseason ? game.phase! : `week_${game.week}`;
-    if (!acc[groupKey]) acc[groupKey] = { games: [], label: isPostseason ? phaseLabels[game.phase!] || game.phase! : `Week ${game.week}`, sortOrder: isPostseason ? 1000 + (game.phase === "conference_championship" ? 1 : game.phase === "super_regionals" ? 2 : 3) : game.week, isCurrentWeek: !isPostseason && game.week === data?.currentWeek };
-    acc[groupKey].games.push(game);
-    return acc;
-  }, {} as Record<string, { games: GameWithTeams[]; label: string; sortOrder: number; isCurrentWeek: boolean }>) || {};
-
-  const groups = Object.entries(gamesByGroup).sort(([, a], [, b]) => a.sortOrder - b.sortOrder);
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b border-border">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center gap-4 justify-between flex-wrap">
+      <header className="border-b border-border sticky top-0 z-10 bg-background">
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex items-center gap-4 justify-between flex-wrap gap-y-2">
             <div className="flex items-center gap-4">
               <Link href={`/league/${id}`} className="text-muted-foreground hover:text-gold transition-colors">
                 <ArrowLeft className="w-5 h-5" />
               </Link>
               <h1 className="font-pixel text-gold text-lg">Schedule</h1>
             </div>
-            <div className="flex items-center gap-4 flex-wrap">
+
+            <div className="flex items-center gap-3 flex-wrap">
               {data?.userTeamId && (
-                <div className="flex items-center gap-2">
-                  <RetroButton 
-                    variant={showMyTeam ? "primary" : "outline"} 
-                    size="sm" 
+                <div className="flex items-center gap-1">
+                  <RetroButton
+                    variant={showMyTeam ? "primary" : "outline"}
+                    size="sm"
                     onClick={() => setShowMyTeam(true)}
                     data-testid="button-my-team-schedule"
                   >
                     My Team
                   </RetroButton>
-                  <RetroButton 
-                    variant={!showMyTeam ? "primary" : "outline"} 
-                    size="sm" 
+                  <RetroButton
+                    variant={!showMyTeam ? "primary" : "outline"}
+                    size="sm"
                     onClick={() => setShowMyTeam(false)}
                     data-testid="button-all-games-schedule"
                   >
@@ -209,52 +400,66 @@ export default function SchedulePage() {
                   </RetroButton>
                 </div>
               )}
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <Calendar className="w-4 h-4" />
-                <span>Season {data?.currentSeason}, Week {data?.currentWeek}</span>
+                <span>S{data?.currentSeason} · Wk {data?.currentWeek}</span>
               </div>
             </div>
           </div>
+
+          {regularWeeks.length > 1 && (
+            <div className="mt-2 flex items-center gap-1 overflow-x-auto pb-1 hide-scrollbar">
+              {regularWeeks.map(w => {
+                const key = `week_${w.weekNum}`;
+                const isActive = activeKey === key;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setSelectedWeekKey(key)}
+                    data-testid={`button-week-nav-${w.weekNum}`}
+                    className={`shrink-0 font-pixel text-[8px] px-2 py-1 rounded transition-colors ${
+                      isActive
+                        ? "bg-gold text-black"
+                        : w.isCurrentWeek
+                        ? "bg-gold/20 text-gold border border-gold/40"
+                        : "bg-muted/30 text-muted-foreground hover:bg-muted/60"
+                    }`}
+                  >
+                    Wk {w.weekNum}
+                  </button>
+                );
+              })}
+              {postseasonWeeks.map(w => {
+                const key = w.label;
+                const isActive = activeKey === key;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setSelectedWeekKey(key)}
+                    data-testid={`button-week-nav-postseason-${w.label}`}
+                    className={`shrink-0 font-pixel text-[7px] px-2 py-1 rounded transition-colors ${
+                      isActive ? "bg-gold text-black" : "bg-muted/30 text-muted-foreground hover:bg-muted/60"
+                    }`}
+                  >
+                    {w.label.split(" ").map(word => word[0]).join("")}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       </header>
 
       <main className="container mx-auto px-4 py-6 space-y-6 pb-20 md:pb-6">
-        {groups.map(([key, group]) => (
-          <RetroCard key={key}>
-            <RetroCardHeader className="flex items-center justify-between gap-4">
-              <span>{group.label}</span>
-              {group.isCurrentWeek && (
-                <span className="text-[8px] text-gold bg-gold/20 px-2 py-1 rounded">Current</span>
-              )}
-            </RetroCardHeader>
-            <RetroCardContent>
-              <div className="space-y-4">
-                {group.games.map((game) => (
-                  <GameRow
-                    key={game.id}
-                    game={game}
-                    allGamesInGroup={group.games}
-                    onEdit={() => setEditingGame(game)}
-                    onViewBoxScore={() => setBoxScoreGame(game)}
-                    onMatchupPreview={() => setMatchupPreviewGameId(game.id)}
-                    userTeamId={data?.userTeamId}
-                    leagueId={id!}
-                    humanTeamIds={data?.humanTeamIds ?? []}
-                    humanCoachNames={data?.humanCoachNames ?? {}}
-                    report={data?.reportsByGameId?.[game.id] ?? null}
-                    onConfirm={() => confirmReportMutation.mutate(game.id)}
-                    onDispute={() => { setDisputeGameId(game.id); setDisputeReason(""); }}
-                    isConfirming={confirmReportMutation.isPending}
-                    isDisputing={disputeReportMutation.isPending}
-                    isCommissioner={data?.isCommissioner}
-                  />
-                ))}
-              </div>
-            </RetroCardContent>
-          </RetroCard>
+        {activeWeeks.map(weekData => (
+          <WeekCard
+            key={weekData.isPostseason ? weekData.label : `week_${weekData.weekNum}`}
+            weekData={weekData}
+            callbacks={gameCallbacks}
+          />
         ))}
 
-        {groups.length === 0 && (
+        {weeks.length === 0 && (
           <RetroCard variant="bordered" className="text-center py-12">
             <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <p className="text-muted-foreground">No games scheduled yet</p>
@@ -273,10 +478,7 @@ export default function SchedulePage() {
         isPending={submitScoreMutation.isPending}
       />
 
-      <BoxScoreModal
-        game={boxScoreGame}
-        onClose={() => setBoxScoreGame(null)}
-      />
+      <BoxScoreModal game={boxScoreGame} onClose={() => setBoxScoreGame(null)} />
 
       <Dialog open={!!disputeGameId} onOpenChange={open => { if (!open) setDisputeGameId(null); }}>
         <DialogContent className="bg-[#1a2e1a] border-gold/50 max-w-md" data-testid="dialog-dispute-reason">
@@ -328,78 +530,415 @@ export default function SchedulePage() {
   );
 }
 
-function GameRow({ game, allGamesInGroup, onEdit, onViewBoxScore, onMatchupPreview, userTeamId, leagueId, humanTeamIds, humanCoachNames, report, onConfirm, onDispute, isConfirming, isDisputing, isCommissioner }: {
-  game: GameWithTeams;
-  allGamesInGroup: GameWithTeams[];
-  onEdit: () => void;
-  onViewBoxScore: () => void;
-  onMatchupPreview: () => void;
-  userTeamId?: string | null;
+type GameCallbacks = {
+  onEdit: (game: GameWithTeams) => void;
+  onViewBoxScore: (game: GameWithTeams) => void;
+  onMatchupPreview: (gameId: string) => void;
+  onConfirm: (gameId: string) => void;
+  onDispute: (gameId: string) => void;
+  isConfirming: boolean;
+  isDisputing: boolean;
+  userTeamId: string | null;
   leagueId: string;
   humanTeamIds: string[];
   humanCoachNames: Record<string, string>;
-  report: GameReport | null;
-  onConfirm: () => void;
-  onDispute: () => void;
-  isConfirming: boolean;
-  isDisputing: boolean;
+  reportsByGameId: Record<string, GameReport>;
   isCommissioner?: boolean;
+};
+
+function WeekCard({ weekData, callbacks }: { weekData: WeekData; callbacks: GameCallbacks }) {
+  return (
+    <RetroCard data-testid={`card-week-${weekData.isPostseason ? weekData.label : weekData.weekNum}`}>
+      <RetroCardHeader className="flex items-center justify-between gap-4">
+        <span>{weekData.label}</span>
+        {weekData.isCurrentWeek && (
+          <span className="text-[8px] text-gold bg-gold/20 px-2 py-1 rounded">Current</span>
+        )}
+      </RetroCardHeader>
+      <RetroCardContent>
+        {weekData.postseasonGames.length > 0 && (
+          <div className="space-y-3">
+            {weekData.postseasonGames.map(game => (
+              <StandaloneGameRow
+                key={game.id}
+                game={game}
+                allGames={weekData.postseasonGames}
+                callbacks={callbacks}
+                badge={null}
+              />
+            ))}
+          </div>
+        )}
+
+        {weekData.series.length > 0 && (
+          <div className="space-y-3">
+            {weekData.series.map(series => (
+              <SeriesRow
+                key={series.key}
+                series={series}
+                callbacks={callbacks}
+              />
+            ))}
+          </div>
+        )}
+
+        {weekData.midweekGames.length > 0 && (
+          <div className={`space-y-2 ${weekData.series.length > 0 ? "mt-4 pt-3 border-t border-border/40" : ""}`}>
+            {weekData.series.length > 0 && (
+              <div className="flex items-center gap-2 mb-2">
+                <span className="font-pixel text-[8px] text-muted-foreground">MIDWEEK</span>
+                <div className="flex-1 border-t border-border/30" />
+              </div>
+            )}
+            {weekData.midweekGames.map(game => (
+              <StandaloneGameRow
+                key={game.id}
+                game={game}
+                allGames={weekData.midweekGames}
+                callbacks={callbacks}
+                badge="MIDWEEK"
+              />
+            ))}
+          </div>
+        )}
+
+        {weekData.series.length === 0 && weekData.midweekGames.length === 0 && weekData.postseasonGames.length === 0 && (
+          <p className="text-muted-foreground text-sm text-center py-4">No games this week</p>
+        )}
+      </RetroCardContent>
+    </RetroCard>
+  );
+}
+
+function SeriesRow({ series, callbacks }: { series: SeriesGroup; callbacks: GameCallbacks }) {
+  const [expanded, setExpanded] = useState(true);
+  const outcome = getSeriesOutcome(series, callbacks.userTeamId);
+  const confColor = getConfColor(series.homeTeam);
+
+  const completedGames = series.games.filter(g => g.isComplete);
+  const allComplete = outcome.complete;
+
+  const userIsHome = callbacks.userTeamId === series.homeTeam.id;
+  const userIsAway = callbacks.userTeamId === series.awayTeam.id;
+  const isUserSeries = userIsHome || userIsAway;
+
+  const seriesBg = allComplete && isUserSeries
+    ? outcome.userWon ? "bg-green-900/10 border-l-2 border-green-700/40" : "bg-red-900/10 border-l-2 border-red-700/40"
+    : "bg-muted/20";
+
+  return (
+    <div className="rounded overflow-hidden" data-testid={`series-${series.key}`}>
+      <div
+        className={`${seriesBg} rounded`}
+        style={!isUserSeries || !allComplete ? { borderLeft: `3px solid ${confColor}40` } : undefined}
+      >
+        <button
+          className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-white/5 transition-colors"
+          onClick={() => setExpanded(e => !e)}
+          data-testid={`button-expand-series-${series.key}`}
+        >
+          <div className="shrink-0 text-muted-foreground">
+            {expanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+          </div>
+
+          <TeamBadge
+            abbreviation={series.awayTeam.abbreviation}
+            primaryColor={series.awayTeam.primaryColor}
+            secondaryColor={series.awayTeam.secondaryColor}
+            name={series.awayTeam.name}
+            size="sm"
+          />
+
+          <div className="flex-1 flex items-center gap-1.5 min-w-0 text-left">
+            <Link
+              href={`/league/${callbacks.leagueId}/team/${series.awayTeam.id}/profile`}
+              onClick={e => e.stopPropagation()}
+              className="font-medium text-sm truncate hover:text-gold transition-colors"
+              data-testid={`link-away-team-series-${series.key}`}
+            >
+              {series.awayTeam.name}
+            </Link>
+            <span className="text-muted-foreground text-xs shrink-0">@</span>
+            <Link
+              href={`/league/${callbacks.leagueId}/team/${series.homeTeam.id}/profile`}
+              onClick={e => e.stopPropagation()}
+              className="font-medium text-sm truncate hover:text-gold transition-colors"
+              data-testid={`link-home-team-series-${series.key}`}
+            >
+              {series.homeTeam.name}
+            </Link>
+          </div>
+
+          <TeamBadge
+            abbreviation={series.homeTeam.abbreviation}
+            primaryColor={series.homeTeam.primaryColor}
+            secondaryColor={series.homeTeam.secondaryColor}
+            name={series.homeTeam.name}
+            size="sm"
+          />
+
+          <div className="flex items-center gap-2 shrink-0">
+            <Badge variant="outline" className="text-[8px] border-blue-600/50 text-blue-400 font-pixel hidden sm:inline-flex">
+              CONF
+            </Badge>
+
+            {completedGames.length > 0 && !allComplete && (
+              <span className="font-pixel text-[8px] text-muted-foreground">
+                {outcome.awayWins}-{outcome.homeWins}
+              </span>
+            )}
+
+            {allComplete && outcome.text && (
+              <span
+                className={`font-pixel text-[8px] ${
+                  isUserSeries
+                    ? outcome.userWon ? "text-green-400" : "text-red-400"
+                    : "text-gold"
+                }`}
+                data-testid={`series-outcome-${series.key}`}
+              >
+                {outcome.text}
+              </span>
+            )}
+          </div>
+        </button>
+
+        {expanded && (
+          <div className="border-t border-border/30 space-y-0.5 pb-1">
+            {series.games.map(game => (
+              <CompactGameRow
+                key={game.id}
+                game={game}
+                allGames={series.games}
+                callbacks={callbacks}
+                dayLabel={game.gameType ? game.gameType.charAt(0).toUpperCase() + game.gameType.slice(1) : ""}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function CompactGameRow({
+  game,
+  allGames,
+  callbacks,
+  dayLabel,
+}: {
+  game: GameWithTeams;
+  allGames: GameWithTeams[];
+  callbacks: GameCallbacks;
+  dayLabel: string;
 }) {
-  const isUserGame = userTeamId && (game.homeTeamId === userTeamId || game.awayTeamId === userTeamId);
+  const report = callbacks.reportsByGameId[game.id] ?? null;
+  const userTeamId = callbacks.userTeamId;
+  const isUserGame = userTeamId
+    ? game.homeTeamId === userTeamId || game.awayTeamId === userTeamId
+    : false;
+  const userWon = isUserGame && game.isComplete && (
+    (game.homeTeamId === userTeamId && (game.homeScore ?? 0) > (game.awayScore ?? 0)) ||
+    (game.awayTeamId === userTeamId && (game.awayScore ?? 0) > (game.homeScore ?? 0))
+  );
+
+  const isHumanVsHuman = callbacks.humanTeamIds.includes(game.homeTeamId) && callbacks.humanTeamIds.includes(game.awayTeamId);
+
+  const gameTypeOrder = ["friday", "saturday", "sunday"];
+  const currentIdx = game.gameType ? gameTypeOrder.indexOf(game.gameType) : -1;
+  const isSeriesLocked = !game.isComplete && game.isConference && currentIdx > 0 && (() => {
+    for (let i = 0; i < currentIdx; i++) {
+      const priorGame = allGames.find(g => g.gameType === gameTypeOrder[i]);
+      if (priorGame && !priorGame.isComplete) return true;
+    }
+    return false;
+  })();
+
+  const userIsOpposingTeam = report && userTeamId && report.reporterTeamId !== userTeamId &&
+    (game.homeTeamId === userTeamId || game.awayTeamId === userTeamId);
+
+  return (
+    <div data-testid={`card-game-${game.id}`}>
+      <div className={`flex items-center gap-2 px-3 py-2 text-sm ${
+        game.isComplete && isUserGame
+          ? userWon ? "bg-green-900/10" : "bg-red-900/10"
+          : "hover:bg-white/3"
+      }`}>
+        <span className="font-pixel text-[7px] text-muted-foreground w-9 shrink-0">{dayLabel}</span>
+
+        {game.isComplete ? (
+          <button
+            onClick={() => callbacks.onViewBoxScore(game)}
+            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+            data-testid={`button-box-score-${game.id}`}
+          >
+            <span className={`font-mono text-sm font-bold ${(game.awayScore ?? 0) > (game.homeScore ?? 0) ? "text-gold" : "text-muted-foreground"}`} data-testid={`score-away-${game.id}`}>
+              {game.awayScore}
+            </span>
+            <span className="text-muted-foreground text-xs">-</span>
+            <span className={`font-mono text-sm font-bold ${(game.homeScore ?? 0) > (game.awayScore ?? 0) ? "text-gold" : "text-muted-foreground"}`} data-testid={`score-home-${game.id}`}>
+              {game.homeScore}
+            </span>
+            {isUserGame && (
+              <Badge
+                variant="outline"
+                className={`text-[8px] ${userWon ? "border-green-600 text-green-400" : "border-red-600 text-red-400"}`}
+                data-testid={`badge-result-${game.id}`}
+              >
+                {userWon ? "W" : "L"}
+              </Badge>
+            )}
+            {game.isManuallyReported && (
+              <Badge variant="outline" className="text-[8px] border-blue-600 text-blue-400">R</Badge>
+            )}
+          </button>
+        ) : (
+          <div className="flex items-center gap-1.5">
+            <span className="text-muted-foreground text-xs">vs</span>
+            {report?.status === "pending" && (
+              <Badge variant="outline" className="text-[8px] border-yellow-600 text-yellow-400" data-testid={`badge-report-pending-${game.id}`}>PENDING</Badge>
+            )}
+            {report?.status === "disputed" && (
+              <Badge variant="outline" className="text-[8px] border-red-600 text-red-400" data-testid={`badge-report-disputed-${game.id}`}>DISPUTED</Badge>
+            )}
+          </div>
+        )}
+
+        <div className="flex-1" />
+
+        <div className="flex items-center gap-1">
+          {!game.isComplete && isHumanVsHuman && !report && (callbacks.isCommissioner || isUserGame) && (
+            isSeriesLocked ? (
+              <RetroButton variant="outline" size="sm" disabled className="opacity-40 cursor-not-allowed" data-testid={`button-report-locked-${game.id}`}>
+                <Lock className="w-3 h-3" />
+              </RetroButton>
+            ) : (
+              <Link href={`/league/${callbacks.leagueId}/report-game/${game.id}`}>
+                <RetroButton variant="outline" size="sm" title="Report Game Result" data-testid={`button-report-${game.id}`}>
+                  <FileText className="w-3 h-3" />
+                </RetroButton>
+              </Link>
+            )
+          )}
+          {!game.isComplete && !isHumanVsHuman && (
+            isSeriesLocked ? (
+              <RetroButton variant="outline" size="sm" disabled className="opacity-40 cursor-not-allowed" data-testid={`button-pbp-locked-${game.id}`}>
+                <Lock className="w-3 h-3" />
+              </RetroButton>
+            ) : (
+              <Link href={`/league/${callbacks.leagueId}/game/${game.id}/play-by-play`}>
+                <RetroButton variant="outline" size="sm" title="Play by Play" data-testid={`button-pbp-${game.id}`}>
+                  <Play className="w-3 h-3" />
+                </RetroButton>
+              </Link>
+            )
+          )}
+          {callbacks.isCommissioner && (
+            <RetroButton variant="outline" size="sm" onClick={() => callbacks.onEdit(game)} data-testid={`button-edit-game-${game.id}`}>
+              {game.isComplete ? <Check className="w-3 h-3" /> : <Edit2 className="w-3 h-3" />}
+            </RetroButton>
+          )}
+        </div>
+      </div>
+
+      {!game.isComplete && report && isUserGame && (
+        <div className={`flex items-center gap-3 mx-3 mb-1.5 px-3 py-1.5 rounded text-xs ${
+          report.status === "disputed" ? "bg-red-900/20 border border-red-800/30" : "bg-yellow-900/20 border border-yellow-700/30"
+        }`} data-testid={`report-status-${game.id}`}>
+          {report.status === "pending" && <AlertTriangle className="w-3 h-3 text-yellow-400 shrink-0" />}
+          {report.status === "disputed" && <XCircle className="w-3 h-3 text-red-400 shrink-0" />}
+          <div className="flex-1">
+            {report.status === "pending" && (
+              <span className="text-yellow-300">
+                Score reported: {report.awayScore} - {report.homeScore}. Awaiting confirmation.
+              </span>
+            )}
+            {report.status === "disputed" && (
+              <span className="text-red-300">Disputed. Commissioner will resolve.</span>
+            )}
+          </div>
+          {report.status === "pending" && userIsOpposingTeam && (
+            <div className="flex gap-1.5">
+              <RetroButton size="sm" variant="primary" onClick={() => callbacks.onConfirm(game.id)} disabled={callbacks.isConfirming} data-testid={`button-confirm-report-${game.id}`}>
+                <CheckCircle className="w-3 h-3 mr-1" /> Confirm
+              </RetroButton>
+              <RetroButton size="sm" variant="outline" onClick={() => callbacks.onDispute(game.id)} disabled={callbacks.isDisputing} data-testid={`button-dispute-report-${game.id}`} className="border-red-600 text-red-400 hover:bg-red-900/20">
+                <XCircle className="w-3 h-3 mr-1" /> Dispute
+              </RetroButton>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StandaloneGameRow({
+  game,
+  allGames,
+  callbacks,
+  badge,
+}: {
+  game: GameWithTeams;
+  allGames: GameWithTeams[];
+  callbacks: GameCallbacks;
+  badge: string | null;
+}) {
+  const report = callbacks.reportsByGameId[game.id] ?? null;
+  const userTeamId = callbacks.userTeamId;
+  const isUserGame = userTeamId
+    ? game.homeTeamId === userTeamId || game.awayTeamId === userTeamId
+    : false;
   const userWon = isUserGame && game.isComplete && (
     (game.homeTeamId === userTeamId && (game.homeScore ?? 0) > (game.awayScore ?? 0)) ||
     (game.awayTeamId === userTeamId && (game.awayScore ?? 0) > (game.homeScore ?? 0))
   );
   const userLost = isUserGame && game.isComplete && !userWon;
 
-  const isHumanVsHuman = humanTeamIds.includes(game.homeTeamId) && humanTeamIds.includes(game.awayTeamId);
-  const opposingTeamId = game.homeTeamId === userTeamId ? game.awayTeamId : game.homeTeamId;
+  const isHumanVsHuman = callbacks.humanTeamIds.includes(game.homeTeamId) && callbacks.humanTeamIds.includes(game.awayTeamId);
   const userIsOpposingTeam = report && userTeamId && report.reporterTeamId !== userTeamId &&
     (game.homeTeamId === userTeamId || game.awayTeamId === userTeamId);
 
   const gameTypeOrder = ["friday", "saturday", "sunday"];
   const currentIdx = game.gameType ? gameTypeOrder.indexOf(game.gameType) : -1;
   const isSeriesLocked = !game.isComplete && game.isConference && currentIdx > 0 && (() => {
-    const seriesGames = allGamesInGroup.filter(g =>
-      g.isConference &&
-      g.week === game.week &&
-      ((g.homeTeamId === game.homeTeamId && g.awayTeamId === game.awayTeamId) ||
-       (g.homeTeamId === game.awayTeamId && g.awayTeamId === game.homeTeamId))
-    );
     for (let i = 0; i < currentIdx; i++) {
-      const priorGame = seriesGames.find(g => g.gameType === gameTypeOrder[i]);
+      const priorGame = allGames.find(g => g.gameType === gameTypeOrder[i]);
       if (priorGame && !priorGame.isComplete) return true;
     }
     return false;
   })();
 
+  const confColor = getConfColor(game.homeTeam);
+
   return (
-    <div className="space-y-2">
-      <div 
-        className={`flex items-center gap-4 p-4 rounded ${
+    <div className="space-y-1.5" data-testid={`card-game-${game.id}`}>
+      <div
+        className={`flex items-center gap-3 p-3 rounded ${
           game.isComplete && isUserGame
             ? userWon ? "bg-green-900/20 border border-green-800/30" : "bg-red-900/20 border border-red-800/30"
             : "bg-muted/30"
-        } ${isHumanVsHuman && !game.isComplete ? "cursor-pointer hover:bg-amber-500/5 hover:border hover:border-amber-500/20 transition-colors" : ""}`} 
-        onClick={isHumanVsHuman && !game.isComplete ? onMatchupPreview : undefined}
-        data-testid={`card-game-${game.id}`}
+        } ${isHumanVsHuman && !game.isComplete ? "cursor-pointer hover:bg-amber-500/5 hover:border hover:border-amber-500/20 transition-colors" : ""}`}
+        style={{ borderLeft: `3px solid ${confColor}50` }}
+        onClick={isHumanVsHuman && !game.isComplete ? () => callbacks.onMatchupPreview(game.id) : undefined}
       >
-        <div className="flex-1 flex items-center gap-3 min-w-0">
+        <div className="flex-1 flex items-center gap-2 min-w-0">
           <TeamBadge
             abbreviation={game.awayTeam.abbreviation}
             primaryColor={game.awayTeam.primaryColor}
             secondaryColor={game.awayTeam.secondaryColor}
             name={game.awayTeam.name}
-           
             size="sm"
           />
           <div className="min-w-0">
-            <Link href={`/league/${leagueId}/team/${game.awayTeamId}/profile`} onClick={e => e.stopPropagation()}>
-              <span className="font-medium text-sm block truncate hover:text-gold transition-colors cursor-pointer" data-testid={`link-profile-away-${game.id}`}>{game.awayTeam.name}</span>
+            <Link href={`/league/${callbacks.leagueId}/team/${game.awayTeamId}/profile`} onClick={e => e.stopPropagation()}>
+              <span className="font-medium text-sm block truncate hover:text-gold transition-colors cursor-pointer" data-testid={`link-profile-away-${game.id}`}>
+                {game.awayTeam.name}
+              </span>
             </Link>
             {isHumanVsHuman && !game.isComplete && (() => {
               const opponentId = userTeamId === game.awayTeamId ? game.homeTeamId : game.awayTeamId;
-              const coachName = humanCoachNames[opponentId];
+              const coachName = callbacks.humanCoachNames[opponentId];
               return coachName ? (
                 <span className="font-pixel text-[7px] text-amber-400 flex items-center gap-1 mt-0.5 truncate">
                   <Swords className="w-2.5 h-2.5 shrink-0" /> vs {coachName}
@@ -415,50 +954,47 @@ function GameRow({ game, allGamesInGroup, onEdit, onViewBoxScore, onMatchupPrevi
 
         {game.isComplete ? (
           <button
-            onClick={onViewBoxScore}
-            className="flex flex-nowrap items-center gap-4 whitespace-nowrap cursor-pointer hover:opacity-80 transition-opacity shrink-0 min-w-[96px]"
+            onClick={e => { e.stopPropagation(); callbacks.onViewBoxScore(game); }}
+            className="flex flex-nowrap items-center gap-3 whitespace-nowrap cursor-pointer hover:opacity-80 transition-opacity shrink-0"
             data-testid={`button-box-score-${game.id}`}
           >
-            <span className={`text-xl font-bold ${(game.awayScore ?? 0) > (game.homeScore ?? 0) ? "text-gold" : "text-muted-foreground"}`} data-testid={`score-away-${game.id}`}>
+            <span className={`text-lg font-bold ${(game.awayScore ?? 0) > (game.homeScore ?? 0) ? "text-gold" : "text-muted-foreground"}`} data-testid={`score-away-${game.id}`}>
               {game.awayScore}
             </span>
-            <span className="text-muted-foreground">@</span>
-            <span className={`text-xl font-bold ${(game.homeScore ?? 0) > (game.awayScore ?? 0) ? "text-gold" : "text-muted-foreground"}`} data-testid={`score-home-${game.id}`}>
+            <span className="text-muted-foreground text-xs">@</span>
+            <span className={`text-lg font-bold ${(game.homeScore ?? 0) > (game.awayScore ?? 0) ? "text-gold" : "text-muted-foreground"}`} data-testid={`score-home-${game.id}`}>
               {game.homeScore}
             </span>
             {isUserGame && (
-              <Badge variant="outline" className={`text-[9px] ml-1 ${userWon ? "border-green-600 text-green-400" : "border-red-600 text-red-400"}`} data-testid={`badge-result-${game.id}`}>
+              <Badge variant="outline" className={`text-[9px] ${userWon ? "border-green-600 text-green-400" : "border-red-600 text-red-400"}`} data-testid={`badge-result-${game.id}`}>
                 {userWon ? "W" : "L"}
               </Badge>
             )}
             {game.isManuallyReported && (
-              <Badge variant="outline" className="text-[9px] ml-1 border-blue-600 text-blue-400">Reported</Badge>
+              <Badge variant="outline" className="text-[9px] border-blue-600 text-blue-400">Reported</Badge>
             )}
           </button>
         ) : (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            <span className="text-muted-foreground text-sm">@</span>
+            {badge && (
+              <Badge variant="outline" className="text-[8px] border-purple-600/50 text-purple-400 font-pixel">{badge}</Badge>
+            )}
             {report?.status === "pending" && (
-              <Badge variant="outline" className="text-[9px] border-yellow-600 text-yellow-400" data-testid={`badge-report-pending-${game.id}`}>
-                PENDING
-              </Badge>
+              <Badge variant="outline" className="text-[9px] border-yellow-600 text-yellow-400" data-testid={`badge-report-pending-${game.id}`}>PENDING</Badge>
             )}
             {report?.status === "disputed" && (
-              <Badge variant="outline" className="text-[9px] border-red-600 text-red-400" data-testid={`badge-report-disputed-${game.id}`}>
-                DISPUTED
-              </Badge>
+              <Badge variant="outline" className="text-[9px] border-red-600 text-red-400" data-testid={`badge-report-disputed-${game.id}`}>DISPUTED</Badge>
             )}
-          </div>
-        )}
-        {!game.isComplete && (
-          <div className="flex items-center gap-4">
-            <span className="text-muted-foreground">@</span>
           </div>
         )}
 
-        <div className="flex-1 flex items-center justify-end gap-3 min-w-0">
-          <div className="min-w-0">
-            <Link href={`/league/${leagueId}/team/${game.homeTeamId}/profile`} onClick={e => e.stopPropagation()}>
-              <span className="font-medium text-sm block truncate hover:text-gold transition-colors cursor-pointer" data-testid={`link-profile-home-${game.id}`}>{game.homeTeam.name}</span>
+        <div className="flex-1 flex items-center justify-end gap-2 min-w-0">
+          <div className="min-w-0 text-right">
+            <Link href={`/league/${callbacks.leagueId}/team/${game.homeTeamId}/profile`} onClick={e => e.stopPropagation()}>
+              <span className="font-medium text-sm block truncate hover:text-gold transition-colors cursor-pointer" data-testid={`link-profile-home-${game.id}`}>
+                {game.homeTeam.name}
+              </span>
             </Link>
           </div>
           <TeamBadge
@@ -466,17 +1002,16 @@ function GameRow({ game, allGamesInGroup, onEdit, onViewBoxScore, onMatchupPrevi
             primaryColor={game.homeTeam.primaryColor}
             secondaryColor={game.homeTeam.secondaryColor}
             name={game.homeTeam.name}
-           
             size="sm"
           />
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 shrink-0">
           {!game.isComplete && isHumanVsHuman && (
             <RetroButton
               variant="outline"
               size="sm"
-              onClick={(e) => { e.stopPropagation(); onMatchupPreview(); }}
+              onClick={(e) => { e.stopPropagation(); callbacks.onMatchupPreview(game.id); }}
               title="View Matchup Preview"
               data-testid={`button-matchup-preview-${game.id}`}
               className="border-gold/60 text-gold/80 hover:text-gold hover:border-gold"
@@ -486,13 +1021,13 @@ function GameRow({ game, allGamesInGroup, onEdit, onViewBoxScore, onMatchupPrevi
           )}
           {!game.isComplete && (
             <>
-              {isHumanVsHuman && (isUserGame || isCommissioner) && !report && (
+              {isHumanVsHuman && (isUserGame || callbacks.isCommissioner) && !report && (
                 isSeriesLocked ? (
                   <RetroButton variant="outline" size="sm" disabled className="opacity-40 cursor-not-allowed" data-testid={`button-report-locked-${game.id}`}>
                     <Lock className="w-3 h-3" />
                   </RetroButton>
                 ) : (
-                  <Link href={`/league/${leagueId}/report-game/${game.id}`}>
+                  <Link href={`/league/${callbacks.leagueId}/report-game/${game.id}`}>
                     <RetroButton variant="outline" size="sm" title="Report Game Result" data-testid={`button-report-${game.id}`}>
                       <FileText className="w-3 h-3" />
                     </RetroButton>
@@ -501,24 +1036,12 @@ function GameRow({ game, allGamesInGroup, onEdit, onViewBoxScore, onMatchupPrevi
               )}
               {!isHumanVsHuman && (
                 isSeriesLocked ? (
-                  <RetroButton
-                    variant="outline"
-                    size="sm"
-                    title="Complete earlier games in this series first"
-                    disabled
-                    className="opacity-40 cursor-not-allowed"
-                    data-testid={`button-pbp-locked-${game.id}`}
-                  >
+                  <RetroButton variant="outline" size="sm" disabled className="opacity-40 cursor-not-allowed" data-testid={`button-pbp-locked-${game.id}`}>
                     <Lock className="w-3 h-3" />
                   </RetroButton>
                 ) : (
-                  <Link href={`/league/${leagueId}/game/${game.id}/play-by-play`}>
-                    <RetroButton
-                      variant="outline"
-                      size="sm"
-                      title="Play by Play"
-                      data-testid={`button-pbp-${game.id}`}
-                    >
+                  <Link href={`/league/${callbacks.leagueId}/game/${game.id}/play-by-play`}>
+                    <RetroButton variant="outline" size="sm" title="Play by Play" data-testid={`button-pbp-${game.id}`}>
                       <Play className="w-3 h-3" />
                     </RetroButton>
                   </Link>
@@ -526,11 +1049,11 @@ function GameRow({ game, allGamesInGroup, onEdit, onViewBoxScore, onMatchupPrevi
               )}
             </>
           )}
-          {isCommissioner && (
+          {callbacks.isCommissioner && (
             <RetroButton
               variant="outline"
               size="sm"
-              onClick={onEdit}
+              onClick={(e) => { e.stopPropagation(); callbacks.onEdit(game); }}
               data-testid={`button-edit-game-${game.id}`}
             >
               {game.isComplete ? <Check className="w-3 h-3" /> : <Edit2 className="w-3 h-3" />}
@@ -540,7 +1063,7 @@ function GameRow({ game, allGamesInGroup, onEdit, onViewBoxScore, onMatchupPrevi
       </div>
 
       {!game.isComplete && report && isUserGame && (
-        <div className={`flex items-center gap-3 px-4 py-2 rounded text-xs ${
+        <div className={`flex items-center gap-3 px-3 py-2 rounded text-xs ${
           report.status === "disputed" ? "bg-red-900/20 border border-red-800/30" : "bg-yellow-900/20 border border-yellow-700/30"
         }`} data-testid={`report-status-${game.id}`}>
           {report.status === "pending" && <AlertTriangle className="w-3 h-3 text-yellow-400 shrink-0" />}
@@ -559,10 +1082,10 @@ function GameRow({ game, allGamesInGroup, onEdit, onViewBoxScore, onMatchupPrevi
           </div>
           {report.status === "pending" && userIsOpposingTeam && (
             <div className="flex gap-2">
-              <RetroButton size="sm" variant="primary" onClick={onConfirm} disabled={isConfirming} data-testid={`button-confirm-report-${game.id}`}>
+              <RetroButton size="sm" variant="primary" onClick={() => callbacks.onConfirm(game.id)} disabled={callbacks.isConfirming} data-testid={`button-confirm-report-${game.id}`}>
                 <CheckCircle className="w-3 h-3 mr-1" /> Confirm
               </RetroButton>
-              <RetroButton size="sm" variant="outline" onClick={onDispute} disabled={isDisputing} data-testid={`button-dispute-report-${game.id}`} className="border-red-600 text-red-400 hover:bg-red-900/20">
+              <RetroButton size="sm" variant="outline" onClick={() => callbacks.onDispute(game.id)} disabled={callbacks.isDisputing} data-testid={`button-dispute-report-${game.id}`} className="border-red-600 text-red-400 hover:bg-red-900/20">
                 <XCircle className="w-3 h-3 mr-1" /> Dispute
               </RetroButton>
             </div>
@@ -589,7 +1112,6 @@ function MatchupPreviewModal({ leagueId, gameId, onClose }: { leagueId: string; 
           primaryColor={team.primaryColor}
           secondaryColor={team.secondaryColor}
           name={team.name}
-         
           size="md"
         />
         <div className={isHome ? "text-right" : ""}>
@@ -637,7 +1159,6 @@ function MatchupPreviewModal({ leagueId, gameId, onClose }: { leagueId: string; 
           <div className="py-10 text-center text-muted-foreground text-sm">Matchup data unavailable.</div>
         ) : (
           <div className="space-y-4">
-            {/* Game context */}
             <div className="flex items-center justify-center gap-2 text-[10px] text-muted-foreground">
               <span className={`px-2 py-0.5 rounded font-pixel text-[8px] ${data.game.isConference ? "bg-blue-500/20 text-blue-400" : "bg-muted/50"}`}>
                 {data.game.isConference ? "CONF" : "OOC"}
@@ -648,22 +1169,16 @@ function MatchupPreviewModal({ leagueId, gameId, onClose }: { leagueId: string; 
               )}
             </div>
 
-            {/* Teams */}
             <div className="flex items-start gap-4">
               <TeamPanel team={data.awayTeam} isHome={false} />
-
               <div className="flex-shrink-0 text-center px-2 pt-2">
                 <div className="font-pixel text-muted-foreground text-[10px] mb-1">@</div>
                 {data.h2h.totalGames > 0 ? (
                   <div className="mt-4 space-y-1 max-w-[90px]">
                     <p className="font-pixel text-[6px] text-muted-foreground leading-tight">ALL-TIME vs {data.awayTeam.abbreviation}</p>
-                    <p className="font-pixel text-[9px] text-gold">
-                      {data.h2h.homeWins}–{data.h2h.awayWins}
-                    </p>
+                    <p className="font-pixel text-[9px] text-gold">{data.h2h.homeWins}–{data.h2h.awayWins}</p>
                     <p className="font-pixel text-[6px] text-muted-foreground leading-tight">ALL-TIME vs {data.homeTeam.abbreviation}</p>
-                    <p className="font-pixel text-[9px] text-gold">
-                      {data.h2h.awayWins}–{data.h2h.homeWins}
-                    </p>
+                    <p className="font-pixel text-[9px] text-gold">{data.h2h.awayWins}–{data.h2h.homeWins}</p>
                   </div>
                 ) : (
                   <div className="mt-4">
@@ -672,7 +1187,6 @@ function MatchupPreviewModal({ leagueId, gameId, onClose }: { leagueId: string; 
                   </div>
                 )}
               </div>
-
               <TeamPanel team={data.homeTeam} isHome={true} />
             </div>
 
@@ -760,7 +1274,6 @@ function BoxScoreModal({ game, onClose }: { game: GameWithTeams | null; onClose:
 
             <TeamBattingTable label={game.awayTeam.name} team={boxScore.away} />
             <TeamBattingTable label={game.homeTeam.name} team={boxScore.home} />
-
             <TeamPitchingTable label={game.awayTeam.name} pitching={boxScore.away.pitching} />
             <TeamPitchingTable label={game.homeTeam.name} pitching={boxScore.home.pitching} />
           </div>
@@ -934,12 +1447,7 @@ function ScoreEntryModal({
           </div>
 
           <div className="flex gap-3">
-            <RetroButton
-              variant="outline"
-              className="flex-1"
-              onClick={onClose}
-              disabled={isPending}
-            >
+            <RetroButton variant="outline" className="flex-1" onClick={onClose} disabled={isPending}>
               Cancel
             </RetroButton>
             <RetroButton
