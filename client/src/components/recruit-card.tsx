@@ -107,7 +107,7 @@ function getCommonAbilityTierColor(tier: string): string {
   return map[tier] ?? "#9ca3af";
 }
 
-function getTypeBadge(recruit: RevealRecruit): { label: string; className: string; pulse?: boolean } | null {
+export function getTypeBadge(recruit: RevealRecruit): { label: string; className: string; pulse?: boolean } | null {
   const isGen = recruit.isGenerationalGem && recruit.gemBustRevealed;
   const isBustGen = recruit.isGenerationalBust && recruit.gemBustRevealed;
   if (isGen)    return { label: "GEM ✦",    className: "bg-amber-500 text-black",   pulse: true };
@@ -233,7 +233,7 @@ function AttrPill({ label, value, isCommon = false }: { label: string; value: nu
   );
 }
 
-function CardBack({ recruit }: { recruit: RevealRecruit }) {
+export function CardBack({ recruit }: { recruit: RevealRecruit }) {
   const pitcher = isPitcher(recruit.position);
   const catcher = isCatcher(recruit.position);
 
@@ -441,7 +441,7 @@ export function RecruitCard({ recruit, primaryColor, secondaryColor, animationDe
             overflow: "hidden",
           }}
         >
-          <CardFront recruit={recruit} primaryColor={primaryColor} secondaryColor={secondaryColor} />
+          <CardFront recruit={recruit} primaryColor={primaryColor} />
         </div>
         {/* Back */}
         <div

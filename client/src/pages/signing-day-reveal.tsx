@@ -6,9 +6,11 @@ import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard, RetroCardContent } from "@/components/ui/retro-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TeamBadge } from "@/components/ui/team-badge";
-import { RecruitCard } from "@/components/recruit-card";
+import { CardBack, getTypeBadge } from "@/components/recruit-card";
 import type { RevealRecruit } from "@/components/recruit-card";
-import { ArrowLeft, Download, Trophy } from "lucide-react";
+import { StarRating } from "@/components/ui/star-rating";
+import { PlayerAvatar } from "@/components/player-avatar";
+import { ArrowLeft, Crown, Download, Trophy } from "lucide-react";
 
 interface TeamEntry {
   team: {
@@ -390,6 +392,266 @@ function getPositionFamilyColor(position: string): string {
   if (position === "OF")                          return "#16a34a"; // green
   if (position === "DH")                          return "#7c3aed"; // purple
   return "#6b7280";
+}
+
+// ── OVR helpers (local, avoids coupling to recruit-card internals) ────
+function getRevealOvrColor(ovr: number): string {
+  if (ovr >= 600) return "#ff69b4";
+  if (ovr >= 500) return "#ef4444";
+  if (ovr >= 400) return "#eab308";
+  if (ovr >= 300) return "#22c55e";
+  return "#9ca3af";
+}
+function getRevealOvrBorderColor(ovr: number): string {
+  if (ovr >= 600) return "#ff69b4";
+  if (ovr >= 500) return "#ef4444";
+  if (ovr >= 400) return "#eab308";
+  if (ovr >= 300) return "#22c55e";
+  return "#d4c9a0";
+}
+function getRevealOvrGlow(ovr: number): string {
+  if (ovr >= 600) return "0 0 18px #ff69b4, 0 0 36px #ff1493, 0 0 54px #ff69b490";
+  if (ovr >= 500) return "0 0 16px #ef4444, 0 0 32px #dc2626, 0 0 48px #ef444460";
+  if (ovr >= 400) return "0 0 14px #eab308, 0 0 28px #ca8a04, 0 0 42px #eab30860";
+  if (ovr >= 300) return "0 0 12px #22c55e, 0 0 24px #16a34a, 0 0 36px #22c55e60";
+  return "none";
+}
+
+// ── RevealCardFront ────────────────────────────────────────────
+// Power Pros-style light portrait front for the signing day top row.
+function RevealCardFront({ recruit, primaryColor }: { recruit: RevealRecruit; primaryColor: string }) {
+  const posColor = getPositionFamilyColor(recruit.position);
+  const ovrColor = getRevealOvrColor(recruit.overall);
+  const isGen    = !!(recruit.isGenerationalGem  && recruit.gemBustRevealed);
+  const isGenBust= !!(recruit.isGenerationalBust && recruit.gemBustRevealed);
+  const typeBadge = getTypeBadge(recruit);
+
+  return (
+    <div
+      style={{
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        background: "#f8f4ec",
+        borderRadius: "6px",
+        overflow: "hidden",
+      }}
+    >
+      {/* ── Position family colored top bar ── */}
+      <div
+        style={{
+          background: posColor,
+          height: "24px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "0 8px",
+          flexShrink: 0,
+        }}
+      >
+        <span
+          className="font-pixel"
+          style={{ fontSize: "9px", color: "#fff", fontWeight: "bold", letterSpacing: "0.05em" }}
+          data-testid={`card-position-${recruit.id}`}
+        >
+          {recruit.position}
+        </span>
+        {recruit.isBlueChip && !isGen && !isGenBust && (
+          <Crown className="w-3.5 h-3.5 text-white drop-shadow" />
+        )}
+        {isGen && (
+          <span className="font-pixel" style={{ fontSize: "7px", color: "#fff" }}>✦</span>
+        )}
+      </div>
+
+      {/* ── Star rating strip ── */}
+      <div
+        style={{
+          height: "20px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+          background: "#f0ebe0",
+          borderBottom: "1px solid #ddd8cc",
+        }}
+      >
+        <StarRating rating={recruit.starRating} size="sm" />
+      </div>
+
+      {/* ── Large centered avatar ── */}
+      <div
+        style={{
+          flex: 1,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "linear-gradient(160deg, #f8f4ec 0%, #ede8dc 100%)",
+        }}
+      >
+        <PlayerAvatar
+          skinTone={recruit.skinTone ?? "medium"}
+          playerId={recruit.id}
+          size="lg"
+          className="w-24 h-24"
+          jerseyColor={primaryColor}
+          isRecruit={false}
+        />
+      </div>
+
+      {/* ── Type badge (gem / bust / transfer / juco) ── */}
+      {typeBadge ? (
+        <div style={{ display: "flex", justifyContent: "center", padding: "3px 0", background: "#f0ebe0", flexShrink: 0 }}>
+          <span
+            className={`font-pixel text-[7px] px-1.5 py-0.5 rounded ${typeBadge.className} ${typeBadge.pulse ? "animate-pulse" : ""}`}
+            data-testid={`card-type-badge-${recruit.id}`}
+          >
+            {typeBadge.label}
+          </span>
+        </div>
+      ) : (
+        <div style={{ height: "6px", background: "#f0ebe0", flexShrink: 0 }} />
+      )}
+
+      {/* ── Name bar ── */}
+      <div
+        style={{
+          background: "#1a1a1a",
+          padding: "4px 7px 3px",
+          flexShrink: 0,
+        }}
+      >
+        <div
+          className="font-pixel"
+          style={{ fontSize: "7px", color: "#f5f0e6", lineHeight: 1.35, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+        >
+          {recruit.firstName} {recruit.lastName}
+        </div>
+      </div>
+
+      {/* ── State + OVR row ── */}
+      <div
+        style={{
+          background: "#111",
+          padding: "3px 7px 5px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexShrink: 0,
+        }}
+      >
+        <span style={{ fontSize: "8px", color: "#9ca3af", fontFamily: "monospace" }}>
+          {recruit.homeState}
+        </span>
+        <span
+          className="font-pixel"
+          style={{ fontSize: "11px", fontWeight: "bold", color: ovrColor }}
+        >
+          {recruit.overall}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ── RevealPortraitCard ─────────────────────────────────────────
+// Flip card used in the signing day top row.
+// Front = Power Pros portrait (light + position-family badge).
+// Back  = existing CardBack (dark stat panel, unchanged).
+function RevealPortraitCard({
+  recruit,
+  primaryColor,
+  animationDelay = 0,
+  disableAnimation = false,
+}: {
+  recruit: RevealRecruit;
+  primaryColor: string;
+  animationDelay?: number;
+  disableAnimation?: boolean;
+}) {
+  const [flipped, setFlipped] = useState(false);
+
+  const isGenGem  = !!(recruit.isGenerationalGem  && recruit.gemBustRevealed);
+  const isGenBust = !!(recruit.isGenerationalBust && recruit.gemBustRevealed);
+
+  let cardBorder: string;
+  let cardGlow: string;
+  if (isGenGem) {
+    cardBorder = "3px solid #FFD700";
+    cardGlow   = "0 0 22px #FFD700, 0 0 44px #FFD70099, 0 0 70px #FFD70033";
+  } else if (isGenBust) {
+    cardBorder = "3px solid #7f1d1d";
+    cardGlow   = "0 0 16px #7f1d1d, 0 0 32px #7f1d1d88";
+  } else {
+    const ovrBorder = getRevealOvrBorderColor(recruit.overall);
+    const ovrGlow   = getRevealOvrGlow(recruit.overall);
+    cardBorder = recruit.starRating >= 5
+      ? `2px solid ${ovrBorder}`
+      : recruit.starRating >= 4
+        ? "2px solid #C4A35A"
+        : "2px solid #d4c9a0";
+    cardGlow = ovrGlow;
+  }
+
+  return (
+    <div
+      className="recruit-card-wrapper"
+      style={{
+        width: "160px",
+        height: "220px",
+        perspective: "800px",
+        flexShrink: 0,
+        animation: disableAnimation ? "none" : `cardSlideIn 0.5s ease-out ${animationDelay}s both`,
+        cursor: "pointer",
+      }}
+      onClick={() => setFlipped(f => !f)}
+      data-testid={`recruit-card-${recruit.id}`}
+      title={flipped ? "Click to see front" : "Click to flip and see full profile"}
+    >
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          position: "relative",
+          transformStyle: "preserve-3d",
+          transition: disableAnimation ? "none" : "transform 0.6s cubic-bezier(0.4,0,0.2,1)",
+          transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
+          borderRadius: "8px",
+          boxShadow: cardGlow,
+          border: cardBorder,
+        }}
+      >
+        {/* Front — Power Pros portrait */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            backfaceVisibility: "hidden",
+            WebkitBackfaceVisibility: "hidden",
+            borderRadius: "6px",
+            overflow: "hidden",
+          }}
+        >
+          <RevealCardFront recruit={recruit} primaryColor={primaryColor} />
+        </div>
+        {/* Back — existing dark stat panel */}
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            backfaceVisibility: "hidden",
+            WebkitBackfaceVisibility: "hidden",
+            transform: "rotateY(180deg)",
+            borderRadius: "6px",
+            overflow: "hidden",
+          }}
+        >
+          <CardBack recruit={recruit} />
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ── LetterOfIntentCard ─────────────────────────────────────────
@@ -878,10 +1140,9 @@ export default function SigningDayRevealPage() {
                                 aria-hidden
                               />
                             )}
-                            <RecruitCard
+                            <RevealPortraitCard
                               recruit={recruit}
                               primaryColor={currentEntry.team.primaryColor}
-                              secondaryColor={currentEntry.team.secondaryColor}
                               animationDelay={animDelay}
                               disableAnimation={reducedMotion}
                             />
@@ -919,10 +1180,9 @@ export default function SigningDayRevealPage() {
                             }}
                             aria-hidden
                           />
-                          <RecruitCard
+                          <RevealPortraitCard
                             recruit={gemRecruit}
                             primaryColor={currentEntry.team.primaryColor}
-                            secondaryColor={currentEntry.team.secondaryColor}
                             animationDelay={0}
                             disableAnimation={false}
                           />
