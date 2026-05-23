@@ -524,11 +524,7 @@ export async function initializeStorylineRecruits(leagueId: string, season: numb
       }
     }
 
-    // Kick off arc image generation in the background — one image per arc, stable for the season.
-    // Non-blocking: init returns immediately; images arrive within ~20-30 seconds.
-    generateArcImagesForStorylines(created).catch(err =>
-      console.warn("[storylines] background arc image generation failed:", err),
-    );
+
 
     await generateWeeklyStorylineEvents(leagueId, season, 1);
 
