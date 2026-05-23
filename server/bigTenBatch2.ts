@@ -122,7 +122,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       ...noPitches },
     // OUTFIELDERS (6)
     { firstName: "Easton", lastName: "Richter", position: "OF", eligibility: "JR", homeState: "MN", hometown: "Owatonna", jerseyNumber: 7,
-      hitForAvg: 51, power: 50, speed: 59, arm: 43, fielding: 42, errorResistance: 40, velocity: 0, control: 0, stamina: 23, stuff: 0,
+      hitForAvg: 51, power: 86, speed: 59, arm: 43, fielding: 42, errorResistance: 40, velocity: 0, control: 0, stamina: 23, stuff: 0,
       clutch: 44, vsLHP: 42, grit: 45, stealing: 26, running: 37, throwing: 44, recovery: 36, wRISP: 43, vsLefty: 40, poise: 44, heater: 0, agile: 39,
       abilities: ["Power Hitter", "Consigliere"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -278,7 +278,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         ...noPitches },
       // Dylan Carey — SS SR, RBI single Oregon series
       { firstName: "Dylan", lastName: "Carey", position: "SS", eligibility: "SR", homeState: "NE", hometown: "Omaha", jerseyNumber: 2,
-        hitForAvg: 63, power: 51, speed: 69, arm: 56, fielding: 60, errorResistance: 56, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 63, power: 85, speed: 69, arm: 56, fielding: 60, errorResistance: 56, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 60, vsLHP: 54, grit: 60, stealing: 36, running: 48, throwing: 56, recovery: 44, wRISP: 56, vsLefty: 50, poise: 60, heater: 0, agile: 50,
         abilities: ["Defensive Artisan", "Chance Maker"], potential: "B+", catcherAbility: null,
         throwHand: "R", batHand: "S",
@@ -481,7 +481,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       ...noPitches },
     // OUTFIELDERS (5)
     { firstName: "Jack", lastName: "Lausch", position: "OF", eligibility: "SR", homeState: "IL", hometown: "Lake Forest", jerseyNumber: 1,
-      hitForAvg: 64, power: 59, speed: 61, arm: 52, fielding: 50, errorResistance: 48, velocity: 0, control: 0, stamina: 28, stuff: 0,
+      hitForAvg: 64, power: 87, speed: 61, arm: 52, fielding: 50, errorResistance: 48, velocity: 0, control: 0, stamina: 28, stuff: 0,
       clutch: 57, vsLHP: 53, grit: 58, stealing: 32, running: 46, throwing: 53, recovery: 44, wRISP: 57, vsLefty: 52, poise: 57, heater: 0, agile: 48,
       abilities: ["Power Hitter", "Consigliere", "High-Speed Laser"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "S",
@@ -619,7 +619,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "R",
       ...noPitches },
     { firstName: "Dane", lastName: "Harvey", position: "1B", eligibility: "JR", homeState: "IN", hometown: "Zionsville", jerseyNumber: 24,
-      hitForAvg: 63, power: 60, speed: 44, arm: 47, fielding: 49, errorResistance: 47, velocity: 0, control: 0, stamina: 28, stuff: 0,
+      hitForAvg: 63, power: 88, speed: 44, arm: 47, fielding: 49, errorResistance: 47, velocity: 0, control: 0, stamina: 28, stuff: 0,
       clutch: 54, vsLHP: 51, grit: 56, stealing: 11, running: 32, throwing: 49, recovery: 42, wRISP: 54, vsLefty: 50, poise: 54, heater: 0, agile: 35,
       abilities: ["Power Hitter", "Contact Hitter"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -966,7 +966,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       ...noPitches },
     // INFIELDERS (6)
     { firstName: "Bryce", lastName: "Molinaro", position: "3B", eligibility: "JR", homeState: "PA", hometown: "State College", jerseyNumber: 2,
-      hitForAvg: 59, power: 56, speed: 50, arm: 49, fielding: 48, errorResistance: 47, velocity: 0, control: 0, stamina: 26, stuff: 0,
+      hitForAvg: 59, power: 86, speed: 50, arm: 49, fielding: 48, errorResistance: 47, velocity: 0, control: 0, stamina: 26, stuff: 0,
       clutch: 54, vsLHP: 51, grit: 55, stealing: 15, running: 34, throwing: 51, recovery: 41, wRISP: 54, vsLefty: 49, poise: 54, heater: 0, agile: 37,
       abilities: ["Power Hitter", "Consigliere", "Contact Hitter"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -1015,7 +1015,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "L",
       ...noPitches },
     { firstName: "Michael", lastName: "Anderson", position: "OF", eligibility: "JR", homeState: "AR", hometown: "Little Rock", jerseyNumber: 9,
-      hitForAvg: 60, power: 55, speed: 61, arm: 53, fielding: 50, errorResistance: 48, velocity: 0, control: 0, stamina: 29, stuff: 0,
+      hitForAvg: 60, power: 90, speed: 61, arm: 53, fielding: 50, errorResistance: 48, velocity: 0, control: 0, stamina: 29, stuff: 0,
       clutch: 53, vsLHP: 50, grit: 54, stealing: 29, running: 45, throwing: 54, recovery: 42, wRISP: 51, vsLefty: 48, poise: 53, heater: 0, agile: 48,
       abilities: ["High-Speed Laser"], potential: "B", catcherAbility: null,
       throwHand: "L", batHand: "L",

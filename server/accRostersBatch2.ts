@@ -54,7 +54,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       ...pitchMix(1, [0, 5, 4, 1, 0, 0, 0]) },
     // CATCHERS (2)
     { firstName: "Alex", lastName: "Sosa", position: "C", eligibility: "JR", homeState: "NC", hometown: "Raleigh", jerseyNumber: 12,
-      hitForAvg: 60, power: 57, speed: 38, arm: 58, fielding: 55, errorResistance: 53, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 60, power: 87, speed: 38, arm: 58, fielding: 55, errorResistance: 53, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 57, vsLHP: 53, grit: 58, stealing: 15, running: 32, throwing: 60, recovery: 46, wRISP: 57, vsLefty: 52, poise: 55, heater: 0, agile: 38,
       abilities: ["Consigliere"], potential: "A-", catcherAbility: 57,
       throwHand: "R", batHand: "L",
@@ -104,7 +104,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       ...noPitches },
     // OUTFIELDERS (9)
     { firstName: "Derek", lastName: "Williams", position: "OF", eligibility: "SR", homeState: "GA", hometown: "Atlanta", jerseyNumber: 1,
-      hitForAvg: 58, power: 49, speed: 61, arm: 51, fielding: 49, errorResistance: 48, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 58, power: 86, speed: 61, arm: 51, fielding: 49, errorResistance: 48, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 51, vsLHP: 48, grit: 53, stealing: 27, running: 45, throwing: 53, recovery: 42, wRISP: 49, vsLefty: 46, poise: 49, heater: 0, agile: 48,
       abilities: ["Contact Hitter"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -267,7 +267,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       ...noPitches },
     // OUTFIELDERS (8)
     { firstName: "Ty", lastName: "Head", position: "OF", eligibility: "SO", homeState: "TX", hometown: "Grapevine", jerseyNumber: 4,
-      hitForAvg: 55, power: 44, speed: 80, arm: 54, fielding: 55, errorResistance: 54, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 55, power: 85, speed: 80, arm: 54, fielding: 55, errorResistance: 54, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 49, vsLHP: 47, grit: 52, stealing: 39, running: 54, throwing: 55, recovery: 44, wRISP: 48, vsLefty: 45, poise: 49, heater: 0, agile: 57,
       abilities: ["Chance Maker", "Defensive Artisan"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -444,7 +444,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       ...noPitches },
     // Cooper Nicholson — JR 3B, .267/13HR/41RBI, ACC-leading 21 HBPs, power threat (.630 SLG!)
     { firstName: "Cooper", lastName: "Nicholson", position: "3B", eligibility: "JR", homeState: "IA", hometown: "Pinehurst", jerseyNumber: 1,
-      hitForAvg: 63, power: 83, speed: 50, arm: 64, fielding: 56, errorResistance: 50, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 63, power: 85, speed: 50, arm: 64, fielding: 56, errorResistance: 50, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 70, vsLHP: 62, grit: 80, stealing: 8, running: 32, throwing: 64, recovery: 50, wRISP: 70, vsLefty: 60, poise: 70, heater: 0, agile: 40,
       abilities: ["Power Hitter", "Multi-Hit"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "L",

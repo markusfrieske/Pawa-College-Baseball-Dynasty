@@ -768,7 +768,7 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // CATCHERS (2)
     // Carson Tinney — JR C transfer Notre Dame, 14 HR (#2 team), 2025 Buster Posey finalist, 445-ft HR
     { firstName: "Carson", lastName: "Tinney", position: "C", eligibility: "JR", homeState: "IN", hometown: "South Bend", jerseyNumber: 19,
-      hitForAvg: 77, power: 87, speed: 37, arm: 68, fielding: 70, errorResistance: 66, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 77, power: 90, speed: 37, arm: 68, fielding: 70, errorResistance: 66, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 78, vsLHP: 72, grit: 76, stealing: 8, running: 30, throwing: 70, recovery: 56, wRISP: 78, vsLefty: 72, poise: 76, heater: 0, agile: 38,
       abilities: ["Power Hitter", "Consigliere", "High-Speed Laser"], potential: "A", catcherAbility: 70,
       throwHand: "R", batHand: "L",
@@ -785,7 +785,7 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // INFIELDERS (6)
     // Casey Borba — JR 1B, .278/12HR 2025, multi-HR effort early '26, 5 RBI vs TXST
     { firstName: "Casey", lastName: "Borba", position: "1B", eligibility: "JR", homeState: "CA", hometown: "Sacramento", jerseyNumber: 45,
-      hitForAvg: 71, power: 77, speed: 43, arm: 50, fielding: 58, errorResistance: 56, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 71, power: 87, speed: 43, arm: 50, fielding: 58, errorResistance: 56, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 68, vsLHP: 64, grit: 68, stealing: 8, running: 30, throwing: 50, recovery: 50, wRISP: 70, vsLefty: 62, poise: 66, heater: 0, agile: 36,
       abilities: ["Power Hitter", "Consigliere"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "S",
@@ -834,7 +834,7 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // OUTFIELDERS (7)
     // Aiden Robbins — JR CF/OF Seton Hall transfer, .358/17HR (TEAM LEADER), 200th career hit, 112mph max EV, top-50 draft
     { firstName: "Aiden", lastName: "Robbins", position: "OF", eligibility: "JR", homeState: "NJ", hometown: "South Orange", jerseyNumber: 1,
-      hitForAvg: 91, power: 93, speed: 63, arm: 64, fielding: 64, errorResistance: 60, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 91, power: 88, speed: 63, arm: 64, fielding: 64, errorResistance: 60, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 86, vsLHP: 80, grit: 80, stealing: 20, running: 50, throwing: 66, recovery: 56, wRISP: 86, vsLefty: 80, poise: 84, heater: 0, agile: 56,
       abilities: ["Artist", "Power Hitter", "Consigliere"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "S",

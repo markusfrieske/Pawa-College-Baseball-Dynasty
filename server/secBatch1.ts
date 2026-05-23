@@ -95,7 +95,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
     // CATCHERS (2)
     // Cade Arrambide — .331 / 16 HR / 43 RBI / .675 SLG — elite power-hitting C
     { firstName: "Cade", lastName: "Arrambide", position: "C", eligibility: "JR", homeState: "TX", hometown: "Boerne", jerseyNumber: 9,
-      hitForAvg: 85, power: 93, speed: 36, arm: 75, fielding: 76, errorResistance: 74, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 85, power: 88, speed: 36, arm: 75, fielding: 76, errorResistance: 74, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 78, vsLHP: 75, grit: 75, stealing: 8, running: 24, throwing: 78, recovery: 65, wRISP: 78, vsLefty: 75, poise: 78, heater: 0, agile: 32,
       abilities: ["Power Hitter", "Defensive Artisan", "Consigliere", "High-Speed Laser"], potential: "A", catcherAbility: 76,
       throwHand: "R", batHand: "R",
@@ -161,7 +161,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       ...noPitches },
     // Jake Brown — RF, .309 / 16 HR / 49 RBI — power bat
     { firstName: "Jake", lastName: "Brown", position: "OF", eligibility: "SR", homeState: "TX", hometown: "Katy", jerseyNumber: 7,
-      hitForAvg: 77, power: 89, speed: 62, arm: 60, fielding: 56, errorResistance: 50, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 77, power: 87, speed: 62, arm: 60, fielding: 56, errorResistance: 50, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 72, vsLHP: 68, grit: 70, stealing: 32, running: 48, throwing: 62, recovery: 56, wRISP: 78, vsLefty: 68, poise: 70, heater: 0, agile: 52,
       abilities: ["Power Hitter", "Consigliere", "vs. Breaking Pitches"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "S",
@@ -312,7 +312,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       // INFIELDERS (6)
       // Brendan Lawson — SS SO, top 2027 draft prospect, .317/10 HR/61 RBI as FR
       { firstName: "Brendan", lastName: "Lawson", position: "SS", eligibility: "FR", homeState: "FL", hometown: "Miami", jerseyNumber: 2,
-        hitForAvg: 87, power: 83, speed: 72, arm: 70, fielding: 70, errorResistance: 64, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 87, power: 87, speed: 72, arm: 70, fielding: 70, errorResistance: 64, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 80, vsLHP: 76, grit: 80, stealing: 38, running: 60, throwing: 70, recovery: 56, wRISP: 80, vsLefty: 76, poise: 80, heater: 0, agile: 64,
         abilities: ["Artist", "Defensive Artisan", "Consigliere"], potential: "A+", catcherAbility: null,
         throwHand: "R", batHand: "R",
@@ -494,13 +494,13 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       ...noPitches },
     // INFIELDERS (6)
     { firstName: "Mike", lastName: "Mancini", position: "2B", eligibility: "JR", homeState: "NJ", hometown: "Westfield", jerseyNumber: 6,
-      hitForAvg: 60, power: 49, speed: 75, arm: 53, fielding: 55, errorResistance: 54, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 60, power: 86, speed: 75, arm: 53, fielding: 55, errorResistance: 54, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 51, vsLHP: 47, grit: 53, stealing: 29, running: 45, throwing: 54, recovery: 42, wRISP: 49, vsLefty: 46, poise: 51, heater: 0, agile: 47,
       abilities: ["Contact Hitter", "Chance Maker"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...noPitches },
     { firstName: "Brodie", lastName: "Johnston", position: "SS", eligibility: "JR", homeState: "TN", hometown: "Brentwood", jerseyNumber: 4,
-      hitForAvg: 58, power: 52, speed: 69, arm: 58, fielding: 58, errorResistance: 57, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 58, power: 86, speed: 69, arm: 58, fielding: 58, errorResistance: 57, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 50, vsLHP: 47, grit: 51, stealing: 32, running: 48, throwing: 60, recovery: 42, wRISP: 48, vsLefty: 45, poise: 50, heater: 0, agile: 51,
       abilities: ["Defensive Artisan"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -531,7 +531,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "R",
       ...noPitches },
     { firstName: "Braden", lastName: "Holcomb", position: "OF", eligibility: "JR", homeState: "TN", hometown: "Clarksville", jerseyNumber: 3,
-      hitForAvg: 57, power: 54, speed: 60, arm: 52, fielding: 50, errorResistance: 48, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 57, power: 85, speed: 60, arm: 52, fielding: 50, errorResistance: 48, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 48, vsLHP: 45, grit: 50, stealing: 28, running: 43, throwing: 53, recovery: 41, wRISP: 47, vsLefty: 44, poise: 48, heater: 0, agile: 45,
       abilities: ["Power Hitter", "High-Speed Laser"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -684,7 +684,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       ...noPitches },
     // Gavin Grahovac — 1B JR, top-30 draft, preseason 1st-team All-SEC
     { firstName: "Gavin", lastName: "Grahovac", position: "1B", eligibility: "JR", homeState: "TX", hometown: "Spring", jerseyNumber: 5,
-      hitForAvg: 71, power: 82, speed: 44, arm: 56, fielding: 56, errorResistance: 52, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 71, power: 88, speed: 44, arm: 56, fielding: 56, errorResistance: 52, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 70, vsLHP: 64, grit: 70, stealing: 12, running: 32, throwing: 56, recovery: 48, wRISP: 72, vsLefty: 64, poise: 70, heater: 0, agile: 42,
       abilities: ["Artist", "Consigliere"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -733,7 +733,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
     // OUTFIELDERS (6)
     // Caden Sorrell — JR CF, top-20 draft prospect, preseason 1st-team All-SEC, multi-HR opening
     { firstName: "Caden", lastName: "Sorrell", position: "OF", eligibility: "JR", homeState: "TX", hometown: "Friendswood", jerseyNumber: 3,
-      hitForAvg: 77, power: 77, speed: 63, arm: 60, fielding: 60, errorResistance: 56, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 77, power: 91, speed: 63, arm: 60, fielding: 60, errorResistance: 56, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 70, vsLHP: 64, grit: 70, stealing: 28, running: 54, throwing: 60, recovery: 48, wRISP: 70, vsLefty: 64, poise: 70, heater: 0, agile: 56,
       abilities: ["Power Hitter", "Consigliere", "High-Speed Laser"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -883,7 +883,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       ...noPitches },
     // OUTFIELDERS (9)
     { firstName: "Henry", lastName: "Ford", position: "OF", eligibility: "JR", homeState: "VA", hometown: "Richmond", jerseyNumber: 1,
-      hitForAvg: 61, power: 62, speed: 61, arm: 51, fielding: 49, errorResistance: 48, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 61, power: 88, speed: 61, arm: 51, fielding: 49, errorResistance: 48, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 54, vsLHP: 51, grit: 55, stealing: 29, running: 45, throwing: 52, recovery: 42, wRISP: 54, vsLefty: 49, poise: 54, heater: 0, agile: 48,
       abilities: ["Power Hitter", "Consigliere", "High-Speed Laser"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "L",
@@ -1041,7 +1041,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       // INFIELDERS (7)
       // Judd Utermark — 3B JR, primary power source — TEAM ELITE POWER
       { firstName: "Judd", lastName: "Utermark", position: "3B", eligibility: "JR", homeState: "IA", hometown: "Dubuque", jerseyNumber: 5,
-        hitForAvg: 77, power: 95, speed: 50, arm: 56, fielding: 54, errorResistance: 50, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 77, power: 90, speed: 50, arm: 56, fielding: 54, errorResistance: 50, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 80, vsLHP: 76, grit: 80, stealing: 14, running: 34, throwing: 56, recovery: 44, wRISP: 80, vsLefty: 76, poise: 80, heater: 0, agile: 40,
         abilities: ["Artist", "Consigliere", "Power Hitter"], potential: "A+", catcherAbility: null,
         throwHand: "R", batHand: "R",
@@ -1098,7 +1098,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       // OUTFIELDERS (6)
       // Tristan Bissetta — OF JR, 5 HRs in week 6 (Baseball America Team of Week)
       { firstName: "Tristan", lastName: "Bissetta", position: "OF", eligibility: "JR", homeState: "SC", hometown: "Clemson", jerseyNumber: 7,
-        hitForAvg: 71, power: 83, speed: 63, arm: 60, fielding: 58, errorResistance: 54, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 71, power: 90, speed: 63, arm: 60, fielding: 58, errorResistance: 54, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 70, vsLHP: 64, grit: 70, stealing: 34, running: 52, throwing: 60, recovery: 46, wRISP: 70, vsLefty: 64, poise: 70, heater: 0, agile: 56,
         abilities: ["Artist", "Contact Hitter", "Power Hitter"], potential: "A", catcherAbility: null,
         throwHand: "R", batHand: "R",

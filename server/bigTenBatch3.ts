@@ -628,7 +628,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // INFIELDERS (7)
     // Roch Cholowsky — JR SS, projected #1 overall MLB pick, .335/18HR/62R, leads B10 in runs, generational talent
     { firstName: "Roch", lastName: "Cholowsky", position: "SS", eligibility: "JR", homeState: "CA", hometown: "Oceanside", jerseyNumber: 2,
-      hitForAvg: 95, power: 93, speed: 73, arm: 80, fielding: 84, errorResistance: 80, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 95, power: 90, speed: 73, arm: 80, fielding: 84, errorResistance: 80, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 88, vsLHP: 86, grit: 84, stealing: 38, running: 70, throwing: 82, recovery: 68, wRISP: 88, vsLefty: 86, poise: 86, heater: 0, agile: 70,
       abilities: ["Iron Man", "Push", "Power Hitter", "Consigliere", "Contact Hitter", "Tough Out"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -636,7 +636,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       ...noPitches },
     // Mulivai Levu — 1B, .347/14HR/54RBI, All-Conference 2025
     { firstName: "Mulivai", lastName: "Levu", position: "1B", eligibility: "JR", homeState: "HI", hometown: "Honolulu", jerseyNumber: 24,
-      hitForAvg: 85, power: 81, speed: 43, arm: 56, fielding: 60, errorResistance: 60, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 85, power: 87, speed: 43, arm: 56, fielding: 60, errorResistance: 60, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 76, vsLHP: 70, grit: 74, stealing: 8, running: 28, throwing: 56, recovery: 54, wRISP: 78, vsLefty: 68, poise: 74, heater: 0, agile: 32,
       abilities: ["Power Hitter", "Consigliere"], potential: "A-", catcherAbility: null,
       throwHand: "L", batHand: "L",
@@ -685,7 +685,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // OUTFIELDERS (6)
     // Will Gasparino — JR OF, Texas transfer, .322/18HR (team co-leader), LA/Harvard-Westlake, two-time All-Big 12, SEC All-Defense
     { firstName: "Will", lastName: "Gasparino", position: "OF", eligibility: "JR", homeState: "CA", hometown: "Los Angeles", jerseyNumber: 11,
-      hitForAvg: 81, power: 87, speed: 62, arm: 70, fielding: 68, errorResistance: 64, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 81, power: 88, speed: 62, arm: 70, fielding: 68, errorResistance: 64, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 72, vsLHP: 68, grit: 70, stealing: 28, running: 50, throwing: 70, recovery: 56, wRISP: 76, vsLefty: 68, poise: 72, heater: 0, agile: 56,
       abilities: ["Power Hitter", "High-Speed Laser", "Good Infield Hit"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "S",
@@ -871,7 +871,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "L",
       ...noPitches },
     { firstName: "Jackson", lastName: "Hotchkiss", position: "OF", eligibility: "SO", homeState: "WA", hometown: "Vancouver", jerseyNumber: 19,
-      hitForAvg: 53, power: 46, speed: 62, arm: 50, fielding: 47, errorResistance: 44, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 53, power: 90, speed: 62, arm: 50, fielding: 47, errorResistance: 44, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 44, vsLHP: 41, grit: 46, stealing: 31, running: 47, throwing: 51, recovery: 38, wRISP: 42, vsLefty: 39, poise: 44, heater: 0, agile: 50,
       abilities: ["Slap Happy", "Contact Hitter"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",

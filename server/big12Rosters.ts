@@ -105,7 +105,7 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
     // INFIELDERS (7)
     // Tyson LeBlanc — SS, 16 HR 2026, key to offense, 6 hits in ASU sweep
     { firstName: "Tyson", lastName: "LeBlanc", position: "SS", eligibility: "JR", homeState: "LA", hometown: "Lafayette", jerseyNumber: 5,
-      hitForAvg: 87, power: 87, speed: 70, arm: 64, fielding: 70, errorResistance: 64, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 87, power: 90, speed: 70, arm: 64, fielding: 70, errorResistance: 64, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 80, vsLHP: 72, grit: 78, stealing: 24, running: 50, throwing: 62, recovery: 52, wRISP: 80, vsLefty: 72, poise: 80, heater: 0, agile: 60,
       abilities: ["Artist", "Consigliere", "Defensive Artisan"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -519,7 +519,7 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
     // INFIELDERS (6)
     // Landon Hairston — TEAM ELITE, 18 HR, 8-game XBH streak, "hottest hitter in nation"
     { firstName: "Landon", lastName: "Hairston", position: "3B", eligibility: "JR", homeState: "TX", hometown: "Dallas", jerseyNumber: 10,
-      hitForAvg: 91, power: 95, speed: 52, arm: 60, fielding: 56, errorResistance: 52, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 91, power: 93, speed: 52, arm: 60, fielding: 56, errorResistance: 52, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 86, vsLHP: 80, grit: 84, stealing: 14, running: 40, throwing: 60, recovery: 50, wRISP: 88, vsLefty: 80, poise: 86, heater: 0, agile: 46,
       abilities: ["Artist", "Consigliere", "Power Hitter"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -535,7 +535,7 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
       ...noPitches },
     // Nuu Contrades — on tear during win streak
     { firstName: "Nuu", lastName: "Contrades", position: "2B", eligibility: "JR", homeState: "HI", hometown: "Honolulu", jerseyNumber: 6,
-      hitForAvg: 77, power: 63, speed: 70, arm: 56, fielding: 60, errorResistance: 56, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 77, power: 87, speed: 70, arm: 56, fielding: 60, errorResistance: 56, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 70, vsLHP: 64, grit: 70, stealing: 24, running: 50, throwing: 56, recovery: 46, wRISP: 70, vsLefty: 64, poise: 70, heater: 0, agile: 56,
       abilities: ["Contact Hitter", "Chance Maker"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -543,7 +543,7 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
       ...noPitches },
     // Dominic Smaldino — career best 4 hits/6 RBI w/ 2-run HR
     { firstName: "Dominic", lastName: "Smaldino", position: "SS", eligibility: "JR", homeState: "AZ", hometown: "Phoenix", jerseyNumber: 4,
-      hitForAvg: 67, power: 57, speed: 70, arm: 60, fielding: 64, errorResistance: 60, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 67, power: 87, speed: 70, arm: 60, fielding: 64, errorResistance: 60, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 64, vsLHP: 58, grit: 62, stealing: 22, running: 50, throwing: 60, recovery: 46, wRISP: 64, vsLefty: 58, poise: 64, heater: 0, agile: 60,
       abilities: ["Defensive Artisan", "Consigliere"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -1493,7 +1493,7 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "R",
       ...noPitches },
     { firstName: "Dee", lastName: "Kennedy", position: "OF", eligibility: "JR", homeState: "TX", hometown: "Dallas", jerseyNumber: 10,
-      hitForAvg: 61, power: 55, speed: 63, arm: 54, fielding: 54, errorResistance: 50, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 61, power: 90, speed: 63, arm: 54, fielding: 54, errorResistance: 50, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 52, vsLHP: 48, grit: 52, stealing: 26, running: 50, throwing: 54, recovery: 42, wRISP: 50, vsLefty: 46, poise: 52, heater: 0, agile: 54,
       abilities: ["Contact Hitter"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -1610,7 +1610,7 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "R",
       ...noPitches },
     { firstName: "Colin", lastName: "Brueggemann", position: "C", eligibility: "FR", homeState: "OK", hometown: "Tulsa", jerseyNumber: 18,
-      hitForAvg: 40, power: 37, speed: 36, arm: 44, fielding: 42, errorResistance: 38, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 40, power: 87, speed: 36, arm: 44, fielding: 42, errorResistance: 38, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 30, vsLHP: 28, grit: 32, stealing: 8, running: 24, throwing: 44, recovery: 30, wRISP: 28, vsLefty: 26, poise: 30, heater: 0, agile: 28,
       abilities: ["Late Night Hero", "Contact Hitter"], potential: "A-", catcherAbility: 42,
       throwHand: "R", batHand: "R",
@@ -1628,7 +1628,7 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "L",
       ...noPitches },
     { firstName: "Aidan", lastName: "Meola", position: "SS", eligibility: "JR", homeState: "OK", hometown: "Stillwater", jerseyNumber: 6,
-      hitForAvg: 67, power: 57, speed: 70, arm: 60, fielding: 64, errorResistance: 60, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 67, power: 87, speed: 70, arm: 60, fielding: 64, errorResistance: 60, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 60, vsLHP: 54, grit: 60, stealing: 24, running: 50, throwing: 60, recovery: 46, wRISP: 60, vsLefty: 54, poise: 60, heater: 0, agile: 60,
       abilities: ["Magician"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -1646,7 +1646,7 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "L",
       ...noPitches },
     { firstName: "Kollin", lastName: "Ritchie", position: "OF", eligibility: "JR", homeState: "OK", hometown: "Edmond", jerseyNumber: 10,
-      hitForAvg: 63, power: 57, speed: 63, arm: 54, fielding: 54, errorResistance: 50, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 63, power: 93, speed: 63, arm: 54, fielding: 54, errorResistance: 50, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 54, vsLHP: 50, grit: 54, stealing: 26, running: 50, throwing: 54, recovery: 44, wRISP: 52, vsLefty: 48, poise: 54, heater: 0, agile: 54,
       abilities: ["Contact Hitter"], potential: "B+", catcherAbility: null,
       throwHand: "L", batHand: "L",
