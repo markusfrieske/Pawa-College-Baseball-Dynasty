@@ -1431,7 +1431,8 @@ function TeamBattingTable({ label, team }: { label: string; team: BoxScoreTeam }
         <thead>
           <tr className="border-b border-gold/30">
             <th className="text-center p-1.5 text-gold/60 w-6">#</th>
-            <th className="text-left p-1.5 text-gold/80">Batting</th>
+            <th className="text-left p-1.5 text-gold/80">Name</th>
+            <th className="text-center p-1.5 text-gold/80 w-10">Pos</th>
             <th className="text-center p-1.5 text-gold/80 w-8">AB</th>
             <th className="text-center p-1.5 text-gold/80 w-8">R</th>
             <th className="text-center p-1.5 text-gold/80 w-8">H</th>
@@ -1449,10 +1450,8 @@ function TeamBattingTable({ label, team }: { label: string; team: BoxScoreTeam }
           {team.batting.map((batter, i) => (
             <tr key={i} className="border-b border-gold/10">
               <td className="text-center p-1.5 text-muted-foreground font-pixel text-[8px]">{i + 1}</td>
-              <td className="p-1.5 text-foreground">
-                <span>{batter.name}</span>
-                <span className="text-muted-foreground ml-1">({batter.position})</span>
-              </td>
+              <td className="p-1.5 text-foreground">{batter.name}</td>
+              <td className="text-center p-1.5 text-muted-foreground text-xs">{batter.position}</td>
               <td className="text-center p-1.5 text-foreground">{batter.ab}</td>
               <td className="text-center p-1.5 text-foreground">{batter.r}</td>
               <td className="text-center p-1.5 text-foreground">{batter.h}</td>
@@ -1468,7 +1467,7 @@ function TeamBattingTable({ label, team }: { label: string; team: BoxScoreTeam }
           ))}
           <tr className="border-t border-gold/30 font-bold">
             <td className="p-1.5"></td>
-            <td className="p-1.5 text-gold">Totals</td>
+            <td className="p-1.5 text-gold" colSpan={2}>Totals</td>
             <td className="text-center p-1.5 text-gold">{team.totals.ab}</td>
             <td className="text-center p-1.5 text-gold">{team.totals.r}</td>
             <td className="text-center p-1.5 text-gold">{team.totals.h}</td>

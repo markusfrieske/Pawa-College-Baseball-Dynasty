@@ -37,6 +37,7 @@ interface BatterEntry {
 interface PitcherEntry {
   playerId: string;
   name: string;
+  role: "starter" | "reliever" | "closer";
   ip: string;
   h: number;
   r: number;
@@ -66,10 +67,22 @@ function defaultPitcher(player: Player): PitcherEntry {
   return {
     playerId: player.id,
     name: playerName(player),
+    role: "starter",
     ip: "0.0",
     h: 0, r: 0, er: 0, bb: 0, so: 0, hr: 0,
     win: false, loss: false,
   };
+}
+
+function ipToDecimal(ip: string): number {
+  const [whole, frac] = ip.split(".");
+  return (parseInt(whole) || 0) + (parseInt(frac) || 0) / 3;
+}
+
+function liveEra(er: number, ip: string): string {
+  const dec = ipToDecimal(ip);
+  if (dec <= 0) return "--";
+  return (9 * er / dec).toFixed(2);
 }
 
 const STEPS = ["Score & Linescore", "Home Batting", "Away Batting", "Pitching", "Review & Submit"];
@@ -677,7 +690,8 @@ function BattingStep({ label, players, batting, onChange, onInit, autoInit }: { 
             <thead>
               <tr className="border-b border-gold/30">
                 <th className="text-center p-1 text-gold/80 w-6">#</th>
-                <th className="text-left p-1 text-gold/80">Player</th>
+                <th className="text-left p-1 text-gold/80">Name</th>
+                <th className="text-center p-1 text-gold/80 w-10">Pos</th>
                 <th className="text-center p-1 text-gold/80 w-8">AB</th>
                 <th className="text-center p-1 text-gold/80 w-8">R</th>
                 <th className="text-center p-1 text-gold/80 w-8">H</th>
@@ -695,10 +709,8 @@ function BattingStep({ label, players, batting, onChange, onInit, autoInit }: { 
               {activeBatters.map((b, i) => (
                 <tr key={b.playerId} className="border-b border-gold/10">
                   <td className="p-1 text-center text-muted-foreground font-pixel text-[8px]">{i + 1}</td>
-                  <td className="p-1 text-foreground">
-                    <span className="font-medium">{b.name}</span>
-                    <span className="text-muted-foreground ml-1 text-[9px]">({b.position})</span>
-                  </td>
+                  <td className="p-1 text-foreground font-medium">{b.name}</td>
+                  <td className="p-1 text-center text-muted-foreground text-[9px]">{b.position}</td>
                   {(["ab", "r", "h", "doubles", "triples", "hr", "rbi", "bb", "so", "sb"] as (keyof BatterEntry)[]).map(field => (
                     <td key={field} className="p-0.5">
                       <input
@@ -785,6 +797,7 @@ function PitchingStep({ homeTeam, awayTeam, homePlayers, awayPlayers, homePitchi
             <thead>
               <tr className="border-b border-gold/30">
                 <th className="text-left p-1 text-gold/80">Pitcher</th>
+                <th className="text-center p-1 text-gold/80 w-20">Role</th>
                 <th className="text-center p-1 text-gold/80 w-12">IP</th>
                 <th className="text-center p-1 text-gold/80 w-8">H</th>
                 <th className="text-center p-1 text-gold/80 w-8">R</th>
@@ -792,6 +805,7 @@ function PitchingStep({ homeTeam, awayTeam, homePlayers, awayPlayers, homePitchi
                 <th className="text-center p-1 text-gold/80 w-8">BB</th>
                 <th className="text-center p-1 text-gold/80 w-8">SO</th>
                 <th className="text-center p-1 text-gold/80 w-8">HR</th>
+                <th className="text-center p-1 text-gold/80 w-12">ERA</th>
                 <th className="text-center p-1 text-gold/80 w-8">W</th>
                 <th className="text-center p-1 text-gold/80 w-8">L</th>
                 <th className="w-6"></th>
@@ -816,6 +830,18 @@ function PitchingStep({ homeTeam, awayTeam, homePlayers, awayPlayers, homePitchi
                       {players.filter(pl => pl.position === "P" || pl.id === p.playerId).map(pl => (
                         <option key={pl.id} value={pl.id}>{pl.firstName} {pl.lastName}</option>
                       ))}
+                    </select>
+                  </td>
+                  <td className="p-0.5">
+                    <select
+                      value={p.role}
+                      onChange={e => onUpdate(i, "role", e.target.value as PitcherEntry["role"])}
+                      className="w-20 h-7 text-xs bg-muted/40 border border-border rounded focus:outline-none focus:border-gold text-foreground px-1"
+                      data-testid={`select-pitcher-${i}-role`}
+                    >
+                      <option value="starter">SP</option>
+                      <option value="reliever">RP</option>
+                      <option value="closer">CL</option>
                     </select>
                   </td>
                   <td className="p-0.5">
@@ -850,6 +876,9 @@ function PitchingStep({ homeTeam, awayTeam, homePlayers, awayPlayers, homePitchi
                       />
                     </td>
                   ))}
+                  <td className="p-1 text-center text-[10px] font-mono text-gold/80" data-testid={`text-pitcher-${i}-era`}>
+                    {liveEra(p.er, p.ip)}
+                  </td>
                   <td className="p-0.5 text-center">
                     <input type="checkbox" checked={p.win} onChange={e => onUpdate(i, "win", e.target.checked)} className="accent-gold" data-testid={`input-pitcher-${i}-win`} />
                   </td>
@@ -916,16 +945,20 @@ function ReviewStep({ homeTeam, awayTeam, homeScore, awayScore, homeHits, awayHi
           <table className="w-full text-[9px] border-collapse">
             <thead>
               <tr className="border-b border-gold/20">
-                <th className="text-left py-1 pr-2 text-muted-foreground w-28">Player</th>
+                <th className="text-center py-1 px-1 text-muted-foreground w-5">#</th>
+                <th className="text-left py-1 pr-2 text-muted-foreground">Name</th>
+                <th className="text-center px-1 py-1 text-muted-foreground w-8">Pos</th>
                 {(["ab","r","h","2B","3B","hr","rbi","bb","so","sb"] as const).map(f => (
-                  <th key={f} className="text-center px-1 py-1 text-muted-foreground w-6">{f.toUpperCase()}</th>
+                  <th key={f} className={`text-center px-1 py-1 w-6 ${f === "so" ? "text-red-400" : "text-muted-foreground"}`}>{f.toUpperCase()}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {batting.map((b, i) => (
                 <tr key={i} className="border-b border-gold/10">
-                  <td className="py-1 pr-2 truncate max-w-[7rem]">{b.name} <span className="text-muted-foreground">{b.position}</span></td>
+                  <td className="text-center px-1 py-1 text-muted-foreground/60 font-pixel text-[7px]">{i + 1}</td>
+                  <td className="py-1 pr-2 truncate max-w-[7rem]">{b.name}</td>
+                  <td className="text-center px-1 py-1 text-muted-foreground">{b.position}</td>
                   <td className="text-center px-1 py-1">{b.ab}</td>
                   <td className="text-center px-1 py-1">{b.r}</td>
                   <td className="text-center px-1 py-1">{b.h}</td>
@@ -953,16 +986,25 @@ function ReviewStep({ homeTeam, awayTeam, homeScore, awayScore, homeHits, awayHi
           <table className="w-full text-[9px] border-collapse">
             <thead>
               <tr className="border-b border-gold/20">
-                <th className="text-left py-1 pr-2 text-muted-foreground w-28">Player</th>
+                <th className="text-left py-1 pr-2 text-muted-foreground">Name</th>
+                <th className="text-center px-1 py-1 text-muted-foreground w-10">Role</th>
                 {(["ip","h","r","er","bb","so","hr"] as const).map(f => (
                   <th key={f} className="text-center px-1 py-1 text-muted-foreground w-6">{f.toUpperCase()}</th>
                 ))}
+                <th className="text-center px-1 py-1 text-muted-foreground w-10">ERA</th>
               </tr>
             </thead>
             <tbody>
               {pitching.map((p, i) => (
                 <tr key={i} className="border-b border-gold/10">
-                  <td className="py-1 pr-2 truncate max-w-[7rem]">{p.name}</td>
+                  <td className="py-1 pr-2 truncate max-w-[7rem]">
+                    {p.name}
+                    {p.win && <span className="ml-1 text-green-400 font-pixel text-[6px]">W</span>}
+                    {p.loss && <span className="ml-1 text-red-400 font-pixel text-[6px]">L</span>}
+                  </td>
+                  <td className="text-center px-1 py-1 text-muted-foreground uppercase text-[8px]">
+                    {p.role === "starter" ? "SP" : p.role === "reliever" ? "RP" : "CL"}
+                  </td>
                   <td className="text-center px-1 py-1">{p.ip}</td>
                   <td className="text-center px-1 py-1">{p.h}</td>
                   <td className="text-center px-1 py-1">{p.r}</td>
@@ -970,6 +1012,7 @@ function ReviewStep({ homeTeam, awayTeam, homeScore, awayScore, homeHits, awayHi
                   <td className="text-center px-1 py-1">{p.bb}</td>
                   <td className="text-center px-1 py-1">{p.so}</td>
                   <td className="text-center px-1 py-1">{p.hr}</td>
+                  <td className="text-center px-1 py-1 text-gold/80">{liveEra(p.er, p.ip)}</td>
                 </tr>
               ))}
             </tbody>

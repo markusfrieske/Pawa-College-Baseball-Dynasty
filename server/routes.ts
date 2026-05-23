@@ -5566,8 +5566,8 @@ export async function registerRoutes(
     if (dec <= 0) return "--";
     return (9 * er / dec).toFixed(2);
   }
-  function enrichBoxData(raw: Record<string, unknown> | null, errors: number): Record<string, unknown> {
-    if (!raw) return { batting: [], pitching: [], totals: { ab: 0, r: 0, h: 0, rbi: 0, bb: 0, so: 0 }, errors };
+  function enrichBoxData(raw: Record<string, unknown> | null, errors: number, fallbackR = 0, fallbackH = 0): Record<string, unknown> {
+    if (!raw) return { batting: [], pitching: [], totals: { ab: 0, r: fallbackR, h: fallbackH, rbi: 0, bb: 0, so: 0 }, errors };
     const batting = Array.isArray(raw.batting)
       ? (raw.batting as Array<Record<string, unknown>>).map(b => ({
           ...b,
@@ -5596,8 +5596,8 @@ export async function registerRoutes(
 
     const boxScore = {
       innings: inningScores,
-      home: enrichBoxData(homeBoxData, homeErrors),
-      away: enrichBoxData(awayBoxData, awayErrors),
+      home: enrichBoxData(homeBoxData, homeErrors, homeScore, homeHits),
+      away: enrichBoxData(awayBoxData, awayErrors, awayScore, awayHits),
     };
 
     await storage.updateGame(game.id, {
