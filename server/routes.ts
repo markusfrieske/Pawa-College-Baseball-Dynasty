@@ -4994,15 +4994,18 @@ export async function registerRoutes(
           const wRAA = ((wOBA - 0.320) / 1.25) * (b.ab + b.bb + b.hbp);
           const war = wRAA / 10;
           const team = teamMap.get(b.teamId);
+          // Status: check if player_history has a matching record for this playerId
+          const phRecord = allPlayerHistory.find(ph => `${ph.firstName} ${ph.lastName}` === b.name && ph.teamId === b.teamId);
+          const status: string = phRecord ? (phRecord.departureType === "drafted" || phRecord.departureType === "declared" ? "drafted" : "graduated") : "active";
           return {
             playerId: b.playerId, name: b.name, teamName: team?.name ?? "", teamAbbr: team?.abbreviation ?? "",
             teamColor: team?.primaryColor ?? "#888", position: b.position, seasons: b.seasons,
             games: b.games, ab: b.ab, avg: avg.toFixed(3), hr: b.hr, rbi: b.rbi,
-            ops: ops.toFixed(3), war: war.toFixed(1),
+            ops: ops.toFixed(3), war: war.toFixed(1), status,
           };
         })
-        .sort((a, b) => parseFloat(b.war) - parseFloat(a.war))
-        .slice(0, 25);
+        .sort((a, b) => parseFloat(b.war) - parseFloat(a.war));
+      // No .slice — return full list so client can accurately sort by any metric
 
       // ── Career Pitching Leaders ──────────────────────────────────────────────
       const pitchersByPlayer = new Map<string, {
@@ -5042,15 +5045,17 @@ export async function registerRoutes(
           const whip = ip > 0 ? (p.pBb + p.pHits) / ip : 99;
           const team = teamMap.get(p.teamId);
           const war = Math.max(0, (4.0 - era) * ip / 9);
+          const phRecord = allPlayerHistory.find(ph => `${ph.firstName} ${ph.lastName}` === p.name && ph.teamId === p.teamId);
+          const status: string = phRecord ? (phRecord.departureType === "drafted" || phRecord.departureType === "declared" ? "drafted" : "graduated") : "active";
           return {
             playerId: p.playerId, name: p.name, teamName: team?.name ?? "", teamAbbr: team?.abbreviation ?? "",
             teamColor: team?.primaryColor ?? "#888", position: p.position, seasons: p.seasons,
             games: p.games, wins: p.wins, losses: p.losses,
-            ip: ip.toFixed(1), era: era.toFixed(2), whip: whip.toFixed(2), so: p.pSo, war: war.toFixed(1),
+            ip: ip.toFixed(1), era: era.toFixed(2), whip: whip.toFixed(2), so: p.pSo, war: war.toFixed(1), status,
           };
         })
-        .sort((a, b) => parseFloat(a.era) - parseFloat(b.era))
-        .slice(0, 25);
+        .sort((a, b) => parseFloat(a.era) - parseFloat(b.era));
+      // No .slice — return full list so client can accurately sort by any metric
 
       // ── All-Time Team Records ────────────────────────────────────────────────
       const teamRecordsMap = new Map<string, {

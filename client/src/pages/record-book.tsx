@@ -30,12 +30,14 @@ interface CareerBatter {
   playerId: string; name: string; teamName: string; teamAbbr: string; teamColor: string;
   position: string; seasons: number; games: number; ab: number;
   avg: string; hr: number; rbi: number; ops: string; war: string;
+  status: "active" | "graduated" | "drafted";
 }
 
 interface CareerPitcher {
   playerId: string; name: string; teamName: string; teamAbbr: string; teamColor: string;
   position: string; seasons: number; games: number; wins: number; losses: number;
   ip: string; era: string; whip: string; so: number; war: string;
+  status: "active" | "graduated" | "drafted";
 }
 
 interface CareerFielder {
@@ -145,7 +147,14 @@ function SeasonHistorySection({ seasons, leagueId }: { seasons: SeasonEntry[]; l
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-pixel text-gold text-[9px]">Season {s.season}</span>
-                    {s.championName && (
+                    {s.championName && s.championTeamId && (
+                      <Link href={`/league/${leagueId}/team/${s.championTeamId}/profile`}>
+                        <span className="font-pixel text-[9px] text-foreground hover:text-gold transition-colors cursor-pointer truncate">
+                          {s.championName} ({s.championW}-{s.championL})
+                        </span>
+                      </Link>
+                    )}
+                    {s.championName && !s.championTeamId && (
                       <span className="font-pixel text-[9px] text-foreground truncate">
                         {s.championName} ({s.championW}-{s.championL})
                       </span>
@@ -240,12 +249,15 @@ function CareerBattingSection({ leaders, leagueId, onPlayerClick }: { leaders: C
   type BattingSort = "war" | "avg" | "hr" | "rbi" | "ops";
   const [sort, setSort] = useState<BattingSort>("war");
   const [posFilter, setPosFilter] = useState<string>("ALL");
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
 
   const BATTER_POSITIONS = ["ALL", "C", "1B", "2B", "3B", "SS", "LF", "CF", "RF", "DH", "OF", "IF"];
   const posOptions = BATTER_POSITIONS.filter(p => p === "ALL" || leaders.some(l => l.position === p));
+  const STATUS_OPTIONS = ["ALL", "active", "graduated", "drafted"] as const;
 
   const sorted = [...leaders]
     .filter(b => posFilter === "ALL" || b.position === posFilter)
+    .filter(b => statusFilter === "ALL" || b.status === statusFilter)
     .sort((a, b) => {
       if (sort === "war") return parseFloat(b.war) - parseFloat(a.war);
       if (sort === "avg") return parseFloat(b.avg) - parseFloat(a.avg);
@@ -271,6 +283,15 @@ function CareerBattingSection({ leaders, leagueId, onPlayerClick }: { leaders: C
             <RetroButton key={b.key} variant={sort === b.key ? "primary" : "outline"} size="sm"
               onClick={() => setSort(b.key)} data-testid={`batting-sort-${b.key}`}>
               {b.label}
+            </RetroButton>
+          ))}
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-muted-foreground">Status:</span>
+          {STATUS_OPTIONS.map(s => (
+            <RetroButton key={s} variant={statusFilter === s ? "primary" : "outline"} size="sm"
+              onClick={() => setStatusFilter(s)} data-testid={`batting-status-${s}`}>
+              {s === "ALL" ? "All" : s.charAt(0).toUpperCase() + s.slice(1)}
             </RetroButton>
           ))}
         </div>
@@ -349,12 +370,15 @@ function CareerPitchingSection({ leaders, leagueId, onPlayerClick }: { leaders: 
   type PitchingSort = "era" | "whip" | "so" | "wins" | "war";
   const [sort, setSort] = useState<PitchingSort>("era");
   const [posFilter, setPosFilter] = useState<string>("ALL");
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
 
   const PITCHER_POSITIONS = ["ALL", "SP", "RP", "CL", "P", "LHP", "RHP"];
   const posOptions = PITCHER_POSITIONS.filter(p => p === "ALL" || leaders.some(l => l.position === p));
+  const STATUS_OPTIONS = ["ALL", "active", "graduated", "drafted"] as const;
 
   const sorted = [...leaders]
     .filter(p => posFilter === "ALL" || p.position === posFilter)
+    .filter(p => statusFilter === "ALL" || p.status === statusFilter)
     .sort((a, b) => {
       if (sort === "era") return parseFloat(a.era) - parseFloat(b.era);
       if (sort === "whip") return parseFloat(a.whip) - parseFloat(b.whip);
@@ -380,6 +404,15 @@ function CareerPitchingSection({ leaders, leagueId, onPlayerClick }: { leaders: 
             <RetroButton key={b.key} variant={sort === b.key ? "primary" : "outline"} size="sm"
               onClick={() => setSort(b.key)} data-testid={`pitching-sort-${b.key}`}>
               {b.label}
+            </RetroButton>
+          ))}
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-muted-foreground">Status:</span>
+          {STATUS_OPTIONS.map(s => (
+            <RetroButton key={s} variant={statusFilter === s ? "primary" : "outline"} size="sm"
+              onClick={() => setStatusFilter(s)} data-testid={`pitching-status-${s}`}>
+              {s === "ALL" ? "All" : s.charAt(0).toUpperCase() + s.slice(1)}
             </RetroButton>
           ))}
         </div>
@@ -650,8 +683,16 @@ function CoachHoFSection({ coaches, leagueId }: { coaches: CoachStat[]; leagueId
                 </div>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <TeamDot color={c.teamColor} />
-                  <span className="text-[10px] text-muted-foreground">{c.teamName}</span>
+                  <span className="text-[10px] text-muted-foreground">{c.teamName || "No team"}</span>
                 </div>
+                {c.teamsCoached.length > 1 && (
+                  <div className="mt-1 flex items-center gap-1 flex-wrap">
+                    <span className="font-pixel text-[7px] text-muted-foreground">COACHED:</span>
+                    {c.teamsCoached.map((t, ti) => (
+                      <span key={ti} className="text-[9px] text-muted-foreground">{t}{ti < c.teamsCoached.length - 1 ? " →" : ""}</span>
+                    ))}
+                  </div>
+                )}
                 <div className="flex items-center gap-3 mt-2 flex-wrap">
                   <div className="text-center">
                     <div className="font-pixel text-[8px] text-muted-foreground">Record</div>
@@ -685,6 +726,14 @@ function CoachHoFSection({ coaches, leagueId }: { coaches: CoachStat[]; leagueId
 
 function RecruitingHistorySection({ history }: { history: RecruitingSeason[] }) {
   const [expanded, setExpanded] = useState<number | null>(history[0]?.season ?? null);
+  type RecSort = "rank" | "grade" | "fiveStars" | "fourStars" | "totalCommits";
+  const [recSort, setRecSort] = useState<RecSort>("rank");
+  const [recSortDir, setRecSortDir] = useState<"asc" | "desc">("asc");
+
+  const handleRecSort = (key: RecSort) => {
+    if (recSort === key) setRecSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setRecSort(key); setRecSortDir(key === "rank" ? "asc" : "desc"); }
+  };
 
   if (!history.length) return <p className="text-sm text-muted-foreground text-center py-8">No recruiting history yet.</p>;
 
@@ -718,53 +767,72 @@ function RecruitingHistorySection({ history }: { history: RecruitingSeason[] }) 
             </RetroCardContent>
           </button>
 
-          {expanded === h.season && (
-            <div className="border-t border-border/50 px-3 pb-3 pt-3">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm" data-testid={`table-recruiting-${h.season}`}>
-                  <thead>
-                    <tr className="border-b border-border/50 text-left">
-                      <th className="py-1.5 px-2 font-pixel text-[7px] text-muted-foreground text-center">#</th>
-                      <th className="py-1.5 px-2 font-pixel text-[7px] text-gold">Team</th>
-                      <th className="py-1.5 px-2 font-pixel text-[7px] text-muted-foreground text-center">Grade</th>
-                      <th className="py-1.5 px-2 font-pixel text-[7px] text-muted-foreground text-center">Commits</th>
-                      <th className="py-1.5 px-2 font-pixel text-[7px] text-muted-foreground text-center">5★</th>
-                      <th className="py-1.5 px-2 font-pixel text-[7px] text-muted-foreground text-center">4★</th>
-                      <th className="py-1.5 px-2 font-pixel text-[7px] text-muted-foreground">Top Recruit</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {h.snapshots.map((s, i) => (
-                      <tr key={s.teamId} className={`border-b border-border/20 ${i % 2 === 0 ? "" : "bg-muted/10"}`}
-                        data-testid={`recruiting-row-${s.teamAbbr}`}>
-                        <td className="py-1.5 px-2 text-center text-xs text-muted-foreground">{i + 1}</td>
-                        <td className="py-1.5 px-2">
-                          <div className="flex items-center gap-1.5">
-                            <TeamDot color={s.teamColor} />
-                            <span className="font-pixel text-[7px]">{s.teamAbbr}</span>
-                          </div>
-                        </td>
-                        <td className="py-1.5 px-2 text-center">
-                          <span className={`font-pixel text-[7px] border rounded px-1 py-0.5 ${gradeColor(s.grade)}`}>{s.grade}</span>
-                        </td>
-                        <td className="py-1.5 px-2 text-center text-xs">{s.totalCommits}</td>
-                        <td className="py-1.5 px-2 text-center text-xs text-orange-400">{s.fiveStars}</td>
-                        <td className="py-1.5 px-2 text-center text-xs text-yellow-400">{s.fourStars}</td>
-                        <td className="py-1.5 px-2">
-                          {s.topRecruitName ? (
-                            <div className="flex items-center gap-1">
-                              <span className="text-[10px]">{s.topRecruitName}</span>
-                              {s.topRecruitStars && <StarBadge stars={s.topRecruitStars} />}
-                            </div>
-                          ) : <span className="text-[10px] text-muted-foreground">—</span>}
-                        </td>
+          {expanded === h.season && (() => {
+            const gradeOrder = ["A+","A","A-","B+","B","B-","C+","C","C-","D+","D","D-","F"];
+            const sortedSnaps = [...h.snapshots].sort((a, b) => {
+              let cmp = 0;
+              if (recSort === "rank") cmp = 0;
+              else if (recSort === "grade") cmp = gradeOrder.indexOf(a.grade ?? "F") - gradeOrder.indexOf(b.grade ?? "F");
+              else if (recSort === "fiveStars") cmp = b.fiveStars - a.fiveStars;
+              else if (recSort === "fourStars") cmp = b.fourStars - a.fourStars;
+              else if (recSort === "totalCommits") cmp = b.totalCommits - a.totalCommits;
+              return recSortDir === "asc" ? cmp : -cmp;
+            });
+            const SortTh = ({ label, col }: { label: string; col: RecSort }) => (
+              <th className="py-1.5 px-2 font-pixel text-[7px] text-muted-foreground text-center cursor-pointer hover:text-gold select-none"
+                onClick={() => handleRecSort(col)}
+                data-testid={`recruiting-sort-${col}`}>
+                {label}{recSort === col ? (recSortDir === "asc" ? " ▲" : " ▼") : ""}
+              </th>
+            );
+            return (
+              <div className="border-t border-border/50 px-3 pb-3 pt-3">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm" data-testid={`table-recruiting-${h.season}`}>
+                    <thead>
+                      <tr className="border-b border-border/50 text-left">
+                        <SortTh label="#" col="rank" />
+                        <th className="py-1.5 px-2 font-pixel text-[7px] text-gold">Team</th>
+                        <SortTh label="Grade" col="grade" />
+                        <SortTh label="Commits" col="totalCommits" />
+                        <SortTh label="5★" col="fiveStars" />
+                        <SortTh label="4★" col="fourStars" />
+                        <th className="py-1.5 px-2 font-pixel text-[7px] text-muted-foreground">Top Recruit</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {sortedSnaps.map((s, i) => (
+                        <tr key={s.teamId} className={`border-b border-border/20 ${i % 2 === 0 ? "" : "bg-muted/10"}`}
+                          data-testid={`recruiting-row-${s.teamAbbr}`}>
+                          <td className="py-1.5 px-2 text-center text-xs text-muted-foreground">{i + 1}</td>
+                          <td className="py-1.5 px-2">
+                            <div className="flex items-center gap-1.5">
+                              <TeamDot color={s.teamColor} />
+                              <span className="font-pixel text-[7px]">{s.teamAbbr}</span>
+                            </div>
+                          </td>
+                          <td className="py-1.5 px-2 text-center">
+                            <span className={`font-pixel text-[7px] border rounded px-1 py-0.5 ${gradeColor(s.grade)}`}>{s.grade}</span>
+                          </td>
+                          <td className="py-1.5 px-2 text-center text-xs">{s.totalCommits}</td>
+                          <td className="py-1.5 px-2 text-center text-xs text-orange-400">{s.fiveStars}</td>
+                          <td className="py-1.5 px-2 text-center text-xs text-yellow-400">{s.fourStars}</td>
+                          <td className="py-1.5 px-2">
+                            {s.topRecruitName ? (
+                              <div className="flex items-center gap-1">
+                                <span className="text-[10px]">{s.topRecruitName}</span>
+                                {s.topRecruitStars && <StarBadge stars={s.topRecruitStars} />}
+                              </div>
+                            ) : <span className="text-[10px] text-muted-foreground">—</span>}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
         </RetroCard>
       ))}
     </div>
@@ -793,9 +861,16 @@ function HallOfFameSection({ players }: { players: HoFPlayer[] }) {
             data-testid={`hof-card-${p.id}`}>
             <RetroCardContent className="py-3">
               <div className="flex items-start gap-2">
-                <div className="w-10 h-10 rounded flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: p.teamColor + "22", border: `1px solid ${p.teamColor}55` }}>
-                  <span className="font-pixel text-[7px] text-center" style={{ color: p.teamColor }}>{p.position}</span>
+                <div className="relative flex-shrink-0">
+                  <div className="w-11 h-11 rounded-full flex items-center justify-center"
+                    style={{ backgroundColor: p.teamColor + "33", border: `2px solid ${p.teamColor}88` }}>
+                    <span className="font-pixel text-[11px] font-bold" style={{ color: p.teamColor }}>
+                      {p.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="absolute -bottom-0.5 -right-0.5 bg-card border border-border/60 rounded px-0.5 py-px">
+                    <span className="font-pixel text-[6px]" style={{ color: p.teamColor }}>{p.position}</span>
+                  </div>
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
