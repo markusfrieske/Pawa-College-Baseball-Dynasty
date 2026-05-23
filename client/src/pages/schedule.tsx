@@ -892,7 +892,7 @@ function CompactGameRow({
         <div className="flex-1" />
 
         <div className="flex items-center gap-1">
-          {!game.isComplete && isHumanVsHuman && !report && (callbacks.isCommissioner || isUserGame) && (
+          {!game.isComplete && isHumanVsHuman && !report && (
             isSeriesLocked ? (
               <RetroButton variant="outline" size="sm" disabled className="opacity-40 cursor-not-allowed" data-testid={`button-report-locked-${game.id}`}>
                 <Lock className="w-3 h-3" />
@@ -904,6 +904,13 @@ function CompactGameRow({
                 </RetroButton>
               </Link>
             )
+          )}
+          {callbacks.isCommissioner && report && !game.isComplete && (
+            <Link href={`/league/${callbacks.leagueId}/report-game/${game.id}?mode=edit`}>
+              <RetroButton variant="outline" size="sm" title="Edit Submitted Report" data-testid={`button-edit-report-${game.id}`}>
+                <Edit2 className="w-3 h-3" />
+              </RetroButton>
+            </Link>
           )}
           {!game.isComplete && !isHumanVsHuman && (
             isSeriesLocked ? (
@@ -922,8 +929,8 @@ function CompactGameRow({
             <RetroButton variant="outline" size="sm" onClick={() => callbacks.onViewBoxScore(game)} data-testid={`button-box-score-action-${game.id}`} title="View Box Score">
               <Check className="w-3 h-3" />
             </RetroButton>
-          ) : callbacks.isCommissioner ? (
-            <RetroButton variant="outline" size="sm" onClick={() => callbacks.onEdit(game)} data-testid={`button-edit-game-${game.id}`} title="Enter Score">
+          ) : callbacks.isCommissioner && !report ? (
+            <RetroButton variant="outline" size="sm" onClick={() => callbacks.onEdit(game)} data-testid={`button-quick-score-${game.id}`} title="Enter Score">
               <Edit2 className="w-3 h-3" />
             </RetroButton>
           ) : null}
@@ -1144,7 +1151,7 @@ function StandaloneGameRow({
           )}
           {!game.isComplete && (
             <>
-              {isHumanVsHuman && (isUserGame || callbacks.isCommissioner) && !report && (
+              {isHumanVsHuman && !report && (
                 isSeriesLocked ? (
                   <RetroButton variant="outline" size="sm" disabled className="opacity-40 cursor-not-allowed" data-testid={`button-report-locked-${game.id}`}>
                     <Lock className="w-3 h-3" />
@@ -1156,6 +1163,19 @@ function StandaloneGameRow({
                     </RetroButton>
                   </Link>
                 )
+              )}
+              {callbacks.isCommissioner && report && (
+                <Link href={`/league/${callbacks.leagueId}/report-game/${game.id}?mode=edit`}>
+                  <RetroButton
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => e.stopPropagation()}
+                    title="Edit Submitted Report"
+                    data-testid={`button-edit-report-${game.id}`}
+                  >
+                    <Edit2 className="w-3 h-3" />
+                  </RetroButton>
+                </Link>
               )}
               {!isHumanVsHuman && (
                 isSeriesLocked ? (
@@ -1182,12 +1202,12 @@ function StandaloneGameRow({
             >
               <Check className="w-3 h-3" />
             </RetroButton>
-          ) : callbacks.isCommissioner ? (
+          ) : callbacks.isCommissioner && !report ? (
             <RetroButton
               variant="outline"
               size="sm"
               onClick={(e) => { e.stopPropagation(); callbacks.onEdit(game); }}
-              data-testid={`button-edit-game-${game.id}`}
+              data-testid={`button-quick-score-${game.id}`}
               title="Enter Score"
             >
               <Edit2 className="w-3 h-3" />

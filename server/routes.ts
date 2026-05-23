@@ -5998,14 +5998,10 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Manual reporting is only available for human-vs-human games" });
       }
 
-      const isCommissioner = hasCommissionerAccess(league, req.session.userId);
+      // Any authenticated league member may report a human-vs-human game (not just the involved coaches).
+      // The backend only requires the game belongs to this league (checked above) and is H2H (checked below).
       const coaches = await storage.getCoachesByLeague(leagueId);
       const coach = coaches.find(c => c.userId === req.session.userId);
-      const isInvolvedCoach = coach?.teamId && (game.homeTeamId === coach.teamId || game.awayTeamId === coach.teamId);
-
-      if (!isCommissioner && !isInvolvedCoach) {
-        return res.status(403).json({ message: "Only an involved team's coach or the commissioner can report game results" });
-      }
 
       const { homeScore, awayScore, homeHits, awayHits, homeErrors, awayErrors, inningScores, homeBoxData, awayBoxData } = req.body;
 
@@ -6120,6 +6116,68 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to create game report:", error);
       res.status(500).json({ message: "Failed to create game report" });
+    }
+  });
+
+  // Commissioner-only: fetch full report data for edit pre-population
+  app.get("/api/leagues/:id/games/:gameId/report", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const gameId = req.params.gameId as string;
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      if (!hasCommissionerAccess(league, req.session.userId)) {
+        return res.status(403).json({ message: "Only commissioners can access full report data" });
+      }
+      const report = await storage.getGameReport(gameId);
+      if (!report) return res.status(404).json({ message: "No report found for this game" });
+      res.json(report);
+    } catch (error) {
+      console.error("Failed to fetch game report:", error);
+      res.status(500).json({ message: "Failed to fetch game report" });
+    }
+  });
+
+  // Commissioner-only: edit an existing report in place without changing its status
+  app.patch("/api/leagues/:id/games/:gameId/report", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const gameId = req.params.gameId as string;
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      if (!hasCommissionerAccess(league, req.session.userId)) {
+        return res.status(403).json({ message: "Only commissioners can edit a submitted report" });
+      }
+      const existing = await storage.getGameReport(gameId);
+      if (!existing) return res.status(404).json({ message: "No report found for this game" });
+      if (existing.status === "confirmed") {
+        return res.status(400).json({ message: "Cannot edit a confirmed report" });
+      }
+      const { homeScore, awayScore, homeHits, awayHits, homeErrors, awayErrors, inningScores, homeBoxData, awayBoxData } = req.body;
+      if (typeof homeScore !== "number" || typeof awayScore !== "number") {
+        return res.status(400).json({ message: "homeScore and awayScore are required" });
+      }
+      const updated = await storage.updateGameReport(existing.id, {
+        homeScore,
+        awayScore,
+        homeHits: homeHits ?? 0,
+        awayHits: awayHits ?? 0,
+        homeErrors: homeErrors ?? 0,
+        awayErrors: awayErrors ?? 0,
+        inningScores: inningScores ?? null,
+        homeBoxData: homeBoxData ?? null,
+        awayBoxData: awayBoxData ?? null,
+      });
+      await storage.createAuditLog({
+        leagueId,
+        userId: req.session.userId,
+        action: "Game Report Edited",
+        details: `Commissioner updated report: ${awayScore}-${homeScore}`,
+      });
+      res.json(updated);
+    } catch (error) {
+      console.error("Failed to update game report:", error);
+      res.status(500).json({ message: "Failed to update game report" });
     }
   });
 

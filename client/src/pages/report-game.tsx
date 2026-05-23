@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { parseErrorMessage } from "@/lib/errorUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useParams, useLocation, Link } from "wouter";
+import { useParams, useLocation, useSearch, Link } from "wouter";
 import { ArrowLeft, ChevronRight, ChevronLeft, Check, AlertTriangle } from "lucide-react";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
@@ -90,6 +90,8 @@ const STEPS = ["Score & Linescore", "Home Batting", "Away Batting", "Pitching", 
 export default function ReportGamePage() {
   const { id, gameId } = useParams<{ id: string; gameId: string }>();
   const [, setLocation] = useLocation();
+  const search = useSearch();
+  const isEditMode = new URLSearchParams(search).get("mode") === "edit";
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [step, setStep] = useState(0);
@@ -141,6 +143,36 @@ export default function ReportGamePage() {
     },
   });
 
+  // Fetch existing report for edit mode pre-population (commissioner only)
+  const { data: existingReport } = useQuery<Record<string, unknown>>({
+    queryKey: ["/api/leagues", id, "games", gameId, "report"],
+    enabled: isEditMode,
+    queryFn: async () => {
+      const res = await fetch(`/api/leagues/${id}/games/${gameId}/report`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch report");
+      return res.json();
+    },
+  });
+
+  // Pre-populate form when existing report loads in edit mode
+  useEffect(() => {
+    if (!isEditMode || !existingReport) return;
+    const innings = (existingReport.inningScores as number[][] | null) ?? [];
+    if (innings.length > 0) {
+      setNumInnings(innings.length);
+      setAwayInnings(innings.map((pair: number[]) => pair[0] ?? 0));
+      setHomeInnings(innings.map((pair: number[]) => pair[1] ?? 0));
+    }
+    if (typeof existingReport.homeErrors === "number") setHomeErrors(existingReport.homeErrors);
+    if (typeof existingReport.awayErrors === "number") setAwayErrors(existingReport.awayErrors);
+    const hb = existingReport.homeBoxData as { batting?: BatterEntry[]; pitching?: PitcherEntry[] } | null;
+    const ab = existingReport.awayBoxData as { batting?: BatterEntry[]; pitching?: PitcherEntry[] } | null;
+    if (hb?.batting?.length) { setHomeBatting(hb.batting); }
+    if (ab?.batting?.length) { setAwayBatting(ab.batting); }
+    if (hb?.pitching?.length) { setHomePitching(hb.pitching); setHomePitchersInitialized(true); }
+    if (ab?.pitching?.length) { setAwayPitching(ab.pitching); setAwayPitchersInitialized(true); }
+  }, [existingReport, isEditMode]);
+
   interface ReportPayload {
     homeScore: number;
     awayScore: number;
@@ -160,6 +192,20 @@ export default function ReportGamePage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "schedule"] });
       toast({ title: "Report Submitted", description: "Waiting for the opposing coach to confirm." });
+      setLocation(`/league/${id}/schedule`);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async (payload: ReportPayload) => {
+      return apiRequest("PATCH", `/api/leagues/${id}/games/${gameId}/report`, payload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "schedule"] });
+      toast({ title: "Report Updated", description: "The submitted report has been corrected." });
       setLocation(`/league/${id}/schedule`);
     },
     onError: (error: Error) => {
@@ -310,20 +356,16 @@ export default function ReportGamePage() {
       },
     };
 
-    submitMutation.mutate({
-      homeScore,
-      awayScore,
-      homeHits,
-      awayHits,
-      homeErrors,
-      awayErrors,
-      inningScores,
-      homeBoxData,
-      awayBoxData,
-    });
+    const payload = { homeScore, awayScore, homeHits, awayHits, homeErrors, awayErrors, inningScores, homeBoxData, awayBoxData };
+    if (isEditMode) {
+      updateMutation.mutate(payload);
+    } else {
+      submitMutation.mutate(payload);
+    }
   }
 
   const isLoading = homePlayersLoading || awayPlayersLoading;
+  const isMutating = submitMutation.isPending || updateMutation.isPending;
 
   return (
     <div className="min-h-screen bg-background">
@@ -333,7 +375,7 @@ export default function ReportGamePage() {
             <Link href={`/league/${id}/schedule`} className="text-muted-foreground hover:text-gold transition-colors">
               <ArrowLeft className="w-5 h-5" />
             </Link>
-            <h1 className="font-pixel text-gold text-sm">Report Game Result</h1>
+            <h1 className="font-pixel text-gold text-sm">{isEditMode ? "Edit Game Report" : "Report Game Result"}</h1>
           </div>
         </div>
       </header>
@@ -467,10 +509,10 @@ export default function ReportGamePage() {
           ) : (
             <RetroButton
               onClick={handleSubmit}
-              disabled={submitMutation.isPending}
+              disabled={isMutating}
               data-testid="button-submit-report"
             >
-              {submitMutation.isPending ? "Submitting..." : "Submit Report"}
+              {isMutating ? (isEditMode ? "Updating..." : "Submitting...") : (isEditMode ? "Update Report" : "Submit Report")}
             </RetroButton>
           )}
         </div>
