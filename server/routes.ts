@@ -9095,10 +9095,11 @@ export async function registerRoutes(
         currentLeague = (await storage.getLeague(leagueId)) as any;
       }
 
+      // Sim-to-offseason also fast-forwards all teams (human included) through recruiting
       const recruitingPhases = ["offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4"];
       for (const phase of recruitingPhases) {
         if (offseasonPhases.indexOf(currentLeague.currentPhase) <= offseasonPhases.indexOf(phase)) {
-          await runCpuRecruiting(leagueId, currentLeague.currentWeek ?? 1, currentLeague.currentSeason);
+          await runCpuRecruiting(leagueId, currentLeague.currentWeek ?? 1, currentLeague.currentSeason, true);
           await runCpuTransferPortalRecruiting(leagueId);
           await updateRecruitStages(leagueId, currentLeague.currentWeek ?? 1);
           const nextPhaseIdx = offseasonPhases.indexOf(phase) + 1;
@@ -9300,11 +9301,11 @@ export async function registerRoutes(
         currentLeague = (await storage.getLeague(leagueId)) as any;
       }
 
-      // Phase 3: Sim through all recruiting phases
+      // Phase 3: Sim through all recruiting phases — include all teams since this is a fast-forward
       const recruitingPhaseList = ["offseason_recruiting_1", "offseason_recruiting_2", "offseason_recruiting_3", "offseason_recruiting_4"];
       for (const rphase of recruitingPhaseList) {
         if (offseasonPhases.indexOf(currentLeague.currentPhase) <= offseasonPhases.indexOf(rphase)) {
-          await runCpuRecruiting(leagueId, currentLeague.currentWeek ?? 1, currentLeague.currentSeason);
+          await runCpuRecruiting(leagueId, currentLeague.currentWeek ?? 1, currentLeague.currentSeason, true);
           await runCpuTransferPortalRecruiting(leagueId);
           await updateRecruitStages(leagueId, currentLeague.currentWeek ?? 1);
           const nextPhaseIdx = offseasonPhases.indexOf(rphase) + 1;
@@ -14950,7 +14951,7 @@ export async function registerRoutes(
   // ────────────────────────────────────────────────────────────────────────────
 
   // ============ CPU RECRUITING AI FUNCTION ============
-  async function runCpuRecruiting(leagueId: string, week: number, season: number) {
+  async function runCpuRecruiting(leagueId: string, week: number, season: number, includeAllTeams = false) {
     const league = await storage.getLeague(leagueId);
     const difficulty = league?.cpuDifficulty || "high_school";
     
@@ -14987,7 +14988,8 @@ export async function registerRoutes(
     
     const teams = await storage.getTeamsByLeague(leagueId);
     // Auto-pilot human teams behave exactly like CPU for recruiting
-    const cpuTeams = teams.filter(t => t.isCpu || t.isAutoPilot);
+    // During commissioner fast-forward, all teams (including human) are CPU-managed
+    const cpuTeams = includeAllTeams ? teams : teams.filter(t => t.isCpu || t.isAutoPilot);
     const recruits = await storage.getRecruitsByLeague(leagueId);
     const unsignedRecruits = recruits.filter(r => !r.signedTeamId);
     
