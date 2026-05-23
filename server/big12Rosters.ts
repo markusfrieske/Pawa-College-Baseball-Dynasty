@@ -519,6 +519,7 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
     // INFIELDERS (6)
     // Landon Hairston — TEAM ELITE, 18 HR, 8-game XBH streak, "hottest hitter in nation"
     { firstName: "Landon", lastName: "Hairston", position: "3B", eligibility: "JR", homeState: "TX", hometown: "Dallas", jerseyNumber: 10,
+      generational: true,
       hitForAvg: 91, power: 93, speed: 52, arm: 60, fielding: 56, errorResistance: 52, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 90, vsLHP: 80, grit: 84, stealing: 14, running: 40, throwing: 60, recovery: 50, wRISP: 88, vsLefty: 80, poise: 86, heater: 0, agile: 46,
       abilities: ["Artist", "Consigliere", "Power Hitter"], potential: "A+", catcherAbility: null,
