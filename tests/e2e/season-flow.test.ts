@@ -161,23 +161,6 @@ async function getCareerStats(
 }
 
 /**
- * Force-advances the league phase, bypassing coach readiness checks.
- * Uses the commissioner force-advance endpoint which the league creator always has access to.
- */
-async function forceAdvance(
-  request: APIRequestContext,
-  leagueId: string
-): Promise<unknown> {
-  const resp = await request.post(`/api/leagues/${leagueId}/force-advance`, {
-    data: {},
-  });
-  if (!resp.ok()) {
-    throw new Error(`force-advance failed: ${resp.status()} ${await resp.text()}`);
-  }
-  return resp.json();
-}
-
-/**
  * Advances through all offseason phases: departures → signing day → walkons → preseason.
  * Returns the final league state after walkons complete.
  */
