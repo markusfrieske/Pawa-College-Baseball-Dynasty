@@ -12,7 +12,7 @@ import { AttributeSlider } from "@/components/ui/attribute-slider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Star, ArrowRight, ArrowLeft, Search, Target, GraduationCap, Building2, User, Cpu, Eye, Zap } from "lucide-react";
+import { Star, ArrowRight, ArrowLeft, Search, Target, GraduationCap, Building2, User, Cpu, Eye, Zap, Check } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Team, Coach, Conference, League } from "@shared/schema";
 import { TeamScoutingPanel, type TeamScoutingInfo } from "@/components/team-scouting-panel";
@@ -247,6 +247,79 @@ function StepIndicator({
   );
 }
 
+function TeamTile({
+  team,
+  isSelected,
+  onSelect,
+}: {
+  team: TeamWithCoach;
+  isSelected: boolean;
+  onSelect: (id: string) => void;
+}) {
+  const hasCoach = !!team.coach;
+  const isHuman = hasCoach && !!team.coach?.userId;
+  const isCpu = hasCoach && !team.coach?.userId;
+  const isAvailable = !hasCoach;
+
+  return (
+    <button
+      onClick={() => isAvailable && onSelect(team.id)}
+      disabled={!isAvailable && !isSelected}
+      title={team.name}
+      className={`relative flex flex-col items-center gap-1.5 p-2 rounded-lg border-2 transition-all focus:outline-none ${
+        isSelected
+          ? "border-gold ring-1 ring-gold/40 bg-gold/10"
+          : isAvailable
+          ? "border-border hover:border-gold/40 bg-background/40 cursor-pointer"
+          : "border-border/30 bg-background/20 opacity-50 cursor-not-allowed"
+      }`}
+      data-testid={`button-team-${team.id}`}
+    >
+      <div className="relative">
+        <div
+          className={`w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all ${
+            isSelected
+              ? "border-gold shadow-[0_0_8px_rgba(212,175,55,0.4)]"
+              : isAvailable
+              ? "border-border/60"
+              : "border-border/30"
+          }`}
+          style={{ backgroundColor: team.primaryColor }}
+        >
+          <span
+            className="font-pixel text-[8px] leading-none text-center px-0.5"
+            style={{ color: team.secondaryColor || "#ffffff" }}
+          >
+            {team.abbreviation}
+          </span>
+        </div>
+        {isSelected && (
+          <div className="absolute -top-1 -right-1 w-4 h-4 bg-gold rounded-full flex items-center justify-center">
+            <Check className="w-2.5 h-2.5 text-forest-dark" strokeWidth={3} />
+          </div>
+        )}
+        {isCpu && !isSelected && (
+          <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-orange-500/90 rounded-full flex items-center justify-center">
+            <Cpu className="w-2 h-2 text-white" />
+          </div>
+        )}
+        {isHuman && !isSelected && (
+          <div className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-blue-500/90 rounded-full flex items-center justify-center">
+            <User className="w-2 h-2 text-white" />
+          </div>
+        )}
+      </div>
+      <p
+        className={`text-[9px] font-pixel text-center leading-tight w-[60px] truncate ${
+          isSelected ? "text-gold" : isAvailable ? "text-muted-foreground" : "text-muted-foreground/50"
+        }`}
+      >
+        {team.name}
+      </p>
+    </button>
+  );
+}
+
 function TeamSelectionStep({
   teams,
   conferences,
@@ -258,72 +331,31 @@ function TeamSelectionStep({
   selectedTeamId: string | null;
   onSelect: (id: string) => void;
 }) {
-  const [teamSort, setTeamSort] = useState("name");
-
   const { data: scoutingMap } = useQuery<Record<string, TeamScoutingInfo>>({
     queryKey: ["/api/team-templates/scouting"],
   });
-  
-  const sortTeams = (teamList: TeamWithCoach[]) => {
-    return [...teamList].sort((a, b) => {
-      switch (teamSort) {
-        case "prestige": return (b.prestige || 0) - (a.prestige || 0);
-        case "facilities": return (b.facilities || 0) - (a.facilities || 0);
-        case "academics": return (b.academics || 0) - (a.academics || 0);
-        case "overall": {
-          const aAvg = ((a.prestige || 0) + (a.facilities || 0) + (a.academics || 0) + (a.stadium || 0) + (a.marketing || 0) + (a.collegeLife || 0)) / 6;
-          const bAvg = ((b.prestige || 0) + (b.facilities || 0) + (b.academics || 0) + (b.stadium || 0) + (b.marketing || 0) + (b.collegeLife || 0)) / 6;
-          return bAvg - aAvg;
-        }
-        default: return a.name.localeCompare(b.name);
-      }
-    });
-  };
 
-  // Group teams by conference
   const teamsByConference = conferences.map(conf => ({
     conference: conf,
-    teams: sortTeams(teams.filter(t => t.conferenceId === conf.id)),
-  }));
+    teams: teams.filter(t => t.conferenceId === conf.id).sort((a, b) => a.name.localeCompare(b.name)),
+  })).filter(({ teams: confTeams }) => confTeams.length > 0);
 
-  // Teams without a conference (unassigned)
   const unassignedTeams = teams.filter(t => !t.conferenceId);
 
   const selectedTeam = teams.find(t => t.id === selectedTeamId);
   const scoutingInfo = selectedTeam && scoutingMap ? scoutingMap[selectedTeam.name] : null;
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center gap-2 mb-4 flex-wrap">
-        <span className="text-xs text-muted-foreground">Sort by:</span>
-        {[
-          { value: "name", label: "Name" },
-          { value: "prestige", label: "Prestige" },
-          { value: "facilities", label: "Facilities" },
-          { value: "academics", label: "Academics" },
-          { value: "overall", label: "Overall" },
-        ].map(opt => (
-          <button
-            key={opt.value}
-            onClick={() => setTeamSort(opt.value)}
-            className={`px-2 py-1 text-[10px] font-pixel rounded border transition-colors ${
-              teamSort === opt.value ? "bg-gold text-forest-dark border-gold" : "border-border text-muted-foreground hover:border-gold/50"
-            }`}
-            data-testid={`button-sort-${opt.value}`}
-          >
-            {opt.label}
-          </button>
-        ))}
-      </div>
+    <div className="space-y-6">
       {teamsByConference.map(({ conference, teams: confTeams }) => (
         <div key={conference.id}>
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-3">
             <h3 className="font-pixel text-sm text-gold">{conference.name}</h3>
             <span className="text-xs text-muted-foreground">{confTeams.length} teams</span>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="flex flex-wrap gap-2">
             {confTeams.map((team) => (
-              <TeamCard
+              <TeamTile
                 key={team.id}
                 team={team}
                 isSelected={selectedTeamId === team.id}
@@ -336,13 +368,13 @@ function TeamSelectionStep({
 
       {unassignedTeams.length > 0 && (
         <div>
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-3">
             <h3 className="font-pixel text-sm text-muted-foreground">Unassigned</h3>
             <span className="text-xs text-muted-foreground">{unassignedTeams.length} teams</span>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="flex flex-wrap gap-2">
             {unassignedTeams.map((team) => (
-              <TeamCard
+              <TeamTile
                 key={team.id}
                 team={team}
                 isSelected={selectedTeamId === team.id}
@@ -359,7 +391,6 @@ function TeamSelectionStep({
         </RetroCard>
       )}
 
-      {/* Scouting panel for selected team */}
       {scoutingInfo && selectedTeam && (
         <div className="animate-in slide-in-from-bottom-2 duration-200">
           <TeamScoutingPanel
@@ -369,81 +400,6 @@ function TeamSelectionStep({
           />
         </div>
       )}
-    </div>
-  );
-}
-
-function TeamCard({
-  team,
-  isSelected,
-  onSelect,
-}: {
-  team: TeamWithCoach;
-  isSelected: boolean;
-  onSelect: (id: string) => void;
-}) {
-  const hasCoach = !!team.coach;
-  const isHuman = hasCoach && !!team.coach?.userId;
-  const isCpu = hasCoach && !team.coach?.userId;
-  const isAvailable = !hasCoach;
-
-  return (
-    <div
-      className={`text-left p-4 rounded border-2 transition-all ${
-        isSelected
-          ? "border-gold bg-gold/10"
-          : isAvailable
-          ? "border-border hover:border-gold/50 cursor-pointer"
-          : "border-border/50 opacity-60"
-      }`}
-      onClick={() => isAvailable && !isSelected && onSelect(team.id)}
-      data-testid={`button-team-${team.id}`}
-    >
-      <div className="flex items-center gap-3 mb-3">
-        <TeamBadge
-          abbreviation={team.abbreviation}
-          primaryColor={team.primaryColor}
-          secondaryColor={team.secondaryColor}
-          name={team.name}
-         
-        />
-        <div className="flex-1 min-w-0">
-          <p className="font-medium truncate">{team.name}</p>
-          <p className="text-sm text-muted-foreground truncate">{team.mascot}</p>
-        </div>
-        {hasCoach && (
-          <div
-            className={`px-2 py-1 rounded text-[8px] font-pixel flex items-center gap-1 ${
-              isHuman ? "bg-blue-500/20 text-blue-400" : "bg-orange-500/20 text-orange-400"
-            }`}
-            data-testid={`badge-${isHuman ? "human" : "cpu"}-${team.id}`}
-          >
-            {isHuman ? <User className="w-3 h-3" /> : <Cpu className="w-3 h-3" />}
-            {isHuman ? "Human" : "CPU"}
-          </div>
-        )}
-      </div>
-      
-      {hasCoach && team.coach && (
-        <p className="text-xs text-muted-foreground mb-2 truncate">
-          HC {team.coach.firstName} {team.coach.lastName}
-        </p>
-      )}
-      
-      <div className="grid grid-cols-3 gap-2 text-center text-xs">
-        <div>
-          <p className="text-gold font-bold">{team.prestige}</p>
-          <p className="text-muted-foreground">Prestige</p>
-        </div>
-        <div>
-          <p className="font-bold">{team.facilities}</p>
-          <p className="text-muted-foreground">Facilities</p>
-        </div>
-        <div>
-          <p className="font-bold">{team.academics}</p>
-          <p className="text-muted-foreground">Academics</p>
-        </div>
-      </div>
     </div>
   );
 }
