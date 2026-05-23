@@ -922,11 +922,11 @@ function CompactGameRow({
             <RetroButton variant="outline" size="sm" onClick={() => callbacks.onViewBoxScore(game)} data-testid={`button-box-score-action-${game.id}`} title="View Box Score">
               <Check className="w-3 h-3" />
             </RetroButton>
-          ) : (
+          ) : callbacks.isCommissioner ? (
             <RetroButton variant="outline" size="sm" onClick={() => callbacks.onEdit(game)} data-testid={`button-edit-game-${game.id}`} title="Enter Score">
               <Edit2 className="w-3 h-3" />
             </RetroButton>
-          )}
+          ) : null}
         </div>
       </div>
 
@@ -1182,7 +1182,7 @@ function StandaloneGameRow({
             >
               <Check className="w-3 h-3" />
             </RetroButton>
-          ) : (
+          ) : callbacks.isCommissioner ? (
             <RetroButton
               variant="outline"
               size="sm"
@@ -1192,7 +1192,7 @@ function StandaloneGameRow({
             >
               <Edit2 className="w-3 h-3" />
             </RetroButton>
-          )}
+          ) : null}
         </div>
       </div>
 
@@ -1553,10 +1553,15 @@ function ScoreEntryModal({
   onSubmit: (homeScore: number, awayScore: number) => void;
   isPending: boolean;
 }) {
-  const [homeScore, setHomeScore] = useState(game?.homeScore?.toString() || "0");
-  const [awayScore, setAwayScore] = useState(game?.awayScore?.toString() || "0");
+  const [homeScore, setHomeScore] = useState("0");
+  const [awayScore, setAwayScore] = useState("0");
 
-  if (!game) return null;
+  useEffect(() => {
+    if (game) {
+      setHomeScore(game.homeScore?.toString() ?? "0");
+      setAwayScore(game.awayScore?.toString() ?? "0");
+    }
+  }, [game?.id]);
 
   return (
     <Dialog open={!!game} onOpenChange={() => onClose()}>
