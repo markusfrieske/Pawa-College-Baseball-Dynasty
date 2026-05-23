@@ -178,7 +178,14 @@ export default function DynastySetupPage() {
               </Link>
               <div>
                 <h1 className="font-pixel text-gold text-lg">{league.name}</h1>
-                <span className="text-muted-foreground text-sm">Dynasty Setup</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-muted-foreground text-sm">Dynasty Setup</span>
+                  {teams.length > 0 && (
+                    <span className="text-muted-foreground text-xs" data-testid="text-setup-summary">
+                      &mdash; {teams.length} teams &mdash; first recruiting class: {Math.max(40, teams.length * 5)} prospects
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
             
