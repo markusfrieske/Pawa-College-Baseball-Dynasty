@@ -44,11 +44,11 @@ args = "validate-all"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "validate-rosters"
+args = "e2e-season-flow"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "e2e-season-flow"
+args = "validate-rosters"
 
 [[workflows.workflow]]
 name = "Start application"
@@ -93,17 +93,6 @@ task = "shell.exec"
 args = "npx tsx scripts/validate-all.ts"
 
 [[workflows.workflow]]
-name = "validate-rosters"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "npx tsx scripts/validate-roster-structure.ts"
-
-[workflows.workflow.metadata]
-isValidation = true
-
-[[workflows.workflow]]
 name = "e2e-season-flow"
 author = "agent"
 
@@ -113,6 +102,17 @@ args = "npx playwright test tests/e2e/season-flow.test.ts --timeout=300000"
 
 [workflows.workflow.metadata]
 isValidation = true
+
+[[workflows.workflow]]
+name = "validate-rosters"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npx tsx scripts/validate-roster-structure.ts && npx tsx scripts/validate-ovr-dist.ts"
+
+[workflows.workflow.metadata]
+outputType = "console"
 
 [agent]
 integrations = ["javascript_database:1.0.0", "javascript_openai_ai_integrations:2.0.0"]

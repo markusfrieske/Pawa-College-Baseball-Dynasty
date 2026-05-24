@@ -2,9 +2,10 @@
  * Recalibrate all roster player attributes so each team's avg OVR aligns with
  * its real 2026 D1Baseball RPI-derived national rank.
  *
- * Formula: targetOVR = 385 - (rank - 1) * (125 / 141)
- *   rank #1  → ~385 OVR
- *   rank #142 → ~260 OVR
+ * Formula: targetOVR = 355 - (rank - 1) * (175 / 141)
+ *   rank #1  → ~355 OVR  (within the target 330-370 Tier 1 band)
+ *   rank #71 → ~268 OVR
+ *   rank #142 → ~180 OVR  (lower floor pulls weak-team players into below-avg band)
  *
  * Outputs: server/rosterScaleFactors.ts (map of teamName → scaleFactor)
  *          and a summary table showing before/after OVR vs target.
@@ -103,7 +104,7 @@ function teamAvgOVR(players: RealPlayer[]): number {
 }
 
 function targetOVR(rank: number): number {
-  return 385 - (rank - 1) * (125 / 141);
+  return 350 - (rank - 1) * (170 / 141);
 }
 
 // ─── Collect all unique team names from RAW_UNCALIBRATED_ROSTERS ──────────

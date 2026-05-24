@@ -346,9 +346,9 @@ export function calculateOVR(attrs: {
     for (const abilityName of attrs.abilities) {
       const ability = getAbilityByName(abilityName);
       if (ability) {
-        if (ability.tier === "gold") specialBonus += 33;
-        else if (ability.tier === "blue") specialBonus += 20;
-        else if (ability.tier === "red") specialBonus -= 15;
+        if (ability.tier === "gold") specialBonus += 10;
+        else if (ability.tier === "blue") specialBonus += 5;
+        else if (ability.tier === "red") specialBonus -= 7;
       }
     }
   }
