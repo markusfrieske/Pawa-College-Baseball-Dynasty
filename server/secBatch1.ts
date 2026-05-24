@@ -213,7 +213,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       // 32-17/13-11 SEC, RPI #12, BA #13, Kevin O'Sullivan Yr 19. SOS #3, 7 SHO (2nd nation).
       // PITCHERS (10) — 1-8 pitch scale
       // Aidan King — Friday RHP SO, 4-2/1.62 ERA, National Pitcher of the Month — TEAM ELITE STUFF
-      { firstName: "Aidan", lastName: "King", position: "P", eligibility: "FR", homeState: "GA", hometown: "Savannah", jerseyNumber: 29,
+      { firstName: "Aidan", lastName: "King", position: "P", eligibility: "SO", homeState: "GA", hometown: "Savannah", jerseyNumber: 29,
         hitForAvg: 14, power: 11, speed: 32, arm: 65, fielding: 41, errorResistance: 54, velocity: 64, control: 69, stamina: 65, stuff: 70,
         clutch: 80, vsLHP: 76, grit: 80, stealing: 10, running: 34, throwing: 78, recovery: 57, wRISP: 65, vsLefty: 65, poise: 65, heater: 65, agile: 44,
         abilities: ["Star of Victory", "Intimidator", "Sharpness", "Heavy Ball", "Winner's Luck"], potential: "A+", catcherAbility: null,
@@ -311,7 +311,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         ...noPitches },
       // INFIELDERS (6)
       // Brendan Lawson — SS SO, top 2027 draft prospect, .317/10 HR/61 RBI as FR
-      { firstName: "Brendan", lastName: "Lawson", position: "SS", eligibility: "FR", homeState: "FL", hometown: "Miami", jerseyNumber: 2,
+      { firstName: "Brendan", lastName: "Lawson", position: "SS", eligibility: "SO", homeState: "ON", hometown: "Toronto", jerseyNumber: 2,
         hitForAvg: 87, power: 87, speed: 72, arm: 70, fielding: 70, errorResistance: 64, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 80, vsLHP: 76, grit: 80, stealing: 38, running: 60, throwing: 70, recovery: 56, wRISP: 80, vsLefty: 76, poise: 80, heater: 0, agile: 64,
         abilities: ["Artist", "Defensive Artisan", "Consigliere"], potential: "A+", catcherAbility: null,
