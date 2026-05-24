@@ -33,6 +33,7 @@ import {
   Users,
   ArrowUp,
   ArrowDown,
+  PartyPopper,
 } from "lucide-react";
 
 interface DeparturePlayer {
@@ -411,6 +412,25 @@ export default function DeparturesPage() {
         {/* My Team Tab */}
         {activeTab === "myTeam" && userTeam && (
           <div className="space-y-4" data-testid="section-myteam">
+            {/* All-clear callout when nothing is departing */}
+            {totalDepartures === 0 && (
+              <RetroCard variant="bordered" data-testid="callout-no-departures">
+                <RetroCardContent>
+                  <div className="flex flex-col items-center gap-3 py-6 text-center">
+                    <div className="w-12 h-12 rounded-full bg-green-900/30 border border-green-700/50 flex items-center justify-center">
+                      <PartyPopper className="w-6 h-6 text-green-400" />
+                    </div>
+                    <div>
+                      <p className="font-pixel text-xs text-green-400 uppercase mb-1">No Departures This Season</p>
+                      <p className="text-sm text-muted-foreground">
+                        Every player on your roster is returning next season. No seniors graduated, no draft declarations, and no transfer requests.
+                      </p>
+                    </div>
+                  </div>
+                </RetroCardContent>
+              </RetroCard>
+            )}
+
             {/* Graduates */}
             <RetroCard>
               <RetroCardHeader className="flex items-center gap-2">
@@ -419,7 +439,10 @@ export default function DeparturesPage() {
               </RetroCardHeader>
               <RetroCardContent>
                 {userTeam.graduates.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No graduating seniors</p>
+                  <div className="flex items-center gap-3 py-3 px-1" data-testid="empty-graduates">
+                    <GraduationCap className="w-5 h-5 text-muted-foreground/40 shrink-0" />
+                    <p className="text-sm text-muted-foreground">No seniors graduating this season — your upperclassmen are all returning.</p>
+                  </div>
                 ) : (
                   <div className="space-y-2">
                     {userTeam.graduates.map(player => (
@@ -438,7 +461,10 @@ export default function DeparturesPage() {
               </RetroCardHeader>
               <RetroCardContent>
                 {userTeam.draftDeclarations.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No players declaring for the draft</p>
+                  <div className="flex items-center gap-3 py-3 px-1" data-testid="empty-draft">
+                    <Trophy className="w-5 h-5 text-muted-foreground/40 shrink-0" />
+                    <p className="text-sm text-muted-foreground">No players are declaring for the MLB Draft this offseason.</p>
+                  </div>
                 ) : (
                   <div className="space-y-2">
                     <p className="text-xs text-muted-foreground mb-3">
@@ -467,7 +493,10 @@ export default function DeparturesPage() {
               </RetroCardHeader>
               <RetroCardContent>
                 {userTeam.transfers.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No players considering transfer</p>
+                  <div className="flex items-center gap-3 py-3 px-1" data-testid="empty-transfers">
+                    <ArrowRightLeft className="w-5 h-5 text-muted-foreground/40 shrink-0" />
+                    <p className="text-sm text-muted-foreground">No players are entering the transfer portal — your locker room is happy.</p>
+                  </div>
                 ) : (
                   <div className="space-y-2">
                     <p className="text-xs text-muted-foreground mb-3">
@@ -740,7 +769,10 @@ export default function DeparturesPage() {
                         </div>
                       )}
                       {teamTotal === 0 && (
-                        <p className="text-xs text-muted-foreground py-2">No departures</p>
+                        <div className="flex items-center gap-2 py-2 text-xs text-muted-foreground" data-testid={`empty-team-${team.abbreviation}`}>
+                          <CheckCircle className="w-3.5 h-3.5 text-green-500/60 shrink-0" />
+                          <span>No departures — full roster returning next season</span>
+                        </div>
                       )}
                     </div>
                   )}
