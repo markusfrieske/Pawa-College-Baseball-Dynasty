@@ -10,7 +10,7 @@ export const IVY_LEAGUE_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Strong Starter", "Guts"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 4, 4, 1, 0, 0, 0]) },
-    { firstName: "Marcus", lastName: "Webb", position: "P", eligibility: "JR", homeState: "CT", hometown: "Greenwich", jerseyNumber: 22,
+    { firstName: "Marcus", lastName: "Weston", position: "P", eligibility: "JR", homeState: "CT", hometown: "Greenwich", jerseyNumber: 22,
       hitForAvg: 12, power: 8, speed: 32, arm: 38, fielding: 28, errorResistance: 41, velocity: 50, control: 49, stamina: 50, stuff: 48,
       clutch: 47, vsLHP: 44, grit: 48, stealing: 10, running: 31, throwing: 52, recovery: 41, wRISP: 41, vsLefty: 41, poise: 42, heater: 46, agile: 38,
       abilities: ["Guts"], potential: "B", catcherAbility: null,

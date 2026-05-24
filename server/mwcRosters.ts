@@ -359,7 +359,7 @@ import type { RealPlayer } from "./realRosters";
   ],
 
   "UNLV": [
-    { firstName: "Caden", lastName: "Aoki", position: "P", eligibility: "JR", homeState: "NV", hometown: "Las Vegas", jerseyNumber: 23,
+    { firstName: "Caden", lastName: "Takagi", position: "P", eligibility: "JR", homeState: "NV", hometown: "Las Vegas", jerseyNumber: 23,
         hitForAvg: 15, power: 11, speed: 36, arm: 51, fielding: 32, errorResistance: 48, velocity: 60, control: 64, stamina: 65, stuff: 62,
         clutch: 54, vsLHP: 57, grit: 61, stealing: 9, running: 32, throwing: 63, recovery: 56, wRISP: 57, vsLefty: 54, poise: 57, heater: 60, agile: 41,
         abilities: ["Explosive Fastball", "Heavy Ball"], potential: "A", catcherAbility: null,
@@ -537,7 +537,7 @@ import type { RealPlayer } from "./realRosters";
   ],
 
   "Nevada": [
-    { firstName: "Trent", lastName: "Caraway", position: "P", eligibility: "JR", homeState: "NV", hometown: "Reno", jerseyNumber: 25,
+    { firstName: "Trent", lastName: "Holloway", position: "P", eligibility: "JR", homeState: "NV", hometown: "Reno", jerseyNumber: 25,
         hitForAvg: 11, power: 7, speed: 36, arm: 51, fielding: 31, errorResistance: 40, velocity: 61, control: 64, stamina: 65, stuff: 62,
         clutch: 57, vsLHP: 59, grit: 59, stealing: 9, running: 26, throwing: 62, recovery: 56, wRISP: 57, vsLefty: 56, poise: 57, heater: 60, agile: 40,
         abilities: ["Explosive Fastball", "Crossfire"], potential: "A", catcherAbility: null,
