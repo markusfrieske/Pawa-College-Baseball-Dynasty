@@ -20,42 +20,32 @@ function getTargetOVR(tier, rank) {
   if (tier === 1) {
     if (rank === 0) return randInt(540, 630);
     if (rank <= 4) return randInt(385, 485);
-    if (rank <= 9) return randInt(285, 355);
-    if (rank <= 14) return randInt(245, 290);
-    if (rank <= 19) return randInt(205, 245);
-    return randInt(172, 210);
+    if (rank <= 19) return randInt(268, 348);
+    return randInt(185, 248);
   }
   if (tier === 2) {
     if (rank === 0) return randInt(475, 545);
     if (rank <= 4) return randInt(360, 445);
-    if (rank <= 9) return randInt(272, 342);
-    if (rank <= 14) return randInt(232, 278);
-    if (rank <= 19) return randInt(195, 235);
-    return randInt(162, 205);
+    if (rank <= 19) return randInt(260, 338);
+    return randInt(175, 245);
   }
   if (tier === 3) {
     if (rank === 0) return randInt(420, 495);
     if (rank <= 4) return randInt(330, 400);
-    if (rank <= 9) return randInt(262, 328);
-    if (rank <= 14) return randInt(225, 268);
-    if (rank <= 19) return randInt(188, 228);
-    return randInt(155, 198);
+    if (rank <= 19) return randInt(255, 328);
+    return randInt(168, 242);
   }
   if (tier === 4) {
     if (rank === 0) return randInt(385, 445);
     if (rank <= 4) return randInt(300, 370);
-    if (rank <= 9) return randInt(252, 315);
-    if (rank <= 14) return randInt(215, 258);
-    if (rank <= 19) return randInt(178, 218);
-    return randInt(155, 192);
+    if (rank <= 19) return randInt(250, 310);
+    return randInt(165, 238);
   }
   if (tier === 5) {
     if (rank === 0) return randInt(340, 395);
     if (rank <= 4) return randInt(280, 340);
-    if (rank <= 9) return randInt(240, 295);
-    if (rank <= 14) return randInt(205, 245);
-    if (rank <= 19) return randInt(170, 210);
-    return randInt(152, 185);
+    if (rank <= 19) return randInt(240, 295);
+    return randInt(155, 228);
   }
   return 250;
 }
@@ -70,12 +60,8 @@ const FILES = [
   { file: 'server/bigTenBatch1.ts', tier: 1 },
   { file: 'server/bigTenBatch2.ts', tier: 1 },
   { file: 'server/bigTenBatch3.ts', tier: 1 },
-  { file: 'server/big12Rosters.ts', tier: 1 },
   { file: 'server/pac12Rosters.ts', tier: 2 },
-  { file: 'server/mwcRosters.ts', tier: 2 },
-  { file: 'server/aacRosters.ts', tier: 2 },
   { file: 'server/sunBeltRosters.ts', tier: 2 },
-  { file: 'server/wccRosters.ts', tier: 3 },
   { file: 'server/bigWestRosters.ts', tier: 3 },
   { file: 'server/moValleyRosters.ts', tier: 3 },
   { file: 'server/ivyLeagueRosters.ts', tier: 4 },
