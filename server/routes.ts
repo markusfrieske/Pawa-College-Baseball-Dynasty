@@ -6050,15 +6050,7 @@ export async function registerRoutes(
         return res.status(400).json({ message: statusMsg });
       }
 
-      // Manual reporting is only for human-vs-human games
-      const allTeams = await storage.getTeamsByLeague(leagueId);
-      const homeTeam = allTeams.find(t => t.id === game.homeTeamId);
-      const awayTeam = allTeams.find(t => t.id === game.awayTeamId);
-      if (!homeTeam || !awayTeam || homeTeam.isCpu || awayTeam.isCpu) {
-        return res.status(400).json({ message: "Manual reporting is only available for human-vs-human games" });
-      }
-
-      // Any authenticated league member may report a human-vs-human game (not just the involved coaches).
+      // Any authenticated league member may report any game (human-vs-human or vs-CPU).
       const coaches = await storage.getCoachesByLeague(leagueId);
       const coach = coaches.find(c => c.userId === req.session.userId);
       const isLeagueMember = hasCommissionerAccess(league, req.session.userId) || !!coach;
@@ -6130,12 +6122,17 @@ export async function registerRoutes(
         }
       }
 
+      // For vs-CPU games, auto-confirm immediately (no opposing human to confirm/dispute).
+      const allTeams = await storage.getTeamsByLeague(leagueId);
+      const homeTeam = allTeams.find(t => t.id === game.homeTeamId);
+      const awayTeam = allTeams.find(t => t.id === game.awayTeamId);
+      const isCpuGame = !!(homeTeam?.isCpu || awayTeam?.isCpu);
+
       const report = await storage.createGameReport({
         gameId: game.id,
         leagueId,
         reporterUserId: req.session.userId!,
         // Only set reporterTeamId if the reporter's coached team is one of the game's two teams.
-        // Commissioners who coach an unrelated team (or no team) get null so any involved coach can confirm.
         reporterTeamId: (coach?.teamId && (coach.teamId === game.homeTeamId || coach.teamId === game.awayTeamId))
           ? coach.teamId
           : null,
@@ -6148,8 +6145,8 @@ export async function registerRoutes(
         inningScores: inningScores ?? null,
         homeBoxData: homeBoxData ?? null,
         awayBoxData: awayBoxData ?? null,
-        status: "pending",
-        confirmedByUserId: null,
+        status: isCpuGame ? "confirmed" : "pending",
+        confirmedByUserId: isCpuGame ? req.session.userId! : null,
         disputedByUserId: null,
         disputeReason: null,
       });
@@ -6158,8 +6155,14 @@ export async function registerRoutes(
         leagueId,
         userId: req.session.userId,
         action: "Game Report Submitted",
-        details: `Reported: ${awayScore}-${homeScore}`,
+        details: `Reported: ${awayScore}-${homeScore}${isCpuGame ? " (auto-confirmed vs CPU)" : ""}`,
       });
+
+      // Auto-finalize vs-CPU games immediately
+      if (isCpuGame) {
+        await finalizeReportedGame(report, game, leagueId);
+        return res.json({ ...report, autoConfirmed: true });
+      }
 
       res.json(report);
     } catch (error) {

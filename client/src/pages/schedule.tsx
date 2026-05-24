@@ -913,7 +913,7 @@ function CompactGameRow({
         <div className="flex-1" />
 
         <div className="flex items-center gap-1">
-          {!game.isComplete && isHumanVsHuman && !report && (
+          {!game.isComplete && callbacks.isUserGame(game) && !report && (
             isSeriesLocked ? (
               <RetroButton variant="outline" size="sm" disabled className="opacity-40 cursor-not-allowed" data-testid={`button-report-locked-${game.id}`}>
                 <Lock className="w-3 h-3" />
@@ -950,7 +950,7 @@ function CompactGameRow({
             <RetroButton variant="outline" size="sm" onClick={() => callbacks.onViewBoxScore(game)} data-testid={`button-box-score-action-${game.id}`} title="View Box Score">
               <Check className="w-3 h-3" />
             </RetroButton>
-          ) : !report && (callbacks.isCommissioner || (isHumanVsHuman && callbacks.isUserGame(game))) ? (
+          ) : !report && (callbacks.isCommissioner || callbacks.isUserGame(game)) ? (
             <RetroButton variant="outline" size="sm" onClick={() => callbacks.onEdit(game)} data-testid={`button-quick-score-${game.id}`} title={callbacks.isCommissioner ? "Enter Score" : "Report Score"}>
               <Edit2 className="w-3 h-3" />
             </RetroButton>
@@ -1172,7 +1172,7 @@ function StandaloneGameRow({
           )}
           {!game.isComplete && (
             <>
-              {isHumanVsHuman && !report && (
+              {callbacks.isUserGame(game) && !report && (
                 isSeriesLocked ? (
                   <RetroButton variant="outline" size="sm" disabled className="opacity-40 cursor-not-allowed" data-testid={`button-report-locked-${game.id}`}>
                     <Lock className="w-3 h-3" />
@@ -1198,7 +1198,7 @@ function StandaloneGameRow({
                   </RetroButton>
                 </Link>
               )}
-              {!isHumanVsHuman && (
+              {!callbacks.isUserGame(game) && (
                 isSeriesLocked ? (
                   <RetroButton variant="outline" size="sm" disabled className="opacity-40 cursor-not-allowed" data-testid={`button-pbp-locked-${game.id}`}>
                     <Lock className="w-3 h-3" />
@@ -1223,13 +1223,13 @@ function StandaloneGameRow({
             >
               <Check className="w-3 h-3" />
             </RetroButton>
-          ) : callbacks.isCommissioner && !report ? (
+          ) : (callbacks.isCommissioner || callbacks.isUserGame(game)) && !report ? (
             <RetroButton
               variant="outline"
               size="sm"
               onClick={(e) => { e.stopPropagation(); callbacks.onEdit(game); }}
               data-testid={`button-quick-score-${game.id}`}
-              title="Enter Score"
+              title={callbacks.isCommissioner ? "Enter Score" : "Report Score"}
             >
               <Edit2 className="w-3 h-3" />
             </RetroButton>
