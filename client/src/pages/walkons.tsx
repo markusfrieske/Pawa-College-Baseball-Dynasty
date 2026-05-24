@@ -528,7 +528,7 @@ export default function WalkonsPage() {
                           >
                             B:{player.batHand || "R"} T:{player.throwHand || "R"}
                           </span>
-                          {!["P", "SP", "RP", "CP"].includes(player.position) && (player as any).trajectory != null && (player as any).trajectory !== 2 && (
+                          {!["P", "SP", "RP", "CP"].includes(player.position) && (player as any).trajectory != null && (
                             <span className="font-pixel text-[7px] px-1.5 py-0.5 rounded border border-gold/30 text-gold/70 bg-gold/5" data-testid={`badge-traj-roster-${player.id}`}>
                               {TRAJECTORY_LABELS[(player as any).trajectory] ?? "LD"}
                             </span>
@@ -688,7 +688,7 @@ export default function WalkonsPage() {
                               >
                                 B:{walkon.batHand || "R"} T:{walkon.throwHand || "R"}
                               </span>
-                              {!["P", "SP", "RP", "CP"].includes(walkon.position) && walkon.trajectory != null && walkon.trajectory !== 2 && (
+                              {!["P", "SP", "RP", "CP"].includes(walkon.position) && walkon.trajectory != null && (
                                 <span className="font-pixel text-[7px] px-1.5 py-0.5 rounded border border-gold/30 text-gold/70 bg-gold/5" data-testid={`badge-traj-walkon-${walkon.id}`}>
                                   {TRAJECTORY_LABELS[walkon.trajectory] ?? "LD"}
                                 </span>

@@ -2322,7 +2322,7 @@ function RecruitRow({
                   {isFullyRevealed ? `${totalAbilities} Abilities` : `${revealedAbilitiesCount}/${totalAbilities > revealedAbilitiesCount ? "?" : totalAbilities}`}
                 </Badge>
               )}
-              {recruit.position !== "P" && recruit.trajectory != null && recruit.trajectory !== 2 && (
+              {recruit.position !== "P" && recruit.trajectory != null && (
                 <Badge variant="outline" className="text-[8px] border-gold/30 text-gold/70" data-testid={`badge-traj-${recruit.id}`}>
                   {TRAJECTORY_LABELS[recruit.trajectory] ?? "LD"}
                 </Badge>
