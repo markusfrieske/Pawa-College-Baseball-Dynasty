@@ -97,7 +97,7 @@ function TeamTile({
           className="text-[8px] leading-none font-pixel text-muted-foreground"
           data-testid={`text-rank-${team.abbreviation}`}
         >
-          #{nationalRank}<span className="opacity-50">/{totalTeams ?? 142}</span>
+          #{nationalRank}
         </span>
       )}
     </button>

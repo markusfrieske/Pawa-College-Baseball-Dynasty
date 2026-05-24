@@ -799,13 +799,44 @@ export async function registerRoutes(
       const dashPitchers = roster.filter(p => PITCHER_POS_SET.has(p.position));
       const dashAttrAvg = (nums: number[]) =>
         nums.length === 0 ? 0 : Math.round(nums.reduce((a, b) => a + b, 0) / nums.length);
-      const dashAvgStar = (arr: { starRating: number }[]) =>
-        arr.length === 0 ? 0 : arr.reduce((s, p) => s + (p.starRating || 1), 0) / arr.length;
 
       const dashHittingScore = dashAttrAvg(dashHitters.flatMap(p => [p.hitForAvg ?? 50, p.power ?? 50]));
       const dashFieldingScore = dashAttrAvg(dashHitters.flatMap(p => [p.fielding ?? 50, p.errorResistance ?? 50, p.throwing ?? 50]));
       const dashSpeedScore = dashAttrAvg(roster.map(p => p.running ?? 50));
-      const dashPitchingScore = dashAvgStar(dashPitchers);
+      const dashPitchingScore = pitcherCount > 0 ? Math.round(pitcherTotal / pitcherCount) : 0;
+
+      // Compute relative grades against all real-roster teams (same percentile system as national rank)
+      const allHitScores: number[] = [], allFieldScores: number[] = [],
+            allSpdScores: number[] = [], allPitchScores: number[] = [];
+      const rawAvg = (nums: number[]) => nums.length === 0 ? 0 : nums.reduce((a, b) => a + b, 0) / nums.length;
+      for (const rp of Object.values(ALL_REAL_ROSTERS)) {
+        const rHitters = rp.filter(p => p.position !== "P");
+        const rPitchers = rp.filter(p => p.position === "P");
+        allHitScores.push(rawAvg(rHitters.flatMap(p => [p.hitForAvg ?? 50, p.power ?? 50])));
+        allFieldScores.push(rawAvg(rHitters.flatMap(p => [p.fielding ?? 50, p.errorResistance ?? 50, p.throwing ?? 50])));
+        allSpdScores.push(rawAvg(rp.map(p => p.running ?? 50)));
+        allPitchScores.push(rawAvg(rPitchers.map(p => calculateOVR(p as Parameters<typeof calculateOVR>[0]))));
+      }
+      const sd = (arr: number[]) => [...arr].sort((a, b) => b - a);
+      function dashRelGrade(score: number, sorted: number[]): string {
+        const n = sorted.length;
+        if (n === 0) return "C";
+        let rank = 0;
+        while (rank < n - 1 && sorted[rank] > score) rank++;
+        const pct = n === 1 ? 0 : rank / (n - 1);
+        const s = pct <= 0.04 ? 12 : pct <= 0.12 ? 11 : pct <= 0.20 ? 10 :
+                  pct <= 0.28 ? 9  : pct <= 0.36 ? 8  : pct <= 0.44 ? 7  :
+                  pct <= 0.52 ? 6  : pct <= 0.60 ? 5  : pct <= 0.68 ? 4  :
+                  pct <= 0.76 ? 3  : pct <= 0.84 ? 2  : pct <= 0.92 ? 1  : 0;
+        return s >= 12 ? "A+" : s >= 11 ? "A" : s >= 10 ? "A-" :
+               s >= 9  ? "B+" : s >= 8  ? "B" : s >= 7  ? "B-" :
+               s >= 6  ? "C+" : s >= 5  ? "C" : s >= 4  ? "C-" :
+               s >= 3  ? "D+" : s >= 2  ? "D" : s >= 1  ? "D-" : "F";
+      }
+      const hitGrade   = dashRelGrade(dashHittingScore,  sd(allHitScores));
+      const fieldGrade = dashRelGrade(dashFieldingScore, sd(allFieldScores));
+      const speedGrade = dashRelGrade(dashSpeedScore,    sd(allSpdScores));
+      const pitchGrade = dashRelGrade(dashPitchingScore, sd(allPitchScores));
 
       const top5Players = [...roster]
         .sort((a, b) => (b.overall || 0) - (a.overall || 0))
@@ -837,6 +868,10 @@ export async function registerRoutes(
         fieldingScore: dashFieldingScore,
         speedScore: dashSpeedScore,
         pitchingScore: dashPitchingScore,
+        hitGrade,
+        fieldGrade,
+        speedGrade,
+        pitchGrade,
       });
     } catch (error) {
       console.error("Failed to fetch dashboard overview:", error);
@@ -936,7 +971,7 @@ export async function registerRoutes(
         });
 
         const rosterScore = mean(withOvr.map(p => p.computedOvr));
-        const pitchingScore = mean(pitchers.flatMap(p => [p.velocity ?? 50, p.control ?? 50, p.stamina ?? 50, p.stuff ?? 50]));
+        const pitchingScore = mean(pitchers.map(p => calculateOVR(p as Parameters<typeof calculateOVR>[0])));
         const hittingScore = mean(hitters.flatMap(p => [p.hitForAvg ?? 50, p.power ?? 50]));
         const fieldingScore = mean(hitters.flatMap(p => [p.fielding ?? 50, p.arm ?? 50, p.errorResistance ?? 50]));
         const speedScore = mean(hitters.flatMap(p => [p.speed ?? 50, p.stealing ?? 50]));

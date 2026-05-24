@@ -125,6 +125,10 @@ interface DashboardOverview {
   fieldingScore?: number;
   speedScore?: number;
   pitchingScore?: number;
+  hitGrade?: string;
+  fieldGrade?: string;
+  speedGrade?: string;
+  pitchGrade?: string;
 }
 
 interface AuctionOutcome {
@@ -252,21 +256,21 @@ function RosterStrengthCard({ overview, leagueId }: { overview: DashboardOvervie
             <p className="font-pixel text-[7px] text-muted-foreground mb-2">TEAM BREAKDOWN</p>
             <div className="grid grid-cols-4 gap-2">
               {[
-                { label: "HIT", val: overview.hittingScore, grade: attrToGrade(overview.hittingScore), isStar: false },
-                { label: "FIELD", val: overview.fieldingScore ?? 0, grade: attrToGrade(overview.fieldingScore ?? 0), isStar: false },
-                { label: "SPEED", val: overview.speedScore ?? 0, grade: attrToGrade(overview.speedScore ?? 0), isStar: false },
-                { label: "PITCH", val: overview.pitchingScore ?? 0, grade: starToGrade(overview.pitchingScore ?? 0), isStar: true },
-              ].map(({ label, val, grade, isStar }) => (
+                { label: "HIT",   val: overview.hittingScore,       grade: overview.hitGrade   ?? attrToGrade(overview.hittingScore),       barPct: overview.hittingScore },
+                { label: "FIELD", val: overview.fieldingScore ?? 0, grade: overview.fieldGrade ?? attrToGrade(overview.fieldingScore ?? 0), barPct: overview.fieldingScore ?? 0 },
+                { label: "SPEED", val: overview.speedScore ?? 0,    grade: overview.speedGrade ?? attrToGrade(overview.speedScore ?? 0),    barPct: overview.speedScore ?? 0 },
+                { label: "PITCH", val: overview.pitchingScore ?? 0, grade: overview.pitchGrade ?? attrToGrade(overview.pitchingScore ?? 0), barPct: Math.round(((overview.pitchingScore ?? 0) / 650) * 100) },
+              ].map(({ label, val, grade, barPct }) => (
                 <div key={label} className="text-center p-2 bg-background/50 rounded border border-border/50 space-y-1" data-testid={`breakdown-${label.toLowerCase()}`}>
                   <p className="font-pixel text-[7px] text-muted-foreground">{label}</p>
                   <p className={`text-lg font-bold ${gradeColor(grade)}`}>{grade}</p>
                   <div className="w-full bg-background/60 rounded-full h-1.5 overflow-hidden">
                     <div
                       className={`h-full rounded-full ${gradeColor(grade).replace("text-", "bg-")}`}
-                      style={{ width: `${isStar ? Math.round((val / 5) * 100) : val}%` }}
+                      style={{ width: `${barPct}%` }}
                     />
                   </div>
-                  <p className="text-[9px] text-muted-foreground">{isStar ? `${val.toFixed(1)}★` : val}</p>
+                  <p className="text-[9px] text-muted-foreground">{val}</p>
                 </div>
               ))}
             </div>
