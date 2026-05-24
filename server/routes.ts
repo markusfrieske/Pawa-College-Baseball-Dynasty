@@ -12520,23 +12520,26 @@ export async function registerRoutes(
       }
     }
 
-    // ── CPU minimum class guarantee ───────────────────────────────────────────
-    // After all auto-commit passes, ensure every CPU/auto-pilot team has at least
-    // MIN_CLASS commits. This is a pure safety net — it runs last so it doesn't
-    // interfere with the existing roster-size fallback above.
+    // ── CPU dynamic class guarantee ───────────────────────────────────────────
+    // Replace the old hard MIN_CLASS = 3 with a per-team target derived from
+    // how many roster spots the team needs to fill up to MAX_ROSTER (25).
+    // Ensures teams with large graduating classes aren't left short.
     {
-      const MIN_CLASS = 3;
+      const MAX_ROSTER = 25;
+      const MIN_CLASS_FLOOR = 6; // always guarantee at least 6 commits
       const allAfterAutoCommit = await storage.getRecruitsByLeague(leagueId);
       const remainingPool = allAfterAutoCommit.filter(r => !r.signedTeamId);
       const poolClaimed = new Set<string>();
 
       for (const team of teams) {
         if (!team.isCpu && !team.isAutoPilot) continue;
-        const signedCount = allAfterAutoCommit.filter(r => r.signedTeamId === team.id).length;
-        if (signedCount >= MIN_CLASS) continue;
-
-        const needed = MIN_CLASS - signedCount;
         const currentRoster = await storage.getPlayersByTeam(team.id);
+        const signedCount = allAfterAutoCommit.filter(r => r.signedTeamId === team.id).length;
+        // Dynamic target: enough new players to approach MAX_ROSTER
+        const classTarget = Math.max(MIN_CLASS_FLOOR, MAX_ROSTER - currentRoster.length);
+        if (signedCount >= classTarget) continue;
+
+        const needed = classTarget - signedCount;
         const positionCounts: Record<string, number> = {};
         for (const p of currentRoster) positionCounts[p.position] = (positionCounts[p.position] || 0) + 1;
 
@@ -12568,8 +12571,86 @@ export async function registerRoutes(
           filled++;
         }
         if (filled > 0) {
-          console.log(`[finalizeSigningDay] CPU minimum class: added ${filled} commit(s) to ${team.name} (had ${signedCount}, needed ${MIN_CLASS})`);
+          console.log(`[finalizeSigningDay] CPU dynamic class: added ${filled} commit(s) to ${team.name} (had ${signedCount}, target ${classTarget})`);
         }
+      }
+    }
+
+    // ── Final full-sweep: place ALL remaining unsigned recruits ───────────────
+    // Distributes any still-unsigned recruits (including zero-interest ones) to
+    // CPU teams that still have room below MAX_ROSTER. Runs round-robin ordered
+    // by roster need so the most under-staffed teams get first pick each round.
+    {
+      const MAX_ROSTER = 25;
+      const afterDynamic = await storage.getRecruitsByLeague(leagueId);
+      const sweepPool = afterDynamic.filter(r => !r.signedTeamId);
+
+      if (sweepPool.length > 0) {
+        // Build per-team state: only CPU/auto-pilot teams with available slots
+        type SweepEntry = {
+          team: typeof teams[0];
+          slotsLeft: number;
+          positionCounts: Record<string, number>;
+        };
+        const sweepEntries: SweepEntry[] = [];
+        for (const team of teams) {
+          if (!team.isCpu && !team.isAutoPilot) continue;
+          const currentRoster = await storage.getPlayersByTeam(team.id);
+          const signedCount = afterDynamic.filter(r => r.signedTeamId === team.id).length;
+          const projectedSize = currentRoster.length + signedCount;
+          const slotsLeft = Math.max(0, MAX_ROSTER - projectedSize);
+          if (slotsLeft <= 0) continue;
+          const positionCounts: Record<string, number> = {};
+          for (const p of currentRoster) positionCounts[p.position] = (positionCounts[p.position] || 0) + 1;
+          sweepEntries.push({ team, slotsLeft, positionCounts });
+        }
+
+        if (sweepEntries.length > 0) {
+          // Sort most-needy teams first each round
+          sweepEntries.sort((a, b) => b.slotsLeft - a.slotsLeft);
+          const sweepClaimed = new Set<string>();
+          let anyPlaced = true;
+          let sweepTotal = 0;
+
+          while (anyPlaced) {
+            anyPlaced = false;
+            for (const entry of sweepEntries) {
+              if (entry.slotsLeft <= 0) continue;
+              const available = sweepPool.filter(r => !sweepClaimed.has(r.id));
+              if (available.length === 0) break;
+              const best = available.sort((a, b) => {
+                const aNeed = (entry.positionCounts[a.position] || 0) < 2 ? 10 : 0;
+                const bNeed = (entry.positionCounts[b.position] || 0) < 2 ? 10 : 0;
+                return (bNeed + (b.overall || 0)) - (aNeed + (a.overall || 0));
+              })[0];
+              if (!best) break;
+              await storage.updateRecruit(best.id, { signedTeamId: entry.team.id });
+              try {
+                await storage.createLeagueEvent({
+                  leagueId,
+                  teamId: entry.team.id,
+                  teamName: entry.team.name,
+                  teamAbbreviation: entry.team.abbreviation || entry.team.name.slice(0, 4).toUpperCase(),
+                  eventType: "SIGNING",
+                  description: `${entry.team.name} signed ${best.firstName} ${best.lastName} (${best.position}, ${best.starRating ?? 0}★) — CPU auto-signed`,
+                  season: completedSeason,
+                  week: 0,
+                });
+              } catch { /* non-fatal */ }
+              sweepClaimed.add(best.id);
+              entry.positionCounts[best.position] = (entry.positionCounts[best.position] || 0) + 1;
+              entry.slotsLeft--;
+              anyPlaced = true;
+              sweepTotal++;
+            }
+          }
+          if (sweepTotal > 0) {
+            console.log(`[finalizeSigningDay] Full-sweep: placed ${sweepTotal} additional unsigned recruit(s) with CPU teams`);
+          }
+        }
+
+        const stillUnsigned = (await storage.getRecruitsByLeague(leagueId)).filter(r => !r.signedTeamId).length;
+        console.log(`[finalizeSigningDay] After full-sweep: ${stillUnsigned} recruits remain unsigned`);
       }
     }
     // ─────────────────────────────────────────────────────────────────────────
