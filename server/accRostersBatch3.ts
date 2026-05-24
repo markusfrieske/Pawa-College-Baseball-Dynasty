@@ -421,7 +421,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       { firstName: "Eric", lastName: "Becker", position: "SS", eligibility: "SR", homeState: "VA", hometown: "Fredericksburg", jerseyNumber: 2,
         hitForAvg: 95, power: 71, speed: 73, arm: 70, fielding: 80, errorResistance: 76, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 80, vsLHP: 76, grit: 80, stealing: 50, running: 64, throwing: 76, recovery: 56, wRISP: 80, vsLefty: 76, poise: 80, heater: 0, agile: 70,
-        abilities: ["Contact Hitter", "Defensive Artisan", "Consigliere"], potential: "A+", catcherAbility: null,
+        abilities: ["Magician", "Contact Hitter", "Defensive Artisan", "Consigliere"], potential: "A+", catcherAbility: null,
         throwHand: "R", batHand: "L",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },

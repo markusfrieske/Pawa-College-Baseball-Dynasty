@@ -638,7 +638,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Mulivai", lastName: "Levu", position: "1B", eligibility: "JR", homeState: "HI", hometown: "Honolulu", jerseyNumber: 24,
       hitForAvg: 85, power: 87, speed: 55, arm: 56, fielding: 60, errorResistance: 60, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 80, vsLHP: 70, grit: 74, stealing: 8, running: 28, throwing: 56, recovery: 54, wRISP: 78, vsLefty: 68, poise: 74, heater: 0, agile: 32,
-      abilities: ["Power Hitter", "Consigliere"], potential: "A-", catcherAbility: null,
+      abilities: ["Artist", "Power Hitter", "Consigliere"], potential: "A-", catcherAbility: null,
       throwHand: "L", batHand: "L",
       skinTone: "tan", hairColor: "black", hairStyle: "short",
       ...noPitches },
