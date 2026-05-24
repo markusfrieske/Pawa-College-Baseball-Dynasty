@@ -350,8 +350,8 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "S",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
-      // Bryce Buckley — 3B SO
-      { firstName: "Bryce", lastName: "Buckley", position: "3B", eligibility: "SO", homeState: "FL", hometown: "Winter Haven", jerseyNumber: 26,
+      // Bryce Buckley — 3B FR
+      { firstName: "Bryce", lastName: "Buckley", position: "3B", eligibility: "FR", homeState: "FL", hometown: "Winter Haven", jerseyNumber: 26,
         hitForAvg: 43, power: 37, speed: 55, arm: 40, fielding: 38, errorResistance: 36, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 32, vsLHP: 30, grit: 34, stealing: 14, running: 30, throwing: 38, recovery: 28, wRISP: 30, vsLefty: 28, poise: 32, heater: 0, agile: 32,
         abilities: ["Bunt Artisan", "Double Play"], potential: "B+", catcherAbility: null,
@@ -391,10 +391,10 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
-      // Hayden Yost — OF JR
-      { firstName: "Hayden", lastName: "Yost", position: "OF", eligibility: "JR", homeState: "FL", hometown: "Sarasota", jerseyNumber: 3,
-        hitForAvg: 39, power: 32, speed: 44, arm: 34, fielding: 33, errorResistance: 31, velocity: 0, control: 0, stamina: 0, stuff: 0,
-        clutch: 31, vsLHP: 28, grit: 31, stealing: 24, running: 34, throwing: 34, recovery: 27, wRISP: 30, vsLefty: 27, poise: 31, heater: 0, agile: 35,
+      // Derek Burgess — OF FR
+      { firstName: "Derek", lastName: "Burgess", position: "OF", eligibility: "FR", homeState: "FL", hometown: "Sarasota", jerseyNumber: 3,
+        hitForAvg: 36, power: 30, speed: 55, arm: 38, fielding: 34, errorResistance: 31, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        clutch: 28, vsLHP: 26, grit: 30, stealing: 22, running: 36, throwing: 38, recovery: 26, wRISP: 27, vsLefty: 25, poise: 28, heater: 0, agile: 40,
         abilities: ["Express Baserunning"], potential: "B+", catcherAbility: null,
         throwHand: "R", batHand: "L",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
@@ -584,8 +584,8 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "L", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 6, 0, 1, 0, 0, 0]) },
-    // Aiden Sims — Saturday SO RHP, 5-1/4.68, top weekend arm
-    { firstName: "Aiden", lastName: "Sims", position: "P", eligibility: "SO", homeState: "TX", hometown: "Austin", jerseyNumber: 22,
+    // Aiden Sims — Saturday FR RHP, 5-1/4.68, top weekend arm
+    { firstName: "Aiden", lastName: "Sims", position: "P", eligibility: "FR", homeState: "TX", hometown: "Austin", jerseyNumber: 22,
       hitForAvg: 16, power: 12, speed: 32, arm: 60, fielding: 35, errorResistance: 46, velocity: 59, control: 57, stamina: 60, stuff: 57,
       clutch: 70, vsLHP: 66, grit: 70, stealing: 11, running: 33, throwing: 72, recovery: 49, wRISP: 51, vsLefty: 54, poise: 56, heater: 60, agile: 38,
       abilities: ["Strong Starter", "Sharpness", "Doctor K", "Flyball Pitcher"], potential: "A", catcherAbility: null,
@@ -1030,8 +1030,8 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
-      // Gage Oelke — SO C backup
-      { firstName: "Gage", lastName: "Oelke", position: "C", eligibility: "SO", homeState: "MS", hometown: "Meridian", jerseyNumber: 14,
+      // Gage Oelke — FR C backup
+      { firstName: "Gage", lastName: "Oelke", position: "C", eligibility: "FR", homeState: "MS", hometown: "Meridian", jerseyNumber: 14,
         hitForAvg: 47, power: 43, speed: 36, arm: 46, fielding: 44, errorResistance: 40, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 38, vsLHP: 34, grit: 38, stealing: 10, running: 26, throwing: 46, recovery: 34, wRISP: 36, vsLefty: 32, poise: 38, heater: 0, agile: 28,
         abilities: ["Puller Hitter"], potential: "B+", catcherAbility: 42,
