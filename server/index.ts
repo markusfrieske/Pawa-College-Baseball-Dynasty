@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import { pool } from "./db";
+import { calculateOVR, getStarRatingFromOVR } from "../shared/abilities";
 
 const app = express();
 const httpServer = createServer(app);
@@ -146,6 +147,89 @@ app.use((req, res, next) => {
   }
 
   await registerRoutes(httpServer, app);
+
+  // One-time OVR resync — runs in background after startup.
+  // Recomputes calculateOVR() for every player and corrects any stored `overall`
+  // that drifted out of sync when the OVR formula weights were last updated.
+  // Also clears suspiciously large negative progressionDeltas.overall (< -20)
+  // that were caused by formula-drift, not genuine regression.
+  void (async () => {
+    try {
+      const { rows: players } = await pool.query<{
+        id: string;
+        position: string | null;
+        hit_for_avg: number | null; power: number | null; speed: number | null;
+        arm: number | null; fielding: number | null; error_resistance: number | null;
+        velocity: number | null; control: number | null; stamina: number | null; stuff: number | null;
+        clutch: number | null; vs_lhp: number | null; grit: number | null; stealing: number | null;
+        running: number | null; throwing: number | null; recovery: number | null;
+        w_risp: number | null; vs_lefty: number | null; poise: number | null;
+        heater: number | null; agile: number | null;
+        abilities: string[] | null;
+        overall: number | null;
+        star_rating: number | null;
+        progression_deltas: Record<string, number> | null;
+      }>(`
+        SELECT id, position,
+          hit_for_avg, power, speed, arm, fielding, error_resistance,
+          velocity, control, stamina, stuff,
+          clutch, vs_lhp, grit, stealing, running, throwing, recovery,
+          w_risp, vs_lefty, poise, heater, agile,
+          abilities, overall, star_rating, progression_deltas
+        FROM players
+      `);
+
+      let resynced = 0;
+      let deltaCleared = 0;
+
+      for (const p of players) {
+        const computed = calculateOVR({
+          position: p.position,
+          hitForAvg: p.hit_for_avg, power: p.power, speed: p.speed,
+          arm: p.arm, fielding: p.fielding, errorResistance: p.error_resistance,
+          velocity: p.velocity, control: p.control, stamina: p.stamina, stuff: p.stuff,
+          clutch: p.clutch, vsLHP: p.vs_lhp, grit: p.grit, stealing: p.stealing,
+          running: p.running, throwing: p.throwing, recovery: p.recovery,
+          wRISP: p.w_risp, vsLefty: p.vs_lefty, poise: p.poise, heater: p.heater, agile: p.agile,
+          abilities: p.abilities,
+        });
+        const newStar = getStarRatingFromOVR(computed);
+
+        const setFields: string[] = [];
+        const vals: (string | number | null)[] = [];
+
+        if (p.overall !== computed) {
+          setFields.push(`overall = $${vals.length + 1}`); vals.push(computed);
+          setFields.push(`star_rating = $${vals.length + 1}`); vals.push(newStar);
+          resynced++;
+        }
+
+        // Clear suspiciously large negative delta caused by formula drift (< -20)
+        const ovrDelta = p.progression_deltas?.overall;
+        if (typeof ovrDelta === "number" && ovrDelta < -20) {
+          const cleared: Record<string, number> = { ...p.progression_deltas };
+          delete cleared.overall;
+          const newDeltas = Object.keys(cleared).length > 0 ? JSON.stringify(cleared) : null;
+          setFields.push(`progression_deltas = $${vals.length + 1}`); vals.push(newDeltas);
+          deltaCleared++;
+        }
+
+        if (setFields.length > 0) {
+          vals.push(p.id);
+          await pool.query(
+            `UPDATE players SET ${setFields.join(", ")} WHERE id = $${vals.length}`,
+            vals,
+          );
+        }
+      }
+
+      if (resynced > 0 || deltaCleared > 0) {
+        console.log(`[ovr-resync] Corrected ${resynced} player OVR values, cleared ${deltaCleared} spurious negative deltas`);
+      }
+    } catch (e) {
+      console.warn("[ovr-resync] Failed:", e);
+    }
+  })();
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

@@ -11141,6 +11141,14 @@ export async function registerRoutes(
       for (const player of roster) {
         if (player.potential == null) continue;
 
+        // Seniors graduate without a progression delta — clear any stale deltas
+        if ((player as any).eligibility === "SR") {
+          if ((player as any).progressionDeltas != null) {
+            await storage.updatePlayer(player.id, { progressionDeltas: null } as any);
+          }
+          continue;
+        }
+
         const targetOvrDelta = getOvrDeltaFromPotential(player.potential);
 
         const weScore = player.workEthicScore as number | null | undefined;
@@ -11160,6 +11168,12 @@ export async function registerRoutes(
         const scaledDelta = targetOvrDelta >= 0
           ? targetOvrDelta * clampedMult
           : targetOvrDelta / clampedMult;
+
+        // Baseline OVR computed from current attributes (before any updates).
+        // Using this instead of player.overall for the delta eliminates formula-drift
+        // contamination — if weights changed since the last save, the baseline
+        // correctly reflects what the current formula would produce for these attrs.
+        const baselineOvr = calculateOVR(player as any);
 
         const updates: Record<string, number> = {};
         const deltas: Record<string, number> = {};
@@ -11204,7 +11218,9 @@ export async function registerRoutes(
 
         for (const attr of presentCommonFields) {
           const val = (player as any)[attr] as number;
-          const variance = (Math.random() - 0.5) * 3;
+          // Halve noise for improving players — reduces the chance a capped attr's
+          // small negative variance drags OVR below baseline for A/B potential players.
+          const variance = (Math.random() - 0.5) * (targetOvrDelta > 0 ? 1.5 : 3);
           const delta = Math.round(targetAvgAttrDelta * 0.8 + variance);
           const newVal = Math.max(1, Math.min(100, val + delta));
           updates[attr] = newVal;
@@ -11216,9 +11232,22 @@ export async function registerRoutes(
         for (const [key, val] of Object.entries(updates)) {
           updatedPlayerData[key] = val;
         }
-        const newOverall = calculateOVR(updatedPlayerData);
+        const rawNewOverall = calculateOVR(updatedPlayerData);
+
+        // Apply OVR floor based on potential grade.
+        // A/B grades: OVR must never drop (design intent: positive potential = positive growth).
+        // C+: allow at most a 2-point drop (plateau zone, tiny regression ok).
+        const potGradeForFloor = getPotentialGrade(player.potential);
+        let newOverall = rawNewOverall;
+        if (["A+", "A", "A-", "B+", "B", "B-"].includes(potGradeForFloor)) {
+          newOverall = Math.max(baselineOvr, rawNewOverall);
+        } else if (potGradeForFloor === "C+") {
+          newOverall = Math.max(baselineOvr - 2, rawNewOverall);
+        }
+
         updates["overall"] = newOverall;
-        const ovrDelta = newOverall - player.overall;
+        // Delta relative to baseline (not stored overall) — eliminates formula-drift noise.
+        const ovrDelta = newOverall - baselineOvr;
         if (ovrDelta !== 0) deltas["overall"] = ovrDelta;
 
         updates["starRating"] = getStarRatingFromOVR(newOverall);
