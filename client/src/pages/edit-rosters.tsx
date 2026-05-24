@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { PlayerPortrait } from "@/components/ui/player-portrait";
 import type { Player, Team } from "@shared/schema";
 import { ALL_PITCHER_ABILITIES, ALL_FIELDER_ABILITIES, getAbilityByName, type Ability } from "@shared/abilities";
+import { TRAJECTORY_LABELS } from "@shared/trajectory";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface LeagueData {
@@ -318,6 +319,7 @@ export default function EditRostersPage() {
                             <SortHeader field="overall" label="OVR" />
                             <SortHeader field="starRating" label="STARS" />
                             <th className="px-2 py-2 text-xs font-pixel text-gold">B/T</th>
+                            <th className="px-2 py-2 text-xs font-pixel text-gold">TRAJ</th>
                             <th className="px-2 py-2 text-xs font-pixel text-gold">HOMETOWN</th>
                             <th className="px-2 py-2 text-xs font-pixel text-gold">STATE</th>
                             <th className="px-2 py-2 text-xs font-pixel text-gold">CONTACT</th>
@@ -552,6 +554,26 @@ export default function EditRostersPage() {
                                       </SelectContent>
                                     </Select>
                                   </div>
+                                </td>
+                                {/* Traj */}
+                                <td className="px-2 py-1">
+                                  {isPitcher ? (
+                                    <span className="text-xs text-muted-foreground">—</span>
+                                  ) : (
+                                    <Select
+                                      value={String(getPlayerValue(player, "trajectory") ?? 2)}
+                                      onValueChange={(v) => updatePlayer(player.id, "trajectory", parseInt(v))}
+                                    >
+                                      <SelectTrigger className="h-7 w-14 text-xs" data-testid={`select-traj-${player.id}`}>
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        {([1, 2, 3, 4] as const).map(t => (
+                                          <SelectItem key={t} value={String(t)}>{t} {TRAJECTORY_LABELS[t]}</SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                  )}
                                 </td>
                                 {/* Hometown */}
                                 <td className="px-2 py-1">

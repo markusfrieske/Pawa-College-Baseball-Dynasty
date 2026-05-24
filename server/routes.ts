@@ -11291,6 +11291,8 @@ export async function registerRoutes(
     const teams = await storage.getTeamsByLeague(leagueId);
     let progressed = 0;
 
+    // trajectory is intentionally excluded — it is a hit-type profile, not a developable skill,
+    // and must not be changed by the progression system.
     const attrFields = [
       "hitForAvg", "power", "speed", "arm", "fielding", "errorResistance",
       "velocity", "control", "stamina", "stuff",
@@ -11746,7 +11748,7 @@ export async function registerRoutes(
             potential: player.potential ?? rollWeightedPotential(),
             sourcePlayerId: player.id,
             fromTeamName: teamName,
-            trajectory: (player as any).trajectory ?? (["P","SP","RP","CP"].includes(player.position) ? 2 : assignTrajectory(player.hitForAvg ?? 50, player.speed ?? 50, player.hitForAvg ?? 50)),
+            trajectory: (player as any).trajectory ?? (["P","SP","RP","CP"].includes(player.position) ? 2 : assignTrajectory(player.power ?? 50, player.speed ?? 50, player.hitForAvg ?? 50)),
             commitmentThreshold: 450,
             proximityPriority: "Somewhat",
             reputationPriority: "Very Important",
@@ -13718,7 +13720,7 @@ export async function registerRoutes(
           hairStyle: walkon.hairStyle || "short",
           headwear: walkon.headwear || "cap",
           potential: walkon.potential ?? 60,
-          trajectory: ["P","SP","RP","CP"].includes(walkon.position) ? 2 : assignTrajectory(boostedHitForAvg, boostedSpeed, boostedHitForAvg),
+          trajectory: ["P","SP","RP","CP"].includes(walkon.position) ? 2 : assignTrajectory(boostedPower, boostedSpeed, boostedHitForAvg),
           sourcePlayerId: null,
           fromTeamName: null,
         });

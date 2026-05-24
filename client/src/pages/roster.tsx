@@ -39,6 +39,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import type { Player, Team, Coach, League } from "@shared/schema";
 import { isPitcher, isCatcher, isInfielder, isOutfielder } from "@shared/positions";
 import { getPotentialGrade, getProgressionZone, getProgressionColor } from "@shared/potential";
+import { TRAJECTORY_LABELS } from "@shared/trajectory";
 
 interface RosterData {
   players: Player[];
@@ -579,6 +580,11 @@ function PositionSection({ title, players, onSelectPlayer, teamPrimaryColor, pro
                     <>
                       <span className={`font-pixel text-[7px] px-1 py-0.5 rounded border ${player.batHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : player.batHand === "S" ? "bg-purple-500/15 text-purple-400 border-purple-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`} data-testid={`badge-bat-mobile-${player.id}`}>B:{player.batHand}</span>
                       <span className={`font-pixel text-[7px] px-1 py-0.5 rounded border ${player.throwHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`} data-testid={`badge-throw-mobile-${player.id}`}>T:{player.throwHand}</span>
+                      {(player as any).trajectory != null && (player as any).trajectory !== 2 && (
+                        <span className="font-pixel text-[7px] px-1 py-0.5 rounded border border-gold/30 text-gold/70 bg-gold/5" data-testid={`badge-traj-mobile-${player.id}`}>
+                          {TRAJECTORY_LABELS[(player as any).trajectory] ?? "LD"}
+                        </span>
+                      )}
                     </>
                   )}
                   {progressionEnabled && player.potential != null && (
@@ -670,7 +676,14 @@ function PositionSection({ title, players, onSelectPlayer, teamPrimaryColor, pro
                   {isPitcher(player.position) ? (
                     <span className={`font-pixel text-[7px] px-1.5 py-0.5 rounded border ${player.throwHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`} data-testid={`badge-hand-desktop-${player.id}`}>{player.throwHand}HP</span>
                   ) : (
-                    <span className={`font-pixel text-[7px] px-1.5 py-0.5 rounded border ${player.batHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : player.batHand === "S" ? "bg-purple-500/15 text-purple-400 border-purple-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`} data-testid={`badge-hand-desktop-${player.id}`}>{player.batHand}/{player.throwHand}</span>
+                    <div className="flex items-center gap-1 justify-center flex-wrap">
+                      <span className={`font-pixel text-[7px] px-1.5 py-0.5 rounded border ${player.batHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : player.batHand === "S" ? "bg-purple-500/15 text-purple-400 border-purple-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`} data-testid={`badge-hand-desktop-${player.id}`}>{player.batHand}/{player.throwHand}</span>
+                      {(player as any).trajectory != null && (player as any).trajectory !== 2 && (
+                        <span className="font-pixel text-[7px] px-1.5 py-0.5 rounded border border-gold/30 text-gold/70 bg-gold/5" data-testid={`badge-traj-desktop-${player.id}`}>
+                          {TRAJECTORY_LABELS[(player as any).trajectory] ?? "LD"}
+                        </span>
+                      )}
+                    </div>
                   )}
                 </td>
                 <td className="text-center py-3 px-2">
