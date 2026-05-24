@@ -12314,7 +12314,7 @@ export async function registerRoutes(
     let totalRecruitsAdded = 0;
     let totalTransferred = 0;
 
-    const MIN_ROSTER = 20;
+    const MIN_ROSTER = 22;
     const cpuTeamsNeedingRecruits: Array<{ team: typeof teams[0]; needed: number; positionCounts: Record<string, number> }> = [];
     const allRecruitsPreCheck = await storage.getRecruitsByLeague(leagueId);
 
@@ -12324,7 +12324,7 @@ export async function registerRoutes(
       const currentRoster = await storage.getPlayersByTeam(team.id);
       const alreadySignedCount = allRecruitsPreCheck.filter(r => r.signedTeamId === team.id).length;
       const projectedSize = currentRoster.length + alreadySignedCount;
-      if (projectedSize < MIN_ROSTER) {
+      if (projectedSize <= MIN_ROSTER) {
         const positionCounts: Record<string, number> = {};
         for (const p of currentRoster) positionCounts[p.position] = (positionCounts[p.position] || 0) + 1;
         cpuTeamsNeedingRecruits.push({ team, needed: MIN_ROSTER - projectedSize, positionCounts });
@@ -12379,7 +12379,7 @@ export async function registerRoutes(
     // preview "committingTo" value often didn't match what happened in the DB.
     {
       const stillUnsigned = (await storage.getRecruitsByLeague(leagueId)).filter(
-        r => !r.signedTeamId && ["top3", "top5", "verbal"].includes(r.stage || "")
+        r => !r.signedTeamId && ["verbal", "top3", "top5", "top8", "open"].includes(r.stage || "")
       );
       for (const recruit of stillUnsigned) {
         try {
@@ -12400,6 +12400,60 @@ export async function registerRoutes(
         console.log(`[finalizeSigningDay] Auto-committed ${stillUnsigned.length} undecided recruits based on interest`);
       }
     }
+
+    // ── CPU minimum class guarantee ───────────────────────────────────────────
+    // After all auto-commit passes, ensure every CPU/auto-pilot team has at least
+    // MIN_CLASS commits. This is a pure safety net — it runs last so it doesn't
+    // interfere with the existing roster-size fallback above.
+    {
+      const MIN_CLASS = 3;
+      const allAfterAutoCommit = await storage.getRecruitsByLeague(leagueId);
+      const remainingPool = allAfterAutoCommit.filter(r => !r.signedTeamId);
+      const poolClaimed = new Set<string>();
+
+      for (const team of teams) {
+        if (!team.isCpu && !team.isAutoPilot) continue;
+        const signedCount = allAfterAutoCommit.filter(r => r.signedTeamId === team.id).length;
+        if (signedCount >= MIN_CLASS) continue;
+
+        const needed = MIN_CLASS - signedCount;
+        const currentRoster = await storage.getPlayersByTeam(team.id);
+        const positionCounts: Record<string, number> = {};
+        for (const p of currentRoster) positionCounts[p.position] = (positionCounts[p.position] || 0) + 1;
+
+        let filled = 0;
+        while (filled < needed) {
+          const available = remainingPool.filter(r => !poolClaimed.has(r.id));
+          if (available.length === 0) break;
+          const best = available.sort((a, b) => {
+            const aNeed = (positionCounts[a.position] || 0) < 2 ? 10 : 0;
+            const bNeed = (positionCounts[b.position] || 0) < 2 ? 10 : 0;
+            return (bNeed + (b.overall || 0)) - (aNeed + (a.overall || 0));
+          })[0];
+          if (!best) break;
+          await storage.updateRecruit(best.id, { signedTeamId: team.id });
+          try {
+            await storage.createLeagueEvent({
+              leagueId,
+              teamId: team.id,
+              teamName: team.name,
+              teamAbbreviation: team.abbreviation || team.name.slice(0, 4).toUpperCase(),
+              eventType: "SIGNING",
+              description: `${team.name} signed ${best.firstName} ${best.lastName} (${best.position}, ${best.starRating ?? 0}★) — CPU auto-signed`,
+              season: completedSeason,
+              week: 0,
+            });
+          } catch { /* non-fatal */ }
+          poolClaimed.add(best.id);
+          positionCounts[best.position] = (positionCounts[best.position] || 0) + 1;
+          filled++;
+        }
+        if (filled > 0) {
+          console.log(`[finalizeSigningDay] CPU minimum class: added ${filled} commit(s) to ${team.name} (had ${signedCount}, needed ${MIN_CLASS})`);
+        }
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────────
 
     // NOTE: signingDayRevealed is NOT set here anymore.
     // The attr/common-ability holdback (40%/50%) stays in place until coaches watch the Signing Day screen.
