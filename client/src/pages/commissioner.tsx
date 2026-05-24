@@ -453,6 +453,23 @@ export default function CommissionerPage() {
     },
   });
 
+  const dedupRostersMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/leagues/${id}/admin/dedup-rosters`, {});
+      return res.json() as Promise<{ removed: number; log: string[] }>;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id] });
+      const msg = data.removed === 0
+        ? "No duplicate players found — rosters are clean."
+        : `Removed ${data.removed} duplicate player row(s).`;
+      toast({ title: "Dedup Complete", description: msg });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Dedup Failed", description: parseErrorMessage(error), variant: "destructive" });
+    },
+  });
+
   const importRecruitingMutation = useMutation({
     mutationFn: async (csvData?: string) => {
       const res = await apiRequest("POST", `/api/leagues/${id}/recruiting/import`, { csvData });
@@ -594,6 +611,8 @@ export default function CommissionerPage() {
               isSimFullSeason={simFullSeasonMutation.isPending}
               onBackfillScores={() => backfillScoresMutation.mutate()}
               isBackfilling={backfillScoresMutation.isPending}
+              onDedupRosters={() => dedupRostersMutation.mutate()}
+              isDedupingRosters={dedupRostersMutation.isPending}
               autoAdvance={autoAdvance}
               toggleAutoAdvance={toggleAutoAdvance}
             />
@@ -683,6 +702,8 @@ function ActionsTab({
   isSimFullSeason,
   onBackfillScores,
   isBackfilling,
+  onDedupRosters,
+  isDedupingRosters,
   autoAdvance,
   toggleAutoAdvance,
 }: {
@@ -707,6 +728,8 @@ function ActionsTab({
   isSimFullSeason: boolean;
   onBackfillScores: () => void;
   isBackfilling: boolean;
+  onDedupRosters: () => void;
+  isDedupingRosters: boolean;
   autoAdvance: boolean;
   toggleAutoAdvance: (val: boolean) => void;
 }) {
@@ -1127,6 +1150,37 @@ function ActionsTab({
               disabled={isBackfilling}
               dataTestId="button-backfill-recruiting-scores"
             />
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <div>
+                  <ActionButton
+                    label={isDedupingRosters ? "Scanning..." : "Dedup Rosters"}
+                    description="Scan all team rosters for duplicate players and remove extras. Safe to run anytime — idempotent."
+                    variant="destructive"
+                    disabled={isDedupingRosters}
+                    dataTestId="button-dedup-rosters"
+                  />
+                </div>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="bg-card border-border">
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="font-pixel text-gold text-sm">Dedup All Rosters?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will scan every team for players sharing the same name and remove the duplicate. The earlier-added player is kept. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel className="bg-background border-border">Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-destructive text-destructive-foreground"
+                    onClick={onDedupRosters}
+                    data-testid="button-confirm-dedup-rosters"
+                  >
+                    Run Dedup
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
             <ActionButton 
               label={isSimulating ? "Simulating..." : "Simulate Week"}
               description="Auto-resolve all games for this week" 

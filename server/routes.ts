@@ -349,6 +349,10 @@ async function ensureCoachTraits(
   }
 }
 
+// Per-league lock: prevents the advance endpoint from being executed
+// concurrently for the same league (double-click / network retry protection).
+const advancingLeagues = new Set<string>();
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -8141,9 +8145,18 @@ export async function registerRoutes(
       const currentWeek = league.currentWeek;
       const nextWeek = currentWeek + 1;
 
+      // Concurrent-advance guard — reject duplicate requests while one is in flight
+      if (advancingLeagues.has(leagueId)) {
+        return res.status(409).json({ message: "League advance already in progress. Please wait." });
+      }
+      advancingLeagues.add(leagueId);
+
       setAdvanceProgress(leagueId, "initializing", 5);
-      // Auto-clear progress once the response is fully sent
-      res.on("finish", () => clearAdvanceProgress(leagueId));
+      // Auto-clear progress and lock once the response is fully sent
+      res.on("finish", () => {
+        clearAdvanceProgress(leagueId);
+        advancingLeagues.delete(leagueId);
+      });
 
       // ============ POWER RANKINGS SNAPSHOT ============
       // Capture rankings before any changes via SQL aggregation (3 aggregate queries vs 3 full-table loads)
@@ -9064,6 +9077,8 @@ export async function registerRoutes(
         .catch(e => console.error("[digest] advance hook:", e));
     } catch (error: any) {
       console.error("Failed to advance week:", error);
+      // Release the per-league lock on error so the next request isn't blocked
+      advancingLeagues.delete(req.params.id as string);
       res.status(500).json({ message: "Failed to advance week", detail: error?.message || String(error) });
     }
   });
@@ -13053,7 +13068,19 @@ export async function registerRoutes(
       const recruits = await storage.getRecruitsByLeague(leagueId);
       const signedRecruits = recruits.filter(r => r.signedTeamId === team.id);
 
+      // Dedup guard: build a name-key set from current roster so re-running
+      // this function (double-advance, retry) cannot insert the same player twice.
+      const existingAfterElig = await storage.getPlayersByTeam(team.id);
+      const existingNameKeys = new Set(existingAfterElig.map(p => `${p.firstName}|${p.lastName}`));
+      const insertedThisPass = new Set<string>();
+
       for (const recruit of signedRecruits) {
+        const nameKey = `${recruit.firstName}|${recruit.lastName}`;
+        if (existingNameKeys.has(nameKey) || insertedThisPass.has(nameKey)) {
+          console.warn(`[finalizeSigningDay] Skipping duplicate player ${recruit.firstName} ${recruit.lastName} on team ${team.name}`);
+          continue;
+        }
+        insertedThisPass.add(nameKey);
         const jerseyNumber = 1 + Math.floor(Math.random() * 99);
         const recruitElig = recruit.recruitType === "TRANSFER" ? (recruit.recruitYear || "SO") : "FR";
         const finalElig = recruit.recruitType === "JUCO" ? (recruit.recruitYear || "FR") : recruitElig;
@@ -13384,7 +13411,20 @@ export async function registerRoutes(
 
     for (const team of teams) {
       const signedWalkons = updatedWalkons.filter(w => w.signedTeamId === team.id);
+
+      // Dedup guard: finalizeSigningDay already ran and added signed recruits.
+      // Guard against re-insertion if this function is called a second time.
+      const existingWalkonPlayers = await storage.getPlayersByTeam(team.id);
+      const existingWalkonNameKeys = new Set(existingWalkonPlayers.map(p => `${p.firstName}|${p.lastName}`));
+      const insertedThisWalkonPass = new Set<string>();
+
       for (const walkon of signedWalkons) {
+        const walkonNameKey = `${walkon.firstName}|${walkon.lastName}`;
+        if (existingWalkonNameKeys.has(walkonNameKey) || insertedThisWalkonPass.has(walkonNameKey)) {
+          console.warn(`[finalizeWalkonsPhase] Skipping duplicate player ${walkon.firstName} ${walkon.lastName} on team ${team.id}`);
+          continue;
+        }
+        insertedThisWalkonPass.add(walkonNameKey);
         const jerseyNumber = 1 + Math.floor(Math.random() * 99);
         await storage.createPlayer({
           teamId: team.id,
@@ -13686,6 +13726,33 @@ export async function registerRoutes(
       "post-walkons"
     );
 
+    // Post-transition roster oversize check — catches any duplicate-player fallout
+    // before the new season begins. Threshold is 35 (well above the 25-player cap) to
+    // avoid false positives while still catching catastrophic double-inserts.
+    {
+      const OVERSIZE_THRESHOLD = 35;
+      const teamsPostWalkons = await storage.getTeamsByLeague(leagueId);
+      const oversized: string[] = [];
+      for (const t of teamsPostWalkons) {
+        const roster = await storage.getPlayersByTeam(t.id);
+        if (roster.length > OVERSIZE_THRESHOLD) {
+          oversized.push(`${t.name} (${roster.length} players)`);
+          console.error(`[finalizeWalkonsPhase] ROSTER_OVERSIZE: ${t.name} has ${roster.length} players — possible duplicate inserts`);
+        }
+      }
+      if (oversized.length > 0) {
+        try {
+          await storage.createLeagueEvent({
+            leagueId,
+            eventType: "PHASE_CHANGE",
+            description: `⚠ ROSTER OVERSIZE after walk-ons: ${oversized.join(", ")} exceeded ${OVERSIZE_THRESHOLD} players. Commissioner can run the dedup-rosters tool to clean up.`,
+            season: completedSeason,
+            week: 0,
+          });
+        } catch (e) { /* non-fatal */ }
+      }
+    }
+
     // Compute NIL budgets for the new season — failure is intentionally non-silent
     await computeSeasonNilBudget(leagueId, completedSeason);
     console.log(`[NIL] Season ${completedSeason + 1} budgets computed for league ${leagueId}`);
@@ -13710,6 +13777,55 @@ export async function registerRoutes(
     };
   }
   
+  // ============ ADMIN: DEDUP ROSTERS ============
+  // Commissioner-only endpoint. Scans every team for players with the same
+  // firstName+lastName and removes the duplicate with the higher (later-inserted) id,
+  // preserving the original. Safe to call multiple times (idempotent).
+  app.post("/api/leagues/:id/admin/dedup-rosters", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      if (!hasCommissionerAccess(league, req.session.userId)) {
+        return res.status(403).json({ message: "Commissioner only" });
+      }
+
+      const leagueTeams = await storage.getTeamsByLeague(league.id);
+      let totalRemoved = 0;
+      const log: string[] = [];
+
+      for (const team of leagueTeams) {
+        const roster = await storage.getPlayersByTeam(team.id);
+        // Sort ascending by id so we always keep the *earlier* insert (lower id)
+        const sorted = roster.slice().sort((a, b) => a.id.localeCompare(b.id));
+        const seen = new Map<string, string>(); // nameKey → kept player id
+        for (const player of sorted) {
+          const key = `${player.firstName}|${player.lastName}`;
+          if (seen.has(key)) {
+            await storage.deletePlayer(player.id);
+            const msg = `Removed duplicate ${player.firstName} ${player.lastName} (id=${player.id}) from ${team.name}`;
+            log.push(msg);
+            console.log(`[dedup-rosters] ${msg}`);
+            totalRemoved++;
+          } else {
+            seen.set(key, player.id);
+          }
+        }
+      }
+
+      await storage.createAuditLog({
+        leagueId: league.id,
+        userId: req.session.userId!,
+        action: "Admin: Dedup Rosters",
+        details: `Removed ${totalRemoved} duplicate player row(s). ${log.join("; ")}`,
+      });
+
+      res.json({ removed: totalRemoved, log });
+    } catch (error) {
+      console.error("Failed to dedup rosters:", error);
+      res.status(500).json({ message: "Failed to dedup rosters" });
+    }
+  });
+
   // ============ PLAYER HISTORY API ============
   app.get("/api/leagues/:id/player-history", requireAuth, async (req, res) => {
     try {
