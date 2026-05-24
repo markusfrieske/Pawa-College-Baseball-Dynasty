@@ -598,7 +598,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
                     {(isPitcher ? (
                       [
                         { field: "wRISP",    label: "W/RISP"  },
-                        { field: "vsLefty",  label: "VSLEFY"  },
+                        { field: "vsLefty",  label: "VSLEFTY" },
                         { field: "poise",    label: "POISE"   },
                         { field: "grit",     label: "GRIT"    },
                         { field: "heater",   label: "HEATER"  },
