@@ -933,7 +933,7 @@ function CompactGameRow({
               </RetroButton>
             </Link>
           )}
-          {!game.isComplete && !isHumanVsHuman && (
+          {!game.isComplete && (
             isSeriesLocked ? (
               <RetroButton variant="outline" size="sm" disabled className="opacity-40 cursor-not-allowed" data-testid={`button-pbp-locked-${game.id}`}>
                 <Lock className="w-3 h-3" />
@@ -1198,7 +1198,7 @@ function StandaloneGameRow({
                   </RetroButton>
                 </Link>
               )}
-              {!callbacks.isUserGame(game) && (
+              {(
                 isSeriesLocked ? (
                   <RetroButton variant="outline" size="sm" disabled className="opacity-40 cursor-not-allowed" data-testid={`button-pbp-locked-${game.id}`}>
                     <Lock className="w-3 h-3" />
