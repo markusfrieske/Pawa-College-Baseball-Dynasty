@@ -125,23 +125,26 @@ export default function LandingPage() {
             <img
               src="/chibi-hero.png"
               alt="College Baseball Dynasty chibi baseball players"
-              className="absolute inset-0 w-full h-full object-cover object-center"
-              style={{ maskImage: "linear-gradient(to right, transparent 0%, black 20%)", WebkitMaskImage: "linear-gradient(to right, transparent 0%, black 20%)" }}
+              className="absolute inset-0 w-full h-full object-cover object-center opacity-40 md:opacity-100"
+              style={{ maskImage: "linear-gradient(to right, transparent 0%, black 30%)", WebkitMaskImage: "linear-gradient(to right, transparent 0%, black 30%)" }}
             />
-            {/* Left-side mask to blend into content */}
-            <div className="absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-background via-background/80 to-transparent" />
+            {/* Left-side mask to blend into content — stronger on all sizes */}
+            <div className="absolute inset-y-0 left-0 w-[70%] bg-gradient-to-r from-background via-background/95 to-transparent" />
+            {/* Extra mobile overlay — fully covers left 55% on small screens */}
+            <div className="absolute inset-y-0 left-0 w-[55%] bg-background md:hidden" />
           </div>
 
           {/* Left content */}
           <div className="relative z-10 container mx-auto px-6 sm:px-10 py-20">
-            <div className="max-w-xl">
+            {/* Mobile text backdrop — guarantees contrast on small viewports */}
+            <div className="max-w-xl md:bg-transparent md:backdrop-blur-none bg-background/70 backdrop-blur-sm rounded-sm px-4 py-5 -mx-1 md:p-0 md:mx-0">
               {/* Season badge */}
               <div className="inline-flex items-center gap-2 border border-gold/30 bg-gold/5 px-4 py-1.5 mb-8 text-gold/80 text-[10px] font-pixel tracking-wider">
                 <span className="text-gold">◆</span> SEASON 2026 · OPEN BETA <span className="text-gold">◆</span>
               </div>
 
               {/* Large editorial headline */}
-              <h1 className="font-pixel text-gold leading-none mb-8" style={{ fontSize: "clamp(2.2rem, 6vw, 4.5rem)", textShadow: "0 0 40px rgba(196,163,90,0.25)" }}>
+              <h1 className="font-pixel text-gold leading-none mb-8" style={{ fontSize: "clamp(2.2rem, 6vw, 4.5rem)", textShadow: "0 2px 12px rgba(0,0,0,0.9), 0 0 40px rgba(196,163,90,0.35)" }}>
                 College
                 <br />
                 <span className="ml-4 sm:ml-8">Baseball</span>
@@ -149,7 +152,7 @@ export default function LandingPage() {
                 Dynasty
               </h1>
 
-              <p className="text-foreground/65 text-lg leading-relaxed max-w-md mb-10">
+              <p className="text-foreground/80 text-lg leading-relaxed max-w-md mb-10" style={{ textShadow: "0 1px 6px rgba(0,0,0,0.8)" }}>
                 The most immersive college baseball management sim. Recruit real talent, build your program, and compete against real coaches in a persistent league.
               </p>
 
