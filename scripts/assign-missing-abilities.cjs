@@ -32,7 +32,7 @@ const FILE_CONFERENCE = {
   'bigTenBatch3.ts':     'Big Ten',
   'big12Rosters.ts':     'Big 12',
   'pac12Rosters.ts':     'Pac-12',
-  'mwcRosters.ts':       'Pac-12',
+  'mwcRosters.ts':       'Pac-12', // MWC teams (Fresno St/SDSU/UNLV/Nevada/NM/AF) are part of Pac-12 in this game
   'aacRosters.ts':       'AAC',
   'sunBeltRosters.ts':   'Sun Belt',
   'wccRosters.ts':       'WCC',
@@ -44,11 +44,14 @@ const FILE_CONFERENCE = {
 
 const SERVER_DIR = path.join(__dirname, '..', 'server');
 
+// Pitcher positions — mirrors the canonical set in shared/abilities.ts
+const PITCHER_POSITIONS = new Set(['P', 'SP', 'RP', 'CP']);
+
 // ---------------------------------------------------------------------------
 // OVR calculation (matches shared/abilities.ts calculateOVR, no ability bonus)
 // ---------------------------------------------------------------------------
 function computeOVR(p) {
-  const isPitcher = p.position === 'P';
+  const isPitcher = PITCHER_POSITIONS.has(p.position);
   if (isPitcher) {
     const pitchCore   = (p.velocity||0) + (p.control||0) + (p.stamina||0) + (p.stuff||0);
     const pitchField  = (p.arm||0)      + (p.fielding||0);
@@ -73,7 +76,7 @@ function computeOVR(p) {
 // Attribute → contextual blue ability mapping
 // ---------------------------------------------------------------------------
 function pickAbility(p) {
-  if (p.position === 'P') {
+  if (PITCHER_POSITIONS.has(p.position)) {
     const v = p.velocity || 0;
     const c = p.control  || 0;
     const s = p.stuff    || 0;
