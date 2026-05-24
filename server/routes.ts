@@ -3508,6 +3508,25 @@ export async function registerRoutes(
       const league = await storage.getLeague(req.params.id);
       if (!league) return res.status(404).json({ message: "League not found" });
 
+      // Safety net: if we're in offseason_departures but departure flags were never set
+      // (e.g. SR-skip path, legacy "offseason" bump, or any other missed transition),
+      // trigger processing now so the screen is never empty.
+      if (league.currentPhase === "offseason_departures") {
+        const existingPending = await storage.getPendingDeparturesByLeague(req.params.id);
+        const hasValidDepartures = existingPending.some(
+          p => p.departureType === "graduated" || p.departureType === "draft"
+        );
+        if (!hasValidDepartures) {
+          try {
+            await evaluatePlayerPromises(req.params.id, league.currentSeason);
+            await processOffseasonDepartures(req.params.id, league.currentSeason);
+            console.log(`[departures-GET] safety-net: triggered departure processing for league=${req.params.id} season=${league.currentSeason}`);
+          } catch (e) {
+            console.error("[departures-GET] safety-net departure processing error:", e);
+          }
+        }
+      }
+
       const teams = await storage.getTeamsByLeague(req.params.id);
       const coaches = await storage.getCoachesByLeague(req.params.id);
       const userCoach = coaches.find(c => c.userId === req.session.userId);
@@ -8637,6 +8656,19 @@ export async function registerRoutes(
             } catch (e) { console.warn("[storylines] sr→offseason sweep failed:", e); }
             const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "offseason_departures", currentWeek: nextWeek });
             await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "Postseason Skipped", details: "Not enough teams for postseason bracket." });
+            try {
+              await evaluatePlayerPromises(leagueId, league.currentSeason);
+              const departureResult = await processOffseasonDepartures(leagueId, league.currentSeason);
+              await storage.createAuditLog({
+                leagueId, userId: req.session.userId,
+                action: "Offseason: Departures Phase",
+                details: `${departureResult.graduated} graduating, ${departureResult.draftDeclared} draft eligible, ${departureResult.transferPortal} considering transfer. Review departures before finalizing.`,
+              });
+              generateDeparturesSummaryNews(leagueId, league.currentSeason, departureResult.graduated, departureResult.draftDeclared, departureResult.transferPortal)
+                .catch(e => console.error("Departures news error (sr-skip):", e));
+            } catch (e) {
+              console.error("SR-skip departure processing error:", e);
+            }
             sendWeeklyDigests(leagueId, storage, league.currentSeason, currentWeek, league.currentPhase)
               .catch(e => console.error("[digest] sr-skipped hook:", e));
             return res.json({ ...updatedLeague, userTeamGame });
@@ -9400,6 +9432,10 @@ export async function registerRoutes(
                   const swept = await resolveAllPendingStorylineEvents(leagueId, currentLeague.currentSeason, currentLeague.currentWeek ?? 1);
                   if (swept > 0) console.log(`[storylines] sim-advance sr sweep resolved ${swept} arc events`);
                 } catch (e) { console.warn("[storylines] sim-advance sr sweep failed:", e); }
+                try {
+                  await evaluatePlayerPromises(leagueId, currentLeague.currentSeason);
+                  await processOffseasonDepartures(leagueId, currentLeague.currentSeason);
+                } catch (e) { console.error("SR-skip departure processing error (sim-to-offseason):", e); }
                 currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "offseason_departures" })) as any;
               }
             }
@@ -10029,6 +10065,10 @@ export async function registerRoutes(
                 } catch (e) { console.error("CWS appearances coach stats error (sim-to-cws):", e); }
                 currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "cws" })) as any;
               } else {
+                try {
+                  await evaluatePlayerPromises(leagueId, currentLeague.currentSeason);
+                  await processOffseasonDepartures(leagueId, currentLeague.currentSeason);
+                } catch (e) { console.error("SR-skip departure processing error (sim-to-cws):", e); }
                 currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "offseason_departures" })) as any;
               }
             }
