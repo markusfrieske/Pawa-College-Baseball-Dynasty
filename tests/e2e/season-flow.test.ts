@@ -10,6 +10,10 @@
  *   - Season 2 continuity: eligibility advancement, fresh recruiting class, schedule generated
  *   - Career stat accumulation across two seasons
  *
+ * Also includes "Departures Screen Regression" suite (Task #522) which asserts
+ * GET /api/leagues/:id/departures returns non-empty graduates after every postseason
+ * path: CWS champion, SR-skip-to-offseason_departures, and the GET safety-net.
+ *
  * All CPU teams are on autopilot; AI image generation is skipped (no API key in test env).
  * Target: completes in under 5 minutes using "short" season length.
  */
@@ -812,4 +816,330 @@ test.describe("Full Season-to-Season Flow", () => {
       ).toBeGreaterThanOrEqual(70);
     }
   );
+});
+
+// ---------------------------------------------------------------------------
+// Departures Screen Regression (Task #522)
+// ---------------------------------------------------------------------------
+//
+// Asserts GET /api/leagues/:id/departures returns non-empty graduate data after
+// every distinct postseason path so silent regressions are caught immediately.
+//
+// Paths covered:
+//   1. CWS champion path  — normal 8-team bracket goes through SR → CWS
+//                           via sim-to-offseason (covers Fix 2 CWS path)
+//   2. SR-skip via sim    — small 6-team league drives sim-to-offseason where
+//                           SR bracket skips to offseason_departures (Fix 2)
+//   3. GET safety-net     — call GET /departures immediately upon entering
+//                           offseason_departures (before finalize) to exercise
+//                           the safety-net branch in the endpoint
+//   4. SR-skip via /advance — small 6-team league advanced week-by-week through
+//                             every phase including SR, triggering the SR-skip
+//                             branch in POST /advance (Fix 1, routes.ts ~8657)
+// ---------------------------------------------------------------------------
+
+interface DeparturesResponse {
+  league: { id: string; currentPhase: string; currentSeason: number };
+  userTeamId: string | null;
+  userTeam: TeamDepartures | null;
+  allTeams: TeamDepartures[];
+}
+
+interface TeamDepartures {
+  teamId: string;
+  teamName: string;
+  isCpu: boolean;
+  graduates: unknown[];
+  draftDeclarations: unknown[];
+  transfers: unknown[];
+}
+
+async function getDepartures(
+  request: APIRequestContext,
+  leagueId: string
+): Promise<DeparturesResponse> {
+  const resp = await request.get(`/api/leagues/${leagueId}/departures`);
+  if (!resp.ok()) {
+    throw new Error(`GET /departures failed: ${resp.status()} ${await resp.text()}`);
+  }
+  return resp.json();
+}
+
+/** Count total graduates across all teams in a departures response. */
+function totalGraduates(data: DeparturesResponse): number {
+  return data.allTeams.reduce((sum, t) => sum + t.graduates.length, 0);
+}
+
+/** Advance past any non-offseason phase after sim-to-offseason lands mid-postseason. */
+async function drainToOffseason(
+  request: APIRequestContext,
+  leagueId: string
+): Promise<{ currentPhase: string; currentSeason: number }> {
+  let state = await getLeague(request, leagueId);
+  let safety = 0;
+  while (!state.currentPhase.startsWith("offseason") && safety < 15) {
+    await advanceWeek(request, leagueId);
+    state = await getLeague(request, leagueId);
+    safety++;
+  }
+  return state;
+}
+
+test.describe("Departures Screen Regression", () => {
+  test.slow();
+
+  // ── Path 1: CWS champion path ─────────────────────────────────────────────
+  // An 8-team league normally progresses: CC → SR → CWS → offseason_departures.
+  // Verify the departures screen is non-empty after the CWS champion is crowned.
+  test("CWS champion path: departures screen is non-empty after CWS completes", async ({
+    request,
+  }) => {
+    await createGuestSession(request);
+
+    const league = await createLeague(request, {
+      name: `E2E Departures CWS ${Date.now()}`,
+      maxTeams: 8,
+      cpuDifficulty: "beginner",
+      selectedConferences: ["WCC", "Ivy League"],
+      seasonLength: "short",
+    });
+
+    const selectedTeams = await getTeamsForConferences(request, league.id, 8);
+    await selectTeams(request, league.id, selectedTeams);
+    await startDynasty(request, league.id);
+
+    const teams = await getLeagueTeams(request, league.id);
+    if (teams[0]) await setupCoach(request, league.id, teams[0].id);
+
+    // Sim through the entire postseason to offseason_departures.
+    await simToOffseason(request, league.id);
+    const state = await drainToOffseason(request, league.id);
+
+    expect(
+      state.currentPhase,
+      `League must be in offseason_departures after sim-to-offseason (got "${state.currentPhase}")`
+    ).toBe("offseason_departures");
+
+    const data = await getDepartures(request, league.id);
+
+    expect(
+      data.allTeams.length,
+      "Departures response must include all teams"
+    ).toBeGreaterThan(0);
+
+    const grads = totalGraduates(data);
+    expect(
+      grads,
+      `Departures screen must have at least 1 graduate across all teams after CWS (got ${grads}). ` +
+        `Teams with data: ${data.allTeams.map((t) => `${t.teamName}:${t.graduates.length}`).join(", ")}`
+    ).toBeGreaterThan(0);
+  });
+
+  // ── Path 2: SR-skip path ──────────────────────────────────────────────────
+  // A 6-team league (2 conferences × 3 teams each) produces exactly 2 conference
+  // champions. The SR bracket with only 2 entries resolves to a single match,
+  // leaving one winner but no second qualifier — the bracket cannot fill the
+  // two-team CWS slot, triggering the SR-skip branch (routes.ts ~8657) that
+  // sets currentPhase = offseason_departures without going through CWS.
+  // Verify departures are non-empty on this path.
+  test("SR-skip path: departures screen is non-empty when SR skips directly to offseason", async ({
+    request,
+  }) => {
+    await createGuestSession(request);
+
+    const league = await createLeague(request, {
+      name: `E2E Departures SR-Skip ${Date.now()}`,
+      maxTeams: 6,
+      cpuDifficulty: "beginner",
+      selectedConferences: ["WCC", "Ivy League"],
+      seasonLength: "short",
+    });
+
+    const selectedTeams = await getTeamsForConferences(request, league.id, 6);
+    await selectTeams(request, league.id, selectedTeams);
+    await startDynasty(request, league.id);
+
+    const teams = await getLeagueTeams(request, league.id);
+    if (teams[0]) await setupCoach(request, league.id, teams[0].id);
+
+    // Sim to offseason — may skip CWS entirely on small leagues.
+    await simToOffseason(request, league.id);
+    const state = await drainToOffseason(request, league.id);
+
+    expect(
+      state.currentPhase,
+      `League must reach offseason_departures (got "${state.currentPhase}")`
+    ).toBe("offseason_departures");
+
+    const data = await getDepartures(request, league.id);
+
+    expect(
+      data.allTeams.length,
+      "Departures response must include all teams"
+    ).toBeGreaterThan(0);
+
+    const grads = totalGraduates(data);
+    expect(
+      grads,
+      `Departures screen must have at least 1 graduate after SR-skip path (got ${grads}). ` +
+        `Teams: ${data.allTeams.map((t) => `${t.teamName}:${t.graduates.length}`).join(", ")}`
+    ).toBeGreaterThan(0);
+  });
+
+  // ── Path 3: GET safety-net ────────────────────────────────────────────────
+  // The departures GET endpoint contains a safety-net (server/routes.ts ~3514) that
+  // re-runs departure processing when the league is in offseason_departures but no
+  // graduated/draft records have been flagged yet.  Calling GET /departures
+  // immediately after sim-to-offseason (before the commissioner finalizes anything)
+  // exercises this branch: if processing ran during the transition the data is
+  // returned normally; if it was somehow skipped the safety-net fires and the
+  // screen is still non-empty.
+  test("GET safety-net: departures endpoint returns graduates immediately upon entering offseason_departures", async ({
+    request,
+  }) => {
+    await createGuestSession(request);
+
+    const league = await createLeague(request, {
+      name: `E2E Departures Safety-Net ${Date.now()}`,
+      maxTeams: 8,
+      cpuDifficulty: "beginner",
+      selectedConferences: ["WCC", "Ivy League"],
+      seasonLength: "short",
+    });
+
+    const selectedTeams = await getTeamsForConferences(request, league.id, 8);
+    await selectTeams(request, league.id, selectedTeams);
+    await startDynasty(request, league.id);
+
+    const teams = await getLeagueTeams(request, league.id);
+    if (teams[0]) await setupCoach(request, league.id, teams[0].id);
+
+    await simToOffseason(request, league.id);
+    const state = await drainToOffseason(request, league.id);
+
+    expect(
+      state.currentPhase,
+      `Must be in offseason_departures to test GET safety-net (got "${state.currentPhase}")`
+    ).toBe("offseason_departures");
+
+    // Call GET /departures WITHOUT calling finalizeDepartures first.
+    // This is the exact moment the safety-net must guarantee a non-empty response.
+    const data = await getDepartures(request, league.id);
+
+    expect(
+      data.league.currentPhase,
+      "Response league.currentPhase must reflect offseason_departures"
+    ).toBe("offseason_departures");
+
+    expect(
+      data.allTeams.length,
+      "allTeams array must not be empty"
+    ).toBeGreaterThan(0);
+
+    const grads = totalGraduates(data);
+    expect(
+      grads,
+      `Safety-net must ensure at least 1 graduate is returned before finalize is called (got ${grads}). ` +
+        `Teams: ${data.allTeams.map((t) => `${t.teamName}:${t.graduates.length}`).join(", ")}`
+    ).toBeGreaterThan(0);
+
+    // Call a second time to confirm idempotency — re-running the safety-net
+    // must not create duplicate graduates (count must stay exactly the same).
+    const data2 = await getDepartures(request, league.id);
+    const grads2 = totalGraduates(data2);
+    expect(
+      grads2,
+      `Second consecutive GET /departures must return the exact same graduate count — duplicates indicate double-processing (first=${grads}, second=${grads2})`
+    ).toBe(grads);
+  });
+
+  // ── Path 4: SR-skip via POST /advance ────────────────────────────────────
+  // This test explicitly exercises Fix 1 (routes.ts:8614-8700): the SR-skip
+  // branch inside the week-by-week POST /advance handler.
+  //
+  // A 6-team league is advanced manually through every phase — preseason,
+  // spring_training, regular_season, conference_championship, super_regionals —
+  // using the /force-advance (readiness-gated phases) and /advance (postseason)
+  // endpoints directly.  With only 2 conference champions feeding into SR, the
+  // bracket produces a single match; the sole winner cannot fill the two-team
+  // CWS slot, so POST /advance fires the SR-skip branch and sets
+  // currentPhase = offseason_departures without going through CWS.
+  //
+  // The phase sequence is recorded to confirm super_regionals was reached, and
+  // then GET /departures asserts graduates > 0.
+  test("SR-skip via /advance: departures non-empty after manual week-by-week SR skip", async ({
+    request,
+  }) => {
+    await createGuestSession(request);
+
+    const league = await createLeague(request, {
+      name: `E2E Departures SR-Skip-Advance ${Date.now()}`,
+      maxTeams: 6,
+      cpuDifficulty: "beginner",
+      selectedConferences: ["WCC", "Ivy League"],
+      seasonLength: "short",
+    });
+
+    const selectedTeams = await getTeamsForConferences(request, league.id, 6);
+    await selectTeams(request, league.id, selectedTeams);
+    await startDynasty(request, league.id);
+
+    const teams = await getLeagueTeams(request, league.id);
+    if (teams[0]) await setupCoach(request, league.id, teams[0].id);
+
+    // Advance week-by-week through the entire season — no sim-to-offseason.
+    // Readiness-gated phases (preseason/spring_training/regular_season) need
+    // /force-advance to mark coaches ready before advancing.
+    const readinessGated = new Set(["preseason", "spring_training", "regular_season"]);
+    const visitedPhases: string[] = [];
+    let state = await getLeague(request, league.id);
+    visitedPhases.push(state.currentPhase);
+
+    const MAX_ADVANCES = 80;
+    let advances = 0;
+
+    while (!state.currentPhase.startsWith("offseason") && advances < MAX_ADVANCES) {
+      if (readinessGated.has(state.currentPhase)) {
+        await forceAdvanceWeek(request, league.id);
+      } else {
+        await advanceWeek(request, league.id);
+      }
+      state = await getLeague(request, league.id);
+      if (!visitedPhases.includes(state.currentPhase)) {
+        visitedPhases.push(state.currentPhase);
+      }
+      advances++;
+    }
+
+    expect(
+      advances,
+      `Season must complete within ${MAX_ADVANCES} advances (stopped at "${state.currentPhase}" after ${advances})`
+    ).toBeLessThan(MAX_ADVANCES);
+
+    expect(
+      visitedPhases.includes("super_regionals"),
+      `super_regionals must have been traversed so the SR-skip /advance branch fires. ` +
+        `Visited: ${visitedPhases.join(" → ")}`
+    ).toBe(true);
+
+    expect(
+      state.currentPhase,
+      `League must reach offseason_departures after SR-skip via /advance (got "${state.currentPhase}"). ` +
+        `Visited: ${visitedPhases.join(" → ")}`
+    ).toBe("offseason_departures");
+
+    const data = await getDepartures(request, league.id);
+
+    expect(
+      data.allTeams.length,
+      "Departures response must include all teams"
+    ).toBeGreaterThan(0);
+
+    const grads = totalGraduates(data);
+    expect(
+      grads,
+      `Departures screen must have at least 1 graduate after SR-skip via /advance (got ${grads}). ` +
+        `Teams: ${data.allTeams.map((t) => `${t.teamName}:${t.graduates.length}`).join(", ")}`
+    ).toBeGreaterThan(0);
+  });
 });
