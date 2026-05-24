@@ -276,6 +276,8 @@ export default function RosterViewerPage() {
   const qc = useQueryClient();
   const isMobile = useIsMobile();
 
+  const swipeTouchStart = useRef<{ x: number; y: number } | null>(null);
+
   const [search, setSearch] = useState("");
   const [selectedConference, setSelectedConference] = useState<string>("");
   const [selectedTeam, setSelectedTeam] = useState<string>("");
@@ -755,7 +757,27 @@ export default function RosterViewerPage() {
       </header>
 
       {/* ── MOBILE LAYOUT (< md) ── */}
-      <div className="flex-1 md:hidden overflow-auto">
+      <div
+        className="flex-1 md:hidden overflow-auto"
+        onTouchStart={e => {
+          const t = e.touches[0];
+          swipeTouchStart.current = { x: t.clientX, y: t.clientY };
+        }}
+        onTouchEnd={e => {
+          if (!swipeTouchStart.current) return;
+          const t = e.changedTouches[0];
+          const dx = t.clientX - swipeTouchStart.current.x;
+          const dy = Math.abs(t.clientY - swipeTouchStart.current.y);
+          swipeTouchStart.current = null;
+          if (dx >= 70 && dy <= 40) {
+            if (mobileStep === "roster") {
+              handleMobileBackToTeams();
+            } else if (mobileStep === "team") {
+              handleBackToConfs();
+            }
+          }
+        }}
+      >
         {/* Step: Conference */}
         {mobileStep === "conference" && (
           <div className="animate-in fade-in slide-in-from-left-4 duration-200 p-4 space-y-4">
