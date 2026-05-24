@@ -58,7 +58,15 @@ import {
   Filter,
   MoreHorizontal,
   Trophy,
-  Lock
+  Lock,
+  BookOpen,
+  Scale,
+  Wind,
+  ShieldCheck,
+  Gauge,
+  Shuffle,
+  AlertOctagon,
+  Sprout,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -77,7 +85,6 @@ interface FilterPreset {
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Recruit, RecruitingInterest, Team } from "@shared/schema";
-import { BookOpen, Trophy, Gem, TrendingUp, Scale, Wind, Users, ShieldCheck, Zap, Gauge, Eye, Shuffle, AlertOctagon, TrendingDown, Sprout, Crown } from "lucide-react";
 
 function getInterestLabel(level: number): { label: string; color: string } {
   if (level >= 90) return { label: "On Fire", color: "text-red-400" };

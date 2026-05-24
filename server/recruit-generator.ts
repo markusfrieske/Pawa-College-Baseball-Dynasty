@@ -137,6 +137,7 @@ function getRandomAppearance() {
 
 export interface GenerateRecruitClassOptions {
   theme?: RecruitingTheme;
+  isLegacyClass?: boolean;
 }
 
 export type GeneratedRecruit = Omit<InsertRecruit, "leagueId">;
@@ -863,7 +864,7 @@ export function generateRecruitClass(
   const avgTop20 = top20.reduce((s, r) => s + (r.overall ?? 300), 0) / Math.max(1, top20.length);
 
   const lateBloomerCount = out.filter(r => r.playerArchetype === "late_bloomer").length;
-  const isLegacyClass = Math.random() < 0.05;
+  const isLegacyClass = opts.isLegacyClass ?? (Math.random() < 0.05);
 
   let classVintage: string;
   if (gemCount >= 2) {
