@@ -231,7 +231,7 @@ export default function TeamSelectionPage() {
   const focusedInfo = focusedTeam && scoutingMap ? scoutingMap[focusedTeam] : null;
 
   return (
-    <div className={`min-h-screen bg-background p-4 ${focusedInfo ? "pb-52" : ""}`}>
+    <div className="min-h-screen bg-background p-4">
       <div className="container mx-auto max-w-5xl">
         <div className="mb-6">
           <Link href="/dashboard" className="inline-flex items-center gap-2 text-muted-foreground hover:text-gold transition-colors">
@@ -293,6 +293,15 @@ export default function TeamSelectionPage() {
           ))}
         </div>
 
+        {/* Sticky scout panel — always visible, populates on team click */}
+        <div className="sticky top-2 z-20 mb-4">
+          <TeamScoutingPanel
+            teamName={focusedTeam}
+            info={focusedInfo}
+            onClose={() => setFocusedTeam(null)}
+          />
+        </div>
+
         <div className="space-y-6">
           {data.conferenceTeamPools.map(({ conference, teams: poolTeams }) => {
             const sortedPoolTeams = sortedTeams.filter(t => t.sourceConferenceId === conference.id);
@@ -330,17 +339,6 @@ export default function TeamSelectionPage() {
         </div>
       </div>
 
-      {/* Fixed scouting panel at bottom */}
-      {focusedInfo && focusedTeam && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 animate-in slide-in-from-bottom-4 duration-200">
-          <TeamScoutingPanel
-            teamName={focusedTeam}
-            info={focusedInfo}
-            onClose={() => setFocusedTeam(null)}
-            variant="fixed"
-          />
-        </div>
-      )}
     </div>
   );
 }
