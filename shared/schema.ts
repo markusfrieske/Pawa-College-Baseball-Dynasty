@@ -1051,6 +1051,7 @@ export const playerHistory = pgTable("player_history", {
   abilities: json("abilities").$type<string[]>().default([]),
   homeState: text("home_state").notNull().default(""),
   hometown: text("hometown").notNull().default(""),
+  sourcePlayerId: varchar("source_player_id"),
 }, (t) => [
   index("idx_player_history_league_id").on(t.leagueId),
   index("idx_player_history_team_id").on(t.teamId),
@@ -1074,6 +1075,7 @@ export const insertPlayerHistorySchema = createInsertSchema(playerHistory).pick(
   abilities: true,
   homeState: true,
   hometown: true,
+  sourcePlayerId: true,
 });
 
 export type InsertPlayerHistory = z.infer<typeof insertPlayerHistorySchema>;

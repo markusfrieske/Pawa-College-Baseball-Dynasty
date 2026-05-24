@@ -5540,11 +5540,19 @@ export async function registerRoutes(
       }
 
       const DEPARTURES_HOF = new Set(["graduated", "drafted", "declared"]);
+
+      // Helper: resolve the playerId for a player_history record.
+      // Prefer the stored sourcePlayerId (direct FK, always correct), then fall back to
+      // the name+teamId string match for legacy records that predate this field.
+      const resolveHofPlayerId = (p: typeof allPlayerHistory[0]): string | undefined => {
+        if (p.sourcePlayerId) return p.sourcePlayerId;
+        const pName = `${p.firstName} ${p.lastName}`;
+        return nameTeamToPlayerId.get(`${pName}|${p.teamId}`);
+      };
+
       const hofEligible = allPlayerHistory.filter(p => {
         if (!DEPARTURES_HOF.has(p.departureType ?? "")) return false;
-        const pName = `${p.firstName} ${p.lastName}`;
-        // Resolve playerId from season stats for WAR lookup
-        const resolvedPlayerId = nameTeamToPlayerId.get(`${pName}|${p.teamId}`);
+        const resolvedPlayerId = resolveHofPlayerId(p);
         const careerWar = resolvedPlayerId ? (careerWarById.get(resolvedPlayerId) ?? 0) : 0;
         return p.overall >= 400 || careerWar >= 2;
       });
@@ -5553,7 +5561,7 @@ export async function registerRoutes(
         const t = teamMap.get(p.teamId);
         const pName = `${p.firstName} ${p.lastName}`;
         const PITCHER_POS2 = ["P", "SP", "RP", "CL", "LHP", "RHP"];
-        const resolvedPlayerId = nameTeamToPlayerId.get(`${pName}|${p.teamId}`);
+        const resolvedPlayerId = resolveHofPlayerId(p);
         const careerWar = resolvedPlayerId ? (careerWarById.get(resolvedPlayerId) ?? 0) : 0;
         const playerStats = resolvedPlayerId
           ? allSeasonStats.filter(s => s.playerId === resolvedPlayerId)
@@ -11419,6 +11427,7 @@ export async function registerRoutes(
             abilities: player.abilities || [],
             homeState: player.homeState || "",
             hometown: player.hometown || "",
+            sourcePlayerId: player.id,
           });
           playerIdsToDelete.push(player.id);
           if (player.departureType === "graduated") totalGraduated++;
@@ -11441,6 +11450,7 @@ export async function registerRoutes(
             abilities: player.abilities || [],
             homeState: player.homeState || "",
             hometown: player.hometown || "",
+            sourcePlayerId: player.id,
           });
           transferUpdates.push({ id: player.id });
           totalTransferred++;
@@ -12133,6 +12143,7 @@ export async function registerRoutes(
               ovrDelta: (player.progressionDeltas as any)?.overall ?? null,
               departedSeason: currentSeason, seasonsPlayed: eligMap[player.eligibility] || 1,
               abilities: player.abilities || [], homeState: player.homeState, hometown: player.hometown,
+              sourcePlayerId: player.id,
             });
             await storage.deletePlayer(player.id);
             posCounts[player.position]--;
@@ -12193,6 +12204,7 @@ export async function registerRoutes(
               abilities: player.abilities || [],
               homeState: player.homeState,
               hometown: player.hometown,
+              sourcePlayerId: player.id,
             });
             await storage.deletePlayer(player.id);
             positionCounts[player.position]--;
@@ -12802,6 +12814,7 @@ export async function registerRoutes(
           abilities: player.abilities || [],
           homeState: player.homeState,
           hometown: player.hometown,
+          sourcePlayerId: player.id,
         });
 
         if (!wasSignedAsRecruit) {
@@ -13869,6 +13882,7 @@ export async function registerRoutes(
         abilities: player.abilities || [],
         homeState: player.homeState,
         hometown: player.hometown,
+        sourcePlayerId: player.id,
       });
       
       await storage.deletePlayer(playerId);
