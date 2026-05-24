@@ -14,6 +14,7 @@ import { parseErrorMessage } from "@/lib/errorUtils";
 import { TeamBadge } from "@/components/ui/team-badge";
 import { PlayerProfileCard, type Player } from "@/components/player-profile-card";
 import { ALL_ABILITIES } from "@shared/abilities";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface RealPlayer {
   firstName: string;
@@ -93,7 +94,6 @@ interface TeamRosterResponse {
   players: RealPlayer[];
 }
 
-// Conference badge metadata
 const CONF_META: Record<string, { primaryColor: string; secondaryColor: string; abbr: string }> = {
   "SEC":             { primaryColor: "#004B8D", secondaryColor: "#F1B82D", abbr: "SEC" },
   "ACC":             { primaryColor: "#003087", secondaryColor: "#A7C4E0", abbr: "ACC" },
@@ -151,7 +151,6 @@ function AbilityBadge({ name }: { name: string }) {
   );
 }
 
-/** Inline editable stat cell — click to activate an input, blur/Enter to commit */
 function EditableStatCell({
   value,
   playerIdx,
@@ -269,17 +268,20 @@ interface PendingSave {
   timestamp: number;
 }
 
+type MobileStep = "conference" | "team" | "roster";
+
 export default function RosterViewerPage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const qc = useQueryClient();
+  const isMobile = useIsMobile();
 
   const [search, setSearch] = useState("");
   const [selectedConference, setSelectedConference] = useState<string>("");
   const [selectedTeam, setSelectedTeam] = useState<string>("");
   const [selectedPlayerIdx, setSelectedPlayerIdx] = useState<number | null>(null);
+  const [mobileStep, setMobileStep] = useState<MobileStep>("conference");
 
-  // Editing state (inline cell edits — no expansion row)
   const [editedPlayers, setEditedPlayers] = useState<Record<number, Partial<RealPlayer>>>({});
 
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
@@ -323,7 +325,6 @@ export default function RosterViewerPage() {
     onError: (err: Error) => toast({ title: "Save Failed", description: parseErrorMessage(err), variant: "destructive" }),
   });
 
-  // Restore pending edits saved before login redirect
   useEffect(() => {
     if (user === undefined || !user) return;
     const raw = localStorage.getItem(PENDING_SAVE_KEY);
@@ -346,7 +347,6 @@ export default function RosterViewerPage() {
     if (autoSavePending && teamData && user) setSaveDialogOpen(true);
   }, [autoSavePending, teamData, user]);
 
-  // Warn before unload when there are unsaved edits
   useEffect(() => {
     if (!hasChanges) return;
     const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
@@ -392,7 +392,10 @@ export default function RosterViewerPage() {
   const handleReset = () => setEditedPlayers({});
 
   const handleConfSelect = (conf: string) => {
-    if (conf === selectedConference) return;
+    if (conf === selectedConference) {
+      if (isMobile) setMobileStep("team");
+      return;
+    }
     if (hasChanges) {
       setPendingNavTarget(`__conf__${conf}`);
       setNavGuardOpen(true);
@@ -401,6 +404,7 @@ export default function RosterViewerPage() {
     setSelectedConference(conf);
     setSelectedTeam("");
     setSelectedPlayerIdx(null);
+    if (isMobile) setMobileStep("team");
   };
 
   const handleTeamSelect = (conf: string, teamName: string) => {
@@ -413,6 +417,7 @@ export default function RosterViewerPage() {
     setSelectedTeam(teamName);
     setEditedPlayers({});
     setSelectedPlayerIdx(null);
+    if (isMobile) setMobileStep("roster");
   };
 
   const handleBackToConfs = () => {
@@ -424,6 +429,18 @@ export default function RosterViewerPage() {
     setSelectedConference("");
     setSelectedTeam("");
     setSelectedPlayerIdx(null);
+    if (isMobile) setMobileStep("conference");
+  };
+
+  const handleMobileBackToTeams = () => {
+    if (hasChanges) {
+      setPendingNavTarget("__mobile_back_team__");
+      setNavGuardOpen(true);
+      return;
+    }
+    setSelectedTeam("");
+    setSelectedPlayerIdx(null);
+    setMobileStep("team");
   };
 
   const confirmNavigation = () => {
@@ -435,15 +452,22 @@ export default function RosterViewerPage() {
       setSelectedConference(conf);
       setSelectedTeam("");
       setSelectedPlayerIdx(null);
+      if (isMobile) setMobileStep("team");
     } else if (pendingNavTarget.startsWith("__team__")) {
       const [conf, teamName] = pendingNavTarget.slice(8).split("|||");
       setSelectedConference(conf);
       setSelectedTeam(teamName);
       setSelectedPlayerIdx(null);
+      if (isMobile) setMobileStep("roster");
     } else if (pendingNavTarget === "__back__") {
       setSelectedConference("");
       setSelectedTeam("");
       setSelectedPlayerIdx(null);
+      if (isMobile) setMobileStep("conference");
+    } else if (pendingNavTarget === "__mobile_back_team__") {
+      setSelectedTeam("");
+      setSelectedPlayerIdx(null);
+      setMobileStep("team");
     } else {
       setLocation(pendingNavTarget);
     }
@@ -479,25 +503,210 @@ export default function RosterViewerPage() {
     ? realPlayerToPlayer(currentRoster[selectedPlayerIdx], selectedPlayerIdx, selectedTeam)
     : null;
 
+  // Mobile breadcrumb text for header
+  const mobileBreadcrumb = useMemo(() => {
+    if (mobileStep === "team" && selectedConference) return selectedConference;
+    if (mobileStep === "roster" && selectedTeamMeta) return `${selectedConference} › ${selectedTeamMeta.abbreviation}`;
+    return null;
+  }, [mobileStep, selectedConference, selectedTeamMeta]);
+
+  // Conference picker grid (shared between mobile and desktop sidebar)
+  function ConferenceGrid({ cols = 3 }: { cols?: number }) {
+    const colClass = cols === 4 ? "grid-cols-4" : "grid-cols-3";
+    return (
+      <div className={`grid ${colClass} gap-2`}>
+        {(conferences ?? []).map(group => {
+          const meta = CONF_META[group.conference];
+          const isSelected = selectedConference === group.conference;
+          return (
+            <button
+              key={group.conference}
+              onClick={() => handleConfSelect(group.conference)}
+              className={`flex flex-col items-center gap-1 p-1.5 rounded-lg border transition-all focus:outline-none ${isSelected ? "border-gold bg-gold/10 ring-1 ring-gold/40" : "border-border/40 hover:border-gold/40 bg-background/30"}`}
+              data-testid={`button-conf-${group.conference.replace(/\s+/g, "-").toLowerCase()}`}
+            >
+              <div
+                className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all ${isSelected ? "border-gold shadow-[0_0_8px_rgba(212,175,55,0.4)]" : "border-border/50"}`}
+                style={{ backgroundColor: meta?.primaryColor ?? "#333" }}
+              >
+                <span className="font-pixel text-[7px] leading-none text-center px-0.5" style={{ color: meta?.secondaryColor ?? "#fff" }}>
+                  {meta?.abbr ?? group.conference}
+                </span>
+              </div>
+              <span className={`font-pixel text-[7px] text-center leading-tight truncate w-full ${isSelected ? "text-gold" : "text-muted-foreground"}`}>
+                {meta?.abbr ?? group.conference}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+
+  // Team picker grid (shared between mobile and desktop sidebar)
+  function TeamGrid({ teams, conferenceName }: { teams: TeamMeta[]; conferenceName: string }) {
+    return (
+      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-3 gap-2">
+        {teams.map(team => {
+          const isSel = selectedTeam === team.name;
+          return (
+            <button
+              key={team.name}
+              onClick={() => handleTeamSelect(conferenceName, team.name)}
+              className={`flex flex-col items-center gap-1 p-1.5 rounded-lg border transition-all focus:outline-none ${isSel ? "border-gold bg-gold/10 ring-1 ring-gold/40" : "border-border/40 hover:border-gold/40 bg-background/30"}`}
+              data-testid={`button-team-${team.name.replace(/\s+/g, "-").toLowerCase()}`}
+            >
+              <div
+                className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all ${isSel ? "border-gold shadow-[0_0_8px_rgba(212,175,55,0.4)]" : "border-border/50"}`}
+                style={{ backgroundColor: team.primaryColor || "#333" }}
+              >
+                <span className="font-pixel text-[7px] leading-none text-center px-0.5" style={{ color: team.secondaryColor || "#fff" }}>
+                  {team.abbreviation}
+                </span>
+              </div>
+              <span className={`font-pixel text-[7px] text-center leading-tight truncate w-full ${isSel ? "text-gold" : "text-muted-foreground"}`}>
+                {team.name.length > 10 ? team.abbreviation : team.name}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+
+  // Search result list (sidebar / mobile search)
+  function SearchResultList({ results }: { results: TeamMeta[] }) {
+    return (
+      <div className="space-y-0.5">
+        {results.map(team => {
+          const isSel = selectedTeam === team.name;
+          return (
+            <button
+              key={team.name}
+              onClick={() => handleTeamSelect(team.conference, team.name)}
+              className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left transition-colors ${isSel ? "bg-gold/10 text-gold" : "hover:bg-muted/20 text-foreground/80"}`}
+              data-testid={`button-team-${team.name.replace(/\s+/g, "-").toLowerCase()}`}
+            >
+              <TeamBadge abbreviation={team.abbreviation} primaryColor={team.primaryColor || "#333"} secondaryColor={team.secondaryColor || "#fff"} size="sm" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs truncate">{team.name}</p>
+                <p className="text-[9px] text-muted-foreground">{team.conference}</p>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+
+  // Mobile roster list (card rows, no wide table)
+  function MobileRosterList() {
+    if (rosterLoading) {
+      return (
+        <div className="p-4 space-y-2">
+          {[...Array(8)].map((_, i) => <Skeleton key={i} className="h-16 w-full rounded-lg" />)}
+        </div>
+      );
+    }
+    if (!teamData) return null;
+    return (
+      <div className="divide-y divide-border/50">
+        {currentRoster.map((player, idx) => {
+          const ovr = calculateOVR(player);
+          const stars = ovrToStars(ovr);
+          const pitching = isPitcher(player.position);
+          const isEdited = !!editedPlayers[idx];
+          return (
+            <div
+              key={`mrow-${idx}`}
+              className={`flex items-center gap-3 px-4 py-3 cursor-pointer active:bg-gold/5 transition-colors ${isEdited ? "bg-yellow-500/5" : ""}`}
+              onClick={() => setSelectedPlayerIdx(idx)}
+              data-testid={`row-player-mobile-${idx}`}
+            >
+              {/* Jersey # */}
+              <span className="text-[10px] text-muted-foreground w-6 text-right shrink-0">{player.jerseyNumber}</span>
+
+              {/* Name + stars */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  {isEdited && <div className="w-1.5 h-1.5 rounded-full bg-yellow-500 shrink-0" />}
+                  <span className="text-sm font-medium text-foreground truncate">
+                    {player.firstName} {player.lastName}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <Badge variant="outline" className="text-[8px] px-1 py-0">{player.position}</Badge>
+                  <span className="text-[10px] text-muted-foreground">{player.eligibility}</span>
+                  <StarRating stars={stars} />
+                </div>
+              </div>
+
+              {/* OVR + key stat */}
+              <div className="flex items-center gap-3 shrink-0">
+                <div className="text-right">
+                  <span className={`text-sm ${ovrColor(ovr)}`} data-testid={`text-ovr-mobile-${idx}`}>{ovr}</span>
+                  <p className="text-[9px] text-muted-foreground">OVR</p>
+                </div>
+                <div className="text-right" onClick={e => e.stopPropagation()}>
+                  {pitching ? (
+                    <EditableStatCell value={player.velocity} playerIdx={idx} field="velocity" onUpdate={updatePlayerField} />
+                  ) : (
+                    <EditableStatCell value={player.hitForAvg} playerIdx={idx} field="hitForAvg" onUpdate={updatePlayerField} />
+                  )}
+                  <p className="text-[9px] text-muted-foreground">{pitching ? "VELO" : "CON"}</p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+        {currentRoster.length === 0 && (
+          <p className="text-center text-muted-foreground text-sm py-12" data-testid="text-no-roster">No roster data found for {selectedTeam}</p>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <header className="border-b border-border sticky top-0 z-40 bg-background/95 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-3 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
+        <div className="px-4 py-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            {/* Back button — on mobile goes back a step, on desktop goes home */}
             <button
               onClick={() => {
-                if (hasChanges) { setPendingNavTarget("/"); setNavGuardOpen(true); }
-                else setLocation("/");
+                if (isMobile && mobileStep === "roster") {
+                  handleMobileBackToTeams();
+                } else if (isMobile && mobileStep === "team") {
+                  handleBackToConfs();
+                } else {
+                  if (hasChanges) { setPendingNavTarget("/"); setNavGuardOpen(true); }
+                  else setLocation("/");
+                }
               }}
-              className="text-muted-foreground hover:text-gold transition-colors"
+              className="text-muted-foreground hover:text-gold transition-colors shrink-0"
               data-testid="button-back-home"
             >
-              <ArrowLeft className="w-5 h-5" />
+              {isMobile && mobileStep !== "conference" ? (
+                <ChevronLeft className="w-5 h-5" />
+              ) : (
+                <ArrowLeft className="w-5 h-5" />
+              )}
             </button>
-            <h1 className="font-pixel text-gold text-sm" data-testid="text-page-title">NCAA 2026 ROSTER VIEWER</h1>
+
+            {/* Title / breadcrumb */}
+            {isMobile && mobileBreadcrumb ? (
+              <span className="font-pixel text-gold text-xs truncate" data-testid="text-mobile-breadcrumb">
+                {mobileBreadcrumb}
+              </span>
+            ) : (
+              <h1 className="font-pixel text-gold text-xs sm:text-sm truncate" data-testid="text-page-title">
+                NCAA 2026 ROSTER VIEWER
+              </h1>
+            )}
           </div>
-          <div className="flex items-center gap-2">
+
+          <div className="flex items-center gap-2 shrink-0">
             {hasChanges && (
               <Badge variant="outline" className="text-yellow-500 border-yellow-500 hidden sm:flex" data-testid="badge-unsaved">
                 Unsaved edits
@@ -506,7 +715,7 @@ export default function RosterViewerPage() {
             {hasChanges && (
               <RetroButton variant="outline" size="sm" onClick={handleReset} data-testid="button-reset">
                 <RotateCcw className="w-3 h-3 mr-1" />
-                Reset
+                <span className="hidden sm:inline">Reset</span>
               </RetroButton>
             )}
             <RetroButton
@@ -518,14 +727,125 @@ export default function RosterViewerPage() {
               disabled={!selectedTeam || !teamData}
               data-testid="button-save-roster"
             >
-              {user ? <><Save className="w-3 h-3 mr-1" />Save Roster</> : <><LogIn className="w-3 h-3 mr-1" />Sign In to Save</>}
+              {user
+                ? <><Save className="w-3 h-3 sm:mr-1" /><span className="hidden sm:inline">Save Roster</span></>
+                : <><LogIn className="w-3 h-3 sm:mr-1" /><span className="hidden sm:inline">Sign In to Save</span></>
+              }
             </RetroButton>
           </div>
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left Sidebar: Conference + Team Picker */}
+      {/* ── MOBILE LAYOUT (< md) ── */}
+      <div className="flex-1 md:hidden overflow-auto">
+        {/* Step: Conference */}
+        {mobileStep === "conference" && (
+          <div className="p-4 space-y-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                className="pl-9"
+                placeholder="Search teams..."
+                value={search}
+                onChange={e => {
+                  setSearch(e.target.value);
+                  if (e.target.value) setSelectedConference("");
+                }}
+                data-testid="input-team-search-mobile"
+              />
+            </div>
+
+            {confsLoading ? (
+              <div className="grid grid-cols-4 gap-2">
+                {[...Array(8)].map((_, i) => <Skeleton key={i} className="h-20 rounded-lg" />)}
+              </div>
+            ) : search ? (
+              <>
+                <p className="font-pixel text-[9px] text-muted-foreground uppercase tracking-wider">Results</p>
+                <SearchResultList results={filteredConferences.flatMap(g => g.teams)} />
+              </>
+            ) : (
+              <>
+                <p className="font-pixel text-[9px] text-muted-foreground uppercase tracking-wider">Select a Conference</p>
+                <ConferenceGrid cols={4} />
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Step: Team */}
+        {mobileStep === "team" && selectedConference && (
+          <div className="p-4 space-y-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                className="pl-9"
+                placeholder={`Search ${selectedConference} teams...`}
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                data-testid="input-team-search-mobile-team"
+              />
+            </div>
+            <p className="font-pixel text-[9px] text-gold uppercase tracking-wider">Choose a Team</p>
+            {confsLoading ? (
+              <div className="grid grid-cols-4 gap-2">
+                {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-20 rounded-lg" />)}
+              </div>
+            ) : search ? (
+              <SearchResultList results={filteredConferences.flatMap(g => g.teams)} />
+            ) : (
+              <TeamGrid teams={selectedConfTeams} conferenceName={selectedConference} />
+            )}
+          </div>
+        )}
+
+        {/* Step: Roster */}
+        {mobileStep === "roster" && selectedTeam && (
+          <div>
+            {/* Team header */}
+            <div className="border-b border-border px-4 py-3">
+              <div className="flex items-center gap-3">
+                {selectedTeamMeta && teamData && (
+                  <TeamBadge
+                    abbreviation={selectedTeamMeta.abbreviation}
+                    primaryColor={teamData.primaryColor || selectedTeamMeta.primaryColor}
+                    secondaryColor={teamData.secondaryColor || selectedTeamMeta.secondaryColor}
+                    size="md"
+                  />
+                )}
+                <div className="flex-1 min-w-0">
+                  {teamData ? (
+                    <>
+                      <h2 className="font-pixel text-gold text-sm truncate" data-testid="text-team-header">{teamData.name}</h2>
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        <span className="text-[10px] text-muted-foreground">{teamData.conference}</span>
+                        <span className="text-[10px] text-muted-foreground">Rank #{teamData.nationalRank}</span>
+                        <div className="flex gap-0.5">
+                          {[1,2,3,4,5,6,7,8,9,10].map(i => (
+                            <div key={i} className={`w-2 h-2 rounded-sm ${i <= teamData.prestige ? "bg-gold" : "bg-muted/30"}`} />
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <Skeleton className="h-5 w-40" />
+                  )}
+                </div>
+                <span className="text-[10px] text-muted-foreground shrink-0">{currentRoster.length} players</span>
+              </div>
+              {!rosterLoading && teamData && (
+                <p className="text-[9px] text-muted-foreground mt-2">Tap row for full profile · tap a stat to edit</p>
+              )}
+            </div>
+
+            <MobileRosterList />
+          </div>
+        )}
+      </div>
+
+      {/* ── DESKTOP LAYOUT (≥ md) ── */}
+      <div className="hidden md:flex flex-1 overflow-hidden">
+        {/* Left Sidebar */}
         <aside className="w-64 shrink-0 border-r border-border overflow-y-auto bg-background/50 flex flex-col" data-testid="sidebar-teams">
           <div className="p-3 border-b border-border sticky top-0 bg-background z-10">
             <div className="relative">
@@ -548,39 +868,14 @@ export default function RosterViewerPage() {
               {!search && (
                 <div className="p-3 border-b border-border/50">
                   <p className="font-pixel text-[9px] text-muted-foreground uppercase mb-2 tracking-wider">Conferences</p>
-                  <div className="grid grid-cols-3 gap-2">
-                    {(conferences ?? []).map(group => {
-                      const meta = CONF_META[group.conference];
-                      const isSelected = selectedConference === group.conference;
-                      return (
-                        <button
-                          key={group.conference}
-                          onClick={() => handleConfSelect(group.conference)}
-                          className={`flex flex-col items-center gap-1 p-1.5 rounded-lg border transition-all focus:outline-none ${isSelected ? "border-gold bg-gold/10 ring-1 ring-gold/40" : "border-border/40 hover:border-gold/40 bg-background/30"}`}
-                          data-testid={`button-conf-${group.conference.replace(/\s+/g, "-").toLowerCase()}`}
-                        >
-                          <div
-                            className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all ${isSelected ? "border-gold shadow-[0_0_8px_rgba(212,175,55,0.4)]" : "border-border/50"}`}
-                            style={{ backgroundColor: meta?.primaryColor ?? "#333" }}
-                          >
-                            <span className="font-pixel text-[7px] leading-none text-center px-0.5" style={{ color: meta?.secondaryColor ?? "#fff" }}>
-                              {meta?.abbr ?? group.conference}
-                            </span>
-                          </div>
-                          <span className={`font-pixel text-[7px] text-center leading-tight truncate w-full ${isSelected ? "text-gold" : "text-muted-foreground"}`}>
-                            {meta?.abbr ?? group.conference}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <ConferenceGrid cols={3} />
                 </div>
               )}
 
-              {/* Team picker: selected conference or search results */}
+              {/* Team picker */}
               {(selectedConference || search) && (
                 <div className="p-3">
-                  {selectedConference && (
+                  {selectedConference && !search && (
                     <div className="flex items-center gap-1.5 mb-2">
                       <button onClick={handleBackToConfs} className="text-muted-foreground hover:text-gold transition-colors" data-testid="button-back-to-confs">
                         <ChevronLeft className="w-3.5 h-3.5" />
@@ -591,51 +886,9 @@ export default function RosterViewerPage() {
                   {search && <p className="font-pixel text-[9px] text-muted-foreground uppercase mb-2 tracking-wider">Results</p>}
 
                   {search ? (
-                    <div className="space-y-0.5">
-                      {filteredConferences.flatMap(g => g.teams).map(team => {
-                        const isSel = selectedTeam === team.name;
-                        return (
-                          <button
-                            key={team.name}
-                            onClick={() => handleTeamSelect(team.conference, team.name)}
-                            className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-left transition-colors ${isSel ? "bg-gold/10 text-gold" : "hover:bg-muted/20 text-foreground/80"}`}
-                            data-testid={`button-team-${team.name.replace(/\s+/g, "-").toLowerCase()}`}
-                          >
-                            <TeamBadge abbreviation={team.abbreviation} primaryColor={team.primaryColor || "#333"} secondaryColor={team.secondaryColor || "#fff"} size="sm" />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs truncate">{team.name}</p>
-                              <p className="text-[9px] text-muted-foreground">{team.conference}</p>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
+                    <SearchResultList results={filteredConferences.flatMap(g => g.teams)} />
                   ) : (
-                    <div className="grid grid-cols-3 gap-2">
-                      {selectedConfTeams.map(team => {
-                        const isSel = selectedTeam === team.name;
-                        return (
-                          <button
-                            key={team.name}
-                            onClick={() => handleTeamSelect(selectedConference, team.name)}
-                            className={`flex flex-col items-center gap-1 p-1.5 rounded-lg border transition-all focus:outline-none ${isSel ? "border-gold bg-gold/10 ring-1 ring-gold/40" : "border-border/40 hover:border-gold/40 bg-background/30"}`}
-                            data-testid={`button-team-${team.name.replace(/\s+/g, "-").toLowerCase()}`}
-                          >
-                            <div
-                              className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all ${isSel ? "border-gold shadow-[0_0_8px_rgba(212,175,55,0.4)]" : "border-border/50"}`}
-                              style={{ backgroundColor: team.primaryColor || "#333" }}
-                            >
-                              <span className="font-pixel text-[7px] leading-none text-center px-0.5" style={{ color: team.secondaryColor || "#fff" }}>
-                                {team.abbreviation}
-                              </span>
-                            </div>
-                            <span className={`font-pixel text-[7px] text-center leading-tight truncate w-full ${isSel ? "text-gold" : "text-muted-foreground"}`}>
-                              {team.name.length > 10 ? team.abbreviation : team.name}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
+                    <TeamGrid teams={selectedConfTeams} conferenceName={selectedConference} />
                   )}
                 </div>
               )}
@@ -698,7 +951,7 @@ export default function RosterViewerPage() {
                 <p className="text-[10px] text-muted-foreground hidden sm:block">Click row for full profile · click a stat to edit inline</p>
               </div>
 
-              {/* Roster Table */}
+              {/* Roster Table — horizontally scrollable */}
               <div className="overflow-x-auto">
                 <table className="w-full text-sm" data-testid="table-roster">
                   <thead className="bg-muted/30 sticky top-0 z-10">
@@ -748,7 +1001,6 @@ export default function RosterViewerPage() {
                           <td className="px-2 py-1.5"><StarRating stars={stars} /></td>
                           <td className={`px-2 py-1.5 text-xs ${ovrColor(ovr)}`} data-testid={`text-ovr-${idx}`}>{ovr}</td>
 
-                          {/* Inline-editable stat cells */}
                           <td className="px-2 py-1.5">
                             {pitching ? <span className="text-xs text-muted-foreground/40">—</span> : (
                               <EditableStatCell value={player.hitForAvg} playerIdx={idx} field="hitForAvg" onUpdate={updatePlayerField} />
