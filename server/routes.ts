@@ -7987,6 +7987,16 @@ export async function registerRoutes(
         email: userMap.get(c.userId!)?.email ?? "",
       }));
 
+      // Compute per-team roster sizes and flag any oversized rosters (>35 = catastrophic
+      // double-insert threshold set in finalizeWalkonsPhase). Surface to commissioner UI
+      // so they can spot and fix duplicate-player issues without digging through logs.
+      const rosterSizes = await Promise.all(
+        leagueTeams.map(async t => ({ id: t.id, name: t.name, count: (await storage.getPlayersByTeam(t.id)).length }))
+      );
+      const oversizedTeams = rosterSizes
+        .filter(r => r.count > 35)
+        .map(r => `${r.name} (${r.count} players)`);
+
       res.json({
         league,
         auditLogs: auditLogsData,
@@ -7994,6 +8004,7 @@ export async function registerRoutes(
         totalCoaches: humanTeams.length,
         invites,
         humanCoaches,
+        oversizedTeams,
       });
     } catch (error) {
       console.error("Failed to fetch commissioner data:", error);
@@ -13793,10 +13804,25 @@ export async function registerRoutes(
       let totalRemoved = 0;
       const log: string[] = [];
 
+      // Pre-load season stats for the entire league so we can prefer
+      // the player that has accumulated stats (they are the "original").
+      // Both duplicates were typically created in the same transition so
+      // usually neither will have stats — in that case we fall back to
+      // the player referenced by player_history, or finally keep
+      // the one encountered first by the DB (arbitrary but deterministic).
+      const allStats = await storage.getAllPlayerSeasonStatsByLeague(league.id);
+      const playerIdsWithStats = new Set(allStats.map(s => s.playerId));
+
       for (const team of leagueTeams) {
         const roster = await storage.getPlayersByTeam(team.id);
-        // Sort ascending by id so we always keep the *earlier* insert (lower id)
-        const sorted = roster.slice().sort((a, b) => a.id.localeCompare(b.id));
+        // Sort so players WITH stats come first (they are the "original").
+        // Ties broken by UUID lexical order for determinism.
+        const sorted = roster.slice().sort((a, b) => {
+          const aHasStats = playerIdsWithStats.has(a.id) ? 0 : 1;
+          const bHasStats = playerIdsWithStats.has(b.id) ? 0 : 1;
+          if (aHasStats !== bHasStats) return aHasStats - bHasStats;
+          return a.id.localeCompare(b.id);
+        });
         const seen = new Map<string, string>(); // nameKey → kept player id
         for (const player of sorted) {
           const key = `${player.firstName}|${player.lastName}`;

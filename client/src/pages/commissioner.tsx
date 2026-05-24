@@ -67,6 +67,7 @@ interface CommissionerData {
   totalCoaches: number;
   invites: LeagueInvite[];
   humanCoaches: HumanCoach[];
+  oversizedTeams: string[];
 }
 
 export default function CommissionerPage() {
@@ -460,6 +461,7 @@ export default function CommissionerPage() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id] });
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "commissioner"] });
       const msg = data.removed === 0
         ? "No duplicate players found — rosters are clean."
         : `Removed ${data.removed} duplicate player row(s).`;
@@ -563,6 +565,18 @@ export default function CommissionerPage() {
             </div>
           </RetroCard>
         </div>
+
+        {data?.oversizedTeams && data.oversizedTeams.length > 0 && (
+          <div className="mb-4 p-3 rounded border border-red-500/50 bg-red-900/20 flex items-start gap-3" data-testid="banner-roster-oversize">
+            <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-pixel text-[9px] text-red-400 mb-1">ROSTER OVERSIZE DETECTED</p>
+              <p className="text-xs text-muted-foreground">
+                The following teams have more than 35 players — this indicates duplicate players may have been created during the last season transition: {data.oversizedTeams.join(", ")}. Use the <span className="text-gold">Dedup Rosters</span> tool in the Actions tab to clean up.
+              </p>
+            </div>
+          </div>
+        )}
 
         <Tabs defaultValue="actions" className="space-y-6">
           <div className="overflow-x-auto -mx-4 px-4 pb-2 scrollbar-hide">
