@@ -11,7 +11,6 @@ export const HITTER_TOOL_GROUPS: Record<string, string[]> = {
 };
 
 export const PITCHER_TOOL_GROUPS: Record<string, string[]> = {
-  Velocity: ["velocity"],
   Control:  ["control"],
   Stuff:    ["stuff"],
   Stamina:  ["stamina"],

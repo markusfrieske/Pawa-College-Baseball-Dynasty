@@ -18722,7 +18722,7 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
       const playerData = {
         hitForAvg: scaleAttr(rp.hitForAvg), power: scaleAttr(rp.power), speed: Math.max(10, Math.min(95, Math.round(55 + (rp.speed - 50) * 0.75))), arm: scaleAttr(rp.arm),
         fielding: scaleAttr(rp.fielding), errorResistance: scaleAttr(rp.errorResistance),
-        velocity: rp.velocity >= 70 ? rp.velocity : Math.max(30, Math.min(95, Math.round(55 + (rp.velocity - 47) * 1.2))), control: scaleAttr(rp.control), stamina: scaleAttr(rp.stamina), stuff: scaleAttr(rp.stuff),
+        velocity: rp.velocity === 0 ? 0 : rp.velocity >= 70 ? rp.velocity : Math.max(30, Math.min(95, Math.round(55 + (rp.velocity - 47) * 1.2))), control: scaleAttr(rp.control), stamina: scaleAttr(rp.stamina), stuff: scaleAttr(rp.stuff),
         clutch: scaleAttr(rp.clutch), vsLHP: scaleAttr(rp.vsLHP), grit: scaleAttr(rp.grit), stealing: scaleAttr(rp.stealing),
         running: scaleAttr(rp.running), throwing: scaleAttr(rp.throwing), recovery: scaleAttr(rp.recovery),
         wRISP: scaleAttr(rp.wRISP), vsLefty: scaleAttr(rp.vsLefty), poise: scaleAttr(rp.poise), heater: scaleAttr(rp.heater), agile: scaleAttr(rp.agile),
