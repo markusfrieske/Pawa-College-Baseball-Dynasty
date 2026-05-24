@@ -454,7 +454,7 @@ export default function LandingPage() {
                 { num: "130+", label: "Programs", sub: "All major conferences" },
                 { num: "3,500+", label: "Real Players", sub: "2026 rosters" },
                 { num: "43+", label: "Tracked Stats", sub: "Including Statcast" },
-                { num: "13", label: "Conferences", sub: "SEC to HBCU" },
+                { num: "12", label: "Conferences", sub: "SEC to HBCU" },
               ].map((stat) => (
                 <div key={stat.label} className="bg-card/40 border border-border/50 rounded-sm p-6 text-center hover:border-gold/20 transition-colors">
                   <div className="font-pixel text-gold text-2xl sm:text-3xl mb-1">{stat.num}</div>
