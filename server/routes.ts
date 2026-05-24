@@ -24,7 +24,7 @@ import {
   generateDeparturesSummaryNews,
 } from "./news-engine";
 import { SEC_REAL_ROSTERS, ALL_REAL_ROSTERS } from "./realRosters";
-import { generateRecruitClass, selectTools, genToolAttr, HITTER_TOOL_GROUPS, PITCHER_TOOL_GROUPS } from "./recruit-generator";
+import { generateRecruitClass, selectTools, genToolAttr, sampleNormalSpeed, HITTER_TOOL_GROUPS, PITCHER_TOOL_GROUPS } from "./recruit-generator";
 import { normalizeCommonAbilities } from "./normalizeCommonAbilities";
 import { validateLeagueRosters, checkTeamRosterStructure } from "./rosterValidation";
 import { sendWeeklyDigests, verifyUnsubToken } from "./digestEmail";
@@ -11872,7 +11872,7 @@ export async function registerRoutes(
         const randAttr = () => 20 + Math.floor(Math.random() * 26);
         const attrs: any = {
           position: pos,
-          hitForAvg: randAttr(), power: randAttr(), speed: randAttr(),
+          hitForAvg: randAttr(), power: randAttr(), speed: sampleNormalSpeed(),
           arm: randAttr(), fielding: randAttr(), errorResistance: randAttr(),
           clutch: randAttr(), vsLHP: randAttr(), grit: randAttr(),
           stealing: randAttr(), running: randAttr(), throwing: randAttr(),
@@ -18720,7 +18720,7 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
       };
       usedJerseyNumbers.add(rp.jerseyNumber);
       const playerData = {
-        hitForAvg: scaleAttr(rp.hitForAvg), power: scaleAttr(rp.power), speed: scaleAttr(rp.speed), arm: scaleAttr(rp.arm),
+        hitForAvg: scaleAttr(rp.hitForAvg), power: scaleAttr(rp.power), speed: Math.max(10, Math.min(95, Math.round(55 + (rp.speed - 50) * 0.75))), arm: scaleAttr(rp.arm),
         fielding: scaleAttr(rp.fielding), errorResistance: scaleAttr(rp.errorResistance),
         velocity: scaleAttr(rp.velocity), control: scaleAttr(rp.control), stamina: scaleAttr(rp.stamina), stuff: scaleAttr(rp.stuff),
         clutch: scaleAttr(rp.clutch), vsLHP: scaleAttr(rp.vsLHP), grit: scaleAttr(rp.grit), stealing: scaleAttr(rp.stealing),
@@ -18983,7 +18983,7 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
 
     const hitForAvg = genT("hitForAvg");
     const power = genT("power");
-    const speed = genT("speed");
+    const speed = sampleNormalSpeed();
     const arm = genT("arm");
     const fielding = genT("fielding");
     const errorResistance = genT("errorResistance");

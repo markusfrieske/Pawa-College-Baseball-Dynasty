@@ -3,7 +3,7 @@ import type { InsertRecruit } from "@shared/schema";
 import { normalizeCommonAbilities } from "./normalizeCommonAbilities";
 
 export const HITTER_TOOL_GROUPS: Record<string, string[]> = {
-  Speed:    ["speed", "running", "stealing"],
+  Speed:    ["running", "stealing"],
   Power:    ["power"],
   Hit:      ["hitForAvg", "clutch", "wRISP"],
   Fielding: ["fielding", "agile", "errorResistance"],
@@ -41,6 +41,14 @@ export function selectRawTools(isPitcher: boolean): string[] {
   const count = 2 + Math.floor(Math.random() * 2);
   const shuffled = [...allToolNames].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, Math.min(count, allToolNames.length));
+}
+
+export function sampleNormalSpeed(mean = 55, sd = 13, lo = 10, hi = 95): number {
+  // Box-Muller transform for a normally-distributed speed value
+  const u1 = Math.random() || 1e-10;
+  const u2 = Math.random();
+  const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+  return Math.max(lo, Math.min(hi, Math.round(mean + z * sd)));
 }
 
 export function genToolAttr(base: number, isTool: boolean): number {
@@ -562,7 +570,7 @@ export function generateRecruitClass(
     if (isGenerationalGem) {
       hitForAvg = 85 + Math.floor(Math.random() * 15);
       power = 85 + Math.floor(Math.random() * 15);
-      speed = 80 + Math.floor(Math.random() * 20);
+      speed = sampleNormalSpeed(82, 6, 75, 95);
       arm = 85 + Math.floor(Math.random() * 15);
       fielding = 85 + Math.floor(Math.random() * 15);
       errorResistance = 80 + Math.floor(Math.random() * 20);
@@ -573,7 +581,7 @@ export function generateRecruitClass(
     } else if (isGenerationalBust) {
       hitForAvg = 15 + Math.floor(Math.random() * 25);
       power = 15 + Math.floor(Math.random() * 25);
-      speed = 15 + Math.floor(Math.random() * 25);
+      speed = sampleNormalSpeed(18, 5, 10, 28);
       arm = 15 + Math.floor(Math.random() * 25);
       fielding = 15 + Math.floor(Math.random() * 25);
       errorResistance = 15 + Math.floor(Math.random() * 25);
@@ -590,7 +598,7 @@ export function generateRecruitClass(
       const pitchPenalty = isPitcher ? 3 : 0;
       hitForAvg = genR(targetAttrAvg + hitBoost, "hitForAvg");
       power     = genR(targetAttrAvg + hitBoost, "power");
-      speed     = genR(targetAttrAvg + hitBoost, "speed");
+      speed     = sampleNormalSpeed();
       arm       = genR(targetAttrAvg,            "arm");
       fielding  = genR(targetAttrAvg,            "fielding");
       errorResistance = genR(targetAttrAvg,      "errorResistance");
@@ -607,7 +615,7 @@ export function generateRecruitClass(
       const pitchPenalty = isPitcher ? 3 : 0;
       hitForAvg = genT(targetAttrAvg + hitBoost, "hitForAvg");
       power     = genT(targetAttrAvg + hitBoost, "power");
-      speed     = genT(targetAttrAvg + hitBoost, "speed");
+      speed     = sampleNormalSpeed();
       arm       = genT(targetAttrAvg,            "arm");
       fielding  = genT(targetAttrAvg,            "fielding");
       errorResistance = genT(targetAttrAvg,      "errorResistance");
