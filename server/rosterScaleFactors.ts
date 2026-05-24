@@ -8,7 +8,7 @@
  * Each attribute clamped to [20, 99] after scaling.
  */
 
-export const TOTAL_NATIONAL_TEAMS = 149;
+export const TOTAL_NATIONAL_TEAMS = 142;
 
 export const NATIONAL_RANKS: Record<string, number> = {
   "UCLA": 1,
@@ -153,13 +153,13 @@ export const NATIONAL_RANKS: Record<string, number> = {
   "North Carolina A&T": 140,
   "Norfolk State": 141,
   "Grambling State": 142,
-  "Bethune-Cookman": 143,
-  "Alabama State": 144,
-  "Southern University": 145,
-  "Florida A&M": 146,
-  "Alcorn State": 147,
-  "Maryland Eastern Shore": 148,
-  "Texas Southern": 149,
+  "Bethune-Cookman": 142,
+  "Alabama State": 142,
+  "Southern University": 142,
+  "Florida A&M": 142,
+  "Alcorn State": 142,
+  "Maryland Eastern Shore": 142,
+  "Texas Southern": 142,
 };
 
 export const ROSTER_SCALE_FACTORS: Record<string, number> = {
@@ -305,11 +305,11 @@ export const ROSTER_SCALE_FACTORS: Record<string, number> = {
   "North Carolina A&T": 0.960847,
   "Norfolk State": 0.959989,
   "Grambling State": 0.960970,
-  "Bethune-Cookman": 0.959253,
-  "Alabama State": 0.956963,
-  "Southern University": 0.965558,
-  "Florida A&M": 0.966438,
-  "Alcorn State": 0.971591,
-  "Maryland Eastern Shore": 0.971027,
-  "Texas Southern": 0.968681,
+  "Bethune-Cookman": 0.962535,
+  "Alabama State": 0.963534,
+  "Southern University": 0.975537,
+  "Florida A&M": 0.979801,
+  "Alcorn State": 0.988443,
+  "Maryland Eastern Shore": 0.991307,
+  "Texas Southern": 0.992366,
 };

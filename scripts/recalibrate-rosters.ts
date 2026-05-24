@@ -10,7 +10,7 @@
  *          and a summary table showing before/after OVR vs target.
  */
 
-import { ALL_REAL_ROSTERS } from "../server/realRosters";
+import { RAW_UNCALIBRATED_ROSTERS } from "../server/realRosters";
 import { calculateOVR } from "../shared/abilities";
 import type { RealPlayer } from "../server/realRosters";
 import * as fs from "fs";
@@ -106,14 +106,15 @@ function targetOVR(rank: number): number {
   return 385 - (rank - 1) * (125 / 141);
 }
 
-// ─── Collect all unique team names from ALL_REAL_ROSTERS ──────────────────
-const allTeams = Object.keys(ALL_REAL_ROSTERS);
+// ─── Collect all unique team names from RAW_UNCALIBRATED_ROSTERS ──────────
+const NATIONAL_TOTAL = 142; // Exactly 142 in-game teams get unique 1–142 ranks
+const allTeams = Object.keys(RAW_UNCALIBRATED_ROSTERS);
 const top71Set = new Set(TOP_71_ORDER);
 
-// Compute current OVR per team
+// Compute current OVR per team using raw (unscaled) rosters
 const teamOVRs: { name: string; currentOVR: number }[] = allTeams.map(name => ({
   name,
-  currentOVR: teamAvgOVR(ALL_REAL_ROSTERS[name]),
+  currentOVR: teamAvgOVR(RAW_UNCALIBRATED_ROSTERS[name]),
 }));
 
 // Teams NOT in the top-71 list, sorted by current OVR descending
@@ -121,18 +122,21 @@ const remaining = teamOVRs
   .filter(t => !top71Set.has(t.name))
   .sort((a, b) => b.currentOVR - a.currentOVR);
 
-// Build the full national rank map
+// Build the national rank map for exactly 142 teams:
+//   ranks 1–71:  the RPI-ordered top-71 list
+//   ranks 72–142: next 71 teams by current OVR
+// Any teams beyond rank 142 are capped at rank 142 (share the floor target)
 const nationalRankMap = new Map<string, number>();
 TOP_71_ORDER.forEach((name, i) => {
   if (allTeams.includes(name)) {
     nationalRankMap.set(name, i + 1);
   }
 });
+const REMAINING_SLOTS = NATIONAL_TOTAL - TOP_71_ORDER.length; // 71
 remaining.forEach((t, i) => {
-  nationalRankMap.set(t.name, TOP_71_ORDER.length + 1 + i);
+  const rank = Math.min(TOP_71_ORDER.length + 1 + i, NATIONAL_TOTAL);
+  nationalRankMap.set(t.name, rank);
 });
-
-const totalTeams = nationalRankMap.size;
 
 // ─── Compute scale factors ─────────────────────────────────────────────────
 interface TeamCalib {
@@ -145,7 +149,7 @@ interface TeamCalib {
 
 const calibrations: TeamCalib[] = [];
 for (const [name, rank] of nationalRankMap.entries()) {
-  const currentOVR = teamAvgOVR(ALL_REAL_ROSTERS[name]);
+  const currentOVR = teamAvgOVR(RAW_UNCALIBRATED_ROSTERS[name]);
   const target = targetOVR(rank);
   const scaleFactor = target / currentOVR;
   calibrations.push({ name, rank, currentOVR: Math.round(currentOVR), target: Math.round(target), scaleFactor });
@@ -153,7 +157,7 @@ for (const [name, rank] of nationalRankMap.entries()) {
 calibrations.sort((a, b) => a.rank - b.rank);
 
 // ─── Print summary table ───────────────────────────────────────────────────
-console.log(`\nTotal teams: ${totalTeams}`);
+console.log(`\nTotal teams in game: ${allTeams.length} — ranked: ${NATIONAL_TOTAL} (${allTeams.length - NATIONAL_TOTAL} teams share rank ${NATIONAL_TOTAL})`);
 console.log(`\n${"Rank".padStart(4)}  ${"Team".padEnd(32)}  ${"Current".padStart(7)}  ${"Target".padStart(6)}  ${"Scale".padStart(6)}`);
 console.log("-".repeat(70));
 for (const c of calibrations) {
@@ -176,7 +180,7 @@ const lines: string[] = [
   " * Each attribute clamped to [20, 99] after scaling.",
   " */",
   "",
-  `export const TOTAL_NATIONAL_TEAMS = ${totalTeams};`,
+  `export const TOTAL_NATIONAL_TEAMS = ${NATIONAL_TOTAL};`,
   "",
   "export const NATIONAL_RANKS: Record<string, number> = {",
 ];
