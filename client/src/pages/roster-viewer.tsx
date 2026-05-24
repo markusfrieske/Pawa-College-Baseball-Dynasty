@@ -822,6 +822,11 @@ export default function RosterViewerPage() {
           open={selectedPlayerIdx !== null}
           onClose={() => setSelectedPlayerIdx(null)}
           teamPrimaryColor={teamData?.primaryColor || selectedTeamMeta?.primaryColor}
+          onUpdate={(field, value) => {
+            if (selectedPlayerIdx !== null) {
+              updatePlayerField(selectedPlayerIdx, field as keyof RealPlayer, value);
+            }
+          }}
         />
       )}
 

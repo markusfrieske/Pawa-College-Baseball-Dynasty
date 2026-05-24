@@ -1,14 +1,15 @@
-import { useState } from "react";
+import { useState, useRef, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { RetroButton } from "@/components/ui/retro-button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { LetterGrade, getLetterGrade } from "@/components/ui/letter-grade";
 import { PlayerPortrait } from "@/components/ui/player-portrait";
 import { PitchMixDial, generatePitchMixForDial } from "@/components/ui/pitch-mix-dial";
-import { MapPin, Star, Edit, Trophy, ArrowUp, ArrowDown } from "lucide-react";
-import { getAbilityByName } from "@shared/abilities";
+import { MapPin, Star, Edit, Trophy, ArrowUp, ArrowDown, ChevronDown, ChevronUp, Check, X } from "lucide-react";
+import { getAbilityByName, getAbilitiesForPosition, ALL_ABILITIES } from "@shared/abilities";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { velocityToMPH } from "@/lib/playerUtils";
 import { getPotentialGrade, getProgressionZone, getProgressionColor } from "@shared/potential";
@@ -89,6 +90,123 @@ interface PlayerProfileCardProps {
   onDeclareDraft?: () => void;
   isDeclaringDraft?: boolean;
   leagueId?: string;
+  onUpdate?: (field: string, value: unknown) => void;
+}
+
+function AbilitiesEditor({
+  abilities,
+  position,
+  onChange,
+}: {
+  abilities: string[];
+  position: string;
+  onChange: (abilities: string[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+
+  const available = useMemo(() => getAbilitiesForPosition(position), [position]);
+  const filtered = useMemo(() =>
+    search ? available.filter(a => a.name.toLowerCase().includes(search.toLowerCase())) : available,
+    [available, search]
+  );
+  const grouped = useMemo(() => ({
+    gold: filtered.filter(a => a.tier === "gold"),
+    blue: filtered.filter(a => a.tier === "blue"),
+    red: filtered.filter(a => a.tier === "red"),
+  }), [filtered]);
+
+  const toggle = (name: string) => {
+    onChange(abilities.includes(name) ? abilities.filter(a => a !== name) : [...abilities, name]);
+  };
+
+  const tierColor = (tier: string) =>
+    tier === "gold" ? "text-yellow-500" : tier === "red" ? "text-red-400" : "text-blue-400";
+
+  return (
+    <div className="relative" ref={ref}>
+      <div
+        className="flex items-center gap-1 border border-border rounded-md px-2 py-1 cursor-pointer min-h-[30px] bg-background/50"
+        onClick={() => setOpen(v => !v)}
+        data-testid="abilities-editor-trigger"
+      >
+        {abilities.length === 0 ? (
+          <span className="text-muted-foreground text-xs">Add abilities...</span>
+        ) : (
+          <div className="flex flex-wrap gap-1 flex-1">
+            {abilities.map(ab => {
+              const ability = ALL_ABILITIES.find(a => a.name === ab);
+              const cls = ability?.tier === "gold"
+                ? "bg-yellow-600/20 text-yellow-500 border-yellow-600/30"
+                : ability?.tier === "red"
+                ? "bg-red-600/20 text-red-400 border-red-600/30"
+                : "bg-blue-600/20 text-blue-400 border-blue-600/30";
+              return (
+                <Badge key={ab} variant="outline" className={`text-[8px] ${cls}`}>
+                  {ab}
+                  <button className="ml-1" onClick={e => { e.stopPropagation(); toggle(ab); }} data-testid={`remove-ability-${ab}`}>
+                    <X className="w-2 h-2" />
+                  </button>
+                </Badge>
+              );
+            })}
+          </div>
+        )}
+        <ChevronDown className="w-3 h-3 ml-auto shrink-0 text-muted-foreground" />
+      </div>
+
+      {open && (
+        <div className="absolute z-50 top-full left-0 mt-1 w-full bg-card border border-border rounded-md shadow-lg max-h-52 overflow-hidden flex flex-col">
+          <div className="p-2 border-b border-border">
+            <Input
+              className="h-7 text-xs"
+              placeholder="Search abilities..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              onClick={e => e.stopPropagation()}
+              data-testid="abilities-editor-search"
+            />
+          </div>
+          <div className="overflow-y-auto flex-1">
+            {(["gold", "blue", "red"] as const).map(tier => {
+              const list = grouped[tier];
+              if (!list.length) return null;
+              return (
+                <div key={tier}>
+                  <div className={`px-2 py-0.5 text-[9px] font-pixel uppercase sticky top-0 bg-card border-b border-border ${tierColor(tier)}`}>
+                    {tier} ({list.length})
+                  </div>
+                  {list.map(ability => {
+                    const selected = abilities.includes(ability.name);
+                    return (
+                      <div
+                        key={ability.name}
+                        className={`flex items-center gap-2 px-2 py-1 cursor-pointer text-xs hover:bg-muted/30 ${selected ? "bg-muted/20" : ""}`}
+                        onClick={e => { e.stopPropagation(); toggle(ability.name); }}
+                        data-testid={`ability-option-${ability.name.replace(/\s+/g, "-").toLowerCase()}`}
+                      >
+                        <div className={`w-4 h-4 border rounded-sm flex items-center justify-center shrink-0 ${selected ? "bg-gold border-gold" : "border-border"}`}>
+                          {selected && <Check className="w-3 h-3 text-background" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <span className={`${tierColor(tier)} font-medium`}>{ability.name}</span>
+                          <p className="text-muted-foreground text-[9px] truncate">{ability.description}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
+          <div className="p-1.5 border-t border-border flex justify-end">
+            <RetroButton size="sm" variant="outline" onClick={() => setOpen(false)} data-testid="abilities-editor-done">Done</RetroButton>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 const positionColors: Record<string, string> = {
@@ -105,8 +223,9 @@ const positionColors: Record<string, string> = {
 };
 
 
-export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdit, teamPrimaryColor, canDeclareDraft, onDeclareDraft, isDeclaringDraft, leagueId }: PlayerProfileCardProps) {
+export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdit, teamPrimaryColor, canDeclareDraft, onDeclareDraft, isDeclaringDraft, leagueId, onUpdate }: PlayerProfileCardProps) {
   const isMobile = useIsMobile();
+  const [editOpen, setEditOpen] = useState(false);
   const isPitcher = player.position === "P";
   const isCatcher = player.position === "C";
   const posColor = positionColors[player.position] || "#666";
@@ -397,6 +516,93 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
 
         {leagueId && (
           <CareerStatsSection playerId={player.id} leagueId={leagueId} />
+        )}
+
+        {/* Edit Stats Panel (roster-viewer custom roster editing) */}
+        {onUpdate && (
+          <div className="border-b border-border">
+            <button
+              className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-muted/20 transition-colors"
+              onClick={() => setEditOpen(v => !v)}
+              data-testid="button-toggle-edit-stats"
+            >
+              <span className="font-pixel text-gold text-xs flex items-center gap-2">
+                <Edit className="w-3 h-3" />
+                EDIT STATS
+              </span>
+              {editOpen ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+            </button>
+
+            {editOpen && (
+              <div className="px-4 pb-4 space-y-4">
+                {/* Numeric Attributes */}
+                <div>
+                  <p className="font-pixel text-[10px] text-muted-foreground uppercase mb-2">
+                    {isPitcher ? "Pitching Attributes" : "Hitting Attributes"}
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {isPitcher ? (
+                      <>
+                        {([
+                          { field: "velocity", label: "VELO" },
+                          { field: "control", label: "CTRL" },
+                          { field: "stamina", label: "STAM" },
+                          { field: "stuff", label: "STUF" },
+                        ] as const).map(({ field, label }) => (
+                          <div key={field} className="space-y-0.5">
+                            <label className="font-pixel text-[8px] text-gold block">{label}</label>
+                            <Input
+                              type="number"
+                              min={1}
+                              max={99}
+                              className="h-7 text-xs text-center"
+                              value={(player[field as keyof Player] as number) ?? ""}
+                              onChange={e => onUpdate(field, Math.max(1, Math.min(99, parseInt(e.target.value) || 1)))}
+                              data-testid={`input-edit-${field}`}
+                            />
+                          </div>
+                        ))}
+                      </>
+                    ) : (
+                      <>
+                        {([
+                          { field: "hitForAvg", label: "CON" },
+                          { field: "power", label: "PWR" },
+                          { field: "speed", label: "SPD" },
+                          { field: "arm", label: "ARM" },
+                          { field: "fielding", label: "FLD" },
+                          { field: "errorResistance", label: "ERR" },
+                        ] as const).map(({ field, label }) => (
+                          <div key={field} className="space-y-0.5">
+                            <label className="font-pixel text-[8px] text-gold block">{label}</label>
+                            <Input
+                              type="number"
+                              min={1}
+                              max={99}
+                              className="h-7 text-xs text-center"
+                              value={(player[field as keyof Player] as number) ?? ""}
+                              onChange={e => onUpdate(field, Math.max(1, Math.min(99, parseInt(e.target.value) || 1)))}
+                              data-testid={`input-edit-${field}`}
+                            />
+                          </div>
+                        ))}
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Special Abilities */}
+                <div>
+                  <p className="font-pixel text-[10px] text-muted-foreground uppercase mb-2">Special Abilities</p>
+                  <AbilitiesEditor
+                    abilities={player.abilities ?? []}
+                    position={player.position}
+                    onChange={abilities => onUpdate("abilities", abilities)}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         {/* Draft Declaration Status */}
