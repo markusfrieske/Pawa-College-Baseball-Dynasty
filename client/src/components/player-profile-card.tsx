@@ -591,6 +591,48 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
                   </div>
                 </div>
 
+                {/* Common Abilities */}
+                <div>
+                  <p className="font-pixel text-[10px] text-muted-foreground uppercase mb-2">Common Abilities</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(isPitcher ? (
+                      [
+                        { field: "wRISP",    label: "W/RISP"  },
+                        { field: "vsLefty",  label: "VSLEFY"  },
+                        { field: "poise",    label: "POISE"   },
+                        { field: "grit",     label: "GRIT"    },
+                        { field: "heater",   label: "HEATER"  },
+                        { field: "agile",    label: "AGILE"   },
+                        { field: "recovery", label: "RECOV"   },
+                      ] as const
+                    ) : (
+                      [
+                        { field: "clutch",   label: "CLUTCH"  },
+                        { field: "vsLHP",    label: "VSLHP"   },
+                        { field: "grit",     label: "GRIT"    },
+                        { field: "stealing", label: "STEAL"   },
+                        { field: "running",  label: "RUN"     },
+                        { field: "throwing", label: "THROW"   },
+                        { field: "recovery", label: "RECOV"   },
+                        ...(isCatcher ? [{ field: "catcherAbility" as const, label: "CATCH" }] : []),
+                      ] as const
+                    )).map(({ field, label }) => (
+                      <div key={field} className="space-y-0.5">
+                        <label className="font-pixel text-[8px] text-gold block">{label}</label>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={99}
+                          className="h-7 text-xs text-center"
+                          value={(player[field as keyof Player] as number) ?? ""}
+                          onChange={e => onUpdate(field, Math.max(1, Math.min(99, parseInt(e.target.value) || 1)))}
+                          data-testid={`input-edit-${field}`}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Special Abilities */}
                 <div>
                   <p className="font-pixel text-[10px] text-muted-foreground uppercase mb-2">Special Abilities</p>
