@@ -564,7 +564,7 @@ export default function ManageRecruitingPage() {
     setClassName("");
     setClassDescription("");
     if (!user) setShowGuestBanner(true);
-    toast({ title: "Class Generated", description: "80 recruits have been generated." });
+    toast({ title: "Class Generated", description: "Recruiting class has been generated." });
   };
 
   const handleLoadClass = (cls: SavedClass) => {

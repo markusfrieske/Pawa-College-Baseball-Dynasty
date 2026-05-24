@@ -201,7 +201,7 @@ export default function LandingPage() {
             <div className="grid sm:grid-cols-3 gap-px bg-border">
               {[
                 { step: "01", icon: <Crown className="w-7 h-7" />, title: "Create Your League", desc: "Set up a dynasty with 4–16 teams across real conferences. Invite friends or fill CPU slots — then set the difficulty." },
-                { step: "02", icon: <Binoculars className="w-7 h-7" />, title: "Scout & Recruit", desc: "80 recruits per class with fog-of-war ratings. Spend weekly actions on calls, visits, and NIL offers to land talent, then manage the transfer portal and walk-on pool each offseason." },
+                { step: "02", icon: <Binoculars className="w-7 h-7" />, title: "Scout & Recruit", desc: "Recruits per class scale to your league size — up to 80 with fog-of-war ratings. Spend weekly actions on calls, visits, and NIL offers to land talent, then manage the transfer portal and walk-on pool each offseason." },
                 { step: "03", icon: <Trophy className="w-7 h-7" />, title: "Compete Every Week", desc: "Advance through Preseason, Regular Season, Conference Championships, Super Regionals, and the College World Series. Every result is permanent dynasty history." },
               ].map((item) => (
                 <div key={item.step} className="bg-background p-8 flex flex-col items-center text-center gap-4">
@@ -227,7 +227,7 @@ export default function LandingPage() {
                 </p>
                 <ul className="space-y-3">
                   {[
-                    "80 recruits per class — Blue Chips, Generational Gems, and Busts hidden in every class",
+                    "Recruit class scales to league size (30–80) — Blue Chips, Generational Gems, and Busts hidden in every class",
                     "Scouting progressively narrows ratings from unknown ranges to exact values",
                     "Per-recruit weekly action limits: 1 phone call, 1 email, 1 visit, 1 offer per dynasty",
                     "Priority color-coding shows which school factors each recruit actually cares about",

@@ -37,9 +37,9 @@ import type { APIRequestContext } from "@playwright/test";
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Recruiting class size formula matches server-side: max(80, teams * 5). */
+/** Recruiting class size formula matches server-side: min(teams * 5 + 10, 80). */
 function expectedRecruitCount(teamCount: number): number {
-  return Math.max(80, teamCount * 5);
+  return Math.min(teamCount * 5 + 10, 80);
 }
 
 async function getRecruits(
@@ -658,13 +658,12 @@ test.describe("Full Season-to-Season Flow", () => {
       }
 
       // ── RECRUITING CLASS GENERATES ────────────────────────────────────────
-      // Server formula: Math.max(80, teams × 5). For 12 teams → exactly 80 recruits
-      // (80 is the minimum per the game spec; 16 teams × 5 = 80 is also the maximum typical case).
+      // Server formula: Math.min(teams × 5 + 10, 80). For 12 teams → 70 recruits.
       const recruits = await getRecruits(request, league.id);
       expect(
         recruits.length,
-        `12-team league should generate 80 recruits (per Math.max(80, teams×5) formula). Got ${recruits.length}`
-      ).toBeGreaterThanOrEqual(80);
+        `12-team league should generate 70 recruits (per min(teams×5+10, 80) formula). Got ${recruits.length}`
+      ).toBeGreaterThanOrEqual(70);
 
       const has3Star = recruits.filter((r) => r.starRating === 3).length;
       expect(
@@ -804,13 +803,13 @@ test.describe("Full Season-to-Season Flow", () => {
       ).toBeGreaterThan(0);
 
       // ── SEASON 2 RECRUITING CLASS GENERATED ──────────────────────────────
-      // Server formula: Math.max(80, teams × 5) = 80 base recruits for 12 teams.
-      // Season 2 also includes TRANSFER and JUCO recruits from the portal, so >= 80.
+      // Server formula: Math.min(teams × 5 + 10, 80) = 70 base recruits for 12 teams.
+      // Season 2 also includes TRANSFER and JUCO recruits from the portal, so >= 70.
       const s2Recruits = await getRecruits(request, league.id);
       expect(
         s2Recruits.length,
-        `Season 2 recruiting class should have ≥80 recruits (80 base + any TRANSFER/JUCO entrants). Got ${s2Recruits.length}`
-      ).toBeGreaterThanOrEqual(80);
+        `Season 2 recruiting class should have ≥70 recruits (70 base + any TRANSFER/JUCO entrants). Got ${s2Recruits.length}`
+      ).toBeGreaterThanOrEqual(70);
     }
   );
 });
