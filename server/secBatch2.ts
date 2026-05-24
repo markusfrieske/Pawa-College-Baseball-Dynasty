@@ -78,7 +78,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 4, 5, 1, 0, 0, 0]) },
       // Tyler Webb — SO depth
-      { firstName: "Tyler", lastName: "Webb", position: "P", eligibility: "FR", homeState: "TX", hometown: "Dallas", jerseyNumber: 47,
+      { firstName: "Tyler", lastName: "Webb", position: "P", eligibility: "SO", homeState: "TX", hometown: "Dallas", jerseyNumber: 47,
         hitForAvg: 10, power: 8, speed: 30, arm: 30, fielding: 20, errorResistance: 32, velocity: 30, control: 29, stamina: 28, stuff: 30,
         clutch: 38, vsLHP: 36, grit: 40, stealing: 8, running: 24, throwing: 44, recovery: 25, wRISP: 24, vsLefty: 26, poise: 26, heater: 32, agile: 28,
         abilities: ["Winner's Luck", "Walk"], potential: "B+", catcherAbility: null,
@@ -680,7 +680,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 4, 4, 1, 0, 0, 0]) },
     // Sam Whitfield — SO RHP RP
-    { firstName: "Sam", lastName: "Whitfield", position: "P", eligibility: "FR", homeState: "GA", hometown: "Savannah", jerseyNumber: 36,
+    { firstName: "Sam", lastName: "Whitfield", position: "P", eligibility: "SO", homeState: "GA", hometown: "Savannah", jerseyNumber: 36,
       hitForAvg: 8, power: 6, speed: 25, arm: 32, fielding: 20, errorResistance: 30, velocity: 32, control: 32, stamina: 20, stuff: 30,
       clutch: 37, vsLHP: 34, grit: 39, stealing: 6, running: 22, throwing: 43, recovery: 24, wRISP: 25, vsLefty: 26, poise: 26, heater: 34, agile: 27,
       abilities: ["Winner's Luck"], potential: "B+", catcherAbility: null,
@@ -849,7 +849,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 7, 6, 1, 0, 0, 0]) },
       // Duke Stone — Saturday RHP SO, 6-1/4.40/78K in 57.1 IP
-      { firstName: "Duke", lastName: "Stone", position: "P", eligibility: "FR", homeState: "MS", hometown: "Jackson", jerseyNumber: 45,
+      { firstName: "Duke", lastName: "Stone", position: "P", eligibility: "SO", homeState: "MS", hometown: "Jackson", jerseyNumber: 45,
         hitForAvg: 14, power: 10, speed: 32, arm: 60, fielding: 33, errorResistance: 46, velocity: 60, control: 56, stamina: 60, stuff: 57,
         clutch: 70, vsLHP: 64, grit: 70, stealing: 8, running: 30, throwing: 72, recovery: 51, wRISP: 51, vsLefty: 52, poise: 56, heater: 62, agile: 38,
         abilities: ["Strong Starter", "Doctor K", "Staredown"], potential: "A", catcherAbility: null,

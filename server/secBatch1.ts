@@ -200,7 +200,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...noPitches },
     // Trent Caraway — IF/3B, JR (utility)
-    { firstName: "Trent", lastName: "Caraway", position: "3B", eligibility: "SR", homeState: "OR", hometown: "Corvallis", jerseyNumber: 44,
+    { firstName: "Trent", lastName: "Caraway", position: "3B", eligibility: "JR", homeState: "OR", hometown: "Corvallis", jerseyNumber: 44,
       hitForAvg: 53, power: 55, speed: 55, arm: 56, fielding: 48, errorResistance: 44, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 44, vsLHP: 42, grit: 48, stealing: 14, running: 36, throwing: 56, recovery: 38, wRISP: 44, vsLefty: 42, poise: 46, heater: 0, agile: 42,
       abilities: ["Iron Man", "Pull Hitter"], potential: "B", catcherAbility: null,
@@ -585,7 +585,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 6, 0, 1, 0, 0, 0]) },
     // Aiden Sims — Saturday SO RHP, 5-1/4.68, top weekend arm
-    { firstName: "Aiden", lastName: "Sims", position: "P", eligibility: "FR", homeState: "TX", hometown: "Austin", jerseyNumber: 22,
+    { firstName: "Aiden", lastName: "Sims", position: "P", eligibility: "SO", homeState: "TX", hometown: "Austin", jerseyNumber: 22,
       hitForAvg: 16, power: 12, speed: 32, arm: 60, fielding: 35, errorResistance: 46, velocity: 59, control: 57, stamina: 60, stuff: 57,
       clutch: 70, vsLHP: 66, grit: 70, stealing: 11, running: 33, throwing: 72, recovery: 49, wRISP: 51, vsLefty: 54, poise: 56, heater: 60, agile: 38,
       abilities: ["Strong Starter", "Sharpness", "Doctor K", "Flyball Pitcher"], potential: "A", catcherAbility: null,
@@ -1031,7 +1031,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
       // Gage Oelke — SO C backup
-      { firstName: "Gage", lastName: "Oelke", position: "C", eligibility: "FR", homeState: "MS", hometown: "Meridian", jerseyNumber: 14,
+      { firstName: "Gage", lastName: "Oelke", position: "C", eligibility: "SO", homeState: "MS", hometown: "Meridian", jerseyNumber: 14,
         hitForAvg: 47, power: 43, speed: 36, arm: 46, fielding: 44, errorResistance: 40, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 38, vsLHP: 34, grit: 38, stealing: 10, running: 26, throwing: 46, recovery: 34, wRISP: 36, vsLefty: 32, poise: 38, heater: 0, agile: 28,
         abilities: ["Puller Hitter"], potential: "B+", catcherAbility: 42,
