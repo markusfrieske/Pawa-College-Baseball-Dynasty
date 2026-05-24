@@ -18409,6 +18409,8 @@ export async function registerRoutes(
         conference: conferenceName,
         prestige: teamData?.prestige ?? 5,
         nationalRank: NATIONAL_RANKS[teamName] ?? TOTAL_NATIONAL_TEAMS,
+        primaryColor: teamData?.primaryColor ?? "#1a3a2a",
+        secondaryColor: teamData?.secondaryColor ?? "#d4af37",
         players,
       });
     } catch (error) {

@@ -88,6 +88,8 @@ interface TeamRosterResponse {
   conference: string;
   prestige: number;
   nationalRank: number;
+  primaryColor: string;
+  secondaryColor: string;
   players: RealPlayer[];
 }
 
@@ -674,8 +676,8 @@ export default function RosterViewerPage() {
                   {selectedTeamMeta && (
                     <TeamBadge
                       abbreviation={selectedTeamMeta.abbreviation}
-                      primaryColor={selectedTeamMeta.primaryColor}
-                      secondaryColor={selectedTeamMeta.secondaryColor}
+                      primaryColor={teamData.primaryColor || selectedTeamMeta.primaryColor}
+                      secondaryColor={teamData.secondaryColor || selectedTeamMeta.secondaryColor}
                       size="md"
                     />
                   )}
@@ -819,7 +821,7 @@ export default function RosterViewerPage() {
           player={selectedPlayer}
           open={selectedPlayerIdx !== null}
           onClose={() => setSelectedPlayerIdx(null)}
-          teamPrimaryColor={selectedTeamMeta?.primaryColor}
+          teamPrimaryColor={teamData?.primaryColor || selectedTeamMeta?.primaryColor}
         />
       )}
 
