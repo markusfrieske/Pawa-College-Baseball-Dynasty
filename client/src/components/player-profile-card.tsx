@@ -13,7 +13,8 @@ import { getAbilityByName, getAbilitiesForPosition, ALL_ABILITIES } from "@share
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { velocityToMPH } from "@/lib/playerUtils";
 import { getPotentialGrade, getProgressionZone, getProgressionColor } from "@shared/potential";
-import { TRAJECTORY_LABELS, TRAJECTORY_FULL_LABELS } from "@shared/trajectory";
+import { TRAJECTORY_LABELS, TRAJECTORY_FULL_LABELS, assignTrajectory } from "@shared/trajectory";
+import { isPitcher as getIsPitcher } from "@shared/positions";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export interface Player {
@@ -226,7 +227,7 @@ const positionColors: Record<string, string> = {
 export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdit, teamPrimaryColor, canDeclareDraft, onDeclareDraft, isDeclaringDraft, leagueId, onUpdate }: PlayerProfileCardProps) {
   const isMobile = useIsMobile();
   const [editOpen, setEditOpen] = useState(false);
-  const isPitcher = player.position === "P";
+  const isPitcher = getIsPitcher(player.position);
   const isCatcher = player.position === "C";
   const posColor = positionColors[player.position] || "#666";
   const bats = player.bats || player.batHand || "R";
@@ -289,6 +290,13 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
 
   const attrs = isPitcher ? pitcherAttrs : fielderAttrs;
   const commonAbilities = isPitcher ? pitcherCommonAbilities : fielderCommonAbilities;
+
+  // Derive trajectory for hitters — fall back to computing from attrs when the
+  // stored value is absent (players created before the trajectory migration).
+  const effectiveTrajectory: 1 | 2 | 3 | 4 =
+    !isPitcher && player.trajectory != null && player.trajectory >= 1 && player.trajectory <= 4
+      ? (player.trajectory as 1 | 2 | 3 | 4)
+      : assignTrajectory(player.power ?? 50, player.speed ?? 50, player.hitForAvg ?? 50);
 
   const cardContent = (
     <>
@@ -432,17 +440,17 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
           </div>
           
           {/* Traj row for hitters */}
-          {!isPitcher && player.trajectory != null && (
+          {!isPitcher && (
             <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
               <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Traj</span>
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] text-muted-foreground">{player.trajectory}</span>
+                <span className="text-[10px] text-muted-foreground">{effectiveTrajectory}</span>
                 <Badge
                   variant="outline"
                   className="text-[10px] font-bold border-gold/40 text-gold bg-gold/5"
                   data-testid="badge-trajectory"
                 >
-                  {TRAJECTORY_LABELS[player.trajectory] ?? "LD"} · {TRAJECTORY_FULL_LABELS[player.trajectory] ?? "Line Drive"}
+                  {TRAJECTORY_LABELS[effectiveTrajectory]} · {TRAJECTORY_FULL_LABELS[effectiveTrajectory]}
                 </Badge>
               </div>
             </div>
