@@ -327,7 +327,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "L", batHand: "L",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [6, 0, 0, 1, 0, 6, 0]) },
-      // Grant Govel — RHP SO Friday/weekend, 9-1/2.55
+      // Grant Govel — RHP FR Friday/weekend, 9-1/2.55
       { firstName: "Grant", lastName: "Govel", position: "P", eligibility: "FR", homeState: "CA", hometown: "San Diego", jerseyNumber: 27,
         hitForAvg: 14, power: 10, speed: 32, arm: 61, fielding: 35, errorResistance: 46, velocity: 63, control: 61, stamina: 62, stuff: 58,
         clutch: 76, vsLHP: 70, grit: 76, stealing: 8, running: 30, throwing: 74, recovery: 51, wRISP: 56, vsLefty: 56, poise: 61, heater: 62, agile: 40,
@@ -343,7 +343,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "R",
         skinTone: "tan", hairColor: "black", hairStyle: "short",
         ...pitchMix(1, [0, 6, 5, 1, 0, 0, 0]) },
-      // Andrew Johnson — SO RHP swing, 4-2/3.75 in 60 IP (14 apps)
+      // Andrew Johnson — FR RHP swing, 4-2/3.75 in 60 IP (14 apps)
       { firstName: "Andrew", lastName: "Johnson", position: "P", eligibility: "FR", homeState: "CA", hometown: "Thousand Oaks", jerseyNumber: 35,
         hitForAvg: 12, power: 9, speed: 32, arm: 51, fielding: 31, errorResistance: 42, velocity: 58, control: 49, stamina: 54, stuff: 49,
         clutch: 60, vsLHP: 58, grit: 62, stealing: 8, running: 30, throwing: 66, recovery: 45, wRISP: 43, vsLefty: 45, poise: 48, heater: 54, agile: 40,
@@ -383,7 +383,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 5, 5, 1, 0, 0, 0]) },
-      // Jake Snider — SO RHP depth
+      // Jake Snider — FR RHP depth
       { firstName: "Jake", lastName: "Snider", position: "P", eligibility: "FR", homeState: "CA", hometown: "Irvine", jerseyNumber: 48,
         hitForAvg: 10, power: 8, speed: 31, arm: 32, fielding: 20, errorResistance: 32, velocity: 31, control: 40, stamina: 29, stuff: 30,
         clutch: 38, vsLHP: 36, grit: 40, stealing: 9, running: 26, throwing: 46, recovery: 25, wRISP: 24, vsLefty: 27, poise: 27, heater: 33, agile: 32,
@@ -391,7 +391,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 4, 4, 1, 0, 0, 0]) },
-      // Alex Williams — SO RHP depth
+      // Alex Williams — FR RHP depth
       { firstName: "Alex", lastName: "Williams", position: "P", eligibility: "FR", homeState: "CA", hometown: "Fresno", jerseyNumber: 50,
         hitForAvg: 9, power: 8, speed: 26, arm: 31, fielding: 19, errorResistance: 29, velocity: 33, control: 30, stamina: 30, stuff: 28,
         clutch: 34, vsLHP: 32, grit: 36, stealing: 7, running: 24, throwing: 43, recovery: 24, wRISP: 22, vsLefty: 25, poise: 25, heater: 32, agile: 29,

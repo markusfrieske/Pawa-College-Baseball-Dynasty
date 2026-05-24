@@ -971,7 +971,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
-      // Eddie Park — SS SO (moved from 2B due to Mainolfi)
+      // Eddie Park — SS FR (moved from 2B due to Mainolfi)
       { firstName: "Eddie", lastName: "Park", position: "SS", eligibility: "FR", homeState: "MA", hometown: "Cambridge", jerseyNumber: 14,
         hitForAvg: 53, power: 43, speed: 69, arm: 50, fielding: 52, errorResistance: 50, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 46, vsLHP: 42, grit: 48, stealing: 32, running: 46, throwing: 52, recovery: 40, wRISP: 44, vsLefty: 40, poise: 46, heater: 0, agile: 50,
