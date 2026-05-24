@@ -5,7 +5,8 @@ import { RetroButton } from "@/components/ui/retro-button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Save, RotateCcw, Star, Search, LogIn, ChevronLeft } from "lucide-react";
+import { ArrowLeft, Save, RotateCcw, Star, Search, LogIn, ChevronLeft, X, GitCompare } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { apiRequest, getQueryFn } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -260,6 +261,193 @@ function realPlayerToPlayer(player: RealPlayer, idx: number, teamName: string): 
   } as Player;
 }
 
+// ── Mobile Compare Sheet ──────────────────────────────────────────────────────
+
+const PITCHER_COMPARE_STATS: { key: keyof RealPlayer; label: string }[] = [
+  { key: "velocity", label: "Velo" },
+  { key: "control", label: "Ctrl" },
+  { key: "stamina", label: "Stam" },
+  { key: "poise", label: "Poise" },
+];
+
+const FIELDER_COMPARE_STATS: { key: keyof RealPlayer; label: string }[] = [
+  { key: "hitForAvg", label: "Hit" },
+  { key: "power", label: "Pwr" },
+  { key: "speed", label: "Spd" },
+  { key: "arm", label: "Arm" },
+  { key: "fielding", label: "Fld" },
+];
+
+const COMMON_COMPARE_STATS: { key: keyof RealPlayer; label: string }[] = [
+  { key: "clutch", label: "Clutch" },
+  { key: "grit", label: "Grit" },
+];
+
+function CompareStatRow({
+  label,
+  valA,
+  valB,
+}: {
+  label: string;
+  valA: number | null | undefined;
+  valB: number | null | undefined;
+}) {
+  const a = valA ?? 0;
+  const b = valB ?? 0;
+  const aBetter = a > b;
+  const bBetter = b > a;
+  return (
+    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1 py-1">
+      <span className={`text-xs text-right font-medium tabular-nums ${aBetter ? "text-green-400" : bBetter ? "text-muted-foreground" : "text-foreground"}`}>
+        {valA ?? "—"}
+      </span>
+      <span className="text-[9px] text-muted-foreground text-center w-14 uppercase tracking-wider">{label}</span>
+      <span className={`text-xs text-left font-medium tabular-nums ${bBetter ? "text-green-400" : aBetter ? "text-muted-foreground" : "text-foreground"}`}>
+        {valB ?? "—"}
+      </span>
+    </div>
+  );
+}
+
+function MobileCompareSheet({
+  playerA,
+  playerB,
+  idxA,
+  idxB,
+  open,
+  onClose,
+}: {
+  playerA: RealPlayer;
+  playerB: RealPlayer;
+  idxA: number;
+  idxB: number;
+  open: boolean;
+  onClose: () => void;
+}) {
+  const ovrA = calculateOVR(playerA);
+  const ovrB = calculateOVR(playerB);
+  const starsA = ovrToStars(ovrA);
+  const starsB = ovrToStars(ovrB);
+
+  const positionStats = (isPitcher(playerA.position) || isPitcher(playerB.position))
+    ? PITCHER_COMPARE_STATS
+    : FIELDER_COMPARE_STATS;
+
+  const abilitiesA = playerA.abilities ?? [];
+  const abilitiesB = playerB.abilities ?? [];
+  const allAbilities = Array.from(new Set([...abilitiesA, ...abilitiesB]));
+
+  return (
+    <Sheet open={open} onOpenChange={v => { if (!v) onClose(); }}>
+      <SheetContent
+        side="bottom"
+        className="max-h-[80vh] overflow-y-auto rounded-t-xl border-gold/30 bg-background p-0"
+        data-testid="sheet-player-compare"
+      >
+        <SheetHeader className="sr-only">
+          <SheetTitle>Player Comparison</SheetTitle>
+          <SheetDescription>Side-by-side stats for two selected players</SheetDescription>
+        </SheetHeader>
+
+        {/* Header bar */}
+        <div className="sticky top-0 bg-background/95 backdrop-blur-sm border-b border-border px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <GitCompare className="w-3.5 h-3.5 text-gold" />
+            <span className="font-pixel text-gold text-[10px] uppercase tracking-wider">Compare</span>
+          </div>
+          <button onClick={onClose} className="text-muted-foreground hover:text-gold p-1" data-testid="button-close-compare">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Player name headers */}
+        <div className="grid grid-cols-2 border-b border-border">
+          <div className="px-4 py-3 border-r border-border/50" data-testid={`compare-player-a-${idxA}`}>
+            <p className="text-sm font-semibold text-foreground leading-tight truncate">{playerA.firstName} {playerA.lastName}</p>
+            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+              <Badge variant="outline" className="text-[8px] px-1 py-0">{playerA.position}</Badge>
+              <span className="text-[9px] text-muted-foreground">{playerA.eligibility}</span>
+            </div>
+            <StarRating stars={starsA} />
+          </div>
+          <div className="px-4 py-3" data-testid={`compare-player-b-${idxB}`}>
+            <p className="text-sm font-semibold text-foreground leading-tight truncate">{playerB.firstName} {playerB.lastName}</p>
+            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+              <Badge variant="outline" className="text-[8px] px-1 py-0">{playerB.position}</Badge>
+              <span className="text-[9px] text-muted-foreground">{playerB.eligibility}</span>
+            </div>
+            <StarRating stars={starsB} />
+          </div>
+        </div>
+
+        <div className="px-4 py-3 space-y-1">
+          {/* OVR */}
+          <p className="font-pixel text-[9px] text-muted-foreground uppercase tracking-wider mb-2">Overall</p>
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1 pb-2 border-b border-border/30">
+            <span className={`text-lg font-bold text-right tabular-nums ${ovrColor(ovrA)} ${ovrA > ovrB ? "text-green-400" : ""}`}>{ovrA}</span>
+            <span className="text-[9px] text-muted-foreground text-center w-14 uppercase tracking-wider">OVR</span>
+            <span className={`text-lg font-bold text-left tabular-nums ${ovrColor(ovrB)} ${ovrB > ovrA ? "text-green-400" : ""}`}>{ovrB}</span>
+          </div>
+
+          {/* Position-specific stats */}
+          <p className="font-pixel text-[9px] text-muted-foreground uppercase tracking-wider mt-3 mb-1">
+            {isPitcher(playerA.position) || isPitcher(playerB.position) ? "Pitching" : "Batting & Defense"}
+          </p>
+          {positionStats.map(({ key, label }) => (
+            <CompareStatRow
+              key={key}
+              label={label}
+              valA={(playerA as Record<string, unknown>)[key] as number | null}
+              valB={(playerB as Record<string, unknown>)[key] as number | null}
+            />
+          ))}
+
+          {/* Common stats */}
+          <p className="font-pixel text-[9px] text-muted-foreground uppercase tracking-wider mt-3 mb-1">Mental</p>
+          {COMMON_COMPARE_STATS.map(({ key, label }) => (
+            <CompareStatRow
+              key={key}
+              label={label}
+              valA={(playerA as Record<string, unknown>)[key] as number | null}
+              valB={(playerB as Record<string, unknown>)[key] as number | null}
+            />
+          ))}
+
+          {/* Abilities */}
+          {allAbilities.length > 0 && (
+            <>
+              <p className="font-pixel text-[9px] text-muted-foreground uppercase tracking-wider mt-3 mb-2">Special Abilities</p>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                {allAbilities.map(name => {
+                  const hasA = abilitiesA.includes(name);
+                  const hasB = abilitiesB.includes(name);
+                  return (
+                    <div key={name} className="contents">
+                      <div className={`flex justify-end ${hasA ? "" : "opacity-20"}`}>
+                        <AbilityBadge name={name} />
+                      </div>
+                      <div className={`flex justify-start ${hasB ? "" : "opacity-20"}`}>
+                        <AbilityBadge name={name} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Action footer */}
+        <div className="px-4 pb-6 pt-2 flex gap-2">
+          <RetroButton variant="outline" size="sm" className="flex-1" onClick={onClose} data-testid="button-compare-done">
+            Done
+          </RetroButton>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 const PENDING_SAVE_KEY = "roster-viewer-pending-save";
 
 interface PendingSave {
@@ -292,6 +480,11 @@ export default function RosterViewerPage() {
   const [navGuardOpen, setNavGuardOpen] = useState(false);
   const [pendingNavTarget, setPendingNavTarget] = useState<string | null>(null);
   const [autoSavePending, setAutoSavePending] = useState(false);
+
+  // Compare mode state
+  const [comparePlayerIdx, setComparePlayerIdx] = useState<number | null>(null);
+  const [compareSheetOpen, setCompareSheetOpen] = useState(false);
+  const [compareSecondIdx, setCompareSecondIdx] = useState<number | null>(null);
 
   const hasChanges = Object.keys(editedPlayers).length > 0;
 
@@ -409,6 +602,12 @@ export default function RosterViewerPage() {
     if (isMobile) setMobileStep("team");
   };
 
+  const resetCompareState = () => {
+    setComparePlayerIdx(null);
+    setCompareSecondIdx(null);
+    setCompareSheetOpen(false);
+  };
+
   const handleTeamSelect = (conf: string, teamName: string) => {
     if (hasChanges && teamName !== selectedTeam) {
       setPendingNavTarget(`__team__${conf}|||${teamName}`);
@@ -419,6 +618,7 @@ export default function RosterViewerPage() {
     setSelectedTeam(teamName);
     setEditedPlayers({});
     setSelectedPlayerIdx(null);
+    resetCompareState();
     if (isMobile) setMobileStep("roster");
   };
 
@@ -431,6 +631,7 @@ export default function RosterViewerPage() {
     setSelectedConference("");
     setSelectedTeam("");
     setSelectedPlayerIdx(null);
+    resetCompareState();
     if (isMobile) setMobileStep("conference");
   };
 
@@ -442,12 +643,14 @@ export default function RosterViewerPage() {
     }
     setSelectedTeam("");
     setSelectedPlayerIdx(null);
+    resetCompareState();
     setMobileStep("team");
   };
 
   const confirmNavigation = () => {
     setNavGuardOpen(false);
     setEditedPlayers({});
+    resetCompareState();
     if (!pendingNavTarget) return;
     if (pendingNavTarget.startsWith("__conf__")) {
       const conf = pendingNavTarget.slice(8);
@@ -629,6 +832,47 @@ export default function RosterViewerPage() {
 
   // Mobile roster list (card rows, no wide table)
   function MobileRosterList() {
+    const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const longPressTriggeredRef = useRef(false);
+
+    function handleRowTouchStart(idx: number) {
+      longPressTriggeredRef.current = false;
+      longPressTimerRef.current = setTimeout(() => {
+        longPressTriggeredRef.current = true;
+        // Enter compare mode with this player as the first selection
+        setComparePlayerIdx(idx);
+        setCompareSecondIdx(null);
+        setCompareSheetOpen(false);
+      }, 500);
+    }
+
+    function handleRowTouchEnd() {
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current);
+        longPressTimerRef.current = null;
+      }
+    }
+
+    function handleRowClick(idx: number) {
+      if (longPressTriggeredRef.current) {
+        longPressTriggeredRef.current = false;
+        return;
+      }
+      if (comparePlayerIdx !== null) {
+        if (idx === comparePlayerIdx) {
+          // Tapping the already-selected compare player cancels compare mode
+          setComparePlayerIdx(null);
+          setCompareSecondIdx(null);
+        } else {
+          // Tapping a second player opens the comparison sheet
+          setCompareSecondIdx(idx);
+          setCompareSheetOpen(true);
+        }
+        return;
+      }
+      setSelectedPlayerIdx(idx);
+    }
+
     if (rosterLoading) {
       return (
         <div className="p-4 space-y-2">
@@ -637,52 +881,106 @@ export default function RosterViewerPage() {
       );
     }
     if (!teamData) return null;
+
+    const inCompareMode = comparePlayerIdx !== null;
+
     return (
-      <div className="divide-y divide-border/50">
-        {currentRoster.map((player, idx) => {
-          const ovr = calculateOVR(player);
-          const stars = ovrToStars(ovr);
-          const isEdited = !!editedPlayers[idx];
-          return (
-            <div
-              key={`mrow-${idx}`}
-              className={`flex items-center gap-2 px-4 py-3 cursor-pointer active:bg-gold/5 transition-colors ${isEdited ? "bg-yellow-500/5" : ""}`}
-              onClick={() => setSelectedPlayerIdx(idx)}
-              data-testid={`row-player-mobile-${idx}`}
-            >
-              {/* Jersey # */}
-              <span className="text-[10px] text-muted-foreground w-5 text-right shrink-0">{player.jerseyNumber}</span>
-
-              {/* Name + meta */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5">
-                  {isEdited && <div className="w-1.5 h-1.5 rounded-full bg-yellow-500 shrink-0" />}
-                  <span className="text-sm font-medium text-foreground truncate">
-                    {player.firstName} {player.lastName}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <Badge variant="outline" className="text-[8px] px-1 py-0">{player.position}</Badge>
-                  <span className="text-[9px] text-muted-foreground">{player.eligibility}</span>
-                  <StarRating stars={stars} />
-                </div>
-              </div>
-
-              {/* OVR */}
-              <div className="text-center shrink-0">
-                <span className={`text-sm ${ovrColor(ovr)}`} data-testid={`text-ovr-mobile-${idx}`}>{ovr}</span>
-                <p className="text-[9px] text-muted-foreground">OVR</p>
-              </div>
-
-              {/* 3 position-aware editable stats */}
-              <MobileStatCols player={player} idx={idx} />
+      <>
+        {/* Compare mode banner */}
+        {inCompareMode && (
+          <div className="sticky top-0 z-10 bg-gold/10 border-b border-gold/30 px-4 py-2 flex items-center justify-between gap-2" data-testid="banner-compare-mode">
+            <div className="flex items-center gap-2">
+              <GitCompare className="w-3 h-3 text-gold shrink-0" />
+              <span className="text-[10px] font-pixel text-gold">
+                {comparePlayerIdx !== null && currentRoster[comparePlayerIdx]
+                  ? `${currentRoster[comparePlayerIdx].firstName} ${currentRoster[comparePlayerIdx].lastName} selected — tap another player to compare`
+                  : "Tap a player to compare"}
+              </span>
             </div>
-          );
-        })}
-        {currentRoster.length === 0 && (
-          <p className="text-center text-muted-foreground text-sm py-12" data-testid="text-no-roster">No roster data found for {selectedTeam}</p>
+            <button
+              onClick={() => { setComparePlayerIdx(null); setCompareSecondIdx(null); }}
+              className="text-muted-foreground hover:text-gold p-1"
+              data-testid="button-cancel-compare"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          </div>
         )}
-      </div>
+
+        <div className="divide-y divide-border/50">
+          {currentRoster.map((player, idx) => {
+            const ovr = calculateOVR(player);
+            const stars = ovrToStars(ovr);
+            const isEdited = !!editedPlayers[idx];
+            const isCompareSelected = idx === comparePlayerIdx;
+            const isCompareHighlight = inCompareMode && !isCompareSelected;
+
+            return (
+              <div
+                key={`mrow-${idx}`}
+                className={`flex items-center gap-2 px-4 py-3 cursor-pointer transition-colors
+                  ${isCompareSelected ? "bg-gold/15 ring-1 ring-inset ring-gold/40" : ""}
+                  ${isCompareHighlight ? "active:bg-gold/10" : "active:bg-gold/5"}
+                  ${isEdited && !isCompareSelected ? "bg-yellow-500/5" : ""}
+                `}
+                onClick={() => handleRowClick(idx)}
+                onTouchStart={() => handleRowTouchStart(idx)}
+                onTouchEnd={handleRowTouchEnd}
+                onTouchCancel={handleRowTouchEnd}
+                data-testid={`row-player-mobile-${idx}`}
+              >
+                {/* Jersey # */}
+                <span className="text-[10px] text-muted-foreground w-5 text-right shrink-0">{player.jerseyNumber}</span>
+
+                {/* Name + meta */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    {isEdited && !isCompareSelected && <div className="w-1.5 h-1.5 rounded-full bg-yellow-500 shrink-0" />}
+                    {isCompareSelected && <GitCompare className="w-3 h-3 text-gold shrink-0" />}
+                    <span className={`text-sm font-medium truncate ${isCompareSelected ? "text-gold" : "text-foreground"}`}>
+                      {player.firstName} {player.lastName}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <Badge variant="outline" className="text-[8px] px-1 py-0">{player.position}</Badge>
+                    <span className="text-[9px] text-muted-foreground">{player.eligibility}</span>
+                    <StarRating stars={stars} />
+                  </div>
+                </div>
+
+                {/* OVR */}
+                <div className="text-center shrink-0">
+                  <span className={`text-sm ${ovrColor(ovr)}`} data-testid={`text-ovr-mobile-${idx}`}>{ovr}</span>
+                  <p className="text-[9px] text-muted-foreground">OVR</p>
+                </div>
+
+                {/* 3 position-aware editable stats */}
+                <MobileStatCols player={player} idx={idx} />
+              </div>
+            );
+          })}
+          {currentRoster.length === 0 && (
+            <p className="text-center text-muted-foreground text-sm py-12" data-testid="text-no-roster">No roster data found for {selectedTeam}</p>
+          )}
+        </div>
+
+        {/* Compare bottom sheet */}
+        {compareSheetOpen && comparePlayerIdx !== null && compareSecondIdx !== null
+          && currentRoster[comparePlayerIdx] && currentRoster[compareSecondIdx] && (
+          <MobileCompareSheet
+            playerA={currentRoster[comparePlayerIdx]}
+            playerB={currentRoster[compareSecondIdx]}
+            idxA={comparePlayerIdx}
+            idxB={compareSecondIdx}
+            open={compareSheetOpen}
+            onClose={() => {
+              setCompareSheetOpen(false);
+              setComparePlayerIdx(null);
+              setCompareSecondIdx(null);
+            }}
+          />
+        )}
+      </>
     );
   }
 
@@ -877,7 +1175,7 @@ export default function RosterViewerPage() {
                 <span className="text-[10px] text-muted-foreground shrink-0">{currentRoster.length} players</span>
               </div>
               {!rosterLoading && teamData && (
-                <p className="text-[9px] text-muted-foreground mt-2">Tap row for full profile · tap a stat to edit</p>
+                <p className="text-[9px] text-muted-foreground mt-2">Tap for profile · long-press to compare · tap stat to edit</p>
               )}
             </div>
 
