@@ -24,7 +24,7 @@ import {
   generateDeparturesSummaryNews,
 } from "./news-engine";
 import { SEC_REAL_ROSTERS, ALL_REAL_ROSTERS } from "./realRosters";
-import { generateRecruitClass, selectTools, genToolAttr, sampleNormalSpeed, HITTER_TOOL_GROUPS, PITCHER_TOOL_GROUPS } from "./recruit-generator";
+import { generateRecruitClass, selectTools, genToolAttr, sampleNormalSpeed, sampleNormalVelocity, HITTER_TOOL_GROUPS, PITCHER_TOOL_GROUPS } from "./recruit-generator";
 import { normalizeCommonAbilities } from "./normalizeCommonAbilities";
 import { validateLeagueRosters, checkTeamRosterStructure } from "./rosterValidation";
 import { sendWeeklyDigests, verifyUnsubToken } from "./digestEmail";
@@ -18722,7 +18722,7 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
       const playerData = {
         hitForAvg: scaleAttr(rp.hitForAvg), power: scaleAttr(rp.power), speed: Math.max(10, Math.min(95, Math.round(55 + (rp.speed - 50) * 0.75))), arm: scaleAttr(rp.arm),
         fielding: scaleAttr(rp.fielding), errorResistance: scaleAttr(rp.errorResistance),
-        velocity: scaleAttr(rp.velocity), control: scaleAttr(rp.control), stamina: scaleAttr(rp.stamina), stuff: scaleAttr(rp.stuff),
+        velocity: rp.velocity >= 70 ? rp.velocity : Math.max(30, Math.min(95, Math.round(55 + (rp.velocity - 47) * 1.2))), control: scaleAttr(rp.control), stamina: scaleAttr(rp.stamina), stuff: scaleAttr(rp.stuff),
         clutch: scaleAttr(rp.clutch), vsLHP: scaleAttr(rp.vsLHP), grit: scaleAttr(rp.grit), stealing: scaleAttr(rp.stealing),
         running: scaleAttr(rp.running), throwing: scaleAttr(rp.throwing), recovery: scaleAttr(rp.recovery),
         wRISP: scaleAttr(rp.wRISP), vsLefty: scaleAttr(rp.vsLefty), poise: scaleAttr(rp.poise), heater: scaleAttr(rp.heater), agile: scaleAttr(rp.agile),
@@ -18830,7 +18830,7 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
         const playerData = {
           hitForAvg: genAttr(), power: genAttr(), speed: sampleNormalSpeed(), arm: genAttr(),
           fielding: genAttr(), errorResistance: genAttr(),
-          velocity: genAttr(), control: genAttr(), stamina: genAttr(), stuff: genAttr(),
+          velocity: sampleNormalVelocity(), control: genAttr(), stamina: genAttr(), stuff: genAttr(),
           clutch: genAttr(), vsLHP: genAttr(), grit: genAttr(), stealing: genAttr(),
           running: genAttr(), throwing: genAttr(), recovery: genAttr(),
           wRISP: genAttr(), vsLefty: genAttr(), poise: genAttr(), heater: genAttr(), agile: genAttr(),
@@ -18987,7 +18987,7 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
     const arm = genT("arm");
     const fielding = genT("fielding");
     const errorResistance = genT("errorResistance");
-    const velocity = genT("velocity");
+    const velocity = sampleNormalVelocity();
     const control = genT("control");
     const stamina = genT("stamina");
     const stuff = genT("stuff");

@@ -51,6 +51,15 @@ export function sampleNormalSpeed(mean = 55, sd = 13, lo = 10, hi = 95): number 
   return Math.max(lo, Math.min(hi, Math.round(mean + z * sd)));
 }
 
+export function sampleNormalVelocity(mean = 55, sd = 11, lo = 30, hi = 95): number {
+  // Box-Muller transform for a normally-distributed pitcher velocity value
+  // mean=55 ≈ D1 average ~89 mph fastball; SD=11; clamp [30, 95]
+  const u1 = Math.random() || 1e-10;
+  const u2 = Math.random();
+  const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+  return Math.max(lo, Math.min(hi, Math.round(mean + z * sd)));
+}
+
 export function genToolAttr(base: number, isTool: boolean): number {
   if (isTool) {
     const boost = 18 + Math.floor(Math.random() * 25);
@@ -574,7 +583,7 @@ export function generateRecruitClass(
       arm = 85 + Math.floor(Math.random() * 15);
       fielding = 85 + Math.floor(Math.random() * 15);
       errorResistance = 80 + Math.floor(Math.random() * 20);
-      velocity = 85 + Math.floor(Math.random() * 15);
+      velocity = sampleNormalVelocity(82, 5, 70, 95);
       control = 85 + Math.floor(Math.random() * 15);
       stamina = 80 + Math.floor(Math.random() * 20);
       stuff = 85 + Math.floor(Math.random() * 15);
@@ -585,7 +594,7 @@ export function generateRecruitClass(
       arm = 15 + Math.floor(Math.random() * 25);
       fielding = 15 + Math.floor(Math.random() * 25);
       errorResistance = 15 + Math.floor(Math.random() * 25);
-      velocity = 15 + Math.floor(Math.random() * 25);
+      velocity = sampleNormalVelocity(35, 4, 25, 45);
       control = 15 + Math.floor(Math.random() * 25);
       stamina = 15 + Math.floor(Math.random() * 25);
       stuff = 15 + Math.floor(Math.random() * 25);
@@ -602,7 +611,7 @@ export function generateRecruitClass(
       arm       = genR(targetAttrAvg,            "arm");
       fielding  = genR(targetAttrAvg,            "fielding");
       errorResistance = genR(targetAttrAvg,      "errorResistance");
-      velocity  = genR(targetAttrAvg - pitchPenalty, "velocity");
+      velocity  = sampleNormalVelocity();
       control   = genR(targetAttrAvg,               "control");
       stamina   = genR(targetAttrAvg,               "stamina");
       stuff     = genR(targetAttrAvg - pitchPenalty, "stuff");
@@ -619,7 +628,7 @@ export function generateRecruitClass(
       arm       = genT(targetAttrAvg,            "arm");
       fielding  = genT(targetAttrAvg,            "fielding");
       errorResistance = genT(targetAttrAvg,      "errorResistance");
-      velocity  = genT(targetAttrAvg - pitchPenalty, "velocity");
+      velocity  = sampleNormalVelocity();
       control   = genT(targetAttrAvg,               "control");
       stamina   = genT(targetAttrAvg,               "stamina");
       stuff     = genT(targetAttrAvg - pitchPenalty, "stuff");
