@@ -51,6 +51,7 @@ export interface RealPlayer {
   abilities: string[];
   potential: string;
   catcherAbility: number | null;
+  trajectory?: number;
   pitchFB: number;
   pitch2S: number;
   pitchSL: number;

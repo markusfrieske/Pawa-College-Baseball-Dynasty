@@ -1,5 +1,6 @@
 import { getRandomAbilities, getAbilitiesForPosition, calculateOVR, getStarRatingFromOVR } from "@shared/abilities";
 import type { InsertRecruit } from "@shared/schema";
+import { assignTrajectory } from "@shared/trajectory";
 import { normalizeCommonAbilities } from "./normalizeCommonAbilities";
 
 export const HITTER_TOOL_GROUPS: Record<string, string[]> = {
@@ -823,6 +824,7 @@ export function generateRecruitClass(
       ...pitchMix,
       ...commonAbilities,
       abilities,
+      trajectory: isPitcher ? 2 : assignTrajectory(power, speed, hitForAvg),
       scoutingOrder,
       proximityPriority: priorities[Math.floor(Math.random() * priorities.length)],
       reputationPriority: priorities[Math.floor(Math.random() * priorities.length)],

@@ -13,6 +13,7 @@ import { getActionPointCost } from "@shared/stateDistance";
 import { getPersonalityForArchetype, getTraitBadgesForArchetype, getPhilosophyForArchetype, evaluateMilestones } from "@shared/coachTraits";
 import { CONFERENCE_TIER_NIL, DEFAULT_CONFERENCE_NIL } from "@shared/nilConfig";
 import type { Player, Recruit, TransferPortalInterest, Game, InsertPlayerSeasonStats, GameReport } from "@shared/schema";
+import { assignTrajectory } from "@shared/trajectory";
 import { getRecruitPoolSize } from "./utils";
 import {
   generateGameNewsArticles,
@@ -6724,6 +6725,7 @@ export async function registerRoutes(
             headwear: p.headwear || "cap",
             overall: p.overall || 300,
             abilities: p.abilities || [],
+            trajectory: p.trajectory ?? 2,
           };
         });
 
@@ -6745,6 +6747,7 @@ export async function registerRoutes(
             headwear: "cap",
             overall: 300,
             abilities: [] as string[],
+            trajectory: 2,
           });
         }
 
@@ -7116,20 +7119,48 @@ export async function registerRoutes(
           const velocityNorm = velocity / 100;
           const fieldNorm = fieldingAvg / 100;
 
-          const strikeoutChance = Math.max(0.10, 0.20 + stuffNorm * 0.12 + velocityNorm * 0.05 - contactNorm * 0.15);
+          let strikeoutChance = Math.max(0.10, 0.20 + stuffNorm * 0.12 + velocityNorm * 0.05 - contactNorm * 0.15);
           const walkChance = Math.max(0.03, 0.08 - controlNorm * 0.05 + contactNorm * 0.02);
           const hbpChance = 0.008;
           const errorChance = Math.max(0.005, 0.025 - fieldNorm * 0.02);
 
-          const hitChance = Math.max(0.06, 0.14 + contactNorm * 0.08 - stuffNorm * 0.04 - velocityNorm * 0.03);
+          let hitChance = Math.max(0.06, 0.14 + contactNorm * 0.08 - stuffNorm * 0.04 - velocityNorm * 0.03);
 
           // HR formula calibrated so 99 Power ≈ 10-12% HR/AB, 60 Power ≈ 2-4%, 30 Power < 1%.
           // Cubic curve concentrates HR gains at elite power, matching real-baseball distribution.
           // Stuff suppression is intentionally small (-0.015 max) so it's meaningful but not dominant.
           // "Contact Hitter" special ability currently applies no HR penalty in sim (intentional).
-          const hrChance = Math.max(0.005, 0.007 + Math.pow(powerNorm, 3) * 0.11 - stuffNorm * 0.015);
-          const tripleChance = Math.max(0.002, 0.004 + speedNorm * 0.006);
-          const doubleChance = Math.max(0.01, 0.035 + powerNorm * 0.02 - stuffNorm * 0.01);
+          let hrChance = Math.max(0.005, 0.007 + Math.pow(powerNorm, 3) * 0.11 - stuffNorm * 0.015);
+          let tripleChance = Math.max(0.002, 0.004 + speedNorm * 0.006);
+          let doubleChance = Math.max(0.01, 0.035 + powerNorm * 0.02 - stuffNorm * 0.01);
+
+          // Trajectory: reshape hit-type mix (GB/LD/Gap/FB) without changing total event probability
+          const traj = (batter as any).trajectory ?? 2;
+          if (traj !== 2) {
+            const origSum = strikeoutChance + hrChance + tripleChance + doubleChance + hitChance;
+            if (traj === 1) { // GB: fewer HRs and Ks, more contact
+              hrChance *= 0.4;
+              strikeoutChance *= 0.75;
+            } else if (traj === 3) { // Gap: more XBH, fewer HRs and singles
+              doubleChance *= 1.5;
+              tripleChance *= 1.4;
+              hrChance *= 0.75;
+              hitChance *= 0.85;
+            } else if (traj === 4) { // FB: more HRs and Ks, fewer singles
+              hrChance *= 1.6;
+              strikeoutChance *= 1.25;
+              hitChance *= 0.7;
+            }
+            const newSum = strikeoutChance + hrChance + tripleChance + doubleChance + hitChance;
+            if (newSum > 0) {
+              const scale = origSum / newSum;
+              strikeoutChance *= scale;
+              hrChance *= scale;
+              tripleChance *= scale;
+              doubleChance *= scale;
+              hitChance *= scale;
+            }
+          }
 
           const dpChance = (bases[0] !== null && outs < 2)
             ? Math.max(0.03, 0.10 - speedNorm * 0.05)
@@ -19200,6 +19231,7 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
         eyeBlack: randomAppearance.eyeBlack,
       };
       usedJerseyNumbers.add(rp.jerseyNumber);
+      const isPitcher = ["P", "SP", "RP", "CP"].includes(rp.position);
       const playerData = {
         hitForAvg: rp.hitForAvg, power: rp.power, speed: rp.speed, arm: rp.arm,
         fielding: rp.fielding, errorResistance: rp.errorResistance,
@@ -19209,6 +19241,7 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
         wRISP: rp.wRISP, vsLefty: rp.vsLefty, poise: rp.poise, heater: rp.heater, agile: rp.agile,
         catcherAbility: rp.catcherAbility ?? null,
         abilities: rp.abilities,
+        trajectory: rp.trajectory ?? (isPitcher ? 2 : assignTrajectory(rp.power, rp.speed, rp.hitForAvg)),
       };
 
       // Normalize common ability F/G distribution by conference tier.

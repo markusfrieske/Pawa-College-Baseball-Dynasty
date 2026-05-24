@@ -85,6 +85,12 @@ interface FilterPreset {
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Recruit, RecruitingInterest, Team } from "@shared/schema";
+import { getAbilityByName } from "@shared/abilities";
+import { TRAJECTORY_LABELS } from "@shared/trajectory";
+import { PlayerPortrait } from "@/components/ui/player-portrait";
+import { PitchMixDial } from "@/components/ui/pitch-mix-dial";
+import { LetterGrade } from "@/components/ui/letter-grade";
+import { velocityToMPH } from "@/lib/playerUtils";
 
 function getInterestLabel(level: number): { label: string; color: string } {
   if (level >= 90) return { label: "On Fire", color: "text-red-400" };
@@ -110,11 +116,6 @@ function getInterestChangeLabel(change: number): { label: string; color: string 
   if (change >= 3) return { label: "Some Interest", color: "text-yellow-400" };
   return { label: "Slight Interest", color: "text-blue-400" };
 }
-import { getAbilityByName } from "@shared/abilities";
-import { PlayerPortrait } from "@/components/ui/player-portrait";
-import { PitchMixDial } from "@/components/ui/pitch-mix-dial";
-import { LetterGrade } from "@/components/ui/letter-grade";
-import { velocityToMPH } from "@/lib/playerUtils";
 
 interface RecruitWithInterest extends Recruit {
   interest?: RecruitingInterest;
@@ -2321,6 +2322,11 @@ function RecruitRow({
                   {isFullyRevealed ? `${totalAbilities} Abilities` : `${revealedAbilitiesCount}/${totalAbilities > revealedAbilitiesCount ? "?" : totalAbilities}`}
                 </Badge>
               )}
+              {recruit.position !== "P" && recruit.trajectory != null && recruit.trajectory !== 2 && (
+                <Badge variant="outline" className="text-[8px] border-gold/30 text-gold/70" data-testid={`badge-traj-${recruit.id}`}>
+                  {TRAJECTORY_LABELS[recruit.trajectory] ?? "LD"}
+                </Badge>
+              )}
               {positionNeed && (
                 <Badge variant="outline" className="text-[8px] border-red-500/50 text-red-400">
                   NEED
@@ -3292,8 +3298,13 @@ function RecruitDetailModal({
               <GraduationCap className="w-4 h-4 shrink-0" />
               <span className="truncate">{recruit.recruitType === "TRANSFER" ? `Transfer from ${recruit.fromTeamName || "Unknown"} (${recruit.recruitYear || "SO"})` : recruit.recruitType === "JUCO" ? `JUCO from ${recruit.fromTeamName || "Unknown"} (${recruit.recruitYear || "FR"})` : "High School"}</span>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-2 shrink-0 flex-wrap">
               <span>Bats {recruit.batHand || "R"} / Throws {recruit.throwHand || "R"}</span>
+              {recruit.position !== "P" && recruit.trajectory != null && (
+                <Badge variant="outline" className="text-[9px] border-gold/40 text-gold/80" data-testid="badge-detail-traj">
+                  Traj: {TRAJECTORY_LABELS[recruit.trajectory] ?? "LD"}
+                </Badge>
+              )}
             </div>
           </div>
 
@@ -3762,8 +3773,13 @@ function RecruitDetailModal({
               <GraduationCap className="w-4 h-4 shrink-0" />
               <span className="truncate">{recruit.recruitType === "TRANSFER" ? `Transfer from ${recruit.fromTeamName || "Unknown"} (${recruit.recruitYear || "SO"})` : recruit.recruitType === "JUCO" ? `JUCO from ${recruit.fromTeamName || "Unknown"} (${recruit.recruitYear || "FR"})` : "High School"}</span>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-2 shrink-0 flex-wrap">
               <span>Bats {recruit.batHand || "R"} / Throws {recruit.throwHand || "R"}</span>
+              {recruit.position !== "P" && recruit.trajectory != null && (
+                <Badge variant="outline" className="text-[9px] border-gold/40 text-gold/80" data-testid="badge-detail-traj">
+                  Traj: {TRAJECTORY_LABELS[recruit.trajectory] ?? "LD"}
+                </Badge>
+              )}
             </div>
           </div>
 
@@ -4318,6 +4334,14 @@ function CompareModal({
                       <span>#{recruit.positionRank || "—"}</span>
                     </div>
                   </div>
+                  {recruit.position !== "P" && recruit.trajectory != null && (
+                    <div>
+                      <div className="flex justify-between text-xs mb-1">
+                        <span className="text-muted-foreground">Trajectory</span>
+                        <span className="text-gold">{TRAJECTORY_LABELS[recruit.trajectory] ?? "LD"}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 {revealedAbilities.length > 0 && (
                   <div className="mt-4 pt-4 border-t border-border">

@@ -12,6 +12,7 @@ import { getAbilityByName } from "@shared/abilities";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { velocityToMPH } from "@/lib/playerUtils";
 import { getPotentialGrade, getProgressionZone, getProgressionColor } from "@shared/potential";
+import { TRAJECTORY_LABELS, TRAJECTORY_FULL_LABELS } from "@shared/trajectory";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export interface Player {
@@ -51,6 +52,7 @@ export interface Player {
   poise?: number | null;
   heater?: number | null;
   agile?: number | null;
+  trajectory?: number | null;
   // Other
   bats?: string;
   throws?: string;
@@ -310,6 +312,21 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
             ))}
           </div>
           
+          {/* Traj row for hitters */}
+          {!isPitcher && player.trajectory != null && (
+            <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Traj</span>
+              <Badge
+                variant="outline"
+                className="text-[10px] font-bold border-gold/40 text-gold bg-gold/5"
+                title={TRAJECTORY_FULL_LABELS[player.trajectory] ?? "Line Drive"}
+                data-testid="badge-trajectory"
+              >
+                {TRAJECTORY_LABELS[player.trajectory] ?? "LD"}
+              </Badge>
+            </div>
+          )}
+
           {/* Pitch Mix for Pitchers */}
           {isPitcher && pitchMix.length > 0 && (
             <div className="mt-4 pt-4 border-t border-border">
