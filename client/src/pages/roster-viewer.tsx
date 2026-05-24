@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
@@ -206,6 +206,14 @@ function PlayerEditPanel({ player, idx, onUpdate }: {
   );
 }
 
+const PENDING_SAVE_KEY = "roster-viewer-pending-save";
+
+interface PendingSave {
+  teamName: string;
+  edits: Record<number, Partial<RealPlayer>>;
+  timestamp: number;
+}
+
 export default function RosterViewerPage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
@@ -223,6 +231,7 @@ export default function RosterViewerPage() {
 
   const [navGuardOpen, setNavGuardOpen] = useState(false);
   const [pendingNavTarget, setPendingNavTarget] = useState<string | null>(null);
+  const [autoSavePending, setAutoSavePending] = useState(false);
 
   const hasChanges = Object.keys(editedPlayers).length > 0;
 
@@ -251,10 +260,45 @@ export default function RosterViewerPage() {
       setSaveRosterName("");
       setSaveRosterDesc("");
       setEditedPlayers({});
+      setAutoSavePending(false);
+      localStorage.removeItem(PENDING_SAVE_KEY);
       toast({ title: "Roster Saved", description: "Custom roster saved to your account." });
     },
     onError: (err: Error) => toast({ title: "Save Failed", description: parseErrorMessage(err), variant: "destructive" }),
   });
+
+  // On mount: restore pending edits saved before login redirect, then auto-open save dialog
+  useEffect(() => {
+    if (user === undefined) return; // still loading
+    if (!user) return; // not logged in
+    const raw = localStorage.getItem(PENDING_SAVE_KEY);
+    if (!raw) return;
+    try {
+      const pending: PendingSave = JSON.parse(raw);
+      const ONE_HOUR = 60 * 60 * 1000;
+      if (Date.now() - pending.timestamp > ONE_HOUR) {
+        localStorage.removeItem(PENDING_SAVE_KEY);
+        return;
+      }
+      setSelectedTeam(pending.teamName);
+      setEditedPlayers(pending.edits);
+      setAutoSavePending(true);
+      setExpandedConfs(prev => {
+        const next = new Set(prev);
+        // SEC is default, but we don't know the conference here — teams load lazily
+        return next;
+      });
+    } catch {
+      localStorage.removeItem(PENDING_SAVE_KEY);
+    }
+  }, [user]);
+
+  // Once team data loads and there's a pending auto-save, open the save dialog
+  useEffect(() => {
+    if (autoSavePending && teamData && user) {
+      setSaveDialogOpen(true);
+    }
+  }, [autoSavePending, teamData, user]);
 
   useEffect(() => {
     if (!hasChanges) return;
@@ -327,9 +371,20 @@ export default function RosterViewerPage() {
     setPendingNavTarget(null);
   };
 
+  const redirectToLoginWithPendingEdits = () => {
+    if (hasChanges && selectedTeam) {
+      localStorage.setItem(PENDING_SAVE_KEY, JSON.stringify({
+        teamName: selectedTeam,
+        edits: editedPlayers,
+        timestamp: Date.now(),
+      } as PendingSave));
+    }
+    setLocation(`/login?redirect=/roster-viewer`);
+  };
+
   const handleSave = () => {
     if (!user) {
-      setLocation(`/login?redirect=/roster-viewer`);
+      redirectToLoginWithPendingEdits();
       return;
     }
     if (!saveRosterName.trim()) {
@@ -380,7 +435,7 @@ export default function RosterViewerPage() {
               size="sm"
               onClick={() => {
                 if (!user) {
-                  setLocation(`/login?redirect=/roster-viewer`);
+                  redirectToLoginWithPendingEdits();
                   return;
                 }
                 setSaveDialogOpen(true);
@@ -441,7 +496,12 @@ export default function RosterViewerPage() {
                           className={`w-full text-left px-4 py-1.5 text-xs transition-colors hover:bg-muted/30 ${selectedTeam === team.name ? "bg-gold/10 text-gold border-r-2 border-gold" : "text-foreground/80"}`}
                           data-testid={`button-team-${team.name.replace(/\s+/g, "-").toLowerCase()}`}
                         >
-                          <span className="block truncate">{team.name}</span>
+                          <div className="flex items-center justify-between gap-1">
+                            <span className="truncate">{team.name}</span>
+                            {selectedTeam === team.name && hasChanges && (
+                              <div className="w-1.5 h-1.5 rounded-full bg-yellow-400 shrink-0" title="Unsaved changes" />
+                            )}
+                          </div>
                           <span className="text-[9px] text-muted-foreground">#{team.nationalRank}</span>
                         </button>
                       ))}
@@ -669,7 +729,7 @@ export default function RosterViewerPage() {
               <RetroButton
                 onClick={() => {
                   setNavGuardOpen(false);
-                  setLocation("/login?redirect=/roster-viewer");
+                  redirectToLoginWithPendingEdits();
                 }}
                 data-testid="button-navguard-login"
               >

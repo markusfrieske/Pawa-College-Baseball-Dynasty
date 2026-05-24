@@ -18352,17 +18352,31 @@ export async function registerRoutes(
 
   app.get("/api/ncaa-rosters", async (_req, res) => {
     try {
-      const result = ALL_CONFERENCES_ORDERED.map(conf => ({
-        conference: conf,
-        teams: getTeamsForConference(conf).map(t => ({
-          name: t.name,
-          mascot: t.mascot,
-          abbreviation: t.abbreviation,
-          prestige: t.prestige,
-          nationalRank: NATIONAL_RANKS[t.name] ?? TOTAL_NATIONAL_TEAMS,
+      const result = ALL_CONFERENCES_ORDERED.map(conf => {
+        const confTeams = getTeamsForConference(conf);
+        return {
           conference: conf,
-        })),
-      }));
+          teams: confTeams.map(t => {
+            const roster = ALL_REAL_ROSTERS[t.name] ?? [];
+            const players = roster.map(rp => {
+              const normalized = normalizeCommonAbilities(
+                { position: rp.position, firstName: rp.firstName, lastName: rp.lastName, ...rp },
+                conf,
+              );
+              return { ...rp, ...normalized };
+            });
+            return {
+              name: t.name,
+              mascot: t.mascot,
+              abbreviation: t.abbreviation,
+              prestige: t.prestige,
+              nationalRank: NATIONAL_RANKS[t.name] ?? TOTAL_NATIONAL_TEAMS,
+              conference: conf,
+              players,
+            };
+          }),
+        };
+      });
       res.json(result);
     } catch (error) {
       console.error("Failed to get ncaa rosters:", error);
