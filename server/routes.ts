@@ -885,9 +885,24 @@ export async function registerRoutes(
         return { grade: letter, label, score };
       }
 
-      function attrGrade(val: number) {
-        const s = val >= 70 ? 10 : val >= 65 ? 9 : val >= 60 ? 8 : val >= 55 ? 7 : val >= 50 ? 6 : val >= 45 ? 5 : val >= 40 ? 4 : val >= 35 ? 3 : 2;
-        const l = s >= 10 ? "A+" : s >= 9 ? "A" : s >= 8 ? "B+" : s >= 7 ? "B" : s >= 6 ? "C+" : s >= 5 ? "C" : s >= 4 ? "D+" : s >= 3 ? "D" : "F";
+      // Relative grader: called after all team scores are collected so grades
+      // are distributed across the full population (best team = A+, worst = F).
+      function relativeGrade(score: number, sortedDesc: number[]): { letter: string; score: number } {
+        const n = sortedDesc.length;
+        if (n === 0) return { letter: "C", score: 5 };
+        // Find percentile rank: 0.0 = best, 1.0 = worst
+        let rank = 0;
+        while (rank < n - 1 && sortedDesc[rank] > score) rank++;
+        const pct = n === 1 ? 0 : rank / (n - 1);
+        // 13-band distribution spread evenly across population
+        const s = pct <= 0.04 ? 12 : pct <= 0.12 ? 11 : pct <= 0.20 ? 10 :
+                  pct <= 0.28 ? 9  : pct <= 0.36 ? 8  : pct <= 0.44 ? 7  :
+                  pct <= 0.52 ? 6  : pct <= 0.60 ? 5  : pct <= 0.68 ? 4  :
+                  pct <= 0.76 ? 3  : pct <= 0.84 ? 2  : pct <= 0.92 ? 1  : 0;
+        const l = s >= 12 ? "A+" : s >= 11 ? "A" : s >= 10 ? "A-" :
+                  s >= 9  ? "B+" : s >= 8  ? "B" : s >= 7  ? "B-" :
+                  s >= 6  ? "C+" : s >= 5  ? "C" : s >= 4  ? "C-" :
+                  s >= 3  ? "D+" : s >= 2  ? "D" : s >= 1  ? "D-" : "F";
         return { letter: l, score: s };
       }
 
@@ -940,6 +955,12 @@ export async function registerRoutes(
       statsList.sort((a, b) => b.rosterScore - a.rosterScore);
       const totalTeams = statsList.length;
 
+      // Build sorted-descending score arrays for relative grading across all teams
+      const allPitching = [...statsList.map(t => t.pitchingScore)].sort((a, b) => b - a);
+      const allHitting  = [...statsList.map(t => t.hittingScore)].sort((a, b) => b - a);
+      const allFielding = [...statsList.map(t => t.fieldingScore)].sort((a, b) => b - a);
+      const allSpeed    = [...statsList.map(t => t.speedScore)].sort((a, b) => b - a);
+
       // Pre-sort conference rankings (statsList already sorted so filter preserves order)
       const confRankings = new Map<string, string[]>();
       for (const [cn, names] of confMap.entries()) {
@@ -955,10 +976,10 @@ export async function registerRoutes(
           talentRank: i + 1,
           totalTeams,
           nationalRank: tmpl?.nationalRank ?? NATIONAL_RANKS[t.teamName] ?? (i + 1),
-          pitchingGrade: attrGrade(t.pitchingScore),
-          hittingGrade: attrGrade(t.hittingScore),
-          fieldingGrade: attrGrade(t.fieldingScore),
-          speedGrade: attrGrade(t.speedScore),
+          pitchingGrade: relativeGrade(t.pitchingScore, allPitching),
+          hittingGrade:  relativeGrade(t.hittingScore,  allHitting),
+          fieldingGrade: relativeGrade(t.fieldingScore, allFielding),
+          speedGrade:    relativeGrade(t.speedScore,    allSpeed),
           topFielder: t.topFielder,
           topPitcher: t.topPitcher,
           topUnderclassman: t.topUnderclassman,
