@@ -8,7 +8,7 @@
  *   - Exactly 10 pitchers  (P / SP / RP / CP)
  *   - Exactly 2 catchers   (C)
  *   - 6–7 infielders       (1B / 2B / 3B / SS / DH / INF)
- *   - Exactly 6 outfielders (OF / LF / CF / RF)
+ *   - Exactly 6 outfielders (OF)
  *
  * All violations are hard errors — the process exits 1 when any are found.
  */
@@ -18,7 +18,7 @@ import { ALL_REAL_ROSTERS } from "../server/realRosters";
 const PITCHER_POSITIONS  = new Set(["P", "SP", "RP", "CP"]);
 const CATCHER_POSITIONS  = new Set(["C"]);
 const INFIELD_POSITIONS  = new Set(["1B", "2B", "3B", "SS", "DH", "INF"]);
-const OUTFIELD_POSITIONS = new Set(["OF", "LF", "CF", "RF"]);
+const OUTFIELD_POSITIONS = new Set(["OF"]);
 const ALL_KNOWN_POSITIONS = new Set([
   ...PITCHER_POSITIONS,
   ...CATCHER_POSITIONS,

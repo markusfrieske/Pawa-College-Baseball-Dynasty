@@ -148,7 +148,7 @@ export function generateRecruitClass(
 ): GeneratedRecruit[] {
   const firstNames = ["Marcus", "Tyler", "Jordan", "Chris", "Devon", "Aaron", "Ryan", "Justin", "Brandon", "Cameron", "Dylan", "Jake", "Austin", "Kyle", "Cole", "Mason", "Logan", "Ethan", "Noah", "Caleb", "Jayden", "Bryce", "Hunter", "Chase", "Trey"];
   const lastNames = ["Johnson", "Williams", "Brown", "Davis", "Miller", "Wilson", "Moore", "Taylor", "Anderson", "Thomas", "Jackson", "White", "Harris", "Martin", "Thompson", "Garcia", "Martinez", "Robinson", "Clark", "Rodriguez", "Lewis", "Walker", "Hall", "Young", "King"];
-  const fieldPositions = ["C", "1B", "2B", "SS", "3B", "LF", "LF", "CF", "CF", "RF", "RF"];
+  const fieldPositions = ["C", "1B", "2B", "SS", "3B", "OF", "OF", "OF", "OF", "OF", "OF"];
   const stateData: { state: string; cities: string[]; pct: number }[] = [
     { state: "AL", cities: ["Birmingham", "Tuscaloosa", "Mobile", "Huntsville"], pct: 1.5 },
     { state: "AK", cities: ["Anchorage", "Fairbanks", "Juneau"], pct: 0.1 },
@@ -499,19 +499,17 @@ export function generateRecruitClass(
   const out: GeneratedRecruit[] = [];
 
   const defenseFirstPositions = [
-    { value: "C",  weight: 3 }, { value: "SS", weight: 3 }, { value: "CF", weight: 3 },
-    { value: "2B", weight: 2 }, { value: "3B", weight: 2 }, { value: "LF", weight: 1 },
-    { value: "RF", weight: 1 }, { value: "1B", weight: 1 },
+    { value: "C",  weight: 3 }, { value: "SS", weight: 3 }, { value: "OF", weight: 5 },
+    { value: "2B", weight: 2 }, { value: "3B", weight: 2 }, { value: "1B", weight: 1 },
   ];
   const speedClassPositions = [
-    { value: "CF", weight: 4 }, { value: "LF", weight: 3 }, { value: "2B", weight: 3 },
+    { value: "OF", weight: 9 }, { value: "2B", weight: 3 },
     { value: "SS", weight: 2 }, { value: "C",  weight: 1 }, { value: "3B", weight: 1 },
-    { value: "1B", weight: 1 }, { value: "RF", weight: 2 },
+    { value: "1B", weight: 1 },
   ];
   const powerClassPositions = [
-    { value: "1B", weight: 4 }, { value: "3B", weight: 3 }, { value: "RF", weight: 3 },
-    { value: "LF", weight: 3 }, { value: "C",  weight: 1 }, { value: "2B", weight: 1 },
-    { value: "SS", weight: 1 }, { value: "CF", weight: 1 },
+    { value: "1B", weight: 4 }, { value: "3B", weight: 3 }, { value: "OF", weight: 7 },
+    { value: "C",  weight: 1 }, { value: "2B", weight: 1 }, { value: "SS", weight: 1 },
   ];
 
   const pickFieldPosition = (): string => {

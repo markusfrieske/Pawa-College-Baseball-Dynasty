@@ -1,7 +1,7 @@
 export const PITCHER_POSITIONS = ["P", "SP", "RP", "CL", "LHP", "RHP"] as const;
 export const CATCHER_POSITIONS = ["C"] as const;
 export const INFIELD_POSITIONS = ["1B", "2B", "SS", "3B"] as const;
-export const OUTFIELD_POSITIONS = ["LF", "CF", "RF", "OF", "DH"] as const;
+export const OUTFIELD_POSITIONS = ["OF", "DH"] as const;
 
 export function isPitcher(position: string): boolean {
   return PITCHER_POSITIONS.includes(position as typeof PITCHER_POSITIONS[number]);

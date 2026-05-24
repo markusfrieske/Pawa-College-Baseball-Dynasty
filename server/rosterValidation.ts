@@ -14,7 +14,7 @@
 const PITCHER_POSITIONS   = new Set(["P", "SP", "RP", "CP"]);
 const CATCHER_POSITIONS   = new Set(["C"]);
 const INFIELD_POSITIONS   = new Set(["1B", "2B", "3B", "SS", "DH", "INF"]);
-const OUTFIELD_POSITIONS  = new Set(["OF", "LF", "CF", "RF"]);
+const OUTFIELD_POSITIONS  = new Set(["OF"]);
 const ALL_KNOWN_POSITIONS = new Set([
   ...Array.from(PITCHER_POSITIONS),
   ...Array.from(CATCHER_POSITIONS),

@@ -161,9 +161,7 @@ const positionOptions = [
   { value: "2B", label: "Second Base" },
   { value: "SS", label: "Shortstop" },
   { value: "3B", label: "Third Base" },
-  { value: "LF", label: "Left Field" },
-  { value: "CF", label: "Center Field" },
-  { value: "RF", label: "Right Field" },
+  { value: "OF", label: "Outfield (OF)" },
 ];
 
 const starOptions = [
@@ -1991,9 +1989,7 @@ const IDEAL_DEPTH: Record<string, number> = {
   "2B": 2,
   SS: 2,
   "3B": 2,
-  LF: 2,
-  CF: 2,
-  RF: 2,
+  OF: 6,
 };
 
 function TeamNeedsIndicator({ 
@@ -2009,7 +2005,7 @@ function TeamNeedsIndicator({
   positionFilter?: string;
   onPositionClick?: (pos: string) => void;
 }) {
-  const positions = ["P", "C", "1B", "2B", "SS", "3B", "LF", "CF", "RF"];
+  const positions = ["P", "C", "1B", "2B", "SS", "3B", "OF"];
   
   const getDepthStatus = (pos: string) => {
     const current = nextYearDepth[pos] || 0;
@@ -2033,7 +2029,7 @@ function TeamNeedsIndicator({
           </span>
         )}
       </div>
-      <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2">
+      <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-2">
         {positions.map((pos) => {
           const current = nextYearDepth[pos] || 0;
           const ideal = IDEAL_DEPTH[pos] || 2;
