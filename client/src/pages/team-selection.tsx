@@ -12,6 +12,8 @@ import { Link } from "wouter";
 import type { Conference, League } from "@shared/schema";
 import { TeamScoutingPanel, type TeamScoutingInfo } from "@/components/team-scouting-panel";
 
+const TOTAL_NATIONAL_TEAMS = 142;
+
 interface TeamTemplate {
   name: string;
   mascot: string;
@@ -45,11 +47,15 @@ function TeamTile({
   isSelected,
   isFocused,
   onClick,
+  nationalRank,
+  totalTeams,
 }: {
   team: TeamTemplate;
   isSelected: boolean;
   isFocused: boolean;
   onClick: () => void;
+  nationalRank?: number;
+  totalTeams?: number;
 }) {
   const active = isFocused || isSelected;
   return (
@@ -86,7 +92,14 @@ function TeamTile({
           </div>
         )}
       </div>
-
+      {nationalRank !== undefined && (
+        <span
+          className="text-[8px] leading-none font-pixel text-muted-foreground"
+          data-testid={`text-rank-${team.abbreviation}`}
+        >
+          #{nationalRank}<span className="opacity-50">/{totalTeams ?? 142}</span>
+        </span>
+      )}
     </button>
   );
 }
@@ -146,10 +159,15 @@ export default function TeamSelectionPage() {
           const bAvg = ((b.prestige || 0) + (b.facilities || 0) + (b.academics || 0) + (b.stadium || 0) + (b.marketing || 0) + (b.collegeLife || 0)) / 6;
           return bAvg - aAvg;
         }
+        case "rank": {
+          const aRank = scoutingMap?.[a.name]?.nationalRank ?? 9999;
+          const bRank = scoutingMap?.[b.name]?.nationalRank ?? 9999;
+          return aRank - bRank;
+        }
         default: return a.name.localeCompare(b.name);
       }
     });
-  }, [allTeams, teamSort]);
+  }, [allTeams, teamSort, scoutingMap]);
 
   const toggleTeam = (teamName: string) => {
     setFocusedTeam(teamName);
@@ -256,6 +274,7 @@ export default function TeamSelectionPage() {
           <span className="text-xs text-muted-foreground">Sort:</span>
           {[
             { value: "name", label: "Name" },
+            { value: "rank", label: "Rank" },
             { value: "prestige", label: "Prestige" },
             { value: "facilities", label: "Facilities" },
             { value: "academics", label: "Academics" },
@@ -299,6 +318,8 @@ export default function TeamSelectionPage() {
                         isSelected={selectedTeamNames.has(team.name)}
                         isFocused={focusedTeam === team.name}
                         onClick={() => toggleTeam(team.name)}
+                        nationalRank={scoutingMap?.[team.name]?.nationalRank}
+                        totalTeams={TOTAL_NATIONAL_TEAMS}
                       />
                     ))}
                   </div>
