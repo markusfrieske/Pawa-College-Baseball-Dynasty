@@ -494,7 +494,7 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         ...pitchMix(1, [6, 0, 5, 1, 0, 0, 0]) },
       // Cord Rager — Sunday FR LHP, highly regarded prep recruit
       { firstName: "Cord", lastName: "Rager", position: "P", eligibility: "FR", homeState: "TX", hometown: "Austin", jerseyNumber: 34,
-        hitForAvg: 11, power: 9, speed: 32, arm: 39, fielding: 22, errorResistance: 34, velocity: 45, control: 32, stamina: 29, stuff: 36,
+        hitForAvg: 11, power: 9, speed: 32, arm: 49, fielding: 22, errorResistance: 34, velocity: 57, control: 42, stamina: 39, stuff: 47,
         clutch: 36, vsLHP: 38, grit: 38, stealing: 10, running: 30, throwing: 54, recovery: 25, wRISP: 25, vsLefty: 28, poise: 25, heater: 41, agile: 36,
         abilities: ["Explosive Fastball"], potential: "A", catcherAbility: null,
         throwHand: "L", batHand: "L",

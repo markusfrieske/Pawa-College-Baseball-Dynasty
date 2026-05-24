@@ -377,7 +377,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         ...pitchMix(1, [0, 5, 0, 1, 3, 0, 0]) },
       // Noah Yoder — FR RHP, Perfect Game Frosh 2nd Team
       { firstName: "Noah", lastName: "Yoder", position: "P", eligibility: "FR", homeState: "VA", hometown: "Harrisonburg", jerseyNumber: 49,
-        hitForAvg: 11, power: 9, speed: 32, arm: 38, fielding: 21, errorResistance: 32, velocity: 47, control: 30, stamina: 27, stuff: 35,
+        hitForAvg: 11, power: 9, speed: 32, arm: 49, fielding: 21, errorResistance: 32, velocity: 57, control: 40, stamina: 37, stuff: 46,
         clutch: 36, vsLHP: 34, grit: 36, stealing: 12, running: 30, throwing: 54, recovery: 23, wRISP: 23, vsLefty: 25, poise: 25, heater: 41, agile: 36,
         abilities: ["Explosive Fastball"], potential: "A", catcherAbility: null,
         throwHand: "R", batHand: "R",
@@ -385,7 +385,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         ...pitchMix(1, [0, 6, 4, 1, 0, 0, 0]) },
       // Jayden Stroman — FR midweek SP, 2.70 ERA / 16 K in 13.1 IP
       { firstName: "Jayden", lastName: "Stroman", position: "P", eligibility: "FR", homeState: "VA", hometown: "Chesapeake", jerseyNumber: 48,
-        hitForAvg: 14, power: 11, speed: 33, arm: 39, fielding: 22, errorResistance: 34, velocity: 48, control: 35, stamina: 31, stuff: 36,
+        hitForAvg: 14, power: 11, speed: 33, arm: 48, fielding: 22, errorResistance: 34, velocity: 55, control: 43, stamina: 41, stuff: 44,
         clutch: 42, vsLHP: 38, grit: 42, stealing: 16, running: 36, throwing: 54, recovery: 25, wRISP: 27, vsLefty: 28, poise: 29, heater: 40, agile: 40,
         abilities: ["Strong Starter", "Doctor K"], potential: "A", catcherAbility: null,
         throwHand: "R", batHand: "R",

@@ -52,7 +52,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 5, 0, 1, 3, 0, 0]) },
     { firstName: "Trey", lastName: "Harwick", position: "P", eligibility: "FR", homeState: "SC", hometown: "Greenville", jerseyNumber: 48,
-      hitForAvg: 9, power: 9, speed: 31, arm: 32, fielding: 18, errorResistance: 29, velocity: 46, control: 25, stamina: 24, stuff: 30,
+      hitForAvg: 9, power: 9, speed: 31, arm: 42, fielding: 18, errorResistance: 29, velocity: 58, control: 33, stamina: 34, stuff: 44,
       clutch: 34, vsLHP: 33, grit: 35, stealing: 12, running: 29, throwing: 47, recovery: 22, wRISP: 21, vsLefty: 23, poise: 22, heater: 34, agile: 34,
       abilities: ["Cross Cannon", "Intimidator"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -377,7 +377,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         ...pitchMix(1, [0, 5, 0, 1, 4, 0, 0]) },
       // Marcus Harrell — FR RHP depth
       { firstName: "Marcus", lastName: "Harrell", position: "P", eligibility: "FR", homeState: "FL", hometown: "Jacksonville", jerseyNumber: 48,
-        hitForAvg: 10, power: 9, speed: 32, arm: 39, fielding: 22, errorResistance: 34, velocity: 49, control: 32, stamina: 29, stuff: 36,
+        hitForAvg: 10, power: 9, speed: 32, arm: 50, fielding: 22, errorResistance: 34, velocity: 58, control: 42, stamina: 39, stuff: 52,
         clutch: 36, vsLHP: 34, grit: 38, stealing: 10, running: 30, throwing: 54, recovery: 26, wRISP: 23, vsLefty: 25, poise: 25, heater: 41, agile: 36,
         abilities: ["Monster Stuff", "Guts"], potential: "A", catcherAbility: null,
         throwHand: "R", batHand: "R",
@@ -562,7 +562,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       ...pitchMix(1, [0, 5, 5, 1, 0, 0, 0]) },
     // Charlie Willcox — FR RHP depth
     { firstName: "Charlie", lastName: "Willcox", position: "P", eligibility: "FR", homeState: "GA", hometown: "Cumming", jerseyNumber: 48,
-      hitForAvg: 10, power: 9, speed: 31, arm: 39, fielding: 22, errorResistance: 34, velocity: 39, control: 35, stamina: 28, stuff: 36,
+      hitForAvg: 10, power: 9, speed: 31, arm: 48, fielding: 22, errorResistance: 34, velocity: 55, control: 43, stamina: 38, stuff: 44,
       clutch: 36, vsLHP: 34, grit: 38, stealing: 6, running: 26, throwing: 54, recovery: 26, wRISP: 25, vsLefty: 26, poise: 26, heater: 42, agile: 32,
       abilities: ["Top Gear"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -611,7 +611,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       ...noPitches },
     // Dominic Stephenson — FR backup C
     { firstName: "Dominic", lastName: "Stephenson", position: "C", eligibility: "FR", homeState: "GA", hometown: "Roswell", jerseyNumber: 15,
-      hitForAvg: 39, power: 37, speed: 36, arm: 50, fielding: 46, errorResistance: 42, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 60, power: 44, speed: 36, arm: 50, fielding: 46, errorResistance: 42, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 32, vsLHP: 30, grit: 36, stealing: 8, running: 26, throwing: 50, recovery: 32, wRISP: 30, vsLefty: 28, poise: 32, heater: 0, agile: 30,
       abilities: ["Counterattack", "Contact Hitter", "Push"], potential: "A", catcherAbility: 46,
       throwHand: "R", batHand: "R",
@@ -709,7 +709,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       ...noPitches },
     // Coleman Lewis — FR OF speed
     { firstName: "Coleman", lastName: "Lewis", position: "OF", eligibility: "FR", homeState: "GA", hometown: "Canton", jerseyNumber: 21,
-      hitForAvg: 45, power: 39, speed: 64, arm: 46, fielding: 42, errorResistance: 40, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 60, power: 44, speed: 64, arm: 46, fielding: 42, errorResistance: 40, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 36, vsLHP: 34, grit: 38, stealing: 38, running: 56, throwing: 48, recovery: 34, wRISP: 36, vsLefty: 32, poise: 36, heater: 0, agile: 58,
       abilities: ["Express Baserunning"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "L",
@@ -769,7 +769,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "L", batHand: "L",
       ...pitchMix(1, [0, 4, 4, 0, 3, 0, 0]) },
     { firstName: "Tanner", lastName: "Thomas", position: "P", eligibility: "FR", homeState: "KY", hometown: "Covington", jerseyNumber: 48,
-      hitForAvg: 10, power: 10, speed: 32, arm: 36, fielding: 21, errorResistance: 32, velocity: 48, control: 28, stamina: 27, stuff: 32,
+      hitForAvg: 10, power: 10, speed: 32, arm: 46, fielding: 21, errorResistance: 32, velocity: 58, control: 38, stamina: 37, stuff: 44,
       clutch: 37, vsLHP: 33, grit: 38, stealing: 13, running: 32, throwing: 52, recovery: 25, wRISP: 24, vsLefty: 25, poise: 25, heater: 39, agile: 37,
       abilities: ["Lefty Killer", "Bad Ball Hitter"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "R",

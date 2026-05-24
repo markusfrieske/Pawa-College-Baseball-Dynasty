@@ -377,7 +377,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         ...pitchMix(1, [0, 7, 0, 1, 0, 0, 0]) },
       // Gavin Lauridsen — FR RHP
       { firstName: "Gavin", lastName: "Lauridsen", position: "P", eligibility: "FR", homeState: "CA", hometown: "Riverside", jerseyNumber: 36,
-        hitForAvg: 10, power: 8, speed: 31, arm: 34, fielding: 20, errorResistance: 32, velocity: 46, control: 30, stamina: 30, stuff: 31,
+        hitForAvg: 10, power: 8, speed: 31, arm: 47, fielding: 20, errorResistance: 32, velocity: 57, control: 40, stamina: 40, stuff: 45,
         clutch: 36, vsLHP: 34, grit: 38, stealing: 8, running: 26, throwing: 48, recovery: 24, wRISP: 24, vsLefty: 26, poise: 26, heater: 38, agile: 30,
         abilities: ["Explosive Fastball"], potential: "A", catcherAbility: null,
         throwHand: "R", batHand: "R",
@@ -748,7 +748,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "L", batHand: "R",
       ...pitchMix(1, [0, 5, 5, 1, 0, 0, 0]) },
     { firstName: "Liam", lastName: "Lierman", position: "P", eligibility: "FR", homeState: "AK", hometown: "Anchorage", jerseyNumber: 15,
-      hitForAvg: 11, power: 8, speed: 31, arm: 32, fielding: 20, errorResistance: 31, velocity: 45, control: 30, stamina: 31, stuff: 30,
+      hitForAvg: 11, power: 8, speed: 31, arm: 44, fielding: 20, errorResistance: 31, velocity: 53, control: 40, stamina: 41, stuff: 41,
       clutch: 38, vsLHP: 37, grit: 40, stealing: 8, running: 24, throwing: 46, recovery: 25, wRISP: 25, vsLefty: 26, poise: 26, heater: 35, agile: 30,
       abilities: ["Guts"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "R",

@@ -63,7 +63,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         ...pitchMix(1, [0, 5, 4, 1, 0, 0, 0]) },
       // Peyton Lee — FR RHP
       { firstName: "Peyton", lastName: "Lee", position: "P", eligibility: "FR", homeState: "AR", hometown: "Bentonville", jerseyNumber: 49,
-        hitForAvg: 11, power: 8, speed: 32, arm: 39, fielding: 22, errorResistance: 34, velocity: 39, control: 32, stamina: 29, stuff: 36,
+        hitForAvg: 11, power: 8, speed: 32, arm: 49, fielding: 22, errorResistance: 34, velocity: 57, control: 42, stamina: 39, stuff: 48,
         clutch: 36, vsLHP: 34, grit: 38, stealing: 10, running: 30, throwing: 54, recovery: 26, wRISP: 24, vsLefty: 26, poise: 25, heater: 41, agile: 36,
         abilities: ["Top Gear", "Tunneling"], potential: "A", catcherAbility: null,
         throwHand: "R", batHand: "R",
@@ -394,7 +394,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         ...noPitches },
       // Eric Hines — OF FR standout, 3-3 vs Samford with HR / 3 RBI / 3 R
       { firstName: "Eric", lastName: "Hines", position: "OF", eligibility: "FR", homeState: "AL", hometown: "Pelham", jerseyNumber: 26,
-        hitForAvg: 57, power: 53, speed: 61, arm: 50, fielding: 46, errorResistance: 42, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 63, power: 57, speed: 61, arm: 50, fielding: 46, errorResistance: 42, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 46, vsLHP: 42, grit: 48, stealing: 28, running: 44, throwing: 50, recovery: 38, wRISP: 46, vsLefty: 42, poise: 46, heater: 0, agile: 46,
         abilities: ["Power Hitter"], potential: "A", catcherAbility: null,
         throwHand: "R", batHand: "L",
@@ -821,7 +821,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       ...noPitches },
     // Cole Johnson — FR OF prospect
     { firstName: "Cole", lastName: "Johnson", position: "OF", eligibility: "FR", homeState: "GA", hometown: "Suwanee", jerseyNumber: 28,
-      hitForAvg: 39, power: 35, speed: 58, arm: 36, fielding: 32, errorResistance: 30, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 62, power: 42, speed: 58, arm: 36, fielding: 32, errorResistance: 30, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 30, vsLHP: 28, grit: 32, stealing: 22, running: 36, throwing: 38, recovery: 26, wRISP: 30, vsLefty: 28, poise: 30, heater: 0, agile: 38,
       abilities: ["Error Prone"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "L",
