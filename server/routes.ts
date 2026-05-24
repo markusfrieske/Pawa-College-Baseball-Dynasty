@@ -7088,7 +7088,11 @@ export async function registerRoutes(
 
           const hitChance = Math.max(0.06, 0.14 + contactNorm * 0.08 - stuffNorm * 0.04 - velocityNorm * 0.03);
 
-          const hrChance = Math.max(0.005, 0.012 + powerNorm * 0.03 - stuffNorm * 0.01);
+          // HR formula calibrated so 99 Power ≈ 10-12% HR/AB, 60 Power ≈ 2-4%, 30 Power < 1%.
+          // Cubic curve concentrates HR gains at elite power, matching real-baseball distribution.
+          // Stuff suppression is intentionally small (-0.015 max) so it's meaningful but not dominant.
+          // "Contact Hitter" special ability currently applies no HR penalty in sim (intentional).
+          const hrChance = Math.max(0.005, 0.007 + Math.pow(powerNorm, 3) * 0.11 - stuffNorm * 0.015);
           const tripleChance = Math.max(0.002, 0.004 + speedNorm * 0.006);
           const doubleChance = Math.max(0.01, 0.035 + powerNorm * 0.02 - stuffNorm * 0.01);
 
@@ -10277,7 +10281,9 @@ export async function registerRoutes(
         const powerFactor = batter.power / 100;
         // Park factor: high stadium rating boosts HR (hitter-friendly), low suppresses
         const stadiumHRMult = 1 + ((homeStadium ?? 5) - 5) * 0.04;
-        let rawHR = (0.12 * Math.pow(powerFactor, 1.5) + 0.01) * stadiumHRMult;
+        // HR per hit: cubic curve aligns with play-by-play hrChance at same power levels.
+        // Effective HR/AB ≈ rawHR × contactFactor: 99 Power ≈ 10%, 60 Power ≈ 2-4%, 30 Power < 1%.
+        let rawHR = (0.28 * Math.pow(powerFactor, 3) + 0.005) * stadiumHRMult;
         let rawTriples = 0.006 * powerFactor + 0.005;
         let rawDoubles = 0.22 * powerFactor + 0.08;
         const rawTotal = rawHR + rawTriples + rawDoubles;
