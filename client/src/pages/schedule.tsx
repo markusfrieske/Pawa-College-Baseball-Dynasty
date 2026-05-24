@@ -291,6 +291,20 @@ export default function SchedulePage() {
     },
   });
 
+  const reportScoreMutation = useMutation({
+    mutationFn: async ({ gameId, homeScore, awayScore }: { gameId: string; homeScore: number; awayScore: number }) => {
+      return apiRequest("POST", `/api/leagues/${id}/games/${gameId}/report`, { homeScore, awayScore });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "schedule"] });
+      toast({ title: "Score reported", description: "Awaiting commissioner confirmation." });
+      setEditingGame(null);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
+    },
+  });
+
   const confirmReportMutation = useMutation({
     mutationFn: async (gameId: string) => {
       return apiRequest("POST", `/api/leagues/${id}/games/${gameId}/report/confirm`, {});
@@ -372,6 +386,8 @@ export default function SchedulePage() {
     reportsByGameId: data?.reportsByGameId ?? {},
     isCommissioner: data?.isCommissioner,
     teamRecords,
+    isUserGame: (game: GameWithTeams) =>
+      !!(data?.userTeamId && (game.homeTeamId === data.userTeamId || game.awayTeamId === data.userTeamId)),
   };
 
   return (
@@ -476,13 +492,17 @@ export default function SchedulePage() {
 
       <ScoreEntryModal
         game={editingGame}
+        isCommissioner={!!data?.isCommissioner}
         onClose={() => setEditingGame(null)}
         onSubmit={(homeScore, awayScore) => {
-          if (editingGame) {
+          if (!editingGame) return;
+          if (data?.isCommissioner) {
             submitScoreMutation.mutate({ gameId: editingGame.id, homeScore, awayScore });
+          } else {
+            reportScoreMutation.mutate({ gameId: editingGame.id, homeScore, awayScore });
           }
         }}
-        isPending={submitScoreMutation.isPending}
+        isPending={submitScoreMutation.isPending || reportScoreMutation.isPending}
       />
 
       <BoxScoreModal game={boxScoreGame} onClose={() => setBoxScoreGame(null)} />
@@ -552,6 +572,7 @@ type GameCallbacks = {
   reportsByGameId: Record<string, GameReport>;
   isCommissioner?: boolean;
   teamRecords: Map<string, { wins: number; losses: number }>;
+  isUserGame: (game: GameWithTeams) => boolean;
 };
 
 function computeTeamRecords(games: GameWithTeams[]): Map<string, { wins: number; losses: number }> {
@@ -929,8 +950,8 @@ function CompactGameRow({
             <RetroButton variant="outline" size="sm" onClick={() => callbacks.onViewBoxScore(game)} data-testid={`button-box-score-action-${game.id}`} title="View Box Score">
               <Check className="w-3 h-3" />
             </RetroButton>
-          ) : callbacks.isCommissioner && !report ? (
-            <RetroButton variant="outline" size="sm" onClick={() => callbacks.onEdit(game)} data-testid={`button-quick-score-${game.id}`} title="Enter Score">
+          ) : !report && (callbacks.isCommissioner || (isHumanVsHuman && callbacks.isUserGame(game))) ? (
+            <RetroButton variant="outline" size="sm" onClick={() => callbacks.onEdit(game)} data-testid={`button-quick-score-${game.id}`} title={callbacks.isCommissioner ? "Enter Score" : "Report Score"}>
               <Edit2 className="w-3 h-3" />
             </RetroButton>
           ) : null}
@@ -1564,11 +1585,13 @@ function TeamPitchingTable({ label, pitching }: { label: string; pitching: BoxSc
 
 function ScoreEntryModal({
   game,
+  isCommissioner,
   onClose,
   onSubmit,
   isPending,
 }: {
   game: GameWithTeams | null;
+  isCommissioner: boolean;
   onClose: () => void;
   onSubmit: (homeScore: number, awayScore: number) => void;
   isPending: boolean;
@@ -1587,7 +1610,7 @@ function ScoreEntryModal({
     <Dialog open={!!game} onOpenChange={() => onClose()}>
       <DialogContent className="bg-card border-gold max-w-md">
         <DialogHeader>
-          <DialogTitle className="font-pixel text-gold text-sm">Enter Game Score</DialogTitle>
+          <DialogTitle className="font-pixel text-gold text-sm">{isCommissioner ? "Enter Game Score" : "Report Game Score"}</DialogTitle>
         </DialogHeader>
 
         {game && (
@@ -1642,7 +1665,7 @@ function ScoreEntryModal({
                 disabled={isPending}
                 data-testid="button-submit-score"
               >
-                {isPending ? "Saving..." : "Submit Score"}
+                {isPending ? "Saving..." : isCommissioner ? "Submit Score" : "Report Score"}
               </RetroButton>
             </div>
           </div>
