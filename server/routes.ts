@@ -18372,6 +18372,8 @@ export async function registerRoutes(
               prestige: t.prestige,
               nationalRank: NATIONAL_RANKS[t.name] ?? TOTAL_NATIONAL_TEAMS,
               conference: conf,
+              primaryColor: t.primaryColor,
+              secondaryColor: t.secondaryColor,
               players,
             };
           }),
