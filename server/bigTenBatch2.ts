@@ -758,9 +758,9 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         ...pitchMix(1, [0, 4, 4, 1, 0, 0, 0]) },
       // Kai Nakamura — FR depth
       { firstName: "Kai", lastName: "Nakamura", position: "P", eligibility: "FR", homeState: "WA", hometown: "Bellevue", jerseyNumber: 46,
-        hitForAvg: 9, power: 7, speed: 31, arm: 31, fielding: 20, errorResistance: 32, velocity: 44, control: 27, stamina: 26, stuff: 30,
-        clutch: 36, vsLHP: 34, grit: 38, stealing: 8, running: 28, throwing: 46, recovery: 24, wRISP: 22, vsLefty: 24, poise: 24, heater: 33, agile: 32,
-        abilities: ["Painter"], potential: "A", catcherAbility: null,
+        hitForAvg: 9, power: 7, speed: 31, arm: 50, fielding: 29, errorResistance: 40, velocity: 57, control: 44, stamina: 38, stuff: 50,
+        clutch: 56, vsLHP: 60, grit: 58, stealing: 8, running: 28, throwing: 60, recovery: 38, wRISP: 40, vsLefty: 52, poise: 44, heater: 50, agile: 38,
+        abilities: ["Painter", "Crossfire"], potential: "A", catcherAbility: null,
         throwHand: "L", batHand: "L",
         skinTone: "tan", hairColor: "black", hairStyle: "short",
         ...pitchMix(1, [0, 4, 4, 1, 0, 0, 0]) },
