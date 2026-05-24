@@ -30,6 +30,7 @@ import SigningDayRevealPage from "@/pages/signing-day-reveal";
 import DeparturesPage from "@/pages/departures";
 import WalkonsPage from "@/pages/walkons";
 import ManageRostersPage from "@/pages/manage-rosters";
+import RosterViewerPage from "@/pages/roster-viewer";
 import StorylinesPage from "@/pages/storylines";
 import ManageRecruitingPage from "@/pages/manage-recruiting";
 import PlayByPlayPage from "@/pages/play-by-play";
@@ -102,6 +103,7 @@ function Router() {
         <Route path="/league/:id/coach/:coachId" component={CoachProfileByIdPage} />
         <Route path="/coach/:coachId" component={CoachProfileByIdPage} />
         <Route path="/manage-rosters" component={ManageRostersPage} />
+        <Route path="/roster-viewer" component={RosterViewerPage} />
         <Route path="/manage-recruiting" component={ManageRecruitingPage} />
         <Route path="/invite/:code" component={InvitePage} />
         <Route component={NotFound} />

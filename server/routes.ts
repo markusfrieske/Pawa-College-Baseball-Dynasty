@@ -17891,7 +17891,7 @@ export async function registerRoutes(
     try {
       const leagueId = req.params.id as string;
       const userId = req.session.userId;
-      const { rosterId, recruitingClassId } = req.body || {};
+      const { rosterId, recruitingClassId, perTeamRosters } = req.body || {};
       
       const league = await storage.getLeague(leagueId);
       if (!league) {
@@ -17902,7 +17902,7 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Only the commissioner can start dynasty" });
       }
       
-      // Apply saved roster if specified
+      // Apply saved roster if specified (legacy single-roster format)
       if (rosterId) {
         const savedRoster = await storage.getSavedRoster(rosterId);
         if (savedRoster && savedRoster.userId === userId) {
@@ -17924,6 +17924,41 @@ export async function registerRoutes(
                   });
                 }
               }
+            }
+          }
+        }
+      }
+
+      // Apply per-team saved rosters (map of teamName → savedRosterId)
+      if (perTeamRosters && typeof perTeamRosters === "object") {
+        const NUMERIC_ROSTER_ATTRS = [
+          "hitForAvg", "power", "speed", "arm", "fielding", "errorResistance",
+          "velocity", "control", "stamina", "stuff", "clutch", "vsLHP", "grit",
+          "stealing", "running", "throwing", "recovery", "wRISP", "vsLefty",
+          "poise", "heater", "agile", "catcherAbility",
+        ];
+        const leagueTeams = await storage.getTeamsByLeague(leagueId);
+        for (const [teamName, savedRosterId] of Object.entries(perTeamRosters as Record<string, string>)) {
+          if (!savedRosterId) continue;
+          const savedRoster = await storage.getSavedRoster(savedRosterId);
+          if (!savedRoster || savedRoster.userId !== userId) continue;
+          const matchingTeam = leagueTeams.find(t => t.name === teamName);
+          if (!matchingTeam) continue;
+          const savedPlayers = savedRoster.rosterData as any[];
+          if (!Array.isArray(savedPlayers)) continue;
+          const existingPlayers = await storage.getPlayersByTeam(matchingTeam.id);
+          for (const sp of savedPlayers) {
+            const existing = existingPlayers.find(
+              p => p.firstName === sp.firstName && p.lastName === sp.lastName,
+            );
+            if (!existing) continue;
+            const updates: Record<string, unknown> = {};
+            for (const attr of NUMERIC_ROSTER_ATTRS) {
+              if (typeof sp[attr] === "number") updates[attr] = sp[attr];
+            }
+            if (Array.isArray(sp.abilities)) updates.abilities = sp.abilities;
+            if (Object.keys(updates).length > 0) {
+              await storage.updatePlayer(existing.id, updates as any);
             }
           }
         }
@@ -18302,6 +18337,67 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to get default roster:", error);
       res.status(500).json({ message: "Failed to get default roster" });
+    }
+  });
+
+  // === NCAA 2026 Public Roster API (no auth required) ===
+  const ALL_CONFERENCES_ORDERED = ["SEC", "ACC", "Big 12", "Big Ten", "Pac-12", "AAC", "WCC", "Ivy League", "Sun Belt", "Big West", "HBCU", "Missouri Valley"];
+
+  function getConferenceForTeam(teamName: string): string {
+    for (const conf of ALL_CONFERENCES_ORDERED) {
+      if (getTeamsForConference(conf).some(t => t.name === teamName)) return conf;
+    }
+    return "";
+  }
+
+  app.get("/api/ncaa-rosters", async (_req, res) => {
+    try {
+      const result = ALL_CONFERENCES_ORDERED.map(conf => ({
+        conference: conf,
+        teams: getTeamsForConference(conf).map(t => ({
+          name: t.name,
+          mascot: t.mascot,
+          abbreviation: t.abbreviation,
+          prestige: t.prestige,
+          nationalRank: NATIONAL_RANKS[t.name] ?? TOTAL_NATIONAL_TEAMS,
+          conference: conf,
+        })),
+      }));
+      res.json(result);
+    } catch (error) {
+      console.error("Failed to get ncaa rosters:", error);
+      res.status(500).json({ message: "Failed to get NCAA rosters" });
+    }
+  });
+
+  app.get("/api/ncaa-rosters/:teamName", async (req, res) => {
+    try {
+      const teamName = decodeURIComponent(req.params.teamName);
+      const roster = ALL_REAL_ROSTERS[teamName];
+      if (!roster) return res.status(404).json({ message: "Team roster not found" });
+
+      const conferenceName = getConferenceForTeam(teamName);
+      const teams = getTeamsForConference(conferenceName);
+      const teamData = teams.find(t => t.name === teamName);
+
+      const players = roster.map(rp => {
+        const normalized = normalizeCommonAbilities(
+          { position: rp.position, firstName: rp.firstName, lastName: rp.lastName, ...rp },
+          conferenceName,
+        );
+        return { ...rp, ...normalized };
+      });
+
+      res.json({
+        name: teamName,
+        conference: conferenceName,
+        prestige: teamData?.prestige ?? 5,
+        nationalRank: NATIONAL_RANKS[teamName] ?? TOTAL_NATIONAL_TEAMS,
+        players,
+      });
+    } catch (error) {
+      console.error("Failed to get team ncaa roster:", error);
+      res.status(500).json({ message: "Failed to get team roster" });
     }
   });
 

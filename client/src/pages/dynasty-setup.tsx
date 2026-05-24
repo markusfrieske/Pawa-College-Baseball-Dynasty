@@ -73,6 +73,7 @@ export default function DynastySetupPage() {
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [selectedRosterId, setSelectedRosterId] = useState<string>("default");
   const [selectedClassId, setSelectedClassId] = useState<string>("auto");
+  const [perTeamRosters, setPerTeamRosters] = useState<Record<string, string>>({});
   const [inviteLabel, setInviteLabel] = useState("");
   const [importFile, setImportFile] = useState<File | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
@@ -133,6 +134,7 @@ export default function DynastySetupPage() {
     mutationFn: () => apiRequest("POST", `/api/leagues/${id}/start`, {
       rosterId: selectedRosterId !== "default" ? selectedRosterId : undefined,
       recruitingClassId: selectedClassId !== "auto" ? selectedClassId : undefined,
+      perTeamRosters: Object.keys(perTeamRosters).length > 0 ? perTeamRosters : undefined,
     }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues"] });
@@ -327,7 +329,7 @@ export default function DynastySetupPage() {
                   </RetroCardHeader>
                   <RetroCardContent>
                     <p className="text-sm text-muted-foreground mb-3">
-                      Choose which roster data to use for this dynasty.
+                      Use default NCAA 2026 rosters, or apply saved custom rosters. Per-team rosters override individual teams.
                     </p>
                     <Select value={selectedRosterId} onValueChange={setSelectedRosterId}>
                       <SelectTrigger data-testid="select-roster-source" className="w-full">
@@ -346,11 +348,56 @@ export default function DynastySetupPage() {
                       <Database className="w-4 h-4" />
                       <span>{selectedRosterId === "default" ? "Using default NCAA 2026 rosters" : "Using custom saved roster"}</span>
                     </div>
-                    <Link href="/manage-rosters">
-                      <RetroButton variant="ghost" size="sm" className="mt-2 text-xs" data-testid="button-manage-rosters-link">
-                        Manage Saved Rosters
-                      </RetroButton>
-                    </Link>
+
+                    {/* Per-team roster overrides */}
+                    {savedRosters && savedRosters.filter(r => r.basedOn && teams.some(t => t.name === r.basedOn)).length > 0 && (
+                      <div className="mt-4 space-y-2">
+                        <p className="text-xs text-muted-foreground font-pixel uppercase">Per-Team Custom Rosters</p>
+                        <div className="space-y-1.5">
+                          {teams.filter(t => savedRosters.some(r => r.basedOn === t.name)).map(team => {
+                            const matchingRosters = savedRosters.filter(r => r.basedOn === team.name);
+                            const currentVal = perTeamRosters[team.name] || "none";
+                            return (
+                              <div key={team.id} className="flex items-center gap-3">
+                                <span className="text-xs text-foreground w-32 truncate" data-testid={`text-per-team-${team.id}`}>{team.name}</span>
+                                <Select
+                                  value={currentVal}
+                                  onValueChange={val => setPerTeamRosters(prev => {
+                                    const next = { ...prev };
+                                    if (val === "none") delete next[team.name];
+                                    else next[team.name] = val;
+                                    return next;
+                                  })}
+                                >
+                                  <SelectTrigger className="h-7 text-xs flex-1" data-testid={`select-per-team-roster-${team.id}`}>
+                                    <SelectValue placeholder="Default" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="none">Default</SelectItem>
+                                    {matchingRosters.map(r => (
+                                      <SelectItem key={r.id} value={String(r.id)}>{r.name}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex gap-2 mt-3">
+                      <Link href="/roster-viewer">
+                        <RetroButton variant="ghost" size="sm" className="text-xs" data-testid="button-roster-viewer-link">
+                          View NCAA 2026 Rosters
+                        </RetroButton>
+                      </Link>
+                      <Link href="/manage-rosters">
+                        <RetroButton variant="ghost" size="sm" className="text-xs" data-testid="button-manage-rosters-link">
+                          Manage Saved Rosters
+                        </RetroButton>
+                      </Link>
+                    </div>
                   </RetroCardContent>
                 </RetroCard>
 

@@ -168,7 +168,12 @@ export default function LandingPage() {
               </div>
 
               {/* Quick access links */}
-              <div className="flex gap-4 text-xs text-muted-foreground">
+              <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+                <Link href="/roster-viewer">
+                  <button className="flex items-center gap-1.5 hover:text-gold transition-colors font-medium" data-testid="button-view-ncaa-rosters">
+                    <Database className="w-3.5 h-3.5 text-gold" /> View NCAA 2026 Rosters
+                  </button>
+                </Link>
                 <Link href={isLoggedIn ? "/manage-rosters" : "/guest?redirect=/manage-rosters"}>
                   <button className="flex items-center gap-1 hover:text-gold transition-colors" data-testid="button-manage-rosters">
                     <ClipboardList className="w-3.5 h-3.5" /> Manage Rosters
