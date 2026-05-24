@@ -375,7 +375,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 5, 0, 1, 3, 0, 0]) },
-      // Noah Yoder — FR RHP, Perfect Game Frosh 2nd Team
+      // Noah Yoder — FR RHP — PG Frosh 2nd Team / Top-200 national
       { firstName: "Noah", lastName: "Yoder", position: "P", eligibility: "FR", homeState: "VA", hometown: "Harrisonburg", jerseyNumber: 49,
         hitForAvg: 11, power: 9, speed: 32, arm: 49, fielding: 21, errorResistance: 32, velocity: 57, control: 40, stamina: 37, stuff: 46,
         clutch: 36, vsLHP: 34, grit: 36, stealing: 12, running: 30, throwing: 54, recovery: 23, wRISP: 23, vsLefty: 25, poise: 25, heater: 41, agile: 36,
@@ -383,7 +383,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 6, 4, 1, 0, 0, 0]) },
-      // Jayden Stroman — FR midweek SP, 2.70 ERA / 16 K in 13.1 IP
+      // Jayden Stroman — FR midweek SP — PG HM / Top-500 national (2.70 ERA / 16 K in 13.1 IP)
       { firstName: "Jayden", lastName: "Stroman", position: "P", eligibility: "FR", homeState: "VA", hometown: "Chesapeake", jerseyNumber: 48,
         hitForAvg: 14, power: 11, speed: 33, arm: 48, fielding: 22, errorResistance: 34, velocity: 55, control: 43, stamina: 41, stuff: 44,
         clutch: 42, vsLHP: 38, grit: 42, stealing: 16, running: 36, throwing: 54, recovery: 25, wRISP: 27, vsLefty: 28, poise: 29, heater: 40, agile: 40,

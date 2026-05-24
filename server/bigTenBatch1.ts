@@ -53,6 +53,7 @@ export const BIG_TEN_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Explosive Fastball"], potential: "B-", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 4, 5, 1, 0, 0, 0]) },
+    // Ike Young — FR LHP — PG HM / Top-500 national
     { firstName: "Ike", lastName: "Young", position: "P", eligibility: "FR", homeState: "IL", hometown: "Monticello", jerseyNumber: 48,
       hitForAvg: 11, power: 8, speed: 32, arm: 44, fielding: 20, errorResistance: 32, velocity: 53, control: 36, stamina: 36, stuff: 42,
       clutch: 34, vsLHP: 32, grit: 35, stealing: 11, running: 31, throwing: 51, recovery: 22, wRISP: 21, vsLefty: 23, poise: 22, heater: 34, agile: 37,
@@ -285,6 +286,7 @@ export const BIG_TEN_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Consigliere"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...noPitches },
+    // Cal Gates — FR OF — PG 2nd Team / Top-200 national
     { firstName: "Cal", lastName: "Gates", position: "OF", eligibility: "FR", homeState: "CA", hometown: "San Diego", jerseyNumber: 11,
       hitForAvg: 58, power: 40, speed: 58, arm: 40, fielding: 30, errorResistance: 28, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 26, vsLHP: 25, grit: 28, stealing: 23, running: 34, throwing: 35, recovery: 24, wRISP: 26, vsLefty: 24, poise: 26, heater: 0, agile: 36,
@@ -482,6 +484,7 @@ export const BIG_TEN_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Star of Victory", "Intimidator", "Strong Starter", "Straddle", "Heavy Ball", "Inside Pitch"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 7, 5, 1, 0, 0, 0]) },
+    // Austin Weiss — FR LHP — PG All-American / Top-50 national
     { firstName: "Austin", lastName: "Weiss", position: "P", eligibility: "FR", homeState: "MD", hometown: "Annapolis", jerseyNumber: 29,
       hitForAvg: 12, power: 8, speed: 32, arm: 50, fielding: 23, errorResistance: 34, velocity: 60, control: 42, stamina: 42, stuff: 47,
       clutch: 40, vsLHP: 39, grit: 42, stealing: 10, running: 30, throwing: 53, recovery: 26, wRISP: 27, vsLefty: 28, poise: 28, heater: 38, agile: 36,
@@ -568,8 +571,9 @@ export const BIG_TEN_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Consigliere", "Contact Hitter"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...noPitches },
+    // Ty Kaunas — FR SS — PG All-American / Top-50 national
     { firstName: "Ty", lastName: "Kaunas", position: "SS", eligibility: "FR", homeState: "MD", hometown: "Columbia", jerseyNumber: 2,
-      hitForAvg: 61, power: 50, speed: 71, arm: 61, fielding: 57, errorResistance: 53, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 63, power: 52, speed: 71, arm: 61, fielding: 57, errorResistance: 53, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 49, vsLHP: 45, grit: 50, stealing: 41, running: 61, throwing: 62, recovery: 41, wRISP: 46, vsLefty: 43, poise: 49, heater: 0, agile: 64,
       abilities: ["Express Baserunning"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "S",
@@ -593,8 +597,9 @@ export const BIG_TEN_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["High-Speed Laser", "Contact Hitter"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "L",
       ...noPitches },
+    // Bud Coombs — FR OF — PG 2nd Team / Top-200 national
     { firstName: "Bud", lastName: "Coombs", position: "OF", eligibility: "FR", homeState: "MD", hometown: "Bel Air", jerseyNumber: 7,
-      hitForAvg: 53, power: 48, speed: 63, arm: 54, fielding: 48, errorResistance: 45, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 57, power: 50, speed: 63, arm: 54, fielding: 48, errorResistance: 45, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 43, vsLHP: 39, grit: 45, stealing: 36, running: 54, throwing: 56, recovery: 38, wRISP: 41, vsLefty: 38, poise: 43, heater: 0, agile: 58,
       abilities: ["High Ball Hitter", "vs. Fastballs"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "R",

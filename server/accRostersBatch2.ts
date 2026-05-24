@@ -284,6 +284,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Unrelenting"], potential: "B+", catcherAbility: null,
       throwHand: "L", batHand: "R",
       ...noPitches },
+    // Rett Johnson — FR OF — PG 2nd Team / Top-200 national
     { firstName: "Rett", lastName: "Johnson", position: "OF", eligibility: "FR", homeState: "NC", hometown: "Huntersville", jerseyNumber: 1,
       hitForAvg: 62, power: 51, speed: 63, arm: 53, fielding: 48, errorResistance: 45, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 41, vsLHP: 38, grit: 44, stealing: 34, running: 53, throwing: 55, recovery: 38, wRISP: 40, vsLefty: 37, poise: 40, heater: 0, agile: 57,
@@ -563,8 +564,9 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Fireman"], potential: "A-", catcherAbility: null,
       throwHand: "L", batHand: "L",
       ...pitchMix(1, [0, 6, 0, 1, 3, 0, 0]) },
+    // Caden Crowell — FR LHP — PG HM / Top-500 national
     { firstName: "Caden", lastName: "Crowell", position: "P", eligibility: "FR", homeState: "IN", hometown: "Valparaiso", jerseyNumber: 45,
-      hitForAvg: 11, power: 9, speed: 32, arm: 37, fielding: 20, errorResistance: 32, velocity: 46, control: 31, stamina: 29, stuff: 33,
+      hitForAvg: 11, power: 9, speed: 32, arm: 44, fielding: 20, errorResistance: 32, velocity: 52, control: 41, stamina: 39, stuff: 41,
       clutch: 36, vsLHP: 35, grit: 38, stealing: 11, running: 30, throwing: 53, recovery: 25, wRISP: 24, vsLefty: 26, poise: 25, heater: 38, agile: 35,
       abilities: ["Strong Finisher", "vs. Strong Batters", "Glass Heart"], potential: "A", catcherAbility: null,
       throwHand: "L", batHand: "L",
@@ -795,6 +797,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Push", "High-Speed Laser", "Multi-Hit"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...noPitches },
+    // Mason Ligenza — FR OF — PG All-American / Top-50 national
     { firstName: "Mason", lastName: "Ligenza", position: "OF", eligibility: "FR", homeState: "IL", hometown: "Naperville", jerseyNumber: 21,
       hitForAvg: 68, power: 53, speed: 62, arm: 49, fielding: 44, errorResistance: 41, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 39, vsLHP: 36, grit: 41, stealing: 32, running: 48, throwing: 51, recovery: 34, wRISP: 37, vsLefty: 34, poise: 37, heater: 0, agile: 51,

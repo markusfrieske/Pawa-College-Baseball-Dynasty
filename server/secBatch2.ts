@@ -61,7 +61,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 5, 4, 1, 0, 0, 0]) },
-      // Peyton Lee — FR RHP
+      // Peyton Lee — FR RHP — PG 1st Team / Top-100 national
       { firstName: "Peyton", lastName: "Lee", position: "P", eligibility: "FR", homeState: "AR", hometown: "Bentonville", jerseyNumber: 49,
         hitForAvg: 11, power: 8, speed: 32, arm: 49, fielding: 22, errorResistance: 34, velocity: 57, control: 42, stamina: 39, stuff: 48,
         clutch: 36, vsLHP: 34, grit: 38, stealing: 10, running: 30, throwing: 54, recovery: 26, wRISP: 24, vsLefty: 26, poise: 25, heater: 41, agile: 36,
@@ -392,7 +392,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "S",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
-      // Eric Hines — OF FR standout, 3-3 vs Samford with HR / 3 RBI / 3 R
+      // Eric Hines — FR OF — PG 2nd Team / Top-200 national (3-3 vs Samford, HR/3 RBI)
       { firstName: "Eric", lastName: "Hines", position: "OF", eligibility: "FR", homeState: "AL", hometown: "Pelham", jerseyNumber: 26,
         hitForAvg: 63, power: 57, speed: 61, arm: 50, fielding: 46, errorResistance: 42, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 46, vsLHP: 42, grit: 48, stealing: 28, running: 44, throwing: 50, recovery: 38, wRISP: 46, vsLefty: 42, poise: 46, heater: 0, agile: 46,
@@ -819,7 +819,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...noPitches },
-    // Cole Johnson — FR OF prospect
+    // Cole Johnson — FR OF — PG 1st Team / Top-100 national
     { firstName: "Cole", lastName: "Johnson", position: "OF", eligibility: "FR", homeState: "GA", hometown: "Suwanee", jerseyNumber: 28,
       hitForAvg: 62, power: 42, speed: 58, arm: 36, fielding: 32, errorResistance: 30, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 30, vsLHP: 28, grit: 32, stealing: 22, running: 36, throwing: 38, recovery: 26, wRISP: 30, vsLefty: 28, poise: 30, heater: 0, agile: 38,

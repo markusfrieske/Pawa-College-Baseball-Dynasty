@@ -276,7 +276,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "R",
         skinTone: "tan", hairColor: "black", hairStyle: "short",
         ...pitchMix(1, [0, 5, 5, 1, 0, 0, 0]) },
-      // Cam Smith — FR RHP
+      // Cam Smith — FR RHP — PG 1st Team / Top-100 national
       { firstName: "Cam", lastName: "Smith", position: "P", eligibility: "FR", homeState: "FL", hometown: "Tampa", jerseyNumber: 48,
         hitForAvg: 11, power: 8, speed: 32, arm: 50, fielding: 22, errorResistance: 34, velocity: 59, control: 42, stamina: 39, stuff: 49,
         clutch: 38, vsLHP: 36, grit: 40, stealing: 11, running: 30, throwing: 52, recovery: 25, wRISP: 25, vsLefty: 28, poise: 26, heater: 40, agile: 36,
@@ -690,7 +690,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...noPitches },
-    // Boston Kellner — FR SS (former roster had as P; per team report, started final scrimmage at SS)
+    // Boston Kellner — FR SS — PG 2nd Team / Top-200 national
     { firstName: "Boston", lastName: "Kellner", position: "SS", eligibility: "FR", homeState: "TX", hometown: "Plano", jerseyNumber: 4,
       hitForAvg: 63, power: 47, speed: 70, arm: 56, fielding: 56, errorResistance: 50, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 48, vsLHP: 44, grit: 48, stealing: 26, running: 50, throwing: 56, recovery: 38, wRISP: 44, vsLefty: 42, poise: 48, heater: 0, agile: 56,
@@ -698,7 +698,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...noPitches },
-    // Nico Partida — FR 3B, 97 mph FB, top-40 PG recruit
+    // Nico Partida — FR 3B — PG All-American / Top-50 national (97 mph FB)
     { firstName: "Nico", lastName: "Partida", position: "3B", eligibility: "FR", homeState: "AZ", hometown: "Chandler", jerseyNumber: 24,
       hitForAvg: 68, power: 58, speed: 55, arm: 70, fielding: 54, errorResistance: 48, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 46, vsLHP: 42, grit: 48, stealing: 22, running: 46, throwing: 70, recovery: 40, wRISP: 42, vsLefty: 40, poise: 46, heater: 0, agile: 50,
@@ -1013,7 +1013,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 4, 5, 1, 0, 0, 0]) },
-      // Grayson Saunier — FR RHP
+      // Grayson Saunier — FR RHP — PG 2nd Team / Top-200 national
       { firstName: "Grayson", lastName: "Saunier", position: "P", eligibility: "FR", homeState: "LA", hometown: "Baton Rouge", jerseyNumber: 48,
         hitForAvg: 11, power: 8, speed: 32, arm: 49, fielding: 24, errorResistance: 36, velocity: 57, control: 44, stamina: 42, stuff: 47,
         clutch: 38, vsLHP: 36, grit: 40, stealing: 11, running: 32, throwing: 56, recovery: 27, wRISP: 25, vsLefty: 28, poise: 28, heater: 42, agile: 38,

@@ -558,7 +558,7 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...noPitches },
-    // IF depth FR
+    // Brody Hatch — FR SS — PG 2nd Team / Top-200 national
     { firstName: "Brody", lastName: "Hatch", position: "SS", eligibility: "FR", homeState: "AZ", hometown: "Tempe", jerseyNumber: 2,
       hitForAvg: 58, power: 40, speed: 68, arm: 46, fielding: 42, errorResistance: 38, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 30, vsLHP: 28, grit: 32, stealing: 26, running: 42, throwing: 46, recovery: 30, wRISP: 28, vsLefty: 26, poise: 30, heater: 0, agile: 46,
@@ -1751,6 +1751,7 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Heavy Ball", "Precision Instrument"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 5, 4, 1, 0, 0, 0]) },
+    // Brody Green — FR RHP — PG 2nd Team / Top-200 national
     { firstName: "Brody", lastName: "Green", position: "P", eligibility: "FR", homeState: "TX", hometown: "Dallas", jerseyNumber: 47,
       hitForAvg: 9, power: 7, speed: 31, arm: 50, fielding: 23, errorResistance: 36, velocity: 53, control: 43, stamina: 38, stuff: 46,
       clutch: 36, vsLHP: 34, grit: 36, stealing: 7, running: 28, throwing: 54, recovery: 25, wRISP: 23, vsLefty: 25, poise: 25, heater: 41, agile: 34,
@@ -1823,8 +1824,9 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Inside Hitter"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "L",
       ...noPitches },
+    // Cole Hedges — FR SS — PG 2nd Team / Top-200 national
     { firstName: "Cole", lastName: "Hedges", position: "SS", eligibility: "FR", homeState: "TX", hometown: "Fort Worth", jerseyNumber: 2,
-      hitForAvg: 39, power: 33, speed: 68, arm: 46, fielding: 42, errorResistance: 38, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 57, power: 40, speed: 68, arm: 46, fielding: 42, errorResistance: 38, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 30, vsLHP: 28, grit: 32, stealing: 26, running: 42, throwing: 46, recovery: 30, wRISP: 28, vsLefty: 26, poise: 30, heater: 0, agile: 46,
       abilities: ["Legendary Walkoff Hitter"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "S",
@@ -1982,8 +1984,9 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Low Ball Hitter"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "L",
       ...noPitches },
+    // Brody Bingham — FR SS — PG 2nd Team / Top-200 national
     { firstName: "Brody", lastName: "Bingham", position: "SS", eligibility: "FR", homeState: "TX", hometown: "Houston", jerseyNumber: 2,
-      hitForAvg: 39, power: 33, speed: 68, arm: 46, fielding: 42, errorResistance: 38, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 57, power: 40, speed: 68, arm: 46, fielding: 42, errorResistance: 38, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 30, vsLHP: 28, grit: 32, stealing: 26, running: 42, throwing: 46, recovery: 30, wRISP: 28, vsLefty: 26, poise: 30, heater: 0, agile: 46,
       abilities: ["Disturbance", "First Pitch King"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "L",
@@ -2129,8 +2132,9 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Unpredictable", "Ace Killer"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "L",
       ...noPitches },
+    // Jacob Bowles — FR SS — PG 2nd Team / Top-200 national
     { firstName: "Jacob", lastName: "Bowles", position: "SS", eligibility: "FR", homeState: "FL", hometown: "Orlando", jerseyNumber: 2,
-      hitForAvg: 39, power: 33, speed: 68, arm: 46, fielding: 42, errorResistance: 38, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 57, power: 40, speed: 68, arm: 46, fielding: 42, errorResistance: 38, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 30, vsLHP: 28, grit: 32, stealing: 26, running: 42, throwing: 46, recovery: 30, wRISP: 28, vsLefty: 26, poise: 30, heater: 0, agile: 46,
       abilities: ["Spray Hitter"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -2282,8 +2286,9 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["vs. Fastballs", "Spirit Head"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "L",
       ...noPitches },
+    // Tate Bingham — FR SS — PG 2nd Team / Top-200 national
     { firstName: "Tate", lastName: "Bingham", position: "SS", eligibility: "FR", homeState: "UT", hometown: "Provo", jerseyNumber: 2,
-      hitForAvg: 39, power: 33, speed: 68, arm: 46, fielding: 42, errorResistance: 38, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 57, power: 40, speed: 68, arm: 46, fielding: 42, errorResistance: 38, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 30, vsLHP: 28, grit: 32, stealing: 26, running: 42, throwing: 46, recovery: 30, wRISP: 28, vsLefty: 26, poise: 30, heater: 0, agile: 46,
       abilities: ["Heat Up"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "L",

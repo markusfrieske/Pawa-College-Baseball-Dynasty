@@ -375,7 +375,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 7, 0, 1, 0, 0, 0]) },
-      // Gavin Lauridsen — FR RHP
+      // Gavin Lauridsen — FR RHP — PG 1st Team / Top-100 national
       { firstName: "Gavin", lastName: "Lauridsen", position: "P", eligibility: "FR", homeState: "CA", hometown: "Riverside", jerseyNumber: 36,
         hitForAvg: 10, power: 8, speed: 31, arm: 47, fielding: 20, errorResistance: 32, velocity: 57, control: 40, stamina: 40, stuff: 45,
         clutch: 36, vsLHP: 34, grit: 38, stealing: 8, running: 26, throwing: 48, recovery: 24, wRISP: 24, vsLefty: 26, poise: 26, heater: 38, agile: 30,

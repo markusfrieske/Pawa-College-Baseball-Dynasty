@@ -234,7 +234,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "L", batHand: "L",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 5, 5, 1, 0, 0, 0]) },
-      // Brady Hansen — FR RHP
+      // Brady Hansen — FR RHP — PG HM / Top-500 national
       { firstName: "Brady", lastName: "Hansen", position: "P", eligibility: "FR", homeState: "NE", hometown: "Grand Island", jerseyNumber: 46,
         hitForAvg: 10, power: 7, speed: 31, arm: 41, fielding: 18, errorResistance: 30, velocity: 52, control: 35, stamina: 34, stuff: 41,
         clutch: 32, vsLHP: 30, grit: 34, stealing: 8, running: 26, throwing: 42, recovery: 20, wRISP: 19, vsLefty: 20, poise: 20, heater: 30, agile: 30,
@@ -630,8 +630,9 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Trickster", "Multi-Hit"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...noPitches },
+    // Drew Mitchell — FR 2B — PG 2nd Team / Top-200 national
     { firstName: "Drew", lastName: "Mitchell", position: "2B", eligibility: "FR", homeState: "OH", hometown: "Toledo", jerseyNumber: 16,
-      hitForAvg: 40, power: 28, speed: 66, arm: 40, fielding: 32, errorResistance: 30, velocity: 0, control: 0, stamina: 18, stuff: 0,
+      hitForAvg: 57, power: 38, speed: 66, arm: 40, fielding: 32, errorResistance: 30, velocity: 0, control: 0, stamina: 18, stuff: 0,
       clutch: 24, vsLHP: 23, grit: 26, stealing: 19, running: 32, throwing: 36, recovery: 23, wRISP: 23, vsLefty: 22, poise: 24, heater: 0, agile: 35,
       abilities: ["Consigliere"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "L",
