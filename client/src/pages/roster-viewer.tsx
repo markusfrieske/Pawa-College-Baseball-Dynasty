@@ -506,7 +506,7 @@ export default function RosterViewerPage() {
   // Mobile breadcrumb text for header
   const mobileBreadcrumb = useMemo(() => {
     if (mobileStep === "team" && selectedConference) return selectedConference;
-    if (mobileStep === "roster" && selectedTeamMeta) return `${selectedConference} › ${selectedTeamMeta.abbreviation}`;
+    if (mobileStep === "roster" && selectedTeamMeta) return `${selectedConference} › ${selectedTeamMeta.name}`;
     return null;
   }, [mobileStep, selectedConference, selectedTeamMeta]);
 
@@ -746,8 +746,8 @@ export default function RosterViewerPage() {
               data-testid="button-save-roster"
             >
               {user
-                ? <><Save className="w-3 h-3 sm:mr-1" /><span className="hidden sm:inline">Save Roster</span></>
-                : <><LogIn className="w-3 h-3 sm:mr-1" /><span className="hidden sm:inline">Sign In to Save</span></>
+                ? <><Save className="w-3 h-3 mr-1" />Save</>
+                : <><LogIn className="w-3 h-3 mr-1" />Sign In</>
               }
             </RetroButton>
           </div>
@@ -810,7 +810,10 @@ export default function RosterViewerPage() {
                 {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-20 rounded-lg" />)}
               </div>
             ) : search ? (
-              <SearchResultList results={filteredConferences.flatMap(g => g.teams)} />
+              <SearchResultList results={selectedConfTeams.filter(t =>
+                t.name.toLowerCase().includes(search.toLowerCase()) ||
+                t.abbreviation.toLowerCase().includes(search.toLowerCase())
+              )} />
             ) : (
               <TeamGrid teams={selectedConfTeams} conferenceName={selectedConference} />
             )}
