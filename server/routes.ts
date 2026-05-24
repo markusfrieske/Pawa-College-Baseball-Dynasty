@@ -10987,25 +10987,16 @@ export async function registerRoutes(
     // but only if ALL teams assigned to this side have appeared in at least one game
     // (prevents premature champion when bye teams haven't played yet).
     if (currentRoundGames.length === 1) {
-      // Derive sideTeamIds directly from game records tagged with this bracketSide —
-      // this is immune to seeding-order changes caused by SR game results altering standings.
+      // Derive both sets purely from bracketSide-tagged game records — immune to seeding
+      // order changes that occur when standings are mutated by postseason results.
+      const sideTeamIds = new Set<string>();
+      sideGames.forEach(g => { sideTeamIds.add(g.homeTeamId); sideTeamIds.add(g.awayTeamId); });
+
       const playedTeamIds = new Set<string>();
-      sideGames.forEach(g => { playedTeamIds.add(g.homeTeamId); playedTeamIds.add(g.awayTeamId); });
+      completedSide.forEach(g => { playedTeamIds.add(g.homeTeamId); playedTeamIds.add(g.awayTeamId); });
 
-      // Count expected teams from seeding only when seededTeams is reliable (bracket generation).
-      // Primary check: all teams that ever appear in any side game must have played at least one game.
-      // This is always true by construction, so we use the seededTeams count as the expected total
-      // but fall back to just checking the R1 game set when seededTeams ordering may have shifted.
-      const N = seededTeams.length;
-      const seededSideIds = seededTeams
-        .filter((_t, idx) => getSideForSeed(idx + 1, N) === side)
-        .map(t => t.team.id);
-
-      // Use whichever set is smaller and guaranteed accurate: if the seeded side IDs all appear
-      // in played teams, we're done. Otherwise fall back to just confirming both finalists played.
-      const allPlayed = seededSideIds.length > 0
-        ? seededSideIds.every(id => playedTeamIds.has(id))
-        : playedTeamIds.size >= 2; // fallback: at least two teams participated
+      // Every team that ever appeared in any side game must have a completed game.
+      const allPlayed = [...sideTeamIds].every(id => playedTeamIds.has(id));
       if (allPlayed) return getGameWinner(currentRoundGames[0]);
       // Not all teams have played yet — fall through to bye-handling below
     }
@@ -11083,7 +11074,8 @@ export async function registerRoutes(
         isComplete: true,
         boxScore: result.boxScore,
       });
-      await updateStandingsForGame(leagueId, season, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore);
+      // CWS results intentionally do NOT update standings — postseason games must not
+      // mutate the regular-season win/loss records that bracket seeding depends on.
       try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, season, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, season, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
       try {
         const cwsHomeWon = result.homeScore > result.awayScore;
