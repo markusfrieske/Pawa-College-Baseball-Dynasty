@@ -19430,10 +19430,14 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
         const fieldPos = ["1B", "2B", "SS", "3B", "LF", "CF", "RF"];
         fillerPositions.push(fieldPos[Math.floor(Math.random() * fieldPos.length)]);
       }
-      const fillerEligibilities = ["FR", "SO", "JR"];
+      // Deterministic FR assignment: count FR already in the real roster, fill
+      // exactly (5 - realFrCount) filler slots as FR, rest as SO/JR.
+      // Never set an existing player's eligibility — only newly-created fillers.
+      const realFrCount = realRoster.filter(p => p.eligibility === "FR").length;
+      const frFillersNeeded = Math.max(0, 5 - realFrCount);
 
       for (let f = 0; f < remaining; f++) {
-        const fillerElig = fillerEligibilities[Math.floor(Math.random() * fillerEligibilities.length)];
+        const fillerElig = f < frFillersNeeded ? "FR" : (Math.random() < 0.5 ? "SO" : "JR");
         const appearance = getRandomAppearance(conferenceName, fillerElig);
         const targetAvg = 25 + Math.floor(Math.random() * 15);
         const genAttr = () => Math.max(1, Math.min(99, targetAvg + Math.floor(Math.random() * 21) - 10));
@@ -19535,12 +19539,12 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
     { state: "VA", cities: ["Richmond", "Virginia Beach", "Charlottesville"] },
   ];
 
-  // Class balance: 6 SR, 6 JR, 7 SO, 6 FR = 25 total
+  // Class balance: 6 SR, 6 JR, 8 SO, 5 FR = 25 total (exactly 5 FR required)
   const eligibilityDistribution = [
     ...Array(6).fill("SR"),
     ...Array(6).fill("JR"),
-    ...Array(7).fill("SO"),
-    ...Array(6).fill("FR"),
+    ...Array(8).fill("SO"),
+    ...Array(5).fill("FR"),
   ];
 
   // Position distribution: 12 pitchers, 2 catchers, 11 fielders = 25 total
