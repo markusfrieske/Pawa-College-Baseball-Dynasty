@@ -146,6 +146,13 @@ app.use((req, res, next) => {
     console.warn("[startup-migration] recruits pitch_ch constraint failed:", e);
   }
 
+  // Ensure source_player_id column exists on player_history (for direct HoF WAR lookup)
+  try {
+    await pool.query("ALTER TABLE player_history ADD COLUMN IF NOT EXISTS source_player_id varchar");
+  } catch (e) {
+    console.warn("[startup-migration] player_history.source_player_id column check failed:", e);
+  }
+
   await registerRoutes(httpServer, app);
 
   // One-time OVR resync — runs in background after startup.
