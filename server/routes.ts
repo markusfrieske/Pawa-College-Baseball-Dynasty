@@ -31,7 +31,7 @@ import { normalizeCommonAbilities } from "./normalizeCommonAbilities";
 import { validateLeagueRosters, checkTeamRosterStructure } from "./rosterValidation";
 import { sendWeeklyDigests, verifyUnsubToken } from "./digestEmail";
 import { pool } from "./db";
-import { calibrateRpiOvr, getRpiMultiplier } from "./calibrateRpiOvr";
+import { calibrateRpiOvr } from "./calibrateRpiOvr";
 
 function potentialGradeToNumber(grade: string): number {
   const map: Record<string, number> = {
@@ -18702,26 +18702,10 @@ function getConferenceFlavoredAbilities(
 }
 
 async function generatePlayersForTeam(teamId: string, progressionEnabled: boolean = false, teamName?: string, conferenceName?: string) {
-  // Conference tier → attribute scale factor (keeps cross-conference OVR spread realistic)
-  const CONF_TIER_SCALE: Record<string, number> = {
-    // Tier 1 — power conferences (full attribute scale)
-    'SEC': 1.00, 'ACC': 1.00, 'Big 12': 1.00, 'Big Ten': 1.00,
-    // Tier 2 — mid-major conferences
-    'Pac-12': 0.80, 'AAC': 0.80, 'Sun Belt': 0.80,
-    // Tier 3 — lower-mid conferences
-    'WCC': 0.72, 'Big West': 0.72, 'Missouri Valley': 0.72,
-    // Tier 4 — academic/non-scholarship conferences
-    'Ivy League': 0.68,
-    // Tier 5 — HBCU conferences
-    'HBCU': 0.65,
-  };
-  const tierScale = conferenceName ? (CONF_TIER_SCALE[conferenceName] ?? 1.00) : 1.00;
-  // RPI intra-conference multiplier: adjusts attributes within a conference so
-  // stronger programs (by RPI) land higher than weaker ones in power rankings.
-  const rpiMult = (teamName && conferenceName) ? getRpiMultiplier(teamName, conferenceName) : 1.0;
-  const effectiveScale = Math.max(0.55, Math.min(1.15, tierScale * rpiMult));
-  const scaleAttr = (v: number) => effectiveScale !== 1.00 ? Math.max(1, Math.min(99, Math.round(v * effectiveScale))) : v;
-
+  // Calibrated rosters (via ROSTER_SCALE_FACTORS in realRosters.ts) already encode
+  // the correct inter-conference AND intra-conference attribute spread based on real
+  // 2026 RPI data. No additional scaling is applied here — attributes are passed
+  // straight through so the in-game OVR matches the scouting/analysis OVR exactly.
   const realRoster = teamName ? SEC_REAL_ROSTERS[teamName] : undefined;
 
   if (realRoster && realRoster.length > 0) {
@@ -18742,36 +18726,15 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
       };
       usedJerseyNumbers.add(rp.jerseyNumber);
       const playerData = {
-        hitForAvg: scaleAttr(rp.hitForAvg), power: scaleAttr(rp.power), speed: Math.max(10, Math.min(95, Math.round(55 + (rp.speed - 50) * 0.75))), arm: scaleAttr(rp.arm),
-        fielding: scaleAttr(rp.fielding), errorResistance: scaleAttr(rp.errorResistance),
-        velocity: rp.velocity === 0 ? 0 : rp.velocity >= 70 ? rp.velocity : Math.max(30, Math.min(95, Math.round(55 + (rp.velocity - 47) * 1.2))), control: scaleAttr(rp.control), stamina: scaleAttr(rp.stamina), stuff: scaleAttr(rp.stuff),
-        clutch: scaleAttr(rp.clutch), vsLHP: scaleAttr(rp.vsLHP), grit: scaleAttr(rp.grit), stealing: scaleAttr(rp.stealing),
-        running: scaleAttr(rp.running), throwing: scaleAttr(rp.throwing), recovery: scaleAttr(rp.recovery),
-        wRISP: scaleAttr(rp.wRISP), vsLefty: scaleAttr(rp.vsLefty), poise: scaleAttr(rp.poise), heater: scaleAttr(rp.heater), agile: scaleAttr(rp.agile),
-        // catcherAbility included so normalization can adjust it for catchers
+        hitForAvg: rp.hitForAvg, power: rp.power, speed: rp.speed, arm: rp.arm,
+        fielding: rp.fielding, errorResistance: rp.errorResistance,
+        velocity: rp.velocity, control: rp.control, stamina: rp.stamina, stuff: rp.stuff,
+        clutch: rp.clutch, vsLHP: rp.vsLHP, grit: rp.grit, stealing: rp.stealing,
+        running: rp.running, throwing: rp.throwing, recovery: rp.recovery,
+        wRISP: rp.wRISP, vsLefty: rp.vsLefty, poise: rp.poise, heater: rp.heater, agile: rp.agile,
         catcherAbility: rp.catcherAbility ?? null,
         abilities: rp.abilities,
       };
-
-      // #12 — Big 12 marquee boost: A/A+ potential players get a +10% lift on key
-      // positional attributes so they feel genuinely elite relative to the field.
-      if (conferenceName === "Big 12" && (rp.potential === "A+" || rp.potential === "A")) {
-        const marquee = (v: number) => Math.max(1, Math.min(97, Math.round(v * 1.10)));
-        if (rp.position === "P") {
-          playerData.velocity = marquee(playerData.velocity);
-          playerData.stuff    = marquee(playerData.stuff);
-          playerData.control  = marquee(playerData.control);
-          playerData.stamina  = marquee(playerData.stamina);
-          playerData.clutch   = marquee(playerData.clutch);
-          playerData.poise    = marquee(playerData.poise);
-        } else {
-          playerData.hitForAvg = marquee(playerData.hitForAvg);
-          playerData.power     = marquee(playerData.power);
-          playerData.clutch    = marquee(playerData.clutch);
-          playerData.wRISP     = marquee(playerData.wRISP);
-          playerData.grit      = marquee(playerData.grit);
-        }
-      }
 
       // Normalize common ability F/G distribution by conference tier.
       // normalizeCommonAbilities returns ONLY common ability keys — no identity fields leak back.
