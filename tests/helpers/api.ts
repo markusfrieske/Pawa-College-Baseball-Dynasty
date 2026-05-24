@@ -34,6 +34,7 @@ export async function createLeague(
     cpuDifficulty?: string;
     selectedConferences?: string[];
     seasonLength?: string;
+    progressionEnabled?: boolean;
   }
 ): Promise<League> {
   const resp = await request.post("/api/leagues", {
@@ -43,6 +44,7 @@ export async function createLeague(
       cpuDifficulty: opts.cpuDifficulty ?? "beginner",
       selectedConferences: opts.selectedConferences ?? ["WCC", "Ivy League"],
       seasonLength: opts.seasonLength ?? "short",
+      progressionEnabled: opts.progressionEnabled ?? false,
     },
   });
   if (!resp.ok()) {
@@ -166,6 +168,25 @@ export async function advanceWeek(
   });
   if (!resp.ok()) {
     throw new Error(`advance failed: ${resp.status()} ${await resp.text()}`);
+  }
+  return resp.json();
+}
+
+/**
+ * Commissioner force-advance: marks all coaches ready then advances the phase.
+ * Required for readiness-gated phases (preseason, spring_training, regular_season)
+ * where /advance blocks until human coaches mark themselves ready.
+ * Uses the /force-advance endpoint which marks coaches ready and 307-redirects to /advance.
+ */
+export async function forceAdvanceWeek(
+  request: APIRequestContext,
+  leagueId: string
+): Promise<unknown> {
+  const resp = await request.post(`/api/leagues/${leagueId}/force-advance`, {
+    data: {},
+  });
+  if (!resp.ok()) {
+    throw new Error(`force-advance failed: ${resp.status()} ${await resp.text()}`);
   }
   return resp.json();
 }

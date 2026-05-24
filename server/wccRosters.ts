@@ -869,7 +869,7 @@ import type { RealPlayer } from "./realRosters";
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0 },
-    { firstName: "Cade", lastName: "Fitzgerald", position: "OF", eligibility: "JR", homeState: "WA", hometown: "Nine Mile Falls", jerseyNumber: 50,
+    { firstName: "Cade", lastName: "McAllister", position: "OF", eligibility: "JR", homeState: "WA", hometown: "Nine Mile Falls", jerseyNumber: 50,
         hitForAvg: 65, power: 70, speed: 66, arm: 69, fielding: 63, errorResistance: 57, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 44, vsLHP: 43, grit: 47, stealing: 46, running: 43, throwing: 47, recovery: 43, wRISP: 50, vsLefty: 46, poise: 47, heater: 0, agile: 51,
         abilities: ["Hit Machine", "Tough Out"], potential: "B+", catcherAbility: null,

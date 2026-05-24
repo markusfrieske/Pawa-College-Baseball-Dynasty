@@ -1065,7 +1065,7 @@ export async function registerRoutes(
       }
 
       // Generate recruits now that teams exist — scale class size to team count
-      await generateRecruits(league.id, Math.max(40, totalTeamsCreated * 5));
+      await generateRecruits(league.id, Math.max(80, totalTeamsCreated * 5));
 
       await storage.createAuditLog({
         leagueId: league.id,
@@ -11854,11 +11854,10 @@ export async function registerRoutes(
       posCounts[p.position] = (posCounts[p.position] || 0) + 1;
     }
     
-    // Scale filler per position to league size so the walk-on pool doesn't stay oversized
-    // when the recruiting class shrinks. Formula: max(4, round(12 × (recruitCount / 80))).
-    // At 80 recruits (16 teams) → 12 fillers/pos; at 60 recruits (12 teams) → 9 fillers/pos.
+    // Scale filler per position to league size. Formula: max(4, round(12 × (recruitCount / 80))).
+    // Recruit class minimum is now 80 (per spec), so all leagues get 12 fillers/pos at baseline.
     const allLeagueTeamsWo = await storage.getTeamsByLeague(leagueId);
-    const expectedRecruitCount = Math.max(40, allLeagueTeamsWo.length * 5);
+    const expectedRecruitCount = Math.max(80, allLeagueTeamsWo.length * 5);
     const TARGET_PER_POS = Math.max(4, Math.round(12 * (expectedRecruitCount / 80)));
     const fillerStates = ["TX", "CA", "FL", "GA", "NC", "AL", "SC", "LA", "AZ", "OH"];
     const fillerTowns = ["Springfield", "Franklin", "Clinton", "Madison", "Georgetown", "Salem", "Greenville", "Bristol", "Fairview", "Chester"];
@@ -13190,7 +13189,7 @@ export async function registerRoutes(
     await storage.deleteRecruitsByLeague(leagueId);
 
     // Scale recruit class to league size: teams.length × 5 (min 40), so 12 teams → 60, 16 teams → 80
-    const recruitCount = Math.max(40, teams.length * 5);
+    const recruitCount = Math.max(80, teams.length * 5);
     // Pass completedSeason + 1 so storyline recruits are keyed to the UPCOMING season,
     // not the season that just ended (the DB counter is bumped after this function returns).
     await generateRecruits(leagueId, recruitCount, false, completedSeason + 1);
@@ -15819,7 +15818,7 @@ export async function registerRoutes(
       // forceStorylineReset=true: commissioner explicitly regenerated the class, so existing
       // storyline data for this season must be wiped and rebuilt for the new recruits.
       const leagueTeamsForCount = await storage.getTeamsByLeague(req.params.id as string);
-      const recruitCount = Math.max(40, leagueTeamsForCount.length * 5);
+      const recruitCount = Math.max(80, leagueTeamsForCount.length * 5);
       await generateRecruits(req.params.id as string, recruitCount, true);
 
       await storage.createAuditLog({
@@ -16345,7 +16344,7 @@ export async function registerRoutes(
         // forceStorylineReset=true: commissioner-initiated generation, so existing storyline data
         // for this season is wiped and rebuilt for the newly generated recruits.
         const importTeams = await storage.getTeamsByLeague(req.params.id as string);
-        recruitCount = Math.max(40, importTeams.length * 5);
+        recruitCount = Math.max(80, importTeams.length * 5);
         await generateRecruits(req.params.id as string, recruitCount, true);
 
         await storage.createAuditLog({
@@ -17419,7 +17418,7 @@ export async function registerRoutes(
           }
         } else {
           const teams = await storage.getTeamsByLeague(leagueId);
-          const recruitCount = Math.max(40, teams.length * 5);
+          const recruitCount = Math.max(80, teams.length * 5);
           await generateRecruits(leagueId, recruitCount);
         }
       }
