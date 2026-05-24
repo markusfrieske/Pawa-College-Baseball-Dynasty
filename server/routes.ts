@@ -18828,7 +18828,7 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
         const pos = fillerPositions[f];
         const abilities: string[] = [];
         const playerData = {
-          hitForAvg: genAttr(), power: genAttr(), speed: genAttr(), arm: genAttr(),
+          hitForAvg: genAttr(), power: genAttr(), speed: sampleNormalSpeed(), arm: genAttr(),
           fielding: genAttr(), errorResistance: genAttr(),
           velocity: genAttr(), control: genAttr(), stamina: genAttr(), stuff: genAttr(),
           clutch: genAttr(), vsLHP: genAttr(), grit: genAttr(), stealing: genAttr(),
