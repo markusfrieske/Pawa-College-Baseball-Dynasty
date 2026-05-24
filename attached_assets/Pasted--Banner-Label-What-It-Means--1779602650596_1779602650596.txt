@@ -1,0 +1,17 @@
+| Banner Label              | What It Means                                                                   | Player-Facing Banner Copy                                                               |
+| ------------------------- | ------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| **ELITE CLASS**           | Top-heavy with blue chips and high ceilings                                     | The stars are obvious this year. The fight is for who lands them.                       |
+| **GEM-HEAVY CLASS**       | Multiple generational talents hidden in the class                               | The rankings may be missing something special. Scout deep.                              |
+| **STRONG CLASS**          | Above-average talent from top to bottom                                         | Quality talent is everywhere. Smart programs can build fast.                            |
+| **BALANCED CLASS**        | Steady talent across all position groups                                        | Every position group has options. Build the class your roster needs.                    |
+| **PITCHING-RICH CLASS**   | Loaded with quality arms this year                                              | Arms are everywhere this cycle. Rotations could be rebuilt overnight.                   |
+| **POSITION PLAYER CLASS** | Loaded with bats, gloves, athletes, and everyday-player upside                  | This class is built around everyday players. Bats, gloves, and athletes lead the board. |
+| **DEFENSE-FIRST CLASS**   | Lots of catchers, shortstops, center fielders, and glove-first players          | The gloves are loud this year. Defense could define the class.                          |
+| **POWER CLASS**           | A class full of home run hitters and corner bats                                | The ball is going to fly. This class is loaded with power bats.                         |
+| **SPEED CLASS**           | Lots of athletic outfielders, leadoff types, base stealers, and rangy defenders | This class can run. Speed, range, and chaos are all over the board.                     |
+| **RAW TALENT CLASS**      | High upside, high variance — scout carefully                                    | The tools are obvious. The outcomes are not.                                            |
+| **VOLATILE CLASS**        | Mixed signals — expect surprises both ways                                      | Nobody agrees on this class. Somebody is going to be very wrong.                        |
+| **BUST-HEAVY CLASS**      | Multiple generational busts lurk in the rankings                                | Big names. Big rankings. Big risk. Scout carefully.                                     |
+| **DOWN YEAR**             | Thin class overall — value in the late rounds                                   | Talent is scarce this year. The best programs will find value late.                     |
+| **LATE-BLOOMER CLASS**    | Players rise rapidly during the recruiting cycle                                | The board may look completely different by Signing Day.                                 |
+| **LEGACY CLASS**          | Famous last names, program ties, and pressure-heavy recruits                    | The names are familiar. The expectations are heavy.                                     |
