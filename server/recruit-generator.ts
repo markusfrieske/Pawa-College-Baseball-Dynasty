@@ -87,12 +87,17 @@ export type RecruitingTheme =
   | "hidden_gems"
   | "bust_heavy"
   | "elite_pitching"
-  | "raw_talent";
+  | "raw_talent"
+  | "position_players"
+  | "defense_first"
+  | "power_class"
+  | "speed_class";
 
 export function getRandomRecruitingTheme(): RecruitingTheme {
   const themes: RecruitingTheme[] = [
     "high_velocity", "sluggers", "balanced", "top_heavy", "hidden_gems",
     "bust_heavy", "elite_pitching", "raw_talent",
+    "position_players", "defense_first", "power_class", "speed_class",
   ];
   return themes[Math.floor(Math.random() * themes.length)];
 }
@@ -224,6 +229,10 @@ export function generateRecruitClass(
       case "hidden_gems":      return 0.40;
       case "bust_heavy":       return 0.40;
       case "raw_talent":       return 0.45;
+      case "position_players": return 0.30;
+      case "defense_first":    return 0.30;
+      case "power_class":      return 0.30;
+      case "speed_class":      return 0.30;
       default:                 return 0.40;
     }
   };
@@ -439,7 +448,9 @@ export function generateRecruitClass(
 
   const getThemeBoost = (t: RecruitingTheme, isPitcher: boolean): { attr: string; boost: number } => {
     if ((t === "high_velocity" || t === "elite_pitching") && isPitcher) return { attr: "velocity", boost: 15 };
-    if (t === "sluggers" && !isPitcher) return { attr: "power", boost: 15 };
+    if ((t === "sluggers" || t === "power_class") && !isPitcher) return { attr: "power", boost: 15 };
+    if (t === "speed_class" && !isPitcher) return { attr: "speed", boost: 15 };
+    if (t === "defense_first" && !isPitcher) return { attr: "fielding", boost: 15 };
     return { attr: "", boost: 0 };
   };
 
@@ -486,9 +497,32 @@ export function generateRecruitClass(
 
   const out: GeneratedRecruit[] = [];
 
+  const defenseFirstPositions = [
+    { value: "C",  weight: 3 }, { value: "SS", weight: 3 }, { value: "CF", weight: 3 },
+    { value: "2B", weight: 2 }, { value: "3B", weight: 2 }, { value: "LF", weight: 1 },
+    { value: "RF", weight: 1 }, { value: "1B", weight: 1 },
+  ];
+  const speedClassPositions = [
+    { value: "CF", weight: 4 }, { value: "LF", weight: 3 }, { value: "2B", weight: 3 },
+    { value: "SS", weight: 2 }, { value: "C",  weight: 1 }, { value: "3B", weight: 1 },
+    { value: "1B", weight: 1 }, { value: "RF", weight: 2 },
+  ];
+  const powerClassPositions = [
+    { value: "1B", weight: 4 }, { value: "3B", weight: 3 }, { value: "RF", weight: 3 },
+    { value: "LF", weight: 3 }, { value: "C",  weight: 1 }, { value: "2B", weight: 1 },
+    { value: "SS", weight: 1 }, { value: "CF", weight: 1 },
+  ];
+
+  const pickFieldPosition = (): string => {
+    if (theme === "defense_first") return rollWeighted(defenseFirstPositions);
+    if (theme === "speed_class")   return rollWeighted(speedClassPositions);
+    if (theme === "power_class")   return rollWeighted(powerClassPositions);
+    return fieldPositions[Math.floor(Math.random() * fieldPositions.length)];
+  };
+
   for (let i = 0; i < count; i++) {
     const isPitcher = Math.random() < pitcherRatio;
-    const position = isPitcher ? "P" : fieldPositions[Math.floor(Math.random() * fieldPositions.length)];
+    const position = isPitcher ? "P" : pickFieldPosition();
 
     const starRank = starRanks[i];
     const stateIdx = stateAssignments[i] || 0;
@@ -635,7 +669,9 @@ export function generateRecruitClass(
 
     if (themeBoost.attr === "velocity") velocity = Math.min(99, velocity + themeBoost.boost);
     if (theme === "elite_pitching" && isPitcher) stuff = Math.min(99, stuff + 10);
-    if (themeBoost.attr === "power") power = Math.min(99, power + themeBoost.boost);
+    if (themeBoost.attr === "power")   power    = Math.min(99, power   + themeBoost.boost);
+    if (themeBoost.attr === "speed")   speed    = Math.min(99, speed   + themeBoost.boost);
+    if (themeBoost.attr === "fielding") fielding = Math.min(99, fielding + themeBoost.boost);
 
     const pitchMix = generatePitchMix(isPitcher);
 
@@ -826,15 +862,30 @@ export function generateRecruitClass(
   const top20 = [...out].sort((a, b) => (b.overall ?? 0) - (a.overall ?? 0)).slice(0, 20);
   const avgTop20 = top20.reduce((s, r) => s + (r.overall ?? 300), 0) / Math.max(1, top20.length);
 
+  const lateBloomerCount = out.filter(r => r.playerArchetype === "late_bloomer").length;
+  const isLegacyClass = Math.random() < 0.05;
+
   let classVintage: string;
   if (gemCount >= 2) {
     classVintage = "gem_heavy";
   } else if (bustCount >= 2) {
     classVintage = "bust_year";
+  } else if (lateBloomerCount >= Math.ceil(count * 0.10)) {
+    classVintage = "late_bloomer";
+  } else if (isLegacyClass) {
+    classVintage = "legacy";
   } else if (theme === "elite_pitching") {
     classVintage = "pitching_rich";
   } else if (theme === "raw_talent") {
     classVintage = "raw_talent";
+  } else if (theme === "position_players") {
+    classVintage = "position_players";
+  } else if (theme === "defense_first") {
+    classVintage = "defense_first";
+  } else if (theme === "power_class") {
+    classVintage = "power_class";
+  } else if (theme === "speed_class") {
+    classVintage = "speed_class";
   } else if (bcCount >= 4 && avgTop20 >= 430) {
     classVintage = "elite";
   } else if (avgTop20 >= 400) {

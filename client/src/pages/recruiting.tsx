@@ -77,7 +77,7 @@ interface FilterPreset {
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Recruit, RecruitingInterest, Team } from "@shared/schema";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Trophy, Gem, TrendingUp, Scale, Wind, Users, ShieldCheck, Zap, Gauge, Eye, Shuffle, AlertOctagon, TrendingDown, Sprout, Crown } from "lucide-react";
 
 function getInterestLabel(level: number): { label: string; color: string } {
   if (level >= 90) return { label: "On Fire", color: "text-red-400" };
@@ -1611,26 +1611,33 @@ export default function RecruitingPage() {
         {(() => {
           const vintage = data?.recruits?.[0]?.classVintage as string | undefined;
           if (!vintage || isPostSigningDay) return null;
-          const vintageConfig: Record<string, { label: string; sub: string; colors: string }> = {
-            elite:         { label: "ELITE CLASS", sub: "Top-heavy with blue chips and high ceilings", colors: "bg-amber-500/10 border-amber-500/30 text-amber-400" },
-            gem_heavy:     { label: "GEM-HEAVY CLASS", sub: "Multiple generational talents hidden in the class", colors: "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" },
-            strong:        { label: "STRONG CLASS", sub: "Above-average talent from top to bottom", colors: "bg-green-500/10 border-green-500/30 text-green-400" },
-            balanced:      { label: "BALANCED CLASS", sub: "Steady talent across all position groups", colors: "bg-blue-500/10 border-blue-500/30 text-blue-400" },
-            pitching_rich: { label: "PITCHING-RICH CLASS", sub: "Loaded with quality arms this year", colors: "bg-sky-500/10 border-sky-500/30 text-sky-400" },
-            raw_talent:    { label: "RAW TALENT CLASS", sub: "High upside, high variance — scout carefully", colors: "bg-orange-500/10 border-orange-500/30 text-orange-400" },
-            volatile:      { label: "VOLATILE CLASS", sub: "Mixed signals — expect surprises both ways", colors: "bg-yellow-500/10 border-yellow-500/30 text-yellow-400" },
-            bust_year:     { label: "BUST-HEAVY CLASS", sub: "Multiple generational busts lurk in the rankings", colors: "bg-red-500/10 border-red-500/30 text-red-400" },
-            weak:          { label: "DOWN YEAR", sub: "Thin class overall — value in the late rounds", colors: "bg-muted/20 border-border/40 text-muted-foreground" },
+          const vintageConfig: Record<string, { label: string; copy: string; colors: string; Icon: React.ElementType }> = {
+            elite:            { label: "ELITE CLASS",           copy: "The stars are obvious this year. The fight is for who lands them.",                         colors: "bg-amber-500/10 border-amber-500/30 text-amber-400",     Icon: Trophy        },
+            gem_heavy:        { label: "GEM-HEAVY CLASS",       copy: "The rankings may be missing something special. Scout deep.",                               colors: "bg-emerald-500/10 border-emerald-500/30 text-emerald-400", Icon: Gem           },
+            strong:           { label: "STRONG CLASS",          copy: "Quality talent is everywhere. Smart programs can build fast.",                              colors: "bg-green-500/10 border-green-500/30 text-green-400",       Icon: TrendingUp    },
+            balanced:         { label: "BALANCED CLASS",        copy: "Every position group has options. Build the class your roster needs.",                     colors: "bg-blue-500/10 border-blue-500/30 text-blue-400",          Icon: Scale         },
+            pitching_rich:    { label: "PITCHING-RICH CLASS",   copy: "Arms are everywhere this cycle. Rotations could be rebuilt overnight.",                    colors: "bg-sky-500/10 border-sky-500/30 text-sky-400",             Icon: Wind          },
+            position_players: { label: "POSITION PLAYER CLASS", copy: "This class is built around everyday players. Bats, gloves, and athletes lead the board.",  colors: "bg-cyan-500/10 border-cyan-500/30 text-cyan-400",           Icon: Users         },
+            defense_first:    { label: "DEFENSE-FIRST CLASS",   copy: "The gloves are loud this year. Defense could define the class.",                           colors: "bg-teal-500/10 border-teal-500/30 text-teal-400",          Icon: ShieldCheck   },
+            power_class:      { label: "POWER CLASS",           copy: "The ball is going to fly. This class is loaded with power bats.",                          colors: "bg-rose-500/10 border-rose-500/30 text-rose-400",          Icon: Zap           },
+            speed_class:      { label: "SPEED CLASS",           copy: "This class can run. Speed, range, and chaos are all over the board.",                      colors: "bg-violet-500/10 border-violet-500/30 text-violet-400",    Icon: Gauge         },
+            raw_talent:       { label: "RAW TALENT CLASS",      copy: "The tools are obvious. The outcomes are not.",                                              colors: "bg-orange-500/10 border-orange-500/30 text-orange-400",    Icon: Eye           },
+            volatile:         { label: "VOLATILE CLASS",        copy: "Nobody agrees on this class. Somebody is going to be very wrong.",                         colors: "bg-yellow-500/10 border-yellow-500/30 text-yellow-400",    Icon: Shuffle       },
+            bust_year:        { label: "BUST-HEAVY CLASS",      copy: "Big names. Big rankings. Big risk. Scout carefully.",                                       colors: "bg-red-500/10 border-red-500/30 text-red-400",             Icon: AlertOctagon  },
+            weak:             { label: "DOWN YEAR",             copy: "Talent is scarce this year. The best programs will find value late.",                      colors: "bg-muted/20 border-border/40 text-muted-foreground",       Icon: TrendingDown  },
+            late_bloomer:     { label: "LATE-BLOOMER CLASS",    copy: "The board may look completely different by Signing Day.",                                  colors: "bg-lime-500/10 border-lime-500/30 text-lime-400",          Icon: Sprout        },
+            legacy:           { label: "LEGACY CLASS",          copy: "The names are familiar. The expectations are heavy.",                                      colors: "bg-amber-600/10 border-amber-600/30 text-amber-300",       Icon: Crown         },
           };
           const cfg = vintageConfig[vintage];
           if (!cfg) return null;
+          const { Icon } = cfg;
           return (
-            <div className={`mb-4 rounded border px-4 py-2.5 flex items-center gap-2 ${cfg.colors}`} data-testid="class-vintage-banner">
-              <Zap className="w-3.5 h-3.5 shrink-0" />
-              <div>
-                <span className="font-pixel text-[9px] uppercase tracking-wider">{cfg.label}</span>
-                <span className="ml-3 text-[11px] opacity-80">{cfg.sub}</span>
+            <div className={`mb-4 rounded border px-5 py-3.5 ${cfg.colors}`} data-testid="class-vintage-banner">
+              <div className="flex items-center gap-2 mb-1">
+                <Icon className="w-5 h-5 shrink-0" />
+                <span className="font-pixel text-[11px] uppercase tracking-wider">{cfg.label}</span>
               </div>
+              <p className="text-[12px] opacity-75 leading-relaxed pl-7">{cfg.copy}</p>
             </div>
           );
         })()}
