@@ -200,7 +200,7 @@ export const PAC12_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...noPitches },
-    // OF depth FR
+    // OF depth SO
     { firstName: "Ethan", lastName: "Morris", position: "OF", eligibility: "SO", homeState: "OR", hometown: "Springfield", jerseyNumber: 28,
       hitForAvg: 37, power: 33, speed: 60, arm: 42, fielding: 36, errorResistance: 34, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 30, vsLHP: 28, grit: 30, stealing: 26, running: 42, throwing: 42, recovery: 30, wRISP: 28, vsLefty: 26, poise: 30, heater: 0, agile: 44,
