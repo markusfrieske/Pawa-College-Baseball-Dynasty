@@ -7233,9 +7233,14 @@ export async function registerRoutes(
                                 outsAdded = 1;
                               } else {
                                 const outRoll = Math.random();
-                                if (outRoll < 0.45) result = "groundout";
-                                else if (outRoll < 0.80) result = "flyout";
-                                else if (outRoll < 0.92) result = "lineout";
+                                // Trajectory shifts out-type distribution
+                                // traj1=GB: more groundouts; traj3=Gap: more lineouts; traj4=FB: more flyouts/popouts
+                                const gndCut = traj === 1 ? 0.65 : traj === 3 ? 0.35 : traj === 4 ? 0.20 : 0.45;
+                                const flyCut = traj === 1 ? 0.83 : traj === 3 ? 0.72 : traj === 4 ? 0.72 : 0.80;
+                                const lnoCut = traj === 1 ? 0.95 : traj === 3 ? 0.92 : traj === 4 ? 0.82 : 0.92;
+                                if (outRoll < gndCut) result = "groundout";
+                                else if (outRoll < flyCut) result = "flyout";
+                                else if (outRoll < lnoCut) result = "lineout";
                                 else result = "popout";
                                 isOut = true;
                                 outsAdded = 1;
@@ -11741,6 +11746,7 @@ export async function registerRoutes(
             potential: player.potential ?? rollWeightedPotential(),
             sourcePlayerId: player.id,
             fromTeamName: teamName,
+            trajectory: (player as any).trajectory ?? (["P","SP","RP","CP"].includes(player.position) ? 2 : assignTrajectory(player.hitForAvg ?? 50, player.speed ?? 50, player.hitForAvg ?? 50)),
             commitmentThreshold: 450,
             proximityPriority: "Somewhat",
             reputationPriority: "Very Important",
@@ -13712,6 +13718,7 @@ export async function registerRoutes(
           hairStyle: walkon.hairStyle || "short",
           headwear: walkon.headwear || "cap",
           potential: walkon.potential ?? 60,
+          trajectory: ["P","SP","RP","CP"].includes(walkon.position) ? 2 : assignTrajectory(boostedHitForAvg, boostedSpeed, boostedHitForAvg),
           sourcePlayerId: null,
           fromTeamName: null,
         });

@@ -316,14 +316,16 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
           {!isPitcher && player.trajectory != null && (
             <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
               <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Traj</span>
-              <Badge
-                variant="outline"
-                className="text-[10px] font-bold border-gold/40 text-gold bg-gold/5"
-                title={TRAJECTORY_FULL_LABELS[player.trajectory] ?? "Line Drive"}
-                data-testid="badge-trajectory"
-              >
-                {TRAJECTORY_LABELS[player.trajectory] ?? "LD"}
-              </Badge>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] text-muted-foreground">{player.trajectory}</span>
+                <Badge
+                  variant="outline"
+                  className="text-[10px] font-bold border-gold/40 text-gold bg-gold/5"
+                  data-testid="badge-trajectory"
+                >
+                  {TRAJECTORY_LABELS[player.trajectory] ?? "LD"} · {TRAJECTORY_FULL_LABELS[player.trajectory] ?? "Line Drive"}
+                </Badge>
+              </div>
             </div>
           )}
 
