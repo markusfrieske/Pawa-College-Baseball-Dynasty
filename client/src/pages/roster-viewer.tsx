@@ -599,6 +599,32 @@ export default function RosterViewerPage() {
     );
   }
 
+  // Position-aware stat columns shown on each mobile row
+  function MobileStatCols({ player, idx }: { player: RealPlayer; idx: number }) {
+    const pitching = isPitcher(player.position);
+    const cols = pitching
+      ? [
+          { field: "velocity" as keyof RealPlayer, label: "VELO", value: player.velocity },
+          { field: "control" as keyof RealPlayer, label: "CTRL", value: player.control },
+          { field: "stuff" as keyof RealPlayer, label: "STUF", value: player.stuff },
+        ]
+      : [
+          { field: "hitForAvg" as keyof RealPlayer, label: "CON", value: player.hitForAvg },
+          { field: "power" as keyof RealPlayer, label: "PWR", value: player.power },
+          { field: "speed" as keyof RealPlayer, label: "SPD", value: player.speed },
+        ];
+    return (
+      <div className="flex items-center gap-3 shrink-0" onClick={e => e.stopPropagation()}>
+        {cols.map(col => (
+          <div key={col.label} className="text-center min-w-[28px]">
+            <EditableStatCell value={col.value as number} playerIdx={idx} field={col.field} onUpdate={updatePlayerField} />
+            <p className="text-[8px] text-muted-foreground mt-0.5">{col.label}</p>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   // Mobile roster list (card rows, no wide table)
   function MobileRosterList() {
     if (rosterLoading) {
@@ -614,19 +640,18 @@ export default function RosterViewerPage() {
         {currentRoster.map((player, idx) => {
           const ovr = calculateOVR(player);
           const stars = ovrToStars(ovr);
-          const pitching = isPitcher(player.position);
           const isEdited = !!editedPlayers[idx];
           return (
             <div
               key={`mrow-${idx}`}
-              className={`flex items-center gap-3 px-4 py-3 cursor-pointer active:bg-gold/5 transition-colors ${isEdited ? "bg-yellow-500/5" : ""}`}
+              className={`flex items-center gap-2 px-4 py-3 cursor-pointer active:bg-gold/5 transition-colors ${isEdited ? "bg-yellow-500/5" : ""}`}
               onClick={() => setSelectedPlayerIdx(idx)}
               data-testid={`row-player-mobile-${idx}`}
             >
               {/* Jersey # */}
-              <span className="text-[10px] text-muted-foreground w-6 text-right shrink-0">{player.jerseyNumber}</span>
+              <span className="text-[10px] text-muted-foreground w-5 text-right shrink-0">{player.jerseyNumber}</span>
 
-              {/* Name + stars */}
+              {/* Name + meta */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
                   {isEdited && <div className="w-1.5 h-1.5 rounded-full bg-yellow-500 shrink-0" />}
@@ -634,28 +659,21 @@ export default function RosterViewerPage() {
                     {player.firstName} {player.lastName}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 mt-0.5">
+                <div className="flex items-center gap-1.5 mt-0.5">
                   <Badge variant="outline" className="text-[8px] px-1 py-0">{player.position}</Badge>
-                  <span className="text-[10px] text-muted-foreground">{player.eligibility}</span>
+                  <span className="text-[9px] text-muted-foreground">{player.eligibility}</span>
                   <StarRating stars={stars} />
                 </div>
               </div>
 
-              {/* OVR + key stat */}
-              <div className="flex items-center gap-3 shrink-0">
-                <div className="text-right">
-                  <span className={`text-sm ${ovrColor(ovr)}`} data-testid={`text-ovr-mobile-${idx}`}>{ovr}</span>
-                  <p className="text-[9px] text-muted-foreground">OVR</p>
-                </div>
-                <div className="text-right" onClick={e => e.stopPropagation()}>
-                  {pitching ? (
-                    <EditableStatCell value={player.velocity} playerIdx={idx} field="velocity" onUpdate={updatePlayerField} />
-                  ) : (
-                    <EditableStatCell value={player.hitForAvg} playerIdx={idx} field="hitForAvg" onUpdate={updatePlayerField} />
-                  )}
-                  <p className="text-[9px] text-muted-foreground">{pitching ? "VELO" : "CON"}</p>
-                </div>
+              {/* OVR */}
+              <div className="text-center shrink-0">
+                <span className={`text-sm ${ovrColor(ovr)}`} data-testid={`text-ovr-mobile-${idx}`}>{ovr}</span>
+                <p className="text-[9px] text-muted-foreground">OVR</p>
               </div>
+
+              {/* 3 position-aware editable stats */}
+              <MobileStatCols player={player} idx={idx} />
             </div>
           );
         })}
@@ -740,7 +758,7 @@ export default function RosterViewerPage() {
       <div className="flex-1 md:hidden overflow-auto">
         {/* Step: Conference */}
         {mobileStep === "conference" && (
-          <div className="p-4 space-y-4">
+          <div className="animate-in fade-in slide-in-from-left-4 duration-200 p-4 space-y-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
@@ -775,7 +793,7 @@ export default function RosterViewerPage() {
 
         {/* Step: Team */}
         {mobileStep === "team" && selectedConference && (
-          <div className="p-4 space-y-4">
+          <div className="animate-in fade-in slide-in-from-right-4 duration-200 p-4 space-y-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
@@ -801,7 +819,7 @@ export default function RosterViewerPage() {
 
         {/* Step: Roster */}
         {mobileStep === "roster" && selectedTeam && (
-          <div>
+          <div className="animate-in fade-in slide-in-from-right-4 duration-200">
             {/* Team header */}
             <div className="border-b border-border px-4 py-3">
               <div className="flex items-center gap-3">
