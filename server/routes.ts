@@ -25,6 +25,7 @@ import {
   generateDeparturesSummaryNews,
 } from "./news-engine";
 import { SEC_REAL_ROSTERS, ALL_REAL_ROSTERS } from "./realRosters";
+import { NATIONAL_RANKS, TOTAL_NATIONAL_TEAMS } from "./rosterScaleFactors";
 import { generateRecruitClass, selectTools, genToolAttr, sampleNormalSpeed, sampleNormalVelocity, HITTER_TOOL_GROUPS, PITCHER_TOOL_GROUPS } from "./recruit-generator";
 import { normalizeCommonAbilities } from "./normalizeCommonAbilities";
 import { validateLeagueRosters, checkTeamRosterStructure } from "./rosterValidation";
@@ -952,7 +953,8 @@ export async function registerRoutes(
         const cr = confRankings.get(cn) ?? [];
         result[t.teamName] = {
           talentRank: i + 1,
-          totalTeams,
+          totalTeams: TOTAL_NATIONAL_TEAMS,
+          nationalRank: NATIONAL_RANKS[t.teamName] ?? (i + 1),
           pitchingGrade: attrGrade(t.pitchingScore),
           hittingGrade: attrGrade(t.hittingScore),
           fieldingGrade: attrGrade(t.fieldingScore),
