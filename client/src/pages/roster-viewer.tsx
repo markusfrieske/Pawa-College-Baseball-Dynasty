@@ -389,17 +389,6 @@ export default function RosterViewerPage() {
 
   const handleReset = () => setEditedPlayers({});
 
-  const guardedAction = (action: () => void) => {
-    if (hasChanges) {
-      setPendingNavTarget("__action__");
-      setNavGuardOpen(true);
-      // store action for confirmation — use state callback pattern
-      setPendingNavTarget(JSON.stringify({ type: "action" }));
-    } else {
-      action();
-    }
-  };
-
   const handleConfSelect = (conf: string) => {
     if (conf === selectedConference) return;
     if (hasChanges) {
