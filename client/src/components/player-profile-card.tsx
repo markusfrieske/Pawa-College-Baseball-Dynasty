@@ -5,6 +5,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { RetroButton } from "@/components/ui/retro-button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LetterGrade, getLetterGrade } from "@/components/ui/letter-grade";
 import { PlayerPortrait } from "@/components/ui/player-portrait";
 import { PitchMixDial, generatePitchMixForDial } from "@/components/ui/pitch-mix-dial";
@@ -598,6 +599,28 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
                     )}
                   </div>
                 </div>
+
+                {/* Trajectory (hitters only) */}
+                {!isPitcher && (
+                  <div>
+                    <p className="font-pixel text-[10px] text-muted-foreground uppercase mb-2">Trajectory</p>
+                    <Select
+                      value={String(player.trajectory ?? 2)}
+                      onValueChange={val => onUpdate("trajectory", parseInt(val))}
+                    >
+                      <SelectTrigger className="h-7 text-xs" data-testid="select-edit-trajectory">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.keys(TRAJECTORY_LABELS).map(Number).sort((a, b) => a - b).map(t => (
+                          <SelectItem key={t} value={String(t)}>
+                            {t} · {TRAJECTORY_LABELS[t]} · {TRAJECTORY_FULL_LABELS[t]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
                 {/* Common Abilities */}
                 <div>
