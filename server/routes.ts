@@ -8823,8 +8823,14 @@ export async function registerRoutes(
         }
 
         const existingPending = await storage.getPendingDeparturesByLeague(leagueId);
+        // Departures are "valid" only when we have actual graduates or draft entries.
+        // Stale pendingDeparture:true flags (e.g. uncleared transfer players from a
+        // prior season) must not trick the route into skipping the departure run.
+        const hasValidDepartures = existingPending.some(
+          p => p.departureType === "graduated" || p.departureType === "draft"
+        );
         
-        if (existingPending.length === 0) {
+        if (!hasValidDepartures) {
           const promiseResult = await evaluatePlayerPromises(leagueId, league.currentSeason);
           if (promiseResult.broken > 0) {
             await storage.createAuditLog({
@@ -11518,6 +11524,17 @@ export async function registerRoutes(
       }))),
     ]);
 
+    // Safety sweep: clear any pendingDeparture:true flags that weren't handled above
+    // (edge cases: partial failures, promise-broken players, etc.). This guarantees the
+    // next season always starts with a clean slate and the idempotency guard won't fire early.
+    const stragglers = await storage.getPendingDeparturesByLeague(leagueId);
+    if (stragglers.length > 0) {
+      console.log(`[departures] finalize safety sweep: clearing ${stragglers.length} remaining stale pendingDeparture flags`);
+      await Promise.all(stragglers.map(p =>
+        storage.updatePlayer(p.id, { pendingDeparture: false, departureType: null })
+      ));
+    }
+
     // Add transfer portal players to the existing recruiting pool as TRANSFER recruits
     const existingRecruits = await storage.getRecruitsByLeague(leagueId);
     const existingSourceIds = new Set(existingRecruits.filter(r => r.sourcePlayerId).map(r => r.sourcePlayerId));
@@ -11675,7 +11692,18 @@ export async function registerRoutes(
       const grads = existingPending.filter(p => p.departureType === "graduated");
       const drafts = existingPending.filter(p => p.departureType === "draft");
       const transfers = existingPending.filter(p => p.departureType === "transfer");
-      return { graduated: grads.length, draftDeclared: drafts.length, transferPortal: transfers.length };
+      if (grads.length > 0 || drafts.length > 0) {
+        // Valid previous run — graduates/draft entries are present; return cached result.
+        console.log(`[departures] idempotency: found ${grads.length} grads, ${drafts.length} drafts, ${transfers.length} transfers — returning cached result`);
+        return { graduated: grads.length, draftDeclared: drafts.length, transferPortal: transfers.length };
+      }
+      // Stale flags exist but no grads or drafts — these are leftover flags from a
+      // prior season (e.g. un-cleared transfer portal or promise-broken players).
+      // Clear them so the full departure run can proceed cleanly for this season.
+      console.log(`[departures] idempotency: found ${existingPending.length} stale pendingDeparture flags with no grads/drafts — clearing before re-run`);
+      await Promise.all(existingPending.map(p =>
+        storage.updatePlayer(p.id, { pendingDeparture: false, departureType: null })
+      ));
     }
     
     // Phase 1: Collect all seniors and potential departures across ALL teams
