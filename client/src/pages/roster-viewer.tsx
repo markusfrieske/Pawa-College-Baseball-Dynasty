@@ -5,11 +5,11 @@ import { RetroButton } from "@/components/ui/retro-button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Save, RotateCcw, Star, Search, LogIn, ChevronLeft } from "lucide-react";
+import { ArrowLeft, Save, RotateCcw, Star, Search, LogIn, ChevronLeft, Pencil, Check, X } from "lucide-react";
 import { apiRequest, getQueryFn } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { calculateOVR, ALL_ABILITIES } from "@shared/abilities";
+import { calculateOVR, ALL_ABILITIES, getAbilitiesForPosition } from "@shared/abilities";
 import { parseErrorMessage } from "@/lib/errorUtils";
 import { TeamBadge } from "@/components/ui/team-badge";
 import { PlayerProfileCard, type Player } from "@/components/player-profile-card";
@@ -90,6 +90,7 @@ interface TeamRosterResponse {
   players: RealPlayer[];
 }
 
+// Conference badge metadata
 const CONF_META: Record<string, { primaryColor: string; secondaryColor: string; abbr: string }> = {
   "SEC":             { primaryColor: "#004B8D", secondaryColor: "#F1B82D", abbr: "SEC" },
   "ACC":             { primaryColor: "#003087", secondaryColor: "#A7C4E0", abbr: "ACC" },
@@ -191,21 +192,98 @@ function realPlayerToPlayer(player: RealPlayer, idx: number, teamName: string): 
     hairColor: player.hairColor,
     hairStyle: player.hairStyle,
     facialHair: player.facialHair,
-    pitchFB: player.pitchFB,
-    pitchSL: player.pitchSL,
-    pitchCB: player.pitchCB,
-    pitchCH: player.pitchCH,
-    pitchCT: player.pitchCT,
-    pitch2S: player.pitch2S,
-    pitchSNK: player.pitchSNK,
-    pitchSPL: player.pitchSPL,
   } as Player;
+}
+
+function PlayerEditPanel({ player, idx, onUpdate }: {
+  player: RealPlayer;
+  idx: number;
+  onUpdate: (idx: number, field: keyof RealPlayer, value: unknown) => void;
+}) {
+  const isPitch = isPitcher(player.position);
+
+  const numField = (label: string, field: keyof RealPlayer) => (
+    <div className="space-y-0.5">
+      <label className="text-[10px] text-muted-foreground uppercase font-pixel">{label}</label>
+      <Input
+        type="number"
+        min={1}
+        max={99}
+        className="h-7 text-xs w-20"
+        value={String(player[field] ?? "")}
+        onChange={e => onUpdate(idx, field, Math.max(1, Math.min(99, Number(e.target.value) || 1)))}
+        data-testid={`input-${field}-${idx}`}
+      />
+    </div>
+  );
+
+  const abilities = player.abilities || [];
+  const availableAbilities = getAbilitiesForPosition(player.position);
+
+  const toggleAbility = (name: string) => {
+    const updated = abilities.includes(name)
+      ? abilities.filter(a => a !== name)
+      : [...abilities, name];
+    onUpdate(idx, "abilities", updated);
+  };
+
+  return (
+    <div className="bg-muted/20 rounded p-4 space-y-4">
+      <div className="flex flex-wrap gap-4">
+        {!isPitch && (
+          <>
+            {numField("CON", "hitForAvg")}
+            {numField("PWR", "power")}
+            {numField("SPD", "speed")}
+            {numField("ARM", "arm")}
+            {numField("FLD", "fielding")}
+            {numField("ERR", "errorResistance")}
+          </>
+        )}
+        {isPitch && (
+          <>
+            {numField("VELO", "velocity")}
+            {numField("CTRL", "control")}
+            {numField("STUF", "stuff")}
+            {numField("STAM", "stamina")}
+            {numField("SPD", "speed")}
+            {numField("FLD", "fielding")}
+          </>
+        )}
+      </div>
+      <div>
+        <label className="text-[10px] text-muted-foreground uppercase font-pixel mb-2 block">Abilities</label>
+        <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto">
+          {availableAbilities.map(ab => {
+            const isSelected = abilities.includes(ab.name);
+            const tierCls = ab.tier === "gold"
+              ? "text-yellow-400 border-yellow-600/40"
+              : ab.tier === "red"
+              ? "text-red-400 border-red-600/40"
+              : "text-blue-400 border-blue-600/40";
+            return (
+              <button
+                key={ab.name}
+                onClick={() => toggleAbility(ab.name)}
+                className={`text-[9px] border rounded px-1.5 py-0.5 transition-colors ${tierCls} ${isSelected ? "opacity-100 ring-1 ring-offset-0" : "opacity-50 hover:opacity-80"}`}
+                data-testid={`toggle-ability-${ab.name.replace(/\s+/g, "-").toLowerCase()}-${idx}`}
+              >
+                {isSelected && <Check className="inline w-2 h-2 mr-0.5" />}
+                {ab.name}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 const PENDING_SAVE_KEY = "roster-viewer-pending-save";
 
 interface PendingSave {
   teamName: string;
+  edits: Record<number, Partial<RealPlayer>>;
   timestamp: number;
 }
 
@@ -217,12 +295,23 @@ export default function RosterViewerPage() {
   const [search, setSearch] = useState("");
   const [selectedConference, setSelectedConference] = useState<string>("");
   const [selectedTeam, setSelectedTeam] = useState<string>("");
+
+  // Player profile card
   const [selectedPlayerIdx, setSelectedPlayerIdx] = useState<number | null>(null);
+
+  // Editing
+  const [editedPlayers, setEditedPlayers] = useState<Record<number, Partial<RealPlayer>>>({});
+  const [expandedRow, setExpandedRow] = useState<number | null>(null);
 
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [saveRosterName, setSaveRosterName] = useState("");
   const [saveRosterDesc, setSaveRosterDesc] = useState("");
+
+  const [navGuardOpen, setNavGuardOpen] = useState(false);
+  const [pendingNavTarget, setPendingNavTarget] = useState<string | null>(null);
   const [autoSavePending, setAutoSavePending] = useState(false);
+
+  const hasChanges = Object.keys(editedPlayers).length > 0;
 
   const { data: user } = useQuery<{ id: string; email: string } | null>({
     queryKey: ["/api/auth/me"],
@@ -248,6 +337,7 @@ export default function RosterViewerPage() {
       setSaveDialogOpen(false);
       setSaveRosterName("");
       setSaveRosterDesc("");
+      setEditedPlayers({});
       setAutoSavePending(false);
       localStorage.removeItem(PENDING_SAVE_KEY);
       toast({ title: "Roster Saved", description: "Custom roster saved to your account." });
@@ -255,6 +345,7 @@ export default function RosterViewerPage() {
     onError: (err: Error) => toast({ title: "Save Failed", description: parseErrorMessage(err), variant: "destructive" }),
   });
 
+  // Restore pending edits saved before login redirect
   useEffect(() => {
     if (user === undefined) return;
     if (!user) return;
@@ -268,6 +359,7 @@ export default function RosterViewerPage() {
         return;
       }
       setSelectedTeam(pending.teamName);
+      setEditedPlayers(pending.edits);
       setAutoSavePending(true);
     } catch {
       localStorage.removeItem(PENDING_SAVE_KEY);
@@ -280,9 +372,23 @@ export default function RosterViewerPage() {
     }
   }, [autoSavePending, teamData, user]);
 
+  useEffect(() => {
+    if (!hasChanges) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [hasChanges]);
+
   const currentRoster = useMemo(() => {
-    return teamData?.players ?? [];
-  }, [teamData]);
+    if (!teamData?.players) return [];
+    return teamData.players.map((player, idx) => {
+      const edits = editedPlayers[idx];
+      return edits ? { ...player, ...edits } : player;
+    });
+  }, [teamData, editedPlayers]);
 
   const filteredConferences = useMemo(() => {
     if (!conferences) return [];
@@ -301,25 +407,71 @@ export default function RosterViewerPage() {
   }, [selectedConference, filteredConferences]);
 
   const selectedTeamMeta = useMemo(() => {
-    return selectedConfTeams.find(t => t.name === selectedTeam) ?? null;
-  }, [selectedConfTeams, selectedTeam]);
+    if (!conferences) return null;
+    for (const g of conferences) {
+      const found = g.teams.find(t => t.name === selectedTeam);
+      if (found) return found;
+    }
+    return null;
+  }, [conferences, selectedTeam]);
+
+  const updatePlayerField = (idx: number, field: keyof RealPlayer, value: unknown) => {
+    setEditedPlayers(prev => ({ ...prev, [idx]: { ...prev[idx], [field]: value } }));
+  };
+
+  const handleReset = () => {
+    setEditedPlayers({});
+    setExpandedRow(null);
+  };
 
   const handleConfSelect = (conf: string) => {
     if (conf === selectedConference) return;
     setSelectedConference(conf);
     setSelectedTeam("");
+    setExpandedRow(null);
     setSelectedPlayerIdx(null);
   };
 
   const handleTeamSelect = (teamName: string) => {
+    if (hasChanges && teamName !== selectedTeam) {
+      setPendingNavTarget(`__team__${teamName}`);
+      setNavGuardOpen(true);
+      return;
+    }
     setSelectedTeam(teamName);
+    setEditedPlayers({});
+    setExpandedRow(null);
     setSelectedPlayerIdx(null);
   };
 
+  const safeNavigate = (path: string) => {
+    if (hasChanges) {
+      setPendingNavTarget(path);
+      setNavGuardOpen(true);
+    } else {
+      setLocation(path);
+    }
+  };
+
+  const confirmNavigation = () => {
+    setNavGuardOpen(false);
+    if (!pendingNavTarget) return;
+    if (pendingNavTarget.startsWith("__team__")) {
+      const teamName = pendingNavTarget.slice(8);
+      setSelectedTeam(teamName);
+      setEditedPlayers({});
+      setExpandedRow(null);
+    } else {
+      setLocation(pendingNavTarget);
+    }
+    setPendingNavTarget(null);
+  };
+
   const redirectToLoginWithPendingEdits = () => {
-    if (selectedTeam) {
+    if (hasChanges && selectedTeam) {
       localStorage.setItem(PENDING_SAVE_KEY, JSON.stringify({
         teamName: selectedTeam,
+        edits: editedPlayers,
         timestamp: Date.now(),
       } as PendingSave));
     }
@@ -353,12 +505,23 @@ export default function RosterViewerPage() {
       <header className="border-b border-border sticky top-0 z-40 bg-background/95 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <button onClick={() => setLocation("/")} className="text-muted-foreground hover:text-gold transition-colors" data-testid="button-back-home">
+            <button onClick={() => safeNavigate("/")} className="text-muted-foreground hover:text-gold transition-colors" data-testid="button-back-home">
               <ArrowLeft className="w-5 h-5" />
             </button>
             <h1 className="font-pixel text-gold text-sm" data-testid="text-page-title">NCAA 2026 ROSTER VIEWER</h1>
           </div>
           <div className="flex items-center gap-2">
+            {hasChanges && (
+              <Badge variant="outline" className="text-yellow-500 border-yellow-500 hidden sm:flex" data-testid="badge-unsaved">
+                Unsaved edits
+              </Badge>
+            )}
+            {hasChanges && (
+              <RetroButton variant="outline" size="sm" onClick={handleReset} data-testid="button-reset">
+                <RotateCcw className="w-3 h-3 mr-1" />
+                Reset
+              </RetroButton>
+            )}
             <RetroButton
               size="sm"
               onClick={() => {
@@ -394,8 +557,7 @@ export default function RosterViewerPage() {
                 value={search}
                 onChange={e => {
                   setSearch(e.target.value);
-                  if (selectedConference) setSelectedConference("");
-                  setSelectedTeam("");
+                  if (e.target.value) setSelectedConference("");
                 }}
                 data-testid="input-team-search"
               />
@@ -408,7 +570,7 @@ export default function RosterViewerPage() {
             </div>
           ) : (
             <div className="flex-1 overflow-y-auto">
-              {/* Conference picker */}
+              {/* Conference picker (shown when not searching) */}
               {!search && (
                 <div className="p-3 border-b border-border/50">
                   <p className="font-pixel text-[9px] text-muted-foreground uppercase mb-2 tracking-wider">Conferences</p>
@@ -450,13 +612,13 @@ export default function RosterViewerPage() {
                 </div>
               )}
 
-              {/* Team picker — shown when conference is selected or search active */}
+              {/* Team picker — shown when conference selected or searching */}
               {(selectedConference || search) && (
                 <div className="p-3">
                   {selectedConference && (
                     <div className="flex items-center gap-1.5 mb-2">
                       <button
-                        onClick={() => { setSelectedConference(""); setSelectedTeam(""); }}
+                        onClick={() => { setSelectedConference(""); setSelectedTeam(""); setExpandedRow(null); }}
                         className="text-muted-foreground hover:text-gold transition-colors"
                         data-testid="button-back-to-confs"
                       >
@@ -470,7 +632,7 @@ export default function RosterViewerPage() {
                   )}
 
                   {search ? (
-                    /* Search results: flat team list */
+                    /* Search results: flat list with TeamBadge */
                     <div className="space-y-0.5">
                       {filteredConferences.flatMap(g => g.teams).map(team => {
                         const isSelected = selectedTeam === team.name;
@@ -537,7 +699,6 @@ export default function RosterViewerPage() {
                 </div>
               )}
 
-              {/* Empty state when no conf or search */}
               {!selectedConference && !search && (
                 <div className="p-4 text-center">
                   <p className="text-[10px] text-muted-foreground">Select a conference above</p>
@@ -593,7 +754,7 @@ export default function RosterViewerPage() {
                     </div>
                   </div>
                 </div>
-                <p className="text-[10px] text-muted-foreground hidden sm:block">Click a player to view their full profile</p>
+                <p className="text-[10px] text-muted-foreground hidden sm:block">Click row to view profile · pencil to edit stats</p>
               </div>
 
               {/* Roster Table */}
@@ -601,6 +762,7 @@ export default function RosterViewerPage() {
                 <table className="w-full text-sm" data-testid="table-roster">
                   <thead className="bg-muted/30 sticky top-0 z-10">
                     <tr>
+                      <th className="px-2 py-2 text-left text-[10px] font-pixel text-gold whitespace-nowrap w-8"></th>
                       <th className="px-2 py-2 text-left text-[10px] font-pixel text-gold whitespace-nowrap">#</th>
                       <th className="px-2 py-2 text-left text-[10px] font-pixel text-gold whitespace-nowrap">NAME</th>
                       <th className="px-2 py-2 text-left text-[10px] font-pixel text-gold whitespace-nowrap">POS</th>
@@ -624,47 +786,83 @@ export default function RosterViewerPage() {
                       const ovr = calculateOVR(player);
                       const stars = ovrToStars(ovr);
                       const pitching = isPitcher(player.position);
+                      const isExpanded = expandedRow === idx;
+                      const isEdited = !!editedPlayers[idx];
                       return (
-                        <tr
-                          key={`row-${idx}`}
-                          className={`border-b border-border/50 cursor-pointer transition-colors hover:bg-gold/5 ${idx % 2 === 0 ? "" : "bg-muted/5"}`}
-                          onClick={() => setSelectedPlayerIdx(idx)}
-                          data-testid={`row-player-${idx}`}
-                        >
-                          <td className="px-2 py-1.5 text-muted-foreground text-xs">{player.jerseyNumber}</td>
-                          <td className="px-2 py-1.5 text-foreground whitespace-nowrap text-xs">
-                            {player.firstName} {player.lastName}
-                          </td>
-                          <td className="px-2 py-1.5">
-                            <Badge variant="outline" className="text-[9px] px-1">{player.position}</Badge>
-                          </td>
-                          <td className="px-2 py-1.5 text-muted-foreground text-xs">{player.eligibility}</td>
-                          <td className="px-2 py-1.5">
-                            <StarRating stars={stars} />
-                          </td>
-                          <td className={`px-2 py-1.5 text-xs ${ovrColor(ovr)}`} data-testid={`text-ovr-${idx}`}>{ovr}</td>
-                          <td className="px-2 py-1.5 text-xs text-muted-foreground">{pitching ? "—" : player.hitForAvg}</td>
-                          <td className="px-2 py-1.5 text-xs text-muted-foreground">{pitching ? "—" : player.power}</td>
-                          <td className="px-2 py-1.5 text-xs text-muted-foreground">{player.speed}</td>
-                          <td className="px-2 py-1.5 text-xs text-muted-foreground">{player.arm}</td>
-                          <td className="px-2 py-1.5 text-xs text-muted-foreground">{player.fielding}</td>
-                          <td className="px-2 py-1.5 text-xs text-muted-foreground">{pitching ? player.velocity : "—"}</td>
-                          <td className="px-2 py-1.5 text-xs text-muted-foreground">{pitching ? player.control : "—"}</td>
-                          <td className="px-2 py-1.5 text-xs text-muted-foreground">{pitching ? player.stuff : "—"}</td>
-                          <td className="px-2 py-1.5 text-xs text-muted-foreground">{pitching ? player.stamina : "—"}</td>
-                          <td className="px-2 py-1.5">
-                            <div className="flex flex-wrap gap-0.5 max-w-[180px]">
-                              {(player.abilities || []).slice(0, 3).map(ab => (
-                                <AbilityBadge key={ab} name={ab} />
-                              ))}
-                              {(player.abilities || []).length > 3 && (
-                                <Badge variant="outline" className="text-[8px] px-1 text-muted-foreground">
-                                  +{player.abilities.length - 3}
-                                </Badge>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
+                        <>
+                          <tr
+                            key={`row-${idx}`}
+                            className={`border-b border-border/50 cursor-pointer transition-colors hover:bg-gold/5 ${isEdited ? "bg-yellow-500/5" : idx % 2 === 0 ? "" : "bg-muted/5"}`}
+                            onClick={() => setSelectedPlayerIdx(idx)}
+                            data-testid={`row-player-${idx}`}
+                          >
+                            {/* Edit button cell — stops propagation so it doesn't open the profile card */}
+                            <td
+                              className="px-1 py-1.5"
+                              onClick={e => e.stopPropagation()}
+                            >
+                              <button
+                                className={`w-6 h-6 rounded flex items-center justify-center transition-colors ${
+                                  isExpanded
+                                    ? "bg-gold/20 text-gold"
+                                    : "text-muted-foreground/40 hover:text-gold hover:bg-gold/10"
+                                }`}
+                                onClick={() => setExpandedRow(isExpanded ? null : idx)}
+                                title="Edit player stats"
+                                data-testid={`button-edit-player-${idx}`}
+                              >
+                                {isExpanded ? <X className="w-3 h-3" /> : <Pencil className="w-3 h-3" />}
+                              </button>
+                            </td>
+                            <td className="px-2 py-1.5 text-muted-foreground text-xs">{player.jerseyNumber}</td>
+                            <td className="px-2 py-1.5 text-foreground whitespace-nowrap text-xs">
+                              <div className="flex items-center gap-1.5">
+                                {isEdited && <div className="w-1.5 h-1.5 rounded-full bg-yellow-500 shrink-0" />}
+                                {player.firstName} {player.lastName}
+                              </div>
+                            </td>
+                            <td className="px-2 py-1.5">
+                              <Badge variant="outline" className="text-[9px] px-1">{player.position}</Badge>
+                            </td>
+                            <td className="px-2 py-1.5 text-muted-foreground text-xs">{player.eligibility}</td>
+                            <td className="px-2 py-1.5">
+                              <StarRating stars={stars} />
+                            </td>
+                            <td className={`px-2 py-1.5 text-xs ${ovrColor(ovr)}`} data-testid={`text-ovr-${idx}`}>{ovr}</td>
+                            <td className="px-2 py-1.5 text-xs text-muted-foreground">{pitching ? "—" : player.hitForAvg}</td>
+                            <td className="px-2 py-1.5 text-xs text-muted-foreground">{pitching ? "—" : player.power}</td>
+                            <td className="px-2 py-1.5 text-xs text-muted-foreground">{player.speed}</td>
+                            <td className="px-2 py-1.5 text-xs text-muted-foreground">{player.arm}</td>
+                            <td className="px-2 py-1.5 text-xs text-muted-foreground">{player.fielding}</td>
+                            <td className="px-2 py-1.5 text-xs text-muted-foreground">{pitching ? player.velocity : "—"}</td>
+                            <td className="px-2 py-1.5 text-xs text-muted-foreground">{pitching ? player.control : "—"}</td>
+                            <td className="px-2 py-1.5 text-xs text-muted-foreground">{pitching ? player.stuff : "—"}</td>
+                            <td className="px-2 py-1.5 text-xs text-muted-foreground">{pitching ? player.stamina : "—"}</td>
+                            <td className="px-2 py-1.5">
+                              <div className="flex flex-wrap gap-0.5 max-w-[180px]">
+                                {(player.abilities || []).slice(0, 3).map(ab => (
+                                  <AbilityBadge key={ab} name={ab} />
+                                ))}
+                                {(player.abilities || []).length > 3 && (
+                                  <Badge variant="outline" className="text-[8px] px-1 text-muted-foreground">
+                                    +{player.abilities.length - 3}
+                                  </Badge>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                          {isExpanded && (
+                            <tr key={`edit-${idx}`} className="bg-card/80 border-b border-border">
+                              <td colSpan={17} className="p-4">
+                                <PlayerEditPanel
+                                  player={player}
+                                  idx={idx}
+                                  onUpdate={updatePlayerField}
+                                />
+                              </td>
+                            </tr>
+                          )}
+                        </>
                       );
                     })}
                   </tbody>
@@ -697,7 +895,7 @@ export default function RosterViewerPage() {
           <DialogHeader>
             <DialogTitle className="font-pixel text-gold text-sm">Save Custom Roster</DialogTitle>
             <DialogDescription>
-              Save the current {selectedTeam} roster to your account.
+              Save the current {selectedTeam} roster (with your edits) to your account.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -728,6 +926,57 @@ export default function RosterViewerPage() {
                 {saveMutation.isPending ? "Saving..." : "Save"}
               </RetroButton>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Navigation Guard Dialog */}
+      <Dialog open={navGuardOpen} onOpenChange={setNavGuardOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-pixel text-gold text-sm">Unsaved Changes</DialogTitle>
+            <DialogDescription>
+              You have unsaved roster edits. Do you want to save them before leaving?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-2 mt-2">
+            {user ? (
+              <RetroButton
+                onClick={() => {
+                  setNavGuardOpen(false);
+                  setSaveDialogOpen(true);
+                }}
+                data-testid="button-navguard-save"
+              >
+                <Save className="w-3 h-3 mr-2" />
+                Save Changes
+              </RetroButton>
+            ) : (
+              <RetroButton
+                onClick={() => {
+                  setNavGuardOpen(false);
+                  redirectToLoginWithPendingEdits();
+                }}
+                data-testid="button-navguard-login"
+              >
+                <LogIn className="w-3 h-3 mr-2" />
+                Sign In to Save
+              </RetroButton>
+            )}
+            <RetroButton
+              variant="outline"
+              onClick={confirmNavigation}
+              data-testid="button-navguard-discard"
+            >
+              Discard Changes
+            </RetroButton>
+            <RetroButton
+              variant="ghost"
+              onClick={() => { setNavGuardOpen(false); setPendingNavTarget(null); }}
+              data-testid="button-navguard-cancel"
+            >
+              Cancel
+            </RetroButton>
           </div>
         </DialogContent>
       </Dialog>
