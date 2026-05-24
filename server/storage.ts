@@ -44,7 +44,7 @@ import {
   type StorylineVote, type InsertStorylineVote,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, or, inArray, isNotNull, isNull, sql } from "drizzle-orm";
+import { eq, and, desc, asc, or, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -190,6 +190,7 @@ export interface IStorage {
   getAllPlayerSeasonStatsByLeague(leagueId: string): Promise<PlayerSeasonStats[]>;
   upsertPlayerSeasonStats(data: InsertPlayerSeasonStats): Promise<PlayerSeasonStats>;
   updatePlayerSeasonStatsPosition(playerId: string, leagueId: string, season: number, position: string): Promise<void>;
+  setPlayerSeasonStatsOvr(playerId: string, leagueId: string, season: number, ovr: number): Promise<void>;
 
   getSavedRostersByUser(userId: string): Promise<SavedRoster[]>;
   getSavedRoster(id: string): Promise<SavedRoster | undefined>;
@@ -1106,7 +1107,8 @@ export class DatabaseStorage implements IStorage {
 
   async getPlayerSeasonStats(playerId: string, leagueId: string): Promise<PlayerSeasonStats[]> {
     return db.select().from(playerSeasonStats)
-      .where(and(eq(playerSeasonStats.playerId, playerId), eq(playerSeasonStats.leagueId, leagueId)));
+      .where(and(eq(playerSeasonStats.playerId, playerId), eq(playerSeasonStats.leagueId, leagueId)))
+      .orderBy(asc(playerSeasonStats.season));
   }
 
   async getPlayerSeasonStatsBySeason(leagueId: string, season: number): Promise<PlayerSeasonStats[]> {
@@ -1178,6 +1180,16 @@ export class DatabaseStorage implements IStorage {
   async updatePlayerSeasonStatsPosition(playerId: string, leagueId: string, season: number, position: string): Promise<void> {
     await db.update(playerSeasonStats)
       .set({ position })
+      .where(and(
+        eq(playerSeasonStats.playerId, playerId),
+        eq(playerSeasonStats.leagueId, leagueId),
+        eq(playerSeasonStats.season, season)
+      ));
+  }
+
+  async setPlayerSeasonStatsOvr(playerId: string, leagueId: string, season: number, ovr: number): Promise<void> {
+    await db.update(playerSeasonStats)
+      .set({ endSeasonOvr: ovr })
       .where(and(
         eq(playerSeasonStats.playerId, playerId),
         eq(playerSeasonStats.leagueId, leagueId),

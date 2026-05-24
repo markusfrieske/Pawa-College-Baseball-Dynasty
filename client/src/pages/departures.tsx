@@ -31,6 +31,8 @@ import {
   Target,
   TrendingUp,
   Users,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 
 interface DeparturePlayer {
@@ -50,6 +52,7 @@ interface DeparturePlayer {
   abilities: string[];
   teamId: string;
   draftRound: number | null;
+  progressionDeltas?: Record<string, number> | null;
 }
 
 interface TeamDepartures {
@@ -1154,6 +1157,12 @@ function PlayerDepartureRow({
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs text-muted-foreground">OVR {player.overall}</span>
+            {player.progressionDeltas?.overall != null && player.progressionDeltas.overall !== 0 && (
+              <span className={`inline-flex items-center text-[10px] font-bold ${player.progressionDeltas.overall > 0 ? "text-green-400" : "text-red-400"}`} data-testid={`text-departure-ovr-delta-${player.id}`}>
+                {player.progressionDeltas.overall > 0 ? <ArrowUp className="w-2.5 h-2.5" /> : <ArrowDown className="w-2.5 h-2.5" />}
+                {Math.abs(player.progressionDeltas.overall)}
+              </span>
+            )}
             <StarRating rating={player.starRating} size="sm" />
             {type === "draft" && player.draftRound && (
               <Badge className="bg-amber-600/30 text-amber-400 border-amber-600/50 text-[10px] no-default-hover-elevate no-default-active-elevate" data-testid={`badge-draft-round-${player.id}`}>

@@ -481,6 +481,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
 type CareerSeasonRow = {
   season: number;
   position: string;
+  endSeasonOvr: number | null;
   games: number;
   ab: number; r: number; h: number; doubles: number; triples: number;
   hr: number; rbi: number; bb: number; so: number; sb: number;
@@ -491,6 +492,23 @@ type CareerSeasonRow = {
   era: string; fip: string; whip: string; kPct: string; whiffRate: string; avgSpinRate: number;
 };
 
+function OvrCell({ seasons, idx }: { seasons: CareerSeasonRow[]; idx: number }) {
+  const s = seasons[idx];
+  if (s.endSeasonOvr == null) return <td className="py-1 px-1 text-center text-muted-foreground/40">—</td>;
+  const prev = idx > 0 ? seasons[idx - 1].endSeasonOvr : null;
+  const delta = prev != null ? s.endSeasonOvr - prev : null;
+  return (
+    <td className="py-1 px-1 text-center" data-testid={`text-career-ovr-${s.season}`}>
+      <span className="font-bold text-gold">{s.endSeasonOvr}</span>
+      {delta != null && delta !== 0 && (
+        <span className={`ml-0.5 text-[9px] font-bold ${delta > 0 ? "text-green-400" : "text-red-400"}`}>
+          {delta > 0 ? "+" : ""}{delta}
+        </span>
+      )}
+    </td>
+  );
+}
+
 function PitchingStatsTable({ seasons, label }: { seasons: CareerSeasonRow[]; label?: string }) {
   return (
     <div>
@@ -500,6 +518,7 @@ function PitchingStatsTable({ seasons, label }: { seasons: CareerSeasonRow[]; la
           <thead>
             <tr className="border-b border-border text-left">
               <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground">SZN</th>
+              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">OVR</th>
               <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">G</th>
               <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">W</th>
               <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">L</th>
@@ -513,9 +532,10 @@ function PitchingStatsTable({ seasons, label }: { seasons: CareerSeasonRow[]; la
             </tr>
           </thead>
           <tbody>
-            {seasons.map((s) => (
+            {seasons.map((s, idx) => (
               <tr key={s.season} className="border-b border-border/30" data-testid={`row-career-season-${s.season}`}>
                 <td className="py-1 px-1 font-pixel text-[7px] text-gold">S{s.season}</td>
+                <OvrCell seasons={seasons} idx={idx} />
                 <td className="py-1 px-1 text-center">{s.pitchingGames}</td>
                 <td className="py-1 px-1 text-center">{s.wins}</td>
                 <td className="py-1 px-1 text-center">{s.losses}</td>
@@ -544,6 +564,7 @@ function BattingStatsTable({ seasons, label }: { seasons: CareerSeasonRow[]; lab
           <thead>
             <tr className="border-b border-border text-left">
               <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground">SZN</th>
+              <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">OVR</th>
               <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">G</th>
               <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">AB</th>
               <th className="py-1 px-1 font-pixel text-[7px] text-muted-foreground text-center">AVG</th>
@@ -557,9 +578,10 @@ function BattingStatsTable({ seasons, label }: { seasons: CareerSeasonRow[]; lab
             </tr>
           </thead>
           <tbody>
-            {seasons.map((s) => (
+            {seasons.map((s, idx) => (
               <tr key={s.season} className="border-b border-border/30" data-testid={`row-career-season-${s.season}`}>
                 <td className="py-1 px-1 font-pixel text-[7px] text-gold">S{s.season}</td>
+                <OvrCell seasons={seasons} idx={idx} />
                 <td className="py-1 px-1 text-center">{s.games}</td>
                 <td className="py-1 px-1 text-center">{s.ab}</td>
                 <td className="py-1 px-1 text-center font-medium text-gold">{s.avg}</td>

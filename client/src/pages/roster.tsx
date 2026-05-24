@@ -176,10 +176,13 @@ export default function RosterPage() {
 
   const isCommissioner = authData?.id && leagueData?.league?.commissionerId === authData.id;
 
+  const hasAnyProgressionData = (data?.players || []).some(
+    p => p.progressionDeltas != null && (p.progressionDeltas as any).overall != null
+  );
   const canViewDevelopment =
     !viewingTeamId &&
-    DEVELOPMENT_PHASES.has(leagueData?.league?.currentPhase ?? "") &&
-    !!leagueData?.progressionEnabled;
+    !!leagueData?.progressionEnabled &&
+    (DEVELOPMENT_PHASES.has(leagueData?.league?.currentPhase ?? "") || hasAnyProgressionData);
 
   const updatePlayerMutation = useMutation({
     mutationFn: async (updates: Partial<Player> & { id: string }) => {
@@ -592,8 +595,9 @@ function PositionSection({ title, players, onSelectPlayer, teamPrimaryColor, pro
                 <div className="flex items-center gap-1">
                   <span className="font-bold text-gold text-sm">{player.overall}</span>
                   {player.progressionDeltas?.overall != null && player.progressionDeltas.overall !== 0 && (
-                    <span className={player.progressionDeltas.overall > 0 ? "text-green-400" : "text-red-400"} data-testid={`text-roster-ovr-delta-${player.id}`}>
-                      {player.progressionDeltas.overall > 0 ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
+                    <span className={`flex items-center text-[10px] font-bold ${player.progressionDeltas.overall > 0 ? "text-green-400" : "text-red-400"}`} data-testid={`text-roster-ovr-delta-${player.id}`}>
+                      {player.progressionDeltas.overall > 0 ? <ArrowUp className="w-2.5 h-2.5" /> : <ArrowDown className="w-2.5 h-2.5" />}
+                      {Math.abs(player.progressionDeltas.overall)}
                     </span>
                   )}
                 </div>
@@ -672,8 +676,9 @@ function PositionSection({ title, players, onSelectPlayer, teamPrimaryColor, pro
                 <td className="text-center py-3 px-2">
                   <span className="font-bold text-gold">{player.overall}</span>
                   {player.progressionDeltas?.overall != null && player.progressionDeltas.overall !== 0 && (
-                    <span className={`inline-flex items-center ml-1 text-xs font-bold ${player.progressionDeltas.overall > 0 ? "text-green-400" : "text-red-400"}`} data-testid={`text-roster-ovr-delta-${player.id}`}>
-                      {player.progressionDeltas.overall > 0 ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
+                    <span className={`inline-flex items-center ml-1 text-[10px] font-bold ${player.progressionDeltas.overall > 0 ? "text-green-400" : "text-red-400"}`} data-testid={`text-roster-ovr-delta-${player.id}`}>
+                      {player.progressionDeltas.overall > 0 ? <ArrowUp className="w-2.5 h-2.5" /> : <ArrowDown className="w-2.5 h-2.5" />}
+                      {Math.abs(player.progressionDeltas.overall)}
                     </span>
                   )}
                 </td>

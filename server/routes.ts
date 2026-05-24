@@ -5604,7 +5604,8 @@ export async function registerRoutes(
 
   app.get("/api/leagues/:leagueId/players/:playerId/career-stats", requireAuth, async (req, res) => {
     try {
-      const stats = await storage.getPlayerSeasonStats(req.params.playerId, req.params.leagueId);
+      const rawStats = await storage.getPlayerSeasonStats(req.params.playerId, req.params.leagueId);
+      const stats = [...rawStats].sort((a, b) => (a.season ?? 0) - (b.season ?? 0));
 
       const seasonStats = stats.map(s => {
         const ip = s.ipOuts / 3;
@@ -5634,6 +5635,7 @@ export async function registerRoutes(
           season: s.season,
           teamId: s.teamId,
           position: s.position,
+          endSeasonOvr: s.endSeasonOvr ?? null,
           games: s.games,
           ab: s.ab, r: s.r, h: s.h, doubles: s.doubles, triples: s.triples,
           hr: s.hr, rbi: s.rbi, bb: s.bb, hbp: s.hbp, so: s.so, sb: s.sb, cs: s.cs,
@@ -11226,6 +11228,11 @@ export async function registerRoutes(
         await storage.updatePlayer(player.id, updates);
         progressed++;
 
+        // Record the end-of-season OVR in player_season_stats for career history tracking
+        if (newOverall) {
+          await storage.setPlayerSeasonStatsOvr(player.id, leagueId, league.currentSeason, newOverall);
+        }
+
         // Accumulate per-potential-grade OVR changes for the verification summary log.
         const potGrade = getPotentialGrade(player.potential);
         if (!gradeStats[potGrade]) gradeStats[potGrade] = { count: 0, totalDelta: 0, gainers: 0, decliners: 0 };
@@ -11375,6 +11382,7 @@ export async function registerRoutes(
             overall: player.overall ?? 300,
             starRating: player.starRating ?? 3,
             signingOvr: player.signingOvr ?? player.overall ?? 300,
+            ovrDelta: (player.progressionDeltas as any)?.overall ?? null,
             departureType: player.departureType,
             draftRound: player.draftRound || null,
             departedSeason: league.currentSeason,
@@ -11397,6 +11405,7 @@ export async function registerRoutes(
             overall: player.overall ?? 300,
             starRating: player.starRating ?? 3,
             signingOvr: player.signingOvr ?? player.overall ?? 300,
+            ovrDelta: (player.progressionDeltas as any)?.overall ?? null,
             departureType: "transfer_portal",
             departedSeason: league.currentSeason,
             seasonsPlayed: eligMap[player.eligibility] || 1,
@@ -12092,6 +12101,7 @@ export async function registerRoutes(
               position: player.position, finalEligibility: player.eligibility,
               overall: player.overall, starRating: player.starRating,
               signingOvr: player.signingOvr ?? player.overall, departureType: "cut_juco",
+              ovrDelta: (player.progressionDeltas as any)?.overall ?? null,
               departedSeason: currentSeason, seasonsPlayed: eligMap[player.eligibility] || 1,
               abilities: player.abilities || [], homeState: player.homeState, hometown: player.hometown,
             });
@@ -12148,6 +12158,7 @@ export async function registerRoutes(
               starRating: player.starRating,
               signingOvr: player.signingOvr ?? player.overall,
               departureType: "cut_juco",
+              ovrDelta: (player.progressionDeltas as any)?.overall ?? null,
               departedSeason: currentSeason,
               seasonsPlayed: eligMap[player.eligibility] || 1,
               abilities: player.abilities || [],
@@ -12701,6 +12712,7 @@ export async function registerRoutes(
           overall: player.overall,
           starRating: player.starRating,
           signingOvr: player.signingOvr ?? player.overall,
+          ovrDelta: (player.progressionDeltas as any)?.overall ?? null,
           departureType: wasSignedAsRecruit ? "transfer_signed" : "transfer_juco",
           departedSeason: completedSeason,
           seasonsPlayed: eligMap[player.eligibility] || 1,
@@ -13767,6 +13779,7 @@ export async function registerRoutes(
         overall: player.overall,
         starRating: player.starRating,
         signingOvr: player.signingOvr ?? player.overall,
+        ovrDelta: (player.progressionDeltas as any)?.overall ?? null,
         departureType: "cut_juco",
         departedSeason: league.currentSeason,
         seasonsPlayed: eligMap[player.eligibility] || 1,

@@ -1043,6 +1043,7 @@ export const playerHistory = pgTable("player_history", {
   overall: integer("overall").notNull().default(300),
   starRating: integer("star_rating").notNull().default(3),
   signingOvr: integer("signing_ovr"),
+  ovrDelta: integer("ovr_delta"),
   departureType: text("departure_type").notNull().default("graduated"),
   draftRound: integer("draft_round"),
   departedSeason: integer("departed_season").notNull().default(1),
@@ -1065,6 +1066,7 @@ export const insertPlayerHistorySchema = createInsertSchema(playerHistory).pick(
   overall: true,
   starRating: true,
   signingOvr: true,
+  ovrDelta: true,
   departureType: true,
   draftRound: true,
   departedSeason: true,
@@ -1257,6 +1259,7 @@ export const playerSeasonStats = pgTable("player_season_stats", {
   fieldingErrors: integer("fielding_errors").notNull().default(0),
   totalChances: integer("total_chances").notNull().default(0),
   wpa: real("wpa").notNull().default(0),
+  endSeasonOvr: integer("end_season_ovr"),
 }, (t) => [
   index("idx_player_season_stats_player_league").on(t.playerId, t.leagueId, t.season),
 ]);
