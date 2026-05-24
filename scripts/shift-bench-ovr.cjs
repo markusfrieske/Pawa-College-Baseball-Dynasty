@@ -1,12 +1,19 @@
 /**
- * shift-bench-ovr.cjs
+ * shift-bench-ovr.cjs  (rank-aware, idempotent-friendly)
  *
- * Narrow scope: only modifies players whose current OVR falls in [250, 299].
- * Those players are rescaled to land in [185, 245] (below-average band).
- * Any player at 300+ or below 250 is left COMPLETELY UNCHANGED.
+ * Within each team, players are ranked by OVR descending (rank 0 = best).
+ * Only players at RANKS 10-24 (bench/depth) whose OVR is in [250, 299]
+ * are rescaled. Target: randInt(210, 249) — strictly within the below-average
+ * band (150-249) and never below 200.
  *
- * OVR formula (same as rerate-players.cjs):
- *   OVR = round(mainAttrSum * 0.6 + commonAttrSum * 0.25)
+ * Players at ranks 0-9 (top lineup) → UNCHANGED even if OVR is 250-299.
+ * Players with OVR >= 300 → UNCHANGED always.
+ * Players with OVR < 250 → UNCHANGED (already below-average).
+ *
+ * This preserves each team's relative strength ordering by construction:
+ * top-9 slots are frozen, and bench slots only move down within 200-249.
+ *
+ * OVR formula: round(mainAttrSum × 0.6 + commonAttrSum × 0.25)
  */
 
 const fs = require('fs');
@@ -50,8 +57,13 @@ const FILES = [
 ];
 
 let globalStats = {
-  total: 0, skippedAbove300: 0, skippedBelow250: 0, shifted: 0,
-  shiftedBelow150: 0, elite: 0, aboveAvg: 0, avg: 0, belowAvg: 0,
+  total: 0,
+  unchanged300plus: 0,
+  unchangedTop9: 0,
+  unchangedAlreadyBelow: 0,
+  shifted: 0,
+  violations: 0,
+  elite: 0, aboveAvg: 0, avg: 0, belowAvg: 0,
 };
 
 function processFile(filePath) {
@@ -59,8 +71,14 @@ function processFile(filePath) {
   const lines = content.split('\n');
 
   const players = [];
+  let currentTeam = null;
 
   for (let i = 0; i < lines.length; i++) {
+    const teamMatch = lines[i].match(/"([^"]+)":\s*\[/);
+    if (teamMatch) {
+      currentTeam = teamMatch[1];
+    }
+
     if (lines[i].includes('hitForAvg:') && lines[i].includes('power:')) {
       const attrs = {};
       const blockStart = Math.max(0, i);
@@ -74,35 +92,51 @@ function processFile(filePath) {
         }
       }
 
-      players.push({ attrLine: i, blockStart, blockEnd, attrs });
+      players.push({ team: currentTeam, attrLine: i, blockStart, blockEnd, attrs });
     }
   }
 
-  let fileStats = { total: 0, skippedAbove300: 0, skippedBelow250: 0, shifted: 0 };
+  // Group by team, sort by OVR desc, assign ranks
+  const teams = {};
+  for (const p of players) {
+    if (!teams[p.team]) teams[p.team] = [];
+    teams[p.team].push(p);
+  }
+
+  for (const teamPlayers of Object.values(teams)) {
+    teamPlayers.sort((a, b) => calcOVR(b.attrs) - calcOVR(a.attrs));
+    teamPlayers.forEach((p, rank) => { p.rank = rank; });
+  }
+
+  let fileShifted = 0;
 
   for (const p of players) {
     const currentOVR = calcOVR(p.attrs);
-    fileStats.total++;
     globalStats.total++;
 
     if (currentOVR <= 0) continue;
 
+    // Skip 300+ always (out of scope)
     if (currentOVR >= 300) {
-      // Out of scope — leave unchanged
-      fileStats.skippedAbove300++;
-      globalStats.skippedAbove300++;
+      globalStats.unchanged300plus++;
       continue;
     }
 
+    // Skip top-9 slots (ranks 0-9) — preserve top-of-lineup ordering
+    if (p.rank <= 9) {
+      globalStats.unchangedTop9++;
+      continue;
+    }
+
+    // Skip already-below-average players
     if (currentOVR < 250) {
-      // Already below-average — leave unchanged
-      fileStats.skippedBelow250++;
-      globalStats.skippedBelow250++;
+      globalStats.unchangedAlreadyBelow++;
       continue;
     }
 
-    // OVR is 250-299: shift down to below-average band (185-245)
-    const targetOVR = randInt(185, 245);
+    // Only shift bench/depth players (ranks 10-24) with OVR in [250, 299]
+    // Target: [210, 249] — strictly within below-average band, never below 200
+    const targetOVR = randInt(210, 249);
     const scale = targetOVR / currentOVR;
 
     for (let j = p.blockStart; j <= p.blockEnd; j++) {
@@ -130,10 +164,43 @@ function processFile(filePath) {
       }
     }
 
-    fileStats.shifted++;
     globalStats.shifted++;
+    fileShifted++;
 
-    // Verify floor after shift
+    // Post-scale clamp: if OVR rounded up to 250+, nudge first non-zero main attr down
+    // until OVR is in [200, 249]. Safety limit: 5 nudges max.
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const checkAttrs = {};
+      for (let j = p.blockStart; j <= p.blockEnd; j++) {
+        for (const attr of ALL_ATTRS) {
+          const regex = new RegExp(attr + ':\\s*(\\d+)');
+          const m = lines[j].match(regex);
+          if (m) checkAttrs[attr] = parseInt(m[1]);
+        }
+      }
+      const checkOVR = calcOVR(checkAttrs);
+      if (checkOVR < 250) break; // already in band
+
+      // Reduce first non-zero main attr by 1
+      let nudged = false;
+      for (const attr of MAIN_ATTRS) {
+        if ((checkAttrs[attr] || 0) > 1) {
+          for (let j = p.blockStart; j <= p.blockEnd; j++) {
+            const regex = new RegExp(`(${attr}:\\s*)(\\d+)`);
+            const match = lines[j].match(regex);
+            if (match && parseInt(match[2]) > 1) {
+              lines[j] = lines[j].replace(regex, `$1${parseInt(match[2]) - 1}`);
+              nudged = true;
+              break;
+            }
+          }
+          if (nudged) break;
+        }
+      }
+      if (!nudged) break;
+    }
+
+    // Final check
     const newAttrs = {};
     for (let j = p.blockStart; j <= p.blockEnd; j++) {
       for (const attr of ALL_ATTRS) {
@@ -143,12 +210,14 @@ function processFile(filePath) {
       }
     }
     const newOVR = calcOVR(newAttrs);
-    if (newOVR < 150) globalStats.shiftedBelow150++;
+    if (newOVR < 200 || newOVR >= 250) {
+      globalStats.violations++;
+    }
   }
 
   fs.writeFileSync(filePath, lines.join('\n'));
 
-  // Recount final distribution for this file
+  // Final distribution count for this file
   const freshContent = fs.readFileSync(filePath, 'utf8');
   const freshLines = freshContent.split('\n');
   let fElite = 0, fAbove = 0, fAvg = 0, fBelow = 0;
@@ -169,34 +238,41 @@ function processFile(filePath) {
     else { fBelow++; globalStats.belowAvg++; }
   }
 
-  console.log(`${filePath}: ${fileStats.total} players | skipped≥300: ${fileStats.skippedAbove300} | shifted(250-299→below): ${fileStats.shifted} | skipped<250: ${fileStats.skippedBelow250}`);
+  const total = fElite + fAbove + fAvg + fBelow;
+  console.log(`${filePath}: ${total}p | shifted: ${fileShifted} | elite: ${fElite} | above: ${fAbove} | avg: ${fAvg} | below: ${fBelow}`);
 }
 
-console.log('=== SHIFTING 250-299 OVR PLAYERS INTO BELOW-AVERAGE BAND ===\n');
-console.log('Rule: players with OVR in [250,299] → rescaled to [185,245]');
-console.log('      players with OVR >= 300 or < 250 → UNCHANGED\n');
+console.log('=== RANK-AWARE BENCH OVR SHIFT ===\n');
+console.log('Rule: ranks 10-24 with OVR [250,299] → target [210,249]');
+console.log('      ranks 0-9 (top lineup) → UNCHANGED');
+console.log('      OVR >= 300 → UNCHANGED');
+console.log('      OVR < 250 → UNCHANGED\n');
 
 for (const file of FILES) {
   try {
     processFile(file);
   } catch (e) {
     console.error(`Error processing ${file}: ${e.message}`);
+    console.error(e.stack);
   }
 }
 
 console.log('\n=== SUMMARY ===');
 console.log(`Total players scanned: ${globalStats.total}`);
-console.log(`Shifted (250-299 → below-avg): ${globalStats.shifted}`);
-console.log(`Skipped (OVR >= 300, unchanged): ${globalStats.skippedAbove300}`);
-console.log(`Skipped (OVR < 250, unchanged): ${globalStats.skippedBelow250}`);
-if (globalStats.shiftedBelow150 > 0) {
-  console.log(`WARNING: ${globalStats.shiftedBelow150} players shifted below 150!`);
+console.log(`Shifted (bench 250-299 → 210-249): ${globalStats.shifted}`);
+console.log(`Unchanged (OVR >= 300):             ${globalStats.unchanged300plus}`);
+console.log(`Unchanged (top-9 rank slot):        ${globalStats.unchangedTop9}`);
+console.log(`Unchanged (already < 250):          ${globalStats.unchangedAlreadyBelow}`);
+if (globalStats.violations > 0) {
+  console.log(`⚠ VIOLATIONS (landed outside 200-249): ${globalStats.violations}`);
+} else {
+  console.log(`✅ All shifted players landed in [200,249]`);
 }
 
 console.log('\n=== FINAL GLOBAL DISTRIBUTION ===');
 const total = globalStats.elite + globalStats.aboveAvg + globalStats.avg + globalStats.belowAvg;
 console.log(`Total: ${total}`);
-console.log(`Elite (500-650):     ${globalStats.elite} (${(globalStats.elite/total*100).toFixed(1)}%)`);
-console.log(`Above Avg (350-499): ${globalStats.aboveAvg} (${(globalStats.aboveAvg/total*100).toFixed(1)}%)`);
+console.log(`Elite (500+):        ${globalStats.elite} (${(globalStats.elite/total*100).toFixed(1)}%) [target <3%]`);
+console.log(`Above Avg (350-499): ${globalStats.aboveAvg} (${(globalStats.aboveAvg/total*100).toFixed(1)}%) [target <17%]`);
 console.log(`Average (250-349):   ${globalStats.avg} (${(globalStats.avg/total*100).toFixed(1)}%)`);
 console.log(`Below Avg (<250):    ${globalStats.belowAvg} (${(globalStats.belowAvg/total*100).toFixed(1)}%)`);
