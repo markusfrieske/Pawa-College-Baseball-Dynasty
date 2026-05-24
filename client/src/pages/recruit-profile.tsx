@@ -856,6 +856,7 @@ export default function RecruitProfilePage() {
                     recruit={recruit} 
                     scoutPct={scoutPct}
                     isFullyRevealed={isFullyRevealed}
+                    signingDayLockedFields={(recruit.signingDayLockedFields as string[]) || []}
                   />
                 </RetroCardContent>
               </RetroCard>
@@ -870,6 +871,7 @@ export default function RecruitProfilePage() {
                     recruit={recruit}
                     scoutPct={scoutPct}
                     isFullyRevealed={isFullyRevealed}
+                    signingDayLockedFields={(recruit.signingDayLockedFields as string[]) || []}
                   />
                 </RetroCardContent>
               </RetroCard>
@@ -883,6 +885,7 @@ export default function RecruitProfilePage() {
                   recruit={recruit}
                   scoutPct={scoutPct}
                   isFullyRevealed={isFullyRevealed}
+                  signingDayLockedFields={(recruit.signingDayLockedFields as string[]) || []}
                 />
               </RetroCardContent>
             </RetroCard>
@@ -1868,11 +1871,13 @@ function RecruitProfileSkeleton() {
 function RecruitAttributesSection({ 
   recruit, 
   scoutPct,
-  isFullyRevealed 
+  isFullyRevealed,
+  signingDayLockedFields = [],
 }: { 
   recruit: RecruitWithInterest; 
   scoutPct: number;
   isFullyRevealed: boolean;
+  signingDayLockedFields?: string[];
 }) {
   const isPitcher = checkIsPitcher(recruit.position);
   const scoutingOrder = (recruit.scoutingOrder as string[]) || [];
@@ -1889,14 +1894,16 @@ function RecruitAttributesSection({
   // Calculate how many attributes should be revealed based on scouting progress
   const revealCount = Math.ceil((scoutPct / 100) * effectiveOrder.length);
   const revealedFields = new Set(effectiveOrder.slice(0, revealCount));
+  const lockedSet = new Set(signingDayLockedFields);
   
   const shouldRevealField = (fieldName: string) => {
     return isFullyRevealed || revealedFields.has(fieldName);
   };
   
   const renderAttribute = (label: string, fieldName: string, value: number | null | undefined) => {
+    const isLocked = !isFullyRevealed && lockedSet.has(fieldName);
     // Treat null as unrevealed — server already nulls signing-day-locked fields
-    const isRevealed = shouldRevealField(fieldName) && value !== null && value !== undefined;
+    const isRevealed = !isLocked && shouldRevealField(fieldName) && value !== null && value !== undefined;
     const displayValue = isRevealed ? value : null;
     const isVelocity = label === "Velocity";
     
@@ -1919,6 +1926,13 @@ function RecruitAttributesSection({
                 {isVelocity ? `${velocityToMPH(displayValue!)} MPH` : displayValue}
               </span>
             </>
+          ) : isLocked ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Lock className="h-4 w-4 text-gold/70" />
+              </TooltipTrigger>
+              <TooltipContent>Revealed at Signing Day</TooltipContent>
+            </Tooltip>
           ) : (
             <span className="text-sm text-muted-foreground">???</span>
           )}
@@ -1952,11 +1966,13 @@ function RecruitAttributesSection({
 function RecruitCommonAbilitiesSection({ 
   recruit, 
   scoutPct,
-  isFullyRevealed 
+  isFullyRevealed,
+  signingDayLockedFields = [],
 }: { 
   recruit: RecruitWithInterest; 
   scoutPct: number;
   isFullyRevealed: boolean;
+  signingDayLockedFields?: string[];
 }) {
   const isPitcher = checkIsPitcher(recruit.position);
   const isCatcher = checkIsCatcher(recruit.position);
@@ -1974,14 +1990,16 @@ function RecruitCommonAbilitiesSection({
   // Calculate how many attributes should be revealed based on scouting progress
   const revealCount = Math.ceil((scoutPct / 100) * effectiveOrder.length);
   const revealedFields = new Set(effectiveOrder.slice(0, revealCount));
+  const lockedSet = new Set(signingDayLockedFields);
   
   const shouldRevealField = (fieldName: string) => {
     return isFullyRevealed || revealedFields.has(fieldName);
   };
   
   const renderAbility = (label: string, fieldName: string, value: number | null | undefined) => {
+    const isLocked = !isFullyRevealed && lockedSet.has(fieldName);
     // Treat null as unrevealed — server already nulls signing-day-locked fields
-    const isRevealed = shouldRevealField(fieldName) && value !== null && value !== undefined;
+    const isRevealed = !isLocked && shouldRevealField(fieldName) && value !== null && value !== undefined;
     const displayValue = isRevealed ? value : null;
     
     return (
@@ -1989,6 +2007,13 @@ function RecruitCommonAbilitiesSection({
         <span className="text-sm text-muted-foreground">{label}</span>
         {isRevealed ? (
           <LetterGrade value={displayValue!} size="sm" isCommonAbility={true} />
+        ) : isLocked ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Lock className="h-4 w-4 text-gold/70" />
+            </TooltipTrigger>
+            <TooltipContent>Revealed at Signing Day</TooltipContent>
+          </Tooltip>
         ) : (
           <span className="text-sm text-muted-foreground">???</span>
         )}
@@ -2027,11 +2052,13 @@ function RecruitCommonAbilitiesSection({
 function RecruitPitchMixSection({ 
   recruit, 
   scoutPct,
-  isFullyRevealed 
+  isFullyRevealed,
+  signingDayLockedFields = [],
 }: { 
   recruit: RecruitWithInterest; 
   scoutPct: number;
   isFullyRevealed: boolean;
+  signingDayLockedFields?: string[];
 }) {
   const scoutingOrder = (recruit.scoutingOrder as string[]) || [];
   
@@ -2044,6 +2071,7 @@ function RecruitPitchMixSection({
   // Calculate how many attributes should be revealed based on scouting progress
   const revealCount = Math.ceil((scoutPct / 100) * effectiveOrder.length);
   const revealedFields = new Set(effectiveOrder.slice(0, revealCount));
+  const lockedSet = new Set(signingDayLockedFields);
   
   const shouldRevealField = (fieldName: string) => {
     return isFullyRevealed || revealedFields.has(fieldName);
@@ -2062,15 +2090,25 @@ function RecruitPitchMixSection({
   
   const renderPitch = (key: string, label: string) => {
     const value = recruit[key as keyof typeof recruit] as number | null | undefined;
+    const isLocked = !isFullyRevealed && lockedSet.has(key);
     // Treat null as unrevealed — server already nulls signing-day-locked fields
-    const isRevealed = shouldRevealField(key) && value !== null && value !== undefined;
+    const isRevealed = !isLocked && shouldRevealField(key) && value !== null && value !== undefined;
     const displayValue = isRevealed ? value : null;
     
     if (!isRevealed) {
       return (
         <div key={key} className="flex items-center justify-between p-2 bg-muted/30 rounded">
           <span className="text-sm text-muted-foreground">{label}</span>
-          <span className="text-sm text-muted-foreground">???</span>
+          {isLocked ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Lock className="h-4 w-4 text-gold/70" />
+              </TooltipTrigger>
+              <TooltipContent>Revealed at Signing Day</TooltipContent>
+            </Tooltip>
+          ) : (
+            <span className="text-sm text-muted-foreground">???</span>
+          )}
         </div>
       );
     }

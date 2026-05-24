@@ -1432,9 +1432,21 @@ export async function registerRoutes(
           'clutch', 'vsLHP', 'grit', 'stealing', 'running', 'throwing', 'recovery',
           'wRISP', 'vsLefty', 'poise', 'heater', 'agile', 'catcherAbility',
         ]);
+        // Default field ordering for recruits whose scoutingOrder was generated before
+        // attribute/common-ability keys were included (prevents empty holdbackFields).
+        const isPitcherRecruit = ['P', 'SP', 'RP', 'CP'].includes(recruit.position || '');
+        const defaultAttrOrder = isPitcherRecruit
+          ? ['velocity', 'control', 'stamina', 'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL']
+          : ['hitForAvg', 'power', 'speed', 'arm', 'fielding', 'errorResistance'];
+        const defaultCommonOrder = isPitcherRecruit
+          ? ['wRISP', 'vsLefty', 'poise', 'grit', 'heater', 'agile', 'recovery']
+          : ['clutch', 'vsLHP', 'grit', 'stealing', 'running', 'throwing', 'recovery', 'catcherAbility'];
         const scoutingOrder = (recruit.scoutingOrder as string[]) || [];
-        const attrOrder    = scoutingOrder.filter(f => SIGNING_ATTR_KEYS.has(f));
-        const commonOrder  = scoutingOrder.filter(f => SIGNING_COMMON_KEYS.has(f));
+        const attrOrderFromScouting   = scoutingOrder.filter(f => SIGNING_ATTR_KEYS.has(f));
+        const commonOrderFromScouting = scoutingOrder.filter(f => SIGNING_COMMON_KEYS.has(f));
+        // Fall back to defaults when scoutingOrder predates these key groups
+        const attrOrder   = attrOrderFromScouting.length   > 0 ? attrOrderFromScouting   : defaultAttrOrder;
+        const commonOrder = commonOrderFromScouting.length > 0 ? commonOrderFromScouting : defaultCommonOrder;
         const holdbackFields: string[] = (recruit.isBlueChip || recruit.signingDayRevealed)
           ? []
           : [
