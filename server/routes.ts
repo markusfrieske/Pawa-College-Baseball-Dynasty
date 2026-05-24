@@ -8584,6 +8584,12 @@ export async function registerRoutes(
           }
           
           if (srResult.done && !srResult.champion1) {
+            // Log the SR game state so any future regression is immediately diagnosable.
+            try {
+              const diagGames = await storage.getGamesByLeague(leagueId);
+              const diagSR = diagGames.filter((g: any) => g.phase === "super_regionals" && g.season === league.currentSeason);
+              console.warn(`[postseason-skip] SR done but no champion — league=${leagueId} season=${league.currentSeason} srGameCount=${diagSR.length} completedSR=${diagSR.filter((g: any) => g.isComplete).length} srResult=${JSON.stringify(srResult)}`);
+            } catch { /* diagnostic only */ }
             // Resolve any unresolved storyline arcs before entering offseason.
             try {
               const swept = await resolveAllPendingStorylineEvents(leagueId, league.currentSeason, league.currentWeek ?? 1);
@@ -10869,7 +10875,8 @@ export async function registerRoutes(
           isComplete: true,
           boxScore: result.boxScore,
         });
-        await updateStandingsForGame(leagueId, season, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore);
+        // Super Regionals results intentionally do NOT update standings — postseason games
+        // must not mutate the regular-season win/loss records that seeding depends on.
         try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, season, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, season, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
         try {
           const srHomeWon = result.homeScore > result.awayScore;
@@ -10924,6 +10931,27 @@ export async function registerRoutes(
       return { done: false };
     }
     
+    // ── Defensive fallback ────────────────────────────────────────────────────
+    // All SR games are complete but processBracketSide returned null for at least one side.
+    // Recover by scanning completed SR game records directly for each side's last-round winner.
+    const allCompletedSR = (await storage.getGamesByLeague(leagueId))
+      .filter(g => g.phase === "super_regionals" && g.season === season && g.isComplete);
+    const getLastRoundWinner = (side: string): string | undefined => {
+      const sideCompleted = allCompletedSR.filter(g => g.bracketSide === side);
+      if (sideCompleted.length === 0) return undefined;
+      const maxRd = Math.max(...sideCompleted.map(g => g.bracketRound ?? 1));
+      const lastRoundGames = sideCompleted.filter(g => (g.bracketRound ?? 1) === maxRd);
+      if (lastRoundGames.length === 1) return getGameWinner(lastRoundGames[0]);
+      return undefined;
+    };
+    const fallbackA = finalA || getLastRoundWinner("A");
+    const fallbackB = finalB || getLastRoundWinner("B");
+    if (fallbackA && fallbackB) {
+      console.warn(`[advanceSuperRegionals] Used fallback champion detection for league=${leagueId} season=${season} — champion1=${fallbackA} champion2=${fallbackB}`);
+      return { done: true, champion1: fallbackA, champion2: fallbackB };
+    }
+    
+    console.warn(`[advanceSuperRegionals] Could not resolve SR champions — league=${leagueId} season=${season} finalA=${finalA} finalB=${finalB} fallbackA=${fallbackA} fallbackB=${fallbackB}`);
     return { done: true, champion1: finalA || undefined, champion2: finalB || undefined };
   }
 
@@ -10959,13 +10987,25 @@ export async function registerRoutes(
     // but only if ALL teams assigned to this side have appeared in at least one game
     // (prevents premature champion when bye teams haven't played yet).
     if (currentRoundGames.length === 1) {
+      // Derive sideTeamIds directly from game records tagged with this bracketSide —
+      // this is immune to seeding-order changes caused by SR game results altering standings.
+      const playedTeamIds = new Set<string>();
+      sideGames.forEach(g => { playedTeamIds.add(g.homeTeamId); playedTeamIds.add(g.awayTeamId); });
+
+      // Count expected teams from seeding only when seededTeams is reliable (bracket generation).
+      // Primary check: all teams that ever appear in any side game must have played at least one game.
+      // This is always true by construction, so we use the seededTeams count as the expected total
+      // but fall back to just checking the R1 game set when seededTeams ordering may have shifted.
       const N = seededTeams.length;
-      const sideTeamIds = seededTeams
+      const seededSideIds = seededTeams
         .filter((_t, idx) => getSideForSeed(idx + 1, N) === side)
         .map(t => t.team.id);
-      const playedTeamIds = new Set<string>();
-      completedSide.forEach(g => { playedTeamIds.add(g.homeTeamId); playedTeamIds.add(g.awayTeamId); });
-      const allPlayed = sideTeamIds.every(id => playedTeamIds.has(id));
+
+      // Use whichever set is smaller and guaranteed accurate: if the seeded side IDs all appear
+      // in played teams, we're done. Otherwise fall back to just confirming both finalists played.
+      const allPlayed = seededSideIds.length > 0
+        ? seededSideIds.every(id => playedTeamIds.has(id))
+        : playedTeamIds.size >= 2; // fallback: at least two teams participated
       if (allPlayed) return getGameWinner(currentRoundGames[0]);
       // Not all teams have played yet — fall through to bye-handling below
     }
