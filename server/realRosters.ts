@@ -124,10 +124,13 @@ function buildCalibratedRosters(): Record<string, RealPlayer[]> {
   return out;
 }
 
-export const SEC_REAL_ROSTERS: Record<string, RealPlayer[]> = RAW_REAL_ROSTERS;
-
 /** Raw rosters without any calibration — used by offline scripts (e.g. recalibrate-rosters.ts). */
 export const RAW_UNCALIBRATED_ROSTERS: Record<string, RealPlayer[]> = RAW_REAL_ROSTERS;
 
 /** All real rosters across every conference, with RPI-calibrated attribute scaling applied. */
-export const ALL_REAL_ROSTERS: Record<string, RealPlayer[]> = buildCalibratedRosters();
+const CALIBRATED_ROSTERS: Record<string, RealPlayer[]> = buildCalibratedRosters();
+
+/** @deprecated Use ALL_REAL_ROSTERS for calibrated data. Kept for legacy callers. */
+export const SEC_REAL_ROSTERS: Record<string, RealPlayer[]> = CALIBRATED_ROSTERS;
+
+export const ALL_REAL_ROSTERS: Record<string, RealPlayer[]> = CALIBRATED_ROSTERS;

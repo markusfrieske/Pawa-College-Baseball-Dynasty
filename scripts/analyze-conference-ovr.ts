@@ -1,22 +1,4 @@
-import { SEC_BATCH1_ROSTERS } from "../server/secBatch1";
-import { SEC_BATCH2_ROSTERS } from "../server/secBatch2";
-import { SEC_BATCH3_ROSTERS } from "../server/secBatch3";
-import { ACC_BATCH1_ROSTERS } from "../server/accRostersBatch1";
-import { ACC_BATCH2_ROSTERS } from "../server/accRostersBatch2";
-import { ACC_BATCH3_ROSTERS } from "../server/accRostersBatch3";
-import { BIG_TEN_BATCH1_ROSTERS } from "../server/bigTenBatch1";
-import { BIG_TEN_BATCH2_ROSTERS } from "../server/bigTenBatch2";
-import { BIG_TEN_BATCH3_ROSTERS } from "../server/bigTenBatch3";
-import { BIG_12_ROSTERS } from "../server/big12Rosters";
-import { PAC12_ROSTERS } from "../server/pac12Rosters";
-import { AAC_ROSTERS } from "../server/aacRosters";
-import { SUN_BELT_ROSTERS } from "../server/sunBeltRosters";
-import { WCC_ROSTERS } from "../server/wccRosters";
-import { MWC_ROSTERS } from "../server/mwcRosters";
-import { BIG_WEST_ROSTERS } from "../server/bigWestRosters";
-import { MO_VALLEY_ROSTERS } from "../server/moValleyRosters";
-import { IVY_LEAGUE_ROSTERS } from "../server/ivyLeagueRosters";
-import { HBCU_ROSTERS } from "../server/hbcuRosters";
+import { ALL_REAL_ROSTERS } from "../server/realRosters";
 import type { RealPlayer } from "../server/realRosters";
 import { calculateOVR, getStarRatingFromOVR } from "../shared/abilities";
 
@@ -101,20 +83,86 @@ function analyzeConf(name: string, tier: number, rosters: Roster[]): ConfResult 
   return { name, tier, allOVRs, hitterOVRs, pitcherOVRs };
 }
 
+// ── Group ALL_REAL_ROSTERS by conference using team names ──────────────────
+const SEC_TEAMS = new Set([
+  "Alabama","Arkansas","Auburn","Florida","Georgia","Kentucky","LSU","Mississippi State",
+  "Missouri","Ole Miss","South Carolina","Tennessee","Texas","Texas A&M","Vanderbilt","Oklahoma"
+]);
+const ACC_TEAMS = new Set([
+  "Boston College","Clemson","Duke","Florida State","Georgia Tech","Louisville","Miami",
+  "NC State","Notre Dame","Pittsburgh","Syracuse","Virginia","Virginia Tech","Wake Forest",
+  "North Carolina","Georgia Tech"
+]);
+const BIG_TEN_TEAMS = new Set([
+  "Illinois","Indiana","Iowa","Maryland","Michigan","Michigan State","Minnesota","Nebraska",
+  "Northwestern","Ohio State","Penn State","Purdue","Rutgers","Wisconsin","Oregon","UCLA","Washington"
+]);
+const BIG_12_TEAMS = new Set([
+  "Arizona","Arizona State","BYU","Baylor","Cincinnati","Houston","Iowa State","Kansas",
+  "Kansas State","Oklahoma State","TCU","Texas Tech","UCF","West Virginia"
+]);
+const PAC12_TEAMS = new Set([
+  "Cal","Oregon State","Stanford","Utah","Washington State","Air Force","Fresno State",
+  "Nevada","New Mexico","San Diego State","UNLV","Southern California"
+]);
+const AAC_TEAMS = new Set([
+  "Charlotte","East Carolina","Florida Atlantic","Memphis","Rice","South Florida","Temple",
+  "Tulane","Tulsa","UAB","Wichita State"
+]);
+const SUN_BELT_TEAMS = new Set([
+  "Appalachian State","Arkansas State","Coastal Carolina","Georgia Southern","Georgia State",
+  "James Madison","Louisiana","Louisiana Monroe","Marshall","Old Dominion","Southern Miss",
+  "Texas State","Troy"
+]);
+const WCC_TEAMS = new Set([
+  "Grand Canyon","Loyola Marymount","Pacific","Pepperdine","Portland","San Diego","Santa Clara","St. Mary's"
+]);
+const BIG_WEST_TEAMS = new Set([
+  "Cal Poly","Cal State Bakersfield","Cal State Fullerton","Cal State Northridge","Hawaii",
+  "Long Beach State","UC Davis","UC Irvine","UC Riverside","UC Santa Barbara"
+]);
+const MO_VALLEY_TEAMS = new Set([
+  "Bradley","Dallas Baptist","Evansville","Illinois State","Indiana State","Missouri State",
+  "Murray State","Northern Iowa","Oklahoma State","Oral Roberts","South Dakota State","Southern Illinois","Valparaiso"
+]);
+const IVY_TEAMS = new Set([
+  "Columbia","Cornell","Dartmouth","Harvard","Penn","Princeton","Yale","Brown"
+]);
+
+function rostersByTeamSet(teamSet: Set<string>): Roster {
+  const result: Roster = {};
+  for (const [name, players] of Object.entries(ALL_REAL_ROSTERS)) {
+    if (teamSet.has(name)) result[name] = players;
+  }
+  return result;
+}
+
+function rostersByExclusion(excludeSets: Set<string>[]): Roster {
+  const excluded = new Set<string>();
+  for (const s of excludeSets) for (const t of s) excluded.add(t);
+  const result: Roster = {};
+  for (const [name, players] of Object.entries(ALL_REAL_ROSTERS)) {
+    if (!excluded.has(name)) result[name] = players;
+  }
+  return result;
+}
+
 const results: ConfResult[] = [];
-results.push(analyzeConf("SEC (Tier 1)", 1, [SEC_BATCH1_ROSTERS, SEC_BATCH2_ROSTERS, SEC_BATCH3_ROSTERS]));
-results.push(analyzeConf("ACC (Tier 1)", 1, [ACC_BATCH1_ROSTERS, ACC_BATCH2_ROSTERS, ACC_BATCH3_ROSTERS]));
-results.push(analyzeConf("Big Ten (Tier 1)", 1, [BIG_TEN_BATCH1_ROSTERS, BIG_TEN_BATCH2_ROSTERS, BIG_TEN_BATCH3_ROSTERS]));
-results.push(analyzeConf("Big 12 (Tier 1)", 1, [BIG_12_ROSTERS]));
-results.push(analyzeConf("Pac-12 (Tier 2)", 2, [PAC12_ROSTERS]));
-results.push(analyzeConf("AAC (Tier 2)", 2, [AAC_ROSTERS]));
-results.push(analyzeConf("Sun Belt (Tier 2)", 2, [SUN_BELT_ROSTERS]));
-results.push(analyzeConf("WCC (Tier 3)", 3, [WCC_ROSTERS]));
-results.push(analyzeConf("MWC (Tier 3)", 3, [MWC_ROSTERS]));
-results.push(analyzeConf("Big West (Tier 3)", 3, [BIG_WEST_ROSTERS]));
-results.push(analyzeConf("Missouri Valley (Tier 4)", 4, [MO_VALLEY_ROSTERS]));
-results.push(analyzeConf("Ivy League (Tier 4)", 4, [IVY_LEAGUE_ROSTERS]));
-results.push(analyzeConf("HBCU (Tier 5)", 5, [HBCU_ROSTERS]));
+results.push(analyzeConf("SEC (Tier 1)", 1, [rostersByTeamSet(SEC_TEAMS)]));
+results.push(analyzeConf("ACC (Tier 1)", 1, [rostersByTeamSet(ACC_TEAMS)]));
+results.push(analyzeConf("Big Ten (Tier 1)", 1, [rostersByTeamSet(BIG_TEN_TEAMS)]));
+results.push(analyzeConf("Big 12 (Tier 1)", 1, [rostersByTeamSet(BIG_12_TEAMS)]));
+results.push(analyzeConf("Pac-12 (Tier 2)", 2, [rostersByTeamSet(PAC12_TEAMS)]));
+results.push(analyzeConf("AAC (Tier 2)", 2, [rostersByTeamSet(AAC_TEAMS)]));
+results.push(analyzeConf("Sun Belt (Tier 2)", 2, [rostersByTeamSet(SUN_BELT_TEAMS)]));
+results.push(analyzeConf("WCC (Tier 3)", 3, [rostersByTeamSet(WCC_TEAMS)]));
+results.push(analyzeConf("Big West (Tier 3)", 3, [rostersByTeamSet(BIG_WEST_TEAMS)]));
+results.push(analyzeConf("Missouri Valley (Tier 4)", 4, [rostersByTeamSet(MO_VALLEY_TEAMS)]));
+results.push(analyzeConf("Ivy League (Tier 4)", 4, [rostersByTeamSet(IVY_TEAMS)]));
+results.push(analyzeConf("HBCU (Tier 5)", 5, [rostersByExclusion([
+  SEC_TEAMS, ACC_TEAMS, BIG_TEN_TEAMS, BIG_12_TEAMS, PAC12_TEAMS,
+  AAC_TEAMS, SUN_BELT_TEAMS, WCC_TEAMS, BIG_WEST_TEAMS, MO_VALLEY_TEAMS, IVY_TEAMS
+])]));
 
 // ── Global summary ─────────────────────────────────────────────────────────
 const globalOVRs: number[] = results.flatMap(r => r.allOVRs);

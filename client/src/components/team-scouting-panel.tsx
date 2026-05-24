@@ -198,7 +198,7 @@ export function TeamScoutingPanel({ teamName, info, onClose, variant = "fixed" }
         <div className="shrink-0 flex items-center gap-1 border border-gold/40 rounded px-1.5 py-0.5 bg-gold/10">
           <Trophy className="w-2.5 h-2.5 text-gold" />
           <span className="font-pixel text-[9px] text-gold whitespace-nowrap">
-            #{info.nationalRank}<span className="text-muted-foreground">/{info.totalTeams}</span>
+            #{info.nationalRank}<span className="text-muted-foreground">/142</span>
           </span>
         </div>
         {onClose && (

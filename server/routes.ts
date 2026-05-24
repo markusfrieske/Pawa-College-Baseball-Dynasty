@@ -897,11 +897,11 @@ export async function registerRoutes(
 
       // Build conference → team name list and template metadata map
       const confMap = new Map<string, string[]>();
-      const tmplMap = new Map<string, { city: string; state: string; nilBudget: number; prestige: number; conference: string }>();
+      const tmplMap = new Map<string, { city: string; state: string; nilBudget: number; prestige: number; conference: string; nationalRank: number }>();
       for (const cn of ALL_CONF_NAMES) {
         const ts = getTeamsForConference(cn);
         confMap.set(cn, ts.map(t => t.name));
-        for (const t of ts) tmplMap.set(t.name, { city: t.city, state: t.state, nilBudget: t.nilBudget, prestige: t.prestige, conference: cn });
+        for (const t of ts) tmplMap.set(t.name, { city: t.city, state: t.state, nilBudget: t.nilBudget, prestige: t.prestige, conference: cn, nationalRank: NATIONAL_RANKS[t.name] ?? TOTAL_NATIONAL_TEAMS });
       }
 
       type PlayerInfo = { name: string; position: string; eligibility: string; overall: number; starRating: number };
@@ -953,8 +953,8 @@ export async function registerRoutes(
         const cr = confRankings.get(cn) ?? [];
         result[t.teamName] = {
           talentRank: i + 1,
-          totalTeams: TOTAL_NATIONAL_TEAMS,
-          nationalRank: NATIONAL_RANKS[t.teamName] ?? (i + 1),
+          totalTeams,
+          nationalRank: tmpl?.nationalRank ?? NATIONAL_RANKS[t.teamName] ?? (i + 1),
           pitchingGrade: attrGrade(t.pitchingScore),
           hittingGrade: attrGrade(t.hittingScore),
           fieldingGrade: attrGrade(t.fieldingScore),
