@@ -9079,8 +9079,8 @@ export async function registerRoutes(
         // If a saved recruiting class was chosen, replace the auto-generated class
         if (savedRecruitingClassId) {
           try {
-            const savedClass = await storage.getSavedRecruitingClass(Number(savedRecruitingClassId));
-            if (savedClass) {
+            const savedClass = await storage.getSavedRecruitingClass(String(savedRecruitingClassId));
+            if (savedClass && (!savedClass.userId || savedClass.userId === req.session.userId)) {
               const classData = savedClass.classData as any[];
               if (Array.isArray(classData) && classData.length > 0) {
                 await storage.deleteRecruitsByLeague(leagueId);
@@ -17125,11 +17125,14 @@ export async function registerRoutes(
       if (!hasCommissionerAccess(league, req.session.userId)) {
         return res.status(403).json({ message: "Commissioner only" });
       }
-      const { savedClassId } = req.body as { savedClassId: number | string };
+      const { savedClassId } = req.body as { savedClassId: string };
       if (!savedClassId) return res.status(400).json({ message: "savedClassId required" });
 
-      const savedClass = await storage.getSavedRecruitingClass(Number(savedClassId));
+      const savedClass = await storage.getSavedRecruitingClass(String(savedClassId));
       if (!savedClass) return res.status(404).json({ message: "Saved class not found" });
+      if (savedClass.userId && savedClass.userId !== req.session.userId) {
+        return res.status(403).json({ message: "You do not own this saved class" });
+      }
 
       const classData = savedClass.classData as any[];
       if (!Array.isArray(classData) || classData.length === 0) {

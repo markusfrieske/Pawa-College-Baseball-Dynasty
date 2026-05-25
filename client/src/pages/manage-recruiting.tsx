@@ -382,6 +382,9 @@ export default function ManageRecruitingPage() {
   const [wizardLeagueId, setWizardLeagueId] = useState<string | null>(null);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [leaguePickerOpen, setLeaguePickerOpen] = useState(false);
+  const [loadIntoLeagueOpen, setLoadIntoLeagueOpen] = useState(false);
+  const [loadTargetClassId, setLoadTargetClassId] = useState<string | null>(null);
+  const [loadTargetLeagueId, setLoadTargetLeagueId] = useState<string>("");
   const [localSavedClasses, setLocalSavedClasses] = useState<SavedClass[]>([]);
 
   const commissionerLeagues = (leagues ?? []).filter(l => l.commissionerId === user?.id);
@@ -444,6 +447,36 @@ export default function ManageRecruitingPage() {
       } catch {
         setLocalSavedClasses([]);
       }
+    }
+  };
+
+  const loadIntoLeagueMutation = useMutation({
+    mutationFn: async ({ leagueId, classId }: { leagueId: string; classId: string }) => {
+      const res = await apiRequest("POST", `/api/leagues/${leagueId}/recruiting/load-saved-class`, { savedClassId: classId });
+      return res.json();
+    },
+    onSuccess: (data: { count: number; className: string }) => {
+      toast({ title: "Class Loaded into League", description: `"${data.className}" (${data.count} recruits) is now the active recruiting class.` });
+      setLoadIntoLeagueOpen(false);
+      setLoadTargetClassId(null);
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: parseErrorMessage(err), variant: "destructive" });
+    },
+  });
+
+  const handleLoadIntoLeague = (cls: SavedClass) => {
+    if (commissionerLeagues.length === 0) {
+      toast({ title: "No Commissioner Leagues", description: "You are not a commissioner of any active league.", variant: "destructive" });
+      return;
+    }
+    const classId = String(cls.id);
+    if (commissionerLeagues.length === 1) {
+      loadIntoLeagueMutation.mutate({ leagueId: commissionerLeagues[0].id, classId });
+    } else {
+      setLoadTargetClassId(classId);
+      setLoadTargetLeagueId(commissionerLeagues[0].id);
+      setLoadIntoLeagueOpen(true);
     }
   };
 
@@ -641,9 +674,20 @@ export default function ManageRecruitingPage() {
                         <p className="text-muted-foreground text-xs mt-1 truncate" data-testid={`class-desc-${cls.id}`}>{cls.description}</p>
                       )}
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 flex-wrap justify-end">
+                      {commissionerLeagues.length > 0 && (
+                        <RetroButton
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleLoadIntoLeague(cls)}
+                          disabled={loadIntoLeagueMutation.isPending}
+                          data-testid={`button-load-into-league-${cls.id}`}
+                        >
+                          Load into League
+                        </RetroButton>
+                      )}
                       <RetroButton variant="outline" size="sm" onClick={() => handleLoadClass(cls)} data-testid={`button-load-class-${cls.id}`}>
-                        Load
+                        Edit
                       </RetroButton>
                       <RetroButton variant="destructive" size="sm" onClick={() => { setDeleteTargetId(cls.id); setDeleteDialogOpen(true); }} data-testid={`button-delete-class-${cls.id}`}>
                         <Trash2 className="w-3 h-3" />
@@ -1001,6 +1045,50 @@ export default function ManageRecruitingPage() {
                   <div className="text-xs text-muted-foreground mt-0.5 capitalize">{l.currentPhase?.replace(/_/g, " ")}</div>
                 </button>
               ))}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Load into League picker for multi-league commissioners */}
+        <Dialog open={loadIntoLeagueOpen} onOpenChange={setLoadIntoLeagueOpen}>
+          <DialogContent data-testid="dialog-load-into-league">
+            <DialogHeader>
+              <DialogTitle className="font-pixel text-gold text-sm">Load into League</DialogTitle>
+              <DialogDescription>
+                Choose which league to load this recruiting class into. This will replace the current recruit pool.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 mt-2">
+              <Select value={loadTargetLeagueId} onValueChange={setLoadTargetLeagueId}>
+                <SelectTrigger data-testid="select-load-target-league">
+                  <SelectValue placeholder="Select league" />
+                </SelectTrigger>
+                <SelectContent>
+                  {commissionerLeagues.map(l => (
+                    <SelectItem key={l.id} value={l.id}>
+                      {l.name} — {l.currentPhase?.replace(/_/g, " ")}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="flex justify-end gap-2">
+                <RetroButton variant="outline" size="sm" onClick={() => setLoadIntoLeagueOpen(false)} data-testid="button-cancel-load-league">
+                  Cancel
+                </RetroButton>
+                <RetroButton
+                  size="sm"
+                  onClick={() => {
+                    if (loadTargetClassId && loadTargetLeagueId) {
+                      loadIntoLeagueMutation.mutate({ leagueId: loadTargetLeagueId, classId: loadTargetClassId });
+                    }
+                  }}
+                  loading={loadIntoLeagueMutation.isPending}
+                  disabled={!loadTargetLeagueId || !loadTargetClassId}
+                  data-testid="button-confirm-load-league"
+                >
+                  Load Class
+                </RetroButton>
+              </div>
             </div>
           </DialogContent>
         </Dialog>
