@@ -1,4 +1,4 @@
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useState, useEffect } from "react";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroInput } from "@/components/ui/retro-input";
@@ -14,7 +14,6 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { DynastyLogo } from "@/components/dynasty-logo";
-import { RecruitingWizard } from "@/components/recruiting-wizard";
 
 const CONFERENCES = [
   "SEC", "ACC", "Big Ten", "Big 12", "Pac-12", "AAC",
@@ -23,14 +22,14 @@ const CONFERENCES = [
 
 export default function LandingPage() {
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
-  const [wizardLeagueId, setWizardLeagueId] = useState<string | null>(null);
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   const { data: user } = useQuery<{ id: string; email: string }>({
     queryKey: ["/api/auth/me"],
   });
 
-  const { data: leagues } = useQuery<Array<{ id: string; name: string; commissionerId: string; currentPhase: string }>>({
+  const { data: leagues, isLoading: leaguesLoading } = useQuery<Array<{ id: string; name: string; commissionerId: string; currentPhase: string }>>({
     queryKey: ["/api/leagues"],
     enabled: !!user,
   });
@@ -115,15 +114,6 @@ export default function LandingPage() {
       </header>
 
       {showFeedbackModal && <FeedbackModal onClose={() => setShowFeedbackModal(false)} />}
-
-      {wizardLeagueId && (
-        <RecruitingWizard
-          open={!!wizardLeagueId}
-          leagueId={wizardLeagueId}
-          onClose={() => setWizardLeagueId(null)}
-          onSaved={() => setWizardLeagueId(null)}
-        />
-      )}
 
       <main>
         {/* ── HERO ─────────────────────────────────────────────── */}
@@ -217,10 +207,15 @@ export default function LandingPage() {
                     <ClipboardList className="w-3.5 h-3.5" /> Manage Custom Rosters
                   </button>
                 </Link>
-                {wizardEligibleLeague ? (
+                {isLoggedIn && leaguesLoading && !leagues ? (
+                  <button className="flex items-center gap-1 text-muted-foreground cursor-wait" disabled data-testid="button-open-recruiting-wizard-loading">
+                    <div className="w-3.5 h-3.5 border border-current border-t-transparent rounded-full animate-spin" />
+                    Create Recruiting Class
+                  </button>
+                ) : wizardEligibleLeague ? (
                   <button
                     className="flex items-center gap-1 hover:text-gold transition-colors"
-                    onClick={() => setWizardLeagueId(wizardEligibleLeague.id)}
+                    onClick={() => setLocation(`/manage-recruiting?leagueId=${wizardEligibleLeague.id}`)}
                     data-testid="button-open-recruiting-wizard"
                   >
                     <Wand2 className="w-3.5 h-3.5 text-gold" /> Create Recruiting Class

@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { parseErrorMessage } from "@/lib/errorUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
@@ -372,7 +372,7 @@ export default function ManageRecruitingPage() {
     },
   });
 
-  const { data: leagues } = useQuery<Array<{ id: string; name: string; commissionerId: string; currentPhase: string }>>({
+  const { data: leagues, isLoading: leaguesLoading } = useQuery<Array<{ id: string; name: string; commissionerId: string; currentPhase: string }>>({
     queryKey: ["/api/leagues"],
     queryFn: getQueryFn({ on401: "returnNull" }),
     enabled: !!user,
@@ -382,6 +382,15 @@ export default function ManageRecruitingPage() {
   const [leaguePickerOpen, setLeaguePickerOpen] = useState(false);
 
   const commissionerLeagues = (leagues ?? []).filter(l => l.commissionerId === user?.id);
+
+  // Auto-open wizard if leagueId is passed as a URL search param
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const leagueId = params.get("leagueId");
+    if (leagueId) {
+      setWizardLeagueId(leagueId);
+    }
+  }, []);
 
   const handleOpenWizard = () => {
     if (commissionerLeagues.length === 0) return;
@@ -516,11 +525,15 @@ export default function ManageRecruitingPage() {
               <RetroButton
                 size="sm"
                 onClick={handleOpenWizard}
-                disabled={commissionerLeagues.length === 0}
-                title={commissionerLeagues.length === 0 ? "You must be a league commissioner to use the wizard" : undefined}
+                disabled={leaguesLoading || commissionerLeagues.length === 0}
+                title={!leaguesLoading && commissionerLeagues.length === 0 ? "You must be a league commissioner to use the wizard" : undefined}
                 data-testid="button-open-wizard"
               >
-                <Wand2 className="w-4 h-4 mr-2" />
+                {leaguesLoading ? (
+                  <div className="w-4 h-4 mr-2 border border-current border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Wand2 className="w-4 h-4 mr-2" />
+                )}
                 Create with Wizard
               </RetroButton>
             )}
