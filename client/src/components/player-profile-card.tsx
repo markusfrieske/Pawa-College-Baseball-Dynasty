@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { LetterGrade, getLetterGrade } from "@/components/ui/letter-grade";
 import { PlayerPortrait } from "@/components/ui/player-portrait";
 import { PitchMixDial, generatePitchMixForDial } from "@/components/ui/pitch-mix-dial";
-import { MapPin, Star, Edit, Trophy, ArrowUp, ArrowDown, ChevronDown, ChevronUp, Check, X } from "lucide-react";
+import { MapPin, Star, Edit, Trophy, ArrowUp, ArrowDown, ArrowUpRight, ArrowRight, ArrowDownRight, ChevronDown, ChevronUp, Check, X } from "lucide-react";
 import { getAbilityByName, getAbilitiesForPosition, ALL_ABILITIES } from "@shared/abilities";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { velocityToMPH } from "@/lib/playerUtils";
@@ -434,28 +434,17 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
         {/* Attributes Section */}
         <div className="p-4 border-b border-border">
           <h3 className="font-pixel text-gold text-xs mb-3">ATTRIBUTES</h3>
+
+          {/* Trajectory row — hitters only, above the attribute grid */}
+          {!isPitcher && (
+            <TrajectoryRow trajectory={effectiveTrajectory} />
+          )}
+
           <div className="grid grid-cols-2 gap-2">
             {attrs.map((attr) => (
               <AttributeRow key={attr.label} label={attr.label} value={attr.value} delta={attr.delta} />
             ))}
           </div>
-          
-          {/* Traj row for hitters */}
-          {!isPitcher && (
-            <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
-              <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Traj</span>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[10px] text-muted-foreground">{effectiveTrajectory}</span>
-                <Badge
-                  variant="outline"
-                  className="text-[10px] font-bold border-gold/40 text-gold bg-gold/5"
-                  data-testid="badge-trajectory"
-                >
-                  {TRAJECTORY_LABELS[effectiveTrajectory]} · {TRAJECTORY_FULL_LABELS[effectiveTrajectory]}
-                </Badge>
-              </div>
-            </div>
-          )}
 
           {/* Pitch Mix for Pitchers */}
           {isPitcher && pitchMix.length > 0 && (
@@ -950,6 +939,31 @@ function CareerStatsSection({ playerId, leagueId }: { playerId: string; leagueId
             label={isConverted ? "BATTING" : undefined}
           />
         )}
+      </div>
+    </div>
+  );
+}
+
+const TRAJECTORY_ARROW_CONFIG: Record<number, { Icon: React.ElementType; color: string; label: string }> = {
+  4: { Icon: ArrowUp,          color: "text-pink-400",  label: "Flyball"    },
+  3: { Icon: ArrowUpRight,     color: "text-red-400",   label: "Gap"        },
+  2: { Icon: ArrowRight,       color: "text-blue-400",  label: "Line Drive" },
+  1: { Icon: ArrowDownRight,   color: "text-green-400", label: "Groundball" },
+};
+
+function TrajectoryRow({ trajectory }: { trajectory: number }) {
+  const { Icon, color, label } = TRAJECTORY_ARROW_CONFIG[trajectory] ?? TRAJECTORY_ARROW_CONFIG[2];
+  return (
+    <div
+      className="flex items-center justify-between p-2 bg-background/50 rounded mb-2"
+      data-testid="attr-row-trajectory"
+    >
+      <span className="text-sm text-muted-foreground">Trajectory</span>
+      <div className="flex items-center gap-2">
+        <Icon className={`w-4 h-4 ${color}`} />
+        <span className="text-sm font-bold w-14 text-right" data-testid="text-attr-trajectory">
+          {trajectory}
+        </span>
       </div>
     </div>
   );
