@@ -58,8 +58,10 @@ type WizardRecruit = {
 interface Props {
   open: boolean;
   onClose: () => void;
-  leagueId: string;
-  onSaved: () => void;
+  leagueId?: string;
+  onSaved?: () => void;
+  onSavedToLibrary?: () => void;
+  user?: { id: string; email: string } | null;
 }
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -637,11 +639,10 @@ function wizardRecruitToPlayer(r: WizardRecruit): Player {
 
 type SortKey = "name" | "pos" | "stars" | "overall" | "hitForAvg" | "power" | "speed" | "arm" | "fielding" | "velocity" | "control" | "stamina" | "stuff" | "potential";
 
-function Step6({ recruits, setRecruits, onSave, isSaving, onReroll, isRerolling, rerollingId, config }: {
+function Step6({ recruits, setRecruits, onNext, onReroll, isRerolling, rerollingId, config }: {
   recruits: WizardRecruit[];
   setRecruits: (r: WizardRecruit[]) => void;
-  onSave: () => void;
-  isSaving: boolean;
+  onNext: () => void;
   onReroll: (r: WizardRecruit) => void;
   isRerolling: boolean;
   rerollingId: string | null;
@@ -832,22 +833,18 @@ function Step6({ recruits, setRecruits, onSave, isSaving, onReroll, isRerolling,
         </table>
       </div>
 
-      {/* Save button */}
+      {/* Footer */}
       <div className="flex items-center justify-between pt-2 border-t border-border">
         <p className="text-xs text-muted-foreground">
-          Review and edit recruits above, then save to replace the current class.
+          Review and edit above, then proceed to save options.
         </p>
         <RetroButton
           variant="shimmer"
-          onClick={onSave}
-          disabled={isSaving || recruits.length === 0}
-          data-testid="wizard-save-btn"
+          onClick={onNext}
+          disabled={recruits.length === 0}
+          data-testid="wizard-next-save-btn"
         >
-          {isSaving ? (
-            <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</>
-          ) : (
-            <><Save className="w-4 h-4 mr-2" /> Save Class ({recruits.length})</>
-          )}
+          <Save className="w-4 h-4 mr-2" /> Save Options ({recruits.length})
         </RetroButton>
       </div>
 
@@ -864,9 +861,110 @@ function Step6({ recruits, setRecruits, onSave, isSaving, onReroll, isRerolling,
   );
 }
 
+// ─── Step 7: Save Options ─────────────────────────────────────────────────────
+
+function Step7Save({
+  recruits,
+  config,
+  user,
+  leagueId,
+  onSaveToLeague,
+  isSavingLeague,
+  onSaveToLibrary,
+  isSavingLibrary,
+}: {
+  recruits: WizardRecruit[];
+  config: WizardConfig;
+  user?: { id: string; email: string } | null;
+  leagueId?: string;
+  onSaveToLeague: () => void;
+  isSavingLeague: boolean;
+  onSaveToLibrary: (name: string, desc: string) => void;
+  isSavingLibrary: boolean;
+}) {
+  const [className, setClassName] = useState(config.label || "");
+  const [classDesc, setClassDesc] = useState("");
+
+  const isBusy = isSavingLeague || isSavingLibrary;
+
+  return (
+    <div className="flex flex-col gap-6 py-4 max-w-md mx-auto">
+      <div className="text-center space-y-1">
+        <h3 className="font-pixel text-gold text-sm">Save Your Class</h3>
+        <p className="text-xs text-muted-foreground">{recruits.length} recruits ready · choose how to save</p>
+      </div>
+
+      <div className="space-y-3">
+        <div>
+          <label className="font-pixel text-[8px] text-gold uppercase mb-1.5 block">Class Name</label>
+          <input
+            className="w-full bg-background border border-border rounded px-3 py-2 text-sm focus:border-gold focus:outline-none"
+            placeholder="e.g. Power-Heavy 2027 Class"
+            value={className}
+            onChange={e => setClassName(e.target.value)}
+            maxLength={60}
+            data-testid="wizard-class-name-input"
+          />
+        </div>
+        <div>
+          <label className="font-pixel text-[8px] text-gold uppercase mb-1.5 block">Description (optional)</label>
+          <input
+            className="w-full bg-background border border-border rounded px-3 py-2 text-sm focus:border-gold focus:outline-none"
+            placeholder="Notes about this class..."
+            value={classDesc}
+            onChange={e => setClassDesc(e.target.value)}
+            maxLength={200}
+            data-testid="wizard-class-desc-input"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <RetroButton
+          variant="shimmer"
+          className="w-full"
+          onClick={() => onSaveToLibrary(className.trim() || "Unnamed Class", classDesc.trim())}
+          disabled={isBusy}
+          data-testid="wizard-save-library-btn"
+        >
+          {isSavingLibrary ? (
+            <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...</>
+          ) : user ? (
+            <><Save className="w-4 h-4 mr-2" /> Save to My Library</>
+          ) : (
+            <><Save className="w-4 h-4 mr-2" /> Save Locally (Guest)</>
+          )}
+        </RetroButton>
+
+        {leagueId && (
+          <RetroButton
+            variant="outline"
+            className="w-full"
+            onClick={onSaveToLeague}
+            disabled={isBusy}
+            data-testid="wizard-save-league-btn"
+          >
+            {isSavingLeague ? (
+              <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving to League...</>
+            ) : (
+              <><Wand2 className="w-4 h-4 mr-2" /> Save to League's Recruiting Class</>
+            )}
+          </RetroButton>
+        )}
+
+        {!user && (
+          <p className="text-[10px] text-muted-foreground text-center">
+            Guest saves are stored in your browser. Sign in to save permanently.
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Success screen ──────────────────────────────────────────────────────────
 
-function SavedScreen({ count, onClose }: { count: number; onClose: () => void }) {
+function SavedScreen({ count, savedToLeague, onClose }: { count: number; savedToLeague: boolean; onClose: () => void }) {
   return (
     <div className="flex flex-col items-center py-12 gap-6">
       <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center">
@@ -874,8 +972,12 @@ function SavedScreen({ count, onClose }: { count: number; onClose: () => void })
       </div>
       <div className="text-center space-y-2">
         <h3 className="font-pixel text-gold text-sm">Class Saved!</h3>
-        <p className="text-sm text-muted-foreground">{count} recruits saved to the recruiting class.</p>
-        <p className="text-xs text-muted-foreground">Coaches can now view and recruit from the new class.</p>
+        <p className="text-sm text-muted-foreground">{count} recruits saved successfully.</p>
+        {savedToLeague ? (
+          <p className="text-xs text-muted-foreground">Coaches can now view and recruit from the new class.</p>
+        ) : (
+          <p className="text-xs text-muted-foreground">Your class is saved to your library and ready to use.</p>
+        )}
       </div>
       <RetroButton variant="shimmer" onClick={onClose} data-testid="wizard-done-btn">
         Done
@@ -886,13 +988,14 @@ function SavedScreen({ count, onClose }: { count: number; onClose: () => void })
 
 // ─── Main Wizard ─────────────────────────────────────────────────────────────
 
-export function RecruitingWizard({ open, onClose, leagueId, onSaved }: Props) {
+export function RecruitingWizard({ open, onClose, leagueId, onSaved, onSavedToLibrary, user }: Props) {
   const [step, setStep] = useState(1);
   const [config, setConfig] = useState<WizardConfig>(DEFAULT_CONFIG);
   const [recruits, setRecruits] = useState<WizardRecruit[]>([]);
   const [savedCount, setSavedCount] = useState(0);
   const [rerollingId, setRerollingId] = useState<string | null>(null);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [savedToLeague, setSavedToLeague] = useState(false);
 
   // Reset state when wizard opens
   useEffect(() => {
@@ -903,12 +1006,16 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved }: Props) {
       setSavedCount(0);
       setRerollingId(null);
       setShowCancelConfirm(false);
+      setSavedToLeague(false);
     }
   }, [open]);
 
   const generateMutation = useMutation({
     mutationFn: async (cfg: WizardConfig) => {
-      const res = await apiRequest("POST", `/api/leagues/${leagueId}/recruiting/generate-wizard`, { config: cfg });
+      const url = leagueId
+        ? `/api/leagues/${leagueId}/recruiting/generate-wizard`
+        : "/api/recruiting/generate-preview";
+      const res = await apiRequest("POST", url, { config: cfg });
       return res.json() as Promise<{ recruits: any[] }>;
     },
     onSuccess: (data) => {
@@ -930,7 +1037,10 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved }: Props) {
       if (r.isGem)              forcedType.isGem  = true;
       if (r.isBust)             forcedType.isBust = true;
       forcedType.starRank = r.starRank;
-      const res = await apiRequest("POST", `/api/leagues/${leagueId}/recruiting/reroll-recruit`, {
+      const url = leagueId
+        ? `/api/leagues/${leagueId}/recruiting/reroll-recruit`
+        : "/api/recruiting/reroll-single";
+      const res = await apiRequest("POST", url, {
         theme: cfg.theme,
         forcedType,
       });
@@ -945,18 +1055,61 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved }: Props) {
     onError: () => setRerollingId(null),
   });
 
-  const saveMutation = useMutation({
+  // Save to active league's recruiting class (commissioner only)
+  const saveToLeagueMutation = useMutation({
     mutationFn: async (toSave: WizardRecruit[]) => {
+      if (!leagueId) throw new Error("No league selected");
       const payload = toSave.map(({ _tempId, ...rest }) => rest);
       const res = await apiRequest("POST", `/api/leagues/${leagueId}/recruiting/save-wizard-class`, { recruits: payload });
       return res.json() as Promise<{ success: boolean; count: number }>;
     },
     onSuccess: (data) => {
       setSavedCount(data.count);
+      setSavedToLeague(true);
       queryClient.invalidateQueries({ queryKey: [`/api/leagues/${leagueId}/recruits`] });
       queryClient.invalidateQueries({ queryKey: [`/api/leagues/${leagueId}/commissioner`] });
-      onSaved();
-      setStep(7);
+      onSaved?.();
+      setStep(8);
+    },
+  });
+
+  // Save to personal library (authenticated) or localStorage (guest)
+  const saveToLibraryMutation = useMutation({
+    mutationFn: async ({ name, description }: { name: string; description: string }) => {
+      const classData = recruits.map(({ _tempId, ...rest }) => rest);
+      if (user) {
+        const res = await apiRequest("POST", "/api/saved-recruiting-classes", {
+          name,
+          description,
+          recruitCount: classData.length,
+          classData,
+        });
+        return res.json();
+      } else {
+        const key = "local-saved-classes";
+        const existing: any[] = JSON.parse(localStorage.getItem(key) || "[]");
+        const newEntry = {
+          id: `local-${Date.now()}`,
+          name,
+          description,
+          recruitCount: classData.length,
+          classData,
+          createdAt: new Date().toISOString(),
+          isLocal: true,
+        };
+        existing.unshift(newEntry);
+        localStorage.setItem(key, JSON.stringify(existing.slice(0, 10)));
+        return newEntry;
+      }
+    },
+    onSuccess: () => {
+      setSavedCount(recruits.length);
+      setSavedToLeague(false);
+      if (user) {
+        queryClient.invalidateQueries({ queryKey: ["/api/saved-recruiting-classes"] });
+      }
+      onSavedToLibrary?.();
+      setStep(8);
     },
   });
 
@@ -969,8 +1122,12 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved }: Props) {
     rerollMutation.mutate({ r, cfg: config });
   };
 
-  const handleSave = () => {
-    saveMutation.mutate(recruits);
+  const handleSaveToLeague = () => {
+    saveToLeagueMutation.mutate(recruits);
+  };
+
+  const handleSaveToLibrary = (name: string, description: string) => {
+    saveToLibraryMutation.mutate({ name, description });
   };
 
   const canNext = () => {
@@ -994,6 +1151,7 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved }: Props) {
 
   const goPrev = () => {
     if (step === 6) { setStep(5); return; }
+    if (step === 7) { setStep(6); return; }
     if (step > 1) setStep(s => s - 1);
   };
 
@@ -1002,9 +1160,9 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved }: Props) {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
       const isReviewStep = step === 6;
-      const isSavedStep  = step === 7;
-      if (e.key === "Enter" && !isReviewStep && !isSavedStep && !generateMutation.isPending) {
-        // Don't advance if a text input is focused
+      const isSaveStep   = step === 7;
+      const isSavedStep  = step === 8;
+      if (e.key === "Enter" && !isReviewStep && !isSaveStep && !isSavedStep && !generateMutation.isPending) {
         const tag = (document.activeElement as HTMLElement)?.tagName;
         if (tag === "INPUT" || tag === "TEXTAREA") return;
         if (canNext()) goNext();
@@ -1017,10 +1175,11 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved }: Props) {
 
   const isLastConfigStep = step === 5;
   const isReviewStep = step === 6;
-  const isSavedStep  = step === 7;
-  const showNav      = !isSavedStep && !isReviewStep;
+  const isSaveStep   = step === 7;
+  const isSavedStep  = step === 8;
+  const showNav      = !isSavedStep && !isReviewStep && !isSaveStep;
 
-  const error = generateMutation.error?.message || saveMutation.error?.message;
+  const error = generateMutation.error?.message || saveToLeagueMutation.error?.message || saveToLibraryMutation.error?.message;
 
   return (
     <>
@@ -1046,15 +1205,14 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved }: Props) {
 
     <Dialog open={open} onOpenChange={v => {
       if (!v) {
-        // If the class hasn't been saved yet and there are recruits (or we're mid-wizard), confirm
-        if (step > 1 && step < 7) { setShowCancelConfirm(true); }
+        if (step > 1 && step < 8) { setShowCancelConfirm(true); }
         else { onClose(); }
       }
     }}>
       <DialogContent
         className="max-w-5xl w-[95vw] max-h-[92vh] bg-card border-border flex flex-col p-0 gap-0 overflow-hidden"
         onEscapeKeyDown={e => {
-          if (step > 1 && step < 7) {
+          if (step > 1 && step < 8) {
             e.preventDefault();
             setShowCancelConfirm(true);
           }
@@ -1071,13 +1229,23 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved }: Props) {
 
         <div className="flex-1 overflow-y-auto px-5 py-4 min-h-0">
           {isSavedStep ? (
-            <SavedScreen count={savedCount} onClose={onClose} />
+            <SavedScreen count={savedCount} savedToLeague={savedToLeague} onClose={onClose} />
+          ) : isSaveStep ? (
+            <Step7Save
+              recruits={recruits}
+              config={config}
+              user={user}
+              leagueId={leagueId}
+              onSaveToLeague={handleSaveToLeague}
+              isSavingLeague={saveToLeagueMutation.isPending}
+              onSaveToLibrary={handleSaveToLibrary}
+              isSavingLibrary={saveToLibraryMutation.isPending}
+            />
           ) : isReviewStep ? (
             <Step6
               recruits={recruits}
               setRecruits={setRecruits}
-              onSave={handleSave}
-              isSaving={saveMutation.isPending}
+              onNext={() => setStep(7)}
               onReroll={handleReroll}
               isRerolling={rerollMutation.isPending}
               rerollingId={rerollingId}
@@ -1119,7 +1287,7 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved }: Props) {
             </span>
 
             <RetroButton
-              variant={isLastConfigStep ? "shimmer" : "default"}
+              variant={isLastConfigStep ? "shimmer" : undefined}
               onClick={goNext}
               disabled={!canNext() || generateMutation.isPending}
               data-testid="wizard-next-btn"

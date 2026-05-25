@@ -9071,8 +9071,34 @@ export async function registerRoutes(
         if (!allReady) {
           return res.status(400).json({ message: "Not all teams are ready. Each team must mark ready before advancing." });
         }
+
+        const { savedRecruitingClassId } = req.body || {};
         
         const walkonResult = await finalizeWalkonsPhase(leagueId, league.currentSeason);
+
+        // If a saved recruiting class was chosen, replace the auto-generated class
+        if (savedRecruitingClassId) {
+          try {
+            const savedClass = await storage.getSavedRecruitingClass(Number(savedRecruitingClassId));
+            if (savedClass) {
+              const classData = savedClass.classData as any[];
+              if (Array.isArray(classData) && classData.length > 0) {
+                await storage.deleteRecruitsByLeague(leagueId);
+                await storage.batchCreateRecruits(
+                  classData.map((r: any) => {
+                    const { id, leagueId: _lid, ...rest } = r;
+                    return { ...rest, leagueId };
+                  })
+                );
+                walkonResult.newRecruits = classData.length;
+                console.log(`[advance] Loaded saved class "${savedClass.name}" (${classData.length} recruits) for season ${league.currentSeason + 1}`);
+              }
+            }
+          } catch (err) {
+            console.error("[advance] Failed to load saved recruiting class:", err);
+            // Non-fatal: auto-generated class remains
+          }
+        }
         
         const updatedLeague = await storage.updateLeague(league.id, {
           currentWeek: 1,
@@ -16956,6 +16982,45 @@ export async function registerRoutes(
 
   // ─── Recruiting Wizard Endpoints ───────────────────────────────────────────
 
+  // League-agnostic generate endpoint — works without a league (no auth required)
+  app.post("/api/recruiting/generate-preview", async (req, res) => {
+    try {
+      const { config } = req.body as { config: any };
+      if (!config) return res.status(400).json({ message: "config required" });
+      const theme = (config.theme as RecruitingTheme) || "balanced";
+      const count = Math.min(Math.max(Number(config.count) || 80, 20), 80);
+      const fogDensity: number = Math.min(100, Math.max(0, Number(config.fogDensity ?? 100)));
+      const recruits = generateRecruitClass(count, {
+        theme,
+        wizardStarDistribution: config.starDistribution,
+        wizardSpecialCounts: config.specialCounts,
+        wizardPositionDistribution: config.positionDistribution,
+        wizardRegionSkew: config.regionSkew || "none",
+      });
+      const initialScoutingLevel = Math.round((1 - fogDensity / 100) * 100);
+      const recruitsWithFog = recruits.map(r => ({ ...r, scoutingLevel: initialScoutingLevel }));
+      res.json({ recruits: recruitsWithFog });
+    } catch (error) {
+      console.error("Failed to generate wizard preview:", error);
+      res.status(500).json({ message: "Failed to generate class" });
+    }
+  });
+
+  // League-agnostic reroll endpoint — works without a league (no auth required)
+  app.post("/api/recruiting/reroll-single", async (req, res) => {
+    try {
+      const { theme = "balanced", forcedType } = req.body as { theme?: string; forcedType?: any };
+      const recruits = generateRecruitClass(1, {
+        theme: (theme as RecruitingTheme) || "balanced",
+        wizardForcedType: forcedType,
+      });
+      res.json({ recruit: recruits[0] });
+    } catch (error) {
+      console.error("Failed to reroll single recruit:", error);
+      res.status(500).json({ message: "Failed to reroll recruit" });
+    }
+  });
+
   // Generate a class preview from wizard config (no DB write)
   app.post("/api/leagues/:id/recruiting/generate-wizard", requireAuth, async (req, res) => {
     try {
@@ -17049,6 +17114,49 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to save wizard class:", error);
       res.status(500).json({ message: "Failed to save class" });
+    }
+  });
+
+  // Load a saved recruiting class into a league (replaces current recruit pool)
+  app.post("/api/leagues/:id/recruiting/load-saved-class", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id as string);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      if (!hasCommissionerAccess(league, req.session.userId)) {
+        return res.status(403).json({ message: "Commissioner only" });
+      }
+      const { savedClassId } = req.body as { savedClassId: number | string };
+      if (!savedClassId) return res.status(400).json({ message: "savedClassId required" });
+
+      const savedClass = await storage.getSavedRecruitingClass(Number(savedClassId));
+      if (!savedClass) return res.status(404).json({ message: "Saved class not found" });
+
+      const classData = savedClass.classData as any[];
+      if (!Array.isArray(classData) || classData.length === 0) {
+        return res.status(400).json({ message: "Saved class has no recruits" });
+      }
+
+      const leagueId = req.params.id as string;
+      await storage.deleteRecruitsByLeague(leagueId);
+
+      const createdRecruits = await storage.batchCreateRecruits(
+        classData.map((r: any) => {
+          const { id, leagueId: _lid, ...rest } = r;
+          return { ...rest, leagueId };
+        })
+      );
+
+      await storage.createAuditLog({
+        leagueId: league.id,
+        userId: req.session.userId,
+        action: "Recruiting Class Loaded",
+        details: `Commissioner loaded saved class "${savedClass.name}" (${createdRecruits.length} recruits)`,
+      });
+
+      res.json({ success: true, count: createdRecruits.length, className: savedClass.name });
+    } catch (error) {
+      console.error("Failed to load saved class:", error);
+      res.status(500).json({ message: "Failed to load saved class" });
     }
   });
 

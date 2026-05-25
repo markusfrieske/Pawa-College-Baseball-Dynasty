@@ -68,12 +68,13 @@ interface RecruitData {
 }
 
 interface SavedClass {
-  id: number;
+  id: number | string;
   name: string;
   description: string;
   recruitCount: number;
   classData: RecruitData[];
   createdAt?: string;
+  isLocal?: boolean;
 }
 
 type SortField = "lastName" | "position" | "overall" | "starRating";
@@ -313,12 +314,12 @@ export default function ManageRecruitingPage() {
   const [currentClass, setCurrentClass] = useState<RecruitData[]>([]);
   const [className, setClassName] = useState("");
   const [classDescription, setClassDescription] = useState("");
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<number | string | null>(null);
   const [sortField, setSortField] = useState<SortField>("starRating");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [positionFilter, setPositionFilter] = useState("all");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
+  const [deleteTargetId, setDeleteTargetId] = useState<number | string | null>(null);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [expandedRecruit, setExpandedRecruit] = useState<number | null>(null);
   const [showGuestBanner, setShowGuestBanner] = useState(false);
@@ -352,7 +353,7 @@ export default function ManageRecruitingPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: number) => {
+    mutationFn: async (id: number | string) => {
       return apiRequest("DELETE", `/api/saved-recruiting-classes/${id}`);
     },
     onSuccess: () => {
@@ -379,9 +380,23 @@ export default function ManageRecruitingPage() {
   });
 
   const [wizardLeagueId, setWizardLeagueId] = useState<string | null>(null);
+  const [wizardOpen, setWizardOpen] = useState(false);
   const [leaguePickerOpen, setLeaguePickerOpen] = useState(false);
+  const [localSavedClasses, setLocalSavedClasses] = useState<SavedClass[]>([]);
 
   const commissionerLeagues = (leagues ?? []).filter(l => l.commissionerId === user?.id);
+
+  // Load localStorage classes for guests
+  useEffect(() => {
+    if (!user) {
+      try {
+        const stored = JSON.parse(localStorage.getItem("local-saved-classes") || "[]");
+        setLocalSavedClasses(stored);
+      } catch {
+        setLocalSavedClasses([]);
+      }
+    }
+  }, [user]);
 
   // Auto-open wizard if leagueId is passed as a URL search param
   useEffect(() => {
@@ -389,15 +404,46 @@ export default function ManageRecruitingPage() {
     const leagueId = params.get("leagueId");
     if (leagueId) {
       setWizardLeagueId(leagueId);
+      setWizardOpen(true);
     }
   }, []);
 
   const handleOpenWizard = () => {
-    if (commissionerLeagues.length === 0) return;
+    if (!user) {
+      // Guest mode: open standalone wizard without a league
+      setWizardLeagueId(null);
+      setWizardOpen(true);
+      return;
+    }
+    if (commissionerLeagues.length === 0) {
+      // Logged in but no commissioner leagues: open standalone mode
+      setWizardLeagueId(null);
+      setWizardOpen(true);
+      return;
+    }
     if (commissionerLeagues.length === 1) {
       setWizardLeagueId(commissionerLeagues[0].id);
+      setWizardOpen(true);
     } else {
       setLeaguePickerOpen(true);
+    }
+  };
+
+  const handleWizardClose = () => {
+    setWizardOpen(false);
+    setWizardLeagueId(null);
+  };
+
+  const handleWizardSavedToLibrary = () => {
+    qc.invalidateQueries({ queryKey: ["/api/saved-recruiting-classes"] });
+    // Refresh local classes for guests
+    if (!user) {
+      try {
+        const stored = JSON.parse(localStorage.getItem("local-saved-classes") || "[]");
+        setLocalSavedClasses(stored);
+      } catch {
+        setLocalSavedClasses([]);
+      }
     }
   };
 
@@ -407,6 +453,18 @@ export default function ManageRecruitingPage() {
     setClassDescription(cls.description || "");
     setEditingId(cls.id);
     toast({ title: "Class Loaded", description: `Loaded "${cls.name}" with ${cls.recruitCount} recruits.` });
+  };
+
+  const handleDeleteLocalClass = (id: string) => {
+    try {
+      const stored: any[] = JSON.parse(localStorage.getItem("local-saved-classes") || "[]");
+      const updated = stored.filter((c: any) => c.id !== id);
+      localStorage.setItem("local-saved-classes", JSON.stringify(updated));
+      setLocalSavedClasses(updated);
+      toast({ title: "Class Deleted", description: "Local class removed from browser storage." });
+    } catch {
+      toast({ title: "Error", description: "Could not delete local class.", variant: "destructive" });
+    }
   };
 
   const handleCSVImport = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -521,22 +579,19 @@ export default function ManageRecruitingPage() {
             <h1 className="font-pixel text-xl text-gold">MANAGE RECRUITING CLASSES</h1>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            {user && (
-              <RetroButton
-                size="sm"
-                onClick={handleOpenWizard}
-                disabled={leaguesLoading || commissionerLeagues.length === 0}
-                title={!leaguesLoading && commissionerLeagues.length === 0 ? "You must be a league commissioner to use the wizard" : undefined}
-                data-testid="button-open-wizard"
-              >
-                {leaguesLoading ? (
-                  <div className="w-4 h-4 mr-2 border border-current border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <Wand2 className="w-4 h-4 mr-2" />
-                )}
-                Create with Wizard
-              </RetroButton>
-            )}
+            <RetroButton
+              size="sm"
+              onClick={handleOpenWizard}
+              disabled={user ? leaguesLoading : false}
+              data-testid="button-open-wizard"
+            >
+              {user && leaguesLoading ? (
+                <div className="w-4 h-4 mr-2 border border-current border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <Wand2 className="w-4 h-4 mr-2" />
+              )}
+              Create with Wizard
+            </RetroButton>
             <label>
               <RetroButton variant="outline" size="sm" data-testid="button-import-csv" onClick={() => document.getElementById("csv-import")?.click()}>
                 <Upload className="w-4 h-4 mr-2" />
@@ -579,9 +634,7 @@ export default function ManageRecruitingPage() {
                           {cls.recruitCount} recruits
                         </Badge>
                         {editingId === cls.id && (
-                          <Badge variant="outline" className="text-[10px] text-gold border-gold">
-                            Active
-                          </Badge>
+                          <Badge variant="outline" className="text-[10px] text-gold border-gold">Active</Badge>
                         )}
                       </div>
                       {cls.description && (
@@ -589,20 +642,54 @@ export default function ManageRecruitingPage() {
                       )}
                     </div>
                     <div className="flex items-center gap-1">
-                      <RetroButton
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleLoadClass(cls)}
-                        data-testid={`button-load-class-${cls.id}`}
-                      >
+                      <RetroButton variant="outline" size="sm" onClick={() => handleLoadClass(cls)} data-testid={`button-load-class-${cls.id}`}>
                         Load
                       </RetroButton>
-                      <RetroButton
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => { setDeleteTargetId(cls.id); setDeleteDialogOpen(true); }}
-                        data-testid={`button-delete-class-${cls.id}`}
-                      >
+                      <RetroButton variant="destructive" size="sm" onClick={() => { setDeleteTargetId(cls.id); setDeleteDialogOpen(true); }} data-testid={`button-delete-class-${cls.id}`}>
+                        <Trash2 className="w-3 h-3" />
+                      </RetroButton>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </RetroCardContent>
+          </RetroCard>
+        ) : !user && localSavedClasses.length > 0 ? (
+          <RetroCard data-testid="section-local-saved-classes">
+            <RetroCardHeader>
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <h2 className="font-pixel text-gold">LOCAL CLASSES ({localSavedClasses.length})</h2>
+                <Link href="/login">
+                  <RetroButton variant="outline" size="sm" data-testid="button-signin-from-local">
+                    <LogIn className="w-3 h-3 mr-1" />
+                    Sign in to save permanently
+                  </RetroButton>
+                </Link>
+              </div>
+            </RetroCardHeader>
+            <RetroCardContent className="p-0">
+              <div className="grid gap-2">
+                {localSavedClasses.map((cls) => (
+                  <div
+                    key={cls.id}
+                    className={`flex items-center justify-between gap-4 p-3 border border-border ${editingId === cls.id ? "border-gold bg-gold/5" : ""}`}
+                    data-testid={`local-class-${cls.id}`}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-pixel text-xs text-foreground">{cls.name}</span>
+                        <Badge variant="secondary" className="text-[10px]">{cls.recruitCount} recruits</Badge>
+                        <Badge variant="outline" className="text-[10px] text-muted-foreground border-muted-foreground/30">Local</Badge>
+                      </div>
+                      {cls.description && (
+                        <p className="text-muted-foreground text-xs mt-1 truncate">{cls.description}</p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <RetroButton variant="outline" size="sm" onClick={() => handleLoadClass(cls)} data-testid={`button-load-local-${cls.id}`}>
+                        Load
+                      </RetroButton>
+                      <RetroButton variant="destructive" size="sm" onClick={() => handleDeleteLocalClass(String(cls.id))} data-testid={`button-delete-local-${cls.id}`}>
                         <Trash2 className="w-3 h-3" />
                       </RetroButton>
                     </div>
@@ -618,14 +705,20 @@ export default function ManageRecruitingPage() {
                 <LogIn className="w-8 h-8 text-gold" />
                 <p className="font-pixel text-xs text-gold">SIGN IN TO SAVE YOUR RECRUITING CLASSES</p>
                 <p className="text-muted-foreground text-sm max-w-sm">
-                  Create an account or sign in to save, load, and manage your recruiting classes across sessions.
+                  Create an account or sign in to save, load, and manage your recruiting classes across sessions. Guests can still use the wizard and save locally.
                 </p>
-                <Link href="/login">
-                  <RetroButton size="sm" data-testid="button-signin-prompt">
-                    <LogIn className="w-4 h-4 mr-2" />
-                    Sign In
+                <div className="flex gap-2 flex-wrap justify-center">
+                  <Link href="/login">
+                    <RetroButton size="sm" data-testid="button-signin-prompt">
+                      <LogIn className="w-4 h-4 mr-2" />
+                      Sign In
+                    </RetroButton>
+                  </Link>
+                  <RetroButton variant="outline" size="sm" onClick={handleOpenWizard} data-testid="button-try-wizard-guest">
+                    <Wand2 className="w-4 h-4 mr-2" />
+                    Try Wizard
                   </RetroButton>
-                </Link>
+                </div>
               </div>
             </RetroCardContent>
           </RetroCard>
@@ -901,7 +994,7 @@ export default function ManageRecruitingPage() {
                 <button
                   key={l.id}
                   className="w-full text-left p-3 rounded border border-border hover:border-gold/50 hover:bg-gold/5 transition-colors"
-                  onClick={() => { setLeaguePickerOpen(false); setWizardLeagueId(l.id); }}
+                  onClick={() => { setLeaguePickerOpen(false); setWizardLeagueId(l.id); setWizardOpen(true); }}
                   data-testid={`button-pick-league-${l.id}`}
                 >
                   <div className="font-pixel text-[10px] text-gold">{l.name}</div>
@@ -913,14 +1006,14 @@ export default function ManageRecruitingPage() {
         </Dialog>
       </div>
 
-      {wizardLeagueId && (
-        <RecruitingWizard
-          open={!!wizardLeagueId}
-          leagueId={wizardLeagueId}
-          onClose={() => setWizardLeagueId(null)}
-          onSaved={() => setWizardLeagueId(null)}
-        />
-      )}
+      <RecruitingWizard
+        open={wizardOpen}
+        leagueId={wizardLeagueId ?? undefined}
+        onClose={handleWizardClose}
+        onSaved={handleWizardClose}
+        onSavedToLibrary={handleWizardSavedToLibrary}
+        user={user}
+      />
     </div>
   );
 }
