@@ -983,7 +983,7 @@ export const HBCU_ROSTERS: Record<string, RealPlayer[]> = {
       clutch: 33, vsLHP: 32, grit: 36, stealing: 10, running: 33, throwing: 39, recovery: 24, wRISP: 24, vsLefty: 25, poise: 27, heater: 29, agile: 36,
       abilities: ["Doctor K", "Intimidator"], potential: "C", catcherAbility: null,
       throwHand: "R", batHand: "R",
-      ...pitchMix(1, [0, 3, 3, 1, 0, 0, 0]) },
+      ...pitchMix(1, [0, 4, 4, 1, 0, 0, 0]) },
     { firstName: "Jameson", lastName: "Fuller", position: "P", eligibility: "JR", homeState: "AL", hometown: "Huntsville", jerseyNumber: 38,
       hitForAvg: 10, power: 8, speed: 31, arm: 35, fielding: 30, errorResistance: 29, velocity: 50, control: 42, stamina: 43, stuff: 41,
       clutch: 30, vsLHP: 29, grit: 32, stealing: 8, running: 27, throwing: 34, recovery: 35, wRISP: 34, vsLefty: 35, poise: 37, heater: 39, agile: 29,

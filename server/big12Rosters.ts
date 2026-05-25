@@ -45,7 +45,7 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Fireman", "Inside Pitch"], potential: "A-", catcherAbility: null,
       throwHand: "L", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
-      ...pitchMix(1, [6, 4, 0, 1, 0, 4, 0]) },
+      ...pitchMix(1, [1, 4, 0, 1, 0, 4, 0]) },
     // Riane Ritter — RP transfer St Thomas
     { firstName: "Riane", lastName: "Ritter", position: "P", eligibility: "SR", homeState: "MN", hometown: "St. Paul", jerseyNumber: 29,
       hitForAvg: 11, power: 9, speed: 31, arm: 56, fielding: 34, errorResistance: 46, velocity: 51, control: 59, stamina: 36, stuff: 55,
