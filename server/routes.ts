@@ -9089,9 +9089,9 @@ export async function registerRoutes(
           // No saved classes — normalized to "auto" above, proceed with fresh class
         }
 
-        const walkonResult = await finalizeWalkonsPhase(leagueId, league.currentSeason);
-
-        // Apply saved class if selected (not "auto")
+        // Validate saved class BEFORE any state mutation
+        let savedClassRecruits: any[] | null = null;
+        let savedClassName: string | null = null;
         if (savedRecruitingClassId !== "auto") {
           const savedClass = await storage.getSavedRecruitingClass(String(savedRecruitingClassId));
           if (!savedClass) {
@@ -9106,15 +9106,24 @@ export async function registerRoutes(
           if (recruitRows.length === 0) {
             return res.status(400).json({ message: "The selected saved class has no recruits." });
           }
+          savedClassRecruits = recruitRows;
+          savedClassName = savedClass.name;
+        }
+
+        // All validation passed — now mutate state
+        const walkonResult = await finalizeWalkonsPhase(leagueId, league.currentSeason);
+
+        // Apply saved class if one was validated above
+        if (savedClassRecruits !== null) {
           await storage.deleteRecruitsByLeague(leagueId);
           await storage.batchCreateRecruits(
-            recruitRows.map((r: any) => {
+            savedClassRecruits.map((r: any) => {
               const { id, leagueId: _lid, ...rest } = r;
               return { ...rest, leagueId };
             })
           );
-          walkonResult.newRecruits = recruitRows.length;
-          console.log(`[advance] Loaded saved class "${savedClass.name}" (${recruitRows.length} recruits) for season ${league.currentSeason + 1}`);
+          walkonResult.newRecruits = savedClassRecruits.length;
+          console.log(`[advance] Loaded saved class "${savedClassName}" (${savedClassRecruits.length} recruits) for season ${league.currentSeason + 1}`);
         }
         
         const updatedLeague = await storage.updateLeague(league.id, {
