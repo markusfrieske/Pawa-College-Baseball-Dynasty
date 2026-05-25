@@ -8,12 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Save, Plus, Upload, Trash2, Download, RefreshCw, ChevronDown, Check, X, LogIn } from "lucide-react";
+import { ArrowLeft, Save, Wand2, Upload, Trash2, Download, ChevronDown, Check, X, LogIn } from "lucide-react";
 import { apiRequest, queryClient, getQueryFn } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { PlayerPortrait } from "@/components/ui/player-portrait";
 import { ALL_ABILITIES, getAbilitiesForPosition } from "@shared/abilities";
+import { RecruitingWizard } from "@/components/recruiting-wizard";
 
 interface PlayerAppearance {
   skinTone: string;
@@ -105,38 +106,6 @@ const HAIR_STYLES = [
   { value: "bald", label: "Bald" },
 ];
 
-const FIRST_NAMES = [
-  "James", "John", "Robert", "Michael", "William", "David", "Richard", "Joseph",
-  "Thomas", "Christopher", "Daniel", "Matthew", "Anthony", "Mark", "Steven",
-  "Andrew", "Joshua", "Kenneth", "Kevin", "Brian", "Tyler", "Brandon", "Austin",
-  "Caleb", "Ryan", "Jake", "Dylan", "Chase", "Cole", "Cody", "Hunter", "Tanner",
-  "Bryce", "Logan", "Luke", "Ethan", "Mason", "Landon", "Gavin", "Blake",
-  "Jared", "Trevor", "Marcus", "Derek", "Nolan", "Grant", "Colton", "Wyatt",
-  "Carson", "Brady", "Griffin", "Trey", "Dustin", "Travis", "Brett", "Chance",
-  "Dalton", "Clay", "Preston", "Wade", "Spencer", "Garrett", "Jackson", "Cooper",
-  "Mitchell", "Parker", "Reid", "Tucker", "Weston", "Sawyer", "Brock", "Cruz",
-  "Devin", "Dominic", "Elijah", "Finn", "Graham", "Hayes", "Ivan", "Jasper",
-];
-
-const LAST_NAMES = [
-  "Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis",
-  "Rodriguez", "Martinez", "Anderson", "Taylor", "Thomas", "Moore", "Jackson",
-  "Martin", "Lee", "Thompson", "White", "Harris", "Clark", "Lewis", "Robinson",
-  "Walker", "Young", "Allen", "King", "Wright", "Scott", "Hill", "Green", "Adams",
-  "Baker", "Nelson", "Carter", "Mitchell", "Perez", "Roberts", "Turner", "Phillips",
-  "Campbell", "Parker", "Evans", "Edwards", "Collins", "Stewart", "Sanchez", "Morris",
-  "Rogers", "Reed", "Cook", "Morgan", "Bell", "Murphy", "Bailey", "Rivera",
-  "Cooper", "Richardson", "Cox", "Howard", "Ward", "Torres", "Peterson", "Gray",
-  "Ramirez", "James", "Watson", "Brooks", "Kelly", "Sanders", "Price", "Bennett",
-  "Wood", "Barnes", "Ross", "Henderson", "Coleman", "Jenkins", "Perry", "Powell",
-];
-
-const STATES = [
-  "AL", "AZ", "AR", "CA", "CO", "CT", "FL", "GA", "IL", "IN",
-  "IA", "KS", "KY", "LA", "MD", "MA", "MI", "MN", "MS", "MO",
-  "NE", "NV", "NJ", "NY", "NC", "OH", "OK", "OR", "PA", "SC",
-  "TN", "TX", "UT", "VA", "WA", "WI",
-];
 
 const HOMETOWNS = [
   "Springfield", "Franklin", "Clinton", "Madison", "Georgetown",
@@ -145,166 +114,12 @@ const HOMETOWNS = [
   "Chester", "Hudson", "Arlington", "Ashland", "Clayton",
 ];
 
-const ABILITIES_POOL_FIELDER = ALL_ABILITIES.filter(a => a.category === "fielder" && a.tier !== "red").map(a => a.name);
-const ABILITIES_POOL_PITCHER = ALL_ABILITIES.filter(a => (a.category === "pitcher" || a.category === "neutral") && a.tier !== "red").map(a => a.name);
-
 function randInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 function pickRandom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
-}
-
-function generateRecruitingClass(): RecruitData[] {
-  const recruits: RecruitData[] = [];
-  const total = 80;
-
-  const starCounts = {
-    5: Math.round(total * 0.03),
-    "5h": Math.round(total * 0.05),
-    4: Math.round(total * 0.12),
-    3: Math.round(total * 0.60),
-    2: Math.round(total * 0.15),
-    1: Math.round(total * 0.05),
-  };
-
-  const starDistribution: number[] = [];
-  const blueChipDistribution: boolean[] = [];
-  const pushSlot = (s: number, bc: boolean) => { starDistribution.push(s); blueChipDistribution.push(bc); };
-  for (let i = 0; i < starCounts[5]; i++) pushSlot(5, false);
-  for (let i = 0; i < starCounts["5h"]; i++) pushSlot(5, true);
-  for (let i = 0; i < starCounts[4]; i++) pushSlot(4, false);
-  for (let i = 0; i < starCounts[3]; i++) pushSlot(3, false);
-  for (let i = 0; i < starCounts[2]; i++) pushSlot(2, false);
-  for (let i = 0; i < starCounts[1]; i++) pushSlot(1, false);
-
-  while (starDistribution.length < total) pushSlot(3, false);
-  while (starDistribution.length > total) { starDistribution.pop(); blueChipDistribution.pop(); }
-
-  for (let i = starDistribution.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [starDistribution[i], starDistribution[j]] = [starDistribution[j], starDistribution[i]];
-    [blueChipDistribution[i], blueChipDistribution[j]] = [blueChipDistribution[j], blueChipDistribution[i]];
-  }
-
-  const ovrRanges: Record<number, [number, number]> = {
-    5: [500, 650],
-    4: [350, 499],
-    3: [200, 349],
-    2: [100, 199],
-    1: [50, 99],
-  };
-
-  const potentialByStars: Record<number, string[]> = {
-    5: ["A", "A+"],
-    4: ["B+", "A-", "A"],
-    3: ["B-", "B", "B+"],
-    2: ["C+", "C", "B-"],
-    1: ["D", "C-", "C"],
-  };
-
-  for (let i = 0; i < total; i++) {
-    const star = starDistribution[i];
-    const isBlueChip = blueChipDistribution[i];
-    const [minOvr, maxOvr] = ovrRanges[star];
-    const position = pickRandom(POSITIONS);
-    const numAbilities = isBlueChip ? randInt(4, 7) : star === 5 ? randInt(3, 5) : star === 4 ? randInt(2, 4) : star === 3 ? randInt(1, 3) : star === 2 ? randInt(0, 2) : randInt(0, 1);
-    const abilities: string[] = [];
-    const isPitcherPos = position === "P";
-    const pool = [...(isPitcherPos ? ABILITIES_POOL_PITCHER : ABILITIES_POOL_FIELDER)];
-    for (let a = 0; a < numAbilities; a++) {
-      if (pool.length === 0) break;
-      const idx = Math.floor(Math.random() * pool.length);
-      abilities.push(pool[idx]);
-      pool.splice(idx, 1);
-    }
-
-    let specialBonus = 0;
-    for (const aName of abilities) {
-      const ab = ALL_ABILITIES.find(a => a.name === aName);
-      if (ab) {
-        if (ab.tier === "gold") specialBonus += 33;
-        else if (ab.tier === "blue") specialBonus += 20;
-        else if (ab.tier === "red") specialBonus -= 15;
-      }
-    }
-
-    const targetOvr = randInt(minOvr, maxOvr);
-    const targetAttrCommon = targetOvr - specialBonus;
-    const targetAttrSum = Math.max(100, Math.round((targetAttrCommon - 150) / 0.6 + 100));
-    const targetCommonSum = Math.max(100, Math.round((targetAttrCommon - targetAttrSum * 0.6) / 0.25));
-
-    const genAttrs = (count: number, targetSum: number): number[] => {
-      const avg = Math.max(15, Math.min(99, Math.round(targetSum / count)));
-      const vals: number[] = [];
-      let remaining = targetSum;
-      for (let j = 0; j < count - 1; j++) {
-        const spread = Math.max(5, Math.round(avg * 0.3));
-        const val = Math.max(15, Math.min(99, avg + randInt(-spread, spread)));
-        vals.push(val);
-        remaining -= val;
-      }
-      vals.push(Math.max(15, Math.min(99, remaining)));
-      return vals;
-    };
-
-    const attrVals = genAttrs(isPitcherPos ? 4 : 6, Math.round(targetAttrSum * (isPitcherPos ? 0.4 : 0.6)));
-    const commonVals = genAttrs(isPitcherPos ? 7 : 7, Math.round(targetCommonSum * (7/12)));
-
-    const recruit: RecruitData = {
-      firstName: pickRandom(FIRST_NAMES),
-      lastName: pickRandom(LAST_NAMES),
-      position,
-      starRating: star,
-      overall: targetOvr,
-      homeState: pickRandom(STATES),
-      hometown: pickRandom(HOMETOWNS),
-      potential: pickRandom(potentialByStars[star]),
-      abilities,
-      jerseyNumber: randInt(1, 99),
-      rank: 0,
-    };
-
-    if (isPitcherPos) {
-      recruit.velocity = Math.max(60, Math.min(99, attrVals[0]));
-      recruit.control = Math.max(20, Math.min(99, attrVals[1]));
-      recruit.stamina = Math.max(20, Math.min(99, attrVals[2]));
-      recruit.stuff = Math.max(20, Math.min(99, attrVals[3] ?? attrVals[0]));
-      recruit.wRISP = Math.max(15, Math.min(99, commonVals[0]));
-      recruit.vsLefty = Math.max(15, Math.min(99, commonVals[1]));
-      recruit.poise = Math.max(15, Math.min(99, commonVals[2]));
-      recruit.grit = Math.max(15, Math.min(99, commonVals[3]));
-      recruit.heater = Math.max(15, Math.min(99, commonVals[4]));
-      recruit.agile = Math.max(15, Math.min(99, commonVals[5]));
-      recruit.recovery = Math.max(15, Math.min(99, commonVals[6]));
-      recruit.pitchFB = randInt(4, 7);
-      recruit.pitch2S = Math.random() < 0.4 ? randInt(3, 6) : 0;
-      recruit.pitchSL = Math.random() < 0.5 ? randInt(3, 6) : 0;
-      recruit.pitchCB = Math.random() < 0.5 ? randInt(3, 6) : 0;
-      recruit.pitchCH = Math.random() < 0.4 ? randInt(3, 6) : 0;
-      recruit.pitchCT = Math.random() < 0.3 ? randInt(3, 6) : 0;
-      recruit.pitchSNK = Math.random() < 0.25 ? randInt(3, 6) : 0;
-    } else {
-      recruit.hitForAvg = Math.max(15, Math.min(99, attrVals[0]));
-      recruit.power = Math.max(15, Math.min(99, attrVals[1]));
-      recruit.speed = Math.max(15, Math.min(99, attrVals[2]));
-      recruit.arm = Math.max(15, Math.min(99, attrVals[3]));
-      recruit.fielding = Math.max(15, Math.min(99, attrVals[4]));
-      recruit.errorResistance = Math.max(15, Math.min(99, attrVals[5]));
-      recruit.clutch = Math.max(15, Math.min(99, commonVals[0]));
-      recruit.vsLHP = Math.max(15, Math.min(99, commonVals[1]));
-      recruit.grit = Math.max(15, Math.min(99, commonVals[2]));
-      recruit.stealing = Math.max(15, Math.min(99, commonVals[3]));
-      recruit.running = Math.max(15, Math.min(99, commonVals[4]));
-      recruit.throwing = Math.max(15, Math.min(99, commonVals[5]));
-      recruit.recovery = Math.max(15, Math.min(99, commonVals[6]));
-    }
-
-    recruits.push(recruit);
-  }
-
-  return recruits;
 }
 
 function parseCSV(text: string): RecruitData[] {
@@ -557,14 +372,24 @@ export default function ManageRecruitingPage() {
     },
   });
 
-  const handleGenerate = () => {
-    const recruits = generateRecruitingClass();
-    setCurrentClass(recruits);
-    setEditingId(null);
-    setClassName("");
-    setClassDescription("");
-    if (!user) setShowGuestBanner(true);
-    toast({ title: "Class Generated", description: "Recruiting class has been generated." });
+  const { data: leagues } = useQuery<Array<{ id: string; name: string; commissionerId: string; currentPhase: string }>>({
+    queryKey: ["/api/leagues"],
+    queryFn: getQueryFn({ on401: "returnNull" }),
+    enabled: !!user,
+  });
+
+  const [wizardLeagueId, setWizardLeagueId] = useState<string | null>(null);
+  const [leaguePickerOpen, setLeaguePickerOpen] = useState(false);
+
+  const commissionerLeagues = (leagues ?? []).filter(l => l.commissionerId === user?.id);
+
+  const handleOpenWizard = () => {
+    if (commissionerLeagues.length === 0) return;
+    if (commissionerLeagues.length === 1) {
+      setWizardLeagueId(commissionerLeagues[0].id);
+    } else {
+      setLeaguePickerOpen(true);
+    }
   };
 
   const handleLoadClass = (cls: SavedClass) => {
@@ -687,10 +512,18 @@ export default function ManageRecruitingPage() {
             <h1 className="font-pixel text-xl text-gold">MANAGE RECRUITING CLASSES</h1>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <RetroButton size="sm" onClick={handleGenerate} data-testid="button-generate-class">
-              <Plus className="w-4 h-4 mr-2" />
-              Generate New Class
-            </RetroButton>
+            {user && (
+              <RetroButton
+                size="sm"
+                onClick={handleOpenWizard}
+                disabled={commissionerLeagues.length === 0}
+                title={commissionerLeagues.length === 0 ? "You must be a league commissioner to use the wizard" : undefined}
+                data-testid="button-open-wizard"
+              >
+                <Wand2 className="w-4 h-4 mr-2" />
+                Create with Wizard
+              </RetroButton>
+            )}
             <label>
               <RetroButton variant="outline" size="sm" data-testid="button-import-csv" onClick={() => document.getElementById("csv-import")?.click()}>
                 <Upload className="w-4 h-4 mr-2" />
@@ -808,10 +641,6 @@ export default function ManageRecruitingPage() {
                         Export CSV
                       </RetroButton>
                     )}
-                    <RetroButton variant="outline" size="sm" onClick={handleGenerate} data-testid="button-regenerate">
-                      <RefreshCw className="w-4 h-4 mr-2" />
-                      Regenerate
-                    </RetroButton>
                     <RetroButton
                       size="sm"
                       onClick={() => setSaveDialogOpen(true)}
@@ -1044,7 +873,41 @@ export default function ManageRecruitingPage() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* League picker for multi-commissioner leagues */}
+        <Dialog open={leaguePickerOpen} onOpenChange={setLeaguePickerOpen}>
+          <DialogContent data-testid="dialog-league-picker">
+            <DialogHeader>
+              <DialogTitle className="font-pixel text-gold text-sm">Select League</DialogTitle>
+              <DialogDescription>
+                Choose which league to create a recruiting class for.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2 mt-2">
+              {commissionerLeagues.map(l => (
+                <button
+                  key={l.id}
+                  className="w-full text-left p-3 rounded border border-border hover:border-gold/50 hover:bg-gold/5 transition-colors"
+                  onClick={() => { setLeaguePickerOpen(false); setWizardLeagueId(l.id); }}
+                  data-testid={`button-pick-league-${l.id}`}
+                >
+                  <div className="font-pixel text-[10px] text-gold">{l.name}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5 capitalize">{l.currentPhase?.replace(/_/g, " ")}</div>
+                </button>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
+
+      {wizardLeagueId && (
+        <RecruitingWizard
+          open={!!wizardLeagueId}
+          leagueId={wizardLeagueId}
+          onClose={() => setWizardLeagueId(null)}
+          onSaved={() => setWizardLeagueId(null)}
+        />
+      )}
     </div>
   );
 }
