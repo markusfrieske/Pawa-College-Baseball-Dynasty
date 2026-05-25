@@ -359,14 +359,6 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "L", batHand: "L",
         skinTone: "tan", hairColor: "black", hairStyle: "short",
         ...pitchMix(1, [0, 4, 4, 1, 0, 0, 0]) },
-      // Billy Barlow — RHP RP
-      { firstName: "Billy", lastName: "Barlow", position: "P", eligibility: "JR", homeState: "FL", hometown: "Jacksonville", jerseyNumber: 35,
-        hitForAvg: 12, power: 9, speed: 31, arm: 50, fielding: 30, errorResistance: 42, velocity: 54, control: 50, stamina: 36, stuff: 47,
-        clutch: 60, vsLHP: 56, grit: 62, stealing: 8, running: 30, throwing: 64, recovery: 39, wRISP: 42, vsLefty: 44, poise: 47, heater: 51, agile: 38,
-        abilities: ["Explosive Fastball", "Kageura", "Intimidator"], potential: "B+", catcherAbility: null,
-        throwHand: "R", batHand: "L",
-        skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [0, 4, 4, 1, 0, 0, 0]) },
       // Hunter Knier — RHP, 2.0 scoreless IP, 0H/0BB/1K
       { firstName: "Hunter", lastName: "Knier", position: "P", eligibility: "SO", homeState: "FL", hometown: "Pensacola", jerseyNumber: 36,
         hitForAvg: 11, power: 9, speed: 31, arm: 49, fielding: 29, errorResistance: 40, velocity: 53, control: 50, stamina: 46, stuff: 46,
@@ -383,8 +375,16 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "R",
         skinTone: "deep", hairColor: "black", hairStyle: "fade",
         ...pitchMix(1, [0, 4, 4, 1, 0, 0, 0]) },
+      // Jaylen Cartwright — FR RHP depth
+      { firstName: "Jaylen", lastName: "Cartwright", position: "P", eligibility: "FR", homeState: "FL", hometown: "Orlando", jerseyNumber: 46,
+        hitForAvg: 10, power: 9, speed: 31, arm: 48, fielding: 28, errorResistance: 40, velocity: 52, control: 44, stamina: 38, stuff: 46,
+        clutch: 36, vsLHP: 34, grit: 38, stealing: 8, running: 30, throwing: 54, recovery: 26, wRISP: 23, vsLefty: 25, poise: 25, heater: 41, agile: 34,
+        abilities: ["Guts"], potential: "C+", catcherAbility: null,
+        throwHand: "R", batHand: "R",
+        skinTone: "deep", hairColor: "black", hairStyle: "short",
+        ...pitchMix(1, [0, 3, 3, 1, 0, 0, 0]) },
       // Wes Mendes — JR RHP, 2026 ACC Pitcher of the Year candidate, 9-1/2.15 ERA — TEAM ELITE STUFF
-      { firstName: "Wes", lastName: "Mendes", position: "P", eligibility: "FR", homeState: "FL", hometown: "Tallahassee", jerseyNumber: 46,
+      { firstName: "Wes", lastName: "Mendes", position: "P", eligibility: "JR", homeState: "FL", hometown: "Tallahassee", jerseyNumber: 35,
         hitForAvg: 14, power: 11, speed: 32, arm: 92, fielding: 60, errorResistance: 54, velocity: 97, control: 95, stamina: 92, stuff: 97,
         clutch: 88, vsLHP: 84, grit: 90, stealing: 8, running: 30, throwing: 88, recovery: 88, wRISP: 92, vsLefty: 93, poise: 92, heater: 97, agile: 42,
         abilities: ["Star of Victory", "Sharpness", "Strong Starter", "Intimidator", "Heavy Ball"], potential: "A+", catcherAbility: null,
