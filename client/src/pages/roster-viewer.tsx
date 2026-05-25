@@ -67,6 +67,8 @@ interface RealPlayer {
   hairStyle?: string;
   facialHair?: string;
   trajectory?: number;
+  overall?: number;
+  starRating?: number;
 }
 
 interface TeamMeta {
@@ -215,7 +217,7 @@ function EditableStatCell({
 }
 
 function realPlayerToPlayer(player: RealPlayer, idx: number, teamName: string): Player {
-  const ovr = calculateOVR(player);
+  const ovr = player.overall ?? calculateOVR(player);
   return {
     id: `${teamName}-${player.firstName}-${player.lastName}-${idx}`,
     firstName: player.firstName,
@@ -226,7 +228,7 @@ function realPlayerToPlayer(player: RealPlayer, idx: number, teamName: string): 
     hometown: player.hometown,
     homeState: player.homeState,
     overall: ovr,
-    starRating: ovrToStars(ovr),
+    starRating: player.starRating ?? ovrToStars(ovr),
     potential: null,
     hitForAvg: player.hitForAvg,
     power: player.power,
@@ -332,10 +334,10 @@ function MobileCompareSheet({
   open: boolean;
   onClose: () => void;
 }) {
-  const ovrA = calculateOVR(playerA);
-  const ovrB = calculateOVR(playerB);
-  const starsA = ovrToStars(ovrA);
-  const starsB = ovrToStars(ovrB);
+  const ovrA = playerA.overall ?? calculateOVR(playerA);
+  const ovrB = playerB.overall ?? calculateOVR(playerB);
+  const starsA = playerA.starRating ?? ovrToStars(ovrA);
+  const starsB = playerB.starRating ?? ovrToStars(ovrB);
 
   const positionStats = (isPitcher(playerA.position) || isPitcher(playerB.position))
     ? PITCHER_COMPARE_STATS
@@ -924,8 +926,8 @@ export default function RosterViewerPage() {
 
         <div className="divide-y divide-border/50">
           {currentRoster.map((player, idx) => {
-            const ovr = calculateOVR(player);
-            const stars = ovrToStars(ovr);
+            const ovr = player.overall ?? calculateOVR(player);
+            const stars = player.starRating ?? ovrToStars(ovr);
             const isEdited = !!editedPlayers[idx];
             const isCompareSelected = idx === comparePlayerIdx;
             const isCompareHighlight = inCompareMode && !isCompareSelected;
@@ -1332,8 +1334,8 @@ export default function RosterViewerPage() {
                   </thead>
                   <tbody>
                     {currentRoster.map((player, idx) => {
-                      const ovr = calculateOVR(player);
-                      const stars = ovrToStars(ovr);
+                      const ovr = player.overall ?? calculateOVR(player);
+                      const stars = player.starRating ?? ovrToStars(ovr);
                       const pitching = isPitcher(player.position);
                       const isEdited = !!editedPlayers[idx];
                       return (

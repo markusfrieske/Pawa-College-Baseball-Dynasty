@@ -18412,9 +18412,11 @@ export async function registerRoutes(
                 { position: rp.position, firstName: rp.firstName, lastName: rp.lastName, ...rp },
                 conf,
               );
-              const ovr = calculateOVR({ ...rp, ...normalized, abilities: [] });
-              const gatedAbilities = enforceGoldOvrGate(rp.abilities ?? [], rp.position, ovr);
-              return { ...rp, ...normalized, abilities: gatedAbilities };
+              const baseOvr = calculateOVR({ ...rp, ...normalized, abilities: [] });
+              const gatedAbilities = enforceGoldOvrGate(rp.abilities ?? [], rp.position, baseOvr);
+              const overall = calculateOVR({ ...rp, ...normalized, abilities: gatedAbilities });
+              const starRating = overall >= 500 ? 5 : overall >= 400 ? 4 : overall >= 300 ? 3 : overall >= 200 ? 2 : 1;
+              return { ...rp, ...normalized, abilities: gatedAbilities, overall, starRating };
             });
             return {
               name: t.name,
@@ -18452,9 +18454,11 @@ export async function registerRoutes(
           { position: rp.position, firstName: rp.firstName, lastName: rp.lastName, ...rp },
           conferenceName,
         );
-        const ovr = calculateOVR({ ...rp, ...normalized, abilities: [] });
-        const gatedAbilities = enforceGoldOvrGate(rp.abilities ?? [], rp.position, ovr);
-        return { ...rp, ...normalized, abilities: gatedAbilities };
+        const baseOvr = calculateOVR({ ...rp, ...normalized, abilities: [] });
+        const gatedAbilities = enforceGoldOvrGate(rp.abilities ?? [], rp.position, baseOvr);
+        const overall = calculateOVR({ ...rp, ...normalized, abilities: gatedAbilities });
+        const starRating = overall >= 500 ? 5 : overall >= 400 ? 4 : overall >= 300 ? 3 : overall >= 200 ? 2 : 1;
+        return { ...rp, ...normalized, abilities: gatedAbilities, overall, starRating };
       });
 
       res.json({
