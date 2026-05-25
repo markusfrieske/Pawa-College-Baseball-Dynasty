@@ -9072,10 +9072,11 @@ export async function registerRoutes(
           return res.status(400).json({ message: "Not all teams are ready. Each team must mark ready before advancing." });
         }
 
-        const { savedRecruitingClassId } = req.body || {};
-        
+        const { savedRecruitingClassId: rawClassId } = req.body || {};
+
         // Two-step flow: if no class selection provided and user has saved classes, prompt commissioner
-        if (!savedRecruitingClassId) {
+        let savedRecruitingClassId: string = rawClassId ?? "auto";
+        if (!rawClassId) {
           const userId = req.session.userId;
           const userSavedClasses = userId ? await storage.getSavedRecruitingClassesByUser(userId) : [];
           if (userSavedClasses.length > 0) {
@@ -9085,7 +9086,7 @@ export async function registerRoutes(
               currentSeason: league.currentSeason,
             });
           }
-          // No saved classes — treat as "auto" and proceed
+          // No saved classes — normalized to "auto" above, proceed with fresh class
         }
 
         const walkonResult = await finalizeWalkonsPhase(leagueId, league.currentSeason);

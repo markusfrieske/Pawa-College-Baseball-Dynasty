@@ -67,14 +67,38 @@ interface RecruitData {
   pitchSPL?: number;
 }
 
+const WIZARD_THEME_LABELS: Record<string, string> = {
+  balanced: "Balanced",
+  high_velocity: "High Velocity",
+  sluggers: "Sluggers",
+  top_heavy: "Top Heavy",
+  hidden_gems: "Hidden Gems",
+  bust_heavy: "Bust Heavy",
+  elite_pitching: "Elite Pitching",
+  raw_talent: "Raw Talent",
+  position_players: "Position Players",
+  defense_first: "Defense First",
+  power_class: "Power Class",
+};
+
 interface SavedClass {
   id: number | string;
   name: string;
   description: string;
   recruitCount: number;
-  classData: RecruitData[];
+  classData: RecruitData[] | { theme?: string; recruits: RecruitData[] };
   createdAt?: string;
   isLocal?: boolean;
+}
+
+function getClassRecruits(classData: SavedClass["classData"]): RecruitData[] {
+  if (Array.isArray(classData)) return classData;
+  return Array.isArray(classData?.recruits) ? classData.recruits : [];
+}
+
+function getClassTheme(classData: SavedClass["classData"]): string | null {
+  if (Array.isArray(classData)) return null;
+  return (classData as any)?.theme ?? null;
 }
 
 type SortField = "lastName" | "position" | "overall" | "starRating";
@@ -481,7 +505,7 @@ export default function ManageRecruitingPage() {
   };
 
   const handleLoadClass = (cls: SavedClass) => {
-    setCurrentClass(cls.classData || []);
+    setCurrentClass(getClassRecruits(cls.classData));
     setClassName(cls.name);
     setClassDescription(cls.description || "");
     setEditingId(cls.id);
@@ -655,9 +679,12 @@ export default function ManageRecruitingPage() {
             <RetroCardContent className="p-0">
               <div className="grid gap-2">
                 {savedClasses.map((cls) => {
+                  const recruits = getClassRecruits(cls.classData);
+                  const theme = getClassTheme(cls.classData);
+                  const themeLabel = theme ? (WIZARD_THEME_LABELS[theme] ?? theme) : null;
                   const starCounts = [5, 4, 3, 2, 1].map(s => ({
                     star: s,
-                    count: (cls.classData ?? []).filter(r => r.starRating === s).length,
+                    count: recruits.filter(r => r.starRating === s).length,
                   })).filter(x => x.count > 0);
                   const savedDate = cls.createdAt ? new Date(cls.createdAt).toLocaleDateString() : null;
                   return (
@@ -673,6 +700,9 @@ export default function ManageRecruitingPage() {
                           <Badge variant="secondary" className="text-[10px]" data-testid={`class-count-${cls.id}`}>
                             {cls.recruitCount} recruits
                           </Badge>
+                          {themeLabel && (
+                            <Badge variant="outline" className="text-[10px] text-muted-foreground border-muted-foreground/40" data-testid={`class-theme-${cls.id}`}>{themeLabel}</Badge>
+                          )}
                           {editingId === cls.id && (
                             <Badge variant="outline" className="text-[10px] text-gold border-gold">Active</Badge>
                           )}

@@ -1076,12 +1076,13 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved, onSavedToLi
   // Save to personal library (authenticated) or localStorage (guest)
   const saveToLibraryMutation = useMutation({
     mutationFn: async ({ name, description }: { name: string; description: string }) => {
-      const classData = recruits.map(({ _tempId, ...rest }) => rest);
+      const recruitRows = recruits.map(({ _tempId, ...rest }) => rest);
+      const classData = { theme: config.theme, recruits: recruitRows };
       if (user) {
         const res = await apiRequest("POST", "/api/saved-recruiting-classes", {
           name,
           description,
-          recruitCount: classData.length,
+          recruitCount: recruitRows.length,
           classData,
         });
         return res.json();
@@ -1092,7 +1093,7 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved, onSavedToLi
           id: `local-${Date.now()}`,
           name,
           description,
-          recruitCount: classData.length,
+          recruitCount: recruitRows.length,
           classData,
           createdAt: new Date().toISOString(),
           isLocal: true,
