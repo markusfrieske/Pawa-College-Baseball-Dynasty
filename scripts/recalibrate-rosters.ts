@@ -104,7 +104,7 @@ function teamAvgOVR(players: RealPlayer[]): number {
 }
 
 function targetOVR(rank: number): number {
-  return 455 - (rank - 1) * (240 / 141);
+  return 447 - (rank - 1) * (240 / 141);
 }
 
 // ─── Collect all unique team names from RAW_UNCALIBRATED_ROSTERS ──────────
