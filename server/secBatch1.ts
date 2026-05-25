@@ -214,20 +214,20 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       // PITCHERS (10) — 1-8 pitch scale
       // Aidan King — Friday RHP SO, 4-2/1.62 ERA, National Pitcher of the Month — TEAM ELITE STUFF
       { firstName: "Aidan", lastName: "King", position: "P", eligibility: "SO", homeState: "GA", hometown: "Savannah", jerseyNumber: 29,
-        hitForAvg: 14, power: 11, speed: 32, arm: 65, fielding: 41, errorResistance: 54, velocity: 64, control: 69, stamina: 65, stuff: 70,
-        clutch: 80, vsLHP: 76, grit: 80, stealing: 10, running: 34, throwing: 78, recovery: 57, wRISP: 65, vsLefty: 65, poise: 65, heater: 65, agile: 44,
-        abilities: ["Star of Victory", "Intimidator", "Sharpness", "Heavy Ball", "Winner's Luck"], potential: "A+", catcherAbility: null,
+        hitForAvg: 14, power: 11, speed: 32, arm: 92, fielding: 60, errorResistance: 54, velocity: 97, control: 95, stamina: 92, stuff: 97,
+        clutch: 90, vsLHP: 88, grit: 90, stealing: 10, running: 34, throwing: 88, recovery: 88, wRISP: 92, vsLefty: 93, poise: 92, heater: 97, agile: 44,
+        abilities: ["Star of Victory", "Intimidator", "Sharpness", "Heavy Ball", "Strikeout"], potential: "A+", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [0, 4, 4, 1, 0, 0, 0]) },
+        ...pitchMix(1, [0, 5, 4, 1, 0, 0, 0]) },
       // Liam Peterson — Saturday RHP JR, top-ranked P in 2026 MLB Draft, 96 K in 69.1 IP last yr
       { firstName: "Liam", lastName: "Peterson", position: "P", eligibility: "JR", homeState: "FL", hometown: "Jacksonville", jerseyNumber: 23,
-        hitForAvg: 16, power: 13, speed: 33, arm: 68, fielding: 41, errorResistance: 54, velocity: 69, control: 57, stamina: 63, stuff: 65,
-        clutch: 76, vsLHP: 70, grit: 80, stealing: 10, running: 34, throwing: 80, recovery: 57, wRISP: 57, vsLefty: 62, poise: 65, heater: 71, agile: 44,
-        abilities: ["Strong Starter", "Explosive Fastball", "Intimidator", "Tunneling", "Heavy Ball", "Winner's Luck"], potential: "A+", catcherAbility: null,
+        hitForAvg: 16, power: 13, speed: 33, arm: 92, fielding: 60, errorResistance: 54, velocity: 97, control: 95, stamina: 92, stuff: 97,
+        clutch: 90, vsLHP: 88, grit: 92, stealing: 10, running: 34, throwing: 92, recovery: 88, wRISP: 92, vsLefty: 93, poise: 92, heater: 97, agile: 44,
+        abilities: ["Star of Victory", "Natural Shuuto", "Intimidator", "Heavy Ball", "Sharpness"], potential: "A+", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [0, 4, 0, 1, 4, 4, 4]) },
+        ...pitchMix(1, [0, 5, 0, 1, 4, 4, 4]) },
       // Russell Sandefer — Sunday RHP JR (UCF transfer), 2-1/3.00
       { firstName: "Russell", lastName: "Sandefer", position: "P", eligibility: "JR", homeState: "FL", hometown: "Orlando", jerseyNumber: 21,
         hitForAvg: 13, power: 10, speed: 32, arm: 55, fielding: 33, errorResistance: 44, velocity: 55, control: 60, stamina: 57, stuff: 54,

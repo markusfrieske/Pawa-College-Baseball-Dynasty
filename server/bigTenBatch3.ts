@@ -321,12 +321,12 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       // PITCHERS (10) — 1-8 pitch scale
       // Mason Edwards — LHP JR Thursday ace, 7-0/1.74, #2 nationally per D1B Top 100 SP — TEAM ELITE STUFF
       { firstName: "Mason", lastName: "Edwards", position: "P", eligibility: "JR", homeState: "CA", hometown: "Los Angeles", jerseyNumber: 31,
-        hitForAvg: 16, power: 12, speed: 33, arm: 65, fielding: 41, errorResistance: 54, velocity: 66, control: 69, stamina: 69, stuff: 71,
-        clutch: 80, vsLHP: 90, grit: 80, stealing: 8, running: 32, throwing: 78, recovery: 57, wRISP: 65, vsLefty: 69, poise: 65, heater: 65, agile: 44,
-        abilities: ["Star of Victory", "Inside Pitch", "Intimidator", "Heavy Ball", "Winner's Luck"], potential: "A+", catcherAbility: null,
+        hitForAvg: 16, power: 12, speed: 33, arm: 94, fielding: 64, errorResistance: 54, velocity: 98, control: 96, stamina: 93, stuff: 99,
+        clutch: 90, vsLHP: 99, grit: 92, stealing: 8, running: 32, throwing: 90, recovery: 89, wRISP: 93, vsLefty: 95, poise: 93, heater: 98, agile: 44,
+        abilities: ["Star of Victory", "Crossfire", "Pace", "Sharpness", "Heavy Ball"], potential: "A+", catcherAbility: null,
         throwHand: "L", batHand: "L",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [6, 0, 0, 1, 0, 4, 0]) },
+        ...pitchMix(1, [1, 6, 0, 1, 0, 4, 0]) },
       // Grant Govel — RHP FR Friday/weekend, 9-1/2.55
       { firstName: "Grant", lastName: "Govel", position: "P", eligibility: "FR", homeState: "CA", hometown: "San Diego", jerseyNumber: 27,
         hitForAvg: 14, power: 10, speed: 32, arm: 61, fielding: 35, errorResistance: 46, velocity: 63, control: 61, stamina: 62, stuff: 58,

@@ -321,22 +321,22 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
   // Real 2026 mid-season stats from goheels.com PDF
   "North Carolina": [
     // PITCHERS (10) — ACC-leading ERA three years running, NCAA #14 fielding
-    // Jason DeCaro — Friday ace JR, 9-2 / 1.91 ERA / 66 IP / 61K, Golden Spikes Watch List
+    // Jason DeCaro — Friday ace JR, 9-2 / 1.91 ERA / 66 IP / 61K, Golden Spikes Watch List — TEAM ELITE STUFF
     { firstName: "Jason", lastName: "DeCaro", position: "P", eligibility: "JR", homeState: "NJ", hometown: "Wayne", jerseyNumber: 29,
-      hitForAvg: 18, power: 14, speed: 33, arm: 65, fielding: 46, errorResistance: 60, velocity: 66, control: 65, stamina: 67, stuff: 65,
-      clutch: 80, vsLHP: 76, grit: 82, stealing: 8, running: 35, throwing: 78, recovery: 62, wRISP: 63, vsLefty: 63, poise: 67, heater: 62, agile: 46,
-      abilities: ["Star of Victory", "Inside Pitch", "Strong Starter", "Intimidator"], potential: "A", catcherAbility: null,
+      hitForAvg: 18, power: 14, speed: 33, arm: 92, fielding: 60, errorResistance: 60, velocity: 97, control: 95, stamina: 92, stuff: 97,
+      clutch: 88, vsLHP: 84, grit: 90, stealing: 8, running: 35, throwing: 88, recovery: 88, wRISP: 92, vsLefty: 93, poise: 92, heater: 97, agile: 46,
+      abilities: ["Star of Victory", "Inside Pitch", "Strong Starter", "Intimidator", "Strikeout"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
-      ...pitchMix(1, [0, 4, 4, 1, 0, 0, 0]) },
-    // Caden Glauber — FR RHP, 6-0 / 1.95 / 67K / 4 SV, weekend bullpen ace, occasional Sunday starter
+      ...pitchMix(1, [0, 5, 4, 1, 0, 0, 0]) },
+    // Caden Glauber — FR RHP, 6-0 / 1.95 / 67K / 4 SV, weekend bullpen ace, occasional Sunday starter — TEAM ELITE STUFF
     { firstName: "Caden", lastName: "Glauber", position: "P", eligibility: "FR", homeState: "NC", hometown: "Charlotte", jerseyNumber: 27,
-      hitForAvg: 12, power: 10, speed: 33, arm: 61, fielding: 36, errorResistance: 52, velocity: 65, control: 57, stamina: 39, stuff: 60,
-      clutch: 72, vsLHP: 68, grit: 70, stealing: 8, running: 32, throwing: 74, recovery: 47, wRISP: 55, vsLefty: 55, poise: 57, heater: 55, agile: 46,
-      abilities: ["Strong Starter", "Doctor K", "Constant Speed", "Groundball Pitcher", "Strong Finisher"], potential: "A", catcherAbility: null,
+      hitForAvg: 12, power: 10, speed: 33, arm: 92, fielding: 60, errorResistance: 52, velocity: 97, control: 95, stamina: 92, stuff: 97,
+      clutch: 88, vsLHP: 84, grit: 90, stealing: 8, running: 32, throwing: 88, recovery: 88, wRISP: 92, vsLefty: 93, poise: 92, heater: 97, agile: 46,
+      abilities: ["Star of Victory", "Sharpness", "Strong Starter", "Intimidator", "Heavy Ball"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
-      ...pitchMix(1, [0, 4, 4, 1, 0, 0, 0]) },
+      ...pitchMix(1, [0, 5, 4, 1, 0, 0, 0]) },
     // Walker McDuffie — SO RHP closer, 6-2 / 2.47 / 26 app / 4 SV / 66K, NC Charlotte
     { firstName: "Walker", lastName: "McDuffie", position: "P", eligibility: "SO", homeState: "NC", hometown: "Charlotte", jerseyNumber: 40,
       hitForAvg: 11, power: 8, speed: 32, arm: 61, fielding: 34, errorResistance: 48, velocity: 63, control: 54, stamina: 28, stuff: 58,
@@ -529,11 +529,11 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
   "Notre Dame": [
     // PITCHERS (8)
     { firstName: "Jack", lastName: "Radel", position: "P", eligibility: "JR", homeState: "OH", hometown: "Cincinnati", jerseyNumber: 34,
-      hitForAvg: 23, power: 19, speed: 34, arm: 72, fielding: 43, errorResistance: 54, velocity: 72, control: 67, stamina: 68, stuff: 69,
-      clutch: 81, vsLHP: 77, grit: 83, stealing: 14, running: 40, throwing: 90, recovery: 62, wRISP: 65, vsLefty: 65, poise: 68, heater: 74, agile: 48,
-      abilities: ["Star of Victory", "Intimidator", "True Slider", "Heavy Ball"], potential: "A+", catcherAbility: null,
+      hitForAvg: 23, power: 19, speed: 34, arm: 93, fielding: 62, errorResistance: 54, velocity: 97, control: 95, stamina: 93, stuff: 98,
+      clutch: 90, vsLHP: 88, grit: 92, stealing: 14, running: 40, throwing: 95, recovery: 89, wRISP: 93, vsLefty: 94, poise: 93, heater: 97, agile: 48,
+      abilities: ["Star of Victory", "True Slider", "Heavy Ball", "Sharpness", "Strikeout"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
-      ...pitchMix(1, [1, 4, 4, 1, 0, 0, 0]) },
+      ...pitchMix(1, [1, 6, 4, 1, 0, 0, 0]) },
     { firstName: "Ty", lastName: "Uber", position: "P", eligibility: "SR", homeState: "CA", hometown: "Palo Alto", jerseyNumber: 29,
       hitForAvg: 15, power: 11, speed: 32, arm: 49, fielding: 30, errorResistance: 42, velocity: 53, control: 47, stamina: 47, stuff: 45,
       clutch: 59, vsLHP: 55, grit: 61, stealing: 10, running: 30, throwing: 63, recovery: 42, wRISP: 43, vsLefty: 43, poise: 46, heater: 49, agile: 37,

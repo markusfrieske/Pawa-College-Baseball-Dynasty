@@ -60,12 +60,13 @@ export const BIG_TEN_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Wizard Mode", "Wild Fastball", "Hot Head"], potential: "A", catcherAbility: null,
       throwHand: "L", batHand: "L",
       ...pitchMix(1, [0, 4, 3, 1, 0, 0, 0]) },
+    // Aiden Flinn — FR RHP, elite debut season, 2026 Big Ten Freshman of the Year — TEAM ELITE STUFF
     { firstName: "Aiden", lastName: "Flinn", position: "P", eligibility: "FR", homeState: "IL", hometown: "Elmhurst", jerseyNumber: 50,
-      hitForAvg: 9, power: 7, speed: 27, arm: 32, fielding: 19, errorResistance: 30, velocity: 34, control: 25, stamina: 25, stuff: 29,
-      clutch: 30, vsLHP: 30, grit: 32, stealing: 9, running: 27, throwing: 46, recovery: 20, wRISP: 20, vsLefty: 22, poise: 20, heater: 31, agile: 34,
-      abilities: ["Strikeout", "Flyball Pitcher"], potential: "B+", catcherAbility: null,
+      hitForAvg: 9, power: 7, speed: 27, arm: 92, fielding: 60, errorResistance: 54, velocity: 97, control: 95, stamina: 92, stuff: 97,
+      clutch: 86, vsLHP: 82, grit: 88, stealing: 9, running: 27, throwing: 88, recovery: 88, wRISP: 92, vsLefty: 93, poise: 92, heater: 97, agile: 34,
+      abilities: ["Star of Victory", "Sharpness", "Strikeout", "Intimidator", "Heavy Ball"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
-      ...pitchMix(1, [0, 3, 4, 1, 0, 0, 0]) },
+      ...pitchMix(1, [0, 5, 4, 1, 0, 0, 0]) },
     // CATCHERS (2)
     { firstName: "Daniel", lastName: "Contreras", position: "C", eligibility: "JR", homeState: "IL", hometown: "Normal", jerseyNumber: 14,
       hitForAvg: 59, power: 53, speed: 38, arm: 61, fielding: 60, errorResistance: 57, velocity: 0, control: 0, stamina: 0, stuff: 0,

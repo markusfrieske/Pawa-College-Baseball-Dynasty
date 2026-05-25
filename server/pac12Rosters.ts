@@ -9,12 +9,12 @@ export const PAC12_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (10) — TEAM ELITE STAFF
     // Dax Whitney — Friday SO RHP ace, 98mph FB, 17"+ sweeper 42% whiff, 3.40/120K/76.2 IP — TEAM ELITE
     { firstName: "Dax", lastName: "Whitney", position: "P", eligibility: "SO", homeState: "ID", hometown: "Boise", jerseyNumber: 22,
-      hitForAvg: 16, power: 12, speed: 33, arm: 70, fielding: 41, errorResistance: 54, velocity: 67, control: 66, stamina: 69, stuff: 72,
-      clutch: 80, vsLHP: 76, grit: 82, stealing: 10, running: 34, throwing: 82, recovery: 57, wRISP: 62, vsLefty: 64, poise: 67, heater: 70, agile: 44,
-      abilities: ["Star of Victory", "Intimidator", "Sharpness", "Decisive", "Winner's Luck"], potential: "A+", catcherAbility: null,
+      hitForAvg: 16, power: 12, speed: 33, arm: 93, fielding: 61, errorResistance: 54, velocity: 97, control: 96, stamina: 94, stuff: 99,
+      clutch: 90, vsLHP: 88, grit: 92, stealing: 10, running: 34, throwing: 90, recovery: 88, wRISP: 92, vsLefty: 94, poise: 92, heater: 97, agile: 44,
+      abilities: ["Star of Victory", "Intimidator", "Sharpness", "Decisive", "Strikeout"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
-      ...pitchMix(1, [0, 4, 4, 1, 0, 0, 0]) },
+      ...pitchMix(1, [0, 5, 4, 1, 0, 0, 0]) },
     // Ethan Kleinschmit — Saturday LHP JR, 3.56/113K/91 IP, JUCO transfer
     { firstName: "Ethan", lastName: "Kleinschmit", position: "P", eligibility: "JR", homeState: "NE", hometown: "Omaha", jerseyNumber: 29,
       hitForAvg: 15, power: 12, speed: 32, arm: 65, fielding: 37, errorResistance: 50, velocity: 56, control: 65, stamina: 66, stuff: 63,

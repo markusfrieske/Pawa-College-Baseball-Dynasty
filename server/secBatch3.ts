@@ -688,12 +688,12 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (10) — staff: "the stuff on this staff is not fair"
     // Dylan Volantis — FR LHP, ELITE 6'6" sweeping knuckle curve, BA Frosh of Year candidate
     { firstName: "Dylan", lastName: "Volantis", position: "P", eligibility: "FR", homeState: "TX", hometown: "Austin", jerseyNumber: 29,
-      hitForAvg: 14, power: 11, speed: 34, arm: 72, fielding: 46, errorResistance: 60, velocity: 69, control: 65, stamina: 52, stuff: 72,
-      clutch: 90, vsLHP: 80, grit: 86, stealing: 8, running: 36, throwing: 84, recovery: 52, wRISP: 68, vsLefty: 67, poise: 68, heater: 68, agile: 50,
-      abilities: ["Star of Victory", "Intimidator", "Sharpness", "Heavy Ball", "Winner's Luck", "Natural Shuuto"], potential: "A+", catcherAbility: null,
+      hitForAvg: 14, power: 11, speed: 34, arm: 94, fielding: 63, errorResistance: 60, velocity: 98, control: 95, stamina: 91, stuff: 99,
+      clutch: 90, vsLHP: 99, grit: 92, stealing: 8, running: 36, throwing: 90, recovery: 89, wRISP: 93, vsLefty: 94, poise: 93, heater: 98, agile: 50,
+      abilities: ["Star of Victory", "Intimidator", "Sharpness", "Heavy Ball", "Natural Shuuto"], potential: "A+", catcherAbility: null,
       throwHand: "L", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "medium",
-      ...pitchMix(1, [5, 4, 4, 1, 0, 0, 0]) },
+      ...pitchMix(1, [1, 0, 6, 1, 0, 0, 0]) },
     // Ruger Riojas — Friday RHP SR, 5.61 ERA last yr (illness mid-season), bullpen vet capable of starts
     { firstName: "Ruger", lastName: "Riojas", position: "P", eligibility: "SR", homeState: "TX", hometown: "San Antonio", jerseyNumber: 34,
       hitForAvg: 13, power: 10, speed: 32, arm: 60, fielding: 37, errorResistance: 50, velocity: 61, control: 56, stamina: 56, stuff: 59,

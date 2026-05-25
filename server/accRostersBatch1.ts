@@ -383,14 +383,14 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "R",
         skinTone: "deep", hairColor: "black", hairStyle: "fade",
         ...pitchMix(1, [0, 4, 4, 1, 0, 0, 0]) },
-      // Jaylen Cartwright — FR RHP depth
-      { firstName: "Jaylen", lastName: "Cartwright", position: "P", eligibility: "FR", homeState: "GA", hometown: "Valdosta", jerseyNumber: 46,
-        hitForAvg: 9, power: 9, speed: 31, arm: 33, fielding: 18, errorResistance: 30, velocity: 47, control: 26, stamina: 25, stuff: 30,
-        clutch: 32, vsLHP: 30, grit: 32, stealing: 8, running: 28, throwing: 48, recovery: 21, wRISP: 20, vsLefty: 21, poise: 21, heater: 35, agile: 32,
-        abilities: ["Explosive Fastball"], potential: "A-", catcherAbility: null,
+      // Wes Mendes — JR RHP, 2026 ACC Pitcher of the Year candidate, 9-1/2.15 ERA — TEAM ELITE STUFF
+      { firstName: "Wes", lastName: "Mendes", position: "P", eligibility: "FR", homeState: "FL", hometown: "Tallahassee", jerseyNumber: 46,
+        hitForAvg: 14, power: 11, speed: 32, arm: 92, fielding: 60, errorResistance: 54, velocity: 97, control: 95, stamina: 92, stuff: 97,
+        clutch: 88, vsLHP: 84, grit: 90, stealing: 8, running: 30, throwing: 88, recovery: 88, wRISP: 92, vsLefty: 93, poise: 92, heater: 97, agile: 42,
+        abilities: ["Star of Victory", "Sharpness", "Strong Starter", "Intimidator", "Heavy Ball"], potential: "A+", catcherAbility: null,
         throwHand: "R", batHand: "R",
-        skinTone: "deep", hairColor: "black", hairStyle: "fade",
-        ...pitchMix(1, [0, 4, 4, 1, 0, 0, 0]) },
+        skinTone: "tan", hairColor: "brown", hairStyle: "short",
+        ...pitchMix(1, [0, 5, 4, 1, 0, 0, 0]) },
       // CATCHERS (2)
       // Hunter Carns — JR C, returning starter
       { firstName: "Hunter", lastName: "Carns", position: "C", eligibility: "JR", homeState: "GA", hometown: "Buford", jerseyNumber: 12,

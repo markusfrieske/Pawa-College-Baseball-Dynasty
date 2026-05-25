@@ -215,12 +215,12 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       // PITCHERS (10) — 1-8 pitch scale
       // Tyler Fay — Friday SR RHP, no-hitter vs Florida 3/20, 8-3, 7 IP/1 ER/10K vs SC — TEAM ELITE STUFF
       { firstName: "Tyler", lastName: "Fay", position: "P", eligibility: "SR", homeState: "AL", hometown: "Tuscaloosa", jerseyNumber: 34,
-        hitForAvg: 16, power: 12, speed: 33, arm: 65, fielding: 41, errorResistance: 54, velocity: 69, control: 65, stamina: 69, stuff: 71,
-        clutch: 80, vsLHP: 76, grit: 80, stealing: 10, running: 34, throwing: 78, recovery: 57, wRISP: 64, vsLefty: 65, poise: 65, heater: 69, agile: 44,
-        abilities: ["Star of Victory", "Intimidator", "Strong Starter", "Heavy Ball", "Fireman", "Wild Fastball"], potential: "A+", catcherAbility: null,
+        hitForAvg: 16, power: 12, speed: 33, arm: 93, fielding: 62, errorResistance: 54, velocity: 98, control: 96, stamina: 93, stuff: 98,
+        clutch: 90, vsLHP: 88, grit: 92, stealing: 10, running: 34, throwing: 90, recovery: 89, wRISP: 93, vsLefty: 94, poise: 93, heater: 98, agile: 44,
+        abilities: ["Star of Victory", "Intimidator", "Strong Starter", "Heavy Ball", "Strikeout"], potential: "A+", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [0, 4, 4, 1, 0, 0, 0]) },
+        ...pitchMix(1, [0, 5, 4, 1, 0, 0, 0]) },
       // Zane Adams — Saturday JR LHP, most SEC starting experience on staff, All-SEC Frosh team 2024
       { firstName: "Zane", lastName: "Adams", position: "P", eligibility: "JR", homeState: "GA", hometown: "Savannah", jerseyNumber: 29,
         hitForAvg: 14, power: 11, speed: 32, arm: 60, fielding: 35, errorResistance: 46, velocity: 58, control: 56, stamina: 60, stuff: 57,
@@ -430,14 +430,14 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 4, 4, 1, 0, 0, 0]) },
-    // Jake Marciano — SO RHP, weekend SP
+    // Jake Marciano — SO RHP, weekend SP — TEAM ELITE STUFF
     { firstName: "Jake", lastName: "Marciano", position: "P", eligibility: "SO", homeState: "NJ", hometown: "Marlton", jerseyNumber: 33,
-      hitForAvg: 13, power: 10, speed: 32, arm: 62, fielding: 38, errorResistance: 50, velocity: 62, control: 61, stamina: 56, stuff: 61,
-      clutch: 70, vsLHP: 66, grit: 72, stealing: 7, running: 30, throwing: 76, recovery: 48, wRISP: 53, vsLefty: 56, poise: 58, heater: 64, agile: 42,
-      abilities: ["Strong Starter", "Inside Pitch", "Full Throttle"], potential: "A", catcherAbility: null,
+      hitForAvg: 13, power: 10, speed: 32, arm: 92, fielding: 60, errorResistance: 50, velocity: 97, control: 95, stamina: 92, stuff: 97,
+      clutch: 88, vsLHP: 84, grit: 90, stealing: 7, running: 30, throwing: 88, recovery: 88, wRISP: 92, vsLefty: 93, poise: 92, heater: 97, agile: 42,
+      abilities: ["Star of Victory", "Sharpness", "Strikeout", "Strong Starter", "Intimidator"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
-      ...pitchMix(1, [0, 4, 4, 1, 0, 0, 0]) },
+      ...pitchMix(1, [0, 5, 4, 1, 0, 0, 0]) },
     // Jackson Sanders — SO breaking ball specialist
     { firstName: "Jackson", lastName: "Sanders", position: "P", eligibility: "SO", homeState: "GA", hometown: "Marietta", jerseyNumber: 37,
       hitForAvg: 12, power: 10, speed: 32, arm: 56, fielding: 34, errorResistance: 48, velocity: 51, control: 60, stamina: 50, stuff: 57,
@@ -494,14 +494,14 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 4, 4, 1, 0, 0, 0]) },
-    // Cam Saunders — SO RHP RP
-    { firstName: "Cam", lastName: "Saunders", position: "P", eligibility: "SO", homeState: "GA", hometown: "Lawrenceville", jerseyNumber: 46,
-      hitForAvg: 8, power: 6, speed: 25, arm: 31, fielding: 19, errorResistance: 29, velocity: 31, control: 34, stamina: 22, stuff: 29,
-      clutch: 35, vsLHP: 32, grit: 37, stealing: 5, running: 21, throwing: 43, recovery: 24, wRISP: 24, vsLefty: 25, poise: 26, heater: 31, agile: 26,
-      abilities: ["Doctor K"], potential: "B+", catcherAbility: null,
+    // Andreas Alvarez — JR RHP, 2026 SEC strikeout leader, elite velocity — TEAM ELITE STUFF
+    { firstName: "Andreas", lastName: "Alvarez", position: "P", eligibility: "JR", homeState: "AL", hometown: "Auburn", jerseyNumber: 46,
+      hitForAvg: 13, power: 10, speed: 32, arm: 92, fielding: 60, errorResistance: 52, velocity: 97, control: 95, stamina: 92, stuff: 97,
+      clutch: 86, vsLHP: 82, grit: 90, stealing: 7, running: 30, throwing: 88, recovery: 88, wRISP: 92, vsLefty: 93, poise: 92, heater: 97, agile: 42,
+      abilities: ["Star of Victory", "Sharpness", "Heavy Ball", "Intimidator", "Strong Starter"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
-      skinTone: "light", hairColor: "brown", hairStyle: "short",
-      ...pitchMix(1, [0, 4, 4, 1, 0, 0, 0]) },
+      skinTone: "tan", hairColor: "black", hairStyle: "short",
+      ...pitchMix(1, [0, 5, 4, 1, 0, 0, 0]) },
     // CATCHERS (2)
     // Chase Fralick — SO C, .335/.426/.472 in 2025, HR in 5 straight games (1st since 1985), .520 last 6 multi-hit
     { firstName: "Chase", lastName: "Fralick", position: "C", eligibility: "SO", homeState: "GA", hometown: "Woodstock", jerseyNumber: 12,
@@ -842,12 +842,12 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       // PITCHERS (10)
       // Tomas Valincius — LHP JR Friday ace (Virginia transfer), 8-2, 13K vs Auburn, 14K vs Vandy, 7 shutout IP @ Ark — TEAM ELITE STUFF
       { firstName: "Tomas", lastName: "Valincius", position: "P", eligibility: "JR", homeState: "VA", hometown: "Richmond", jerseyNumber: 37,
-        hitForAvg: 16, power: 12, speed: 32, arm: 65, fielding: 37, errorResistance: 50, velocity: 63, control: 65, stamina: 68, stuff: 69,
-        clutch: 80, vsLHP: 80, grit: 80, stealing: 9, running: 32, throwing: 76, recovery: 57, wRISP: 62, vsLefty: 65, poise: 65, heater: 65, agile: 42,
-        abilities: ["Star of Victory", "Fireman", "Intimidator", "Heavy Ball", "Winner's Luck"], potential: "A", catcherAbility: null,
+        hitForAvg: 16, power: 12, speed: 32, arm: 92, fielding: 60, errorResistance: 50, velocity: 97, control: 95, stamina: 92, stuff: 97,
+        clutch: 88, vsLHP: 99, grit: 90, stealing: 9, running: 32, throwing: 84, recovery: 88, wRISP: 92, vsLefty: 93, poise: 92, heater: 97, agile: 42,
+        abilities: ["Star of Victory", "Intimidator", "Heavy Ball", "Natural Shuuto", "Sharpness"], potential: "A+", catcherAbility: null,
         throwHand: "L", batHand: "L",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [0, 4, 4, 1, 0, 0, 0]) },
+        ...pitchMix(1, [0, 5, 4, 1, 0, 0, 0]) },
       // Duke Stone — Saturday RHP FR, 6-1/4.40/78K in 57.1 IP
       { firstName: "Duke", lastName: "Stone", position: "P", eligibility: "FR", homeState: "MS", hometown: "Jackson", jerseyNumber: 45,
         hitForAvg: 14, power: 10, speed: 32, arm: 60, fielding: 33, errorResistance: 46, velocity: 60, control: 56, stamina: 60, stuff: 57,
