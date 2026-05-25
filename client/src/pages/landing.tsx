@@ -120,31 +120,39 @@ export default function LandingPage() {
           {/* Bottom fade */}
           <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent pointer-events-none" />
 
-          {/* Chibi hero image — right half */}
-          <div className="absolute inset-y-0 right-0 w-full md:w-[58%] pointer-events-none select-none">
+          {/* Chibi hero image — full bleed */}
+          <div className="absolute inset-0 pointer-events-none select-none">
             <img
               src="/chibi-hero.png"
               alt="College Baseball Dynasty chibi baseball players"
-              className="absolute inset-0 w-full h-full object-cover object-center opacity-40 md:opacity-100"
-              style={{ maskImage: "linear-gradient(to right, transparent 0%, black 30%)", WebkitMaskImage: "linear-gradient(to right, transparent 0%, black 30%)" }}
+              className="absolute inset-0 w-full h-full object-cover object-center"
             />
-            {/* Left-side mask to blend into content — stronger on all sizes */}
-            <div className="absolute inset-y-0 left-0 w-[70%] bg-gradient-to-r from-background via-background/95 to-transparent" />
-            {/* Extra mobile overlay — fully covers left 55% on small screens */}
-            <div className="absolute inset-y-0 left-0 w-[55%] bg-background md:hidden" />
           </div>
+
+          {/* Dark scrim — dims image so text stays legible without a green box */}
+          <div className="absolute inset-0 bg-black/45 pointer-events-none" />
 
           {/* Left content */}
           <div className="relative z-10 container mx-auto px-6 sm:px-10 py-20">
-            {/* Mobile text backdrop — guarantees contrast on small viewports */}
-            <div className="max-w-xl md:bg-transparent md:backdrop-blur-none bg-background/70 backdrop-blur-sm rounded-sm px-4 py-5 -mx-1 md:p-0 md:mx-0">
+            {/* No backdrop box — text legibility via shadow/stroke */}
+            <div className="max-w-xl">
               {/* Season badge */}
-              <div className="inline-flex items-center gap-2 border border-gold/30 bg-gold/5 px-4 py-1.5 mb-8 text-gold/80 text-[10px] font-pixel tracking-wider">
+              <div
+                className="inline-flex items-center gap-2 border border-gold/30 bg-gold/5 px-4 py-1.5 mb-8 text-gold/80 text-[10px] font-pixel tracking-wider"
+                style={{ textShadow: "0 1px 6px rgba(0,0,0,0.95)" }}
+              >
                 <span className="text-gold">◆</span> SEASON 2026 · OPEN BETA <span className="text-gold">◆</span>
               </div>
 
               {/* Large editorial headline */}
-              <h1 className="font-pixel text-gold leading-none mb-8" style={{ fontSize: "clamp(2.2rem, 6vw, 4.5rem)", textShadow: "0 2px 12px rgba(0,0,0,0.9), 0 0 40px rgba(196,163,90,0.35)" }}>
+              <h1
+                className="font-pixel text-gold leading-none mb-8"
+                style={{
+                  fontSize: "clamp(2.2rem, 6vw, 4.5rem)",
+                  textShadow: "0 2px 16px rgba(0,0,0,0.95), 0 4px 32px rgba(0,0,0,0.8), 0 0 40px rgba(196,163,90,0.35)",
+                  WebkitTextStroke: "1px rgba(0,0,0,0.6)",
+                }}
+              >
                 College
                 <br />
                 <span className="ml-4 sm:ml-8">Baseball</span>
@@ -152,7 +160,10 @@ export default function LandingPage() {
                 Dynasty
               </h1>
 
-              <p className="text-foreground/80 text-lg leading-relaxed max-w-md mb-10" style={{ textShadow: "0 1px 6px rgba(0,0,0,0.8)" }}>
+              <p
+                className="text-white/90 text-lg leading-relaxed max-w-md mb-10"
+                style={{ textShadow: "0 1px 8px rgba(0,0,0,0.95), 0 2px 20px rgba(0,0,0,0.85)" }}
+              >
                 The most immersive college baseball management sim. Recruit real talent, build your program, and compete against real coaches in a persistent league.
               </p>
 
@@ -171,7 +182,10 @@ export default function LandingPage() {
               </div>
 
               {/* Quick access links */}
-              <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+              <div
+                className="flex flex-wrap gap-4 text-xs text-white/70"
+                style={{ textShadow: "0 1px 6px rgba(0,0,0,0.95)" }}
+              >
                 <Link href="/roster-viewer">
                   <button className="flex items-center gap-1.5 hover:text-gold transition-colors font-medium" data-testid="button-view-ncaa-rosters">
                     <Database className="w-3.5 h-3.5 text-gold" /> View NCAA 2026 Rosters
