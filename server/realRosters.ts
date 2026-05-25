@@ -60,6 +60,9 @@ export interface RealPlayer {
   pitchCT: number;
   pitchSNK: number;
   pitchSPL: number;
+  pitchFK?: number;
+  pitchSFF?: number;
+  pitchSHU?: number;
   skinTone?: string;
   hairColor?: string;
   hairStyle?: string;

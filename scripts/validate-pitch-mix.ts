@@ -2,8 +2,8 @@
  * Pitch-mix field validator.
  *
  * Schema rules (server/pitchMixHelpers.ts):
- *   - pitchFB, pitch2S, and pitchCH are binary: 0 or 1.
- *   - pitchSL / pitchCB / pitchCT / pitchSNK / pitchSPL must be
+ *   - pitchFB, pitch2S, pitchCH, pitchFK, and pitchSFF are binary: 0 or 1.
+ *   - pitchSL / pitchCB / pitchCT / pitchSNK / pitchSPL / pitchSHU must be
  *     integers in 0-7.
  *
  * A value > 7 in any field indicates the author used the wrong 0-100
@@ -17,6 +17,8 @@
  * Section 2 validates the archetype-based pitch generator (generateArchetypePitchMix)
  * against a synthetic sample to ensure pitch counts, level caps, and binary
  * field rules are all respected at runtime.
+ *
+ * Section 3 reports the actual pitch distribution across all roster pitchers.
  */
 
 import { SEC_BATCH1_ROSTERS } from "../server/secBatch1";
@@ -78,9 +80,14 @@ const PITCH_FIELDS = [
   "pitchCT",
   "pitchSNK",
   "pitchSPL",
+  "pitchFK",
+  "pitchSFF",
+  "pitchSHU",
 ] as const;
 
-const BINARY_PITCH_FIELDS = new Set(["pitchFB", "pitch2S", "pitchCH"]);
+// Binary fields: must be 0 or 1
+const BINARY_PITCH_FIELDS = new Set(["pitchFB", "pitch2S", "pitchCH", "pitchFK", "pitchSFF"]);
+
 const PITCHER_POSITIONS = new Set(["P", "SP", "RP", "CP", "CL", "LHP", "RHP"]);
 
 interface PitchViolation {
@@ -94,6 +101,7 @@ interface PitchViolation {
 
 const violations: PitchViolation[] = [];
 
+// ─── Section 1: Field-level validation ───────────────────────────────────────
 for (const [fileName, rosters] of Object.entries(ALL_ROSTERS)) {
   for (const [teamName, players] of Object.entries(rosters)) {
     for (const player of players) {
@@ -103,7 +111,7 @@ for (const [fileName, rosters] of Object.entries(ALL_ROSTERS)) {
       for (const field of PITCH_FIELDS) {
         const value = typeof raw[field] === "number" ? (raw[field] as number) : 0;
         if (BINARY_PITCH_FIELDS.has(field) && value > 1) {
-          violations.push({ file: fileName, team: teamName, player: playerName, field, value, reason: "binary field (must be 0 or 1); CH is presence-only" });
+          violations.push({ file: fileName, team: teamName, player: playerName, field, value, reason: "binary field (must be 0 or 1)" });
         } else if (!BINARY_PITCH_FIELDS.has(field) && value > 7) {
           violations.push({ file: fileName, team: teamName, player: playerName, field, value, reason: "wrong 0-100 scale (must be 0-7)" });
         }
@@ -138,9 +146,6 @@ Fix: use the pitchMix() helper from server/pitchMixHelpers.ts instead of
 }
 
 // ─── Section 2: Archetype generator distribution checks ──────────────────────
-// Generate a synthetic sample and validate pitch counts, level caps, and
-// binary field rules for the runtime archetype system.
-
 const SAMPLE_SIZE = 500;
 
 const archetypes: PitcherArchetype[] = [
@@ -241,5 +246,48 @@ if (archetypeErrors > 0) {
 
 console.log(`  ✓ ${archetypes.length * tiers.length} archetype/tier combos × ${SAMPLE_SIZE} samples: all pitch counts, level caps, and binary rules correct`);
 console.log(`  ✓ Archetype routing checks: ${archetypeRoutingChecks.length}/${archetypeRoutingChecks.length} passed`);
+
+// ─── Section 3: Distribution report ──────────────────────────────────────────
+console.log("\n── Pitch distribution across all real pitchers ──");
+
+const counts: Record<string, number> = {
+  pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0,
+  pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0,
+};
+let pitcherTotal = 0;
+
+for (const rosters of Object.values(ALL_ROSTERS)) {
+  for (const players of Object.values(rosters)) {
+    for (const player of players) {
+      if (!PITCHER_POSITIONS.has(player.position)) continue;
+      pitcherTotal++;
+      const raw = player as unknown as Record<string, unknown>;
+      for (const field of PITCH_FIELDS) {
+        const value = typeof raw[field] === "number" ? (raw[field] as number) : 0;
+        if (value > 0) counts[field]++;
+      }
+    }
+  }
+}
+
+const targets: Record<string, string> = {
+  pitchFB:  "100%",  pitch2S:  "~18%", pitchSL:  "~43%", pitchCB:  "~43%",
+  pitchCH:  "~55%",  pitchCT:  "~22%", pitchSNK: "~39%", pitchSPL: "~38%",
+  pitchFK:  "~18%",  pitchSFF: "~18%", pitchSHU:  "~7.5%",
+};
+
+const labels: Record<string, string> = {
+  pitchFB: "FB ", pitch2S: "2S ", pitchSL: "SL ", pitchCB: "CB ",
+  pitchCH: "CH ", pitchCT: "CT ", pitchSNK: "SNK", pitchSPL: "SPL",
+  pitchFK: "FK ", pitchSFF: "SFF", pitchSHU: "SHU",
+};
+
+console.log(`  ${pitcherTotal} total pitchers\n`);
+for (const field of PITCH_FIELDS) {
+  const n = counts[field];
+  const pct = ((n / pitcherTotal) * 100).toFixed(1);
+  console.log(`  ${labels[field]}  ${String(n).padStart(4)}  (${pct.padStart(5)}%)   target ${targets[field]}`);
+}
+
 console.log("\n✓ All pitcher pitch-mix fields are valid.");
 process.exit(0);

@@ -1,42 +1,47 @@
 /**
- * redistribute-pitches.ts
+ * redistribute-pitches.ts — Task #591
  *
- * Redistributes slider and curveball usage into rarer pitch types across ALL
- * real pitchers, distributed evenly across every conference (modulo-based,
- * deterministic — not random, not first-N%).
+ * Expands all pitchMix() 7-element calls to 10-element calls, adding:
+ *   index 7 = FK  (Forkball, binary 0/1 like CH)
+ *   index 8 = SFF (Split-Finger Fastball, binary 0/1 like CH)
+ *   index 9 = SHU (Shuuto, 0-7 like SNK)
  *
- * Handles two pitch storage formats:
- *   1. pitchMix format:   `...pitchMix(1, [2S, SL, CB, CH, CT, SNK, SPL])`
- *   2. Inline field format: `pitchFB: 1, pitch2S: 0, pitchSL: 4, pitchCB: 4, ...`
+ * Full array: [2S, SL, CB, CH, CT, SNK, SPL, FK, SFF, SHU]
  *
- * Conversion rules (applied to ORIGINAL pre-redistribution pitch values):
- *   SL pitchers at index i:  i%100 < 28 → SNK | i%100 < 38 → CT | else keep SL
- *   CB pitchers at index j:  j%100 < 25 → SPL | j%100 < 35 → 2S | else keep CB
+ * Redistribution rules (deterministic, counter-based):
+ *   Step 2 — CH → FK/SFF:
+ *     For each pitcher with CH=1 (global chCounter):
+ *       chCounter % 5 === 1  → CH removed, FK=1  (~20%)
+ *       chCounter % 5 === 2  → CH removed, SFF=1  (~20%)
+ *       otherwise            → CH unchanged       (~60%)
  *
- * Level transfer: min(7, existingTarget + sourcePitchLevel).
- * 2S is binary: converting CB→2S sets pitch2S=1 regardless of CB level.
- * OVR cap: ≤400 OVR → max level 4; ≤500 OVR → max level 5.
+ *   Step 3 — SNK → SHU:
+ *     For each pitcher with SNK>0 (global snkCounter):
+ *       snkCounter % 7 === 0 → SNK removed, SHU = original SNK level (~14%)
  *
- * Reads ORIGINAL values via `git show HEAD~1:<file>` so it can be re-run safely.
+ *   Step 4a — SL augmentation:
+ *     For each pitcher without SL (noSlCounter):
+ *       noSlCounter % 9 === 0 → SL = 3 added
+ *
+ *   Step 4b — CB augmentation:
+ *     For each pitcher without CB (noCbCounter):
+ *       noCbCounter % 13 === 0 → CB = 3 added
+ *
+ *   Step 4c — 2S augmentation:
+ *     For each pitcher without 2S (no2SCounter):
+ *       no2SCounter % 50 === 0 → 2S = 1 added
+ *
+ * FK and SFF are binary (clamped to 0 or 1) like CH.
+ * SHU inherits the exact SNK level value (0-7).
+ * Already-10-element arrays are skipped (idempotent).
+ *
+ * Run with: npx tsx scripts/redistribute-pitches.ts
  */
 
-import { spawnSync } from "child_process";
-import { writeFileSync } from "fs";
-import { join, resolve, dirname } from "path";
-import { fileURLToPath } from "url";
+import * as fs from "fs";
+import * as path from "path";
 
-import { RAW_UNCALIBRATED_ROSTERS } from "../server/realRosters";
-import type { RealPlayer } from "../server/realRosters";
-import { calculateOVR } from "../shared/abilities";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname  = dirname(__filename);
-const ROOT = resolve(__dirname, "..");
-
-const PITCHER_POSITIONS = new Set(["P", "SP", "RP", "CP", "CL", "LHP", "RHP"]);
-
-// ─── Source files (all 19 paths imported by realRosters.ts) ──────────────────
-const SOURCE_FILES = [
+const ROSTER_FILES = [
   "server/secBatch1.ts",
   "server/secBatch2.ts",
   "server/secBatch3.ts",
@@ -46,328 +51,189 @@ const SOURCE_FILES = [
   "server/bigTenBatch1.ts",
   "server/bigTenBatch2.ts",
   "server/bigTenBatch3.ts",
+  "server/big12Rosters.ts",
   "server/pac12Rosters.ts",
   "server/mwcRosters.ts",
-  "server/ivyLeagueRosters.ts",
-  "server/sunBeltRosters.ts",
-  "server/bigWestRosters.ts",
-  "server/hbcuRosters.ts",
-  "server/moValleyRosters.ts",
-  "server/big12Rosters.ts",
   "server/aacRosters.ts",
+  "server/sunBeltRosters.ts",
   "server/wccRosters.ts",
+  "server/bigWestRosters.ts",
+  "server/moValleyRosters.ts",
+  "server/ivyLeagueRosters.ts",
+  "server/hbcuRosters.ts",
 ];
 
-// ─── Regex patterns ───────────────────────────────────────────────────────────
-// pitchMix format:  ...pitchMix(1, [2S, SL, CB, CH, CT, SNK, SPL])
-const PITCH_MIX_RE     = /\.\.\.pitchMix\(1,\s*\[([^\]]+)\]/;
-// inline format: any line containing pitchSL: but NOT pitchMix(
-const INLINE_PITCH_RE  = /\bpitchSL:\s*(\d+)/;
-const FIRST_NAME_RE    = /firstName:\s*"([^"]+)"/;
-const LAST_NAME_RE     = /lastName:\s*"([^"]+)"/;
-const TEAM_KEY_RE      = /^\s{0,4}"([^"]+)":\s*\[/;
+// ── Global counters (all deterministic, counter-based) ────────────────────────
+let chCounter   = 0;  // pitchers WITH CH=1
+let snkCounter  = 0;  // pitchers WITH SNK>0
+let noSlCounter = 0;  // pitchers WITHOUT SL
+let noCbCounter = 0;  // pitchers WITHOUT CB
+let no2SCounter = 0;  // pitchers WITHOUT 2S
 
-// pitchMix array positional indices: [2S, SL, CB, CH, CT, SNK, SPL]
-const IDX = { s2: 0, sl: 1, cb: 2, ch: 3, ct: 4, snk: 5, spl: 6 } as const;
+let totalPitchers  = 0;
+let changedCalls   = 0;
+let skippedCalls   = 0;
 
-interface PitchValues {
-  pitch2S: number; pitchSL: number; pitchCB: number; pitchCH: number;
-  pitchCT: number; pitchSNK: number; pitchSPL: number;
-}
+// ── Tracking for distribution report ─────────────────────────────────────────
+let afterCH = 0, afterFK = 0, afterSFF = 0, afterSHU = 0;
+let afterSL = 0, afterCB = 0, afterSNK = 0, afterSPL = 0;
+let after2S = 0, afterCT = 0;
 
-interface ConversionValues {
-  pitch2S: number; pitchSL: number; pitchCB: number;
-  pitchCT: number; pitchSNK: number; pitchSPL: number;
-}
+/**
+ * Apply redistribution to a 7-element secondary array.
+ * Input:  [2S, SL, CB, CH, CT, SNK, SPL]
+ * Output: [2S, SL, CB, CH, CT, SNK, SPL, FK, SFF, SHU]
+ */
+function redistribute(arr: number[]): number[] {
+  while (arr.length < 7) arr.push(0);
 
-// ─── Utility ──────────────────────────────────────────────────────────────────
-function pct(n: number, total: number) { return ((n / total) * 100).toFixed(1) + "%"; }
+  let twoS = arr[0];
+  let sl   = arr[1];
+  let cb   = arr[2];
+  let ch   = arr[3];
+  let ct   = arr[4];
+  let snk  = arr[5];
+  let spl  = arr[6];
+  let fk   = 0;
+  let sff  = 0;
+  let shu  = 0;
 
-function gitShowOriginal(relPath: string): string {
-  const r = spawnSync("git", ["show", `HEAD~1:${relPath}`], { cwd: ROOT, encoding: "utf8" });
-  if (r.status !== 0 || !r.stdout) {
-    // File wasn't modified in last commit — read from working tree
-    const r2 = spawnSync("cat", [join(ROOT, relPath)], { encoding: "utf8" });
-    return r2.stdout ?? "";
+  totalPitchers++;
+
+  // ── Step 2: CH redistribution (20% → FK, 20% → SFF, 60% keep) ───────────
+  if (ch > 0) {
+    chCounter++;
+    const mod = chCounter % 5;
+    if (mod === 1) {
+      fk = 1;
+      ch = 0;
+    } else if (mod === 2) {
+      sff = 1;
+      ch = 0;
+    }
+    // mod 0, 3, 4 → keep CH
   }
-  return r.stdout;
-}
 
-function parsePitchValuesFromInline(line: string): PitchValues {
-  function field(name: string): number {
-    const m = line.match(new RegExp(`\\b${name}:\\s*(\\d+)`));
-    return m ? parseInt(m[1], 10) : 0;
-  }
-  return {
-    pitch2S: field("pitch2S"), pitchSL: field("pitchSL"), pitchCB: field("pitchCB"),
-    pitchCH: field("pitchCH"), pitchCT: field("pitchCT"),
-    pitchSNK: field("pitchSNK"), pitchSPL: field("pitchSPL"),
-  };
-}
-
-function parsePitchValuesFromMix(content: string): PitchValues {
-  const parts = content.split(",").map(s => parseInt(s.trim(), 10));
-  const safe = (v: number) => (Number.isFinite(v) ? v : 0);
-  return {
-    pitch2S: safe(parts[IDX.s2]), pitchSL: safe(parts[IDX.sl]), pitchCB: safe(parts[IDX.cb]),
-    pitchCH: safe(parts[IDX.ch]), pitchCT: safe(parts[IDX.ct]),
-    pitchSNK: safe(parts[IDX.snk]), pitchSPL: safe(parts[IDX.spl]),
-  };
-}
-
-// ─── Step 1: Load ORIGINAL pitch values from git HEAD~1 ──────────────────────
-// Key: "teamName::firstName::lastName"
-const originalPitches = new Map<string, PitchValues>();
-const originalContents = new Map<string, string>();
-
-// Also track which format each file uses (per pitcher)
-// "pitchMix" or "inline" — stored so writing uses the right replacement method
-const playerFormat = new Map<string, "pitchMix" | "inline">();
-
-for (const relPath of SOURCE_FILES) {
-  const content = gitShowOriginal(relPath);
-  originalContents.set(relPath, content);
-
-  const lines = content.split("\n");
-  let currentTeam = "";
-  let currentFirstName = "";
-  let currentLastName = "";
-  let pitchFound = false;
-
-  for (const line of lines) {
-    const teamM = line.match(TEAM_KEY_RE);
-    if (teamM) currentTeam = teamM[1];
-
-    const fnM = line.match(FIRST_NAME_RE);
-    if (fnM) { currentFirstName = fnM[1]; pitchFound = false; }
-
-    const lnM = line.match(LAST_NAME_RE);
-    if (lnM) currentLastName = lnM[1];
-
-    if (!pitchFound && currentFirstName && currentLastName && currentTeam) {
-      // Detect pitchMix format
-      const pmM = line.match(PITCH_MIX_RE);
-      if (pmM) {
-        const key = `${currentTeam}::${currentFirstName}::${currentLastName}`;
-        originalPitches.set(key, parsePitchValuesFromMix(pmM[1]));
-        playerFormat.set(key, "pitchMix");
-        pitchFound = true;
-        continue;
-      }
-      // Detect inline format — line has pitchSL: but no pitchMix
-      if (INLINE_PITCH_RE.test(line)) {
-        const key = `${currentTeam}::${currentFirstName}::${currentLastName}`;
-        originalPitches.set(key, parsePitchValuesFromInline(line));
-        playerFormat.set(key, "inline");
-        pitchFound = true;
-      }
+  // ── Step 3: SNK redistribution (~14.3% → SHU) ────────────────────────────
+  if (snk > 0) {
+    snkCounter++;
+    if (snkCounter % 7 === 0) {
+      shu = snk;
+      snk = 0;
     }
   }
-}
 
-console.log(`\n── Loaded original pitch values for ${originalPitches.size} entries`);
-
-// ─── Step 2: Build ordered SL and CB pitcher lists via RAW roster order ───────
-interface PitcherEntry {
-  key: string;
-  teamName: string;
-  player: RealPlayer;
-  orig: PitchValues;
-}
-
-const slPitchers: PitcherEntry[] = [];
-const cbPitchers: PitcherEntry[] = [];
-let totalPitchers = 0;
-
-for (const [teamName, players] of Object.entries(RAW_UNCALIBRATED_ROSTERS)) {
-  for (const p of players) {
-    if (!PITCHER_POSITIONS.has(p.position)) continue;
-    totalPitchers++;
-    const key = `${teamName}::${p.firstName}::${p.lastName}`;
-    const orig = originalPitches.get(key);
-    if (!orig) continue;
-    if (orig.pitchSL > 0) slPitchers.push({ key, teamName, player: p, orig });
-    if (orig.pitchCB > 0) cbPitchers.push({ key, teamName, player: p, orig });
-  }
-}
-
-// Before stats
-function countPitch(field: keyof PitchValues) {
-  let n = 0;
-  for (const v of originalPitches.values()) if (v[field] > 0) n++;
-  return n;
-}
-const bSL = slPitchers.length, bCB = cbPitchers.length;
-const bCT = countPitch("pitchCT"), bSNK = countPitch("pitchSNK");
-const bSPL = countPitch("pitchSPL"), b2S = countPitch("pitch2S");
-
-console.log(`── Before (${totalPitchers} pitchers):`);
-console.log(`   SL:${bSL}(${pct(bSL,totalPitchers)}) CB:${bCB}(${pct(bCB,totalPitchers)}) CT:${bCT} SNK:${bSNK} SPL:${bSPL} 2S:${b2S}`);
-
-// ─── Step 3: Modulo-based conversion assignment ───────────────────────────────
-const conversionMap = new Map<string, ConversionValues>();
-
-function getOrInit(entry: PitcherEntry): ConversionValues {
-  if (!conversionMap.has(entry.key)) {
-    conversionMap.set(entry.key, {
-      pitch2S: entry.orig.pitch2S, pitchSL: entry.orig.pitchSL,
-      pitchCB: entry.orig.pitchCB, pitchCT: entry.orig.pitchCT,
-      pitchSNK: entry.orig.pitchSNK, pitchSPL: entry.orig.pitchSPL,
-    });
-  }
-  return conversionMap.get(entry.key)!;
-}
-
-let nSLtoSNK = 0, nSLtoCT = 0, nCBtoSPL = 0, nCBto2S = 0;
-
-for (let i = 0; i < slPitchers.length; i++) {
-  const mod = i % 100;
-  const vals = getOrInit(slPitchers[i]);
-  if (mod < 28) {
-    vals.pitchSNK = Math.min(7, vals.pitchSNK + vals.pitchSL);
-    vals.pitchSL = 0; nSLtoSNK++;
-  } else if (mod < 38) {
-    vals.pitchCT = Math.min(7, vals.pitchCT + vals.pitchSL);
-    vals.pitchSL = 0; nSLtoCT++;
-  }
-}
-
-for (let j = 0; j < cbPitchers.length; j++) {
-  const mod = j % 100;
-  const vals = getOrInit(cbPitchers[j]);
-  if (mod < 25) {
-    vals.pitchSPL = Math.min(7, vals.pitchSPL + vals.pitchCB);
-    vals.pitchCB = 0; nCBtoSPL++;
-  } else if (mod < 35) {
-    vals.pitch2S = 1; vals.pitchCB = 0; nCBto2S++;
-  }
-}
-
-console.log(`── Assigned: SL→SNK=${nSLtoSNK} SL→CT=${nSLtoCT} CB→SPL=${nCBtoSPL} CB→2S=${nCBto2S}`);
-
-// ─── Step 4: Apply OVR pitch cap ──────────────────────────────────────────────
-let capApplied = 0;
-for (const [key, vals] of conversionMap) {
-  const [teamName, firstName, lastName] = key.split("::");
-  const player = RAW_UNCALIBRATED_ROSTERS[teamName]?.find(
-    p => p.firstName === firstName && p.lastName === lastName
-  );
-  if (!player) continue;
-  const ovr = calculateOVR(player);
-  const cap = ovr <= 400 ? 4 : ovr <= 500 ? 5 : 7;
-  if (cap < 7) {
-    let changed = false;
-    for (const f of ["pitchSL","pitchCB","pitchCT","pitchSNK","pitchSPL"] as const) {
-      if (vals[f] > cap) { vals[f] = cap; changed = true; }
+  // ── Step 4a: SL augmentation (every 9th no-SL pitcher gets SL=3) ─────────
+  if (sl === 0) {
+    noSlCounter++;
+    if (noSlCounter % 9 === 0) {
+      sl = 3;
     }
-    if (changed) capApplied++;
   }
+
+  // ── Step 4b: CB augmentation (every 13th no-CB pitcher gets CB=3) ────────
+  if (cb === 0) {
+    noCbCounter++;
+    if (noCbCounter % 13 === 0) {
+      cb = 3;
+    }
+  }
+
+  // ── Step 4c: 2S augmentation (every 50th no-2S pitcher gets 2S=1) ────────
+  if (twoS === 0) {
+    no2SCounter++;
+    if (no2SCounter % 50 === 0) {
+      twoS = 1;
+    }
+  }
+
+  // ── Tracking ──────────────────────────────────────────────────────────────
+  if (ch   > 0) afterCH++;
+  if (fk   > 0) afterFK++;
+  if (sff  > 0) afterSFF++;
+  if (shu  > 0) afterSHU++;
+  if (sl   > 0) afterSL++;
+  if (cb   > 0) afterCB++;
+  if (snk  > 0) afterSNK++;
+  if (spl  > 0) afterSPL++;
+  if (twoS > 0) after2S++;
+  if (ct   > 0) afterCT++;
+
+  return [twoS, sl, cb, ch, ct, snk, spl, fk, sff, shu];
 }
-console.log(`── OVR cap applied to ${capApplied} pitchers`);
 
-// ─── Step 5: Write corrected files (starting from ORIGINAL content) ───────────
-let filesModified = 0;
-let playersUpdated = 0;
+// Matches: ...pitchMix(N, [elements])
+// Captures: group 1 = primary, group 2 = comma-separated array contents
+const PITCH_MIX_RE = /\.\.\.pitchMix\((\d+),\s*\[([^\]]*)\]\)/g;
 
-for (const relPath of SOURCE_FILES) {
-  const original = originalContents.get(relPath);
-  if (!original) { console.warn(`  [skip] no content for ${relPath}`); continue; }
+function processFile(filePath: string): void {
+  const fullPath = path.resolve(filePath);
+  const original = fs.readFileSync(fullPath, "utf-8");
 
-  const lines = original.split("\n");
-  let currentTeam = "";
-  let currentFirstName = "";
-  let currentLastName = "";
-  let pitchWritten = false;
-  let fileModified = false;
+  let modified = original;
+  let fileChanges = 0;
+  let fileSkips = 0;
 
-  const newLines = lines.map(line => {
-    // Track team context
-    const teamM = line.match(TEAM_KEY_RE);
-    if (teamM) currentTeam = teamM[1];
+  modified = modified.replace(PITCH_MIX_RE, (match, primaryStr, argsStr) => {
+    const primary = parseInt(primaryStr, 10);
+    const elements = argsStr
+      .split(",")
+      .map((s: string) => s.trim())
+      .filter((s: string) => s !== "")
+      .map((s: string) => parseInt(s, 10))
+      .filter((n: number) => !isNaN(n));
 
-    const fnM = line.match(FIRST_NAME_RE);
-    if (fnM) { currentFirstName = fnM[1]; pitchWritten = false; }
-
-    const lnM = line.match(LAST_NAME_RE);
-    if (lnM) currentLastName = lnM[1];
-
-    if (pitchWritten || !currentFirstName || !currentLastName || !currentTeam) return line;
-
-    const key = `${currentTeam}::${currentFirstName}::${currentLastName}`;
-    const newVals = conversionMap.get(key);
-    if (!newVals) {
-      // No conversion — mark pitch line as seen so we don't re-scan
-      if (PITCH_MIX_RE.test(line) || INLINE_PITCH_RE.test(line)) pitchWritten = true;
-      return line;
+    // Skip if already a 10-element array (idempotent)
+    if (elements.length >= 10) {
+      skippedCalls++;
+      fileSkips++;
+      totalPitchers++;
+      return match;
     }
 
-    const fmt = playerFormat.get(key);
-
-    // pitchMix format
-    if (fmt === "pitchMix" && PITCH_MIX_RE.test(line)) {
-      const origParts = line.match(PITCH_MIX_RE)![1]
-        .split(",").map(s => parseInt(s.trim(), 10));
-      const origCH = Number.isFinite(origParts[IDX.ch]) ? origParts[IDX.ch] : 0;
-      const newArray = [
-        newVals.pitch2S, newVals.pitchSL, newVals.pitchCB,
-        origCH, newVals.pitchCT, newVals.pitchSNK, newVals.pitchSPL,
-      ];
-      const newLine = line.replace(
-        /(\.\.\.\s*pitchMix\s*\(\s*1\s*,\s*\[)([^\]]+)(\])/,
-        `$1${newArray.join(", ")}$3`
-      );
-      if (newLine !== line) { pitchWritten = true; fileModified = true; playersUpdated++; }
-      return newLine;
-    }
-
-    // Inline field format
-    if (fmt === "inline" && INLINE_PITCH_RE.test(line)) {
-      let newLine = line
-        .replace(/\bpitch2S:\s*\d+/,  `pitch2S: ${newVals.pitch2S}`)
-        .replace(/\bpitchSL:\s*\d+/,  `pitchSL: ${newVals.pitchSL}`)
-        .replace(/\bpitchCB:\s*\d+/,  `pitchCB: ${newVals.pitchCB}`)
-        .replace(/\bpitchCT:\s*\d+/,  `pitchCT: ${newVals.pitchCT}`)
-        .replace(/\bpitchSNK:\s*\d+/, `pitchSNK: ${newVals.pitchSNK}`)
-        .replace(/\bpitchSPL:\s*\d+/, `pitchSPL: ${newVals.pitchSPL}`);
-      if (newLine !== line) { pitchWritten = true; fileModified = true; playersUpdated++; }
-      else pitchWritten = true;
-      return newLine;
-    }
-
-    return line;
+    const newArr = redistribute(elements);
+    const formatted = newArr.join(", ");
+    fileChanges++;
+    changedCalls++;
+    return `...pitchMix(${primary}, [${formatted}])`;
   });
 
-  const newContent = newLines.join("\n");
-  writeFileSync(join(ROOT, relPath), newContent, "utf8");
-  if (fileModified) { filesModified++; console.log(`  ✓ Updated ${relPath}`); }
-  else console.log(`  ○ Restored ${relPath} (no conversions in this file)`);
+  if (fileChanges > 0) {
+    fs.writeFileSync(fullPath, modified, "utf-8");
+    console.log(`  ✓ ${filePath}: ${fileChanges} call(s) updated${fileSkips ? `, ${fileSkips} skipped` : ""}`);
+  } else if (fileSkips > 0) {
+    console.log(`  ○ ${filePath}: already up to date (${fileSkips} skipped)`);
+  } else {
+    console.log(`  - ${filePath}: no pitchMix calls found`);
+  }
 }
 
-console.log(`\n  ${playersUpdated} pitchers updated across ${filesModified} files`);
+// ── Main ──────────────────────────────────────────────────────────────────────
+console.log("\n── Pitch redistribution — Task #591 (FK / SFF / SHU) ──\n");
 
-// ─── Step 6: Expected after-counts ────────────────────────────────────────────
-let aSL = 0, aCB = 0, aCT = 0, aSNK = 0, aSPL = 0, a2S = 0;
-for (const [key, orig] of originalPitches) {
-  const vals = conversionMap.get(key);
-  const sl  = vals ? vals.pitchSL  : orig.pitchSL;
-  const cb  = vals ? vals.pitchCB  : orig.pitchCB;
-  const ct  = vals ? vals.pitchCT  : orig.pitchCT;
-  const snk = vals ? vals.pitchSNK : orig.pitchSNK;
-  const spl = vals ? vals.pitchSPL : orig.pitchSPL;
-  const s2  = vals ? vals.pitch2S  : orig.pitch2S;
-  if (sl  > 0) aSL++;
-  if (cb  > 0) aCB++;
-  if (ct  > 0) aCT++;
-  if (snk > 0) aSNK++;
-  if (spl > 0) aSPL++;
-  if (s2  > 0) a2S++;
+for (const file of ROSTER_FILES) {
+  processFile(file);
 }
 
-console.log(`\n── After (expected from conversion map):`);
-console.log(`   SL:  ${bSL}→${aSL} (${pct(aSL,totalPitchers)})`);
-console.log(`   CB:  ${bCB}→${aCB} (${pct(aCB,totalPitchers)})`);
-console.log(`   CT:  ${bCT}→${aCT} (${pct(aCT,totalPitchers)})`);
-console.log(`   SNK: ${bSNK}→${aSNK} (${pct(aSNK,totalPitchers)})`);
-console.log(`   SPL: ${bSPL}→${aSPL} (${pct(aSPL,totalPitchers)})`);
-console.log(`   2S:  ${b2S}→${a2S} (${pct(a2S,totalPitchers)})`);
-console.log(`\n✓ Done. Run validate-all to confirm.\n`);
+const pct = (n: number) => `${((n / totalPitchers) * 100).toFixed(1)}%`;
+
+console.log(`
+── Summary ──────────────────────────────────────────────────────
+  Total pitchers processed : ${totalPitchers}
+  pitchMix() calls updated : ${changedCalls}
+  calls already up to date : ${skippedCalls}
+
+── Distribution after redistribution (${totalPitchers} pitchers) ──
+  FB  : 100%      (always present)
+  CH  : ${pct(afterCH).padStart(6)}   target ~55%
+  FK  : ${pct(afterFK).padStart(6)}   target ~18%
+  SFF : ${pct(afterSFF).padStart(6)}   target ~18%
+  SHU : ${pct(afterSHU).padStart(6)}   target  ~7.5%
+  SL  : ${pct(afterSL).padStart(6)}   target ~43%
+  CB  : ${pct(afterCB).padStart(6)}   target ~43%
+  SNK : ${pct(afterSNK).padStart(6)}   target ~39%
+  SPL : ${pct(afterSPL).padStart(6)}   target ~38%
+  2S  : ${pct(after2S).padStart(6)}   target ~18%
+  CT  : ${pct(afterCT).padStart(6)}   target ~22%
+──────────────────────────────────────────────────────────────────
+`);

@@ -1,13 +1,13 @@
 /**
  * Unified pitch-mix helper for all roster files.
  *
- * Schema rules (shared/schema.ts:240-268):
- *   - pitchFB, pitch2S, and pitchCH are binary: 0 or 1.
- *   - All other pitch slots (SL/CB/CT/SNK/SPL/...) are integers 0-7.
+ * Schema rules (shared/schema.ts):
+ *   - pitchFB, pitch2S, pitchCH, pitchFK, and pitchSFF are binary: 0 or 1.
+ *   - All other pitch slots (SL/CB/CT/SNK/SPL/SHU/...) are integers 0-7.
  *
  * Canonical usage — all new roster files should call:
- *   pitchMix(1, [2S, SL, CB, CH, CT, SNK, SPL])
- * where secondaries are 0-7 integers.
+ *   pitchMix(1, [2S, SL, CB, CH, CT, SNK, SPL, FK, SFF, SHU])
+ * where secondaries are 0-7 integers (binary fields auto-clamped).
  *
  * Defensive coercions (applied automatically, logged once per context):
  *   - Primary > 1: collapsed to 1. pitchFB is binary; FB quality lives
@@ -18,7 +18,8 @@
  *      30-39 → 2, 1-29 → 1). The threshold 30 is chosen to distinguish
  *     true 0-100 inputs from a near-schema array that simply has a
  *     stray 8.
- *   - 2S and CH secondaries are always re-binarized after any other coercion.
+ *   - 2S, CH, FK, and SFF secondaries are always re-binarized after any
+ *     other coercion.
  *
  * pitchMix() emits a single `[roster-sanity]` console.warn the first
  * time it has to coerce a given context, so regressions are surfaced
@@ -34,14 +35,21 @@ export interface PitchMix {
   pitchCT: number;
   pitchSNK: number;
   pitchSPL: number;
+  pitchFK: number;
+  pitchSFF: number;
+  pitchSHU: number;
 }
 
 export const noPitches: PitchMix = {
   pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0,
   pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0,
+  pitchFK: 0, pitchSFF: 0, pitchSHU: 0,
 };
 
-const SECONDARY_KEYS = ["pitchSL", "pitchCB", "pitchCH", "pitchCT", "pitchSNK", "pitchSPL"] as const;
+const SECONDARY_KEYS = [
+  "pitchSL", "pitchCB", "pitchCH", "pitchCT", "pitchSNK", "pitchSPL",
+  "pitchFK", "pitchSFF", "pitchSHU",
+] as const;
 
 const warnedKeys = new Set<string>();
 function warnOnce(key: string, msg: string): void {
@@ -74,17 +82,14 @@ function coerceSecondary(v: number, useBucket: boolean): number {
  *
  * primary    Any non-zero value -> pitchFB = 1 (FB is binary; quality
  *            lives in velocity/stuff/heater).
- * secondary  Positional 7-element array: [2S, SL, CB, CH, CT, SNK, SPL].
+ * secondary  Positional 10-element array: [2S, SL, CB, CH, CT, SNK, SPL, FK, SFF, SHU].
+ *            Trailing elements are optional (omitted = 0).
  *            If the largest value is >= 30 (VELOCITY_SCALE_THRESHOLD),
  *            the whole array is treated as a 0-100 quality scale and
  *            bucketed to 1-7.
- *            2S and CH are then re-binarized (0 or 1).
+ *            2S, CH, FK, and SFF are then re-binarized (0 or 1).
+ *            SHU inherits SNK-level semantics (0-7).
  */
-// Threshold for distinguishing a 0-100 quality scale from a near-schema
-// 0-7 scale that just has a stray out-of-range value. Roster files that
-// use 0-100 quality scales typically have a max >= 70, so 30 is a safe
-// boundary that preserves the relative arsenal for files that simply
-// pass an 8 by mistake.
 const VELOCITY_SCALE_THRESHOLD = 30;
 
 export function pitchMix(primary: number, secondary: number[], context: string = "anonymous"): PitchMix {
@@ -109,6 +114,18 @@ export function pitchMix(primary: number, secondary: number[], context: string =
   }
   const pitchCH = rawCH >= 1 ? 1 : 0;
 
+  const rawFK = coerceSecondary(safeSec[7] ?? 0, useBucket);
+  if (rawFK > 1) {
+    warnOnce(`${context}:fk`, `pitchMix(${context}): pitchFK quality ${rawFK} collapsed to 1 (FK is binary)`);
+  }
+  const pitchFK = rawFK >= 1 ? 1 : 0;
+
+  const rawSFF = coerceSecondary(safeSec[8] ?? 0, useBucket);
+  if (rawSFF > 1) {
+    warnOnce(`${context}:sff`, `pitchMix(${context}): pitchSFF quality ${rawSFF} collapsed to 1 (SFF is binary)`);
+  }
+  const pitchSFF = rawSFF >= 1 ? 1 : 0;
+
   return {
     pitchFB: safePrimary >= 1 ? 1 : 0,
     pitch2S,
@@ -118,6 +135,9 @@ export function pitchMix(primary: number, secondary: number[], context: string =
     pitchCT: coerceSecondary(safeSec[4] ?? 0, useBucket),
     pitchSNK: coerceSecondary(safeSec[5] ?? 0, useBucket),
     pitchSPL: coerceSecondary(safeSec[6] ?? 0, useBucket),
+    pitchFK,
+    pitchSFF,
+    pitchSHU: coerceSecondary(safeSec[9] ?? 0, useBucket),
   };
 }
 
@@ -194,6 +214,7 @@ type PoolEntry = [keyof PitchMix, number];
 
 // Weighted pool of secondary pitches per archetype.
 // Higher weight = more likely to appear in the arsenal.
+// FK, SFF, SHU not yet added to archetype pools (real-roster-only for now).
 const ARCHETYPE_POOLS: Record<PitcherArchetype, PoolEntry[]> = {
   // 55% FB/2S · 30% SL · 10% CH · 5% CB/SNK/SPL
   power_starter: [
@@ -222,14 +243,14 @@ const ARCHETYPE_POOLS: Record<PitcherArchetype, PoolEntry[]> = {
   ],
 };
 
-const BINARY_PITCH_KEYS = new Set<keyof PitchMix>(["pitchFB", "pitch2S", "pitchCH"]);
+const BINARY_PITCH_KEYS = new Set<keyof PitchMix>(["pitchFB", "pitch2S", "pitchCH", "pitchFK", "pitchSFF"]);
 
 /**
  * Generate a PitchMix for a pitcher based on their archetype and quality tier.
  *
  * Rules enforced:
  * - FB is always included (pitchFB = 1).
- * - pitch2S and pitchCH are binary (0 or 1).
+ * - pitch2S, pitchCH, pitchFK, and pitchSFF are binary (0 or 1).
  * - All other pitches use levels 2–4.
  * - Elite pitchers: exactly one non-binary secondary pitch gets level 5–7
  *   (the first drawn from the weighted pool = archetype signature pitch).
