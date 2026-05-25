@@ -19634,6 +19634,14 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
     const rawOverall = calculateOVR(playerData);
     const overall = Math.max(159, Math.min(650, rawOverall));
     const starRating = getStarRatingFromOVR(overall);
+    const cpuThrowHand = isPitcherPos ? (Math.random() < 0.28 ? "L" : "R") : "R";
+    const cpuBatHand = (() => {
+      if (isPitcherPos) return Math.random() < 0.15 ? "L" : "R";
+      const r = Math.random();
+      if (r < 0.28) return "L";
+      if (r < 0.31) return "S";
+      return "R";
+    })();
 
     await storage.createPlayer({
       teamId,
@@ -19648,6 +19656,8 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
       starRating,
       ...playerData,
       catcherAbility: position === "C" ? genAttrAroundAvg(targetAvg) : null,
+      batHand: cpuBatHand,
+      throwHand: cpuThrowHand,
       skinTone: appearance.skinTone,
       hairColor: appearance.hairColor,
       hairStyle: appearance.hairStyle,
@@ -19660,7 +19670,7 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
       potential: rollWeightedPotential(),
       ...(isPitcherPos
         ? generateArchetypePitchMix(
-            assignPitcherArchetype(position, "R", velocity, control, stamina, stuff),
+            assignPitcherArchetype(position, cpuThrowHand, velocity, control, stamina, stuff),
             qualityTierFromOvr(overall),
           )
         : noPitches),
