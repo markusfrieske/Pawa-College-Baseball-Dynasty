@@ -216,7 +216,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       // Tyler Fay — Friday SR RHP, no-hitter vs Florida 3/20, 8-3, 7 IP/1 ER/10K vs SC — TEAM ELITE STUFF
       { firstName: "Tyler", lastName: "Fay", position: "P", eligibility: "SR", homeState: "AL", hometown: "Tuscaloosa", jerseyNumber: 34,
         hitForAvg: 16, power: 12, speed: 33, arm: 93, fielding: 62, errorResistance: 54, velocity: 98, control: 96, stamina: 93, stuff: 98,
-        clutch: 90, vsLHP: 88, grit: 92, stealing: 10, running: 34, throwing: 90, recovery: 89, wRISP: 93, vsLefty: 94, poise: 93, heater: 98, agile: 44,
+        clutch: 90, vsLHP: 88, grit: 92, stealing: 10, running: 34, throwing: 90, recovery: 81, wRISP: 84, vsLefty: 83, poise: 86, heater: 98, agile: 44,
         abilities: ["Star of Victory", "Intimidator", "Strong Starter", "Heavy Ball", "Strikeout"], potential: "A+", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
@@ -433,7 +433,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
     // Jake Marciano — SO RHP, weekend SP — TEAM ELITE STUFF
     { firstName: "Jake", lastName: "Marciano", position: "P", eligibility: "SO", homeState: "NJ", hometown: "Marlton", jerseyNumber: 33,
       hitForAvg: 13, power: 10, speed: 32, arm: 92, fielding: 60, errorResistance: 50, velocity: 97, control: 95, stamina: 92, stuff: 97,
-      clutch: 88, vsLHP: 84, grit: 90, stealing: 7, running: 30, throwing: 88, recovery: 88, wRISP: 92, vsLefty: 93, poise: 92, heater: 97, agile: 42,
+      clutch: 88, vsLHP: 84, grit: 90, stealing: 7, running: 30, throwing: 88, recovery: 79, wRISP: 83, vsLefty: 82, poise: 85, heater: 95, agile: 42,
       abilities: ["Star of Victory", "Sharpness", "Strikeout", "Strong Starter", "Intimidator"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
@@ -497,7 +497,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
     // Andreas Alvarez — JR RHP, 2026 SEC strikeout leader, elite velocity — TEAM ELITE STUFF
     { firstName: "Andreas", lastName: "Alvarez", position: "P", eligibility: "JR", homeState: "AL", hometown: "Auburn", jerseyNumber: 46,
       hitForAvg: 13, power: 10, speed: 32, arm: 92, fielding: 60, errorResistance: 52, velocity: 97, control: 95, stamina: 92, stuff: 97,
-      clutch: 86, vsLHP: 82, grit: 90, stealing: 7, running: 30, throwing: 88, recovery: 88, wRISP: 92, vsLefty: 93, poise: 92, heater: 97, agile: 42,
+      clutch: 86, vsLHP: 82, grit: 90, stealing: 7, running: 30, throwing: 88, recovery: 79, wRISP: 93, vsLefty: 83, poise: 85, heater: 86, agile: 42,
       abilities: ["Star of Victory", "Sharpness", "Heavy Ball", "Intimidator", "Strong Starter"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "tan", hairColor: "black", hairStyle: "short",
@@ -843,7 +843,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       // Tomas Valincius — LHP JR Friday ace (Virginia transfer), 8-2, 13K vs Auburn, 14K vs Vandy, 7 shutout IP @ Ark — TEAM ELITE STUFF
       { firstName: "Tomas", lastName: "Valincius", position: "P", eligibility: "JR", homeState: "VA", hometown: "Richmond", jerseyNumber: 37,
         hitForAvg: 16, power: 12, speed: 32, arm: 92, fielding: 60, errorResistance: 50, velocity: 97, control: 95, stamina: 92, stuff: 97,
-        clutch: 88, vsLHP: 99, grit: 90, stealing: 9, running: 32, throwing: 84, recovery: 88, wRISP: 92, vsLefty: 93, poise: 92, heater: 97, agile: 42,
+        clutch: 88, vsLHP: 99, grit: 90, stealing: 9, running: 32, throwing: 84, recovery: 78, wRISP: 82, vsLefty: 95, poise: 84, heater: 86, agile: 42,
         abilities: ["Star of Victory", "Intimidator", "Heavy Ball", "Natural Shuuto", "Sharpness"], potential: "A+", catcherAbility: null,
         throwHand: "L", batHand: "L",
         skinTone: "light", hairColor: "brown", hairStyle: "short",

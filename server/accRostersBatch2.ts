@@ -324,7 +324,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
     // Jason DeCaro — Friday ace JR, 9-2 / 1.91 ERA / 66 IP / 61K, Golden Spikes Watch List — TEAM ELITE STUFF
     { firstName: "Jason", lastName: "DeCaro", position: "P", eligibility: "JR", homeState: "NJ", hometown: "Wayne", jerseyNumber: 29,
       hitForAvg: 18, power: 14, speed: 33, arm: 92, fielding: 60, errorResistance: 60, velocity: 97, control: 95, stamina: 92, stuff: 97,
-      clutch: 88, vsLHP: 84, grit: 90, stealing: 8, running: 35, throwing: 88, recovery: 88, wRISP: 92, vsLefty: 93, poise: 92, heater: 97, agile: 46,
+      clutch: 88, vsLHP: 84, grit: 90, stealing: 8, running: 35, throwing: 88, recovery: 81, wRISP: 93, vsLefty: 83, poise: 86, heater: 86, agile: 46,
       abilities: ["Star of Victory", "Inside Pitch", "Strong Starter", "Intimidator", "Strikeout"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
@@ -332,7 +332,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
     // Caden Glauber — FR RHP, 6-0 / 1.95 / 67K / 4 SV, weekend bullpen ace, occasional Sunday starter — TEAM ELITE STUFF
     { firstName: "Caden", lastName: "Glauber", position: "P", eligibility: "FR", homeState: "NC", hometown: "Charlotte", jerseyNumber: 27,
       hitForAvg: 12, power: 10, speed: 33, arm: 92, fielding: 60, errorResistance: 52, velocity: 97, control: 95, stamina: 92, stuff: 97,
-      clutch: 88, vsLHP: 84, grit: 90, stealing: 8, running: 32, throwing: 88, recovery: 88, wRISP: 92, vsLefty: 93, poise: 92, heater: 97, agile: 46,
+      clutch: 88, vsLHP: 84, grit: 90, stealing: 8, running: 32, throwing: 88, recovery: 80, wRISP: 84, vsLefty: 82, poise: 93, heater: 86, agile: 46,
       abilities: ["Star of Victory", "Sharpness", "Strong Starter", "Intimidator", "Heavy Ball"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
@@ -530,10 +530,10 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (8)
     { firstName: "Jack", lastName: "Radel", position: "P", eligibility: "JR", homeState: "OH", hometown: "Cincinnati", jerseyNumber: 34,
       hitForAvg: 23, power: 19, speed: 34, arm: 93, fielding: 62, errorResistance: 54, velocity: 97, control: 95, stamina: 93, stuff: 98,
-      clutch: 90, vsLHP: 88, grit: 92, stealing: 14, running: 40, throwing: 95, recovery: 89, wRISP: 93, vsLefty: 94, poise: 93, heater: 97, agile: 48,
+      clutch: 90, vsLHP: 88, grit: 92, stealing: 14, running: 40, throwing: 95, recovery: 79, wRISP: 84, vsLefty: 93, poise: 83, heater: 86, agile: 48,
       abilities: ["Star of Victory", "True Slider", "Heavy Ball", "Sharpness", "Strikeout"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
-      ...pitchMix(1, [1, 6, 4, 1, 0, 0, 0]) },
+      ...pitchMix(1, [1, 5, 4, 1, 0, 0, 0]) },
     { firstName: "Ty", lastName: "Uber", position: "P", eligibility: "SR", homeState: "CA", hometown: "Palo Alto", jerseyNumber: 29,
       hitForAvg: 15, power: 11, speed: 32, arm: 49, fielding: 30, errorResistance: 42, velocity: 53, control: 47, stamina: 47, stuff: 45,
       clutch: 59, vsLHP: 55, grit: 61, stealing: 10, running: 30, throwing: 63, recovery: 42, wRISP: 43, vsLefty: 43, poise: 46, heater: 49, agile: 37,

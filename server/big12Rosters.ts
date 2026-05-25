@@ -1603,7 +1603,7 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
     // Ethan Lund — JR RHP, 2026 Big 12 strikeout leader, elite velocity — TEAM ELITE STUFF
     { firstName: "Ethan", lastName: "Lund", position: "P", eligibility: "JR", homeState: "OK", hometown: "Stillwater", jerseyNumber: 29,
       hitForAvg: 14, power: 11, speed: 32, arm: 93, fielding: 62, errorResistance: 54, velocity: 98, control: 96, stamina: 93, stuff: 98,
-      clutch: 88, vsLHP: 84, grit: 90, stealing: 8, running: 30, throwing: 88, recovery: 89, wRISP: 93, vsLefty: 94, poise: 93, heater: 98, agile: 42,
+      clutch: 88, vsLHP: 84, grit: 90, stealing: 8, running: 30, throwing: 88, recovery: 80, wRISP: 84, vsLefty: 83, poise: 86, heater: 97, agile: 42,
       abilities: ["Star of Victory", "Sharpness", "Heavy Ball", "Intimidator", "Strong Starter"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",

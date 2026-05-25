@@ -386,7 +386,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       // Wes Mendes — JR RHP, 2026 ACC Pitcher of the Year candidate, 9-1/2.15 ERA — TEAM ELITE STUFF
       { firstName: "Wes", lastName: "Mendes", position: "P", eligibility: "JR", homeState: "FL", hometown: "Tallahassee", jerseyNumber: 35,
         hitForAvg: 14, power: 11, speed: 32, arm: 92, fielding: 60, errorResistance: 54, velocity: 97, control: 95, stamina: 92, stuff: 97,
-        clutch: 88, vsLHP: 84, grit: 90, stealing: 8, running: 30, throwing: 88, recovery: 88, wRISP: 92, vsLefty: 93, poise: 92, heater: 97, agile: 42,
+        clutch: 88, vsLHP: 84, grit: 90, stealing: 8, running: 30, throwing: 88, recovery: 83, wRISP: 85, vsLefty: 82, poise: 94, heater: 87, agile: 42,
         abilities: ["Star of Victory", "Sharpness", "Strong Starter", "Intimidator", "Heavy Ball"], potential: "A+", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "tan", hairColor: "brown", hairStyle: "short",

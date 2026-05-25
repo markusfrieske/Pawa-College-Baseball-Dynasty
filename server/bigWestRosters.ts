@@ -480,7 +480,7 @@ export const BIG_WEST_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Jackson", lastName: "Flora", position: "P", eligibility: "FR", homeState: "CA", hometown: "Santa Barbara", jerseyNumber: 14,
       generational: true,
       hitForAvg: 12, power: 9, speed: 31, arm: 96, fielding: 66, errorResistance: 40, velocity: 99, control: 97, stamina: 95, stuff: 99,
-      clutch: 90, vsLHP: 92, grit: 90, stealing: 9, running: 28, throwing: 90, recovery: 91, wRISP: 95, vsLefty: 97, poise: 95, heater: 99, agile: 36,
+      clutch: 90, vsLHP: 92, grit: 90, stealing: 9, running: 28, throwing: 90, recovery: 80, wRISP: 85, vsLefty: 84, poise: 87, heater: 99, agile: 36,
       abilities: ["Star of Victory", "Intimidator", "Heavy Ball", "Sharpness", "Pace"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",

@@ -215,7 +215,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       // Aidan King — Friday RHP SO, 4-2/1.62 ERA, National Pitcher of the Month — TEAM ELITE STUFF
       { firstName: "Aidan", lastName: "King", position: "P", eligibility: "SO", homeState: "GA", hometown: "Savannah", jerseyNumber: 29,
         hitForAvg: 14, power: 11, speed: 32, arm: 92, fielding: 60, errorResistance: 54, velocity: 97, control: 95, stamina: 92, stuff: 97,
-        clutch: 90, vsLHP: 88, grit: 90, stealing: 10, running: 34, throwing: 88, recovery: 88, wRISP: 92, vsLefty: 93, poise: 92, heater: 97, agile: 44,
+        clutch: 90, vsLHP: 88, grit: 90, stealing: 10, running: 34, throwing: 88, recovery: 79, wRISP: 84, vsLefty: 81, poise: 85, heater: 95, agile: 44,
         abilities: ["Star of Victory", "Intimidator", "Sharpness", "Heavy Ball", "Strikeout"], potential: "A+", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
@@ -223,7 +223,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       // Liam Peterson — Saturday RHP JR, top-ranked P in 2026 MLB Draft, 96 K in 69.1 IP last yr
       { firstName: "Liam", lastName: "Peterson", position: "P", eligibility: "JR", homeState: "FL", hometown: "Jacksonville", jerseyNumber: 23,
         hitForAvg: 16, power: 13, speed: 33, arm: 92, fielding: 60, errorResistance: 54, velocity: 97, control: 95, stamina: 92, stuff: 97,
-        clutch: 90, vsLHP: 88, grit: 92, stealing: 10, running: 34, throwing: 92, recovery: 88, wRISP: 92, vsLefty: 93, poise: 92, heater: 97, agile: 44,
+        clutch: 90, vsLHP: 88, grit: 92, stealing: 10, running: 34, throwing: 92, recovery: 83, wRISP: 85, vsLefty: 82, poise: 93, heater: 87, agile: 44,
         abilities: ["Star of Victory", "Natural Shuuto", "Intimidator", "Heavy Ball", "Sharpness"], potential: "A+", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
