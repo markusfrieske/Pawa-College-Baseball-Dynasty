@@ -107,21 +107,8 @@ export default function LandingPage() {
       <main>
         {/* ── HERO ─────────────────────────────────────────────── */}
         <section className="relative min-h-[90vh] flex items-center overflow-hidden">
-          {/* Pixel grid overlay */}
-          <div
-            className="absolute inset-0 opacity-[0.03] pointer-events-none"
-            style={{ backgroundImage: "linear-gradient(#d4a843 1px, transparent 1px), linear-gradient(90deg, #d4a843 1px, transparent 1px)", backgroundSize: "48px 48px" }}
-          />
-          {/* Gold radial bloom */}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{ background: "radial-gradient(ellipse 70% 60% at 35% 50%, rgba(196,163,90,0.10) 0%, transparent 65%)" }}
-          />
-          {/* Bottom fade */}
-          <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent pointer-events-none" />
-
-          {/* Chibi hero image — full bleed */}
-          <div className="absolute inset-0 pointer-events-none select-none">
+          {/* Layer 1 — Chibi hero image (base, behind everything) */}
+          <div className="absolute inset-0 z-0 pointer-events-none select-none">
             <img
               src="/chibi-hero.png"
               alt="College Baseball Dynasty chibi baseball players"
@@ -129,8 +116,21 @@ export default function LandingPage() {
             />
           </div>
 
-          {/* Dark scrim — dims image so text stays legible without a green box */}
-          <div className="absolute inset-0 bg-black/45 pointer-events-none" />
+          {/* Layer 2 — Dark scrim (dims image for text legibility) */}
+          <div className="absolute inset-0 z-[1] bg-black/45 pointer-events-none" />
+
+          {/* Layer 3 — Pixel grid overlay */}
+          <div
+            className="absolute inset-0 z-[2] opacity-[0.03] pointer-events-none"
+            style={{ backgroundImage: "linear-gradient(#d4a843 1px, transparent 1px), linear-gradient(90deg, #d4a843 1px, transparent 1px)", backgroundSize: "48px 48px" }}
+          />
+          {/* Layer 3 — Gold radial bloom */}
+          <div
+            className="absolute inset-0 z-[2] pointer-events-none"
+            style={{ background: "radial-gradient(ellipse 70% 60% at 35% 50%, rgba(196,163,90,0.10) 0%, transparent 65%)" }}
+          />
+          {/* Layer 3 — Bottom fade into page background */}
+          <div className="absolute bottom-0 left-0 right-0 h-32 z-[2] bg-gradient-to-t from-background to-transparent pointer-events-none" />
 
           {/* Left content */}
           <div className="relative z-10 container mx-auto px-6 sm:px-10 py-20">
