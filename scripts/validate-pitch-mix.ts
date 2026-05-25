@@ -155,6 +155,13 @@ const tierPitchRange: Record<QualityTier, [number, number]> = {
   average: [2, 3],
 };
 
+// Pitches that must NEVER appear for a given archetype (not in the pool)
+const DISALLOWED_PITCHES: Partial<Record<PitcherArchetype, (keyof ReturnType<typeof generateArchetypePitchMix>)[]>> = {
+  reliever:    ["pitch2S", "pitchCT"],
+  junkball:    ["pitch2S"],
+  sinkerballer: ["pitch2S"],
+};
+
 let archetypeErrors = 0;
 
 console.log("\n── Archetype pitch-mix generator checks ──");
@@ -164,12 +171,14 @@ for (const archetype of archetypes) {
     const [minPitches, maxPitches] = tierPitchRange[tier];
     const ovr = tierOvr[tier];
     const resolvedTier = qualityTierFromOvr(ovr);
+    const disallowed = DISALLOWED_PITCHES[archetype] ?? [];
 
     let tooFew = 0;
     let tooMany = 0;
     let binaryViolation = 0;
     let levelViolation = 0;
     let eliteSignatureViolation = 0;
+    let disallowedViolation = 0;
 
     for (let n = 0; n < SAMPLE_SIZE; n++) {
       const mix = generateArchetypePitchMix(archetype, resolvedTier);
@@ -184,6 +193,7 @@ for (const archetype of archetypes) {
         const v = mix[k];
         if (BINARY_PITCH_FIELDS.has(k) && v > 1) binaryViolation++;
         if (!BINARY_PITCH_FIELDS.has(k) && k !== "pitchFB" && (v < 2 || v > 7)) levelViolation++;
+        if (disallowed.includes(k as never)) disallowedViolation++;
       }
 
       if (tier === "elite") {
@@ -195,10 +205,10 @@ for (const archetype of archetypes) {
 
     const label = `${archetype}/${tier}`;
     const pass = tooFew === 0 && tooMany === 0 && binaryViolation === 0 &&
-                 levelViolation === 0 && eliteSignatureViolation === 0;
+                 levelViolation === 0 && eliteSignatureViolation === 0 && disallowedViolation === 0;
     if (!pass) {
       archetypeErrors++;
-      console.error(`  ✗ ${label}: tooFew=${tooFew} tooMany=${tooMany} binaryViolation=${binaryViolation} levelViolation=${levelViolation} eliteSignatureViolation=${eliteSignatureViolation}`);
+      console.error(`  ✗ ${label}: tooFew=${tooFew} tooMany=${tooMany} binaryViolation=${binaryViolation} levelViolation=${levelViolation} eliteSignatureViolation=${eliteSignatureViolation} disallowedViolation=${disallowedViolation}`);
     }
   }
 }

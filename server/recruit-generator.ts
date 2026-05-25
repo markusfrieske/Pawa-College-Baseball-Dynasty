@@ -674,9 +674,10 @@ export function generateRecruitClass(
     if (themeBoost.attr === "speed")   speed    = Math.min(99, speed   + themeBoost.boost);
     if (themeBoost.attr === "fielding") fielding = Math.min(99, fielding + themeBoost.boost);
 
+    const recruitThrowHand = isPitcher ? (Math.random() < 0.28 ? "L" : "R") : "R";
     const pitchMix = isPitcher
       ? generateArchetypePitchMix(
-          assignPitcherArchetype("P", "R", velocity, control, stamina, stuff),
+          assignPitcherArchetype("P", recruitThrowHand, velocity, control, stamina, stuff),
           qualityTierFromStars(starRank),
         )
       : { ...noPitches };

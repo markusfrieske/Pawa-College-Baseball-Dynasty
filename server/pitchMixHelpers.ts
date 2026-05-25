@@ -195,25 +195,30 @@ type PoolEntry = [keyof PitchMix, number];
 // Weighted pool of secondary pitches per archetype.
 // Higher weight = more likely to appear in the arsenal.
 const ARCHETYPE_POOLS: Record<PitcherArchetype, PoolEntry[]> = {
+  // 55% FB/2S · 30% SL · 10% CH · 5% CB/SNK/SPL
   power_starter: [
     ["pitchSL",  80], ["pitch2S",  55], ["pitchCH",  30],
     ["pitchCB",  10], ["pitchSNK",  8], ["pitchSPL",  7],
   ],
+  // 45% FB/2S · 25% CH · 20% SL · 10% CB/SNK/SPL
   command_lefty: [
     ["pitchCH",  70], ["pitchSL",  50], ["pitch2S",  45],
     ["pitchCB",  15], ["pitchSNK", 10], ["pitchSPL", 10],
   ],
+  // 65% FB · 35% SL/CB/SNK/SPL — NO 2S, NO CT
   reliever: [
-    ["pitchSL",  65], ["pitch2S",  30], ["pitchCB",  25],
-    ["pitchSNK", 20], ["pitchSPL", 20], ["pitchCT",  10],
+    ["pitchSL",  65], ["pitchCB",  25],
+    ["pitchSNK", 20], ["pitchSPL", 20],
   ],
+  // 40% FB · 20% CH/SPL · 20% CB/SL · 20% SL/SNK — NO 2S
   junkball: [
     ["pitchCH",  45], ["pitchCB",  42], ["pitchSL",  38],
-    ["pitchSNK", 32], ["pitchSPL", 28], ["pitch2S",  20],
+    ["pitchSNK", 32], ["pitchSPL", 28],
   ],
+  // 50% SNK/SPL · 20% SL · 20% CH · 10% CT — NO 2S
   sinkerballer: [
     ["pitchSNK", 75], ["pitchSPL", 60], ["pitchSL",  55],
-    ["pitchCH",  50], ["pitchCT",  35], ["pitch2S",  20],
+    ["pitchCH",  50], ["pitchCT",  35],
   ],
 };
 
