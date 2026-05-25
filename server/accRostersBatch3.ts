@@ -5,7 +5,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
   "California": [
     // PITCHERS (10)
     { firstName: "Oliver", lastName: "de la Torre", position: "P", eligibility: "JR", homeState: "CA", hometown: "Los Angeles", jerseyNumber: 22,
-      hitForAvg: 28, power: 22, speed: 35, arm: 73, fielding: 48, errorResistance: 60, velocity: 90, control: 67, stamina: 72, stuff: 90,
+      hitForAvg: 28, power: 22, speed: 35, arm: 73, fielding: 48, errorResistance: 60, velocity: 72, control: 67, stamina: 72, stuff: 69,
       clutch: 76, vsLHP: 72, grit: 80, stealing: 18, running: 46, throwing: 82, recovery: 64, wRISP: 59, vsLefty: 63, poise: 64, heater: 72, agile: 56,
       abilities: ["Strong Starter", "Wild Fastball", "Delayed Arm", "Intimidator", "Heavy Ball"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -527,7 +527,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
   "Virginia Tech": [
     // PITCHERS (10)
     { firstName: "Brett", lastName: "Renfrow", position: "P", eligibility: "SR", homeState: "VA", hometown: "Richmond", jerseyNumber: 34,
-      hitForAvg: 25, power: 21, speed: 35, arm: 71, fielding: 44, errorResistance: 56, velocity: 90, control: 67, stamina: 68, stuff: 90,
+      hitForAvg: 25, power: 21, speed: 35, arm: 71, fielding: 44, errorResistance: 56, velocity: 70, control: 67, stamina: 68, stuff: 68,
       clutch: 78, vsLHP: 77, grit: 78, stealing: 17, running: 43, throwing: 78, recovery: 63, wRISP: 65, vsLefty: 65, poise: 68, heater: 71, agile: 54,
       abilities: ["Star of Victory", "Intimidator", "Escape Pitch", "Heavy Ball", "Release"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "R",

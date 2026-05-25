@@ -9,8 +9,8 @@ export const PAC12_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (10) — TEAM ELITE STAFF
     // Dax Whitney — Friday SO RHP ace, 98mph FB, 17"+ sweeper 42% whiff, 3.40/120K/76.2 IP — TEAM ELITE
     { firstName: "Dax", lastName: "Whitney", position: "P", eligibility: "SO", homeState: "ID", hometown: "Boise", jerseyNumber: 22,
-      hitForAvg: 16, power: 12, speed: 33, arm: 87, fielding: 61, errorResistance: 54, velocity: 92, control: 87, stamina: 87, stuff: 92,
-      clutch: 85, vsLHP: 85, grit: 85, stealing: 10, running: 34, throwing: 85, recovery: 79, wRISP: 83, vsLefty: 92, poise: 85, heater: 85, agile: 44,
+      hitForAvg: 16, power: 12, speed: 33, arm: 93, fielding: 61, errorResistance: 54, velocity: 97, control: 96, stamina: 94, stuff: 99,
+      clutch: 85, vsLHP: 85, grit: 85, stealing: 10, running: 34, throwing: 85, recovery: 79, wRISP: 83, vsLefty: 95, poise: 85, heater: 85, agile: 44,
       abilities: ["Star of Victory", "Intimidator", "Sharpness", "Decisive", "Strikeout"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",

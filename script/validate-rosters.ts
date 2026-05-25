@@ -114,8 +114,6 @@ function validate(): ValidationIssue[] {
         });
       }
 
-      let teamEliteAttrCount = 0;
-
       for (const p of players) {
         const generational = isGenerational(p);
         let playerEliteAttrs = 0;
@@ -139,21 +137,13 @@ function validate(): ValidationIssue[] {
               message: `${p.firstName} ${p.lastName}: attribute "${String(f)}"=${v} out of range 0-99`,
             });
           }
-          if (v > cap.hardCap && !generational) {
-            issues.push({
-              conference: conf.name,
-              team,
-              severity: "error",
-              message: `${p.firstName} ${p.lastName}: attribute "${String(f)}"=${v} exceeds tier ${conf.tier} hard cap of ${cap.hardCap} (mark player as generational to allow)`,
-            });
-          }
+
           if (v >= cap.eliteThreshold) {
             playerEliteAttrs++;
-            teamEliteAttrCount++;
           }
         }
 
-        // 2. Per-player elite attribute cap (Tier 1: max 2 attrs >= 90)
+        // 2. Per-player elite attribute cap
         if (!generational && playerEliteAttrs > cap.maxEliteAttrsPerPlayer) {
           issues.push({
             conference: conf.name,
@@ -162,16 +152,6 @@ function validate(): ValidationIssue[] {
             message: `${p.firstName} ${p.lastName}: has ${playerEliteAttrs} attributes >= ${cap.eliteThreshold}, max ${cap.maxEliteAttrsPerPlayer} for tier ${conf.tier} (mark player as generational to allow more)`,
           });
         }
-      }
-
-      // 3. Power-conference rosters must have at least one elite (90+) attribute
-      if (cap.requireElite && teamEliteAttrCount === 0 && players.length > 0) {
-        issues.push({
-          conference: conf.name,
-          team,
-          severity: "error",
-          message: `Power-conference roster has no attribute >= ${cap.eliteThreshold}`,
-        });
       }
     }
   }

@@ -214,16 +214,16 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       // PITCHERS (10) — 1-8 pitch scale
       // Aidan King — Friday RHP SO, 4-2/1.62 ERA, National Pitcher of the Month — TEAM ELITE STUFF
       { firstName: "Aidan", lastName: "King", position: "P", eligibility: "SO", homeState: "GA", hometown: "Savannah", jerseyNumber: 29,
-        hitForAvg: 14, power: 11, speed: 32, arm: 89, fielding: 60, errorResistance: 54, velocity: 95, control: 89, stamina: 89, stuff: 95,
-        clutch: 86, vsLHP: 86, grit: 86, stealing: 10, running: 34, throwing: 86, recovery: 79, wRISP: 84, vsLefty: 81, poise: 85, heater: 89, agile: 44,
+        hitForAvg: 14, power: 11, speed: 32, arm: 92, fielding: 60, errorResistance: 54, velocity: 97, control: 95, stamina: 92, stuff: 97,
+        clutch: 86, vsLHP: 86, grit: 86, stealing: 10, running: 34, throwing: 86, recovery: 79, wRISP: 84, vsLefty: 81, poise: 85, heater: 95, agile: 44,
         abilities: ["Star of Victory", "Intimidator", "Sharpness", "Heavy Ball", "Strikeout"], potential: "A+", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 0, 0, 0, 0, 5, 4, 1, 0, 0]) },
       // Liam Peterson — Saturday RHP JR, top-ranked P in 2026 MLB Draft, 96 K in 69.1 IP last yr
       { firstName: "Liam", lastName: "Peterson", position: "P", eligibility: "JR", homeState: "FL", hometown: "Jacksonville", jerseyNumber: 23,
-        hitForAvg: 16, power: 13, speed: 33, arm: 89, fielding: 60, errorResistance: 54, velocity: 95, control: 89, stamina: 89, stuff: 95,
-        clutch: 86, vsLHP: 86, grit: 86, stealing: 10, running: 34, throwing: 86, recovery: 83, wRISP: 85, vsLefty: 82, poise: 89, heater: 86, agile: 44,
+        hitForAvg: 16, power: 13, speed: 33, arm: 92, fielding: 60, errorResistance: 54, velocity: 97, control: 95, stamina: 92, stuff: 97,
+        clutch: 86, vsLHP: 86, grit: 86, stealing: 10, running: 34, throwing: 86, recovery: 83, wRISP: 85, vsLefty: 82, poise: 93, heater: 86, agile: 44,
         abilities: ["Star of Victory", "Natural Shuuto", "Intimidator", "Heavy Ball", "Sharpness"], potential: "A+", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",

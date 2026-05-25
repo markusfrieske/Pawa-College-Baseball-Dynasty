@@ -4,7 +4,7 @@ import { pitchMix, noPitches } from "./pitchMixHelpers";
 export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
   "Clemson": [
     { firstName: "Aidan", lastName: "Knaak", position: "P", eligibility: "SO", homeState: "FL", hometown: "Fort Myers", jerseyNumber: 34,
-      hitForAvg: 19, power: 16, speed: 35, arm: 72, fielding: 44, errorResistance: 56, velocity: 90, control: 62, stamina: 64, stuff: 90,
+      hitForAvg: 19, power: 16, speed: 35, arm: 72, fielding: 44, errorResistance: 56, velocity: 74, control: 62, stamina: 64, stuff: 70,
       clutch: 82, vsLHP: 77, grit: 82, stealing: 15, running: 43, throwing: 82, recovery: 63, wRISP: 66, vsLefty: 67, poise: 69, heater: 76, agile: 45,
       abilities: ["Explosive Fastball", "Strong Starter", "Intimidator", "Tunneling", "Heavy Ball", "Strong Finisher", "Decisive"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -385,7 +385,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         ...pitchMix(1, [0, 3, 0, 1, 0, 3, 3, 0, 0, 0]) },
       // Wes Mendes — JR RHP, 2026 ACC Pitcher of the Year candidate, 9-1/2.15 ERA — TEAM ELITE STUFF
       { firstName: "Wes", lastName: "Mendes", position: "P", eligibility: "JR", homeState: "FL", hometown: "Tallahassee", jerseyNumber: 35,
-        hitForAvg: 14, power: 11, speed: 32, arm: 89, fielding: 60, errorResistance: 54, velocity: 95, control: 89, stamina: 89, stuff: 95,
+        hitForAvg: 14, power: 11, speed: 32, arm: 92, fielding: 60, errorResistance: 54, velocity: 97, control: 95, stamina: 92, stuff: 97,
         clutch: 81, vsLHP: 81, grit: 81, stealing: 8, running: 30, throwing: 81, recovery: 81, wRISP: 81, vsLefty: 81, poise: 81, heater: 81, agile: 42,
         abilities: ["Star of Victory", "Sharpness", "Strong Starter", "Intimidator", "Heavy Ball"], potential: "A+", catcherAbility: null,
         throwHand: "R", batHand: "R",

@@ -215,8 +215,8 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       // PITCHERS (10) — 1-8 pitch scale
       // Tyler Fay — Friday SR RHP, no-hitter vs Florida 3/20, 8-3, 7 IP/1 ER/10K vs SC — TEAM ELITE STUFF
       { firstName: "Tyler", lastName: "Fay", position: "P", eligibility: "SR", homeState: "AL", hometown: "Tuscaloosa", jerseyNumber: 34,
-        hitForAvg: 16, power: 12, speed: 33, arm: 89, fielding: 62, errorResistance: 54, velocity: 95, control: 89, stamina: 89, stuff: 95,
-        clutch: 86, vsLHP: 86, grit: 86, stealing: 10, running: 34, throwing: 86, recovery: 81, wRISP: 84, vsLefty: 83, poise: 86, heater: 89, agile: 44,
+        hitForAvg: 16, power: 12, speed: 33, arm: 93, fielding: 62, errorResistance: 54, velocity: 98, control: 96, stamina: 93, stuff: 98,
+        clutch: 86, vsLHP: 86, grit: 86, stealing: 10, running: 34, throwing: 86, recovery: 81, wRISP: 84, vsLefty: 83, poise: 86, heater: 98, agile: 44,
         abilities: ["Star of Victory", "Intimidator", "Strong Starter", "Heavy Ball", "Strikeout"], potential: "A+", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
@@ -432,8 +432,8 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       ...pitchMix(1, [0, 3, 0, 1, 0, 4, 4, 0, 0, 0]) },
     // Jake Marciano — SO RHP, weekend SP — TEAM ELITE STUFF
     { firstName: "Jake", lastName: "Marciano", position: "P", eligibility: "SO", homeState: "NJ", hometown: "Marlton", jerseyNumber: 33,
-      hitForAvg: 13, power: 10, speed: 32, arm: 89, fielding: 60, errorResistance: 50, velocity: 95, control: 89, stamina: 89, stuff: 95,
-      clutch: 84, vsLHP: 84, grit: 84, stealing: 7, running: 30, throwing: 84, recovery: 79, wRISP: 83, vsLefty: 82, poise: 84, heater: 89, agile: 42,
+      hitForAvg: 13, power: 10, speed: 32, arm: 92, fielding: 60, errorResistance: 50, velocity: 97, control: 95, stamina: 92, stuff: 97,
+      clutch: 84, vsLHP: 84, grit: 84, stealing: 7, running: 30, throwing: 84, recovery: 79, wRISP: 83, vsLefty: 82, poise: 84, heater: 95, agile: 42,
       abilities: ["Star of Victory", "Sharpness", "Strikeout", "Strong Starter", "Intimidator"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
@@ -496,8 +496,8 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       ...pitchMix(1, [0, 0, 0, 1, 0, 4, 4, 0, 0, 0]) },
     // Andreas Alvarez — JR RHP, 2026 SEC strikeout leader, elite velocity — TEAM ELITE STUFF
     { firstName: "Andreas", lastName: "Alvarez", position: "P", eligibility: "JR", homeState: "AL", hometown: "Auburn", jerseyNumber: 46,
-      hitForAvg: 13, power: 10, speed: 32, arm: 89, fielding: 60, errorResistance: 52, velocity: 95, control: 89, stamina: 89, stuff: 95,
-      clutch: 84, vsLHP: 82, grit: 84, stealing: 7, running: 30, throwing: 84, recovery: 79, wRISP: 89, vsLefty: 83, poise: 84, heater: 84, agile: 42,
+      hitForAvg: 13, power: 10, speed: 32, arm: 92, fielding: 60, errorResistance: 52, velocity: 97, control: 95, stamina: 92, stuff: 97,
+      clutch: 84, vsLHP: 82, grit: 84, stealing: 7, running: 30, throwing: 84, recovery: 79, wRISP: 93, vsLefty: 83, poise: 84, heater: 84, agile: 42,
       abilities: ["Star of Victory", "Sharpness", "Heavy Ball", "Intimidator", "Strong Starter"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "tan", hairColor: "black", hairStyle: "short",
@@ -842,7 +842,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       // PITCHERS (10)
       // Tomas Valincius — LHP JR Friday ace (Virginia transfer), 8-2, 13K vs Auburn, 14K vs Vandy, 7 shutout IP @ Ark — TEAM ELITE STUFF
       { firstName: "Tomas", lastName: "Valincius", position: "P", eligibility: "JR", homeState: "VA", hometown: "Richmond", jerseyNumber: 37,
-        hitForAvg: 16, power: 12, speed: 32, arm: 89, fielding: 60, errorResistance: 50, velocity: 95, control: 89, stamina: 89, stuff: 95,
+        hitForAvg: 16, power: 12, speed: 32, arm: 92, fielding: 60, errorResistance: 50, velocity: 97, control: 95, stamina: 92, stuff: 97,
         clutch: 88, vsLHP: 89, grit: 89, stealing: 9, running: 32, throwing: 84, recovery: 78, wRISP: 82, vsLefty: 89, poise: 84, heater: 86, agile: 42,
         abilities: ["Star of Victory", "Intimidator", "Heavy Ball", "Natural Shuuto", "Sharpness"], potential: "A+", catcherAbility: null,
         throwHand: "L", batHand: "L",
