@@ -153,13 +153,13 @@ export const NATIONAL_RANKS: Record<string, number> = {
   "Grambling State": 140,
   "Coppin State": 141,
   "Southern University": 142,
-  "North Carolina A&T": 142,
-  "Delaware State": 142,
-  "Bethune-Cookman": 142,
-  "Florida A&M": 142,
-  "Maryland Eastern Shore": 142,
-  "Alcorn State": 142,
-  "Texas Southern": 142,
+  "North Carolina A&T": 143,
+  "Delaware State": 144,
+  "Bethune-Cookman": 145,
+  "Florida A&M": 146,
+  "Maryland Eastern Shore": 147,
+  "Alcorn State": 148,
+  "Texas Southern": 149,
 };
 
 export const ROSTER_SCALE_FACTORS: Record<string, number> = {
