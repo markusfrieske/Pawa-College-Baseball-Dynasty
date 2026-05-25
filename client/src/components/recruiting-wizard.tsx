@@ -687,22 +687,28 @@ function NameEditCell({
   const [fn, setFn] = useState(firstName);
   const [ln, setLn] = useState(lastName);
   const firstRef = useRef<HTMLInputElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
   const commit = () => {
     onCommit(recruitId, fn.trim() || firstName, ln.trim() || lastName);
     setEditing(false);
   };
 
+  const handleWrapperBlur = (e: React.FocusEvent<HTMLDivElement>) => {
+    if (!wrapperRef.current?.contains(e.relatedTarget as Node)) {
+      commit();
+    }
+  };
+
   useEffect(() => { if (editing) firstRef.current?.focus(); }, [editing]);
 
   if (editing) {
     return (
-      <div className="flex gap-1">
+      <div ref={wrapperRef} className="flex gap-1" onBlur={handleWrapperBlur}>
         <input
           ref={firstRef}
           value={fn}
           onChange={e => setFn(e.target.value)}
-          onBlur={commit}
           onKeyDown={e => { if (e.key === "Enter") commit(); if (e.key === "Escape") setEditing(false); }}
           placeholder="First"
           className="w-14 bg-background border border-gold text-xs rounded px-0.5 py-0 text-center"
@@ -711,7 +717,6 @@ function NameEditCell({
         <input
           value={ln}
           onChange={e => setLn(e.target.value)}
-          onBlur={commit}
           onKeyDown={e => { if (e.key === "Enter") commit(); if (e.key === "Escape") setEditing(false); }}
           placeholder="Last"
           className="w-14 bg-background border border-gold text-xs rounded px-0.5 py-0 text-center"
