@@ -236,7 +236,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         abilities: ["Inside Pitch", "Strong Starter", "Perfect Combustion", "Intimidator"], potential: "A-", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [0, 0, 0, 0, 0, 4, 4, 0, 1, 0]) },
+        ...pitchMix(1, [1, 0, 0, 0, 0, 0, 4, 0, 1, 0]) },
       // Bobby Alcock — JR RHP weekend/RP, prior SEC Pitcher of Week
       { firstName: "Bobby", lastName: "Alcock", position: "P", eligibility: "JR", homeState: "FL", hometown: "Jacksonville", jerseyNumber: 42,
         hitForAvg: 13, power: 10, speed: 32, arm: 50, fielding: 31, errorResistance: 42, velocity: 47, control: 49, stamina: 49, stuff: 47,
@@ -903,7 +903,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         abilities: ["Strength Distribution", "Crossfire"], potential: "B+", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [0, 3, 0, 0, 0, 4, 4, 0, 1, 0]) },
+        ...pitchMix(1, [1, 3, 0, 0, 0, 0, 4, 0, 1, 0]) },
       // Brendan Sweeney — JR RHP RP
       { firstName: "Brendan", lastName: "Sweeney", position: "P", eligibility: "JR", homeState: "SC", hometown: "Columbia", jerseyNumber: 49,
         hitForAvg: 12, power: 10, speed: 32, arm: 52, fielding: 32, errorResistance: 44, velocity: 48, control: 50, stamina: 38, stuff: 49,

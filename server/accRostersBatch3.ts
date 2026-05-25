@@ -9,7 +9,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       clutch: 76, vsLHP: 72, grit: 80, stealing: 18, running: 46, throwing: 82, recovery: 64, wRISP: 59, vsLefty: 63, poise: 64, heater: 72, agile: 56,
       abilities: ["Strong Starter", "Wild Fastball", "Delayed Arm", "Intimidator", "Heavy Ball"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
-      ...pitchMix(1, [0, 3, 0, 0, 0, 4, 4, 1, 0, 0]) },
+      ...pitchMix(1, [0, 0, 0, 0, 3, 4, 4, 1, 0, 0]) },
     { firstName: "Ethan", lastName: "Foley", position: "P", eligibility: "JR", homeState: "CA", hometown: "San Diego", jerseyNumber: 33,
       hitForAvg: 20, power: 16, speed: 34, arm: 59, fielding: 35, errorResistance: 47, velocity: 59, control: 52, stamina: 56, stuff: 53,
       clutch: 60, vsLHP: 58, grit: 64, stealing: 15, running: 39, throwing: 73, recovery: 48, wRISP: 45, vsLefty: 47, poise: 48, heater: 57, agile: 43,
@@ -382,7 +382,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         abilities: ["Explosive Fastball"], potential: "A", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [0, 3, 0, 0, 0, 4, 4, 0, 1, 0]) },
+        ...pitchMix(1, [1, 3, 0, 0, 0, 0, 4, 0, 1, 0]) },
       // Jayden Stroman — FR midweek SP — PG HM / Top-500 national (2.70 ERA / 16 K in 13.1 IP)
       { firstName: "Jayden", lastName: "Stroman", position: "P", eligibility: "FR", homeState: "VA", hometown: "Chesapeake", jerseyNumber: 48,
         hitForAvg: 14, power: 11, speed: 33, arm: 48, fielding: 22, errorResistance: 34, velocity: 55, control: 43, stamina: 41, stuff: 44,

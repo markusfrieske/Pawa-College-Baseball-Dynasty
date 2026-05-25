@@ -196,7 +196,7 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       clutch: 41, vsLHP: 38, grit: 42, stealing: 8, running: 23, throwing: 45, recovery: 27, wRISP: 27, vsLefty: 27, poise: 28, heater: 31, agile: 28,
       abilities: ["Sharpness"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
-      ...pitchMix(1, [0, 3, 0, 1, 0, 0, 4, 0, 0, 4]) },
+      ...pitchMix(1, [0, 0, 0, 1, 3, 0, 4, 0, 0, 4]) },
     { firstName: "Ryan", lastName: "Hagenow", position: "P", eligibility: "JR", homeState: "IN", hometown: "Evansville", jerseyNumber: 40,
       hitForAvg: 9, power: 6, speed: 30, arm: 26, fielding: 17, errorResistance: 28, velocity: 30, control: 25, stamina: 25, stuff: 30,
       clutch: 36, vsLHP: 35, grit: 39, stealing: 6, running: 20, throwing: 40, recovery: 22, wRISP: 22, vsLefty: 23, poise: 23, heater: 26, agile: 26,
@@ -508,7 +508,7 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         abilities: ["Fireman", "Doctor K", "Inside Pitch", "Intimidator"], potential: "A", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [0, 3, 0, 1, 0, 4, 0, 0, 0, 0]) },
+        ...pitchMix(1, [1, 3, 0, 1, 0, 0, 0, 0, 0, 0]) },
       // Jason Bodin — JR setup, 28 K in 23.1 IP, 3-1
       { firstName: "Jason", lastName: "Bodin", position: "P", eligibility: "JR", homeState: "OK", hometown: "Norman", jerseyNumber: 28,
         hitForAvg: 13, power: 10, speed: 32, arm: 54, fielding: 32, errorResistance: 44, velocity: 59, control: 54, stamina: 39, stuff: 53,

@@ -51,7 +51,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       clutch: 37, vsLHP: 35, grit: 38, stealing: 6, running: 21, throwing: 41, recovery: 23, wRISP: 23, vsLefty: 23, poise: 24, heater: 28, agile: 27,
       abilities: ["Explosive Fastball"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",
-      ...pitchMix(1, [0, 0, 0, 1, 0, 4, 4, 0, 0, 0]) },
+      ...pitchMix(1, [1, 0, 0, 1, 0, 0, 4, 0, 0, 0]) },
     { firstName: "Ethan", lastName: "Felling", position: "P", eligibility: "FR", homeState: "MN", hometown: "St. Cloud", jerseyNumber: 36,
       hitForAvg: 8, power: 6, speed: 26, arm: 35, fielding: 16, errorResistance: 26, velocity: 44, control: 31, stamina: 30, stuff: 35,
       clutch: 29, vsLHP: 28, grit: 30, stealing: 8, running: 24, throwing: 37, recovery: 19, wRISP: 18, vsLefty: 19, poise: 19, heater: 27, agile: 27,
@@ -209,7 +209,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         abilities: ["Sharpness", "Guts"], potential: "B+", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [0, 3, 0, 0, 0, 4, 4, 0, 1, 0]) },
+        ...pitchMix(1, [0, 0, 0, 0, 3, 4, 4, 0, 1, 0]) },
       // Jalen Worthley — SR RHP RP
       { firstName: "Jalen", lastName: "Worthley", position: "P", eligibility: "SR", homeState: "NE", hometown: "Bellevue", jerseyNumber: 38,
         hitForAvg: 14, power: 12, speed: 32, arm: 54, fielding: 36, errorResistance: 48, velocity: 57, control: 54, stamina: 47, stuff: 51,

@@ -599,7 +599,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Fireman", "vs. Strong Batters", "Sharpness"], potential: "B+", catcherAbility: null,
       throwHand: "L", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
-      ...pitchMix(1, [0, 0, 0, 1, 0, 4, 4, 0, 0, 0]) },
+      ...pitchMix(1, [1, 0, 0, 1, 0, 0, 4, 0, 0, 0]) },
     // Clayton Freshcorn — Closer RHP JR, 2 scoreless IP wins, dependable late
     { firstName: "Clayton", lastName: "Freshcorn", position: "P", eligibility: "JR", homeState: "TX", hometown: "Katy", jerseyNumber: 38,
       hitForAvg: 15, power: 12, speed: 32, arm: 62, fielding: 35, errorResistance: 46, velocity: 61, control: 60, stamina: 39, stuff: 59,

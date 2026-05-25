@@ -1,47 +1,57 @@
 /**
  * redistribute-pitches.ts — Task #591
  *
- * Expands all pitchMix() 7-element calls to 10-element calls, adding:
- *   index 7 = FK  (Forkball, binary 0/1 like CH)
- *   index 8 = SFF (Split-Finger Fastball, binary 0/1 like CH)
- *   index 9 = SHU (Shuuto, 0-7 like SNK)
+ * One-time setup script that adds FK, SFF, and SHU pitch types across all
+ * 19 real roster files and redistributes pitch assignments toward the
+ * distribution targets below.
  *
- * Full array: [2S, SL, CB, CH, CT, SNK, SPL, FK, SFF, SHU]
+ * ⚠  NOT IDEMPOTENT.  Run once on clean (pre-task-591) roster files.
+ *    Re-running on already-processed files will over-redistribute CH→FK/SFF.
  *
- * Redistribution rules (deterministic, counter-based):
- *   Step 2 — CH → FK/SFF:
- *     For each pitcher with CH=1 (global chCounter):
- *       chCounter % 5 === 1  → CH removed, FK=1  (~20%)
- *       chCounter % 5 === 2  → CH removed, SFF=1  (~20%)
- *       otherwise            → CH unchanged       (~60%)
+ * ── Storage formats handled ──────────────────────────────────────────────────
+ *   pitchMix format  — ...pitchMix(N, [2S, SL, CB, CH, CT, SNK, SPL])
+ *     expands to 10-element: [2S, SL, CB, CH, CT, SNK, SPL, FK, SFF, SHU]
+ *   Inline format    — pitchFB: N, ... pitchSPL: N (then appends FK/SFF/SHU)
+ *     used by: mwcRosters.ts, aacRosters.ts, wccRosters.ts
  *
- *   Step 3 — SNK → SHU:
- *     For each pitcher with SNK>0 (global snkCounter):
- *       snkCounter % 7 === 0 → SNK removed, SHU = original SNK level (~14%)
+ * ── Steps ────────────────────────────────────────────────────────────────────
  *
- *   Step 4a — SL augmentation:
- *     For each pitcher without SL (noSlCounter):
- *       noSlCounter % 9 === 0 → SL = 3 added
+ * Step 2 — CH → FK / SFF redistribution (20% / 20% / 60% split):
+ *   Global chCounter increments for every pitcher with CH > 0.
+ *     chCounter % 5 === 1  → CH removed, FK  = 1  (~20%)
+ *     chCounter % 5 === 2  → CH removed, SFF = 1  (~20%)
+ *     otherwise            → CH unchanged           (~60%)
+ *   FK and SFF are binary (0 or 1) like CH.
  *
- *   Step 4b — CB augmentation:
- *     For each pitcher without CB (noCbCounter):
- *       noCbCounter % 13 === 0 → CB = 3 added
+ * Step 3 — SNK → SHU redistribution (~14.3%):
+ *   Global snkCounter increments for every pitcher with SNK > 0.
+ *     snkCounter % 7 === 0 → SNK removed, SHU = original SNK level
+ *   SHU inherits the exact SNK level (0–7).
  *
- *   Step 4c — 2S augmentation:
- *     For each pitcher without 2S (no2SCounter):
- *       no2SCounter % 50 === 0 → 2S = 1 added
+ * Step 4 — Conversion pass (removes one pitch type, adds another):
+ *   Applied to pitchMix-format pitchers only (inline pitchers excluded).
+ *   4a. SL → CT: every 14th pitcher with SL > 0 and CT = 0
+ *       → Reduces SL surplus (45% → 43%), closes CT deficit (20% → 22%).
+ *   4b. SNK → 2S: every 27th pitcher with SNK > 0 and 2S = 0 (binary: 2S=1)
+ *       → Reduces SNK surplus (41% → 40%), closes 2S deficit (17% → 18%).
+ *   These are CONVERSIONS, not augmentations: the source pitch is set to 0.
  *
- * FK and SFF are binary (clamped to 0 or 1) like CH.
- * SHU inherits the exact SNK level value (0-7).
- * Already-10-element arrays are skipped (idempotent).
+ * ── Distribution targets (all pitchers) ─────────────────────────────────────
+ *   FB  100%   CH  ~55%   FK  ~18%   SFF ~18%   SHU ~7.5%
+ *   SL  ~43%   CB  ~43%   SNK ~39%   SPL ~38%   CT  ~22%   2S  ~18%
  *
- * Run with: npx tsx scripts/redistribute-pitches.ts
+ * ── Post-validation ──────────────────────────────────────────────────────────
+ *   Script prints pass/fail for each target (±5 pp tolerance) and exits
+ *   with code 1 if any value is out of range.
+ *
+ * Run: npx tsx scripts/redistribute-pitches.ts
  */
 
 import * as fs from "fs";
 import * as path from "path";
 
-const ROSTER_FILES = [
+// ── File lists ────────────────────────────────────────────────────────────────
+const PITCH_MIX_FILES = [
   "server/secBatch1.ts",
   "server/secBatch2.ts",
   "server/secBatch3.ts",
@@ -53,187 +63,244 @@ const ROSTER_FILES = [
   "server/bigTenBatch3.ts",
   "server/big12Rosters.ts",
   "server/pac12Rosters.ts",
-  "server/mwcRosters.ts",
-  "server/aacRosters.ts",
-  "server/sunBeltRosters.ts",
-  "server/wccRosters.ts",
-  "server/bigWestRosters.ts",
-  "server/moValleyRosters.ts",
   "server/ivyLeagueRosters.ts",
+  "server/sunBeltRosters.ts",
+  "server/bigWestRosters.ts",
   "server/hbcuRosters.ts",
+  "server/moValleyRosters.ts",
 ];
 
-// ── Global counters (all deterministic, counter-based) ────────────────────────
-let chCounter   = 0;  // pitchers WITH CH=1
-let snkCounter  = 0;  // pitchers WITH SNK>0
-let noSlCounter = 0;  // pitchers WITHOUT SL
-let noCbCounter = 0;  // pitchers WITHOUT CB
-let no2SCounter = 0;  // pitchers WITHOUT 2S
+const INLINE_FILES = [
+  "server/mwcRosters.ts",   // Mountain West — uses inline field format
+  "server/aacRosters.ts",   // AAC            — uses inline field format
+  "server/wccRosters.ts",   // WCC            — uses inline field format
+];
 
-let totalPitchers  = 0;
-let changedCalls   = 0;
-let skippedCalls   = 0;
+// pitchMix secondary array indices: [2S, SL, CB, CH, CT, SNK, SPL, FK, SFF, SHU]
+const IDX = { s2: 0, sl: 1, cb: 2, ch: 3, ct: 4, snk: 5, spl: 6, fk: 7, sff: 8, shu: 9 } as const;
 
-// ── Tracking for distribution report ─────────────────────────────────────────
-let afterCH = 0, afterFK = 0, afterSFF = 0, afterSHU = 0;
-let afterSL = 0, afterCB = 0, afterSNK = 0, afterSPL = 0;
-let after2S = 0, afterCT = 0;
+// ── Redistribution counters ───────────────────────────────────────────────────
+let chCounter      = 0;   // step 2
+let snkCounter     = 0;   // step 3
+let slNoCtCounter  = 0;   // step 4a
+let snkNo2SCounter = 0;   // step 4b
 
-/**
- * Apply redistribution to a 7-element secondary array.
- * Input:  [2S, SL, CB, CH, CT, SNK, SPL]
- * Output: [2S, SL, CB, CH, CT, SNK, SPL, FK, SFF, SHU]
- */
-function redistribute(arr: number[]): number[] {
-  while (arr.length < 7) arr.push(0);
+// ── Distribution tracking ─────────────────────────────────────────────────────
+const tally = { fb: 0, s2: 0, sl: 0, cb: 0, ch: 0, ct: 0, snk: 0, spl: 0, fk: 0, sff: 0, shu: 0 };
+let totalPitchers = 0;
 
-  let twoS = arr[0];
-  let sl   = arr[1];
-  let cb   = arr[2];
-  let ch   = arr[3];
-  let ct   = arr[4];
-  let snk  = arr[5];
-  let spl  = arr[6];
-  let fk   = 0;
-  let sff  = 0;
-  let shu  = 0;
-
+function track(arr: number[]): void {
   totalPitchers++;
-
-  // ── Step 2: CH redistribution (20% → FK, 20% → SFF, 60% keep) ───────────
-  if (ch > 0) {
-    chCounter++;
-    const mod = chCounter % 5;
-    if (mod === 1) {
-      fk = 1;
-      ch = 0;
-    } else if (mod === 2) {
-      sff = 1;
-      ch = 0;
-    }
-    // mod 0, 3, 4 → keep CH
-  }
-
-  // ── Step 3: SNK redistribution (~14.3% → SHU) ────────────────────────────
-  if (snk > 0) {
-    snkCounter++;
-    if (snkCounter % 7 === 0) {
-      shu = snk;
-      snk = 0;
-    }
-  }
-
-  // ── Step 4a: SL augmentation (every 9th no-SL pitcher gets SL=3) ─────────
-  if (sl === 0) {
-    noSlCounter++;
-    if (noSlCounter % 9 === 0) {
-      sl = 3;
-    }
-  }
-
-  // ── Step 4b: CB augmentation (every 13th no-CB pitcher gets CB=3) ────────
-  if (cb === 0) {
-    noCbCounter++;
-    if (noCbCounter % 13 === 0) {
-      cb = 3;
-    }
-  }
-
-  // ── Step 4c: 2S augmentation (every 50th no-2S pitcher gets 2S=1) ────────
-  if (twoS === 0) {
-    no2SCounter++;
-    if (no2SCounter % 50 === 0) {
-      twoS = 1;
-    }
-  }
-
-  // ── Tracking ──────────────────────────────────────────────────────────────
-  if (ch   > 0) afterCH++;
-  if (fk   > 0) afterFK++;
-  if (sff  > 0) afterSFF++;
-  if (shu  > 0) afterSHU++;
-  if (sl   > 0) afterSL++;
-  if (cb   > 0) afterCB++;
-  if (snk  > 0) afterSNK++;
-  if (spl  > 0) afterSPL++;
-  if (twoS > 0) after2S++;
-  if (ct   > 0) afterCT++;
-
-  return [twoS, sl, cb, ch, ct, snk, spl, fk, sff, shu];
+  tally.fb++;
+  if (arr[IDX.s2]  > 0) tally.s2++;
+  if (arr[IDX.sl]  > 0) tally.sl++;
+  if (arr[IDX.cb]  > 0) tally.cb++;
+  if (arr[IDX.ch]  > 0) tally.ch++;
+  if (arr[IDX.ct]  > 0) tally.ct++;
+  if (arr[IDX.snk] > 0) tally.snk++;
+  if (arr[IDX.spl] > 0) tally.spl++;
+  if (arr[IDX.fk]  > 0) tally.fk++;
+  if (arr[IDX.sff] > 0) tally.sff++;
+  if (arr[IDX.shu] > 0) tally.shu++;
 }
 
-// Matches: ...pitchMix(N, [elements])
-// Captures: group 1 = primary, group 2 = comma-separated array contents
-const PITCH_MIX_RE = /\.\.\.pitchMix\((\d+),\s*\[([^\]]*)\]\)/g;
+// ─────────────────────────────────────────────────────────────────────────────
+// PHASE 1: pitchMix-format files — expand 7→10 elements, apply all steps
+// ─────────────────────────────────────────────────────────────────────────────
+console.log("\n── Phase 1: pitchMix-format files ──\n");
 
-function processFile(filePath: string): void {
-  const fullPath = path.resolve(filePath);
-  const original = fs.readFileSync(fullPath, "utf-8");
+for (const filePath of PITCH_MIX_FILES) {
+  const fullPath  = path.resolve(filePath);
+  const original  = fs.readFileSync(fullPath, "utf-8");
+  let   fileCount = 0;
 
-  let modified = original;
-  let fileChanges = 0;
-  let fileSkips = 0;
+  // Create regex per file so lastIndex resets
+  const re = /\.\.\.pitchMix\((\d+),\s*\[([^\]]*)\]\)/g;
 
-  modified = modified.replace(PITCH_MIX_RE, (match, primaryStr, argsStr) => {
-    const primary = parseInt(primaryStr, 10);
+  const modified = original.replace(re, (match, primaryStr, argsStr) => {
+    const primary  = parseInt(primaryStr, 10);
     const elements = argsStr
       .split(",")
-      .map((s: string) => s.trim())
-      .filter((s: string) => s !== "")
-      .map((s: string) => parseInt(s, 10))
+      .map((s: string) => parseInt(s.trim(), 10))
       .filter((n: number) => !isNaN(n));
 
-    // Skip if already a 10-element array (idempotent)
-    if (elements.length >= 10) {
-      skippedCalls++;
-      fileSkips++;
-      totalPitchers++;
-      return match;
+    // Parse (pad to at least 7 elements)
+    while (elements.length < 7) elements.push(0);
+    let [twoS, sl, cb, ch, ct, snk, spl] = elements;
+
+    // If already 10 elements, read existing FK/SFF/SHU
+    let fk  = elements.length >= 10 ? elements[IDX.fk]  : 0;
+    let sff = elements.length >= 10 ? elements[IDX.sff] : 0;
+    let shu = elements.length >= 10 ? elements[IDX.shu] : 0;
+
+    const alreadyExpanded = elements.length >= 10;
+
+    // ── Step 2: CH → FK/SFF (only on fresh 7-element arrays) ─────────────
+    if (!alreadyExpanded && ch > 0) {
+      chCounter++;
+      const mod = chCounter % 5;
+      if (mod === 1) { fk = 1; ch = 0; }
+      else if (mod === 2) { sff = 1; ch = 0; }
     }
 
-    const newArr = redistribute(elements);
-    const formatted = newArr.join(", ");
-    fileChanges++;
-    changedCalls++;
-    return `...pitchMix(${primary}, [${formatted}])`;
+    // ── Step 3: SNK → SHU (only on fresh 7-element arrays) ───────────────
+    if (!alreadyExpanded && snk > 0) {
+      snkCounter++;
+      if (snkCounter % 7 === 0) { shu = snk; snk = 0; }
+    }
+
+    // ── Step 4a: SL → CT conversion (both fresh and already-expanded) ────
+    if (sl > 0 && ct === 0) {
+      slNoCtCounter++;
+      if (slNoCtCounter % 14 === 0) { ct = Math.min(7, sl); sl = 0; }
+    }
+
+    // ── Step 4b: SNK → 2S conversion (both fresh and already-expanded) ───
+    if (snk > 0 && twoS === 0) {
+      snkNo2SCounter++;
+      if (snkNo2SCounter % 27 === 0) { twoS = 1; snk = 0; }
+    }
+
+    const result = [twoS, sl, cb, ch, ct, snk, spl, fk, sff, shu];
+    track(result);
+
+    const newStr = `...pitchMix(${primary}, [${result.join(", ")}])`;
+    if (newStr !== match) fileCount++;
+    return newStr;
   });
 
-  if (fileChanges > 0) {
-    fs.writeFileSync(fullPath, modified, "utf-8");
-    console.log(`  ✓ ${filePath}: ${fileChanges} call(s) updated${fileSkips ? `, ${fileSkips} skipped` : ""}`);
-  } else if (fileSkips > 0) {
-    console.log(`  ○ ${filePath}: already up to date (${fileSkips} skipped)`);
-  } else {
-    console.log(`  - ${filePath}: no pitchMix calls found`);
-  }
+  fs.writeFileSync(fullPath, modified, "utf-8");
+  console.log(`  ✓ ${filePath}: ${fileCount} call(s) modified`);
 }
 
-// ── Main ──────────────────────────────────────────────────────────────────────
-console.log("\n── Pitch redistribution — Task #591 (FK / SFF / SHU) ──\n");
+// ─────────────────────────────────────────────────────────────────────────────
+// PHASE 2: inline-format files — add FK/SFF/SHU fields, apply steps 2 & 3
+// ─────────────────────────────────────────────────────────────────────────────
+console.log("\n── Phase 2: inline-format files ──\n");
 
-for (const file of ROSTER_FILES) {
-  processFile(file);
+let inlineCHCounter  = 0;
+let inlineSNKCounter = 0;
+
+function getField(line: string, name: string): number {
+  const m = line.match(new RegExp(`\\b${name}:\\s*(\\d+)`));
+  return m ? parseInt(m[1], 10) : -1; // -1 = field absent
 }
 
-const pct = (n: number) => `${((n / totalPitchers) * 100).toFixed(1)}%`;
+for (const filePath of INLINE_FILES) {
+  const fullPath = path.resolve(filePath);
+  const original = fs.readFileSync(fullPath, "utf-8");
+  const lines    = original.split("\n");
+  let fileCount  = 0;
 
-console.log(`
-── Summary ──────────────────────────────────────────────────────
-  Total pitchers processed : ${totalPitchers}
-  pitchMix() calls updated : ${changedCalls}
-  calls already up to date : ${skippedCalls}
+  const newLines = lines.map(line => {
+    // Pitcher lines have pitchFB: 1  (batters have pitchFB: 0 or no field)
+    const fb = getField(line, "pitchFB");
+    if (fb !== 1) return line;
 
-── Distribution after redistribution (${totalPitchers} pitchers) ──
-  FB  : 100%      (always present)
-  CH  : ${pct(afterCH).padStart(6)}   target ~55%
-  FK  : ${pct(afterFK).padStart(6)}   target ~18%
-  SFF : ${pct(afterSFF).padStart(6)}   target ~18%
-  SHU : ${pct(afterSHU).padStart(6)}   target  ~7.5%
-  SL  : ${pct(afterSL).padStart(6)}   target ~43%
-  CB  : ${pct(afterCB).padStart(6)}   target ~43%
-  SNK : ${pct(afterSNK).padStart(6)}   target ~39%
-  SPL : ${pct(afterSPL).padStart(6)}   target ~38%
-  2S  : ${pct(after2S).padStart(6)}   target ~18%
-  CT  : ${pct(afterCT).padStart(6)}   target ~22%
-──────────────────────────────────────────────────────────────────
-`);
+    let ch  = Math.max(0, getField(line, "pitchCH"));
+    let snk = Math.max(0, getField(line, "pitchSNK"));
+    let fk  = Math.max(0, getField(line, "pitchFK"));
+    let sff = Math.max(0, getField(line, "pitchSFF"));
+    let shu = Math.max(0, getField(line, "pitchSHU"));
+    const twoS = Math.max(0, getField(line, "pitch2S"));
+    const sl   = Math.max(0, getField(line, "pitchSL"));
+    const cb   = Math.max(0, getField(line, "pitchCB"));
+    const ct   = Math.max(0, getField(line, "pitchCT"));
+    const spl  = Math.max(0, getField(line, "pitchSPL"));
+
+    let changed = false;
+
+    // Step 2: CH redistribution (only if FK/SFF not already assigned)
+    if (ch > 0 && fk === 0 && sff === 0) {
+      inlineCHCounter++;
+      const mod = inlineCHCounter % 5;
+      if (mod === 1) { fk = 1; ch = 0; changed = true; }
+      else if (mod === 2) { sff = 1; ch = 0; changed = true; }
+    }
+
+    // Step 3: SNK → SHU (only if SHU not already assigned)
+    if (snk > 0 && shu === 0) {
+      inlineSNKCounter++;
+      if (inlineSNKCounter % 7 === 0) { shu = snk; snk = 0; changed = true; }
+    }
+
+    // Track distribution
+    totalPitchers++;
+    tally.fb++;
+    if (twoS > 0) tally.s2++;
+    if (sl   > 0) tally.sl++;
+    if (cb   > 0) tally.cb++;
+    if (ch   > 0) tally.ch++;
+    if (ct   > 0) tally.ct++;
+    if (snk  > 0) tally.snk++;
+    if (spl  > 0) tally.spl++;
+    if (fk   > 0) tally.fk++;
+    if (sff  > 0) tally.sff++;
+    if (shu  > 0) tally.shu++;
+
+    if (!changed) return line;
+    fileCount++;
+
+    let result = line
+      .replace(/\bpitchCH:\s*\d+/,  `pitchCH: ${ch}`)
+      .replace(/\bpitchSNK:\s*\d+/, `pitchSNK: ${snk}`)
+      .replace(/\bpitchFK:\s*\d+/,  `pitchFK: ${fk}`)
+      .replace(/\bpitchSFF:\s*\d+/, `pitchSFF: ${sff}`)
+      .replace(/\bpitchSHU:\s*\d+/, `pitchSHU: ${shu}`);
+
+    // Append FK/SFF/SHU if not already in line
+    if (!line.includes("pitchFK:")) {
+      result = result.replace(/\}\s*$/, `, pitchFK: ${fk}, pitchSFF: ${sff}, pitchSHU: ${shu} }`);
+    }
+
+    return result;
+  });
+
+  fs.writeFileSync(fullPath, newLines.join("\n"), "utf-8");
+  console.log(`  ✓ ${filePath}: ${fileCount} pitcher(s) updated`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST-VALIDATION: all pitches must be within ±5 pp of their targets
+// ─────────────────────────────────────────────────────────────────────────────
+console.log(`\n── Post-validation: ${totalPitchers} pitchers ──\n`);
+
+const TOLERANCE = 5; // percentage points
+
+const targets: [string, number, number][] = [
+  ["FB",  tally.fb,   100],
+  ["CH",  tally.ch,    55],
+  ["FK",  tally.fk,    18],
+  ["SFF", tally.sff,   18],
+  ["SHU", tally.shu,    7.5],
+  ["SL",  tally.sl,    43],
+  ["CB",  tally.cb,    43],
+  ["SNK", tally.snk,   39],
+  ["SPL", tally.spl,   38],
+  ["CT",  tally.ct,    22],
+  ["2S",  tally.s2,    18],
+];
+
+let failed = false;
+
+for (const [label, n, target] of targets) {
+  const actual = (n / totalPitchers) * 100;
+  const delta  = actual - target;
+  const pass   = Math.abs(delta) <= TOLERANCE;
+  const mark   = pass ? "✓" : "✗";
+  const sign   = delta >= 0 ? "+" : "";
+  const flag   = pass ? "" : "  ← OUT OF RANGE";
+  console.log(
+    `  ${mark}  ${label.padEnd(3)}  ${String(n).padStart(4)}  ` +
+    `(${actual.toFixed(1).padStart(5)}%)   target ~${String(target).padEnd(4)}%   ` +
+    `delta ${sign}${delta.toFixed(1)}pp${flag}`
+  );
+  if (!pass) failed = true;
+}
+
+if (failed) {
+  console.error(`\n✗ Some pitches are outside the ±${TOLERANCE}pp tolerance. Re-tune the redistribution.\n`);
+  process.exit(1);
+}
+
+console.log(`\n✓ All distributions within ±${TOLERANCE}pp of targets.\n`);

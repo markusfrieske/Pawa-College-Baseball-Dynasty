@@ -334,7 +334,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         abilities: ["Guts", "Wild Fastball"], potential: "A-", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [0, 0, 0, 1, 0, 4, 4, 0, 0, 0]) },
+        ...pitchMix(1, [1, 0, 0, 1, 0, 0, 4, 0, 0, 0]) },
       // Joey Mebil — RHP closer (struck out the side in 9th vs Jacksonville)
       { firstName: "Joey", lastName: "Mebil", position: "P", eligibility: "JR", homeState: "FL", hometown: "Miami", jerseyNumber: 30,
         hitForAvg: 12, power: 10, speed: 32, arm: 60, fielding: 33, errorResistance: 44, velocity: 63, control: 55, stamina: 39, stuff: 58,
