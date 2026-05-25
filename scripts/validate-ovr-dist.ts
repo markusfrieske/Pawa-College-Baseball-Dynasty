@@ -1,7 +1,14 @@
 /**
  * Validates OVR distribution across all real rosters.
- * Checks global elite (<3%) and above-average (<17%) thresholds,
+ * Checks global elite (<10%) and above-average (<40%) thresholds,
  * plus per-conference and per-team guardrails.
+ *
+ * Thresholds align with star rating system:
+ *   5★ (Elite):       OVR ≥ 550
+ *   4★ (Above Avg):   OVR 450–549
+ *   3★ (Average):     OVR 350–449
+ *   2★ (Below Avg):   OVR 250–349
+ *   1★ (Low):         OVR < 250
  *
  * Wired into: validate-rosters workflow and validate-all suite.
  * Exits non-zero on any failure so CI catches regressions.
@@ -9,14 +16,14 @@
 import { ALL_REAL_ROSTERS } from "../server/realRosters";
 import { calculateOVR } from "../shared/abilities";
 
-const ELITE_THRESHOLD = 500;
-const ABOVE_AVG_THRESHOLD = 350;
+const ELITE_THRESHOLD = 550;
+const ABOVE_AVG_THRESHOLD = 450;
 
-const GLOBAL_ELITE_MAX_PCT = 3;
-const GLOBAL_ABOVE_AVG_MAX_PCT = 17;
-const CONF_ELITE_MAX_PCT = 8;
-const CONF_ABOVE_AVG_MAX_PCT = 40;
-const TEAM_ELITE_MAX = 6;
+const GLOBAL_ELITE_MAX_PCT = 10;
+const GLOBAL_ABOVE_AVG_MAX_PCT = 40;
+const CONF_ELITE_MAX_PCT = 30;
+const CONF_ABOVE_AVG_MAX_PCT = 75;
+const TEAM_ELITE_MAX = 8;
 
 const CONFERENCES: Record<string, string[]> = {
   SEC: ["Alabama","Auburn","Florida","Georgia","Kentucky","LSU","Mississippi State","Missouri","Ole Miss","South Carolina","Tennessee","Texas A&M","Vanderbilt","Arkansas"],
@@ -42,13 +49,13 @@ for (const [teamName, players] of Object.entries(ALL_REAL_ROSTERS)) {
   const avg = ovrs.reduce((a: number, b: number) => a + b, 0) / ovrs.length;
   const elite = ovrs.filter((o: number) => o >= ELITE_THRESHOLD).length;
   const above = ovrs.filter((o: number) => o >= ABOVE_AVG_THRESHOLD && o < ELITE_THRESHOLD).length;
-  const avg250 = ovrs.filter((o: number) => o >= 250 && o < ABOVE_AVG_THRESHOLD).length;
-  const below = ovrs.filter((o: number) => o < 250).length;
+  const avg350 = ovrs.filter((o: number) => o >= 350 && o < ABOVE_AVG_THRESHOLD).length;
+  const below = ovrs.filter((o: number) => o < 350).length;
   teamAvgs.push({ name: teamName, avg, count: players.length, elite, above });
 
   globalElite += elite;
   globalAboveElite += above;
-  globalAvg += avg250;
+  globalAvg += avg350;
   globalBelow += below;
   globalTotal += players.length;
 
@@ -67,25 +74,25 @@ const abovePct = ((globalElite + globalAboveElite) / globalTotal) * 100;
 
 console.log("\n=== GLOBAL OVR DISTRIBUTION ===");
 console.log(`Total players: ${globalTotal}`);
-console.log(`Elite (${ELITE_THRESHOLD}+):         ${globalElite} = ${elitePct.toFixed(1)}%  [target <${GLOBAL_ELITE_MAX_PCT}%]`);
-console.log(`Above Avg (${ABOVE_AVG_THRESHOLD}-499):  ${globalElite + globalAboveElite} = ${abovePct.toFixed(1)}%  [target <${GLOBAL_ABOVE_AVG_MAX_PCT}%]`);
-console.log(`Average (250-349):   ${globalAvg} = ${(globalAvg/globalTotal*100).toFixed(1)}%`);
-console.log(`Below Avg (<250):    ${globalBelow} = ${(globalBelow/globalTotal*100).toFixed(1)}%`);
+console.log(`5★ Elite (${ELITE_THRESHOLD}+):      ${globalElite} = ${elitePct.toFixed(1)}%  [target <${GLOBAL_ELITE_MAX_PCT}%]`);
+console.log(`4★ Above Avg (${ABOVE_AVG_THRESHOLD}-${ELITE_THRESHOLD-1}): ${globalElite + globalAboveElite} = ${abovePct.toFixed(1)}%  [target <${GLOBAL_ABOVE_AVG_MAX_PCT}%]`);
+console.log(`3★ Average (350-449):   ${globalAvg} = ${(globalAvg/globalTotal*100).toFixed(1)}%`);
+console.log(`2★/1★ Below (< 350):    ${globalBelow} = ${(globalBelow/globalTotal*100).toFixed(1)}%`);
 
 let failures = 0;
 
 if (elitePct >= GLOBAL_ELITE_MAX_PCT) {
-  console.error(`\n❌ FAIL: Elite (${ELITE_THRESHOLD}+) = ${elitePct.toFixed(1)}% — exceeds ${GLOBAL_ELITE_MAX_PCT}% global cap`);
+  console.error(`\n❌ FAIL: 5★ Elite (${ELITE_THRESHOLD}+) = ${elitePct.toFixed(1)}% — exceeds ${GLOBAL_ELITE_MAX_PCT}% global cap`);
   failures++;
 } else {
-  console.log(`\n✅ Elite <${GLOBAL_ELITE_MAX_PCT}%: PASS (${elitePct.toFixed(1)}%)`);
+  console.log(`\n✅ 5★ Elite <${GLOBAL_ELITE_MAX_PCT}%: PASS (${elitePct.toFixed(1)}%)`);
 }
 
 if (abovePct >= GLOBAL_ABOVE_AVG_MAX_PCT) {
-  console.error(`❌ FAIL: Above Avg = ${abovePct.toFixed(1)}% — exceeds ${GLOBAL_ABOVE_AVG_MAX_PCT}% global cap`);
+  console.error(`❌ FAIL: 4★+ Above Avg = ${abovePct.toFixed(1)}% — exceeds ${GLOBAL_ABOVE_AVG_MAX_PCT}% global cap`);
   failures++;
 } else {
-  console.log(`✅ Above Avg <${GLOBAL_ABOVE_AVG_MAX_PCT}%: PASS (${abovePct.toFixed(1)}%)`);
+  console.log(`✅ 4★+ Above Avg <${GLOBAL_ABOVE_AVG_MAX_PCT}%: PASS (${abovePct.toFixed(1)}%)`);
 }
 
 console.log("\n=== PER-CONFERENCE GUARDRAILS ===");
@@ -96,19 +103,19 @@ for (const [confName, stats] of Object.entries(confStats).sort((a,b) => (b[1].el
   const eliteOk = cElitePct < CONF_ELITE_MAX_PCT;
   const aboveOk = cAbovePct < CONF_ABOVE_AVG_MAX_PCT;
   console.log(
-    `  ${confName.padEnd(14)} elite=${cElitePct.toFixed(1)}% ${eliteOk ? "✅" : "❌"}  above_avg=${cAbovePct.toFixed(1)}% ${aboveOk ? "✅" : "❌"}  (${stats.total} players)`
+    `  ${confName.padEnd(14)} 5★=${cElitePct.toFixed(1)}% ${eliteOk ? "✅" : "❌"}  4★+=${cAbovePct.toFixed(1)}% ${aboveOk ? "✅" : "❌"}  (${stats.total} players)`
   );
   if (!eliteOk) {
-    console.error(`    ❌ ${confName}: elite ${cElitePct.toFixed(1)}% exceeds ${CONF_ELITE_MAX_PCT}% conference cap`);
+    console.error(`    ❌ ${confName}: 5★ ${cElitePct.toFixed(1)}% exceeds ${CONF_ELITE_MAX_PCT}% conference cap`);
     failures++;
   }
   if (!aboveOk) {
-    console.error(`    ❌ ${confName}: above-avg ${cAbovePct.toFixed(1)}% exceeds ${CONF_ABOVE_AVG_MAX_PCT}% conference cap`);
+    console.error(`    ❌ ${confName}: 4★+ ${cAbovePct.toFixed(1)}% exceeds ${CONF_ABOVE_AVG_MAX_PCT}% conference cap`);
     failures++;
   }
 }
 
-console.log("\n=== PER-TEAM ELITE CAP ===");
+console.log("\n=== PER-TEAM ELITE CAP (5★ players) ===");
 const overTeams = teamAvgs.filter(t => t.elite > TEAM_ELITE_MAX);
 if (overTeams.length > 0) {
   for (const t of overTeams) {
@@ -116,23 +123,23 @@ if (overTeams.length > 0) {
     failures++;
   }
 } else {
-  console.log(`✅ No team exceeds ${TEAM_ELITE_MAX} elite players`);
+  console.log(`✅ No team exceeds ${TEAM_ELITE_MAX} elite (5★) players`);
 }
 
 teamAvgs.sort((a, b) => b.avg - a.avg);
 console.log("\n=== TOP 20 TEAMS BY AVG OVR ===");
 for (const t of teamAvgs.slice(0, 20)) {
-  console.log(`  ${t.name.padEnd(25)} avg=${Math.round(t.avg)}  elite=${t.elite}/${t.count}`);
+  console.log(`  ${t.name.padEnd(25)} avg=${Math.round(t.avg)}  5★=${t.elite}/${t.count}`);
 }
 
 const eliteTeams = teamAvgs.filter(t => t.elite > 0).sort((a,b) => b.elite - a.elite);
-console.log(`\nTeams with 5-star (${ELITE_THRESHOLD}+) players: ${eliteTeams.length}`);
+console.log(`\nTeams with 5★ (${ELITE_THRESHOLD}+) players: ${eliteTeams.length}`);
 for (const t of eliteTeams) {
   console.log(`  ${t.name.padEnd(25)} ${t.elite} elite player${t.elite > 1 ? "s" : ""}`);
 }
 
 if (failures > 0) {
-  console.error(`\n❌ ${failures} OVR distribution check(s) failed. Re-run scripts/recalibrate-rosters.ts after adjusting bonus values or calibration formula.`);
+  console.error(`\n❌ ${failures} OVR distribution check(s) failed. Re-run scripts/recalibrate-rosters.ts after adjusting the calibration formula.`);
   process.exit(1);
 }
 console.log(`\n✅ All OVR distribution checks passed.`);

@@ -100,7 +100,7 @@ function buildCalibratedOvrMap(): Map<string, Array<{ team: string; ovr: number;
 }
 
 /**
- * Fix an ability list: deduplicate, then replace any gold ability (when OVR < 450)
+ * Fix an ability list: deduplicate, then replace any gold ability (when OVR < 500)
  * with a blue ability not already in the list. Uses a seeded PRNG for determinism.
  */
 function fixAbilities(
@@ -119,14 +119,14 @@ function fixAbilities(
     return true;
   });
 
-  // 2. If OVR >= 450, gold is allowed — only return deduped
-  if (ovr >= 450) {
+  // 2. If OVR >= 500, gold is allowed — only return deduped
+  if (ovr >= 500) {
     const changed = deduped.length !== abilities.length ||
       deduped.some((n, i) => n !== abilities[i]);
     return { fixed: deduped, changed };
   }
 
-  // 3. OVR < 450: replace each gold ability with a position-appropriate blue
+  // 3. OVR < 500: replace each gold ability with a position-appropriate blue
   const availableAbilities = getAbilitiesForPosition(position);
   const bluePool = availableAbilities.filter(a => a.tier === "blue").map(a => a.name);
 
@@ -257,7 +257,7 @@ for (const [team, roster] of Object.entries(ALL_REAL_ROSTERS)) {
   for (const p of roster as Array<{ firstName: string; lastName: string; position: string; abilities?: string[]; [key: string]: unknown }>) {
     const ovr = calculateOVR({ ...p, abilities: [] });
     const gold = (p.abilities || []).filter(n => GOLD_NAMES.has(n));
-    if (ovr < 450 && gold.length > 0) {
+    if (ovr < 500 && gold.length > 0) {
       console.log(`  VIOLATION: ${team} ${p.firstName} ${p.lastName} ovr=${ovr} gold=${gold.join(",")}`);
       violationCount++;
     }

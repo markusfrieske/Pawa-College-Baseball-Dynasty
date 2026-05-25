@@ -690,7 +690,7 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Dylan", lastName: "Volantis", position: "P", eligibility: "FR", homeState: "TX", hometown: "Austin", jerseyNumber: 29,
       hitForAvg: 14, power: 11, speed: 34, arm: 94, fielding: 63, errorResistance: 60, velocity: 98, control: 95, stamina: 91, stuff: 99,
       clutch: 87, vsLHP: 99, grit: 87, stealing: 8, running: 36, throwing: 87, recovery: 79, wRISP: 82, vsLefty: 87, poise: 84, heater: 86, agile: 50,
-      abilities: ["Star of Victory", "Intimidator", "Sharpness", "Heavy Ball", "Natural Shuuto"], potential: "A+", catcherAbility: null,
+      abilities: ["Guts", "Intimidator", "Sharpness", "Heavy Ball", "Natural Shuuto"], potential: "A+", catcherAbility: null,
       throwHand: "L", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "medium",
       ...pitchMix(1, [1, 0, 0, 1, 0, 0, 5, 0, 0, 0]) },

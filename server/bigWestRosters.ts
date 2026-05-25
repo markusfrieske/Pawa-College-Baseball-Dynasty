@@ -481,7 +481,7 @@ export const BIG_WEST_ROSTERS: Record<string, RealPlayer[]> = {
       generational: true,
       hitForAvg: 12, power: 9, speed: 31, arm: 96, fielding: 66, errorResistance: 40, velocity: 99, control: 97, stamina: 95, stuff: 99,
       clutch: 82, vsLHP: 82, grit: 82, stealing: 9, running: 28, throwing: 82, recovery: 80, wRISP: 82, vsLefty: 82, poise: 82, heater: 92, agile: 36,
-      abilities: ["Star of Victory", "Intimidator", "Heavy Ball", "Sharpness", "Pace"], potential: "A+", catcherAbility: null,
+      abilities: ["Guts", "Intimidator", "Heavy Ball", "Sharpness", "Pace"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 5, 5, 1, 0, 0, 0, 0, 0, 0]) },

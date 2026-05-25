@@ -41,7 +41,7 @@ async function main() {
     const selectRes = await client.query(
       `SELECT id, position, overall, abilities
        FROM players
-       WHERE overall < 450
+       WHERE overall < 500
          AND abilities IS NOT NULL
          AND EXISTS (
            SELECT 1 FROM json_array_elements_text(abilities) AS elem
@@ -58,7 +58,7 @@ async function main() {
       abilities: string[];
     }> = selectRes.rows;
 
-    console.log(`Found ${rows.length} players with gold abilities and OVR < 450.\n`);
+    console.log(`Found ${rows.length} players with gold abilities and OVR < 500.\n`);
 
     if (rows.length === 0) {
       console.log("Nothing to do — database is already clean.");

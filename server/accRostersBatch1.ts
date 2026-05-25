@@ -387,7 +387,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       { firstName: "Wes", lastName: "Mendes", position: "P", eligibility: "JR", homeState: "FL", hometown: "Tallahassee", jerseyNumber: 35,
         hitForAvg: 14, power: 11, speed: 32, arm: 92, fielding: 60, errorResistance: 54, velocity: 97, control: 95, stamina: 92, stuff: 97,
         clutch: 81, vsLHP: 81, grit: 81, stealing: 8, running: 30, throwing: 81, recovery: 81, wRISP: 81, vsLefty: 81, poise: 81, heater: 81, agile: 42,
-        abilities: ["Star of Victory", "Sharpness", "Strong Starter", "Intimidator", "Heavy Ball"], potential: "A+", catcherAbility: null,
+        abilities: ["Quick Hands", "Sharpness", "Strong Starter", "Intimidator", "Heavy Ball"], potential: "A+", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "tan", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 0, 0, 0, 0, 5, 4, 1, 0, 0]) },

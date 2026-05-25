@@ -1,11 +1,12 @@
 /**
  * validate-national-ranks — asserts that every team in NATIONAL_RANKS has a
- * unique rank number.  Exits non-zero and lists all duplicate entries when
- * conflicts are found.
+ * unique rank number, with the exception of the floor rank (TOTAL_NATIONAL_TEAMS)
+ * which multiple bottom-tier teams intentionally share.
  */
 
-import { NATIONAL_RANKS } from "../server/rosterScaleFactors";
+import { NATIONAL_RANKS, TOTAL_NATIONAL_TEAMS } from "../server/rosterScaleFactors";
 
+const FLOOR_RANK = TOTAL_NATIONAL_TEAMS;
 const rankToTeams: Record<number, string[]> = {};
 
 for (const [team, rank] of Object.entries(NATIONAL_RANKS)) {
@@ -16,12 +17,14 @@ for (const [team, rank] of Object.entries(NATIONAL_RANKS)) {
 }
 
 const duplicates = Object.entries(rankToTeams).filter(
-  ([, teams]) => teams.length > 1
+  ([rank, teams]) => teams.length > 1 && Number(rank) !== FLOOR_RANK
 );
 
 if (duplicates.length === 0) {
+  const floorCount = (rankToTeams[FLOOR_RANK] ?? []).length;
+  const floorNote = floorCount > 1 ? ` (${floorCount} teams share floor rank #${FLOOR_RANK} — intentional)` : "";
   console.log(
-    `✓  All ${Object.keys(NATIONAL_RANKS).length} teams have unique national rank numbers.`
+    `✓  All ${Object.keys(NATIONAL_RANKS).length} teams have unique national rank numbers${floorNote}.`
   );
   process.exit(0);
 } else {

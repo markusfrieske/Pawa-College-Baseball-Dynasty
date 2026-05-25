@@ -272,13 +272,13 @@ export function sanitizeAbilities(position: string, abilities: string[]): string
 }
 
 /**
- * Enforce the OVR >= 450 gate on gold abilities.
- * If `ovr` is below 450, any gold ability in the list is replaced with a
+ * Enforce the OVR >= 500 gate on gold abilities.
+ * If `ovr` is below 500, any gold ability in the list is replaced with a
  * randomly-chosen position-appropriate blue ability not already present.
  * Returns the original array reference unchanged when no replacement is needed.
  */
 export function enforceGoldOvrGate(abilities: string[], position: string, ovr: number): string[] {
-  if (ovr >= 450) return abilities;
+  if (ovr >= 500) return abilities;
   const hasGold = abilities.some(name => getAbilityByName(name)?.tier === "gold");
   if (!hasGold) return abilities;
 
@@ -435,9 +435,9 @@ export function calculateOVR(attrs: {
 }
 
 export function getStarRatingFromOVR(ovr: number): number {
-  if (ovr >= 500) return 5;
-  if (ovr >= 400) return 4;
-  if (ovr >= 300) return 3;
-  if (ovr >= 200) return 2;
+  if (ovr >= 550) return 5;
+  if (ovr >= 450) return 4;
+  if (ovr >= 350) return 3;
+  if (ovr >= 250) return 2;
   return 1;
 }

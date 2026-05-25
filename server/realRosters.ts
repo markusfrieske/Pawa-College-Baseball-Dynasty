@@ -91,7 +91,7 @@ function scalePlayer(player: RealPlayer, factor: number): RealPlayer {
     const val = result[attr];
     if (typeof val === "number") {
       let scaled = clamp(val * factor);
-      if (isPitcher && attr === "hitForAvg") scaled = Math.min(scaled, 30);
+      if (isPitcher && (attr === "hitForAvg" || attr === "power")) scaled = Math.min(scaled, 30);
       (result as Record<string, unknown>)[attr as string] = scaled;
     }
   }
