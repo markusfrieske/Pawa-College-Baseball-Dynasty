@@ -18412,8 +18412,10 @@ export async function registerRoutes(
                 { position: rp.position, firstName: rp.firstName, lastName: rp.lastName, ...rp },
                 conf,
               );
-              const baseOvr = calculateOVR({ ...rp, ...normalized, abilities: [] });
-              const gatedAbilities = enforceGoldOvrGate(rp.abilities ?? [], rp.position, baseOvr);
+              // Gate gold abilities using OVR WITH abilities included: a player earns
+              // their gold badge if their total OVR (incl. the +10 gold bonus) reaches ≥ 500.
+              const ovrWithAbilities = calculateOVR({ ...rp, ...normalized, abilities: rp.abilities ?? [] });
+              const gatedAbilities = enforceGoldOvrGate(rp.abilities ?? [], rp.position, ovrWithAbilities);
               const overall = calculateOVR({ ...rp, ...normalized, abilities: gatedAbilities });
               const starRating = overall >= 500 ? 5 : overall >= 400 ? 4 : overall >= 300 ? 3 : overall >= 200 ? 2 : 1;
               return { ...rp, ...normalized, abilities: gatedAbilities, overall, starRating };
@@ -18454,8 +18456,10 @@ export async function registerRoutes(
           { position: rp.position, firstName: rp.firstName, lastName: rp.lastName, ...rp },
           conferenceName,
         );
-        const baseOvr = calculateOVR({ ...rp, ...normalized, abilities: [] });
-        const gatedAbilities = enforceGoldOvrGate(rp.abilities ?? [], rp.position, baseOvr);
+        // Gate gold abilities using OVR WITH abilities included: a player earns
+        // their gold badge if their total OVR (incl. the +10 gold bonus) reaches ≥ 500.
+        const ovrWithAbilities = calculateOVR({ ...rp, ...normalized, abilities: rp.abilities ?? [] });
+        const gatedAbilities = enforceGoldOvrGate(rp.abilities ?? [], rp.position, ovrWithAbilities);
         const overall = calculateOVR({ ...rp, ...normalized, abilities: gatedAbilities });
         const starRating = overall >= 500 ? 5 : overall >= 400 ? 4 : overall >= 300 ? 3 : overall >= 200 ? 2 : 1;
         return { ...rp, ...normalized, abilities: gatedAbilities, overall, starRating };
@@ -19431,13 +19435,15 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
         conferenceName ?? "",
       ));
 
-      // Two-pass OVR: gate gold abilities using base OVR (no ability bonuses),
-      // then compute final OVR with the gated ability set. This matches the
-      // /api/ncaa-rosters endpoints exactly so home-page and dynasty values agree.
-      const baseOvr = calculateOVR({ ...playerData, abilities: [] });
-      const gatedAbilities = enforceGoldOvrGate(playerData.abilities as string[], rp.position, baseOvr);
-      (playerData as Record<string, unknown>).abilities = gatedAbilities;
-      const rawOverall = calculateOVR(playerData);
+      // Gate gold abilities using OVR WITH abilities included: a player earns their
+      // gold badge if their total OVR (incl. the +10 gold bonus) reaches ≥ 500.
+      // If gold is stripped, recalculate so the stored OVR reflects the gated set.
+      let rawOverall = calculateOVR(playerData);
+      const gatedAbilities = enforceGoldOvrGate(playerData.abilities as string[], rp.position, rawOverall);
+      if (gatedAbilities !== playerData.abilities) {
+        (playerData as Record<string, unknown>).abilities = gatedAbilities;
+        rawOverall = calculateOVR(playerData);
+      }
       const overall = Math.max(159, Math.min(650, rawOverall));
       const starRating = getStarRatingFromOVR(overall);
 
