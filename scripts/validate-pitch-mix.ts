@@ -29,6 +29,7 @@ import { BIG_TEN_BATCH1_ROSTERS } from "../server/bigTenBatch1";
 import { BIG_TEN_BATCH2_ROSTERS } from "../server/bigTenBatch2";
 import { BIG_TEN_BATCH3_ROSTERS } from "../server/bigTenBatch3";
 import { PAC12_ROSTERS } from "../server/pac12Rosters";
+import { MWC_ROSTERS } from "../server/mwcRosters";
 import { IVY_LEAGUE_ROSTERS } from "../server/ivyLeagueRosters";
 import { SUN_BELT_ROSTERS } from "../server/sunBeltRosters";
 import { BIG_WEST_ROSTERS } from "../server/bigWestRosters";
@@ -57,6 +58,7 @@ const ALL_ROSTERS: Record<string, Record<string, RealPlayer[]>> = {
   "Big Ten Batch 2": BIG_TEN_BATCH2_ROSTERS,
   "Big Ten Batch 3": BIG_TEN_BATCH3_ROSTERS,
   "Pac-12": PAC12_ROSTERS,
+  "Mountain West": MWC_ROSTERS,
   "Ivy League": IVY_LEAGUE_ROSTERS,
   "Sun Belt": SUN_BELT_ROSTERS,
   "Big West": BIG_WEST_ROSTERS,
