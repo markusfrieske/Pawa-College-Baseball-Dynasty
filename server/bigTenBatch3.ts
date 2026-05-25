@@ -322,11 +322,11 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       // Mason Edwards — LHP JR Thursday ace, 7-0/1.74, #2 nationally per D1B Top 100 SP — TEAM ELITE STUFF
       { firstName: "Mason", lastName: "Edwards", position: "P", eligibility: "JR", homeState: "CA", hometown: "Los Angeles", jerseyNumber: 31,
         hitForAvg: 16, power: 12, speed: 33, arm: 94, fielding: 64, errorResistance: 54, velocity: 98, control: 96, stamina: 93, stuff: 99,
-        clutch: 90, vsLHP: 99, grit: 92, stealing: 8, running: 32, throwing: 90, recovery: 88, wRISP: 88, vsLefty: 95, poise: 88, heater: 87, agile: 44,
+        clutch: 90, vsLHP: 99, grit: 92, stealing: 8, running: 32, throwing: 90, recovery: 80, wRISP: 83, vsLefty: 95, poise: 85, heater: 87, agile: 44,
         abilities: ["Star of Victory", "Crossfire", "Pace", "Sharpness", "Heavy Ball"], potential: "A+", catcherAbility: null,
         throwHand: "L", batHand: "L",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [1, 6, 0, 1, 0, 4, 0]) },
+        ...pitchMix(1, [1, 5, 0, 1, 0, 4, 0]) },
       // Grant Govel — RHP FR Friday/weekend, 9-1/2.55
       { firstName: "Grant", lastName: "Govel", position: "P", eligibility: "FR", homeState: "CA", hometown: "San Diego", jerseyNumber: 27,
         hitForAvg: 14, power: 10, speed: 32, arm: 61, fielding: 35, errorResistance: 46, velocity: 63, control: 61, stamina: 62, stuff: 58,

@@ -529,11 +529,11 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
   "Notre Dame": [
     // PITCHERS (8)
     { firstName: "Jack", lastName: "Radel", position: "P", eligibility: "JR", homeState: "OH", hometown: "Cincinnati", jerseyNumber: 34,
-      hitForAvg: 23, power: 19, speed: 34, arm: 93, fielding: 62, errorResistance: 54, velocity: 97, control: 95, stamina: 98, stuff: 98,
-      clutch: 90, vsLHP: 88, grit: 92, stealing: 14, running: 40, throwing: 95, recovery: 89, wRISP: 89, vsLefty: 93, poise: 89, heater: 86, agile: 48,
+      hitForAvg: 23, power: 19, speed: 34, arm: 93, fielding: 62, errorResistance: 54, velocity: 97, control: 95, stamina: 93, stuff: 98,
+      clutch: 90, vsLHP: 88, grit: 92, stealing: 14, running: 40, throwing: 95, recovery: 79, wRISP: 84, vsLefty: 93, poise: 83, heater: 86, agile: 48,
       abilities: ["Star of Victory", "True Slider", "Heavy Ball", "Sharpness", "Strikeout"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
-      ...pitchMix(1, [1, 6, 4, 1, 0, 0, 0]) },
+      ...pitchMix(1, [1, 5, 4, 1, 0, 0, 0]) },
     { firstName: "Ty", lastName: "Uber", position: "P", eligibility: "SR", homeState: "CA", hometown: "Palo Alto", jerseyNumber: 29,
       hitForAvg: 15, power: 11, speed: 32, arm: 49, fielding: 30, errorResistance: 42, velocity: 53, control: 47, stamina: 47, stuff: 45,
       clutch: 59, vsLHP: 55, grit: 61, stealing: 10, running: 30, throwing: 63, recovery: 42, wRISP: 43, vsLefty: 43, poise: 46, heater: 49, agile: 37,
