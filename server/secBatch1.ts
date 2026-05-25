@@ -114,7 +114,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Steven", lastName: "Milam", position: "SS", eligibility: "SR", homeState: "TX", hometown: "Allen", jerseyNumber: 4,
       hitForAvg: 77, power: 63, speed: 69, arm: 64, fielding: 78, errorResistance: 76, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 72, vsLHP: 68, grit: 75, stealing: 35, running: 50, throwing: 82, recovery: 60, wRISP: 70, vsLefty: 68, poise: 72, heater: 0, agile: 70,
-      abilities: ["Magician", "vs. Breaking Pitches", "Defensive Artisan", "Contact Hitter", "Consigliere"], potential: "A", catcherAbility: null,
+      abilities: ["Good Infield Hit", "vs. Breaking Pitches", "Defensive Artisan", "Contact Hitter", "Consigliere"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "S",
       skinTone: "medium", hairColor: "black", hairStyle: "short",
       ...noPitches },

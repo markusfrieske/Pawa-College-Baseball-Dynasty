@@ -445,7 +445,7 @@ export const AAC_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Bryce", lastName: "Calloway", position: "SS", eligibility: "JR", homeState: "LA", hometown: "Metairie", jerseyNumber: 5,
         hitForAvg: 74, power: 90, speed: 72, arm: 69, fielding: 68, errorResistance: 66, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 64, vsLHP: 61, grit: 68, stealing: 61, running: 59, throwing: 81, recovery: 65, wRISP: 62, vsLefty: 66, poise: 68, heater: 0, agile: 62,
-        abilities: ["Hit Machine", "Tough Out", "Power Hitter"], potential: "A", catcherAbility: null,
+        abilities: ["Contact Hitter", "Tough Out", "Power Hitter"], potential: "A", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },

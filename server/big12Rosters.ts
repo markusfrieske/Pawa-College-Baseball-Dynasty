@@ -701,7 +701,7 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Mason", lastName: "White", position: "SS", eligibility: "JR", homeState: "AZ", hometown: "Phoenix", jerseyNumber: 5,
       hitForAvg: 95, power: 91, speed: 70, arm: 70, fielding: 70, errorResistance: 64, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 86, vsLHP: 80, grit: 84, stealing: 22, running: 50, throwing: 80, recovery: 54, wRISP: 86, vsLefty: 80, poise: 86, heater: 0, agile: 60,
-      abilities: ["Hit Machine", "Contact Hitter", "Push", "Batter Intimidator", "Power Hitter"], potential: "A+", catcherAbility: null,
+      abilities: ["Unpredictable", "Contact Hitter", "Push", "Batter Intimidator", "Power Hitter"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "L",
       ...noPitches },
     { firstName: "Andrew", lastName: "Cain", position: "OF", eligibility: "SR", homeState: "AZ", hometown: "Tucson", jerseyNumber: 8,

@@ -64,7 +64,7 @@ export const BIG_TEN_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Aiden", lastName: "Flinn", position: "P", eligibility: "FR", homeState: "IL", hometown: "Elmhurst", jerseyNumber: 50,
       hitForAvg: 9, power: 7, speed: 27, arm: 92, fielding: 60, errorResistance: 54, velocity: 97, control: 95, stamina: 92, stuff: 97,
       clutch: 86, vsLHP: 82, grit: 88, stealing: 9, running: 27, throwing: 88, recovery: 88, wRISP: 92, vsLefty: 93, poise: 92, heater: 95, agile: 34,
-      abilities: ["Star of Victory", "Sharpness", "Strikeout", "Intimidator", "Heavy Ball"], potential: "A+", catcherAbility: null,
+      abilities: ["Winner's Luck", "Sharpness", "Strikeout", "Intimidator", "Heavy Ball"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 0, 0, 1, 0, 5, 4, 0, 0, 0]) },
     // CATCHERS (2)
