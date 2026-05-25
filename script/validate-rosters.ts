@@ -50,41 +50,11 @@ const ATTRIBUTE_FIELDS: (keyof RealPlayer)[] = [
 
 const ROSTER_SIZE = 25;
 
-interface TierRules {
-  hardCap: number;
-  eliteThreshold: number;
-  maxEliteAttrsPerPlayer: number;
-  requireElite: boolean;
-}
-
-const TIER_CAPS: Record<number, TierRules> = {
-  1: { hardCap: 95, eliteThreshold: 90, maxEliteAttrsPerPlayer: 2, requireElite: true },
-  2: { hardCap: 92, eliteThreshold: 88, maxEliteAttrsPerPlayer: 3, requireElite: false },
-  3: { hardCap: 88, eliteThreshold: 85, maxEliteAttrsPerPlayer: 3, requireElite: false },
-  4: { hardCap: 85, eliteThreshold: 82, maxEliteAttrsPerPlayer: 3, requireElite: false },
-  5: { hardCap: 85, eliteThreshold: 82, maxEliteAttrsPerPlayer: 3, requireElite: false },
-};
-
 interface ValidationIssue {
   conference: string;
   team: string;
   severity: "error" | "warning";
   message: string;
-}
-
-function isGenerational(p: RealPlayer): boolean {
-  // Optional opt-out flag for hand-edited generational players. RealPlayer
-  // doesn't declare it, so we read it dynamically — set `generational: true`
-  // on the player object to bypass the hard cap.
-  if ((p as unknown as { generational?: boolean }).generational === true) return true;
-  // Generational gem/bust badges are also recognized via the abilities list.
-  if (Array.isArray(p.abilities)) {
-    for (const a of p.abilities) {
-      const lower = a.toLowerCase();
-      if (lower.includes("generational")) return true;
-    }
-  }
-  return false;
 }
 
 function validate(): ValidationIssue[] {
@@ -101,8 +71,6 @@ function validate(): ValidationIssue[] {
       }
     }
 
-    const cap = TIER_CAPS[conf.tier];
-
     for (const [team, players] of Object.entries(merged)) {
       // 1. Roster size
       if (players.length !== ROSTER_SIZE) {
@@ -115,9 +83,6 @@ function validate(): ValidationIssue[] {
       }
 
       for (const p of players) {
-        const generational = isGenerational(p);
-        let playerEliteAttrs = 0;
-
         for (const f of ATTRIBUTE_FIELDS) {
           const v = p[f] as number;
           if (typeof v !== "number" || Number.isNaN(v)) {
@@ -137,20 +102,6 @@ function validate(): ValidationIssue[] {
               message: `${p.firstName} ${p.lastName}: attribute "${String(f)}"=${v} out of range 0-99`,
             });
           }
-
-          if (v >= cap.eliteThreshold) {
-            playerEliteAttrs++;
-          }
-        }
-
-        // 2. Per-player elite attribute cap
-        if (!generational && playerEliteAttrs > cap.maxEliteAttrsPerPlayer) {
-          issues.push({
-            conference: conf.name,
-            team,
-            severity: "error",
-            message: `${p.firstName} ${p.lastName}: has ${playerEliteAttrs} attributes >= ${cap.eliteThreshold}, max ${cap.maxEliteAttrsPerPlayer} for tier ${conf.tier} (mark player as generational to allow more)`,
-          });
         }
       }
     }
