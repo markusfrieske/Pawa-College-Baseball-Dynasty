@@ -134,6 +134,9 @@ export function normalizeCommonAbilities(
     out[f] = typeof v === "number" ? v : null;
   }
 
+  // Grit is capped at A-tier (89). S-grade Grit (≥ 90) is unrealistic for any player.
+  if (typeof out.grit === "number" && out.grit > 89) out.grit = 89;
+
   // Count fields whose value is < 50 (F or G grade)
   const subFifty = fields.filter((f) => typeof out[f] === "number" && (out[f] as number) < 50);
 

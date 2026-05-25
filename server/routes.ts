@@ -18416,9 +18416,22 @@ export async function registerRoutes(
               // their gold badge if their total OVR (incl. the +10 gold bonus) reaches ≥ 500.
               const ovrWithAbilities = calculateOVR({ ...rp, ...normalized, abilities: rp.abilities ?? [] });
               const gatedAbilities = enforceGoldOvrGate(rp.abilities ?? [], rp.position, ovrWithAbilities);
-              const overall = calculateOVR({ ...rp, ...normalized, abilities: gatedAbilities });
-              const starRating = overall >= 500 ? 5 : overall >= 400 ? 4 : overall >= 300 ? 3 : overall >= 200 ? 2 : 1;
-              return { ...rp, ...normalized, abilities: gatedAbilities, overall, starRating };
+              let finalNormalized = normalized;
+              let finalOverall = calculateOVR({ ...rp, ...normalized, abilities: gatedAbilities });
+              // Boost running/stealing for elite speedsters: OVR > 500 with speed 90-94 earns
+              // S-grade Running; OVR > 500 with speed 95+ earns S-grade Stealing.
+              if (finalOverall > 500 && typeof rp.speed === "number") {
+                const spd = rp.speed;
+                if (spd >= 90 && spd <= 94 && ((normalized.running ?? 0) as number) < 90) {
+                  finalNormalized = { ...normalized, running: 90 };
+                  finalOverall = calculateOVR({ ...rp, ...finalNormalized, abilities: gatedAbilities });
+                } else if (spd >= 95 && ((normalized.stealing ?? 0) as number) < 90) {
+                  finalNormalized = { ...normalized, stealing: 90 };
+                  finalOverall = calculateOVR({ ...rp, ...finalNormalized, abilities: gatedAbilities });
+                }
+              }
+              const starRating = finalOverall >= 500 ? 5 : finalOverall >= 400 ? 4 : finalOverall >= 300 ? 3 : finalOverall >= 200 ? 2 : 1;
+              return { ...rp, ...finalNormalized, abilities: gatedAbilities, overall: finalOverall, starRating };
             });
             return {
               name: t.name,
@@ -18460,9 +18473,22 @@ export async function registerRoutes(
         // their gold badge if their total OVR (incl. the +10 gold bonus) reaches ≥ 500.
         const ovrWithAbilities = calculateOVR({ ...rp, ...normalized, abilities: rp.abilities ?? [] });
         const gatedAbilities = enforceGoldOvrGate(rp.abilities ?? [], rp.position, ovrWithAbilities);
-        const overall = calculateOVR({ ...rp, ...normalized, abilities: gatedAbilities });
-        const starRating = overall >= 500 ? 5 : overall >= 400 ? 4 : overall >= 300 ? 3 : overall >= 200 ? 2 : 1;
-        return { ...rp, ...normalized, abilities: gatedAbilities, overall, starRating };
+        let finalNormalized = normalized;
+        let finalOverall = calculateOVR({ ...rp, ...normalized, abilities: gatedAbilities });
+        // Boost running/stealing for elite speedsters: OVR > 500 with speed 90-94 earns
+        // S-grade Running; OVR > 500 with speed 95+ earns S-grade Stealing.
+        if (finalOverall > 500 && typeof rp.speed === "number") {
+          const spd = rp.speed;
+          if (spd >= 90 && spd <= 94 && ((normalized.running ?? 0) as number) < 90) {
+            finalNormalized = { ...normalized, running: 90 };
+            finalOverall = calculateOVR({ ...rp, ...finalNormalized, abilities: gatedAbilities });
+          } else if (spd >= 95 && ((normalized.stealing ?? 0) as number) < 90) {
+            finalNormalized = { ...normalized, stealing: 90 };
+            finalOverall = calculateOVR({ ...rp, ...finalNormalized, abilities: gatedAbilities });
+          }
+        }
+        const starRating = finalOverall >= 500 ? 5 : finalOverall >= 400 ? 4 : finalOverall >= 300 ? 3 : finalOverall >= 200 ? 2 : 1;
+        return { ...rp, ...finalNormalized, abilities: gatedAbilities, overall: finalOverall, starRating };
       });
 
       res.json({
@@ -19443,6 +19469,20 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
       if (gatedAbilities !== playerData.abilities) {
         (playerData as Record<string, unknown>).abilities = gatedAbilities;
         rawOverall = calculateOVR(playerData);
+      }
+      // Boost running/stealing for elite speedsters: OVR > 500 with speed 90-94 earns
+      // S-grade Running; OVR > 500 with speed 95+ earns S-grade Stealing.
+      if (rawOverall > 500 && typeof rp.speed === "number") {
+        const spd = rp.speed;
+        let boosted = false;
+        if (spd >= 90 && spd <= 94 && ((playerData as Record<string, unknown>).running as number ?? 0) < 90) {
+          (playerData as Record<string, unknown>).running = 90;
+          boosted = true;
+        } else if (spd >= 95 && ((playerData as Record<string, unknown>).stealing as number ?? 0) < 90) {
+          (playerData as Record<string, unknown>).stealing = 90;
+          boosted = true;
+        }
+        if (boosted) rawOverall = calculateOVR(playerData);
       }
       const overall = Math.max(159, Math.min(650, rawOverall));
       const starRating = getStarRatingFromOVR(overall);
