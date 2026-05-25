@@ -193,12 +193,12 @@ export default function LandingPage() {
                 </Link>
                 <Link href={isLoggedIn ? "/manage-rosters" : "/guest?redirect=/manage-rosters"}>
                   <button className="flex items-center gap-1 hover:text-gold transition-colors" data-testid="button-manage-rosters">
-                    <ClipboardList className="w-3.5 h-3.5" /> Manage Rosters
+                    <ClipboardList className="w-3.5 h-3.5" /> Manage Custom Rosters
                   </button>
                 </Link>
                 <Link href={isLoggedIn ? "/manage-recruiting" : "/guest?redirect=/manage-recruiting"}>
                   <button className="flex items-center gap-1 hover:text-gold transition-colors" data-testid="button-manage-recruiting">
-                    <UserPlus className="w-3.5 h-3.5" /> Manage Recruiting
+                    <UserPlus className="w-3.5 h-3.5" /> Create Recruiting Class
                   </button>
                 </Link>
               </div>
@@ -552,7 +552,7 @@ export default function LandingPage() {
                   {[
                     { label: "My Dynasties", href: "/dashboard" },
                     { label: "Create League", href: "/create-league" },
-                    { label: "Manage Rosters", href: "/manage-rosters" },
+                    { label: "Manage Custom Rosters", href: "/manage-rosters" },
                     { label: "Sign In", href: "/login" },
                     { label: "Create Account", href: "/register" },
                   ].map((link) => (
