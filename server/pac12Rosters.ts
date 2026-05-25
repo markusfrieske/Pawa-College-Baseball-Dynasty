@@ -10,7 +10,7 @@ export const PAC12_ROSTERS: Record<string, RealPlayer[]> = {
     // Dax Whitney — Friday SO RHP ace, 98mph FB, 17"+ sweeper 42% whiff, 3.40/120K/76.2 IP — TEAM ELITE
     { firstName: "Dax", lastName: "Whitney", position: "P", eligibility: "SO", homeState: "ID", hometown: "Boise", jerseyNumber: 22,
       hitForAvg: 16, power: 12, speed: 33, arm: 93, fielding: 61, errorResistance: 54, velocity: 97, control: 96, stamina: 94, stuff: 99,
-      clutch: 85, vsLHP: 85, grit: 85, stealing: 10, running: 34, throwing: 85, recovery: 79, wRISP: 83, vsLefty: 95, poise: 85, heater: 85, agile: 44,
+      clutch: 85, vsLHP: 85, grit: 67, stealing: 10, running: 34, throwing: 85, recovery: 67, wRISP: 67, vsLefty: 67, poise: 67, heater: 67, agile: 44,
       abilities: ["Heavy Ball", "Intimidator", "Sharpness", "Decisive", "Strikeout"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
@@ -18,7 +18,7 @@ export const PAC12_ROSTERS: Record<string, RealPlayer[]> = {
     // Ethan Kleinschmit — Saturday LHP JR, 3.56/113K/91 IP, JUCO transfer
     { firstName: "Ethan", lastName: "Kleinschmit", position: "P", eligibility: "JR", homeState: "NE", hometown: "Omaha", jerseyNumber: 29,
       hitForAvg: 15, power: 12, speed: 32, arm: 65, fielding: 37, errorResistance: 50, velocity: 56, control: 65, stamina: 66, stuff: 63,
-      clutch: 76, vsLHP: 78, grit: 76, stealing: 9, running: 32, throwing: 76, recovery: 55, wRISP: 58, vsLefty: 63, poise: 61, heater: 63, agile: 42,
+      clutch: 76, vsLHP: 78, grit: 67, stealing: 9, running: 32, throwing: 76, recovery: 55, wRISP: 58, vsLefty: 63, poise: 61, heater: 63, agile: 42,
       abilities: ["Strong Starter", "Fireman", "Inside Pitch", "Good Pickoff", "Intimidator", "Full Throttle"], potential: "A", catcherAbility: null,
       throwHand: "L", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
@@ -26,7 +26,7 @@ export const PAC12_ROSTERS: Record<string, RealPlayer[]> = {
     // Eric Segura — Sunday RHP, proven potency
     { firstName: "Eric", lastName: "Segura", position: "P", eligibility: "JR", homeState: "CA", hometown: "Riverside", jerseyNumber: 31,
       hitForAvg: 13, power: 10, speed: 32, arm: 59, fielding: 35, errorResistance: 46, velocity: 53, control: 57, stamina: 59, stuff: 57,
-      clutch: 70, vsLHP: 64, grit: 70, stealing: 8, running: 30, throwing: 72, recovery: 49, wRISP: 51, vsLefty: 51, poise: 55, heater: 60, agile: 40,
+      clutch: 70, vsLHP: 64, grit: 67, stealing: 8, running: 30, throwing: 72, recovery: 49, wRISP: 51, vsLefty: 51, poise: 55, heater: 60, agile: 40,
       abilities: ["Strong Starter", "Fireman", "Constant Speed", "Intimidator"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "tan", hairColor: "black", hairStyle: "short",
@@ -34,7 +34,7 @@ export const PAC12_ROSTERS: Record<string, RealPlayer[]> = {
     // Laif Palmer — RHP, top 2026 draft prospect on team
     { firstName: "Laif", lastName: "Palmer", position: "P", eligibility: "JR", homeState: "OR", hometown: "Portland", jerseyNumber: 27,
       hitForAvg: 14, power: 11, speed: 32, arm: 64, fielding: 37, errorResistance: 50, velocity: 59, control: 59, stamina: 48, stuff: 62,
-      clutch: 76, vsLHP: 70, grit: 74, stealing: 9, running: 32, throwing: 76, recovery: 48, wRISP: 57, vsLefty: 56, poise: 60, heater: 65, agile: 42,
+      clutch: 76, vsLHP: 70, grit: 67, stealing: 9, running: 32, throwing: 76, recovery: 48, wRISP: 57, vsLefty: 56, poise: 60, heater: 65, agile: 42,
       abilities: ["Fireman", "Poker Face", "Strikeout", "Intimidator"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
@@ -42,7 +42,7 @@ export const PAC12_ROSTERS: Record<string, RealPlayer[]> = {
     // Trey Morris — RHP, 4 wins, 5 IP CSUN
     { firstName: "Trey", lastName: "Morris", position: "P", eligibility: "JR", homeState: "CA", hometown: "San Diego", jerseyNumber: 33,
       hitForAvg: 13, power: 10, speed: 32, arm: 55, fielding: 34, errorResistance: 46, velocity: 50, control: 58, stamina: 55, stuff: 53,
-      clutch: 68, vsLHP: 62, grit: 68, stealing: 8, running: 30, throwing: 68, recovery: 47, wRISP: 49, vsLefty: 49, poise: 53, heater: 55, agile: 40,
+      clutch: 68, vsLHP: 62, grit: 67, stealing: 8, running: 30, throwing: 68, recovery: 47, wRISP: 49, vsLefty: 49, poise: 53, heater: 55, agile: 40,
       abilities: ["Strong Starter", "Guts", "Inside Pitch"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
@@ -50,7 +50,7 @@ export const PAC12_ROSTERS: Record<string, RealPlayer[]> = {
     // James DeCremer III — RHP RP
     { firstName: "James", lastName: "DeCremer III", position: "P", eligibility: "SR", homeState: "WA", hometown: "Seattle", jerseyNumber: 38,
       hitForAvg: 13, power: 10, speed: 32, arm: 56, fielding: 32, errorResistance: 44, velocity: 52, control: 54, stamina: 39, stuff: 54,
-      clutch: 70, vsLHP: 64, grit: 70, stealing: 8, running: 30, throwing: 68, recovery: 43, wRISP: 49, vsLefty: 49, poise: 54, heater: 57, agile: 40,
+      clutch: 70, vsLHP: 64, grit: 67, stealing: 8, running: 30, throwing: 68, recovery: 43, wRISP: 49, vsLefty: 49, poise: 54, heater: 57, agile: 40,
       abilities: ["Fireman", "Poker Face", "Good Pickoff", "Strong Finisher"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
@@ -90,7 +90,7 @@ export const PAC12_ROSTERS: Record<string, RealPlayer[]> = {
     // CATCHERS (2) — wide-open competition (Weber gone)
     { firstName: "Wilson", lastName: "Hoyt", position: "C", eligibility: "JR", homeState: "OR", hometown: "Salem", jerseyNumber: 14,
       hitForAvg: 55, power: 51, speed: 37, arm: 60, fielding: 60, errorResistance: 56, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 50, vsLHP: 46, grit: 52, stealing: 8, running: 30, throwing: 70, recovery: 46, wRISP: 48, vsLefty: 44, poise: 50, heater: 0, agile: 36,
+      clutch: 50, vsLHP: 46, grit: 52, stealing: 8, running: 30, throwing: 67, recovery: 46, wRISP: 48, vsLefty: 44, poise: 50, heater: 0, agile: 36,
       abilities: ["Defensive Artisan"], potential: "B+", catcherAbility: 56,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
@@ -106,7 +106,7 @@ export const PAC12_ROSTERS: Record<string, RealPlayer[]> = {
     // Jacob Krieg — 1B SR, exit velo record (118 mph), .312/.409/.393, 16.5% BB rate, top of order — TEAM POWER ELITE
     { firstName: "Jacob", lastName: "Krieg", position: "1B", eligibility: "SR", homeState: "OR", hometown: "Tigard", jerseyNumber: 8,
       hitForAvg: 75, power: 88, speed: 55, arm: 56, fielding: 64, errorResistance: 60, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 80, vsLHP: 74, grit: 80, stealing: 8, running: 30, throwing: 66, recovery: 48, wRISP: 80, vsLefty: 74, poise: 80, heater: 0, agile: 38,
+      clutch: 67, vsLHP: 67, grit: 67, stealing: 8, running: 30, throwing: 66, recovery: 48, wRISP: 80, vsLefty: 74, poise: 80, heater: 0, agile: 38,
       abilities: ["Line Drive", "Consigliere", "Defensive Artisan"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
@@ -122,7 +122,7 @@ export const PAC12_ROSTERS: Record<string, RealPlayer[]> = {
     // Vance — SR SS, EMU transfer, .291/13 2B/6 HR/31 RBI, "seasoned"
     { firstName: "Brendan", lastName: "Vance", position: "SS", eligibility: "SR", homeState: "MI", hometown: "Ann Arbor", jerseyNumber: 6,
       hitForAvg: 65, power: 61, speed: 69, arm: 60, fielding: 64, errorResistance: 60, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 60, vsLHP: 54, grit: 60, stealing: 22, running: 46, throwing: 70, recovery: 46, wRISP: 58, vsLefty: 52, poise: 60, heater: 0, agile: 56,
+      clutch: 60, vsLHP: 54, grit: 60, stealing: 22, running: 46, throwing: 67, recovery: 46, wRISP: 58, vsLefty: 52, poise: 60, heater: 0, agile: 56,
       abilities: ["Defensive Artisan", "Contact Hitter"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
@@ -130,7 +130,7 @@ export const PAC12_ROSTERS: Record<string, RealPlayer[]> = {
     // Tyler Inge — SO 3B/SS, Michigan transfer, "howitzer" arm, versatile
     { firstName: "Tyler", lastName: "Inge", position: "3B", eligibility: "SO", homeState: "MI", hometown: "Detroit", jerseyNumber: 5,
       hitForAvg: 61, power: 55, speed: 55, arm: 75, fielding: 60, errorResistance: 54, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 54, vsLHP: 50, grit: 56, stealing: 22, running: 46, throwing: 85, recovery: 44, wRISP: 52, vsLefty: 50, poise: 54, heater: 0, agile: 54,
+      clutch: 54, vsLHP: 50, grit: 56, stealing: 22, running: 46, throwing: 67, recovery: 44, wRISP: 52, vsLefty: 50, poise: 54, heater: 0, agile: 54,
       abilities: ["Pull Hitter", "Defensive Artisan"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
@@ -179,7 +179,7 @@ export const PAC12_ROSTERS: Record<string, RealPlayer[]> = {
     // RF
     { firstName: "Landon", lastName: "Price", position: "OF", eligibility: "JR", homeState: "OR", hometown: "Hillsboro", jerseyNumber: 9,
       hitForAvg: 59, power: 55, speed: 63, arm: 60, fielding: 56, errorResistance: 52, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 52, vsLHP: 48, grit: 54, stealing: 32, running: 50, throwing: 70, recovery: 44, wRISP: 50, vsLefty: 46, poise: 52, heater: 0, agile: 52,
+      clutch: 52, vsLHP: 48, grit: 54, stealing: 32, running: 50, throwing: 67, recovery: 44, wRISP: 50, vsLefty: 46, poise: 52, heater: 0, agile: 52,
       abilities: ["Disturbance"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
@@ -214,7 +214,7 @@ export const PAC12_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (10) — 2 FR
     { firstName: "Carter", lastName: "Baumgartner", position: "P", eligibility: "SR", homeState: "WA", hometown: "Pullman", jerseyNumber: 34,
       hitForAvg: 20, power: 16, speed: 34, arm: 65, fielding: 43, errorResistance: 55, velocity: 61, control: 62, stamina: 65, stuff: 63,
-      clutch: 73, vsLHP: 68, grit: 75, stealing: 11, running: 39, throwing: 77, recovery: 57, wRISP: 57, vsLefty: 59, poise: 61, heater: 65, agile: 48,
+      clutch: 73, vsLHP: 68, grit: 67, stealing: 11, running: 39, throwing: 77, recovery: 57, wRISP: 57, vsLefty: 59, poise: 61, heater: 65, agile: 48,
       abilities: ["Strong Starter", "Guts", "Strong Finisher", "Intimidator", "Inside Pitch", "Heavy Ball"], potential: "B+", catcherAbility: null,
       throwHand: "L", batHand: "L",
       ...pitchMix(1, [1, 0, 0, 0, 4, 0, 0, 1, 0, 0]) },
@@ -275,7 +275,7 @@ export const PAC12_ROSTERS: Record<string, RealPlayer[]> = {
     // CATCHERS (2)
     { firstName: "Tyler", lastName: "Grant", position: "C", eligibility: "JR", homeState: "WA", hometown: "Pasco", jerseyNumber: 14,
       hitForAvg: 63, power: 57, speed: 38, arm: 64, fielding: 62, errorResistance: 60, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 58, vsLHP: 54, grit: 60, stealing: 16, running: 35, throwing: 75, recovery: 48, wRISP: 56, vsLefty: 52, poise: 58, heater: 0, agile: 41,
+      clutch: 58, vsLHP: 54, grit: 60, stealing: 16, running: 35, throwing: 67, recovery: 48, wRISP: 56, vsLefty: 52, poise: 58, heater: 0, agile: 41,
       abilities: ["Good Bunt"], potential: "B", catcherAbility: 62,
       throwHand: "R", batHand: "R",
       ...noPitches },
@@ -306,7 +306,7 @@ export const PAC12_ROSTERS: Record<string, RealPlayer[]> = {
       ...noPitches },
     { firstName: "Brock", lastName: "Jensen", position: "3B", eligibility: "SR", homeState: "WA", hometown: "Richland", jerseyNumber: 5,
       hitForAvg: 58, power: 55, speed: 55, arm: 55, fielding: 53, errorResistance: 52, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 52, vsLHP: 49, grit: 53, stealing: 21, running: 39, throwing: 68, recovery: 44, wRISP: 50, vsLefty: 47, poise: 52, heater: 0, agile: 45,
+      clutch: 52, vsLHP: 49, grit: 53, stealing: 21, running: 39, throwing: 67, recovery: 44, wRISP: 50, vsLefty: 47, poise: 52, heater: 0, agile: 45,
       abilities: ["Spray Hitter", "Head-first Slide", "Contact Hitter"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...noPitches },
@@ -331,7 +331,7 @@ export const PAC12_ROSTERS: Record<string, RealPlayer[]> = {
     // OUTFIELDERS (6) — 2 FR
     { firstName: "Matt", lastName: "Holliday", position: "OF", eligibility: "SR", homeState: "WA", hometown: "Vancouver", jerseyNumber: 1,
       hitForAvg: 61, power: 58, speed: 62, arm: 56, fielding: 54, errorResistance: 53, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 56, vsLHP: 53, grit: 58, stealing: 34, running: 49, throwing: 68, recovery: 46, wRISP: 54, vsLefty: 51, poise: 56, heater: 0, agile: 53,
+      clutch: 56, vsLHP: 53, grit: 58, stealing: 34, running: 49, throwing: 67, recovery: 46, wRISP: 54, vsLefty: 51, poise: 56, heater: 0, agile: 53,
       abilities: ["Consigliere"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "S",
       ...noPitches },

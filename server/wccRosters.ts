@@ -782,7 +782,7 @@ import type { RealPlayer } from "./realRosters";
     // Karsten Sweum — JR RHP, WCC ace, elite velocity/slider — TEAM ELITE STUFF
     { firstName: "Karsten", lastName: "Sweum", position: "P", eligibility: "JR", homeState: "WA", hometown: "Spokane", jerseyNumber: 17,
         hitForAvg: 14, power: 11, speed: 32, arm: 92, fielding: 60, errorResistance: 54, velocity: 97, control: 95, stamina: 92, stuff: 97,
-        clutch: 86, vsLHP: 82, grit: 88, stealing: 8, running: 30, throwing: 86, recovery: 88, wRISP: 92, vsLefty: 92, poise: 92, heater: 92, agile: 40,
+        clutch: 86, vsLHP: 82, grit: 73, stealing: 8, running: 30, throwing: 86, recovery: 73, wRISP: 73, vsLefty: 73, poise: 73, heater: 73, agile: 40,
         abilities: ["Guts", "Sharpness", "Intimidator", "Strong Starter", "Heavy Ball"], potential: "A+", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
@@ -810,7 +810,7 @@ import type { RealPlayer } from "./realRosters";
         pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     { firstName: "Drew", lastName: "Cavanaugh", position: "SS", eligibility: "JR", homeState: "WA", hometown: "Seattle", jerseyNumber: 46,
         hitForAvg: 74, power: 70, speed: 73, arm: 71, fielding: 70, errorResistance: 66, velocity: 0, control: 0, stamina: 0, stuff: 0,
-        clutch: 62, vsLHP: 62, grit: 66, stealing: 60, running: 59, throwing: 74, recovery: 56, wRISP: 63, vsLefty: 59, poise: 64, heater: 0, agile: 61,
+        clutch: 62, vsLHP: 62, grit: 66, stealing: 60, running: 59, throwing: 73, recovery: 56, wRISP: 63, vsLefty: 59, poise: 64, heater: 0, agile: 61,
         abilities: ["Resilient", "Tough Out"], potential: "A", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
