@@ -6,7 +6,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (12)
     { firstName: "Cole", lastName: "Selvig", position: "P", eligibility: "JR", homeState: "MN", hometown: "Wayzata", jerseyNumber: 17,
       hitForAvg: 20, power: 16, speed: 33, arm: 67, fielding: 42, errorResistance: 54, velocity: 69, control: 64, stamina: 65, stuff: 65,
-      clutch: 76, vsLHP: 72, grit: 78, stealing: 10, running: 36, throwing: 90, recovery: 59, wRISP: 60, vsLefty: 60, poise: 64, heater: 70, agile: 46,
+      clutch: 76, vsLHP: 72, grit: 78, stealing: 10, running: 36, throwing: 89, recovery: 59, wRISP: 60, vsLefty: 60, poise: 64, heater: 70, agile: 46,
       abilities: ["Star of Victory", "Strong Starter", "Intimidator", "Heavy Ball", "Winner's Luck", "Pace", "Straddle"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 0, 0, 1, 0, 4, 4]) },
@@ -165,7 +165,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       // Ty Horn — Friday JR RHP, started Oregon series opener — TEAM ELITE STUFF
       { firstName: "Ty", lastName: "Horn", position: "P", eligibility: "JR", homeState: "NE", hometown: "Omaha", jerseyNumber: 17,
         hitForAvg: 16, power: 12, speed: 33, arm: 65, fielding: 41, errorResistance: 54, velocity: 69, control: 65, stamina: 65, stuff: 70,
-        clutch: 80, vsLHP: 70, grit: 80, stealing: 10, running: 36, throwing: 78, recovery: 57, wRISP: 62, vsLefty: 62, poise: 65, heater: 68, agile: 44,
+        clutch: 78, vsLHP: 70, grit: 78, stealing: 10, running: 36, throwing: 78, recovery: 57, wRISP: 62, vsLefty: 62, poise: 65, heater: 68, agile: 44,
         abilities: ["Star of Victory", "Strong Starter", "Intimidator", "Low Ball", "Heavy Ball"], potential: "A+", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",

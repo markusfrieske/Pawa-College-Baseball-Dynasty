@@ -421,7 +421,7 @@ export const SUN_BELT_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (10)
     { firstName: "Grayson", lastName: "Landers", position: "P", eligibility: "SR", homeState: "AL", hometown: "Troy", jerseyNumber: 34,
       hitForAvg: 19, power: 14, speed: 34, arm: 65, fielding: 44, errorResistance: 56, velocity: 65, control: 63, stamina: 65, stuff: 63,
-      clutch: 71, vsLHP: 68, grit: 73, stealing: 12, running: 40, throwing: 78, recovery: 56, wRISP: 56, vsLefty: 57, poise: 59, heater: 65, agile: 49,
+      clutch: 71, vsLHP: 68, grit: 73, stealing: 12, running: 40, throwing: 76, recovery: 56, wRISP: 56, vsLefty: 57, poise: 59, heater: 65, agile: 49,
       abilities: ["Strong Starter", "Grit", "Flyball Pitcher", "Staredown"], potential: "B", catcherAbility: null,
       throwHand: "L", batHand: "L",
       ...pitchMix(1, [0, 4, 4, 1, 0, 0, 0]) },
@@ -735,7 +735,7 @@ export const SUN_BELT_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (10)
     { firstName: "Chipper", lastName: "Menard", position: "P", eligibility: "SR", homeState: "LA", hometown: "Lafayette", jerseyNumber: 34,
       hitForAvg: 18, power: 14, speed: 33, arm: 65, fielding: 39, errorResistance: 51, velocity: 66, control: 60, stamina: 61, stuff: 63,
-      clutch: 73, vsLHP: 68, grit: 75, stealing: 10, running: 35, throwing: 78, recovery: 55, wRISP: 56, vsLefty: 59, poise: 60, heater: 65, agile: 43,
+      clutch: 73, vsLHP: 68, grit: 75, stealing: 10, running: 35, throwing: 76, recovery: 55, wRISP: 56, vsLefty: 59, poise: 60, heater: 65, agile: 43,
       abilities: ["Star of Victory", "Strong Starter", "Intimidator", "Heavy Ball", "Winner's Luck", "Pace", "Straddle"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 4, 4, 1, 0, 0, 0]) },

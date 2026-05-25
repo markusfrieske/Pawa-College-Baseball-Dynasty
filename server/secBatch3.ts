@@ -163,7 +163,7 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (10)
     { firstName: "Jaxon", lastName: "Jelkin", position: "P", eligibility: "SR", homeState: "TX", hometown: "Houston", jerseyNumber: 34,
       hitForAvg: 19, power: 15, speed: 34, arm: 70, fielding: 44, errorResistance: 56, velocity: 69, control: 64, stamina: 62, stuff: 69,
-      clutch: 76, vsLHP: 72, grit: 78, stealing: 11, running: 39, throwing: 90, recovery: 56, wRISP: 60, vsLefty: 62, poise: 64, heater: 72, agile: 47,
+      clutch: 76, vsLHP: 72, grit: 78, stealing: 11, running: 39, throwing: 79, recovery: 56, wRISP: 60, vsLefty: 62, poise: 64, heater: 72, agile: 47,
       abilities: ["Strong Starter", "Guts", "Bad Ball Hitter", "Release"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 0, 0, 1, 0, 4, 4]) },
@@ -689,7 +689,7 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // Dylan Volantis — FR LHP, ELITE 6'6" sweeping knuckle curve, BA Frosh of Year candidate
     { firstName: "Dylan", lastName: "Volantis", position: "P", eligibility: "FR", homeState: "TX", hometown: "Austin", jerseyNumber: 29,
       hitForAvg: 14, power: 11, speed: 34, arm: 94, fielding: 63, errorResistance: 60, velocity: 98, control: 95, stamina: 91, stuff: 99,
-      clutch: 90, vsLHP: 99, grit: 92, stealing: 8, running: 36, throwing: 90, recovery: 79, wRISP: 82, vsLefty: 95, poise: 84, heater: 86, agile: 50,
+      clutch: 87, vsLHP: 99, grit: 87, stealing: 8, running: 36, throwing: 87, recovery: 79, wRISP: 82, vsLefty: 87, poise: 84, heater: 86, agile: 50,
       abilities: ["Star of Victory", "Intimidator", "Sharpness", "Heavy Ball", "Natural Shuuto"], potential: "A+", catcherAbility: null,
       throwHand: "L", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "medium",

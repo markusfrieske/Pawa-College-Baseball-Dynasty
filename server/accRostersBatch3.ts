@@ -6,7 +6,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (10)
     { firstName: "Oliver", lastName: "de la Torre", position: "P", eligibility: "JR", homeState: "CA", hometown: "Los Angeles", jerseyNumber: 22,
       hitForAvg: 28, power: 22, speed: 35, arm: 73, fielding: 48, errorResistance: 60, velocity: 72, control: 67, stamina: 72, stuff: 69,
-      clutch: 76, vsLHP: 72, grit: 80, stealing: 18, running: 46, throwing: 90, recovery: 64, wRISP: 59, vsLefty: 63, poise: 64, heater: 72, agile: 56,
+      clutch: 76, vsLHP: 72, grit: 80, stealing: 18, running: 46, throwing: 82, recovery: 64, wRISP: 59, vsLefty: 63, poise: 64, heater: 72, agile: 56,
       abilities: ["Strong Starter", "Wild Fastball", "Delayed Arm", "Intimidator", "Heavy Ball"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 0, 0, 1, 0, 4, 4]) },
@@ -528,7 +528,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (10)
     { firstName: "Brett", lastName: "Renfrow", position: "P", eligibility: "SR", homeState: "VA", hometown: "Richmond", jerseyNumber: 34,
       hitForAvg: 25, power: 21, speed: 35, arm: 71, fielding: 44, errorResistance: 56, velocity: 70, control: 67, stamina: 68, stuff: 68,
-      clutch: 81, vsLHP: 77, grit: 83, stealing: 17, running: 43, throwing: 90, recovery: 63, wRISP: 65, vsLefty: 65, poise: 68, heater: 71, agile: 54,
+      clutch: 78, vsLHP: 77, grit: 78, stealing: 17, running: 43, throwing: 78, recovery: 63, wRISP: 65, vsLefty: 65, poise: 68, heater: 71, agile: 54,
       abilities: ["Star of Victory", "Intimidator", "Escape Pitch", "Heavy Ball", "Release"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [1, 0, 0, 1, 0, 4, 4]) },
@@ -685,7 +685,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (10)
     { firstName: "Blake", lastName: "Morningstar", position: "P", eligibility: "JR", homeState: "NC", hometown: "Raleigh", jerseyNumber: 35,
       hitForAvg: 26, power: 21, speed: 35, arm: 70, fielding: 43, errorResistance: 57, velocity: 69, control: 65, stamina: 68, stuff: 67,
-      clutch: 78, vsLHP: 74, grit: 80, stealing: 18, running: 41, throwing: 90, recovery: 61, wRISP: 62, vsLefty: 62, poise: 65, heater: 70, agile: 52,
+      clutch: 73, vsLHP: 73, grit: 73, stealing: 18, running: 41, throwing: 73, recovery: 61, wRISP: 62, vsLefty: 62, poise: 65, heater: 70, agile: 52,
       abilities: ["Star of Victory", "Strong Starter", "Intimidator", "Heavy Ball", "Winner's Luck", "Gyroball", "Quick Hands"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "L",
       ...pitchMix(1, [1, 0, 0, 1, 0, 4, 4]) },

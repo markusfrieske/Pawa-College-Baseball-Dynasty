@@ -63,7 +63,7 @@ export const BIG_TEN_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
     // Aiden Flinn — FR RHP, elite debut season, 2026 Big Ten Freshman of the Year — TEAM ELITE STUFF
     { firstName: "Aiden", lastName: "Flinn", position: "P", eligibility: "FR", homeState: "IL", hometown: "Elmhurst", jerseyNumber: 50,
       hitForAvg: 9, power: 7, speed: 27, arm: 92, fielding: 60, errorResistance: 54, velocity: 97, control: 95, stamina: 92, stuff: 97,
-      clutch: 86, vsLHP: 82, grit: 88, stealing: 9, running: 27, throwing: 88, recovery: 88, wRISP: 92, vsLefty: 93, poise: 92, heater: 97, agile: 34,
+      clutch: 86, vsLHP: 82, grit: 88, stealing: 9, running: 27, throwing: 88, recovery: 88, wRISP: 92, vsLefty: 93, poise: 92, heater: 95, agile: 34,
       abilities: ["Star of Victory", "Sharpness", "Strikeout", "Intimidator", "Heavy Ball"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 0, 0, 1, 0, 5, 4]) },
@@ -330,7 +330,7 @@ export const BIG_TEN_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       ...pitchMix(1, [0, 0, 0, 1, 0, 4, 4]) },
     { firstName: "Logan", lastName: "Runde", position: "P", eligibility: "SR", homeState: "FL", hometown: "Miami", jerseyNumber: 33,
       hitForAvg: 22, power: 16, speed: 35, arm: 73, fielding: 47, errorResistance: 61, velocity: 74, control: 74, stamina: 74, stuff: 71,
-      clutch: 86, vsLHP: 82, grit: 90, stealing: 12, running: 41, throwing: 87, recovery: 70, wRISP: 70, vsLefty: 71, poise: 74, heater: 75, agile: 53,
+      clutch: 86, vsLHP: 82, grit: 86, stealing: 12, running: 41, throwing: 86, recovery: 70, wRISP: 70, vsLefty: 71, poise: 74, heater: 75, agile: 53,
       abilities: ["Star of Victory", "Intimidator", "Heavy Ball", "Winner's Luck"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 0, 0, 1, 0, 4, 4]) },
@@ -641,7 +641,7 @@ export const BIG_TEN_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (10)
     { firstName: "Tate", lastName: "Carey", position: "P", eligibility: "SO", homeState: "MI", hometown: "Grand Rapids", jerseyNumber: 34,
       hitForAvg: 19, power: 15, speed: 34, arm: 70, fielding: 43, errorResistance: 55, velocity: 70, control: 65, stamina: 65, stuff: 67,
-      clutch: 78, vsLHP: 74, grit: 80, stealing: 15, running: 40, throwing: 90, recovery: 59, wRISP: 62, vsLefty: 64, poise: 65, heater: 70, agile: 48,
+      clutch: 78, vsLHP: 74, grit: 80, stealing: 15, running: 40, throwing: 83, recovery: 59, wRISP: 62, vsLefty: 64, poise: 65, heater: 70, agile: 48,
       abilities: ["Star of Victory", "Intimidator", "Wild Fastball", "Heavy Ball", "Winner's Luck", "Pace"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 0, 0, 1, 0, 4, 4]) },

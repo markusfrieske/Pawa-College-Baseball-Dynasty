@@ -782,7 +782,7 @@ import type { RealPlayer } from "./realRosters";
     // Karsten Sweum — JR RHP, WCC ace, elite velocity/slider — TEAM ELITE STUFF
     { firstName: "Karsten", lastName: "Sweum", position: "P", eligibility: "JR", homeState: "WA", hometown: "Spokane", jerseyNumber: 17,
         hitForAvg: 14, power: 11, speed: 32, arm: 92, fielding: 60, errorResistance: 54, velocity: 97, control: 95, stamina: 92, stuff: 97,
-        clutch: 86, vsLHP: 82, grit: 88, stealing: 8, running: 30, throwing: 86, recovery: 88, wRISP: 92, vsLefty: 93, poise: 92, heater: 97, agile: 40,
+        clutch: 86, vsLHP: 82, grit: 88, stealing: 8, running: 30, throwing: 86, recovery: 88, wRISP: 92, vsLefty: 92, poise: 92, heater: 92, agile: 40,
         abilities: ["Star of Victory", "Sharpness", "Intimidator", "Strong Starter", "Heavy Ball"], potential: "A+", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",

@@ -6,7 +6,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (10)
     { firstName: "Cole", lastName: "Van Assen", position: "P", eligibility: "JR", homeState: "IN", hometown: "Crown Point", jerseyNumber: 19,
       hitForAvg: 20, power: 16, speed: 34, arm: 70, fielding: 41, errorResistance: 52, velocity: 70, control: 62, stamina: 69, stuff: 69,
-      clutch: 74, vsLHP: 70, grit: 90, stealing: 10, running: 38, throwing: 78, recovery: 59, wRISP: 59, vsLefty: 60, poise: 62, heater: 72, agile: 46,
+      clutch: 74, vsLHP: 70, grit: 84, stealing: 10, running: 38, throwing: 78, recovery: 59, wRISP: 59, vsLefty: 60, poise: 62, heater: 72, agile: 46,
       abilities: ["Star of Victory", "Strong Starter", "Guts", "Intimidator", "Heavy Ball", "Winner's Luck", "Pace"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [1, 0, 0, 1, 4, 0, 0]) },
@@ -322,7 +322,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       // Mason Edwards — LHP JR Thursday ace, 7-0/1.74, #2 nationally per D1B Top 100 SP — TEAM ELITE STUFF
       { firstName: "Mason", lastName: "Edwards", position: "P", eligibility: "JR", homeState: "CA", hometown: "Los Angeles", jerseyNumber: 31,
         hitForAvg: 16, power: 12, speed: 33, arm: 94, fielding: 64, errorResistance: 54, velocity: 98, control: 96, stamina: 93, stuff: 99,
-        clutch: 90, vsLHP: 99, grit: 92, stealing: 8, running: 32, throwing: 90, recovery: 80, wRISP: 83, vsLefty: 95, poise: 85, heater: 87, agile: 44,
+        clutch: 85, vsLHP: 99, grit: 85, stealing: 8, running: 32, throwing: 85, recovery: 80, wRISP: 83, vsLefty: 85, poise: 85, heater: 85, agile: 44,
         abilities: ["Star of Victory", "Crossfire", "Pace", "Sharpness", "Heavy Ball"], potential: "A+", catcherAbility: null,
         throwHand: "L", batHand: "L",
         skinTone: "light", hairColor: "brown", hairStyle: "short",

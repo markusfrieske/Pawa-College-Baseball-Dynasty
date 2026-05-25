@@ -33,7 +33,7 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
     // Boede Rahe — Closer R-JR RHP 6'6", 2.83/1.09 WHIP, "very clearly separated"
     { firstName: "Boede", lastName: "Rahe", position: "P", eligibility: "JR", homeState: "IA", hometown: "Cedar Rapids", jerseyNumber: 38,
       hitForAvg: 12, power: 10, speed: 32, arm: 67, fielding: 37, errorResistance: 48, velocity: 69, control: 64, stamina: 35, stuff: 64,
-      clutch: 88, vsLHP: 78, grit: 84, stealing: 8, running: 30, throwing: 80, recovery: 46, wRISP: 67, vsLefty: 62, poise: 70, heater: 69, agile: 42,
+      clutch: 87, vsLHP: 78, grit: 84, stealing: 8, running: 30, throwing: 80, recovery: 46, wRISP: 67, vsLefty: 62, poise: 70, heater: 69, agile: 42,
       abilities: ["Fireman", "Doctor K", "Intimidator"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
@@ -218,7 +218,7 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
     // Maxx Yehl — Friday LHP ace, Big 12 POW, CG vs Kansas
     { firstName: "Maxx", lastName: "Yehl", position: "P", eligibility: "JR", homeState: "PA", hometown: "Pittsburgh", jerseyNumber: 19,
       hitForAvg: 13, power: 11, speed: 32, arm: 74, fielding: 41, errorResistance: 54, velocity: 69, control: 69, stamina: 71, stuff: 69,
-      clutch: 90, vsLHP: 84, grit: 84, stealing: 8, running: 30, throwing: 82, recovery: 58, wRISP: 66, vsLefty: 69, poise: 71, heater: 71, agile: 42,
+      clutch: 85, vsLHP: 84, grit: 84, stealing: 8, running: 30, throwing: 82, recovery: 58, wRISP: 66, vsLefty: 69, poise: 71, heater: 71, agile: 42,
       abilities: ["Star of Victory", "Intimidator", "Fireman"], potential: "A", catcherAbility: null,
       throwHand: "L", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
@@ -1087,7 +1087,7 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
   "Cincinnati": [
     { firstName: "Caleb", lastName: "Wood", position: "P", eligibility: "JR", homeState: "OH", hometown: "Cincinnati", jerseyNumber: 22,
       hitForAvg: 13, power: 11, speed: 32, arm: 71, fielding: 41, errorResistance: 52, velocity: 70, control: 67, stamina: 71, stuff: 69,
-      clutch: 84, vsLHP: 78, grit: 84, stealing: 8, running: 30, throwing: 82, recovery: 58, wRISP: 66, vsLefty: 66, poise: 69, heater: 76, agile: 42,
+      clutch: 83, vsLHP: 78, grit: 83, stealing: 8, running: 30, throwing: 82, recovery: 58, wRISP: 66, vsLefty: 66, poise: 69, heater: 76, agile: 42,
       abilities: ["Strong Starter", "Doctor K", "Tunneling", "Intimidator"], potential: "A", catcherAbility: null,
       throwHand: "L", batHand: "L",
       ...pitchMix(1, [0, 4, 0, 1, 0, 0, 4]) },
@@ -1603,7 +1603,7 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
     // Ethan Lund — JR RHP, 2026 Big 12 strikeout leader, elite velocity — TEAM ELITE STUFF
     { firstName: "Ethan", lastName: "Lund", position: "P", eligibility: "JR", homeState: "OK", hometown: "Stillwater", jerseyNumber: 29,
       hitForAvg: 14, power: 11, speed: 32, arm: 93, fielding: 62, errorResistance: 54, velocity: 98, control: 96, stamina: 93, stuff: 98,
-      clutch: 88, vsLHP: 84, grit: 90, stealing: 8, running: 30, throwing: 88, recovery: 80, wRISP: 84, vsLefty: 83, poise: 86, heater: 97, agile: 42,
+      clutch: 88, vsLHP: 84, grit: 88, stealing: 8, running: 30, throwing: 88, recovery: 80, wRISP: 84, vsLefty: 83, poise: 86, heater: 88, agile: 42,
       abilities: ["Star of Victory", "Sharpness", "Heavy Ball", "Intimidator", "Strong Starter"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
