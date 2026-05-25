@@ -18364,7 +18364,7 @@ export async function registerRoutes(
                 { position: rp.position, firstName: rp.firstName, lastName: rp.lastName, ...rp },
                 conf,
               );
-              const ovr = calculateOVR({ ...rp, abilities: [] });
+              const ovr = calculateOVR({ ...rp, ...normalized, abilities: [] });
               const gatedAbilities = enforceGoldOvrGate(rp.abilities ?? [], rp.position, ovr);
               return { ...rp, ...normalized, abilities: gatedAbilities };
             });
@@ -18404,7 +18404,7 @@ export async function registerRoutes(
           { position: rp.position, firstName: rp.firstName, lastName: rp.lastName, ...rp },
           conferenceName,
         );
-        const ovr = calculateOVR({ ...rp, abilities: [] });
+        const ovr = calculateOVR({ ...rp, ...normalized, abilities: [] });
         const gatedAbilities = enforceGoldOvrGate(rp.abilities ?? [], rp.position, ovr);
         return { ...rp, ...normalized, abilities: gatedAbilities };
       });
