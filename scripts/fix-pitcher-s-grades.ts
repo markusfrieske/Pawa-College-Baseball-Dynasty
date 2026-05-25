@@ -3,7 +3,7 @@
  * Cap pitcher common ability S-grades in the roster source files.
  *
  * Rules:
- *   - 10 exceptional pitchers: keep exactly 1 S-grade (highest calibrated attr),
+ *   - 13 exceptional pitchers: keep exactly 1 S-grade (highest calibrated attr),
  *     cap all other common ability attrs so calibrated value <= 89 (A grade).
  *   - Every other pitcher: cap ALL common ability attrs to <= 89 calibrated (0 S-grades).
  *
@@ -11,8 +11,8 @@
  * Calibration: calibrated = clamp(round(raw * teamFactor), 20, 99)
  * rawCap = largest raw value r where round(r * factor) <= 89
  *
- * Note: the task originally cited "13 exceptional pitchers" but
- * compute-ovr-check.ts defines exactly 10 — those are used as the canonical list.
+ * The 13 exceptional pitchers are the highest-OVR arms across all conferences:
+ * 10 from the original compute-ovr-check.ts list + 3 additional (Alvarez, Radel, Lund).
  */
 
 import * as fs from "fs";
