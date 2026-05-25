@@ -1542,17 +1542,13 @@ export interface WizardConfig {
     rawPlayers: number;
   };
   positionDistribution: {
-    SP: number;
-    RP: number;
-    CP: number;
+    P: number;
     C: number;
     "1B": number;
     "2B": number;
     "3B": number;
     SS: number;
-    LF: number;
-    CF: number;
-    RF: number;
+    OF: number;
   };
   regionSkew: string;
   fogDensity: number;

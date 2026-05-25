@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
   ChevronLeft, ChevronRight, RefreshCw, Trash2,
-  Loader2, CheckCircle2, Wand2, Save, AlertCircle,
+  Loader2, CheckCircle2, Wand2, Save, AlertCircle, Pencil,
 } from "lucide-react";
 import { RetroButton } from "@/components/ui/retro-button";
 import { PlayerProfileCard } from "@/components/player-profile-card";
@@ -97,7 +97,7 @@ const DEFAULT_CONFIG: WizardConfig = {
   label: "",
   starDistribution: { blueChip: 3, five: 5, four: 12, three: 60, two: 15, one: 5 },
   specialCounts: { gems: 0, busts: 0, genGems: 1, genBusts: 1, blueChips: 2, jucos: 5, rawPlayers: 5 },
-  positionDistribution: { SP: 20, RP: 12, CP: 8, C: 8, "1B": 7, "2B": 7, "3B": 7, SS: 7, LF: 8, CF: 8, RF: 8 },
+  positionDistribution: { P: 40, C: 8, "1B": 7, "2B": 7, "3B": 7, SS: 7, OF: 24 },
   regionSkew: "none",
   fogDensity: 100,
 };
@@ -332,9 +332,7 @@ function Step3({ config, setConfig }: { config: WizardConfig; setConfig: (c: Wiz
 // ─── Step 4: Advanced Options ────────────────────────────────────────────────
 
 const PITCHER_POSITIONS: { key: keyof WizardConfig["positionDistribution"]; label: string; desc: string }[] = [
-  { key: "SP", label: "SP", desc: "Starting Pitcher" },
-  { key: "RP", label: "RP", desc: "Relief Pitcher" },
-  { key: "CP", label: "CP", desc: "Closing Pitcher" },
+  { key: "P", label: "P", desc: "Pitcher" },
 ];
 
 const FIELD_POSITIONS: { key: keyof WizardConfig["positionDistribution"]; label: string; desc: string }[] = [
@@ -343,9 +341,7 @@ const FIELD_POSITIONS: { key: keyof WizardConfig["positionDistribution"]; label:
   { key: "2B",  label: "2B", desc: "Second Base" },
   { key: "3B",  label: "3B", desc: "Third Base" },
   { key: "SS",  label: "SS", desc: "Shortstop" },
-  { key: "LF",  label: "LF", desc: "Left Field" },
-  { key: "CF",  label: "CF", desc: "Center Field" },
-  { key: "RF",  label: "RF", desc: "Right Field" },
+  { key: "OF",  label: "OF", desc: "Outfielder" },
 ];
 
 function PosInput({
@@ -378,9 +374,9 @@ function PosInput({
 
 function Step4({ config, setConfig }: { config: WizardConfig; setConfig: (c: WizardConfig) => void }) {
   const pd = config.positionDistribution;
-  const pitcherTotal = (pd.SP ?? 0) + (pd.RP ?? 0) + (pd.CP ?? 0);
+  const pitcherTotal = pd.P ?? 0;
   const fieldTotal   = (pd.C ?? 0) + (pd["1B"] ?? 0) + (pd["2B"] ?? 0) + (pd["3B"] ?? 0)
-                     + (pd.SS ?? 0) + (pd.LF ?? 0) + (pd.CF ?? 0) + (pd.RF ?? 0);
+                     + (pd.SS ?? 0) + (pd.OF ?? 0);
   const grandTotal   = pitcherTotal + fieldTotal;
   const pctPitchers  = grandTotal > 0 ? Math.round((pitcherTotal / grandTotal) * 100) : 0;
   const pctField     = grandTotal > 0 ? 100 - pctPitchers : 0;
@@ -390,7 +386,7 @@ function Step4({ config, setConfig }: { config: WizardConfig; setConfig: (c: Wiz
   };
 
   const resetPD = () => {
-    setConfig({ ...config, positionDistribution: { SP: 20, RP: 12, CP: 8, C: 8, "1B": 7, "2B": 7, "3B": 7, SS: 7, LF: 8, CF: 8, RF: 8 } });
+    setConfig({ ...config, positionDistribution: { P: 40, C: 8, "1B": 7, "2B": 7, "3B": 7, SS: 7, OF: 24 } });
   };
 
   return (
@@ -605,6 +601,146 @@ function EditCell({
   );
 }
 
+// ─── Text inline-edit cell ───────────────────────────────────────────────────
+
+function TextEditCell({
+  value, field, recruitId, onCommit, maxLength = 20, width = "w-12",
+}: { value: string; field: string; recruitId: string; onCommit: (id: string, field: string, v: string) => void; maxLength?: number; width?: string }) {
+  const [editing, setEditing] = useState(false);
+  const [local, setLocal] = useState(value);
+  const ref = useRef<HTMLInputElement>(null);
+
+  const commit = () => {
+    const v = local.trim();
+    if (v && v !== value) onCommit(recruitId, field, v);
+    setEditing(false);
+  };
+
+  useEffect(() => { if (editing) ref.current?.focus(); }, [editing]);
+
+  if (editing) {
+    return (
+      <input
+        ref={ref}
+        value={local}
+        onChange={e => setLocal(e.target.value)}
+        onBlur={commit}
+        onKeyDown={e => { if (e.key === "Enter") commit(); if (e.key === "Escape") setEditing(false); }}
+        maxLength={maxLength}
+        className={`${width} bg-background border border-gold text-xs text-center rounded px-0.5 py-0`}
+        data-testid={`cell-${field}-${recruitId}`}
+      />
+    );
+  }
+  return (
+    <span
+      className="cursor-pointer hover:text-gold tabular-nums px-1 rounded hover:bg-gold/10 transition-colors"
+      onClick={() => { setLocal(value); setEditing(true); }}
+      title="Click to edit"
+    >
+      {value || "—"}
+    </span>
+  );
+}
+
+// ─── Select inline-edit cell ─────────────────────────────────────────────────
+
+function SelectEditCell({
+  value, field, recruitId, options, onCommit, className: cls = "font-pixel text-[8px]",
+}: { value: string; field: string; recruitId: string; options: { label: string; value: string }[]; onCommit: (id: string, field: string, v: string) => void; className?: string }) {
+  const [editing, setEditing] = useState(false);
+  const ref = useRef<HTMLSelectElement>(null);
+
+  useEffect(() => { if (editing) ref.current?.focus(); }, [editing]);
+
+  if (editing) {
+    return (
+      <select
+        ref={ref}
+        value={value}
+        onChange={e => { onCommit(recruitId, field, e.target.value); setEditing(false); }}
+        onBlur={() => setEditing(false)}
+        className="bg-background border border-gold text-xs rounded px-0.5 py-0 text-foreground"
+        data-testid={`cell-${field}-${recruitId}`}
+      >
+        {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+    );
+  }
+  return (
+    <span
+      className={`cursor-pointer hover:text-gold px-1 rounded hover:bg-gold/10 transition-colors ${cls}`}
+      onClick={() => setEditing(true)}
+      title="Click to edit"
+    >
+      {value}
+    </span>
+  );
+}
+
+// ─── Name inline-edit cell ───────────────────────────────────────────────────
+
+function NameEditCell({
+  firstName, lastName, recruitId, onOpen, onCommit,
+}: { firstName: string; lastName: string; recruitId: string; onOpen: () => void; onCommit: (id: string, fn: string, ln: string) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [fn, setFn] = useState(firstName);
+  const [ln, setLn] = useState(lastName);
+  const firstRef = useRef<HTMLInputElement>(null);
+
+  const commit = () => {
+    onCommit(recruitId, fn.trim() || firstName, ln.trim() || lastName);
+    setEditing(false);
+  };
+
+  useEffect(() => { if (editing) firstRef.current?.focus(); }, [editing]);
+
+  if (editing) {
+    return (
+      <div className="flex gap-1">
+        <input
+          ref={firstRef}
+          value={fn}
+          onChange={e => setFn(e.target.value)}
+          onBlur={commit}
+          onKeyDown={e => { if (e.key === "Enter") commit(); if (e.key === "Escape") setEditing(false); }}
+          placeholder="First"
+          className="w-14 bg-background border border-gold text-xs rounded px-0.5 py-0 text-center"
+          data-testid={`cell-firstName-${recruitId}`}
+        />
+        <input
+          value={ln}
+          onChange={e => setLn(e.target.value)}
+          onBlur={commit}
+          onKeyDown={e => { if (e.key === "Enter") commit(); if (e.key === "Escape") setEditing(false); }}
+          placeholder="Last"
+          className="w-14 bg-background border border-gold text-xs rounded px-0.5 py-0 text-center"
+          data-testid={`cell-lastName-${recruitId}`}
+        />
+      </div>
+    );
+  }
+  return (
+    <div className="flex items-center gap-1 whitespace-nowrap">
+      <button
+        className="font-medium hover:text-gold underline-offset-2 hover:underline text-left transition-colors"
+        onClick={onOpen}
+        title="View recruit details"
+      >
+        {firstName} {lastName}
+      </button>
+      <button
+        onClick={() => { setFn(firstName); setLn(lastName); setEditing(true); }}
+        className="p-0.5 text-muted-foreground/40 hover:text-gold transition-colors flex-shrink-0"
+        title="Edit name"
+        data-testid={`wizard-edit-name-${recruitId}`}
+      >
+        <Pencil className="w-2.5 h-2.5" />
+      </button>
+    </div>
+  );
+}
+
 // ─── Map WizardRecruit → Player (for PlayerProfileCard read-only view) ────────
 
 function wizardRecruitToPlayer(r: WizardRecruit): Player {
@@ -672,6 +808,38 @@ function Step6({ recruits, setRecruits, onNext, onReroll, isRerolling, rerolling
     setRecruits(recruits.map(r => r._tempId === id ? { ...r, [field]: val } : r));
   }, [recruits, setRecruits]);
 
+  const commitTextEdit = useCallback((id: string, field: string, val: string) => {
+    setRecruits(recruits.map(r => r._tempId === id ? { ...r, [field]: val } : r));
+  }, [recruits, setRecruits]);
+
+  const commitNameEdit = useCallback((id: string, fn: string, ln: string) => {
+    setRecruits(recruits.map(r => r._tempId === id ? { ...r, firstName: fn, lastName: ln } : r));
+  }, [recruits, setRecruits]);
+
+  const POSITION_OPTIONS = [
+    { value: "P",  label: "P"  },
+    { value: "C",  label: "C"  },
+    { value: "1B", label: "1B" },
+    { value: "2B", label: "2B" },
+    { value: "3B", label: "3B" },
+    { value: "SS", label: "SS" },
+    { value: "OF", label: "OF" },
+  ];
+
+  const YEAR_OPTIONS = [
+    { value: "FR", label: "FR" },
+    { value: "SO", label: "SO" },
+    { value: "JR", label: "JR" },
+  ];
+
+  const STAR_OPTIONS = [
+    { value: "1", label: "1★" },
+    { value: "2", label: "2★" },
+    { value: "3", label: "3★" },
+    { value: "4", label: "4★" },
+    { value: "5", label: "5★" },
+  ];
+
   const deleteRecruit = (id: string) => {
     setRecruits(recruits.filter(r => r._tempId !== id));
   };
@@ -731,27 +899,57 @@ function Step6({ recruits, setRecruits, onNext, onReroll, isRerolling, rerolling
           <tbody>
             {sorted.map(r => {
               const isRerollingThis = isRerolling && rerollingId === r._tempId;
-              const isPitcher = r.position === "P" || ["SP","RP","CP"].includes(r.position);
+              const isPitcher = r.position === "P";
               const potGrade = r.potential != null ? getPotentialGrade(r.potential) : "—";
               return (
                 <tr key={r._tempId} className={`border-b border-border/40 hover:bg-white/5 transition-colors ${rowBg(r)}`}>
-                  <td className="px-2 py-1 whitespace-nowrap">
-                    <button
-                      className="font-medium hover:text-gold underline-offset-2 hover:underline text-left transition-colors"
-                      onClick={() => setDetailRecruit(r)}
-                      data-testid={`wizard-name-${r._tempId}`}
-                      title="View recruit details"
-                    >
-                      {r.firstName} {r.lastName}
-                    </button>
-                  </td>
-                  <td className="px-2 py-1 font-pixel text-[8px]">{r.position}</td>
-                  <td className="px-2 py-1 text-muted-foreground">{r.recruitYear}</td>
-                  <td className="px-2 py-1 text-muted-foreground">{r.homeState}</td>
                   <td className="px-2 py-1">
-                    <span className={r.isBlueChip || r.starRating >= 5 ? "text-amber-400" : r.starRating >= 4 ? "text-yellow-400" : "text-muted-foreground"}>
-                      {starLabel(r.starRating)}
-                    </span>
+                    <NameEditCell
+                      firstName={r.firstName}
+                      lastName={r.lastName}
+                      recruitId={r._tempId}
+                      onOpen={() => setDetailRecruit(r)}
+                      onCommit={commitNameEdit}
+                    />
+                  </td>
+                  <td className="px-2 py-1">
+                    <SelectEditCell
+                      value={r.position}
+                      field="position"
+                      recruitId={r._tempId}
+                      options={POSITION_OPTIONS}
+                      onCommit={commitTextEdit}
+                    />
+                  </td>
+                  <td className="px-2 py-1">
+                    <SelectEditCell
+                      value={r.recruitYear}
+                      field="recruitYear"
+                      recruitId={r._tempId}
+                      options={YEAR_OPTIONS}
+                      onCommit={commitTextEdit}
+                      className="text-muted-foreground"
+                    />
+                  </td>
+                  <td className="px-2 py-1">
+                    <TextEditCell
+                      value={r.homeState}
+                      field="homeState"
+                      recruitId={r._tempId}
+                      onCommit={commitTextEdit}
+                      maxLength={2}
+                      width="w-8"
+                    />
+                  </td>
+                  <td className="px-2 py-1">
+                    <SelectEditCell
+                      value={String(r.starRating)}
+                      field="starRating"
+                      recruitId={r._tempId}
+                      options={STAR_OPTIONS}
+                      onCommit={(id, field, val) => commitEdit(id, field, Number(val))}
+                      className={r.isBlueChip || r.starRating >= 5 ? "text-amber-400" : r.starRating >= 4 ? "text-yellow-400" : "text-muted-foreground"}
+                    />
                   </td>
                   <td className="px-2 py-1">
                     <EditCell value={r.overall} field="overall" recruitId={r._tempId} onCommit={commitEdit} />
