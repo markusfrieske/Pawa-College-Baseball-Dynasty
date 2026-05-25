@@ -8,7 +8,7 @@
  * Each attribute clamped to [20, 99] after scaling.
  */
 
-export const TOTAL_NATIONAL_TEAMS = 142;
+export const TOTAL_NATIONAL_TEAMS = 149;
 
 export const NATIONAL_RANKS: Record<string, number> = {
   "UCLA": 1,
@@ -153,13 +153,13 @@ export const NATIONAL_RANKS: Record<string, number> = {
   "Coppin State": 140,
   "Bethune-Cookman": 141,
   "Florida A&M": 142,
-  "Southern University": 142,
-  "Delaware State": 142,
-  "North Carolina A&T": 142,
-  "Grambling State": 142,
-  "Texas Southern": 142,
-  "Maryland Eastern Shore": 142,
-  "Alcorn State": 142,
+  "Southern University": 143,
+  "Delaware State": 144,
+  "North Carolina A&T": 145,
+  "Grambling State": 146,
+  "Texas Southern": 147,
+  "Maryland Eastern Shore": 148,
+  "Alcorn State": 149,
 };
 
 export const ROSTER_SCALE_FACTORS: Record<string, number> = {
