@@ -620,7 +620,7 @@ export default function ManageRecruitingPage() {
           <RetroCard data-testid="section-no-classes">
             <RetroCardContent>
               <p className="text-muted-foreground text-center text-sm">
-                No saved recruiting classes yet. Generate a new class or import from CSV to get started.
+                No saved recruiting classes yet. Use 'Create with Wizard' or import a CSV to get started.
               </p>
             </RetroCardContent>
           </RetroCard>
