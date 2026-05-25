@@ -5,7 +5,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
   "Minnesota": [
     // PITCHERS (12)
     { firstName: "Cole", lastName: "Selvig", position: "P", eligibility: "JR", homeState: "MN", hometown: "Wayzata", jerseyNumber: 17,
-      hitForAvg: 20, power: 16, speed: 33, arm: 67, fielding: 42, errorResistance: 54, velocity: 69, control: 64, stamina: 65, stuff: 65,
+      hitForAvg: 20, power: 16, speed: 33, arm: 67, fielding: 42, errorResistance: 54, velocity: 90, control: 64, stamina: 65, stuff: 90,
       clutch: 76, vsLHP: 72, grit: 78, stealing: 10, running: 36, throwing: 89, recovery: 59, wRISP: 60, vsLefty: 60, poise: 64, heater: 70, agile: 46,
       abilities: ["Star of Victory", "Strong Starter", "Intimidator", "Heavy Ball", "Winner's Luck", "Pace", "Straddle"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",

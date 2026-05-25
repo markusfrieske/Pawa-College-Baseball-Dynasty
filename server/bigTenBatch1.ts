@@ -62,8 +62,8 @@ export const BIG_TEN_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       ...pitchMix(1, [0, 0, 0, 0, 0, 4, 3, 0, 1, 0]) },
     // Aiden Flinn — FR RHP, elite debut season, 2026 Big Ten Freshman of the Year — TEAM ELITE STUFF
     { firstName: "Aiden", lastName: "Flinn", position: "P", eligibility: "FR", homeState: "IL", hometown: "Elmhurst", jerseyNumber: 50,
-      hitForAvg: 9, power: 7, speed: 27, arm: 92, fielding: 60, errorResistance: 54, velocity: 97, control: 95, stamina: 92, stuff: 97,
-      clutch: 86, vsLHP: 82, grit: 88, stealing: 9, running: 27, throwing: 88, recovery: 88, wRISP: 92, vsLefty: 93, poise: 92, heater: 95, agile: 34,
+      hitForAvg: 9, power: 7, speed: 27, arm: 89, fielding: 60, errorResistance: 54, velocity: 95, control: 89, stamina: 89, stuff: 95,
+      clutch: 86, vsLHP: 82, grit: 88, stealing: 9, running: 27, throwing: 88, recovery: 88, wRISP: 89, vsLefty: 89, poise: 89, heater: 89, agile: 34,
       abilities: ["Star of Victory", "Sharpness", "Strikeout", "Intimidator", "Heavy Ball"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 0, 0, 1, 0, 5, 4, 0, 0, 0]) },
@@ -323,7 +323,7 @@ export const BIG_TEN_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
   "Iowa": [
     // PITCHERS (10)
     { firstName: "Tyler", lastName: "Guerin", position: "P", eligibility: "SO", homeState: "IA", hometown: "Ankeny", jerseyNumber: 11,
-      hitForAvg: 12, power: 9, speed: 31, arm: 43, fielding: 27, errorResistance: 39, velocity: 52, control: 40, stamina: 42, stuff: 40,
+      hitForAvg: 12, power: 9, speed: 31, arm: 43, fielding: 27, errorResistance: 39, velocity: 90, control: 40, stamina: 42, stuff: 90,
       clutch: 52, vsLHP: 49, grit: 54, stealing: 9, running: 27, throwing: 57, recovery: 36, wRISP: 37, vsLefty: 38, poise: 40, heater: 43, agile: 34,
       abilities: ["Strong Starter", "Guts", "Good Pickoff"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -640,7 +640,7 @@ export const BIG_TEN_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
   "Michigan": [
     // PITCHERS (10)
     { firstName: "Tate", lastName: "Carey", position: "P", eligibility: "SO", homeState: "MI", hometown: "Grand Rapids", jerseyNumber: 34,
-      hitForAvg: 19, power: 15, speed: 34, arm: 70, fielding: 43, errorResistance: 55, velocity: 70, control: 65, stamina: 65, stuff: 67,
+      hitForAvg: 19, power: 15, speed: 34, arm: 70, fielding: 43, errorResistance: 55, velocity: 90, control: 65, stamina: 65, stuff: 90,
       clutch: 78, vsLHP: 74, grit: 80, stealing: 15, running: 40, throwing: 83, recovery: 59, wRISP: 62, vsLefty: 64, poise: 65, heater: 70, agile: 48,
       abilities: ["Star of Victory", "Intimidator", "Wild Fastball", "Heavy Ball", "Winner's Luck", "Pace"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "R",

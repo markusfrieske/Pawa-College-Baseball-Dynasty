@@ -217,7 +217,7 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (10)
     // Maxx Yehl — Friday LHP ace, Big 12 POW, CG vs Kansas
     { firstName: "Maxx", lastName: "Yehl", position: "P", eligibility: "JR", homeState: "PA", hometown: "Pittsburgh", jerseyNumber: 19,
-      hitForAvg: 13, power: 11, speed: 32, arm: 74, fielding: 41, errorResistance: 54, velocity: 69, control: 69, stamina: 71, stuff: 69,
+      hitForAvg: 13, power: 11, speed: 32, arm: 74, fielding: 41, errorResistance: 54, velocity: 90, control: 69, stamina: 71, stuff: 90,
       clutch: 85, vsLHP: 84, grit: 84, stealing: 8, running: 30, throwing: 82, recovery: 58, wRISP: 66, vsLefty: 69, poise: 71, heater: 71, agile: 42,
       abilities: ["Star of Victory", "Intimidator", "Fireman"], potential: "A", catcherAbility: null,
       throwHand: "L", batHand: "L",
@@ -1602,8 +1602,8 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
       ...pitchMix(1, [0, 0, 3, 1, 3, 0, 0, 0, 0, 0]) },
     // Ethan Lund — JR RHP, 2026 Big 12 strikeout leader, elite velocity — TEAM ELITE STUFF
     { firstName: "Ethan", lastName: "Lund", position: "P", eligibility: "JR", homeState: "OK", hometown: "Stillwater", jerseyNumber: 29,
-      hitForAvg: 14, power: 11, speed: 32, arm: 93, fielding: 62, errorResistance: 54, velocity: 98, control: 96, stamina: 93, stuff: 98,
-      clutch: 88, vsLHP: 84, grit: 88, stealing: 8, running: 30, throwing: 88, recovery: 80, wRISP: 84, vsLefty: 83, poise: 86, heater: 97, agile: 42,
+      hitForAvg: 14, power: 11, speed: 32, arm: 89, fielding: 62, errorResistance: 54, velocity: 95, control: 89, stamina: 89, stuff: 95,
+      clutch: 88, vsLHP: 84, grit: 88, stealing: 8, running: 30, throwing: 88, recovery: 80, wRISP: 84, vsLefty: 83, poise: 86, heater: 89, agile: 42,
       abilities: ["Star of Victory", "Sharpness", "Heavy Ball", "Intimidator", "Strong Starter"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
