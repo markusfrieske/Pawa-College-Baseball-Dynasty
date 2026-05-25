@@ -45,10 +45,9 @@ export default function LandingPage() {
 
   const isLoggedIn = !!user;
 
-  // Find a league where this user is commissioner and the phase allows class generation
+  // Find a league where this user is commissioner (wizard works for any phase)
   const wizardEligibleLeague = leagues?.find(
-    l => l.commissionerId === user?.id &&
-    (l.currentPhase === "dynasty_setup" || l.currentPhase === "preseason")
+    l => l.commissionerId === user?.id
   );
 
   return (
