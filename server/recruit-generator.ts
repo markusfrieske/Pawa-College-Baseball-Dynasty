@@ -140,6 +140,20 @@ function getRandomAppearance() {
 export interface GenerateRecruitClassOptions {
   theme?: RecruitingTheme;
   isLegacyClass?: boolean;
+  // Wizard config overrides
+  wizardStarDistribution?: {
+    blueChip: number; five: number; four: number; three: number; two: number; one: number;
+  };
+  wizardSpecialCounts?: {
+    gems: number; busts: number; genGems: number; genBusts: number;
+    blueChips: number; jucos: number; rawPlayers: number;
+  };
+  wizardPositionDistribution?: Partial<Record<string, number>>;
+  wizardForcedType?: {
+    isBlueChip?: boolean; isGem?: boolean; isBust?: boolean;
+    isGenGem?: boolean; isGenBust?: boolean; isRaw?: boolean; starRank?: number;
+  };
+  wizardRegionSkew?: string;
 }
 
 export type GeneratedRecruit = Omit<InsertRecruit, "leagueId">;
@@ -204,15 +218,32 @@ export function generateRecruitClass(
     { state: "WY", cities: ["Cheyenne", "Casper", "Laramie"], pct: 0.1 },
   ];
 
-  const totalPct = stateData.reduce((sum, s) => sum + s.pct, 0);
+  // Apply region skew: multiply pct for states in the target region
+  const regionSkew = opts.wizardRegionSkew ?? "none";
+  const REGION_BOOST_STATES: Record<string, string[]> = {
+    southeast:  ["AL","FL","GA","LA","MS","NC","SC","TN","VA","AR"],
+    sunbelt:    ["FL","TX","GA","AL","AZ","CA","NM","LA","SC","NC"],
+    texas:      ["TX"],
+    california: ["CA"],
+    northeast:  ["NY","PA","NJ","MA","CT","MD","RI","VT","NH","DE"],
+    midwest:    ["OH","IL","IN","MI","MO","MN","IA","KS","NE","WI"],
+  };
+  const boostedStates = REGION_BOOST_STATES[regionSkew] ?? [];
+  const BOOST_FACTOR = 2.5;
+  const skewedStateData = stateData.map(s => ({
+    ...s,
+    pct: boostedStates.includes(s.state) ? s.pct * BOOST_FACTOR : s.pct,
+  }));
+
+  const totalPct = skewedStateData.reduce((sum, s) => sum + s.pct, 0);
   const pickWeightedState = (): number => {
     const roll = Math.random() * totalPct;
     let cumulative = 0;
-    for (let i = 0; i < stateData.length; i++) {
-      cumulative += stateData[i].pct;
+    for (let i = 0; i < skewedStateData.length; i++) {
+      cumulative += skewedStateData[i].pct;
       if (roll < cumulative) return i;
     }
-    return stateData.length - 1;
+    return skewedStateData.length - 1;
   };
   const stateAssignments: number[] = [];
   for (let i = 0; i < count; i++) {
@@ -240,7 +271,15 @@ export function generateRecruitClass(
     }
   };
 
-  const pitcherRatio = getPitcherRatio(theme);
+  let pitcherRatio = getPitcherRatio(theme);
+  // Wizard position distribution override: use P% / total% as pitcher ratio
+  if (opts.wizardPositionDistribution && opts.wizardPositionDistribution["P"] != null) {
+    const posDist = opts.wizardPositionDistribution;
+    const totalPosWeight = Object.values(posDist).reduce((s, v) => s + (v ?? 0), 0);
+    if (totalPosWeight > 0) {
+      pitcherRatio = (posDist["P"] ?? 0) / totalPosWeight;
+    }
+  }
 
   const getStarRank = (idx: number, total: number, t: RecruitingTheme): number => {
     const pct = idx / total;
@@ -258,7 +297,12 @@ export function generateRecruitClass(
     return 1;
   };
 
-  const numBlueChips = Math.max(2, Math.floor(count * 0.03) + (Math.random() < 0.5 ? 1 : 0));
+  let numBlueChips = Math.max(2, Math.floor(count * 0.03) + (Math.random() < 0.5 ? 1 : 0));
+  if (opts.wizardSpecialCounts?.blueChips != null) numBlueChips = Math.min(opts.wizardSpecialCounts.blueChips, count);
+  let numGenGems = 1;
+  if (opts.wizardSpecialCounts?.genGems != null) numGenGems = Math.min(opts.wizardSpecialCounts.genGems, Math.floor(count * 0.05));
+  let numGenBusts = 1;
+  if (opts.wizardSpecialCounts?.genBusts != null) numGenBusts = Math.min(opts.wizardSpecialCounts.genBusts, Math.floor(count * 0.05));
 
   const getGemBustModifier = (t: RecruitingTheme, starRank: number): { isGem: boolean; isBust: boolean } => {
     const roll = Math.random();
@@ -271,9 +315,6 @@ export function generateRecruitClass(
     if (starRank >= 3 && starRank <= 5 && roll < bustChance) return { isGem: false, isBust: true };
     return { isGem: false, isBust: false };
   };
-
-  const numGenGems = 1;
-  const numGenBusts = 1;
 
   const getTargetAttrAvgForRecruit = (starRank: number, isBlueChip: boolean, isGem: boolean, isBust: boolean, isPitcher: boolean): number => {
     if (isBlueChip) return isPitcher ? 80 + Math.floor(Math.random() * 5) : 68 + Math.floor(Math.random() * 5);
@@ -419,6 +460,30 @@ export function generateRecruitClass(
   for (let i = 0; i < count; i++) {
     starRanks.push(getStarRank(i, count, theme));
   }
+  // Wizard star distribution override
+  if (opts.wizardStarDistribution) {
+    const dist = opts.wizardStarDistribution;
+    const bcCountForDist = opts.wizardSpecialCounts?.blueChips ?? Math.round(count * dist.blueChip / 100);
+    const fiveCount = Math.round(count * dist.five / 100);
+    const fourCount = Math.round(count * dist.four / 100);
+    const threeCount = Math.round(count * dist.three / 100);
+    const twoCount  = Math.round(count * dist.two  / 100);
+    const oneCount  = Math.round(count * dist.one  / 100);
+    const wizardRanks: number[] = [
+      ...Array(bcCountForDist).fill(5),
+      ...Array(fiveCount).fill(5),
+      ...Array(fourCount).fill(4),
+      ...Array(threeCount).fill(3),
+      ...Array(twoCount).fill(2),
+      ...Array(oneCount).fill(1),
+    ];
+    while (wizardRanks.length < count) wizardRanks.push(3);
+    starRanks.splice(0, starRanks.length, ...wizardRanks.slice(0, count));
+    // Also align numBlueChips if not explicitly set via wizardSpecialCounts
+    if (opts.wizardSpecialCounts?.blueChips == null) {
+      numBlueChips = bcCountForDist;
+    }
+  }
 
   const gemCandidates = starRanks.map((sr, idx) => ({ sr, idx }))
     .filter(x => x.sr >= 1 && x.sr <= 3 && x.idx >= numBlueChips);
@@ -438,21 +503,59 @@ export function generateRecruitClass(
     generationalBustIdxSet.add(shuffledBustCandidates[b].idx);
   }
 
+  // Wizard regular gem/bust count overrides — pre-assign specific indices
+  const forcedGemIdxSet = new Set<number>();
+  const forcedBustIdxSet = new Set<number>();
+  if (opts.wizardSpecialCounts?.gems != null && opts.wizardSpecialCounts.gems > 0) {
+    const eligibleForGem = gemCandidates
+      .filter(x => !generationalGemIdxSet.has(x.idx) && !generationalBustIdxSet.has(x.idx))
+      .sort(() => Math.random() - 0.5);
+    for (let g = 0; g < Math.min(opts.wizardSpecialCounts.gems, eligibleForGem.length); g++) {
+      forcedGemIdxSet.add(eligibleForGem[g].idx);
+    }
+  }
+  if (opts.wizardSpecialCounts?.busts != null && opts.wizardSpecialCounts.busts > 0) {
+    const eligibleForBust = bustCandidates
+      .filter(x => !generationalGemIdxSet.has(x.idx) && !generationalBustIdxSet.has(x.idx) && !forcedGemIdxSet.has(x.idx))
+      .sort(() => Math.random() - 0.5);
+    for (let b = 0; b < Math.min(opts.wizardSpecialCounts.busts, eligibleForBust.length); b++) {
+      forcedBustIdxSet.add(eligibleForBust[b].idx);
+    }
+  }
+
   const playerArchetypes: ("normal" | "late_bloomer" | "overdraft" | "raw")[] = new Array(count).fill("normal");
 
+  // Wizard forced type for single-recruit reroll (count=1)
+  const forced = opts.wizardForcedType;
+
   const rawRatio = theme === "raw_talent" ? 0.20 : 0.08;
+  // Wizard raw player count override — compute a ratio that matches target count
+  const effectiveRawRatio = opts.wizardSpecialCounts?.rawPlayers != null
+    ? Math.min(1, opts.wizardSpecialCounts.rawPlayers / Math.max(1, count - numBlueChips))
+    : rawRatio;
   const lbRate  = 0.07;
   const odRate  = 0.07;
   for (let i = numBlueChips; i < count; i++) {
     const sr = starRanks[i];
     if (generationalGemIdxSet.has(i) || generationalBustIdxSet.has(i)) continue;
     const roll = Math.random();
-    if (roll < rawRatio) {
+    if (roll < effectiveRawRatio) {
       playerArchetypes[i] = "raw";
-    } else if (roll < rawRatio + lbRate && sr >= 2 && sr <= 4) {
+    } else if (roll < effectiveRawRatio + lbRate && sr >= 2 && sr <= 4) {
       playerArchetypes[i] = "late_bloomer";
-    } else if (roll < rawRatio + lbRate + odRate && sr >= 3 && sr <= 5) {
+    } else if (roll < effectiveRawRatio + lbRate + odRate && sr >= 3 && sr <= 5) {
       playerArchetypes[i] = "overdraft";
+    }
+  }
+
+  // Pre-compute JUCO override indices
+  const jucoOverrideSet = new Set<number>();
+  if (opts.wizardSpecialCounts?.jucos != null) {
+    const eligibleForJuco = Array.from({ length: count }, (_, i) => i)
+      .filter(i => !generationalGemIdxSet.has(i) && !generationalBustIdxSet.has(i) && i >= numBlueChips);
+    const shuffledEligible = [...eligibleForJuco].sort(() => Math.random() - 0.5);
+    for (let j = 0; j < Math.min(opts.wizardSpecialCounts.jucos, shuffledEligible.length); j++) {
+      jucoOverrideSet.add(shuffledEligible[j]);
     }
   }
 
@@ -472,7 +575,15 @@ export function generateRecruitClass(
     { value: "C",  weight: 1 }, { value: "2B", weight: 1 }, { value: "SS", weight: 1 },
   ];
 
+  const wizardFieldWeights = opts.wizardPositionDistribution
+    ? Object.entries(opts.wizardPositionDistribution)
+        .filter(([k]) => k !== "P")
+        .map(([k, v]) => ({ value: k, weight: v ?? 0 }))
+        .filter(x => x.weight > 0)
+    : null;
+
   const pickFieldPosition = (): string => {
+    if (wizardFieldWeights && wizardFieldWeights.length > 0) return rollWeighted(wizardFieldWeights);
     if (theme === "defense_first") return rollWeighted(defenseFirstPositions);
     if (theme === "speed_class")   return rollWeighted(speedClassPositions);
     if (theme === "power_class")   return rollWeighted(powerClassPositions);
@@ -483,16 +594,17 @@ export function generateRecruitClass(
     const isPitcher = Math.random() < pitcherRatio;
     const position = isPitcher ? "P" : pickFieldPosition();
 
-    const starRank = starRanks[i];
     const stateIdx = stateAssignments[i] || 0;
     const recruitState = stateData[stateIdx];
     const recruitCity = recruitState.cities[Math.floor(Math.random() * recruitState.cities.length)];
-    const isBlueChip = i < numBlueChips;
-    const isGenerationalGem = generationalGemIdxSet.has(i);
-    const isGenerationalBust = generationalBustIdxSet.has(i);
-    const playerArchetype = isGenerationalGem || isGenerationalBust || isBlueChip
-      ? "normal"
-      : playerArchetypes[i];
+    // Apply wizard forced type overrides (used for single-recruit reroll)
+    const isBlueChip  = forced?.isBlueChip  != null ? forced.isBlueChip  : i < numBlueChips;
+    const isGenerationalGem  = forced?.isGenGem  != null ? forced.isGenGem  : generationalGemIdxSet.has(i);
+    const isGenerationalBust = forced?.isGenBust != null ? forced.isGenBust : generationalBustIdxSet.has(i);
+    const starRank = forced?.starRank != null ? forced.starRank : starRanks[i];
+    const playerArchetype = forced?.isRaw
+      ? "raw"
+      : (isGenerationalGem || isGenerationalBust || isBlueChip ? "normal" : playerArchetypes[i]);
     const isRawArchetype = playerArchetype === "raw";
 
     let isGem = false;
@@ -509,9 +621,16 @@ export function generateRecruitClass(
       targetAttrAvg = -1;
       abilityCount = 0;
     } else {
+      // Check forced gem/bust override from wizardSpecialCounts
+      const isForcedGem  = forced?.isGem  ?? forcedGemIdxSet.has(i);
+      const isForcedBust = forced?.isBust ?? forcedBustIdxSet.has(i);
       const gemBust = isBlueChip
         ? { isGem: false, isBust: false }
-        : getGemBustModifier(theme, starRank);
+        : isForcedGem
+          ? { isGem: true, isBust: false }
+          : isForcedBust
+            ? { isGem: false, isBust: true }
+            : getGemBustModifier(theme, starRank);
       isGem = gemBust.isGem;
       isBust = isBlueChip ? false : gemBust.isBust;
       targetAttrAvg = getTargetAttrAvgForRecruit(starRank, isBlueChip, isGem, isBust, isPitcher);
@@ -543,7 +662,7 @@ export function generateRecruitClass(
 
     const appearance = getRandomAppearance();
 
-    const recruitType = Math.random() < 0.8 ? "HS" : "JUCO";
+    const recruitType = jucoOverrideSet.has(i) ? "JUCO" : (Math.random() < 0.8 ? "HS" : "JUCO");
     let recruitYear = "FR";
     if (recruitType === "JUCO") {
       const rand = Math.random();

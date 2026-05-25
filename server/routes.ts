@@ -16954,6 +16954,106 @@ export async function registerRoutes(
     }
   });
 
+  // ─── Recruiting Wizard Endpoints ───────────────────────────────────────────
+
+  // Generate a class preview from wizard config (no DB write)
+  app.post("/api/leagues/:id/recruiting/generate-wizard", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id as string);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      if (!hasCommissionerAccess(league, req.session.userId)) {
+        return res.status(403).json({ message: "Commissioner only" });
+      }
+      const { config } = req.body as { config: any };
+      if (!config) return res.status(400).json({ message: "config required" });
+
+      const theme = (config.theme as RecruitingTheme) || "balanced";
+      const count = Math.min(Math.max(Number(config.count) || 80, 20), 80);
+      const fogDensity: number = Math.min(100, Math.max(0, Number(config.fogDensity ?? 100)));
+
+      const recruits = generateRecruitClass(count, {
+        theme,
+        wizardStarDistribution: config.starDistribution,
+        wizardSpecialCounts: config.specialCounts,
+        wizardPositionDistribution: config.positionDistribution,
+        wizardRegionSkew: config.regionSkew || "none",
+      });
+
+      // Apply fog density: 100% = fully hidden (scoutingLevel=0), 0% = fully revealed (scoutingLevel=100)
+      const initialScoutingLevel = Math.round((1 - fogDensity / 100) * 100);
+      const recruitsWithFog = recruits.map(r => ({ ...r, scoutingLevel: initialScoutingLevel }));
+
+      res.json({ recruits: recruitsWithFog });
+    } catch (error) {
+      console.error("Failed to generate wizard class:", error);
+      res.status(500).json({ message: "Failed to generate class" });
+    }
+  });
+
+  // Reroll a single recruit with type constraints (no DB write)
+  app.post("/api/leagues/:id/recruiting/reroll-recruit", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id as string);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      if (!hasCommissionerAccess(league, req.session.userId)) {
+        return res.status(403).json({ message: "Commissioner only" });
+      }
+      const { theme = "balanced", forcedType } = req.body as { theme?: string; forcedType?: any };
+
+      const recruits = generateRecruitClass(1, {
+        theme: (theme as RecruitingTheme) || "balanced",
+        wizardForcedType: forcedType,
+      });
+
+      res.json({ recruit: recruits[0] });
+    } catch (error) {
+      console.error("Failed to reroll recruit:", error);
+      res.status(500).json({ message: "Failed to reroll recruit" });
+    }
+  });
+
+  // Save wizard class to DB (deletes existing + batch creates)
+  app.post("/api/leagues/:id/recruiting/save-wizard-class", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id as string);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      if (!hasCommissionerAccess(league, req.session.userId)) {
+        return res.status(403).json({ message: "Commissioner only" });
+      }
+      const { recruits } = req.body as { recruits: any[] };
+      if (!Array.isArray(recruits) || recruits.length === 0) {
+        return res.status(400).json({ message: "recruits array required" });
+      }
+
+      await storage.deleteRecruitsByLeague(req.params.id as string);
+
+      const leagueId = req.params.id as string;
+      const createdRecruits = await storage.batchCreateRecruits(
+        recruits.map((r: any) => ({ ...r, leagueId }))
+      );
+
+      if (createdRecruits.length !== recruits.length) {
+        return res.status(500).json({
+          message: `Save incomplete: only ${createdRecruits.length} of ${recruits.length} recruits were saved. Please try again.`,
+        });
+      }
+
+      await storage.createAuditLog({
+        leagueId: league.id,
+        userId: req.session.userId,
+        action: "Recruiting Class Created (Wizard)",
+        details: `Commissioner created a recruiting class of ${createdRecruits.length} recruits via the class wizard`,
+      });
+
+      res.json({ success: true, count: createdRecruits.length });
+    } catch (error) {
+      console.error("Failed to save wizard class:", error);
+      res.status(500).json({ message: "Failed to save class" });
+    }
+  });
+
+  // ───────────────────────────────────────────────────────────────────────────
+
   app.patch("/api/leagues/:id/deadline", requireAuth, async (req, res) => {
     try {
       const league = await storage.getLeague(req.params.id as string);

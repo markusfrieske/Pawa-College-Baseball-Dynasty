@@ -51,6 +51,7 @@ import type { League, AuditLog, LeagueInvite } from "@shared/schema";
 import { SimProgressOverlay, type SimSummary } from "@/components/sim-progress-overlay";
 import { SeasonSummaryModal } from "@/components/season-summary-modal";
 import { InningScoreboard, useScoreboardEnabled, type InningScoreboardData } from "@/components/inning-scoreboard";
+import { RecruitingWizard } from "@/components/recruiting-wizard";
 
 interface HumanCoach {
   coachId: string;
@@ -750,6 +751,7 @@ function ActionsTab({
   const { toast } = useToast();
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [showEditTeamsDialog, setShowEditTeamsDialog] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
   const [csvData, setCsvData] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -1110,9 +1112,15 @@ function ActionsTab({
           <div className="space-y-3">
             {(league?.currentPhase === "dynasty_setup" || league?.currentPhase === "preseason") && (
               <>
+                <ActionButton
+                  label="Create Recruiting Class"
+                  description="7-step wizard to generate and customize a new recruiting class"
+                  onClick={() => setShowWizard(true)}
+                  dataTestId="button-open-wizard"
+                />
                 <ActionButton 
-                  label={isImporting ? "Importing..." : "Import Recruiting Class"}
-                  description="Import recruits from CSV file" 
+                  label={isImporting ? "Importing..." : "Import Recruiting Class (CSV)"}
+                  description="Import recruits from CSV file or generate automatically" 
                   onClick={() => setShowImportDialog(true)}
                   disabled={isImporting}
                   dataTestId="button-import-recruiting"
@@ -1349,6 +1357,15 @@ function ActionsTab({
           </div>
         </DialogContent>
       </Dialog>
+
+      {league?.id && (
+        <RecruitingWizard
+          open={showWizard}
+          onClose={() => setShowWizard(false)}
+          leagueId={league.id}
+          onSaved={() => setShowWizard(false)}
+        />
+      )}
       </div>
       <PhaseDeadlineControl leagueId={league?.id || ""} currentDeadline={league?.phaseDeadline ?? null} />
     </div>

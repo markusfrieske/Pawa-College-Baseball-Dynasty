@@ -1519,6 +1519,41 @@ export const insertNilSeasonEarningSchema = createInsertSchema(nilSeasonEarnings
 export type InsertNilSeasonEarning = z.infer<typeof insertNilSeasonEarningSchema>;
 export type NilSeasonEarning = typeof nilSeasonEarnings.$inferSelect;
 
+// Wizard config type for the recruiting class creation wizard (no DB table)
+export interface WizardConfig {
+  count: number;
+  theme: string;
+  label: string;
+  starDistribution: {
+    blueChip: number;
+    five: number;
+    four: number;
+    three: number;
+    two: number;
+    one: number;
+  };
+  specialCounts: {
+    gems: number;
+    busts: number;
+    genGems: number;
+    genBusts: number;
+    blueChips: number;
+    jucos: number;
+    rawPlayers: number;
+  };
+  positionDistribution: {
+    P: number;
+    C: number;
+    "1B": number;
+    "2B": number;
+    "3B": number;
+    SS: number;
+    OF: number;
+  };
+  regionSkew: string;
+  fogDensity: number;
+}
+
 export const leagueEvents = pgTable("league_events", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   leagueId: varchar("league_id").notNull().references(() => leagues.id),
