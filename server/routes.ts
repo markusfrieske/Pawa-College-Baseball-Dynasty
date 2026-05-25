@@ -33,6 +33,7 @@ import { validateLeagueRosters, checkTeamRosterStructure } from "./rosterValidat
 import { sendWeeklyDigests, verifyUnsubToken } from "./digestEmail";
 import { pool } from "./db";
 import { calibrateRpiOvr } from "./calibrateRpiOvr";
+import { assignPitcherArchetype, generateArchetypePitchMix, qualityTierFromOvr, noPitches } from "./pitchMixHelpers";
 
 function potentialGradeToNumber(grade: string): number {
   const map: Record<string, number> = {
@@ -19403,14 +19404,12 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
         eyeBlack: appearance.eyeBlack,
         headwear: appearance.headwear,
         potential: typeof rp.potential === 'string' ? potentialGradeToNumber(rp.potential as string) : (rp.potential ?? 71),
-        pitchFB: rp.pitchFB,
-        pitch2S: rp.pitch2S,
-        pitchSL: rp.pitchSL,
-        pitchCB: rp.pitchCB,
-        pitchCH: rp.pitchCH,
-        pitchCT: rp.pitchCT,
-        pitchSNK: rp.pitchSNK,
-        pitchSPL: rp.pitchSPL,
+        ...(isPitcher
+          ? generateArchetypePitchMix(
+              assignPitcherArchetype(rp.position, rp.throwHand || "R", rp.velocity, rp.control, rp.stamina, rp.stuff),
+              qualityTierFromOvr(rawOverall),
+            )
+          : noPitches),
       });
     }
 
@@ -19509,12 +19508,12 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
           eyeBlack: appearance.eyeBlack,
           headwear: appearance.headwear,
           potential: rollWeightedPotential(),
-          pitchFB: pos === "P" ? 1 : 0,
-          pitch2S: pos === "P" && Math.random() < 0.5 ? 1 : 0,
-          pitchSL: pos === "P" && Math.random() < 0.6 ? 1 + Math.floor(Math.random() * 7) : 0,
-          pitchCB: pos === "P" && Math.random() < 0.6 ? 1 + Math.floor(Math.random() * 7) : 0,
-          pitchCH: pos === "P" && Math.random() < 0.5 ? 1 : 0,
-          pitchCT: 0, pitchSNK: 0, pitchSPL: 0,
+          ...(pos === "P"
+            ? generateArchetypePitchMix(
+                assignPitcherArchetype(pos, fillerThrowHand, playerData.velocity, playerData.control, playerData.stamina, playerData.stuff),
+                qualityTierFromOvr(rawOvr),
+              )
+            : noPitches),
         });
       }
     }
@@ -19659,14 +19658,12 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
       eyeBlack: appearance.eyeBlack,
       headwear: appearance.headwear,
       potential: rollWeightedPotential(),
-      pitchFB: position === "P" ? 1 : 0,
-      pitch2S: position === "P" && Math.random() < 0.5 ? 1 : 0,
-      pitchSL: position === "P" && Math.random() < 0.6 ? 1 + Math.floor(Math.random() * 7) : 0,
-      pitchCB: position === "P" && Math.random() < 0.6 ? 1 + Math.floor(Math.random() * 7) : 0,
-      pitchCH: position === "P" && Math.random() < 0.5 ? 1 : 0,
-      pitchCT: position === "P" && Math.random() < 0.4 ? 1 + Math.floor(Math.random() * 7) : 0,
-      pitchSNK: position === "P" && Math.random() < 0.3 ? 1 + Math.floor(Math.random() * 7) : 0,
-      pitchSPL: position === "P" && Math.random() < 0.3 ? 1 + Math.floor(Math.random() * 7) : 0,
+      ...(isPitcherPos
+        ? generateArchetypePitchMix(
+            assignPitcherArchetype(position, "R", velocity, control, stamina, stuff),
+            qualityTierFromOvr(overall),
+          )
+        : noPitches),
       tools: cpuTools,
     });
   }

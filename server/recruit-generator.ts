@@ -2,6 +2,7 @@ import { getRandomAbilities, getAbilitiesForPosition, calculateOVR, getStarRatin
 import type { InsertRecruit } from "@shared/schema";
 import { assignTrajectory } from "@shared/trajectory";
 import { normalizeCommonAbilities } from "./normalizeCommonAbilities";
+import { assignPitcherArchetype, generateArchetypePitchMix, qualityTierFromStars, noPitches } from "./pitchMixHelpers";
 
 export const HITTER_TOOL_GROUPS: Record<string, string[]> = {
   Speed:    ["running", "stealing"],
@@ -673,7 +674,12 @@ export function generateRecruitClass(
     if (themeBoost.attr === "speed")   speed    = Math.min(99, speed   + themeBoost.boost);
     if (themeBoost.attr === "fielding") fielding = Math.min(99, fielding + themeBoost.boost);
 
-    const pitchMix = generatePitchMix(isPitcher);
+    const pitchMix = isPitcher
+      ? generateArchetypePitchMix(
+          assignPitcherArchetype("P", "R", velocity, control, stamina, stuff),
+          qualityTierFromStars(starRank),
+        )
+      : { ...noPitches };
 
     let commonAbilities: ReturnType<typeof generateCommonAbilities>;
     if (isGenerationalGem) {

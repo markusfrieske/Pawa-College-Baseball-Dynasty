@@ -13,6 +13,10 @@
  * This script imports every roster file directly (bypassing the
  * normalization loop in server/realRosters.ts) so the raw authored values
  * are checked.
+ *
+ * Section 2 validates the archetype-based pitch generator (generateArchetypePitchMix)
+ * against a synthetic sample to ensure pitch counts, level caps, and binary
+ * field rules are all respected at runtime.
  */
 
 import { SEC_BATCH1_ROSTERS } from "../server/secBatch1";
@@ -34,6 +38,13 @@ import { BIG_12_ROSTERS } from "../server/big12Rosters";
 import { AAC_ROSTERS } from "../server/aacRosters";
 import { WCC_ROSTERS } from "../server/wccRosters";
 import type { RealPlayer } from "../server/realRosters";
+import {
+  assignPitcherArchetype,
+  generateArchetypePitchMix,
+  qualityTierFromOvr,
+  type PitcherArchetype,
+  type QualityTier,
+} from "../server/pitchMixHelpers";
 
 const ALL_ROSTERS: Record<string, Record<string, RealPlayer[]>> = {
   "SEC Batch 1": SEC_BATCH1_ROSTERS,
@@ -54,7 +65,6 @@ const ALL_ROSTERS: Record<string, Record<string, RealPlayer[]>> = {
   "Big 12": BIG_12_ROSTERS,
   "AAC": AAC_ROSTERS,
   "WCC": WCC_ROSTERS,
-  "Pac-12": PAC12_ROSTERS,
 };
 
 const PITCH_FIELDS = [
@@ -68,8 +78,8 @@ const PITCH_FIELDS = [
   "pitchSPL",
 ] as const;
 
-// Fields that must be binary (0 or 1). Any value > 1 is a violation.
 const BINARY_PITCH_FIELDS = new Set(["pitchFB", "pitch2S", "pitchCH"]);
+const PITCHER_POSITIONS = new Set(["P", "SP", "RP", "CP", "CL", "LHP", "RHP"]);
 
 interface PitchViolation {
   file: string;
@@ -85,7 +95,7 @@ const violations: PitchViolation[] = [];
 for (const [fileName, rosters] of Object.entries(ALL_ROSTERS)) {
   for (const [teamName, players] of Object.entries(rosters)) {
     for (const player of players) {
-      if (player.position !== "P") continue;
+      if (!PITCHER_POSITIONS.has(player.position)) continue;
       const playerName = `${player.firstName} ${player.lastName}`;
       const raw = player as unknown as Record<string, unknown>;
       for (const field of PITCH_FIELDS) {
@@ -100,42 +110,124 @@ for (const [fileName, rosters] of Object.entries(ALL_ROSTERS)) {
   }
 }
 
-if (violations.length === 0) {
-  console.log(
-    "✓ All pitcher pitch-mix fields are valid: binary fields (FB/2S/CH) are 0-1, secondaries (SL/CB/CT/SNK/SPL) are 0-7."
+if (violations.length > 0) {
+  console.error(
+    `\n✗ Found ${violations.length} pitch-mix field violation(s):\n`
   );
-  process.exit(0);
+
+  const byFile = new Map<string, PitchViolation[]>();
+  for (const v of violations) {
+    if (!byFile.has(v.file)) byFile.set(v.file, []);
+    byFile.get(v.file)!.push(v);
+  }
+
+  for (const [file, fileViolations] of byFile) {
+    console.error(`  [${file}]`);
+    for (const v of fileViolations) {
+      console.error(`    ${v.team} / ${v.player}: ${v.field}=${v.value} (${v.reason})`);
+    }
+  }
+
+  console.error(`
+Fix: use the pitchMix() helper from server/pitchMixHelpers.ts instead of
+     setting pitch fields inline with 0-100 velocity values.
+`);
+  process.exit(1);
 }
 
-console.error(
-  `\n✗ Found ${violations.length} pitch-mix field violation(s):\n`
-);
+// ─── Section 2: Archetype generator distribution checks ──────────────────────
+// Generate a synthetic sample and validate pitch counts, level caps, and
+// binary field rules for the runtime archetype system.
 
-const byFile = new Map<string, PitchViolation[]>();
-for (const v of violations) {
-  const key = v.file;
-  if (!byFile.has(key)) byFile.set(key, []);
-  byFile.get(key)!.push(v);
-}
+const SAMPLE_SIZE = 500;
 
-for (const [file, fileViolations] of byFile) {
-  console.error(`  [${file}]`);
-  for (const v of fileViolations) {
-    console.error(`    ${v.team} / ${v.player}: ${v.field}=${v.value} (${v.reason})`);
+const archetypes: PitcherArchetype[] = [
+  "power_starter", "command_lefty", "reliever", "junkball", "sinkerballer",
+];
+const tiers: QualityTier[] = ["elite", "great", "solid", "average"];
+const tierOvr: Record<QualityTier, number> = {
+  elite: 550, great: 430, solid: 320, average: 240,
+};
+const tierPitchRange: Record<QualityTier, [number, number]> = {
+  elite:   [5, 6],
+  great:   [4, 5],
+  solid:   [3, 4],
+  average: [2, 3],
+};
+
+let archetypeErrors = 0;
+
+console.log("\n── Archetype pitch-mix generator checks ──");
+
+for (const archetype of archetypes) {
+  for (const tier of tiers) {
+    const [minPitches, maxPitches] = tierPitchRange[tier];
+    const ovr = tierOvr[tier];
+    const resolvedTier = qualityTierFromOvr(ovr);
+
+    let tooFew = 0;
+    let tooMany = 0;
+    let binaryViolation = 0;
+    let levelViolation = 0;
+    let eliteSignatureViolation = 0;
+
+    for (let n = 0; n < SAMPLE_SIZE; n++) {
+      const mix = generateArchetypePitchMix(archetype, resolvedTier);
+      const pitchKeys = Object.keys(mix) as (keyof typeof mix)[];
+      const activePitches = pitchKeys.filter(k => mix[k] > 0);
+      const count = activePitches.length;
+
+      if (count < minPitches) tooFew++;
+      if (count > maxPitches) tooMany++;
+
+      for (const k of activePitches) {
+        const v = mix[k];
+        if (BINARY_PITCH_FIELDS.has(k) && v > 1) binaryViolation++;
+        if (!BINARY_PITCH_FIELDS.has(k) && k !== "pitchFB" && (v < 2 || v > 7)) levelViolation++;
+      }
+
+      if (tier === "elite") {
+        const nonBinarySecondary = activePitches.filter(k => !BINARY_PITCH_FIELDS.has(k));
+        const signature = nonBinarySecondary.filter(k => mix[k] >= 5);
+        if (signature.length > 1) eliteSignatureViolation++;
+      }
+    }
+
+    const label = `${archetype}/${tier}`;
+    const pass = tooFew === 0 && tooMany === 0 && binaryViolation === 0 &&
+                 levelViolation === 0 && eliteSignatureViolation === 0;
+    if (!pass) {
+      archetypeErrors++;
+      console.error(`  ✗ ${label}: tooFew=${tooFew} tooMany=${tooMany} binaryViolation=${binaryViolation} levelViolation=${levelViolation} eliteSignatureViolation=${eliteSignatureViolation}`);
+    }
   }
 }
 
-console.error(`
-Fix: use the pitchMix() helper from server/pitchMixHelpers.ts instead of
-     setting pitch fields inline with 0-100 velocity values.
+// Verify assignPitcherArchetype routing
+const archetypeRoutingChecks: { label: string; pass: boolean }[] = [
+  { label: "RP→reliever",    pass: assignPitcherArchetype("RP", "R", 70, 60, 65, 55) === "reliever" },
+  { label: "CP→reliever",    pass: assignPitcherArchetype("CP", "R", 70, 60, 65, 55) === "reliever" },
+  { label: "SP+L+ctrl≥velo→command_lefty",
+    pass: assignPitcherArchetype("SP", "L", 60, 70, 65, 55) === "command_lefty" },
+  { label: "P+R+ctrl≥velo→NOT command_lefty",
+    pass: assignPitcherArchetype("P", "R", 60, 70, 65, 55) !== "command_lefty" },
+  { label: "P+high velo→power_starter",
+    pass: assignPitcherArchetype("P", "R", 85, 55, 60, 60) === "power_starter" },
+];
 
-     Example:
-       ...pitchMix(88, [0, 75, 68, 62, 0, 0, 0])
-       // args: primary (any non-zero -> FB=1), [2S, SL, CB, CH, CT, SNK, SPL]
+for (const check of archetypeRoutingChecks) {
+  if (!check.pass) {
+    archetypeErrors++;
+    console.error(`  ✗ archetype routing: ${check.label}`);
+  }
+}
 
-     pitchMix() automatically detects and re-buckets 0-100 inputs to 1-7.
-     If you intentionally used 0-100 values inline, wrap them in pitchMix()
-     so the intent is explicit and the runtime safety belt is not needed.
-`);
+if (archetypeErrors > 0) {
+  console.error(`\n✗ ${archetypeErrors} archetype validation failure(s). See above.\n`);
+  process.exit(1);
+}
 
-process.exit(1);
+console.log(`  ✓ ${archetypes.length * tiers.length} archetype/tier combos × ${SAMPLE_SIZE} samples: all pitch counts, level caps, and binary rules correct`);
+console.log(`  ✓ Archetype routing checks: ${archetypeRoutingChecks.length}/${archetypeRoutingChecks.length} passed`);
+console.log("\n✓ All pitcher pitch-mix fields are valid.");
+process.exit(0);

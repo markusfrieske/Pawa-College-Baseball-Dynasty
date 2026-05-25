@@ -120,3 +120,152 @@ export function pitchMix(primary: number, secondary: number[], context: string =
     pitchSPL: coerceSecondary(safeSec[6] ?? 0, useBucket),
   };
 }
+
+// ─── Archetype Pitch Mix System ───────────────────────────────────────────────
+
+export type PitcherArchetype =
+  | "power_starter"
+  | "command_lefty"
+  | "reliever"
+  | "junkball"
+  | "sinkerballer";
+
+export type QualityTier = "elite" | "great" | "solid" | "average";
+
+/**
+ * Assign a pitcher archetype based on position, handedness, and key attributes.
+ *
+ * Priority order (first match wins):
+ *  1. RP or CP → reliever
+ *  2. SP/P + left-handed + control ≥ velocity → command_lefty
+ *  3. stuff is highest attribute → power_starter (75%) or sinkerballer (25%)
+ *  4. velocity is highest attribute → power_starter
+ *  5. otherwise → junkball
+ */
+export function assignPitcherArchetype(
+  position: string,
+  throwHand: string,
+  velocity: number,
+  control: number,
+  stamina: number,
+  stuff: number,
+): PitcherArchetype {
+  if (position === "RP" || position === "CP") return "reliever";
+  if (
+    (position === "SP" || position === "P") &&
+    (throwHand === "L" || throwHand === "LHP") &&
+    control >= velocity
+  ) return "command_lefty";
+  if (stuff >= velocity && stuff >= control && stuff >= stamina) {
+    return Math.random() < 0.25 ? "sinkerballer" : "power_starter";
+  }
+  if (velocity >= control && velocity >= stuff && velocity >= stamina) {
+    return "power_starter";
+  }
+  return "junkball";
+}
+
+/** Map OVR to quality tier (for player-creation in routes.ts). */
+export function qualityTierFromOvr(ovr: number): QualityTier {
+  if (ovr >= 500) return "elite";
+  if (ovr >= 400) return "great";
+  if (ovr >= 300) return "solid";
+  return "average";
+}
+
+/** Map star rating to quality tier (for recruit-generator.ts). */
+export function qualityTierFromStars(stars: number): QualityTier {
+  if (stars >= 5) return "elite";
+  if (stars >= 4) return "great";
+  if (stars >= 3) return "solid";
+  return "average";
+}
+
+function pitchCountForTier(tier: QualityTier): number {
+  switch (tier) {
+    case "elite":   return 5 + Math.floor(Math.random() * 2); // 5–6
+    case "great":   return 4 + Math.floor(Math.random() * 2); // 4–5
+    case "solid":   return 3 + Math.floor(Math.random() * 2); // 3–4
+    case "average": return 2 + Math.floor(Math.random() * 2); // 2–3
+  }
+}
+
+type PoolEntry = [keyof PitchMix, number];
+
+// Weighted pool of secondary pitches per archetype.
+// Higher weight = more likely to appear in the arsenal.
+const ARCHETYPE_POOLS: Record<PitcherArchetype, PoolEntry[]> = {
+  power_starter: [
+    ["pitchSL",  80], ["pitch2S",  55], ["pitchCH",  30],
+    ["pitchCB",  10], ["pitchSNK",  8], ["pitchSPL",  7],
+  ],
+  command_lefty: [
+    ["pitchCH",  70], ["pitchSL",  50], ["pitch2S",  45],
+    ["pitchCB",  15], ["pitchSNK", 10], ["pitchSPL", 10],
+  ],
+  reliever: [
+    ["pitchSL",  65], ["pitch2S",  30], ["pitchCB",  25],
+    ["pitchSNK", 20], ["pitchSPL", 20], ["pitchCT",  10],
+  ],
+  junkball: [
+    ["pitchCH",  45], ["pitchCB",  42], ["pitchSL",  38],
+    ["pitchSNK", 32], ["pitchSPL", 28], ["pitch2S",  20],
+  ],
+  sinkerballer: [
+    ["pitchSNK", 75], ["pitchSPL", 60], ["pitchSL",  55],
+    ["pitchCH",  50], ["pitchCT",  35], ["pitch2S",  20],
+  ],
+};
+
+const BINARY_PITCH_KEYS = new Set<keyof PitchMix>(["pitchFB", "pitch2S", "pitchCH"]);
+
+/**
+ * Generate a PitchMix for a pitcher based on their archetype and quality tier.
+ *
+ * Rules enforced:
+ * - FB is always included (pitchFB = 1).
+ * - pitch2S and pitchCH are binary (0 or 1).
+ * - All other pitches use levels 2–4.
+ * - Elite pitchers: exactly one non-binary secondary pitch gets level 5–7
+ *   (the first drawn from the weighted pool = archetype signature pitch).
+ * - Minimum 2 pitches guaranteed (FB + at least one secondary).
+ */
+export function generateArchetypePitchMix(
+  archetype: PitcherArchetype,
+  tier: QualityTier,
+): PitchMix {
+  const targetCount = pitchCountForTier(tier);
+  const pool: PoolEntry[] = [...ARCHETYPE_POOLS[archetype]];
+  const selected: (keyof PitchMix)[] = ["pitchFB"];
+
+  while (selected.length < targetCount && pool.length > 0) {
+    const totalWeight = pool.reduce((s, [, w]) => s + w, 0);
+    let roll = Math.random() * totalWeight;
+    let chosen = pool.length - 1;
+    for (let i = 0; i < pool.length; i++) {
+      roll -= pool[i][1];
+      if (roll <= 0) { chosen = i; break; }
+    }
+    selected.push(pool[chosen][0]);
+    pool.splice(chosen, 1);
+  }
+
+  const isElite = tier === "elite";
+  let eliteSignatureDone = false;
+  const result: PitchMix = { ...noPitches };
+
+  for (const key of selected) {
+    if (key === "pitchFB") {
+      result.pitchFB = 1;
+    } else if (BINARY_PITCH_KEYS.has(key)) {
+      (result as Record<string, number>)[key as string] = 1;
+    } else if (isElite && !eliteSignatureDone) {
+      (result as Record<string, number>)[key as string] = 5 + Math.floor(Math.random() * 3); // 5–7
+      eliteSignatureDone = true;
+    } else {
+      (result as Record<string, number>)[key as string] = 2 + Math.floor(Math.random() * 3); // 2–4
+    }
+  }
+
+  return result;
+}
