@@ -87,6 +87,10 @@ export default function CommissionerPage() {
   const [showScoreboard, setShowScoreboard] = useState(false);
   const [scoreboardData, setScoreboardData] = useState<InningScoreboardData | null>(null);
   const scoreboardEnabled = useScoreboardEnabled();
+  const [classSelectionOpen, setClassSelectionOpen] = useState(false);
+  const [classSelectionOptions, setClassSelectionOptions] = useState<Array<{ id: string; name: string; recruitCount: number }>>([]);
+  const [selectedClassForAdvance, setSelectedClassForAdvance] = useState<string>("auto");
+  const [pendingAdvanceSeason, setPendingAdvanceSeason] = useState<number | null>(null);
 
   const toggleAutoAdvance = (val: boolean) => {
     setAutoAdvance(val);
@@ -103,6 +107,15 @@ export default function CommissionerPage() {
       return res.json();
     },
     onSuccess: (response: any) => {
+      // Two-step class selection: if backend needs the commissioner to pick a recruiting class
+      if (response?.needs_class_selection) {
+        setClassSelectionOptions(response.savedClasses ?? []);
+        setSelectedClassForAdvance("auto");
+        setPendingAdvanceSeason(response.currentSeason ?? null);
+        setClassSelectionOpen(true);
+        return;
+      }
+
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "postseason"] });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
@@ -607,7 +620,7 @@ export default function CommissionerPage() {
           <TabsContent value="actions">
             <ActionsTab
               league={data?.league}
-              onAdvanceWeek={(opts) => advanceWeekMutation.mutate(opts)}
+              onAdvanceWeek={() => advanceWeekMutation.mutate(undefined)}
               isAdvancing={advanceWeekMutation.isPending}
               onAdvanceSeason={() => advanceSeasonMutation.mutate()}
               isAdvancingSeason={advanceSeasonMutation.isPending}
@@ -692,6 +705,60 @@ export default function CommissionerPage() {
         onClose={() => { setShowScoreboard(false); setScoreboardData(null); }}
         data={scoreboardData}
       />
+
+      {/* Class selection modal — shown when advancing from walkons phase */}
+      <Dialog open={classSelectionOpen} onOpenChange={(open) => { if (!open) setClassSelectionOpen(false); }}>
+        <DialogContent className="bg-card border-border max-w-md" data-testid="dialog-class-selection">
+          <DialogHeader>
+            <DialogTitle className="font-pixel text-gold text-sm">Choose Recruiting Class</DialogTitle>
+            <DialogDescription>
+              Season {pendingAdvanceSeason} is ending. Select a saved recruiting class for Season {(pendingAdvanceSeason ?? 0) + 1}, or let the game auto-generate one.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 mt-2">
+            <Select value={selectedClassForAdvance} onValueChange={setSelectedClassForAdvance}>
+              <SelectTrigger className="w-full" data-testid="select-class-for-advance">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="auto">Auto-Generate Fresh Class</SelectItem>
+                {classSelectionOptions.map(cls => (
+                  <SelectItem key={cls.id} value={String(cls.id)}>
+                    {cls.name} ({cls.recruitCount} recruits)
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedClassForAdvance !== "auto" && (
+              <p className="text-[10px] text-muted-foreground">
+                The selected saved class will replace the auto-generated recruit pool for the upcoming season.
+              </p>
+            )}
+            <div className="flex justify-end gap-2">
+              <RetroButton
+                variant="outline"
+                size="sm"
+                onClick={() => setClassSelectionOpen(false)}
+                data-testid="button-cancel-class-selection"
+              >
+                Cancel
+              </RetroButton>
+              <RetroButton
+                variant="shimmer"
+                size="sm"
+                onClick={() => {
+                  setClassSelectionOpen(false);
+                  advanceWeekMutation.mutate({ savedRecruitingClassId: selectedClassForAdvance });
+                }}
+                loading={advanceWeekMutation.isPending}
+                data-testid="button-confirm-class-advance"
+              >
+                Advance Season
+              </RetroButton>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -724,7 +791,7 @@ function ActionsTab({
   toggleAutoAdvance,
 }: {
   league?: League;
-  onAdvanceWeek: (opts?: { savedRecruitingClassId?: string }) => void;
+  onAdvanceWeek: () => void;
   isAdvancing: boolean;
   onAdvanceSeason: () => void;
   isAdvancingSeason: boolean;
@@ -754,16 +821,7 @@ function ActionsTab({
   const [showEditTeamsDialog, setShowEditTeamsDialog] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
   const [csvData, setCsvData] = useState("");
-  const [selectedSavedClassId, setSelectedSavedClassId] = useState<string>("auto");
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const isWalkonsPhase = league?.currentPhase === "offseason_walkons";
-
-  const { data: savedClasses } = useQuery<SavedRecruitingClass[]>({
-    queryKey: ["/api/saved-recruiting-classes"],
-    queryFn: getQueryFn({ on401: "returnNull" }),
-    enabled: isWalkonsPhase,
-  });
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -867,30 +925,9 @@ function ActionsTab({
                 Deadline passed — non-ready coaches will be auto-marked ready when you advance.
               </div>
             )}
-            {isWalkonsPhase && savedClasses && savedClasses.length > 0 && (
-              <div className="mb-3 space-y-1.5">
-                <p className="font-pixel text-[8px] text-gold uppercase">Recruiting Class for Next Season</p>
-                <Select value={selectedSavedClassId} onValueChange={setSelectedSavedClassId}>
-                  <SelectTrigger className="w-full text-xs" data-testid="select-saved-class-walkons">
-                    <SelectValue placeholder="Auto-Generate" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="auto">Auto-Generate Fresh Class</SelectItem>
-                    {savedClasses.map(cls => (
-                      <SelectItem key={cls.id} value={String(cls.id)}>
-                        {cls.name} ({cls.recruitCount} recruits)
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {selectedSavedClassId !== "auto" && (
-                  <p className="text-[10px] text-muted-foreground">Selected class will replace the auto-generated class after advancing.</p>
-                )}
-              </div>
-            )}
             <RetroButton
               variant="shimmer"
-              onClick={() => onAdvanceWeek(isWalkonsPhase && selectedSavedClassId !== "auto" ? { savedRecruitingClassId: selectedSavedClassId } : undefined)}
+              onClick={() => onAdvanceWeek()}
               disabled={anySim}
               className="w-full"
               data-testid="button-advance-week"

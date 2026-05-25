@@ -9074,30 +9074,46 @@ export async function registerRoutes(
 
         const { savedRecruitingClassId } = req.body || {};
         
+        // Two-step flow: if no class selection provided and user has saved classes, prompt commissioner
+        if (!savedRecruitingClassId) {
+          const userId = req.session.userId;
+          const userSavedClasses = userId ? await storage.getSavedRecruitingClassesByUser(userId) : [];
+          if (userSavedClasses.length > 0) {
+            return res.json({
+              needs_class_selection: true,
+              savedClasses: userSavedClasses.map(c => ({ id: c.id, name: c.name, recruitCount: c.recruitCount, createdAt: c.createdAt })),
+              currentSeason: league.currentSeason,
+            });
+          }
+          // No saved classes — treat as "auto" and proceed
+        }
+
         const walkonResult = await finalizeWalkonsPhase(leagueId, league.currentSeason);
 
-        // If a saved recruiting class was chosen, replace the auto-generated class
-        if (savedRecruitingClassId) {
-          try {
-            const savedClass = await storage.getSavedRecruitingClass(String(savedRecruitingClassId));
-            if (savedClass && (!savedClass.userId || savedClass.userId === req.session.userId)) {
-              const classData = savedClass.classData as any[];
-              if (Array.isArray(classData) && classData.length > 0) {
-                await storage.deleteRecruitsByLeague(leagueId);
-                await storage.batchCreateRecruits(
-                  classData.map((r: any) => {
-                    const { id, leagueId: _lid, ...rest } = r;
-                    return { ...rest, leagueId };
-                  })
-                );
-                walkonResult.newRecruits = classData.length;
-                console.log(`[advance] Loaded saved class "${savedClass.name}" (${classData.length} recruits) for season ${league.currentSeason + 1}`);
-              }
-            }
-          } catch (err) {
-            console.error("[advance] Failed to load saved recruiting class:", err);
-            // Non-fatal: auto-generated class remains
+        // Apply saved class if selected (not "auto")
+        if (savedRecruitingClassId !== "auto") {
+          const savedClass = await storage.getSavedRecruitingClass(String(savedRecruitingClassId));
+          if (!savedClass) {
+            return res.status(404).json({ message: "Saved recruiting class not found." });
           }
+          if (savedClass.userId && savedClass.userId !== req.session.userId) {
+            return res.status(403).json({ message: "You do not own this saved recruiting class." });
+          }
+          // classData may be array (legacy) or { recruits: [...] }
+          const raw = savedClass.classData as any;
+          const recruitRows: any[] = Array.isArray(raw) ? raw : (Array.isArray(raw?.recruits) ? raw.recruits : []);
+          if (recruitRows.length === 0) {
+            return res.status(400).json({ message: "The selected saved class has no recruits." });
+          }
+          await storage.deleteRecruitsByLeague(leagueId);
+          await storage.batchCreateRecruits(
+            recruitRows.map((r: any) => {
+              const { id, leagueId: _lid, ...rest } = r;
+              return { ...rest, leagueId };
+            })
+          );
+          walkonResult.newRecruits = recruitRows.length;
+          console.log(`[advance] Loaded saved class "${savedClass.name}" (${recruitRows.length} recruits) for season ${league.currentSeason + 1}`);
         }
         
         const updatedLeague = await storage.updateLeague(league.id, {
@@ -17134,8 +17150,9 @@ export async function registerRoutes(
         return res.status(403).json({ message: "You do not own this saved class" });
       }
 
-      const classData = savedClass.classData as any[];
-      if (!Array.isArray(classData) || classData.length === 0) {
+      const raw = savedClass.classData as any;
+      const classData: any[] = Array.isArray(raw) ? raw : (Array.isArray(raw?.recruits) ? raw.recruits : []);
+      if (classData.length === 0) {
         return res.status(400).json({ message: "Saved class has no recruits" });
       }
 

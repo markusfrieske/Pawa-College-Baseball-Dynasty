@@ -654,26 +654,45 @@ export default function ManageRecruitingPage() {
             </RetroCardHeader>
             <RetroCardContent className="p-0">
               <div className="grid gap-2">
-                {savedClasses.map((cls) => (
+                {savedClasses.map((cls) => {
+                  const starCounts = [5, 4, 3, 2, 1].map(s => ({
+                    star: s,
+                    count: (cls.classData ?? []).filter(r => r.starRating === s).length,
+                  })).filter(x => x.count > 0);
+                  const savedDate = cls.createdAt ? new Date(cls.createdAt).toLocaleDateString() : null;
+                  return (
                   <div
                     key={cls.id}
-                    className={`flex items-center justify-between gap-4 p-3 border border-border ${editingId === cls.id ? "border-gold bg-gold/5" : ""}`}
+                    className={`p-3 border border-border ${editingId === cls.id ? "border-gold bg-gold/5" : ""}`}
                     data-testid={`saved-class-${cls.id}`}
                   >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-pixel text-xs text-foreground" data-testid={`class-name-${cls.id}`}>{cls.name}</span>
-                        <Badge variant="secondary" className="text-[10px]" data-testid={`class-count-${cls.id}`}>
-                          {cls.recruitCount} recruits
-                        </Badge>
-                        {editingId === cls.id && (
-                          <Badge variant="outline" className="text-[10px] text-gold border-gold">Active</Badge>
+                    <div className="flex items-start justify-between gap-4 flex-wrap">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-pixel text-xs text-foreground" data-testid={`class-name-${cls.id}`}>{cls.name}</span>
+                          <Badge variant="secondary" className="text-[10px]" data-testid={`class-count-${cls.id}`}>
+                            {cls.recruitCount} recruits
+                          </Badge>
+                          {editingId === cls.id && (
+                            <Badge variant="outline" className="text-[10px] text-gold border-gold">Active</Badge>
+                          )}
+                        </div>
+                        {cls.description && (
+                          <p className="text-muted-foreground text-xs mt-1 truncate" data-testid={`class-desc-${cls.id}`}>{cls.description}</p>
                         )}
+                        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                          {starCounts.map(({ star, count }) => (
+                            <span key={star} className="text-[10px] text-muted-foreground" data-testid={`class-stars-${cls.id}-${star}`}>
+                              {"★".repeat(star)} {count}
+                            </span>
+                          ))}
+                          {savedDate && (
+                            <span className="text-[10px] text-muted-foreground/60" data-testid={`class-date-${cls.id}`}>
+                              Saved {savedDate}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      {cls.description && (
-                        <p className="text-muted-foreground text-xs mt-1 truncate" data-testid={`class-desc-${cls.id}`}>{cls.description}</p>
-                      )}
-                    </div>
                     <div className="flex items-center gap-1 flex-wrap justify-end">
                       {commissionerLeagues.length > 0 && (
                         <RetroButton
@@ -693,8 +712,10 @@ export default function ManageRecruitingPage() {
                         <Trash2 className="w-3 h-3" />
                       </RetroButton>
                     </div>
+                    </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </RetroCardContent>
           </RetroCard>
