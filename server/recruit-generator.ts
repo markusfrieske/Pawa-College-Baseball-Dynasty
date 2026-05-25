@@ -272,12 +272,15 @@ export function generateRecruitClass(
   };
 
   let pitcherRatio = getPitcherRatio(theme);
-  // Wizard position distribution override: use P% / total% as pitcher ratio
-  if (opts.wizardPositionDistribution && opts.wizardPositionDistribution["P"] != null) {
+  // Wizard position distribution override: support both legacy "P" key and individual SP/RP/CP keys.
+  // Apply whenever totalPosWeight > 0 — this correctly handles zero-pitcher intent (pitcherWeight=0).
+  if (opts.wizardPositionDistribution) {
     const posDist = opts.wizardPositionDistribution;
+    const pitcherWeight = (posDist["P"] ?? 0)
+      + (posDist["SP"] ?? 0) + (posDist["RP"] ?? 0) + (posDist["CP"] ?? 0);
     const totalPosWeight = Object.values(posDist).reduce((s, v) => s + (v ?? 0), 0);
     if (totalPosWeight > 0) {
-      pitcherRatio = (posDist["P"] ?? 0) / totalPosWeight;
+      pitcherRatio = pitcherWeight / totalPosWeight;
     }
   }
 
@@ -575,12 +578,29 @@ export function generateRecruitClass(
     { value: "C",  weight: 1 }, { value: "2B", weight: 1 }, { value: "SS", weight: 1 },
   ];
 
+  const PITCHER_KEYS = new Set(["P", "SP", "RP", "CP"]);
+
   const wizardFieldWeights = opts.wizardPositionDistribution
     ? Object.entries(opts.wizardPositionDistribution)
-        .filter(([k]) => k !== "P")
+        .filter(([k]) => !PITCHER_KEYS.has(k))
         .map(([k, v]) => ({ value: k, weight: v ?? 0 }))
         .filter(x => x.weight > 0)
     : null;
+
+  // Build pitcher sub-type weights (SP/RP/CP) if individually specified
+  const wizardPitcherSubWeights: { value: string; weight: number }[] | null = (() => {
+    const pd = opts.wizardPositionDistribution;
+    if (!pd) return null;
+    const sp = pd["SP"] ?? 0;
+    const rp = pd["RP"] ?? 0;
+    const cp = pd["CP"] ?? 0;
+    if (sp === 0 && rp === 0 && cp === 0) return null;
+    return [
+      { value: "SP", weight: sp },
+      { value: "RP", weight: rp },
+      { value: "CP", weight: cp },
+    ].filter(x => x.weight > 0);
+  })();
 
   const pickFieldPosition = (): string => {
     if (wizardFieldWeights && wizardFieldWeights.length > 0) return rollWeighted(wizardFieldWeights);
@@ -590,9 +610,16 @@ export function generateRecruitClass(
     return fieldPositions[Math.floor(Math.random() * fieldPositions.length)];
   };
 
+  const pickPitcherPosition = (): string => {
+    if (wizardPitcherSubWeights && wizardPitcherSubWeights.length > 0) {
+      return rollWeighted(wizardPitcherSubWeights);
+    }
+    return "P";
+  };
+
   for (let i = 0; i < count; i++) {
     const isPitcher = Math.random() < pitcherRatio;
-    const position = isPitcher ? "P" : pickFieldPosition();
+    const position = isPitcher ? pickPitcherPosition() : pickFieldPosition();
 
     const stateIdx = stateAssignments[i] || 0;
     const recruitState = stateData[stateIdx];

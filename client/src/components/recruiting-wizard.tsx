@@ -95,7 +95,7 @@ const DEFAULT_CONFIG: WizardConfig = {
   label: "",
   starDistribution: { blueChip: 3, five: 5, four: 12, three: 60, two: 15, one: 5 },
   specialCounts: { gems: 0, busts: 0, genGems: 1, genBusts: 1, blueChips: 2, jucos: 5, rawPlayers: 5 },
-  positionDistribution: { P: 40, C: 8, "1B": 7, "2B": 7, "3B": 7, SS: 7, OF: 24 },
+  positionDistribution: { SP: 20, RP: 12, CP: 8, C: 8, "1B": 7, "2B": 7, "3B": 7, SS: 7, LF: 8, CF: 8, RF: 8 },
   regionSkew: "none",
   fogDensity: 100,
 };
@@ -329,48 +329,145 @@ function Step3({ config, setConfig }: { config: WizardConfig; setConfig: (c: Wiz
 
 // ─── Step 4: Advanced Options ────────────────────────────────────────────────
 
+const PITCHER_POSITIONS: { key: keyof WizardConfig["positionDistribution"]; label: string; desc: string }[] = [
+  { key: "SP", label: "SP", desc: "Starting Pitcher" },
+  { key: "RP", label: "RP", desc: "Relief Pitcher" },
+  { key: "CP", label: "CP", desc: "Closing Pitcher" },
+];
+
+const FIELD_POSITIONS: { key: keyof WizardConfig["positionDistribution"]; label: string; desc: string }[] = [
+  { key: "C",   label: "C",  desc: "Catcher" },
+  { key: "1B",  label: "1B", desc: "First Base" },
+  { key: "2B",  label: "2B", desc: "Second Base" },
+  { key: "3B",  label: "3B", desc: "Third Base" },
+  { key: "SS",  label: "SS", desc: "Shortstop" },
+  { key: "LF",  label: "LF", desc: "Left Field" },
+  { key: "CF",  label: "CF", desc: "Center Field" },
+  { key: "RF",  label: "RF", desc: "Right Field" },
+];
+
+function PosInput({
+  posKey, value, onChange,
+}: { posKey: string; value: number; onChange: (key: string, v: number) => void }) {
+  return (
+    <div className="flex items-center gap-1">
+      <button
+        onClick={() => onChange(posKey, Math.max(0, value - 1))}
+        className="w-5 h-5 rounded bg-border hover:bg-border/80 text-xs font-bold leading-none"
+        data-testid={`wizard-pos-dec-${posKey}`}
+      >−</button>
+      <input
+        type="number"
+        min={0}
+        max={80}
+        value={value}
+        onChange={e => onChange(posKey, Math.max(0, Math.min(80, Number(e.target.value) || 0)))}
+        className="w-10 h-5 bg-background border border-border rounded text-xs text-center tabular-nums focus:border-gold focus:outline-none"
+        data-testid={`wizard-pos-${posKey}`}
+      />
+      <button
+        onClick={() => onChange(posKey, Math.min(80, value + 1))}
+        className="w-5 h-5 rounded bg-border hover:bg-border/80 text-xs font-bold leading-none"
+        data-testid={`wizard-pos-inc-${posKey}`}
+      >+</button>
+    </div>
+  );
+}
+
 function Step4({ config, setConfig }: { config: WizardConfig; setConfig: (c: WizardConfig) => void }) {
   const pd = config.positionDistribution;
-  const posTotal = Object.values(pd).reduce((s, v) => s + v, 0);
+  const pitcherTotal = (pd.SP ?? 0) + (pd.RP ?? 0) + (pd.CP ?? 0);
+  const fieldTotal   = (pd.C ?? 0) + (pd["1B"] ?? 0) + (pd["2B"] ?? 0) + (pd["3B"] ?? 0)
+                     + (pd.SS ?? 0) + (pd.LF ?? 0) + (pd.CF ?? 0) + (pd.RF ?? 0);
+  const grandTotal   = pitcherTotal + fieldTotal;
+  const pctPitchers  = grandTotal > 0 ? Math.round((pitcherTotal / grandTotal) * 100) : 0;
+  const pctField     = grandTotal > 0 ? 100 - pctPitchers : 0;
 
   const setPD = (key: string, val: number) => {
     setConfig({ ...config, positionDistribution: { ...pd, [key]: Math.max(0, val) } });
   };
 
-  const positions: { key: string; label: string }[] = [
-    { key: "P",   label: "Pitchers (P)" },
-    { key: "C",   label: "Catcher (C)" },
-    { key: "1B",  label: "First Base (1B)" },
-    { key: "2B",  label: "Second Base (2B)" },
-    { key: "3B",  label: "Third Base (3B)" },
-    { key: "SS",  label: "Shortstop (SS)" },
-    { key: "OF",  label: "Outfield (OF)" },
-  ];
+  const resetPD = () => {
+    setConfig({ ...config, positionDistribution: { SP: 20, RP: 12, CP: 8, C: 8, "1B": 7, "2B": 7, "3B": 7, SS: 7, LF: 8, CF: 8, RF: 8 } });
+  };
 
   return (
     <div className="space-y-6">
+      {/* Position Distribution Table */}
       <div>
-        <Label className="font-pixel text-[8px] text-gold uppercase mb-2 block">
-          Position Distribution (Weights — Total: {posTotal})
-        </Label>
-        <p className="text-xs text-muted-foreground mb-3">Higher weight = more recruits at that position. Proportional scaling.</p>
-        <div className="space-y-2">
-          {positions.map(p => (
-            <div key={p.key} className="flex items-center gap-3">
-              <span className="text-xs font-pixel text-[8px] w-32 shrink-0">{p.label}</span>
-              <input
-                type="range" min={0} max={60} step={1}
-                value={(pd as any)[p.key] ?? 0}
-                onChange={e => setPD(p.key, Number(e.target.value))}
-                className="flex-1 accent-yellow-400"
-                data-testid={`wizard-pos-${p.key}`}
-              />
-              <span className="text-xs w-6 text-right tabular-nums">{(pd as any)[p.key] ?? 0}</span>
+        <div className="flex items-center justify-between mb-1">
+          <Label className="font-pixel text-[8px] text-gold uppercase">Position Mix</Label>
+          <button
+            onClick={resetPD}
+            className="text-[9px] text-muted-foreground hover:text-gold transition-colors underline underline-offset-2"
+            data-testid="wizard-pos-reset"
+          >
+            Reset to defaults
+          </button>
+        </div>
+        <p className="text-xs text-muted-foreground mb-3">
+          Set how many recruits to generate per position. Values are proportional weights — the generator scales to match your class size.
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Pitchers */}
+          <div className="rounded border border-border bg-card p-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-pixel text-[8px] text-gold uppercase">Pitchers</span>
+              <span className="text-[9px] text-muted-foreground tabular-nums">{pitcherTotal} ({pctPitchers}%)</span>
             </div>
-          ))}
+            <div className="space-y-2">
+              {PITCHER_POSITIONS.map(p => (
+                <div key={p.key} className="flex items-center justify-between gap-2">
+                  <div>
+                    <span className="font-pixel text-[8px] text-foreground">{p.label}</span>
+                    <span className="text-[9px] text-muted-foreground ml-2">{p.desc}</span>
+                  </div>
+                  <PosInput posKey={p.key} value={(pd as any)[p.key] ?? 0} onChange={setPD} />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Position Players */}
+          <div className="rounded border border-border bg-card p-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-pixel text-[8px] text-gold uppercase">Position Players</span>
+              <span className="text-[9px] text-muted-foreground tabular-nums">{fieldTotal} ({pctField}%)</span>
+            </div>
+            <div className="space-y-2">
+              {FIELD_POSITIONS.map(p => (
+                <div key={p.key} className="flex items-center justify-between gap-2">
+                  <div>
+                    <span className="font-pixel text-[8px] text-foreground">{p.label}</span>
+                    <span className="text-[9px] text-muted-foreground ml-2">{p.desc}</span>
+                  </div>
+                  <PosInput posKey={p.key} value={(pd as any)[p.key] ?? 0} onChange={setPD} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Summary bar */}
+        {grandTotal > 0 && (
+          <div className="mt-2 h-2 rounded overflow-hidden flex">
+            <div className="bg-amber-500/70 transition-all" style={{ width: `${pctPitchers}%` }} title={`Pitchers ${pctPitchers}%`} />
+            <div className="bg-blue-500/70 transition-all" style={{ width: `${pctField}%` }} title={`Position players ${pctField}%`} />
+          </div>
+        )}
+        <div className="flex gap-4 mt-1">
+          <span className="text-[9px] text-muted-foreground flex items-center gap-1">
+            <span className="inline-block w-2 h-2 rounded-sm bg-amber-500/70" /> Pitchers {pctPitchers}%
+          </span>
+          <span className="text-[9px] text-muted-foreground flex items-center gap-1">
+            <span className="inline-block w-2 h-2 rounded-sm bg-blue-500/70" /> Position Players {pctField}%
+          </span>
+          <span className="text-[9px] text-muted-foreground ml-auto">Total weight: {grandTotal}</span>
         </div>
       </div>
 
+      {/* Region Skew */}
       <div>
         <Label className="font-pixel text-[8px] text-gold uppercase mb-2 block">
           Region Skew
@@ -395,6 +492,7 @@ function Step4({ config, setConfig }: { config: WizardConfig; setConfig: (c: Wiz
         </div>
       </div>
 
+      {/* Fog of War */}
       <div>
         <Label className="font-pixel text-[8px] text-gold uppercase mb-2 block">
           Fog of War Density: {config.fogDensity}%
