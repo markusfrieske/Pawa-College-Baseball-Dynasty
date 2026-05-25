@@ -205,7 +205,7 @@ export default function LandingPage() {
             </div>
 
             {/* Floating stat card — lower left */}
-            <div className="absolute bottom-12 left-6 sm:left-10 hidden lg:block">
+            <div className="absolute bottom-12 left-6 sm:left-10 hidden xl:block">
               <div className="bg-card/90 border border-gold/20 backdrop-blur-sm px-5 py-4 rounded-sm shadow-xl">
                 <div className="font-pixel text-gold text-2xl mb-0.5">130+</div>
                 <div className="text-xs text-muted-foreground font-pixel">Real Programs</div>
