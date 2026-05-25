@@ -41,6 +41,26 @@ export interface Player {
   velocity?: number | null;
   control?: number | null;
   stamina?: number | null;
+  stuff?: number | null;
+  // Pitch mix fields
+  pitchFB?: number | null;
+  pitch2S?: number | null;
+  pitchSL?: number | null;
+  pitchCB?: number | null;
+  pitchCH?: number | null;
+  pitchCT?: number | null;
+  pitchSNK?: number | null;
+  pitchSPL?: number | null;
+  pitchSHU?: number | null;
+  pitchCCH?: number | null;
+  pitchHSL?: number | null;
+  pitchSWP?: number | null;
+  pitchKN?: number | null;
+  pitchVSL?: number | null;
+  pitchSFF?: number | null;
+  pitchFK?: number | null;
+  pitchSCB?: number | null;
+  pitchPCB?: number | null;
   // Common abilities (letter grade based)
   clutch?: number | null;
   vsLHP?: number | null;
