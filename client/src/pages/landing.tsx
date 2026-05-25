@@ -225,7 +225,7 @@ export default function LandingPage() {
           </div>
 
           {/* Scroll hint */}
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-muted-foreground/40 animate-bounce">
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-1 text-muted-foreground/40 animate-bounce">
             <ChevronDown className="w-4 h-4" />
           </div>
         </section>
