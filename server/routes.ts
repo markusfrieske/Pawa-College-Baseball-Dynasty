@@ -3712,7 +3712,9 @@ export async function registerRoutes(
       }
 
       // Calculate retention chance
-      let retentionChance = 0.30; // base
+      // Sophomores are easier to retain (2 years of eligibility left); JRs are harder.
+      const isSophomore = player.eligibility === "SO";
+      let retentionChance = isSophomore ? 0.40 : 0.30; // base
 
       // NIL bonus (up to +25%)
       if (offer > 0) {
@@ -11846,11 +11848,12 @@ export async function registerRoutes(
       allDepartingPlayers.push({ player, team, isJunior: false });
     }
     
-    // Also include juniors/RS with high enough OVR for draft consideration
+    // Also include juniors/RS/SOs with high enough OVR for draft consideration
+    // Threshold raised to 500: only genuinely elite underclassmen declare early
     const juniorDraftCandidates = allRosterPlayers.filter(({ player }) => 
-      (player.eligibility === "JR" || player.eligibility === "RS") && 
+      (player.eligibility === "JR" || player.eligibility === "RS" || player.eligibility === "SO") && 
       !player.declaredForDraft &&
-      (player.overall || 0) >= 400
+      (player.overall || 0) >= 500
     );
     for (const { player, team } of juniorDraftCandidates) {
       allDepartingPlayers.push({ player, team, isJunior: true });
@@ -11929,9 +11932,9 @@ export async function registerRoutes(
         }
       }
       
-      // Juniors/RS projected in first 3 rounds auto-declare for draft
+      // Juniors/RS/SOs projected in first 3 rounds auto-declare for draft
       const juniorsOnTeam = roster.filter(p => 
-        (p.eligibility === "JR" || p.eligibility === "RS") && 
+        (p.eligibility === "JR" || p.eligibility === "RS" || p.eligibility === "SO") && 
         p.eligibility !== "SR" &&
         !p.declaredForDraft
       );
@@ -11939,8 +11942,12 @@ export async function registerRoutes(
         const projectedRound = draftProjections.get(player.id);
         if (projectedRound) {
           const ask = generateDraftAsk(player.overall);
-          // Draft declarations for juniors are harder to retain: higher ask
-          const draftMultiplier = projectedRound === 1 ? 2.0 : projectedRound === 2 ? 1.5 : 1.2;
+          // Retention multiplier is eligibility-based: SOs are easier to retain (2 years left),
+          // JRs/RS are harder (1 year left or already grad-eligible).
+          const isSophomore = player.eligibility === "SO";
+          const draftMultiplier = isSophomore
+            ? (projectedRound === 1 ? 1.5 : projectedRound === 2 ? 1.2 : 1.0)
+            : (projectedRound === 1 ? 2.0 : projectedRound === 2 ? 1.5 : 1.2);
           await storage.updatePlayer(player.id, {
             pendingDeparture: true,
             departureType: "draft",
@@ -12015,6 +12022,47 @@ export async function registerRoutes(
           transferReason: player.transferReason || transferReasons[Math.floor(Math.random() * transferReasons.length)],
         });
         totalTransferPortal++;
+      }
+
+      // Positional competition pass: SO/JR players buried behind a higher-rated teammate
+      // at their same position have an elevated (35%) chance of entering the portal,
+      // regardless of their own OVR. They remain retainable (status: "pending").
+      const alreadySelectedIds = new Set([
+        ...shuffled.slice(0, portalCount).map((p: any) => p.id),
+        ...existingPortal.map((p: any) => p.id),
+      ]);
+      const competitionCandidates = roster.filter(p =>
+        (p.eligibility === "SO" || p.eligibility === "JR") &&
+        !p.declaredForDraft &&
+        !p.inTransferPortal &&
+        !p.pendingDeparture &&
+        !draftProjections.has(p.id) &&
+        !alreadySelectedIds.has(p.id)
+      );
+      for (const player of competitionCandidates) {
+        const hasHigherRatedTeammate = roster.some(tm =>
+          tm.id !== player.id &&
+          !tm.pendingDeparture &&
+          !tm.declaredForDraft &&
+          tm.position === player.position &&
+          (tm.overall || 0) > (player.overall || 0)
+        );
+        if (hasHigherRatedTeammate && Math.random() < 0.35) {
+          await storage.updatePlayer(player.id, {
+            pendingDeparture: true,
+            departureType: "transfer",
+            retentionStatus: "pending",
+            inTransferPortal: true,
+            transferReason: "Wants more playing time",
+          });
+          totalTransferPortal++;
+          try {
+            await generateTransferPortalNewsArticle(
+              leagueId, `${player.firstName} ${player.lastName}`,
+              player.position, team, player.starRating || 3, completedSeason
+            );
+          } catch (e) { console.error("Transfer portal news error:", e); }
+        }
       }
     }
     
