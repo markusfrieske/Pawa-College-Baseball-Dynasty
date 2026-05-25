@@ -563,7 +563,11 @@ export default function RosterViewerPage() {
     if (!teamData?.players) return [];
     return teamData.players.map((p, idx) => {
       const edits = editedPlayers[idx];
-      return edits ? { ...p, ...edits } : p;
+      if (!edits) return p;
+      // Clear server-cached overall/starRating so the client recalculates OVR
+      // from the edited attributes instead of showing a stale server value.
+      const { overall: _o, starRating: _s, ...rest } = { ...p, ...edits };
+      return rest as typeof p;
     });
   }, [teamData, editedPlayers]);
 
