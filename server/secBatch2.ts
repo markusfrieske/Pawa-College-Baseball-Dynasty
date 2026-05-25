@@ -497,7 +497,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
     // Andreas Alvarez — JR RHP, 2026 SEC strikeout leader, elite velocity — TEAM ELITE STUFF
     { firstName: "Andreas", lastName: "Alvarez", position: "P", eligibility: "JR", homeState: "AL", hometown: "Auburn", jerseyNumber: 46,
       hitForAvg: 13, power: 10, speed: 32, arm: 92, fielding: 60, errorResistance: 52, velocity: 97, control: 95, stamina: 92, stuff: 97,
-      clutch: 84, vsLHP: 82, grit: 84, stealing: 7, running: 30, throwing: 84, recovery: 79, wRISP: 84, vsLefty: 83, poise: 84, heater: 84, agile: 42,
+      clutch: 84, vsLHP: 82, grit: 84, stealing: 7, running: 30, throwing: 84, recovery: 79, wRISP: 93, vsLefty: 83, poise: 84, heater: 84, agile: 42,
       abilities: ["Star of Victory", "Sharpness", "Heavy Ball", "Intimidator", "Strong Starter"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "tan", hairColor: "black", hairStyle: "short",

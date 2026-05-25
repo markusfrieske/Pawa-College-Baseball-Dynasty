@@ -25,17 +25,21 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
 // ── Exceptional pitchers (exactly 1 S-grade common ability each) ────────────
+// 10 from compute-ovr-check.ts + 3 highest-OVR non-listed pitchers = 13 total
 const EXCEPTIONAL_PITCHERS = new Set([
-  "Mason Edwards",   // USC
-  "Jackson Flora",   // UC Santa Barbara
-  "Dax Whitney",     // Oregon State
-  "Dylan Volantis",  // Texas
-  "Liam Peterson",   // Florida
-  "Aidan King",      // Florida
-  "Tyler Fay",       // Alabama
-  "Jake Marciano",   // Auburn
-  "Jason DeCaro",    // North Carolina
-  "Caden Glauber",   // North Carolina
+  "Mason Edwards",    // USC
+  "Jackson Flora",    // UC Santa Barbara
+  "Dax Whitney",      // Oregon State
+  "Dylan Volantis",   // Texas
+  "Liam Peterson",    // Florida
+  "Aidan King",       // Florida
+  "Tyler Fay",        // Alabama
+  "Jake Marciano",    // Auburn
+  "Jason DeCaro",     // North Carolina
+  "Caden Glauber",    // North Carolina
+  "Andreas Alvarez",  // Auburn  — wRISP kept (calibrated ~98)
+  "Jack Radel",       // Notre Dame — throwing kept (calibrated ~95)
+  "Ethan Lund",       // Oklahoma State — heater kept (calibrated ~98)
 ]);
 
 // Common ability attributes for pitchers (non-numeric / non-pitch-stat)
