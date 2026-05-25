@@ -19431,13 +19431,13 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
         conferenceName ?? "",
       ));
 
-      let rawOverall = calculateOVR(playerData);
-      // Strip gold abilities if OVR < 450 (gold reserved for OVR 450+ players)
-      const gatedAbilities = enforceGoldOvrGate(playerData.abilities as string[], rp.position, rawOverall);
-      if (gatedAbilities !== playerData.abilities) {
-        (playerData as Record<string, unknown>).abilities = gatedAbilities;
-        rawOverall = calculateOVR(playerData);
-      }
+      // Two-pass OVR: gate gold abilities using base OVR (no ability bonuses),
+      // then compute final OVR with the gated ability set. This matches the
+      // /api/ncaa-rosters endpoints exactly so home-page and dynasty values agree.
+      const baseOvr = calculateOVR({ ...playerData, abilities: [] });
+      const gatedAbilities = enforceGoldOvrGate(playerData.abilities as string[], rp.position, baseOvr);
+      (playerData as Record<string, unknown>).abilities = gatedAbilities;
+      const rawOverall = calculateOVR(playerData);
       const overall = Math.max(159, Math.min(650, rawOverall));
       const starRating = getStarRatingFromOVR(overall);
 
