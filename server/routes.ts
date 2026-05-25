@@ -7,7 +7,7 @@ import connectPgSimple from "connect-pg-simple";
 import bcrypt from "bcrypt";
 import { z } from "zod";
 import { randomUUID } from "crypto";
-import { getRandomAbilities, getAbilitiesForPosition, calculateOVR, getStarRatingFromOVR } from "@shared/abilities";
+import { getRandomAbilities, getAbilitiesForPosition, calculateOVR, getStarRatingFromOVR, enforceGoldOvrGate } from "@shared/abilities";
 import { getPotentialRange, getProgressionZone, rollWeightedPotential, getPotentialGrade } from "@shared/potential";
 import { getActionPointCost } from "@shared/stateDistance";
 import { getPersonalityForArchetype, getTraitBadgesForArchetype, getPhilosophyForArchetype, evaluateMilestones } from "@shared/coachTraits";
@@ -19375,7 +19375,13 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
         conferenceName ?? "",
       ));
 
-      const rawOverall = calculateOVR(playerData);
+      let rawOverall = calculateOVR(playerData);
+      // Strip gold abilities if OVR < 450 (gold reserved for OVR 450+ players)
+      const gatedAbilities = enforceGoldOvrGate(playerData.abilities as string[], rp.position, rawOverall);
+      if (gatedAbilities !== playerData.abilities) {
+        (playerData as Record<string, unknown>).abilities = gatedAbilities;
+        rawOverall = calculateOVR(playerData);
+      }
       const overall = Math.max(159, Math.min(650, rawOverall));
       const starRating = getStarRatingFromOVR(overall);
 

@@ -1,4 +1,4 @@
-import { getRandomAbilities, getAbilitiesForPosition, calculateOVR, getStarRatingFromOVR } from "@shared/abilities";
+import { getRandomAbilities, getAbilitiesForPosition, calculateOVR, getStarRatingFromOVR, enforceGoldOvrGate } from "@shared/abilities";
 import type { InsertRecruit } from "@shared/schema";
 import { assignTrajectory } from "@shared/trajectory";
 import { normalizeCommonAbilities } from "./normalizeCommonAbilities";
@@ -720,6 +720,15 @@ export function generateRecruitClass(
       const starCaps: Record<number, number> = { 5: 499, 4: 449, 3: 374, 2: 299, 1: 224 };
       const cap = starCaps[starRank] ?? 499;
       overall = Math.max(159, Math.min(cap, overall));
+    }
+    // Enforce gold OVR gate: generational gems are exempt (they're always elite)
+    if (!isGenerationalGem && !isGenerationalBust) {
+      const gated = enforceGoldOvrGate(abilities, position, overall);
+      if (gated !== abilities) {
+        abilities = gated;
+        // Gold gives +10 OVR, blue gives +5, so each gold→blue swap costs 5 OVR
+        overall = Math.max(159, overall - 5);
+      }
     }
     const computedStarRating = getStarRatingFromOVR(overall);
 

@@ -271,6 +271,40 @@ export function sanitizeAbilities(position: string, abilities: string[]): string
   return result.filter(n => n !== "");
 }
 
+/**
+ * Enforce the OVR >= 450 gate on gold abilities.
+ * If `ovr` is below 450, any gold ability in the list is replaced with a
+ * randomly-chosen position-appropriate blue ability not already present.
+ * Returns the original array reference unchanged when no replacement is needed.
+ */
+export function enforceGoldOvrGate(abilities: string[], position: string, ovr: number): string[] {
+  if (ovr >= 450) return abilities;
+  const hasGold = abilities.some(name => getAbilityByName(name)?.tier === "gold");
+  if (!hasGold) return abilities;
+
+  const availableAbilities = getAbilitiesForPosition(position);
+  const bluePool = availableAbilities.filter(a => a.tier === "blue").map(a => a.name);
+
+  const result = [...abilities];
+  const inResult = new Set(result);
+
+  for (let i = 0; i < result.length; i++) {
+    const ability = getAbilityByName(result[i]);
+    if (ability?.tier === "gold") {
+      inResult.delete(result[i]);
+      const available = bluePool.filter(n => !inResult.has(n));
+      if (available.length > 0) {
+        const replacement = available[Math.floor(Math.random() * available.length)];
+        result[i] = replacement;
+        inResult.add(replacement);
+      } else {
+        result[i] = "";
+      }
+    }
+  }
+  return result.filter(n => n !== "");
+}
+
 export function getRandomAbilities(position: string, count: number, preferGold: boolean = false): string[] {
   const availableAbilities = getAbilitiesForPosition(position);
 
