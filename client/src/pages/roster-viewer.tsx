@@ -769,13 +769,20 @@ export default function RosterViewerPage() {
               className={`flex flex-col items-center gap-1 p-1.5 rounded-lg border transition-all focus:outline-none ${isSel ? "border-gold bg-gold/10 ring-1 ring-gold/40" : "border-border/40 hover:border-gold/40 bg-background/30"}`}
               data-testid={`button-team-${team.name.replace(/\s+/g, "-").toLowerCase()}`}
             >
-              <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all ${isSel ? "border-gold shadow-[0_0_8px_rgba(212,175,55,0.4)]" : "border-border/50"}`}
-                style={{ backgroundColor: team.primaryColor || "#333" }}
-              >
-                <span className="font-pixel text-[7px] leading-none text-center px-0.5" style={{ color: team.secondaryColor || "#fff" }}>
-                  {team.abbreviation}
-                </span>
+              <div className="relative">
+                <div
+                  className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all ${isSel ? "border-gold shadow-[0_0_8px_rgba(212,175,55,0.4)]" : "border-border/50"}`}
+                  style={{ backgroundColor: team.primaryColor || "#333" }}
+                >
+                  <span className="font-pixel text-[7px] leading-none text-center px-0.5" style={{ color: team.secondaryColor || "#fff" }}>
+                    {team.abbreviation}
+                  </span>
+                </div>
+                {team.nationalRank > 0 && (
+                  <span className="absolute bottom-0 left-0 font-pixel text-[6px] leading-none px-0.5 py-px rounded-sm bg-black/75 text-gold pointer-events-none">
+                    #{team.nationalRank}
+                  </span>
+                )}
               </div>
               <span className={`font-pixel text-[7px] text-center leading-tight truncate w-full ${isSel ? "text-gold" : "text-muted-foreground"}`}>
                 {team.name.length > 10 ? team.abbreviation : team.name}
