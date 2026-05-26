@@ -66,13 +66,6 @@ export const PAC12_ROSTERS: Record<string, RealPlayer[]> = {
     // Jake Pfennigs — JR RHP RP holdover
     // Sam Keller — SO RHP RP
     // Mason Pike — FR two-way SS/P, top-150 draft, up to 95mph (filed as P)
-    { firstName: "Mason", lastName: "Pike", position: "P", eligibility: "FR", homeState: "WA", hometown: "Bellevue", jerseyNumber: 50,
-      hitForAvg: 24, power: 22, speed: 34, arm: 59, fielding: 32, errorResistance: 42, velocity: 55, control: 42, stamina: 38, stuff: 55,
-      clutch: 44, vsLHP: 40, grit: 44, stealing: 22, running: 42, throwing: 74, recovery: 33, wRISP: 30, vsLefty: 32, poise: 33, heater: 59, agile: 46,
-      abilities: ["Guts", "Sharpness", "Low Ball"], potential: "A+", catcherAbility: null,
-      throwHand: "R", batHand: "R",
-      skinTone: "light", hairColor: "brown", hairStyle: "short",
-      ...pitchMix(1, [1, 0, 0, 1, 4, 0, 0, 0, 0, 0]) },
     // CATCHERS (2) — wide-open competition (Weber gone)
     { firstName: "Wilson", lastName: "Hoyt", position: "C", eligibility: "JR", homeState: "OR", hometown: "Salem", jerseyNumber: 14,
       hitForAvg: 55, power: 51, speed: 37, arm: 60, fielding: 60, errorResistance: 56, velocity: 0, control: 0, stamina: 0, stuff: 0,
@@ -208,7 +201,14 @@ export const PAC12_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       pitchFB: 1, pitch2S: 0, pitchSL: 1, pitchCB: 0, pitchCH: 1, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
-],
+    { firstName: "Wade", lastName: "Meckler", position: "OF", eligibility: "SR", homeState: "OR", hometown: "Corvallis", jerseyNumber: 13,
+      hitForAvg: 64, power: 42, speed: 72, arm: 52, fielding: 62, errorResistance: 58, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 62, vsLHP: 56, grit: 64, stealing: 56, running: 60, throwing: 67, recovery: 52, wRISP: 60, vsLefty: 56, poise: 66, heater: 0, agile: 62,
+      abilities: ["Contact Hitter","Flying Start","Spray Hitter"], potential: "A-", catcherAbility: null,
+      throwHand: "R", batHand: "R",
+      skinTone: "light", hairColor: "brown", hairStyle: "short",
+      pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
+  ],
 
   "Washington State": [
     // PITCHERS (10) — 2 FR
@@ -248,12 +248,6 @@ export const PAC12_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Release", "Flyball Pitcher"], potential: "B", catcherAbility: null,
       throwHand: "L", batHand: "L",
       ...pitchMix(1, [1, 0, 0, 0, 4, 0, 0, 1, 0, 0]) },
-    { firstName: "Nolan", lastName: "Harper", position: "P", eligibility: "FR", homeState: "OR", hometown: "Bend", jerseyNumber: 50,
-      hitForAvg: 10, power: 9, speed: 32, arm: 30, fielding: 19, errorResistance: 30, velocity: 38, control: 25, stamina: 23, stuff: 30,
-      clutch: 32, vsLHP: 30, grit: 33, stealing: 10, running: 30, throwing: 45, recovery: 21, wRISP: 19, vsLefty: 21, poise: 21, heater: 30, agile: 36,
-      abilities: ["Straddle"], potential: "B+", catcherAbility: null,
-      throwHand: "L", batHand: "L",
-      ...pitchMix(1, [1, 0, 3, 1, 3, 0, 0, 0, 0, 0]) },
     // CATCHERS (2)
     { firstName: "Tyler", lastName: "Grant", position: "C", eligibility: "JR", homeState: "WA", hometown: "Pasco", jerseyNumber: 14,
       hitForAvg: 63, power: 57, speed: 38, arm: 64, fielding: 62, errorResistance: 60, velocity: 0, control: 0, stamina: 0, stuff: 0,
@@ -368,6 +362,13 @@ export const PAC12_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       pitchFB: 1, pitch2S: 0, pitchSL: 1, pitchCB: 0, pitchCH: 1, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
-],
+    { firstName: "Owen", lastName: "Donahue", position: "OF", eligibility: "JR", homeState: "WA", hometown: "Spokane", jerseyNumber: 16,
+      hitForAvg: 62, power: 46, speed: 66, arm: 50, fielding: 60, errorResistance: 56, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 60, vsLHP: 54, grit: 62, stealing: 44, running: 52, throwing: 64, recovery: 52, wRISP: 58, vsLefty: 54, poise: 60, heater: 0, agile: 56,
+      abilities: ["Contact Hitter","Spray Hitter","Tough Out"], potential: "B+", catcherAbility: null,
+      throwHand: "R", batHand: "R",
+      skinTone: "light", hairColor: "brown", hairStyle: "short",
+      pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
+  ],
   ...MWC_ROSTERS,
 };

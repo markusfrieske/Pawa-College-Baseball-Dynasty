@@ -78,13 +78,6 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 0, 0, 1, 0, 4, 4, 0, 0, 0]) },
       // Tyler Webb — FR depth
-      { firstName: "Tyler", lastName: "Webb", position: "P", eligibility: "FR", homeState: "TX", hometown: "Dallas", jerseyNumber: 47,
-        hitForAvg: 10, power: 8, speed: 30, arm: 30, fielding: 20, errorResistance: 32, velocity: 30, control: 29, stamina: 28, stuff: 30,
-        clutch: 38, vsLHP: 36, grit: 40, stealing: 8, running: 24, throwing: 44, recovery: 25, wRISP: 24, vsLefty: 26, poise: 26, heater: 32, agile: 28,
-        abilities: ["Winner's Luck", "Walk"], potential: "B+", catcherAbility: null,
-        throwHand: "R", batHand: "R",
-        skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [0, 0, 0, 1, 0, 4, 4, 0, 0, 0]) },
       // CATCHERS (2)
       // Ryder Helfrick — JR C, 15 multi-RBI games (#2 team), top draft prospect
       { firstName: "Ryder", lastName: "Helfrick", position: "C", eligibility: "JR", homeState: "FL", hometown: "Tampa", jerseyNumber: 12,
@@ -208,7 +201,14 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "S",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
-    ],
+    { firstName: "Peyton", lastName: "Holt", position: "3B", eligibility: "JR", homeState: "AR", hometown: "Little Rock", jerseyNumber: 8,
+      hitForAvg: 64, power: 46, speed: 62, arm: 60, fielding: 62, errorResistance: 58, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 62, vsLHP: 57, grit: 64, stealing: 42, running: 50, throwing: 68, recovery: 54, wRISP: 60, vsLefty: 57, poise: 64, heater: 0, agile: 56,
+      abilities: ["Contact Hitter","Good Infield Hit","Chance Maker"], potential: "A-", catcherAbility: null,
+      throwHand: "R", batHand: "R",
+      skinTone: "light", hairColor: "brown", hairStyle: "short",
+      ...noPitches },
+],
   
   "Alabama": [
       // 33-17/14-11 SEC, D1B #19, Rob Vaughn Yr 3, RPI #9, 15-1 home. Tyler Fay no-hitter vs Florida (1st since 1942).
@@ -897,13 +897,6 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 0, 0, 0, 0, 4, 4, 1, 0, 0]) },
       // Charlie Foster — RHP JR (Virginia transfer)
-      { firstName: "Charlie", lastName: "Foster", position: "P", eligibility: "JR", homeState: "VA", hometown: "Charlottesville", jerseyNumber: 43,
-        hitForAvg: 12, power: 9, speed: 31, arm: 48, fielding: 30, errorResistance: 42, velocity: 46, control: 48, stamina: 45, stuff: 45,
-        clutch: 58, vsLHP: 54, grit: 58, stealing: 8, running: 28, throwing: 62, recovery: 41, wRISP: 41, vsLefty: 42, poise: 44, heater: 50, agile: 36,
-        abilities: ["Strength Distribution", "Crossfire"], potential: "B+", catcherAbility: null,
-        throwHand: "R", batHand: "R",
-        skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [1, 3, 0, 0, 0, 0, 4, 0, 1, 0]) },
       // Brendan Sweeney — JR RHP RP
       { firstName: "Brendan", lastName: "Sweeney", position: "P", eligibility: "JR", homeState: "SC", hometown: "Columbia", jerseyNumber: 49,
         hitForAvg: 12, power: 10, speed: 32, arm: 52, fielding: 32, errorResistance: 44, velocity: 48, control: 50, stamina: 38, stuff: 49,
@@ -1041,5 +1034,12 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
-    ],
+    { firstName: "Kellum", lastName: "Clark", position: "OF", eligibility: "SR", homeState: "MS", hometown: "Starkville", jerseyNumber: 22,
+      hitForAvg: 62, power: 57, speed: 66, arm: 52, fielding: 62, errorResistance: 57, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 62, vsLHP: 55, grit: 64, stealing: 46, running: 54, throwing: 66, recovery: 54, wRISP: 60, vsLefty: 55, poise: 60, heater: 0, agile: 56,
+      abilities: ["Contact Hitter","Spray Hitter","Chance Maker"], potential: "A-", catcherAbility: null,
+      throwHand: "R", batHand: "R",
+      skinTone: "light", hairColor: "brown", hairStyle: "short",
+      ...noPitches },
+],
 };

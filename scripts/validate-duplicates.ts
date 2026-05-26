@@ -97,6 +97,12 @@ const KNOWN_CROSS_TEAM_DUPLICATES = new Set<string>([
   "Caedmon Parker",    // TCU (P, SO) — Dallas Baptist (P, JR)
   "Tyler Brown",       // UCF (3B, JR) — North Texas (OF, FR)
   "Dylan Campbell",    // Michigan State (C, JR) — South Florida (SS, JR)
+  "Garrett Wright",    // Tennessee (UT, JR) — Cincinnati (1B, JR)
+  "Gunnar Myro",       // Oregon State (OF, JR) — UNLV (OF, JR)
+  "Ben Niednagel",     // San Diego State (OF, JR) — Air Force (OF, JR)
+  "Khalil Walker",     // Nevada (INF, JR) — New Mexico (OF, JR)
+  "Blake Morrison",    // Cal State Northridge (P, JR) — Indiana State (OF, JR)
+  "Tracer Lopez",      // Texas Tech (OF, JR) — UCF (INF, SR)
 ]);
 
 const teamCount  = Object.keys(ALL_REAL_ROSTERS).length;

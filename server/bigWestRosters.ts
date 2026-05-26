@@ -359,12 +359,6 @@ export const BIG_WEST_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Poor Finisher"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 4, 4, 1, 0, 0, 0, 0, 0, 0]) },
-    { firstName: "Sean", lastName: "O'Brien", position: "P", eligibility: "JR", homeState: "CA", hometown: "Aliso Viejo", jerseyNumber: 42,
-      hitForAvg: 8, power: 6, speed: 27, arm: 25, fielding: 17, errorResistance: 28, velocity: 31, control: 34, stamina: 34, stuff: 36,
-      clutch: 35, vsLHP: 32, grit: 36, stealing: 6, running: 20, throwing: 38, recovery: 30, wRISP: 30, vsLefty: 31, poise: 32, heater: 34, agile: 25,
-      abilities: ["Winner's Luck", "Flyball Pitcher"], potential: "B", catcherAbility: null,
-      throwHand: "R", batHand: "R",
-      ...pitchMix(1, [0, 4, 4, 1, 0, 0, 0, 0, 0, 0]) },
     { firstName: "Derek", lastName: "Sato", position: "P", eligibility: "SO", homeState: "CA", hometown: "Rancho Santa Margarita", jerseyNumber: 44,
       hitForAvg: 9, power: 6, speed: 30, arm: 25, fielding: 16, errorResistance: 27, velocity: 30, control: 34, stamina: 35, stuff: 40,
       clutch: 35, vsLHP: 32, grit: 36, stealing: 8, running: 23, throwing: 39, recovery: 31, wRISP: 31, vsLefty: 31, poise: 32, heater: 35, agile: 28,
@@ -476,7 +470,15 @@ export const BIG_WEST_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Good Bunt", "Predicament"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
+    { firstName: "Nate", lastName: "Rombach", position: "OF", eligibility: "JR", homeState: "CA", hometown: "Irvine", jerseyNumber: 13,
+      hitForAvg: 58, power: 42, speed: 62, arm: 48, fielding: 58, errorResistance: 52, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 56, vsLHP: 50, grit: 58, stealing: 40, running: 50, throwing: 62, recovery: 48, wRISP: 54, vsLefty: 50, poise: 56, heater: 0, agile: 52,
+      abilities: ["Contact Hitter","Spray Hitter","Tough Out"], potential: "B+", catcherAbility: null,
+      throwHand: "R", batHand: "R",
+      skinTone: "light", hairColor: "brown", hairStyle: "short",
+      pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
   ],
+
 
   "UC Santa Barbara": [
     // PITCHERS (10)
@@ -519,12 +521,6 @@ export const BIG_WEST_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Escape Pitch", "Inside Pitch"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 0, 4, 1, 4, 0, 0, 0, 0, 0]) },
-    { firstName: "Nick", lastName: "Donnelly", position: "P", eligibility: "SO", homeState: "CA", hometown: "Thousand Oaks", jerseyNumber: 40,
-      hitForAvg: 8, power: 6, speed: 25, arm: 24, fielding: 16, errorResistance: 26, velocity: 32, control: 32, stamina: 32, stuff: 32,
-      clutch: 32, vsLHP: 30, grit: 33, stealing: 6, running: 20, throwing: 36, recovery: 28, wRISP: 28, vsLefty: 29, poise: 30, heater: 32, agile: 25,
-      abilities: ["Flyball Pitcher"], potential: "B+", catcherAbility: null,
-      throwHand: "R", batHand: "R",
-      ...pitchMix(1, [0, 4, 4, 1, 0, 0, 0, 0, 0, 0]) },
     { firstName: "Chase", lastName: "Winfield", position: "P", eligibility: "JR", homeState: "CA", hometown: "Simi Valley", jerseyNumber: 42,
       hitForAvg: 8, power: 7, speed: 29, arm: 26, fielding: 18, errorResistance: 29, velocity: 33, control: 36, stamina: 37, stuff: 38,
       clutch: 37, vsLHP: 34, grit: 37, stealing: 7, running: 22, throwing: 39, recovery: 32, wRISP: 32, vsLefty: 33, poise: 34, heater: 36, agile: 28,
@@ -636,7 +632,15 @@ export const BIG_WEST_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Predicament", "Contact Hitter"], potential: "B+", catcherAbility: null,
       throwHand: "L", batHand: "R",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
+    { firstName: "Mike", lastName: "Anagnos", position: "OF", eligibility: "JR", homeState: "CA", hometown: "Santa Barbara", jerseyNumber: 14,
+      hitForAvg: 58, power: 42, speed: 62, arm: 48, fielding: 56, errorResistance: 52, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 56, vsLHP: 50, grit: 58, stealing: 40, running: 50, throwing: 62, recovery: 48, wRISP: 54, vsLefty: 50, poise: 56, heater: 0, agile: 52,
+      abilities: ["Contact Hitter","Spray Hitter","Tough Out"], potential: "B+", catcherAbility: null,
+      throwHand: "R", batHand: "R",
+      skinTone: "light", hairColor: "brown", hairStyle: "short",
+      pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
   ],
+
 
   "UC San Diego": [
     // PITCHERS (10)
@@ -664,12 +668,6 @@ export const BIG_WEST_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Fireman", "Flyball Pitcher", "Decisive"], potential: "B-", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 4, 4, 0, 4, 0, 0, 0, 0, 0]) },
-    { firstName: "Logan", lastName: "Kerr", position: "P", eligibility: "JR", homeState: "CA", hometown: "Carlsbad", jerseyNumber: 37,
-      hitForAvg: 10, power: 7, speed: 27, arm: 24, fielding: 17, errorResistance: 28, velocity: 31, control: 33, stamina: 34, stuff: 35,
-      clutch: 32, vsLHP: 30, grit: 34, stealing: 7, running: 23, throwing: 37, recovery: 29, wRISP: 29, vsLefty: 30, poise: 31, heater: 33, agile: 28,
-      abilities: ["Natural Shuuto"], potential: "B", catcherAbility: null,
-      throwHand: "R", batHand: "R",
-      ...pitchMix(1, [0, 4, 3, 0, 0, 0, 0, 1, 0, 0]) },
     { firstName: "Sam", lastName: "Torres", position: "P", eligibility: "SO", homeState: "CA", hometown: "Escondido", jerseyNumber: 40,
       hitForAvg: 9, power: 7, speed: 31, arm: 24, fielding: 18, errorResistance: 30, velocity: 30, control: 34, stamina: 34, stuff: 40,
       clutch: 32, vsLHP: 30, grit: 34, stealing: 7, running: 25, throwing: 39, recovery: 29, wRISP: 29, vsLefty: 30, poise: 31, heater: 34, agile: 31,
@@ -793,7 +791,15 @@ export const BIG_WEST_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Bad Mood"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "S",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
+    { firstName: "Zach", lastName: "Penrod", position: "OF", eligibility: "JR", homeState: "CA", hometown: "San Diego", jerseyNumber: 11,
+      hitForAvg: 58, power: 42, speed: 62, arm: 48, fielding: 58, errorResistance: 52, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 56, vsLHP: 50, grit: 58, stealing: 40, running: 50, throwing: 62, recovery: 48, wRISP: 54, vsLefty: 50, poise: 56, heater: 0, agile: 52,
+      abilities: ["Contact Hitter","Spray Hitter","Tough Out"], potential: "B+", catcherAbility: null,
+      throwHand: "R", batHand: "R",
+      skinTone: "light", hairColor: "brown", hairStyle: "short",
+      pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
   ],
+
 
   "Hawaii": [
     // PITCHERS (10)
@@ -845,12 +851,6 @@ export const BIG_WEST_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Bad Ball Hitter", "Intimidator", "Winner's Luck"], potential: "B", catcherAbility: null,
       throwHand: "L", batHand: "L",
       ...pitchMix(1, [0, 0, 3, 1, 0, 3, 4, 0, 0, 0]) },
-    { firstName: "Nainoa", lastName: "Wong", position: "P", eligibility: "FR", homeState: "HI", hometown: "Kaneohe", jerseyNumber: 48,
-      hitForAvg: 9, power: 7, speed: 26, arm: 26, fielding: 17, errorResistance: 26, velocity: 33, control: 29, stamina: 29, stuff: 32,
-      clutch: 26, vsLHP: 25, grit: 28, stealing: 10, running: 28, throwing: 39, recovery: 25, wRISP: 25, vsLefty: 26, poise: 25, heater: 34, agile: 33,
-      abilities: ["Straddle", "Intimidator"], potential: "A-", catcherAbility: null,
-      throwHand: "R", batHand: "R",
-      ...pitchMix(1, [0, 0, 0, 1, 3, 3, 3, 0, 0, 0]) },
     { firstName: "Blaise", lastName: "Taniguchi", position: "P", eligibility: "FR", homeState: "HI", hometown: "Mililani", jerseyNumber: 50,
       hitForAvg: 7, power: 5, speed: 29, arm: 29, fielding: 17, errorResistance: 18, velocity: 38, control: 33, stamina: 33, stuff: 40,
       clutch: 18, vsLHP: 17, grit: 19, stealing: 7, running: 19, throwing: 28, recovery: 27, wRISP: 27, vsLefty: 29, poise: 28, heater: 39, agile: 23,
@@ -950,7 +950,15 @@ export const BIG_WEST_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Double Play"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
+    { firstName: "Kolton", lastName: "Abe", position: "OF", eligibility: "JR", homeState: "HI", hometown: "Honolulu", jerseyNumber: 7,
+      hitForAvg: 58, power: 44, speed: 64, arm: 48, fielding: 58, errorResistance: 52, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 56, vsLHP: 50, grit: 58, stealing: 42, running: 52, throwing: 64, recovery: 48, wRISP: 54, vsLefty: 50, poise: 58, heater: 0, agile: 54,
+      abilities: ["Contact Hitter","Spray Hitter","Tough Out"], potential: "B+", catcherAbility: null,
+      throwHand: "R", batHand: "R",
+      skinTone: "tan", hairColor: "black", hairStyle: "short",
+      pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
   ],
+
 
   "Cal Poly": [
     // PITCHERS (10)
@@ -996,12 +1004,6 @@ export const BIG_WEST_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Guts"], potential: "B-", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 0, 0, 0, 0, 0, 4, 1, 0, 3]) },
-    { firstName: "Nolan", lastName: "Price", position: "P", eligibility: "SO", homeState: "CA", hometown: "Pismo Beach", jerseyNumber: 44,
-      hitForAvg: 8, power: 7, speed: 25, arm: 23, fielding: 15, errorResistance: 25, velocity: 30, control: 30, stamina: 31, stuff: 32,
-      clutch: 29, vsLHP: 26, grit: 30, stealing: 8, running: 23, throwing: 34, recovery: 25, wRISP: 25, vsLefty: 27, poise: 28, heater: 31, agile: 29,
-      abilities: ["Constant Speed", "Full Throttle"], potential: "B", catcherAbility: null,
-      throwHand: "R", batHand: "R",
-      ...pitchMix(1, [0, 3, 0, 0, 0, 3, 3, 0, 1, 0]) },
     { firstName: "Jordan", lastName: "Reese", position: "P", eligibility: "FR", homeState: "CA", hometown: "Fresno", jerseyNumber: 48,
       hitForAvg: 7, power: 6, speed: 27, arm: 27, fielding: 17, errorResistance: 28, velocity: 35, control: 29, stamina: 29, stuff: 32,
       clutch: 26, vsLHP: 25, grit: 28, stealing: 10, running: 28, throwing: 40, recovery: 24, wRISP: 24, vsLefty: 27, poise: 25, heater: 35, agile: 35,
@@ -1107,7 +1109,15 @@ export const BIG_WEST_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Revenge", "Pinch Hitter"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "L",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
+    { firstName: "Carson", lastName: "Seger", position: "OF", eligibility: "JR", homeState: "CA", hometown: "San Luis Obispo", jerseyNumber: 12,
+      hitForAvg: 58, power: 40, speed: 62, arm: 46, fielding: 56, errorResistance: 52, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 56, vsLHP: 50, grit: 58, stealing: 38, running: 48, throwing: 60, recovery: 48, wRISP: 54, vsLefty: 50, poise: 56, heater: 0, agile: 52,
+      abilities: ["Contact Hitter","Spray Hitter","Tough Out"], potential: "B+", catcherAbility: null,
+      throwHand: "R", batHand: "R",
+      skinTone: "light", hairColor: "brown", hairStyle: "short",
+      pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
   ],
+
 
   "UC Davis": [
     // PITCHERS (10)
@@ -1165,12 +1175,6 @@ export const BIG_WEST_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Staredown", "Frozen"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [1, 0, 0, 0, 0, 3, 0, 0, 1, 0]) },
-    { firstName: "Josh", lastName: "Kerr", position: "P", eligibility: "FR", homeState: "CA", hometown: "Modesto", jerseyNumber: 50,
-      hitForAvg: 6, power: 5, speed: 30, arm: 18, fielding: 12, errorResistance: 22, velocity: 30, control: 24, stamina: 24, stuff: 40,
-      clutch: 20, vsLHP: 18, grit: 21, stealing: 7, running: 23, throwing: 31, recovery: 20, wRISP: 20, vsLefty: 22, poise: 21, heater: 28, agile: 28,
-      abilities: ["Poker Face", "Intimidator", "Heavy Ball"], potential: "B+", catcherAbility: null,
-      throwHand: "R", batHand: "R",
-      ...pitchMix(1, [1, 0, 0, 1, 3, 0, 0, 0, 0, 0]) },
     // CATCHERS (2)
     { firstName: "Danny", lastName: "Ochoa", position: "C", eligibility: "JR", homeState: "CA", hometown: "Sacramento", jerseyNumber: 14,
       hitForAvg: 42, power: 36, speed: 29, arm: 43, fielding: 42, errorResistance: 41, velocity: 0, control: 0, stamina: 0, stuff: 0,
@@ -1264,7 +1268,15 @@ export const BIG_WEST_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Good Bunt"], potential: "B+", catcherAbility: null,
       throwHand: "L", batHand: "R",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
+    { firstName: "Kyle", lastName: "Whitfield", position: "OF", eligibility: "JR", homeState: "CA", hometown: "Davis", jerseyNumber: 13,
+      hitForAvg: 58, power: 40, speed: 62, arm: 46, fielding: 56, errorResistance: 52, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 56, vsLHP: 50, grit: 58, stealing: 38, running: 48, throwing: 60, recovery: 48, wRISP: 54, vsLefty: 50, poise: 56, heater: 0, agile: 52,
+      abilities: ["Contact Hitter","Spray Hitter","Tough Out"], potential: "B+", catcherAbility: null,
+      throwHand: "R", batHand: "R",
+      skinTone: "light", hairColor: "brown", hairStyle: "short",
+      pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
   ],
+
 
   "Cal State Northridge": [
     // PITCHERS (10)
@@ -1304,12 +1316,6 @@ export const BIG_WEST_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Winner's Luck", "Strength Distribution"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 3, 4, 1, 3, 0, 0, 0, 0, 0]) },
-    { firstName: "Tyler", lastName: "Chang", position: "P", eligibility: "SO", homeState: "CA", hometown: "Tarzana", jerseyNumber: 42,
-      hitForAvg: 9, power: 6, speed: 26, arm: 25, fielding: 18, errorResistance: 28, velocity: 31, control: 33, stamina: 35, stuff: 32,
-      clutch: 32, vsLHP: 30, grit: 34, stealing: 6, running: 24, throwing: 36, recovery: 29, wRISP: 29, vsLefty: 30, poise: 31, heater: 33, agile: 30,
-      abilities: ["Guts"], potential: "B-", catcherAbility: null,
-      throwHand: "R", batHand: "R",
-      ...pitchMix(1, [0, 0, 4, 1, 3, 0, 0, 0, 0, 0]) },
     { firstName: "Alex", lastName: "Duarte", position: "P", eligibility: "JR", homeState: "CA", hometown: "Panorama City", jerseyNumber: 44,
       hitForAvg: 9, power: 7, speed: 28, arm: 24, fielding: 17, errorResistance: 28, velocity: 32, control: 33, stamina: 34, stuff: 34,
       clutch: 33, vsLHP: 29, grit: 34, stealing: 7, running: 24, throwing: 36, recovery: 28, wRISP: 28, vsLefty: 30, poise: 30, heater: 33, agile: 30,
@@ -1421,7 +1427,15 @@ export const BIG_WEST_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Good Mood"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
+    { firstName: "Marcus", lastName: "Reyes", position: "OF", eligibility: "JR", homeState: "CA", hometown: "Northridge", jerseyNumber: 14,
+      hitForAvg: 58, power: 40, speed: 62, arm: 46, fielding: 56, errorResistance: 52, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 56, vsLHP: 50, grit: 58, stealing: 38, running: 48, throwing: 60, recovery: 48, wRISP: 54, vsLefty: 50, poise: 56, heater: 0, agile: 52,
+      abilities: ["Contact Hitter","Spray Hitter","Tough Out"], potential: "B+", catcherAbility: null,
+      throwHand: "R", batHand: "R",
+      skinTone: "tan", hairColor: "black", hairStyle: "short",
+      pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
   ],
+
 
   "Cal State Bakersfield": [
     // PITCHERS (10)
@@ -1455,12 +1469,6 @@ export const BIG_WEST_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Constant Speed"], potential: "B-", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 3, 3, 0, 0, 0, 0, 1, 0, 0]) },
-    { firstName: "Benny", lastName: "Soto", position: "P", eligibility: "SO", homeState: "CA", hometown: "Bakersfield", jerseyNumber: 40,
-      hitForAvg: 8, power: 7, speed: 27, arm: 25, fielding: 19, errorResistance: 30, velocity: 33, control: 33, stamina: 33, stuff: 32,
-      clutch: 30, vsLHP: 27, grit: 32, stealing: 8, running: 27, throwing: 37, recovery: 27, wRISP: 27, vsLefty: 28, poise: 30, heater: 33, agile: 33,
-      abilities: ["Straddle"], potential: "B", catcherAbility: null,
-      throwHand: "L", batHand: "L",
-      ...pitchMix(1, [0, 3, 3, 0, 0, 0, 0, 0, 1, 0]) },
     { firstName: "Chris", lastName: "Valdez", position: "P", eligibility: "SO", homeState: "CA", hometown: "McFarland", jerseyNumber: 42,
       hitForAvg: 9, power: 7, speed: 30, arm: 26, fielding: 18, errorResistance: 30, velocity: 32, control: 35, stamina: 36, stuff: 38,
       clutch: 32, vsLHP: 28, grit: 34, stealing: 9, running: 28, throwing: 37, recovery: 29, wRISP: 29, vsLefty: 30, poise: 31, heater: 35, agile: 34,
@@ -1578,5 +1586,13 @@ export const BIG_WEST_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Two-Strike Hitter", "Pull Hit", "Contact Hitter"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
+    { firstName: "Tony", lastName: "Banuelos", position: "OF", eligibility: "JR", homeState: "CA", hometown: "Bakersfield", jerseyNumber: 11,
+      hitForAvg: 58, power: 40, speed: 62, arm: 46, fielding: 56, errorResistance: 52, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 56, vsLHP: 50, grit: 58, stealing: 38, running: 48, throwing: 60, recovery: 48, wRISP: 54, vsLefty: 50, poise: 56, heater: 0, agile: 52,
+      abilities: ["Contact Hitter","Spray Hitter","Tough Out"], potential: "B+", catcherAbility: null,
+      throwHand: "R", batHand: "R",
+      skinTone: "tan", hairColor: "black", hairStyle: "short",
+      pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
   ],
+
 };

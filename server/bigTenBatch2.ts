@@ -58,12 +58,6 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Staredown", "Intimidator"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 0, 0, 1, 0, 4, 4, 0, 0, 0]) },
-    { firstName: "Eli", lastName: "Kokenge", position: "P", eligibility: "FR", homeState: "MN", hometown: "Prior Lake", jerseyNumber: 48,
-      hitForAvg: 9, power: 6, speed: 25, arm: 29, fielding: 17, errorResistance: 27, velocity: 37, control: 26, stamina: 25, stuff: 27,
-      clutch: 31, vsLHP: 29, grit: 32, stealing: 8, running: 24, throwing: 39, recovery: 22, wRISP: 20, vsLefty: 22, poise: 22, heater: 31, agile: 28,
-      abilities: ["Inside Pitch", "True Slider"], potential: "A-", catcherAbility: null,
-      throwHand: "R", batHand: "R",
-      ...pitchMix(1, [0, 0, 3, 0, 0, 0, 4, 1, 0, 4]) },
     { firstName: "Zach", lastName: "Trettin", position: "2B", eligibility: "FR", homeState: "MN", hometown: "Rosemount", jerseyNumber: 50,
       hitForAvg: 49, power: 35, speed: 55, arm: 42, fielding: 27, errorResistance: 28, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 30, vsLHP: 29, grit: 31, stealing: 8, running: 25, throwing: 51, recovery: 30, wRISP: 29, vsLefty: 30, poise: 30, heater: 0, agile: 29,
@@ -157,7 +151,14 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Good Infield Hit", "Locked and Loaded"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...noPitches },
-  ],
+    { firstName: "Romy", lastName: "Gonzalez", position: "SS", eligibility: "JR", homeState: "MN", hometown: "Minneapolis", jerseyNumber: 4,
+      hitForAvg: 63, power: 46, speed: 68, arm: 58, fielding: 62, errorResistance: 58, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 60, vsLHP: 54, grit: 62, stealing: 50, running: 56, throwing: 68, recovery: 52, wRISP: 58, vsLefty: 54, poise: 62, heater: 0, agile: 60,
+      abilities: ["Contact Hitter","Good Infield Hit","High Speed Charge"], potential: "B+", catcherAbility: null,
+      throwHand: "R", batHand: "R",
+      skinTone: "tan", hairColor: "black", hairStyle: "short",
+      ...noPitches },
+],
 
   "Nebraska": [
       // 33-11/12-3 B1G, peaked top 25, Will Bolt. 11-game W streak, swept back-to-back B1G series.
@@ -219,13 +220,6 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 0, 0, 1, 4, 0, 0, 0, 0, 4]) },
       // Cooper Timmerman — JR RHP
-      { firstName: "Cooper", lastName: "Timmerman", position: "P", eligibility: "JR", homeState: "NE", hometown: "Lincoln", jerseyNumber: 22,
-        hitForAvg: 11, power: 8, speed: 28, arm: 30, fielding: 20, errorResistance: 30, velocity: 28, control: 36, stamina: 29, stuff: 27,
-        clutch: 37, vsLHP: 36, grit: 39, stealing: 5, running: 21, throwing: 41, recovery: 26, wRISP: 26, vsLefty: 26, poise: 27, heater: 30, agile: 25,
-        abilities: ["Strong Starter"], potential: "B+", catcherAbility: null,
-        throwHand: "R", batHand: "R",
-        skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [0, 0, 0, 1, 0, 4, 4, 0, 0, 0]) },
       // J.D. Hennen — JR RHP
       { firstName: "J.D.", lastName: "Hennen", position: "P", eligibility: "JR", homeState: "MN", hometown: "Shakopee", jerseyNumber: 40,
         hitForAvg: 10, power: 7, speed: 27, arm: 30, fielding: 19, errorResistance: 30, velocity: 32, control: 35, stamina: 29, stuff: 27,
@@ -365,7 +359,14 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
-    ],
+    { firstName: "Kyle", lastName: "Perry", position: "OF", eligibility: "JR", homeState: "NE", hometown: "Omaha", jerseyNumber: 12,
+      hitForAvg: 62, power: 50, speed: 65, arm: 50, fielding: 60, errorResistance: 55, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 58, vsLHP: 54, grit: 62, stealing: 44, running: 52, throwing: 64, recovery: 52, wRISP: 58, vsLefty: 54, poise: 59, heater: 0, agile: 55,
+      abilities: ["Contact Hitter","Spray Hitter","Tough Out"], potential: "B+", catcherAbility: null,
+      throwHand: "R", batHand: "R",
+      skinTone: "light", hairColor: "brown", hairStyle: "short",
+      ...noPitches },
+],
 
   "Northwestern": [
     // PITCHERS (10)
@@ -568,12 +569,6 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Staredown"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [1, 0, 0, 0, 0, 4, 0, 0, 1, 0]) },
-    { firstName: "Will", lastName: "Morrison", position: "P", eligibility: "JR", homeState: "OH", hometown: "Westerville", jerseyNumber: 40,
-      hitForAvg: 12, power: 9, speed: 29, arm: 31, fielding: 20, errorResistance: 31, velocity: 28, control: 37, stamina: 29, stuff: 28,
-      clutch: 39, vsLHP: 38, grit: 41, stealing: 6, running: 23, throwing: 43, recovery: 26, wRISP: 26, vsLefty: 26, poise: 28, heater: 32, agile: 28,
-      abilities: ["Winner's Luck", "Decisive", "Intimidator"], potential: "B", catcherAbility: null,
-      throwHand: "L", batHand: "L",
-      ...pitchMix(1, [1, 0, 0, 1, 0, 0, 0, 0, 0, 4]) },
     { firstName: "Jude", lastName: "Fisher", position: "P", eligibility: "FR", homeState: "OH", hometown: "Mason", jerseyNumber: 46,
       hitForAvg: 8, power: 7, speed: 25, arm: 35, fielding: 15, errorResistance: 25, velocity: 45, control: 30, stamina: 30, stuff: 36,
       clutch: 30, vsLHP: 29, grit: 31, stealing: 7, running: 21, throwing: 36, recovery: 19, wRISP: 19, vsLefty: 20, poise: 21, heater: 27, agile: 25,
@@ -680,7 +675,14 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["vs. Ace", "Contact Hitter"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...noPitches },
-  ],
+    { firstName: "Matt", lastName: "Buschmann", position: "1B", eligibility: "JR", homeState: "OH", hometown: "Columbus", jerseyNumber: 17,
+      hitForAvg: 63, power: 56, speed: 54, arm: 52, fielding: 60, errorResistance: 57, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 60, vsLHP: 55, grit: 62, stealing: 32, running: 44, throwing: 64, recovery: 52, wRISP: 58, vsLefty: 55, poise: 52, heater: 0, agile: 48,
+      abilities: ["Contact Hitter","Power Hitter","Tough Out"], potential: "B+", catcherAbility: null,
+      throwHand: "R", batHand: "R",
+      skinTone: "light", hairColor: "brown", hairStyle: "short",
+      ...noPitches },
+],
 
   "Oregon": [
       // 35-12/17-7 BT (T-2nd), D1B #13, Mark Wasikowski Yr 7, BT POY 2025. Top-25 in 9 categories. Leads nation in H/9 (6.96).
@@ -750,13 +752,6 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [1, 0, 0, 1, 0, 4, 0, 0, 0, 0]) },
       // Sean Murphy — SO depth
-      { firstName: "Sean", lastName: "Murphy", position: "P", eligibility: "SO", homeState: "OR", hometown: "Eugene", jerseyNumber: 42,
-        hitForAvg: 9, power: 7, speed: 27, arm: 29, fielding: 19, errorResistance: 29, velocity: 30, control: 27, stamina: 27, stuff: 27,
-        clutch: 35, vsLHP: 33, grit: 36, stealing: 7, running: 23, throwing: 42, recovery: 23, wRISP: 23, vsLefty: 23, poise: 25, heater: 30, agile: 28,
-        abilities: ["Intimidator", "Constant Speed"], potential: "B+", catcherAbility: null,
-        throwHand: "R", batHand: "R",
-        skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [1, 0, 3, 1, 0, 4, 0, 0, 0, 0]) },
       // Kai Nakamura — FR depth
       { firstName: "Kai", lastName: "Nakamura", position: "P", eligibility: "FR", homeState: "WA", hometown: "Bellevue", jerseyNumber: 46,
         hitForAvg: 9, power: 7, speed: 31, arm: 50, fielding: 29, errorResistance: 40, velocity: 57, control: 44, stamina: 38, stuff: 50,
@@ -888,7 +883,14 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
-    ],
+    { firstName: "Marcus", lastName: "Curialle", position: "OF", eligibility: "JR", homeState: "CA", hometown: "Los Angeles", jerseyNumber: 1,
+      hitForAvg: 66, power: 56, speed: 70, arm: 52, fielding: 62, errorResistance: 58, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 64, vsLHP: 58, grit: 66, stealing: 52, running: 58, throwing: 66, recovery: 54, wRISP: 62, vsLefty: 58, poise: 64, heater: 0, agile: 60,
+      abilities: ["Contact Hitter","Flying Start","Spray Hitter"], potential: "A-", catcherAbility: null,
+      throwHand: "R", batHand: "R",
+      skinTone: "dark", hairColor: "black", hairStyle: "short",
+      ...noPitches },
+],
   
   "Penn State": [
     // PITCHERS (10)

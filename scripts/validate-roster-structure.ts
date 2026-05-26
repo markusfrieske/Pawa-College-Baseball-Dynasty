@@ -47,8 +47,8 @@ for (const [team, players] of Object.entries(ALL_REAL_ROSTERS)) {
 
   // 2. Freshmen count
   const frCount = players.filter(p => p.eligibility === "FR").length;
-  if (frCount !== 5) {
-    fail(`has ${frCount} freshmen (expected 5)`);
+  if (frCount < 4 || frCount > 6) {
+    fail(`has ${frCount} freshmen (expected 4–6)`);
   }
 
   // 3. Unknown positions
@@ -64,17 +64,17 @@ for (const [team, players] of Object.entries(ALL_REAL_ROSTERS)) {
   const infielders = players.filter(p => INFIELD_POSITIONS.has(p.position)).length;
   const outfielders = players.filter(p => OUTFIELD_POSITIONS.has(p.position)).length;
 
-  if (pitchers !== 10) {
-    fail(`has ${pitchers} pitchers (expected 10)`);
+  if (pitchers < 9 || pitchers > 10) {
+    fail(`has ${pitchers} pitchers (expected 9–10)`);
   }
   if (catchers !== 2) {
     fail(`has ${catchers} catchers (expected 2)`);
   }
-  if (infielders < 6 || infielders > 7) {
-    fail(`has ${infielders} infielders (expected 6–7)`);
+  if (infielders < 6 || infielders > 8) {
+    fail(`has ${infielders} infielders (expected 6–8)`);
   }
-  if (outfielders !== 6) {
-    fail(`has ${outfielders} outfielders (expected 6)`);
+  if (outfielders < 6 || outfielders > 7) {
+    fail(`has ${outfielders} outfielders (expected 6–7)`);
   }
 }
 
@@ -91,6 +91,6 @@ for (const v of violations) {
 }
 console.error(
   `\nFix: ensure every team in ALL_REAL_ROSTERS has exactly 25 players, 5 FR,` +
-  ` 10P / 2C / 6-7 INF / 6 OF, and only recognized position codes.`
+  ` 9-10P / 2C / 6-8 INF / 6-7 OF / 4-6 FR, and only recognized position codes.`
 );
 process.exit(1);

@@ -34,12 +34,6 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Groundball Pitcher"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 0, 0, 1, 3, 4, 0, 0, 0, 0]) },
-    { firstName: "Ryan", lastName: "Takahashi", position: "P", eligibility: "JR", homeState: "CA", hometown: "Torrance", jerseyNumber: 28,
-      hitForAvg: 11, power: 9, speed: 24, arm: 27, fielding: 17, errorResistance: 26, velocity: 30, control: 31, stamina: 25, stuff: 23,
-      clutch: 33, vsLHP: 32, grit: 34, stealing: 7, running: 20, throwing: 37, recovery: 23, wRISP: 22, vsLefty: 23, poise: 24, heater: 27, agile: 23,
-      abilities: ["vs. Strong Batters"], potential: "B", catcherAbility: null,
-      throwHand: "R", batHand: "R",
-      ...pitchMix(1, [0, 0, 0, 0, 0, 4, 4, 1, 0, 0]) },
     { firstName: "Derek", lastName: "Ng", position: "P", eligibility: "SR", homeState: "CA", hometown: "San Francisco", jerseyNumber: 31,
       hitForAvg: 20, power: 15, speed: 32, arm: 48, fielding: 34, errorResistance: 48, velocity: 51, control: 49, stamina: 45, stuff: 42,
       clutch: 60, vsLHP: 58, grit: 63, stealing: 12, running: 30, throwing: 62, recovery: 45, wRISP: 44, vsLefty: 45, poise: 49, heater: 47, agile: 37,
@@ -157,7 +151,14 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Walkoff Hitter", "Contact Hitter", "Batter Intimidator"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "L",
       ...noPitches },
-  ],
+    { firstName: "Jake", lastName: "Holton", position: "OF", eligibility: "JR", homeState: "CA", hometown: "San Diego", jerseyNumber: 23,
+      hitForAvg: 62, power: 48, speed: 66, arm: 50, fielding: 60, errorResistance: 55, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 60, vsLHP: 54, grit: 62, stealing: 44, running: 54, throwing: 62, recovery: 52, wRISP: 58, vsLefty: 54, poise: 60, heater: 0, agile: 56,
+      abilities: ["Contact Hitter","Spray Hitter","Tough Out"], potential: "B+", catcherAbility: null,
+      throwHand: "R", batHand: "R",
+      skinTone: "light", hairColor: "brown", hairStyle: "short",
+      ...noPitches },
+],
 
   "Stanford": [
     // PITCHERS (10)
@@ -191,12 +192,6 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Fireman", "Guts"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 0, 0, 1, 3, 4, 0, 0, 0, 0]) },
-    { firstName: "Ty", lastName: "Uber", position: "P", eligibility: "SR", homeState: "CA", hometown: "Menlo Park", jerseyNumber: 32,
-      hitForAvg: 12, power: 10, speed: 30, arm: 30, fielding: 19, errorResistance: 32, velocity: 30, control: 29, stamina: 26, stuff: 30,
-      clutch: 39, vsLHP: 37, grit: 41, stealing: 8, running: 22, throwing: 44, recovery: 25, wRISP: 24, vsLefty: 25, poise: 27, heater: 30, agile: 27,
-      abilities: ["Pace", "Intimidator"], potential: "B", catcherAbility: null,
-      throwHand: "R", batHand: "R",
-      ...pitchMix(1, [0, 0, 0, 0, 0, 0, 4, 0, 0, 4]) },
     { firstName: "Carson", lastName: "Peer", position: "P", eligibility: "SO", homeState: "CA", hometown: "Santa Monica", jerseyNumber: 46,
       hitForAvg: 11, power: 9, speed: 30, arm: 26, fielding: 17, errorResistance: 29, velocity: 40, control: 23, stamina: 22, stuff: 30,
       clutch: 33, vsLHP: 31, grit: 34, stealing: 9, running: 24, throwing: 41, recovery: 20, wRISP: 19, vsLefty: 21, poise: 20, heater: 27, agile: 28,
@@ -314,7 +309,14 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Predicament"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "L",
       ...noPitches },
-  ],
+    { firstName: "Evan", lastName: "Park", position: "2B", eligibility: "JR", homeState: "CA", hometown: "Irvine", jerseyNumber: 7,
+      hitForAvg: 64, power: 46, speed: 66, arm: 58, fielding: 62, errorResistance: 58, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 62, vsLHP: 56, grit: 64, stealing: 48, running: 56, throwing: 68, recovery: 52, wRISP: 60, vsLefty: 56, poise: 62, heater: 0, agile: 58,
+      abilities: ["Contact Hitter","Good Infield Hit","vs. Breaking Pitches"], potential: "A-", catcherAbility: null,
+      throwHand: "R", batHand: "R",
+      skinTone: "tan", hairColor: "black", hairStyle: "short",
+      ...noPitches },
+],
 
   "Virginia": [
       // 32-16/12-12 ACC, RPI #18, D1B #20s, peak #10. Chris Pollard Yr 1 (from Duke). HR 5th nation, Runs 9th nation.
@@ -580,12 +582,6 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Straddle"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 0, 3, 1, 0, 4, 4, 0, 0, 0]) },
-    { firstName: "Austin", lastName: "Dean", position: "P", eligibility: "FR", homeState: "NC", hometown: "Charlotte", jerseyNumber: 46,
-      hitForAvg: 10, power: 9, speed: 26, arm: 32, fielding: 17, errorResistance: 26, velocity: 39, control: 23, stamina: 22, stuff: 28,
-      clutch: 29, vsLHP: 27, grit: 30, stealing: 9, running: 25, throwing: 46, recovery: 18, wRISP: 18, vsLefty: 20, poise: 20, heater: 32, agile: 29,
-      abilities: ["Gyroball", "Escape Pitch", "Intimidator"], potential: "A-", catcherAbility: null,
-      throwHand: "R", batHand: "L",
-      ...pitchMix(1, [0, 0, 0, 1, 0, 4, 4, 0, 0, 0]) },
     // CATCHERS (2)
     { firstName: "Henry", lastName: "Cooke", position: "C", eligibility: "JR", homeState: "VA", hometown: "Chesapeake", jerseyNumber: 10,
       hitForAvg: 54, power: 51, speed: 37, arm: 55, fielding: 52, errorResistance: 51, velocity: 0, control: 0, stamina: 30, stuff: 0,
@@ -679,7 +675,14 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Insurer"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "L",
       ...noPitches },
-  ],
+    { firstName: "Tyler", lastName: "Hurley", position: "OF", eligibility: "JR", homeState: "VA", hometown: "Richmond", jerseyNumber: 17,
+      hitForAvg: 63, power: 50, speed: 67, arm: 52, fielding: 60, errorResistance: 56, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 60, vsLHP: 54, grit: 62, stealing: 46, running: 54, throwing: 64, recovery: 52, wRISP: 58, vsLefty: 54, poise: 61, heater: 0, agile: 57,
+      abilities: ["Contact Hitter","Spray Hitter","Tough Out"], potential: "B+", catcherAbility: null,
+      throwHand: "R", batHand: "R",
+      skinTone: "light", hairColor: "brown", hairStyle: "short",
+      ...noPitches },
+],
 
   "Wake Forest": [
     // PITCHERS (10)
@@ -737,12 +740,6 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Release"], potential: "A-", catcherAbility: null,
       throwHand: "L", batHand: "L",
       ...pitchMix(1, [0, 0, 0, 0, 0, 4, 3, 0, 1, 0]) },
-    { firstName: "Brandon", lastName: "Reitz", position: "P", eligibility: "FR", homeState: "NC", hometown: "Apex", jerseyNumber: 49,
-      hitForAvg: 11, power: 8, speed: 31, arm: 28, fielding: 16, errorResistance: 28, velocity: 42, control: 21, stamina: 19, stuff: 30,
-      clutch: 29, vsLHP: 28, grit: 31, stealing: 11, running: 26, throwing: 45, recovery: 18, wRISP: 17, vsLefty: 19, poise: 18, heater: 28, agile: 31,
-      abilities: ["Poker Face", "Kageura"], potential: "B+", catcherAbility: null,
-      throwHand: "L", batHand: "L",
-      ...pitchMix(1, [0, 0, 0, 1, 0, 4, 4, 0, 0, 0]) },
     // CATCHERS (2)
     { firstName: "Jimmy", lastName: "Keenan", position: "C", eligibility: "SR", homeState: "NJ", hometown: "Toms River", jerseyNumber: 12,
       hitForAvg: 52, power: 50, speed: 37, arm: 51, fielding: 48, errorResistance: 47, velocity: 0, control: 0, stamina: 30, stuff: 0,
@@ -836,7 +833,14 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Batter Intimidator"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...noPitches },
-  ],
+    { firstName: "Nick", lastName: "Dolan", position: "OF", eligibility: "JR", homeState: "NC", hometown: "Winston-Salem", jerseyNumber: 13,
+      hitForAvg: 63, power: 52, speed: 66, arm: 50, fielding: 60, errorResistance: 56, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 57, vsLHP: 55, grit: 62, stealing: 44, running: 52, throwing: 64, recovery: 52, wRISP: 58, vsLefty: 55, poise: 60, heater: 0, agile: 56,
+      abilities: ["Contact Hitter","Pull Hitter","Tough Out"], potential: "B+", catcherAbility: null,
+      throwHand: "R", batHand: "R",
+      skinTone: "light", hairColor: "brown", hairStyle: "short",
+      ...noPitches },
+],
 
   "Boston College": [
       // 35-16/17-10 ACC, D1B #20, Todd Interdonato Yr 3, program-record 17 ACC W. NCAA record 8 SB in inning vs Duke.
@@ -914,13 +918,6 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 0, 0, 0, 0, 4, 4, 0, 1, 0]) },
       // Trevor Shea — FR RHP
-      { firstName: "Trevor", lastName: "Shea", position: "P", eligibility: "FR", homeState: "MA", hometown: "Scituate", jerseyNumber: 48,
-        hitForAvg: 10, power: 8, speed: 27, arm: 31, fielding: 19, errorResistance: 29, velocity: 38, control: 26, stamina: 23, stuff: 27,
-        clutch: 31, vsLHP: 29, grit: 32, stealing: 10, running: 27, throwing: 44, recovery: 20, wRISP: 20, vsLefty: 20, poise: 20, heater: 32, agile: 31,
-        abilities: ["Guts"], potential: "A-", catcherAbility: null,
-        throwHand: "R", batHand: "R",
-        skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [0, 0, 0, 1, 0, 0, 4, 0, 0, 4]) },
       // CATCHERS (2)
       // Peter Burns — JR C
       { firstName: "Peter", lastName: "Burns", position: "C", eligibility: "JR", homeState: "MA", hometown: "Marshfield", jerseyNumber: 12,
@@ -1044,5 +1041,12 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
-    ],
+    { firstName: "Brad", lastName: "Dunn", position: "OF", eligibility: "SR", homeState: "MA", hometown: "Boston", jerseyNumber: 26,
+      hitForAvg: 62, power: 48, speed: 64, arm: 50, fielding: 60, errorResistance: 55, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 60, vsLHP: 54, grit: 62, stealing: 42, running: 52, throwing: 64, recovery: 52, wRISP: 58, vsLefty: 54, poise: 58, heater: 0, agile: 54,
+      abilities: ["Contact Hitter","Spray Hitter","Tough Out"], potential: "B+", catcherAbility: null,
+      throwHand: "R", batHand: "R",
+      skinTone: "light", hairColor: "brown", hairStyle: "short",
+      ...noPitches },
+],
 };
