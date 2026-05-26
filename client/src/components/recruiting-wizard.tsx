@@ -904,6 +904,138 @@ function AbilitiesEditCell({
   );
 }
 
+// ─── Pitch mix edit cell ──────────────────────────────────────────────────────
+
+const PITCH_DEFS: { key: string; label: string; binary: boolean; alwaysOn?: boolean }[] = [
+  { key: "pitchFB",  label: "FB",  binary: true,  alwaysOn: true  },
+  { key: "pitch2S",  label: "2S",  binary: true  },
+  { key: "pitchCH",  label: "CH",  binary: true  },
+  { key: "pitchSL",  label: "SL",  binary: false },
+  { key: "pitchCB",  label: "CB",  binary: false },
+  { key: "pitchCT",  label: "CT",  binary: false },
+  { key: "pitchSNK", label: "SNK", binary: false },
+  { key: "pitchSPL", label: "SPL", binary: false },
+  { key: "pitchFK",  label: "FK",  binary: false },
+  { key: "pitchSFF", label: "SFF", binary: false },
+  { key: "pitchSHU", label: "SHU", binary: false },
+];
+
+function PitchMixEditCell({
+  recruit, recruitId, onCommit,
+}: { recruit: WizardRecruit; recruitId: string; onCommit: (id: string, field: string, val: number) => void }) {
+  const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState<string | null>(null);
+  const addRef = useRef<HTMLSelectElement>(null);
+  const editRef = useRef<HTMLSelectElement>(null);
+
+  useEffect(() => { if (adding) addRef.current?.focus(); }, [adding]);
+  useEffect(() => { if (editing) editRef.current?.focus(); }, [editing]);
+
+  const activePitches = PITCH_DEFS.filter(p =>
+    p.alwaysOn || (recruit[p.key] ?? 0) > 0
+  );
+  const availableToAdd = PITCH_DEFS.filter(p =>
+    !p.alwaysOn && (recruit[p.key] ?? 0) === 0
+  );
+
+  return (
+    <div className="flex flex-wrap gap-0.5 items-center min-w-[110px] max-w-[220px]">
+      {activePitches.map(def => {
+        const val = recruit[def.key] ?? 0;
+
+        if (def.alwaysOn) {
+          return (
+            <span key={def.key} className="bg-orange-900/40 border border-orange-600/40 text-orange-200 rounded px-1 py-0 text-[8px] whitespace-nowrap">
+              FB
+            </span>
+          );
+        }
+
+        if (def.binary) {
+          return (
+            <button
+              key={def.key}
+              onClick={() => onCommit(recruitId, def.key, val > 0 ? 0 : 1)}
+              className="bg-sky-900/40 border border-sky-600/40 text-sky-200 hover:border-sky-400 rounded px-1 py-0 text-[8px] whitespace-nowrap transition-colors"
+              title={`Toggle ${def.label} on/off`}
+              data-testid={`wizard-pitch-toggle-${recruitId}-${def.key}`}
+            >
+              {def.label}
+            </button>
+          );
+        }
+
+        if (editing === def.key) {
+          return (
+            <select
+              key={def.key}
+              ref={editRef}
+              defaultValue={String(val)}
+              onChange={e => {
+                const n = parseInt(e.target.value, 10);
+                onCommit(recruitId, def.key, isNaN(n) ? 0 : n);
+                setEditing(null);
+              }}
+              onBlur={() => setEditing(null)}
+              className="bg-background border border-gold text-[8px] rounded px-0.5 py-0 text-foreground w-[68px]"
+              data-testid={`wizard-pitch-level-${recruitId}-${def.key}`}
+            >
+              <option value="0">× remove</option>
+              {[1,2,3,4,5,6,7].map(n => (
+                <option key={n} value={n}>{def.label}: {n}</option>
+              ))}
+            </select>
+          );
+        }
+
+        return (
+          <button
+            key={def.key}
+            onClick={() => setEditing(def.key)}
+            className="bg-violet-900/40 border border-violet-600/40 text-violet-200 hover:border-violet-400 rounded px-1 py-0 text-[8px] whitespace-nowrap transition-colors"
+            title={`Edit ${def.label} level`}
+            data-testid={`wizard-pitch-badge-${recruitId}-${def.key}`}
+          >
+            {def.label}:{val}
+          </button>
+        );
+      })}
+
+      {availableToAdd.length > 0 && !editing && (
+        adding ? (
+          <select
+            ref={addRef}
+            defaultValue=""
+            onChange={e => {
+              const key = e.target.value;
+              if (!key) return;
+              const def = PITCH_DEFS.find(p => p.key === key);
+              if (!def) return;
+              onCommit(recruitId, key, def.binary ? 1 : 4);
+              setAdding(false);
+            }}
+            onBlur={() => setAdding(false)}
+            className="bg-background border border-gold text-[8px] rounded px-0.5 py-0 text-foreground max-w-[90px]"
+            data-testid={`wizard-pitch-add-${recruitId}`}
+          >
+            <option value="">+ add</option>
+            {availableToAdd.map(p => (
+              <option key={p.key} value={p.key}>{p.label}{p.binary ? " ●" : ""}</option>
+            ))}
+          </select>
+        ) : (
+          <button
+            onClick={() => setAdding(true)}
+            className="text-muted-foreground/40 hover:text-gold text-[10px] font-bold transition-colors leading-none"
+            title="Add pitch"
+            data-testid={`wizard-pitch-add-btn-${recruitId}`}
+          >+</button>
+        )
+      )}
+    </div>
+  );
+}
+
 // ─── Map WizardRecruit → Player (for PlayerProfileCard read-only view) ────────
 
 function wizardRecruitToPlayer(r: WizardRecruit): Player {
@@ -1058,6 +1190,7 @@ function Step6({ recruits, setRecruits, onNext, onReroll, isRerolling, rerolling
               <SortTh label="Ctrl"   field="control" />
               <SortTh label="Stam"   field="stamina" />
               <SortTh label="Stf"    field="stuff" />
+              <th className="px-2 py-1.5 text-left text-[7px] font-pixel text-muted-foreground whitespace-nowrap">Pitches</th>
               <th className="px-2 py-1.5 text-left text-[7px] font-pixel text-muted-foreground whitespace-nowrap">Abilities</th>
               <th className="px-2 py-1.5 text-left text-[7px] font-pixel text-muted-foreground whitespace-nowrap">Type</th>
               <th className="px-2 py-1.5 text-left text-[7px] font-pixel text-muted-foreground whitespace-nowrap">Actions</th>
@@ -1157,6 +1290,13 @@ function Step6({ recruits, setRecruits, onNext, onReroll, isRerolling, rerolling
                   </td>
                   <td className="px-2 py-1">
                     {isPitcher ? <AttrGradeCell value={r.stuff} field="stuff" recruitId={r._tempId} onCommit={commitEdit} /> : <span className="text-muted-foreground/30">—</span>}
+                  </td>
+                  <td className="px-2 py-1">
+                    {isPitcher ? (
+                      <PitchMixEditCell recruit={r} recruitId={r._tempId} onCommit={commitEdit} />
+                    ) : (
+                      <span className="text-muted-foreground/30">—</span>
+                    )}
                   </td>
                   <td className="px-2 py-1">
                     <AbilitiesEditCell
