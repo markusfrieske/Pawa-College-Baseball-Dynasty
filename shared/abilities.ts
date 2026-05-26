@@ -514,7 +514,7 @@ export function calculateOVR(attrs: {
               if (commonKey) {
                 const commonVal = (attrs as Record<string, unknown>)[commonKey] as number | null | undefined;
                 if (commonGrade(commonVal ?? 0) === "S") {
-                  continue; // already counted as 15 in commonTotal
+                  continue; // already counted via COMMON_OVR[...].S (24 or 21) in commonTotal
                 }
               }
               specialTotal += 15;
