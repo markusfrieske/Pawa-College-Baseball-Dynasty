@@ -339,7 +339,7 @@ export async function calibrateRpiOvr(dryRun = false): Promise<CalibrationSummar
         if (currentOvr === 0) continue;
 
         const rawNewOvr = Math.round(currentOvr * ratio);
-        const newOvr = Math.max(150, Math.min(650, rawNewOvr));
+        const newOvr = Math.max(1, Math.min(999, rawNewOvr));
         const newStarRating = getStarRatingFromOVR(newOvr);
 
         // Scale all numeric attributes by the same ratio applied to OVR

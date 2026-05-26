@@ -1623,17 +1623,16 @@ export async function registerRoutes(
         const narrowFactor = effectivePct / 100;
         const newRange = Math.max(0, range * (1 - narrowFactor * 0.8));
         const halfRange = Math.floor(newRange / 2);
-        // Hard floor of 150 so displayed minimum never dips unrealistically low
-        let newMin = Math.max(150, Math.max(min, actual - halfRange));
+        let newMin = Math.max(1, Math.max(min, actual - halfRange));
         let newMax = Math.min(max, actual + halfRange);
         // Enforce minimum display width of 150 before signing day.
         // Expand symmetrically around actual, then shift window if clipped at boundary.
         if (newMax - newMin < 150) {
-          let newMinAdj = Math.max(150, actual - 75);
-          let newMaxAdj = Math.min(650, newMinAdj + 150);
+          let newMinAdj = Math.max(1, actual - 75);
+          let newMaxAdj = Math.min(999, newMinAdj + 150);
           // If upper-bound clip made range too narrow, push window left
           if (newMaxAdj - newMinAdj < 150) {
-            newMinAdj = Math.max(150, newMaxAdj - 150);
+            newMinAdj = Math.max(1, newMaxAdj - 150);
           }
           newMin = newMinAdj;
           newMax = newMaxAdj;
@@ -1670,7 +1669,7 @@ export async function registerRoutes(
         const revealedAttrs = getAttributesToReveal(Math.min(revealAmount, 60));
         
         // Calculate initial ranges based on reveal amount
-        const ovrRange = narrowRange(150, 650, recruit.overall, revealAmount);
+        const ovrRange = narrowRange(1, 999, recruit.overall, revealAmount);
         const starRange = narrowStarRange(1, 5, recruit.starRating, revealAmount);
         
         // Reveal abilities based on percentage, capped at 50% — rest unlocks at signing day
@@ -1702,8 +1701,8 @@ export async function registerRoutes(
         const allAttrs = [...currentAttrs, ...additionalAttrs];
         
         // Narrow down the rating ranges
-        const currentMinOvr = interest.minOverall || 150;
-        const currentMaxOvr = interest.maxOverall || 650;
+        const currentMinOvr = interest.minOverall || 1;
+        const currentMaxOvr = interest.maxOverall || 999;
         const currentMinStar = interest.minStar || 1;
         const currentMaxStar = interest.maxStar || 5;
         
@@ -2756,8 +2755,8 @@ export async function registerRoutes(
           isTargeted: false,
           hasOffer: false,
           revealedAttributes: [],
-          minOverall: 150,
-          maxOverall: 650,
+          minOverall: 1,
+          maxOverall: 999,
           minStar: 1,
           maxStar: 5,
           revealedAbilitiesCount: 0,
@@ -11542,7 +11541,7 @@ export async function registerRoutes(
         // Player promises are based on simulated stats - since we don't track per-game stats yet,
         // we evaluate based on player overall and promise difficulty
         const difficulty = target; // "easy", "medium", "hard"
-        const overallFactor = (player.overall || 300) / 650;
+        const overallFactor = Math.min(1.0, (player.overall || 300) / 650);
         
         if (difficulty === "easy") {
           isMet = Math.random() < 0.7 + overallFactor * 0.2;
@@ -19722,7 +19721,7 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
         }
         if (boosted) rawOverall = calculateOVR(playerData);
       }
-      const overall = Math.max(159, Math.min(650, rawOverall));
+      const overall = Math.max(1, Math.min(999, rawOverall));
       const starRating = getStarRatingFromOVR(overall);
 
       await storage.createPlayer({
@@ -19810,7 +19809,7 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
           conferenceName ?? "",
         ));
         const rawOvr = calculateOVR(playerData);
-        const ovr = Math.max(159, Math.min(650, rawOvr));
+        const ovr = Math.max(1, Math.min(999, rawOvr));
         let jerseyNum = realRoster.length + f + 1;
         while (usedJerseyNumbers.has(jerseyNum)) jerseyNum++;
         usedJerseyNumbers.add(jerseyNum);
@@ -19978,7 +19977,7 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
     };
 
     const rawOverall = calculateOVR(playerData);
-    const overall = Math.max(159, Math.min(650, rawOverall));
+    const overall = Math.max(1, Math.min(999, rawOverall));
     const starRating = getStarRatingFromOVR(overall);
     const cpuThrowHand = isPitcherPos ? (Math.random() < 0.28 ? "L" : "R") : "R";
     const cpuBatHand = (() => {

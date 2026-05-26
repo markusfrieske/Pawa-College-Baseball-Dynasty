@@ -451,7 +451,7 @@ export function calculateOVR(attrs: {
       (attrs.heater ?? 0) + (attrs.poise ?? 0) + (attrs.recovery ?? 0) +
       (attrs.wRISP ?? 0) + (attrs.vsLefty ?? 0);
     const raw = Math.round(pitchCore * 0.85 + pitchField * 0.20 + pitchCommon * 0.25 + specialBonus);
-    return Math.max(150, Math.min(650, raw));
+    return Math.max(1, Math.min(999, raw));
   }
 
   if (isPitcher === false) {
@@ -497,7 +497,7 @@ export function calculateOVR(attrs: {
     }
 
     const raw = Math.round(attrTotal + commonTotal + specialTotal);
-    return Math.max(150, Math.min(650, raw));
+    return Math.max(1, Math.min(999, raw));
   }
 
   // Fallback (no position provided): original mixed formula
@@ -529,13 +529,13 @@ export function calculateOVR(attrs: {
   for (const v of commonFields) { commonSum += (v ?? 50); }
 
   const raw = Math.round(attrSum * 0.6 + commonSum * 0.25 + specialBonus);
-  return Math.max(150, Math.min(650, raw));
+  return Math.max(1, Math.min(999, raw));
 }
 
 export function getStarRatingFromOVR(ovr: number): number {
   if (ovr >= 550) return 5;
   if (ovr >= 450) return 4;
   if (ovr >= 350) return 3;
-  if (ovr >= 250) return 2;
+  if (ovr >= 175) return 2;
   return 1;
 }

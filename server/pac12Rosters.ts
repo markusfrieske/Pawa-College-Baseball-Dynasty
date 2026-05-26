@@ -204,7 +204,7 @@ export const PAC12_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Wade", lastName: "Meckler", position: "OF", eligibility: "SR", homeState: "OR", hometown: "Corvallis", jerseyNumber: 13,
       hitForAvg: 64, power: 42, speed: 72, arm: 52, fielding: 62, errorResistance: 58, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 62, vsLHP: 56, grit: 64, stealing: 56, running: 60, throwing: 67, recovery: 52, wRISP: 60, vsLefty: 56, poise: 66, heater: 0, agile: 62,
-      abilities: ["Contact Hitter","Flying Start","Spray Hitter"], potential: "A-", catcherAbility: null,
+      abilities: ["Contact Hitter", "Batter Intimidator", "Spray Hitter"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },

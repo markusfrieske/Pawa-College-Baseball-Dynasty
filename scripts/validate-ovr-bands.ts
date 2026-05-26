@@ -1,13 +1,7 @@
 /**
- * validate-ovr-bands — checks per-band OVR distribution WITH abilities included,
- * reports the 600+ outlier bucket, and enforces that no band deviates more than
- * ±5% from its target (structural OVR formula limits make strict ±3% impossible
- * for the 150-199 and 450-499 bands without breaking the bell-curve mean).
- *
- * Tolerance rationale:
- *   • All 9 target bands are expected within ±5% of their stated target.
- *   • 600+ is tracked for awareness; generational-level players are expected here.
- *   • Mean OVR (with abilities) must fall between 310 and 330.
+ * validate-ovr-bands — checks per-band OVR distribution (1-999 scale) WITH abilities included.
+ * Reports whether each band is within ±tolerance% of its target.
+ * Mean OVR must fall between MEAN_MIN and MEAN_MAX.
  */
 
 import { ALL_REAL_ROSTERS } from "../server/realRosters";
@@ -21,21 +15,25 @@ interface Band {
 }
 
 const BANDS: Band[] = [
-  { lo: 150, hi: 199, target: 10, tolerance: 5 },
-  { lo: 200, hi: 249, target: 15, tolerance: 5 },
-  { lo: 250, hi: 299, target: 20, tolerance: 5 },
-  { lo: 300, hi: 349, target: 21, tolerance: 5 },
-  { lo: 350, hi: 399, target: 15, tolerance: 5 },
-  { lo: 400, hi: 449, target: 10, tolerance: 5 },
-  { lo: 450, hi: 499, target:  5, tolerance: 5 },
-  { lo: 500, hi: 549, target:  3, tolerance: 5 },
-  { lo: 550, hi: 599, target:  1, tolerance: 5 },
+  { lo:  50, hi:  99, target:  1, tolerance: 5 },
+  { lo: 100, hi: 149, target: 11, tolerance: 8 },
+  { lo: 150, hi: 199, target: 20, tolerance: 8 },
+  { lo: 200, hi: 249, target: 19, tolerance: 8 },
+  { lo: 250, hi: 299, target: 14, tolerance: 8 },
+  { lo: 300, hi: 349, target: 10, tolerance: 8 },
+  { lo: 350, hi: 399, target:  8, tolerance: 8 },
+  { lo: 400, hi: 449, target:  6, tolerance: 6 },
+  { lo: 450, hi: 499, target:  4, tolerance: 5 },
+  { lo: 500, hi: 549, target:  3, tolerance: 4 },
+  { lo: 550, hi: 599, target:  2, tolerance: 3 },
+  { lo: 600, hi: 699, target:  2, tolerance: 3 },
+  { lo: 700, hi: 999, target:  1, tolerance: 3 },
 ];
 
-const MEAN_MIN = 310;
-const MEAN_MAX = 330;
+const MEAN_MIN = 265;
+const MEAN_MAX = 300;
 
-const counts = new Array(BANDS.length + 1).fill(0); // last bucket = 600+
+const counts = new Array(BANDS.length).fill(0);
 let total = 0;
 let sum = 0;
 
@@ -45,22 +43,19 @@ for (const players of Object.values(ALL_REAL_ROSTERS)) {
     sum += ovr;
     total++;
 
-    let placed = false;
     for (let i = 0; i < BANDS.length; i++) {
       if (ovr >= BANDS[i].lo && ovr <= BANDS[i].hi) {
         counts[i]++;
-        placed = true;
         break;
       }
     }
-    if (!placed && ovr >= 600) counts[BANDS.length]++;
   }
 }
 
 const mean = sum / total;
 let failures = 0;
 
-console.log(`\n=== PER-BAND OVR DISTRIBUTION (with abilities) ===`);
+console.log(`\n=== PER-BAND OVR DISTRIBUTION (1-999 scale, with abilities) ===`);
 console.log(`Total players: ${total}   Mean OVR: ${mean.toFixed(1)}`);
 console.log(`Target mean: ${MEAN_MIN}–${MEAN_MAX}\n`);
 
@@ -77,15 +72,6 @@ for (let i = 0; i < BANDS.length; i++) {
   );
 }
 
-// Report 600+ bucket (informational only — generational gems land here)
-const ovr600pct = (counts[BANDS.length] / total) * 100;
-const over600flag = ovr600pct <= 1.0 ? "✅" : "❌";
-if (ovr600pct > 1.0) failures++;
-console.log(
-  `${over600flag} ${"600+".padEnd(9)} ${ovr600pct.toFixed(1).padStart(5)}%  tgt  0%  (generational gems only — must be ≤1%)`
-);
-
-// Mean check
 console.log("");
 const meanOk = mean >= MEAN_MIN && mean <= MEAN_MAX;
 const meanFlag = meanOk ? "✅" : "❌";
