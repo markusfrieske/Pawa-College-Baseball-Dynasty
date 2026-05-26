@@ -19,6 +19,7 @@ import {
 import { RetroButton } from "@/components/ui/retro-button";
 import { PlayerProfileCard } from "@/components/player-profile-card";
 import type { Player } from "@/components/player-profile-card";
+import { PlayerAvatar } from "@/components/player-avatar";
 import type { WizardConfig } from "@shared/schema";
 import { getPotentialGrade, POTENTIAL_GRADES } from "@shared/potential";
 import { getAbilitiesForPosition, MAX_SPECIAL_ABILITIES } from "@shared/abilities";
@@ -1103,6 +1104,30 @@ function Step6({ recruits, setRecruits, onNext, onReroll, isRerolling, rerolling
     setRecruits(recruits.map(r => r._tempId === id ? { ...r, [field]: val } : r));
   }, [recruits, setRecruits]);
 
+  const rerollVisuals = useCallback((id: string) => {
+    const SKIN_TONES   = ["light","light","medium","medium","tan","olive","dark","deep"];
+    const HAIR_COLORS  = ["black","brown","blonde","red","gray"];
+    const HAIR_STYLES  = ["short","buzz","medium","fade","curly","mullet","long","bald"];
+    const HEADWEARS    = ["cap","cap","cap","helmet","batting_helmet","none"];
+    const FACIAL_HAIRS = ["none","none","none","none","none","stubble","stubble","goatee","mustache"];
+    const EYE_STYLES   = ["standard","standard","narrow","wide","heavy"];
+    const EYEBROW_STYLES = ["flat","flat","arched","thick","furrowed"];
+    const MOUTH_STYLES = ["neutral","neutral","smile","smirk"];
+    const pick = <T,>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)];
+    setRecruits(recruits.map(r => r._tempId !== id ? r : {
+      ...r,
+      skinTone:     pick(SKIN_TONES),
+      hairColor:    pick(HAIR_COLORS),
+      hairStyle:    pick(HAIR_STYLES),
+      headwear:     pick(HEADWEARS),
+      facialHair:   pick(FACIAL_HAIRS),
+      eyeStyle:     pick(EYE_STYLES),
+      eyebrowStyle: pick(EYEBROW_STYLES),
+      mouthStyle:   pick(MOUTH_STYLES),
+      eyeBlack:     Math.random() < 0.15,
+    }));
+  }, [recruits, setRecruits]);
+
   const commitTextEdit = useCallback((id: string, field: string, val: string) => {
     setRecruits(recruits.map(r => r._tempId === id ? { ...r, [field]: val } : r));
   }, [recruits, setRecruits]);
@@ -1174,6 +1199,7 @@ function Step6({ recruits, setRecruits, onNext, onReroll, isRerolling, rerolling
         <table className="w-full text-xs border-collapse min-w-[900px]">
           <thead className="sticky top-0 bg-card z-10 border-b border-border">
             <tr>
+              <th className="px-2 py-1.5 text-left text-[7px] font-pixel text-muted-foreground whitespace-nowrap w-10">Img</th>
               <SortTh label="Name"  field="name" />
               <SortTh label="Pos"   field="pos" />
               <th className="px-2 py-1.5 text-left text-[7px] font-pixel text-muted-foreground whitespace-nowrap">Yr</th>
@@ -1203,6 +1229,29 @@ function Step6({ recruits, setRecruits, onNext, onReroll, isRerolling, rerolling
               const potGrade = r.potential != null ? getPotentialGrade(r.potential) : "—";
               return (
                 <tr key={r._tempId} className={`border-b border-border/40 hover:bg-white/5 transition-colors ${rowBg(r)}`}>
+                  <td className="px-2 py-1 w-10">
+                    <button
+                      onClick={() => rerollVisuals(r._tempId)}
+                      title="Click to randomize appearance"
+                      className="rounded overflow-hidden ring-1 ring-transparent hover:ring-gold transition-all cursor-pointer"
+                      data-testid={`wizard-avatar-${r._tempId}`}
+                    >
+                      <PlayerAvatar
+                        size="sm"
+                        isRecruit
+                        skinTone={r.skinTone}
+                        hairColor={r.hairColor}
+                        hairStyle={r.hairStyle}
+                        facialHair={r.facialHair}
+                        eyeStyle={r.eyeStyle}
+                        eyebrowStyle={r.eyebrowStyle}
+                        mouthStyle={r.mouthStyle}
+                        eyeBlack={r.eyeBlack}
+                        headwear={r.headwear}
+                        playerId={r._tempId}
+                      />
+                    </button>
+                  </td>
                   <td className="px-2 py-1">
                     <NameEditCell
                       firstName={r.firstName}
