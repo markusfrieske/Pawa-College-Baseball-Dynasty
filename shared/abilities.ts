@@ -114,6 +114,7 @@ export const FIELDER_GOLD_ABILITIES: Ability[] = [
   { name: "Unrelenting", description: "Greatly improve batting ability after accruing two hits", tier: "gold", category: "fielder" },
   { name: "Flying Start", description: "Speed when running to first base is greatly increased", tier: "gold", category: "fielder" },
   { name: "Heavy Tank", description: "When running towards the catcher, collide to try and force a dropped ball", tier: "gold", category: "fielder" },
+  { name: "Lefty Arm Killer", description: "Batting ability is greatly increased when facing a left-handed pitcher", tier: "gold", category: "fielder" },
 ];
 
 export const FIELDER_BLUE_ABILITIES: Ability[] = [
@@ -369,22 +370,24 @@ const H_DEFENSE:  [number, number][] = [[10,2],[20,5],[30,11],[40,17],[50,26],[6
 const H_ERROR:    [number, number][] = [[10,1],[20,3],[30,7],[40,12],[50,17],[60,23],[70,31],[80,41],[90,53]];
 const TRAJ_PTS:   Record<number, number> = { 1: 0, 2: 9, 3: 13, 4: 17 };
 
-function commonGrade(v: number): "S" | "A" | "B" | "C" | "D" {
+function commonGrade(v: number): "S" | "A" | "B" | "C" | "D" | "F" | "G" {
   if (v >= 90) return "S";
   if (v >= 80) return "A";
   if (v >= 70) return "B";
   if (v >= 60) return "C";
-  return "D";
+  if (v >= 40) return "D";
+  if (v >= 20) return "F";
+  return "G";
 }
 
-const COMMON_OVR: Record<string, Record<"S"|"A"|"B"|"C"|"D", number>> = {
-  clutch:         { D: 0, C: 3, B: 6, A: 9,  S: 24 },
-  vsLHP:          { D: 0, C: 3, B: 6, A: 9,  S: 24 },
-  stealing:       { D: 0, C: 3, B: 6, A: 9,  S: 24 },
-  running:        { D: 0, C: 2, B: 4, A: 6,  S: 21 },
-  throwing:       { D: 0, C: 2, B: 4, A: 6,  S: 21 },
-  grit:           { D: 0, C: 2, B: 4, A: 6,  S: 21 },
-  catcherAbility: { D: 0, C: 3, B: 6, A: 9,  S: 24 },
+const COMMON_OVR: Record<string, Record<"S"|"A"|"B"|"C"|"D"|"F"|"G", number>> = {
+  clutch:         { G: -7, F: -3, D: 0, C: 3, B: 6, A: 9,  S: 15 },
+  vsLHP:          { G: -7, F: -3, D: 0, C: 3, B: 6, A: 9,  S: 15 },
+  stealing:       { G: -7, F: -3, D: 0, C: 3, B: 6, A: 9,  S: 15 },
+  running:        { G: -7, F: -3, D: 0, C: 2, B: 4, A: 6,  S: 15 },
+  throwing:       { G: -7, F: -3, D: 0, C: 2, B: 4, A: 6,  S: 15 },
+  grit:           { G: -7, F: -3, D: 0, C: 2, B: 4, A: 6,  S: 15 },
+  catcherAbility: { G: -7, F: -3, D: 0, C: 3, B: 6, A: 9,  S: 15 },
 };
 
 const HITTER_NAMED_PTS: Record<string, number> = {
@@ -396,6 +399,20 @@ const HITTER_NAMED_PTS: Record<string, number> = {
   "Bunt Artisan":     3,
   "Good Bunt":        3,
   "Head-first Slide": 5,
+};
+
+// S-tier common abilities have named gold equivalents. A player who has both
+// the S common grade AND the gold ability should only score 15 pts (not 15+15).
+// This map lets the special-ability loop skip the gold ability's +15 when the
+// corresponding common ability is already S-tier.
+const S_GOLD_COMMON_KEY: Record<string, keyof typeof COMMON_OVR> = {
+  "Gambler":            "clutch",
+  "Lefty Arm Killer":   "vsLHP",
+  "Express Baserunning":"running",
+  "Lightning Speed":    "stealing",
+  "Strike Thrower":     "throwing",
+  "The Almanac":        "catcherAbility",
+  "Iron Man":           "grit",
 };
 // ---------------------------------------------------------------------------
 
@@ -488,9 +505,23 @@ export function calculateOVR(attrs: {
         } else {
           const ability = getAbilityByName(abilityName);
           if (ability) {
-            if (ability.tier === "gold") specialTotal += 15;
-            else if (ability.tier === "blue") specialTotal += 6;
-            else if (ability.tier === "red") specialTotal -= 7;
+            if (ability.tier === "gold") {
+              // If this gold ability is the named equivalent of an S-tier common
+              // ability, the 15 pts were already counted via COMMON_OVR[...].S.
+              // Skip to avoid double-counting.
+              const commonKey = S_GOLD_COMMON_KEY[abilityName];
+              if (commonKey) {
+                const commonVal = (attrs as Record<string, unknown>)[commonKey] as number | null | undefined;
+                if (commonGrade(commonVal ?? 0) === "S") {
+                  continue; // already counted as 15 in commonTotal
+                }
+              }
+              specialTotal += 15;
+            } else if (ability.tier === "blue") {
+              specialTotal += 6;
+            } else if (ability.tier === "red") {
+              specialTotal -= 7;
+            }
           }
         }
       }
