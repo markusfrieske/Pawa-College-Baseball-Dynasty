@@ -813,12 +813,6 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Groundball Pitcher", "Sharpness", "Intimidator"], potential: "A", catcherAbility: null,
       throwHand: "L", batHand: "L",
       ...pitchMix(1, [0, 3, 0, 1, 0, 4, 4, 0, 0, 0]) },
-    { firstName: "Zander", lastName: "Sechrist", position: "P", eligibility: "JR", homeState: "TN", hometown: "Maryville", jerseyNumber: 42,
-      hitForAvg: 9, power: 7, speed: 24, arm: 28, fielding: 17, errorResistance: 26, velocity: 33, control: 27, stamina: 27, stuff: 26,
-      clutch: 36, vsLHP: 34, grit: 37, stealing: 6, running: 20, throwing: 39, recovery: 24, wRISP: 24, vsLefty: 25, poise: 26, heater: 28, agile: 24,
-      abilities: ["Fireman"], potential: "B+", catcherAbility: null,
-      throwHand: "L", batHand: "L", // Tennessee LHP — confirmed Left/Left (UT Athletics)
-      ...pitchMix(1, [0, 0, 0, 0, 0, 4, 4, 1, 0, 0]) },
     { firstName: "Nate", lastName: "Snead", position: "P", eligibility: "SO", homeState: "TN", hometown: "Chattanooga", jerseyNumber: 44,
       hitForAvg: 9, power: 7, speed: 31, arm: 29, fielding: 18, errorResistance: 29, velocity: 37, control: 29, stamina: 28, stuff: 30,
       clutch: 39, vsLHP: 37, grit: 40, stealing: 8, running: 25, throwing: 44, recovery: 26, wRISP: 24, vsLefty: 26, poise: 26, heater: 29, agile: 29,
@@ -936,7 +930,14 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Good Bunt"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "L",
       ...noPitches },
-  ],
+      { firstName: "Garrett", lastName: "Wright", position: "UT", eligibility: "JR", homeState: "TN", hometown: "Knoxville", jerseyNumber: 51,
+      hitForAvg: 70, power: 42, speed: 62, arm: 54, fielding: 52, errorResistance: 50, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 60, vsLHP: 56, grit: 64, stealing: 24, running: 44, throwing: 66, recovery: 42, wRISP: 58, vsLefty: 54, poise: 62, heater: 0, agile: 50,
+      abilities: ["Contact Hitter", "Chance Maker", "vs. Breaking Pitches"], potential: "A-", catcherAbility: null,
+      throwHand: "R", batHand: "R",
+      skinTone: "light", hairColor: "brown", hairStyle: "short",
+      ...noPitches },
+],
 
   "Ole Miss": [
       // 33-17/12-12 SEC, D1B #20, RPI #13, Mike Bianco Yr 26. 7 of last 9 SEC + sweep of LSU.

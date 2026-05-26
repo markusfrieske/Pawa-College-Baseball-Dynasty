@@ -210,12 +210,6 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 0, 0, 0, 0, 4, 4, 0, 1, 0]) },
     // Brady Kirtley — FR RHP — PG HM / Top-500 national
-    { firstName: "Brady", lastName: "Kirtley", position: "P", eligibility: "FR", homeState: "KY", hometown: "Owensboro", jerseyNumber: 46,
-      hitForAvg: 8, power: 6, speed: 25, arm: 33, fielding: 17, errorResistance: 26, velocity: 41, control: 32, stamina: 30, stuff: 33,
-      clutch: 29, vsLHP: 28, grit: 31, stealing: 9, running: 25, throwing: 41, recovery: 20, wRISP: 19, vsLefty: 21, poise: 20, heater: 29, agile: 31,
-      abilities: ["Pace"], potential: "A", catcherAbility: null,
-      throwHand: "R", batHand: "R",
-      ...pitchMix(1, [0, 0, 0, 1, 0, 4, 3, 0, 0, 0]) },
     { firstName: "Gavin", lastName: "Porter", position: "P", eligibility: "FR", homeState: "TN", hometown: "Nashville", jerseyNumber: 48,
       hitForAvg: 9, power: 7, speed: 26, arm: 31, fielding: 19, errorResistance: 28, velocity: 37, control: 25, stamina: 24, stuff: 28,
       clutch: 31, vsLHP: 29, grit: 33, stealing: 9, running: 27, throwing: 44, recovery: 21, wRISP: 20, vsLefty: 23, poise: 21, heater: 31, agile: 33,
@@ -315,7 +309,14 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Timely Whiff"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...noPitches },
-  ],
+      { firstName: "Jayce", lastName: "Tharnish", position: "OF", eligibility: "SR", homeState: "KY", hometown: "Lexington", jerseyNumber: 51,
+      hitForAvg: 72, power: 40, speed: 68, arm: 56, fielding: 54, errorResistance: 52, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 62, vsLHP: 58, grit: 66, stealing: 28, running: 48, throwing: 68, recovery: 44, wRISP: 60, vsLefty: 56, poise: 64, heater: 0, agile: 54,
+      abilities: ["Contact Hitter", "Consigliere", "Line Drive"], potential: "B+", catcherAbility: null,
+      throwHand: "R", batHand: "L",
+      skinTone: "light", hairColor: "brown", hairStyle: "short",
+      ...noPitches },
+],
 
   "Missouri": [
     // PITCHERS (10)

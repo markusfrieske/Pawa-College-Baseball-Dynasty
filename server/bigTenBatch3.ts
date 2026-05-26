@@ -46,12 +46,6 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Hot Head"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [1, 0, 0, 0, 4, 0, 0, 0, 1, 0]) },
-    { firstName: "Logan", lastName: "Beaman", position: "P", eligibility: "JR", homeState: "IN", hometown: "Lafayette", jerseyNumber: 32,
-      hitForAvg: 9, power: 7, speed: 25, arm: 35, fielding: 23, errorResistance: 24, velocity: 40, control: 33, stamina: 33, stuff: 33,
-      clutch: 31, vsLHP: 30, grit: 32, stealing: 5, running: 17, throwing: 33, recovery: 31, wRISP: 30, vsLefty: 32, poise: 32, heater: 37, agile: 21,
-      abilities: ["Shuuto Spin"], potential: "B-", catcherAbility: null,
-      throwHand: "R", batHand: "R",
-      ...pitchMix(1, [1, 0, 0, 1, 4, 0, 0, 0, 0, 0]) },
     { firstName: "Josh", lastName: "Willman", position: "P", eligibility: "SO", homeState: "IN", hometown: "Brownsburg", jerseyNumber: 48,
       hitForAvg: 10, power: 8, speed: 27, arm: 30, fielding: 20, errorResistance: 30, velocity: 40, control: 28, stamina: 28, stuff: 28,
       clutch: 35, vsLHP: 34, grit: 36, stealing: 9, running: 24, throwing: 43, recovery: 24, wRISP: 24, vsLefty: 25, poise: 24, heater: 32, agile: 30,
@@ -157,7 +151,14 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Laser Beam", "Defensive Artisan"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "S",
       ...noPitches },
-  ],
+      { firstName: "Avery", lastName: "Moore", position: "OF", eligibility: "SR", homeState: "IN", hometown: "West Lafayette", jerseyNumber: 51,
+      hitForAvg: 68, power: 36, speed: 66, arm: 52, fielding: 50, errorResistance: 48, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 58, vsLHP: 54, grit: 62, stealing: 26, running: 46, throwing: 64, recovery: 42, wRISP: 56, vsLefty: 52, poise: 60, heater: 0, agile: 52,
+      abilities: ["Contact Hitter", "Line Drive"], potential: "B+", catcherAbility: null,
+      throwHand: "R", batHand: "L",
+      skinTone: "light", hairColor: "brown", hairStyle: "short",
+      ...noPitches },
+],
 
   "Rutgers": [
     // PITCHERS (10)
@@ -376,14 +377,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 0, 0, 0, 4, 0, 0, 0, 1, 0]) },
       // Gavin Lauridsen — FR RHP — PG 1st Team / Top-100 national
-      { firstName: "Gavin", lastName: "Lauridsen", position: "P", eligibility: "FR", homeState: "CA", hometown: "Riverside", jerseyNumber: 36,
-        hitForAvg: 8, power: 6, speed: 24, arm: 37, fielding: 16, errorResistance: 25, velocity: 45, control: 32, stamina: 32, stuff: 35,
-        clutch: 28, vsLHP: 27, grit: 30, stealing: 6, running: 20, throwing: 38, recovery: 19, wRISP: 19, vsLefty: 20, poise: 20, heater: 30, agile: 24,
-        abilities: ["Straddle"], potential: "A", catcherAbility: null,
-        throwHand: "R", batHand: "R",
-        skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [1, 3, 3, 1, 4, 0, 0, 0, 0, 0]) },
-      // Jake Snider — FR RHP depth
+        // Jake Snider — FR RHP depth
       { firstName: "Jake", lastName: "Snider", position: "P", eligibility: "FR", homeState: "CA", hometown: "Irvine", jerseyNumber: 48,
         hitForAvg: 10, power: 8, speed: 31, arm: 32, fielding: 20, errorResistance: 32, velocity: 31, control: 40, stamina: 29, stuff: 30,
         clutch: 38, vsLHP: 36, grit: 40, stealing: 9, running: 26, throwing: 46, recovery: 25, wRISP: 24, vsLefty: 27, poise: 27, heater: 33, agile: 32,
@@ -522,7 +516,14 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
-    ],
+        { firstName: "Jack", lastName: "Basser", position: "INF", eligibility: "JR", homeState: "CA", hometown: "Los Angeles", jerseyNumber: 51,
+      hitForAvg: 65, power: 42, speed: 62, arm: 60, fielding: 58, errorResistance: 56, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 56, vsLHP: 52, grit: 60, stealing: 20, running: 42, throwing: 68, recovery: 40, wRISP: 54, vsLefty: 50, poise: 58, heater: 0, agile: 46,
+      abilities: ["Contact Hitter", "Defensive Artisan"], potential: "B+", catcherAbility: null,
+      throwHand: "R", batHand: "R",
+      skinTone: "light", hairColor: "brown", hairStyle: "short",
+      ...noPitches },
+],
   
   // UCLA — 45-4 overall, 25-0 Big Ten, D1Baseball #1 (May 3, 2026)
   // Real 2026 mid-season stats from uclabruins.com PDF + Daily Bruin/Baseball America rotation pieces

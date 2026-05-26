@@ -364,12 +364,6 @@ export const BIG_TEN_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Straddle", "Strong Finisher", "Slow Starter"], potential: "B", catcherAbility: null,
       throwHand: "L", batHand: "L",
       ...pitchMix(1, [0, 0, 0, 1, 0, 4, 4, 0, 0, 0]) },
-    { firstName: "Braden", lastName: "Halladay", position: "P", eligibility: "SO", homeState: "IA", hometown: "Cedar Rapids", jerseyNumber: 46,
-      hitForAvg: 9, power: 6, speed: 25, arm: 27, fielding: 18, errorResistance: 27, velocity: 39, control: 25, stamina: 25, stuff: 24,
-      clutch: 32, vsLHP: 32, grit: 35, stealing: 7, running: 22, throwing: 38, recovery: 22, wRISP: 21, vsLefty: 23, poise: 23, heater: 27, agile: 27,
-      abilities: ["Staredown", "Intimidator"], potential: "B", catcherAbility: null,
-      throwHand: "L", batHand: "L",
-      ...pitchMix(1, [0, 0, 0, 1, 0, 0, 4, 0, 0, 4]) },
     { firstName: "Ryan", lastName: "Stedman", position: "P", eligibility: "FR", homeState: "IA", hometown: "Waukee", jerseyNumber: 48,
       hitForAvg: 8, power: 7, speed: 27, arm: 36, fielding: 16, errorResistance: 26, velocity: 44, control: 29, stamina: 29, stuff: 34,
       clutch: 28, vsLHP: 26, grit: 28, stealing: 9, running: 25, throwing: 41, recovery: 18, wRISP: 17, vsLefty: 18, poise: 18, heater: 28, agile: 30,
@@ -475,7 +469,14 @@ export const BIG_TEN_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Disturbance", "First Pitch Hitter"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...noPitches },
-  ],
+      { firstName: "Caleb", lastName: "Wulf", position: "UT", eligibility: "SR", homeState: "IA", hometown: "Iowa City", jerseyNumber: 51,
+      hitForAvg: 70, power: 44, speed: 60, arm: 52, fielding: 50, errorResistance: 48, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 60, vsLHP: 56, grit: 64, stealing: 22, running: 42, throwing: 64, recovery: 42, wRISP: 58, vsLefty: 54, poise: 62, heater: 0, agile: 48,
+      abilities: ["Contact Hitter", "Chance Maker", "Good Infield Hit"], potential: "B+", catcherAbility: null,
+      throwHand: "R", batHand: "R",
+      skinTone: "light", hairColor: "brown", hairStyle: "short",
+      ...noPitches },
+],
 
   "Maryland": [
     // PITCHERS (10)
