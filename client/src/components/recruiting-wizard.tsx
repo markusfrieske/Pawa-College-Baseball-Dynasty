@@ -20,7 +20,8 @@ import { RetroButton } from "@/components/ui/retro-button";
 import { PlayerProfileCard } from "@/components/player-profile-card";
 import type { Player } from "@/components/player-profile-card";
 import type { WizardConfig } from "@shared/schema";
-import { getPotentialGrade } from "@shared/potential";
+import { getPotentialGrade, POTENTIAL_GRADES } from "@shared/potential";
+import { getAbilitiesForPosition, MAX_SPECIAL_ABILITIES } from "@shared/abilities";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -746,6 +747,126 @@ function NameEditCell({
   );
 }
 
+// ─── Attribute grade helpers ─────────────────────────────────────────────────
+
+const ATTR_GRADES = ["G", "F", "D", "C", "B", "A", "S"] as const;
+type AttrGrade = typeof ATTR_GRADES[number];
+const ATTR_GRADE_VALUES: Record<AttrGrade, number> = { G: 20, F: 40, D: 55, C: 65, B: 75, A: 85, S: 95 };
+const ATTR_GRADE_OPTIONS = ATTR_GRADES.map(g => ({ value: g, label: g }));
+
+function numericToAttrGrade(n: number): AttrGrade {
+  if (n <= 30) return "G";
+  if (n <= 47) return "F";
+  if (n <= 60) return "D";
+  if (n <= 70) return "C";
+  if (n <= 80) return "B";
+  if (n <= 90) return "A";
+  return "S";
+}
+
+const POTENTIAL_GRADE_OPTIONS = POTENTIAL_GRADES.map(g => ({ value: g.grade, label: g.grade }));
+
+function potentialGradeToValue(grade: string): number {
+  const entry = POTENTIAL_GRADES.find(g => g.grade === grade);
+  return entry ? Math.round((entry.min + entry.max) / 2) : 70;
+}
+
+// ─── Attribute grade cell ─────────────────────────────────────────────────────
+
+function AttrGradeCell({
+  value, field, recruitId, onCommit,
+}: { value: number; field: string; recruitId: string; onCommit: (id: string, field: string, v: number) => void }) {
+  const grade = numericToAttrGrade(value);
+  return (
+    <div className="flex flex-col items-start leading-none gap-0.5">
+      <SelectEditCell
+        value={grade}
+        field={field}
+        recruitId={recruitId}
+        options={ATTR_GRADE_OPTIONS}
+        onCommit={(id, f, v) => onCommit(id, f, ATTR_GRADE_VALUES[v as AttrGrade])}
+        className="font-bold text-[10px] leading-none"
+      />
+      <span className="text-[8px] text-muted-foreground/50 leading-none">{value}</span>
+    </div>
+  );
+}
+
+// ─── Special abilities edit cell ──────────────────────────────────────────────
+
+function AbilitiesEditCell({
+  abilities, recruitId, position, onCommit,
+}: { abilities: string[]; recruitId: string; position: string; onCommit: (id: string, newAbilities: string[]) => void }) {
+  const [adding, setAdding] = useState(false);
+  const selectRef = useRef<HTMLSelectElement>(null);
+
+  useEffect(() => { if (adding) selectRef.current?.focus(); }, [adding]);
+
+  const allForPos = getAbilitiesForPosition(position);
+  const available = allForPos.filter(a => !abilities.includes(a.name));
+
+  const removeAbility = (name: string) => {
+    onCommit(recruitId, abilities.filter(a => a !== name));
+  };
+
+  const addAbility = (name: string) => {
+    if (!name || abilities.length >= MAX_SPECIAL_ABILITIES) return;
+    onCommit(recruitId, [...abilities, name]);
+    setAdding(false);
+  };
+
+  const tierColor = (name: string) => {
+    const ab = allForPos.find(a => a.name === name);
+    if (!ab) return "bg-blue-900/40 border-blue-700/40 text-blue-200";
+    if (ab.tier === "gold") return "bg-amber-900/50 border-amber-600/60 text-amber-200";
+    if (ab.tier === "red")  return "bg-red-900/40 border-red-700/40 text-red-200";
+    return "bg-blue-900/40 border-blue-700/40 text-blue-200";
+  };
+
+  return (
+    <div className="flex flex-wrap gap-0.5 items-center max-w-[200px]">
+      {abilities.map(ab => (
+        <span key={ab} className={`inline-flex items-center gap-0.5 border rounded px-1 py-0 text-[8px] whitespace-nowrap ${tierColor(ab)}`}>
+          {ab}
+          <button
+            onClick={() => removeAbility(ab)}
+            className="text-current opacity-50 hover:opacity-100 hover:text-red-400 transition-colors ml-0.5 leading-none"
+            title="Remove"
+            data-testid={`wizard-remove-ability-${recruitId}-${ab}`}
+          >×</button>
+        </span>
+      ))}
+      {abilities.length < MAX_SPECIAL_ABILITIES && (
+        adding ? (
+          <select
+            ref={selectRef}
+            defaultValue=""
+            onChange={e => addAbility(e.target.value)}
+            onBlur={() => setAdding(false)}
+            className="bg-background border border-gold text-[8px] rounded px-0.5 py-0 text-foreground max-w-[130px]"
+            data-testid={`wizard-add-ability-select-${recruitId}`}
+          >
+            <option value="">+ pick ability</option>
+            {available.map(a => (
+              <option key={a.name} value={a.name}>{a.tier === "gold" ? "★ " : a.tier === "red" ? "✕ " : "• "}{a.name}</option>
+            ))}
+          </select>
+        ) : (
+          <button
+            onClick={() => setAdding(true)}
+            className="text-muted-foreground/40 hover:text-gold text-[10px] font-bold transition-colors leading-none"
+            title="Add ability"
+            data-testid={`wizard-add-ability-btn-${recruitId}`}
+          >+</button>
+        )
+      )}
+      {abilities.length === 0 && !adding && (
+        <span className="text-muted-foreground/30 text-[8px]">—</span>
+      )}
+    </div>
+  );
+}
+
 // ─── Map WizardRecruit → Player (for PlayerProfileCard read-only view) ────────
 
 function wizardRecruitToPlayer(r: WizardRecruit): Player {
@@ -819,6 +940,10 @@ function Step6({ recruits, setRecruits, onNext, onReroll, isRerolling, rerolling
 
   const commitNameEdit = useCallback((id: string, fn: string, ln: string) => {
     setRecruits(recruits.map(r => r._tempId === id ? { ...r, firstName: fn, lastName: ln } : r));
+  }, [recruits, setRecruits]);
+
+  const commitAbilitiesEdit = useCallback((id: string, newAbilities: string[]) => {
+    setRecruits(recruits.map(r => r._tempId === id ? { ...r, abilities: newAbilities } : r));
   }, [recruits, setRecruits]);
 
   const POSITION_OPTIONS = [
@@ -959,47 +1084,50 @@ function Step6({ recruits, setRecruits, onNext, onReroll, isRerolling, rerolling
                   <td className="px-2 py-1">
                     <EditCell value={r.overall} field="overall" recruitId={r._tempId} onCommit={commitEdit} />
                   </td>
-                  <td className="px-2 py-1 font-pixel text-[8px]">{potGrade}</td>
                   <td className="px-2 py-1">
-                    {!isPitcher ? <EditCell value={r.hitForAvg} field="hitForAvg" recruitId={r._tempId} onCommit={commitEdit} /> : <span className="text-muted-foreground/30">—</span>}
+                    <SelectEditCell
+                      value={potGrade !== "—" ? potGrade : (POTENTIAL_GRADE_OPTIONS[Math.floor(POTENTIAL_GRADE_OPTIONS.length / 2)]?.value ?? "C")}
+                      field="potential"
+                      recruitId={r._tempId}
+                      options={POTENTIAL_GRADE_OPTIONS}
+                      onCommit={(id, field, val) => commitEdit(id, field, potentialGradeToValue(val))}
+                      className="font-pixel text-[8px]"
+                    />
                   </td>
                   <td className="px-2 py-1">
-                    {!isPitcher ? <EditCell value={r.power} field="power" recruitId={r._tempId} onCommit={commitEdit} /> : <span className="text-muted-foreground/30">—</span>}
+                    {!isPitcher ? <AttrGradeCell value={r.hitForAvg} field="hitForAvg" recruitId={r._tempId} onCommit={commitEdit} /> : <span className="text-muted-foreground/30">—</span>}
                   </td>
                   <td className="px-2 py-1">
-                    {!isPitcher ? <EditCell value={r.speed} field="speed" recruitId={r._tempId} onCommit={commitEdit} /> : <span className="text-muted-foreground/30">—</span>}
+                    {!isPitcher ? <AttrGradeCell value={r.power} field="power" recruitId={r._tempId} onCommit={commitEdit} /> : <span className="text-muted-foreground/30">—</span>}
                   </td>
                   <td className="px-2 py-1">
-                    <EditCell value={r.arm} field="arm" recruitId={r._tempId} onCommit={commitEdit} />
+                    {!isPitcher ? <AttrGradeCell value={r.speed} field="speed" recruitId={r._tempId} onCommit={commitEdit} /> : <span className="text-muted-foreground/30">—</span>}
                   </td>
                   <td className="px-2 py-1">
-                    {!isPitcher ? <EditCell value={r.fielding} field="fielding" recruitId={r._tempId} onCommit={commitEdit} /> : <span className="text-muted-foreground/30">—</span>}
+                    <AttrGradeCell value={r.arm} field="arm" recruitId={r._tempId} onCommit={commitEdit} />
                   </td>
                   <td className="px-2 py-1">
-                    {isPitcher ? <EditCell value={r.velocity} field="velocity" recruitId={r._tempId} onCommit={commitEdit} /> : <span className="text-muted-foreground/30">—</span>}
+                    {!isPitcher ? <AttrGradeCell value={r.fielding} field="fielding" recruitId={r._tempId} onCommit={commitEdit} /> : <span className="text-muted-foreground/30">—</span>}
                   </td>
                   <td className="px-2 py-1">
-                    {isPitcher ? <EditCell value={r.control} field="control" recruitId={r._tempId} onCommit={commitEdit} /> : <span className="text-muted-foreground/30">—</span>}
+                    {isPitcher ? <AttrGradeCell value={r.velocity} field="velocity" recruitId={r._tempId} onCommit={commitEdit} /> : <span className="text-muted-foreground/30">—</span>}
                   </td>
                   <td className="px-2 py-1">
-                    {isPitcher ? <EditCell value={r.stamina} field="stamina" recruitId={r._tempId} onCommit={commitEdit} /> : <span className="text-muted-foreground/30">—</span>}
+                    {isPitcher ? <AttrGradeCell value={r.control} field="control" recruitId={r._tempId} onCommit={commitEdit} /> : <span className="text-muted-foreground/30">—</span>}
                   </td>
                   <td className="px-2 py-1">
-                    {isPitcher ? <EditCell value={r.stuff} field="stuff" recruitId={r._tempId} onCommit={commitEdit} /> : <span className="text-muted-foreground/30">—</span>}
+                    {isPitcher ? <AttrGradeCell value={r.stamina} field="stamina" recruitId={r._tempId} onCommit={commitEdit} /> : <span className="text-muted-foreground/30">—</span>}
                   </td>
-                  <td className="px-2 py-1 max-w-[140px]">
-                    {r.abilities && (r.abilities as string[]).length > 0 ? (
-                      <div className="flex flex-wrap gap-0.5">
-                        {(r.abilities as string[]).slice(0, 3).map((ab: string) => (
-                          <span key={ab} className="bg-blue-900/40 border border-blue-700/40 text-blue-200 rounded px-1 py-0 text-[8px] whitespace-nowrap">{ab}</span>
-                        ))}
-                        {(r.abilities as string[]).length > 3 && (
-                          <span className="text-muted-foreground text-[8px]">+{(r.abilities as string[]).length - 3}</span>
-                        )}
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground/30">—</span>
-                    )}
+                  <td className="px-2 py-1">
+                    {isPitcher ? <AttrGradeCell value={r.stuff} field="stuff" recruitId={r._tempId} onCommit={commitEdit} /> : <span className="text-muted-foreground/30">—</span>}
+                  </td>
+                  <td className="px-2 py-1">
+                    <AbilitiesEditCell
+                      abilities={(r.abilities as string[]) ?? []}
+                      recruitId={r._tempId}
+                      position={r.position}
+                      onCommit={commitAbilitiesEdit}
+                    />
                   </td>
                   <td className="px-2 py-1">
                     <div className="flex gap-0.5 flex-wrap">
