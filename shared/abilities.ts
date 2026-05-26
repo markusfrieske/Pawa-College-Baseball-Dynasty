@@ -381,13 +381,13 @@ function commonGrade(v: number): "S" | "A" | "B" | "C" | "D" | "F" | "G" {
 }
 
 const COMMON_OVR: Record<string, Record<"S"|"A"|"B"|"C"|"D"|"F"|"G", number>> = {
-  clutch:         { G: -7, F: -3, D: 0, C: 3, B: 6, A: 9,  S: 15 },
-  vsLHP:          { G: -7, F: -3, D: 0, C: 3, B: 6, A: 9,  S: 15 },
-  stealing:       { G: -7, F: -3, D: 0, C: 3, B: 6, A: 9,  S: 15 },
-  running:        { G: -7, F: -3, D: 0, C: 2, B: 4, A: 6,  S: 15 },
-  throwing:       { G: -7, F: -3, D: 0, C: 2, B: 4, A: 6,  S: 15 },
-  grit:           { G: -7, F: -3, D: 0, C: 2, B: 4, A: 6,  S: 15 },
-  catcherAbility: { G: -7, F: -3, D: 0, C: 3, B: 6, A: 9,  S: 15 },
+  clutch:         { G: -7, F: -3, D: 0, C: 3, B: 6, A: 9,  S: 24 },
+  vsLHP:          { G: -7, F: -3, D: 0, C: 3, B: 6, A: 9,  S: 24 },
+  stealing:       { G: -7, F: -3, D: 0, C: 3, B: 6, A: 9,  S: 24 },
+  running:        { G: -7, F: -3, D: 0, C: 2, B: 4, A: 6,  S: 21 },
+  throwing:       { G: -7, F: -3, D: 0, C: 2, B: 4, A: 6,  S: 21 },
+  grit:           { G: -7, F: -3, D: 0, C: 2, B: 4, A: 6,  S: 21 },
+  catcherAbility: { G: -7, F: -3, D: 0, C: 3, B: 6, A: 9,  S: 24 },
 };
 
 const HITTER_NAMED_PTS: Record<string, number> = {
@@ -402,10 +402,11 @@ const HITTER_NAMED_PTS: Record<string, number> = {
 };
 
 // S-tier common abilities have named gold equivalents. A player who has both
-// the S common grade AND the gold ability should only score 15 pts (not 15+15).
-// This map lets the special-ability loop skip the gold ability's +15 when the
-// corresponding common ability is already S-tier.
-const S_GOLD_COMMON_KEY: Record<string, keyof typeof COMMON_OVR> = {
+// the S common grade AND the gold ability should not score the gold +15 on top
+// of the S value (24/21). This map lets the special-ability loop skip the
+// gold ability's +15 when the corresponding common ability is already S-tier.
+// Exported so the UI can show the gold badge inline on the common ability row.
+export const S_GOLD_COMMON_KEY: Record<string, keyof typeof COMMON_OVR> = {
   "Gambler":            "clutch",
   "Lefty Arm Killer":   "vsLHP",
   "Express Baserunning":"running",

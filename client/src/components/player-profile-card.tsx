@@ -10,7 +10,7 @@ import { LetterGrade, getLetterGrade } from "@/components/ui/letter-grade";
 import { PlayerPortrait } from "@/components/ui/player-portrait";
 import { PitchMixDial, generatePitchMixForDial } from "@/components/ui/pitch-mix-dial";
 import { MapPin, Star, Edit, Trophy, ArrowUp, ArrowDown, ArrowUpRight, ArrowRight, ArrowDownRight, ChevronDown, ChevronUp, Check, X } from "lucide-react";
-import { getAbilityByName, getAbilitiesForPosition, ALL_ABILITIES } from "@shared/abilities";
+import { getAbilityByName, getAbilitiesForPosition, ALL_ABILITIES, S_GOLD_COMMON_KEY } from "@shared/abilities";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { velocityToMPH } from "@/lib/playerUtils";
 import { getPotentialGrade, getProgressionZone, getProgressionColor } from "@shared/potential";
@@ -282,20 +282,32 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
     { label: "Stamina", value: player.stamina, delta: deltas?.stamina },
   ];
 
+  // Reverse map: common-ability key → gold ability name (derived from S_GOLD_COMMON_KEY)
+  const COMMON_KEY_TO_GOLD: Record<string, string> = Object.fromEntries(
+    Object.entries(S_GOLD_COMMON_KEY).map(([gold, key]) => [key, gold])
+  );
+  // Helper: return the gold ability name to badge if player has S-grade + the ability
+  const sGoldBadge = (attrVal: number | null | undefined, commonKey: string): string | undefined => {
+    if ((attrVal ?? 0) < 90) return undefined;
+    const goldName = COMMON_KEY_TO_GOLD[commonKey];
+    if (!goldName) return undefined;
+    return player.abilities?.includes(goldName) ? goldName : undefined;
+  };
+
   // Common abilities for fielders (displayed as letter grades G-A)
-  const fielderCommonAbilities: Array<{ label: string; value?: number | null; delta?: number }> = [
-    { label: "Clutch", value: player.clutch, delta: deltas?.clutch },
-    { label: "vs LHP", value: player.vsLHP, delta: deltas?.vsLHP },
-    { label: "Grit", value: player.grit, delta: deltas?.grit },
-    { label: "Stealing", value: player.stealing, delta: deltas?.stealing },
-    { label: "Running", value: player.running, delta: deltas?.running },
-    { label: "Throwing", value: player.throwing, delta: deltas?.throwing },
+  const fielderCommonAbilities: Array<{ label: string; value?: number | null; delta?: number; goldAbilityName?: string }> = [
+    { label: "Clutch", value: player.clutch, delta: deltas?.clutch, goldAbilityName: sGoldBadge(player.clutch, "clutch") },
+    { label: "vs LHP", value: player.vsLHP, delta: deltas?.vsLHP, goldAbilityName: sGoldBadge(player.vsLHP, "vsLHP") },
+    { label: "Grit", value: player.grit, delta: deltas?.grit, goldAbilityName: sGoldBadge(player.grit, "grit") },
+    { label: "Stealing", value: player.stealing, delta: deltas?.stealing, goldAbilityName: sGoldBadge(player.stealing, "stealing") },
+    { label: "Running", value: player.running, delta: deltas?.running, goldAbilityName: sGoldBadge(player.running, "running") },
+    { label: "Throwing", value: player.throwing, delta: deltas?.throwing, goldAbilityName: sGoldBadge(player.throwing, "throwing") },
     { label: "Recovery", value: player.recovery, delta: deltas?.recovery },
   ];
   
   // Add catcher ability only for catchers
   if (isCatcher) {
-    fielderCommonAbilities.push({ label: "Catcher", value: player.catcherAbility, delta: deltas?.catcherAbility });
+    fielderCommonAbilities.push({ label: "Catcher", value: player.catcherAbility, delta: deltas?.catcherAbility, goldAbilityName: sGoldBadge(player.catcherAbility, "catcherAbility") });
   }
 
   // Common abilities for pitchers (displayed as letter grades G-A)
@@ -485,6 +497,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
                 label={ability.label} 
                 value={ability.value}
                 delta={ability.delta}
+                goldAbilityName={(ability as { goldAbilityName?: string }).goldAbilityName}
               />
             ))}
           </div>
@@ -1012,13 +1025,23 @@ function AttributeRow({ label, value, delta }: { label: string; value?: number |
   );
 }
 
-function CommonAbilityRow({ label, value, delta }: { label: string; value?: number | null; delta?: number }) {
+function CommonAbilityRow({ label, value, delta, goldAbilityName }: { label: string; value?: number | null; delta?: number; goldAbilityName?: string }) {
   const displayValue = value ?? 50;
   
   return (
     <div className="flex items-center justify-between p-2 bg-background/50 rounded" data-testid={`common-ability-${label.toLowerCase().replace(/\s/g, "-")}`}>
       <span className="text-sm text-muted-foreground">{label}</span>
       <div className="flex items-center gap-1">
+        {goldAbilityName && (
+          <span
+            className="text-[8px] font-pixel px-1 py-0.5 rounded border"
+            style={{ color: "#c4a35a", borderColor: "rgba(196,163,90,0.5)", background: "rgba(196,163,90,0.12)" }}
+            title={goldAbilityName}
+            data-testid={`common-ability-gold-badge-${label.toLowerCase().replace(/\s/g, "-")}`}
+          >
+            {goldAbilityName}
+          </span>
+        )}
         <LetterGrade value={displayValue} size="sm" isCommonAbility={true} />
         {delta != null && delta !== 0 && (
           <DeltaArrow delta={delta} />
