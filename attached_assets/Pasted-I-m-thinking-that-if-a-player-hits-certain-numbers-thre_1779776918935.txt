@@ -1,0 +1,130 @@
+I'm thinking that if a player hits certain numbers/thresholds it will be worth ovr points. Essentially if the number on the right is true, add the points. If a player has a number inbetween two numbers (i.e. 65) then add the average points between both number values at 60 and 70. Or maybe it makes better sense to shift everyone's ratings to round numbers like 10-20-30-40-50-60-70-80-90-100
+
+trajectory
+1 is 0 pts
+2 is 9 pts
+3 is 13 pts
+4 is 17 pts
+
+Contact
+10 is 4 pts
+20 is 9 pts
+30 is 19 pts
+40 is 29 pts
+50 is 44 pts
+60 is 59 pts
+70 is 79 pts
+80 is 104 pts
+90 is 134 pts
+100 is 169 pts
+
+Power
+10 is 4 pts
+20 is 9 pts
+30 is 19 pts
+40 is 29 pts
+50 is 44 pts
+60 is 59 pts
+70 is 86 pts
+80 is 117 pts
+90 is 147 pts
+100 is 182 pts
+
+Running
+10 is 2 pts
+20 is 5 pts
+30 is 11 pts
+40 is 17 pts
+50 is 26 pts
+60 is 35 pts
+70 is 48 pts
+80 is 82 pts
+90 is 100 pts
+100 is 121 pts
+
+
+Throwing
+10 is 2 pts
+20 is 5 pts
+30 is 11 pts
+40 is 17 pts
+50 is 26 pts
+60 is 35 pts
+70 is 47 pts
+80 is 62 pts
+90 is 80 pts
+100 is 101 pts
+
+Defense
+10 is 2 pts
+20 is 5 pts
+30 is 11 pts
+40 is 17 pts
+50 is 26 pts
+60 is 35 pts
+70 is 47 pts
+80 is 62 pts
+90 is 80 pts
+100 is 101 pts
+
+Error
+10 is 1 pt
+20 is 3 pts
+30 is 7 pts
+40 is 12 pts
+50 is 17 pts
+60 is 23 pts
+70 is 31 pts
+80 is 41 pts
+90 is 53 pts
+
+For Common Abilities, base no points is D so points added are:
+
+Clutch C is 3 pts
+Clutch B is 6 pts
+Clutch A is 9 pts
+Clutch S is 24 pts
+
+Vs LHP C is 3 pts
+vs LHP B is 6 pts
+vs LHP A is 9 pts
+vs LHP S is 24 pts
+
+Stealing C is 3 pts
+Stealing B is 6 pts
+Stealing A is 9 pts
+Stealing S is 24 pts
+
+Running C is 2 pts
+Running B is 4 pts
+Running A is 6 pts
+Running S is 21 pts
+
+Throwing C is 2 pts
+Throwing B is 4 pts
+Throwing A is 6 pts
+Throwing S is 21 pts
+
+Grit C is 2 pts
+Grit B is 4 pts
+Grit A is 6 pts
+Grit S is 21 pts
+
+Catcher C is 3 pts
+Catcher B is 6 pts
+Catcher A is 9 pts
+Catcher S is 24 pts
+
+Recovery for everybody should be at D across the entire realistic default roster
+
+Contact Hitter, Power Hitter, Spray Hitter, Line Drive Hitter blue abilities are 9 pts
+
+Bad Ball hitter is 2 pts
+
+Bunt Artists or Craftsman (I can't remember the exact name) is 3 pts
+
+Headfirst Slide is 5 pts
+
+All other Blue Abilities are 6 pts
+
+Gold Abilities are 15 pts

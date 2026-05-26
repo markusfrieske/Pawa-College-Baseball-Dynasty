@@ -346,6 +346,59 @@ export function getAbilityByName(name: string): Ability | undefined {
   return ALL_ABILITIES.find(a => a.name === name);
 }
 
+// ---------------------------------------------------------------------------
+// Hitter OVR: lookup-table system with linear interpolation
+// ---------------------------------------------------------------------------
+function hitterInterp(table: [number, number][], value: number): number {
+  const v = Math.max(table[0][0], Math.min(table[table.length - 1][0], value));
+  for (let i = 0; i < table.length - 1; i++) {
+    const [x0, y0] = table[i];
+    const [x1, y1] = table[i + 1];
+    if (v >= x0 && v <= x1) {
+      return y0 + ((v - x0) / (x1 - x0)) * (y1 - y0);
+    }
+  }
+  return table[table.length - 1][1];
+}
+
+const H_CONTACT:  [number, number][] = [[10,4],[20,9],[30,19],[40,29],[50,44],[60,59],[70,79],[80,104],[90,134],[100,169]];
+const H_POWER:    [number, number][] = [[10,4],[20,9],[30,19],[40,29],[50,44],[60,59],[70,86],[80,117],[90,147],[100,182]];
+const H_RUNNING:  [number, number][] = [[10,2],[20,5],[30,11],[40,17],[50,26],[60,35],[70,48],[80,82],[90,100],[100,121]];
+const H_THROWING: [number, number][] = [[10,2],[20,5],[30,11],[40,17],[50,26],[60,35],[70,47],[80,62],[90,80],[100,101]];
+const H_DEFENSE:  [number, number][] = [[10,2],[20,5],[30,11],[40,17],[50,26],[60,35],[70,47],[80,62],[90,80],[100,101]];
+const H_ERROR:    [number, number][] = [[10,1],[20,3],[30,7],[40,12],[50,17],[60,23],[70,31],[80,41],[90,53]];
+const TRAJ_PTS:   Record<number, number> = { 1: 0, 2: 9, 3: 13, 4: 17 };
+
+function commonGrade(v: number): "S" | "A" | "B" | "C" | "D" {
+  if (v >= 90) return "S";
+  if (v >= 80) return "A";
+  if (v >= 70) return "B";
+  if (v >= 60) return "C";
+  return "D";
+}
+
+const COMMON_OVR: Record<string, Record<"S"|"A"|"B"|"C"|"D", number>> = {
+  clutch:         { D: 0, C: 3, B: 6, A: 9,  S: 24 },
+  vsLHP:          { D: 0, C: 3, B: 6, A: 9,  S: 24 },
+  stealing:       { D: 0, C: 3, B: 6, A: 9,  S: 24 },
+  running:        { D: 0, C: 2, B: 4, A: 6,  S: 21 },
+  throwing:       { D: 0, C: 2, B: 4, A: 6,  S: 21 },
+  grit:           { D: 0, C: 2, B: 4, A: 6,  S: 21 },
+  catcherAbility: { D: 0, C: 3, B: 6, A: 9,  S: 24 },
+};
+
+const HITTER_NAMED_PTS: Record<string, number> = {
+  "Contact Hitter":   9,
+  "Power Hitter":     9,
+  "Spray Hitter":     9,
+  "Line Drive":       9,
+  "Bad Ball Hitter":  2,
+  "Bunt Artisan":     3,
+  "Good Bunt":        3,
+  "Head-first Slide": 5,
+};
+// ---------------------------------------------------------------------------
+
 export function calculateOVR(attrs: {
   position?: string | null;
   hitForAvg?: number | null;
@@ -370,25 +423,26 @@ export function calculateOVR(attrs: {
   poise?: number | null;
   heater?: number | null;
   agile?: number | null;
+  catcherAbility?: number | null;
+  trajectory?: number | null;
   abilities?: string[] | null;
 }): number {
   const PITCHER_POSITIONS = new Set(["P", "SP", "RP", "CP"]);
   const isPitcher = attrs.position ? PITCHER_POSITIONS.has(attrs.position) : null;
 
-  let specialBonus = 0;
-  if (attrs.abilities && attrs.abilities.length > 0) {
-    for (const abilityName of attrs.abilities) {
-      const ability = getAbilityByName(abilityName);
-      if (ability) {
-        if (ability.tier === "gold") specialBonus += 10;
-        else if (ability.tier === "blue") specialBonus += 5;
-        else if (ability.tier === "red") specialBonus -= 7;
+  if (isPitcher === true) {
+    // Pitcher formula unchanged
+    let specialBonus = 0;
+    if (attrs.abilities && attrs.abilities.length > 0) {
+      for (const abilityName of attrs.abilities) {
+        const ability = getAbilityByName(abilityName);
+        if (ability) {
+          if (ability.tier === "gold") specialBonus += 10;
+          else if (ability.tier === "blue") specialBonus += 5;
+          else if (ability.tier === "red") specialBonus -= 7;
+        }
       }
     }
-  }
-
-  if (isPitcher === true) {
-    // Pitcher formula: primary pitching attrs + fielding support + pitcher-specific common attrs
     const pitchCore =
       (attrs.velocity ?? 0) + (attrs.control ?? 0) +
       (attrs.stamina ?? 0) + (attrs.stuff ?? 0);
@@ -401,19 +455,63 @@ export function calculateOVR(attrs: {
   }
 
   if (isPitcher === false) {
-    // Hitter formula: primary batting/fielding attrs + hitter-specific common attrs
-    const hitCore =
-      (attrs.hitForAvg ?? 0) + (attrs.power ?? 0) + (attrs.speed ?? 0) +
-      (attrs.arm ?? 0) + (attrs.fielding ?? 0) + (attrs.errorResistance ?? 0);
-    const hitCommon =
-      (attrs.clutch ?? 0) + (attrs.vsLHP ?? 0) + (attrs.grit ?? 0) +
-      (attrs.stealing ?? 0) + (attrs.running ?? 0) + (attrs.throwing ?? 0) +
-      (attrs.agile ?? 0) + (attrs.wRISP ?? 0) + (attrs.vsLefty ?? 0);
-    const raw = Math.round(hitCore * 0.75 + hitCommon * 0.22 + specialBonus);
+    // Hitter formula: lookup-table attributes + graded common abilities + named special ability points
+    const traj = Math.round(Math.max(1, Math.min(4, attrs.trajectory ?? 2)));
+    const trajPts    = TRAJ_PTS[traj] ?? 9;
+    const contactPts = hitterInterp(H_CONTACT,  attrs.hitForAvg ?? 50);
+    const powerPts   = hitterInterp(H_POWER,    attrs.power ?? 50);
+    const runPts     = hitterInterp(H_RUNNING,  attrs.speed ?? 50);
+    const throwPts   = hitterInterp(H_THROWING, attrs.arm ?? 50);
+    const defPts     = hitterInterp(H_DEFENSE,  attrs.fielding ?? 50);
+    const errPts     = hitterInterp(H_ERROR,    Math.min(90, attrs.errorResistance ?? 50));
+    const attrTotal  = trajPts + contactPts + powerPts + runPts + throwPts + defPts + errPts;
+
+    let commonTotal = 0;
+    const commonInputs: Array<[keyof typeof COMMON_OVR, number | null | undefined]> = [
+      ["clutch",         attrs.clutch],
+      ["vsLHP",          attrs.vsLHP],
+      ["stealing",       attrs.stealing],
+      ["running",        attrs.running],
+      ["throwing",       attrs.throwing],
+      ["grit",           attrs.grit],
+      ["catcherAbility", attrs.catcherAbility],
+    ];
+    for (const [key, val] of commonInputs) {
+      commonTotal += COMMON_OVR[key][commonGrade(val ?? 0)];
+    }
+
+    let specialTotal = 0;
+    if (attrs.abilities && attrs.abilities.length > 0) {
+      for (const abilityName of attrs.abilities) {
+        if (HITTER_NAMED_PTS[abilityName] !== undefined) {
+          specialTotal += HITTER_NAMED_PTS[abilityName];
+        } else {
+          const ability = getAbilityByName(abilityName);
+          if (ability) {
+            if (ability.tier === "gold") specialTotal += 15;
+            else if (ability.tier === "blue") specialTotal += 6;
+            else if (ability.tier === "red") specialTotal -= 7;
+          }
+        }
+      }
+    }
+
+    const raw = Math.round(attrTotal + commonTotal + specialTotal);
     return Math.max(150, Math.min(650, raw));
   }
 
   // Fallback (no position provided): original mixed formula
+  let specialBonus = 0;
+  if (attrs.abilities && attrs.abilities.length > 0) {
+    for (const abilityName of attrs.abilities) {
+      const ability = getAbilityByName(abilityName);
+      if (ability) {
+        if (ability.tier === "gold") specialBonus += 10;
+        else if (ability.tier === "blue") specialBonus += 5;
+        else if (ability.tier === "red") specialBonus -= 7;
+      }
+    }
+  }
   const attrFields = [
     attrs.hitForAvg, attrs.power, attrs.speed, attrs.arm,
     attrs.fielding, attrs.errorResistance, attrs.velocity,
