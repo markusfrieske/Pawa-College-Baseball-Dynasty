@@ -798,9 +798,12 @@ function AbilitiesEditCell({
   abilities, recruitId, position, onCommit,
 }: { abilities: string[]; recruitId: string; position: string; onCommit: (id: string, newAbilities: string[]) => void }) {
   const [adding, setAdding] = useState(false);
+  const [swapping, setSwapping] = useState<string | null>(null);
   const selectRef = useRef<HTMLSelectElement>(null);
+  const swapRef = useRef<HTMLSelectElement>(null);
 
   useEffect(() => { if (adding) selectRef.current?.focus(); }, [adding]);
+  useEffect(() => { if (swapping) swapRef.current?.focus(); }, [swapping]);
 
   const allForPos = getAbilitiesForPosition(position);
   const available = allForPos.filter(a => !abilities.includes(a.name));
@@ -815,6 +818,16 @@ function AbilitiesEditCell({
     setAdding(false);
   };
 
+  const swapAbility = (oldName: string, newName: string) => {
+    setSwapping(null);
+    if (newName === oldName) return;
+    if (!newName) {
+      onCommit(recruitId, abilities.filter(a => a !== oldName));
+      return;
+    }
+    onCommit(recruitId, abilities.map(a => a === oldName ? newName : a));
+  };
+
   const tierColor = (name: string) => {
     const ab = allForPos.find(a => a.name === name);
     if (!ab) return "bg-blue-900/40 border-blue-700/40 text-blue-200";
@@ -824,19 +837,43 @@ function AbilitiesEditCell({
   };
 
   return (
-    <div className="flex flex-wrap gap-0.5 items-center max-w-[200px]">
+    <div className="flex flex-wrap gap-0.5 items-center max-w-[220px]">
       {abilities.map(ab => (
-        <span key={ab} className={`inline-flex items-center gap-0.5 border rounded px-1 py-0 text-[8px] whitespace-nowrap ${tierColor(ab)}`}>
-          {ab}
-          <button
-            onClick={() => removeAbility(ab)}
-            className="text-current opacity-50 hover:opacity-100 hover:text-red-400 transition-colors ml-0.5 leading-none"
-            title="Remove"
-            data-testid={`wizard-remove-ability-${recruitId}-${ab}`}
-          >×</button>
-        </span>
+        swapping === ab ? (
+          <select
+            key={ab}
+            ref={swapRef}
+            defaultValue={ab}
+            onChange={e => swapAbility(ab, e.target.value)}
+            onBlur={() => setSwapping(null)}
+            className="bg-background border border-gold text-[8px] rounded px-0.5 py-0 text-foreground max-w-[140px]"
+            data-testid={`wizard-swap-ability-select-${recruitId}-${ab}`}
+          >
+            <option value={ab}>{ab} (keep)</option>
+            <option value="">— remove —</option>
+            {available.map(a => (
+              <option key={a.name} value={a.name}>{a.tier === "gold" ? "★ " : a.tier === "red" ? "✕ " : "• "}{a.name}</option>
+            ))}
+          </select>
+        ) : (
+          <span
+            key={ab}
+            className={`inline-flex items-center gap-0.5 border rounded px-1 py-0 text-[8px] whitespace-nowrap cursor-pointer hover:ring-1 hover:ring-gold/50 transition-all ${tierColor(ab)}`}
+            title="Click to swap or remove"
+            onClick={() => { setAdding(false); setSwapping(ab); }}
+            data-testid={`wizard-ability-badge-${recruitId}-${ab}`}
+          >
+            {ab}
+            <button
+              onClick={e => { e.stopPropagation(); removeAbility(ab); }}
+              className="text-current opacity-50 hover:opacity-100 hover:text-red-400 transition-colors ml-0.5 leading-none"
+              title="Remove"
+              data-testid={`wizard-remove-ability-${recruitId}-${ab}`}
+            >×</button>
+          </span>
+        )
       ))}
-      {abilities.length < MAX_SPECIAL_ABILITIES && (
+      {abilities.length < MAX_SPECIAL_ABILITIES && !swapping && (
         adding ? (
           <select
             ref={selectRef}
@@ -860,7 +897,7 @@ function AbilitiesEditCell({
           >+</button>
         )
       )}
-      {abilities.length === 0 && !adding && (
+      {abilities.length === 0 && !adding && !swapping && (
         <span className="text-muted-foreground/30 text-[8px]">—</span>
       )}
     </div>
