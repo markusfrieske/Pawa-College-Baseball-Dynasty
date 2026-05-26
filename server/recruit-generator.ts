@@ -845,9 +845,9 @@ export function generateRecruitClass(
     } else if (isGenerationalBust) {
       overall = Math.min(overall, 149);
     } else if (isBlueChip) {
-      overall = Math.max(500, Math.min(999, overall));
+      overall = Math.max(500, Math.min(650, overall));
     } else if (isGem || isBust) {
-      overall = Math.max(1, Math.min(999, overall));
+      overall = Math.max(159, Math.min(650, overall));
     } else if (playerArchetype === "late_bloomer") {
       // Late bloomer: OVR depressed below their star tier — looks weaker than ranking suggests
       // but potential is forced high. A 4★ late bloomer will show 3★-range OVR.
