@@ -286,12 +286,12 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
   const COMMON_KEY_TO_GOLD: Record<string, string> = Object.fromEntries(
     Object.entries(S_GOLD_COMMON_KEY).map(([gold, key]) => [key, gold])
   );
-  // Helper: return the gold ability name to badge if player has S-grade + the ability
+  // Helper: return the gold ability name to badge whenever the common ability hits S-grade (≥90).
+  // The badge is shown based on grade alone — no need for the gold ability to also appear
+  // in the special abilities list (S-grade *is* the gold-ability equivalent).
   const sGoldBadge = (attrVal: number | null | undefined, commonKey: string): string | undefined => {
     if ((attrVal ?? 0) < 90) return undefined;
-    const goldName = COMMON_KEY_TO_GOLD[commonKey];
-    if (!goldName) return undefined;
-    return player.abilities?.includes(goldName) ? goldName : undefined;
+    return COMMON_KEY_TO_GOLD[commonKey];
   };
 
   // Common abilities for fielders (displayed as letter grades G-A)

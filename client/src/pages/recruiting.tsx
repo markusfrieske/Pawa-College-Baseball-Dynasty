@@ -3380,22 +3380,22 @@ function RecruitDetailModal({
                   <CommonAbilityRow label="W/RISP" value={recruit.wRISP} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("wRISP")} />
                   <CommonAbilityRow label="vs Lefty" value={recruit.vsLefty} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("vsLefty")} />
                   <CommonAbilityRow label="Poise" value={recruit.poise} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("poise")} />
-                  <CommonAbilityRow label="Grit" value={recruit.grit} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("grit")} goldAbilityName={recruitSGoldBadge(recruit.grit, "grit", recruit.abilities as string[])} />
+                  <CommonAbilityRow label="Grit" value={recruit.grit} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("grit")} goldAbilityName={recruitSGoldBadge(recruit.grit, "grit")} />
                   <CommonAbilityRow label="Heater" value={recruit.heater} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("heater")} />
                   <CommonAbilityRow label="Agile" value={recruit.agile} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("agile")} />
                   <CommonAbilityRow label="Recovery" value={recruit.recovery} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("recovery")} />
                 </>
               ) : (
                 <>
-                  <CommonAbilityRow label="Clutch" value={recruit.clutch} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("clutch")} goldAbilityName={recruitSGoldBadge(recruit.clutch, "clutch", recruit.abilities as string[])} />
-                  <CommonAbilityRow label="vs LHP" value={recruit.vsLHP} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("vsLHP")} goldAbilityName={recruitSGoldBadge(recruit.vsLHP, "vsLHP", recruit.abilities as string[])} />
-                  <CommonAbilityRow label="Grit" value={recruit.grit} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("grit")} goldAbilityName={recruitSGoldBadge(recruit.grit, "grit", recruit.abilities as string[])} />
-                  <CommonAbilityRow label="Stealing" value={recruit.stealing} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("stealing")} goldAbilityName={recruitSGoldBadge(recruit.stealing, "stealing", recruit.abilities as string[])} />
-                  <CommonAbilityRow label="Running" value={recruit.running} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("running")} goldAbilityName={recruitSGoldBadge(recruit.running, "running", recruit.abilities as string[])} />
-                  <CommonAbilityRow label="Throwing" value={recruit.throwing} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("throwing")} goldAbilityName={recruitSGoldBadge(recruit.throwing, "throwing", recruit.abilities as string[])} />
+                  <CommonAbilityRow label="Clutch" value={recruit.clutch} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("clutch")} goldAbilityName={recruitSGoldBadge(recruit.clutch, "clutch")} />
+                  <CommonAbilityRow label="vs LHP" value={recruit.vsLHP} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("vsLHP")} goldAbilityName={recruitSGoldBadge(recruit.vsLHP, "vsLHP")} />
+                  <CommonAbilityRow label="Grit" value={recruit.grit} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("grit")} goldAbilityName={recruitSGoldBadge(recruit.grit, "grit")} />
+                  <CommonAbilityRow label="Stealing" value={recruit.stealing} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("stealing")} goldAbilityName={recruitSGoldBadge(recruit.stealing, "stealing")} />
+                  <CommonAbilityRow label="Running" value={recruit.running} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("running")} goldAbilityName={recruitSGoldBadge(recruit.running, "running")} />
+                  <CommonAbilityRow label="Throwing" value={recruit.throwing} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("throwing")} goldAbilityName={recruitSGoldBadge(recruit.throwing, "throwing")} />
                   <CommonAbilityRow label="Recovery" value={recruit.recovery} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("recovery")} />
                   {recruit.position === "C" && (
-                    <CommonAbilityRow label="Catcher" value={recruit.catcherAbility} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("catcherAbility")} goldAbilityName={recruitSGoldBadge(recruit.catcherAbility, "catcherAbility", recruit.abilities as string[])} />
+                    <CommonAbilityRow label="Catcher" value={recruit.catcherAbility} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("catcherAbility")} goldAbilityName={recruitSGoldBadge(recruit.catcherAbility, "catcherAbility")} />
                   )}
                 </>
               )}
@@ -3855,22 +3855,22 @@ function RecruitDetailModal({
                   <CommonAbilityRow label="W/RISP" value={recruit.wRISP} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("wRISP")} />
                   <CommonAbilityRow label="vs Lefty" value={recruit.vsLefty} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("vsLefty")} />
                   <CommonAbilityRow label="Poise" value={recruit.poise} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("poise")} />
-                  <CommonAbilityRow label="Grit" value={recruit.grit} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("grit")} goldAbilityName={recruitSGoldBadge(recruit.grit, "grit", recruit.abilities as string[])} />
+                  <CommonAbilityRow label="Grit" value={recruit.grit} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("grit")} goldAbilityName={recruitSGoldBadge(recruit.grit, "grit")} />
                   <CommonAbilityRow label="Heater" value={recruit.heater} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("heater")} />
                   <CommonAbilityRow label="Agile" value={recruit.agile} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("agile")} />
                   <CommonAbilityRow label="Recovery" value={recruit.recovery} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("recovery")} />
                 </>
               ) : (
                 <>
-                  <CommonAbilityRow label="Clutch" value={recruit.clutch} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("clutch")} goldAbilityName={recruitSGoldBadge(recruit.clutch, "clutch", recruit.abilities as string[])} />
-                  <CommonAbilityRow label="vs LHP" value={recruit.vsLHP} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("vsLHP")} goldAbilityName={recruitSGoldBadge(recruit.vsLHP, "vsLHP", recruit.abilities as string[])} />
-                  <CommonAbilityRow label="Grit" value={recruit.grit} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("grit")} goldAbilityName={recruitSGoldBadge(recruit.grit, "grit", recruit.abilities as string[])} />
-                  <CommonAbilityRow label="Stealing" value={recruit.stealing} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("stealing")} goldAbilityName={recruitSGoldBadge(recruit.stealing, "stealing", recruit.abilities as string[])} />
-                  <CommonAbilityRow label="Running" value={recruit.running} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("running")} goldAbilityName={recruitSGoldBadge(recruit.running, "running", recruit.abilities as string[])} />
-                  <CommonAbilityRow label="Throwing" value={recruit.throwing} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("throwing")} goldAbilityName={recruitSGoldBadge(recruit.throwing, "throwing", recruit.abilities as string[])} />
+                  <CommonAbilityRow label="Clutch" value={recruit.clutch} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("clutch")} goldAbilityName={recruitSGoldBadge(recruit.clutch, "clutch")} />
+                  <CommonAbilityRow label="vs LHP" value={recruit.vsLHP} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("vsLHP")} goldAbilityName={recruitSGoldBadge(recruit.vsLHP, "vsLHP")} />
+                  <CommonAbilityRow label="Grit" value={recruit.grit} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("grit")} goldAbilityName={recruitSGoldBadge(recruit.grit, "grit")} />
+                  <CommonAbilityRow label="Stealing" value={recruit.stealing} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("stealing")} goldAbilityName={recruitSGoldBadge(recruit.stealing, "stealing")} />
+                  <CommonAbilityRow label="Running" value={recruit.running} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("running")} goldAbilityName={recruitSGoldBadge(recruit.running, "running")} />
+                  <CommonAbilityRow label="Throwing" value={recruit.throwing} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("throwing")} goldAbilityName={recruitSGoldBadge(recruit.throwing, "throwing")} />
                   <CommonAbilityRow label="Recovery" value={recruit.recovery} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("recovery")} />
                   {recruit.position === "C" && (
-                    <CommonAbilityRow label="Catcher" value={recruit.catcherAbility} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("catcherAbility")} goldAbilityName={recruitSGoldBadge(recruit.catcherAbility, "catcherAbility", recruit.abilities as string[])} />
+                    <CommonAbilityRow label="Catcher" value={recruit.catcherAbility} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("catcherAbility")} goldAbilityName={recruitSGoldBadge(recruit.catcherAbility, "catcherAbility")} />
                   )}
                 </>
               )}
@@ -4393,11 +4393,9 @@ const COMMON_KEY_TO_GOLD: Record<string, string> = Object.fromEntries(
   Object.entries(S_GOLD_COMMON_KEY).map(([gold, key]) => [key, gold])
 );
 
-function recruitSGoldBadge(attrVal: number | null | undefined, commonKey: string, abilities: string[] | null | undefined): string | undefined {
+function recruitSGoldBadge(attrVal: number | null | undefined, commonKey: string): string | undefined {
   if ((attrVal ?? 0) < 90) return undefined;
-  const goldName = COMMON_KEY_TO_GOLD[commonKey];
-  if (!goldName) return undefined;
-  return abilities?.includes(goldName) ? goldName : undefined;
+  return COMMON_KEY_TO_GOLD[commonKey];
 }
 
 function CommonAbilityRow({ 
