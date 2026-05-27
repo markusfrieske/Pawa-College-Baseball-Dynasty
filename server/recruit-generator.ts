@@ -314,7 +314,7 @@ export function generateRecruitClass(
     if (t === "hidden_gems") { gemChance = 0.24; bustChance = 0.06; }
     else if (t === "bust_heavy") { gemChance = 0.05; bustChance = 0.18; }
     else { gemChance = 0.14; bustChance = 0.12; }
-    if (starRank >= 1 && starRank <= 3 && roll < gemChance) return { isGem: true, isBust: false };
+    if (starRank >= 1 && starRank <= 4 && roll < gemChance) return { isGem: true, isBust: false };
     if (starRank >= 3 && starRank <= 5 && roll < bustChance) return { isGem: false, isBust: true };
     return { isGem: false, isBust: false };
   };
@@ -842,31 +842,33 @@ export function generateRecruitClass(
     let overall = calculateOVR(recruitOvrData);
 
     if (isGenerationalGem) {
-      overall = Math.max(651, Math.min(999, overall));
+      overall = Math.max(600, Math.min(650, overall));
     } else if (isGenerationalBust) {
-      overall = Math.min(overall, 149);
+      overall = Math.max(150, Math.min(199, overall));
     } else if (isBlueChip) {
-      overall = Math.max(500, Math.min(650, overall));
-    } else if (isGem || isBust) {
-      overall = Math.max(159, Math.min(650, overall));
+      overall = Math.max(540, Math.min(599, overall));
+    } else if (isGem) {
+      overall = Math.max(500, Math.min(599, overall));
+    } else if (isBust) {
+      overall = Math.max(200, Math.min(299, overall));
     } else if (playerArchetype === "late_bloomer") {
       // Late bloomer: OVR depressed below their star tier — looks weaker than ranking suggests
       // but potential is forced high. A 4★ late bloomer will show 3★-range OVR.
-      const starCaps: Record<number, number> = { 5: 499, 4: 449, 3: 374, 2: 299, 1: 224 };
-      const baseCap = starCaps[starRank] ?? 449;
+      const starCaps: Record<number, number> = { 5: 539, 4: 499, 3: 399, 2: 299, 1: 199 };
+      const baseCap = starCaps[starRank] ?? 499;
       const depression = 45 + Math.floor(Math.random() * 40);
-      overall = Math.max(159, Math.min(baseCap, overall) - depression);
+      overall = Math.max(150, Math.min(baseCap, overall) - depression);
     } else if (playerArchetype === "overdraft") {
       // Overdraft: OVR inflated above their star tier — looks better than ranking suggests
       // but potential is forced low. A 3★ overdraft will show 4★-range OVR.
-      const nextTierFloor: Record<number, number> = { 5: 460, 4: 370, 3: 285, 2: 210, 1: 180 };
-      const floor = nextTierFloor[starRank] ?? 370;
+      const nextTierFloor: Record<number, number> = { 5: 510, 4: 410, 3: 310, 2: 210, 1: 160 };
+      const floor = nextTierFloor[starRank] ?? 410;
       const inflation = 40 + Math.floor(Math.random() * 40);
       overall = Math.max(floor, Math.min(499, overall + inflation));
     } else {
-      const starCaps: Record<number, number> = { 5: 499, 4: 449, 3: 374, 2: 299, 1: 224 };
+      const starCaps: Record<number, number> = { 5: 539, 4: 499, 3: 399, 2: 299, 1: 199 };
       const cap = starCaps[starRank] ?? 499;
-      overall = Math.max(159, Math.min(cap, overall));
+      overall = Math.max(150, Math.min(cap, overall));
     }
     // Enforce gold OVR gate: generational gems are exempt (they're always elite)
     if (!isGenerationalGem && !isGenerationalBust) {
@@ -874,7 +876,7 @@ export function generateRecruitClass(
       if (gated !== abilities) {
         abilities = gated;
         // Gold gives +10 OVR, blue gives +5, so each gold→blue swap costs 5 OVR
-        overall = Math.max(159, overall - 5);
+        overall = Math.max(150, overall - 5);
       }
     }
     const computedStarRating = getStarRatingFromOVR(overall);

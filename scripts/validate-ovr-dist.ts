@@ -4,11 +4,11 @@
  * plus per-conference and per-team guardrails.
  *
  * Thresholds align with star rating system:
- *   5★ (Elite):       OVR ≥ 550
- *   4★ (Above Avg):   OVR 450–549
- *   3★ (Average):     OVR 350–449
- *   2★ (Below Avg):   OVR 250–349
- *   1★ (Low):         OVR < 250
+ *   5★ (Elite):       OVR ≥ 500
+ *   4★ (Above Avg):   OVR 400–499
+ *   3★ (Average):     OVR 300–399
+ *   2★ (Below Avg):   OVR 200–299
+ *   1★ (Low):         OVR < 200
  *
  * Wired into: validate-rosters workflow and validate-all suite.
  * Exits non-zero on any failure so CI catches regressions.
@@ -16,14 +16,14 @@
 import { ALL_REAL_ROSTERS } from "../server/realRosters";
 import { calculateOVR } from "../shared/abilities";
 
-const ELITE_THRESHOLD = 550;
-const ABOVE_AVG_THRESHOLD = 450;
+const ELITE_THRESHOLD = 500;
+const ABOVE_AVG_THRESHOLD = 400;
 
 const GLOBAL_ELITE_MAX_PCT = 10;
 const GLOBAL_ABOVE_AVG_MAX_PCT = 40;
 const CONF_ELITE_MAX_PCT = 30;
 const CONF_ABOVE_AVG_MAX_PCT = 75;
-const TEAM_ELITE_MAX = 8;
+const TEAM_ELITE_MAX = 12;
 
 const CONFERENCES: Record<string, string[]> = {
   SEC: ["Alabama","Auburn","Florida","Georgia","Kentucky","LSU","Mississippi State","Missouri","Ole Miss","South Carolina","Tennessee","Texas A&M","Vanderbilt","Arkansas"],

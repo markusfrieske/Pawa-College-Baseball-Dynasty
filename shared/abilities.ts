@@ -803,9 +803,9 @@ export function calculateOVR(attrs: {
 }
 
 export function getStarRatingFromOVR(ovr: number): number {
-  if (ovr >= 550) return 5;
-  if (ovr >= 450) return 4;
-  if (ovr >= 350) return 3;
-  if (ovr >= 175) return 2;
+  if (ovr >= 500) return 5;
+  if (ovr >= 400) return 4;
+  if (ovr >= 300) return 3;
+  if (ovr >= 200) return 2;
   return 1;
 }
