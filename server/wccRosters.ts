@@ -783,7 +783,7 @@ import type { RealPlayer } from "./realRosters";
     { firstName: "Jacob", lastName: "Wrubleski", position: "C", eligibility: "JR", homeState: "CO", hometown: "Durango", jerseyNumber: 18,
         hitForAvg: 67, power: 54, speed: 40, arm: 63, fielding: 61, errorResistance: 57, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 48, vsLHP: 48, grit: 48, stealing: 48, running: 48, throwing: 54, recovery: 48, wRISP: 49, vsLefty: 47, poise: 51, heater: 0, agile: 51,
-        abilities: ["Consigliere", "Contact Hitter"], potential: "B+", catcherAbility: 63,
+        abilities: ["Consigliere", "Spray Hitter"], potential: "B+", catcherAbility: 63,
         throwHand: "R", batHand: "S",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },

@@ -324,6 +324,14 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
   const attrs = isPitcher ? pitcherAttrs : fielderAttrs;
   const commonAbilities = isPitcher ? pitcherCommonAbilities : fielderCommonAbilities;
 
+  // Gold abilities that are already displayed in the Common Abilities section (via sGoldBadge)
+  // should NOT also appear in the Special Abilities badge list.
+  const commonLinkedGoldShown = new Set(
+    commonAbilities
+      .map(a => (a as { goldAbilityName?: string }).goldAbilityName)
+      .filter((n): n is string => !!n)
+  );
+
   // Derive trajectory for hitters — fall back to computing from attrs when the
   // stored value is absent (players created before the trajectory migration).
   const effectiveTrajectory: 1 | 2 | 3 | 4 =
@@ -508,7 +516,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
           <h3 className="font-pixel text-gold text-xs mb-3">SPECIAL ABILITIES</h3>
           {player.abilities && player.abilities.length > 0 ? (
             <div className="flex flex-wrap gap-2">
-              {player.abilities.map((abilityName, idx) => {
+              {player.abilities.filter(name => !commonLinkedGoldShown.has(name)).map((abilityName, idx) => {
                 const ability = getAbilityByName(abilityName);
                 const tierStyles: Record<string, { className: string; style: React.CSSProperties }> = {
                   gold: {
