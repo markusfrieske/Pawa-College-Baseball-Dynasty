@@ -381,6 +381,18 @@ function commonGrade(v: number): "S" | "A" | "B" | "C" | "D" | "F" | "G" {
   return "G";
 }
 
+// Pitcher-specific grade thresholds (from task spec):
+// G<30, F<40, D<50, C<60, B<70, A<80, S≥90
+function pitcherCommonGrade(v: number): "S" | "A" | "B" | "C" | "D" | "F" | "G" {
+  if (v >= 90) return "S";
+  if (v >= 80) return "A";
+  if (v >= 70) return "B";
+  if (v >= 60) return "C";
+  if (v >= 50) return "D";
+  if (v >= 40) return "F";
+  return "G";
+}
+
 const COMMON_OVR: Record<string, Record<"S"|"A"|"B"|"C"|"D"|"F"|"G", number>> = {
   clutch:         { G: -3, F: -3, D: 0, C: 3, B: 6, A: 9,  S: 24 },
   vsLHP:          { G: -3, F: -3, D: 0, C: 3, B: 6, A: 9,  S: 24 },
@@ -646,9 +658,11 @@ export function calculateOVR(attrs: {
     const coreTotal = velRaw + ctrlRaw + stamRaw + diversityPts + levelPts;
 
     // ── Common attribute grades ─────────────────────────────────────────────
-    // When a gold ability is linked to a common attr, zero out that attr's pts
-    // (the gold ability itself scores via PITCHER_NAMED_PTS — no double-count).
-    // S grade always scores 0 from the table (PITCHER_COMMON_RAW has S=0).
+    // S grade is handled exclusively by the linked gold ability: when the
+    // gold is present AND the attr grades S, zero out the common row (the gold
+    // ability's pts in PITCHER_NAMED_PTS replace it — no double-count).
+    // For all non-S grades, the common attr contributes normally even if the
+    // linked gold is also in the ability list.
     const abilities = attrs.abilities ?? [];
     const goldLinkedCommonAttrs = new Set<string>();
     for (const name of abilities) {
@@ -658,9 +672,11 @@ export function calculateOVR(attrs: {
 
     let commonTotal = 0;
     for (const [attrKey, gradeTable] of Object.entries(PITCHER_COMMON_RAW)) {
-      if (goldLinkedCommonAttrs.has(attrKey)) continue;
       const val = ((attrs as Record<string, unknown>)[attrKey] as number | null | undefined) ?? 0;
-      commonTotal += gradeTable[commonGrade(val)];
+      const grade = pitcherCommonGrade(val);
+      // Skip the common attr only when a gold is present AND the attr is S grade
+      if (grade === "S" && goldLinkedCommonAttrs.has(attrKey)) continue;
+      commonTotal += gradeTable[grade];
     }
 
     // ── Special abilities ───────────────────────────────────────────────────
