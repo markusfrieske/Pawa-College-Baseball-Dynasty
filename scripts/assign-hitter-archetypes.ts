@@ -150,11 +150,14 @@ function classifyHitter(scaled: RealPlayer): string {
 
   const ovr = calculateOVR(scaled);
 
-  // ── Raw: exactly one primary attr ≥ 70, all others < 50, OVR < 350
+  // Average of the 6 secondary common attrs — used for Superstar/Star gates
+  const commonAvg = ALL_COMMON.reduce((s, a) => s + ((scaled[a] as number) ?? 0), 0) / ALL_COMMON.length;
+
+  // ── Raw: exactly one primary attr ≥ 70, all others < 50, OVR < 300
   const primaries = ALL_PRIMARY.map(a => (scaled[a] as number) ?? 0);
   const highCount = primaries.filter(v => v >= 70).length;
   const lowCount  = primaries.filter(v => v < 50).length;
-  if (highCount === 1 && lowCount >= 5 && ovr < 350) return "Raw";
+  if (highCount === 1 && lowCount >= 5 && ovr < 300) return "Raw";
 
   // ── Role: one group peak ≥ 65, both other groups' primaries ALL < 55
   const hitAllLow = GROUP_PRIMARY["Hitting"].every(a => ((scaled[a] as number) ?? 0) < 55);
@@ -165,10 +168,13 @@ function classifyHitter(scaled: RealPlayer): string {
   if (spdPeak >= 65 && hitAllLow && defAllLow) return "Role-Speed";
   if (defPeak >= 65 && hitAllLow && spdAllLow) return "Role-Defense";
 
-  // ── Standard tiers — use primary peak only (common attrs inflated by Task #638)
-  if (allPeak >= 75) return "Superstar";
-  if (allPeak >= 70) return "Star";
+  // ── Standard tiers (primary peak + common avg gates per spec)
+  if (allPeak >= 75 && commonAvg >= 60) return "Superstar";
+  if (allPeak >= 70 && commonAvg >= 50) return "Star";
   if (allPeak >= 60) return "Solid";
+  if (allPeak >= 50) return "Average";
+  // Players below 50 peak not captured by Role/Raw default to Average
+  // (no separate sub-average tier defined in spec for this case)
   return "Average";
 }
 
@@ -362,24 +368,35 @@ for (const g of ["S", "A", "B", "C", "D", "F", "G"]) {
 // ── Validation ────────────────────────────────────────────────────────────────
 const violations: string[] = [];
 
-// Every Role/Raw hitter should have at least 1 common attr in F/G range after patching
+// Every Role/Raw hitter must have at least 1 common attr in F/G range after patching.
+// Check ALL classified Role/Raw hitters — not just the ones patched this run.
 let roleRawNoF = 0;
-for (const patch of patches) {
-  if (!patch.archetype.startsWith("Role-") && patch.archetype !== "Raw") continue;
-  const rawPlayer = (RAW_UNCALIBRATED_ROSTERS[patch.team] ?? [])
-    .find(p => p.firstName === patch.firstName && p.lastName === patch.lastName);
-  if (!rawPlayer) continue;
-  const sf = ROSTER_SCALE_FACTORS[patch.team] ?? 1;
-  const scaledPlayer = applyScaleFactor(rawPlayer, sf);
-  const patchedScaled: Record<string, unknown> = { ...scaledPlayer };
-  for (const [attr, { newRaw }] of Object.entries(patch.attrChanges)) {
-    patchedScaled[attr] = clamp20_99(Math.round(newRaw * sf));
+for (const [team, players] of Object.entries(RAW_UNCALIBRATED_ROSTERS)) {
+  const sf = ROSTER_SCALE_FACTORS[team] ?? 1;
+  for (const rawPlayer of players) {
+    if (PITCHER_POSITIONS.has(rawPlayer.position)) continue;
+    const scaledPlayer = applyScaleFactor(rawPlayer, sf);
+    const overrideKey  = `${rawPlayer.firstName}|${rawPlayer.lastName}|${team}`;
+    const archetype    = HITTER_ARCHETYPE_OVERRIDES[overrideKey] ?? classifyHitter(scaledPlayer);
+    if (!archetype.startsWith("Role-") && archetype !== "Raw") continue;
+
+    const key   = `${rawPlayer.firstName}|${rawPlayer.lastName}|${team}`;
+    const patch = patchLookup.get(key);
+
+    // Build the post-patch scaled view: apply any new changes on top of current scaled values
+    const patchedScaled: Record<string, unknown> = { ...scaledPlayer };
+    if (patch) {
+      for (const [attr, { newRaw }] of Object.entries(patch.attrChanges)) {
+        patchedScaled[attr] = clamp20_99(Math.round(newRaw * sf));
+      }
+    }
+
+    const hasFOrG = ALL_COMMON.some(a => {
+      const v = (patchedScaled[a as string] as number) ?? 0;
+      return v < 40; // F or G grade
+    });
+    if (!hasFOrG) roleRawNoF++;
   }
-  const hasFOrG = ALL_COMMON.some(a => {
-    const v = (patchedScaled[a as string] as number) ?? 0;
-    return v < 40; // F or G grade
-  });
-  if (!hasFOrG) roleRawNoF++;
 }
 
 if (roleRawNoF > 0) {
