@@ -10,7 +10,7 @@ import { LetterGrade, getLetterGrade } from "@/components/ui/letter-grade";
 import { PlayerPortrait } from "@/components/ui/player-portrait";
 import { PitchMixDial, generatePitchMixForDial } from "@/components/ui/pitch-mix-dial";
 import { MapPin, Star, Edit, Trophy, ArrowUp, ArrowDown, ArrowUpRight, ArrowRight, ArrowDownRight, ChevronDown, ChevronUp, Check, X } from "lucide-react";
-import { getAbilityByName, getAbilitiesForPosition, ALL_ABILITIES, S_GOLD_COMMON_KEY } from "@shared/abilities";
+import { getAbilityByName, getAbilitiesForPosition, ALL_ABILITIES, S_GOLD_COMMON_KEY, S_GOLD_PITCHER_KEY } from "@shared/abilities";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { velocityToMPH } from "@/lib/playerUtils";
 import { getPotentialGrade, getProgressionZone, getProgressionColor } from "@shared/potential";
@@ -310,15 +310,27 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
     fielderCommonAbilities.push({ label: "Catcher", value: player.catcherAbility, delta: deltas?.catcherAbility, goldAbilityName: sGoldBadge(player.catcherAbility, "catcherAbility") });
   }
 
+  // Reverse map for pitcher: common-attr key → gold ability name
+  const PITCHER_COMMON_KEY_TO_GOLD: Record<string, string> = Object.fromEntries(
+    Object.entries(S_GOLD_PITCHER_KEY).map(([gold, key]) => [key, gold])
+  );
+  // Returns the gold ability name for a pitcher common attr when the player
+  // has that gold ability in their abilities list.
+  const sPitcherGoldBadge = (attrKey: string): string | undefined => {
+    const goldName = PITCHER_COMMON_KEY_TO_GOLD[attrKey];
+    if (!goldName) return undefined;
+    return (player.abilities ?? []).includes(goldName) ? goldName : undefined;
+  };
+
   // Common abilities for pitchers (displayed as letter grades G-A)
   const pitcherCommonAbilities = [
-    { label: "W/RISP", value: player.wRISP, delta: deltas?.wRISP },
-    { label: "vs Lefty", value: player.vsLefty, delta: deltas?.vsLefty },
+    { label: "W/RISP", value: player.wRISP, delta: deltas?.wRISP, goldAbilityName: sPitcherGoldBadge("wRISP") },
+    { label: "vs Lefty", value: player.vsLefty, delta: deltas?.vsLefty, goldAbilityName: sPitcherGoldBadge("vsLefty") },
     { label: "Poise", value: player.poise, delta: deltas?.poise },
     { label: "Grit", value: player.grit, delta: deltas?.grit },
-    { label: "Heater", value: player.heater, delta: deltas?.heater },
-    { label: "Agile", value: player.agile, delta: deltas?.agile },
-    { label: "Recovery", value: player.recovery, delta: deltas?.recovery },
+    { label: "Heater", value: player.heater, delta: deltas?.heater, goldAbilityName: sPitcherGoldBadge("heater") },
+    { label: "Agile", value: player.agile, delta: deltas?.agile, goldAbilityName: sPitcherGoldBadge("agile") },
+    { label: "Recovery", value: player.recovery, delta: deltas?.recovery, goldAbilityName: sPitcherGoldBadge("recovery") },
   ];
 
   const attrs = isPitcher ? pitcherAttrs : fielderAttrs;

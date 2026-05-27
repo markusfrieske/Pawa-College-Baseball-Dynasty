@@ -33,6 +33,7 @@ export const PITCHER_GOLD_ABILITIES: Ability[] = [
   { name: "Indomitable Soul", description: "Pitcher is almost impossible to rattle", tier: "gold", category: "pitcher" },
   { name: "Phantasmagoric", description: "Mixing fastballs and breaking balls will greatly increase both perceived speed and break", tier: "gold", category: "pitcher" },
   { name: "Houdini", description: "Becomes extremely unlikely that a mistake pitch will land in the middle of the strikezone", tier: "gold", category: "pitcher" },
+  { name: "Dominant Force", description: "When pitching in relief, overwhelm opposing batters with sheer presence", tier: "gold", category: "pitcher" },
 ];
 
 export const PITCHER_BLUE_ABILITIES: Ability[] = [
@@ -415,6 +416,115 @@ export const S_GOLD_COMMON_KEY: Record<string, keyof typeof COMMON_OVR> = {
   "The Almanac":        "catcherAbility",
   "Iron Man":           "grit",
 };
+
+// ---------------------------------------------------------------------------
+// Pitcher OVR: point-based system with velocity zones, control/stamina tiers,
+// pitch diversity bonus, per-pitch-level points, and graded common attributes.
+// ---------------------------------------------------------------------------
+
+// Raw grade table for pitcher common attributes.
+// D/C grades are neutral (0 pts). F/G are penalties, B/A/S are bonuses.
+// S values represent the linked gold ability's ceiling; they're only reached
+// when the gold badge is present (which zeroes out the common attr and scores
+// via PITCHER_NAMED_PTS instead). Without the gold, S is scored at 0 (no
+// natural S exists in roster data).
+const PITCHER_COMMON_RAW: Record<string, Record<"S"|"A"|"B"|"C"|"D"|"F"|"G", number>> = {
+  heater:   { G: -27.84, F: -20.88, D: 0, C: 0, B: 13.92, A: 27.84, S: 45.24 },
+  wRISP:    { G: -27.84, F: -20.88, D: 0, C: 0, B: 13.92, A: 27.84, S: 41.76 },
+  vsLefty:  { G: -13.92, F: -10.44, D: 0, C: 0, B:  6.96, A: 13.92, S: 34.80 },
+  agile:    { G:  -6.96, F:  -5.22, D: 0, C: 0, B:  3.48, A:  6.96, S: 24.36 },
+  recovery: { G: -13.92, F: -10.44, D: 0, C: 0, B:  6.96, A: 13.92, S: 38.28 },
+  poise:    { G:  -6.96, F:  -5.22, D: 0, C: 0, B:  0,    A:  0,    S:  0    },
+};
+
+// Multiplier applied to all PITCHER_COMMON_RAW values.
+const P_M2 = 0.25;
+
+// Gold pitcher abilities linked to common attributes.
+// When the gold ability is in the ability list, the linked common attr score
+// is zeroed out (the gold pts from PITCHER_NAMED_PTS replace it).
+// Exported so the UI can show the gold badge on the common ability row.
+export const S_GOLD_PITCHER_KEY: Record<string, string> = {
+  "Big Boy Speed":     "heater",
+  "Indomitable Soul":  "wRISP",
+  "Sangfroid":         "wRISP",
+  "Lefty Killer":      "vsLefty",
+  "Gas Tank":          "recovery",
+  "Halting Quickness": "agile",
+};
+
+// Named ability pts for pitchers. These are final OVR points (not raw).
+// Gold abilities not listed default to GOLD_DEFAULT; blue default BLUE_DEFAULT;
+// red default RED_DEFAULT.
+const PITCHER_NAMED_PTS: Record<string, number> = {
+  "Dominant Force":    30,
+  "Big Boy Speed":     28,
+  "Indomitable Soul":  27,
+  "Sangfroid":         27,
+  "Gas Tank":          26,
+  "Lefty Killer":      25,
+  "Halting Quickness": 20,
+  "Sharpness":         10,
+  "Natural Shuuto":     9,
+  "True Slider":        9,
+  "Cowardly":         -14,
+};
+
+const P_GOLD_DEFAULT =  25;
+const P_BLUE_DEFAULT =   8;
+const P_RED_DEFAULT  = -10;
+const P_BASE         =  70;
+const P_M1           = 2.8;
+
+// Per-level points for secondary pitches (index = pitch level 0-7).
+const PITCH_LEVEL_PTS = [0, 0.87, 2.61, 5.22, 7.83, 11.31, 14.79, 19.14];
+
+// Direction bonus: unique direction categories covered by secondary pitches.
+// Directions: glove-side (SL,CT), arm-side (SNK,2S), down (CB),
+//   down+arm (CH,SPL), down+glove (FK,SFF), screw (SHU)
+const PITCH_DIR_PTS = [0, 3.48, 10.44, 24.36, 31.32, 34.80, 34.80];
+
+// Maps each secondary pitch field to its direction category.
+const PITCH_DIR_MAP: Record<string, string> = {
+  pitchSL:  "glove",    pitchCT:  "glove",
+  pitchSNK: "arm",      pitch2S:  "arm",
+  pitchCB:  "down",
+  pitchCH:  "downArm",  pitchSPL: "downArm",
+  pitchFK:  "downGlove",pitchSFF: "downGlove",
+  pitchSHU: "screw",
+};
+
+// Control tier pts (raw) — 7-tier system matching spreadsheet.
+function controlTierPts(v: number): number {
+  if (v >= 90) return 24.36;
+  if (v >= 80) return 17.40;
+  if (v >= 70) return 13.92;
+  if (v >= 60) return 10.44;
+  if (v >= 50) return  5.22;
+  if (v >= 40) return  3.48;
+  return 1.74;
+}
+
+// Stamina tier pts (raw) — 7-tier system.
+function staminaTierPts(v: number): number {
+  if (v >= 90) return 12.18;
+  if (v >= 80) return  8.70;
+  if (v >= 70) return  6.96;
+  if (v >= 60) return  5.22;
+  if (v >= 50) return  3.48;
+  if (v >= 40) return  1.74;
+  return 0.87;
+}
+
+// Velocity zone pts (raw). Maps 1–100 scale to km/h then accumulates
+// per-2-km/h incremental pts across three speed zones.
+function velocityZonePts(velocity: number): number {
+  const kmh = 119 + velocity * 0.51;
+  const z1 = Math.min(6, Math.max(0, (Math.min(kmh, 142) - 130) / 2)) * 2.61;
+  const z2 = Math.min(5, Math.max(0, (Math.min(kmh, 152) - 142) / 2)) * 3.48;
+  const z3 = Math.max(0, (kmh - 152) / 2) * 4.35;
+  return z1 + z2 + z3;
+}
 // ---------------------------------------------------------------------------
 
 export function calculateOVR(attrs: {
@@ -444,31 +554,89 @@ export function calculateOVR(attrs: {
   catcherAbility?: number | null;
   trajectory?: number | null;
   abilities?: string[] | null;
+  pitchFB?:  number | null;
+  pitch2S?:  number | null;
+  pitchSL?:  number | null;
+  pitchCB?:  number | null;
+  pitchCH?:  number | null;
+  pitchCT?:  number | null;
+  pitchSNK?: number | null;
+  pitchSPL?: number | null;
+  pitchFK?:  number | null;
+  pitchSFF?: number | null;
+  pitchSHU?: number | null;
 }): number {
   const PITCHER_POSITIONS = new Set(["P", "SP", "RP", "CP"]);
   const isPitcher = attrs.position ? PITCHER_POSITIONS.has(attrs.position) : null;
 
   if (isPitcher === true) {
-    // Pitcher formula unchanged
-    let specialBonus = 0;
-    if (attrs.abilities && attrs.abilities.length > 0) {
-      for (const abilityName of attrs.abilities) {
-        const ability = getAbilityByName(abilityName);
+    // ── Core stats ──────────────────────────────────────────────────────────
+    const velRaw  = velocityZonePts(attrs.velocity ?? 0);
+    const ctrlRaw = controlTierPts(attrs.control ?? 0);
+    const stamRaw = staminaTierPts(attrs.stamina ?? 0);
+
+    // ── Pitch diversity & per-pitch level points ────────────────────────────
+    const hasPitchData = Object.keys(PITCH_DIR_MAP).some(
+      k => ((attrs as Record<string, unknown>)[k] as number | null | undefined ?? 0) > 0
+    );
+
+    let diversityRaw = 0;
+    let levelRaw = 0;
+
+    if (hasPitchData) {
+      const dirs = new Set<string>();
+      for (const [key, dir] of Object.entries(PITCH_DIR_MAP)) {
+        const lvl = Math.max(0, Math.min(7,
+          ((attrs as Record<string, unknown>)[key] as number | null | undefined) ?? 0
+        ));
+        if (lvl > 0) {
+          dirs.add(dir);
+          levelRaw += PITCH_LEVEL_PTS[lvl] ?? 0;
+        }
+      }
+      diversityRaw = PITCH_DIR_PTS[Math.min(5, dirs.size)] ?? 0;
+    } else {
+      // Fallback when pitch field data is absent (e.g. recruits without pitch mix):
+      // use stuff to estimate diversity+level contribution on the same raw scale.
+      const stuffNorm = (attrs.stuff ?? 50) / 100;
+      diversityRaw = 24.36 * stuffNorm;
+      levelRaw     = 16.53 * stuffNorm;
+    }
+
+    const coreTotal = (velRaw + ctrlRaw + stamRaw + diversityRaw + levelRaw) * P_M1;
+
+    // ── Common attribute grades ─────────────────────────────────────────────
+    // Build set of linked-common attrs that are zeroed out by a gold ability.
+    const abilities = attrs.abilities ?? [];
+    const goldLinkedCommonAttrs = new Set<string>();
+    for (const name of abilities) {
+      const linkedAttr = S_GOLD_PITCHER_KEY[name];
+      if (linkedAttr) goldLinkedCommonAttrs.add(linkedAttr);
+    }
+
+    let commonTotal = 0;
+    for (const [attrKey, gradeTable] of Object.entries(PITCHER_COMMON_RAW)) {
+      if (goldLinkedCommonAttrs.has(attrKey)) continue; // gold ability handles this attr
+      const val = ((attrs as Record<string, unknown>)[attrKey] as number | null | undefined) ?? 0;
+      commonTotal += gradeTable[commonGrade(val)] * P_M2;
+    }
+
+    // ── Special abilities ───────────────────────────────────────────────────
+    let specialTotal = 0;
+    for (const name of abilities) {
+      if (PITCHER_NAMED_PTS[name] !== undefined) {
+        specialTotal += PITCHER_NAMED_PTS[name];
+      } else {
+        const ability = getAbilityByName(name);
         if (ability) {
-          if (ability.tier === "gold") specialBonus += 10;
-          else if (ability.tier === "blue") specialBonus += 5;
-          else if (ability.tier === "red") specialBonus -= 7;
+          if (ability.tier === "gold")       specialTotal += P_GOLD_DEFAULT;
+          else if (ability.tier === "blue")  specialTotal += P_BLUE_DEFAULT;
+          else if (ability.tier === "red")   specialTotal += P_RED_DEFAULT;
         }
       }
     }
-    const pitchCore =
-      (attrs.velocity ?? 0) + (attrs.control ?? 0) +
-      (attrs.stamina ?? 0) + (attrs.stuff ?? 0);
-    const pitchField = (attrs.arm ?? 0) + (attrs.fielding ?? 0);
-    const pitchCommon =
-      (attrs.heater ?? 0) + (attrs.poise ?? 0) + (attrs.recovery ?? 0) +
-      (attrs.wRISP ?? 0) + (attrs.vsLefty ?? 0);
-    const raw = Math.round(pitchCore * 0.85 + pitchField * 0.20 + pitchCommon * 0.25 + specialBonus);
+
+    const raw = Math.round(P_BASE + coreTotal + commonTotal + specialTotal);
     return Math.max(1, Math.min(999, raw));
   }
 

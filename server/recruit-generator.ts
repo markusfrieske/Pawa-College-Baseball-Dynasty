@@ -837,6 +837,7 @@ export function generateRecruitClass(
     const recruitOvrData = {
       position, hitForAvg, power, speed, arm, fielding, errorResistance,
       velocity, control, stamina, stuff, ...commonAbilities, abilities,
+      ...pitchMix,
     };
     let overall = calculateOVR(recruitOvrData);
 
