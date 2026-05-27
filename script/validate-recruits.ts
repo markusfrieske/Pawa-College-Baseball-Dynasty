@@ -67,7 +67,7 @@ function validatePerClassInvariants(
       });
     }
 
-    // 3. Generational gem invariants: 5-7 abilities, OVR > 650, never blue chip
+    // 3. Generational gem invariants: 5-7 abilities, OVR 600-650, never blue chip
     for (const gem of gems) {
       if (gem.isBlueChip) {
         issues.push({ scope, severity: "error", message: `generational gem must not be blue chip` });
@@ -75,11 +75,11 @@ function validatePerClassInvariants(
       if (gem.isGenerationalBust) {
         issues.push({ scope, severity: "error", message: `recruit cannot be both generational gem and bust` });
       }
-      if ((gem.overall ?? 0) <= 650) {
+      if ((gem.overall ?? 0) < 600 || (gem.overall ?? 0) > 650) {
         issues.push({
           scope,
           severity: "error",
-          message: `generational gem OVR=${gem.overall} must be > 650`,
+          message: `generational gem OVR=${gem.overall} must be 600-650`,
         });
       }
       const gemAbilCount = (gem.abilities as string[] | undefined)?.length ?? 0;
@@ -92,7 +92,7 @@ function validatePerClassInvariants(
       }
     }
 
-    // 4. Generational bust invariants: never blue chip, star 3-5, OVR < 150
+    // 4. Generational bust invariants: never blue chip, star 3-5, OVR 150-199
     for (const bust of busts) {
       if (bust.isBlueChip) {
         issues.push({ scope, severity: "error", message: `generational bust must not be blue chip` });
@@ -104,11 +104,11 @@ function validatePerClassInvariants(
           message: `generational bust starRank=${bust.starRank} outside 3-5`,
         });
       }
-      if ((bust.overall ?? 0) >= 150) {
+      if ((bust.overall ?? 0) < 150 || (bust.overall ?? 0) > 199) {
         issues.push({
           scope,
           severity: "error",
-          message: `generational bust OVR=${bust.overall} must be < 150`,
+          message: `generational bust OVR=${bust.overall} must be 150-199`,
         });
       }
     }
@@ -117,35 +117,35 @@ function validatePerClassInvariants(
     for (const r of recruits) {
       const ovr = r.overall ?? 0;
       if (r.isGenerationalGem) {
-        if (ovr <= 650 || ovr > 999) {
+        if (ovr < 600 || ovr > 650) {
           issues.push({
             scope,
             severity: "error",
-            message: `${r.firstName} ${r.lastName} (gem): OVR=${ovr} must be 651-999`,
+            message: `${r.firstName} ${r.lastName} (gem): OVR=${ovr} must be 600-650`,
           });
         }
       } else if (r.isGenerationalBust) {
-        if (ovr >= 150) {
+        if (ovr < 150 || ovr > 199) {
           issues.push({
             scope,
             severity: "error",
-            message: `${r.firstName} ${r.lastName} (bust): OVR=${ovr} must be <150`,
+            message: `${r.firstName} ${r.lastName} (bust): OVR=${ovr} must be 150-199`,
           });
         }
       } else if (r.isBlueChip) {
-        if (ovr < 500 || ovr > 650) {
+        if (ovr < 540 || ovr > 599) {
           issues.push({
             scope,
             severity: "error",
-            message: `${r.firstName} ${r.lastName} (blue chip): OVR=${ovr} must be 500-650`,
+            message: `${r.firstName} ${r.lastName} (blue chip): OVR=${ovr} must be 540-599`,
           });
         }
       } else {
-        if (ovr < 159 || ovr > 650) {
+        if (ovr < 150 || ovr > 599) {
           issues.push({
             scope,
             severity: "error",
-            message: `${r.firstName} ${r.lastName}: OVR=${ovr} must be 159-650 (only generational gems may exceed 650)`,
+            message: `${r.firstName} ${r.lastName}: OVR=${ovr} must be 150-599`,
           });
         }
       }
