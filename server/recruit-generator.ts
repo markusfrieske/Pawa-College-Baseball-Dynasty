@@ -862,9 +862,11 @@ export function generateRecruitClass(
       // Overdraft: OVR inflated above their star tier — looks better than ranking suggests
       // but potential is forced low. A 3★ overdraft will show 4★-range OVR.
       const nextTierFloor: Record<number, number> = { 5: 510, 4: 410, 3: 310, 2: 210, 1: 160 };
+      const nextTierCap:  Record<number, number> = { 5: 599, 4: 539, 3: 499, 2: 399, 1: 299 };
       const floor = nextTierFloor[starRank] ?? 410;
+      const cap   = nextTierCap[starRank] ?? 499;
       const inflation = 40 + Math.floor(Math.random() * 40);
-      overall = Math.max(floor, Math.min(499, overall + inflation));
+      overall = Math.max(floor, Math.min(cap, overall + inflation));
     } else {
       const starCaps: Record<number, number> = { 5: 539, 4: 499, 3: 399, 2: 299, 1: 199 };
       const cap = starCaps[starRank] ?? 499;
