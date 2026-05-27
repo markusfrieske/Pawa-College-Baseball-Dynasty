@@ -50,14 +50,17 @@ const SCALE_ATTRS: (keyof RealPlayer)[] = [
 ];
 
 /** Minimum SCALED value per conference tier for secondary attrs.
- *  D-grade starts at 40 (0 OVR penalty); C-grade starts at 60 (+2 OVR).
- *  Floors are set aggressively enough to push the 1★ band below 30%. */
+ *  Floors lowered in Task #645 so redistribute-common-attrs.ts can write
+ *  D/F/G-range values without this script re-inflating them.
+ *  Value 12 acts as a null-guard (catches raw=0 mistakes only).
+ *  Task #638 note: original floors (Tier1=65, Tier2=62, …) have been
+ *  superseded by redistribute-common-attrs.ts — do not raise these again. */
 const TIER_MIN_SCALED: Record<number, number> = {
-  1: 65,  // upper C grade → +2 OVR per attr for Tier 1 hitters
-  2: 62,
-  3: 58,
-  4: 52,
-  5: 46,  // low D grade floor — no OVR penalty for HBCU players
+  1: 12,
+  2: 12,
+  3: 12,
+  4: 12,
+  5: 12,
 };
 
 /** Hard raw cap so we don't inflate secondary attrs into A/S territory. */

@@ -90,7 +90,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       // Brendan Kleiman — SR C
       { firstName: "Brendan", lastName: "Kleiman", position: "C", eligibility: "SR", homeState: "MI", hometown: "Ypsilanti", jerseyNumber: 24,
         hitForAvg: 45, power: 41, speed: 36, arm: 44, fielding: 42, errorResistance: 40, velocity: 0, control: 0, stamina: 0, stuff: 0,
-        clutch: 51, vsLHP: 51, grit: 51, stealing: 51, running: 51, throwing: 56, recovery: 32, wRISP: 38, vsLefty: 34, poise: 38, heater: 0, agile: 28,
+        clutch: 37, vsLHP: 37, grit: 37, stealing: 37, running: 37, throwing: 56, recovery: 32, wRISP: 38, vsLefty: 34, poise: 38, heater: 0, agile: 28,
         abilities: ["Spray Hitter", "Resilient", "Home Defense"], potential: "B+", catcherAbility: 42,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
@@ -724,7 +724,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
     // Jack Arcamone — JR transfer Richmond, backup C
     { firstName: "Jack", lastName: "Arcamone", position: "C", eligibility: "JR", homeState: "NJ", hometown: "Toms River", jerseyNumber: 24,
       hitForAvg: 46, power: 43, speed: 32, arm: 49, fielding: 44, errorResistance: 42, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 49, vsLHP: 49, grit: 49, stealing: 49, running: 49, throwing: 59, recovery: 33, wRISP: 37, vsLefty: 35, poise: 39, heater: 0, agile: 30,
+      clutch: 43, vsLHP: 43, grit: 43, stealing: 43, running: 43, throwing: 59, recovery: 33, wRISP: 37, vsLefty: 35, poise: 39, heater: 0, agile: 30,
       abilities: ["Predicament", "Contact Hitter"], potential: "B+", catcherAbility: 47,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
@@ -923,7 +923,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         ...noPitches },
       { firstName: "Andrew", lastName: "Raymond", position: "C", eligibility: "SO", homeState: "MS", hometown: "Brandon", jerseyNumber: 14,
         hitForAvg: 45, power: 39, speed: 36, arm: 44, fielding: 42, errorResistance: 40, velocity: 0, control: 0, stamina: 0, stuff: 0,
-        clutch: 52, vsLHP: 52, grit: 52, stealing: 52, running: 52, throwing: 54, recovery: 32, wRISP: 34, vsLefty: 32, poise: 36, heater: 0, agile: 28,
+        clutch: 39, vsLHP: 39, grit: 39, stealing: 39, running: 39, throwing: 39, recovery: 32, wRISP: 34, vsLefty: 32, poise: 36, heater: 0, agile: 28,
         abilities: ["Consigliere", "Two-Strike Hitter", "Contact Hitter"], potential: "B+", catcherAbility: 40,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",

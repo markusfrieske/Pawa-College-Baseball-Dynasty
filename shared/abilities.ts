@@ -381,13 +381,13 @@ function commonGrade(v: number): "S" | "A" | "B" | "C" | "D" | "F" | "G" {
 }
 
 const COMMON_OVR: Record<string, Record<"S"|"A"|"B"|"C"|"D"|"F"|"G", number>> = {
-  clutch:         { G: -7, F: -3, D: 0, C: 3, B: 6, A: 9,  S: 24 },
-  vsLHP:          { G: -7, F: -3, D: 0, C: 3, B: 6, A: 9,  S: 24 },
-  stealing:       { G: -7, F: -3, D: 0, C: 3, B: 6, A: 9,  S: 24 },
-  running:        { G: -7, F: -3, D: 0, C: 2, B: 4, A: 6,  S: 21 },
-  throwing:       { G: -7, F: -3, D: 0, C: 2, B: 4, A: 6,  S: 21 },
-  grit:           { G: -7, F: -3, D: 0, C: 2, B: 4, A: 6,  S: 21 },
-  catcherAbility: { G: -7, F: -3, D: 0, C: 3, B: 6, A: 9,  S: 24 },
+  clutch:         { G: -3, F: -3, D: 0, C: 3, B: 6, A: 9,  S: 24 },
+  vsLHP:          { G: -3, F: -3, D: 0, C: 3, B: 6, A: 9,  S: 24 },
+  stealing:       { G: -3, F: -3, D: 0, C: 3, B: 6, A: 9,  S: 24 },
+  running:        { G: -3, F: -3, D: 0, C: 2, B: 4, A: 6,  S: 21 },
+  throwing:       { G: -3, F: -3, D: 0, C: 2, B: 4, A: 6,  S: 21 },
+  grit:           { G: -3, F: -3, D: 0, C: 2, B: 4, A: 6,  S: 21 },
+  catcherAbility: { G: -3, F: -3, D: 0, C: 3, B: 6, A: 9,  S: 24 },
 };
 
 const HITTER_NAMED_PTS: Record<string, number> = {

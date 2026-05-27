@@ -77,9 +77,11 @@ const SCALE_ATTRS: (keyof RealPlayer)[] = [
   "clutch", "vsLHP", "grit", "running", "throwing", "recovery", "wRISP", "vsLefty", "poise", "heater", "agile",
 ];
 
-function clamp(v: number): number {
-  return Math.round(Math.max(20, Math.min(99, v)));
-}
+// Common attrs may go down to 10 (G-grade) — primary attrs stay floored at 20.
+const COMMON_ATTRS_FOR_CLAMP = new Set([
+  "clutch", "vsLHP", "grit", "stealing", "running", "throwing", "recovery",
+  "wRISP", "vsLefty", "poise", "heater", "agile",
+]);
 
 const PITCHER_POSITIONS = new Set(["P", "SP", "RP", "CP"]);
 
@@ -90,7 +92,8 @@ function scalePlayer(player: RealPlayer, factor: number): RealPlayer {
   for (const attr of SCALE_ATTRS) {
     const val = result[attr];
     if (typeof val === "number") {
-      let scaled = clamp(val * factor);
+      const minV = COMMON_ATTRS_FOR_CLAMP.has(attr as string) ? 10 : 20;
+      let scaled = Math.round(Math.max(minV, Math.min(99, val * factor)));
       if (isPitcher && (attr === "hitForAvg" || attr === "power")) scaled = Math.min(scaled, 30);
       (result as Record<string, unknown>)[attr as string] = scaled;
     }
