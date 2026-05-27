@@ -46,7 +46,6 @@ import { AtmosphereProvider, AtmosphereOverlay, SigningDayBurst, PostseasonBanne
 import { AtmosphereRouter } from "@/components/atmosphere-router";
 import { MobileNav } from "@/components/mobile-nav";
 import { useToast } from "@/hooks/use-toast";
-import { ServerResetBanner } from "@/components/server-reset-banner";
 
 /**
  * Thin page-transition wrapper — applies a quick fade+slide-up
@@ -175,7 +174,6 @@ function App() {
       <TooltipProvider>
         <AtmosphereProvider>
           <MusicProvider>
-            <ServerResetBanner />
             <AtmosphereOverlay />
             <PostseasonBanner />
             <SigningDayBurst />
