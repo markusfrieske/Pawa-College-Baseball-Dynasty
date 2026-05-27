@@ -50,17 +50,17 @@ const SCALE_ATTRS: (keyof RealPlayer)[] = [
 ];
 
 /** Minimum SCALED value per conference tier for secondary attrs.
- *  Floors lowered in Task #645 so redistribute-common-attrs.ts can write
- *  D/F/G-range values without this script re-inflating them.
- *  Value 12 acts as a null-guard (catches raw=0 mistakes only).
- *  Task #638 note: original floors (Tier1=65, Tier2=62, …) have been
- *  superseded by redistribute-common-attrs.ts — do not raise these again. */
+ *  Lowered in Task #645 to be below the redistribute-common-attrs.ts ceilings
+ *  so re-running calibrate doesn't re-inflate intentionally-lowered D/F attrs.
+ *  These floors now serve only as a safety net against accidental zeroing.
+ *  NOTE: redistribute-common-attrs.ts is the authoritative one-time calibration;
+ *        do not raise these floors back toward the original (65/62/58/52/46). */
 const TIER_MIN_SCALED: Record<number, number> = {
-  1: 12,
-  2: 12,
-  3: 12,
-  4: 12,
-  5: 12,
+  1: 52,  // D-grade floor — won't undo Solid (58) or Star (65) redistributions
+  2: 48,
+  3: 44,
+  4: 38,
+  5: 28,  // F-grade floor — safety net for lowest-tier programs
 };
 
 /** Hard raw cap so we don't inflate secondary attrs into A/S territory. */

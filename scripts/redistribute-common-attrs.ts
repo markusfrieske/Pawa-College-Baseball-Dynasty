@@ -2,30 +2,36 @@
 /**
  * redistribute-common-attrs.ts
  *
- * Lowers C-grade (floor-inflated) common ability attrs for Star/Solid hitters
- * and Average/Below-Average hitters/pitchers to achieve target distribution:
+ * Lowers common ability attrs toward per-archetype / per-OVR-band target ranges
+ * to achieve a more realistic grade distribution:
  *   C ≈ 24%,  D ≈ 37%,  F ≈ 15%,  G ≈ 3%
  *
- * ── Per-archetype rules (hitters) ────────────────────────────────────────────
- *   Superstar         : no change (elite players keep C-grade secondaries)
- *   Role-* / Raw      : no change (Task #642 owns those)
- *   Star (allPeak≥70) : C grade → D  (ceiling 58)
- *   Solid (allPeak≥60): C grade → D  (ceiling 52)
- *   Average(allPeak≥40): C or D → F  (ceiling 34)
- *   Sub-Avg(allPeak<40): C/D/F → G  (ceiling 16, enabled by clamp10 in realRosters.ts)
+ * ── Per-archetype ceilings (hitters) ─────────────────────────────────────────
+ *   Superstar (allPeak≥75 & commonAvg≥60): ceiling 75  (mid-B, preserve elites)
+ *   Star      (allPeak≥70 & commonAvg≥50): ceiling 65  (low-C)
+ *   Solid     (allPeak≥60)               : ceiling 58  (D-grade)
+ *   Average   (allPeak≥40)               : ceiling 45  (D-grade)
+ *   Sub-Avg   (allPeak<40, "Average" bucket): ceiling 16 (G-grade, weakest players)
+ *   Role-X / Raw                          : untouched (Task #642 owns these)
  *
- * ── Per-OVR-band rules (pitchers) ────────────────────────────────────────────
- *   OVR ≥ 450 : C → D (ceiling 58)
- *   OVR ≥ 350 : C → D (ceiling 52)
- *   OVR ≥ 250 : C → D (ceiling 52)
- *   OVR ≥ 150 : C/D → F (ceiling 34)
- *   OVR < 150 : C/D/F → G (ceiling 16)
+ * ── Per-OVR-band ceilings (pitchers) ─────────────────────────────────────────
+ *   Elite (OVR ≥ 450)        : ceiling 75
+ *   Above Avg (OVR 350-449)  : ceiling 65
+ *   Average   (OVR 250-349)  : ceiling 58
+ *   Below Avg (OVR 150-249)  : ceiling 45
+ *   Very Weak (OVR < 150)    : ceiling 16 (G-grade)
  *
- * ── Additional invariants ────────────────────────────────────────────────────
- *   • Never lowers B/A/S-grade attrs (natural talent preserved)
- *   • Never raises attrs (lower-only)
- *   • G grades require clamp10 in server/realRosters.ts (already patched) and
- *     COMMON_OVR G=-3 in shared/abilities.ts (already patched, same as F)
+ * ── Invariants ───────────────────────────────────────────────────────────────
+ *   • Lower-only: never raises any attr
+ *   • G grades require clamp10 in server/realRosters.ts (patched)
+ *     and COMMON_OVR G=-3 in shared/abilities.ts (patched)
+ *   • Idempotent: second run with --dry-run reports 0 patches
+ *
+ * ── Post-pass validation gates ───────────────────────────────────────────────
+ *   • G-grade slots: 1% ≤ G% ≤ 5%
+ *   • S-grade slots: after ≤ before (never adds S grades)
+ *   • C-grade slots: ≤ 30% (below the old 44.8% glut)
+ *   • All Role/Raw hitters: ≥ 1 F/G common attr (Task #642 invariant)
  *
  * Usage:
  *   npx tsx scripts/redistribute-common-attrs.ts [--dry-run]
@@ -53,10 +59,12 @@ function commonGrade(v: number): "S" | "A" | "B" | "C" | "D" | "F" | "G" {
   return "G";
 }
 
+// Clamp for primary attrs (min 20)
 function clamp20_99(v: number): number {
   return Math.round(Math.max(20, Math.min(99, v)));
 }
 
+// Clamp for common attrs (min 10 — allows G grades 10-19)
 function clamp10_99(v: number): number {
   return Math.round(Math.max(10, Math.min(99, v)));
 }
@@ -72,21 +80,33 @@ const PITCHER_COMMON: (keyof RealPlayer)[] = [
   "wRISP", "vsLefty", "poise", "grit", "heater", "agile", "recovery",
 ];
 
-const SCALE_ATTRS: (keyof RealPlayer)[] = [
-  "hitForAvg", "power", "speed", "arm", "fielding", "errorResistance", "stealing",
+const COMMON_ATTR_SET = new Set<string>([
+  "clutch", "vsLHP", "grit", "stealing", "running", "throwing", "recovery",
+  "wRISP", "vsLefty", "poise", "heater", "agile",
+]);
+
+const PRIMARY_SCALE_ATTRS: (keyof RealPlayer)[] = [
+  "hitForAvg", "power", "speed", "arm", "fielding", "errorResistance",
   "velocity", "control", "stamina", "stuff",
+];
+const ALL_SCALE_ATTRS: (keyof RealPlayer)[] = [
+  ...PRIMARY_SCALE_ATTRS,
+  "stealing",
   "clutch", "vsLHP", "grit", "running", "throwing", "recovery",
   "wRISP", "vsLefty", "poise", "heater", "agile",
 ];
 
-// ── Scale helper (uses clamp20 for pre-redistribution baseline) ───────────────
+// ── Scale helper — uses clamp10 for common attrs, clamp20 for primaries ───────
 function applyScaleFactor(player: RealPlayer, sf: number): RealPlayer {
   if (sf === 1) return player;
   const out: Record<string, unknown> = { ...player };
-  for (const attr of SCALE_ATTRS) {
+  for (const attr of ALL_SCALE_ATTRS) {
     const val = player[attr];
     if (typeof val === "number") {
-      out[attr as string] = clamp20_99(val * sf);
+      const isCommon = COMMON_ATTR_SET.has(attr as string);
+      out[attr as string] = isCommon
+        ? clamp10_99(val * sf)
+        : clamp20_99(val * sf);
     }
   }
   return out as RealPlayer;
@@ -123,60 +143,44 @@ function classifyHitter(scaled: RealPlayer): string {
   if (allPeak >= 75 && commonAvg >= 60) return "Superstar";
   if (allPeak >= 70 && commonAvg >= 50) return "Star";
   if (allPeak >= 60) return "Solid";
-  return "Average";
+  return "Average"; // allPeak < 60
 }
 
-// ── Ceiling logic ─────────────────────────────────────────────────────────────
+// ── Ceiling lookup ────────────────────────────────────────────────────────────
 /**
- * Returns the ceiling (max allowed scaled value) for this attr, or null to skip.
- * Rules:
- *  - Never touches B/A/S-grade attrs (≥70)
- *  - Applies grade-gated ceilings based on archetype or pitcher OVR band
+ * Returns the ceiling (max allowed scaled value) for a hitter common attr.
+ * Sub-Average players (allPeak < 50 within "Average" bucket) get G ceiling.
+ * Role-* and Raw are untouched (Task #642 owns those).
  */
-function hitterCeiling(archetype: string, allPeak: number, oldScaled: number): number | null {
-  if (oldScaled >= 70) return null; // preserve natural B/A/S talent
-  if (archetype === "Superstar") return null;
-  if (archetype === "Star") return null; // Star players keep C-grade secondaries
+function hitterCeiling(archetype: string, allPeak: number): number | null {
   if (archetype.startsWith("Role-") || archetype === "Raw") return null;
 
-  const grade = commonGrade(oldScaled);
-
   switch (archetype) {
-    case "Solid":
-      // C → high-D; leave D/F untouched
-      return grade === "C" ? 58 : null;
-
+    case "Superstar": return 75;  // B-grade max; preserve elite secondaries
+    case "Star":      return 65;  // low-C max
+    case "Solid":     return 58;  // D-grade (C→D)
     case "Average":
-      if (allPeak < 40) {
-        // Sub-Average: all below B → G (very weak players — enables grade diversity)
-        return (grade === "C" || grade === "D" || grade === "F") ? 16 : null;
-      }
-      // Regular Average (allPeak 40-59): C → D only; leave existing D/F alone
-      return grade === "C" ? 48 : null;
-
+      // Sub-Average bucket (allPeak<40): truly weak players — enable G grades
+      return allPeak < 40 ? 16 : 45;
     default:
       return null;
   }
 }
 
-function pitcherCeiling(ovr: number, oldScaled: number): number | null {
-  if (oldScaled >= 70) return null;
-
-  const grade = commonGrade(oldScaled);
-
-  // Only touch weak pitchers — strong/average pitchers keep their C attrs
-  if (ovr >= 250) return null;
-  if (ovr >= 150) {
-    // Below-average pitchers: C → D
-    return grade === "C" ? 52 : null;
-  }
-  // Very weak pitchers (OVR < 150): C/D/F → G
-  return (grade === "C" || grade === "D" || grade === "F") ? 16 : null;
+/**
+ * Returns the ceiling for a pitcher common attr based on OVR band.
+ */
+function pitcherCeiling(ovr: number): number | null {
+  if (ovr >= 450) return 75;
+  if (ovr >= 350) return 65;
+  if (ovr >= 250) return 58;
+  if (ovr >= 150) return 45;
+  return 16; // OVR < 150: G-grade for very weak pitchers
 }
 
 /**
- * Given the ceiling, compute the new raw value.
- * Returns null if no change needed (already at or below ceiling, or can't lower).
+ * Given the ceiling and current attr values, compute the new raw value.
+ * Returns null if no change is needed (already at/below ceiling, or can't lower).
  */
 function computeNewRaw(
   oldRaw: number,
@@ -188,10 +192,10 @@ function computeNewRaw(
   if (oldScaled <= ceiling) return null; // already within target
 
   const rawNeeded = Math.ceil(ceiling / sf);
-  const minRaw    = Math.ceil(10 / sf); // allow G grades
+  const minRaw    = Math.ceil(10 / sf); // allow G grades (min scaled = 10)
   const newRaw    = Math.max(minRaw, rawNeeded);
 
-  if (newRaw >= oldRaw) return null; // only lower
+  if (newRaw >= oldRaw) return null; // lower-only
   return newRaw;
 }
 
@@ -214,9 +218,18 @@ const afterDist  = zeroDist();
 let totalHitters  = 0;
 let totalPitchers = 0;
 
-// Archetype counters for summary
-const archetypeCounts: Record<string, number> = {};
+const archetypeCounts:  Record<string, number> = {};
 const archetypePatched: Record<string, number> = {};
+
+// Track Role/Raw hitters for post-pass invariant check
+interface RoleRawEntry {
+  team: string;
+  firstName: string;
+  lastName: string;
+  commonAttrs: Record<string, number>; // attr → afterScaled
+  archetype: string;
+}
+const roleRawEntries: RoleRawEntry[] = [];
 
 for (const [team, rawPlayers] of Object.entries(RAW_UNCALIBRATED_ROSTERS)) {
   const sf = ROSTER_SCALE_FACTORS[team] ?? 1;
@@ -253,29 +266,44 @@ for (const [team, rawPlayers] of Object.entries(RAW_UNCALIBRATED_ROSTERS)) {
     }
 
     const attrChanges: Record<string, { oldRaw: number; newRaw: number }> = {};
+    const afterCommonScaled: Record<string, number> = {};
 
     for (const attr of commonAttrs) {
       const oldRaw    = (rawPlayer[attr] as number) ?? 0;
       const oldScaled = (scaledPlayer[attr] as number) ?? 20;
 
       const ceiling = isPitcher
-        ? pitcherCeiling(ovr, oldScaled)
-        : hitterCeiling(archetype, allPeak, oldScaled);
+        ? pitcherCeiling(ovr)
+        : hitterCeiling(archetype, allPeak);
 
       if (ceiling === null) {
         afterDist[commonGrade(oldScaled)]++;
+        afterCommonScaled[attr as string] = oldScaled;
         continue;
       }
 
       const newRaw = computeNewRaw(oldRaw, oldScaled, sf, ceiling);
       if (newRaw === null) {
         afterDist[commonGrade(oldScaled)]++;
+        afterCommonScaled[attr as string] = oldScaled;
         continue;
       }
 
+      // newScaled uses clamp10 since G grades are allowed for common attrs
       const newScaled = clamp10_99(Math.round(newRaw * sf));
       afterDist[commonGrade(newScaled)]++;
+      afterCommonScaled[attr as string] = newScaled;
       attrChanges[attr as string] = { oldRaw, newRaw };
+    }
+
+    if (!isPitcher && (archetype.startsWith("Role-") || archetype === "Raw")) {
+      roleRawEntries.push({
+        team,
+        firstName: rawPlayer.firstName,
+        lastName:  rawPlayer.lastName,
+        archetype,
+        commonAttrs: afterCommonScaled,
+      });
     }
 
     if (Object.keys(attrChanges).length > 0) {
@@ -285,8 +313,41 @@ for (const [team, rawPlayers] of Object.entries(RAW_UNCALIBRATED_ROSTERS)) {
   }
 }
 
-// ── Report ────────────────────────────────────────────────────────────────────
+// ── Post-pass validation gates ────────────────────────────────────────────────
 const totalSlots = (totalHitters + totalPitchers) * 7;
+const violations: string[] = [];
+
+// 1. G% bounds: 1% ≤ G ≤ 5%
+const gPct = afterDist.G / totalSlots;
+if (gPct < 0.01) {
+  violations.push(`G% too low: ${(gPct * 100).toFixed(1)}% (need ≥ 1%)`);
+}
+if (gPct > 0.05) {
+  violations.push(`G% too high: ${(gPct * 100).toFixed(1)}% (need ≤ 5%)`);
+}
+
+// 2. S slots not increased
+if (afterDist.S > beforeDist.S) {
+  violations.push(`S-grade slots increased: ${beforeDist.S} → ${afterDist.S} (must not increase)`);
+}
+
+// 3. C ≤ 30%
+const cPct = afterDist.C / totalSlots;
+if (cPct > 0.30) {
+  violations.push(`C% too high: ${(cPct * 100).toFixed(1)}% (need ≤ 30%)`);
+}
+
+// 4. All Role/Raw hitters have ≥ 1 F/G common attr
+let roleRawNoFG = 0;
+for (const entry of roleRawEntries) {
+  const hasFOrG = Object.values(entry.commonAttrs).some(v => commonGrade(v) === "F" || commonGrade(v) === "G");
+  if (!hasFOrG) {
+    roleRawNoFG++;
+    violations.push(`Role/Raw invariant: ${entry.firstName} ${entry.lastName} (${entry.team}, ${entry.archetype}) has 0 F/G common attrs`);
+  }
+}
+
+// ── Distribution report ───────────────────────────────────────────────────────
 const beforeTotal = Object.values(beforeDist).reduce((a, b) => a + b, 0);
 const afterTotal  = Object.values(afterDist).reduce((a, b) => a + b, 0);
 
@@ -317,6 +378,19 @@ for (const [arch, count] of Object.entries(archetypeCounts).sort((a, b) => b[1] 
 
 const totalAttrChanges = patches.reduce((n, p) => n + Object.keys(p.attrChanges).length, 0);
 console.log(`\nPatches prepared: ${patches.length} players, ${totalAttrChanges} attr changes`);
+
+// Report validation results
+if (violations.length > 0) {
+  console.error("\n✗ Post-pass validation FAILED:");
+  for (const v of violations) console.error(`  • ${v}`);
+  process.exit(1);
+} else {
+  console.log("\n✓ Post-pass validation passed:");
+  console.log(`  G% = ${(gPct * 100).toFixed(1)}% [1–5%] ✓`);
+  console.log(`  S count: ${beforeDist.S} → ${afterDist.S} (no increase) ✓`);
+  console.log(`  C% = ${(cPct * 100).toFixed(1)}% [≤30%] ✓`);
+  console.log(`  Role/Raw F/G invariant: all ${roleRawEntries.length} players satisfy ≥1 F/G attr ✓`);
+}
 
 if (DRY_RUN) {
   console.log("\n[DRY RUN] No files written.");
