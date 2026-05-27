@@ -420,30 +420,27 @@ export const S_GOLD_COMMON_KEY: Record<string, keyof typeof COMMON_OVR> = {
 // ---------------------------------------------------------------------------
 // Pitcher OVR: point-based system with velocity zones, control/stamina tiers,
 // pitch diversity bonus, per-pitch-level points, and graded common attributes.
+// All point values are final OVR contributions — no global multipliers applied.
 // ---------------------------------------------------------------------------
 
-// Raw grade table for pitcher common attributes.
-// D/C grades are neutral (0 pts). F/G are penalties, B/A/S are bonuses.
-// S values represent the linked gold ability's ceiling; they're only reached
-// when the gold badge is present (which zeroes out the common attr and scores
-// via PITCHER_NAMED_PTS instead). Without the gold, S is scored at 0 (no
-// natural S exists in roster data).
+// Grade table for pitcher common attributes.
+// D/C grades are neutral (0 pts). F/G are penalties, B/A are bonuses.
+// S grade is handled exclusively by the linked gold ability (via PITCHER_NAMED_PTS)
+// and always scores 0 here — the gold ability's pts replace the common attr row.
 const PITCHER_COMMON_RAW: Record<string, Record<"S"|"A"|"B"|"C"|"D"|"F"|"G", number>> = {
-  heater:   { G: -27.84, F: -20.88, D: 0, C: 0, B: 13.92, A: 27.84, S: 45.24 },
-  wRISP:    { G: -27.84, F: -20.88, D: 0, C: 0, B: 13.92, A: 27.84, S: 41.76 },
-  vsLefty:  { G: -13.92, F: -10.44, D: 0, C: 0, B:  6.96, A: 13.92, S: 34.80 },
-  agile:    { G:  -6.96, F:  -5.22, D: 0, C: 0, B:  3.48, A:  6.96, S: 24.36 },
-  recovery: { G: -13.92, F: -10.44, D: 0, C: 0, B:  6.96, A: 13.92, S: 38.28 },
-  poise:    { G:  -6.96, F:  -5.22, D: 0, C: 0, B:  0,    A:  0,    S:  0    },
+  heater:   { S: 0, A: 27.84, B: 13.92, C: 0, D: 0, F: -20.88, G: -27.84 },
+  wRISP:    { S: 0, A: 27.84, B: 13.92, C: 0, D: 0, F: -20.88, G: -27.84 },
+  vsLefty:  { S: 0, A: 13.92, B:  6.96, C: 0, D: 0, F: -10.44, G: -13.92 },
+  agile:    { S: 0, A:  6.96, B:  3.48, C: 0, D: 0, F:  -5.22, G:  -6.96 },
+  recovery: { S: 0, A: 13.92, B:  6.96, C: 0, D: 0, F: -10.44, G: -13.92 },
+  poise:    { S: 0, A:  0,    B:  0,    C: 0, D: 0, F:  -5.22, G:  -6.96 },
 };
 
-// Multiplier applied to all PITCHER_COMMON_RAW values.
-const P_M2 = 0.25;
-
 // Gold pitcher abilities linked to common attributes.
-// When the gold ability is in the ability list, the linked common attr score
-// is zeroed out (the gold pts from PITCHER_NAMED_PTS replace it).
-// Exported so the UI can show the gold badge on the common ability row.
+// When the gold ability is in the ability list:
+//   1. The linked common attr score is zeroed (no double-count).
+//   2. The gold ability itself scores via PITCHER_NAMED_PTS.
+// Exported so the UI can show the gold badge inline on the common ability row.
 export const S_GOLD_PITCHER_KEY: Record<string, string> = {
   "Big Boy Speed":     "heater",
   "Indomitable Soul":  "wRISP",
@@ -453,28 +450,70 @@ export const S_GOLD_PITCHER_KEY: Record<string, string> = {
   "Halting Quickness": "agile",
 };
 
-// Named ability pts for pitchers. These are final OVR points (not raw).
-// Gold abilities not listed default to GOLD_DEFAULT; blue default BLUE_DEFAULT;
-// red default RED_DEFAULT.
-const PITCHER_NAMED_PTS: Record<string, number> = {
-  "Dominant Force":    30,
-  "Big Boy Speed":     28,
-  "Indomitable Soul":  27,
-  "Sangfroid":         27,
-  "Gas Tank":          26,
-  "Lefty Killer":      25,
-  "Halting Quickness": 20,
-  "Sharpness":         10,
-  "Natural Shuuto":     9,
-  "True Slider":        9,
-  "Cowardly":         -14,
+// Gold abilities that clear their blue counterpart's pts (hard-overwrite).
+// Key = gold name, Value = blue ability name whose pts are suppressed.
+const GOLD_CLEARS_BLUE: Record<string, string> = {
+  "Miracle Sharpness":   "Sharpness",
+  "Precision Instrument":"Low Ball",
+  "Wizard Mode":         "Strong Finisher",
+  "Dominant Force":      "Intimidator",
+  "Doctor K":            "Strikeout",
+  "Houdini":             "Escape Pitch",
+  "Iron Arm":            "Guts",
 };
 
-const P_GOLD_DEFAULT =  25;
-const P_BLUE_DEFAULT =   8;
-const P_RED_DEFAULT  = -10;
-const P_BASE         =  70;
-const P_M1           = 2.8;
+// Named ability pts for pitchers — final OVR points added directly.
+// All listed golds, blues, and reds use exact spec values.
+// Unmapped golds default to P_GOLD_DEFAULT; unmapped blues to P_BLUE_DEFAULT;
+// unmapped reds to P_RED_DEFAULT.
+const PITCHER_NAMED_PTS: Record<string, number> = {
+  // --- Gold abilities (common-attr linked) ---
+  "Dominant Force":      52.20,
+  "Miracle Sharpness":   48.72,
+  "Big Boy Speed":       45.24,
+  "Indomitable Soul":    41.76,
+  "Sangfroid":           41.76,
+  "Wizard Mode":         41.76,
+  "Houdini":             38.28,
+  "Gas Tank":            38.28,
+  "Precision Instrument":38.28,
+  "Lefty Killer":        34.80,
+  "Doctor K":            34.80,
+  "Iron Arm":            31.32,
+  "Halting Quickness":   24.36,
+  // --- Blue abilities ---
+  "Sharpness":           13.92,
+  "Tunneling":           10.44,
+  "Strikeout":           10.44,
+  "Escape Pitch":        10.44,
+  "Strong Finisher":     10.44,
+  "Heavy Ball":           6.96,
+  "Release":              6.96,
+  "Natural Shuuto":       6.96,
+  "Gyroball":             6.96,
+  "Decisive":             6.96,
+  "Crossfire":            6.96,
+  "Pace":                 6.96,
+  "Strong Starter":       6.96,
+  "Straddle":             6.96,
+  "Fireman":              6.96,
+  "Groundball Pitcher":   6.96,
+  "Constant Speed":       3.48,
+  "Poker Face":           1.74,
+  // --- Red abilities ---
+  "Cowardly":           -13.92,
+  "Lightweight Ball":   -13.92,
+  "Slow Starter":        -3.48,
+  "Glass Heart":         -6.96,
+  "Walk":                -6.96,
+  "Hot Head":            -6.96,
+  "Loser's Luck":        -6.96,
+};
+
+const P_GOLD_DEFAULT =  20.88;
+const P_BLUE_DEFAULT =   6.96;
+const P_RED_DEFAULT  =  -6.96;
+const P_BASE         = 231;
 
 // Per-level points for secondary pitches (index = pitch level 0-7).
 const PITCH_LEVEL_PTS = [0, 0.87, 2.61, 5.22, 7.83, 11.31, 14.79, 19.14];
@@ -580,8 +619,8 @@ export function calculateOVR(attrs: {
       k => ((attrs as Record<string, unknown>)[k] as number | null | undefined ?? 0) > 0
     );
 
-    let diversityRaw = 0;
-    let levelRaw = 0;
+    let diversityPts = 0;
+    let levelPts = 0;
 
     if (hasPitchData) {
       const dirs = new Set<string>();
@@ -591,22 +630,25 @@ export function calculateOVR(attrs: {
         ));
         if (lvl > 0) {
           dirs.add(dir);
-          levelRaw += PITCH_LEVEL_PTS[lvl] ?? 0;
+          levelPts += PITCH_LEVEL_PTS[lvl] ?? 0;
         }
       }
-      diversityRaw = PITCH_DIR_PTS[Math.min(5, dirs.size)] ?? 0;
+      diversityPts = PITCH_DIR_PTS[Math.min(5, dirs.size)] ?? 0;
     } else {
-      // Fallback when pitch field data is absent (e.g. recruits without pitch mix):
-      // use stuff to estimate diversity+level contribution on the same raw scale.
+      // Fallback when pitch field data is absent:
+      // use stuff to estimate diversity+level contribution.
       const stuffNorm = (attrs.stuff ?? 50) / 100;
-      diversityRaw = 24.36 * stuffNorm;
-      levelRaw     = 16.53 * stuffNorm;
+      diversityPts = 20.88 * stuffNorm;
+      levelPts     = 20.44 * stuffNorm;
     }
 
-    const coreTotal = (velRaw + ctrlRaw + stamRaw + diversityRaw + levelRaw) * P_M1;
+    // Core total: all values are final OVR pts — no global multiplier applied.
+    const coreTotal = velRaw + ctrlRaw + stamRaw + diversityPts + levelPts;
 
     // ── Common attribute grades ─────────────────────────────────────────────
-    // Build set of linked-common attrs that are zeroed out by a gold ability.
+    // When a gold ability is linked to a common attr, zero out that attr's pts
+    // (the gold ability itself scores via PITCHER_NAMED_PTS — no double-count).
+    // S grade always scores 0 from the table (PITCHER_COMMON_RAW has S=0).
     const abilities = attrs.abilities ?? [];
     const goldLinkedCommonAttrs = new Set<string>();
     for (const name of abilities) {
@@ -616,14 +658,24 @@ export function calculateOVR(attrs: {
 
     let commonTotal = 0;
     for (const [attrKey, gradeTable] of Object.entries(PITCHER_COMMON_RAW)) {
-      if (goldLinkedCommonAttrs.has(attrKey)) continue; // gold ability handles this attr
+      if (goldLinkedCommonAttrs.has(attrKey)) continue;
       const val = ((attrs as Record<string, unknown>)[attrKey] as number | null | undefined) ?? 0;
-      commonTotal += gradeTable[commonGrade(val)] * P_M2;
+      commonTotal += gradeTable[commonGrade(val)];
     }
 
     // ── Special abilities ───────────────────────────────────────────────────
+    // Gold hard-overwrite: collect blue abilities that are suppressed by a gold.
+    const suppressedBlues = new Set<string>();
+    for (const name of abilities) {
+      const cleared = GOLD_CLEARS_BLUE[name];
+      if (cleared) suppressedBlues.add(cleared);
+    }
+
     let specialTotal = 0;
     for (const name of abilities) {
+      // Skip blues cleared by their gold counterpart
+      if (suppressedBlues.has(name)) continue;
+
       if (PITCHER_NAMED_PTS[name] !== undefined) {
         specialTotal += PITCHER_NAMED_PTS[name];
       } else {

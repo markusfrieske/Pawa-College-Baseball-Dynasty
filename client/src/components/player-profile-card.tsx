@@ -310,16 +310,16 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
     fielderCommonAbilities.push({ label: "Catcher", value: player.catcherAbility, delta: deltas?.catcherAbility, goldAbilityName: sGoldBadge(player.catcherAbility, "catcherAbility") });
   }
 
-  // Reverse map for pitcher: common-attr key → gold ability name
-  const PITCHER_COMMON_KEY_TO_GOLD: Record<string, string> = Object.fromEntries(
-    Object.entries(S_GOLD_PITCHER_KEY).map(([gold, key]) => [key, gold])
-  );
-  // Returns the gold ability name for a pitcher common attr when the player
-  // has that gold ability in their abilities list.
+  // Returns the first gold ability name that links to this common attr key
+  // and is present in the player's ability list.
+  // Uses S_GOLD_PITCHER_KEY directly to handle multiple golds per attr (e.g.
+  // both "Indomitable Soul" and "Sangfroid" link to "wRISP").
+  const playerAbilitySet = new Set(player.abilities ?? []);
   const sPitcherGoldBadge = (attrKey: string): string | undefined => {
-    const goldName = PITCHER_COMMON_KEY_TO_GOLD[attrKey];
-    if (!goldName) return undefined;
-    return (player.abilities ?? []).includes(goldName) ? goldName : undefined;
+    for (const [goldName, linkedKey] of Object.entries(S_GOLD_PITCHER_KEY)) {
+      if (linkedKey === attrKey && playerAbilitySet.has(goldName)) return goldName;
+    }
+    return undefined;
   };
 
   // Common abilities for pitchers (displayed as letter grades G-A)
