@@ -381,15 +381,16 @@ function commonGrade(v: number): "S" | "A" | "B" | "C" | "D" | "F" | "G" {
   return "G";
 }
 
-// Pitcher-specific grade thresholds (from task spec):
-// G<30, F<40, D<50, C<60, B<70, A<80, S≥90
-function pitcherCommonGrade(v: number): "S" | "A" | "B" | "C" | "D" | "F" | "G" {
+// Pitcher-specific grade thresholds — eight-step scale matching Power Pros S/A/B/C/D/E/F/G:
+// S≥90, A=80-89, B=70-79, C=60-69, D=50-59, E=40-49, F=30-39, G<30
+function pitcherCommonGrade(v: number): "S" | "A" | "B" | "C" | "D" | "E" | "F" | "G" {
   if (v >= 90) return "S";
   if (v >= 80) return "A";
   if (v >= 70) return "B";
   if (v >= 60) return "C";
   if (v >= 50) return "D";
-  if (v >= 40) return "F";
+  if (v >= 40) return "E";
+  if (v >= 30) return "F";
   return "G";
 }
 
@@ -436,16 +437,17 @@ export const S_GOLD_COMMON_KEY: Record<string, keyof typeof COMMON_OVR> = {
 // ---------------------------------------------------------------------------
 
 // Grade table for pitcher common attributes.
-// D/C grades are neutral (0 pts). F/G are penalties, B/A are bonuses.
-// S grade is handled exclusively by the linked gold ability (via PITCHER_NAMED_PTS)
+// D/C grades are neutral (0 pts). E is a mild penalty (below-average), F/G are stronger penalties,
+// B/A are bonuses. S grade is handled exclusively by the linked gold ability (via PITCHER_NAMED_PTS)
 // and always scores 0 here — the gold ability's pts replace the common attr row.
-const PITCHER_COMMON_RAW: Record<string, Record<"S"|"A"|"B"|"C"|"D"|"F"|"G", number>> = {
-  heater:   { S: 0, A: 27.84, B: 13.92, C: 0, D: 0, F: -20.88, G: -27.84 },
-  wRISP:    { S: 0, A: 27.84, B: 13.92, C: 0, D: 0, F: -20.88, G: -27.84 },
-  vsLefty:  { S: 0, A: 13.92, B:  6.96, C: 0, D: 0, F: -10.44, G: -13.92 },
-  agile:    { S: 0, A:  6.96, B:  3.48, C: 0, D: 0, F:  -5.22, G:  -6.96 },
-  recovery: { S: 0, A: 13.92, B:  6.96, C: 0, D: 0, F: -10.44, G: -13.92 },
-  poise:    { S: 0, A:  0,    B:  0,    C: 0, D: 0, F:  -5.22, G:  -6.96 },
+// Eight-step scale matching Power Pros: S/A/B/C/D/E/F/G
+const PITCHER_COMMON_RAW: Record<string, Record<"S"|"A"|"B"|"C"|"D"|"E"|"F"|"G", number>> = {
+  heater:   { S: 0, A: 27.84, B: 13.92, C: 0, D: 0, E:  -6.96, F: -20.88, G: -27.84 },
+  wRISP:    { S: 0, A: 27.84, B: 13.92, C: 0, D: 0, E:  -6.96, F: -20.88, G: -27.84 },
+  vsLefty:  { S: 0, A: 13.92, B:  6.96, C: 0, D: 0, E:  -3.48, F: -10.44, G: -13.92 },
+  agile:    { S: 0, A:  6.96, B:  3.48, C: 0, D: 0, E:  -1.74, F:  -5.22, G:  -6.96 },
+  recovery: { S: 0, A: 13.92, B:  6.96, C: 0, D: 0, E:  -3.48, F: -10.44, G: -13.92 },
+  poise:    { S: 0, A:  0,    B:  0,    C: 0, D: 0, E:  -1.74, F:  -5.22, G:  -6.96 },
 };
 
 // Gold pitcher abilities linked to common attributes.
