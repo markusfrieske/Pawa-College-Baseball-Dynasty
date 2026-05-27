@@ -156,12 +156,12 @@ function hitterCeiling(archetype: string, allPeak: number): number | null {
   if (archetype.startsWith("Role-") || archetype === "Raw") return null;
 
   switch (archetype) {
-    case "Superstar": return 75;  // B-grade max; preserve elite secondaries
-    case "Star":      return 65;  // low-C max
-    case "Solid":     return 58;  // D-grade (C→D)
+    case "Superstar": return 75;  // mid-B (preserved by skip≥70 guard, but kept for doc)
+    case "Star":      return 65;  // low-C (66-69 → 65, stays C — minimal)
+    case "Solid":     return 59;  // D-grade (C→D for Solid-quality players)
     case "Average":
       // Sub-Average bucket (allPeak<40): truly weak players — enable G grades
-      return allPeak < 40 ? 16 : 45;
+      return allPeak < 40 ? 16 : 45;  // Average C→D; Sub-Avg C/D/F→G
     default:
       return null;
   }
@@ -171,10 +171,10 @@ function hitterCeiling(archetype: string, allPeak: number): number | null {
  * Returns the ceiling for a pitcher common attr based on OVR band.
  */
 function pitcherCeiling(ovr: number): number | null {
-  if (ovr >= 450) return 75;
-  if (ovr >= 350) return 65;
-  if (ovr >= 250) return 58;
-  if (ovr >= 150) return 45;
+  if (ovr >= 450) return 75;  // no change (C≤69<75, skip≥70 guard handles B+)
+  if (ovr >= 350) return 65;  // high-C (66-69→65, stays C)
+  if (ovr >= 250) return 65;  // keep Average-pitcher C attrs as C (C-grade boundary)
+  if (ovr >= 150) return 65;  // keep Below-Avg pitcher C attrs as C
   return 16; // OVR < 150: G-grade for very weak pitchers
 }
 
@@ -277,6 +277,14 @@ for (const [team, rawPlayers] of Object.entries(RAW_UNCALIBRATED_ROSTERS)) {
         : hitterCeiling(archetype, allPeak);
 
       if (ceiling === null) {
+        afterDist[commonGrade(oldScaled)]++;
+        afterCommonScaled[attr as string] = oldScaled;
+        continue;
+      }
+
+      // PRESERVE B / A / S grades — the target table keeps S≈1%, A≈8%, B≈8%.
+      // Only redistribute C-grade and below (scaled < 70).
+      if (oldScaled >= 70) {
         afterDist[commonGrade(oldScaled)]++;
         afterCommonScaled[attr as string] = oldScaled;
         continue;
