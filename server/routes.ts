@@ -355,6 +355,24 @@ async function ensureCoachTraits(
 // concurrently for the same league (double-click / network retry protection).
 const advancingLeagues = new Set<string>();
 
+// ── IN-MEMORY PRESENCE TRACKER ───────────────────────────────────────────────
+// Maps anonymous client token → last-seen timestamp (ms).
+// No DB storage required; resets on server restart (that's fine).
+const presenceMap = new Map<string, number>();
+const PRESENCE_TTL_MS = 2 * 60 * 1000; // 2 minutes
+
+function prunePresence() {
+  const cutoff = Date.now() - PRESENCE_TTL_MS;
+  for (const [token, ts] of presenceMap) {
+    if (ts < cutoff) presenceMap.delete(token);
+  }
+}
+
+function getOnlineCount(): number {
+  prunePresence();
+  return presenceMap.size;
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -391,6 +409,18 @@ export async function registerRoutes(
       },
     })
   );
+
+  // ── PRESENCE ENDPOINTS (public, no auth required) ────────────────────────
+  app.post("/api/presence/heartbeat", (req, res) => {
+    const token = typeof req.body?.token === "string" ? req.body.token.slice(0, 64) : null;
+    if (!token) return res.status(400).json({ message: "token required" });
+    presenceMap.set(token, Date.now());
+    res.json({ ok: true, online: getOnlineCount() });
+  });
+
+  app.get("/api/presence/online-count", (_req, res) => {
+    res.json({ online: getOnlineCount() });
+  });
 
   // Auth routes
   app.post("/api/auth/register", async (req, res) => {

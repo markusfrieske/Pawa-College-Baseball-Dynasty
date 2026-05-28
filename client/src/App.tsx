@@ -46,6 +46,7 @@ import { AtmosphereProvider, AtmosphereOverlay, SigningDayBurst, PostseasonBanne
 import { AtmosphereRouter } from "@/components/atmosphere-router";
 import { MobileNav } from "@/components/mobile-nav";
 import { useToast } from "@/hooks/use-toast";
+import { usePresence } from "@/hooks/use-presence";
 
 /**
  * Thin page-transition wrapper — applies a quick fade+slide-up
@@ -168,12 +169,18 @@ function GuestPage() {
   return null;
 }
 
+function PresenceTracker() {
+  usePresence();
+  return null;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <AtmosphereProvider>
           <MusicProvider>
+            <PresenceTracker />
             <AtmosphereOverlay />
             <PostseasonBanner />
             <SigningDayBurst />

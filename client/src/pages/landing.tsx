@@ -11,6 +11,7 @@ import {
   Shield, Users, Database, ChevronDown, Wand2,
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { usePresence } from "@/hooks/use-presence";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { DynastyLogo } from "@/components/dynasty-logo";
@@ -24,6 +25,11 @@ export default function LandingPage() {
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+
+  const { data: onlineData } = useQuery<{ online: number }>({
+    queryKey: ["/api/presence/online-count"],
+    refetchInterval: 30_000,
+  });
 
   const { data: user } = useQuery<{ id: string; email: string }>({
     queryKey: ["/api/auth/me"],
@@ -147,12 +153,27 @@ export default function LandingPage() {
           <div className="relative z-10 container mx-auto px-6 sm:px-10 py-20">
             {/* No backdrop box — text legibility via shadow/stroke */}
             <div className="max-w-xl">
-              {/* Season badge */}
-              <div
-                className="inline-flex items-center gap-2 border border-gold/30 bg-gold/5 px-4 py-1.5 mb-8 text-gold/80 text-[10px] font-pixel tracking-wider"
-                style={{ textShadow: "0 1px 6px rgba(0,0,0,0.95)" }}
-              >
-                <span className="text-gold">◆</span> SEASON 2026 · OPEN BETA <span className="text-gold">◆</span>
+              {/* Season badge + Users Online */}
+              <div className="flex flex-wrap items-center gap-3 mb-8">
+                <div
+                  className="inline-flex items-center gap-2 border border-gold/30 bg-gold/5 px-4 py-1.5 text-gold/80 text-[10px] font-pixel tracking-wider"
+                  style={{ textShadow: "0 1px 6px rgba(0,0,0,0.95)" }}
+                >
+                  <span className="text-gold">◆</span> SEASON 2026 · OPEN BETA <span className="text-gold">◆</span>
+                </div>
+                {onlineData !== undefined && (
+                  <div
+                    className="inline-flex items-center gap-2 border border-green-500/30 bg-green-900/20 px-3 py-1.5 text-[10px] font-pixel tracking-wider"
+                    style={{ textShadow: "0 1px 6px rgba(0,0,0,0.95)" }}
+                    data-testid="badge-users-online"
+                  >
+                    <span
+                      className="w-2 h-2 rounded-full bg-green-400 animate-pulse"
+                      style={{ boxShadow: "0 0 6px rgba(74,222,128,0.8)" }}
+                    />
+                    <span className="text-green-400">{onlineData.online} ONLINE</span>
+                  </div>
+                )}
               </div>
 
               {/* Large editorial headline */}
