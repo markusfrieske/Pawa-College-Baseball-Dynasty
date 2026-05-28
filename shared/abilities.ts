@@ -212,18 +212,28 @@ export function getAbilitiesForPosition(position: string): Ability[] {
 export const MAX_SPECIAL_ABILITIES = 7;
 
 /**
- * Sanitize a player's ability list to enforce two hard rules:
+ * Sanitize a player's ability list to enforce three hard rules:
  *   1. No duplicate ability names.
- *   2. Maximum one gold-tier ability per player.
+ *   2. Position-invalid abilities (e.g. Laser Beam on non-outfielders) are
+ *      replaced with a position-appropriate blue ability not already present.
+ *   3. Maximum one gold-tier ability per player.
  *
- * When a second (or later) gold ability is found it is replaced with a
- * position-appropriate blue ability that is not already in the list.
- * Replacement blue abilities are drawn in stable array order so the result
- * is deterministic given the same input.
+ * When a replacement is needed, a randomly-chosen blue ability from the
+ * position-valid pool is used.  Slots with no available replacement are
+ * dropped entirely.
  */
 export function sanitizeAbilities(position: string, abilities: string[]): string[] {
   const availableAbilities = getAbilitiesForPosition(position);
+  const validNames = new Set(availableAbilities.map(a => a.name));
   const bluePool = availableAbilities.filter(a => a.tier === "blue").map(a => a.name);
+
+  // Helper: draw a random blue replacement not already claimed.
+  function drawBlue(claimed: Set<string>): string {
+    const pool = bluePool.filter(n => !claimed.has(n));
+    if (pool.length === 0) return "";
+    const idx = Math.floor(Math.random() * pool.length);
+    return pool[idx];
+  }
 
   // 1. Deduplicate while preserving order.
   const seen = new Set<string>();
@@ -233,49 +243,40 @@ export function sanitizeAbilities(position: string, abilities: string[]): string
     return true;
   });
 
-  // 2. Cap gold abilities at 1 — keep the first gold encountered.
+  // 2. Drop position-invalid abilities, replacing with a blue pick when possible.
+  const claimed = new Set(deduped.filter(n => validNames.has(n)));
+  const afterPositionCheck: string[] = deduped.map(name => {
+    if (validNames.has(name)) return name;
+    // Ability is not valid for this position — replace it.
+    const replacement = drawBlue(claimed);
+    if (replacement) {
+      claimed.add(replacement);
+      return replacement;
+    }
+    return "";
+  }).filter(n => n !== "");
+
+  // 3. Cap gold abilities at 1 — keep the first gold encountered.
   let goldSeen = false;
   const result: string[] = [];
-  const extraGoldsToReplace: number[] = [];
 
-  for (let i = 0; i < deduped.length; i++) {
-    const ability = getAbilityByName(deduped[i]);
+  for (const name of afterPositionCheck) {
+    const ability = getAbilityByName(name);
     if (ability && ability.tier === "gold") {
       if (!goldSeen) {
         goldSeen = true;
-        result.push(deduped[i]);
+        result.push(name);
       } else {
-        extraGoldsToReplace.push(i);
-        result.push("__REPLACE__");
+        const inResult = new Set(result);
+        const replacement = drawBlue(inResult);
+        if (replacement) result.push(replacement);
       }
     } else {
-      result.push(deduped[i]);
+      result.push(name);
     }
   }
 
-  if (extraGoldsToReplace.length === 0) return result;
-
-  // Fill replacement slots with randomly-chosen blue abilities not already in the list.
-  const inResult = new Set(result.filter(n => n !== "__REPLACE__"));
-  const available = bluePool.filter(n => !inResult.has(n));
-  // Shuffle the available pool so replacements are drawn randomly.
-  for (let k = available.length - 1; k > 0; k--) {
-    const j = Math.floor(Math.random() * (k + 1));
-    [available[k], available[j]] = [available[j], available[k]];
-  }
-  let repIdx = 0;
-  for (let i = 0; i < result.length; i++) {
-    if (result[i] === "__REPLACE__") {
-      if (repIdx < available.length) {
-        result[i] = available[repIdx++];
-      } else {
-        // No blue ability available — drop this slot entirely.
-        result[i] = "";
-      }
-    }
-  }
-
-  return result.filter(n => n !== "");
+  return result;
 }
 
 /**
