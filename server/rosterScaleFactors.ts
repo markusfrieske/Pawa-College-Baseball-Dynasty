@@ -313,3 +313,42 @@ export const ROSTER_SCALE_FACTORS: Record<string, number> = {
   "Maryland Eastern Shore": 0.903772,
   "Alcorn State": 0.907735,
 };
+
+/**
+ * Per-team pitcher attribute multiplier applied ON TOP of the base ROSTER_SCALE_FACTORS entry.
+ * Default = 1.0 (no override). Values > 1 boost pitcher attrs; values < 1 reduce them.
+ * Used to fix RPI rank drift caused by H-P imbalances — specifically teams whose
+ * hitters are over-powered relative to their pitching staff.
+ */
+export const PITCHER_SCALE_OVERRIDES: Record<string, number> = {
+  // These teams' hitters are pulling the team avg well above their pitching.
+  // Boost pitchers slightly so the H-P gap narrows and OVR rank drops closer to intent.
+  "Louisiana":       1.08,
+  "Texas A&M":       1.07,
+  "Wake Forest":     1.07,
+  "Clemson":         1.05,
+  "Virginia Tech":   1.06,
+  "Southern Miss":   1.05,
+  "Nebraska":        1.03,
+  "Georgia":         1.04,
+  "Georgia Tech":    1.03,
+};
+
+/**
+ * Per-team hitter attribute multiplier applied ON TOP of the base ROSTER_SCALE_FACTORS entry.
+ * Default = 1.0 (no override). Values < 1 reduce hitter attrs to close inflated H-P gaps.
+ * Only used for teams that are ranked too high due to over-powered hitters — NOT used to
+ * boost under-performing teams (that's handled via ROSTER_SCALE_FACTORS instead).
+ */
+export const HITTER_SCALE_OVERRIDES: Record<string, number> = {
+  // Reduce hitters to narrow inflated H-P gap (ranks these teams lower)
+  "Louisiana":       0.92,
+  "Texas A&M":       0.94,
+  "Wake Forest":     0.93,
+  "Clemson":         0.95,
+  "Virginia Tech":   0.94,
+  "Southern Miss":   0.94,
+  "Nebraska":        0.96,
+  "Georgia":         0.96,
+  "Georgia Tech":    0.96,
+};

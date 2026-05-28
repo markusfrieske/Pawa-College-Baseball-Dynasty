@@ -16,7 +16,7 @@ import { MO_VALLEY_ROSTERS } from "./moValleyRosters";
 import { BIG_12_ROSTERS } from "./big12Rosters";
 import { AAC_ROSTERS } from "./aacRosters";
 import { WCC_ROSTERS } from "./wccRosters";
-import { ROSTER_SCALE_FACTORS } from "./rosterScaleFactors";
+import { ROSTER_SCALE_FACTORS, PITCHER_SCALE_OVERRIDES, HITTER_SCALE_OVERRIDES } from "./rosterScaleFactors";
 
 export interface RealPlayer {
   firstName: string;
@@ -85,19 +85,99 @@ const COMMON_ATTRS_FOR_CLAMP = new Set([
 
 const PITCHER_POSITIONS = new Set(["P", "SP", "RP", "CP"]);
 
-function scalePlayer(player: RealPlayer, factor: number): RealPlayer {
-  if (factor === 1) return player;
+// Pitcher common attrs that receive the F/G-grade floor treatment.
+// Stamina is intentionally excluded — depth pitchers legitimately vary in stamina.
+const PITCHER_COMMON_FLOOR_ATTRS = new Set([
+  "velocity", "control",
+  "wRISP", "vsLefty", "poise", "heater", "agile", "recovery", "grit", "clutch",
+]);
+
+// Hitter-only scale attrs (not applied to pitchers during split-scale pass).
+const HITTER_ATTRS = new Set([
+  "hitForAvg", "power", "speed", "arm", "fielding", "errorResistance", "stealing",
+  "clutch", "vsLHP", "grit", "running", "throwing", "recovery",
+]);
+// Pitcher-only scale attrs (not applied to hitters during split-scale pass).
+const PITCHER_ATTRS = new Set([
+  "velocity", "control", "stuff",
+  "wRISP", "vsLefty", "poise", "heater", "agile", "recovery", "grit", "clutch",
+]);
+
+function scalePlayer(player: RealPlayer, factor: number, pitcherMult = 1, hitterMult = 1): RealPlayer {
+  if (factor === 1 && pitcherMult === 1 && hitterMult === 1) return player;
   const isPitcher = PITCHER_POSITIONS.has(player.position);
   const result = { ...player };
   for (const attr of SCALE_ATTRS) {
     const val = result[attr];
     if (typeof val === "number") {
       const minV = COMMON_ATTRS_FOR_CLAMP.has(attr as string) ? 10 : 20;
-      let scaled = Math.round(Math.max(minV, Math.min(99, val * factor)));
+      // Apply position-specific multiplier on top of base factor
+      let effectiveFactor = factor;
+      if (isPitcher && PITCHER_ATTRS.has(attr as string)) {
+        effectiveFactor = factor * pitcherMult;
+      } else if (!isPitcher && HITTER_ATTRS.has(attr as string)) {
+        effectiveFactor = factor * hitterMult;
+      }
+      // Cap at 89 when:
+      //   (a) raw val < 90 — scaling cannot create a new S-grade, OR
+      //   (b) effectiveFactor < 1 — a reduction might drop OVR below 550 while
+      //       leaving a raw S-grade attr exposed on a sub-threshold player.
+      // Preserving raw S-grade attrs only when the player is being boosted (factor ≥ 1),
+      // which keeps their OVR above 550.
+      // Cap at 89 unless the raw value was explicitly above the S-grade boundary (91+).
+      // This prevents the base scale factor from pushing a boundary attr (90) to 99,
+      // and also prevents reductions from leaving an S-grade attr on a sub-550 player.
+      const sGradeCap = (val <= 90 || effectiveFactor < 1) ? 89 : 99;
+      let scaled = Math.round(Math.max(minV, Math.min(sGradeCap, val * effectiveFactor)));
       if (isPitcher && (attr === "hitForAvg" || attr === "power")) scaled = Math.min(scaled, 30);
       (result as Record<string, unknown>)[attr as string] = scaled;
     }
   }
+  return result;
+}
+
+/**
+ * Global post-scale adjustments applied to every player regardless of team scale factor.
+ *
+ * #3 — Pitcher non-stamina common attr floor:
+ *   Values below 40 (F/G grade) on a pitcher's relevant common abilities are boosted:
+ *   max(30, round(val × 1.20)). Break-even at ~33 — values 33+ reach E-grade (40+).
+ *   Combined F+G drops from ~36 % to ~24 %. Stamina is excluded by design.
+ *
+ * #6 — Catcher priority attribute boost:
+ *   fielding ×1.15, errorResistance ×1.15, arm ×1.10, catcherAbility ×1.20.
+ *   Raises avg catcher OVR from ~272 → ~290, on par with other positions.
+ */
+function applyGlobalAdjustments(player: RealPlayer): RealPlayer {
+  const isPitcher = PITCHER_POSITIONS.has(player.position);
+  const isCatcher = player.position === "C";
+
+  if (!isPitcher && !isCatcher) return player;
+
+  const result = { ...player };
+
+  // #3 — Pitcher non-stamina common attr floor (stamina excluded)
+  if (isPitcher) {
+    for (const attr of PITCHER_COMMON_FLOOR_ATTRS) {
+      const val = (result as Record<string, unknown>)[attr];
+      if (typeof val === "number" && val < 40) {
+        (result as Record<string, unknown>)[attr] = Math.max(30, Math.round(val * 1.20));
+      }
+    }
+  }
+
+  // #6 — Catcher priority attributes
+  if (isCatcher) {
+    if (typeof result.fielding === "number")
+      result.fielding = Math.min(99, Math.round(result.fielding * 1.15));
+    if (typeof result.errorResistance === "number")
+      result.errorResistance = Math.min(99, Math.round(result.errorResistance * 1.15));
+    if (typeof result.arm === "number")
+      result.arm = Math.min(99, Math.round(result.arm * 1.10));
+    if (typeof result.catcherAbility === "number")
+      result.catcherAbility = Math.min(99, Math.round(result.catcherAbility * 1.20));
+  }
+
   return result;
 }
 
@@ -126,7 +206,11 @@ function buildCalibratedRosters(): Record<string, RealPlayer[]> {
   const out: Record<string, RealPlayer[]> = {};
   for (const [teamName, players] of Object.entries(RAW_REAL_ROSTERS)) {
     const factor = ROSTER_SCALE_FACTORS[teamName] ?? 1;
-    out[teamName] = factor === 1 ? players : players.map(p => scalePlayer(p, factor));
+    const pitcherMult = PITCHER_SCALE_OVERRIDES[teamName] ?? 1;
+    const hitterMult  = HITTER_SCALE_OVERRIDES[teamName]  ?? 1;
+    out[teamName] = players.map(p =>
+      applyGlobalAdjustments(scalePlayer(p, factor, pitcherMult, hitterMult))
+    );
   }
   return out;
 }
