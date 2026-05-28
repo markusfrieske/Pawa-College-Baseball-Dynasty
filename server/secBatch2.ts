@@ -717,7 +717,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       generational: true,
       hitForAvg: 58, power: 58, speed: 58, arm: 58, fielding: 58, errorResistance: 58, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 90, vsLHP: 82, grit: 66, stealing: 66, running: 66, throwing: 66, recovery: 60, wRISP: 86, vsLefty: 80, poise: 84, heater: 0, agile: 60,
-      abilities: ["Spray Hitter", "Consigliere", "Storming Home", "Power Hitter", "Hit Machine"], potential: "A+", catcherAbility: 70,
+      abilities: ["Spray Hitter", "Consigliere", "Storming Home", "Power Hitter", "The Almanac"], potential: "A+", catcherAbility: 70,
       throwHand: "R", batHand: "R",
       skinTone: "deep", hairColor: "black", hairStyle: "fade",
       ...noPitches },

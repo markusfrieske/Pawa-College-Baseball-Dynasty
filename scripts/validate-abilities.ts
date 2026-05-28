@@ -77,6 +77,13 @@ interface IntimidatorStarterViolation {
   position: string;
 }
 
+interface CatcherFielderGoldViolation {
+  kind: "catcher-fielder-gold";
+  team: string;
+  player: string;
+  badAbility: string;
+}
+
 type Violation =
   | UnknownAbilityViolation
   | PositionMismatchViolation
@@ -85,7 +92,8 @@ type Violation =
   | MissingFieldViolation
   | DuplicateAbilityViolation
   | MultipleGoldViolation
-  | IntimidatorStarterViolation;
+  | IntimidatorStarterViolation
+  | CatcherFielderGoldViolation;
 
 const violations: Violation[] = [];
 
@@ -176,6 +184,23 @@ for (const [team, players] of Object.entries(ALL_REAL_ROSTERS)) {
       });
     }
 
+    // 8. Catcher holding a fielder-category gold ability — catchers have their own
+    //    gold tier (CATCHER_GOLD_ABILITIES) so a fielder-gold ability in the gold slot
+    //    is always a mistake (e.g. High-Speed Laser instead of Bazooka Arm).
+    if (player.position === "C") {
+      for (const abilityName of player.abilities) {
+        const abilityDef = getAbilityByName(abilityName);
+        if (abilityDef && abilityDef.category === "fielder" && abilityDef.tier === "gold") {
+          violations.push({
+            kind: "catcher-fielder-gold",
+            team,
+            player: playerName,
+            badAbility: abilityName,
+          });
+        }
+      }
+    }
+
     // 3. Primary numeric attributes summing to zero or near-zero (effectively blank player)
     const attrSum = NUMERIC_ATTRS.reduce((sum, field) => {
       const val = (player as Record<string, unknown>)[field];
@@ -214,15 +239,17 @@ const missingFieldViolations = violations.filter((v) => v.kind === "missing-fiel
 const duplicateAbilityViolations = violations.filter((v) => v.kind === "duplicate-ability") as DuplicateAbilityViolation[];
 const multipleGoldViolations = violations.filter((v) => v.kind === "multiple-gold") as MultipleGoldViolation[];
 const intimidatorStarterViolations = violations.filter((v) => v.kind === "intimidator-starter") as IntimidatorStarterViolation[];
+const catcherFielderGoldViolations = violations.filter((v) => v.kind === "catcher-fielder-gold") as CatcherFielderGoldViolation[];
 
-// Hard errors: unknown names, position mismatches, duplicates, multiple-gold, and Intimidator-on-starter fail the run.
+// Hard errors: unknown names, position mismatches, duplicates, multiple-gold, Intimidator-on-starter, and catcher-fielder-gold fail the run.
 // Warnings: no-abilities, thin-attributes, missing-field are printed but don't fail.
 const hardErrorCount =
   unknownViolations.length +
   mismatchViolations.length +
   duplicateAbilityViolations.length +
   multipleGoldViolations.length +
-  intimidatorStarterViolations.length;
+  intimidatorStarterViolations.length +
+  catcherFielderGoldViolations.length;
 
 if (violations.length === 0) {
   console.log(
@@ -339,6 +366,20 @@ if (intimidatorStarterViolations.length > 0) {
   }
   console.error(
     `\nFix: Intimidator (staminaMax: 49) is for relievers only. Replace it on any pitcher with stamina >= 50 with a starter-appropriate blue ability (e.g. Sharpness, Heavy Ball, vs. Strong Batters, Staredown).`
+  );
+}
+
+if (catcherFielderGoldViolations.length > 0) {
+  console.error(
+    `\n✗ Found ${catcherFielderGoldViolations.length} catcher(s) with a fielder-category gold ability (catchers must use catcher-category gold abilities):\n`
+  );
+  for (const v of catcherFielderGoldViolations) {
+    console.error(
+      `  [${v.team}] ${v.player} (C): has fielder-gold ability "${v.badAbility}"`
+    );
+  }
+  console.error(
+    `\nFix: replace with a catcher-category gold from CATCHER_GOLD_ABILITIES (Bazooka Arm, The Almanac, Iron Wall, Trash Talker).`
   );
 }
 

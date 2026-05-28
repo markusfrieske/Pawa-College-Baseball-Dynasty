@@ -1145,7 +1145,7 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Aaron", lastName: "Munson", position: "C", eligibility: "JR", homeState: "OH", hometown: "Cincinnati", jerseyNumber: 12,
       hitForAvg: 62, power: 62, speed: 37, arm: 62, fielding: 62, errorResistance: 62, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 80, vsLHP: 72, grit: 63, stealing: 47, running: 47, throwing: 63, recovery: 56, wRISP: 80, vsLefty: 72, poise: 80, heater: 0, agile: 36,
-      abilities: ["Power Hitter", "Contact Hitter", "Artist"], potential: "A-", catcherAbility: 76,
+      abilities: ["Power Hitter", "Contact Hitter", "Bazooka Arm"], potential: "A-", catcherAbility: 76,
       throwHand: "R", batHand: "L",
       ...noPitches },
     { firstName: "Cole", lastName: "Reynolds", position: "C", eligibility: "FR", homeState: "OH", hometown: "Columbus", jerseyNumber: 18,
