@@ -334,7 +334,8 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
   // Priority 1: player actually has the gold ability in their list.
   // Priority 2: the attribute is S-grade (≥90) → show the first mapped gold as a grade indicator.
   // Uses S_GOLD_PITCHER_KEY directly to handle multiple golds per attr (e.g.
-  // both "Indomitable Soul" and "Sangfroid" link to "wRISP").
+  // "Sangfroid" and — after this fix — only "Sangfroid" links to "wRISP";
+  // "Indomitable Soul" links to "poise", "Grit" links to "grit").
   const sPitcherGoldBadge = (attrKey: string, attrVal?: number | null): string | undefined => {
     for (const [goldName, linkedKey] of Object.entries(S_GOLD_PITCHER_KEY)) {
       if (linkedKey === attrKey && playerAbilitySet.has(goldName)) return goldName;
