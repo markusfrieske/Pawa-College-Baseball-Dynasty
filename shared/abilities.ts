@@ -449,7 +449,6 @@ export const S_GOLD_COMMON_KEY: Record<string, keyof typeof COMMON_OVR> = {
   "Express Baserunning":"running",
   "Lightning Speed":    "stealing",
   "Strike Thrower":     "throwing",
-  "High-Speed Laser":   "throwing",
   "Bazooka Arm":        "throwing",
   "The Almanac":        "catcherAbility",
   "Iron Man":           "grit",
