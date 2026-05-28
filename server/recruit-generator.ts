@@ -778,6 +778,20 @@ export function generateRecruitClass(
     if (themeBoost.attr === "speed")   speed    = Math.min(99, speed   + themeBoost.boost);
     if (themeBoost.attr === "fielding") fielding = Math.min(99, fielding + themeBoost.boost);
 
+    // Gate Intimidator to reliever pitchers only (stamina < 50 = reliever range).
+    // Starters have high stamina (50+) and cannot carry Intimidator, which is a
+    // reliever-specific ability ("When pitching in relief, strike fear...").
+    if (isPitcher && abilities.includes("Intimidator") && stamina >= 50) {
+      const availableBlue = getAbilitiesForPosition(position)
+        .filter(a => a.tier === "blue" && a.name !== "Intimidator" && !abilities.includes(a.name));
+      if (availableBlue.length > 0) {
+        const replacement = availableBlue[Math.floor(Math.random() * availableBlue.length)];
+        abilities = abilities.map(a => a === "Intimidator" ? replacement.name : a);
+      } else {
+        abilities = abilities.filter(a => a !== "Intimidator");
+      }
+    }
+
     const recruitThrowHand = isPitcher ? (Math.random() < 0.28 ? "L" : "R") : "R";
     const pitchMix = isPitcher
       ? generateArchetypePitchMix(

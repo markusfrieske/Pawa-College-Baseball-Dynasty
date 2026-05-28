@@ -769,7 +769,7 @@ import type { RealPlayer } from "./realRosters";
     { firstName: "Karsten", lastName: "Sweum", position: "P", eligibility: "JR", homeState: "WA", hometown: "Spokane", jerseyNumber: 17,
         hitForAvg: 14, power: 11, speed: 32, arm: 92, fielding: 60, errorResistance: 54, velocity: 97, control: 95, stamina: 92, stuff: 97,
         clutch: 86, vsLHP: 82, grit: 73, stealing: 8, running: 30, throwing: 86, recovery: 73, wRISP: 73, vsLefty: 73, poise: 73, heater: 73, agile: 40,
-        abilities: ["Guts", "Sharpness", "Intimidator", "Strong Starter", "Heavy Ball"], potential: "A+", catcherAbility: null,
+        abilities: ["Guts", "Sharpness", "vs. Strong Batters", "Strong Starter", "Heavy Ball"], potential: "A+", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         pitchFB: 1, pitch2S: 0, pitchSL: 0, pitchCB: 4, pitchCH: 1, pitchCT: 5, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },

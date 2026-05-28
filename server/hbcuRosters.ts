@@ -1146,7 +1146,7 @@ export const HBCU_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Jaden", lastName: "Montague", position: "P", eligibility: "SO", homeState: "VA", hometown: "Hampton", jerseyNumber: 28,
       hitForAvg: 9, power: 7, speed: 32, arm: 21, fielding: 18, errorResistance: 28, velocity: 30, control: 27, stamina: 29, stuff: 38,
       clutch: 31, vsLHP: 28, grit: 18, stealing: 10, running: 31, throwing: 36, recovery: 18, wRISP: 18, vsLefty: 18, poise: 18, heater: 18, agile: 18,
-      abilities: ["True Slider", "Strong Starter", "Intimidator"], potential: "C", catcherAbility: null,
+      abilities: ["True Slider", "Strong Starter", "Sharpness"], potential: "C", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [1, 3, 0, 1, 0, 3, 0, 0, 0, 0]) },
     { firstName: "Davion", lastName: "Quarles", position: "P", eligibility: "FR", homeState: "VA", hometown: "Virginia Beach", jerseyNumber: 45,

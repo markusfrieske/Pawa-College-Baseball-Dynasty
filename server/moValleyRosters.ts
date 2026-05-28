@@ -1156,7 +1156,7 @@ export const MO_VALLEY_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Jacob", lastName: "Perez", position: "P", eligibility: "FR", homeState: "IL", hometown: "Cicero", jerseyNumber: 48,
       hitForAvg: 8, power: 7, speed: 26, arm: 25, fielding: 16, errorResistance: 28, velocity: 33, control: 31, stamina: 29, stuff: 34,
       clutch: 28, vsLHP: 26, grit: 29, stealing: 10, running: 26, throwing: 37, recovery: 24, wRISP: 23, vsLefty: 24, poise: 24, heater: 32, agile: 32,
-      abilities: ["Strong Starter", "Intimidator"], potential: "A-", catcherAbility: null,
+      abilities: ["Strong Starter", "Sharpness"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 3, 3, 1, 0, 0, 0, 0, 0, 0]) },
     { firstName: "Alex", lastName: "Soto", position: "P", eligibility: "FR", homeState: "IL", hometown: "Bridgeview", jerseyNumber: 50,

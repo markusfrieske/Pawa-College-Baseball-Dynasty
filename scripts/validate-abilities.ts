@@ -70,6 +70,13 @@ interface MultipleGoldViolation {
   goldAbilities: string[];
 }
 
+interface IntimidatorStarterViolation {
+  kind: "intimidator-starter";
+  team: string;
+  player: string;
+  position: string;
+}
+
 type Violation =
   | UnknownAbilityViolation
   | PositionMismatchViolation
@@ -77,7 +84,8 @@ type Violation =
   | ThinAttributesViolation
   | MissingFieldViolation
   | DuplicateAbilityViolation
-  | MultipleGoldViolation;
+  | MultipleGoldViolation
+  | IntimidatorStarterViolation;
 
 const violations: Violation[] = [];
 
@@ -153,6 +161,21 @@ for (const [team, players] of Object.entries(ALL_REAL_ROSTERS)) {
       });
     }
 
+    // 7. Intimidator + Strong Starter on same pitcher (reliever-only ability on a starter)
+    const isPitcherPosition = ["P", "SP", "RP", "CP"].includes(player.position);
+    if (
+      isPitcherPosition &&
+      player.abilities.includes("Intimidator") &&
+      player.abilities.includes("Strong Starter")
+    ) {
+      violations.push({
+        kind: "intimidator-starter",
+        team,
+        player: playerName,
+        position: player.position,
+      });
+    }
+
     // 3. Primary numeric attributes summing to zero or near-zero (effectively blank player)
     const attrSum = NUMERIC_ATTRS.reduce((sum, field) => {
       const val = (player as Record<string, unknown>)[field];
@@ -190,14 +213,16 @@ const thinAttrViolations = violations.filter((v) => v.kind === "thin-attributes"
 const missingFieldViolations = violations.filter((v) => v.kind === "missing-field") as MissingFieldViolation[];
 const duplicateAbilityViolations = violations.filter((v) => v.kind === "duplicate-ability") as DuplicateAbilityViolation[];
 const multipleGoldViolations = violations.filter((v) => v.kind === "multiple-gold") as MultipleGoldViolation[];
+const intimidatorStarterViolations = violations.filter((v) => v.kind === "intimidator-starter") as IntimidatorStarterViolation[];
 
-// Hard errors: unknown names, position mismatches, duplicates, and multiple-gold fail the run.
+// Hard errors: unknown names, position mismatches, duplicates, multiple-gold, and Intimidator-on-starter fail the run.
 // Warnings: no-abilities, thin-attributes, missing-field are printed but don't fail.
 const hardErrorCount =
   unknownViolations.length +
   mismatchViolations.length +
   duplicateAbilityViolations.length +
-  multipleGoldViolations.length;
+  multipleGoldViolations.length +
+  intimidatorStarterViolations.length;
 
 if (violations.length === 0) {
   console.log(
@@ -300,6 +325,20 @@ if (multipleGoldViolations.length > 0) {
   }
   console.error(
     `\nFix: each player may have at most 1 gold-tier ability. Replace extras with blue-tier abilities.`
+  );
+}
+
+if (intimidatorStarterViolations.length > 0) {
+  console.error(
+    `\n✗ Found ${intimidatorStarterViolations.length} pitcher(s) with Intimidator + Strong Starter (reliever-only ability on a starter):\n`
+  );
+  for (const v of intimidatorStarterViolations) {
+    console.error(
+      `  [${v.team}] ${v.player} (${v.position}): has both "Intimidator" and "Strong Starter"`
+    );
+  }
+  console.error(
+    `\nFix: Intimidator is a reliever-only ability. Remove it from pitchers who have Strong Starter, replacing with a starter-appropriate blue ability (e.g. Sharpness, Heavy Ball, vs. Strong Batters).`
   );
 }
 
