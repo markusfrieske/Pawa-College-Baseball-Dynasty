@@ -257,6 +257,9 @@ export function sanitizeAbilities(position: string, abilities: string[]): string
   }).filter(n => n !== "");
 
   // 3. Cap gold abilities at 1 — keep the first gold encountered.
+  // Pre-compute the full set of abilities already present in afterPositionCheck so that
+  // replacement blue picks don't collide with abilities that appear later in the list.
+  const allClaimed = new Set(afterPositionCheck);
   let goldSeen = false;
   const result: string[] = [];
 
@@ -267,9 +270,14 @@ export function sanitizeAbilities(position: string, abilities: string[]): string
         goldSeen = true;
         result.push(name);
       } else {
-        const inResult = new Set(result);
-        const replacement = drawBlue(inResult);
-        if (replacement) result.push(replacement);
+        // Remove this extra gold from allClaimed so drawBlue can't pick it either,
+        // but ensure we avoid everything else already in afterPositionCheck.
+        allClaimed.delete(name);
+        const replacement = drawBlue(allClaimed);
+        if (replacement) {
+          allClaimed.add(replacement);
+          result.push(replacement);
+        }
       }
     } else {
       result.push(name);
