@@ -153,6 +153,61 @@ app.use((req, res, next) => {
     console.warn("[startup-migration] player_history.source_player_id column check failed:", e);
   }
 
+  // One-time pitcher stamina banding migration (role-based bands: starters 80-99,
+  // long relief 50-79, mid relief 30-49, closer 1-29).
+  // Guarded by a _startup_migrations table so it only runs once per environment.
+  void (async () => {
+    try {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS _startup_migrations (
+          key text PRIMARY KEY,
+          ran_at timestamp DEFAULT now()
+        )
+      `);
+      const { rows } = await pool.query(`
+        INSERT INTO _startup_migrations (key)
+        VALUES ('pitcher-stamina-bands-v1')
+        ON CONFLICT (key) DO NOTHING
+        RETURNING key
+      `);
+      if (rows.length === 0) return; // already ran
+
+      const { rows: pitchers } = await pool.query<{ id: number; team_id: number }>(
+        `SELECT id, team_id FROM players WHERE position IN ('P','SP','RP','CP') ORDER BY team_id, id`
+      );
+
+      function randBand(min: number, max: number) {
+        return min + Math.floor(Math.random() * (max - min + 1));
+      }
+      function staminaForRank(rank: number, total: number): number {
+        if (rank <= 4) return randBand(80, 99);
+        if (rank === 5) return randBand(50, 79);
+        if (rank === total) return randBand(1, 29);
+        return randBand(30, 49);
+      }
+
+      const byTeam = new Map<number, Array<{ id: number }>>();
+      for (const p of pitchers) {
+        const arr = byTeam.get(p.team_id) ?? [];
+        arr.push({ id: p.id });
+        byTeam.set(p.team_id, arr);
+      }
+
+      let updated = 0;
+      for (const [, teamPitchers] of byTeam) {
+        const total = teamPitchers.length;
+        for (let i = 0; i < total; i++) {
+          const stamina = staminaForRank(i + 1, total);
+          await pool.query(`UPDATE players SET stamina = $1 WHERE id = $2`, [stamina, teamPitchers[i].id]);
+          updated++;
+        }
+      }
+      console.log(`[startup-migration] pitcher-stamina-bands-v1: updated ${updated} pitchers`);
+    } catch (e) {
+      console.warn("[startup-migration] pitcher-stamina-bands failed:", e);
+    }
+  })();
+
   await registerRoutes(httpServer, app);
 
   // One-time OVR resync — runs in background after startup.

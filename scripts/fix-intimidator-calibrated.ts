@@ -22,6 +22,7 @@ const ROSTER_FILES = [
   "server/bigTenBatch2.ts",
   "server/bigTenBatch3.ts",
   "server/big12Rosters.ts",
+  "server/mwcRosters.ts",
   "server/pac12Rosters.ts",
   "server/aacRosters.ts",
   "server/sunBeltRosters.ts",

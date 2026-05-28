@@ -223,10 +223,12 @@ export const MAX_SPECIAL_ABILITIES = 7;
  * position-valid pool is used.  Slots with no available replacement are
  * dropped entirely.
  */
-export function sanitizeAbilities(position: string, abilities: string[]): string[] {
+export function sanitizeAbilities(position: string, abilities: string[], pitcherStamina?: number): string[] {
   const availableAbilities = getAbilitiesForPosition(position);
   const validNames = new Set(availableAbilities.map(a => a.name));
-  const bluePool = availableAbilities.filter(a => a.tier === "blue").map(a => a.name);
+  const staminaOk = (a: Ability) =>
+    pitcherStamina === undefined || a.staminaMax === undefined || pitcherStamina <= a.staminaMax;
+  const bluePool = availableAbilities.filter(a => a.tier === "blue" && staminaOk(a)).map(a => a.name);
 
   // Helper: draw a random blue replacement not already claimed.
   function drawBlue(claimed: Set<string>): string {
@@ -294,13 +296,15 @@ export function sanitizeAbilities(position: string, abilities: string[]): string
  * randomly-chosen position-appropriate blue ability not already present.
  * Returns the original array reference unchanged when no replacement is needed.
  */
-export function enforceGoldOvrGate(abilities: string[], position: string, ovr: number): string[] {
+export function enforceGoldOvrGate(abilities: string[], position: string, ovr: number, pitcherStamina?: number): string[] {
   if (ovr >= 500) return abilities;
   const hasGold = abilities.some(name => getAbilityByName(name)?.tier === "gold");
   if (!hasGold) return abilities;
 
   const availableAbilities = getAbilitiesForPosition(position);
-  const bluePool = availableAbilities.filter(a => a.tier === "blue").map(a => a.name);
+  const staminaOk = (a: Ability) =>
+    pitcherStamina === undefined || a.staminaMax === undefined || pitcherStamina <= a.staminaMax;
+  const bluePool = availableAbilities.filter(a => a.tier === "blue" && staminaOk(a)).map(a => a.name);
 
   const result = [...abilities];
   const inResult = new Set(result);
@@ -359,8 +363,8 @@ export function getRandomAbilities(position: string, count: number, preferGold: 
     }
   }
 
-  // Final guarantee: no duplicates and at most 1 gold.
-  return sanitizeAbilities(position, selected);
+  // Final guarantee: no duplicates and at most 1 gold, respecting stamina gate.
+  return sanitizeAbilities(position, selected, pitcherStamina);
 }
 
 export function getAbilityByName(name: string): Ability | undefined {

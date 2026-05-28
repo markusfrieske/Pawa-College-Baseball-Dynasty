@@ -902,7 +902,7 @@ export function generateRecruitClass(
     }
     // Enforce gold OVR gate: generational gems are exempt (they're always elite)
     if (!isGenerationalGem && !isGenerationalBust) {
-      const gated = enforceGoldOvrGate(abilities, position, overall);
+      const gated = enforceGoldOvrGate(abilities, position, overall, pitcherStaminaForAbilities);
       if (gated !== abilities) {
         abilities = gated;
         // Gold gives +10 OVR, blue gives +5, so each gold→blue swap costs 5 OVR
