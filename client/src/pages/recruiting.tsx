@@ -3387,15 +3387,15 @@ function RecruitDetailModal({
                 </>
               ) : (
                 <>
-                  <CommonAbilityRow label="Clutch" value={recruit.clutch} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("clutch")} goldAbilityName={recruitSGoldBadge(recruit.clutch, "clutch")} />
-                  <CommonAbilityRow label="vs LHP" value={recruit.vsLHP} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("vsLHP")} goldAbilityName={recruitSGoldBadge(recruit.vsLHP, "vsLHP")} />
-                  <CommonAbilityRow label="Grit" value={recruit.grit} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("grit")} goldAbilityName={recruitSGoldBadge(recruit.grit, "grit")} />
-                  <CommonAbilityRow label="Stealing" value={recruit.stealing} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("stealing")} goldAbilityName={recruitSGoldBadge(recruit.stealing, "stealing")} />
-                  <CommonAbilityRow label="Running" value={recruit.running} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("running")} goldAbilityName={recruitSGoldBadge(recruit.running, "running")} />
-                  <CommonAbilityRow label="Throwing" value={recruit.throwing} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("throwing")} goldAbilityName={recruitSGoldBadge(recruit.throwing, "throwing")} />
+                  <CommonAbilityRow label="Clutch" value={recruit.clutch} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("clutch")} goldAbilityName={recruitSGoldBadge(recruit.clutch, "clutch", isFullyRevealed ? (recruit.abilities as string[] || []) : (recruit.abilities as string[] || []).slice(0, revealedAbilitiesCount))} />
+                  <CommonAbilityRow label="vs LHP" value={recruit.vsLHP} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("vsLHP")} goldAbilityName={recruitSGoldBadge(recruit.vsLHP, "vsLHP", isFullyRevealed ? (recruit.abilities as string[] || []) : (recruit.abilities as string[] || []).slice(0, revealedAbilitiesCount))} />
+                  <CommonAbilityRow label="Grit" value={recruit.grit} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("grit")} goldAbilityName={recruitSGoldBadge(recruit.grit, "grit", isFullyRevealed ? (recruit.abilities as string[] || []) : (recruit.abilities as string[] || []).slice(0, revealedAbilitiesCount))} />
+                  <CommonAbilityRow label="Stealing" value={recruit.stealing} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("stealing")} goldAbilityName={recruitSGoldBadge(recruit.stealing, "stealing", isFullyRevealed ? (recruit.abilities as string[] || []) : (recruit.abilities as string[] || []).slice(0, revealedAbilitiesCount))} />
+                  <CommonAbilityRow label="Running" value={recruit.running} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("running")} goldAbilityName={recruitSGoldBadge(recruit.running, "running", isFullyRevealed ? (recruit.abilities as string[] || []) : (recruit.abilities as string[] || []).slice(0, revealedAbilitiesCount))} />
+                  <CommonAbilityRow label="Throwing" value={recruit.throwing} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("throwing")} goldAbilityName={recruitSGoldBadge(recruit.throwing, "throwing", isFullyRevealed ? (recruit.abilities as string[] || []) : (recruit.abilities as string[] || []).slice(0, revealedAbilitiesCount))} />
                   <CommonAbilityRow label="Recovery" value={recruit.recovery} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("recovery")} />
                   {recruit.position === "C" && (
-                    <CommonAbilityRow label="Catcher" value={recruit.catcherAbility} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("catcherAbility")} goldAbilityName={recruitSGoldBadge(recruit.catcherAbility, "catcherAbility")} />
+                    <CommonAbilityRow label="Catcher" value={recruit.catcherAbility} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("catcherAbility")} goldAbilityName={recruitSGoldBadge(recruit.catcherAbility, "catcherAbility", isFullyRevealed ? (recruit.abilities as string[] || []) : (recruit.abilities as string[] || []).slice(0, revealedAbilitiesCount))} />
                   )}
                 </>
               )}
@@ -3862,15 +3862,15 @@ function RecruitDetailModal({
                 </>
               ) : (
                 <>
-                  <CommonAbilityRow label="Clutch" value={recruit.clutch} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("clutch")} goldAbilityName={recruitSGoldBadge(recruit.clutch, "clutch")} />
-                  <CommonAbilityRow label="vs LHP" value={recruit.vsLHP} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("vsLHP")} goldAbilityName={recruitSGoldBadge(recruit.vsLHP, "vsLHP")} />
-                  <CommonAbilityRow label="Grit" value={recruit.grit} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("grit")} goldAbilityName={recruitSGoldBadge(recruit.grit, "grit")} />
-                  <CommonAbilityRow label="Stealing" value={recruit.stealing} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("stealing")} goldAbilityName={recruitSGoldBadge(recruit.stealing, "stealing")} />
-                  <CommonAbilityRow label="Running" value={recruit.running} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("running")} goldAbilityName={recruitSGoldBadge(recruit.running, "running")} />
-                  <CommonAbilityRow label="Throwing" value={recruit.throwing} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("throwing")} goldAbilityName={recruitSGoldBadge(recruit.throwing, "throwing")} />
+                  <CommonAbilityRow label="Clutch" value={recruit.clutch} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("clutch")} goldAbilityName={recruitSGoldBadge(recruit.clutch, "clutch", isFullyRevealed ? (recruit.abilities as string[] || []) : (recruit.abilities as string[] || []).slice(0, revealedAbilitiesCount))} />
+                  <CommonAbilityRow label="vs LHP" value={recruit.vsLHP} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("vsLHP")} goldAbilityName={recruitSGoldBadge(recruit.vsLHP, "vsLHP", isFullyRevealed ? (recruit.abilities as string[] || []) : (recruit.abilities as string[] || []).slice(0, revealedAbilitiesCount))} />
+                  <CommonAbilityRow label="Grit" value={recruit.grit} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("grit")} goldAbilityName={recruitSGoldBadge(recruit.grit, "grit", isFullyRevealed ? (recruit.abilities as string[] || []) : (recruit.abilities as string[] || []).slice(0, revealedAbilitiesCount))} />
+                  <CommonAbilityRow label="Stealing" value={recruit.stealing} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("stealing")} goldAbilityName={recruitSGoldBadge(recruit.stealing, "stealing", isFullyRevealed ? (recruit.abilities as string[] || []) : (recruit.abilities as string[] || []).slice(0, revealedAbilitiesCount))} />
+                  <CommonAbilityRow label="Running" value={recruit.running} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("running")} goldAbilityName={recruitSGoldBadge(recruit.running, "running", isFullyRevealed ? (recruit.abilities as string[] || []) : (recruit.abilities as string[] || []).slice(0, revealedAbilitiesCount))} />
+                  <CommonAbilityRow label="Throwing" value={recruit.throwing} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("throwing")} goldAbilityName={recruitSGoldBadge(recruit.throwing, "throwing", isFullyRevealed ? (recruit.abilities as string[] || []) : (recruit.abilities as string[] || []).slice(0, revealedAbilitiesCount))} />
                   <CommonAbilityRow label="Recovery" value={recruit.recovery} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("recovery")} />
                   {recruit.position === "C" && (
-                    <CommonAbilityRow label="Catcher" value={recruit.catcherAbility} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("catcherAbility")} goldAbilityName={recruitSGoldBadge(recruit.catcherAbility, "catcherAbility")} />
+                    <CommonAbilityRow label="Catcher" value={recruit.catcherAbility} scoutPct={scoutPct} isFullyRevealed={isFullyRevealed} isSigningDayLocked={sdLocked.has("catcherAbility")} goldAbilityName={recruitSGoldBadge(recruit.catcherAbility, "catcherAbility", isFullyRevealed ? (recruit.abilities as string[] || []) : (recruit.abilities as string[] || []).slice(0, revealedAbilitiesCount))} />
                   )}
                 </>
               )}
@@ -4389,13 +4389,22 @@ function SeeUponSigningBadge() {
   );
 }
 
-const COMMON_KEY_TO_GOLD: Record<string, string> = Object.fromEntries(
-  Object.entries(S_GOLD_COMMON_KEY).map(([gold, key]) => [key, gold])
-);
+const COMMON_KEY_TO_GOLD_LIST: Record<string, string[]> = {};
+for (const [gold, key] of Object.entries(S_GOLD_COMMON_KEY)) {
+  if (!COMMON_KEY_TO_GOLD_LIST[key]) COMMON_KEY_TO_GOLD_LIST[key] = [];
+  COMMON_KEY_TO_GOLD_LIST[key].push(gold);
+}
 
-function recruitSGoldBadge(attrVal: number | null | undefined, commonKey: string): string | undefined {
-  if ((attrVal ?? 0) < 90) return undefined;
-  return COMMON_KEY_TO_GOLD[commonKey];
+function recruitSGoldBadge(attrVal: number | null | undefined, commonKey: string, abilities?: string[]): string | undefined {
+  const goldList = COMMON_KEY_TO_GOLD_LIST[commonKey];
+  if (!goldList) return undefined;
+  if (abilities) {
+    const abilitySet = new Set(abilities);
+    const fromAbilities = goldList.find(g => abilitySet.has(g));
+    if (fromAbilities) return fromAbilities;
+  }
+  if ((attrVal ?? 0) >= 90) return goldList[0];
+  return undefined;
 }
 
 function CommonAbilityRow({ 

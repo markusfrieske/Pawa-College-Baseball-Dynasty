@@ -282,16 +282,27 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
     { label: "Stamina", value: player.stamina, delta: deltas?.stamina },
   ];
 
-  // Reverse map: common-ability key → gold ability name (derived from S_GOLD_COMMON_KEY)
-  const COMMON_KEY_TO_GOLD: Record<string, string> = Object.fromEntries(
-    Object.entries(S_GOLD_COMMON_KEY).map(([gold, key]) => [key, gold])
-  );
-  // Helper: return the gold ability name to badge whenever the common ability hits S-grade (≥90).
-  // The badge is shown based on grade alone — no need for the gold ability to also appear
-  // in the special abilities list (S-grade *is* the gold-ability equivalent).
+  // Multi-map: common-ability key → all gold ability names that link to it.
+  // Using a list handles keys like "throwing" which has Strike Thrower, High-Speed Laser, and Bazooka Arm.
+  const COMMON_KEY_TO_GOLD_LIST: Record<string, string[]> = {};
+  for (const [gold, key] of Object.entries(S_GOLD_COMMON_KEY)) {
+    if (!COMMON_KEY_TO_GOLD_LIST[key]) COMMON_KEY_TO_GOLD_LIST[key] = [];
+    COMMON_KEY_TO_GOLD_LIST[key].push(gold);
+  }
+
+  // Build the player ability set early so sGoldBadge can use it.
+  const playerAbilitySet = new Set(player.abilities ?? []);
+
+  // Helper: return the gold ability name to badge inline next to a common-ability row.
+  // Priority 1: the player actually has one of the mapped gold abilities → show it regardless of grade.
+  // Priority 2: the attribute is S-grade (≥90) → show the first mapped gold as a grade indicator.
   const sGoldBadge = (attrVal: number | null | undefined, commonKey: string): string | undefined => {
-    if ((attrVal ?? 0) < 90) return undefined;
-    return COMMON_KEY_TO_GOLD[commonKey];
+    const goldList = COMMON_KEY_TO_GOLD_LIST[commonKey];
+    if (!goldList) return undefined;
+    const fromAbilities = goldList.find(g => playerAbilitySet.has(g));
+    if (fromAbilities) return fromAbilities;
+    if ((attrVal ?? 0) >= 90) return goldList[0];
+    return undefined;
   };
 
   // Common abilities for fielders (displayed as letter grades G-A)
@@ -314,7 +325,6 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
   // and is present in the player's ability list.
   // Uses S_GOLD_PITCHER_KEY directly to handle multiple golds per attr (e.g.
   // both "Indomitable Soul" and "Sangfroid" link to "wRISP").
-  const playerAbilitySet = new Set(player.abilities ?? []);
   const sPitcherGoldBadge = (attrKey: string): string | undefined => {
     for (const [goldName, linkedKey] of Object.entries(S_GOLD_PITCHER_KEY)) {
       if (linkedKey === attrKey && playerAbilitySet.has(goldName)) return goldName;
