@@ -73,7 +73,7 @@ export interface RealPlayer {
 
 const SCALE_ATTRS: (keyof RealPlayer)[] = [
   "hitForAvg", "power", "speed", "arm", "fielding", "errorResistance", "stealing",
-  "velocity", "control", "stamina", "stuff",
+  "velocity", "control", "stuff",
   "clutch", "vsLHP", "grit", "running", "throwing", "recovery", "wRISP", "vsLefty", "poise", "heater", "agile",
 ];
 
