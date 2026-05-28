@@ -1089,7 +1089,7 @@ function CommonAbilityRow({ label, value, delta, goldAbilityName }: { label: str
       <div className="flex items-center gap-1">
         {goldAbilityName && (
           <span
-            className="text-[8px] font-pixel px-1 py-0.5 rounded border"
+            className="text-[8px] font-pixel px-1 py-0.5 rounded border text-center"
             style={{ color: "#c4a35a", borderColor: "rgba(196,163,90,0.5)", background: "rgba(196,163,90,0.12)" }}
             title={goldAbilityName}
             data-testid={`common-ability-gold-badge-${label.toLowerCase().replace(/\s/g, "-")}`}
