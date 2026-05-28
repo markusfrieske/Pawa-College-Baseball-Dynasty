@@ -482,11 +482,12 @@ const PITCHER_COMMON_RAW: Record<string, Record<"S"|"A"|"B"|"C"|"D"|"E"|"F"|"G",
 // Exported so the UI can show the gold badge inline on the common ability row.
 export const S_GOLD_PITCHER_KEY: Record<string, string> = {
   "Big Boy Speed":     "heater",
-  "Indomitable Soul":  "wRISP",
+  "Indomitable Soul":  "poise",
   "Sangfroid":         "wRISP",
   "Lefty Killer":      "vsLefty",
   "Gas Tank":          "recovery",
   "Halting Quickness": "agile",
+  "Grit":              "grit",
 };
 
 // Gold abilities that clear their blue counterpart's pts (hard-overwrite).

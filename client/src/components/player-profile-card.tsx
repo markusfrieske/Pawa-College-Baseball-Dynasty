@@ -360,8 +360,8 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
   const pitcherCommonAbilities = [
     { label: "W/RISP", value: sPitcherGoldDisplayValue(player.wRISP, "wRISP"), delta: deltas?.wRISP, goldAbilityName: sPitcherGoldBadge("wRISP", player.wRISP) },
     { label: "vs Lefty", value: sPitcherGoldDisplayValue(player.vsLefty, "vsLefty"), delta: deltas?.vsLefty, goldAbilityName: sPitcherGoldBadge("vsLefty", player.vsLefty) },
-    { label: "Poise", value: player.poise, delta: deltas?.poise },
-    { label: "Grit", value: player.grit, delta: deltas?.grit },
+    { label: "Poise", value: sPitcherGoldDisplayValue(player.poise, "poise"), delta: deltas?.poise, goldAbilityName: sPitcherGoldBadge("poise", player.poise) },
+    { label: "Grit", value: sPitcherGoldDisplayValue(player.grit, "grit"), delta: deltas?.grit, goldAbilityName: sPitcherGoldBadge("grit", player.grit) },
     { label: "Heater", value: sPitcherGoldDisplayValue(player.heater, "heater"), delta: deltas?.heater, goldAbilityName: sPitcherGoldBadge("heater", player.heater) },
     { label: "Agile", value: sPitcherGoldDisplayValue(player.agile, "agile"), delta: deltas?.agile, goldAbilityName: sPitcherGoldBadge("agile", player.agile) },
     { label: "Recovery", value: sPitcherGoldDisplayValue(player.recovery, "recovery"), delta: deltas?.recovery, goldAbilityName: sPitcherGoldBadge("recovery", player.recovery) },
