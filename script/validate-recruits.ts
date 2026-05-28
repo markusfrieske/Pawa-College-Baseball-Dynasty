@@ -1,10 +1,14 @@
 import { generateRecruitClass, type RecruitingTheme } from "../server/recruit-generator";
+import { ALL_ABILITIES, getAbilitiesForPosition } from "../shared/abilities";
 
 interface ValidationIssue {
   scope: string;
   severity: "error" | "warning";
   message: string;
 }
+
+const CANONICAL_ABILITY_NAMES = new Set(ALL_ABILITIES.map(a => a.name));
+const OUTFIELD_POSITIONS = new Set(["OF", "LF", "CF", "RF"]);
 
 const CLASS_SIZE = 80;
 
@@ -113,7 +117,44 @@ function validatePerClassInvariants(
       }
     }
 
-    // 5. OVR bounds for everyone
+    // 5. Ability validity: canonical names, position-appropriateness, no duplicates.
+    // Specifically enforces that Laser Beam (outfield-only) never appears on non-OF recruits.
+    for (const r of recruits) {
+      const pos = r.position ?? "SP";
+      const abilities: string[] = (r.abilities as string[] | undefined) ?? [];
+      const validForPosition = new Set(getAbilitiesForPosition(pos).map(a => a.name));
+      const seen = new Set<string>();
+
+      for (const ability of abilities) {
+        if (!CANONICAL_ABILITY_NAMES.has(ability)) {
+          issues.push({
+            scope,
+            severity: "error",
+            message: `${r.firstName} ${r.lastName} (${pos}): unknown ability "${ability}"`,
+          });
+        } else if (!validForPosition.has(ability)) {
+          const laserNote =
+            ability === "Laser Beam" && !OUTFIELD_POSITIONS.has(pos)
+              ? " (Laser Beam is outfield-only)"
+              : "";
+          issues.push({
+            scope,
+            severity: "error",
+            message: `${r.firstName} ${r.lastName} (${pos}): ability "${ability}" not valid for this position${laserNote}`,
+          });
+        }
+        if (seen.has(ability)) {
+          issues.push({
+            scope,
+            severity: "error",
+            message: `${r.firstName} ${r.lastName} (${pos}): ability "${ability}" appears more than once`,
+          });
+        }
+        seen.add(ability);
+      }
+    }
+
+    // 6. OVR bounds for everyone
     for (const r of recruits) {
       const ovr = r.overall ?? 0;
       if (r.isGenerationalGem) {
