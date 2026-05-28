@@ -11,7 +11,6 @@ import {
   Shield, Users, Database, ChevronDown, Wand2,
 } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { usePresence } from "@/hooks/use-presence";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { DynastyLogo } from "@/components/dynasty-logo";
@@ -171,7 +170,7 @@ export default function LandingPage() {
                       className="w-2 h-2 rounded-full bg-green-400 animate-pulse"
                       style={{ boxShadow: "0 0 6px rgba(74,222,128,0.8)" }}
                     />
-                    <span className="text-green-400">{onlineData.online} ONLINE</span>
+                    <span className="text-green-400">USERS ONLINE: {onlineData.online}</span>
                   </div>
                 )}
               </div>
