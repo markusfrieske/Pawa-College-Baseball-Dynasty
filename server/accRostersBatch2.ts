@@ -63,7 +63,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Daniel", lastName: "Cuvet", position: "3B", eligibility: "JR", homeState: "FL", hometown: "Miami", jerseyNumber: 5,
       hitForAvg: 60, power: 60, speed: 52, arm: 60, fielding: 60, errorResistance: 60, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 82, vsLHP: 72, grit: 62, stealing: 46, running: 48, throwing: 62, recovery: 42, wRISP: 90, vsLefty: 70, poise: 78, heater: 0, agile: 45,
-      abilities: ["Consigliere", "Laser Beam", "Contact Hitter", "Hit Machine"], potential: "A+", catcherAbility: null,
+      abilities: ["Consigliere", "Head-first Slide", "Contact Hitter", "Hit Machine"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     { firstName: "Jake", lastName: "Ogden", position: "2B", eligibility: "JR", homeState: "FL", hometown: "Boca Raton", jerseyNumber: 3,
@@ -632,7 +632,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Tommy", lastName: "O'Brien", position: "SS", eligibility: "JR", homeState: "CT", hometown: "Greenwich", jerseyNumber: 9,
       hitForAvg: 55, power: 48, speed: 66, arm: 59, fielding: 59, errorResistance: 57, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 52, vsLHP: 52, grit: 52, stealing: 52, running: 52, throwing: 71, recovery: 44, wRISP: 48, vsLefty: 44, poise: 48, heater: 0, agile: 56,
-      abilities: ["Laser Beam", "Walkoff Hitter"], potential: "B+", catcherAbility: null,
+      abilities: ["Defensive Artisan", "Walkoff Hitter"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // OUTFIELDERS (8)

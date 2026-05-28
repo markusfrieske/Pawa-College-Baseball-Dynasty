@@ -3,6 +3,7 @@ export interface Ability {
   description: string;
   tier: "gold" | "blue" | "red";
   category: "pitcher" | "fielder" | "catcher" | "neutral";
+  positions?: string[];
 }
 
 export const PITCHER_GOLD_ABILITIES: Ability[] = [
@@ -157,7 +158,7 @@ export const FIELDER_BLUE_ABILITIES: Ability[] = [
   { name: "Good Mood", description: "The player's good mood will increase the team's morale", tier: "blue", category: "fielder" },
   { name: "Line Drive", description: "Becomes easier to hit a line drive with a power swing", tier: "blue", category: "fielder" },
   { name: "Revenge", description: "If failed to record a hit in previous at-bat against same pitcher, abilities increase", tier: "blue", category: "fielder" },
-  { name: "Laser Beam", description: "Speed of thrown balls will be increased and their trajectory low", tier: "blue", category: "fielder" },
+  { name: "Laser Beam", description: "Speed of thrown balls will be increased and their trajectory low", tier: "blue", category: "fielder", positions: ["OF"] },
   { name: "Predicament", description: "The more strikes the batter has in the at-bat, the more their abilities will increase", tier: "blue", category: "fielder" },
 ];
 
@@ -194,14 +195,18 @@ export const ALL_ABILITIES = [...ALL_PITCHER_ABILITIES, ...ALL_FIELDER_ABILITIES
 export function getAbilitiesForPosition(position: string): Ability[] {
   const pitcherPositions = ["SP", "RP", "CP", "P"];
   const catcherPositions = ["C"];
-  
+  const outfieldPositions = ["OF", "LF", "CF", "RF"];
+
+  let pool: Ability[];
   if (pitcherPositions.includes(position)) {
-    return [...ALL_PITCHER_ABILITIES, ...NEUTRAL_ABILITIES.filter(a => a.category === "neutral")];
+    pool = [...ALL_PITCHER_ABILITIES, ...NEUTRAL_ABILITIES.filter(a => a.category === "neutral")];
   } else if (catcherPositions.includes(position)) {
-    return [...ALL_FIELDER_ABILITIES, ...ALL_CATCHER_ABILITIES];
+    pool = [...ALL_FIELDER_ABILITIES, ...ALL_CATCHER_ABILITIES];
   } else {
-    return ALL_FIELDER_ABILITIES;
+    pool = [...ALL_FIELDER_ABILITIES];
   }
+
+  return pool.filter(a => !a.positions || a.positions.some(p => outfieldPositions.includes(p) ? outfieldPositions.includes(position) : p === position));
 }
 
 export const MAX_SPECIAL_ABILITIES = 7;
@@ -426,6 +431,8 @@ export const S_GOLD_COMMON_KEY: Record<string, keyof typeof COMMON_OVR> = {
   "Express Baserunning":"running",
   "Lightning Speed":    "stealing",
   "Strike Thrower":     "throwing",
+  "High-Speed Laser":   "throwing",
+  "Bazooka Arm":        "throwing",
   "The Almanac":        "catcherAbility",
   "Iron Man":           "grit",
 };

@@ -332,7 +332,7 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Spencer", lastName: "Barnett", position: "SS", eligibility: "JR", homeState: "WV", hometown: "Morgantown", jerseyNumber: 4,
       hitForAvg: 62, power: 51, speed: 62, arm: 60, fielding: 62, errorResistance: 60, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 54, vsLHP: 50, grit: 56, stealing: 49, running: 54, throwing: 66, recovery: 44, wRISP: 52, vsLefty: 48, poise: 54, heater: 0, agile: 60,
-      abilities: ["Defensive Artisan", "Laser Beam"], potential: "B+", catcherAbility: null,
+      abilities: ["Defensive Artisan", "Head-first Slide"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "S",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...noPitches },
