@@ -330,26 +330,41 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
     fielderCommonAbilities.push({ label: "Catcher", value: sGoldDisplayValue(player.catcherAbility, "catcherAbility"), delta: deltas?.catcherAbility, goldAbilityName: sGoldBadge(player.catcherAbility, "catcherAbility") });
   }
 
-  // Returns the first gold ability name that links to this common attr key
-  // and is present in the player's ability list.
+  // Returns the first gold ability name that links to this pitcher common attr key.
+  // Priority 1: player actually has the gold ability in their list.
+  // Priority 2: the attribute is S-grade (≥90) → show the first mapped gold as a grade indicator.
   // Uses S_GOLD_PITCHER_KEY directly to handle multiple golds per attr (e.g.
   // both "Indomitable Soul" and "Sangfroid" link to "wRISP").
-  const sPitcherGoldBadge = (attrKey: string): string | undefined => {
+  const sPitcherGoldBadge = (attrKey: string, attrVal?: number | null): string | undefined => {
     for (const [goldName, linkedKey] of Object.entries(S_GOLD_PITCHER_KEY)) {
       if (linkedKey === attrKey && playerAbilitySet.has(goldName)) return goldName;
+    }
+    if ((attrVal ?? 0) >= 90) {
+      for (const [goldName, linkedKey] of Object.entries(S_GOLD_PITCHER_KEY)) {
+        if (linkedKey === attrKey) return goldName;
+      }
     }
     return undefined;
   };
 
+  // When a pitcher gold ability is present in the player's ability list, return 90 so
+  // the grade chip renders as "S" — otherwise return the actual attribute value unchanged.
+  const sPitcherGoldDisplayValue = (attrVal: number | null | undefined, attrKey: string): number | null | undefined => {
+    for (const [goldName, linkedKey] of Object.entries(S_GOLD_PITCHER_KEY)) {
+      if (linkedKey === attrKey && playerAbilitySet.has(goldName)) return 90;
+    }
+    return attrVal;
+  };
+
   // Common abilities for pitchers (displayed as letter grades G-A)
   const pitcherCommonAbilities = [
-    { label: "W/RISP", value: player.wRISP, delta: deltas?.wRISP, goldAbilityName: sPitcherGoldBadge("wRISP") },
-    { label: "vs Lefty", value: player.vsLefty, delta: deltas?.vsLefty, goldAbilityName: sPitcherGoldBadge("vsLefty") },
+    { label: "W/RISP", value: sPitcherGoldDisplayValue(player.wRISP, "wRISP"), delta: deltas?.wRISP, goldAbilityName: sPitcherGoldBadge("wRISP", player.wRISP) },
+    { label: "vs Lefty", value: sPitcherGoldDisplayValue(player.vsLefty, "vsLefty"), delta: deltas?.vsLefty, goldAbilityName: sPitcherGoldBadge("vsLefty", player.vsLefty) },
     { label: "Poise", value: player.poise, delta: deltas?.poise },
     { label: "Grit", value: player.grit, delta: deltas?.grit },
-    { label: "Heater", value: player.heater, delta: deltas?.heater, goldAbilityName: sPitcherGoldBadge("heater") },
-    { label: "Agile", value: player.agile, delta: deltas?.agile, goldAbilityName: sPitcherGoldBadge("agile") },
-    { label: "Recovery", value: player.recovery, delta: deltas?.recovery, goldAbilityName: sPitcherGoldBadge("recovery") },
+    { label: "Heater", value: sPitcherGoldDisplayValue(player.heater, "heater"), delta: deltas?.heater, goldAbilityName: sPitcherGoldBadge("heater", player.heater) },
+    { label: "Agile", value: sPitcherGoldDisplayValue(player.agile, "agile"), delta: deltas?.agile, goldAbilityName: sPitcherGoldBadge("agile", player.agile) },
+    { label: "Recovery", value: sPitcherGoldDisplayValue(player.recovery, "recovery"), delta: deltas?.recovery, goldAbilityName: sPitcherGoldBadge("recovery", player.recovery) },
   ];
 
   const attrs = isPitcher ? pitcherAttrs : fielderAttrs;
