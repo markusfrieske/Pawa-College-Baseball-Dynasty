@@ -305,20 +305,29 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
     return undefined;
   };
 
+  // Helper: when a gold ability is present in the player's ability list, return 90 so
+  // the grade chip renders as "S" — otherwise return the actual attribute value unchanged.
+  const sGoldDisplayValue = (attrVal: number | null | undefined, commonKey: string): number | null | undefined => {
+    const goldList = COMMON_KEY_TO_GOLD_LIST[commonKey];
+    if (!goldList) return attrVal;
+    if (goldList.some(g => playerAbilitySet.has(g))) return 90;
+    return attrVal;
+  };
+
   // Common abilities for fielders (displayed as letter grades G-A)
   const fielderCommonAbilities: Array<{ label: string; value?: number | null; delta?: number; goldAbilityName?: string }> = [
-    { label: "Clutch", value: player.clutch, delta: deltas?.clutch, goldAbilityName: sGoldBadge(player.clutch, "clutch") },
-    { label: "vs LHP", value: player.vsLHP, delta: deltas?.vsLHP, goldAbilityName: sGoldBadge(player.vsLHP, "vsLHP") },
-    { label: "Grit", value: player.grit, delta: deltas?.grit, goldAbilityName: sGoldBadge(player.grit, "grit") },
-    { label: "Stealing", value: player.stealing, delta: deltas?.stealing, goldAbilityName: sGoldBadge(player.stealing, "stealing") },
-    { label: "Running", value: player.running, delta: deltas?.running, goldAbilityName: sGoldBadge(player.running, "running") },
-    { label: "Throwing", value: player.throwing, delta: deltas?.throwing, goldAbilityName: sGoldBadge(player.throwing, "throwing") },
+    { label: "Clutch", value: sGoldDisplayValue(player.clutch, "clutch"), delta: deltas?.clutch, goldAbilityName: sGoldBadge(player.clutch, "clutch") },
+    { label: "vs LHP", value: sGoldDisplayValue(player.vsLHP, "vsLHP"), delta: deltas?.vsLHP, goldAbilityName: sGoldBadge(player.vsLHP, "vsLHP") },
+    { label: "Grit", value: sGoldDisplayValue(player.grit, "grit"), delta: deltas?.grit, goldAbilityName: sGoldBadge(player.grit, "grit") },
+    { label: "Stealing", value: sGoldDisplayValue(player.stealing, "stealing"), delta: deltas?.stealing, goldAbilityName: sGoldBadge(player.stealing, "stealing") },
+    { label: "Running", value: sGoldDisplayValue(player.running, "running"), delta: deltas?.running, goldAbilityName: sGoldBadge(player.running, "running") },
+    { label: "Throwing", value: sGoldDisplayValue(player.throwing, "throwing"), delta: deltas?.throwing, goldAbilityName: sGoldBadge(player.throwing, "throwing") },
     { label: "Recovery", value: player.recovery, delta: deltas?.recovery },
   ];
   
   // Add catcher ability only for catchers
   if (isCatcher) {
-    fielderCommonAbilities.push({ label: "Catcher", value: player.catcherAbility, delta: deltas?.catcherAbility, goldAbilityName: sGoldBadge(player.catcherAbility, "catcherAbility") });
+    fielderCommonAbilities.push({ label: "Catcher", value: sGoldDisplayValue(player.catcherAbility, "catcherAbility"), delta: deltas?.catcherAbility, goldAbilityName: sGoldBadge(player.catcherAbility, "catcherAbility") });
   }
 
   // Returns the first gold ability name that links to this common attr key
