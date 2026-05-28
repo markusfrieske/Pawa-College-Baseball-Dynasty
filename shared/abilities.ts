@@ -4,6 +4,7 @@ export interface Ability {
   tier: "gold" | "blue" | "red";
   category: "pitcher" | "fielder" | "catcher" | "neutral";
   positions?: string[];
+  staminaMax?: number;
 }
 
 export const PITCHER_GOLD_ABILITIES: Ability[] = [
@@ -38,7 +39,7 @@ export const PITCHER_GOLD_ABILITIES: Ability[] = [
 ];
 
 export const PITCHER_BLUE_ABILITIES: Ability[] = [
-  { name: "Intimidator", description: "When pitching in relief, strike fear into opposing batters", tier: "blue", category: "pitcher" },
+  { name: "Intimidator", description: "When pitching in relief, strike fear into opposing batters", tier: "blue", category: "pitcher", staminaMax: 49 },
   { name: "Heavy Ball", description: "Batted balls are unlikely to fly", tier: "blue", category: "pitcher" },
   { name: "Winner's Luck", description: "When this pitcher takes the mound, wins are easy to come by", tier: "blue", category: "pitcher" },
   { name: "Pace", description: "Mixing fastballs and breaking balls will increase both perceived speed and break", tier: "blue", category: "pitcher" },
@@ -321,7 +322,7 @@ export function enforceGoldOvrGate(abilities: string[], position: string, ovr: n
   return result.filter(n => n !== "");
 }
 
-export function getRandomAbilities(position: string, count: number, preferGold: boolean = false): string[] {
+export function getRandomAbilities(position: string, count: number, preferGold: boolean = false, pitcherStamina?: number): string[] {
   const availableAbilities = getAbilitiesForPosition(position);
 
   // Clamp requested count to the global cap of 7
@@ -329,8 +330,12 @@ export function getRandomAbilities(position: string, count: number, preferGold: 
   if (cappedCount === 0 || availableAbilities.length === 0) return [];
 
   // Build pool: when preferGold, include gold once (not doubled — dedup handles selection)
-  const goldAbilities = availableAbilities.filter(a => a.tier === "gold");
-  const blueAbilities = availableAbilities.filter(a => a.tier === "blue");
+  // Filter by staminaMax: if pitcherStamina is provided, exclude abilities that require
+  // lower stamina than this pitcher has (e.g. Intimidator requires stamina <= 49).
+  const staminaFilter = (a: Ability) =>
+    pitcherStamina === undefined || a.staminaMax === undefined || pitcherStamina <= a.staminaMax;
+  const goldAbilities = availableAbilities.filter(a => a.tier === "gold" && staminaFilter(a));
+  const blueAbilities = availableAbilities.filter(a => a.tier === "blue" && staminaFilter(a));
   const pool: Ability[] = preferGold
     ? [...goldAbilities, ...blueAbilities]
     : blueAbilities;

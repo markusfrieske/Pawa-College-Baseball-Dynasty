@@ -666,11 +666,32 @@ export function generateRecruitClass(
 
     const starRating = starRank;
 
+    // Pre-roll pitcher stamina band so we can gate Intimidator before abilities are assigned.
+    // Generational gems always use the starter band (80–99); busts are always low stamina.
+    // Regular pitchers follow the 40/10/40/10 role distribution.
+    let pitcherStaminaBand: [number, number] | null = null;
+    if (isPitcher) {
+      if (isGenerationalGem) {
+        pitcherStaminaBand = [80, 99];
+      } else if (!isGenerationalBust) {
+        const roleRoll = Math.random();
+        if (roleRoll < 0.40) pitcherStaminaBand = [80, 99];        // starter
+        else if (roleRoll < 0.50) pitcherStaminaBand = [50, 79];   // long relief
+        else if (roleRoll < 0.90) pitcherStaminaBand = [30, 49];   // mid relief
+        else pitcherStaminaBand = [1, 29];                          // closer
+      }
+    }
+    // Lower bound of the band is passed to ability generators so staminaMax gates work correctly.
+    const pitcherStaminaForAbilities = pitcherStaminaBand ? pitcherStaminaBand[0] : undefined;
+
     let abilities: string[];
     if (isGenerationalGem) {
       const availableAbilities = getAbilitiesForPosition(position);
       const goldAbilities = availableAbilities.filter(a => a.tier === "gold");
-      const blueAbilities = availableAbilities.filter(a => a.tier === "blue");
+      const blueAbilities = availableAbilities.filter(
+        a => a.tier === "blue" &&
+        (pitcherStaminaForAbilities === undefined || a.staminaMax === undefined || pitcherStaminaForAbilities <= a.staminaMax)
+      );
       const shuffledGold = [...goldAbilities].sort(() => Math.random() - 0.5);
       const shuffledBlue = [...blueAbilities].sort(() => Math.random() - 0.5);
       const goldTarget = 1;
@@ -684,7 +705,7 @@ export function generateRecruitClass(
       const shuffledRed = [...redAbilities].sort(() => Math.random() - 0.5);
       abilities = shuffledRed.slice(0, 2).map(a => a.name);
     } else {
-      abilities = getRandomAbilities(position, abilityCount, starRank >= 4);
+      abilities = getRandomAbilities(position, abilityCount, starRank >= 4, pitcherStaminaForAbilities);
     }
 
     const appearance = getRandomAppearance();
@@ -778,18 +799,11 @@ export function generateRecruitClass(
     if (themeBoost.attr === "speed")   speed    = Math.min(99, speed   + themeBoost.boost);
     if (themeBoost.attr === "fielding") fielding = Math.min(99, fielding + themeBoost.boost);
 
-    // Gate Intimidator to reliever pitchers only (stamina < 50 = reliever range).
-    // Starters have high stamina (50+) and cannot carry Intimidator, which is a
-    // reliever-specific ability ("When pitching in relief, strike fear...").
-    if (isPitcher && abilities.includes("Intimidator") && stamina >= 50) {
-      const availableBlue = getAbilitiesForPosition(position)
-        .filter(a => a.tier === "blue" && a.name !== "Intimidator" && !abilities.includes(a.name));
-      if (availableBlue.length > 0) {
-        const replacement = availableBlue[Math.floor(Math.random() * availableBlue.length)];
-        abilities = abilities.map(a => a === "Intimidator" ? replacement.name : a);
-      } else {
-        abilities = abilities.filter(a => a !== "Intimidator");
-      }
+    // Apply role-based stamina band for pitcher recruits.
+    // Gems and busts retain their own fixed ranges; all other pitchers use the pre-rolled band.
+    if (isPitcher && pitcherStaminaBand && !isGenerationalGem && !isGenerationalBust) {
+      const [bandMin, bandMax] = pitcherStaminaBand;
+      stamina = bandMin + Math.floor(Math.random() * (bandMax - bandMin + 1));
     }
 
     const recruitThrowHand = isPitcher ? (Math.random() < 0.28 ? "L" : "R") : "R";

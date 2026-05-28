@@ -212,7 +212,7 @@ import type { RealPlayer } from "./realRosters";
     { firstName: "Aidan", lastName: "Russell", position: "P", eligibility: "SO", homeState: "CA", hometown: "San Diego", jerseyNumber: 57,
         hitForAvg: 15, power: 11, speed: 29, arm: 38, fielding: 28, errorResistance: 46, velocity: 46, control: 50, stamina: 54, stuff: 49,
         clutch: 43, vsLHP: 46, grit: 52, stealing: 12, running: 26, throwing: 54, recovery: 43, wRISP: 44, vsLefty: 46, poise: 46, heater: 44, agile: 43,
-        abilities: ["Intimidator"], potential: "B+", catcherAbility: null,
+        abilities: ["Sharpness"], potential: "B+", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         pitchFB: 1, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 1, pitchCT: 0, pitchSNK: 4, pitchSPL: 4, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },

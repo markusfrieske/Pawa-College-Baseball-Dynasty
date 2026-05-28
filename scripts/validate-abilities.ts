@@ -161,12 +161,12 @@ for (const [team, players] of Object.entries(ALL_REAL_ROSTERS)) {
       });
     }
 
-    // 7. Intimidator + Strong Starter on same pitcher (reliever-only ability on a starter)
+    // 7. Intimidator on a high-stamina pitcher (Intimidator is reliever-only: stamina < 50)
     const isPitcherPosition = ["P", "SP", "RP", "CP"].includes(player.position);
     if (
       isPitcherPosition &&
       player.abilities.includes("Intimidator") &&
-      player.abilities.includes("Strong Starter")
+      player.stamina >= 50
     ) {
       violations.push({
         kind: "intimidator-starter",
@@ -330,15 +330,15 @@ if (multipleGoldViolations.length > 0) {
 
 if (intimidatorStarterViolations.length > 0) {
   console.error(
-    `\n✗ Found ${intimidatorStarterViolations.length} pitcher(s) with Intimidator + Strong Starter (reliever-only ability on a starter):\n`
+    `\n✗ Found ${intimidatorStarterViolations.length} pitcher(s) with Intimidator and stamina >= 50 (reliever-only ability on a non-reliever):\n`
   );
   for (const v of intimidatorStarterViolations) {
     console.error(
-      `  [${v.team}] ${v.player} (${v.position}): has both "Intimidator" and "Strong Starter"`
+      `  [${v.team}] ${v.player} (${v.position}): has "Intimidator" but stamina >= 50 (starter/long-relief range)`
     );
   }
   console.error(
-    `\nFix: Intimidator is a reliever-only ability. Remove it from pitchers who have Strong Starter, replacing with a starter-appropriate blue ability (e.g. Sharpness, Heavy Ball, vs. Strong Batters).`
+    `\nFix: Intimidator (staminaMax: 49) is for relievers only. Replace it on any pitcher with stamina >= 50 with a starter-appropriate blue ability (e.g. Sharpness, Heavy Ball, vs. Strong Batters, Staredown).`
   );
 }
 
