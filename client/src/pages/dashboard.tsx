@@ -5,7 +5,7 @@ import { parseErrorMessage } from "@/lib/errorUtils";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
 import { TeamBadge } from "@/components/ui/team-badge";
-import { Plus, Trophy, Users, Calendar, LogOut, Trash2, UserCheck, BookOpen, FolderOpen, GraduationCap, Eye, Crown, RotateCcw, Bot } from "lucide-react";
+import { Plus, Trophy, Users, Calendar, LogOut, Trash2, UserCheck, BookOpen, FolderOpen, GraduationCap, Eye, Crown, RotateCcw, Bot, Share2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -322,6 +322,21 @@ function SavedRecruitingClassCard({ rc }: { rc: SavedRecruitingClass }) {
           <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
             <RetroButton variant="ghost" size="sm" onClick={() => setShowDetail(true)} data-testid={`button-view-class-${rc.id}`}>
               <Eye className="w-3 h-3 text-muted-foreground" />
+            </RetroButton>
+            <RetroButton
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                const url = `${window.location.origin}/shared-class/${rc.id}`;
+                navigator.clipboard.writeText(url).then(() => {
+                  toast({ title: "Link Copied", description: "Share link copied to clipboard." });
+                }).catch(() => {
+                  toast({ title: "Share Link", description: url });
+                });
+              }}
+              data-testid={`button-share-class-${rc.id}`}
+            >
+              <Share2 className="w-3 h-3 text-muted-foreground" />
             </RetroButton>
             <AlertDialog>
               <AlertDialogTrigger asChild>

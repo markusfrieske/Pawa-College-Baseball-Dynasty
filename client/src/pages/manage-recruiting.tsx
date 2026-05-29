@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, Save, Wand2, Upload, Trash2, Download, ChevronDown, Check, X, LogIn } from "lucide-react";
+import { ArrowLeft, Save, Wand2, Upload, Trash2, Download, ChevronDown, Check, X, LogIn, Share2 } from "lucide-react";
 import { apiRequest, queryClient, getQueryFn } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -735,6 +735,21 @@ export default function ManageRecruitingPage() {
                           Load into League
                         </RetroButton>
                       )}
+                      <RetroButton
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const url = `${window.location.origin}/shared-class/${cls.id}`;
+                          navigator.clipboard.writeText(url).then(() => {
+                            toast({ title: "Link Copied", description: "Share link copied to clipboard." });
+                          }).catch(() => {
+                            toast({ title: "Share Link", description: url });
+                          });
+                        }}
+                        data-testid={`button-share-class-${cls.id}`}
+                      >
+                        <Share2 className="w-3 h-3" />
+                      </RetroButton>
                       <RetroButton variant="outline" size="sm" onClick={() => handleLoadClass(cls)} data-testid={`button-load-class-${cls.id}`}>
                         Edit
                       </RetroButton>

@@ -18629,6 +18629,45 @@ export async function registerRoutes(
     }
   });
 
+  // === Shared Recruiting Class (public share links) ===
+
+  // Public: anyone with the class UUID can view a shared class
+  app.get("/api/shared-class/:id", async (req, res) => {
+    try {
+      const rc = await storage.getSavedRecruitingClass(req.params.id as string);
+      if (!rc) return res.status(404).json({ message: "Recruiting class not found" });
+      // Return the class data (no auth required — UUID is the share token)
+      res.json(rc);
+    } catch (error) {
+      console.error("Failed to get shared recruiting class:", error);
+      res.status(500).json({ message: "Failed to get shared recruiting class" });
+    }
+  });
+
+  // Authenticated: copy a shared class into the requester's own library
+  app.post("/api/shared-class/:id/import", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const rc = await storage.getSavedRecruitingClass(req.params.id as string);
+      if (!rc) return res.status(404).json({ message: "Recruiting class not found" });
+      // Don't allow importing your own class
+      if (rc.userId === userId) {
+        return res.status(400).json({ message: "This is already in your library" });
+      }
+      const imported = await storage.createSavedRecruitingClass({
+        userId,
+        name: rc.name,
+        description: rc.description ?? undefined,
+        recruitCount: rc.recruitCount,
+        classData: rc.classData,
+      });
+      res.json(imported);
+    } catch (error) {
+      console.error("Failed to import shared recruiting class:", error);
+      res.status(500).json({ message: "Failed to import recruiting class" });
+    }
+  });
+
   // === Conference Teams API (for roster viewing) ===
   app.get("/api/conference-teams", async (_req, res) => {
     try {

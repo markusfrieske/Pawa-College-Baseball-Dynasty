@@ -33,6 +33,7 @@ import ManageRostersPage from "@/pages/manage-rosters";
 import RosterViewerPage from "@/pages/roster-viewer";
 import StorylinesPage from "@/pages/storylines";
 import ManageRecruitingPage from "@/pages/manage-recruiting";
+import SharedClassPage from "@/pages/shared-class";
 import PlayByPlayPage from "@/pages/play-by-play";
 import ReportGamePage from "@/pages/report-game";
 import PostseasonHubPage from "@/pages/postseason-hub";
@@ -106,6 +107,7 @@ function Router() {
         <Route path="/manage-rosters" component={ManageRostersPage} />
         <Route path="/roster-viewer" component={RosterViewerPage} />
         <Route path="/manage-recruiting" component={ManageRecruitingPage} />
+        <Route path="/shared-class/:code" component={SharedClassPage} />
         <Route path="/invite/:code" component={InvitePage} />
         <Route component={NotFound} />
       </Switch>
