@@ -8169,7 +8169,7 @@ export async function registerRoutes(
     }
   });
 
-  // Dismisses (clears) the auto-pilot log for the current user's team.
+  // Dismisses the auto-pilot log for the current user's team by marking all entries as read (does NOT delete history).
   app.post("/api/leagues/:id/my-team/auto-pilot-log/dismiss", requireAuth, async (req, res) => {
     try {
       const league = await storage.getLeague(req.params.id as string);
@@ -8179,7 +8179,11 @@ export async function registerRoutes(
       const myCoach = coaches.find(c => c.userId === req.session.userId);
       if (!myCoach?.teamId) return res.json({ success: true });
 
-      await storage.updateTeam(myCoach.teamId, { autoPilotActionLog: [] } as any);
+      const team = await storage.getTeam(myCoach.teamId);
+      const existingLog: import("@shared/schema").AutoPilotLogEntry[] =
+        (team?.autoPilotActionLog as import("@shared/schema").AutoPilotLogEntry[] | null) ?? [];
+      const markedRead = existingLog.map(entry => ({ ...entry, read: true }));
+      await storage.updateTeam(myCoach.teamId, { autoPilotActionLog: markedRead } as any);
       return res.json({ success: true });
     } catch (error) {
       console.error("Failed to dismiss auto-pilot log:", error);

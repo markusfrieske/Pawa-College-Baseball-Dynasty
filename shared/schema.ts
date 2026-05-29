@@ -76,6 +76,7 @@ export interface AutoPilotLogEntry {
   week: number;
   season: number;
   isForced: boolean; // true = force-advanced by commissioner, false = persistent auto-pilot
+  read?: boolean; // true = coach has seen/dismissed this entry; false/absent = unread
   summary: {
     emails: number;
     phones: number;

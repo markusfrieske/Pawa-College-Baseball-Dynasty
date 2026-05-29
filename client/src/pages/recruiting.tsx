@@ -506,6 +506,7 @@ export default function RecruitingPage() {
       week: number;
       season: number;
       isForced: boolean;
+      read?: boolean;
       summary: {
         emails: number;
         phones: number;
@@ -522,11 +523,14 @@ export default function RecruitingPage() {
     staleTime: 30000,
   });
 
+  const unreadAutoPilotLog = (autoPilotLogData?.log ?? []).filter(e => !e.read);
+  const [showCpuHistory, setShowCpuHistory] = useState(false);
+
   useEffect(() => {
-    if (autoPilotLogData?.log && autoPilotLogData.log.length > 0) {
+    if (unreadAutoPilotLog.length > 0) {
       setShowAutoPilotLog(true);
     }
-  }, [autoPilotLogData?.log]);
+  }, [unreadAutoPilotLog.length]);
 
   const dismissAutoPilotLogMutation = useMutation({
     mutationFn: async () => {
@@ -1878,6 +1882,88 @@ export default function RecruitingPage() {
           </div>
         )}
 
+        {/* CPU Autopilot History — persistent log of all past CPU-managed weeks */}
+        {(autoPilotLogData?.log ?? []).length > 0 && (
+          <div className="mb-6" data-testid="cpu-history-panel">
+            <RetroCard variant="default">
+              <button
+                className="flex items-center gap-2 w-full text-left cursor-pointer"
+                onClick={() => setShowCpuHistory(prev => !prev)}
+                data-testid="button-toggle-cpu-history"
+              >
+                <History className="w-4 h-4 text-gold" />
+                <span className="font-pixel text-gold text-sm uppercase tracking-wider">CPU History</span>
+                <span className="text-[10px] text-muted-foreground ml-1">
+                  ({(autoPilotLogData?.log ?? []).length} week{(autoPilotLogData?.log ?? []).length !== 1 ? "s" : ""})
+                </span>
+                {unreadAutoPilotLog.length > 0 && (
+                  <span className="ml-1 text-[9px] font-pixel px-1.5 py-0.5 rounded border border-blue-400/40 text-blue-400">
+                    {unreadAutoPilotLog.length} new
+                  </span>
+                )}
+                {showCpuHistory ? <ChevronUp className="w-4 h-4 text-gold ml-auto" /> : <ChevronDown className="w-4 h-4 text-gold ml-auto" />}
+              </button>
+
+              {showCpuHistory && (
+                <div className="mt-4 pt-4 border-t border-border space-y-3">
+                  <p className="text-[10px] text-muted-foreground">
+                    Complete record of all weeks the CPU managed your recruiting — auto-pilot sessions and force-advanced weeks, newest first.
+                  </p>
+                  {[...(autoPilotLogData?.log ?? [])].reverse().map((entry, idx) => {
+                    const { summary } = entry;
+                    const totalActions = summary.emails + summary.phones + summary.visits + summary.hcVisits + summary.offers;
+                    return (
+                      <div
+                        key={idx}
+                        className={`rounded border p-3 space-y-2 ${entry.read ? "border-border bg-muted/10" : "border-[#1a3a1a] bg-[#0a1a0a]"}`}
+                        data-testid={`cpu-history-entry-${idx}`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-pixel text-[10px] text-gold">
+                            Season {entry.season} · Week {entry.week}
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            {!entry.read && (
+                              <span className="text-[9px] font-pixel px-1 py-0.5 rounded border border-blue-400/40 text-blue-400">NEW</span>
+                            )}
+                            <span className={`text-[9px] font-pixel px-1.5 py-0.5 rounded border ${entry.isForced ? "border-orange-500/40 text-orange-400" : "border-blue-400/40 text-blue-400"}`}>
+                              {entry.isForced ? "FILL-IN" : "AUTO-PILOT"}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                          {summary.emails > 0 && <span className="flex items-center gap-1"><Mail className="w-3 h-3 text-gold" />{summary.emails} email{summary.emails !== 1 ? "s" : ""}</span>}
+                          {summary.phones > 0 && <span className="flex items-center gap-1"><Phone className="w-3 h-3 text-gold" />{summary.phones} call{summary.phones !== 1 ? "s" : ""}</span>}
+                          {summary.visits > 0 && <span className="flex items-center gap-1"><Building2 className="w-3 h-3 text-gold" />{summary.visits} visit{summary.visits !== 1 ? "s" : ""}</span>}
+                          {summary.hcVisits > 0 && <span className="flex items-center gap-1"><Crown className="w-3 h-3 text-gold" />{summary.hcVisits} HC visit{summary.hcVisits !== 1 ? "s" : ""}</span>}
+                          {summary.offers > 0 && <span className="flex items-center gap-1"><GraduationCap className="w-3 h-3 text-gold" />{summary.offers} offer{summary.offers !== 1 ? "s" : ""}</span>}
+                          {totalActions === 0 && <span className="text-muted-foreground italic">No actions recorded</span>}
+                        </div>
+                        {summary.recruitsTargeted.length > 0 && (
+                          <div className="space-y-1 border-t border-border pt-2">
+                            <p className="text-[10px] font-pixel text-muted-foreground mb-1">Recruits contacted ({totalActions} action{totalActions !== 1 ? "s" : ""}):</p>
+                            <div className="space-y-0.5 max-h-36 overflow-y-auto">
+                              {summary.recruitsTargeted.map((r, ri) => (
+                                <div key={ri} className="flex items-center justify-between text-xs">
+                                  <span className="text-foreground">{r.name} <span className="text-muted-foreground">({r.position})</span></span>
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-yellow-400 text-[10px]">{"★".repeat(Math.min(r.stars, 5))}</span>
+                                    <span className="text-gold text-[10px] capitalize">{r.action}</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </RetroCard>
+          </div>
+        )}
+
         <div className="space-y-3">
           {filteredRecruits.map((recruit) => (
             <RecruitRow
@@ -2050,7 +2136,7 @@ export default function RecruitingPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Auto-Pilot / CPU Fill-In Return Alert */}
+      {/* Auto-Pilot / CPU Fill-In Return Alert — unread entries only */}
       <Dialog open={showAutoPilotLog} onOpenChange={(open) => { if (!open) dismissAutoPilotLogMutation.mutate(); }}>
         <DialogContent className="max-w-lg border-2 border-[#1a3a1a] bg-[#0d1f0d] max-h-[80vh] overflow-y-auto" data-testid="auto-pilot-log-modal">
           <DialogHeader>
@@ -2063,7 +2149,7 @@ export default function RecruitingPage() {
             <p className="text-sm text-gray-300">
               While you were away, the CPU managed your recruiting at <span className="text-[#c8aa6e]">All-American</span> level. Here's what happened:
             </p>
-            {(autoPilotLogData?.log ?? []).map((entry, idx) => {
+            {unreadAutoPilotLog.map((entry, idx) => {
               const { summary } = entry;
               const totalActions = summary.emails + summary.phones + summary.visits + summary.hcVisits + summary.offers;
               return (
@@ -2108,7 +2194,7 @@ export default function RecruitingPage() {
               className="w-full"
               data-testid="auto-pilot-log-dismiss"
             >
-              {dismissAutoPilotLogMutation.isPending ? "Clearing..." : "Got It"}
+              {dismissAutoPilotLogMutation.isPending ? "Marking as read..." : "Got It"}
             </RetroButton>
           </div>
         </DialogContent>
