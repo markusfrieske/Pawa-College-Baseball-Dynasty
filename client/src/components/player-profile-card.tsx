@@ -1062,12 +1062,12 @@ function AttributeRow({ label, value, delta }: { label: string; value?: number |
   const isVelocity = label === "Velocity";
   
   return (
-    <div className="flex items-center justify-between p-2 bg-background/50 rounded" data-testid={`attr-row-${label.toLowerCase().replace(/\s/g, "-")}`}>
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <div className="flex items-center gap-2">
+    <div className="flex items-center justify-between gap-1 p-2 bg-background/50 rounded" data-testid={`attr-row-${label.toLowerCase().replace(/\s/g, "-")}`}>
+      <span className="text-sm text-muted-foreground min-w-0 truncate">{label}</span>
+      <div className="flex items-center gap-1.5 flex-shrink-0">
         <LetterGrade value={displayValue} size="sm" />
         <span 
-          className="text-sm font-bold w-14 text-right"
+          className="text-sm font-bold w-10 text-right tabular-nums"
           data-testid={`text-attr-${label.toLowerCase().replace(/\s/g, "-")}`}
         >
           {isVelocity ? `${velocityToMPH(displayValue)} MPH` : displayValue}
@@ -1089,7 +1089,7 @@ function CommonAbilityRow({ label, value, delta, goldAbilityName }: { label: str
       <div className="flex items-center gap-1">
         {goldAbilityName && (
           <span
-            className="text-[8px] font-pixel px-1 py-0.5 rounded border text-center"
+            className="text-[8px] font-pixel px-1 py-0.5 rounded border text-center max-w-[88px] leading-tight"
             style={{ color: "#c4a35a", borderColor: "rgba(196,163,90,0.5)", background: "rgba(196,163,90,0.12)" }}
             title={goldAbilityName}
             data-testid={`common-ability-gold-badge-${label.toLowerCase().replace(/\s/g, "-")}`}
