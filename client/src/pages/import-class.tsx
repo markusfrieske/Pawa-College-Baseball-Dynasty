@@ -15,6 +15,7 @@ interface ClassPreview {
   label: string | null;
   importCount: number;
   createdAt: string | null;
+  creatorDisplay: string | null;
   className: string;
   description: string | null;
   recruitCount: number;
@@ -189,6 +190,11 @@ export default function ImportClassPage() {
                 <h1 className="font-pixel text-gold text-lg mb-1" data-testid="text-import-class-name">{preview.className}</h1>
                 {preview.description && (
                   <p className="text-muted-foreground text-sm mb-2" data-testid="text-import-class-desc">{preview.description}</p>
+                )}
+                {preview.creatorDisplay && (
+                  <p className="text-xs text-muted-foreground/70 mb-2" data-testid="text-import-class-creator">
+                    Shared by <span className="text-muted-foreground font-medium">{preview.creatorDisplay}</span>
+                  </p>
                 )}
                 <div className="flex items-center gap-2 flex-wrap">
                   <Badge variant="secondary" className="text-[10px]" data-testid="badge-recruit-count">

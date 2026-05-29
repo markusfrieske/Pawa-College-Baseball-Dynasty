@@ -18691,6 +18691,15 @@ export async function registerRoutes(
       }
       const rc = await storage.getSavedRecruitingClass(share.classId);
       if (!rc) return res.status(404).json({ message: "Recruiting class not found" });
+      // Fetch creator's masked email for display
+      let creatorDisplay: string | null = null;
+      try {
+        const creator = await storage.getUser(share.userId);
+        if (creator?.email) {
+          const [local] = creator.email.split("@");
+          creatorDisplay = local.length <= 3 ? `${local[0]}***` : `${local.slice(0, 3)}***`;
+        }
+      } catch {}
       // Return preview-safe payload — omit internal metadata from classData, expose display fields
       const classData = rc.classData as any;
       const recruits: any[] = Array.isArray(classData) ? classData : (Array.isArray(classData?.recruits) ? classData.recruits : []);
@@ -18714,6 +18723,7 @@ export async function registerRoutes(
         label: share.label,
         importCount: share.importCount,
         createdAt: share.createdAt,
+        creatorDisplay,
         className: rc.name,
         description: rc.description,
         recruitCount: rc.recruitCount,

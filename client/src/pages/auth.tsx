@@ -20,6 +20,14 @@ export default function AuthPage({ mode }: AuthPageProps) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
+  // Read safe redirect target from query params
+  const redirectTarget = (() => {
+    const params = new URLSearchParams(window.location.search);
+    const r = params.get("redirect");
+    if (r && r.startsWith("/") && !r.startsWith("//")) return r;
+    return "/dashboard";
+  })();
+
   const authMutation = useMutation({
     mutationFn: async (data: { email: string; password: string }) => {
       const endpoint = mode === "login" ? "/api/auth/login" : "/api/auth/register";
@@ -32,7 +40,7 @@ export default function AuthPage({ mode }: AuthPageProps) {
           ? "You have successfully signed in."
           : "Your account has been created. Welcome to パワプロ College Baseball Dynasty!",
       });
-      setLocation("/dashboard");
+      setLocation(redirectTarget);
     },
     onError: (error: Error) => {
       toast({
