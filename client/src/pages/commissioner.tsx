@@ -44,6 +44,7 @@ import {
   Loader2,
   DollarSign,
   Zap,
+  User,
 } from "lucide-react";
 import { apiRequest, queryClient, getQueryFn } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -60,6 +61,10 @@ interface HumanCoach {
   firstName: string;
   lastName: string;
   email: string;
+  teamId: string | null;
+  teamName: string | null;
+  abbreviation: string | null;
+  isAutoPilot: boolean;
 }
 
 interface CommissionerData {
@@ -2305,7 +2310,33 @@ function SettingsTab({
   isDelegating: boolean;
   onToggleEmailDigests: (enabled: boolean) => void;
 }) {
+  const { toast } = useToast();
+  const qc = useQueryClient();
   const currentAggression = league?.cpuRecruitingAggression ?? 3;
+  const [autoPilotConfirmCoach, setAutoPilotConfirmCoach] = useState<{ teamId: string; coachName: string; teamName: string } | null>(null);
+
+  const autoPilotMutation = useMutation<{ success: boolean; isAutoPilot: boolean; teamId: string }, Error, string>({
+    mutationFn: async (teamId: string) => {
+      const res = await apiRequest("PATCH", `/api/leagues/${league?.id}/teams/${teamId}/autopilot`, {});
+      return res.json();
+    },
+    onSuccess: (result) => {
+      qc.invalidateQueries({ queryKey: ["/api/leagues", league?.id, "ready-status"] });
+      qc.invalidateQueries({ queryKey: ["/api/leagues", league?.id, "commissioner"] });
+      toast({
+        title: result.isAutoPilot ? "Auto-Pilot Enabled" : "Auto-Pilot Disabled",
+        description: result.isAutoPilot
+          ? "CPU will manage this team's actions going forward."
+          : "Coach has regained full control of their team.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
+    },
+  });
+
+  const nonCommissionerHumanCoaches = humanCoaches.filter(c => c.userId !== league?.commissionerId && c.teamId);
+
   return (
     <div className="space-y-6">
     <RetroCard>
@@ -2422,6 +2453,102 @@ function SettingsTab({
         </div>
       </RetroCardContent>
     </RetroCard>
+
+    {nonCommissionerHumanCoaches.length > 0 && (
+      <RetroCard>
+        <RetroCardHeader>
+          <div className="flex items-center gap-2">
+            <Users className="w-4 h-4 text-gold" />
+            <span>Coach Management</span>
+          </div>
+        </RetroCardHeader>
+        <RetroCardContent>
+          <p className="text-sm text-muted-foreground mb-4">
+            Enable auto-pilot for inactive coaches. The CPU will manage their team's recruiting, readiness, and phase actions until disabled.
+          </p>
+          <div className="space-y-2">
+            {nonCommissionerHumanCoaches.map(coach => {
+              const coachName = `${coach.firstName} ${coach.lastName}`;
+              return (
+                <div
+                  key={coach.coachId}
+                  className={`flex items-center justify-between p-3 rounded-md border transition-colors ${
+                    coach.isAutoPilot
+                      ? "bg-blue-950/20 border-blue-400/30"
+                      : "bg-muted/30 border-border"
+                  }`}
+                  data-testid={`row-coach-mgmt-${coach.coachId}`}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    {coach.isAutoPilot ? (
+                      <Bot className="w-4 h-4 text-blue-400 shrink-0" />
+                    ) : (
+                      <User className="w-4 h-4 text-muted-foreground shrink-0" />
+                    )}
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-medium truncate">{coachName}</p>
+                        {coach.abbreviation && (
+                          <span className="font-pixel text-[9px] text-gold shrink-0">{coach.abbreviation}</span>
+                        )}
+                        {coach.isAutoPilot && (
+                          <Badge className="text-[8px] bg-blue-500/20 text-blue-400 border-blue-500/40 shrink-0 px-1">AUTO-PILOT</Badge>
+                        )}
+                      </div>
+                      {coach.teamName && (
+                        <p className="text-xs text-muted-foreground truncate">{coach.teamName}</p>
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={autoPilotMutation.isPending}
+                    onClick={() => {
+                      if (coach.isAutoPilot) {
+                        autoPilotMutation.mutate(coach.teamId!);
+                      } else {
+                        setAutoPilotConfirmCoach({ teamId: coach.teamId!, coachName, teamName: coach.teamName ?? "" });
+                      }
+                    }}
+                    className={`ml-3 shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium border transition-all disabled:opacity-50 ${
+                      coach.isAutoPilot
+                        ? "bg-blue-500/20 border-blue-500/40 text-blue-400 hover:bg-blue-500/30"
+                        : "bg-muted/50 border-border text-muted-foreground hover:border-blue-400/50 hover:text-blue-400"
+                    }`}
+                    data-testid={`button-autopilot-settings-${coach.coachId}`}
+                    title={coach.isAutoPilot ? "Disable Auto-Pilot" : "Enable Auto-Pilot"}
+                  >
+                    <Bot className="w-3 h-3" />
+                    <span>{coach.isAutoPilot ? "Disable" : "Enable"}</span>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </RetroCardContent>
+      </RetroCard>
+    )}
+
+    <AlertDialog open={!!autoPilotConfirmCoach} onOpenChange={(open) => { if (!open) setAutoPilotConfirmCoach(null); }}>
+      <AlertDialogContent className="bg-card border-border">
+        <AlertDialogHeader>
+          <AlertDialogTitle className="font-pixel text-gold text-sm">Enable Auto-Pilot?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Put <strong>{autoPilotConfirmCoach?.coachName}</strong>'s team ({autoPilotConfirmCoach?.teamName}) on auto-pilot? The CPU will manage their recruiting, readiness, and phase actions until you disable it. The coach account remains intact.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel className="bg-background border-border">Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={() => autoPilotConfirmCoach && autoPilotMutation.mutate(autoPilotConfirmCoach.teamId)}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+            data-testid="button-confirm-autopilot-settings"
+          >
+            {autoPilotMutation.isPending ? "Enabling..." : "Enable Auto-Pilot"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
 
     {isPrimaryCommissioner && humanCoaches.length > 0 && (
       <RetroCard>
