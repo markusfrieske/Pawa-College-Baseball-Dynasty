@@ -2140,7 +2140,7 @@ function NewsTab({ leagueId }: { leagueId: string }) {
             className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-colors ${filterJournalist === "addie" ? "bg-gold/20 text-gold border border-gold/40" : "bg-muted/50 text-muted-foreground border border-transparent"}`}
             data-testid="filter-news-addie"
           >
-            <img src={addieFriskImg} alt="" className="w-4 h-4 rounded-sm" style={{ imageRendering: "pixelated" }} />
+            <img src={addieFriskImg} alt="" className="w-4 h-4 rounded-sm" />
             Addie
           </button>
           <button
@@ -2148,7 +2148,7 @@ function NewsTab({ leagueId }: { leagueId: string }) {
             className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-colors ${filterJournalist === "sully" ? "bg-gold/20 text-gold border border-gold/40" : "bg-muted/50 text-muted-foreground border border-transparent"}`}
             data-testid="filter-news-sully"
           >
-            <img src={sullyPumpImg} alt="" className="w-4 h-4 rounded-sm" style={{ imageRendering: "pixelated" }} />
+            <img src={sullyPumpImg} alt="" className="w-4 h-4 rounded-sm" />
             Sully
           </button>
           <button

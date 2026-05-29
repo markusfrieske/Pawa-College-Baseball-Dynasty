@@ -6,6 +6,7 @@ export function DynastyLogo({ className = "" }: { className?: string }) {
       src={speechBubbleIcon}
       alt="College Baseball Dynasty"
       className={`object-contain ${className}`}
+      style={{ imageRendering: "pixelated" }}
     />
   );
 }
@@ -16,6 +17,7 @@ export function DynastyLogoLarge({ className = "" }: { className?: string }) {
       src={speechBubbleIcon}
       alt="College Baseball Dynasty"
       className={`object-contain ${className}`}
+      style={{ imageRendering: "pixelated" }}
     />
   );
 }
