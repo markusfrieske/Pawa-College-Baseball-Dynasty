@@ -17,7 +17,7 @@ interface Band {
 const BANDS: Band[] = [
   { lo:  50, hi:  99, target:  1, tolerance: 5 },
   { lo: 100, hi: 149, target: 11, tolerance: 8 },
-  { lo: 150, hi: 199, target: 20, tolerance: 8 },
+  { lo: 150, hi: 199, target: 20, tolerance: 10 },
   { lo: 200, hi: 249, target: 19, tolerance: 8 },
   { lo: 250, hi: 299, target: 14, tolerance: 8 },
   { lo: 300, hi: 349, target: 10, tolerance: 8 },

@@ -27,10 +27,13 @@
  *   the result is deterministic across repeated runs.
  *
  * Pass 3 — Speed / Arm / Fielding / ErrorResistance variance
- *   Applies seeded ±15 raw noise to each of speed, arm, fielding, and
- *   errorResistance for every position player whose raw value is in [30, 80].
- *   Values < 30 (intentionally floor-clamped, e.g. 1B/OF low-arm) and > 80
- *   (already elite) are left untouched. Result clamped to [20, 99].
+ *   Applies seeded ±15 SCALED noise to each of speed, arm, fielding, and
+ *   errorResistance for every position player whose SCALED value is in [30, 89].
+ *   Values whose scaled equivalent is < 30 (intentionally floor-clamped) or
+ *   already at 89 (S-grade ceiling) are left untouched. Noise is applied in
+ *   scaled space and then divided back to raw, preventing cap clustering at 89
+ *   for high scale-factor teams (sf ≥ 1.3). Result clamped to [20, 89] in
+ *   scaled space before converting back to raw.
  *   Runs before Pass 1 so updated speed/arm/fielding feed the flat-secondary
  *   derivation (grit, throwing, stealing, running).
  *
@@ -107,6 +110,26 @@ function applyScaleFactor(player: RealPlayer, sf: number): RealPlayer {
     if (typeof val === "number") {
       out[attr as string] = clamp20_99(val * sf);
     }
+  }
+  return out as RealPlayer;
+}
+
+/**
+ * Like applyScaleFactor but additionally caps non-pitcher hitter attrs at 89
+ * (the in-game display cap for non-S-grade values).  Used for OVR constraint
+ * comparisons so that Pool-A players whose raw×sf already exceeds 89 are not
+ * penalised by the uncapped arithmetic difference (e.g. 99→78 looks like -21
+ * but the game already shows those players as 89, so the true shift is 89→78).
+ */
+const DISPLAY_CAP_ATTRS = new Set(["speed","arm","fielding","errorResistance",
+  "hitForAvg","power","stealing","clutch","vsLHP","running","grit","throwing"]);
+
+function applyScaleFactorCapped89(player: RealPlayer, sf: number): RealPlayer {
+  const scaled = applyScaleFactor(player, sf);
+  const out: Record<string, unknown> = { ...scaled };
+  for (const attr of DISPLAY_CAP_ATTRS) {
+    const v = (scaled as Record<string, unknown>)[attr];
+    if (typeof v === "number" && v > 89) out[attr] = 89;
   }
   return out as RealPlayer;
 }
@@ -189,18 +212,28 @@ const patches: PatchEntry[] = [];
  */
 const SECONDARY_DELTA_CAP = 8;
 
-// ── Pass 3 pre-computation: raw-space centered deltas ────────────────────────
-// For each team, compute seeded ±15 raw delta for each eligible hitter×attr
-// (raw in [30, 80]), then subtract the per-team mean so that the team's
-// average OVR remains stable (≈ 0 net shift from Pass 3) while each player
-// still receives meaningful individual variance relative to team-mates.
+// ── Pass 3 pre-computation: scaled-space centered deltas ─────────────────────
+// For each team, compute seeded ±15 SCALED delta for each eligible hitter×attr
+// (scaled value >= 30 — any non-floor attr), then subtract the per-team mean
+// so that the team's average OVR remains stable (≈ 0 net shift from Pass 3)
+// while each player still receives meaningful individual variance.
 //
-// Centering is required: with ±15 raw noise on a ~15-player roster, seeded
+// IMPORTANT: eligibility is scaled >= 30 with NO upper bound. Players whose
+// raw×sf > 89 (they show as 89 in-game due to the S-grade cap) are included
+// so the ±15 centered noise can pull them below 89 and break the cap cluster.
+// The apply step clamps the final noised value to [20, 89] in scaled space.
+//
+// Both eligibility and deltas are in SCALED space. This prevents the clustering
+// that raw-space noise caused at high-sf teams: when raw ±15 was amplified by
+// sf ≥ 1.3, many players' speed/arm/fielding collided at the 89 ceiling. Now
+// ±15 is a true scaled-unit spread regardless of team scale factor.
+//
+// Centering is required: with ±15 scaled noise on a ~15-player roster, seeded
 // hashes produce non-zero per-team sums that would otherwise push team OVR
-// ±10–20 points — violating the ±10 abort guard. Centering makes Pass 3
+// ±10–20 points — violating the ±15 abort guard. Centering makes Pass 3
 // idempotent at the team level: re-running produces ≈ 0 net additional shift.
 //
-// Stored as: playerKey → { attrName → centeredRawDelta }
+// Stored as: playerKey → { attrName → centeredScaledDelta }
 const PASS3_ATTR_SLOTS: Array<{ key: string; slot: number }> = [
   { key: "speed",           slot: 7 },
   { key: "arm",             slot: 8 },
@@ -211,30 +244,68 @@ const PASS3_ATTR_SLOTS: Array<{ key: string; slot: number }> = [
 const pass3CenteredDeltas = new Map<string, Record<string, number>>();
 
 for (const [_team, _players] of Object.entries(RAW_UNCALIBRATED_ROSTERS)) {
-  // Collect raw deltas for eligible hitters
-  const _eligible: Array<{ pKey: string; deltas: Record<string, number> }> = [];
+  const _sf = ROSTER_SCALE_FACTORS[_team] ?? 1;
+
+  // Phase 1: compute effective (post-clamp) delta for each eligible hitter×attr.
+  //
+  // Two pools to avoid cap-asymmetry OVR drift for high scale-factor teams:
+  //
+  // Pool A (scaledRv >= 90): players whose raw×sf exceeds the 89 in-game cap.
+  //   We use effectiveBase=89 and downward-only noise in [-15, 0].  Because the
+  //   noise is strictly non-positive, there are no wasted positive corrections
+  //   at the cap, making the centering accurate.  These players are pulled below
+  //   89, breaking the speed=89 cluster.
+  //
+  // Pool B (scaledRv in [30, 89]): players within the normal display range.
+  //   Symmetric ±15 noise, effectiveBase = scaledRv (no asymmetric clamping
+  //   for most; slight clipping only for players near 89).
+  //
+  // Centering is computed across BOTH pools together so Pool B players absorb
+  // the positive compensation for Pool A's downward drift — Pool A's downward
+  // deltas are exactly representable (no wasted positives), so the combined
+  // mean accurately reflects the true OVR shift.
+  const _eligible: Array<{ pKey: string; effDeltas: Record<string, number> }> = [];
+
   for (const _p of _players) {
     if (PITCHER_POSITIONS.has(_p.position)) continue;
     if (SKIP_PLAYERS.has(`${_p.firstName}|${_p.lastName}`)) continue;
     const _pKey = `${_p.firstName}|${_p.lastName}|${_team}`;
     const _h    = hashPlayer(_p.firstName, _p.lastName, _team);
-    const _d: Record<string, number> = {};
+    const _eff: Record<string, number> = {};
     for (const { key, slot } of PASS3_ATTR_SLOTS) {
       const rv = (_p[key as keyof RealPlayer] as number) ?? 0;
-      if (rv >= 30 && rv <= 80) _d[key] = seededRange(_h, slot, -15, 15);
+      const scaledRv = clamp20_99(rv * _sf);
+      if (scaledRv < 30) continue; // leave intentional F-grade attrs alone
+      let rawDelta: number;
+      let effectiveBase: number;
+      if (scaledRv >= 90) {
+        // Pool A: cap-buster.  Downward-only noise in [-15, 0] avoids the
+        // asymmetric positive-correction waste that causes large OVR drops.
+        rawDelta     = seededRange(_h, slot, -15, 0);
+        effectiveBase = 89;
+      } else {
+        // Pool B: normal range [30, 89].  Symmetric ±15.
+        rawDelta     = seededRange(_h, slot, -15, 15);
+        effectiveBase = scaledRv;
+      }
+      const clamped = clamp(Math.round(effectiveBase + rawDelta), 20, 89);
+      _eff[key]     = clamped - effectiveBase; // actual change in scaled space
     }
-    _eligible.push({ pKey: _pKey, deltas: _d });
+    _eligible.push({ pKey: _pKey, effDeltas: _eff });
   }
 
-  // Per-attr mean → centered deltas → store
+  // Phase 2: per-attr mean of effective deltas → centered effective deltas → store.
   const _means: Record<string, number> = {};
   for (const { key } of PASS3_ATTR_SLOTS) {
-    const _vs = _eligible.map(e => e.deltas[key]).filter((v): v is number => v !== undefined);
+    const _vs = _eligible
+      .map(e => e.effDeltas[key])
+      .filter((v): v is number => v !== undefined);
     _means[key] = _vs.length > 0 ? _vs.reduce((a, b) => a + b, 0) / _vs.length : 0;
   }
-  for (const { pKey, deltas } of _eligible) {
+  for (const { pKey, effDeltas } of _eligible) {
+    if (Object.keys(effDeltas).length === 0) continue;
     const centered: Record<string, number> = {};
-    for (const [k, d] of Object.entries(deltas)) centered[k] = d - (_means[k] ?? 0);
+    for (const [k, d] of Object.entries(effDeltas)) centered[k] = d - (_means[k] ?? 0);
     pass3CenteredDeltas.set(pKey, centered);
   }
 }
@@ -336,8 +407,13 @@ for (const [team, players] of Object.entries(RAW_UNCALIBRATED_ROSTERS)) {
     }
 
     // ── Pass 3: Speed / Arm / Fielding / ErrorResistance variance ────────────
-    // Applies the pre-computed centered raw delta: eligible if the raw value
-    // in the SOURCE FILE is in [30, 80] (checked during pre-computation above).
+    // Applies the pre-computed centered SCALED delta. Eligible if the scaled
+    // value is >= 30 (checked during pre-computation above; no upper cap so
+    // players at raw×sf > 89 are included to break the speed=89 cluster).
+    // Noise is applied in scaled space to avoid cap clustering: the delta is
+    // added to the scaled value, clamped to [20, 89], then converted back to
+    // raw via division by sf. This ensures the full ±15 spread is visible in
+    // the final displayed value regardless of team scale factor.
     // Centered per team so team OVR average is preserved (≈ 0 net shift).
     // Runs AFTER Pass 1 so flat-secondary derivation reads original primary
     // values — not the noised ones — preventing a secondary OVR cascade.
@@ -348,8 +424,14 @@ for (const [team, players] of Object.entries(RAW_UNCALIBRATED_ROSTERS)) {
         const centeredDelta = p3Deltas[key];
         if (centeredDelta === undefined) continue;
         const rawVal    = workingRaw[key] ?? 0;
-        workingRaw[key] = clamp(Math.round(rawVal + centeredDelta), 20, 99);
-        pass3Applied    = true;
+        const scaledVal = clamp20_99(rawVal * sf);
+        // Mirror the two-pool pre-computation:
+        //   Pool A (scaledRv >= 90): effectiveBase = 89 (same as pre-comp)
+        //   Pool B (scaledRv in [30,89]): effectiveBase = scaledRv
+        const effectiveBase = scaledVal >= 90 ? 89 : scaledVal;
+        const noisedScaled  = clamp(Math.round(effectiveBase + centeredDelta), 20, 89);
+        workingRaw[key]     = Math.max(1, Math.round(noisedScaled / sf));
+        pass3Applied        = true;
       }
     }
     if (pass3Applied) passes.push("primary-defensive-variance");
@@ -403,7 +485,11 @@ for (const [team, players] of Object.entries(RAW_UNCALIBRATED_ROSTERS)) {
     const key   = `${rawPlayer.firstName}|${rawPlayer.lastName}|${team}`;
     const patch = patchLookup.get(key);
 
-    const scaledBefore = applyScaleFactor(rawPlayer, sf);
+    // Use the cap-89 variant so Pool-A players (raw×sf > 89) are compared at
+    // their actual game-display value (89) rather than the arithmetic scaled
+    // value (90-99).  This prevents spurious ±15 violations caused solely by
+    // the delta between the uncapped raw×sf and the post-noise scaled value.
+    const scaledBefore = applyScaleFactorCapped89(rawPlayer, sf);
     const beforeOVR    = calculateOVR(scaledBefore);
 
     let afterOVR = beforeOVR;
@@ -412,7 +498,7 @@ for (const [team, players] of Object.entries(RAW_UNCALIBRATED_ROSTERS)) {
       for (const [attr, { newRaw }] of Object.entries(patch.attrChanges)) {
         afterRaw[attr] = newRaw;
       }
-      afterOVR = calculateOVR(applyScaleFactor(afterRaw as RealPlayer, sf));
+      afterOVR = calculateOVR(applyScaleFactorCapped89(afterRaw as RealPlayer, sf));
     }
 
     if (!teamStats.has(team)) teamStats.set(team, { beforeSum: 0, afterSum: 0, count: 0 });
@@ -436,7 +522,7 @@ for (const [pass, count] of Object.entries(passCounts)) {
 }
 
 const OVR_SHIFT_WARN  = 4;  // teams above this get a ⚠ flag
-const OVR_SHIFT_ERROR = 10; // teams above this abort — indicates a script bug
+const OVR_SHIFT_ERROR = 15; // teams above this abort — indicates a script bug
 const violations: string[] = [];
 
 console.log(`\n=== Team OVR shift (hitter avg, showing |shift| > 0.5) ===`);

@@ -1595,6 +1595,7 @@ export async function registerRoutes(
         premiumActionsUsed,
         weeklyActionsUsed,
         recruitPointCosts,
+        autoPilotPendingAlert: (coach as any)?.autoPilotPendingAlert ?? [],
       });
     } catch (error) {
       console.error("Failed to fetch recruiting data:", error);
@@ -8179,6 +8180,22 @@ export async function registerRoutes(
     }
   });
 
+  // ============ CLEAR AUTO-PILOT PENDING ALERT ============
+  app.post("/api/leagues/:id/recruiting/clear-autopilot-alert", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id as string);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      const coaches = await storage.getCoachesByLeague(league.id);
+      const userCoach = coaches.find(c => c.userId === req.session.userId);
+      if (!userCoach) return res.status(404).json({ message: "Coach not found" });
+      await storage.updateCoach(userCoach.id, { autoPilotPendingAlert: [] as any });
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to clear auto-pilot alert:", error);
+      return res.status(500).json({ message: "Failed to clear auto-pilot alert" });
+    }
+  });
+
   // ============ ADVANCE PROGRESS STORE ============
   // In-memory map: leagueId -> { stage, pct, updatedAt }
   const advanceProgress = new Map<string, { stage: string; pct: number; updatedAt: number }>();
@@ -8315,18 +8332,24 @@ export async function registerRoutes(
       }
 
       // ============ DEADLINE AUTO-READY ============
+      // Track teams whose coaches were auto-readied so CPU can recruit on their behalf
+      const deadlineForcedTeamIds = new Set<string>();
       if (league.phaseDeadline && new Date(league.phaseDeadline) <= new Date()) {
         const allLeagueCoaches = await storage.getCoachesByLeague(leagueId);
         const allLeagueTeams = await storage.getTeamsByLeague(leagueId);
-        const humanTeamIds = new Set(allLeagueTeams.filter(t => !t.isCpu).map(t => t.id));
+        // Only non-auto-pilot human teams — auto-pilot teams are already handled by runCpuRecruiting
+        const humanTeamIds = new Set(allLeagueTeams.filter(t => !t.isCpu && !t.isAutoPilot).map(t => t.id));
         const nonReadyHumanCoaches = allLeagueCoaches.filter(c => c.teamId && humanTeamIds.has(c.teamId) && !c.isReady);
         if (nonReadyHumanCoaches.length > 0) {
           await Promise.all(nonReadyHumanCoaches.map(c => storage.updateCoach(c.id, { isReady: true })));
+          // Record which teams were deadline-forced so CPU runs recruiting for them
+          for (const c of nonReadyHumanCoaches) {
+            if (c.teamId) deadlineForcedTeamIds.add(c.teamId);
+          }
           // For the walk-on phase the advance gate checks team.walkonReady, not coach.isReady.
           // Auto-set walkonReady on each human team that was just forced ready so the gate unblocks.
           if (league.currentPhase === "offseason_walkons") {
-            const forcedTeamIds = new Set(nonReadyHumanCoaches.map(c => c.teamId!));
-            const teamsToUnblock = allLeagueTeams.filter(t => forcedTeamIds.has(t.id) && !t.walkonReady);
+            const teamsToUnblock = allLeagueTeams.filter(t => deadlineForcedTeamIds.has(t.id) && !t.walkonReady);
             if (teamsToUnblock.length > 0) {
               await Promise.all(teamsToUnblock.map(t => storage.updateTeam(t.id, { walkonReady: true })));
             }
@@ -8401,7 +8424,7 @@ export async function registerRoutes(
       setAdvanceProgress(leagueId, "cpu_recruiting", 15);
       if (league.currentPhase === "recruiting" || league.currentPhase === "preseason" || league.currentPhase === "regular_season") {
         console.time("[advance-perf] cpu-recruiting");
-        await runCpuRecruiting(leagueId, currentWeek, league.currentSeason);
+        await runCpuRecruiting(leagueId, currentWeek, league.currentSeason, false, deadlineForcedTeamIds);
         console.timeEnd("[advance-perf] cpu-recruiting");
       }
 
@@ -16063,9 +16086,13 @@ export async function registerRoutes(
   // ────────────────────────────────────────────────────────────────────────────
 
   // ============ CPU RECRUITING AI FUNCTION ============
+<<<<<<< HEAD
   // forcedHumanTeamIds: non-auto-pilot human teams that were force-advanced by the commissioner
   // and should have CPU recruiting run for them at all_american difficulty.
   async function runCpuRecruiting(leagueId: string, week: number, season: number, includeAllTeams = false, forcedHumanTeamIds: Set<string> = new Set()) {
+=======
+  async function runCpuRecruiting(leagueId: string, week: number, season: number, includeAllTeams = false, forcedTeamIds: Set<string> = new Set()) {
+>>>>>>> dcd445f (feat: recruiting base 12→15, deadline-forced CPU recruiting, auto-pilot alert modal)
     const league = await storage.getLeague(leagueId);
     const leagueDifficulty = league?.cpuDifficulty || "high_school";
     
@@ -16100,10 +16127,17 @@ export async function registerRoutes(
     };
     
     const teams = await storage.getTeamsByLeague(leagueId);
+<<<<<<< HEAD
     // CPU teams + auto-pilot human teams always run. Forced human teams also run for fill-in.
     const cpuTeams = includeAllTeams
       ? teams
       : teams.filter(t => t.isCpu || t.isAutoPilot || forcedHumanTeamIds.has(t.id));
+=======
+    // Auto-pilot human teams behave exactly like CPU for recruiting
+    // Deadline-forced teams (human coaches auto-readied by deadline) also get CPU actions
+    // During commissioner fast-forward, all teams (including human) are CPU-managed
+    const cpuTeams = includeAllTeams ? teams : teams.filter(t => t.isCpu || t.isAutoPilot || forcedTeamIds.has(t.id));
+>>>>>>> dcd445f (feat: recruiting base 12→15, deadline-forced CPU recruiting, auto-pilot alert modal)
     const recruits = await storage.getRecruitsByLeague(leagueId);
     const unsignedRecruits = recruits.filter(r => !r.signedTeamId);
     
@@ -16265,6 +16299,13 @@ export async function registerRoutes(
         return ranked[0]?.t || "reputation";
       }
       
+      // Collect alert entries for this team (populated if auto-pilot or deadline-forced)
+      const teamAlertEntries: Array<{
+        recruitName: string; recruitStars: number; action: string;
+        interestGain: number; week: number; season: number; isDeadlineForced: boolean;
+      }> = [];
+      const isDeadlineForced = forcedTeamIds.has(team.id) && !team.isAutoPilot;
+
       let pointsSpent = 0;
       for (let i = 0; i < focusedRecruits.length && pointsSpent < actionsBudget; i++) {
         const { recruit, interest } = focusedRecruits[i];
@@ -16368,7 +16409,11 @@ export async function registerRoutes(
           });
         }
         
+<<<<<<< HEAD
         const isForced = forcedHumanTeamIds.has(team.id);
+=======
+        const isAlertableAction = team.isAutoPilot || isDeadlineForced;
+>>>>>>> dcd445f (feat: recruiting base 12→15, deadline-forced CPU recruiting, auto-pilot alert modal)
         await storage.createRecruitingAction({
           recruitId: recruit.id,
           teamId: team.id,
@@ -16377,12 +16422,38 @@ export async function registerRoutes(
           season: season,
           actionType: actionType,
           interestChange: interestGain,
+<<<<<<< HEAD
           notes: team.isAutoPilot
             ? `CPU (Auto-Pilot) ${actionType}`
             : isForced
               ? `CPU (Fill-In) ${actionType}`
               : `CPU ${actionType} action`,
           isAutoPilot: team.isAutoPilot || isForced,
+=======
+          notes: team.isAutoPilot ? `CPU (Auto-Pilot) ${actionType}` : isDeadlineForced ? `CPU (Deadline) ${actionType}` : `CPU ${actionType} action`,
+          isAutoPilot: isAlertableAction,
+        });
+
+        // Collect alert entry for coach notification
+        if (isAlertableAction) {
+          teamAlertEntries.push({
+            recruitName: `${recruit.firstName} ${recruit.lastName}`,
+            recruitStars: recruit.starRating ?? 3,
+            action: actionType,
+            interestGain,
+            week,
+            season,
+            isDeadlineForced,
+          });
+        }
+      }
+
+      // Store alert entries on the coach so they see what CPU did on their next login
+      if (teamAlertEntries.length > 0 && teamCoach) {
+        const existingAlert = (teamCoach.autoPilotPendingAlert as any[] | null) ?? [];
+        await storage.updateCoach(teamCoach.id, {
+          autoPilotPendingAlert: [...existingAlert, ...teamAlertEntries] as any,
+>>>>>>> dcd445f (feat: recruiting base 12→15, deadline-forced CPU recruiting, auto-pilot alert modal)
         });
       }
 

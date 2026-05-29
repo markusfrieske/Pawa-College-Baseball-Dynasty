@@ -132,6 +132,16 @@ interface RecruitWithInterest extends Recruit {
   signingDayLockedFields?: string[] | null;
 }
 
+interface AutoPilotAlertEntry {
+  recruitName: string;
+  recruitStars: number;
+  action: string;
+  interestGain: number;
+  week: number;
+  season: number;
+  isDeadlineForced: boolean;
+}
+
 interface RecruitingData {
   recruits: RecruitWithInterest[];
   team: Team;
@@ -152,6 +162,7 @@ interface RecruitingData {
   seniorsGraduating: number;
   premiumActionsUsed: Record<string, string[]>;
   weeklyActionsUsed: Record<string, string[]>;
+  autoPilotPendingAlert: AutoPilotAlertEntry[];
 }
 
 const positionOptions = [
@@ -431,6 +442,23 @@ export default function RecruitingPage() {
     if (!recapDismissKey) return;
     setRecapDismissed(localStorage.getItem(recapDismissKey) === "1");
   }, [recapDismissKey]);
+
+  // Auto-pilot alert modal
+  const [showAutoPilotAlert, setShowAutoPilotAlert] = useState(false);
+  const autoPilotAlertShownRef = useRef(false);
+  useEffect(() => {
+    if (!autoPilotAlertShownRef.current && data?.autoPilotPendingAlert && data.autoPilotPendingAlert.length > 0) {
+      setShowAutoPilotAlert(true);
+      autoPilotAlertShownRef.current = true;
+    }
+  }, [data?.autoPilotPendingAlert]);
+  const clearAutoPilotAlertMutation = useMutation({
+    mutationFn: () => apiRequest("POST", `/api/leagues/${id}/recruiting/clear-autopilot-alert`, {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
+      setShowAutoPilotAlert(false);
+    },
+  });
   const [showRecap, setShowRecap] = useState(false);
   const dismissRecap = () => {
     if (!recapDismissKey) return;
@@ -824,8 +852,64 @@ export default function RecruitingPage() {
     return <RecruitingSkeleton />;
   }
 
+  const actionLabel: Record<string, string> = {
+    email: "Email", phone: "Phone Call", visit: "Campus Visit",
+    head_coach_visit: "HC Visit", offer: "Offer",
+  };
+
   return (
     <div className="min-h-screen bg-background">
+      {/* ── Auto-Pilot / Deadline-Forced CPU Activity Alert ── */}
+      {showAutoPilotAlert && data?.autoPilotPendingAlert && data.autoPilotPendingAlert.length > 0 && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/70" onClick={() => clearAutoPilotAlertMutation.mutate()} />
+          <div className="relative w-full max-w-lg mx-4 bg-[#0d1f0d] border-2 border-gold rounded-none shadow-2xl p-0 font-mono">
+            <div className="bg-gold/10 border-b border-gold/40 px-6 py-3 flex items-center gap-3">
+              <span className="text-gold text-xs font-bold tracking-widest uppercase" style={{ fontFamily: "'Press Start 2P', monospace" }}>
+                CPU Auto-Pilot Report
+              </span>
+            </div>
+            <div className="px-6 py-4">
+              <p className="text-xs text-amber-200 mb-4 leading-relaxed">
+                {data.autoPilotPendingAlert.some(e => e.isDeadlineForced)
+                  ? "The phase deadline passed while you were away. Your CPU stepped in and completed the following recruiting actions on your behalf:"
+                  : "Your team is on auto-pilot. The CPU completed the following recruiting actions this week:"}
+              </p>
+              <div className="max-h-64 overflow-y-auto space-y-1.5 pr-1">
+                {data.autoPilotPendingAlert.map((entry, i) => (
+                  <div key={i} className="flex items-center justify-between gap-3 bg-black/30 border border-white/10 rounded px-3 py-1.5">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="text-gold text-xs shrink-0">
+                        {"★".repeat(Math.min(5, entry.recruitStars))}
+                      </span>
+                      <span className="text-white text-xs truncate">{entry.recruitName}</span>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className="text-xs text-amber-300">{actionLabel[entry.action] ?? entry.action}</span>
+                      <span className="text-xs text-green-400">+{entry.interestGain}%</span>
+                      {entry.isDeadlineForced && (
+                        <span className="text-[9px] text-orange-400 border border-orange-400/50 px-1 rounded">DEADLINE</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 flex justify-end">
+                <button
+                  data-testid="button-dismiss-autopilot-alert"
+                  onClick={() => clearAutoPilotAlertMutation.mutate()}
+                  disabled={clearAutoPilotAlertMutation.isPending}
+                  className="bg-gold text-black text-xs font-bold px-5 py-2 hover:bg-yellow-400 transition-colors disabled:opacity-50"
+                  style={{ fontFamily: "'Press Start 2P', monospace" }}
+                >
+                  {clearAutoPilotAlertMutation.isPending ? "..." : "Got It"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <header className="border-b border-border sticky top-0 bg-background z-[1000]">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center gap-4 mb-4">

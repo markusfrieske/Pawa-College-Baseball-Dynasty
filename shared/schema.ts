@@ -195,6 +195,16 @@ export const coaches = pgTable("coaches", {
   recruitingGeographyStrategy: text("recruiting_geography_strategy").notNull().default("national"),
   recruitingStyleStrategy: text("recruiting_style_strategy").notNull().default("best_available"),
   gamePhilosophyStrategy: text("game_philosophy_strategy").notNull().default("balanced"),
+  // Auto-pilot alert: array of CPU actions taken on behalf of this coach (cleared on dismiss)
+  autoPilotPendingAlert: json("auto_pilot_pending_alert").$type<Array<{
+    recruitName: string;
+    recruitStars: number;
+    action: string;
+    interestGain: number;
+    week: number;
+    season: number;
+    isDeadlineForced: boolean;
+  }>>().default([]),
 }, (t) => [
   index("idx_coaches_team_id").on(t.teamId),
   index("idx_coaches_league_id").on(t.leagueId),
