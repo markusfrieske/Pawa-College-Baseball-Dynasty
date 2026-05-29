@@ -2012,7 +2012,7 @@ export async function registerRoutes(
   };
 
   function getMaxRecruitingActions(coach: any): number {
-    const baseActions = 12;
+    const baseActions = 15;
     const skillBonus = Math.floor(((coach?.pitchingRecruitingSkill || 1) + (coach?.hittingRecruitingSkill || 1)) / 2);
     const archetypeBonus = ARCHETYPE_RECRUITING_ACTION_BONUS[coach?.archetype] || 0;
     return Math.max(4, baseActions + skillBonus + archetypeBonus);
@@ -8141,6 +8141,44 @@ export async function registerRoutes(
     }
   });
 
+  // ============ AUTO-PILOT ACTION LOG ============
+  // Returns the CPU action log for the current user's team in this league.
+  app.get("/api/leagues/:id/my-team/auto-pilot-log", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id as string);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      const coaches = await storage.getCoachesByLeague(league.id);
+      const myCoach = coaches.find(c => c.userId === req.session.userId);
+      if (!myCoach?.teamId) return res.json({ log: [] });
+
+      const team = await storage.getTeam(myCoach.teamId);
+      const log = (team?.autoPilotActionLog as import("@shared/schema").AutoPilotLogEntry[] | null) ?? [];
+      return res.json({ log });
+    } catch (error) {
+      console.error("Failed to fetch auto-pilot log:", error);
+      return res.status(500).json({ message: "Failed to fetch auto-pilot log" });
+    }
+  });
+
+  // Dismisses (clears) the auto-pilot log for the current user's team.
+  app.post("/api/leagues/:id/my-team/auto-pilot-log/dismiss", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id as string);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      const coaches = await storage.getCoachesByLeague(league.id);
+      const myCoach = coaches.find(c => c.userId === req.session.userId);
+      if (!myCoach?.teamId) return res.json({ success: true });
+
+      await storage.updateTeam(myCoach.teamId, { autoPilotActionLog: [] } as any);
+      return res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to dismiss auto-pilot log:", error);
+      return res.status(500).json({ message: "Failed to dismiss auto-pilot log" });
+    }
+  });
+
   // ============ ADVANCE PROGRESS STORE ============
   // In-memory map: leagueId -> { stage, pct, updatedAt }
   const advanceProgress = new Map<string, { stage: string; pct: number; updatedAt: number }>();
@@ -8188,6 +8226,17 @@ export async function registerRoutes(
       if (notReadyCoaches.length > 0) {
         await Promise.all(notReadyCoaches.map(c => storage.updateCoach(c.id, { isReady: true })));
         forcedAuditParts.push(`${notReadyCoaches.length} coach${notReadyCoaches.length !== 1 ? "es" : ""} marked ready: ${notReadyCoaches.map(c => `${c.firstName} ${c.lastName}`).join(", ")}`);
+
+        // CPU fill-in: run recruiting at all_american difficulty for force-advanced human teams
+        // during recruiting-relevant phases so their week isn't wasted.
+        const recruitingPhases = ["recruiting", "preseason", "regular_season"];
+        if (recruitingPhases.includes(league.currentPhase)) {
+          const forcedTeamIds = new Set(notReadyCoaches.map(c => c.teamId!).filter(Boolean));
+          if (forcedTeamIds.size > 0) {
+            runCpuRecruiting(league.id, league.currentWeek ?? 1, league.currentSeason, false, forcedTeamIds)
+              .catch(e => console.error("[force-advance-cpu-fill] Error running CPU fill-in:", e));
+          }
+        }
       }
 
       // For walk-on phase, force walkonReady on all non-ready non-auto-pilot human teams
@@ -8280,6 +8329,23 @@ export async function registerRoutes(
             const teamsToUnblock = allLeagueTeams.filter(t => forcedTeamIds.has(t.id) && !t.walkonReady);
             if (teamsToUnblock.length > 0) {
               await Promise.all(teamsToUnblock.map(t => storage.updateTeam(t.id, { walkonReady: true })));
+            }
+          }
+          // CPU fill-in: for human teams that were force-advanced during a recruiting phase,
+          // run CPU recruiting at all_american difficulty so their week isn't wasted.
+          const recruitingPhases = ["recruiting", "preseason", "regular_season"];
+          if (recruitingPhases.includes(league.currentPhase)) {
+            const nonAutoPilotForcedIds = new Set(
+              nonReadyHumanCoaches
+                .filter(c => {
+                  const t = allLeagueTeams.find(t => t.id === c.teamId);
+                  return t && !t.isAutoPilot;
+                })
+                .map(c => c.teamId!)
+            );
+            if (nonAutoPilotForcedIds.size > 0) {
+              runCpuRecruiting(leagueId, currentWeek, league.currentSeason, false, nonAutoPilotForcedIds)
+                .catch(e => console.error("[deadline-cpu-fill] Error running CPU fill-in:", e));
             }
           }
           try {
@@ -15997,60 +16063,47 @@ export async function registerRoutes(
   // ────────────────────────────────────────────────────────────────────────────
 
   // ============ CPU RECRUITING AI FUNCTION ============
-  async function runCpuRecruiting(leagueId: string, week: number, season: number, includeAllTeams = false) {
+  // forcedHumanTeamIds: non-auto-pilot human teams that were force-advanced by the commissioner
+  // and should have CPU recruiting run for them at all_american difficulty.
+  async function runCpuRecruiting(leagueId: string, week: number, season: number, includeAllTeams = false, forcedHumanTeamIds: Set<string> = new Set()) {
     const league = await storage.getLeague(leagueId);
-    const difficulty = league?.cpuDifficulty || "high_school";
+    const leagueDifficulty = league?.cpuDifficulty || "high_school";
     
     // CPU difficulty balance (rebalanced for 4-week recruiting window):
-    //   The recruiting phase has exactly 4 weeks. With the old offerThreshold values,
-    //   CPU teams often failed to extend offers in time (needed 3 weeks to reach 35%
-    //   interest before offering, leaving only 1 week to reach 60% verbal).
-    //   Lowered offerThresholds let CPU offer after 1-2 actions, enabling proper
-    //   commitment pipelines within the 4-week window.
+    //   Auto-pilot and force-advanced human teams always use all_american difficulty,
+    //   regardless of the league's CPU difficulty setting.
     //
     //   gainMultiplier applies on top of the same compute* functions humans use.
     //
-    //   Effective human-equivalent actions (with updated difficultyStretch):
-    //     beginner:     budget≈12 × 0.75 = 9  → meaningfully easier than human (12)
-    //     high_school:  budget≈12 × 1.0  = 12 → matches human baseline
-    //     all_american: budget≈12 × 1.1  = 13 → modest edge (was 1.2 = 14)
-    //     elite:        budget≈12 × 1.2  = 14 → challenging not cheating (was 1.4 = 17)
-    //
-    //   gainMultiplier AA/Elite reduced: 1.15→1.05, 1.30→1.10.
-    //   The CPU's advantage at higher difficulties comes from:
-    //     1. Smarter position-need targeting (positionNeedWeight: 5/12/22/30)
-    //     2. Action sequencing (requireWarmup gates visit/offer behind email/phone)
-    //     3. Competition awareness (AA/Elite redirect budget away from crowded boards)
-    //     4. Modest numerical edges: gainMultiplier + slightly more actions
-    // gainMultiplier reduced for AA/Elite: edge comes from smarter decisions, not raw number inflation.
-    // difficultyStretch reduced proportionally to keep action budget differences modest.
+    //   Effective human-equivalent actions (with updated difficultyStretch, base 15):
+    //     beginner:     budget≈15 × 0.75 = 11  → meaningfully easier than human (15)
+    //     high_school:  budget≈15 × 1.0  = 15  → matches human baseline
+    //     all_american: budget≈15 × 1.1  = 17  → modest edge
+    //     elite:        budget≈15 × 1.2  = 18  → challenging not cheating
     const difficultyConfig: Record<string, { minActions: number; maxActions: number; gainMultiplier: number; targetingBonus: number; offerThreshold: number; visitThreshold: number; positionNeedWeight: number; requireWarmup: boolean; competitionAware: boolean }> = {
       beginner:     { minActions: 4, maxActions: 7,  gainMultiplier: 0.70, targetingBonus: 0,  offerThreshold: 25, visitThreshold: 45, positionNeedWeight: 5,  requireWarmup: false, competitionAware: false },
       high_school:  { minActions: 5, maxActions: 9,  gainMultiplier: 1.00, targetingBonus: 5,  offerThreshold: 15, visitThreshold: 35, positionNeedWeight: 12, requireWarmup: false, competitionAware: false },
       all_american: { minActions: 6, maxActions: 11, gainMultiplier: 1.05, targetingBonus: 10, offerThreshold: 10, visitThreshold: 25, positionNeedWeight: 22, requireWarmup: true,  competitionAware: true  },
       elite:        { minActions: 7, maxActions: 13, gainMultiplier: 1.10, targetingBonus: 15, offerThreshold: 5,  visitThreshold: 20, positionNeedWeight: 30, requireWarmup: true,  competitionAware: true  },
     };
-    console.log(`[cpu-difficulty] week=${week} season=${season} difficulty=${difficulty} ` +
-      `gainMult=${difficultyConfig[difficulty]?.gainMultiplier ?? 1.0} ` +
-      `stretch=${({ beginner: 0.75, high_school: 1.0, all_american: 1.1, elite: 1.2 } as Record<string,number>)[difficulty] ?? 1.0} ` +
-      `posNeedWt=${difficultyConfig[difficulty]?.positionNeedWeight ?? 12} ` +
-      `warmup=${difficultyConfig[difficulty]?.requireWarmup ?? false} ` +
-      `compAware=${difficultyConfig[difficulty]?.competitionAware ?? false}`);
-    const baseConfig = difficultyConfig[difficulty] || difficultyConfig.high_school;
-    // cpuRecruitingAggression: 1=Conservative (+10 to thresholds), 3=Standard (no change), 5=Ultra (-10).
-    // Formula: offset = (3 - aggression) * 5  →  1→+10, 2→+5, 3→0, 4→-5, 5→-10
+
     const aggression = Math.max(1, Math.min(5, league?.cpuRecruitingAggression ?? 3));
     const aggressionOffset = (3 - aggression) * 5;
-    const config = {
-      ...baseConfig,
-      offerThreshold:  Math.max(0, baseConfig.offerThreshold  + aggressionOffset),
-      visitThreshold:  Math.max(0, baseConfig.visitThreshold  + aggressionOffset),
+
+    const buildConfig = (diff: string) => {
+      const base = difficultyConfig[diff] || difficultyConfig.high_school;
+      return {
+        ...base,
+        offerThreshold: Math.max(0, base.offerThreshold + aggressionOffset),
+        visitThreshold: Math.max(0, base.visitThreshold + aggressionOffset),
+      };
     };
     
     const teams = await storage.getTeamsByLeague(leagueId);
-    // Auto-pilot human teams behave exactly like CPU for recruiting
-    // During commissioner fast-forward, all teams (including human) are CPU-managed
-    const cpuTeams = includeAllTeams ? teams : teams.filter(t => t.isCpu || t.isAutoPilot);
+    // CPU teams + auto-pilot human teams always run. Forced human teams also run for fill-in.
+    const cpuTeams = includeAllTeams
+      ? teams
+      : teams.filter(t => t.isCpu || t.isAutoPilot || forcedHumanTeamIds.has(t.id));
     const recruits = await storage.getRecruitsByLeague(leagueId);
     const unsignedRecruits = recruits.filter(r => !r.signedTeamId);
     
@@ -16062,20 +16115,28 @@ export async function registerRoutes(
     const storylineRows = league ? await storage.getStorylineRecruitsByLeague(leagueId, league.currentSeason) : [];
     const storylineRecruitIds = new Set(storylineRows.map(sl => sl.recruitId));
 
-    // Hoist league-wide interests once before the per-team loop to avoid N redundant queries
-    const allLeagueInterestsForCpu = config.competitionAware
-      ? await storage.getRecruitingInterestsByLeague(leagueId)
-      : [] as Awaited<ReturnType<typeof storage.getRecruitingInterestsByLeague>>;
+    // Always fetch league interests — auto-pilot/forced teams use all_american (competitionAware=true)
+    const allLeagueInterestsForCpu = await storage.getRecruitingInterestsByLeague(leagueId);
 
     console.time("[advance-perf] cpu-recruiting-teams");
     await Promise.all(cpuTeams.map(async (team) => {
       const teamCoach = allCoaches.find(c => c.teamId === team.id);
+
+      // Auto-pilot and force-advanced teams use all_american difficulty (just below elite)
+      // regardless of the league's CPU difficulty setting.
+      const isSpecialHandling = team.isAutoPilot || forcedHumanTeamIds.has(team.id);
+      const teamDifficulty = isSpecialHandling ? "all_american" : leagueDifficulty;
+      const config = buildConfig(teamDifficulty);
+
       // Use the same coach-driven budget as humans so archetype/skill perks
       // measurably affect CPU action throughput too. Difficulty stretches it.
       const baseBudget = getMaxRecruitingActions(teamCoach);
       // Reduced stretches for AA/Elite: action volume advantage is modest; smarts do the heavy lifting.
-      const difficultyStretch = { beginner: 0.75, high_school: 1.0, all_american: 1.1, elite: 1.2 }[difficulty] ?? 1.0;
+      const difficultyStretch = { beginner: 0.75, high_school: 1.0, all_american: 1.1, elite: 1.2 }[teamDifficulty] ?? 1.0;
       const actionsBudget = Math.max(2, Math.round(baseBudget * difficultyStretch));
+
+      // Per-team action summary for auto-pilot log (populated if isSpecialHandling)
+      const actionSummary = { emails: 0, phones: 0, visits: 0, hcVisits: 0, offers: 0, scoutingDone: 0, recruitsTargeted: [] as { name: string; position: string; stars: number; action: string }[] };
       
       const [teamInterests, roster, teamActionsLog] = await Promise.all([
         storage.getRecruitingInterestsByTeam(team.id),
@@ -16171,7 +16232,7 @@ export async function registerRoutes(
           }
 
           // Beginner adds more noise so it acts less rationally
-          const noise = difficulty === "beginner" ? Math.random() * 18 : Math.random() * 5;
+          const noise = teamDifficulty === "beginner" ? Math.random() * 18 : Math.random() * 5;
 
           return { 
             recruit: r, 
@@ -16186,7 +16247,7 @@ export async function registerRoutes(
       // 4-week recruiting window rather than spreading actions thin across all 80.
       // Scale with difficulty so high-budget elite CPU can reach more recruits.
       // Strategy: spread_wide increases targets; all_in_few reduces to focus depth.
-      let MAX_WEEKLY_TARGETS = { beginner: 12, high_school: 16, all_american: 20, elite: 24 }[difficulty] ?? 16;
+      let MAX_WEEKLY_TARGETS = { beginner: 12, high_school: 16, all_american: 20, elite: 24 }[teamDifficulty] ?? 16;
       if (styleStrategy === "spread_wide") MAX_WEEKLY_TARGETS = Math.min(30, MAX_WEEKLY_TARGETS + 8);
       else if (styleStrategy === "all_in_few") MAX_WEEKLY_TARGETS = Math.max(6, MAX_WEEKLY_TARGETS - 6);
       const focusedRecruits = sortedRecruits.slice(0, MAX_WEEKLY_TARGETS);
@@ -16277,6 +16338,21 @@ export async function registerRoutes(
         assertInterestGainSane(`cpu_${actionType}`, interestGain, baseGain);
         weeklyActionsThisWeek.add(weeklyActionKey(recruit.id, actionType));
         pointsSpent += cost;
+
+        // Accumulate action summary for auto-pilot / force-advanced log
+        if (isSpecialHandling) {
+          if (actionType === "email") actionSummary.emails++;
+          else if (actionType === "phone") actionSummary.phones++;
+          else if (actionType === "visit") actionSummary.visits++;
+          else if (actionType === "hcVisit") actionSummary.hcVisits++;
+          else if (actionType === "offer") actionSummary.offers++;
+          actionSummary.recruitsTargeted.push({
+            name: `${recruit.firstName || ""} ${recruit.lastName || ""}`.trim() || "Unknown",
+            position: recruit.position || "?",
+            stars: recruit.starRating || 3,
+            action: actionType,
+          });
+        }
         
         if (!interest) {
           await storage.createRecruitingInterest({
@@ -16292,6 +16368,7 @@ export async function registerRoutes(
           });
         }
         
+        const isForced = forcedHumanTeamIds.has(team.id);
         await storage.createRecruitingAction({
           recruitId: recruit.id,
           teamId: team.id,
@@ -16300,9 +16377,33 @@ export async function registerRoutes(
           season: season,
           actionType: actionType,
           interestChange: interestGain,
-          notes: team.isAutoPilot ? `CPU (Auto-Pilot) ${actionType}` : `CPU ${actionType} action`,
-          isAutoPilot: team.isAutoPilot ?? false,
+          notes: team.isAutoPilot
+            ? `CPU (Auto-Pilot) ${actionType}`
+            : isForced
+              ? `CPU (Fill-In) ${actionType}`
+              : `CPU ${actionType} action`,
+          isAutoPilot: team.isAutoPilot || isForced,
         });
+      }
+
+      // Append log entry for auto-pilot / force-advanced teams if any actions were taken
+      if (isSpecialHandling && actionSummary.recruitsTargeted.length > 0) {
+        try {
+          const currentTeam = await storage.getTeam(team.id);
+          const existingLog: import("@shared/schema").AutoPilotLogEntry[] =
+            (currentTeam?.autoPilotActionLog as import("@shared/schema").AutoPilotLogEntry[] | null) ?? [];
+          const newEntry: import("@shared/schema").AutoPilotLogEntry = {
+            week,
+            season,
+            isForced: forcedHumanTeamIds.has(team.id),
+            summary: actionSummary,
+          };
+          // Keep last 20 entries max to avoid bloat
+          const updatedLog = [...existingLog, newEntry].slice(-20);
+          await storage.updateTeam(team.id, { autoPilotActionLog: updatedLog } as any);
+        } catch (logErr) {
+          console.error("[auto-pilot-log] Failed to append log entry:", logErr);
+        }
       }
     }));
     console.timeEnd("[advance-perf] cpu-recruiting-teams");

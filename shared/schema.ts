@@ -1,5 +1,5 @@
 import { sql, relations } from "drizzle-orm";
-import { pgTable, text, varchar, integer, boolean, timestamp, json, real, uniqueIndex, index } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, boolean, timestamp, json, jsonb, real, uniqueIndex, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -71,6 +71,22 @@ export const insertConferenceSchema = createInsertSchema(conferences).pick({
 export type InsertConference = z.infer<typeof insertConferenceSchema>;
 export type Conference = typeof conferences.$inferSelect;
 
+// Auto-pilot action log entry — stored as jsonb array on teams
+export interface AutoPilotLogEntry {
+  week: number;
+  season: number;
+  isForced: boolean; // true = force-advanced by commissioner, false = persistent auto-pilot
+  summary: {
+    emails: number;
+    phones: number;
+    visits: number;
+    hcVisits: number;
+    offers: number;
+    scoutingDone: number;
+    recruitsTargeted: { name: string; position: string; stars: number; action: string }[];
+  };
+}
+
 // Teams table
 export const teams = pgTable("teams", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -100,6 +116,7 @@ export const teams = pgTable("teams", {
   departuresFinalized: boolean("departures_finalized").notNull().default(false),
   walkonReady: boolean("walkon_ready").notNull().default(false),
   isAutoPilot: boolean("is_auto_pilot").notNull().default(false),
+  autoPilotActionLog: jsonb("auto_pilot_action_log").$type<AutoPilotLogEntry[]>().default([]),
 });
 
 export const insertTeamSchema = createInsertSchema(teams).pick({

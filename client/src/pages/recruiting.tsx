@@ -471,6 +471,46 @@ export default function RecruitingPage() {
     !dismissedDecommits.has(e.id) && e.week >= currentWeek - 1
   );
 
+  // Auto-pilot / CPU fill-in action log — shown when user returns after absence
+  const [showAutoPilotLog, setShowAutoPilotLog] = useState(false);
+  const { data: autoPilotLogData, refetch: refetchAutoPilotLog } = useQuery<{
+    log: Array<{
+      week: number;
+      season: number;
+      isForced: boolean;
+      summary: {
+        emails: number;
+        phones: number;
+        visits: number;
+        hcVisits: number;
+        offers: number;
+        scoutingDone: number;
+        recruitsTargeted: { name: string; position: string; stars: number; action: string }[];
+      };
+    }>;
+  }>({
+    queryKey: ["/api/leagues", id, "my-team/auto-pilot-log"],
+    enabled: !!id,
+    staleTime: 30000,
+  });
+
+  useEffect(() => {
+    if (autoPilotLogData?.log && autoPilotLogData.log.length > 0) {
+      setShowAutoPilotLog(true);
+    }
+  }, [autoPilotLogData?.log]);
+
+  const dismissAutoPilotLogMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/leagues/${id}/my-team/auto-pilot-log/dismiss`, {});
+      return res.json();
+    },
+    onSuccess: () => {
+      setShowAutoPilotLog(false);
+      refetchAutoPilotLog();
+    },
+  });
+
   const saveClassMutation = useMutation({
     mutationFn: async (name: string) => {
       const recruits = data?.recruits || [];
@@ -1921,6 +1961,70 @@ export default function RecruitingPage() {
               data-testid="action-result-dismiss"
             >
               OK
+            </RetroButton>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Auto-Pilot / CPU Fill-In Return Alert */}
+      <Dialog open={showAutoPilotLog} onOpenChange={(open) => { if (!open) dismissAutoPilotLogMutation.mutate(); }}>
+        <DialogContent className="max-w-lg border-2 border-[#1a3a1a] bg-[#0d1f0d] max-h-[80vh] overflow-y-auto" data-testid="auto-pilot-log-modal">
+          <DialogHeader>
+            <DialogTitle className="font-['Press_Start_2P'] text-[#c8aa6e] text-sm flex items-center gap-2">
+              <Zap className="w-4 h-4" />
+              CPU Activity Report
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-gray-300">
+              While you were away, the CPU managed your recruiting at <span className="text-[#c8aa6e]">All-American</span> level. Here's what happened:
+            </p>
+            {(autoPilotLogData?.log ?? []).map((entry, idx) => {
+              const { summary } = entry;
+              const totalActions = summary.emails + summary.phones + summary.visits + summary.hcVisits + summary.offers;
+              return (
+                <div key={idx} className="rounded border border-[#1a3a1a] bg-[#0a1a0a] p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-pixel text-[10px] text-[#c8aa6e]">
+                      Season {entry.season} · Week {entry.week}
+                    </span>
+                    <span className={`text-[9px] font-pixel px-1.5 py-0.5 rounded border ${entry.isForced ? "border-orange-500/40 text-orange-400" : "border-blue-400/40 text-blue-400"}`}>
+                      {entry.isForced ? "FILL-IN" : "AUTO-PILOT"}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-2 text-xs text-gray-300">
+                    {summary.emails > 0 && <span className="flex items-center gap-1"><Mail className="w-3 h-3 text-[#c8aa6e]" />{summary.emails} email{summary.emails !== 1 ? "s" : ""}</span>}
+                    {summary.phones > 0 && <span className="flex items-center gap-1"><Phone className="w-3 h-3 text-[#c8aa6e]" />{summary.phones} call{summary.phones !== 1 ? "s" : ""}</span>}
+                    {summary.visits > 0 && <span className="flex items-center gap-1"><Building2 className="w-3 h-3 text-[#c8aa6e]" />{summary.visits} visit{summary.visits !== 1 ? "s" : ""}</span>}
+                    {summary.hcVisits > 0 && <span className="flex items-center gap-1"><Crown className="w-3 h-3 text-[#c8aa6e]" />{summary.hcVisits} HC visit{summary.hcVisits !== 1 ? "s" : ""}</span>}
+                    {summary.offers > 0 && <span className="flex items-center gap-1"><GraduationCap className="w-3 h-3 text-[#c8aa6e]" />{summary.offers} offer{summary.offers !== 1 ? "s" : ""}</span>}
+                  </div>
+                  {summary.recruitsTargeted.length > 0 && (
+                    <div className="space-y-1 border-t border-[#1a3a1a] pt-2 mt-1">
+                      <p className="text-[10px] font-pixel text-gray-400 mb-1">Recruits Contacted ({totalActions} actions):</p>
+                      <div className="space-y-0.5 max-h-32 overflow-y-auto">
+                        {summary.recruitsTargeted.map((r, ri) => (
+                          <div key={ri} className="flex items-center justify-between text-xs">
+                            <span className="text-gray-300">{r.name} <span className="text-gray-500">({r.position})</span></span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-yellow-400 text-[10px]">{"★".repeat(Math.min(r.stars, 5))}</span>
+                              <span className="text-[#c8aa6e] text-[10px] capitalize">{r.action}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            <RetroButton
+              onClick={() => dismissAutoPilotLogMutation.mutate()}
+              disabled={dismissAutoPilotLogMutation.isPending}
+              className="w-full"
+              data-testid="auto-pilot-log-dismiss"
+            >
+              {dismissAutoPilotLogMutation.isPending ? "Clearing..." : "Got It"}
             </RetroButton>
           </div>
         </DialogContent>
