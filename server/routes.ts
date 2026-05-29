@@ -8233,7 +8233,7 @@ export async function registerRoutes(
         if (recruitingPhases.includes(league.currentPhase)) {
           const forcedTeamIds = new Set(notReadyCoaches.map(c => c.teamId!).filter(Boolean));
           if (forcedTeamIds.size > 0) {
-            runCpuRecruiting(league.id, league.currentWeek ?? 1, league.currentSeason, false, forcedTeamIds)
+            await runCpuRecruiting(league.id, league.currentWeek ?? 1, league.currentSeason, false, forcedTeamIds)
               .catch(e => console.error("[force-advance-cpu-fill] Error running CPU fill-in:", e));
           }
         }
@@ -8344,7 +8344,7 @@ export async function registerRoutes(
                 .map(c => c.teamId!)
             );
             if (nonAutoPilotForcedIds.size > 0) {
-              runCpuRecruiting(leagueId, currentWeek, league.currentSeason, false, nonAutoPilotForcedIds)
+              await runCpuRecruiting(leagueId, currentWeek, league.currentSeason, false, nonAutoPilotForcedIds)
                 .catch(e => console.error("[deadline-cpu-fill] Error running CPU fill-in:", e));
             }
           }
