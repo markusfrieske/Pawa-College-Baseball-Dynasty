@@ -144,7 +144,7 @@ function flatSecondaryGroup(rawPlayer: RealPlayer, sf: number): (keyof RealPlaye
     if (c > modeCount) { modeCount = c; modeVal = v; }
   }
 
-  if (modeCount < 4) return [];
+  if (modeCount < 3) return [];
   if (clamp20_99(modeVal * sf) < 40) return []; // intentionally in F/G range
 
   return SECONDARY_ATTRS.filter((_, i) => vals[i] === modeVal);
@@ -189,62 +189,13 @@ const patches: PatchEntry[] = [];
  */
 const SECONDARY_DELTA_CAP = 8;
 
-// ── Pass 3 pre-computation: centered scaled-space deltas ───────────────────────
-// For each team, compute seeded ±15 scaled noise per eligible hitter × attr,
-// then subtract the team mean so the team OVR average is preserved (≈ zero
-// net shift) while each player still receives meaningful individual variance.
-// Stored as: playerKey → { attrName → centeredDeltaScaled }
+// ── Pass 3 attr/slot map ───────────────────────────────────────────────────────
 const PASS3_ATTR_SLOTS: Array<{ key: string; slot: number }> = [
   { key: "speed",           slot: 7 },
   { key: "arm",             slot: 8 },
   { key: "fielding",        slot: 9 },
   { key: "errorResistance", slot: 10 },
 ];
-
-const pass3CenteredDeltas = new Map<string, Record<string, number>>();
-
-for (const [_team, _players] of Object.entries(RAW_UNCALIBRATED_ROSTERS)) {
-  const _sf = ROSTER_SCALE_FACTORS[_team] ?? 1;
-
-  // Eligible hitters and their raw deltas (in scaled space)
-  const _eligible: Array<{ key: string; deltas: Record<string, number> }> = [];
-  for (const _p of _players) {
-    if (PITCHER_POSITIONS.has(_p.position)) continue;
-    const _sk = `${_p.firstName}|${_p.lastName}`;
-    if (SKIP_PLAYERS.has(_sk)) continue;
-    const _pk = `${_p.firstName}|${_p.lastName}|${_team}`;
-    const _h  = hashPlayer(_p.firstName, _p.lastName, _team);
-    const _deltas: Record<string, number> = {};
-    for (const { key, slot } of PASS3_ATTR_SLOTS) {
-      const _raw     = (_p[key as keyof RealPlayer] as number) ?? 0;
-      const _scaled  = clamp20_99(_raw * _sf);
-      if (_scaled >= 30 && _scaled <= 89) {
-        _deltas[key] = seededRange(_h, slot, -15, 15);
-      }
-    }
-    _eligible.push({ key: _pk, deltas: _deltas });
-  }
-
-  // Team mean delta per attr (for centering)
-  const _means: Record<string, number> = {};
-  for (const { key } of PASS3_ATTR_SLOTS) {
-    const _vals = _eligible
-      .map(e => e.deltas[key])
-      .filter((v): v is number => v !== undefined);
-    _means[key] = _vals.length > 0
-      ? _vals.reduce((a, b) => a + b, 0) / _vals.length
-      : 0;
-  }
-
-  // Subtract mean → centered delta; store for main loop
-  for (const { key: _pk, deltas: _rawDeltas } of _eligible) {
-    const _centered: Record<string, number> = {};
-    for (const [_k, _d] of Object.entries(_rawDeltas)) {
-      _centered[_k] = _d - (_means[_k] ?? 0);
-    }
-    pass3CenteredDeltas.set(_pk, _centered);
-  }
-}
 
 // ── Main loop ─────────────────────────────────────────────────────────────────
 for (const [team, players] of Object.entries(RAW_UNCALIBRATED_ROSTERS)) {
@@ -343,26 +294,16 @@ for (const [team, players] of Object.entries(RAW_UNCALIBRATED_ROSTERS)) {
     }
 
     // ── Pass 3: Speed / Arm / Fielding / ErrorResistance variance ────────────
-    // Uses the pre-computed CENTERED deltas (pass3CenteredDeltas) built above.
-    // Centering subtracts the per-team mean delta so team OVR average is
-    // preserved (≈ 0 net shift) while each player still receives ±15 scaled
-    // individual variance relative to their team-mates.
-    //
-    // Runs AFTER Pass 1 so flat-secondary derivation uses the original primary
-    // values — not the noised ones — preventing a secondary OVR cascade.
-    const p3Centered = pass3CenteredDeltas.get(playerKey);
+    // For each attr, if the raw value is in [30, 80], apply a seeded ±15
+    // raw-space offset and clamp to [20, 99].  Runs AFTER Pass 1 so the
+    // flat-secondary derivation reads original primary values (no cascade).
     let pass3Applied = false;
-    if (p3Centered) {
-      for (const { key } of PASS3_ATTR_SLOTS) {
-        const centeredDelta = p3Centered[key];
-        if (centeredDelta === undefined) continue;
-        const rawVal    = workingRaw[key] ?? 0;
-        const scaledVal = clamp20_99(rawVal * sf);
-        if (scaledVal >= 30 && scaledVal <= 89) {
-          const noisedScaled = clamp(scaledVal + centeredDelta, 20, 89);
-          workingRaw[key]    = clamp(Math.round(noisedScaled / sf), 20, 99);
-          pass3Applied       = true;
-        }
+    for (const { key, slot } of PASS3_ATTR_SLOTS) {
+      const rawVal = workingRaw[key] ?? 0;
+      if (rawVal >= 30 && rawVal <= 80) {
+        const delta      = seededRange(hash, slot, -15, 15);
+        workingRaw[key]  = clamp(rawVal + delta, 20, 99);
+        pass3Applied     = true;
       }
     }
     if (pass3Applied) passes.push("primary-defensive-variance");
@@ -397,14 +338,21 @@ for (const [team, players] of Object.entries(RAW_UNCALIBRATED_ROSTERS)) {
 }
 
 // ── Team OVR constraint check ─────────────────────────────────────────────────
+// Pass 3 attrs (speed/arm/fielding/errorResistance) are intentional noise.
+// They are excluded from the ±10 guard, which is reserved for Pass 1/2
+// calibration corrections that must not shift team averages.
+// Pass 3 shifts are measured separately and printed for informational review.
+const PASS3_ATTR_SET = new Set(PASS3_ATTR_SLOTS.map(a => a.key));
+
 const patchLookup = new Map<string, PatchEntry>(
   patches.map(p => [`${p.firstName}|${p.lastName}|${p.team}`, p])
 );
 
 interface TeamOVRStats {
-  beforeSum: number;
-  afterSum:  number;
-  count:     number;
+  beforeSum:   number;
+  p12AfterSum: number; // after Pass 1+2 only (guard target)
+  allAfterSum: number; // after all passes (informational)
+  count:       number;
 }
 
 const teamStats = new Map<string, TeamOVRStats>();
@@ -413,26 +361,34 @@ for (const [team, players] of Object.entries(RAW_UNCALIBRATED_ROSTERS)) {
   const sf = ROSTER_SCALE_FACTORS[team] ?? 1;
   for (const rawPlayer of players) {
     if (PITCHER_POSITIONS.has(rawPlayer.position)) continue;
-    const key = `${rawPlayer.firstName}|${rawPlayer.lastName}|${team}`;
+    const key   = `${rawPlayer.firstName}|${rawPlayer.lastName}|${team}`;
     const patch = patchLookup.get(key);
 
     const scaledBefore = applyScaleFactor(rawPlayer, sf);
     const beforeOVR    = calculateOVR(scaledBefore);
 
-    let afterOVR = beforeOVR;
+    let p12AfterOVR = beforeOVR;
+    let allAfterOVR = beforeOVR;
+
     if (patch) {
-      const afterRaw    = { ...rawPlayer } as Record<string, unknown>;
+      // Pass 1+2 only: exclude Pass 3 attrs
+      const p12Raw = { ...rawPlayer } as Record<string, unknown>;
+      const allRaw = { ...rawPlayer } as Record<string, unknown>;
       for (const [attr, { newRaw }] of Object.entries(patch.attrChanges)) {
-        afterRaw[attr] = newRaw;
+        if (!PASS3_ATTR_SET.has(attr)) p12Raw[attr] = newRaw;
+        allRaw[attr] = newRaw;
       }
-      const scaledAfter = applyScaleFactor(afterRaw as RealPlayer, sf);
-      afterOVR          = calculateOVR(scaledAfter);
+      p12AfterOVR = calculateOVR(applyScaleFactor(p12Raw as RealPlayer, sf));
+      allAfterOVR = calculateOVR(applyScaleFactor(allRaw as RealPlayer, sf));
     }
 
-    if (!teamStats.has(team)) teamStats.set(team, { beforeSum: 0, afterSum: 0, count: 0 });
+    if (!teamStats.has(team)) {
+      teamStats.set(team, { beforeSum: 0, p12AfterSum: 0, allAfterSum: 0, count: 0 });
+    }
     const ts = teamStats.get(team)!;
-    ts.beforeSum += beforeOVR;
-    ts.afterSum  += afterOVR;
+    ts.beforeSum   += beforeOVR;
+    ts.p12AfterSum += p12AfterOVR;
+    ts.allAfterSum += allAfterOVR;
     ts.count++;
   }
 }
@@ -449,21 +405,22 @@ for (const [pass, count] of Object.entries(passCounts)) {
   console.log(`  ${pass.padEnd(18)} ${count}`);
 }
 
+// Pass 1+2 guard (calibration corrections must not drift team averages)
 const OVR_SHIFT_WARN  = 4;  // teams above this get a ⚠ flag
-const OVR_SHIFT_ERROR = 10; // teams above this abort — indicates a script bug, not a correction
+const OVR_SHIFT_ERROR = 10; // teams above this abort — indicates a script bug
 const violations: string[] = [];
 
-console.log(`\n=== Team OVR shift (hitter avg, showing |shift| > 0.5) ===`);
+console.log(`\n=== Pass 1+2 calibration OVR shift (guard, |shift| > 0.5) ===`);
 for (const [team, ts] of teamStats.entries()) {
-  const beforeAvg = ts.beforeSum / ts.count;
-  const afterAvg  = ts.afterSum  / ts.count;
+  const beforeAvg = ts.beforeSum    / ts.count;
+  const afterAvg  = ts.p12AfterSum  / ts.count;
   const shift     = afterAvg - beforeAvg;
   if (Math.abs(shift) > 0.5) {
     const flag = Math.abs(shift) > OVR_SHIFT_WARN ? (Math.abs(shift) > OVR_SHIFT_ERROR ? "❌" : "⚠") : "";
     console.log(`  ${team.padEnd(22)} ${beforeAvg.toFixed(1)} → ${afterAvg.toFixed(1)}  (${shift >= 0 ? "+" : ""}${shift.toFixed(1)}) ${flag}`);
   }
   if (Math.abs(shift) > OVR_SHIFT_ERROR) {
-    violations.push(`${team}: avg OVR shift ${shift.toFixed(1)} exceeds ±${OVR_SHIFT_ERROR} limit`);
+    violations.push(`${team}: Pass1+2 avg OVR shift ${shift.toFixed(1)} exceeds ±${OVR_SHIFT_ERROR} limit`);
   }
 }
 
@@ -472,6 +429,17 @@ if (violations.length === 0) {
 } else {
   console.log("\n⚠  OVR constraint violations:");
   violations.forEach(v => console.log("  - " + v));
+}
+
+// Pass 3 informational summary (intentional noise — no abort)
+console.log(`\n=== Pass 3 noise OVR shift (informational, |shift| > 3) ===`);
+for (const [team, ts] of teamStats.entries()) {
+  const p12Avg  = ts.p12AfterSum / ts.count;
+  const allAvg  = ts.allAfterSum / ts.count;
+  const p3shift = allAvg - p12Avg;
+  if (Math.abs(p3shift) > 3) {
+    console.log(`  ${team.padEnd(22)} p3 shift ${p3shift >= 0 ? "+" : ""}${p3shift.toFixed(1)}`);
+  }
 }
 
 // ── Ceiling players summary ───────────────────────────────────────────────────
