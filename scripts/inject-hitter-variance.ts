@@ -144,7 +144,7 @@ function flatSecondaryGroup(rawPlayer: RealPlayer, sf: number): (keyof RealPlaye
     if (c > modeCount) { modeCount = c; modeVal = v; }
   }
 
-  if (modeCount < 3) return [];
+  if (modeCount < 4) return [];
   if (clamp20_99(modeVal * sf) < 40) return []; // intentionally in F/G range
 
   return SECONDARY_ATTRS.filter((_, i) => vals[i] === modeVal);
@@ -186,10 +186,65 @@ const patches: PatchEntry[] = [];
 /**
  * Max raw-unit change per secondary attr per player.
  * Prevents runaway swings while still applying meaningful variance.
- * Lower-prestige teams can see up to ~8 average OVR shift (a legitimate
- * correction of over-calibrated flat secondaries, not a regression).
  */
 const SECONDARY_DELTA_CAP = 8;
+
+// ── Pass 3 pre-computation: centered scaled-space deltas ───────────────────────
+// For each team, compute seeded ±15 scaled noise per eligible hitter × attr,
+// then subtract the team mean so the team OVR average is preserved (≈ zero
+// net shift) while each player still receives meaningful individual variance.
+// Stored as: playerKey → { attrName → centeredDeltaScaled }
+const PASS3_ATTR_SLOTS: Array<{ key: string; slot: number }> = [
+  { key: "speed",           slot: 7 },
+  { key: "arm",             slot: 8 },
+  { key: "fielding",        slot: 9 },
+  { key: "errorResistance", slot: 10 },
+];
+
+const pass3CenteredDeltas = new Map<string, Record<string, number>>();
+
+for (const [_team, _players] of Object.entries(RAW_UNCALIBRATED_ROSTERS)) {
+  const _sf = ROSTER_SCALE_FACTORS[_team] ?? 1;
+
+  // Eligible hitters and their raw deltas (in scaled space)
+  const _eligible: Array<{ key: string; deltas: Record<string, number> }> = [];
+  for (const _p of _players) {
+    if (PITCHER_POSITIONS.has(_p.position)) continue;
+    const _sk = `${_p.firstName}|${_p.lastName}`;
+    if (SKIP_PLAYERS.has(_sk)) continue;
+    const _pk = `${_p.firstName}|${_p.lastName}|${_team}`;
+    const _h  = hashPlayer(_p.firstName, _p.lastName, _team);
+    const _deltas: Record<string, number> = {};
+    for (const { key, slot } of PASS3_ATTR_SLOTS) {
+      const _raw     = (_p[key as keyof RealPlayer] as number) ?? 0;
+      const _scaled  = clamp20_99(_raw * _sf);
+      if (_scaled >= 30 && _scaled <= 89) {
+        _deltas[key] = seededRange(_h, slot, -15, 15);
+      }
+    }
+    _eligible.push({ key: _pk, deltas: _deltas });
+  }
+
+  // Team mean delta per attr (for centering)
+  const _means: Record<string, number> = {};
+  for (const { key } of PASS3_ATTR_SLOTS) {
+    const _vals = _eligible
+      .map(e => e.deltas[key])
+      .filter((v): v is number => v !== undefined);
+    _means[key] = _vals.length > 0
+      ? _vals.reduce((a, b) => a + b, 0) / _vals.length
+      : 0;
+  }
+
+  // Subtract mean → centered delta; store for main loop
+  for (const { key: _pk, deltas: _rawDeltas } of _eligible) {
+    const _centered: Record<string, number> = {};
+    for (const [_k, _d] of Object.entries(_rawDeltas)) {
+      _centered[_k] = _d - (_means[_k] ?? 0);
+    }
+    pass3CenteredDeltas.set(_pk, _centered);
+  }
+}
 
 // ── Main loop ─────────────────────────────────────────────────────────────────
 for (const [team, players] of Object.entries(RAW_UNCALIBRATED_ROSTERS)) {
@@ -239,29 +294,10 @@ for (const [team, players] of Object.entries(RAW_UNCALIBRATED_ROSTERS)) {
       passes.push("primary-variance");
     }
 
-    // ── Pass 3: Speed / Arm / Fielding / ErrorResistance variance ────────────
-    // Apply seeded ±15 raw noise to primary defensive/speed attrs whose raw
-    // value is in [30, 80].  Values outside that range are intentionally
-    // floor-clamped or already elite — leave them alone.
-    const PASS3_ATTRS: Array<{ key: string; slot: number }> = [
-      { key: "speed",           slot: 7 },
-      { key: "arm",             slot: 8 },
-      { key: "fielding",        slot: 9 },
-      { key: "errorResistance", slot: 10 },
-    ];
-    let pass3Applied = false;
-    for (const { key, slot } of PASS3_ATTRS) {
-      const rawVal = workingRaw[key] ?? 0;
-      if (rawVal >= 30 && rawVal <= 80) {
-        const delta = seededRange(hash, slot, -15, 15);
-        workingRaw[key] = clamp(rawVal + delta, 20, 99);
-        pass3Applied = true;
-      }
-    }
-    if (pass3Applied) passes.push("primary-defensive-variance");
-
     // ── Pass 1: Flat secondary re-derivation ─────────────────────────────────
-    // Build a temporary RealPlayer from workingRaw (post-ceiling, post-spread, post-p3)
+    // Build a temporary RealPlayer from workingRaw (post-ceiling, post-spread)
+    // NOTE: Pass 3 intentionally runs AFTER Pass 1 so that flat-secondary
+    // derivation reflects the original primary values, avoiding OVR cascade.
     const tempRaw = { ...rawPlayer, ...workingRaw } as RealPlayer;
     const flatAttrs = flatSecondaryGroup(tempRaw, sf);
     if (flatAttrs.length > 0) {
@@ -305,6 +341,31 @@ for (const [team, players] of Object.entries(RAW_UNCALIBRATED_ROSTERS)) {
       }
       passes.push("flat-secondaries");
     }
+
+    // ── Pass 3: Speed / Arm / Fielding / ErrorResistance variance ────────────
+    // Uses the pre-computed CENTERED deltas (pass3CenteredDeltas) built above.
+    // Centering subtracts the per-team mean delta so team OVR average is
+    // preserved (≈ 0 net shift) while each player still receives ±15 scaled
+    // individual variance relative to their team-mates.
+    //
+    // Runs AFTER Pass 1 so flat-secondary derivation uses the original primary
+    // values — not the noised ones — preventing a secondary OVR cascade.
+    const p3Centered = pass3CenteredDeltas.get(playerKey);
+    let pass3Applied = false;
+    if (p3Centered) {
+      for (const { key } of PASS3_ATTR_SLOTS) {
+        const centeredDelta = p3Centered[key];
+        if (centeredDelta === undefined) continue;
+        const rawVal    = workingRaw[key] ?? 0;
+        const scaledVal = clamp20_99(rawVal * sf);
+        if (scaledVal >= 30 && scaledVal <= 89) {
+          const noisedScaled = clamp(scaledVal + centeredDelta, 20, 89);
+          workingRaw[key]    = clamp(Math.round(noisedScaled / sf), 20, 99);
+          pass3Applied       = true;
+        }
+      }
+    }
+    if (pass3Applied) passes.push("primary-defensive-variance");
 
     // ── Build final patch (only changed attrs) ───────────────────────────────
     if (passes.length === 0) continue;
@@ -388,11 +449,8 @@ for (const [pass, count] of Object.entries(passCounts)) {
   console.log(`  ${pass.padEnd(18)} ${count}`);
 }
 
-const OVR_SHIFT_WARN  = 8;  // teams above this get a ⚠ flag
-const OVR_SHIFT_ERROR = 25; // teams above this abort — indicates a script bug, not a correction
-// Note: with ±15 raw noise on 4 attrs × scale-factor amplification, team-average
-// shifts of ±20 are expected random outcomes (seeded, deterministic).  Only values
-// outside ±25 indicate a systematic error in the script logic.
+const OVR_SHIFT_WARN  = 4;  // teams above this get a ⚠ flag
+const OVR_SHIFT_ERROR = 10; // teams above this abort — indicates a script bug, not a correction
 const violations: string[] = [];
 
 console.log(`\n=== Team OVR shift (hitter avg, showing |shift| > 0.5) ===`);
