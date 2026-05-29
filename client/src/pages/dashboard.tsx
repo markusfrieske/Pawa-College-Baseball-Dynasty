@@ -13,6 +13,7 @@ import type { League, Team, Coach } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { ShareClassDialog } from "@/components/share-class-dialog";
 
 interface LeagueWithDetails extends League {
   teams?: Team[];
@@ -294,6 +295,7 @@ function SavedRecruitingClassCard({ rc }: { rc: SavedRecruitingClass }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showDetail, setShowDetail] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
 
   const deleteMutation = useMutation({
     mutationFn: () => apiRequest("DELETE", `/api/saved-recruiting-classes/${rc.id}`),
@@ -326,14 +328,7 @@ function SavedRecruitingClassCard({ rc }: { rc: SavedRecruitingClass }) {
             <RetroButton
               variant="ghost"
               size="sm"
-              onClick={() => {
-                const url = `${window.location.origin}/shared-class/${rc.id}`;
-                navigator.clipboard.writeText(url).then(() => {
-                  toast({ title: "Link Copied", description: "Share link copied to clipboard." });
-                }).catch(() => {
-                  toast({ title: "Share Link", description: url });
-                });
-              }}
+              onClick={() => setShareDialogOpen(true)}
               data-testid={`button-share-class-${rc.id}`}
             >
               <Share2 className="w-3 h-3 text-muted-foreground" />
@@ -406,6 +401,12 @@ function SavedRecruitingClassCard({ rc }: { rc: SavedRecruitingClass }) {
           </div>
         </DialogContent>
       </Dialog>
+
+      <ShareClassDialog
+        classId={String(rc.id)}
+        open={shareDialogOpen}
+        onClose={() => setShareDialogOpen(false)}
+      />
     </>
   );
 }

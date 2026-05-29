@@ -32,9 +32,10 @@ import {
   type PlayerPromise, type InsertPlayerPromise,
   type PlayerSeasonStats, type InsertPlayerSeasonStats,
   type Walkon, type InsertWalkon,
-  savedRosters, savedRecruitingClasses,
+  savedRosters, savedRecruitingClasses, recruitingClassShares,
   type SavedRoster, type InsertSavedRoster,
   type SavedRecruitingClass, type InsertSavedRecruitingClass,
+  type RecruitingClassShare, type InsertRecruitingClassShare,
   type LeagueEvent, type InsertLeagueEvent,
   type GameReport, type InsertGameReport,
   type RecruitingClassSnapshot, type InsertRecruitingClassSnapshot,
@@ -203,6 +204,12 @@ export interface IStorage {
   createSavedRecruitingClass(data: InsertSavedRecruitingClass): Promise<SavedRecruitingClass>;
   updateSavedRecruitingClass(id: string, data: Partial<SavedRecruitingClass>): Promise<SavedRecruitingClass | undefined>;
   deleteSavedRecruitingClass(id: string): Promise<void>;
+
+  createClassShare(data: { classId: string; userId: string; token: string; label?: string }): Promise<RecruitingClassShare>;
+  getClassShareByToken(token: string): Promise<RecruitingClassShare | undefined>;
+  getClassSharesByClassId(classId: string, userId: string): Promise<RecruitingClassShare[]>;
+  revokeClassShare(shareId: string, userId: string): Promise<void>;
+  incrementClassShareImportCount(shareId: string): Promise<void>;
 
   // Game reports (manual reporting)
   getGameReport(gameId: string): Promise<GameReport | undefined>;
@@ -1241,6 +1248,42 @@ export class DatabaseStorage implements IStorage {
 
   async deleteSavedRecruitingClass(id: string): Promise<void> {
     await db.delete(savedRecruitingClasses).where(eq(savedRecruitingClasses.id, id));
+  }
+
+  // ─── Recruiting Class Share Links ────────────────────────────────────────────
+  async createClassShare(data: { classId: string; userId: string; token: string; label?: string }): Promise<RecruitingClassShare> {
+    const [share] = await db.insert(recruitingClassShares).values({
+      classId: data.classId,
+      userId: data.userId,
+      token: data.token,
+      label: data.label ?? null,
+      status: "active",
+      importCount: 0,
+    }).returning();
+    return share;
+  }
+
+  async getClassShareByToken(token: string): Promise<RecruitingClassShare | undefined> {
+    const [share] = await db.select().from(recruitingClassShares).where(eq(recruitingClassShares.token, token));
+    return share || undefined;
+  }
+
+  async getClassSharesByClassId(classId: string, userId: string): Promise<RecruitingClassShare[]> {
+    return db.select().from(recruitingClassShares)
+      .where(and(eq(recruitingClassShares.classId, classId), eq(recruitingClassShares.userId, userId)))
+      .orderBy(desc(recruitingClassShares.createdAt));
+  }
+
+  async revokeClassShare(shareId: string, userId: string): Promise<void> {
+    await db.update(recruitingClassShares)
+      .set({ status: "revoked" })
+      .where(and(eq(recruitingClassShares.id, shareId), eq(recruitingClassShares.userId, userId)));
+  }
+
+  async incrementClassShareImportCount(shareId: string): Promise<void> {
+    await db.update(recruitingClassShares)
+      .set({ importCount: sql`${recruitingClassShares.importCount} + 1` })
+      .where(eq(recruitingClassShares.id, shareId));
   }
 
   // ─── Recruiting Class Snapshots ──────────────────────────────────────────────

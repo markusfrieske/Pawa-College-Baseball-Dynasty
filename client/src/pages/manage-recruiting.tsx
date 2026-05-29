@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { PlayerPortrait } from "@/components/ui/player-portrait";
 import { ALL_ABILITIES, getAbilitiesForPosition } from "@shared/abilities";
 import { RecruitingWizard } from "@/components/recruiting-wizard";
+import { ShareClassDialog } from "@/components/share-class-dialog";
 
 interface PlayerAppearance {
   skinTone: string;
@@ -347,6 +348,8 @@ export default function ManageRecruitingPage() {
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [expandedRecruit, setExpandedRecruit] = useState<number | null>(null);
   const [showGuestBanner, setShowGuestBanner] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [shareTargetId, setShareTargetId] = useState<string | null>(null);
 
   const { data: user } = useQuery<{ id: string; email: string } | null>({
     queryKey: ["/api/auth/me"],
@@ -738,14 +741,7 @@ export default function ManageRecruitingPage() {
                       <RetroButton
                         variant="outline"
                         size="sm"
-                        onClick={() => {
-                          const url = `${window.location.origin}/shared-class/${cls.id}`;
-                          navigator.clipboard.writeText(url).then(() => {
-                            toast({ title: "Link Copied", description: "Share link copied to clipboard." });
-                          }).catch(() => {
-                            toast({ title: "Share Link", description: url });
-                          });
-                        }}
+                        onClick={() => { setShareTargetId(String(cls.id)); setShareDialogOpen(true); }}
                         data-testid={`button-share-class-${cls.id}`}
                       >
                         <Share2 className="w-3 h-3" />
@@ -1063,6 +1059,13 @@ export default function ManageRecruitingPage() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Share Class Dialog */}
+        <ShareClassDialog
+          classId={shareTargetId}
+          open={shareDialogOpen}
+          onClose={() => { setShareDialogOpen(false); setShareTargetId(null); }}
+        />
 
         <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <DialogContent data-testid="dialog-delete-class">

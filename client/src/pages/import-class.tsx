@@ -9,41 +9,31 @@ import { AlertTriangle, Download, LogIn, CheckCircle2, BookOpen, Users } from "l
 import { apiRequest, getQueryFn } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
-interface SharedClass {
-  id: string;
-  userId: string;
-  name: string;
+interface ClassPreview {
+  shareId: string;
+  token: string;
+  label: string | null;
+  importCount: number;
+  createdAt: string | null;
+  className: string;
   description: string | null;
   recruitCount: number;
-  classData: any;
-  createdAt: string | null;
+  theme: string | null;
+  recruits: PreviewRecruit[];
 }
 
-interface Recruit {
+interface PreviewRecruit {
   firstName?: string;
   lastName?: string;
-  name?: string;
   position: string;
   starRating: number;
   overall: number;
-  homeState?: string;
-  potential?: string;
   isBlueChip?: boolean;
   isGenerationalGem?: boolean;
   isGenerationalBust?: boolean;
   isGem?: boolean;
   isBust?: boolean;
-}
-
-function getRecruits(classData: any): Recruit[] {
-  if (Array.isArray(classData)) return classData;
-  if (classData && Array.isArray(classData.recruits)) return classData.recruits;
-  return [];
-}
-
-function getTheme(classData: any): string | null {
-  if (!classData || Array.isArray(classData)) return null;
-  return classData.theme ?? null;
+  recruitType?: string;
 }
 
 const THEME_LABELS: Record<string, string> = {
@@ -69,8 +59,8 @@ const STAR_COLORS: Record<number, string> = {
   1: "text-zinc-500",
 };
 
-export default function SharedClassPage() {
-  const { code } = useParams<{ code: string }>();
+export default function ImportClassPage() {
+  const { token } = useParams<{ token: string }>();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -81,10 +71,10 @@ export default function SharedClassPage() {
     queryFn: getQueryFn({ on401: "returnNull" }),
   });
 
-  const { data: rc, isLoading, error } = useQuery<SharedClass>({
-    queryKey: ["/api/shared-class", code],
+  const { data: preview, isLoading, error } = useQuery<ClassPreview>({
+    queryKey: ["/api/import-class", token],
     queryFn: async () => {
-      const res = await fetch(`/api/shared-class/${code}`, { credentials: "include" });
+      const res = await fetch(`/api/import-class/${token}`, { credentials: "include" });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.message || "Not found");
@@ -97,7 +87,7 @@ export default function SharedClassPage() {
 
   const importMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("POST", `/api/shared-class/${code}/import`, {});
+      const res = await apiRequest("POST", `/api/import-class/${token}`, {});
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.message || "Import failed");
@@ -107,14 +97,12 @@ export default function SharedClassPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/saved-recruiting-classes"] });
       setImported(true);
-      toast({ title: "Class Imported", description: `"${rc?.name}" has been added to your library.` });
+      toast({ title: "Class Imported", description: `"${preview?.className}" has been added to your library.` });
     },
     onError: (err: Error) => {
       toast({ title: "Import Failed", description: err.message, variant: "destructive" });
     },
   });
-
-  const isOwner = !!user && !!rc && user.id === rc.userId;
 
   if (isLoading) {
     return (
@@ -127,15 +115,15 @@ export default function SharedClassPage() {
     );
   }
 
-  if (error || !rc) {
+  if (error || !preview) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <RetroCard className="w-full max-w-md text-center">
           <RetroCardContent className="py-8">
             <AlertTriangle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-            <h2 className="font-pixel text-gold text-lg mb-2">Class Not Found</h2>
-            <p className="text-muted-foreground mb-6" data-testid="text-shared-class-error">
-              This recruiting class link is invalid or no longer available.
+            <h2 className="font-pixel text-gold text-lg mb-2">Link Unavailable</h2>
+            <p className="text-muted-foreground mb-6" data-testid="text-import-class-error">
+              This share link is invalid, expired, or has been revoked by the owner.
             </p>
             <RetroButton onClick={() => setLocation("/")} data-testid="button-go-home">
               Go Home
@@ -146,14 +134,12 @@ export default function SharedClassPage() {
     );
   }
 
-  const recruits = getRecruits(rc.classData);
-  const theme = getTheme(rc.classData);
-  const themeLabel = theme ? (THEME_LABELS[theme] ?? theme) : null;
-  const savedDate = rc.createdAt ? new Date(rc.createdAt).toLocaleDateString() : null;
+  const recruits = preview.recruits ?? [];
+  const themeLabel = preview.theme ? (THEME_LABELS[preview.theme] ?? preview.theme) : null;
 
   const starDist = [5, 4, 3, 2, 1].map(s => ({
     star: s,
-    count: recruits.filter(r => r.starRating === s || (r.isBlueChip && s === 5)).length,
+    count: recruits.filter(r => r.starRating === s).length,
   })).filter(x => x.count > 0);
 
   const blueChipCount = recruits.filter(r => r.isBlueChip).length;
@@ -196,42 +182,34 @@ export default function SharedClassPage() {
 
       <main className="container mx-auto px-4 py-8 max-w-3xl">
         {/* Class Header */}
-        <RetroCard className="mb-6" data-testid="card-shared-class-header">
+        <RetroCard className="mb-6" data-testid="card-import-class-header">
           <RetroCardHeader>
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div className="min-w-0">
-                <h1 className="font-pixel text-gold text-lg mb-1" data-testid="text-shared-class-name">{rc.name}</h1>
-                {rc.description && (
-                  <p className="text-muted-foreground text-sm mb-2" data-testid="text-shared-class-desc">{rc.description}</p>
+                <h1 className="font-pixel text-gold text-lg mb-1" data-testid="text-import-class-name">{preview.className}</h1>
+                {preview.description && (
+                  <p className="text-muted-foreground text-sm mb-2" data-testid="text-import-class-desc">{preview.description}</p>
                 )}
                 <div className="flex items-center gap-2 flex-wrap">
                   <Badge variant="secondary" className="text-[10px]" data-testid="badge-recruit-count">
-                    {rc.recruitCount} Recruits
+                    {preview.recruitCount} Recruits
                   </Badge>
                   {themeLabel && (
                     <Badge variant="outline" className="text-[10px] text-muted-foreground border-muted-foreground/40">
                       {themeLabel}
                     </Badge>
                   )}
-                  {savedDate && (
-                    <span className="text-[10px] text-muted-foreground/60">Created {savedDate}</span>
+                  {preview.importCount > 0 && (
+                    <span className="text-[10px] text-muted-foreground/60">{preview.importCount} import{preview.importCount !== 1 ? "s" : ""}</span>
                   )}
                 </div>
               </div>
 
-              {/* Import CTA */}
               <div className="shrink-0">
-                {isOwner ? (
-                  <Link href="/manage-recruiting">
-                    <RetroButton variant="outline" size="sm" data-testid="button-go-to-library">
-                      <BookOpen className="w-3 h-3 mr-2" />
-                      My Library
-                    </RetroButton>
-                  </Link>
-                ) : imported ? (
+                {imported ? (
                   <div className="flex items-center gap-2 text-green-400 text-sm font-pixel" data-testid="text-imported-success">
                     <CheckCircle2 className="w-4 h-4" />
-                    Imported!
+                    Saved!
                   </div>
                 ) : user ? (
                   <RetroButton
@@ -245,13 +223,13 @@ export default function SharedClassPage() {
                     ) : (
                       <Download className="w-3 h-3 mr-2" />
                     )}
-                    Import to My Library
+                    Save to My Library
                   </RetroButton>
                 ) : (
-                  <Link href={`/login?redirect=/shared-class/${code}`}>
+                  <Link href={`/login?redirect=/import-class/${token}`}>
                     <RetroButton size="sm" data-testid="button-login-to-import">
                       <LogIn className="w-3 h-3 mr-2" />
-                      Sign In to Import
+                      Sign In to Save
                     </RetroButton>
                   </Link>
                 )}
@@ -302,7 +280,7 @@ export default function SharedClassPage() {
                   </span>
                   <div className="flex-1 h-2 bg-muted/30 rounded-full overflow-hidden">
                     <div
-                      className={`h-full rounded-full transition-all ${
+                      className={`h-full rounded-full ${
                         star === 5 ? "bg-amber-400" :
                         star === 4 ? "bg-yellow-400" :
                         star === 3 ? "bg-blue-400" :
@@ -313,9 +291,7 @@ export default function SharedClassPage() {
                   </div>
                   <span className="text-xs text-muted-foreground tabular-nums w-8 text-right">{count}</span>
                 </div>
-              )) : (
-                <p className="text-xs text-muted-foreground">No star data</p>
-              )}
+              )) : <p className="text-xs text-muted-foreground">No data</p>}
             </RetroCardContent>
           </RetroCard>
 
@@ -358,25 +334,22 @@ export default function SharedClassPage() {
                   .map((r, i) => {
                     const name = r.firstName && r.lastName
                       ? `${r.firstName} ${r.lastName}`
-                      : (r.name ?? `Recruit ${i + 1}`);
-                    const isBC = r.isBlueChip;
-                    const isGenGem = r.isGenerationalGem;
-                    const isGenBust = r.isGenerationalBust;
+                      : `Recruit ${i + 1}`;
                     return (
                       <div
                         key={i}
                         className={`grid grid-cols-5 gap-2 text-xs px-3 py-1.5 border-b border-border/30 min-w-[360px] ${
-                          isGenGem ? "bg-purple-950/30" :
-                          isGenBust ? "bg-red-950/30" :
-                          isBC ? "bg-amber-950/20" : ""
+                          r.isGenerationalGem ? "bg-purple-950/30" :
+                          r.isGenerationalBust ? "bg-red-950/30" :
+                          r.isBlueChip ? "bg-amber-950/20" : ""
                         }`}
                         data-testid={`recruit-row-${i}`}
                       >
                         <span className="col-span-2 truncate">
                           {name}
-                          {isBC && <span className="ml-1 text-[8px] text-amber-400">BC</span>}
-                          {isGenGem && <span className="ml-1 text-[8px] text-purple-400">GG</span>}
-                          {isGenBust && <span className="ml-1 text-[8px] text-red-400">GB</span>}
+                          {r.isBlueChip && <span className="ml-1 text-[8px] text-amber-400">BC</span>}
+                          {r.isGenerationalGem && <span className="ml-1 text-[8px] text-purple-400">GG</span>}
+                          {r.isGenerationalBust && <span className="ml-1 text-[8px] text-red-400">GB</span>}
                         </span>
                         <span className="text-muted-foreground">{r.position}</span>
                         <span className={STAR_COLORS[r.starRating] ?? "text-muted-foreground"}>
@@ -394,8 +367,8 @@ export default function SharedClassPage() {
           </RetroCardContent>
         </RetroCard>
 
-        {/* Bottom import CTA for non-owners */}
-        {!isOwner && !imported && recruits.length > 0 && (
+        {/* Bottom CTA */}
+        {!imported && recruits.length > 0 && (
           <div className="mt-6 text-center">
             {user ? (
               <RetroButton
@@ -408,19 +381,34 @@ export default function SharedClassPage() {
                 ) : (
                   <Download className="w-4 h-4 mr-2" />
                 )}
-                Import to My Library
+                Save to My Library
               </RetroButton>
             ) : (
               <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">Sign in to import this class into your library and use it in your dynasty.</p>
-                <Link href={`/login?redirect=/shared-class/${code}`}>
+                <p className="text-sm text-muted-foreground">Sign in to save this class to your library and use it in your dynasty.</p>
+                <Link href={`/login?redirect=/import-class/${token}`}>
                   <RetroButton data-testid="button-login-to-import-bottom">
                     <LogIn className="w-4 h-4 mr-2" />
-                    Sign In to Import
+                    Sign In to Save
                   </RetroButton>
                 </Link>
               </div>
             )}
+          </div>
+        )}
+
+        {imported && (
+          <div className="mt-6 text-center space-y-3">
+            <div className="flex items-center justify-center gap-2 text-green-400 font-pixel text-sm" data-testid="text-imported-success-bottom">
+              <CheckCircle2 className="w-5 h-5" />
+              Class saved to your library!
+            </div>
+            <Link href="/manage-recruiting">
+              <RetroButton variant="outline" data-testid="button-go-to-library">
+                <BookOpen className="w-4 h-4 mr-2" />
+                Open My Library
+              </RetroButton>
+            </Link>
           </div>
         )}
       </main>

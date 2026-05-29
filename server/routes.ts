@@ -18629,31 +18629,116 @@ export async function registerRoutes(
     }
   });
 
-  // === Shared Recruiting Class (public share links) ===
+  // === Recruiting Class Share Links ===
 
-  // Public: anyone with the class UUID can view a shared class
-  app.get("/api/shared-class/:id", async (req, res) => {
-    try {
-      const rc = await storage.getSavedRecruitingClass(req.params.id as string);
-      if (!rc) return res.status(404).json({ message: "Recruiting class not found" });
-      // Return the class data (no auth required — UUID is the share token)
-      res.json(rc);
-    } catch (error) {
-      console.error("Failed to get shared recruiting class:", error);
-      res.status(500).json({ message: "Failed to get shared recruiting class" });
-    }
-  });
-
-  // Authenticated: copy a shared class into the requester's own library
-  app.post("/api/shared-class/:id/import", requireAuth, async (req, res) => {
+  // Create a new share link for a saved recruiting class (owner only)
+  app.post("/api/saved-recruiting-classes/:id/shares", requireAuth, async (req, res) => {
     try {
       const userId = req.session.userId!;
       const rc = await storage.getSavedRecruitingClass(req.params.id as string);
       if (!rc) return res.status(404).json({ message: "Recruiting class not found" });
-      // Don't allow importing your own class
-      if (rc.userId === userId) {
-        return res.status(400).json({ message: "This is already in your library" });
+      if (rc.userId !== userId) return res.status(403).json({ message: "Not authorized" });
+      const token = require("crypto").randomUUID().replace(/-/g, "").substring(0, 12).toUpperCase();
+      const share = await storage.createClassShare({
+        classId: rc.id,
+        userId,
+        token,
+        label: req.body.label ?? null,
+      });
+      res.json(share);
+    } catch (error) {
+      console.error("Failed to create class share link:", error);
+      res.status(500).json({ message: "Failed to create share link" });
+    }
+  });
+
+  // List all share links for a class (owner only)
+  app.get("/api/saved-recruiting-classes/:id/shares", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const rc = await storage.getSavedRecruitingClass(req.params.id as string);
+      if (!rc) return res.status(404).json({ message: "Recruiting class not found" });
+      if (rc.userId !== userId) return res.status(403).json({ message: "Not authorized" });
+      const shares = await storage.getClassSharesByClassId(rc.id, userId);
+      res.json(shares);
+    } catch (error) {
+      console.error("Failed to list class shares:", error);
+      res.status(500).json({ message: "Failed to list share links" });
+    }
+  });
+
+  // Revoke a share link (owner only)
+  app.delete("/api/saved-recruiting-classes/:classId/shares/:shareId", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const rc = await storage.getSavedRecruitingClass(req.params.classId as string);
+      if (!rc) return res.status(404).json({ message: "Recruiting class not found" });
+      if (rc.userId !== userId) return res.status(403).json({ message: "Not authorized" });
+      await storage.revokeClassShare(req.params.shareId as string, userId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Failed to revoke class share:", error);
+      res.status(500).json({ message: "Failed to revoke share link" });
+    }
+  });
+
+  // Public preview: fetch a class via its share token (no auth required)
+  app.get("/api/import-class/:token", async (req, res) => {
+    try {
+      const share = await storage.getClassShareByToken(req.params.token as string);
+      if (!share || share.status !== "active") {
+        return res.status(404).json({ message: "Share link not found or has been revoked" });
       }
+      const rc = await storage.getSavedRecruitingClass(share.classId);
+      if (!rc) return res.status(404).json({ message: "Recruiting class not found" });
+      // Return preview-safe payload — omit internal metadata from classData, expose display fields
+      const classData = rc.classData as any;
+      const recruits: any[] = Array.isArray(classData) ? classData : (Array.isArray(classData?.recruits) ? classData.recruits : []);
+      const theme = !Array.isArray(classData) ? classData?.theme : null;
+      const previewRecruits = recruits.map(r => ({
+        firstName: r.firstName,
+        lastName: r.lastName,
+        position: r.position,
+        starRating: r.starRating,
+        overall: r.overall,
+        isBlueChip: r.isBlueChip ?? false,
+        isGenerationalGem: r.isGenerationalGem ?? false,
+        isGenerationalBust: r.isGenerationalBust ?? false,
+        isGem: r.isGem ?? false,
+        isBust: r.isBust ?? false,
+        recruitType: r.recruitType,
+      }));
+      res.json({
+        shareId: share.id,
+        token: share.token,
+        label: share.label,
+        importCount: share.importCount,
+        createdAt: share.createdAt,
+        className: rc.name,
+        description: rc.description,
+        recruitCount: rc.recruitCount,
+        theme,
+        recruits: previewRecruits,
+      });
+    } catch (error) {
+      console.error("Failed to fetch import-class preview:", error);
+      res.status(500).json({ message: "Failed to load recruiting class" });
+    }
+  });
+
+  // Authenticated import: copy shared class into requester's library
+  app.post("/api/import-class/:token", requireAuth, async (req, res) => {
+    try {
+      const userId = req.session.userId!;
+      const share = await storage.getClassShareByToken(req.params.token as string);
+      if (!share || share.status !== "active") {
+        return res.status(404).json({ message: "Share link not found or has been revoked" });
+      }
+      if (share.userId === userId) {
+        return res.status(400).json({ message: "This class is already in your library" });
+      }
+      const rc = await storage.getSavedRecruitingClass(share.classId);
+      if (!rc) return res.status(404).json({ message: "Recruiting class not found" });
       const imported = await storage.createSavedRecruitingClass({
         userId,
         name: rc.name,
@@ -18661,9 +18746,10 @@ export async function registerRoutes(
         recruitCount: rc.recruitCount,
         classData: rc.classData,
       });
-      res.json(imported);
+      await storage.incrementClassShareImportCount(share.id);
+      res.json({ success: true, class: imported });
     } catch (error) {
-      console.error("Failed to import shared recruiting class:", error);
+      console.error("Failed to import recruiting class:", error);
       res.status(500).json({ message: "Failed to import recruiting class" });
     }
   });

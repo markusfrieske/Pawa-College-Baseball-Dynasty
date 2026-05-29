@@ -1306,6 +1306,22 @@ export const insertSavedRecruitingClassSchema = createInsertSchema(savedRecruiti
 export type InsertSavedRecruitingClass = z.infer<typeof insertSavedRecruitingClassSchema>;
 export type SavedRecruitingClass = typeof savedRecruitingClasses.$inferSelect;
 
+// Recruiting Class Share Links — explicit opt-in sharing with revokable tokens
+export const recruitingClassShares = pgTable("recruiting_class_shares", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  classId: varchar("class_id").notNull().references(() => savedRecruitingClasses.id, { onDelete: "cascade" }),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  token: text("token").notNull().unique(),
+  label: text("label"),
+  status: text("status").notNull().default("active"),
+  importCount: integer("import_count").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertRecruitingClassShareSchema = createInsertSchema(recruitingClassShares).omit({ id: true, createdAt: true });
+export type InsertRecruitingClassShare = z.infer<typeof insertRecruitingClassShareSchema>;
+export type RecruitingClassShare = typeof recruitingClassShares.$inferSelect;
+
 // ─── Storyline Recruit System ─────────────────────────────────────────────────
 
 export interface StorylineHiddenVars {
