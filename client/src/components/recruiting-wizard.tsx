@@ -246,7 +246,7 @@ function Step2({ config, setConfig }: { config: WizardConfig; setConfig: (c: Wiz
 
   return (
     <div className="space-y-5">
-      <p className="text-xs text-muted-foreground">Set the percentage of recruits in each star tier. Total must equal 100%.</p>
+      <p className="text-xs text-muted-foreground">Set the number of recruits in each star tier. Sliders control percentages; counts update live based on your class size. Total must equal 100%.</p>
 
       {/* Visual bar */}
       <div className="h-6 rounded overflow-hidden flex gap-px">
@@ -256,7 +256,7 @@ function Step2({ config, setConfig }: { config: WizardConfig; setConfig: (c: Wiz
       </div>
 
       <div className={`text-center font-pixel text-[9px] ${valid ? "text-green-400" : "text-red-400"}`}>
-        Total: {total}% {!valid && `(must equal exactly 100%)`}
+        Total: {total}% · {Math.round(total / 100 * config.count)} recruits {!valid && `(must equal exactly 100%)`}
       </div>
 
       <div className="space-y-3">
@@ -271,7 +271,7 @@ function Step2({ config, setConfig }: { config: WizardConfig; setConfig: (c: Wiz
               className="flex-1 accent-yellow-400"
               data-testid={`wizard-dist-${b.key}`}
             />
-            <span className="text-xs w-8 text-right tabular-nums">{dist[b.key]}%</span>
+            <span className="text-xs w-10 text-right tabular-nums">{Math.round(dist[b.key] / 100 * config.count)}</span>
           </div>
         ))}
       </div>
