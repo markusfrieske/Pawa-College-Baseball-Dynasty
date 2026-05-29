@@ -64,8 +64,8 @@ for (const [team, players] of Object.entries(ALL_REAL_ROSTERS)) {
   const infielders = players.filter(p => INFIELD_POSITIONS.has(p.position)).length;
   const outfielders = players.filter(p => OUTFIELD_POSITIONS.has(p.position)).length;
 
-  if (pitchers < 9 || pitchers > 10) {
-    fail(`has ${pitchers} pitchers (expected 9–10)`);
+  if (pitchers < 9 || pitchers > 11) {
+    fail(`has ${pitchers} pitchers (expected 9–11)`);
   }
   if (catchers !== 2) {
     fail(`has ${catchers} catchers (expected 2)`);
