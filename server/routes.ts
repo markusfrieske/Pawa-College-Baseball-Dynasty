@@ -17045,12 +17045,25 @@ export async function registerRoutes(
       const theme = (config.theme as RecruitingTheme) || "balanced";
       const count = Math.min(Math.max(Number(config.count) || 80, 20), 80);
       const fogDensity: number = Math.min(100, Math.max(0, Number(config.fogDensity ?? 100)));
+      // Forward OVR controls as a unit: if any field differs from defaults, send all four
+      // so the generator receives the correct average even when only distribution or range changes.
+      const wOvrMin  = config.ovrMin  != null ? Number(config.ovrMin)  : 150;
+      const wOvrMax  = config.ovrMax  != null ? Number(config.ovrMax)  : 650;
+      const wOvrAvg  = config.ovrAverage != null ? Number(config.ovrAverage) : 300;
+      const wOvrDist = config.ovrDistribution || "bell";
+      const hasOvrChanges = wOvrMin !== 150 || wOvrMax !== 650 || wOvrAvg !== 300 || wOvrDist !== "bell";
       const recruits = generateRecruitClass(count, {
         theme,
         wizardStarDistribution: config.starDistribution,
         wizardSpecialCounts: config.specialCounts,
         wizardPositionDistribution: config.positionDistribution,
         wizardRegionSkew: config.regionSkew || "none",
+        ...(hasOvrChanges ? {
+          wizardOvrMin: wOvrMin,
+          wizardOvrMax: wOvrMax,
+          wizardOvrAverage: wOvrAvg,
+          wizardOvrDistribution: wOvrDist as "bell" | "top_heavy" | "bottom_heavy" | "flat",
+        } : {}),
       });
       const initialScoutingLevel = Math.round((1 - fogDensity / 100) * 100);
       const recruitsWithFog = recruits.map(r => ({ ...r, scoutingLevel: initialScoutingLevel }));
@@ -17091,12 +17104,25 @@ export async function registerRoutes(
       const count = Math.min(Math.max(Number(config.count) || 80, 20), 80);
       const fogDensity: number = Math.min(100, Math.max(0, Number(config.fogDensity ?? 100)));
 
+      // Forward OVR controls as a unit: if any field differs from defaults, send all four
+      // so the generator receives the correct average even when only distribution or range changes.
+      const wOvrMin2  = config.ovrMin  != null ? Number(config.ovrMin)  : 150;
+      const wOvrMax2  = config.ovrMax  != null ? Number(config.ovrMax)  : 650;
+      const wOvrAvg2  = config.ovrAverage != null ? Number(config.ovrAverage) : 300;
+      const wOvrDist2 = config.ovrDistribution || "bell";
+      const hasOvrChanges2 = wOvrMin2 !== 150 || wOvrMax2 !== 650 || wOvrAvg2 !== 300 || wOvrDist2 !== "bell";
       const recruits = generateRecruitClass(count, {
         theme,
         wizardStarDistribution: config.starDistribution,
         wizardSpecialCounts: config.specialCounts,
         wizardPositionDistribution: config.positionDistribution,
         wizardRegionSkew: config.regionSkew || "none",
+        ...(hasOvrChanges2 ? {
+          wizardOvrMin: wOvrMin2,
+          wizardOvrMax: wOvrMax2,
+          wizardOvrAverage: wOvrAvg2,
+          wizardOvrDistribution: wOvrDist2 as "bell" | "top_heavy" | "bottom_heavy" | "flat",
+        } : {}),
       });
 
       // Apply fog density: 100% = fully hidden (scoutingLevel=0), 0% = fully revealed (scoutingLevel=100)

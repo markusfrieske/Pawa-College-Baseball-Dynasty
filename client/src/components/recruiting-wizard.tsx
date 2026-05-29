@@ -102,9 +102,13 @@ const DEFAULT_CONFIG: WizardConfig = {
   positionDistribution: { P: 40, C: 8, "1B": 7, "2B": 7, "3B": 7, SS: 7, OF: 24 },
   regionSkew: "none",
   fogDensity: 100,
+  ovrMin: 150,
+  ovrMax: 650,
+  ovrAverage: 300,
+  ovrDistribution: "bell",
 };
 
-const TOTAL_STEPS = 7;
+const TOTAL_STEPS = 8;
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -139,7 +143,7 @@ function typeBadges(r: WizardRecruit) {
 // ─── Step Indicator ─────────────────────────────────────────────────────────
 
 function StepIndicator({ step }: { step: number }) {
-  const labels = ["Settings", "Stars", "Specials", "Advanced", "Generate", "Review", "Save"];
+  const labels = ["Settings", "Stars", "Specials", "Advanced", "OVR", "Generate", "Review", "Save"];
   return (
     <div className="flex items-center gap-0.5 overflow-x-auto scrollbar-hide pb-1">
       {labels.map((lbl, idx) => {
@@ -510,7 +514,184 @@ function Step4({ config, setConfig }: { config: WizardConfig; setConfig: (c: Wiz
   );
 }
 
-// ─── Step 5: Generate ────────────────────────────────────────────────────────
+// ─── Step 5: OVR Controls ────────────────────────────────────────────────────
+
+const OVR_DIST_OPTIONS: { id: WizardConfig["ovrDistribution"]; label: string; desc: string }[] = [
+  { id: "bell",         label: "Bell Curve",    desc: "Most recruits cluster around the desired average (natural distribution)" },
+  { id: "top_heavy",   label: "Top Heavy",     desc: "More recruits skewed toward the maximum OVR" },
+  { id: "bottom_heavy", label: "Bottom Heavy",  desc: "More recruits skewed toward the minimum OVR" },
+  { id: "flat",         label: "Flat / Uniform", desc: "Recruits spread evenly across the OVR range" },
+];
+
+function StepOVR({ config, setConfig }: { config: WizardConfig; setConfig: (c: WizardConfig) => void }) {
+  const ovrMin     = config.ovrMin     ?? 150;
+  const ovrMax     = config.ovrMax     ?? 650;
+  const ovrAverage = config.ovrAverage ?? 300;
+  const ovrDist    = config.ovrDistribution ?? "bell";
+
+  const setOvr = (key: keyof WizardConfig, val: number | string) => {
+    setConfig({ ...config, [key]: val });
+  };
+
+  const rangeValid = ovrMin <= ovrMax;
+  const avgValid   = ovrAverage >= ovrMin && ovrAverage <= ovrMax;
+
+  return (
+    <div className="space-y-6">
+      <p className="text-xs text-muted-foreground">
+        Control the overall quality range and shape of this recruiting class. These settings guide how recruits' attributes are generated. Blue Chips, Generational Gems, and Generational Busts are exempt from these controls.
+      </p>
+
+      {/* OVR Range */}
+      <div>
+        <Label className="font-pixel text-[8px] text-gold uppercase mb-2 block">OVR Range</Label>
+        <p className="text-xs text-muted-foreground mb-3">Set the minimum and maximum overall rating for recruits in this class (150–650).</p>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="font-pixel text-[7px] text-muted-foreground mb-1 block">Min OVR</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="range" min={150} max={640} step={5}
+                value={ovrMin}
+                onChange={e => {
+                  const v = Number(e.target.value);
+                  setConfig({ ...config, ovrMin: v, ovrMax: Math.max(v, ovrMax), ovrAverage: Math.max(v, Math.min(ovrAverage, Math.max(v, ovrMax))) });
+                }}
+                className="flex-1 accent-yellow-400"
+                data-testid="wizard-ovr-min-slider"
+              />
+              <input
+                type="number" min={150} max={650} step={1}
+                value={ovrMin}
+                onChange={e => {
+                  const v = Math.max(150, Math.min(650, Number(e.target.value) || 150));
+                  setConfig({ ...config, ovrMin: v, ovrMax: Math.max(v, ovrMax), ovrAverage: Math.max(v, Math.min(ovrAverage, Math.max(v, ovrMax))) });
+                }}
+                className="w-14 bg-background border border-border rounded text-xs text-center px-1 py-1 focus:border-gold focus:outline-none tabular-nums"
+                data-testid="wizard-ovr-min-input"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="font-pixel text-[7px] text-muted-foreground mb-1 block">Max OVR</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="range" min={160} max={650} step={5}
+                value={ovrMax}
+                onChange={e => {
+                  const v = Number(e.target.value);
+                  setConfig({ ...config, ovrMax: v, ovrMin: Math.min(v, ovrMin), ovrAverage: Math.min(v, Math.max(ovrAverage, Math.min(v, ovrMin))) });
+                }}
+                className="flex-1 accent-yellow-400"
+                data-testid="wizard-ovr-max-slider"
+              />
+              <input
+                type="number" min={150} max={650} step={1}
+                value={ovrMax}
+                onChange={e => {
+                  const v = Math.max(150, Math.min(650, Number(e.target.value) || 650));
+                  setConfig({ ...config, ovrMax: v, ovrMin: Math.min(v, ovrMin), ovrAverage: Math.min(v, Math.max(ovrAverage, Math.min(v, ovrMin))) });
+                }}
+                className="w-14 bg-background border border-border rounded text-xs text-center px-1 py-1 focus:border-gold focus:outline-none tabular-nums"
+                data-testid="wizard-ovr-max-input"
+              />
+            </div>
+          </div>
+        </div>
+        {!rangeValid && (
+          <p className="text-red-400 text-[9px] mt-1">Min OVR must be ≤ Max OVR.</p>
+        )}
+        {/* Visual range bar */}
+        <div className="mt-2 h-2 bg-muted rounded overflow-hidden relative">
+          <div
+            className="absolute h-full bg-gold/40 rounded"
+            style={{ left: `${((ovrMin - 150) / 500) * 100}%`, width: `${((ovrMax - ovrMin) / 500) * 100}%` }}
+          />
+          {avgValid && (
+            <div
+              className="absolute top-0 bottom-0 w-0.5 bg-gold"
+              style={{ left: `${((ovrAverage - 150) / 500) * 100}%` }}
+              title={`Avg: ${ovrAverage}`}
+            />
+          )}
+        </div>
+        <div className="flex justify-between text-[8px] text-muted-foreground mt-0.5">
+          <span>150</span><span>400</span><span>650</span>
+        </div>
+      </div>
+
+      {/* Desired Average OVR */}
+      <div>
+        <Label className="font-pixel text-[8px] text-gold uppercase mb-2 block">
+          Desired Average OVR: {ovrAverage}
+        </Label>
+        <p className="text-xs text-muted-foreground mb-2">Target class mean OVR. Bell Curve centers here; other distributions shift the class mean toward this value.</p>
+        <div className="flex items-center gap-3">
+          <input
+            type="range"
+            min={ovrMin}
+            max={ovrMax}
+            step={5}
+            value={Math.max(ovrMin, Math.min(ovrMax, ovrAverage))}
+            onChange={e => setOvr("ovrAverage", Number(e.target.value))}
+            className="flex-1 accent-yellow-400"
+            data-testid="wizard-ovr-avg-slider"
+          />
+          <input
+            type="number"
+            min={ovrMin}
+            max={ovrMax}
+            step={1}
+            value={ovrAverage}
+            onChange={e => {
+              const v = Math.max(ovrMin, Math.min(ovrMax, Number(e.target.value) || ovrMin));
+              setOvr("ovrAverage", v);
+            }}
+            className="w-14 bg-background border border-border rounded text-xs text-center px-1 py-1 focus:border-gold focus:outline-none tabular-nums"
+            data-testid="wizard-ovr-avg-input"
+          />
+        </div>
+        {!avgValid && rangeValid && (
+          <p className="text-amber-400 text-[9px] mt-1">Average will be clamped to [{ovrMin}, {ovrMax}] at generation time.</p>
+        )}
+      </div>
+
+      {/* Distribution Shape */}
+      <div>
+        <Label className="font-pixel text-[8px] text-gold uppercase mb-2 block">Distribution Shape</Label>
+        <p className="text-xs text-muted-foreground mb-3">Controls how OVR values are spread across the class.</p>
+        <div className="grid grid-cols-2 gap-2">
+          {OVR_DIST_OPTIONS.map(opt => (
+            <button
+              key={opt.id}
+              onClick={() => setConfig({ ...config, ovrDistribution: opt.id })}
+              className={`text-left p-2 rounded border text-xs transition-all ${
+                ovrDist === opt.id
+                  ? "border-gold bg-gold/10 text-gold"
+                  : "border-border bg-card hover:border-gold/50 text-muted-foreground"
+              }`}
+              data-testid={`wizard-ovr-dist-${opt.id}`}
+            >
+              <div className="font-pixel text-[7px] mb-0.5">{opt.label}</div>
+              <div className="text-[9px] leading-tight">{opt.desc}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Reset to defaults */}
+      <button
+        onClick={() => setConfig({ ...config, ovrMin: 150, ovrMax: 650, ovrAverage: 300, ovrDistribution: "bell" })}
+        className="text-[9px] text-muted-foreground hover:text-gold transition-colors underline underline-offset-2"
+        data-testid="wizard-ovr-reset"
+      >
+        Reset OVR controls to defaults
+      </button>
+    </div>
+  );
+}
+
+// ─── Step 6: Generate ────────────────────────────────────────────────────────
 
 function Step5({ onGenerate, isGenerating, config }: {
   onGenerate: () => void;
@@ -1301,7 +1482,17 @@ function Step6({ recruits, setRecruits, onNext, onReroll, isRerolling, rerolling
                     />
                   </td>
                   <td className="px-2 py-1">
-                    <EditCell value={r.overall} field="overall" recruitId={r._tempId} onCommit={commitEdit} />
+                    <div className={`inline-flex items-center px-1 rounded text-[10px] font-bold ${
+                      r.isGenerationalGem ? "bg-purple-900/60 text-purple-300 border border-purple-500/40" :
+                      r.isGenerationalBust ? "bg-red-900/60 text-red-300 border border-red-500/40" :
+                      r.isBlueChip || r.starRating >= 5 ? "bg-amber-900/40 text-amber-300 border border-amber-500/30" :
+                      r.starRating >= 4 ? "bg-green-900/40 text-green-300 border border-green-500/30" :
+                      r.starRating >= 3 ? "bg-blue-900/40 text-blue-300 border border-blue-500/30" :
+                      r.starRating >= 2 ? "bg-gray-800/60 text-gray-300 border border-gray-500/30" :
+                      "bg-zinc-900/60 text-zinc-400 border border-zinc-600/30"
+                    }`}>
+                      <EditCell value={r.overall} field="overall" recruitId={r._tempId} onCommit={commitEdit} />
+                    </div>
                   </td>
                   <td className="px-2 py-1">
                     <SelectEditCell
@@ -1581,7 +1772,7 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved, onSavedToLi
         _tempId: tempId(),
       }));
       setRecruits(withIds);
-      setStep(6);
+      setStep(7);
     },
   });
 
@@ -1626,7 +1817,7 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved, onSavedToLi
       queryClient.invalidateQueries({ queryKey: [`/api/leagues/${leagueId}/recruits`] });
       queryClient.invalidateQueries({ queryKey: [`/api/leagues/${leagueId}/commissioner`] });
       onSaved?.();
-      setStep(8);
+      setStep(9);
     },
   });
 
@@ -1667,7 +1858,7 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved, onSavedToLi
         queryClient.invalidateQueries({ queryKey: ["/api/saved-recruiting-classes"] });
       }
       onSavedToLibrary?.();
-      setStep(8);
+      setStep(9);
     },
   });
 
@@ -1699,17 +1890,22 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved, onSavedToLi
       const specialSlots = sc.blueChips + sc.genGems + sc.genBusts + sc.jucos + sc.rawPlayers;
       return specialSlots <= config.count;
     }
+    if (step === 5) {
+      const ovrMin = config.ovrMin ?? 150;
+      const ovrMax = config.ovrMax ?? 650;
+      return ovrMin <= ovrMax;
+    }
     return true;
   };
 
   const goNext = () => {
-    if (step === 5) { handleGenerate(); return; }
+    if (step === 6) { handleGenerate(); return; }
     if (step < TOTAL_STEPS) setStep(s => s + 1);
   };
 
   const goPrev = () => {
-    if (step === 6) { setStep(5); return; }
     if (step === 7) { setStep(6); return; }
+    if (step === 8) { setStep(7); return; }
     if (step > 1) setStep(s => s - 1);
   };
 
@@ -1717,9 +1913,9 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved, onSavedToLi
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
-      const isReviewStep = step === 6;
-      const isSaveStep   = step === 7;
-      const isSavedStep  = step === 8;
+      const isReviewStep = step === 7;
+      const isSaveStep   = step === 8;
+      const isSavedStep  = step === 9;
       if (e.key === "Enter" && !isReviewStep && !isSaveStep && !isSavedStep && !generateMutation.isPending) {
         const tag = (document.activeElement as HTMLElement)?.tagName;
         if (tag === "INPUT" || tag === "TEXTAREA") return;
@@ -1731,10 +1927,10 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved, onSavedToLi
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, step, config, generateMutation.isPending]);
 
-  const isLastConfigStep = step === 5;
-  const isReviewStep = step === 6;
-  const isSaveStep   = step === 7;
-  const isSavedStep  = step === 8;
+  const isLastConfigStep = step === 6;
+  const isReviewStep = step === 7;
+  const isSaveStep   = step === 8;
+  const isSavedStep  = step === 9;
   const showNav      = !isSavedStep && !isReviewStep && !isSaveStep;
 
   const error = generateMutation.error?.message || saveToLeagueMutation.error?.message || saveToLibraryMutation.error?.message;
@@ -1763,14 +1959,14 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved, onSavedToLi
 
     <Dialog open={open} onOpenChange={v => {
       if (!v) {
-        if (step > 1 && step < 8) { setShowCancelConfirm(true); }
+        if (step > 1 && step < 9) { setShowCancelConfirm(true); }
         else { onClose(); }
       }
     }}>
       <DialogContent
         className="max-w-5xl w-[95vw] max-h-[92vh] bg-card border-border flex flex-col p-0 gap-0 overflow-hidden"
         onEscapeKeyDown={e => {
-          if (step > 1 && step < 8) {
+          if (step > 1 && step < 9) {
             e.preventDefault();
             setShowCancelConfirm(true);
           }
@@ -1803,7 +1999,7 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved, onSavedToLi
             <Step6
               recruits={recruits}
               setRecruits={setRecruits}
-              onNext={() => setStep(7)}
+              onNext={() => setStep(8)}
               onReroll={handleReroll}
               isRerolling={rerollMutation.isPending}
               rerollingId={rerollingId}
@@ -1817,6 +2013,8 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved, onSavedToLi
             <Step3 config={config} setConfig={setConfig} />
           ) : step === 4 ? (
             <Step4 config={config} setConfig={setConfig} />
+          ) : step === 5 ? (
+            <StepOVR config={config} setConfig={setConfig} />
           ) : (
             <Step5 config={config} onGenerate={handleGenerate} isGenerating={generateMutation.isPending} />
           )}

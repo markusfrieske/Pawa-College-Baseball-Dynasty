@@ -154,6 +154,11 @@ export interface GenerateRecruitClassOptions {
     isGenGem?: boolean; isGenBust?: boolean; isRaw?: boolean; starRank?: number;
   };
   wizardRegionSkew?: string;
+  // OVR controls
+  wizardOvrMin?: number;
+  wizardOvrMax?: number;
+  wizardOvrAverage?: number;
+  wizardOvrDistribution?: "bell" | "top_heavy" | "bottom_heavy" | "flat";
 }
 
 export type GeneratedRecruit = Omit<InsertRecruit, "leagueId">;
@@ -562,6 +567,53 @@ export function generateRecruitClass(
     }
   }
 
+  // ─── Wizard OVR target pre-computation ────────────────────────────────────
+  const ovrMin  = Math.max(150, Math.min(650, opts.wizardOvrMin  ?? 150));
+  const ovrMax  = Math.max(150, Math.min(650, opts.wizardOvrMax  ?? 650));
+  const ovrAvg  = Math.max(ovrMin, Math.min(ovrMax, opts.wizardOvrAverage ?? Math.round((ovrMin + ovrMax) / 2)));
+  const ovrDist = opts.wizardOvrDistribution ?? "bell";
+  const hasOvrControls = opts.wizardOvrMin != null || opts.wizardOvrMax != null || opts.wizardOvrAverage != null || opts.wizardOvrDistribution != null;
+
+  // Pre-generate per-slot OVR targets, sorted descending so highest targets
+  // align with the highest-ranked (index 0) slots.
+  const wizardTargetOvrs: number[] | null = hasOvrControls ? (() => {
+    const range = Math.max(1, ovrMax - ovrMin);
+    const targets: number[] = [];
+    for (let k = 0; k < count; k++) {
+      let t: number;
+      if (ovrDist === "flat") {
+        t = ovrMin + Math.floor(Math.random() * (range + 1));
+      } else if (ovrDist === "top_heavy") {
+        // power < 1 → values skewed toward 1 (ovrMax)
+        t = Math.round(ovrMin + Math.pow(Math.random(), 0.4) * range);
+      } else if (ovrDist === "bottom_heavy") {
+        // power > 1 → values skewed toward 0 (ovrMin)
+        t = Math.round(ovrMin + Math.pow(Math.random(), 2.5) * range);
+      } else {
+        // bell curve centered at ovrAvg
+        const sd = range / 4;
+        const u1 = Math.random() || 1e-10;
+        const u2 = Math.random();
+        const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+        t = Math.round(ovrAvg + z * sd);
+      }
+      targets.push(Math.max(ovrMin, Math.min(ovrMax, t)));
+    }
+    // For non-bell distributions, shift all targets so the class mean equals ovrAvg.
+    // Bell already centers at ovrAvg via its own formula; no second shift needed.
+    if (ovrDist !== "bell" && opts.wizardOvrAverage != null) {
+      const currentMean = targets.reduce((s, v) => s + v, 0) / targets.length;
+      const shift = Math.round(ovrAvg - currentMean);
+      if (shift !== 0) {
+        for (let k = 0; k < targets.length; k++) {
+          targets[k] = Math.max(ovrMin, Math.min(ovrMax, targets[k] + shift));
+        }
+      }
+    }
+    targets.sort((a, b) => b - a);
+    return targets;
+  })() : null;
+
   const out: GeneratedRecruit[] = [];
 
   const defenseFirstPositions = [
@@ -662,6 +714,19 @@ export function generateRecruitClass(
       isBust = isBlueChip ? false : gemBust.isBust;
       targetAttrAvg = getTargetAttrAvgForRecruit(starRank, isBlueChip, isGem, isBust, isPitcher);
       abilityCount = getAbilityCount(starRank, isBlueChip);
+
+      // Apply wizard OVR distribution delta for non-special recruits
+      if (wizardTargetOvrs && !isBlueChip && !isGem && !isBust) {
+        const targetOvr = wizardTargetOvrs[i];
+        // Estimated default mid-OVR per star rank (midpoint of each band)
+        const defaultMidOvrs: Record<number, number> = { 1: 174, 2: 249, 3: 349, 4: 449, 5: 519 };
+        const defaultMidOvr = (defaultMidOvrs[starRank] ?? 349) + (isPitcher ? 15 : 0);
+        const deltaOvr = targetOvr - defaultMidOvr;
+        // Rough linear scale: ~10 OVR per attr point for hitters, ~8 for pitchers
+        const attrScale = isPitcher ? 8 : 10;
+        const deltaAttr = Math.round(deltaOvr / attrScale);
+        targetAttrAvg = Math.max(10, Math.min(90, targetAttrAvg + deltaAttr));
+      }
     }
 
     const starRating = starRank;
@@ -793,6 +858,40 @@ export function generateRecruitClass(
       stuff     = genT(targetAttrAvg - pitchPenalty, "stuff");
     }
 
+    // ─── Wizard OVR correction retry loop ────────────────────────────────────
+    // Skip only for Blue Chips, Generational Gems and Busts — they have hard-coded OVR bands.
+    // Regular gems/busts are included so the wizard range still applies to them.
+    if (wizardTargetOvrs && !isGenerationalGem && !isGenerationalBust && !isBlueChip) {
+      const hitBoostR = isPitcher ? 0 : 6;
+      const pitchPenaltyR = isPitcher ? 3 : 0;
+      for (let retry = 0; retry < 5; retry++) {
+        // Preliminary OVR check using just numeric attrs (pitch mix falls back to stuff)
+        const prelimOvr = calculateOVR({ position, hitForAvg, power, speed, arm, fielding, errorResistance, velocity, control, stamina, stuff });
+        if (prelimOvr >= ovrMin && prelimOvr <= ovrMax) break;
+        const adjust = prelimOvr < ovrMin ? 5 : -5;
+        targetAttrAvg = Math.max(10, Math.min(90, targetAttrAvg + adjust));
+        if (isRawArchetype) {
+          const genR = (base: number, attr: string) => genRawToolAttr(base, playerTooledAttrs!.has(attr));
+          hitForAvg = genR(targetAttrAvg + hitBoostR, "hitForAvg");
+          power     = genR(targetAttrAvg + hitBoostR, "power");
+          arm       = genR(targetAttrAvg, "arm");
+          fielding  = genR(targetAttrAvg, "fielding");
+          errorResistance = genR(targetAttrAvg, "errorResistance");
+          control   = genR(targetAttrAvg, "control");
+          stuff     = genR(targetAttrAvg - pitchPenaltyR, "stuff");
+        } else {
+          const genT = (base: number, attr: string) => genToolAttr(base, playerTooledAttrs!.has(attr));
+          hitForAvg = genT(targetAttrAvg + hitBoostR, "hitForAvg");
+          power     = genT(targetAttrAvg + hitBoostR, "power");
+          arm       = genT(targetAttrAvg, "arm");
+          fielding  = genT(targetAttrAvg, "fielding");
+          errorResistance = genT(targetAttrAvg, "errorResistance");
+          control   = genT(targetAttrAvg, "control");
+          stuff     = genT(targetAttrAvg - pitchPenaltyR, "stuff");
+        }
+      }
+    }
+
     if (themeBoost.attr === "velocity") velocity = Math.min(99, velocity + themeBoost.boost);
     if (theme === "elite_pitching" && isPitcher) stuff = Math.min(99, stuff + 10);
     if (themeBoost.attr === "power")   power    = Math.min(99, power   + themeBoost.boost);
@@ -908,6 +1007,12 @@ export function generateRecruitClass(
         // Gold gives +10 OVR, blue gives +5, so each gold→blue swap costs 5 OVR
         overall = Math.max(150, overall - 5);
       }
+    }
+    // ─── Wizard OVR hard clamp (post all star/archetype/gate adjustments) ────
+    // Exempt: generational gems, generational busts, blue chips (fixed OVR bands).
+    // For all other recruits, enforce the user-specified [ovrMin, ovrMax] range.
+    if (wizardTargetOvrs && !isGenerationalGem && !isGenerationalBust && !isBlueChip) {
+      overall = Math.max(ovrMin, Math.min(ovrMax, overall));
     }
     const computedStarRating = getStarRatingFromOVR(overall);
 

@@ -1552,6 +1552,10 @@ export interface WizardConfig {
   };
   regionSkew: string;
   fogDensity: number;
+  ovrMin?: number;
+  ovrMax?: number;
+  ovrAverage?: number;
+  ovrDistribution?: "bell" | "top_heavy" | "bottom_heavy" | "flat";
 }
 
 export const leagueEvents = pgTable("league_events", {
