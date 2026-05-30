@@ -182,10 +182,10 @@ function AttrPip({
   label: string;
 }) {
   return (
-    <div className="flex flex-col gap-0.5 flex-1 min-w-[44px]" data-testid={`scouting-attr-${label.toLowerCase()}`}>
+    <div className="flex flex-col gap-0.5 flex-1 min-w-[72px]" data-testid={`scouting-attr-${label.toLowerCase()}`}>
       <div className="flex items-center gap-1">
         <Icon className={`w-3 h-3 shrink-0 ${iconColor}`} />
-        <span className="text-[8px] text-muted-foreground font-pixel truncate">{label}</span>
+        <span className="text-[8px] text-muted-foreground font-pixel">{label}</span>
         <span className="text-[8px] font-bold text-foreground ml-auto">{value}</span>
       </div>
       <GradeBar score={value} />
