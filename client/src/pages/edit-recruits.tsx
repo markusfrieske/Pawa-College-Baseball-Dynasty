@@ -13,7 +13,7 @@ import { ArrowLeft, Save, RotateCcw, ChevronUp, ChevronDown, Filter } from "luci
 import { apiRequest, getQueryFn } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Recruit } from "@shared/schema";
-import { ALL_PITCHER_ABILITIES, ALL_FIELDER_ABILITIES, getAbilityByName, type Ability } from "@shared/abilities";
+import { ALL_PITCHER_ABILITIES, ALL_FIELDER_ABILITIES, getAbilityByName, type Ability, commonGrade, pitcherCommonGrade } from "@shared/abilities";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface RecruitingData {
@@ -42,6 +42,15 @@ const valueToGrade = (v: number): string => {
   if (v >= 50) return "D";
   if (v >= 30) return "F";
   return "G";
+};
+
+const gradeColor = (g: string): string => {
+  if (g === "S") return "text-yellow-400";
+  if (g === "A") return "text-green-400";
+  if (g === "B") return "text-teal-400";
+  if (g === "C") return "text-yellow-600";
+  if (g === "D") return "text-orange-400";
+  return "text-red-400";
 };
 
 export default function EditRecruitsPage() {
@@ -608,119 +617,70 @@ export default function EditRecruitsPage() {
                           />
                         </td>
                         {/* Fielder Attributes (1-100 scale) */}
-                        <td className="px-2 py-1">
-                          <Input
-                            type="number"
-                            min={1}
-                            max={100}
-                            className="h-7 w-10 text-xs no-spinner"
-                            value={getRecruitValue(recruit, "hitForAvg") || ""}
-                            onChange={(e) => updateRecruit(recruit.id, "hitForAvg", parseInt(e.target.value) || null)}
-                            onKeyDown={(e) => handleKeyDown(e, idx, "hitForAvg")}
-                            data-row={idx}
-                            data-field="hitForAvg"
-                            disabled={isPitcher}
-                          />
-                        </td>
-                        <td className="px-2 py-1">
-                          <Input
-                            type="number"
-                            min={1}
-                            max={100}
-                            className="h-7 w-10 text-xs no-spinner"
-                            value={getRecruitValue(recruit, "power") || ""}
-                            onChange={(e) => updateRecruit(recruit.id, "power", parseInt(e.target.value) || null)}
-                            onKeyDown={(e) => handleKeyDown(e, idx, "power")}
-                            data-row={idx}
-                            data-field="power"
-                            disabled={isPitcher}
-                          />
-                        </td>
-                        <td className="px-2 py-1">
-                          <Input
-                            type="number"
-                            min={1}
-                            max={100}
-                            className="h-7 w-10 text-xs no-spinner"
-                            value={getRecruitValue(recruit, "speed") || ""}
-                            onChange={(e) => updateRecruit(recruit.id, "speed", parseInt(e.target.value) || null)}
-                            onKeyDown={(e) => handleKeyDown(e, idx, "speed")}
-                            data-row={idx}
-                            data-field="speed"
-                            disabled={isPitcher}
-                          />
-                        </td>
-                        <td className="px-2 py-1">
-                          <Input
-                            type="number"
-                            min={1}
-                            max={100}
-                            className="h-7 w-10 text-xs no-spinner"
-                            value={getRecruitValue(recruit, "arm") || ""}
-                            onChange={(e) => updateRecruit(recruit.id, "arm", parseInt(e.target.value) || null)}
-                            onKeyDown={(e) => handleKeyDown(e, idx, "arm")}
-                            data-row={idx}
-                            data-field="arm"
-                            disabled={isPitcher}
-                          />
-                        </td>
-                        <td className="px-2 py-1">
-                          <Input
-                            type="number"
-                            min={1}
-                            max={100}
-                            className="h-7 w-10 text-xs no-spinner"
-                            value={getRecruitValue(recruit, "fielding") || ""}
-                            onChange={(e) => updateRecruit(recruit.id, "fielding", parseInt(e.target.value) || null)}
-                            onKeyDown={(e) => handleKeyDown(e, idx, "fielding")}
-                            data-row={idx}
-                            data-field="fielding"
-                            disabled={isPitcher}
-                          />
-                        </td>
+                        {(["hitForAvg", "power", "speed", "arm", "fielding"] as const).map(field => {
+                          const val = getRecruitValue(recruit, field);
+                          const grade = !isPitcher && val != null ? commonGrade(val) : null;
+                          return (
+                            <td key={field} className="px-2 py-1">
+                              <div className="flex flex-col items-center gap-0.5">
+                                <Input
+                                  type="number"
+                                  min={1}
+                                  max={100}
+                                  className="h-7 w-10 text-xs no-spinner"
+                                  value={val || ""}
+                                  onChange={(e) => updateRecruit(recruit.id, field, parseInt(e.target.value) || null)}
+                                  onKeyDown={(e) => handleKeyDown(e, idx, field)}
+                                  data-row={idx}
+                                  data-field={field}
+                                  data-testid={`input-${field}-${recruit.id}`}
+                                  disabled={isPitcher}
+                                />
+                                {grade && (
+                                  <span
+                                    className={`text-[9px] font-bold leading-none ${gradeColor(grade)}`}
+                                    data-testid={`grade-${field}-${recruit.id}`}
+                                  >
+                                    {grade}
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                          );
+                        })}
                         {/* Pitcher Attributes (Velocity: 82-102 MPH, Control/Stamina: 1-100) */}
-                        <td className="px-2 py-1">
-                          <Input
-                            type="number"
-                            min={82}
-                            max={102}
-                            className="h-7 w-10 text-xs no-spinner"
-                            value={getRecruitValue(recruit, "velocity") || ""}
-                            onChange={(e) => updateRecruit(recruit.id, "velocity", parseInt(e.target.value) || null)}
-                            onKeyDown={(e) => handleKeyDown(e, idx, "velocity")}
-                            data-row={idx}
-                            data-field="velocity"
-                            disabled={!isPitcher}
-                          />
-                        </td>
-                        <td className="px-2 py-1">
-                          <Input
-                            type="number"
-                            min={1}
-                            max={100}
-                            className="h-7 w-10 text-xs no-spinner"
-                            value={getRecruitValue(recruit, "control") || ""}
-                            onChange={(e) => updateRecruit(recruit.id, "control", parseInt(e.target.value) || null)}
-                            onKeyDown={(e) => handleKeyDown(e, idx, "control")}
-                            data-row={idx}
-                            data-field="control"
-                            disabled={!isPitcher}
-                          />
-                        </td>
-                        <td className="px-2 py-1">
-                          <Input
-                            type="number"
-                            min={1}
-                            max={100}
-                            className="h-7 w-10 text-xs no-spinner"
-                            value={getRecruitValue(recruit, "stamina") || ""}
-                            onChange={(e) => updateRecruit(recruit.id, "stamina", parseInt(e.target.value) || null)}
-                            onKeyDown={(e) => handleKeyDown(e, idx, "stamina")}
-                            data-row={idx}
-                            data-field="stamina"
-                            disabled={!isPitcher}
-                          />
-                        </td>
+                        {(["velocity", "control", "stamina"] as const).map(field => {
+                          const val = getRecruitValue(recruit, field);
+                          const grade = isPitcher && val != null ? pitcherCommonGrade(val) : null;
+                          const isVelo = field === "velocity";
+                          return (
+                            <td key={field} className="px-2 py-1">
+                              <div className="flex flex-col items-center gap-0.5">
+                                <Input
+                                  type="number"
+                                  min={isVelo ? 82 : 1}
+                                  max={isVelo ? 102 : 100}
+                                  className="h-7 w-10 text-xs no-spinner"
+                                  value={val || ""}
+                                  onChange={(e) => updateRecruit(recruit.id, field, parseInt(e.target.value) || null)}
+                                  onKeyDown={(e) => handleKeyDown(e, idx, field)}
+                                  data-row={idx}
+                                  data-field={field}
+                                  data-testid={`input-${field}-${recruit.id}`}
+                                  disabled={!isPitcher}
+                                />
+                                {grade && (
+                                  <span
+                                    className={`text-[9px] font-bold leading-none ${gradeColor(grade)}`}
+                                    data-testid={`grade-${field}-${recruit.id}`}
+                                  >
+                                    {grade}
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                          );
+                        })}
                         {/* Pitch Mix - FB (0-1 checkbox style - presence only) */}
                         <td className="px-2 py-1">
                           <Select
