@@ -1,4 +1,4 @@
-import { X, MapPin, DollarSign, Trophy, TrendingUp, MousePointerClick } from "lucide-react";
+import { X, MapPin, DollarSign, Trophy, TrendingUp, MousePointerClick, Wrench, BookOpen, Home, Users } from "lucide-react";
 
 export interface TeamScoutingInfo {
   talentRank: number;
@@ -17,6 +17,11 @@ export interface TeamScoutingInfo {
   city: string;
   state: string;
   conference: string;
+  prestige: number;
+  facilities: number;
+  academics: number;
+  stadium: number;
+  collegeLife: number;
 }
 
 function BaseballIcon({ className }: { className?: string }) {
@@ -97,10 +102,10 @@ function StarDots({ count }: { count: number }) {
   );
 }
 
-function GradeBar({ score }: { score: number }) {
+function GradeBar({ score, max = 10 }: { score: number; max?: number }) {
   return (
     <div className="flex gap-0.5 mt-1">
-      {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((i) => (
+      {Array.from({ length: max }, (_, i) => i + 1).map((i) => (
         <div
           key={i}
           className={`flex-1 h-1 rounded-sm ${
@@ -165,10 +170,34 @@ function PlayerChip({ label, icon: Icon, player }: { label: string; icon: React.
   );
 }
 
+function AttrPip({
+  icon: Icon,
+  iconColor,
+  value,
+  label,
+}: {
+  icon: React.ElementType;
+  iconColor: string;
+  value: number;
+  label: string;
+}) {
+  return (
+    <div className="flex flex-col gap-0.5 flex-1 min-w-[44px]" data-testid={`scouting-attr-${label.toLowerCase()}`}>
+      <div className="flex items-center gap-1">
+        <Icon className={`w-3 h-3 shrink-0 ${iconColor}`} />
+        <span className="text-[8px] text-muted-foreground font-pixel truncate">{label}</span>
+        <span className="text-[8px] font-bold text-foreground ml-auto">{value}</span>
+      </div>
+      <GradeBar score={value} />
+    </div>
+  );
+}
+
 interface TeamScoutingPanelProps {
   teamName?: string | null;
   info?: TeamScoutingInfo | null;
   onClose?: () => void;
+  variant?: "default" | "inline";
 }
 
 export function TeamScoutingPanel({ teamName, info, onClose }: TeamScoutingPanelProps) {
@@ -266,6 +295,18 @@ export function TeamScoutingPanel({ teamName, info, onClose }: TeamScoutingPanel
             </p>
             <p className="text-[8px] text-muted-foreground">/{info.projectedConferenceFinish.total}</p>
           </div>
+        </div>
+      </div>
+
+      {/* Program Attributes row */}
+      <div className="px-3 pb-2.5 pt-0 border-t border-border/30 mt-0">
+        <p className="font-pixel text-[8px] text-muted-foreground uppercase tracking-wider mb-1.5 pt-2">Program Attributes</p>
+        <div className="flex gap-2 flex-wrap sm:flex-nowrap" data-testid="scouting-program-attributes">
+          <AttrPip icon={Trophy}   iconColor="text-gold"          value={info.prestige}    label="Prestige" />
+          <AttrPip icon={Wrench}   iconColor="text-blue-400"      value={info.facilities}  label="Facilities" />
+          <AttrPip icon={BookOpen} iconColor="text-green-400"     value={info.academics}   label="Academics" />
+          <AttrPip icon={Home}     iconColor="text-orange-400"    value={info.stadium}     label="Stadium" />
+          <AttrPip icon={Users}    iconColor="text-purple-400"    value={info.collegeLife} label="Col. Life" />
         </div>
       </div>
     </div>

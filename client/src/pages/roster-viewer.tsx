@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, Save, RotateCcw, Star, Search, LogIn, ChevronLeft, X, GitCompare } from "lucide-react";
+import { TeamScoutingPanel, type TeamScoutingInfo } from "@/components/team-scouting-panel";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { apiRequest, getQueryFn } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -511,6 +512,13 @@ export default function RosterViewerPage() {
     queryKey: ["/api/ncaa-rosters", encodeURIComponent(selectedTeam)],
     enabled: !!selectedTeam,
   });
+
+  const { data: scoutingMap } = useQuery<Record<string, TeamScoutingInfo>>({
+    queryKey: ["/api/team-templates/scouting"],
+    enabled: !!selectedTeam,
+  });
+
+  const scoutingInfo = selectedTeam && scoutingMap ? scoutingMap[selectedTeam] ?? null : null;
 
   const saveMutation = useMutation({
     mutationFn: async (payload: { name: string; description: string; basedOn: string; rosterData: RealPlayer[] }) => {
@@ -1200,6 +1208,12 @@ export default function RosterViewerPage() {
               )}
             </div>
 
+            {scoutingInfo && (
+              <div className="px-4 py-3 border-b border-border/40 animate-in fade-in duration-200">
+                <TeamScoutingPanel teamName={selectedTeam} info={scoutingInfo} />
+              </div>
+            )}
+
             <MobileRosterList />
           </div>
         )}
@@ -1312,6 +1326,13 @@ export default function RosterViewerPage() {
                 </div>
                 <p className="text-[10px] text-muted-foreground hidden sm:block">Click row for full profile · click a stat to edit inline</p>
               </div>
+
+              {/* Scouting Panel */}
+              {scoutingInfo && (
+                <div className="px-6 py-3 border-b border-border/40 animate-in fade-in duration-200">
+                  <TeamScoutingPanel teamName={selectedTeam} info={scoutingInfo} />
+                </div>
+              )}
 
               {/* Roster Table — horizontally scrollable */}
               <div className="overflow-x-auto">

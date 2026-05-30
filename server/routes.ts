@@ -983,11 +983,11 @@ export async function registerRoutes(
 
       // Build conference → team name list and template metadata map
       const confMap = new Map<string, string[]>();
-      const tmplMap = new Map<string, { city: string; state: string; nilBudget: number; prestige: number; conference: string; nationalRank: number }>();
+      const tmplMap = new Map<string, { city: string; state: string; nilBudget: number; prestige: number; facilities: number; academics: number; stadium: number; collegeLife: number; conference: string; nationalRank: number }>();
       for (const cn of ALL_CONF_NAMES) {
         const ts = getTeamsForConference(cn);
         confMap.set(cn, ts.map(t => t.name));
-        for (const t of ts) tmplMap.set(t.name, { city: t.city, state: t.state, nilBudget: t.nilBudget, prestige: t.prestige, conference: cn, nationalRank: NATIONAL_RANKS[t.name] ?? TOTAL_NATIONAL_TEAMS });
+        for (const t of ts) tmplMap.set(t.name, { city: t.city, state: t.state, nilBudget: t.nilBudget, prestige: t.prestige, facilities: t.facilities, academics: t.academics, stadium: t.stadium, collegeLife: t.collegeLife, conference: cn, nationalRank: NATIONAL_RANKS[t.name] ?? TOTAL_NATIONAL_TEAMS });
       }
 
       type PlayerInfo = { name: string; position: string; eligibility: string; overall: number; starRating: number };
@@ -1060,6 +1060,11 @@ export async function registerRoutes(
           city: tmpl?.city ?? "",
           state: tmpl?.state ?? "",
           conference: cn,
+          prestige: tmpl?.prestige ?? 5,
+          facilities: tmpl?.facilities ?? 5,
+          academics: tmpl?.academics ?? 5,
+          stadium: tmpl?.stadium ?? 5,
+          collegeLife: tmpl?.collegeLife ?? 5,
         };
       });
 
