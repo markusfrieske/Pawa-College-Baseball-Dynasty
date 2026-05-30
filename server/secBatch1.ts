@@ -839,8 +839,9 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 0, 0, 1, 0, 0, 4, 0, 0, 4]) },
     // CATCHERS (1)
+    // Stone Lawless — hitForAvg reduced 55→46 (raw) for catcher OVR sweep: OVR 529→491 (target 475-505)
     { firstName: "Stone", lastName: "Lawless", position: "C", eligibility: "JR", homeState: "MS", hometown: "Tupelo", jerseyNumber: 12,
-      hitForAvg: 55, power: 25, speed: 55, arm: 55, fielding: 52, errorResistance: 48, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 46, power: 25, speed: 55, arm: 55, fielding: 52, errorResistance: 48, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 56, vsLHP: 53, grit: 57, stealing: 44, running: 44, throwing: 59, recovery: 48, wRISP: 54, vsLefty: 51, poise: 56, heater: 0, agile: 36,
       abilities: ["Defensive Artisan", "Consigliere"], potential: "B+", catcherAbility: 56,
       throwHand: "R", batHand: "R",
