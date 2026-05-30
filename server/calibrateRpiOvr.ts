@@ -22,16 +22,16 @@ import { calculateOVR, getStarRatingFromOVR } from "@shared/abilities";
 // Maps in-game team name → 2026 NCAA RPI rank (or extrapolated rank).
 export const RPI_RANK_MAP: Record<string, number> = {
   // ── SEC ──────────────────────────────────────────────────────────────────
-  'UCLA':             1,
-  'Auburn':           3,
+  'UCLA':             28,   // dropped: lost to Saint Mary's (~#80) — biggest upset
+  'Auburn':           38,   // dropped: lost to Milwaukee — major upset
   'Texas':            5,
   'Alabama':          6,
   'Florida':          10,
   'Georgia':          11,
   'Mississippi State':13,
   'Texas A&M':        14,
-  'Ole Miss':         17,
-  'Arkansas':         21,
+  'Ole Miss':         15,   // rose: beat Arizona as mild favorite
+  'Arkansas':         19,   // rose: beat Missouri State (peer)
   'Oklahoma':         24,
   'Tennessee':        31,
   'Kentucky':         37,
@@ -43,7 +43,7 @@ export const RPI_RANK_MAP: Record<string, number> = {
   // ── ACC ──────────────────────────────────────────────────────────────────
   'Georgia Tech':     2,
   'North Carolina':   4,
-  'Florida State':    7,
+  'Florida State':    42,   // dropped: lost to St. John's — significant upset
   'Wake Forest':      20,
   'Virginia':         25,
   'Miami':            29,
@@ -60,28 +60,28 @@ export const RPI_RANK_MAP: Record<string, number> = {
 
   // ── Big Ten ───────────────────────────────────────────────────────────────
   'Nebraska':         9,
-  'Oregon':           16,
-  'Oregon State':     18,
+  'Oregon':           14,   // rose: beat Yale as heavy favorite
+  'Oregon State':     60,   // dropped: lost to Washington (~#93) — big upset
   'Purdue':           52,
   'Michigan':         53,
   'Iowa':             72,
   'Maryland':         83,
   'Ohio State':       84,
-  'USC':              8,
+  'USC':              45,   // dropped: lost to Texas St — significant upset
   'Minnesota':        92,
   'Illinois':         98,
   'Michigan State':   106,
   'Indiana':          121,
   'Rutgers':          123,
   'Penn State':       155,
-  'Washington':       158,
+  'Washington':       90,   // rose: beat Oregon State (#17) — major upset win
   'Northwestern':     160,
 
   // ── Big 12 ────────────────────────────────────────────────────────────────
   'West Virginia':    15,
   'Kansas':           19,
   'Cincinnati':       23,
-  'Oklahoma State':   30,
+  'Oklahoma State':   58,   // dropped: first-round exit
   'UCF':              33,
   'TCU':              48,
   'Arizona State':    47,
@@ -116,8 +116,8 @@ export const RPI_RANK_MAP: Record<string, number> = {
   'North Texas':      185,
 
   // ── Sun Belt ──────────────────────────────────────────────────────────────
-  'Coastal Carolina': 26,
-  'Southern Miss':    12,
+  'Coastal Carolina': 55,   // dropped: lost to NIU — significant upset
+  'Southern Miss':    52,   // dropped: first-round exit for top-15 program
   'Troy':             41,
   'Louisiana':        36,
   'Arkansas State':   60,
@@ -132,7 +132,7 @@ export const RPI_RANK_MAP: Record<string, number> = {
   // ── WCC ───────────────────────────────────────────────────────────────────
   'Gonzaga':          57,
   'Portland':         119,
-  "Saint Mary's":     136,
+  "Saint Mary's":     60,   // rose: beat #1 UCLA — most dramatic upset
   'San Diego':        183,
   'Pepperdine':       175,
   'Santa Clara':      185,
@@ -140,7 +140,7 @@ export const RPI_RANK_MAP: Record<string, number> = {
   'San Francisco':    190,
 
   // ── Big West ──────────────────────────────────────────────────────────────
-  'UC Santa Barbara': 35,
+  'UC Santa Barbara': 80,   // dropped: first-round exit for top-40 program
   'Cal Poly':         74,
   'UC San Diego':     103,
   'Cal State Fullerton': 117,
@@ -153,7 +153,7 @@ export const RPI_RANK_MAP: Record<string, number> = {
 
   // ── Missouri Valley ───────────────────────────────────────────────────────
   'Creighton':        163,
-  'Missouri State':   175,
+  'Missouri State':   140,  // dropped: lost to Arkansas (peer) — adjusted from 175
   'Indiana State':    180,
   'Illinois State':   183,
   'Southern Illinois':186,
@@ -167,7 +167,7 @@ export const RPI_RANK_MAP: Record<string, number> = {
   'Western Illinois': 196,
 
   // ── Ivy League ────────────────────────────────────────────────────────────
-  'Yale':             142,
+  'Yale':             148,  // modest drop: expected loss to Oregon
   'Penn':             170,
   'Columbia':         175,
   'Cornell':          177,

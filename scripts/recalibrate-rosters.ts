@@ -22,77 +22,78 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // ─── Top-71 national rank list (real 2026 D1Baseball RPI, compressed to in-game teams) ───────────
 // Teams in the real RPI top-100 that exist in the game, in RPI order (slots held by non-game teams skipped)
 const TOP_71_ORDER: string[] = [
-  /* 1 */  "UCLA",
-  /* 2 */  "Georgia Tech",
-  /* 3 */  "Auburn",
-  /* 4 */  "North Carolina",
-  /* 5 */  "Texas",
-  /* 6 */  "Alabama",
-  /* 7 */  "Florida State",
-  /* 8 */  "Nebraska",
-  /* 9 */  "Georgia",
-  /* 10 */ "USC",
-  /* 11 */ "Florida",
-  /* 12 */ "Southern Miss",
-  /* 13 */ "Mississippi State",
-  /* 14 */ "Texas A&M",
-  /* 15 */ "West Virginia",
-  /* 16 */ "Oregon",
-  /* 17 */ "Oregon State",
-  /* 18 */ "Ole Miss",
-  /* 19 */ "Kansas",
-  /* 20 */ "Wake Forest",
-  /* 21 */ "Arkansas",
-  /* 22 */ "Missouri State",
-  /* 23 */ "Cincinnati",
-  /* 24 */ "Oklahoma",
-  /* 25 */ "Virginia",
-  /* 26 */ "Coastal Carolina",
-  /* 27 */ "Miami",
-  /* 28 */ "Oklahoma State",
-  /* 29 */ "Tennessee",
-  /* 30 */ "Louisiana",
-  /* 31 */ "UCF",
-  /* 32 */ "Boston College",
-  /* 33 */ "Kentucky",
-  /* 34 */ "Troy",
-  /* 35 */ "Pittsburgh",
-  /* 36 */ "UC Santa Barbara",
-  /* 37 */ "East Carolina",
-  /* 38 */ "Virginia Tech",
-  /* 39 */ "TCU",
-  /* 40 */ "Arizona State",
-  /* 41 */ "Clemson",
-  /* 42 */ "NC State",
-  /* 43 */ "Purdue",
-  /* 44 */ "Michigan",
-  /* 45 */ "Kansas State",
-  /* 46 */ "Gonzaga",
+  /* 1  */ "Georgia Tech",
+  /* 2  */ "North Carolina",
+  /* 3  */ "Texas",
+  /* 4  */ "Alabama",
+  /* 5  */ "Nebraska",
+  /* 6  */ "Georgia",
+  /* 7  */ "Florida",
+  /* 8  */ "Mississippi State",
+  /* 9  */ "Texas A&M",
+  /* 10 */ "West Virginia",
+  /* 11 */ "Oregon",          // rose: beat Yale as heavy favorite
+  /* 12 */ "Ole Miss",        // rose: beat Arizona as mild favorite
+  /* 13 */ "Kansas",
+  /* 14 */ "Wake Forest",
+  /* 15 */ "Arkansas",        // rose: beat Missouri State (peer)
+  /* 16 */ "UCLA",            // DROPS: lost to Saint Mary's (~#80) — biggest upset
+  /* 17 */ "Cincinnati",
+  /* 18 */ "Oklahoma",
+  /* 19 */ "Virginia",
+  /* 20 */ "Miami",
+  /* 21 */ "Tennessee",
+  /* 22 */ "Louisiana",
+  /* 23 */ "Auburn",          // DROPS: lost to Milwaukee — major upset
+  /* 24 */ "UCF",
+  /* 25 */ "Florida State",   // DROPS: lost to St. John's — significant upset
+  /* 26 */ "Boston College",
+  /* 27 */ "USC",             // DROPS: lost to Texas St — significant upset
+  /* 28 */ "Kentucky",
+  /* 29 */ "Troy",
+  /* 30 */ "Pittsburgh",
+  /* 31 */ "East Carolina",
+  /* 32 */ "Saint Mary's",    // RISES: beat #1 UCLA — most dramatic upset
+  /* 33 */ "Virginia Tech",
+  /* 34 */ "Missouri State",  // DROPS: lost to Arkansas (peer)
+  /* 35 */ "TCU",
+  /* 36 */ "Southern Miss",   // DROPS: first-round exit for top-15 program
+  /* 37 */ "Arizona State",
+  /* 38 */ "Clemson",
+  /* 39 */ "NC State",
+  /* 40 */ "Oregon State",    // DROPS: lost to Washington (~#93) — big upset
+  /* 41 */ "Purdue",
+  /* 42 */ "Michigan",
+  /* 43 */ "Kansas State",
+  /* 44 */ "Coastal Carolina",// DROPS: lost to NIU — significant upset
+  /* 45 */ "Gonzaga",
+  /* 46 */ "Oklahoma State",  // DROPS: first-round exit
   /* 47 */ "Arkansas State",
   /* 48 */ "California",
   /* 49 */ "Baylor",
   /* 50 */ "LSU",
   /* 51 */ "South Alabama",
-  /* 52 */ "UAB",
-  /* 53 */ "Notre Dame",
-  /* 54 */ "Dallas Baptist",
-  /* 55 */ "Iowa",
-  /* 56 */ "Vanderbilt",
-  /* 57 */ "Cal Poly",
-  /* 58 */ "Rice",
-  /* 59 */ "BYU",
-  /* 60 */ "South Florida",
-  /* 61 */ "Washington State",
-  /* 62 */ "Duke",
-  /* 63 */ "Maryland",
-  /* 64 */ "Ohio State",
-  /* 65 */ "Louisville",
-  /* 66 */ "Minnesota",
-  /* 67 */ "Creighton",
-  /* 68 */ "UC San Diego",
-  /* 69 */ "Charlotte",
-  /* 70 */ "Illinois",
-  /* 71 */ "San Diego State",
+  /* 52 */ "Washington",      // RISES: beat Oregon State (#17) — major upset win
+  /* 53 */ "UAB",
+  /* 54 */ "Notre Dame",
+  /* 55 */ "Dallas Baptist",
+  /* 56 */ "Iowa",
+  /* 57 */ "Vanderbilt",
+  /* 58 */ "Cal Poly",
+  /* 59 */ "Rice",
+  /* 60 */ "BYU",
+  /* 61 */ "South Florida",
+  /* 62 */ "UC Santa Barbara",// DROPS: first-round exit for a top-40 program
+  /* 63 */ "Washington State",
+  /* 64 */ "Duke",
+  /* 65 */ "Maryland",
+  /* 66 */ "Ohio State",
+  /* 67 */ "Louisville",
+  /* 68 */ "Minnesota",
+  /* 69 */ "Creighton",
+  /* 70 */ "UC San Diego",
+  /* 71 */ "Charlotte",
+  // Illinois and San Diego State fall to ~72-73 (determined by current OVR)
 ];
 
 const PITCHER_POSITIONS = new Set(["P", "SP", "RP", "CP"]);
@@ -104,11 +105,16 @@ function teamAvgOVR(players: RealPlayer[]): number {
 }
 
 function targetOVR(rank: number): number {
-  return 447 - (rank - 1) * (240 / 141);
+  // Calibrated for current raw attr levels (~170-270 raw OVR range after hitter-calibration passes).
+  // Rank 1 target ~300, rank 149 target ~176; produces scale factors ≈0.85–1.6 range.
+  // Bottom anchor < raw OVR for weakest teams so they get sf < 1.0, allowing weak individual
+  // players to fall into the sub-150 OVR range (as the validate-ovr-bands 100-149 band requires).
+  // This formula is the right range after the calibrate-hitter-attrs feedback loop stabilized.
+  return 340 - (rank - 1) * (180 / 148);
 }
 
 // ─── Collect all unique team names from RAW_UNCALIBRATED_ROSTERS ──────────
-const NATIONAL_TOTAL = 142; // Exactly 142 in-game teams get unique 1–142 ranks
+const NATIONAL_TOTAL = 149; // All 149 in-game teams get unique 1–149 ranks
 const allTeams = Object.keys(RAW_UNCALIBRATED_ROSTERS);
 const top71Set = new Set(TOP_71_ORDER);
 
@@ -194,6 +200,45 @@ lines.push("export const ROSTER_SCALE_FACTORS: Record<string, number> = {");
 for (const c of calibrations) {
   lines.push(`  ${JSON.stringify(c.name)}: ${c.scaleFactor.toFixed(6)},`);
 }
+lines.push("};");
+lines.push("");
+lines.push("/**");
+lines.push(" * Per-team pitcher attribute multiplier applied ON TOP of the base ROSTER_SCALE_FACTORS entry.");
+lines.push(" * Default = 1.0 (no override). Values > 1 boost pitcher attrs; values < 1 reduce them.");
+lines.push(" * Used to fix RPI rank drift caused by H-P imbalances — specifically teams whose");
+lines.push(" * hitters are over-powered relative to their pitching staff.");
+lines.push(" */");
+lines.push("export const PITCHER_SCALE_OVERRIDES: Record<string, number> = {");
+lines.push("  // These teams' hitters are pulling the team avg well above their pitching.");
+lines.push("  // Boost pitchers slightly so the H-P gap narrows and OVR rank drops closer to intent.");
+lines.push('  "Louisiana":       1.08,');
+lines.push('  "Texas A&M":       1.07,');
+lines.push('  "Wake Forest":     1.07,');
+lines.push('  "Clemson":         1.05,');
+lines.push('  "Virginia Tech":   1.06,');
+lines.push('  "Southern Miss":   1.05,');
+lines.push('  "Nebraska":        1.03,');
+lines.push('  "Georgia":         1.04,');
+lines.push('  "Georgia Tech":    1.03,');
+lines.push("};");
+lines.push("");
+lines.push("/**");
+lines.push(" * Per-team hitter attribute multiplier applied ON TOP of the base ROSTER_SCALE_FACTORS entry.");
+lines.push(" * Default = 1.0 (no override). Values < 1 reduce hitter attrs to close inflated H-P gaps.");
+lines.push(" * Only used for teams that are ranked too high due to over-powered hitters — NOT used to");
+lines.push(" * boost under-performing teams (that's handled via ROSTER_SCALE_FACTORS instead).");
+lines.push(" */");
+lines.push("export const HITTER_SCALE_OVERRIDES: Record<string, number> = {");
+lines.push("  // Reduce hitters to narrow inflated H-P gap (ranks these teams lower)");
+lines.push('  "Louisiana":       0.92,');
+lines.push('  "Texas A&M":       0.94,');
+lines.push('  "Wake Forest":     0.93,');
+lines.push('  "Clemson":         0.95,');
+lines.push('  "Virginia Tech":   0.94,');
+lines.push('  "Southern Miss":   0.94,');
+lines.push('  "Nebraska":        0.96,');
+lines.push('  "Georgia":         0.96,');
+lines.push('  "Georgia Tech":    0.96,');
 lines.push("};");
 lines.push("");
 
