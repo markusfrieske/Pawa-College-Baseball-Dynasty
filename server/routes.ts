@@ -3284,6 +3284,35 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Player not found" });
       }
 
+      // Enforce league scoping: verify the player's team belongs to this league
+      const playerTeamForScope = await storage.getTeam(player.teamId);
+      if (!playerTeamForScope || playerTeamForScope.leagueId !== req.params.id) {
+        return res.status(403).json({ message: "Player does not belong to this league" });
+      }
+
+      // Build a field-by-field change summary for the audit log
+      const EDITABLE_FIELD_LABELS: Record<string, string> = {
+        position: "Position", eligibility: "Eligibility", potential: "Potential",
+        hitForAvg: "Contact", power: "Power", speed: "Speed", arm: "Arm",
+        fielding: "Fielding", errorResistance: "Error Res", clutch: "Clutch",
+        vsLHP: "vs LHP", grit: "Grit", stealing: "Stealing", running: "Running",
+        throwing: "Throwing", recovery: "Recovery", catcherAbility: "Catcher",
+        velocity: "Velocity", control: "Control", stamina: "Stamina", stuff: "Stuff",
+        wRISP: "W/RISP", vsLefty: "vs Lefty", poise: "Poise", heater: "Heater",
+        agile: "Agile", abilities: "Abilities",
+      };
+      const changeSummary: string[] = [];
+      for (const [field, label] of Object.entries(EDITABLE_FIELD_LABELS)) {
+        if (!(field in req.body)) continue;
+        const oldVal = (player as Record<string, unknown>)[field];
+        const newVal = req.body[field];
+        const oldStr = Array.isArray(oldVal) ? (oldVal as string[]).join(", ") || "none" : String(oldVal ?? "");
+        const newStr = Array.isArray(newVal) ? (newVal as string[]).join(", ") || "none" : String(newVal ?? "");
+        if (oldStr !== newStr) {
+          changeSummary.push(`${label}: ${oldStr} → ${newStr}`);
+        }
+      }
+
       const mergedPlayer = { ...player, ...req.body };
       // Recalculate OVR using the new (merged) position — converted players get the
       // correct positional attribute weights applied immediately.
@@ -3308,12 +3337,29 @@ export async function registerRoutes(
           req.body.position,
         );
       }
-      
+
+      // Use the already-fetched team for the richer audit entry
+      const playerTeamName = playerTeamForScope.name ?? "Unknown Team";
+      const playerName = `${player.firstName} ${player.lastName}`;
+      const changeDetail = changeSummary.length > 0
+        ? changeSummary.join("; ")
+        : "No attribute changes";
+
+      const auditDetails = `Commissioner edited ${playerName} (${playerTeamName}): ${changeDetail}`;
+
       await storage.createAuditLog({
         leagueId: req.params.id,
         userId: req.session.userId,
-        action: "Player Edited",
-        details: `Edited player ${player.firstName} ${player.lastName}`,
+        action: "Roster Edit",
+        details: auditDetails,
+      });
+
+      // Also surface in the activity feed so all coaches see the edit in the News tab
+      await storage.createLeagueEvent({
+        leagueId: req.params.id,
+        eventType: "roster_edit",
+        title: "Roster Edit",
+        description: `Commissioner edited ${playerName} (${playerTeamName}). Changes: ${changeDetail}`,
       });
 
       res.json(updated);
