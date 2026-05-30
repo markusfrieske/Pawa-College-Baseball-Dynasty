@@ -312,6 +312,9 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         ...noPitches },
       // INFIELDERS (7)
       // Justin Lebron — SS JR, 3-run HR vs SC, reached 6 straight games, top draft prospect
+      // Requested: Gambler (clutch gold) + Express Baserunning (running gold). Max 1 gold per player enforced
+      // by validate-abilities. Gambler chosen as primary gold (high clutch/wRISP stats); Express Baserunning
+      // is the approved fallback that was retained previously and can replace Gambler if the priority changes.
       { firstName: "Justin", lastName: "Lebron", position: "SS", eligibility: "JR", homeState: "FL", hometown: "Miami", jerseyNumber: 1,
         hitForAvg: 77, power: 76, speed: 70, arm: 72, fielding: 63, errorResistance: 62, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 78, vsLHP: 74, grit: 76, stealing: 65, running: 74, throwing: 66, recovery: 62, wRISP: 86, vsLefty: 78, poise: 86, heater: 0, agile: 68,

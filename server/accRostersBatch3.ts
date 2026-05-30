@@ -230,8 +230,11 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "R",
       ...noPitches },
     // INFIELDERS (8)
+    // Rintaro Sasaki — SO 1B, target 350 OVR. Raw stats are high because Stanford scale=0.909607 reduces all attrs.
+    // Artist (gold) was requested but cannot be added: gold-gate enforces OVR≥500 and Stanford's sub-1.0 scale
+    // limits the base OVR to ~335 at this stat level — Line Drive is the power-archetype substitute.
     { firstName: "Rintaro", lastName: "Sasaki", position: "1B", eligibility: "SO", homeState: "CA", hometown: "Stanford", jerseyNumber: 21,
-      hitForAvg: 78, power: 82, speed: 60, arm: 46, fielding: 38, errorResistance: 36, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 98, power: 93, speed: 60, arm: 46, fielding: 38, errorResistance: 36, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 62, vsLHP: 56, grit: 58, stealing: 54, running: 54, throwing: 50, recovery: 48, wRISP: 64, vsLefty: 56, poise: 62, heater: 0, agile: 40,
       abilities: ["Line Drive", "Consigliere"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
