@@ -212,6 +212,31 @@ for (const [team, players] of Object.entries(RAW_UNCALIBRATED_ROSTERS)) {
 
 console.log(`Total hitters: ${allHitters.length}`);
 
+// ── 1b. Build per-team star lock (top-5 hitters by raw OVR per team) ─────────
+// Star-locked players have their raw attributes preserved exactly — no cap or
+// floor adjustments applied. This ensures franchise superstars are not degraded
+// even when a team's scale factor shifts dramatically due to ranking changes.
+const STAR_LOCK_COUNT = 5;
+const starLockedSet = new Set<string>();
+{
+  const byTeam = new Map<string, HitterRecord[]>();
+  for (const rec of allHitters) {
+    if (!byTeam.has(rec.team)) byTeam.set(rec.team, []);
+    byTeam.get(rec.team)!.push(rec);
+  }
+  for (const [, recs] of byTeam) {
+    const sorted = [...recs].sort((a, b) => {
+      const aRaw = calculateOVR(a.rawPlayer);
+      const bRaw = calculateOVR(b.rawPlayer);
+      return bRaw - aRaw;
+    });
+    for (const rec of sorted.slice(0, STAR_LOCK_COUNT)) {
+      starLockedSet.add(`${rec.rawPlayer.firstName}|${rec.rawPlayer.lastName}|${rec.team}`);
+    }
+  }
+}
+console.log(`Star-locked players: ${starLockedSet.size} (top-${STAR_LOCK_COUNT} per team)`);
+
 // ── 2. Identify elite tier ───────────────────────────────────────────────────
 // Use SCALED peak attr for tier identification (mirrors in-game reality).
 // Where many players are clamped at 99, break ties by raw peak to be stable.
@@ -287,12 +312,19 @@ const patches: PatchEntry[] = [];
 for (const rec of allHitters) {
   const { team, tier, sf, rawPlayer } = rec;
   const key = `${rawPlayer.firstName}|${rawPlayer.lastName}|${team}`;
+
   const isElite = eliteSet.has(key);
+  // Star-locked players (top-5 OVR per team): no attribute cap applied.
+  // They keep original raw values unless a gold-gate or OVR-ceiling guard
+  // forces a change.  We still run gold-gate, S-grade, and OVR-ceiling checks
+  // on them so constraints that MUST hold everywhere continue to hold.
+  const isStarLocked = starLockedSet.has(key);
   const gameAttrCap = isElite ? ELITE_SCALED_CAP : REG_SCALED_CAP;
 
   // Raw cap: the highest raw value that, after scaling, stays ≤ gameAttrCap
   // clamp(raw * sf, 20, 99) ≤ gameAttrCap  →  raw ≤ gameAttrCap / sf
-  const rawCap = Math.min(99, Math.floor(gameAttrCap / sf));
+  // Star-locked players bypass the cap (rawCap = 99 → no reduction).
+  const rawCap = isStarLocked ? 99 : Math.min(99, Math.floor(gameAttrCap / sf));
 
   // Step A: Cap raw primary attrs so scaled attrs stay ≤ gameAttrCap
   //         Also enforce ATTR_FLOOR_RAW
