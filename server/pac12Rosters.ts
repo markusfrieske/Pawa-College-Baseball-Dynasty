@@ -57,7 +57,7 @@ export const PAC12_ROSTERS: Record<string, RealPlayer[]> = {
       ...pitchMix(1, [1, 0, 0, 0, 4, 0, 0, 1, 0, 0]) },
     // Wyatt Queen — RHP RP
     { firstName: "Wyatt", lastName: "Queen", position: "P", eligibility: "JR", homeState: "OR", hometown: "Eugene", jerseyNumber: 40,
-      hitForAvg: 12, power: 10, speed: 31, arm: 54, fielding: 32, errorResistance: 44, velocity: 49, control: 54, stamina: 36, stuff: 52,
+      hitForAvg: 12, power: 10, speed: 31, arm: 54, fielding: 32, errorResistance: 44, velocity: 49, control: 54, stamina: 36, stuff: 51,
       clutch: 66, vsLHP: 60, grit: 66, stealing: 8, running: 30, throwing: 66, recovery: 41, wRISP: 46, vsLefty: 46, poise: 49, heater: 55, agile: 38,
       abilities: ["Fireman", "Strong Starter"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -188,7 +188,7 @@ export const PAC12_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...noPitches },
       { firstName: "Gunnar", lastName: "Myro", position: "P", eligibility: "JR", homeState: "OR", hometown: "Eugene", jerseyNumber: 51,
-      hitForAvg: 0, power: 0, speed: 0, arm: 0, fielding: 0, errorResistance: 0, velocity: 62, control: 58, stamina: 32, stuff: 52,
+      hitForAvg: 0, power: 0, speed: 0, arm: 0, fielding: 0, errorResistance: 0, velocity: 61, control: 57, stamina: 32, stuff: 53,
       clutch: 0, vsLHP: 0, grit: 0, stealing: 0, running: 0, throwing: 0, recovery: 0, wRISP: 0, vsLefty: 0, poise: 0, heater: 0, agile: 0,
       abilities: ["Guts", "Strong Finisher"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "L",

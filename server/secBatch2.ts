@@ -23,7 +23,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         ...pitchMix(1, [6, 0, 0, 0, 0, 4, 0, 1, 0, 0]) },
       // Colin Fisher — LHP JR Sat/Sun
       { firstName: "Colin", lastName: "Fisher", position: "P", eligibility: "JR", homeState: "AR", hometown: "Little Rock", jerseyNumber: 37,
-        hitForAvg: 13, power: 10, speed: 32, arm: 55, fielding: 33, errorResistance: 44, velocity: 52, control: 55, stamina: 83, stuff: 52,
+        hitForAvg: 13, power: 10, speed: 32, arm: 55, fielding: 33, errorResistance: 44, velocity: 52, control: 55, stamina: 83, stuff: 51,
         clutch: 64, vsLHP: 74, grit: 66, stealing: 8, running: 30, throwing: 68, recovery: 47, wRISP: 47, vsLefty: 58, poise: 51, heater: 56, agile: 40,
         abilities: ["Fireman", "Sharpness", "Natural Shuuto"], potential: "B+", catcherAbility: null,
         throwHand: "L", batHand: "L",
@@ -71,7 +71,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         ...pitchMix(1, [0, 0, 0, 0, 0, 4, 4, 0, 1, 0]) },
       // Kade Smith — JR RHP depth
       { firstName: "Kade", lastName: "Smith", position: "P", eligibility: "JR", homeState: "OK", hometown: "Norman", jerseyNumber: 43,
-        hitForAvg: 10, power: 8, speed: 30, arm: 32, fielding: 20, errorResistance: 32, velocity: 31, control: 31, stamina: 13, stuff: 30,
+        hitForAvg: 10, power: 8, speed: 30, arm: 32, fielding: 20, errorResistance: 32, velocity: 31, control: 31, stamina: 13, stuff: 34,
         clutch: 42, vsLHP: 40, grit: 44, stealing: 7, running: 24, throwing: 46, recovery: 27, wRISP: 27, vsLefty: 28, poise: 30, heater: 34, agile: 28,
         abilities: ["Constant Speed", "Sharpness"], potential: "B", catcherAbility: null,
         throwHand: "R", batHand: "R",
@@ -681,7 +681,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       ...pitchMix(1, [0, 0, 0, 1, 0, 4, 4, 0, 0, 0]) },
     // Sam Whitfield — FR RHP RP
     { firstName: "Sam", lastName: "Whitfield", position: "P", eligibility: "FR", homeState: "GA", hometown: "Savannah", jerseyNumber: 36,
-      hitForAvg: 8, power: 6, speed: 25, arm: 32, fielding: 20, errorResistance: 30, velocity: 32, control: 32, stamina: 37, stuff: 30,
+      hitForAvg: 8, power: 6, speed: 25, arm: 32, fielding: 20, errorResistance: 30, velocity: 32, control: 32, stamina: 37, stuff: 32,
       clutch: 37, vsLHP: 34, grit: 39, stealing: 6, running: 22, throwing: 43, recovery: 24, wRISP: 25, vsLefty: 26, poise: 26, heater: 34, agile: 27,
       abilities: ["Winner's Luck"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",

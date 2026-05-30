@@ -549,7 +549,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "L", batHand: "L",
       ...pitchMix(1, [0, 3, 0, 1, 0, 4, 4, 0, 0, 0]) },
     { firstName: "Eli", lastName: "Thurmond", position: "P", eligibility: "SR", homeState: "GA", hometown: "Savannah", jerseyNumber: 27,
-      hitForAvg: 16, power: 14, speed: 33, arm: 56, fielding: 35, errorResistance: 47, velocity: 61, control: 53, stamina: 84, stuff: 52,
+      hitForAvg: 16, power: 14, speed: 33, arm: 56, fielding: 35, errorResistance: 47, velocity: 61, control: 53, stamina: 84, stuff: 50,
       clutch: 65, vsLHP: 60, grit: 66, stealing: 12, running: 35, throwing: 71, recovery: 47, wRISP: 48, vsLefty: 48, poise: 52, heater: 56, agile: 43,
       abilities: ["Guts", "Kageura"], potential: "B+", catcherAbility: null,
       throwHand: "L", batHand: "L",
