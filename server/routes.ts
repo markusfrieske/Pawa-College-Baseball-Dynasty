@@ -920,39 +920,51 @@ export async function registerRoutes(
     try {
       const ALL_CONF_NAMES = ["SEC", "ACC", "Big 12", "Big Ten", "Pac-12", "AAC", "WCC", "Ivy League", "Sun Belt", "Big West", "HBCU", "Missouri Valley"];
 
-      const STATE_WEIGHTS: Record<string, number> = {
-        CA: 24, TX: 19, FL: 16, GA: 6.5, NC: 4, NJ: 2.5, IL: 2.3, PA: 2.0, OH: 1.8,
-        TN: 1.7, AZ: 1.5, MD: 1.5, VA: 1.4, SC: 1.3, AL: 1.2, LA: 1.1, IN: 0.9,
-        WA: 0.9, CO: 0.8, MA: 0.8, CT: 0.7, MS: 0.7, KY: 0.6, OK: 0.5, MO: 0.5,
-        KS: 0.5, UT: 0.4, AR: 0.4, MN: 0.4, MI: 0.4, WI: 0.4, NM: 0.3, NY: 0.3,
-        NE: 0.3, OR: 0.3, RI: 0.2, ID: 0.2, NV: 0.2, HI: 0.2, WV: 0.2, IA: 0.2,
-        DE: 0.1, NH: 0.1, ME: 0.1, VT: 0.1, ND: 0.1, SD: 0.1, WY: 0.1, MT: 0.1, AK: 0.1,
+      // Composite recruit grade: 40% normalized geographic talent pool + 60% program attributes
+      // (prestige, facilities, academics, stadium, collegeLife). Normal distribution across
+      // all 149 programs — mean ~6.0, σ ~1.4. z-bands: A ≥1.5σ, A- ≥1.0σ, B+ ≥0.5σ,
+      // B ≥0σ, B- ≥−0.5σ, C+ ≥−1.0σ, C ≥−1.5σ, C- ≥−2.0σ.
+      const RECRUIT_GRADE_LOOKUP: Record<string, string> = {
+        "Florida":"A","Stanford":"A","UCLA":"A","Texas":"A","Miami":"A","USC":"A","Cal State Fullerton":"A",
+        "Florida State":"A-","UC Santa Barbara":"A-","Arkansas":"A-","California":"A-","Pepperdine":"A-",
+        "UC Irvine":"A-","Cal Poly":"A-","Texas A&M":"A-","Ole Miss":"A-","San Diego State":"A-",
+        "Long Beach State":"A-","TCU":"A-","Mississippi State":"A-","Fresno State":"A-",
+        "Loyola Marymount":"A-","San Diego":"A-","Vanderbilt":"A-","Rice":"A-","South Florida":"A-",
+        "Florida A&M":"A-","Saint Mary's":"A-","UC San Diego":"A-","Santa Clara":"A-",
+        "Southern Miss":"B+","Georgia":"B+","San Francisco":"B+","UC Davis":"B+","Dallas Baptist":"B+",
+        "Alabama":"B+","UCF":"B+","Virginia":"B+","Texas Tech":"B+","Jackson State":"B+",
+        "Florida Atlantic":"B+","Bethune-Cookman":"B+","Baylor":"B+","North Carolina":"B+",
+        "Wake Forest":"B+","Cal State Northridge":"B+","Tennessee":"B+","Duke":"B+",
+        "East Carolina":"B+","Georgia Tech":"B+","Virginia Tech":"B+",
+        "Houston":"B","South Carolina":"B","Auburn":"B","Arkansas State":"B","LSU":"B",
+        "Oregon State":"B","North Texas":"B","Clemson":"B","Coastal Carolina":"B","NC State":"B",
+        "Alcorn State":"B","Texas Southern":"B","Cal State Bakersfield":"B","James Madison":"B",
+        "West Virginia":"B","Prairie View A&M":"B","North Carolina A&T":"B","Georgia State":"B",
+        "Kentucky":"B","Louisville":"B","Norfolk State":"B","Charlotte":"B","App State":"B",
+        "Georgia Southern":"B","Old Dominion":"B","Memphis":"B","Belmont":"B",
+        "Marshall":"B-","North Carolina Central":"B-","Oregon":"B-","UAB":"B-","South Alabama":"B-",
+        "Tulane":"B-","Washington":"B-","Oklahoma":"B-","Oklahoma State":"B-","Murray State":"B-",
+        "Gonzaga":"B-","Troy":"B-","Alabama State":"B-","Louisiana":"B-","UNLV":"B-","Washington State":"B-",
+        "Michigan":"C+","Ohio State":"C+","Southern University":"C+","Nevada":"C+","Notre Dame":"C+",
+        "Portland":"C+","Grambling State":"C+","Northwestern":"C+","Penn":"C+","Columbia":"C+",
+        "Maryland":"C+","Arizona State":"C+","Missouri":"C+","Minnesota":"C+","Penn State":"C+",
+        "Indiana":"C+","Princeton":"C+","Arizona":"C+","Missouri State":"C+",
+        "Southern Illinois":"C","Rutgers":"C","Pittsburgh":"C","Wichita State":"C","Creighton":"C",
+        "Cornell":"C","Illinois":"C","UIC":"C","Purdue":"C","Cincinnati":"C","Harvard":"C","Yale":"C",
+        "Iowa":"C","Northern Iowa":"C","Illinois State":"C","Bradley":"C","Michigan State":"C",
+        "Boston College":"C","Hawaii":"C","Evansville":"C","Valparaiso":"C","Howard":"C",
+        "Indiana State":"C","Utah":"C","Kansas":"C","Air Force":"C","Nebraska":"C","BYU":"C","New Mexico":"C",
+        "Brown":"C-","Dartmouth":"C-","Kansas State":"C-","Western Illinois":"C-","Coppin State":"C-",
+        "Delaware State":"C-","Maryland Eastern Shore":"C-",
       };
 
-      const REGIONS: string[][] = [
-        ["FL", "GA", "NC", "SC", "AL", "TN", "VA", "MS", "KY", "WV", "AR"],
-        ["TX", "LA", "OK", "AR", "MS"],
-        ["CA", "WA", "OR", "NV"],
-        ["AZ", "NM", "CO", "UT", "NV", "ID"],
-        ["OH", "IN", "IL", "MI", "WI", "MN", "IA", "MO"],
-        ["KS", "NE", "ND", "SD", "MN", "IA", "MO"],
-        ["PA", "NJ", "NY", "MD", "DE", "VA", "WV"],
-        ["MA", "CT", "RI", "NH", "VT", "ME"],
-      ];
-
-      function recruitAdv(state: string) {
-        const direct = STATE_WEIGHTS[state] ?? 0.1;
-        let bonus = 0;
-        for (const region of REGIONS) {
-          if (region.includes(state)) {
-            for (const s of region) {
-              if (s !== state) bonus += (STATE_WEIGHTS[s] ?? 0.1) * 0.4;
-            }
-          }
-        }
-        const score = Math.min(10, Math.round((direct + bonus) * 0.4));
-        const letter = score >= 9 ? "A+" : score >= 8 ? "A" : score >= 7 ? "B+" : score >= 6 ? "B" : score >= 5 ? "C+" : score >= 4 ? "C" : score >= 3 ? "D+" : score >= 2 ? "D" : "F";
-        const label = score >= 9 ? "Elite" : score >= 7 ? "Very High" : score >= 5 ? "High" : score >= 3 ? "Average" : "Low";
+      function recruitAdv(teamName: string) {
+        const letter = RECRUIT_GRADE_LOOKUP[teamName] ?? "C";
+        const score = letter === "A" ? 10 : letter === "A-" ? 9 : letter === "B+" ? 8 :
+                      letter === "B" ? 7 : letter === "B-" ? 6 : letter === "C+" ? 5 :
+                      letter === "C" ? 4 : letter === "C-" ? 3 : letter === "D+" ? 2 : 1;
+        const label = score >= 10 ? "Elite" : score >= 8 ? "Very High" : score >= 6 ? "High" :
+                      score >= 4 ? "Average" : "Low";
         return { grade: letter, label, score };
       }
 
@@ -1054,7 +1066,7 @@ export async function registerRoutes(
           topFielder: t.topFielder,
           topPitcher: t.topPitcher,
           topUnderclassman: t.topUnderclassman,
-          recruitingAdvantage: recruitAdv(tmpl?.state ?? ""),
+          recruitingAdvantage: recruitAdv(t.teamName),
           projectedConferenceFinish: { rank: (cr.indexOf(t.teamName) + 1) || 1, total: cr.length || 1 },
           nilBudget: tmpl?.nilBudget ?? 2000000,
           city: tmpl?.city ?? "",
