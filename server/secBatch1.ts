@@ -144,7 +144,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Jack Ruckert — SS depth, .250 / 0 HR / 8 RBI in part-time role
     { firstName: "Jack", lastName: "Ruckert", position: "SS", eligibility: "SO", homeState: "LA", hometown: "Metairie", jerseyNumber: 32,
-      hitForAvg: 57, power: 39, speed: 57, arm: 27, fielding: 27, errorResistance: 70, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 65, power: 39, speed: 57, arm: 27, fielding: 27, errorResistance: 70, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 45, vsLHP: 48, grit: 50, stealing: 63, running: 56, throwing: 60, recovery: 40, wRISP: 46, vsLefty: 44, poise: 48, heater: 0, agile: 56,
       abilities: ["Good Mood", "Disturbance"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -352,7 +352,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
       // Bryce Buckley — 3B FR
       { firstName: "Bryce", lastName: "Buckley", position: "3B", eligibility: "FR", homeState: "FL", hometown: "Winter Haven", jerseyNumber: 26,
-        hitForAvg: 48, power: 41, speed: 52, arm: 22, fielding: 52, errorResistance: 50, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 47, power: 41, speed: 52, arm: 22, fielding: 52, errorResistance: 50, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 43, vsLHP: 49, grit: 44, stealing: 57, running: 50, throwing: 43, recovery: 28, wRISP: 30, vsLefty: 28, poise: 32, heater: 0, agile: 32,
         abilities: ["Bunt Artisan", "Double Play"], potential: "B+", catcherAbility: null,
         throwHand: "R", batHand: "R",
@@ -661,7 +661,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Tyler Keese — backup C SO
     { firstName: "Tyler", lastName: "Keese", position: "C", eligibility: "SO", homeState: "TX", hometown: "Conroe", jerseyNumber: 19,
-      hitForAvg: 57, power: 53, speed: 57, arm: 58, fielding: 52, errorResistance: 42, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 65, power: 53, speed: 57, arm: 58, fielding: 52, errorResistance: 42, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 50, vsLHP: 52, grit: 52, stealing: 40, running: 40, throwing: 65, recovery: 44, wRISP: 48, vsLefty: 44, poise: 50, heater: 0, agile: 38,
       abilities: ["Defensive Artisan"], potential: "B+", catcherAbility: 58,
       throwHand: "R", batHand: "L",
@@ -1019,7 +1019,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       // CATCHERS (2)
       // Austin Fawley — JR C, projected starter
       { firstName: "Austin", lastName: "Fawley", position: "C", eligibility: "JR", homeState: "VA", hometown: "Roanoke", jerseyNumber: 12,
-        hitForAvg: 62, power: 62, speed: 46, arm: 52, fielding: 55, errorResistance: 63, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 68, power: 62, speed: 46, arm: 52, fielding: 55, errorResistance: 63, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 60, vsLHP: 54, grit: 60, stealing: 49, running: 49, throwing: 66, recovery: 46, wRISP: 60, vsLefty: 54, poise: 60, heater: 0, agile: 32,
         abilities: ["Power Hitter", "Defensive Artisan", "Revenge"], potential: "A", catcherAbility: 56,
         throwHand: "R", batHand: "R",
@@ -1036,7 +1036,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       // INFIELDERS (7)
       // Judd Utermark — 3B JR, primary power source — TEAM ELITE POWER
       { firstName: "Judd", lastName: "Utermark", position: "3B", eligibility: "JR", homeState: "IA", hometown: "Dubuque", jerseyNumber: 5,
-        hitForAvg: 63, power: 71, speed: 57, arm: 43, fielding: 35, errorResistance: 62, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 67, power: 71, speed: 57, arm: 43, fielding: 35, errorResistance: 62, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 62, vsLHP: 64, grit: 58, stealing: 49, running: 49, throwing: 58, recovery: 44, wRISP: 80, vsLefty: 76, poise: 80, heater: 0, agile: 40,
         abilities: ["Good Infield Hit", "Consigliere", "Power Hitter"], potential: "A+", catcherAbility: null,
         throwHand: "R", batHand: "R",
@@ -1109,7 +1109,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
       // Daniel Pacella — OF JR
       { firstName: "Daniel", lastName: "Pacella", position: "OF", eligibility: "JR", homeState: "IL", hometown: "Normal", jerseyNumber: 3,
-        hitForAvg: 62, power: 62, speed: 63, arm: 40, fielding: 33, errorResistance: 61, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 67, power: 62, speed: 63, arm: 40, fielding: 33, errorResistance: 61, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 56, vsLHP: 52, grit: 56, stealing: 49, running: 49, throwing: 64, recovery: 42, wRISP: 56, vsLefty: 50, poise: 56, heater: 0, agile: 42,
         abilities: ["Power Hitter", "Consigliere"], potential: "A-", catcherAbility: null,
         throwHand: "R", batHand: "S",

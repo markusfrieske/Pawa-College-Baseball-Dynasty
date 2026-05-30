@@ -60,7 +60,7 @@ export const IVY_LEAGUE_ROSTERS: Record<string, RealPlayer[]> = {
       ...pitchMix(1, [0, 3, 2, 1, 0, 0, 0, 0, 0, 0]) },
     // CATCHERS (2)
     { firstName: "Brian", lastName: "Castellano", position: "C", eligibility: "SR", homeState: "NY", hometown: "Staten Island", jerseyNumber: 14,
-      hitForAvg: 52, power: 44, speed: 31, arm: 85, fielding: 62, errorResistance: 60, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 53, power: 44, speed: 31, arm: 85, fielding: 62, errorResistance: 60, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 51, vsLHP: 45, grit: 41, stealing: 43, running: 40, throwing: 50, recovery: 33, wRISP: 37, vsLefty: 35, poise: 39, heater: 0, agile: 28,
       abilities: ["Defensive Artisan"], potential: "B", catcherAbility: 43,
       throwHand: "R", batHand: "S",
@@ -218,7 +218,7 @@ export const IVY_LEAGUE_ROSTERS: Record<string, RealPlayer[]> = {
       ...pitchMix(1, [0, 2, 2, 0, 0, 0, 0, 1, 0, 0]) },
     // CATCHERS (2)
     { firstName: "Mike", lastName: "Donovan", position: "C", eligibility: "JR", homeState: "NY", hometown: "Buffalo", jerseyNumber: 14,
-      hitForAvg: 56, power: 51, speed: 64, arm: 73, fielding: 54, errorResistance: 40, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 60, power: 51, speed: 64, arm: 73, fielding: 54, errorResistance: 40, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 51, vsLHP: 48, grit: 55, stealing: 40, running: 39, throwing: 55, recovery: 45, wRISP: 48, vsLefty: 45, poise: 50, heater: 0, agile: 37,
       abilities: ["Defensive Artisan"], potential: "B", catcherAbility: 58,
       throwHand: "R", batHand: "L",
@@ -1089,7 +1089,7 @@ export const IVY_LEAGUE_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "S",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     { firstName: "Rob", lastName: "Fielding", position: "OF", eligibility: "SR", homeState: "NY", hometown: "Rye", jerseyNumber: 20,
-      hitForAvg: 55, power: 50, speed: 88, arm: 62, fielding: 51, errorResistance: 41, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 53, power: 50, speed: 88, arm: 62, fielding: 51, errorResistance: 41, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 57, vsLHP: 52, grit: 49, stealing: 51, running: 56, throwing: 56, recovery: 41, wRISP: 50, vsLefty: 45, poise: 51, heater: 0, agile: 50,
       abilities: ["First Pitch Hitter"], potential: "B-", catcherAbility: null,
       throwHand: "R", batHand: "R",

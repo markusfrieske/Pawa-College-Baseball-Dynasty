@@ -225,7 +225,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "L",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     { firstName: "Trey", lastName: "Wells", position: "C", eligibility: "SR", homeState: "NJ", hometown: "Middletown", jerseyNumber: 18,
-      hitForAvg: 56, power: 51, speed: 36, arm: 35, fielding: 29, errorResistance: 75, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 58, power: 51, speed: 36, arm: 35, fielding: 29, errorResistance: 75, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 51, vsLHP: 52, grit: 52, stealing: 43, running: 36, throwing: 49, recovery: 35, wRISP: 38, vsLefty: 36, poise: 39, heater: 0, agile: 26,
       abilities: ["Bad Mood"], potential: "B", catcherAbility: 42,
       throwHand: "R", batHand: "R",
@@ -398,7 +398,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       // CATCHERS (2)
       // Isaac Cadena — JR C, transfer (TCU/Ohio St), .304/.442/.519, 6 HR
       { firstName: "Isaac", lastName: "Cadena", position: "C", eligibility: "JR", homeState: "TX", hometown: "Fort Worth", jerseyNumber: 14,
-        hitForAvg: 62, power: 62, speed: 42, arm: 53, fielding: 35, errorResistance: 59, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 66, power: 62, speed: 42, arm: 53, fielding: 35, errorResistance: 59, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 63, vsLHP: 58, grit: 58, stealing: 46, running: 46, throwing: 59, recovery: 48, wRISP: 76, vsLefty: 70, poise: 76, heater: 0, agile: 38,
         abilities: ["Spray Hitter", "Power Hitter", "Consigliere"], potential: "A+", catcherAbility: 60,
         throwHand: "R", batHand: "R",
@@ -406,7 +406,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
       // Richard Tejeda — C backup, big game vs Northwestern (3 RBI, 2-run HR)
       { firstName: "Richard", lastName: "Tejeda", position: "C", eligibility: "SO", homeState: "CA", hometown: "Los Angeles", jerseyNumber: 15,
-        hitForAvg: 48, power: 48, speed: 19, arm: 59, fielding: 47, errorResistance: 36, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 46, power: 48, speed: 19, arm: 59, fielding: 47, errorResistance: 36, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 49, vsLHP: 42, grit: 37, stealing: 36, running: 36, throwing: 43, recovery: 29, wRISP: 38, vsLefty: 34, poise: 37, heater: 0, agile: 25,
         abilities: ["Power Hitter"], potential: "B+", catcherAbility: 37,
         throwHand: "R", batHand: "R",
@@ -480,7 +480,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
       // Brock Slaton — OF SR
       { firstName: "Brock", lastName: "Slaton", position: "OF", eligibility: "SR", homeState: "LA", hometown: "New Orleans", jerseyNumber: 17,
-        hitForAvg: 62, power: 61, speed: 61, arm: 56, fielding: 34, errorResistance: 24, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 66, power: 61, speed: 61, arm: 56, fielding: 34, errorResistance: 24, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 56, vsLHP: 52, grit: 58, stealing: 46, running: 48, throwing: 66, recovery: 44, wRISP: 56, vsLefty: 52, poise: 56, heater: 0, agile: 50,
         abilities: ["Power Hitter", "Walkoff Hitter"], potential: "B+", catcherAbility: null,
         throwHand: "R", batHand: "R",
@@ -624,7 +624,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // INFIELDERS (7)
     // Roch Cholowsky — JR SS, projected #1 overall MLB pick, .335/18HR/62R, leads B10 in runs, generational talent
     { firstName: "Roch", lastName: "Cholowsky", position: "SS", eligibility: "JR", homeState: "CA", hometown: "Oceanside", jerseyNumber: 2,
-      hitForAvg: 57, power: 57, speed: 59, arm: 50, fielding: 47, errorResistance: 58, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 67, power: 57, speed: 59, arm: 50, fielding: 47, errorResistance: 58, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 88, vsLHP: 86, grit: 52, stealing: 47, running: 47, throwing: 51, recovery: 63, wRISP: 88, vsLefty: 86, poise: 86, heater: 0, agile: 70,
       abilities: ["Push", "Power Hitter", "Consigliere", "Tough Out", "Defensive Artisan", "Chance Maker"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -640,7 +640,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Roman Martin — SO, .339/7HR, All-Conference, hybrid C/3B per Daily Bruin
     { firstName: "Roman", lastName: "Martin", position: "3B", eligibility: "SO", homeState: "CA", hometown: "Chino Hills", jerseyNumber: 8,
-      hitForAvg: 59, power: 59, speed: 55, arm: 60, fielding: 62, errorResistance: 58, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 60, power: 59, speed: 55, arm: 60, fielding: 62, errorResistance: 58, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 70, vsLHP: 63, grit: 63, stealing: 47, running: 47, throwing: 75, recovery: 52, wRISP: 70, vsLefty: 66, poise: 70, heater: 0, agile: 44,
       abilities: ["Flying Start", "Spray Hitter", "Defensive Artisan"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",

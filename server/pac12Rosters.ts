@@ -84,7 +84,7 @@ export const PAC12_ROSTERS: Record<string, RealPlayer[]> = {
     // INFIELDERS (7)
     // Jacob Krieg — 1B SR, exit velo record (118 mph), .312/.409/.393, 16.5% BB rate, top of order — TEAM POWER ELITE
     { firstName: "Jacob", lastName: "Krieg", position: "1B", eligibility: "SR", homeState: "OR", hometown: "Tigard", jerseyNumber: 8,
-      hitForAvg: 62, power: 72, speed: 36, arm: 65, fielding: 57, errorResistance: 59, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 68, power: 72, speed: 36, arm: 65, fielding: 57, errorResistance: 59, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 59, vsLHP: 60, grit: 59, stealing: 47, running: 47, throwing: 66, recovery: 48, wRISP: 80, vsLefty: 74, poise: 80, heater: 0, agile: 38,
       abilities: ["Line Drive", "Consigliere", "Defensive Artisan"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "L",

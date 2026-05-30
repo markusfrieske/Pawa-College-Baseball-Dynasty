@@ -289,7 +289,7 @@ export const SUN_BELT_ROSTERS: Record<string, RealPlayer[]> = {
         pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
       // Lawson Odom — JR C, returns for title shot
       { firstName: "Lawson", lastName: "Odom", position: "C", eligibility: "JR", homeState: "MS", hometown: "Madison", jerseyNumber: 18,
-        hitForAvg: 55, power: 49, speed: 40, arm: 48, fielding: 43, errorResistance: 61, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 54, power: 49, speed: 40, arm: 48, fielding: 43, errorResistance: 61, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 50, vsLHP: 46, grit: 52, stealing: 44, running: 44, throwing: 63, recovery: 44, wRISP: 48, vsLefty: 44, poise: 50, heater: 0, agile: 36,
         abilities: ["Defensive Artisan"], potential: "B+", catcherAbility: 60,
         throwHand: "R", batHand: "S",
@@ -1169,7 +1169,7 @@ export const SUN_BELT_ROSTERS: Record<string, RealPlayer[]> = {
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // OUTFIELDERS (6)
     { firstName: "Justin", lastName: "Felix", position: "OF", eligibility: "SR", homeState: "AR", hometown: "Benton", jerseyNumber: 1,
-      hitForAvg: 57, power: 52, speed: 59, arm: 54, fielding: 48, errorResistance: 31, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 68, power: 52, speed: 59, arm: 54, fielding: 48, errorResistance: 31, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 50, vsLHP: 47, grit: 52, stealing: 45, running: 49, throwing: 63, recovery: 42, wRISP: 49, vsLefty: 45, poise: 50, heater: 0, agile: 52,
       abilities: ["Contact Hitter"], potential: "B-", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -1761,7 +1761,7 @@ export const SUN_BELT_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "R",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     { firstName: "Trey", lastName: "Falterman", position: "2B", eligibility: "JR", homeState: "LA", hometown: "New Orleans", jerseyNumber: 10,
-      hitForAvg: 56, power: 44, speed: 32, arm: 62, fielding: 56, errorResistance: 51, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 65, power: 44, speed: 32, arm: 62, fielding: 56, errorResistance: 51, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 50, vsLHP: 47, grit: 51, stealing: 44, running: 47, throwing: 61, recovery: 42, wRISP: 48, vsLefty: 45, poise: 50, heater: 0, agile: 50,
       abilities: ["Chance Maker"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "S",
@@ -1908,7 +1908,7 @@ export const SUN_BELT_ROSTERS: Record<string, RealPlayer[]> = {
       ...pitchMix(1, [0, 3, 3, 1, 0, 0, 0, 0, 0, 0]) },
     // CATCHERS (2)
     { firstName: "Kyle", lastName: "Novak", position: "C", eligibility: "JR", homeState: "VA", hometown: "Harrisonburg", jerseyNumber: 14,
-      hitForAvg: 55, power: 49, speed: 59, arm: 67, fielding: 47, errorResistance: 44, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 58, power: 49, speed: 59, arm: 67, fielding: 47, errorResistance: 44, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 54, vsLHP: 49, grit: 47, stealing: 41, running: 38, throwing: 54, recovery: 33, wRISP: 38, vsLefty: 34, poise: 38, heater: 0, agile: 27,
       abilities: ["Defensive Artisan"], potential: "B", catcherAbility: 41,
       throwHand: "R", batHand: "L",
