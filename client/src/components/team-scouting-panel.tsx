@@ -182,11 +182,11 @@ function AttrPip({
   label: string;
 }) {
   return (
-    <div className="flex flex-col gap-0.5 flex-1 min-w-[72px]" data-testid={`scouting-attr-${label.toLowerCase()}`}>
-      <div className="flex items-center gap-1">
+    <div className="flex flex-col gap-0.5" data-testid={`scouting-attr-${label.toLowerCase()}`}>
+      <div className="flex items-center gap-1 min-w-0">
         <Icon className={`w-3 h-3 shrink-0 ${iconColor}`} />
-        <span className="text-[8px] text-muted-foreground font-pixel">{label}</span>
-        <span className="text-[8px] font-bold text-foreground ml-auto">{value}</span>
+        <span className="text-[8px] text-muted-foreground font-pixel truncate">{label}</span>
+        <span className="text-[8px] font-bold text-foreground ml-auto shrink-0">{value}</span>
       </div>
       <GradeBar score={value} />
     </div>
@@ -301,7 +301,7 @@ export function TeamScoutingPanel({ teamName, info, onClose }: TeamScoutingPanel
       {/* Program Attributes row */}
       <div className="px-3 pb-2.5 pt-0 border-t border-border/30 mt-0">
         <p className="font-pixel text-[8px] text-muted-foreground uppercase tracking-wider mb-1.5 pt-2">Program Attributes</p>
-        <div className="flex gap-2 flex-wrap sm:flex-nowrap" data-testid="scouting-program-attributes">
+        <div className="grid grid-cols-3 gap-x-3 gap-y-2" data-testid="scouting-program-attributes">
           <AttrPip icon={Trophy}   iconColor="text-gold"          value={info.prestige}    label="Prestige" />
           <AttrPip icon={Wrench}   iconColor="text-blue-400"      value={info.facilities}  label="Facilities" />
           <AttrPip icon={BookOpen} iconColor="text-green-400"     value={info.academics}   label="Academics" />
