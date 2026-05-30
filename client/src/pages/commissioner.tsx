@@ -20,6 +20,7 @@ import {
   Users, 
   AlertTriangle,
   ChevronRight,
+  ChevronDown,
   Clock,
   Mail,
   UserPlus,
@@ -697,7 +698,7 @@ export default function CommissionerPage() {
 
           {isPrimaryCommissioner && (
             <TabsContent value="roster-editor">
-              <RosterEditorTab leagueId={id!} />
+              <RosterEditorTab leagueId={id!} auditLogs={data?.auditLogs || []} />
             </TabsContent>
           )}
         </Tabs>
@@ -3637,7 +3638,7 @@ function AbilitiesToggle({
 
 type EditMap = Record<string, Partial<Player>>;
 
-function RosterEditorTab({ leagueId }: { leagueId: string }) {
+function RosterEditorTab({ leagueId, auditLogs = [] }: { leagueId: string; auditLogs?: AuditLog[] }) {
   const { toast } = useToast();
   const qc = useQueryClient();
 
@@ -3646,6 +3647,7 @@ function RosterEditorTab({ leagueId }: { leagueId: string }) {
   const [edits, setEdits] = useState<EditMap>({});
   const [savingId, setSavingId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [historyOpenId, setHistoryOpenId] = useState<string | null>(null);
 
   const { data: leagueData } = useQuery<LeagueWithTeams>({
     queryKey: ["/api/leagues", leagueId],
@@ -3983,6 +3985,71 @@ function RosterEditorTab({ leagueId }: { leagueId: string }) {
                                       </div>
                                     )}
                                   </div>
+
+                                  {(() => {
+                                    const playerFullName = `${p.firstName} ${p.lastName}`;
+                                    const playerHistory = auditLogs.filter(
+                                      l => l.action === "Roster Edit" && l.details?.includes(playerFullName)
+                                    );
+                                    const histOpen = historyOpenId === p.id;
+                                    return (
+                                      <div className="border-t border-border/30 pt-2">
+                                        <button
+                                          className="flex items-center gap-1.5 w-full text-left group"
+                                          onClick={() => setHistoryOpenId(histOpen ? null : p.id)}
+                                          data-testid={`button-history-toggle-${p.id}`}
+                                        >
+                                          <History className="w-3 h-3 text-muted-foreground" />
+                                          <span className="font-pixel text-[8px] text-muted-foreground uppercase group-hover:text-foreground transition-colors">
+                                            Edit History
+                                          </span>
+                                          {playerHistory.length > 0 && (
+                                            <span className="text-[8px] bg-muted/50 text-muted-foreground rounded px-1 ml-0.5">
+                                              {playerHistory.length}
+                                            </span>
+                                          )}
+                                          {histOpen
+                                            ? <ChevronDown className="w-3 h-3 text-muted-foreground ml-auto" />
+                                            : <ChevronRight className="w-3 h-3 text-muted-foreground ml-auto" />
+                                          }
+                                        </button>
+
+                                        {histOpen && (
+                                          <div className="mt-2 space-y-1.5" data-testid={`history-panel-${p.id}`}>
+                                            {playerHistory.length === 0 ? (
+                                              <p className="text-[10px] text-muted-foreground italic pl-1">No edits recorded yet.</p>
+                                            ) : (
+                                              playerHistory.map(log => {
+                                                const detailMatch = log.details?.match(/:\s*(.+)$/);
+                                                const changes = detailMatch ? detailMatch[1] : log.details ?? "";
+                                                return (
+                                                  <div
+                                                    key={log.id}
+                                                    className="bg-muted/20 rounded px-2 py-1.5 text-[10px]"
+                                                    data-testid={`history-entry-${log.id}`}
+                                                  >
+                                                    <div className="flex items-center justify-between gap-2 mb-0.5">
+                                                      <span className="text-muted-foreground">
+                                                        {new Date(log.timestamp).toLocaleString(undefined, {
+                                                          month: "short",
+                                                          day: "numeric",
+                                                          year: "numeric",
+                                                          hour: "numeric",
+                                                          minute: "2-digit",
+                                                        })}
+                                                      </span>
+                                                      <span className="text-[8px] font-pixel text-gold/70 uppercase">Commissioner</span>
+                                                    </div>
+                                                    <p className="text-foreground/80 break-words">{changes}</p>
+                                                  </div>
+                                                );
+                                              })
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })()}
 
                                   {dirty && (
                                     <div className="flex justify-end gap-2 pt-1 border-t border-border/30">
