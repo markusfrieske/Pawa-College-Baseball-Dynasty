@@ -125,7 +125,7 @@ export const MO_VALLEY_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Dylan", lastName: "Becker", position: "OF", eligibility: "JR", homeState: "MO", hometown: "Blue Springs", jerseyNumber: 7,
       hitForAvg: 52, power: 52, speed: 52, arm: 52, fielding: 54, errorResistance: 36, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 53, vsLHP: 50, grit: 54, stealing: 37, running: 50, throwing: 68, recovery: 44, wRISP: 51, vsLefty: 48, poise: 53, heater: 0, agile: 53,
-      abilities: ["First Pitch Hitter", "Spray Hitter"], potential: "B", catcherAbility: null,
+      abilities: ["Hit Machine", "First Pitch Hitter", "Spray Hitter"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...noPitches },
     { firstName: "Caleb", lastName: "Ritter", position: "OF", eligibility: "JR", homeState: "IL", hometown: "Edwardsville", jerseyNumber: 9,

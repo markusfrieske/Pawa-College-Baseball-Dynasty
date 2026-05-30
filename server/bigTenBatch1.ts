@@ -727,7 +727,7 @@ export const BIG_TEN_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Colby", lastName: "Turner", position: "3B", eligibility: "JR", homeState: "MI", hometown: "Saline", jerseyNumber: 5,
       hitForAvg: 60, power: 60, speed: 62, arm: 54, fielding: 59, errorResistance: 47, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 55, vsLHP: 51, grit: 56, stealing: 47, running: 47, throwing: 64, recovery: 45, wRISP: 53, vsLefty: 49, poise: 55, heater: 0, agile: 45,
-      abilities: ["Contact Hitter"], potential: "B+", catcherAbility: null,
+      abilities: ["Bases Loaded King", "Contact Hitter"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     { firstName: "Drew", lastName: "Culbertson", position: "SS", eligibility: "JR", homeState: "OH", hometown: "Dublin", jerseyNumber: 2,

@@ -1775,7 +1775,7 @@ export const SUN_BELT_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Kaleb", lastName: "DeLaTorre", position: "3B", eligibility: "SR", homeState: "AL", hometown: "Semmes", jerseyNumber: 5,
       hitForAvg: 58, power: 58, speed: 60, arm: 58, fielding: 58, errorResistance: 48, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 56, vsLHP: 52, grit: 58, stealing: 44, running: 44, throwing: 62, recovery: 47, wRISP: 55, vsLefty: 51, poise: 56, heater: 0, agile: 48,
-      abilities: ["Consigliere"], potential: "B", catcherAbility: null,
+      abilities: ["Low Ball Hitter", "Consigliere"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "L",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     { firstName: "Ryan", lastName: "Glass", position: "2B", eligibility: "SO", homeState: "MS", hometown: "Hattiesburg", jerseyNumber: 3,

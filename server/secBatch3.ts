@@ -799,7 +799,7 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Ethan", lastName: "Mendoza", position: "2B", eligibility: "SO", homeState: "TX", hometown: "El Paso", jerseyNumber: 2,
       hitForAvg: 65, power: 63, speed: 67, arm: 64, fielding: 63, errorResistance: 49, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 72, vsLHP: 66, grit: 76, stealing: 51, running: 50, throwing: 68, recovery: 56, wRISP: 74, vsLefty: 64, poise: 72, heater: 0, agile: 56,
-      abilities: ["Good Bunt", "Chance Maker", "Defensive Artisan"], potential: "A", catcherAbility: null,
+      abilities: ["Unrelenting", "Good Bunt", "Chance Maker", "Defensive Artisan"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "tan", hairColor: "black", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },

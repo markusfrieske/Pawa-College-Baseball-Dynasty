@@ -642,7 +642,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Roman", lastName: "Martin", position: "3B", eligibility: "SO", homeState: "CA", hometown: "Chino Hills", jerseyNumber: 8,
       hitForAvg: 59, power: 59, speed: 55, arm: 60, fielding: 62, errorResistance: 58, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 70, vsLHP: 63, grit: 63, stealing: 47, running: 47, throwing: 75, recovery: 52, wRISP: 70, vsLefty: 66, poise: 70, heater: 0, agile: 44,
-      abilities: ["Spray Hitter", "Defensive Artisan"], potential: "A-", catcherAbility: null,
+      abilities: ["Flying Start", "Spray Hitter", "Defensive Artisan"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },

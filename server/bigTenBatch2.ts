@@ -839,7 +839,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       { firstName: "Drew", lastName: "Smith", position: "OF", eligibility: "JR", homeState: "OR", hometown: "Beaverton", jerseyNumber: 7,
         hitForAvg: 62, power: 62, speed: 66, arm: 65, fielding: 58, errorResistance: 40, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 64, vsLHP: 60, grit: 64, stealing: 49, running: 50, throwing: 66, recovery: 46, wRISP: 64, vsLefty: 60, poise: 64, heater: 0, agile: 52,
-        abilities: ["Spray Hitter", "Power Hitter"], potential: "A", catcherAbility: null,
+        abilities: ["Trickster", "Spray Hitter", "Power Hitter"], potential: "A", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
