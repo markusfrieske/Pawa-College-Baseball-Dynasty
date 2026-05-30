@@ -1978,6 +1978,8 @@ export async function registerRoutes(
 
   // Calculate school attribute bonus for a pitch topic.
   // Range: ~0.80–1.375 (topic bonus × overall quality modifier).
+  // Rising programs (improved national rank 10+ spots last season) get a temporary
+  // recruitingRankBoost (0.05 or 0.10) added to the quality modifier for one season.
   function calculateSchoolBonus(pitchTopic: string, team: any): number {
     const attributeMap: Record<string, number> = {
       proximity: 1.0,                                // No school attribute for proximity
@@ -1991,7 +1993,9 @@ export async function registerRoutes(
 
     // Overall program quality modifier: 0.92 (all attrs 1) to 1.10 (all attrs 10)
     const overallQuality = ((team.prestige || 5) + (team.facilities || 5) + (team.academics || 5)) / 30;
-    const qualityModifier = 0.9 + (overallQuality * 0.2);
+    // Apply rising-program rank boost (0 baseline, +0.05 for 10+ spots, +0.10 for 20+ spots)
+    const rankBoost = typeof team.recruitingRankBoost === "number" ? team.recruitingRankBoost : 0;
+    const qualityModifier = 0.9 + (overallQuality * 0.2) + rankBoost;
 
     return topicBonus * qualityModifier;
   }
@@ -13334,9 +13338,25 @@ export async function registerRoutes(
         const currentRank = team.nationalRank ?? TOTAL_NATIONAL_TEAMS;
         const newRank = Math.max(1, Math.min(TOTAL_NATIONAL_TEAMS, currentRank - Math.round(adj)));
 
+        // Rising-program recruiting boost: teams that improved 10+ spots get a
+        // temporary schoolBonus modifier for the upcoming recruiting season.
+        // +0.05 for 10-19 spots improved, +0.10 for 20+ spots improved.
+        // Boost decays to 0 if rank stalls or falls.
+        const rankImprovement = currentRank - newRank; // positive = improved
+        let recruitingRankBoost = 0;
+        if (rankImprovement >= 20) recruitingRankBoost = 0.10;
+        else if (rankImprovement >= 10) recruitingRankBoost = 0.05;
+
+        const updatePayload: Record<string, any> = {
+          prevNationalRank: currentRank,
+          recruitingRankBoost,
+        };
         if (newRank !== currentRank) {
-          await storage.updateTeam(team.id, { nationalRank: newRank });
-          console.log(`[finalizeSigningDay] National rank update: ${team.name} ${currentRank} → ${newRank} (adj=${Math.round(adj)}, winRate=${winRate.toFixed(2)})`);
+          updatePayload.nationalRank = newRank;
+        }
+        await storage.updateTeam(team.id, updatePayload);
+        if (newRank !== currentRank) {
+          console.log(`[finalizeSigningDay] National rank update: ${team.name} ${currentRank} → ${newRank} (adj=${Math.round(adj)}, winRate=${winRate.toFixed(2)}, rankBoost=${recruitingRankBoost})`);
         }
       }
       console.log(`[finalizeSigningDay] National ranks updated for season ${completedSeason}`);

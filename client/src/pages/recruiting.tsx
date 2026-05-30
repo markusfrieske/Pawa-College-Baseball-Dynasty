@@ -972,6 +972,30 @@ export default function RecruitingPage() {
             <StatCard icon={<Phone className="w-4 h-4" />} label="Recruiting Points" value={`${data?.pointsUsed ?? 0}/${data?.maxPoints ?? 0}`} />
             <StatCard icon={<Eye className="w-4 h-4" />} label="Scout Points" value={`${data?.scoutPointsUsed ?? 0}/${data?.maxScoutPoints ?? 0}`} />
           </div>
+          {data?.team && (data.team as any).recruitingRankBoost > 0 && (() => {
+            const boost = (data.team as any).recruitingRankBoost as number;
+            const prev = (data.team as any).prevNationalRank as number | null;
+            const curr = (data.team as any).nationalRank as number;
+            const improvement = prev != null ? prev - curr : 0;
+            const boostPct = Math.round(boost * 100);
+            return (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div
+                    className="flex items-center gap-2 px-3 py-2 mt-2 rounded border border-emerald-500/40 bg-emerald-500/10 cursor-default w-fit"
+                    data-testid="badge-rising-program"
+                  >
+                    <TrendingUp className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span className="font-pixel text-[9px] text-emerald-400 uppercase tracking-wider">Rising Program</span>
+                    <span className="text-[9px] text-emerald-300/80 font-mono">+{boostPct}% School Bonus</span>
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="max-w-[220px] text-center text-xs">
+                  Your program climbed {improvement} spots in the national rankings last season. Recruits notice momentum — your school bonus is boosted by +{boostPct}% this recruiting cycle. Keep winning to maintain it.
+                </TooltipContent>
+              </Tooltip>
+            );
+          })()}
         </div>
       </header>
 

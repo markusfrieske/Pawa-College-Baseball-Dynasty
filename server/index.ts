@@ -160,6 +160,14 @@ app.use((req, res, next) => {
     console.warn("[startup-migration] teams.national_rank column check failed:", e);
   }
 
+  // Ensure prev_national_rank and recruiting_rank_boost columns exist on teams
+  try {
+    await pool.query("ALTER TABLE teams ADD COLUMN IF NOT EXISTS prev_national_rank integer");
+    await pool.query("ALTER TABLE teams ADD COLUMN IF NOT EXISTS recruiting_rank_boost real NOT NULL DEFAULT 0");
+  } catch (e) {
+    console.warn("[startup-migration] teams rank boost columns check failed:", e);
+  }
+
   // One-time pitcher stamina banding migration (role-based bands: starters 80-99,
   // long relief 50-79, mid relief 30-49, closer 1-29).
   // Guarded by a _startup_migrations table so it only runs once per environment.

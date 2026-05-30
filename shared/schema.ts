@@ -119,6 +119,8 @@ export const teams = pgTable("teams", {
   isAutoPilot: boolean("is_auto_pilot").notNull().default(false),
   autoPilotActionLog: jsonb("auto_pilot_action_log").$type<AutoPilotLogEntry[]>().default([]),
   nationalRank: integer("national_rank").notNull().default(149),
+  prevNationalRank: integer("prev_national_rank"),
+  recruitingRankBoost: real("recruiting_rank_boost").notNull().default(0),
 });
 
 export const insertTeamSchema = createInsertSchema(teams).pick({
