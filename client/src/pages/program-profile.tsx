@@ -151,6 +151,10 @@ export default function ProgramProfilePage() {
     },
   });
 
+  const { data: scoutingData } = useQuery<Record<string, { nationalRank: number }>>({
+    queryKey: ["/api/team-templates/scouting"],
+  });
+
   if (isLoading) {
     return <ProgramProfileSkeleton />;
   }
@@ -234,9 +238,17 @@ export default function ProgramProfilePage() {
                   </div>
                 )}
               </div>
-              <div className="text-right">
-                <div className="text-3xl font-bold text-foreground">{team.prestige}</div>
-                <div className="text-[9px] text-muted-foreground font-pixel">PRESTIGE</div>
+              <div className="text-right flex flex-col gap-2 items-end">
+                <div>
+                  <div className="text-3xl font-bold text-foreground">{team.prestige}</div>
+                  <div className="text-[9px] text-muted-foreground font-pixel">PRESTIGE</div>
+                </div>
+                {scoutingData?.[team.name]?.nationalRank && (
+                  <div data-testid="badge-national-rank-profile">
+                    <div className="text-2xl font-bold text-gold">#{scoutingData[team.name].nationalRank}</div>
+                    <div className="text-[9px] text-muted-foreground font-pixel">NATIONAL RANK</div>
+                  </div>
+                )}
               </div>
             </div>
           </RetroCardContent>

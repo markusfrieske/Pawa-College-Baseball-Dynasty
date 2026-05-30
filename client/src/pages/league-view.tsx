@@ -1379,6 +1379,10 @@ function ActivityFeed({ leagueId }: { leagueId: string }) {
 }
 
 function StandingsTab({ league }: { league: LeagueDetails }) {
+  const { data: scoutingData } = useQuery<Record<string, { nationalRank: number }>>({
+    queryKey: ["/api/team-templates/scouting"],
+  });
+
   // Group teams by conference and sort within each conference
   const standingsByConference = league.conferences?.map(conf => {
     const confTeams = (league.teams || [])
@@ -1428,6 +1432,11 @@ function StandingsTab({ league }: { league: LeagueDetails }) {
                         <Link href={`/league/${league.id}/team/${team.id}/profile`}>
                           <span className="font-medium hover:text-gold cursor-pointer truncate max-w-[90px] sm:max-w-none block" data-testid={`link-team-standings-${team.id}`}>{team.name}</span>
                         </Link>
+                        {scoutingData?.[team.name]?.nationalRank && (
+                          <span className="font-pixel text-[8px] text-gold/70 flex-shrink-0" data-testid={`badge-national-rank-${team.id}`}>
+                            #{scoutingData[team.name].nationalRank}
+                          </span>
+                        )}
                         {!team.isCpu && (
                           <span
                             className="hidden sm:inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-gold/20 border border-gold/40 flex-shrink-0"
@@ -1533,6 +1542,10 @@ function TeamsTab({ league }: { league: LeagueDetails }) {
   const [compareTeamB, setCompareTeamB] = useState("");
   const [showCompare, setShowCompare] = useState(false);
 
+  const { data: scoutingData } = useQuery<Record<string, { nationalRank: number }>>({
+    queryKey: ["/api/team-templates/scouting"],
+  });
+
   const teamsByConference = league.conferences?.map(conf => ({
     ...conf,
     teams: league.teams?.filter(t => t.conferenceId === conf.id) || [],
@@ -1613,8 +1626,15 @@ function TeamsTab({ league }: { league: LeagueDetails }) {
                       name={team.name}
                      
                     />
-                    <div>
-                      <p className="font-medium text-foreground">{team.name}</p>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className="font-medium text-foreground">{team.name}</p>
+                        {scoutingData?.[team.name]?.nationalRank && (
+                          <span className="font-pixel text-[8px] text-gold/70" data-testid={`badge-national-rank-card-${team.id}`}>
+                            #{scoutingData[team.name].nationalRank}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-muted-foreground">{team.mascot}</p>
                     </div>
                   </div>
