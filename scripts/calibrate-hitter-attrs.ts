@@ -212,30 +212,38 @@ for (const [team, players] of Object.entries(RAW_UNCALIBRATED_ROSTERS)) {
 
 console.log(`Total hitters: ${allHitters.length}`);
 
-// ── 1b. Build per-team star lock (top-5 hitters by raw OVR per team) ─────────
-// Star-locked players have their raw attributes preserved exactly — no cap or
-// floor adjustments applied. This ensures franchise superstars are not degraded
-// even when a team's scale factor shifts dramatically due to ranking changes.
+// ── 1b. Build per-team star lock (top-5 players by raw OVR per team) ─────────
+// Ranks ALL players (hitters + pitchers) per team by raw OVR, then locks those
+// among the top-5 who are hitters. Pitchers are already skipped by this script,
+// so they're implicitly protected. Star-locked hitters are completely skipped —
+// no attribute changes of any kind (no cap, no floor lift, no gold-gate raise).
 const STAR_LOCK_COUNT = 5;
 const starLockedSet = new Set<string>();
 {
-  const byTeam = new Map<string, HitterRecord[]>();
-  for (const rec of allHitters) {
-    if (!byTeam.has(rec.team)) byTeam.set(rec.team, []);
-    byTeam.get(rec.team)!.push(rec);
+  // Collect all players (all positions) per team for cross-position ranking
+  const byTeam = new Map<string, { firstName: string; lastName: string; ovr: number; isPitcher: boolean }[]>();
+  for (const [team, players] of Object.entries(RAW_UNCALIBRATED_ROSTERS)) {
+    if (!byTeam.has(team)) byTeam.set(team, []);
+    for (const p of players) {
+      byTeam.get(team)!.push({
+        firstName: p.firstName,
+        lastName: p.lastName,
+        ovr: calculateOVR(p),
+        isPitcher: PITCHER_POSITIONS.has(p.position),
+      });
+    }
   }
-  for (const [, recs] of byTeam) {
-    const sorted = [...recs].sort((a, b) => {
-      const aRaw = calculateOVR(a.rawPlayer);
-      const bRaw = calculateOVR(b.rawPlayer);
-      return bRaw - aRaw;
-    });
-    for (const rec of sorted.slice(0, STAR_LOCK_COUNT)) {
-      starLockedSet.add(`${rec.rawPlayer.firstName}|${rec.rawPlayer.lastName}|${rec.team}`);
+  for (const [team, all] of byTeam) {
+    const sorted = [...all].sort((a, b) => b.ovr - a.ovr);
+    for (const p of sorted.slice(0, STAR_LOCK_COUNT)) {
+      if (!p.isPitcher) {
+        // Only add hitters — pitchers in the top-5 are already protected (skipped at line 205)
+        starLockedSet.add(`${p.firstName}|${p.lastName}|${team}`);
+      }
     }
   }
 }
-console.log(`Star-locked players: ${starLockedSet.size} (top-${STAR_LOCK_COUNT} per team)`);
+console.log(`Star-locked players: ${starLockedSet.size} hitters in top-${STAR_LOCK_COUNT} across all positions per team`);
 
 // ── 2. Identify elite tier ───────────────────────────────────────────────────
 // Use SCALED peak attr for tier identification (mirrors in-game reality).
@@ -314,17 +322,19 @@ for (const rec of allHitters) {
   const key = `${rawPlayer.firstName}|${rawPlayer.lastName}|${team}`;
 
   const isElite = eliteSet.has(key);
-  // Star-locked players (top-5 OVR per team): no attribute cap applied.
-  // They keep original raw values unless a gold-gate or OVR-ceiling guard
-  // forces a change.  We still run gold-gate, S-grade, and OVR-ceiling checks
-  // on them so constraints that MUST hold everywhere continue to hold.
+  // Star-locked players (top-5 by OVR across all positions per team): completely
+  // skip all attribute adjustments — no cap reduction, no floor lift, no gold-gate
+  // raise, no OVR-ceiling clip. Raw attrs are preserved exactly as authored.
+  // Gold-gate violations on star-locked players are handled separately by
+  // strip-gold-batch-files.ts (ability removal) rather than attr inflation.
   const isStarLocked = starLockedSet.has(key);
+  if (isStarLocked) continue;
+
   const gameAttrCap = isElite ? ELITE_SCALED_CAP : REG_SCALED_CAP;
 
   // Raw cap: the highest raw value that, after scaling, stays ≤ gameAttrCap
   // clamp(raw * sf, 20, 99) ≤ gameAttrCap  →  raw ≤ gameAttrCap / sf
-  // Star-locked players bypass the cap (rawCap = 99 → no reduction).
-  const rawCap = isStarLocked ? 99 : Math.min(99, Math.floor(gameAttrCap / sf));
+  const rawCap = Math.min(99, Math.floor(gameAttrCap / sf));
 
   // Step A: Cap raw primary attrs so scaled attrs stay ≤ gameAttrCap
   //         Also enforce ATTR_FLOOR_RAW

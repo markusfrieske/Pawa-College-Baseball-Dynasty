@@ -5,7 +5,7 @@ export const IVY_LEAGUE_ROSTERS: Record<string, RealPlayer[]> = {
   "Columbia": [
     // PITCHERS (10)
     { firstName: "Jake", lastName: "Reinhardt", position: "P", eligibility: "SR", homeState: "NY", hometown: "Bronxville", jerseyNumber: 31,
-      hitForAvg: 16, power: 12, speed: 33, arm: 49, fielding: 36, errorResistance: 51, velocity: 62, control: 59, stamina: 97, stuff: 59,
+      hitForAvg: 16, power: 12, speed: 33, arm: 49, fielding: 36, errorResistance: 51, velocity: 60, control: 59, stamina: 97, stuff: 59,
       clutch: 58, vsLHP: 55, grit: 60, stealing: 10, running: 34, throwing: 64, recovery: 50, wRISP: 50, vsLefty: 52, poise: 54, heater: 57, agile: 42,
       abilities: ["Strong Starter", "Guts"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -193,7 +193,7 @@ export const IVY_LEAGUE_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 4, 4, 1, 0, 0, 0, 0, 0, 0]) },
     { firstName: "Patrick", lastName: "Chen", position: "P", eligibility: "SO", homeState: "CA", hometown: "Cupertino", jerseyNumber: 42,
-      hitForAvg: 8, power: 5, speed: 29, arm: 26, fielding: 19, errorResistance: 32, velocity: 34, control: 35, stamina: 37, stuff: 38,
+      hitForAvg: 8, power: 5, speed: 29, arm: 26, fielding: 19, errorResistance: 32, velocity: 34, control: 35, stamina: 37, stuff: 39,
       clutch: 33, vsLHP: 32, grit: 35, stealing: 8, running: 26, throwing: 39, recovery: 29, wRISP: 28, vsLefty: 30, poise: 30, heater: 33, agile: 32,
       abilities: ["Strong Starter", "Inside Pitch", "Sharpness"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -205,7 +205,7 @@ export const IVY_LEAGUE_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 3, 3, 0, 3, 0, 0, 0, 0, 0]) },
     { firstName: "Aiden", lastName: "Russo", position: "P", eligibility: "FR", homeState: "NY", hometown: "Saratoga Springs", jerseyNumber: 46,
-      hitForAvg: 6, power: 5, speed: 24, arm: 31, fielding: 21, errorResistance: 22, velocity: 40, control: 34, stamina: 38, stuff: 38,
+      hitForAvg: 6, power: 5, speed: 24, arm: 31, fielding: 21, errorResistance: 22, velocity: 40, control: 34, stamina: 38, stuff: 37,
       clutch: 21, vsLHP: 20, grit: 22, stealing: 7, running: 22, throwing: 30, recovery: 27, wRISP: 26, vsLefty: 28, poise: 27, heater: 37, agile: 27,
       abilities: ["Escape Pitch"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -479,7 +479,7 @@ export const IVY_LEAGUE_ROSTERS: Record<string, RealPlayer[]> = {
   "Harvard": [
     // PITCHERS (10)
     { firstName: "Jack", lastName: "Brannigan", position: "P", eligibility: "SR", homeState: "MA", hometown: "Wellesley", jerseyNumber: 31,
-      hitForAvg: 15, power: 12, speed: 32, arm: 43, fielding: 29, errorResistance: 43, velocity: 55, control: 52, stamina: 84, stuff: 52,
+      hitForAvg: 15, power: 12, speed: 32, arm: 43, fielding: 29, errorResistance: 43, velocity: 55, control: 52, stamina: 84, stuff: 53,
       clutch: 53, vsLHP: 50, grit: 55, stealing: 10, running: 29, throwing: 56, recovery: 45, wRISP: 46, vsLefty: 46, poise: 47, heater: 51, agile: 36,
       abilities: ["Gyroball", "Strong Starter", "vs. Strong Batters"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "S",
@@ -534,7 +534,7 @@ export const IVY_LEAGUE_ROSTERS: Record<string, RealPlayer[]> = {
       ...pitchMix(1, [0, 3, 3, 0, 0, 0, 0, 0, 1, 0]) },
     // CATCHERS (2)
     { firstName: "Will", lastName: "Gaffney", position: "C", eligibility: "JR", homeState: "MA", hometown: "Duxbury", jerseyNumber: 14,
-      hitForAvg: 57, power: 51, speed: 33, arm: 35, fielding: 71, errorResistance: 66, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 58, power: 51, speed: 33, arm: 35, fielding: 71, errorResistance: 66, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 55, vsLHP: 50, grit: 47, stealing: 41, running: 39, throwing: 55, recovery: 43, wRISP: 50, vsLefty: 47, poise: 51, heater: 0, agile: 36,
       abilities: ["Defensive Artisan"], potential: "B+", catcherAbility: 56,
       throwHand: "R", batHand: "R",
@@ -626,7 +626,7 @@ export const IVY_LEAGUE_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "L",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
       { firstName: "Mika", lastName: "Petersen", position: "P", eligibility: "FR", homeState: "MA", hometown: "Cambridge", jerseyNumber: 51,
-      hitForAvg: 0, power: 0, speed: 0, arm: 0, fielding: 0, errorResistance: 0, velocity: 62, control: 58, stamina: 29, stuff: 52,
+      hitForAvg: 0, power: 0, speed: 0, arm: 0, fielding: 0, errorResistance: 0, velocity: 61, control: 60, stamina: 29, stuff: 54,
       clutch: 0, vsLHP: 0, grit: 0, stealing: 0, running: 0, throwing: 0, recovery: 0, wRISP: 0, vsLefty: 0, poise: 0, heater: 0, agile: 0,
       abilities: ["Guts", "Strong Finisher"], potential: "B+", catcherAbility: 48,
       throwHand: "R", batHand: "L",
@@ -638,7 +638,7 @@ export const IVY_LEAGUE_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (10)
     // PITCHERS (10)
     { firstName: "Mike", lastName: "Gallagher", position: "P", eligibility: "SR", homeState: "PA", hometown: "Philadelphia", jerseyNumber: 31,
-      hitForAvg: 15, power: 11, speed: 32, arm: 42, fielding: 31, errorResistance: 45, velocity: 53, control: 52, stamina: 88, stuff: 52,
+      hitForAvg: 15, power: 11, speed: 32, arm: 42, fielding: 31, errorResistance: 45, velocity: 53, control: 52, stamina: 88, stuff: 54,
       clutch: 52, vsLHP: 49, grit: 54, stealing: 9, running: 30, throwing: 57, recovery: 44, wRISP: 44, vsLefty: 46, poise: 47, heater: 50, agile: 37,
       abilities: ["Strong Starter", "Guts"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -668,7 +668,7 @@ export const IVY_LEAGUE_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 4, 0, 0, 0, 0, 4, 0, 1, 0]) },
     { firstName: "Nick", lastName: "Santora", position: "P", eligibility: "SO", homeState: "NJ", hometown: "Haddonfield", jerseyNumber: 42,
-      hitForAvg: 8, power: 7, speed: 28, arm: 26, fielding: 20, errorResistance: 32, velocity: 32, control: 35, stamina: 46, stuff: 38,
+      hitForAvg: 8, power: 7, speed: 28, arm: 26, fielding: 20, errorResistance: 32, velocity: 32, control: 35, stamina: 46, stuff: 36,
       clutch: 33, vsLHP: 32, grit: 36, stealing: 7, running: 25, throwing: 39, recovery: 28, wRISP: 27, vsLefty: 30, poise: 30, heater: 33, agile: 31,
       abilities: ["Straddle", "Intimidator", "Heavy Ball"], potential: "B", catcherAbility: null,
       throwHand: "L", batHand: "L",
@@ -796,7 +796,7 @@ export const IVY_LEAGUE_ROSTERS: Record<string, RealPlayer[]> = {
   "Princeton": [
     // PITCHERS (10)
     { firstName: "Will", lastName: "Stratton", position: "P", eligibility: "SR", homeState: "NJ", hometown: "Princeton", jerseyNumber: 31,
-      hitForAvg: 13, power: 10, speed: 32, arm: 43, fielding: 32, errorResistance: 45, velocity: 54, control: 53, stamina: 84, stuff: 52,
+      hitForAvg: 13, power: 10, speed: 32, arm: 43, fielding: 32, errorResistance: 45, velocity: 54, control: 53, stamina: 84, stuff: 53,
       clutch: 52, vsLHP: 49, grit: 54, stealing: 10, running: 32, throwing: 56, recovery: 45, wRISP: 45, vsLefty: 47, poise: 48, heater: 51, agile: 40,
       abilities: ["Strong Starter", "Guts", "Escape Pitch"], potential: "B", catcherAbility: null,
       throwHand: "L", batHand: "L",
@@ -1101,7 +1101,7 @@ export const IVY_LEAGUE_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "R",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
       { firstName: "Garrett", lastName: "Larsen", position: "P", eligibility: "JR", homeState: "CT", hometown: "New Haven", jerseyNumber: 51,
-      hitForAvg: 0, power: 0, speed: 0, arm: 0, fielding: 0, errorResistance: 0, velocity: 62, control: 58, stamina: 27, stuff: 52,
+      hitForAvg: 0, power: 0, speed: 0, arm: 0, fielding: 0, errorResistance: 0, velocity: 63, control: 59, stamina: 27, stuff: 51,
       clutch: 0, vsLHP: 0, grit: 0, stealing: 0, running: 0, throwing: 0, recovery: 0, wRISP: 0, vsLefty: 0, poise: 0, heater: 0, agile: 0,
       abilities: ["Guts", "Strong Finisher"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "L",
@@ -1260,7 +1260,7 @@ export const IVY_LEAGUE_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "S",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
       { firstName: "Chris", lastName: "Diprima", position: "P", eligibility: "SR", homeState: "RI", hometown: "Providence", jerseyNumber: 51,
-      hitForAvg: 0, power: 0, speed: 0, arm: 0, fielding: 0, errorResistance: 0, velocity: 62, control: 58, stamina: 6, stuff: 52,
+      hitForAvg: 0, power: 0, speed: 0, arm: 0, fielding: 0, errorResistance: 0, velocity: 64, control: 57, stamina: 6, stuff: 53,
       clutch: 0, vsLHP: 0, grit: 0, stealing: 0, running: 0, throwing: 0, recovery: 0, wRISP: 0, vsLefty: 0, poise: 0, heater: 0, agile: 0,
       abilities: ["Guts", "Strong Finisher"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
