@@ -598,7 +598,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
     // CATCHERS (2)
     // Vahn Lackey — JR C, .425/.545/.851, 9 HR, 45 RBI, .789 SLG team-leader, USA Collegiate, #2 D1B catcher, 1st Team Preseason All-American, top catcher in MLB Draft, played 8 positions in single game
     { firstName: "Vahn", lastName: "Lackey", position: "C", eligibility: "JR", homeState: "GA", hometown: "Suwanee", jerseyNumber: 25,
-      hitForAvg: 61, power: 38, speed: 19, arm: 61, fielding: 62, errorResistance: 56, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 66, power: 49, speed: 19, arm: 61, fielding: 62, errorResistance: 56, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 90, vsLHP: 80, grit: 64, stealing: 47, running: 50, throwing: 64, recovery: 60, wRISP: 84, vsLefty: 78, poise: 84, heater: 0, agile: 56,
       abilities: ["Power Hitter", "Consigliere", "Defensive Artisan"], potential: "A+", catcherAbility: 78,
       throwHand: "R", batHand: "R",
@@ -672,7 +672,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
     // OUTFIELDERS (6)
     // Drew Burress — JR CF, ONLY DI player with career .756 SLG, 55 R (team most), 7HR/31RBI/49R 2026, ACC POW, top OF in MLB Draft, 56-game OB streak last yr
     { firstName: "Drew", lastName: "Burress", position: "OF", eligibility: "JR", homeState: "GA", hometown: "Stockbridge", jerseyNumber: 8,
-      hitForAvg: 71, power: 78, speed: 58, arm: 50, fielding: 65, errorResistance: 66, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 50, power: 78, speed: 58, arm: 50, fielding: 65, errorResistance: 66, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 90, vsLHP: 82, grit: 56, stealing: 47, running: 60, throwing: 60, recovery: 62, wRISP: 88, vsLefty: 80, poise: 84, heater: 0, agile: 72,
       abilities: ["Good Infield Hit", "Consigliere", "Gambler"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -825,7 +825,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "R",
       ...noPitches },
     { firstName: "Zion", lastName: "Rose", position: "OF", eligibility: "SO", homeState: "GA", hometown: "Macon", jerseyNumber: 10,
-      hitForAvg: 63, power: 57, speed: 49, arm: 32, fielding: 72, errorResistance: 68, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 83, power: 92, speed: 49, arm: 32, fielding: 72, errorResistance: 68, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 58, vsLHP: 52, grit: 58, stealing: 62, running: 55, throwing: 65, recovery: 25, wRISP: 42, vsLefty: 40, poise: 42, heater: 0, agile: 42,
       abilities: ["Laser Beam"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",

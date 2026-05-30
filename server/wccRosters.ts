@@ -629,7 +629,7 @@ import type { RealPlayer } from "./realRosters";
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     { firstName: "Brody", lastName: "Donay", position: "SS", eligibility: "JR", homeState: "CA", hometown: "Walnut Creek", jerseyNumber: 18,
-        hitForAvg: 74, power: 70, speed: 74, arm: 73, fielding: 62, errorResistance: 51, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 60, power: 52, speed: 74, arm: 73, fielding: 62, errorResistance: 51, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 64, vsLHP: 60, grit: 62, stealing: 55, running: 64, throwing: 74, recovery: 56, wRISP: 61, vsLefty: 57, poise: 64, heater: 0, agile: 64,
         abilities: ["Pinch Hitter", "Tough Out"], potential: "A", catcherAbility: null,
         throwHand: "R", batHand: "L",

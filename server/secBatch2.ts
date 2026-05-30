@@ -81,7 +81,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       // CATCHERS (2)
       // Ryder Helfrick — JR C, 15 multi-RBI games (#2 team), top draft prospect
       { firstName: "Ryder", lastName: "Helfrick", position: "C", eligibility: "JR", homeState: "FL", hometown: "Tampa", jerseyNumber: 12,
-        hitForAvg: 63, power: 75, speed: 55, arm: 63, fielding: 53, errorResistance: 43, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 91, power: 62, speed: 55, arm: 63, fielding: 53, errorResistance: 43, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 65, vsLHP: 58, grit: 52, stealing: 51, running: 51, throwing: 59, recovery: 50, wRISP: 76, vsLefty: 70, poise: 76, heater: 0, agile: 38,
         abilities: ["Insurer", "vs. Breaking Pitches", "Power Hitter", "Consigliere"], potential: "A+", catcherAbility: 64,
         throwHand: "R", batHand: "R",
@@ -316,7 +316,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       // by validate-abilities. Gambler chosen as primary gold (high clutch/wRISP stats); Express Baserunning
       // is the approved fallback that was retained previously and can replace Gambler if the priority changes.
       { firstName: "Justin", lastName: "Lebron", position: "SS", eligibility: "JR", homeState: "FL", hometown: "Miami", jerseyNumber: 1,
-        hitForAvg: 77, power: 76, speed: 70, arm: 72, fielding: 63, errorResistance: 62, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 62, power: 56, speed: 70, arm: 72, fielding: 63, errorResistance: 62, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 78, vsLHP: 74, grit: 76, stealing: 65, running: 74, throwing: 66, recovery: 62, wRISP: 86, vsLefty: 78, poise: 86, heater: 0, agile: 68,
         abilities: ["Bunt Artisan", "Power Hitter", "Defensive Artisan", "Consigliere", "Gambler"], potential: "A+", catcherAbility: null,
         throwHand: "R", batHand: "R",

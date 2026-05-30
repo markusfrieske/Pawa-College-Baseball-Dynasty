@@ -312,7 +312,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       // INFIELDERS (6)
       // Brendan Lawson — SS SO, top 2027 draft prospect, .317/10 HR/61 RBI as FR
       { firstName: "Brendan", lastName: "Lawson", position: "SS", eligibility: "SO", homeState: "ON", hometown: "Toronto", jerseyNumber: 2,
-        hitForAvg: 74, power: 73, speed: 68, arm: 62, fielding: 65, errorResistance: 66, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 62, power: 47, speed: 68, arm: 62, fielding: 65, errorResistance: 66, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 84, vsLHP: 80, grit: 70, stealing: 56, running: 65, throwing: 72, recovery: 62, wRISP: 86, vsLefty: 80, poise: 86, heater: 0, agile: 68,
         abilities: ["Magician", "Defensive Artisan", "Consigliere"], potential: "A+", catcherAbility: null,
         throwHand: "R", batHand: "R",
@@ -866,7 +866,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "R",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     { firstName: "Jay", lastName: "Abernathy", position: "3B", eligibility: "SO", homeState: "TN", hometown: "Murfreesboro", jerseyNumber: 10,
-      hitForAvg: 55, power: 52, speed: 56, arm: 56, fielding: 54, errorResistance: 47, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 45, power: 42, speed: 56, arm: 56, fielding: 54, errorResistance: 47, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 49, vsLHP: 46, grit: 51, stealing: 44, running: 44, throwing: 59, recovery: 41, wRISP: 48, vsLefty: 45, poise: 49, heater: 0, agile: 45,
       abilities: ["Hit Machine", "Contact Hitter"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
