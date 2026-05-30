@@ -1291,7 +1291,7 @@ export const AAC_ROSTERS: Record<string, RealPlayer[]> = {
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         pitchFB: 1, pitch2S: 0, pitchSL: 4, pitchCB: 3, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 1, pitchSFF: 0, pitchSHU: 0 },
     { firstName: "Drew", lastName: "Dowd", position: "P", eligibility: "JR", homeState: "TX", hometown: "Pearland", jerseyNumber: 22,
-        hitForAvg: 13, power: 7, speed: 30, arm: 48, fielding: 32, errorResistance: 45, velocity: 48, control: 52, stamina: 48, stuff: 33,
+        hitForAvg: 13, power: 7, speed: 30, arm: 48, fielding: 32, errorResistance: 45, velocity: 48, control: 52, stamina: 48, stuff: 50,
         clutch: 64, vsLHP: 49, grit: 53, stealing: 8, running: 28, throwing: 52, recovery: 31, wRISP: 41, vsLefty: 38, poise: 43, heater: 47, agile: 41,
         abilities: ["Decisive"], potential: "B+", catcherAbility: null,
         throwHand: "R", batHand: "R",

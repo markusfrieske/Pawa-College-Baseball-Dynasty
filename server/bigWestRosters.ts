@@ -1281,7 +1281,7 @@ export const BIG_WEST_ROSTERS: Record<string, RealPlayer[]> = {
   "Cal State Northridge": [
     // PITCHERS (10)
     { firstName: "Blake", lastName: "Morrison", position: "P", eligibility: "JR", homeState: "CA", hometown: "Northridge", jerseyNumber: 34,
-      hitForAvg: 16, power: 12, speed: 34, arm: 56, fielding: 39, errorResistance: 52, velocity: 63, control: 56, stamina: 98, stuff: 54,
+      hitForAvg: 16, power: 12, speed: 34, arm: 56, fielding: 39, errorResistance: 52, velocity: 66, control: 66, stamina: 98, stuff: 64,
       clutch: 64, vsLHP: 59, grit: 66, stealing: 12, running: 40, throwing: 69, recovery: 59, wRISP: 59, vsLefty: 60, poise: 62, heater: 66, agile: 49,
       abilities: ["Strong Starter", "Decisive", "Sharpness"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",

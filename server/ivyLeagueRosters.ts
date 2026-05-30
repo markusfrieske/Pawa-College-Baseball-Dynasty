@@ -35,7 +35,7 @@ export const IVY_LEAGUE_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 0, 4, 1, 4, 0, 0, 0, 0, 0]) },
     { firstName: "Sam", lastName: "Whitfield", position: "P", eligibility: "SO", homeState: "NY", hometown: "Rye", jerseyNumber: 42,
-      hitForAvg: 8, power: 7, speed: 29, arm: 26, fielding: 20, errorResistance: 32, velocity: 32, control: 35, stamina: 47, stuff: 32,
+      hitForAvg: 8, power: 7, speed: 29, arm: 26, fielding: 20, errorResistance: 32, velocity: 32, control: 35, stamina: 47, stuff: 39,
       clutch: 35, vsLHP: 32, grit: 35, stealing: 7, running: 25, throwing: 40, recovery: 30, wRISP: 28, vsLefty: 30, poise: 30, heater: 34, agile: 31,
       abilities: ["Winner's Luck"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",

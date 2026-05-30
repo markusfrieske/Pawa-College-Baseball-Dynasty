@@ -75,9 +75,13 @@ function nameHash(firstName: string, lastName: string): number {
   return h >>> 0;
 }
 
-// ── Build jitter map: playerKey → { attr → newValue } ─────────────────────────
+// ── Build jitter map: playerKey → { attr → { from: clusterVal, to: newVal } } ──
+// IMPORTANT: stores the source cluster value so the apply step can use a
+// source-value guard and skip any player whose current value differs from
+// the cluster target (prevents same-name collisions from being wrongly edited).
 
-type JitterMap = Map<string, Record<string, number>>;
+interface JitterEntry { from: number; to: number }
+type JitterMap = Map<string, Record<string, JitterEntry>>;
 
 function buildJitterMap(): JitterMap {
   const jitter: JitterMap = new Map();
@@ -109,7 +113,7 @@ function buildJitterMap(): JitterMap {
       const key = `${p.firstName}|${p.lastName}`;
       if (!jitter.has(key)) jitter.set(key, {});
       const newVal = adjacent[idx % adjacent.length];
-      jitter.get(key)![attr] = newVal;
+      jitter.get(key)![attr] = { from: val, to: newVal };
     });
   }
 
@@ -144,21 +148,25 @@ function applyJitter(jitter: JitterMap): void {
       const changes = jitter.get(key);
       if (!changes) continue;
 
-      for (const [attr, newVal] of Object.entries(changes)) {
-        // Match e.g.   velocity: 62,  or  velocity: 62
+      for (const [attr, { from: clusterVal, to: newVal }] of Object.entries(changes)) {
         const attrRe = new RegExp(`(\\b${attr}:\\s*)(\\d+)(,?)`);
         const m = line.match(attrRe);
-        if (m && parseInt(m[2]) !== newVal) {
-          const oldVal = parseInt(m[2]);
-          lines[i] = lines[i].replace(attrRe, `$1${newVal}$3`);
-          modified = true;
-          totalChanges++;
-          if (!appliedKeys.has(`${key}:${attr}`)) {
-            console.log(
-              `  ${curFirst} ${curLast} ${attr}: ${oldVal} → ${newVal}  (${relPath})`
-            );
-            appliedKeys.add(`${key}:${attr}`);
-          }
+        if (!m) continue;
+        const curVal = parseInt(m[2]);
+
+        // SOURCE-VALUE GUARD: only apply if current value equals the cluster
+        // target. Skips same-name players who were never in the cluster.
+        if (curVal !== clusterVal) continue;
+        if (curVal === newVal) continue;
+
+        lines[i] = lines[i].replace(attrRe, `$1${newVal}$3`);
+        modified = true;
+        totalChanges++;
+        if (!appliedKeys.has(`${key}:${attr}`)) {
+          console.log(
+            `  ${curFirst} ${curLast} ${attr}: ${curVal} → ${newVal}  (${relPath})`
+          );
+          appliedKeys.add(`${key}:${attr}`);
         }
       }
     }
