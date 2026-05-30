@@ -55,7 +55,7 @@ import { apiRequest, queryClient, getQueryFn } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { League, AuditLog, LeagueInvite, SavedRecruitingClass, Player } from "@shared/schema";
-import { calculateOVR, getStarRatingFromOVR, ALL_ABILITIES } from "@shared/abilities";
+import { calculateOVR, getStarRatingFromOVR, ALL_ABILITIES, commonGrade, pitcherCommonGrade } from "@shared/abilities";
 import { isPitcher as getIsPitcherPos } from "@shared/positions";
 import { SimProgressOverlay, type SimSummary } from "@/components/sim-progress-overlay";
 import { SeasonSummaryModal } from "@/components/season-summary-modal";
@@ -3924,17 +3924,31 @@ function RosterEditorTab({ leagueId, auditLogs = [] }: { leagueId: string; audit
                                           { field: "heater", label: "Heater" },
                                           { field: "agile", label: "Agile" },
                                           { field: "recovery", label: "Recovery" },
-                                        ].map(attr => (
-                                          <div key={attr.field} className="text-center">
-                                            <InlineStatCell
-                                              value={(ep as Record<string, number | null>)[attr.field] as number ?? 50}
-                                              field={attr.field}
-                                              playerId={p.id}
-                                              onUpdate={(f, v) => updateField(p.id, f, v)}
-                                            />
-                                            <p className="text-[8px] text-muted-foreground mt-0.5">{attr.label}</p>
-                                          </div>
-                                        ))}
+                                        ].map(attr => {
+                                          const rawVal = (ep as Record<string, number | null>)[attr.field] as number ?? 50;
+                                          const grade = pitcherCommonGrade(rawVal);
+                                          const gradeColor =
+                                            grade === "S" ? "text-yellow-400" :
+                                            grade === "A" ? "text-green-400" :
+                                            grade === "B" ? "text-teal-400" :
+                                            grade === "C" ? "text-yellow-500" :
+                                            grade === "D" ? "text-orange-400" :
+                                            "text-red-400";
+                                          return (
+                                            <div key={attr.field} className="text-center">
+                                              <div className="flex items-center justify-center gap-0.5">
+                                                <InlineStatCell
+                                                  value={rawVal}
+                                                  field={attr.field}
+                                                  playerId={p.id}
+                                                  onUpdate={(f, v) => updateField(p.id, f, v)}
+                                                />
+                                                <span className={`text-[9px] font-bold ${gradeColor}`} data-testid={`grade-${attr.field}-${p.id}`}>{grade}</span>
+                                              </div>
+                                              <p className="text-[8px] text-muted-foreground mt-0.5">{attr.label}</p>
+                                            </div>
+                                          );
+                                        })}
                                       </div>
                                     </div>
                                   ) : (
@@ -3955,17 +3969,31 @@ function RosterEditorTab({ leagueId, auditLogs = [] }: { leagueId: string; audit
                                           { field: "running", label: "Running" },
                                           { field: "throwing", label: "Throwing" },
                                           { field: "recovery", label: "Recovery" },
-                                        ].map(attr => (
-                                          <div key={attr.field} className="text-center">
-                                            <InlineStatCell
-                                              value={(ep as Record<string, number | null>)[attr.field] as number ?? 50}
-                                              field={attr.field}
-                                              playerId={p.id}
-                                              onUpdate={(f, v) => updateField(p.id, f, v)}
-                                            />
-                                            <p className="text-[8px] text-muted-foreground mt-0.5">{attr.label}</p>
-                                          </div>
-                                        ))}
+                                        ].map(attr => {
+                                          const rawVal = (ep as Record<string, number | null>)[attr.field] as number ?? 50;
+                                          const grade = commonGrade(rawVal);
+                                          const gradeColor =
+                                            grade === "S" ? "text-yellow-400" :
+                                            grade === "A" ? "text-green-400" :
+                                            grade === "B" ? "text-teal-400" :
+                                            grade === "C" ? "text-yellow-500" :
+                                            grade === "D" ? "text-orange-400" :
+                                            "text-red-400";
+                                          return (
+                                            <div key={attr.field} className="text-center">
+                                              <div className="flex items-center justify-center gap-0.5">
+                                                <InlineStatCell
+                                                  value={rawVal}
+                                                  field={attr.field}
+                                                  playerId={p.id}
+                                                  onUpdate={(f, v) => updateField(p.id, f, v)}
+                                                />
+                                                <span className={`text-[9px] font-bold ${gradeColor}`} data-testid={`grade-${attr.field}-${p.id}`}>{grade}</span>
+                                              </div>
+                                              <p className="text-[8px] text-muted-foreground mt-0.5">{attr.label}</p>
+                                            </div>
+                                          );
+                                        })}
                                       </div>
                                     </div>
                                   )}

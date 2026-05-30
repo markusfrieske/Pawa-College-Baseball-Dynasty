@@ -394,7 +394,7 @@ const H_DEFENSE:  [number, number][] = [[10,2],[20,5],[30,11],[40,17],[50,26],[6
 const H_ERROR:    [number, number][] = [[10,1],[20,3],[30,7],[40,12],[50,17],[60,23],[70,31],[80,41],[90,53]];
 const TRAJ_PTS:   Record<number, number> = { 1: 0, 2: 9, 3: 13, 4: 17 };
 
-function commonGrade(v: number): "S" | "A" | "B" | "C" | "D" | "F" | "G" {
+export function commonGrade(v: number): "S" | "A" | "B" | "C" | "D" | "F" | "G" {
   if (v >= 90) return "S";
   if (v >= 80) return "A";
   if (v >= 70) return "B";
@@ -406,7 +406,7 @@ function commonGrade(v: number): "S" | "A" | "B" | "C" | "D" | "F" | "G" {
 
 // Pitcher-specific grade thresholds — eight-step scale matching Power Pros S/A/B/C/D/E/F/G:
 // S≥90, A=80-89, B=70-79, C=60-69, D=50-59, E=40-49, F=30-39, G<30
-function pitcherCommonGrade(v: number): "S" | "A" | "B" | "C" | "D" | "E" | "F" | "G" {
+export function pitcherCommonGrade(v: number): "S" | "A" | "B" | "C" | "D" | "E" | "F" | "G" {
   if (v >= 90) return "S";
   if (v >= 80) return "A";
   if (v >= 70) return "B";
