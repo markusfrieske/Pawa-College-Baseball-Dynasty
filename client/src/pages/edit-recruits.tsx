@@ -50,6 +50,7 @@ const gradeColor = (g: string): string => {
   if (g === "B") return "text-teal-400";
   if (g === "C") return "text-yellow-600";
   if (g === "D") return "text-orange-400";
+  if (g === "E") return "text-orange-600";
   return "text-red-400";
 };
 
