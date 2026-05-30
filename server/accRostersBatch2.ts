@@ -48,7 +48,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       ...pitchMix(1, [0, 0, 0, 1, 0, 4, 4, 0, 0, 0]) },
     // CATCHERS (2)
     { firstName: "Alex", lastName: "Sosa", position: "C", eligibility: "JR", homeState: "NC", hometown: "Raleigh", jerseyNumber: 12,
-      hitForAvg: 57, power: 57, speed: 57, arm: 57, fielding: 57, errorResistance: 46, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 57, power: 34, speed: 57, arm: 57, fielding: 57, errorResistance: 46, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 62, vsLHP: 53, grit: 58, stealing: 46, running: 46, throwing: 62, recovery: 46, wRISP: 57, vsLefty: 52, poise: 55, heater: 0, agile: 38,
       abilities: ["Consigliere"], potential: "A-", catcherAbility: 57,
       throwHand: "R", batHand: "L",
@@ -726,7 +726,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       ...pitchMix(1, [0, 0, 0, 0, 0, 4, 4, 0, 1, 0]) },
     // CATCHERS (2)
     { firstName: "Grant", lastName: "Talbot", position: "C", eligibility: "JR", homeState: "PA", hometown: "State College", jerseyNumber: 12,
-      hitForAvg: 63, power: 59, speed: 51, arm: 54, fielding: 52, errorResistance: 63, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 63, power: 44, speed: 51, arm: 54, fielding: 52, errorResistance: 63, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 56, vsLHP: 52, grit: 59, stealing: 46, running: 46, throwing: 63, recovery: 50, wRISP: 53, vsLefty: 50, poise: 56, heater: 0, agile: 40,
       abilities: ["Storming Home"], potential: "B+", catcherAbility: 62,
       throwHand: "R", batHand: "R",

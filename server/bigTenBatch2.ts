@@ -763,7 +763,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       // CATCHERS (2)
       // Brayden Jaksa — FR C/1B, BA #7 2028 draft, hits 2nd, 7-for-17 with 2 HR/3 RBI in big stretch
       { firstName: "Brayden", lastName: "Jaksa", position: "C", eligibility: "FR", homeState: "CA", hometown: "Mission Viejo", jerseyNumber: 8,
-        hitForAvg: 62, power: 62, speed: 55, arm: 61, fielding: 61, errorResistance: 46, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 62, power: 54, speed: 55, arm: 61, fielding: 61, errorResistance: 46, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 66, vsLHP: 60, grit: 67, stealing: 49, running: 49, throwing: 67, recovery: 50, wRISP: 66, vsLefty: 60, poise: 68, heater: 0, agile: 42,
         abilities: ["Power Hitter", "Defensive Artisan"], potential: "A+", catcherAbility: 60,
         throwHand: "R", batHand: "R",

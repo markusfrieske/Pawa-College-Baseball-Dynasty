@@ -281,7 +281,7 @@ export const SUN_BELT_ROSTERS: Record<string, RealPlayer[]> = {
       // CATCHERS (2)
       // Tucker Stockman — RS-JR C, "one of the best in the nation" — TEAM ELITE DEFENSE
       { firstName: "Tucker", lastName: "Stockman", position: "C", eligibility: "JR", homeState: "MS", hometown: "Hattiesburg", jerseyNumber: 14,
-        hitForAvg: 65, power: 75, speed: 30, arm: 54, fielding: 70, errorResistance: 70, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 65, power: 61, speed: 30, arm: 54, fielding: 70, errorResistance: 70, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 70, vsLHP: 63, grit: 76, stealing: 44, running: 44, throwing: 63, recovery: 60, wRISP: 70, vsLefty: 64, poise: 76, heater: 0, agile: 44,
         abilities: ["Defensive Artisan", "Power Hitter", "Walkoff Hitter"], potential: "A+", catcherAbility: 80,
         throwHand: "R", batHand: "L",
@@ -789,7 +789,7 @@ export const SUN_BELT_ROSTERS: Record<string, RealPlayer[]> = {
       ...pitchMix(1, [0, 3, 3, 1, 0, 0, 0, 0, 0, 0]) },
     // CATCHERS (2)
     { firstName: "Drake", lastName: "Fonseca", position: "C", eligibility: "JR", homeState: "LA", hometown: "Mandeville", jerseyNumber: 14,
-      hitForAvg: 54, power: 53, speed: 57, arm: 57, fielding: 50, errorResistance: 39, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 54, power: 29, speed: 57, arm: 57, fielding: 50, errorResistance: 39, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 53, vsLHP: 49, grit: 54, stealing: 41, running: 41, throwing: 57, recovery: 44, wRISP: 52, vsLefty: 48, poise: 53, heater: 0, agile: 36,
       abilities: ["Defensive Artisan"], potential: "B+", catcherAbility: 53,
       throwHand: "R", batHand: "R",

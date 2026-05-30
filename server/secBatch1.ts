@@ -295,7 +295,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       // CATCHERS (2)
       // AJ Malzone — JR C, top hitter
       { firstName: "AJ", lastName: "Malzone", position: "C", eligibility: "JR", homeState: "IL", hometown: "Manteno", jerseyNumber: 28,
-        hitForAvg: 64, power: 64, speed: 64, arm: 64, fielding: 54, errorResistance: 51, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 64, power: 49, speed: 64, arm: 64, fielding: 54, errorResistance: 51, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 62, vsLHP: 55, grit: 52, stealing: 51, running: 51, throwing: 57, recovery: 48, wRISP: 70, vsLefty: 58, poise: 70, heater: 0, agile: 40,
         abilities: ["Defensive Artisan", "Power Hitter"], potential: "A", catcherAbility: 56,
         throwHand: "R", batHand: "R",
@@ -661,7 +661,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Tyler Keese — backup C SO
     { firstName: "Tyler", lastName: "Keese", position: "C", eligibility: "SO", homeState: "TX", hometown: "Conroe", jerseyNumber: 19,
-      hitForAvg: 64, power: 57, speed: 62, arm: 63, fielding: 56, errorResistance: 45, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 64, power: 47, speed: 62, arm: 63, fielding: 56, errorResistance: 45, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 50, vsLHP: 52, grit: 52, stealing: 40, running: 40, throwing: 65, recovery: 44, wRISP: 48, vsLefty: 44, poise: 50, heater: 0, agile: 38,
       abilities: ["Defensive Artisan"], potential: "B+", catcherAbility: 58,
       throwHand: "R", batHand: "L",
@@ -840,7 +840,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       ...pitchMix(1, [0, 0, 0, 1, 0, 0, 4, 0, 0, 4]) },
     // CATCHERS (1)
     { firstName: "Stone", lastName: "Lawless", position: "C", eligibility: "JR", homeState: "MS", hometown: "Tupelo", jerseyNumber: 12,
-      hitForAvg: 55, power: 55, speed: 55, arm: 55, fielding: 52, errorResistance: 48, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 55, power: 25, speed: 55, arm: 55, fielding: 52, errorResistance: 48, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 56, vsLHP: 53, grit: 57, stealing: 44, running: 44, throwing: 59, recovery: 48, wRISP: 54, vsLefty: 51, poise: 56, heater: 0, agile: 36,
       abilities: ["Defensive Artisan", "Consigliere"], potential: "B+", catcherAbility: 56,
       throwHand: "R", batHand: "R",
@@ -1019,7 +1019,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       // CATCHERS (2)
       // Austin Fawley — JR C, projected starter
       { firstName: "Austin", lastName: "Fawley", position: "C", eligibility: "JR", homeState: "VA", hometown: "Roanoke", jerseyNumber: 12,
-        hitForAvg: 68, power: 62, speed: 46, arm: 52, fielding: 55, errorResistance: 63, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 68, power: 57, speed: 46, arm: 52, fielding: 55, errorResistance: 63, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 60, vsLHP: 54, grit: 60, stealing: 49, running: 49, throwing: 66, recovery: 46, wRISP: 60, vsLefty: 54, poise: 60, heater: 0, agile: 32,
         abilities: ["Power Hitter", "Defensive Artisan", "Revenge"], potential: "A", catcherAbility: 56,
         throwHand: "R", batHand: "R",

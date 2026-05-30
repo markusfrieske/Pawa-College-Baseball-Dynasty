@@ -407,7 +407,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       // CATCHERS (2)
       // Ethan Anderson — JR C
       { firstName: "Ethan", lastName: "Anderson", position: "C", eligibility: "JR", homeState: "VA", hometown: "Charlottesville", jerseyNumber: 12,
-        hitForAvg: 64, power: 64, speed: 52, arm: 64, fielding: 41, errorResistance: 64, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 64, power: 47, speed: 52, arm: 64, fielding: 41, errorResistance: 64, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 56, vsLHP: 50, grit: 56, stealing: 49, running: 49, throwing: 67, recovery: 46, wRISP: 56, vsLefty: 50, poise: 56, heater: 0, agile: 38,
         abilities: ["Push", "Defensive Artisan"], potential: "A-", catcherAbility: 58,
         throwHand: "R", batHand: "R",

@@ -389,9 +389,9 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       // CATCHERS (2)
       // Hunter Carns — JR C, returning starter
       { firstName: "Hunter", lastName: "Carns", position: "C", eligibility: "JR", homeState: "GA", hometown: "Buford", jerseyNumber: 12,
-        hitForAvg: 68, power: 64, speed: 66, arm: 67, fielding: 68, errorResistance: 60, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 67, power: 34, speed: 66, arm: 67, fielding: 68, errorResistance: 60, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 56, vsLHP: 52, grit: 58, stealing: 48, running: 48, throwing: 65, recovery: 46, wRISP: 56, vsLefty: 52, poise: 56, heater: 0, agile: 36,
-        abilities: ["The Almanac", "Tough Out", "Consigliere", "Defensive Artisan"], potential: "A+", catcherAbility: 70,
+        abilities: ["Tough Out", "Consigliere", "Defensive Artisan", "Multi-Hit"], potential: "A+", catcherAbility: 70,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
@@ -598,9 +598,9 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
     // CATCHERS (2)
     // Vahn Lackey — JR C, .425/.545/.851, 9 HR, 45 RBI, .789 SLG team-leader, USA Collegiate, #2 D1B catcher, 1st Team Preseason All-American, top catcher in MLB Draft, played 8 positions in single game
     { firstName: "Vahn", lastName: "Lackey", position: "C", eligibility: "JR", homeState: "GA", hometown: "Suwanee", jerseyNumber: 25,
-      hitForAvg: 61, power: 61, speed: 19, arm: 61, fielding: 62, errorResistance: 56, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 61, power: 38, speed: 19, arm: 61, fielding: 62, errorResistance: 56, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 90, vsLHP: 80, grit: 64, stealing: 47, running: 50, throwing: 64, recovery: 60, wRISP: 84, vsLefty: 78, poise: 84, heater: 0, agile: 56,
-      abilities: ["Power Hitter", "Consigliere", "Bazooka Arm"], potential: "A+", catcherAbility: 78,
+      abilities: ["Power Hitter", "Consigliere", "Defensive Artisan"], potential: "A+", catcherAbility: 78,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...noPitches },

@@ -607,7 +607,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // CATCHERS (2)
     // Cashel Dugger — JR C, Buster Posey Award watch list, primary backstop
     { firstName: "Cashel", lastName: "Dugger", position: "C", eligibility: "JR", homeState: "CA", hometown: "Torrance", jerseyNumber: 16,
-      hitForAvg: 68, power: 78, speed: 65, arm: 73, fielding: 69, errorResistance: 61, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 68, power: 53, speed: 65, arm: 73, fielding: 69, errorResistance: 61, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 63, vsLHP: 62, grit: 70, stealing: 47, running: 47, throwing: 86, recovery: 56, wRISP: 64, vsLefty: 60, poise: 68, heater: 0, agile: 38,
       abilities: ["Defensive Artisan", "Revenge", "Consigliere"], potential: "A-", catcherAbility: 70,
       throwHand: "R", batHand: "R",
@@ -794,7 +794,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       ...pitchMix(1, [1, 0, 0, 1, 4, 0, 0, 0, 0, 0]) },
     // CATCHERS (2)
     { firstName: "Colton", lastName: "Bower", position: "C", eligibility: "JR", homeState: "WA", hometown: "Pullman", jerseyNumber: 2,
-      hitForAvg: 65, power: 75, speed: 49, arm: 55, fielding: 70, errorResistance: 70, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 65, power: 58, speed: 49, arm: 55, fielding: 70, errorResistance: 70, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 63, vsLHP: 61, grit: 55, stealing: 49, running: 49, throwing: 73, recovery: 48, wRISP: 55, vsLefty: 52, poise: 56, heater: 0, agile: 36,
       abilities: ["Defensive Artisan"], potential: "B+", catcherAbility: 56,
       throwHand: "R", batHand: "R",

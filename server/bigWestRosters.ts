@@ -485,9 +485,13 @@ export const BIG_WEST_ROSTERS: Record<string, RealPlayer[]> = {
     // Jackson Flora — FR RHP, projected #4 overall 2026 MLB Draft, elite velocity, 1.88 ERA in 86.1 IP — generational, ctrl-dominant
     { firstName: "Jackson", lastName: "Flora", position: "P", eligibility: "FR", homeState: "CA", hometown: "Santa Barbara", jerseyNumber: 14,
       generational: true,
+      // OVR target 499 + Doctor K (gold) is mathematically impossible: gold-gate requires
+      // base OVR ≥500 (scaled), and Doctor K adds 34.8 pts on top, making the floor ~551.
+      // heater/wRISP set to 80 (raw) so unscaled OVR=525 (allows SL/CB lvl-7 per pitch-ovr-cap),
+      // scaled base OVR=509 (passes gold-gate). Abilities trimmed to Heavy Ball + Doctor K only.
       hitForAvg: 12, power: 9, speed: 31, arm: 82, fielding: 66, errorResistance: 40, velocity: 91, control: 91, stamina: 91, stuff: 75,
-      clutch: 78, vsLHP: 78, grit: 62, stealing: 9, running: 28, throwing: 78, recovery: 70, wRISP: 70, vsLefty: 70, poise: 70, heater: 70, agile: 70,
-      abilities: ["Heavy Ball", "Sharpness", "Doctor K", "Pace"], potential: "A+", catcherAbility: null,
+      clutch: 78, vsLHP: 78, grit: 62, stealing: 9, running: 28, throwing: 78, recovery: 58, wRISP: 80, vsLefty: 67, poise: 70, heater: 80, agile: 67,
+      abilities: ["Heavy Ball", "Doctor K"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 7, 7, 1, 0, 3, 0, 0, 1, 0]) },

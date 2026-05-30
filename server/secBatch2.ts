@@ -296,9 +296,9 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       // CATCHERS (2)
       // Brady Neal — JR C, 40-game on-base streak — TEAM ELITE HIT
       { firstName: "Brady", lastName: "Neal", position: "C", eligibility: "JR", homeState: "FL", hometown: "Orlando", jerseyNumber: 14,
-        hitForAvg: 67, power: 77, speed: 24, arm: 71, fielding: 63, errorResistance: 69, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 67, power: 56, speed: 24, arm: 71, fielding: 63, errorResistance: 69, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 64, vsLHP: 58, grit: 52, stealing: 51, running: 51, throwing: 56, recovery: 48, wRISP: 80, vsLefty: 76, poise: 80, heater: 0, agile: 38,
-        abilities: ["Iron Wall", "Consigliere", "Defensive Artisan", "Push"], potential: "A+", catcherAbility: 56,
+        abilities: ["Consigliere", "Defensive Artisan", "Push", "Resilient"], potential: "A+", catcherAbility: 56,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
