@@ -3909,17 +3909,31 @@ function RosterEditorTab({ leagueId, auditLogs = [] }: { leagueId: string; audit
                             <td className="px-2 py-2 text-center">
                               <span className={`font-bold ${ovrColor(ep.overall)}`} data-testid={`text-ovr-${p.id}`}>{ep.overall}</span>
                             </td>
-                            {primaryAttrs.map(attr => (
-                              <td key={attr.field} className="px-2 py-2 text-center" onClick={e => e.stopPropagation()}>
-                                <InlineStatCell
-                                  value={attr.value}
-                                  field={attr.field}
-                                  playerId={p.id}
-                                  onUpdate={(f, v) => updateField(p.id, f, v)}
-                                />
-                                <p className="text-[8px] text-muted-foreground">{attr.label}</p>
-                              </td>
-                            ))}
+                            {primaryAttrs.map(attr => {
+                              const grade = isPit ? pitcherCommonGrade(attr.value) : commonGrade(attr.value);
+                              const gradeColor =
+                                grade === "S" ? "text-yellow-400" :
+                                grade === "A" ? "text-green-400" :
+                                grade === "B" ? "text-teal-400" :
+                                grade === "C" ? "text-yellow-500" :
+                                grade === "D" ? "text-orange-400" :
+                                grade === "E" ? "text-green-500" :
+                                "text-red-400";
+                              return (
+                                <td key={attr.field} className="px-2 py-2 text-center" onClick={e => e.stopPropagation()}>
+                                  <div className="flex items-center justify-center gap-0.5">
+                                    <InlineStatCell
+                                      value={attr.value}
+                                      field={attr.field}
+                                      playerId={p.id}
+                                      onUpdate={(f, v) => updateField(p.id, f, v)}
+                                    />
+                                    <span className={`text-[9px] font-bold ${gradeColor}`} data-testid={`grade-primary-${attr.field}-${p.id}`}>{grade}</span>
+                                  </div>
+                                  <p className="text-[8px] text-muted-foreground">{attr.label}</p>
+                                </td>
+                              );
+                            })}
                             <td className="px-2 py-2 text-center" onClick={e => e.stopPropagation()}>
                               <div className="flex flex-wrap gap-0.5 max-w-[160px]">
                                 {(ep.abilities ?? []).slice(0, 3).map(ab => (
@@ -3991,6 +4005,7 @@ function RosterEditorTab({ leagueId, auditLogs = [] }: { leagueId: string; audit
                                             grade === "B" ? "text-teal-400" :
                                             grade === "C" ? "text-yellow-500" :
                                             grade === "D" ? "text-orange-400" :
+                                            grade === "E" ? "text-green-500" :
                                             "text-red-400";
                                           return (
                                             <div key={attr.field} className="text-center">
@@ -4036,6 +4051,7 @@ function RosterEditorTab({ leagueId, auditLogs = [] }: { leagueId: string; audit
                                             grade === "B" ? "text-teal-400" :
                                             grade === "C" ? "text-yellow-500" :
                                             grade === "D" ? "text-orange-400" :
+                                            grade === "E" ? "text-green-500" :
                                             "text-red-400";
                                           return (
                                             <div key={attr.field} className="text-center">
