@@ -16,7 +16,7 @@
 import { ALL_ABILITIES, calculateOVR } from "../shared/abilities";
 import { ALL_REAL_ROSTERS } from "../server/realRosters";
 
-const GOLD_OVR_THRESHOLD = 450;
+const GOLD_OVR_THRESHOLD = 300;
 
 const GOLD_NAMES = new Set(
   ALL_ABILITIES.filter((a) => a.tier === "gold").map((a) => a.name)

@@ -1,1 +1,2 @@
-- [Pitcher OVR formula — sGradeCap rule](pitcher-ovr-formula.md) — raw attrs ≤90 cap at 89 after scaling; need raw ≥91 to reach 99-tier OVR pts (critical for gold-gate).
+- [Scale factor calibration](scale-factor-calibration.md) — use iterative ratio passes (target/current avg OVR) to converge within ±7 natRank; 3-4 passes needed due to OVR non-linearity.
+- [Gold-gate threshold](gold-gate-threshold.md) — threshold is 300 (not 450); lowered so reduced scale factors on weaker programs don't create violations.
