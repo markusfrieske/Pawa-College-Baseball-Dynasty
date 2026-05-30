@@ -119,7 +119,7 @@ export const BIG_WEST_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Zach", lastName: "Lew", position: "OF", eligibility: "JR", homeState: "CA", hometown: "San Dimas", jerseyNumber: 1,
       hitForAvg: 54, power: 52, speed: 59, arm: 30, fielding: 32, errorResistance: 63, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 50, vsLHP: 45, grit: 46, stealing: 57, running: 49, throwing: 58, recovery: 40, wRISP: 50, vsLefty: 46, poise: 50, heater: 0, agile: 45,
-      abilities: ["Power Hitter", "Consigliere", "Contact Hitter"], potential: "A-", catcherAbility: null,
+      abilities: ["Power Hitter", "Consigliere"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     { firstName: "Kevin", lastName: "Jimenez", position: "OF", eligibility: "SR", homeState: "CA", hometown: "Bellflower", jerseyNumber: 4,
@@ -482,12 +482,12 @@ export const BIG_WEST_ROSTERS: Record<string, RealPlayer[]> = {
 
   "UC Santa Barbara": [
     // PITCHERS (10)
-    // Jackson Flora — FR RHP, projected #4 overall 2026 MLB Draft, elite velocity, 1.88 ERA in 86.1 IP
+    // Jackson Flora — FR RHP, projected #4 overall 2026 MLB Draft, elite velocity, 1.88 ERA in 86.1 IP — generational, ctrl-dominant
     { firstName: "Jackson", lastName: "Flora", position: "P", eligibility: "FR", homeState: "CA", hometown: "Santa Barbara", jerseyNumber: 14,
       generational: true,
-      hitForAvg: 12, power: 9, speed: 31, arm: 96, fielding: 66, errorResistance: 40, velocity: 99, control: 97, stamina: 95, stuff: 99,
+      hitForAvg: 12, power: 9, speed: 31, arm: 96, fielding: 66, errorResistance: 40, velocity: 85, control: 96, stamina: 95, stuff: 82,
       clutch: 82, vsLHP: 82, grit: 62, stealing: 9, running: 28, throwing: 82, recovery: 62, wRISP: 62, vsLefty: 62, poise: 62, heater: 62, agile: 36,
-      abilities: ["Guts", "vs. Strong Batters", "Heavy Ball", "Sharpness", "Pace"], potential: "A+", catcherAbility: null,
+      abilities: ["vs. Strong Batters", "Heavy Ball", "Sharpness", "Pace"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 5, 5, 1, 0, 0, 0, 0, 0, 0]) },
