@@ -2467,6 +2467,7 @@ function RecruitRow({
     { key: "academics", label: "Academics" },
     { key: "prestige", label: "Prestige" },
     { key: "facilities", label: "Facilities" },
+    { key: "collegeLife", label: "College Life" },
   ];
 
   const togglePhonePitch = (key: string) => {
@@ -2638,6 +2639,21 @@ function RecruitRow({
                     </Badge>
                   </TooltipTrigger>
                   <TooltipContent>This recruit has an active storyline arc</TooltipContent>
+                </Tooltip>
+              )}
+              {(recruit as any).stadiumAffinitySignal && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge
+                      variant="outline"
+                      className="text-[8px] no-default-hover-elevate no-default-active-elevate border-blue-400/60 text-blue-300 bg-blue-500/10"
+                      data-testid={`badge-stadium-affinity-${recruit.id}`}
+                    >
+                      <Star className="w-2.5 h-2.5 mr-0.5" />
+                      VENUE FIT
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>This recruit values stadium atmosphere — your venue is a strong fit</TooltipContent>
                 </Tooltip>
               )}
               {recruit.teamsIn != null && recruit.teamsIn > 0 && (
@@ -3444,6 +3460,7 @@ function RecruitDetailModal({
     { key: "academics", label: "Academics" },
     { key: "prestige", label: "Prestige" },
     { key: "facilities", label: "Facilities" },
+    { key: "collegeLife", label: "College Life" },
   ];
 
   const toggleModalPhonePitch = (key: string) => {
@@ -3509,6 +3526,7 @@ function RecruitDetailModal({
     { key: "academicsPriority", label: "Academics", value: recruit.academicsPriority },
     { key: "prestigePriority", label: "School Prestige", value: recruit.prestigePriority },
     { key: "facilitiesPriority", label: "Facilities", value: recruit.facilitiesPriority },
+    { key: "collegeLifePriority", label: "College Life", value: (recruit as any).collegeLifePriority },
   ];
 
   const generatePitchMix = () => {

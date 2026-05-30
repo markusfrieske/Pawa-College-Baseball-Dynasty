@@ -522,6 +522,7 @@ export const recruits = pgTable("recruits", {
   academicsPriority: text("academics_priority").notNull().default("Somewhat"),
   prestigePriority: text("prestige_priority").notNull().default("Somewhat"),
   facilitiesPriority: text("facilities_priority").notNull().default("Somewhat"),
+  collegeLifePriority: text("college_life_priority").notNull().default("Somewhat"),
   dealbreaker: text("dealbreaker"),
   commitmentThreshold: integer("commitment_threshold").notNull().default(500),
   stage: text("stage").notNull().default("open"),

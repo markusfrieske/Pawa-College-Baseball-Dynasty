@@ -1090,6 +1090,7 @@ export function generateRecruitClass(
       academicsPriority: priorities[Math.floor(Math.random() * priorities.length)],
       prestigePriority: priorities[Math.floor(Math.random() * priorities.length)],
       facilitiesPriority: priorities[Math.floor(Math.random() * priorities.length)],
+      collegeLifePriority: priorities[Math.floor(Math.random() * priorities.length)],
       commitmentThreshold: 300 + Math.floor(Math.random() * 400),
       tools: selectedTools,
       isBlueChip,

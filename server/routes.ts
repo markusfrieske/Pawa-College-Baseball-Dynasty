@@ -1519,6 +1519,13 @@ export async function registerRoutes(
           maskedRecruit[field] = null;
         }
 
+        // Stadium atmosphere signal: high-stadium programs get an intel flag when a recruit
+        // strongly values reputation. Revealed once scouted ≥ 10% — the recruit's buzz
+        // about the venue is part of what you learn from early contact.
+        const reputationPri = recruit.reputationPriority || "Somewhat";
+        const reputationHighWeight = reputationPri === "Extremely" || reputationPri === "Very";
+        const stadiumAffinitySignal = userScoutPct >= 10 && reputationHighWeight && (userTeam.stadium || 5) >= 7;
+
         return {
           ...maskedRecruit,
           potential: actualPotential,
@@ -1534,6 +1541,7 @@ export async function registerRoutes(
           competingIntensity,
           teamsIn,
           offersOut,
+          stadiumAffinitySignal,
           // Tell the client which fields are signing-day locked vs just unscouted
           signingDayLockedFields: holdbackFields,
         };
@@ -1663,7 +1671,9 @@ export async function registerRoutes(
       };
       const scoutSkillBonus = Math.floor(((userCoach?.scoutingSkill || 1) - 1) * 2);
       const archEfficiency = archetypeScoutEfficiency[userCoach?.archetype] || 0;
-      const revealAmount = 15 + Math.floor(Math.random() * 11) + scoutSkillBonus + archEfficiency;
+      // Facilities 7+: elite infrastructure means deeper, faster evaluations
+      const facilitiesScoutBonus = (userTeam.facilities || 5) >= 8 ? 5 : (userTeam.facilities || 5) >= 7 ? 3 : 0;
+      const revealAmount = 15 + Math.floor(Math.random() * 11) + scoutSkillBonus + archEfficiency + facilitiesScoutBonus;
       const potentialNarrowMultiplier = ARCHETYPE_POTENTIAL_NARROWING[userCoach?.archetype] || 1.0;
 
       // Helper function to narrow down a range (with archetype potential narrowing bonus).
@@ -1915,9 +1925,12 @@ export async function registerRoutes(
         };
       }).sort((a, b) => b.otherTeamActionCount - a.otherTeamActionCount);
 
-      // Hot recruits I HAVEN'T contacted with 3+ rival actions
+      // Hot recruits I HAVEN'T contacted with rival actions
+      // Prestige bidding war intel: high-prestige programs (7+) have national scouting networks
+      // and detect heated recruiting battles earlier — threshold drops to 2 rival actions.
+      const hotMissedThreshold = (userTeam.prestige || 5) >= 7 ? 2 : 3;
       const hotMissed = Array.from(rivalCountByRecruit.entries())
-        .filter(([recruitId, count]) => !myRecruitIds.has(recruitId) && count >= 3)
+        .filter(([recruitId, count]) => !myRecruitIds.has(recruitId) && count >= hotMissedThreshold)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 5)
         .map(([recruitId, count]) => {
@@ -1968,6 +1981,7 @@ export async function registerRoutes(
       academics: recruit.academicsPriority,
       prestige: recruit.prestigePriority,
       facilities: recruit.facilitiesPriority,
+      collegeLife: (recruit as any).collegeLifePriority || "Somewhat",
     };
     
     const priorityValue = priorityMap[pitchTopic] || "Somewhat";
@@ -2005,11 +2019,13 @@ export async function registerRoutes(
       academics: normalizeAttrBonus(team.academics || 5),
       prestige: normalizeAttrBonus(team.prestige || 5),
       facilities: normalizeAttrBonus(team.facilities || 5),
+      collegeLife: normalizeAttrBonus(team.collegeLife || 5),
     };
     const topicBonus = attributeMap[pitchTopic] || 1.0;
 
     // Overall program quality modifier: 0.92 (all attrs 1) to 1.10 (all attrs 10)
-    const overallQuality = ((team.prestige || 5) + (team.facilities || 5) + (team.academics || 5)) / 30;
+    // Includes collegeLife so all 5 real attributes contribute equally
+    const overallQuality = ((team.prestige || 5) + (team.facilities || 5) + (team.academics || 5) + (team.collegeLife || 5)) / 40;
     // Apply rising-program rank boost (0 baseline, +0.05 for 10+ spots, +0.10 for 20+ spots)
     const rankBoost = typeof team.recruitingRankBoost === "number" ? team.recruitingRankBoost : 0;
     const qualityModifier = 0.9 + (overallQuality * 0.2) + rankBoost;
@@ -2114,9 +2130,11 @@ export async function registerRoutes(
     return skillBonus * archetypeBonus * positionBonus;
   }
   
-  // Calculate proximity bonus based on recruit home state vs team state
-  function calculateProximityBonus(recruitState: string, teamState: string): number {
-    if (recruitState === teamState) return 1.5; // Same state
+  // Calculate proximity bonus based on recruit home state vs team state.
+  // Optional `team` param: national brands (prestige 8+ AND/OR stadium 8+) compress the
+  // out-of-region/out-of-state penalty — recruits across the country already know them.
+  function calculateProximityBonus(recruitState: string, teamState: string, team?: any): number {
+    if (recruitState === teamState) return 1.5; // Same state — never compressed
     
     // Regional proximity groupings
     const regions: Record<string, string[]> = {
@@ -2135,8 +2153,21 @@ export async function registerRoutes(
       if (states.includes(teamState)) teamRegion = region;
     }
     
-    if (recruitRegion && recruitRegion === teamRegion) return 1.2; // Same region
-    return 1.0; // Different region
+    const rawBonus = (recruitRegion && recruitRegion === teamRegion) ? 1.2 : 1.0;
+    
+    // National brand compression: prestige 8-9 OR stadium 8-9 reduces out-of-region/state gap
+    // Region: 1.2 → up to 1.27 | Out-of-region: 1.0 → up to 1.10
+    if (team) {
+      const prestige = team.prestige || 5;
+      const stadium = team.stadium || 5;
+      const brandScore = Math.max(prestige, stadium);
+      if (brandScore >= 8) {
+        const compressionBoost = brandScore >= 9 ? 0.10 : 0.07;
+        return Math.min(1.45, rawBonus + compressionBoost);
+      }
+    }
+    
+    return rawBonus;
   }
 
   // ── Recruiting math: expected gain ranges (after rebalance) ──────────────────
@@ -2183,7 +2214,7 @@ export async function registerRoutes(
     const { bonus: priorityBonus, matchLevel } = calculatePriorityBonus(topic, recruit, team);
     const schoolBonus = calculateSchoolBonus(topic, team);
     const coachBonus = calculateCoachBonus(coach, recruit, "email");
-    const proximityBonus = topic === "proximity" ? calculateProximityBonus(recruit.homeState, team.state) : 1.0;
+    const proximityBonus = topic === "proximity" ? calculateProximityBonus(recruit.homeState, team.state, team) : 1.0;
     // Cap at 4.5× to prevent a single email from being dominant
     const totalMultiplier = Math.min(4.5, priorityBonus * schoolBonus * coachBonus * proximityBonus);
     const interestGain = Math.max(1, Math.round(baseGain * totalMultiplier));
@@ -2197,7 +2228,7 @@ export async function registerRoutes(
       const { bonus: priorityBonus, matchLevel } = calculatePriorityBonus(topic, recruit, team);
       const schoolBonus = calculateSchoolBonus(topic, team);
       const coachBonus = calculateCoachBonus(coach, recruit, "phone");
-      const proximityBonus = topic === "proximity" ? calculateProximityBonus(recruit.homeState, team.state) : 1.0;
+      const proximityBonus = topic === "proximity" ? calculateProximityBonus(recruit.homeState, team.state, team) : 1.0;
       // Cap per-topic at 4.5× (same as email) so multi-topic calls don't stack absurdly
       const topicMultiplier = Math.min(4.5, priorityBonus * schoolBonus * coachBonus * proximityBonus);
       const gain = Math.max(1, Math.round(baseGain * topicMultiplier));
@@ -2218,7 +2249,7 @@ export async function registerRoutes(
     const schoolAttrBonus = (facilitiesBonus + academicsBonus + prestigeBonus + collegeLifeBonus) / 4;
     const coachBonus = calculateCoachBonus(coach, recruit, "visit");
     const { bonus: priorityBonus } = calculatePriorityBonus("facilities", recruit, team);
-    const proximityBonus = calculateProximityBonus(recruit.homeState, team.state);
+    const proximityBonus = calculateProximityBonus(recruit.homeState, team.state, team);
     // Cap at 3.0× — visits already have a large base (20–35); compound extremes would eclipse everything else
     const totalMultiplier = Math.min(3.0, schoolAttrBonus * coachBonus * priorityBonus * proximityBonus);
     const interestGain = Math.max(5, Math.round(baseGain * totalMultiplier));
@@ -2229,9 +2260,12 @@ export async function registerRoutes(
     const coachBonus = calculateCoachBonus(coach, recruit, "head_coach_visit");
     const levelBonus = 1.0 + ((coach?.level || 1) - 1) * 0.03;
     const { bonus: priorityBonus } = calculatePriorityBonus("prestige", recruit, team);
-    const proximityBonus = calculateProximityBonus(recruit.homeState, team.state);
+    const proximityBonus = calculateProximityBonus(recruit.homeState, team.state, team);
+    // Stadium bonus: HC visit is the stadium experience moment — high stadium amplifies it
+    // same way prestige does. normalizeAttrBonus gives 0.80–1.25 range.
+    const stadiumBonus = normalizeAttrBonus(team.stadium || 5);
     // Cap at 3.0× — HC visit is the premium action; base alone (25–40) is strong
-    const totalMultiplier = Math.min(3.0, coachBonus * levelBonus * priorityBonus * proximityBonus);
+    const totalMultiplier = Math.min(3.0, coachBonus * levelBonus * priorityBonus * proximityBonus * stadiumBonus);
     const interestGain = Math.max(5, Math.round(baseGain * totalMultiplier));
     return { baseGain, interestGain, totalMultiplier };
   }
@@ -11544,8 +11578,13 @@ export async function registerRoutes(
         // Example: D-potential player with max coachability (mult 1.4) declines 1/1.4 = 0.71x as fast.
         //          D-potential player with min coachability (mult 0.6) declines 1/0.6 = 1.67x as fast.
         const clampedMult = Math.max(0.6, Math.min(1.4, traitMult));
+        // Facilities development rate: elite training facilities accelerate player growth.
+        // Facilities 8-9 → +10-15% to positive deltas; no effect on decline.
+        const facilitiesDevelMult = targetOvrDelta >= 0
+          ? (team.facilities >= 9 ? 1.15 : team.facilities >= 8 ? 1.10 : team.facilities >= 7 ? 1.05 : 1.0)
+          : 1.0;
         const scaledDelta = targetOvrDelta >= 0
-          ? targetOvrDelta * clampedMult
+          ? targetOvrDelta * clampedMult * facilitiesDevelMult
           : targetOvrDelta / clampedMult;
 
         // Baseline OVR computed from current attributes (before any updates).
@@ -12193,6 +12232,9 @@ export async function registerRoutes(
       }
       
       // Transfer portal - lower-rated players
+      // Academics retention: high-academics programs lose fewer players to portal.
+      // A great degree is part of the value — players stay even through adversity.
+      const academicsRetentionFactor = team.academics >= 9 ? 0.60 : team.academics >= 8 ? 0.75 : team.academics >= 7 ? 0.85 : 1.0;
       const nonDeparting = roster.filter(p => 
         p.eligibility !== "SR" && 
         !p.declaredForDraft &&
@@ -12201,7 +12243,7 @@ export async function registerRoutes(
         !draftProjections.has(p.id) &&
         (p.overall || 300) < 350
       );
-      const portalCount = Math.max(0, Math.floor(nonDeparting.length * (0.1 + Math.random() * 0.1)));
+      const portalCount = Math.max(0, Math.floor(nonDeparting.length * (0.1 + Math.random() * 0.1) * academicsRetentionFactor));
       const shuffled = nonDeparting.sort(() => Math.random() - 0.5);
       for (let i = 0; i < Math.min(portalCount, shuffled.length); i++) {
         const reason = transferReasons[Math.floor(Math.random() * transferReasons.length)];
@@ -12397,13 +12439,23 @@ export async function registerRoutes(
     const fillerStates = ["TX", "CA", "FL", "GA", "NC", "AL", "SC", "LA", "AZ", "OH"];
     const fillerTowns = ["Springfield", "Franklin", "Clinton", "Madison", "Georgetown", "Salem", "Greenville", "Bristol", "Fairview", "Chester"];
     
+    // College Life walk-on quality: high-CL programs attract more walk-ons who actually WANT
+    // to be there — the campus experience draws better athletes even without scholarships.
+    const leagueTeamsForCL = allLeagueTeamsWo;
+    const avgLeagueCL = leagueTeamsForCL.length > 0
+      ? leagueTeamsForCL.reduce((s, t) => s + (t.collegeLife || 5), 0) / leagueTeamsForCL.length
+      : 5;
+    // At avg CL 7+, filler walk-ons have a slightly better attribute floor (24–50 vs 20–46)
+    const walkonAttrFloor = avgLeagueCL >= 7 ? 24 : 20;
+    const walkonAttrRange = avgLeagueCL >= 7 ? 27 : 26;
+
     for (const pos of positionsToFill) {
       const current = posCounts[pos] || 0;
       const needed = Math.max(0, TARGET_PER_POS - current);
       
       for (let i = 0; i < needed; i++) {
         const isPitcher = pos === "P";
-        const randAttr = () => 20 + Math.floor(Math.random() * 26);
+        const randAttr = () => walkonAttrFloor + Math.floor(Math.random() * walkonAttrRange);
         const attrs: any = {
           position: pos,
           hitForAvg: randAttr(), power: randAttr(), speed: sampleNormalSpeed(),
@@ -13348,6 +13400,13 @@ export async function registerRoutes(
         else if (rankCwsIds.has(team.id)) adj += 10;
         else if (rankSrIds.has(team.id)) adj += 5;
         else if (rankCcIds.has(team.id)) adj += 3;
+
+        // Stadium postseason recruiting bump: elite venue exposure during postseason
+        // amplifies recruiting rank boost — big crowds + live TV showcase the program.
+        // Only applies when the team actually hosted / played postseason games.
+        const playedPostseason = rankCwsIds.has(team.id) || rankSrIds.has(team.id) || rankCcIds.has(team.id) || rankCwsWinner === team.id;
+        if (playedPostseason && (team.stadium || 5) >= 8) adj += 3;
+        else if (playedPostseason && (team.stadium || 5) >= 7) adj += 1;
 
         // Clamp max shift to ±15 per season
         adj = Math.max(-15, Math.min(15, adj));
@@ -16625,10 +16684,38 @@ export async function registerRoutes(
       const storylineWeekBonus = isStoryline ? 2 : 0;
       const storylineInterestBonus = isStoryline ? 10 : 0;
       
+      // Prestige commit-threshold reduction: high-prestige programs close recruits at lower interest.
+      // The "brand" sells itself — find the top school with an offer and check its prestige.
+      const topSchoolWithOffer = sortedInterests.filter(i => i.hasOffer).sort((a, b) => (b.interestLevel || 0) - (a.interestLevel || 0))[0];
+      const topSchoolTeam = topSchoolWithOffer ? allLeagueTeams.find(t => t.id === topSchoolWithOffer.teamId) : null;
+      const topSchoolPrestige = topSchoolTeam?.prestige || 5;
+      // Up to -5 threshold reduction for prestige 9, -3 for prestige 8
+      const prestigeThresholdReduction = topSchoolPrestige >= 9 ? 5 : topSchoolPrestige >= 8 ? 3 : 0;
+      
       // Signing thresholds scale with star rating
       const verbalWeek = (isBlueChip ? 11 : starRating >= 5 ? 10 : starRating >= 4 ? 8 : 6) + storylineWeekBonus;
-      const verbalInterest = (isBlueChip ? 85 : starRating >= 5 ? 80 : starRating >= 4 ? 70 : 60) + storylineInterestBonus;
-      const signInterest = (isBlueChip ? 90 : starRating >= 5 ? 85 : starRating >= 4 ? 75 : 65) + storylineInterestBonus;
+      const verbalInterest = Math.max(50, (isBlueChip ? 85 : starRating >= 5 ? 80 : starRating >= 4 ? 70 : 60) + storylineInterestBonus - prestigeThresholdReduction);
+      const signInterest = Math.max(55, (isBlueChip ? 90 : starRating >= 5 ? 85 : starRating >= 4 ? 75 : 65) + storylineInterestBonus - prestigeThresholdReduction);
+      
+      // Passive weekly buzz: high College Life + Prestige programs generate ambient interest each week.
+      // Represents organic brand awareness — recruits hear about the program passively.
+      if (sortedInterests.length > 0) {
+        for (const interest of allInterests) {
+          const buzzTeam = allLeagueTeams.find(t => t.id === interest.teamId);
+          if (!buzzTeam) continue;
+          const cl = buzzTeam.collegeLife || 5;
+          const pr = buzzTeam.prestige || 5;
+          const buzzScore = (cl + pr) / 2; // average of the two; range 1–9
+          // Only programs with combined average 7+ generate meaningful passive buzz (1–2%/week)
+          if (buzzScore >= 7) {
+            const buzzGain = buzzScore >= 8.5 ? 2 : 1;
+            const newLevel = Math.min(99, (interest.interestLevel || 0) + buzzGain);
+            if (newLevel !== interest.interestLevel) {
+              await storage.updateRecruitingInterest(interest.id, { interestLevel: newLevel });
+            }
+          }
+        }
+      }
       
       if (sortedInterests.length >= 1) {
         if (week >= verbalWeek && topInterestLevel >= verbalInterest && sortedInterests.some(i => i.hasOffer)) {
@@ -16665,23 +16752,25 @@ export async function registerRoutes(
       
       let justSigned = false;
       if (currentStage === "verbal") {
-        const topSchoolWithOffer = sortedInterests.filter(i => i.hasOffer).sort((a, b) => (b.interestLevel || 0) - (a.interestLevel || 0))[0];
-        if (topSchoolWithOffer && topSchoolWithOffer.interestLevel >= signInterest) {
-          const teamRoster = playersByTeam.get(topSchoolWithOffer.teamId) ?? [];
-          const teamCommits = recruits.filter(r => r.signedTeamId === topSchoolWithOffer.teamId).length;
+        const signingSchool = sortedInterests.filter(i => i.hasOffer).sort((a, b) => (b.interestLevel || 0) - (a.interestLevel || 0))[0];
+        if (signingSchool && signingSchool.interestLevel >= signInterest) {
+          const teamRoster = playersByTeam.get(signingSchool.teamId) ?? [];
+          const teamCommits = recruits.filter(r => r.signedTeamId === signingSchool.teamId).length;
           const departing = teamRoster.filter(p => p.pendingDeparture && p.retentionStatus !== "retained").length;
           const portal = teamRoster.filter(p => p.inTransferPortal).length;
           if (teamRoster.length - departing - portal + teamCommits + 1 <= 30) {
             await storage.updateRecruit(recruit.id, { 
               stage: "signed",
-              signedTeamId: topSchoolWithOffer.teamId,
+              signedTeamId: signingSchool.teamId,
             });
             justSigned = true;
           }
         }
       }
 
-      // Decommitment check: verbal recruit can flip if a rival with an offer closes the gap
+      // Decommitment check: verbal recruit can flip if a rival with an offer closes the gap.
+      // College Life mismatch modifier: if the leader's college life doesn't match recruit priority,
+      // de-commit risk increases. If it matches well, risk decreases.
       const FLIP_THRESHOLD = 15;
       if (currentStage === "verbal" && !justSigned) {
         const schoolsWithOffers = sortedInterests
@@ -16691,7 +16780,18 @@ export async function registerRoutes(
           const leader = schoolsWithOffers[0];
           const rival = schoolsWithOffers[1];
           const gap = (leader.interestLevel || 0) - (rival.interestLevel || 0);
-          if (gap < FLIP_THRESHOLD && (rival.interestLevel || 0) > 40 && Math.random() < 0.35) {
+          // College Life stability modifier
+          const leaderTeamForCL = allLeagueTeams.find(t => t.id === leader.teamId);
+          const collegeLifePriority = (recruit as any).collegeLifePriority || "Somewhat";
+          const leaderCL = leaderTeamForCL?.collegeLife || 5;
+          // High priority + low college life = +15% decommit risk; high match = -10% risk
+          const clMismatch = collegeLifePriority === "Extremely" && leaderCL <= 4 ? 0.15
+            : collegeLifePriority === "Very" && leaderCL <= 3 ? 0.10
+            : (collegeLifePriority === "Extremely" || collegeLifePriority === "Very") && leaderCL >= 8 ? -0.10
+            : 0;
+          const baseFlipChance = 0.35;
+          const flipChance = Math.max(0.05, Math.min(0.75, baseFlipChance + clMismatch));
+          if (gap < FLIP_THRESHOLD && (rival.interestLevel || 0) > 40 && Math.random() < flipChance) {
             await storage.updateRecruit(recruit.id, { stage: "top3" });
             try {
               const leaderTeam = allLeagueTeams.find(t => t.id === leader.teamId);
@@ -19840,6 +19940,11 @@ async function generateTopSchoolsForLeague(leagueId: string) {
     const prestigeWeight = priorityWeight(recruit.prestigePriority);
     score += teamPrestige * 3 * prestigeWeight;
     
+    // Prestige dream school seeding: 8-9 prestige programs get a probability bump to appear
+    // on more recruits' Top Schools lists — they're already in the conversation
+    if (teamPrestige >= 9) score += 12;
+    else if (teamPrestige >= 8) score += 7;
+    
     // Facilities
     const facilitiesWeight = priorityWeight(recruit.facilitiesPriority);
     score += (team.facilities || 5) * 3 * facilitiesWeight;
@@ -19847,6 +19952,21 @@ async function generateTopSchoolsForLeague(leagueId: string) {
     // Reputation
     const reputationWeight = priorityWeight(recruit.reputationPriority);
     score += (teamPrestige + (team.facilities || 5)) * 1.5 * reputationWeight;
+    
+    // College Life: recruits who care about campus social experience favor high-CL programs
+    const collegeLifeWeight = priorityWeight((recruit as any).collegeLifePriority || "Somewhat");
+    score += (team.collegeLife || 5) * 3 * collegeLifeWeight;
+
+    // Stadium: transfer portal recruits weight stadium more highly — they've played D1,
+    // they know what a great venue means for exposure and experience
+    const isTransfer = (recruit as any).recruitType === "TRANSFER";
+    const teamStadium = team.stadium || 5;
+    if (isTransfer) {
+      score += teamStadium * 4; // raw stadium bonus for transfer recruits
+    } else {
+      // Non-transfers: stadium contributes via reputation weight
+      score += teamStadium * 0.5 * reputationWeight;
+    }
     
     // Playing time - low-star recruits value this more
     const playingTimeWeight = priorityWeight(recruit.playingTimePriority);
