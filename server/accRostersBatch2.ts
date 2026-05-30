@@ -424,7 +424,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Gavin Gallaher — JR 2B captain, .273/9HR/40RBI, leads ALL 2B nationally in DRS (12.55), team captain
     { firstName: "Gavin", lastName: "Gallaher", position: "2B", eligibility: "JR", homeState: "NC", hometown: "Charlotte", jerseyNumber: 5,
-      hitForAvg: 68, power: 66, speed: 57, arm: 51, fielding: 43, errorResistance: 63, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 65, power: 63, speed: 54, arm: 49, fielding: 41, errorResistance: 60, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 65, vsLHP: 64, grit: 78, stealing: 48, running: 48, throwing: 74, recovery: 56, wRISP: 66, vsLefty: 60, poise: 76, heater: 0, agile: 60,
       abilities: ["Good Bunt", "Defensive Artisan", "Consigliere", "Power Hitter"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "L",
@@ -432,7 +432,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Jake Schaffner — JR SS, .354/5HR/5 3B/23 SB, 100 A, .982 FLD — table-setter
     { firstName: "Jake", lastName: "Schaffner", position: "SS", eligibility: "JR", homeState: "ND", hometown: "Fargo", jerseyNumber: 2,
-      hitForAvg: 61, power: 61, speed: 64, arm: 56, fielding: 48, errorResistance: 58, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 59, power: 59, speed: 62, arm: 55, fielding: 47, errorResistance: 56, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 70, vsLHP: 64, grit: 65, stealing: 48, running: 64, throwing: 78, recovery: 56, wRISP: 64, vsLefty: 60, poise: 68, heater: 0, agile: 68,
       abilities: ["Defensive Artisan", "Chance Maker", "vs. Ace"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -465,7 +465,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
     // OUTFIELDERS (7)
     // Owen Hull — JR CF transfer from George Mason (.367/8HR/63RBI/42SB last year), .379/4HR/57RBI/16SB at UNC, "fastest player on team", big draft prospect
     { firstName: "Owen", lastName: "Hull", position: "OF", eligibility: "JR", homeState: "VA", hometown: "Fairfax", jerseyNumber: 8,
-      hitForAvg: 64, power: 62, speed: 55, arm: 47, fielding: 67, errorResistance: 67, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 60, power: 58, speed: 51, arm: 44, fielding: 63, errorResistance: 63, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 59, vsLHP: 57, grit: 76, stealing: 64, running: 66, throwing: 58, recovery: 56, wRISP: 80, vsLefty: 72, poise: 76, heater: 0, agile: 80,
       abilities: ["Walkoff Hitter", "Chance Maker", "Push", "Consigliere"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -473,7 +473,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Macon Winslow — JR OF (corner), .310/9HR/45RBI, hit team-longest 427-foot HR
     { firstName: "Macon", lastName: "Winslow", position: "OF", eligibility: "JR", homeState: "NC", hometown: "Durham", jerseyNumber: 6,
-      hitForAvg: 65, power: 65, speed: 62, arm: 65, fielding: 52, errorResistance: 42, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 61, power: 61, speed: 59, arm: 61, fielding: 49, errorResistance: 40, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 64, vsLHP: 60, grit: 66, stealing: 48, running: 48, throwing: 70, recovery: 56, wRISP: 66, vsLefty: 60, poise: 64, heater: 0, agile: 44,
       abilities: ["Power Hitter", "Consigliere"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "L",

@@ -607,7 +607,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // CATCHERS (2)
     // Cashel Dugger — JR C, Buster Posey Award watch list, primary backstop
     { firstName: "Cashel", lastName: "Dugger", position: "C", eligibility: "JR", homeState: "CA", hometown: "Torrance", jerseyNumber: 16,
-      hitForAvg: 68, power: 53, speed: 65, arm: 73, fielding: 69, errorResistance: 61, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 65, power: 50, speed: 62, arm: 70, fielding: 66, errorResistance: 58, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 63, vsLHP: 62, grit: 70, stealing: 47, running: 47, throwing: 86, recovery: 56, wRISP: 64, vsLefty: 60, poise: 68, heater: 0, agile: 38,
       abilities: ["Defensive Artisan", "Revenge", "Consigliere"], potential: "A-", catcherAbility: 70,
       throwHand: "R", batHand: "R",
@@ -624,15 +624,15 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // INFIELDERS (7)
     // Roch Cholowsky — JR SS, projected #1 overall MLB pick, .335/18HR/62R, leads B10 in runs, generational talent
     { firstName: "Roch", lastName: "Cholowsky", position: "SS", eligibility: "JR", homeState: "CA", hometown: "Oceanside", jerseyNumber: 2,
-      hitForAvg: 91, power: 59, speed: 67, arm: 60, fielding: 58, errorResistance: 68, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 92, vsLHP: 90, grit: 57, stealing: 54, running: 58, throwing: 60, recovery: 68, wRISP: 92, vsLefty: 90, poise: 90, heater: 0, agile: 75,
+      hitForAvg: 87, power: 56, speed: 64, arm: 57, fielding: 55, errorResistance: 65, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 90, vsLHP: 90, grit: 57, stealing: 54, running: 58, throwing: 60, recovery: 68, wRISP: 90, vsLefty: 90, poise: 90, heater: 0, agile: 75,
       abilities: ["Push", "Power Hitter", "Consigliere", "Tough Out", "Defensive Artisan", "Magician"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Mulivai Levu — 1B, .347/14HR/54RBI, All-Conference 2025
     { firstName: "Mulivai", lastName: "Levu", position: "1B", eligibility: "JR", homeState: "HI", hometown: "Honolulu", jerseyNumber: 24,
-      hitForAvg: 71, power: 81, speed: 68, arm: 56, fielding: 54, errorResistance: 77, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 67, power: 77, speed: 65, arm: 53, fielding: 51, errorResistance: 73, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 80, vsLHP: 70, grit: 63, stealing: 47, running: 47, throwing: 63, recovery: 54, wRISP: 78, vsLefty: 68, poise: 74, heater: 0, agile: 32,
       abilities: ["Line Drive", "Power Hitter", "Consigliere"], potential: "A-", catcherAbility: null,
       throwHand: "L", batHand: "L",
@@ -640,7 +640,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Roman Martin — SO, .339/7HR, All-Conference, hybrid C/3B per Daily Bruin
     { firstName: "Roman", lastName: "Martin", position: "3B", eligibility: "SO", homeState: "CA", hometown: "Chino Hills", jerseyNumber: 8,
-      hitForAvg: 71, power: 69, speed: 65, arm: 71, fielding: 73, errorResistance: 68, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 66, power: 64, speed: 61, arm: 66, fielding: 68, errorResistance: 64, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 70, vsLHP: 63, grit: 63, stealing: 47, running: 47, throwing: 75, recovery: 52, wRISP: 70, vsLefty: 66, poise: 70, heater: 0, agile: 44,
       abilities: ["Flying Start", "Spray Hitter", "Defensive Artisan"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -681,7 +681,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // OUTFIELDERS (6)
     // Will Gasparino — JR OF, Texas transfer, .322/18HR (team co-leader), LA/Harvard-Westlake, two-time All-Big 12, SEC All-Defense
     { firstName: "Will", lastName: "Gasparino", position: "OF", eligibility: "JR", homeState: "CA", hometown: "Los Angeles", jerseyNumber: 11,
-      hitForAvg: 82, power: 72, speed: 63, arm: 43, fielding: 75, errorResistance: 75, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 78, power: 68, speed: 60, arm: 41, fielding: 71, errorResistance: 71, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 80, vsLHP: 63, grit: 70, stealing: 47, running: 50, throwing: 63, recovery: 56, wRISP: 76, vsLefty: 68, poise: 72, heater: 0, agile: 56,
       abilities: ["Power Hitter", "Opposite Field Hitter", "Good Infield Hit"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "S",

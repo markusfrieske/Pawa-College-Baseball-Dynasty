@@ -306,7 +306,7 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
     // INFIELDERS (7)
     // Gavin Kelly — UTL (2B/C/OF), Big 12 POW, HR vs Marshall — TEAM STAR
     { firstName: "Gavin", lastName: "Kelly", position: "2B", eligibility: "JR", homeState: "PA", hometown: "Philadelphia", jerseyNumber: 7,
-      hitForAvg: 61, power: 61, speed: 63, arm: 65, fielding: 58, errorResistance: 48, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 60, power: 60, speed: 62, arm: 64, fielding: 57, errorResistance: 48, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 80, vsLHP: 74, grit: 66, stealing: 49, running: 50, throwing: 66, recovery: 50, wRISP: 80, vsLefty: 74, poise: 80, heater: 0, agile: 60,
       abilities: ["Heavy Tank", "Bunt Artisan", "Power Hitter", "Consigliere"], potential: "A+", catcherAbility: 50,
       throwHand: "R", batHand: "R",

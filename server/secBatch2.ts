@@ -81,7 +81,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       // CATCHERS (2)
       // Ryder Helfrick — JR C, 15 multi-RBI games (#2 team), top draft prospect
       { firstName: "Ryder", lastName: "Helfrick", position: "C", eligibility: "JR", homeState: "FL", hometown: "Tampa", jerseyNumber: 12,
-        hitForAvg: 91, power: 62, speed: 55, arm: 63, fielding: 53, errorResistance: 43, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 90, power: 62, speed: 55, arm: 63, fielding: 53, errorResistance: 43, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 65, vsLHP: 58, grit: 52, stealing: 51, running: 51, throwing: 59, recovery: 50, wRISP: 76, vsLefty: 70, poise: 76, heater: 0, agile: 38,
         abilities: ["Insurer", "vs. Breaking Pitches", "Power Hitter", "Consigliere"], potential: "A+", catcherAbility: 64,
         throwHand: "R", batHand: "R",
@@ -316,7 +316,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       // by validate-abilities. Gambler chosen as primary gold (high clutch/wRISP stats); Express Baserunning
       // is the approved fallback that was retained previously and can replace Gambler if the priority changes.
       { firstName: "Justin", lastName: "Lebron", position: "SS", eligibility: "JR", homeState: "FL", hometown: "Miami", jerseyNumber: 1,
-        hitForAvg: 62, power: 56, speed: 70, arm: 72, fielding: 63, errorResistance: 62, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 58, power: 52, speed: 66, arm: 67, fielding: 59, errorResistance: 58, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 78, vsLHP: 74, grit: 76, stealing: 65, running: 74, throwing: 66, recovery: 62, wRISP: 86, vsLefty: 78, poise: 86, heater: 0, agile: 68,
         abilities: ["Bunt Artisan", "Power Hitter", "Defensive Artisan", "Consigliere", "Gambler"], potential: "A+", catcherAbility: null,
         throwHand: "R", batHand: "R",
@@ -718,7 +718,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
     // Daniel Jackson — JR C, ELITE: .389/23 HR/21 SB, 1st player in SEC HISTORY with 20HR/20SB season, returning starter
     { firstName: "Daniel", lastName: "Jackson", position: "C", eligibility: "JR", homeState: "GA", hometown: "Lawrenceville", jerseyNumber: 3,
       generational: true,
-      hitForAvg: 70, power: 67, speed: 64, arm: 56, fielding: 51, errorResistance: 42, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 65, power: 62, speed: 60, arm: 52, fielding: 48, errorResistance: 39, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 90, vsLHP: 82, grit: 48, stealing: 52, running: 55, throwing: 53, recovery: 60, wRISP: 86, vsLefty: 80, poise: 84, heater: 0, agile: 60,
       abilities: ["Spray Hitter", "Consigliere", "Storming Home", "Power Hitter", "Unpredictable"], potential: "A+", catcherAbility: 70,
       throwHand: "R", batHand: "R",
@@ -743,7 +743,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       ...noPitches },
     // Robbie Burnett — JR 2B, tied #2 nationally 16 HR last yr, star 2B
     { firstName: "Robbie", lastName: "Burnett", position: "2B", eligibility: "JR", homeState: "GA", hometown: "Atlanta", jerseyNumber: 8,
-      hitForAvg: 71, power: 61, speed: 61, arm: 58, fielding: 66, errorResistance: 60, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 68, power: 58, speed: 58, arm: 56, fielding: 63, errorResistance: 58, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 78, vsLHP: 66, grit: 76, stealing: 49, running: 49, throwing: 66, recovery: 56, wRISP: 76, vsLefty: 70, poise: 76, heater: 0, agile: 56,
       abilities: ["Predicament", "Power Hitter", "Consigliere", "Defensive Artisan"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "L",
@@ -792,7 +792,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
     // OUTFIELDERS (6)
     // Tre Phelps — JR OF preseason All-American (returns from injury), .318/10HR/44RBI prior
     { firstName: "Tre", lastName: "Phelps", position: "OF", eligibility: "JR", homeState: "GA", hometown: "Cumming", jerseyNumber: 5,
-      hitForAvg: 72, power: 62, speed: 68, arm: 64, fielding: 56, errorResistance: 43, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 69, power: 59, speed: 65, arm: 61, fielding: 54, errorResistance: 41, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 78, vsLHP: 66, grit: 76, stealing: 49, running: 50, throwing: 66, recovery: 54, wRISP: 78, vsLefty: 72, poise: 78, heater: 0, agile: 54,
       abilities: ["Power Hitter", "Consigliere", "Spray Hitter"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "L",
@@ -800,7 +800,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       ...noPitches },
     // Kenny Ishikawa — SO OF/LHP transfer Seattle U, .318/8HR, two-way
     { firstName: "Kenny", lastName: "Ishikawa", position: "OF", eligibility: "SO", homeState: "WA", hometown: "Seattle", jerseyNumber: 1,
-      hitForAvg: 77, power: 67, speed: 61, arm: 58, fielding: 48, errorResistance: 70, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 75, power: 65, speed: 59, arm: 56, fielding: 46, errorResistance: 68, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 64, vsLHP: 60, grit: 64, stealing: 49, running: 56, throwing: 74, recovery: 50, wRISP: 64, vsLefty: 56, poise: 64, heater: 0, agile: 60,
       abilities: ["Unpredictable", "Spray Hitter"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "R",

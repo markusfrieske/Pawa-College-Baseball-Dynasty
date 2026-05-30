@@ -797,7 +797,7 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Ethan Mendoza — SO 2B, .333 in 2025 team-leader, returning star, +15 lbs offseason
     { firstName: "Ethan", lastName: "Mendoza", position: "2B", eligibility: "SO", homeState: "TX", hometown: "El Paso", jerseyNumber: 2,
-      hitForAvg: 68, power: 65, speed: 70, arm: 67, fielding: 65, errorResistance: 51, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 64, power: 61, speed: 66, arm: 63, fielding: 61, errorResistance: 48, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 72, vsLHP: 66, grit: 76, stealing: 51, running: 50, throwing: 68, recovery: 56, wRISP: 74, vsLefty: 64, poise: 72, heater: 0, agile: 56,
       abilities: ["Unrelenting", "Good Bunt", "Chance Maker", "Defensive Artisan"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -805,7 +805,7 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Adrian Rodriguez — SO SS (moved from util), 2 HR/9 RBI, 2025 Frosh All-American, hand injury
     { firstName: "Adrian", lastName: "Rodriguez", position: "SS", eligibility: "SO", homeState: "TX", hometown: "Flower Mound", jerseyNumber: 6,
-      hitForAvg: 74, power: 73, speed: 59, arm: 45, fielding: 69, errorResistance: 71, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 70, power: 69, speed: 55, arm: 42, fielding: 65, errorResistance: 67, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 66, vsLHP: 60, grit: 70, stealing: 51, running: 56, throwing: 76, recovery: 50, wRISP: 64, vsLefty: 58, poise: 66, heater: 0, agile: 64,
       abilities: ["Defensive Artisan", "Spray Hitter", "Push"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -838,7 +838,7 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // OUTFIELDERS (7)
     // Aiden Robbins — JR CF/OF Seton Hall transfer, .358/17HR (TEAM LEADER), 200th career hit, 112mph max EV, top-50 draft
     { firstName: "Aiden", lastName: "Robbins", position: "OF", eligibility: "JR", homeState: "NJ", hometown: "South Orange", jerseyNumber: 1,
-      hitForAvg: 67, power: 74, speed: 62, arm: 43, fielding: 65, errorResistance: 71, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 64, power: 71, speed: 60, arm: 41, fielding: 62, errorResistance: 68, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 86, vsLHP: 80, grit: 69, stealing: 51, running: 50, throwing: 69, recovery: 56, wRISP: 86, vsLefty: 80, poise: 84, heater: 0, agile: 56,
       abilities: ["Power Hitter", "Consigliere", "Spray Hitter"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "S",
