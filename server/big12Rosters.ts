@@ -217,7 +217,7 @@ export const BIG_12_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (10)
     // Maxx Yehl — Friday LHP ace, Big 12 POW, CG vs Kansas
     { firstName: "Maxx", lastName: "Yehl", position: "P", eligibility: "JR", homeState: "PA", hometown: "Pittsburgh", jerseyNumber: 19,
-      hitForAvg: 13, power: 11, speed: 32, arm: 74, fielding: 41, errorResistance: 54, velocity: 69, control: 69, stamina: 95, stuff: 69,
+      hitForAvg: 13, power: 11, speed: 32, arm: 74, fielding: 41, errorResistance: 54, velocity: 72, control: 68, stamina: 95, stuff: 67,
       clutch: 85, vsLHP: 84, grit: 66, stealing: 8, running: 30, throwing: 82, recovery: 58, wRISP: 66, vsLefty: 66, poise: 66, heater: 66, agile: 42,
       abilities: ["Guts", "Sharpness", "Fireman"], potential: "A", catcherAbility: null,
       throwHand: "L", batHand: "L",

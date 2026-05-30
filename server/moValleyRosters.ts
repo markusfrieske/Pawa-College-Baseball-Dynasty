@@ -990,7 +990,7 @@ export const MO_VALLEY_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "L", batHand: "L",
       ...pitchMix(1, [0, 4, 4, 0, 0, 0, 0, 1, 0, 0]) },
     { firstName: "Nate", lastName: "Hoover", position: "P", eligibility: "SO", homeState: "IN", hometown: "Munster", jerseyNumber: 44,
-      hitForAvg: 11, power: 9, speed: 32, arm: 36, fielding: 27, errorResistance: 40, velocity: 46, control: 46, stamina: 42, stuff: 46,
+      hitForAvg: 11, power: 9, speed: 32, arm: 36, fielding: 27, errorResistance: 40, velocity: 50, control: 40, stamina: 42, stuff: 46,
       clutch: 45, vsLHP: 43, grit: 47, stealing: 9, running: 32, throwing: 51, recovery: 38, wRISP: 38, vsLefty: 39, poise: 41, heater: 44, agile: 40,
       abilities: ["Bad Ball Hitter", "Intimidator", "Wild Fastball"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",

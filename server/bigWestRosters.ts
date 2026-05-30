@@ -6,7 +6,7 @@ export const BIG_WEST_ROSTERS: Record<string, RealPlayer[]> = {
   "Cal State Fullerton": [
     // PITCHERS (10)
     { firstName: "Tanner", lastName: "Bibee", position: "P", eligibility: "JR", homeState: "CA", hometown: "Yorba Linda", jerseyNumber: 34,
-      hitForAvg: 17, power: 13, speed: 32, arm: 54, fielding: 34, errorResistance: 46, velocity: 62, control: 62, stamina: 98, stuff: 62,
+      hitForAvg: 17, power: 13, speed: 32, arm: 54, fielding: 34, errorResistance: 46, velocity: 65, control: 61, stamina: 98, stuff: 61,
       clutch: 65, vsLHP: 61, grit: 64, stealing: 11, running: 33, throwing: 68, recovery: 57, wRISP: 59, vsLefty: 61, poise: 62, heater: 64, agile: 39,
       abilities: ["Heavy Ball", "Strong Starter", "Sharpness"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -18,7 +18,7 @@ export const BIG_WEST_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 4, 4, 0, 0, 0, 0, 0, 1, 0]) },
     { firstName: "Jared", lastName: "Meza", position: "P", eligibility: "JR", homeState: "CA", hometown: "Anaheim", jerseyNumber: 22,
-      hitForAvg: 11, power: 8, speed: 31, arm: 38, fielding: 23, errorResistance: 34, velocity: 46, control: 46, stamina: 94, stuff: 46,
+      hitForAvg: 11, power: 8, speed: 31, arm: 38, fielding: 23, errorResistance: 34, velocity: 49, control: 44, stamina: 94, stuff: 46,
       clutch: 50, vsLHP: 47, grit: 51, stealing: 8, running: 24, throwing: 51, recovery: 43, wRISP: 44, vsLefty: 45, poise: 46, heater: 48, agile: 30,
       abilities: ["Strong Starter"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -165,7 +165,7 @@ export const BIG_WEST_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (10)
     // PITCHERS (10)
     { firstName: "Cole", lastName: "Mercer", position: "P", eligibility: "JR", homeState: "CA", hometown: "Lakewood", jerseyNumber: 34,
-      hitForAvg: 15, power: 12, speed: 32, arm: 51, fielding: 33, errorResistance: 45, velocity: 59, control: 59, stamina: 98, stuff: 59,
+      hitForAvg: 15, power: 12, speed: 32, arm: 51, fielding: 33, errorResistance: 45, velocity: 63, control: 55, stamina: 98, stuff: 59,
       clutch: 62, vsLHP: 58, grit: 66, stealing: 11, running: 31, throwing: 64, recovery: 55, wRISP: 56, vsLefty: 58, poise: 59, heater: 61, agile: 38,
       abilities: ["Wild Fastball", "Guts"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",

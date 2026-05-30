@@ -451,7 +451,7 @@ export const SUN_BELT_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 4, 3, 1, 0, 0, 0, 0, 0, 0]) },
     { firstName: "Jaxon", lastName: "Smith", position: "P", eligibility: "JR", homeState: "AL", hometown: "Huntsville", jerseyNumber: 40,
-      hitForAvg: 11, power: 8, speed: 31, arm: 31, fielding: 21, errorResistance: 32, velocity: 30, control: 30, stamina: 33, stuff: 30,
+      hitForAvg: 11, power: 8, speed: 31, arm: 31, fielding: 21, errorResistance: 32, velocity: 28, control: 32, stamina: 33, stuff: 29,
       clutch: 39, vsLHP: 37, grit: 41, stealing: 8, running: 26, throwing: 44, recovery: 27, wRISP: 27, vsLefty: 27, poise: 28, heater: 31, agile: 31,
       abilities: ["True Slider", "Inside Pitch"], potential: "B", catcherAbility: null,
       throwHand: "L", batHand: "S",
@@ -580,7 +580,7 @@ export const SUN_BELT_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (10)
     // PITCHERS (10)
     { firstName: "Tyler", lastName: "Sargent", position: "P", eligibility: "SR", homeState: "WV", hometown: "Huntington", jerseyNumber: 34,
-      hitForAvg: 18, power: 13, speed: 34, arm: 61, fielding: 40, errorResistance: 52, velocity: 59, control: 59, stamina: 93, stuff: 59,
+      hitForAvg: 18, power: 13, speed: 34, arm: 61, fielding: 40, errorResistance: 52, velocity: 57, control: 62, stamina: 93, stuff: 57,
       clutch: 67, vsLHP: 63, grit: 70, stealing: 11, running: 36, throwing: 74, recovery: 52, wRISP: 52, vsLefty: 53, poise: 56, heater: 61, agile: 45,
       abilities: ["Strong Starter", "Inside Pitch", "Kageura"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -900,7 +900,7 @@ export const SUN_BELT_ROSTERS: Record<string, RealPlayer[]> = {
     // PITCHERS (10)
     // PITCHERS (10)
     { firstName: "Kyle", lastName: "Crigger", position: "P", eligibility: "SR", homeState: "VA", hometown: "Norfolk", jerseyNumber: 34,
-      hitForAvg: 17, power: 13, speed: 34, arm: 60, fielding: 39, errorResistance: 51, velocity: 58, control: 58, stamina: 95, stuff: 58,
+      hitForAvg: 17, power: 13, speed: 34, arm: 60, fielding: 39, errorResistance: 51, velocity: 56, control: 61, stamina: 95, stuff: 56,
       clutch: 66, vsLHP: 62, grit: 69, stealing: 11, running: 36, throwing: 73, recovery: 51, wRISP: 51, vsLefty: 52, poise: 55, heater: 60, agile: 45,
       abilities: ["Strong Starter", "Sharpness", "Pace", "Heavy Ball", "Winner's Luck"], potential: "B", catcherAbility: null,
       throwHand: "L", batHand: "L",
@@ -1216,7 +1216,7 @@ export const SUN_BELT_ROSTERS: Record<string, RealPlayer[]> = {
   "Georgia Southern": [
     // PITCHERS (10)
     { firstName: "Ty", lastName: "Fisher", position: "P", eligibility: "SR", homeState: "GA", hometown: "Statesboro", jerseyNumber: 34,
-      hitForAvg: 18, power: 14, speed: 34, arm: 63, fielding: 41, errorResistance: 54, velocity: 61, control: 61, stamina: 87, stuff: 61,
+      hitForAvg: 18, power: 14, speed: 34, arm: 63, fielding: 41, errorResistance: 54, velocity: 63, control: 59, stamina: 87, stuff: 60,
       clutch: 69, vsLHP: 64, grit: 68, stealing: 12, running: 38, throwing: 76, recovery: 54, wRISP: 54, vsLefty: 55, poise: 57, heater: 63, agile: 46,
       abilities: ["Strong Starter", "Tunneling", "Winner's Luck", "Kageura", "Good Pickoff"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",

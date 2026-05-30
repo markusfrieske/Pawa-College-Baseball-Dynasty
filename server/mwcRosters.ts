@@ -60,7 +60,7 @@ import type { RealPlayer } from "./realRosters";
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         pitchFB: 1, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 1, pitchCT: 0, pitchSNK: 4, pitchSPL: 4, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     { firstName: "Marcus", lastName: "Saavedra", position: "P", eligibility: "FR", homeState: "CA", hometown: "Fresno", jerseyNumber: 1,
-        hitForAvg: 9, power: 8, speed: 34, arm: 25, fielding: 27, errorResistance: 39, velocity: 50, control: 50, stamina: 39, stuff: 50,
+        hitForAvg: 9, power: 8, speed: 34, arm: 25, fielding: 27, errorResistance: 39, velocity: 54, control: 44, stamina: 39, stuff: 50,
         clutch: 31, vsLHP: 34, grit: 31, stealing: 12, running: 31, throwing: 52, recovery: 31, wRISP: 33, vsLefty: 32, poise: 33, heater: 36, agile: 39,
         abilities: ["Constant Speed"], potential: "B+", catcherAbility: null,
         throwHand: "R", batHand: "R",
