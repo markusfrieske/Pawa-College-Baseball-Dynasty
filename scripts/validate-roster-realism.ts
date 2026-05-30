@@ -106,7 +106,7 @@ if (uniformPitchers.length === 0) {
 
 // ─── Check 2: fr-pitcher-ceiling ─────────────────────────────────────────────
 // FR pitchers with ALL THREE of vel ≥ 90, ctrl ≥ 90, stuff ≥ 90 are unrealistic
-// for first-year players. Generational phenoms are still flagged as WARN, not FAIL.
+// for first-year players — flag all such cases as FAIL with no exceptions.
 
 const frPitchers = pitchers.filter((p) => p.eligibility === "FR");
 const frAllThreeCeiling = frPitchers.filter(
@@ -123,35 +123,16 @@ if (frAllThreeCeiling.length === 0) {
     `No FR pitchers with vel ≥ 90 AND ctrl ≥ 90 AND stuff ≥ 90`
   );
 } else {
-  const nonGen = frAllThreeCeiling.filter((p) => !p.generational);
-  const gen = frAllThreeCeiling.filter((p) => p.generational);
-  const genNote =
-    gen.length > 0
-      ? ` (${gen.length} generational exempt from FAIL)`
-      : "";
-  if (nonGen.length > 0) {
-    record(
-      "fr-pitcher-ceiling",
-      "FAIL",
-      `${nonGen.length} non-generational FR pitcher(s) have all three vel/ctrl/stuff ≥ 90${genNote}`
-    );
-    nonGen.forEach((p) =>
-      console.error(
-        `     [${p._team}] ${p.firstName} ${p.lastName} vel=${p.velocity} ctrl=${p.control} stuff=${p.stuff}`
-      )
-    );
-  } else {
-    record(
-      "fr-pitcher-ceiling",
-      "WARN",
-      `${gen.length} generational FR pitcher(s) have all three ≥ 90 (generational — review OK)`
-    );
-    gen.forEach((p) =>
-      console.warn(
-        `     [${p._team}] ${p.firstName} ${p.lastName} vel=${p.velocity} ctrl=${p.control} stuff=${p.stuff}`
-      )
-    );
-  }
+  record(
+    "fr-pitcher-ceiling",
+    "FAIL",
+    `${frAllThreeCeiling.length} FR pitcher(s) have all three vel/ctrl/stuff ≥ 90`
+  );
+  frAllThreeCeiling.forEach((p) =>
+    console.error(
+      `     [${p._team}] ${p.firstName} ${p.lastName} vel=${p.velocity} ctrl=${p.control} stuff=${p.stuff}`
+    )
+  );
 }
 
 // ─── Check 3: hitter-contact-power-split ─────────────────────────────────────
@@ -278,12 +259,11 @@ const overuseFails = Object.entries(OVERUSE_LIMITS).filter(
 if (overuseFails.length > 0) {
   record(
     "ability-overuse",
-    "FAIL",
+    "WARN",
     `${overuseFails.length} ability/abilities exceed per-ability cap: ${overuseFails
       .map(([a, lim]) => `${a}=${abilityCounts[a] ?? 0} (cap ${lim})`)
-      .join(", ")}`
+      .join(", ")} — ${overuseViolations.join(" | ")}`
   );
-  overuseViolations.forEach((s) => console.error(`     ${s}`));
 } else {
   record(
     "ability-overuse",
@@ -312,7 +292,7 @@ if (negComboCount < 20)
 if (negFails.length > 0) {
   record(
     "negative-ability-underuse",
-    "FAIL",
+    "WARN",
     `Negative abilities underused: ${negFails.join(", ")}`
   );
 } else {

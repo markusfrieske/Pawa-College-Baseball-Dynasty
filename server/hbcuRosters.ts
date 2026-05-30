@@ -939,7 +939,7 @@ export const HBCU_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Jayquan", lastName: "Howard", position: "OF", eligibility: "FR", homeState: "NC", hometown: "Rocky Mount", jerseyNumber: 19,
       hitForAvg: 46, power: 38, speed: 93, arm: 59, fielding: 44, errorResistance: 30, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 44, vsLHP: 49, grit: 44, stealing: 60, running: 56, throwing: 44, recovery: 30, wRISP: 31, vsLefty: 27, poise: 31, heater: 0, agile: 44,
-      abilities: ["Power Hitter", "Two-Strike Hitter"], potential: "C+", catcherAbility: null,
+      abilities: ["Power Hitter", "Two-Strike Hitter", "Contact Hitter"], potential: "C+", catcherAbility: null,
       throwHand: "R", batHand: "L",
       ...noPitches },
       { firstName: "Jaylen", lastName: "Harris", position: "P", eligibility: "JR", homeState: "NC", hometown: "Greensboro", jerseyNumber: 51,
@@ -1177,7 +1177,7 @@ export const HBCU_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Demarcus", lastName: "Vick", position: "C", eligibility: "FR", homeState: "NC", hometown: "Wilmington", jerseyNumber: 18,
       hitForAvg: 51, power: 33, speed: 33, arm: 22, fielding: 79, errorResistance: 48, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 50, vsLHP: 48, grit: 42, stealing: 50, running: 46, throwing: 54, recovery: 23, wRISP: 23, vsLefty: 20, poise: 23, heater: 0, agile: 23,
-      abilities: ["Bunt Artisan", "Power Hitter"], potential: "C", catcherAbility: 33,
+      abilities: ["Bunt Artisan", "Contact Hitter", "Power Hitter"], potential: "C", catcherAbility: 33,
       throwHand: "R", batHand: "S",
       ...noPitches },
     // INFIELDERS (7)
