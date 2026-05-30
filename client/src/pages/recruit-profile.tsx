@@ -137,6 +137,7 @@ export default function RecruitProfilePage() {
     { key: "academics", label: "Academics" },
     { key: "prestige", label: "Prestige" },
     { key: "facilities", label: "Facilities" },
+    { key: "collegeLife", label: "College Life" },
   ];
 
   const toggleProfilePhonePitch = (key: string) => {
@@ -423,6 +424,7 @@ export default function RecruitProfilePage() {
     { key: "academicsPriority", label: "Academics", value: recruit.academicsPriority },
     { key: "prestigePriority", label: "School Prestige", value: recruit.prestigePriority },
     { key: "facilitiesPriority", label: "Facilities", value: recruit.facilitiesPriority },
+    { key: "collegeLifePriority", label: "College Life", value: (recruit as any).collegeLifePriority || "Somewhat" },
   ];
 
   const priorityLabels: Record<string, string> = {
@@ -467,6 +469,7 @@ export default function RecruitProfilePage() {
       academicsPriority: team.academics,
       prestigePriority: team.prestige,
       facilitiesPriority: team.facilities,
+      collegeLifePriority: team.collegeLife,
     };
     const v = gradeMap[priorityKey];
     return v ?? null;
@@ -699,7 +702,7 @@ export default function RecruitProfilePage() {
                   data-testid={`profile-pitch-phone-${opt.key}`}
                 >
                   {opt.label}{(() => {
-                    const gradeMap: Record<string, number | undefined> = { proximity: undefined, reputation: data.team?.prestige, playingTime: undefined, academics: data.team?.academics, prestige: data.team?.prestige, facilities: data.team?.facilities };
+                    const gradeMap: Record<string, number | undefined> = { proximity: undefined, reputation: data.team?.prestige, playingTime: undefined, academics: data.team?.academics, prestige: data.team?.prestige, facilities: data.team?.facilities, collegeLife: data.team?.collegeLife };
                     const grade = gradeMap[opt.key];
                     return grade !== undefined ? ` (${grade})` : '';
                   })()}
@@ -743,7 +746,7 @@ export default function RecruitProfilePage() {
                   data-testid={`profile-pitch-email-${opt.key}`}
                 >
                   {opt.label}{(() => {
-                    const gradeMap: Record<string, number | undefined> = { proximity: undefined, reputation: data.team?.prestige, playingTime: undefined, academics: data.team?.academics, prestige: data.team?.prestige, facilities: data.team?.facilities };
+                    const gradeMap: Record<string, number | undefined> = { proximity: undefined, reputation: data.team?.prestige, playingTime: undefined, academics: data.team?.academics, prestige: data.team?.prestige, facilities: data.team?.facilities, collegeLife: data.team?.collegeLife };
                     const grade = gradeMap[opt.key];
                     return grade !== undefined ? ` (${grade})` : '';
                   })()}
