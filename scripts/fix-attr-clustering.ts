@@ -5,23 +5,43 @@
  * Target: no single attribute value exceeds 5% of its player group.
  *
  * Clusters to fix (RAW uncalibrated values):
- *   Pitcher velocity=62: 95/1407 = 6.8%  → move 25 to [60,61,63,64]
- *   Pitcher control=58: 105/1407 = 7.5%  → move 35 to [56,57,59,60]
- *   Pitcher stuff=52:  108/1407 = 7.7%  → move 38 to [50,51,53,54]
- *   Pitcher stuff=38:  103/1407 = 7.3%  → move 33 to [36,37,39,40]
- *   Pitcher stuff=30:   97/1407 = 6.9%  → move 27 to [31,32,33,34]
- *   Hitter  hitForAvg=57: 123/2318 = 5.3% → move 8  to [55,56,58,59]
+ *   Pitcher velocity=62: 95/1407 = 6.8%  → scatter to [60,61,63,64]
+ *   Pitcher control=58: 105/1407 = 7.5%  → scatter to [56,57,59,60]
+ *   Pitcher stuff=52:  108/1407 = 7.7%  → scatter to [50,51,53,54]
+ *   Pitcher stuff=38:  103/1407 = 7.3%  → scatter to [36,37,39,40]
+ *   Pitcher stuff=30:   97/1407 = 6.9%  → scatter to [31,32,33,34]
+ *   Hitter  hitForAvg=57: 123/2318 = 5.3% → scatter to [55,56,58,59]
+ *
+ * Idempotency guarantee
+ * ─────────────────────
+ * The number of players to move is computed dynamically each run against the
+ * CURRENT roster state (imported via RAW_UNCALIBRATED_ROSTERS). If a cluster
+ * value is already below the 5% ceiling, the target is skipped entirely and
+ * zero changes are made. Once the rosters are fixed, every subsequent re-run
+ * produces EXACTLY ZERO changes.
  *
  * Selection is deterministic: players at each cluster value are sorted by a
- * stable name hash, and the first `excess` are reassigned to adjacent values
- * in round-robin order. This ensures a re-run is idempotent.
+ * stable name+team hash; the first `excess` (= currentCount - floor(5%)) are
+ * reassigned to adjacent values in round-robin order.
+ *
+ * Same-name collision safety
+ * ──────────────────────────
+ * The jitter map is keyed by "firstName|lastName|team" (not name alone), so
+ * two players with the same name on different teams are always independent
+ * entries and never confused. The source-file scanner uses updatePlayerContext()
+ * from roster-scan-helper to track the current team from array-declaration
+ * lines (e.g. `"LSU": [`).
  */
 
 import * as fs from "fs";
 import * as path from "path";
 import { RAW_UNCALIBRATED_ROSTERS } from "../server/realRosters";
-
-const PITCHER_POSITIONS = new Set(["P", "SP", "RP", "CP", "CL"]);
+import {
+  createPlayerContext,
+  updatePlayerContext,
+  nameTeamKey,
+  PITCHER_POSITIONS,
+} from "./roster-scan-helper";
 
 const ROSTER_FILES = [
   "server/secBatch1.ts",
@@ -45,29 +65,30 @@ const ROSTER_FILES = [
   "server/hbcuRosters.ts",
 ];
 
+/** Maximum allowed fraction of a position group at a single attribute value. */
+const CLUSTER_CEILING = 0.05;
+
 interface ClusterTarget {
   attr: string;
   val: number;
   group: "pitcher" | "hitter";
-  /** Players to move out of this value */
-  excess: number;
-  /** Adjacent values to distribute into (round-robin) */
+  /** Adjacent values to distribute excess players into (round-robin). */
   adjacent: number[];
 }
 
 const TARGETS: ClusterTarget[] = [
-  { attr: "velocity",  val: 62, group: "pitcher", excess: 25, adjacent: [60, 61, 63, 64] },
-  { attr: "control",   val: 58, group: "pitcher", excess: 35, adjacent: [56, 57, 59, 60] },
-  { attr: "stuff",     val: 52, group: "pitcher", excess: 38, adjacent: [50, 51, 53, 54] },
-  { attr: "stuff",     val: 38, group: "pitcher", excess: 33, adjacent: [36, 37, 39, 40] },
-  { attr: "stuff",     val: 30, group: "pitcher", excess: 27, adjacent: [31, 32, 33, 34] },
-  { attr: "hitForAvg", val: 57, group: "hitter",  excess:  8, adjacent: [55, 56, 58, 59] },
+  { attr: "velocity",  val: 62, group: "pitcher", adjacent: [60, 61, 63, 64] },
+  { attr: "control",   val: 58, group: "pitcher", adjacent: [56, 57, 59, 60] },
+  { attr: "stuff",     val: 52, group: "pitcher", adjacent: [50, 51, 53, 54] },
+  { attr: "stuff",     val: 38, group: "pitcher", adjacent: [36, 37, 39, 40] },
+  { attr: "stuff",     val: 30, group: "pitcher", adjacent: [31, 32, 33, 34] },
+  { attr: "hitForAvg", val: 57, group: "hitter",  adjacent: [55, 56, 58, 59] },
 ];
 
-// ── Stable name hash (deterministic) ─────────────────────────────────────────
+// ── Stable name+team hash (deterministic) ────────────────────────────────────
 
-function nameHash(firstName: string, lastName: string): number {
-  const s = `${firstName}|${lastName}`;
+function nameTeamHash(firstName: string, lastName: string, team: string): number {
+  const s = `${firstName}|${lastName}|${team}`;
   let h = 0;
   for (let i = 0; i < s.length; i++) {
     h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
@@ -75,10 +96,19 @@ function nameHash(firstName: string, lastName: string): number {
   return h >>> 0;
 }
 
-// ── Build jitter map: playerKey → { attr → { from: clusterVal, to: newVal } } ──
-// IMPORTANT: stores the source cluster value so the apply step can use a
-// source-value guard and skip any player whose current value differs from
-// the cluster target (prevents same-name collisions from being wrongly edited).
+// ── Build jitter map ──────────────────────────────────────────────────────────
+//
+// Key: "firstName|lastName|team" (never name-only) so same-named players on
+// different teams get independent entries.
+//
+// Value: { attr → { from: clusterVal, to: newVal } }
+//   `from` is stored so the apply step can use a source-value guard: if the
+//   file's current value no longer equals `from`, the player was already moved
+//   in a previous run and must be skipped. This is the inner idempotency guard.
+//
+// Outer idempotency: excess is computed dynamically from the current
+// distribution. When currentCount ≤ floor(CLUSTER_CEILING × groupSize), excess
+// is 0 and the target is silently skipped — no entries are created.
 
 interface JitterEntry { from: number; to: number }
 type JitterMap = Map<string, Record<string, JitterEntry>>;
@@ -86,33 +116,60 @@ type JitterMap = Map<string, Record<string, JitterEntry>>;
 function buildJitterMap(): JitterMap {
   const jitter: JitterMap = new Map();
 
-  const allPlayers = Object.entries(RAW_UNCALIBRATED_ROSTERS).flatMap(
-    ([_team, ps]) => (ps as any[])
-  );
+  // Flatten all players, preserving team context.
+  const allPlayers: Array<{ firstName: string; lastName: string; team: string; position: string } & Record<string, unknown>> = [];
+  for (const [team, players] of Object.entries(RAW_UNCALIBRATED_ROSTERS)) {
+    for (const p of players as any[]) {
+      allPlayers.push({ ...p, team });
+    }
+  }
+
+  // Count group sizes once (pitcher / hitter).
+  const pitcherCount = allPlayers.filter(p => PITCHER_POSITIONS.has(p.position)).length;
+  const hitterCount  = allPlayers.filter(p => !PITCHER_POSITIONS.has(p.position)).length;
 
   for (const target of TARGETS) {
-    const { attr, val, group, excess, adjacent } = target;
+    const { attr, val, group, adjacent } = target;
 
-    const candidates = allPlayers.filter((p) => {
+    const groupSize  = group === "pitcher" ? pitcherCount : hitterCount;
+    const threshold  = Math.floor(CLUSTER_CEILING * groupSize); // max allowed count
+
+    const candidates = allPlayers.filter(p => {
       const isPitcher = PITCHER_POSITIONS.has(p.position);
       const matchesGroup = group === "pitcher" ? isPitcher : !isPitcher;
-      return matchesGroup && p[attr] === val;
+      return matchesGroup && (p as any)[attr] === val;
     });
 
-    // Stable sort by name hash
+    const currentCount = candidates.length;
+    const excess       = Math.max(0, currentCount - threshold);
+
+    const pct = ((currentCount / groupSize) * 100).toFixed(1);
+    if (excess === 0) {
+      console.log(
+        `  [skip] ${group} ${attr}=${val}: ${currentCount}/${groupSize} = ${pct}% ` +
+        `(already ≤ ${(CLUSTER_CEILING * 100).toFixed(0)}%)`
+      );
+      continue;
+    }
+
+    console.log(
+      `  [fix]  ${group} ${attr}=${val}: ${currentCount}/${groupSize} = ${pct}% ` +
+      `→ moving ${excess} player(s)`
+    );
+
+    // Stable sort by (name+team) hash — deterministic across re-runs on same data.
     candidates.sort((a, b) => {
-      const ha = nameHash(a.firstName, a.lastName);
-      const hb = nameHash(b.firstName, b.lastName);
+      const ha = nameTeamHash(a.firstName, a.lastName, a.team);
+      const hb = nameTeamHash(b.firstName, b.lastName, b.team);
       return ha - hb;
     });
 
-    // Take the first `excess` candidates to jitter
     const toJitter = candidates.slice(0, excess);
 
     toJitter.forEach((p, idx) => {
-      const key = `${p.firstName}|${p.lastName}`;
-      if (!jitter.has(key)) jitter.set(key, {});
+      const key    = `${p.firstName}|${p.lastName}|${p.team}`;
       const newVal = adjacent[idx % adjacent.length];
+      if (!jitter.has(key)) jitter.set(key, {});
       jitter.get(key)![attr] = { from: val, to: newVal };
     });
   }
@@ -121,6 +178,14 @@ function buildJitterMap(): JitterMap {
 }
 
 // ── Apply jitter to source files ──────────────────────────────────────────────
+//
+// Uses updatePlayerContext() to track (firstName, lastName, position, team)
+// from each file line. Jitter lookup uses the full team-qualified key so
+// same-named players on different teams are matched independently.
+//
+// Source-value guard: only apply if the file's current attr value equals the
+// cluster target stored in `from`. Players already moved in a previous run
+// will have a different value and are automatically skipped.
 
 function applyJitter(jitter: JitterMap): void {
   let totalChanges = 0;
@@ -131,41 +196,34 @@ function applyJitter(jitter: JitterMap): void {
     if (!fs.existsSync(fullPath)) continue;
 
     const lines = fs.readFileSync(fullPath, "utf8").split("\n");
-    let curFirst: string | null = null;
-    let curLast: string | null = null;
+    const ctx   = createPlayerContext();
     let modified = false;
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
+      updatePlayerContext(line, ctx);
 
-      const fnMatch = line.match(/firstName:\s*"([^"]+)"/);
-      const lnMatch = line.match(/lastName:\s*"([^"]+)"/);
-      if (fnMatch) curFirst = fnMatch[1];
-      if (lnMatch) curLast = lnMatch[1];
-
-      if (!curFirst || !curLast) continue;
-      const key = `${curFirst}|${curLast}`;
+      if (!ctx.firstName || !ctx.lastName || !ctx.team) continue;
+      const key     = nameTeamKey(ctx);
       const changes = jitter.get(key);
       if (!changes) continue;
 
       for (const [attr, { from: clusterVal, to: newVal }] of Object.entries(changes)) {
         const attrRe = new RegExp(`(\\b${attr}:\\s*)(\\d+)(,?)`);
-        const m = line.match(attrRe);
+        const m      = line.match(attrRe);
         if (!m) continue;
         const curVal = parseInt(m[2]);
 
-        // SOURCE-VALUE GUARD: only apply if current value equals the cluster
-        // target. Skips same-name players who were never in the cluster.
+        // Source-value guard: skip if value was already changed in a prior run.
         if (curVal !== clusterVal) continue;
         if (curVal === newVal) continue;
 
-        lines[i] = lines[i].replace(attrRe, `$1${newVal}$3`);
-        modified = true;
+        lines[i]  = lines[i].replace(attrRe, `$1${newVal}$3`);
+        modified  = true;
         totalChanges++;
+        const displayKey = `${ctx.firstName} ${ctx.lastName} [${ctx.team}]`;
         if (!appliedKeys.has(`${key}:${attr}`)) {
-          console.log(
-            `  ${curFirst} ${curLast} ${attr}: ${curVal} → ${newVal}  (${relPath})`
-          );
+          console.log(`  ${displayKey} ${attr}: ${curVal} → ${newVal}  (${relPath})`);
           appliedKeys.add(`${key}:${attr}`);
         }
       }
@@ -178,7 +236,7 @@ function applyJitter(jitter: JitterMap): void {
 
   console.log(`\nTotal attribute changes: ${totalChanges}`);
 
-  // Report any jitter entries that were never applied
+  // Report any jitter entries that were planned but not applied in any file.
   for (const [key, changes] of jitter.entries()) {
     for (const attr of Object.keys(changes)) {
       if (!appliedKeys.has(`${key}:${attr}`)) {
@@ -188,31 +246,21 @@ function applyJitter(jitter: JitterMap): void {
   }
 }
 
-// ── Verify post-fix distribution ──────────────────────────────────────────────
-
-function verifyDistribution(): void {
-  // Re-import is not possible after file modification in the same process,
-  // so we just report what was planned.
-  console.log("\nPost-fix expected maximums:");
-  console.log("  velocity=62: ~70/1407 = 4.97% ✓ (was 6.8%)");
-  console.log("  control=58:  ~70/1407 = 4.97% ✓ (was 7.5%)");
-  console.log("  stuff=52:    ~70/1407 = 4.97% ✓ (was 7.7%)");
-  console.log("  stuff=38:    ~70/1407 = 4.97% ✓ (was 7.3%)");
-  console.log("  stuff=30:    ~70/1407 = 4.97% ✓ (was 6.9%)");
-  console.log("  hitForAvg=57: ~115/2318 = 4.96% ✓ (was 5.3%)");
-}
-
 // ── Main ──────────────────────────────────────────────────────────────────────
 
-console.log("Building jitter map...");
+console.log("Checking current cluster distribution (keyed by firstName|lastName|team)...");
 const jitter = buildJitterMap();
-console.log(`Jitter assignments: ${jitter.size} players (some may have multiple attrs)`);
+
 const totalAssignments = [...jitter.values()].reduce(
   (sum, m) => sum + Object.keys(m).length,
   0
 );
-console.log(`Total attr reassignments: ${totalAssignments}\n`);
 
+if (totalAssignments === 0) {
+  console.log("\nAll clusters already below 5% ceiling — nothing to do. ✓");
+  process.exit(0);
+}
+
+console.log(`\nJitter entries: ${jitter.size} player-team pairs, ${totalAssignments} total attr reassignments\n`);
 console.log("Applying to source files...");
 applyJitter(jitter);
-verifyDistribution();

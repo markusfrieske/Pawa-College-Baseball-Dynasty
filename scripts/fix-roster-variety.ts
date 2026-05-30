@@ -14,10 +14,22 @@
  *   Hit Machine:         3  ✅  (Rembert ✅ + Becker ✅ + Abernathy ✅)
  *   The Almanac:         3  ✅  (D.Jackson ✅ + Fralick ✅ + Carns ✅, already valid)
  *   Loser's Luck:        4  ✅  (already valid pitcher-red additions)
+ *
+ * Same-name collision safety: every REMOVALS and ADDITIONS entry carries a
+ * `posGroup` field ("pitcher" | "hitter"). The file scanner tracks the
+ * current player's position via updatePlayerContext() and only applies a
+ * change when the player's position group matches the entry's posGroup.
+ * This prevents the script from accidentally modifying a same-named player
+ * on a different team who has a different position type.
  */
 
 import * as fs from "fs";
 import * as path from "path";
+import {
+  createPlayerContext,
+  updatePlayerContext,
+  isPitcher,
+} from "./roster-scan-helper";
 
 const ROSTER_FILES = [
   "server/secBatch1.ts",
@@ -40,58 +52,68 @@ const ROSTER_FILES = [
   "server/hbcuRosters.ts",
 ];
 
+interface AbilityOp {
+  ability: string;
+  /**
+   * Position group the target player must belong to.
+   * Prevents same-named players on different teams (with different positions)
+   * from being accidentally modified.
+   */
+  posGroup: "pitcher" | "hitter";
+}
+
 // Phase 1: Abilities to STRIP (player has a gold ability but OVR < 500)
-// key = "FirstName|LastName", value = ability to remove
-const REMOVALS: Record<string, string> = {
+// key = "FirstName|LastName"
+const REMOVALS: Record<string, AbilityOp> = {
   // Pitcher gold violations (pitchers can't reach OVR 500 in this system)
-  "Aidan|King":      "Doctor K",
-  "Liam|Peterson":   "Gas Tank",
-  "Tyler|Fay":       "Top Gear",
-  "Jake|Marciano":   "Slugger Killer",
-  "Andreas|Alvarez": "Lefty Killer",
-  "Tomas|Valincius": "Iron Arm",
-  "Wes|Mendes":      "Fighting Spirit",
-  "Jason|DeCaro":    "Painter",
-  "Jack|Radel":      "Indomitable Soul",
-  "Ethan|Lund":      "Wizard Mode",
+  "Aidan|King":      { ability: "Doctor K",         posGroup: "pitcher" },
+  "Liam|Peterson":   { ability: "Gas Tank",          posGroup: "pitcher" },
+  "Tyler|Fay":       { ability: "Top Gear",          posGroup: "pitcher" },
+  "Jake|Marciano":   { ability: "Slugger Killer",    posGroup: "pitcher" },
+  "Andreas|Alvarez": { ability: "Lefty Killer",      posGroup: "pitcher" },
+  "Tomas|Valincius": { ability: "Iron Arm",          posGroup: "pitcher" },
+  "Wes|Mendes":      { ability: "Fighting Spirit",   posGroup: "pitcher" },
+  "Jason|DeCaro":    { ability: "Painter",           posGroup: "pitcher" },
+  "Jack|Radel":      { ability: "Indomitable Soul",  posGroup: "pitcher" },
+  "Ethan|Lund":      { ability: "Wizard Mode",       posGroup: "pitcher" },
   // Hitter gold violations (OVR calibrated below 500)
-  "Chris|Hacopian":  "Iron Man",
-  "Nico|Partida":    "First Pitch King",
-  "Caden|Sorrell":   "Flying Start",
-  "Jorian|Wilson":   "Heavy Tank",
-  "Judd|Utermark":   "Low Ball Hitter",
-  "Ace|Reese":       "Unrelenting",
-  "Kyle|Jones":      "Trickster",
-  "Ethin|Bingaman":  "Hit Machine",
-  "Caden|McDonald":  "Hit Machine",
+  "Chris|Hacopian":  { ability: "Iron Man",          posGroup: "hitter" },
+  "Nico|Partida":    { ability: "First Pitch King",  posGroup: "hitter" },
+  "Caden|Sorrell":   { ability: "Flying Start",      posGroup: "hitter" },
+  "Jorian|Wilson":   { ability: "Heavy Tank",        posGroup: "hitter" },
+  "Judd|Utermark":   { ability: "Low Ball Hitter",   posGroup: "hitter" },
+  "Ace|Reese":       { ability: "Unrelenting",       posGroup: "hitter" },
+  "Kyle|Jones":      { ability: "Trickster",         posGroup: "hitter" },
+  "Ethin|Bingaman":  { ability: "Hit Machine",       posGroup: "hitter" },
+  "Caden|McDonald":  { ability: "Hit Machine",       posGroup: "hitter" },
 };
 
 // Phase 2: Abilities to ADD to verified OVR ≥ 500 fielders/catchers
 // (all confirmed via validate-gold-gate using ALL_REAL_ROSTERS + calculateOVR)
-const ADDITIONS: Record<string, string> = {
+const ADDITIONS: Record<string, AbilityOp> = {
   // Reassigning 7 stripped hitter-gold abilities to valid OVR ≥ 500 targets
-  "Carlos|Arguelles":   "First Pitch King",      // Miami OF  OVR=547
-  "Drew|Faurot":        "Iron Man",              // UCF OF    OVR=546
-  "Roman|Martin":       "Flying Start",          // UCLA 3B   OVR=539
-  "Gavin|Kelly":        "Heavy Tank",            // WVU 2B    OVR=538
-  "Kaleb|DeLaTorre":    "Low Ball Hitter",       // SAlabama 3B OVR=532
-  "Ethan|Mendoza":      "Unrelenting",           // Texas 2B  OVR=528
-  "Drew|Smith":         "Trickster",             // Oregon OF OVR=527
+  "Carlos|Arguelles":   { ability: "First Pitch King",    posGroup: "hitter" }, // Miami OF  OVR=547
+  "Drew|Faurot":        { ability: "Iron Man",            posGroup: "hitter" }, // UCF OF    OVR=546
+  "Roman|Martin":       { ability: "Flying Start",        posGroup: "hitter" }, // UCLA 3B   OVR=539
+  "Gavin|Kelly":        { ability: "Heavy Tank",          posGroup: "hitter" }, // WVU 2B    OVR=538
+  "Kaleb|DeLaTorre":    { ability: "Low Ball Hitter",     posGroup: "hitter" }, // SAlabama 3B OVR=532
+  "Ethan|Mendoza":      { ability: "Unrelenting",         posGroup: "hitter" }, // Texas 2B  OVR=528
+  "Drew|Smith":         { ability: "Trickster",           posGroup: "hitter" }, // Oregon OF OVR=527
   // Hit Machine (near-absent): bring 1→3 with 2 new OVR≥500 holders
-  "Dylan|Becker":       "Hit Machine",           // MoState OF OVR=525
-  "Jay|Abernathy":      "Hit Machine",           // Tennessee 3B OVR=524
+  "Dylan|Becker":       { ability: "Hit Machine",         posGroup: "hitter" }, // MoState OF OVR=525
+  "Jay|Abernathy":      { ability: "Hit Machine",         posGroup: "hitter" }, // Tennessee 3B OVR=524
   // 11 brand-new zero-count fielder gold abilities
-  "Carter|McCulley":    "Outside Hitter",        // FSU 2B    OVR=522
-  "Colby|Turner":       "Bases Loaded King",     // Michigan 3B OVR=521
-  "Anthony|Martinez":   "Gambler",               // UCF 1B    OVR=516
-  "Jake|Schaffner":     "Ace Killer",            // UNC SS    OVR=515
-  "Levi|Clark":         "Emotional Pillar",      // Tennessee 1B OVR=514
-  "Garrett|Frazier":    "Surprise!",             // DallasBaptist OF OVR=513
-  "Steven|Milam":       "Strike Thrower",        // LSU SS    OVR=511
-  "AJ|Gracia":          "Heat Up",               // Virginia OF OVR=509
-  "Ethan|Surowiec":     "Shock Commander",       // Florida OF OVR=508
-  "Brodie|Johnston":    "Spirit Head",           // Vanderbilt SS OVR=508
-  "Will|Bryan":         "Slap Happy",            // UAB SS    OVR=508
+  "Carter|McCulley":    { ability: "Outside Hitter",      posGroup: "hitter" }, // FSU 2B    OVR=522
+  "Colby|Turner":       { ability: "Bases Loaded King",   posGroup: "hitter" }, // Michigan 3B OVR=521
+  "Anthony|Martinez":   { ability: "Gambler",             posGroup: "hitter" }, // UCF 1B    OVR=516
+  "Jake|Schaffner":     { ability: "Ace Killer",          posGroup: "hitter" }, // UNC SS    OVR=515
+  "Levi|Clark":         { ability: "Emotional Pillar",    posGroup: "hitter" }, // Tennessee 1B OVR=514
+  "Garrett|Frazier":    { ability: "Surprise!",           posGroup: "hitter" }, // DallasBaptist OF OVR=513
+  "Steven|Milam":       { ability: "Strike Thrower",      posGroup: "hitter" }, // LSU SS    OVR=511
+  "AJ|Gracia":          { ability: "Heat Up",             posGroup: "hitter" }, // Virginia OF OVR=509
+  "Ethan|Surowiec":     { ability: "Shock Commander",     posGroup: "hitter" }, // Florida OF OVR=508
+  "Brodie|Johnston":    { ability: "Spirit Head",         posGroup: "hitter" }, // Vanderbilt SS OVR=508
+  "Will|Bryan":         { ability: "Slap Happy",          posGroup: "hitter" }, // UAB SS    OVR=508
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -125,39 +147,48 @@ for (const relPath of ROSTER_FILES) {
   const raw = fs.readFileSync(fullPath, "utf8");
   const lines = raw.split("\n");
   let modified = false;
-  let curFirst: string | null = null;
-  let curLast: string | null = null;
+  const ctx = createPlayerContext();
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
+    updatePlayerContext(line, ctx);
 
-    const fnMatch = line.match(/firstName:\s*"([^"]+)"/);
-    const lnMatch = line.match(/lastName:\s*"([^"]+)"/);
-    if (fnMatch) curFirst = fnMatch[1];
-    if (lnMatch) curLast = lnMatch[1];
+    if (!ctx.firstName || !ctx.lastName) continue;
+    if (!line.includes("abilities:") || !line.includes("[")) continue;
 
-    if (curFirst && curLast && line.includes("abilities:") && line.includes("[")) {
-      const key = `${curFirst}|${curLast}`;
+    const nameKey = `${ctx.firstName}|${ctx.lastName}`;
+    const playerIsPitcher = isPitcher(ctx.position);
 
-      // Phase 1: Remove
-      const abilityToRemove = REMOVALS[key];
-      if (abilityToRemove && !removedKeys.has(key) && line.includes(`"${abilityToRemove}"`)) {
-        lines[i] = removeAbility(lines[i], abilityToRemove);
-        removedKeys.add(key);
-        modified = true;
-        totalRemovals++;
-        console.log(`  - ${abilityToRemove} ← stripped from ${curFirst} ${curLast} (${relPath})`);
-      }
+    // Phase 1: Remove
+    const removal = REMOVALS[nameKey];
+    if (
+      removal &&
+      !removedKeys.has(nameKey) &&
+      line.includes(`"${removal.ability}"`) &&
+      // Position-group guard: only touch pitchers for pitcher entries, hitters for hitter entries
+      (removal.posGroup === "pitcher") === playerIsPitcher
+    ) {
+      lines[i] = removeAbility(lines[i], removal.ability);
+      removedKeys.add(nameKey);
+      modified = true;
+      totalRemovals++;
+      console.log(`  - ${removal.ability} ← stripped from ${ctx.firstName} ${ctx.lastName} [${ctx.team ?? "?"}] (${relPath})`);
+    }
 
-      // Phase 2: Add
-      const abilityToAdd = ADDITIONS[key];
-      if (abilityToAdd && !addedKeys.has(key) && !line.includes(`"${abilityToAdd}"`)) {
-        lines[i] = addAbility(lines[i], abilityToAdd);
-        addedKeys.add(key);
-        modified = true;
-        totalAdditions++;
-        console.log(`  + ${abilityToAdd} → added to ${curFirst} ${curLast} (${relPath})`);
-      }
+    // Phase 2: Add
+    const addition = ADDITIONS[nameKey];
+    if (
+      addition &&
+      !addedKeys.has(nameKey) &&
+      !line.includes(`"${addition.ability}"`) &&
+      // Position-group guard: only touch hitters for hitter entries (all additions are hitter gold)
+      (addition.posGroup === "pitcher") === playerIsPitcher
+    ) {
+      lines[i] = addAbility(lines[i], addition.ability);
+      addedKeys.add(nameKey);
+      modified = true;
+      totalAdditions++;
+      console.log(`  + ${addition.ability} → added to ${ctx.firstName} ${ctx.lastName} [${ctx.team ?? "?"}] (${relPath})`);
     }
   }
 
@@ -173,9 +204,9 @@ const notRemoved = Object.keys(REMOVALS).filter((k) => !removedKeys.has(k));
 const notAdded = Object.keys(ADDITIONS).filter((k) => !addedKeys.has(k));
 if (notRemoved.length > 0) {
   console.log("\nWARNING — REMOVALS not found:");
-  notRemoved.forEach((k) => console.log(`  ${k} → ${REMOVALS[k]}`));
+  notRemoved.forEach((k) => console.log(`  ${k} → ${REMOVALS[k].ability}`));
 }
 if (notAdded.length > 0) {
   console.log("\nWARNING — ADDITIONS not found:");
-  notAdded.forEach((k) => console.log(`  ${k} → ${ADDITIONS[k]}`));
+  notAdded.forEach((k) => console.log(`  ${k} → ${ADDITIONS[k].ability}`));
 }
