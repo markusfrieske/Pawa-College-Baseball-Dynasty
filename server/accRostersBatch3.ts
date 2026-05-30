@@ -481,7 +481,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       // OUTFIELDERS (6)
       // AJ Gracia — OF JR, Perfect Game 1st Team All-American, Golden Spikes Watch List, multi-HR
       { firstName: "AJ", lastName: "Gracia", position: "OF", eligibility: "JR", homeState: "NC", hometown: "Durham", jerseyNumber: 6,
-        hitForAvg: 62, power: 72, speed: 48, arm: 63, fielding: 64, errorResistance: 52, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 61, power: 59, speed: 44, arm: 63, fielding: 59, errorResistance: 47, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 80, vsLHP: 67, grit: 80, stealing: 49, running: 52, throwing: 66, recovery: 44, wRISP: 80, vsLefty: 70, poise: 80, heater: 0, agile: 56,
         abilities: ["Heat Up", "Pull Hitter", "Power Hitter"], potential: "A+", catcherAbility: null,
         throwHand: "R", batHand: "L",
