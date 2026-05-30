@@ -313,9 +313,9 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       // INFIELDERS (7)
       // Justin Lebron — SS JR, 3-run HR vs SC, reached 6 straight games, top draft prospect
       { firstName: "Justin", lastName: "Lebron", position: "SS", eligibility: "JR", homeState: "FL", hometown: "Miami", jerseyNumber: 1,
-        hitForAvg: 63, power: 63, speed: 67, arm: 66, fielding: 54, errorResistance: 45, velocity: 0, control: 0, stamina: 0, stuff: 0,
-        clutch: 58, vsLHP: 54, grit: 76, stealing: 60, running: 70, throwing: 59, recovery: 56, wRISP: 76, vsLefty: 70, poise: 76, heater: 0, agile: 64,
-        abilities: ["Bunt Artisan", "Power Hitter", "Defensive Artisan", "Consigliere"], potential: "A+", catcherAbility: null,
+        hitForAvg: 77, power: 76, speed: 70, arm: 72, fielding: 63, errorResistance: 62, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        clutch: 78, vsLHP: 74, grit: 76, stealing: 65, running: 74, throwing: 66, recovery: 62, wRISP: 86, vsLefty: 78, poise: 86, heater: 0, agile: 68,
+        abilities: ["Bunt Artisan", "Power Hitter", "Defensive Artisan", "Consigliere", "Gambler"], potential: "A+", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "tan", hairColor: "black", hairStyle: "short",
         ...noPitches },

@@ -671,10 +671,10 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       ...noPitches },
     // OUTFIELDERS (6)
     // Drew Burress — JR CF, ONLY DI player with career .756 SLG, 55 R (team most), 7HR/31RBI/49R 2026, ACC POW, top OF in MLB Draft, 56-game OB streak last yr
-    { firstName: "Drew", lastName: "Burress", position: "OF", eligibility: "JR", homeState: "GA", hometown: "Stockbridge", jerseyNumber: 1,
-      hitForAvg: 63, power: 63, speed: 49, arm: 36, fielding: 61, errorResistance: 62, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 90, vsLHP: 82, grit: 50, stealing: 47, running: 53, throwing: 49, recovery: 60, wRISP: 88, vsLefty: 80, poise: 84, heater: 0, agile: 70,
-      abilities: ["Good Infield Hit", "Consigliere"], potential: "A+", catcherAbility: null,
+    { firstName: "Drew", lastName: "Burress", position: "OF", eligibility: "JR", homeState: "GA", hometown: "Stockbridge", jerseyNumber: 8,
+      hitForAvg: 71, power: 78, speed: 58, arm: 50, fielding: 65, errorResistance: 66, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 90, vsLHP: 82, grit: 56, stealing: 47, running: 60, throwing: 60, recovery: 62, wRISP: 88, vsLefty: 80, poise: 84, heater: 0, agile: 72,
+      abilities: ["Good Infield Hit", "Consigliere", "Gambler"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...noPitches },

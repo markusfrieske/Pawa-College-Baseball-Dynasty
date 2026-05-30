@@ -624,9 +624,9 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // INFIELDERS (7)
     // Roch Cholowsky — JR SS, projected #1 overall MLB pick, .335/18HR/62R, leads B10 in runs, generational talent
     { firstName: "Roch", lastName: "Cholowsky", position: "SS", eligibility: "JR", homeState: "CA", hometown: "Oceanside", jerseyNumber: 2,
-      hitForAvg: 67, power: 57, speed: 59, arm: 50, fielding: 47, errorResistance: 58, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 88, vsLHP: 86, grit: 52, stealing: 47, running: 47, throwing: 51, recovery: 63, wRISP: 88, vsLefty: 86, poise: 86, heater: 0, agile: 70,
-      abilities: ["Push", "Power Hitter", "Consigliere", "Tough Out", "Defensive Artisan", "Chance Maker"], potential: "A+", catcherAbility: null,
+      hitForAvg: 88, power: 78, speed: 67, arm: 60, fielding: 58, errorResistance: 68, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 92, vsLHP: 90, grit: 57, stealing: 54, running: 58, throwing: 60, recovery: 68, wRISP: 92, vsLefty: 90, poise: 90, heater: 0, agile: 75,
+      abilities: ["Push", "Power Hitter", "Consigliere", "Tough Out", "Defensive Artisan", "Magician"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },

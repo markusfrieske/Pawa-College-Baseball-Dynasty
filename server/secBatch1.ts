@@ -312,9 +312,9 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       // INFIELDERS (6)
       // Brendan Lawson — SS SO, top 2027 draft prospect, .317/10 HR/61 RBI as FR
       { firstName: "Brendan", lastName: "Lawson", position: "SS", eligibility: "SO", homeState: "ON", hometown: "Toronto", jerseyNumber: 2,
-        hitForAvg: 64, power: 64, speed: 65, arm: 54, fielding: 58, errorResistance: 61, velocity: 0, control: 0, stamina: 0, stuff: 0,
-        clutch: 80, vsLHP: 76, grit: 68, stealing: 51, running: 60, throwing: 68, recovery: 56, wRISP: 80, vsLefty: 76, poise: 80, heater: 0, agile: 64,
-        abilities: ["Artist", "Defensive Artisan", "Consigliere"], potential: "A+", catcherAbility: null,
+        hitForAvg: 74, power: 73, speed: 68, arm: 62, fielding: 65, errorResistance: 66, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        clutch: 84, vsLHP: 80, grit: 70, stealing: 56, running: 65, throwing: 72, recovery: 62, wRISP: 86, vsLefty: 80, poise: 86, heater: 0, agile: 68,
+        abilities: ["Magician", "Defensive Artisan", "Consigliere"], potential: "A+", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
@@ -1093,8 +1093,8 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       // OUTFIELDERS (6)
       // Tristan Bissetta — OF JR, 5 HRs in week 6 (Baseball America Team of Week)
       { firstName: "Tristan", lastName: "Bissetta", position: "OF", eligibility: "JR", homeState: "SC", hometown: "Clemson", jerseyNumber: 7,
-        hitForAvg: 73, power: 63, speed: 51, arm: 40, fielding: 68, errorResistance: 53, velocity: 0, control: 0, stamina: 0, stuff: 0,
-        clutch: 90, vsLHP: 64, grit: 70, stealing: 49, running: 52, throwing: 66, recovery: 46, wRISP: 70, vsLefty: 64, poise: 70, heater: 0, agile: 56,
+        hitForAvg: 75, power: 74, speed: 53, arm: 48, fielding: 70, errorResistance: 60, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        clutch: 90, vsLHP: 72, grit: 72, stealing: 52, running: 56, throwing: 68, recovery: 52, wRISP: 80, vsLefty: 72, poise: 80, heater: 0, agile: 60,
         abilities: ["Tough Out", "Power Hitter", "Consigliere"], potential: "A", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",

@@ -1,0 +1,1 @@
+- [Pitcher OVR formula — sGradeCap rule](pitcher-ovr-formula.md) — raw attrs ≤90 cap at 89 after scaling; need raw ≥91 to reach 99-tier OVR pts (critical for gold-gate).
