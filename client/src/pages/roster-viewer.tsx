@@ -520,6 +520,15 @@ export default function RosterViewerPage() {
 
   const scoutingInfo = selectedTeam && scoutingMap ? scoutingMap[selectedTeam] ?? null : null;
 
+  const [scoutingPanelOpen, setScoutingPanelOpen] = useState(true);
+  const prevSelectedTeamRef = useRef<string>("");
+  useEffect(() => {
+    if (selectedTeam && selectedTeam !== prevSelectedTeamRef.current) {
+      setScoutingPanelOpen(true);
+      prevSelectedTeamRef.current = selectedTeam;
+    }
+  }, [selectedTeam]);
+
   const saveMutation = useMutation({
     mutationFn: async (payload: { name: string; description: string; basedOn: string; rosterData: RealPlayer[] }) => {
       const res = await apiRequest("POST", "/api/saved-rosters", payload);
@@ -1208,9 +1217,9 @@ export default function RosterViewerPage() {
               )}
             </div>
 
-            {scoutingInfo && (
+            {scoutingInfo && scoutingPanelOpen && (
               <div className="px-4 py-3 border-b border-border/40 animate-in fade-in duration-200">
-                <TeamScoutingPanel teamName={selectedTeam} info={scoutingInfo} />
+                <TeamScoutingPanel teamName={selectedTeam} info={scoutingInfo} onClose={() => setScoutingPanelOpen(false)} />
               </div>
             )}
 
@@ -1328,9 +1337,9 @@ export default function RosterViewerPage() {
               </div>
 
               {/* Scouting Panel */}
-              {scoutingInfo && (
+              {scoutingInfo && scoutingPanelOpen && (
                 <div className="px-6 py-3 border-b border-border/40 animate-in fade-in duration-200">
-                  <TeamScoutingPanel teamName={selectedTeam} info={scoutingInfo} />
+                  <TeamScoutingPanel teamName={selectedTeam} info={scoutingInfo} onClose={() => setScoutingPanelOpen(false)} />
                 </div>
               )}
 
