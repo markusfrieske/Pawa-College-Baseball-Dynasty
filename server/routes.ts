@@ -1152,6 +1152,7 @@ export async function registerRoutes(
             leagueId: league.id,
             conferenceId: conf.id,
             isCpu: true,
+            nationalRank: NATIONAL_RANKS[teamData.name] ?? TOTAL_NATIONAL_TEAMS,
           });
 
           await storage.createStandings({
@@ -13284,6 +13285,63 @@ export async function registerRoutes(
       }
     } catch (histErr) {
       console.error("[finalizeSigningDay] Failed to record coach season history:", histErr);
+    }
+
+    // Update national ranks based on season performance
+    try {
+      const rankTeams = await storage.getTeamsByLeague(leagueId);
+      const rankStandings = await storage.getStandingsByLeague(leagueId, completedSeason);
+      const rankGames = (await storage.getGamesByLeague(leagueId)).filter(g => g.season === completedSeason && g.isComplete);
+
+      const rankCwsWinner = (() => {
+        const cwsGames = rankGames.filter(g => g.phase === "cws");
+        if (cwsGames.length === 0) return null;
+        // Sort deterministically: highest bracketRound first, then highest week, then latest id
+        const sorted = [...cwsGames].sort((a, b) => {
+          if ((b.bracketRound ?? 0) !== (a.bracketRound ?? 0)) return (b.bracketRound ?? 0) - (a.bracketRound ?? 0);
+          if (b.week !== a.week) return b.week - a.week;
+          return b.id.localeCompare(a.id);
+        });
+        const last = sorted[0];
+        if (last.homeScore == null || last.awayScore == null) return null;
+        return last.homeScore > last.awayScore ? last.homeTeamId : last.awayTeamId;
+      })();
+      const rankCwsIds = new Set(rankGames.filter(g => g.phase === "cws").flatMap(g => [g.homeTeamId, g.awayTeamId]));
+      const rankSrIds = new Set(rankGames.filter(g => g.phase === "super_regionals").flatMap(g => [g.homeTeamId, g.awayTeamId]));
+      const rankCcIds = new Set(rankGames.filter(g => g.phase === "conference_championship").flatMap(g => [g.homeTeamId, g.awayTeamId]));
+
+      for (const team of rankTeams) {
+        const st = rankStandings.find(s => s.teamId === team.id);
+        const wins = st?.wins ?? 0;
+        const losses = st?.losses ?? 0;
+        const total = wins + losses;
+        if (total === 0) continue;
+
+        const winRate = wins / total;
+
+        // Adjustment: positive means rank improves (number goes down)
+        let adj = (winRate - 0.5) * 24; // -12 to +12 based on win rate
+
+        // Postseason bonuses
+        if (rankCwsWinner === team.id) adj += 15;
+        else if (rankCwsIds.has(team.id)) adj += 10;
+        else if (rankSrIds.has(team.id)) adj += 5;
+        else if (rankCcIds.has(team.id)) adj += 3;
+
+        // Clamp max shift to ±15 per season
+        adj = Math.max(-15, Math.min(15, adj));
+
+        const currentRank = team.nationalRank ?? TOTAL_NATIONAL_TEAMS;
+        const newRank = Math.max(1, Math.min(TOTAL_NATIONAL_TEAMS, currentRank - Math.round(adj)));
+
+        if (newRank !== currentRank) {
+          await storage.updateTeam(team.id, { nationalRank: newRank });
+          console.log(`[finalizeSigningDay] National rank update: ${team.name} ${currentRank} → ${newRank} (adj=${Math.round(adj)}, winRate=${winRate.toFixed(2)})`);
+        }
+      }
+      console.log(`[finalizeSigningDay] National ranks updated for season ${completedSeason}`);
+    } catch (rankErr) {
+      console.error("[finalizeSigningDay] Failed to update national ranks:", rankErr);
     }
 
     console.log(`[finalizeSigningDay] Processing ${teams.length} teams for transfers/eligibility/recruits`);

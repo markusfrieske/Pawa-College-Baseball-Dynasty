@@ -118,6 +118,7 @@ export const teams = pgTable("teams", {
   walkonReady: boolean("walkon_ready").notNull().default(false),
   isAutoPilot: boolean("is_auto_pilot").notNull().default(false),
   autoPilotActionLog: jsonb("auto_pilot_action_log").$type<AutoPilotLogEntry[]>().default([]),
+  nationalRank: integer("national_rank").notNull().default(149),
 });
 
 export const insertTeamSchema = createInsertSchema(teams).pick({
@@ -143,6 +144,7 @@ export const insertTeamSchema = createInsertSchema(teams).pick({
   nilBudget: true,
   nilSpent: true,
   isCpu: true,
+  nationalRank: true,
 });
 
 export type InsertTeam = z.infer<typeof insertTeamSchema>;
