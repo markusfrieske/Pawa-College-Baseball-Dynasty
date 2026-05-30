@@ -3646,6 +3646,8 @@ function RosterEditorTab({ leagueId, auditLogs = [] }: { leagueId: string; audit
   const [selectedTeamId, setSelectedTeamId] = useState<string>("");
   const [edits, setEdits] = useState<EditMap>({});
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [savingAll, setSavingAll] = useState(false);
+  const [saveProgress, setSaveProgress] = useState<{ done: number; total: number } | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [historyOpenId, setHistoryOpenId] = useState<string | null>(null);
 
@@ -3710,6 +3712,38 @@ function RosterEditorTab({ leagueId, auditLogs = [] }: { leagueId: string; audit
     }
   };
 
+  const dirtyPlayers = players.filter(p => hasEdits(p.id));
+  const dirtyCount = dirtyPlayers.length;
+
+  const saveAllPlayers = async () => {
+    if (dirtyCount === 0 || savingAll) return;
+    setSavingAll(true);
+    setSaveProgress({ done: 0, total: dirtyCount });
+    let succeeded = 0;
+    let failed = 0;
+    for (const p of dirtyPlayers) {
+      const playerEdits = edits[p.id];
+      if (!playerEdits || Object.keys(playerEdits).length === 0) continue;
+      try {
+        await apiRequest("PATCH", `/api/leagues/${leagueId}/players/${p.id}`, playerEdits);
+        discardEdits(p.id);
+        succeeded++;
+      } catch {
+        failed++;
+      }
+      setSaveProgress(prev => prev ? { ...prev, done: prev.done + 1 } : null);
+    }
+    await qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "roster", selectedTeamId] });
+    await qc.invalidateQueries({ queryKey: ["/api/leagues", leagueId, "commissioner"] });
+    setSavingAll(false);
+    setSaveProgress(null);
+    if (failed === 0) {
+      toast({ title: "All Changes Saved", description: `${succeeded} player${succeeded !== 1 ? "s" : ""} updated successfully.` });
+    } else {
+      toast({ title: "Partial Save", description: `${succeeded} saved, ${failed} failed.`, variant: "destructive" });
+    }
+  };
+
   const POSITIONS = ["C", "1B", "2B", "SS", "3B", "LF", "CF", "RF", "OF", "P", "SP", "RP", "CL"];
   const ELIGIBILITIES = ["FR", "SO", "JR", "SR", "RS"];
 
@@ -3771,6 +3805,29 @@ function RosterEditorTab({ leagueId, auditLogs = [] }: { leagueId: string; audit
           )}
 
           {selectedTeamId && !rosterLoading && players.length > 0 && (
+            <>
+              {dirtyCount > 0 && (
+                <div className="flex items-center justify-between gap-3 mb-3 p-2.5 rounded border border-yellow-500/30 bg-yellow-500/5">
+                  <div className="flex items-center gap-2 text-xs text-yellow-400">
+                    <div className="w-2 h-2 rounded-full bg-yellow-400 shrink-0 animate-pulse" />
+                    {savingAll && saveProgress
+                      ? `Saving… ${saveProgress.done} / ${saveProgress.total}`
+                      : `${dirtyCount} unsaved change${dirtyCount !== 1 ? "s" : ""}`}
+                  </div>
+                  <RetroButton
+                    size="sm"
+                    variant="primary"
+                    className="h-7 px-3 text-[10px]"
+                    onClick={saveAllPlayers}
+                    disabled={savingAll}
+                    loading={savingAll}
+                    data-testid="button-save-all"
+                  >
+                    <Save className="w-3 h-3 mr-1.5" />
+                    Save All Changes
+                  </RetroButton>
+                </div>
+              )}
             <div className="rounded border border-border overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
@@ -3882,6 +3939,7 @@ function RosterEditorTab({ leagueId, auditLogs = [] }: { leagueId: string; audit
                                       variant="outline"
                                       className="h-6 px-1.5 text-[9px]"
                                       onClick={() => discardEdits(p.id)}
+                                      disabled={savingAll}
                                       data-testid={`button-discard-${p.id}`}
                                     >
                                       <RotateCcw className="w-2.5 h-2.5" />
@@ -3891,7 +3949,7 @@ function RosterEditorTab({ leagueId, auditLogs = [] }: { leagueId: string; audit
                                       variant="primary"
                                       className="h-6 px-2 text-[9px]"
                                       onClick={() => savePlayer(p)}
-                                      disabled={savingId === p.id}
+                                      disabled={savingAll || savingId === p.id}
                                       loading={savingId === p.id}
                                       data-testid={`button-save-${p.id}`}
                                     >
@@ -4085,6 +4143,7 @@ function RosterEditorTab({ leagueId, auditLogs = [] }: { leagueId: string; audit
                                         size="sm"
                                         variant="outline"
                                         onClick={() => discardEdits(p.id)}
+                                        disabled={savingAll}
                                         data-testid={`button-discard-expanded-${p.id}`}
                                       >
                                         <RotateCcw className="w-3 h-3 mr-1" /> Discard
@@ -4093,7 +4152,7 @@ function RosterEditorTab({ leagueId, auditLogs = [] }: { leagueId: string; audit
                                         size="sm"
                                         variant="primary"
                                         onClick={() => savePlayer(p)}
-                                        disabled={savingId === p.id}
+                                        disabled={savingAll || savingId === p.id}
                                         loading={savingId === p.id}
                                         data-testid={`button-save-expanded-${p.id}`}
                                       >
@@ -4112,6 +4171,7 @@ function RosterEditorTab({ leagueId, auditLogs = [] }: { leagueId: string; audit
                 </table>
               </div>
             </div>
+            </>
           )}
         </RetroCardContent>
       </RetroCard>
