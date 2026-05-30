@@ -83,25 +83,19 @@ if (uniformPitchers.length === 0) {
     "PASS",
     `0 / ${pitchers.length} pitchers have vel=ctrl=stuff`
   );
-} else if (uniformPitchers.length <= 3) {
-  record(
-    "pitcher-attr-uniformity",
-    "WARN",
-    `${uniformPitchers.length} pitcher(s) have vel=ctrl=stuff identical: ${uniformPitchers
-      .map((p) => `${p.firstName} ${p.lastName} (${p._team})`)
-      .join(", ")}`
-  );
 } else {
   record(
     "pitcher-attr-uniformity",
     "FAIL",
-    `${uniformPitchers.length} pitchers have vel=ctrl=stuff — fix required`
+    `${uniformPitchers.length} pitcher(s) have vel=ctrl=stuff identical — fix required`
   );
   uniformPitchers.slice(0, 10).forEach((p) =>
     console.error(
       `     [${p._team}] ${p.firstName} ${p.lastName} vel=ctrl=stuff=${p.velocity}`
     )
   );
+  if (uniformPitchers.length > 10)
+    console.error(`     ... and ${uniformPitchers.length - 10} more`);
 }
 
 // ─── Check 2: fr-pitcher-ceiling ─────────────────────────────────────────────
@@ -153,19 +147,11 @@ if (splitViolators.length === 0) {
     "PASS",
     `No position players with hitForAvg = power AND both > 65`
   );
-} else if (splitViolators.length <= 5) {
-  record(
-    "hitter-contact-power-split",
-    "WARN",
-    `${splitViolators.length} hitter(s) have hit=pow AND both > 65: ${splitViolators
-      .map((p) => `${p.firstName} ${p.lastName} (${p._team}, ${p.position}, ${p.hitForAvg})`)
-      .join(", ")}`
-  );
 } else {
   record(
     "hitter-contact-power-split",
     "FAIL",
-    `${splitViolators.length} position players have hitForAvg = power AND both > 65 — archetype splits required`
+    `${splitViolators.length} position player(s) have hitForAvg = power AND both > 65 — archetype splits required`
   );
   splitViolators.slice(0, 10).forEach((p) =>
     console.error(

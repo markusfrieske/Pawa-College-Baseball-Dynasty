@@ -1684,7 +1684,7 @@ export const SUN_BELT_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Devin", lastName: "Hairston", position: "OF", eligibility: "JR", homeState: "GA", hometown: "Atlanta", jerseyNumber: 7,
       hitForAvg: 60, power: 46, speed: 79, arm: 58, fielding: 56, errorResistance: 47, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 58, vsLHP: 55, grit: 51, stealing: 65, running: 57, throwing: 51, recovery: 50, wRISP: 56, vsLefty: 51, poise: 58, heater: 0, agile: 54,
-      abilities: ["Contact Hitter","Spray Hitter","Tough Out"], potential: "B+", catcherAbility: null,
+      abilities: ["Spray Hitter","Tough Out"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "dark", hairColor: "black", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
