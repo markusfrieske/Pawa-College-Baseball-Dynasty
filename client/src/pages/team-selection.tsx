@@ -184,24 +184,21 @@ export default function TeamSelectionPage() {
           });
           return prev;
         }
-        // Enforce per-conference distribution: floor(N/C) base + at most extrasAllowed conferences at +1
+        // Enforce exact per-conference target: based on conference index in ordered list
+        // first (C - extras) conferences get floor(N/C), last extras conferences get floor(N/C)+1
         if (data) {
           const confCount = data.conferences.length;
           const basePerConf = Math.floor(data.league.maxTeams / confCount);
           const extrasAllowed = data.league.maxTeams % confCount;
           const teamConf = allTeams.find(t => t.name === teamName)?.sourceConferenceId;
           if (teamConf) {
+            const confIdx = data.conferences.findIndex(c => c.id === teamConf);
+            const confTarget = basePerConf + (confIdx >= confCount - extrasAllowed ? 1 : 0);
             const selectedInConf = allTeams.filter(t => t.sourceConferenceId === teamConf && next.has(t.name)).length;
-            const confsAboveBase = data.conferences.filter(conf =>
-              allTeams.filter(t => t.sourceConferenceId === conf.id && next.has(t.name)).length > basePerConf
-            ).length;
-            const confLimit = selectedInConf > basePerConf
-              ? basePerConf + 1
-              : confsAboveBase < extrasAllowed ? basePerConf + 1 : basePerConf;
-            if (selectedInConf >= confLimit) {
+            if (selectedInConf >= confTarget) {
               toast({
                 title: "Conference Full",
-                description: `This conference already has its maximum teams allowed.`,
+                description: `This conference allows exactly ${confTarget} teams.`,
                 variant: "destructive",
               });
               return prev;
@@ -226,14 +223,14 @@ export default function TeamSelectionPage() {
       return;
     }
 
+    // Include ALL conferences in payload (even empty) so backend can validate completeness
     const teamsPayload: { conferenceId: string; teamNames: string[] }[] = data.conferenceTeamPools
       .map(({ conference, teams: poolTeams }) => ({
         conferenceId: conference.id,
         teamNames: poolTeams
           .filter(t => selectedTeamNames.has(t.name))
           .map(t => t.name),
-      }))
-      .filter(entry => entry.teamNames.length > 0);
+      }));
 
     saveMutation.mutate(teamsPayload);
   };
@@ -341,11 +338,18 @@ export default function TeamSelectionPage() {
                   <div className="flex justify-between items-center gap-2">
                     <span className="text-sm">{conference.name}</span>
                     <div className="flex items-center gap-2">
-                      {data.conferenceTeamPools.length === 3 && (
-                        <span className="text-[10px] text-muted-foreground font-pixel">
-                          target {data.conferenceTeamPools.indexOf(data.conferenceTeamPools.find(p => p.conference.id === conference.id)!) < data.conferenceTeamPools.length - 1 ? Math.floor(data.league.maxTeams / data.conferenceTeamPools.length) : data.league.maxTeams - Math.floor(data.league.maxTeams / data.conferenceTeamPools.length) * (data.conferenceTeamPools.length - 1)}
-                        </span>
-                      )}
+                      {(() => {
+                        const confIdx = data.conferenceTeamPools.findIndex(p => p.conference.id === conference.id);
+                        const confCount = data.conferences.length;
+                        const base = Math.floor(data.league.maxTeams / confCount);
+                        const extras = data.league.maxTeams % confCount;
+                        const target = base + (confIdx >= confCount - extras ? 1 : 0);
+                        return (
+                          <span className="text-[10px] text-muted-foreground font-pixel">
+                            target {target}
+                          </span>
+                        );
+                      })()}
                       {confSelectedCount > 0 && (
                         <span className="text-xs text-gold font-pixel">
                           {confSelectedCount} selected

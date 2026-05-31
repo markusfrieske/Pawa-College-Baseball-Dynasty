@@ -1150,31 +1150,44 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Invalid selected teams data" });
       }
 
+      // Fetch actual league conferences first — needed for exact distribution validation
+      const conferences = await storage.getConferencesByLeague(league.id);
+      const actualConfCount = conferences.length;
+
       // Validate total selected teams
       const totalRequestedTeams = selectedTeams.reduce((sum, s) => sum + (s.teamNames?.length ?? 0), 0);
       if (totalRequestedTeams !== league.maxTeams) {
         return res.status(400).json({ message: `Must select exactly ${league.maxTeams} teams (got ${totalRequestedTeams})` });
       }
 
-      // Validate per-conference distribution: each must have floor(N/C) or floor(N/C)+1 teams
-      const confCount = selectedTeams.length;
-      const basePerConf = Math.floor(league.maxTeams / confCount);
-      const extrasAllowed = league.maxTeams % confCount; // how many conferences may have +1
-      for (const sel of selectedTeams) {
-        const count = sel.teamNames?.length ?? 0;
-        if (count < basePerConf) {
-          return res.status(400).json({ message: `Each conference must have at least ${basePerConf} teams (target ${Array.from({ length: confCount }, (_, i) => i < extrasAllowed ? basePerConf + 1 : basePerConf).sort().join('·')} split)` });
+      // Validate payload covers all league conferences (including zero-team ones)
+      const payloadConfIds = new Set(selectedTeams.map(s => s.conferenceId));
+      for (const conf of conferences) {
+        if (!payloadConfIds.has(conf.id)) {
+          return res.status(400).json({ message: `Conference "${conf.name}" is missing from team selection` });
         }
-        if (count > basePerConf + 1) {
-          return res.status(400).json({ message: `No conference may have more than ${basePerConf + 1} teams (target ${Array.from({ length: confCount }, (_, i) => i < extrasAllowed ? basePerConf + 1 : basePerConf).sort().join('·')} split)` });
-        }
-      }
-      const overConfs = selectedTeams.filter(s => (s.teamNames?.length ?? 0) > basePerConf).length;
-      if (overConfs > extrasAllowed) {
-        return res.status(400).json({ message: `At most ${extrasAllowed} conference(s) may have ${basePerConf + 1} teams` });
       }
 
-      const conferences = await storage.getConferencesByLeague(league.id);
+      // Enforce exact per-conference targets based on conference creation order:
+      // first (C - extras) conferences get floor(N/C) teams,
+      // last extras conferences get floor(N/C)+1 (e.g. 4·4·5 for 13-team / 3-conf)
+      const basePerConf = Math.floor(league.maxTeams / actualConfCount);
+      const extrasAllowed = league.maxTeams % actualConfCount;
+      const confTargetMap = new Map(conferences.map((c, i) => [
+        c.id,
+        basePerConf + (i >= actualConfCount - extrasAllowed ? 1 : 0),
+      ]));
+      for (const sel of selectedTeams) {
+        const target = confTargetMap.get(sel.conferenceId);
+        if (target === undefined) {
+          return res.status(400).json({ message: `Unknown conference in selection` });
+        }
+        const count = sel.teamNames?.length ?? 0;
+        if (count !== target) {
+          const conf = conferences.find(c => c.id === sel.conferenceId);
+          return res.status(400).json({ message: `Conference "${conf?.name}" requires exactly ${target} teams (got ${count})` });
+        }
+      }
       let totalTeamsCreated = 0;
 
       const allConferenceNames = ["SEC", "ACC", "Big 12", "Big Ten", "Pac-12", "AAC", "WCC", "Ivy League", "Sun Belt", "Big West", "HBCU", "Missouri Valley"];
@@ -19622,6 +19635,10 @@ async function generateSchedule(leagueId: string, season: number = 1) {
   // Track which teams have already faced each other as OOC opponents this season
   const oocSeasonHistory = new Map<string, Set<string>>();
 
+  // Track per-team game counts in-memory during generation (avoids a post-loop DB query).
+  const teamGameCounts = new Map<string, number>();
+  for (const t of leagueTeams) teamGameCounts.set(t.id, 0);
+
   let totalGames = 0;
   for (let week = 0; week < numWeeks; week++) {
     const weekConfSeries: Matchup[] = [];
@@ -19648,6 +19665,8 @@ async function generateSchedule(leagueId: string, season: number = 1) {
           gameType: confGameTypes[g] || "friday",
         });
         totalGames++;
+        teamGameCounts.set(series.home.id, (teamGameCounts.get(series.home.id) ?? 0) + 1);
+        teamGameCounts.set(series.away.id, (teamGameCounts.get(series.away.id) ?? 0) + 1);
       }
     }
 
@@ -19759,7 +19778,41 @@ async function generateSchedule(leagueId: string, season: number = 1) {
         gameType: "midweek",
       });
       totalGames++;
+      teamGameCounts.set(ooc.home.id, (teamGameCounts.get(ooc.home.id) ?? 0) + 1);
+      teamGameCounts.set(ooc.away.id, (teamGameCounts.get(ooc.away.id) ?? 0) + 1);
     }
+  }
+
+  // Top-up: ensure every team reaches targetGamesPerTeam (e.g. 20 for medium).
+  // Teams in odd-sized conferences (5-team conf with built-in bye weeks) or that
+  // received an OOC bye may fall short; makeup cross-conference midweek games are
+  // added until each team hits the target.
+  // teamGameCounts was populated during the main loop above — no extra DB read needed.
+  const targetGamesPerTeam = numWeeks * (confGamesPerSeries + 1);
+  const confByTeamFinal = new Map<string, string>();
+  for (const [cid, teams] of confMap) for (const t of teams) confByTeamFinal.set(t.id, cid);
+  for (let topupIter = 0; topupIter < leagueTeams.length * 5; topupIter++) {
+    const underserved = leagueTeams
+      .filter(t => (teamGameCounts.get(t.id) ?? 0) < targetGamesPerTeam)
+      .sort((a, b) => (teamGameCounts.get(a.id) ?? 0) - (teamGameCounts.get(b.id) ?? 0));
+    if (underserved.length === 0) break;
+    const t1 = underserved[0];
+    const xConf = leagueTeams.filter(t => t.id !== t1.id && confByTeamFinal.get(t.id) !== confByTeamFinal.get(t1.id));
+    const t2 =
+      [...xConf].filter(t => (teamGameCounts.get(t.id) ?? 0) < targetGamesPerTeam)
+                .sort((a, b) => (teamGameCounts.get(a.id) ?? 0) - (teamGameCounts.get(b.id) ?? 0))[0]
+      ?? [...xConf].sort((a, b) => (teamGameCounts.get(a.id) ?? 0) - (teamGameCounts.get(b.id) ?? 0))[0];
+    if (!t2) break;
+    const isHome = Math.random() > 0.5;
+    await storage.createGame({
+      leagueId, season, week: numWeeks,
+      homeTeamId: isHome ? t1.id : t2.id,
+      awayTeamId: isHome ? t2.id : t1.id,
+      phase: "regular", isConference: false, gameType: "midweek",
+    });
+    teamGameCounts.set(t1.id, (teamGameCounts.get(t1.id) ?? 0) + 1);
+    teamGameCounts.set(t2.id, (teamGameCounts.get(t2.id) ?? 0) + 1);
+    totalGames++;
   }
 
   console.log(`Schedule generated for league ${leagueId} season ${season}: ${seasonLength} format, ${numWeeks} weeks, ${totalGames} total games`);
