@@ -2044,6 +2044,7 @@ export default function RecruitingPage() {
               headCoachVisitCost={data?.recruitPointCosts?.[recruit.id]?.headCoachVisit ?? 2}
               outOfScoutActions={(data?.remainingScoutPoints ?? 1) <= 0}
               progressionEnabled={leagueData?.progressionEnabled}
+              nilRemaining={data?.team ? (data.team.nilBudget || 0) - (data.team.nilSpent || 0) : undefined}
             />
           ))}
         </div>
@@ -2423,6 +2424,7 @@ function RecruitRow({
   hasHeadCoachVisited,
   phonedThisWeek,
   emailedThisWeek,
+  nilRemaining,
 }: {
   recruit: RecruitWithInterest;
   leagueId: string;
@@ -2462,6 +2464,7 @@ function RecruitRow({
   isStorylineRecruit?: boolean;
   phonedThisWeek?: boolean;
   emailedThisWeek?: boolean;
+  nilRemaining?: number;
 }) {
   const [showNotesDialog, setShowNotesDialog] = useState(false);
   const [notesValue, setNotesValue] = useState(recruit.interest?.notes || "");
@@ -2474,6 +2477,8 @@ function RecruitRow({
   const [selectedEmailPitch, setSelectedEmailPitch] = useState<string | null>(null);
   const [showTopSchools, setShowTopSchools] = useState(false);
   const [showMobileMore, setShowMobileMore] = useState(false);
+
+  const isOverNilBudget = nilRemaining != null && (recruit.nilCost || 0) > nilRemaining && !recruit.interest?.hasOffer;
 
   const pitchOptions = [
     { key: "proximity", label: "Proximity" },
@@ -3011,13 +3016,14 @@ function RecruitRow({
                       {hasHeadCoachVisited ? "HC Visited" : `HC Visit (${headCoachVisitCost} pts)`}
                     </button>
                     <button
-                      className={`flex items-center gap-2 w-full text-left px-2 py-1.5 rounded text-xs transition-colors ${recruit.interest?.hasOffer ? "text-gold bg-gold/10" : "text-foreground hover:bg-muted/50"} disabled:opacity-50`}
-                      onClick={() => { onOffer(); setShowMobileMore(false); }}
-                      disabled={isOffering || !recruit.interest || recruit.interest?.hasOffer}
+                      className={`flex items-center gap-2 w-full text-left px-2 py-1.5 rounded text-xs transition-colors ${isOverNilBudget ? "text-red-400/60" : recruit.interest?.hasOffer ? "text-gold bg-gold/10" : "text-foreground hover:bg-muted/50"} disabled:opacity-50`}
+                      onClick={() => { if (!isOverNilBudget) { onOffer(); setShowMobileMore(false); } }}
+                      disabled={isOffering || !recruit.interest || recruit.interest?.hasOffer || isOverNilBudget}
                       data-testid={`button-offer-mobile-${recruit.id}`}
+                      title={isOverNilBudget ? `Over NIL budget — need $${Math.round((recruit.nilCost || 0) / 1000)}K` : undefined}
                     >
-                      <Gift className="w-3 h-3 flex-shrink-0" />
-                      {recruit.interest?.hasOffer ? "Offered" : "Offer Scholarship"}
+                      {isOverNilBudget ? <Lock className="w-3 h-3 flex-shrink-0" /> : <Gift className="w-3 h-3 flex-shrink-0" />}
+                      {isOverNilBudget ? "Over NIL Budget" : recruit.interest?.hasOffer ? "Offered" : "Offer Scholarship"}
                     </button>
                     <button
                       className={`flex items-center gap-2 w-full text-left px-2 py-1.5 rounded text-xs transition-colors ${recruit.interest?.notes ? "text-gold bg-gold/10" : "text-foreground hover:bg-muted/50"} disabled:opacity-50`}
@@ -3188,14 +3194,21 @@ function RecruitRow({
                       variant={recruit.interest?.hasOffer ? "primary" : "outline"}
                       size="sm"
                       onClick={onOffer}
-                      disabled={isOffering || !recruit.interest || recruit.interest?.hasOffer}
+                      disabled={isOffering || !recruit.interest || recruit.interest?.hasOffer || isOverNilBudget}
+                      className={isOverNilBudget ? "border-red-500/40 text-red-400/60" : ""}
                       data-testid={`button-offer-${recruit.id}`}
                     >
-                      <Gift className="w-3 h-3 mr-1" />
-                      <span className="text-[9px]">{recruit.interest?.hasOffer ? "Offered" : "Offer"}</span>
+                      {isOverNilBudget ? <Lock className="w-3 h-3 mr-1" /> : <Gift className="w-3 h-3 mr-1" />}
+                      <span className="text-[9px]">{recruit.interest?.hasOffer ? "Offered" : isOverNilBudget ? "Budget" : "Offer"}</span>
                     </RetroButton>
                   </TooltipTrigger>
-                  <TooltipContent>{recruit.interest?.hasOffer ? "Scholarship Offered" : "Offer Scholarship (1 recruiting point)"}</TooltipContent>
+                  <TooltipContent>
+                    {recruit.interest?.hasOffer
+                      ? "Scholarship Offered"
+                      : isOverNilBudget
+                      ? `Over NIL budget — need $${(recruit.nilCost || 0) >= 1000000 ? `${((recruit.nilCost || 0) / 1000000).toFixed(1)}M` : `${Math.round((recruit.nilCost || 0) / 1000)}K`} to sign`
+                      : "Offer Scholarship (1 recruiting point)"}
+                  </TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>

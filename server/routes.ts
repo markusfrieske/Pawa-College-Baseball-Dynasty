@@ -13034,7 +13034,9 @@ export async function registerRoutes(
           const best = available.sort((a, b) => {
             const aNeed = (entry.positionCounts[a.position] || 0) < 2 ? 10 : 0;
             const bNeed = (entry.positionCounts[b.position] || 0) < 2 ? 10 : 0;
-            return (bNeed + (b.overall || 0)) - (aNeed + (a.overall || 0));
+            const primary = (bNeed + (b.overall || 0)) - (aNeed + (a.overall || 0));
+            // tiebreak: prefer cheaper recruit (next cheapest option on the board)
+            return primary !== 0 ? primary : (a.nilCost || 0) - (b.nilCost || 0);
           })[0];
           if (best) {
             sdChargeNil(entry.team.id, best.nilCost || 0);
@@ -13129,7 +13131,9 @@ export async function registerRoutes(
           const best = available.sort((a, b) => {
             const aNeed = (positionCounts[a.position] || 0) < 2 ? 10 : 0;
             const bNeed = (positionCounts[b.position] || 0) < 2 ? 10 : 0;
-            return (bNeed + (b.overall || 0)) - (aNeed + (a.overall || 0));
+            const primary = (bNeed + (b.overall || 0)) - (aNeed + (a.overall || 0));
+            // tiebreak: prefer cheaper recruit (next cheapest option on the board)
+            return primary !== 0 ? primary : (a.nilCost || 0) - (b.nilCost || 0);
           })[0];
           if (!best) break;
           sdChargeNil(team.id, best.nilCost || 0);
@@ -13203,7 +13207,9 @@ export async function registerRoutes(
               const best = available.sort((a, b) => {
                 const aNeed = (entry.positionCounts[a.position] || 0) < 2 ? 10 : 0;
                 const bNeed = (entry.positionCounts[b.position] || 0) < 2 ? 10 : 0;
-                return (bNeed + (b.overall || 0)) - (aNeed + (a.overall || 0));
+                const primary = (bNeed + (b.overall || 0)) - (aNeed + (a.overall || 0));
+                // tiebreak: prefer cheaper recruit (next cheapest option on the board)
+                return primary !== 0 ? primary : (a.nilCost || 0) - (b.nilCost || 0);
               })[0];
               if (!best) break;
               sdChargeNil(entry.team.id, best.nilCost || 0);
