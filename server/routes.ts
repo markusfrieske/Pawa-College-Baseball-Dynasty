@@ -17085,7 +17085,13 @@ export async function registerRoutes(
     }
 
     const storylineRecruitIds = new Set(storylineRecruitsData.map(sl => sl.recruitId));
-    
+
+    // NIL budget tracking for auto-sign paths — updated synchronously before any await
+    // so concurrent promises within Promise.all see accurate remaining budgets.
+    const nilSpentByTeam = new Map<string, number>(
+      allLeagueTeams.map(t => [t.id, t.nilSpent || 0])
+    );
+
     // Parallelize per-recruit processing — each recruit's DB writes are independent
     await Promise.all(unsignedRecruits.map(async (recruit) => {
       const allInterests = interestsByRecruit.get(recruit.id) ?? [];
@@ -17164,11 +17170,19 @@ export async function registerRoutes(
             const teamCommits = recruits.filter(r => r.signedTeamId === topSchool.teamId).length;
             const departing = teamRoster.filter(p => p.pendingDeparture && p.retentionStatus !== "retained").length;
             const portal = teamRoster.filter(p => p.inTransferPortal).length;
-            if (teamRoster.length - departing - portal + teamCommits + 1 <= 30) {
+            const rosterOk = teamRoster.length - departing - portal + teamCommits + 1 <= 30;
+            const nilCost = recruit.nilCost || 0;
+            const prevNilSpent = nilSpentByTeam.get(topSchool.teamId) || 0;
+            const topSchoolObj = allLeagueTeams.find(t => t.id === topSchool.teamId);
+            const nilAffordable = (topSchoolObj?.nilBudget || 0) - prevNilSpent >= nilCost;
+            if (rosterOk && nilAffordable) {
+              // Claim NIL budget synchronously before first await — safe in Promise.all context
+              nilSpentByTeam.set(topSchool.teamId, prevNilSpent + nilCost);
               await storage.updateRecruit(recruit.id, { 
                 stage: "signed",
                 signedTeamId: topSchool.teamId,
               });
+              await storage.updateTeam(topSchool.teamId, { nilSpent: nilSpentByTeam.get(topSchool.teamId) });
             }
           }
         }
@@ -17182,11 +17196,19 @@ export async function registerRoutes(
           const teamCommits = recruits.filter(r => r.signedTeamId === signingSchool.teamId).length;
           const departing = teamRoster.filter(p => p.pendingDeparture && p.retentionStatus !== "retained").length;
           const portal = teamRoster.filter(p => p.inTransferPortal).length;
-          if (teamRoster.length - departing - portal + teamCommits + 1 <= 30) {
+          const rosterOk = teamRoster.length - departing - portal + teamCommits + 1 <= 30;
+          const nilCost = recruit.nilCost || 0;
+          const prevNilSpent = nilSpentByTeam.get(signingSchool.teamId) || 0;
+          const signingTeamObj = allLeagueTeams.find(t => t.id === signingSchool.teamId);
+          const nilAffordable = (signingTeamObj?.nilBudget || 0) - prevNilSpent >= nilCost;
+          if (rosterOk && nilAffordable) {
+            // Claim NIL budget synchronously before first await — safe in Promise.all context
+            nilSpentByTeam.set(signingSchool.teamId, prevNilSpent + nilCost);
             await storage.updateRecruit(recruit.id, { 
               stage: "signed",
               signedTeamId: signingSchool.teamId,
             });
+            await storage.updateTeam(signingSchool.teamId, { nilSpent: nilSpentByTeam.get(signingSchool.teamId) });
             justSigned = true;
           }
         }
