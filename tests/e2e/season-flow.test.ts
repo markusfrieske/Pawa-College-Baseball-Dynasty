@@ -261,9 +261,12 @@ test.describe("Full Season-to-Season Flow", () => {
       `3-star recruits should exist in meaningful numbers (got ${has3Star} out of ${recruits.length})`
     ).toBeGreaterThan(Math.floor(minExpected * 0.15));
 
-    // Verify per-team regular season game counts:
-    //   - No team must exceed targetGamesPerTeam=20 (over-scheduling invariant)
-    //   - All teams must have ≥15 games (lower bound covers 5-team conf bye-week deficit)
+    // Verify per-team regular season game counts: every team must have exactly 20 games.
+    // The schedule uses per-conference series lengths to guarantee this:
+    //   4-team conf (even): 5 rounds × 3-game series  + 5 OOC midweek = 20
+    //   5-team conf (odd) : 4 rounds × 4-game series  + 4 OOC midweek = 20
+    //     (OOC bye falls on Big12 teams via week%13 rotation since they have fewer
+    //      cross-conf options and sort first; conf bye is 1 of 5 rounds for odd confs)
     const schedResp = await request.get(`/api/leagues/${league.id}/schedule`);
     expect(schedResp.ok(), "Schedule endpoint should succeed").toBe(true);
     const schedData = await schedResp.json();
@@ -280,12 +283,8 @@ test.describe("Full Season-to-Season Flow", () => {
     for (const [teamId, count] of teamGameCounts) {
       expect(
         count,
-        `Team ${teamId}: must not exceed 20 regular season games (got ${count})`
-      ).toBeLessThanOrEqual(20);
-      expect(
-        count,
-        `Team ${teamId}: must have ≥15 regular season games (got ${count}; 5-team conf floor is 16 due to bye weeks)`
-      ).toBeGreaterThanOrEqual(15);
+        `Team ${teamId}: must have exactly 20 regular season games (got ${count})`
+      ).toBe(20);
     }
   });
 
