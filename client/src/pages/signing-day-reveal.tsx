@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useParams, Link, useSearch } from "wouter";
+import { useParams, Link } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard, RetroCardContent } from "@/components/ui/retro-card";
@@ -38,6 +38,14 @@ interface RevealData {
     secondaryColor: string;
     isCpu: boolean;
   }[];
+}
+
+interface LeagueRevealItem extends RevealRecruit {
+  signingTeamId: string;
+  signingTeamName: string;
+  signingTeamAbbreviation: string;
+  signingTeamPrimaryColor: string;
+  signingTeamSecondaryColor: string;
 }
 
 function getClassScore(recruits: RevealRecruit[]): number {
@@ -418,7 +426,12 @@ function getRevealOvrGlow(ovr: number): string {
 }
 
 // ── RevealCardFront ────────────────────────────────────────────
-function RevealCardFront({ recruit, primaryColor }: { recruit: RevealRecruit; primaryColor: string }) {
+function RevealCardFront({ recruit, primaryColor, signingTeamAbbrev, signingTeamColor }: {
+  recruit: RevealRecruit;
+  primaryColor: string;
+  signingTeamAbbrev?: string;
+  signingTeamColor?: string;
+}) {
   const posColor = getPositionFamilyColor(recruit.position);
   const ovrColor = getRevealOvrColor(recruit.overall);
   const isGen    = !!(recruit.isGenerationalGem  && recruit.gemBustRevealed);
@@ -454,6 +467,23 @@ function RevealCardFront({ recruit, primaryColor }: { recruit: RevealRecruit; pr
 
   return (
     <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", background: "#f8f4ec", borderRadius: "6px", overflow: "hidden" }}>
+
+      {/* Team strip — shown in league-wide cinematic mode */}
+      {signingTeamAbbrev && (
+        <div style={{
+          background: signingTeamColor || primaryColor,
+          height: "13px",
+          display: "flex",
+          alignItems: "center",
+          padding: "0 5px",
+          flexShrink: 0,
+          borderBottom: "1px solid rgba(0,0,0,0.2)",
+        }}>
+          <span className="font-pixel" style={{ fontSize: "5.5px", color: "#fff", letterSpacing: "0.06em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            {signingTeamAbbrev}
+          </span>
+        </div>
+      )}
 
       {/* Position + Rank */}
       <div style={{ background: posColor, height: "22px", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 7px", flexShrink: 0 }}>
@@ -530,11 +560,15 @@ function RevealPortraitCard({
   primaryColor,
   animationDelay = 0,
   disableAnimation = false,
+  signingTeamAbbrev,
+  signingTeamColor,
 }: {
   recruit: RevealRecruit;
   primaryColor: string;
   animationDelay?: number;
   disableAnimation?: boolean;
+  signingTeamAbbrev?: string;
+  signingTeamColor?: string;
 }) {
   const [flipped, setFlipped] = useState(false);
 
@@ -599,7 +633,7 @@ function RevealPortraitCard({
             overflow: "hidden",
           }}
         >
-          <RevealCardFront recruit={recruit} primaryColor={primaryColor} />
+          <RevealCardFront recruit={recruit} primaryColor={primaryColor} signingTeamAbbrev={signingTeamAbbrev} signingTeamColor={signingTeamColor} />
         </div>
         {/* Back — existing dark stat panel */}
         <div
@@ -801,11 +835,6 @@ type GemPhase = "waiting" | "spotlight" | "burst" | "revealed";
 
 export default function SigningDayRevealPage() {
   const { id: leagueId } = useParams<{ id: string }>();
-  const search = useSearch();
-  const params = new URLSearchParams(search);
-  const initialTeamId = params.get("teamId") ?? undefined;
-
-  const [selectedTeamId, setSelectedTeamId] = useState<string | undefined>(initialTeamId);
   const [isDownloading, setIsDownloading] = useState(false);
   const cardGridRef = useRef<HTMLDivElement>(null);
 
@@ -827,59 +856,71 @@ export default function SigningDayRevealPage() {
     enabled: !!leagueId,
   });
 
-  const effectiveTeamId: string | undefined =
-    selectedTeamId ??
-    (data?.myTeamId ?? data?.allTeams?.[0]?.id);
-
-  const currentEntry = data?.teamData?.find(t => t.team.id === effectiveTeamId) ?? null;
-  const teamColor = currentEntry?.team.primaryColor ?? "#C4A35A";
+  // User's own team entry — drives fireworks color + gem ceremony
+  const myTeamEntry = useMemo(
+    () => data?.teamData?.find(t => t.team.id === data?.myTeamId) ?? data?.teamData?.[0] ?? null,
+    [data?.teamData, data?.myTeamId]
+  );
+  const teamColor = myTeamEntry?.team.primaryColor ?? "#C4A35A";
 
   const revealedTeams = useRef<Set<string>>(new Set());
 
-  // ── Cinematic phase state machine ──────────────────────────
-  useEffect(() => {
-    if (!currentEntry) return;
+  // ── Build flat league-wide recruit list sorted ascending OVR ──
+  const allLeagueRecruits = useMemo<LeagueRevealItem[]>(() => {
+    if (!data?.teamData) return [];
+    const items: LeagueRevealItem[] = data.teamData.flatMap(entry =>
+      entry.recruits.map(r => ({
+        ...r,
+        signingTeamId: entry.team.id,
+        signingTeamName: entry.team.name,
+        signingTeamAbbreviation: entry.team.abbreviation,
+        signingTeamPrimaryColor: entry.team.primaryColor,
+        signingTeamSecondaryColor: entry.team.secondaryColor,
+      }))
+    );
+    // Ascending by OVR — lowest first so the stars arrive last for drama
+    return items.sort((a, b) => a.overall - b.overall);
+  }, [data?.teamData]);
 
+  // ── Cinematic phase state machine — fires once when data loads ──
+  useEffect(() => {
+    if (!data) return;
     if (reducedMotion) {
       setCinemaPhase("cards");
       return;
     }
-
     setCinemaPhase("buildup");
     const t1 = setTimeout(() => setCinemaPhase("burst"), 1500);
     const t2 = setTimeout(() => setCinemaPhase("cards"), 2000);
     return () => { clearTimeout(t1); clearTimeout(t2); };
-  }, [currentEntry?.team.id, reducedMotion]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [!!data, reducedMotion]);
 
-  // ── Fire reveal-complete when cards become visible ──────────
+  // ── Fire reveal-complete for user's own team ──────────────────
   useEffect(() => {
-    if (cinemaPhase !== "cards" || !currentEntry || !leagueId) return;
-    const teamId = currentEntry.team.id;
+    if (cinemaPhase !== "cards" || !data?.myTeamId || !leagueId) return;
+    const teamId = data.myTeamId;
     if (revealedTeams.current.has(teamId)) return;
     revealedTeams.current.add(teamId);
     apiRequest("POST", `/api/leagues/${leagueId}/signing-day-reveal/complete?teamId=${teamId}`)
       .catch((err) => console.error("[reveal-complete] failed:", err));
-  }, [cinemaPhase, currentEntry?.team.id, leagueId]);
+  }, [cinemaPhase, data?.myTeamId, leagueId]);
 
-  // ── Derived: split recruits for gem ceremony ─────────────────
-  const sortedRecruits = useMemo(
-    () => [...(currentEntry?.recruits ?? [])].sort((a, b) => b.overall - a.overall),
-    [currentEntry]
+  // ── Gem ceremony: user's own team only ───────────────────────
+  const myTeamSortedRecruits = useMemo(
+    () => [...(myTeamEntry?.recruits ?? [])].sort((a, b) => b.overall - a.overall),
+    [myTeamEntry]
   );
   const gemRecruit = useMemo(
-    () => (!reducedMotion ? (sortedRecruits.find(r => r.isGenerationalGem && r.gemBustRevealed) ?? null) : null),
-    [sortedRecruits, reducedMotion]
-  );
-  const regularRecruits = useMemo(
-    () => gemRecruit ? sortedRecruits.filter(r => !(r.isGenerationalGem && r.gemBustRevealed)) : sortedRecruits,
-    [sortedRecruits, gemRecruit]
+    () => (!reducedMotion ? (myTeamSortedRecruits.find(r => r.isGenerationalGem && r.gemBustRevealed) ?? null) : null),
+    [myTeamSortedRecruits, reducedMotion]
   );
 
-  // ── Reset gem phase when team changes ───────────────────────
+  // ── Reset gem phase on data change ────────────────────────────
   useEffect(() => {
     setGemPhase("waiting");
     setGemColorOverride(null);
-  }, [currentEntry?.team.id]);
+  }, [data?.myTeamId]);
 
   // ── Gem ceremony timer ───────────────────────────────────────
   useEffect(() => {
@@ -900,7 +941,7 @@ export default function SigningDayRevealPage() {
   }, [cinemaPhase, gemRecruit]);
 
   const handleDownload = async () => {
-    if (!cardGridRef.current || !currentEntry) return;
+    if (!cardGridRef.current) return;
     setIsDownloading(true);
     try {
       const html2canvas = (await import("html2canvas")).default;
@@ -925,7 +966,7 @@ export default function SigningDayRevealPage() {
         },
       });
       const link = document.createElement("a");
-      link.download = `${currentEntry.team.abbreviation}-class-${data?.league.currentSeason ?? "season"}.png`;
+      link.download = `league-class-season-${data?.league.currentSeason ?? "unknown"}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
     } catch (err) {
@@ -948,8 +989,6 @@ export default function SigningDayRevealPage() {
     );
   }
 
-  const classRank = data && currentEntry ? getClassRank(data.teamData, currentEntry.team.id) : 0;
-  const classScore = currentEntry ? getClassScore(currentEntry.recruits) : 0;
   const showCards = cinemaPhase === "cards";
 
   return (
@@ -959,7 +998,7 @@ export default function SigningDayRevealPage() {
       {!reducedMotion && (
         <>
           <FireworksCanvas
-            key={currentEntry?.team.id ?? "default"}
+            key="league-reveal"
             teamColor={teamColor}
             active={cinemaPhase !== "idle"}
             overrideColors={gemColorOverride}
@@ -985,10 +1024,10 @@ export default function SigningDayRevealPage() {
           <div className="flex-1 min-w-0">
             <h1 className="font-pixel text-lg text-[#C4A35A] leading-tight">SIGNING DAY REVEAL</h1>
             <p className="text-xs text-gray-400">
-              Season {data?.league.currentSeason} · Click any card to flip it
+              Season {data?.league.currentSeason} · {allLeagueRecruits.length} total commits · Click any card to flip
             </p>
           </div>
-          {currentEntry && (
+          {showCards && allLeagueRecruits.length > 0 && (
             <RetroButton
               variant="primary"
               size="sm"
@@ -1002,42 +1041,8 @@ export default function SigningDayRevealPage() {
           )}
         </div>
 
-        {/* Team selector */}
-        {data && data.allTeams.length > 1 && (
-          <div className="mb-6">
-            <p className="text-xs text-gray-600 mb-2 font-pixel">SELECT TEAM</p>
-            <div className="flex flex-wrap gap-2">
-              {data.allTeams.map(team => (
-                <button
-                  key={team.id}
-                  onClick={() => setSelectedTeamId(team.id)}
-                  data-testid={`team-selector-${team.abbreviation}`}
-                  className="flex items-center gap-1.5 px-2 py-1 rounded border transition-all text-xs"
-                  style={{
-                    borderColor: effectiveTeamId === team.id ? team.primaryColor : "#2d3d2d",
-                    background: effectiveTeamId === team.id ? `${team.primaryColor}22` : "rgba(0,0,0,0.15)",
-                    color: effectiveTeamId === team.id ? "#ffffff" : "#4b5563",
-                  }}
-                >
-                  <TeamBadge
-                    abbreviation={team.abbreviation}
-                    primaryColor={team.primaryColor}
-                    secondaryColor={team.secondaryColor}
-                    size="sm"
-                  />
-                  <span className="hidden sm:inline">{team.name}</span>
-                  <span className="sm:hidden">{team.abbreviation}</span>
-                  {data.myTeamId === team.id && (
-                    <span className="text-[8px] font-pixel text-[#C4A35A] ml-0.5">(You)</span>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Active team class display */}
-        {showCards && currentEntry ? (
+        {/* ── League-wide card cinematic ── */}
+        {showCards && allLeagueRecruits.length > 0 ? (
           <div>
             {/* Card grid — captured by html2canvas */}
             <div
@@ -1045,141 +1050,72 @@ export default function SigningDayRevealPage() {
               className="rounded-lg p-4"
               style={{ background: "#0d1f0d" }}
             >
-              {/* Watermark header */}
+              {/* League header */}
               <div className="flex items-center gap-3 mb-4 pb-3 border-b border-[#1a3a1a]">
-                <TeamBadge
-                  abbreviation={currentEntry.team.abbreviation}
-                  primaryColor={currentEntry.team.primaryColor}
-                  secondaryColor={currentEntry.team.secondaryColor}
-                  name={currentEntry.team.name}
-                  size="lg"
-                />
+                <Trophy className="w-6 h-6 text-[#C4A35A] shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <div className="font-pixel text-sm text-[#C4A35A]">{currentEntry.team.name}</div>
-                  {currentEntry.team.conference && (
-                    <div className="text-xs text-gray-400">{currentEntry.team.conference}</div>
-                  )}
-                  <div className="flex items-center flex-wrap gap-3 text-xs text-gray-400 mt-0.5">
-                    <span className="flex items-center gap-1">
-                      <Trophy className="w-3 h-3 text-[#C4A35A]" />
-                      Season {data?.league.currentSeason} Signing Class
-                    </span>
-                    <span>{currentEntry.recruits.length} commits</span>
+                  <div className="font-pixel text-sm text-[#C4A35A]">{data?.league.name ?? "LEAGUE"} SIGNING CLASS</div>
+                  <div className="text-xs text-gray-400">
+                    Season {data?.league.currentSeason} · {allLeagueRecruits.length} commits across {data?.teamData?.filter(t => t.recruits.length > 0).length ?? 0} teams
                   </div>
                 </div>
-                {classRank > 0 && (
-                  <div className="shrink-0 text-right">
-                    <div
-                      className="font-pixel text-xl leading-none"
-                      style={{ color: classRank === 1 ? "#C4A35A" : classRank <= 3 ? "#facc15" : "#9ca3af" }}
-                    >
-                      #{classRank}
-                    </div>
-                    <div className="text-[9px] text-gray-500">Natl Rank</div>
-                    <div className="font-pixel text-[9px] text-[#C4A35A]">{classScore.toFixed(1)} pts</div>
-                  </div>
-                )}
+                <div className="shrink-0 text-right">
+                  <div className="font-pixel text-[10px] text-gray-500">SORTED LOWEST → HIGHEST OVR</div>
+                </div>
               </div>
 
-              {/* Two-row Power Pros layout */}
-              {currentEntry.recruits.length === 0 ? (
-                <div className="text-center text-gray-500 py-16">
-                  <p className="font-pixel text-sm">No commits yet</p>
-                  <p className="text-xs mt-2">Recruits will appear here once they sign</p>
-                </div>
-              ) : (() => {
-                // Build flat list: gem slot first (highest OVR), then rest
-                type DisplayItem = RevealRecruit | "gem-placeholder";
-                const items: DisplayItem[] = gemRecruit
-                  ? (gemPhase === "revealed"
-                      ? [gemRecruit, ...regularRecruits]
-                      : ["gem-placeholder", ...regularRecruits])
-                  : [...regularRecruits];
+              {/* All recruits — ascending OVR, wrapped rows, each card shows team badge strip */}
+              <div className="flex flex-wrap gap-2">
+                {allLeagueRecruits.map((item, idx) => {
+                  const animDelay = idx * 0.035;
+                  const isSpecial = item.isBlueChip && !item.isGenerationalBust && !item.isGenerationalGem;
+                  const isThisGem = !!(item.isGenerationalGem && item.gemBustRevealed && item.signingTeamId === data?.myTeamId);
+                  return (
+                    <div
+                      key={item.id}
+                      className="relative"
+                      style={{
+                        flexShrink: 0,
+                        animation: isThisGem ? "sdGemSlideIn 0.7s ease-out both" : undefined,
+                      }}
+                      data-testid={isThisGem ? "gem-card-wrapper" : `card-wrapper-${item.id}`}
+                    >
+                      {!reducedMotion && (
+                        <div
+                          className="absolute pointer-events-none"
+                          style={{
+                            inset: -4, borderRadius: "10px", zIndex: 10,
+                            animation: isSpecial || isThisGem
+                              ? `sdShockwave 0.85s ease-out ${isThisGem ? 0.25 : animDelay + 0.55}s both`
+                              : `sdSparkRing 0.5s ease-out ${animDelay + 0.45}s both`,
+                          }}
+                          aria-hidden
+                        />
+                      )}
+                      {isThisGem && (
+                        <div
+                          className="absolute pointer-events-none"
+                          style={{
+                            inset: -3, borderRadius: "11px", zIndex: 8,
+                            boxShadow: "0 0 18px 4px rgba(251,191,36,0.45), 0 0 38px 8px rgba(251,191,36,0.18)",
+                          }}
+                          aria-hidden
+                        />
+                      )}
+                      <RevealPortraitCard
+                        recruit={item}
+                        primaryColor={item.signingTeamPrimaryColor}
+                        animationDelay={isThisGem ? 0 : animDelay}
+                        disableAnimation={reducedMotion && !isThisGem}
+                        signingTeamAbbrev={item.signingTeamAbbreviation}
+                        signingTeamColor={item.signingTeamPrimaryColor}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
 
-                const COLS = 5;
-                const rows: DisplayItem[][] = [];
-                for (let i = 0; i < items.length; i += COLS) {
-                  rows.push(items.slice(i, i + COLS));
-                }
-                let cardIndex = 0;
-
-                return (
-                  <div className="flex flex-col gap-3">
-                    {rows.map((row, rowIdx) => (
-                      <div key={rowIdx} className="flex gap-3">
-                        {row.map((item) => {
-                          if (item === "gem-placeholder") {
-                            return (
-                              <div
-                                key="gem-placeholder"
-                                style={{
-                                  width: "160px", height: "220px", flexShrink: 0,
-                                  borderRadius: "8px",
-                                  border: "2px dashed rgba(251,191,36,0.35)",
-                                  background: "rgba(251,191,36,0.04)",
-                                  display: "flex", alignItems: "center", justifyContent: "center",
-                                }}
-                                aria-hidden
-                              >
-                                <span className="font-pixel text-[10px] text-amber-500/40" style={{ animation: "sdGemLabelPulse 2.2s ease-in-out infinite" }}>
-                                  ✦
-                                </span>
-                              </div>
-                            );
-                          }
-                          const recruit = item as RevealRecruit;
-                          const idx = cardIndex++;
-                          const animDelay = idx * 0.06;
-                          const isSpecial = recruit.isBlueChip && !recruit.isGenerationalBust && !recruit.isGenerationalGem;
-                          const isThisGem = !!(recruit.isGenerationalGem && recruit.gemBustRevealed);
-                          return (
-                            <div
-                              key={recruit.id}
-                              className="relative"
-                              style={{
-                                flexShrink: 0,
-                                animation: isThisGem ? "sdGemSlideIn 0.7s ease-out both" : undefined,
-                              }}
-                              data-testid={isThisGem ? "gem-card-wrapper" : `card-wrapper-${recruit.id}`}
-                            >
-                              {!reducedMotion && (
-                                <div
-                                  className="absolute pointer-events-none"
-                                  style={{
-                                    inset: -4, borderRadius: "10px", zIndex: 10,
-                                    animation: isSpecial || isThisGem
-                                      ? `sdShockwave 0.85s ease-out ${isThisGem ? 0.25 : animDelay + 0.55}s both`
-                                      : `sdSparkRing 0.5s ease-out ${animDelay + 0.45}s both`,
-                                  }}
-                                  aria-hidden
-                                />
-                              )}
-                              {isThisGem && (
-                                <div
-                                  className="absolute pointer-events-none"
-                                  style={{
-                                    inset: -3, borderRadius: "11px", zIndex: 8,
-                                    boxShadow: "0 0 18px 4px rgba(251,191,36,0.45), 0 0 38px 8px rgba(251,191,36,0.18)",
-                                  }}
-                                  aria-hidden
-                                />
-                              )}
-                              <RevealPortraitCard
-                                recruit={recruit}
-                                primaryColor={currentEntry.team.primaryColor}
-                                animationDelay={isThisGem ? 0 : animDelay}
-                                disableAnimation={reducedMotion && !isThisGem}
-                              />
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ))}
-                  </div>
-                );
-              })()}
-
-              {/* Gem ceremony label — shown above grid when revealed */}
+              {/* Gem ceremony label */}
               {gemRecruit && gemPhase === "revealed" && (
                 <div className="flex justify-center mt-3" data-testid="gem-card-section">
                   <div
@@ -1193,32 +1129,33 @@ export default function SigningDayRevealPage() {
               )}
             </div>
 
-            {/* Class summary stats */}
-            {currentEntry.recruits.length > 0 && (
-              <RetroCard className="mt-4">
-                <RetroCardContent className="py-3">
-                  <div className="flex flex-wrap gap-4 text-sm">
-                    {[
-                      { label: "Total",      value: currentEntry.recruits.length },
-                      { label: "5-Star",     value: currentEntry.recruits.filter(r => r.starRating === 5).length },
-                      { label: "4-Star",     value: currentEntry.recruits.filter(r => r.starRating === 4).length },
-                      { label: "3-Star",     value: currentEntry.recruits.filter(r => r.starRating === 3).length },
-                      { label: "Avg OVR",    value: Math.round(currentEntry.recruits.reduce((s, r) => s + r.overall, 0) / currentEntry.recruits.length) },
-                      { label: "Blue Chips", value: currentEntry.recruits.filter(r => r.isBlueChip).length },
-                      { label: "Transfers",  value: currentEntry.recruits.filter(r => r.recruitType === "TRANSFER").length },
-                      { label: "JUCO",       value: currentEntry.recruits.filter(r => r.recruitType === "JUCO").length },
-                    ].map(({ label, value }) => (
-                      <div key={label} className="flex flex-col items-center min-w-[48px]">
-                        <span className="font-pixel text-lg text-white">{value}</span>
-                        <span className="text-[10px] text-gray-500">{label}</span>
-                      </div>
-                    ))}
-                  </div>
-                </RetroCardContent>
-              </RetroCard>
-            )}
+            {/* League-wide stats bar */}
+            <RetroCard className="mt-4">
+              <RetroCardContent className="py-3">
+                <div className="flex flex-wrap gap-4 text-sm">
+                  {[
+                    { label: "Total",      value: allLeagueRecruits.length },
+                    { label: "5-Star",     value: allLeagueRecruits.filter(r => r.starRating === 5).length },
+                    { label: "4-Star",     value: allLeagueRecruits.filter(r => r.starRating === 4).length },
+                    { label: "3-Star",     value: allLeagueRecruits.filter(r => r.starRating === 3).length },
+                    { label: "Blue Chips", value: allLeagueRecruits.filter(r => r.isBlueChip).length },
+                    { label: "Transfers",  value: allLeagueRecruits.filter(r => r.recruitType === "TRANSFER").length },
+                    { label: "JUCO",       value: allLeagueRecruits.filter(r => r.recruitType === "JUCO").length },
+                    { label: "Avg OVR",    value: allLeagueRecruits.length > 0 ? Math.round(allLeagueRecruits.reduce((s, r) => s + r.overall, 0) / allLeagueRecruits.length) : 0 },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="flex flex-col items-center min-w-[52px]">
+                      <span className="font-pixel text-lg text-white">{value}</span>
+                      <span className="text-[10px] text-gray-500">{label}</span>
+                    </div>
+                  ))}
+                </div>
+              </RetroCardContent>
+            </RetroCard>
+
+            {/* Post-reveal team class rankings */}
+            {data && <PostRevealSummary teamData={data.teamData} myTeamId={data.myTeamId} currentSeason={data.league.currentSeason} />}
           </div>
-        ) : !showCards && currentEntry ? (
+        ) : !showCards && data ? (
           /* Cinematic intro playing */
           <div className="flex flex-col items-center justify-center py-24 gap-6">
             <div
@@ -1236,10 +1173,118 @@ export default function SigningDayRevealPage() {
           </div>
         ) : (
           <div className="text-center text-gray-500 py-16">
-            <p className="font-pixel text-sm">No team data available</p>
-            <p className="text-xs mt-2">Select a team above to view their signing class</p>
+            <p className="font-pixel text-sm">No signing class data available</p>
+            <p className="text-xs mt-2">Check back once recruiting has ended</p>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ── PostRevealSummary ──────────────────────────────────────────
+// Shown after the cinematic — team class rankings with expandable card grids.
+function PostRevealSummary({
+  teamData,
+  myTeamId,
+  currentSeason,
+}: {
+  teamData: TeamEntry[];
+  myTeamId: string | null;
+  currentSeason: number;
+}) {
+  const [expandedTeam, setExpandedTeam] = useState<string | null>(myTeamId);
+
+  const rankedTeams = useMemo(
+    () =>
+      [...teamData]
+        .filter(t => t.recruits.length > 0)
+        .sort((a, b) => getClassScore(b.recruits) - getClassScore(a.recruits)),
+    [teamData]
+  );
+
+  if (rankedTeams.length === 0) return null;
+
+  return (
+    <div className="mt-8" data-testid="post-reveal-summary">
+      <div className="flex items-center gap-2 mb-4 pb-2 border-b border-[#1a3a1a]">
+        <Trophy className="w-4 h-4 text-[#C4A35A]" />
+        <h2 className="font-pixel text-[#C4A35A] text-xs tracking-widest">
+          CLASS RANKINGS — SEASON {currentSeason}
+        </h2>
+      </div>
+      <div className="flex flex-col gap-2">
+        {rankedTeams.map((entry, idx) => {
+          const rank = idx + 1;
+          const isExpanded = expandedTeam === entry.team.id;
+          const isMyTeam = entry.team.id === myTeamId;
+          const sortedRecruits = [...entry.recruits].sort((a, b) => b.overall - a.overall);
+          const avgOvr = Math.round(entry.recruits.reduce((s, r) => s + r.overall, 0) / entry.recruits.length);
+          const fiveStars = entry.recruits.filter(r => r.starRating >= 5).length;
+          const fourStars = entry.recruits.filter(r => r.starRating >= 4 && r.starRating < 5).length;
+
+          return (
+            <div
+              key={entry.team.id}
+              className="border rounded-lg overflow-hidden"
+              style={{ borderColor: isMyTeam ? entry.team.primaryColor + "55" : "#1a3a1a" }}
+            >
+              <button
+                className="w-full flex items-center gap-3 p-3 text-left hover:opacity-90 transition-opacity"
+                style={{ background: isMyTeam ? `${entry.team.primaryColor}14` : "#0a180a" }}
+                onClick={() => setExpandedTeam(isExpanded ? null : entry.team.id)}
+                data-testid={`summary-team-${entry.team.abbreviation}`}
+              >
+                <span
+                  className="font-pixel text-base shrink-0"
+                  style={{
+                    color: rank === 1 ? "#C4A35A" : rank <= 3 ? "#facc15" : "#6b7280",
+                    minWidth: "32px",
+                  }}
+                >
+                  #{rank}
+                </span>
+                <TeamBadge
+                  abbreviation={entry.team.abbreviation}
+                  primaryColor={entry.team.primaryColor}
+                  secondaryColor={entry.team.secondaryColor}
+                  size="sm"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-white">{entry.team.name}</span>
+                    {isMyTeam && <span className="text-[10px] font-pixel text-[#C4A35A]">(You)</span>}
+                  </div>
+                  <div className="text-xs text-gray-400">
+                    {entry.recruits.length} commits · Avg OVR {avgOvr}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 text-xs shrink-0">
+                  {fiveStars > 0 && <span className="text-red-400">{fiveStars}×5★</span>}
+                  {fourStars > 0 && <span className="text-yellow-400">{fourStars}×4★</span>}
+                  <span className="text-gray-500 text-[10px]">{isExpanded ? "▲" : "▼"}</span>
+                </div>
+              </button>
+              {isExpanded && (
+                <div
+                  className="p-3 border-t overflow-x-auto"
+                  style={{ borderColor: "#1a3a1a", background: "#0d1f0d" }}
+                >
+                  <div className="flex flex-wrap gap-2">
+                    {sortedRecruits.map(r => (
+                      <RevealPortraitCard
+                        key={r.id}
+                        recruit={r}
+                        primaryColor={entry.team.primaryColor}
+                        disableAnimation
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

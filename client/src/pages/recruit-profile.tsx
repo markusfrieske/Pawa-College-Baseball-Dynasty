@@ -907,9 +907,14 @@ export default function RecruitProfilePage() {
                       
                       if (!isAbilityRevealed) {
                         return (
-                          <Badge key={idx} variant="outline" className="text-xs border-muted-foreground/50 text-muted-foreground">
-                            ???
-                          </Badge>
+                          <Tooltip key={idx}>
+                            <TooltipTrigger asChild>
+                              <Badge variant="outline" className="text-xs border-yellow-600/50 text-yellow-500/60 cursor-default flex items-center gap-1 px-1.5">
+                                <Lock className="w-2.5 h-2.5" />
+                              </Badge>
+                            </TooltipTrigger>
+                            <TooltipContent>Revealed at Signing Day</TooltipContent>
+                          </Tooltip>
                         );
                       }
                       

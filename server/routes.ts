@@ -1507,19 +1507,15 @@ export async function registerRoutes(
         const attrOrder   = attrOrderFromScouting.length   > 0 ? attrOrderFromScouting   : defaultAttrOrder;
         const commonOrder = commonOrderFromScouting.length > 0 ? commonOrderFromScouting : defaultCommonOrder;
         // Signing-day holdback: fields are nulled before reaching the client and the client
-        // renders them as gold lock icons. Blue chips / generational gems get a smaller
-        // 5-field holdback (last 2 attrs + last 3 common abilities) rather than none —
-        // keeping some drama even for elite prospects. Regular recruits hold back ~40% of
-        // attrs and ~50% of common abilities. All locks clear once signingDayRevealed.
+        // renders them as gold lock icons. Blue chips / generational gems are fully revealed
+        // with no holdback (coaches have been following them all year). Regular recruits hold
+        // back exactly half of attrs and half of common abilities. All locks clear on signing day.
         const holdbackFields: string[] = recruit.signingDayRevealed
           ? []
           : (recruit.isBlueChip || recruit.isGenerationalGem)
-            ? [
-                ...attrOrder.slice(Math.max(0, attrOrder.length - 2)),
-                ...commonOrder.slice(Math.max(0, commonOrder.length - 3)),
-              ]
+            ? []  // fully revealed — no locks for elite recruits
             : [
-                ...attrOrder.slice(Math.floor(attrOrder.length * 0.60)),    // hold back last 40%
+                ...attrOrder.slice(Math.floor(attrOrder.length * 0.50)),    // hold back last 50%
                 ...commonOrder.slice(Math.floor(commonOrder.length * 0.50)), // hold back last 50%
               ];
 
