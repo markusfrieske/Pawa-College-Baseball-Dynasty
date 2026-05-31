@@ -966,11 +966,25 @@ export default function RecruitingPage() {
             )}
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 md:gap-4">
             <StatCard icon={<Target className="w-4 h-4" />} label="Targets" value={`${data?.targetedCount || 0}/20`} />
             <StatCard icon={<Check className="w-4 h-4" />} label="Commits" value={`${data?.commitsCount || 0}/${data?.maxCommits ?? 0}`} />
             <StatCard icon={<Phone className="w-4 h-4" />} label="Recruiting Points" value={`${data?.pointsUsed ?? 0}/${data?.maxPoints ?? 0}`} />
             <StatCard icon={<Eye className="w-4 h-4" />} label="Scout Points" value={`${data?.scoutPointsUsed ?? 0}/${data?.maxScoutPoints ?? 0}`} />
+            {data?.team && (
+              <StatCard
+                icon={<DollarSign className="w-4 h-4" />}
+                label="NIL Remaining"
+                value={(() => {
+                  const rem = (data.team.nilBudget || 0) - (data.team.nilSpent || 0);
+                  return rem >= 1000000
+                    ? `$${(rem / 1000000).toFixed(1)}M`
+                    : rem >= 1000
+                    ? `$${Math.round(rem / 1000)}K`
+                    : `$${rem}`;
+                })()}
+              />
+            )}
           </div>
           {data?.team && (data.team as any).recruitingRankBoost > 0 && (() => {
             const boost = (data.team as any).recruitingRankBoost as number;
@@ -2083,6 +2097,7 @@ export default function RecruitingPage() {
         headCoachVisitCost={selectedRecruit ? (data?.recruitPointCosts?.[selectedRecruit.id]?.headCoachVisit ?? 2) : 2}
         hasVisited={selectedRecruit ? (data?.premiumActionsUsed?.[selectedRecruit.id]?.includes("visit") ?? false) : false}
         hasHeadCoachVisited={selectedRecruit ? (data?.premiumActionsUsed?.[selectedRecruit.id]?.includes("head_coach_visit") ?? false) : false}
+        nilRemaining={data?.team ? (data.team.nilBudget || 0) - (data.team.nilSpent || 0) : undefined}
       />
 
       <Dialog open={showSaveClassDialog} onOpenChange={(open) => { if (!open) setShowSaveClassDialog(false); }}>
@@ -2772,6 +2787,21 @@ function RecruitRow({
             </p>
             <p className="text-[10px] text-muted-foreground">OVR</p>
           </div>
+          {recruit.nilCost != null && recruit.nilCost > 0 && recruit.stage !== "signed" && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="text-center min-w-[40px] cursor-default">
+                  <p className="font-bold text-sm text-gold/80">
+                    {recruit.nilCost >= 1000000
+                      ? `$${(recruit.nilCost / 1000000).toFixed(1)}M`
+                      : `$${Math.round(recruit.nilCost / 1000)}K`}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">NIL</p>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>NIL cost to sign this recruit</TooltipContent>
+            </Tooltip>
+          )}
           <div className="text-center min-w-[40px]">
             <p className="font-bold text-sm">
               #{recruit.classRank || "—"}
@@ -3424,6 +3454,7 @@ function RecruitDetailModal({
   headCoachVisitCost,
   hasVisited,
   hasHeadCoachVisited,
+  nilRemaining,
 }: {
   recruit: RecruitWithInterest | null;
   onClose: () => void;
@@ -3446,6 +3477,7 @@ function RecruitDetailModal({
   headCoachVisitCost: number;
   hasVisited?: boolean;
   hasHeadCoachVisited?: boolean;
+  nilRemaining?: number;
 }) {
   const isMobile = useIsMobile();
   const [modalPhonePitches, setModalPhonePitches] = useState<string[]>([]);
@@ -3891,6 +3923,34 @@ function RecruitDetailModal({
                 <span className="font-pixel text-[10px]">Dealbreaker</span>
               </div>
               <p className="text-sm text-foreground">{recruit.dealbreaker}</p>
+            </div>
+          )}
+
+          {recruit.nilCost != null && recruit.nilCost > 0 && recruit.stage !== "signed" && (
+            <div className={`flex items-center justify-between px-3 py-2 rounded border ${
+              nilRemaining != null && recruit.nilCost > nilRemaining
+                ? "bg-red-500/10 border-red-500/30"
+                : "bg-gold/5 border-gold/20"
+            }`} data-testid="nil-cost-banner">
+              <div className="flex items-center gap-2">
+                <DollarSign className={`w-3.5 h-3.5 ${nilRemaining != null && recruit.nilCost > nilRemaining ? "text-red-400" : "text-gold"}`} />
+                <span className="text-[10px] text-muted-foreground">NIL Cost to Sign</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`font-pixel text-xs font-bold ${nilRemaining != null && recruit.nilCost > nilRemaining ? "text-red-400" : "text-gold"}`}>
+                  {recruit.nilCost >= 1000000
+                    ? `$${(recruit.nilCost / 1000000).toFixed(2)}M`
+                    : recruit.nilCost >= 1000
+                    ? `$${Math.round(recruit.nilCost / 1000)}K`
+                    : `$${recruit.nilCost}`}
+                </span>
+                {nilRemaining != null && recruit.nilCost > nilRemaining && (
+                  <span className="flex items-center gap-1 text-[9px] text-red-400">
+                    <Lock className="w-2.5 h-2.5" />
+                    Over budget
+                  </span>
+                )}
+              </div>
             </div>
           )}
 
@@ -4366,6 +4426,34 @@ function RecruitDetailModal({
                 <span className="font-pixel text-[10px]">Dealbreaker</span>
               </div>
               <p className="text-sm text-foreground">{recruit.dealbreaker}</p>
+            </div>
+          )}
+
+          {recruit.nilCost != null && recruit.nilCost > 0 && recruit.stage !== "signed" && (
+            <div className={`flex items-center justify-between px-3 py-2 rounded border ${
+              nilRemaining != null && recruit.nilCost > nilRemaining
+                ? "bg-red-500/10 border-red-500/30"
+                : "bg-gold/5 border-gold/20"
+            }`} data-testid="nil-cost-banner">
+              <div className="flex items-center gap-2">
+                <DollarSign className={`w-3.5 h-3.5 ${nilRemaining != null && recruit.nilCost > nilRemaining ? "text-red-400" : "text-gold"}`} />
+                <span className="text-[10px] text-muted-foreground">NIL Cost to Sign</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={`font-pixel text-xs font-bold ${nilRemaining != null && recruit.nilCost > nilRemaining ? "text-red-400" : "text-gold"}`}>
+                  {recruit.nilCost >= 1000000
+                    ? `$${(recruit.nilCost / 1000000).toFixed(2)}M`
+                    : recruit.nilCost >= 1000
+                    ? `$${Math.round(recruit.nilCost / 1000)}K`
+                    : `$${recruit.nilCost}`}
+                </span>
+                {nilRemaining != null && recruit.nilCost > nilRemaining && (
+                  <span className="flex items-center gap-1 text-[9px] text-red-400">
+                    <Lock className="w-2.5 h-2.5" />
+                    Over budget
+                  </span>
+                )}
+              </div>
             </div>
           )}
 

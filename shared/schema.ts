@@ -565,6 +565,7 @@ export const recruits = pgTable("recruits", {
   workEthicScore: integer("work_ethic_score").notNull().default(70),
   coachability: integer("coachability").notNull().default(70),
   classVintage: text("class_vintage"),
+  nilCost: integer("nil_cost").notNull().default(0),
   // Set to true after finalizeSigningDay runs — unlocks all attributes for the signing day reveal screen
   signingDayRevealed: boolean("signing_day_revealed").notNull().default(false),
 }, (t) => [
@@ -669,6 +670,7 @@ export const insertRecruitSchema = createInsertSchema(recruits).pick({
   workEthicScore: true,
   coachability: true,
   classVintage: true,
+  nilCost: true,
 }).extend({
   pitchCH: z.union([z.literal(0), z.literal(1)]).optional(),
 });

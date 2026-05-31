@@ -2951,11 +2951,25 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Roster would exceed 30-player limit. Release or manage your roster before signing more recruits." });
       }
 
+      // NIL budget enforcement
+      const nilCost = recruit.nilCost || 0;
+      const nilRemaining = (userTeam.nilBudget || 0) - (userTeam.nilSpent || 0);
+      if (nilCost > nilRemaining) {
+        return res.status(400).json({
+          message: `Insufficient NIL budget. This recruit costs $${nilCost.toLocaleString()} but you only have $${nilRemaining.toLocaleString()} remaining.`,
+        });
+      }
+
       // Sign the recruit
       const updatedRecruit = await storage.updateRecruit(recruit.id, {
         signedTeamId: userTeam.id,
         stage: "signed",
       });
+
+      // Deduct NIL cost from team budget
+      if (nilCost > 0) {
+        await storage.updateTeam(userTeam.id, { nilSpent: (userTeam.nilSpent || 0) + nilCost });
+      }
 
       // Award XP to the coach for signing a recruit
       const SIGN_XP_BASE = 50;
@@ -12122,6 +12136,13 @@ export async function registerRoutes(
             pitchSPL: player.pitchSPL ?? 0,
             abilities: playerAbilities,
             potential: player.potential ?? rollWeightedPotential(),
+            nilCost: (function() {
+              const ovr = calculateOVR(player);
+              const sr = getStarRatingFromOVR(ovr);
+              const ranges: [number, number][] = [[5000,25000],[25000,75000],[75000,200000],[200000,500000],[500000,1000000]];
+              const [mn, mx] = ranges[Math.min(4, Math.max(0, sr - 1))];
+              return Math.floor(mn + Math.random() * (mx - mn));
+            })(),
             sourcePlayerId: player.id,
             fromTeamName: teamName,
             trajectory: (player as any).trajectory ?? (["P","SP","RP","CP"].includes(player.position) ? 2 : assignTrajectory(player.power ?? 50, player.speed ?? 50, player.hitForAvg ?? 50)),
@@ -12973,6 +12994,14 @@ export async function registerRoutes(
     let totalRecruitsAdded = 0;
     let totalTransferred = 0;
 
+    // NIL budget tracking — accumulate locally, persist at the end
+    const nilSpentAccum = new Map<string, number>(teams.map(t => [t.id, t.nilSpent || 0]));
+    const nilBudgetMap = new Map<string, number>(teams.map(t => [t.id, t.nilBudget || 0]));
+    const sdCanAfford = (teamId: string, cost: number) =>
+      (nilBudgetMap.get(teamId) || 0) - (nilSpentAccum.get(teamId) || 0) >= cost;
+    const sdChargeNil = (teamId: string, cost: number) =>
+      nilSpentAccum.set(teamId, (nilSpentAccum.get(teamId) || 0) + cost);
+
     const MIN_ROSTER = 22;
     const cpuTeamsNeedingRecruits: Array<{ team: typeof teams[0]; needed: number; positionCounts: Record<string, number> }> = [];
     const allRecruitsPreCheck = await storage.getRecruitsByLeague(leagueId);
@@ -13006,6 +13035,12 @@ export async function registerRoutes(
             return (bNeed + (b.overall || 0)) - (aNeed + (a.overall || 0));
           })[0];
           if (best) {
+            if (!sdCanAfford(entry.team.id, best.nilCost || 0)) {
+              entry.needed--;
+              anyAssigned = true;
+              continue;
+            }
+            sdChargeNil(entry.team.id, best.nilCost || 0);
             await storage.updateRecruit(best.id, { signedTeamId: entry.team.id });
             // #26 — log CPU auto-signing in the activity feed so human coaches can see it
             try {
@@ -13047,8 +13082,13 @@ export async function registerRoutes(
             .filter(i => (i.interestLevel || 0) > 0)
             .sort((a, b) => (b.interestLevel || 0) - (a.interestLevel || 0));
           // Prefer a team that has made an offer; fall back to highest raw interest
-          const target = eligible.find(i => i.hasOffer) ?? eligible[0];
-          if (target?.teamId) {
+          // Also enforce NIL budget — skip teams that can't afford the recruit
+          const recruitNilCost = recruit.nilCost || 0;
+          const affordableEligible = eligible.filter(i => sdCanAfford(i.teamId, recruitNilCost));
+          const target = (affordableEligible.find(i => i.hasOffer) ?? affordableEligible[0])
+            ?? (eligible.find(i => i.hasOffer) ?? eligible[0]);
+          if (target?.teamId && sdCanAfford(target.teamId, recruitNilCost)) {
+            sdChargeNil(target.teamId, recruitNilCost);
             await storage.updateRecruit(recruit.id, { signedTeamId: target.teamId });
           }
         } catch (e) {
@@ -13093,6 +13133,8 @@ export async function registerRoutes(
             return (bNeed + (b.overall || 0)) - (aNeed + (a.overall || 0));
           })[0];
           if (!best) break;
+          if (!sdCanAfford(team.id, best.nilCost || 0)) { filled++; poolClaimed.add(best.id); continue; }
+          sdChargeNil(team.id, best.nilCost || 0);
           await storage.updateRecruit(best.id, { signedTeamId: team.id });
           try {
             await storage.createLeagueEvent({
@@ -13164,6 +13206,8 @@ export async function registerRoutes(
                 return (bNeed + (b.overall || 0)) - (aNeed + (a.overall || 0));
               })[0];
               if (!best) break;
+              if (!sdCanAfford(entry.team.id, best.nilCost || 0)) { sweepClaimed.add(best.id); entry.slotsLeft--; anyPlaced = true; sweepTotal++; continue; }
+              sdChargeNil(entry.team.id, best.nilCost || 0);
               await storage.updateRecruit(best.id, { signedTeamId: entry.team.id });
               try {
                 await storage.createLeagueEvent({
@@ -13198,6 +13242,14 @@ export async function registerRoutes(
     // NOTE: signingDayRevealed is NOT set here anymore.
     // The attr/common-ability holdback (40%/50%) stays in place until coaches watch the Signing Day screen.
     // The reveal screen calls POST /api/leagues/:id/signing-day-reveal/complete to lift it.
+
+    // Persist accumulated NIL spending back to each team
+    for (const [teamId, spent] of nilSpentAccum) {
+      const team = teams.find(t => t.id === teamId);
+      if (team && spent !== (team.nilSpent || 0)) {
+        await storage.updateTeam(teamId, { nilSpent: spent });
+      }
+    }
 
     // Snapshot class rankings before recruits are converted to players
     try {
@@ -14235,6 +14287,12 @@ export async function registerRoutes(
           hairStyle: walkon.hairStyle || "short",
           headwear: walkon.headwear || "cap",
           potential: walkon.potential ?? 60,
+          nilCost: (function() {
+            const sr = getStarRatingFromOVR(boostedOverall);
+            const ranges: [number, number][] = [[5000,25000],[25000,75000],[75000,200000],[200000,500000],[500000,1000000]];
+            const [mn, mx] = ranges[Math.min(4, Math.max(0, sr - 1))];
+            return Math.floor(mn + Math.random() * (mx - mn));
+          })(),
           trajectory: ["P","SP","RP","CP"].includes(walkon.position) ? 2 : assignTrajectory(boostedPower, boostedSpeed, boostedHitForAvg),
           sourcePlayerId: null,
           fromTeamName: null,

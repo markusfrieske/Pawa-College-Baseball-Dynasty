@@ -163,6 +163,30 @@ export interface GenerateRecruitClassOptions {
 
 export type GeneratedRecruit = Omit<InsertRecruit, "leagueId">;
 
+function generateNilCost(
+  starRank: number,
+  isBlueChip: boolean,
+  isGenerationalGem: boolean,
+  isGenerationalBust: boolean,
+): number {
+  if (isGenerationalBust) {
+    return Math.floor(5000 + Math.random() * 25000);
+  }
+  const ranges: [number, number][] = [
+    [5000, 25000],
+    [25000, 75000],
+    [75000, 200000],
+    [200000, 500000],
+    [500000, 1000000],
+  ];
+  const idx = Math.min(4, Math.max(0, starRank - 1));
+  const [min, max] = ranges[idx];
+  const baseCost = Math.floor(min + Math.random() * (max - min));
+  if (isGenerationalGem) return Math.floor(baseCost * (3 + Math.random() * 2));
+  if (isBlueChip) return Math.floor(baseCost * (1.5 + Math.random() * 1.0));
+  return baseCost;
+}
+
 export function generateRecruitClass(
   count: number,
   opts: GenerateRecruitClassOptions = {},
@@ -1113,6 +1137,7 @@ export function generateRecruitClass(
       playerArchetype,
       workEthicScore,
       coachability,
+      nilCost: generateNilCost(starRank, isBlueChip, isGenerationalGem, isGenerationalBust),
     });
   }
 
