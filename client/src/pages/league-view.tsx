@@ -773,6 +773,8 @@ export default function LeagueViewPage() {
 
         <SigningDaySummaryCard league={league} myTeam={myTeam} />
 
+        <ProgramChangesCard league={league} myTeam={myTeam} />
+
         <OffseasonSummary league={league} />
 
         <NextGameWidget leagueId={id!} league={league} myTeam={myTeam} />
@@ -5551,6 +5553,85 @@ function SigningDaySummaryCard({ league, myTeam }: { league: LeagueDetails; myTe
               <RetroButton variant="outline" size="sm" data-testid="button-signing-day-view-class">
                 <Target className="w-3 h-3 mr-1" />
                 View Full Rankings
+              </RetroButton>
+            </Link>
+          </div>
+        </div>
+      </div>
+    </RetroCard>
+  );
+}
+
+function ProgramChangesCard({ league, myTeam }: { league: LeagueDetails; myTeam: TeamWithCoach | undefined | null }) {
+  const isPreseason = league.currentPhase === "preseason";
+  const completedSeason = league.currentSeason - 1;
+  const dismissKey = `program-changes-dismissed-${league.id}-${completedSeason}`;
+  const [dismissed, setDismissed] = useState(false);
+  useEffect(() => {
+    setDismissed(localStorage.getItem(dismissKey) === "1");
+  }, [dismissKey]);
+
+  const { data: eventsData } = useQuery<{ events?: Array<{ id: string; teamId: string | null; season: number; metadata: Record<string, unknown> | null }> } | Array<{ id: string; teamId: string | null; season: number; metadata: Record<string, unknown> | null }>>({
+    queryKey: ["/api/leagues", league.id, "events", "PROGRAM_ATTR_CHANGE"],
+    queryFn: async () => {
+      const res = await fetch(`/api/leagues/${league.id}/events?type=PROGRAM_ATTR_CHANGE&limit=50`);
+      return res.json();
+    },
+    enabled: isPreseason && !!myTeam && completedSeason >= 1,
+  });
+
+  if (!isPreseason || !myTeam || completedSeason < 1 || dismissed) return null;
+
+  type AttrChange = { attr: string; label: string; prev: number; curr: number; delta: number; reason: string };
+  const rawEvents = Array.isArray(eventsData) ? eventsData : (eventsData as any)?.events ?? [];
+  const teamEvent = rawEvents.find(
+    (e: any) => e.teamId === myTeam.id && e.season === completedSeason
+  );
+  const changeList: AttrChange[] = (teamEvent?.metadata as any)?.changes ?? [];
+
+  if (changeList.length === 0) return null;
+
+  return (
+    <RetroCard className="border-gold/30 mb-4 relative overflow-hidden" data-testid="program-changes-card">
+      <div className="absolute inset-0 bg-gradient-to-r from-gold/5 to-transparent pointer-events-none" />
+      <button
+        onClick={() => { localStorage.setItem(dismissKey, "1"); setDismissed(true); }}
+        className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition-colors z-10"
+        data-testid="button-dismiss-program-changes"
+        aria-label="Dismiss program changes"
+      >
+        <X className="w-4 h-4" />
+      </button>
+      <div className="flex items-start gap-3 pr-8">
+        <Zap className="w-5 h-5 text-gold flex-shrink-0 mt-0.5" />
+        <div className="flex-1 min-w-0">
+          <p className="font-pixel text-gold text-[10px] mb-0.5">PROGRAM CHANGES</p>
+          <p className="text-[10px] text-muted-foreground mb-3">
+            Season {completedSeason} — Your program attributes evolved
+          </p>
+          <div className="space-y-1.5">
+            {changeList.map((c) => (
+              <div key={c.attr} className="flex items-center gap-2 text-xs" data-testid={`program-change-${c.attr}`}>
+                <span
+                  className={`inline-flex items-center gap-0.5 font-pixel text-[9px] px-1.5 py-0.5 rounded border ${
+                    c.delta > 0
+                      ? "bg-green-500/15 text-green-400 border-green-500/30"
+                      : "bg-red-500/15 text-red-400 border-red-500/30"
+                  }`}
+                >
+                  {c.delta > 0 ? "▲" : "▼"}{Math.abs(c.delta)}
+                </span>
+                <span className="font-medium text-foreground">{c.label}</span>
+                <span className="text-muted-foreground">—</span>
+                <span className="text-muted-foreground truncate">{c.reason}</span>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3">
+            <Link href={`/league/${league.id}/program/${myTeam.id}`}>
+              <RetroButton variant="outline" size="sm" data-testid="button-program-changes-view-profile">
+                <Zap className="w-3 h-3 mr-1" />
+                View Program Profile
               </RetroButton>
             </Link>
           </div>

@@ -14382,26 +14382,26 @@ export async function registerRoutes(
   // ── Program Attribute Evolution ──────────────────────────────────────────────
   // Runs once per season (at the end of finalizeWalkonsPhase) and mutates each
   // team's prestige/facilities/academics/stadium/collegeLife values based on
-  // their just-completed season performance, recruiting class rank, and win rate.
+  // their just-completed season performance, recruiting class rank, and player retention.
   // Previous values are preserved in prev_* columns so the UI can display deltas.
+  // Baseline columns anchor real-team attributes so dynasties don't permanently drift.
   async function applyProgramAttributeEvolution(leagueId: string, completedSeason: number) {
     const teams = await storage.getTeamsByLeague(leagueId);
     const allTeamCount = teams.length;
 
     // ─ Data sources ──────────────────────────────────────────────────────────
-    const [seasonStandings, classSnapshots, allGames] = await Promise.all([
+    const [seasonStandings, classSnapshots, allGames, allRecruits, leagueHistory] = await Promise.all([
       storage.getStandingsByLeague(leagueId, completedSeason),
       storage.getRecruitingClassSnapshotsByLeague(leagueId, completedSeason),
       storage.getGamesByLeague(leagueId),
+      storage.getRecruitsByLeague(leagueId),
+      storage.getPlayerHistoryByLeague(leagueId),
     ]);
 
     const seasonGames = allGames.filter(g => g.season === completedSeason && g.isComplete);
 
-    // Which teams reached each postseason stage
+    // ── CWS champion ──────────────────────────────────────────────────────────
     const cwsTeamIds = new Set(seasonGames.filter(g => g.phase === "cws").flatMap(g => [g.homeTeamId, g.awayTeamId]));
-    const srTeamIds  = new Set(seasonGames.filter(g => g.phase === "super_regionals").flatMap(g => [g.homeTeamId, g.awayTeamId]));
-
-    // CWS champion: team that won 2 CWS games (best-of-3)
     const cwsWinsByTeam = new Map<string, number>();
     for (const g of seasonGames.filter(g => g.phase === "cws")) {
       if (g.homeScore == null || g.awayScore == null) continue;
@@ -14410,87 +14410,161 @@ export async function registerRoutes(
     }
     const cwsChampionId = [...cwsWinsByTeam.entries()].find(([, w]) => w >= 2)?.[0] ?? null;
 
-    // Class rank snapshot lookup by teamId (rank 1 = best)
+    // ── Conference champions (won conf championship game) ─────────────────────
+    const confChampIds = new Set<string>();
+    for (const g of seasonGames.filter(g => g.phase === "conference_championship")) {
+      if (g.homeScore == null || g.awayScore == null) continue;
+      confChampIds.add(g.homeScore > g.awayScore ? g.homeTeamId : g.awayTeamId);
+    }
+
+    // ── Class rank snapshot lookup by teamId (rank 1 = best) ─────────────────
     const classRankByTeam = new Map<string, number>();
     for (const snap of classSnapshots) {
       classRankByTeam.set(snap.teamId, snap.classRank);
     }
 
-    const clamp = (v: number, lo = 1, hi = 10) => Math.max(lo, Math.min(hi, v));
+    // ── Conference standings grouping for conference finish ───────────────────
+    const teamConfMap = new Map<string, string>(); // teamId → confId
+    for (const t of teams) if (t.conferenceId) teamConfMap.set(t.id, t.conferenceId);
+
+    const confStandingsMap = new Map<string, typeof seasonStandings>(); // confId → sorted standings
+    for (const s of seasonStandings) {
+      const confId = teamConfMap.get(s.teamId);
+      if (!confId) continue;
+      if (!confStandingsMap.has(confId)) confStandingsMap.set(confId, []);
+      confStandingsMap.get(confId)!.push(s);
+    }
+    for (const arr of confStandingsMap.values()) {
+      arr.sort((a, b) => (b.wins ?? 0) - (a.wins ?? 0) || (a.losses ?? 0) - (b.losses ?? 0));
+    }
+
+    const clamp = (v: number, lo = 1, hi = 10) => Math.max(lo, Math.min(hi, Math.round(v)));
 
     for (const team of teams) {
-      const standing = seasonStandings.find(s => s.teamId === team.id);
-      const wins   = standing?.wins ?? 0;
-      const losses = standing?.losses ?? 0;
-      const total  = wins + losses;
-      const winPct = total > 0 ? wins / total : 0;
+      // ── Conference finish ────────────────────────────────────────────────────
+      const confId = teamConfMap.get(team.id);
+      const confArr = confId ? (confStandingsMap.get(confId) ?? []) : [];
+      const confSize = confArr.length;
+      const confRank = confArr.findIndex(s => s.teamId === team.id) + 1; // 1-indexed, 0 = not found
 
-      const classRank = classRankByTeam.get(team.id) ?? null; // null = no class (shouldn't happen in normal play)
-      const top33Threshold = Math.ceil(allTeamCount * 0.33);
-      const bot33Threshold = Math.floor(allTeamCount * 0.67);
+      // ── Signed recruits & departures ─────────────────────────────────────────
+      const signedRecruits = allRecruits.filter(r => r.signedTeamId === team.id);
+      const signedCount = signedRecruits.length;
+      const teamDepartures = leagueHistory.filter(
+        h => h.teamId === team.id && h.departedSeason === completedSeason
+      );
+      const transferOuts = teamDepartures.filter(h => h.departureType === "transfer_portal").length;
+      const totalDepartures = teamDepartures.length;
 
-      // ── Prestige ────────────────────────────────────────────────────────────
-      // Driven by postseason achievement; most volatile attribute.
+      // ── PRESTIGE ─────────────────────────────────────────────────────────────
+      // Spec: +2 CWS champion; +1 CWS or won conference; 0 top half; -1 bottom half; -2 last place.
+      // Soft-pull ±0.25/season toward prestige_baseline (≈ 1 step every 4 seasons).
       let prestigeDelta = 0;
-      if (cwsChampionId === team.id)    prestigeDelta = +2;
-      else if (cwsTeamIds.has(team.id)) prestigeDelta = +1;
-      else if (srTeamIds.has(team.id))  prestigeDelta =  0;
-      else                              prestigeDelta = -1;  // didn't reach Super Regionals
+      let prestigeReason = "";
+      if (cwsChampionId === team.id) {
+        prestigeDelta = 2; prestigeReason = "CWS champion";
+      } else if (cwsTeamIds.has(team.id)) {
+        prestigeDelta = 1; prestigeReason = "CWS appearance";
+      } else if (confChampIds.has(team.id)) {
+        prestigeDelta = 1; prestigeReason = "Won conference championship";
+      } else if (confRank > 0 && confSize > 0) {
+        if (confRank === confSize) {
+          prestigeDelta = -2; prestigeReason = "Last place in conference";
+        } else if (confRank > confSize / 2) {
+          prestigeDelta = -1; prestigeReason = "Bottom half of conference";
+        } else {
+          prestigeDelta = 0; prestigeReason = "Top half of conference";
+        }
+      } else {
+        prestigeDelta = -1; prestigeReason = "No postseason";
+      }
+      // Baseline soft-pull (every 4 seasons)
+      const prestigeBaseline = team.prestigeBaseline ?? team.prestige;
+      if (completedSeason % 4 === 0 && team.prestige !== prestigeBaseline) {
+        prestigeDelta += team.prestige < prestigeBaseline ? 1 : -1;
+        prestigeReason += prestigeReason ? "; baseline drift" : "Baseline drift";
+      }
 
-      // ── Facilities ──────────────────────────────────────────────────────────
-      // Reflects recruiting class pull; strong classes = investment pressure.
+      // ── FACILITIES ───────────────────────────────────────────────────────────
+      // Spec: +1 top 25%; 0 top 50%; -1 bottom 50%. Soft-pull toward baseline.
+      const classRank = classRankByTeam.get(team.id) ?? null;
+      const top25Threshold = Math.ceil(allTeamCount * 0.25);
+      const top50Threshold = Math.ceil(allTeamCount * 0.5);
       let facilitiesDelta = 0;
+      let facilitiesReason = "";
       if (classRank !== null) {
-        if (classRank <= top33Threshold)            facilitiesDelta = +1;
-        else if (classRank > bot33Threshold)        facilitiesDelta = -1;
+        if (classRank <= top25Threshold) {
+          facilitiesDelta = 1; facilitiesReason = "Top-25% recruiting class";
+        } else if (classRank <= top50Threshold) {
+          facilitiesDelta = 0; facilitiesReason = "Top-50% recruiting class";
+        } else {
+          facilitiesDelta = -1; facilitiesReason = "Bottom-50% recruiting class";
+        }
+      }
+      const facilitiesBaseline = team.facilitiesBaseline ?? team.facilities;
+      if (completedSeason % 4 === 0 && team.facilities !== facilitiesBaseline) {
+        facilitiesDelta += team.facilities < facilitiesBaseline ? 1 : -1;
       }
 
-      // ── Academics ───────────────────────────────────────────────────────────
-      // Very slow — only drifts when prestige is far from academics.
-      // Uses a seeded deterministic gate (season % 3) to avoid pure randomness.
+      // ── ACADEMICS ────────────────────────────────────────────────────────────
+      // Spec: +1 if ≥40% signed recruits had Academic top priority AND <3 transferred out;
+      //       -1 if ≥5 transferred out.
       let academicsDelta = 0;
-      if (team.prestige >= 8 && team.academics < team.prestige && completedSeason % 3 === 0) {
-        academicsDelta = +1;
-      } else if (team.prestige <= 3 && team.academics > 5 && completedSeason % 3 === 0) {
-        academicsDelta = -1;
+      let academicsReason = "";
+      const academicTopPriorityCount = signedRecruits.filter(
+        r => r.academicsPriority === "Very Important" || r.academicsPriority === "Extremely Important"
+      ).length;
+      const academicPct = signedCount > 0 ? academicTopPriorityCount / signedCount : 0;
+      if (academicPct >= 0.4 && transferOuts < 3) {
+        academicsDelta = 1; academicsReason = "40%+ academic-priority recruits, low transfer rate";
+      } else if (transferOuts >= 5) {
+        academicsDelta = -1; academicsReason = "High transfer-out rate (5+ players)";
       }
 
-      // ── Stadium ─────────────────────────────────────────────────────────────
-      // Slowest attribute — changes only when prestige has been sustainably high/low.
-      // Gate: only updates every 4 seasons.
+      // ── STADIUM ──────────────────────────────────────────────────────────────
+      // Spec: +1 if prestige ≥ stadium for 2 consecutive seasons (using prev_prestige);
+      //       -1 if prestige < stadium for 2 consecutive seasons; else 0.
       let stadiumDelta = 0;
-      if (completedSeason % 4 === 0) {
-        if (team.prestige >= 8 && team.stadium < team.prestige) stadiumDelta = +1;
-        else if (team.prestige <= 2 && team.stadium > team.prestige + 2) stadiumDelta = -1;
+      let stadiumReason = "";
+      const prevPrestige = team.prevPrestige ?? team.prestige; // prev_prestige = last season's prestige
+      const thisSznAbove = team.prestige >= team.stadium;
+      const lastSznAbove = prevPrestige >= team.stadium;
+      if (thisSznAbove && lastSznAbove) {
+        stadiumDelta = 1; stadiumReason = "Prestige sustained above stadium level for 2 seasons";
+      } else if (!thisSznAbove && !lastSznAbove) {
+        stadiumDelta = -1; stadiumReason = "Prestige sustained below stadium level for 2 seasons";
       }
 
-      // ── College Life ────────────────────────────────────────────────────────
-      // Reflects team culture: strong seasons + good class attract better culture.
+      // ── COLLEGE LIFE ─────────────────────────────────────────────────────────
+      // Spec: +1 if ≥30% of signed class was 1–2★ AND retention >80%;
+      //       -1 if retention <60% OR class entirely 4–5★.
       let collegeLifeDelta = 0;
-      const inTop50 = classRank !== null && classRank <= Math.ceil(allTeamCount * 0.5);
-      const inBot50 = classRank !== null && classRank > Math.floor(allTeamCount * 0.5);
-      if (winPct > 0.6 && inTop50)       collegeLifeDelta = +1;
-      else if (winPct < 0.35 && inBot50) collegeLifeDelta = -1;
+      let collegeLifeReason = "";
+      const lowStarCount = signedRecruits.filter(r => (r.starRating ?? 3) <= 2).length;
+      const lowStarPct = signedCount > 0 ? lowStarCount / signedCount : 0;
+      const retentionRate = 1 - totalDepartures / 25; // approx: 25-man roster before departures
+      const allHighStar = signedCount > 0 && signedRecruits.every(r => (r.starRating ?? 3) >= 4);
+      if (lowStarPct >= 0.3 && retentionRate > 0.8) {
+        collegeLifeDelta = 1; collegeLifeReason = "30%+ lower-star recruits signed, high retention";
+      } else if (retentionRate < 0.6 || allHighStar) {
+        collegeLifeDelta = -1;
+        collegeLifeReason = retentionRate < 0.6 ? "Poor roster retention" : "Recruiting class entirely 4–5★";
+      }
 
-      // Only write to DB if something actually changed (or if prev_ is not yet set)
+      // ── Compute new values ───────────────────────────────────────────────────
       const newPrestige    = clamp(team.prestige    + prestigeDelta);
       const newFacilities  = clamp(team.facilities  + facilitiesDelta);
       const newAcademics   = clamp(team.academics   + academicsDelta);
       const newStadium     = clamp(team.stadium     + stadiumDelta);
       const newCollegeLife = clamp(team.collegeLife + collegeLifeDelta);
 
-      const changed = (
-        newPrestige    !== team.prestige    ||
-        newFacilities  !== team.facilities  ||
-        newAcademics   !== team.academics   ||
-        newStadium     !== team.stadium     ||
-        newCollegeLife !== team.collegeLife ||
-        team.prevPrestige   == null         // first-ever evolution run
-      );
-
-      if (!changed) continue;
-
+      // Always update prev_* and baselines (idempotent; baselines seeded on first run)
       await storage.updateTeam(team.id, {
+        prestigeBaseline:    team.prestigeBaseline   ?? team.prestige,
+        facilitiesBaseline:  team.facilitiesBaseline ?? team.facilities,
+        academicsBaseline:   team.academicsBaseline  ?? team.academics,
+        stadiumBaseline:     team.stadiumBaseline     ?? team.stadium,
+        collegeLifeBaseline: team.collegeLifeBaseline ?? team.collegeLife,
         prevPrestige:    team.prestige,
         prevFacilities:  team.facilities,
         prevAcademics:   team.academics,
@@ -14503,32 +14577,28 @@ export async function registerRoutes(
         collegeLife: newCollegeLife,
       });
 
-      // Emit a league event only when at least one attribute changed meaningfully
-      const attrChanges: string[] = [];
-      if (newPrestige    !== team.prestige)    attrChanges.push(`Prestige ${team.prestige}→${newPrestige}`);
-      if (newFacilities  !== team.facilities)  attrChanges.push(`Facilities ${team.facilities}→${newFacilities}`);
-      if (newAcademics   !== team.academics)   attrChanges.push(`Academics ${team.academics}→${newAcademics}`);
-      if (newStadium     !== team.stadium)     attrChanges.push(`Stadium ${team.stadium}→${newStadium}`);
-      if (newCollegeLife !== team.collegeLife) attrChanges.push(`College Life ${team.collegeLife}→${newCollegeLife}`);
+      // ── Emit event with structured per-attribute reason strings ───────────────
+      type AttrChange = { attr: string; label: string; prev: number; curr: number; delta: number; reason: string };
+      const changeList: AttrChange[] = [];
+      if (newPrestige    !== team.prestige)    changeList.push({ attr: "prestige",    label: "Prestige",     prev: team.prestige,    curr: newPrestige,    delta: newPrestige - team.prestige,       reason: prestigeReason });
+      if (newFacilities  !== team.facilities)  changeList.push({ attr: "facilities",  label: "Facilities",   prev: team.facilities,  curr: newFacilities,  delta: newFacilities - team.facilities,   reason: facilitiesReason });
+      if (newAcademics   !== team.academics)   changeList.push({ attr: "academics",   label: "Academics",    prev: team.academics,   curr: newAcademics,   delta: newAcademics - team.academics,     reason: academicsReason });
+      if (newStadium     !== team.stadium)     changeList.push({ attr: "stadium",     label: "Stadium",      prev: team.stadium,     curr: newStadium,     delta: newStadium - team.stadium,         reason: stadiumReason });
+      if (newCollegeLife !== team.collegeLife) changeList.push({ attr: "collegeLife", label: "College Life", prev: team.collegeLife, curr: newCollegeLife, delta: newCollegeLife - team.collegeLife, reason: collegeLifeReason });
 
-      if (attrChanges.length > 0) {
+      if (changeList.length > 0) {
+        const desc = changeList
+          .map(c => `${team.name} ${c.label} ${c.delta > 0 ? "▲" : "▼"}${Math.abs(c.delta)} — ${c.reason}`)
+          .join("; ");
         try {
           await storage.createLeagueEvent({
             leagueId,
+            teamId: team.id,
             eventType: "PROGRAM_ATTR_CHANGE",
-            description: `${team.name} program attributes changed: ${attrChanges.join(", ")}`,
+            description: desc,
             season: completedSeason,
             week: 0,
-            metadata: {
-              teamId: team.id,
-              changes: {
-                prestige:    { prev: team.prestige,    curr: newPrestige },
-                facilities:  { prev: team.facilities,  curr: newFacilities },
-                academics:   { prev: team.academics,   curr: newAcademics },
-                stadium:     { prev: team.stadium,     curr: newStadium },
-                collegeLife: { prev: team.collegeLife, curr: newCollegeLife },
-              },
-            },
+            metadata: { teamId: team.id, changes: changeList },
           });
         } catch (_) { /* non-fatal */ }
       }

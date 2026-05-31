@@ -303,7 +303,7 @@ export default function ProgramProfilePage() {
                   label="Prestige"
                   value={team.prestige}
                   prev={team.prevPrestige}
-                  tooltip="Changes based on postseason performance. CWS title +2, CWS +1, no postseason −1."
+                  tooltip="Drives recruiting interest and commit thresholds. Raised by postseason success and conference championships; lowered by losing seasons."
                   testId="attr-prestige"
                 />
                 <ProgramAttrRow
@@ -311,7 +311,7 @@ export default function ProgramProfilePage() {
                   label="Facilities"
                   value={team.facilities}
                   prev={team.prevFacilities}
-                  tooltip="Reflects recruiting class quality. Top recruiting class +1, weak class −1."
+                  tooltip="Multiplies player development speed and recruiting visit effectiveness. Raised by top-25% recruiting classes; lowered by bottom-50% classes."
                   testId="attr-facilities"
                 />
                 <ProgramAttrRow
@@ -319,7 +319,7 @@ export default function ProgramProfilePage() {
                   label="Academics"
                   value={team.academics}
                   prev={team.prevAcademics}
-                  tooltip="Slowly drifts toward prestige level. Changes at most once every 3 seasons."
+                  tooltip="Boosts recruiting for academically-focused recruits. Raised by signing academic-priority recruits and retaining players; lowered by high transfer-out rates."
                   testId="attr-academics"
                 />
                 <ProgramAttrRow
@@ -327,7 +327,7 @@ export default function ProgramProfilePage() {
                   label="Stadium"
                   value={team.stadium}
                   prev={team.prevStadium}
-                  tooltip="Very slow-moving. Updates only when prestige is sustainably high or low (every 4 seasons)."
+                  tooltip="Amplifies Head Coach visit effectiveness and national brand reach. Rises slowly when Prestige is sustainably above this level; falls with prolonged Prestige decline."
                   testId="attr-stadium"
                 />
                 <ProgramAttrRow
@@ -335,7 +335,7 @@ export default function ProgramProfilePage() {
                   label="College Life"
                   value={team.collegeLife}
                   prev={team.prevCollegeLife}
-                  tooltip="Reflects team culture. Strong win rate and good recruiting class +1, poor performance −1."
+                  tooltip="Boosts recruiting interest for recruits who value campus culture. Raised by successfully signing lower-star recruits; lowered by poor roster retention."
                   testId="attr-college-life"
                 />
                 <ProgramAttrRow

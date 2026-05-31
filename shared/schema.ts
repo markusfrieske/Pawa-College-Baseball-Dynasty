@@ -126,6 +126,11 @@ export const teams = pgTable("teams", {
   prevAcademics: integer("prev_academics"),
   prevStadium: integer("prev_stadium"),
   prevCollegeLife: integer("prev_college_life"),
+  prestigeBaseline: integer("prestige_baseline"),
+  facilitiesBaseline: integer("facilities_baseline"),
+  academicsBaseline: integer("academics_baseline"),
+  stadiumBaseline: integer("stadium_baseline"),
+  collegeLifeBaseline: integer("college_life_baseline"),
 });
 
 export const insertTeamSchema = createInsertSchema(teams).pick({
