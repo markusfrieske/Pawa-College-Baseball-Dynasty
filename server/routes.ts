@@ -1506,12 +1506,19 @@ export async function registerRoutes(
         // Fall back to defaults when scoutingOrder predates these key groups
         const attrOrder   = attrOrderFromScouting.length   > 0 ? attrOrderFromScouting   : defaultAttrOrder;
         const commonOrder = commonOrderFromScouting.length > 0 ? commonOrderFromScouting : defaultCommonOrder;
-        const holdbackFields: string[] = (recruit.isBlueChip || recruit.signingDayRevealed)
+        const holdbackFields: string[] = recruit.signingDayRevealed
           ? []
-          : [
-              ...attrOrder.slice(Math.floor(attrOrder.length * 0.60)),    // hold back last 40%
-              ...commonOrder.slice(Math.floor(commonOrder.length * 0.50)), // hold back last 50%
-            ];
+          : (recruit.isBlueChip || (recruit as any).isGenerationalGem)
+            ? [
+                // Blue chips / generational gems: lock last 2 attrs + last 3 common abilities
+                // so even fully-scouted elite recruits show 5 gold locks until signing day.
+                ...attrOrder.slice(Math.max(0, attrOrder.length - 2)),
+                ...commonOrder.slice(Math.max(0, commonOrder.length - 3)),
+              ]
+            : [
+                ...attrOrder.slice(Math.floor(attrOrder.length * 0.60)),    // hold back last 40%
+                ...commonOrder.slice(Math.floor(commonOrder.length * 0.50)), // hold back last 50%
+              ];
 
         // Null out holdback field values so they never reach the client before signing day
         const maskedRecruit: Record<string, unknown> = { ...recruit };
