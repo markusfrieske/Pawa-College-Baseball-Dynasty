@@ -86,6 +86,11 @@ app.use((req, res, next) => {
     pool.query("ALTER TABLE teams ADD COLUMN IF NOT EXISTS national_rank integer NOT NULL DEFAULT 149"),
     pool.query("ALTER TABLE teams ADD COLUMN IF NOT EXISTS prev_national_rank integer"),
     pool.query("ALTER TABLE teams ADD COLUMN IF NOT EXISTS recruiting_rank_boost real NOT NULL DEFAULT 0"),
+    pool.query("ALTER TABLE teams ADD COLUMN IF NOT EXISTS prev_prestige integer"),
+    pool.query("ALTER TABLE teams ADD COLUMN IF NOT EXISTS prev_facilities integer"),
+    pool.query("ALTER TABLE teams ADD COLUMN IF NOT EXISTS prev_academics integer"),
+    pool.query("ALTER TABLE teams ADD COLUMN IF NOT EXISTS prev_stadium integer"),
+    pool.query("ALTER TABLE teams ADD COLUMN IF NOT EXISTS prev_college_life integer"),
   ]).then(results => {
     const failed = results.filter(r => r.status === "rejected");
     if (failed.length > 0) {

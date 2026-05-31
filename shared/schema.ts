@@ -121,6 +121,11 @@ export const teams = pgTable("teams", {
   nationalRank: integer("national_rank").notNull().default(149),
   prevNationalRank: integer("prev_national_rank"),
   recruitingRankBoost: real("recruiting_rank_boost").notNull().default(0),
+  prevPrestige: integer("prev_prestige"),
+  prevFacilities: integer("prev_facilities"),
+  prevAcademics: integer("prev_academics"),
+  prevStadium: integer("prev_stadium"),
+  prevCollegeLife: integer("prev_college_life"),
 });
 
 export const insertTeamSchema = createInsertSchema(teams).pick({
@@ -1546,7 +1551,7 @@ export const insertCoachSeasonHistorySchema = createInsertSchema(coachSeasonHist
 export type InsertCoachSeasonHistory = z.infer<typeof insertCoachSeasonHistorySchema>;
 export type CoachSeasonHistory = typeof coachSeasonHistory.$inferSelect;
 
-const LEAGUE_EVENT_TYPES = ["SIGNING", "TRANSFER", "DRAFT", "GAME_RESULT", "RIVALRY_RESULT", "AWARD", "PHASE_CHANGE", "ROSTER_CUT", "WALKON", "STORYLINE", "NUDGE", "DECOMMIT"] as const;
+const LEAGUE_EVENT_TYPES = ["SIGNING", "TRANSFER", "DRAFT", "GAME_RESULT", "RIVALRY_RESULT", "AWARD", "PHASE_CHANGE", "ROSTER_CUT", "WALKON", "STORYLINE", "NUDGE", "DECOMMIT", "PROGRAM_ATTR_CHANGE"] as const;
 export type LeagueEventType = (typeof LEAGUE_EVENT_TYPES)[number];
 
 // NIL Season Earnings table — records every NIL bonus awarded each season per team

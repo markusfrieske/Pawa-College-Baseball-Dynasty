@@ -15,7 +15,13 @@ import {
   User,
   Cpu,
   Medal,
+  Building2,
+  BookOpen,
+  Home,
+  Users,
+  Zap,
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface SeasonHistoryRow {
   season: number;
@@ -59,6 +65,16 @@ interface ProgramProfileData {
     secondaryColor: string;
     mascot: string;
     prestige: number;
+    facilities: number;
+    academics: number;
+    stadium: number;
+    collegeLife: number;
+    marketing: number;
+    prevPrestige: number | null;
+    prevFacilities: number | null;
+    prevAcademics: number | null;
+    prevStadium: number | null;
+    prevCollegeLife: number | null;
     isCpu: boolean;
     conferenceName: string | null;
   };
@@ -168,6 +184,7 @@ export default function ProgramProfilePage() {
   }
 
   const { team, coach, isCommissioner, commissionerSeasons, allTimeWins, allTimeLosses, confChampAppearances, confChampionships, superRegionalsAppearances, cwsAppearances, cwsTitles, currentSeasonStats, currentSeason, seasonHistory, recruitingHoF, topDraftedPlayers } = data;
+  const hasEverEvolved = team.prevPrestige !== null;
   const totalGames = allTimeWins + allTimeLosses;
   const winPct = totalGames > 0 ? ((allTimeWins / totalGames) * 100).toFixed(1) : "0.0";
 
@@ -266,6 +283,78 @@ export default function ProgramProfilePage() {
           <StatTile icon={<Star className="w-4 h-4" />} label="Super Regionals" value={String(superRegionalsAppearances)} sub="appearances" />
           <StatTile icon={<Medal className="w-4 h-4" />} label="CWS" value={String(cwsAppearances)} sub="appearances" />
         </div>
+
+        {/* Program Attributes */}
+        <RetroCard data-testid="section-program-attributes">
+          <RetroCardHeader>
+            <div className="flex items-center gap-2">
+              <Zap className="w-4 h-4 text-gold" />
+              Program Attributes
+              {hasEverEvolved && (
+                <span className="text-[8px] text-muted-foreground font-pixel ml-1">season-over-season</span>
+              )}
+            </div>
+          </RetroCardHeader>
+          <RetroCardContent>
+            <TooltipProvider>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <ProgramAttrRow
+                  icon={<Trophy className="w-3.5 h-3.5 text-gold" />}
+                  label="Prestige"
+                  value={team.prestige}
+                  prev={team.prevPrestige}
+                  tooltip="Changes based on postseason performance. CWS title +2, CWS +1, no postseason −1."
+                  testId="attr-prestige"
+                />
+                <ProgramAttrRow
+                  icon={<Building2 className="w-3.5 h-3.5 text-blue-400" />}
+                  label="Facilities"
+                  value={team.facilities}
+                  prev={team.prevFacilities}
+                  tooltip="Reflects recruiting class quality. Top recruiting class +1, weak class −1."
+                  testId="attr-facilities"
+                />
+                <ProgramAttrRow
+                  icon={<BookOpen className="w-3.5 h-3.5 text-green-400" />}
+                  label="Academics"
+                  value={team.academics}
+                  prev={team.prevAcademics}
+                  tooltip="Slowly drifts toward prestige level. Changes at most once every 3 seasons."
+                  testId="attr-academics"
+                />
+                <ProgramAttrRow
+                  icon={<Home className="w-3.5 h-3.5 text-orange-400" />}
+                  label="Stadium"
+                  value={team.stadium}
+                  prev={team.prevStadium}
+                  tooltip="Very slow-moving. Updates only when prestige is sustainably high or low (every 4 seasons)."
+                  testId="attr-stadium"
+                />
+                <ProgramAttrRow
+                  icon={<Users className="w-3.5 h-3.5 text-purple-400" />}
+                  label="College Life"
+                  value={team.collegeLife}
+                  prev={team.prevCollegeLife}
+                  tooltip="Reflects team culture. Strong win rate and good recruiting class +1, poor performance −1."
+                  testId="attr-college-life"
+                />
+                <ProgramAttrRow
+                  icon={<Star className="w-3.5 h-3.5 text-pink-400" />}
+                  label="Marketing"
+                  value={team.marketing}
+                  prev={null}
+                  tooltip="Program marketing & brand strength. Affects fanbase engagement."
+                  testId="attr-marketing"
+                />
+              </div>
+              {!hasEverEvolved && (
+                <p className="text-[9px] text-muted-foreground mt-3 text-center font-pixel">
+                  Attributes will evolve after your first completed season.
+                </p>
+              )}
+            </TooltipProvider>
+          </RetroCardContent>
+        </RetroCard>
 
         {/* Current Season Stats */}
         {currentSeasonStats && (
@@ -482,6 +571,81 @@ function StarsDisplay({ stars }: { stars: number }) {
     <span className={`font-pixel text-[9px] ${starColor(stars)}`}>
       {"★".repeat(Math.max(0, stars))}
     </span>
+  );
+}
+
+function AttrPips({ value }: { value: number }) {
+  return (
+    <div className="flex gap-0.5">
+      {Array.from({ length: 10 }).map((_, i) => (
+        <div
+          key={i}
+          className={`w-2 h-2 rounded-sm ${i < value ? "bg-gold" : "bg-muted/40"}`}
+        />
+      ))}
+    </div>
+  );
+}
+
+function DeltaBadge({ prev, curr }: { prev: number; curr: number }) {
+  const delta = curr - prev;
+  if (delta === 0) return null;
+  const isUp = delta > 0;
+  return (
+    <span
+      className={`inline-flex items-center gap-0.5 text-[9px] font-pixel px-1 py-0.5 rounded border ${
+        isUp
+          ? "bg-green-500/15 text-green-400 border-green-500/30"
+          : "bg-red-500/15 text-red-400 border-red-500/30"
+      }`}
+    >
+      {isUp ? "▲" : "▼"}{Math.abs(delta)}
+    </span>
+  );
+}
+
+function ProgramAttrRow({
+  icon,
+  label,
+  value,
+  prev,
+  tooltip,
+  testId,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: number;
+  prev: number | null;
+  tooltip: string;
+  testId: string;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div
+          className="flex flex-col gap-1.5 p-2.5 rounded-lg bg-muted/20 hover:bg-muted/30 transition-colors cursor-help"
+          data-testid={testId}
+        >
+          <div className="flex items-center justify-between gap-1">
+            <div className="flex items-center gap-1.5">
+              {icon}
+              <span className="font-pixel text-[8px] text-muted-foreground">{label.toUpperCase()}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="font-bold text-sm text-foreground">{value}</span>
+              {prev !== null && <DeltaBadge prev={prev} curr={value} />}
+            </div>
+          </div>
+          <AttrPips value={value} />
+          {prev !== null && prev !== value && (
+            <div className="text-[8px] text-muted-foreground font-pixel">was {prev}</div>
+          )}
+        </div>
+      </TooltipTrigger>
+      <TooltipContent side="top" className="max-w-[200px] text-xs">
+        {tooltip}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
