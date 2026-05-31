@@ -5,26 +5,26 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
   "Arkansas": [
       // 32-17/13-11 SEC, D1B #17, Dave Van Horn Yr 24. Lost entire 2025 rotation (Root/Biedelschies/Wood drafted), plus Aloy/Davalan/Foutch.
       // PITCHERS (10) — 1-8 pitch scale
-      // Gabe Gaeckle — Friday JR RHP, 2.06 ERA / 35 IP relief 2025, transitioning to starter — TEAM ELITE STUFF
+      // Gabe Gaeckle — JR RHP, 4.14 ERA / 12 GS / 20 app Saturday starter — TEAM ELITE STUFF
       { firstName: "Gabe", lastName: "Gaeckle", position: "P", eligibility: "JR", homeState: "MO", hometown: "Springfield", jerseyNumber: 22,
-        hitForAvg: 16, power: 12, speed: 33, arm: 65, fielding: 40, errorResistance: 54, velocity: 66, control: 56, stamina: 80, stuff: 70,
+        hitForAvg: 16, power: 12, speed: 33, arm: 65, fielding: 40, errorResistance: 54, velocity: 68, control: 56, stamina: 80, stuff: 70,
         clutch: 80, vsLHP: 76, grit: 68, stealing: 10, running: 34, throwing: 78, recovery: 51, wRISP: 61, vsLefty: 61, poise: 65, heater: 68, agile: 44,
         abilities: ["Kageura", "Heavy Ball", "Winner's Luck", "Strikeout"], potential: "A+", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [1, 0, 0, 0, 4, 4, 4, 0, 0, 0]) },
-      // Cole Gibler — LHP Saturday starter
+      // Cole Gibler — LHP spot starter/long relief, 5.25 ERA / 5 GS / 18 app
       { firstName: "Cole", lastName: "Gibler", position: "P", eligibility: "JR", homeState: "AR", hometown: "Fayetteville", jerseyNumber: 32,
-        hitForAvg: 14, power: 10, speed: 32, arm: 59, fielding: 35, errorResistance: 46, velocity: 56, control: 59, stamina: 86, stuff: 56,
+        hitForAvg: 14, power: 10, speed: 32, arm: 59, fielding: 35, errorResistance: 46, velocity: 56, control: 54, stamina: 55, stuff: 56,
         clutch: 70, vsLHP: 76, grit: 68, stealing: 8, running: 30, throwing: 72, recovery: 51, wRISP: 51, vsLefty: 60, poise: 56, heater: 60, agile: 40,
-        abilities: ["Strong Starter", "Fireman", "Kageura", "Natural Shuuto"], potential: "A-", catcherAbility: null,
+        abilities: ["Pace", "Fireman", "Kageura", "Natural Shuuto"], potential: "A-", catcherAbility: null,
         throwHand: "L", batHand: "L",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [6, 0, 0, 0, 0, 4, 0, 1, 0, 0]) },
-      // Colin Fisher — LHP JR Sat/Sun
+      // Colin Fisher — LHP JR Sunday starter, 5.24 ERA / 10 GS / 17 app, 4-7
       { firstName: "Colin", lastName: "Fisher", position: "P", eligibility: "JR", homeState: "AR", hometown: "Little Rock", jerseyNumber: 37,
-        hitForAvg: 13, power: 10, speed: 32, arm: 55, fielding: 33, errorResistance: 44, velocity: 52, control: 55, stamina: 83, stuff: 51,
-        clutch: 64, vsLHP: 74, grit: 66, stealing: 8, running: 30, throwing: 68, recovery: 47, wRISP: 47, vsLefty: 58, poise: 51, heater: 56, agile: 40,
+        hitForAvg: 13, power: 10, speed: 32, arm: 55, fielding: 33, errorResistance: 44, velocity: 52, control: 52, stamina: 83, stuff: 51,
+        clutch: 64, vsLHP: 74, grit: 66, stealing: 8, running: 30, throwing: 68, recovery: 47, wRISP: 42, vsLefty: 58, poise: 46, heater: 56, agile: 40,
         abilities: ["Fireman", "Sharpness", "Natural Shuuto"], potential: "B+", catcherAbility: null,
         throwHand: "L", batHand: "L",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
@@ -37,17 +37,17 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "L", batHand: "L",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [1, 0, 0, 1, 0, 0, 4, 0, 0, 0]) },
-      // Hunter Dietz — SO RHP, 9K vs Ole Miss in 6 IP
+      // Hunter Dietz — SO RHP, 3.57 ERA / 16 GS, 7-4, All-SEC 1st Team, led SEC in Ks — FRIDAY ACE
       { firstName: "Hunter", lastName: "Dietz", position: "P", eligibility: "SO", homeState: "TX", hometown: "Katy", jerseyNumber: 45,
-        hitForAvg: 12, power: 10, speed: 32, arm: 54, fielding: 33, errorResistance: 44, velocity: 54, control: 50, stamina: 52, stuff: 53,
-        clutch: 64, vsLHP: 60, grit: 66, stealing: 8, running: 30, throwing: 68, recovery: 45, wRISP: 47, vsLefty: 48, poise: 51, heater: 58, agile: 40,
-        abilities: ["Strong Starter", "vs. Strong Batters", "Pace"], potential: "A-", catcherAbility: null,
+        hitForAvg: 12, power: 10, speed: 32, arm: 54, fielding: 33, errorResistance: 44, velocity: 63, control: 58, stamina: 68, stuff: 53,
+        clutch: 64, vsLHP: 60, grit: 66, stealing: 8, running: 30, throwing: 68, recovery: 45, wRISP: 56, vsLefty: 48, poise: 51, heater: 64, agile: 40,
+        abilities: ["Strong Starter", "vs. Strong Batters", "Doctor K"], potential: "A", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 0, 3, 1, 0, 4, 4, 0, 0, 0]) },
-      // Tate McGuire — JR RHP closer/RP
+      // Tate McGuire — JR RHP midweek starter, 5.20 ERA / 7 GS / 20 app
       { firstName: "Tate", lastName: "McGuire", position: "P", eligibility: "JR", homeState: "OK", hometown: "Tulsa", jerseyNumber: 41,
-        hitForAvg: 14, power: 10, speed: 32, arm: 57, fielding: 34, errorResistance: 46, velocity: 56, control: 54, stamina: 40, stuff: 54,
+        hitForAvg: 14, power: 10, speed: 32, arm: 57, fielding: 34, errorResistance: 46, velocity: 56, control: 54, stamina: 50, stuff: 54,
         clutch: 70, vsLHP: 64, grit: 68, stealing: 9, running: 32, throwing: 72, recovery: 44, wRISP: 50, vsLefty: 51, poise: 54, heater: 59, agile: 40,
         abilities: ["Fireman", "Guts"], potential: "A-", catcherAbility: null,
         throwHand: "R", batHand: "R",
@@ -69,19 +69,19 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 0, 0, 0, 0, 4, 4, 0, 1, 0]) },
-      // Kade Smith — JR RHP depth
-      { firstName: "Kade", lastName: "Smith", position: "P", eligibility: "JR", homeState: "OK", hometown: "Norman", jerseyNumber: 43,
-        hitForAvg: 10, power: 8, speed: 30, arm: 32, fielding: 20, errorResistance: 32, velocity: 31, control: 31, stamina: 13, stuff: 34,
-        clutch: 42, vsLHP: 40, grit: 44, stealing: 7, running: 24, throwing: 46, recovery: 27, wRISP: 27, vsLefty: 28, poise: 30, heater: 34, agile: 28,
-        abilities: ["Constant Speed", "Sharpness"], potential: "B", catcherAbility: null,
+      // Parker Coil — JR RHP primary reliever, 3.94 ERA / 26 app / 1 GS, 3-0
+      { firstName: "Parker", lastName: "Coil", position: "P", eligibility: "JR", homeState: "TN", hometown: "Franklin", jerseyNumber: 36,
+        hitForAvg: 12, power: 10, speed: 30, arm: 55, fielding: 33, errorResistance: 44, velocity: 63, control: 58, stamina: 33, stuff: 58,
+        clutch: 62, vsLHP: 60, grit: 64, stealing: 8, running: 28, throwing: 64, recovery: 52, wRISP: 58, vsLefty: 58, poise: 60, heater: 65, agile: 42,
+        abilities: ["Fireman", "Heavy Ball"], potential: "A-", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [0, 0, 0, 1, 0, 4, 4, 0, 0, 0]) },
+        ...pitchMix(1, [0, 4, 0, 1, 0, 4, 0, 0, 0, 0]) },
       // Tyler Webb — FR depth
       // CATCHERS (2)
       // Ryder Helfrick — JR C, 15 multi-RBI games (#2 team), top draft prospect
       { firstName: "Ryder", lastName: "Helfrick", position: "C", eligibility: "JR", homeState: "FL", hometown: "Tampa", jerseyNumber: 12,
-        hitForAvg: 90, power: 62, speed: 55, arm: 63, fielding: 53, errorResistance: 43, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 90, power: 68, speed: 55, arm: 63, fielding: 53, errorResistance: 43, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 65, vsLHP: 58, grit: 52, stealing: 51, running: 51, throwing: 59, recovery: 50, wRISP: 76, vsLefty: 70, poise: 76, heater: 0, agile: 38,
         abilities: ["Insurer", "vs. Breaking Pitches", "Power Hitter", "Consigliere"], potential: "A+", catcherAbility: 64,
         throwHand: "R", batHand: "R",
@@ -98,7 +98,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       // INFIELDERS (7)
       // Camden Kozeal — 2B JR, 17 multi-hit games (team lead), top-100 2026 draft — TEAM ELITE HIT
       { firstName: "Camden", lastName: "Kozeal", position: "2B", eligibility: "JR", homeState: "CA", hometown: "Huntington Beach", jerseyNumber: 7,
-        hitForAvg: 72, power: 68, speed: 66, arm: 49, fielding: 55, errorResistance: 45, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 72, power: 70, speed: 66, arm: 49, fielding: 55, errorResistance: 45, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 80, vsLHP: 76, grit: 68, stealing: 51, running: 51, throwing: 60, recovery: 46, wRISP: 80, vsLefty: 76, poise: 80, heater: 0, agile: 52,
         abilities: ["Storming Home", "High Speed Charge", "Power Hitter", "Consigliere"], potential: "A+", catcherAbility: null,
         throwHand: "R", batHand: "L",
@@ -130,7 +130,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         ...noPitches },
       // Carson Brumbaugh — SS FR (Zack Stewart's role taken by Brumbaugh, 7 multi-hit)
       { firstName: "Carson", lastName: "Brumbaugh", position: "SS", eligibility: "FR", homeState: "AR", hometown: "Rogers", jerseyNumber: 1,
-        hitForAvg: 63, power: 53, speed: 59, arm: 57, fielding: 53, errorResistance: 43, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 55, power: 53, speed: 59, arm: 57, fielding: 53, errorResistance: 43, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 50, vsLHP: 51, grit: 54, stealing: 51, running: 58, throwing: 68, recovery: 42, wRISP: 50, vsLefty: 46, poise: 50, heater: 0, agile: 60,
         abilities: ["Pull Hit", "Defensive Artisan"], potential: "A", catcherAbility: null,
         throwHand: "R", batHand: "R",
@@ -138,9 +138,9 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         ...noPitches },
       // Zack Stewart — 8 multi-hit games, contributing INF
       { firstName: "Zack", lastName: "Stewart", position: "3B", eligibility: "SO", homeState: "TX", hometown: "Houston", jerseyNumber: 11,
-        hitForAvg: 58, power: 53, speed: 65, arm: 55, fielding: 47, errorResistance: 32, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 64, power: 60, speed: 65, arm: 55, fielding: 47, errorResistance: 32, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 51, vsLHP: 49, grit: 50, stealing: 53, running: 46, throwing: 66, recovery: 40, wRISP: 50, vsLefty: 46, poise: 48, heater: 0, agile: 44,
-        abilities: ["Power Hitter"], potential: "B+", catcherAbility: null,
+        abilities: ["Power Hitter", "Line Drive"], potential: "B+", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
@@ -148,7 +148,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       { firstName: "Alexander", lastName: "Peck", position: "2B", eligibility: "FR", homeState: "TX", hometown: "Austin", jerseyNumber: 15,
         hitForAvg: 41, power: 35, speed: 61, arm: 46, fielding: 37, errorResistance: 22, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 43, vsLHP: 38, grit: 35, stealing: 59, running: 56, throwing: 56, recovery: 30, wRISP: 30, vsLefty: 28, poise: 32, heater: 0, agile: 44,
-        abilities: ["Chance Maker", "Contact Hitter"], potential: "B+", catcherAbility: null,
+        abilities: ["Chance Maker", "Contact Hitter", "Defensive Artisan"], potential: "B+", catcherAbility: null,
         throwHand: "R", batHand: "L",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
@@ -171,7 +171,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         ...noPitches },
       // Maika Niu — OF SR, 14 multi-hit
       { firstName: "Maika", lastName: "Niu", position: "OF", eligibility: "SR", homeState: "HI", hometown: "Ewa Beach", jerseyNumber: 6,
-        hitForAvg: 64, power: 53, speed: 67, arm: 55, fielding: 50, errorResistance: 42, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 64, power: 60, speed: 67, arm: 55, fielding: 50, errorResistance: 42, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 56, vsLHP: 52, grit: 58, stealing: 51, running: 51, throwing: 60, recovery: 40, wRISP: 56, vsLefty: 52, poise: 56, heater: 0, agile: 50,
         abilities: ["Contact Hitter", "Pull Hitter"], potential: "B+", catcherAbility: null,
         throwHand: "R", batHand: "R",
