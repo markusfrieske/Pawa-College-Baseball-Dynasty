@@ -48,9 +48,9 @@ const gradeColor = (g: string): string => {
   if (g === "S") return "text-yellow-400";
   if (g === "A") return "text-green-400";
   if (g === "B") return "text-teal-400";
-  if (g === "C") return "text-yellow-600";
+  if (g === "C") return "text-yellow-500";
   if (g === "D") return "text-orange-400";
-  if (g === "E") return "text-orange-600";
+  if (g === "E") return "text-green-500";
   return "text-red-400";
 };
 
