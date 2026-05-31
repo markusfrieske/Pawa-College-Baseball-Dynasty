@@ -3669,6 +3669,14 @@ function RecruitDetailModal({
             </div>
           </div>
 
+          {recruit.recruitType === "TRANSFER" && (recruit as any).originPrestige != null && (
+            <div className="flex items-center gap-2 px-2 py-1.5 bg-purple-900/20 border border-purple-500/30 rounded" data-testid="transfer-prestige-target">
+              <span className="text-[10px] text-purple-300 font-pixel">Prestige Target</span>
+              <span className="text-[10px] text-purple-200">{Math.max(1, (recruit as any).originPrestige - 2)}–{Math.min(10, (recruit as any).originPrestige + 2)}</span>
+              <span className="text-[9px] text-muted-foreground">(origin: {(recruit as any).originPrestige})</span>
+            </div>
+          )}
+
           {sdLocked.size > 0 && (
             <div className="flex items-center gap-2 px-2 py-1.5 bg-gold/10 border border-gold/30 rounded" data-testid="signing-day-locked-banner">
               <Lock className="w-3 h-3 text-gold/70 shrink-0" />
@@ -4200,6 +4208,14 @@ function RecruitDetailModal({
               )}
             </div>
           </div>
+
+          {recruit.recruitType === "TRANSFER" && (recruit as any).originPrestige != null && (
+            <div className="flex items-center gap-2 px-2 py-1.5 bg-purple-900/20 border border-purple-500/30 rounded" data-testid="transfer-prestige-target">
+              <span className="text-[10px] text-purple-300 font-pixel">Prestige Target</span>
+              <span className="text-[10px] text-purple-200">{Math.max(1, (recruit as any).originPrestige - 2)}–{Math.min(10, (recruit as any).originPrestige + 2)}</span>
+              <span className="text-[9px] text-muted-foreground">(origin: {(recruit as any).originPrestige})</span>
+            </div>
+          )}
 
           {sdLocked.size > 0 && (
             <div className="flex items-center gap-2 px-2 py-1.5 bg-gold/10 border border-gold/30 rounded" data-testid="signing-day-locked-banner">

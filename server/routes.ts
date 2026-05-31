@@ -2254,6 +2254,46 @@ export async function registerRoutes(
   //   Priority match, school quality, coach level, and proximity shift gains ±50%.)
   // ─────────────────────────────────────────────────────────────────────────────
 
+  // ── Transfer portal recruit interest modifiers ────────────────────────────
+  // Applies prestige-band and playing-time depth checks for TRANSFER recruits.
+  // Both human and CPU paths call these after the base compute functions.
+
+  /** Returns prestige-band multiplier for TRANSFER recruits (1.0 for all others).
+   *  teamPrestige vs. originPrestige ± 2:
+   *    > +2 above band:  1.15× (upgrade — recruit sees a step up)
+   *    within ± 2:       1.0×  (normal)
+   *    < -2 below band:  0.6×  (too far down — significant penalty) */
+  function computePrestigeBandMod(recruit: any, team: any): number {
+    if (recruit.recruitType !== "TRANSFER") return 1.0;
+    const op = recruit.originPrestige;
+    if (op == null) return 1.0;
+    const tp = team.prestige || 5;
+    if (tp > op + 2) return 1.15;
+    if (tp < op - 2) return 0.6;
+    return 1.0;
+  }
+
+  /** Returns playing-time depth multiplier for TRANSFER recruits (1.0 for all others).
+   *  Hitters: if any roster player at the same position has a higher OVR → 0.5×
+   *  Pitchers: if 5+ roster pitchers have higher OVR → 0.5× */
+  function computePlayingTimeMod(recruit: any, teamPlayers: any[]): number {
+    if (recruit.recruitType !== "TRANSFER") return 1.0;
+    const recruitOvr = recruit.overall || 0;
+    const PITCHER_POSITIONS = ["P", "SP", "RP", "CL", "LHP", "RHP"];
+    const isPitcher = PITCHER_POSITIONS.includes(recruit.position);
+    if (isPitcher) {
+      const pitchersAbove = teamPlayers.filter(
+        p => PITCHER_POSITIONS.includes(p.position) && (p.overall || 0) > recruitOvr
+      ).length;
+      return pitchersAbove >= 5 ? 0.5 : 1.0;
+    } else {
+      const posPlayers = teamPlayers.filter(
+        p => p.position === recruit.position && (p.overall || 0) > recruitOvr
+      );
+      return posPlayers.length > 0 ? 0.5 : 1.0;
+    }
+  }
+
   // Shared per-action interest formulas. Both human endpoints and the CPU
   // recruiter call these so the math is guaranteed to be identical.
   function computeEmailGain(recruit: any, team: any, coach: any, topic: string) {
@@ -2370,7 +2410,16 @@ export async function registerRoutes(
         return res.status(400).json({ message: `Phone calls cost ${phoneCost} recruiting points. You don't have enough points remaining this week.` });
       }
 
-      const { totalInterestGain, pitchResults } = computePhoneGain(recruit, userTeam, userCoach, topics);
+      const { totalInterestGain: rawPhoneGain, pitchResults: rawPitchResults } = computePhoneGain(recruit, userTeam, userCoach, topics);
+      // TRANSFER recruit modifiers: adjust each topic's gain individually
+      const phoneTransferPlayers = recruit.recruitType === "TRANSFER" ? await storage.getPlayersByTeam(userTeam.id) : [];
+      const phonePrestigeMod = computePrestigeBandMod(recruit, userTeam);
+      const phonePlayingTimeMod = computePlayingTimeMod(recruit, phoneTransferPlayers);
+      const pitchResults = rawPitchResults.map(pr => {
+        const mod = pr.topic === "prestige" ? phonePrestigeMod : pr.topic === "playingTime" ? phonePlayingTimeMod : 1.0;
+        return { ...pr, gain: Math.max(1, Math.round(pr.gain * mod)) };
+      });
+      const totalInterestGain = pitchResults.reduce((s, pr) => s + pr.gain, 0);
 
       let interest = await storage.getRecruitingInterest(req.params.recruitId as string, userTeam.id);
       
@@ -2466,7 +2515,13 @@ export async function registerRoutes(
 
       // Calculate interest gain with modifiers (email is less effective than phone)
       const topic = pitchTopic || "reputation";
-      const { baseGain, interestGain, matchLevel, totalMultiplier } = computeEmailGain(recruit, userTeam, userCoach, topic);
+      const { baseGain, interestGain: rawEmailGain, matchLevel, totalMultiplier } = computeEmailGain(recruit, userTeam, userCoach, topic);
+      // TRANSFER recruit modifiers: prestige band (for prestige topic) and playing time depth (for playingTime topic)
+      const emailTransferPlayers = recruit.recruitType === "TRANSFER" ? await storage.getPlayersByTeam(userTeam.id) : [];
+      const emailPrestigeMod = computePrestigeBandMod(recruit, userTeam);
+      const emailPlayingTimeMod = computePlayingTimeMod(recruit, emailTransferPlayers);
+      const emailTopicMod = topic === "prestige" ? emailPrestigeMod : topic === "playingTime" ? emailPlayingTimeMod : 1.0;
+      const interestGain = Math.max(1, Math.round(rawEmailGain * emailTopicMod));
       assertInterestGainSane("email", interestGain, baseGain);
 
       let interest = await storage.getRecruitingInterest(req.params.recruitId as string, userTeam.id);
@@ -2652,7 +2707,10 @@ export async function registerRoutes(
         return res.status(400).json({ message: "You've already used your Head Coach Visit for this recruit. This action can only be done once per recruit." });
       }
 
-      const { baseGain, interestGain, totalMultiplier } = computeHeadCoachVisitGain(recruit, userTeam, userCoach);
+      const { baseGain, interestGain: rawHcvGain, totalMultiplier } = computeHeadCoachVisitGain(recruit, userTeam, userCoach);
+      // TRANSFER recruit: prestige band modifier applies (HC visit pitches prestige)
+      const hcvPrestigeMod = computePrestigeBandMod(recruit, userTeam);
+      const interestGain = Math.max(5, Math.round(rawHcvGain * hcvPrestigeMod));
       assertInterestGainSane("head_coach_visit", interestGain, baseGain);
 
       let interest = await storage.getRecruitingInterest(req.params.recruitId as string, userTeam.id);
@@ -2738,7 +2796,11 @@ export async function registerRoutes(
 
       let interest = await storage.getRecruitingInterest(req.params.recruitId as string, userTeam.id);
       
-      const { baseGain, interestGain } = computeOfferGain(recruit, userTeam, userCoach);
+      const { baseGain, interestGain: rawOfferGain } = computeOfferGain(recruit, userTeam, userCoach);
+      // TRANSFER recruit: playing time depth modifier applies (offer triggers playingTime priority)
+      const offerTransferPlayers = recruit.recruitType === "TRANSFER" ? await storage.getPlayersByTeam(userTeam.id) : [];
+      const offerPlayingTimeMod = computePlayingTimeMod(recruit, offerTransferPlayers);
+      const interestGain = Math.max(2, Math.round(rawOfferGain * offerPlayingTimeMod));
       assertInterestGainSane("offer", interestGain, baseGain);
       
       if (!interest) {
@@ -12151,8 +12213,9 @@ export async function registerRoutes(
             reputationPriority: "Very Important",
             playingTimePriority: "Extremely Important",
             academicsPriority: "Not Important",
-            prestigePriority: "Very Important",
+            prestigePriority: "Extremely Important",
             facilitiesPriority: "Somewhat",
+            originPrestige: allTeamsForTransfers.find(t => t.name === teamName)?.prestige ?? null,
             skinTone: player.skinTone || "light",
             hairColor: player.hairColor || "brown",
             hairStyle: player.hairStyle || "short",
@@ -16933,19 +16996,29 @@ export async function registerRoutes(
         
         // Use the SAME helper as the human path so multipliers match exactly.
         // Then layer the difficulty gainMultiplier on top.
+        // For TRANSFER recruits, apply prestige-band and playing-time modifiers (same as human path).
+        const cpuPrestigeBandMod = computePrestigeBandMod(recruit, team);
+        const cpuPlayingTimeMod = computePlayingTimeMod(recruit, roster);
         let baseGain = 0;
         let interestGain = 0;
         if (actionType === "email") {
-          const r = computeEmailGain(recruit, team, teamCoach, pickBestTopic(recruit));
+          const topic = pickBestTopic(recruit);
+          const r = computeEmailGain(recruit, team, teamCoach, topic);
+          const topicMod = topic === "prestige" ? cpuPrestigeBandMod : topic === "playingTime" ? cpuPlayingTimeMod : 1.0;
           baseGain = r.baseGain;
-          interestGain = Math.round(r.interestGain * config.gainMultiplier);
+          interestGain = Math.round(r.interestGain * topicMod * config.gainMultiplier);
         } else if (actionType === "phone") {
           // Mirror human multi-topic phone (1-2 topics for CPU)
           const topicSet = [pickBestTopic(recruit)];
           if (Math.random() < 0.5) topicSet.push("reputation");
           const r = computePhoneGain(recruit, team, teamCoach, topicSet);
+          // Apply per-topic transfer modifiers then sum
+          const adjustedGain = r.pitchResults.reduce((s, pr) => {
+            const mod = pr.topic === "prestige" ? cpuPrestigeBandMod : pr.topic === "playingTime" ? cpuPlayingTimeMod : 1.0;
+            return s + Math.max(1, Math.round(pr.gain * mod));
+          }, 0);
           baseGain = 6 * topicSet.length;
-          interestGain = Math.round(r.totalInterestGain * config.gainMultiplier);
+          interestGain = Math.round(adjustedGain * config.gainMultiplier);
         } else if (actionType === "visit") {
           const r = computeVisitGain(recruit, team, teamCoach);
           baseGain = r.baseGain;
@@ -16953,7 +17026,7 @@ export async function registerRoutes(
         } else { // offer
           const r = computeOfferGain(recruit, team, teamCoach);
           baseGain = r.baseGain;
-          interestGain = Math.round(r.interestGain * config.gainMultiplier);
+          interestGain = Math.round(r.interestGain * cpuPlayingTimeMod * config.gainMultiplier);
         }
         // Storyline recruits: apply ±15% interest volatility for dramatic swings
         if (storylineRecruitIds.has(recruit.id)) {

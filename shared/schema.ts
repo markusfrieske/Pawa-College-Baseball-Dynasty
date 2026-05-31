@@ -566,6 +566,9 @@ export const recruits = pgTable("recruits", {
   coachability: integer("coachability").notNull().default(70),
   classVintage: text("class_vintage"),
   nilCost: integer("nil_cost").notNull().default(0),
+  // For TRANSFER recruits only: prestige of the player's origin program at portal entry time.
+  // Used to compute the prestige band (originPrestige ± 2) for interest modifiers.
+  originPrestige: integer("origin_prestige"),
   // Set to true after finalizeSigningDay runs — unlocks all attributes for the signing day reveal screen
   signingDayRevealed: boolean("signing_day_revealed").notNull().default(false),
 }, (t) => [
@@ -671,6 +674,7 @@ export const insertRecruitSchema = createInsertSchema(recruits).pick({
   coachability: true,
   classVintage: true,
   nilCost: true,
+  originPrestige: true,
 }).extend({
   pitchCH: z.union([z.literal(0), z.literal(1)]).optional(),
 });
