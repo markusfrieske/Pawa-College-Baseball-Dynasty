@@ -1929,15 +1929,13 @@ function RecruitAttributesSection({
                 {isVelocity ? `${velocityToMPH(displayValue!)} MPH` : displayValue}
               </span>
             </>
-          ) : isLocked ? (
+          ) : (
             <Tooltip>
               <TooltipTrigger asChild>
                 <Lock className="h-4 w-4 text-gold/70" />
               </TooltipTrigger>
               <TooltipContent>Revealed at Signing Day</TooltipContent>
             </Tooltip>
-          ) : (
-            <span className="text-sm text-muted-foreground">???</span>
           )}
         </div>
       </div>
@@ -2010,15 +2008,13 @@ function RecruitCommonAbilitiesSection({
         <span className="text-sm text-muted-foreground">{label}</span>
         {isRevealed ? (
           <LetterGrade value={displayValue!} size="sm" isCommonAbility={true} />
-        ) : isLocked ? (
+        ) : (
           <Tooltip>
             <TooltipTrigger asChild>
               <Lock className="h-4 w-4 text-gold/70" />
             </TooltipTrigger>
             <TooltipContent>Revealed at Signing Day</TooltipContent>
           </Tooltip>
-        ) : (
-          <span className="text-sm text-muted-foreground">???</span>
         )}
       </div>
     );
@@ -2102,16 +2098,12 @@ function RecruitPitchMixSection({
       return (
         <div key={key} className="flex items-center justify-between p-2 bg-muted/30 rounded">
           <span className="text-sm text-muted-foreground">{label}</span>
-          {isLocked ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Lock className="h-4 w-4 text-gold/70" />
-              </TooltipTrigger>
-              <TooltipContent>Revealed at Signing Day</TooltipContent>
-            </Tooltip>
-          ) : (
-            <span className="text-sm text-muted-foreground">???</span>
-          )}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Lock className="h-4 w-4 text-gold/70" />
+            </TooltipTrigger>
+            <TooltipContent>Revealed at Signing Day</TooltipContent>
+          </Tooltip>
         </div>
       );
     }
