@@ -250,16 +250,6 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Floating stat card — lower left */}
-            <div className="absolute bottom-12 left-6 sm:left-10 hidden 2xl:block">
-              <div className="bg-card/90 border border-gold/20 backdrop-blur-sm px-5 py-4 rounded-sm shadow-xl">
-                <div className="font-pixel text-gold text-2xl mb-0.5">130+</div>
-                <div className="text-xs text-muted-foreground font-pixel">Real Programs</div>
-                <div className="flex gap-1 mt-2">
-                  {[1,2,3,4,5].map(i => <Star key={i} className="w-2.5 h-2.5 fill-gold text-gold" />)}
-                </div>
-              </div>
-            </div>
 
             {/* Floating feature badge — right side overlay */}
             <div className="absolute top-1/4 right-6 sm:right-10 hidden xl:block z-20">
