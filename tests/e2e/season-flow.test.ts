@@ -15,7 +15,7 @@
  * path: CWS champion, SR-skip-to-offseason_departures, and the GET safety-net.
  *
  * All CPU teams are on autopilot; AI image generation is skipped (no API key in test env).
- * Target: completes in under 5 minutes using "short" season length.
+ * Target: completes in under 10 minutes using "medium" season length.
  */
 
 import { test, expect } from "@playwright/test";
@@ -526,7 +526,7 @@ test.describe("Full Season-to-Season Flow", () => {
       maxTeams: 13,
       cpuDifficulty: "beginner",
       selectedConferences: ["SEC", "ACC", "Big 12"],
-      seasonLength: "short",
+      seasonLength: "medium",
     });
 
     const selectedTeams = await getTeamsForConferences(request, league.id, 13);
@@ -564,7 +564,7 @@ test.describe("Full Season-to-Season Flow", () => {
       maxTeams: 13,
       cpuDifficulty: "beginner",
       selectedConferences: ["SEC", "ACC", "Big 12"],
-      seasonLength: "short",
+      seasonLength: "medium",
     });
 
     const selectedTeams = await getTeamsForConferences(request, league.id, 13);
@@ -901,7 +901,7 @@ test.describe("Departures Screen Regression", () => {
       maxTeams: 13,
       cpuDifficulty: "beginner",
       selectedConferences: ["SEC", "ACC", "Big 12"],
-      seasonLength: "short",
+      seasonLength: "medium",
     });
 
     const selectedTeams = await getTeamsForConferences(request, league.id, 13);
@@ -952,7 +952,7 @@ test.describe("Departures Screen Regression", () => {
       maxTeams: 13,
       cpuDifficulty: "beginner",
       selectedConferences: ["SEC", "ACC", "Big 12"],
-      seasonLength: "short",
+      seasonLength: "medium",
     });
 
     const selectedTeams = await getTeamsForConferences(request, league.id, 13);
@@ -1004,7 +1004,7 @@ test.describe("Departures Screen Regression", () => {
       maxTeams: 13,
       cpuDifficulty: "beginner",
       selectedConferences: ["SEC", "ACC", "Big 12"],
-      seasonLength: "short",
+      seasonLength: "medium",
     });
 
     const selectedTeams = await getTeamsForConferences(request, league.id, 13);
@@ -1077,7 +1077,7 @@ test.describe("Departures Screen Regression", () => {
       maxTeams: 13,
       cpuDifficulty: "beginner",
       selectedConferences: ["SEC", "ACC", "Big 12"],
-      seasonLength: "short",
+      seasonLength: "medium",
     });
 
     const selectedTeams = await getTeamsForConferences(request, league.id, 13);

@@ -184,6 +184,30 @@ export default function TeamSelectionPage() {
           });
           return prev;
         }
+        // Enforce per-conference distribution: floor(N/C) base + at most extrasAllowed conferences at +1
+        if (data) {
+          const confCount = data.conferences.length;
+          const basePerConf = Math.floor(data.league.maxTeams / confCount);
+          const extrasAllowed = data.league.maxTeams % confCount;
+          const teamConf = allTeams.find(t => t.name === teamName)?.sourceConferenceId;
+          if (teamConf) {
+            const selectedInConf = allTeams.filter(t => t.sourceConferenceId === teamConf && next.has(t.name)).length;
+            const confsAboveBase = data.conferences.filter(conf =>
+              allTeams.filter(t => t.sourceConferenceId === conf.id && next.has(t.name)).length > basePerConf
+            ).length;
+            const confLimit = selectedInConf > basePerConf
+              ? basePerConf + 1
+              : confsAboveBase < extrasAllowed ? basePerConf + 1 : basePerConf;
+            if (selectedInConf >= confLimit) {
+              toast({
+                title: "Conference Full",
+                description: `This conference already has its maximum teams allowed.`,
+                variant: "destructive",
+              });
+              return prev;
+            }
+          }
+        }
         next.add(teamName);
       }
       return next;

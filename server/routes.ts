@@ -1156,13 +1156,22 @@ export async function registerRoutes(
         return res.status(400).json({ message: `Must select exactly ${league.maxTeams} teams (got ${totalRequestedTeams})` });
       }
 
-      // Validate per-conference cap: no conference may exceed ceil(maxTeams / confCount)
+      // Validate per-conference distribution: each must have floor(N/C) or floor(N/C)+1 teams
       const confCount = selectedTeams.length;
-      const confCap = Math.ceil(league.maxTeams / confCount);
+      const basePerConf = Math.floor(league.maxTeams / confCount);
+      const extrasAllowed = league.maxTeams % confCount; // how many conferences may have +1
       for (const sel of selectedTeams) {
-        if ((sel.teamNames?.length ?? 0) > confCap) {
-          return res.status(400).json({ message: `No single conference may have more than ${confCap} teams (4·4·5 split for ${league.maxTeams} teams across ${confCount} conferences)` });
+        const count = sel.teamNames?.length ?? 0;
+        if (count < basePerConf) {
+          return res.status(400).json({ message: `Each conference must have at least ${basePerConf} teams (target ${Array.from({ length: confCount }, (_, i) => i < extrasAllowed ? basePerConf + 1 : basePerConf).sort().join('·')} split)` });
         }
+        if (count > basePerConf + 1) {
+          return res.status(400).json({ message: `No conference may have more than ${basePerConf + 1} teams (target ${Array.from({ length: confCount }, (_, i) => i < extrasAllowed ? basePerConf + 1 : basePerConf).sort().join('·')} split)` });
+        }
+      }
+      const overConfs = selectedTeams.filter(s => (s.teamNames?.length ?? 0) > basePerConf).length;
+      if (overConfs > extrasAllowed) {
+        return res.status(400).json({ message: `At most ${extrasAllowed} conference(s) may have ${basePerConf + 1} teams` });
       }
 
       const conferences = await storage.getConferencesByLeague(league.id);
@@ -19676,20 +19685,31 @@ async function generateSchedule(leagueId: string, season: number = 1) {
         candidatesFor.set(team.id, [...tier1, ...tier2]);
       }
 
+      // For odd-N leagues: rotate a bye team each week so perfect-matching succeeds.
+      // The bye team sits out OOC this week (gets only conference games).
+      let oocParticipants = [...allTeams];
+      if (oocParticipants.length % 2 !== 0) {
+        const byeIdx = week % oocParticipants.length;
+        const byeTeamId = oocParticipants[byeIdx].id;
+        oocParticipants = oocParticipants.filter((_, i) => i !== byeIdx);
+        // Remove bye team from all candidate lists so it cannot be selected as opponent
+        for (const [tid, cands] of candidatesFor) {
+          candidatesFor.set(tid, cands.filter(t => t.id !== byeTeamId));
+        }
+      }
+
       // Backtracking perfect-matching:
-      // Recurse through allTeams in order; skip already-paired teams.
+      // Recurse through oocParticipants in order; skip already-paired teams.
       // Try each candidate from candidatesFor until a complete matching is found.
-      // This guarantees every team gets exactly one cross-conf OOC game per week
-      // as long as a feasible matching exists (which it always does when
-      // conferences don't consume more than half the league roster).
+      // This guarantees every non-bye team gets exactly one cross-conf OOC game per week.
       const workPairs: Matchup[] = [];
       const used = new Set<string>();
 
       function matchOOC(idx: number): boolean {
-        while (idx < allTeams.length && used.has(allTeams[idx].id)) idx++;
-        if (idx >= allTeams.length) return true; // all teams paired
+        while (idx < oocParticipants.length && used.has(oocParticipants[idx].id)) idx++;
+        if (idx >= oocParticipants.length) return true; // all participants paired
 
-        const team = allTeams[idx];
+        const team = oocParticipants[idx];
         for (const opp of candidatesFor.get(team.id) ?? []) {
           if (used.has(opp.id)) continue;
           used.add(team.id);

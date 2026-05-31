@@ -37,7 +37,7 @@ test.describe("Phase Transition Smoke Test", () => {
         maxTeams: 13,
         cpuDifficulty: "beginner",
         selectedConferences: ["SEC", "ACC", "Big 12"],
-        seasonLength: "short",
+        seasonLength: "medium",
       });
 
       const selectedTeams = await getTeamsForConferences(request, league.id, 13);
