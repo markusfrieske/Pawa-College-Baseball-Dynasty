@@ -13027,19 +13027,16 @@ export async function registerRoutes(
         anyAssigned = false;
         for (const entry of cpuTeamsNeedingRecruits) {
           if (entry.needed <= 0) continue;
-          const available = unsignedPool.filter(r => !claimed.has(r.id));
-          if (available.length === 0) break;
+          const available = unsignedPool
+            .filter(r => !claimed.has(r.id))
+            .filter(r => sdCanAfford(entry.team.id, r.nilCost || 0));
+          if (available.length === 0) continue;
           const best = available.sort((a, b) => {
             const aNeed = (entry.positionCounts[a.position] || 0) < 2 ? 10 : 0;
             const bNeed = (entry.positionCounts[b.position] || 0) < 2 ? 10 : 0;
             return (bNeed + (b.overall || 0)) - (aNeed + (a.overall || 0));
           })[0];
           if (best) {
-            if (!sdCanAfford(entry.team.id, best.nilCost || 0)) {
-              entry.needed--;
-              anyAssigned = true;
-              continue;
-            }
             sdChargeNil(entry.team.id, best.nilCost || 0);
             await storage.updateRecruit(best.id, { signedTeamId: entry.team.id });
             // #26 — log CPU auto-signing in the activity feed so human coaches can see it
@@ -13125,7 +13122,9 @@ export async function registerRoutes(
 
         let filled = 0;
         while (filled < needed) {
-          const available = remainingPool.filter(r => !poolClaimed.has(r.id));
+          const available = remainingPool
+            .filter(r => !poolClaimed.has(r.id))
+            .filter(r => sdCanAfford(team.id, r.nilCost || 0));
           if (available.length === 0) break;
           const best = available.sort((a, b) => {
             const aNeed = (positionCounts[a.position] || 0) < 2 ? 10 : 0;
@@ -13133,7 +13132,6 @@ export async function registerRoutes(
             return (bNeed + (b.overall || 0)) - (aNeed + (a.overall || 0));
           })[0];
           if (!best) break;
-          if (!sdCanAfford(team.id, best.nilCost || 0)) { filled++; poolClaimed.add(best.id); continue; }
           sdChargeNil(team.id, best.nilCost || 0);
           await storage.updateRecruit(best.id, { signedTeamId: team.id });
           try {
@@ -13198,15 +13196,16 @@ export async function registerRoutes(
             anyPlaced = false;
             for (const entry of sweepEntries) {
               if (entry.slotsLeft <= 0) continue;
-              const available = sweepPool.filter(r => !sweepClaimed.has(r.id));
-              if (available.length === 0) break;
+              const available = sweepPool
+                .filter(r => !sweepClaimed.has(r.id))
+                .filter(r => sdCanAfford(entry.team.id, r.nilCost || 0));
+              if (available.length === 0) continue;
               const best = available.sort((a, b) => {
                 const aNeed = (entry.positionCounts[a.position] || 0) < 2 ? 10 : 0;
                 const bNeed = (entry.positionCounts[b.position] || 0) < 2 ? 10 : 0;
                 return (bNeed + (b.overall || 0)) - (aNeed + (a.overall || 0));
               })[0];
               if (!best) break;
-              if (!sdCanAfford(entry.team.id, best.nilCost || 0)) { sweepClaimed.add(best.id); entry.slotsLeft--; anyPlaced = true; sweepTotal++; continue; }
               sdChargeNil(entry.team.id, best.nilCost || 0);
               await storage.updateRecruit(best.id, { signedTeamId: entry.team.id });
               try {

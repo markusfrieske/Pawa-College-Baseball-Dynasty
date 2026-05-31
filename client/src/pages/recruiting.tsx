@@ -4013,16 +4013,45 @@ function RecruitDetailModal({
                 <Crown className="w-4 h-4 mr-2" />
                 {hasHeadCoachVisited ? "HC Visited" : isHeadCoachVisiting ? "Visiting..." : `HC Visit (${headCoachVisitCost})`}
               </RetroButton>
-              <RetroButton 
-                variant="outline" 
-                className="border-gold text-gold"
-                data-testid="button-offer-scholarship"
-                onClick={() => onOffer(recruit.id)}
-                disabled={isOffering || recruit.interest?.hasOffer}
-              >
-                <GraduationCap className="w-4 h-4 mr-2" />
-                {isOffering ? "Offering..." : recruit.interest?.hasOffer ? "Offered" : "Offer Scholarship"}
-              </RetroButton>
+              {nilRemaining != null && (recruit.nilCost || 0) > nilRemaining && !recruit.interest?.hasOffer ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="col-span-1">
+                      <RetroButton 
+                        variant="outline" 
+                        className="border-red-500/50 text-red-400/60 w-full"
+                        data-testid="button-offer-scholarship"
+                        disabled
+                      >
+                        <Lock className="w-4 h-4 mr-2" />
+                        Over NIL Budget
+                      </RetroButton>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Not enough NIL budget to sign this recruit ($
+                    {(recruit.nilCost || 0) >= 1000000
+                      ? `${((recruit.nilCost || 0) / 1000000).toFixed(2)}M`
+                      : `${Math.round((recruit.nilCost || 0) / 1000)}K`}
+                    {" needed, "}$
+                    {nilRemaining >= 1000000
+                      ? `${(nilRemaining / 1000000).toFixed(2)}M`
+                      : `${Math.round(nilRemaining / 1000)}K`}
+                    {" remaining)"}
+                  </TooltipContent>
+                </Tooltip>
+              ) : (
+                <RetroButton 
+                  variant="outline" 
+                  className="border-gold text-gold"
+                  data-testid="button-offer-scholarship"
+                  onClick={() => onOffer(recruit.id)}
+                  disabled={isOffering || recruit.interest?.hasOffer}
+                >
+                  <GraduationCap className="w-4 h-4 mr-2" />
+                  {isOffering ? "Offering..." : recruit.interest?.hasOffer ? "Offered" : "Offer Scholarship"}
+                </RetroButton>
+              )}
             </div>
           )}
 
@@ -4516,16 +4545,45 @@ function RecruitDetailModal({
                 <Crown className="w-4 h-4 mr-2" />
                 {hasHeadCoachVisited ? "HC Visited" : isHeadCoachVisiting ? "Visiting..." : `HC Visit (${headCoachVisitCost})`}
               </RetroButton>
-              <RetroButton 
-                variant="outline" 
-                className="border-gold text-gold"
-                data-testid="button-offer-scholarship"
-                onClick={() => onOffer(recruit.id)}
-                disabled={isOffering || recruit.interest?.hasOffer}
-              >
-                <GraduationCap className="w-4 h-4 mr-2" />
-                {isOffering ? "Offering..." : recruit.interest?.hasOffer ? "Offered" : "Offer Scholarship"}
-              </RetroButton>
+              {nilRemaining != null && (recruit.nilCost || 0) > nilRemaining && !recruit.interest?.hasOffer ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="col-span-1">
+                      <RetroButton 
+                        variant="outline" 
+                        className="border-red-500/50 text-red-400/60 w-full"
+                        data-testid="button-offer-scholarship"
+                        disabled
+                      >
+                        <Lock className="w-4 h-4 mr-2" />
+                        Over NIL Budget
+                      </RetroButton>
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Not enough NIL budget to sign this recruit ($
+                    {(recruit.nilCost || 0) >= 1000000
+                      ? `${((recruit.nilCost || 0) / 1000000).toFixed(2)}M`
+                      : `${Math.round((recruit.nilCost || 0) / 1000)}K`}
+                    {" needed, "}$
+                    {nilRemaining >= 1000000
+                      ? `${(nilRemaining / 1000000).toFixed(2)}M`
+                      : `${Math.round(nilRemaining / 1000)}K`}
+                    {" remaining)"}
+                  </TooltipContent>
+                </Tooltip>
+              ) : (
+                <RetroButton 
+                  variant="outline" 
+                  className="border-gold text-gold"
+                  data-testid="button-offer-scholarship"
+                  onClick={() => onOffer(recruit.id)}
+                  disabled={isOffering || recruit.interest?.hasOffer}
+                >
+                  <GraduationCap className="w-4 h-4 mr-2" />
+                  {isOffering ? "Offering..." : recruit.interest?.hasOffer ? "Offered" : "Offer Scholarship"}
+                </RetroButton>
+              )}
             </div>
           )}
 
