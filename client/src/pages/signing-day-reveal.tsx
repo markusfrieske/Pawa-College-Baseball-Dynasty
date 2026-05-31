@@ -840,6 +840,7 @@ export default function SigningDayRevealPage() {
 
   const reducedMotion = useReducedMotion();
   const [cinemaPhase, setCinemaPhase] = useState<CinemaPhase>("idle");
+  const [sequenceComplete, setSequenceComplete] = useState(false);
 
   // ── Gem ceremony state ──────────────────────────────────────
   const [gemPhase, setGemPhase] = useState<GemPhase>("waiting");
@@ -905,6 +906,16 @@ export default function SigningDayRevealPage() {
     apiRequest("POST", `/api/leagues/${leagueId}/signing-day-reveal/complete?teamId=${teamId}`)
       .catch((err) => console.error("[reveal-complete] failed:", err));
   }, [cinemaPhase, data?.myTeamId, leagueId]);
+
+  // ── Sequence complete — fires after the last card animation settles ──
+  // Each card has animationDelay = idx * 0.035s + 0.5s animation duration + 0.5s buffer
+  useEffect(() => {
+    if (cinemaPhase !== "cards" || allLeagueRecruits.length === 0) return;
+    const lastCardDelay = (allLeagueRecruits.length - 1) * 0.035;
+    const totalMs = Math.round((lastCardDelay + 1.0) * 1000);
+    const t = setTimeout(() => setSequenceComplete(true), reducedMotion ? 100 : totalMs);
+    return () => clearTimeout(t);
+  }, [cinemaPhase, allLeagueRecruits.length, reducedMotion]);
 
   // ── Gem ceremony: user's own team only ───────────────────────
   const myTeamSortedRecruits = useMemo(
@@ -1152,8 +1163,8 @@ export default function SigningDayRevealPage() {
               </RetroCardContent>
             </RetroCard>
 
-            {/* Post-reveal team class rankings */}
-            {data && <PostRevealSummary teamData={data.teamData} myTeamId={data.myTeamId} currentSeason={data.league.currentSeason} />}
+            {/* Post-reveal team class rankings — shown after full sequence completes */}
+            {sequenceComplete && data && <PostRevealSummary teamData={data.teamData} myTeamId={data.myTeamId} currentSeason={data.league.currentSeason} />}
           </div>
         ) : !showCards && data ? (
           /* Cinematic intro playing */
@@ -1183,7 +1194,7 @@ export default function SigningDayRevealPage() {
 }
 
 // ── PostRevealSummary ──────────────────────────────────────────
-// Shown after the cinematic — team class rankings with expandable card grids.
+// Shown after the full cinematic sequence — always-visible grouped grid, one section per team.
 function PostRevealSummary({
   teamData,
   myTeamId,
@@ -1193,8 +1204,6 @@ function PostRevealSummary({
   myTeamId: string | null;
   currentSeason: number;
 }) {
-  const [expandedTeam, setExpandedTeam] = useState<string | null>(myTeamId);
-
   const rankedTeams = useMemo(
     () =>
       [...teamData]
@@ -1206,40 +1215,42 @@ function PostRevealSummary({
   if (rankedTeams.length === 0) return null;
 
   return (
-    <div className="mt-8" data-testid="post-reveal-summary">
-      <div className="flex items-center gap-2 mb-4 pb-2 border-b border-[#1a3a1a]">
+    <div className="mt-10" data-testid="post-reveal-summary">
+      <div className="flex items-center gap-2 mb-6 pb-2 border-b border-[#1a3a1a]">
         <Trophy className="w-4 h-4 text-[#C4A35A]" />
         <h2 className="font-pixel text-[#C4A35A] text-xs tracking-widest">
           CLASS RANKINGS — SEASON {currentSeason}
         </h2>
       </div>
-      <div className="flex flex-col gap-2">
+
+      {/* One section per team — always fully visible, sorted by class score */}
+      <div className="flex flex-col gap-8">
         {rankedTeams.map((entry, idx) => {
           const rank = idx + 1;
-          const isExpanded = expandedTeam === entry.team.id;
           const isMyTeam = entry.team.id === myTeamId;
           const sortedRecruits = [...entry.recruits].sort((a, b) => b.overall - a.overall);
           const avgOvr = Math.round(entry.recruits.reduce((s, r) => s + r.overall, 0) / entry.recruits.length);
           const fiveStars = entry.recruits.filter(r => r.starRating >= 5).length;
           const fourStars = entry.recruits.filter(r => r.starRating >= 4 && r.starRating < 5).length;
+          const blueChips = entry.recruits.filter(r => r.isBlueChip).length;
 
           return (
             <div
               key={entry.team.id}
-              className="border rounded-lg overflow-hidden"
-              style={{ borderColor: isMyTeam ? entry.team.primaryColor + "55" : "#1a3a1a" }}
+              className="rounded-lg overflow-hidden border"
+              style={{ borderColor: isMyTeam ? entry.team.primaryColor + "66" : "#1a3a1a" }}
+              data-testid={`summary-team-${entry.team.abbreviation}`}
             >
-              <button
-                className="w-full flex items-center gap-3 p-3 text-left hover:opacity-90 transition-opacity"
-                style={{ background: isMyTeam ? `${entry.team.primaryColor}14` : "#0a180a" }}
-                onClick={() => setExpandedTeam(isExpanded ? null : entry.team.id)}
-                data-testid={`summary-team-${entry.team.abbreviation}`}
+              {/* Team header row */}
+              <div
+                className="flex items-center gap-3 px-4 py-3"
+                style={{ background: isMyTeam ? `${entry.team.primaryColor}1a` : "#0a180a" }}
               >
                 <span
-                  className="font-pixel text-base shrink-0"
+                  className="font-pixel text-xl shrink-0"
                   style={{
                     color: rank === 1 ? "#C4A35A" : rank <= 3 ? "#facc15" : "#6b7280",
-                    minWidth: "32px",
+                    minWidth: "36px",
                   }}
                 >
                   #{rank}
@@ -1248,40 +1259,41 @@ function PostRevealSummary({
                   abbreviation={entry.team.abbreviation}
                   primaryColor={entry.team.primaryColor}
                   secondaryColor={entry.team.secondaryColor}
-                  size="sm"
+                  size="md"
                 />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-white">{entry.team.name}</span>
+                    <span className="font-pixel text-sm text-white">{entry.team.name}</span>
                     {isMyTeam && <span className="text-[10px] font-pixel text-[#C4A35A]">(You)</span>}
                   </div>
-                  <div className="text-xs text-gray-400">
+                  <div className="text-xs text-gray-400 mt-0.5">
                     {entry.recruits.length} commits · Avg OVR {avgOvr}
+                    {blueChips > 0 && ` · ${blueChips} Blue Chip${blueChips > 1 ? "s" : ""}`}
                   </div>
                 </div>
                 <div className="flex items-center gap-3 text-xs shrink-0">
-                  {fiveStars > 0 && <span className="text-red-400">{fiveStars}×5★</span>}
-                  {fourStars > 0 && <span className="text-yellow-400">{fourStars}×4★</span>}
-                  <span className="text-gray-500 text-[10px]">{isExpanded ? "▲" : "▼"}</span>
+                  {fiveStars > 0 && <span className="text-red-400 font-pixel text-[10px]">{fiveStars}×5★</span>}
+                  {fourStars > 0 && <span className="text-yellow-400 font-pixel text-[10px]">{fourStars}×4★</span>}
+                  <span className="font-pixel text-[9px] text-[#C4A35A]">{getClassScore(entry.recruits).toFixed(0)} pts</span>
                 </div>
-              </button>
-              {isExpanded && (
-                <div
-                  className="p-3 border-t overflow-x-auto"
-                  style={{ borderColor: "#1a3a1a", background: "#0d1f0d" }}
-                >
-                  <div className="flex flex-wrap gap-2">
-                    {sortedRecruits.map(r => (
-                      <RevealPortraitCard
-                        key={r.id}
-                        recruit={r}
-                        primaryColor={entry.team.primaryColor}
-                        disableAnimation
-                      />
-                    ))}
-                  </div>
+              </div>
+
+              {/* Full recruit card grid — always visible, sorted desc OVR */}
+              <div
+                className="p-3 overflow-x-auto"
+                style={{ background: "#0d1f0d" }}
+              >
+                <div className="flex flex-wrap gap-2">
+                  {sortedRecruits.map(r => (
+                    <RevealPortraitCard
+                      key={r.id}
+                      recruit={r}
+                      primaryColor={entry.team.primaryColor}
+                      disableAnimation
+                    />
+                  ))}
                 </div>
-              )}
+              </div>
             </div>
           );
         })}
