@@ -878,7 +878,7 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Anthony Pack Jr — FR OF speed
     { firstName: "Anthony", lastName: "Pack Jr", position: "OF", eligibility: "FR", homeState: "CA", hometown: "Los Angeles", jerseyNumber: 26,
-      hitForAvg: 63, power: 53, speed: 50, arm: 67, fielding: 64, errorResistance: 50, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 63, power: 66, speed: 50, arm: 67, fielding: 64, errorResistance: 50, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 54, vsLHP: 50, grit: 56, stealing: 56, running: 69, throwing: 66, recovery: 44, wRISP: 52, vsLefty: 48, poise: 54, heater: 0, agile: 72,
       abilities: ["Revenge", "Consigliere"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "L",
