@@ -689,8 +689,8 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
   // Team ERA 1.71 (best in SEC early), 0.94 WHIP, .161 OBA. Defending SEC reg-season champ
   "Texas": [
     // PITCHERS (10) — staff: "the stuff on this staff is not fair"
-    // Dylan Volantis — FR LHP, ELITE 6'6" sweeping knuckle curve, BA Frosh of Year candidate — vel-dominant, ctrl developing
-    { firstName: "Dylan", lastName: "Volantis", position: "P", eligibility: "FR", homeState: "TX", hometown: "Austin", jerseyNumber: 29,
+    // Dylan Volantis — SO LHP, ELITE 6'6" sweeping knuckle curve, BA Frosh of Year candidate — vel-dominant, ctrl developing
+    { firstName: "Dylan", lastName: "Volantis", position: "P", eligibility: "SO", homeState: "TX", hometown: "Austin", jerseyNumber: 29,
       hitForAvg: 14, power: 11, speed: 34, arm: 94, fielding: 63, errorResistance: 60, velocity: 88, control: 88, stamina: 94, stuff: 90,
       clutch: 87, vsLHP: 99, grit: 69, stealing: 8, running: 36, throwing: 87, recovery: 69, wRISP: 69, vsLefty: 69, poise: 69, heater: 69, agile: 50,
       abilities: ["vs. Strong Batters", "Heavy Ball", "Natural Shuuto"], potential: "A+", catcherAbility: null,

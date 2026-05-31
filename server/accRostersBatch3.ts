@@ -275,10 +275,11 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Pull Hitter"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...noPitches },
+    // Teddy Tokheim — FR OF, BA Freshman of Year (.352/.414/.704, 17 HR led all freshmen, 47 RBI in 48g)
     { firstName: "Teddy", lastName: "Tokheim", position: "OF", eligibility: "FR", homeState: "MN", hometown: "Edina", jerseyNumber: 18,
-      hitForAvg: 42, power: 89, speed: 32, arm: 42, fielding: 27, errorResistance: 27, velocity: 0, control: 0, stamina: 18, stuff: 0,
-      clutch: 26, vsLHP: 26, grit: 26, stealing: 26, running: 26, throwing: 26, recovery: 20, wRISP: 24, vsLefty: 21, poise: 24, heater: 0, agile: 27,
-      abilities: ["Tough Out"], potential: "B+", catcherAbility: null,
+      hitForAvg: 90, power: 91, speed: 42, arm: 55, fielding: 48, errorResistance: 60, velocity: 0, control: 0, stamina: 18, stuff: 0,
+      clutch: 78, vsLHP: 60, grit: 76, stealing: 28, running: 40, throwing: 58, recovery: 20, wRISP: 24, vsLefty: 21, poise: 24, heater: 0, agile: 42,
+      abilities: ["Counterattack", "Power Hitter", "Multi-Hit", "Tough Out"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "S",
       ...noPitches },
     // OUTFIELDERS (5)
