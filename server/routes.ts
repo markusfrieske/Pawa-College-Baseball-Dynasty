@@ -19932,25 +19932,43 @@ async function generateExhibitionGames(leagueId: string, season: number) {
     }
   }
 
-  // Top-up: pair any underserved teams WITH EACH OTHER ONLY.
-  // For odd-N leagues (e.g. 13 teams), N×TARGET may be odd (13×3=39), making it
-  // mathematically impossible for every team to reach exactly TARGET games.
-  // In that case, at most 1 team remains at TARGET-1 games — this is accepted and
-  // documented. We never pair a satisfied (TARGET-game) team with an underserved
-  // team, which would push a satisfied team above TARGET.
-  let underserved = leagueTeams.filter(t => gameCounts.get(t.id)! < TARGET);
-  if (underserved.length > 1) {
-    const s = shuffle([...underserved]);
-    for (let i = 0; i + 1 < s.length; i += 2) {
+  // Top-up: bring every underserved team to TARGET games.
+  //
+  // For odd-N leagues (e.g. 13 teams), 3 rounds give exactly 3 bye-teams at TARGET-1=2.
+  // Pairing strategy:
+  //   1. Pair underserved teams with each other (2 of them: both go 2→3).
+  //   2. If an odd number of underserved teams remain (1 left over), pair it with the
+  //      lowest-game satisfied team (3→4) so every team reaches at least TARGET=3.
+  //
+  // For 13-team leagues: 3 underserved → pair 2 together → 1 left → pair with a
+  // satisfied team. Final distribution: 12 teams at 3, 1 team at 4.
+  // Minimum is TARGET for all teams; maximum is TARGET+1 for exactly one team.
+  const underserved = leagueTeams.filter(t => gameCounts.get(t.id)! < TARGET);
+  const s = shuffle([...underserved]);
+  for (let i = 0; i + 1 < s.length; i += 2) {
+    const homeFirst = Math.random() > 0.5;
+    matchups.push({
+      homeTeamId: homeFirst ? s[i].id : s[i + 1].id,
+      awayTeamId: homeFirst ? s[i + 1].id : s[i].id,
+    });
+    gameCounts.set(s[i].id, gameCounts.get(s[i].id)! + 1);
+    gameCounts.set(s[i + 1].id, gameCounts.get(s[i + 1].id)! + 1);
+  }
+  // If an odd number of underserved teams existed, one still needs a game.
+  // Pair it with a satisfied team at TARGET games; that team goes to TARGET+1.
+  if (s.length % 2 !== 0) {
+    const lastUnderserved = s[s.length - 1];
+    const partner = shuffle([...leagueTeams])
+      .filter(t => t.id !== lastUnderserved.id && gameCounts.get(t.id)! === TARGET)[0];
+    if (partner) {
       const homeFirst = Math.random() > 0.5;
       matchups.push({
-        homeTeamId: homeFirst ? s[i].id : s[i + 1].id,
-        awayTeamId: homeFirst ? s[i + 1].id : s[i].id,
+        homeTeamId: homeFirst ? lastUnderserved.id : partner.id,
+        awayTeamId: homeFirst ? partner.id : lastUnderserved.id,
       });
-      gameCounts.set(s[i].id, gameCounts.get(s[i].id)! + 1);
-      gameCounts.set(s[i + 1].id, gameCounts.get(s[i + 1].id)! + 1);
+      gameCounts.set(lastUnderserved.id, gameCounts.get(lastUnderserved.id)! + 1);
+      gameCounts.set(partner.id, gameCounts.get(partner.id)! + 1);
     }
-    // Any remaining solo underserved team (odd remainder) stays at TARGET-1 — accepted.
   }
 
   for (const { homeTeamId, awayTeamId } of matchups) {
@@ -19962,7 +19980,8 @@ async function generateExhibitionGames(leagueId: string, season: number) {
   }
   const minExhib = Math.min(...leagueTeams.map(t => gameCounts.get(t.id)!));
   const maxExhib = Math.max(...leagueTeams.map(t => gameCounts.get(t.id)!));
-  console.log(`[exhibition] Generated ${matchups.length} exhibition games for league ${leagueId} season ${season} (per-team range: ${minExhib}–${maxExhib}; odd-N leagues may have 1 team at ${TARGET - 1} games)`);
+  const teamsAtMax = leagueTeams.filter(t => gameCounts.get(t.id)! === maxExhib).length;
+  console.log(`[exhibition] Generated ${matchups.length} exhibition games for league ${leagueId} season ${season} (per-team: ${minExhib}–${maxExhib}; all teams ≥${TARGET}, ${teamsAtMax > 1 ? "all at" : "1 team at"} ${maxExhib} for odd-N balance)`);
 }
 
 function getTeamsForConference(conferenceName: string) {
