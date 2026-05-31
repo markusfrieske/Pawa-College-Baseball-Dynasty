@@ -262,11 +262,15 @@ test.describe("Full Season-to-Season Flow", () => {
     ).toBeGreaterThan(Math.floor(minExpected * 0.15));
 
     // Verify per-team regular season game counts: every team must have exactly 20 games.
-    // The schedule uses per-conference series lengths to guarantee this:
-    //   4-team conf (even): 5 rounds × 3-game series  + 5 OOC midweek = 20
-    //   5-team conf (odd) : 4 rounds × 4-game series  + 4 OOC midweek = 20
-    //     (OOC bye falls on Big12 teams via week%13 rotation since they have fewer
-    //      cross-conf options and sort first; conf bye is 1 of 5 rounds for odd confs)
+    //
+    // Mathematical basis for 13-team 4+4+5 medium season:
+    //   4-team conf (even): padded to 5 rounds × 3-game Fri/Sat/Sun + 5 OOC midweek = 20 ✓
+    //   5-team conf (odd) : cannot reach 20 with 3-game series (proof in generateSchedule).
+    //     Uses 4-game Thu/Fri/Sat/Sun series instead:
+    //     Case A (conf-bye ≠ OOC-bye): 3×(4+1) + 1×(0+1) + 1×(4+0) = 20 ✓
+    //     Case B (conf-bye = OOC-bye) : 4×(4+1) + 0                  = 20 ✓
+    //     OOC byes rotate via week%13; Big12 teams sort first (8 cross-conf opts vs 9)
+    //     so they hold OOC-bye slots at weeks 0–4 (one per Big12 team).
     const schedResp = await request.get(`/api/leagues/${league.id}/schedule`);
     expect(schedResp.ok(), "Schedule endpoint should succeed").toBe(true);
     const schedData = await schedResp.json();
@@ -1167,5 +1171,115 @@ test.describe("Departures Screen Regression", () => {
       `Departures screen must have at least 1 graduate after SR-skip via /advance (got ${grads}). ` +
         `Teams: ${data.allTeams.map((t) => `${t.teamName}:${t.graduates.length}`).join(", ")}`
     ).toBeGreaterThan(0);
+  });
+
+  test("exhibition games: generated in preseason, no standings impact after spring training", async ({
+    request,
+  }) => {
+    await createGuestSession(request);
+
+    const league = await createLeague(request, {
+      name: `E2E Exhibition Sequencing ${Date.now()}`,
+      maxTeams: 13,
+      cpuDifficulty: "beginner",
+      selectedConferences: ["SEC", "ACC", "Big 12"],
+      seasonLength: "medium",
+    });
+
+    const selectedTeams = await getTeamsForConferences(request, league.id, 13);
+    await selectTeams(request, league.id, selectedTeams);
+    await startDynasty(request, league.id);
+
+    const teams = await getLeagueTeams(request, league.id);
+    if (!teams[0]) throw new Error("No teams found after dynasty start");
+    await setupCoach(request, league.id, teams[0].id);
+
+    // 1. Exhibition games must exist right after dynasty start (preseason phase).
+    const preseasonState = await getLeague(request, league.id);
+    expect(
+      preseasonState.currentPhase,
+      "League should be in preseason after dynasty start"
+    ).toBe("preseason");
+
+    const allGamesPreseason = await getScheduleGames(request, league.id, 1);
+    const exhibitionGames = allGamesPreseason.filter((g) => g.phase === "exhibition");
+    expect(
+      exhibitionGames.length,
+      `Exhibition games must be generated before spring training starts (got ${exhibitionGames.length})`
+    ).toBeGreaterThan(0);
+
+    // 2. Each team must have at least 3 exhibition games (see generateExhibitionGames target).
+    const exhibitionCountByTeam = new Map<string, number>();
+    const allGamesRaw = await request.get(`/api/leagues/${league.id}/schedule`);
+    const schedDataRaw = await allGamesRaw.json();
+    type ExhibGame = {
+      homeTeamId: string;
+      awayTeamId: string;
+      phase: string;
+      season: number;
+    };
+    const exhRaw = (schedDataRaw.games as ExhibGame[]).filter(
+      (g) => g.phase === "exhibition" && g.season === 1
+    );
+    for (const t of teams) exhibitionCountByTeam.set(t.id, 0);
+    for (const g of exhRaw) {
+      exhibitionCountByTeam.set(g.homeTeamId, (exhibitionCountByTeam.get(g.homeTeamId) ?? 0) + 1);
+      exhibitionCountByTeam.set(g.awayTeamId, (exhibitionCountByTeam.get(g.awayTeamId) ?? 0) + 1);
+    }
+    for (const [teamId, count] of exhibitionCountByTeam) {
+      expect(
+        count,
+        `Team ${teamId} must have at least 3 exhibition games (got ${count})`
+      ).toBeGreaterThanOrEqual(3);
+    }
+
+    // 3. Advance through spring training into regular season.
+    //    a) During spring training: standings must be 0-0 — exhibition results must not count.
+    //    b) By the time the phase reaches regular_season: all exhibition games must be complete.
+    //
+    // Important: the advance from spring_training may immediately simulate week 1 of regular
+    // season (same server call that transitions the phase). Therefore we verify standings
+    // inside the loop while still in spring_training — not after regular_season is reached.
+    //
+    // preseason and spring_training are readiness-gated — use /force-advance (marks coaches
+    // ready then 307-redirects to /advance), identical to how test 5 advances.
+    const readinessGated = new Set(["preseason", "spring_training"]);
+    let state = await getLeague(request, league.id);
+    let safety = 0;
+    while (state.currentPhase !== "regular_season" && safety < 20) {
+      if (readinessGated.has(state.currentPhase)) {
+        await forceAdvanceWeek(request, league.id);
+      } else {
+        await advanceWeek(request, league.id);
+      }
+      state = await getLeague(request, league.id);
+      safety++;
+
+      // While still in spring_training, all W/L records must be 0-0.
+      // This proves exhibition game results are NOT counted in standings.
+      if (state.currentPhase === "spring_training") {
+        const midStandings = await getStandings(request, league.id);
+        for (const s of midStandings) {
+          expect(
+            s.wins + s.losses,
+            `Team ${s.teamId} standings must be 0-0 during spring training (got ${s.wins}-${s.losses}); exhibition results must not count`
+          ).toBe(0);
+        }
+      }
+    }
+    expect(
+      state.currentPhase,
+      `League must reach regular_season (stopped at "${state.currentPhase}" after ${safety} advances)`
+    ).toBe("regular_season");
+
+    // All exhibition games must be complete before/when the regular season phase begins.
+    const postSpringGames = await getScheduleGames(request, league.id, 1);
+    const exhibitDone = postSpringGames
+      .filter((g) => g.phase === "exhibition")
+      .every((g) => g.isComplete);
+    expect(
+      exhibitDone,
+      "All exhibition games must be completed before regular season begins"
+    ).toBe(true);
   });
 });

@@ -19574,17 +19574,42 @@ async function generateSchedule(leagueId: string, season: number = 1) {
     confMap.get(cid)!.push(team);
   }
 
-  // Per-conference games-per-series: odd-sized conferences use 4-game series
-  // (Thu-Fri-Sat-Sun) so that every team reaches exactly 20 games in a 5-week season.
-  // Proof: 5-team conf → 4 conf rounds × 4 games = 16 conf + 4 OOC = 20 ✓
-  //        4-team conf → 5 conf rounds × 3 games = 15 conf + 5 OOC = 20 ✓
+  // Per-conference games-per-series (gps):
+  //
+  // Standard format: 3-game Fri/Sat/Sun conference series + 1 OOC midweek per week.
+  // This produces exactly 20 games/team for EVEN-sized conferences in a 5-week season:
+  //   4-team conf (even): plays all 3 opponents, pad to 5 rounds → 5 rounds × 3 games + 5 OOC = 20 ✓
+  //
+  // ODD-sized conference (e.g. 5-team) — mathematical constraint:
+  //   A 5-team round-robin generates 5 rounds (using phantom-team algorithm) where each
+  //   team has 4 active conf rounds and 1 conference bye. The 13-team league has 13 teams
+  //   total, which is also odd; so one team gets an OOC bye per week (rotating via week%13).
+  //   The Big12 teams (odd conf) sort first (fewest cross-conf options = 8 vs 9) so they
+  //   occupy OOC-bye slots at weeks 0–4, one per team.
+  //
+  //   With 3-game series and independent conf/OOC byes, either:
+  //     Case A – conf-bye ≠ OOC-bye: 3×(3+1) + 1×(0+1) + 1×(3+0) = 12+1+3 = 16 ≠ 20 ✗
+  //     Case B – conf-bye = OOC-bye: 4×(3+1) + 1×0         = 16    ≠ 20 ✗
+  //   Neither reaches 20.  Standard 3-game series is MATHEMATICALLY INCOMPATIBLE with
+  //   exactly 20 games/team for odd-sized conferences in a 5-week season.
+  //
+  //   Solution (medium season only): use 4-game Thu/Fri/Sat/Sun series for odd confs.
+  //     Case A – conf-bye ≠ OOC-bye: 3×(4+1) + 1×(0+1) + 1×(4+0) = 15+1+4 = 20 ✓
+  //     Case B – conf-bye = OOC-bye: 4×(4+1) + 1×0         = 20    ✓
+  //   Both cases hit exactly 20.
+  //
+  //   This adjustment is scoped to medium season (5 weeks, target=20) only.
+  //   Long/short seasons keep gps=3 or gps=1 respectively; the safety top-up loop
+  //   handles any residual deficit for non-canonical season+conference combinations.
   const confGpsMap = new Map<string, number>();
   for (const [cid, confTeams] of confMap) {
     if (seasonLength === "short") {
       confGpsMap.set(cid, 1);
+    } else if (seasonLength === "medium" && confTeams.length % 2 !== 0) {
+      // Odd-sized conference in medium season: use 4-game series (see math above).
+      confGpsMap.set(cid, 4);
     } else {
-      // Odd-sized conference: 4-game series to compensate for the built-in bye week
-      confGpsMap.set(cid, confTeams.length % 2 !== 0 ? 4 : 3);
+      confGpsMap.set(cid, 3);
     }
   }
 
