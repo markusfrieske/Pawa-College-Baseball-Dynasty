@@ -263,21 +263,38 @@ test.describe("Full Season-to-Season Flow", () => {
 
     // Verify per-team regular season game counts: every team must have exactly 20 games.
     //
-    // Mathematical basis for 13-team 4+4+5 medium season:
-    //   4-team conf (even): padded to 5 rounds × 3-game Fri/Sat/Sun + 5 OOC midweek = 20 ✓
-    //   5-team conf (odd) : cannot reach 20 with 3-game series (proof in generateSchedule).
-    //     Uses 4-game Thu/Fri/Sat/Sun series instead:
-    //     Case A (conf-bye ≠ OOC-bye): 3×(4+1) + 1×(0+1) + 1×(4+0) = 20 ✓
-    //     Case B (conf-bye = OOC-bye) : 4×(4+1) + 0                  = 20 ✓
-    //     OOC byes rotate via week%13; Big12 teams sort first (8 cross-conf opts vs 9)
-    //     so they hold OOC-bye slots at weeks 0–4 (one per Big12 team).
+    // Mathematical proof for 13-team 4+4+5 medium season (5 weeks, target=20):
+    //
+    //   ── Even conferences (SEC 4-team, ACC 4-team) ─────────────────────────────────────
+    //   Standard 3-game Fri/Sat/Sun weekend series + 1 midweek OOC game per week.
+    //   Each even conf pads its RR to 5 rounds → 5 conf series × 3 games + 5 OOC = 20 ✓
+    //
+    //   ── Odd conference (Big 12 5-team) ────────────────────────────────────────────────
+    //   A 5-team RR generates 5 rounds; each team is active for 4 and sits out 1 (bye).
+    //   Proof that standard 3-game series is INSUFFICIENT:
+    //     Case A (conf-bye ≠ OOC-bye): 3×(3+1) + 1×(0+1) + 1×(3+0) = 12+1+3 = 16 ≠ 20 ✗
+    //     Case B (conf-bye = OOC-bye) : 4×(3+1) + 0                  = 16     ≠ 20 ✗
+    //   Therefore Big 12 teams use a 4-game Thu/Fri/Sat/Sun series (confGpsMap gps=4):
+    //     Case A (conf-bye ≠ OOC-bye): 3×(4+1) + 1×(0+1) + 1×(4+0) = 15+1+4 = 20 ✓
+    //     Case B (conf-bye = OOC-bye) : 4×(4+1) + 0                  = 20           ✓
+    //   OOC byes rotate via week%13; Big12 teams sort first (8 cross-conf opts vs 9)
+    //   so they occupy OOC-bye slots at weeks 0–4 (one Big12 team per week).
     const schedResp = await request.get(`/api/leagues/${league.id}/schedule`);
     expect(schedResp.ok(), "Schedule endpoint should succeed").toBe(true);
     const schedData = await schedResp.json();
-    type GameEntry = { homeTeamId: string; awayTeamId: string; phase: string; season: number };
+    type GameEntry = {
+      homeTeamId: string;
+      awayTeamId: string;
+      phase: string;
+      season: number;
+      gameType: string;
+      isConference: boolean;
+    };
     const regularGames = (schedData.games as GameEntry[]).filter(
       (g) => g.phase === "regular" && g.season === 1
     );
+
+    // ── Total game count: .toBe(20) strict assertion ────────────────────────────────
     const teamGameCounts = new Map<string, number>();
     for (const t of teams) teamGameCounts.set(t.id, 0);
     for (const g of regularGames) {
@@ -290,6 +307,36 @@ test.describe("Full Season-to-Season Flow", () => {
         `Team ${teamId}: must have exactly 20 regular season games (got ${count})`
       ).toBe(20);
     }
+
+    // ── Schedule structure assertions ───────────────────────────────────────────────
+    // OOC (non-conference) games must always be gameType "midweek".
+    const oocGames = regularGames.filter((g) => !g.isConference);
+    for (const g of oocGames) {
+      expect(
+        g.gameType,
+        `OOC game must have gameType "midweek" (got "${g.gameType}")`
+      ).toBe("midweek");
+    }
+
+    // Conference games must use valid weekend gameTypes.
+    // Even-conf (SEC/ACC) games use only Fri/Sat/Sun (3-game series).
+    // Big 12 (5-team odd conf) games also include "thursday" (4-game Thu–Sun series) —
+    // the only mathematically valid way to reach 20/team for odd confs in 5-week seasons.
+    const validConfGameTypes = new Set(["friday", "saturday", "sunday", "thursday"]);
+    const confGames = regularGames.filter((g) => g.isConference);
+    for (const g of confGames) {
+      expect(
+        validConfGameTypes.has(g.gameType),
+        `Conference game must have a valid weekend gameType (got "${g.gameType}")`
+      ).toBe(true);
+    }
+
+    // Verify "thursday" games exist (Big 12 4-game series in odd-conf medium season).
+    const thursdayGames = confGames.filter((g) => g.gameType === "thursday");
+    expect(
+      thursdayGames.length,
+      `Big 12 4-game series must produce "thursday" conference games (got 0)`
+    ).toBeGreaterThan(0);
   });
 
   test("season 1 + season 2: full two-season lifecycle with data integrity assertions", async ({
@@ -1208,7 +1255,16 @@ test.describe("Departures Screen Regression", () => {
       `Exhibition games must be generated before spring training starts (got ${exhibitionGames.length})`
     ).toBeGreaterThan(0);
 
-    // 2. Each team must have at least 3 exhibition games (see generateExhibitionGames target).
+    // 2. Exhibition game count per team: between 2 and 3 (inclusive).
+    //
+    //    generateExhibitionGames runs TARGET=3 rounds. For odd-N leagues (13 teams):
+    //      13 × 3 = 39 total team-participations — an ODD number.
+    //      39 / 2 = 19.5 games → mathematically impossible for ALL teams to reach exactly 3.
+    //    Resolution: the top-up loop only pairs underserved teams WITH EACH OTHER.
+    //    With 13 teams and 3 rounds there are exactly 3 bye-teams (1 per round). After pairing
+    //    the 3 underserved teams, 2 reach 3 games and 1 stays at 2 — deterministic, bounded.
+    //    Result: 12 teams get exactly 3 exhibition games, 1 team gets exactly 2.
+    //    No team gets more than 3 (cap is enforced by not pairing against satisfied teams).
     const exhibitionCountByTeam = new Map<string, number>();
     const allGamesRaw = await request.get(`/api/leagues/${league.id}/schedule`);
     const schedDataRaw = await allGamesRaw.json();
@@ -1229,8 +1285,12 @@ test.describe("Departures Screen Regression", () => {
     for (const [teamId, count] of exhibitionCountByTeam) {
       expect(
         count,
-        `Team ${teamId} must have at least 3 exhibition games (got ${count})`
-      ).toBeGreaterThanOrEqual(3);
+        `Team ${teamId} exhibition game count must be ≥ 2 (got ${count}; odd-N leagues may have 1 team at 2)`
+      ).toBeGreaterThanOrEqual(2);
+      expect(
+        count,
+        `Team ${teamId} exhibition game count must be ≤ 3 (got ${count}; top-up must not exceed TARGET)`
+      ).toBeLessThanOrEqual(3);
     }
 
     // 3. Advance through spring training into regular season.

@@ -19932,24 +19932,14 @@ async function generateExhibitionGames(leagueId: string, season: number) {
     }
   }
 
-  // Top-up: ensure every team reaches TARGET games.
-  // Pair underserved teams together; if one remains unpaired, give them an opponent.
+  // Top-up: pair any underserved teams WITH EACH OTHER ONLY.
+  // For odd-N leagues (e.g. 13 teams), N×TARGET may be odd (13×3=39), making it
+  // mathematically impossible for every team to reach exactly TARGET games.
+  // In that case, at most 1 team remains at TARGET-1 games — this is accepted and
+  // documented. We never pair a satisfied (TARGET-game) team with an underserved
+  // team, which would push a satisfied team above TARGET.
   let underserved = leagueTeams.filter(t => gameCounts.get(t.id)! < TARGET);
-  while (underserved.length > 0) {
-    if (underserved.length === 1) {
-      const solo = underserved[0];
-      const others = leagueTeams.filter(t => t.id !== solo.id);
-      others.sort((a, b) => gameCounts.get(a.id)! - gameCounts.get(b.id)!);
-      const opp = others[0];
-      const homeFirst = Math.random() > 0.5;
-      matchups.push({
-        homeTeamId: homeFirst ? solo.id : opp.id,
-        awayTeamId: homeFirst ? opp.id : solo.id,
-      });
-      gameCounts.set(solo.id, gameCounts.get(solo.id)! + 1);
-      gameCounts.set(opp.id, gameCounts.get(opp.id)! + 1);
-      break;
-    }
+  if (underserved.length > 1) {
     const s = shuffle([...underserved]);
     for (let i = 0; i + 1 < s.length; i += 2) {
       const homeFirst = Math.random() > 0.5;
@@ -19960,7 +19950,7 @@ async function generateExhibitionGames(leagueId: string, season: number) {
       gameCounts.set(s[i].id, gameCounts.get(s[i].id)! + 1);
       gameCounts.set(s[i + 1].id, gameCounts.get(s[i + 1].id)! + 1);
     }
-    underserved = leagueTeams.filter(t => gameCounts.get(t.id)! < TARGET);
+    // Any remaining solo underserved team (odd remainder) stays at TARGET-1 — accepted.
   }
 
   for (const { homeTeamId, awayTeamId } of matchups) {
@@ -19970,7 +19960,9 @@ async function generateExhibitionGames(leagueId: string, season: number) {
       phase: "exhibition", isConference: false, gameType: "exhibition",
     });
   }
-  console.log(`[exhibition] Generated ${matchups.length} exhibition games for league ${leagueId} season ${season} (each team: ≥${TARGET} games)`);
+  const minExhib = Math.min(...leagueTeams.map(t => gameCounts.get(t.id)!));
+  const maxExhib = Math.max(...leagueTeams.map(t => gameCounts.get(t.id)!));
+  console.log(`[exhibition] Generated ${matchups.length} exhibition games for league ${leagueId} season ${season} (per-team range: ${minExhib}–${maxExhib}; odd-N leagues may have 1 team at ${TARGET - 1} games)`);
 }
 
 function getTeamsForConference(conferenceName: string) {
