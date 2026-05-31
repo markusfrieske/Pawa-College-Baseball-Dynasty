@@ -260,6 +260,33 @@ test.describe("Full Season-to-Season Flow", () => {
       has3Star,
       `3-star recruits should exist in meaningful numbers (got ${has3Star} out of ${recruits.length})`
     ).toBeGreaterThan(Math.floor(minExpected * 0.15));
+
+    // Verify per-team regular season game counts:
+    //   - No team must exceed targetGamesPerTeam=20 (over-scheduling invariant)
+    //   - All teams must have ≥15 games (lower bound covers 5-team conf bye-week deficit)
+    const schedResp = await request.get(`/api/leagues/${league.id}/schedule`);
+    expect(schedResp.ok(), "Schedule endpoint should succeed").toBe(true);
+    const schedData = await schedResp.json();
+    type GameEntry = { homeTeamId: string; awayTeamId: string; phase: string; season: number };
+    const regularGames = (schedData.games as GameEntry[]).filter(
+      (g) => g.phase === "regular" && g.season === 1
+    );
+    const teamGameCounts = new Map<string, number>();
+    for (const t of teams) teamGameCounts.set(t.id, 0);
+    for (const g of regularGames) {
+      teamGameCounts.set(g.homeTeamId, (teamGameCounts.get(g.homeTeamId) ?? 0) + 1);
+      teamGameCounts.set(g.awayTeamId, (teamGameCounts.get(g.awayTeamId) ?? 0) + 1);
+    }
+    for (const [teamId, count] of teamGameCounts) {
+      expect(
+        count,
+        `Team ${teamId}: must not exceed 20 regular season games (got ${count})`
+      ).toBeLessThanOrEqual(20);
+      expect(
+        count,
+        `Team ${teamId}: must have ≥15 regular season games (got ${count}; 5-team conf floor is 16 due to bye weeks)`
+      ).toBeGreaterThanOrEqual(15);
+    }
   });
 
   test("season 1 + season 2: full two-season lifecycle with data integrity assertions", async ({

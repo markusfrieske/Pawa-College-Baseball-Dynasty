@@ -1328,9 +1328,12 @@ export async function registerRoutes(
         await autoAssignLineup(storage, teamPlayers, team.id);
       }
 
-      // Generate initial schedule
-      await generateSchedule(req.params.id);
-      await generateExhibitionGames(req.params.id, 1);
+      // Generate initial schedule (only if not already present — startDynasty may have run first)
+      const existingGamesForCoach = await storage.getGamesByLeague(req.params.id);
+      if (existingGamesForCoach.length === 0) {
+        await generateSchedule(req.params.id);
+        await generateExhibitionGames(req.params.id, 1);
+      }
 
       await storage.createAuditLog({
         leagueId: req.params.id,
@@ -19791,18 +19794,29 @@ async function generateSchedule(leagueId: string, season: number = 1) {
   const targetGamesPerTeam = numWeeks * (confGamesPerSeries + 1);
   const confByTeamFinal = new Map<string, string>();
   for (const [cid, teams] of confMap) for (const t of teams) confByTeamFinal.set(t.id, cid);
+  // Invariant: only pair underserved teams together — never push a team above target.
   for (let topupIter = 0; topupIter < leagueTeams.length * 5; topupIter++) {
     const underserved = leagueTeams
       .filter(t => (teamGameCounts.get(t.id) ?? 0) < targetGamesPerTeam)
       .sort((a, b) => (teamGameCounts.get(a.id) ?? 0) - (teamGameCounts.get(b.id) ?? 0));
     if (underserved.length === 0) break;
     const t1 = underserved[0];
-    const xConf = leagueTeams.filter(t => t.id !== t1.id && confByTeamFinal.get(t.id) !== confByTeamFinal.get(t1.id));
-    const t2 =
-      [...xConf].filter(t => (teamGameCounts.get(t.id) ?? 0) < targetGamesPerTeam)
-                .sort((a, b) => (teamGameCounts.get(a.id) ?? 0) - (teamGameCounts.get(b.id) ?? 0))[0]
-      ?? [...xConf].sort((a, b) => (teamGameCounts.get(a.id) ?? 0) - (teamGameCounts.get(b.id) ?? 0))[0];
-    if (!t2) break;
+    // Only consider cross-conference partners that are ALSO underserved (<target).
+    // This guarantees we never push any team above targetGamesPerTeam.
+    const t2 = leagueTeams
+      .filter(t =>
+        t.id !== t1.id &&
+        confByTeamFinal.get(t.id) !== confByTeamFinal.get(t1.id) &&
+        (teamGameCounts.get(t.id) ?? 0) < targetGamesPerTeam
+      )
+      .sort((a, b) => (teamGameCounts.get(a.id) ?? 0) - (teamGameCounts.get(b.id) ?? 0))[0];
+    if (!t2) {
+      // No underserved cross-conf partner available — accept the deficit for t1.
+      // This is expected for odd-sized conferences (e.g. 5-team conf with built-in bye weeks)
+      // where the mathematical game-count ceiling is below targetGamesPerTeam.
+      console.warn(`[schedule-topup] No underserved cross-conf partner for ${t1.name} (${teamGameCounts.get(t1.id)} games, target ${targetGamesPerTeam}); accepting deficit`);
+      break;
+    }
     const isHome = Math.random() > 0.5;
     await storage.createGame({
       leagueId, season, week: numWeeks,
@@ -19813,6 +19827,16 @@ async function generateSchedule(leagueId: string, season: number = 1) {
     teamGameCounts.set(t1.id, (teamGameCounts.get(t1.id) ?? 0) + 1);
     teamGameCounts.set(t2.id, (teamGameCounts.get(t2.id) ?? 0) + 1);
     totalGames++;
+  }
+
+  // Post-generation diagnostic: log per-team counts for any team not at target.
+  const offTarget = leagueTeams.filter(t => (teamGameCounts.get(t.id) ?? 0) !== targetGamesPerTeam);
+  if (offTarget.length > 0) {
+    console.warn(
+      `[schedule-validation] ${offTarget.length} team(s) not at exact target of ${targetGamesPerTeam} games ` +
+      `(expected for odd-sized conferences — no team is over-scheduled):`,
+      offTarget.map(t => `${t.name}=${teamGameCounts.get(t.id)}`).join(', ')
+    );
   }
 
   console.log(`Schedule generated for league ${leagueId} season ${season}: ${seasonLength} format, ${numWeeks} weeks, ${totalGames} total games`);
