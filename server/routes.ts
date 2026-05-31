@@ -9521,6 +9521,40 @@ export async function registerRoutes(
           currentPhase: "preseason",
         });
 
+        // Sanity check: verify no visit-cap rows leaked into the new season number.
+        // Runs fire-and-forget so it never blocks the response.
+        (async () => {
+          try {
+            const newSeason = league.currentSeason + 1;
+            const teamsForCheck = await storage.getTeamsByLeague(leagueId);
+            const visitCounts = await Promise.all(
+              teamsForCheck.map(t => storage.getSeasonVisitCount(t.id, leagueId, newSeason))
+            );
+            const violations: string[] = [];
+            for (let i = 0; i < teamsForCheck.length; i++) {
+              if (visitCounts[i].total > 0) {
+                violations.push(
+                  `${teamsForCheck[i].name}(${visitCounts[i].campusVisits}cv+${visitCounts[i].hcVisits}hcv)`
+                );
+              }
+            }
+            if (violations.length > 0) {
+              console.warn(
+                `[visit-count-sanity] WARN league=${leagueId} season=${newSeason} — ` +
+                `${violations.length} team(s) already have visit rows for the new season ` +
+                `(season field on recruit_actions may be drifting): ${violations.join(", ")}`
+              );
+            } else {
+              console.log(
+                `[visit-count-sanity] OK league=${leagueId} season=${newSeason} — ` +
+                `all ${teamsForCheck.length} teams confirmed at 0 visits for new season`
+              );
+            }
+          } catch (sanityErr) {
+            console.warn("[visit-count-sanity] check failed:", sanityErr);
+          }
+        })();
+
         try {
           const [allTeamsForLineup, allPlayersForLineup] = await Promise.all([
             storage.getTeamsByLeague(leagueId),
