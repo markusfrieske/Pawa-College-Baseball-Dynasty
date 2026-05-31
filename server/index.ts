@@ -73,100 +73,68 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Ensure phase_deadline column exists (idempotent, safe on any environment)
-  try {
-    await pool.query("ALTER TABLE leagues ADD COLUMN IF NOT EXISTS phase_deadline TIMESTAMP");
-  } catch (e) {
-    console.warn("[startup-migration] phase_deadline column check failed:", e);
-  }
+  // Run all idempotent column-addition migrations in parallel to minimize cold-start time.
+  await Promise.allSettled([
+    pool.query("ALTER TABLE leagues ADD COLUMN IF NOT EXISTS phase_deadline TIMESTAMP"),
+    pool.query("ALTER TABLE league_events ADD COLUMN IF NOT EXISTS metadata jsonb"),
+    pool.query("ALTER TABLE recruiting_class_snapshots ADD COLUMN IF NOT EXISTS top_recruit_name text"),
+    pool.query("ALTER TABLE recruiting_class_snapshots ADD COLUMN IF NOT EXISTS top_recruit_ovr integer"),
+    pool.query("ALTER TABLE recruiting_class_snapshots ADD COLUMN IF NOT EXISTS top_recruit_stars integer"),
+    pool.query("ALTER TABLE players ADD COLUMN IF NOT EXISTS tools jsonb DEFAULT '[]'::jsonb"),
+    pool.query("ALTER TABLE recruits ADD COLUMN IF NOT EXISTS tools jsonb DEFAULT '[]'::jsonb"),
+    pool.query("ALTER TABLE player_history ADD COLUMN IF NOT EXISTS source_player_id varchar"),
+    pool.query("ALTER TABLE teams ADD COLUMN IF NOT EXISTS national_rank integer NOT NULL DEFAULT 149"),
+    pool.query("ALTER TABLE teams ADD COLUMN IF NOT EXISTS prev_national_rank integer"),
+    pool.query("ALTER TABLE teams ADD COLUMN IF NOT EXISTS recruiting_rank_boost real NOT NULL DEFAULT 0"),
+  ]).then(results => {
+    const failed = results.filter(r => r.status === "rejected");
+    if (failed.length > 0) {
+      failed.forEach(r => console.warn("[startup-migration] column add failed:", (r as PromiseRejectedResult).reason));
+    }
+  });
 
-  // Ensure metadata column exists on league_events (for decommit alert structured data)
-  try {
-    await pool.query("ALTER TABLE league_events ADD COLUMN IF NOT EXISTS metadata jsonb");
-  } catch (e) {
-    console.warn("[startup-migration] league_events.metadata column check failed:", e);
-  }
-
-  // Ensure top recruit columns exist on recruiting_class_snapshots (for signing day summary card)
-  try {
-    await pool.query("ALTER TABLE recruiting_class_snapshots ADD COLUMN IF NOT EXISTS top_recruit_name text");
-    await pool.query("ALTER TABLE recruiting_class_snapshots ADD COLUMN IF NOT EXISTS top_recruit_ovr integer");
-    await pool.query("ALTER TABLE recruiting_class_snapshots ADD COLUMN IF NOT EXISTS top_recruit_stars integer");
-  } catch (e) {
-    console.warn("[startup-migration] recruiting_class_snapshots top_recruit columns check failed:", e);
-  }
-
-  // Ensure tools column exists on players and recruits (tool archetype system)
-  try {
-    await pool.query("ALTER TABLE players ADD COLUMN IF NOT EXISTS tools jsonb DEFAULT '[]'::jsonb");
-    await pool.query("ALTER TABLE recruits ADD COLUMN IF NOT EXISTS tools jsonb DEFAULT '[]'::jsonb");
-  } catch (e) {
-    console.warn("[startup-migration] tools column check failed:", e);
-  }
-
-  // Ensure pitch_ch is constrained to 0 or 1 on both players and recruits tables.
-  // Step 1: clamp any existing out-of-range values so the constraint can be added cleanly.
-  // Step 2: add the CHECK constraint idempotently (skipped if it already exists).
-  try {
-    await pool.query("UPDATE players SET pitch_ch = 1 WHERE pitch_ch > 1");
-    await pool.query(`
-      DO $$ BEGIN
-        IF NOT EXISTS (
-          SELECT 1 FROM pg_constraint c
-          JOIN pg_class t ON t.oid = c.conrelid
-          JOIN pg_namespace n ON n.oid = t.relnamespace
-          WHERE c.conname = 'players_pitch_ch_binary'
-            AND t.relname = 'players'
-            AND n.nspname = 'public'
-        ) THEN
-          ALTER TABLE players ADD CONSTRAINT players_pitch_ch_binary CHECK (pitch_ch IN (0, 1));
-        END IF;
-      END $$;
-    `);
-  } catch (e) {
-    console.warn("[startup-migration] players pitch_ch constraint failed:", e);
-  }
-  try {
-    await pool.query("UPDATE recruits SET pitch_ch = 1 WHERE pitch_ch > 1");
-    await pool.query(`
-      DO $$ BEGIN
-        IF NOT EXISTS (
-          SELECT 1 FROM pg_constraint c
-          JOIN pg_class t ON t.oid = c.conrelid
-          JOIN pg_namespace n ON n.oid = t.relnamespace
-          WHERE c.conname = 'recruits_pitch_ch_binary'
-            AND t.relname = 'recruits'
-            AND n.nspname = 'public'
-        ) THEN
-          ALTER TABLE recruits ADD CONSTRAINT recruits_pitch_ch_binary CHECK (pitch_ch IN (0, 1));
-        END IF;
-      END $$;
-    `);
-  } catch (e) {
-    console.warn("[startup-migration] recruits pitch_ch constraint failed:", e);
-  }
-
-  // Ensure source_player_id column exists on player_history (for direct HoF WAR lookup)
-  try {
-    await pool.query("ALTER TABLE player_history ADD COLUMN IF NOT EXISTS source_player_id varchar");
-  } catch (e) {
-    console.warn("[startup-migration] player_history.source_player_id column check failed:", e);
-  }
-
-  // Ensure national_rank column exists on teams (dynamic per-season rank tracking)
-  try {
-    await pool.query("ALTER TABLE teams ADD COLUMN IF NOT EXISTS national_rank integer NOT NULL DEFAULT 149");
-  } catch (e) {
-    console.warn("[startup-migration] teams.national_rank column check failed:", e);
-  }
-
-  // Ensure prev_national_rank and recruiting_rank_boost columns exist on teams
-  try {
-    await pool.query("ALTER TABLE teams ADD COLUMN IF NOT EXISTS prev_national_rank integer");
-    await pool.query("ALTER TABLE teams ADD COLUMN IF NOT EXISTS recruiting_rank_boost real NOT NULL DEFAULT 0");
-  } catch (e) {
-    console.warn("[startup-migration] teams rank boost columns check failed:", e);
-  }
+  // pitch_ch constraints — clamp first, then add constraint (must be sequential per table)
+  await Promise.allSettled([
+    (async () => {
+      await pool.query("UPDATE players SET pitch_ch = 1 WHERE pitch_ch > 1");
+      await pool.query(`
+        DO $$ BEGIN
+          IF NOT EXISTS (
+            SELECT 1 FROM pg_constraint c
+            JOIN pg_class t ON t.oid = c.conrelid
+            JOIN pg_namespace n ON n.oid = t.relnamespace
+            WHERE c.conname = 'players_pitch_ch_binary'
+              AND t.relname = 'players'
+              AND n.nspname = 'public'
+          ) THEN
+            ALTER TABLE players ADD CONSTRAINT players_pitch_ch_binary CHECK (pitch_ch IN (0, 1));
+          END IF;
+        END $$;
+      `);
+    })(),
+    (async () => {
+      await pool.query("UPDATE recruits SET pitch_ch = 1 WHERE pitch_ch > 1");
+      await pool.query(`
+        DO $$ BEGIN
+          IF NOT EXISTS (
+            SELECT 1 FROM pg_constraint c
+            JOIN pg_class t ON t.oid = c.conrelid
+            JOIN pg_namespace n ON n.oid = t.relnamespace
+            WHERE c.conname = 'recruits_pitch_ch_binary'
+              AND t.relname = 'recruits'
+              AND n.nspname = 'public'
+          ) THEN
+            ALTER TABLE recruits ADD CONSTRAINT recruits_pitch_ch_binary CHECK (pitch_ch IN (0, 1));
+          END IF;
+        END $$;
+      `);
+    })(),
+  ]).then(results => {
+    const failed = results.filter(r => r.status === "rejected");
+    if (failed.length > 0) {
+      failed.forEach(r => console.warn("[startup-migration] pitch_ch constraint failed:", (r as PromiseRejectedResult).reason));
+    }
+  });
 
   // One-time pitcher stamina banding migration (role-based bands: starters 80-99,
   // long relief 50-79, mid relief 30-49, closer 1-29).
