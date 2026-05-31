@@ -977,6 +977,7 @@ export default function RecruitingPage() {
               label="Visits (Season)"
               value={`${data?.seasonVisitCount?.total ?? 0}/20`}
               highlight={(data?.seasonVisitCount?.total ?? 0) >= 20}
+              tooltip={`${data?.seasonVisitCount?.campusVisits ?? 0} campus visit${(data?.seasonVisitCount?.campusVisits ?? 0) !== 1 ? "s" : ""}, ${data?.seasonVisitCount?.hcVisits ?? 0} HC visit${(data?.seasonVisitCount?.hcVisits ?? 0) !== 1 ? "s" : ""} — 20 total cap per season`}
             />
             {data?.team && (
               <StatCard
@@ -2294,15 +2295,22 @@ export default function RecruitingPage() {
   );
 }
 
-function StatCard({ icon, label, value, highlight }: { icon: React.ReactNode; label: string; value: string; highlight?: boolean }) {
-  return (
-    <div className={`bg-card border p-3 rounded ${highlight ? "border-red-500/50" : "border-border"}`}>
+function StatCard({ icon, label, value, highlight, tooltip }: { icon: React.ReactNode; label: string; value: string; highlight?: boolean; tooltip?: string }) {
+  const card = (
+    <div className={`bg-card border p-3 rounded ${highlight ? "border-red-500/50" : "border-border"} ${tooltip ? "cursor-help" : ""}`}>
       <div className={`flex items-center gap-2 mb-1 ${highlight ? "text-red-400" : "text-muted-foreground"}`}>
         {icon}
         <span className="text-xs">{label}</span>
       </div>
       <p className={`font-bold ${highlight ? "text-red-400" : "text-foreground"}`}>{value}</p>
     </div>
+  );
+  if (!tooltip) return card;
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{card}</TooltipTrigger>
+      <TooltipContent>{tooltip}</TooltipContent>
+    </Tooltip>
   );
 }
 
