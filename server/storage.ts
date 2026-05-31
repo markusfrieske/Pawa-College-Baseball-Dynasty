@@ -148,6 +148,7 @@ export interface IStorage {
   getRecruitingActionsLog(recruitId: string, teamId: string): Promise<RecruitingActionsLog[]>;
   getRecruitingActionsLogByTeam(teamId: string, leagueId: string): Promise<RecruitingActionsLog[]>;
   getRecruitingActionsLogByLeagueWeek(leagueId: string, season: number, week: number): Promise<RecruitingActionsLog[]>;
+  getSeasonVisitCount(teamId: string, leagueId: string, season: number): Promise<{ total: number; campusVisits: number; hcVisits: number }>;
   createRecruitingAction(action: InsertRecruitingActionsLog): Promise<RecruitingActionsLog>;
 
   getRecruitTopSchools(recruitId: string): Promise<RecruitTopSchools[]>;
@@ -792,6 +793,19 @@ export class DatabaseStorage implements IStorage {
         eq(recruitingActionsLog.season, season),
         eq(recruitingActionsLog.week, week),
       ));
+  }
+
+  async getSeasonVisitCount(teamId: string, leagueId: string, season: number): Promise<{ total: number; campusVisits: number; hcVisits: number }> {
+    const rows = await db.select().from(recruitingActionsLog)
+      .where(and(
+        eq(recruitingActionsLog.teamId, teamId),
+        eq(recruitingActionsLog.leagueId, leagueId),
+        eq(recruitingActionsLog.season, season),
+        inArray(recruitingActionsLog.actionType, ["visit", "head_coach_visit"]),
+      ));
+    const campusVisits = rows.filter(r => r.actionType === "visit").length;
+    const hcVisits = rows.filter(r => r.actionType === "head_coach_visit").length;
+    return { total: campusVisits + hcVisits, campusVisits, hcVisits };
   }
 
   async createRecruitingAction(action: InsertRecruitingActionsLog): Promise<RecruitingActionsLog> {

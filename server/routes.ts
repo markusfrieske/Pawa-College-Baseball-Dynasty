@@ -1625,6 +1625,8 @@ export async function registerRoutes(
       const allTeamActions = await storage.getRecruitingActionsLogByTeam(userTeam.id, league.id);
       const premiumActionsUsed: Record<string, string[]> = {};
       const weeklyActionsUsed: Record<string, string[]> = {};
+      let _seasonCampusVisits = 0;
+      let _seasonHcVisits = 0;
       for (const action of allTeamActions) {
         if (action.actionType === "visit" || action.actionType === "head_coach_visit") {
           if (!premiumActionsUsed[action.recruitId]) {
@@ -1632,6 +1634,10 @@ export async function registerRoutes(
           }
           if (!premiumActionsUsed[action.recruitId].includes(action.actionType)) {
             premiumActionsUsed[action.recruitId].push(action.actionType);
+          }
+          if (action.season === league.currentSeason) {
+            if (action.actionType === "visit") _seasonCampusVisits++;
+            else _seasonHcVisits++;
           }
         }
         if ((action.actionType === "phone" || action.actionType === "email")
@@ -1644,6 +1650,7 @@ export async function registerRoutes(
           }
         }
       }
+      const seasonVisitCount = { campusVisits: _seasonCampusVisits, hcVisits: _seasonHcVisits, total: _seasonCampusVisits + _seasonHcVisits };
 
       const recruitPointCosts: Record<string, { visit: number; headCoachVisit: number }> = {};
       for (const recruit of leagueRecruits) {
@@ -1673,6 +1680,7 @@ export async function registerRoutes(
         premiumActionsUsed,
         weeklyActionsUsed,
         recruitPointCosts,
+        seasonVisitCount,
         autoPilotPendingAlert: (coach as any)?.autoPilotPendingAlert ?? [],
       });
     } catch (error) {
@@ -2609,6 +2617,11 @@ export async function registerRoutes(
         return res.status(400).json({ message: `Campus Visit costs ${actionCost} recruiting points. You only have ${maxRecruitingActions - actionsUsed} remaining.` });
       }
 
+      const seasonVisits = await storage.getSeasonVisitCount(userTeam.id, req.params.id as string, league.currentSeason);
+      if (seasonVisits.total >= 20) {
+        return res.status(400).json({ message: `You've used all 20 visits for this season (${seasonVisits.campusVisits} campus + ${seasonVisits.hcVisits} head coach). The cap resets next season.` });
+      }
+
       const existingActions = await storage.getRecruitingActionsLog(req.params.recruitId as string, userTeam.id);
       const previousVisit = existingActions.find(a => a.actionType === "visit");
       if (previousVisit) {
@@ -2699,6 +2712,11 @@ export async function registerRoutes(
       const actionsUsed = userCoach?.recruitActionsUsed || 0;
       if (actionsUsed + actionCost > maxRecruitingActions) {
         return res.status(400).json({ message: `Head Coach Visit costs ${actionCost} recruiting points. You only have ${maxRecruitingActions - actionsUsed} remaining.` });
+      }
+
+      const seasonVisitsHcv = await storage.getSeasonVisitCount(userTeam.id, req.params.id as string, league.currentSeason);
+      if (seasonVisitsHcv.total >= 20) {
+        return res.status(400).json({ message: `You've used all 20 visits for this season (${seasonVisitsHcv.campusVisits} campus + ${seasonVisitsHcv.hcVisits} head coach). The cap resets next season.` });
       }
 
       const existingActions = await storage.getRecruitingActionsLog(req.params.recruitId as string, userTeam.id);
@@ -16953,6 +16971,9 @@ export async function registerRoutes(
       }> = [];
       const isDeadlineForced = forcedHumanTeamIds.has(team.id) && !team.isAutoPilot;
 
+      let cpuSeasonVisitsUsed = teamActionsLog.filter(a =>
+        a.season === season && (a.actionType === "visit" || a.actionType === "head_coach_visit")
+      ).length;
       let pointsSpent = 0;
       for (let i = 0; i < focusedRecruits.length && pointsSpent < actionsBudget; i++) {
         const { recruit, interest } = focusedRecruits[i];
@@ -16982,9 +17003,10 @@ export async function registerRoutes(
 
         // Visit: must clear interest threshold. At AA/Elite, require ≥1 warmup interaction
         // before burning the one-time visit slot on a cold prospect.
+        // Also enforce the 20-visit season cap (campus + head coach combined).
         const visitWarmupMet = !config.requireWarmup || priorInteractions >= 1;
         const visitCost = getActionPointCost("visit", team.state, recruit.homeState);
-        if (currentInterestLevel > config.visitThreshold && visitCost <= remaining &&
+        if (cpuSeasonVisitsUsed < 20 && currentInterestLevel > config.visitThreshold && visitCost <= remaining &&
             !hasVisited && visitWarmupMet) {
           candidateActions.push("visit", "visit");
         }
@@ -17035,6 +17057,7 @@ export async function registerRoutes(
         }
         assertInterestGainSane(`cpu_${actionType}`, interestGain, baseGain);
         weeklyActionsThisWeek.add(weeklyActionKey(recruit.id, actionType));
+        if (actionType === "visit" || actionType === "head_coach_visit") cpuSeasonVisitsUsed++;
         pointsSpent += cost;
 
         // Accumulate action summary for auto-pilot / force-advanced log
