@@ -765,7 +765,7 @@ function RevealCardBack({ recruit }: { recruit: RevealRecruit }) {
               );
             })}
             {specialAbilities.length > 6 && (
-              <span className="text-[5.5px] text-gray-500 leading-none">+{specialAbilities.length - 6}</span>
+              <span className="text-[5.5px] text-gray-500 leading-none">+{specialAbilities.length - 6} more</span>
             )}
           </div>
         )}
