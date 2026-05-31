@@ -20,13 +20,13 @@ test.describe("Commissioner UI Smoke Test", () => {
 
       const league = await createLeague(req, {
         name: `Commissioner UI ${Date.now()}`,
-        maxTeams: 6,
+        maxTeams: 13,
         cpuDifficulty: "beginner",
-        selectedConferences: ["WCC", "Ivy League"],
+        selectedConferences: ["SEC", "ACC", "Big 12"],
         seasonLength: "short",
       });
 
-      const selectedTeams = await getTeamsForConferences(req, league.id, 6);
+      const selectedTeams = await getTeamsForConferences(req, league.id, 13);
       await selectTeams(req, league.id, selectedTeams);
       await startDynasty(req, league.id);
 

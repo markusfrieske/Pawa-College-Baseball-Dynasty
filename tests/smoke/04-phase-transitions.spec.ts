@@ -34,13 +34,13 @@ test.describe("Phase Transition Smoke Test", () => {
 
       const league = await createLeague(request, {
         name: `Phase Transition Test ${Date.now()}`,
-        maxTeams: 6,
+        maxTeams: 13,
         cpuDifficulty: "beginner",
-        selectedConferences: ["WCC", "Ivy League"],
+        selectedConferences: ["SEC", "ACC", "Big 12"],
         seasonLength: "short",
       });
 
-      const selectedTeams = await getTeamsForConferences(request, league.id, 6);
+      const selectedTeams = await getTeamsForConferences(request, league.id, 13);
       await selectTeams(request, league.id, selectedTeams);
       await startDynasty(request, league.id);
 

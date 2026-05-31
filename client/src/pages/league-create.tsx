@@ -42,9 +42,9 @@ const seasonLengthOptions = [
 
 export default function LeagueCreatePage() {
   const [name, setName] = useState("");
-  const [maxTeams, setMaxTeams] = useState("8");
+  const [maxTeams, setMaxTeams] = useState("13");
   const [cpuDifficulty, setCpuDifficulty] = useState("high_school");
-  const [selectedConferences, setSelectedConferences] = useState<string[]>(["SEC", "ACC"]);
+  const [selectedConferences, setSelectedConferences] = useState<string[]>(["SEC", "ACC", "Big 12"]);
   const [seasonLength, setSeasonLength] = useState("medium");
   const [progressionEnabled, setProgressionEnabled] = useState(false);
   const [, setLocation] = useLocation();
@@ -59,7 +59,7 @@ export default function LeagueCreatePage() {
   }, [selectedConferences]);
 
   const teamCountOptions = useMemo(() => {
-    const counts = [6, 8, 10, 12, 14, 16, 18];
+    const counts = [6, 8, 10, 12, 13, 14, 16, 18];
     const options = counts
       .filter(n => n < totalAvailableTeams)
       .map(n => ({ value: String(n), label: `${n} Teams` }));
@@ -80,7 +80,7 @@ export default function LeagueCreatePage() {
       }, 0);
       const currentTeamCount = parseInt(maxTeams);
       if (currentTeamCount > newTotal && newTotal > 0) {
-        const validCounts = [6, 8, 10, 12, 14, 16, 18].filter(n => n <= newTotal);
+        const validCounts = [6, 8, 10, 12, 13, 14, 16, 18].filter(n => n <= newTotal);
         if (validCounts.length > 0) {
           setMaxTeams(String(validCounts[validCounts.length - 1]));
         } else {
@@ -243,15 +243,23 @@ export default function LeagueCreatePage() {
                 data-testid="input-dynasty-name"
               />
 
-              <RetroSelect
-                id="teamCount"
-                label="Number of Teams"
-                options={teamCountOptions.length > 0 ? teamCountOptions : [{ value: "", label: "Select conferences first" }]}
-                value={teamCountOptions.length > 0 ? maxTeams : ""}
-                onChange={(e) => setMaxTeams(e.target.value)}
-                disabled={selectedConferences.length === 0}
-                data-testid="select-team-count"
-              />
+              <div>
+                <RetroSelect
+                  id="teamCount"
+                  label="Number of Teams"
+                  options={teamCountOptions.length > 0 ? teamCountOptions : [{ value: "", label: "Select conferences first" }]}
+                  value={teamCountOptions.length > 0 ? maxTeams : ""}
+                  onChange={(e) => setMaxTeams(e.target.value)}
+                  disabled={selectedConferences.length === 0}
+                  data-testid="select-team-count"
+                />
+                {maxTeams === "13" && selectedConferences.length === 3 && (
+                  <p className="mt-1.5 text-[10px] text-muted-foreground flex items-center gap-1.5">
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-gold/60" />
+                    4·4·5 split across 3 conferences
+                  </p>
+                )}
+              </div>
 
               <RetroSelect
                 id="seasonLength"

@@ -204,25 +204,25 @@ async function completeOffseason(
 test.describe("Full Season-to-Season Flow", () => {
   test.slow();
 
-  test("dynasty creation: 12-team league starts with rosters and recruiting class", async ({
+  test("dynasty creation: 13-team league starts with rosters and recruiting class", async ({
     request,
   }) => {
     await createGuestSession(request);
 
     const league = await createLeague(request, {
       name: `E2E Dynasty Creation ${Date.now()}`,
-      maxTeams: 12,
+      maxTeams: 13,
       cpuDifficulty: "beginner",
-      selectedConferences: ["WCC", "Ivy League"],
-      seasonLength: "short",
+      selectedConferences: ["SEC", "ACC", "Big 12"],
+      seasonLength: "medium",
     });
 
     expect(league.id, "League must have an ID").toBeTruthy();
     expect(league.currentPhase, "League should start in dynasty_setup").toBe("dynasty_setup");
 
-    const selectedTeams = await getTeamsForConferences(request, league.id, 12);
+    const selectedTeams = await getTeamsForConferences(request, league.id, 13);
     const totalSelected = selectedTeams.reduce((n, c) => n + c.teamNames.length, 0);
-    expect(totalSelected, "Should have exactly 12 teams selected").toBe(12);
+    expect(totalSelected, "Should have exactly 13 teams selected").toBe(13);
 
     await selectTeams(request, league.id, selectedTeams);
     await startDynasty(request, league.id);
@@ -232,7 +232,7 @@ test.describe("Full Season-to-Season Flow", () => {
     expect(started.currentSeason, "Season should be 1 at dynasty start").toBe(1);
 
     const teams = await getLeagueTeams(request, league.id);
-    expect(teams.length, "League should have 12 teams").toBe(12);
+    expect(teams.length, "League should have 13 teams").toBe(13);
 
     await setupCoach(request, league.id, teams[0].id);
 
@@ -248,10 +248,10 @@ test.describe("Full Season-to-Season Flow", () => {
     ).toBeLessThanOrEqual(25);
 
     const recruits = await getRecruits(request, league.id);
-    const minExpected = expectedRecruitCount(12);
+    const minExpected = expectedRecruitCount(13);
     expect(
       recruits.length,
-      `Recruiting class should have at least ${minExpected} recruits for 12 teams (got ${recruits.length})`
+      `Recruiting class should have at least ${minExpected} recruits for 13 teams (got ${recruits.length})`
     ).toBeGreaterThanOrEqual(minExpected);
 
     // 3-star recruits should be the most common tier (target 60% but allow ≥15% as floor)
@@ -269,13 +269,13 @@ test.describe("Full Season-to-Season Flow", () => {
 
     const league = await createLeague(request, {
       name: `E2E Full Two-Season Flow ${Date.now()}`,
-      maxTeams: 12,
+      maxTeams: 13,
       cpuDifficulty: "beginner",
-      selectedConferences: ["WCC", "Ivy League"],
-      seasonLength: "short",
+      selectedConferences: ["SEC", "ACC", "Big 12"],
+      seasonLength: "medium",
     });
 
-    const selectedTeams = await getTeamsForConferences(request, league.id, 12);
+    const selectedTeams = await getTeamsForConferences(request, league.id, 13);
     await selectTeams(request, league.id, selectedTeams);
     await startDynasty(request, league.id);
 

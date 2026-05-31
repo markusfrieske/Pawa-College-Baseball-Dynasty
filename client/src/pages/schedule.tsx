@@ -332,12 +332,18 @@ export default function SchedulePage() {
   });
 
   const filteredGames = useMemo(() => {
-    if (showMyTeam && data?.userTeamId) {
-      return (data?.games || []).filter(
-        g => g.homeTeamId === data.userTeamId || g.awayTeamId === data.userTeamId
-      );
-    }
-    return data?.games || [];
+    const all = showMyTeam && data?.userTeamId
+      ? (data?.games || []).filter(g => g.homeTeamId === data.userTeamId || g.awayTeamId === data.userTeamId)
+      : (data?.games || []);
+    return all.filter(g => g.phase !== "exhibition");
+  }, [showMyTeam, data]);
+
+  const exhibitionGames = useMemo(() => {
+    if (!data?.games) return [];
+    const all = showMyTeam && data?.userTeamId
+      ? data.games.filter(g => g.homeTeamId === data.userTeamId || g.awayTeamId === data.userTeamId)
+      : data.games;
+    return all.filter(g => g.phase === "exhibition");
   }, [showMyTeam, data]);
 
   const weeks = useMemo(
@@ -474,6 +480,57 @@ export default function SchedulePage() {
       </header>
 
       <main className="container mx-auto px-4 py-6 space-y-6 pb-20 md:pb-6">
+        {exhibitionGames.length > 0 && (
+          <div className="rounded-lg border border-border/50 bg-card/30 overflow-hidden">
+            <div className="flex items-center justify-between px-3 py-2 border-b border-border/30 bg-card/50">
+              <div className="flex items-center gap-2">
+                <span className="font-pixel text-[9px] text-muted-foreground uppercase tracking-wider">Spring Training</span>
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-pixel border border-amber-500/40 text-amber-400 bg-amber-500/10">
+                  EXHIBITION
+                </span>
+              </div>
+              <span className="font-pixel text-[8px] text-muted-foreground">
+                {exhibitionGames.filter(g => g.isComplete).length}/{exhibitionGames.length} Complete
+              </span>
+            </div>
+            <div className="divide-y divide-border/20">
+              {exhibitionGames.map(game => (
+                <div key={game.id} className="flex items-center justify-between px-3 py-2 text-xs">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <TeamBadge
+                      abbreviation={game.awayTeam.abbreviation}
+                      primaryColor={game.awayTeam.primaryColor}
+                      secondaryColor={game.awayTeam.secondaryColor}
+                      name={game.awayTeam.name}
+                      size="xs"
+                    />
+                    <span className="font-pixel text-[9px] text-muted-foreground truncate hidden sm:block">{game.awayTeam.name}</span>
+                  </div>
+                  <div className="shrink-0 text-center px-2">
+                    {game.isComplete ? (
+                      <span className="font-pixel text-[10px] text-foreground">
+                        {game.awayScore} – {game.homeScore}
+                      </span>
+                    ) : (
+                      <span className="font-pixel text-[8px] text-muted-foreground">vs</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 min-w-0 justify-end">
+                    <span className="font-pixel text-[9px] text-muted-foreground truncate hidden sm:block">{game.homeTeam.name}</span>
+                    <TeamBadge
+                      abbreviation={game.homeTeam.abbreviation}
+                      primaryColor={game.homeTeam.primaryColor}
+                      secondaryColor={game.homeTeam.secondaryColor}
+                      name={game.homeTeam.name}
+                      size="xs"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {activeWeeks.map(weekData => (
           <WeekCard
             key={weekData.isPostseason ? weekData.label : `week_${weekData.weekNum}`}
@@ -579,7 +636,7 @@ function computeTeamRecords(games: GameWithTeams[]): Map<string, { wins: number;
   const records = new Map<string, { wins: number; losses: number }>();
   const ensure = (id: string) => { if (!records.has(id)) records.set(id, { wins: 0, losses: 0 }); };
   for (const g of games) {
-    if (!g.isComplete) continue;
+    if (!g.isComplete || g.phase === "exhibition") continue;
     ensure(g.homeTeamId); ensure(g.awayTeamId);
     if ((g.homeScore ?? 0) > (g.awayScore ?? 0)) {
       records.get(g.homeTeamId)!.wins++;

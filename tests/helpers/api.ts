@@ -40,10 +40,10 @@ export async function createLeague(
   const resp = await request.post("/api/leagues", {
     data: {
       name: opts.name,
-      maxTeams: opts.maxTeams ?? 8,
+      maxTeams: opts.maxTeams ?? 13,
       cpuDifficulty: opts.cpuDifficulty ?? "beginner",
-      selectedConferences: opts.selectedConferences ?? ["WCC", "Ivy League"],
-      seasonLength: opts.seasonLength ?? "short",
+      selectedConferences: opts.selectedConferences ?? ["SEC", "ACC", "Big 12"],
+      seasonLength: opts.seasonLength ?? "medium",
       progressionEnabled: opts.progressionEnabled ?? false,
     },
   });
@@ -268,9 +268,13 @@ export async function getTeamsForConferences(
   const result: { conferenceId: string; teamNames: string[] }[] = [];
   let remaining = maxTeams;
 
-  for (const pool of pools) {
+  for (let i = 0; i < pools.length; i++) {
     if (remaining <= 0) break;
-    const take = Math.min(remaining, Math.ceil(maxTeams / pools.length));
+    const pool = pools[i];
+    const isLast = i === pools.length - 1;
+    // Distribute evenly: first (k-1) conferences get floor(N/k), last gets remainder
+    const baseCount = Math.floor(maxTeams / pools.length);
+    const take = Math.min(remaining, isLast ? remaining : baseCount);
     const names = (pool.teams ?? []).slice(0, take).map((t: { name: string }) => t.name);
     if (names.length) {
       result.push({ conferenceId: pool.conference.id, teamNames: names });

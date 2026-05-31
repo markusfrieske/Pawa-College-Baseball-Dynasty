@@ -21,13 +21,13 @@ test.describe("Multi-Season Advance Smoke Test", () => {
 
       const league = await createLeague(request, {
         name: `Season Loop Test ${Date.now()}`,
-        maxTeams: 10,
+        maxTeams: 13,
         cpuDifficulty: "beginner",
-        selectedConferences: ["WCC", "Ivy League"],
+        selectedConferences: ["SEC", "ACC", "Big 12"],
         seasonLength: "short",
       });
 
-      const selectedTeams = await getTeamsForConferences(request, league.id, 10);
+      const selectedTeams = await getTeamsForConferences(request, league.id, 13);
       await selectTeams(request, league.id, selectedTeams);
       await startDynasty(request, league.id);
 

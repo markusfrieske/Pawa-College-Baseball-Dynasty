@@ -25,13 +25,13 @@ test.describe("Recruiting Flow Smoke Test", () => {
 
     const league = await createLeague(req, {
       name: `Recruiting Test ${Date.now()}`,
-      maxTeams: 8,
+      maxTeams: 13,
       cpuDifficulty: "beginner",
-      selectedConferences: ["WCC", "Ivy League"],
-      seasonLength: "short",
+      selectedConferences: ["SEC", "ACC", "Big 12"],
+      seasonLength: "medium",
     });
 
-    const selectedTeams = await getTeamsForConferences(req, league.id, 8);
+    const selectedTeams = await getTeamsForConferences(req, league.id, 13);
     await selectTeams(req, league.id, selectedTeams);
     await startDynasty(req, league.id);
 

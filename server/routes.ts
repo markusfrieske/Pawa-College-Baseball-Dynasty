@@ -699,7 +699,7 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Invalid league data" });
       }
 
-      const { name, maxTeams = 8, cpuDifficulty = "high_school", conferenceCount = 2, selectedConferences, seasonLength = "medium", progressionEnabled = false } = result.data;
+      const { name, maxTeams = 13, cpuDifficulty = "high_school", conferenceCount = 3, selectedConferences, seasonLength = "medium", progressionEnabled = false } = result.data;
 
       const league = await storage.createLeague({
         name,
@@ -1293,6 +1293,7 @@ export async function registerRoutes(
 
       // Generate initial schedule
       await generateSchedule(req.params.id);
+      await generateExhibitionGames(req.params.id, 1);
 
       await storage.createAuditLog({
         leagueId: req.params.id,
@@ -8613,6 +8614,18 @@ export async function registerRoutes(
       }));
       console.timeEnd("[advance-perf] game-sim");
 
+      // Simulate any pending exhibition games during preseason/spring_training (non-counting)
+      if (league.currentPhase === "preseason" || league.currentPhase === "spring_training") {
+        const exhibitionGames = seasonGames.filter(g => g.phase === "exhibition" && !g.isComplete);
+        if (exhibitionGames.length > 0) {
+          await Promise.all(exhibitionGames.map(async (game) => {
+            const result = await simulateGame(game.homeTeamId, game.awayTeamId, "exhibition");
+            await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, isComplete: true, boxScore: result.boxScore });
+          }));
+          console.log(`[exhibition] Simulated ${exhibitionGames.length} exhibition games for league ${leagueId}`);
+        }
+      }
+
       // Build per-user inning scoreboard data (non-blocking, best-effort)
       const simUserCoach = coaches.find((c: any) => c.userId === req.session.userId);
       const simUserTeamId = simUserCoach?.teamId;
@@ -9633,6 +9646,27 @@ export async function registerRoutes(
             game.homeScore = result.homeScore;
             game.awayScore = result.awayScore;
           }));
+
+          // Simulate any pending exhibition games during preseason/spring_training (non-counting)
+          if (phase === "preseason" || phase === "spring_training") {
+            const allSeasonGamesForExhib = await getSeasonGames();
+            const exhibGames = allSeasonGamesForExhib.filter(g => g.phase === "exhibition" && !g.isComplete);
+            if (exhibGames.length > 0) {
+              await Promise.all(exhibGames.map(async (game) => {
+                const homePlayers = rosterCache.get(game.homeTeamId) || [];
+                const awayPlayers = rosterCache.get(game.awayTeamId) || [];
+                const result = simulateGameWithRosters(homePlayers, awayPlayers, "exhibition",
+                  teamStadiumMap.get(game.homeTeamId), teamStadiumMap.get(game.awayTeamId));
+                await storage.updateGame(game.id, {
+                  homeScore: result.homeScore,
+                  awayScore: result.awayScore,
+                  boxScore: result.boxScore,
+                  isComplete: true,
+                });
+              }));
+              invalidateGameCache();
+            }
+          }
 
           if (simResults.length > 0) {
             simSummary.weekResults.push({
@@ -19691,6 +19725,45 @@ async function generateSchedule(leagueId: string, season: number = 1) {
   }
 
   console.log(`Schedule generated for league ${leagueId} season ${season}: ${seasonLength} format, ${numWeeks} weeks, ${totalGames} total games`);
+}
+
+async function generateExhibitionGames(leagueId: string, season: number) {
+  const leagueTeams = await storage.getTeamsByLeague(leagueId);
+  if (leagueTeams.length < 2) return;
+
+  // Idempotent — skip if exhibition games already exist for this season
+  const existing = await storage.getGamesByLeagueSeason(leagueId, season);
+  if (existing.some((g: any) => g.phase === "exhibition")) return;
+
+  function shuffle<T>(arr: T[]): T[] {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  // 3 rounds of random pairings — each team plays ~3 exhibition games
+  let created = 0;
+  for (let round = 0; round < 3; round++) {
+    const shuffled = shuffle([...leagueTeams]);
+    for (let i = 0; i + 1 < shuffled.length; i += 2) {
+      const homeFirst = Math.random() > 0.5;
+      await storage.createGame({
+        leagueId,
+        season,
+        week: 0,
+        homeTeamId: homeFirst ? shuffled[i].id : shuffled[i + 1].id,
+        awayTeamId: homeFirst ? shuffled[i + 1].id : shuffled[i].id,
+        phase: "exhibition",
+        isConference: false,
+        gameType: "exhibition",
+      });
+      created++;
+    }
+  }
+  console.log(`[exhibition] Generated ${created} exhibition games for league ${leagueId} season ${season}`);
 }
 
 function getTeamsForConference(conferenceName: string) {

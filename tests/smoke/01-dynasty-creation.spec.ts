@@ -9,7 +9,7 @@ import {
 } from "../helpers/api";
 
 test.describe("Dynasty Creation Smoke Test", () => {
-  test("creates a 10-team 2-conference league and verifies commissioner page loads", async ({
+  test("creates a 13-team 3-conference league and verifies commissioner page loads", async ({
     page,
   }) => {
     const req = page.request;
@@ -18,19 +18,19 @@ test.describe("Dynasty Creation Smoke Test", () => {
 
     const league = await createLeague(req, {
       name: "Smoke Test Dynasty",
-      maxTeams: 10,
+      maxTeams: 13,
       cpuDifficulty: "beginner",
-      selectedConferences: ["SEC", "ACC"],
-      seasonLength: "short",
+      selectedConferences: ["SEC", "ACC", "Big 12"],
+      seasonLength: "medium",
     });
 
     expect(league.id).toBeTruthy();
     expect(league.currentPhase).toBe("dynasty_setup");
 
-    const selectedTeams = await getTeamsForConferences(req, league.id, 10);
+    const selectedTeams = await getTeamsForConferences(req, league.id, 13);
     expect(selectedTeams.length).toBeGreaterThan(0);
     const totalTeams = selectedTeams.reduce((n, c) => n + c.teamNames.length, 0);
-    expect(totalTeams, "Should have exactly 10 teams selected for a 10-team league").toBe(10);
+    expect(totalTeams, "Should have exactly 13 teams selected for a 13-team league").toBe(13);
 
     await selectTeams(req, league.id, selectedTeams);
     await startDynasty(req, league.id);
