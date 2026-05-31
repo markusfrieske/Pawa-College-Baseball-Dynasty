@@ -1150,6 +1150,21 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Invalid selected teams data" });
       }
 
+      // Validate total selected teams
+      const totalRequestedTeams = selectedTeams.reduce((sum, s) => sum + (s.teamNames?.length ?? 0), 0);
+      if (totalRequestedTeams !== league.maxTeams) {
+        return res.status(400).json({ message: `Must select exactly ${league.maxTeams} teams (got ${totalRequestedTeams})` });
+      }
+
+      // Validate per-conference cap: no conference may exceed ceil(maxTeams / confCount)
+      const confCount = selectedTeams.length;
+      const confCap = Math.ceil(league.maxTeams / confCount);
+      for (const sel of selectedTeams) {
+        if ((sel.teamNames?.length ?? 0) > confCap) {
+          return res.status(400).json({ message: `No single conference may have more than ${confCap} teams (4·4·5 split for ${league.maxTeams} teams across ${confCount} conferences)` });
+        }
+      }
+
       const conferences = await storage.getConferencesByLeague(league.id);
       let totalTeamsCreated = 0;
 
@@ -14284,6 +14299,7 @@ export async function registerRoutes(
     }
 
     await generateSchedule(leagueId, completedSeason + 1);
+    await generateExhibitionGames(leagueId, completedSeason + 1);
 
     await validateLeagueRosters(
       leagueId,
@@ -18793,6 +18809,7 @@ export async function registerRoutes(
       const existingGames = await storage.getGamesByLeague(leagueId);
       if (existingGames.length === 0) {
         await generateSchedule(leagueId);
+        await generateExhibitionGames(leagueId, 1);
       }
       
       await storage.updateLeague(leagueId, { currentPhase: "preseason" });
@@ -18831,6 +18848,7 @@ export async function registerRoutes(
       }
       
       await generateSchedule(leagueId);
+      await generateExhibitionGames(leagueId, 1);
       
       res.json({ success: true });
     } catch (error) {
@@ -19744,26 +19762,74 @@ async function generateExhibitionGames(leagueId: string, season: number) {
     return a;
   }
 
-  // 3 rounds of random pairings — each team plays ~3 exhibition games
-  let created = 0;
-  for (let round = 0; round < 3; round++) {
-    const shuffled = shuffle([...leagueTeams]);
-    for (let i = 0; i + 1 < shuffled.length; i += 2) {
+  const TARGET = 3; // target games per team
+  const matchups: Array<{ homeTeamId: string; awayTeamId: string }> = [];
+  const gameCounts = new Map(leagueTeams.map(t => [t.id, 0]));
+
+  // 3 proper rounds — each team plays at most once per round.
+  // For odd-N leagues, rotate byes so no team sits out more than once.
+  const hadBye = new Set<string>();
+  for (let round = 0; round < TARGET; round++) {
+    let pool = shuffle([...leagueTeams]);
+    if (pool.length % 2 !== 0) {
+      // Give bye to a team that (a) hasn't had a bye yet AND (b) has the most games so far
+      const candidates = pool.filter(t => !hadBye.has(t.id));
+      const maxGames = Math.max(...candidates.map(t => gameCounts.get(t.id)!));
+      const top = candidates.filter(t => gameCounts.get(t.id)! === maxGames);
+      const byeTeam = top[Math.floor(Math.random() * top.length)];
+      hadBye.add(byeTeam.id);
+      pool = pool.filter(t => t.id !== byeTeam.id);
+    }
+    for (let i = 0; i < pool.length; i += 2) {
       const homeFirst = Math.random() > 0.5;
-      await storage.createGame({
-        leagueId,
-        season,
-        week: 0,
-        homeTeamId: homeFirst ? shuffled[i].id : shuffled[i + 1].id,
-        awayTeamId: homeFirst ? shuffled[i + 1].id : shuffled[i].id,
-        phase: "exhibition",
-        isConference: false,
-        gameType: "exhibition",
+      matchups.push({
+        homeTeamId: homeFirst ? pool[i].id : pool[i + 1].id,
+        awayTeamId: homeFirst ? pool[i + 1].id : pool[i].id,
       });
-      created++;
+      gameCounts.set(pool[i].id, gameCounts.get(pool[i].id)! + 1);
+      gameCounts.set(pool[i + 1].id, gameCounts.get(pool[i + 1].id)! + 1);
     }
   }
-  console.log(`[exhibition] Generated ${created} exhibition games for league ${leagueId} season ${season}`);
+
+  // Top-up: ensure every team reaches TARGET games.
+  // Pair underserved teams together; if one remains unpaired, give them an opponent.
+  let underserved = leagueTeams.filter(t => gameCounts.get(t.id)! < TARGET);
+  while (underserved.length > 0) {
+    if (underserved.length === 1) {
+      const solo = underserved[0];
+      const others = leagueTeams.filter(t => t.id !== solo.id);
+      others.sort((a, b) => gameCounts.get(a.id)! - gameCounts.get(b.id)!);
+      const opp = others[0];
+      const homeFirst = Math.random() > 0.5;
+      matchups.push({
+        homeTeamId: homeFirst ? solo.id : opp.id,
+        awayTeamId: homeFirst ? opp.id : solo.id,
+      });
+      gameCounts.set(solo.id, gameCounts.get(solo.id)! + 1);
+      gameCounts.set(opp.id, gameCounts.get(opp.id)! + 1);
+      break;
+    }
+    const s = shuffle([...underserved]);
+    for (let i = 0; i + 1 < s.length; i += 2) {
+      const homeFirst = Math.random() > 0.5;
+      matchups.push({
+        homeTeamId: homeFirst ? s[i].id : s[i + 1].id,
+        awayTeamId: homeFirst ? s[i + 1].id : s[i].id,
+      });
+      gameCounts.set(s[i].id, gameCounts.get(s[i].id)! + 1);
+      gameCounts.set(s[i + 1].id, gameCounts.get(s[i + 1].id)! + 1);
+    }
+    underserved = leagueTeams.filter(t => gameCounts.get(t.id)! < TARGET);
+  }
+
+  for (const { homeTeamId, awayTeamId } of matchups) {
+    await storage.createGame({
+      leagueId, season, week: 0,
+      homeTeamId, awayTeamId,
+      phase: "exhibition", isConference: false, gameType: "exhibition",
+    });
+  }
+  console.log(`[exhibition] Generated ${matchups.length} exhibition games for league ${leagueId} season ${season} (each team: ≥${TARGET} games)`);
 }
 
 function getTeamsForConference(conferenceName: string) {

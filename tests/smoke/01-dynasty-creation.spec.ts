@@ -60,9 +60,9 @@ test.describe("Dynasty Creation Smoke Test", () => {
 
     await createLeague(request, {
       name: "Dashboard Visibility Test",
-      maxTeams: 6,
-      selectedConferences: ["Ivy League"],
-      seasonLength: "short",
+      maxTeams: 13,
+      selectedConferences: ["SEC", "ACC", "Big 12"],
+      seasonLength: "medium",
     });
 
     await page.goto("/dashboard");

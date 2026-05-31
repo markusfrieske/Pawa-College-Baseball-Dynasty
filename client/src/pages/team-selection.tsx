@@ -249,6 +249,11 @@ export default function TeamSelectionPage() {
           <p className="text-muted-foreground text-sm">
             Choose {data.league.maxTeams} teams for your dynasty across {data.conferences.length} conferences.
           </p>
+          {data.league.maxTeams === 13 && data.conferences.length === 3 && (
+            <p className="text-xs text-muted-foreground mt-1">
+              4·4·5 split — 4 teams from each of the first two conferences, 5 from the third
+            </p>
+          )}
           <div className="flex justify-center gap-1 mt-4">
             <Star className="w-5 h-5 text-gold fill-gold" />
             <Star className="w-5 h-5 text-gold fill-gold" />
@@ -311,11 +316,18 @@ export default function TeamSelectionPage() {
                 <RetroCardHeader>
                   <div className="flex justify-between items-center gap-2">
                     <span className="text-sm">{conference.name}</span>
-                    {confSelectedCount > 0 && (
-                      <span className="text-xs text-gold font-pixel">
-                        {confSelectedCount} selected
-                      </span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {data.conferenceTeamPools.length === 3 && (
+                        <span className="text-[10px] text-muted-foreground font-pixel">
+                          target {data.conferenceTeamPools.indexOf(data.conferenceTeamPools.find(p => p.conference.id === conference.id)!) < data.conferenceTeamPools.length - 1 ? Math.floor(data.league.maxTeams / data.conferenceTeamPools.length) : data.league.maxTeams - Math.floor(data.league.maxTeams / data.conferenceTeamPools.length) * (data.conferenceTeamPools.length - 1)}
+                        </span>
+                      )}
+                      {confSelectedCount > 0 && (
+                        <span className="text-xs text-gold font-pixel">
+                          {confSelectedCount} selected
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </RetroCardHeader>
                 <RetroCardContent>

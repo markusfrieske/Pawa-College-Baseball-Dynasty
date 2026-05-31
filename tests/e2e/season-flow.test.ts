@@ -523,13 +523,13 @@ test.describe("Full Season-to-Season Flow", () => {
 
     const league = await createLeague(request, {
       name: `E2E Postseason Test ${Date.now()}`,
-      maxTeams: 8,
+      maxTeams: 13,
       cpuDifficulty: "beginner",
-      selectedConferences: ["WCC", "Ivy League"],
+      selectedConferences: ["SEC", "ACC", "Big 12"],
       seasonLength: "short",
     });
 
-    const selectedTeams = await getTeamsForConferences(request, league.id, 8);
+    const selectedTeams = await getTeamsForConferences(request, league.id, 13);
     await selectTeams(request, league.id, selectedTeams);
     await startDynasty(request, league.id);
 
@@ -561,13 +561,13 @@ test.describe("Full Season-to-Season Flow", () => {
 
     const league = await createLeague(request, {
       name: `E2E Season 2 Class Test ${Date.now()}`,
-      maxTeams: 8,
+      maxTeams: 13,
       cpuDifficulty: "beginner",
-      selectedConferences: ["WCC", "Ivy League"],
+      selectedConferences: ["SEC", "ACC", "Big 12"],
       seasonLength: "short",
     });
 
-    const selectedTeams = await getTeamsForConferences(request, league.id, 8);
+    const selectedTeams = await getTeamsForConferences(request, league.id, 13);
     await selectTeams(request, league.id, selectedTeams);
     await startDynasty(request, league.id);
 
@@ -604,16 +604,16 @@ test.describe("Full Season-to-Season Flow", () => {
   });
 
   test(
-    "elite difficulty: 12-team 3-conference standard-season with progression fires OVR growth",
+    "elite difficulty: 13-team 3-conference standard-season with progression fires OVR growth",
     async ({ request }) => {
       await createGuestSession(request);
 
       // ── LEAGUE CREATION ───────────────────────────────────────────────────
       const league = await createLeague(request, {
         name: `E2E Elite Standard Progression ${Date.now()}`,
-        maxTeams: 12,
+        maxTeams: 13,
         cpuDifficulty: "elite",
-        selectedConferences: ["WCC", "Ivy League", "Missouri Valley"],
+        selectedConferences: ["SEC", "ACC", "Big 12"],
         seasonLength: "medium",
         progressionEnabled: true,
       });
@@ -621,10 +621,10 @@ test.describe("Full Season-to-Season Flow", () => {
       expect(league.id, "League must have an ID").toBeTruthy();
       expect(league.currentPhase, "League should start in dynasty_setup").toBe("dynasty_setup");
 
-      // Select exactly 12 teams across 3 conferences (4 per conference)
-      const selectedTeams = await getTeamsForConferences(request, league.id, 12);
+      // Select exactly 13 teams across 3 conferences (4+4+5 split)
+      const selectedTeams = await getTeamsForConferences(request, league.id, 13);
       const totalSelected = selectedTeams.reduce((n, c) => n + c.teamNames.length, 0);
-      expect(totalSelected, "Should have 12 teams selected").toBe(12);
+      expect(totalSelected, "Should have 13 teams selected").toBe(13);
 
       await selectTeams(request, league.id, selectedTeams);
       await startDynasty(request, league.id);
@@ -634,7 +634,7 @@ test.describe("Full Season-to-Season Flow", () => {
       expect(started.currentSeason, "Season should be 1 at dynasty start").toBe(1);
 
       const teams = await getLeagueTeams(request, league.id);
-      expect(teams.length, "League should have exactly 12 teams").toBe(12);
+      expect(teams.length, "League should have exactly 13 teams").toBe(13);
 
       await setupCoach(request, league.id, teams[0].id);
 
@@ -898,13 +898,13 @@ test.describe("Departures Screen Regression", () => {
 
     const league = await createLeague(request, {
       name: `E2E Departures CWS ${Date.now()}`,
-      maxTeams: 8,
+      maxTeams: 13,
       cpuDifficulty: "beginner",
-      selectedConferences: ["WCC", "Ivy League"],
+      selectedConferences: ["SEC", "ACC", "Big 12"],
       seasonLength: "short",
     });
 
-    const selectedTeams = await getTeamsForConferences(request, league.id, 8);
+    const selectedTeams = await getTeamsForConferences(request, league.id, 13);
     await selectTeams(request, league.id, selectedTeams);
     await startDynasty(request, league.id);
 
@@ -949,13 +949,13 @@ test.describe("Departures Screen Regression", () => {
 
     const league = await createLeague(request, {
       name: `E2E Departures SR-Skip ${Date.now()}`,
-      maxTeams: 6,
+      maxTeams: 13,
       cpuDifficulty: "beginner",
-      selectedConferences: ["WCC", "Ivy League"],
+      selectedConferences: ["SEC", "ACC", "Big 12"],
       seasonLength: "short",
     });
 
-    const selectedTeams = await getTeamsForConferences(request, league.id, 6);
+    const selectedTeams = await getTeamsForConferences(request, league.id, 13);
     await selectTeams(request, league.id, selectedTeams);
     await startDynasty(request, league.id);
 
@@ -1001,13 +1001,13 @@ test.describe("Departures Screen Regression", () => {
 
     const league = await createLeague(request, {
       name: `E2E Departures Safety-Net ${Date.now()}`,
-      maxTeams: 8,
+      maxTeams: 13,
       cpuDifficulty: "beginner",
-      selectedConferences: ["WCC", "Ivy League"],
+      selectedConferences: ["SEC", "ACC", "Big 12"],
       seasonLength: "short",
     });
 
-    const selectedTeams = await getTeamsForConferences(request, league.id, 8);
+    const selectedTeams = await getTeamsForConferences(request, league.id, 13);
     await selectTeams(request, league.id, selectedTeams);
     await startDynasty(request, league.id);
 
@@ -1074,13 +1074,13 @@ test.describe("Departures Screen Regression", () => {
 
     const league = await createLeague(request, {
       name: `E2E Departures SR-Skip-Advance ${Date.now()}`,
-      maxTeams: 6,
+      maxTeams: 13,
       cpuDifficulty: "beginner",
-      selectedConferences: ["WCC", "Ivy League"],
+      selectedConferences: ["SEC", "ACC", "Big 12"],
       seasonLength: "short",
     });
 
-    const selectedTeams = await getTeamsForConferences(request, league.id, 6);
+    const selectedTeams = await getTeamsForConferences(request, league.id, 13);
     await selectTeams(request, league.id, selectedTeams);
     await startDynasty(request, league.id);
 

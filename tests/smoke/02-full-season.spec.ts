@@ -88,13 +88,13 @@ test.describe("Multi-Season Advance Smoke Test", () => {
 
     const league = await createLeague(req, {
       name: `Phase Labels Test ${Date.now()}`,
-      maxTeams: 6,
+      maxTeams: 13,
       cpuDifficulty: "beginner",
-      selectedConferences: ["WCC"],
+      selectedConferences: ["SEC", "ACC", "Big 12"],
       seasonLength: "short",
     });
 
-    const selectedTeams = await getTeamsForConferences(req, league.id, 6);
+    const selectedTeams = await getTeamsForConferences(req, league.id, 13);
     await selectTeams(req, league.id, selectedTeams);
     await startDynasty(req, league.id);
 
