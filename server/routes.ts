@@ -2279,7 +2279,7 @@ export async function registerRoutes(
   function computePlayingTimeMod(recruit: any, teamPlayers: any[]): number {
     if (recruit.recruitType !== "TRANSFER") return 1.0;
     const recruitOvr = recruit.overall || 0;
-    const PITCHER_POSITIONS = ["P", "SP", "RP", "CL", "LHP", "RHP"];
+    const PITCHER_POSITIONS = ["P", "SP", "RP", "CL", "CP", "LHP", "RHP"];
     const isPitcher = PITCHER_POSITIONS.includes(recruit.position);
     if (isPitcher) {
       const pitchersAbove = teamPlayers.filter(
