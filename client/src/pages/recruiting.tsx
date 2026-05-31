@@ -3021,6 +3021,7 @@ function RecruitRow({
                       onClick={() => { onVisit(); setShowMobileMore(false); }}
                       disabled={isVisiting || !recruit.interest || remainingPoints < visitCost || hasVisited || seasonVisitCapReached}
                       data-testid={`button-visit-mobile-${recruit.id}`}
+                      title={seasonVisitCapReached ? "Season visit limit reached (20 total campus + HC visits per season). Resets next season." : hasVisited ? "Campus Visit already used for this recruit" : undefined}
                     >
                       <Building2 className="w-3 h-3 flex-shrink-0" />
                       {hasVisited ? "Visited" : seasonVisitCapReached ? "Cap Reached" : `Visit (${visitCost} pts)`}
@@ -3030,6 +3031,7 @@ function RecruitRow({
                       onClick={() => { onHeadCoachVisit(); setShowMobileMore(false); }}
                       disabled={isHeadCoachVisiting || !recruit.interest || remainingPoints < headCoachVisitCost || hasHeadCoachVisited || seasonVisitCapReached}
                       data-testid={`button-hcvisit-mobile-${recruit.id}`}
+                      title={seasonVisitCapReached ? "Season visit limit reached (20 total campus + HC visits per season). Resets next season." : hasHeadCoachVisited ? "Head Coach Visit already used for this recruit" : undefined}
                     >
                       <Crown className="w-3 h-3 flex-shrink-0" />
                       {hasHeadCoachVisited ? "HC Visited" : seasonVisitCapReached ? "Cap Reached" : `HC Visit (${headCoachVisitCost} pts)`}
@@ -3190,7 +3192,7 @@ function RecruitRow({
                       <span className="text-[9px]">{hasVisited ? "Visited" : seasonVisitCapReached ? "Cap" : `Visit (${visitCost})`}</span>
                     </RetroButton>
                   </TooltipTrigger>
-                  <TooltipContent>{hasVisited ? "Campus Visit Used" : seasonVisitCapReached ? "Season visit cap reached (20/20)" : remainingPoints < visitCost ? `Need ${visitCost} points for Campus Visit` : `Campus Visit - ${visitCost} recruiting points`}</TooltipContent>
+                  <TooltipContent>{hasVisited ? "Campus Visit already used for this recruit" : seasonVisitCapReached ? "Season visit limit reached (20 total campus + HC visits per season). Resets next season." : remainingPoints < visitCost ? `Need ${visitCost} points for Campus Visit` : `Campus Visit - ${visitCost} recruiting points`}</TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -3205,7 +3207,7 @@ function RecruitRow({
                       <span className="text-[9px]">{hasHeadCoachVisited ? "HC Visited" : seasonVisitCapReached ? "Cap" : `HC Visit (${headCoachVisitCost})`}</span>
                     </RetroButton>
                   </TooltipTrigger>
-                  <TooltipContent>{hasHeadCoachVisited ? "Head Coach Visit Used" : seasonVisitCapReached ? "Season visit cap reached (20/20)" : remainingPoints < headCoachVisitCost ? `Need ${headCoachVisitCost} points for HC Visit` : `Head Coach Visit - ${headCoachVisitCost} recruiting points`}</TooltipContent>
+                  <TooltipContent>{hasHeadCoachVisited ? "Head Coach Visit already used for this recruit" : seasonVisitCapReached ? "Season visit limit reached (20 total campus + HC visits per season). Resets next season." : remainingPoints < headCoachVisitCost ? `Need ${headCoachVisitCost} points for HC Visit` : `Head Coach Visit - ${headCoachVisitCost} recruiting points`}</TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -4035,26 +4037,36 @@ function RecruitDetailModal({
                 <Mail className="w-4 h-4 mr-2" />
                 {isEmailing ? "Sending..." : "Email (1 pitch)"}
               </RetroButton>
-              <RetroButton 
-                variant={hasVisited ? "primary" : "outline"}
-                className="flex-1" 
-                data-testid="button-visit"
-                onClick={() => onVisit(recruit.id)}
-                disabled={isVisiting || remainingPoints < visitCost || hasVisited || seasonVisitCapReached}
-              >
-                <Building2 className="w-4 h-4 mr-2" />
-                {hasVisited ? "Visited" : seasonVisitCapReached ? "Cap Reached (20/20)" : isVisiting ? "Scheduling..." : `Campus Visit (${visitCost})`}
-              </RetroButton>
-              <RetroButton 
-                variant={hasHeadCoachVisited ? "primary" : "outline"}
-                className="flex-1" 
-                data-testid="button-head-coach-visit"
-                onClick={() => onHeadCoachVisit(recruit.id)}
-                disabled={isHeadCoachVisiting || remainingPoints < headCoachVisitCost || hasHeadCoachVisited || seasonVisitCapReached}
-              >
-                <Crown className="w-4 h-4 mr-2" />
-                {hasHeadCoachVisited ? "HC Visited" : seasonVisitCapReached ? "Cap Reached (20/20)" : isHeadCoachVisiting ? "Visiting..." : `HC Visit (${headCoachVisitCost})`}
-              </RetroButton>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <RetroButton 
+                    variant={hasVisited ? "primary" : "outline"}
+                    className="flex-1" 
+                    data-testid="button-visit"
+                    onClick={() => onVisit(recruit.id)}
+                    disabled={isVisiting || remainingPoints < visitCost || hasVisited || seasonVisitCapReached}
+                  >
+                    <Building2 className="w-4 h-4 mr-2" />
+                    {hasVisited ? "Visited" : seasonVisitCapReached ? "Cap Reached (20/20)" : isVisiting ? "Scheduling..." : `Campus Visit (${visitCost})`}
+                  </RetroButton>
+                </TooltipTrigger>
+                <TooltipContent>{hasVisited ? "Campus Visit already used for this recruit" : seasonVisitCapReached ? "Season visit limit reached (20 total campus + HC visits per season). Resets next season." : `Campus Visit — ${visitCost} recruiting points`}</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <RetroButton 
+                    variant={hasHeadCoachVisited ? "primary" : "outline"}
+                    className="flex-1" 
+                    data-testid="button-head-coach-visit"
+                    onClick={() => onHeadCoachVisit(recruit.id)}
+                    disabled={isHeadCoachVisiting || remainingPoints < headCoachVisitCost || hasHeadCoachVisited || seasonVisitCapReached}
+                  >
+                    <Crown className="w-4 h-4 mr-2" />
+                    {hasHeadCoachVisited ? "HC Visited" : seasonVisitCapReached ? "Cap Reached (20/20)" : isHeadCoachVisiting ? "Visiting..." : `HC Visit (${headCoachVisitCost})`}
+                  </RetroButton>
+                </TooltipTrigger>
+                <TooltipContent>{hasHeadCoachVisited ? "Head Coach Visit already used for this recruit" : seasonVisitCapReached ? "Season visit limit reached (20 total campus + HC visits per season). Resets next season." : `Head Coach Visit — ${headCoachVisitCost} recruiting points`}</TooltipContent>
+              </Tooltip>
               {nilRemaining != null && (recruit.nilCost || 0) > nilRemaining && !recruit.interest?.hasOffer ? (
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -4575,26 +4587,36 @@ function RecruitDetailModal({
                 <Mail className="w-4 h-4 mr-2" />
                 {isEmailing ? "Sending..." : "Email (1 pitch)"}
               </RetroButton>
-              <RetroButton 
-                variant={hasVisited ? "primary" : "outline"}
-                className="flex-1" 
-                data-testid="button-visit"
-                onClick={() => onVisit(recruit.id)}
-                disabled={isVisiting || remainingPoints < visitCost || hasVisited || seasonVisitCapReached}
-              >
-                <Building2 className="w-4 h-4 mr-2" />
-                {hasVisited ? "Visited" : seasonVisitCapReached ? "Cap Reached (20/20)" : isVisiting ? "Scheduling..." : `Campus Visit (${visitCost})`}
-              </RetroButton>
-              <RetroButton 
-                variant={hasHeadCoachVisited ? "primary" : "outline"}
-                className="flex-1" 
-                data-testid="button-head-coach-visit"
-                onClick={() => onHeadCoachVisit(recruit.id)}
-                disabled={isHeadCoachVisiting || remainingPoints < headCoachVisitCost || hasHeadCoachVisited || seasonVisitCapReached}
-              >
-                <Crown className="w-4 h-4 mr-2" />
-                {hasHeadCoachVisited ? "HC Visited" : seasonVisitCapReached ? "Cap Reached (20/20)" : isHeadCoachVisiting ? "Visiting..." : `HC Visit (${headCoachVisitCost})`}
-              </RetroButton>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <RetroButton 
+                    variant={hasVisited ? "primary" : "outline"}
+                    className="flex-1" 
+                    data-testid="button-visit"
+                    onClick={() => onVisit(recruit.id)}
+                    disabled={isVisiting || remainingPoints < visitCost || hasVisited || seasonVisitCapReached}
+                  >
+                    <Building2 className="w-4 h-4 mr-2" />
+                    {hasVisited ? "Visited" : seasonVisitCapReached ? "Cap Reached (20/20)" : isVisiting ? "Scheduling..." : `Campus Visit (${visitCost})`}
+                  </RetroButton>
+                </TooltipTrigger>
+                <TooltipContent>{hasVisited ? "Campus Visit already used for this recruit" : seasonVisitCapReached ? "Season visit limit reached (20 total campus + HC visits per season). Resets next season." : `Campus Visit — ${visitCost} recruiting points`}</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <RetroButton 
+                    variant={hasHeadCoachVisited ? "primary" : "outline"}
+                    className="flex-1" 
+                    data-testid="button-head-coach-visit"
+                    onClick={() => onHeadCoachVisit(recruit.id)}
+                    disabled={isHeadCoachVisiting || remainingPoints < headCoachVisitCost || hasHeadCoachVisited || seasonVisitCapReached}
+                  >
+                    <Crown className="w-4 h-4 mr-2" />
+                    {hasHeadCoachVisited ? "HC Visited" : seasonVisitCapReached ? "Cap Reached (20/20)" : isHeadCoachVisiting ? "Visiting..." : `HC Visit (${headCoachVisitCost})`}
+                  </RetroButton>
+                </TooltipTrigger>
+                <TooltipContent>{hasHeadCoachVisited ? "Head Coach Visit already used for this recruit" : seasonVisitCapReached ? "Season visit limit reached (20 total campus + HC visits per season). Resets next season." : `Head Coach Visit — ${headCoachVisitCost} recruiting points`}</TooltipContent>
+              </Tooltip>
               {nilRemaining != null && (recruit.nilCost || 0) > nilRemaining && !recruit.interest?.hasOffer ? (
                 <Tooltip>
                   <TooltipTrigger asChild>
