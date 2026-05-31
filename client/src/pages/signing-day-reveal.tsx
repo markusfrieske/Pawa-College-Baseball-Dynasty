@@ -6,11 +6,14 @@ import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard, RetroCardContent } from "@/components/ui/retro-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TeamBadge } from "@/components/ui/team-badge";
-import { CardBack, getTypeBadge } from "@/components/recruit-card";
 import type { RevealRecruit } from "@/components/recruit-card";
 import { StarRating } from "@/components/ui/star-rating";
 import { PlayerAvatar } from "@/components/player-avatar";
-import { ArrowLeft, Crown, Download, Trophy } from "lucide-react";
+import { ArrowLeft, Crown, Download, Trophy, Zap } from "lucide-react";
+import { isPitcher, isCatcher } from "@shared/positions";
+import { getAbilityByName } from "@shared/abilities";
+import { getPotentialGrade } from "@shared/potential";
+import { getLetterGrade } from "@/components/ui/letter-grade";
 
 interface TeamEntry {
   team: {
@@ -551,10 +554,230 @@ function RevealCardFront({ recruit, primaryColor, signingTeamAbbrev, signingTeam
   );
 }
 
+// ── RevealCardBack ─────────────────────────────────────────────
+// Enhanced back panel for the signing day flip card.
+// Shows numeric attribute values, ability names beside common grades,
+// and full recruit-type badges.
+function RevealCardBack({ recruit }: { recruit: RevealRecruit }) {
+  const pitcher = isPitcher(recruit.position);
+  const catcher = isCatcher(recruit.position);
+
+  // Ability name → attr key map (for matching special abilities to common attrs)
+  const ABILITY_TO_ATTR: Record<string, string> = {
+    "Gambler":             "clutch",
+    "Lefty Arm Killer":    "vsLHP",
+    "Express Baserunning": "running",
+    "Lightning Speed":     "stealing",
+    "Strike Thrower":      "throwing",
+    "Bazooka Arm":         "throwing",
+    "The Almanac":         "catcherAbility",
+    "Iron Man":            "grit",
+    "Big Boy Speed":       "heater",
+    "Indomitable Soul":    "poise",
+    "Sangfroid":           "wRISP",
+    "Lefty Killer":        "vsLefty",
+    "Gas Tank":            "recovery",
+    "Halting Quickness":   "agile",
+    "Grit":                "grit",
+  };
+
+  const recruitAbilities = recruit.abilities ?? [];
+  // Build attr → first matching ability name reverse map
+  const attrToAbility: Record<string, string> = {};
+  for (const name of recruitAbilities) {
+    const k = ABILITY_TO_ATTR[name];
+    if (k && !attrToAbility[k]) attrToAbility[k] = name;
+  }
+
+  // Primary numeric attributes
+  const primaryAttrs: { label: string; val: number }[] = pitcher ? [
+    { label: "VEL", val: recruit.velocity ?? 50 },
+    { label: "CTL", val: recruit.control ?? 50 },
+    { label: "STM", val: recruit.stamina ?? 50 },
+    { label: "STF", val: recruit.stuff ?? 50 },
+    { label: "ARM", val: recruit.arm ?? 50 },
+    { label: "ERR", val: recruit.errorResistance ?? 50 },
+  ] : [
+    { label: "HIT", val: recruit.hitForAvg ?? 50 },
+    { label: "PWR", val: recruit.power ?? 50 },
+    { label: "SPD", val: recruit.speed ?? 50 },
+    { label: "FLD", val: recruit.fielding ?? 50 },
+    { label: "ARM", val: recruit.arm ?? 50 },
+    { label: "ERR", val: recruit.errorResistance ?? 50 },
+  ];
+
+  // Common ability attrs
+  type CA = { label: string; val: number; key: string };
+  const commonAbils: CA[] = pitcher ? [
+    { label: "RISP", val: recruit.wRISP ?? 50,   key: "wRISP" },
+    { label: "LFT",  val: recruit.vsLefty ?? 50, key: "vsLefty" },
+    { label: "PSE",  val: recruit.poise ?? 50,   key: "poise" },
+    { label: "GRIT", val: recruit.grit ?? 50,    key: "grit" },
+    { label: "HTR",  val: recruit.heater ?? 50,  key: "heater" },
+    { label: "AGL",  val: recruit.agile ?? 50,   key: "agile" },
+    { label: "RCV",  val: recruit.recovery ?? 50, key: "recovery" },
+  ] : [
+    { label: "CLT",  val: recruit.clutch ?? 50,   key: "clutch" },
+    { label: "LHP",  val: recruit.vsLHP ?? 50,    key: "vsLHP" },
+    { label: "GRIT", val: recruit.grit ?? 50,     key: "grit" },
+    { label: "STL",  val: recruit.stealing ?? 50, key: "stealing" },
+    { label: "RUN",  val: recruit.running ?? 50,  key: "running" },
+    { label: "THW",  val: recruit.throwing ?? 50, key: "throwing" },
+    { label: "RCV",  val: recruit.recovery ?? 50, key: "recovery" },
+    ...(catcher ? [{ label: "CAT", val: recruit.catcherAbility ?? 50, key: "catcherAbility" }] : []),
+  ];
+
+  // Special abilities (gold/blue/red named badges)
+  const specialAbilities = recruitAbilities.filter(name => {
+    const a = getAbilityByName(name);
+    return a && (a.tier === "gold" || a.tier === "blue" || a.tier === "red");
+  });
+
+  const potGrade = recruit.potential ? getPotentialGrade(recruit.potential) : "?";
+  const isGen     = !!(recruit.isGenerationalGem  && recruit.gemBustRevealed);
+  const isGenBust = !!(recruit.isGenerationalBust && recruit.gemBustRevealed);
+
+  // Type badge
+  let badgeLabel = "RAW";
+  let badgeBg    = "#374151";
+  let badgeColor = "#9ca3af";
+  let badgePulse = false;
+  if (isGen) {
+    badgeLabel = "GEN GEM ✦"; badgeBg = "#92400e"; badgeColor = "#fbbf24"; badgePulse = true;
+  } else if (isGenBust) {
+    badgeLabel = "GEN BUST ✦"; badgeBg = "#7f1d1d"; badgeColor = "#fca5a5"; badgePulse = true;
+  } else if (recruit.isGem && recruit.gemBustRevealed) {
+    badgeLabel = "GEM"; badgeBg = "#065f46"; badgeColor = "#6ee7b7";
+  } else if (recruit.isBust && recruit.gemBustRevealed) {
+    badgeLabel = "BUST"; badgeBg = "#7f1d1d"; badgeColor = "#fca5a5";
+  } else if (recruit.recruitType === "STORYLINE") {
+    badgeLabel = "STORYLINE"; badgeBg = "#5b21b6"; badgeColor = "#ddd6fe";
+  } else if (recruit.recruitType === "TRANSFER") {
+    badgeLabel = recruit.fromTeamName ? `XFER·${recruit.fromTeamName.slice(0, 7)}` : "TRANSFER";
+    badgeBg = "#5b21b6"; badgeColor = "#ddd6fe";
+  } else if (recruit.recruitType === "JUCO") {
+    badgeLabel = recruit.fromTeamName ? `JUCO·${recruit.fromTeamName.slice(0, 7)}` : "JUCO";
+    badgeBg = "#0e7490"; badgeColor = "#a5f3fc";
+  }
+
+  // Grade color palettes (mirroring recruit-card.tsx internals)
+  const tierColors: Record<string, string> = {
+    s: "#fda4d5", a: "#f472b6", b: "#ef4444", c: "#f97316",
+    d: "#eab308", f: "#60a5fa", g: "#9ca3af",
+  };
+  const commonTierColors: Record<string, string> = {
+    s: "#f59e0b", a: "#3b82f6", b: "#3b82f6", c: "#38bdf8",
+    d: "#38bdf8", f: "#ef4444", g: "#ef4444",
+  };
+
+  return (
+    <div
+      className="w-full h-full flex flex-col overflow-hidden"
+      style={{ background: "linear-gradient(160deg, #0d1f0d 0%, #162616 50%, #1a2e1a 100%)", borderRadius: "8px" }}
+    >
+      {/* Header: name / pos·ovr | stars + potential */}
+      <div className="px-2 py-1 border-b border-[#2d3d2d] flex items-center justify-between gap-1 shrink-0">
+        <div className="min-w-0">
+          <div className="font-pixel text-[6.5px] text-[#C4A35A] truncate leading-tight">
+            {recruit.firstName} {recruit.lastName}
+          </div>
+          <div className="text-[6px] text-gray-500 leading-tight">{recruit.position} · {recruit.overall} OVR</div>
+        </div>
+        <div className="flex flex-col items-end gap-0.5 shrink-0">
+          <StarRating rating={recruit.starRating} size="sm" />
+          <span className="font-pixel text-[6px] text-[#C4A35A] leading-none">POT {potGrade}</span>
+        </div>
+      </div>
+
+      {/* Type badge + blue chip */}
+      <div className="px-2 pt-1 pb-0.5 flex items-center gap-1 flex-wrap shrink-0">
+        <span
+          className={`font-pixel text-[5.5px] px-1 py-0.5 rounded leading-none ${badgePulse ? "animate-pulse" : ""}`}
+          style={{ background: badgeBg, color: badgeColor }}
+        >
+          {badgeLabel}
+        </span>
+        {recruit.isBlueChip && !isGen && !isGenBust && (
+          <span className="font-pixel text-[5.5px] text-blue-400 flex items-center gap-0.5 leading-none">
+            <Crown className="w-2 h-2" />BLUE CHIP
+          </span>
+        )}
+      </div>
+
+      {/* Primary attributes: label | grade | numeric value */}
+      <div className="px-2 pt-1 pb-0.5 border-t border-[#2d3d2d] shrink-0">
+        <div className="text-[5px] text-gray-600 uppercase mb-0.5 leading-none tracking-wide">Attributes</div>
+        <div className="grid grid-cols-2 gap-x-2 gap-y-0.5">
+          {primaryAttrs.map(({ label, val }) => {
+            const { letter, tier } = getLetterGrade(val);
+            return (
+              <div key={label} className="flex items-center gap-0.5">
+                <span className="text-[5.5px] text-gray-500 w-[16px] leading-none font-mono shrink-0">{label}</span>
+                <span className="font-pixel text-[7px] font-bold w-[10px] leading-none shrink-0" style={{ color: tierColors[tier] }}>{letter}</span>
+                <span className="text-[6px] text-gray-400 leading-none font-mono">{val}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Common abilities: label | ability name (if applicable) | grade */}
+      <div className="px-2 pt-1 pb-0.5 border-t border-[#1a2e1a] shrink-0">
+        <div className="text-[5px] text-gray-600 uppercase mb-0.5 leading-none tracking-wide">Common</div>
+        <div className="flex flex-col gap-0.5">
+          {commonAbils.map(({ label, val, key }) => {
+            const { letter, tier } = getLetterGrade(val);
+            const abilName = attrToAbility[key];
+            return (
+              <div key={label} className="flex items-center gap-0.5">
+                <span className="text-[5.5px] text-gray-500 w-[17px] leading-none font-mono shrink-0">{label}</span>
+                <span className="font-pixel text-[5px] text-amber-400/80 flex-1 truncate leading-none min-w-0">
+                  {abilName ? (abilName.length > 14 ? abilName.slice(0, 14) + "…" : abilName) : ""}
+                </span>
+                <span className="font-pixel text-[7px] font-bold leading-none shrink-0 ml-0.5" style={{ color: commonTierColors[tier] }}>{letter}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Special abilities: gold/blue/red named badges */}
+      <div className="px-2 pt-1 pb-1 border-t border-[#1a2e1a] flex-1 min-h-0">
+        <div className="text-[5px] text-gray-600 uppercase mb-0.5 leading-none tracking-wide flex items-center gap-0.5">
+          <Zap className="w-2 h-2" />Special
+        </div>
+        {specialAbilities.length === 0 ? (
+          <div className="text-[5.5px] text-gray-600 italic">None</div>
+        ) : (
+          <div className="flex flex-wrap gap-0.5">
+            {specialAbilities.slice(0, 6).map(name => {
+              const a = getAbilityByName(name);
+              if (!a) return null;
+              const tierColor = a.tier === "gold"
+                ? "text-amber-400 border-amber-500/40"
+                : a.tier === "blue"
+                ? "text-blue-400 border-blue-500/40"
+                : "text-red-400 border-red-500/40";
+              return (
+                <span key={name} className={`text-[5px] border rounded px-0.5 font-pixel leading-tight ${tierColor}`}>
+                  {name.length > 13 ? name.slice(0, 13) + "…" : name}
+                </span>
+              );
+            })}
+            {specialAbilities.length > 6 && (
+              <span className="text-[5.5px] text-gray-500 leading-none">+{specialAbilities.length - 6}</span>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── RevealPortraitCard ─────────────────────────────────────────
 // Flip card used in the signing day top row.
 // Front = Power Pros portrait (light + position-family badge).
-// Back  = existing CardBack (dark stat panel, unchanged).
+// Back  = RevealCardBack (enhanced dark stat panel).
 function RevealPortraitCard({
   recruit,
   primaryColor,
@@ -647,7 +870,7 @@ function RevealPortraitCard({
             overflow: "hidden",
           }}
         >
-          <CardBack recruit={recruit} />
+          <RevealCardBack recruit={recruit} />
         </div>
       </div>
     </div>
