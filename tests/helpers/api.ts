@@ -268,13 +268,15 @@ export async function getTeamsForConferences(
   const result: { conferenceId: string; teamNames: string[] }[] = [];
   let remaining = maxTeams;
 
+  // Mirror the server's distribution: first `extras` conferences get floor(N/k)+1,
+  // the rest get floor(N/k). This matches the confTargetMap logic in routes.ts.
+  const baseCount = Math.floor(maxTeams / pools.length);
+  const extras = maxTeams % pools.length;
+
   for (let i = 0; i < pools.length; i++) {
     if (remaining <= 0) break;
     const pool = pools[i];
-    const isLast = i === pools.length - 1;
-    // Distribute evenly: first (k-1) conferences get floor(N/k), last gets remainder
-    const baseCount = Math.floor(maxTeams / pools.length);
-    const take = Math.min(remaining, isLast ? remaining : baseCount);
+    const take = Math.min(remaining, baseCount + (i < extras ? 1 : 0));
     const names = (pool.teams ?? []).slice(0, take).map((t: { name: string }) => t.name);
     if (names.length) {
       result.push({ conferenceId: pool.conference.id, teamNames: names });

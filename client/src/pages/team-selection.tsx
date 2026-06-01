@@ -193,7 +193,7 @@ export default function TeamSelectionPage() {
           const teamConf = allTeams.find(t => t.name === teamName)?.sourceConferenceId;
           if (teamConf) {
             const confIdx = data.conferences.findIndex(c => c.id === teamConf);
-            const confTarget = basePerConf + (confIdx >= confCount - extrasAllowed ? 1 : 0);
+            const confTarget = basePerConf + (confIdx < extrasAllowed ? 1 : 0);
             const selectedInConf = allTeams.filter(t => t.sourceConferenceId === teamConf && next.has(t.name)).length;
             if (selectedInConf >= confTarget) {
               toast({
@@ -343,7 +343,7 @@ export default function TeamSelectionPage() {
                         const confCount = data.conferences.length;
                         const base = Math.floor(data.league.maxTeams / confCount);
                         const extras = data.league.maxTeams % confCount;
-                        const target = base + (confIdx >= confCount - extras ? 1 : 0);
+                        const target = base + (confIdx < extras ? 1 : 0);
                         return (
                           <span className="text-[10px] text-muted-foreground font-pixel">
                             target {target}

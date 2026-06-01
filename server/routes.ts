@@ -1169,13 +1169,13 @@ export async function registerRoutes(
       }
 
       // Enforce exact per-conference targets based on conference creation order:
-      // first (C - extras) conferences get floor(N/C) teams,
-      // last extras conferences get floor(N/C)+1 (e.g. 4·4·5 for 13-team / 3-conf)
+      // first extras conferences get floor(N/C)+1 teams,
+      // remaining get floor(N/C) — so SEC (index 0) gets the extra slot
       const basePerConf = Math.floor(league.maxTeams / actualConfCount);
       const extrasAllowed = league.maxTeams % actualConfCount;
       const confTargetMap = new Map(conferences.map((c, i) => [
         c.id,
-        basePerConf + (i >= actualConfCount - extrasAllowed ? 1 : 0),
+        basePerConf + (i < extrasAllowed ? 1 : 0),
       ]));
       for (const sel of selectedTeams) {
         const target = confTargetMap.get(sel.conferenceId);
@@ -21058,6 +21058,7 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
       usedJerseyNumbers.add(rp.jerseyNumber);
       const isPitcher = ["P", "SP", "RP", "CP"].includes(rp.position);
       const playerData = {
+        position: rp.position,
         hitForAvg: rp.hitForAvg, power: rp.power, speed: rp.speed, arm: rp.arm,
         fielding: rp.fielding, errorResistance: rp.errorResistance,
         velocity: rp.velocity, control: rp.control, stamina: rp.stamina, stuff: rp.stuff,

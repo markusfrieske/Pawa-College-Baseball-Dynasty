@@ -44,7 +44,7 @@ export default function LeagueCreatePage() {
   const [name, setName] = useState("");
   const [maxTeams, setMaxTeams] = useState("13");
   const [cpuDifficulty, setCpuDifficulty] = useState("high_school");
-  const [selectedConferences, setSelectedConferences] = useState<string[]>(["SEC", "ACC", "Big 12"]);
+  const [selectedConferences, setSelectedConferences] = useState<string[]>(["SEC", "Big Ten", "ACC"]);
   const [seasonLength, setSeasonLength] = useState("medium");
   const [progressionEnabled, setProgressionEnabled] = useState(false);
   const [, setLocation] = useLocation();

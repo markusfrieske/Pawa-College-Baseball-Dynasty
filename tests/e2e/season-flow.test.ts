@@ -265,7 +265,7 @@ test.describe("Full Season-to-Season Flow", () => {
     //
     // Mathematical proof for 13-team 4+4+5 medium season (5 weeks, target=20):
     //
-    //   ── Even conferences (SEC 4-team, ACC 4-team) ─────────────────────────────────────
+    //   ── First conf (SEC 5-team), others 4-team ────────────────────────────────────────
     //   Standard 3-game Fri/Sat/Sun weekend series + 1 midweek OOC game per week.
     //   Each even conf pads its RR to 5 rounds → 5 conf series × 3 games + 5 OOC = 20 ✓
     //

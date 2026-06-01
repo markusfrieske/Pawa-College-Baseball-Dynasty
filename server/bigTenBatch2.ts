@@ -171,8 +171,8 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 0, 0, 0, 0, 4, 4, 0, 1, 0]) },
-      // Carson Jasa — FR RHP, weekend rotation
-      { firstName: "Carson", lastName: "Jasa", position: "P", eligibility: "FR", homeState: "NE", hometown: "Elkhorn", jerseyNumber: 31,
+      // Carson Jasa — SO RHP, weekend rotation
+      { firstName: "Carson", lastName: "Jasa", position: "P", eligibility: "SO", homeState: "NE", hometown: "Elkhorn", jerseyNumber: 31,
         hitForAvg: 13, power: 11, speed: 32, arm: 56, fielding: 33, errorResistance: 44, velocity: 60, control: 50, stamina: 90, stuff: 54,
         clutch: 60, vsLHP: 56, grit: 59, stealing: 9, running: 32, throwing: 68, recovery: 42, wRISP: 43, vsLefty: 43, poise: 46, heater: 59, agile: 38,
         abilities: ["Escape Pitch", "Strong Starter"], potential: "A", catcherAbility: null,
@@ -203,8 +203,8 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 0, 0, 0, 0, 4, 0, 1, 0, 0]) },
-      // Kevin Mannell — JR RHP
-      { firstName: "Kevin", lastName: "Mannell", position: "P", eligibility: "JR", homeState: "MS", hometown: "Brandon", jerseyNumber: 35,
+      // Kevin Mannell — SR RHP
+      { firstName: "Kevin", lastName: "Mannell", position: "P", eligibility: "SR", homeState: "MS", hometown: "Brandon", jerseyNumber: 35,
         hitForAvg: 14, power: 11, speed: 32, arm: 48, fielding: 30, errorResistance: 42, velocity: 52, control: 47, stamina: 41, stuff: 45,
         clutch: 56, vsLHP: 54, grit: 58, stealing: 8, running: 30, throwing: 62, recovery: 41, wRISP: 41, vsLefty: 42, poise: 43, heater: 50, agile: 38,
         abilities: ["Sharpness", "Guts"], potential: "B+", catcherAbility: null,
@@ -254,8 +254,8 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
       // INFIELDERS (7)
-      // Nico Newhan — 2B JR — TEAM ELITE HIT
-      { firstName: "Nico", lastName: "Newhan", position: "2B", eligibility: "JR", homeState: "CA", hometown: "El Cajon", jerseyNumber: 8,
+      // Nico Newhan — 2B SO — TEAM ELITE HIT
+      { firstName: "Nico", lastName: "Newhan", position: "2B", eligibility: "SO", homeState: "CA", hometown: "El Cajon", jerseyNumber: 8,
         hitForAvg: 60, power: 56, speed: 38, arm: 57, fielding: 55, errorResistance: 57, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 80, vsLHP: 76, grit: 59, stealing: 43, running: 46, throwing: 59, recovery: 46, wRISP: 80, vsLefty: 76, poise: 80, heater: 0, agile: 50,
         abilities: ["vs. Fastballs", "Defensive Artisan", "Power Hitter", "Consigliere"], potential: "A+", catcherAbility: null,
@@ -319,8 +319,8 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
-      // Cole Kitchens — OF JR
-      { firstName: "Cole", lastName: "Kitchens", position: "OF", eligibility: "JR", homeState: "GA", hometown: "Alpharetta", jerseyNumber: 9,
+      // Cole Kitchens — OF SR
+      { firstName: "Cole", lastName: "Kitchens", position: "OF", eligibility: "SR", homeState: "GA", hometown: "Alpharetta", jerseyNumber: 9,
         hitForAvg: 55, power: 55, speed: 56, arm: 55, fielding: 44, errorResistance: 38, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 59, vsLHP: 54, grit: 59, stealing: 43, running: 43, throwing: 58, recovery: 44, wRISP: 60, vsLefty: 54, poise: 60, heater: 0, agile: 38,
         abilities: ["Consigliere", "Contact Hitter"], potential: "B+", catcherAbility: null,
