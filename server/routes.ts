@@ -813,7 +813,7 @@ export async function registerRoutes(
 
       const myInterests = await storage.getRecruitingInterestsByTeam(userCoach.teamId);
 
-      const PITCHER_POS_SET = new Set(["P", "SP", "RP", "CL", "LHP", "RHP"]);
+      const PITCHER_POS_SET = new Set(["P", "SP", "RP", "CP", "CL", "LHP", "RHP"]);
       let totalOverall = 0;
       let hitterTotal = 0, hitterCount = 0;
       let pitcherTotal = 0, pitcherCount = 0;
@@ -4559,7 +4559,14 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Not authorized" });
       }
 
-      const teamId = userCoach?.teamId || (isCommissioner ? req.body?.teamId : null);
+      let teamId = userCoach?.teamId;
+      if (!teamId && isCommissioner && req.body?.teamId) {
+        const suppliedTeam = await storage.getTeam(req.body.teamId);
+        if (!suppliedTeam || suppliedTeam.leagueId !== req.params.id) {
+          return res.status(400).json({ message: "Team does not belong to this league" });
+        }
+        teamId = suppliedTeam.id;
+      }
       if (!teamId) return res.status(400).json({ message: "No team assigned" });
 
       const teamPlayers = await storage.getPlayersByTeam(teamId);
@@ -4961,7 +4968,7 @@ export async function registerRoutes(
       const avg = (nums: number[]): number =>
         nums.length === 0 ? 0 : Math.round(nums.reduce((s, v) => s + v, 0) / nums.length);
 
-      const PITCHER_POS_SET = new Set(["P", "SP", "RP", "CL", "LHP", "RHP"]);
+      const PITCHER_POS_SET = new Set(["P", "SP", "RP", "CP", "CL", "LHP", "RHP"]);
 
       // Build raw data per team
       const teamData = leagueTeams.map(team => {
@@ -5546,7 +5553,7 @@ export async function registerRoutes(
         hbp: number; doubles: number; triples: number; so: number;
       }>();
       for (const row of allSeasonStats) {
-        const PITCHER_POS = ["P", "SP", "RP", "CL", "LHP", "RHP"];
+        const PITCHER_POS = ["P", "SP", "RP", "CP", "CL", "LHP", "RHP"];
         if (PITCHER_POS.includes(row.position)) continue;
         const key = row.playerId;
         if (!battersByPlayer.has(key)) {
@@ -5614,7 +5621,7 @@ export async function registerRoutes(
         seasons: number; games: number; wins: number; losses: number; ipOuts: number;
         pEr: number; pHits: number; pBb: number; pSo: number;
       }>();
-      const PITCHER_POSITIONS = ["P", "SP", "RP", "CL", "LHP", "RHP"];
+      const PITCHER_POSITIONS = ["P", "SP", "RP", "CP", "CL", "LHP", "RHP"];
       for (const row of allSeasonStats) {
         if (!PITCHER_POSITIONS.includes(row.position) && row.ipOuts < 3) continue;
         if (row.ipOuts < 3) continue;
@@ -5834,7 +5841,7 @@ export async function registerRoutes(
 
       // ── Hall of Fame ────────────────────────────────────────────────────────
       // Build career WAR map keyed by playerId (correct aggregation, handles transfers)
-      const PITCHER_POS_HOF = ["P", "SP", "RP", "CL", "LHP", "RHP"];
+      const PITCHER_POS_HOF = ["P", "SP", "RP", "CP", "CL", "LHP", "RHP"];
       const careerWarById = new Map<string, number>();
       for (const row of allSeasonStats) {
         let war = 0;
@@ -5879,7 +5886,7 @@ export async function registerRoutes(
       const hallOfFame = hofEligible.map(p => {
         const t = teamMap.get(p.teamId);
         const pName = `${p.firstName} ${p.lastName}`;
-        const PITCHER_POS2 = ["P", "SP", "RP", "CL", "LHP", "RHP"];
+        const PITCHER_POS2 = ["P", "SP", "RP", "CP", "CL", "LHP", "RHP"];
         const resolvedPlayerId = resolveHofPlayerId(p);
         const careerWar = resolvedPlayerId ? (careerWarById.get(resolvedPlayerId) ?? 0) : 0;
         const playerStats = resolvedPlayerId
