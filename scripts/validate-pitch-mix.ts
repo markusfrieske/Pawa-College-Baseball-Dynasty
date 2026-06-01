@@ -271,9 +271,9 @@ for (const rosters of Object.values(ALL_ROSTERS)) {
 }
 
 const targets: Record<string, string> = {
-  pitchFB:  "100%",  pitch2S:  "~18%", pitchSL:  "~43%", pitchCB:  "~43%",
-  pitchCH:  "~55%",  pitchCT:  "~22%", pitchSNK: "~39%", pitchSPL: "~38%",
-  pitchFK:  "~18%",  pitchSFF: "~18%", pitchSHU:  "~7.5%",
+  pitchFB:  "100%",  pitch2S:  "~18%", pitchSL:  "~40%", pitchCB:  "~40%",
+  pitchCH:  "~35%",  pitchCT:  "~15%", pitchSNK: "~45%", pitchSPL: "~45%",
+  pitchFK:  "~18%",  pitchSFF: "~18%", pitchSHU: "~25%",
 };
 
 const labels: Record<string, string> = {

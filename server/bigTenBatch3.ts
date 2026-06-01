@@ -15,7 +15,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       clutch: 59, vsLHP: 56, grit: 61, stealing: 9, running: 31, throwing: 62, recovery: 44, wRISP: 44, vsLefty: 45, poise: 47, heater: 52, agile: 37,
       abilities: ["Strong Starter", "Strength Distribution"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
-      ...pitchMix(1, [1, 0, 3, 0, 4, 0, 0, 0, 1, 0]) },
+      ...pitchMix(1, [1, 0, 0, 0, 4, 0, 3, 0, 1, 0]) },
     { firstName: "Jarvis", lastName: "Evans", position: "P", eligibility: "JR", homeState: "SC", hometown: "Columbia", jerseyNumber: 27,
       hitForAvg: 15, power: 12, speed: 32, arm: 46, fielding: 30, errorResistance: 41, velocity: 52, control: 44, stamina: 80, stuff: 44,
       clutch: 56, vsLHP: 53, grit: 58, stealing: 8, running: 29, throwing: 59, recovery: 41, wRISP: 41, vsLefty: 42, poise: 44, heater: 48, agile: 36,
@@ -27,7 +27,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       clutch: 61, vsLHP: 55, grit: 61, stealing: 8, running: 26, throwing: 58, recovery: 43, wRISP: 45, vsLefty: 43, poise: 46, heater: 48, agile: 32,
       abilities: ["Fireman", "Good Pickoff"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
-      ...pitchMix(1, [0, 0, 0, 1, 4, 0, 0, 0, 0, 0]) },
+      ...pitchMix(1, [0, 0, 0, 0, 4, 0, 0, 0, 0, 3]) },
     { firstName: "Barron", lastName: "Sawyer", position: "P", eligibility: "SR", homeState: "IN", hometown: "Westfield", jerseyNumber: 45,
       hitForAvg: 14, power: 13, speed: 32, arm: 51, fielding: 33, errorResistance: 45, velocity: 58, control: 48, stamina: 59, stuff: 49,
       clutch: 59, vsLHP: 55, grit: 61, stealing: 9, running: 29, throwing: 64, recovery: 45, wRISP: 45, vsLefty: 45, poise: 47, heater: 55, agile: 36,
@@ -57,7 +57,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       clutch: 34, vsLHP: 33, grit: 36, stealing: 8, running: 25, throwing: 43, recovery: 23, wRISP: 22, vsLefty: 25, poise: 23, heater: 33, agile: 30,
       abilities: ["Flyball Pitcher", "Gyroball"], potential: "A-", catcherAbility: null,
       throwHand: "L", batHand: "L",
-      ...pitchMix(1, [1, 3, 0, 1, 3, 0, 0, 0, 0, 0]) },
+      ...pitchMix(1, [1, 0, 0, 0, 3, 3, 0, 0, 0, 3]) },
     // CATCHERS (2)
     { firstName: "Jackson", lastName: "Bessette", position: "C", eligibility: "JR", homeState: "IL", hometown: "Chicago", jerseyNumber: 12,
       hitForAvg: 60, power: 54, speed: 47, arm: 57, fielding: 40, errorResistance: 57, velocity: 0, control: 0, stamina: 0, stuff: 0,
@@ -192,7 +192,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       clutch: 51, vsLHP: 50, grit: 53, stealing: 8, running: 29, throwing: 56, recovery: 38, wRISP: 37, vsLefty: 39, poise: 39, heater: 45, agile: 35,
       abilities: ["Fireman", "Natural Shuuto"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",
-      ...pitchMix(1, [1, 0, 3, 1, 4, 0, 0, 0, 0, 0]) },
+      ...pitchMix(1, [1, 0, 3, 0, 4, 0, 0, 0, 0, 3]) },
     { firstName: "Jake", lastName: "DeLeo", position: "P", eligibility: "SO", homeState: "NJ", hometown: "Princeton", jerseyNumber: 48,
       hitForAvg: 9, power: 8, speed: 31, arm: 26, fielding: 18, errorResistance: 29, velocity: 43, control: 26, stamina: 31, stuff: 33,
       clutch: 35, vsLHP: 33, grit: 35, stealing: 9, running: 24, throwing: 42, recovery: 21, wRISP: 21, vsLefty: 22, poise: 22, heater: 28, agile: 29,
@@ -216,7 +216,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       clutch: 36, vsLHP: 35, grit: 37, stealing: 9, running: 26, throwing: 46, recovery: 24, wRISP: 23, vsLefty: 25, poise: 24, heater: 33, agile: 32,
       abilities: ["Escape Pitch", "Straddle"], potential: "A-", catcherAbility: null,
       throwHand: "L", batHand: "L",
-      ...pitchMix(1, [1, 0, 0, 1, 3, 0, 0, 0, 0, 0]) },
+      ...pitchMix(1, [1, 0, 0, 0, 3, 0, 0, 0, 0, 3]) },
     // CATCHERS (2)
     { firstName: "Matt", lastName: "Chatelle", position: "C", eligibility: "SR", homeState: "NJ", hometown: "Bridgewater", jerseyNumber: 12,
       hitForAvg: 69, power: 60, speed: 33, arm: 39, fielding: 36, errorResistance: 82, velocity: 0, control: 0, stamina: 0, stuff: 0,
@@ -386,7 +386,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         abilities: ["Groundball Pitcher"], potential: "B+", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [1, 0, 0, 1, 4, 0, 0, 0, 0, 0]) },
+        ...pitchMix(1, [1, 0, 0, 0, 4, 0, 0, 0, 0, 3]) },
       // Alex Williams — FR RHP depth
       { firstName: "Alex", lastName: "Williams", position: "P", eligibility: "FR", homeState: "CA", hometown: "Fresno", jerseyNumber: 50,
         hitForAvg: 9, power: 8, speed: 26, arm: 31, fielding: 19, errorResistance: 29, velocity: 33, control: 30, stamina: 38, stuff: 28,
@@ -562,7 +562,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Release", "Inside Pitch"], potential: "B", catcherAbility: null,
       throwHand: "L", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
-      ...pitchMix(1, [1, 0, 0, 1, 4, 0, 0, 0, 0, 0]) },
+      ...pitchMix(1, [1, 0, 0, 0, 4, 0, 0, 0, 0, 3]) },
     // Easton Hawk — closer, SO, mid-90s + tight horizontal SL, 16 scoreless app, Big Ten Co-Pitcher of Week, Woodland Hills CA
     { firstName: "Easton", lastName: "Hawk", position: "P", eligibility: "SO", homeState: "CA", hometown: "Woodland Hills", jerseyNumber: 27,
       hitForAvg: 11, power: 8, speed: 32, arm: 62, fielding: 34, errorResistance: 48, velocity: 61, control: 56, stamina: 58, stuff: 59,
@@ -586,7 +586,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Strong Starter", "Sharpness", "Kageura"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "tan", hairColor: "black", hairStyle: "short",
-      ...pitchMix(1, [1, 3, 0, 0, 4, 0, 0, 0, 1, 0]) },
+      ...pitchMix(1, [1, 0, 0, 0, 4, 3, 0, 0, 1, 0]) },
     // Zach Strickland — FR RHP, weekend bullpen, elite K/BB
     // Ian May — RS-Sr LHP, multi-inning long man
     { firstName: "Ian", lastName: "May", position: "P", eligibility: "SR", homeState: "CA", hometown: "Rancho Cucamonga", jerseyNumber: 38,
@@ -603,7 +603,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["True Slider", "Bad Ball Hitter"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
-      ...pitchMix(1, [1, 0, 0, 1, 3, 0, 0, 0, 0, 0]) },
+      ...pitchMix(1, [1, 0, 0, 0, 3, 0, 0, 0, 0, 3]) },
     // CATCHERS (2)
     // Cashel Dugger — JR C, Buster Posey Award watch list, primary backstop
     { firstName: "Cashel", lastName: "Dugger", position: "C", eligibility: "JR", homeState: "CA", hometown: "Torrance", jerseyNumber: 16,
@@ -743,7 +743,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       clutch: 78, vsLHP: 74, grit: 85, stealing: 10, running: 35, throwing: 80, recovery: 60, wRISP: 62, vsLefty: 63, poise: 63, heater: 69, agile: 43,
       abilities: ["Full Throttle", "Strong Starter", "Escape Pitch", "Gyroball", "Wild Fastball"], potential: "B+", catcherAbility: null,
       throwHand: "L", batHand: "L",
-      ...pitchMix(1, [1, 0, 3, 0, 4, 0, 0, 1, 0, 0]) },
+      ...pitchMix(1, [1, 0, 0, 0, 4, 0, 3, 1, 0, 0]) },
     { firstName: "Nate", lastName: "Tichy", position: "P", eligibility: "SO", homeState: "CA", hometown: "Malibu", jerseyNumber: 18,
       hitForAvg: 13, power: 10, speed: 33, arm: 49, fielding: 30, errorResistance: 41, velocity: 54, control: 45, stamina: 93, stuff: 47,
       clutch: 56, vsLHP: 52, grit: 57, stealing: 10, running: 33, throwing: 62, recovery: 39, wRISP: 41, vsLefty: 42, poise: 43, heater: 52, agile: 40,
@@ -767,7 +767,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       clutch: 53, vsLHP: 49, grit: 54, stealing: 8, running: 27, throwing: 56, recovery: 38, wRISP: 38, vsLefty: 39, poise: 40, heater: 45, agile: 34,
       abilities: ["Strong Starter", "Flyball Pitcher", "Low Ball"], potential: "B", catcherAbility: null,
       throwHand: "L", batHand: "L",
-      ...pitchMix(1, [1, 0, 0, 1, 4, 0, 0, 0, 0, 0]) },
+      ...pitchMix(1, [1, 0, 0, 0, 4, 0, 0, 0, 0, 3]) },
     { firstName: "Sam", lastName: "Strohl", position: "P", eligibility: "JR", homeState: "WA", hometown: "Olympia", jerseyNumber: 38,
       hitForAvg: 16, power: 12, speed: 32, arm: 44, fielding: 29, errorResistance: 40, velocity: 51, control: 44, stamina: 48, stuff: 42,
       clutch: 53, vsLHP: 50, grit: 54, stealing: 9, running: 29, throwing: 57, recovery: 39, wRISP: 37, vsLefty: 40, poise: 40, heater: 47, agile: 36,
@@ -791,7 +791,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       clutch: 33, vsLHP: 31, grit: 16, stealing: 7, running: 21, throwing: 38, recovery: 16, wRISP: 16, vsLefty: 16, poise: 16, heater: 16, agile: 16,
       abilities: ["Poor Finisher"], potential: "B", catcherAbility: null,
       throwHand: "L", batHand: "L",
-      ...pitchMix(1, [1, 0, 0, 1, 4, 0, 0, 0, 0, 0]) },
+      ...pitchMix(1, [1, 0, 0, 0, 4, 0, 0, 0, 0, 3]) },
     // CATCHERS (2)
     { firstName: "Colton", lastName: "Bower", position: "C", eligibility: "JR", homeState: "WA", hometown: "Pullman", jerseyNumber: 2,
       hitForAvg: 65, power: 58, speed: 49, arm: 55, fielding: 70, errorResistance: 70, velocity: 0, control: 0, stamina: 0, stuff: 0,

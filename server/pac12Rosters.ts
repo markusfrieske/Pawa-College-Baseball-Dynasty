@@ -30,7 +30,7 @@ export const PAC12_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Strong Starter", "Fireman", "Constant Speed", "Sharpness"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "tan", hairColor: "black", hairStyle: "short",
-      ...pitchMix(1, [1, 3, 0, 1, 4, 0, 0, 0, 0, 0]) },
+      ...pitchMix(1, [1, 0, 0, 0, 4, 3, 0, 0, 0, 3]) },
     // Laif Palmer — RHP, top 2026 draft prospect on team
     { firstName: "Laif", lastName: "Palmer", position: "P", eligibility: "JR", homeState: "OR", hometown: "Portland", jerseyNumber: 27,
       hitForAvg: 14, power: 11, speed: 32, arm: 64, fielding: 37, errorResistance: 50, velocity: 59, control: 59, stamina: 88, stuff: 62,
@@ -62,7 +62,7 @@ export const PAC12_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Fireman", "Strong Starter"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
-      ...pitchMix(1, [1, 0, 3, 0, 4, 0, 0, 0, 1, 0]) },
+      ...pitchMix(1, [1, 0, 0, 0, 4, 0, 3, 0, 1, 0]) },
     // Jake Pfennigs — JR RHP RP holdover
     // Sam Keller — SO RHP RP
     // Mason Pike — FR two-way SS/P, top-150 draft, up to 95mph (filed as P)
@@ -229,7 +229,7 @@ export const PAC12_ROSTERS: Record<string, RealPlayer[]> = {
       clutch: 62, vsLHP: 58, grit: 62, stealing: 11, running: 32, throwing: 64, recovery: 47, wRISP: 47, vsLefty: 48, poise: 50, heater: 54, agile: 44,
       abilities: ["Escape Pitch", "Crossfire", "Release"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",
-      ...pitchMix(1, [1, 0, 0, 1, 4, 0, 0, 0, 0, 0]) },
+      ...pitchMix(1, [1, 0, 0, 0, 4, 0, 0, 0, 0, 3]) },
     { firstName: "Mason", lastName: "Lund", position: "P", eligibility: "SR", homeState: "WA", hometown: "Spokane", jerseyNumber: 22,
       hitForAvg: 15, power: 12, speed: 32, arm: 53, fielding: 35, errorResistance: 47, velocity: 54, control: 56, stamina: 84, stuff: 52,
       clutch: 62, vsLHP: 59, grit: 62, stealing: 8, running: 29, throwing: 62, recovery: 47, wRISP: 47, vsLefty: 49, poise: 49, heater: 50, agile: 40,
