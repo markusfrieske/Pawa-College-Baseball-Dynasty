@@ -742,7 +742,7 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 11, power: 9, speed: 31, arm: 48, fielding: 30, errorResistance: 42, velocity: 52, control: 49, stamina: 43, stuff: 45,
       clutch: 56, vsLHP: 70, grit: 60, stealing: 6, running: 26, throwing: 62, recovery: 37, wRISP: 42, vsLefty: 51, poise: 45, heater: 45, agile: 38,
       abilities: ["Fireman", "Crossfire"], potential: "B+", catcherAbility: null,
-      throwHand: "L", batHand: "L",
+      throwHand: "L", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 0, 0, 0, 0, 0, 4, 1, 0, 4]) },
     // Ethan Walker — LHP sidearm, late-season key in 2025 (SEC tourney start, NCAA opener)
@@ -796,7 +796,7 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Ethan Mendoza — SO 2B, .333 in 2025 team-leader, returning star, +15 lbs offseason
-    { firstName: "Ethan", lastName: "Mendoza", position: "2B", eligibility: "SO", homeState: "TX", hometown: "El Paso", jerseyNumber: 2,
+    { firstName: "Ethan", lastName: "Mendoza", position: "2B", eligibility: "JR", homeState: "TX", hometown: "El Paso", jerseyNumber: 2,
       hitForAvg: 64, power: 61, speed: 66, arm: 63, fielding: 61, errorResistance: 48, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 72, vsLHP: 66, grit: 76, stealing: 51, running: 50, throwing: 68, recovery: 56, wRISP: 74, vsLefty: 64, poise: 72, heater: 0, agile: 56,
       abilities: ["Unrelenting", "Good Bunt", "Chance Maker", "Defensive Artisan"], potential: "A", catcherAbility: null,
@@ -812,7 +812,7 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "tan", hairColor: "black", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Temo Becerra — JR 3B Stanford transfer, .314 career, 115 starts
-    { firstName: "Temo", lastName: "Becerra", position: "3B", eligibility: "JR", homeState: "CA", hometown: "San Jose", jerseyNumber: 10,
+    { firstName: "Temo", lastName: "Becerra", position: "3B", eligibility: "SR", homeState: "CA", hometown: "San Jose", jerseyNumber: 10,
       hitForAvg: 65, power: 65, speed: 67, arm: 53, fielding: 50, errorResistance: 46, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 66, vsLHP: 64, grit: 69, stealing: 51, running: 51, throwing: 69, recovery: 52, wRISP: 66, vsLefty: 60, poise: 66, heater: 0, agile: 46,
       abilities: ["Defensive Artisan", "Two-Strike Hitter"], potential: "A-", catcherAbility: null,
@@ -820,15 +820,15 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "tan", hairColor: "black", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Josh Livingston — JR Wichita State transfer, 15 HR last year (team-leading), DH/util
-    { firstName: "Josh", lastName: "Livingston", position: "3B", eligibility: "JR", homeState: "KS", hometown: "Wichita", jerseyNumber: 20,
+    { firstName: "Josh", lastName: "Livingston", position: "3B", eligibility: "SR", homeState: "KS", hometown: "Wichita", jerseyNumber: 20,
       hitForAvg: 63, power: 69, speed: 42, arm: 67, fielding: 57, errorResistance: 50, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 60, vsLHP: 56, grit: 64, stealing: 51, running: 51, throwing: 60, recovery: 44, wRISP: 60, vsLefty: 54, poise: 58, heater: 0, agile: 36,
       abilities: ["Power Hitter"], potential: "B+", catcherAbility: null,
-      throwHand: "R", batHand: "R",
+      throwHand: "R", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Callum Early — FR INF Liberty transfer, depth
-    { firstName: "Callum", lastName: "Early", position: "2B", eligibility: "FR", homeState: "TX", hometown: "Plano", jerseyNumber: 24,
+    { firstName: "Callum", lastName: "Early", position: "2B", eligibility: "SO", homeState: "TX", hometown: "Plano", jerseyNumber: 24,
       hitForAvg: 41, power: 35, speed: 47, arm: 57, fielding: 45, errorResistance: 39, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 35, vsLHP: 41, grit: 40, stealing: 55, running: 52, throwing: 50, recovery: 28, wRISP: 28, vsLefty: 26, poise: 30, heater: 0, agile: 41,
       abilities: ["Chance Maker"], potential: "A-", catcherAbility: null,
@@ -869,11 +869,11 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Dariyan Pendergrass — JR OF Charleston transfer, speed
-    { firstName: "Dariyan", lastName: "Pendergrass", position: "OF", eligibility: "JR", homeState: "SC", hometown: "Charleston", jerseyNumber: 3,
+    { firstName: "Dariyan", lastName: "Pendergrass", position: "OF", eligibility: "SR", homeState: "SC", hometown: "Charleston", jerseyNumber: 3,
       hitForAvg: 53, power: 43, speed: 64, arm: 67, fielding: 57, errorResistance: 52, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 50, vsLHP: 47, grit: 44, stealing: 50, running: 64, throwing: 60, recovery: 38, wRISP: 42, vsLefty: 40, poise: 44, heater: 0, agile: 70,
       abilities: ["Disturbance"], potential: "B+", catcherAbility: null,
-      throwHand: "R", batHand: "R",
+      throwHand: "L", batHand: "L",
       skinTone: "deep", hairColor: "black", hairStyle: "fade",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Anthony Pack Jr — FR OF speed
@@ -881,7 +881,7 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 63, power: 66, speed: 50, arm: 67, fielding: 64, errorResistance: 50, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 54, vsLHP: 50, grit: 56, stealing: 56, running: 69, throwing: 66, recovery: 44, wRISP: 52, vsLefty: 48, poise: 54, heater: 0, agile: 72,
       abilities: ["Revenge", "Consigliere"], potential: "A+", catcherAbility: null,
-      throwHand: "R", batHand: "L",
+      throwHand: "L", batHand: "L",
       skinTone: "deep", hairColor: "black", hairStyle: "fade",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Miles Bennett — JR OF depth, cannon arm
