@@ -12,6 +12,7 @@ import { apiRequest, getQueryFn } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { calculateOVR } from "@shared/abilities";
+import { velocityToMPH } from "@/lib/playerUtils";
 import { parseErrorMessage } from "@/lib/errorUtils";
 import { TeamBadge } from "@/components/ui/team-badge";
 import { PlayerProfileCard, type Player } from "@/components/player-profile-card";
@@ -157,11 +158,13 @@ function AbilityBadge({ name }: { name: string }) {
 
 function EditableStatCell({
   value,
+  displayValue,
   playerIdx,
   field,
   onUpdate,
 }: {
   value: number;
+  displayValue?: string;
   playerIdx: number;
   field: keyof RealPlayer;
   onUpdate: (idx: number, field: keyof RealPlayer, v: unknown) => void;
@@ -212,7 +215,7 @@ function EditableStatCell({
       title={`Click to edit ${String(field)}`}
       data-testid={`cell-stat-${String(field)}-${playerIdx}`}
     >
-      {value}
+      {displayValue ?? value}
     </span>
   );
 }
@@ -1414,7 +1417,7 @@ export default function RosterViewerPage() {
                           </td>
                           <td className="px-2 py-1.5">
                             {!pitching ? <span className="text-xs text-muted-foreground/40">—</span> : (
-                              <EditableStatCell value={player.velocity} playerIdx={idx} field="velocity" onUpdate={updatePlayerField} />
+                              <EditableStatCell value={player.velocity} displayValue={`${velocityToMPH(player.velocity)} MPH`} playerIdx={idx} field="velocity" onUpdate={updatePlayerField} />
                             )}
                           </td>
                           <td className="px-2 py-1.5">
