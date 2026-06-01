@@ -834,18 +834,22 @@ export async function generateAndResolveStorylineEvents(
     }
 
     // Skip generation entirely once the regular season has ended.
-    // Arcs past this point will be force-resolved by the pre-postseason safety sweep.
+    // Arcs past this point will be handled by catchUpAndResolveStorylineArcs.
     if (currentWeek > effectiveMaxWeeks) {
-      console.log(`[storylines] week ${currentWeek} > maxWeeks ${effectiveMaxWeeks} — skipping generation, sweep will handle unresolved arcs`);
+      console.log(`[storylines] week ${currentWeek} > maxWeeks ${effectiveMaxWeeks} — skipping generation past season end`);
     } else {
       // Read the startWeek persisted in hiddenVars so the proportional arc formula
-      // maps correctly to the actual in-season window rather than absolute league weeks.
+      // maps to the actual in-season window rather than absolute league weeks.
+      // Use Infinity as initial value so the reduce correctly finds the minimum stored
+      // startWeek — using 1 would collapse all values ≥1 to 1, defeating the purpose.
       const storylines = await storage.getStorylineRecruitsByLeague(leagueId, season);
-      const startWeek = storylines.reduce((min, sl) => {
+      const rawMin = storylines.reduce((min, sl) => {
         const sw = (sl.hiddenVars as { startWeek?: number })?.startWeek ?? 1;
         return Math.min(min, sw);
-      }, 1);
+      }, Infinity);
+      const startWeek = isFinite(rawMin) ? rawMin : 1;
       const effectiveWeek = Math.max(1, currentWeek - startWeek + 1);
+      // totalWeeks = remaining in-season window: from startWeek to last regular-season week
       const totalWeeks = Math.max(1, effectiveMaxWeeks - startWeek + 1);
 
       console.log(`[storylines] generateWeekly: rawWeek=${currentWeek} startWeek=${startWeek} effectiveWeek=${effectiveWeek} totalWeeks=${totalWeeks}`);
@@ -1071,4 +1075,90 @@ async function simulateCpuVotes(leagueId: string): Promise<void> {
   } catch (err) {
     console.error("[storylines] simulateCpuVotes error:", err);
   }
+}
+
+// Force-generate and immediately resolve ALL remaining arc events for storyline recruits
+// that didn't complete their arcs during normal weekly advancement (e.g., late self-heal,
+// rate-limiting, or final-week timing gaps).  Called once before the pre-postseason sweep
+// so every recruit finishes their full arc before offseason signing day.
+//
+// Algorithm: round-loop
+//   1. Generate one event per non-exhausted recruit that has no pending unresolved event.
+//   2. Resolve every pending event with a far-future week boundary so newly-generated
+//      events are included regardless of their stamped week number.
+//   3. Repeat until no new events were generated or resolved (convergence).
+export async function catchUpAndResolveStorylineArcs(
+  leagueId: string,
+  season: number,
+  currentWeek: number,
+): Promise<number> {
+  let totalResolved = 0;
+  const MAX_ROUNDS = 30;
+
+  try {
+    for (let round = 0; round < MAX_ROUNDS; round++) {
+      const storylines = await storage.getStorylineRecruitsByLeague(leagueId, season);
+      const unresolvedNow = await storage.getUnresolvedStorylineEvents(leagueId, season);
+      const unresolvedByRecruit = new Set(unresolvedNow.map(e => e.storylineRecruitId));
+
+      let generated = 0;
+
+      for (const sl of storylines) {
+        const def = ARCHETYPE_DEFS[sl.archetype as Archetype];
+        if (!def) continue;
+
+        const allTemplateIds = [
+          ...def.events.map((e) => e.id),
+          ...(sl.isLegendary && def.legendaryEvents ? def.legendaryEvents.map((e) => e.id) : []),
+        ];
+
+        const currentUsed: string[] = (sl.usedTemplateIds as string[] | null) ?? [];
+        // Skip fully-exhausted recruits
+        if (currentUsed.length > 0 && allTemplateIds.every((id) => currentUsed.includes(id))) continue;
+        // Must resolve any existing unresolved event before generating the next one
+        if (unresolvedByRecruit.has(sl.id)) continue;
+
+        const recruit = await storage.getRecruit(sl.recruitId);
+        if (!recruit) continue;
+
+        const recruitName = `${recruit.firstName} ${recruit.lastName}`;
+        const eventData = generateStorylineEvent(
+          sl.id, leagueId, season, currentWeek,
+          sl.archetype as Archetype,
+          sl.currentArcStage,
+          sl.isLegendary,
+          recruitName,
+          undefined,
+          recruit.position ?? undefined,
+          currentUsed,
+        );
+
+        const { scenePrompt: _scenePrompt, ...insertableEventData } = eventData;
+        await storage.createStorylineEvent({ ...insertableEventData, archetypeAtEvent: sl.archetype });
+
+        if (eventData.templateId) {
+          const dedupedUsed = Array.from(new Set([...currentUsed, eventData.templateId]));
+          await storage.updateStorylineRecruit(sl.id, { usedTemplateIds: dedupedUsed });
+        }
+
+        generated++;
+      }
+
+      // Resolve everything pending — use a far-future week so newly-generated events
+      // (stamped at currentWeek) are not skipped by the event.week >= boundary check.
+      const resolved = await resolveAllPendingStorylineEvents(leagueId, season, currentWeek + 9999);
+      totalResolved += resolved;
+
+      if (generated === 0 && resolved === 0) {
+        console.log(`[storylines] catch-up: complete after ${round + 1} round(s) — ${totalResolved} total arc events resolved`);
+        break;
+      }
+
+      console.log(`[storylines] catch-up round ${round + 1}: generated ${generated}, resolved ${resolved}`);
+    }
+  } catch (err) {
+    console.error("[storylines] catchUpAndResolveStorylineArcs error:", err);
+  }
+
+  return totalResolved;
 }
