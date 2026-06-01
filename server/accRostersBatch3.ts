@@ -244,7 +244,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Ryan", lastName: "McAllister", position: "C", eligibility: "FR", homeState: "CA", hometown: "Menlo Park", jerseyNumber: 20,
       hitForAvg: 32, power: 26, speed: 26, arm: 38, fielding: 40, errorResistance: 32, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 28, vsLHP: 26, grit: 26, stealing: 24, running: 26, throwing: 42, recovery: 20, wRISP: 22, vsLefty: 20, poise: 24, heater: 0, agile: 22,
-      abilities: [], potential: "B+", catcherAbility: 32,
+      abilities: ["Slow Starter"], potential: "B+", catcherAbility: 32,
       throwHand: "R", batHand: "R",
       ...noPitches },
     // INFIELDERS (6)
@@ -289,7 +289,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Max", lastName: "Harrison", position: "2B", eligibility: "FR", homeState: "CA", hometown: "Sacramento", jerseyNumber: 32,
       hitForAvg: 34, power: 28, speed: 46, arm: 32, fielding: 44, errorResistance: 34, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 28, vsLHP: 28, grit: 28, stealing: 32, running: 38, throwing: 40, recovery: 20, wRISP: 24, vsLefty: 22, poise: 26, heater: 0, agile: 34,
-      abilities: [], potential: "B+", catcherAbility: null,
+      abilities: ["Walk"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...noPitches },
     // Jack O'Brien — SR 2B/OF #9 (utility; pos OF→2B to balance roster; elig JR→SR; jersey freed from Bowser removal)
