@@ -111,7 +111,7 @@ function hasCommissionerAccess(
 }
 
 async function autoAssignLineup(storage: any, teamPlayers: Player[], teamId: string): Promise<void> {
-  const PITCHER_POSITIONS = ["P", "SP", "RP", "CL", "LHP", "RHP"];
+  const PITCHER_POSITIONS = ["P", "SP", "RP", "CP", "CL", "LHP", "RHP"];
   const OF_POSITIONS = ["LF", "CF", "RF"];
   const positionPlayers = teamPlayers.filter(p => !PITCHER_POSITIONS.includes(p.position));
   const pitchers = teamPlayers.filter(p => PITCHER_POSITIONS.includes(p.position));
@@ -266,7 +266,7 @@ async function autoAssignLineup(storage: any, teamPlayers: Player[], teamId: str
     .sort((a, b) => (b.overall || 0) - (a.overall || 0));
   for (let i = 0; i < remainingBullpen.length; i++) {
     const role = bullpenRoles[i] ?? null;
-    roleMap.set(remainingBullpen[i].id, role ?? "");
+    if (role !== null) roleMap.set(remainingBullpen[i].id, role);
   }
 
   // Collect pitcher role updates, then flush all writes in one batch
@@ -4485,7 +4485,7 @@ export async function registerRoutes(
         }
       }
 
-      const PITCHER_POS_LP = ["P", "SP", "RP", "CL", "LHP", "RHP"];
+      const PITCHER_POS_LP = ["P", "SP", "RP", "CP", "CL", "LHP", "RHP"];
       const teamId = userCoach?.teamId;
       for (const a of assignments) {
         const player = await storage.getPlayer(a.playerId);
@@ -4532,7 +4532,8 @@ export async function registerRoutes(
         const player = await storage.getPlayer(assignment.playerId);
         if (!player) continue;
         if (!isCommissioner && player.teamId !== teamId) continue;
-        if (player.position !== "P") {
+        const PITCHER_POS_ROLES = ["P", "SP", "RP", "CP", "CL", "LHP", "RHP"];
+        if (!PITCHER_POS_ROLES.includes(player.position)) {
           return res.status(400).json({ message: `Player ${player.firstName} ${player.lastName} is not a pitcher` });
         }
         await storage.updatePlayer(assignment.playerId, { pitchingRole: assignment.pitchingRole });
@@ -4558,7 +4559,7 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Not authorized" });
       }
 
-      const teamId = userCoach?.teamId;
+      const teamId = userCoach?.teamId || (isCommissioner ? req.body?.teamId : null);
       if (!teamId) return res.status(400).json({ message: "No team assigned" });
 
       const teamPlayers = await storage.getPlayersByTeam(teamId);
@@ -4566,9 +4567,10 @@ export async function registerRoutes(
 
       const updatedRoster = await storage.getPlayersByTeam(teamId);
       res.json({ success: true, roster: updatedRoster });
-    } catch (error) {
-      console.error("Failed to auto-assign lineup:", error);
-      res.status(500).json({ message: "Failed to auto-assign lineup" });
+    } catch (error: any) {
+      console.error("Failed to auto-assign lineup:", error?.message || error);
+      console.error("Stack:", error?.stack);
+      res.status(500).json({ message: "Failed to auto-assign lineup", detail: error?.message });
     }
   });
 
