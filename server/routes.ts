@@ -4577,7 +4577,7 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("Failed to auto-assign lineup:", error?.message || error);
       console.error("Stack:", error?.stack);
-      res.status(500).json({ message: "Failed to auto-assign lineup", detail: error?.message });
+      res.status(500).json({ message: "Failed to auto-assign lineup" });
     }
   });
 
@@ -5070,7 +5070,7 @@ export async function registerRoutes(
       ]);
 
       const teamMap = new Map(leagueTeams.map(t => [t.id, t]));
-      const PITCHER_POSITIONS = new Set(["SP", "RP", "CL", "P"]);
+      const PITCHER_POSITIONS = new Set(["P", "SP", "RP", "CP", "CL", "LHP", "RHP"]);
 
       const activePlayers = allPlayers.filter(p => !p.pendingDeparture && !p.declaredForDraft);
 
