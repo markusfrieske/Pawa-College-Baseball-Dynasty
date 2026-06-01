@@ -1382,6 +1382,7 @@ export interface StorylineHiddenVars {
   collapseSeed: boolean;   // chance of collapse event this season
   ceilingModifier: number; // -20 to +20: permanent OVR ceiling shift from storyline
   loyaltySeed: number;     // 1-10: loyalty to their current top school
+  startWeek?: number;      // league week when this recruit's storyline arc was initialized
 }
 
 export interface ChoiceWeights {

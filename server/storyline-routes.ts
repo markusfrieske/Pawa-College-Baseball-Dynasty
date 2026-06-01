@@ -463,7 +463,11 @@ export function registerStorylineRoutes(app: Express) {
 
 // ─── Core Storyline Logic ──────────────────────────────────────────────────────
 
-export async function initializeStorylineRecruits(leagueId: string, season: number, force = false): Promise<number> {
+// startWeek: the league's currentWeek when this season's in-season phase begins.
+// For regular season starts this is always 1 (week counter resets at walkons).
+// For late self-heal initializations it reflects the actual advance week so the
+// proportional arc formula can map correctly to the remaining season window.
+export async function initializeStorylineRecruits(leagueId: string, season: number, force = false, startWeek = 1): Promise<number> {
   try {
     if (!force) {
       const existing = await storage.getStorylineRecruitsByLeague(leagueId, season);
@@ -507,7 +511,10 @@ export async function initializeStorylineRecruits(leagueId: string, season: numb
         season,
         archetype: pick.archetype,
         tier: pick.tier,
-        hiddenVars: pick.hiddenVars,
+        // Embed startWeek into hiddenVars so generateAndResolveStorylineEvents can
+        // compute the effective storyline week (currentWeek - startWeek + 1) and
+        // the proportional arc window (maxWeeks - startWeek + 1) at generation time.
+        hiddenVars: { ...pick.hiddenVars, startWeek },
         isLegendary: pick.isLegendary,
         currentArcStage: 0,
         resolvedOvrDelta: 0,
@@ -524,9 +531,9 @@ export async function initializeStorylineRecruits(leagueId: string, season: numb
       }
     }
 
-
-
-    await generateWeeklyStorylineEvents(leagueId, season, 1);
+    // Fire first arc events using the effective start week so events are stored
+    // with the correct raw week number for resolution ordering.
+    await generateWeeklyStorylineEvents(leagueId, season, startWeek, undefined, startWeek);
 
     return picks.length;
   } catch (err) {
@@ -685,9 +692,17 @@ export async function generateAndResolveStorylineEvents(
   season: number,
   currentWeek: number,
   seasonLength: string = "medium",
+  maxWeeks?: number,
 ): Promise<{ resolved: number; generated: number }> {
   let resolved = 0;
   let generated = 0;
+
+  // Compute the hard cap for regular-season story generation.
+  // Events must not be created past the last regular-season week because the
+  // safety sweep that runs at the regular_season→conference_championship boundary
+  // uses a week boundary to decide what to resolve; events created after maxWeeks
+  // would always slip past that check.
+  const effectiveMaxWeeks = maxWeeks ?? (seasonLength === "long" ? 10 : 5);
 
   try {
     // Season-scoped: only resolve events from the current season to prevent cross-season bleed
@@ -818,8 +833,24 @@ export async function generateAndResolveStorylineEvents(
       resolved++;
     }
 
-    const totalWeeks = seasonLength === "long" ? 10 : 5;
-    generated = await generateWeeklyStorylineEvents(leagueId, season, currentWeek, totalWeeks);
+    // Skip generation entirely once the regular season has ended.
+    // Arcs past this point will be force-resolved by the pre-postseason safety sweep.
+    if (currentWeek > effectiveMaxWeeks) {
+      console.log(`[storylines] week ${currentWeek} > maxWeeks ${effectiveMaxWeeks} — skipping generation, sweep will handle unresolved arcs`);
+    } else {
+      // Read the startWeek persisted in hiddenVars so the proportional arc formula
+      // maps correctly to the actual in-season window rather than absolute league weeks.
+      const storylines = await storage.getStorylineRecruitsByLeague(leagueId, season);
+      const startWeek = storylines.reduce((min, sl) => {
+        const sw = (sl.hiddenVars as { startWeek?: number })?.startWeek ?? 1;
+        return Math.min(min, sw);
+      }, 1);
+      const effectiveWeek = Math.max(1, currentWeek - startWeek + 1);
+      const totalWeeks = Math.max(1, effectiveMaxWeeks - startWeek + 1);
+
+      console.log(`[storylines] generateWeekly: rawWeek=${currentWeek} startWeek=${startWeek} effectiveWeek=${effectiveWeek} totalWeeks=${totalWeeks}`);
+      generated = await generateWeeklyStorylineEvents(leagueId, season, currentWeek, totalWeeks, effectiveWeek);
+    }
     await simulateCpuVotes(leagueId);
   } catch (err) {
     console.error("[storylines] generateAndResolve error:", err);
@@ -828,7 +859,10 @@ export async function generateAndResolveStorylineEvents(
   return { resolved, generated };
 }
 
-async function generateWeeklyStorylineEvents(leagueId: string, season: number, week: number, totalWeeks = 5): Promise<number> {
+// week: raw league week used to stamp new events in the DB (for resolution ordering)
+// totalWeeks: the full in-season window used for the proportional idealWeek formula
+// effectiveWeek: storyline-relative week (currentWeek - startWeek + 1) used in proportionalReady
+async function generateWeeklyStorylineEvents(leagueId: string, season: number, week: number, totalWeeks = 5, effectiveWeek = week): Promise<number> {
   let count = 0;
   try {
     const storylines = await storage.getStorylineRecruitsByLeague(leagueId, season);
@@ -898,14 +932,15 @@ async function generateWeeklyStorylineEvents(leagueId: string, season: number, w
     // is proportionally due given the current week and total season weeks.
     // For a recruit at arc stage S with T total events, the ideal trigger week is:
     //   round((S + 1) / T * totalWeeks)
-    // Recruits are included if week >= idealWeek (on schedule or overdue).
+    // Uses effectiveWeek (storyline-relative) so the formula maps correctly when
+    // storylines were initialized mid-season (startWeek > 1).
     const proportionalReady = cappedNonExhausted.filter(sl => {
       const def = ARCHETYPE_DEFS[sl.archetype as Archetype];
       const totalArcEvents = def.events.length + (sl.isLegendary && def.legendaryEvents ? def.legendaryEvents.length : 0);
       if (totalArcEvents === 0) return true;
       const stage = sl.currentArcStage;
       const idealWeek = Math.round((stage + 1) / totalArcEvents * totalWeeks);
-      return week >= idealWeek;
+      return effectiveWeek >= idealWeek;
     });
 
     // Fall back ONLY to recruits at arc stage 0 (never fired their first event).

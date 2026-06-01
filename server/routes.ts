@@ -8702,15 +8702,17 @@ export async function registerRoutes(
         try {
           // Self-heal: if no storyline recruits exist but recruits do exist, this dynasty
           // was started with a saved class before the fix — initialize them now.
+          // Pass currentWeek as startWeek so the proportional arc formula maps to the
+          // remaining season window rather than treating week N as week 1.
           const existingStorylines = await storage.getStorylineRecruitsByLeague(leagueId, league.currentSeason);
           if (existingStorylines.length === 0) {
             const existingRecruits = await storage.getRecruitsByLeague(leagueId);
             if (existingRecruits.length > 0) {
               console.log(`[storylines] self-heal: no storyline recruits found for league ${leagueId} season ${league.currentSeason}, initializing now`);
-              await initializeStorylineRecruits(leagueId, league.currentSeason);
+              await initializeStorylineRecruits(leagueId, league.currentSeason, false, currentWeek);
             }
           }
-          await generateAndResolveStorylineEvents(leagueId, league.currentSeason, nextWeek, league.seasonLength ?? "medium");
+          await generateAndResolveStorylineEvents(leagueId, league.currentSeason, nextWeek, league.seasonLength ?? "medium", maxWeeks);
         } catch (err) {
           console.error("[storylines] Failed to generate/resolve storyline events:", err);
         }
@@ -9603,10 +9605,11 @@ export async function registerRoutes(
       }
 
       if (nextWeek > maxWeeks) {
-        // Safety sweep: force-resolve any storyline arcs that didn't fire naturally
-        // before postseason begins, so no recruits are stuck mid-arc at offseason.
+        // Safety sweep: force-resolve ALL pending storyline arcs before postseason begins.
+        // Use nextWeek + 1 as the boundary so even events generated in this final advance
+        // (which carry week=nextWeek) are included — passing currentWeek would skip them.
         try {
-          const swept = await resolveAllPendingStorylineEvents(leagueId, league.currentSeason, currentWeek);
+          const swept = await resolveAllPendingStorylineEvents(leagueId, league.currentSeason, nextWeek + 1);
           if (swept > 0) console.log(`[storylines] pre-postseason sweep: resolved ${swept} pending arc event(s) for league ${leagueId}`);
         } catch (e) { console.error("[storylines] pre-postseason sweep error:", e); }
         await generateConferenceChampionships(leagueId, league.currentSeason);
@@ -9875,7 +9878,27 @@ export async function registerRoutes(
             } catch (e) { console.error("Stat accumulation error:", e); }
           }
 
+          // Advance storyline arcs each simulated week (same logic as the regular advance route).
+          // Runs before the phase-transition check so generation always has nextWeek <= maxWeeks;
+          // the safety sweep below handles any residual events after the final regular-season week.
+          try {
+            const bulkSimStorylineExisting = await storage.getStorylineRecruitsByLeague(leagueId, currentLeague.currentSeason);
+            if (bulkSimStorylineExisting.length === 0) {
+              const bulkSimRecruits = await storage.getRecruitsByLeague(leagueId);
+              if (bulkSimRecruits.length > 0) {
+                await initializeStorylineRecruits(leagueId, currentLeague.currentSeason, false, currentLeague.currentWeek ?? 1);
+              }
+            }
+            await generateAndResolveStorylineEvents(leagueId, currentLeague.currentSeason, nextWeek, currentLeague.seasonLength ?? "medium", maxWeeks);
+          } catch (e) { console.warn("[storylines] bulk-sim weekly generation error:", e); }
+
           if (nextWeek > maxWeeks) {
+            // Safety sweep: force-resolve ALL pending arcs before postseason, including any
+            // events generated in this final advance (which carry week=nextWeek).
+            try {
+              const swept = await resolveAllPendingStorylineEvents(leagueId, currentLeague.currentSeason, nextWeek + 1);
+              if (swept > 0) console.log(`[storylines] bulk-sim pre-postseason sweep: resolved ${swept} arc event(s)`);
+            } catch (e) { console.warn("[storylines] bulk-sim pre-postseason sweep error:", e); }
             await generateConferenceChampionships(leagueId, currentLeague.currentSeason);
             invalidateGameCache();
             currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "conference_championship", currentWeek: nextWeek })) as any;
