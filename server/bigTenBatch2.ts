@@ -719,12 +719,12 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [1, 0, 0, 1, 0, 4, 0, 0, 0, 0]) },
-      // Toby Twist — JR RHP closer/RP
-      { firstName: "Toby", lastName: "Twist", position: "P", eligibility: "JR", homeState: "WA", hometown: "Seattle", jerseyNumber: 38,
+      // Toby Twist — JR LHP closer/RP
+      { firstName: "Toby", lastName: "Twist", position: "P", eligibility: "JR", homeState: "WA", hometown: "Seattle", jerseyNumber: 4,
         hitForAvg: 14, power: 10, speed: 32, arm: 58, fielding: 33, errorResistance: 44, velocity: 64, control: 51, stamina: 50, stuff: 56,
         clutch: 70, vsLHP: 64, grit: 67, stealing: 9, running: 30, throwing: 72, recovery: 44, wRISP: 49, vsLefty: 49, poise: 54, heater: 59, agile: 40,
         abilities: ["Fireman", "Release"], potential: "A-", catcherAbility: null,
-        throwHand: "R", batHand: "R",
+        throwHand: "L", batHand: "L",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 0, 0, 1, 4, 0, 0, 0, 0, 4]) },
       // Ian Umlandt — JR RHP RP
@@ -743,12 +743,12 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [1, 0, 0, 0, 0, 4, 0, 0, 1, 0]) },
-      // Tyler Jones — SO RP
-      { firstName: "Tyler", lastName: "Jones", position: "P", eligibility: "SO", homeState: "CA", hometown: "Sacramento", jerseyNumber: 35,
+      // Tyler Jones — SO RHP RP
+      { firstName: "Tyler", lastName: "Jones", position: "P", eligibility: "SO", homeState: "CA", hometown: "Sacramento", jerseyNumber: 1,
         hitForAvg: 8, power: 7, speed: 22, arm: 29, fielding: 19, errorResistance: 28, velocity: 35, control: 26, stamina: 36, stuff: 27,
         clutch: 33, vsLHP: 32, grit: 33, stealing: 7, running: 20, throwing: 39, recovery: 24, wRISP: 22, vsLefty: 24, poise: 24, heater: 31, agile: 26,
         abilities: ["Groundball Pitcher"], potential: "A-", catcherAbility: null,
-        throwHand: "L", batHand: "L",
+        throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [1, 0, 0, 0, 0, 4, 0, 0, 0, 3]) },
       // Sean Murphy — SO depth
@@ -770,7 +770,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
       // Burke-Lee Mabeus — SO C, 2025 All-Freshman
-      { firstName: "Burke-Lee", lastName: "Mabeus", position: "C", eligibility: "SO", homeState: "OR", hometown: "Tigard", jerseyNumber: 12,
+      { firstName: "Burke-Lee", lastName: "Mabeus", position: "C", eligibility: "SO", homeState: "OR", hometown: "Tigard", jerseyNumber: 5,
         hitForAvg: 59, power: 51, speed: 21, arm: 62, fielding: 62, errorResistance: 64, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 50, vsLHP: 50, grit: 52, stealing: 41, running: 41, throwing: 67, recovery: 44, wRISP: 48, vsLefty: 44, poise: 50, heater: 0, agile: 36,
         abilities: ["Defensive Artisan"], potential: "A-", catcherAbility: 56,
@@ -811,19 +811,11 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
       // Jake Morrison — 3B JR
-      { firstName: "Jake", lastName: "Morrison", position: "3B", eligibility: "JR", homeState: "OR", hometown: "Corvallis", jerseyNumber: 5,
+      { firstName: "Jake", lastName: "Morrison", position: "3B", eligibility: "JR", homeState: "OR", hometown: "Corvallis", jerseyNumber: 9,
         hitForAvg: 64, power: 55, speed: 59, arm: 64, fielding: 51, errorResistance: 40, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 50, vsLHP: 51, grit: 52, stealing: 55, running: 52, throwing: 67, recovery: 42, wRISP: 50, vsLefty: 46, poise: 50, heater: 0, agile: 44,
         abilities: ["Push", "Contact Hitter"], potential: "B+", catcherAbility: null,
         throwHand: "R", batHand: "R",
-        skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...noPitches },
-      // Owen Richards — 1B SO depth
-      { firstName: "Owen", lastName: "Richards", position: "1B", eligibility: "SO", homeState: "OR", hometown: "Medford", jerseyNumber: 34,
-        hitForAvg: 45, power: 43, speed: 58, arm: 52, fielding: 45, errorResistance: 34, velocity: 0, control: 0, stamina: 0, stuff: 0,
-        clutch: 43, vsLHP: 37, grit: 43, stealing: 48, running: 45, throwing: 39, recovery: 31, wRISP: 35, vsLefty: 33, poise: 37, heater: 0, agile: 30,
-        abilities: ["Two-Strike Hitter", "Insurer"], potential: "B+", catcherAbility: null,
-        throwHand: "R", batHand: "S",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
       // Brayden Schultz — SS FR depth
@@ -836,7 +828,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         ...noPitches },
       // OUTFIELDERS (6)
       // Drew Smith — OF JR, 14 HR (team lead)
-      { firstName: "Drew", lastName: "Smith", position: "OF", eligibility: "JR", homeState: "OR", hometown: "Beaverton", jerseyNumber: 7,
+      { firstName: "Drew", lastName: "Smith", position: "OF", eligibility: "JR", homeState: "OR", hometown: "Beaverton", jerseyNumber: 15,
         hitForAvg: 62, power: 62, speed: 66, arm: 65, fielding: 58, errorResistance: 40, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 64, vsLHP: 60, grit: 64, stealing: 49, running: 50, throwing: 66, recovery: 46, wRISP: 64, vsLefty: 60, poise: 64, heater: 0, agile: 52,
         abilities: ["Trickster", "Spray Hitter", "Power Hitter"], potential: "A", catcherAbility: null,
@@ -844,7 +836,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
       // Angel Laya — OF FR, .302/40 RBI/13 HR (BT best frosh, BA #10 2028)
-      { firstName: "Angel", lastName: "Laya", position: "OF", eligibility: "FR", homeState: "FL", hometown: "Miami", jerseyNumber: 1,
+      { firstName: "Angel", lastName: "Laya", position: "OF", eligibility: "FR", homeState: "FL", hometown: "Miami", jerseyNumber: 11,
         hitForAvg: 64, power: 62, speed: 47, arm: 37, fielding: 64, errorResistance: 59, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 64, vsLHP: 58, grit: 64, stealing: 49, running: 49, throwing: 66, recovery: 44, wRISP: 64, vsLefty: 58, poise: 64, heater: 0, agile: 50,
         abilities: ["Power Hitter", "Consigliere", "Defensive Artisan"], potential: "A+", catcherAbility: null,
@@ -852,11 +844,11 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         skinTone: "tan", hairColor: "black", hairStyle: "short",
         ...noPitches },
       // Elijah Cook — OF SR
-      { firstName: "Elijah", lastName: "Cook", position: "OF", eligibility: "SR", homeState: "CA", hometown: "Oakland", jerseyNumber: 9,
+      { firstName: "Elijah", lastName: "Cook", position: "OF", eligibility: "SR", homeState: "CA", hometown: "Oakland", jerseyNumber: 3,
         hitForAvg: 62, power: 55, speed: 47, arm: 30, fielding: 61, errorResistance: 64, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 56, vsLHP: 52, grit: 56, stealing: 49, running: 52, throwing: 66, recovery: 46, wRISP: 54, vsLefty: 50, poise: 56, heater: 0, agile: 56,
         abilities: ["Pull Hitter", "Contact Hitter"], potential: "B+", catcherAbility: null,
-        throwHand: "R", batHand: "L",
+        throwHand: "L", batHand: "R",
         skinTone: "deep", hairColor: "black", hairStyle: "fade",
         ...noPitches },
       // Tyler Nash — OF SO
@@ -876,20 +868,29 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
       // Cole Hendrickson — OF SO
-      { firstName: "Cole", lastName: "Hendrickson", position: "OF", eligibility: "SO", homeState: "OR", hometown: "Springfield", jerseyNumber: 26,
+      { firstName: "Cole", lastName: "Hendrickson", position: "OF", eligibility: "SO", homeState: "OR", hometown: "Springfield", jerseyNumber: 16,
         hitForAvg: 44, power: 36, speed: 64, arm: 44, fielding: 31, errorResistance: 20, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 43, vsLHP: 41, grit: 41, stealing: 53, running: 56, throwing: 50, recovery: 28, wRISP: 26, vsLefty: 26, poise: 28, heater: 0, agile: 42,
         abilities: ["Disturbance"], potential: "A-", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
-    { firstName: "Marcus", lastName: "Curialle", position: "OF", eligibility: "JR", homeState: "CA", hometown: "Los Angeles", jerseyNumber: 1,
-      hitForAvg: 63, power: 57, speed: 40, arm: 62, fielding: 64, errorResistance: 56, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 64, vsLHP: 58, grit: 66, stealing: 52, running: 58, throwing: 66, recovery: 54, wRISP: 62, vsLefty: 58, poise: 64, heater: 0, agile: 60,
-      abilities: ["Bases Loaded Slugger", "Spray Hitter"], potential: "A-", catcherAbility: null,
-      throwHand: "R", batHand: "R",
-      skinTone: "dark", hairColor: "black", hairStyle: "short",
-      ...noPitches },
+      // Jack Brooks — OF/UTL RS-JR, #6, 16 SBs, late-bloomer speed/utility, from Vacaville CA
+      { firstName: "Jack", lastName: "Brooks", position: "OF", eligibility: "JR", homeState: "CA", hometown: "Vacaville", jerseyNumber: 6,
+        hitForAvg: 54, power: 43, speed: 72, arm: 52, fielding: 54, errorResistance: 42, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        clutch: 52, vsLHP: 48, grit: 56, stealing: 66, running: 64, throwing: 58, recovery: 42, wRISP: 50, vsLefty: 44, poise: 50, heater: 0, agile: 58,
+        abilities: ["Head-first Slide", "Lightning Speed", "Good Infield Hit"], potential: "B+", catcherAbility: null,
+        throwHand: "R", batHand: "L",
+        skinTone: "light", hairColor: "brown", hairStyle: "short",
+        ...noPitches },
+      // Jax Gimenez — INF/OF SO, #7, .321/.476/.491, switch-hitter, strong walk rate, dual-threat, from Rocklin CA
+      { firstName: "Jax", lastName: "Gimenez", position: "INF", eligibility: "SO", homeState: "CA", hometown: "Rocklin", jerseyNumber: 7,
+        hitForAvg: 60, power: 50, speed: 60, arm: 54, fielding: 52, errorResistance: 48, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        clutch: 60, vsLHP: 58, grit: 57, stealing: 55, running: 56, throwing: 60, recovery: 46, wRISP: 62, vsLefty: 56, poise: 58, heater: 0, agile: 54,
+        abilities: ["Contact Hitter", "Push", "Tough Out"], potential: "A-", catcherAbility: null,
+        throwHand: "R", batHand: "S",
+        skinTone: "tan", hairColor: "black", hairStyle: "short",
+        ...noPitches },
 ],
   
   "Penn State": [
