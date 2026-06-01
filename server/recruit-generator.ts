@@ -163,14 +163,18 @@ export interface GenerateRecruitClassOptions {
 
 export type GeneratedRecruit = Omit<InsertRecruit, "leagueId">;
 
-const NIL_PREMIUM_POSITIONS = new Set(["P", "C", "SS"]);
+// SP/C/SS/OF command premium NIL (SP = starting pitcher; OF approximates CF
+// since the game uses a single OF bucket rather than CF/LF/RF).
+const NIL_PREMIUM_POSITIONS = new Set(["SP", "C", "SS", "OF"]);
+// RP/CP and 1B are utility/bench positions that command below-average NIL.
+const NIL_UTILITY_POSITIONS = new Set(["RP", "CP", "1B"]);
 
 function generateNilCost(
   starRank: number,
   isBlueChip: boolean,
   isGenerationalGem: boolean,
   isGenerationalBust: boolean,
-  position: string = "P",
+  position: string = "SP",
 ): number {
   if (isGenerationalBust) {
     return Math.floor(5000 + Math.random() * 25000);
@@ -188,10 +192,18 @@ function generateNilCost(
   const [min, max] = ranges[idx];
   const baseCost = Math.floor(min + Math.random() * (max - min));
 
-  // Premium positions (P, C, SS) command higher NIL than standard positions.
-  const posMultiplier = NIL_PREMIUM_POSITIONS.has(position)
-    ? 1.10 + Math.random() * 0.15  // 1.10–1.25×
-    : 1.0;
+  // Three-tier position multiplier:
+  //   Premium (SP, C, SS, OF): 1.10–1.25×
+  //   Average (2B, 3B):        1.0×
+  //   Utility/bench (RP, CP, 1B): 0.85–0.95×
+  let posMultiplier: number;
+  if (NIL_PREMIUM_POSITIONS.has(position)) {
+    posMultiplier = 1.10 + Math.random() * 0.15;
+  } else if (NIL_UTILITY_POSITIONS.has(position)) {
+    posMultiplier = 0.85 + Math.random() * 0.10;
+  } else {
+    posMultiplier = 1.0;
+  }
   const adjusted = Math.floor(baseCost * posMultiplier);
 
   if (isGenerationalGem) return Math.floor(adjusted * (3 + Math.random() * 2));
