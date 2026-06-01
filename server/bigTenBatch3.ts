@@ -532,7 +532,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
   "UCLA": [
     // PITCHERS (10) — staff-leading 3.07 ERA, deepest rotation in country
     // Logan Reddemann — Friday SP, JR transfer from USD, projected first-rd, 8 quality starts, elite FB + tantalizing CH
-    { firstName: "Logan", lastName: "Reddemann", position: "P", eligibility: "JR", homeState: "CA", hometown: "San Diego", jerseyNumber: 21,
+    { firstName: "Logan", lastName: "Reddemann", position: "P", eligibility: "JR", homeState: "CA", hometown: "San Diego", jerseyNumber: 24,
       hitForAvg: 18, power: 14, speed: 33, arm: 71, fielding: 43, errorResistance: 56, velocity: 69, control: 64, stamina: 77, stuff: 71,
       clutch: 78, vsLHP: 75, grit: 63, stealing: 8, running: 33, throwing: 80, recovery: 62, wRISP: 63, vsLefty: 62, poise: 63, heater: 63, agile: 48,
       abilities: ["Low Ball", "Inside Pitch", "Natural Shuuto", "Kageura", "Heavy Ball", "True Slider"], potential: "A", catcherAbility: null,
@@ -540,7 +540,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [1, 0, 0, 0, 4, 0, 0, 1, 0, 0]) },
     // Wylan Moss — Saturday bulk reliever / piggyback, SO, team-best 0.89 ERA, 93-95 + elite CH (20" horizontal break), top-15 2027 prospect
-    { firstName: "Wylan", lastName: "Moss", position: "P", eligibility: "SO", homeState: "CA", hometown: "Calabasas", jerseyNumber: 40,
+    { firstName: "Wylan", lastName: "Moss", position: "P", eligibility: "SO", homeState: "CA", hometown: "Calabasas", jerseyNumber: 43,
       hitForAvg: 12, power: 10, speed: 32, arm: 64, fielding: 39, errorResistance: 52, velocity: 64, control: 57, stamina: 77, stuff: 66,
       clutch: 76, vsLHP: 72, grit: 63, stealing: 7, running: 30, throwing: 75, recovery: 52, wRISP: 63, vsLefty: 59, poise: 63, heater: 56, agile: 50,
       abilities: ["Strong Starter", "Inside Pitch", "Sharpness"], potential: "A", catcherAbility: null,
@@ -572,7 +572,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 0, 0, 1, 4, 0, 0, 0, 0, 0]) },
     // Cal Randall — JR setup, 98mph FB touching 100, 21K/11IP (42% K rate, 8th P4), walks 1 of 5
-    { firstName: "Cal", lastName: "Randall", position: "P", eligibility: "JR", homeState: "CA", hometown: "Temecula", jerseyNumber: 33,
+    { firstName: "Cal", lastName: "Randall", position: "P", eligibility: "JR", homeState: "CA", hometown: "Temecula", jerseyNumber: 85,
       hitForAvg: 10, power: 8, speed: 32, arm: 66, fielding: 32, errorResistance: 44, velocity: 69, control: 37, stamina: 31, stuff: 61,
       clutch: 64, vsLHP: 60, grit: 60, stealing: 6, running: 28, throwing: 78, recovery: 38, wRISP: 46, vsLefty: 46, poise: 47, heater: 60, agile: 50,
       abilities: ["Fireman", "Straddle", "Walk"], potential: "A-", catcherAbility: null,
@@ -587,9 +587,16 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "R",
       skinTone: "tan", hairColor: "black", hairStyle: "short",
       ...pitchMix(1, [1, 0, 0, 0, 4, 3, 0, 0, 1, 0]) },
-    // Zach Strickland — FR RHP, weekend bullpen, elite K/BB
+    // Zach Strickland — FR RHP, weekend bullpen, elite K/BB, 27 APP, 2.82 ERA
+    { firstName: "Zach", lastName: "Strickland", position: "P", eligibility: "FR", homeState: "CA", hometown: "Los Angeles", jerseyNumber: 12,
+      hitForAvg: 10, power: 8, speed: 31, arm: 53, fielding: 32, errorResistance: 44, velocity: 53, control: 55, stamina: 34, stuff: 52,
+      clutch: 48, vsLHP: 46, grit: 49, stealing: 7, running: 27, throwing: 65, recovery: 38, wRISP: 38, vsLefty: 40, poise: 42, heater: 48, agile: 43,
+      abilities: ["Sharpness"], potential: "B+", catcherAbility: null,
+      throwHand: "R", batHand: "R",
+      skinTone: "light", hairColor: "brown", hairStyle: "short",
+      ...pitchMix(1, [0, 0, 4, 0, 0, 0, 0, 0, 1, 0]) },
     // Ian May — RS-Sr LHP, multi-inning long man
-    { firstName: "Ian", lastName: "May", position: "P", eligibility: "SR", homeState: "CA", hometown: "Rancho Cucamonga", jerseyNumber: 38,
+    { firstName: "Ian", lastName: "May", position: "P", eligibility: "SR", homeState: "CA", hometown: "Rancho Cucamonga", jerseyNumber: 32,
       hitForAvg: 12, power: 9, speed: 30, arm: 44, fielding: 30, errorResistance: 46, velocity: 41, control: 47, stamina: 37, stuff: 37,
       clutch: 54, vsLHP: 70, grit: 56, stealing: 5, running: 22, throwing: 56, recovery: 38, wRISP: 38, vsLefty: 52, poise: 41, heater: 37, agile: 32,
       abilities: ["Fireman", "Good Pickoff"], potential: "B", catcherAbility: null,
@@ -606,7 +613,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       ...pitchMix(1, [1, 0, 0, 0, 3, 0, 0, 0, 0, 3]) },
     // CATCHERS (2)
     // Cashel Dugger — JR C, Buster Posey Award watch list, primary backstop
-    { firstName: "Cashel", lastName: "Dugger", position: "C", eligibility: "JR", homeState: "CA", hometown: "Torrance", jerseyNumber: 16,
+    { firstName: "Cashel", lastName: "Dugger", position: "C", eligibility: "JR", homeState: "CA", hometown: "Torrance", jerseyNumber: 40,
       hitForAvg: 65, power: 50, speed: 62, arm: 70, fielding: 66, errorResistance: 58, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 63, vsLHP: 62, grit: 70, stealing: 47, running: 47, throwing: 86, recovery: 56, wRISP: 64, vsLefty: 60, poise: 68, heater: 0, agile: 38,
       abilities: ["Defensive Artisan", "Revenge", "Consigliere"], potential: "A-", catcherAbility: 70,
@@ -614,7 +621,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Khansarinia — backup C, allowed 10 SB on 12 attempts (mentioned in PDF SBA)
-    { firstName: "Sam", lastName: "Khansarinia", position: "C", eligibility: "SO", homeState: "CA", hometown: "Irvine", jerseyNumber: 18,
+    { firstName: "Sam", lastName: "Khansarinia", position: "C", eligibility: "SO", homeState: "CA", hometown: "Irvine", jerseyNumber: 8,
       hitForAvg: 40, power: 34, speed: 54, arm: 55, fielding: 38, errorResistance: 30, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 38, vsLHP: 33, grit: 39, stealing: 36, running: 31, throwing: 60, recovery: 30, wRISP: 30, vsLefty: 28, poise: 32, heater: 0, agile: 26,
       abilities: ["Bases Loaded Slugger", "Tough Out", "Resilient"], potential: "B-", catcherAbility: 42,
@@ -623,7 +630,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // INFIELDERS (7)
     // Roch Cholowsky — JR SS, projected #1 overall MLB pick, .335/18HR/62R, leads B10 in runs, generational talent
-    { firstName: "Roch", lastName: "Cholowsky", position: "SS", eligibility: "JR", homeState: "CA", hometown: "Oceanside", jerseyNumber: 2,
+    { firstName: "Roch", lastName: "Cholowsky", position: "SS", eligibility: "JR", homeState: "CA", hometown: "Oceanside", jerseyNumber: 1,
       hitForAvg: 87, power: 56, speed: 69, arm: 68, fielding: 75, errorResistance: 70, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 90, vsLHP: 90, grit: 42, stealing: 54, running: 58, throwing: 60, recovery: 42, wRISP: 90, vsLefty: 90, poise: 90, heater: 0, agile: 75,
       abilities: ["Push", "Power Hitter", "Consigliere", "Tough Out", "Defensive Artisan", "Magician"], potential: "A+", catcherAbility: null,
@@ -631,7 +638,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Mulivai Levu — 1B, .347/14HR/54RBI, All-Conference 2025
-    { firstName: "Mulivai", lastName: "Levu", position: "1B", eligibility: "JR", homeState: "HI", hometown: "Honolulu", jerseyNumber: 24,
+    { firstName: "Mulivai", lastName: "Levu", position: "1B", eligibility: "JR", homeState: "HI", hometown: "Honolulu", jerseyNumber: 39,
       hitForAvg: 67, power: 77, speed: 65, arm: 53, fielding: 51, errorResistance: 73, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 80, vsLHP: 70, grit: 63, stealing: 47, running: 47, throwing: 63, recovery: 54, wRISP: 78, vsLefty: 68, poise: 74, heater: 0, agile: 32,
       abilities: ["Line Drive", "Power Hitter", "Consigliere"], potential: "A-", catcherAbility: null,
@@ -639,7 +646,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "tan", hairColor: "black", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Roman Martin — JR, .339/7HR, All-Conference, hybrid C/3B per Daily Bruin
-    { firstName: "Roman", lastName: "Martin", position: "3B", eligibility: "JR", homeState: "CA", hometown: "Chino Hills", jerseyNumber: 8,
+    { firstName: "Roman", lastName: "Martin", position: "3B", eligibility: "JR", homeState: "CA", hometown: "Chino Hills", jerseyNumber: 7,
       hitForAvg: 66, power: 64, speed: 61, arm: 66, fielding: 68, errorResistance: 64, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 70, vsLHP: 63, grit: 63, stealing: 47, running: 47, throwing: 75, recovery: 52, wRISP: 70, vsLefty: 66, poise: 70, heater: 0, agile: 44,
       abilities: ["Flying Start", "Spray Hitter", "Defensive Artisan"], potential: "A-", catcherAbility: null,
@@ -647,7 +654,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Aidan Espinoza — SO INF, .360 (team batting leader), Sherman Oaks/Notre Dame HS
-    { firstName: "Aidan", lastName: "Espinoza", position: "2B", eligibility: "SO", homeState: "CA", hometown: "Sherman Oaks", jerseyNumber: 6,
+    { firstName: "Aidan", lastName: "Espinoza", position: "2B", eligibility: "SO", homeState: "CA", hometown: "Sherman Oaks", jerseyNumber: 5,
       hitForAvg: 59, power: 57, speed: 57, arm: 58, fielding: 53, errorResistance: 48, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 65, vsLHP: 63, grit: 62, stealing: 47, running: 47, throwing: 66, recovery: 50, wRISP: 68, vsLefty: 66, poise: 64, heater: 0, agile: 54,
       abilities: ["Spray Hitter", "Chance Maker"], potential: "A", catcherAbility: null,
@@ -655,20 +662,20 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "tan", hairColor: "black", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Phoenix Call — JR INF, 1 HR, role player
-    { firstName: "Phoenix", lastName: "Call", position: "SS", eligibility: "JR", homeState: "CA", hometown: "Anaheim", jerseyNumber: 3,
+    { firstName: "Phoenix", lastName: "Call", position: "SS", eligibility: "JR", homeState: "CA", hometown: "Anaheim", jerseyNumber: 4,
       hitForAvg: 45, power: 38, speed: 62, arm: 40, fielding: 38, errorResistance: 28, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 43, vsLHP: 39, grit: 41, stealing: 52, running: 55, throwing: 55, recovery: 31, wRISP: 33, vsLefty: 31, poise: 34, heater: 0, agile: 43,
       abilities: ["Power Hitter", "Error Prone"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "medium",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
-    // Cole Lee — depth IF (mentioned in PDF SBA totals)
-    { firstName: "Cole", lastName: "Lee", position: "2B", eligibility: "FR", homeState: "CA", hometown: "Glendale", jerseyNumber: 14,
-      hitForAvg: 41, power: 34, speed: 41, arm: 58, fielding: 53, errorResistance: 43, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 39, vsLHP: 39, grit: 43, stealing: 54, running: 51, throwing: 52, recovery: 30, wRISP: 30, vsLefty: 28, poise: 32, heater: 0, agile: 42,
-      abilities: ["Pinch Hitter"], potential: "B+", catcherAbility: null,
-      throwHand: "L", batHand: "L",
-      skinTone: "light", hairColor: "black", hairStyle: "short",
+    // Jarrod Hocking — FR utility INF, 21 GP-11 GS, .214/.560
+    { firstName: "Jarrod", lastName: "Hocking", position: "2B", eligibility: "FR", homeState: "CA", hometown: "San Diego", jerseyNumber: 15,
+      hitForAvg: 37, power: 31, speed: 44, arm: 43, fielding: 42, errorResistance: 39, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 36, vsLHP: 33, grit: 38, stealing: 46, running: 47, throwing: 52, recovery: 31, wRISP: 28, vsLefty: 27, poise: 30, heater: 0, agile: 42,
+      abilities: ["Pinch Hitter"], potential: "B", catcherAbility: null,
+      throwHand: "R", batHand: "R",
+      skinTone: "light", hairColor: "brown", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Tommy Bott — backup 1B/depth (mentioned in PDF SBA)
     { firstName: "Tommy", lastName: "Bott", position: "1B", eligibility: "FR", homeState: "CA", hometown: "San Clemente", jerseyNumber: 28,
@@ -680,7 +687,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // OUTFIELDERS (6)
     // Will Gasparino — JR OF, Texas transfer, .322/18HR (team co-leader), LA/Harvard-Westlake, two-time All-Big 12, SEC All-Defense
-    { firstName: "Will", lastName: "Gasparino", position: "OF", eligibility: "JR", homeState: "CA", hometown: "Los Angeles", jerseyNumber: 11,
+    { firstName: "Will", lastName: "Gasparino", position: "OF", eligibility: "JR", homeState: "CA", hometown: "Los Angeles", jerseyNumber: 9,
       hitForAvg: 78, power: 68, speed: 60, arm: 41, fielding: 71, errorResistance: 71, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 80, vsLHP: 63, grit: 70, stealing: 47, running: 50, throwing: 63, recovery: 56, wRISP: 76, vsLefty: 68, poise: 72, heater: 0, agile: 56,
       abilities: ["Power Hitter", "Opposite Field Hitter", "Good Infield Hit"], potential: "A-", catcherAbility: null,
@@ -688,7 +695,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "light", hairColor: "brown", hairStyle: "medium",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Dean West — LF leadoff, .470 OBP, JR, walks/HBP machine
-    { firstName: "Dean", lastName: "West", position: "OF", eligibility: "JR", homeState: "CA", hometown: "Temecula", jerseyNumber: 7,
+    { firstName: "Dean", lastName: "West", position: "OF", eligibility: "JR", homeState: "CA", hometown: "Temecula", jerseyNumber: 36,
       hitForAvg: 59, power: 57, speed: 45, arm: 57, fielding: 58, errorResistance: 60, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 66, vsLHP: 63, grit: 76, stealing: 47, running: 58, throwing: 63, recovery: 52, wRISP: 64, vsLefty: 64, poise: 68, heater: 0, agile: 60,
       abilities: ["Chance Maker", "Home Defense"], potential: "A-", catcherAbility: null,
@@ -696,43 +703,36 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Payton Brennan — JR OF, 8 HR, 6 SB
-    { firstName: "Payton", lastName: "Brennan", position: "OF", eligibility: "JR", homeState: "CA", hometown: "Anaheim", jerseyNumber: 9,
+    { firstName: "Payton", lastName: "Brennan", position: "OF", eligibility: "JR", homeState: "CA", hometown: "Anaheim", jerseyNumber: 11,
       hitForAvg: 59, power: 59, speed: 41, arm: 62, fielding: 55, errorResistance: 58, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 60, vsLHP: 56, grit: 62, stealing: 47, running: 52, throwing: 63, recovery: 48, wRISP: 60, vsLefty: 56, poise: 60, heater: 0, agile: 52,
       abilities: ["Consigliere"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
-    // Daylen Reyes — SO OF speed/defense
-    { firstName: "Daylen", lastName: "Reyes", position: "OF", eligibility: "SO", homeState: "CA", hometown: "Oxnard", jerseyNumber: 30,
-      hitForAvg: 53, power: 47, speed: 59, arm: 55, fielding: 50, errorResistance: 45, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 50, vsLHP: 46, grit: 48, stealing: 55, running: 60, throwing: 63, recovery: 44, wRISP: 44, vsLefty: 42, poise: 46, heater: 0, agile: 60,
-      abilities: ["Final Hit"], potential: "B+", catcherAbility: null,
+    // Trey Gudoy — SO OF, 30 GP-19 GS, .273/.755, multi-position utility
+    { firstName: "Trey", lastName: "Gudoy", position: "OF", eligibility: "SO", homeState: "CA", hometown: "Los Angeles", jerseyNumber: 38,
+      hitForAvg: 54, power: 46, speed: 57, arm: 52, fielding: 51, errorResistance: 48, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 52, vsLHP: 48, grit: 50, stealing: 50, running: 55, throwing: 60, recovery: 43, wRISP: 46, vsLefty: 44, poise: 48, heater: 0, agile: 52,
+      abilities: ["Multi-Hit"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "tan", hairColor: "black", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
-    // Tristan Iwanaga — depth OF (mentioned PDF SBA 2-2)
-    { firstName: "Tristan", lastName: "Iwanaga", position: "OF", eligibility: "SO", homeState: "HI", hometown: "Honolulu", jerseyNumber: 17,
-      hitForAvg: 44, power: 38, speed: 61, arm: 45, fielding: 35, errorResistance: 24, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 33, vsLHP: 38, grit: 39, stealing: 45, running: 52, throwing: 52, recovery: 32, wRISP: 32, vsLefty: 30, poise: 33, heater: 0, agile: 42,
-      abilities: ["Multi-Hit", "vs. Ace"], potential: "B", catcherAbility: null,
+    // Dominic Cadiz — SO OF, 39 GP-28 GS, .256/.742
+    { firstName: "Dominic", lastName: "Cadiz", position: "OF", eligibility: "SO", homeState: "CA", hometown: "Riverside", jerseyNumber: 6,
+      hitForAvg: 50, power: 43, speed: 54, arm: 48, fielding: 53, errorResistance: 50, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 48, vsLHP: 44, grit: 47, stealing: 48, running: 52, throwing: 57, recovery: 40, wRISP: 44, vsLefty: 42, poise: 46, heater: 0, agile: 48,
+      abilities: ["Chance Maker"], potential: "B+", catcherAbility: null,
+      throwHand: "R", batHand: "R",
+      skinTone: "tan", hairColor: "black", hairStyle: "short",
+      pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
+    // Aiden Aguayo — SO OF, 38 GP-30 GS, .243/.694
+    { firstName: "Aiden", lastName: "Aguayo", position: "OF", eligibility: "SO", homeState: "CA", hometown: "Burbank", jerseyNumber: 26,
+      hitForAvg: 47, power: 41, speed: 56, arm: 47, fielding: 50, errorResistance: 47, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 45, vsLHP: 42, grit: 46, stealing: 50, running: 54, throwing: 55, recovery: 38, wRISP: 41, vsLefty: 40, poise: 44, heater: 0, agile: 50,
+      abilities: ["Final Hit"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "L",
       skinTone: "tan", hairColor: "black", hairStyle: "short",
-      pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
-    // Michael Curialle — JR OF depth
-    { firstName: "Michael", lastName: "Curialle", position: "OF", eligibility: "JR", homeState: "CA", hometown: "Rancho Cucamonga", jerseyNumber: 26,
-      hitForAvg: 44, power: 40, speed: 61, arm: 57, fielding: 47, errorResistance: 38, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 42, vsLHP: 39, grit: 39, stealing: 55, running: 49, throwing: 50, recovery: 30, wRISP: 32, vsLefty: 30, poise: 34, heater: 0, agile: 36,
-      abilities: ["Good Mood"], potential: "B", catcherAbility: null,
-      throwHand: "R", batHand: "R",
-      skinTone: "light", hairColor: "brown", hairStyle: "short",
-      pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
-    { firstName: "Alonzo", lastName: "Richardson", position: "OF", eligibility: "JR", homeState: "CA", hometown: "Los Angeles", jerseyNumber: 5,
-      hitForAvg: 56, power: 44, speed: 38, arm: 58, fielding: 56, errorResistance: 60, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 62, vsLHP: 56, grit: 63, stealing: 48, running: 56, throwing: 63, recovery: 54, wRISP: 60, vsLefty: 56, poise: 62, heater: 0, agile: 58,
-      abilities: ["Spray Hitter"], potential: "A-", catcherAbility: null,
-      throwHand: "R", batHand: "R",
-      skinTone: "dark", hairColor: "black", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
   ],
 
