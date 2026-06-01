@@ -555,12 +555,12 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [1, 0, 0, 1, 4, 4, 0, 0, 0, 0]) },
-    // Landon Stump — Sunday SP, JR, 4.33 ERA, ~3 IP/start, surviving Sundays
-    { firstName: "Landon", lastName: "Stump", position: "P", eligibility: "JR", homeState: "CA", hometown: "Huntington Beach", jerseyNumber: 14,
+    // Landon Stump — Sunday SP, SO, 4.33 ERA, ~3 IP/start, surviving Sundays
+    { firstName: "Landon", lastName: "Stump", position: "P", eligibility: "SO", homeState: "CA", hometown: "Huntington Beach", jerseyNumber: 14,
       hitForAvg: 14, power: 11, speed: 32, arm: 48, fielding: 33, errorResistance: 48, velocity: 55, control: 45, stamina: 92, stuff: 45,
       clutch: 56, vsLHP: 54, grit: 58, stealing: 6, running: 28, throwing: 60, recovery: 41, wRISP: 41, vsLefty: 42, poise: 44, heater: 47, agile: 42,
       abilities: ["Release", "Inside Pitch"], potential: "B", catcherAbility: null,
-      throwHand: "L", batHand: "L",
+      throwHand: "R", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [1, 0, 0, 0, 4, 0, 0, 0, 0, 3]) },
     // Easton Hawk — closer, SO, mid-90s + tight horizontal SL, 16 scoreless app, Big Ten Co-Pitcher of Week, Woodland Hills CA
@@ -568,7 +568,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 11, power: 8, speed: 32, arm: 62, fielding: 34, errorResistance: 48, velocity: 61, control: 56, stamina: 58, stuff: 59,
       clutch: 80, vsLHP: 72, grit: 63, stealing: 7, running: 30, throwing: 75, recovery: 47, wRISP: 61, vsLefty: 56, poise: 62, heater: 53, agile: 47,
       abilities: ["Fireman", "Pace", "Sharpness"], potential: "A-", catcherAbility: null,
-      throwHand: "R", batHand: "S",
+      throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 0, 0, 1, 4, 0, 0, 0, 0, 0]) },
     // Cal Randall — JR setup, 98mph FB touching 100, 21K/11IP (42% K rate, 8th P4), walks 1 of 5
@@ -610,7 +610,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 65, power: 50, speed: 62, arm: 70, fielding: 66, errorResistance: 58, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 63, vsLHP: 62, grit: 70, stealing: 47, running: 47, throwing: 86, recovery: 56, wRISP: 64, vsLefty: 60, poise: 68, heater: 0, agile: 38,
       abilities: ["Defensive Artisan", "Revenge", "Consigliere"], potential: "A-", catcherAbility: 70,
-      throwHand: "R", batHand: "R",
+      throwHand: "R", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Khansarinia — backup C, allowed 10 SB on 12 attempts (mentioned in PDF SBA)
@@ -635,27 +635,27 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 67, power: 77, speed: 65, arm: 53, fielding: 51, errorResistance: 73, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 80, vsLHP: 70, grit: 63, stealing: 47, running: 47, throwing: 63, recovery: 54, wRISP: 78, vsLefty: 68, poise: 74, heater: 0, agile: 32,
       abilities: ["Line Drive", "Power Hitter", "Consigliere"], potential: "A-", catcherAbility: null,
-      throwHand: "L", batHand: "L",
+      throwHand: "R", batHand: "L",
       skinTone: "tan", hairColor: "black", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
-    // Roman Martin — SO, .339/7HR, All-Conference, hybrid C/3B per Daily Bruin
-    { firstName: "Roman", lastName: "Martin", position: "3B", eligibility: "SO", homeState: "CA", hometown: "Chino Hills", jerseyNumber: 8,
+    // Roman Martin — JR, .339/7HR, All-Conference, hybrid C/3B per Daily Bruin
+    { firstName: "Roman", lastName: "Martin", position: "3B", eligibility: "JR", homeState: "CA", hometown: "Chino Hills", jerseyNumber: 8,
       hitForAvg: 66, power: 64, speed: 61, arm: 66, fielding: 68, errorResistance: 64, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 70, vsLHP: 63, grit: 63, stealing: 47, running: 47, throwing: 75, recovery: 52, wRISP: 70, vsLefty: 66, poise: 70, heater: 0, agile: 44,
       abilities: ["Flying Start", "Spray Hitter", "Defensive Artisan"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
-    // Aidan Espinoza — FR INF, .360 (team batting leader), Sherman Oaks/Notre Dame HS
-    { firstName: "Aidan", lastName: "Espinoza", position: "2B", eligibility: "FR", homeState: "CA", hometown: "Sherman Oaks", jerseyNumber: 6,
+    // Aidan Espinoza — SO INF, .360 (team batting leader), Sherman Oaks/Notre Dame HS
+    { firstName: "Aidan", lastName: "Espinoza", position: "2B", eligibility: "SO", homeState: "CA", hometown: "Sherman Oaks", jerseyNumber: 6,
       hitForAvg: 59, power: 57, speed: 57, arm: 58, fielding: 53, errorResistance: 48, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 65, vsLHP: 63, grit: 62, stealing: 47, running: 47, throwing: 66, recovery: 50, wRISP: 68, vsLefty: 66, poise: 64, heater: 0, agile: 54,
       abilities: ["Spray Hitter", "Chance Maker"], potential: "A", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "tan", hairColor: "black", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
-    // Phoenix Call — SO INF, 1 HR, role player
-    { firstName: "Phoenix", lastName: "Call", position: "SS", eligibility: "SO", homeState: "CA", hometown: "Anaheim", jerseyNumber: 3,
+    // Phoenix Call — JR INF, 1 HR, role player
+    { firstName: "Phoenix", lastName: "Call", position: "SS", eligibility: "JR", homeState: "CA", hometown: "Anaheim", jerseyNumber: 3,
       hitForAvg: 45, power: 38, speed: 62, arm: 40, fielding: 38, errorResistance: 28, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 43, vsLHP: 39, grit: 41, stealing: 52, running: 55, throwing: 55, recovery: 31, wRISP: 33, vsLefty: 31, poise: 34, heater: 0, agile: 43,
       abilities: ["Power Hitter", "Error Prone"], potential: "B+", catcherAbility: null,
@@ -667,7 +667,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 41, power: 34, speed: 41, arm: 58, fielding: 53, errorResistance: 43, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 39, vsLHP: 39, grit: 43, stealing: 54, running: 51, throwing: 52, recovery: 30, wRISP: 30, vsLefty: 28, poise: 32, heater: 0, agile: 42,
       abilities: ["Pinch Hitter"], potential: "B+", catcherAbility: null,
-      throwHand: "R", batHand: "S",
+      throwHand: "L", batHand: "L",
       skinTone: "light", hairColor: "black", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Tommy Bott — backup 1B/depth (mentioned in PDF SBA)
@@ -684,7 +684,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 78, power: 68, speed: 60, arm: 41, fielding: 71, errorResistance: 71, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 80, vsLHP: 63, grit: 70, stealing: 47, running: 50, throwing: 63, recovery: 56, wRISP: 76, vsLefty: 68, poise: 72, heater: 0, agile: 56,
       abilities: ["Power Hitter", "Opposite Field Hitter", "Good Infield Hit"], potential: "A-", catcherAbility: null,
-      throwHand: "R", batHand: "S",
+      throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "medium",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Dean West — LF leadoff, .470 OBP, JR, walks/HBP machine
@@ -700,7 +700,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 59, power: 59, speed: 41, arm: 62, fielding: 55, errorResistance: 58, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 60, vsLHP: 56, grit: 62, stealing: 47, running: 52, throwing: 63, recovery: 48, wRISP: 60, vsLefty: 56, poise: 60, heater: 0, agile: 52,
       abilities: ["Consigliere"], potential: "B+", catcherAbility: null,
-      throwHand: "R", batHand: "R",
+      throwHand: "R", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Daylen Reyes — SO OF speed/defense
@@ -708,7 +708,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 53, power: 47, speed: 59, arm: 55, fielding: 50, errorResistance: 45, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 50, vsLHP: 46, grit: 48, stealing: 55, running: 60, throwing: 63, recovery: 44, wRISP: 44, vsLefty: 42, poise: 46, heater: 0, agile: 60,
       abilities: ["Final Hit"], potential: "B+", catcherAbility: null,
-      throwHand: "R", batHand: "L",
+      throwHand: "R", batHand: "R",
       skinTone: "tan", hairColor: "black", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Tristan Iwanaga — depth OF (mentioned PDF SBA 2-2)
@@ -724,14 +724,14 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 44, power: 40, speed: 61, arm: 57, fielding: 47, errorResistance: 38, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 42, vsLHP: 39, grit: 39, stealing: 55, running: 49, throwing: 50, recovery: 30, wRISP: 32, vsLefty: 30, poise: 34, heater: 0, agile: 36,
       abilities: ["Good Mood"], potential: "B", catcherAbility: null,
-      throwHand: "R", batHand: "S",
+      throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     { firstName: "Alonzo", lastName: "Richardson", position: "OF", eligibility: "JR", homeState: "CA", hometown: "Los Angeles", jerseyNumber: 5,
       hitForAvg: 56, power: 44, speed: 38, arm: 58, fielding: 56, errorResistance: 60, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 62, vsLHP: 56, grit: 63, stealing: 48, running: 56, throwing: 63, recovery: 54, wRISP: 60, vsLefty: 56, poise: 62, heater: 0, agile: 58,
       abilities: ["Spray Hitter"], potential: "A-", catcherAbility: null,
-      throwHand: "R", batHand: "L",
+      throwHand: "R", batHand: "R",
       skinTone: "dark", hairColor: "black", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
   ],
