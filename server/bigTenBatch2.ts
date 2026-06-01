@@ -168,7 +168,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 16, power: 12, speed: 33, arm: 65, fielding: 41, errorResistance: 54, velocity: 69, control: 58, stamina: 61, stuff: 70,
         clutch: 78, vsLHP: 70, grit: 59, stealing: 10, running: 36, throwing: 78, recovery: 57, wRISP: 59, vsLefty: 59, poise: 59, heater: 59, agile: 44,
         abilities: ["Straddle", "Strong Starter", "Low Ball", "Heavy Ball"], potential: "A+", catcherAbility: null,
-        throwHand: "R", batHand: "R",
+        throwHand: "R", batHand: "L", // corrected: batHand was R → L
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 0, 0, 0, 0, 4, 4, 0, 1, 0]) },
       // Carson Jasa — SO RHP, weekend rotation
@@ -216,7 +216,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 14, power: 12, speed: 32, arm: 54, fielding: 36, errorResistance: 48, velocity: 57, control: 51, stamina: 30, stuff: 51,
         clutch: 66, vsLHP: 62, grit: 59, stealing: 9, running: 34, throwing: 66, recovery: 47, wRISP: 50, vsLefty: 50, poise: 53, heater: 56, agile: 40,
         abilities: ["Fireman", "Inside Pitch"], potential: "B+", catcherAbility: null,
-        throwHand: "R", batHand: "R",
+        throwHand: "L", batHand: "R", // corrected: throwHand was R → L
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 0, 0, 1, 4, 0, 0, 0, 0, 4]) },
       // Cooper Timmerman — JR RHP
@@ -267,7 +267,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 57, power: 57, speed: 52, arm: 50, fielding: 50, errorResistance: 47, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 70, vsLHP: 59, grit: 70, stealing: 43, running: 43, throwing: 59, recovery: 46, wRISP: 70, vsLefty: 64, poise: 70, heater: 0, agile: 40,
         abilities: ["Pull Hitter", "Power Hitter", "Defensive Artisan"], potential: "A", catcherAbility: null,
-        throwHand: "R", batHand: "L",
+        throwHand: "L", batHand: "L", // corrected: throwHand was R → L
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
       // Dylan Carey — SS SR, RBI single Oregon series
@@ -275,7 +275,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 57, power: 57, speed: 31, arm: 55, fielding: 59, errorResistance: 59, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 80, vsLHP: 54, grit: 59, stealing: 43, running: 48, throwing: 66, recovery: 44, wRISP: 56, vsLefty: 50, poise: 60, heater: 0, agile: 50,
         abilities: ["Defensive Artisan", "Chance Maker"], potential: "B+", catcherAbility: null,
-        throwHand: "R", batHand: "S",
+        throwHand: "R", batHand: "R", // corrected: batHand was S → R
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
       // Josh Overbeek — 3B SR
@@ -283,7 +283,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 55, power: 55, speed: 55, arm: 47, fielding: 46, errorResistance: 39, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 56, vsLHP: 52, grit: 56, stealing: 43, running: 43, throwing: 59, recovery: 42, wRISP: 56, vsLefty: 50, poise: 56, heater: 0, agile: 38,
         abilities: ["Consigliere", "Power Hitter"], potential: "B+", catcherAbility: null,
-        throwHand: "R", batHand: "R",
+        throwHand: "R", batHand: "S", // corrected: batHand was R → S
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
       // Jett Buck — 2B SR
@@ -316,7 +316,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 58, power: 58, speed: 34, arm: 53, fielding: 57, errorResistance: 58, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 70, vsLHP: 56, grit: 59, stealing: 43, running: 44, throwing: 66, recovery: 44, wRISP: 70, vsLefty: 56, poise: 60, heater: 0, agile: 46,
         abilities: ["Power Hitter", "Consigliere"], potential: "A-", catcherAbility: null,
-        throwHand: "R", batHand: "R",
+        throwHand: "L", batHand: "L", // corrected: batHand was R → L, throwHand was R → L
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
       // Cole Kitchens — OF SR
@@ -324,7 +324,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 55, power: 55, speed: 56, arm: 55, fielding: 44, errorResistance: 38, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 59, vsLHP: 54, grit: 59, stealing: 43, running: 43, throwing: 58, recovery: 44, wRISP: 60, vsLefty: 54, poise: 60, heater: 0, agile: 38,
         abilities: ["Consigliere", "Contact Hitter"], potential: "B+", catcherAbility: null,
-        throwHand: "R", batHand: "L",
+        throwHand: "R", batHand: "R", // corrected: batHand was L → R
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
       // Trey Buettenback — OF JR
@@ -332,7 +332,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 55, power: 53, speed: 50, arm: 48, fielding: 47, errorResistance: 34, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 52, vsLHP: 48, grit: 54, stealing: 43, running: 46, throwing: 59, recovery: 42, wRISP: 50, vsLefty: 46, poise: 52, heater: 0, agile: 48,
         abilities: ["High Speed Charge"], potential: "B+", catcherAbility: null,
-        throwHand: "R", batHand: "R",
+        throwHand: "R", batHand: "L", // corrected: batHand was R → L
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
       // Devin Nunez — OF SO
@@ -348,7 +348,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 46, power: 43, speed: 54, arm: 36, fielding: 33, errorResistance: 49, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 40, vsLHP: 38, grit: 38, stealing: 50, running: 44, throwing: 49, recovery: 30, wRISP: 34, vsLefty: 33, poise: 36, heater: 0, agile: 38,
         abilities: ["Locked and Loaded"], potential: "B+", catcherAbility: null,
-        throwHand: "R", batHand: "R",
+        throwHand: "R", batHand: "L", // corrected: batHand was R → L
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
       // Ryan Metzger — OF FR

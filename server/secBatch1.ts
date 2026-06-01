@@ -217,7 +217,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 14, power: 11, speed: 32, arm: 92, fielding: 60, errorResistance: 54, velocity: 97, control: 76, stamina: 71, stuff: 97,
         clutch: 86, vsLHP: 86, grit: 68, stealing: 10, running: 34, throwing: 86, recovery: 68, wRISP: 68, vsLefty: 68, poise: 68, heater: 68, agile: 44,
         abilities: ["Flyball Pitcher", "vs. Strong Batters", "Heavy Ball", "Strikeout"], potential: "A+", catcherAbility: null,
-        throwHand: "R", batHand: "R",
+        throwHand: "R", batHand: "L", // corrected: batHand was R → L
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 0, 0, 0, 0, 4, 4, 1, 0, 0]) },
       // Liam Peterson — Saturday RHP JR, top-ranked P in 2026 MLB Draft, 96 K in 69.1 IP last yr
@@ -225,7 +225,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 16, power: 13, speed: 33, arm: 92, fielding: 60, errorResistance: 54, velocity: 97, control: 76, stamina: 61, stuff: 97,
         clutch: 86, vsLHP: 86, grit: 68, stealing: 10, running: 34, throwing: 86, recovery: 68, wRISP: 68, vsLefty: 68, poise: 68, heater: 68, agile: 44,
         abilities: ["Poker Face", "Natural Shuuto", "vs. Strong Batters", "Heavy Ball"], potential: "A+", catcherAbility: null,
-        throwHand: "R", batHand: "L",
+        throwHand: "R", batHand: "R", // corrected: batHand was L → R
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 4, 0, 0, 4, 0, 4, 0, 1, 0]) },
       // Russell Sandefer — Sunday RHP JR (UCF transfer), 2-1/3.00
@@ -236,40 +236,40 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 4, 3, 1, 0, 4, 0, 0, 0, 0]) },
-      // Jackson Barberi — JR RHP rotation/RP
-      { firstName: "Jackson", lastName: "Barberi", position: "P", eligibility: "JR", homeState: "FL", hometown: "Jacksonville", jerseyNumber: 38,
+      // Jackson Barberi — SO RHP rotation/RP
+      { firstName: "Jackson", lastName: "Barberi", position: "P", eligibility: "SO", homeState: "FL", hometown: "Jacksonville", jerseyNumber: 38, // corrected: eligibility was JR → SO
         hitForAvg: 14, power: 12, speed: 32, arm: 52, fielding: 32, errorResistance: 44, velocity: 52, control: 49, stamina: 74, stuff: 49,
         clutch: 60, vsLHP: 56, grit: 62, stealing: 9, running: 32, throwing: 66, recovery: 43, wRISP: 43, vsLefty: 46, poise: 48, heater: 54, agile: 38,
         abilities: ["Strong Starter", "Full Throttle"], potential: "B+", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 0, 0, 1, 0, 0, 4, 0, 0, 4]) },
-      // Billy Barlow — JR RHP RP
-      { firstName: "Billy", lastName: "Barlow", position: "P", eligibility: "JR", homeState: "FL", hometown: "Tallahassee", jerseyNumber: 40,
+      // Billy Barlow — SR RHP RP
+      { firstName: "Billy", lastName: "Barlow", position: "P", eligibility: "SR", homeState: "FL", hometown: "Tallahassee", jerseyNumber: 40, // corrected: eligibility was JR → SR
         hitForAvg: 11, power: 9, speed: 31, arm: 48, fielding: 29, errorResistance: 40, velocity: 48, control: 48, stamina: 54, stuff: 45,
         clutch: 70, vsLHP: 58, grit: 62, stealing: 8, running: 28, throwing: 60, recovery: 38, wRISP: 48, vsLefty: 44, poise: 51, heater: 50, agile: 36,
         abilities: ["Fireman", "Poker Face"], potential: "A-", catcherAbility: null,
-        throwHand: "R", batHand: "L",
+        throwHand: "R", batHand: "R", // corrected: batHand was L → R
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 0, 0, 1, 0, 4, 0, 0, 0, 0]) },
-      // McCall Biemiller — LHP
-      { firstName: "McCall", lastName: "Biemiller", position: "P", eligibility: "JR", homeState: "PA", hometown: "Pittsburgh", jerseyNumber: 33,
+      // McCall Biemiller — SO LHP (switch hitter)
+      { firstName: "McCall", lastName: "Biemiller", position: "P", eligibility: "SO", homeState: "PA", hometown: "Pittsburgh", jerseyNumber: 33, // corrected: eligibility was JR → SO
         hitForAvg: 12, power: 10, speed: 32, arm: 52, fielding: 31, errorResistance: 42, velocity: 49, control: 49, stamina: 49, stuff: 49,
         clutch: 64, vsLHP: 76, grit: 64, stealing: 8, running: 30, throwing: 64, recovery: 41, wRISP: 46, vsLefty: 58, poise: 49, heater: 51, agile: 38,
         abilities: ["Fireman"], potential: "B+", catcherAbility: null,
-        throwHand: "L", batHand: "L",
+        throwHand: "L", batHand: "S", // corrected: batHand was L → S (switch hitter per roster B/L)
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [1, 0, 4, 0, 0, 0, 0, 1, 0, 0]) },
       // Christian Rodriguez — RHP RP
-      { firstName: "Christian", lastName: "Rodriguez", position: "P", eligibility: "JR", homeState: "FL", hometown: "Miami", jerseyNumber: 35,
+      { firstName: "Christian", lastName: "Rodriguez", position: "P", eligibility: "SO", homeState: "FL", hometown: "Miami", jerseyNumber: 35, // corrected: eligibility was JR → SO
         hitForAvg: 12, power: 10, speed: 32, arm: 50, fielding: 30, errorResistance: 42, velocity: 50, control: 48, stamina: 37, stuff: 48,
         clutch: 60, vsLHP: 56, grit: 60, stealing: 8, running: 32, throwing: 64, recovery: 39, wRISP: 42, vsLefty: 44, poise: 45, heater: 51, agile: 38,
         abilities: ["Fireman", "Constant Speed", "Crossfire"], potential: "B+", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "tan", hairColor: "black", hairStyle: "short",
         ...pitchMix(1, [0, 0, 0, 0, 0, 4, 4, 0, 1, 0]) },
-      // Cooper Walls — JR RHP (Hawaii transfer, Big West Frosh P of Year)
-      { firstName: "Cooper", lastName: "Walls", position: "P", eligibility: "JR", homeState: "HI", hometown: "Honolulu", jerseyNumber: 22,
+      // Cooper Walls — SO RHP (Hawaii transfer, Big West Frosh P of Year)
+      { firstName: "Cooper", lastName: "Walls", position: "P", eligibility: "SO", homeState: "HI", hometown: "Honolulu", jerseyNumber: 22, // corrected: eligibility was JR → SO
         hitForAvg: 14, power: 11, speed: 32, arm: 52, fielding: 31, errorResistance: 42, velocity: 51, control: 51, stamina: 45, stuff: 49,
         clutch: 60, vsLHP: 58, grit: 62, stealing: 9, running: 30, throwing: 66, recovery: 43, wRISP: 45, vsLefty: 46, poise: 48, heater: 54, agile: 38,
         abilities: ["Strong Starter", "Kageura", "Strikeout"], potential: "A-", catcherAbility: null,
@@ -284,12 +284,12 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 4, 0, 1, 0, 0, 4, 0, 0, 0]) },
-      // Luke McNeillie — FR RHP
-      { firstName: "Luke", lastName: "McNeillie", position: "P", eligibility: "FR", homeState: "FL", hometown: "Pensacola", jerseyNumber: 46,
+      // Luke McNeillie — JR RHP
+      { firstName: "Luke", lastName: "McNeillie", position: "P", eligibility: "JR", homeState: "FL", hometown: "Pensacola", jerseyNumber: 46, // corrected: eligibility was FR → JR
         hitForAvg: 8, power: 7, speed: 27, arm: 31, fielding: 19, errorResistance: 29, velocity: 36, control: 26, stamina: 14, stuff: 29,
         clutch: 30, vsLHP: 30, grit: 32, stealing: 9, running: 27, throwing: 44, recovery: 21, wRISP: 21, vsLefty: 21, poise: 21, heater: 32, agile: 32,
         abilities: ["Low Ball", "Good Pickoff", "Strength Distribution"], potential: "B+", catcherAbility: null,
-        throwHand: "R", batHand: "R",
+        throwHand: "R", batHand: "L", // corrected: batHand was R → L
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 0, 4, 1, 0, 4, 0, 0, 0, 0]) },
       // CATCHERS (2)
@@ -315,7 +315,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 62, power: 47, speed: 68, arm: 62, fielding: 65, errorResistance: 66, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 84, vsLHP: 80, grit: 70, stealing: 56, running: 65, throwing: 72, recovery: 62, wRISP: 86, vsLefty: 80, poise: 86, heater: 0, agile: 68,
         abilities: ["Magician", "Defensive Artisan", "Consigliere"], potential: "A+", catcherAbility: null,
-        throwHand: "R", batHand: "R",
+        throwHand: "R", batHand: "L", // corrected: batHand was R → L
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
       // Caden McDonald — DH/1B two-way star, National Two-Way POW, 12-29 (.414) 4 HR 12 RBI in 7 games — TEAM ELITE POWER
@@ -326,8 +326,8 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
-      // Cade Kurland — 2B SR
-      { firstName: "Cade", lastName: "Kurland", position: "2B", eligibility: "SR", homeState: "FL", hometown: "Coral Gables", jerseyNumber: 6,
+      // Cade Kurland — 2B JR
+      { firstName: "Cade", lastName: "Kurland", position: "2B", eligibility: "JR", homeState: "FL", hometown: "Coral Gables", jerseyNumber: 6, // corrected: eligibility was SR → JR
         hitForAvg: 64, power: 63, speed: 64, arm: 60, fielding: 42, errorResistance: 38, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 56, vsLHP: 52, grit: 58, stealing: 51, running: 51, throwing: 66, recovery: 46, wRISP: 54, vsLefty: 50, poise: 56, heater: 0, agile: 50,
         abilities: ["Power Hitter", "Spray Hitter"], potential: "B+", catcherAbility: null,
@@ -347,7 +347,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 26, power: 40, speed: 64, arm: 29, fielding: 29, errorResistance: 29, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 22, vsLHP: 22, grit: 22, stealing: 22, running: 22, throwing: 22, recovery: 26, wRISP: 28, vsLefty: 26, poise: 28, heater: 0, agile: 40,
         abilities: ["Consigliere", "Final Hit"], potential: "A-", catcherAbility: null,
-        throwHand: "R", batHand: "S",
+        throwHand: "R", batHand: "L", // corrected: batHand was S → L
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
       // Bryce Buckley — 3B FR
@@ -364,7 +364,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 64, power: 57, speed: 64, arm: 38, fielding: 57, errorResistance: 64, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 68, vsLHP: 64, grit: 68, stealing: 56, running: 64, throwing: 66, recovery: 46, wRISP: 64, vsLefty: 60, poise: 70, heater: 0, agile: 64,
         abilities: ["Chance Maker", "Contact Hitter"], potential: "A+", catcherAbility: null,
-        throwHand: "R", batHand: "S",
+        throwHand: "R", batHand: "R", // corrected: batHand was S → R
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
       // Ethan Surowiec — OF/DH SO, Northwoods League MVP (.387/17 HR)
@@ -375,12 +375,12 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
-      // Landon Stripling — OF SR, 2 HR / 4 XBH last 3 games
-      { firstName: "Landon", lastName: "Stripling", position: "OF", eligibility: "SR", homeState: "FL", hometown: "Gainesville", jerseyNumber: 13,
+      // Landon Stripling — OF JR, 2 HR / 4 XBH last 3 games
+      { firstName: "Landon", lastName: "Stripling", position: "OF", eligibility: "JR", homeState: "FL", hometown: "Gainesville", jerseyNumber: 13, // corrected: eligibility was SR → JR
         hitForAvg: 64, power: 64, speed: 44, arm: 64, fielding: 55, errorResistance: 53, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 60, vsLHP: 56, grit: 60, stealing: 51, running: 51, throwing: 66, recovery: 44, wRISP: 60, vsLefty: 56, poise: 60, heater: 0, agile: 46,
         abilities: ["Power Hitter", "Consigliere", "Bad Ball Hitter"], potential: "A-", catcherAbility: null,
-        throwHand: "R", batHand: "R",
+        throwHand: "R", batHand: "L", // corrected: batHand was R → L
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
       // Blake Cyr — OF SR
@@ -399,8 +399,8 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "L",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
-      // Ashton Wilson — OF JR
-      { firstName: "Ashton", lastName: "Wilson", position: "OF", eligibility: "JR", homeState: "FL", hometown: "Lakeland", jerseyNumber: 9,
+      // Ashton Wilson — OF SR
+      { firstName: "Ashton", lastName: "Wilson", position: "OF", eligibility: "SR", homeState: "FL", hometown: "Lakeland", jerseyNumber: 9, // corrected: eligibility was JR → SR
         hitForAvg: 63, power: 55, speed: 52, arm: 38, fielding: 64, errorResistance: 64, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 52, vsLHP: 50, grit: 56, stealing: 51, running: 51, throwing: 68, recovery: 44, wRISP: 50, vsLefty: 48, poise: 52, heater: 0, agile: 52,
         abilities: ["Unpredictable"], potential: "B+", catcherAbility: null,

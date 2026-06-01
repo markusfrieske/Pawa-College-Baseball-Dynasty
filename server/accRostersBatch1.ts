@@ -686,12 +686,12 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "R",
       skinTone: "tan", hairColor: "black", hairStyle: "short",
       ...noPitches },
-    // Caleb Daniel — JR OF, .603 SLG (one of seven >.600), Duluth GA
+    // Caleb Daniel — SO OF, .603 SLG (one of seven >.600), Duluth GA
     { firstName: "Caleb", lastName: "Daniel", position: "OF", eligibility: "SO", homeState: "GA", hometown: "Duluth", jerseyNumber: 6,
       hitForAvg: 59, power: 59, speed: 59, arm: 59, fielding: 55, errorResistance: 51, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 52, vsLHP: 55, grit: 48, stealing: 47, running: 47, throwing: 48, recovery: 50, wRISP: 70, vsLefty: 64, poise: 68, heater: 0, agile: 50,
       abilities: ["Power Hitter", "Consigliere"], potential: "A-", catcherAbility: null,
-      throwHand: "R", batHand: "L",
+      throwHand: "R", batHand: "R", // corrected: batHand was L → R
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...noPitches },
     // Parker Brosius — SR OF
@@ -715,7 +715,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 63, power: 62, speed: 63, arm: 51, fielding: 39, errorResistance: 63, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 50, vsLHP: 47, grit: 52, stealing: 47, running: 48, throwing: 64, recovery: 42, wRISP: 48, vsLefty: 44, poise: 50, heater: 0, agile: 52,
       abilities: ["Walkoff Hitter"], potential: "B+", catcherAbility: null,
-      throwHand: "R", batHand: "R",
+      throwHand: "R", batHand: "L", // corrected: batHand was R → L
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...noPitches },
     { firstName: "Tommy", lastName: "Sheehan", position: "OF", eligibility: "JR", homeState: "GA", hometown: "Atlanta", jerseyNumber: 14,
