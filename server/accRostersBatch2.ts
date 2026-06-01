@@ -503,8 +503,8 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "R", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
-    // Perry Hargett — SO OF depth
-    { firstName: "Perry", lastName: "Hargett", position: "OF", eligibility: "SO", homeState: "NC", hometown: "Raleigh", jerseyNumber: 7,
+    // Perry Hargett — FR OF depth
+    { firstName: "Perry", lastName: "Hargett", position: "OF", eligibility: "FR", homeState: "NC", hometown: "Raleigh", jerseyNumber: 7,
       hitForAvg: 40, power: 37, speed: 60, arm: 58, fielding: 43, errorResistance: 34, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 44, vsLHP: 40, grit: 40, stealing: 48, running: 52, throwing: 54, recovery: 34, wRISP: 32, vsLefty: 29, poise: 34, heater: 0, agile: 44,
       abilities: ["Multi-Hit", "Unpredictable"], potential: "B", catcherAbility: null,

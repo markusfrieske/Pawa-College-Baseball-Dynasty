@@ -828,7 +828,7 @@ export const SEC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Callum Early — FR INF Liberty transfer, depth
-    { firstName: "Callum", lastName: "Early", position: "2B", eligibility: "SO", homeState: "TX", hometown: "Plano", jerseyNumber: 24,
+    { firstName: "Callum", lastName: "Early", position: "2B", eligibility: "FR", homeState: "TX", hometown: "Plano", jerseyNumber: 24,
       hitForAvg: 41, power: 35, speed: 47, arm: 57, fielding: 45, errorResistance: 39, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 35, vsLHP: 41, grit: 40, stealing: 55, running: 52, throwing: 50, recovery: 28, wRISP: 28, vsLefty: 26, poise: 30, heater: 0, agile: 41,
       abilities: ["Chance Maker"], potential: "A-", catcherAbility: null,
