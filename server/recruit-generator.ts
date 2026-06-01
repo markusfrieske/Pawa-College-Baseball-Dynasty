@@ -163,28 +163,40 @@ export interface GenerateRecruitClassOptions {
 
 export type GeneratedRecruit = Omit<InsertRecruit, "leagueId">;
 
+const NIL_PREMIUM_POSITIONS = new Set(["P", "C", "SS"]);
+
 function generateNilCost(
   starRank: number,
   isBlueChip: boolean,
   isGenerationalGem: boolean,
   isGenerationalBust: boolean,
+  position: string = "P",
 ): number {
   if (isGenerationalBust) {
     return Math.floor(5000 + Math.random() * 25000);
   }
+  // Overlapping ranges so adjacent-tier recruits share a NIL band,
+  // preventing the dollar figure from being a direct star-rating decoder.
   const ranges: [number, number][] = [
-    [5000, 25000],
-    [25000, 75000],
-    [75000, 200000],
-    [200000, 500000],
-    [500000, 1000000],
+    [5000,   40000],   // 1★  ($5k–$40k)
+    [20000,  120000],  // 2★  ($20k–$120k, overlaps 1★ top)
+    [80000,  300000],  // 3★  ($80k–$300k, overlaps 2★ top)
+    [200000, 600000],  // 4★  ($200k–$600k, overlaps 3★ top)
+    [450000, 1000000], // 5★  ($450k–$1M, overlaps 4★ top)
   ];
   const idx = Math.min(4, Math.max(0, starRank - 1));
   const [min, max] = ranges[idx];
   const baseCost = Math.floor(min + Math.random() * (max - min));
-  if (isGenerationalGem) return Math.floor(baseCost * (3 + Math.random() * 2));
-  if (isBlueChip) return Math.floor(baseCost * (1.5 + Math.random() * 1.0));
-  return baseCost;
+
+  // Premium positions (P, C, SS) command higher NIL than standard positions.
+  const posMultiplier = NIL_PREMIUM_POSITIONS.has(position)
+    ? 1.10 + Math.random() * 0.15  // 1.10–1.25×
+    : 1.0;
+  const adjusted = Math.floor(baseCost * posMultiplier);
+
+  if (isGenerationalGem) return Math.floor(adjusted * (3 + Math.random() * 2));
+  if (isBlueChip) return Math.floor(adjusted * (1.5 + Math.random() * 1.0));
+  return adjusted;
 }
 
 export function generateRecruitClass(
@@ -1137,7 +1149,7 @@ export function generateRecruitClass(
       playerArchetype,
       workEthicScore,
       coachability,
-      nilCost: generateNilCost(starRank, isBlueChip, isGenerationalGem, isGenerationalBust),
+      nilCost: generateNilCost(starRank, isBlueChip, isGenerationalGem, isGenerationalBust, position),
     });
   }
 
