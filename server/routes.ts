@@ -9603,6 +9603,12 @@ export async function registerRoutes(
       }
 
       if (nextWeek > maxWeeks) {
+        // Safety sweep: force-resolve any storyline arcs that didn't fire naturally
+        // before postseason begins, so no recruits are stuck mid-arc at offseason.
+        try {
+          const swept = await resolveAllPendingStorylineEvents(leagueId, league.currentSeason, currentWeek);
+          if (swept > 0) console.log(`[storylines] pre-postseason sweep: resolved ${swept} pending arc event(s) for league ${leagueId}`);
+        } catch (e) { console.error("[storylines] pre-postseason sweep error:", e); }
         await generateConferenceChampionships(leagueId, league.currentSeason);
         const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "conference_championship", currentWeek: nextWeek });
         await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "Regular Season Complete", details: "The regular season is over! Conference Championships begin." });

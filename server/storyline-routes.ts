@@ -908,8 +908,13 @@ async function generateWeeklyStorylineEvents(leagueId: string, season: number, w
       return week >= idealWeek;
     });
 
-    // Fall back to all cappedNonExhausted if no proportional matches (avoids stall)
-    const effectivePool = proportionalReady.length > 0 ? proportionalReady : cappedNonExhausted;
+    // Fall back ONLY to recruits at arc stage 0 (never fired their first event).
+    // This ensures the initial arc event fires promptly at season start even before
+    // the proportional week arrives, but stages 1+ only trigger when their proportional
+    // week is reached — preventing all 3 arcs from firing in the first 3 weeks and
+    // leaving no active events during spring_training and regular_season.
+    const neverFiredPool = cappedNonExhausted.filter(sl => sl.currentArcStage === 0);
+    const effectivePool = proportionalReady.length > 0 ? proportionalReady : neverFiredPool;
 
     if (effectivePool.length === 0) {
       console.log(`[storylines] no recruits ready for proportional arc this week — skipping`);
