@@ -417,7 +417,7 @@ export default function SchedulePage() {
                     onClick={() => setShowMyTeam(true)}
                     data-testid="button-my-team-schedule"
                   >
-                    My Team
+                    My Schedule
                   </RetroButton>
                   <RetroButton
                     variant={!showMyTeam ? "primary" : "outline"}
@@ -495,8 +495,8 @@ export default function SchedulePage() {
             </div>
             <div className="divide-y divide-border/20">
               {exhibitionGames.map(game => (
-                <div key={game.id} className="flex items-center justify-between px-3 py-2 text-xs">
-                  <div className="flex items-center gap-2 min-w-0">
+                <div key={game.id} className="flex items-center px-3 py-2 text-xs">
+                  <div className="flex items-center gap-2 w-[45%] min-w-0">
                     <TeamBadge
                       abbreviation={game.awayTeam.abbreviation}
                       primaryColor={game.awayTeam.primaryColor}
@@ -506,16 +506,16 @@ export default function SchedulePage() {
                     />
                     <span className="font-pixel text-[9px] text-muted-foreground truncate hidden sm:block">{game.awayTeam.name}</span>
                   </div>
-                  <div className="shrink-0 text-center px-2">
+                  <div className="w-[10%] text-center shrink-0">
                     {game.isComplete ? (
                       <span className="font-pixel text-[10px] text-foreground">
-                        {game.awayScore} – {game.homeScore}
+                        {game.awayScore}–{game.homeScore}
                       </span>
                     ) : (
                       <span className="font-pixel text-[8px] text-muted-foreground">vs</span>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 min-w-0 justify-end">
+                  <div className="flex items-center gap-2 w-[45%] min-w-0 justify-end">
                     <span className="font-pixel text-[9px] text-muted-foreground truncate hidden sm:block">{game.homeTeam.name}</span>
                     <TeamBadge
                       abbreviation={game.homeTeam.abbreviation}
