@@ -531,7 +531,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [1, 0, 4, 0, 4, 4, 0, 0, 1, 0]) },
     // Mason Patel — closer GR, 4 SV, 13.2 scoreless IP / 1.20 ERA / 18K, All-American 2025 (NCBWA), Stopper of Year finalist
-    { firstName: "Mason", lastName: "Patel", position: "P", eligibility: "SR", homeState: "GA", hometown: "Johns Creek", jerseyNumber: 30,
+    { firstName: "Mason", lastName: "Patel", position: "P", eligibility: "GR", homeState: "GA", hometown: "Johns Creek", jerseyNumber: 30,
       hitForAvg: 10, power: 8, speed: 32, arm: 59, fielding: 34, errorResistance: 50, velocity: 64, control: 59, stamina: 92, stuff: 61,
       clutch: 80, vsLHP: 72, grit: 64, stealing: 7, running: 30, throwing: 74, recovery: 44, wRISP: 59, vsLefty: 56, poise: 63, heater: 55, agile: 42,
       abilities: ["Fireman", "Good Pickoff", "Staredown", "Strikeout", "Inside Pitch"], potential: "A", catcherAbility: null,
@@ -554,12 +554,12 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       throwHand: "L", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [1, 0, 4, 0, 0, 4, 0, 0, 0, 3]) },
-    // Cooper Underwood — top FR RHP, 12th-round MLB pick chose college, 2025 Prep BB GA Player of Year
+    // Cooper Underwood — top FR LHP, 12th-round MLB pick chose college, 2025 Prep BB GA Player of Year
     { firstName: "Cooper", lastName: "Underwood", position: "P", eligibility: "FR", homeState: "GA", hometown: "Woodstock", jerseyNumber: 46,
       hitForAvg: 11, power: 9, speed: 32, arm: 56, fielding: 29, errorResistance: 40, velocity: 58, control: 46, stamina: 64, stuff: 55,
       clutch: 50, vsLHP: 48, grit: 52, stealing: 7, running: 28, throwing: 70, recovery: 38, wRISP: 36, vsLefty: 38, poise: 38, heater: 53, agile: 40,
       abilities: ["Strong Starter", "Sharpness", "True Slider"], potential: "A+", catcherAbility: null,
-      throwHand: "R", batHand: "R",
+      throwHand: "L", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 4, 3, 0, 0, 0, 4, 1, 0, 0]) },
     // Charlie Willcox — FR RHP depth
@@ -567,7 +567,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 7, power: 7, speed: 23, arm: 36, fielding: 16, errorResistance: 25, velocity: 41, control: 32, stamina: 36, stuff: 33,
       clutch: 27, vsLHP: 25, grit: 28, stealing: 4, running: 19, throwing: 40, recovery: 19, wRISP: 19, vsLefty: 19, poise: 19, heater: 31, agile: 24,
       abilities: ["Staredown"], potential: "A", catcherAbility: null,
-      throwHand: "R", batHand: "R",
+      throwHand: "R", batHand: "S",
       skinTone: "light", hairColor: "blonde", hairStyle: "short",
       ...pitchMix(1, [0, 0, 4, 0, 0, 4, 0, 0, 1, 0]) },
     // Carson Ballard — JR RHP RP depth
@@ -575,7 +575,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 9, power: 7, speed: 26, arm: 31, fielding: 21, errorResistance: 31, velocity: 31, control: 33, stamina: 49, stuff: 29,
       clutch: 38, vsLHP: 36, grit: 40, stealing: 5, running: 22, throwing: 41, recovery: 26, wRISP: 26, vsLefty: 26, poise: 28, heater: 31, agile: 25,
       abilities: ["Guts"], potential: "B+", catcherAbility: null,
-      throwHand: "R", batHand: "L",
+      throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 0, 0, 1, 0, 4, 3, 0, 0, 0]) },
     // Ben Hjelle — RHP RP depth
@@ -588,11 +588,11 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "deep", hairColor: "black", hairStyle: "fade",
       ...pitchMix(1, [0, 0, 0, 1, 0, 0, 4, 0, 0, 4]) },
     // Cade Brown — depth RP
-    { firstName: "Cade", lastName: "Brown", position: "P", eligibility: "FR", homeState: "GA", hometown: "Macon", jerseyNumber: 19,
+    { firstName: "Cade", lastName: "Brown", position: "P", eligibility: "SO", homeState: "GA", hometown: "Macon", jerseyNumber: 19,
       hitForAvg: 9, power: 8, speed: 30, arm: 33, fielding: 20, errorResistance: 32, velocity: 48, control: 31, stamina: 12, stuff: 34,
       clutch: 36, vsLHP: 34, grit: 38, stealing: 6, running: 24, throwing: 48, recovery: 24, wRISP: 24, vsLefty: 25, poise: 25, heater: 36, agile: 30,
       abilities: ["Inside Pitch", "Winner's Luck", "Intimidator"], potential: "A-", catcherAbility: null,
-      throwHand: "L", batHand: "L",
+      throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 0, 0, 0, 0, 4, 3, 1, 0, 0]) },
     // CATCHERS (2)
@@ -614,11 +614,11 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       ...noPitches },
     // INFIELDERS (7)
     // Will Baker — DH/1B, .662 SLG, 27 R, power threat
-    { firstName: "Will", lastName: "Baker", position: "1B", eligibility: "JR", homeState: "GA", hometown: "Athens", jerseyNumber: 16,
+    { firstName: "Will", lastName: "Baker", position: "1B", eligibility: "SO", homeState: "GA", hometown: "Athens", jerseyNumber: 16,
       hitForAvg: 59, power: 59, speed: 59, arm: 51, fielding: 49, errorResistance: 47, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 54, vsLHP: 57, grit: 55, stealing: 47, running: 47, throwing: 49, recovery: 56, wRISP: 76, vsLefty: 64, poise: 70, heater: 0, agile: 36,
       abilities: ["Power Hitter", "Consigliere"], potential: "A-", catcherAbility: null,
-      throwHand: "R", batHand: "R",
+      throwHand: "R", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...noPitches },
     // Jarren Advincula — JR 2B (transfer), 2nd-Team All-ACC, leads ALL 2B nationally in WAR (3.66), Golden Spikes Watch, .613 SLG, 27 R
@@ -626,7 +626,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 59, power: 59, speed: 43, arm: 59, fielding: 56, errorResistance: 58, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 80, vsLHP: 72, grit: 64, stealing: 47, running: 56, throwing: 64, recovery: 60, wRISP: 78, vsLefty: 72, poise: 76, heater: 0, agile: 64,
       abilities: ["Two-Strike Hitter", "Defensive Artisan", "Power Hitter", "Storming Home"], potential: "A", catcherAbility: null,
-      throwHand: "R", batHand: "R",
+      throwHand: "R", batHand: "L",
       skinTone: "tan", hairColor: "black", hairStyle: "short",
       ...noPitches },
     // Carson Kerce — JR SS, Brooks Wallace SS Watch List semifinalist, top-50 SS, .621 SLG, 3.14 WAR
@@ -687,11 +687,11 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "tan", hairColor: "black", hairStyle: "short",
       ...noPitches },
     // Caleb Daniel — JR OF, .603 SLG (one of seven >.600), Duluth GA
-    { firstName: "Caleb", lastName: "Daniel", position: "OF", eligibility: "JR", homeState: "GA", hometown: "Duluth", jerseyNumber: 6,
+    { firstName: "Caleb", lastName: "Daniel", position: "OF", eligibility: "SO", homeState: "GA", hometown: "Duluth", jerseyNumber: 6,
       hitForAvg: 59, power: 59, speed: 59, arm: 59, fielding: 55, errorResistance: 51, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 52, vsLHP: 55, grit: 48, stealing: 47, running: 47, throwing: 48, recovery: 50, wRISP: 70, vsLefty: 64, poise: 68, heater: 0, agile: 50,
       abilities: ["Power Hitter", "Consigliere"], potential: "A-", catcherAbility: null,
-      throwHand: "R", batHand: "S",
+      throwHand: "R", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...noPitches },
     // Parker Brosius — SR OF
@@ -699,7 +699,7 @@ export const ACC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 59, power: 53, speed: 62, arm: 58, fielding: 60, errorResistance: 62, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 52, vsLHP: 48, grit: 54, stealing: 47, running: 47, throwing: 64, recovery: 44, wRISP: 50, vsLefty: 46, poise: 52, heater: 0, agile: 50,
       abilities: ["Resilient", "Storming Home"], potential: "B+", catcherAbility: null,
-      throwHand: "R", batHand: "L",
+      throwHand: "L", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...noPitches },
     // Coleman Lewis — FR OF speed
