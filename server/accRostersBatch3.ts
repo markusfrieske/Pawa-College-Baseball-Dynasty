@@ -225,14 +225,6 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Fireman"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 0, 0, 1, 0, 4, 3, 0, 0, 0]) },
-    // Brock Ketelsen — FR LHP #8 (two-way OF/LHP; listed as P for roster balance)
-    // FIXED: position SS→P, throwHand R→L, batHand R→L (real B/T = L/L); hometown Scotts Valley CA
-    { firstName: "Brock", lastName: "Ketelsen", position: "P", eligibility: "FR", homeState: "CA", hometown: "Scotts Valley", jerseyNumber: 8,
-      hitForAvg: 18, power: 14, speed: 36, arm: 40, fielding: 22, errorResistance: 30, velocity: 44, control: 32, stamina: 40, stuff: 38,
-      clutch: 36, vsLHP: 40, grit: 34, stealing: 14, running: 34, throwing: 52, recovery: 26, wRISP: 24, vsLefty: 34, poise: 28, heater: 42, agile: 32,
-      abilities: ["Natural Shuuto"], potential: "A-", catcherAbility: null,
-      throwHand: "L", batHand: "L",
-      ...pitchMix(1, [1, 0, 0, 1, 0, 0, 4, 0, 0, 3]) },
     // Jake Torres — FR RHP #41 (generated depth arm; jersey freed from Keenan 41→24)
     { firstName: "Jake", lastName: "Torres", position: "P", eligibility: "FR", homeState: "CA", hometown: "San Jose", jerseyNumber: 41,
       hitForAvg: 12, power: 8, speed: 28, arm: 30, fielding: 18, errorResistance: 26, velocity: 38, control: 28, stamina: 34, stuff: 30,
@@ -267,7 +259,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // Jimmy Nati — SR 3B #6, team HR/RBI leader (.300/16HR/50RBI, All-ACC Gold Glove finalist)
     // stat-boosted: power and clutch raised to reflect production
     { firstName: "Jimmy", lastName: "Nati", position: "3B", eligibility: "SR", homeState: "NJ", hometown: "Toms River", jerseyNumber: 6,
-      hitForAvg: 68, power: 68, speed: 53, arm: 52, fielding: 30, errorResistance: 77, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      hitForAvg: 64, power: 72, speed: 53, arm: 52, fielding: 30, errorResistance: 77, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 64, vsLHP: 58, grit: 54, stealing: 53, running: 48, throwing: 56, recovery: 46, wRISP: 62, vsLefty: 52, poise: 58, heater: 0, agile: 42,
       abilities: ["Power Hitter", "vs. Ace"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
@@ -298,6 +290,13 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 34, power: 28, speed: 46, arm: 32, fielding: 44, errorResistance: 34, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 28, vsLHP: 28, grit: 28, stealing: 32, running: 38, throwing: 40, recovery: 20, wRISP: 24, vsLefty: 22, poise: 26, heater: 0, agile: 34,
       abilities: [], potential: "B+", catcherAbility: null,
+      throwHand: "R", batHand: "R",
+      ...noPitches },
+    // Jack O'Brien — SR 2B/OF #9 (utility; pos OF→2B to balance roster; elig JR→SR; jersey freed from Bowser removal)
+    { firstName: "Jack", lastName: "O'Brien", position: "2B", eligibility: "SR", homeState: "CA", hometown: "Atherton", jerseyNumber: 9,
+      hitForAvg: 38, power: 44, speed: 76, arm: 44, fielding: 52, errorResistance: 50, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 30, vsLHP: 30, grit: 30, stealing: 30, running: 36, throwing: 44, recovery: 28, wRISP: 32, vsLefty: 30, poise: 32, heater: 0, agile: 38,
+      abilities: ["High Speed Charge", "Walkoff Hitter"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...noPitches },
     // OUTFIELDERS (7)
@@ -345,12 +344,12 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Head-first Slide", "Spray Hitter"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "S",
       ...noPitches },
-    // Jack O'Brien — SR OF #9 (elig JR→SR; jersey freed from Bowser removal)
-    { firstName: "Jack", lastName: "O'Brien", position: "OF", eligibility: "SR", homeState: "CA", hometown: "Atherton", jerseyNumber: 9,
-      hitForAvg: 38, power: 44, speed: 76, arm: 44, fielding: 46, errorResistance: 44, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 30, vsLHP: 30, grit: 30, stealing: 30, running: 36, throwing: 36, recovery: 28, wRISP: 32, vsLefty: 30, poise: 32, heater: 0, agile: 38,
-      abilities: ["High Speed Charge", "Walkoff Hitter"], potential: "B", catcherAbility: null,
-      throwHand: "R", batHand: "R",
+    // Brock Ketelsen — FR OF #8, two-way LHP/OF; FIXED: pos SS→OF (real position), throwHand/batHand R→L (L/L); hometown Scotts Valley CA
+    { firstName: "Brock", lastName: "Ketelsen", position: "OF", eligibility: "FR", homeState: "CA", hometown: "Scotts Valley", jerseyNumber: 8,
+      hitForAvg: 40, power: 52, speed: 88, arm: 44, fielding: 36, errorResistance: 30, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 34, vsLHP: 34, grit: 32, stealing: 36, running: 58, throwing: 52, recovery: 24, wRISP: 30, vsLefty: 28, poise: 30, heater: 0, agile: 38,
+      abilities: ["Pull Hitter"], potential: "A-", catcherAbility: null,
+      throwHand: "L", batHand: "L",
       ...noPitches },
   ],
 
