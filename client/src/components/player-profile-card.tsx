@@ -12,7 +12,7 @@ import { PitchMixDial, generatePitchMixForDial } from "@/components/ui/pitch-mix
 import { MapPin, Star, Edit, Trophy, ArrowUp, ArrowDown, ArrowUpRight, ArrowRight, ArrowDownRight, ChevronDown, ChevronUp, Check, X } from "lucide-react";
 import { getAbilityByName, getAbilitiesForPosition, ALL_ABILITIES, S_GOLD_COMMON_KEY, S_GOLD_PITCHER_KEY } from "@shared/abilities";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { velocityToMPH } from "@/lib/playerUtils";
+import { velocityToKMH } from "@/lib/playerUtils";
 import { getPotentialGrade, getProgressionZone, getProgressionColor } from "@shared/potential";
 import { TRAJECTORY_LABELS, TRAJECTORY_FULL_LABELS, assignTrajectory } from "@shared/trajectory";
 import { isPitcher as getIsPitcher } from "@shared/positions";
@@ -1070,7 +1070,7 @@ function AttributeRow({ label, value, delta }: { label: string; value?: number |
           className="text-sm font-bold w-10 text-right tabular-nums"
           data-testid={`text-attr-${label.toLowerCase().replace(/\s/g, "-")}`}
         >
-          {isVelocity ? `${velocityToMPH(displayValue)} MPH` : displayValue}
+          {isVelocity ? `${velocityToKMH(displayValue)} KMH` : displayValue}
         </span>
         {delta != null && delta !== 0 && (
           <DeltaArrow delta={delta} />

@@ -202,15 +202,33 @@ const RAW_REAL_ROSTERS: Record<string, RealPlayer[]> = {
   ...WCC_ROSTERS,
 };
 
+// Teams in conferences that enforce a minimum stamina of 20 for pitchers.
+const STAMINA_FLOOR_TEAMS: Set<string> = new Set([
+  ...Object.keys(SEC_BATCH1_ROSTERS),
+  ...Object.keys(SEC_BATCH2_ROSTERS),
+  ...Object.keys(SEC_BATCH3_ROSTERS),
+  ...Object.keys(ACC_BATCH1_ROSTERS),
+  ...Object.keys(ACC_BATCH2_ROSTERS),
+  ...Object.keys(ACC_BATCH3_ROSTERS),
+  ...Object.keys(BIG_TEN_BATCH1_ROSTERS),
+  ...Object.keys(BIG_TEN_BATCH2_ROSTERS),
+  ...Object.keys(BIG_TEN_BATCH3_ROSTERS),
+]);
+
 function buildCalibratedRosters(): Record<string, RealPlayer[]> {
   const out: Record<string, RealPlayer[]> = {};
   for (const [teamName, players] of Object.entries(RAW_REAL_ROSTERS)) {
     const factor = ROSTER_SCALE_FACTORS[teamName] ?? 1;
     const pitcherMult = PITCHER_SCALE_OVERRIDES[teamName] ?? 1;
     const hitterMult  = HITTER_SCALE_OVERRIDES[teamName]  ?? 1;
-    out[teamName] = players.map(p =>
-      applyGlobalAdjustments(scalePlayer(p, factor, pitcherMult, hitterMult))
-    );
+    const applyStaminaFloor = STAMINA_FLOOR_TEAMS.has(teamName);
+    out[teamName] = players.map(p => {
+      const calibrated = applyGlobalAdjustments(scalePlayer(p, factor, pitcherMult, hitterMult));
+      if (applyStaminaFloor && PITCHER_POSITIONS.has(calibrated.position) && typeof calibrated.stamina === "number") {
+        return { ...calibrated, stamina: Math.max(20, calibrated.stamina) };
+      }
+      return calibrated;
+    });
   }
   return out;
 }

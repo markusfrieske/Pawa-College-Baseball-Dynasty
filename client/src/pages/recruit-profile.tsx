@@ -68,7 +68,7 @@ import { getAbilityByName } from "@shared/abilities";
 import { getPotentialRangeLabel, getPotentialGrade, getProgressionZone, getProgressionColor } from "@shared/potential";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { velocityToMPH } from "@/lib/playerUtils";
+import { velocityToKMH } from "@/lib/playerUtils";
 
 interface TopSchool {
   teamId: string;
@@ -1931,7 +1931,7 @@ function RecruitAttributesSection({
             <>
               <LetterGrade value={displayValue!} size="sm" />
               <span className="text-sm font-bold w-14 text-right">
-                {isVelocity ? `${velocityToMPH(displayValue!)} MPH` : displayValue}
+                {isVelocity ? `${velocityToKMH(displayValue!)} KMH` : displayValue}
               </span>
             </>
           ) : (

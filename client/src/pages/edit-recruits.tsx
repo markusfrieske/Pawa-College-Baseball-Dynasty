@@ -649,7 +649,7 @@ export default function EditRecruitsPage() {
                             </td>
                           );
                         })}
-                        {/* Pitcher Attributes (Velocity: 82-102 MPH, Control/Stamina: 1-100) */}
+                        {/* Pitcher Attributes (Velocity: 132-164 KMH, Control/Stamina: 1-100) */}
                         {(["velocity", "control", "stamina"] as const).map(field => {
                           const val = getRecruitValue(recruit, field);
                           const grade = isPitcher && val != null ? pitcherCommonGrade(val) : null;

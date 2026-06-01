@@ -148,7 +148,13 @@ export function velocityToMPH(rating: number | null | undefined): number {
   return Math.round(82 + ((val - 1) * 20) / 98);
 }
 
-// Get velocity display string with MPH
+// Convert velocity rating (1-99) to KMH (132-164)
+// Converts to MPH first then multiplies by 1.60934
+export function velocityToKMH(rating: number | null | undefined): number {
+  return Math.round(velocityToMPH(rating) * 1.60934);
+}
+
+// Get velocity display string with KMH
 export function getVelocityDisplay(rating: number | null | undefined): string {
-  return `${velocityToMPH(rating)} MPH`;
+  return `${velocityToKMH(rating)} KMH`;
 }

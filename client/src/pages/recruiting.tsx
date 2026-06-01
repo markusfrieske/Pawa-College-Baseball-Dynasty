@@ -90,7 +90,7 @@ import { TRAJECTORY_LABELS } from "@shared/trajectory";
 import { PlayerPortrait } from "@/components/ui/player-portrait";
 import { PitchMixDial } from "@/components/ui/pitch-mix-dial";
 import { LetterGrade } from "@/components/ui/letter-grade";
-import { velocityToMPH } from "@/lib/playerUtils";
+import { velocityToKMH } from "@/lib/playerUtils";
 
 function getInterestLabel(level: number): { label: string; color: string } {
   if (level >= 90) return { label: "On Fire", color: "text-red-400" };
@@ -3717,7 +3717,7 @@ function RecruitDetailModal({
                     const revealed = !isSigningDayLocked && (isFullyRevealed || revealedAttrs.includes(attr.key));
                     const isVelocity = attr.key === "velocity";
                     const displayValue = isVelocity && revealed 
-                      ? `${velocityToMPH(attr.value)} MPH`
+                      ? `${velocityToKMH(attr.value)} KMH`
                       : (revealed ? attr.value : "??");
                     return (
                       <div key={attr.key} className="flex items-center justify-between p-2 bg-muted/50 rounded">
@@ -4267,7 +4267,7 @@ function RecruitDetailModal({
                     const revealed = !isSigningDayLocked && (isFullyRevealed || revealedAttrs.includes(attr.key));
                     const isVelocity = attr.key === "velocity";
                     const displayValue = isVelocity && revealed 
-                      ? `${velocityToMPH(attr.value)} MPH`
+                      ? `${velocityToKMH(attr.value)} KMH`
                       : (revealed ? attr.value : "??");
                     return (
                       <div key={attr.key} className="flex items-center justify-between p-2 bg-muted/50 rounded">

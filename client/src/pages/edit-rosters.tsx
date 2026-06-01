@@ -663,7 +663,7 @@ export default function EditRostersPage() {
                                     disabled={isPitcher}
                                   />
                                 </td>
-                                {/* Pitcher Attributes (Velocity: 82-102 MPH, Control/Stamina: 1-100) */}
+                                {/* Pitcher Attributes (Velocity: 132-164 KMH, Control/Stamina: 1-100) */}
                                 <td className="px-2 py-1">
                                   <Input
                                     type="number"
