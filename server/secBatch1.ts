@@ -219,7 +219,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         abilities: ["Flyball Pitcher", "vs. Strong Batters", "Heavy Ball", "Strikeout"], potential: "A+", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [0, 0, 0, 0, 0, 5, 4, 1, 0, 0]) },
+        ...pitchMix(1, [0, 0, 0, 0, 0, 4, 4, 1, 0, 0]) },
       // Liam Peterson — Saturday RHP JR, top-ranked P in 2026 MLB Draft, 96 K in 69.1 IP last yr
       { firstName: "Liam", lastName: "Peterson", position: "P", eligibility: "JR", homeState: "FL", hometown: "Jacksonville", jerseyNumber: 23,
         hitForAvg: 16, power: 13, speed: 33, arm: 92, fielding: 60, errorResistance: 54, velocity: 97, control: 76, stamina: 61, stuff: 97,
@@ -227,7 +227,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         abilities: ["Poker Face", "Natural Shuuto", "vs. Strong Batters", "Heavy Ball"], potential: "A+", catcherAbility: null,
         throwHand: "R", batHand: "L",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [0, 5, 0, 0, 4, 0, 4, 0, 1, 0]) },
+        ...pitchMix(1, [0, 4, 0, 0, 4, 0, 4, 0, 1, 0]) },
       // Russell Sandefer — Sunday RHP JR (UCF transfer), 2-1/3.00
       { firstName: "Russell", lastName: "Sandefer", position: "P", eligibility: "JR", homeState: "FL", hometown: "Orlando", jerseyNumber: 21,
         hitForAvg: 13, power: 10, speed: 32, arm: 55, fielding: 33, errorResistance: 44, velocity: 55, control: 57, stamina: 69, stuff: 54,

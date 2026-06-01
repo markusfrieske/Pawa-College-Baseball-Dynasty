@@ -440,7 +440,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Quick Hands", "Strikeout", "Strong Starter", "Heavy Ball"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
-      ...pitchMix(1, [0, 0, 0, 0, 0, 5, 4, 1, 0, 0]) },
+      ...pitchMix(1, [0, 0, 0, 0, 0, 4, 4, 1, 0, 0]) },
     // Jackson Sanders — SO breaking ball specialist
     { firstName: "Jackson", lastName: "Sanders", position: "P", eligibility: "SO", homeState: "GA", hometown: "Marietta", jerseyNumber: 37,
       hitForAvg: 12, power: 10, speed: 32, arm: 56, fielding: 34, errorResistance: 48, velocity: 51, control: 57, stamina: 64, stuff: 57,
@@ -504,7 +504,7 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Low Ball", "Heavy Ball", "vs. Strong Batters", "Strong Starter"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "tan", hairColor: "black", hairStyle: "short",
-      ...pitchMix(1, [0, 0, 5, 1, 0, 3, 4, 0, 0, 0]) },
+      ...pitchMix(1, [0, 0, 4, 1, 0, 3, 4, 0, 0, 0]) },
     // CATCHERS (2)
     // Chase Fralick — SO C, .335/.426/.472 in 2025, HR in 5 straight games (1st since 1985), .520 last 6 multi-hit
     { firstName: "Chase", lastName: "Fralick", position: "C", eligibility: "SO", homeState: "GA", hometown: "Woodstock", jerseyNumber: 12,

@@ -329,7 +329,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
         abilities: ["Full Throttle", "Crossfire", "Pace", "Heavy Ball"], potential: "A+", catcherAbility: null,
         throwHand: "L", batHand: "L",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
-        ...pitchMix(1, [1, 0, 0, 0, 5, 4, 0, 1, 0, 0]) },
+        ...pitchMix(1, [1, 0, 0, 0, 4, 4, 0, 1, 0, 0]) },
       // Grant Govel — RHP FR Friday/weekend, 9-1/2.55
       { firstName: "Grant", lastName: "Govel", position: "P", eligibility: "FR", homeState: "CA", hometown: "San Diego", jerseyNumber: 27,
         hitForAvg: 14, power: 10, speed: 32, arm: 61, fielding: 35, errorResistance: 46, velocity: 63, control: 58, stamina: 63, stuff: 58,

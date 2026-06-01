@@ -330,7 +330,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Constant Speed", "Inside Pitch", "Strong Starter", "Strikeout"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
-      ...pitchMix(1, [0, 0, 4, 0, 0, 5, 0, 1, 0, 0]) },
+      ...pitchMix(1, [0, 0, 4, 0, 0, 4, 0, 1, 0, 0]) },
     // Caden Glauber — FR RHP, 6-0 / 1.95 / 67K / 4 SV, weekend bullpen ace — command-dominant, stuff developing
     { firstName: "Caden", lastName: "Glauber", position: "P", eligibility: "FR", homeState: "NC", hometown: "Charlotte", jerseyNumber: 27,
       hitForAvg: 12, power: 10, speed: 33, arm: 92, fielding: 60, errorResistance: 52, velocity: 88, control: 75, stamina: 78, stuff: 85,
