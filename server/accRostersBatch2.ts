@@ -368,7 +368,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 13, power: 10, speed: 32, arm: 53, fielding: 32, errorResistance: 48, velocity: 58, control: 53, stamina: 36, stuff: 51,
       clutch: 68, vsLHP: 64, grit: 65, stealing: 7, running: 28, throwing: 66, recovery: 46, wRISP: 53, vsLefty: 48, poise: 54, heater: 53, agile: 38,
       abilities: ["Strong Starter"], potential: "B+", catcherAbility: null,
-      throwHand: "R", batHand: "R",
+      throwHand: "L", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 0, 0, 0, 0, 4, 4, 1, 0, 0]) },
     // Jake Cackovic — RHP RP, 1.35 ERA / 6.2 IP, low usage but dominant
@@ -376,11 +376,11 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 11, power: 9, speed: 31, arm: 45, fielding: 28, errorResistance: 42, velocity: 49, control: 47, stamina: 30, stuff: 45,
       clutch: 60, vsLHP: 56, grit: 60, stealing: 6, running: 26, throwing: 60, recovery: 37, wRISP: 44, vsLefty: 43, poise: 44, heater: 44, agile: 38,
       abilities: ["Fireman", "vs. Strong Batters"], potential: "B", catcherAbility: null,
-      throwHand: "R", batHand: "L",
+      throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 0, 3, 0, 0, 4, 0, 0, 1, 0]) },
     // Boston Flannery — RHP swing, 1-0 / 3.44 / 4 GS
-    { firstName: "Boston", lastName: "Flannery", position: "P", eligibility: "SO", homeState: "MA", hometown: "Boston", jerseyNumber: 42,
+    { firstName: "Boston", lastName: "Flannery", position: "P", eligibility: "JR", homeState: "MA", hometown: "Boston", jerseyNumber: 42,
       hitForAvg: 12, power: 9, speed: 32, arm: 44, fielding: 28, errorResistance: 40, velocity: 47, control: 41, stamina: 41, stuff: 41,
       clutch: 52, vsLHP: 50, grit: 54, stealing: 6, running: 28, throwing: 58, recovery: 37, wRISP: 37, vsLefty: 38, poise: 40, heater: 44, agile: 36,
       abilities: ["True Slider", "Bad Ball Hitter"], potential: "B+", catcherAbility: null,
@@ -410,7 +410,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 41, power: 37, speed: 53, arm: 53, fielding: 37, errorResistance: 24, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 39, vsLHP: 43, grit: 48, stealing: 37, running: 34, throwing: 60, recovery: 32, wRISP: 30, vsLefty: 28, poise: 32, heater: 0, agile: 32,
       abilities: ["Line Drive"], potential: "B", catcherAbility: 44,
-      throwHand: "R", batHand: "S",
+      throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // INFIELDERS (6)
@@ -419,7 +419,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 63, power: 61, speed: 45, arm: 33, fielding: 63, errorResistance: 56, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 64, vsLHP: 60, grit: 65, stealing: 48, running: 48, throwing: 60, recovery: 56, wRISP: 64, vsLefty: 58, poise: 64, heater: 0, agile: 32,
       abilities: ["Power Hitter", "Defensive Artisan"], potential: "B+", catcherAbility: null,
-      throwHand: "R", batHand: "R",
+      throwHand: "L", batHand: "L",
       skinTone: "light", hairColor: "blonde", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Gavin Gallaher — JR 2B captain, .273/9HR/40RBI, leads ALL 2B nationally in DRS (12.55), team captain
@@ -427,7 +427,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 65, power: 63, speed: 54, arm: 49, fielding: 41, errorResistance: 60, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 65, vsLHP: 64, grit: 78, stealing: 48, running: 48, throwing: 74, recovery: 56, wRISP: 66, vsLefty: 60, poise: 76, heater: 0, agile: 60,
       abilities: ["Good Bunt", "Defensive Artisan", "Consigliere", "Power Hitter"], potential: "A-", catcherAbility: null,
-      throwHand: "R", batHand: "L",
+      throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Jake Schaffner — JR SS, .354/5HR/5 3B/23 SB, 100 A, .982 FLD — table-setter
@@ -435,7 +435,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 59, power: 59, speed: 62, arm: 55, fielding: 47, errorResistance: 56, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 70, vsLHP: 64, grit: 65, stealing: 48, running: 64, throwing: 78, recovery: 56, wRISP: 64, vsLefty: 60, poise: 68, heater: 0, agile: 68,
       abilities: ["Defensive Artisan", "Chance Maker", "vs. Ace"], potential: "A-", catcherAbility: null,
-      throwHand: "R", batHand: "R",
+      throwHand: "R", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Cooper Nicholson — JR 3B, .267/13HR/41RBI, ACC-leading 21 HBPs, power threat (.630 SLG!)
@@ -443,7 +443,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 61, power: 61, speed: 36, arm: 61, fielding: 60, errorResistance: 58, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 59, vsLHP: 62, grit: 57, stealing: 48, running: 48, throwing: 57, recovery: 50, wRISP: 70, vsLefty: 60, poise: 70, heater: 0, agile: 40,
       abilities: ["Power Hitter", "Multi-Hit"], potential: "A-", catcherAbility: null,
-      throwHand: "R", batHand: "L",
+      throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Lee Sowers — SO util infielder/3B backup
@@ -459,7 +459,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 37, power: 39, speed: 60, arm: 63, fielding: 56, errorResistance: 38, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 40, vsLHP: 40, grit: 45, stealing: 51, running: 45, throwing: 52, recovery: 30, wRISP: 30, vsLefty: 26, poise: 30, heater: 0, agile: 28,
       abilities: ["Consigliere", "Contact Hitter"], potential: "B+", catcherAbility: null,
-      throwHand: "R", batHand: "L",
+      throwHand: "R", batHand: "R",
       skinTone: "tan", hairColor: "black", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // OUTFIELDERS (7)
@@ -468,7 +468,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 60, power: 58, speed: 51, arm: 44, fielding: 63, errorResistance: 63, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 59, vsLHP: 57, grit: 76, stealing: 64, running: 66, throwing: 58, recovery: 56, wRISP: 80, vsLefty: 72, poise: 76, heater: 0, agile: 80,
       abilities: ["Walkoff Hitter", "Chance Maker", "Push", "Consigliere"], potential: "A", catcherAbility: null,
-      throwHand: "R", batHand: "R",
+      throwHand: "R", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Macon Winslow — JR OF (corner), .310/9HR/45RBI, hit team-longest 427-foot HR
@@ -476,7 +476,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 61, power: 61, speed: 59, arm: 61, fielding: 49, errorResistance: 40, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 64, vsLHP: 60, grit: 66, stealing: 48, running: 48, throwing: 70, recovery: 56, wRISP: 66, vsLefty: 60, poise: 64, heater: 0, agile: 44,
       abilities: ["Power Hitter", "Consigliere"], potential: "A-", catcherAbility: null,
-      throwHand: "R", batHand: "L",
+      throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Tyler Howe — SO OF, .250/3HR
@@ -492,7 +492,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       hitForAvg: 51, power: 43, speed: 58, arm: 63, fielding: 60, errorResistance: 53, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 47, vsLHP: 46, grit: 56, stealing: 56, running: 53, throwing: 60, recovery: 46, wRISP: 44, vsLefty: 42, poise: 50, heater: 0, agile: 50,
       abilities: ["Chance Maker"], potential: "B", catcherAbility: null,
-      throwHand: "R", batHand: "R",
+      throwHand: "L", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Sawyer Black — SO OF depth
@@ -512,7 +512,7 @@ export const ACC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
     // Rom Kellis V — FR/SO part-time, .300 in 40 AB
-    { firstName: "Rom", lastName: "Kellis V", position: "2B", eligibility: "FR", homeState: "NC", hometown: "Asheville", jerseyNumber: 25,
+    { firstName: "Rom", lastName: "Kellis V", position: "2B", eligibility: "SR", homeState: "NC", hometown: "Asheville", jerseyNumber: 25,
       hitForAvg: 49, power: 41, speed: 51, arm: 28, fielding: 62, errorResistance: 59, velocity: 0, control: 0, stamina: 0, stuff: 0,
       clutch: 46, vsLHP: 45, grit: 40, stealing: 48, running: 51, throwing: 40, recovery: 27, wRISP: 32, vsLefty: 29, poise: 30, heater: 0, agile: 32,
       abilities: ["Unpredictable"], potential: "A-", catcherAbility: null,
