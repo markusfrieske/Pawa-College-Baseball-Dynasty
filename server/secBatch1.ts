@@ -225,7 +225,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 16, power: 13, speed: 33, arm: 92, fielding: 60, errorResistance: 54, velocity: 97, control: 95, stamina: 81, stuff: 97,
         clutch: 86, vsLHP: 86, grit: 68, stealing: 10, running: 34, throwing: 86, recovery: 68, wRISP: 68, vsLefty: 68, poise: 68, heater: 68, agile: 44,
         abilities: ["Poker Face", "Natural Shuuto", "vs. Strong Batters", "Heavy Ball"], potential: "A+", catcherAbility: null,
-        throwHand: "R", batHand: "R",
+        throwHand: "R", batHand: "L",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 5, 0, 0, 4, 0, 4, 0, 1, 0]) },
       // Russell Sandefer — Sunday RHP JR (UCF transfer), 2-1/3.00
@@ -298,7 +298,7 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 64, power: 49, speed: 64, arm: 64, fielding: 54, errorResistance: 51, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 62, vsLHP: 55, grit: 52, stealing: 51, running: 51, throwing: 57, recovery: 48, wRISP: 70, vsLefty: 58, poise: 70, heater: 0, agile: 40,
         abilities: ["Defensive Artisan", "Power Hitter"], potential: "A", catcherAbility: 56,
-        throwHand: "R", batHand: "R",
+        throwHand: "R", batHand: "L",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
       // Karson Bowen — SR C
@@ -319,15 +319,15 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
       // Caden McDonald — DH/1B two-way star, National Two-Way POW, 12-29 (.414) 4 HR 12 RBI in 7 games — TEAM ELITE POWER
-      { firstName: "Caden", lastName: "McDonald", position: "1B", eligibility: "JR", homeState: "FL", hometown: "Tampa", jerseyNumber: 17,
+      { firstName: "Caden", lastName: "McDonald", position: "1B", eligibility: "SO", homeState: "FL", hometown: "Tampa", jerseyNumber: 17,
         hitForAvg: 64, power: 69, speed: 68, arm: 58, fielding: 39, errorResistance: 37, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 60, vsLHP: 62, grit: 52, stealing: 51, running: 51, throwing: 52, recovery: 46, wRISP: 80, vsLefty: 76, poise: 80, heater: 0, agile: 40,
         abilities: ["Storming Home", "Power Hitter", "Consigliere"], potential: "A+", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
-      // Cade Kurland — 2B JR
-      { firstName: "Cade", lastName: "Kurland", position: "2B", eligibility: "JR", homeState: "FL", hometown: "Coral Gables", jerseyNumber: 6,
+      // Cade Kurland — 2B SR
+      { firstName: "Cade", lastName: "Kurland", position: "2B", eligibility: "SR", homeState: "FL", hometown: "Coral Gables", jerseyNumber: 6,
         hitForAvg: 64, power: 63, speed: 64, arm: 60, fielding: 42, errorResistance: 38, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 56, vsLHP: 52, grit: 58, stealing: 51, running: 51, throwing: 66, recovery: 46, wRISP: 54, vsLefty: 50, poise: 56, heater: 0, agile: 50,
         abilities: ["Power Hitter", "Spray Hitter"], potential: "B+", catcherAbility: null,
@@ -367,24 +367,24 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "S",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
-      // Ethan Surowiec — OF/DH JR, Northwoods League MVP (.387/17 HR)
-      { firstName: "Ethan", lastName: "Surowiec", position: "OF", eligibility: "JR", homeState: "MS", hometown: "Oxford", jerseyNumber: 18,
+      // Ethan Surowiec — OF/DH SO, Northwoods League MVP (.387/17 HR)
+      { firstName: "Ethan", lastName: "Surowiec", position: "OF", eligibility: "SO", homeState: "MS", hometown: "Oxford", jerseyNumber: 18,
         hitForAvg: 64, power: 64, speed: 68, arm: 65, fielding: 52, errorResistance: 42, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 68, vsLHP: 64, grit: 68, stealing: 51, running: 51, throwing: 60, recovery: 42, wRISP: 70, vsLefty: 64, poise: 70, heater: 0, agile: 38,
         abilities: ["Shock Commander", "vs. Ace", "Power Hitter", "Consigliere"], potential: "A", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
-      // Landon Stripling — OF, 2 HR / 4 XBH last 3 games
-      { firstName: "Landon", lastName: "Stripling", position: "OF", eligibility: "JR", homeState: "FL", hometown: "Gainesville", jerseyNumber: 13,
+      // Landon Stripling — OF SR, 2 HR / 4 XBH last 3 games
+      { firstName: "Landon", lastName: "Stripling", position: "OF", eligibility: "SR", homeState: "FL", hometown: "Gainesville", jerseyNumber: 13,
         hitForAvg: 64, power: 64, speed: 44, arm: 64, fielding: 55, errorResistance: 53, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 60, vsLHP: 56, grit: 60, stealing: 51, running: 51, throwing: 66, recovery: 44, wRISP: 60, vsLefty: 56, poise: 60, heater: 0, agile: 46,
         abilities: ["Power Hitter", "Consigliere"], potential: "A-", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
-      // Blake Cyr — OF JR
-      { firstName: "Blake", lastName: "Cyr", position: "OF", eligibility: "JR", homeState: "FL", hometown: "Bradenton", jerseyNumber: 7,
+      // Blake Cyr — OF SR
+      { firstName: "Blake", lastName: "Cyr", position: "OF", eligibility: "SR", homeState: "FL", hometown: "Bradenton", jerseyNumber: 7,
         hitForAvg: 59, power: 55, speed: 64, arm: 43, fielding: 26, errorResistance: 25, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 53, vsLHP: 47, grit: 50, stealing: 56, running: 52, throwing: 62, recovery: 40, wRISP: 48, vsLefty: 44, poise: 48, heater: 0, agile: 46,
         abilities: ["Power Hitter"], potential: "B+", catcherAbility: null,
@@ -404,11 +404,11 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
         hitForAvg: 63, power: 55, speed: 52, arm: 38, fielding: 64, errorResistance: 64, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 52, vsLHP: 50, grit: 56, stealing: 51, running: 51, throwing: 68, recovery: 44, wRISP: 50, vsLefty: 48, poise: 52, heater: 0, agile: 52,
         abilities: ["Unpredictable"], potential: "B+", catcherAbility: null,
-        throwHand: "R", batHand: "S",
+        throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
-      // Ty Evans — OF JR
-      { firstName: "Ty", lastName: "Evans", position: "2B", eligibility: "JR", homeState: "GA", hometown: "Marietta", jerseyNumber: 11,
+      // Ty Evans — 2B SR
+      { firstName: "Ty", lastName: "Evans", position: "2B", eligibility: "SR", homeState: "GA", hometown: "Marietta", jerseyNumber: 11,
         hitForAvg: 61, power: 55, speed: 43, arm: 64, fielding: 58, errorResistance: 50, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 52, vsLHP: 51, grit: 54, stealing: 59, running: 53, throwing: 68, recovery: 44, wRISP: 50, vsLefty: 48, poise: 52, heater: 0, agile: 52,
         abilities: ["Tough Out", "Bases Loaded Slugger", "Spray Hitter"], potential: "B", catcherAbility: null,
