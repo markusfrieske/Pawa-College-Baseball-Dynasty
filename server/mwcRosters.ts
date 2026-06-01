@@ -746,7 +746,7 @@ import type { RealPlayer } from "./realRosters";
     { firstName: "Ty", lastName: "Cunningham", position: "P", eligibility: "SO", homeState: "NM", hometown: "Albuquerque", jerseyNumber: 25,
         hitForAvg: 16, power: 10, speed: 33, arm: 42, fielding: 31, errorResistance: 45, velocity: 55, control: 53, stamina: 58, stuff: 59,
         clutch: 43, vsLHP: 47, grit: 45, stealing: 7, running: 31, throwing: 59, recovery: 41, wRISP: 47, vsLefty: 45, poise: 43, heater: 51, agile: 34,
-        abilities: ["Bad Ball Hitter", "Crossfire"], potential: "B+", catcherAbility: null,
+        abilities: ["Staredown", "Crossfire"], potential: "B+", catcherAbility: null,
         throwHand: "L", batHand: "L",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         pitchFB: 1, pitch2S: 0, pitchSL: 4, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 4, pitchFK: 0, pitchSFF: 0, pitchSHU: 3 },
