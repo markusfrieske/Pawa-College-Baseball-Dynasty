@@ -391,6 +391,14 @@ export function CardBack({ recruit }: { recruit: RevealRecruit }) {
             {specialAbilities.slice(0, 6).map(name => {
               const a = getAbilityByName(name);
               if (!a) return null;
+              if (name === "Bad Ball Hitter") {
+                return (
+                  <span key={name} className="text-[5px] border rounded overflow-hidden font-pixel leading-tight inline-flex border-blue-500/40 px-0">
+                    <span className="text-blue-400 px-0.5">Bad</span>
+                    <span className="text-red-400 border-l border-red-500/40 px-0.5">Ball Hitter</span>
+                  </span>
+                );
+              }
               const tierColor = a.tier === "gold"
                 ? "text-amber-400 border-amber-500/40"
                 : a.tier === "blue"

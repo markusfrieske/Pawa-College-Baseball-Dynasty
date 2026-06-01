@@ -581,6 +581,21 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
                 };
                 const tier = ability?.tier;
                 const tierStyle = tier ? tierStyles[tier] : null;
+
+                if (abilityName === "Bad Ball Hitter") {
+                  return (
+                    <Badge
+                      key={idx}
+                      variant="outline"
+                      className="text-xs px-0 overflow-hidden border-blue-500"
+                      style={{ boxShadow: "0 0 6px rgba(59,130,246,0.22)" }}
+                      title={ability?.description}
+                    >
+                      <span className="bg-blue-600/20 text-blue-400 px-2 py-0.5" style={{ textShadow: "0 0 8px rgba(59,130,246,0.70)" }}>Bad</span>
+                      <span className="bg-red-600/20 text-red-400 px-2 py-0.5" style={{ textShadow: "0 0 8px rgba(239,68,68,0.70)" }}>Ball Hitter</span>
+                    </Badge>
+                  );
+                }
                 
                 return (
                   <Badge 

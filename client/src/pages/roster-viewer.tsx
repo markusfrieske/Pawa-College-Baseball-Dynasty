@@ -144,6 +144,14 @@ function ovrColor(ovr: number): string {
 }
 
 function AbilityBadge({ name }: { name: string }) {
+  if (name === "Bad Ball Hitter") {
+    return (
+      <Badge variant="outline" className="text-[8px] px-0 py-0 overflow-hidden border-blue-600/30">
+        <span className="bg-blue-600/20 text-blue-400 px-1">Bad</span>
+        <span className="bg-red-600/20 text-red-400 px-1">Ball Hitter</span>
+      </Badge>
+    );
+  }
   const ability = ALL_ABILITIES.find(a => a.name === name);
   const tier = ability?.tier ?? "blue";
   const cls = tier === "gold"

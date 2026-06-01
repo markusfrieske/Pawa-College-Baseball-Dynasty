@@ -161,6 +161,7 @@ export const FIELDER_BLUE_ABILITIES: Ability[] = [
   { name: "Revenge", description: "If failed to record a hit in previous at-bat against same pitcher, abilities increase", tier: "blue", category: "fielder" },
   { name: "Laser Beam", description: "Speed of thrown balls will be increased and their trajectory low", tier: "blue", category: "fielder", positions: ["OF"] },
   { name: "Predicament", description: "The more strikes the batter has in the at-bat, the more their abilities will increase", tier: "blue", category: "fielder" },
+  { name: "Bad Ball Hitter", description: "Batter will be able to reach balls outside of the strikezone", tier: "blue", category: "fielder" },
 ];
 
 export const FIELDER_RED_ABILITIES: Ability[] = [
@@ -180,7 +181,6 @@ export const CATCHER_GOLD_ABILITIES: Ability[] = [
 
 export const NEUTRAL_ABILITIES: Ability[] = [
   { name: "Wild Fastball", description: "Fastball speed and power is increased at the cost of control", tier: "blue", category: "neutral" },
-  { name: "Bad Ball Hitter", description: "Batter will be able to reach balls outside of the strikezone", tier: "blue", category: "neutral" },
   { name: "Groundball Pitcher", description: "Pitcher is skilled at inducing groundballs", tier: "blue", category: "neutral" },
   { name: "Full Throttle", description: "With RISP, stamina consumption is increased, but abilities are also increased", tier: "blue", category: "neutral" },
   { name: "Strength Distribution", description: "Pitcher prioritizes stronger batters and cuts corners against weak batters", tier: "blue", category: "neutral" },

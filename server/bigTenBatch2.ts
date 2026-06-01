@@ -373,7 +373,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Sam", lastName: "Hliboki", position: "P", eligibility: "SR", homeState: "LA", hometown: "Baton Rouge", jerseyNumber: 31,
       hitForAvg: 24, power: 19, speed: 34, arm: 71, fielding: 45, errorResistance: 57, velocity: 71, control: 60, stamina: 78, stuff: 69,
       clutch: 82, vsLHP: 78, grit: 87, stealing: 11, running: 38, throwing: 84, recovery: 64, wRISP: 64, vsLefty: 64, poise: 69, heater: 72, agile: 48,
-      abilities: ["Strong Starter", "vs. Strong Batters", "Heavy Ball", "Bad Ball Hitter"], potential: "A-", catcherAbility: null,
+      abilities: ["Strong Starter", "vs. Strong Batters", "Heavy Ball", "Staredown"], potential: "A-", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 0, 4, 0, 0, 4, 0, 0, 1, 0]) },
     { firstName: "Garrett", lastName: "Shearer", position: "P", eligibility: "JR", homeState: "IL", hometown: "Lake Forest", jerseyNumber: 22,
@@ -578,7 +578,7 @@ export const BIG_TEN_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Ryan", lastName: "Stafford", position: "P", eligibility: "FR", homeState: "OH", hometown: "Dublin", jerseyNumber: 48,
       hitForAvg: 10, power: 7, speed: 27, arm: 32, fielding: 20, errorResistance: 30, velocity: 41, control: 28, stamina: 23, stuff: 33,
       clutch: 34, vsLHP: 33, grit: 36, stealing: 9, running: 27, throwing: 44, recovery: 24, wRISP: 22, vsLefty: 24, poise: 24, heater: 34, agile: 32,
-      abilities: ["Escape Pitch", "Intimidator", "Bad Ball Hitter"], potential: "A-", catcherAbility: null,
+      abilities: ["Escape Pitch", "Intimidator", "Poker Face"], potential: "A-", catcherAbility: null,
       throwHand: "L", batHand: "L",
       ...pitchMix(1, [1, 0, 0, 0, 0, 3, 0, 0, 0, 3]) },
     // CATCHERS (2)
