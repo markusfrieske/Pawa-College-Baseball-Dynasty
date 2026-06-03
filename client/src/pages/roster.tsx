@@ -1655,19 +1655,29 @@ function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leagueId, i
     if (!slots) return null;
     const days = ["WED", "FRI", "SAT", "SUN"] as const;
     return (
-      <div className="flex gap-0.5 items-center flex-shrink-0" title="Weekly availability (WED/FRI/SAT/SUN)">
+      <div className="flex gap-1 items-center flex-shrink-0">
         {days.map(d => {
           const s = slots[d];
-          const color = !s?.available ? "bg-red-500/70" : s?.limited ? "bg-yellow-500/70" : "bg-green-500/70";
-          const label = !s?.available ? "Unavailable" : s?.limited ? `${s.suggestedMaxIP} IP max` : `${s.suggestedMaxIP} IP max`;
+          const avail = s?.available ?? false;
+          const limited = s?.limited ?? false;
+          const ip = s?.suggestedMaxIP ?? 0;
+          const cls = !avail
+            ? "border-red-500/50 bg-red-500/10 text-red-400"
+            : limited
+            ? "border-yellow-400/50 bg-yellow-500/10 text-yellow-300"
+            : "border-green-500/50 bg-green-500/10 text-green-400";
           return (
             <div
               key={d}
-              className={`w-4 h-4 rounded-sm flex items-center justify-center ${color}`}
-              title={`${d}: ${label}`}
+              className={`flex flex-col items-center border rounded px-1 py-0.5 ${cls}`}
+              style={{ minWidth: 34 }}
+              title={!avail ? `${d}: Unavailable` : `${d}: up to ${ip} IP`}
               data-testid={`avail-strip-${playerId}-${d}`}
             >
-              <span className="text-[6px] font-pixel text-white leading-none">{d[0]}</span>
+              <span className="text-[7px] font-pixel leading-none">{d}</span>
+              <span className="text-[8px] font-bold leading-none mt-0.5">
+                {!avail ? "✕" : `${ip}IP`}
+              </span>
             </div>
           );
         })}

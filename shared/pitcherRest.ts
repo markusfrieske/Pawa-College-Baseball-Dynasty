@@ -22,7 +22,7 @@ export function ipToOuts(ip: string): number {
 }
 
 function outsToRestNeeded(outs: number): number {
-  if (outs <= 1) return 1;
+  if (outs === 0) return 0;
   if (outs <= 3) return 1;
   if (outs <= 9) return 2;
   if (outs <= 15) return 3;

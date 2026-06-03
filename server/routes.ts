@@ -3403,18 +3403,26 @@ export async function registerRoutes(
     try {
       const leagueId = req.params.id as string;
       const teamId = req.query.teamId as string | undefined;
+      const userId = req.session.userId;
 
       const league = await storage.getLeague(leagueId);
       if (!league) return res.status(404).json({ message: "League not found" });
 
+      const isCommissioner = hasCommissionerAccess(league, userId);
+
       let targetTeamId = teamId;
       if (!targetTeamId) {
         const coaches = await storage.getCoachesByLeague(leagueId);
-        const userId = req.session.userId;
         const userCoach = coaches.find(c => c.userId === userId);
         const leagueTeams = await storage.getTeamsByLeague(leagueId);
         const userTeam = userCoach ? leagueTeams.find(t => t.id === userCoach.teamId) : leagueTeams.find(t => !t.isCpu);
         targetTeamId = userTeam?.id;
+      } else if (!isCommissioner) {
+        const coaches = await storage.getCoachesByLeague(leagueId);
+        const userCoach = coaches.find(c => c.userId === userId);
+        if (!userCoach || userCoach.teamId !== targetTeamId) {
+          return res.status(403).json({ message: "Forbidden" });
+        }
       }
 
       if (!targetTeamId) return res.status(400).json({ message: "No team found" });
@@ -6939,8 +6947,7 @@ export async function registerRoutes(
           for (const p of pitchingArr) {
             const pid = p.playerId as string | undefined;
             if (!pid || pid.startsWith("fake_")) continue;
-            const rawOuts = ipToOuts(p.ip as string ?? "0.0");
-            const outs = Math.max(rawOuts, 1);
+            const outs = ipToOuts(p.ip as string ?? "0.0");
             pitcherUpdates.push({ id: pid, lastPitchedOuts: outs, lastPitchedWeek: gameWeek, lastPitchedDay: gameDay });
           }
         }
