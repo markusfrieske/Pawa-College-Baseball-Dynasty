@@ -19992,30 +19992,11 @@ export async function registerRoutes(
           teams: confTeams.map(t => {
             const roster = ALL_REAL_ROSTERS[t.name] ?? [];
             const players = roster.map(rp => {
-              const normalized = normalizeCommonAbilities(
-                { position: rp.position, firstName: rp.firstName, lastName: rp.lastName, ...rp },
-                conf,
-              );
-              // Gate gold abilities using OVR WITH abilities included: a player earns
-              // their gold badge if their total OVR (incl. the +10 gold bonus) reaches ≥ 500.
-              const ovrWithAbilities = calculateOVR({ ...rp, ...normalized, abilities: rp.abilities ?? [] });
-              const gatedAbilities = enforceGoldOvrGate(rp.abilities ?? [], rp.position, ovrWithAbilities);
-              let finalNormalized = normalized;
-              let finalOverall = calculateOVR({ ...rp, ...normalized, abilities: gatedAbilities });
-              // Boost running/stealing for elite speedsters: OVR > 500 with speed 90-94 earns
-              // S-grade Running; OVR > 500 with speed 95+ earns S-grade Stealing.
-              if (finalOverall > 500 && typeof rp.speed === "number") {
-                const spd = rp.speed;
-                if (spd >= 90 && spd <= 94 && ((normalized.running ?? 0) as number) < 90) {
-                  finalNormalized = { ...normalized, running: 90 };
-                  finalOverall = calculateOVR({ ...rp, ...finalNormalized, abilities: gatedAbilities });
-                } else if (spd >= 95 && ((normalized.stealing ?? 0) as number) < 90) {
-                  finalNormalized = { ...normalized, stealing: 90 };
-                  finalOverall = calculateOVR({ ...rp, ...finalNormalized, abilities: gatedAbilities });
-                }
-              }
-              const starRating = finalOverall >= 500 ? 5 : finalOverall >= 400 ? 4 : finalOverall >= 300 ? 3 : finalOverall >= 200 ? 2 : 1;
-              return { ...rp, ...finalNormalized, abilities: gatedAbilities, overall: finalOverall, starRating };
+              // ALL_REAL_ROSTERS is already fully calibrated (normalizeCommonAbilities,
+              // enforceGoldOvrGate, and elite speed boost are baked in by buildCalibratedRosters).
+              const overall = calculateOVR({ ...rp, abilities: rp.abilities ?? [] });
+              const starRating = getStarRatingFromOVR(overall);
+              return { ...rp, overall, starRating };
             });
             return {
               name: t.name,
@@ -20049,30 +20030,11 @@ export async function registerRoutes(
       const teamData = teams.find(t => t.name === teamName);
 
       const players = roster.map(rp => {
-        const normalized = normalizeCommonAbilities(
-          { position: rp.position, firstName: rp.firstName, lastName: rp.lastName, ...rp },
-          conferenceName,
-        );
-        // Gate gold abilities using OVR WITH abilities included: a player earns
-        // their gold badge if their total OVR (incl. the +10 gold bonus) reaches ≥ 500.
-        const ovrWithAbilities = calculateOVR({ ...rp, ...normalized, abilities: rp.abilities ?? [] });
-        const gatedAbilities = enforceGoldOvrGate(rp.abilities ?? [], rp.position, ovrWithAbilities);
-        let finalNormalized = normalized;
-        let finalOverall = calculateOVR({ ...rp, ...normalized, abilities: gatedAbilities });
-        // Boost running/stealing for elite speedsters: OVR > 500 with speed 90-94 earns
-        // S-grade Running; OVR > 500 with speed 95+ earns S-grade Stealing.
-        if (finalOverall > 500 && typeof rp.speed === "number") {
-          const spd = rp.speed;
-          if (spd >= 90 && spd <= 94 && ((normalized.running ?? 0) as number) < 90) {
-            finalNormalized = { ...normalized, running: 90 };
-            finalOverall = calculateOVR({ ...rp, ...finalNormalized, abilities: gatedAbilities });
-          } else if (spd >= 95 && ((normalized.stealing ?? 0) as number) < 90) {
-            finalNormalized = { ...normalized, stealing: 90 };
-            finalOverall = calculateOVR({ ...rp, ...finalNormalized, abilities: gatedAbilities });
-          }
-        }
-        const starRating = finalOverall >= 500 ? 5 : finalOverall >= 400 ? 4 : finalOverall >= 300 ? 3 : finalOverall >= 200 ? 2 : 1;
-        return { ...rp, ...finalNormalized, abilities: gatedAbilities, overall: finalOverall, starRating };
+        // ALL_REAL_ROSTERS is already fully calibrated (normalizeCommonAbilities,
+        // enforceGoldOvrGate, and elite speed boost are baked in by buildCalibratedRosters).
+        const overall = calculateOVR({ ...rp, abilities: rp.abilities ?? [] });
+        const starRating = getStarRatingFromOVR(overall);
+        return { ...rp, overall, starRating };
       });
 
       res.json({
@@ -21273,36 +21235,10 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
         trajectory: rp.trajectory ?? (isPitcher ? 2 : assignTrajectory(rp.power, rp.speed, rp.hitForAvg)),
       };
 
-      // Normalize common ability F/G distribution by conference tier.
-      // normalizeCommonAbilities returns ONLY common ability keys — no identity fields leak back.
-      Object.assign(playerData, normalizeCommonAbilities(
-        { position: rp.position, firstName: rp.firstName, lastName: rp.lastName, ...playerData },
-        conferenceName ?? "",
-      ));
-
-      // Gate gold abilities using OVR WITH abilities included: a player earns their
-      // gold badge if their total OVR (incl. the +10 gold bonus) reaches ≥ 500.
-      // If gold is stripped, recalculate so the stored OVR reflects the gated set.
-      let rawOverall = calculateOVR(playerData);
-      const gatedAbilities = enforceGoldOvrGate(playerData.abilities as string[], rp.position, rawOverall);
-      if (gatedAbilities !== playerData.abilities) {
-        (playerData as Record<string, unknown>).abilities = gatedAbilities;
-        rawOverall = calculateOVR(playerData);
-      }
-      // Boost running/stealing for elite speedsters: OVR > 500 with speed 90-94 earns
-      // S-grade Running; OVR > 500 with speed 95+ earns S-grade Stealing.
-      if (rawOverall > 500 && typeof rp.speed === "number") {
-        const spd = rp.speed;
-        let boosted = false;
-        if (spd >= 90 && spd <= 94 && ((playerData as Record<string, unknown>).running as number ?? 0) < 90) {
-          (playerData as Record<string, unknown>).running = 90;
-          boosted = true;
-        } else if (spd >= 95 && ((playerData as Record<string, unknown>).stealing as number ?? 0) < 90) {
-          (playerData as Record<string, unknown>).stealing = 90;
-          boosted = true;
-        }
-        if (boosted) rawOverall = calculateOVR(playerData);
-      }
+      // ALL_REAL_ROSTERS is already fully calibrated: normalizeCommonAbilities,
+      // enforceGoldOvrGate, and elite speed boost are all baked in by buildCalibratedRosters.
+      // Just compute OVR directly from the calibrated attributes — no re-transforms needed.
+      const rawOverall = calculateOVR(playerData);
       const overall = Math.max(1, Math.min(999, rawOverall));
       const starRating = getStarRatingFromOVR(overall);
 
@@ -21320,7 +21256,7 @@ async function generatePlayersForTeam(teamId: string, progressionEnabled: boolea
         ...playerData,
         batHand: rp.batHand || "R",
         throwHand: rp.throwHand || "R",
-        // Use playerData.catcherAbility — may have been adjusted by normalizeCommonAbilities for catchers
+        // catcherAbility is part of playerData (already calibrated from buildCalibratedRosters)
         skinTone: appearance.skinTone,
         hairColor: appearance.hairColor,
         hairStyle: appearance.hairStyle,

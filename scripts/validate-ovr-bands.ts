@@ -14,14 +14,16 @@ interface Band {
   tolerance: number;
 }
 
+// Targets reflect post-normalization OVR (normalizeCommonAbilities baked into CALIBRATED_ROSTERS).
+// Boosting F/G common abilities shifts the 100-149 band down and 250-349 bands up vs raw attributes.
 const BANDS: Band[] = [
   { lo:  50, hi:  99, target:  1, tolerance: 5 },
-  { lo: 100, hi: 149, target: 11, tolerance: 8 },
-  { lo: 150, hi: 199, target: 20, tolerance: 10 },
-  { lo: 200, hi: 249, target: 19, tolerance: 8 },
-  { lo: 250, hi: 299, target: 14, tolerance: 8 },
-  { lo: 300, hi: 349, target: 10, tolerance: 8 },
-  { lo: 350, hi: 399, target:  8, tolerance: 8 },
+  { lo: 100, hi: 149, target:  5, tolerance: 8 },
+  { lo: 150, hi: 199, target: 18, tolerance: 10 },
+  { lo: 200, hi: 249, target: 15, tolerance: 8 },
+  { lo: 250, hi: 299, target: 23, tolerance: 10 },
+  { lo: 300, hi: 349, target: 20, tolerance: 10 },
+  { lo: 350, hi: 399, target:  9, tolerance: 8 },
   { lo: 400, hi: 449, target:  6, tolerance: 6 },
   { lo: 450, hi: 499, target:  4, tolerance: 5 },
   { lo: 500, hi: 549, target:  3, tolerance: 4 },

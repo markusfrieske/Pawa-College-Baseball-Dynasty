@@ -17,6 +17,8 @@ import { BIG_12_ROSTERS } from "./big12Rosters";
 import { AAC_ROSTERS } from "./aacRosters";
 import { WCC_ROSTERS } from "./wccRosters";
 import { ROSTER_SCALE_FACTORS, PITCHER_SCALE_OVERRIDES, HITTER_SCALE_OVERRIDES } from "./rosterScaleFactors";
+import { normalizeCommonAbilities } from "./normalizeCommonAbilities";
+import { calculateOVR, enforceGoldOvrGate } from "@shared/abilities";
 
 export interface RealPlayer {
   firstName: string;
@@ -181,6 +183,28 @@ function applyGlobalAdjustments(player: RealPlayer): RealPlayer {
   return result;
 }
 
+/** Maps every real team name to its conference — used by buildCalibratedRosters for normalizeCommonAbilities. */
+const TEAM_CONFERENCE_MAP: Record<string, string> = {
+  ...Object.fromEntries(Object.keys(SEC_BATCH1_ROSTERS).map(t => [t, "SEC"])),
+  ...Object.fromEntries(Object.keys(SEC_BATCH2_ROSTERS).map(t => [t, "SEC"])),
+  ...Object.fromEntries(Object.keys(SEC_BATCH3_ROSTERS).map(t => [t, "SEC"])),
+  ...Object.fromEntries(Object.keys(ACC_BATCH1_ROSTERS).map(t => [t, "ACC"])),
+  ...Object.fromEntries(Object.keys(ACC_BATCH2_ROSTERS).map(t => [t, "ACC"])),
+  ...Object.fromEntries(Object.keys(ACC_BATCH3_ROSTERS).map(t => [t, "ACC"])),
+  ...Object.fromEntries(Object.keys(BIG_TEN_BATCH1_ROSTERS).map(t => [t, "Big Ten"])),
+  ...Object.fromEntries(Object.keys(BIG_TEN_BATCH2_ROSTERS).map(t => [t, "Big Ten"])),
+  ...Object.fromEntries(Object.keys(BIG_TEN_BATCH3_ROSTERS).map(t => [t, "Big Ten"])),
+  ...Object.fromEntries(Object.keys(PAC12_ROSTERS).map(t => [t, "Pac-12"])),
+  ...Object.fromEntries(Object.keys(IVY_LEAGUE_ROSTERS).map(t => [t, "Ivy League"])),
+  ...Object.fromEntries(Object.keys(SUN_BELT_ROSTERS).map(t => [t, "Sun Belt"])),
+  ...Object.fromEntries(Object.keys(BIG_WEST_ROSTERS).map(t => [t, "Big West"])),
+  ...Object.fromEntries(Object.keys(HBCU_ROSTERS).map(t => [t, "HBCU"])),
+  ...Object.fromEntries(Object.keys(MO_VALLEY_ROSTERS).map(t => [t, "Missouri Valley"])),
+  ...Object.fromEntries(Object.keys(BIG_12_ROSTERS).map(t => [t, "Big 12"])),
+  ...Object.fromEntries(Object.keys(AAC_ROSTERS).map(t => [t, "AAC"])),
+  ...Object.fromEntries(Object.keys(WCC_ROSTERS).map(t => [t, "WCC"])),
+};
+
 const RAW_REAL_ROSTERS: Record<string, RealPlayer[]> = {
   ...SEC_BATCH1_ROSTERS,
   ...SEC_BATCH2_ROSTERS,
@@ -222,11 +246,38 @@ function buildCalibratedRosters(): Record<string, RealPlayer[]> {
     const pitcherMult = PITCHER_SCALE_OVERRIDES[teamName] ?? 1;
     const hitterMult  = HITTER_SCALE_OVERRIDES[teamName]  ?? 1;
     const applyStaminaFloor = STAMINA_FLOOR_TEAMS.has(teamName);
+    const confName = TEAM_CONFERENCE_MAP[teamName] ?? "";
     out[teamName] = players.map(p => {
-      const calibrated = applyGlobalAdjustments(scalePlayer(p, factor, pitcherMult, hitterMult));
+      let calibrated = applyGlobalAdjustments(scalePlayer(p, factor, pitcherMult, hitterMult));
       if (applyStaminaFloor && PITCHER_POSITIONS.has(calibrated.position) && typeof calibrated.stamina === "number") {
-        return { ...calibrated, stamina: Math.max(20, calibrated.stamina) };
+        calibrated = { ...calibrated, stamina: Math.max(20, calibrated.stamina) };
       }
+
+      // 1. Normalize common ability F/G distribution by conference tier (deterministic via name hash).
+      const normalized = normalizeCommonAbilities(
+        { position: calibrated.position, firstName: calibrated.firstName, lastName: calibrated.lastName, ...calibrated },
+        confName,
+      );
+      calibrated = { ...calibrated, ...normalized };
+
+      // 2. Gate gold abilities: strip gold if OVR (with abilities) < 500.
+      const ovrForGating = calculateOVR({ ...calibrated });
+      const gatedAbilities = enforceGoldOvrGate(calibrated.abilities ?? [], calibrated.position, ovrForGating);
+      calibrated = { ...calibrated, abilities: gatedAbilities };
+
+      // 3. Elite speedster running/stealing boost: OVR > 500 + speed ≥ 90 → S-grade running/stealing.
+      const ovrAfterGating = gatedAbilities !== p.abilities
+        ? calculateOVR({ ...calibrated })
+        : ovrForGating;
+      if (ovrAfterGating > 500 && typeof calibrated.speed === "number") {
+        const spd = calibrated.speed;
+        if (spd >= 90 && spd <= 94 && (calibrated.running ?? 0) < 90) {
+          calibrated = { ...calibrated, running: 90 };
+        } else if (spd >= 95 && (calibrated.stealing ?? 0) < 90) {
+          calibrated = { ...calibrated, stealing: 90 };
+        }
+      }
+
       return calibrated;
     });
   }
