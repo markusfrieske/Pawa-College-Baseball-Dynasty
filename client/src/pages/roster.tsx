@@ -1430,76 +1430,76 @@ function DepthPlayerRow({ p, idx, position, teamPrimaryColor, draggable, onSelec
   const isDragOver = dragOverIdx === idx;
 
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <div
-          draggable={draggable}
-          onDragStart={handleDragStartInternal}
-          onDragOver={(e) => onDragOver?.(e, idx)}
-          onDrop={(e) => onDrop?.(e, idx)}
-          onDragEnd={onDragEnd}
-          onMouseDown={handleMouseDown}
-          onClick={handleClick}
-          className={`w-full flex items-center gap-1 px-2 py-1.5 rounded text-left transition-colors cursor-pointer select-none ${
-            idx === 0 ? 'bg-gold/10 hover:bg-gold/20' : 'hover:bg-card'
-          } ${isDragOver ? 'border border-[#d4a843] bg-gold/10' : 'border border-transparent'}`}
-          data-testid={`depth-${position}-${idx}`}
-        >
-          {draggable && (
-            <GripVertical
-              className="w-3 h-3 text-muted-foreground/50 flex-shrink-0 cursor-grab"
-              data-testid={`depth-drag-handle-${p.id}`}
-            />
-          )}
-          <PlayerPortrait
-            skinTone={p.skinTone || "light"}
-            hairColor={p.hairColor || "brown"}
-            hairStyle={p.hairStyle || "short"}
-            facialHair={p.facialHair || "none"}
-            eyeStyle={p.eyeStyle || undefined}
-            eyebrowStyle={p.eyebrowStyle || undefined}
-            mouthStyle={p.mouthStyle || undefined}
-            eyeBlack={p.eyeBlack ?? undefined}
-            playerId={p.id}
-            className="w-6 h-6 flex-shrink-0"
-            jerseyColor={teamPrimaryColor}
-          />
+    <div
+      draggable={draggable}
+      onDragStart={handleDragStartInternal}
+      onDragOver={(e) => onDragOver?.(e, idx)}
+      onDrop={(e) => onDrop?.(e, idx)}
+      onDragEnd={onDragEnd}
+      onMouseDown={handleMouseDown}
+      onClick={handleClick}
+      className={`w-full flex items-center gap-1 px-2 py-1.5 rounded text-left transition-colors cursor-pointer select-none ${
+        idx === 0 ? 'bg-gold/10 hover:bg-gold/20' : 'hover:bg-card'
+      } ${isDragOver ? 'border border-[#d4a843] bg-gold/10' : 'border border-transparent'}`}
+      data-testid={`depth-${position}-${idx}`}
+    >
+      {draggable && (
+        <GripVertical
+          className="w-3 h-3 text-muted-foreground/50 flex-shrink-0 cursor-grab"
+          data-testid={`depth-drag-handle-${p.id}`}
+        />
+      )}
+      <PlayerPortrait
+        skinTone={p.skinTone || "light"}
+        hairColor={p.hairColor || "brown"}
+        hairStyle={p.hairStyle || "short"}
+        facialHair={p.facialHair || "none"}
+        eyeStyle={p.eyeStyle || undefined}
+        eyebrowStyle={p.eyebrowStyle || undefined}
+        mouthStyle={p.mouthStyle || undefined}
+        eyeBlack={p.eyeBlack ?? undefined}
+        playerId={p.id}
+        className="w-6 h-6 flex-shrink-0"
+        jerseyColor={teamPrimaryColor}
+      />
+      <Tooltip>
+        <TooltipTrigger asChild>
           <span className={`text-xs truncate flex-1 ${idx === 0 ? 'text-foreground' : 'text-muted-foreground'}`}>
             {p.firstName.charAt(0)}. {p.lastName}
           </span>
-          <span className="text-[9px] text-muted-foreground/80 font-medium">
-            {p.eligibility || 'FR'}
-          </span>
-          <span className={`font-pixel text-[7px] px-1 py-0.5 rounded border ${isPitcher(p.position) ? (p.throwHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : "bg-muted/40 text-muted-foreground border-border/60") : (p.batHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : p.batHand === "S" ? "bg-purple-500/15 text-purple-400 border-purple-500/40" : "bg-muted/40 text-muted-foreground border-border/60")}`} data-testid={`badge-hand-depth-${p.id}`}>
-            {isPitcher(p.position) ? `${p.throwHand}HP` : `${p.batHand}/${p.throwHand}`}
-          </span>
-          <span className={`text-xs font-bold ${idx === 0 ? 'text-gold' : 'text-muted-foreground'}`}>
-            {p.overall}
-          </span>
-        </div>
-      </TooltipTrigger>
-      <TooltipContent side="right" className="bg-card border-border p-2 max-w-[200px]">
-        <div className="space-y-1">
-          <div className="font-pixel text-gold text-xs">
-            #{p.jerseyNumber} {p.firstName} {p.lastName}
+        </TooltipTrigger>
+        <TooltipContent side="right" className="bg-card border-border p-2 max-w-[200px]">
+          <div className="space-y-1">
+            <div className="font-pixel text-gold text-xs">
+              #{p.jerseyNumber} {p.firstName} {p.lastName}
+            </div>
+            <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+              <span>{p.position}</span>
+              <span className="inline-flex items-center gap-0.5">OVR {p.overall}{p.progressionDeltas?.overall != null && p.progressionDeltas.overall !== 0 && (p.progressionDeltas.overall > 0 ? <ArrowUp className="w-2 h-2 text-green-400" /> : <ArrowDown className="w-2 h-2 text-red-400" />)}</span>
+              <span className="flex items-center gap-0.5">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <Star
+                    key={i}
+                    className={`w-2 h-2 ${i < p.starRating ? "text-gold" : "text-muted-foreground/30"}`}
+                    fill={i < p.starRating ? "currentColor" : "none"}
+                  />
+                ))}
+              </span>
+            </div>
+            <div className="text-[10px] text-muted-foreground">{keyStats}</div>
           </div>
-          <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-            <span>{p.position}</span>
-            <span className="inline-flex items-center gap-0.5">OVR {p.overall}{p.progressionDeltas?.overall != null && p.progressionDeltas.overall !== 0 && (p.progressionDeltas.overall > 0 ? <ArrowUp className="w-2 h-2 text-green-400" /> : <ArrowDown className="w-2 h-2 text-red-400" />)}</span>
-            <span className="flex items-center gap-0.5">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <Star
-                  key={i}
-                  className={`w-2 h-2 ${i < p.starRating ? "text-gold" : "text-muted-foreground/30"}`}
-                  fill={i < p.starRating ? "currentColor" : "none"}
-                />
-              ))}
-            </span>
-          </div>
-          <div className="text-[10px] text-muted-foreground">{keyStats}</div>
-        </div>
-      </TooltipContent>
-    </Tooltip>
+        </TooltipContent>
+      </Tooltip>
+      <span className="text-[9px] text-muted-foreground/80 font-medium">
+        {p.eligibility || 'FR'}
+      </span>
+      <span className={`font-pixel text-[7px] px-1 py-0.5 rounded border ${isPitcher(p.position) ? (p.throwHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : "bg-muted/40 text-muted-foreground border-border/60") : (p.batHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : p.batHand === "S" ? "bg-purple-500/15 text-purple-400 border-purple-500/40" : "bg-muted/40 text-muted-foreground border-border/60")}`} data-testid={`badge-hand-depth-${p.id}`}>
+        {isPitcher(p.position) ? `${p.throwHand}HP` : `${p.batHand}/${p.throwHand}`}
+      </span>
+      <span className={`text-xs font-bold ${idx === 0 ? 'text-gold' : 'text-muted-foreground'}`}>
+        {p.overall}
+      </span>
+    </div>
   );
 }
 
