@@ -326,14 +326,17 @@ export default function SchedulePage() {
   const postseasonWeeks = weeks.filter(w => w.isPostseason);
 
   const currentWeekKey = useMemo(() => {
+    const inSpringTraining = exhibitionGames.length > 0 && !regularWeeks.find(w => w.isCurrentWeek) && (data?.currentWeek ?? 0) === 0;
+    if (inSpringTraining) return "spring_training";
     const cur = regularWeeks.find(w => w.isCurrentWeek);
     return cur ? `week_${cur.weekNum}` : (regularWeeks[0] ? `week_${regularWeeks[0].weekNum}` : null);
-  }, [regularWeeks]);
+  }, [regularWeeks, exhibitionGames, data?.currentWeek]);
 
   const activeKey = selectedWeekKey ?? currentWeekKey;
 
   const activeWeeks = useMemo(() => {
     if (!activeKey) return weeks;
+    if (activeKey === "spring_training") return [];
     const match = weeks.find(w => (!w.isPostseason ? `week_${w.weekNum}` : w.label) === activeKey);
     if (match) return [match, ...postseasonWeeks.filter(w => `week_${w.weekNum}` !== activeKey)].filter(Boolean);
     const postMatch = postseasonWeeks.find(w => w.label === activeKey);
@@ -406,8 +409,21 @@ export default function SchedulePage() {
             </div>
           </div>
 
-          {regularWeeks.length > 1 && (
+          {(regularWeeks.length > 0 || exhibitionGames.length > 0) && (
             <div className="mt-2 flex items-center gap-1 overflow-x-auto pb-1 hide-scrollbar">
+              {exhibitionGames.length > 0 && (
+                <button
+                  onClick={() => setSelectedWeekKey("spring_training")}
+                  data-testid="button-week-nav-spr"
+                  className={`shrink-0 font-pixel text-[8px] px-2 py-1 rounded transition-colors ${
+                    activeKey === "spring_training"
+                      ? "bg-gold text-black"
+                      : "bg-amber-500/20 text-amber-400 border border-amber-500/40 hover:bg-amber-500/30"
+                  }`}
+                >
+                  SPR
+                </button>
+              )}
               {regularWeeks.map(w => {
                 const key = `week_${w.weekNum}`;
                 const isActive = activeKey === key;
@@ -450,7 +466,7 @@ export default function SchedulePage() {
       </header>
 
       <main className="container mx-auto px-4 py-6 space-y-6 pb-20 md:pb-6">
-        {exhibitionGames.length > 0 && (
+        {exhibitionGames.length > 0 && activeKey === "spring_training" && (
           <div className="rounded-lg border border-border/50 bg-card/30 overflow-hidden">
             <div className="flex items-center justify-between px-3 py-2 border-b border-border/30 bg-card/50">
               <div className="flex items-center gap-2">
