@@ -6939,10 +6939,9 @@ export async function registerRoutes(
           for (const p of pitchingArr) {
             const pid = p.playerId as string | undefined;
             if (!pid || pid.startsWith("fake_")) continue;
-            const outs = ipToOuts(p.ip as string ?? "0.0");
-            if (outs > 0) {
-              pitcherUpdates.push({ id: pid, lastPitchedOuts: outs, lastPitchedWeek: gameWeek, lastPitchedDay: gameDay });
-            }
+            const rawOuts = ipToOuts(p.ip as string ?? "0.0");
+            const outs = Math.max(rawOuts, 1);
+            pitcherUpdates.push({ id: pid, lastPitchedOuts: outs, lastPitchedWeek: gameWeek, lastPitchedDay: gameDay });
           }
         }
         for (const upd of pitcherUpdates) {

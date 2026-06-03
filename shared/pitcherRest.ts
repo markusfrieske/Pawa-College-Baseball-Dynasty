@@ -22,7 +22,7 @@ export function ipToOuts(ip: string): number {
 }
 
 function outsToRestNeeded(outs: number): number {
-  if (outs === 0) return 0;
+  if (outs <= 1) return 1;
   if (outs <= 3) return 1;
   if (outs <= 9) return 2;
   if (outs <= 15) return 3;
@@ -52,22 +52,22 @@ export function computePitcherAvailability(
 ): PitcherSlotAvailability {
   const maxIP = fullStaminaIP(stamina);
 
-  if (lastPitchedWeek == null || lastPitchedDay == null || lastPitchedWeek !== currentWeek) {
+  if (lastPitchedWeek == null || lastPitchedDay == null) {
     return { available: true, limited: false, daysOfRest: 99, suggestedMaxIP: maxIP };
   }
 
-  const lastDayOffset = DAY_OFFSET[lastPitchedDay] ?? 0;
-  const slotDayOffset = DAY_OFFSET[slot] ?? 0;
+  const lastAbsoluteDay = lastPitchedWeek * 7 + DAY_OFFSET[lastPitchedDay];
+  const slotAbsoluteDay = currentWeek * 7 + DAY_OFFSET[slot];
 
-  if (slotDayOffset <= lastDayOffset) {
-    return { available: true, limited: false, daysOfRest: 99, suggestedMaxIP: maxIP };
+  if (slotAbsoluteDay <= lastAbsoluteDay) {
+    return { available: false, limited: false, daysOfRest: 0, suggestedMaxIP: 0 };
   }
 
-  const daysOfRest = slotDayOffset - lastDayOffset;
+  const daysOfRest = slotAbsoluteDay - lastAbsoluteDay;
   const restNeeded = outsToRestNeeded(lastPitchedOuts);
 
   let suggestedMaxIP: number;
-  if (daysOfRest < restNeeded || daysOfRest === 0) {
+  if (daysOfRest < restNeeded) {
     suggestedMaxIP = 0;
   } else if (daysOfRest === 1) {
     suggestedMaxIP = 1;
