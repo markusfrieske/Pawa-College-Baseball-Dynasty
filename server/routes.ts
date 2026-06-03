@@ -4516,7 +4516,7 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Not authorized" });
       }
 
-      const validRoles = ["FRI", "SAT", "SUN", "MID", "LRP", "MR", "SU", "CP"];
+      const validRoles = ["FRI", "SAT", "SUN", "MID", "LRP", "MR", "MR1", "MR2", "MR3", "SU", "CP"];
       const { assignments } = req.body as { assignments: { playerId: string; pitchingRole: string | null }[] };
       if (!Array.isArray(assignments)) {
         return res.status(400).json({ message: "Assignments must be an array" });
