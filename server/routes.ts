@@ -19272,6 +19272,54 @@ export async function registerRoutes(
     }
   });
 
+  // Load a saved recruiting class into a league's recruiting pool (pre-start)
+  app.post("/api/leagues/:id/load-recruiting-class", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const userId = req.session.userId;
+      if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      if (!hasCommissionerAccess(league, userId)) {
+        return res.status(403).json({ message: "Only the commissioner can load a recruiting class." });
+      }
+
+      const schema = z.object({ savedRecruitingClassId: z.string().min(1) });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "savedRecruitingClassId is required" });
+      }
+      const { savedRecruitingClassId } = parsed.data;
+
+      const savedClass = await storage.getSavedRecruitingClass(savedRecruitingClassId);
+      if (!savedClass) return res.status(404).json({ message: "Saved recruiting class not found." });
+      if (savedClass.userId && savedClass.userId !== userId) {
+        return res.status(403).json({ message: "You do not own this saved recruiting class." });
+      }
+
+      const raw = savedClass.classData as any;
+      const recruitRows: any[] = Array.isArray(raw) ? raw : (Array.isArray(raw?.recruits) ? raw.recruits : []);
+      if (recruitRows.length === 0) {
+        return res.status(400).json({ message: "The selected saved class has no recruits." });
+      }
+
+      // Clear existing recruits and replace with the saved class
+      await storage.deleteRecruitsByLeague(leagueId);
+      await storage.batchCreateRecruits(
+        recruitRows.map((r: any) => {
+          const { id, leagueId: _lid, ...rest } = r;
+          return { ...rest, leagueId };
+        })
+      );
+
+      res.json({ ok: true, count: recruitRows.length, className: savedClass.name });
+    } catch (error) {
+      console.error("Failed to load recruiting class:", error);
+      res.status(500).json({ message: "Failed to load recruiting class" });
+    }
+  });
+
   // Start dynasty - changes phase from dynasty_setup to preseason
   app.post("/api/leagues/:id/start", requireAuth, async (req, res) => {
     try {

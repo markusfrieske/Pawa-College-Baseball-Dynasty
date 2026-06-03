@@ -29,6 +29,7 @@ import {
   Copy,
   X,
   Database,
+  Download,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -70,12 +71,10 @@ export default function DynastySetupPage() {
   const queryClient = useQueryClient();
   
   const [showInviteDialog, setShowInviteDialog] = useState(false);
-  const [showImportDialog, setShowImportDialog] = useState(false);
   const [selectedRosterId, setSelectedRosterId] = useState<string>("default");
   const [selectedClassId, setSelectedClassId] = useState<string>("auto");
   const [perTeamRosters, setPerTeamRosters] = useState<Record<string, string>>({});
   const [inviteLabel, setInviteLabel] = useState("");
-  const [importFile, setImportFile] = useState<File | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
 
   const { data, isLoading, refetch } = useQuery<DynastySetupData>({
@@ -128,6 +127,18 @@ export default function DynastySetupPage() {
   const { data: savedClasses } = useQuery<SavedRecruitingClass[]>({
     queryKey: ["/api/saved-recruiting-classes"],
     enabled: !!data?.isCommissioner,
+  });
+
+  const loadClassMutation = useMutation({
+    mutationFn: async (savedRecruitingClassId: string) => {
+      const res = await apiRequest("POST", `/api/leagues/${id}/load-recruiting-class`, { savedRecruitingClassId });
+      return res.json();
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "dynasty-setup"] });
+      toast({ title: "Recruiting Class Loaded", description: `Loaded ${data.count} recruits from "${data.className}".` });
+    },
+    onError: (err: Error) => toast({ title: "Error", description: parseErrorMessage(err), variant: "destructive" }),
   });
 
   const startDynastyMutation = useMutation({
@@ -407,9 +418,9 @@ export default function DynastySetupPage() {
                   </RetroCardHeader>
                   <RetroCardContent>
                     <p className="text-sm text-muted-foreground mb-3">
-                      {hasRecruits 
-                        ? "Recruiting class is ready. You can import a custom class or edit existing recruits."
-                        : "Choose a recruiting class source or auto-generate when the dynasty starts."}
+                      {hasRecruits
+                        ? "Recruiting class is ready. Select a different class and load again to replace it."
+                        : "Pick a saved class to load now, or leave on Auto-Generate to create one when the dynasty starts."}
                     </p>
                     <Select value={selectedClassId} onValueChange={setSelectedClassId}>
                       <SelectTrigger data-testid="select-recruiting-class" className="w-full mb-3">
@@ -427,12 +438,13 @@ export default function DynastySetupPage() {
                     <div className="flex gap-3">
                       <RetroButton
                         variant="outline"
-                        onClick={() => setShowImportDialog(true)}
+                        onClick={() => loadClassMutation.mutate(selectedClassId)}
+                        disabled={selectedClassId === "auto" || loadClassMutation.isPending}
                         className="flex-1"
-                        data-testid="button-import-recruits"
+                        data-testid="button-load-saved-class"
                       >
-                        <FileUp className="w-4 h-4 mr-2" />
-                        Import CSV
+                        <Download className="w-4 h-4 mr-2" />
+                        {loadClassMutation.isPending ? "Loading..." : "Load Saved Class"}
                       </RetroButton>
                       {hasRecruits && (
                         <Link href={`/league/${id}/edit-recruits`} className="flex-1">
@@ -578,37 +590,6 @@ export default function DynastySetupPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
-        <DialogContent className="bg-card border-border max-w-md">
-          <DialogHeader>
-            <DialogTitle className="font-pixel text-gold text-sm">Import Recruiting Class</DialogTitle>
-            <DialogDescription className="text-muted-foreground">
-              Upload a CSV file with recruit data.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="bg-background/50 border border-border p-4 rounded text-xs text-muted-foreground">
-              <p className="mb-2">CSV Format:</p>
-              <code>firstName, lastName, position, overall, starRating, homeState</code>
-            </div>
-            <input
-              type="file"
-              accept=".csv"
-              onChange={(e) => setImportFile(e.target.files?.[0] || null)}
-              className="w-full text-sm text-foreground file:mr-4 file:py-2 file:px-4 file:border-0 file:bg-gold file:text-forest-dark file:font-pixel file:text-xs"
-              data-testid="input-import-file"
-            />
-            <RetroButton
-              disabled={!importFile}
-              className="w-full"
-              data-testid="button-upload-csv"
-            >
-              <FileUp className="w-4 h-4 mr-2" />
-              Upload CSV
-            </RetroButton>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
