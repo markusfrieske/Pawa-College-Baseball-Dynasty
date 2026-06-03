@@ -17589,7 +17589,7 @@ export async function registerRoutes(
     }
   });
 
-  // Get ready status for all teams in a league — visible to all authenticated league members
+  // Get ready status for all teams in a league — accessible to all league members (commissioners and coaches)
   app.get("/api/leagues/:id/ready-status", requireAuth, async (req, res) => {
     try {
       const league = await storage.getLeague(req.params.id as string);
@@ -17598,6 +17598,12 @@ export async function registerRoutes(
       }
 
       const allLeagueCoaches = await storage.getCoachesByLeague(league.id);
+      const isCommissioner = hasCommissionerAccess(league, req.session.userId);
+      const requestingCoach = allLeagueCoaches.find(c => c.userId === req.session.userId);
+      if (!isCommissioner && !requestingCoach) {
+        return res.status(403).json({ message: "Not authorized to view readiness data" });
+      }
+
       const teams = await storage.getTeamsByLeague(league.id);
       const coaches = allLeagueCoaches;
       const games = await storage.getGamesByLeague(league.id);
