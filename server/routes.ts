@@ -19095,9 +19095,47 @@ export async function registerRoutes(
       }
 
       const signedTeam = recruit.signedTeamId ? teamMap.get(recruit.signedTeamId) : null;
+
+      // Signing-day holdback — same logic as the bulk /recruits endpoint.
+      // Hold back the last 50% of attr fields and last 50% of common-ability fields
+      // until signingDayRevealed = true. Blue chips and generational gems are exempt.
+      const SD_ATTR_KEYS = new Set([
+        'hitForAvg', 'power', 'speed', 'arm', 'fielding', 'errorResistance',
+        'velocity', 'control', 'stamina',
+        'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL',
+      ]);
+      const SD_COMMON_KEYS = new Set([
+        'clutch', 'vsLHP', 'grit', 'stealing', 'running', 'throwing', 'recovery',
+        'wRISP', 'vsLefty', 'poise', 'heater', 'agile', 'catcherAbility',
+      ]);
+      const sdIsPitcher = ['P', 'SP', 'RP', 'CP'].includes(recruit.position || '');
+      const sdDefaultAttr = sdIsPitcher
+        ? ['velocity', 'control', 'stamina', 'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL']
+        : ['hitForAvg', 'power', 'speed', 'arm', 'fielding', 'errorResistance'];
+      const sdDefaultCommon = sdIsPitcher
+        ? ['wRISP', 'vsLefty', 'poise', 'grit', 'heater', 'agile', 'recovery']
+        : ['clutch', 'vsLHP', 'grit', 'stealing', 'running', 'throwing', 'recovery', 'catcherAbility'];
+      const sdScoutingOrder = (recruit.scoutingOrder as string[]) || [];
+      const sdAttrFromOrder   = sdScoutingOrder.filter((f: string) => SD_ATTR_KEYS.has(f));
+      const sdCommonFromOrder = sdScoutingOrder.filter((f: string) => SD_COMMON_KEYS.has(f));
+      const sdAttrOrder   = sdAttrFromOrder.length   > 0 ? sdAttrFromOrder   : sdDefaultAttr;
+      const sdCommonOrder = sdCommonFromOrder.length > 0 ? sdCommonFromOrder : sdDefaultCommon;
+      const sdHoldbackFields: string[] = recruit.signingDayRevealed
+        ? []
+        : (recruit.isBlueChip || recruit.isGenerationalGem)
+          ? []
+          : [
+              ...sdAttrOrder.slice(Math.floor(sdAttrOrder.length * 0.50)),
+              ...sdCommonOrder.slice(Math.floor(sdCommonOrder.length * 0.50)),
+            ];
+      const sdMasked: Record<string, unknown> = { ...recruit };
+      for (const field of sdHoldbackFields) {
+        sdMasked[field] = null;
+      }
+
       res.json({
         recruit: {
-          ...recruit,
+          ...sdMasked,
           potential: actualPotential,
           potentialFloor: dynamicPotentialFloor,
           potentialCeiling: dynamicPotentialCeiling,
@@ -19106,6 +19144,7 @@ export async function registerRoutes(
           signedTeamAbbreviation: signedTeam?.abbreviation ?? null,
           signedTeamPrimaryColor: signedTeam?.primaryColor ?? null,
           signedTeamSecondaryColor: signedTeam?.secondaryColor ?? null,
+          signingDayLockedFields: sdHoldbackFields,
         },
         topSchools,
       });

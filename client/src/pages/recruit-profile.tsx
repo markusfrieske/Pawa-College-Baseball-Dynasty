@@ -477,6 +477,10 @@ export default function RecruitProfilePage() {
 
   const revealedAbilitiesCount = recruit.interest?.revealedAbilitiesCount || 0;
   const abilities = (recruit.abilities as string[] || []);
+  const sdLockedFields = (recruit.signingDayLockedFields as string[]) || [];
+  const signingDayLockedAbilityCount = (!isFullyRevealed && sdLockedFields.length > 0)
+    ? Math.floor(abilities.length / 2) : 0;
+  const effectiveRevealedAbilitiesCount = Math.min(revealedAbilitiesCount, abilities.length - signingDayLockedAbilityCount);
 
   const actionIcons: Record<string, any> = {
     scout: <Eye className="w-3 h-3" />,
@@ -896,14 +900,14 @@ export default function RecruitProfilePage() {
             {/* Abilities Section */}
             <RetroCard>
               <RetroCardHeader>
-                Special Abilities ({isFullyRevealed ? abilities.length : `${revealedAbilitiesCount}/${abilities.length || "?"}`})
+                Special Abilities ({isFullyRevealed ? abilities.length : `${effectiveRevealedAbilitiesCount}/${abilities.length || "?"}`})
               </RetroCardHeader>
               <RetroCardContent>
                 {abilities.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
                     {abilities.map((abilityName, idx) => {
                       const ability = getAbilityByName(abilityName);
-                      const isAbilityRevealed = isFullyRevealed || revealedAbilitiesCount > idx;
+                      const isAbilityRevealed = isFullyRevealed || effectiveRevealedAbilitiesCount > idx;
                       
                       if (!isAbilityRevealed) {
                         return (
