@@ -236,6 +236,19 @@ export default function CommissionerPage() {
     },
   });
 
+  const toggleShowReadyNamesMutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      return apiRequest("PATCH", `/api/leagues/${id}/settings`, { showReadyNamesToAll: enabled });
+    },
+    onSuccess: (_r, enabled) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "commissioner"] });
+      toast({ title: enabled ? "Ready names visible to all coaches" : "Ready names hidden from coaches" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
+    },
+  });
+
   const toggleEmailDigestsMutation = useMutation({
     mutationFn: async (enabled: boolean) => {
       return apiRequest("PATCH", `/api/leagues/${id}/settings`, { emailDigestsEnabled: enabled });
@@ -677,6 +690,7 @@ export default function CommissionerPage() {
               }
               isDelegating={delegateMutation.isPending}
               onToggleEmailDigests={(enabled) => toggleEmailDigestsMutation.mutate(enabled)}
+              onToggleShowReadyNames={(enabled) => toggleShowReadyNamesMutation.mutate(enabled)}
             />
           </TabsContent>
 
@@ -2317,6 +2331,7 @@ function SettingsTab({
   onToggleDelegate,
   isDelegating,
   onToggleEmailDigests,
+  onToggleShowReadyNames,
 }: {
   league?: League;
   humanCoaches: HumanCoach[];
@@ -2327,6 +2342,7 @@ function SettingsTab({
   onToggleDelegate: (userId: string, isDelegate: boolean) => void;
   isDelegating: boolean;
   onToggleEmailDigests: (enabled: boolean) => void;
+  onToggleShowReadyNames: (enabled: boolean) => void;
 }) {
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -2387,6 +2403,20 @@ function SettingsTab({
               checked={league?.emailDigestsEnabled ?? true}
               onCheckedChange={onToggleEmailDigests}
               data-testid="switch-email-digests"
+            />
+          </div>
+
+          <div className="flex items-center justify-between border-t border-border pt-6">
+            <div>
+              <p className="font-medium">Show Ready Status to All Coaches</p>
+              <p className="text-sm text-muted-foreground">
+                Let coaches see which teams have and haven't marked ready (off = coaches see only the count)
+              </p>
+            </div>
+            <Switch
+              checked={league?.showReadyNamesToAll ?? false}
+              onCheckedChange={onToggleShowReadyNames}
+              data-testid="switch-show-ready-names"
             />
           </div>
 

@@ -89,6 +89,7 @@ const settingsSchema = z.object({
   cpuDifficulty: z.enum(["beginner", "high_school", "all_american", "elite"]).optional(),
   cpuRecruitingAggression: z.number().int().min(1).max(5).optional(),
   emailDigestsEnabled: z.boolean().optional(),
+  showReadyNamesToAll: z.boolean().optional(),
 });
 
 const SALT_ROUNDS = 10;
@@ -17719,14 +17720,58 @@ export async function registerRoutes(
         .filter(s => s.isHumanControlled)
         .every(s => getReadyState(s));
 
-      res.json({ 
-        readyStatus, 
-        allHumansReady,
-        currentPhase: league.currentPhase,
-        phaseDeadline: league.phaseDeadline ?? null,
-        humanCount: readyStatus.filter(s => s.isHumanControlled).length,
-        readyCount: readyStatus.filter(s => s.isHumanControlled && getReadyState(s)).length
-      });
+      const humanCount = readyStatus.filter(s => s.isHumanControlled).length;
+      const readyCount = readyStatus.filter(s => s.isHumanControlled && getReadyState(s)).length;
+
+      // Commissioner gets full detailed response; coaches get a minimal aggregate + optional names
+      if (isCommissioner) {
+        res.json({
+          readyStatus,
+          allHumansReady,
+          currentPhase: league.currentPhase,
+          phaseDeadline: league.phaseDeadline ?? null,
+          humanCount,
+          readyCount,
+        });
+      } else {
+        // Coaches always see counts; see team names only when showReadyNamesToAll is enabled
+        const showNames = league.showReadyNamesToAll ?? false;
+        const notReadyTeams = showNames
+          ? readyStatus
+              .filter(s => s.isHumanControlled && !getReadyState(s))
+              .map(s => ({ teamId: s.teamId, teamName: s.teamName, abbreviation: s.abbreviation, userId: s.userId }))
+          : [];
+        const myEntry = readyStatus.find(s => s.userId === req.session.userId) ?? null;
+        res.json({
+          readyStatus: showNames ? readyStatus.filter(s => s.isHumanControlled).map(s => ({
+            teamId: s.teamId,
+            teamName: s.teamName,
+            abbreviation: s.abbreviation,
+            userId: s.userId,
+            isHumanControlled: s.isHumanControlled,
+            isReady: getReadyState(s),
+            departuresFinalized: s.departuresFinalized,
+            walkonReady: s.walkonReady,
+            isAutoPilot: s.isAutoPilot,
+          })) : (myEntry ? [{
+            teamId: myEntry.teamId,
+            teamName: myEntry.teamName,
+            abbreviation: myEntry.abbreviation,
+            userId: myEntry.userId,
+            isHumanControlled: myEntry.isHumanControlled,
+            isReady: getReadyState(myEntry),
+            departuresFinalized: myEntry.departuresFinalized,
+            walkonReady: myEntry.walkonReady,
+            isAutoPilot: myEntry.isAutoPilot,
+          }] : []),
+          allHumansReady,
+          currentPhase: league.currentPhase,
+          phaseDeadline: league.phaseDeadline ?? null,
+          humanCount,
+          readyCount,
+          showReadyNamesToAll: showNames,
+        });
+      }
     } catch (error) {
       console.error("Failed to get ready status:", error);
       res.status(500).json({ message: "Failed to get ready status" });
@@ -18266,6 +18311,7 @@ export async function registerRoutes(
       if (result.data.cpuDifficulty !== undefined) updateData.cpuDifficulty = result.data.cpuDifficulty;
       if (result.data.cpuRecruitingAggression !== undefined) updateData.cpuRecruitingAggression = result.data.cpuRecruitingAggression;
       if (result.data.emailDigestsEnabled !== undefined) updateData.emailDigestsEnabled = result.data.emailDigestsEnabled;
+      if (result.data.showReadyNamesToAll !== undefined) updateData.showReadyNamesToAll = result.data.showReadyNamesToAll;
       const updated = await storage.updateLeague(req.params.id, updateData);
       res.json(updated);
     } catch (error) {

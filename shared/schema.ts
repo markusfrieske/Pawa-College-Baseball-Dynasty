@@ -40,6 +40,7 @@ export const leagues = pgTable("leagues", {
   cpuRecruitingAggression: integer("cpu_recruiting_aggression").notNull().default(3),
   coCommissionerIds: json("co_commissioner_ids").$type<string[]>().default([]),
   emailDigestsEnabled: boolean("email_digests_enabled").notNull().default(true),
+  showReadyNamesToAll: boolean("show_ready_names_to_all").notNull().default(false),
   lastWalkonAuction: text("last_walkon_auction"),
 });
 

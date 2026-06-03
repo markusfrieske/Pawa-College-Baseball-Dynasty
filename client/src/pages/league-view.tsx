@@ -2389,18 +2389,20 @@ interface ReadyStatusData {
     abbreviation: string;
     isHumanControlled: boolean;
     userId: string | null;
-    coachName: string;
+    coachName?: string;
     isReady: boolean;
-    departuresFinalized: boolean;
-    walkonReady: boolean;
-    scoutActionsUsed: number;
-    recruitActionsUsed: number;
-    hasReportedScores: boolean;
+    isAutoPilot?: boolean;
+    departuresFinalized?: boolean;
+    walkonReady?: boolean;
+    scoutActionsUsed?: number;
+    recruitActionsUsed?: number;
+    hasReportedScores?: boolean;
   }>;
   allHumansReady: boolean;
   humanCount: number;
   readyCount: number;
   currentPhase: string;
+  showReadyNamesToAll?: boolean;
   currentUserId?: string;
 }
 
@@ -2891,6 +2893,12 @@ function WaitingOnWidget({
               );
             })}
           </div>
+        )}
+
+        {!isCommissioner && !readyData?.showReadyNamesToAll && humanCount > 1 && !allReady && (
+          <p className="mt-2 text-[10px] text-muted-foreground">
+            Showing your status only — commissioner can enable full team visibility in settings
+          </p>
         )}
 
         {allReady && !isCommissioner && (
