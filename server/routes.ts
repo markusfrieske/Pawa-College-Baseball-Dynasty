@@ -8778,15 +8778,17 @@ export async function registerRoutes(
       }));
       console.timeEnd("[advance-perf] game-sim");
 
-      // Simulate any pending exhibition games during preseason/spring_training (non-counting)
+      // Simulate any pending exhibition games during preseason/spring_training (counts for overall W/L)
+      const exhibitionGameResults: Array<{ game: (typeof seasonGames)[0]; result: { homeScore: number; awayScore: number; boxScore: string } }> = [];
       if (league.currentPhase === "preseason" || league.currentPhase === "spring_training") {
-        const exhibitionGames = seasonGames.filter(g => g.phase === "exhibition" && !g.isComplete);
-        if (exhibitionGames.length > 0) {
-          await Promise.all(exhibitionGames.map(async (game) => {
+        const pendingExhibGames = seasonGames.filter(g => g.phase === "exhibition" && !g.isComplete);
+        if (pendingExhibGames.length > 0) {
+          await Promise.all(pendingExhibGames.map(async (game) => {
             const result = await simulateGame(game.homeTeamId, game.awayTeamId, "exhibition");
             await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, isComplete: true, boxScore: result.boxScore });
+            exhibitionGameResults.push({ game, result });
           }));
-          console.log(`[exhibition] Simulated ${exhibitionGames.length} exhibition games for league ${leagueId}`);
+          console.log(`[exhibition] Simulated ${pendingExhibGames.length} exhibition games for league ${leagueId}`);
         }
       }
 
@@ -8830,9 +8832,10 @@ export async function registerRoutes(
       const coachXpAccum = new Map<string, { xp: number; wins: number; losses: number; confWins: number; confLosses: number }>();
 
       // Parallelize standings updates and stat accumulation — each game is independent
+      // Exhibition games are included: they count for overall W/L but not conference record (isConference=false)
       setAdvanceProgress(leagueId, "standings", 80);
       console.time("[advance-perf] standings-and-stats");
-      await Promise.all(gameResults.map(async ({ game, result }) => {
+      await Promise.all([...gameResults, ...exhibitionGameResults].map(async ({ game, result }) => {
         await updateStandingsForGame(leagueId, league.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, game.isConference);
         try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, league.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, league.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
 
@@ -9855,7 +9858,7 @@ export async function registerRoutes(
             game.awayScore = result.awayScore;
           }));
 
-          // Simulate any pending exhibition games during preseason/spring_training (non-counting)
+          // Simulate any pending exhibition games during preseason/spring_training (counts for overall W/L)
           if (phase === "preseason" || phase === "spring_training") {
             const allSeasonGamesForExhib = await getSeasonGames();
             const exhibGames = allSeasonGamesForExhib.filter(g => g.phase === "exhibition" && !g.isComplete);
@@ -9871,6 +9874,8 @@ export async function registerRoutes(
                   boxScore: result.boxScore,
                   isComplete: true,
                 });
+                await updateStandingsCached(game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, false);
+                try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Exhibition stat accumulation error:", e); }
               }));
               invalidateGameCache();
             }

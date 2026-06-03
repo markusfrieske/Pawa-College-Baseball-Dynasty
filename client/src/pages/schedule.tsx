@@ -302,6 +302,19 @@ export default function SchedulePage() {
     },
   });
 
+  const simExhibitionMutation = useMutation({
+    mutationFn: async (gameId: string) => {
+      return apiRequest("POST", `/api/leagues/${id}/games/${gameId}/play-by-play`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "schedule"] });
+      toast({ title: "Game Simulated", description: "Exhibition game has been auto-simulated." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
+    },
+  });
+
   const filteredGames = useMemo(() => {
     const all = showMyTeam && data?.userTeamId
       ? (data?.games || []).filter(g => g.homeTeamId === data.userTeamId || g.awayTeamId === data.userTeamId)
@@ -480,39 +493,80 @@ export default function SchedulePage() {
               </span>
             </div>
             <div className="divide-y divide-border/20">
-              {exhibitionGames.map(game => (
-                <div key={game.id} className="flex items-center px-3 py-2 text-xs">
-                  <div className="flex items-center gap-2 w-[45%] min-w-0">
-                    <TeamBadge
-                      abbreviation={game.awayTeam.abbreviation}
-                      primaryColor={game.awayTeam.primaryColor}
-                      secondaryColor={game.awayTeam.secondaryColor}
-                      name={game.awayTeam.name}
-                      size="xs"
-                    />
-                    <span className="font-pixel text-[9px] text-muted-foreground truncate hidden sm:block">{game.awayTeam.name}</span>
+              {exhibitionGames.map(game => {
+                const isUserExhibGame = !!(data?.userTeamId && (game.homeTeamId === data.userTeamId || game.awayTeamId === data.userTeamId));
+                const exhibReport = data?.reportsByGameId?.[game.id] ?? null;
+                return (
+                  <div key={game.id} className="flex items-center gap-2 px-3 py-2 text-xs">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <TeamBadge
+                        abbreviation={game.awayTeam.abbreviation}
+                        primaryColor={game.awayTeam.primaryColor}
+                        secondaryColor={game.awayTeam.secondaryColor}
+                        name={game.awayTeam.name}
+                        size="xs"
+                      />
+                      <span className="font-pixel text-[9px] text-muted-foreground truncate hidden sm:block">{game.awayTeam.name}</span>
+                    </div>
+                    <div className="w-12 text-center shrink-0">
+                      {game.isComplete ? (
+                        <button
+                          onClick={() => setBoxScoreGame(game)}
+                          className="font-pixel text-[10px] text-foreground hover:text-gold transition-colors"
+                          data-testid={`button-box-score-exhb-${game.id}`}
+                        >
+                          {game.awayScore}–{game.homeScore}
+                        </button>
+                      ) : (
+                        <span className="font-pixel text-[8px] text-muted-foreground">vs</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
+                      <span className="font-pixel text-[9px] text-muted-foreground truncate hidden sm:block">{game.homeTeam.name}</span>
+                      <TeamBadge
+                        abbreviation={game.homeTeam.abbreviation}
+                        primaryColor={game.homeTeam.primaryColor}
+                        secondaryColor={game.homeTeam.secondaryColor}
+                        name={game.homeTeam.name}
+                        size="xs"
+                      />
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      {game.isComplete && (
+                        <RetroButton variant="outline" size="sm" onClick={() => setBoxScoreGame(game)} data-testid={`button-box-score-action-exhb-${game.id}`} title="View Box Score">
+                          <Check className="w-3 h-3" />
+                        </RetroButton>
+                      )}
+                      {!game.isComplete && isUserExhibGame && !exhibReport && (
+                        <Link href={`/league/${id}/report-game/${game.id}`}>
+                          <RetroButton variant="outline" size="sm" title="Report Game Result" data-testid={`button-report-exhb-${game.id}`}>
+                            <FileText className="w-3 h-3" />
+                          </RetroButton>
+                        </Link>
+                      )}
+                      {!game.isComplete && (
+                        <Link href={`/league/${id}/game/${game.id}/play-by-play`}>
+                          <RetroButton variant="outline" size="sm" title="Play by Play" data-testid={`button-pbp-exhb-${game.id}`}>
+                            <Play className="w-3 h-3" />
+                          </RetroButton>
+                        </Link>
+                      )}
+                      {!game.isComplete && data?.isCommissioner && (
+                        <RetroButton
+                          variant="outline"
+                          size="sm"
+                          title="Simulate Game"
+                          data-testid={`button-sim-exhb-${game.id}`}
+                          disabled={simExhibitionMutation.isPending}
+                          onClick={() => simExhibitionMutation.mutate(game.id)}
+                        >
+                          <Swords className="w-3 h-3" />
+                        </RetroButton>
+                      )}
+                    </div>
                   </div>
-                  <div className="w-[10%] text-center shrink-0">
-                    {game.isComplete ? (
-                      <span className="font-pixel text-[10px] text-foreground">
-                        {game.awayScore}–{game.homeScore}
-                      </span>
-                    ) : (
-                      <span className="font-pixel text-[8px] text-muted-foreground">vs</span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 w-[45%] min-w-0 justify-end">
-                    <span className="font-pixel text-[9px] text-muted-foreground truncate hidden sm:block">{game.homeTeam.name}</span>
-                    <TeamBadge
-                      abbreviation={game.homeTeam.abbreviation}
-                      primaryColor={game.homeTeam.primaryColor}
-                      secondaryColor={game.homeTeam.secondaryColor}
-                      name={game.homeTeam.name}
-                      size="xs"
-                    />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -606,7 +660,7 @@ function computeTeamRecords(games: GameWithTeams[]): Map<string, { wins: number;
   const records = new Map<string, { wins: number; losses: number }>();
   const ensure = (id: string) => { if (!records.has(id)) records.set(id, { wins: 0, losses: 0 }); };
   for (const g of games) {
-    if (!g.isComplete || g.phase === "exhibition") continue;
+    if (!g.isComplete) continue;
     ensure(g.homeTeamId); ensure(g.awayTeamId);
     if ((g.homeScore ?? 0) > (g.awayScore ?? 0)) {
       records.get(g.homeTeamId)!.wins++;
