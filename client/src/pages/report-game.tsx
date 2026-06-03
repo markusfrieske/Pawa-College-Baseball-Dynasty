@@ -109,16 +109,14 @@ export default function ReportGamePage() {
   const [homePitchersInitialized, setHomePitchersInitialized] = useState(false);
   const [awayPitchersInitialized, setAwayPitchersInitialized] = useState(false);
 
-  const { data: gameData, isLoading: gameLoading } = useQuery<{ game: GameWithTeams; homeTeam: Team; awayTeam: Team }>({
+  const { data: gameData, isLoading: gameLoading, isError: gameError } = useQuery<{ game: GameWithTeams; homeTeam: Team; awayTeam: Team }>({
     queryKey: ["/api/leagues", id, "games", gameId],
     queryFn: async () => {
-      const schedRes = await fetch(`/api/leagues/${id}/schedule`, { credentials: "include" });
-      if (!schedRes.ok) throw new Error("Failed to fetch schedule");
-      const schedData = await schedRes.json();
-      const game = schedData.games?.find((g: GameWithTeams) => g.id === gameId);
-      if (!game) throw new Error("Game not found");
-      return { game, homeTeam: game.homeTeam, awayTeam: game.awayTeam };
+      const res = await fetch(`/api/leagues/${id}/games/${gameId}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Game not found");
+      return res.json();
     },
+    retry: 1,
   });
 
   const { data: homePlayers, isLoading: homePlayersLoading } = useQuery<Player[]>({
@@ -214,7 +212,14 @@ export default function ReportGamePage() {
   });
 
   if (gameLoading) return <div className="min-h-screen bg-background flex items-center justify-center"><Skeleton className="h-40 w-80" /></div>;
-  if (!gameData) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Game not found.</p></div>;
+  if (gameError || !gameData) return (
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
+      <p className="text-muted-foreground">Game not found or could not be loaded.</p>
+      <Link href={`/league/${id}/schedule`} className="text-gold hover:underline text-sm flex items-center gap-1">
+        <ArrowLeft className="w-4 h-4" /> Back to Schedule
+      </Link>
+    </div>
+  );
 
   const { game, homeTeam, awayTeam } = gameData;
 

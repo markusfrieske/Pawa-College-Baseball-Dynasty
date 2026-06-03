@@ -1,10 +1,10 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { parseErrorMessage } from "@/lib/errorUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
-import { RetroInput } from "@/components/ui/retro-input";
+
 import { TeamBadge } from "@/components/ui/team-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -263,7 +263,6 @@ function getSeriesOutcome(series: SeriesGroup, userTeamId: string | null): {
 
 export default function SchedulePage() {
   const { id } = useParams<{ id: string }>();
-  const [editingGame, setEditingGame] = useState<GameWithTeams | null>(null);
   const [boxScoreGame, setBoxScoreGame] = useState<GameWithTeams | null>(null);
   const [showMyTeam, setShowMyTeam] = useState(true);
   const [disputeGameId, setDisputeGameId] = useState<string | null>(null);
@@ -275,34 +274,6 @@ export default function SchedulePage() {
 
   const { data, isLoading } = useQuery<ScheduleData>({
     queryKey: ["/api/leagues", id, "schedule"],
-  });
-
-  const submitScoreMutation = useMutation({
-    mutationFn: async ({ gameId, homeScore, awayScore }: { gameId: string; homeScore: number; awayScore: number }) => {
-      return apiRequest("PATCH", `/api/leagues/${id}/games/${gameId}`, { homeScore, awayScore });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "schedule"] });
-      toast({ title: "Score submitted", description: "Game result has been recorded." });
-      setEditingGame(null);
-    },
-    onError: (error: Error) => {
-      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
-    },
-  });
-
-  const reportScoreMutation = useMutation({
-    mutationFn: async ({ gameId, homeScore, awayScore }: { gameId: string; homeScore: number; awayScore: number }) => {
-      return apiRequest("POST", `/api/leagues/${id}/games/${gameId}/report`, { homeScore, awayScore });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "schedule"] });
-      toast({ title: "Score reported", description: "Awaiting commissioner confirmation." });
-      setEditingGame(null);
-    },
-    onError: (error: Error) => {
-      toast({ title: "Error", description: parseErrorMessage(error), variant: "destructive" });
-    },
   });
 
   const confirmReportMutation = useMutation({
@@ -378,7 +349,6 @@ export default function SchedulePage() {
   if (isLoading) return <ScheduleSkeleton />;
 
   const gameCallbacks = {
-    onEdit: (game: GameWithTeams) => setEditingGame(game),
     onViewBoxScore: (game: GameWithTeams) => setBoxScoreGame(game),
     onMatchupPreview: (gameId: string) => setMatchupPreviewGameId(gameId),
     onConfirm: (gameId: string) => confirmReportMutation.mutate(gameId),
@@ -547,21 +517,6 @@ export default function SchedulePage() {
         )}
       </main>
 
-      <ScoreEntryModal
-        game={editingGame}
-        isCommissioner={!!data?.isCommissioner}
-        onClose={() => setEditingGame(null)}
-        onSubmit={(homeScore, awayScore) => {
-          if (!editingGame) return;
-          if (data?.isCommissioner) {
-            submitScoreMutation.mutate({ gameId: editingGame.id, homeScore, awayScore });
-          } else {
-            reportScoreMutation.mutate({ gameId: editingGame.id, homeScore, awayScore });
-          }
-        }}
-        isPending={submitScoreMutation.isPending || reportScoreMutation.isPending}
-      />
-
       <BoxScoreModal game={boxScoreGame} onClose={() => setBoxScoreGame(null)} />
 
       <Dialog open={!!disputeGameId} onOpenChange={open => { if (!open) setDisputeGameId(null); }}>
@@ -615,7 +570,6 @@ export default function SchedulePage() {
 }
 
 type GameCallbacks = {
-  onEdit: (game: GameWithTeams) => void;
   onViewBoxScore: (game: GameWithTeams) => void;
   onMatchupPreview: (gameId: string) => void;
   onConfirm: (gameId: string) => void;
@@ -1003,15 +957,11 @@ function CompactGameRow({
               </Link>
             )
           )}
-          {game.isComplete ? (
+          {game.isComplete && (
             <RetroButton variant="outline" size="sm" onClick={() => callbacks.onViewBoxScore(game)} data-testid={`button-box-score-action-${game.id}`} title="View Box Score">
               <Check className="w-3 h-3" />
             </RetroButton>
-          ) : !report && (callbacks.isCommissioner || callbacks.isUserGame(game)) ? (
-            <RetroButton variant="outline" size="sm" onClick={() => callbacks.onEdit(game)} data-testid={`button-quick-score-${game.id}`} title={callbacks.isCommissioner ? "Enter Score" : "Report Score"}>
-              <Edit2 className="w-3 h-3" />
-            </RetroButton>
-          ) : null}
+          )}
         </div>
       </div>
 
@@ -1270,7 +1220,7 @@ function StandaloneGameRow({
               )}
             </>
           )}
-          {game.isComplete ? (
+          {game.isComplete && (
             <RetroButton
               variant="outline"
               size="sm"
@@ -1280,17 +1230,7 @@ function StandaloneGameRow({
             >
               <Check className="w-3 h-3" />
             </RetroButton>
-          ) : (callbacks.isCommissioner || callbacks.isUserGame(game)) && !report ? (
-            <RetroButton
-              variant="outline"
-              size="sm"
-              onClick={(e) => { e.stopPropagation(); callbacks.onEdit(game); }}
-              data-testid={`button-quick-score-${game.id}`}
-              title={callbacks.isCommissioner ? "Enter Score" : "Report Score"}
-            >
-              <Edit2 className="w-3 h-3" />
-            </RetroButton>
-          ) : null}
+          )}
         </div>
       </div>
 
@@ -1637,98 +1577,6 @@ function TeamPitchingTable({ label, pitching }: { label: string; pitching: BoxSc
         </tbody>
       </table>
     </div>
-  );
-}
-
-function ScoreEntryModal({
-  game,
-  isCommissioner,
-  onClose,
-  onSubmit,
-  isPending,
-}: {
-  game: GameWithTeams | null;
-  isCommissioner: boolean;
-  onClose: () => void;
-  onSubmit: (homeScore: number, awayScore: number) => void;
-  isPending: boolean;
-}) {
-  const [homeScore, setHomeScore] = useState("0");
-  const [awayScore, setAwayScore] = useState("0");
-
-  useEffect(() => {
-    if (game) {
-      setHomeScore(game.homeScore?.toString() ?? "0");
-      setAwayScore(game.awayScore?.toString() ?? "0");
-    }
-  }, [game?.id]);
-
-  return (
-    <Dialog open={!!game} onOpenChange={() => onClose()}>
-      <DialogContent className="bg-card border-gold max-w-md">
-        <DialogHeader>
-          <DialogTitle className="font-pixel text-gold text-sm">{isCommissioner ? "Enter Game Score" : "Report Game Score"}</DialogTitle>
-        </DialogHeader>
-
-        {game && (
-          <div className="space-y-6">
-            <div className="flex items-center gap-4">
-              <div className="flex-1 text-center">
-                <TeamBadge
-                  abbreviation={game.awayTeam.abbreviation}
-                  primaryColor={game.awayTeam.primaryColor}
-                  secondaryColor={game.awayTeam.secondaryColor}
-                  name={game.awayTeam.name}
-                  className="mx-auto mb-2"
-                />
-                <p className="text-sm font-medium mb-3">{game.awayTeam.name}</p>
-                <RetroInput
-                  type="number"
-                  min="0"
-                  value={awayScore}
-                  onChange={(e) => setAwayScore(e.target.value)}
-                  className="text-center text-xl"
-                  data-testid="input-away-score"
-                />
-              </div>
-              <span className="text-muted-foreground text-xl">@</span>
-              <div className="flex-1 text-center">
-                <TeamBadge
-                  abbreviation={game.homeTeam.abbreviation}
-                  primaryColor={game.homeTeam.primaryColor}
-                  secondaryColor={game.homeTeam.secondaryColor}
-                  name={game.homeTeam.name}
-                  className="mx-auto mb-2"
-                />
-                <p className="text-sm font-medium mb-3">{game.homeTeam.name}</p>
-                <RetroInput
-                  type="number"
-                  min="0"
-                  value={homeScore}
-                  onChange={(e) => setHomeScore(e.target.value)}
-                  className="text-center text-xl"
-                  data-testid="input-home-score"
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-3">
-              <RetroButton variant="outline" className="flex-1" onClick={onClose} disabled={isPending}>
-                Cancel
-              </RetroButton>
-              <RetroButton
-                className="flex-1"
-                onClick={() => onSubmit(parseInt(homeScore) || 0, parseInt(awayScore) || 0)}
-                disabled={isPending}
-                data-testid="button-submit-score"
-              >
-                {isPending ? "Saving..." : isCommissioner ? "Submit Score" : "Report Score"}
-              </RetroButton>
-            </div>
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
   );
 }
 

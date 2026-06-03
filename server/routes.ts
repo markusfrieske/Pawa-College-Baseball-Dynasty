@@ -6057,6 +6057,24 @@ export async function registerRoutes(
   });
 
   // Matchup preview — head-to-head data for a specific game
+  app.get("/api/leagues/:id/games/:gameId", requireAuth, async (req, res) => {
+    try {
+      const league = await storage.getLeague(req.params.id);
+      if (!league) return res.status(404).json({ message: "League not found" });
+      const allLeagueGames = await storage.getGamesByLeague(league.id);
+      const game = allLeagueGames.find(g => g.id === req.params.gameId);
+      if (!game) return res.status(404).json({ message: "Game not found" });
+      const leagueTeams = await storage.getTeamsByLeague(league.id);
+      const homeTeam = leagueTeams.find(t => t.id === game.homeTeamId);
+      const awayTeam = leagueTeams.find(t => t.id === game.awayTeamId);
+      if (!homeTeam || !awayTeam) return res.status(404).json({ message: "Teams not found" });
+      res.json({ game: { ...game, homeTeam, awayTeam }, homeTeam, awayTeam });
+    } catch (error) {
+      console.error("Error fetching game:", error);
+      res.status(500).json({ message: "Failed to fetch game" });
+    }
+  });
+
   app.get("/api/leagues/:id/games/:gameId/matchup-preview", requireAuth, async (req, res) => {
     try {
       const league = await storage.getLeague(req.params.id);
