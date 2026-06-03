@@ -366,6 +366,9 @@ export const players = pgTable("players", {
   tools: json("tools").$type<string[]>().default([]),
   workEthicScore: integer("work_ethic_score").notNull().default(70),
   coachability: integer("coachability").notNull().default(70),
+  lastPitchedOuts: integer("last_pitched_outs").notNull().default(0),
+  lastPitchedWeek: integer("last_pitched_week"),
+  lastPitchedDay: text("last_pitched_day"),
 }, (t) => [
   index("idx_players_team_id").on(t.teamId),
 ]);

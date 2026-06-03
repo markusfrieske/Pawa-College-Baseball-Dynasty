@@ -463,6 +463,8 @@ export default function ReportGamePage() {
             {step === 3 && (
               isLoading ? <Skeleton className="h-40 w-full" /> :
               <PitchingStep
+                leagueId={id}
+                gameType={game.gameType ?? null}
                 homeTeam={homeTeam}
                 awayTeam={awayTeam}
                 homePlayers={homePlayers ?? []}
@@ -787,7 +789,12 @@ function BattingStep({ label, players, batting, onChange, onInit, autoInit }: { 
   );
 }
 
+interface PitcherAvailSlot { available: boolean; limited: boolean; daysOfRest: number; suggestedMaxIP: number; }
+interface PitcherAvailRow { playerId: string; name: string; pitchingRole: string | null; slots: Record<string, PitcherAvailSlot>; }
+
 interface PitchingStepProps {
+  leagueId: string | undefined;
+  gameType: string | null;
   homeTeam: Team;
   awayTeam: Team;
   homePlayers: Player[];
@@ -799,13 +806,46 @@ interface PitchingStepProps {
   onInit: () => void;
 }
 
-function PitchingStep({ homeTeam, awayTeam, homePlayers, awayPlayers, homePitching, awayPitching, onChangeHome, onChangeAway, onInit }: PitchingStepProps) {
+const GAME_TYPE_LABEL: Record<string, string> = {
+  midweek: "WED",
+  friday: "FRI",
+  saturday: "SAT",
+  sunday: "SUN",
+};
+
+function PitchingStep({ leagueId, gameType, homeTeam, awayTeam, homePlayers, awayPlayers, homePitching, awayPitching, onChangeHome, onChangeAway, onInit }: PitchingStepProps) {
+  const [availOpen, setAvailOpen] = useState(true);
+
   useEffect(() => {
     if (homePitching.length === 0 && awayPitching.length === 0 && (homePlayers.length > 0 || awayPlayers.length > 0)) {
       onInit();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [homePlayers.length, awayPlayers.length]);
+
+  const gameDay = gameType ? (GAME_TYPE_LABEL[gameType] ?? null) : null;
+
+  const { data: homeAvailData } = useQuery<{ pitchers: PitcherAvailRow[] }>({
+    queryKey: ["/api/leagues", leagueId, "pitcher-availability", homeTeam.id],
+    enabled: !!leagueId,
+    queryFn: async () => {
+      const res = await fetch(`/api/leagues/${leagueId}/pitcher-availability?teamId=${homeTeam.id}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    staleTime: 60_000,
+  });
+
+  const { data: awayAvailData } = useQuery<{ pitchers: PitcherAvailRow[] }>({
+    queryKey: ["/api/leagues", leagueId, "pitcher-availability", awayTeam.id],
+    enabled: !!leagueId,
+    queryFn: async () => {
+      const res = await fetch(`/api/leagues/${leagueId}/pitcher-availability?teamId=${awayTeam.id}`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed");
+      return res.json();
+    },
+    staleTime: 60_000,
+  });
 
   function updatePitcher<K extends keyof PitcherEntry>(list: PitcherEntry[], setList: (l: PitcherEntry[]) => void, idx: number, field: K, value: PitcherEntry[K]) {
     const next = [...list];
@@ -944,8 +984,60 @@ function PitchingStep({ homeTeam, awayTeam, homePlayers, awayPlayers, homePitchi
     );
   }
 
+  function AvailPanel({ label, availData, teamId }: { label: string; availData: { pitchers: PitcherAvailRow[] } | undefined; teamId: string }) {
+    if (!availData || !gameDay) return null;
+    const pitchers = availData.pitchers.slice().sort((a, b) => {
+      const order = ["FRI", "SAT", "SUN", "MID", "LRP", "MR1", "MR2", "MR3", "SU", "CP"];
+      return (order.indexOf(a.pitchingRole ?? "") ?? 99) - (order.indexOf(b.pitchingRole ?? "") ?? 99);
+    });
+    return (
+      <div className="space-y-1">
+        <div className="text-[10px] font-pixel text-gold/80 mb-1">{label}</div>
+        <div className="grid gap-1">
+          {pitchers.map(p => {
+            const slot = p.slots[gameDay] as PitcherAvailSlot | undefined;
+            if (!slot) return null;
+            const color = !slot.available ? "border-red-700/50 bg-red-950/30" : slot.limited ? "border-yellow-700/50 bg-yellow-950/30" : "border-green-700/50 bg-green-950/30";
+            const statusColor = !slot.available ? "text-red-400" : slot.limited ? "text-yellow-400" : "text-green-400";
+            const statusText = !slot.available ? "Unavailable" : slot.limited ? `${slot.suggestedMaxIP} IP max` : `${slot.suggestedMaxIP} IP`;
+            return (
+              <div key={p.playerId} className={`flex items-center gap-2 px-2 py-1 rounded border text-xs ${color}`} data-testid={`avail-row-${teamId}-${p.playerId}`}>
+                <span className="flex-1 truncate">{p.name}</span>
+                {p.pitchingRole && <span className="font-pixel text-[8px] text-muted-foreground">{p.pitchingRole}</span>}
+                <span className={`font-pixel text-[9px] ${statusColor}`}>{statusText}</span>
+                {slot.daysOfRest < 99 && (
+                  <span className="text-[8px] text-muted-foreground">{slot.daysOfRest}d rest</span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  const hasAvailData = (homeAvailData || awayAvailData) && gameDay;
+
   return (
     <div className="space-y-6">
+      {hasAvailData && (
+        <div className="border border-border/60 rounded-lg overflow-hidden">
+          <button
+            className="w-full flex items-center justify-between px-3 py-2 bg-muted/30 hover:bg-muted/50 transition-colors text-left"
+            onClick={() => setAvailOpen(o => !o)}
+            data-testid="toggle-avail-panel"
+          >
+            <span className="font-pixel text-gold text-[9px]">PITCHING AVAILABILITY — {gameDay}</span>
+            <span className="text-muted-foreground text-xs">{availOpen ? "▲" : "▼"}</span>
+          </button>
+          {availOpen && (
+            <div className="p-3 grid gap-4 sm:grid-cols-2">
+              <AvailPanel label={homeTeam.name} availData={homeAvailData} teamId={homeTeam.id} />
+              <AvailPanel label={awayTeam.name} availData={awayAvailData} teamId={awayTeam.id} />
+            </div>
+          )}
+        </div>
+      )}
       <PitcherTable
         team={homeTeam}
         players={homePlayers}

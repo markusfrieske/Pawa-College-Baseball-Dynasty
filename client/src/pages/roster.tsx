@@ -1629,6 +1629,52 @@ function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leagueId, i
     },
   });
 
+  interface PitcherSlot { available: boolean; limited: boolean; daysOfRest: number; suggestedMaxIP: number; }
+  interface PitcherAvailRow { playerId: string; slots: Record<string, PitcherSlot>; }
+
+  const { data: availData } = useQuery<{ currentWeek: number; pitchers: PitcherAvailRow[] }>({
+    queryKey: ["/api/leagues", leagueId, "pitcher-availability"],
+    enabled: !!leagueId && lineupTab === "pitching",
+    queryFn: async () => {
+      const res = await fetch(`/api/leagues/${leagueId}/pitcher-availability`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch availability");
+      return res.json();
+    },
+    staleTime: 60_000,
+  });
+
+  const availMap = new Map<string, Record<string, PitcherSlot>>();
+  if (availData) {
+    for (const row of availData.pitchers) {
+      availMap.set(row.playerId, row.slots);
+    }
+  }
+
+  function AvailStrip({ playerId }: { playerId: string }) {
+    const slots = availMap.get(playerId);
+    if (!slots) return null;
+    const days = ["WED", "FRI", "SAT", "SUN"] as const;
+    return (
+      <div className="flex gap-0.5 items-center flex-shrink-0" title="Weekly availability (WED/FRI/SAT/SUN)">
+        {days.map(d => {
+          const s = slots[d];
+          const color = !s?.available ? "bg-red-500/70" : s?.limited ? "bg-yellow-500/70" : "bg-green-500/70";
+          const label = !s?.available ? "Unavailable" : s?.limited ? `${s.suggestedMaxIP} IP max` : `${s.suggestedMaxIP} IP max`;
+          return (
+            <div
+              key={d}
+              className={`w-4 h-4 rounded-sm flex items-center justify-center ${color}`}
+              title={`${d}: ${label}`}
+              data-testid={`avail-strip-${playerId}-${d}`}
+            >
+              <span className="text-[6px] font-pixel text-white leading-none">{d[0]}</span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
   const autoLineupMutation = useMutation({
     mutationFn: async () => {
       return apiRequest("POST", `/api/leagues/${leagueId}/auto-lineup`);
@@ -2153,6 +2199,7 @@ function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leagueId, i
                               {player.throwHand}HP
                             </span>
                             <span className="text-xs font-bold text-gold">{player.overall}</span>
+                            <AvailStrip playerId={player.id} />
                             {canDrag && (
                               <button
                                 onClick={(e) => { e.stopPropagation(); handleClearPitchingRole(role); }}
@@ -2233,6 +2280,7 @@ function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leagueId, i
                         {p.throwHand}HP
                       </span>
                       <span className="text-xs font-bold text-gold">{p.overall}</span>
+                      <AvailStrip playerId={p.id} />
                     </div>
                   );
                 })

@@ -34,6 +34,7 @@ import { sendWeeklyDigests, verifyUnsubToken } from "./digestEmail";
 import { pool } from "./db";
 import { calibrateRpiOvr } from "./calibrateRpiOvr";
 import { assignPitcherArchetype, generateArchetypePitchMix, qualityTierFromOvr, noPitches } from "./pitchMixHelpers";
+import { GAME_TYPE_TO_DAY, ipToOuts, computeWeeklyAvailability, ALL_GAME_DAYS, type GameDay } from "@shared/pitcherRest";
 
 function potentialGradeToNumber(grade: string): number {
   const map: Record<string, number> = {
@@ -3394,6 +3395,61 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to fetch roster:", error);
       res.status(500).json({ message: "Failed to fetch roster" });
+    }
+  });
+
+  // Pitcher availability endpoint
+  app.get("/api/leagues/:id/pitcher-availability", requireAuth, async (req, res) => {
+    try {
+      const leagueId = req.params.id as string;
+      const teamId = req.query.teamId as string | undefined;
+
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      let targetTeamId = teamId;
+      if (!targetTeamId) {
+        const coaches = await storage.getCoachesByLeague(leagueId);
+        const userId = req.session.userId;
+        const userCoach = coaches.find(c => c.userId === userId);
+        const leagueTeams = await storage.getTeamsByLeague(leagueId);
+        const userTeam = userCoach ? leagueTeams.find(t => t.id === userCoach.teamId) : leagueTeams.find(t => !t.isCpu);
+        targetTeamId = userTeam?.id;
+      }
+
+      if (!targetTeamId) return res.status(400).json({ message: "No team found" });
+
+      const players = await storage.getPlayersByTeam(targetTeamId);
+      const pitchers = players.filter(p => p.position === "P" && !p.pendingDeparture && !p.declaredForDraft);
+      const currentWeek = league.currentWeek ?? 1;
+
+      const result = pitchers.map(p => {
+        const slots: Record<string, unknown> = {};
+        for (const day of ALL_GAME_DAYS) {
+          slots[day] = computeWeeklyAvailability(
+            p.lastPitchedOuts ?? 0,
+            p.lastPitchedWeek ?? null,
+            (p.lastPitchedDay ?? null) as GameDay | null,
+            p.stamina ?? 50,
+            currentWeek,
+          )[day];
+        }
+        return {
+          playerId: p.id,
+          name: `${p.firstName} ${p.lastName}`,
+          pitchingRole: p.pitchingRole ?? null,
+          lastPitchedOuts: p.lastPitchedOuts ?? 0,
+          lastPitchedWeek: p.lastPitchedWeek ?? null,
+          lastPitchedDay: p.lastPitchedDay ?? null,
+          stamina: p.stamina ?? 50,
+          slots,
+        };
+      });
+
+      res.json({ currentWeek, pitchers: result });
+    } catch (error) {
+      console.error("Failed to fetch pitcher availability:", error);
+      res.status(500).json({ message: "Failed to fetch pitcher availability" });
     }
   });
 
@@ -6869,6 +6925,33 @@ export async function registerRoutes(
       }
       if (awayBoxData) {
         await accumulatePlayerStats(leagueId, game.season, game.awayTeamId, awayBoxData);
+      }
+
+      // Record pitcher rest data for both teams
+      const gameDay = game.gameType ? (GAME_TYPE_TO_DAY[game.gameType] ?? null) : null;
+      const gameWeek = game.week ?? null;
+      if (gameDay && gameWeek != null) {
+        const pitcherUpdates: Array<{ id: string; lastPitchedOuts: number; lastPitchedWeek: number; lastPitchedDay: string }> = [];
+        for (const boxData of [homeBoxData, awayBoxData]) {
+          if (!boxData) continue;
+          const pitchingArr = (boxData as Record<string, unknown>).pitching;
+          if (!Array.isArray(pitchingArr)) continue;
+          for (const p of pitchingArr) {
+            const pid = p.playerId as string | undefined;
+            if (!pid || pid.startsWith("fake_")) continue;
+            const outs = ipToOuts(p.ip as string ?? "0.0");
+            if (outs > 0) {
+              pitcherUpdates.push({ id: pid, lastPitchedOuts: outs, lastPitchedWeek: gameWeek, lastPitchedDay: gameDay });
+            }
+          }
+        }
+        for (const upd of pitcherUpdates) {
+          await storage.updatePlayer(upd.id, {
+            lastPitchedOuts: upd.lastPitchedOuts,
+            lastPitchedWeek: upd.lastPitchedWeek,
+            lastPitchedDay: upd.lastPitchedDay,
+          });
+        }
       }
 
       const leagueTeams = await storage.getTeamsByLeague(leagueId);
