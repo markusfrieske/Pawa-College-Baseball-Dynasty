@@ -17734,36 +17734,42 @@ export async function registerRoutes(
           readyCount,
         });
       } else {
-        // Coaches always see counts; see team names only when showReadyNamesToAll is enabled
+        // Coaches always see aggregate counts + their own status.
+        // When showReadyNamesToAll is enabled they also get the full per-team list.
         const showNames = league.showReadyNamesToAll ?? false;
+        const humanReadyStatus = readyStatus.filter(s => s.isHumanControlled);
         const notReadyTeams = showNames
-          ? readyStatus
-              .filter(s => s.isHumanControlled && !getReadyState(s))
-              .map(s => ({ teamId: s.teamId, teamName: s.teamName, abbreviation: s.abbreviation, userId: s.userId }))
+          ? humanReadyStatus
+              .filter(s => !getReadyState(s))
+              .map(s => ({ teamId: s.teamId, teamName: s.teamName, abbreviation: s.abbreviation }))
           : [];
         const myEntry = readyStatus.find(s => s.userId === req.session.userId) ?? null;
+        const coachReadyStatus = showNames
+          ? humanReadyStatus.map(s => ({
+              teamId: s.teamId,
+              teamName: s.teamName,
+              abbreviation: s.abbreviation,
+              userId: s.userId,
+              isHumanControlled: true,
+              isReady: getReadyState(s),
+              isAutoPilot: s.isAutoPilot,
+              departuresFinalized: s.departuresFinalized,
+              walkonReady: s.walkonReady,
+            }))
+          : myEntry ? [{
+              teamId: myEntry.teamId,
+              teamName: myEntry.teamName,
+              abbreviation: myEntry.abbreviation,
+              userId: myEntry.userId,
+              isHumanControlled: true,
+              isReady: getReadyState(myEntry),
+              isAutoPilot: myEntry.isAutoPilot,
+              departuresFinalized: myEntry.departuresFinalized,
+              walkonReady: myEntry.walkonReady,
+            }] : [];
         res.json({
-          readyStatus: showNames ? readyStatus.filter(s => s.isHumanControlled).map(s => ({
-            teamId: s.teamId,
-            teamName: s.teamName,
-            abbreviation: s.abbreviation,
-            userId: s.userId,
-            isHumanControlled: s.isHumanControlled,
-            isReady: getReadyState(s),
-            departuresFinalized: s.departuresFinalized,
-            walkonReady: s.walkonReady,
-            isAutoPilot: s.isAutoPilot,
-          })) : (myEntry ? [{
-            teamId: myEntry.teamId,
-            teamName: myEntry.teamName,
-            abbreviation: myEntry.abbreviation,
-            userId: myEntry.userId,
-            isHumanControlled: myEntry.isHumanControlled,
-            isReady: getReadyState(myEntry),
-            departuresFinalized: myEntry.departuresFinalized,
-            walkonReady: myEntry.walkonReady,
-            isAutoPilot: myEntry.isAutoPilot,
-          }] : []),
+          readyStatus: coachReadyStatus,
+          notReadyTeams,
           allHumansReady,
           currentPhase: league.currentPhase,
           phaseDeadline: league.phaseDeadline ?? null,

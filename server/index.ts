@@ -97,6 +97,7 @@ app.use((req, res, next) => {
     pool.query("ALTER TABLE teams ADD COLUMN IF NOT EXISTS stadium_baseline integer"),
     pool.query("ALTER TABLE teams ADD COLUMN IF NOT EXISTS college_life_baseline integer"),
     pool.query("ALTER TABLE recruits ADD COLUMN IF NOT EXISTS nil_cost integer NOT NULL DEFAULT 0"),
+    pool.query("ALTER TABLE leagues ADD COLUMN IF NOT EXISTS show_ready_names_to_all boolean NOT NULL DEFAULT false"),
   ]).then(results => {
     const failed = results.filter(r => r.status === "rejected");
     if (failed.length > 0) {

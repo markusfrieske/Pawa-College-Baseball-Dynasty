@@ -2398,6 +2398,7 @@ interface ReadyStatusData {
     recruitActionsUsed?: number;
     hasReportedScores?: boolean;
   }>;
+  notReadyTeams?: Array<{ teamId: string; teamName: string; abbreviation: string }>;
   allHumansReady: boolean;
   humanCount: number;
   readyCount: number;
@@ -2792,23 +2793,30 @@ function WaitingOnWidget({
   };
   const pageAction = isPageActionPhase ? pageActionConfig[phase] : null;
 
+  const pct = humanCount > 0 ? Math.round((readyCount / humanCount) * 100) : 0;
+
   return (
     <RetroCard
-      className="mb-4 border-gold/30 bg-gold/5"
+      className={`mb-4 transition-colors ${allReady ? "border-green-500/50 bg-green-500/5" : "border-gold/30 bg-gold/5"}`}
       data-testid="waiting-on-widget"
     >
       <div className="px-4 py-3">
-        <div className="flex items-center justify-between gap-3 mb-3">
-          <div className="flex items-center gap-2">
-            <Users className="w-4 h-4 text-gold shrink-0" />
-            <span className="font-pixel text-[9px] text-gold">
-              WAITING ON
+        {/* Header row — collapses to single line on mobile */}
+        <div className="flex items-center justify-between gap-3 mb-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <Users className={`w-4 h-4 shrink-0 ${allReady ? "text-green-400" : "text-gold"}`} />
+            <span className={`font-pixel text-[9px] ${allReady ? "text-green-400" : "text-gold"}`}>
+              {allReady ? "ALL READY" : "WAITING ON"}
             </span>
-            <span className="text-[10px] text-muted-foreground">
+            <span className="text-[10px] text-muted-foreground hidden sm:inline">
               ({readyCount}/{humanCount} ready)
             </span>
+            {/* Mobile single-line: just count */}
+            <span className="text-[10px] text-muted-foreground sm:hidden">
+              {readyCount}/{humanCount}
+            </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {myStatus && !myEffectiveReady && !isPageActionPhase && (
               <RetroButton
                 size="sm"
@@ -2818,7 +2826,7 @@ function WaitingOnWidget({
                 data-testid="button-mark-ready-widget"
               >
                 <Check className="w-3.5 h-3.5 mr-1" />
-                Mark Ready
+                <span className="hidden sm:inline">Mark </span>Ready
               </RetroButton>
             )}
             {myStatus && !myEffectiveReady && isPageActionPhase && pageAction && (
@@ -2830,9 +2838,9 @@ function WaitingOnWidget({
               </Link>
             )}
             {myStatus && myEffectiveReady && !isCommissioner && (
-              <span className="flex items-center gap-1 text-[10px] text-green-400">
+              <span className="flex items-center gap-1 text-[10px] text-green-400" data-testid="badge-you-are-ready">
                 <Check className="w-3.5 h-3.5" />
-                You&apos;re ready
+                <span className="hidden sm:inline">You&apos;re ready</span>
               </span>
             )}
             {isCommissioner && allReady && (
@@ -2857,8 +2865,21 @@ function WaitingOnWidget({
           </div>
         </div>
 
+        {/* Progress bar */}
+        {humanCount > 1 && (
+          <div className="mb-2" data-testid="ready-progress-bar">
+            <div className="h-1.5 w-full rounded-full bg-border overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${allReady ? "bg-green-500" : "bg-gold"}`}
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Team chip list */}
         {isLoading ? (
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap mt-2">
             {[1, 2].map((i) => (
               <Skeleton key={i} className="h-6 w-28 rounded" />
             ))}
@@ -2866,7 +2887,7 @@ function WaitingOnWidget({
         ) : humanTeams.length === 0 ? (
           <p className="text-[10px] text-muted-foreground">No human coaches in this league.</p>
         ) : (
-          <div className="flex flex-wrap gap-2" data-testid="waiting-on-team-list">
+          <div className="flex flex-wrap gap-2 mt-1" data-testid="waiting-on-team-list">
             {humanTeams.map((entry) => {
               const ready = getEffectiveReady(entry, phase);
               const isMe = entry.userId === user?.id;
@@ -2895,14 +2916,16 @@ function WaitingOnWidget({
           </div>
         )}
 
+        {/* Privacy note for coaches when names are hidden */}
         {!isCommissioner && !readyData?.showReadyNamesToAll && humanCount > 1 && !allReady && (
-          <p className="mt-2 text-[10px] text-muted-foreground">
+          <p className="mt-2 text-[10px] text-muted-foreground" data-testid="text-ready-names-hidden">
             Showing your status only — commissioner can enable full team visibility in settings
           </p>
         )}
 
+        {/* All-ready message for non-commissioner coaches */}
         {allReady && !isCommissioner && (
-          <p className="mt-2 text-[10px] text-green-400">
+          <p className="mt-2 text-[10px] text-green-400" data-testid="text-all-ready">
             All coaches are ready — waiting for the commissioner to advance.
           </p>
         )}
