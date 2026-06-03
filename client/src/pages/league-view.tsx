@@ -1381,9 +1381,15 @@ function ActivityFeed({ leagueId }: { leagueId: string }) {
 }
 
 function StandingsTab({ league }: { league: LeagueDetails }) {
-  const { data: scoutingData } = useQuery<Record<string, { nationalRank: number }>>({
-    queryKey: ["/api/team-templates/scouting"],
+  const { data: rankData } = useQuery<{ rankings: PowerRankingEntry[]; userTeamId: string | null }>({
+    queryKey: ["/api/leagues", league.id, "power-rankings"],
+    queryFn: async () => {
+      const res = await fetch(`/api/leagues/${league.id}/power-rankings`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch");
+      return res.json();
+    },
   });
+  const leagueRankMap = new Map((rankData?.rankings ?? []).map(r => [r.teamId, r.rank]));
 
   // Group teams by conference and sort within each conference
   const standingsByConference = league.conferences?.map(conf => {
@@ -1434,9 +1440,9 @@ function StandingsTab({ league }: { league: LeagueDetails }) {
                         <Link href={`/league/${league.id}/team/${team.id}/profile`}>
                           <span className="font-medium hover:text-gold cursor-pointer truncate max-w-[90px] sm:max-w-none block" data-testid={`link-team-standings-${team.id}`}>{team.name}</span>
                         </Link>
-                        {scoutingData?.[team.name]?.nationalRank && (
-                          <span className="font-pixel text-[8px] text-gold/70 flex-shrink-0" data-testid={`badge-national-rank-${team.id}`}>
-                            #{scoutingData[team.name].nationalRank}
+                        {leagueRankMap.has(team.id) && (
+                          <span className="font-pixel text-[8px] text-gold/70 flex-shrink-0" data-testid={`badge-league-rank-${team.id}`}>
+                            #{leagueRankMap.get(team.id)}
                           </span>
                         )}
                         {!team.isCpu && (
@@ -1544,9 +1550,15 @@ function TeamsTab({ league }: { league: LeagueDetails }) {
   const [compareTeamB, setCompareTeamB] = useState("");
   const [showCompare, setShowCompare] = useState(false);
 
-  const { data: scoutingData } = useQuery<Record<string, { nationalRank: number }>>({
-    queryKey: ["/api/team-templates/scouting"],
+  const { data: rankData } = useQuery<{ rankings: PowerRankingEntry[]; userTeamId: string | null }>({
+    queryKey: ["/api/leagues", league.id, "power-rankings"],
+    queryFn: async () => {
+      const res = await fetch(`/api/leagues/${league.id}/power-rankings`, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to fetch");
+      return res.json();
+    },
   });
+  const leagueRankMap = new Map((rankData?.rankings ?? []).map(r => [r.teamId, r.rank]));
 
   const teamsByConference = league.conferences?.map(conf => ({
     ...conf,
@@ -1631,9 +1643,9 @@ function TeamsTab({ league }: { league: LeagueDetails }) {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <p className="font-medium text-foreground">{team.name}</p>
-                        {scoutingData?.[team.name]?.nationalRank && (
-                          <span className="font-pixel text-[8px] text-gold/70" data-testid={`badge-national-rank-card-${team.id}`}>
-                            #{scoutingData[team.name].nationalRank}
+                        {leagueRankMap.has(team.id) && (
+                          <span className="font-pixel text-[8px] text-gold/70" data-testid={`badge-league-rank-card-${team.id}`}>
+                            #{leagueRankMap.get(team.id)}
                           </span>
                         )}
                       </div>
