@@ -114,10 +114,13 @@ export default function DynastySetupPage() {
 
   const copyInviteLink = (code: string) => {
     const link = `${window.location.origin}/invite/${code}`;
-    navigator.clipboard?.writeText(link);
+    navigator.clipboard?.writeText(link).then(() => {
+      toast({ title: "Link Copied", description: "Invite link copied to clipboard." });
+    }).catch(() => {
+      toast({ title: "Copy Failed", description: "Could not copy — please copy the link manually.", variant: "destructive" });
+    });
     setCopied(code);
     setTimeout(() => setCopied(null), 2000);
-    toast({ title: "Link Copied", description: "Invite link copied to clipboard." });
   };
 
   const { data: savedRosters } = useQuery<SavedRoster[]>({
