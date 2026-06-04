@@ -160,6 +160,7 @@ export interface IStorage {
   updateRecruitTopSchool(id: string, data: Partial<RecruitTopSchools>): Promise<RecruitTopSchools | undefined>;
   
   updatePlayer(id: string, data: Partial<Player>): Promise<Player | undefined>;
+  bulkUpdatePlayerRest(updates: Array<{id: string; lastPitchedOuts: number; lastPitchedWeek: number; lastPitchedDay: string}>): Promise<void>;
   batchUpdatePlayersLineup(updates: Array<{id: string; data: Partial<Player>}>): Promise<void>;
   getPlayer(id: string): Promise<Player | undefined>;
   clearProgressionDeltasForLeague(leagueId: string): Promise<number>;
@@ -862,6 +863,21 @@ export class DatabaseStorage implements IStorage {
   async updatePlayer(id: string, data: Partial<Player>): Promise<Player | undefined> {
     const [player] = await db.update(players).set(data).where(eq(players.id, id)).returning();
     return player || undefined;
+  }
+
+  async bulkUpdatePlayerRest(updates: Array<{id: string; lastPitchedOuts: number; lastPitchedWeek: number; lastPitchedDay: string}>): Promise<void> {
+    if (updates.length === 0) return;
+    const outsWhen = sql.join(updates.map(u => sql`WHEN ${u.id} THEN ${u.lastPitchedOuts}::integer`), sql` `);
+    const weekWhen = sql.join(updates.map(u => sql`WHEN ${u.id} THEN ${u.lastPitchedWeek}::integer`), sql` `);
+    const dayWhen  = sql.join(updates.map(u => sql`WHEN ${u.id} THEN ${u.lastPitchedDay}`), sql` `);
+    const ids = sql.join(updates.map(u => sql`${u.id}`), sql`, `);
+    await db.execute(sql`
+      UPDATE players
+      SET last_pitched_outs  = CASE id ${outsWhen} END,
+          last_pitched_week  = CASE id ${weekWhen} END,
+          last_pitched_day   = CASE id ${dayWhen}  END
+      WHERE id IN (${ids})
+    `);
   }
 
   async batchUpdatePlayersLineup(updates: Array<{id: string; data: Partial<Player>}>): Promise<void> {

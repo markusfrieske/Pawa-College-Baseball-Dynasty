@@ -139,6 +139,7 @@ export async function simToOffseason(
 ): Promise<unknown> {
   const resp = await request.post(`/api/leagues/${leagueId}/sim-to-offseason`, {
     data: {},
+    timeout: 120000,
   });
   if (!resp.ok()) {
     throw new Error(`sim-to-offseason failed: ${resp.status()} ${await resp.text()}`);
@@ -152,6 +153,7 @@ export async function simToSigningDay(
 ): Promise<unknown> {
   const resp = await request.post(`/api/leagues/${leagueId}/sim-to-signing-day`, {
     data: {},
+    timeout: 120000,
   });
   if (!resp.ok()) {
     throw new Error(`sim-to-signing-day failed: ${resp.status()} ${await resp.text()}`);

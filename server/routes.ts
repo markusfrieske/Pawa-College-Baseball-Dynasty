@@ -34,7 +34,7 @@ import { sendWeeklyDigests, verifyUnsubToken } from "./digestEmail";
 import { pool } from "./db";
 import { calibrateRpiOvr } from "./calibrateRpiOvr";
 import { assignPitcherArchetype, generateArchetypePitchMix, qualityTierFromOvr, noPitches } from "./pitchMixHelpers";
-import { GAME_TYPE_TO_DAY, ipToOuts, computeWeeklyAvailability, ALL_GAME_DAYS, type GameDay } from "@shared/pitcherRest";
+import { GAME_TYPE_TO_DAY, ipToOuts, computeWeeklyAvailability, computePitcherAvailability, ALL_GAME_DAYS, type GameDay } from "@shared/pitcherRest";
 
 function potentialGradeToNumber(grade: string): number {
   const map: Record<string, number> = {
@@ -6936,29 +6936,7 @@ export async function registerRoutes(
       }
 
       // Record pitcher rest data for both teams
-      const gameDay = game.gameType ? (GAME_TYPE_TO_DAY[game.gameType] ?? null) : null;
-      const gameWeek = game.week ?? null;
-      if (gameDay && gameWeek != null) {
-        const pitcherUpdates: Array<{ id: string; lastPitchedOuts: number; lastPitchedWeek: number; lastPitchedDay: string }> = [];
-        for (const boxData of [homeBoxData, awayBoxData]) {
-          if (!boxData) continue;
-          const pitchingArr = (boxData as Record<string, unknown>).pitching;
-          if (!Array.isArray(pitchingArr)) continue;
-          for (const p of pitchingArr) {
-            const pid = p.playerId as string | undefined;
-            if (!pid || pid.startsWith("fake_")) continue;
-            const outs = ipToOuts(p.ip as string ?? "0.0");
-            pitcherUpdates.push({ id: pid, lastPitchedOuts: outs, lastPitchedWeek: gameWeek, lastPitchedDay: gameDay });
-          }
-        }
-        for (const upd of pitcherUpdates) {
-          await storage.updatePlayer(upd.id, {
-            lastPitchedOuts: upd.lastPitchedOuts,
-            lastPitchedWeek: upd.lastPitchedWeek,
-            lastPitchedDay: upd.lastPitchedDay,
-          });
-        }
-      }
+      await updatePitcherRestFromBox(homeBoxData, awayBoxData, game);
 
       const leagueTeams = await storage.getTeamsByLeague(leagueId);
       const homeTeam = leagueTeams.find(t => t.id === game.homeTeamId);
@@ -6978,6 +6956,33 @@ export async function registerRoutes(
         week: game.week,
       });
     }
+  }
+
+  // Helper: update pitcher rest fields from a finalized box score (shared by all sim paths)
+  async function updatePitcherRestFromBox(
+    homeBoxData: any,
+    awayBoxData: any,
+    game: { gameType?: string | null; week?: number | null },
+  ) {
+    const gameDay = game.gameType ? (GAME_TYPE_TO_DAY[game.gameType] ?? null) : null;
+    const gameWeek = game.week ?? null;
+    if (!gameDay || gameWeek == null) return;
+
+    const updates: Array<{ id: string; lastPitchedOuts: number; lastPitchedWeek: number; lastPitchedDay: string }> = [];
+    for (const boxData of [homeBoxData, awayBoxData]) {
+      if (!boxData) continue;
+      const pitchingArr = boxData.pitching;
+      if (!Array.isArray(pitchingArr)) continue;
+      for (const p of pitchingArr) {
+        const pid = p.playerId as string | undefined;
+        if (!pid || pid.startsWith("fake_")) continue;
+        const outs = ipToOuts((p.ip as string) ?? "0.0");
+        if (outs > 0) {
+          updates.push({ id: pid, lastPitchedOuts: outs, lastPitchedWeek: gameWeek, lastPitchedDay: gameDay });
+        }
+      }
+    }
+    await storage.bulkUpdatePlayerRest(updates);
   }
 
   // ============ PLAY-BY-PLAY SIMULATION ============
@@ -7188,7 +7193,7 @@ export async function registerRoutes(
         };
       }
 
-      function pickPitchingStaff(players: Player[], gameType: string | null | undefined) {
+      function pickPitchingStaff(players: Player[], gameType: string | null | undefined, currentWeek?: number | null) {
         const pitchers = players.filter(p => p.position === "P");
         pitchers.sort((a, b) => (b.overall || 0) - (a.overall || 0));
 
@@ -7198,10 +7203,34 @@ export async function registerRoutes(
         const starterRoles = ["FRI", "SAT", "SUN", "MID"];
         const relieverRoles = ["LRP", "MR", "MR1", "MR2", "MR3", "SU", "CP"];
 
+        const gameSlot = gameType ? (GAME_TYPE_TO_DAY[gameType] ?? null) : null;
+
+        const isAvailable = (p: Player): boolean => {
+          if (!gameSlot || currentWeek == null) return true;
+          const avail = computePitcherAvailability(
+            p.lastPitchedOuts ?? 0,
+            p.lastPitchedWeek ?? null,
+            (p.lastPitchedDay ?? null) as GameDay | null,
+            p.stamina ?? 60,
+            currentWeek,
+            gameSlot,
+          );
+          return avail.available;
+        };
+
         const targetRole = gameType ? gameTypeToRole[gameType] : null;
-        let starter = targetRole
-          ? pitchers.find(p => p.pitchingRole === targetRole) || null
-          : null;
+
+        // Priority: (1) exact-role + rested, (2) any starter + rested, (3) exact-role fallback, (4) any starter fallback, (5) anyone
+        let starter: Player | null = null;
+        if (targetRole) {
+          starter = pitchers.find(p => p.pitchingRole === targetRole && isAvailable(p)) || null;
+        }
+        if (!starter) {
+          starter = pitchers.find(p => starterRoles.includes(p.pitchingRole || "") && isAvailable(p)) || null;
+        }
+        if (!starter && targetRole) {
+          starter = pitchers.find(p => p.pitchingRole === targetRole) || null;
+        }
         if (!starter) {
           starter = pitchers.find(p => starterRoles.includes(p.pitchingRole || "")) || null;
         }
@@ -7227,8 +7256,8 @@ export async function registerRoutes(
       }
 
       // Compute staffs first so we know SP throwHand for platoon-aware lineup construction
-      const homeStaff = pickPitchingStaff(homePlayers, game.gameType);
-      const awayStaff = pickPitchingStaff(awayPlayers, game.gameType);
+      const homeStaff = pickPitchingStaff(homePlayers, game.gameType, game.week);
+      const awayStaff = pickPitchingStaff(awayPlayers, game.gameType, game.week);
       const homePitcher = homeStaff.starter;
       const awayPitcher = awayStaff.starter;
       const homeLineup = buildLineup(homePlayers, awayStaff.starter.throwHand);
@@ -8325,6 +8354,9 @@ export async function registerRoutes(
       await accumulatePlayerStats(leagueId, game.season, game.homeTeamId, boxScore.home);
       await accumulatePlayerStats(leagueId, game.season, game.awayTeamId, boxScore.away);
 
+      // Update pitcher rest tracking for auto-simmed play-by-play games
+      await updatePitcherRestFromBox(boxScore.home, boxScore.away, game);
+
       const leagueTeams = await storage.getTeamsByLeague(leagueId);
       const homeTeamData = leagueTeams.find(t => t.id === game.homeTeamId);
       const awayTeamData = leagueTeams.find(t => t.id === game.awayTeamId);
@@ -8861,7 +8893,7 @@ export async function registerRoutes(
 
       console.time("[advance-perf] game-sim");
       const gameResults = await Promise.all(incompleteGames.map(async (game) => {
-        const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType);
+        const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType, undefined, undefined, game.week);
         await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, isComplete: true, boxScore: result.boxScore });
         return { game, result };
       }));
@@ -8873,7 +8905,7 @@ export async function registerRoutes(
         const pendingExhibGames = seasonGames.filter(g => g.phase === "exhibition" && !g.isComplete);
         if (pendingExhibGames.length > 0) {
           await Promise.all(pendingExhibGames.map(async (game) => {
-            const result = await simulateGame(game.homeTeamId, game.awayTeamId, "exhibition");
+            const result = await simulateGame(game.homeTeamId, game.awayTeamId, "exhibition", undefined, undefined, game.week);
             await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, isComplete: true, boxScore: result.boxScore });
             exhibitionGameResults.push({ game, result });
           }));
@@ -8927,6 +8959,7 @@ export async function registerRoutes(
       await Promise.all([...gameResults, ...exhibitionGameResults].map(async ({ game, result }) => {
         await updateStandingsForGame(leagueId, league.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, game.isConference);
         try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, league.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, league.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
+        try { const box = JSON.parse(result.boxScore); await updatePitcherRestFromBox(box.home, box.away, game); } catch (e) { /* ignore */ }
 
         const homeTeamSim = leagueTeamsForSim.find(t => t.id === game.homeTeamId);
         const awayTeamSim = leagueTeamsForSim.find(t => t.id === game.awayTeamId);
@@ -9058,10 +9091,11 @@ export async function registerRoutes(
           // Parallelize all conference championship games — each matchup is independent
           console.time("[advance-perf] conf-champ-games");
           const confGameResults = await Promise.all(confGames.map(async (game) => {
-            const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType || "friday");
+            const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType || "friday", undefined, undefined, game.week);
             await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, isComplete: true, boxScore: result.boxScore });
             await updateStandingsForGame(leagueId, league.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore);
             try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, league.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, league.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
+            try { const box = JSON.parse(result.boxScore); await updatePitcherRestFromBox(box.home, box.away, game); } catch (e) { /* ignore */ }
             try {
               const homeWon = result.homeScore > result.awayScore;
               const confWinner = leagueTeamsForSim.find(t => t.id === (homeWon ? game.homeTeamId : game.awayTeamId));
@@ -9920,7 +9954,8 @@ export async function registerRoutes(
             const result = simulateGameWithRosters(homePlayers, awayPlayers, game.gameType,
               teamStadiumMap.get(game.homeTeamId), teamStadiumMap.get(game.awayTeamId),
               { home: homeFatigue, away: awayFatigue },
-              teamPhilosophyMap.get(game.homeTeamId), teamPhilosophyMap.get(game.awayTeamId));
+              teamPhilosophyMap.get(game.homeTeamId), teamPhilosophyMap.get(game.awayTeamId),
+              game.week);
 
             // Accumulate reliever pitch counts (add to existing, not replace)
             const mergePitches = (existing: Record<string, number>, incoming: Record<string, number>) => {
@@ -9956,7 +9991,7 @@ export async function registerRoutes(
                 const homePlayers = rosterCache.get(game.homeTeamId) || [];
                 const awayPlayers = rosterCache.get(game.awayTeamId) || [];
                 const result = simulateGameWithRosters(homePlayers, awayPlayers, "exhibition",
-                  teamStadiumMap.get(game.homeTeamId), teamStadiumMap.get(game.awayTeamId));
+                  teamStadiumMap.get(game.homeTeamId), teamStadiumMap.get(game.awayTeamId), undefined, undefined, undefined, game.week);
                 await storage.updateGame(game.id, {
                   homeScore: result.homeScore,
                   awayScore: result.awayScore,
@@ -9964,7 +9999,7 @@ export async function registerRoutes(
                   isComplete: true,
                 });
                 await updateStandingsCached(game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, false);
-                try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Exhibition stat accumulation error:", e); }
+                try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away); await updatePitcherRestFromBox(box.home, box.away, game); } catch (e) { console.error("Exhibition stat accumulation error:", e); }
               }));
               invalidateGameCache();
             }
@@ -9992,6 +10027,7 @@ export async function registerRoutes(
               await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home);
               await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away);
             } catch (e) { console.error("Stat accumulation error:", e); }
+            try { const box = JSON.parse(result.boxScore); await updatePitcherRestFromBox(box.home, box.away, game); } catch (e) { /* ignore */ }
           }
 
           // Advance storyline arcs each simulated week (same logic as the regular advance route).
@@ -10037,7 +10073,7 @@ export async function registerRoutes(
           const simResults = ccGames.map(game => {
             const homePlayers = rosterCache.get(game.homeTeamId) || [];
             const awayPlayers = rosterCache.get(game.awayTeamId) || [];
-            return { game, result: simulateGameWithRosters(homePlayers, awayPlayers, game.gameType || "friday", teamStadiumMap.get(game.homeTeamId), teamStadiumMap.get(game.awayTeamId), undefined, teamPhilosophyMap.get(game.homeTeamId), teamPhilosophyMap.get(game.awayTeamId)) };
+            return { game, result: simulateGameWithRosters(homePlayers, awayPlayers, game.gameType || "friday", teamStadiumMap.get(game.homeTeamId), teamStadiumMap.get(game.awayTeamId), undefined, teamPhilosophyMap.get(game.homeTeamId), teamPhilosophyMap.get(game.awayTeamId), game.week) };
           });
           // (CC games are one-off single games; no within-week series fatigue applies)
 
@@ -10066,6 +10102,7 @@ export async function registerRoutes(
               await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home);
               await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away);
             } catch (e) { console.error("Stat accumulation error:", e); }
+            try { const box = JSON.parse(result.boxScore); await updatePitcherRestFromBox(box.home, box.away, game); } catch (e) { /* ignore */ }
           }
           // Track confChampionships for each winning coach (sim-to-offseason path)
           try {
@@ -10352,10 +10389,11 @@ export async function registerRoutes(
             const weekGames = (await storage.getGamesByLeague(leagueId))
               .filter(g => g.season === currentLeague.currentSeason && g.week === currentLeague.currentWeek && !g.isComplete);
             for (const game of weekGames) {
-              const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType, fsPhilosophyMap.get(game.homeTeamId), fsPhilosophyMap.get(game.awayTeamId));
+              const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType, fsPhilosophyMap.get(game.homeTeamId), fsPhilosophyMap.get(game.awayTeamId), game.week);
               await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, boxScore: result.boxScore, isComplete: true });
               await updateStandingsForGame(leagueId, currentLeague.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, game.isConference);
               try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away); } catch (e) { /* ignore */ }
+              try { const box = JSON.parse(result.boxScore); await updatePitcherRestFromBox(box.home, box.away, game); } catch (e) { /* ignore */ }
             }
             weeksSimulated++;
             if (nextWeek > maxWeeks) {
@@ -10372,9 +10410,10 @@ export async function registerRoutes(
           if (phase === "conference_championship") {
             const ccGames = (await storage.getGamesByLeague(leagueId)).filter(g => g.phase === "conference_championship" && !g.isComplete && g.season === currentLeague.currentSeason);
             for (const game of ccGames) {
-              const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType, fsPhilosophyMap.get(game.homeTeamId), fsPhilosophyMap.get(game.awayTeamId));
+              const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType, fsPhilosophyMap.get(game.homeTeamId), fsPhilosophyMap.get(game.awayTeamId), game.week);
               await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, boxScore: result.boxScore, isComplete: true });
               await updateStandingsForGame(leagueId, currentLeague.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, false);
+              try { const box = JSON.parse(result.boxScore); await updatePitcherRestFromBox(box.home, box.away, game); } catch (e) { /* ignore */ }
             }
             await generateSuperRegionalBracket(leagueId, currentLeague.currentSeason);
             currentLeague = (await storage.updateLeague(leagueId, { currentPhase: "super_regionals" })) as any;
@@ -10558,10 +10597,11 @@ export async function registerRoutes(
             .filter(g => g.season === currentLeague.currentSeason && g.week === currentLeague.currentWeek && !g.isComplete);
           const weekSimResults: Array<{ game: Game; result: { homeScore: number; awayScore: number; boxScore: string } }> = [];
           for (const game of weekGames) {
-            const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType, psPhilosophyMap.get(game.homeTeamId), psPhilosophyMap.get(game.awayTeamId));
+            const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType, psPhilosophyMap.get(game.homeTeamId), psPhilosophyMap.get(game.awayTeamId), game.week);
             await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, boxScore: result.boxScore, isComplete: true });
             await updateStandingsForGame(leagueId, currentLeague.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, game.isConference);
             try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
+            try { const box = JSON.parse(result.boxScore); await updatePitcherRestFromBox(box.home, box.away, game); } catch (e) { /* ignore */ }
             weekSimResults.push({ game, result });
           }
           if (weekSimResults.length > 0) {
@@ -10650,10 +10690,11 @@ export async function registerRoutes(
             .filter(g => g.season === currentLeague.currentSeason && g.week === currentLeague.currentWeek && !g.isComplete);
           const cwsWeekResults: Array<{ game: Game; result: { homeScore: number; awayScore: number; boxScore: string } }> = [];
           for (const game of weekGames) {
-            const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType);
+            const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType, undefined, undefined, game.week);
             await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, boxScore: result.boxScore, isComplete: true });
             await updateStandingsForGame(leagueId, currentLeague.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, game.isConference);
             try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
+            try { const box = JSON.parse(result.boxScore); await updatePitcherRestFromBox(box.home, box.away, game); } catch (e) { /* ignore */ }
             cwsWeekResults.push({ game, result });
           }
           if (cwsWeekResults.length > 0) {
@@ -10688,10 +10729,11 @@ export async function registerRoutes(
             .filter(g => g.phase === "conference_championship" && g.season === currentLeague.currentSeason && !g.isComplete);
           const ccResults: Array<{ game: Game; result: { homeScore: number; awayScore: number; boxScore: string } }> = [];
           for (const game of ccGames) {
-            const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType || "friday");
+            const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType || "friday", undefined, undefined, game.week);
             await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, boxScore: result.boxScore, isComplete: true });
             await updateStandingsForGame(leagueId, currentLeague.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore);
             try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
+            try { const box = JSON.parse(result.boxScore); await updatePitcherRestFromBox(box.home, box.away, game); } catch (e) { /* ignore */ }
             ccResults.push({ game, result });
           }
           if (ccResults.length > 0) {
@@ -10785,18 +10827,35 @@ export async function registerRoutes(
     homePlayers: Player[], awayPlayers: Player[], gameType?: string | null,
     homeStadium?: number, awayStadium?: number,
     pitcherFatigueIn?: { home: Record<string, number>; away: Record<string, number> },
-    homePhilosophy?: string, awayPhilosophy?: string
+    homePhilosophy?: string, awayPhilosophy?: string,
+    currentWeek?: number | null,
   ): { homeScore: number; awayScore: number; boxScore: string; homePitcherPitches: Record<string, number>; awayPitcherPitches: Record<string, number> } {
 
     const gameTypeToRole: Record<string, string> = { friday: "FRI", saturday: "SAT", sunday: "SUN", midweek: "MID" };
     const starterRoles = ["FRI", "SAT", "SUN", "MID"];
+    const gameSlotForRest = gameType ? (GAME_TYPE_TO_DAY[gameType] ?? null) : null;
+
+    function pitcherIsAvailable(p: Player): boolean {
+      if (!gameSlotForRest || currentWeek == null) return true;
+      return computePitcherAvailability(
+        p.lastPitchedOuts ?? 0,
+        p.lastPitchedWeek ?? null,
+        (p.lastPitchedDay ?? null) as GameDay | null,
+        p.stamina ?? 60,
+        currentWeek,
+        gameSlotForRest,
+      ).available;
+    }
 
     function findStartingPitcher(players: Player[]): Player | undefined {
-      const pitchers = players.filter(p => p.position === "P");
+      const pitchers = [...players.filter(p => p.position === "P")].sort((a, b) => (b.overall || 0) - (a.overall || 0));
       const targetRole = gameType ? gameTypeToRole[gameType] : null;
-      let sp = targetRole ? pitchers.find(p => p.pitchingRole === targetRole) : undefined;
+      // Priority: (1) exact-role + rested, (2) any starter + rested, (3) exact-role fallback, (4) any starter fallback, (5) anyone
+      let sp = targetRole ? pitchers.find(p => p.pitchingRole === targetRole && pitcherIsAvailable(p)) : undefined;
+      if (!sp) sp = pitchers.find(p => starterRoles.includes(p.pitchingRole || "") && pitcherIsAvailable(p));
+      if (!sp && targetRole) sp = pitchers.find(p => p.pitchingRole === targetRole);
       if (!sp) sp = pitchers.find(p => starterRoles.includes(p.pitchingRole || ""));
-      if (!sp) sp = [...pitchers].sort((a, b) => (b.overall || 0) - (a.overall || 0))[0];
+      if (!sp) sp = pitchers[0];
       return sp;
     }
 
@@ -10915,14 +10974,14 @@ export async function registerRoutes(
     return { homeScore, awayScore, boxScore: JSON.stringify(boxScoreObj), homePitcherPitches, awayPitcherPitches };
   }
 
-  async function simulateGame(homeTeamId: string, awayTeamId: string, gameType?: string | null, homePhilosophy?: string, awayPhilosophy?: string): Promise<{ homeScore: number; awayScore: number; boxScore: string }> {
+  async function simulateGame(homeTeamId: string, awayTeamId: string, gameType?: string | null, homePhilosophy?: string, awayPhilosophy?: string, currentWeek?: number | null): Promise<{ homeScore: number; awayScore: number; boxScore: string }> {
     const [homePlayers, awayPlayers, homeTeam, awayTeam] = await Promise.all([
       storage.getPlayersByTeam(homeTeamId),
       storage.getPlayersByTeam(awayTeamId),
       storage.getTeam(homeTeamId),
       storage.getTeam(awayTeamId),
     ]);
-    const result = simulateGameWithRosters(homePlayers, awayPlayers, gameType, homeTeam?.stadium, awayTeam?.stadium, undefined, homePhilosophy, awayPhilosophy);
+    const result = simulateGameWithRosters(homePlayers, awayPlayers, gameType, homeTeam?.stadium, awayTeam?.stadium, undefined, homePhilosophy, awayPhilosophy, currentWeek);
     return { homeScore: result.homeScore, awayScore: result.awayScore, boxScore: result.boxScore };
   }
 
@@ -11648,7 +11707,7 @@ export async function registerRoutes(
       const _srSimStart = Date.now();
       await Promise.all(gamesToSimulate.map(async (game, gi) => {
         const psGameType = game.gameType || postseasonRotation[gi % 3];
-        const result = await simulateGame(game.homeTeamId, game.awayTeamId, psGameType);
+        const result = await simulateGame(game.homeTeamId, game.awayTeamId, psGameType, undefined, undefined, game.week);
         await storage.updateGame(game.id, {
           homeScore: result.homeScore,
           awayScore: result.awayScore,
@@ -11657,7 +11716,7 @@ export async function registerRoutes(
         });
         // Super Regionals results intentionally do NOT update standings — postseason games
         // must not mutate the regular-season win/loss records that seeding depends on.
-        try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, season, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, season, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
+        try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, season, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, season, game.awayTeamId, box.away); await updatePitcherRestFromBox(box.home, box.away, game); } catch (e) { console.error("Stat accumulation error:", e); }
         try {
           const srHomeWon = result.homeScore > result.awayScore;
           const srWinnerT = srTeams.find(t => t.id === (srHomeWon ? game.homeTeamId : game.awayTeamId));
@@ -11847,7 +11906,7 @@ export async function registerRoutes(
     const _cwsSimStart = Date.now();
     await Promise.all(incompleteGames.map(async (game, gi) => {
       const cwsGameType = game.gameType || cwsRotation[gi % 3];
-      const result = await simulateGame(game.homeTeamId, game.awayTeamId, cwsGameType);
+      const result = await simulateGame(game.homeTeamId, game.awayTeamId, cwsGameType, undefined, undefined, game.week);
       await storage.updateGame(game.id, {
         homeScore: result.homeScore,
         awayScore: result.awayScore,
@@ -11856,7 +11915,7 @@ export async function registerRoutes(
       });
       // CWS results intentionally do NOT update standings — postseason games must not
       // mutate the regular-season win/loss records that bracket seeding depends on.
-      try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, season, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, season, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
+      try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, season, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, season, game.awayTeamId, box.away); await updatePitcherRestFromBox(box.home, box.away, game); } catch (e) { console.error("Stat accumulation error:", e); }
       try {
         const cwsHomeWon = result.homeScore > result.awayScore;
         const cwsWinnerT = cwsTeams.find(t => t.id === (cwsHomeWon ? game.homeTeamId : game.awayTeamId));
@@ -17634,14 +17693,14 @@ export async function registerRoutes(
       } | undefined;
 
       for (const game of currentWeekGames) {
-        const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType);
+        const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType, undefined, undefined, game.week);
         await storage.updateGame(game.id, {
           homeScore: result.homeScore,
           awayScore: result.awayScore,
           isComplete: true,
           boxScore: result.boxScore,
         });
-        try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(league.id, league.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(league.id, league.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
+        try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(league.id, league.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(league.id, league.currentSeason, game.awayTeamId, box.away); await updatePitcherRestFromBox(box.home, box.away, game); } catch (e) { console.error("Stat accumulation error:", e); }
         if (simUserTeamIdForSim && !simUserTeamGame &&
             (game.homeTeamId === simUserTeamIdForSim || game.awayTeamId === simUserTeamIdForSim)) {
           try {
