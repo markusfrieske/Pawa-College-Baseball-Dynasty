@@ -2833,25 +2833,34 @@ function InvitesTab({ leagueId, invites }: { leagueId: string; invites: LeagueIn
 
           <div className="space-y-3 max-h-96 overflow-y-auto">
             {pendingInvites.map((invite) => (
-              <div key={invite.id} className="flex items-center justify-between gap-3 p-3 bg-muted/30 rounded">
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <LinkIcon className="w-4 h-4 text-gold shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm truncate">
+              <div key={invite.id} className="flex flex-col gap-2 p-3 bg-muted/30 rounded">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <LinkIcon className="w-3.5 h-3.5 text-gold shrink-0" />
+                    <span className="text-xs truncate text-muted-foreground">
                       {invite.label || `Invite ${invite.inviteCode.substring(0, 6)}...`}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground mt-1">
-                      Created: {new Date(invite.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {statusBadge(invite.status)}
+                    <span className="text-[10px] text-muted-foreground">
+                      {new Date(invite.createdAt).toLocaleDateString()}
                       {invite.expiresAt && (
                         <span className={new Date(invite.expiresAt) <= new Date() ? " text-red-400" : " text-yellow-400/80"}>
                           {" · "}Expires: {new Date(invite.expiresAt).toLocaleDateString()}
                         </span>
                       )}
-                    </p>
+                    </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {statusBadge(invite.status)}
+                <div className="flex items-center gap-2">
+                  <input
+                    readOnly
+                    value={`${window.location.origin}/invite/${invite.inviteCode}`}
+                    className="flex-1 min-w-0 bg-background border border-border rounded px-2 py-1 text-[11px] text-foreground font-mono select-all"
+                    onClick={(e) => (e.target as HTMLInputElement).select()}
+                    data-testid={`input-invite-url-${invite.inviteCode}`}
+                  />
                   <RetroButton
                     variant="outline"
                     size="sm"
@@ -2859,9 +2868,9 @@ function InvitesTab({ leagueId, invites }: { leagueId: string; invites: LeagueIn
                     data-testid={`button-copy-invite-${invite.inviteCode}`}
                   >
                     {copied === invite.inviteCode ? (
-                      <Check className="w-4 h-4 text-green-400" />
+                      <Check className="w-3 h-3 text-green-400" />
                     ) : (
-                      <Copy className="w-4 h-4" />
+                      <Copy className="w-3 h-3" />
                     )}
                   </RetroButton>
                   <RetroButton
@@ -2871,7 +2880,7 @@ function InvitesTab({ leagueId, invites }: { leagueId: string; invites: LeagueIn
                     disabled={revokeMutation.isPending}
                     data-testid={`button-revoke-invite-${invite.inviteCode}`}
                   >
-                    <X className="w-4 h-4 text-red-400" />
+                    <X className="w-3 h-3 text-red-400" />
                   </RetroButton>
                 </div>
               </div>
