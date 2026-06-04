@@ -12003,7 +12003,9 @@ export async function registerRoutes(
     // Hard guard: when progression is off, make zero database writes — no attribute
     // changes, no progressionDeltas cleared or set for any player of any eligibility.
     // This is the only gate; nothing below runs when progressionEnabled = false.
-    console.log(`[progression-guard] League ${leagueId} — progressionEnabled=${league?.progressionEnabled ?? false}, teams=${teams.length}`);
+    const allRosters = await Promise.all(teams.map(t => storage.getPlayersByTeam(t.id)));
+    const totalPlayerCount = allRosters.reduce((s, r) => s + r.length, 0);
+    console.log(`[progression-guard] League ${leagueId} — progressionEnabled=${league?.progressionEnabled ?? false}, ${totalPlayerCount} players across ${teams.length} teams`);
     if (!league?.progressionEnabled) return { progressed: 0 };
 
     let progressed = 0;
