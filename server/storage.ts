@@ -161,6 +161,7 @@ export interface IStorage {
   
   updatePlayer(id: string, data: Partial<Player>): Promise<Player | undefined>;
   bulkUpdatePlayerRest(updates: Array<{id: string; lastPitchedOuts: number; lastPitchedWeek: number; lastPitchedDay: string}>): Promise<void>;
+  resetPitcherRestForLeague(leagueId: string): Promise<void>;
   batchUpdatePlayersLineup(updates: Array<{id: string; data: Partial<Player>}>): Promise<void>;
   getPlayer(id: string): Promise<Player | undefined>;
   clearProgressionDeltasForLeague(leagueId: string): Promise<number>;
@@ -877,6 +878,18 @@ export class DatabaseStorage implements IStorage {
           last_pitched_week  = CASE id ${weekWhen} END,
           last_pitched_day   = CASE id ${dayWhen}  END
       WHERE id IN (${ids})
+    `);
+  }
+
+  async resetPitcherRestForLeague(leagueId: string): Promise<void> {
+    await db.execute(sql`
+      UPDATE players
+      SET last_pitched_outs = 0,
+          last_pitched_week = NULL,
+          last_pitched_day  = NULL
+      WHERE team_id IN (
+        SELECT id FROM teams WHERE league_id = ${leagueId}
+      )
     `);
   }
 

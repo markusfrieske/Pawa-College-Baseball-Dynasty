@@ -9761,6 +9761,13 @@ export async function registerRoutes(
           if (swept > 0) console.log(`[storylines] pre-postseason sweep: resolved ${swept} residual arc event(s) for league ${leagueId}`);
         } catch (e) { console.error("[storylines] pre-postseason sweep error:", e); }
         await generateConferenceChampionships(leagueId, league.currentSeason);
+        // Reset pitcher rest before advancing to conference_championship
+        try {
+          await storage.resetPitcherRestForLeague(leagueId);
+          console.log(`[pitcher-rest] Reset pitcher rest for all players in league ${leagueId} (advancing to week ${nextWeek}, conference_championship)`);
+        } catch (restErr) {
+          console.error("[pitcher-rest] Failed to reset pitcher rest:", restErr);
+        }
         const updatedLeague = await storage.updateLeague(league.id, { currentPhase: "conference_championship", currentWeek: nextWeek });
         await storage.createAuditLog({ leagueId, userId: req.session.userId, action: "Regular Season Complete", details: "The regular season is over! Conference Championships begin." });
         try {
@@ -9780,6 +9787,14 @@ export async function registerRoutes(
           await storage.createLeagueEvent({ leagueId, eventType: "PHASE_CHANGE", description: `Regular season underway — Season ${league.currentSeason} begins!`, season: league.currentSeason, week: nextWeek });
         } catch (e) { console.error("League event error:", e); }
       }
+      // Reset pitcher rest data so stale lastPitchedWeek/Day/Outs don't carry forward
+      try {
+        await storage.resetPitcherRestForLeague(leagueId);
+        console.log(`[pitcher-rest] Reset pitcher rest for all players in league ${leagueId} (advancing to week ${nextWeek})`);
+      } catch (restErr) {
+        console.error("[pitcher-rest] Failed to reset pitcher rest:", restErr);
+      }
+
       const updatedLeague = await storage.updateLeague(league.id, {
         currentWeek: nextWeek,
         currentPhase: newPhase,
