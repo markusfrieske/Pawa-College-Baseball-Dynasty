@@ -9938,6 +9938,11 @@ export async function registerRoutes(
         const phase = currentLeague.currentPhase;
         phasesVisited.push(`${phase} (wk ${currentLeague.currentWeek})`);
 
+        // Reset pitcher rest at the start of every simulated week so each
+        // inner iteration begins with a clean slate, matching the behaviour
+        // of the regular advance-week route.
+        await storage.resetPitcherRestForLeague(leagueId);
+
         if (phase === "offseason_departures" && iterations > 1) {
           break;
         }
