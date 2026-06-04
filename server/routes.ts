@@ -11998,9 +11998,14 @@ export async function registerRoutes(
 
   async function applyPlayerProgression(leagueId: string) {
     const league = await storage.getLeague(leagueId);
+    const teams = await storage.getTeamsByLeague(leagueId);
+
+    // Hard guard: when progression is off, make zero database writes — no attribute
+    // changes, no progressionDeltas cleared or set for any player of any eligibility.
+    // This is the only gate; nothing below runs when progressionEnabled = false.
+    console.log(`[progression-guard] League ${leagueId} — progressionEnabled=${league?.progressionEnabled ?? false}, teams=${teams.length}`);
     if (!league?.progressionEnabled) return { progressed: 0 };
 
-    const teams = await storage.getTeamsByLeague(leagueId);
     let progressed = 0;
 
     // trajectory is intentionally excluded — it is a hit-type profile, not a developable skill,
@@ -12031,28 +12036,15 @@ export async function registerRoutes(
 
         const targetOvrDelta = getOvrDeltaFromPotential(player.potential);
 
-        const weScore = player.workEthicScore as number | null | undefined;
-        const coachScore = player.coachability as number | null | undefined;
-        // Divisor 150: allows the 0.6–1.4 clamp range to actually be reached.
-        // Both at 100 → 1 + 60/150 = 1.4; both at 0 → 1 + (−140)/150 = 0.067 → clamped at 0.6.
-        // Old divisor of 700 produced a tiny 0.80–1.09 range, making traits nearly invisible.
-        const traitMult = 1 +
-          ((weScore ?? 70) - 70) / 150 +
-          ((coachScore ?? 70) - 70) / 150;
-
-        // For positive deltas (growth), multiply — high traits amplify improvement.
-        // For negative deltas (decline), divide — high traits dampen regression.
-        // Example: D-potential player with max coachability (mult 1.4) declines 1/1.4 = 0.71x as fast.
-        //          D-potential player with min coachability (mult 0.6) declines 1/0.6 = 1.67x as fast.
-        const clampedMult = Math.max(0.6, Math.min(1.4, traitMult));
+        // Growth is driven purely by potential (via getOvrDeltaFromPotential) and team
+        // facilities. No coach abilities, archetypes, badges, philosophies, skill-tree
+        // levels, or player intangibles (workEthicScore / coachability) affect this value.
         // Facilities development rate: elite training facilities accelerate player growth.
-        // Facilities 8-9 → +10-15% to positive deltas; no effect on decline.
+        // Facilities 7+ → +5-15% to positive deltas; no effect on decline.
         const facilitiesDevelMult = targetOvrDelta >= 0
           ? (team.facilities >= 9 ? 1.15 : team.facilities >= 8 ? 1.10 : team.facilities >= 7 ? 1.05 : 1.0)
           : 1.0;
-        const scaledDelta = targetOvrDelta >= 0
-          ? targetOvrDelta * clampedMult * facilitiesDevelMult
-          : targetOvrDelta / clampedMult;
+        const scaledDelta = targetOvrDelta * facilitiesDevelMult;
 
         // Baseline OVR computed from current attributes (before any updates).
         // Using this instead of player.overall for the delta eliminates formula-drift
