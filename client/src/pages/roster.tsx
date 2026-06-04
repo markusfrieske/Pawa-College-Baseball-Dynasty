@@ -40,6 +40,8 @@ import type { Player, Team, Coach, League } from "@shared/schema";
 import { isPitcher, isCatcher, isInfielder, isOutfielder } from "@shared/positions";
 import { getPotentialGrade, getProgressionZone, getProgressionColor } from "@shared/potential";
 import { TRAJECTORY_LABELS } from "@shared/trajectory";
+import { computePitcherAvailability, ALL_GAME_DAYS } from "@shared/pitcherRest";
+import type { GameDay } from "@shared/pitcherRest";
 
 interface RosterData {
   players: Player[];
@@ -400,7 +402,7 @@ export default function RosterPage() {
             teamPrimaryColor={data?.team?.primaryColor}
           />
         ) : viewMode === "depth" ? (
-          <DepthChartView players={data?.players || []} onSelectPlayer={setSelectedPlayer} teamPrimaryColor={data?.team?.primaryColor} leagueId={id} isOwnTeam={!viewingTeamId} rosterUrl={rosterUrl} initialLineupTab={initialLineupTab} />
+          <DepthChartView players={data?.players || []} onSelectPlayer={setSelectedPlayer} teamPrimaryColor={data?.team?.primaryColor} leagueId={id} isOwnTeam={!viewingTeamId} rosterUrl={rosterUrl} initialLineupTab={initialLineupTab} currentWeek={leagueData?.league?.currentWeek ?? 1} />
         ) : positionFilter === "all" ? (
           <>
             <PositionSection 
@@ -1572,7 +1574,7 @@ function PositionCard({ position, players, onSelectPlayer, maxPlayers = 3, teamP
   );
 }
 
-function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leagueId, isOwnTeam, rosterUrl, initialLineupTab = "field" }: {
+function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leagueId, isOwnTeam, rosterUrl, initialLineupTab = "field", currentWeek = 1 }: {
   players: Player[];
   onSelectPlayer: (p: Player) => void;
   teamPrimaryColor?: string;
@@ -1580,6 +1582,7 @@ function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leagueId, i
   isOwnTeam?: boolean;
   rosterUrl?: string;
   initialLineupTab?: "field" | "lineup" | "pitching";
+  currentWeek?: number;
 }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -1639,23 +1642,32 @@ function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leagueId, i
     stamina: number;
   }
 
-  const { data: availData } = useQuery<{ currentWeek: number; pitchers: PitcherAvailRow[] }>({
-    queryKey: ["/api/leagues", leagueId, "pitcher-availability"],
-    enabled: !!leagueId && lineupTab === "pitching",
-    queryFn: async () => {
-      const res = await fetch(`/api/leagues/${leagueId}/pitcher-availability`, { credentials: "include" });
-      if (!res.ok) throw new Error("Failed to fetch availability");
-      return res.json();
-    },
-    staleTime: 60_000,
-  });
-
-  const availMap = new Map<string, PitcherAvailRow>();
-  if (availData) {
-    for (const row of availData.pitchers) {
-      availMap.set(row.playerId, row);
+  const availMap = useMemo(() => {
+    const map = new Map<string, PitcherAvailRow>();
+    for (const p of players) {
+      if (!isPitcher(p.position)) continue;
+      const slots: Record<string, PitcherSlot> = {};
+      for (const day of ALL_GAME_DAYS) {
+        slots[day] = computePitcherAvailability(
+          p.lastPitchedOuts ?? 0,
+          (p.lastPitchedWeek as number | null) ?? null,
+          (p.lastPitchedDay as GameDay | null) ?? null,
+          p.stamina ?? 50,
+          currentWeek,
+          day,
+        );
+      }
+      map.set(p.id, {
+        playerId: p.id,
+        slots,
+        lastPitchedOuts: p.lastPitchedOuts ?? 0,
+        lastPitchedWeek: (p.lastPitchedWeek as number | null) ?? null,
+        lastPitchedDay: (p.lastPitchedDay as string | null) ?? null,
+        stamina: p.stamina ?? 50,
+      });
     }
-  }
+    return map;
+  }, [players, currentWeek]);
 
   function availOutsToIpStr(outs: number): string {
     return `${Math.floor(outs / 3)}.${outs % 3}`;
