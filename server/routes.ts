@@ -5030,7 +5030,7 @@ export async function registerRoutes(
         }
       }
 
-      const avg = (nums: number[]): number =>
+      const avgNums = (nums: number[]): number =>
         nums.length === 0 ? 0 : Math.round(nums.reduce((s, v) => s + v, 0) / nums.length);
 
       const PITCHER_POS_SET = new Set(["P", "SP", "RP", "CP", "CL", "LHP", "RHP"]);
@@ -5042,23 +5042,10 @@ export async function registerRoutes(
         const hitters = players.filter(p => !PITCHER_POS_SET.has(p.position));
         const signed = signedByTeam.get(team.id) || [];
 
-        const avgAttr = (arr: number[]): number =>
-          arr.length === 0 ? 0 : Math.round(arr.reduce((s, v) => s + v, 0) / arr.length);
-        const avgStar = (arr: { starRating: number }[]): number =>
-          arr.length === 0 ? 0 : arr.reduce((s, p) => s + (p.starRating || 1), 0) / arr.length;
-
-        const overallStarAvg = avgStar(players);
-        const hittingScore = avgAttr(
-          hitters.flatMap(p => [p.hitForAvg ?? 50, p.power ?? 50])
-        );
-        const fieldingScore = avgAttr(
-          hitters.flatMap(p => [p.fielding ?? 50, p.errorResistance ?? 50, p.throwing ?? 50])
-        );
-        const speedScore = avgAttr(players.map(p => p.running ?? 50));
-        const pitchingScore = avgStar(pitchers);
-        const recruitingScore = avg(signed.map(r => r.overall));
-
-        const composite = Math.round(overallStarAvg * 20);
+        const avgOvr = avgNums(players.map(p => p.overall));
+        const hitterAvgOvr = avgNums(hitters.map(p => p.overall));
+        const pitcherAvgOvr = avgNums(pitchers.map(p => p.overall));
+        const recruitingScore = avgNums(signed.map(r => r.overall));
 
         return {
           teamId: team.id,
@@ -5068,16 +5055,13 @@ export async function registerRoutes(
           primaryColor: team.primaryColor,
           secondaryColor: team.secondaryColor,
           isCpu: team.isCpu,
-          composite,
-          overallStarAvg,
-          pitchingScore,
-          hittingScore,
-          fieldingScore,
-          speedScore,
+          avgOvr,
+          hitterAvgOvr,
+          pitcherAvgOvr,
           recruitingScore,
           hasSignedRecruits: signed.length > 0,
         };
-      }).sort((a, b) => b.composite - a.composite);
+      }).sort((a, b) => b.avgOvr - a.avgOvr);
 
       const n = teamData.length;
 
@@ -5087,12 +5071,10 @@ export async function registerRoutes(
         return n <= 1 ? 100 : Math.round((rank / (n - 1)) * 100);
       };
 
-      const pitchVals = teamData.map(t => t.pitchingScore);
-      const hitVals = teamData.map(t => t.hittingScore);
-      const fieldVals = teamData.map(t => t.fieldingScore);
-      const speedVals = teamData.map(t => t.speedScore);
+      const ovrVals = teamData.map(t => t.avgOvr);
+      const hitVals = teamData.map(t => t.hitterAvgOvr);
+      const pitchVals = teamData.map(t => t.pitcherAvgOvr);
       const recruVals = teamData.map(t => t.recruitingScore);
-      const compositeVals = teamData.map(t => t.composite);
 
       // Build previous-rank lookup from the stored snapshot (set at each week advance)
       const prevRankings = (league.prevPowerRankings as { teamId: string; rank: number }[] | null) ?? [];
@@ -5106,12 +5088,10 @@ export async function registerRoutes(
           rank: currentRank,
           rankDelta,
           ...t,
-          pitchingPercentile: computePercentile(pitchVals, t.pitchingScore),
-          hittingPercentile: computePercentile(hitVals, t.hittingScore),
-          fieldingPercentile: computePercentile(fieldVals, t.fieldingScore),
-          speedPercentile: computePercentile(speedVals, t.speedScore),
+          ovrPercentile: computePercentile(ovrVals, t.avgOvr),
+          hitterPercentile: computePercentile(hitVals, t.hitterAvgOvr),
+          pitcherPercentile: computePercentile(pitchVals, t.pitcherAvgOvr),
           recruitingPercentile: computePercentile(recruVals, t.recruitingScore),
-          compositePercentile: computePercentile(compositeVals, t.composite),
         };
       });
 
@@ -6172,11 +6152,10 @@ export async function registerRoutes(
           .slice(0, 3)
           .map(p => ({ name: `${p.firstName} ${p.lastName}`, position: p.position, overall: p.overall, starRating: p.starRating }));
 
-      // Compute power ranking composite for each team (same formula as /power-rankings)
+      // Compute power ranking composite for each team — avg OVR
       const computeComposite = (playerList: typeof homePlayers): number => {
         if (playerList.length === 0) return 0;
-        const avgStar = playerList.reduce((s, p) => s + (p.starRating || 1), 0) / playerList.length;
-        return Math.round(avgStar * 20);
+        return Math.round(playerList.reduce((s, p) => s + (p.overall || 0), 0) / playerList.length);
       };
 
       // Compute league-wide power rank positions

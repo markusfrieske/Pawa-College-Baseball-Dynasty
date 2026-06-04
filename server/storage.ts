@@ -1055,8 +1055,7 @@ export class DatabaseStorage implements IStorage {
 
     const ranked = (teamRows.rows as any[]).map((t: any) => {
       const stats = playerMap.get(t.id) ?? { roster: 0, pitching: 0, hitting: 0 };
-      const recruitScore = recruitMap.get(t.id) ?? 0;
-      const composite = Math.round(stats.roster * 0.4 + stats.pitching * 0.3 + stats.hitting * 0.2 + recruitScore * 0.1);
+      const composite = stats.roster;
       return { teamId: t.id, composite };
     }).sort((a, b) => b.composite - a.composite);
 

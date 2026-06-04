@@ -429,13 +429,13 @@ function SummaryTab({ team, leagueId }: { team: TeamDetails; leagueId: string })
             
             <div className="grid sm:grid-cols-2 gap-6">
               <div>
-                <h4 className="text-sm font-medium text-muted-foreground mb-3">Offensive Talent</h4>
-                <AttributeSlider label="" value={avgHitting} max={999} disabled showValue={false} />
+                <h4 className="text-sm font-medium text-muted-foreground mb-3">Hitters — Avg OVR</h4>
+                <AttributeSlider label="" value={avgHitting} max={650} disabled showValue={false} />
                 <p className="text-xl font-bold text-gold mt-1">{avgHitting}</p>
               </div>
               <div>
-                <h4 className="text-sm font-medium text-muted-foreground mb-3">Pitching Talent</h4>
-                <AttributeSlider label="" value={avgPitching} max={999} disabled showValue={false} />
+                <h4 className="text-sm font-medium text-muted-foreground mb-3">Pitchers — Avg OVR</h4>
+                <AttributeSlider label="" value={avgPitching} max={650} disabled showValue={false} />
                 <p className="text-xl font-bold text-gold mt-1">{avgPitching}</p>
               </div>
             </div>

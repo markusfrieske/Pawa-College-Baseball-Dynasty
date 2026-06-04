@@ -251,31 +251,6 @@ function RosterStrengthCard({ overview, leagueId }: { overview: DashboardOvervie
 
         </div>
 
-        {(overview.hittingScore !== undefined) && (
-          <div className="mt-4 pt-4 border-t border-border/50">
-            <p className="font-pixel text-[7px] text-muted-foreground mb-2">TEAM BREAKDOWN</p>
-            <div className="grid grid-cols-4 gap-2">
-              {[
-                { label: "HIT",   val: overview.hittingScore,       grade: overview.hitGrade   ?? attrToGrade(overview.hittingScore),       barPct: overview.hittingScore },
-                { label: "FIELD", val: overview.fieldingScore ?? 0, grade: overview.fieldGrade ?? attrToGrade(overview.fieldingScore ?? 0), barPct: overview.fieldingScore ?? 0 },
-                { label: "SPEED", val: overview.speedScore ?? 0,    grade: overview.speedGrade ?? attrToGrade(overview.speedScore ?? 0),    barPct: overview.speedScore ?? 0 },
-                { label: "PITCH", val: overview.pitchingScore ?? 0, grade: overview.pitchGrade ?? attrToGrade(overview.pitchingScore ?? 0), barPct: Math.round(((overview.pitchingScore ?? 0) / 650) * 100) },
-              ].map(({ label, val, grade, barPct }) => (
-                <div key={label} className="text-center p-2 bg-background/50 rounded border border-border/50 space-y-1" data-testid={`breakdown-${label.toLowerCase()}`}>
-                  <p className="font-pixel text-[7px] text-muted-foreground">{label}</p>
-                  <p className={`text-lg font-bold ${gradeColor(grade)}`}>{grade}</p>
-                  <div className="w-full bg-background/60 rounded-full h-1.5 overflow-hidden">
-                    <div
-                      className={`h-full rounded-full ${gradeColor(grade).replace("text-", "bg-")}`}
-                      style={{ width: `${barPct}%` }}
-                    />
-                  </div>
-                  <p className="text-[9px] text-muted-foreground">{val}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
       </RetroCardContent>
     </RetroCard>
@@ -1694,20 +1669,15 @@ interface PowerRankingEntry {
   primaryColor: string;
   secondaryColor: string;
   isCpu: boolean;
-  composite: number;
-  overallStarAvg: number;
-  pitchingScore: number;
-  hittingScore: number;
-  fieldingScore: number;
-  speedScore: number;
+  avgOvr: number;
+  hitterAvgOvr: number;
+  pitcherAvgOvr: number;
   recruitingScore: number;
   hasSignedRecruits: boolean;
-  pitchingPercentile: number;
-  hittingPercentile: number;
-  fieldingPercentile: number;
-  speedPercentile: number;
+  ovrPercentile: number;
+  hitterPercentile: number;
+  pitcherPercentile: number;
   recruitingPercentile: number;
-  compositePercentile: number;
 }
 
 function percentileToGrade(pct: number): string {
@@ -1760,11 +1730,11 @@ function percentileLabel(pct: number): string {
   return `Bottom ${fromBot}%`;
 }
 
-type RankSortKey = "composite" | "pitching" | "hitting" | "fielding" | "speed" | "recruiting";
+type RankSortKey = "avgOvr" | "hitter" | "pitcher" | "recruiting";
 
 function RankingsTab({ league }: { league: LeagueDetails }) {
   const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState<RankSortKey>("composite");
+  const [sortBy, setSortBy] = useState<RankSortKey>("avgOvr");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   const { data: rankData, isLoading } = useQuery<{ rankings: PowerRankingEntry[]; userTeamId: string | null }>({
@@ -1780,11 +1750,9 @@ function RankingsTab({ league }: { league: LeagueDetails }) {
   const rawRankings = rankData?.rankings ?? [];
   const rankings = [...rawRankings].sort((a, b) => {
     const val = (e: PowerRankingEntry) => {
-      if (sortBy === "composite") return e.composite;
-      if (sortBy === "pitching") return e.pitchingScore;
-      if (sortBy === "hitting") return e.hittingScore;
-      if (sortBy === "fielding") return e.fieldingScore;
-      if (sortBy === "speed") return e.speedScore;
+      if (sortBy === "avgOvr") return e.avgOvr;
+      if (sortBy === "hitter") return e.hitterAvgOvr;
+      if (sortBy === "pitcher") return e.pitcherAvgOvr;
       return e.recruitingScore;
     };
     return sortDir === "desc" ? val(b) - val(a) : val(a) - val(b);
@@ -1821,7 +1789,7 @@ function RankingsTab({ league }: { league: LeagueDetails }) {
         </div>
       </RetroCardHeader>
       <p className="text-[10px] text-muted-foreground mb-4">
-        Composite: Avg Star Rating of full roster. Sub-scores: Hitting (Contact + Power), Fielding (Defense + Err Resist + Throwing), Speed (Running), Pitching (Avg Star — pitchers only). Click a rival to compare.
+        Avg OVR of full roster (150–650 scale). Hitters and Pitchers show position-group avg OVR. Click a rival to compare.
       </p>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -1829,11 +1797,10 @@ function RankingsTab({ league }: { league: LeagueDetails }) {
             <tr className="border-b border-border text-muted-foreground font-pixel text-[8px]">
               <th className="text-left py-2 px-2">#</th>
               <th className="text-left py-2 px-2">Team</th>
-              <th className="text-center py-2 px-1 cursor-pointer hover:text-gold select-none" onClick={() => handleSort("composite")}>Score{sortArrow("composite")}</th>
-              <th className="text-center py-2 px-1 cursor-pointer hover:text-gold select-none" onClick={() => handleSort("hitting")}>Hit{sortArrow("hitting")}</th>
-              <th className="text-center py-2 px-1 hidden sm:table-cell cursor-pointer hover:text-gold select-none" onClick={() => handleSort("fielding")}>Field{sortArrow("fielding")}</th>
-              <th className="text-center py-2 px-1 hidden sm:table-cell cursor-pointer hover:text-gold select-none" onClick={() => handleSort("speed")}>Spd{sortArrow("speed")}</th>
-              <th className="text-center py-2 px-1 cursor-pointer hover:text-gold select-none" onClick={() => handleSort("pitching")}>Pitch{sortArrow("pitching")}</th>
+              <th className="text-center py-2 px-1 cursor-pointer hover:text-gold select-none" onClick={() => handleSort("avgOvr")}>Avg OVR{sortArrow("avgOvr")}</th>
+              <th className="text-center py-2 px-1 cursor-pointer hover:text-gold select-none" onClick={() => handleSort("hitter")}>Hitters{sortArrow("hitter")}</th>
+              <th className="text-center py-2 px-1 cursor-pointer hover:text-gold select-none" onClick={() => handleSort("pitcher")}>Pitchers{sortArrow("pitcher")}</th>
+              <th className="text-center py-2 px-1 hidden sm:table-cell cursor-pointer hover:text-gold select-none" onClick={() => handleSort("recruiting")}>Recruiting{sortArrow("recruiting")}</th>
               <th className="py-2 px-1 w-6" />
             </tr>
           </thead>
@@ -1841,11 +1808,10 @@ function RankingsTab({ league }: { league: LeagueDetails }) {
             {rankings.map((entry) => {
               const isUser = entry.teamId === userTeamId;
               const isExpanded = expandedTeam === entry.teamId;
-              const compGrade = starToGrade(entry.overallStarAvg);
-              const hitGrade = attrToGrade(entry.hittingScore);
-              const fieldGrade = attrToGrade(entry.fieldingScore);
-              const spdGrade = attrToGrade(entry.speedScore);
-              const pitchGrade = starToGrade(entry.pitchingScore);
+              const ovrGrade = percentileToGrade(entry.ovrPercentile);
+              const hitGrade = percentileToGrade(entry.hitterPercentile);
+              const pitchGrade = percentileToGrade(entry.pitcherPercentile);
+              const recruGrade = percentileToGrade(entry.recruitingPercentile);
 
               return (
                 <Fragment key={entry.teamId}>
@@ -1899,11 +1865,11 @@ function RankingsTab({ league }: { league: LeagueDetails }) {
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <div className="flex flex-col items-center cursor-default">
-                            <span className={`font-bold text-sm ${gradeColor(compGrade)}`}>{compGrade}</span>
-                            <span className="text-[9px] text-muted-foreground">{entry.composite}</span>
+                            <span className={`font-bold text-sm ${gradeColor(ovrGrade)}`}>{ovrGrade}</span>
+                            <span className="text-[9px] text-muted-foreground">{entry.avgOvr}</span>
                           </div>
                         </TooltipTrigger>
-                        <TooltipContent>{percentileLabel(entry.compositePercentile)} overall (avg star rating)</TooltipContent>
+                        <TooltipContent>{percentileLabel(entry.ovrPercentile)} overall (avg OVR)</TooltipContent>
                       </Tooltip>
                     </td>
                     <td className="py-3 px-1 text-center">
@@ -1911,32 +1877,10 @@ function RankingsTab({ league }: { league: LeagueDetails }) {
                         <TooltipTrigger asChild>
                           <div className="flex flex-col items-center cursor-default">
                             <span className={`font-bold text-xs ${gradeColor(hitGrade)}`}>{hitGrade}</span>
-                            <span className="text-[9px] text-muted-foreground">{entry.hittingScore}</span>
+                            <span className="text-[9px] text-muted-foreground">{entry.hitterAvgOvr}</span>
                           </div>
                         </TooltipTrigger>
-                        <TooltipContent>{percentileLabel(entry.hittingPercentile)} in Hitting (contact+power)</TooltipContent>
-                      </Tooltip>
-                    </td>
-                    <td className="py-3 px-1 text-center hidden sm:table-cell">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="flex flex-col items-center cursor-default">
-                            <span className={`font-bold text-xs ${gradeColor(fieldGrade)}`}>{fieldGrade}</span>
-                            <span className="text-[9px] text-muted-foreground">{entry.fieldingScore}</span>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>{percentileLabel(entry.fieldingPercentile)} in Fielding (defense+err resist+throwing)</TooltipContent>
-                      </Tooltip>
-                    </td>
-                    <td className="py-3 px-1 text-center hidden sm:table-cell">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="flex flex-col items-center cursor-default">
-                            <span className={`font-bold text-xs ${gradeColor(spdGrade)}`}>{spdGrade}</span>
-                            <span className="text-[9px] text-muted-foreground">{entry.speedScore}</span>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>{percentileLabel(entry.speedPercentile)} in Speed (running)</TooltipContent>
+                        <TooltipContent>{percentileLabel(entry.hitterPercentile)} in Hitters (avg OVR of position players)</TooltipContent>
                       </Tooltip>
                     </td>
                     <td className="py-3 px-1 text-center">
@@ -1944,10 +1888,21 @@ function RankingsTab({ league }: { league: LeagueDetails }) {
                         <TooltipTrigger asChild>
                           <div className="flex flex-col items-center cursor-default">
                             <span className={`font-bold text-xs ${gradeColor(pitchGrade)}`}>{pitchGrade}</span>
-                            <span className="text-[9px] text-muted-foreground">{entry.pitchingScore.toFixed(1)}★</span>
+                            <span className="text-[9px] text-muted-foreground">{entry.pitcherAvgOvr}</span>
                           </div>
                         </TooltipTrigger>
-                        <TooltipContent>{percentileLabel(entry.pitchingPercentile)} in Pitching (avg star — pitchers only)</TooltipContent>
+                        <TooltipContent>{percentileLabel(entry.pitcherPercentile)} in Pitchers (avg OVR of pitching staff)</TooltipContent>
+                      </Tooltip>
+                    </td>
+                    <td className="py-3 px-1 text-center hidden sm:table-cell">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex flex-col items-center cursor-default">
+                            <span className={`font-bold text-xs ${gradeColor(recruGrade)}`}>{entry.hasSignedRecruits ? recruGrade : "—"}</span>
+                            <span className="text-[9px] text-muted-foreground">{entry.hasSignedRecruits ? entry.recruitingScore : "—"}</span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>{entry.hasSignedRecruits ? `${percentileLabel(entry.recruitingPercentile)} in Recruiting (avg OVR of signed class)` : "No signed recruits yet"}</TooltipContent>
                       </Tooltip>
                     </td>
                     <td className="py-3 px-1 text-center">
@@ -1961,7 +1916,7 @@ function RankingsTab({ league }: { league: LeagueDetails }) {
 
                   {isExpanded && userEntry && (
                     <tr className="border-b border-gold/20">
-                      <td colSpan={8} className="px-2 py-3 bg-card/40">
+                      <td colSpan={7} className="px-2 py-3 bg-card/40">
                         <PowerComparePanel userEntry={userEntry} rivalEntry={entry} />
                       </td>
                     </tr>
@@ -1978,11 +1933,10 @@ function RankingsTab({ league }: { league: LeagueDetails }) {
 
 function PowerComparePanel({ userEntry, rivalEntry }: { userEntry: PowerRankingEntry; rivalEntry: PowerRankingEntry }) {
   const components = [
-    { label: "Overall (Avg Stars)", userVal: Math.round(userEntry.overallStarAvg * 20), rivalVal: Math.round(rivalEntry.overallStarAvg * 20) },
-    { label: "Hitting", userVal: userEntry.hittingScore, rivalVal: rivalEntry.hittingScore },
-    { label: "Fielding", userVal: userEntry.fieldingScore, rivalVal: rivalEntry.fieldingScore },
-    { label: "Speed", userVal: userEntry.speedScore, rivalVal: rivalEntry.speedScore },
-    { label: "Pitching (Avg Stars)", userVal: Math.round(userEntry.pitchingScore * 20), rivalVal: Math.round(rivalEntry.pitchingScore * 20) },
+    { label: "Avg OVR", userVal: userEntry.avgOvr, rivalVal: rivalEntry.avgOvr },
+    { label: "Hitters Avg OVR", userVal: userEntry.hitterAvgOvr, rivalVal: rivalEntry.hitterAvgOvr },
+    { label: "Pitchers Avg OVR", userVal: userEntry.pitcherAvgOvr, rivalVal: rivalEntry.pitcherAvgOvr },
+    { label: "Recruiting Avg OVR", userVal: userEntry.recruitingScore, rivalVal: rivalEntry.recruitingScore },
   ];
 
   return (
@@ -2042,11 +1996,11 @@ function PowerComparePanel({ userEntry, rivalEntry }: { userEntry: PowerRankingE
 
       <div className="pt-2 border-t border-border/50">
         <div className="flex justify-between text-[9px]">
-          <span className={userEntry.composite >= rivalEntry.composite ? "text-gold font-semibold" : "text-muted-foreground"}>
-            Composite: {userEntry.composite} (#{userEntry.rank})
+          <span className={userEntry.avgOvr >= rivalEntry.avgOvr ? "text-gold font-semibold" : "text-muted-foreground"}>
+            Avg OVR: {userEntry.avgOvr} (#{userEntry.rank})
           </span>
-          <span className={rivalEntry.composite >= userEntry.composite ? "text-gold font-semibold" : "text-muted-foreground"}>
-            Composite: {rivalEntry.composite} (#{rivalEntry.rank})
+          <span className={rivalEntry.avgOvr >= userEntry.avgOvr ? "text-gold font-semibold" : "text-muted-foreground"}>
+            Avg OVR: {rivalEntry.avgOvr} (#{rivalEntry.rank})
           </span>
         </div>
       </div>
