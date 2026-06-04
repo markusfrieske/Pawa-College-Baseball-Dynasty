@@ -9,6 +9,7 @@ import { RetroInput } from "@/components/ui/retro-input";
 import { TeamBadge } from "@/components/ui/team-badge";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Game, Team, Player } from "@shared/schema";
@@ -790,7 +791,71 @@ function BattingStep({ label, players, batting, onChange, onInit, autoInit }: { 
 }
 
 interface PitcherAvailSlot { available: boolean; limited: boolean; daysOfRest: number; suggestedMaxIP: number; }
-interface PitcherAvailRow { playerId: string; name: string; pitchingRole: string | null; slots: Record<string, PitcherAvailSlot>; }
+interface PitcherAvailRow {
+  playerId: string;
+  name: string;
+  pitchingRole: string | null;
+  slots: Record<string, PitcherAvailSlot>;
+  lastPitchedOuts: number;
+  lastPitchedWeek: number | null;
+  lastPitchedDay: string | null;
+  stamina: number;
+}
+
+function availPanelOutsToIpStr(outs: number): string {
+  return `${Math.floor(outs / 3)}.${outs % 3}`;
+}
+function availPanelRestNeeded(outs: number): number {
+  if (outs === 0) return 0;
+  if (outs <= 3) return 1;
+  if (outs <= 9) return 2;
+  if (outs <= 15) return 3;
+  if (outs <= 21) return 4;
+  if (outs <= 27) return 5;
+  return 6;
+}
+const AVAIL_DAY_LABEL: Record<string, string> = { WED: "Wednesday", FRI: "Friday", SAT: "Saturday", SUN: "Sunday" };
+
+function PitcherAvailTooltip({ p, slot, day }: { p: PitcherAvailRow; slot: PitcherAvailSlot; day: string }) {
+  if (slot.daysOfRest === 99 || !p.lastPitchedDay) {
+    return (
+      <div className="text-[10px] space-y-0.5">
+        <div className="font-semibold text-green-400">{day}: Fresh</div>
+        <div className="text-muted-foreground">No recent appearances</div>
+        <div>Full strength — up to <span className="text-green-400 font-bold">{slot.suggestedMaxIP} IP</span></div>
+      </div>
+    );
+  }
+  const ip = availPanelOutsToIpStr(p.lastPitchedOuts);
+  const restNeeded = availPanelRestNeeded(p.lastPitchedOuts);
+  const restHad = slot.daysOfRest;
+  const lastDay = AVAIL_DAY_LABEL[p.lastPitchedDay] ?? p.lastPitchedDay;
+  if (!slot.available) {
+    return (
+      <div className="text-[10px] space-y-0.5">
+        <div className="font-semibold text-red-400">{day}: Unavailable</div>
+        <div>Pitched <span className="font-bold">{ip} IP</span> on {lastDay} ({p.lastPitchedOuts} outs)</div>
+        <div>Needs <span className="font-bold">{restNeeded}d</span> rest — only <span className="text-red-400 font-bold">{restHad}d</span> available</div>
+      </div>
+    );
+  }
+  if (slot.limited) {
+    return (
+      <div className="text-[10px] space-y-0.5">
+        <div className="font-semibold text-yellow-400">{day}: Limited</div>
+        <div>Pitched <span className="font-bold">{ip} IP</span> on {lastDay} ({p.lastPitchedOuts} outs)</div>
+        <div>{restHad}d rest received, {restNeeded}d required — capped at <span className="text-yellow-400 font-bold">{slot.suggestedMaxIP} IP</span></div>
+      </div>
+    );
+  }
+  return (
+    <div className="text-[10px] space-y-0.5">
+      <div className="font-semibold text-green-400">{day}: Full strength</div>
+      <div>Pitched <span className="font-bold">{ip} IP</span> on {lastDay} ({p.lastPitchedOuts} outs)</div>
+      <div>{restHad}d rest received — up to <span className="text-green-400 font-bold">{slot.suggestedMaxIP} IP</span></div>
+    </div>
+  );
+}
 
 interface PitchingStepProps {
   leagueId: string | undefined;
@@ -1001,14 +1066,21 @@ function PitchingStep({ leagueId, gameType, homeTeam, awayTeam, homePlayers, awa
             const statusColor = !slot.available ? "text-red-400" : slot.limited ? "text-yellow-400" : "text-green-400";
             const statusText = !slot.available ? "Unavailable" : slot.limited ? `${slot.suggestedMaxIP} IP max` : `${slot.suggestedMaxIP} IP`;
             return (
-              <div key={p.playerId} className={`flex items-center gap-2 px-2 py-1 rounded border text-xs ${color}`} data-testid={`avail-row-${teamId}-${p.playerId}`}>
-                <span className="flex-1 truncate">{p.name}</span>
-                {p.pitchingRole && <span className="font-pixel text-[8px] text-muted-foreground">{p.pitchingRole}</span>}
-                <span className={`font-pixel text-[9px] ${statusColor}`}>{statusText}</span>
-                {slot.daysOfRest < 99 && (
-                  <span className="text-[8px] text-muted-foreground">{slot.daysOfRest}d rest</span>
-                )}
-              </div>
+              <Tooltip key={p.playerId}>
+                <TooltipTrigger asChild>
+                  <div className={`flex items-center gap-2 px-2 py-1 rounded border text-xs cursor-default ${color}`} data-testid={`avail-row-${teamId}-${p.playerId}`}>
+                    <span className="flex-1 truncate">{p.name}</span>
+                    {p.pitchingRole && <span className="font-pixel text-[8px] text-muted-foreground">{p.pitchingRole}</span>}
+                    <span className={`font-pixel text-[9px] ${statusColor}`}>{statusText}</span>
+                    {slot.daysOfRest < 99 && (
+                      <span className="text-[8px] text-muted-foreground">{slot.daysOfRest}d rest</span>
+                    )}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="left" className="max-w-[240px]">
+                  <PitcherAvailTooltip p={p} slot={slot} day={gameDay} />
+                </TooltipContent>
+              </Tooltip>
             );
           })}
         </div>

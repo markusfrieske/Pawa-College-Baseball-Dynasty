@@ -1630,7 +1630,14 @@ function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leagueId, i
   });
 
   interface PitcherSlot { available: boolean; limited: boolean; daysOfRest: number; suggestedMaxIP: number; }
-  interface PitcherAvailRow { playerId: string; slots: Record<string, PitcherSlot>; }
+  interface PitcherAvailRow {
+    playerId: string;
+    slots: Record<string, PitcherSlot>;
+    lastPitchedOuts: number;
+    lastPitchedWeek: number | null;
+    lastPitchedDay: string | null;
+    stamina: number;
+  }
 
   const { data: availData } = useQuery<{ currentWeek: number; pitchers: PitcherAvailRow[] }>({
     queryKey: ["/api/leagues", leagueId, "pitcher-availability"],
@@ -1643,21 +1650,76 @@ function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leagueId, i
     staleTime: 60_000,
   });
 
-  const availMap = new Map<string, Record<string, PitcherSlot>>();
+  const availMap = new Map<string, PitcherAvailRow>();
   if (availData) {
     for (const row of availData.pitchers) {
-      availMap.set(row.playerId, row.slots);
+      availMap.set(row.playerId, row);
     }
   }
 
+  function availOutsToIpStr(outs: number): string {
+    return `${Math.floor(outs / 3)}.${outs % 3}`;
+  }
+  function availRestNeeded(outs: number): number {
+    if (outs === 0) return 0;
+    if (outs <= 3) return 1;
+    if (outs <= 9) return 2;
+    if (outs <= 15) return 3;
+    if (outs <= 21) return 4;
+    if (outs <= 27) return 5;
+    return 6;
+  }
+  const DAY_LABEL: Record<string, string> = { WED: "Wednesday", FRI: "Friday", SAT: "Saturday", SUN: "Sunday" };
+
+  function AvailTooltipContent({ row, day, slot }: { row: PitcherAvailRow; day: string; slot: PitcherSlot }) {
+    if (slot.daysOfRest === 99 || !row.lastPitchedDay) {
+      return (
+        <div className="text-[10px] space-y-0.5">
+          <div className="font-semibold text-green-400">{day}: Fresh</div>
+          <div className="text-muted-foreground">No recent appearances</div>
+          <div>Full strength — up to <span className="text-green-400 font-bold">{slot.suggestedMaxIP} IP</span></div>
+        </div>
+      );
+    }
+    const ip = availOutsToIpStr(row.lastPitchedOuts);
+    const restNeeded = availRestNeeded(row.lastPitchedOuts);
+    const restHad = slot.daysOfRest;
+    const lastDay = DAY_LABEL[row.lastPitchedDay] ?? row.lastPitchedDay;
+    if (!slot.available) {
+      return (
+        <div className="text-[10px] space-y-0.5">
+          <div className="font-semibold text-red-400">{day}: Unavailable</div>
+          <div>Pitched <span className="font-bold">{ip} IP</span> on {lastDay} ({row.lastPitchedOuts} outs)</div>
+          <div>Needs <span className="font-bold">{restNeeded}d</span> rest — only <span className="text-red-400 font-bold">{restHad}d</span> available</div>
+        </div>
+      );
+    }
+    if (slot.limited) {
+      return (
+        <div className="text-[10px] space-y-0.5">
+          <div className="font-semibold text-yellow-400">{day}: Limited</div>
+          <div>Pitched <span className="font-bold">{ip} IP</span> on {lastDay} ({row.lastPitchedOuts} outs)</div>
+          <div>{restHad}d rest received, {restNeeded}d required — capped at <span className="text-yellow-400 font-bold">{slot.suggestedMaxIP} IP</span></div>
+        </div>
+      );
+    }
+    return (
+      <div className="text-[10px] space-y-0.5">
+        <div className="font-semibold text-green-400">{day}: Full strength</div>
+        <div>Pitched <span className="font-bold">{ip} IP</span> on {lastDay} ({row.lastPitchedOuts} outs)</div>
+        <div>{restHad}d rest received — up to <span className="text-green-400 font-bold">{slot.suggestedMaxIP} IP</span></div>
+      </div>
+    );
+  }
+
   function AvailStrip({ playerId }: { playerId: string }) {
-    const slots = availMap.get(playerId);
-    if (!slots) return null;
+    const row = availMap.get(playerId);
+    if (!row) return null;
     const days = ["WED", "FRI", "SAT", "SUN"] as const;
     return (
       <div className="flex gap-1 items-center flex-shrink-0">
         {days.map(d => {
-          const s = slots[d];
+          const s = row.slots[d];
           const avail = s?.available ?? false;
           const limited = s?.limited ?? false;
           const ip = s?.suggestedMaxIP ?? 0;
@@ -1667,18 +1729,23 @@ function DepthChartView({ players, onSelectPlayer, teamPrimaryColor, leagueId, i
             ? "border-yellow-400/50 bg-yellow-500/10 text-yellow-300"
             : "border-green-500/50 bg-green-500/10 text-green-400";
           return (
-            <div
-              key={d}
-              className={`flex flex-col items-center border rounded px-1 py-0.5 ${cls}`}
-              style={{ minWidth: 34 }}
-              title={!avail ? `${d}: Unavailable` : `${d}: up to ${ip} IP`}
-              data-testid={`avail-strip-${playerId}-${d}`}
-            >
-              <span className="text-[7px] font-pixel leading-none">{d}</span>
-              <span className="text-[8px] font-bold leading-none mt-0.5">
-                {!avail ? "✕" : `${ip}IP`}
-              </span>
-            </div>
+            <Tooltip key={d}>
+              <TooltipTrigger asChild>
+                <div
+                  className={`flex flex-col items-center border rounded px-1 py-0.5 cursor-default ${cls}`}
+                  style={{ minWidth: 34 }}
+                  data-testid={`avail-strip-${playerId}-${d}`}
+                >
+                  <span className="text-[7px] font-pixel leading-none">{d}</span>
+                  <span className="text-[8px] font-bold leading-none mt-0.5">
+                    {!avail ? "✕" : `${ip}IP`}
+                  </span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="top" className="max-w-[220px]">
+                {s ? <AvailTooltipContent row={row} day={d} slot={s} /> : <span className="text-[10px]">No data</span>}
+              </TooltipContent>
+            </Tooltip>
           );
         })}
       </div>
