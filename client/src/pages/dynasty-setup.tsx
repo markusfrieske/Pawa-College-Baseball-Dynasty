@@ -93,7 +93,7 @@ export default function DynastySetupPage() {
       if (inviteCode) {
         const link = `${window.location.origin}/invite/${inviteCode}`;
         setGeneratedLink(link);
-        navigator.clipboard.writeText(link).catch(() => {});
+        navigator.clipboard?.writeText(link).catch(() => {});
       }
       setInviteLabel("");
     },
@@ -114,7 +114,7 @@ export default function DynastySetupPage() {
 
   const copyInviteLink = (code: string) => {
     const link = `${window.location.origin}/invite/${code}`;
-    navigator.clipboard.writeText(link);
+    navigator.clipboard?.writeText(link);
     setCopied(code);
     setTimeout(() => setCopied(null), 2000);
     toast({ title: "Link Copied", description: "Invite link copied to clipboard." });
@@ -606,7 +606,7 @@ export default function DynastySetupPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      navigator.clipboard.writeText(generatedLink).then(() => {
+                      navigator.clipboard?.writeText(generatedLink).then(() => {
                         setCopied("modal");
                         setTimeout(() => setCopied(null), 2000);
                       }).catch(() => {

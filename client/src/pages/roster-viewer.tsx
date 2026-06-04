@@ -484,7 +484,8 @@ export default function RosterViewerPage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const searchStr = useSearch();
-  const returnTo = new URLSearchParams(searchStr).get("returnTo");
+  const rawReturnTo = new URLSearchParams(searchStr).get("returnTo");
+  const returnTo = rawReturnTo && rawReturnTo.startsWith("/") && !rawReturnTo.includes("://") ? rawReturnTo : null;
   const qc = useQueryClient();
   const isMobile = useIsMobile();
 

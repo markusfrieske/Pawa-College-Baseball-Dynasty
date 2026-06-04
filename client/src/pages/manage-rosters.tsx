@@ -262,7 +262,8 @@ export default function ManageRostersPage() {
   };
 
   const search = useSearch();
-  const returnTo = new URLSearchParams(search).get("returnTo");
+  const rawReturnTo = new URLSearchParams(search).get("returnTo");
+  const returnTo = rawReturnTo && rawReturnTo.startsWith("/") && !rawReturnTo.includes("://") ? rawReturnTo : null;
 
   return (
     <div className="min-h-screen bg-background p-4">

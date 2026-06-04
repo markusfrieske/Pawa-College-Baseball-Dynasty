@@ -57,7 +57,8 @@ const gradeColor = (g: string): string => {
 export default function EditRecruitsPage() {
   const { id } = useParams<{ id: string }>();
   const search = useSearch();
-  const returnTo = new URLSearchParams(search).get("returnTo");
+  const rawReturnTo = new URLSearchParams(search).get("returnTo");
+  const returnTo = rawReturnTo && rawReturnTo.startsWith("/") && !rawReturnTo.includes("://") ? rawReturnTo : null;
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
