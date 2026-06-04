@@ -20162,9 +20162,11 @@ export async function registerRoutes(
             const players = roster.map(rp => {
               // ALL_REAL_ROSTERS is already fully calibrated (normalizeCommonAbilities,
               // enforceGoldOvrGate, and elite speed boost are baked in by buildCalibratedRosters).
-              const overall = calculateOVR({ ...rp, abilities: rp.abilities ?? [] });
+              const isPitcherPos = ["P", "SP", "RP", "CP"].includes(rp.position);
+              const trajectory = rp.trajectory ?? (isPitcherPos ? 2 : assignTrajectory(rp.power ?? 50, rp.speed ?? 50, rp.hitForAvg ?? 50));
+              const overall = calculateOVR({ ...rp, abilities: rp.abilities ?? [], trajectory });
               const starRating = getStarRatingFromOVR(overall);
-              return { ...rp, overall, starRating };
+              return { ...rp, overall, starRating, trajectory };
             });
             return {
               name: t.name,
@@ -20200,9 +20202,11 @@ export async function registerRoutes(
       const players = roster.map(rp => {
         // ALL_REAL_ROSTERS is already fully calibrated (normalizeCommonAbilities,
         // enforceGoldOvrGate, and elite speed boost are baked in by buildCalibratedRosters).
-        const overall = calculateOVR({ ...rp, abilities: rp.abilities ?? [] });
+        const isPitcherPos = ["P", "SP", "RP", "CP"].includes(rp.position);
+        const trajectory = rp.trajectory ?? (isPitcherPos ? 2 : assignTrajectory(rp.power ?? 50, rp.speed ?? 50, rp.hitForAvg ?? 50));
+        const overall = calculateOVR({ ...rp, abilities: rp.abilities ?? [], trajectory });
         const starRating = getStarRatingFromOVR(overall);
-        return { ...rp, overall, starRating };
+        return { ...rp, overall, starRating, trajectory };
       });
 
       res.json({
