@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef } from "react";
 import { parseErrorMessage } from "@/lib/errorUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Link } from "wouter";
+import { Link, useSearch } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
 import { Input } from "@/components/ui/input";
@@ -261,15 +261,18 @@ export default function ManageRostersPage() {
     setExpandedRow(null);
   };
 
+  const search = useSearch();
+  const returnTo = new URLSearchParams(search).get("returnTo");
+
   return (
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-[1600px] mx-auto space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-4 flex-wrap">
-            <Link href="/">
+            <Link href={returnTo ?? "/"}>
               <RetroButton variant="outline" size="sm" data-testid="button-back">
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Home
+                {returnTo ? "Back to Setup" : "Home"}
               </RetroButton>
             </Link>
             <h1 className="font-pixel text-xl text-gold" data-testid="text-page-title">MANAGE ROSTERS</h1>

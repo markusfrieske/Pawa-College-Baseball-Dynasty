@@ -173,26 +173,28 @@ export default function TeamViewPage() {
 
       <main className="container mx-auto px-4 py-6 pb-20 md:pb-6">
         <Tabs defaultValue="summary" className="space-y-6">
-          <TabsList className="bg-card border border-border flex-wrap gap-1">
-            <TabsTrigger value="summary" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
-              Summary
-            </TabsTrigger>
-            <TabsTrigger value="schedule" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
-              Schedule
-            </TabsTrigger>
-            <TabsTrigger value="roster" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
-              Roster
-            </TabsTrigger>
-            <TabsTrigger value="coaches" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
-              Coaches
-            </TabsTrigger>
-            <TabsTrigger value="school" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
-              School
-            </TabsTrigger>
-            <TabsTrigger value="history" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
-              History
-            </TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto pb-px -mx-1 px-1">
+            <TabsList className="bg-card border border-border flex-nowrap min-w-max gap-1">
+              <TabsTrigger value="summary" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
+                Summary
+              </TabsTrigger>
+              <TabsTrigger value="schedule" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
+                Schedule
+              </TabsTrigger>
+              <TabsTrigger value="roster" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
+                Roster
+              </TabsTrigger>
+              <TabsTrigger value="coaches" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
+                Coaches
+              </TabsTrigger>
+              <TabsTrigger value="school" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
+                School
+              </TabsTrigger>
+              <TabsTrigger value="history" className="font-pixel text-[8px] data-[state=active]:bg-gold data-[state=active]:text-forest-dark">
+                History
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           <TabsContent value="summary">
             <SummaryTab team={team} leagueId={id!} />

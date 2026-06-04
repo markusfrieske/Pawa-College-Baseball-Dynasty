@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -483,6 +483,8 @@ type MobileStep = "conference" | "team" | "roster";
 export default function RosterViewerPage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const searchStr = useSearch();
+  const returnTo = new URLSearchParams(searchStr).get("returnTo");
   const qc = useQueryClient();
   const isMobile = useIsMobile();
 
@@ -1047,8 +1049,9 @@ export default function RosterViewerPage() {
                 } else if (isMobile && mobileStep === "team") {
                   handleBackToConfs();
                 } else {
-                  if (hasChanges) { setPendingNavTarget("/"); setNavGuardOpen(true); }
-                  else setLocation("/");
+                  const dest = returnTo ?? "/";
+                  if (hasChanges) { setPendingNavTarget(dest); setNavGuardOpen(true); }
+                  else setLocation(dest);
                 }
               }}
               className="text-muted-foreground hover:text-gold transition-colors shrink-0"

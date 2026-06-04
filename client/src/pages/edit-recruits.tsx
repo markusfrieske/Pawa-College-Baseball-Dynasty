@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, KeyboardEvent } from "react";
 import { parseErrorMessage } from "@/lib/errorUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useParams, Link } from "wouter";
+import { useParams, Link, useSearch } from "wouter";
 import { RetroButton } from "@/components/ui/retro-button";
 import { RetroCard, RetroCardHeader, RetroCardContent } from "@/components/ui/retro-card";
 import { Input } from "@/components/ui/input";
@@ -56,6 +56,8 @@ const gradeColor = (g: string): string => {
 
 export default function EditRecruitsPage() {
   const { id } = useParams<{ id: string }>();
+  const search = useSearch();
+  const returnTo = new URLSearchParams(search).get("returnTo");
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -263,10 +265,10 @@ export default function EditRecruitsPage() {
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-4">
-            <Link href={`/league/${id}/commissioner`}>
+            <Link href={returnTo ?? `/league/${id}/commissioner`}>
               <RetroButton variant="outline" size="sm" data-testid="button-back">
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Commissioner
+                {returnTo ? "Back to Setup" : "Back to Commissioner"}
               </RetroButton>
             </Link>
             <h1 className="font-pixel text-xl text-gold">EDIT RECRUITING CLASS</h1>

@@ -76,6 +76,7 @@ export default function DynastySetupPage() {
   const [perTeamRosters, setPerTeamRosters] = useState<Record<string, string>>({});
   const [inviteLabel, setInviteLabel] = useState("");
   const [copied, setCopied] = useState<string | null>(null);
+  const [generatedLink, setGeneratedLink] = useState<string | null>(null);
 
   const { data, isLoading, refetch } = useQuery<DynastySetupData>({
     queryKey: ["/api/leagues", id, "dynasty-setup"],
@@ -91,8 +92,8 @@ export default function DynastySetupPage() {
       const inviteCode = data?.inviteCode || data?.invite?.inviteCode;
       if (inviteCode) {
         const link = `${window.location.origin}/invite/${inviteCode}`;
-        navigator.clipboard.writeText(link);
-        toast({ title: "Invite Link Created", description: "Link copied to clipboard." });
+        setGeneratedLink(link);
+        navigator.clipboard.writeText(link).catch(() => {});
       }
       setInviteLabel("");
     },
@@ -398,12 +399,12 @@ export default function DynastySetupPage() {
                     )}
 
                     <div className="flex gap-2 mt-3">
-                      <Link href="/roster-viewer">
+                      <Link href={`/roster-viewer?returnTo=/league/${id}/dynasty-setup`}>
                         <RetroButton variant="ghost" size="sm" className="text-xs" data-testid="button-roster-viewer-link">
                           View NCAA 2026 Rosters
                         </RetroButton>
                       </Link>
-                      <Link href="/manage-rosters">
+                      <Link href={`/manage-rosters?returnTo=/league/${id}/dynasty-setup`}>
                         <RetroButton variant="ghost" size="sm" className="text-xs" data-testid="button-manage-rosters-link">
                           Manage Saved Rosters
                         </RetroButton>
@@ -447,7 +448,7 @@ export default function DynastySetupPage() {
                         {loadClassMutation.isPending ? "Loading..." : "Load Saved Class"}
                       </RetroButton>
                       {hasRecruits && (
-                        <Link href={`/league/${id}/edit-recruits`} className="flex-1">
+                        <Link href={`/league/${id}/edit-recruits?returnTo=/league/${id}/dynasty-setup`} className="flex-1">
                           <RetroButton variant="outline" className="w-full" data-testid="button-edit-recruits">
                             <Edit className="w-4 h-4 mr-2" />
                             Edit Recruits
@@ -559,7 +560,7 @@ export default function DynastySetupPage() {
         </div>
       </main>
 
-      <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
+      <Dialog open={showInviteDialog} onOpenChange={(open) => { setShowInviteDialog(open); if (!open) setGeneratedLink(null); }}>
         <DialogContent className="bg-card border-border max-w-md">
           <DialogHeader>
             <DialogTitle className="font-pixel text-gold text-sm">Invite Coach</DialogTitle>
@@ -568,24 +569,63 @@ export default function DynastySetupPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="flex gap-3">
-              <RetroInput
-                type="text"
-                placeholder="Label (optional, e.g. 'For Mike')"
-                value={inviteLabel}
-                onChange={(e) => setInviteLabel(e.target.value)}
-                className="flex-1"
-                data-testid="input-invite-label"
-              />
-              <RetroButton
-                onClick={() => inviteMutation.mutate()}
-                disabled={inviteMutation.isPending}
-                data-testid="button-generate-invite"
-              >
-                <LinkIcon className="w-4 h-4 mr-2" />
-                {inviteMutation.isPending ? "Generating..." : "Generate Link"}
-              </RetroButton>
-            </div>
+            {!generatedLink ? (
+              <div className="flex gap-3">
+                <RetroInput
+                  type="text"
+                  placeholder="Label (optional, e.g. 'For Mike')"
+                  value={inviteLabel}
+                  onChange={(e) => setInviteLabel(e.target.value)}
+                  className="flex-1"
+                  data-testid="input-invite-label"
+                />
+                <RetroButton
+                  onClick={() => inviteMutation.mutate()}
+                  disabled={inviteMutation.isPending}
+                  data-testid="button-generate-invite"
+                >
+                  <LinkIcon className="w-4 h-4 mr-2" />
+                  {inviteMutation.isPending ? "Generating..." : "Generate Link"}
+                </RetroButton>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-xs text-green-400 flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5" />
+                  Invite link created — share this URL:
+                </p>
+                <div className="flex items-center gap-2">
+                  <input
+                    readOnly
+                    value={generatedLink}
+                    className="flex-1 bg-background border border-border rounded px-3 py-2 text-xs text-foreground font-mono select-all"
+                    onClick={(e) => (e.target as HTMLInputElement).select()}
+                    data-testid="input-generated-link"
+                  />
+                  <RetroButton
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText(generatedLink).catch(() => {});
+                      setCopied("modal");
+                      setTimeout(() => setCopied(null), 2000);
+                    }}
+                    data-testid="button-copy-generated-link"
+                  >
+                    {copied === "modal" ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  </RetroButton>
+                </div>
+                <RetroButton
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs w-full"
+                  onClick={() => { setGeneratedLink(null); }}
+                  data-testid="button-generate-another"
+                >
+                  Generate another link
+                </RetroButton>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
