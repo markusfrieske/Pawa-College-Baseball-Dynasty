@@ -515,20 +515,27 @@ export default function DynastySetupPage() {
                         {pendingInvites.map((invite) => (
                           <div
                             key={invite.id}
-                            className="flex items-center justify-between gap-3 p-2 bg-background/50 border border-border rounded text-sm"
+                            className="p-2 bg-background/50 border border-border rounded text-sm space-y-1.5"
                           >
-                            <div className="flex items-center gap-2 flex-1 min-w-0">
-                              <LinkIcon className="w-4 h-4 text-gold shrink-0" />
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm truncate">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <LinkIcon className="w-3.5 h-3.5 text-gold shrink-0" />
+                                <span className="text-xs truncate text-muted-foreground">
                                   {invite.label || `Invite ${invite.inviteCode.substring(0, 6)}...`}
-                                </p>
-                                <p className="text-[10px] text-muted-foreground mt-0.5">
-                                  Created: {new Date(invite.createdAt).toLocaleDateString()}
-                                </p>
+                                </span>
                               </div>
+                              <span className="text-[10px] text-muted-foreground shrink-0">
+                                {new Date(invite.createdAt).toLocaleDateString()}
+                              </span>
                             </div>
-                            <div className="flex items-center gap-1 shrink-0">
+                            <div className="flex items-center gap-2">
+                              <input
+                                readOnly
+                                value={`${window.location.origin}/invite/${invite.inviteCode}`}
+                                className="flex-1 min-w-0 bg-background border border-border rounded px-2 py-1 text-[11px] text-foreground font-mono select-all"
+                                onClick={(e) => (e.target as HTMLInputElement).select()}
+                                data-testid={`input-invite-url-${invite.inviteCode}`}
+                              />
                               <RetroButton
                                 variant="outline"
                                 size="sm"
