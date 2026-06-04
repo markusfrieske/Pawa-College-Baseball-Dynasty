@@ -606,9 +606,12 @@ export default function DynastySetupPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      navigator.clipboard.writeText(generatedLink).catch(() => {});
-                      setCopied("modal");
-                      setTimeout(() => setCopied(null), 2000);
+                      navigator.clipboard.writeText(generatedLink).then(() => {
+                        setCopied("modal");
+                        setTimeout(() => setCopied(null), 2000);
+                      }).catch(() => {
+                        toast({ title: "Copy Failed", description: "Could not copy — please select and copy the link manually.", variant: "destructive" });
+                      });
                     }}
                     data-testid="button-copy-generated-link"
                   >

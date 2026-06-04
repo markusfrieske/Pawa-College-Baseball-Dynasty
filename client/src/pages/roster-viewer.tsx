@@ -1062,8 +1062,8 @@ export default function RosterViewerPage() {
               ) : (
                 <ArrowLeft className="w-5 h-5" />
               )}
-              {!isMobile && returnTo && (
-                <span className="text-xs text-muted-foreground hidden sm:inline">Back to Setup</span>
+              {returnTo && mobileStep === "conference" && (
+                <span className="text-xs text-muted-foreground">Back to Setup</span>
               )}
             </button>
 
