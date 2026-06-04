@@ -2490,11 +2490,37 @@ function SettingsTab({
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 mb-4">
               <Users className="w-5 h-5 text-muted-foreground" />
               <div>
                 <p className="font-medium">Max Teams</p>
                 <p className="text-sm text-muted-foreground">{league?.maxTeams}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Zap className="w-5 h-5 text-muted-foreground" />
+              <div>
+                <p className="font-medium">Player Progression</p>
+                <div className="mt-1">
+                  {league?.progressionEnabled ? (
+                    <span
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-pixel bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 cursor-default"
+                      title="Player attributes grow between seasons based on potential and team facilities"
+                      data-testid="badge-progression-on"
+                    >
+                      PROGRESSION ON
+                    </span>
+                  ) : (
+                    <span
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-pixel bg-muted/40 text-muted-foreground border border-border cursor-default"
+                      title="Player attributes do not change between seasons in this league"
+                      data-testid="badge-progression-off"
+                    >
+                      PROGRESSION OFF
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
