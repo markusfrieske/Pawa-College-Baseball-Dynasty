@@ -29,6 +29,8 @@ import {
   GripVertical,
   ArrowUp,
   ArrowDown,
+  ArrowRight,
+  ArrowUpRight,
   Wand2,
   X,
   FolderDown,
@@ -42,6 +44,13 @@ import { getPotentialGrade, getProgressionZone, getProgressionColor } from "@sha
 import { TRAJECTORY_LABELS } from "@shared/trajectory";
 import { computePitcherAvailability, ALL_GAME_DAYS } from "@shared/pitcherRest";
 import type { GameDay } from "@shared/pitcherRest";
+
+const TRAJECTORY_ICONS: Record<number, React.ReactNode> = {
+  1: <ArrowDown className="w-2.5 h-2.5 inline-block" />,
+  2: <ArrowRight className="w-2.5 h-2.5 inline-block" />,
+  3: <ArrowUpRight className="w-2.5 h-2.5 inline-block" />,
+  4: <ArrowUp className="w-2.5 h-2.5 inline-block" />,
+};
 
 interface RosterData {
   players: Player[];
@@ -554,7 +563,7 @@ function PositionSection({ title, players, onSelectPlayer, teamPrimaryColor, pro
             className="w-full text-left px-3 py-2.5 hover:bg-card/50 transition-colors active:bg-card/70"
             data-testid={`card-player-mobile-${player.id}`}
           >
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <PlayerPortrait
                 skinTone={player.skinTone || "light"}
                 hairColor={player.hairColor || "brown"}
@@ -565,17 +574,16 @@ function PositionSection({ title, players, onSelectPlayer, teamPrimaryColor, pro
                 mouthStyle={player.mouthStyle || undefined}
                 eyeBlack={player.eyeBlack ?? undefined}
                 playerId={player.id}
-                className="w-9 h-9 flex-shrink-0"
+                className="w-8 h-8 flex-shrink-0"
                 jerseyColor={teamPrimaryColor}
               />
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-0.5">
-                  <span className="font-medium text-sm truncate">{player.firstName} {player.lastName}</span>
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <span className="font-medium text-xs truncate min-w-0">{player.firstName} {player.lastName}</span>
                   <PositionBadge position={player.position} size="sm" />
                 </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span>{player.eligibility}</span>
-                  <span className="text-border">·</span>
+                <div className="flex items-center flex-wrap gap-1 text-xs text-muted-foreground">
+                  <span className="text-[10px]">{player.eligibility}</span>
                   {isPitcher(player.position) ? (
                     <span className={`font-pixel text-[7px] px-1 py-0.5 rounded border ${player.throwHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`} data-testid={`badge-hand-mobile-${player.id}`}>{player.throwHand}HP</span>
                   ) : (
@@ -583,24 +591,22 @@ function PositionSection({ title, players, onSelectPlayer, teamPrimaryColor, pro
                       <span className={`font-pixel text-[7px] px-1 py-0.5 rounded border ${player.batHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : player.batHand === "S" ? "bg-purple-500/15 text-purple-400 border-purple-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`} data-testid={`badge-bat-mobile-${player.id}`}>B:{player.batHand}</span>
                       <span className={`font-pixel text-[7px] px-1 py-0.5 rounded border ${player.throwHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`} data-testid={`badge-throw-mobile-${player.id}`}>T:{player.throwHand}</span>
                       {(player as any).trajectory != null && (
-                        <span className="font-pixel text-[7px] px-1 py-0.5 rounded border border-gold/30 text-gold/70 bg-gold/5" data-testid={`badge-traj-mobile-${player.id}`}>
+                        <span className="inline-flex items-center gap-0.5 font-pixel text-[7px] px-1 py-0.5 rounded border border-gold/30 text-gold/70 bg-gold/5" data-testid={`badge-traj-mobile-${player.id}`}>
+                          {TRAJECTORY_ICONS[(player as any).trajectory]}
                           {TRAJECTORY_LABELS[(player as any).trajectory] ?? "LD"}
                         </span>
                       )}
                     </>
                   )}
                   {progressionEnabled && player.potential != null && (
-                    <>
-                      <span className="text-border">·</span>
-                      <span className={`font-bold ${getProgressionColor(getProgressionZone(player.potential))}`}>
-                        {getPotentialGrade(player.potential)}
-                      </span>
-                    </>
+                    <span className={`font-bold text-[10px] ${getProgressionColor(getProgressionZone(player.potential))}`}>
+                      {getPotentialGrade(player.potential)}
+                    </span>
                   )}
                 </div>
               </div>
-              <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
-                <div className="flex items-center gap-1">
+              <div className="flex flex-col items-end gap-0.5 flex-shrink-0 ml-1">
+                <div className="flex items-center gap-0.5">
                   <span className="font-bold text-gold text-sm">{player.overall}</span>
                   {player.progressionDeltas?.overall != null && player.progressionDeltas.overall !== 0 && (
                     <span className={`flex items-center text-[10px] font-bold ${player.progressionDeltas.overall > 0 ? "text-green-400" : "text-red-400"}`} data-testid={`text-roster-ovr-delta-${player.id}`}>
@@ -681,7 +687,8 @@ function PositionSection({ title, players, onSelectPlayer, teamPrimaryColor, pro
                     <div className="flex items-center gap-1 justify-center flex-wrap">
                       <span className={`font-pixel text-[7px] px-1.5 py-0.5 rounded border ${player.batHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : player.batHand === "S" ? "bg-purple-500/15 text-purple-400 border-purple-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`} data-testid={`badge-hand-desktop-${player.id}`}>{player.batHand}/{player.throwHand}</span>
                       {(player as any).trajectory != null && (
-                        <span className="font-pixel text-[7px] px-1.5 py-0.5 rounded border border-gold/30 text-gold/70 bg-gold/5" data-testid={`badge-traj-desktop-${player.id}`}>
+                        <span className="inline-flex items-center gap-0.5 font-pixel text-[7px] px-1.5 py-0.5 rounded border border-gold/30 text-gold/70 bg-gold/5" data-testid={`badge-traj-desktop-${player.id}`}>
+                          {TRAJECTORY_ICONS[(player as any).trajectory]}
                           {TRAJECTORY_LABELS[(player as any).trajectory] ?? "LD"}
                         </span>
                       )}
