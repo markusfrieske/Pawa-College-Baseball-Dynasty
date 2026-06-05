@@ -530,6 +530,25 @@ export default function LeagueViewPage() {
               <Users className="w-3.5 h-3.5" />
               <span>{league.teams?.length || 0}/{league.maxTeams} Teams</span>
             </div>
+            {league.progressionEnabled ? (
+              <span
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded font-pixel text-[7px] sm:text-[8px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 cursor-default shrink-0"
+                title="Player attributes grow between seasons based on potential and team facilities"
+                data-testid="badge-progression-on"
+              >
+                <Zap className="w-2.5 h-2.5" />
+                PROGRESSION ON
+              </span>
+            ) : (
+              <span
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded font-pixel text-[7px] sm:text-[8px] bg-muted/40 text-muted-foreground border border-border cursor-default shrink-0"
+                title="Player attributes do not change between seasons in this league"
+                data-testid="badge-progression-off"
+              >
+                <Zap className="w-2.5 h-2.5" />
+                PROGRESSION OFF
+              </span>
+            )}
           </div>
           {league.phaseDeadline && (
             <PhaseDeadline deadline={league.phaseDeadline} />
