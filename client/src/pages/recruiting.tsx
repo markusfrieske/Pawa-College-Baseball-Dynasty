@@ -739,7 +739,16 @@ export default function RecruitingPage() {
       const res = await apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/offer`, {});
       return await res.json();
     },
-    onSuccess: (data: any) => {
+    onSuccess: (data: any, recruitId: string) => {
+      queryClient.setQueryData(["/api/leagues", id, "recruiting"], (old: any) => {
+        if (!old) return old;
+        const recruits = old.recruits.map((r: any) =>
+          r.id === recruitId
+            ? { ...r, interest: r.interest ? { ...r.interest, hasOffer: true } : { hasOffer: true } }
+            : r
+        );
+        return { ...old, recruits };
+      });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
       const gain = data.interestGain || 0;
       const changeLabel = getInterestChangeLabel(gain);
