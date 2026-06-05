@@ -10935,10 +10935,10 @@ export async function registerRoutes(
       const psUserCoach = psCoaches.find(c => c.userId === req.session.userId);
       const psUserTeamId = psUserCoach?.teamId || null;
 
-      // Build philosophy map for strategy-aware game simulation
+      // Build philosophy map for strategy-aware game simulation (full encoded string)
       const psPhilosophyMap = new Map<string, string>();
       for (const c of psCoaches) {
-        if (c.teamId) psPhilosophyMap.set(c.teamId, (c as any).gamePhilosophyStrategy ?? "balanced");
+        if (c.teamId) psPhilosophyMap.set(c.teamId, buildCoachPhilosophyString(c));
       }
 
       const simSummary: {
