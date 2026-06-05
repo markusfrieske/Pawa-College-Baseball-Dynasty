@@ -10940,7 +10940,7 @@ export async function registerRoutes(
       // Build philosophy map for strategy-aware game simulation (full encoded string)
       const psPhilosophyMap = new Map<string, string>();
       for (const c of psCoaches) {
-        if (c.teamId) psPhilosophyMap.set(c.teamId, buildCoachPhilosophyString(c));
+        if (c.teamId) psPhilosophyMap.set(c.teamId, buildCoachPhilosophyString(c) || "balanced");
       }
 
       const simSummary: {
