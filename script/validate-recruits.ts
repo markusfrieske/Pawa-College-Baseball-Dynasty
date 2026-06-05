@@ -53,25 +53,31 @@ function validatePerClassInvariants(
       });
     }
 
-    // 2. Exactly 1 generational gem and 1 generational bust
+    // 2. Gen gem count = 2, gen bust count = 3-5
     const gems = recruits.filter((r) => r.isGenerationalGem);
     const busts = recruits.filter((r) => r.isGenerationalBust);
-    if (gems.length !== 1) {
+    if (gems.length !== 2) {
       issues.push({
         scope,
         severity: "error",
-        message: `expected exactly 1 generational gem, got ${gems.length}`,
+        message: `expected exactly 2 generational gems, got ${gems.length}`,
       });
     }
-    if (busts.length !== 1) {
+    if (busts.length < 3 || busts.length > 5) {
       issues.push({
         scope,
         severity: "error",
-        message: `expected exactly 1 generational bust, got ${busts.length}`,
+        message: `expected 3-5 generational busts, got ${busts.length}`,
       });
     }
 
-    // 3. Generational gem invariants: 5-7 abilities, OVR 600-650, never blue chip
+    // Star-relative OVR bands (task #879): gen gems are ≤3★ displayed, busts are 3-5★ displayed.
+    // GenGem: 1★→400-499, 2★→500-539, 3★→540-599
+    // GenBust: 3★→150-199, 4★→150-199, 5★→200-299
+    const GEN_GEM_OVR: Record<number, [number, number]> = { 1: [400, 499], 2: [500, 539], 3: [540, 599] };
+    const GEN_BUST_OVR: Record<number, [number, number]> = { 3: [150, 199], 4: [150, 199], 5: [200, 299] };
+
+    // 3. Generational gem invariants: 5-7 abilities, star-relative OVR, never blue chip
     for (const gem of gems) {
       if (gem.isBlueChip) {
         issues.push({ scope, severity: "error", message: `generational gem must not be blue chip` });
@@ -79,12 +85,16 @@ function validatePerClassInvariants(
       if (gem.isGenerationalBust) {
         issues.push({ scope, severity: "error", message: `recruit cannot be both generational gem and bust` });
       }
-      if ((gem.overall ?? 0) < 600 || (gem.overall ?? 0) > 650) {
-        issues.push({
-          scope,
-          severity: "error",
-          message: `generational gem OVR=${gem.overall} must be 600-650`,
-        });
+      const gemOvrRange = GEN_GEM_OVR[gem.starRank ?? 3];
+      if (gemOvrRange) {
+        const [lo, hi] = gemOvrRange;
+        if ((gem.overall ?? 0) < lo || (gem.overall ?? 0) > hi) {
+          issues.push({
+            scope,
+            severity: "error",
+            message: `generational gem ${gem.starRank}★ OVR=${gem.overall} must be ${lo}-${hi}`,
+          });
+        }
       }
       const gemAbilCount = (gem.abilities as string[] | undefined)?.length ?? 0;
       if (gemAbilCount < 5 || gemAbilCount > 7) {
@@ -96,7 +106,7 @@ function validatePerClassInvariants(
       }
     }
 
-    // 4. Generational bust invariants: never blue chip, star 3-5, OVR 150-199
+    // 4. Generational bust invariants: never blue chip, star 3-5, star-relative OVR
     for (const bust of busts) {
       if (bust.isBlueChip) {
         issues.push({ scope, severity: "error", message: `generational bust must not be blue chip` });
@@ -108,12 +118,16 @@ function validatePerClassInvariants(
           message: `generational bust starRank=${bust.starRank} outside 3-5`,
         });
       }
-      if ((bust.overall ?? 0) < 150 || (bust.overall ?? 0) > 199) {
-        issues.push({
-          scope,
-          severity: "error",
-          message: `generational bust OVR=${bust.overall} must be 150-199`,
-        });
+      const bustOvrRange = GEN_BUST_OVR[bust.starRank ?? 3];
+      if (bustOvrRange) {
+        const [lo, hi] = bustOvrRange;
+        if ((bust.overall ?? 0) < lo || (bust.overall ?? 0) > hi) {
+          issues.push({
+            scope,
+            severity: "error",
+            message: `generational bust ${bust.starRank}★ OVR=${bust.overall} must be ${lo}-${hi}`,
+          });
+        }
       }
     }
 
@@ -158,21 +172,9 @@ function validatePerClassInvariants(
     for (const r of recruits) {
       const ovr = r.overall ?? 0;
       if (r.isGenerationalGem) {
-        if (ovr < 600 || ovr > 650) {
-          issues.push({
-            scope,
-            severity: "error",
-            message: `${r.firstName} ${r.lastName} (gem): OVR=${ovr} must be 600-650`,
-          });
-        }
+        // Checked per-gem above with star-relative bands — skip flat check here
       } else if (r.isGenerationalBust) {
-        if (ovr < 150 || ovr > 199) {
-          issues.push({
-            scope,
-            severity: "error",
-            message: `${r.firstName} ${r.lastName} (bust): OVR=${ovr} must be 150-199`,
-          });
-        }
+        // Checked per-bust above with star-relative bands — skip flat check here
       } else if (r.isBlueChip) {
         if (ovr < 540 || ovr > 599) {
           issues.push({
