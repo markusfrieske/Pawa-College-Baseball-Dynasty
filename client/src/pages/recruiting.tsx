@@ -3776,6 +3776,104 @@ function RecruitDetailModal({
     return basePitches;
   };
 
+  const isPitcherRecruit = ["P", "SP", "RP", "CP", "LHP", "RHP"].includes(recruit.position || "");
+  const isModalAttrRevealed = (key: string) =>
+    !sdLocked.has(key) && (isFullyRevealed || (revealedAttrs as string[]).includes(key));
+  const modalPreviewFields = isPitcherRecruit
+    ? [
+        { label: "VEL", key: "velocity", val: recruit.velocity },
+        { label: "CTL", key: "control", val: recruit.control },
+        { label: "STF", key: "stuff", val: recruit.stuff },
+        { label: "STM", key: "stamina", val: recruit.stamina },
+      ]
+    : [
+        { label: "HIT", key: "hitForAvg", val: recruit.hitForAvg },
+        { label: "PWR", key: "power", val: recruit.power },
+        { label: "SPD", key: "speed", val: recruit.speed },
+        { label: "FLD", key: "fielding", val: recruit.fielding },
+      ];
+  const MODAL_GRADE_COLORS: Record<string, string> = {
+    s: "#fda4d5", a: "#ef4444", b: "#ef4444", c: "#f97316",
+    d: "#eab308", f: "#60a5fa", g: "#9ca3af",
+  };
+  const modalHasTransferStats = recruit.recruitType === "TRANSFER" && !!recruit.lastSeasonStats;
+
+  const previewStripContent = (
+    <div className="flex items-center gap-x-4 gap-y-1 flex-wrap" data-testid={`modal-stat-preview-${recruit.id}`}>
+      {modalHasTransferStats && (() => {
+        const s = recruit.lastSeasonStats!;
+        return isPitcherRecruit ? (
+          <>
+            {s.era != null && (
+              <div className="flex items-center gap-0.5">
+                <span className="text-[9px] text-muted-foreground/60 font-mono">ERA</span>
+                <span className="text-[10px] text-purple-300/90 font-mono">{s.era.toFixed(2)}</span>
+              </div>
+            )}
+            {s.ip != null && (
+              <div className="flex items-center gap-0.5">
+                <span className="text-[9px] text-muted-foreground/60 font-mono">IP</span>
+                <span className="text-[10px] text-purple-300/90 font-mono">{s.ip.toFixed(1)}</span>
+              </div>
+            )}
+            {s.k != null && (
+              <div className="flex items-center gap-0.5">
+                <span className="text-[9px] text-muted-foreground/60 font-mono">K</span>
+                <span className="text-[10px] text-purple-300/90 font-mono">{s.k}</span>
+              </div>
+            )}
+            {s.whip != null && (
+              <div className="flex items-center gap-0.5">
+                <span className="text-[9px] text-muted-foreground/60 font-mono">WHIP</span>
+                <span className="text-[10px] text-purple-300/90 font-mono">{s.whip.toFixed(2)}</span>
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            {s.avg != null && (
+              <div className="flex items-center gap-0.5">
+                <span className="text-[9px] text-muted-foreground/60 font-mono">AVG</span>
+                <span className="text-[10px] text-purple-300/90 font-mono">.{String(Math.round(s.avg * 1000)).padStart(3, "0")}</span>
+              </div>
+            )}
+            {s.obp != null && (
+              <div className="flex items-center gap-0.5">
+                <span className="text-[9px] text-muted-foreground/60 font-mono">OBP</span>
+                <span className="text-[10px] text-purple-300/90 font-mono">.{String(Math.round(s.obp * 1000)).padStart(3, "0")}</span>
+              </div>
+            )}
+            {s.hr != null && (
+              <div className="flex items-center gap-0.5">
+                <span className="text-[9px] text-muted-foreground/60 font-mono">HR</span>
+                <span className="text-[10px] text-purple-300/90 font-mono">{s.hr}</span>
+              </div>
+            )}
+            {s.rbi != null && (
+              <div className="flex items-center gap-0.5">
+                <span className="text-[9px] text-muted-foreground/60 font-mono">RBI</span>
+                <span className="text-[10px] text-purple-300/90 font-mono">{s.rbi}</span>
+              </div>
+            )}
+          </>
+        );
+      })()}
+      {modalHasTransferStats && <div className="w-px h-3 bg-border/40 self-center" />}
+      {modalPreviewFields.map(({ label, key, val }) => {
+        const revealed = isModalAttrRevealed(key);
+        const grade = (revealed && val != null) ? getLetterGrade(val) : null;
+        return (
+          <div key={key} className="flex items-center gap-0.5">
+            <span className="text-[9px] text-muted-foreground/60 font-mono">{label}</span>
+            <span className="font-pixel text-[10px] font-bold" style={{ color: grade ? (MODAL_GRADE_COLORS[grade.tier] || "#9ca3af") : "#374151" }}>
+              {grade ? grade.letter : "?"}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+
   const headerContent = (
     <div className="flex items-start gap-4">
       <PlayerPortrait 
@@ -3872,6 +3970,9 @@ function RecruitDetailModal({
               <span className="text-[9px] text-gold/80 font-pixel">{sdLocked.size} attribute{sdLocked.size !== 1 ? "s" : ""} revealed at Signing Day Reveal</span>
             </div>
           )}
+
+          {/* Compact letter-grade strip — mirrors board card badges */}
+          {previewStripContent}
 
           {recruit.position === "P" ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -4422,6 +4523,9 @@ function RecruitDetailModal({
               <span className="text-[9px] text-gold/80 font-pixel">{sdLocked.size} attribute{sdLocked.size !== 1 ? "s" : ""} revealed at Signing Day Reveal</span>
             </div>
           )}
+
+          {/* Compact letter-grade strip — mirrors board card badges */}
+          {previewStripContent}
 
           {recruit.position === "P" ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
