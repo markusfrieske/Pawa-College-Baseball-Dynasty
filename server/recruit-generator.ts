@@ -1206,8 +1206,10 @@ export function generateRecruitClass(
     for (const group of byPosition.values()) {
       group.sort((a, b) => (b.overall ?? 0) - (a.overall ?? 0));
       group.forEach((r, idx) => {
-        if (r.isGenerationalBust) return; // override is already set
         const rank = idx + 1;
+        // Update the stored position rank to reflect true OVR ordering
+        r.positionRank = rank;
+        if (r.isGenerationalBust) return; // NIL override is already set
         let mult: number;
         if (rank <= 2)       mult = 1.35 + Math.random() * 0.10; // #1–#2: 1.35–1.45×
         else if (rank <= 5)  mult = 1.10 + Math.random() * 0.10; // #3–#5: 1.10–1.20×
