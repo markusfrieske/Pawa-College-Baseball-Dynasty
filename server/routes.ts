@@ -119,24 +119,33 @@ async function autoAssignLineup(storage: any, teamPlayers: Player[], teamId: str
   const pitchers = teamPlayers.filter(p => PITCHER_POSITIONS.includes(p.position));
 
   // ── STEP 1: pick one starter per defensive position ──────────────────────
-  // For outfield slots, include both specific (LF/CF/RF) AND generic (OF) players.
-  // Preferred OF assignment order: CF first (best), then LF, then RF.
-  const positionSlots = ["C", "1B", "2B", "SS", "3B", "CF", "LF", "RF"];
+  // OF assignment order: CF (speed+fielding) → RF (arm) → LF (bat-first corner).
+  // Infield: SS/3B/2B use attribute composites; C/1B retain overall-based selection.
+  const positionSlots = ["C", "1B", "2B", "SS", "3B", "CF", "RF", "LF"];
   const starters: Player[] = [];
   const starterLineupPositions = new Map<string, string>(); // playerId → defensive position
   const usedIds = new Set<string>();
 
+  const defScore = (pos: string, p: Player): number => {
+    const ovr = p.overall || 0;
+    switch (pos) {
+      case "CF": return (p.speed || 0) * 0.5 + (p.fielding || 0) * 0.5;
+      case "RF": return (p.arm || 0);
+      case "SS": return (p.fielding || 0) * 0.5 + (p.arm || 0) * 0.5;
+      case "3B": return (p.arm || 0) * 0.4 + (p.fielding || 0) * 0.35 + ovr * 0.25;
+      case "2B": return (p.fielding || 0) * 0.5 + (p.speed || 0) * 0.3 + ovr * 0.2;
+      default:   return ovr; // C, 1B, LF (bat-first corner)
+    }
+  };
+
   for (const pos of positionSlots) {
     let candidates: Player[];
     if (OF_POSITIONS.includes(pos)) {
-      candidates = positionPlayers
-        .filter(p => (p.position === pos || p.position === "OF") && !usedIds.has(p.id))
-        .sort((a, b) => (b.overall || 0) - (a.overall || 0));
+      candidates = positionPlayers.filter(p => (p.position === pos || p.position === "OF") && !usedIds.has(p.id));
     } else {
-      candidates = positionPlayers
-        .filter(p => p.position === pos && !usedIds.has(p.id))
-        .sort((a, b) => (b.overall || 0) - (a.overall || 0));
+      candidates = positionPlayers.filter(p => p.position === pos && !usedIds.has(p.id));
     }
+    candidates.sort((a, b) => defScore(pos, b) - defScore(pos, a));
     if (candidates.length > 0) {
       starters.push(candidates[0]);
       usedIds.add(candidates[0].id);
@@ -164,38 +173,43 @@ async function autoAssignLineup(storage: any, teamPlayers: Player[], teamId: str
 
   const pickBest = (scoreFn: (p: Player) => number): Player => {
     remaining.sort((a, b) => scoreFn(b) - scoreFn(a));
-    const picked = remaining.shift()!;
-    return picked;
+    return remaining.shift()!;
+  };
+  const pickWorst = (scoreFn: (p: Player) => number): Player => {
+    remaining.sort((a, b) => scoreFn(a) - scoreFn(b));
+    return remaining.shift()!;
   };
 
   const slotAssignments: Player[] = [];
+  const bestHitterFn = (p: Player) => (p.hitForAvg || 0) * 0.40 + (p.power || 0) * 0.35 + (p.speed || 0) * 0.15 + (p.clutch || 0) * 0.10;
+  const offensiveFn  = (p: Player) => (p.hitForAvg || 0) * 0.40 + (p.power || 0) * 0.35 + (p.speed || 0) * 0.15 + (p.clutch || 0) * 0.10;
 
-  // Slot 1 — Leadoff: best OPS proxy (hitForAvg + power, balanced)
-  slotAssignments.push(pickBest(p => (p.hitForAvg || 0) + (p.power || 0)));
+  // Slot 1 — Leadoff: speed + contact + clutch
+  slotAssignments.push(pickBest(p => (p.speed || 0) * 0.45 + (p.hitForAvg || 0) * 0.45 + (p.clutch || 0) * 0.10));
 
-  // Slot 2 — Contact: highest hitForAvg
-  slotAssignments.push(pickBest(p => (p.hitForAvg || 0)));
+  // Slot 2 — Best hitter (modern "best hitter bats second")
+  slotAssignments.push(pickBest(bestHitterFn));
 
-  // Slot 3 — Power: highest power
-  slotAssignments.push(pickBest(p => (p.power || 0)));
+  // Slot 3 — Second-best bat (same composite as slot 2)
+  slotAssignments.push(pickBest(bestHitterFn));
 
-  // Slot 4 — Cleanup/Slugging: highest power + clutch
-  slotAssignments.push(pickBest(p => (p.power || 0) + (p.clutch || 0)));
+  // Slot 4 — Cleanup: power + clutch heavy
+  slotAssignments.push(pickBest(p => (p.power || 0) * 0.55 + (p.clutch || 0) * 0.30 + (p.hitForAvg || 0) * 0.15));
 
   // Slot 5 — Balanced
-  slotAssignments.push(pickBest(p => (p.hitForAvg || 0) * 0.35 + (p.power || 0) * 0.35 + (p.speed || 0) * 0.15 + (p.clutch || 0) * 0.15));
+  slotAssignments.push(pickBest(p => (p.hitForAvg || 0) * 0.35 + (p.power || 0) * 0.40 + (p.clutch || 0) * 0.15 + (p.speed || 0) * 0.10));
 
-  // Slot 6 — Balanced (same composite)
-  slotAssignments.push(pickBest(p => (p.hitForAvg || 0) * 0.35 + (p.power || 0) * 0.35 + (p.speed || 0) * 0.15 + (p.clutch || 0) * 0.15));
+  // Slot 6 — Balanced
+  slotAssignments.push(pickBest(p => (p.hitForAvg || 0) * 0.35 + (p.power || 0) * 0.40 + (p.clutch || 0) * 0.15 + (p.speed || 0) * 0.10));
 
-  // Slot 7 — Contact
-  slotAssignments.push(pickBest(p => (p.hitForAvg || 0)));
+  // Slot 7 — Contact-leaning
+  slotAssignments.push(pickBest(p => (p.hitForAvg || 0) * 0.50 + (p.power || 0) * 0.30 + (p.speed || 0) * 0.20));
 
-  // Slot 8 — Speed
-  slotAssignments.push(pickBest(p => (p.speed || 0)));
+  // Slot 8 — Defensive specialist / weakest offensive bat
+  slotAssignments.push(pickWorst(offensiveFn));
 
-  // Slot 9 — Second leadoff: hitForAvg + speed
-  slotAssignments.push(pickBest(p => (p.hitForAvg || 0) + (p.speed || 0)));
+  // Slot 9 — Second leadoff: speed + contact + clutch
+  slotAssignments.push(pickBest(p => (p.speed || 0) * 0.50 + (p.hitForAvg || 0) * 0.40 + (p.clutch || 0) * 0.10));
 
   // Collect batting order / lineup position updates for batch write
   const hitterUpdates = positionPlayers.map(p => {
@@ -207,13 +221,16 @@ async function autoAssignLineup(storage: any, teamPlayers: Player[], teamId: str
   });
 
   // ── STEP 3: assign pitching roles ─────────────────────────────────────────
-  // Sort by overall as a baseline, then deviate for specialist roles.
-  const pitcherPool = [...pitchers].sort((a, b) => (b.overall || 0) - (a.overall || 0));
-  const pitcherRemaining = [...pitcherPool];
+  // Weekend starters (FRI/SAT/SUN): overall * 0.70 + stamina * 0.30
+  // Midweek starter (MID): overall * 0.85 + potential * 0.15 (stamina-neutral, rewards upside)
+  const weekendStarterScore = (p: Player) => (p.overall || 0) * 0.70 + (p.stamina || 0) * 0.30;
+  const midweekStarterScore = (p: Player) => (p.overall || 0) * 0.85 + (p.potential || 0) * 0.15;
+
+  const pitcherPool = [...pitchers];
   const assignedPitcherIds = new Set<string>();
 
   const pickPitcher = (scoreFn: (p: Player) => number): Player | null => {
-    const pool = pitcherRemaining.filter(p => !assignedPitcherIds.has(p.id));
+    const pool = pitcherPool.filter(p => !assignedPitcherIds.has(p.id));
     if (pool.length === 0) return null;
     pool.sort((a, b) => scoreFn(b) - scoreFn(a));
     const picked = pool[0];
@@ -223,35 +240,21 @@ async function autoAssignLineup(storage: any, teamPlayers: Player[], teamId: str
 
   const roleMap = new Map<string, string>();
 
-  // FRI — best overall starter
-  const fri = pickPitcher(p => (p.overall || 0));
+  // FRI — highest stamina-weighted starter
+  const fri = pickPitcher(weekendStarterScore);
   if (fri) roleMap.set(fri.id, "FRI");
 
-  // SAT — second best overall
-  const sat = pickPitcher(p => (p.overall || 0));
+  // SAT — second stamina-weighted starter
+  const sat = pickPitcher(weekendStarterScore);
   if (sat) roleMap.set(sat.id, "SAT");
 
-  // SUN — third best overall
-  const sun = pickPitcher(p => (p.overall || 0));
+  // SUN — third stamina-weighted starter
+  const sun = pickPitcher(weekendStarterScore);
   if (sun) roleMap.set(sun.id, "SUN");
 
-  // MID — young future star: FR/SO with best potential; fallback to best potential overall
-  const eligibilityOrder: Record<string, number> = { FR: 0, SO: 1, JR: 2, SR: 3 };
-  const youngPool = pitcherRemaining.filter(p => !assignedPitcherIds.has(p.id) && (p.eligibility === "FR" || p.eligibility === "SO"));
-  const midPool = youngPool.length > 0
-    ? youngPool
-    : pitcherRemaining.filter(p => !assignedPitcherIds.has(p.id));
-  const mid = midPool.length > 0
-    ? midPool.sort((a, b) => {
-        const potDiff = (b.potential || 0) - (a.potential || 0);
-        if (potDiff !== 0) return potDiff;
-        return (eligibilityOrder[a.eligibility || "SR"] ?? 3) - (eligibilityOrder[b.eligibility || "SR"] ?? 3);
-      })[0]
-    : null;
-  if (mid) {
-    assignedPitcherIds.add(mid.id);
-    roleMap.set(mid.id, "MID");
-  }
+  // MID — stamina-neutral: best overall + potential (developing arm can slot here)
+  const mid = pickPitcher(midweekStarterScore);
+  if (mid) roleMap.set(mid.id, "MID");
 
   // CP — Closer: low stamina + high velocity/control; score = (velocity + control) - stamina * 0.5
   const cp = pickPitcher(p => (p.velocity || 0) + (p.control || 0) - (p.stamina || 0) * 0.5);
@@ -263,7 +266,7 @@ async function autoAssignLineup(storage: any, teamPlayers: Player[], teamId: str
 
   // Remaining → MR1, MR2, MR3, LRP in overall order
   const bullpenRoles = ["MR1", "MR2", "MR3", "LRP"];
-  const remainingBullpen = pitcherRemaining
+  const remainingBullpen = pitcherPool
     .filter(p => !assignedPitcherIds.has(p.id))
     .sort((a, b) => (b.overall || 0) - (a.overall || 0));
   for (let i = 0; i < remainingBullpen.length; i++) {
@@ -7371,22 +7374,40 @@ export async function registerRoutes(
         const pitchers = players.filter(p => p.position === "P");
         const selected: Player[] = [];
         const used = new Set<string>();
+        const playerDisplayPos = new Map<string, string>();
 
-        for (const pos of ["C", "1B", "2B", "3B", "SS"]) {
+        // ── Infield selection with attribute composites ──────────────────────
+        const pickForPos = (pos: string, scoreFn: (p: Player) => number) => {
           const candidates = positionPlayers.filter(p => p.position === pos && !used.has(p.id));
-          if (candidates.length > 0) {
-            candidates.sort((a, b) => ((b.hitForAvg || 0) + (b.power || 0)) - ((a.hitForAvg || 0) + (a.power || 0)));
-            selected.push(candidates[0]);
-            used.add(candidates[0].id);
-          }
-        }
+          if (candidates.length === 0) return;
+          candidates.sort((a, b) => scoreFn(b) - scoreFn(a));
+          selected.push(candidates[0]);
+          used.add(candidates[0].id);
+          playerDisplayPos.set(candidates[0].id, pos);
+        };
 
-        const outfielders = positionPlayers.filter(p => p.position === "OF" && !used.has(p.id));
-        outfielders.sort((a, b) => ((b.hitForAvg || 0) + (b.power || 0)) - ((a.hitForAvg || 0) + (a.power || 0)));
-        const ofPositions = ["LF", "CF", "RF"];
-        for (let i = 0; i < 3 && i < outfielders.length; i++) {
-          selected.push(outfielders[i]);
-          used.add(outfielders[i].id);
+        pickForPos("C",  p => (p.hitForAvg || 0) + (p.power || 0));
+        pickForPos("1B", p => (p.hitForAvg || 0) + (p.power || 0));
+        pickForPos("2B", p => (p.fielding || 0) * 0.5 + (p.speed || 0) * 0.3 + (p.overall || 0) * 0.2);
+        pickForPos("3B", p => (p.arm || 0) * 0.4 + (p.fielding || 0) * 0.35 + (p.overall || 0) * 0.25);
+        pickForPos("SS", p => (p.fielding || 0) * 0.5 + (p.arm || 0) * 0.5);
+
+        // ── Outfield: CF (speed+fielding) → RF (arm) → LF (bat-first) ───────
+        const ofCandidates = positionPlayers.filter(p => p.position === "OF" && !used.has(p.id));
+        if (ofCandidates.length > 0) {
+          ofCandidates.sort((a, b) => ((b.speed || 0) * 0.5 + (b.fielding || 0) * 0.5) - ((a.speed || 0) * 0.5 + (a.fielding || 0) * 0.5));
+          const cf = ofCandidates.shift()!;
+          selected.push(cf); used.add(cf.id); playerDisplayPos.set(cf.id, "CF");
+        }
+        if (ofCandidates.length > 0) {
+          ofCandidates.sort((a, b) => (b.arm || 0) - (a.arm || 0));
+          const rf = ofCandidates.shift()!;
+          selected.push(rf); used.add(rf.id); playerDisplayPos.set(rf.id, "RF");
+        }
+        if (ofCandidates.length > 0) {
+          ofCandidates.sort((a, b) => ((b.hitForAvg || 0) + (b.power || 0)) - ((a.hitForAvg || 0) + (a.power || 0)));
+          const lf = ofCandidates.shift()!;
+          selected.push(lf); used.add(lf.id); playerDisplayPos.set(lf.id, "LF");
         }
 
         const remaining = positionPlayers.filter(p => !used.has(p.id));
@@ -7405,42 +7426,43 @@ export async function registerRoutes(
           }
         }
 
-        // ── Batting order construction ──────────────────────────────────────
+        // ── Batting order construction (modern philosophy) ──────────────────
         // Platoon: reward vsLHP for RHBs/SHBs when facing a LH starter
         const platoonOBPBonus = (p: Player) =>
           opposingSpHand === "L" && (p.batHand || "R") !== "L"
             ? (p.vsLHP || 50) * 0.25 : 0;
-        const obpScore   = (p: Player) => (p.hitForAvg || 50) * 0.50 + (p.speed || 50) * 0.25 + platoonOBPBonus(p);
-        const powerScore = (p: Player) => (p.power    || 50) * 0.65 + (p.hitForAvg || 50) * 0.20 + platoonOBPBonus(p) * 0.5;
-        const ovScore    = (p: Player) => (p.overall  || 300) / 6   + platoonOBPBonus(p) * 0.5;
 
-        const byOBP = [...selected].sort((a, b) => obpScore(b) - obpScore(a));
-        const byPwr = [...selected].sort((a, b) => powerScore(b) - powerScore(a));
-        const byOv  = [...selected].sort((a, b) => ovScore(b) - ovScore(a));
+        const leadoffScore    = (p: Player) => (p.speed || 0) * 0.45 + (p.hitForAvg || 0) * 0.45 + (p.clutch || 0) * 0.10 + platoonOBPBonus(p) * 0.5;
+        const bestHitterScore = (p: Player) => (p.hitForAvg || 0) * 0.40 + (p.power || 0) * 0.35 + (p.speed || 0) * 0.15 + (p.clutch || 0) * 0.10 + platoonOBPBonus(p) * 0.5;
+        const cleanupScore    = (p: Player) => (p.power || 0) * 0.55 + (p.clutch || 0) * 0.30 + (p.hitForAvg || 0) * 0.15 + platoonOBPBonus(p) * 0.5;
+        const balancedScore   = (p: Player) => (p.hitForAvg || 0) * 0.35 + (p.power || 0) * 0.40 + (p.clutch || 0) * 0.15 + (p.speed || 0) * 0.10 + platoonOBPBonus(p) * 0.3;
+        const slot7Score      = (p: Player) => (p.hitForAvg || 0) * 0.50 + (p.power || 0) * 0.30 + (p.speed || 0) * 0.20;
+        const offensiveScore  = (p: Player) => (p.hitForAvg || 0) * 0.40 + (p.power || 0) * 0.35 + (p.speed || 0) * 0.15 + (p.clutch || 0) * 0.10;
+        const slot9Score      = (p: Player) => (p.speed || 0) * 0.50 + (p.hitForAvg || 0) * 0.40 + (p.clutch || 0) * 0.10;
 
         const ordered: (Player | null)[] = new Array(9).fill(null);
         const slotted = new Set<string>();
-        const pick = (arr: Player[]) => arr.find(p => !slotted.has(p.id));
-        const assign = (slot: number, arr: Player[]) => {
-          const p = pick(arr);
-          if (p) { ordered[slot] = p; slotted.add(p.id); }
+        const pickSlot = (scoreFn: (p: Player) => number, worst = false) => {
+          const avail = selected.filter(p => !slotted.has(p.id));
+          if (avail.length === 0) return null;
+          avail.sort((a, b) => worst ? scoreFn(a) - scoreFn(b) : scoreFn(b) - scoreFn(a));
+          slotted.add(avail[0].id);
+          return avail[0];
         };
 
-        assign(3, byPwr);          // 4-hole: best power (cleanup)
-        assign(2, byOv);           // 3-hole: best overall hitter
-        assign(0, byOBP);          // leadoff: best OBP/speed
-        assign(1, byOBP);          // 2-hole: second-best OBP
-        assign(4, byPwr);          // 5-hole: second power bat
-        for (let slot = 5; slot < 9; slot++) assign(slot, byOv);
-        for (let slot = 0; slot < 9; slot++) { if (!ordered[slot]) assign(slot, byOv); }
+        ordered[3] = pickSlot(cleanupScore);           // 4-hole: cleanup
+        ordered[2] = pickSlot(bestHitterScore);        // 3-hole: second-best bat
+        ordered[0] = pickSlot(leadoffScore);           // leadoff
+        ordered[1] = pickSlot(bestHitterScore);        // 2-hole: best remaining hitter
+        ordered[4] = pickSlot(cleanupScore);           // 5-hole: second power bat
+        ordered[8] = pickSlot(slot9Score);             // 9-hole: second leadoff
+        ordered[7] = pickSlot(offensiveScore, true);   // 8-hole: weakest bat
+        ordered[6] = pickSlot(slot7Score);             // 7-hole
+        for (let slot = 5; slot < 9; slot++) { if (!ordered[slot]) ordered[slot] = pickSlot(balancedScore); }
+        for (let slot = 0; slot < 9; slot++) { if (!ordered[slot]) ordered[slot] = pickSlot(offensiveScore); }
 
-        let ofIdx = 0;
         const lineup = (ordered as Player[]).map((p, i) => {
-          let displayPos = p.position;
-          if (p.position === "OF") {
-            displayPos = ofPositions[ofIdx] || "OF";
-            ofIdx++;
-          }
+          const displayPos = playerDisplayPos.get(p?.id) || p?.position || "DH";
           return {
             playerId: p.id,
             firstName: p.firstName,
@@ -7528,7 +7550,18 @@ export async function registerRoutes(
 
       function pickPitchingStaff(players: Player[], gameType: string | null | undefined, currentWeek?: number | null) {
         const pitchers = players.filter(p => p.position === "P");
-        pitchers.sort((a, b) => (b.overall || 0) - (a.overall || 0));
+        // For fallback selection, score pitchers by the same philosophy as autoAssignLineup:
+        // weekend slots (Fri/Sat/Sun) reward stamina; midweek slots are stamina-neutral with upside lean.
+        const isWeekendSlot = gameType === "friday" || gameType === "saturday" || gameType === "sunday";
+        const isMidweekSlot = gameType === "midweek";
+        pitchers.sort((a, b) => {
+          const score = (p: Player) => isWeekendSlot
+            ? (p.overall || 0) * 0.70 + (p.stamina || 0) * 0.30
+            : isMidweekSlot
+            ? (p.overall || 0) * 0.85 + (p.potential || 0) * 0.15
+            : (p.overall || 0);
+          return score(b) - score(a);
+        });
 
         const gameTypeToRole: Record<string, string> = {
           "friday": "FRI", "saturday": "SAT", "sunday": "SUN", "midweek": "MID",
