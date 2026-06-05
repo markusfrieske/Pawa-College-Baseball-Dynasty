@@ -147,6 +147,7 @@ export interface GenerateRecruitClassOptions {
   wizardSpecialCounts?: {
     gems: number; busts: number; genGems: number; genBusts: number;
     blueChips: number; jucos: number; rawPlayers: number;
+    lateBloomers?: number; overdrafts?: number;
   };
   wizardPositionDistribution?: Partial<Record<string, number>>;
   wizardForcedType?: {
@@ -633,12 +634,44 @@ export function generateRecruitClass(
     }
   }
 
+  // Pre-assign wizard-specified late bloomers and overdrafts
+  const forcedLBIdxSet = new Set<number>();
+  const forcedODIdxSet = new Set<number>();
+  if (opts.wizardSpecialCounts?.lateBloomers != null && opts.wizardSpecialCounts.lateBloomers > 0) {
+    const eligible = Array.from({ length: count }, (_, i) => i)
+      .filter(i => i >= numBlueChips
+               && !generationalGemIdxSet.has(i) && !generationalBustIdxSet.has(i)
+               && !forcedRawIdxSet.has(i) && !forcedGemIdxSet.has(i) && !forcedBustIdxSet.has(i)
+               && starRanks[i] >= 2 && starRanks[i] <= 4);
+    const shuffled = [...eligible].sort(() => Math.random() - 0.5);
+    const target = Math.min(opts.wizardSpecialCounts.lateBloomers, shuffled.length);
+    for (let j = 0; j < target; j++) {
+      forcedLBIdxSet.add(shuffled[j]);
+      playerArchetypes[shuffled[j]] = "late_bloomer";
+    }
+  }
+  if (opts.wizardSpecialCounts?.overdrafts != null && opts.wizardSpecialCounts.overdrafts > 0) {
+    const eligible = Array.from({ length: count }, (_, i) => i)
+      .filter(i => i >= numBlueChips
+               && !generationalGemIdxSet.has(i) && !generationalBustIdxSet.has(i)
+               && !forcedRawIdxSet.has(i) && !forcedGemIdxSet.has(i) && !forcedBustIdxSet.has(i)
+               && !forcedLBIdxSet.has(i)
+               && starRanks[i] >= 3 && starRanks[i] <= 5);
+    const shuffled = [...eligible].sort(() => Math.random() - 0.5);
+    const target = Math.min(opts.wizardSpecialCounts.overdrafts, shuffled.length);
+    for (let j = 0; j < target; j++) {
+      forcedODIdxSet.add(shuffled[j]);
+      playerArchetypes[shuffled[j]] = "overdraft";
+    }
+  }
+
   const lbRate = 0.07;
   const odRate = 0.07;
   for (let i = numBlueChips; i < count; i++) {
     const sr = starRanks[i];
     if (generationalGemIdxSet.has(i) || generationalBustIdxSet.has(i)) continue;
     if (forcedRawIdxSet.has(i) || forcedGemIdxSet.has(i) || forcedBustIdxSet.has(i)) continue;
+    if (forcedLBIdxSet.has(i) || forcedODIdxSet.has(i)) continue;
     const roll = Math.random();
     if (roll < lbRate && sr >= 2 && sr <= 4) {
       playerArchetypes[i] = "late_bloomer";

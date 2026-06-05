@@ -1612,6 +1612,8 @@ export interface WizardConfig {
     blueChips: number;
     jucos: number;
     rawPlayers: number;
+    lateBloomers: number;
+    overdrafts: number;
   };
   positionDistribution: {
     P: number;

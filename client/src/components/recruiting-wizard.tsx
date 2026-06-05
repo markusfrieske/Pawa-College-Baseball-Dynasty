@@ -98,7 +98,7 @@ const DEFAULT_CONFIG: WizardConfig = {
   theme: "balanced",
   label: "",
   starDistribution: { blueChip: 3, five: 5, four: 12, three: 60, two: 15, one: 5 },
-  specialCounts: { gems: 0, busts: 0, genGems: 1, genBusts: 1, blueChips: 2, jucos: 5, rawPlayers: 5 },
+  specialCounts: { gems: 0, busts: 0, genGems: 1, genBusts: 1, blueChips: 2, jucos: 5, rawPlayers: 5, lateBloomers: 0, overdrafts: 0 },
   positionDistribution: { P: 40, C: 8, "1B": 7, "2B": 7, "3B": 7, SS: 7, OF: 24 },
   regionSkew: "none",
   fogDensity: 100,
@@ -287,17 +287,19 @@ function Step3({ config, setConfig }: { config: WizardConfig; setConfig: (c: Wiz
     setConfig({ ...config, specialCounts: { ...sc, [key]: Math.max(0, val) } });
   };
 
-  const rows = [
-    { key: "blueChips"  as const, label: "Blue Chip Recruits",     desc: "Guaranteed 500+ OVR, always 5★",         max: 6  },
-    { key: "genGems"    as const, label: "Generational Gems",       desc: "651+ OVR, hidden in 1-3★ range",         max: 3  },
-    { key: "genBusts"   as const, label: "Generational Busts",      desc: "Below-150 OVR, hidden in 3-5★",          max: 3  },
-    { key: "gems"       as const, label: "Regular Gems",            desc: "Above-band OVR for their star rating",    max: 10 },
-    { key: "busts"      as const, label: "Regular Busts",           desc: "Below-band OVR for their star rating",    max: 10 },
-    { key: "jucos"      as const, label: "JUCO Transfers",          desc: "Junior college transfer recruits",        max: 20 },
-    { key: "rawPlayers" as const, label: "Raw Archetypes",          desc: "Unpolished prospects with high variance", max: 15 },
+  const rows: { key: keyof typeof sc; label: string; desc: string; max: number; note?: string }[] = [
+    { key: "blueChips",   label: "Blue Chip Recruits",  desc: "540–599 OVR, always 5★; guaranteed elite talent with no fog of war",       max: 6  },
+    { key: "genGems",     label: "Generational Gems",   desc: "Hidden in 1–3★ range; 1★→400–499, 2★→500–539, 3★→540–599 OVR; all S-grade attrs", max: 3  },
+    { key: "genBusts",    label: "Generational Busts",  desc: "Hidden in 3–5★ range; 3★/4★→150–199, 5★→200–299 OVR; near-floor attributes", max: 3  },
+    { key: "gems",        label: "Regular Gems",        desc: "OVR ~2 tiers above displayed stars; high potential, harder to scout",         max: 10 },
+    { key: "busts",       label: "Regular Busts",       desc: "OVR ~2 tiers below displayed stars; low potential, looks better than they are", max: 10 },
+    { key: "lateBloomers",label: "Late Bloomers",       desc: "High potential, OVR below star band; 2–4★ only — worth the wait",            max: 15, note: "2–4★ only" },
+    { key: "overdrafts",  label: "Overdrafts",          desc: "OVR above star band, low potential; 3–5★ only — stats peak early then decline", max: 15, note: "3–5★ only" },
+    { key: "jucos",       label: "JUCO Transfers",      desc: "Junior college transfer recruits; come in as SO/JR with one fewer year",      max: 20 },
+    { key: "rawPlayers",  label: "Raw Archetypes",      desc: "Unpolished prospects with high variance; randomly better or worse than expected", max: 15 },
   ];
 
-  const specialSlots = sc.blueChips + sc.genGems + sc.genBusts + sc.jucos + sc.rawPlayers;
+  const specialSlots = sc.blueChips + sc.genGems + sc.genBusts + sc.jucos + sc.rawPlayers + sc.lateBloomers + sc.overdrafts;
   const remaining = Math.max(0, config.count - specialSlots);
   const overflow = specialSlots > config.count;
 
@@ -315,7 +317,10 @@ function Step3({ config, setConfig }: { config: WizardConfig; setConfig: (c: Wiz
         {rows.map(r => (
           <div key={r.key} className="flex items-center gap-3 p-2 rounded border border-border bg-card">
             <div className="flex-1 min-w-0">
-              <div className="font-pixel text-[8px] text-gold">{r.label}</div>
+              <div className="flex items-center gap-2">
+                <div className="font-pixel text-[8px] text-gold">{r.label}</div>
+                {r.note && <span className="text-[7px] text-muted-foreground/60 border border-border rounded px-1 py-0">{r.note}</span>}
+              </div>
               <div className="text-[9px] text-muted-foreground mt-0.5">{r.desc}</div>
             </div>
             <div className="flex items-center gap-1 shrink-0">
@@ -329,7 +334,7 @@ function Step3({ config, setConfig }: { config: WizardConfig; setConfig: (c: Wiz
 
       <div className="p-2 rounded bg-muted/20 border border-border text-xs text-muted-foreground">
         <span className="font-pixel text-[8px] text-gold">Class breakdown: </span>
-        {sc.blueChips} blue chips + {sc.genGems} gen gems + {sc.genBusts} gen busts + {sc.jucos} JUCOs + {sc.rawPlayers} raw → {remaining} standard slots
+        {sc.blueChips} blue chips + {sc.genGems} gen gems + {sc.genBusts} gen busts + {sc.jucos} JUCOs + {sc.rawPlayers} raw + {sc.lateBloomers} late bloomers + {sc.overdrafts} overdrafts → {remaining} standard slots
       </div>
     </div>
   );
@@ -1399,6 +1404,7 @@ function Step6({ recruits, setRecruits, onNext, onReroll, isRerolling, rerolling
               <SortTh label="Stf"    field="stuff" />
               <th className="px-2 py-1.5 text-left text-[7px] font-pixel text-muted-foreground whitespace-nowrap">Pitches</th>
               <th className="px-2 py-1.5 text-left text-[7px] font-pixel text-muted-foreground whitespace-nowrap">Abilities</th>
+              <th className="px-2 py-1.5 text-left text-[7px] font-pixel text-muted-foreground whitespace-nowrap">NIL</th>
               <th className="px-2 py-1.5 text-left text-[7px] font-pixel text-muted-foreground whitespace-nowrap">Type</th>
               <th className="px-2 py-1.5 text-left text-[7px] font-pixel text-muted-foreground whitespace-nowrap">Actions</th>
             </tr>
@@ -1546,6 +1552,13 @@ function Step6({ recruits, setRecruits, onNext, onReroll, isRerolling, rerolling
                       onCommit={commitAbilitiesEdit}
                     />
                   </td>
+                  <td className="px-2 py-1 whitespace-nowrap tabular-nums text-[9px] text-muted-foreground" data-testid={`wizard-nil-${r._tempId}`}>
+                    {r.nilCost != null && r.nilCost > 0
+                      ? r.nilCost >= 1_000_000
+                        ? `$${(r.nilCost / 1_000_000).toFixed(1)}M`
+                        : `$${Math.round(r.nilCost / 1_000)}K`
+                      : "—"}
+                  </td>
                   <td className="px-2 py-1">
                     <div className="flex gap-0.5 flex-wrap">
                       {typeBadges(r).map(b => (
@@ -1585,6 +1598,7 @@ function Step6({ recruits, setRecruits, onNext, onReroll, isRerolling, rerolling
       <div className="flex items-center justify-between pt-2 border-t border-border">
         <p className="text-xs text-muted-foreground">
           Review and edit above, then proceed to save options.
+          <span className="ml-2 text-muted-foreground/60">NIL costs are based on displayed star rating — hidden gems show lower costs consistent with their stars.</span>
         </p>
         <RetroButton
           variant="shimmer"
@@ -1887,7 +1901,7 @@ export function RecruitingWizard({ open, onClose, leagueId, onSaved, onSavedToLi
     }
     if (step === 3) {
       const sc = config.specialCounts;
-      const specialSlots = sc.blueChips + sc.genGems + sc.genBusts + sc.jucos + sc.rawPlayers;
+      const specialSlots = sc.blueChips + sc.genGems + sc.genBusts + sc.jucos + sc.rawPlayers + sc.lateBloomers + sc.overdrafts;
       return specialSlots <= config.count;
     }
     if (step === 5) {
