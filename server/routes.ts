@@ -2091,7 +2091,7 @@ export async function registerRoutes(
   }
   
   const ARCHETYPE_RECRUITING_ACTION_BONUS: Record<string, number> = {
-    "Scout Master": 6,
+    "Scout Master": 4,
     "Dealmaker": 4,
     "Pure CEO": 2,
     "Player's Coach": 0,
@@ -2123,7 +2123,7 @@ export async function registerRoutes(
     const baseActions = 25;
     const skillBonus = Math.floor(((coach?.scoutingSkill || 1) + (coach?.evaluationSkill || 1)) / 2);
     const archetypeScoutBonus: Record<string, number> = {
-      "Scout Master": 8,
+      "Scout Master": 6,
       "Academic Dean": 3,
       "Balanced": 0,
       "Pure CEO": 0,
@@ -2169,8 +2169,186 @@ export async function registerRoutes(
     "Old School": 0.85,
   };
 
-  // Calculate coach skill bonus for recruiting action
-  function calculateCoachBonus(coach: any, recruit: any, actionType: string): number {
+  // Additive philosophy bonus from coach's 3 philosophy statements.
+  // Each statement contributes a flat additive amount to the final coach multiplier.
+  // Importance scaling: extremely=1.0×, very=0.67×, somewhat=0.33× of the full base bonus.
+  // Stacks additively (not multiplicatively) with archetype×skill×position to prevent compounding.
+  function calculatePhilosophyBonus(coach: any, recruit: any, actionType: string, team?: any): number {
+    const philosophy = Array.isArray(coach.coachingPhilosophy)
+      ? (coach.coachingPhilosophy as { statement: string; importance: string }[])
+      : [];
+    if (philosophy.length === 0) return 0;
+
+    const importanceScale: Record<string, number> = { extremely: 1.0, very: 0.67, somewhat: 0.33 };
+
+    const PITCHER_POSITIONS = ["P", "SP", "RP", "CL", "CP", "LHP", "RHP"];
+    const isPitcher = PITCHER_POSITIONS.includes(recruit.position || "");
+    const stage    = recruit.stage || 1;
+    const stars    = recruit.stars || 2;
+    const isBlueChip = !!recruit.isBlueChip;
+    const academicsPriority  = recruit.academicsPriority  || "Somewhat";
+    const reputationPriority = recruit.reputationPriority || "Somewhat";
+    const highAcademics  = academicsPriority  === "Very" || academicsPriority  === "Extremely";
+    const highReputation = reputationPriority === "Very" || reputationPriority === "Extremely";
+
+    // Proximity helpers (used by "Play the Right Way" and "Build a National Brand")
+    const recruitState = recruit.homeState || "";
+    const teamState    = team?.state || "";
+    const sameState    = !!recruitState && recruitState === teamState;
+    const sameRegion   = !sameState && (() => {
+      if (!recruitState || !teamState) return false;
+      const regions: string[][] = [
+        ["FL","GA","AL","SC","NC","TN","MS","LA"],
+        ["TX","AZ","NM","OK"],
+        ["OH","IN","IL","MI","WI","MN","IA","MO","NE","KS"],
+        ["NY","PA","NJ","MA","CT","MD","VA"],
+        ["CA","WA","OR","CO","UT","NV"],
+      ];
+      const rr = regions.find(r => r.includes(recruitState));
+      const tr = regions.find(r => r.includes(teamState));
+      return !!(rr && tr && rr === tr);
+    })();
+
+    const isEmail  = actionType === "email";
+    const isPhone  = actionType === "phone";
+    const isEmailPhone  = isEmail || isPhone;
+    const isVisit  = actionType === "visit" || actionType === "campus_visit";
+    const isHCVisit = actionType === "head_coach_visit" || actionType === "hc_visit";
+    const isOffer  = actionType === "offer";
+
+    let total = 0;
+
+    for (const { statement, importance } of philosophy) {
+      const scale = importanceScale[importance] ?? 0.33;
+      let base = 0;
+
+      switch (statement) {
+        // ── Balanced philosophies ─────────────────────────────────────────────
+        case "Recruit for the Long Term":
+          // Early-pipeline email/phone (stages 1-3) get a relationship-depth bonus
+          if (isEmailPhone && stage <= 3) base = 0.10;
+          break;
+        case "Build Team Chemistry":
+          // Campus visits benefit from the team-culture sell
+          if (isVisit) base = 0.12;
+          break;
+        case "Play Small Ball":
+          // Philosophy bleeds into recruiting culture — minor flat bonus on all actions
+          base = 0.04;
+          break;
+
+        // ── Pure CEO philosophies ─────────────────────────────────────────────
+        case "Win Now":
+          // Offer aggression — offers land harder
+          if (isOffer) base = 0.14;
+          break;
+        case "Elite Program Standards":
+          // High standards make campus visits more converting
+          if (isVisit) base = 0.12;
+          break;
+        case "Build a National Brand":
+          // Reduces out-of-state penalty; slight bonus even in-state
+          base = sameState ? 0.02 : 0.07;
+          break;
+
+        // ── Player's Coach philosophies ───────────────────────────────────────
+        case "Player Development First":
+          // Always active: recruits who care about development (high reputation priority)
+          // respond stronger; flat bonus for all other email/phone
+          if (isEmailPhone) base = highReputation ? 0.14 : 0.06;
+          break;
+        case "Positive Culture":
+          // Campus visits benefit most; email/phone get a smaller relationship bonus
+          if (isVisit) base = 0.12;
+          else if (isEmailPhone) base = 0.04;
+          break;
+        case "Trust the Process":
+          // Recruits already in mid-pipeline (stage 3+) are more receptive
+          if ((isEmailPhone || isOffer) && stage >= 3) base = 0.07;
+          break;
+
+        // ── Tactician philosophies ────────────────────────────────────────────
+        case "Pitching Wins Championships":
+          // HC visits with pitching recruits — elite personal sell
+          if (isHCVisit && isPitcher) base = 0.14;
+          break;
+        case "Game Management Mastery":
+          // HC visits are broadly more effective (coach's tactical reputation)
+          if (isHCVisit) base = 0.12;
+          break;
+        case "Exploit Every Matchup":
+          // Systematic approach improves email/phone pitch quality
+          if (isEmailPhone) base = 0.05;
+          break;
+
+        // ── Old School philosophies ───────────────────────────────────────────
+        case "Play the Right Way":
+          // Regional powerhouse: same-state recruits respond strongly; same-region moderately
+          if (sameState) base = 0.14;
+          else if (sameRegion) base = 0.07;
+          break;
+        case "Defense and Pitching":
+          // Phone calls with pitching recruits — old-school grind on the phone
+          if (isPhone && isPitcher) base = 0.12;
+          break;
+        case "Earn Everything":
+          // Sustained effort boosts visit effectiveness (HC and campus)
+          if (isHCVisit || isVisit) base = 0.07;
+          break;
+
+        // ── Scout Master philosophies ─────────────────────────────────────────
+        case "Scouting Advantage":
+          // Deep scouting intel improves email/phone pitch quality
+          if (isEmailPhone) base = 0.08;
+          break;
+        case "Find Hidden Gems":
+          // Sub-3★ recruits are identified and pitched more effectively
+          if (isEmailPhone && stars <= 2) base = 0.12;
+          break;
+        case "Build Through Recruiting":
+          // Volume recruiting mindset gives a minor boost to all email/phone
+          if (isEmailPhone) base = 0.05;
+          break;
+
+        // ── Academic Dean philosophies ────────────────────────────────────────
+        case "Academic Excellence":
+          // Recruits who prioritize academics respond to all actions significantly better
+          if (highAcademics) base = 0.14;
+          break;
+        case "Graduation Rate Matters":
+          // Campus visits are more effective when academics is part of the pitch
+          if (isVisit) base = 0.12;
+          break;
+        case "Character Counts":
+          // Email/phone with academics-minded recruits earns extra interest
+          if (isEmailPhone && highAcademics) base = 0.08;
+          break;
+
+        // ── Dealmaker philosophies ────────────────────────────────────────────
+        case "Land the Blue Chips":
+          // Scholarship offers to 4★+ and blue-chip recruits generate outsized interest
+          if (isOffer && (stars >= 4 || isBlueChip)) base = 0.14;
+          break;
+        case "NIL Budget Mastery":
+          // All offer actions benefit from superior NIL positioning
+          if (isOffer) base = 0.12;
+          break;
+        case "Close Every Deal":
+          // Late-stage recruits (stage 4+) respond to any action with higher intent
+          if (stage >= 4) base = 0.07;
+          break;
+      }
+
+      total += base * scale;
+    }
+
+    return total;
+  }
+
+  // Calculate coach skill bonus for recruiting action.
+  // Returns: skillBonus × archetypeBonus × positionBonus + philosophyAddon
+  // philosophyAddon is additive (not multiplicative) to prevent compounding.
+  function calculateCoachBonus(coach: any, recruit: any, actionType: string, team?: any): number {
     if (!coach) return 1.0;
     
     const isPitcher = recruit.position === "P";
@@ -2183,8 +2361,10 @@ export async function registerRoutes(
     const positionBonus = isPitcher
       ? (ARCHETYPE_PITCHER_BONUS[coach.archetype] || 1.0)
       : (ARCHETYPE_HITTER_BONUS[coach.archetype] || 1.0);
+
+    const philosophyAddon = calculatePhilosophyBonus(coach, recruit, actionType, team);
     
-    return skillBonus * archetypeBonus * positionBonus;
+    return skillBonus * archetypeBonus * positionBonus + philosophyAddon;
   }
   
   // Calculate proximity bonus based on recruit home state vs team state.
@@ -2310,7 +2490,7 @@ export async function registerRoutes(
     const baseGain = 3 + Math.floor(Math.random() * 5);
     const { bonus: priorityBonus, matchLevel } = calculatePriorityBonus(topic, recruit, team);
     const schoolBonus = calculateSchoolBonus(topic, team);
-    const coachBonus = calculateCoachBonus(coach, recruit, "email");
+    const coachBonus = calculateCoachBonus(coach, recruit, "email", team);
     const proximityBonus = topic === "proximity" ? calculateProximityBonus(recruit.homeState, team.state, team) : 1.0;
     // Cap at 4.5× to prevent a single email from being dominant
     const totalMultiplier = Math.min(4.5, priorityBonus * schoolBonus * coachBonus * proximityBonus);
@@ -2324,7 +2504,7 @@ export async function registerRoutes(
       const baseGain = 3 + Math.floor(Math.random() * 7);
       const { bonus: priorityBonus, matchLevel } = calculatePriorityBonus(topic, recruit, team);
       const schoolBonus = calculateSchoolBonus(topic, team);
-      const coachBonus = calculateCoachBonus(coach, recruit, "phone");
+      const coachBonus = calculateCoachBonus(coach, recruit, "phone", team);
       const proximityBonus = topic === "proximity" ? calculateProximityBonus(recruit.homeState, team.state, team) : 1.0;
       // Cap per-topic at 4.5× (same as email) so multi-topic calls don't stack absurdly
       const topicMultiplier = Math.min(4.5, priorityBonus * schoolBonus * coachBonus * proximityBonus);
@@ -2344,7 +2524,7 @@ export async function registerRoutes(
     const prestigeBonus   = normalizeAttrBonus(team.prestige   || 5);
     const collegeLifeBonus = normalizeAttrBonus(team.collegeLife || 5);
     const schoolAttrBonus = (facilitiesBonus + academicsBonus + prestigeBonus + collegeLifeBonus) / 4;
-    const coachBonus = calculateCoachBonus(coach, recruit, "visit");
+    const coachBonus = calculateCoachBonus(coach, recruit, "visit", team);
     const { bonus: priorityBonus } = calculatePriorityBonus("facilities", recruit, team);
     const proximityBonus = calculateProximityBonus(recruit.homeState, team.state, team);
     // Cap at 3.0× — visits already have a large base (20–35); compound extremes would eclipse everything else
@@ -2354,7 +2534,7 @@ export async function registerRoutes(
   }
   function computeHeadCoachVisitGain(recruit: any, team: any, coach: any) {
     const baseGain = 25 + Math.floor(Math.random() * 16);
-    const coachBonus = calculateCoachBonus(coach, recruit, "head_coach_visit");
+    const coachBonus = calculateCoachBonus(coach, recruit, "head_coach_visit", team);
     const levelBonus = 1.0 + ((coach?.level || 1) - 1) * 0.03;
     const { bonus: priorityBonus } = calculatePriorityBonus("prestige", recruit, team);
     const proximityBonus = calculateProximityBonus(recruit.homeState, team.state, team);
@@ -2370,7 +2550,7 @@ export async function registerRoutes(
     const baseGain = 15 + Math.floor(Math.random() * 10);
     // Normalized prestige bonus: 0.80–1.25 (was raw prestige/5 = 0.2–2.0)
     const prestigeBonus = normalizeAttrBonus(team.prestige || 5);
-    const coachBonus = calculateCoachBonus(coach, recruit, "offer");
+    const coachBonus = calculateCoachBonus(coach, recruit, "offer", team);
     const { bonus: priorityBonus } = calculatePriorityBonus("playingTime", recruit, team);
     // Cap at 3.0× — offer is primarily gated, not a primary gain engine
     const totalMultiplier = Math.min(3.0, prestigeBonus * coachBonus * priorityBonus);
@@ -18632,7 +18812,9 @@ export async function registerRoutes(
       const leagueId = req.params.id as string;
       const league = await storage.getLeague(leagueId);
       if (!league) return res.status(404).json({ message: "League not found" });
-      if (league.commissionerId !== req.session.userId) {
+      const deletingUserId = req.session.userId;
+      if (!deletingUserId || league.commissionerId !== deletingUserId) {
+        console.warn(`[delete-league] 403: commissionerId=${league.commissionerId} sessionUserId=${deletingUserId} leagueId=${leagueId}`);
         return res.status(403).json({ message: "Only the commissioner can delete a league" });
       }
       

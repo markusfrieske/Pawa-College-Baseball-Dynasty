@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import type { Coach, Team, CoachSeasonHistory } from "@shared/schema";
 import {
-  PERSONALITY_TYPES, TRAIT_BADGES, CAREER_MILESTONES, ARCHETYPE_METADATA,
+  PERSONALITY_TYPES, TRAIT_BADGES, CAREER_MILESTONES, ARCHETYPE_METADATA, PHILOSOPHY_DESCRIPTIONS,
   type TraitBadge, type CareerMilestone, type MilestoneEntry,
 } from "@shared/coachTraits";
 
@@ -176,7 +176,7 @@ function TraitBadgeChip({ badge }: { badge: TraitBadge }) {
 }
 
 // ── Philosophy priorities ─────────────────────────────────────────────────────
-function PhilosophyRow({ statement, importance }: { statement: string; importance: string }) {
+function PhilosophyRow({ statement, importance, description }: { statement: string; importance: string; description?: string }) {
   const colors: Record<string, string> = {
     extremely: "text-emerald-400 border-emerald-700/60 bg-emerald-900/20",
     very: "text-blue-300 border-blue-700/60 bg-blue-900/20",
@@ -189,9 +189,14 @@ function PhilosophyRow({ statement, importance }: { statement: string; importanc
   };
   const cls = colors[importance] ?? colors.somewhat;
   return (
-    <div className={`flex items-center justify-between px-3 py-1.5 rounded border ${cls}`}>
-      <span className="text-sm">{statement}</span>
-      <span className="text-xs font-medium ml-3 whitespace-nowrap">{labels[importance] ?? importance}</span>
+    <div className={`px-3 py-2 rounded border ${cls}`}>
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-medium">{statement}</span>
+        <span className="text-xs font-medium ml-3 whitespace-nowrap">{labels[importance] ?? importance}</span>
+      </div>
+      {description && (
+        <p className="text-xs mt-0.5 opacity-70 leading-snug">{description}</p>
+      )}
     </div>
   );
 }
@@ -540,7 +545,7 @@ function CoachHeader({
               </p>
               <div className="space-y-1.5">
                 {philosophy.map((p, i) => (
-                  <PhilosophyRow key={i} statement={p.statement} importance={p.importance} />
+                  <PhilosophyRow key={i} statement={p.statement} importance={p.importance} description={PHILOSOPHY_DESCRIPTIONS[p.statement]} />
                 ))}
               </div>
             </div>
