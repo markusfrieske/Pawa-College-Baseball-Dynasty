@@ -1600,6 +1600,42 @@ export async function registerRoutes(
         };
       }));
 
+      // Batch-fetch last season stats for transfer recruits (single query, not N queries)
+      const transferSourceIds = leagueRecruits
+        .filter(r => r.recruitType === "TRANSFER" && r.sourcePlayerId)
+        .map(r => r.sourcePlayerId as string);
+      const transferStatsMap = new Map<string, {
+        avg: number | null; obp: number | null; hr: number | null; rbi: number | null;
+        era: number | null; ip: number | null; k: number | null; whip: number | null;
+      }>();
+      if (transferSourceIds.length > 0) {
+        const rawStats = await storage.getLatestPlayerSeasonStatsByIds(league.id, transferSourceIds);
+        const latestBySrc = new Map<string, typeof rawStats[0]>();
+        for (const row of rawStats) {
+          const ex = latestBySrc.get(row.playerId);
+          if (!ex || row.season > ex.season) latestBySrc.set(row.playerId, row);
+        }
+        for (const [pid, row] of latestBySrc) {
+          const ipInnings = (row.ipOuts || 0) / 3;
+          const abTotal = row.ab + (row.bb || 0) + (row.hbp || 0);
+          transferStatsMap.set(pid, {
+            avg: row.ab > 0 ? Math.round((row.h / row.ab) * 1000) / 1000 : null,
+            obp: abTotal > 0 ? Math.round(((row.h + (row.bb || 0) + (row.hbp || 0)) / abTotal) * 1000) / 1000 : null,
+            hr: row.hr,
+            rbi: row.rbi,
+            era: ipInnings > 0 ? Math.round(((row.pEr || 0) * 9 / ipInnings) * 100) / 100 : null,
+            ip: ipInnings > 0 ? Math.round(ipInnings * 10) / 10 : null,
+            k: row.pSo,
+            whip: ipInnings > 0 ? Math.round(((row.pHits || 0) + (row.pBb || 0)) / ipInnings * 100) / 100 : null,
+          });
+        }
+      }
+      // Attach lastSeasonStats to each recruit
+      const recruitsWithStats = recruitsWithInterest.map(r => ({
+        ...r,
+        lastSeasonStats: (r as any).sourcePlayerId ? (transferStatsMap.get((r as any).sourcePlayerId) ?? null) : null,
+      }));
+
       // Current roster position counts
       const positionCounts: Record<string, number> = {};
       roster.forEach((player) => {
@@ -1667,7 +1703,7 @@ export async function registerRoutes(
       }
 
       res.json({
-        recruits: recruitsWithInterest,
+        recruits: recruitsWithStats,
         team: userTeam,
         remainingPoints: remainingRecruitingActions,
         maxPoints: maxRecruitingActions,

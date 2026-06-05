@@ -89,7 +89,7 @@ import { getAbilityByName, S_GOLD_COMMON_KEY, S_GOLD_PITCHER_KEY } from "@shared
 import { TRAJECTORY_LABELS } from "@shared/trajectory";
 import { PlayerPortrait } from "@/components/ui/player-portrait";
 import { PitchMixDial } from "@/components/ui/pitch-mix-dial";
-import { LetterGrade } from "@/components/ui/letter-grade";
+import { LetterGrade, getLetterGrade } from "@/components/ui/letter-grade";
 import { velocityToKMH } from "@/lib/playerUtils";
 
 function getInterestLabel(level: number): { label: string; color: string } {
@@ -130,6 +130,17 @@ interface RecruitWithInterest extends Recruit {
   offersOut?: number | null;
   // Fields locked until signing day reveal (last 35% of scoutingOrder)
   signingDayLockedFields?: string[] | null;
+  // Last season stats for transfer recruits (null for HS/JUCO)
+  lastSeasonStats?: {
+    avg: number | null;
+    obp: number | null;
+    hr: number | null;
+    rbi: number | null;
+    era: number | null;
+    ip: number | null;
+    k: number | null;
+    whip: number | null;
+  } | null;
 }
 
 interface AutoPilotAlertEntry {
@@ -2565,6 +2576,35 @@ function RecruitRow({
   // Blue chips always show full details; everyone else must wait for the signing-day reveal
   const isFullyRevealed = recruit.isBlueChip || !!recruit.signingDayRevealed;
 
+  // Stat/attribute preview strip computations
+  const isPitcherRecruit = ["P", "SP", "RP", "CP", "LHP", "RHP"].includes(recruit.position || "");
+  const sdAttrSet = new Set<string>(recruit.signingDayLockedFields || []);
+  const revealedAttrSet = new Set<string>(
+    isFullyRevealed
+      ? (isPitcherRecruit ? ["velocity","control","stuff","stamina"] : ["hitForAvg","power","speed","fielding"])
+      : ((recruit.interest?.revealedAttributes as string[] | undefined) || [])
+  );
+  const isAttrRevealed = (key: string) => !sdAttrSet.has(key) && revealedAttrSet.has(key);
+  const previewAttrFields = isPitcherRecruit
+    ? [
+        { label: "VEL", key: "velocity", val: recruit.velocity },
+        { label: "CTL", key: "control", val: recruit.control },
+        { label: "STF", key: "stuff", val: recruit.stuff },
+        { label: "STM", key: "stamina", val: recruit.stamina },
+      ]
+    : [
+        { label: "HIT", key: "hitForAvg", val: recruit.hitForAvg },
+        { label: "PWR", key: "power", val: recruit.power },
+        { label: "SPD", key: "speed", val: recruit.speed },
+        { label: "FLD", key: "fielding", val: recruit.fielding },
+      ];
+  const ATTR_GRADE_COLORS: Record<string, string> = {
+    s: "#fda4d5", a: "#ef4444", b: "#ef4444", c: "#f97316",
+    d: "#eab308", f: "#60a5fa", g: "#9ca3af",
+  };
+  const hasTransferStats = recruit.recruitType === "TRANSFER" && !!recruit.lastSeasonStats;
+  const showPreviewStrip = scoutPct > 0 || hasTransferStats;
+
   // Get display strings for overall and star rating based on scouting progress
   const getOverallDisplay = (): string => {
     if (isFullyRevealed) return recruit.overall.toString();
@@ -3297,6 +3337,88 @@ function RecruitRow({
           </>
         )}
       </div>
+
+      {/* Stat/Attribute preview strip — always visible once scouting starts or for transfers */}
+      {showPreviewStrip && (
+        <div className="mt-2 pt-2 border-t border-border/30 flex items-center gap-x-4 gap-y-1 flex-wrap px-1" data-testid={`stat-preview-${recruit.id}`}>
+          {/* Transfer: real last-season stats */}
+          {hasTransferStats && (() => {
+            const s = recruit.lastSeasonStats!;
+            return isPitcherRecruit ? (
+              <>
+                {s.era != null && (
+                  <div className="flex items-center gap-0.5">
+                    <span className="text-[8px] text-muted-foreground/60 font-mono">ERA</span>
+                    <span className="text-[9px] text-purple-300/90 font-mono">{s.era.toFixed(2)}</span>
+                  </div>
+                )}
+                {s.ip != null && (
+                  <div className="flex items-center gap-0.5">
+                    <span className="text-[8px] text-muted-foreground/60 font-mono">IP</span>
+                    <span className="text-[9px] text-purple-300/90 font-mono">{s.ip.toFixed(1)}</span>
+                  </div>
+                )}
+                {s.k != null && (
+                  <div className="flex items-center gap-0.5">
+                    <span className="text-[8px] text-muted-foreground/60 font-mono">K</span>
+                    <span className="text-[9px] text-purple-300/90 font-mono">{s.k}</span>
+                  </div>
+                )}
+                {s.whip != null && (
+                  <div className="flex items-center gap-0.5">
+                    <span className="text-[8px] text-muted-foreground/60 font-mono">WHIP</span>
+                    <span className="text-[9px] text-purple-300/90 font-mono">{s.whip.toFixed(2)}</span>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                {s.avg != null && (
+                  <div className="flex items-center gap-0.5">
+                    <span className="text-[8px] text-muted-foreground/60 font-mono">AVG</span>
+                    <span className="text-[9px] text-purple-300/90 font-mono">.{String(Math.round(s.avg * 1000)).padStart(3, "0")}</span>
+                  </div>
+                )}
+                {s.obp != null && (
+                  <div className="flex items-center gap-0.5">
+                    <span className="text-[8px] text-muted-foreground/60 font-mono">OBP</span>
+                    <span className="text-[9px] text-purple-300/90 font-mono">.{String(Math.round(s.obp * 1000)).padStart(3, "0")}</span>
+                  </div>
+                )}
+                {s.hr != null && (
+                  <div className="flex items-center gap-0.5">
+                    <span className="text-[8px] text-muted-foreground/60 font-mono">HR</span>
+                    <span className="text-[9px] text-purple-300/90 font-mono">{s.hr}</span>
+                  </div>
+                )}
+                {s.rbi != null && (
+                  <div className="flex items-center gap-0.5">
+                    <span className="text-[8px] text-muted-foreground/60 font-mono">RBI</span>
+                    <span className="text-[9px] text-purple-300/90 font-mono">{s.rbi}</span>
+                  </div>
+                )}
+              </>
+            );
+          })()}
+          {/* Divider between transfer stats and attribute grades */}
+          {hasTransferStats && scoutPct > 0 && (
+            <div className="w-px h-3 bg-border/40 self-center" />
+          )}
+          {/* Attribute letter grades (fog of war: "?" for un-scouted) */}
+          {scoutPct > 0 && previewAttrFields.map(({ label, key, val }) => {
+            const revealed = isAttrRevealed(key);
+            const grade = (revealed && val != null) ? getLetterGrade(val) : null;
+            return (
+              <div key={key} className="flex items-center gap-0.5">
+                <span className="text-[8px] text-muted-foreground/60 font-mono">{label}</span>
+                <span className="font-pixel text-[9px] font-bold" style={{ color: grade ? (ATTR_GRADE_COLORS[grade.tier] || "#9ca3af") : "#374151" }}>
+                  {grade ? grade.letter : "?"}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {showPhonePicker && (
         <div className="mt-3 p-3 bg-muted/30 border border-border rounded" data-testid={`pitch-picker-phone-${recruit.id}`}>
