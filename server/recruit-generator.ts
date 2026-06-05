@@ -169,26 +169,44 @@ const NIL_PREMIUM_POSITIONS = new Set(["SP", "C", "SS", "OF"]);
 // RP/CP and 1B are utility/bench positions that command below-average NIL.
 const NIL_UTILITY_POSITIONS = new Set(["RP", "CP", "1B"]);
 
+// Geographic NIL market tiers — high-supply/high-demand states command a
+// premium because scouts compete more intensely for their talent.
+// Tier A: top baseball states (1.20–1.25×)
+const NIL_GEO_TIER_A = new Set(["CA", "TX", "FL", "GA", "NC"]);
+// Tier B: strong secondary markets (1.08–1.12×)
+const NIL_GEO_TIER_B = new Set(["AZ", "LA", "SC", "TN", "VA", "AL", "MS", "OK"]);
+// Tier D: low baseball participation states (0.88–0.93×)
+const NIL_GEO_TIER_D = new Set(["AK", "ND", "SD", "MT", "WY", "VT", "ME", "NH", "RI", "WV", "ID"]);
+
+function getGeoMultiplier(homeState: string): number {
+  if (NIL_GEO_TIER_A.has(homeState)) return 1.20 + Math.random() * 0.05;
+  if (NIL_GEO_TIER_B.has(homeState)) return 1.08 + Math.random() * 0.04;
+  if (NIL_GEO_TIER_D.has(homeState)) return 0.88 + Math.random() * 0.05;
+  return 1.0;
+}
+
 function generateNilCost(
-  starRank: number,
+  displayedStar: number,
   isBlueChip: boolean,
   isGenerationalGem: boolean,
   isGenerationalBust: boolean,
   position: string = "SP",
+  homeState: string = "",
 ): number {
   if (isGenerationalBust) {
     return Math.floor(5000 + Math.random() * 25000);
   }
-  // Overlapping ranges so adjacent-tier recruits share a NIL band,
-  // preventing the dollar figure from being a direct star-rating decoder.
+  // Tighter ranges than before — adjacent tiers overlap by ~10% of range
+  // so NIL is a meaningful signal of the recruit's displayed star level
+  // without being a perfect decoder.
   const ranges: [number, number][] = [
-    [5000,   40000],   // 1★  ($5k–$40k)
-    [20000,  120000],  // 2★  ($20k–$120k, overlaps 1★ top)
-    [80000,  300000],  // 3★  ($80k–$300k, overlaps 2★ top)
-    [200000, 600000],  // 4★  ($200k–$600k, overlaps 3★ top)
-    [450000, 1000000], // 5★  ($450k–$1M, overlaps 4★ top)
+    [5000,   35000],   // 1★  ($5k–$35k)
+    [25000,  100000],  // 2★  ($25k–$100k, ~$10k overlap with 1★ top)
+    [75000,  250000],  // 3★  ($75k–$250k, ~$25k overlap with 2★ top)
+    [200000, 550000],  // 4★  ($200k–$550k, ~$50k overlap with 3★ top)
+    [400000, 900000],  // 5★  ($400k–$900k, ~$150k overlap with 4★ top)
   ];
-  const idx = Math.min(4, Math.max(0, starRank - 1));
+  const idx = Math.min(4, Math.max(0, displayedStar - 1));
   const [min, max] = ranges[idx];
   const baseCost = Math.floor(min + Math.random() * (max - min));
 
@@ -204,7 +222,9 @@ function generateNilCost(
   } else {
     posMultiplier = 1.0;
   }
-  const adjusted = Math.floor(baseCost * posMultiplier);
+
+  const geoMultiplier = getGeoMultiplier(homeState);
+  const adjusted = Math.floor(baseCost * posMultiplier * geoMultiplier);
 
   if (isGenerationalGem) return Math.floor(adjusted * (3 + Math.random() * 2));
   if (isBlueChip) return Math.floor(adjusted * (1.5 + Math.random() * 1.0));
@@ -1161,8 +1181,41 @@ export function generateRecruitClass(
       playerArchetype,
       workEthicScore,
       coachability,
-      nilCost: generateNilCost(starRank, isBlueChip, isGenerationalGem, isGenerationalBust, position),
+      nilCost: generateNilCost(
+        (isBlueChip || isGem || isBust || isGenerationalGem || isGenerationalBust) ? starRating : computedStarRating,
+        isBlueChip,
+        isGenerationalGem,
+        isGenerationalBust,
+        position,
+        recruitState.state,
+      ),
     });
+  }
+
+  // Post-processing: apply position-scarcity NIL multiplier.
+  // Group recruits by position, sort best-first by OVR, then give the
+  // top-ranked players at each spot a market premium and the deep-bench
+  // players a slight discount — mirroring how real NIL markets price scarcity.
+  {
+    const byPosition = new Map<string, typeof out>();
+    for (const r of out) {
+      const pos = r.position ?? "SP";
+      if (!byPosition.has(pos)) byPosition.set(pos, []);
+      byPosition.get(pos)!.push(r);
+    }
+    for (const group of byPosition.values()) {
+      group.sort((a, b) => (b.overall ?? 0) - (a.overall ?? 0));
+      group.forEach((r, idx) => {
+        if (r.isGenerationalBust) return; // override is already set
+        const rank = idx + 1;
+        let mult: number;
+        if (rank <= 2)       mult = 1.35 + Math.random() * 0.10; // #1–#2: 1.35–1.45×
+        else if (rank <= 5)  mult = 1.10 + Math.random() * 0.10; // #3–#5: 1.10–1.20×
+        else if (rank <= 10) mult = 1.0;                          // #6–#10: unchanged
+        else                 mult = 0.85 + Math.random() * 0.10; // #11+:  0.85–0.95×
+        r.nilCost = Math.floor((r.nilCost ?? 0) * mult);
+      });
+    }
   }
 
   const gemCount = out.filter(r => r.isGenerationalGem).length;
