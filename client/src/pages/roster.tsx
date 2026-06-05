@@ -29,6 +29,7 @@ import {
   GripVertical,
   ArrowUp,
   ArrowDown,
+  ArrowDownRight,
   ArrowRight,
   ArrowUpRight,
   Wand2,
@@ -48,7 +49,7 @@ import { computePitcherAvailability, ALL_GAME_DAYS } from "@shared/pitcherRest";
 import type { GameDay } from "@shared/pitcherRest";
 
 const TRAJECTORY_ICONS: Record<number, React.ReactNode> = {
-  1: <ArrowDown className="w-2.5 h-2.5 inline-block" />,
+  1: <ArrowDownRight className="w-2.5 h-2.5 inline-block" />,
   2: <ArrowRight className="w-2.5 h-2.5 inline-block" />,
   3: <ArrowUpRight className="w-2.5 h-2.5 inline-block" />,
   4: <ArrowUp className="w-2.5 h-2.5 inline-block" />,
@@ -671,8 +672,8 @@ function PositionSection({ title, players, onSelectPlayer, teamPrimaryColor, pro
                       <span className={`font-pixel text-[7px] px-1 py-0.5 rounded border ${player.throwHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`} data-testid={`badge-throw-mobile-${player.id}`}>T:{player.throwHand}</span>
                       {(player as any).trajectory != null && (
                         <span className="inline-flex items-center gap-0.5 font-pixel text-[7px] px-1 py-0.5 rounded border border-gold/30 text-gold/70 bg-gold/5" data-testid={`badge-traj-mobile-${player.id}`}>
-                          {TRAJECTORY_ICONS[(player as any).trajectory]}
                           {TRAJECTORY_LABELS[(player as any).trajectory] ?? "LD"}
+                          {TRAJECTORY_ICONS[(player as any).trajectory]}
                         </span>
                       )}
                     </>
@@ -788,8 +789,8 @@ function PositionSection({ title, players, onSelectPlayer, teamPrimaryColor, pro
                       <span className={`font-pixel text-[7px] px-1.5 py-0.5 rounded border ${player.batHand === "L" ? "bg-blue-500/15 text-blue-400 border-blue-500/40" : player.batHand === "S" ? "bg-purple-500/15 text-purple-400 border-purple-500/40" : "bg-muted/40 text-muted-foreground border-border/60"}`} data-testid={`badge-hand-desktop-${player.id}`}>{player.batHand}/{player.throwHand}</span>
                       {(player as any).trajectory != null && (
                         <span className="inline-flex items-center gap-0.5 font-pixel text-[7px] px-1.5 py-0.5 rounded border border-gold/30 text-gold/70 bg-gold/5" data-testid={`badge-traj-desktop-${player.id}`}>
-                          {TRAJECTORY_ICONS[(player as any).trajectory]}
                           {TRAJECTORY_LABELS[(player as any).trajectory] ?? "LD"}
+                          {TRAJECTORY_ICONS[(player as any).trajectory]}
                         </span>
                       )}
                     </div>
