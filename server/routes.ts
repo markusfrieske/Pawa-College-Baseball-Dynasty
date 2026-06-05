@@ -4059,6 +4059,11 @@ export async function registerRoutes(
       const isSophomore = player.eligibility === "SO";
       let retentionChance = isSophomore ? 0.40 : 0.30; // base
 
+      // Captain retention bonus (+15pp — leadership means more ties to the program)
+      if (player.captainRole) {
+        retentionChance += 0.15;
+      }
+
       // NIL bonus (up to +25%)
       if (offer > 0) {
         const nilFactor = Math.min(offer / 200000, 1);
@@ -4158,6 +4163,63 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Failed to retain transfer player:", error);
       res.status(500).json({ message: "Failed to retain player" });
+    }
+  });
+
+  // ─── Set or clear a team captain ─────────────────────────────────────────────
+  // POST /api/leagues/:id/teams/:teamId/captain
+  // Body: { playerId: string, action: 'set' | 'clear' }
+  // Validates: 1 pitcher_captain + 1 fielder_captain max per team per season.
+  app.post("/api/leagues/:id/teams/:teamId/captain", requireAuth, async (req, res) => {
+    try {
+      const { id: leagueId, teamId } = req.params;
+      const { playerId, action } = req.body as { playerId: string; action: "set" | "clear" };
+
+      if (!playerId || !["set", "clear"].includes(action)) {
+        return res.status(400).json({ message: "playerId and action ('set'|'clear') are required" });
+      }
+
+      const league = await storage.getLeague(leagueId);
+      if (!league) return res.status(404).json({ message: "League not found" });
+
+      const coaches = await storage.getCoachesByLeague(leagueId);
+      const userCoach = coaches.find(c => c.userId === req.session.userId);
+      const isCommissioner = league.commissionerId === req.session.userId ||
+        (league.coCommissionerIds || []).includes(req.session.userId!);
+      if (!isCommissioner && userCoach?.teamId !== teamId) {
+        return res.status(403).json({ message: "Not authorized for this team" });
+      }
+
+      const player = await storage.getPlayer(playerId);
+      if (!player || player.teamId !== teamId) {
+        return res.status(404).json({ message: "Player not found on this team" });
+      }
+
+      if (action === "clear") {
+        await storage.updatePlayer(playerId, { captainRole: null, captainSeason: null });
+        return res.json({ success: true, cleared: true });
+      }
+
+      // Determine slot: pitchers → pitcher_captain, fielders → fielder_captain
+      const pitcherPositions = new Set(["P", "SP", "RP", "CP"]);
+      const role = pitcherPositions.has(player.position) ? "pitcher_captain" : "fielder_captain";
+
+      // Find existing captain in this slot and clear them first
+      const roster = await storage.getPlayersByTeam(teamId);
+      const existingCaptain = roster.find(p => p.captainRole === role && p.id !== playerId);
+      if (existingCaptain) {
+        await storage.updatePlayer(existingCaptain.id, { captainRole: null, captainSeason: null });
+      }
+
+      await storage.updatePlayer(playerId, {
+        captainRole: role,
+        captainSeason: league.currentSeason,
+      });
+
+      return res.json({ success: true, captainRole: role, captainSeason: league.currentSeason });
+    } catch (error) {
+      console.error("Failed to set captain:", error);
+      res.status(500).json({ message: "Failed to set captain" });
     }
   });
 
@@ -12194,7 +12256,10 @@ export async function registerRoutes(
       let isMet = false;
       const target = promise.targetValue;
 
-      if (promise.promiseCategory === "player") {
+      if (promise.promiseType === "leadershipRole") {
+        // Met if the player is currently designated as a captain in the completed season
+        isMet = !!(player.captainRole && player.captainSeason === completedSeason);
+      } else if (promise.promiseCategory === "player") {
         // Player promises are based on simulated stats - since we don't track per-game stats yet,
         // we evaluate based on player overall and promise difficulty
         const difficulty = target; // "easy", "medium", "hard"
@@ -12710,7 +12775,8 @@ export async function registerRoutes(
         !p.inTransferPortal &&
         !p.pendingDeparture &&
         !draftProjections.has(p.id) &&
-        (p.overall || 300) < 350
+        (p.overall || 300) < 350 &&
+        !p.captainRole // captains are protected from random portal entry
       );
       const portalCount = Math.max(0, Math.floor(nonDeparting.length * (0.1 + Math.random() * 0.1) * academicsRetentionFactor));
       const shuffled = nonDeparting.sort(() => Math.random() - 0.5);
@@ -12766,7 +12832,9 @@ export async function registerRoutes(
           tm.position === player.position &&
           (tm.overall || 0) > (player.overall || 0)
         );
-        if (hasHigherRatedTeammate && Math.random() < 0.35) {
+        // Captains have ~40% lower competition-based portal chance (35% → ~21%)
+        const competitionThreshold = player.captainRole ? 0.21 : 0.35;
+        if (hasHigherRatedTeammate && Math.random() < competitionThreshold) {
           await storage.updatePlayer(player.id, {
             pendingDeparture: true,
             departureType: "transfer",
@@ -14743,6 +14811,26 @@ export async function registerRoutes(
           });
         } catch (e) { /* non-fatal */ }
       }
+    }
+
+    // Reset captain designations for the new season; CPU teams auto-assign to top players
+    try {
+      const leaguePlayers = await storage.getPlayersByLeague(leagueId);
+      await Promise.all(leaguePlayers.map(p =>
+        (p.captainRole ? storage.updatePlayer(p.id, { captainRole: null, captainSeason: null }) : Promise.resolve())
+      ));
+      const pitcherPositions = new Set(["P", "SP", "RP", "CP"]);
+      for (const team of teams) {
+        if (!team.isCpu) continue;
+        const roster = await storage.getPlayersByTeam(team.id);
+        const pitchers = roster.filter(p => pitcherPositions.has(p.position)).sort((a, b) => (b.overall || 0) - (a.overall || 0));
+        const fielders = roster.filter(p => !pitcherPositions.has(p.position)).sort((a, b) => (b.overall || 0) - (a.overall || 0));
+        if (pitchers[0]) await storage.updatePlayer(pitchers[0].id, { captainRole: "pitcher_captain", captainSeason: completedSeason + 1 });
+        if (fielders[0]) await storage.updatePlayer(fielders[0].id, { captainRole: "fielder_captain", captainSeason: completedSeason + 1 });
+      }
+      console.log(`[captain-reset] Season ${completedSeason + 1}: captains cleared for ${leaguePlayers.length} players; CPU teams auto-assigned`);
+    } catch (captainErr) {
+      console.error("[captain-reset] Error resetting captains:", captainErr);
     }
 
     // Compute NIL budgets for the new season — failure is intentionally non-silent

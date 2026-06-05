@@ -974,7 +974,12 @@ export default function DeparturesPage() {
                     </div>
                   ))}
                 </div>
-                {selectedPlayerPromise && (
+                {selectedPlayerPromise === "leadershipRole" && (
+                  <div className="mt-1 px-2 py-1.5 bg-gold/10 border border-gold/30 rounded text-[10px] text-gold/90">
+                    You commit to naming this player as team captain on your roster. The promise is kept if they hold a captain designation when the season ends. Designate captains from the Roster page.
+                  </div>
+                )}
+                {selectedPlayerPromise && selectedPlayerPromise !== "leadershipRole" && (
                   <div className="mt-2">
                     <p className="font-pixel text-[10px] text-muted-foreground uppercase mb-1">Ambition Level</p>
                     <div className="flex gap-2">

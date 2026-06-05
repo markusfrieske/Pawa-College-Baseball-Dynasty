@@ -369,6 +369,8 @@ export const players = pgTable("players", {
   lastPitchedOuts: integer("last_pitched_outs").notNull().default(0),
   lastPitchedWeek: integer("last_pitched_week"),
   lastPitchedDay: text("last_pitched_day"),
+  captainRole: text("captain_role"), // 'pitcher_captain' | 'fielder_captain' | null
+  captainSeason: integer("captain_season"), // season in which captain was designated
 }, (t) => [
   index("idx_players_team_id").on(t.teamId),
 ]);

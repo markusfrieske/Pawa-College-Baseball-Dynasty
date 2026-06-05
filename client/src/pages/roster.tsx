@@ -36,6 +36,8 @@ import {
   FolderDown,
   TrendingUp,
   Zap,
+  Shield,
+  ShieldOff,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Player, Team, Coach, League } from "@shared/schema";
@@ -231,6 +233,20 @@ export default function RosterPage() {
     },
   });
 
+  const setCaptainMutation = useMutation({
+    mutationFn: async ({ playerId, action }: { playerId: string; action: "set" | "clear" }) => {
+      const teamId = data?.team?.id;
+      if (!teamId) throw new Error("No team");
+      return apiRequest("POST", `/api/leagues/${id}/teams/${teamId}/captain`, { playerId, action });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [rosterUrl] });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update captain.", variant: "destructive" });
+    },
+  });
+
   const declareDraftMutation = useMutation({
     mutationFn: async (playerId: string) => {
       const response = await apiRequest("POST", `/api/leagues/${id}/players/${playerId}/declare-draft`, {});
@@ -404,6 +420,52 @@ export default function RosterPage() {
           </div>
         </RetroCard>
 
+        {/* Captain Slots — only for own team, list view */}
+        {!viewingTeamId && viewMode === "list" && data?.players && (() => {
+          const pitcherCaptain = data.players.find(p => p.captainRole === "pitcher_captain");
+          const fielderCaptain = data.players.find(p => p.captainRole === "fielder_captain");
+          return (
+            <RetroCard className="mb-4">
+              <div className="px-4 py-2 bg-card/80 border-b border-border flex items-center gap-2">
+                <Shield className="w-3.5 h-3.5 text-gold" />
+                <h3 className="font-pixel text-gold text-xs uppercase tracking-wider">Team Captains</h3>
+                <span className="text-[10px] text-muted-foreground ml-1">(+15% portal retention · leadership role promise)</span>
+              </div>
+              <div className="grid grid-cols-2 gap-px bg-border/30">
+                {[
+                  { label: "Pitcher Captain", captain: pitcherCaptain },
+                  { label: "Fielder Captain", captain: fielderCaptain },
+                ].map(({ label, captain }) => (
+                  <div key={label} className="p-3 bg-card/60 flex items-center gap-3">
+                    <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+                      <span className="font-pixel text-[8px] text-muted-foreground uppercase">{label}</span>
+                      {captain ? (
+                        <span className="text-sm font-medium truncate">{captain.firstName} {captain.lastName} <span className="text-muted-foreground text-xs">({captain.position})</span></span>
+                      ) : (
+                        <span className="text-sm text-muted-foreground italic">Open — select from roster below</span>
+                      )}
+                    </div>
+                    {captain && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={() => setCaptainMutation.mutate({ playerId: captain.id, action: "clear" })}
+                            className="p-1 rounded text-muted-foreground hover:text-red-400 transition-colors"
+                            data-testid={`button-clear-captain-${captain.id}`}
+                          >
+                            <ShieldOff className="w-3.5 h-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>Remove captain</TooltipContent>
+                      </Tooltip>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </RetroCard>
+          );
+        })()}
+
         {viewMode === "development" && canViewDevelopment ? (
           <DevelopmentTab
             players={filteredPlayers}
@@ -420,6 +482,8 @@ export default function RosterPage() {
               onSelectPlayer={setSelectedPlayer}
               teamPrimaryColor={data?.team?.primaryColor}
               progressionEnabled={leagueData?.progressionEnabled}
+              isOwnTeam={!viewingTeamId}
+              onSetCaptain={(playerId) => setCaptainMutation.mutate({ playerId, action: "set" })}
             />
             <PositionSection 
               title="Catchers" 
@@ -427,6 +491,8 @@ export default function RosterPage() {
               onSelectPlayer={setSelectedPlayer}
               teamPrimaryColor={data?.team?.primaryColor}
               progressionEnabled={leagueData?.progressionEnabled}
+              isOwnTeam={!viewingTeamId}
+              onSetCaptain={(playerId) => setCaptainMutation.mutate({ playerId, action: "set" })}
             />
             <PositionSection 
               title="Infielders" 
@@ -434,6 +500,8 @@ export default function RosterPage() {
               onSelectPlayer={setSelectedPlayer}
               teamPrimaryColor={data?.team?.primaryColor}
               progressionEnabled={leagueData?.progressionEnabled}
+              isOwnTeam={!viewingTeamId}
+              onSetCaptain={(playerId) => setCaptainMutation.mutate({ playerId, action: "set" })}
             />
             <PositionSection 
               title="Outfielders" 
@@ -441,6 +509,8 @@ export default function RosterPage() {
               onSelectPlayer={setSelectedPlayer}
               teamPrimaryColor={data?.team?.primaryColor}
               progressionEnabled={leagueData?.progressionEnabled}
+              isOwnTeam={!viewingTeamId}
+              onSetCaptain={(playerId) => setCaptainMutation.mutate({ playerId, action: "set" })}
             />
           </>
         ) : (
@@ -450,6 +520,8 @@ export default function RosterPage() {
             onSelectPlayer={setSelectedPlayer}
             teamPrimaryColor={data?.team?.primaryColor}
             progressionEnabled={leagueData?.progressionEnabled}
+            isOwnTeam={!viewingTeamId}
+            onSetCaptain={(playerId) => setCaptainMutation.mutate({ playerId, action: "set" })}
           />
         )}
 
@@ -541,9 +613,11 @@ interface PositionSectionProps {
   onSelectPlayer: (player: Player) => void;
   teamPrimaryColor?: string;
   progressionEnabled?: boolean;
+  isOwnTeam?: boolean;
+  onSetCaptain?: (playerId: string) => void;
 }
 
-function PositionSection({ title, players, onSelectPlayer, teamPrimaryColor, progressionEnabled }: PositionSectionProps) {
+function PositionSection({ title, players, onSelectPlayer, teamPrimaryColor, progressionEnabled, isOwnTeam, onSetCaptain }: PositionSectionProps) {
   if (players.length === 0) return null;
 
   return (
@@ -581,6 +655,11 @@ function PositionSection({ title, players, onSelectPlayer, teamPrimaryColor, pro
                 <div className="flex items-center gap-1.5 mb-0.5">
                   <span className="font-medium text-xs truncate min-w-0">{player.firstName} {player.lastName}</span>
                   <PositionBadge position={player.position} size="sm" />
+                  {player.captainRole && (
+                    <span className="inline-flex items-center gap-0.5 font-pixel text-[7px] px-1 py-0.5 rounded border border-gold/50 text-gold bg-gold/10" data-testid={`badge-captain-mobile-${player.id}`}>
+                      <Shield className="w-2 h-2" />C
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center flex-wrap gap-1 text-xs text-muted-foreground">
                   <span className="text-[10px]">{player.eligibility}</span>
@@ -645,7 +724,7 @@ function PositionSection({ title, players, onSelectPlayer, teamPrimaryColor, pro
             {players.map((player) => (
               <tr 
                 key={player.id} 
-                className="border-b border-border/50 hover:bg-card/50 transition-colors"
+                className="group border-b border-border/50 hover:bg-card/50 transition-colors"
                 style={player.starRating >= 5 ? { borderLeft: "3px solid rgba(196,163,90,0.7)", background: "rgba(196,163,90,0.04)" } : undefined}
                 data-testid={`row-player-desktop-${player.id}`}
               >
@@ -653,26 +732,47 @@ function PositionSection({ title, players, onSelectPlayer, teamPrimaryColor, pro
                   {player.jerseyNumber}
                 </td>
                 <td className="py-3 px-2">
-                  <button
-                    onClick={() => onSelectPlayer(player)}
-                    className="font-medium text-left hover:text-gold transition-colors cursor-pointer flex items-center gap-2"
-                    data-testid={`link-player-${player.id}`}
-                  >
-                    <PlayerPortrait
-                      skinTone={player.skinTone || "light"}
-                      hairColor={player.hairColor || "brown"}
-                      hairStyle={player.hairStyle || "short"}
-                      facialHair={player.facialHair || "none"}
-                      eyeStyle={player.eyeStyle || undefined}
-                      eyebrowStyle={player.eyebrowStyle || undefined}
-                      mouthStyle={player.mouthStyle || undefined}
-                      eyeBlack={player.eyeBlack ?? undefined}
-                      playerId={player.id}
-                      className="w-8 h-8 flex-shrink-0"
-                      jerseyColor={teamPrimaryColor}
-                    />
-                    {player.firstName} {player.lastName}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => onSelectPlayer(player)}
+                      className="font-medium text-left hover:text-gold transition-colors cursor-pointer flex items-center gap-2"
+                      data-testid={`link-player-${player.id}`}
+                    >
+                      <PlayerPortrait
+                        skinTone={player.skinTone || "light"}
+                        hairColor={player.hairColor || "brown"}
+                        hairStyle={player.hairStyle || "short"}
+                        facialHair={player.facialHair || "none"}
+                        eyeStyle={player.eyeStyle || undefined}
+                        eyebrowStyle={player.eyebrowStyle || undefined}
+                        mouthStyle={player.mouthStyle || undefined}
+                        eyeBlack={player.eyeBlack ?? undefined}
+                        playerId={player.id}
+                        className="w-8 h-8 flex-shrink-0"
+                        jerseyColor={teamPrimaryColor}
+                      />
+                      {player.firstName} {player.lastName}
+                    </button>
+                    {player.captainRole && (
+                      <span className="inline-flex items-center gap-0.5 font-pixel text-[7px] px-1.5 py-0.5 rounded border border-gold/50 text-gold bg-gold/10 shrink-0" data-testid={`badge-captain-desktop-${player.id}`}>
+                        <Shield className="w-2.5 h-2.5" />C
+                      </span>
+                    )}
+                    {isOwnTeam && onSetCaptain && !player.captainRole && (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); onSetCaptain(player.id); }}
+                            className="opacity-0 group-hover:opacity-100 p-0.5 rounded text-muted-foreground/50 hover:text-gold transition-all"
+                            data-testid={`button-set-captain-${player.id}`}
+                          >
+                            <Shield className="w-3 h-3" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>Name as captain</TooltipContent>
+                      </Tooltip>
+                    )}
+                  </div>
                 </td>
                 <td className="text-center py-3 px-2">
                   <PositionBadge position={player.position} size="sm" />
