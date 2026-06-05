@@ -13,5 +13,5 @@
  * | 19+   | 80   |
  */
 export function getRecruitPoolSize(teamCount: number): number {
-  return Math.min(teamCount * 4 + 5, 80);
+  return Math.min(teamCount * 5 + 10, 80);
 }

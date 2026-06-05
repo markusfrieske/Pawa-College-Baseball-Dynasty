@@ -10170,11 +10170,12 @@ export async function registerRoutes(
       for (const c of coaches) {
         if (!c.teamId) continue;
         const gameStrategy = c.gamePhilosophyStrategy ?? "balanced";
-        const hasCoachSmallBall = Array.isArray(c.coachingPhilosophy) &&
-          (c.coachingPhilosophy as { statement: string; importance: string }[]).some(
-            p => p.statement === "Play Small Ball" && (p.importance === "extremely" || p.importance === "very")
-          );
-        teamPhilosophyMap.set(c.teamId, hasCoachSmallBall ? `small_ball_coaching:${gameStrategy}` : gameStrategy);
+        const smallBallEntry = Array.isArray(c.coachingPhilosophy)
+          ? (c.coachingPhilosophy as { statement: string; importance: string }[]).find(p => p.statement === "Play Small Ball")
+          : undefined;
+        const importanceToScale: Record<string, number> = { extremely: 1.0, very: 0.67, somewhat: 0.33 };
+        const sbScale = smallBallEntry ? (importanceToScale[smallBallEntry.importance] ?? 0) : 0;
+        teamPhilosophyMap.set(c.teamId, sbScale > 0 ? `small_ball_coaching:${sbScale}:${gameStrategy}` : gameStrategy);
       }
 
       const simSummary: {
@@ -10727,11 +10728,12 @@ export async function registerRoutes(
         for (const c of fsPhilosophyCoaches) {
           if (!c.teamId) continue;
           const gameStrategy = (c as any).gamePhilosophyStrategy ?? "balanced";
-          const hasCoachSmallBall = Array.isArray(c.coachingPhilosophy) &&
-            (c.coachingPhilosophy as { statement: string; importance: string }[]).some(
-              p => p.statement === "Play Small Ball" && (p.importance === "extremely" || p.importance === "very")
-            );
-          fsPhilosophyMap.set(c.teamId, hasCoachSmallBall ? `small_ball_coaching:${gameStrategy}` : gameStrategy);
+            const smallBallEntryFs = Array.isArray(c.coachingPhilosophy)
+            ? (c.coachingPhilosophy as { statement: string; importance: string }[]).find(p => p.statement === "Play Small Ball")
+            : undefined;
+          const importanceToScaleFs: Record<string, number> = { extremely: 1.0, very: 0.67, somewhat: 0.33 };
+          const sbScaleFs = smallBallEntryFs ? (importanceToScaleFs[smallBallEntryFs.importance] ?? 0) : 0;
+          fsPhilosophyMap.set(c.teamId, sbScaleFs > 0 ? `small_ball_coaching:${sbScaleFs}:${gameStrategy}` : gameStrategy);
         }
       }
 
@@ -11270,25 +11272,37 @@ export async function registerRoutes(
     // Philosophy strategy: modifies offDiff multiplier and expected run baseline
     // aggressive → more talent-based variance (±15%); conservative → tighter games (±5%)
     // small_ball → lower scoring (-0.8); power_ball → higher scoring (+0.8)
-    // "small_ball_coaching:{strategy}" prefix = coaching philosophy "Play Small Ball" is active
-    const parseGamePhilosophy = (p?: string): { strategy: string; coachSmallBall: boolean } => {
-      if (!p) return { strategy: "balanced", coachSmallBall: false };
-      if (p.startsWith("small_ball_coaching:")) return { strategy: p.slice("small_ball_coaching:".length), coachSmallBall: true };
-      return { strategy: p, coachSmallBall: false };
+    // "small_ball_coaching:{scale}:{strategy}" prefix = coaching philosophy "Play Small Ball" active.
+    // scale is 1.0 (extremely), 0.67 (very), or 0.33 (somewhat) — importance-scaled magnitude.
+    const parseGamePhilosophy = (p?: string): { strategy: string; coachSmallBallScale: number } => {
+      if (!p) return { strategy: "balanced", coachSmallBallScale: 0 };
+      if (p.startsWith("small_ball_coaching:")) {
+        const rest = p.slice("small_ball_coaching:".length);
+        const colonIdx = rest.indexOf(":");
+        if (colonIdx !== -1) {
+          const scale = parseFloat(rest.slice(0, colonIdx)) || 0;
+          const strategy = rest.slice(colonIdx + 1);
+          return { strategy, coachSmallBallScale: scale };
+        }
+        // Legacy format (no scale): treat as full-scale
+        return { strategy: rest, coachSmallBallScale: 1.0 };
+      }
+      return { strategy: p, coachSmallBallScale: 0 };
     };
-    const { strategy: homeStrategy, coachSmallBall: homeCoachSmallBall } = parseGamePhilosophy(homePhilosophy);
-    const { strategy: awayStrategy, coachSmallBall: awayCoachSmallBall } = parseGamePhilosophy(awayPhilosophy);
+    const { strategy: homeStrategy, coachSmallBallScale: homeSmallBallScale } = parseGamePhilosophy(homePhilosophy);
+    const { strategy: awayStrategy, coachSmallBallScale: awaySmallBallScale } = parseGamePhilosophy(awayPhilosophy);
     const philosophyDiffMult = (() => {
       if (homeStrategy === "aggressive" || awayStrategy === "aggressive") return 1.15;
       if (homeStrategy === "conservative" || awayStrategy === "conservative") return 0.85;
       return 1.0;
     })();
-    // "Play Small Ball" coaching philosophy: +0.35 run execution bonus — small-ball execution
-    // improves win% vs similarly-rated opponents through manufacturing runs and tight defense.
+    // "Play Small Ball" coaching philosophy: up to +0.35 run execution bonus, scaled by importance.
+    // extremely=+0.35, very=+0.23, somewhat=+0.12 — small-ball execution improves win% vs
+    // similarly-rated opponents through manufacturing runs and tight defense.
     const homeRunAdj = (homeStrategy === "power_ball" ? 0.8 : homeStrategy === "small_ball" ? -0.8 : 0)
-      + (homeCoachSmallBall ? 0.35 : 0);
+      + homeSmallBallScale * 0.35;
     const awayRunAdj = (awayStrategy === "power_ball" ? 0.8 : awayStrategy === "small_ball" ? -0.8 : 0)
-      + (awayCoachSmallBall ? 0.35 : 0);
+      + awaySmallBallScale * 0.35;
     const adjOffDiff = offDiff * philosophyDiffMult;
 
     const homeAdv = 0.25;
