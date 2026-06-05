@@ -6111,11 +6111,13 @@ export async function registerRoutes(
       const leagueGames = await storage.getGamesByLeague(league.id);
       const leagueTeams = await storage.getTeamsByLeague(league.id);
 
-      const gamesWithTeams = leagueGames.map((game) => ({
-        ...game,
-        homeTeam: leagueTeams.find((t) => t.id === game.homeTeamId),
-        awayTeam: leagueTeams.find((t) => t.id === game.awayTeamId),
-      }));
+      const gamesWithTeams = leagueGames
+        .map((game) => ({
+          ...game,
+          homeTeam: leagueTeams.find((t) => t.id === game.homeTeamId),
+          awayTeam: leagueTeams.find((t) => t.id === game.awayTeamId),
+        }))
+        .filter((g) => g.homeTeam != null && g.awayTeam != null);
 
       const coaches = await storage.getCoachesByLeague(league.id);
       const coach = coaches.find(c => c.userId === req.session.userId);

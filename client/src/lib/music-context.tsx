@@ -545,6 +545,7 @@ export function resolveTrackForRoute(
     return "game_start";
   }
   if (pathname.includes("/play-by-play")) return "interview";
+  if (pathname.includes("/report-game")) return "league_management";
   if (pathname.includes("/recruiting") || pathname.includes("/recruit/")) return "recruiting";
   if (pathname.includes("/commissioner") || pathname.includes("/edit-rosters") || pathname.includes("/edit-recruits")) {
     return "graduation";

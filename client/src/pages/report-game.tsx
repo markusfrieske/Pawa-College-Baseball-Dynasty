@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Component, type ReactNode, type ErrorInfo } from "react";
 import { parseErrorMessage } from "@/lib/errorUtils";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useLocation, useSearch, Link } from "wouter";
@@ -13,6 +13,37 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Game, Team, Player } from "@shared/schema";
+
+class ReportGameErrorBoundary extends Component<{ children: ReactNode; leagueId: string | undefined }, { hasError: boolean; message: string }> {
+  constructor(props: { children: ReactNode; leagueId: string | undefined }) {
+    super(props);
+    this.state = { hasError: false, message: "" };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, message: error?.message ?? "Unknown error" };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error("[ReportGamePage] render error:", error, info);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4 p-6">
+          <AlertTriangle className="w-10 h-10 text-red-400" />
+          <p className="font-pixel text-gold text-sm">Report Game Failed to Load</p>
+          <p className="text-muted-foreground text-xs text-center max-w-sm">{this.state.message}</p>
+          <Link href={this.props.leagueId ? `/league/${this.props.leagueId}/schedule` : "/"} className="text-gold hover:underline text-sm flex items-center gap-1">
+            <ArrowLeft className="w-4 h-4" /> {this.props.leagueId ? "Back to Schedule" : "Go Home"}
+          </Link>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 interface GameWithTeams extends Game {
   homeTeam: Team;
@@ -88,7 +119,7 @@ function liveEra(er: number, ip: string): string {
 
 const STEPS = ["Score & Linescore", "Home Batting", "Away Batting", "Pitching", "Review & Submit"];
 
-export default function ReportGamePage() {
+function ReportGameInner() {
   const { id, gameId } = useParams<{ id: string; gameId: string }>();
   const [, setLocation] = useLocation();
   const search = useSearch();
@@ -223,6 +254,15 @@ export default function ReportGamePage() {
   );
 
   const { game, homeTeam, awayTeam } = gameData;
+
+  if (!game || !homeTeam || !awayTeam) return (
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
+      <p className="text-muted-foreground">Game data is incomplete or missing.</p>
+      <Link href={`/league/${id}/schedule`} className="text-gold hover:underline text-sm flex items-center gap-1">
+        <ArrowLeft className="w-4 h-4" /> Back to Schedule
+      </Link>
+    </div>
+  );
 
   const homeScore = homeInnings.reduce((a, b) => a + b, 0);
   const awayScore = awayInnings.reduce((a, b) => a + b, 0);
@@ -526,6 +566,15 @@ export default function ReportGamePage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function ReportGamePage() {
+  const { id } = useParams<{ id: string }>();
+  return (
+    <ReportGameErrorBoundary leagueId={id}>
+      <ReportGameInner />
+    </ReportGameErrorBoundary>
   );
 }
 
