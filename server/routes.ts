@@ -12,7 +12,7 @@ import { getPotentialRange, getProgressionZone, rollWeightedPotential, getPotent
 import { getActionPointCost } from "@shared/stateDistance";
 import { getPersonalityForArchetype, getTraitBadgesForArchetype, getPhilosophyForArchetype, evaluateMilestones } from "@shared/coachTraits";
 import { CONFERENCE_TIER_NIL, DEFAULT_CONFERENCE_NIL } from "@shared/nilConfig";
-import type { Player, Recruit, TransferPortalInterest, Game, InsertPlayerSeasonStats, GameReport } from "@shared/schema";
+import type { Player, Recruit, TransferPortalInterest, Game, InsertPlayerSeasonStats, GameReport, LastSeasonStats } from "@shared/schema";
 import { assignTrajectory } from "@shared/trajectory";
 import { getRecruitPoolSize } from "./utils";
 import {
@@ -1604,10 +1604,7 @@ export async function registerRoutes(
       const transferSourceIds = leagueRecruits
         .filter(r => r.recruitType === "TRANSFER" && r.sourcePlayerId)
         .map(r => r.sourcePlayerId as string);
-      const transferStatsMap = new Map<string, {
-        avg: number | null; obp: number | null; hr: number | null; rbi: number | null;
-        era: number | null; ip: number | null; k: number | null; whip: number | null;
-      }>();
+      const transferStatsMap = new Map<string, LastSeasonStats>();
       if (transferSourceIds.length > 0) {
         const rawStats = await storage.getLatestPlayerSeasonStatsByIds(league.id, transferSourceIds);
         const latestBySrc = new Map<string, typeof rawStats[0]>();
@@ -1633,7 +1630,7 @@ export async function registerRoutes(
       // Attach lastSeasonStats to each recruit
       const recruitsWithStats = recruitsWithInterest.map(r => ({
         ...r,
-        lastSeasonStats: (r as any).sourcePlayerId ? (transferStatsMap.get((r as any).sourcePlayerId) ?? null) : null,
+        lastSeasonStats: r.sourcePlayerId ? (transferStatsMap.get(r.sourcePlayerId) ?? null) : null,
       }));
 
       // Current roster position counts

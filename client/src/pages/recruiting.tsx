@@ -84,7 +84,7 @@ interface FilterPreset {
 }
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { Recruit, RecruitingInterest, Team } from "@shared/schema";
+import type { Recruit, RecruitingInterest, Team, LastSeasonStats } from "@shared/schema";
 import { getAbilityByName, S_GOLD_COMMON_KEY, S_GOLD_PITCHER_KEY } from "@shared/abilities";
 import { TRAJECTORY_LABELS } from "@shared/trajectory";
 import { PlayerPortrait } from "@/components/ui/player-portrait";
@@ -131,16 +131,7 @@ interface RecruitWithInterest extends Recruit {
   // Fields locked until signing day reveal (last 35% of scoutingOrder)
   signingDayLockedFields?: string[] | null;
   // Last season stats for transfer recruits (null for HS/JUCO)
-  lastSeasonStats?: {
-    avg: number | null;
-    obp: number | null;
-    hr: number | null;
-    rbi: number | null;
-    era: number | null;
-    ip: number | null;
-    k: number | null;
-    whip: number | null;
-  } | null;
+  lastSeasonStats?: LastSeasonStats | null;
 }
 
 interface AutoPilotAlertEntry {
@@ -2603,7 +2594,8 @@ function RecruitRow({
     d: "#eab308", f: "#60a5fa", g: "#9ca3af",
   };
   const hasTransferStats = recruit.recruitType === "TRANSFER" && !!recruit.lastSeasonStats;
-  const showPreviewStrip = scoutPct > 0 || hasTransferStats;
+  // Strip always visible on every card: shows "?" placeholders for un-scouted attrs
+  const showPreviewStrip = true;
 
   // Get display strings for overall and star rating based on scouting progress
   const getOverallDisplay = (): string => {

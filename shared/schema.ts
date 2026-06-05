@@ -1329,6 +1329,18 @@ export const insertPlayerSeasonStatsSchema = createInsertSchema(playerSeasonStat
 export type InsertPlayerSeasonStats = z.infer<typeof insertPlayerSeasonStatsSchema>;
 export type PlayerSeasonStats = typeof playerSeasonStats.$inferSelect;
 
+/** Pre-computed display stats attached to transfer recruits on the recruiting API response */
+export type LastSeasonStats = {
+  avg: number | null;
+  obp: number | null;
+  hr: number | null;
+  rbi: number | null;
+  era: number | null;
+  ip: number | null;
+  k: number | null;
+  whip: number | null;
+};
+
 // Saved Rosters table - user-created roster sets
 export const savedRosters = pgTable("saved_rosters", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
