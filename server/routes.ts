@@ -1730,8 +1730,9 @@ export async function registerRoutes(
       const archEfficiency = archetypeScoutEfficiency[userCoach?.archetype] || 0;
       // Facilities 7+: elite infrastructure means deeper, faster evaluations
       const facilitiesScoutBonus = (userTeam.facilities || 5) >= 8 ? 5 : (userTeam.facilities || 5) >= 7 ? 3 : 0;
-      const revealAmount = 15 + Math.floor(Math.random() * 11) + scoutSkillBonus + archEfficiency + facilitiesScoutBonus;
-      const potentialNarrowMultiplier = ARCHETYPE_POTENTIAL_NARROWING[userCoach?.archetype] || 1.0;
+      const { revealBonus: philosophyRevealBonus, narrowBonus: philosophyNarrowBonus } = calculatePhilosophyScoutBonus(userCoach, recruit);
+      const revealAmount = 15 + Math.floor(Math.random() * 11) + scoutSkillBonus + archEfficiency + facilitiesScoutBonus + philosophyRevealBonus;
+      const potentialNarrowMultiplier = (ARCHETYPE_POTENTIAL_NARROWING[userCoach?.archetype] || 1.0) + philosophyNarrowBonus;
 
       // Helper function to narrow down a range (with archetype potential narrowing bonus).
       // Scouting is partially capped before signing day — attrs cap at 60%, common abilities at 50%.
@@ -2297,16 +2298,19 @@ export async function registerRoutes(
           break;
 
         // ── Scout Master philosophies ─────────────────────────────────────────
+        // NOTE: primary effects of "Scouting Advantage" and "Find Hidden Gems" are in
+        // calculatePhilosophyScoutBonus (scouting reveal %). Recruiting bonuses here
+        // are small secondary effects only.
         case "Scouting Advantage":
-          // Deep scouting intel improves email/phone pitch quality
-          if (isEmailPhone) base = 0.08;
+          // Secondary: deeper intel translates into a slightly sharper pitch on phone/email
+          if (isEmailPhone) base = 0.04;
           break;
         case "Find Hidden Gems":
-          // Sub-3★ recruits are identified and pitched more effectively
-          if (isEmailPhone && stars <= 2) base = 0.12;
+          // Secondary: pitching to under-the-radar recruits is more natural for this coach
+          if (isEmailPhone && stars <= 2) base = 0.05;
           break;
         case "Build Through Recruiting":
-          // Volume recruiting mindset gives a minor boost to all email/phone
+          // Dual: email/phone volume mindset (recruiting) + wider scouting reveals (scouting)
           if (isEmailPhone) base = 0.05;
           break;
 
@@ -2367,6 +2371,102 @@ export async function registerRoutes(
     return skillBonus * archetypeBonus * positionBonus + philosophyAddon;
   }
   
+  // Returns scouting reveal bonuses from the coach's philosophy statements.
+  // revealBonus: additional % to add to revealAmount per scouting action (0-20)
+  // narrowBonus: additive boost to potentialNarrowMultiplier (0-0.3)
+  function calculatePhilosophyScoutBonus(coach: any, recruit: any): { revealBonus: number; narrowBonus: number } {
+    const philosophy = Array.isArray(coach?.coachingPhilosophy)
+      ? (coach.coachingPhilosophy as { statement: string; importance: string }[])
+      : [];
+    if (philosophy.length === 0) return { revealBonus: 0, narrowBonus: 0 };
+
+    const importanceScale: Record<string, number> = { extremely: 1.0, very: 0.67, somewhat: 0.33 };
+    const stars = recruit?.stars || 2;
+    const isLowStar = stars <= 2;
+
+    let revealBonus = 0;
+    let narrowBonus = 0;
+
+    for (const { statement, importance } of philosophy) {
+      const scale = importanceScale[importance] ?? 0.33;
+      switch (statement) {
+        case "Scouting Advantage":
+          // PRIMARY scouting effect: reveals +10% more per action at full importance
+          revealBonus += 10 * scale;
+          break;
+        case "Find Hidden Gems":
+          // PRIMARY scouting effect: deeper reveal on sub-3★; moderate on everyone else
+          revealBonus += (isLowStar ? 12 : 4) * scale;
+          // Better potential narrowing on low-star prospects
+          if (isLowStar) narrowBonus += 0.20 * scale;
+          break;
+        case "Build Through Recruiting":
+          // SECONDARY scouting effect (primary is email/phone recruiting bonus)
+          revealBonus += 5 * scale;
+          break;
+        case "Exploit Every Matchup":
+          // Scouting clarity on positional fit; also has small recruiting bonus
+          revealBonus += 4 * scale;
+          narrowBonus += 0.10 * scale;
+          break;
+        case "Player Development First":
+          // Better potential/eval insight — improves potential range narrowing
+          narrowBonus += 0.15 * scale;
+          break;
+      }
+    }
+
+    return { revealBonus: Math.round(revealBonus), narrowBonus };
+  }
+
+  // Returns flat retention-chance bonus from culture/chemistry/stability philosophies.
+  // Called from the transfer retention endpoint to give certain archetypes higher player loyalty.
+  function calculatePhilosophyRetentionBonus(coach: any): number {
+    const philosophy = Array.isArray(coach?.coachingPhilosophy)
+      ? (coach.coachingPhilosophy as { statement: string; importance: string }[])
+      : [];
+    if (philosophy.length === 0) return 0;
+
+    const importanceScale: Record<string, number> = { extremely: 1.0, very: 0.67, somewhat: 0.33 };
+    let bonus = 0;
+
+    for (const { statement, importance } of philosophy) {
+      const scale = importanceScale[importance] ?? 0.33;
+      switch (statement) {
+        case "Build Team Chemistry":
+          // Team cohesion creates stronger program bonds — players less likely to transfer
+          bonus += 0.08 * scale;
+          break;
+        case "Positive Culture":
+          // Positive environment improves player satisfaction and reduces portal departures
+          bonus += 0.08 * scale;
+          break;
+        case "Graduation Rate Matters":
+          // Players feel invested in their academic journey — academic loyalty bonus
+          bonus += 0.08 * scale;
+          break;
+        case "Earn Everything":
+          // Meritocracy culture: players who earn their spot are more committed to the program
+          bonus += 0.05 * scale;
+          break;
+        case "Player Development First":
+          // Players see tangible improvement — development pathway keeps them around
+          bonus += 0.05 * scale;
+          break;
+        case "Trust the Process":
+          // Players who bought in are deeply loyal to the system
+          bonus += 0.04 * scale;
+          break;
+        case "Play the Right Way":
+          // Culture of discipline and values creates loyalty among like-minded players
+          bonus += 0.04 * scale;
+          break;
+      }
+    }
+
+    return Math.min(0.15, bonus); // Cap at +15pp total retention bonus
+  }
+
   // Calculate proximity bonus based on recruit home state vs team state.
   // Optional `team` param: national brands (prestige 8+ AND/OR stadium 8+) compress the
   // out-of-region/out-of-state penalty — recruits across the country already know them.
@@ -4270,6 +4370,8 @@ export async function registerRoutes(
         retentionChance += teamPromiseDifficulty[teamPromise.difficulty] || 0.08;
       }
 
+      // Philosophy retention bonus: culture/chemistry/academics philosophies improve player loyalty
+      retentionChance += calculatePhilosophyRetentionBonus(userCoach);
       retentionChance = Math.min(retentionChance, 0.98);
 
       const roll = Math.random();
@@ -10061,10 +10163,18 @@ export async function registerRoutes(
       const userCoach = coaches.find(c => c.userId === req.session.userId);
       const userTeamId = userCoach?.teamId || null;
 
-      // Build per-team game philosophy map for strategy-aware simulation
+      // Build per-team game philosophy map for strategy-aware simulation.
+      // "Play Small Ball" coaching philosophy is encoded as "small_ball_coaching:{gameStrategy}"
+      // so simulateGameWithRosters can apply the run execution bonus without extra parameters.
       const teamPhilosophyMap = new Map<string, string>();
       for (const c of coaches) {
-        if (c.teamId) teamPhilosophyMap.set(c.teamId, c.gamePhilosophyStrategy ?? "balanced");
+        if (!c.teamId) continue;
+        const gameStrategy = c.gamePhilosophyStrategy ?? "balanced";
+        const hasCoachSmallBall = Array.isArray(c.coachingPhilosophy) &&
+          (c.coachingPhilosophy as { statement: string; importance: string }[]).some(
+            p => p.statement === "Play Small Ball" && (p.importance === "extremely" || p.importance === "very")
+          );
+        teamPhilosophyMap.set(c.teamId, hasCoachSmallBall ? `small_ball_coaching:${gameStrategy}` : gameStrategy);
       }
 
       const simSummary: {
@@ -10609,12 +10719,19 @@ export async function registerRoutes(
       const startPhase = currentLeague.currentPhase;
       let weeksSimulated = 0;
 
-      // Build per-team game philosophy map for strategy-aware simulation in all phases
+      // Build per-team game philosophy map for strategy-aware simulation in all phases.
+      // "Play Small Ball" coaching philosophy encoded as "small_ball_coaching:{gameStrategy}".
       const fsPhilosophyMap = new Map<string, string>();
       {
         const fsPhilosophyCoaches = await storage.getCoachesByLeague(leagueId);
         for (const c of fsPhilosophyCoaches) {
-          if (c.teamId) fsPhilosophyMap.set(c.teamId, (c as any).gamePhilosophyStrategy ?? "balanced");
+          if (!c.teamId) continue;
+          const gameStrategy = (c as any).gamePhilosophyStrategy ?? "balanced";
+          const hasCoachSmallBall = Array.isArray(c.coachingPhilosophy) &&
+            (c.coachingPhilosophy as { statement: string; importance: string }[]).some(
+              p => p.statement === "Play Small Ball" && (p.importance === "extremely" || p.importance === "very")
+            );
+          fsPhilosophyMap.set(c.teamId, hasCoachSmallBall ? `small_ball_coaching:${gameStrategy}` : gameStrategy);
         }
       }
 
@@ -11153,15 +11270,25 @@ export async function registerRoutes(
     // Philosophy strategy: modifies offDiff multiplier and expected run baseline
     // aggressive → more talent-based variance (±15%); conservative → tighter games (±5%)
     // small_ball → lower scoring (-0.8); power_ball → higher scoring (+0.8)
+    // "small_ball_coaching:{strategy}" prefix = coaching philosophy "Play Small Ball" is active
+    const parseGamePhilosophy = (p?: string): { strategy: string; coachSmallBall: boolean } => {
+      if (!p) return { strategy: "balanced", coachSmallBall: false };
+      if (p.startsWith("small_ball_coaching:")) return { strategy: p.slice("small_ball_coaching:".length), coachSmallBall: true };
+      return { strategy: p, coachSmallBall: false };
+    };
+    const { strategy: homeStrategy, coachSmallBall: homeCoachSmallBall } = parseGamePhilosophy(homePhilosophy);
+    const { strategy: awayStrategy, coachSmallBall: awayCoachSmallBall } = parseGamePhilosophy(awayPhilosophy);
     const philosophyDiffMult = (() => {
-      const h = homePhilosophy ?? "balanced";
-      const a = awayPhilosophy ?? "balanced";
-      if (h === "aggressive" || a === "aggressive") return 1.15;
-      if (h === "conservative" || a === "conservative") return 0.85;
+      if (homeStrategy === "aggressive" || awayStrategy === "aggressive") return 1.15;
+      if (homeStrategy === "conservative" || awayStrategy === "conservative") return 0.85;
       return 1.0;
     })();
-    const homeRunAdj = (homePhilosophy === "power_ball" ? 0.8 : homePhilosophy === "small_ball" ? -0.8 : 0);
-    const awayRunAdj = (awayPhilosophy === "power_ball" ? 0.8 : awayPhilosophy === "small_ball" ? -0.8 : 0);
+    // "Play Small Ball" coaching philosophy: +0.35 run execution bonus — small-ball execution
+    // improves win% vs similarly-rated opponents through manufacturing runs and tight defense.
+    const homeRunAdj = (homeStrategy === "power_ball" ? 0.8 : homeStrategy === "small_ball" ? -0.8 : 0)
+      + (homeCoachSmallBall ? 0.35 : 0);
+    const awayRunAdj = (awayStrategy === "power_ball" ? 0.8 : awayStrategy === "small_ball" ? -0.8 : 0)
+      + (awayCoachSmallBall ? 0.35 : 0);
     const adjOffDiff = offDiff * philosophyDiffMult;
 
     const homeAdv = 0.25;
