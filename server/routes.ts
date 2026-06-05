@@ -7456,7 +7456,7 @@ export async function registerRoutes(
         ordered[2] = pickSlot(bestHitterScore);        // 3-hole: second-best bat
         ordered[0] = pickSlot(leadoffScore);           // leadoff: from remaining
         ordered[3] = pickSlot(cleanupScore);           // 4-hole: cleanup
-        ordered[4] = pickSlot(cleanupScore);           // 5-hole: second power bat
+        ordered[4] = pickSlot(balancedScore);           // 5-hole: balanced (matches slots 5–6 spec)
         ordered[8] = pickSlot(slot9Score);             // 9-hole: second leadoff
         ordered[7] = pickSlot(offensiveScore, true);   // 8-hole: weakest bat
         ordered[6] = pickSlot(slot7Score);             // 7-hole
