@@ -865,8 +865,21 @@ export default function RecruitingPage() {
         };
         return getDisplayOverall(b) - getDisplayOverall(a);
       }
-      case "starRank":
-        return b.starRank - a.starRank || (a.classRank || 999) - (b.classRank || 999);
+      case "starRank": {
+        const getScoutedStar = (r: RecruitWithInterest): number => {
+          if (r.isBlueChip) return r.starRank;
+          const pct = r.interest?.scoutPercentage || 0;
+          if (pct >= 100) return r.starRank;
+          if (pct === 0) return -1;
+          const mid = Math.floor(((r.interest?.minOverall || 1) + (r.interest?.maxOverall || 999)) / 2);
+          if (mid >= 500) return 5;
+          if (mid >= 400) return 4;
+          if (mid >= 300) return 3;
+          if (mid >= 200) return 2;
+          return 1;
+        };
+        return getScoutedStar(b) - getScoutedStar(a) || (a.classRank || 999) - (b.classRank || 999);
+      }
       case "name":
         return `${a.lastName}${a.firstName}`.localeCompare(`${b.lastName}${b.firstName}`);
       case "state":
