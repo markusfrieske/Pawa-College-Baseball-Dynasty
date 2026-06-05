@@ -405,26 +405,39 @@ export function generateRecruitClass(
   const getTargetAttrAvgForRecruit = (starRank: number, isBlueChip: boolean, isGem: boolean, isBust: boolean, isPitcher: boolean): number => {
     if (isBlueChip) return isPitcher ? 80 + Math.floor(Math.random() * 5) : 68 + Math.floor(Math.random() * 5);
     if (isGem) {
+      // Gem: attrs target 2 tiers above displayed star so natural OVR lands in the right band before clamping
       if (isPitcher) {
         switch (starRank) {
-          case 3: return 67 + Math.floor(Math.random() * 10);
-          case 2: return 58 + Math.floor(Math.random() * 10);
-          case 1: return 51 + Math.floor(Math.random() * 10);
-          default: return 67 + Math.floor(Math.random() * 10);
+          case 4: return 80 + Math.floor(Math.random() * 8);   // 4★ gem → blue chip OVR (540-599)
+          case 3: return 65 + Math.floor(Math.random() * 8);   // 3★ gem → 5★ OVR (500-539)
+          case 2: return 54 + Math.floor(Math.random() * 8);   // 2★ gem → 4★ OVR (400-499)
+          case 1: return 43 + Math.floor(Math.random() * 8);   // 1★ gem → 3★ OVR (300-399)
+          default: return 65 + Math.floor(Math.random() * 8);
         }
       }
       switch (starRank) {
-        case 3: return 55 + Math.floor(Math.random() * 12);
-        case 2: return 45 + Math.floor(Math.random() * 12);
-        case 1: return 38 + Math.floor(Math.random() * 12);
-        default: return 55 + Math.floor(Math.random() * 10);
+        case 4: return 68 + Math.floor(Math.random() * 8);   // 4★ gem → blue chip OVR (540-599)
+        case 3: return 58 + Math.floor(Math.random() * 10);  // 3★ gem → 5★ OVR (500-539)
+        case 2: return 48 + Math.floor(Math.random() * 10);  // 2★ gem → 4★ OVR (400-499)
+        case 1: return 38 + Math.floor(Math.random() * 10);  // 1★ gem → 3★ OVR (300-399)
+        default: return 58 + Math.floor(Math.random() * 10);
       }
     }
     if (isBust) {
+      // Bust: attrs target 2 tiers below displayed star so natural OVR lands in the right band before clamping
+      if (isPitcher) {
+        switch (starRank) {
+          case 5: return 43 + Math.floor(Math.random() * 8);  // 5★ bust → 3★ OVR (300-399)
+          case 4: return 31 + Math.floor(Math.random() * 8);  // 4★ bust → 2★ OVR (200-299)
+          case 3: return 19 + Math.floor(Math.random() * 6);  // 3★ bust → 1★ OVR (150-199)
+          default: return 19 + Math.floor(Math.random() * 6);
+        }
+      }
       switch (starRank) {
-        case 5: return 25 + Math.floor(Math.random() * 15);
-        case 4: return 20 + Math.floor(Math.random() * 15);
-        default: return 25 + Math.floor(Math.random() * 10);
+        case 5: return 38 + Math.floor(Math.random() * 10);  // 5★ bust → 3★ OVR (300-399)
+        case 4: return 22 + Math.floor(Math.random() * 10);  // 4★ bust → 2★ OVR (200-299)
+        case 3: return 18 + Math.floor(Math.random() * 8);   // 3★ bust → 1★ OVR (150-199)
+        default: return 18 + Math.floor(Math.random() * 8);
       }
     }
     if (isPitcher) {
@@ -1053,15 +1066,31 @@ export function generateRecruitClass(
     let overall = calculateOVR(recruitOvrData);
 
     if (isGenerationalGem) {
-      overall = Math.max(600, Math.min(650, overall));
+      // Gen gem: +3 tiers above displayed star. Attrs stay at 85+ — the attr discrepancy is the tell.
+      // 1★ display → 4★ OVR (400-499), 2★ → 5★ (500-539), 3★ → blue chip (540-599)
+      const genGemRanges: Record<number, [number, number]> = { 1: [400, 499], 2: [500, 539], 3: [540, 599] };
+      const [ggLo, ggHi] = genGemRanges[starRank] ?? [540, 599];
+      overall = Math.max(ggLo, Math.min(ggHi, overall));
     } else if (isGenerationalBust) {
-      overall = Math.max(150, Math.min(199, overall));
+      // Gen bust: −3 tiers below displayed star.
+      // 3★ display → 1★ OVR (150-199), 4★ → 1★ (150-199), 5★ → 2★ (200-299)
+      const genBustRanges: Record<number, [number, number]> = { 3: [150, 199], 4: [150, 199], 5: [200, 299] };
+      const [gbLo, gbHi] = genBustRanges[starRank] ?? [150, 199];
+      overall = Math.max(gbLo, Math.min(gbHi, overall));
     } else if (isBlueChip) {
       overall = Math.max(540, Math.min(599, overall));
     } else if (isGem) {
-      overall = Math.max(500, Math.min(599, overall));
+      // Gem: +2 tiers above displayed star
+      // 1★ display → 3★ OVR (300-399), 2★ → 4★ (400-499), 3★ → 5★ (500-539), 4★ → blue chip (540-599)
+      const gemRanges: Record<number, [number, number]> = { 1: [300, 399], 2: [400, 499], 3: [500, 539], 4: [540, 599] };
+      const [gLo, gHi] = gemRanges[starRank] ?? [500, 539];
+      overall = Math.max(gLo, Math.min(gHi, overall));
     } else if (isBust) {
-      overall = Math.max(200, Math.min(299, overall));
+      // Bust: −2 tiers below displayed star
+      // 3★ display → 1★ OVR (150-199), 4★ → 2★ (200-299), 5★ → 3★ (300-399)
+      const bustRanges: Record<number, [number, number]> = { 3: [150, 199], 4: [200, 299], 5: [300, 399] };
+      const [bLo, bHi] = bustRanges[starRank] ?? [200, 299];
+      overall = Math.max(bLo, Math.min(bHi, overall));
     } else if (playerArchetype === "late_bloomer") {
       // Late bloomer: OVR depressed below their star tier — looks weaker than ranking suggests
       // but potential is forced high. A 4★ late bloomer will show 3★-range OVR.
@@ -1079,17 +1108,16 @@ export function generateRecruitClass(
       const inflation = 40 + Math.floor(Math.random() * 40);
       overall = Math.max(floor, Math.min(cap, overall + inflation));
     } else {
-      const starCaps:   Record<number, number> = { 5: 539, 4: 499, 3: 399, 2: 299, 1: 199 };
-      const starFloors: Record<number, number> = { 5: 500, 4: 400, 3: 300, 2: 200, 1: 150 };
-      const cap   = starCaps[starRank]   ?? 499;
-      const floor = starFloors[starRank] ?? 150;
+      // Normal player: ±1 tier variance — can stay in their star band or drift one tier higher or lower
+      // 1★: 150-299, 2★: 150-399, 3★: 200-499, 4★: 300-539, 5★: 400-539
+      const normalRanges: Record<number, [number, number]> = {
+        1: [150, 299], 2: [150, 399], 3: [200, 499], 4: [300, 539], 5: [400, 539],
+      };
+      const [nLo, nHi] = normalRanges[starRank] ?? [200, 399];
       if (!isRawArchetype) {
-        // Apply ±20–30 OVR variance so individual players feel unique within their star tier
-        const variance  = 20 + Math.floor(Math.random() * 11);
-        const direction = Math.random() < 0.5 ? 1 : -1;
-        overall = Math.max(floor, Math.min(cap, overall + direction * variance));
+        overall = Math.max(nLo, Math.min(nHi, overall));
       } else {
-        overall = Math.max(150, Math.min(cap, overall));
+        overall = Math.max(150, Math.min(nHi, overall));
       }
     }
     // Enforce gold OVR gate: generational gems are exempt (they're always elite)
