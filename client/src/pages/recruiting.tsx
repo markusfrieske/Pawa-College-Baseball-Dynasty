@@ -3330,7 +3330,7 @@ function RecruitRow({
         )}
       </div>
 
-      {/* Stat/Attribute preview strip — always visible once scouting starts or for transfers */}
+      {/* Stat/Attribute preview strip — always visible on every recruit card */}
       {showPreviewStrip && (
         <div className="mt-2 pt-2 border-t border-border/30 flex items-center gap-x-4 gap-y-1 flex-wrap px-1" data-testid={`stat-preview-${recruit.id}`}>
           {/* Transfer: real last-season stats */}
