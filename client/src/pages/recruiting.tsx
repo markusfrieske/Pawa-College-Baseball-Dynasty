@@ -623,7 +623,16 @@ export default function RecruitingPage() {
       const res = await apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/phone`, { pitchTopics });
       return await res.json();
     },
-    onSuccess: (data: any) => {
+    onSuccess: (data: any, { recruitId }: { recruitId: string; pitchTopic?: string }) => {
+      queryClient.setQueryData(["/api/leagues", id, "recruiting"], (old: any) => {
+        if (!old) return old;
+        const weeklyActionsUsed = { ...old.weeklyActionsUsed };
+        if (!weeklyActionsUsed[recruitId]) weeklyActionsUsed[recruitId] = [];
+        if (!weeklyActionsUsed[recruitId].includes("phone")) {
+          weeklyActionsUsed[recruitId] = [...weeklyActionsUsed[recruitId], "phone"];
+        }
+        return { ...old, weeklyActionsUsed };
+      });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
       const gain = data.interestGain || 0;
       const changeLabel = getInterestChangeLabel(gain);
@@ -639,7 +648,16 @@ export default function RecruitingPage() {
       const res = await apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/email`, { pitchTopic });
       return await res.json();
     },
-    onSuccess: (data: any) => {
+    onSuccess: (data: any, { recruitId }: { recruitId: string; pitchTopic?: string }) => {
+      queryClient.setQueryData(["/api/leagues", id, "recruiting"], (old: any) => {
+        if (!old) return old;
+        const weeklyActionsUsed = { ...old.weeklyActionsUsed };
+        if (!weeklyActionsUsed[recruitId]) weeklyActionsUsed[recruitId] = [];
+        if (!weeklyActionsUsed[recruitId].includes("email")) {
+          weeklyActionsUsed[recruitId] = [...weeklyActionsUsed[recruitId], "email"];
+        }
+        return { ...old, weeklyActionsUsed };
+      });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
       const gain = data.interestGain || 0;
       const changeLabel = getInterestChangeLabel(gain);
