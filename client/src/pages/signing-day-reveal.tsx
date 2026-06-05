@@ -505,12 +505,12 @@ function RevealCardFront({ recruit, primaryColor, signingTeamAbbrev, signingTeam
       </div>
 
       {/* Avatar */}
-      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(160deg, #f8f4ec 0%, #ede8dc 100%)" }}>
+      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(160deg, #f8f4ec 0%, #ede8dc 100%)", padding: "4px" }}>
         <PlayerAvatar
           skinTone={(recruit as unknown as Record<string, string>).skinTone ?? "medium"}
           playerId={recruit.id}
-          size="md"
-          className="w-16 h-16"
+          size="lg"
+          className="w-full h-full"
           jerseyColor={primaryColor}
           isRecruit={false}
         />
@@ -1102,8 +1102,8 @@ export default function SigningDayRevealPage() {
         signingTeamSecondaryColor: entry.team.secondaryColor,
       }))
     );
-    // Ascending by OVR — lowest first so the stars arrive last for drama
-    return items.sort((a, b) => a.overall - b.overall);
+    // Descending by OVR — highest first so the best players appear at the top
+    return items.sort((a, b) => b.overall - a.overall);
   }, [data?.teamData]);
 
   // ── Cinematic phase state machine — fires once when data loads ──
@@ -1294,11 +1294,11 @@ export default function SigningDayRevealPage() {
                   </div>
                 </div>
                 <div className="shrink-0 text-right">
-                  <div className="font-pixel text-[10px] text-gray-500">SORTED LOWEST → HIGHEST OVR</div>
+                  <div className="font-pixel text-[10px] text-gray-500">SORTED HIGHEST → LOWEST OVR</div>
                 </div>
               </div>
 
-              {/* All recruits — ascending OVR, wrapped rows, each card shows team badge strip */}
+              {/* All recruits — descending OVR, wrapped rows, each card shows team badge strip */}
               <div className="flex flex-wrap gap-2">
                 {allLeagueRecruits.map((item, idx) => {
                   const animDelay = idx * 0.035;
