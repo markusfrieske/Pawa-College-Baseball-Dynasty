@@ -188,14 +188,9 @@ function getGeoMultiplier(homeState: string): number {
 function generateNilCost(
   displayedStar: number,
   isBlueChip: boolean,
-  isGenerationalGem: boolean,
-  isGenerationalBust: boolean,
   position: string = "SP",
   homeState: string = "",
 ): number {
-  if (isGenerationalBust) {
-    return Math.floor(5000 + Math.random() * 25000);
-  }
   // Tighter ranges than before — adjacent tiers overlap by ~10% of range
   // so NIL is a meaningful signal of the recruit's displayed star level
   // without being a perfect decoder.
@@ -226,8 +221,7 @@ function generateNilCost(
   const geoMultiplier = getGeoMultiplier(homeState);
   const adjusted = Math.floor(baseCost * posMultiplier * geoMultiplier);
 
-  if (isGenerationalGem) return Math.floor(adjusted * (3 + Math.random() * 2));
-  if (isBlueChip) return Math.floor(adjusted * (1.5 + Math.random() * 1.0));
+  if (isBlueChip) return Math.floor(adjusted * (1.2 + Math.random() * 0.6));
   return adjusted;
 }
 
@@ -1245,8 +1239,6 @@ export function generateRecruitClass(
       nilCost: generateNilCost(
         (isBlueChip || isGem || isBust || isGenerationalGem || isGenerationalBust) ? starRating : computedStarRating,
         isBlueChip,
-        isGenerationalGem,
-        isGenerationalBust,
         position,
         recruitState.state,
       ),
@@ -1295,8 +1287,8 @@ export function generateRecruitClass(
   }
 
   // Post-processing pass 2: apply position-scarcity NIL multiplier.
-  // NIL markets reflect real talent demand, so the multiplier uses true OVR
-  // ordering — not the displayed fog-of-war rank.
+  // Multiplier uses displayed star ordering so no hidden-value information
+  // is leaked through NIL cost.
   {
     const byPosition = new Map<string, typeof out>();
     for (const r of out) {
@@ -1305,9 +1297,12 @@ export function generateRecruitClass(
       byPosition.get(pos)!.push(r);
     }
     for (const group of byPosition.values()) {
-      group.sort((a, b) => (b.overall ?? 0) - (a.overall ?? 0));
+      group.sort((a, b) => {
+        const starDiff = (b.starRating ?? 0) - (a.starRating ?? 0);
+        if (starDiff !== 0) return starDiff;
+        return (a.classRank ?? 999) - (b.classRank ?? 999);
+      });
       group.forEach((r, idx) => {
-        if (r.isGenerationalBust) return; // NIL override is already set
         const rank = idx + 1;
         let mult: number;
         if (rank <= 2)       mult = 1.35 + Math.random() * 0.10; // #1–#2: 1.35–1.45×
