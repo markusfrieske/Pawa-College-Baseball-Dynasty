@@ -375,10 +375,20 @@ export function generateRecruitClass(
 
   let numBlueChips = Math.max(2, Math.floor(count * 0.03) + (Math.random() < 0.5 ? 1 : 0));
   if (opts.wizardSpecialCounts?.blueChips != null) numBlueChips = Math.min(opts.wizardSpecialCounts.blueChips, count);
-  let numGenGems = 1;
+  let numGenGems = 2;
   if (opts.wizardSpecialCounts?.genGems != null) numGenGems = Math.min(opts.wizardSpecialCounts.genGems, Math.floor(count * 0.05));
-  let numGenBusts = 1;
-  if (opts.wizardSpecialCounts?.genBusts != null) numGenBusts = Math.min(opts.wizardSpecialCounts.genBusts, Math.floor(count * 0.05));
+  let numGenBusts = 3 + Math.floor(Math.random() * 3);
+  if (opts.wizardSpecialCounts?.genBusts != null) numGenBusts = Math.min(opts.wizardSpecialCounts.genBusts, Math.floor(count * 0.10));
+  const numRegGems = opts.wizardSpecialCounts?.gems != null
+    ? Math.min(opts.wizardSpecialCounts.gems, Math.floor(count * 0.15))
+    : 5 + Math.floor(Math.random() * 6);
+  const numRegBusts = opts.wizardSpecialCounts?.busts != null
+    ? Math.min(opts.wizardSpecialCounts.busts, Math.floor(count * 0.15))
+    : 5 + Math.floor(Math.random() * 6);
+  const rawTalentBase = theme === "raw_talent" ? (10 + Math.floor(Math.random() * 7)) : (5 + Math.floor(Math.random() * 6));
+  const numRawPlayers = opts.wizardSpecialCounts?.rawPlayers != null
+    ? Math.min(opts.wizardSpecialCounts.rawPlayers, Math.floor(count * 0.20))
+    : rawTalentBase;
 
   const getGemBustModifier = (t: RecruitingTheme, starRank: number): { isGem: boolean; isBust: boolean } => {
     const roll = Math.random();
@@ -579,24 +589,22 @@ export function generateRecruitClass(
     generationalBustIdxSet.add(shuffledBustCandidates[b].idx);
   }
 
-  // Wizard regular gem/bust count overrides — pre-assign specific indices
+  // Pre-assign guaranteed regular gems (numRegGems guaranteed minimum; wizard override already baked into numRegGems)
   const forcedGemIdxSet = new Set<number>();
-  const forcedBustIdxSet = new Set<number>();
-  if (opts.wizardSpecialCounts?.gems != null && opts.wizardSpecialCounts.gems > 0) {
-    const eligibleForGem = gemCandidates
-      .filter(x => !generationalGemIdxSet.has(x.idx) && !generationalBustIdxSet.has(x.idx))
-      .sort(() => Math.random() - 0.5);
-    for (let g = 0; g < Math.min(opts.wizardSpecialCounts.gems, eligibleForGem.length); g++) {
-      forcedGemIdxSet.add(eligibleForGem[g].idx);
-    }
+  const eligibleForRegGem = gemCandidates
+    .filter(x => !generationalGemIdxSet.has(x.idx) && !generationalBustIdxSet.has(x.idx))
+    .sort(() => Math.random() - 0.5);
+  for (let g = 0; g < Math.min(numRegGems, eligibleForRegGem.length); g++) {
+    forcedGemIdxSet.add(eligibleForRegGem[g].idx);
   }
-  if (opts.wizardSpecialCounts?.busts != null && opts.wizardSpecialCounts.busts > 0) {
-    const eligibleForBust = bustCandidates
-      .filter(x => !generationalGemIdxSet.has(x.idx) && !generationalBustIdxSet.has(x.idx) && !forcedGemIdxSet.has(x.idx))
-      .sort(() => Math.random() - 0.5);
-    for (let b = 0; b < Math.min(opts.wizardSpecialCounts.busts, eligibleForBust.length); b++) {
-      forcedBustIdxSet.add(eligibleForBust[b].idx);
-    }
+
+  // Pre-assign guaranteed regular busts (numRegBusts guaranteed minimum; wizard override already baked into numRegBusts)
+  const forcedBustIdxSet = new Set<number>();
+  const eligibleForRegBust = bustCandidates
+    .filter(x => !generationalGemIdxSet.has(x.idx) && !generationalBustIdxSet.has(x.idx) && !forcedGemIdxSet.has(x.idx))
+    .sort(() => Math.random() - 0.5);
+  for (let b = 0; b < Math.min(numRegBusts, eligibleForRegBust.length); b++) {
+    forcedBustIdxSet.add(eligibleForRegBust[b].idx);
   }
 
   const playerArchetypes: ("normal" | "late_bloomer" | "overdraft" | "raw")[] = new Array(count).fill("normal");
@@ -604,22 +612,30 @@ export function generateRecruitClass(
   // Wizard forced type for single-recruit reroll (count=1)
   const forced = opts.wizardForcedType;
 
-  const rawRatio = theme === "raw_talent" ? 0.20 : 0.08;
-  // Wizard raw player count override — compute a ratio that matches target count
-  const effectiveRawRatio = opts.wizardSpecialCounts?.rawPlayers != null
-    ? Math.min(1, opts.wizardSpecialCounts.rawPlayers / Math.max(1, count - numBlueChips))
-    : rawRatio;
-  const lbRate  = 0.07;
-  const odRate  = 0.07;
+  // Pre-assign guaranteed raw players (numRawPlayers guaranteed minimum; wizard override already baked into numRawPlayers)
+  const forcedRawIdxSet = new Set<number>();
+  {
+    const eligibleForRaw = Array.from({ length: count }, (_, i) => i)
+      .filter(i => i >= numBlueChips
+               && !generationalGemIdxSet.has(i) && !generationalBustIdxSet.has(i)
+               && !forcedGemIdxSet.has(i) && !forcedBustIdxSet.has(i));
+    const shuffledForRaw = [...eligibleForRaw].sort(() => Math.random() - 0.5);
+    for (let r = 0; r < Math.min(numRawPlayers, shuffledForRaw.length); r++) {
+      forcedRawIdxSet.add(shuffledForRaw[r]);
+      playerArchetypes[shuffledForRaw[r]] = "raw";
+    }
+  }
+
+  const lbRate = 0.07;
+  const odRate = 0.07;
   for (let i = numBlueChips; i < count; i++) {
     const sr = starRanks[i];
     if (generationalGemIdxSet.has(i) || generationalBustIdxSet.has(i)) continue;
+    if (forcedRawIdxSet.has(i) || forcedGemIdxSet.has(i) || forcedBustIdxSet.has(i)) continue;
     const roll = Math.random();
-    if (roll < effectiveRawRatio) {
-      playerArchetypes[i] = "raw";
-    } else if (roll < effectiveRawRatio + lbRate && sr >= 2 && sr <= 4) {
+    if (roll < lbRate && sr >= 2 && sr <= 4) {
       playerArchetypes[i] = "late_bloomer";
-    } else if (roll < effectiveRawRatio + lbRate + odRate && sr >= 3 && sr <= 5) {
+    } else if (roll < lbRate + odRate && sr >= 3 && sr <= 5) {
       playerArchetypes[i] = "overdraft";
     }
   }
@@ -1063,9 +1079,18 @@ export function generateRecruitClass(
       const inflation = 40 + Math.floor(Math.random() * 40);
       overall = Math.max(floor, Math.min(cap, overall + inflation));
     } else {
-      const starCaps: Record<number, number> = { 5: 539, 4: 499, 3: 399, 2: 299, 1: 199 };
-      const cap = starCaps[starRank] ?? 499;
-      overall = Math.max(150, Math.min(cap, overall));
+      const starCaps:   Record<number, number> = { 5: 539, 4: 499, 3: 399, 2: 299, 1: 199 };
+      const starFloors: Record<number, number> = { 5: 500, 4: 400, 3: 300, 2: 200, 1: 150 };
+      const cap   = starCaps[starRank]   ?? 499;
+      const floor = starFloors[starRank] ?? 150;
+      if (!isRawArchetype) {
+        // Apply ±20–30 OVR variance so individual players feel unique within their star tier
+        const variance  = 20 + Math.floor(Math.random() * 11);
+        const direction = Math.random() < 0.5 ? 1 : -1;
+        overall = Math.max(floor, Math.min(cap, overall + direction * variance));
+      } else {
+        overall = Math.max(150, Math.min(cap, overall));
+      }
     }
     // Enforce gold OVR gate: generational gems are exempt (they're always elite)
     if (!isGenerationalGem && !isGenerationalBust) {
@@ -1190,6 +1215,25 @@ export function generateRecruitClass(
         recruitState.state,
       ),
     });
+  }
+
+  // ─── Class composition summary log ──────────────────────────────────────
+  {
+    const genGemCount  = out.filter(r => r.isGenerationalGem).length;
+    const genBustCount = out.filter(r => r.isGenerationalBust).length;
+    const bcCount      = out.filter(r => r.isBlueChip && !r.isGenerationalGem).length;
+    const gemCount     = out.filter(r => r.isGem && !r.isGenerationalGem).length;
+    const bustCount    = out.filter(r => r.isBust && !r.isGenerationalBust).length;
+    const rawCount     = out.filter(r => r.playerArchetype === "raw").length;
+    const lbCount      = out.filter(r => r.playerArchetype === "late_bloomer").length;
+    const odCount      = out.filter(r => r.playerArchetype === "overdraft").length;
+    const normalCount  = out.length - genGemCount - genBustCount - bcCount - gemCount - bustCount - rawCount - lbCount - odCount;
+    console.log(
+      `[recruit-class] theme=${theme} count=${out.length} | ` +
+      `genGems=${genGemCount} genBusts=${genBustCount} blueChips=${bcCount} ` +
+      `gems=${gemCount} busts=${bustCount} raw=${rawCount} ` +
+      `lateBloomer=${lbCount} overdraft=${odCount} normal=${normalCount}`
+    );
   }
 
   // Post-processing pass 1: assign display-based positionRank (fog-of-war).
