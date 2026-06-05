@@ -2184,8 +2184,10 @@ export async function registerRoutes(
 
     const PITCHER_POSITIONS = ["P", "SP", "RP", "CL", "CP", "LHP", "RHP"];
     const isPitcher = PITCHER_POSITIONS.includes(recruit.position || "");
-    const stage    = recruit.stage || 1;
-    const stars    = recruit.stars || 2;
+    // Map string stage to numeric pipeline index (open=0 … signed=5)
+    const STAGE_ORDER = ["open", "top8", "top5", "top3", "verbal", "signed"];
+    const stageIndex = STAGE_ORDER.indexOf((recruit.stage || "open").toLowerCase());
+    const stars    = recruit.starRating || 2;
     const isBlueChip = !!recruit.isBlueChip;
     const academicsPriority  = recruit.academicsPriority  || "Somewhat";
     const reputationPriority = recruit.reputationPriority || "Somewhat";
@@ -2226,8 +2228,8 @@ export async function registerRoutes(
       switch (statement) {
         // ── Balanced philosophies ─────────────────────────────────────────────
         case "Recruit for the Long Term":
-          // Early-pipeline email/phone (stages 1-3) get a relationship-depth bonus
-          if (isEmailPhone && stage <= 3) base = 0.10;
+          // Early-pipeline email/phone (open/top8/top5 = indices 0-2) get a relationship-depth bonus
+          if (isEmailPhone && stageIndex <= 2) base = 0.10;
           break;
         case "Build Team Chemistry":
           // Campus visits benefit from the team-culture sell
@@ -2264,8 +2266,8 @@ export async function registerRoutes(
           else if (isEmailPhone) base = 0.04;
           break;
         case "Trust the Process":
-          // Recruits already in mid-pipeline (stage 3+) are more receptive
-          if ((isEmailPhone || isOffer) && stage >= 3) base = 0.07;
+          // Recruits already in mid-pipeline (top5+ = indices 2+) are more receptive
+          if ((isEmailPhone || isOffer) && stageIndex >= 2) base = 0.07;
           break;
 
         // ── Tactician philosophies ────────────────────────────────────────────
@@ -2344,8 +2346,8 @@ export async function registerRoutes(
           }
           break;
         case "Close Every Deal":
-          // Late-stage recruits (stage 4+) respond to any action with higher intent
-          if (stage >= 4) base = 0.07;
+          // Late-stage recruits (top3+ = indices 3+) respond to any action with higher intent
+          if (stageIndex >= 3) base = 0.07;
           break;
       }
 
@@ -2387,7 +2389,7 @@ export async function registerRoutes(
     if (philosophy.length === 0) return { revealBonus: 0, narrowBonus: 0 };
 
     const importanceScale: Record<string, number> = { extremely: 1.0, very: 0.67, somewhat: 0.33 };
-    const stars = recruit?.stars || 2;
+    const stars = recruit?.starRating || 2;
     const isLowStar = stars <= 2;
 
     let revealBonus = 0;

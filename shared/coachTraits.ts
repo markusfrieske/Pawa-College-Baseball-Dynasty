@@ -350,7 +350,7 @@ export const PHILOSOPHY_DESCRIPTIONS: Record<string, string> = {
   "Build a National Brand":      "+7% bonus on all actions with out-of-state recruits",
   "Player Development First":    "+14% email/phone for development-minded recruits; +6% for all others; improves potential range reveal",
   "Positive Culture":            "+12% campus visit; +4% email/phone; +8% transfer retention chance",
-  "Trust the Process":           "+7% on all actions with recruits at stage 3+; +4% retention bonus",
+  "Trust the Process":           "+7% email/phone/offer gain with mid-pipeline recruits (stage 3+); +4% retention bonus",
   "Pitching Wins Championships": "+14% head coach visit bonus with pitching recruits",
   "Game Management Mastery":     "+12% head coach visit effectiveness overall",
   "Exploit Every Matchup":       "+5% email/phone; +4% scouting reveal; improved potential narrowing",
