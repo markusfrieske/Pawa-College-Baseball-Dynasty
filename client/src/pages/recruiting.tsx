@@ -3393,11 +3393,11 @@ function RecruitRow({
             );
           })()}
           {/* Divider between transfer stats and attribute grades */}
-          {hasTransferStats && scoutPct > 0 && (
+          {hasTransferStats && (
             <div className="w-px h-3 bg-border/40 self-center" />
           )}
-          {/* Attribute letter grades (fog of war: "?" for un-scouted) */}
-          {scoutPct > 0 && previewAttrFields.map(({ label, key, val }) => {
+          {/* Attribute letter grades — always shown; "?" for un-scouted attrs */}
+          {previewAttrFields.map(({ label, key, val }) => {
             const revealed = isAttrRevealed(key);
             const grade = (revealed && val != null) ? getLetterGrade(val) : null;
             return (
