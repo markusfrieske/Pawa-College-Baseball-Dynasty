@@ -570,7 +570,7 @@ export default function RecruitingPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
-      setActionResultModal({ title: "Scouting Complete", description: "New attributes revealed!", type: "success", icon: "scout" });
+      setActionResultModal({ title: "Scouting Complete", description: "Scouting progress updated.", type: "success", icon: "scout" });
     },
     onError: (error: Error) => {
       setActionResultModal({ title: "Scouting Failed", description: parseErrorMessage(error), type: "error" });
@@ -653,7 +653,24 @@ export default function RecruitingPage() {
       const res = await apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/visit`, {});
       return await res.json();
     },
-    onSuccess: (data: any) => {
+    onSuccess: (data: any, recruitId: string) => {
+      queryClient.setQueryData(["/api/leagues", id, "recruiting"], (old: any) => {
+        if (!old) return old;
+        const premiumActionsUsed = { ...old.premiumActionsUsed };
+        if (!premiumActionsUsed[recruitId]) premiumActionsUsed[recruitId] = [];
+        if (!premiumActionsUsed[recruitId].includes("visit")) {
+          premiumActionsUsed[recruitId] = [...premiumActionsUsed[recruitId], "visit"];
+        }
+        return {
+          ...old,
+          premiumActionsUsed,
+          seasonVisitCount: {
+            ...old.seasonVisitCount,
+            total: (old.seasonVisitCount?.total ?? 0) + 1,
+            campusVisits: (old.seasonVisitCount?.campusVisits ?? 0) + 1,
+          },
+        };
+      });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
       const gain = data.interestGain || 0;
       const changeLabel = getInterestChangeLabel(gain);
@@ -669,7 +686,24 @@ export default function RecruitingPage() {
       const res = await apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/head-coach-visit`, {});
       return await res.json();
     },
-    onSuccess: (data: any) => {
+    onSuccess: (data: any, recruitId: string) => {
+      queryClient.setQueryData(["/api/leagues", id, "recruiting"], (old: any) => {
+        if (!old) return old;
+        const premiumActionsUsed = { ...old.premiumActionsUsed };
+        if (!premiumActionsUsed[recruitId]) premiumActionsUsed[recruitId] = [];
+        if (!premiumActionsUsed[recruitId].includes("head_coach_visit")) {
+          premiumActionsUsed[recruitId] = [...premiumActionsUsed[recruitId], "head_coach_visit"];
+        }
+        return {
+          ...old,
+          premiumActionsUsed,
+          seasonVisitCount: {
+            ...old.seasonVisitCount,
+            total: (old.seasonVisitCount?.total ?? 0) + 1,
+            hcVisits: (old.seasonVisitCount?.hcVisits ?? 0) + 1,
+          },
+        };
+      });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
       const gain = data.interestGain || 0;
       const changeLabel = getInterestChangeLabel(gain);
