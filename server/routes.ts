@@ -12468,8 +12468,11 @@ export async function registerRoutes(
         
         const higherOrEqual = allOvrs.filter(o => o >= ovr);
         const classRank = Math.max(1, higherOrEqual.indexOf(ovr) + 1 || higherOrEqual.length);
-        const posOvrs = [...existingRecruits.filter(r => r.position === player.position).map(r => r.overall || 0), ovr].sort((a, b) => b - a);
-        const posRank = Math.max(1, posOvrs.indexOf(ovr) + 1);
+        // positionRank is display-based (fog-of-war): rank among same-position recruits
+        // by displayed starRating descending.  OVR is not used here so gems/busts
+        // appear at the rank coaches would expect from their star badges.
+        const posRecruits = existingRecruits.filter(r => r.position === player.position);
+        const posRank = posRecruits.filter(r => (r.starRating || 0) > starRating).length + 1;
         
         const validEligibilities = ["FR", "SO", "JR", "SR", "RS"];
         const recruitYear = validEligibilities.includes(player.eligibility) ? player.eligibility : "SO";
@@ -14637,7 +14640,9 @@ export async function registerRoutes(
         const currentRecruits = await storage.getRecruitsByLeague(leagueId);
         const classRank = currentRecruits.filter(r => (r.overall || 0) >= boostedOverall).length + 1;
         const posRecruits = currentRecruits.filter(r => r.position === walkon.position);
-        const posRank = posRecruits.filter(r => (r.overall || 0) >= boostedOverall).length + 1;
+        // positionRank is display-based: rank among same-position recruits by
+        // displayed starRating, not true OVR.
+        const posRank = posRecruits.filter(r => (r.starRating || 0) > walkonStarRating).length + 1;
 
         const jucoRecruit = await storage.createRecruit({
           leagueId,

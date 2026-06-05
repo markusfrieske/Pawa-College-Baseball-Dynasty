@@ -1192,10 +1192,31 @@ export function generateRecruitClass(
     });
   }
 
-  // Post-processing: apply position-scarcity NIL multiplier.
-  // Group recruits by position, sort best-first by OVR, then give the
-  // top-ranked players at each spot a market premium and the deep-bench
-  // players a slight discount — mirroring how real NIL markets price scarcity.
+  // Post-processing pass 1: assign display-based positionRank (fog-of-war).
+  // Coaches see position rank based on displayed star rating + class rank as
+  // tiebreaker — not true OVR.  A hidden gem appears lower in the position
+  // pecking order than their talent warrants; a bust appears higher.
+  {
+    const byPosition = new Map<string, typeof out>();
+    for (const r of out) {
+      const pos = r.position ?? "SP";
+      if (!byPosition.has(pos)) byPosition.set(pos, []);
+      byPosition.get(pos)!.push(r);
+    }
+    for (const group of byPosition.values()) {
+      // Sort by displayed star descending, then classRank ascending as tiebreaker
+      group.sort((a, b) => {
+        const starDiff = (b.starRating ?? 0) - (a.starRating ?? 0);
+        if (starDiff !== 0) return starDiff;
+        return (a.classRank ?? 999) - (b.classRank ?? 999);
+      });
+      group.forEach((r, idx) => { r.positionRank = idx + 1; });
+    }
+  }
+
+  // Post-processing pass 2: apply position-scarcity NIL multiplier.
+  // NIL markets reflect real talent demand, so the multiplier uses true OVR
+  // ordering — not the displayed fog-of-war rank.
   {
     const byPosition = new Map<string, typeof out>();
     for (const r of out) {
@@ -1206,10 +1227,8 @@ export function generateRecruitClass(
     for (const group of byPosition.values()) {
       group.sort((a, b) => (b.overall ?? 0) - (a.overall ?? 0));
       group.forEach((r, idx) => {
-        const rank = idx + 1;
-        // Update the stored position rank to reflect true OVR ordering
-        r.positionRank = rank;
         if (r.isGenerationalBust) return; // NIL override is already set
+        const rank = idx + 1;
         let mult: number;
         if (rank <= 2)       mult = 1.35 + Math.random() * 0.10; // #1–#2: 1.35–1.45×
         else if (rank <= 5)  mult = 1.10 + Math.random() * 0.10; // #3–#5: 1.10–1.20×
