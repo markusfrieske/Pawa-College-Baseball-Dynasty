@@ -3436,16 +3436,21 @@ function RecruitRow({
           {hasTransferStats && (
             <div className="w-px h-3 bg-border/40 self-center" />
           )}
-          {/* Attribute letter grades — always shown; "?" for un-scouted attrs */}
+          {/* Attribute letter grades — always shown; lock for 100%-scouted locked attrs; "?" for unknown */}
           {previewAttrFields.map(({ label, key, val }) => {
             const revealed = isAttrRevealed(key);
             const grade = (revealed && val != null) ? getLetterGrade(val) : null;
+            const isSigningDayLocked = !revealed && sdAttrSet.has(key) && scoutPct >= 100;
             return (
               <div key={key} className="flex items-center gap-0.5">
                 <span className="text-[8px] text-muted-foreground/60 font-mono">{label}</span>
-                <span className="font-pixel text-[9px] font-bold" style={{ color: grade ? (ATTR_GRADE_COLORS[grade.tier] || "#9ca3af") : "#374151" }}>
-                  {grade ? grade.letter : "?"}
-                </span>
+                {isSigningDayLocked ? (
+                  <Lock className="w-2.5 h-2.5 text-gold/50" />
+                ) : (
+                  <span className="font-pixel text-[9px] font-bold" style={{ color: grade ? (ATTR_GRADE_COLORS[grade.tier] || "#9ca3af") : "#374151" }}>
+                    {grade ? grade.letter : "?"}
+                  </span>
+                )}
               </div>
             );
           })}
@@ -3884,12 +3889,17 @@ function RecruitDetailModal({
       {modalPreviewFields.map(({ label, key, val }) => {
         const revealed = isModalAttrRevealed(key);
         const grade = (revealed && val != null) ? getLetterGrade(val) : null;
+        const isSigningDayLocked = !revealed && sdLocked.has(key) && scoutPct >= 100;
         return (
           <div key={key} className="flex items-center gap-0.5">
             <span className="text-[9px] text-muted-foreground/60 font-mono">{label}</span>
-            <span className="font-pixel text-[10px] font-bold" style={{ color: grade ? (MODAL_GRADE_COLORS[grade.tier] || "#9ca3af") : "#374151" }}>
-              {grade ? grade.letter : "?"}
-            </span>
+            {isSigningDayLocked ? (
+              <Lock className="w-2.5 h-2.5 text-gold/50" />
+            ) : (
+              <span className="font-pixel text-[10px] font-bold" style={{ color: grade ? (MODAL_GRADE_COLORS[grade.tier] || "#9ca3af") : "#374151" }}>
+                {grade ? grade.letter : "?"}
+              </span>
+            )}
           </div>
         );
       })}
