@@ -23,11 +23,31 @@ const CLASS_SIZE = 80;
 const CANONICAL_NAMES = new Set(ALL_ABILITIES.map(a => a.name));
 const OUTFIELD_POSITIONS = new Set(["OF", "LF", "CF", "RF"]);
 
+// ── Star-relative OVR band tables ──────────────────────────────────────────
+// Each archetype's OVR must fall within the expected [lo, hi] for the recruit's
+// *displayed* starRating. These mirror the clamp logic in recruit-generator.ts.
+const GEM_OVR_BANDS: Record<number, [number, number]> = {
+  1: [300, 399], 2: [400, 499], 3: [500, 539], 4: [540, 599],
+};
+const BUST_OVR_BANDS: Record<number, [number, number]> = {
+  3: [150, 199], 4: [200, 299], 5: [300, 399],
+};
+const GEN_GEM_OVR_BANDS: Record<number, [number, number]> = {
+  1: [400, 499], 2: [500, 539], 3: [540, 599],
+};
+const GEN_BUST_OVR_BANDS: Record<number, [number, number]> = {
+  3: [150, 199], 4: [150, 199], 5: [200, 299],
+};
+const NORMAL_OVR_BANDS: Record<number, [number, number]> = {
+  1: [150, 299], 2: [150, 399], 3: [200, 499], 4: [300, 539], 5: [400, 539],
+};
+
 interface Violation {
-  kind: "position-mismatch" | "unknown-ability" | "duplicate-ability";
+  kind: "position-mismatch" | "unknown-ability" | "duplicate-ability" | "ovr-band";
   recruitName: string;
   position: string;
   ability: string;
+  detail?: string;
 }
 
 const violations: Violation[] = [];
@@ -41,6 +61,48 @@ for (let c = 0; c < SAMPLE_CLASSES; c++) {
     const pos = recruit.position ?? "SP";
     const playerName = `${recruit.firstName} ${recruit.lastName}`;
     const abilities: string[] = recruit.abilities ?? [];
+    const ovr = recruit.overall ?? 0;
+    const star = recruit.starRating ?? 3;
+
+    // ── OVR band check ────────────────────────────────────────────────────
+    const checkBand = (bands: Record<number, [number, number]>, label: string) => {
+      const range = bands[star];
+      if (!range) return; // star rank not in table (e.g. 5★ gem doesn't exist) — skip
+      const [lo, hi] = range;
+      if (ovr < lo || ovr > hi) {
+        violations.push({
+          kind: "ovr-band",
+          recruitName: playerName,
+          position: pos,
+          ability: "",
+          detail: `${label} ${star}★ OVR=${ovr} outside expected [${lo}–${hi}]`,
+        });
+      }
+    };
+
+    const isGenGem  = (recruit as any).isGenerationalGem  === true;
+    const isGenBust = (recruit as any).isGenerationalBust === true;
+
+    if (isGenGem) {
+      checkBand(GEN_GEM_OVR_BANDS, "GenGem");
+    } else if (isGenBust) {
+      checkBand(GEN_BUST_OVR_BANDS, "GenBust");
+    } else if (recruit.isBlueChip) {
+      if (ovr < 540 || ovr > 599) {
+        violations.push({
+          kind: "ovr-band", recruitName: playerName, position: pos, ability: "",
+          detail: `BlueChip OVR=${ovr} outside expected [540–599]`,
+        });
+      }
+    } else if (recruit.isGem) {
+      checkBand(GEM_OVR_BANDS, "Gem");
+    } else if (recruit.isBust) {
+      checkBand(BUST_OVR_BANDS, "Bust");
+    } else if ((recruit as any).playerArchetype === "normal") {
+      // Normal player — verify ±1-tier OVR range
+      checkBand(NORMAL_OVR_BANDS, "Normal");
+    }
+    // late_bloomer, overdraft, raw: no OVR band check (complex interaction with attr depression/inflation)
 
     const validForPosition = new Set(
       getAbilitiesForPosition(pos).map(a => a.name)
@@ -66,6 +128,7 @@ for (let c = 0; c < SAMPLE_CLASSES; c++) {
 const mismatchViolations = violations.filter(v => v.kind === "position-mismatch");
 const unknownViolations = violations.filter(v => v.kind === "unknown-ability");
 const duplicateViolations = violations.filter(v => v.kind === "duplicate-ability");
+const ovrBandViolations = violations.filter(v => v.kind === "ovr-band");
 
 // Laser Beam non-outfield violations (subset of mismatch — explicit call-out)
 const laserBeamViolations = mismatchViolations.filter(
@@ -79,6 +142,13 @@ if (violations.length === 0) {
     "✓ All generated recruit abilities are valid, position-appropriate, and deduplicated."
   );
   process.exit(0);
+}
+
+if (ovrBandViolations.length > 0) {
+  console.error(`\n✗ Found ${ovrBandViolations.length} OVR band violation(s) — archetype OVR outside star-relative range:`);
+  for (const v of ovrBandViolations.slice(0, 20)) {
+    console.error(`  ${v.recruitName} (${v.position}): ${v.detail}`);
+  }
 }
 
 if (unknownViolations.length > 0) {

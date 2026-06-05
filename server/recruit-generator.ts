@@ -1129,6 +1129,14 @@ export function generateRecruitClass(
         overall = Math.max(150, overall - 5);
       }
     }
+    // Re-apply archetype floors after gold gate (gate penalty cannot push below archetype floor)
+    if (isGem && !isGenerationalGem) {
+      const gemFloors: Record<number, number> = { 1: 300, 2: 400, 3: 500, 4: 540 };
+      overall = Math.max(gemFloors[starRank] ?? 500, overall);
+    } else if (isBust && !isGenerationalBust) {
+      const bustFloors: Record<number, number> = { 3: 150, 4: 200, 5: 300 };
+      overall = Math.max(bustFloors[starRank] ?? 200, overall);
+    }
     // ─── Wizard OVR hard clamp (post all star/archetype/gate adjustments) ────
     // Exempt: generational gems, generational busts, blue chips (fixed OVR bands).
     // For all other recruits, enforce the user-specified [ovrMin, ovrMax] range.
