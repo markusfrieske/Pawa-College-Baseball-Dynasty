@@ -141,7 +141,8 @@ async function autoAssignLineup(storage: any, teamPlayers: Player[], teamId: str
   for (const pos of positionSlots) {
     let candidates: Player[];
     if (OF_POSITIONS.includes(pos)) {
-      candidates = positionPlayers.filter(p => (p.position === pos || p.position === "OF") && !usedIds.has(p.id));
+      // All OF-eligible labels (LF, CF, RF, OF) compete for each outfield slot
+      candidates = positionPlayers.filter(p => (OF_POSITIONS.includes(p.position) || p.position === "OF") && !usedIds.has(p.id));
     } else {
       candidates = positionPlayers.filter(p => p.position === pos && !usedIds.has(p.id));
     }
@@ -184,17 +185,17 @@ async function autoAssignLineup(storage: any, teamPlayers: Player[], teamId: str
   const bestHitterFn = (p: Player) => (p.hitForAvg || 0) * 0.40 + (p.power || 0) * 0.35 + (p.speed || 0) * 0.15 + (p.clutch || 0) * 0.10;
   const offensiveFn  = (p: Player) => (p.hitForAvg || 0) * 0.40 + (p.power || 0) * 0.35 + (p.speed || 0) * 0.15 + (p.clutch || 0) * 0.10;
 
-  // Slot 1 — Leadoff: speed + contact + clutch
-  slotAssignments.push(pickBest(p => (p.speed || 0) * 0.45 + (p.hitForAvg || 0) * 0.45 + (p.clutch || 0) * 0.10));
+  // Slot 2 — Best hitter FIRST (modern "best hitter bats second" — must be selected before leadoff)
+  slotAssignments[1] = pickBest(bestHitterFn);
 
-  // Slot 2 — Best hitter (modern "best hitter bats second")
-  slotAssignments.push(pickBest(bestHitterFn));
+  // Slot 3 — Second-best bat (same composite as slot 2, from remaining after slot 2 is pulled)
+  slotAssignments[2] = pickBest(bestHitterFn);
 
-  // Slot 3 — Second-best bat (same composite as slot 2)
-  slotAssignments.push(pickBest(bestHitterFn));
+  // Slot 1 — Leadoff: speed + contact + clutch (from remaining, so the best composite bat stays at 2)
+  slotAssignments[0] = pickBest(p => (p.speed || 0) * 0.45 + (p.hitForAvg || 0) * 0.45 + (p.clutch || 0) * 0.10);
 
   // Slot 4 — Cleanup: power + clutch heavy
-  slotAssignments.push(pickBest(p => (p.power || 0) * 0.55 + (p.clutch || 0) * 0.30 + (p.hitForAvg || 0) * 0.15));
+  slotAssignments[3] = pickBest(p => (p.power || 0) * 0.55 + (p.clutch || 0) * 0.30 + (p.hitForAvg || 0) * 0.15);
 
   // Slot 5 — Balanced
   slotAssignments.push(pickBest(p => (p.hitForAvg || 0) * 0.35 + (p.power || 0) * 0.40 + (p.clutch || 0) * 0.15 + (p.speed || 0) * 0.10));
@@ -7386,14 +7387,15 @@ export async function registerRoutes(
           playerDisplayPos.set(candidates[0].id, pos);
         };
 
-        pickForPos("C",  p => (p.hitForAvg || 0) + (p.power || 0));
-        pickForPos("1B", p => (p.hitForAvg || 0) + (p.power || 0));
+        pickForPos("C",  p => (p.overall || 0));
+        pickForPos("1B", p => (p.overall || 0));
         pickForPos("2B", p => (p.fielding || 0) * 0.5 + (p.speed || 0) * 0.3 + (p.overall || 0) * 0.2);
         pickForPos("3B", p => (p.arm || 0) * 0.4 + (p.fielding || 0) * 0.35 + (p.overall || 0) * 0.25);
         pickForPos("SS", p => (p.fielding || 0) * 0.5 + (p.arm || 0) * 0.5);
 
         // ── Outfield: CF (speed+fielding) → RF (arm) → LF (bat-first) ───────
-        const ofCandidates = positionPlayers.filter(p => p.position === "OF" && !used.has(p.id));
+        // Include all OF-eligible labels (LF, CF, RF, and generic OF)
+        const ofCandidates = positionPlayers.filter(p => (p.position === "OF" || p.position === "LF" || p.position === "CF" || p.position === "RF") && !used.has(p.id));
         if (ofCandidates.length > 0) {
           ofCandidates.sort((a, b) => ((b.speed || 0) * 0.5 + (b.fielding || 0) * 0.5) - ((a.speed || 0) * 0.5 + (a.fielding || 0) * 0.5));
           const cf = ofCandidates.shift()!;
@@ -7450,10 +7452,10 @@ export async function registerRoutes(
           return avail[0];
         };
 
-        ordered[3] = pickSlot(cleanupScore);           // 4-hole: cleanup
+        ordered[1] = pickSlot(bestHitterScore);        // 2-hole: best hitter (assigned first)
         ordered[2] = pickSlot(bestHitterScore);        // 3-hole: second-best bat
-        ordered[0] = pickSlot(leadoffScore);           // leadoff
-        ordered[1] = pickSlot(bestHitterScore);        // 2-hole: best remaining hitter
+        ordered[0] = pickSlot(leadoffScore);           // leadoff: from remaining
+        ordered[3] = pickSlot(cleanupScore);           // 4-hole: cleanup
         ordered[4] = pickSlot(cleanupScore);           // 5-hole: second power bat
         ordered[8] = pickSlot(slot9Score);             // 9-hole: second leadoff
         ordered[7] = pickSlot(offensiveScore, true);   // 8-hole: weakest bat
