@@ -95,7 +95,7 @@ function CommitMiniCard({ commit }: { commit: CommitInfo }) {
           <span className="text-xs text-white truncate">
             {commit.firstName} {commit.lastName}
           </span>
-          <Badge variant="outline" className="text-[9px] px-1 py-0 h-4">
+          <Badge variant="outline" className="text-xs px-1 py-0 h-4">
             {commit.recruitType}
           </Badge>
         </div>
@@ -104,7 +104,7 @@ function CommitMiniCard({ commit }: { commit: CommitInfo }) {
           <StarRating rating={commit.starRating} size="sm" />
         </div>
       </div>
-      <div className="text-right text-[10px] text-gray-400">
+      <div className="text-right text-xs text-gray-400">
         <div className="flex items-center gap-1">
           <MapPin className="w-3 h-3" />
           {commit.homeState}

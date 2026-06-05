@@ -475,32 +475,32 @@ function RevealCardFront({ recruit, primaryColor, signingTeamAbbrev, signingTeam
       {signingTeamAbbrev && (
         <div style={{
           background: signingTeamColor || primaryColor,
-          height: "13px",
+          height: "18px",
           display: "flex",
           alignItems: "center",
-          padding: "0 5px",
+          padding: "0 7px",
           flexShrink: 0,
           borderBottom: "1px solid rgba(0,0,0,0.2)",
         }}>
-          <span className="font-pixel" style={{ fontSize: "5.5px", color: "#fff", letterSpacing: "0.06em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <span className="font-pixel" style={{ fontSize: "8px", color: "#fff", letterSpacing: "0.06em", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {signingTeamAbbrev}
           </span>
         </div>
       )}
 
       {/* Position + Rank */}
-      <div style={{ background: posColor, height: "22px", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 7px", flexShrink: 0 }}>
-        <span className="font-pixel" style={{ fontSize: "8px", color: "#fff", fontWeight: "bold" }} data-testid={`card-position-${recruit.id}`}>
+      <div style={{ background: posColor, height: "28px", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 9px", flexShrink: 0 }}>
+        <span className="font-pixel" style={{ fontSize: "11px", color: "#fff", fontWeight: "bold" }} data-testid={`card-position-${recruit.id}`}>
           {recruit.position}
         </span>
-        <span className="font-pixel" style={{ fontSize: "7px", color: "rgba(255,255,255,0.9)", display: "flex", alignItems: "center", gap: "2px" }}>
-          {recruit.isBlueChip && !isGen && !isGenBust && <Crown style={{ width: "9px", height: "9px" }} />}
+        <span className="font-pixel" style={{ fontSize: "10px", color: "rgba(255,255,255,0.9)", display: "flex", alignItems: "center", gap: "3px" }}>
+          {recruit.isBlueChip && !isGen && !isGenBust && <Crown style={{ width: "12px", height: "12px" }} />}
           {recruit.classRank > 0 ? `#${recruit.classRank}` : ""}
         </span>
       </div>
 
       {/* Stars */}
-      <div style={{ height: "18px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, background: "#f0ebe0", borderBottom: "1px solid #ddd8cc" }}>
+      <div style={{ height: "24px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, background: "#f0ebe0", borderBottom: "1px solid #ddd8cc" }}>
         <StarRating rating={recruit.starRating} size="sm" />
       </div>
 
@@ -517,10 +517,10 @@ function RevealCardFront({ recruit, primaryColor, signingTeamAbbrev, signingTeam
       </div>
 
       {/* Type badge */}
-      <div style={{ display: "flex", justifyContent: "center", padding: "3px 6px", background: "#f0ebe0", flexShrink: 0 }}>
+      <div style={{ display: "flex", justifyContent: "center", padding: "4px 8px", background: "#f0ebe0", flexShrink: 0 }}>
         <span
           className={`font-pixel ${badgePulse ? "animate-pulse" : ""}`}
-          style={{ fontSize: "6px", padding: "2px 5px", borderRadius: "3px", background: badgeBg, color: badgeColor }}
+          style={{ fontSize: "9px", padding: "3px 7px", borderRadius: "3px", background: badgeBg, color: badgeColor }}
           data-testid={`card-type-badge-${recruit.id}`}
         >
           {badgeLabel}
@@ -528,25 +528,25 @@ function RevealCardFront({ recruit, primaryColor, signingTeamAbbrev, signingTeam
       </div>
 
       {/* Name */}
-      <div style={{ background: "#1a1a1a", padding: "3px 7px", flexShrink: 0 }}>
-        <div className="font-pixel" style={{ fontSize: "7px", color: "#f5f0e6", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+      <div style={{ background: "#1a1a1a", padding: "4px 9px", flexShrink: 0 }}>
+        <div className="font-pixel" style={{ fontSize: "9px", color: "#f5f0e6", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {recruit.firstName} {recruit.lastName}
         </div>
       </div>
 
       {/* Handedness */}
-      <div style={{ background: "#111", padding: "2px 7px", flexShrink: 0 }}>
-        <span style={{ fontSize: "7px", color: "#6b7280", fontFamily: "monospace" }}>
+      <div style={{ background: "#111", padding: "3px 9px", flexShrink: 0 }}>
+        <span style={{ fontSize: "10px", color: "#6b7280", fontFamily: "monospace" }}>
           B:{batHand} · T:{throwHand}
         </span>
       </div>
 
       {/* Location + OVR */}
-      <div style={{ background: "#0d0d0d", padding: "3px 7px 5px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
-        <span style={{ fontSize: "7px", color: "#9ca3af", fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "88px" }}>
+      <div style={{ background: "#0d0d0d", padding: "4px 9px 6px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+        <span style={{ fontSize: "9px", color: "#9ca3af", fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "120px" }}>
           {location}
         </span>
-        <span className="font-pixel" style={{ fontSize: "10px", fontWeight: "bold", color: ovrColor, flexShrink: 0 }} data-testid={`card-ovr-${recruit.id}`}>
+        <span className="font-pixel" style={{ fontSize: "13px", fontWeight: "bold", color: ovrColor, flexShrink: 0 }} data-testid={`card-ovr-${recruit.id}`}>
           {recruit.overall}
         </span>
       </div>
@@ -676,45 +676,45 @@ function RevealCardBack({ recruit }: { recruit: RevealRecruit }) {
       style={{ background: "linear-gradient(160deg, #0d1f0d 0%, #162616 50%, #1a2e1a 100%)", borderRadius: "8px" }}
     >
       {/* Header: name / pos·ovr | stars + potential */}
-      <div className="px-2 py-1 border-b border-[#2d3d2d] flex items-center justify-between gap-1 shrink-0">
+      <div className="px-2.5 py-1.5 border-b border-[#2d3d2d] flex items-center justify-between gap-1 shrink-0">
         <div className="min-w-0">
-          <div className="font-pixel text-[6.5px] text-[#C4A35A] truncate leading-tight">
+          <div className="font-pixel text-[9px] text-[#C4A35A] truncate leading-tight">
             {recruit.firstName} {recruit.lastName}
           </div>
-          <div className="text-[6px] text-gray-500 leading-tight">{recruit.position} · {recruit.overall} OVR</div>
+          <div className="text-[9px] text-gray-500 leading-tight">{recruit.position} · {recruit.overall} OVR</div>
         </div>
         <div className="flex flex-col items-end gap-0.5 shrink-0">
           <StarRating rating={recruit.starRating} size="sm" />
-          <span className="font-pixel text-[6px] text-[#C4A35A] leading-none">POT {potGrade}</span>
+          <span className="font-pixel text-[9px] text-[#C4A35A] leading-none">POT {potGrade}</span>
         </div>
       </div>
 
       {/* Type badge + blue chip */}
-      <div className="px-2 pt-1 pb-0.5 flex items-center gap-1 flex-wrap shrink-0">
+      <div className="px-2.5 pt-1 pb-0.5 flex items-center gap-1 flex-wrap shrink-0">
         <span
-          className={`font-pixel text-[5.5px] px-1 py-0.5 rounded leading-none ${badgePulse ? "animate-pulse" : ""}`}
+          className={`font-pixel text-[8px] px-1.5 py-0.5 rounded leading-none ${badgePulse ? "animate-pulse" : ""}`}
           style={{ background: badgeBg, color: badgeColor }}
         >
           {badgeLabel}
         </span>
         {recruit.isBlueChip && !isGen && !isGenBust && (
-          <span className="font-pixel text-[5.5px] text-blue-400 flex items-center gap-0.5 leading-none">
-            <Crown className="w-2 h-2" />BLUE CHIP
+          <span className="font-pixel text-[8px] text-blue-400 flex items-center gap-0.5 leading-none">
+            <Crown className="w-3 h-3" />BLUE CHIP
           </span>
         )}
       </div>
 
       {/* Primary attributes: label | grade | numeric value */}
-      <div className="px-2 pt-1 pb-0.5 border-t border-[#2d3d2d] shrink-0">
-        <div className="text-[5px] text-gray-600 uppercase mb-0.5 leading-none tracking-wide">Attributes</div>
+      <div className="px-2.5 pt-1 pb-0.5 border-t border-[#2d3d2d] shrink-0">
+        <div className="text-[8px] text-gray-600 uppercase mb-0.5 leading-none tracking-wide">Attributes</div>
         <div className="grid grid-cols-2 gap-x-2 gap-y-0.5">
           {primaryAttrs.map(({ label, val }) => {
             const { letter, tier } = getLetterGrade(val);
             return (
-              <div key={label} className="flex items-center gap-0.5">
-                <span className="text-[5.5px] text-gray-500 w-[16px] leading-none font-mono shrink-0">{label}</span>
-                <span className="font-pixel text-[7px] font-bold w-[10px] leading-none shrink-0" style={{ color: tierColors[tier] }}>{letter}</span>
-                <span className="text-[6px] text-gray-400 leading-none font-mono">{val}</span>
+              <div key={label} className="flex items-center gap-1">
+                <span className="text-[9px] text-gray-500 w-[22px] leading-none font-mono shrink-0">{label}</span>
+                <span className="font-pixel text-[10px] font-bold w-[13px] leading-none shrink-0" style={{ color: tierColors[tier] }}>{letter}</span>
+                <span className="text-[9px] text-gray-400 leading-none font-mono">{val}</span>
               </div>
             );
           })}
@@ -722,19 +722,19 @@ function RevealCardBack({ recruit }: { recruit: RevealRecruit }) {
       </div>
 
       {/* Common abilities: label | ability name (if applicable) | grade */}
-      <div className="px-2 pt-1 pb-0.5 border-t border-[#1a2e1a] shrink-0">
-        <div className="text-[5px] text-gray-600 uppercase mb-0.5 leading-none tracking-wide">Common</div>
+      <div className="px-2.5 pt-1 pb-0.5 border-t border-[#1a2e1a] shrink-0">
+        <div className="text-[8px] text-gray-600 uppercase mb-0.5 leading-none tracking-wide">Common</div>
         <div className="flex flex-col gap-0.5">
           {commonAbils.map(({ label, val, key }) => {
             const { letter, tier } = getLetterGrade(val);
             const abilName = attrToAbility[key];
             return (
-              <div key={label} className="flex items-center gap-0.5">
-                <span className="text-[5.5px] text-gray-500 w-[17px] leading-none font-mono shrink-0">{label}</span>
-                <span className="font-pixel text-[5px] text-amber-400/80 flex-1 truncate leading-none min-w-0">
-                  {abilName ? (abilName.length > 14 ? abilName.slice(0, 14) + "…" : abilName) : ""}
+              <div key={label} className="flex items-center gap-1">
+                <span className="text-[9px] text-gray-500 w-[22px] leading-none font-mono shrink-0">{label}</span>
+                <span className="font-pixel text-[8px] text-amber-400/80 flex-1 truncate leading-none min-w-0">
+                  {abilName ? (abilName.length > 11 ? abilName.slice(0, 11) + "…" : abilName) : ""}
                 </span>
-                <span className="font-pixel text-[7px] font-bold leading-none shrink-0 ml-0.5" style={{ color: commonTierColors[tier] }}>{letter}</span>
+                <span className="font-pixel text-[10px] font-bold leading-none shrink-0 ml-0.5" style={{ color: commonTierColors[tier] }}>{letter}</span>
               </div>
             );
           })}
@@ -742,15 +742,15 @@ function RevealCardBack({ recruit }: { recruit: RevealRecruit }) {
       </div>
 
       {/* Special abilities: gold/blue/red named badges */}
-      <div className="px-2 pt-1 pb-1 border-t border-[#1a2e1a] flex-1 min-h-0">
-        <div className="text-[5px] text-gray-600 uppercase mb-0.5 leading-none tracking-wide flex items-center gap-0.5">
-          <Zap className="w-2 h-2" />Special
+      <div className="px-2.5 pt-1 pb-1.5 border-t border-[#1a2e1a] flex-1 min-h-0">
+        <div className="text-[8px] text-gray-600 uppercase mb-1 leading-none tracking-wide flex items-center gap-0.5">
+          <Zap className="w-2.5 h-2.5" />Special
         </div>
         {specialAbilities.length === 0 ? (
-          <div className="text-[5.5px] text-gray-600 italic">None</div>
+          <div className="text-[9px] text-gray-600 italic">None</div>
         ) : (
-          <div className="flex flex-wrap gap-0.5">
-            {specialAbilities.slice(0, 6).map(name => {
+          <div className="flex flex-wrap gap-1">
+            {specialAbilities.slice(0, 5).map(name => {
               const a = getAbilityByName(name);
               if (!a) return null;
               const tierColor = a.tier === "gold"
@@ -759,13 +759,13 @@ function RevealCardBack({ recruit }: { recruit: RevealRecruit }) {
                 ? "text-blue-400 border-blue-500/40"
                 : "text-red-400 border-red-500/40";
               return (
-                <span key={name} className={`text-[5px] border rounded px-0.5 font-pixel leading-tight ${tierColor}`}>
-                  {name.length > 13 ? name.slice(0, 13) + "…" : name}
+                <span key={name} className={`text-[8px] border rounded px-1 py-0.5 font-pixel leading-tight ${tierColor}`}>
+                  {name.length > 11 ? name.slice(0, 11) + "…" : name}
                 </span>
               );
             })}
-            {specialAbilities.length > 6 && (
-              <span className="text-[5.5px] text-gray-500 leading-none">+{specialAbilities.length - 6} more</span>
+            {specialAbilities.length > 5 && (
+              <span className="text-[9px] text-gray-500 leading-none">+{specialAbilities.length - 5} more</span>
             )}
           </div>
         )}
@@ -821,9 +821,9 @@ function RevealPortraitCard({
     <div
       className="recruit-card-wrapper"
       style={{
-        width: "160px",
-        height: "220px",
-        perspective: "800px",
+        width: "210px",
+        height: "290px",
+        perspective: "1000px",
         flexShrink: 0,
         animation: disableAnimation ? "none" : `cardSlideIn 0.5s ease-out ${animationDelay}s both`,
         cursor: "pointer",
@@ -1495,9 +1495,9 @@ function PostRevealSummary({
                   </div>
                 </div>
                 <div className="flex items-center gap-3 text-xs shrink-0">
-                  {fiveStars > 0 && <span className="text-red-400 font-pixel text-[10px]">{fiveStars}×5★</span>}
-                  {fourStars > 0 && <span className="text-yellow-400 font-pixel text-[10px]">{fourStars}×4★</span>}
-                  <span className="font-pixel text-[9px] text-[#C4A35A]">{getClassScore(entry.recruits).toFixed(0)} pts</span>
+                  {fiveStars > 0 && <span className="text-red-400 font-pixel text-xs">{fiveStars}×5★</span>}
+                  {fourStars > 0 && <span className="text-yellow-400 font-pixel text-xs">{fourStars}×4★</span>}
+                  <span className="font-pixel text-xs text-[#C4A35A]">{getClassScore(entry.recruits).toFixed(0)} pts</span>
                 </div>
               </div>
 
