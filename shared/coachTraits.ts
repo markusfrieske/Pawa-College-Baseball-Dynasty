@@ -364,6 +364,6 @@ export const PHILOSOPHY_DESCRIPTIONS: Record<string, string> = {
   "Graduation Rate Matters":     "+12% campus visit interest gain; +8% transfer retention chance",
   "Character Counts":            "+8% email/phone with academics-focused recruits",
   "Land the Blue Chips":         "+14% offer interest with 4★+ and blue-chip recruits",
-  "NIL Budget Mastery":          "+12% scholarship offer interest gain across the board",
+  "NIL Budget Mastery":          "Offer gain scales with remaining NIL budget: +18% (full) to +6% (depleted)",
   "Close Every Deal":            "+7% on all actions with recruits in late pipeline (stage 4+)",
 };

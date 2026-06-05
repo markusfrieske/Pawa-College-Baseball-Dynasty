@@ -2334,8 +2334,14 @@ export async function registerRoutes(
           if (isOffer && (stars >= 4 || isBlueChip)) base = 0.14;
           break;
         case "NIL Budget Mastery":
-          // All offer actions benefit from superior NIL positioning
-          if (isOffer) base = 0.12;
+          // Offer bonus scales with how much NIL budget remains: more budget = stronger positioning.
+          // Full budget (100% remaining): +0.18; half remaining: +0.12; nearly empty: +0.06.
+          if (isOffer) {
+            const nilBudget = team?.nilBudget || 0;
+            const nilSpent = team?.nilSpent || 0;
+            const nilRatio = nilBudget > 0 ? Math.max(0, (nilBudget - nilSpent) / nilBudget) : 0.5;
+            base = 0.06 + nilRatio * 0.12;
+          }
           break;
         case "Close Every Deal":
           // Late-stage recruits (stage 4+) respond to any action with higher intent
@@ -11358,6 +11364,34 @@ export async function registerRoutes(
     return { homeScore, awayScore, boxScore: JSON.stringify(boxScoreObj), homePitcherPitches, awayPitcherPitches };
   }
 
+  // Build a philosophy string for a coach — encodes "Play Small Ball" importance scale.
+  // Returns undefined if coach has no relevant philosophy.
+  function buildCoachPhilosophyString(coach: any): string | undefined {
+    const gameStrategy = coach?.gamePhilosophyStrategy ?? "balanced";
+    const sbEntry = Array.isArray(coach?.coachingPhilosophy)
+      ? (coach.coachingPhilosophy as { statement: string; importance: string }[]).find(p => p.statement === "Play Small Ball")
+      : undefined;
+    const importanceToScale: Record<string, number> = { extremely: 1.0, very: 0.67, somewhat: 0.33 };
+    const sbScale = sbEntry ? (importanceToScale[sbEntry.importance] ?? 0) : 0;
+    return sbScale > 0 ? `small_ball_coaching:${sbScale}:${gameStrategy}` : gameStrategy;
+  }
+
+  // Philosophy map cache per league per sim-batch (avoids repeated DB round-trips)
+  const _philosophyMapCache = new Map<string, Map<string, string>>();
+
+  async function getPhilosophyMapForLeague(leagueId: string): Promise<Map<string, string>> {
+    if (_philosophyMapCache.has(leagueId)) return _philosophyMapCache.get(leagueId)!;
+    const coaches = await storage.getCoachesByLeague(leagueId);
+    const map = new Map<string, string>();
+    for (const c of coaches) {
+      if (c.teamId) map.set(c.teamId, buildCoachPhilosophyString(c) ?? "balanced");
+    }
+    _philosophyMapCache.set(leagueId, map);
+    // Evict after 30s to avoid stale data across long sim sessions
+    setTimeout(() => _philosophyMapCache.delete(leagueId), 30_000);
+    return map;
+  }
+
   async function simulateGame(homeTeamId: string, awayTeamId: string, gameType?: string | null, homePhilosophy?: string, awayPhilosophy?: string, currentWeek?: number | null): Promise<{ homeScore: number; awayScore: number; boxScore: string }> {
     const [homePlayers, awayPlayers, homeTeam, awayTeam] = await Promise.all([
       storage.getPlayersByTeam(homeTeamId),
@@ -11365,6 +11399,15 @@ export async function registerRoutes(
       storage.getTeam(homeTeamId),
       storage.getTeam(awayTeamId),
     ]);
+    // Auto-derive philosophy from coaches when not explicitly provided
+    if (homePhilosophy == null || awayPhilosophy == null) {
+      const leagueId = homeTeam?.leagueId ?? awayTeam?.leagueId;
+      if (leagueId) {
+        const philMap = await getPhilosophyMapForLeague(leagueId);
+        homePhilosophy = homePhilosophy ?? philMap.get(homeTeamId) ?? "balanced";
+        awayPhilosophy = awayPhilosophy ?? philMap.get(awayTeamId) ?? "balanced";
+      }
+    }
     const result = simulateGameWithRosters(homePlayers, awayPlayers, gameType, homeTeam?.stadium, awayTeam?.stadium, undefined, homePhilosophy, awayPhilosophy, currentWeek);
     return { homeScore: result.homeScore, awayScore: result.awayScore, boxScore: result.boxScore };
   }
