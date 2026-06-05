@@ -2615,19 +2615,22 @@ function RecruitRow({
       ? (isPitcherRecruit ? ["velocity","control","stuff","stamina"] : ["hitForAvg","power","speed","fielding"])
       : ((recruit.interest?.revealedAttributes as string[] | undefined) || [])
   );
-  const isAttrRevealed = (key: string) => !sdAttrSet.has(key) && revealedAttrSet.has(key);
+  const isAttrRevealed = (key: string) => !sdAttrSet.has(key) && (isFullyRevealed || revealedAttrSet.has(key));
   const previewAttrFields = isPitcherRecruit
     ? [
         { label: "VEL", key: "velocity", val: recruit.velocity },
         { label: "CTL", key: "control", val: recruit.control },
         { label: "STF", key: "stuff", val: recruit.stuff },
         { label: "STM", key: "stamina", val: recruit.stamina },
+        { label: "POI", key: "poise", val: recruit.poise },
       ]
     : [
         { label: "HIT", key: "hitForAvg", val: recruit.hitForAvg },
         { label: "PWR", key: "power", val: recruit.power },
         { label: "SPD", key: "speed", val: recruit.speed },
         { label: "FLD", key: "fielding", val: recruit.fielding },
+        { label: "ARM", key: "arm", val: recruit.arm },
+        { label: "CLU", key: "clutch", val: recruit.clutch },
       ];
   const ATTR_GRADE_COLORS: Record<string, string> = {
     s: "#fda4d5", a: "#ef4444", b: "#ef4444", c: "#f97316",
@@ -2764,11 +2767,6 @@ function RecruitRow({
               {totalAbilities > 0 && (
                 <Badge variant="outline" className="text-[8px] border-gold/50 text-gold">
                   {isFullyRevealed ? `${totalAbilities} Abilities` : `${revealedAbilitiesCount}/${totalAbilities > revealedAbilitiesCount ? "?" : totalAbilities}`}
-                </Badge>
-              )}
-              {recruit.position !== "P" && recruit.trajectory != null && (
-                <Badge variant="outline" className="text-[8px] border-gold/30 text-gold/70" data-testid={`badge-traj-${recruit.id}`}>
-                  {TRAJECTORY_LABELS[recruit.trajectory] ?? "LD"}
                 </Badge>
               )}
               {positionNeed && (
@@ -3441,11 +3439,16 @@ function RecruitRow({
             const revealed = isAttrRevealed(key);
             const grade = (revealed && val != null) ? getLetterGrade(val) : null;
             const isSigningDayLocked = !revealed && sdAttrSet.has(key) && scoutPct >= 100;
+            const isMphVel = key === "velocity" && revealed && val != null;
             return (
               <div key={key} className="flex items-center gap-0.5">
                 <span className="text-[8px] text-muted-foreground/60 font-mono">{label}</span>
                 {isSigningDayLocked ? (
                   <Lock className="w-2.5 h-2.5 text-gold/50" />
+                ) : isMphVel ? (
+                  <span className="font-pixel text-[9px] font-bold text-sky-300/90">
+                    {Math.round(60 + (val / 100) * 45)}
+                  </span>
                 ) : (
                   <span className="font-pixel text-[9px] font-bold" style={{ color: grade ? (ATTR_GRADE_COLORS[grade.tier] || "#9ca3af") : "#374151" }}>
                     {grade ? grade.letter : "?"}
@@ -3454,6 +3457,38 @@ function RecruitRow({
               </div>
             );
           })}
+          {/* Hitter trajectory chip */}
+          {!isPitcherRecruit && recruit.trajectory != null && (
+            <div className="flex items-center gap-0.5">
+              <span className="text-[8px] text-muted-foreground/60 font-mono">TRAJ</span>
+              <span className="font-pixel text-[9px] font-bold text-muted-foreground/80">
+                {TRAJECTORY_LABELS[recruit.trajectory] ?? "LD"}
+              </span>
+            </div>
+          )}
+          {/* Pitcher pitch mix chips */}
+          {isPitcherRecruit && (scoutPct > 0 || isFullyRevealed) && (() => {
+            const pitchFields = [
+              ["pitchFB", "FB"], ["pitch2S", "2S"], ["pitchSL", "SL"], ["pitchCB", "CB"],
+              ["pitchCH", "CH"], ["pitchCT", "CT"], ["pitchSNK", "SNK"], ["pitchSPL", "SPL"],
+              ["pitchSWP", "SWP"], ["pitchKN", "KN"],
+            ] as const;
+            const active = pitchFields.filter(([k]) => {
+              const v = (recruit as any)[k];
+              return v != null && v > 0;
+            });
+            if (!active.length) return null;
+            return (
+              <>
+                <div className="w-px h-3 bg-border/40 self-center" />
+                {active.map(([, label]) => (
+                  <span key={label} className="text-[8px] font-mono px-1 py-0.5 rounded bg-muted/40 border border-border/50 text-muted-foreground/70 leading-tight">
+                    {label}
+                  </span>
+                ))}
+              </>
+            );
+          })()}
         </div>
       )}
 
