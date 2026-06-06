@@ -38,8 +38,6 @@ import {
   Trash2,
   Gem,
   XCircle,
-  CheckSquare,
-  Square,
   Gift,
   TrendingUp,
   TrendingDown,
@@ -239,7 +237,6 @@ export default function RecruitingPage() {
   const [showCompareModal, setShowCompareModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState<string>((sf.searchQuery as string) ?? "");
   const [pipelineFilter, setPipelineFilter] = useState<string | null>(null);
-  const [bulkSelected, setBulkSelected] = useState<Set<string>>(new Set());
   const [showTopAvailable, setShowTopAvailable] = useState<boolean>((sf.showTopAvailable as boolean) ?? false);
   const [showContested, setShowContested] = useState<boolean>((sf.showContested as boolean) ?? false);
   const [showStory, setShowStory] = useState<boolean>((sf.showStory as boolean) ?? false);
@@ -778,34 +775,6 @@ export default function RecruitingPage() {
     },
   });
 
-  const bulkScoutMutation = useMutation({
-    mutationFn: async (recruitIds: string[]) => {
-      const res = await apiRequest("POST", `/api/leagues/${id}/recruiting/bulk-scout`, { recruitIds });
-      return res.json() as Promise<{ scouted: number; skipped: number }>;
-    },
-    onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
-      setBulkSelected(new Set());
-      const desc = result.skipped > 0
-        ? `Scouted ${result.scouted} recruit${result.scouted !== 1 ? "s" : ""}. ${result.skipped} skipped — not enough scouting points remaining.`
-        : `Scouted ${result.scouted} recruit${result.scouted !== 1 ? "s" : ""}!`;
-      setActionResultModal({ title: "Bulk Scouting Complete", description: desc, type: "success", icon: "scout" });
-    },
-    onError: (error: Error) => {
-      setActionResultModal({ title: "Scouting Failed", description: parseErrorMessage(error), type: "error" });
-    },
-  });
-
-  const toggleBulkSelect = (recruitId: string) => {
-    const newSet = new Set(bulkSelected);
-    if (newSet.has(recruitId)) {
-      newSet.delete(recruitId);
-    } else {
-      newSet.add(recruitId);
-    }
-    setBulkSelected(newSet);
-  };
-
   const filteredRecruits = data?.recruits.filter(r => {
     const searchLower = searchQuery.toLowerCase();
     if (searchQuery && !`${r.firstName} ${r.lastName}`.toLowerCase().includes(searchLower)) return false;
@@ -937,15 +906,6 @@ export default function RecruitingPage() {
         return (a.classRank || 999) - (b.classRank || 999);
     }
   }) || [];
-
-  const selectAllVisible = () => {
-    const scoutableRecruits = filteredRecruits?.filter(r => (r.interest?.scoutPercentage || 0) < 100) || [];
-    if (bulkSelected.size === scoutableRecruits.length && scoutableRecruits.length > 0) {
-      setBulkSelected(new Set());
-    } else {
-      setBulkSelected(new Set(scoutableRecruits.map(r => r.id)));
-    }
-  };
 
   if (isLoading) {
     return <RecruitingSkeleton />;
@@ -1343,45 +1303,6 @@ export default function RecruitingPage() {
                       </div>
                     </PopoverContent>
                   </Popover>
-                  <RetroButton
-                    variant="outline"
-                    size="sm"
-                    onClick={selectAllVisible}
-                    className="w-full justify-center"
-                    data-testid="button-select-all"
-                  >
-                    <CheckSquare className="w-3 h-3 mr-1" />
-                    {bulkSelected.size > 0 ? `Deselect (${bulkSelected.size})` : "Select All"}
-                  </RetroButton>
-                  {bulkSelected.size > 0 && (
-                    <RetroButton
-                      variant="primary"
-                      size="sm"
-                      onClick={() => bulkScoutMutation.mutate(Array.from(bulkSelected))}
-                      disabled={bulkScoutMutation.isPending}
-                      className="w-full justify-center"
-                      data-testid="button-bulk-scout"
-                    >
-                      <Eye className="w-3 h-3 mr-1" />
-                      {bulkScoutMutation.isPending ? "Scouting..." : `Scout (${bulkSelected.size})`}
-                    </RetroButton>
-                  )}
-                  {(() => {
-                    const unscoutedTargets = data?.recruits.filter(r => r.interest?.isTargeted && (r.interest?.scoutPercentage || 0) < 100) || [];
-                    return unscoutedTargets.length > 0 ? (
-                      <RetroButton
-                        variant="outline"
-                        size="sm"
-                        onClick={() => bulkScoutMutation.mutate(unscoutedTargets.map(r => r.id))}
-                        disabled={bulkScoutMutation.isPending || (data?.remainingScoutPoints ?? 0) <= 0}
-                        className="w-full justify-center"
-                        data-testid="button-quick-scout-targets"
-                      >
-                        <Eye className="w-3 h-3 mr-1" />
-                        {bulkScoutMutation.isPending ? "Scouting..." : `Scout Targets (${unscoutedTargets.length})`}
-                      </RetroButton>
-                    ) : null;
-                  })()}
                 </div>
               </div>
             </div>
@@ -1535,34 +1456,6 @@ export default function RecruitingPage() {
                   >
                     Reset to Defaults
                   </RetroButton>
-                  <div>
-                    <p className="font-pixel text-[9px] text-gold mb-2">TOOLS</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      <RetroButton
-                        variant="outline"
-                        size="sm"
-                        onClick={() => { selectAllVisible(); setShowFilterSheet(false); }}
-                        className="w-full justify-center"
-                        data-testid="button-select-all-sheet"
-                      >
-                        <CheckSquare className="w-3 h-3 mr-1" />
-                        {bulkSelected.size > 0 ? `Deselect (${bulkSelected.size})` : "Select All"}
-                      </RetroButton>
-                      {bulkSelected.size > 0 && (
-                        <RetroButton
-                          variant="primary"
-                          size="sm"
-                          onClick={() => { bulkScoutMutation.mutate(Array.from(bulkSelected)); setShowFilterSheet(false); }}
-                          disabled={bulkScoutMutation.isPending}
-                          className="w-full justify-center"
-                          data-testid="button-bulk-scout-sheet"
-                        >
-                          <Eye className="w-3 h-3 mr-1" />
-                          Scout ({bulkSelected.size})
-                        </RetroButton>
-                      )}
-                    </div>
-                  </div>
                   <RetroButton
                     size="sm"
                     onClick={() => setShowFilterSheet(false)}
@@ -2134,8 +2027,6 @@ export default function RecruitingPage() {
               isSavingNotes={notesMutation.isPending}
               isSavingBoardRank={boardRankMutation.isPending}
               isSelected={compareRecruits.some(r => r.id === recruit.id)}
-              isBulkSelected={bulkSelected.has(recruit.id)}
-              onBulkSelect={() => toggleBulkSelect(recruit.id)}
               trend={trendsData?.trends?.[recruit.id]}
               userTeamId={data?.team?.id}
               positionNeed={pipelineData?.positionNeeds?.find(p => p.position === recruit.position)?.need}
@@ -2519,8 +2410,6 @@ function RecruitRow({
   isSavingNotes,
   isSavingBoardRank,
   isSelected,
-  isBulkSelected,
-  onBulkSelect,
   trend,
   userTeamId,
   isStorylineRecruit,
@@ -2560,8 +2449,6 @@ function RecruitRow({
   isSavingNotes: boolean;
   isSavingBoardRank: boolean;
   isSelected: boolean;
-  isBulkSelected: boolean;
-  onBulkSelect: () => void;
   trend?: { trend: "up" | "down" | "flat"; recentGain: number };
   userTeamId?: string;
   positionNeed?: boolean;
@@ -2706,17 +2593,6 @@ function RecruitRow({
     >
       <div className="flex flex-col lg:flex-row lg:items-center gap-4">
         <div className="flex items-center gap-4 flex-1">
-          {!isSigned && scoutPct < 100 && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onBulkSelect(); }}
-              className={`w-5 h-5 flex items-center justify-center transition-colors ${
-                isBulkSelected ? "text-gold" : "text-muted-foreground/50 hover:text-gold"
-              }`}
-              data-testid={`checkbox-bulk-${recruit.id}`}
-            >
-              {isBulkSelected ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
-            </button>
-          )}
           {!isSigned && (
             <button
               onClick={onToggleCompare}
