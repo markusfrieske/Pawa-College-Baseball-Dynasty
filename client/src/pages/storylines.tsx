@@ -29,6 +29,9 @@ interface StorylineEventFull {
   resolvedChoice: string | null;
   resolvedOutcomeText: string | null;
   ovrDelta: number | null;
+  resolvedAbilityGain?: string | null;
+  resolvedAbilityRemove?: string | null;
+  resolvedAbilityTier?: string | null;
   archetypeAtEvent?: string | null;
   eventImageUrl?: string | null;
 }
@@ -62,6 +65,12 @@ interface StorylineRecruit {
     hairColor?: string | null;
     hairStyle?: string | null;
     facialHair?: string | null;
+    eyeStyle?: string | null;
+    eyebrowStyle?: string | null;
+    mouthStyle?: string | null;
+    eyeBlack?: string | null;
+    abilities?: string[] | null;
+    storyLockedAbilities?: string[] | null;
   } | null;
   archetypeName: string;
   archetypeDescription: string;
@@ -256,7 +265,7 @@ function StorylineCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: strin
                 eyeStyle={r?.eyeStyle || undefined}
                 eyebrowStyle={r?.eyebrowStyle || undefined}
                 mouthStyle={r?.mouthStyle || undefined}
-                eyeBlack={r?.eyeBlack ?? undefined}
+                eyeBlack={r?.eyeBlack ? true : undefined}
                 playerId={r?.id}
                 isRecruit={true}
                 className="w-full h-full"
@@ -363,6 +372,29 @@ function StorylineCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: strin
                 })()}
                 {resolvedEvent.resolvedOutcomeText && (
                   <p className="text-xs text-muted-foreground italic mt-2">"{resolvedEvent.resolvedOutcomeText}"</p>
+                )}
+                {/* ── Ability change callout (ability-first display) ── */}
+                {resolvedEvent.resolvedAbilityGain && (
+                  <div className={`mt-2 flex items-center gap-2 px-2.5 py-1.5 rounded-md border ${resolvedEvent.resolvedAbilityTier === 'gold' ? 'bg-amber-950/30 border-amber-400/40' : resolvedEvent.resolvedAbilityTier === 'red' ? 'bg-red-950/30 border-red-400/40' : 'bg-blue-950/30 border-blue-400/40'}`} data-testid={`ability-gain-banner-${resolvedEvent.id}`}>
+                    <Sparkles className={`w-3 h-3 flex-shrink-0 ${resolvedEvent.resolvedAbilityTier === 'gold' ? 'text-amber-400' : resolvedEvent.resolvedAbilityTier === 'red' ? 'text-red-400' : 'text-blue-400'}`} />
+                    <span className="text-[9px] font-pixel text-muted-foreground">ABILITY GAINED:</span>
+                    <span className={`text-[10px] font-pixel font-bold ${resolvedEvent.resolvedAbilityTier === 'gold' ? 'text-amber-300' : resolvedEvent.resolvedAbilityTier === 'red' ? 'text-red-300' : 'text-blue-300'}`}>{resolvedEvent.resolvedAbilityGain}</span>
+                    <span className={`ml-auto text-[8px] font-pixel px-1.5 py-0.5 rounded border ${resolvedEvent.resolvedAbilityTier === 'gold' ? 'border-amber-400/50 text-amber-400 bg-amber-400/10' : resolvedEvent.resolvedAbilityTier === 'red' ? 'border-red-400/50 text-red-400 bg-red-400/10' : 'border-blue-400/50 text-blue-400 bg-blue-400/10'}`}>{(resolvedEvent.resolvedAbilityTier ?? 'blue').toUpperCase()}</span>
+                  </div>
+                )}
+                {resolvedEvent.resolvedAbilityRemove && !resolvedEvent.resolvedAbilityGain && (
+                  <div className="mt-2 flex items-center gap-2 px-2.5 py-1.5 rounded-md border bg-red-950/20 border-red-400/30" data-testid={`ability-remove-banner-${resolvedEvent.id}`}>
+                    <Skull className="w-3 h-3 flex-shrink-0 text-red-400" />
+                    <span className="text-[9px] font-pixel text-muted-foreground">ABILITY LOST:</span>
+                    <span className="text-[10px] font-pixel font-bold text-red-300">{resolvedEvent.resolvedAbilityRemove}</span>
+                  </div>
+                )}
+                {resolvedEvent.resolvedAbilityRemove && resolvedEvent.resolvedAbilityGain && (
+                  <div className="mt-1 flex items-center gap-2 px-2.5 py-1 rounded-md border bg-red-950/10 border-red-400/20" data-testid={`ability-remove-secondary-${resolvedEvent.id}`}>
+                    <Skull className="w-2.5 h-2.5 flex-shrink-0 text-red-400/70" />
+                    <span className="text-[8px] font-pixel text-muted-foreground">REMOVED:</span>
+                    <span className="text-[9px] text-red-300/70 line-through">{resolvedEvent.resolvedAbilityRemove}</span>
+                  </div>
                 )}
                 {(() => {
                   const resolvedTotal = Object.values(sl.latestResolvedVoteCounts).reduce((s, v) => s + v, 0);
@@ -519,7 +551,7 @@ function StorylineCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: strin
                       eyeStyle={r.eyeStyle || undefined}
                       eyebrowStyle={r.eyebrowStyle || undefined}
                       mouthStyle={r.mouthStyle || undefined}
-                      eyeBlack={r.eyeBlack ?? undefined}
+                      eyeBlack={r.eyeBlack ? true : undefined}
                       playerId={r.id}
                       isRecruit={true}
                       className="w-full h-full"

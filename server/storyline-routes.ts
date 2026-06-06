@@ -1,9 +1,138 @@
 import type { Express, Request, Response } from "express";
 import { storage } from "./storage";
-import { generateStorylineEvent, resolveVotes, pickStorylineRecruits, ARCHETYPE_DEFS, maybeTransitionArchetype, applyVolatilityModifier } from "./storylineEngine";
+import { generateStorylineEvent, resolveVotes, pickStorylineRecruits, ARCHETYPE_DEFS, maybeTransitionArchetype, generateStoryOutcomes } from "./storylineEngine";
 import type { Archetype } from "./storylineEngine";
-import type { ChoiceWeights } from "@shared/schema";
-import { getAbilitiesForPosition } from "@shared/abilities";
+import type { ChoiceWeights, StoryOutcome } from "@shared/schema";
+import { getAbilitiesForPosition, calculateOVR } from "@shared/abilities";
+import { isPitcher } from "@shared/positions";
+
+// ─── Advance Index Mapping ─────────────────────────────────────────────────────
+// Maps league phase + week to a 0–9 advance index used for slot-based story scheduling.
+// Recruits at slot S fire chapter C at advance (S + C*3) % 10.
+export function advanceIndexForPhaseWeek(phase: string, week: number, maxRegWeeks = 5): number {
+  if (phase === "spring_training" || phase === "preseason") return 0;
+  if (phase === "regular_season") return Math.min(4, Math.max(1, week));
+  if (phase === "conference_championship") return 5;
+  if (phase === "super_regionals" || phase === "cws") {
+    // Distribute SR/CWS advances across slots 6–9 based on week offset past regular season
+    return Math.min(9, Math.max(6, 6 + ((week - maxRegWeeks - 1) % 4)));
+  }
+  return 4; // default: treat as late regular season
+}
+
+// ─── Attribute-First Story Outcome Application ────────────────────────────────
+// Applies a StoryOutcome to a recruit's attributes and abilities, computes the
+// new OVR via calculateOVR(), and writes the results back to the DB.
+// Returns { ovrDelta, abilityGain, abilityRemove, abilityTier } for news + audit.
+export async function applyStoryOutcomeToRecruit(
+  recruit: Awaited<ReturnType<typeof storage.getRecruit>>,
+  outcome: StoryOutcome,
+  volatility: number,
+  isLegendary: boolean,
+): Promise<{ ovrDelta: number; abilityGain?: string; abilityRemove?: string; abilityTier?: string }> {
+  if (!recruit) return { ovrDelta: 0 };
+
+  const volScale = 0.6 + (Math.max(1, Math.min(10, volatility)) - 1) * (0.8 / 9);
+
+  // 1. Build attribute update map from attrChanges (clamped 1–99)
+  const attrUpdates: Record<string, number> = {};
+  for (const { field, delta } of outcome.attrChanges) {
+    const current = (recruit as Record<string, unknown>)[field];
+    const currentNum = typeof current === 'number' ? current : 50;
+    const scaledDelta = Math.round(delta * volScale);
+    attrUpdates[field] = Math.max(1, Math.min(99, currentNum + scaledDelta));
+  }
+
+  const allPositionAbilities = getAbilitiesForPosition(recruit.position ?? "OF");
+  let currentAbilities: string[] = (recruit.abilities as string[] | null) ?? [];
+  let storyLocked: string[] = (recruit.storyLockedAbilities as string[] | null) ?? [];
+
+  let abilityGain: string | undefined;
+  let abilityRemoveResult: string | undefined;
+  let abilityTier: string | undefined;
+
+  // 2. Handle abilityRemove before abilityGrant to open capacity
+  if (outcome.abilityRemove) {
+    let toRemoveName: string | undefined;
+    if (outcome.abilityRemove === 'random_story') {
+      const removable = allPositionAbilities
+        .filter(a => (a.tier === 'blue' || a.tier === 'gold') && currentAbilities.includes(a.name) && storyLocked.includes(a.name))
+        .sort(() => Math.random() - 0.5);
+      if (removable.length > 0) toRemoveName = removable[0].name;
+    } else if (outcome.abilityRemove === 'random_positive') {
+      const removable = allPositionAbilities
+        .filter(a => a.tier !== 'red' && currentAbilities.includes(a.name) && storyLocked.includes(a.name))
+        .sort(() => Math.random() - 0.5);
+      if (removable.length > 0) toRemoveName = removable[0].name;
+    }
+    if (toRemoveName) {
+      abilityRemoveResult = toRemoveName;
+      currentAbilities = currentAbilities.filter(a => a !== toRemoveName);
+      storyLocked = storyLocked.filter(a => a !== toRemoveName);
+    }
+  }
+
+  // 3. Handle abilityGrant (positive or red)
+  if (outcome.abilityGrant) {
+    let tier = outcome.abilityGrant.tier as 'gold' | 'blue' | 'red';
+    // Legendary recruits have a 30% chance to upgrade blue → gold
+    if (isLegendary && tier === 'blue' && Math.random() < 0.30) tier = 'gold';
+
+    const pool = allPositionAbilities
+      .filter(a => a.tier === tier && !currentAbilities.includes(a.name))
+      .sort(() => Math.random() - 0.5);
+
+    if (pool.length > 0 && currentAbilities.length < 7) {
+      abilityGain = pool[0].name;
+      abilityTier = tier;
+      currentAbilities = [...currentAbilities, abilityGain];
+      if (!storyLocked.includes(abilityGain)) {
+        storyLocked = [...storyLocked, abilityGain];
+      }
+    }
+  }
+
+  // 4. Compute new OVR from updated attrs + abilities
+  const merged = { ...recruit, ...attrUpdates, abilities: currentAbilities };
+  const newOvr = Math.max(100, Math.min(720, calculateOVR(merged as Parameters<typeof calculateOVR>[0])));
+  const oldOvr = recruit.overall ?? 250;
+  const ovrDelta = newOvr - oldOvr;
+
+  // 5. Write back all changes
+  const finalUpdates: Record<string, unknown> = {
+    ...attrUpdates,
+    overall: newOvr,
+    abilities: currentAbilities,
+    storyLockedAbilities: storyLocked,
+  };
+  await storage.updateRecruit(recruit.id, finalUpdates as Parameters<typeof storage.updateRecruit>[1]);
+
+  return { ovrDelta, abilityGain, abilityRemove: abilityRemoveResult, abilityTier };
+}
+
+// Derive StoryOutcome for the winning choice from event data.
+// Falls back to generating from weights when storyOutcomes is absent (old events).
+function getOutcomeForChoice(
+  event: { storyOutcomes?: Record<string, StoryOutcome> | null; choiceAWeights: unknown; choiceBWeights: unknown; choiceCWeights: unknown; choiceDWeights?: unknown },
+  winningChoice: string,
+  position: string | null | undefined,
+  isLegendary: boolean,
+): StoryOutcome {
+  if (event.storyOutcomes && event.storyOutcomes[winningChoice]) {
+    return event.storyOutcomes[winningChoice];
+  }
+  // Fallback: derive from weights (handles events created before the overhaul)
+  const pitcherMode = Boolean(position && isPitcher(position));
+  const outcomes = generateStoryOutcomes(
+    event.choiceAWeights as ChoiceWeights,
+    event.choiceBWeights as ChoiceWeights,
+    event.choiceCWeights as ChoiceWeights,
+    event.choiceDWeights as ChoiceWeights | undefined,
+    pitcherMode,
+    isLegendary,
+  );
+  return outcomes[winningChoice] ?? outcomes.A;
+}
 
 function requireAuth(req: Request, res: Response, next: () => void) {
   if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
@@ -504,16 +633,18 @@ export async function initializeStorylineRecruits(leagueId: string, season: numb
     })), { recentLegendaryCount });
 
     const created: import("@shared/schema").StorylineRecruit[] = [];
-    for (const pick of picks) {
+    for (let i = 0; i < picks.length; i++) {
+      const pick = picks[i];
+      // Assign a fixed story slot (0–9) so slot-based scheduling spreads 3 events/advance
+      // across all 10 recruits evenly. Chapter C fires at advance (slot + C*3) % 10.
+      const storySlot = i % 10;
       const sl = await storage.createStorylineRecruit({
         leagueId,
         recruitId: pick.recruitId,
         season,
         archetype: pick.archetype,
         tier: pick.tier,
-        // Embed startWeek into hiddenVars so generateAndResolveStorylineEvents can
-        // compute the effective storyline week (currentWeek - startWeek + 1) and
-        // the proportional arc window (maxWeeks - startWeek + 1) at generation time.
+        storySlot,
         hiddenVars: { ...pick.hiddenVars, startWeek },
         isLegendary: pick.isLegendary,
         currentArcStage: 0,
@@ -531,14 +662,155 @@ export async function initializeStorylineRecruits(leagueId: string, season: numb
       }
     }
 
-    // Fire first arc events using the effective start week so events are stored
-    // with the correct raw week number for resolution ordering.
-    await generateWeeklyStorylineEvents(leagueId, season, startWeek, undefined, startWeek);
+    // Fire first arc events at advance index 0 (spring training / season start).
+    // Slot-based scheduling: only slot-0 recruits' chapter 0 fires here.
+    await generateWeeklyStorylineEvents(leagueId, season, startWeek, 0);
 
     return picks.length;
   } catch (err) {
     console.error("[storylines] initializeStorylineRecruits error:", err);
     return 0;
+  }
+}
+
+// Shared resolution helper — resolves one pending storyline event using the
+// attribute-first StoryOutcome system. Handles OVR recompute, ability changes,
+// arc progression, league events, and dynasty news in a single call.
+async function resolveOneStorylineEvent(
+  event: Awaited<ReturnType<typeof storage.getUnresolvedStorylineEvents>>[number],
+  leagueId: string,
+  season: number,
+  currentWeek: number,
+): Promise<boolean> {
+  try {
+    const votes = await storage.getStorylineVotesByEvent(event.id);
+    const sl = await storage.getStorylineRecruit(event.storylineRecruitId);
+    if (!sl) return false;
+
+    const { winningChoice } = resolveVotes(votes, !!event.choiceD);
+    const volatility = (sl.hiddenVars as { volatility?: number })?.volatility ?? 5;
+
+    const outcomeText = winningChoice === "A" ? event.choiceAOutcome
+      : winningChoice === "B" ? event.choiceBOutcome
+      : winningChoice === "C" ? event.choiceCOutcome
+      : (event.choiceDOutcome ?? event.choiceCOutcome);
+
+    const recruit = await storage.getRecruit(sl.recruitId);
+    let ovrDelta = 0;
+    let abilityGain: string | undefined;
+    let abilityRemove: string | undefined;
+    let abilityTier: string | undefined;
+
+    if (recruit) {
+      try {
+        const outcome = getOutcomeForChoice(
+          event as Parameters<typeof getOutcomeForChoice>[0],
+          winningChoice,
+          recruit.position,
+          sl.isLegendary,
+        );
+        const result = await applyStoryOutcomeToRecruit(recruit, outcome, volatility, sl.isLegendary);
+        ovrDelta = result.ovrDelta;
+        abilityGain = result.abilityGain;
+        abilityRemove = result.abilityRemove;
+        abilityTier = result.abilityTier;
+      } catch (applyErr) {
+        console.warn("[storylines] applyStoryOutcome error:", applyErr);
+      }
+    }
+
+    await storage.updateStorylineEvent(event.id, {
+      resolvedChoice: winningChoice,
+      resolvedOutcomeText: outcomeText,
+      ovrDelta,
+      resolvedAbilityGain: abilityGain,
+      resolvedAbilityRemove: abilityRemove,
+      resolvedAbilityTier: abilityTier,
+      resolvedAt: new Date(),
+    });
+
+    if (recruit) {
+      const newCumulativeDelta = (sl.resolvedOvrDelta ?? 0) + ovrDelta;
+      const newArcStage = sl.currentArcStage + 1;
+      const transitionedArchetype = maybeTransitionArchetype(
+        sl.archetype as Archetype,
+        newCumulativeDelta,
+        newArcStage,
+        sl.isLegendary,
+        recruit.position,
+      );
+
+      await storage.updateStorylineRecruit(sl.id, {
+        resolvedOvrDelta: newCumulativeDelta,
+        currentArcStage: newArcStage,
+        ...(transitionedArchetype !== sl.archetype ? { archetype: transitionedArchetype } : {}),
+      });
+
+      const ovrStr = ovrDelta > 0 ? `+${ovrDelta}` : ovrDelta === 0 ? "±0" : `${ovrDelta}`;
+
+      // Build ability-first headline: lead with ability change if one occurred
+      let newsTitle: string;
+      let newsContent: string;
+      if (abilityGain && abilityTier) {
+        const tierLabel = abilityTier === 'gold' ? 'GOLD' : abilityTier === 'red' ? 'RED' : 'BLUE';
+        newsTitle = `[${tierLabel}] ${abilityGain} — ${recruit.firstName} ${recruit.lastName}`;
+        newsContent = `Choice ${winningChoice} wins the vote — "${abilityGain}" (${tierLabel}) unlocked through the storyline arc.\n\n"${outcomeText}"\n\nOVR: ${ovrStr}`;
+      } else if (abilityRemove) {
+        newsTitle = `Ability Lost: ${abilityRemove} — ${recruit.firstName} ${recruit.lastName}`;
+        newsContent = `Choice ${winningChoice} wins — "${abilityRemove}" was removed by this storyline outcome.\n\n"${outcomeText}"\n\nOVR: ${ovrStr}`;
+      } else {
+        newsTitle = `Storyline Update: ${recruit.firstName} ${recruit.lastName}`;
+        newsContent = `Choice ${winningChoice} carries the vote.\n\n"${outcomeText}"\n\nOVR: ${ovrStr}`;
+      }
+
+      await storage.createLeagueEvent({
+        leagueId,
+        eventType: "STORYLINE",
+        description: `STORYLINE: ${recruit.firstName} ${recruit.lastName} — Choice ${winningChoice}. ${abilityGain ? `Ability gained: ${abilityGain}. ` : ''}${outcomeText.slice(0, 120)}`,
+        season,
+        week: currentWeek,
+      });
+
+      storage.createDynastyNews({
+        leagueId,
+        title: newsTitle,
+        content: newsContent,
+        category: "recruiting",
+        journalist: "sully",
+        authorName: "Sully Pump",
+        season,
+        week: currentWeek,
+      }).catch(err => console.warn("[storylines] dynasty news creation failed:", err));
+
+      // Notify coaches who have this recruit on their board (if ability changed)
+      if (abilityGain || abilityRemove) {
+        try {
+          const interests = await storage.getRecruitingInterestsByRecruit(recruit.id);
+          const boardTeamIds = interests.filter(i => (i.interestLevel ?? 0) > 0 && i.teamId).map(i => i.teamId!);
+          for (const teamId of boardTeamIds) {
+            const tierLabel = abilityTier === 'gold' ? '[GOLD] ' : abilityTier === 'red' ? '[RED] ' : abilityTier === 'blue' ? '[BLUE] ' : '';
+            const abilityMsg = abilityGain
+              ? `gained ${tierLabel}"${abilityGain}" via storyline arc`
+              : `lost "${abilityRemove}" via storyline arc`;
+            await storage.createLeagueEvent({
+              leagueId,
+              teamId,
+              eventType: "STORYLINE_ABILITY",
+              description: `${recruit.firstName} ${recruit.lastName} ${abilityMsg} (Choice ${winningChoice})`,
+              season,
+              week: currentWeek,
+            }).catch(() => {});
+          }
+        } catch (notifyErr) {
+          // non-fatal — notifications best-effort
+        }
+      }
+    }
+
+    return true;
+  } catch (err) {
+    console.error("[storylines] resolveOneStorylineEvent error:", err);
+    return false;
   }
 }
 
@@ -559,127 +831,8 @@ export async function resolveAllPendingStorylineEvents(
     for (const event of unresolved) {
       // Skip events generated for the current week or later — only resolve overdue arcs.
       if (event.week >= currentWeek) continue;
-
-      const votes = await storage.getStorylineVotesByEvent(event.id);
-      const sl = await storage.getStorylineRecruit(event.storylineRecruitId);
-      if (!sl) continue;
-
-      const { winningChoice, ovrDelta: rawDelta } = resolveVotes(
-        votes,
-        event.choiceAWeights as ChoiceWeights,
-        event.choiceBWeights as ChoiceWeights,
-        event.choiceCWeights as ChoiceWeights,
-        event.choiceDWeights as ChoiceWeights | null,
-      );
-
-      const volatility = (sl.hiddenVars as { volatility?: number })?.volatility ?? 5;
-      const ovrDelta = applyVolatilityModifier(rawDelta, volatility);
-
-      const outcomeText = winningChoice === "A" ? event.choiceAOutcome
-        : winningChoice === "B" ? event.choiceBOutcome
-        : winningChoice === "C" ? event.choiceCOutcome
-        : (event.choiceDOutcome ?? event.choiceCOutcome);
-
-      await storage.updateStorylineEvent(event.id, {
-        resolvedChoice: winningChoice,
-        resolvedOutcomeText: outcomeText,
-        ovrDelta,
-        resolvedAt: new Date(),
-      });
-
-      const recruit = await storage.getRecruit(sl.recruitId);
-      if (recruit) {
-        if (ovrDelta !== 0) {
-          const newOvr = Math.max(100, Math.min(720, (recruit.overall ?? 250) + ovrDelta));
-          await storage.updateRecruit(recruit.id, { overall: newOvr });
-        }
-
-        try {
-          const allPositionAbilities = getAbilitiesForPosition(recruit.position ?? "P");
-          const currentAbilities: string[] = (recruit.abilities as string[]) ?? [];
-          const storyLocked: string[] = (recruit.storyLockedAbilities as string[]) ?? [];
-
-          if (ovrDelta >= 15 || (ovrDelta >= 8 && Math.random() < 0.50)) {
-            const tier = sl.isLegendary && Math.random() < 0.30 ? "gold" : "blue";
-            const pool = allPositionAbilities
-              .filter(a => a.tier === tier && !currentAbilities.includes(a.name))
-              .sort(() => Math.random() - 0.5);
-            if (pool.length > 0 && currentAbilities.length < 7) {
-              const gained = pool[0].name;
-              await storage.updateRecruit(recruit.id, { abilities: [...currentAbilities, gained] });
-              if (!storyLocked.includes(gained)) {
-                await storage.updateRecruit(recruit.id, { storyLockedAbilities: [...storyLocked, gained] });
-              }
-            }
-          } else if (ovrDelta <= -15 || (ovrDelta <= -8 && Math.random() < 0.50)) {
-            const removable = allPositionAbilities
-              .filter(a => (a.tier === "blue" || a.tier === "gold") && currentAbilities.includes(a.name) && storyLocked.includes(a.name))
-              .sort(() => Math.random() - 0.5);
-
-            let updated = [...currentAbilities];
-            if (removable.length > 0) {
-              const toRemove = removable[0].name;
-              updated = updated.filter(a => a !== toRemove);
-              await storage.updateRecruit(recruit.id, {
-                abilities: updated,
-                storyLockedAbilities: storyLocked.filter(a => a !== toRemove),
-              });
-            }
-
-            const redPool = allPositionAbilities
-              .filter(a => a.tier === "red" && !updated.includes(a.name))
-              .sort(() => Math.random() - 0.5);
-            if (redPool.length > 0 && updated.length < 7) {
-              const gained = redPool[0].name;
-              await storage.updateRecruit(recruit.id, { abilities: [...updated, gained] });
-              const latestLocked = (await storage.getRecruit(recruit.id))?.storyLockedAbilities as string[] ?? storyLocked;
-              if (!latestLocked.includes(gained)) {
-                await storage.updateRecruit(recruit.id, { storyLockedAbilities: [...latestLocked, gained] });
-              }
-            }
-          }
-        } catch (abilityErr) {
-          console.warn("[storylines] sweep ability side effect error:", abilityErr);
-        }
-
-        const newCumulativeDelta = (sl.resolvedOvrDelta ?? 0) + ovrDelta;
-        const newArcStage = sl.currentArcStage + 1;
-        const transitionedArchetype = maybeTransitionArchetype(
-          sl.archetype as Archetype,
-          newCumulativeDelta,
-          newArcStage,
-          sl.isLegendary,
-          recruit.position,
-        );
-
-        await storage.updateStorylineRecruit(sl.id, {
-          resolvedOvrDelta: newCumulativeDelta,
-          currentArcStage: newArcStage,
-          ...(transitionedArchetype !== sl.archetype ? { archetype: transitionedArchetype } : {}),
-        });
-
-        const ovrStr = ovrDelta > 0 ? `+${ovrDelta}` : ovrDelta === 0 ? "±0" : `${ovrDelta}`;
-        await storage.createLeagueEvent({
-          leagueId,
-          eventType: "STORYLINE",
-          description: `STORYLINE (sweep): ${recruit.firstName} ${recruit.lastName} — Choice ${winningChoice} wins. ${outcomeText} (OVR ${ovrStr})`,
-          season,
-          week: currentWeek,
-        });
-
-        storage.createDynastyNews({
-          leagueId,
-          title: `Storyline Update: ${recruit.firstName} ${recruit.lastName}`,
-          content: `Pre-signing day arc resolution — Choice ${winningChoice} carried the vote.\n\n"${outcomeText}"\n\nOVR impact: ${ovrStr}`,
-          category: "recruiting",
-          journalist: "sully",
-          authorName: "Sully Pump",
-          season,
-          week: currentWeek,
-        }).catch(err => console.warn("[storylines] sweep dynasty news creation failed:", err));
-      }
-
-      resolved++;
+      const ok = await resolveOneStorylineEvent(event, leagueId, season, currentWeek);
+      if (ok) resolved++;
     }
   } catch (err) {
     console.error("[storylines] resolveAllPendingStorylineEvents error:", err);
@@ -693,167 +846,34 @@ export async function generateAndResolveStorylineEvents(
   currentWeek: number,
   seasonLength: string = "medium",
   maxWeeks?: number,
+  phase?: string,
 ): Promise<{ resolved: number; generated: number }> {
   let resolved = 0;
   let generated = 0;
 
   // Compute the hard cap for regular-season story generation.
-  // Events must not be created past the last regular-season week because the
-  // safety sweep that runs at the regular_season→conference_championship boundary
-  // uses a week boundary to decide what to resolve; events created after maxWeeks
-  // would always slip past that check.
   const effectiveMaxWeeks = maxWeeks ?? (seasonLength === "long" ? 10 : 5);
 
   try {
-    // Season-scoped: only resolve events from the current season to prevent cross-season bleed
+    // Season-scoped: resolve all overdue pending events using the new StoryOutcome pipeline
     const unresolved = await storage.getUnresolvedStorylineEvents(leagueId, season);
     for (const event of unresolved) {
       if (event.week >= currentWeek) continue;
-
-      const votes = await storage.getStorylineVotesByEvent(event.id);
-      const sl = await storage.getStorylineRecruit(event.storylineRecruitId);
-      if (!sl) continue;
-
-      const { winningChoice, ovrDelta: rawDelta } = resolveVotes(
-        votes,
-        event.choiceAWeights as ChoiceWeights,
-        event.choiceBWeights as ChoiceWeights,
-        event.choiceCWeights as ChoiceWeights,
-        event.choiceDWeights as ChoiceWeights | null,
-      );
-
-      // Apply recruit's volatility hidden variable to amplify/dampen the OVR swing
-      const volatility = (sl.hiddenVars as { volatility?: number })?.volatility ?? 5;
-      const ovrDelta = applyVolatilityModifier(rawDelta, volatility);
-
-      const outcomeText = winningChoice === "A" ? event.choiceAOutcome
-        : winningChoice === "B" ? event.choiceBOutcome
-        : winningChoice === "C" ? event.choiceCOutcome
-        : (event.choiceDOutcome ?? event.choiceCOutcome);
-
-      await storage.updateStorylineEvent(event.id, {
-        resolvedChoice: winningChoice,
-        resolvedOutcomeText: outcomeText,
-        ovrDelta,
-        resolvedAt: new Date(),
-      });
-
-      const recruit = await storage.getRecruit(sl.recruitId);
-      if (recruit) {
-        if (ovrDelta !== 0) {
-          const newOvr = Math.max(100, Math.min(720, (recruit.overall ?? 250) + ovrDelta));
-          await storage.updateRecruit(recruit.id, { overall: newOvr });
-        }
-
-        try {
-          const allPositionAbilities = getAbilitiesForPosition(recruit.position ?? "P");
-          const currentAbilities: string[] = (recruit.abilities as string[]) ?? [];
-          const storyLocked: string[] = (recruit.storyLockedAbilities as string[]) ?? [];
-
-          if (ovrDelta >= 15 || (ovrDelta >= 8 && Math.random() < 0.50)) {
-            const tier = sl.isLegendary && Math.random() < 0.30 ? "gold" : "blue";
-            const pool = allPositionAbilities
-              .filter(a => a.tier === tier && !currentAbilities.includes(a.name))
-              .sort(() => Math.random() - 0.5);
-            if (pool.length > 0 && currentAbilities.length < 7) {
-              const gained = pool[0].name;
-              await storage.updateRecruit(recruit.id, { abilities: [...currentAbilities, gained] });
-              if (!storyLocked.includes(gained)) {
-                await storage.updateRecruit(recruit.id, { storyLockedAbilities: [...storyLocked, gained] });
-              }
-            }
-          } else if (ovrDelta <= -15 || (ovrDelta <= -8 && Math.random() < 0.50)) {
-            const removable = allPositionAbilities
-              .filter(a => (a.tier === "blue" || a.tier === "gold") && currentAbilities.includes(a.name) && storyLocked.includes(a.name))
-              .sort(() => Math.random() - 0.5);
-
-            let updated = [...currentAbilities];
-            if (removable.length > 0) {
-              const toRemove = removable[0].name;
-              updated = updated.filter(a => a !== toRemove);
-              await storage.updateRecruit(recruit.id, {
-                abilities: updated,
-                storyLockedAbilities: storyLocked.filter(a => a !== toRemove),
-              });
-            }
-
-            const redPool = allPositionAbilities
-              .filter(a => a.tier === "red" && !updated.includes(a.name))
-              .sort(() => Math.random() - 0.5);
-            if (redPool.length > 0 && updated.length < 7) {
-              const gained = redPool[0].name;
-              await storage.updateRecruit(recruit.id, { abilities: [...updated, gained] });
-              const latestLocked = (await storage.getRecruit(recruit.id))?.storyLockedAbilities as string[] ?? storyLocked;
-              if (!latestLocked.includes(gained)) {
-                await storage.updateRecruit(recruit.id, { storyLockedAbilities: [...latestLocked, gained] });
-              }
-            }
-          }
-        } catch (abilityErr) {
-          console.warn("[storylines] ability side effect error:", abilityErr);
-        }
-
-        const newCumulativeDelta = (sl.resolvedOvrDelta ?? 0) + ovrDelta;
-        const newArcStage = sl.currentArcStage + 1;
-        const transitionedArchetype = maybeTransitionArchetype(
-          sl.archetype as Archetype,
-          newCumulativeDelta,
-          newArcStage,
-          sl.isLegendary,
-          recruit.position,
-        );
-
-        await storage.updateStorylineRecruit(sl.id, {
-          resolvedOvrDelta: newCumulativeDelta,
-          currentArcStage: newArcStage,
-          ...(transitionedArchetype !== sl.archetype ? { archetype: transitionedArchetype } : {}),
-        });
-
-        const ovrStr = ovrDelta > 0 ? `+${ovrDelta}` : ovrDelta === 0 ? "±0" : `${ovrDelta}`;
-        await storage.createLeagueEvent({
-          leagueId,
-          eventType: "STORYLINE",
-          description: `STORYLINE: ${recruit.firstName} ${recruit.lastName} — Choice ${winningChoice} wins. ${outcomeText} (OVR ${ovrStr})`,
-          season,
-          week: currentWeek,
-        });
-
-        storage.createDynastyNews({
-          leagueId,
-          title: `Storyline Update: ${recruit.firstName} ${recruit.lastName}`,
-          content: `Week ${currentWeek} arc resolution — Choice ${winningChoice} carried the vote.\n\n"${outcomeText}"\n\nOVR impact: ${ovrStr}`,
-          category: "recruiting",
-          journalist: "sully",
-          authorName: "Sully Pump",
-          season,
-          week: currentWeek,
-        }).catch(err => console.warn("[storylines] dynasty news creation failed:", err));
-      }
-
-      resolved++;
+      const ok = await resolveOneStorylineEvent(event, leagueId, season, currentWeek);
+      if (ok) resolved++;
     }
 
-    // Skip generation entirely once the regular season has ended.
-    // Arcs past this point will be handled by catchUpAndResolveStorylineArcs.
-    if (currentWeek > effectiveMaxWeeks) {
-      console.log(`[storylines] week ${currentWeek} > maxWeeks ${effectiveMaxWeeks} — skipping generation past season end`);
+    // Compute the advance index for slot-based scheduling.
+    // Postseason phases (conference_championship, super_regionals, cws) use advance indices 5–9
+    // and must generate even when currentWeek > effectiveMaxWeeks.
+    const effectivePhase = phase ?? "regular_season";
+    const isPostseasonPhase = ["conference_championship", "super_regionals", "cws"].includes(effectivePhase);
+    if (currentWeek > effectiveMaxWeeks && !isPostseasonPhase) {
+      console.log(`[storylines] week ${currentWeek} > maxWeeks ${effectiveMaxWeeks} (phase=${effectivePhase}) — skipping regular-season generation`);
     } else {
-      // Read the startWeek persisted in hiddenVars so the proportional arc formula
-      // maps to the actual in-season window rather than absolute league weeks.
-      // Use Infinity as initial value so the reduce correctly finds the minimum stored
-      // startWeek — using 1 would collapse all values ≥1 to 1, defeating the purpose.
-      const storylines = await storage.getStorylineRecruitsByLeague(leagueId, season);
-      const rawMin = storylines.reduce((min, sl) => {
-        const sw = (sl.hiddenVars as { startWeek?: number })?.startWeek ?? 1;
-        return Math.min(min, sw);
-      }, Infinity);
-      const startWeek = isFinite(rawMin) ? rawMin : 1;
-      const effectiveWeek = Math.max(1, currentWeek - startWeek + 1);
-      // totalWeeks = remaining in-season window: from startWeek to last regular-season week
-      const totalWeeks = Math.max(1, effectiveMaxWeeks - startWeek + 1);
-
-      console.log(`[storylines] generateWeekly: rawWeek=${currentWeek} startWeek=${startWeek} effectiveWeek=${effectiveWeek} totalWeeks=${totalWeeks}`);
-      generated = await generateWeeklyStorylineEvents(leagueId, season, currentWeek, totalWeeks, effectiveWeek);
+      const advanceIndex = advanceIndexForPhaseWeek(effectivePhase, currentWeek, effectiveMaxWeeks);
+      console.log(`[storylines] generateWeekly: week=${currentWeek} phase=${effectivePhase} advanceIndex=${advanceIndex}`);
+      generated = await generateWeeklyStorylineEvents(leagueId, season, currentWeek, advanceIndex);
     }
     await simulateCpuVotes(leagueId);
   } catch (err) {
@@ -864,18 +884,33 @@ export async function generateAndResolveStorylineEvents(
 }
 
 // week: raw league week used to stamp new events in the DB (for resolution ordering)
-// totalWeeks: the full in-season window used for the proportional idealWeek formula
-// effectiveWeek: storyline-relative week (currentWeek - startWeek + 1) used in proportionalReady
-async function generateWeeklyStorylineEvents(leagueId: string, season: number, week: number, totalWeeks = 5, effectiveWeek = week): Promise<number> {
+// advanceIndex: 0–9, derived from phase + week by advanceIndexForPhaseWeek().
+// Slot-based filter: recruit at slot S fires chapter C when ⌊(C×10 + S) / 3⌋ === advanceIndex.
+// This guarantees monotonically increasing advance indices per recruit (ch0 < ch1 < ch2)
+// AND exactly 3 beats per advance across all 10 advances (30 beats total).
+//
+// Beat index for (S, C) = C*10 + S; advance = beat // 3.
+// Example schedule (10 recruits, 3 chapters, 10 advances):
+//   Advance 0: slots 0,1,2 ch0 | Advance 1: slots 3,4,5 ch0 | Advance 2: slots 6,7,8 ch0
+//   Advance 3: slot 9 ch0, slots 0,1 ch1 | ... | Advance 9: slots 7,8,9 ch2
+async function generateWeeklyStorylineEvents(
+  leagueId: string,
+  season: number,
+  week: number,
+  advanceIndex: number,
+): Promise<number> {
   let count = 0;
   try {
     const storylines = await storage.getStorylineRecruitsByLeague(leagueId, season);
 
+    // Pre-filter: skip recruits that already have an unresolved event this season
+    const currentUnresolved = await storage.getUnresolvedStorylineEvents(leagueId, season);
+    const unresolvedByRecruit = new Set(currentUnresolved.map(e => e.storylineRecruitId));
+
     const eligible = await Promise.all(
       storylines.map(async (sl) => {
+        if (unresolvedByRecruit.has(sl.id)) return null;
         const events = await storage.getStorylineEventsByRecruit(sl.id);
-        // Scope the pending-event check to the current season so resolved events from
-        // a prior season don't permanently block new event generation for this recruit.
         const currentSeasonEvents = events.filter(e => e.season === season);
         return currentSeasonEvents.some(e => !e.resolvedChoice) ? null : sl;
       })
@@ -883,8 +918,15 @@ async function generateWeeklyStorylineEvents(leagueId: string, season: number, w
     const ready = eligible.filter((sl): sl is NonNullable<typeof sl> => sl !== null);
     if (ready.length === 0) return 0;
 
-    // Filter to non-exhausted recruits FIRST so maxEvents reflects actual capacity
-    // and the weekly floor is computed from recruits we can actually generate for.
+    // Enforce absolute unresolved-event cap of 10
+    const unresolvedCount = currentUnresolved.length;
+    const slotsRemaining = Math.max(0, 10 - unresolvedCount);
+    if (slotsRemaining === 0) {
+      console.log(`[storylines] 10 unresolved events already — skipping generation this advance`);
+      return 0;
+    }
+
+    // Filter to non-exhausted recruits; reset all if everyone exhausted
     const isExhausted = (sl: typeof ready[0]) => {
       const def = ARCHETYPE_DEFS[sl.archetype as Archetype];
       const currentUsed = (sl.usedTemplateIds as string[] | null) ?? [];
@@ -896,11 +938,8 @@ async function generateWeeklyStorylineEvents(leagueId: string, season: number, w
     };
 
     let nonExhausted = ready.filter((sl) => !isExhausted(sl));
-
-    // When every recruit has exhausted their templates, reset usedTemplateIds for all
-    // so the arcs can loop and continue rather than permanently stalling.
     if (nonExhausted.length === 0) {
-      console.log(`[storylines] all ready recruits exhausted — resetting usedTemplateIds to allow arc continuation`);
+      console.log(`[storylines] all recruits exhausted — resetting usedTemplateIds`);
       for (const sl of ready) {
         await storage.updateStorylineRecruit(sl.id, { usedTemplateIds: [] });
         sl.usedTemplateIds = [];
@@ -908,63 +947,35 @@ async function generateWeeklyStorylineEvents(leagueId: string, season: number, w
       nonExhausted = ready;
     }
 
-    // Build per-recruit unresolved map so we can enforce a per-recruit cap of 1
-    // (no recruit gets a second event until their first one is resolved).
-    const currentUnresolved = await storage.getUnresolvedStorylineEvents(leagueId, season);
-    const unresolvedByRecruit = new Set(currentUnresolved.map(e => e.storylineRecruitId));
-
-    // Apply per-recruit cap: skip any recruit that already has an unresolved event.
-    const cappedNonExhausted = nonExhausted.filter(sl => !unresolvedByRecruit.has(sl.id));
-
-    // Enforce absolute cap of 10 total unresolved events.
-    const unresolvedCount = currentUnresolved.length;
-    const slotsRemaining = Math.max(0, 10 - unresolvedCount);
-    if (slotsRemaining === 0) {
-      console.log(`[storylines] 10 unresolved events already — skipping generation this week`);
-      return 0;
-    }
-    if (unresolvedCount > 0) {
-      console.log(`[storylines] ${unresolvedCount} unresolved events — ${slotsRemaining} slot(s) remaining`);
-    }
-
-    if (cappedNonExhausted.length === 0) {
-      console.log(`[storylines] all non-exhausted recruits already have an active event — skipping`);
-      return 0;
-    }
-
-    // Proportional arc-week mapping: only include recruits whose next arc event
-    // is proportionally due given the current week and total season weeks.
-    // For a recruit at arc stage S with T total events, the ideal trigger week is:
-    //   round((S + 1) / T * totalWeeks)
-    // Uses effectiveWeek (storyline-relative) so the formula maps correctly when
-    // storylines were initialized mid-season (startWeek > 1).
-    const proportionalReady = cappedNonExhausted.filter(sl => {
-      const def = ARCHETYPE_DEFS[sl.archetype as Archetype];
-      const totalArcEvents = def.events.length + (sl.isLegendary && def.legendaryEvents ? def.legendaryEvents.length : 0);
-      if (totalArcEvents === 0) return true;
-      const stage = sl.currentArcStage;
-      const idealWeek = Math.round((stage + 1) / totalArcEvents * totalWeeks);
-      return effectiveWeek >= idealWeek;
+    // ── Slot-based scheduling ──────────────────────────────────────────────────
+    // Recruit at slot S fires chapter C when ⌊(C×10 + S) / 3⌋ === advanceIndex.
+    // Beat index = C*10 + S; advance = beat // 3. Guaranteed monotonic per recruit
+    // and exactly 3 beats per advance across all 10 advance indices (30 beats total).
+    const slotScheduled = nonExhausted.filter(sl => {
+      if (sl.storySlot === null || sl.storySlot === undefined) return false;
+      const expectedAdvance = Math.floor((sl.currentArcStage * 10 + sl.storySlot) / 3);
+      return expectedAdvance === advanceIndex;
     });
 
-    // Fall back ONLY to recruits at arc stage 0 (never fired their first event).
-    // This ensures the initial arc event fires promptly at season start even before
-    // the proportional week arrives, but stages 1+ only trigger when their proportional
-    // week is reached — preventing all 3 arcs from firing in the first 3 weeks and
-    // leaving no active events during spring_training and regular_season.
-    const neverFiredPool = cappedNonExhausted.filter(sl => sl.currentArcStage === 0);
-    const effectivePool = proportionalReady.length > 0 ? proportionalReady : neverFiredPool;
+    // Fallback for recruits without a storySlot (created before the overhaul):
+    // only include never-fired recruits (stage 0) so they still get their first event
+    const legacyFallback = nonExhausted.filter(sl =>
+      (sl.storySlot === null || sl.storySlot === undefined) && sl.currentArcStage === 0
+    );
+
+    const effectivePool = slotScheduled.length > 0
+      ? slotScheduled
+      : legacyFallback;
 
     if (effectivePool.length === 0) {
-      console.log(`[storylines] no recruits ready for proportional arc this week — skipping`);
+      console.log(`[storylines] advanceIndex=${advanceIndex} — no recruits scheduled for this advance`);
       return 0;
     }
 
-    // Target 2–3 events per week, capped by slots and pool size.
-    const targetEvents = Math.max(Math.min(2, slotsRemaining), 2 + Math.floor(Math.random() * 2));
-    const maxEvents = Math.min(effectivePool.length, slotsRemaining, targetEvents);
+    // Hard cap at 3 events per advance (matching the slot design: 3 recruits/advance)
+    const maxEvents = Math.min(effectivePool.length, slotsRemaining, 3);
 
-    // Legendary-first, non-legendary shuffled so all 10 recruits rotate fairly
+    // Legendary-first within the scheduled pool
     const prioritized = [
       ...effectivePool.filter(sl => sl.isLegendary),
       ...effectivePool.filter(sl => !sl.isLegendary).sort(() => Math.random() - 0.5),
@@ -985,7 +996,6 @@ async function generateWeeklyStorylineEvents(leagueId: string, season: number, w
         }
       }
 
-      // Prefer already-resolved featuredTeamName; only re-resolve when missing (avoids repeated DB queries)
       let featuredTeamName: string | undefined = sl.featuredTeamName ?? undefined;
       if (!featuredTeamName) {
         try {
@@ -998,9 +1008,8 @@ async function generateWeeklyStorylineEvents(leagueId: string, season: number, w
             }
           }
         } catch (e) {
-          // non-fatal — fall back to generic "the program"
+          // non-fatal
         }
-        // Persist once so subsequent generations skip the lookup
         if (featuredTeamName) {
           await storage.updateStorylineRecruit(sl.id, { featuredTeamName });
         }
@@ -1018,18 +1027,16 @@ async function generateWeeklyStorylineEvents(leagueId: string, season: number, w
         featuredTeamName,
       );
 
+      // storyOutcomes is generated inside generateStorylineEvent and included in eventData
       const { scenePrompt: _scenePrompt, ...insertableEventData } = eventData;
-      const createdEvent = await storage.createStorylineEvent({ ...insertableEventData, archetypeAtEvent: sl.archetype });
+      await storage.createStorylineEvent({ ...insertableEventData, archetypeAtEvent: sl.archetype });
       count++;
 
-      // Track which template was used so we don't repeat it for this recruit this season.
-      // Use Set semantics to deduplicate against retries or concurrency races.
       if (eventData.templateId) {
         const currentUsed = (sl.usedTemplateIds as string[] | null) ?? [];
         const dedupedUsed = Array.from(new Set([...currentUsed, eventData.templateId]));
         await storage.updateStorylineRecruit(sl.id, { usedTemplateIds: dedupedUsed });
       }
-
     }
 
   } catch (err) {

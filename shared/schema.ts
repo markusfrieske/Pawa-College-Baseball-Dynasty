@@ -1415,6 +1415,22 @@ export interface ChoiceWeights {
   neutral: number;
 }
 
+// Structured outcome for a storyline choice — replaces OVR-delta rolls.
+// attrChanges are applied to the recruit's raw attributes (clamped 1–99),
+// then calculateOVR() recomputes the new overall from the updated attrs.
+export interface StoryAttrChange {
+  field: string;   // recruit attribute field name (e.g. 'velocity', 'hitForAvg', 'power')
+  delta: number;   // change amount (negative = decrease); scaled by volatility before applying
+}
+
+export interface StoryOutcome {
+  attrChanges: StoryAttrChange[];
+  // Grant an ability of the given tier (picks randomly from position-valid pool)
+  abilityGrant?: { tier: 'gold' | 'blue' | 'red' };
+  // Remove a story-acquired positive ability ('random_story') or any positive story ability ('random_positive')
+  abilityRemove?: 'random_story' | 'random_positive';
+}
+
 export const storylineRecruits = pgTable("storyline_recruits", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   leagueId: varchar("league_id").notNull().references(() => leagues.id),
@@ -1431,6 +1447,8 @@ export const storylineRecruits = pgTable("storyline_recruits", {
   resolvedOvrDelta: integer("resolved_ovr_delta").notNull().default(0),
   usedTemplateIds: json("used_template_ids").$type<string[]>().default([]),
   featuredTeamName: text("featured_team_name"),
+  // 0–9 fixed slot for advance-based scheduling; chapter C fires at advance (slot + C*3) % 10
+  storySlot: integer("story_slot"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (t) => ({
   uniqueLeagueSeasonRecruit: uniqueIndex("storyline_recruits_league_season_recruit_unique").on(t.leagueId, t.season, t.recruitId),
@@ -1462,9 +1480,16 @@ export const storylineEvents = pgTable("storyline_events", {
   archetypeAtEvent: text("archetype_at_event"),  // recruit's archetype snapshot when this event was created
   templateId: text("template_id"),               // which event template was used (e.g. "lb_1") — shared image cache key
   eventImageUrl: text("event_image_url"),        // generated pixel art scene image for this event template
+  // Attribute-first StoryOutcome per choice (keyed "A"/"B"/"C"/"D").
+  // Null for events generated before the overhaul; engine derives from weights as fallback.
+  storyOutcomes: json("story_outcomes").$type<Record<string, StoryOutcome>>(),
   resolvedChoice: text("resolved_choice"),
   resolvedOutcomeText: text("resolved_outcome_text"),
   ovrDelta: integer("ovr_delta"),
+  // Ability change recorded at resolution time — drives news headlines and UI badges
+  resolvedAbilityGain: text("resolved_ability_gain"),
+  resolvedAbilityRemove: text("resolved_ability_remove"),
+  resolvedAbilityTier: text("resolved_ability_tier"),
   resolvedAt: timestamp("resolved_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -1582,7 +1607,7 @@ export const insertCoachSeasonHistorySchema = createInsertSchema(coachSeasonHist
 export type InsertCoachSeasonHistory = z.infer<typeof insertCoachSeasonHistorySchema>;
 export type CoachSeasonHistory = typeof coachSeasonHistory.$inferSelect;
 
-const LEAGUE_EVENT_TYPES = ["SIGNING", "TRANSFER", "DRAFT", "GAME_RESULT", "RIVALRY_RESULT", "AWARD", "PHASE_CHANGE", "ROSTER_CUT", "WALKON", "STORYLINE", "NUDGE", "DECOMMIT", "PROGRAM_ATTR_CHANGE"] as const;
+const LEAGUE_EVENT_TYPES = ["SIGNING", "TRANSFER", "DRAFT", "GAME_RESULT", "RIVALRY_RESULT", "AWARD", "PHASE_CHANGE", "ROSTER_CUT", "WALKON", "STORYLINE", "STORYLINE_ABILITY", "NUDGE", "DECOMMIT", "PROGRAM_ATTR_CHANGE"] as const;
 export type LeagueEventType = (typeof LEAGUE_EVENT_TYPES)[number];
 
 // NIL Season Earnings table — records every NIL bonus awarded each season per team

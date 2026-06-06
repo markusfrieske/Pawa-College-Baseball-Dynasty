@@ -1,7 +1,7 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { registerStorylineRoutes, initializeStorylineRecruits, generateAndResolveStorylineEvents, resolveAllPendingStorylineEvents, catchUpAndResolveStorylineArcs } from "./storyline-routes";
+import { registerStorylineRoutes, initializeStorylineRecruits, generateAndResolveStorylineEvents, resolveAllPendingStorylineEvents } from "./storyline-routes";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import bcrypt from "bcrypt";
@@ -9407,13 +9407,11 @@ export async function registerRoutes(
       }
 
       // ============ STORYLINE EVENTS ============
-      // Active only during the in-season phases so all arcs conclude before offseason begins.
-      if (["recruiting", "preseason", "spring_training", "regular_season"].includes(league.currentPhase)) {
+      // Active during all in-season phases including postseason (advance indices 0–9).
+      if (["recruiting", "preseason", "spring_training", "regular_season", "conference_championship", "super_regionals", "cws"].includes(league.currentPhase)) {
         try {
           // Self-heal: if no storyline recruits exist but recruits do exist, this dynasty
           // was started with a saved class before the fix — initialize them now.
-          // Pass currentWeek as startWeek so the proportional arc formula maps to the
-          // remaining season window rather than treating week N as week 1.
           const existingStorylines = await storage.getStorylineRecruitsByLeague(leagueId, league.currentSeason);
           if (existingStorylines.length === 0) {
             const existingRecruits = await storage.getRecruitsByLeague(leagueId);
@@ -9422,7 +9420,7 @@ export async function registerRoutes(
               await initializeStorylineRecruits(leagueId, league.currentSeason, false, currentWeek);
             }
           }
-          await generateAndResolveStorylineEvents(leagueId, league.currentSeason, nextWeek, league.seasonLength ?? "standard", maxWeeks);
+          await generateAndResolveStorylineEvents(leagueId, league.currentSeason, nextWeek, league.seasonLength ?? "standard", maxWeeks, league.currentPhase);
         } catch (err) {
           console.error("[storylines] Failed to generate/resolve storyline events:", err);
         }
@@ -10320,14 +10318,10 @@ export async function registerRoutes(
       }
 
       if (nextWeek > maxWeeks) {
-        // Catch-up + safety sweep: before postseason, ensure every recruit completes their
-        // full arc.  catchUpAndResolveStorylineArcs generates any missing events and
-        // immediately resolves them; resolveAllPendingStorylineEvents then handles any
-        // residual events that were already generated but not yet resolved.
+        // Safety sweep: resolve any pending events that weren't caught by slot scheduling
+        // before conference championships begin (slot indices 5–9 handle the rest).
         try {
-          const caught = await catchUpAndResolveStorylineArcs(leagueId, league.currentSeason, nextWeek);
-          if (caught > 0) console.log(`[storylines] pre-postseason catch-up: resolved ${caught} arc event(s) for league ${leagueId}`);
-          const swept = await resolveAllPendingStorylineEvents(leagueId, league.currentSeason, nextWeek + 1);
+          const swept = await resolveAllPendingStorylineEvents(leagueId, league.currentSeason, nextWeek + 9999);
           if (swept > 0) console.log(`[storylines] pre-postseason sweep: resolved ${swept} residual arc event(s) for league ${leagueId}`);
         } catch (e) { console.error("[storylines] pre-postseason sweep error:", e); }
         await generateConferenceChampionships(leagueId, league.currentSeason);
@@ -10641,15 +10635,13 @@ export async function registerRoutes(
                 await initializeStorylineRecruits(leagueId, currentLeague.currentSeason, false, currentLeague.currentWeek ?? 1);
               }
             }
-            await generateAndResolveStorylineEvents(leagueId, currentLeague.currentSeason, nextWeek, currentLeague.seasonLength ?? "standard", maxWeeks);
+            await generateAndResolveStorylineEvents(leagueId, currentLeague.currentSeason, nextWeek, currentLeague.seasonLength ?? "standard", maxWeeks, currentLeague.currentPhase);
           } catch (e) { console.warn("[storylines] bulk-sim weekly generation error:", e); }
 
           if (nextWeek > maxWeeks) {
-            // Catch-up + safety sweep: ensure all recruits complete their full arc before postseason.
+            // Safety sweep: resolve any pending events not caught by slot scheduling.
             try {
-              const caught = await catchUpAndResolveStorylineArcs(leagueId, currentLeague.currentSeason, nextWeek);
-              if (caught > 0) console.log(`[storylines] bulk-sim catch-up: resolved ${caught} arc event(s)`);
-              const swept = await resolveAllPendingStorylineEvents(leagueId, currentLeague.currentSeason, nextWeek + 1);
+              const swept = await resolveAllPendingStorylineEvents(leagueId, currentLeague.currentSeason, nextWeek + 9999);
               if (swept > 0) console.log(`[storylines] bulk-sim pre-postseason sweep: resolved ${swept} residual arc event(s)`);
             } catch (e) { console.warn("[storylines] bulk-sim pre-postseason sweep error:", e); }
             await generateConferenceChampionships(leagueId, currentLeague.currentSeason);

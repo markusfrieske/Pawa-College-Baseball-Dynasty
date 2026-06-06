@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { LetterGrade, getLetterGrade } from "@/components/ui/letter-grade";
 import { PlayerPortrait } from "@/components/ui/player-portrait";
 import { PitchMixDial, generatePitchMixForDial } from "@/components/ui/pitch-mix-dial";
-import { MapPin, Star, Edit, Trophy, ArrowUp, ArrowDown, ArrowUpRight, ArrowRight, ArrowDownRight, ChevronDown, ChevronUp, Check, X } from "lucide-react";
+import { MapPin, Star, Edit, Trophy, ArrowUp, ArrowDown, ArrowUpRight, ArrowRight, ArrowDownRight, ChevronDown, ChevronUp, Check, X, Sparkles } from "lucide-react";
 import { getAbilityByName, getAbilitiesForPosition, ALL_ABILITIES, S_GOLD_COMMON_KEY, S_GOLD_PITCHER_KEY } from "@shared/abilities";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { velocityToKMH } from "@/lib/playerUtils";
@@ -82,6 +82,7 @@ export interface Player {
   batHand?: string;
   throwHand?: string;
   abilities?: string[] | null;
+  storyLockedAbilities?: string[] | null;
   skinTone?: string;
   hairColor?: string;
   hairStyle?: string;
@@ -565,6 +566,7 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
             <div className="flex flex-wrap gap-2">
               {player.abilities.filter(name => !commonLinkedGoldShown.has(name)).map((abilityName, idx) => {
                 const ability = getAbilityByName(abilityName);
+                const isStoryAcquired = (player.storyLockedAbilities ?? []).includes(abilityName);
                 const tierStyles: Record<string, { className: string; style: React.CSSProperties }> = {
                   gold: {
                     className: "bg-yellow-600/20 border-yellow-500 text-yellow-400",
@@ -584,29 +586,41 @@ export function PlayerProfileCard({ player, open, onClose, isCommissioner, onEdi
 
                 if (abilityName === "Bad Ball Hitter") {
                   return (
-                    <Badge
-                      key={idx}
-                      variant="outline"
-                      className="text-xs px-0 overflow-hidden border-blue-500"
-                      style={{ boxShadow: "0 0 6px rgba(59,130,246,0.22)" }}
-                      title={ability?.description}
-                    >
-                      <span className="bg-blue-600/20 text-blue-400 px-2 py-0.5" style={{ textShadow: "0 0 8px rgba(59,130,246,0.70)" }}>Bad</span>
-                      <span className="bg-red-600/20 text-red-400 px-2 py-0.5" style={{ textShadow: "0 0 8px rgba(239,68,68,0.70)" }}>Ball Hitter</span>
-                    </Badge>
+                    <span key={idx} className="relative inline-flex items-center gap-1">
+                      <Badge
+                        variant="outline"
+                        className="text-xs px-0 overflow-hidden border-blue-500"
+                        style={{ boxShadow: "0 0 6px rgba(59,130,246,0.22)" }}
+                        title={ability?.description}
+                      >
+                        <span className="bg-blue-600/20 text-blue-400 px-2 py-0.5" style={{ textShadow: "0 0 8px rgba(59,130,246,0.70)" }}>Bad</span>
+                        <span className="bg-red-600/20 text-red-400 px-2 py-0.5" style={{ textShadow: "0 0 8px rgba(239,68,68,0.70)" }}>Ball Hitter</span>
+                      </Badge>
+                      {isStoryAcquired && (
+                        <span className="text-[9px] font-pixel text-amber-400 flex items-center gap-0.5" title="Acquired through a storyline arc">
+                          <Sparkles className="w-2.5 h-2.5" />STORY
+                        </span>
+                      )}
+                    </span>
                   );
                 }
                 
                 return (
-                  <Badge 
-                    key={idx}
-                    variant="outline"
-                    className={`text-xs ${tierStyle ? tierStyle.className : ""}`}
-                    style={tierStyle ? tierStyle.style : undefined}
-                    title={ability?.description}
-                  >
-                    {abilityName}
-                  </Badge>
+                  <span key={idx} className="inline-flex items-center gap-1">
+                    <Badge
+                      variant="outline"
+                      className={`text-xs ${tierStyle ? tierStyle.className : ""}`}
+                      style={tierStyle ? tierStyle.style : undefined}
+                      title={ability?.description}
+                    >
+                      {abilityName}
+                    </Badge>
+                    {isStoryAcquired && (
+                      <span className="text-[9px] font-pixel text-amber-400 flex items-center gap-0.5" title="Acquired through a storyline arc">
+                        <Sparkles className="w-2.5 h-2.5" />STORY
+                      </span>
+                    )}
+                  </span>
                 );
               })}
             </div>

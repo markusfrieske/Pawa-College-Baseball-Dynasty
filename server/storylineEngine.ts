@@ -1,4 +1,4 @@
-import type { ChoiceWeights, StorylineHiddenVars } from "@shared/schema";
+import type { ChoiceWeights, StorylineHiddenVars, StoryOutcome } from "@shared/schema";
 import { isPitcher } from "@shared/positions";
 
 // Maps a raw position string to the canonical key used in scenePromptByPosition.
@@ -51,6 +51,103 @@ export function applyVolatilityModifier(delta: number, volatility: number): numb
   if (delta === 0) return 0;
   const multiplier = 0.6 + (Math.max(1, Math.min(10, volatility)) - 1) * (0.8 / 9);
   return Math.round(delta * multiplier);
+}
+
+// ─── StoryOutcome Generation ──────────────────────────────────────────────────
+// Classify a ChoiceWeights object into a canonical choice archetype using a
+// positivity score threshold + high-variance detector.
+function classifyWeightType(w: ChoiceWeights): 'bold_pos' | 'safe_pos' | 'high_risk' | 'neutral_up' | 'cautious' | 'risky_neg' {
+  const score =
+    (w.minor_pos ?? 0) * 1 + (w.moderate_pos ?? 0) * 2 +
+    (w.major_pos ?? 0) * 3 + (w.legendary_pos ?? 0) * 4 -
+    (w.minor_neg ?? 0) * 1 - (w.moderate_neg ?? 0) * 2 -
+    (w.major_neg ?? 0) * 3 - (w.legendary_neg ?? 0) * 4;
+  if (score < 0) return 'risky_neg';
+  if (score >= 1.20) return 'bold_pos';
+  if (score >= 0.90) return 'safe_pos';
+  if ((w.legendary_pos ?? 0) >= 0.10) return 'high_risk';
+  if ((w.neutral ?? 0) >= 0.35) return 'neutral_up';
+  return 'cautious';
+}
+
+// Build a fixed StoryOutcome for a single choice based on its weight type and position.
+// Volatility scaling (0.6–1.4×) is applied at resolution time; deltas here are base values.
+function buildStoryOutcome(
+  type: 'bold_pos' | 'safe_pos' | 'high_risk' | 'neutral_up' | 'cautious' | 'risky_neg',
+  pitcherMode: boolean,
+  isLegendary: boolean,
+): StoryOutcome {
+  if (pitcherMode) {
+    switch (type) {
+      case 'bold_pos': return {
+        attrChanges: [{ field: 'velocity', delta: 8 }, { field: 'control', delta: 5 }],
+        abilityGrant: { tier: isLegendary ? 'gold' : 'blue' },
+      };
+      case 'safe_pos': return {
+        attrChanges: [{ field: 'velocity', delta: 5 }, { field: 'control', delta: 3 }],
+      };
+      case 'high_risk': return {
+        attrChanges: [{ field: 'velocity', delta: 10 }, { field: 'stuff', delta: 5 }],
+        abilityGrant: { tier: 'gold' },
+      };
+      case 'neutral_up': return {
+        attrChanges: [{ field: 'control', delta: 3 }, { field: 'stamina', delta: 2 }],
+      };
+      case 'cautious': return {
+        attrChanges: [{ field: 'control', delta: 2 }, { field: 'poise', delta: 1 }],
+      };
+      case 'risky_neg': return {
+        attrChanges: [{ field: 'velocity', delta: -5 }, { field: 'control', delta: -4 }],
+        abilityRemove: 'random_story',
+        abilityGrant: { tier: 'red' },
+      };
+    }
+  } else {
+    switch (type) {
+      case 'bold_pos': return {
+        attrChanges: [{ field: 'hitForAvg', delta: 8 }, { field: 'power', delta: 5 }],
+        abilityGrant: { tier: isLegendary ? 'gold' : 'blue' },
+      };
+      case 'safe_pos': return {
+        attrChanges: [{ field: 'hitForAvg', delta: 5 }, { field: 'power', delta: 3 }],
+      };
+      case 'high_risk': return {
+        attrChanges: [{ field: 'power', delta: 10 }, { field: 'speed', delta: 5 }],
+        abilityGrant: { tier: 'gold' },
+      };
+      case 'neutral_up': return {
+        attrChanges: [{ field: 'hitForAvg', delta: 3 }, { field: 'speed', delta: 2 }],
+      };
+      case 'cautious': return {
+        attrChanges: [{ field: 'hitForAvg', delta: 2 }, { field: 'fielding', delta: 1 }],
+      };
+      case 'risky_neg': return {
+        attrChanges: [{ field: 'hitForAvg', delta: -5 }, { field: 'power', delta: -4 }],
+        abilityRemove: 'random_story',
+        abilityGrant: { tier: 'red' },
+      };
+    }
+  }
+}
+
+// Derive the full StoryOutcomes map for all choices on a given event template.
+export function generateStoryOutcomes(
+  choiceAWeights: ChoiceWeights,
+  choiceBWeights: ChoiceWeights,
+  choiceCWeights: ChoiceWeights,
+  choiceDWeights: ChoiceWeights | undefined | null,
+  isPitcherMode: boolean,
+  isLegendary: boolean,
+): Record<string, StoryOutcome> {
+  const outcomes: Record<string, StoryOutcome> = {
+    A: buildStoryOutcome(classifyWeightType(choiceAWeights), isPitcherMode, isLegendary),
+    B: buildStoryOutcome(classifyWeightType(choiceBWeights), isPitcherMode, isLegendary),
+    C: buildStoryOutcome(classifyWeightType(choiceCWeights), isPitcherMode, isLegendary),
+  };
+  if (choiceDWeights) {
+    outcomes.D = buildStoryOutcome(classifyWeightType(choiceDWeights), isPitcherMode, isLegendary);
+  }
+  return outcomes;
 }
 
 // ─── Hidden Variable Generation ───────────────────────────────────────────────
@@ -1306,6 +1403,7 @@ export function generateStorylineEvent(
   choiceB: string; choiceBOutcome: string; choiceBWeights: ChoiceWeights;
   choiceC: string; choiceCOutcome: string; choiceCWeights: ChoiceWeights;
   choiceD?: string; choiceDOutcome?: string; choiceDWeights?: ChoiceWeights;
+  storyOutcomes: Record<string, StoryOutcome>;
 } {
   const def = ARCHETYPE_DEFS[archetype];
   let pool = [...def.events];
@@ -1357,6 +1455,15 @@ export function generateStorylineEvent(
     ? template.eventTextPitcher
     : template.eventText;
 
+  const storyOutcomes = generateStoryOutcomes(
+    template.choiceAWeights,
+    template.choiceBWeights,
+    template.choiceCWeights,
+    template.choiceDWeights,
+    pitcherMode,
+    isLegendary,
+  );
+
   return {
     storylineRecruitId,
     leagueId,
@@ -1377,35 +1484,33 @@ export function generateStorylineEvent(
     choiceD: template.choiceD ? interpolate(template.choiceD) : undefined,
     choiceDOutcome: template.choiceD ? interpolate(template.choiceDOutcome ?? "") : undefined,
     choiceDWeights: template.choiceDWeights,
+    storyOutcomes,
   };
 }
 
 // ─── Vote Resolution ──────────────────────────────────────────────────────────
+// Returns the winning choice letter based on vote plurality.
+// OVR impact is now computed by applyStoryOutcomeToRecruit in storyline-routes.ts
+// using the structured StoryOutcome for that choice (not a probabilistic delta roll).
 export function resolveVotes(
   votes: Array<{ choice: string }>,
-  choiceAWeights: ChoiceWeights,
-  choiceBWeights: ChoiceWeights,
-  choiceCWeights: ChoiceWeights,
-  choiceDWeights?: ChoiceWeights | null,
-): { winningChoice: string; ovrDelta: number } {
+  hasChoiceD: boolean,
+): { winningChoice: string } {
   const counts: Record<string, number> = { A: 0, B: 0, C: 0, D: 0 };
   for (const v of votes) {
     counts[v.choice] = (counts[v.choice] || 0) + 1;
   }
 
+  const choices = hasChoiceD ? (["A", "B", "C", "D"] as const) : (["A", "B", "C"] as const);
   if (votes.length === 0) {
-    const choices = choiceDWeights ? ["A", "B", "C", "D"] : ["A", "B", "C"];
     const winningChoice = choices[Math.floor(Math.random() * choices.length)];
-    const weights = winningChoice === "A" ? choiceAWeights : winningChoice === "B" ? choiceBWeights : winningChoice === "C" ? choiceCWeights : choiceDWeights!;
-    return { winningChoice, ovrDelta: resolveWeights(weights) };
+    return { winningChoice };
   }
 
-  const choices = choiceDWeights ? (["A", "B", "C", "D"] as const) : (["A", "B", "C"] as const);
   const maxCount = Math.max(...choices.map(c => counts[c]));
   const tiedChoices = choices.filter(c => counts[c] === maxCount);
   const winningChoice = tiedChoices[Math.floor(Math.random() * tiedChoices.length)];
-  const weights = winningChoice === "A" ? choiceAWeights : winningChoice === "B" ? choiceBWeights : winningChoice === "C" ? choiceCWeights : (choiceDWeights ?? choiceCWeights);
-  return { winningChoice, ovrDelta: resolveWeights(weights) };
+  return { winningChoice };
 }
 
 export { ARCHETYPE_DEFS as archetypeDefs };
