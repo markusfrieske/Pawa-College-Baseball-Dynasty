@@ -1024,6 +1024,14 @@ export function generateRecruitClass(
     if (themeBoost.attr === "speed")    speed    = Math.min(99, speed    + themeBoost.boost);
     if (themeBoost.attr === "fielding") fielding = Math.min(99, fielding + themeBoost.boost);
 
+    // Fix trajectory before the retry loop so the OVR formula uses the same value throughout:
+    // retry loop, recruitOvrData, and the recruit object all reference this single value.
+    // This ensures stored overall == calculateOVR(final recruit attrs) with no trajectory drift.
+    // Pitchers always use trajectory=2 (the formula default); for hitters, trajectory is derived
+    // from the initial (pre-retry) attrs. The retry adjusts attrs proportionally, so the
+    // trajectory classification (Power/Speed/Contact/Balanced) rarely changes during retry.
+    const trajectory = isPitcher ? 2 : assignTrajectory(power, speed, hitForAvg);
+
     let lastHitterCommon: ReturnType<typeof generateCommonAbilities> | null = null;
 
     if (!isPitcher) {
@@ -1069,7 +1077,7 @@ export function generateRecruitClass(
         const trialOvr = calculateOVR({
           position, hitForAvg, power, speed, arm, fielding, errorResistance,
           velocity, control, stamina, stuff,
-          ...trialCommon, abilities,
+          ...trialCommon, abilities, trajectory,
         });
         lastHitterCommon = trialCommon;
         if (trialOvr >= retryLo && trialOvr <= retryHi) break;
@@ -1202,7 +1210,7 @@ export function generateRecruitClass(
     const recruitOvrData = {
       position, hitForAvg, power, speed, arm, fielding, errorResistance,
       velocity, control, stamina, stuff, ...commonAbilities, abilities,
-      ...pitchMix,
+      ...pitchMix, trajectory,
     };
     let overall = calculateOVR(recruitOvrData);
 
@@ -1267,13 +1275,28 @@ export function generateRecruitClass(
         } else {
           // Hitter: recalculate precisely so stored OVR = formula OVR (no hardcoded delta).
           overall = calculateOVR({ ...recruitOvrData, abilities: gated });
-          // Post-gate re-clamp for gem/bust/blueChip hitters: the gold→blue swap can shift
-          // specialTotal (via HITTER_NAMED_PTS) and push OVR outside the retry-targeted band.
-          // This narrow clamp restores only the gold-gate-induced deviation — not an independent
-          // band enforcer. Normal hitters (no isGem/isBust/isBlueChip) are still unclamped.
+          // Post-gate re-retry for gem/bust/blueChip hitters: the gold→blue swap shifts
+          // specialTotal (via HITTER_NAMED_PTS) and can push OVR outside the retry-targeted
+          // band. Re-converge attrs (≤5 iterations) using the gated abilities rather than
+          // clamping, so stored OVR stays formula-derived. Normal hitters are unaffected.
           if (isGem || isBust || isBlueChip) {
-            const [pgLo, pgHi] = getRecruitOvrBand(starRank, isGem, isBust, isBlueChip, false, false);
-            overall = Math.max(pgLo, Math.min(pgHi, overall));
+            const [rrLo, rrHi] = getRecruitOvrBand(starRank, isGem, isBust, isBlueChip, false, false);
+            for (let rr = 0; rr <= 5; rr++) {
+              overall = calculateOVR({
+                position, hitForAvg, power, speed, arm, fielding, errorResistance,
+                velocity, control, stamina, stuff,
+                ...commonAbilities, abilities, ...pitchMix, trajectory,
+              });
+              if (overall >= rrLo && overall <= rrHi) break;
+              if (rr === 5) break;
+              const dist = Math.max(Math.max(0, rrLo - overall), Math.max(0, overall - rrHi));
+              const adj = overall < rrLo ? (dist > 10 ? 2 : 1) : -(dist > 10 ? 2 : 1);
+              hitForAvg       = Math.max(1, Math.min(99, hitForAvg       + adj));
+              power           = Math.max(1, Math.min(99, power           + adj));
+              arm             = Math.max(1, Math.min(99, arm             + adj));
+              fielding        = Math.max(1, Math.min(99, fielding        + adj));
+              errorResistance = Math.max(1, Math.min(99, errorResistance + adj));
+            }
           }
         }
       }
@@ -1359,7 +1382,7 @@ export function generateRecruitClass(
       ...pitchMix,
       ...commonAbilities,
       abilities,
-      trajectory: isPitcher ? 2 : assignTrajectory(power, speed, hitForAvg),
+      trajectory,
       scoutingOrder,
       proximityPriority: priorities[Math.floor(Math.random() * priorities.length)],
       reputationPriority: priorities[Math.floor(Math.random() * priorities.length)],
