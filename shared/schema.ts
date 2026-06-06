@@ -1430,6 +1430,7 @@ export const storylineRecruits = pgTable("storyline_recruits", {
   overlappingRecruitId: varchar("overlapping_recruit_id"),
   resolvedOvrDelta: integer("resolved_ovr_delta").notNull().default(0),
   usedTemplateIds: json("used_template_ids").$type<string[]>().default([]),
+  featuredTeamName: text("featured_team_name"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (t) => ({
   uniqueLeagueSeasonRecruit: uniqueIndex("storyline_recruits_league_season_recruit_unique").on(t.leagueId, t.season, t.recruitId),

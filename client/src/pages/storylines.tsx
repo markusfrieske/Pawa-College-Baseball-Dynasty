@@ -79,6 +79,7 @@ interface StorylineRecruit {
   resolvedEvents: number;
   voteCounts: Record<string, number>;
   myVote: string | null;
+  featuredTeamName?: string | null;
 }
 
 const TIER_CONFIG: Record<string, { label: string; color: string }> = {
@@ -311,9 +312,16 @@ function StorylineCard({ sl, leagueId }: { sl: StorylineRecruit; leagueId: strin
             />
 
             <div className="mt-2 bg-muted/20 rounded-md px-3 py-1.5" data-testid={`archetype-banner-${sl.id}`}>
-              <div className="flex items-center gap-1.5">
-                <BookOpen className="w-3 h-3 text-gold flex-shrink-0" />
-                <span className="text-[10px] font-pixel text-gold">{sl.archetypeName}</span>
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-1.5">
+                  <BookOpen className="w-3 h-3 text-gold flex-shrink-0" />
+                  <span className="text-[10px] font-pixel text-gold">{sl.archetypeName}</span>
+                </div>
+                {sl.featuredTeamName && (
+                  <span className="text-[9px] text-blue-300/80 italic flex-shrink-0">
+                    Recruiting target of {sl.featuredTeamName}
+                  </span>
+                )}
               </div>
               <p className="text-[10px] text-muted-foreground italic mt-0.5">{sl.archetypeFlavor}</p>
             </div>
