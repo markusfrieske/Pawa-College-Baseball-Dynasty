@@ -21256,32 +21256,119 @@ async function generateExhibitionGames(leagueId: string, season: number) {
     return a;
   }
 
-  const TARGET = 3; // target games per team
+  // Build conference lookup from team.conferenceId (no extra DB call needed)
+  const confByTeamId = new Map<string, string>();
+  for (const t of leagueTeams) {
+    if (t.conferenceId) confByTeamId.set(t.id, t.conferenceId);
+  }
+  const hasMultipleConfs =
+    new Set(leagueTeams.map(t => t.conferenceId).filter(Boolean)).size >= 2;
+
+  const TARGET = 3; // target exhibition games per team
   const matchups: Array<{ homeTeamId: string; awayTeamId: string }> = [];
   const gameCounts = new Map(leagueTeams.map(t => [t.id, 0]));
+
+  // Track which teams have already faced each other in exhibition (for variety across rounds)
+  const exhibHistory = new Map<string, Set<string>>();
+
+  function addPair(aId: string, bId: string) {
+    const homeFirst = Math.random() > 0.5;
+    matchups.push({ homeTeamId: homeFirst ? aId : bId, awayTeamId: homeFirst ? bId : aId });
+    gameCounts.set(aId, gameCounts.get(aId)! + 1);
+    gameCounts.set(bId, gameCounts.get(bId)! + 1);
+    if (!exhibHistory.has(aId)) exhibHistory.set(aId, new Set());
+    if (!exhibHistory.has(bId)) exhibHistory.set(bId, new Set());
+    exhibHistory.get(aId)!.add(bId);
+    exhibHistory.get(bId)!.add(aId);
+  }
 
   // 3 proper rounds — each team plays at most once per round.
   // For odd-N leagues, rotate byes so no team sits out more than once.
   const hadBye = new Set<string>();
+
   for (let round = 0; round < TARGET; round++) {
-    let pool = shuffle([...leagueTeams]);
-    if (pool.length % 2 !== 0) {
-      // Give bye to a team that (a) hasn't had a bye yet AND (b) has the most games so far
-      const candidates = pool.filter(t => !hadBye.has(t.id));
-      const maxGames = Math.max(...candidates.map(t => gameCounts.get(t.id)!));
-      const top = candidates.filter(t => gameCounts.get(t.id)! === maxGames);
-      const byeTeam = top[Math.floor(Math.random() * top.length)];
-      hadBye.add(byeTeam.id);
-      pool = pool.filter(t => t.id !== byeTeam.id);
-    }
-    for (let i = 0; i < pool.length; i += 2) {
-      const homeFirst = Math.random() > 0.5;
-      matchups.push({
-        homeTeamId: homeFirst ? pool[i].id : pool[i + 1].id,
-        awayTeamId: homeFirst ? pool[i + 1].id : pool[i].id,
+    if (hasMultipleConfs) {
+      // --- Conference-aware backtracking perfect matching (OOC only) ---
+
+      // Sort most-constrained-first: teams in smaller conferences have fewer cross-conf options.
+      const sorted = [...leagueTeams].sort((a, b) => {
+        const aCands = leagueTeams.filter(t => confByTeamId.get(t.id) !== confByTeamId.get(a.id)).length;
+        const bCands = leagueTeams.filter(t => confByTeamId.get(t.id) !== confByTeamId.get(b.id)).length;
+        return aCands - bCands;
       });
-      gameCounts.set(pool[i].id, gameCounts.get(pool[i].id)! + 1);
-      gameCounts.set(pool[i + 1].id, gameCounts.get(pool[i + 1].id)! + 1);
+
+      // Odd-N: give bye to a team that (a) hasn't had a bye yet AND (b) has the most games.
+      let roundParticipants = [...sorted];
+      if (roundParticipants.length % 2 !== 0) {
+        const noBye = roundParticipants.filter(t => !hadBye.has(t.id));
+        const maxG = Math.max(...noBye.map(t => gameCounts.get(t.id)!));
+        const top = noBye.filter(t => gameCounts.get(t.id)! === maxG);
+        const byeTeam = top[Math.floor(Math.random() * top.length)];
+        hadBye.add(byeTeam.id);
+        roundParticipants = roundParticipants.filter(t => t.id !== byeTeam.id);
+      }
+
+      // Build candidates per team:
+      //   Tier 1 – cross-conf AND not yet met in exhibition (preferred)
+      //   Tier 2 – cross-conf AND already met in exhibition (acceptable)
+      // Rotate by round so repeat pairings vary across rounds.
+      const candidatesFor = new Map<string, typeof leagueTeams>();
+      for (const team of roundParticipants) {
+        const confId = confByTeamId.get(team.id);
+        const xConf = roundParticipants.filter(t => confByTeamId.get(t.id) !== confId);
+        const offset = round % Math.max(xConf.length, 1);
+        const rotated = [...xConf.slice(offset), ...xConf.slice(0, offset)];
+        const tier1 = rotated.filter(t => !exhibHistory.get(team.id)?.has(t.id));
+        const tier2 = rotated.filter(t =>  exhibHistory.get(team.id)?.has(t.id));
+        candidatesFor.set(team.id, [...tier1, ...tier2]);
+      }
+
+      // Backtracking perfect-match: guarantees every non-bye team gets exactly
+      // one cross-conference exhibition game this round.
+      const roundPairs: Array<[string, string]> = [];
+      const used = new Set<string>();
+
+      function matchExhibOOC(idx: number): boolean {
+        while (idx < roundParticipants.length && used.has(roundParticipants[idx].id)) idx++;
+        if (idx >= roundParticipants.length) return true;
+        const team = roundParticipants[idx];
+        for (const opp of candidatesFor.get(team.id) ?? []) {
+          if (used.has(opp.id)) continue;
+          used.add(team.id);
+          used.add(opp.id);
+          roundPairs.push([team.id, opp.id]);
+          if (matchExhibOOC(idx + 1)) return true;
+          used.delete(team.id);
+          used.delete(opp.id);
+          roundPairs.pop();
+        }
+        return false;
+      }
+
+      if (matchExhibOOC(0)) {
+        for (const [aId, bId] of roundPairs) addPair(aId, bId);
+      } else {
+        // Fallback: sequential pairing (only if backtracking fails — shouldn't occur in
+        // normal multi-conference leagues; may happen in degenerate single-conf leagues
+        // that somehow pass hasMultipleConfs check).
+        for (let i = 0; i + 1 < roundParticipants.length; i += 2) {
+          addPair(roundParticipants[i].id, roundParticipants[i + 1].id);
+        }
+      }
+    } else {
+      // Single conference — fall back to random pairing within the conference.
+      let pool = shuffle([...leagueTeams]);
+      if (pool.length % 2 !== 0) {
+        const noBye = pool.filter(t => !hadBye.has(t.id));
+        const maxG = Math.max(...noBye.map(t => gameCounts.get(t.id)!));
+        const top = noBye.filter(t => gameCounts.get(t.id)! === maxG);
+        const byeTeam = top[Math.floor(Math.random() * top.length)];
+        hadBye.add(byeTeam.id);
+        pool = pool.filter(t => t.id !== byeTeam.id);
+      }
+      for (let i = 0; i < pool.length; i += 2) {
+        addPair(pool[i].id, pool[i + 1].id);
+      }
     }
   }
 
@@ -21289,39 +21376,36 @@ async function generateExhibitionGames(leagueId: string, season: number) {
   //
   // For odd-N leagues (e.g. 13 teams), 3 rounds give exactly 3 bye-teams at TARGET-1=2.
   // Pairing strategy:
-  //   1. Pair underserved teams with each other (2 of them: both go 2→3).
+  //   1. Pair underserved teams with each other; prefer cross-conference when possible.
   //   2. If an odd number of underserved teams remain (1 left over), pair it with the
-  //      lowest-game satisfied team (3→4) so every team reaches at least TARGET=3.
+  //      lowest-game satisfied team (3→4); prefer cross-conference partner.
   //
   // For 13-team leagues: 3 underserved → pair 2 together → 1 left → pair with a
   // satisfied team. Final distribution: 12 teams at 3, 1 team at 4.
-  // Minimum is TARGET for all teams; maximum is TARGET+1 for exactly one team.
-  const underserved = leagueTeams.filter(t => gameCounts.get(t.id)! < TARGET);
-  const s = shuffle([...underserved]);
-  for (let i = 0; i + 1 < s.length; i += 2) {
-    const homeFirst = Math.random() > 0.5;
-    matchups.push({
-      homeTeamId: homeFirst ? s[i].id : s[i + 1].id,
-      awayTeamId: homeFirst ? s[i + 1].id : s[i].id,
-    });
-    gameCounts.set(s[i].id, gameCounts.get(s[i].id)! + 1);
-    gameCounts.set(s[i + 1].id, gameCounts.get(s[i + 1].id)! + 1);
+  const topupRemaining = shuffle([...leagueTeams.filter(t => gameCounts.get(t.id)! < TARGET)]);
+  while (topupRemaining.length >= 2) {
+    const t1 = topupRemaining.shift()!;
+    const t1Conf = confByTeamId.get(t1.id);
+    // Prefer a cross-conf partner from the remaining underserved
+    const xConfIdx = hasMultipleConfs
+      ? topupRemaining.findIndex(t => confByTeamId.get(t.id) !== t1Conf)
+      : -1;
+    const partnerIdx = xConfIdx >= 0 ? xConfIdx : 0;
+    const [partner] = topupRemaining.splice(partnerIdx, 1);
+    addPair(t1.id, partner.id);
   }
-  // If an odd number of underserved teams existed, one still needs a game.
-  // Pair it with a satisfied team at TARGET games; that team goes to TARGET+1.
-  if (s.length % 2 !== 0) {
-    const lastUnderserved = s[s.length - 1];
-    const partner = shuffle([...leagueTeams])
-      .filter(t => t.id !== lastUnderserved.id && gameCounts.get(t.id)! === TARGET)[0];
-    if (partner) {
-      const homeFirst = Math.random() > 0.5;
-      matchups.push({
-        homeTeamId: homeFirst ? lastUnderserved.id : partner.id,
-        awayTeamId: homeFirst ? partner.id : lastUnderserved.id,
-      });
-      gameCounts.set(lastUnderserved.id, gameCounts.get(lastUnderserved.id)! + 1);
-      gameCounts.set(partner.id, gameCounts.get(partner.id)! + 1);
-    }
+  // If one underserved team remains, pair it with a satisfied team at TARGET games.
+  if (topupRemaining.length === 1) {
+    const last = topupRemaining[0];
+    const lastConf = confByTeamId.get(last.id);
+    const partnerPool = shuffle([...leagueTeams]).filter(
+      t => t.id !== last.id && gameCounts.get(t.id)! === TARGET
+    );
+    // Prefer cross-conference partner
+    const partner = hasMultipleConfs
+      ? (partnerPool.find(t => confByTeamId.get(t.id) !== lastConf) ?? partnerPool[0])
+      : partnerPool[0];
+    if (partner) addPair(last.id, partner.id);
   }
 
   for (const { homeTeamId, awayTeamId } of matchups) {
