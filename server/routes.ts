@@ -21330,17 +21330,16 @@ async function generateExhibitionGames(leagueId: string, season: number) {
     return bt(0) ? pairs : null;
   }
 
-  // Conference-aware greedy fallback: pairs OOC where possible; only falls back to
-  // same-conference when no OOC partner remains available.
+  // Maximal OOC greedy: pairs as many cross-conference opponents as possible.
+  // Teams with no available OOC partner are left without a game in this round —
+  // the top-up phase compensates. Never creates same-conference exhibition pairings.
   function greedyOOCPair(participants: typeof leagueTeams, round: number) {
     const cands = buildCandidatesFor(participants, round);
     const tempUsed = new Set<string>();
     for (const team of participants) {
       if (tempUsed.has(team.id)) continue;
-      // Prefer OOC candidate, fall back to any available same-conf partner
-      const partner =
-        (cands.get(team.id) ?? []).find(t => !tempUsed.has(t.id)) ??
-        participants.find(t => !tempUsed.has(t.id) && t.id !== team.id);
+      // OOC only — if no cross-conf partner is free, team simply sits out this round
+      const partner = (cands.get(team.id) ?? []).find(t => !tempUsed.has(t.id));
       if (!partner) continue;
       tempUsed.add(team.id);
       tempUsed.add(partner.id);
@@ -21434,38 +21433,42 @@ async function generateExhibitionGames(leagueId: string, season: number) {
 
   // Top-up: bring every underserved team to TARGET games.
   //
-  // For odd-N leagues (e.g. 13 teams), 3 rounds give exactly 3 bye-teams at TARGET-1=2.
-  // Pairing strategy:
-  //   1. Pair underserved teams with each other; prefer cross-conference when possible.
-  //   2. If an odd number of underserved teams remain (1 left over), pair it with the
-  //      lowest-game satisfied team (3→4); prefer cross-conference partner.
-  //
-  // For 13-team leagues: 3 underserved → pair 2 together → 1 left → pair with a
-  // satisfied team. Final distribution: 12 teams at 3, 1 team at 4.
-  const topupRemaining = shuffle([...leagueTeams.filter(t => gameCounts.get(t.id)! < TARGET)]);
-  while (topupRemaining.length >= 2) {
-    const t1 = topupRemaining.shift()!;
+  // Iterative approach: always pick the most-underserved team and find it a partner.
+  // In multi-conf mode all top-up games must be OOC — same-conference pairings are
+  // never created. For unequal conference splits (e.g. 4+2) this may leave a few
+  // conf1-heavy teams at TARGET-1 when every cross-conf team has hit the ceiling;
+  // those cases are logged. Single-conf mode accepts same-conference pairings.
+  const topupCeiling = TARGET + 2; // prevent runaway inflation
+  for (let iter = 0; iter < leagueTeams.length * (TARGET + 2); iter++) {
+    const underserved = leagueTeams
+      .filter(t => (gameCounts.get(t.id) ?? 0) < TARGET)
+      .sort((a, b) => (gameCounts.get(a.id) ?? 0) - (gameCounts.get(b.id) ?? 0));
+    if (underserved.length === 0) break;
+
+    const t1 = underserved[0];
     const t1Conf = confByTeamId.get(t1.id);
-    // Prefer a cross-conf partner from the remaining underserved
-    const xConfIdx = hasMultipleConfs
-      ? topupRemaining.findIndex(t => confByTeamId.get(t.id) !== t1Conf)
-      : -1;
-    const partnerIdx = xConfIdx >= 0 ? xConfIdx : 0;
-    const [partner] = topupRemaining.splice(partnerIdx, 1);
+
+    let partner: (typeof leagueTeams)[number] | undefined;
+    if (hasMultipleConfs) {
+      // OOC only: prefer underserved cross-conf, then any cross-conf below ceiling.
+      // Never pair with a same-conference team.
+      const xConfPool = leagueTeams
+        .filter(t => t.id !== t1.id && confByTeamId.get(t.id) !== t1Conf)
+        .sort((a, b) => (gameCounts.get(a.id) ?? 0) - (gameCounts.get(b.id) ?? 0));
+      partner =
+        xConfPool.find(t => (gameCounts.get(t.id) ?? 0) < TARGET) ??
+        xConfPool.find(t => (gameCounts.get(t.id) ?? 0) < topupCeiling);
+    } else {
+      // Single-conf: any team below the ceiling.
+      partner = shuffle([...leagueTeams])
+        .filter(t => t.id !== t1.id && (gameCounts.get(t.id) ?? 0) < topupCeiling)[0];
+    }
+
+    if (!partner) {
+      console.warn(`[exhibition-topup] No eligible partner for ${t1.name} (${gameCounts.get(t1.id)} games) — stopping top-up`);
+      break;
+    }
     addPair(t1.id, partner.id);
-  }
-  // If one underserved team remains, pair it with a satisfied team at TARGET games.
-  if (topupRemaining.length === 1) {
-    const last = topupRemaining[0];
-    const lastConf = confByTeamId.get(last.id);
-    const partnerPool = shuffle([...leagueTeams]).filter(
-      t => t.id !== last.id && gameCounts.get(t.id)! === TARGET
-    );
-    // Prefer cross-conference partner
-    const partner = hasMultipleConfs
-      ? (partnerPool.find(t => confByTeamId.get(t.id) !== lastConf) ?? partnerPool[0])
-      : partnerPool[0];
-    if (partner) addPair(last.id, partner.id);
   }
 
   for (const { homeTeamId, awayTeamId } of matchups) {
