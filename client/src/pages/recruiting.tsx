@@ -2913,7 +2913,7 @@ function RecruitRow({
                 </Tooltip>
               )}
             </div>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
               <span className="flex items-center gap-1">
                 <MapPin className="w-3 h-3" />
                 {recruit.hometown}, {recruit.homeState}
@@ -2921,6 +2921,16 @@ function RecruitRow({
               <span className="text-[10px]">
                 {recruit.throwHand}/{recruit.batHand === "S" ? "S" : recruit.batHand}
               </span>
+              {!isPitcherRecruit && scoutPct >= 50 && recruit.trajectory != null && (
+                <span className={`text-[10px] font-pixel px-1 py-0.5 rounded border ${
+                  recruit.trajectory === 1 ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-400" :
+                  recruit.trajectory === 3 ? "bg-amber-500/10 border-amber-500/40 text-amber-400" :
+                  recruit.trajectory === 4 ? "bg-red-500/10 border-red-500/40 text-red-400" :
+                  "bg-slate-500/10 border-slate-500/40 text-slate-400"
+                }`} data-testid={`badge-traj-row-${recruit.id}`}>
+                  {TRAJECTORY_LABELS[recruit.trajectory] ?? "LD"}
+                </span>
+              )}
               <StarRating rating={recruit.starRank} size="sm" />
             </div>
           </div>
@@ -3476,10 +3486,15 @@ function RecruitRow({
             );
           })}
           {/* Hitter trajectory chip */}
-          {!isPitcherRecruit && recruit.trajectory != null && (
+          {!isPitcherRecruit && scoutPct >= 50 && recruit.trajectory != null && (
             <div className="flex items-center gap-0.5">
               <span className="text-[8px] text-muted-foreground/60 font-mono">TRAJ</span>
-              <span className="font-pixel text-[9px] font-bold text-muted-foreground/80">
+              <span className={`font-pixel text-[9px] font-bold ${
+                recruit.trajectory === 1 ? "text-emerald-400" :
+                recruit.trajectory === 3 ? "text-amber-400" :
+                recruit.trajectory === 4 ? "text-red-400" :
+                "text-slate-400"
+              }`}>
                 {TRAJECTORY_LABELS[recruit.trajectory] ?? "LD"}
               </span>
             </div>
@@ -4033,9 +4048,14 @@ function RecruitDetailModal({
             </div>
             <div className="flex items-center gap-2 shrink-0 flex-wrap">
               <span>Bats {recruit.batHand || "R"} / Throws {recruit.throwHand || "R"}</span>
-              {recruit.position !== "P" && recruit.trajectory != null && (
-                <Badge variant="outline" className="text-[9px] border-gold/40 text-gold/80" data-testid="badge-detail-traj">
-                  Traj: {TRAJECTORY_LABELS[recruit.trajectory] ?? "LD"}
+              {recruit.position !== "P" && scoutPct >= 50 && recruit.trajectory != null && (
+                <Badge variant="outline" className={`text-[9px] no-default-hover-elevate no-default-active-elevate ${
+                  recruit.trajectory === 1 ? "border-emerald-500/50 text-emerald-400" :
+                  recruit.trajectory === 3 ? "border-amber-500/50 text-amber-400" :
+                  recruit.trajectory === 4 ? "border-red-500/50 text-red-400" :
+                  "border-slate-500/50 text-slate-400"
+                }`} data-testid="badge-detail-traj">
+                  {TRAJECTORY_LABELS[recruit.trajectory] ?? "LD"}
                 </Badge>
               )}
             </div>
@@ -4586,9 +4606,14 @@ function RecruitDetailModal({
             </div>
             <div className="flex items-center gap-2 shrink-0 flex-wrap">
               <span>Bats {recruit.batHand || "R"} / Throws {recruit.throwHand || "R"}</span>
-              {recruit.position !== "P" && recruit.trajectory != null && (
-                <Badge variant="outline" className="text-[9px] border-gold/40 text-gold/80" data-testid="badge-detail-traj">
-                  Traj: {TRAJECTORY_LABELS[recruit.trajectory] ?? "LD"}
+              {recruit.position !== "P" && scoutPct >= 50 && recruit.trajectory != null && (
+                <Badge variant="outline" className={`text-[9px] no-default-hover-elevate no-default-active-elevate ${
+                  recruit.trajectory === 1 ? "border-emerald-500/50 text-emerald-400" :
+                  recruit.trajectory === 3 ? "border-amber-500/50 text-amber-400" :
+                  recruit.trajectory === 4 ? "border-red-500/50 text-red-400" :
+                  "border-slate-500/50 text-slate-400"
+                }`} data-testid="badge-detail-traj">
+                  {TRAJECTORY_LABELS[recruit.trajectory] ?? "LD"}
                 </Badge>
               )}
             </div>
@@ -5223,11 +5248,16 @@ function CompareModal({
                       <span>#{recruit.positionRank || "—"}</span>
                     </div>
                   </div>
-                  {recruit.position !== "P" && recruit.trajectory != null && (
+                  {recruit.position !== "P" && scoutPct >= 50 && recruit.trajectory != null && (
                     <div>
                       <div className="flex justify-between text-xs mb-1">
                         <span className="text-muted-foreground">Trajectory</span>
-                        <span className="text-gold">{TRAJECTORY_LABELS[recruit.trajectory] ?? "LD"}</span>
+                        <span className={
+                          recruit.trajectory === 1 ? "text-emerald-400" :
+                          recruit.trajectory === 3 ? "text-amber-400" :
+                          recruit.trajectory === 4 ? "text-red-400" :
+                          "text-slate-400"
+                        }>{TRAJECTORY_LABELS[recruit.trajectory] ?? "LD"}</span>
                       </div>
                     </div>
                   )}

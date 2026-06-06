@@ -44,6 +44,11 @@ import {
   TrendingDown,
   Minus,
   Sparkles,
+  Zap,
+  ArrowDownRight,
+  ArrowRight,
+  ArrowUpRight,
+  ArrowUp,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Recruit, RecruitingInterest, Team, League } from "@shared/schema";
@@ -66,6 +71,7 @@ function getInterestChangeLabel(change: number): { label: string; color: string 
 import { isPitcher as checkIsPitcher, isCatcher as checkIsCatcher } from "@shared/positions";
 import { getAbilityByName } from "@shared/abilities";
 import { getPotentialRangeLabel, getPotentialGrade, getProgressionZone, getProgressionColor } from "@shared/potential";
+import { TRAJECTORY_FULL_LABELS } from "@shared/trajectory";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { velocityToKMH } from "@/lib/playerUtils";
@@ -545,7 +551,7 @@ export default function RecruitProfilePage() {
                   {recruit.recruitType === "JUCO" ? `JUCO ${recruit.recruitYear || "FR"}` : recruit.recruitType}
                 </Badge>
                 <Badge className={`${stage.color} text-white`}>{stage.label}</Badge>
-                {isFullyRevealed && (recruit as any).isGenerationalGem && (
+                {scoutPct >= 75 && (recruit as any).isGenerationalGem && (
                   <Tooltip>
                     <TooltipTrigger>
                       <Badge className="text-[9px] bg-amber-500 text-black border-amber-400 no-default-hover-elevate no-default-active-elevate">
@@ -556,7 +562,7 @@ export default function RecruitProfilePage() {
                     <TooltipContent>Generational Talent - Once-in-a-generation player hidden in the recruiting class</TooltipContent>
                   </Tooltip>
                 )}
-                {isFullyRevealed && (recruit as any).isGenerationalBust && (
+                {scoutPct >= 75 && (recruit as any).isGenerationalBust && (
                   <Tooltip>
                     <TooltipTrigger>
                       <Badge className="text-[9px] bg-red-700 text-white border-red-600 no-default-hover-elevate no-default-active-elevate">
@@ -567,7 +573,7 @@ export default function RecruitProfilePage() {
                     <TooltipContent>Generational Bust - An overhyped recruit who will severely disappoint</TooltipContent>
                   </Tooltip>
                 )}
-                {isFullyRevealed && recruit.isGem && !(recruit as any).isGenerationalGem && (
+                {scoutPct >= 75 && recruit.isGem && !(recruit as any).isGenerationalGem && (
                   <Tooltip>
                     <TooltipTrigger>
                       <div className="flex items-center justify-center w-6 h-6 bg-green-500/20 rounded-full">
@@ -577,7 +583,7 @@ export default function RecruitProfilePage() {
                     <TooltipContent>Gem - Better than ranking suggests</TooltipContent>
                   </Tooltip>
                 )}
-                {isFullyRevealed && recruit.isBust && !(recruit as any).isGenerationalBust && (
+                {scoutPct >= 75 && recruit.isBust && !(recruit as any).isGenerationalBust && (
                   <Tooltip>
                     <TooltipTrigger>
                       <div className="flex items-center justify-center w-6 h-6 bg-red-500/20 rounded-full">
@@ -585,6 +591,39 @@ export default function RecruitProfilePage() {
                       </div>
                     </TooltipTrigger>
                     <TooltipContent>Bust - Worse than ranking suggests</TooltipContent>
+                  </Tooltip>
+                )}
+                {scoutPct >= 75 && (recruit as any).playerArchetype === "late_bloomer" && !(recruit as any).isGenerationalGem && (
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Badge className="text-[9px] bg-emerald-500/15 text-emerald-400 border-emerald-500/40 no-default-hover-elevate no-default-active-elevate">
+                        <TrendingUp className="w-3.5 h-3.5 mr-0.5" />
+                        LATE BLOOMER
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>Late Bloomer — Higher ceiling than current rating suggests</TooltipContent>
+                  </Tooltip>
+                )}
+                {scoutPct >= 75 && (recruit as any).playerArchetype === "overdraft" && !(recruit as any).isGenerationalBust && (
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Badge className="text-[9px] bg-orange-500/15 text-orange-400 border-orange-500/40 no-default-hover-elevate no-default-active-elevate">
+                        <TrendingDown className="w-3.5 h-3.5 mr-0.5" />
+                        OVERDRAFT
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>Overdraft — Lower ceiling than current rating suggests</TooltipContent>
+                  </Tooltip>
+                )}
+                {scoutPct >= 75 && (recruit as any).playerArchetype === "raw" && (
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Badge className="text-[9px] bg-yellow-500/15 text-yellow-400 border-yellow-500/40 no-default-hover-elevate no-default-active-elevate">
+                        <Zap className="w-3.5 h-3.5 mr-0.5" />
+                        RAW
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>Raw Prospect — Extreme tool variance, high risk/high reward</TooltipContent>
                   </Tooltip>
                 )}
               </div>
@@ -820,6 +859,37 @@ export default function RecruitProfilePage() {
                       <p className="text-xs text-muted-foreground">Bats</p>
                       <p className="font-bold">{recruit.batHand || "R"}</p>
                     </div>
+                    {!checkIsPitcher(recruit.position) && (
+                      <div className="col-span-2">
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                          Trajectory
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <HelpCircle className="w-3 h-3" />
+                            </TooltipTrigger>
+                            <TooltipContent>How this hitter tends to make contact — groundball, line drive, gap, or flyball. Revealed at 50% scouting.</TooltipContent>
+                          </Tooltip>
+                        </p>
+                        {scoutPct >= 50 ? (
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            {(recruit as any).trajectory === 1 && <ArrowDownRight className="w-4 h-4 text-emerald-400" />}
+                            {(recruit as any).trajectory === 2 && <ArrowRight className="w-4 h-4 text-slate-400" />}
+                            {(recruit as any).trajectory === 3 && <ArrowUpRight className="w-4 h-4 text-amber-400" />}
+                            {(recruit as any).trajectory === 4 && <ArrowUp className="w-4 h-4 text-red-400" />}
+                            <span className={`font-bold text-sm ${
+                              (recruit as any).trajectory === 1 ? "text-emerald-400" :
+                              (recruit as any).trajectory === 3 ? "text-amber-400" :
+                              (recruit as any).trajectory === 4 ? "text-red-400" :
+                              "text-slate-400"
+                            }`}>
+                              {TRAJECTORY_FULL_LABELS[(recruit as any).trajectory ?? 2] ?? "Line Drive"}
+                            </span>
+                          </div>
+                        ) : (
+                          <p className="font-bold text-muted-foreground/50">???</p>
+                        )}
+                      </div>
+                    )}
                   </div>
                   {leagueData?.league?.progressionEnabled && recruit.potentialFloor != null && recruit.potentialCeiling != null && scoutPct >= 100 && (
                     <div className="mt-4 pt-4 border-t border-border">
