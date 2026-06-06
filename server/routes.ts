@@ -21201,6 +21201,11 @@ async function generateSchedule(leagueId: string, season: number = 1) {
   const teamWeekMidweekCounts = new Map<string, Map<number, number>>();
   for (const t of leagueTeams) teamWeekMidweekCounts.set(t.id, new Map<number, number>());
 
+  // Track conf-bye weeks: weeks where a team has no conference series scheduled.
+  // These are the true deficit weeks preferred for top-up OOC placement.
+  const teamConfByeWeeks = new Map<string, Set<number>>();
+  for (const t of leagueTeams) teamConfByeWeeks.set(t.id, new Set<number>());
+
   let totalGames = 0;
   for (let week = 0; week < numWeeks; week++) {
     const weekConfSeries: Matchup[] = [];
@@ -21210,6 +21215,19 @@ async function generateSchedule(leagueId: string, season: number = 1) {
       if (!round) continue;
       for (const matchup of round) {
         weekConfSeries.push({ ...matchup, _cid: cid } as Matchup & { _cid: string });
+      }
+    }
+
+    // Record which teams have a conf-bye this week (no conference series scheduled).
+    // These are the preferred weeks for top-up OOC games since the team has capacity.
+    const teamsWithConfSeriesThisWeek = new Set<string>();
+    for (const s of weekConfSeries) {
+      teamsWithConfSeriesThisWeek.add(s.home.id);
+      teamsWithConfSeriesThisWeek.add(s.away.id);
+    }
+    for (const t of leagueTeams) {
+      if (!teamsWithConfSeriesThisWeek.has(t.id)) {
+        teamConfByeWeeks.get(t.id)!.add(week + 1);
       }
     }
 
@@ -21331,6 +21349,21 @@ async function generateSchedule(leagueId: string, season: number = 1) {
       }
     }
 
+    // Guard: each team should appear at most once in oocPairs this week (cap = 1 midweek OOC).
+    // Log an error if the matching produced a duplicate (should never happen).
+    {
+      const oocTeamSeen = new Set<string>();
+      for (const ooc of oocPairs) {
+        for (const tid of [ooc.home.id, ooc.away.id]) {
+          if (oocTeamSeen.has(tid)) {
+            const name = leagueTeams.find(t => t.id === tid)?.name ?? tid;
+            console.error(`[schedule-ooc-guard] Week ${week + 1}: team ${name} assigned >1 OOC game (expected ≤1)`);
+          }
+          oocTeamSeen.add(tid);
+        }
+      }
+    }
+
     for (const ooc of oocPairs) {
       const wk = week + 1;
       await storage.createGame({
@@ -21381,24 +21414,75 @@ async function generateSchedule(leagueId: string, season: number = 1) {
       console.error(`[schedule-topup] No cross-conf partner available for ${t1.name} (${teamGameCounts.get(t1.id)} games, target ${targetGamesPerTeam}, ceiling ${topupCeiling}); stopping top-up`);
       break;
     }
-    // Find the week where both teams have the fewest midweek OOC games.
-    // Prefer weeks where neither team has any midweek game yet (conf-bye weeks);
-    // fall back to whichever week has the lowest combined count.
-    // This prevents all top-up games from stacking on the last week.
+    // Hard cap: never assign a 3rd midweek OOC game to any team in any week.
+    const MIDWEEK_CAP = 2;
     const mw1 = teamWeekMidweekCounts.get(t1.id)!;
     const mw2 = teamWeekMidweekCounts.get(t2.id)!;
-    let topupWeek = numWeeks;
-    let bestMax = Infinity;
-    let bestSum = Infinity;
-    for (let w = 1; w <= numWeeks; w++) {
+    const bye1 = teamConfByeWeeks.get(t1.id)!;
+    const bye2 = teamConfByeWeeks.get(t2.id)!;
+
+    // Week selection — three tiers, picked in priority order:
+    //
+    // Tier 1: Both teams have midweek=0 this week (ideal — fills a slot that was
+    //         completely empty, i.e. a league-level OOC-bye week for one of them).
+    //
+    // Tier 2: Both teams are on conf-bye this week AND both are under the hard cap.
+    //         Conf-bye weeks are the true "deficit" weeks (no 3-game series), so
+    //         adding a second OOC game there is far better than flooding a full week.
+    //
+    // Tier 3: Any week where BOTH teams are under the hard cap — pick the lightest
+    //         (minimise max(c1,c2), break ties by c1+c2) to spread load evenly.
+    //
+    // If no valid week exists (every week already at cap for at least one team), skip
+    // this top-up game and break to avoid an infinite loop; post-validation will warn.
+
+    let topupWeek: number | null = null;
+
+    // Tier 1 — both teams have zero midweek games this week
+    for (let w = 1; w <= numWeeks && topupWeek === null; w++) {
       const c1 = mw1.get(w) ?? 0;
       const c2 = mw2.get(w) ?? 0;
-      const wMax = Math.max(c1, c2);
-      const wSum = c1 + c2;
-      if (wMax < bestMax || (wMax === bestMax && wSum < bestSum)) {
-        bestMax = wMax; bestSum = wSum; topupWeek = w;
+      if (c1 === 0 && c2 === 0) topupWeek = w;
+    }
+
+    // Tier 2 — both on conf-bye, both under hard cap (lightest first)
+    if (topupWeek === null) {
+      let bestScore = Infinity;
+      for (let w = 1; w <= numWeeks; w++) {
+        if (!bye1.has(w) || !bye2.has(w)) continue;
+        const c1 = mw1.get(w) ?? 0;
+        const c2 = mw2.get(w) ?? 0;
+        if (c1 >= MIDWEEK_CAP || c2 >= MIDWEEK_CAP) continue;
+        const score = c1 + c2;
+        if (score < bestScore) { bestScore = score; topupWeek = w; }
       }
     }
+
+    // Tier 3 — any week where both are under cap (minimise max then sum)
+    if (topupWeek === null) {
+      let bestMax = Infinity;
+      let bestSum = Infinity;
+      for (let w = 1; w <= numWeeks; w++) {
+        const c1 = mw1.get(w) ?? 0;
+        const c2 = mw2.get(w) ?? 0;
+        if (c1 >= MIDWEEK_CAP || c2 >= MIDWEEK_CAP) continue;
+        const wMax = Math.max(c1, c2);
+        const wSum = c1 + c2;
+        if (wMax < bestMax || (wMax === bestMax && wSum < bestSum)) {
+          bestMax = wMax; bestSum = wSum; topupWeek = w;
+        }
+      }
+    }
+
+    // No valid week — all weeks are at cap for at least one team; skip and log.
+    if (topupWeek === null) {
+      console.warn(
+        `[schedule-topup] No valid week (cap=${MIDWEEK_CAP}) for ${t1.name}+${t2.name} —` +
+        ` skipping. ${t1.name} games=${teamGameCounts.get(t1.id)}, target=${targetGamesPerTeam}.`
+      );
+      break;
+    }
+
     const isHome = Math.random() > 0.5;
     await storage.createGame({
       leagueId, season, week: topupWeek,
