@@ -707,7 +707,7 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Invalid league data" });
       }
 
-      const { name, maxTeams = 13, cpuDifficulty = "high_school", conferenceCount = 3, selectedConferences, seasonLength = "medium", progressionEnabled = false } = result.data;
+      const { name, maxTeams = 14, cpuDifficulty = "high_school", conferenceCount = 3, selectedConferences, seasonLength = "medium", progressionEnabled = false } = result.data;
 
       const league = await storage.createLeague({
         name,

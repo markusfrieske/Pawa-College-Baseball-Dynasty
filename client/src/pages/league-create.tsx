@@ -42,7 +42,7 @@ const seasonLengthOptions = [
 
 export default function LeagueCreatePage() {
   const [name, setName] = useState("");
-  const [maxTeams, setMaxTeams] = useState("15");
+  const [maxTeams, setMaxTeams] = useState("14");
   const [cpuDifficulty, setCpuDifficulty] = useState("high_school");
   const [selectedConferences, setSelectedConferences] = useState<string[]>(["SEC", "Big Ten", "ACC"]);
   const [seasonLength, setSeasonLength] = useState("medium");
@@ -59,7 +59,7 @@ export default function LeagueCreatePage() {
   }, [selectedConferences]);
 
   const teamCountOptions = useMemo(() => {
-    const counts = [6, 8, 10, 12, 13, 14, 15, 16, 18];
+    const counts = [6, 8, 10, 12, 14, 16, 18];
     const options = counts
       .filter(n => n < totalAvailableTeams)
       .map(n => ({ value: String(n), label: `${n} Teams` }));
@@ -80,7 +80,7 @@ export default function LeagueCreatePage() {
       }, 0);
       const currentTeamCount = parseInt(maxTeams);
       if (currentTeamCount > newTotal && newTotal > 0) {
-        const validCounts = [6, 8, 10, 12, 13, 14, 15, 16, 18].filter(n => n <= newTotal);
+        const validCounts = [6, 8, 10, 12, 14, 16, 18].filter(n => n <= newTotal);
         if (validCounts.length > 0) {
           setMaxTeams(String(validCounts[validCounts.length - 1]));
         } else {
@@ -253,10 +253,10 @@ export default function LeagueCreatePage() {
                   disabled={selectedConferences.length === 0}
                   data-testid="select-team-count"
                 />
-                {maxTeams === "13" && selectedConferences.length === 3 && (
+                {maxTeams === "14" && selectedConferences.length === 3 && (
                   <p className="mt-1.5 text-[10px] text-muted-foreground flex items-center gap-1.5">
                     <span className="inline-block w-1.5 h-1.5 rounded-full bg-gold/60" />
-                    4·4·5 split across 3 conferences
+                    6·4·4 split across 3 conferences
                   </p>
                 )}
               </div>
