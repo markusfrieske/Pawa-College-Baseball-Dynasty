@@ -4930,12 +4930,10 @@ const LB_ROUND_LABELS: Record<number, string> = {
 function DoubleEliminationBracket({ games, leagueId }: { games: PostseasonGame[]; leagueId: string }) {
   const wbGames = games.filter(g => g.bracketType === "winners");
   const lbGames = games.filter(g => g.bracketType === "losers");
+  const gfGames = games.filter(g => g.bracketType === "grand_final" || g.bracketType === "grand_final_reset");
 
   const wbRounds = [...new Set(wbGames.map(g => g.bracketRound ?? 1))].sort((a, b) => a - b);
   const lbRounds = [...new Set(lbGames.map(g => g.bracketRound ?? 2))].sort((a, b) => a - b);
-
-  const wbFinalGame = wbGames.filter(g => g.bracketRound === 4);
-  const lbFinalGame = lbGames.filter(g => g.bracketRound === 7);
 
   const getWinner = (g: PostseasonGame) => {
     if (!g.isComplete) return null;
@@ -4944,8 +4942,16 @@ function DoubleEliminationBracket({ games, leagueId }: { games: PostseasonGame[]
       : { abbr: g.awayTeam?.abbreviation || "TBD", seed: g.awaySeed };
   };
 
-  const wbChamp = wbFinalGame[0]?.isComplete ? getWinner(wbFinalGame[0]) : null;
-  const lbChamp = lbFinalGame[0]?.isComplete ? getWinner(lbFinalGame[0]) : null;
+  const wbFinalGame = wbGames.find(g => g.bracketRound === 4);
+  const lbFinalGame = lbGames.find(g => g.bracketRound === 7);
+  const wbChamp = wbFinalGame?.isComplete ? getWinner(wbFinalGame) : null;
+  const lbChamp = lbFinalGame?.isComplete ? getWinner(lbFinalGame) : null;
+
+  const gfGame    = gfGames.find(g => g.bracketType === "grand_final");
+  const gfResetGm = gfGames.find(g => g.bracketType === "grand_final_reset");
+  const srChamp   = gfResetGm?.isComplete
+    ? getWinner(gfResetGm)
+    : (gfGame?.isComplete ? getWinner(gfGame) : null);
 
   return (
     <div className="space-y-4" data-testid="bracket-view">
@@ -4965,7 +4971,7 @@ function DoubleEliminationBracket({ games, leagueId }: { games: PostseasonGame[]
               </div>
             );
           })}
-          {wbChamp && (
+          {wbChamp && !gfGame && (
             <div className="bg-gold/10 border border-gold/40 rounded px-3 py-2 text-center">
               <p className="text-[7px] font-pixel text-muted-foreground mb-0.5">WB CHAMPION</p>
               <p className="text-gold font-pixel text-xs">
@@ -4991,9 +4997,9 @@ function DoubleEliminationBracket({ games, leagueId }: { games: PostseasonGame[]
               </div>
             );
           })}
-          {lbChamp && (
+          {lbChamp && !gfGame && (
             <div className="bg-amber-400/10 border border-amber-400/40 rounded px-3 py-2 text-center">
-              <p className="text-[7px] font-pixel text-muted-foreground mb-0.5">LB CHAMPION → CWS</p>
+              <p className="text-[7px] font-pixel text-muted-foreground mb-0.5">LB CHAMPION</p>
               <p className="text-amber-400 font-pixel text-xs">
                 {lbChamp.seed ? <span className="mr-1">{lbChamp.seed}</span> : null}
                 {lbChamp.abbr}
@@ -5003,17 +5009,23 @@ function DoubleEliminationBracket({ games, leagueId }: { games: PostseasonGame[]
         </div>
       </div>
 
-      {/* CWS Bound summary once both champions known */}
-      {(wbChamp || lbChamp) && !(wbChamp && lbChamp) && (
-        <div className="border-t border-border/30 pt-3 grid grid-cols-2 gap-3">
-          {[{ label: "WB CHAMPION → CWS", data: wbChamp }, { label: "LB CHAMPION → CWS", data: lbChamp }].map(({ label, data }) => (
-            <div key={label} className={`rounded px-3 py-2 text-center border ${data ? "bg-gold/10 border-gold/30" : "bg-muted/20 border-border/50"}`}>
-              <p className="text-[7px] font-pixel text-muted-foreground mb-0.5">{label}</p>
-              <p className={`font-pixel text-xs ${data ? "text-gold" : "text-muted-foreground"}`}>
-                {data ? <>{data.seed ? <span className="mr-1">{data.seed}</span> : null}{data.abbr}</> : "TBD"}
+      {/* Grand Final section */}
+      {gfGame && (
+        <div className="border-t border-gold/30 pt-3 space-y-2">
+          <p className="text-[9px] font-pixel text-gold uppercase tracking-wider text-center">SR Grand Final</p>
+          <div className="max-w-xs mx-auto space-y-2">
+            <BracketMatchup game={gfGame} label="Grand Final" />
+            {gfResetGm && <BracketMatchup game={gfResetGm} label="If Necessary (Reset)" />}
+          </div>
+          {srChamp && (
+            <div className="bg-gold/10 border border-gold/40 rounded px-3 py-2 text-center max-w-xs mx-auto">
+              <p className="text-[7px] font-pixel text-muted-foreground mb-0.5">SR CHAMPION → CWS</p>
+              <p className="text-gold font-pixel text-xs">
+                {srChamp.seed ? <span className="mr-1">{srChamp.seed}</span> : null}
+                {srChamp.abbr}
               </p>
             </div>
-          ))}
+          )}
         </div>
       )}
 
@@ -5030,7 +5042,11 @@ function DoubleEliminationBracket({ games, leagueId }: { games: PostseasonGame[]
 }
 
 function PostseasonBracketView({ games, leagueId }: { games: PostseasonGame[]; leagueId: string }) {
-  const hasDoubleElim = games.some(g => g.bracketType === "losers");
+  // Detect new double-elim SR bracket even in Stage 1 (when only WBR1 "winners" games exist, no bracketSide).
+  const hasDoubleElim = games.some(g =>
+    (g.bracketType === "winners" || g.bracketType === "losers" ||
+     g.bracketType === "grand_final" || g.bracketType === "grand_final_reset") && !g.bracketSide
+  );
 
   if (!hasDoubleElim) {
     return (

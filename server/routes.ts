@@ -12575,10 +12575,42 @@ export async function registerRoutes(
       return { done: false };
     }
 
-    // ── Stage 7 complete → done! champion1=WB champ, champion2=LB champ ──────
+    // ── Stage 7 complete → create Stage 8 (Grand Final: WB champ vs LB champ) ─
     const lb6 = lbG(7);
-    if (allDone(wb4) && allDone(lb6)) {
-      return { done: true, champion1: getGameWinner(wb4[0]), champion2: getGameWinner(lb6[0]) };
+    const gf  = srGames.filter(g => g.bracketType === "grand_final");
+    if (allDone(wb4) && allDone(lb6) && !exists(gf)) {
+      const wbChamp = getGameWinner(wb4[0]);
+      const lbChamp = getGameWinner(lb6[0]);
+      await storage.createGame({
+        leagueId, season, week: 0, homeTeamId: wbChamp, awayTeamId: lbChamp,
+        phase: "super_regionals", bracketType: "grand_final", bracketRound: 8,
+      });
+      return { done: false };
+    }
+
+    // ── Stage 8 complete → check if reset needed ──────────────────────────────
+    const gfReset = srGames.filter(g => g.bracketType === "grand_final_reset");
+    if (allDone(gf) && !exists(gfReset)) {
+      const gfGame   = gf[0];
+      const wbChamp  = wb4[0].homeScore !== null && wb4[0].awayScore !== null
+        ? getGameWinner(wb4[0]) : gfGame.homeTeamId;
+      const gfWinner = getGameWinner(gfGame);
+      // If LB champ wins grand final, both have 1 loss → reset game needed
+      if (gfWinner !== wbChamp) {
+        const gfLoser = getGameLoser(gfGame);
+        await storage.createGame({
+          leagueId, season, week: 0, homeTeamId: gfWinner, awayTeamId: gfLoser,
+          phase: "super_regionals", bracketType: "grand_final_reset", bracketRound: 9,
+        });
+        return { done: false };
+      }
+      // WB champ won the grand final → WB champ is SR champion, LB champ is runner-up
+      return { done: true, champion1: gfWinner, champion2: getGameLoser(gfGame) };
+    }
+
+    // ── Stage 9 complete → grand final reset decided; winner is SR champion ───
+    if (allDone(gfReset)) {
+      return { done: true, champion1: getGameWinner(gfReset[0]), champion2: getGameLoser(gfReset[0]) };
     }
 
     return { done: false };
@@ -21178,7 +21210,13 @@ async function generateSchedule(leagueId: string, season: number = 1) {
       }
     }
 
-    weekRounds = weekRounds.slice(0, numWeeks);
+    // Shuffle before slicing so no team gets a systematic bye advantage when
+    // the conference has an odd team count (e.g. 5-team conf with 4 weeks).
+    if (weekRounds.length > numWeeks) {
+      weekRounds = shuffle([...weekRounds]).slice(0, numWeeks);
+    } else {
+      weekRounds = weekRounds.slice(0, numWeeks);
+    }
     const shuffledOrder = shuffle(weekRounds.map((_, i) => i));
     let ordered = shuffledOrder.map(i => weekRounds[i]);
 
