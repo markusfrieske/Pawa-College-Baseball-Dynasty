@@ -31,7 +31,9 @@ import { generateRecruitClass, selectTools, genToolAttr, sampleNormalSpeed, samp
 import { normalizeCommonAbilities } from "./normalizeCommonAbilities";
 import { validateLeagueRosters, checkTeamRosterStructure } from "./rosterValidation";
 import { sendWeeklyDigests, verifyUnsubToken } from "./digestEmail";
-import { pool } from "./db";
+import { pool, db } from "./db";
+import { sql as drizzleSql } from "drizzle-orm";
+import { coaches as coachesTable } from "@shared/schema";
 import { calibrateRpiOvr } from "./calibrateRpiOvr";
 import { assignPitcherArchetype, generateArchetypePitchMix, qualityTierFromOvr, noPitches } from "./pitchMixHelpers";
 import { GAME_TYPE_TO_DAY, ipToOuts, computeWeeklyAvailability, computePitcherAvailability, ALL_GAME_DAYS, type GameDay } from "@shared/pitcherRest";
@@ -2056,11 +2058,13 @@ export async function registerRoutes(
         results.push(interest);
       }
 
-      // Increment scoutActionsUsed by the actual count processed — single atomic write
+      // Increment scoutActionsUsed atomically using a SQL expression so concurrent
+      // requests cannot overwrite each other's writes. LEAST(..., max) prevents
+      // exceeding the weekly cap even if two requests race past the initial check.
       if (userCoach && results.length > 0) {
-        await storage.updateCoach(userCoach.id, {
-          scoutActionsUsed: actionsUsed + results.length,
-        });
+        await db.update(coachesTable)
+          .set({ scoutActionsUsed: drizzleSql`LEAST(${coachesTable.scoutActionsUsed} + ${results.length}, ${maxScoutActions})` })
+          .where(drizzleSql`${coachesTable.id} = ${userCoach.id}`);
       }
 
       res.json({ scouted: results.length, skipped: skippedCount });

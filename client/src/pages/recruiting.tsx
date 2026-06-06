@@ -780,8 +780,8 @@ export default function RecruitingPage() {
 
   const bulkScoutMutation = useMutation({
     mutationFn: async (recruitIds: string[]) => {
-      const result = await apiRequest("POST", `/api/leagues/${id}/recruiting/bulk-scout`, { recruitIds });
-      return result as { scouted: number; skipped: number };
+      const res = await apiRequest("POST", `/api/leagues/${id}/recruiting/bulk-scout`, { recruitIds });
+      return res.json() as Promise<{ scouted: number; skipped: number }>;
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
