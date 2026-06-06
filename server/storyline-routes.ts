@@ -1143,6 +1143,26 @@ export async function catchUpAndResolveStorylineArcs(
         const recruit = await storage.getRecruit(sl.recruitId);
         if (!recruit) continue;
 
+        // Use already-resolved featuredTeamName; only re-resolve when missing
+        let featuredTeamName: string | undefined = sl.featuredTeamName ?? undefined;
+        if (!featuredTeamName) {
+          try {
+            const interests = await storage.getRecruitingInterestsByRecruit(recruit.id);
+            if (interests.length > 0) {
+              const top = interests.reduce((best, cur) => (cur.interestLevel ?? 0) > (best.interestLevel ?? 0) ? cur : best);
+              if (top.teamId) {
+                const team = await storage.getTeam(top.teamId);
+                if (team?.name) featuredTeamName = team.name;
+              }
+            }
+          } catch (e) {
+            // non-fatal
+          }
+          if (featuredTeamName) {
+            await storage.updateStorylineRecruit(sl.id, { featuredTeamName });
+          }
+        }
+
         const recruitName = `${recruit.firstName} ${recruit.lastName}`;
         const eventData = generateStorylineEvent(
           sl.id, leagueId, season, currentWeek,
@@ -1153,6 +1173,7 @@ export async function catchUpAndResolveStorylineArcs(
           undefined,
           recruit.position ?? undefined,
           currentUsed,
+          featuredTeamName,
         );
 
         const { scenePrompt: _scenePrompt, ...insertableEventData } = eventData;

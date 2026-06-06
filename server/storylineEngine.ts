@@ -271,7 +271,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
         choiceA: "Trust Ernie — reach out to {name} before anyone else does", choiceAOutcome: "Moving on a scout's instinct before the data catches up proves decisive. You're first in the room.", choiceAWeights: W.bold_pos,
         choiceB: "Watch quietly — let the information develop before acting", choiceBOutcome: "Patient observation reveals real growth. Your measured approach builds the right foundation.", choiceBWeights: W.safe_pos,
         choiceC: "Request your own private workout — see it yourself", choiceCOutcome: "The private session confirms something is genuinely different. You've now seen what Ernie saw.", choiceCWeights: W.neutral_up,
-        choiceD: "Share Ernie's report with your analytics staff for a data check", choiceDOutcome: "The analytics team's skepticism delays your move. Rivals who trusted their eyes are already calling.", choiceDWeights: W.high_risk,
+        choiceD: "Share Ernie's report with {team}'s analytics staff for a data check", choiceDOutcome: "The analytics team's skepticism delays the move. Rivals who trusted their eyes are already calling.", choiceDWeights: W.high_risk,
       },
       {
         id: "lb_2",
@@ -634,13 +634,13 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
 
   two_sport_athlete: {
     name: "The Two-Sport Athlete",
-    description: "He told the football programs he's baseball-only. He told the baseball programs the same thing. He told your assistant coach something different.",
+    description: "He told the football programs he's baseball-only. He told the baseball programs the same thing. He told the assistant coach something different.",
     flavor: "His AAU football coach warned you. 'You should know what you're getting into.'",
     events: [
       {
         id: "ts_1",
         scenePrompt: "Pixel art scene: player standing at a literal fork in a road at dusk, one path lit by a baseball diamond, the other by a football stadium's glow, a phone in his hand with two different coaches' texts both reading 'call me when you're ready,' an AAU football coach's truck parked at the edge of the frame watching.",
-        eventText: "{name} is a 4.2-grade linebacker and hits .380 with 109 mph exit velocity. He told the Power Five football programs he's baseball-only. He told the baseball programs the same. He told your assistant coach at a private dinner last week that he's 'still figuring it out.' His AAU football coach called you unprompted: 'I just want you to know what you're getting into. He loves football. He might love it more. I'm not saying don't recruit him. I'm saying be careful.'",
+        eventText: "{name} is a 4.2-grade linebacker and hits .380 with 109 mph exit velocity. He told the Power Five football programs he's baseball-only. He told the baseball programs the same. He told an assistant coach at a private dinner last week that he's 'still figuring it out.' His AAU football coach called unprompted: 'I just want you to know what you're getting into. He loves football. He might love it more. I'm not saying don't recruit him. I'm saying be careful.'",
         choiceA: "Be honest with him — tell him you heard the football coach and still want him for baseball", choiceAOutcome: "The radical transparency about what you know is something no other program has tried. He respects it enormously.", choiceAWeights: W.bold_pos,
         choiceB: "Focus the conversation entirely on baseball development — make the vision compelling enough to settle the question", choiceBOutcome: "The clarity of the baseball path laid out in specific, exciting terms makes the choice feel easier than he expected.", choiceBWeights: W.safe_pos,
         choiceC: "Connect him with a player who made the same choice and never looked back", choiceCOutcome: "The peer testimony of someone who chose baseball over football and has no regrets is the most persuasive story available.", choiceCWeights: W.neutral_up,
@@ -700,7 +700,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
 
   rivalry_recruit: {
     name: "The Rivalry Flashpoint",
-    description: "He grew up wearing your rival's gear. His father played there. He's taken three private visits to your campus and told no one.",
+    description: "He grew up wearing a rival program's gear. His father played there for three years. He's been making secret private visits. He's told no one.",
     flavor: "The rival program just found out. Their head coach drove to his high school himself. The internet found out that, too.",
     events: [
       {
@@ -833,7 +833,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
 
   the_scientist: {
     name: "The Scientist",
-    description: "He sent a 14-page program audit before you had a chance to reach out. He rated your pitching infrastructure 4.2 out of 10.",
+    description: "He sent a 14-page program audit before anyone reached out. He rated the pitching infrastructure 4.2 out of 10.",
     flavor: "The postscript read: 'I am still interested. I believe these gaps are fixable. Prove it.'",
     events: [
       {
@@ -841,7 +841,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
         scenePrompt: "Pixel art scene: coaching staff around a conference table staring at a 14-page printed report with charts and annotated Statcast citations, one coach's coffee getting cold, a sticky note on the front cover reading 'Preliminary Program Assessment — [School Name],' the last page visible with a postscript in a slightly different font that reads 'I am still interested.'",
         eventText: "Before {team} had reached out, {name} sent a 14-page PDF with the subject line: 'Preliminary Program Assessment.' It contains annotated Statcast citations, spin rate development comparisons across eight programs, and three specific gaps in the pitching infrastructure — each rated with a numerical severity score. {team} was rated 4.2 out of 10 in pitching development. The postscript, in a slightly different font, reads: 'I am still interested. I believe these gaps are fixable. Prove it.' He's 17.",
         choiceA: "Build a counter-response — answer the document with your own data, point by point", choiceAOutcome: "Meeting the audit with equal rigor signals a program that respects intelligence as a form of athleticism. He reads your response three times.", choiceAWeights: W.bold_pos,
-        choiceB: "Schedule a meeting with your analytics staff — let the numbers people meet the numbers person", choiceBOutcome: "The room of data-minded coaches and analysts is exactly the environment he was looking for. The 90-minute meeting runs three hours.", choiceBWeights: W.safe_pos,
+        choiceB: "Schedule a meeting with {team}'s analytics staff — let the numbers people meet the numbers person", choiceBOutcome: "The room of data-minded coaches and analysts is exactly the environment he was looking for. The 90-minute meeting runs three hours.", choiceBWeights: W.safe_pos,
         choiceC: "Acknowledge the gaps directly — tell him what you're doing to address each one", choiceCOutcome: "Intellectual honesty under audit builds faster trust than defensiveness. He annotates your response in green instead of red.", choiceCWeights: W.neutral_up,
         choiceD: "Call his coach — a recruit auditing a program before being contacted is unusual enough to warrant a conversation", choiceDOutcome: "His coach tells you: 'That's just how he is. He did this to seven programs. The three who called me didn't get a second email.' You're one of the three now.", choiceDWeights: W.risky_neg,
       },
@@ -899,8 +899,8 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
 
   generational_prodigy: {
     name: "The Generational Prodigy",
-    description: "He has a manager, a nutritionist, and a documentary crew. He's 17. He's been texting your assistant coach at midnight.",
-    flavor: "They're projecting him as a top-3 MLB Draft pick after one year. He called you the morning it published to talk about your pitching staff.",
+    description: "He has a manager, a nutritionist, and a documentary crew. He's 17. He's been texting the assistant coach at midnight.",
+    flavor: "They're projecting him as a top-3 MLB Draft pick after one year. He called the morning it published to talk about the pitching staff.",
     events: [
       {
         id: "gp_1",
@@ -987,7 +987,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
         id: "coc_1",
         scenePrompt: "Pixel art scene: high school dugout after the final practice of the season, the retiring coach and the player sitting on the bench alone with the field lights still on, the coach's keys to the equipment shed on the bench between them, other players' cleats hanging on the wall still dusty from the last game.",
         scenePromptPitcher: "Pixel art scene: bullpen at the end of the season, the retiring pitching coach and the pitcher sitting on the mound together after everyone else has left, the coach's radar gun on the rubber between them, the field lights still on.",
-        eventText: "{name}'s high school coach — the man who found him, built his mechanics, made the call to three college programs that started everything — retired in March. He didn't announce it. He told the players first, then their parents, then sent one email to coaches he trusted. You were on the list. {name} hasn't spoken publicly. He pulled out of two scheduled showcases. He told your assistant coach he's 'figuring things out.' He told you something different: 'I don't know who I am without him.'",
+        eventText: "{name}'s high school coach — the man who found him, built his mechanics, made the call to three college programs that started everything — retired in March. He didn't announce it. He told the players first, then their parents, then sent one email to coaches he trusted. You were on the list. {name} hasn't spoken publicly. He pulled out of two scheduled showcases. He told an assistant coach he's 'figuring things out.' He told you something different: 'I don't know who I am without him.'",
         choiceA: "Drive to one of his games — show up without an agenda and just be present", choiceAOutcome: "Being there when his baseball world has lost its center is an act of steadiness no phone call can replicate.", choiceAWeights: W.bold_pos,
         choiceB: "Reach out to his coach — ask if he's willing to stay involved as a bridge to the transition", choiceBOutcome: "The retired coach agrees to make one more call on his behalf. It's the call that changes the trajectory.", choiceBWeights: W.safe_pos,
         choiceC: "Give him space — check in once a week without pressure until he finds his footing", choiceCOutcome: "The consistent, low-pressure contact over six weeks becomes the relationship he leans on when he's ready to move forward.", choiceCWeights: W.neutral_up,
