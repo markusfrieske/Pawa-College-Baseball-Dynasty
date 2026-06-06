@@ -2617,7 +2617,7 @@ function RecruitRow({
       data-testid={`card-recruit-${recruit.id}`}
       style={rowStyle}
     >
-      <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+      <div className="flex flex-col lg:flex-row lg:items-center gap-2">
         <div className="flex items-center gap-4 flex-1">
           {!isSigned && (
             <button
@@ -2653,23 +2653,45 @@ function RecruitRow({
               </div>
             )}
           </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <Link href={`/league/${leagueId}/recruit/${recruit.id}`} className="hover:text-gold">
-                <span className="font-medium">{recruit.firstName} {recruit.lastName}</span>
+          <div className="flex-1 min-w-0">
+            {/* Row 1: name + critical badges only — no wrapping */}
+            <div className="flex items-center gap-2 mb-1 min-w-0">
+              <Link href={`/league/${leagueId}/recruit/${recruit.id}`} className="hover:text-gold min-w-0 shrink">
+                <span className="font-medium whitespace-nowrap overflow-hidden text-ellipsis block">{recruit.firstName} {recruit.lastName}</span>
               </Link>
               {recruit.isBlueChip && (
-                <Badge className="bg-blue-500 text-white text-[8px]">Blue Chip</Badge>
+                <Badge className="bg-blue-500 text-white text-[8px] shrink-0">Blue Chip</Badge>
               )}
               {isSigned && recruit.signedTeamAbbreviation ? (
                 <Badge 
-                  className="text-white text-[8px]"
+                  className="text-white text-[8px] shrink-0"
                   style={{ backgroundColor: recruit.signedTeamPrimaryColor || "#666" }}
                 >
                   Signed: {recruit.signedTeamAbbreviation}
                 </Badge>
               ) : (
-                <Badge className={`${stage.color} text-white text-[8px]`}>{stage.label}</Badge>
+                <Badge className={`${stage.color} text-white text-[8px] shrink-0`}>{stage.label}</Badge>
+              )}
+            </div>
+            {/* Row 2: location, hand, stars + all secondary badges */}
+            <div className="flex items-center gap-1.5 text-sm text-muted-foreground flex-wrap">
+              <span className="flex items-center gap-1 shrink-0">
+                <MapPin className="w-3 h-3" />
+                {recruit.hometown}, {recruit.homeState}
+              </span>
+              <span className="text-[10px] shrink-0">
+                {recruit.throwHand}/{recruit.batHand === "S" ? "S" : recruit.batHand}
+              </span>
+              <StarRating rating={recruit.starRank} size="sm" />
+              {!isPitcherRecruit && scoutPct >= TRAJECTORY_REVEAL_THRESHOLD && recruit.trajectory != null && (
+                <span className={`flex items-center gap-0.5 px-1 py-0.5 rounded border ${
+                  recruit.trajectory === 1 ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-400" :
+                  recruit.trajectory === 3 ? "bg-amber-500/10 border-amber-500/40 text-amber-400" :
+                  recruit.trajectory === 4 ? "bg-red-500/10 border-red-500/40 text-red-400" :
+                  "bg-slate-500/10 border-slate-500/40 text-slate-400"
+                }`} data-testid={`badge-traj-row-${recruit.id}`}>
+                  <TrajectoryIcon trajectory={recruit.trajectory as 1|2|3|4} iconSize="w-3 h-3" textSize="text-[10px]" />
+                </span>
               )}
               {recruit.recruitType === "TRANSFER" ? (
                 <Badge className="bg-purple-600/30 text-purple-400 border-purple-600/50 text-[8px] no-default-hover-elevate no-default-active-elevate" data-testid={`badge-transfer-${recruit.id}`}>
@@ -2814,26 +2836,6 @@ function RecruitRow({
                   <TooltipContent>Raw Prospect - Extreme tool variance, high risk/high reward</TooltipContent>
                 </Tooltip>
               )}
-            </div>
-            <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
-              <span className="flex items-center gap-1">
-                <MapPin className="w-3 h-3" />
-                {recruit.hometown}, {recruit.homeState}
-              </span>
-              <span className="text-[10px]">
-                {recruit.throwHand}/{recruit.batHand === "S" ? "S" : recruit.batHand}
-              </span>
-              {!isPitcherRecruit && scoutPct >= TRAJECTORY_REVEAL_THRESHOLD && recruit.trajectory != null && (
-                <span className={`flex items-center gap-0.5 px-1 py-0.5 rounded border ${
-                  recruit.trajectory === 1 ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-400" :
-                  recruit.trajectory === 3 ? "bg-amber-500/10 border-amber-500/40 text-amber-400" :
-                  recruit.trajectory === 4 ? "bg-red-500/10 border-red-500/40 text-red-400" :
-                  "bg-slate-500/10 border-slate-500/40 text-slate-400"
-                }`} data-testid={`badge-traj-row-${recruit.id}`}>
-                  <TrajectoryIcon trajectory={recruit.trajectory as 1|2|3|4} iconSize="w-3 h-3" textSize="text-[10px]" />
-                </span>
-              )}
-              <StarRating rating={recruit.starRank} size="sm" />
             </div>
           </div>
         </div>
