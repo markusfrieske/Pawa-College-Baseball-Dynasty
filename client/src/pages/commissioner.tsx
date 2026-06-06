@@ -3063,30 +3063,140 @@ function GameCard({ game }: { game: PostseasonGame }) {
   );
 }
 
+const COMM_WB_LABELS: Record<number, string> = { 1: "WB R1", 2: "WB R2", 3: "WB Semis", 4: "WB Final" };
+const COMM_LB_LABELS: Record<number, string> = { 2: "LBR1", 3: "LBR2", 4: "LB Qtrs", 5: "LB Semis", 6: "LBR5", 7: "LB Final" };
+
 function BracketDisplay({ games }: { games: PostseasonGame[] }) {
-  const completedGames = games.filter(g => g.isComplete);
-  const upcomingGames = games.filter(g => !g.isComplete);
-  
+  const hasDoubleElim = games.some(g =>
+    (g.bracketType === "winners" || g.bracketType === "losers" ||
+     g.bracketType === "grand_final" || g.bracketType === "grand_final_reset") && !g.bracketSide
+  );
+
+  if (!hasDoubleElim) {
+    const completedGames = games.filter(g => g.isComplete);
+    const upcomingGames = games.filter(g => !g.isComplete);
+    return (
+      <div className="space-y-3">
+        {completedGames.length > 0 && (
+          <div>
+            <p className="text-[9px] text-muted-foreground font-pixel mb-1">Completed</p>
+            <div className="grid sm:grid-cols-2 gap-2">
+              {completedGames.map(game => <GameCard key={game.id} game={game} />)}
+            </div>
+          </div>
+        )}
+        {upcomingGames.length > 0 && (
+          <div>
+            <p className="text-[9px] text-muted-foreground font-pixel mb-1">Next Round</p>
+            <div className="grid sm:grid-cols-2 gap-2">
+              {upcomingGames.map(game => <GameCard key={game.id} game={game} />)}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const wbGames = games.filter(g => g.bracketType === "winners");
+  const lbGames = games.filter(g => g.bracketType === "losers");
+  const gfGame    = games.find(g => g.bracketType === "grand_final");
+  const gfResetGm = games.find(g => g.bracketType === "grand_final_reset");
+
+  const wbRounds = [...new Set(wbGames.map(g => g.bracketRound ?? 1))].sort((a, b) => a - b);
+  const lbRounds = [...new Set(lbGames.map(g => g.bracketRound ?? 2))].sort((a, b) => a - b);
+
+  // Compute per-team loss counts from completed WB+LB games (not grand final)
+  const lossMap: Record<string, number> = {};
+  for (const g of [...wbGames, ...lbGames].filter(g2 => g2.isComplete)) {
+    const loserId = (g.homeScore ?? 0) > (g.awayScore ?? 0) ? g.awayTeamId : g.homeTeamId;
+    lossMap[loserId] = (lossMap[loserId] ?? 0) + 1;
+  }
+
+  const getWinner = (g: PostseasonGame) => {
+    if (!g.isComplete) return null;
+    return (g.homeScore ?? 0) > (g.awayScore ?? 0)
+      ? { abbr: g.homeTeam?.abbreviation || "TBD", seed: g.homeSeed }
+      : { abbr: g.awayTeam?.abbreviation || "TBD", seed: g.awaySeed };
+  };
+
+  const wbFinal = wbGames.find(g => g.bracketRound === 4);
+  const lbFinal = lbGames.find(g => g.bracketRound === 7);
+  const wbChamp = wbFinal?.isComplete ? getWinner(wbFinal) : null;
+  const lbChamp = lbFinal?.isComplete ? getWinner(lbFinal) : null;
+  const srChamp = gfResetGm?.isComplete ? getWinner(gfResetGm) : (gfGame?.isComplete ? getWinner(gfGame) : null);
+
+  const lossTag = (teamId: string) => {
+    const l = lossMap[teamId] ?? 0;
+    return l > 0 ? <span className="ml-1 text-[7px] text-amber-400/70">{l}L</span> : null;
+  };
+
+  const CommGameCard = ({ game, label }: { game: PostseasonGame; label?: string }) => {
+    const homeWon = game.isComplete && (game.homeScore ?? 0) > (game.awayScore ?? 0);
+    const awayWon = game.isComplete && (game.awayScore ?? 0) > (game.homeScore ?? 0);
+    return (
+      <div className="bg-muted/30 rounded p-1.5 border border-border text-[10px]">
+        {label && <p className="text-[7px] font-pixel text-muted-foreground mb-0.5 uppercase">{label}</p>}
+        <div className={`flex items-center justify-between gap-1 py-0.5 ${homeWon ? "text-gold" : awayWon ? "text-muted-foreground" : ""}`}>
+          <span className="truncate flex-1">{game.homeTeam?.abbreviation || "TBD"}{lossTag(game.homeTeamId)}</span>
+          <span className="font-pixel flex-shrink-0">{game.isComplete ? game.homeScore : "-"}</span>
+        </div>
+        <div className="border-t border-border/30 my-0.5" />
+        <div className={`flex items-center justify-between gap-1 py-0.5 ${awayWon ? "text-gold" : homeWon ? "text-muted-foreground" : ""}`}>
+          <span className="truncate flex-1">{game.awayTeam?.abbreviation || "TBD"}{lossTag(game.awayTeamId)}</span>
+          <span className="font-pixel flex-shrink-0">{game.isComplete ? game.awayScore : "-"}</span>
+        </div>
+        {!game.isComplete && <p className="text-[7px] text-center text-muted-foreground/50 mt-0.5">Upcoming</p>}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-3">
-      {completedGames.length > 0 && (
-        <div>
-          <p className="text-[9px] text-muted-foreground font-pixel mb-1">Completed</p>
-          <div className="grid sm:grid-cols-2 gap-2">
-            {completedGames.map(game => (
-              <GameCard key={game.id} game={game} />
-            ))}
-          </div>
+      <div className="grid md:grid-cols-2 gap-3">
+        <div className="space-y-2">
+          <p className="text-[8px] font-pixel text-gold uppercase">Winners Bracket</p>
+          {wbRounds.map(r => (
+            <div key={r} className="space-y-1">
+              <p className="text-[7px] font-pixel text-muted-foreground uppercase">{COMM_WB_LABELS[r] ?? `WB R${r}`}</p>
+              {wbGames.filter(g => (g.bracketRound ?? 1) === r).map(g => <CommGameCard key={g.id} game={g} />)}
+            </div>
+          ))}
+          {wbChamp && !gfGame && (
+            <div className="bg-gold/10 border border-gold/30 rounded px-2 py-1 text-center">
+              <p className="text-[6px] font-pixel text-muted-foreground">WB CHAMPION</p>
+              <p className="text-gold font-pixel text-[9px]">{wbChamp.abbr}</p>
+            </div>
+          )}
         </div>
-      )}
-      {upcomingGames.length > 0 && (
-        <div>
-          <p className="text-[9px] text-muted-foreground font-pixel mb-1">Next Round</p>
-          <div className="grid sm:grid-cols-2 gap-2">
-            {upcomingGames.map(game => (
-              <GameCard key={game.id} game={game} />
-            ))}
+        <div className="space-y-2">
+          <p className="text-[8px] font-pixel text-amber-400 uppercase">Losers Bracket</p>
+          {lbRounds.map(r => (
+            <div key={r} className="space-y-1">
+              <p className="text-[7px] font-pixel text-muted-foreground uppercase">{COMM_LB_LABELS[r] ?? `LB R${r}`}</p>
+              {lbGames.filter(g => (g.bracketRound ?? 2) === r).map(g => <CommGameCard key={g.id} game={g} />)}
+            </div>
+          ))}
+          {lbChamp && !gfGame && (
+            <div className="bg-amber-400/10 border border-amber-400/30 rounded px-2 py-1 text-center">
+              <p className="text-[6px] font-pixel text-muted-foreground">LB CHAMPION</p>
+              <p className="text-amber-400 font-pixel text-[9px]">{lbChamp.abbr}</p>
+            </div>
+          )}
+        </div>
+      </div>
+      {gfGame && (
+        <div className="border-t border-gold/20 pt-2 space-y-1">
+          <p className="text-[8px] font-pixel text-gold uppercase text-center">Grand Final</p>
+          <div className="max-w-[200px] mx-auto space-y-1">
+            <CommGameCard game={gfGame} label="Grand Final" />
+            {gfResetGm && <CommGameCard game={gfResetGm} label="If Necessary (Reset)" />}
           </div>
+          {srChamp && (
+            <div className="bg-gold/10 border border-gold/30 rounded px-2 py-1 text-center max-w-[200px] mx-auto">
+              <p className="text-[6px] font-pixel text-muted-foreground">SR CHAMPION → CWS</p>
+              <p className="text-gold font-pixel text-[9px]">{srChamp.abbr}</p>
+            </div>
+          )}
         </div>
       )}
     </div>

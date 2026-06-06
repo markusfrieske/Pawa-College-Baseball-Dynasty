@@ -4862,7 +4862,7 @@ function PostseasonGameCard({ game, leagueId }: { game: PostseasonGame; leagueId
   );
 }
 
-function BracketMatchup({ game, label }: { game: PostseasonGame | null; label?: string }) {
+function BracketMatchup({ game, label, lossMap }: { game: PostseasonGame | null; label?: string; lossMap?: Record<string, number> }) {
   if (!game) {
     return (
       <div data-testid="bracket-matchup-tbd">
@@ -4884,6 +4884,8 @@ function BracketMatchup({ game, label }: { game: PostseasonGame | null; label?: 
 
   const homeWon = game.isComplete && (game.homeScore ?? 0) > (game.awayScore ?? 0);
   const awayWon = game.isComplete && (game.awayScore ?? 0) > (game.homeScore ?? 0);
+  const homeLosses = lossMap?.[game.homeTeamId] ?? 0;
+  const awayLosses = lossMap?.[game.awayTeamId] ?? 0;
 
   return (
     <div data-testid={`bracket-game-${game.id}`}>
@@ -4893,6 +4895,7 @@ function BracketMatchup({ game, label }: { game: PostseasonGame | null; label?: 
           <div className="flex items-center gap-1.5 min-w-0 flex-1">
             {game.homeSeed && <span className="text-[9px] font-pixel text-gold flex-shrink-0 w-3">{game.homeSeed}</span>}
             <span className="text-[10px] truncate">{game.homeTeam?.abbreviation || "TBD"}</span>
+            {lossMap && homeLosses > 0 && <span className="text-[7px] text-amber-400/70 flex-shrink-0">{homeLosses}L</span>}
           </div>
           <span className="text-[10px] font-pixel flex-shrink-0">{game.isComplete ? game.homeScore : "-"}</span>
         </div>
@@ -4901,6 +4904,7 @@ function BracketMatchup({ game, label }: { game: PostseasonGame | null; label?: 
           <div className="flex items-center gap-1.5 min-w-0 flex-1">
             {game.awaySeed && <span className="text-[9px] font-pixel text-gold flex-shrink-0 w-3">{game.awaySeed}</span>}
             <span className="text-[10px] truncate">{game.awayTeam?.abbreviation || "TBD"}</span>
+            {lossMap && awayLosses > 0 && <span className="text-[7px] text-amber-400/70 flex-shrink-0">{awayLosses}L</span>}
           </div>
           <span className="text-[10px] font-pixel flex-shrink-0">{game.isComplete ? game.awayScore : "-"}</span>
         </div>
@@ -4935,6 +4939,13 @@ function DoubleEliminationBracket({ games, leagueId }: { games: PostseasonGame[]
   const wbRounds = [...new Set(wbGames.map(g => g.bracketRound ?? 1))].sort((a, b) => a - b);
   const lbRounds = [...new Set(lbGames.map(g => g.bracketRound ?? 2))].sort((a, b) => a - b);
 
+  // Per-team loss count from completed WB+LB games (not grand final)
+  const lossMap: Record<string, number> = {};
+  for (const g of [...wbGames, ...lbGames].filter(x => x.isComplete)) {
+    const loserId = (g.homeScore ?? 0) > (g.awayScore ?? 0) ? g.awayTeamId : g.homeTeamId;
+    lossMap[loserId] = (lossMap[loserId] ?? 0) + 1;
+  }
+
   const getWinner = (g: PostseasonGame) => {
     if (!g.isComplete) return null;
     return (g.homeScore ?? 0) > (g.awayScore ?? 0)
@@ -4966,7 +4977,7 @@ function DoubleEliminationBracket({ games, leagueId }: { games: PostseasonGame[]
               <div key={round} className="space-y-1">
                 <p className="text-[7px] font-pixel text-muted-foreground uppercase">{label}</p>
                 <div className="space-y-1.5">
-                  {roundGames.map(g => <BracketMatchup key={g.id} game={g} />)}
+                  {roundGames.map(g => <BracketMatchup key={g.id} game={g} lossMap={lossMap} />)}
                 </div>
               </div>
             );
@@ -4992,7 +5003,7 @@ function DoubleEliminationBracket({ games, leagueId }: { games: PostseasonGame[]
               <div key={round} className="space-y-1">
                 <p className="text-[7px] font-pixel text-muted-foreground uppercase">{label}</p>
                 <div className="space-y-1.5">
-                  {roundGames.map(g => <BracketMatchup key={g.id} game={g} />)}
+                  {roundGames.map(g => <BracketMatchup key={g.id} game={g} lossMap={lossMap} />)}
                 </div>
               </div>
             );

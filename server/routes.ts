@@ -9392,10 +9392,10 @@ export async function registerRoutes(
       // Determine max weeks for season based on phase
       const seasonWeeks: Record<string, number> = {
         "short": 5,
-        "medium": 5,
+        "medium": 4,
         "long": 10,
       };
-      const maxWeeks = seasonWeeks[league.seasonLength || "medium"] || 5;
+      const maxWeeks = seasonWeeks[league.seasonLength || "medium"] || 4;
       
       // ============ CPU RECRUITING AI ============
       setAdvanceProgress(leagueId, "cpu_recruiting", 15);
@@ -10528,7 +10528,7 @@ export async function registerRoutes(
           break;
         }
 
-        const maxWeeks = currentLeague.seasonLength === "short" ? 5 : currentLeague.seasonLength === "long" ? 10 : 5;
+        const maxWeeks = currentLeague.seasonLength === "short" ? 5 : currentLeague.seasonLength === "long" ? 10 : 4;
         const nextWeek = (currentLeague.currentWeek ?? 1) + 1;
 
         if (phase === "preseason" || phase === "spring_training" || phase === "regular_season") {
@@ -10990,7 +10990,7 @@ export async function registerRoutes(
         while (gIter < MAX_GAME_ITER && gamePhases.includes(currentLeague.currentPhase)) {
           gIter++;
           const phase = currentLeague.currentPhase;
-          const maxWeeks = currentLeague.seasonLength === "short" ? 5 : currentLeague.seasonLength === "long" ? 10 : 5;
+          const maxWeeks = currentLeague.seasonLength === "short" ? 5 : currentLeague.seasonLength === "long" ? 10 : 4;
           const nextWeek = (currentLeague.currentWeek ?? 1) + 1;
 
           if (["preseason", "spring_training", "regular_season"].includes(phase)) {
@@ -11197,7 +11197,7 @@ export async function registerRoutes(
 
         if (phase === "conference_championship") break;
 
-        const maxWeeks = currentLeague.seasonLength === "short" ? 5 : currentLeague.seasonLength === "long" ? 10 : 5;
+        const maxWeeks = currentLeague.seasonLength === "short" ? 5 : currentLeague.seasonLength === "long" ? 10 : 4;
         const nextWeek = (currentLeague.currentWeek ?? 1) + 1;
 
         if (preseasonPhases.includes(phase)) {
@@ -11290,7 +11290,7 @@ export async function registerRoutes(
         if (phase === "cws") break;
         if (phase === "offseason_departures") break;
 
-        const maxWeeks = currentLeague.seasonLength === "short" ? 5 : currentLeague.seasonLength === "long" ? 10 : 5;
+        const maxWeeks = currentLeague.seasonLength === "short" ? 5 : currentLeague.seasonLength === "long" ? 10 : 4;
         const nextWeek = (currentLeague.currentWeek ?? 1) + 1;
 
         if (["preseason", "spring_training", "regular_season"].includes(phase)) {
