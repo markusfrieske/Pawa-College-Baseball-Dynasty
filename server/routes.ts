@@ -12439,7 +12439,8 @@ export async function registerRoutes(
   ): Promise<{ done: boolean; champion1?: string; champion2?: string }> {
     const wbG = (round: number) => srGames.filter(g => g.bracketType === "winners" && (g.bracketRound ?? 0) === round);
     const lbG = (round: number) => srGames.filter(g => g.bracketType === "losers"  && (g.bracketRound ?? 0) === round);
-    const allDone = (gs: Game[]) => gs.length > 0 && gs.every(g => g.isComplete);
+    // vacuously true for empty arrays — allows small brackets to skip empty stages
+    const allDone = (gs: Game[]) => gs.every(g => g.isComplete);
     const exists  = (gs: Game[]) => gs.length > 0;
 
     // All existing SR games must be complete before we can advance.
@@ -12447,7 +12448,7 @@ export async function registerRoutes(
 
     // ── Stage 1 complete → create Stage 2 (WBR2 + LBR1) ──────────────────────
     const wb1 = wbG(1);
-    if (allDone(wb1) && !exists(wbG(2)) && !exists(lbG(2))) {
+    if (exists(wb1) && allDone(wb1) && !exists(wbG(2)) && !exists(lbG(2))) {
       const wb1Winners = wb1.map(g => getGameWinner(g));
       const wb1Losers  = wb1.map(g => getGameLoser(g)).sort((a, b) => getTeamSeed(a) - getTeamSeed(b));
       const topSeed    = seededTeams[0].team.id;
@@ -12468,7 +12469,6 @@ export async function registerRoutes(
         await storage.createGame({
           leagueId, season, week: 0, homeTeamId: a, awayTeamId: b,
           phase: "super_regionals", bracketType: "losers", bracketRound: 2,
-          // lbr1Bye stored for Stage 3: detected by absence from lb1 game records
         });
       }
       void lbr1Bye; // bye team advances to LBR2 automatically (detected in Stage 3)
@@ -12478,8 +12478,9 @@ export async function registerRoutes(
     // ── Stage 2 complete → create Stage 3 (WBR3 + LBR2) ─────────────────────
     const wb2 = wbG(2);
     const lb1 = lbG(2);
-    if (allDone(wb2) && allDone(lb1) && !exists(wbG(3)) && !exists(lbG(3))) {
-      // WBR3: 4 WBR2 winners, paired by seeding
+    // allDone(lb1) is vacuously true when lb1=[] (small bracket: all WBR1 losers got LBR1 bye)
+    if (exists(wb2) && allDone(wb2) && allDone(lb1) && !exists(wbG(3)) && !exists(lbG(3))) {
+      // WBR3: WBR2 winners, paired by seeding (may produce 0 pairs for 3-team bracket)
       const wbr3Teams = wb2.map(g => getGameWinner(g));
       for (const [a, b] of bracketPair(wbr3Teams, getTeamSeed)) {
         await storage.createGame({
@@ -12511,17 +12512,22 @@ export async function registerRoutes(
     }
 
     // ── Stage 3 complete → create Stage 4 (WBR4/WB Final + LBR3) ────────────
+    // wb3 may be empty for small brackets (WBChamp already decided from WBR2)
     const wb3 = wbG(3);
     const lb2 = lbG(3);
-    if (allDone(wb3) && allDone(lb2) && !exists(wbG(4)) && !exists(lbG(4))) {
-      // WBR4 (WB Final): 2 WBR3 winners
-      const [wbFinA, wbFinB] = wb3.map(g => getGameWinner(g)).sort((a, b) => getTeamSeed(a) - getTeamSeed(b));
-      await storage.createGame({
-        leagueId, season, week: 0, homeTeamId: wbFinA, awayTeamId: wbFinB,
-        phase: "super_regionals", bracketType: "winners", bracketRound: 4,
-      });
+    if (allDone(wb3) && exists(lb2) && allDone(lb2) && !exists(wbG(4)) && !exists(lbG(4))) {
+      // WBR4 (WB Final): only created if wb3 has 2+ games producing 2 winners to match
+      const wb3Winners = wb3.map(g => getGameWinner(g)).sort((a, b) => getTeamSeed(a) - getTeamSeed(b));
+      if (wb3Winners.length >= 2) {
+        const [wbFinA, wbFinB] = wb3Winners;
+        await storage.createGame({
+          leagueId, season, week: 0, homeTeamId: wbFinA, awayTeamId: wbFinB,
+          phase: "super_regionals", bracketType: "winners", bracketRound: 4,
+        });
+      }
+      // If wb3 is empty, WBChamp is already decided (wb2 winner); skip WBR4
 
-      // LBR3: 4 LBR2 winners, paired by seeding
+      // LBR3: LBR2 winners, paired by seeding
       const lbr3Teams = lb2.map(g => getGameWinner(g));
       for (const [a, b] of bracketPair(lbr3Teams, getTeamSeed)) {
         await storage.createGame({
@@ -12533,12 +12539,14 @@ export async function registerRoutes(
     }
 
     // ── Stage 4 complete → create Stage 5 (LBR4 crossover) ──────────────────
+    // lb3 may be empty for small brackets (LBChamp decided from lb2 winner)
     const wb4 = wbG(4);
     const lb3 = lbG(4);
     if (allDone(wb4) && allDone(lb3) && !exists(lbG(5))) {
-      // LBR4: 2 LBR3 winners vs 2 WBR3 losers (crossover)
+      // LBR4: LBR3 winners vs WBR3 losers (crossover) — skip if either side is empty
       const lb3Winners = lb3.map(g => getGameWinner(g)).sort((a, b) => getTeamSeed(a) - getTeamSeed(b));
       const wb3Losers  = wb3.map(g => getGameLoser(g)).sort((a, b) => getTeamSeed(a) - getTeamSeed(b));
+      let lbr4Created = 0;
       for (let i = 0; i < lb3Winners.length && i < wb3Losers.length; i++) {
         await storage.createGame({
           leagueId, season, week: 0,
@@ -12546,26 +12554,29 @@ export async function registerRoutes(
           awayTeamId: wb3Losers[wb3Losers.length - 1 - i],
           phase: "super_regionals", bracketType: "losers", bracketRound: 5,
         });
+        lbr4Created++;
       }
-      return { done: false };
+      // Only return early if we created games; otherwise fall through to Grand Final setup
+      if (lbr4Created > 0) return { done: false };
     }
 
     // ── Stage 5 complete → create Stage 6 (LBR5) ─────────────────────────────
     const lb4 = lbG(5);
-    if (allDone(lb4) && !exists(lbG(6))) {
-      const [lbr5A, lbr5B] = lb4.map(g => getGameWinner(g)).sort((a, b) => getTeamSeed(a) - getTeamSeed(b));
-      if (lbr5A && lbr5B) {
+    if (exists(lb4) && allDone(lb4) && !exists(lbG(6))) {
+      const lb4Winners = lb4.map(g => getGameWinner(g)).sort((a, b) => getTeamSeed(a) - getTeamSeed(b));
+      if (lb4Winners.length >= 2) {
         await storage.createGame({
-          leagueId, season, week: 0, homeTeamId: lbr5A, awayTeamId: lbr5B,
+          leagueId, season, week: 0, homeTeamId: lb4Winners[0], awayTeamId: lb4Winners[lb4Winners.length - 1],
           phase: "super_regionals", bracketType: "losers", bracketRound: 6,
         });
+        return { done: false };
       }
-      return { done: false };
+      // Only 1 LBR4 winner → they are the LB champion; fall through to Grand Final setup
     }
 
     // ── Stage 6 complete → create Stage 7 (LBR6: LBR5 winner vs WBR4 loser) ──
     const lb5 = lbG(6);
-    if (allDone(lb5) && allDone(wb4) && !exists(lbG(7))) {
+    if (exists(lb5) && allDone(lb5) && exists(wb4) && allDone(wb4) && !exists(lbG(7))) {
       const lb5Winner = getGameWinner(lb5[0]);
       const wb4Loser  = getGameLoser(wb4[0]);
       await storage.createGame({
@@ -12575,25 +12586,43 @@ export async function registerRoutes(
       return { done: false };
     }
 
-    // ── Stage 7 complete → create Stage 8 (Grand Final: WB champ vs LB champ) ─
-    const lb6 = lbG(7);
+    // ── Grand Final setup: WB champ vs LB champ ──────────────────────────────
+    // Works for any bracket size: find the WBChamp from the highest-round WBR game,
+    // and LBChamp from the highest-round LBR game.
     const gf  = srGames.filter(g => g.bracketType === "grand_final");
-    if (allDone(wb4) && allDone(lb6) && !exists(gf)) {
-      const wbChamp = getGameWinner(wb4[0]);
-      const lbChamp = getGameWinner(lb6[0]);
-      await storage.createGame({
-        leagueId, season, week: 0, homeTeamId: wbChamp, awayTeamId: lbChamp,
-        phase: "super_regionals", bracketType: "grand_final", bracketRound: 8,
-      });
-      return { done: false };
+    if (!exists(gf)) {
+      const allWbGames = srGames.filter(g => g.bracketType === "winners");
+      const allLbGames = srGames.filter(g => g.bracketType === "losers");
+      if (exists(allWbGames) && exists(allLbGames) && allDone(allWbGames) && allDone(allLbGames)) {
+        const wbLastRound = Math.max(...allWbGames.map(g => g.bracketRound ?? 0));
+        const lbLastRound = Math.max(...allLbGames.map(g => g.bracketRound ?? 0));
+        const wbFinalGame = allWbGames.find(g => (g.bracketRound ?? 0) === wbLastRound);
+        const lbFinalGame = allLbGames.find(g => (g.bracketRound ?? 0) === lbLastRound);
+        if (wbFinalGame && lbFinalGame) {
+          // Determine WBChamp: winner of WB final, or if WB final only had 1 game and
+          // that's the last WBR stage, its winner is WBChamp
+          const wbChamp = getGameWinner(wbFinalGame);
+          const lbChamp = getGameWinner(lbFinalGame);
+          if (wbChamp && lbChamp) {
+            await storage.createGame({
+              leagueId, season, week: 0, homeTeamId: wbChamp, awayTeamId: lbChamp,
+              phase: "super_regionals", bracketType: "grand_final", bracketRound: 8,
+            });
+            return { done: false };
+          }
+        }
+      }
     }
 
-    // ── Stage 8 complete → check if reset needed ──────────────────────────────
+    // ── Grand Final complete → check if reset needed ───────────────────────────
     const gfReset = srGames.filter(g => g.bracketType === "grand_final_reset");
-    if (allDone(gf) && !exists(gfReset)) {
-      const gfGame   = gf[0];
-      const wbChamp  = wb4[0].homeScore !== null && wb4[0].awayScore !== null
-        ? getGameWinner(wb4[0]) : gfGame.homeTeamId;
+    if (exists(gf) && allDone(gf) && !exists(gfReset)) {
+      const gfGame = gf[0];
+      // WBChamp is winner of the highest-round WBR game
+      const allWbGames = srGames.filter(g => g.bracketType === "winners");
+      const wbLastRound = allWbGames.length > 0 ? Math.max(...allWbGames.map(g => g.bracketRound ?? 0)) : 0;
+      const wbFinalGame = allWbGames.find(g => (g.bracketRound ?? 0) === wbLastRound);
+      const wbChamp  = wbFinalGame ? getGameWinner(wbFinalGame) : gfGame.homeTeamId;
       const gfWinner = getGameWinner(gfGame);
       // If LB champ wins grand final, both have 1 loss → reset game needed
       if (gfWinner !== wbChamp) {
@@ -12608,8 +12637,8 @@ export async function registerRoutes(
       return { done: true, champion1: gfWinner, champion2: getGameLoser(gfGame) };
     }
 
-    // ── Stage 9 complete → grand final reset decided; winner is SR champion ───
-    if (allDone(gfReset)) {
+    // ── Grand Final Reset complete → winner is SR champion ────────────────────
+    if (exists(gfReset) && allDone(gfReset)) {
       return { done: true, champion1: getGameWinner(gfReset[0]), champion2: getGameLoser(gfReset[0]) };
     }
 

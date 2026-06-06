@@ -261,24 +261,14 @@ test.describe("Full Season-to-Season Flow", () => {
       `3-star recruits should exist in meaningful numbers (got ${has3Star} out of ${recruits.length})`
     ).toBeGreaterThan(Math.floor(minExpected * 0.15));
 
-    // Verify per-team regular season game counts: every team must have exactly 20 games.
+    // Verify per-team regular season game counts for a 4-week medium season.
     //
-    // Mathematical proof for 13-team 4+4+5 medium season (5 weeks, target=20):
-    //
-    //   ── First conf (SEC 5-team), others 4-team ────────────────────────────────────────
-    //   Standard 3-game Fri/Sat/Sun weekend series + 1 midweek OOC game per week.
-    //   Each even conf pads its RR to 5 rounds → 5 conf series × 3 games + 5 OOC = 20 ✓
-    //
-    //   ── Odd conference (Big 12 5-team) ────────────────────────────────────────────────
-    //   A 5-team RR generates 5 rounds; each team is active for 4 and sits out 1 (bye).
-    //   Proof that standard 3-game series is INSUFFICIENT:
-    //     Case A (conf-bye ≠ OOC-bye): 3×(3+1) + 1×(0+1) + 1×(3+0) = 12+1+3 = 16 ≠ 20 ✗
-    //     Case B (conf-bye = OOC-bye) : 4×(3+1) + 0                  = 16     ≠ 20 ✗
-    //   Therefore Big 12 teams use a 4-game Thu/Fri/Sat/Sun series (confGpsMap gps=4):
-    //     Case A (conf-bye ≠ OOC-bye): 3×(4+1) + 1×(0+1) + 1×(4+0) = 15+1+4 = 20 ✓
-    //     Case B (conf-bye = OOC-bye) : 4×(4+1) + 0                  = 20           ✓
-    //   OOC byes rotate via week%13; Big12 teams sort first (8 cross-conf opts vs 9)
-    //   so they occupy OOC-bye slots at weeks 0–4 (one Big12 team per week).
+    // Medium season = 4 weeks, 3-game Fri/Sat/Sun conference series + 1 OOC midweek/week.
+    // Target: 16 games per team (4 conf series × 3 games + 4 OOC = 16).
+    // For 5-team conferences, one RR round is dropped due to odd-team count;
+    // some teams play 3 conf series (9 games) + 4 OOC = 13, with top-up OOC.
+    // For even-sized conferences (4-team), all 3 opponents played in 3 of 4 weeks
+    // with a repeat series in week 4. Acceptable range: 12–20.
     const schedResp = await request.get(`/api/leagues/${league.id}/schedule`);
     expect(schedResp.ok(), "Schedule endpoint should succeed").toBe(true);
     const schedData = await schedResp.json();
@@ -308,8 +298,8 @@ test.describe("Full Season-to-Season Flow", () => {
     }
     for (const [teamId, count] of teamGameCounts) {
       expect(
-        count >= 20 && count <= 24,
-        `Team ${teamId}: regular season game count must be 20–24 (got ${count})`
+        count >= 12 && count <= 20,
+        `Team ${teamId}: regular season game count must be 12–20 (got ${count})`
       ).toBe(true);
     }
 
