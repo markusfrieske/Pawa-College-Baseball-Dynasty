@@ -2523,8 +2523,8 @@ function RecruitRow({
       : ((recruit.interest?.revealedAttributes as string[] | undefined) || [])
   );
   const isAttrRevealed = (key: string) => !sdAttrSet.has(key) && (isFullyRevealed || revealedAttrSet.has(key));
-  // Primary attrs — always rendered first in the strip
-  const previewAttrFields = isPitcherRecruit
+  // Primary attrs — row 1 of the strip
+  const primaryAttrFields = isPitcherRecruit
     ? [
         { label: "VEL", key: "velocity",  val: recruit.velocity },
         { label: "CTL", key: "control",   val: recruit.control },
@@ -2538,16 +2538,9 @@ function RecruitRow({
         { label: "ARM",  key: "arm",             val: recruit.arm },
         { label: "FLD",  key: "fielding",        val: recruit.fielding },
         { label: "ERR",  key: "errorResistance", val: recruit.errorResistance },
-        { label: "CLU",  key: "clutch",          val: recruit.clutch },
-        { label: "LHP",  key: "vsLHP",           val: recruit.vsLHP },
-        { label: "GRIT", key: "grit",            val: recruit.grit },
-        { label: "STL",  key: "stealing",        val: recruit.stealing },
-        { label: "RUN",  key: "running",         val: recruit.running },
-        { label: "THW",  key: "throwing",        val: recruit.throwing },
-        { label: "RCV",  key: "recovery",        val: recruit.recovery },
       ];
-  // Pitcher common abilities — rendered AFTER pitch-mix chips
-  const pitcherCommonFields = isPitcherRecruit
+  // Common ability attrs — row 2 of the strip
+  const commonAttrFields = isPitcherRecruit
     ? [
         { label: "RISP", key: "wRISP",    val: recruit.wRISP },
         { label: "LFT",  key: "vsLefty",  val: recruit.vsLefty },
@@ -2557,10 +2550,22 @@ function RecruitRow({
         { label: "AGL",  key: "agile",    val: recruit.agile },
         { label: "RCV",  key: "recovery", val: recruit.recovery },
       ]
-    : [];
+    : [
+        { label: "CLU",  key: "clutch",    val: recruit.clutch },
+        { label: "LHP",  key: "vsLHP",     val: recruit.vsLHP },
+        { label: "GRIT", key: "grit",      val: recruit.grit },
+        { label: "STL",  key: "stealing",  val: recruit.stealing },
+        { label: "RUN",  key: "running",   val: recruit.running },
+        { label: "THW",  key: "throwing",  val: recruit.throwing },
+        { label: "RCV",  key: "recovery",  val: recruit.recovery },
+      ];
   const ATTR_GRADE_COLORS: Record<string, string> = {
     s: "#fda4d5", a: "#ef4444", b: "#ef4444", c: "#f97316",
     d: "#eab308", f: "#60a5fa", g: "#9ca3af",
+  };
+  const COMMON_TIER_COLORS: Record<string, string> = {
+    s: "#f59e0b", a: "#3b82f6", b: "#3b82f6", c: "#38bdf8",
+    d: "#38bdf8", f: "#ef4444", g: "#ef4444",
   };
   const hasTransferStats = recruit.recruitType === "TRANSFER" && !!recruit.lastSeasonStats;
   // Strip always visible on every card: shows "?" placeholders for un-scouted attrs
@@ -3295,138 +3300,186 @@ function RecruitRow({
 
       {/* Stat/Attribute preview strip — always visible on every recruit card */}
       {showPreviewStrip && (
-        <div className="mt-2 pt-2 border-t border-border/30 flex items-center gap-x-4 gap-y-1 flex-wrap px-1" data-testid={`stat-preview-${recruit.id}`}>
+        <div className="mt-2 pt-2 border-t border-border/30 px-1 flex flex-col gap-0.5" data-testid={`stat-preview-${recruit.id}`}>
           {/* Transfer: real last-season stats */}
-          {hasTransferStats && (() => {
-            const s = recruit.lastSeasonStats!;
-            return isPitcherRecruit ? (
-              <>
-                {s.era != null && (
-                  <div className="flex items-center gap-0.5">
-                    <span className="text-[8px] text-muted-foreground/60 font-mono">ERA</span>
-                    <span className="text-[9px] text-purple-300/90 font-mono">{s.era.toFixed(2)}</span>
-                  </div>
-                )}
-                {s.ip != null && (
-                  <div className="flex items-center gap-0.5">
-                    <span className="text-[8px] text-muted-foreground/60 font-mono">IP</span>
-                    <span className="text-[9px] text-purple-300/90 font-mono">{s.ip.toFixed(1)}</span>
-                  </div>
-                )}
-                {s.k != null && (
-                  <div className="flex items-center gap-0.5">
-                    <span className="text-[8px] text-muted-foreground/60 font-mono">K</span>
-                    <span className="text-[9px] text-purple-300/90 font-mono">{s.k}</span>
-                  </div>
-                )}
-                {s.whip != null && (
-                  <div className="flex items-center gap-0.5">
-                    <span className="text-[8px] text-muted-foreground/60 font-mono">WHIP</span>
-                    <span className="text-[9px] text-purple-300/90 font-mono">{s.whip.toFixed(2)}</span>
-                  </div>
-                )}
-              </>
-            ) : (
-              <>
-                {s.avg != null && (
-                  <div className="flex items-center gap-0.5">
-                    <span className="text-[8px] text-muted-foreground/60 font-mono">AVG</span>
-                    <span className="text-[9px] text-purple-300/90 font-mono">.{String(Math.round(s.avg * 1000)).padStart(3, "0")}</span>
-                  </div>
-                )}
-                {s.obp != null && (
-                  <div className="flex items-center gap-0.5">
-                    <span className="text-[8px] text-muted-foreground/60 font-mono">OBP</span>
-                    <span className="text-[9px] text-purple-300/90 font-mono">.{String(Math.round(s.obp * 1000)).padStart(3, "0")}</span>
-                  </div>
-                )}
-                {s.hr != null && (
-                  <div className="flex items-center gap-0.5">
-                    <span className="text-[8px] text-muted-foreground/60 font-mono">HR</span>
-                    <span className="text-[9px] text-purple-300/90 font-mono">{s.hr}</span>
-                  </div>
-                )}
-                {s.rbi != null && (
-                  <div className="flex items-center gap-0.5">
-                    <span className="text-[8px] text-muted-foreground/60 font-mono">RBI</span>
-                    <span className="text-[9px] text-purple-300/90 font-mono">{s.rbi}</span>
-                  </div>
-                )}
-              </>
-            );
-          })()}
-          {/* Divider between transfer stats and attribute grades */}
           {hasTransferStats && (
-            <div className="w-px h-3 bg-border/40 self-center" />
-          )}
-          {/* Hitter trajectory chip — first in the strip */}
-          {!isPitcherRecruit && scoutPct >= TRAJECTORY_REVEAL_THRESHOLD && recruit.trajectory != null && (
-            <TrajectoryIcon trajectory={recruit.trajectory as 1|2|3|4} iconSize="w-2.5 h-2.5" textSize="text-[9px]" />
-          )}
-          {/* Attribute letter grades — always shown; lock for 100%-scouted locked attrs; "?" for unknown */}
-          {previewAttrFields.map(({ label, key, val }) => {
-            const revealed = isAttrRevealed(key);
-            const grade = (revealed && val != null) ? getLetterGrade(val) : null;
-            const isSigningDayLocked = !revealed && sdAttrSet.has(key) && scoutPct >= 100;
-            const isMphVel = key === "velocity" && revealed && val != null;
-            return (
-              <div key={key} className="flex items-center gap-0.5">
-                <span className="text-[8px] text-muted-foreground/60 font-mono">{label}</span>
-                {isSigningDayLocked ? (
-                  <Lock className="w-2.5 h-2.5 text-gold/50" />
-                ) : isMphVel ? (
-                  <span className="font-pixel text-[9px] font-bold text-sky-300/90">
-                    {Math.round(60 + (val / 100) * 45)}
-                  </span>
+            <div className="flex items-center gap-x-3 gap-y-1 flex-wrap mb-0.5">
+              {(() => {
+                const s = recruit.lastSeasonStats!;
+                return isPitcherRecruit ? (
+                  <>
+                    {s.era != null && (
+                      <div className="flex items-center gap-0.5">
+                        <span className="text-[8px] text-muted-foreground/60 font-mono">ERA</span>
+                        <span className="text-[9px] text-purple-300/90 font-mono">{s.era.toFixed(2)}</span>
+                      </div>
+                    )}
+                    {s.ip != null && (
+                      <div className="flex items-center gap-0.5">
+                        <span className="text-[8px] text-muted-foreground/60 font-mono">IP</span>
+                        <span className="text-[9px] text-purple-300/90 font-mono">{s.ip.toFixed(1)}</span>
+                      </div>
+                    )}
+                    {s.k != null && (
+                      <div className="flex items-center gap-0.5">
+                        <span className="text-[8px] text-muted-foreground/60 font-mono">K</span>
+                        <span className="text-[9px] text-purple-300/90 font-mono">{s.k}</span>
+                      </div>
+                    )}
+                    {s.whip != null && (
+                      <div className="flex items-center gap-0.5">
+                        <span className="text-[8px] text-muted-foreground/60 font-mono">WHIP</span>
+                        <span className="text-[9px] text-purple-300/90 font-mono">{s.whip.toFixed(2)}</span>
+                      </div>
+                    )}
+                  </>
                 ) : (
-                  <span className="font-pixel text-[9px] font-bold" style={{ color: grade ? (ATTR_GRADE_COLORS[grade.tier] || "#9ca3af") : "#374151" }}>
-                    {grade ? grade.letter : "?"}
+                  <>
+                    {s.avg != null && (
+                      <div className="flex items-center gap-0.5">
+                        <span className="text-[8px] text-muted-foreground/60 font-mono">AVG</span>
+                        <span className="text-[9px] text-purple-300/90 font-mono">.{String(Math.round(s.avg * 1000)).padStart(3, "0")}</span>
+                      </div>
+                    )}
+                    {s.obp != null && (
+                      <div className="flex items-center gap-0.5">
+                        <span className="text-[8px] text-muted-foreground/60 font-mono">OBP</span>
+                        <span className="text-[9px] text-purple-300/90 font-mono">.{String(Math.round(s.obp * 1000)).padStart(3, "0")}</span>
+                      </div>
+                    )}
+                    {s.hr != null && (
+                      <div className="flex items-center gap-0.5">
+                        <span className="text-[8px] text-muted-foreground/60 font-mono">HR</span>
+                        <span className="text-[9px] text-purple-300/90 font-mono">{s.hr}</span>
+                      </div>
+                    )}
+                    {s.rbi != null && (
+                      <div className="flex items-center gap-0.5">
+                        <span className="text-[8px] text-muted-foreground/60 font-mono">RBI</span>
+                        <span className="text-[9px] text-purple-300/90 font-mono">{s.rbi}</span>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
+          )}
+
+          {/* Row 1 — ATTRIBUTES */}
+          <div className="flex items-center gap-1 flex-wrap">
+            <span className="font-pixel text-[7px] text-muted-foreground/50 uppercase w-14 shrink-0">ATTRIBUTES</span>
+            {!isPitcherRecruit && scoutPct >= TRAJECTORY_REVEAL_THRESHOLD && recruit.trajectory != null && (
+              <TrajectoryIcon trajectory={recruit.trajectory as 1|2|3|4} iconSize="w-2.5 h-2.5" textSize="text-[9px]" />
+            )}
+            {primaryAttrFields.map(({ label, key, val }) => {
+              const revealed = isAttrRevealed(key);
+              const grade = (revealed && val != null) ? getLetterGrade(val) : null;
+              const isSigningDayLocked = !revealed && sdAttrSet.has(key) && scoutPct >= 100;
+              const isMphVel = key === "velocity" && revealed && val != null;
+              return (
+                <div key={key} className="flex items-center gap-0.5">
+                  <span className="text-[8px] text-muted-foreground/60 font-mono">{label}</span>
+                  {isSigningDayLocked ? (
+                    <Lock className="w-2.5 h-2.5 text-gold/50" />
+                  ) : isMphVel ? (
+                    <span className="font-pixel text-[9px] font-bold text-sky-300/90">
+                      {Math.round(60 + (val / 100) * 45)}
+                    </span>
+                  ) : (
+                    <span className="font-pixel text-[9px] font-bold" style={{ color: grade ? (ATTR_GRADE_COLORS[grade.tier] || "#9ca3af") : "#374151" }}>
+                      {grade ? grade.letter : "?"}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+            {/* Pitcher pitch mix chips — inside Attrs row after primary attrs */}
+            {isPitcherRecruit && (scoutPct > 0 || isFullyRevealed) && (() => {
+              const pitchFields = [
+                ["pitchFB", "FB"], ["pitch2S", "2S"], ["pitchSL", "SL"], ["pitchCB", "CB"],
+                ["pitchCH", "CH"], ["pitchCT", "CT"], ["pitchSNK", "SNK"], ["pitchSPL", "SPL"],
+                ["pitchSHU", "SHU"], ["pitchSWP", "SWP"], ["pitchKN", "KN"],
+              ] as const;
+              const active = pitchFields.filter(([k]) => {
+                const v = (recruit as any)[k];
+                return v != null && v > 0;
+              });
+              if (!active.length) return null;
+              return (
+                <>
+                  <div className="w-px h-3 bg-border/40 self-center" />
+                  {active.map(([k, label]) => (
+                    <span key={label} className="text-[8px] font-mono px-1 py-0.5 rounded bg-muted/40 border border-border/50 text-muted-foreground/70 leading-tight">
+                      {label}{(recruit as any)[k]}
+                    </span>
+                  ))}
+                </>
+              );
+            })()}
+          </div>
+
+          {/* Row 2 — COMMON abilities */}
+          <div className="flex items-center gap-1 flex-wrap">
+            <span className="font-pixel text-[7px] text-muted-foreground/50 uppercase w-14 shrink-0">COMMON</span>
+            {commonAttrFields.map(({ label, key, val }) => {
+              const revealed = isAttrRevealed(key);
+              const grade = (revealed && val != null) ? getLetterGrade(val) : null;
+              const isSigningDayLocked = !revealed && sdAttrSet.has(key) && scoutPct >= 100;
+              return (
+                <div key={key} className="flex items-center gap-0.5">
+                  <span className="text-[8px] text-muted-foreground/60 font-mono">{label}</span>
+                  {isSigningDayLocked ? (
+                    <Lock className="w-2.5 h-2.5 text-gold/50" />
+                  ) : (
+                    <span className="font-pixel text-[9px] font-bold" style={{ color: grade ? (COMMON_TIER_COLORS[grade.tier] || "#9ca3af") : "#374151" }}>
+                      {grade ? grade.letter : "?"}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Row 3 — SPECIAL abilities */}
+          <div className="flex items-center gap-1 flex-wrap">
+            <span className="font-pixel text-[7px] text-muted-foreground/50 uppercase w-14 shrink-0">SPECIAL</span>
+            {(() => {
+              const abilitiesList = (recruit.abilities as string[] | null | undefined) || [];
+              // Filter to only gold/blue/red special abilities first, then apply fog-of-war slice
+              const specialAbilities = abilitiesList.filter(name => {
+                const tier = getAbilityByName(name)?.tier;
+                return tier === "gold" || tier === "blue" || tier === "red";
+              });
+              const revealed = isFullyRevealed
+                ? specialAbilities
+                : specialAbilities.slice(0, revealedAbilitiesCount);
+              if (revealed.length === 0) {
+                return <span className="text-[9px] text-muted-foreground/40 font-mono">—</span>;
+              }
+              return revealed.map((name, idx) => {
+                const ability = getAbilityByName(name);
+                const tierColor =
+                  ability?.tier === "gold" ? "#f59e0b"
+                  : ability?.tier === "blue" ? "#3b82f6"
+                  : ability?.tier === "red"  ? "#ef4444"
+                  : "#9ca3af";
+                const tierBg =
+                  ability?.tier === "gold" ? "rgba(245,158,11,0.12)"
+                  : ability?.tier === "blue" ? "rgba(59,130,246,0.12)"
+                  : ability?.tier === "red"  ? "rgba(239,68,68,0.12)"
+                  : "rgba(156,163,175,0.12)";
+                return (
+                  <span
+                    key={idx}
+                    className="text-[8px] font-mono px-1 py-0.5 rounded leading-tight border"
+                    style={{ color: tierColor, background: tierBg, borderColor: `${tierColor}40` }}
+                  >
+                    {name}
                   </span>
-                )}
-              </div>
-            );
-          })}
-          {/* Pitcher pitch mix chips (with counts) — rendered between primary attrs and common abilities */}
-          {isPitcherRecruit && (scoutPct > 0 || isFullyRevealed) && (() => {
-            const pitchFields = [
-              ["pitchFB", "FB"], ["pitch2S", "2S"], ["pitchSL", "SL"], ["pitchCB", "CB"],
-              ["pitchCH", "CH"], ["pitchCT", "CT"], ["pitchSNK", "SNK"], ["pitchSPL", "SPL"],
-              ["pitchSHU", "SHU"], ["pitchSWP", "SWP"], ["pitchKN", "KN"],
-            ] as const;
-            const active = pitchFields.filter(([k]) => {
-              const v = (recruit as any)[k];
-              return v != null && v > 0;
-            });
-            if (!active.length) return null;
-            return (
-              <>
-                <div className="w-px h-3 bg-border/40 self-center" />
-                {active.map(([k, label]) => (
-                  <span key={label} className="text-[8px] font-mono px-1 py-0.5 rounded bg-muted/40 border border-border/50 text-muted-foreground/70 leading-tight">
-                    {label}{(recruit as any)[k]}
-                  </span>
-                ))}
-              </>
-            );
-          })()}
-          {/* Pitcher common ability grades — rendered after pitch mix chips */}
-          {pitcherCommonFields.map(({ label, key, val }) => {
-            const revealed = isAttrRevealed(key);
-            const grade = (revealed && val != null) ? getLetterGrade(val) : null;
-            const isSigningDayLocked = !revealed && sdAttrSet.has(key) && scoutPct >= 100;
-            return (
-              <div key={key} className="flex items-center gap-0.5">
-                <span className="text-[8px] text-muted-foreground/60 font-mono">{label}</span>
-                {isSigningDayLocked ? (
-                  <Lock className="w-2.5 h-2.5 text-gold/50" />
-                ) : (
-                  <span className="font-pixel text-[9px] font-bold" style={{ color: grade ? (ATTR_GRADE_COLORS[grade.tier] || "#9ca3af") : "#374151" }}>
-                    {grade ? grade.letter : "?"}
-                  </span>
-                )}
-              </div>
-            );
-          })}
+                );
+              });
+            })()}
+          </div>
         </div>
       )}
 
