@@ -21153,7 +21153,7 @@ async function generateSchedule(leagueId: string, season: number = 1) {
   const numTeams = leagueTeams.length;
   if (numTeams < 2) return;
 
-  const seasonLength = league?.seasonLength || "medium";
+  const seasonLength = league?.seasonLength || "standard";
 
   type TeamType = typeof leagueTeams[0];
   type Matchup = { home: TeamType; away: TeamType };
