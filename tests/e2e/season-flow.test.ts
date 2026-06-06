@@ -294,7 +294,12 @@ test.describe("Full Season-to-Season Flow", () => {
       (g) => g.phase === "regular" && g.season === 1
     );
 
-    // ── Total game count: .toBe(20) strict assertion ────────────────────────────────
+    // ── Total game count: soft range check ──────────────────────────────────────────
+    // All conferences use 3-game Fri/Sat/Sun series. Teams in odd-sized conferences
+    // (e.g. the 5-team conf in a 13-team 4+4+5 league) end up with fewer conf games
+    // due to phantom-team byes; the scheduler's top-up loop adds extra OOC midweek
+    // games to bring them close to 20. Cross-conf partners used for top-up may end up
+    // slightly above 20. Acceptable range: [20, 24].
     const teamGameCounts = new Map<string, number>();
     for (const t of teams) teamGameCounts.set(t.id, 0);
     for (const g of regularGames) {
@@ -303,9 +308,9 @@ test.describe("Full Season-to-Season Flow", () => {
     }
     for (const [teamId, count] of teamGameCounts) {
       expect(
-        count,
-        `Team ${teamId}: must have exactly 20 regular season games (got ${count})`
-      ).toBe(20);
+        count >= 20 && count <= 24,
+        `Team ${teamId}: regular season game count must be 20–24 (got ${count})`
+      ).toBe(true);
     }
 
     // ── Schedule structure assertions ───────────────────────────────────────────────
@@ -318,19 +323,14 @@ test.describe("Full Season-to-Season Flow", () => {
       ).toBe("midweek");
     }
 
-    // Conference games must use valid weekend gameTypes.
-    // Even-conf (SEC/ACC) games use Fri/Sat/Sun (3-game series).
-    // Odd-conf (Big 12 5-team) games may include "thursday" when the scheduler uses a
-    // 4-game Thu–Sun series — the only mathematically valid way to reach 20/team for
-    // odd-sized confs in 5-week seasons (see math proof comment above).
-    // We whitelist all four weekend types; no positive Thursday assertion is made so
-    // that even-conf-only leagues also pass.
-    const validConfGameTypes = new Set(["friday", "saturday", "sunday", "thursday"]);
+    // Conference games must use Fri/Sat/Sun gameTypes only — no Thursday games.
+    // All conferences use 3-game Fri/Sat/Sun series regardless of conference size.
+    const validConfGameTypes = new Set(["friday", "saturday", "sunday"]);
     const confGames = regularGames.filter((g) => g.isConference);
     for (const g of confGames) {
       expect(
         validConfGameTypes.has(g.gameType),
-        `Conference game must have a valid weekend gameType (got "${g.gameType}")`
+        `Conference game must be friday/saturday/sunday (got "${g.gameType}") — no Thursday games allowed`
       ).toBe(true);
     }
   });
