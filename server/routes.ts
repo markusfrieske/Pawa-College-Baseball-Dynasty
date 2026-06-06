@@ -7300,12 +7300,13 @@ export async function registerRoutes(
     if (league) {
       await updateStandingsForGame(leagueId, game.season, game.homeTeamId, game.awayTeamId, homeScore, awayScore, game.isConference);
 
-      if (homeBoxData) {
-        await accumulatePlayerStats(leagueId, game.season, game.homeTeamId, homeBoxData);
-      }
-      if (awayBoxData) {
-        await accumulatePlayerStats(leagueId, game.season, game.awayTeamId, awayBoxData);
-      }
+      const enrichedHome = boxScore.home;
+      const enrichedAway = boxScore.away;
+      if (!homeBoxData) console.warn(`[finalizeReportedGame] homeBoxData null for game ${game.id} — using enriched fallback`);
+      if (!awayBoxData) console.warn(`[finalizeReportedGame] awayBoxData null for game ${game.id} — using enriched fallback`);
+      const reportedHomeWon = homeScore > awayScore;
+      await accumulatePlayerStats(leagueId, game.season, game.homeTeamId, enrichedHome, reportedHomeWon);
+      await accumulatePlayerStats(leagueId, game.season, game.awayTeamId, enrichedAway, !reportedHomeWon);
 
       // Record pitcher rest data for both teams
       await updatePitcherRestFromBox(homeBoxData, awayBoxData, game);
@@ -7336,9 +7337,9 @@ export async function registerRoutes(
     awayBoxData: any,
     game: { gameType?: string | null; week?: number | null },
   ) {
-    const gameDay = game.gameType ? (GAME_TYPE_TO_DAY[game.gameType] ?? null) : null;
-    const gameWeek = game.week ?? null;
-    if (!gameDay || gameWeek == null) return;
+    const gameDay = game.gameType ? (GAME_TYPE_TO_DAY[game.gameType] ?? "midweek") : "midweek";
+    const gameWeek = game.week ?? 1;
+    if (!gameDay) return;
 
     const updates: Array<{ id: string; lastPitchedOuts: number; lastPitchedWeek: number; lastPitchedDay: string }> = [];
     for (const boxData of [homeBoxData, awayBoxData]) {
@@ -8754,8 +8755,9 @@ export async function registerRoutes(
 
       await updateStandingsForGame(leagueId, game.season, game.homeTeamId, game.awayTeamId, homeScore, awayScore, game.isConference);
 
-      await accumulatePlayerStats(leagueId, game.season, game.homeTeamId, boxScore.home);
-      await accumulatePlayerStats(leagueId, game.season, game.awayTeamId, boxScore.away);
+      const pbpHomeWon = homeScore > awayScore;
+      await accumulatePlayerStats(leagueId, game.season, game.homeTeamId, boxScore.home, pbpHomeWon);
+      await accumulatePlayerStats(leagueId, game.season, game.awayTeamId, boxScore.away, !pbpHomeWon);
 
       // Update pitcher rest tracking for auto-simmed play-by-play games
       await updatePitcherRestFromBox(boxScore.home, boxScore.away, game);
@@ -9361,7 +9363,7 @@ export async function registerRoutes(
       console.time("[advance-perf] standings-and-stats");
       await Promise.all([...gameResults, ...exhibitionGameResults].map(async ({ game, result }) => {
         await updateStandingsForGame(leagueId, league.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, game.isConference);
-        try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, league.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, league.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
+        try { const box = JSON.parse(result.boxScore); const hw9364 = result.homeScore > result.awayScore; await accumulatePlayerStats(leagueId, league.currentSeason, game.homeTeamId, box.home, hw9364); await accumulatePlayerStats(leagueId, league.currentSeason, game.awayTeamId, box.away, !hw9364); } catch (e) { console.error("Stat accumulation error:", e); }
         try { const box = JSON.parse(result.boxScore); await updatePitcherRestFromBox(box.home, box.away, game); } catch (e) { /* ignore */ }
 
         const homeTeamSim = leagueTeamsForSim.find(t => t.id === game.homeTeamId);
@@ -9497,7 +9499,7 @@ export async function registerRoutes(
             const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType || "friday", undefined, undefined, game.week);
             await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, isComplete: true, boxScore: result.boxScore });
             await updateStandingsForGame(leagueId, league.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore);
-            try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, league.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, league.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
+            try { const box = JSON.parse(result.boxScore); const hw9500 = result.homeScore > result.awayScore; await accumulatePlayerStats(leagueId, league.currentSeason, game.homeTeamId, box.home, hw9500); await accumulatePlayerStats(leagueId, league.currentSeason, game.awayTeamId, box.away, !hw9500); } catch (e) { console.error("Stat accumulation error:", e); }
             try { const box = JSON.parse(result.boxScore); await updatePitcherRestFromBox(box.home, box.away, game); } catch (e) { /* ignore */ }
             try {
               const homeWon = result.homeScore > result.awayScore;
@@ -10431,7 +10433,7 @@ export async function registerRoutes(
                   isComplete: true,
                 });
                 await updateStandingsCached(game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, false);
-                try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away); await updatePitcherRestFromBox(box.home, box.away, game); } catch (e) { console.error("Exhibition stat accumulation error:", e); }
+                try { const box = JSON.parse(result.boxScore); const hwExhib = result.homeScore > result.awayScore; await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home, hwExhib); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away, !hwExhib); await updatePitcherRestFromBox(box.home, box.away, game); } catch (e) { console.error("Exhibition stat accumulation error:", e); }
               }));
               invalidateGameCache();
             }
@@ -10456,8 +10458,9 @@ export async function registerRoutes(
             await updateStandingsCached(game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, game.isConference ?? false);
             try {
               const box = JSON.parse(result.boxScore);
-              await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home);
-              await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away);
+              const hwSim = result.homeScore > result.awayScore;
+              await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home, hwSim);
+              await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away, !hwSim);
             } catch (e) { console.error("Stat accumulation error:", e); }
             try { const box = JSON.parse(result.boxScore); await updatePitcherRestFromBox(box.home, box.away, game); } catch (e) { /* ignore */ }
           }
@@ -10531,8 +10534,9 @@ export async function registerRoutes(
             await updateStandingsCached(game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore);
             try {
               const box = JSON.parse(result.boxScore);
-              await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home);
-              await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away);
+              const hwSim2 = result.homeScore > result.awayScore;
+              await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home, hwSim2);
+              await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away, !hwSim2);
             } catch (e) { console.error("Stat accumulation error:", e); }
             try { const box = JSON.parse(result.boxScore); await updatePitcherRestFromBox(box.home, box.away, game); } catch (e) { /* ignore */ }
           }
@@ -10832,7 +10836,7 @@ export async function registerRoutes(
               const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType, fsPhilosophyMap.get(game.homeTeamId), fsPhilosophyMap.get(game.awayTeamId), game.week);
               await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, boxScore: result.boxScore, isComplete: true });
               await updateStandingsForGame(leagueId, currentLeague.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, game.isConference);
-              try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away); } catch (e) { /* ignore */ }
+              try { const box = JSON.parse(result.boxScore); const hwFast = result.homeScore > result.awayScore; await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home, hwFast); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away, !hwFast); } catch (e) { /* ignore */ }
               try { const box = JSON.parse(result.boxScore); await updatePitcherRestFromBox(box.home, box.away, game); } catch (e) { /* ignore */ }
             }
             weeksSimulated++;
@@ -11040,7 +11044,7 @@ export async function registerRoutes(
             const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType, psPhilosophyMap.get(game.homeTeamId), psPhilosophyMap.get(game.awayTeamId), game.week);
             await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, boxScore: result.boxScore, isComplete: true });
             await updateStandingsForGame(leagueId, currentLeague.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, game.isConference);
-            try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
+            try { const box = JSON.parse(result.boxScore); const hwPS = result.homeScore > result.awayScore; await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home, hwPS); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away, !hwPS); } catch (e) { console.error("Stat accumulation error:", e); }
             try { const box = JSON.parse(result.boxScore); await updatePitcherRestFromBox(box.home, box.away, game); } catch (e) { /* ignore */ }
             weekSimResults.push({ game, result });
           }
@@ -11133,7 +11137,7 @@ export async function registerRoutes(
             const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType, undefined, undefined, game.week);
             await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, boxScore: result.boxScore, isComplete: true });
             await updateStandingsForGame(leagueId, currentLeague.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore, game.isConference);
-            try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
+            try { const box = JSON.parse(result.boxScore); const hwCWS = result.homeScore > result.awayScore; await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home, hwCWS); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away, !hwCWS); } catch (e) { console.error("Stat accumulation error:", e); }
             try { const box = JSON.parse(result.boxScore); await updatePitcherRestFromBox(box.home, box.away, game); } catch (e) { /* ignore */ }
             cwsWeekResults.push({ game, result });
           }
@@ -11172,7 +11176,7 @@ export async function registerRoutes(
             const result = await simulateGame(game.homeTeamId, game.awayTeamId, game.gameType || "friday", undefined, undefined, game.week);
             await storage.updateGame(game.id, { homeScore: result.homeScore, awayScore: result.awayScore, boxScore: result.boxScore, isComplete: true });
             await updateStandingsForGame(leagueId, currentLeague.currentSeason, game.homeTeamId, game.awayTeamId, result.homeScore, result.awayScore);
-            try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away); } catch (e) { console.error("Stat accumulation error:", e); }
+            try { const box = JSON.parse(result.boxScore); const hwCC = result.homeScore > result.awayScore; await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.homeTeamId, box.home, hwCC); await accumulatePlayerStats(leagueId, currentLeague.currentSeason, game.awayTeamId, box.away, !hwCC); } catch (e) { console.error("Stat accumulation error:", e); }
             try { const box = JSON.parse(result.boxScore); await updatePitcherRestFromBox(box.home, box.away, game); } catch (e) { /* ignore */ }
             ccResults.push({ game, result });
           }
@@ -11893,12 +11897,16 @@ export async function registerRoutes(
     return { innings, home, away };
   }
 
-  async function accumulatePlayerStats(leagueId: string, season: number, teamId: string, boxData: any) {
+  async function accumulatePlayerStats(leagueId: string, season: number, teamId: string, boxData: any, teamWon?: boolean) {
     const playerStatsMap = new Map<string, InsertPlayerSeasonStats>();
 
     if (boxData.batting) {
       for (const b of boxData.batting) {
-        if (!b.playerId || b.playerId.startsWith("fake_")) continue;
+        if (!b.playerId) continue;
+        if (b.playerId.startsWith("fake_")) {
+          console.warn(`[accumulatePlayerStats] Skipping fake_ batter ID: ${b.playerId}`);
+          continue;
+        }
         playerStatsMap.set(b.playerId, {
           playerId: b.playerId,
           playerName: b.name,
@@ -11935,13 +11943,38 @@ export async function registerRoutes(
       }
     }
 
-    if (boxData.pitching) {
+    // Determine winning/losing pitcher (pitcher with most IP for this team)
+    let winningPitcherId: string | null = null;
+    let losingPitcherId: string | null = null;
+    if (teamWon !== undefined && Array.isArray(boxData.pitching)) {
+      let maxOuts = -1;
       for (const p of boxData.pitching) {
         if (!p.playerId || p.playerId.startsWith("fake_")) continue;
         const ipParts = String(p.ip).split(".");
         const fullInnings = parseInt(ipParts[0]) || 0;
-        const partialOuts = parseInt(ipParts[1]) || 0;
+        const partialOuts = Math.min(parseInt(ipParts[1]) || 0, 2);
+        const outs = fullInnings * 3 + partialOuts;
+        if (outs > maxOuts) {
+          maxOuts = outs;
+          if (teamWon) winningPitcherId = p.playerId;
+          else losingPitcherId = p.playerId;
+        }
+      }
+    }
+
+    if (boxData.pitching) {
+      for (const p of boxData.pitching) {
+        if (!p.playerId) continue;
+        if (p.playerId.startsWith("fake_")) {
+          console.warn(`[accumulatePlayerStats] Skipping fake_ pitcher ID: ${p.playerId}`);
+          continue;
+        }
+        const ipParts = String(p.ip).split(".");
+        const fullInnings = parseInt(ipParts[0]) || 0;
+        const partialOuts = Math.min(parseInt(ipParts[1]) || 0, 2);
         const totalOuts = fullInnings * 3 + partialOuts;
+        const isWinPitcher = p.playerId === winningPitcherId;
+        const isLossPitcher = p.playerId === losingPitcherId;
         const existing = playerStatsMap.get(p.playerId);
         if (existing) {
           existing.pitchingGames = 1;
@@ -11955,6 +11988,8 @@ export async function registerRoutes(
           existing.totalPitches = p.totalPitches || 0;
           existing.whiffs = p.whiffs || 0;
           existing.spinRateTotal = p.spinRate || 0;
+          if (isWinPitcher) existing.wins = 1;
+          if (isLossPitcher) existing.losses = 1;
         } else {
           playerStatsMap.set(p.playerId, {
             playerId: p.playerId,
@@ -11963,14 +11998,15 @@ export async function registerRoutes(
             leagueId,
             season,
             position: "P",
-            games: 0,
+            games: 1,
             ab: 0, r: 0, h: 0, doubles: 0, triples: 0, hr: 0,
             rbi: 0, bb: 0, hbp: 0, so: 0, sb: 0, cs: 0,
             exitVeloTotal: 0, barrels: 0, ballsInPlay: 0, hardHits: 0,
             putouts: 0, assists: 0, fieldingErrors: 0, totalChances: 0,
             wpa: 0,
             pitchingGames: 1,
-            wins: 0, losses: 0,
+            wins: isWinPitcher ? 1 : 0,
+            losses: isLossPitcher ? 1 : 0,
             ipOuts: totalOuts,
             pHits: p.h || 0,
             pRuns: p.r || 0,
@@ -12215,7 +12251,7 @@ export async function registerRoutes(
         });
         // Super Regionals results intentionally do NOT update standings — postseason games
         // must not mutate the regular-season win/loss records that seeding depends on.
-        try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, season, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, season, game.awayTeamId, box.away); await updatePitcherRestFromBox(box.home, box.away, game); } catch (e) { console.error("Stat accumulation error:", e); }
+        try { const box = JSON.parse(result.boxScore); const hwSR = result.homeScore > result.awayScore; await accumulatePlayerStats(leagueId, season, game.homeTeamId, box.home, hwSR); await accumulatePlayerStats(leagueId, season, game.awayTeamId, box.away, !hwSR); await updatePitcherRestFromBox(box.home, box.away, game); } catch (e) { console.error("Stat accumulation error:", e); }
         try {
           const srHomeWon = result.homeScore > result.awayScore;
           const srWinnerT = srTeams.find(t => t.id === (srHomeWon ? game.homeTeamId : game.awayTeamId));
@@ -12414,7 +12450,7 @@ export async function registerRoutes(
       });
       // CWS results intentionally do NOT update standings — postseason games must not
       // mutate the regular-season win/loss records that bracket seeding depends on.
-      try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(leagueId, season, game.homeTeamId, box.home); await accumulatePlayerStats(leagueId, season, game.awayTeamId, box.away); await updatePitcherRestFromBox(box.home, box.away, game); } catch (e) { console.error("Stat accumulation error:", e); }
+      try { const box = JSON.parse(result.boxScore); const hwCWSFin = result.homeScore > result.awayScore; await accumulatePlayerStats(leagueId, season, game.homeTeamId, box.home, hwCWSFin); await accumulatePlayerStats(leagueId, season, game.awayTeamId, box.away, !hwCWSFin); await updatePitcherRestFromBox(box.home, box.away, game); } catch (e) { console.error("Stat accumulation error:", e); }
       try {
         const cwsHomeWon = result.homeScore > result.awayScore;
         const cwsWinnerT = cwsTeams.find(t => t.id === (cwsHomeWon ? game.homeTeamId : game.awayTeamId));
@@ -18224,7 +18260,7 @@ export async function registerRoutes(
           isComplete: true,
           boxScore: result.boxScore,
         });
-        try { const box = JSON.parse(result.boxScore); await accumulatePlayerStats(league.id, league.currentSeason, game.homeTeamId, box.home); await accumulatePlayerStats(league.id, league.currentSeason, game.awayTeamId, box.away); await updatePitcherRestFromBox(box.home, box.away, game); } catch (e) { console.error("Stat accumulation error:", e); }
+        try { const box = JSON.parse(result.boxScore); const hwDigest = result.homeScore > result.awayScore; await accumulatePlayerStats(league.id, league.currentSeason, game.homeTeamId, box.home, hwDigest); await accumulatePlayerStats(league.id, league.currentSeason, game.awayTeamId, box.away, !hwDigest); await updatePitcherRestFromBox(box.home, box.away, game); } catch (e) { console.error("Stat accumulation error:", e); }
         if (simUserTeamIdForSim && !simUserTeamGame &&
             (game.homeTeamId === simUserTeamIdForSim || game.awayTeamId === simUserTeamIdForSim)) {
           try {
