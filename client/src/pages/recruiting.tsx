@@ -87,6 +87,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Recruit, RecruitingInterest, Team, LastSeasonStats } from "@shared/schema";
 import { getAbilityByName, S_GOLD_COMMON_KEY, S_GOLD_PITCHER_KEY } from "@shared/abilities";
 import { TRAJECTORY_LABELS } from "@shared/trajectory";
+import { TRAJECTORY_REVEAL_THRESHOLD, ARCHETYPE_REVEAL_THRESHOLD } from "@shared/recruitThresholds";
 import { PlayerPortrait } from "@/components/ui/player-portrait";
 import { PitchMixDial } from "@/components/ui/pitch-mix-dial";
 import { LetterGrade, getLetterGrade } from "@/components/ui/letter-grade";
@@ -2882,7 +2883,7 @@ function RecruitRow({
                   <TooltipContent>Bust - Worse than ranking suggests</TooltipContent>
                 </Tooltip>
               )}
-              {scoutPct >= 50 && recruit.playerArchetype === "late_bloomer" && (
+              {scoutPct >= TRAJECTORY_REVEAL_THRESHOLD && recruit.playerArchetype === "late_bloomer" && (
                 <Tooltip>
                   <TooltipTrigger>
                     <Badge className="text-[8px] bg-emerald-500/15 text-emerald-400 border-emerald-500/40 no-default-hover-elevate no-default-active-elevate" data-testid={`badge-upside-${recruit.id}`}>
@@ -2892,7 +2893,7 @@ function RecruitRow({
                   <TooltipContent>Late Bloomer - Higher ceiling than current rating suggests</TooltipContent>
                 </Tooltip>
               )}
-              {scoutPct >= 75 && recruit.playerArchetype === "overdraft" && (
+              {scoutPct >= ARCHETYPE_REVEAL_THRESHOLD && recruit.playerArchetype === "overdraft" && (
                 <Tooltip>
                   <TooltipTrigger>
                     <Badge className="text-[8px] bg-orange-500/15 text-orange-400 border-orange-500/40 no-default-hover-elevate no-default-active-elevate" data-testid={`badge-ceiling-${recruit.id}`}>
@@ -2902,7 +2903,7 @@ function RecruitRow({
                   <TooltipContent>Overdraft - Lower ceiling than current rating suggests</TooltipContent>
                 </Tooltip>
               )}
-              {scoutPct >= 50 && recruit.playerArchetype === "raw" && (
+              {scoutPct >= TRAJECTORY_REVEAL_THRESHOLD && recruit.playerArchetype === "raw" && (
                 <Tooltip>
                   <TooltipTrigger>
                     <Badge className="text-[8px] bg-yellow-500/15 text-yellow-400 border-yellow-500/40 no-default-hover-elevate no-default-active-elevate" data-testid={`badge-raw-${recruit.id}`}>
@@ -2921,7 +2922,7 @@ function RecruitRow({
               <span className="text-[10px]">
                 {recruit.throwHand}/{recruit.batHand === "S" ? "S" : recruit.batHand}
               </span>
-              {!isPitcherRecruit && scoutPct >= 50 && recruit.trajectory != null && (
+              {!isPitcherRecruit && scoutPct >= TRAJECTORY_REVEAL_THRESHOLD && recruit.trajectory != null && (
                 <span className={`text-[10px] font-pixel px-1 py-0.5 rounded border ${
                   recruit.trajectory === 1 ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-400" :
                   recruit.trajectory === 3 ? "bg-amber-500/10 border-amber-500/40 text-amber-400" :
@@ -3486,7 +3487,7 @@ function RecruitRow({
             );
           })}
           {/* Hitter trajectory chip */}
-          {!isPitcherRecruit && scoutPct >= 50 && recruit.trajectory != null && (
+          {!isPitcherRecruit && scoutPct >= TRAJECTORY_REVEAL_THRESHOLD && recruit.trajectory != null && (
             <div className="flex items-center gap-0.5">
               <span className="text-[8px] text-muted-foreground/60 font-mono">TRAJ</span>
               <span className={`font-pixel text-[9px] font-bold ${
@@ -4048,7 +4049,7 @@ function RecruitDetailModal({
             </div>
             <div className="flex items-center gap-2 shrink-0 flex-wrap">
               <span>Bats {recruit.batHand || "R"} / Throws {recruit.throwHand || "R"}</span>
-              {recruit.position !== "P" && scoutPct >= 50 && recruit.trajectory != null && (
+              {recruit.position !== "P" && scoutPct >= TRAJECTORY_REVEAL_THRESHOLD && recruit.trajectory != null && (
                 <Badge variant="outline" className={`text-[9px] no-default-hover-elevate no-default-active-elevate ${
                   recruit.trajectory === 1 ? "border-emerald-500/50 text-emerald-400" :
                   recruit.trajectory === 3 ? "border-amber-500/50 text-amber-400" :
@@ -4179,7 +4180,7 @@ function RecruitDetailModal({
                 return (
                   <div key={p.key} className="flex items-center justify-between p-2 bg-muted/50 rounded">
                     <span className="text-sm text-muted-foreground">{p.label}</span>
-                    {scoutPct >= 50 ? (
+                    {scoutPct >= TRAJECTORY_REVEAL_THRESHOLD ? (
                       <Badge variant="outline" className="text-xs whitespace-nowrap">
                         {priorityLabels[p.value as string] || p.value}
                       </Badge>
@@ -4192,7 +4193,7 @@ function RecruitDetailModal({
                 );
               })}
             </div>
-            {scoutPct < 50 && (
+            {scoutPct < TRAJECTORY_REVEAL_THRESHOLD && (
               <p className="text-xs text-muted-foreground text-center mt-2">
                 Scout to 50% to unlock priorities
               </p>
@@ -4238,7 +4239,7 @@ function RecruitDetailModal({
           )}
 
           {/* Intangibles / Dev Traits */}
-          {(recruit.personality || recruit.workEthic || recruit.gemBustRevealed || scoutPct >= 50) && (
+          {(recruit.personality || recruit.workEthic || recruit.gemBustRevealed || scoutPct >= TRAJECTORY_REVEAL_THRESHOLD) && (
             <div>
               <h4 className="font-pixel text-[10px] text-gold mb-3">Intangibles</h4>
               <div className="grid grid-cols-2 gap-3">
@@ -4254,7 +4255,7 @@ function RecruitDetailModal({
                     <span className="text-sm font-medium text-foreground capitalize">{recruit.workEthic as string}</span>
                   </div>
                 )}
-                {recruit.workEthicScore != null && scoutPct >= 75 && (
+                {recruit.workEthicScore != null && scoutPct >= ARCHETYPE_REVEAL_THRESHOLD && (
                   <div className="bg-muted/30 rounded p-2.5 border border-border/50">
                     <span className="text-[10px] text-muted-foreground block mb-1">Work Ethic</span>
                     <span className="flex items-center gap-1.5">
@@ -4267,7 +4268,7 @@ function RecruitDetailModal({
                     </span>
                   </div>
                 )}
-                {recruit.coachability != null && scoutPct >= 75 && (
+                {recruit.coachability != null && scoutPct >= ARCHETYPE_REVEAL_THRESHOLD && (
                   <div className="bg-muted/30 rounded p-2.5 border border-border/50">
                     <span className="text-[10px] text-muted-foreground block mb-1">Coachability</span>
                     <span className="flex items-center gap-1.5">
@@ -4281,7 +4282,7 @@ function RecruitDetailModal({
                   </div>
                 )}
                 {recruit.playerArchetype && recruit.playerArchetype !== "normal" && (
-                  recruit.playerArchetype === "overdraft" ? scoutPct >= 75 : scoutPct >= 50
+                  recruit.playerArchetype === "overdraft" ? scoutPct >= ARCHETYPE_REVEAL_THRESHOLD : scoutPct >= TRAJECTORY_REVEAL_THRESHOLD
                 ) && (
                   <div className="bg-muted/30 rounded p-2.5 border border-border/50 col-span-2">
                     <span className="text-[10px] text-muted-foreground block mb-1">Development Profile</span>
@@ -4325,7 +4326,7 @@ function RecruitDetailModal({
             </div>
           )}
 
-          {scoutPct < 50 && !recruit.personality && !recruit.workEthic && !recruit.gemBustRevealed && (
+          {scoutPct < TRAJECTORY_REVEAL_THRESHOLD && !recruit.personality && !recruit.workEthic && !recruit.gemBustRevealed && (
             <div className="bg-muted/20 rounded p-3 border border-dashed border-border/40">
               <h4 className="font-pixel text-[10px] text-muted-foreground mb-1">Intangibles</h4>
               <p className="text-xs text-muted-foreground italic">Unknown — scout to 50% to begin revealing work ethic and development traits.</p>
@@ -4606,7 +4607,7 @@ function RecruitDetailModal({
             </div>
             <div className="flex items-center gap-2 shrink-0 flex-wrap">
               <span>Bats {recruit.batHand || "R"} / Throws {recruit.throwHand || "R"}</span>
-              {recruit.position !== "P" && scoutPct >= 50 && recruit.trajectory != null && (
+              {recruit.position !== "P" && scoutPct >= TRAJECTORY_REVEAL_THRESHOLD && recruit.trajectory != null && (
                 <Badge variant="outline" className={`text-[9px] no-default-hover-elevate no-default-active-elevate ${
                   recruit.trajectory === 1 ? "border-emerald-500/50 text-emerald-400" :
                   recruit.trajectory === 3 ? "border-amber-500/50 text-amber-400" :
@@ -4737,7 +4738,7 @@ function RecruitDetailModal({
                 return (
                   <div key={p.key} className="flex items-center justify-between p-2 bg-muted/50 rounded">
                     <span className="text-sm text-muted-foreground">{p.label}</span>
-                    {scoutPct >= 50 ? (
+                    {scoutPct >= TRAJECTORY_REVEAL_THRESHOLD ? (
                       <Badge variant="outline" className="text-xs whitespace-nowrap">
                         {priorityLabels[p.value as string] || p.value}
                       </Badge>
@@ -4750,7 +4751,7 @@ function RecruitDetailModal({
                 );
               })}
             </div>
-            {scoutPct < 50 && (
+            {scoutPct < TRAJECTORY_REVEAL_THRESHOLD && (
               <p className="text-xs text-muted-foreground text-center mt-2">
                 Scout to 50% to unlock priorities
               </p>
@@ -4796,7 +4797,7 @@ function RecruitDetailModal({
           )}
 
           {/* Intangibles / Dev Traits */}
-          {(recruit.personality || recruit.workEthic || recruit.gemBustRevealed || scoutPct >= 50) && (
+          {(recruit.personality || recruit.workEthic || recruit.gemBustRevealed || scoutPct >= TRAJECTORY_REVEAL_THRESHOLD) && (
             <div>
               <h4 className="font-pixel text-[10px] text-gold mb-3">Intangibles</h4>
               <div className="grid grid-cols-2 gap-3">
@@ -4812,7 +4813,7 @@ function RecruitDetailModal({
                     <span className="text-sm font-medium text-foreground capitalize">{recruit.workEthic as string}</span>
                   </div>
                 )}
-                {recruit.workEthicScore != null && scoutPct >= 75 && (
+                {recruit.workEthicScore != null && scoutPct >= ARCHETYPE_REVEAL_THRESHOLD && (
                   <div className="bg-muted/30 rounded p-2.5 border border-border/50">
                     <span className="text-[10px] text-muted-foreground block mb-1">Work Ethic</span>
                     <span className="flex items-center gap-1.5">
@@ -4825,7 +4826,7 @@ function RecruitDetailModal({
                     </span>
                   </div>
                 )}
-                {recruit.coachability != null && scoutPct >= 75 && (
+                {recruit.coachability != null && scoutPct >= ARCHETYPE_REVEAL_THRESHOLD && (
                   <div className="bg-muted/30 rounded p-2.5 border border-border/50">
                     <span className="text-[10px] text-muted-foreground block mb-1">Coachability</span>
                     <span className="flex items-center gap-1.5">
@@ -4839,7 +4840,7 @@ function RecruitDetailModal({
                   </div>
                 )}
                 {recruit.playerArchetype && recruit.playerArchetype !== "normal" && (
-                  recruit.playerArchetype === "overdraft" ? scoutPct >= 75 : scoutPct >= 50
+                  recruit.playerArchetype === "overdraft" ? scoutPct >= ARCHETYPE_REVEAL_THRESHOLD : scoutPct >= TRAJECTORY_REVEAL_THRESHOLD
                 ) && (
                   <div className="bg-muted/30 rounded p-2.5 border border-border/50 col-span-2">
                     <span className="text-[10px] text-muted-foreground block mb-1">Development Profile</span>
@@ -4883,7 +4884,7 @@ function RecruitDetailModal({
             </div>
           )}
 
-          {scoutPct < 50 && !recruit.personality && !recruit.workEthic && !recruit.gemBustRevealed && (
+          {scoutPct < TRAJECTORY_REVEAL_THRESHOLD && !recruit.personality && !recruit.workEthic && !recruit.gemBustRevealed && (
             <div className="bg-muted/20 rounded p-3 border border-dashed border-border/40">
               <h4 className="font-pixel text-[10px] text-muted-foreground mb-1">Intangibles</h4>
               <p className="text-xs text-muted-foreground italic">Unknown — scout to 50% to begin revealing work ethic and development traits.</p>
@@ -5248,7 +5249,7 @@ function CompareModal({
                       <span>#{recruit.positionRank || "—"}</span>
                     </div>
                   </div>
-                  {recruit.position !== "P" && scoutPct >= 50 && recruit.trajectory != null && (
+                  {recruit.position !== "P" && scoutPct >= TRAJECTORY_REVEAL_THRESHOLD && recruit.trajectory != null && (
                     <div>
                       <div className="flex justify-between text-xs mb-1">
                         <span className="text-muted-foreground">Trajectory</span>
@@ -5372,7 +5373,7 @@ function CommonAbilityRow({
   isSigningDayLocked?: boolean;
   goldAbilityName?: string;
 }) {
-  const revealed = isFullyRevealed || scoutPct >= 75;
+  const revealed = isFullyRevealed || scoutPct >= ARCHETYPE_REVEAL_THRESHOLD;
   const fullyRevealed = isFullyRevealed || scoutPct >= 100;
   const displayValue = value ?? 50;
 

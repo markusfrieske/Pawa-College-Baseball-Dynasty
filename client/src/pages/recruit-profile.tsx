@@ -72,6 +72,7 @@ import { isPitcher as checkIsPitcher, isCatcher as checkIsCatcher } from "@share
 import { getAbilityByName } from "@shared/abilities";
 import { getPotentialRangeLabel, getPotentialGrade, getProgressionZone, getProgressionColor } from "@shared/potential";
 import { TRAJECTORY_FULL_LABELS } from "@shared/trajectory";
+import { TRAJECTORY_REVEAL_THRESHOLD, ARCHETYPE_REVEAL_THRESHOLD } from "@shared/recruitThresholds";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { velocityToKMH } from "@/lib/playerUtils";
@@ -541,6 +542,7 @@ export default function RecruitProfilePage() {
               <h1 className="font-pixel text-gold text-xl mb-1">
                 {recruit.firstName} {recruit.lastName}
               </h1>
+              {/* Row 1: location / position / type / stage */}
               <div className="flex items-center gap-3 flex-wrap text-muted-foreground">
                 <span className="flex items-center gap-1">
                   <MapPin className="w-4 h-4" />
@@ -551,7 +553,21 @@ export default function RecruitProfilePage() {
                   {recruit.recruitType === "JUCO" ? `JUCO ${recruit.recruitYear || "FR"}` : recruit.recruitType}
                 </Badge>
                 <Badge className={`${stage.color} text-white`}>{stage.label}</Badge>
-                {scoutPct >= 75 && (recruit as any).isGenerationalGem && (
+              </div>
+              {/* Row 2: discovery / archetype badges */}
+              <div className="flex items-center gap-2 flex-wrap mt-1.5">
+                {recruit.isBlueChip && (
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Badge className="text-[9px] bg-blue-500 text-white border-blue-400 no-default-hover-elevate no-default-active-elevate">
+                        <Star className="w-3 h-3 mr-0.5 fill-current" />
+                        BLUE CHIP
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>Blue Chip recruit — top-tier prospect with full details revealed</TooltipContent>
+                  </Tooltip>
+                )}
+                {scoutPct >= ARCHETYPE_REVEAL_THRESHOLD && (recruit as any).isGenerationalGem && (
                   <Tooltip>
                     <TooltipTrigger>
                       <Badge className="text-[9px] bg-amber-500 text-black border-amber-400 no-default-hover-elevate no-default-active-elevate">
@@ -562,7 +578,7 @@ export default function RecruitProfilePage() {
                     <TooltipContent>Generational Talent - Once-in-a-generation player hidden in the recruiting class</TooltipContent>
                   </Tooltip>
                 )}
-                {scoutPct >= 75 && (recruit as any).isGenerationalBust && (
+                {scoutPct >= ARCHETYPE_REVEAL_THRESHOLD && (recruit as any).isGenerationalBust && (
                   <Tooltip>
                     <TooltipTrigger>
                       <Badge className="text-[9px] bg-red-700 text-white border-red-600 no-default-hover-elevate no-default-active-elevate">
@@ -573,27 +589,29 @@ export default function RecruitProfilePage() {
                     <TooltipContent>Generational Bust - An overhyped recruit who will severely disappoint</TooltipContent>
                   </Tooltip>
                 )}
-                {scoutPct >= 75 && recruit.isGem && !(recruit as any).isGenerationalGem && (
+                {scoutPct >= ARCHETYPE_REVEAL_THRESHOLD && recruit.isGem && !(recruit as any).isGenerationalGem && (
                   <Tooltip>
                     <TooltipTrigger>
-                      <div className="flex items-center justify-center w-6 h-6 bg-green-500/20 rounded-full">
-                        <Gem className="w-4 h-4 text-green-400" />
-                      </div>
+                      <Badge className="text-[9px] bg-green-500/15 text-green-400 border-green-500/40 no-default-hover-elevate no-default-active-elevate">
+                        <Gem className="w-3.5 h-3.5 mr-0.5" />
+                        GEM
+                      </Badge>
                     </TooltipTrigger>
                     <TooltipContent>Gem - Better than ranking suggests</TooltipContent>
                   </Tooltip>
                 )}
-                {scoutPct >= 75 && recruit.isBust && !(recruit as any).isGenerationalBust && (
+                {scoutPct >= ARCHETYPE_REVEAL_THRESHOLD && recruit.isBust && !(recruit as any).isGenerationalBust && (
                   <Tooltip>
                     <TooltipTrigger>
-                      <div className="flex items-center justify-center w-6 h-6 bg-red-500/20 rounded-full">
-                        <XCircle className="w-4 h-4 text-red-400" />
-                      </div>
+                      <Badge className="text-[9px] bg-red-500/15 text-red-400 border-red-500/40 no-default-hover-elevate no-default-active-elevate">
+                        <XCircle className="w-3.5 h-3.5 mr-0.5" />
+                        BUST
+                      </Badge>
                     </TooltipTrigger>
                     <TooltipContent>Bust - Worse than ranking suggests</TooltipContent>
                   </Tooltip>
                 )}
-                {scoutPct >= 75 && (recruit as any).playerArchetype === "late_bloomer" && !(recruit as any).isGenerationalGem && (
+                {scoutPct >= ARCHETYPE_REVEAL_THRESHOLD && (recruit as any).playerArchetype === "late_bloomer" && !(recruit as any).isGenerationalGem && (
                   <Tooltip>
                     <TooltipTrigger>
                       <Badge className="text-[9px] bg-emerald-500/15 text-emerald-400 border-emerald-500/40 no-default-hover-elevate no-default-active-elevate">
@@ -604,7 +622,7 @@ export default function RecruitProfilePage() {
                     <TooltipContent>Late Bloomer — Higher ceiling than current rating suggests</TooltipContent>
                   </Tooltip>
                 )}
-                {scoutPct >= 75 && (recruit as any).playerArchetype === "overdraft" && !(recruit as any).isGenerationalBust && (
+                {scoutPct >= ARCHETYPE_REVEAL_THRESHOLD && (recruit as any).playerArchetype === "overdraft" && !(recruit as any).isGenerationalBust && (
                   <Tooltip>
                     <TooltipTrigger>
                       <Badge className="text-[9px] bg-orange-500/15 text-orange-400 border-orange-500/40 no-default-hover-elevate no-default-active-elevate">
@@ -615,7 +633,7 @@ export default function RecruitProfilePage() {
                     <TooltipContent>Overdraft — Lower ceiling than current rating suggests</TooltipContent>
                   </Tooltip>
                 )}
-                {scoutPct >= 75 && (recruit as any).playerArchetype === "raw" && (
+                {scoutPct >= ARCHETYPE_REVEAL_THRESHOLD && (recruit as any).playerArchetype === "raw" && (
                   <Tooltip>
                     <TooltipTrigger>
                       <Badge className="text-[9px] bg-yellow-500/15 text-yellow-400 border-yellow-500/40 no-default-hover-elevate no-default-active-elevate">
@@ -870,7 +888,7 @@ export default function RecruitProfilePage() {
                             <TooltipContent>How this hitter tends to make contact — groundball, line drive, gap, or flyball. Revealed at 50% scouting.</TooltipContent>
                           </Tooltip>
                         </p>
-                        {scoutPct >= 50 ? (
+                        {scoutPct >= TRAJECTORY_REVEAL_THRESHOLD ? (
                           <div className="flex items-center gap-1.5 mt-0.5">
                             {(recruit as any).trajectory === 1 && <ArrowDownRight className="w-4 h-4 text-emerald-400" />}
                             {(recruit as any).trajectory === 2 && <ArrowRight className="w-4 h-4 text-slate-400" />}
@@ -1023,10 +1041,10 @@ export default function RecruitProfilePage() {
             <RetroCard>
               <RetroCardHeader className="flex items-center gap-2">
                 Recruiting Priorities
-                {scoutPct < 50 && <Lock className="w-4 h-4 text-muted-foreground" />}
+                {scoutPct < TRAJECTORY_REVEAL_THRESHOLD && <Lock className="w-4 h-4 text-muted-foreground" />}
               </RetroCardHeader>
               <RetroCardContent>
-                {scoutPct >= 50 ? (
+                {scoutPct >= TRAJECTORY_REVEAL_THRESHOLD ? (
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     {priorities.map((p) => (
                       <div key={p.key}>
