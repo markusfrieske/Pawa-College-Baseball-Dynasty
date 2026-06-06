@@ -21817,13 +21817,13 @@ async function generateExhibitionGames(leagueId: string, season: number) {
   //
   // Iterative approach: always pick the most-underserved team and find it a partner.
   // In multi-conf mode all top-up games must be OOC — same-conference pairings are
-  // never created. For unequal conference splits (e.g. 4+2) this may leave a few
-  // conf1-heavy teams at TARGET-1 when every cross-conf team has hit the ceiling;
-  // those cases are logged. Single-conf mode accepts same-conference pairings.
-  const topupCeiling = TARGET + 2; // prevent runaway inflation
+  // never created. We never push any team above TARGET — if no partner below TARGET
+  // can be found cross-conf, the underserved team is skipped (stays at TARGET-1).
+  // Single-conf mode accepts same-conference pairings.
+  const topupSkipped = new Set<string>();
   for (let iter = 0; iter < leagueTeams.length * (TARGET + 2); iter++) {
     const underserved = leagueTeams
-      .filter(t => (gameCounts.get(t.id) ?? 0) < TARGET)
+      .filter(t => (gameCounts.get(t.id) ?? 0) < TARGET && !topupSkipped.has(t.id))
       .sort((a, b) => (gameCounts.get(a.id) ?? 0) - (gameCounts.get(b.id) ?? 0));
     if (underserved.length === 0) break;
 
@@ -21832,23 +21832,22 @@ async function generateExhibitionGames(leagueId: string, season: number) {
 
     let partner: (typeof leagueTeams)[number] | undefined;
     if (hasMultipleConfs) {
-      // OOC only: prefer underserved cross-conf, then any cross-conf below ceiling.
+      // OOC only: prefer underserved cross-conf only — never push any team above TARGET.
       // Never pair with a same-conference team.
       const xConfPool = leagueTeams
-        .filter(t => t.id !== t1.id && confByTeamId.get(t.id) !== t1Conf)
+        .filter(t => t.id !== t1.id && confByTeamId.get(t.id) !== t1Conf && !topupSkipped.has(t.id))
         .sort((a, b) => (gameCounts.get(a.id) ?? 0) - (gameCounts.get(b.id) ?? 0));
-      partner =
-        xConfPool.find(t => (gameCounts.get(t.id) ?? 0) < TARGET) ??
-        xConfPool.find(t => (gameCounts.get(t.id) ?? 0) < topupCeiling);
+      partner = xConfPool.find(t => (gameCounts.get(t.id) ?? 0) < TARGET);
     } else {
-      // Single-conf: any team below the ceiling.
+      // Single-conf: any team strictly below TARGET.
       partner = shuffle([...leagueTeams])
-        .filter(t => t.id !== t1.id && (gameCounts.get(t.id) ?? 0) < topupCeiling)[0];
+        .filter(t => t.id !== t1.id && (gameCounts.get(t.id) ?? 0) < TARGET)[0];
     }
 
     if (!partner) {
-      console.warn(`[exhibition-topup] No eligible partner for ${t1.name} (${gameCounts.get(t1.id)} games) — stopping top-up`);
-      break;
+      console.warn(`[exhibition-topup] No eligible partner for ${t1.name} (${gameCounts.get(t1.id)} games) — skipping`);
+      topupSkipped.add(t1.id);
+      continue;
     }
     addPair(t1.id, partner.id);
   }

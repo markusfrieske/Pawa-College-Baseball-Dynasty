@@ -3125,6 +3125,20 @@ function BracketDisplay({ games }: { games: PostseasonGame[] }) {
   const lbChamp = lbFinal?.isComplete ? getWinner(lbFinal) : null;
   const srChamp = gfResetGm?.isComplete ? getWinner(gfResetGm) : (gfGame?.isComplete ? getWinner(gfGame) : null);
 
+  // Find #1 seed (first-round bye) from WBR2 games where they first appear
+  const wbR2Games = wbGames.filter(g => (g.bracketRound ?? 1) === 2);
+  let byeSeedAbbr: string | null = null;
+  for (const g of wbR2Games) {
+    if (g.homeSeed === 1) { byeSeedAbbr = g.homeTeam?.abbreviation ?? "1 Seed"; break; }
+    if (g.awaySeed === 1) { byeSeedAbbr = g.awayTeam?.abbreviation ?? "1 Seed"; break; }
+  }
+  if (!byeSeedAbbr) {
+    for (const g of wbGames) {
+      if (g.homeSeed === 1) { byeSeedAbbr = g.homeTeam?.abbreviation ?? "1 Seed"; break; }
+      if (g.awaySeed === 1) { byeSeedAbbr = g.awayTeam?.abbreviation ?? "1 Seed"; break; }
+    }
+  }
+
   const lossTag = (teamId: string) => {
     const l = lossMap[teamId] ?? 0;
     return l > 0 ? <span className="ml-1 text-[7px] text-amber-400/70">{l}L</span> : null;
@@ -3159,6 +3173,12 @@ function BracketDisplay({ games }: { games: PostseasonGame[] }) {
             <div key={r} className="space-y-1">
               <p className="text-[7px] font-pixel text-muted-foreground uppercase">{COMM_WB_LABELS[r] ?? `WB R${r}`}</p>
               {wbGames.filter(g => (g.bracketRound ?? 1) === r).map(g => <CommGameCard key={g.id} game={g} />)}
+              {r === 1 && byeSeedAbbr && (
+                <div className="bg-muted/20 border border-gold/20 rounded px-1.5 py-1 text-center">
+                  <p className="text-[6px] font-pixel text-gold/70 uppercase">#1 Seed — BYE</p>
+                  <p className="text-[7px] font-pixel text-muted-foreground">{byeSeedAbbr} → WBR2</p>
+                </div>
+              )}
             </div>
           ))}
           {wbChamp && !gfGame && (

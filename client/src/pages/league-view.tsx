@@ -4964,6 +4964,21 @@ function DoubleEliminationBracket({ games, leagueId }: { games: PostseasonGame[]
     ? getWinner(gfResetGm)
     : (gfGame?.isComplete ? getWinner(gfGame) : null);
 
+  // Find the #1 seed (first-round bye recipient) from WBR2 games where they first appear
+  const wbR2Games = wbGames.filter(g => (g.bracketRound ?? 1) === 2);
+  let byeSeedAbbr: string | null = null;
+  for (const g of wbR2Games) {
+    if (g.homeSeed === 1) { byeSeedAbbr = g.homeTeam?.abbreviation ?? "1 Seed"; break; }
+    if (g.awaySeed === 1) { byeSeedAbbr = g.awayTeam?.abbreviation ?? "1 Seed"; break; }
+  }
+  // Fallback: check all WB games
+  if (!byeSeedAbbr) {
+    for (const g of wbGames) {
+      if (g.homeSeed === 1) { byeSeedAbbr = g.homeTeam?.abbreviation ?? "1 Seed"; break; }
+      if (g.awaySeed === 1) { byeSeedAbbr = g.awayTeam?.abbreviation ?? "1 Seed"; break; }
+    }
+  }
+
   return (
     <div className="space-y-4" data-testid="bracket-view">
       <div className="grid md:grid-cols-2 gap-4">
@@ -4978,6 +4993,12 @@ function DoubleEliminationBracket({ games, leagueId }: { games: PostseasonGame[]
                 <p className="text-[7px] font-pixel text-muted-foreground uppercase">{label}</p>
                 <div className="space-y-1.5">
                   {roundGames.map(g => <BracketMatchup key={g.id} game={g} lossMap={lossMap} />)}
+                  {round === 1 && byeSeedAbbr && (
+                    <div className="bg-muted/20 border border-gold/20 rounded px-2 py-1.5 text-center">
+                      <p className="text-[7px] font-pixel text-gold/70 uppercase tracking-wider">#1 Seed — BYE</p>
+                      <p className="text-[8px] font-pixel text-muted-foreground">{byeSeedAbbr} advances to WBR2</p>
+                    </div>
+                  )}
                 </div>
               </div>
             );
