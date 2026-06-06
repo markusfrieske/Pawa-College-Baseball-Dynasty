@@ -463,16 +463,8 @@ export function generateRecruitClass(
     isGenGem: boolean = false, isGenBust: boolean = false,
   ): [number, number] => {
     if (isBlueChip) return [540, 599];
-    if (isGenGem) {
-      // GEN_GEM_OVR_BANDS in validate-recruits.ts: 1★:[400,499], 2★:[500,539], 3★:[540,599]
-      const bands: Record<number, [number, number]> = { 1: [400, 499], 2: [500, 539], 3: [540, 599] };
-      return bands[starRank] ?? [540, 599];
-    }
-    if (isGenBust) {
-      // GEN_BUST_OVR_BANDS: 3★:[150,199], 4★:[150,199], 5★:[200,299]
-      const bands: Record<number, [number, number]> = { 3: [150, 199], 4: [150, 199], 5: [200, 299] };
-      return bands[starRank] ?? [150, 199];
-    }
+    if (isGenGem) return [600, 650];
+    if (isGenBust) return [150, 199];
     if (isGem) {
       const bands: Record<number, [number, number]> = { 1: [300, 399], 2: [400, 499], 3: [500, 539], 4: [540, 599] };
       return bands[starRank] ?? [500, 539];
@@ -1025,6 +1017,13 @@ export function generateRecruitClass(
     // settled OVR matches the final stored value. Pitchers are skipped (Task #191).
     // GenGem/GenBust are included with their own fixed-style common ability generation
     // and direct attr adjustment (speed is never touched — it's fixed for all three).
+    // Hitter themeBoosts applied BEFORE the retry loop so convergence targets the
+    // final boosted attr values (power/speed/fielding only — velocity/stuff are pitcher attrs
+    // applied after the pitcher wizard retry loop to avoid being overwritten by it).
+    if (themeBoost.attr === "power")    power    = Math.min(99, power    + themeBoost.boost);
+    if (themeBoost.attr === "speed")    speed    = Math.min(99, speed    + themeBoost.boost);
+    if (themeBoost.attr === "fielding") fielding = Math.min(99, fielding + themeBoost.boost);
+
     let lastHitterCommon: ReturnType<typeof generateCommonAbilities> | null = null;
 
     if (!isPitcher) {
@@ -1037,30 +1036,36 @@ export function generateRecruitClass(
       const retryLo = useWizard ? ovrMin : defaultLo;
       const retryHi = useWizard ? ovrMax : defaultHi;
 
-      for (let retry = 0; retry <= 8; retry++) {
-        let trialCommon: ReturnType<typeof generateCommonAbilities>;
-        if (isGenerationalGem) {
-          const genElite = () => 90 + Math.floor(Math.random() * 10);
-          trialCommon = {
-            clutch: genElite(), vsLHP: genElite(), grit: genElite(), stealing: genElite(),
-            running: genElite(), throwing: genElite(), recovery: genElite(),
-            catcherAbility: position === 'C' ? genElite() : 50,
-            wRISP: 50, vsLefty: 50, poise: 50, heater: 50, agile: 50,
-          };
-        } else if (isGenerationalBust) {
-          const genPoor = () => 10 + Math.floor(Math.random() * 20);
-          trialCommon = {
-            clutch: genPoor(), vsLHP: genPoor(), grit: genPoor(), stealing: genPoor(),
-            running: genPoor(), throwing: genPoor(), recovery: genPoor(),
-            catcherAbility: position === 'C' ? genPoor() : 50,
-            wRISP: 50, vsLefty: 50, poise: 50, heater: 50, agile: 50,
-          };
-        } else {
-          trialCommon = generateCommonAbilities(false, position, targetAttrAvg, playerTooledAttrs, isRawArchetype);
-        }
+      // Generate trialCommon ONCE before the retry loop.
+      // Regenerating inside the loop adds random normalizeCommonAbilities noise that
+      // can shift OVR by ±20 pts per iteration, making attr-based convergence unreliable.
+      // Fixing common here makes each retry iteration purely a function of attrs.
+      let trialCommon: ReturnType<typeof generateCommonAbilities>;
+      if (isGenerationalGem) {
+        const genElite = () => 90 + Math.floor(Math.random() * 10);
+        trialCommon = {
+          clutch: genElite(), vsLHP: genElite(), grit: genElite(), stealing: genElite(),
+          running: genElite(), throwing: genElite(), recovery: genElite(),
+          catcherAbility: position === 'C' ? genElite() : 50,
+          wRISP: 50, vsLefty: 50, poise: 50, heater: 50, agile: 50,
+        };
+      } else if (isGenerationalBust) {
+        const genPoor = () => 10 + Math.floor(Math.random() * 20);
+        trialCommon = {
+          clutch: genPoor(), vsLHP: genPoor(), grit: genPoor(), stealing: genPoor(),
+          running: genPoor(), throwing: genPoor(), recovery: genPoor(),
+          catcherAbility: position === 'C' ? genPoor() : 50,
+          wRISP: 50, vsLefty: 50, poise: 50, heater: 50, agile: 50,
+        };
+      } else {
+        trialCommon = generateCommonAbilities(false, position, targetAttrAvg, playerTooledAttrs, isRawArchetype);
         Object.assign(trialCommon, normalizeCommonAbilities(
           { position, firstName: `R${i}`, lastName: `C${i}`, ...trialCommon }, "",
         ));
+      }
+      lastHitterCommon = trialCommon;
+
+      for (let retry = 0; retry <= 25; retry++) {
         const trialOvr = calculateOVR({
           position, hitForAvg, power, speed, arm, fielding, errorResistance,
           velocity, control, stamina, stuff,
@@ -1068,44 +1073,37 @@ export function generateRecruitClass(
         });
         lastHitterCommon = trialCommon;
         if (trialOvr >= retryLo && trialOvr <= retryHi) break;
-        if (retry === 8) break;
-        const adjust = trialOvr < retryLo ? 5 : -5;
+        if (retry === 25) break;
         if (isGenerationalGem) {
-          // Adjust position attrs directly; speed is fixed (sampleNormalSpeed already set).
-          // Wide range [30,89] allows 1★ genGems (target [400,499]) to converge downward.
+          // Step=2 keeps us within the 50-OVR [600,650] band without overshooting.
+          const adjust = trialOvr < retryLo ? 2 : -2;
           hitForAvg = Math.max(30, Math.min(89, hitForAvg + adjust));
           power     = Math.max(30, Math.min(89, power     + adjust));
           arm       = Math.max(30, Math.min(89, arm       + adjust));
           fielding  = Math.max(30, Math.min(89, fielding  + adjust));
           errorResistance = Math.max(30, Math.min(89, errorResistance + adjust));
         } else if (isGenerationalBust) {
-          // Wide ceiling [40,75] allows 5★ genBusts (target [200,299]) to converge upward.
+          const adjust = trialOvr < retryLo ? 5 : -5;
           hitForAvg = Math.max(40, Math.min(75, hitForAvg + adjust));
           power     = Math.max(40, Math.min(75, power     + adjust));
           arm       = Math.max(40, Math.min(75, arm       + adjust));
           fielding  = Math.max(40, Math.min(75, fielding  + adjust));
           errorResistance = Math.max(40, Math.min(75, errorResistance + adjust));
         } else {
-          targetAttrAvg = Math.max(10, Math.min(90, targetAttrAvg + adjust));
-          if (isRawArchetype) {
-            const genR = (base: number, attr: string) => genRawToolAttr(base, playerTooledAttrs!.has(attr));
-            hitForAvg = genR(targetAttrAvg + hitBoostR, "hitForAvg");
-            power     = genR(targetAttrAvg + hitBoostR, "power");
-            arm       = genR(targetAttrAvg,             "arm");
-            fielding  = genR(targetAttrAvg,             "fielding");
-            errorResistance = genR(targetAttrAvg,       "errorResistance");
-            control   = genR(targetAttrAvg,             "control");
-            stuff     = genR(targetAttrAvg,             "stuff");
-          } else {
-            const genT = (base: number, attr: string) => genToolAttr(base, playerTooledAttrs!.has(attr));
-            hitForAvg = genT(targetAttrAvg + hitBoostR, "hitForAvg");
-            power     = genT(targetAttrAvg + hitBoostR, "power");
-            arm       = genT(targetAttrAvg,             "arm");
-            fielding  = genT(targetAttrAvg,             "fielding");
-            errorResistance = genT(targetAttrAvg,       "errorResistance");
-            control   = genT(targetAttrAvg,             "control");
-            stuff     = genT(targetAttrAvg,             "stuff");
-          }
+          // Adaptive step: large when far from band, small near boundary to prevent
+          // oscillation past narrow bands (e.g. gem 3★ [500–539] width=40).
+          // With fixed trialCommon, OVR is purely a function of attrs — monotonic,
+          // so the adaptive step reliably converges without overshooting.
+          const distToLo = Math.max(0, retryLo - trialOvr);
+          const distToHi = Math.max(0, trialOvr - retryHi);
+          const dist = Math.max(distToLo, distToHi);
+          const step = dist > 100 ? 5 : dist > 40 ? 3 : dist > 10 ? 2 : 1;
+          const adjust = trialOvr < retryLo ? step : -step;
+          hitForAvg = Math.max(1, Math.min(99, hitForAvg + adjust));
+          power     = Math.max(1, Math.min(99, power     + adjust));
+          arm       = Math.max(1, Math.min(99, arm       + adjust));
+          fielding  = Math.max(1, Math.min(99, fielding  + adjust));
+          errorResistance = Math.max(1, Math.min(99, errorResistance + adjust));
         }
       }
     }
@@ -1142,11 +1140,11 @@ export function generateRecruitClass(
       }
     }
 
+    // Pitcher-specific themeBoosts applied AFTER the pitcher wizard retry.
+    // (The pitcher wizard retry regenerates velocity/stuff from targetAttrAvg, so the boost
+    //  must come after to avoid being overwritten.)
     if (themeBoost.attr === "velocity") velocity = Math.min(99, velocity + themeBoost.boost);
     if (theme === "elite_pitching" && isPitcher) stuff = Math.min(99, stuff + 10);
-    if (themeBoost.attr === "power")   power    = Math.min(99, power   + themeBoost.boost);
-    if (themeBoost.attr === "speed")   speed    = Math.min(99, speed   + themeBoost.boost);
-    if (themeBoost.attr === "fielding") fielding = Math.min(99, fielding + themeBoost.boost);
 
     // Apply role-based stamina band for pitcher recruits.
     // Gems and busts retain their own fixed ranges; all other pitchers use the pre-rolled band.
@@ -1214,13 +1212,9 @@ export function generateRecruitClass(
     // Pitchers: band clamps preserved; pitcher recalibration handled by Task #191.
     // late_bloomer and overdraft: intentional OVR distortion retained for both.
     if (isGenerationalGem && isPitcher) {
-      const genGemRanges: Record<number, [number, number]> = { 1: [400, 499], 2: [500, 539], 3: [540, 599] };
-      const [ggLo, ggHi] = genGemRanges[starRank] ?? [540, 599];
-      overall = Math.max(ggLo, Math.min(ggHi, overall));
+      overall = Math.max(600, Math.min(650, overall));
     } else if (isGenerationalBust && isPitcher) {
-      const genBustRanges: Record<number, [number, number]> = { 3: [150, 199], 4: [150, 199], 5: [200, 299] };
-      const [gbLo, gbHi] = genBustRanges[starRank] ?? [150, 199];
-      overall = Math.max(gbLo, Math.min(gbHi, overall));
+      overall = Math.max(150, Math.min(199, overall));
     } else if (isBlueChip && isPitcher) {
       overall = Math.max(540, Math.min(599, overall));
     } else if (isGem && isPitcher) {
@@ -1231,16 +1225,18 @@ export function generateRecruitClass(
       const bustRanges: Record<number, [number, number]> = { 3: [150, 199], 4: [200, 299], 5: [300, 399] };
       const [bLo, bHi] = bustRanges[starRank] ?? [200, 299];
       overall = Math.max(bLo, Math.min(bHi, overall));
-    } else if (playerArchetype === "late_bloomer") {
+    } else if (playerArchetype === "late_bloomer" && !isGem && !isBust) {
       // Late bloomer: OVR depressed below their star tier — intentional archetype distortion.
       // Hitters: retry calibrated attrs to star band; clamp then depresses OVR one tier lower.
+      // Gems and busts are exempt — their OVR band is already set by the gem/bust mechanic.
       const starCaps: Record<number, number> = { 5: 539, 4: 499, 3: 399, 2: 299, 1: 199 };
       const baseCap = starCaps[starRank] ?? 499;
       const depression = 45 + Math.floor(Math.random() * 40);
       overall = Math.max(150, Math.min(baseCap, overall) - depression);
-    } else if (playerArchetype === "overdraft") {
+    } else if (playerArchetype === "overdraft" && !isGem && !isBust) {
       // Overdraft: OVR inflated above their star tier — intentional archetype distortion.
       // Hitters: retry calibrated attrs to star band; inflation then pushes OVR one tier higher.
+      // Gems and busts are exempt — their OVR band is already set by the gem/bust mechanic.
       const nextTierFloor: Record<number, number> = { 5: 510, 4: 410, 3: 310, 2: 210, 1: 160 };
       const nextTierCap:  Record<number, number> = { 5: 599, 4: 539, 3: 499, 2: 399, 1: 299 };
       const floor = nextTierFloor[starRank] ?? 410;
@@ -1260,63 +1256,34 @@ export function generateRecruitClass(
       }
     }
 
-    // ─── Band clamps for SPECIAL ARCHETYPE hitters ────────────────────────────
-    // Normal hitters: formula-driven only — the retry loop calibrated attrs to produce
-    // the correct OVR band; no post-hoc clamp is applied.
-    // Normal hitters get a ceiling-only cap (no floor) to prevent tier overflow from
-    // stochastic tool-boost variance. Late_bloomer/overdraft already clamped above.
-    //
-    // Special archetypes (genGem/genBust/BC/gem/bust): floor+ceiling clamps as safety nets.
-    // Their intentional OVR distortion (gems perform above star rating, busts below)
-    // requires that the stored OVR reflects the TRUE tier — retry calibrates attrs as closely
-    // as possible, clamps catch any remaining gap at the extremes.
-    // Gems and busts take priority over any playerArchetype (late_bloomer/overdraft/raw)
-    // because isGem/isBust represent the TRUE tier the validator checks. Apply floor+ceiling
-    // clamps unconditionally for non-pitcher special archetypes.
-    if (!isPitcher) {
-      if (isGenerationalGem) {
-        const [lo, hi] = getRecruitOvrBand(starRank, false, false, false, true, false);
-        overall = Math.max(lo, Math.min(hi, overall));
-      } else if (isGenerationalBust) {
-        const [lo, hi] = getRecruitOvrBand(starRank, false, false, false, false, true);
-        overall = Math.max(lo, Math.min(hi, overall));
-      } else if (isBlueChip) {
-        overall = Math.max(540, Math.min(599, overall));
-      } else if (isGem) {
-        const [lo, hi] = getRecruitOvrBand(starRank, true, false, false);
-        overall = Math.max(lo, Math.min(hi, overall));
-      } else if (isBust) {
-        const [lo, hi] = getRecruitOvrBand(starRank, false, true, false);
-        overall = Math.max(lo, Math.min(hi, overall));
-      } else if (playerArchetype !== 'late_bloomer' && playerArchetype !== 'overdraft') {
-        // Normal hitters only: ceiling-only cap (no floor — formula drives the result).
-        // Late_bloomer and overdraft hitters skip the cap; their OVR is set by the
-        // OLD block's inflation/depression logic and is intentionally outside normal bands.
-        const ceilings: Record<number, number> = { 1: 299, 2: 399, 3: 499, 4: 539, 5: 539 };
-        overall = Math.min(ceilings[starRank] ?? 539, overall);
-      }
-    }
-
-    // Enforce gold OVR gate: generational gems are exempt (they're always elite)
+    // Enforce gold OVR gate: generational gems/busts are exempt (extreme archetypes).
     if (!isGenerationalGem && !isGenerationalBust) {
       const gated = enforceGoldOvrGate(abilities, position, overall, pitcherStaminaForAbilities);
       if (gated !== abilities) {
         abilities = gated;
-        // Gold gives +10 OVR, blue gives +5, so each gold→blue swap costs 5 OVR
-        overall = Math.max(150, overall - 5);
+        if (isPitcher) {
+          // Pitcher: approximate the gold→blue swap as -5 OVR (Task #191 scope).
+          overall = Math.max(150, overall - 5);
+        } else {
+          // Hitter: recalculate precisely so stored OVR = formula OVR (no hardcoded delta).
+          overall = calculateOVR({ ...recruitOvrData, abilities: gated });
+          // Post-gate re-clamp for gem/bust/blueChip hitters: the gold→blue swap can shift
+          // specialTotal (via HITTER_NAMED_PTS) and push OVR outside the retry-targeted band.
+          // This narrow clamp restores only the gold-gate-induced deviation — not an independent
+          // band enforcer. Normal hitters (no isGem/isBust/isBlueChip) are still unclamped.
+          if (isGem || isBust || isBlueChip) {
+            const [pgLo, pgHi] = getRecruitOvrBand(starRank, isGem, isBust, isBlueChip, false, false);
+            overall = Math.max(pgLo, Math.min(pgHi, overall));
+          }
+        }
       }
     }
-    // Re-apply archetype floors after gold gate (pitchers and hitter gems/busts).
-    // The gold gate penalty (-5 OVR) can push gem hitters below their archetype floor,
-    // so we re-apply the floor for both pitchers and non-pitcher gem/bust hitters.
-    if (isGem && !isGenerationalGem) {
-      const gemFloors: Record<number, number> = { 1: 300, 2: 400, 3: 500, 4: 540 };
-      overall = Math.max(gemFloors[starRank] ?? 500, overall);
-    } else if (isBust && !isGenerationalBust && isPitcher) {
+    // Re-apply pitcher bust floor after gold gate (the -5 penalty can drop below band floor).
+    // Exclude genBusts: their clamp already set the OVR; isBust=true for genBusts but
+    // bustFloors[4]=200 and bustFloors[5]=300 would overwrite the genBust pitcher clamp.
+    if (isBust && !isGenerationalBust && isPitcher) {
       const bustFloors: Record<number, number> = { 3: 150, 4: 200, 5: 300 };
       overall = Math.max(bustFloors[starRank] ?? 200, overall);
-    } else if (isBlueChip && !isPitcher) {
-      overall = Math.max(540, overall);
     }
     // ─── Wizard OVR hard clamp (post all star/archetype/gate adjustments) ────
     // Exempt: generational gems, generational busts, blue chips (fixed OVR bands).

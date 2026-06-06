@@ -33,10 +33,10 @@ const BUST_OVR_BANDS: Record<number, [number, number]> = {
   3: [150, 199], 4: [200, 299], 5: [300, 399],
 };
 const GEN_GEM_OVR_BANDS: Record<number, [number, number]> = {
-  1: [400, 499], 2: [500, 539], 3: [540, 599],
+  1: [600, 650], 2: [600, 650], 3: [600, 650],
 };
 const GEN_BUST_OVR_BANDS: Record<number, [number, number]> = {
-  3: [150, 199], 4: [150, 199], 5: [200, 299],
+  3: [150, 199], 4: [150, 199], 5: [150, 199],
 };
 const NORMAL_OVR_BANDS: Record<number, [number, number]> = {
   1: [150, 299], 2: [150, 399], 3: [200, 499], 4: [300, 539], 5: [400, 539],
