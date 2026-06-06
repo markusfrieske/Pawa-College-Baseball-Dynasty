@@ -36,13 +36,13 @@ const availableConferences = [
 
 const seasonLengthOptions = [
   { value: "short", label: "Short Season - 10 Games (5 weeks)" },
-  { value: "medium", label: "Standard Season - 20 Games (5 weeks)" },
+  { value: "medium", label: "Standard Season - 16 Games (4 weeks)" },
   { value: "long", label: "Long Season - 40 Games (10 weeks)" },
 ];
 
 export default function LeagueCreatePage() {
   const [name, setName] = useState("");
-  const [maxTeams, setMaxTeams] = useState("13");
+  const [maxTeams, setMaxTeams] = useState("15");
   const [cpuDifficulty, setCpuDifficulty] = useState("high_school");
   const [selectedConferences, setSelectedConferences] = useState<string[]>(["SEC", "Big Ten", "ACC"]);
   const [seasonLength, setSeasonLength] = useState("medium");
@@ -59,7 +59,7 @@ export default function LeagueCreatePage() {
   }, [selectedConferences]);
 
   const teamCountOptions = useMemo(() => {
-    const counts = [6, 8, 10, 12, 13, 14, 16, 18];
+    const counts = [6, 8, 10, 12, 13, 14, 15, 16, 18];
     const options = counts
       .filter(n => n < totalAvailableTeams)
       .map(n => ({ value: String(n), label: `${n} Teams` }));
@@ -80,7 +80,7 @@ export default function LeagueCreatePage() {
       }, 0);
       const currentTeamCount = parseInt(maxTeams);
       if (currentTeamCount > newTotal && newTotal > 0) {
-        const validCounts = [6, 8, 10, 12, 13, 14, 16, 18].filter(n => n <= newTotal);
+        const validCounts = [6, 8, 10, 12, 13, 14, 15, 16, 18].filter(n => n <= newTotal);
         if (validCounts.length > 0) {
           setMaxTeams(String(validCounts[validCounts.length - 1]));
         } else {

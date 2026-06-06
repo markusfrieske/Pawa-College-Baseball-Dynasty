@@ -4912,118 +4912,125 @@ function BracketMatchup({ game, label }: { game: PostseasonGame | null; label?: 
   );
 }
 
-function DoubleEliminationBracketSide({ games, side, sideLabel }: { games: PostseasonGame[]; side: string; sideLabel: string }) {
-  const sideGames = games.filter(g => g.bracketSide === side);
+const WB_ROUND_LABELS: Record<number, string> = {
+  1: "WB Round 1",
+  2: "WB Round 2",
+  3: "WB Semifinals",
+  4: "WB Final",
+};
+const LB_ROUND_LABELS: Record<number, string> = {
+  2: "LB Round 1",
+  3: "LB Round 2",
+  4: "LB Quarterfinals",
+  5: "LB Semifinals",
+  6: "LB Round 5",
+  7: "LB Final",
+};
 
-  const winnersR1 = sideGames.filter(g => g.bracketRound === 1 && g.bracketType === "winners");
-  const winnersR2 = sideGames.filter(g => g.bracketRound === 2 && g.bracketType === "winners");
-  const losersR1 = sideGames.filter(g => g.bracketRound === 1 && g.bracketType === "losers");
-  const losersR2 = sideGames.filter(g => g.bracketRound === 2 && g.bracketType === "losers");
-  const bracketFinal = sideGames.filter(g => g.bracketType === "bracket_final");
-  const ifNecessary = sideGames.filter(g => g.bracketType === "if_necessary");
+function DoubleEliminationBracket({ games, leagueId }: { games: PostseasonGame[]; leagueId: string }) {
+  const wbGames = games.filter(g => g.bracketType === "winners");
+  const lbGames = games.filter(g => g.bracketType === "losers");
 
-  const getWinnerInfo = (game: PostseasonGame) => {
-    if (!game.isComplete) return null;
-    const homeWon = (game.homeScore ?? 0) > (game.awayScore ?? 0);
-    return homeWon
-      ? { abbreviation: game.homeTeam?.abbreviation || "TBD", seed: game.homeSeed }
-      : { abbreviation: game.awayTeam?.abbreviation || "TBD", seed: game.awaySeed };
+  const wbRounds = [...new Set(wbGames.map(g => g.bracketRound ?? 1))].sort((a, b) => a - b);
+  const lbRounds = [...new Set(lbGames.map(g => g.bracketRound ?? 2))].sort((a, b) => a - b);
+
+  const wbFinalGame = wbGames.filter(g => g.bracketRound === 4);
+  const lbFinalGame = lbGames.filter(g => g.bracketRound === 7);
+
+  const getWinner = (g: PostseasonGame) => {
+    if (!g.isComplete) return null;
+    return (g.homeScore ?? 0) > (g.awayScore ?? 0)
+      ? { abbr: g.homeTeam?.abbreviation || "TBD", seed: g.homeSeed }
+      : { abbr: g.awayTeam?.abbreviation || "TBD", seed: g.awaySeed };
   };
 
-  const bracketChampion = ifNecessary.length > 0 && ifNecessary[0].isComplete
-    ? getWinnerInfo(ifNecessary[0])
-    : bracketFinal.length > 0 && bracketFinal[0].isComplete
-      ? (() => {
-          const w = getWinnerInfo(bracketFinal[0]);
-          const wbChamp = winnersR2.length > 0 && winnersR2[0].isComplete ? getWinnerInfo(winnersR2[0]) : null;
-          if (w && wbChamp && w.abbreviation === wbChamp.abbreviation) return w;
-          return null;
-        })()
-      : null;
+  const wbChamp = wbFinalGame[0]?.isComplete ? getWinner(wbFinalGame[0]) : null;
+  const lbChamp = lbFinalGame[0]?.isComplete ? getWinner(lbFinalGame[0]) : null;
 
   return (
-    <div className="flex-1 min-w-0" data-testid={`bracket-side-${side}`}>
-      <p className="text-[9px] font-pixel text-gold text-center mb-2 uppercase">{sideLabel}</p>
-
-      <div className="space-y-1 mb-3">
-        <p className="text-[7px] font-pixel text-muted-foreground uppercase">Winners Bracket</p>
-        <div className="grid grid-cols-2 gap-2">
-          <div className="space-y-2">
-            {winnersR1.length > 0 ? winnersR1.map(g => (
-              <BracketMatchup key={g.id} game={g} />
-            )) : (
-              <>
-                <BracketMatchup game={null} />
-                <BracketMatchup game={null} />
-              </>
-            )}
-          </div>
-          <div className="flex items-center">
-            <BracketMatchup game={winnersR2[0] || null} label="WB Final" />
-          </div>
-        </div>
-      </div>
-
-      <div className="border-t border-border/30 my-2" />
-
-      <div className="space-y-1 mb-3">
-        <p className="text-[7px] font-pixel text-muted-foreground uppercase">Losers Bracket</p>
-        <div className="grid grid-cols-2 gap-2">
-          <BracketMatchup game={losersR1[0] || null} label="Elimination" />
-          <BracketMatchup game={losersR2[0] || null} label="LB Final" />
-        </div>
-      </div>
-
-      <div className="border-t border-border/30 my-2" />
-
-      <div className="space-y-1">
-        <p className="text-[7px] font-pixel text-gold uppercase">Bracket Championship</p>
-        <div className="grid grid-cols-2 gap-2">
-          <BracketMatchup game={bracketFinal[0] || null} label="Championship" />
-          {ifNecessary.length > 0 ? (
-            <BracketMatchup game={ifNecessary[0]} label="If Necessary" />
-          ) : (
-            <div className="flex items-center justify-center">
-              {bracketChampion ? (
-                <div className="bg-gold/10 border border-gold/30 rounded px-3 py-2 text-center w-full">
-                  <p className="text-[7px] font-pixel text-muted-foreground mb-1">CWS BOUND</p>
-                  <p className="text-gold font-pixel text-xs">
-                    {bracketChampion.seed && <span className="mr-1">{bracketChampion.seed}</span>}
-                    {bracketChampion.abbreviation}
-                  </p>
+    <div className="space-y-4" data-testid="bracket-view">
+      <div className="grid md:grid-cols-2 gap-4">
+        {/* Winners Bracket */}
+        <div className="space-y-3">
+          <p className="text-[9px] font-pixel text-gold uppercase tracking-wider">Winners Bracket</p>
+          {wbRounds.map(round => {
+            const roundGames = wbGames.filter(g => (g.bracketRound ?? 1) === round);
+            const label = WB_ROUND_LABELS[round] ?? `WB Round ${round}`;
+            return (
+              <div key={round} className="space-y-1">
+                <p className="text-[7px] font-pixel text-muted-foreground uppercase">{label}</p>
+                <div className="space-y-1.5">
+                  {roundGames.map(g => <BracketMatchup key={g.id} game={g} />)}
                 </div>
-              ) : (
-                <div className="bg-muted/20 border border-border/50 rounded px-3 py-2 text-center w-full">
-                  <p className="text-[7px] font-pixel text-muted-foreground mb-1">CWS BOUND</p>
-                  <p className="text-muted-foreground font-pixel text-[10px]">TBD</p>
-                </div>
-              )}
+              </div>
+            );
+          })}
+          {wbChamp && (
+            <div className="bg-gold/10 border border-gold/40 rounded px-3 py-2 text-center">
+              <p className="text-[7px] font-pixel text-muted-foreground mb-0.5">WB CHAMPION</p>
+              <p className="text-gold font-pixel text-xs">
+                {wbChamp.seed ? <span className="mr-1">{wbChamp.seed}</span> : null}
+                {wbChamp.abbr}
+              </p>
             </div>
           )}
         </div>
-        {ifNecessary.length > 0 && ifNecessary[0].isComplete && (
-          <div className="mt-2">
-            {(() => {
-              const champ = getWinnerInfo(ifNecessary[0]);
-              return champ ? (
-                <div className="bg-gold/10 border border-gold/30 rounded px-3 py-2 text-center">
-                  <p className="text-[7px] font-pixel text-muted-foreground mb-1">CWS BOUND</p>
-                  <p className="text-gold font-pixel text-xs">
-                    {champ.seed && <span className="mr-1">{champ.seed}</span>}
-                    {champ.abbreviation}
-                  </p>
+
+        {/* Losers Bracket */}
+        <div className="space-y-3">
+          <p className="text-[9px] font-pixel text-amber-400 uppercase tracking-wider">Losers Bracket</p>
+          {lbRounds.map(round => {
+            const roundGames = lbGames.filter(g => (g.bracketRound ?? 2) === round);
+            const label = LB_ROUND_LABELS[round] ?? `LB Round ${round}`;
+            return (
+              <div key={round} className="space-y-1">
+                <p className="text-[7px] font-pixel text-muted-foreground uppercase">{label}</p>
+                <div className="space-y-1.5">
+                  {roundGames.map(g => <BracketMatchup key={g.id} game={g} />)}
                 </div>
-              ) : null;
-            })()}
-          </div>
-        )}
+              </div>
+            );
+          })}
+          {lbChamp && (
+            <div className="bg-amber-400/10 border border-amber-400/40 rounded px-3 py-2 text-center">
+              <p className="text-[7px] font-pixel text-muted-foreground mb-0.5">LB CHAMPION → CWS</p>
+              <p className="text-amber-400 font-pixel text-xs">
+                {lbChamp.seed ? <span className="mr-1">{lbChamp.seed}</span> : null}
+                {lbChamp.abbr}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* CWS Bound summary once both champions known */}
+      {(wbChamp || lbChamp) && !(wbChamp && lbChamp) && (
+        <div className="border-t border-border/30 pt-3 grid grid-cols-2 gap-3">
+          {[{ label: "WB CHAMPION → CWS", data: wbChamp }, { label: "LB CHAMPION → CWS", data: lbChamp }].map(({ label, data }) => (
+            <div key={label} className={`rounded px-3 py-2 text-center border ${data ? "bg-gold/10 border-gold/30" : "bg-muted/20 border-border/50"}`}>
+              <p className="text-[7px] font-pixel text-muted-foreground mb-0.5">{label}</p>
+              <p className={`font-pixel text-xs ${data ? "text-gold" : "text-muted-foreground"}`}>
+                {data ? <>{data.seed ? <span className="mr-1">{data.seed}</span> : null}{data.abbr}</> : "TBD"}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="border-t border-border/30 pt-3">
+        <p className="text-[8px] font-pixel text-muted-foreground uppercase mb-2">All Games</p>
+        <div className="grid sm:grid-cols-2 gap-3">
+          {games.map(game => (
+            <PostseasonGameCard key={game.id} game={game} leagueId={leagueId} />
+          ))}
+        </div>
       </div>
     </div>
   );
 }
 
 function PostseasonBracketView({ games, leagueId }: { games: PostseasonGame[]; leagueId: string }) {
-  const hasDoubleElim = games.some(g => g.bracketSide);
+  const hasDoubleElim = games.some(g => g.bracketType === "losers");
 
   if (!hasDoubleElim) {
     return (
@@ -5037,24 +5044,7 @@ function PostseasonBracketView({ games, leagueId }: { games: PostseasonGame[]; l
     );
   }
 
-  return (
-    <div className="space-y-4" data-testid="bracket-view">
-      <div className="flex gap-4">
-        <DoubleEliminationBracketSide games={games} side="A" sideLabel="Bracket A" />
-        <div className="w-px bg-border/50 flex-shrink-0" />
-        <DoubleEliminationBracketSide games={games} side="B" sideLabel="Bracket B" />
-      </div>
-
-      <div className="border-t border-border/30 pt-3">
-        <p className="text-[8px] font-pixel text-muted-foreground uppercase mb-2">All Games</p>
-        <div className="grid sm:grid-cols-2 gap-3">
-          {games.map(game => (
-            <PostseasonGameCard key={game.id} game={game} leagueId={leagueId} />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+  return <DoubleEliminationBracket games={games} leagueId={leagueId} />;
 }
 
 function CWSSeriesDisplay({ games }: { games: PostseasonGame[] }) {
