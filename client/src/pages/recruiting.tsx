@@ -639,7 +639,12 @@ export default function RecruitingPage() {
         if (!weeklyActionsUsed[recruitId].includes("phone")) {
           weeklyActionsUsed[recruitId] = [...weeklyActionsUsed[recruitId], "phone"];
         }
-        return { ...old, weeklyActionsUsed };
+        return {
+          ...old,
+          weeklyActionsUsed,
+          weeklyActionsWeek: leagueData?.currentWeek ?? old.weeklyActionsWeek,
+          weeklyActionsSeason: leagueData?.currentSeason ?? old.weeklyActionsSeason,
+        };
       });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
       const gain = data.interestGain || 0;
@@ -664,7 +669,12 @@ export default function RecruitingPage() {
         if (!weeklyActionsUsed[recruitId].includes("email")) {
           weeklyActionsUsed[recruitId] = [...weeklyActionsUsed[recruitId], "email"];
         }
-        return { ...old, weeklyActionsUsed };
+        return {
+          ...old,
+          weeklyActionsUsed,
+          weeklyActionsWeek: leagueData?.currentWeek ?? old.weeklyActionsWeek,
+          weeklyActionsSeason: leagueData?.currentSeason ?? old.weeklyActionsSeason,
+        };
       });
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
       const gain = data.interestGain || 0;
