@@ -21461,7 +21461,29 @@ async function generateSchedule(leagueId: string, season: number = 1) {
       }
     }
 
-    // No valid week found — mark t1 as exhausted and try the next underserved team.
+    // Tier 3 — last resort: any week where both teams are under cap=2, picking the
+    // lightest week (minimise max(c1,c2), break ties by c1+c2). This handles odd-conf
+    // configurations where a team has a conf-bye AND league-OOC-bye in the same week,
+    // creating a deficit too large to fill from conf-bye weeks alone. Without this tier
+    // those teams cannot reach targetGamesPerTeam. The global cap=2 (no week gets more
+    // than 2 midweek OOC games per team) prevents runaway flooding.
+    if (topupWeek === null) {
+      let bestMax = Infinity;
+      let bestSum = Infinity;
+      for (let w = 1; w <= numWeeks; w++) {
+        const c1 = mw1.get(w) ?? 0;
+        const c2 = mw2.get(w) ?? 0;
+        if (c1 >= 2 || c2 >= 2) continue;
+        const wMax = Math.max(c1, c2);
+        const wSum = c1 + c2;
+        if (wMax < bestMax || (wMax === bestMax && wSum < bestSum)) {
+          bestMax = wMax; bestSum = wSum; topupWeek = w;
+        }
+      }
+    }
+
+    // No valid week found (all weeks at cap=2 for at least one team) — mark t1 as
+    // exhausted and continue so other underserved teams still receive their top-up games.
     if (topupWeek === null) {
       console.warn(
         `[schedule-topup] No valid week for ${t1.name}+${t2.name} —` +
