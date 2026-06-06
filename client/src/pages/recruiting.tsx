@@ -5368,7 +5368,7 @@ function CommonAbilityRow({
       <span className="text-sm text-muted-foreground">{label}</span>
       {revealed ? (
         <div className="flex items-center gap-1">
-          {fullyRevealed && goldAbilityName && (
+          {revealed && goldAbilityName && (
             <span
               className="text-[8px] font-pixel px-1 py-0.5 rounded border"
               style={{ color: "#c4a35a", borderColor: "rgba(196,163,90,0.5)", background: "rgba(196,163,90,0.12)" }}
