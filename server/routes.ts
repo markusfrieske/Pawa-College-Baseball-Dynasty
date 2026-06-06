@@ -21396,9 +21396,12 @@ async function generateSchedule(leagueId: string, season: number = 1) {
   // Safety top-up: adds OOC midweek games for any team below the target.
   // Partners may be at or above the base target (to handle odd-conf deficits) as long as
   // they have not exceeded the per-team ceiling.
+  // topupSkipped: teams whose week slots are fully at cap; exclude from further attempts
+  // to prevent infinite loops when a team genuinely cannot be placed.
+  const topupSkipped = new Set<string>();
   for (let topupIter = 0; topupIter < leagueTeams.length * 10; topupIter++) {
     const underserved = leagueTeams
-      .filter(t => (teamGameCounts.get(t.id) ?? 0) < targetGamesPerTeam)
+      .filter(t => (teamGameCounts.get(t.id) ?? 0) < targetGamesPerTeam && !topupSkipped.has(t.id))
       .sort((a, b) => (teamGameCounts.get(a.id) ?? 0) - (teamGameCounts.get(b.id) ?? 0));
     if (underserved.length === 0) break;
     const t1 = underserved[0];
@@ -21414,34 +21417,58 @@ async function generateSchedule(leagueId: string, season: number = 1) {
       console.error(`[schedule-topup] No cross-conf partner available for ${t1.name} (${teamGameCounts.get(t1.id)} games, target ${targetGamesPerTeam}, ceiling ${topupCeiling}); stopping top-up`);
       break;
     }
-    // Hard cap: each team may have at most 1 midweek OOC game per week.
-    // Only consider weeks where BOTH teams currently have midweek count = 0.
-    // If no such week exists, skip this top-up game rather than exceed the cap.
     const mw1 = teamWeekMidweekCounts.get(t1.id)!;
     const mw2 = teamWeekMidweekCounts.get(t2.id)!;
     const bye1 = teamConfByeWeeks.get(t1.id)!;
     const bye2 = teamConfByeWeeks.get(t2.id)!;
 
-    // Prefer weeks where both teams have midweek=0 AND at least one is on conf-bye
-    // (those weeks have the most capacity — no conf series running either).
-    // Fall back to any week with midweek=0 for both teams regardless of bye status.
+    // Week selection — two tiers, picked in priority order:
+    //
+    // Tier 1 (cap = 1): Both teams have midweek=0 this week — no game assigned yet.
+    //   Prefer weeks where at least one team is also on conf-bye (most capacity).
+    //   Stop immediately when both teams are on conf-bye (ideal slot found).
+    //
+    // Tier 2 (cap = 2): Tier 1 produced no result. Both teams must be under cap=2
+    //   AND at least one must be on conf-bye (deficit week — no 3-game series).
+    //   Pick the lightest combined week. This is only reached when Tier 1 fails,
+    //   which happens when all weeks already have 1 OOC game for at least one team
+    //   (e.g. odd-conf teams in even-total leagues whose regular OOC fills every week).
+    //
+    // If still no valid week, mark t1 as exhausted (topupSkipped) and continue so
+    // other underserved teams can still receive their top-up games.
+
     let topupWeek: number | null = null;
+
+    // Tier 1 — both teams have zero midweek games this week (cap = 1 enforced)
     for (let w = 1; w <= numWeeks; w++) {
       const c1 = mw1.get(w) ?? 0;
       const c2 = mw2.get(w) ?? 0;
-      if (c1 !== 0 || c2 !== 0) continue; // cap = 1: only fill empty midweek slots
+      if (c1 !== 0 || c2 !== 0) continue;
       if (topupWeek === null || bye1.has(w) || bye2.has(w)) topupWeek = w;
-      if (bye1.has(w) && bye2.has(w)) break; // both on bye — ideal, stop searching
+      if (bye1.has(w) && bye2.has(w)) break; // both on bye — ideal
     }
 
-    // No valid week — all weeks already have a midweek game for at least one team;
-    // skip rather than violate the cap. Post-validation will note the shortfall.
+    // Tier 2 — fallback: conf-bye week(s) for at least one team, both under cap=2
+    if (topupWeek === null) {
+      let bestScore = Infinity;
+      for (let w = 1; w <= numWeeks; w++) {
+        const c1 = mw1.get(w) ?? 0;
+        const c2 = mw2.get(w) ?? 0;
+        if (c1 >= 2 || c2 >= 2) continue;
+        if (!bye1.has(w) && !bye2.has(w)) continue; // must be a deficit week
+        const score = c1 + c2 + (bye1.has(w) && bye2.has(w) ? 0 : 1);
+        if (score < bestScore) { bestScore = score; topupWeek = w; }
+      }
+    }
+
+    // No valid week found — mark t1 as exhausted and try the next underserved team.
     if (topupWeek === null) {
       console.warn(
-        `[schedule-topup] No valid week (cap=1, both midweek=0) for ${t1.name}+${t2.name} —` +
-        ` skipping. ${t1.name} games=${teamGameCounts.get(t1.id)}, target=${targetGamesPerTeam}.`
+        `[schedule-topup] No valid week for ${t1.name}+${t2.name} —` +
+        ` skipping ${t1.name} (games=${teamGameCounts.get(t1.id)}, target=${targetGamesPerTeam}).`
       );
-      break;
+      topupSkipped.add(t1.id);
+      continue;
     }
 
     const isHome = Math.random() > 0.5;
