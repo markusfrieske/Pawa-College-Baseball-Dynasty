@@ -5,8 +5,7 @@ import { PlayerAvatar } from "@/components/player-avatar";
 import { isPitcher, isCatcher } from "@shared/positions";
 import { getAbilityByName } from "@shared/abilities";
 import { getPotentialGrade } from "@shared/potential";
-import { TRAJECTORY_LABELS } from "@shared/trajectory";
-import { Crown, Zap } from "lucide-react";
+import { Crown, Zap, ArrowDownRight, ArrowRight, ArrowUpRight, ArrowUp } from "lucide-react";
 
 export interface RevealRecruit {
   id: string;
@@ -360,11 +359,17 @@ export function CardBack({ recruit }: { recruit: RevealRecruit }) {
         {!pitcher && recruit.trajectory != null && (
           <div className="flex items-center gap-0.5 mb-0.5">
             <span className="text-[5.5px] text-gray-500 w-[16px] leading-none font-mono shrink-0">TRAJ</span>
-            <span className={`font-pixel text-[7px] font-bold leading-none ${
+            <span className={`flex items-center gap-0.5 leading-none ${
               recruit.trajectory === 1 ? "text-emerald-400" :
               recruit.trajectory === 3 ? "text-amber-400" :
               recruit.trajectory === 4 ? "text-red-400" : "text-slate-400"
-            }`}>{TRAJECTORY_LABELS[recruit.trajectory] ?? "LD"}</span>
+            }`}>
+              {recruit.trajectory === 1 && <ArrowDownRight className="w-2 h-2" />}
+              {recruit.trajectory === 2 && <ArrowRight className="w-2 h-2" />}
+              {recruit.trajectory === 3 && <ArrowUpRight className="w-2 h-2" />}
+              {recruit.trajectory === 4 && <ArrowUp className="w-2 h-2" />}
+              <span className="font-mono text-[7px]">{recruit.trajectory}</span>
+            </span>
           </div>
         )}
         <div className="grid grid-cols-2 gap-x-2 gap-y-0.5">
