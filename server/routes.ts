@@ -66,7 +66,7 @@ const leagueCreateSchema = z.object({
   cpuDifficulty: z.enum(["beginner", "high_school", "all_american", "elite"]).optional(),
   conferenceCount: z.number().min(2).max(4).optional(),
   selectedConferences: z.array(z.string()).min(1).max(4).optional(),
-  seasonLength: z.enum(["short", "medium", "long"]).optional(),
+  seasonLength: z.enum(["short", "medium", "standard", "long"]).optional(),
   progressionEnabled: z.boolean().optional(),
 });
 
@@ -707,7 +707,7 @@ export async function registerRoutes(
         return res.status(400).json({ message: "Invalid league data" });
       }
 
-      const { name, maxTeams = 14, cpuDifficulty = "high_school", conferenceCount = 3, selectedConferences, seasonLength = "medium", progressionEnabled = false } = result.data;
+      const { name, maxTeams = 14, cpuDifficulty = "high_school", conferenceCount = 3, selectedConferences, seasonLength = "standard", progressionEnabled = false } = result.data;
 
       const league = await storage.createLeague({
         name,
@@ -9393,9 +9393,10 @@ export async function registerRoutes(
       const seasonWeeks: Record<string, number> = {
         "short": 5,
         "medium": 4,
+        "standard": 5,
         "long": 10,
       };
-      const maxWeeks = seasonWeeks[league.seasonLength || "medium"] || 4;
+      const maxWeeks = seasonWeeks[league.seasonLength || "standard"] || 5;
       
       // ============ CPU RECRUITING AI ============
       setAdvanceProgress(leagueId, "cpu_recruiting", 15);
@@ -9421,7 +9422,7 @@ export async function registerRoutes(
               await initializeStorylineRecruits(leagueId, league.currentSeason, false, currentWeek);
             }
           }
-          await generateAndResolveStorylineEvents(leagueId, league.currentSeason, nextWeek, league.seasonLength ?? "medium", maxWeeks);
+          await generateAndResolveStorylineEvents(leagueId, league.currentSeason, nextWeek, league.seasonLength ?? "standard", maxWeeks);
         } catch (err) {
           console.error("[storylines] Failed to generate/resolve storyline events:", err);
         }
@@ -10528,7 +10529,7 @@ export async function registerRoutes(
           break;
         }
 
-        const maxWeeks = currentLeague.seasonLength === "short" ? 5 : currentLeague.seasonLength === "long" ? 10 : 4;
+        const maxWeeks = (currentLeague.seasonLength === "short" || currentLeague.seasonLength === "standard") ? 5 : currentLeague.seasonLength === "long" ? 10 : 4;
         const nextWeek = (currentLeague.currentWeek ?? 1) + 1;
 
         if (phase === "preseason" || phase === "spring_training" || phase === "regular_season") {
@@ -10640,7 +10641,7 @@ export async function registerRoutes(
                 await initializeStorylineRecruits(leagueId, currentLeague.currentSeason, false, currentLeague.currentWeek ?? 1);
               }
             }
-            await generateAndResolveStorylineEvents(leagueId, currentLeague.currentSeason, nextWeek, currentLeague.seasonLength ?? "medium", maxWeeks);
+            await generateAndResolveStorylineEvents(leagueId, currentLeague.currentSeason, nextWeek, currentLeague.seasonLength ?? "standard", maxWeeks);
           } catch (e) { console.warn("[storylines] bulk-sim weekly generation error:", e); }
 
           if (nextWeek > maxWeeks) {
@@ -10990,7 +10991,7 @@ export async function registerRoutes(
         while (gIter < MAX_GAME_ITER && gamePhases.includes(currentLeague.currentPhase)) {
           gIter++;
           const phase = currentLeague.currentPhase;
-          const maxWeeks = currentLeague.seasonLength === "short" ? 5 : currentLeague.seasonLength === "long" ? 10 : 4;
+          const maxWeeks = (currentLeague.seasonLength === "short" || currentLeague.seasonLength === "standard") ? 5 : currentLeague.seasonLength === "long" ? 10 : 4;
           const nextWeek = (currentLeague.currentWeek ?? 1) + 1;
 
           if (["preseason", "spring_training", "regular_season"].includes(phase)) {
@@ -11197,7 +11198,7 @@ export async function registerRoutes(
 
         if (phase === "conference_championship") break;
 
-        const maxWeeks = currentLeague.seasonLength === "short" ? 5 : currentLeague.seasonLength === "long" ? 10 : 4;
+        const maxWeeks = (currentLeague.seasonLength === "short" || currentLeague.seasonLength === "standard") ? 5 : currentLeague.seasonLength === "long" ? 10 : 4;
         const nextWeek = (currentLeague.currentWeek ?? 1) + 1;
 
         if (preseasonPhases.includes(phase)) {
@@ -11290,7 +11291,7 @@ export async function registerRoutes(
         if (phase === "cws") break;
         if (phase === "offseason_departures") break;
 
-        const maxWeeks = currentLeague.seasonLength === "short" ? 5 : currentLeague.seasonLength === "long" ? 10 : 4;
+        const maxWeeks = (currentLeague.seasonLength === "short" || currentLeague.seasonLength === "standard") ? 5 : currentLeague.seasonLength === "long" ? 10 : 4;
         const nextWeek = (currentLeague.currentWeek ?? 1) + 1;
 
         if (["preseason", "spring_training", "regular_season"].includes(phase)) {
@@ -21189,7 +21190,7 @@ async function generateSchedule(leagueId: string, season: number = 1) {
     return rounds;
   }
 
-  const numWeeks = seasonLength === "long" ? 10 : seasonLength === "short" ? 5 : 4;
+  const numWeeks = seasonLength === "long" ? 10 : (seasonLength === "short" || seasonLength === "standard") ? 5 : 4;
 
   const confMap = new Map<string, TeamType[]>();
   for (const team of leagueTeams) {
@@ -21485,7 +21486,7 @@ async function generateSchedule(leagueId: string, season: number = 1) {
   // Target: reach targetGamesPerTeam regular-season games for each team.
   // Odd-sized conferences (e.g. 5-team) get fewer conf games due to phantom-team byes;
   // the top-up loop below bridges the gap with extra OOC midweek games.
-  const targetGamesPerTeam = seasonLength === "long" ? 40 : seasonLength === "short" ? 10 : 16;
+  const targetGamesPerTeam = seasonLength === "long" ? 40 : seasonLength === "short" ? 10 : seasonLength === "standard" ? 20 : 16;
   const topupCeiling = targetGamesPerTeam + 4; // prevent runaway inflation
   const confByTeamFinal = new Map<string, string>();
   for (const [cid, teams] of confMap) for (const t of teams) confByTeamFinal.set(t.id, cid);
@@ -21645,7 +21646,8 @@ async function generateExhibitionGames(leagueId: string, season: number) {
   const hasMultipleConfs =
     new Set(leagueTeams.map(t => t.conferenceId).filter(Boolean)).size >= 2;
 
-  const TARGET = 4; // target exhibition games per team
+  const league = await storage.getLeague(leagueId);
+  const TARGET = league?.seasonLength === "standard" ? 3 : 4; // target exhibition games per team
   const matchups: Array<{ homeTeamId: string; awayTeamId: string }> = [];
   const gameCounts = new Map(leagueTeams.map(t => [t.id, 0]));
 

@@ -36,7 +36,8 @@ const availableConferences = [
 
 const seasonLengthOptions = [
   { value: "short", label: "Short Season - 10 Games (5 weeks)" },
-  { value: "medium", label: "Standard Season - 16 Games (4 weeks)" },
+  { value: "standard", label: "Standard Season - 20 Games (5 weeks)" },
+  { value: "medium", label: "Extended Season - 16 Games (4 weeks)" },
   { value: "long", label: "Long Season - 40 Games (10 weeks)" },
 ];
 
@@ -45,7 +46,7 @@ export default function LeagueCreatePage() {
   const [maxTeams, setMaxTeams] = useState("14");
   const [cpuDifficulty, setCpuDifficulty] = useState("high_school");
   const [selectedConferences, setSelectedConferences] = useState<string[]>(["SEC", "Big Ten", "ACC"]);
-  const [seasonLength, setSeasonLength] = useState("medium");
+  const [seasonLength, setSeasonLength] = useState("standard");
   const [progressionEnabled, setProgressionEnabled] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
