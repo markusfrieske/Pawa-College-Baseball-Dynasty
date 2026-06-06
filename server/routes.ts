@@ -21414,70 +21414,31 @@ async function generateSchedule(leagueId: string, season: number = 1) {
       console.error(`[schedule-topup] No cross-conf partner available for ${t1.name} (${teamGameCounts.get(t1.id)} games, target ${targetGamesPerTeam}, ceiling ${topupCeiling}); stopping top-up`);
       break;
     }
-    // Hard cap: never assign a 3rd midweek OOC game to any team in any week.
-    const MIDWEEK_CAP = 2;
+    // Hard cap: each team may have at most 1 midweek OOC game per week.
+    // Only consider weeks where BOTH teams currently have midweek count = 0.
+    // If no such week exists, skip this top-up game rather than exceed the cap.
     const mw1 = teamWeekMidweekCounts.get(t1.id)!;
     const mw2 = teamWeekMidweekCounts.get(t2.id)!;
     const bye1 = teamConfByeWeeks.get(t1.id)!;
     const bye2 = teamConfByeWeeks.get(t2.id)!;
 
-    // Week selection — three tiers, picked in priority order:
-    //
-    // Tier 1: Both teams have midweek=0 this week (ideal — fills a slot that was
-    //         completely empty, i.e. a league-level OOC-bye week for one of them).
-    //
-    // Tier 2: Both teams are on conf-bye this week AND both are under the hard cap.
-    //         Conf-bye weeks are the true "deficit" weeks (no 3-game series), so
-    //         adding a second OOC game there is far better than flooding a full week.
-    //
-    // Tier 3: Any week where BOTH teams are under the hard cap — pick the lightest
-    //         (minimise max(c1,c2), break ties by c1+c2) to spread load evenly.
-    //
-    // If no valid week exists (every week already at cap for at least one team), skip
-    // this top-up game and break to avoid an infinite loop; post-validation will warn.
-
+    // Prefer weeks where both teams have midweek=0 AND at least one is on conf-bye
+    // (those weeks have the most capacity — no conf series running either).
+    // Fall back to any week with midweek=0 for both teams regardless of bye status.
     let topupWeek: number | null = null;
-
-    // Tier 1 — both teams have zero midweek games this week
-    for (let w = 1; w <= numWeeks && topupWeek === null; w++) {
+    for (let w = 1; w <= numWeeks; w++) {
       const c1 = mw1.get(w) ?? 0;
       const c2 = mw2.get(w) ?? 0;
-      if (c1 === 0 && c2 === 0) topupWeek = w;
+      if (c1 !== 0 || c2 !== 0) continue; // cap = 1: only fill empty midweek slots
+      if (topupWeek === null || bye1.has(w) || bye2.has(w)) topupWeek = w;
+      if (bye1.has(w) && bye2.has(w)) break; // both on bye — ideal, stop searching
     }
 
-    // Tier 2 — both on conf-bye, both under hard cap (lightest first)
-    if (topupWeek === null) {
-      let bestScore = Infinity;
-      for (let w = 1; w <= numWeeks; w++) {
-        if (!bye1.has(w) || !bye2.has(w)) continue;
-        const c1 = mw1.get(w) ?? 0;
-        const c2 = mw2.get(w) ?? 0;
-        if (c1 >= MIDWEEK_CAP || c2 >= MIDWEEK_CAP) continue;
-        const score = c1 + c2;
-        if (score < bestScore) { bestScore = score; topupWeek = w; }
-      }
-    }
-
-    // Tier 3 — any week where both are under cap (minimise max then sum)
-    if (topupWeek === null) {
-      let bestMax = Infinity;
-      let bestSum = Infinity;
-      for (let w = 1; w <= numWeeks; w++) {
-        const c1 = mw1.get(w) ?? 0;
-        const c2 = mw2.get(w) ?? 0;
-        if (c1 >= MIDWEEK_CAP || c2 >= MIDWEEK_CAP) continue;
-        const wMax = Math.max(c1, c2);
-        const wSum = c1 + c2;
-        if (wMax < bestMax || (wMax === bestMax && wSum < bestSum)) {
-          bestMax = wMax; bestSum = wSum; topupWeek = w;
-        }
-      }
-    }
-
-    // No valid week — all weeks are at cap for at least one team; skip and log.
+    // No valid week — all weeks already have a midweek game for at least one team;
+    // skip rather than violate the cap. Post-validation will note the shortfall.
     if (topupWeek === null) {
       console.warn(
-        `[schedule-topup] No valid week (cap=${MIDWEEK_CAP}) for ${t1.name}+${t2.name} —` +
+        `[schedule-topup] No valid week (cap=1, both midweek=0) for ${t1.name}+${t2.name} —` +
         ` skipping. ${t1.name} games=${teamGameCounts.get(t1.id)}, target=${targetGamesPerTeam}.`
       );
       break;
