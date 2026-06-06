@@ -21282,77 +21282,137 @@ async function generateExhibitionGames(leagueId: string, season: number) {
     exhibHistory.get(bId)!.add(aId);
   }
 
+  // Build cross-conference candidate list for a given participant set and round.
+  //   Tier 1 – cross-conf AND not yet met in exhibition (preferred)
+  //   Tier 2 – cross-conf AND already met in exhibition (acceptable repeat)
+  // Rotated by round so repeat pairings vary across rounds.
+  function buildCandidatesFor(
+    participants: typeof leagueTeams,
+    round: number,
+  ): Map<string, typeof leagueTeams> {
+    const map = new Map<string, typeof leagueTeams>();
+    for (const team of participants) {
+      const confId = confByTeamId.get(team.id);
+      const xConf = participants.filter(t => confByTeamId.get(t.id) !== confId);
+      const offset = round % Math.max(xConf.length, 1);
+      const rotated = [...xConf.slice(offset), ...xConf.slice(0, offset)];
+      const tier1 = rotated.filter(t => !exhibHistory.get(team.id)?.has(t.id));
+      const tier2 = rotated.filter(t =>  exhibHistory.get(team.id)?.has(t.id));
+      map.set(team.id, [...tier1, ...tier2]);
+    }
+    return map;
+  }
+
+  // Attempt a backtracking perfect OOC matching on the given participants.
+  // Returns the pairs if successful, null if no complete matching exists.
+  function tryOOCMatch(
+    participants: typeof leagueTeams,
+    candidatesFor: Map<string, typeof leagueTeams>,
+  ): Array<[string, string]> | null {
+    const pairs: Array<[string, string]> = [];
+    const used = new Set<string>();
+    function bt(idx: number): boolean {
+      while (idx < participants.length && used.has(participants[idx].id)) idx++;
+      if (idx >= participants.length) return true;
+      const team = participants[idx];
+      for (const opp of candidatesFor.get(team.id) ?? []) {
+        if (used.has(opp.id)) continue;
+        used.add(team.id);
+        used.add(opp.id);
+        pairs.push([team.id, opp.id]);
+        if (bt(idx + 1)) return true;
+        used.delete(team.id);
+        used.delete(opp.id);
+        pairs.pop();
+      }
+      return false;
+    }
+    return bt(0) ? pairs : null;
+  }
+
+  // Conference-aware greedy fallback: pairs OOC where possible; only falls back to
+  // same-conference when no OOC partner remains available.
+  function greedyOOCPair(participants: typeof leagueTeams, round: number) {
+    const cands = buildCandidatesFor(participants, round);
+    const tempUsed = new Set<string>();
+    for (const team of participants) {
+      if (tempUsed.has(team.id)) continue;
+      // Prefer OOC candidate, fall back to any available same-conf partner
+      const partner =
+        (cands.get(team.id) ?? []).find(t => !tempUsed.has(t.id)) ??
+        participants.find(t => !tempUsed.has(t.id) && t.id !== team.id);
+      if (!partner) continue;
+      tempUsed.add(team.id);
+      tempUsed.add(partner.id);
+      addPair(team.id, partner.id);
+    }
+  }
+
   // 3 proper rounds — each team plays at most once per round.
   // For odd-N leagues, rotate byes so no team sits out more than once.
   const hadBye = new Set<string>();
+
+  // Sort most-constrained-first: teams in smaller conferences have fewer cross-conf options.
+  // This ordering is stable across rounds, so compute it once.
+  const sorted = [...leagueTeams].sort((a, b) => {
+    const aCands = leagueTeams.filter(t => confByTeamId.get(t.id) !== confByTeamId.get(a.id)).length;
+    const bCands = leagueTeams.filter(t => confByTeamId.get(t.id) !== confByTeamId.get(b.id)).length;
+    return aCands - bCands;
+  });
 
   for (let round = 0; round < TARGET; round++) {
     if (hasMultipleConfs) {
       // --- Conference-aware backtracking perfect matching (OOC only) ---
 
-      // Sort most-constrained-first: teams in smaller conferences have fewer cross-conf options.
-      const sorted = [...leagueTeams].sort((a, b) => {
-        const aCands = leagueTeams.filter(t => confByTeamId.get(t.id) !== confByTeamId.get(a.id)).length;
-        const bCands = leagueTeams.filter(t => confByTeamId.get(t.id) !== confByTeamId.get(b.id)).length;
-        return aCands - bCands;
-      });
+      if (sorted.length % 2 !== 0) {
+        // Odd-N: the bye team must be chosen so the remaining participants have a feasible
+        // OOC perfect matching. We test each candidate bye in preference order and pick the
+        // first one that allows backtracking to succeed.
+        //
+        // Preference order: teams that (a) haven't had a bye yet, then (b) most games first
+        // (sitting out costs them the least). Also try teams that have already had a bye if
+        // needed (shouldn't occur in normal ≤16-team leagues over 3 rounds).
+        const noBye = sorted.filter(t => !hadBye.has(t.id));
+        const maxG = noBye.length > 0 ? Math.max(...noBye.map(t => gameCounts.get(t.id)!)) : 0;
+        const preferred = noBye
+          .filter(t => gameCounts.get(t.id)! === maxG)
+          .sort(() => Math.random() - 0.5);    // random order within same-game-count tier
+        const otherNoBye = noBye.filter(t => gameCounts.get(t.id)! !== maxG);
+        const alreadyBye = sorted.filter(t => hadBye.has(t.id));
+        const byeCandidates = [...preferred, ...otherNoBye, ...alreadyBye];
 
-      // Odd-N: give bye to a team that (a) hasn't had a bye yet AND (b) has the most games.
-      let roundParticipants = [...sorted];
-      if (roundParticipants.length % 2 !== 0) {
-        const noBye = roundParticipants.filter(t => !hadBye.has(t.id));
-        const maxG = Math.max(...noBye.map(t => gameCounts.get(t.id)!));
-        const top = noBye.filter(t => gameCounts.get(t.id)! === maxG);
-        const byeTeam = top[Math.floor(Math.random() * top.length)];
-        hadBye.add(byeTeam.id);
-        roundParticipants = roundParticipants.filter(t => t.id !== byeTeam.id);
-      }
-
-      // Build candidates per team:
-      //   Tier 1 – cross-conf AND not yet met in exhibition (preferred)
-      //   Tier 2 – cross-conf AND already met in exhibition (acceptable)
-      // Rotate by round so repeat pairings vary across rounds.
-      const candidatesFor = new Map<string, typeof leagueTeams>();
-      for (const team of roundParticipants) {
-        const confId = confByTeamId.get(team.id);
-        const xConf = roundParticipants.filter(t => confByTeamId.get(t.id) !== confId);
-        const offset = round % Math.max(xConf.length, 1);
-        const rotated = [...xConf.slice(offset), ...xConf.slice(0, offset)];
-        const tier1 = rotated.filter(t => !exhibHistory.get(team.id)?.has(t.id));
-        const tier2 = rotated.filter(t =>  exhibHistory.get(team.id)?.has(t.id));
-        candidatesFor.set(team.id, [...tier1, ...tier2]);
-      }
-
-      // Backtracking perfect-match: guarantees every non-bye team gets exactly
-      // one cross-conference exhibition game this round.
-      const roundPairs: Array<[string, string]> = [];
-      const used = new Set<string>();
-
-      function matchExhibOOC(idx: number): boolean {
-        while (idx < roundParticipants.length && used.has(roundParticipants[idx].id)) idx++;
-        if (idx >= roundParticipants.length) return true;
-        const team = roundParticipants[idx];
-        for (const opp of candidatesFor.get(team.id) ?? []) {
-          if (used.has(opp.id)) continue;
-          used.add(team.id);
-          used.add(opp.id);
-          roundPairs.push([team.id, opp.id]);
-          if (matchExhibOOC(idx + 1)) return true;
-          used.delete(team.id);
-          used.delete(opp.id);
-          roundPairs.pop();
+        let roundDone = false;
+        for (const byeTeam of byeCandidates) {
+          const participants = sorted.filter(t => t.id !== byeTeam.id);
+          const cands = buildCandidatesFor(participants, round);
+          const pairs = tryOOCMatch(participants, cands);
+          if (pairs !== null) {
+            hadBye.add(byeTeam.id);
+            for (const [a, b] of pairs) addPair(a, b);
+            roundDone = true;
+            break;
+          }
         }
-        return false;
-      }
 
-      if (matchExhibOOC(0)) {
-        for (const [aId, bId] of roundPairs) addPair(aId, bId);
+        if (!roundDone) {
+          // No bye candidate enabled a perfect OOC matching (degenerate distribution).
+          // Give bye to preferred candidate and use conference-aware greedy fallback.
+          const byeTeam = byeCandidates[0];
+          hadBye.add(byeTeam.id);
+          const participants = sorted.filter(t => t.id !== byeTeam.id);
+          greedyOOCPair(participants, round);
+          console.warn(`[exhibition] Round ${round + 1}: no bye enables perfect OOC — greedy fallback for league ${leagueId}`);
+        }
       } else {
-        // Fallback: sequential pairing (only if backtracking fails — shouldn't occur in
-        // normal multi-conference leagues; may happen in degenerate single-conf leagues
-        // that somehow pass hasMultipleConfs check).
-        for (let i = 0; i + 1 < roundParticipants.length; i += 2) {
-          addPair(roundParticipants[i].id, roundParticipants[i + 1].id);
+        // Even-N: straightforward backtracking perfect OOC match.
+        const cands = buildCandidatesFor(sorted, round);
+        const pairs = tryOOCMatch(sorted, cands);
+        if (pairs !== null) {
+          for (const [a, b] of pairs) addPair(a, b);
+        } else {
+          // Extremely unlikely for even-N multi-conf leagues. Use OOC-aware greedy fallback.
+          greedyOOCPair(sorted, round);
+          console.warn(`[exhibition] Round ${round + 1}: even-N backtracking failed — greedy fallback for league ${leagueId}`);
         }
       }
     } else {
