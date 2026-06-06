@@ -1534,7 +1534,7 @@ export async function registerRoutes(
         const SIGNING_ATTR_KEYS = new Set([
           'hitForAvg', 'power', 'speed', 'arm', 'fielding', 'errorResistance',
           'velocity', 'control', 'stamina',
-          'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL',
+          'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL', 'pitchFK', 'pitchSFF', 'pitchSHU',
         ]);
         const SIGNING_COMMON_KEYS = new Set([
           'clutch', 'vsLHP', 'grit', 'stealing', 'running', 'throwing', 'recovery',
@@ -1544,7 +1544,7 @@ export async function registerRoutes(
         // attribute/common-ability keys were included (prevents empty holdbackFields).
         const isPitcherRecruit = ['P', 'SP', 'RP', 'CP'].includes(recruit.position || '');
         const defaultAttrOrder = isPitcherRecruit
-          ? ['velocity', 'control', 'stamina', 'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL']
+          ? ['velocity', 'control', 'stamina', 'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL', 'pitchFK', 'pitchSFF', 'pitchSHU']
           : ['hitForAvg', 'power', 'speed', 'arm', 'fielding', 'errorResistance'];
         const defaultCommonOrder = isPitcherRecruit
           ? ['wRISP', 'vsLefty', 'poise', 'grit', 'heater', 'agile', 'recovery']
@@ -4940,7 +4940,7 @@ export async function registerRoutes(
         'clutch', 'vsLHP', 'grit', 'stealing', 'running', 'throwing', 'recovery', 'catcherAbility',
         'velocity', 'control', 'stamina', 'stuff',
         'wRISP', 'vsLefty', 'poise', 'heater', 'agile',
-        'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL',
+        'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL', 'pitchFK', 'pitchSFF', 'pitchSHU',
         'abilities'
       ];
 
@@ -20012,7 +20012,7 @@ export async function registerRoutes(
       const SD_ATTR_KEYS = new Set([
         'hitForAvg', 'power', 'speed', 'arm', 'fielding', 'errorResistance',
         'velocity', 'control', 'stamina',
-        'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL',
+        'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL', 'pitchFK', 'pitchSFF', 'pitchSHU',
       ]);
       const SD_COMMON_KEYS = new Set([
         'clutch', 'vsLHP', 'grit', 'stealing', 'running', 'throwing', 'recovery',
@@ -20020,7 +20020,7 @@ export async function registerRoutes(
       ]);
       const sdIsPitcher = ['P', 'SP', 'RP', 'CP'].includes(recruit.position || '');
       const sdDefaultAttr = sdIsPitcher
-        ? ['velocity', 'control', 'stamina', 'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL']
+        ? ['velocity', 'control', 'stamina', 'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL', 'pitchFK', 'pitchSFF', 'pitchSHU']
         : ['hitForAvg', 'power', 'speed', 'arm', 'fielding', 'errorResistance'];
       const sdDefaultCommon = sdIsPitcher
         ? ['wRISP', 'vsLefty', 'poise', 'grit', 'heater', 'agile', 'recovery']
@@ -20095,7 +20095,7 @@ export async function registerRoutes(
         'clutch', 'vsLHP', 'grit', 'stealing', 'running', 'throwing', 'recovery', 'catcherAbility',
         'velocity', 'control', 'stamina', 'stuff',
         'wRISP', 'vsLefty', 'poise', 'heater', 'agile',
-        'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL',
+        'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL', 'pitchFK', 'pitchSFF', 'pitchSHU',
         'abilities',
         'proximityPriority', 'reputationPriority', 'playingTimePriority',
         'academicsPriority', 'prestigePriority', 'facilitiesPriority', 'dealbreaker'
@@ -20156,7 +20156,7 @@ export async function registerRoutes(
         'clutch', 'vsLHP', 'grit', 'stealing', 'running', 'throwing', 'recovery', 'catcherAbility',
         'velocity', 'control', 'stamina', 'stuff',
         'wRISP', 'vsLefty', 'poise', 'heater', 'agile',
-        'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL',
+        'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL', 'pitchFK', 'pitchSFF', 'pitchSHU',
         'abilities',
         'proximityPriority', 'reputationPriority', 'playingTimePriority',
         'academicsPriority', 'prestigePriority', 'facilitiesPriority', 'dealbreaker'

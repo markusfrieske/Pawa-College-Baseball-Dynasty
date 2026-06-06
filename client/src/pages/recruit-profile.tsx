@@ -2182,6 +2182,9 @@ function RecruitPitchMixSection({
     { key: "pitchCT", label: "Cutter (CT)" },
     { key: "pitchSNK", label: "Sinker (SNK)" },
     { key: "pitchSPL", label: "Splitter (SPL)" },
+    { key: "pitchFK", label: "Forkball (FK)" },
+    { key: "pitchSFF", label: "Split-Finger (SFF)" },
+    { key: "pitchSHU", label: "Shuuto (SHU)" },
   ] as const;
   
   const renderPitch = (key: string, label: string) => {
