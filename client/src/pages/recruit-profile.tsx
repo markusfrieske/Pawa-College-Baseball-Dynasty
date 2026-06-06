@@ -49,6 +49,7 @@ import {
   ArrowRight,
   ArrowUpRight,
   ArrowUp,
+  Target,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Recruit, RecruitingInterest, Team, League } from "@shared/schema";
@@ -360,6 +361,18 @@ export default function RecruitProfilePage() {
     },
   });
 
+  const targetMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/target`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruits", recruitId] });
+    },
+    onError: (error: Error) => {
+      setActionResultModal({ title: "Target Failed", description: parseErrorMessage(error), type: "error" });
+    },
+  });
+
   const notesMutation = useMutation({
     mutationFn: async () => {
       return apiRequest("PATCH", `/api/leagues/${id}/recruiting/${recruitId}/notes`, { notes });
@@ -664,7 +677,7 @@ export default function RecruitProfilePage() {
 
       <main className="container mx-auto px-4 py-6 pb-20 md:pb-6">
         {/* Action Buttons — hidden once recruit has committed */}
-        {recruit.stage !== "signed" && <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+        {recruit.stage !== "signed" && <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3 mb-6">
           <RetroButton 
             variant="outline" 
             className="border-green-500 text-green-400"
@@ -674,6 +687,15 @@ export default function RecruitProfilePage() {
           >
             <Eye className="w-4 h-4 mr-2" />
             {scoutMutation.isPending ? "Scouting..." : `Scout (${scoutPct}%)`}
+          </RetroButton>
+          <RetroButton
+            variant={recruit.interest?.isTargeted ? "primary" : "outline"}
+            data-testid="button-target"
+            onClick={() => targetMutation.mutate()}
+            disabled={targetMutation.isPending || !recruit.interest}
+          >
+            <Target className="w-4 h-4 mr-2" />
+            {targetMutation.isPending ? "Updating..." : recruit.interest?.isTargeted ? "Untarget" : "Target"}
           </RetroButton>
           <RetroButton 
             data-testid="button-phone"
