@@ -5,6 +5,7 @@ import { PlayerAvatar } from "@/components/player-avatar";
 import { isPitcher, isCatcher } from "@shared/positions";
 import { getAbilityByName } from "@shared/abilities";
 import { getPotentialGrade } from "@shared/potential";
+import { TRAJECTORY_LABELS } from "@shared/trajectory";
 import { Crown, Zap } from "lucide-react";
 
 export interface RevealRecruit {
@@ -54,6 +55,18 @@ export interface RevealRecruit {
   poise?: number | null;
   heater?: number | null;
   agile?: number | null;
+  trajectory?: number | null;
+  pitchFB?: number | null;
+  pitch2S?: number | null;
+  pitchSL?: number | null;
+  pitchCB?: number | null;
+  pitchCH?: number | null;
+  pitchCT?: number | null;
+  pitchSNK?: number | null;
+  pitchSPL?: number | null;
+  pitchSHU?: number | null;
+  pitchSWP?: number | null;
+  pitchKN?: number | null;
   skinTone?: string;
 }
 
@@ -233,15 +246,13 @@ export function CardBack({ recruit }: { recruit: RevealRecruit }) {
     { label: "VEL", val: recruit.velocity ?? 50 },
     { label: "CTL", val: recruit.control ?? 50 },
     { label: "STM", val: recruit.stamina ?? 50 },
-    { label: "STF", val: recruit.stuff ?? 50 },
-    { label: "ARM", val: recruit.arm ?? 50 },
-    { label: "ERR", val: recruit.errorResistance ?? 50 },
+    { label: "FLD", val: recruit.fielding ?? 50 },
   ] : [
     { label: "HIT", val: recruit.hitForAvg ?? 50 },
     { label: "PWR", val: recruit.power ?? 50 },
     { label: "SPD", val: recruit.speed ?? 50 },
-    { label: "FLD", val: recruit.fielding ?? 50 },
     { label: "ARM", val: recruit.arm ?? 50 },
+    { label: "FLD", val: recruit.fielding ?? 50 },
     { label: "ERR", val: recruit.errorResistance ?? 50 },
   ];
 
@@ -256,7 +267,7 @@ export function CardBack({ recruit }: { recruit: RevealRecruit }) {
     { label: "AGL",  val: recruit.agile ?? 50,    key: "agile" },
     { label: "RCV",  val: recruit.recovery ?? 50, key: "recovery" },
   ] : [
-    { label: "CLT",  val: recruit.clutch ?? 50,         key: "clutch" },
+    { label: "CLU",  val: recruit.clutch ?? 50,         key: "clutch" },
     { label: "LHP",  val: recruit.vsLHP ?? 50,          key: "vsLHP" },
     { label: "GRIT", val: recruit.grit ?? 50,           key: "grit" },
     { label: "STL",  val: recruit.stealing ?? 50,       key: "stealing" },
@@ -345,6 +356,17 @@ export function CardBack({ recruit }: { recruit: RevealRecruit }) {
       {/* Primary attributes: label | grade | numeric value */}
       <div className="px-2 pt-1 pb-0.5 border-t border-[#2d3d2d] shrink-0">
         <div className="text-[5px] text-gray-600 uppercase mb-0.5 leading-none tracking-wide">Attributes</div>
+        {/* Hitter TRAJ text label — shown before numeric attrs */}
+        {!pitcher && recruit.trajectory != null && (
+          <div className="flex items-center gap-0.5 mb-0.5">
+            <span className="text-[5.5px] text-gray-500 w-[16px] leading-none font-mono shrink-0">TRAJ</span>
+            <span className={`font-pixel text-[7px] font-bold leading-none ${
+              recruit.trajectory === 1 ? "text-emerald-400" :
+              recruit.trajectory === 3 ? "text-amber-400" :
+              recruit.trajectory === 4 ? "text-red-400" : "text-slate-400"
+            }`}>{TRAJECTORY_LABELS[recruit.trajectory] ?? "LD"}</span>
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-x-2 gap-y-0.5">
           {primaryAttrs.map(({ label, val }) => {
             const { letter, tier } = getLetterGrade(val);
@@ -357,6 +379,28 @@ export function CardBack({ recruit }: { recruit: RevealRecruit }) {
             );
           })}
         </div>
+        {/* Pitcher pitch mix mini-section */}
+        {pitcher && (() => {
+          const pitchFields = [
+            ["pitchFB","FB"],["pitch2S","2S"],["pitchSL","SL"],["pitchCB","CB"],
+            ["pitchCH","CH"],["pitchCT","CT"],["pitchSNK","SNK"],["pitchSPL","SPL"],
+            ["pitchSHU","SHU"],["pitchSWP","SWP"],["pitchKN","KN"],
+          ] as const;
+          const active = pitchFields.filter(([k]) => {
+            const v = (recruit as any)[k];
+            return v != null && v > 0;
+          });
+          if (!active.length) return null;
+          return (
+            <div className="flex flex-wrap gap-0.5 mt-1">
+              {active.map(([k, label]) => (
+                <span key={k} className="text-[5px] font-mono px-0.5 py-0.5 rounded bg-gray-800 text-gray-300 leading-none">
+                  {label}·{(recruit as any)[k]}
+                </span>
+              ))}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Common abilities: label | ability name (if matched) | grade */}

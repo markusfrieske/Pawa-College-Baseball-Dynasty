@@ -2517,25 +2517,40 @@ function RecruitRow({
   const sdAttrSet = new Set<string>(recruit.signingDayLockedFields || []);
   const revealedAttrSet = new Set<string>(
     isFullyRevealed
-      ? (isPitcherRecruit ? ["velocity","control","stuff","stamina"] : ["hitForAvg","power","speed","fielding"])
+      ? (isPitcherRecruit
+          ? ["velocity","control","stamina","fielding","wRISP","vsLefty","poise","grit","heater","agile","recovery"]
+          : ["hitForAvg","power","speed","fielding","arm","errorResistance","clutch","vsLHP","grit","stealing","running","throwing","recovery"])
       : ((recruit.interest?.revealedAttributes as string[] | undefined) || [])
   );
   const isAttrRevealed = (key: string) => !sdAttrSet.has(key) && (isFullyRevealed || revealedAttrSet.has(key));
   const previewAttrFields = isPitcherRecruit
     ? [
-        { label: "VEL", key: "velocity", val: recruit.velocity },
-        { label: "CTL", key: "control", val: recruit.control },
-        { label: "STF", key: "stuff", val: recruit.stuff },
-        { label: "STM", key: "stamina", val: recruit.stamina },
-        { label: "POI", key: "poise", val: recruit.poise },
+        { label: "VEL",  key: "velocity",   val: recruit.velocity },
+        { label: "CTL",  key: "control",    val: recruit.control },
+        { label: "STM",  key: "stamina",    val: recruit.stamina },
+        { label: "FLD",  key: "fielding",   val: recruit.fielding },
+        { label: "RISP", key: "wRISP",      val: recruit.wRISP },
+        { label: "LFT",  key: "vsLefty",    val: recruit.vsLefty },
+        { label: "PSE",  key: "poise",      val: recruit.poise },
+        { label: "GRIT", key: "grit",       val: recruit.grit },
+        { label: "HTR",  key: "heater",     val: recruit.heater },
+        { label: "AGL",  key: "agile",      val: recruit.agile },
+        { label: "RCV",  key: "recovery",   val: recruit.recovery },
       ]
     : [
-        { label: "HIT", key: "hitForAvg", val: recruit.hitForAvg },
-        { label: "PWR", key: "power", val: recruit.power },
-        { label: "SPD", key: "speed", val: recruit.speed },
-        { label: "FLD", key: "fielding", val: recruit.fielding },
-        { label: "ARM", key: "arm", val: recruit.arm },
-        { label: "CLU", key: "clutch", val: recruit.clutch },
+        { label: "HIT",  key: "hitForAvg",       val: recruit.hitForAvg },
+        { label: "PWR",  key: "power",            val: recruit.power },
+        { label: "SPD",  key: "speed",            val: recruit.speed },
+        { label: "ARM",  key: "arm",              val: recruit.arm },
+        { label: "FLD",  key: "fielding",         val: recruit.fielding },
+        { label: "ERR",  key: "errorResistance",  val: recruit.errorResistance },
+        { label: "CLU",  key: "clutch",           val: recruit.clutch },
+        { label: "LHP",  key: "vsLHP",            val: recruit.vsLHP },
+        { label: "GRIT", key: "grit",             val: recruit.grit },
+        { label: "STL",  key: "stealing",         val: recruit.stealing },
+        { label: "RUN",  key: "running",          val: recruit.running },
+        { label: "THW",  key: "throwing",         val: recruit.throwing },
+        { label: "RCV",  key: "recovery",         val: recruit.recovery },
       ];
   const ATTR_GRADE_COLORS: Record<string, string> = {
     s: "#fda4d5", a: "#ef4444", b: "#ef4444", c: "#f97316",
@@ -3338,6 +3353,20 @@ function RecruitRow({
           {hasTransferStats && (
             <div className="w-px h-3 bg-border/40 self-center" />
           )}
+          {/* Hitter trajectory chip — first in the strip */}
+          {!isPitcherRecruit && scoutPct >= TRAJECTORY_REVEAL_THRESHOLD && recruit.trajectory != null && (
+            <div className="flex items-center gap-0.5">
+              <span className="text-[8px] text-muted-foreground/60 font-mono">TRAJ</span>
+              <span className={`font-pixel text-[9px] font-bold ${
+                recruit.trajectory === 1 ? "text-emerald-400" :
+                recruit.trajectory === 3 ? "text-amber-400" :
+                recruit.trajectory === 4 ? "text-red-400" :
+                "text-slate-400"
+              }`}>
+                {TRAJECTORY_LABELS[recruit.trajectory] ?? "LD"}
+              </span>
+            </div>
+          )}
           {/* Attribute letter grades — always shown; lock for 100%-scouted locked attrs; "?" for unknown */}
           {previewAttrFields.map(({ label, key, val }) => {
             const revealed = isAttrRevealed(key);
@@ -3361,20 +3390,6 @@ function RecruitRow({
               </div>
             );
           })}
-          {/* Hitter trajectory chip */}
-          {!isPitcherRecruit && scoutPct >= TRAJECTORY_REVEAL_THRESHOLD && recruit.trajectory != null && (
-            <div className="flex items-center gap-0.5">
-              <span className="text-[8px] text-muted-foreground/60 font-mono">TRAJ</span>
-              <span className={`font-pixel text-[9px] font-bold ${
-                recruit.trajectory === 1 ? "text-emerald-400" :
-                recruit.trajectory === 3 ? "text-amber-400" :
-                recruit.trajectory === 4 ? "text-red-400" :
-                "text-slate-400"
-              }`}>
-                {TRAJECTORY_LABELS[recruit.trajectory] ?? "LD"}
-              </span>
-            </div>
-          )}
           {/* Pitcher pitch mix chips */}
           {isPitcherRecruit && (scoutPct > 0 || isFullyRevealed) && (() => {
             const pitchFields = [
