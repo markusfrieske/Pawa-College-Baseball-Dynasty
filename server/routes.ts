@@ -21480,8 +21480,11 @@ async function generateExhibitionGames(leagueId: string, season: number) {
   }
   const minExhib = Math.min(...leagueTeams.map(t => gameCounts.get(t.id)!));
   const maxExhib = Math.max(...leagueTeams.map(t => gameCounts.get(t.id)!));
-  const teamsAtMax = leagueTeams.filter(t => gameCounts.get(t.id)! === maxExhib).length;
-  console.log(`[exhibition] Generated ${matchups.length} exhibition games for league ${leagueId} season ${season} (per-team: ${minExhib}–${maxExhib}; all teams ≥${TARGET}, ${teamsAtMax > 1 ? "all at" : "1 team at"} ${maxExhib} for odd-N balance)`);
+  const teamsBelow = leagueTeams.filter(t => gameCounts.get(t.id)! < TARGET).length;
+  const note = teamsBelow > 0
+    ? `${teamsBelow} team(s) below ${TARGET} (skewed conference split)`
+    : "all teams at or above TARGET";
+  console.log(`[exhibition] Generated ${matchups.length} exhibition games for league ${leagueId} season ${season} (per-team: ${minExhib}–${maxExhib}; ${note})`);
 }
 
 function getTeamsForConference(conferenceName: string) {
