@@ -284,12 +284,14 @@ test.describe("Full Season-to-Season Flow", () => {
       (g) => g.phase === "regular" && g.season === 1
     );
 
-    // ── Total game count: soft range check ──────────────────────────────────────────
-    // All conferences use 3-game Fri/Sat/Sun series. Teams in odd-sized conferences
-    // (e.g. the 5-team conf in a 13-team 4+4+5 league) end up with fewer conf games
-    // due to phantom-team byes; the scheduler's top-up loop adds extra OOC midweek
-    // games to bring them close to 20. Cross-conf partners used for top-up may end up
-    // slightly above 20. Acceptable range: [20, 24].
+    // ── Total game count: range check ───────────────────────────────────────────────
+    // Medium season (4 weeks, 3-game series): target 16 games per team.
+    // Even-sized conferences (4-team): all 3 opponents faced + 1 repeat = 12 conf games
+    //   + 4 OOC midweeks = exactly 16.
+    // Odd-sized conferences (5-team): one bye per round; 3-4 conf series (9-12 conf
+    //   games) + OOC top-up to reach 16. Top-up partners may go up to the ceiling of
+    //   targetGamesPerTeam+4 = 20. Floor of 13 ensures at minimum 3 conf series + 4
+    //   OOC per team (top-up failures for genuinely isolated teams).
     const teamGameCounts = new Map<string, number>();
     for (const t of teams) teamGameCounts.set(t.id, 0);
     for (const g of regularGames) {
@@ -298,8 +300,8 @@ test.describe("Full Season-to-Season Flow", () => {
     }
     for (const [teamId, count] of teamGameCounts) {
       expect(
-        count >= 12 && count <= 20,
-        `Team ${teamId}: regular season game count must be 12–20 (got ${count})`
+        count >= 13 && count <= 20,
+        `Team ${teamId}: regular season game count must be 13–20 (got ${count})`
       ).toBe(true);
     }
 

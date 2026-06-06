@@ -21239,13 +21239,12 @@ async function generateSchedule(leagueId: string, season: number = 1) {
       }
     }
 
-    // Shuffle before slicing so no team gets a systematic bye advantage when
-    // the conference has an odd team count (e.g. 5-team conf with 4 weeks).
-    if (weekRounds.length > numWeeks) {
-      weekRounds = shuffle([...weekRounds]).slice(0, numWeeks);
-    } else {
-      weekRounds = weekRounds.slice(0, numWeeks);
-    }
+    // Always take the first numWeeks rounds deterministically so the schedule
+    // is reproducible and consistent. The round-robin algorithm already
+    // distributes bye weeks evenly across all positions; no pre-slice shuffle
+    // is needed. Any remaining game-count deficit for odd-sized conferences
+    // is closed by the top-up OOC loop below.
+    weekRounds = weekRounds.slice(0, numWeeks);
     const shuffledOrder = shuffle(weekRounds.map((_, i) => i));
     let ordered = shuffledOrder.map(i => weekRounds[i]);
 
