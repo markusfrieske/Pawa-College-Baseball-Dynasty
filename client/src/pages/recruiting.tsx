@@ -780,17 +780,16 @@ export default function RecruitingPage() {
 
   const bulkScoutMutation = useMutation({
     mutationFn: async (recruitIds: string[]) => {
-      const results = await Promise.all(
-        recruitIds.map(recruitId => 
-          apiRequest("POST", `/api/leagues/${id}/recruiting/${recruitId}/scout`, {})
-        )
-      );
-      return results;
+      const result = await apiRequest("POST", `/api/leagues/${id}/recruiting/bulk-scout`, { recruitIds });
+      return result as { scouted: number; skipped: number };
     },
-    onSuccess: (_, recruitIds) => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["/api/leagues", id, "recruiting"] });
       setBulkSelected(new Set());
-      setActionResultModal({ title: "Bulk Scouting Complete", description: `Scouted ${recruitIds.length} recruits!`, type: "success", icon: "scout" });
+      const desc = result.skipped > 0
+        ? `Scouted ${result.scouted} recruit${result.scouted !== 1 ? "s" : ""}. ${result.skipped} skipped — not enough scouting points remaining.`
+        : `Scouted ${result.scouted} recruit${result.scouted !== 1 ? "s" : ""}!`;
+      setActionResultModal({ title: "Bulk Scouting Complete", description: desc, type: "success", icon: "scout" });
     },
     onError: (error: Error) => {
       setActionResultModal({ title: "Scouting Failed", description: parseErrorMessage(error), type: "error" });

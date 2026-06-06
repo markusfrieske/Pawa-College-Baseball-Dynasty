@@ -1913,6 +1913,163 @@ export async function registerRoutes(
     }
   });
 
+  // Bulk-scout endpoint — atomically consumes one action per recruit and runs
+  // each scout sequentially so the action counter is never double-read.
+  app.post("/api/leagues/:id/recruiting/bulk-scout", requireAuth, async (req, res) => {
+    try {
+      const { recruitIds } = req.body as { recruitIds: string[] };
+      if (!Array.isArray(recruitIds) || recruitIds.length === 0) {
+        return res.status(400).json({ message: "recruitIds must be a non-empty array" });
+      }
+
+      const leagueTeams = await storage.getTeamsByLeague(req.params.id);
+      const userId = req.session.userId;
+      const coaches = await storage.getCoachesByLeague(req.params.id);
+      const userCoach = coaches.find((c) => c.userId === userId);
+      const userTeam = leagueTeams.find((t) => t.id === userCoach?.teamId) || leagueTeams.find((t) => !t.isCpu);
+
+      if (!userTeam) {
+        return res.status(400).json({ message: "No team assigned" });
+      }
+
+      const maxScoutActions = getMaxScoutActions(userCoach);
+      const actionsUsed = userCoach?.scoutActionsUsed || 0;
+      const actionsRemaining = Math.max(0, maxScoutActions - actionsUsed);
+
+      if (actionsRemaining === 0) {
+        return res.status(400).json({ message: `You've used all ${maxScoutActions} scouting points this week`, scouted: 0, skipped: recruitIds.length });
+      }
+
+      // Cap the list to available actions — no race condition because we read once here
+      const allowedIds = recruitIds.slice(0, actionsRemaining);
+      const skippedCount = recruitIds.length - allowedIds.length;
+
+      const league = await storage.getLeague(req.params.id);
+
+      // Archetype/skill bonuses (same as single-scout endpoint)
+      const archetypeScoutEfficiency: Record<string, number> = {
+        "Scout Master": 15,
+        "Academic Dean": 5,
+        "Balanced": 0,
+        "Pure CEO": 0,
+        "Player's Coach": 0,
+        "Dealmaker": 0,
+        "Tactician": 3,
+        "Old School": 0,
+      };
+      const scoutSkillBonus = Math.floor(((userCoach?.scoutingSkill || 1) - 1) * 2);
+      const archEfficiency = archetypeScoutEfficiency[userCoach?.archetype] || 0;
+      const facilitiesScoutBonus = (userTeam.facilities || 5) >= 8 ? 5 : (userTeam.facilities || 5) >= 7 ? 3 : 0;
+
+      const narrowRange = (min: number, max: number, actual: number, pct: number, potentialNarrowMultiplier: number): { newMin: number; newMax: number } => {
+        const range = max - min;
+        const cappedPct = Math.min(pct, 60);
+        const effectivePct = Math.min(100, cappedPct * potentialNarrowMultiplier);
+        const narrowFactor = effectivePct / 100;
+        const newRange = Math.max(0, range * (1 - narrowFactor * 0.8));
+        const halfRange = Math.floor(newRange / 2);
+        let newMin = Math.max(1, Math.max(min, actual - halfRange));
+        let newMax = Math.min(max, actual + halfRange);
+        if (newMax - newMin < 150) {
+          let newMinAdj = Math.max(1, actual - 75);
+          let newMaxAdj = Math.min(999, newMinAdj + 150);
+          if (newMaxAdj - newMinAdj < 150) newMinAdj = Math.max(1, newMaxAdj - 150);
+          newMin = newMinAdj;
+          newMax = newMaxAdj;
+        }
+        return { newMin, newMax };
+      };
+
+      const narrowStarRange = (min: number, max: number, actual: number, pct: number): { newMin: number; newMax: number } => {
+        if (pct >= 75) return { newMin: actual, newMax: actual };
+        if (pct >= 50) return { newMin: Math.max(1, actual - 1), newMax: Math.min(5, actual + 1) };
+        if (pct >= 25) return { newMin: Math.max(1, actual - 2), newMax: Math.min(5, actual + 2) };
+        return { newMin: 1, newMax: 5 };
+      };
+
+      // Process each allowed recruit sequentially
+      const results = [];
+      for (const recruitId of allowedIds) {
+        const recruit = await storage.getRecruit(recruitId);
+        if (!recruit) continue;
+
+        const { revealBonus: philosophyRevealBonus, narrowBonus: philosophyNarrowBonus } = calculatePhilosophyScoutBonus(userCoach, recruit);
+        const revealAmount = 15 + Math.floor(Math.random() * 11) + scoutSkillBonus + archEfficiency + facilitiesScoutBonus + philosophyRevealBonus;
+        const potentialNarrowMultiplier = (ARCHETYPE_POTENTIAL_NARROWING[userCoach?.archetype] || 1.0) + philosophyNarrowBonus;
+
+        let interest = await storage.getRecruitingInterest(recruitId, userTeam.id);
+
+        if (!interest) {
+          const revealedAttrs = getAttributesToReveal(Math.min(revealAmount, 60));
+          const ovrRange = narrowRange(1, 999, recruit.overall, revealAmount, potentialNarrowMultiplier);
+          const starRange = narrowStarRange(1, 5, recruit.starRating, revealAmount);
+          const totalAbilities = (recruit.abilities as string[] || []).length;
+          const revealedAbilitiesCount = Math.min(totalAbilities, Math.floor(totalAbilities * (Math.min(revealAmount, 50) / 100)));
+          interest = await storage.createRecruitingInterest({
+            recruitId,
+            teamId: userTeam.id,
+            scoutPercentage: revealAmount,
+            revealedAttributes: revealedAttrs,
+            minOverall: ovrRange.newMin,
+            maxOverall: ovrRange.newMax,
+            minStar: starRange.newMin,
+            maxStar: starRange.newMax,
+            revealedAbilitiesCount,
+          });
+        } else {
+          const currentPct = interest.scoutPercentage || 0;
+          const newPct = Math.min(100, currentPct + revealAmount);
+          const currentAttrs = (interest.revealedAttributes as string[]) || [];
+          const effectiveNewPct = Math.min(newPct, 60);
+          const targetTotal = Math.floor(effectiveNewPct / 100 * SCOUT_ATTRS.length);
+          const needToReveal = Math.max(0, targetTotal - currentAttrs.length);
+          const additionalAttrs = getAttributesToRevealCount(needToReveal, currentAttrs);
+          const allAttrs = [...currentAttrs, ...additionalAttrs];
+          const ovrRange = narrowRange(interest.minOverall || 1, interest.maxOverall || 999, recruit.overall, newPct, potentialNarrowMultiplier);
+          const starRange = narrowStarRange(interest.minStar || 1, interest.maxStar || 5, recruit.starRating, newPct);
+          const totalAbilities = (recruit.abilities as string[] || []).length;
+          const revealedAbilitiesCount = Math.min(totalAbilities, Math.floor(totalAbilities * (Math.min(newPct, 50) / 100)));
+          interest = await storage.updateRecruitingInterest(interest.id, {
+            scoutPercentage: newPct,
+            revealedAttributes: allAttrs,
+            minOverall: ovrRange.newMin,
+            maxOverall: ovrRange.newMax,
+            minStar: starRange.newMin,
+            maxStar: starRange.newMax,
+            revealedAbilitiesCount,
+          });
+        }
+
+        if (league) {
+          await storage.createRecruitingAction({
+            recruitId,
+            teamId: userTeam.id,
+            leagueId: req.params.id,
+            week: league.currentWeek,
+            season: league.currentSeason,
+            actionType: "scout",
+            interestChange: 0,
+            notes: `Scouted to ${interest?.scoutPercentage || 0}%`,
+          });
+        }
+
+        results.push(interest);
+      }
+
+      // Increment scoutActionsUsed by the actual count processed — single atomic write
+      if (userCoach && results.length > 0) {
+        await storage.updateCoach(userCoach.id, {
+          scoutActionsUsed: actionsUsed + results.length,
+        });
+      }
+
+      res.json({ scouted: results.length, skipped: skippedCount });
+    } catch (error) {
+      console.error("Failed to bulk scout recruits:", error);
+      res.status(500).json({ message: "Failed to bulk scout recruits" });
+    }
+  });
+
   // Get recruiting actions log for a recruit
   app.get("/api/leagues/:id/recruiting/:recruitId/actions", requireAuth, async (req, res) => {
     try {
