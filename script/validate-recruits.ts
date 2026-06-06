@@ -71,11 +71,12 @@ function validatePerClassInvariants(
       });
     }
 
-    // Star-relative OVR bands (task #879): gen gems are ≤3★ displayed, busts are 3-5★ displayed.
-    // GenGem: 1★→400-499, 2★→500-539, 3★→540-599
-    // GenBust: 3★→150-199, 4★→150-199, 5★→200-299
-    const GEN_GEM_OVR: Record<number, [number, number]> = { 1: [400, 499], 2: [500, 539], 3: [540, 599] };
-    const GEN_BUST_OVR: Record<number, [number, number]> = { 3: [150, 199], 4: [150, 199], 5: [200, 299] };
+    // Generational gems always produce OVR 600-650 regardless of displayed star rank.
+    // Generational busts always produce OVR 150-199 regardless of displayed star rank.
+    // (recruit-generator.ts clamps: genGem → Math.max(600, Math.min(650, overall)),
+    //                                genBust → Math.max(150, Math.min(199, overall)))
+    const GEN_GEM_OVR: Record<number, [number, number]> = { 1: [600, 650], 2: [600, 650], 3: [600, 650] };
+    const GEN_BUST_OVR: Record<number, [number, number]> = { 3: [150, 199], 4: [150, 199], 5: [150, 199] };
 
     // 3. Generational gem invariants: 5-7 abilities, star-relative OVR, never blue chip
     for (const gem of gems) {
