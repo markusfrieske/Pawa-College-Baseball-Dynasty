@@ -3469,13 +3469,21 @@ function RecruitRow({
                   : ability?.tier === "red"  ? "rgba(239,68,68,0.12)"
                   : "rgba(156,163,175,0.12)";
                 return (
-                  <span
-                    key={idx}
-                    className="text-[8px] font-mono px-1 py-0.5 rounded leading-tight border"
-                    style={{ color: tierColor, background: tierBg, borderColor: `${tierColor}40` }}
-                  >
-                    {name}
-                  </span>
+                  <Tooltip key={idx}>
+                    <TooltipTrigger asChild>
+                      <span
+                        className="text-[8px] font-mono px-1 py-0.5 rounded leading-tight border cursor-default"
+                        style={{ color: tierColor, background: tierBg, borderColor: `${tierColor}40` }}
+                      >
+                        {name}
+                      </span>
+                    </TooltipTrigger>
+                    {ability?.description && (
+                      <TooltipContent side="top" className="max-w-[220px] text-center text-xs">
+                        {ability.description}
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
                 );
               });
             })()}
