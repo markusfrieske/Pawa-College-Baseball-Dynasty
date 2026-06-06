@@ -18,10 +18,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { getPotentialRangeLabel, getDevTraitGrade } from "@shared/potential";
 import { 
   ArrowLeft,
-  ArrowDownRight,
-  ArrowRight,
-  ArrowUpRight,
-  ArrowUp,
   Target, 
   Search, 
   Eye, 
@@ -89,6 +85,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { Recruit, RecruitingInterest, Team, LastSeasonStats } from "@shared/schema";
 import { getAbilityByName, S_GOLD_COMMON_KEY, S_GOLD_PITCHER_KEY } from "@shared/abilities";
 import { TRAJECTORY_REVEAL_THRESHOLD, ARCHETYPE_REVEAL_THRESHOLD } from "@shared/recruitThresholds";
+import { TrajectoryIcon } from "@/components/ui/trajectory-icon";
 import { PlayerPortrait } from "@/components/ui/player-portrait";
 import { PitchMixDial } from "@/components/ui/pitch-mix-dial";
 import { LetterGrade, getLetterGrade } from "@/components/ui/letter-grade";
@@ -2828,11 +2825,7 @@ function RecruitRow({
                   recruit.trajectory === 4 ? "bg-red-500/10 border-red-500/40 text-red-400" :
                   "bg-slate-500/10 border-slate-500/40 text-slate-400"
                 }`} data-testid={`badge-traj-row-${recruit.id}`}>
-                  {recruit.trajectory === 1 && <ArrowDownRight className="w-3 h-3" />}
-                  {recruit.trajectory === 2 && <ArrowRight className="w-3 h-3" />}
-                  {recruit.trajectory === 3 && <ArrowUpRight className="w-3 h-3" />}
-                  {recruit.trajectory === 4 && <ArrowUp className="w-3 h-3" />}
-                  <span className="font-mono text-[10px] leading-none">{recruit.trajectory}</span>
+                  <TrajectoryIcon trajectory={recruit.trajectory as 1|2|3|4} iconSize="w-3 h-3" textSize="text-[10px]" />
                 </span>
               )}
               <StarRating rating={recruit.starRank} size="sm" />
@@ -3368,18 +3361,7 @@ function RecruitRow({
           )}
           {/* Hitter trajectory chip — first in the strip */}
           {!isPitcherRecruit && scoutPct >= TRAJECTORY_REVEAL_THRESHOLD && recruit.trajectory != null && (
-            <div className={`flex items-center gap-0.5 ${
-              recruit.trajectory === 1 ? "text-emerald-400" :
-              recruit.trajectory === 3 ? "text-amber-400" :
-              recruit.trajectory === 4 ? "text-red-400" :
-              "text-slate-400"
-            }`}>
-              {recruit.trajectory === 1 && <ArrowDownRight className="w-2.5 h-2.5" />}
-              {recruit.trajectory === 2 && <ArrowRight className="w-2.5 h-2.5" />}
-              {recruit.trajectory === 3 && <ArrowUpRight className="w-2.5 h-2.5" />}
-              {recruit.trajectory === 4 && <ArrowUp className="w-2.5 h-2.5" />}
-              <span className="font-mono text-[9px] leading-none">{recruit.trajectory}</span>
-            </div>
+            <TrajectoryIcon trajectory={recruit.trajectory as 1|2|3|4} iconSize="w-2.5 h-2.5" textSize="text-[9px]" />
           )}
           {/* Attribute letter grades — always shown; lock for 100%-scouted locked attrs; "?" for unknown */}
           {previewAttrFields.map(({ label, key, val }) => {
@@ -3990,11 +3972,7 @@ function RecruitDetailModal({
                   recruit.trajectory === 4 ? "border-red-500/50 text-red-400" :
                   "border-slate-500/50 text-slate-400"
                 }`} data-testid="badge-detail-traj">
-                  {recruit.trajectory === 1 && <ArrowDownRight className="w-3 h-3" />}
-                  {recruit.trajectory === 2 && <ArrowRight className="w-3 h-3" />}
-                  {recruit.trajectory === 3 && <ArrowUpRight className="w-3 h-3" />}
-                  {recruit.trajectory === 4 && <ArrowUp className="w-3 h-3" />}
-                  <span className="font-mono leading-none">{recruit.trajectory}</span>
+                  <TrajectoryIcon trajectory={recruit.trajectory as 1|2|3|4} iconSize="w-3 h-3" textSize="text-[9px]" />
                 </Badge>
               )}
             </div>
@@ -4564,11 +4542,7 @@ function RecruitDetailModal({
                   recruit.trajectory === 4 ? "border-red-500/50 text-red-400" :
                   "border-slate-500/50 text-slate-400"
                 }`} data-testid="badge-detail-traj">
-                  {recruit.trajectory === 1 && <ArrowDownRight className="w-3 h-3" />}
-                  {recruit.trajectory === 2 && <ArrowRight className="w-3 h-3" />}
-                  {recruit.trajectory === 3 && <ArrowUpRight className="w-3 h-3" />}
-                  {recruit.trajectory === 4 && <ArrowUp className="w-3 h-3" />}
-                  <span className="font-mono leading-none">{recruit.trajectory}</span>
+                  <TrajectoryIcon trajectory={recruit.trajectory as 1|2|3|4} iconSize="w-3 h-3" textSize="text-[9px]" />
                 </Badge>
               )}
             </div>
@@ -5207,18 +5181,7 @@ function CompareModal({
                     <div>
                       <div className="flex justify-between text-xs mb-1">
                         <span className="text-muted-foreground">Trajectory</span>
-                        <span className={`flex items-center gap-0.5 ${
-                          recruit.trajectory === 1 ? "text-emerald-400" :
-                          recruit.trajectory === 3 ? "text-amber-400" :
-                          recruit.trajectory === 4 ? "text-red-400" :
-                          "text-slate-400"
-                        }`}>
-                          {recruit.trajectory === 1 && <ArrowDownRight className="w-3 h-3" />}
-                          {recruit.trajectory === 2 && <ArrowRight className="w-3 h-3" />}
-                          {recruit.trajectory === 3 && <ArrowUpRight className="w-3 h-3" />}
-                          {recruit.trajectory === 4 && <ArrowUp className="w-3 h-3" />}
-                          <span className="font-mono">{recruit.trajectory}</span>
-                        </span>
+                        <TrajectoryIcon trajectory={recruit.trajectory as 1|2|3|4} iconSize="w-3 h-3" />
                       </div>
                     </div>
                   )}

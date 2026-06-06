@@ -1,7 +1,7 @@
 import { ArrowDownRight, ArrowRight, ArrowUpRight, ArrowUp } from "lucide-react";
 
 interface TrajectoryIconProps {
-  trajectory: number;
+  trajectory: 1 | 2 | 3 | 4;
   iconSize?: string;
   textSize?: string;
 }
