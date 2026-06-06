@@ -2523,35 +2523,41 @@ function RecruitRow({
       : ((recruit.interest?.revealedAttributes as string[] | undefined) || [])
   );
   const isAttrRevealed = (key: string) => !sdAttrSet.has(key) && (isFullyRevealed || revealedAttrSet.has(key));
+  // Primary attrs — always rendered first in the strip
   const previewAttrFields = isPitcherRecruit
     ? [
-        { label: "VEL",  key: "velocity",   val: recruit.velocity },
-        { label: "CTL",  key: "control",    val: recruit.control },
-        { label: "STM",  key: "stamina",    val: recruit.stamina },
-        { label: "FLD",  key: "fielding",   val: recruit.fielding },
-        { label: "RISP", key: "wRISP",      val: recruit.wRISP },
-        { label: "LFT",  key: "vsLefty",    val: recruit.vsLefty },
-        { label: "PSE",  key: "poise",      val: recruit.poise },
-        { label: "GRIT", key: "grit",       val: recruit.grit },
-        { label: "HTR",  key: "heater",     val: recruit.heater },
-        { label: "AGL",  key: "agile",      val: recruit.agile },
-        { label: "RCV",  key: "recovery",   val: recruit.recovery },
+        { label: "VEL", key: "velocity",  val: recruit.velocity },
+        { label: "CTL", key: "control",   val: recruit.control },
+        { label: "STM", key: "stamina",   val: recruit.stamina },
+        { label: "FLD", key: "fielding",  val: recruit.fielding },
       ]
     : [
-        { label: "HIT",  key: "hitForAvg",       val: recruit.hitForAvg },
-        { label: "PWR",  key: "power",            val: recruit.power },
-        { label: "SPD",  key: "speed",            val: recruit.speed },
-        { label: "ARM",  key: "arm",              val: recruit.arm },
-        { label: "FLD",  key: "fielding",         val: recruit.fielding },
-        { label: "ERR",  key: "errorResistance",  val: recruit.errorResistance },
-        { label: "CLU",  key: "clutch",           val: recruit.clutch },
-        { label: "LHP",  key: "vsLHP",            val: recruit.vsLHP },
-        { label: "GRIT", key: "grit",             val: recruit.grit },
-        { label: "STL",  key: "stealing",         val: recruit.stealing },
-        { label: "RUN",  key: "running",          val: recruit.running },
-        { label: "THW",  key: "throwing",         val: recruit.throwing },
-        { label: "RCV",  key: "recovery",         val: recruit.recovery },
+        { label: "HIT",  key: "hitForAvg",      val: recruit.hitForAvg },
+        { label: "PWR",  key: "power",           val: recruit.power },
+        { label: "SPD",  key: "speed",           val: recruit.speed },
+        { label: "ARM",  key: "arm",             val: recruit.arm },
+        { label: "FLD",  key: "fielding",        val: recruit.fielding },
+        { label: "ERR",  key: "errorResistance", val: recruit.errorResistance },
+        { label: "CLU",  key: "clutch",          val: recruit.clutch },
+        { label: "LHP",  key: "vsLHP",           val: recruit.vsLHP },
+        { label: "GRIT", key: "grit",            val: recruit.grit },
+        { label: "STL",  key: "stealing",        val: recruit.stealing },
+        { label: "RUN",  key: "running",         val: recruit.running },
+        { label: "THW",  key: "throwing",        val: recruit.throwing },
+        { label: "RCV",  key: "recovery",        val: recruit.recovery },
       ];
+  // Pitcher common abilities — rendered AFTER pitch-mix chips
+  const pitcherCommonFields = isPitcherRecruit
+    ? [
+        { label: "RISP", key: "wRISP",    val: recruit.wRISP },
+        { label: "LFT",  key: "vsLefty",  val: recruit.vsLefty },
+        { label: "PSE",  key: "poise",    val: recruit.poise },
+        { label: "GRIT", key: "grit",     val: recruit.grit },
+        { label: "HTR",  key: "heater",   val: recruit.heater },
+        { label: "AGL",  key: "agile",    val: recruit.agile },
+        { label: "RCV",  key: "recovery", val: recruit.recovery },
+      ]
+    : [];
   const ATTR_GRADE_COLORS: Record<string, string> = {
     s: "#fda4d5", a: "#ef4444", b: "#ef4444", c: "#f97316",
     d: "#eab308", f: "#60a5fa", g: "#9ca3af",
@@ -3390,12 +3396,12 @@ function RecruitRow({
               </div>
             );
           })}
-          {/* Pitcher pitch mix chips */}
+          {/* Pitcher pitch mix chips (with counts) — rendered between primary attrs and common abilities */}
           {isPitcherRecruit && (scoutPct > 0 || isFullyRevealed) && (() => {
             const pitchFields = [
               ["pitchFB", "FB"], ["pitch2S", "2S"], ["pitchSL", "SL"], ["pitchCB", "CB"],
               ["pitchCH", "CH"], ["pitchCT", "CT"], ["pitchSNK", "SNK"], ["pitchSPL", "SPL"],
-              ["pitchSWP", "SWP"], ["pitchKN", "KN"],
+              ["pitchSHU", "SHU"], ["pitchSWP", "SWP"], ["pitchKN", "KN"],
             ] as const;
             const active = pitchFields.filter(([k]) => {
               const v = (recruit as any)[k];
@@ -3405,14 +3411,32 @@ function RecruitRow({
             return (
               <>
                 <div className="w-px h-3 bg-border/40 self-center" />
-                {active.map(([, label]) => (
+                {active.map(([k, label]) => (
                   <span key={label} className="text-[8px] font-mono px-1 py-0.5 rounded bg-muted/40 border border-border/50 text-muted-foreground/70 leading-tight">
-                    {label}
+                    {label}{(recruit as any)[k]}
                   </span>
                 ))}
               </>
             );
           })()}
+          {/* Pitcher common ability grades — rendered after pitch mix chips */}
+          {pitcherCommonFields.map(({ label, key, val }) => {
+            const revealed = isAttrRevealed(key);
+            const grade = (revealed && val != null) ? getLetterGrade(val) : null;
+            const isSigningDayLocked = !revealed && sdAttrSet.has(key) && scoutPct >= 100;
+            return (
+              <div key={key} className="flex items-center gap-0.5">
+                <span className="text-[8px] text-muted-foreground/60 font-mono">{label}</span>
+                {isSigningDayLocked ? (
+                  <Lock className="w-2.5 h-2.5 text-gold/50" />
+                ) : (
+                  <span className="font-pixel text-[9px] font-bold" style={{ color: grade ? (ATTR_GRADE_COLORS[grade.tier] || "#9ca3af") : "#374151" }}>
+                    {grade ? grade.letter : "?"}
+                  </span>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
