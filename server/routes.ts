@@ -1718,6 +1718,8 @@ export async function registerRoutes(
         seniorsGraduating: seniorsCount,
         premiumActionsUsed,
         weeklyActionsUsed,
+        weeklyActionsWeek: league.currentWeek,
+        weeklyActionsSeason: league.currentSeason,
         recruitPointCosts,
         seasonVisitCount,
         autoPilotPendingAlert: (coach as any)?.autoPilotPendingAlert ?? [],

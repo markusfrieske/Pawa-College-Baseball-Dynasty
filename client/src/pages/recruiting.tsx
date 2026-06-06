@@ -164,6 +164,8 @@ interface RecruitingData {
   seniorsGraduating: number;
   premiumActionsUsed: Record<string, string[]>;
   weeklyActionsUsed: Record<string, string[]>;
+  weeklyActionsWeek?: number;
+  weeklyActionsSeason?: number;
   seasonVisitCount: { total: number; campusVisits: number; hcVisits: number };
   autoPilotPendingAlert: AutoPilotAlertEntry[];
 }
@@ -498,6 +500,12 @@ export default function RecruitingPage() {
     localStorage.setItem(`decommit-dismissed-${id}`, JSON.stringify([...updated]));
   };
   const currentWeek = leagueData?.currentWeek ?? 1;
+  const currentSeason = leagueData?.currentSeason ?? 1;
+  // Guard: if the cached weeklyActionsUsed was built for a different week/season, treat it as empty
+  // so phone/email buttons are not falsely locked after a week advance.
+  const weekDataFresh =
+    data?.weeklyActionsWeek === currentWeek &&
+    data?.weeklyActionsSeason === currentSeason;
   const visibleDecommits = (decommitAlerts ?? []).filter(e =>
     !dismissedDecommits.has(e.id) && e.week >= currentWeek - 1
   );
@@ -2111,8 +2119,8 @@ export default function RecruitingPage() {
               isOffering={offerMutation.isPending}
               hasVisited={data?.premiumActionsUsed?.[recruit.id]?.includes("visit") ?? false}
               hasHeadCoachVisited={data?.premiumActionsUsed?.[recruit.id]?.includes("head_coach_visit") ?? false}
-              phonedThisWeek={data?.weeklyActionsUsed?.[recruit.id]?.includes("phone") ?? false}
-              emailedThisWeek={data?.weeklyActionsUsed?.[recruit.id]?.includes("email") ?? false}
+              phonedThisWeek={weekDataFresh && (data?.weeklyActionsUsed?.[recruit.id]?.includes("phone") ?? false)}
+              emailedThisWeek={weekDataFresh && (data?.weeklyActionsUsed?.[recruit.id]?.includes("email") ?? false)}
               isSavingNotes={notesMutation.isPending}
               isSavingBoardRank={boardRankMutation.isPending}
               isSelected={compareRecruits.some(r => r.id === recruit.id)}
