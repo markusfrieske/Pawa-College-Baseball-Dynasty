@@ -1984,7 +1984,7 @@ function RecruitAttributesSection({
   
   // Default field orders for legacy recruits without scoutingOrder
   const defaultFielderOrder = ['hitForAvg', 'power', 'speed', 'arm', 'fielding', 'errorResistance', 'clutch', 'vsLHP', 'grit', 'stealing', 'running', 'throwing', 'recovery'];
-  const defaultPitcherOrder = ['velocity', 'control', 'stamina', 'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL', 'wRISP', 'vsLefty', 'poise', 'grit', 'heater', 'agile', 'recovery'];
+  const defaultPitcherOrder = ['velocity', 'control', 'stamina', 'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL', 'pitchFK', 'pitchSFF', 'pitchSHU', 'wRISP', 'vsLefty', 'poise', 'grit', 'heater', 'agile', 'recovery'];
   
   // Use stored scouting order or fall back to default order
   const effectiveOrder = scoutingOrder.length > 0 
@@ -2078,7 +2078,7 @@ function RecruitCommonAbilitiesSection({
   
   // Default field orders for legacy recruits without scoutingOrder
   const defaultFielderOrder = ['hitForAvg', 'power', 'speed', 'arm', 'fielding', 'errorResistance', 'clutch', 'vsLHP', 'grit', 'stealing', 'running', 'throwing', 'recovery', 'catcherAbility'];
-  const defaultPitcherOrder = ['velocity', 'control', 'stamina', 'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL', 'wRISP', 'vsLefty', 'poise', 'grit', 'heater', 'agile', 'recovery'];
+  const defaultPitcherOrder = ['velocity', 'control', 'stamina', 'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL', 'pitchFK', 'pitchSFF', 'pitchSHU', 'wRISP', 'vsLefty', 'poise', 'grit', 'heater', 'agile', 'recovery'];
   
   // Use stored scouting order or fall back to default order
   const effectiveOrder = scoutingOrder.length > 0 
@@ -2159,7 +2159,7 @@ function RecruitPitchMixSection({
   const scoutingOrder = (recruit.scoutingOrder as string[]) || [];
   
   // Default pitcher order for legacy recruits without scoutingOrder
-  const defaultPitcherOrder = ['velocity', 'control', 'stamina', 'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL', 'wRISP', 'vsLefty', 'poise', 'grit', 'heater', 'agile', 'recovery'];
+  const defaultPitcherOrder = ['velocity', 'control', 'stamina', 'pitchFB', 'pitch2S', 'pitchSL', 'pitchCB', 'pitchCH', 'pitchCT', 'pitchSNK', 'pitchSPL', 'pitchFK', 'pitchSFF', 'pitchSHU', 'wRISP', 'vsLefty', 'poise', 'grit', 'heater', 'agile', 'recovery'];
   
   // Use stored scouting order or fall back to default order
   const effectiveOrder = scoutingOrder.length > 0 ? scoutingOrder : defaultPitcherOrder;
