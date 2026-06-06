@@ -50,6 +50,13 @@
       "when": 1747528000000,
       "tag": "0006_add_dev_traits_and_archetypes",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1780706911304,
+      "tag": "0007_add_featured_team_name",
+      "breakpoints": true
     }
   ]
 }

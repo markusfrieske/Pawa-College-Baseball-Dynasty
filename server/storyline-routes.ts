@@ -985,24 +985,25 @@ async function generateWeeklyStorylineEvents(leagueId: string, season: number, w
         }
       }
 
-      // Look up the team most interested in this recruit for template interpolation
-      let featuredTeamName: string | undefined;
-      try {
-        const interests = await storage.getRecruitingInterestsByRecruit(recruit.id);
-        if (interests.length > 0) {
-          const top = interests.reduce((best, cur) => (cur.interestLevel ?? 0) > (best.interestLevel ?? 0) ? cur : best);
-          if (top.teamId) {
-            const team = await storage.getTeam(top.teamId);
-            if (team?.name) featuredTeamName = team.name;
+      // Prefer already-resolved featuredTeamName; only re-resolve when missing (avoids repeated DB queries)
+      let featuredTeamName: string | undefined = sl.featuredTeamName ?? undefined;
+      if (!featuredTeamName) {
+        try {
+          const interests = await storage.getRecruitingInterestsByRecruit(recruit.id);
+          if (interests.length > 0) {
+            const top = interests.reduce((best, cur) => (cur.interestLevel ?? 0) > (best.interestLevel ?? 0) ? cur : best);
+            if (top.teamId) {
+              const team = await storage.getTeam(top.teamId);
+              if (team?.name) featuredTeamName = team.name;
+            }
           }
+        } catch (e) {
+          // non-fatal — fall back to generic "the program"
         }
-      } catch (e) {
-        // non-fatal — fall back to generic "the program"
-      }
-
-      // Persist featuredTeamName so the card can display it
-      if (featuredTeamName && sl.featuredTeamName !== featuredTeamName) {
-        await storage.updateStorylineRecruit(sl.id, { featuredTeamName });
+        // Persist once so subsequent generations skip the lookup
+        if (featuredTeamName) {
+          await storage.updateStorylineRecruit(sl.id, { featuredTeamName });
+        }
       }
 
       const eventData = generateStorylineEvent(

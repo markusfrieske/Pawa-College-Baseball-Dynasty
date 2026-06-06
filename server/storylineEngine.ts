@@ -706,10 +706,10 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
       {
         id: "rr_1",
         scenePrompt: "Pixel art scene: recruit walking through an unfamiliar campus at dawn, rival program's gear half-hidden under a jacket, three private visit stickers in different school colors in his bag, a hand-written note to himself visible: 'Don't tell anyone yet,' rival program's banners visible through a campus window in the distance.",
-        eventText: "{name} grew up in your rival's city. Wore their gear as a kid. His father played there for three years. He has taken three secret private visits to {team} — told no one, not his coach, not his parents, not the rival's staff. Then your rival's lead recruiter called you: 'We know about the visits. We will make sure he doesn't come.' It wasn't a question.",
+        eventText: "{name} grew up in a rival program's city. Wore their gear as a kid. His father played there for three years. He has taken three secret private visits to {team} — told no one, not his coach, not his parents, not the rival's staff. Then the rival's lead recruiter called: 'We know about the visits. We will make sure he doesn't come.' It wasn't a question.",
         choiceA: "Call {name} immediately — tell him what just happened and ask what he actually wants", choiceAOutcome: "The honesty about the call, delivered directly to him, gives him information no one else would share. It changes the dynamic.", choiceAWeights: W.bold_pos,
         choiceB: "Say nothing about the call — let the relationship develop without the political noise", choiceBOutcome: "Keeping the conversation about baseball and not the rivalry builds a foundation that isn't based on competition.", choiceBWeights: W.safe_pos,
-        choiceC: "Connect him with a player who came from rival territory and thrived here", choiceCOutcome: "The proof that the transition is survivable — told by someone who did it — is more powerful than anything you say.", choiceCWeights: W.neutral_up,
+        choiceC: "Connect him with a player who came from rival territory and thrived at {team}", choiceCOutcome: "The proof that the transition is survivable — told by someone who did it — is more powerful than anything you say.", choiceCWeights: W.neutral_up,
         choiceD: "Lean into it — make him feel like landing here would mean something historic", choiceDOutcome: "The 'be a legend' narrative either ignites him or adds pressure he didn't want. He's already carrying enough.", choiceDWeights: W.high_risk,
       },
       {
@@ -1004,7 +1004,7 @@ export const ARCHETYPE_DEFS: Record<Archetype, ArchetypeDefinition> = {
       },
       {
         id: "coc_3",
-        scenePrompt: "Pixel art scene: video call at night — recruit at his desk, old coach visible on a laptop screen behind him with a baseball from their first season hanging on the wall, the recruit holding his phone showing a text with {team}'s logo — asking his old mentor for the last guidance he'll ever need to ask for.",
+        scenePrompt: "Pixel art scene: video call at night — recruit at his desk, old coach visible on a laptop screen behind him with a baseball from their first season hanging on the wall, the recruit holding his phone showing a text with a college program's logo — asking his old mentor for the last guidance he'll ever need to ask for.",
         eventText: "{name} called his old coach before making his decision. The coach told you afterward — unprompted, in a message you weren't expecting: 'He asked me which program would take care of him the way I did. I told him yours. I hope that's true.' There's a weight to that sentence that doesn't leave easily. It's also the clearest endorsement any mentor has ever given you.",
         choiceA: "Call the retired coach and thank him — and tell him exactly how you plan to honor his investment", choiceAOutcome: "The coach tells {name} about the call. {name} says: 'That's the only confirmation I needed.' He commits that evening.", choiceAWeights: W.bold_pos,
         choiceB: "Call {name} and acknowledge what his coach said — make the relationship explicit", choiceBOutcome: "Naming the trust that's been passed to you is the most honest thing you can do with it. He hears it as a commitment, not a pitch.", choiceBWeights: W.safe_pos,
