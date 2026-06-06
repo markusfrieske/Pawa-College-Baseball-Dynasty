@@ -7287,10 +7287,10 @@ export async function registerRoutes(
       away: enrichBoxData(awayBoxData, awayErrors, awayScore, awayHits),
     };
 
+    // Save score + boxScore first, but defer isComplete until after stats are written
     await storage.updateGame(game.id, {
       homeScore,
       awayScore,
-      isComplete: true,
       isManuallyReported: true,
       reportedByUserId: report.reporterUserId,
       boxScore: JSON.stringify(boxScore),
@@ -7308,8 +7308,8 @@ export async function registerRoutes(
       await accumulatePlayerStats(leagueId, game.season, game.homeTeamId, enrichedHome, reportedHomeWon);
       await accumulatePlayerStats(leagueId, game.season, game.awayTeamId, enrichedAway, !reportedHomeWon);
 
-      // Record pitcher rest data for both teams
-      await updatePitcherRestFromBox(homeBoxData, awayBoxData, game);
+      // Record pitcher rest data for both teams; use league's current week when game.week is null
+      await updatePitcherRestFromBox(homeBoxData, awayBoxData, game, league.currentWeek);
 
       const leagueTeams = await storage.getTeamsByLeague(leagueId);
       const homeTeam = leagueTeams.find(t => t.id === game.homeTeamId);
@@ -7329,6 +7329,8 @@ export async function registerRoutes(
         week: game.week,
       });
     }
+    // Mark complete only after stats + standings + pitcher rest are confirmed
+    await storage.updateGame(game.id, { isComplete: true });
   }
 
   // Helper: update pitcher rest fields from a finalized box score (shared by all sim paths)
@@ -7336,9 +7338,10 @@ export async function registerRoutes(
     homeBoxData: any,
     awayBoxData: any,
     game: { gameType?: string | null; week?: number | null },
+    leagueCurrentWeek?: number,
   ) {
     const gameDay = game.gameType ? (GAME_TYPE_TO_DAY[game.gameType] ?? "midweek") : "midweek";
-    const gameWeek = game.week ?? 1;
+    const gameWeek = game.week ?? leagueCurrentWeek ?? 1;
     if (!gameDay) return;
 
     const updates: Array<{ id: string; lastPitchedOuts: number; lastPitchedWeek: number; lastPitchedDay: string }> = [];
@@ -11898,13 +11901,36 @@ export async function registerRoutes(
   }
 
   async function accumulatePlayerStats(leagueId: string, season: number, teamId: string, boxData: any, teamWon?: boolean) {
+    // Resolve fake_ IDs by matching player name against real DB roster for this team
+    const hasFakeIds = (boxData.batting || []).some((b: any) => b.playerId?.startsWith("fake_")) ||
+                       (boxData.pitching || []).some((p: any) => p.playerId?.startsWith("fake_"));
+    if (hasFakeIds) {
+      const teamPlayers = await storage.getPlayersByTeam(teamId);
+      const nameToId = new Map<string, string>();
+      for (const pl of teamPlayers) {
+        nameToId.set(`${pl.firstName} ${pl.lastName}`.toLowerCase(), pl.id);
+      }
+      const resolve = (entry: any): any => {
+        if (!entry.playerId?.startsWith("fake_")) return entry;
+        const realId = nameToId.get((entry.name || "").toLowerCase());
+        if (realId) return { ...entry, playerId: realId };
+        console.warn(`[accumulatePlayerStats] Could not resolve fake_ ID for "${entry.name}" on team ${teamId} — skipping`);
+        return { ...entry, playerId: null };
+      };
+      boxData = {
+        ...boxData,
+        batting: (boxData.batting || []).map(resolve),
+        pitching: (boxData.pitching || []).map(resolve),
+      };
+    }
+
     const playerStatsMap = new Map<string, InsertPlayerSeasonStats>();
 
     if (boxData.batting) {
       for (const b of boxData.batting) {
         if (!b.playerId) continue;
         if (b.playerId.startsWith("fake_")) {
-          console.warn(`[accumulatePlayerStats] Skipping fake_ batter ID: ${b.playerId}`);
+          console.warn(`[accumulatePlayerStats] Skipping unresolved fake_ batter ID: ${b.playerId}`);
           continue;
         }
         playerStatsMap.set(b.playerId, {
@@ -11943,22 +11969,30 @@ export async function registerRoutes(
       }
     }
 
-    // Determine winning/losing pitcher (pitcher with most IP for this team)
+    // Determine winning/losing pitcher using pitcher-of-record logic:
+    // Winning pitcher = last pitcher on the winning team (they preserved the lead)
+    // Losing pitcher = pitcher with the most ER on the losing team (most likely surrendered lead);
+    //   fallback to the first pitcher (starter) if no one has ER
     let winningPitcherId: string | null = null;
     let losingPitcherId: string | null = null;
     if (teamWon !== undefined && Array.isArray(boxData.pitching)) {
-      let maxOuts = -1;
-      for (const p of boxData.pitching) {
-        if (!p.playerId || p.playerId.startsWith("fake_")) continue;
-        const ipParts = String(p.ip).split(".");
-        const fullInnings = parseInt(ipParts[0]) || 0;
-        const partialOuts = Math.min(parseInt(ipParts[1]) || 0, 2);
-        const outs = fullInnings * 3 + partialOuts;
-        if (outs > maxOuts) {
-          maxOuts = outs;
-          if (teamWon) winningPitcherId = p.playerId;
-          else losingPitcherId = p.playerId;
+      if (teamWon) {
+        // Last pitcher in the array = pitcher who finished / preserved the win
+        for (const p of boxData.pitching) {
+          if (!p.playerId || p.playerId.startsWith("fake_")) continue;
+          winningPitcherId = p.playerId;
         }
+      } else {
+        // Pitcher who allowed most ER = most likely surrendered the lead
+        let maxEr = -1;
+        let firstPitcherId: string | null = null;
+        for (const p of boxData.pitching) {
+          if (!p.playerId || p.playerId.startsWith("fake_")) continue;
+          if (firstPitcherId === null) firstPitcherId = p.playerId;
+          const er = p.er || 0;
+          if (er > maxEr) { maxEr = er; losingPitcherId = p.playerId; }
+        }
+        if (losingPitcherId === null) losingPitcherId = firstPitcherId;
       }
     }
 
