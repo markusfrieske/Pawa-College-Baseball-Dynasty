@@ -21196,6 +21196,11 @@ async function generateSchedule(leagueId: string, season: number = 1) {
   const teamGameCounts = new Map<string, number>();
   for (const t of leagueTeams) teamGameCounts.set(t.id, 0);
 
+  // Track per-team, per-week midweek OOC game counts so the top-up loop can
+  // distribute extra games to the lightest weeks instead of stacking on the last week.
+  const teamWeekMidweekCounts = new Map<string, Map<number, number>>();
+  for (const t of leagueTeams) teamWeekMidweekCounts.set(t.id, new Map<number, number>());
+
   let totalGames = 0;
   for (let week = 0; week < numWeeks; week++) {
     const weekConfSeries: Matchup[] = [];
@@ -21327,10 +21332,11 @@ async function generateSchedule(leagueId: string, season: number = 1) {
     }
 
     for (const ooc of oocPairs) {
+      const wk = week + 1;
       await storage.createGame({
         leagueId,
         season,
-        week: week + 1,
+        week: wk,
         homeTeamId: ooc.home.id,
         awayTeamId: ooc.away.id,
         phase: "regular",
@@ -21340,6 +21346,10 @@ async function generateSchedule(leagueId: string, season: number = 1) {
       totalGames++;
       teamGameCounts.set(ooc.home.id, (teamGameCounts.get(ooc.home.id) ?? 0) + 1);
       teamGameCounts.set(ooc.away.id, (teamGameCounts.get(ooc.away.id) ?? 0) + 1);
+      const hMw = teamWeekMidweekCounts.get(ooc.home.id)!;
+      hMw.set(wk, (hMw.get(wk) ?? 0) + 1);
+      const aMw = teamWeekMidweekCounts.get(ooc.away.id)!;
+      aMw.set(wk, (aMw.get(wk) ?? 0) + 1);
     }
   }
 
@@ -21371,13 +21381,33 @@ async function generateSchedule(leagueId: string, season: number = 1) {
       console.error(`[schedule-topup] No cross-conf partner available for ${t1.name} (${teamGameCounts.get(t1.id)} games, target ${targetGamesPerTeam}, ceiling ${topupCeiling}); stopping top-up`);
       break;
     }
+    // Find the week where both teams have the fewest midweek OOC games.
+    // Prefer weeks where neither team has any midweek game yet (conf-bye weeks);
+    // fall back to whichever week has the lowest combined count.
+    // This prevents all top-up games from stacking on the last week.
+    const mw1 = teamWeekMidweekCounts.get(t1.id)!;
+    const mw2 = teamWeekMidweekCounts.get(t2.id)!;
+    let topupWeek = numWeeks;
+    let bestMax = Infinity;
+    let bestSum = Infinity;
+    for (let w = 1; w <= numWeeks; w++) {
+      const c1 = mw1.get(w) ?? 0;
+      const c2 = mw2.get(w) ?? 0;
+      const wMax = Math.max(c1, c2);
+      const wSum = c1 + c2;
+      if (wMax < bestMax || (wMax === bestMax && wSum < bestSum)) {
+        bestMax = wMax; bestSum = wSum; topupWeek = w;
+      }
+    }
     const isHome = Math.random() > 0.5;
     await storage.createGame({
-      leagueId, season, week: numWeeks,
+      leagueId, season, week: topupWeek,
       homeTeamId: isHome ? t1.id : t2.id,
       awayTeamId: isHome ? t2.id : t1.id,
       phase: "regular", isConference: false, gameType: "midweek",
     });
+    mw1.set(topupWeek, (mw1.get(topupWeek) ?? 0) + 1);
+    mw2.set(topupWeek, (mw2.get(topupWeek) ?? 0) + 1);
     teamGameCounts.set(t1.id, (teamGameCounts.get(t1.id) ?? 0) + 1);
     teamGameCounts.set(t2.id, (teamGameCounts.get(t2.id) ?? 0) + 1);
     totalGames++;
