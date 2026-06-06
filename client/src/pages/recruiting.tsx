@@ -3916,6 +3916,18 @@ function RecruitDetailModal({
               <p className="text-xs text-muted-foreground">Pos Rank</p>
             </div>
           </div>
+          {recruit.stage !== "signed" && (
+            <RetroButton
+              variant={recruit.interest?.isTargeted ? "primary" : "outline"}
+              className="w-full"
+              onClick={onTarget}
+              disabled={isTargeting}
+              data-testid="button-target-modal-mobile"
+            >
+              <Target className="w-4 h-4 mr-2" />
+              {isTargeting ? "Updating..." : recruit.interest?.isTargeted ? "Untarget Player" : "Target Player"}
+            </RetroButton>
+          )}
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
             <div className="flex items-center gap-2 min-w-0">
@@ -4474,6 +4486,18 @@ function RecruitDetailModal({
               <p className="text-xs text-muted-foreground">Pos Rank</p>
             </div>
           </div>
+          {recruit.stage !== "signed" && (
+            <RetroButton
+              variant={recruit.interest?.isTargeted ? "primary" : "outline"}
+              className="w-full"
+              onClick={onTarget}
+              disabled={isTargeting}
+              data-testid="button-target-modal-desktop"
+            >
+              <Target className="w-4 h-4 mr-2" />
+              {isTargeting ? "Updating..." : recruit.interest?.isTargeted ? "Untarget Player" : "Target Player"}
+            </RetroButton>
+          )}
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
             <div className="flex items-center gap-2 min-w-0">
