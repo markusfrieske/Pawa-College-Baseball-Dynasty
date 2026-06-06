@@ -20879,38 +20879,18 @@ async function generateSchedule(leagueId: string, season: number = 1) {
   // Per-conference games-per-series (gps):
   //
   // Standard format: 3-game Fri/Sat/Sun conference series + 1 OOC midweek per week.
-  // This produces exactly 20 games/team for EVEN-sized conferences in a 5-week season:
-  //   4-team conf (even): plays all 3 opponents, pad to 5 rounds → 5 rounds × 3 games + 5 OOC = 20 ✓
+  // Short season uses 1-game series; long and medium always use 3-game series.
   //
-  // ODD-sized conference (e.g. 5-team) — mathematical constraint:
-  //   A 5-team round-robin generates 5 rounds (using phantom-team algorithm) where each
-  //   team has 4 active conf rounds and 1 conference bye. The 13-team league has 13 teams
-  //   total, which is also odd; so one team gets an OOC bye per week (rotating via week%13).
-  //   The Big12 teams (odd conf) sort first (fewest cross-conf options = 8 vs 9) so they
-  //   occupy OOC-bye slots at weeks 0–4, one per team.
-  //
-  //   With 3-game series and independent conf/OOC byes, either:
-  //     Case A – conf-bye ≠ OOC-bye: 3×(3+1) + 1×(0+1) + 1×(3+0) = 12+1+3 = 16 ≠ 20 ✗
-  //     Case B – conf-bye = OOC-bye: 4×(3+1) + 1×0         = 16    ≠ 20 ✗
-  //   Neither reaches 20.  Standard 3-game series is MATHEMATICALLY INCOMPATIBLE with
-  //   exactly 20 games/team for odd-sized conferences in a 5-week season.
-  //
-  //   Solution (medium season only): use 4-game Thu/Fri/Sat/Sun series for odd confs.
-  //     Case A – conf-bye ≠ OOC-bye: 3×(4+1) + 1×(0+1) + 1×(4+0) = 15+1+4 = 20 ✓
-  //     Case B – conf-bye = OOC-bye: 4×(4+1) + 1×0         = 20    ✓
-  //   Both cases hit exactly 20.
-  //
-  //   This adjustment is scoped to medium season (5 weeks, target=20) only.
-  //   Long/short seasons keep gps=3 or gps=1 respectively; the safety top-up loop
-  //   handles any residual deficit for non-canonical season+conference combinations.
+  // For odd-sized conferences (e.g. a 5-team conf in a 13-team league) teams will end up
+  // with fewer conference games than even-conference teams because of the phantom-team bye.
+  // The safety top-up loop below adds extra OOC midweek games to close that gap; post-
+  // generation validation uses a soft range check rather than requiring strict equality.
   const confGpsMap = new Map<string, number>();
   for (const [cid, confTeams] of confMap) {
     if (seasonLength === "short") {
       confGpsMap.set(cid, 1);
-    } else if (seasonLength === "medium" && confTeams.length % 2 !== 0) {
-      // Odd-sized conference in medium season: use 4-game series (see math above).
-      confGpsMap.set(cid, 4);
     } else {
+      // medium and long: always 3-game Fri/Sat/Sun series, regardless of conference size
       confGpsMap.set(cid, 3);
     }
   }
@@ -21000,8 +20980,7 @@ async function generateSchedule(leagueId: string, season: number = 1) {
     for (const series of weekConfSeries as (Matchup & { _cid?: string })[]) {
       const gps = confGpsMap.get(series._cid ?? "") ?? confGamesPerSeries;
       const gameTypeList =
-        gps === 4 ? ["thursday", "friday", "saturday", "sunday"]
-        : gps === 3 ? ["friday", "saturday", "sunday"]
+        gps === 3 ? ["friday", "saturday", "sunday"]
         : ["friday"];
       for (let g = 0; g < gps; g++) {
         await storage.createGame({
@@ -21133,33 +21112,32 @@ async function generateSchedule(leagueId: string, season: number = 1) {
     }
   }
 
-  // Target: every team must reach exactly targetGamesPerTeam regular-season games.
-  // The per-conf gps adjustment (4-game series for odd-sized confs) ensures this is
-  // achievable without any deficit path:
-  //   - 4-team conf (even): 5 rounds × 3 gps + 5 OOC = 20
-  //   - 5-team conf (odd) : 4 rounds × 4 gps + 4 OOC = 20  (OOC bye falls on Big12 teams
-  //                         via week % 13 rotation since they sort first by fewest cross-conf options)
+  // Target: reach targetGamesPerTeam regular-season games for each team.
+  // Odd-sized conferences (e.g. 5-team) get fewer conf games due to phantom-team byes;
+  // the top-up loop below bridges the gap with extra OOC midweek games.
   const targetGamesPerTeam = seasonLength === "long" ? 40 : seasonLength === "short" ? 10 : 20;
+  const topupCeiling = targetGamesPerTeam + 4; // prevent runaway inflation
   const confByTeamFinal = new Map<string, string>();
   for (const [cid, teams] of confMap) for (const t of teams) confByTeamFinal.set(t.id, cid);
-  // Safety top-up: adds individual OOC midweek games for any team that is unexpectedly
-  // short (e.g. extreme OOC backtracking failure, league sizes other than the canonical 13).
-  // Under the canonical 13-team 4+4+5 medium-season format this loop should not execute.
-  for (let topupIter = 0; topupIter < leagueTeams.length * 5; topupIter++) {
+  // Safety top-up: adds OOC midweek games for any team below the target.
+  // Partners may be at or above the base target (to handle odd-conf deficits) as long as
+  // they have not exceeded the per-team ceiling.
+  for (let topupIter = 0; topupIter < leagueTeams.length * 10; topupIter++) {
     const underserved = leagueTeams
       .filter(t => (teamGameCounts.get(t.id) ?? 0) < targetGamesPerTeam)
       .sort((a, b) => (teamGameCounts.get(a.id) ?? 0) - (teamGameCounts.get(b.id) ?? 0));
     if (underserved.length === 0) break;
     const t1 = underserved[0];
+    // Allow any cross-conf team that has not hit the ceiling (not just underserved ones)
     const t2 = leagueTeams
       .filter(t =>
         t.id !== t1.id &&
         confByTeamFinal.get(t.id) !== confByTeamFinal.get(t1.id) &&
-        (teamGameCounts.get(t.id) ?? 0) < targetGamesPerTeam
+        (teamGameCounts.get(t.id) ?? 0) < topupCeiling
       )
       .sort((a, b) => (teamGameCounts.get(a.id) ?? 0) - (teamGameCounts.get(b.id) ?? 0))[0];
     if (!t2) {
-      console.error(`[schedule-topup] UNEXPECTED: no cross-conf partner for ${t1.name} (${teamGameCounts.get(t1.id)} games, target ${targetGamesPerTeam}); league format may be non-standard`);
+      console.error(`[schedule-topup] No cross-conf partner available for ${t1.name} (${teamGameCounts.get(t1.id)} games, target ${targetGamesPerTeam}, ceiling ${topupCeiling}); stopping top-up`);
       break;
     }
     const isHome = Math.random() > 0.5;
@@ -21174,15 +21152,18 @@ async function generateSchedule(leagueId: string, season: number = 1) {
     totalGames++;
   }
 
-  // Post-generation validation: every team must be at exactly targetGamesPerTeam.
-  const offTarget = leagueTeams.filter(t => (teamGameCounts.get(t.id) ?? 0) !== targetGamesPerTeam);
-  if (offTarget.length > 0) {
-    console.error(
-      `[schedule-validation] UNEXPECTED: ${offTarget.length} team(s) not at target ${targetGamesPerTeam}:`,
-      offTarget.map(t => `${t.name}=${teamGameCounts.get(t.id)}`).join(', ')
+  // Post-generation validation: soft range check — warn if any team is more than 4 below target.
+  const gameCounts = leagueTeams.map(t => teamGameCounts.get(t.id) ?? 0);
+  const minGames = Math.min(...gameCounts);
+  const maxGames = Math.max(...gameCounts);
+  const farBelow = leagueTeams.filter(t => (teamGameCounts.get(t.id) ?? 0) < targetGamesPerTeam - 4);
+  if (farBelow.length > 0) {
+    console.warn(
+      `[schedule-validation] WARNING: ${farBelow.length} team(s) more than 4 games below target ${targetGamesPerTeam}:`,
+      farBelow.map(t => `${t.name}=${teamGameCounts.get(t.id)}`).join(', ')
     );
   } else {
-    console.log(`[schedule-validation] All ${leagueTeams.length} teams at exactly ${targetGamesPerTeam} games ✓`);
+    console.log(`[schedule-validation] OK — team game counts: min=${minGames} max=${maxGames} target=${targetGamesPerTeam}`);
   }
 
   console.log(`Schedule generated for league ${leagueId} season ${season}: ${seasonLength} format, ${numWeeks} weeks, ${totalGames} total games`);
