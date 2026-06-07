@@ -41,6 +41,13 @@ const seasonLengthOptions = [
   { value: "long", label: "Long Season - 40 Games (10 weeks)" },
 ];
 
+const seasonScheduleBreakdown: Record<string, string> = {
+  short:    "5 weeks · 1 conf game + 1 OOC game each week · 10 regular season games · 4 spring training games",
+  standard: "5 weeks · 5 conf series (3 games each) · 5 OOC midweeks · 20 regular season games · 4 spring training games",
+  medium:   "4 weeks · 4 conf series (3 games each) · 4 OOC midweeks · 16 regular season games · 4 spring training games",
+  long:     "10 weeks · 10 conf series (3 games each) · 10 OOC midweeks · 40 regular season games · 4 spring training games",
+};
+
 export default function LeagueCreatePage() {
   const [name, setName] = useState("");
   const [maxTeams, setMaxTeams] = useState("14");
@@ -262,14 +269,22 @@ export default function LeagueCreatePage() {
                 )}
               </div>
 
-              <RetroSelect
-                id="seasonLength"
-                label="Season Length"
-                options={seasonLengthOptions}
-                value={seasonLength}
-                onChange={(e) => setSeasonLength(e.target.value)}
-                data-testid="select-season-length"
-              />
+              <div>
+                <RetroSelect
+                  id="seasonLength"
+                  label="Season Length"
+                  options={seasonLengthOptions}
+                  value={seasonLength}
+                  onChange={(e) => setSeasonLength(e.target.value)}
+                  data-testid="select-season-length"
+                />
+                {seasonScheduleBreakdown[seasonLength] && (
+                  <p className="mt-1.5 text-[10px] text-muted-foreground flex items-start gap-1.5" data-testid="season-schedule-breakdown">
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-gold/60 shrink-0 mt-[3px]" />
+                    {seasonScheduleBreakdown[seasonLength]}
+                  </p>
+                )}
+              </div>
 
               <RetroSelect
                 id="difficulty"
