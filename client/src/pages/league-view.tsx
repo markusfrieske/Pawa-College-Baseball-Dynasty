@@ -435,8 +435,8 @@ export default function LeagueViewPage() {
 
   const phaseLabels: Record<string, string> = {
     dynasty_setup: "Dynasty Setup",
-    preseason: "Spring Training",
-    spring_training: "Spring Training",
+    preseason: "Spring",
+    spring_training: "Spring",
     regular_season: "Regular Season",
     conference_championship: "Conference Championship",
     super_regionals: "Super Regionals",
@@ -4331,8 +4331,8 @@ function AwardsTab({ leagueId }: { leagueId: string }) {
 
   if (!data.awardsAvailable) {
     const phaseLabels: Record<string, string> = {
-      preseason: "Spring Training",
-      spring_training: "Spring Training",
+      preseason: "Spring",
+      spring_training: "Spring",
       regular_season: "Regular Season",
       dynasty_setup: "Dynasty Setup",
     };

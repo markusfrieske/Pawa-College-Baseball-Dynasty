@@ -537,8 +537,8 @@ export default function CommissionerPage() {
 
   const phaseLabels: Record<string, string> = {
     dynasty_setup: "Dynasty Setup",
-    preseason: "Spring Training",
-    spring_training: "Spring Training",
+    preseason: "Spring",
+    spring_training: "Spring",
     regular_season: "Regular Season",
     conference_championship: "Conference Championship",
     super_regionals: "Super Regionals",

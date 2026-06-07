@@ -483,7 +483,7 @@ export default function SchedulePage() {
           <div className="rounded-lg border border-border/50 bg-card/30 overflow-hidden">
             <div className="flex items-center justify-between px-3 py-2 border-b border-border/30 bg-card/50">
               <div className="flex items-center gap-2">
-                <span className="font-pixel text-[9px] text-muted-foreground uppercase tracking-wider">Spring Training</span>
+                <span className="font-pixel text-[9px] text-muted-foreground uppercase tracking-wider">Spring</span>
                 <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-pixel border border-amber-500/40 text-amber-400 bg-amber-500/10">
                   EXHIBITION
                 </span>

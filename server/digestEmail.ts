@@ -32,8 +32,8 @@ export function verifyUnsubToken(token: string): string | null {
 
 function phaseLabel(phase: string): string {
   const labels: Record<string, string> = {
-    preseason: "Spring Training",
-    spring_training: "Spring Training",
+    preseason: "Spring",
+    spring_training: "Spring",
     regular_season: "Regular Season",
     conference_championship: "Conference Championship",
     super_regionals: "Super Regionals",

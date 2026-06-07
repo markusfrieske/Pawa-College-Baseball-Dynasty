@@ -171,8 +171,8 @@ export function InningScoreboard({ open, onClose, data }: InningScoreboardProps)
 
   const phaseLabel: Record<string, string> = {
     regular_season: "Regular Season",
-    preseason: "Spring Training",
-    spring_training: "Spring Training",
+    preseason: "Spring",
+    spring_training: "Spring",
     conference_championship: "Conference Championship",
     super_regionals: "Super Regionals",
     cws: "College World Series",

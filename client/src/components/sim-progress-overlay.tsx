@@ -40,7 +40,7 @@ interface SimProgressOverlayProps {
 function formatPhase(phase: string): string {
   const map: Record<string, string> = {
     preseason: "Preseason",
-    spring_training: "Spring Training",
+    spring_training: "Spring",
     regular_season: "Regular Season",
     conference_championship: "Conference Championship",
     super_regionals: "Super Regionals",

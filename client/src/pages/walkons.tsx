@@ -176,7 +176,7 @@ export default function WalkonsPage() {
         setAuctionResults(teamResults);
       } else {
         // Commissioner may not have bids — show persisted results after invalidation
-        toast({ title: "Auction Resolved", description: "Advancing to Spring Training…" });
+        toast({ title: "Auction Resolved", description: "Advancing to Spring…" });
         setLocation(`/league/${id}`);
       }
     },
@@ -960,7 +960,7 @@ export default function WalkonsPage() {
                   }}
                   data-testid="button-close-results"
                 >
-                  Continue to Spring Training
+                  Continue to Spring
                 </RetroButton>
               </>
             )}
