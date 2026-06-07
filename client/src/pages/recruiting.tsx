@@ -2715,6 +2715,35 @@ function RecruitRow({
                 {recruit.throwHand}/{recruit.batHand === "S" ? "S" : recruit.batHand}
               </span>
               <StarRating rating={recruit.starRank} size="sm" />
+              {/* My recruiting rank badge — only shown after any scouting */}
+              {scoutPct > 0 && recruit.topSchools && userTeamId && (() => {
+                const visibleCount = recruit.stage === "top3" ? 3 : recruit.stage === "top5" ? 5 : 8;
+                const visibleSchools = recruit.topSchools.slice(0, visibleCount);
+                const myRank = visibleSchools.findIndex(s => s.teamId === userTeamId);
+                if (myRank === -1) return null;
+                const rankNum = myRank + 1;
+                const rankColor =
+                  rankNum === 1 ? "border-gold/70 text-gold bg-gold/10" :
+                  rankNum === 2 ? "border-slate-300/60 text-slate-300 bg-slate-300/10" :
+                  rankNum === 3 ? "border-amber-700/60 text-amber-600 bg-amber-700/10" :
+                  "border-muted-foreground/40 text-muted-foreground bg-muted/20";
+                return (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge
+                        variant="outline"
+                        className={`text-[8px] shrink-0 no-default-hover-elevate no-default-active-elevate font-bold ${rankColor}`}
+                        data-testid={`badge-my-rank-${recruit.id}`}
+                      >
+                        #{rankNum}
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      You are #{rankNum} of {visibleSchools.length} schools in this recruit's top list
+                    </TooltipContent>
+                  </Tooltip>
+                );
+              })()}
               {recruit.stage === "verbal" && recruit.topSchools && recruit.topSchools.length > 0 && (
                 <div className="flex items-center gap-1 shrink-0">
                   {recruit.topSchools.slice(0, 5).map(school => (
