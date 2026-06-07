@@ -650,11 +650,11 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [0, 0, 0, 1, 0, 4, 4, 0, 0, 0]) },
     // CATCHERS (2)
-    // Bear Harrison — C JR, .294/11HR/44% CS — power/fielding raised, speed corrected upward
+    // Bear Harrison — C JR, .294/11HR/44% CS — capped at 530 OVR (raw attrs reduced proportionally)
     { firstName: "Bear", lastName: "Harrison", position: "C", eligibility: "JR", homeState: "CA", hometown: "Danville", jerseyNumber: 2,
-      hitForAvg: 65, power: 69, speed: 35, arm: 65, fielding: 74, errorResistance: 58, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 64, vsLHP: 60, grit: 60, stealing: 50, running: 50, throwing: 62, recovery: 52, wRISP: 84, vsLefty: 76, poise: 86, heater: 0, agile: 40,
-      abilities: ["Head-first Slide", "Power Hitter", "Consigliere", "Defensive Artisan"], potential: "A-", catcherAbility: 64,
+      hitForAvg: 60, power: 60, speed: 35, arm: 62, fielding: 64, errorResistance: 52, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 55, vsLHP: 52, grit: 52, stealing: 48, running: 48, throwing: 54, recovery: 48, wRISP: 84, vsLefty: 76, poise: 86, heater: 0, agile: 40,
+      abilities: ["Head-first Slide", "Power Hitter", "Consigliere", "Defensive Artisan"], potential: "A-", catcherAbility: 56,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       pitchFB: 0, pitch2S: 0, pitchSL: 0, pitchCB: 0, pitchCH: 0, pitchCT: 0, pitchSNK: 0, pitchSPL: 0, pitchFK: 0, pitchSFF: 0, pitchSHU: 0 },
@@ -734,8 +734,8 @@ export const SEC_BATCH1_ROSTERS: Record<string, RealPlayer[]> = {
     // OUTFIELDERS (6)
     // Caden Sorrell — JR CF, .347/23HR/.757SLG/11SB/1.000 OF — all raised to elite-OF level
     { firstName: "Caden", lastName: "Sorrell", position: "OF", eligibility: "JR", homeState: "TX", hometown: "Friendswood", jerseyNumber: 3,
-      hitForAvg: 81, power: 84, speed: 67, arm: 62, fielding: 83, errorResistance: 54, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 90, vsLHP: 66, grit: 72, stealing: 50, running: 56, throwing: 67, recovery: 50, wRISP: 76, vsLefty: 66, poise: 72, heater: 0, agile: 58,
+      hitForAvg: 62, power: 60, speed: 67, arm: 62, fielding: 60, errorResistance: 54, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 62, vsLHP: 58, grit: 60, stealing: 50, running: 56, throwing: 67, recovery: 50, wRISP: 76, vsLefty: 66, poise: 72, heater: 0, agile: 58,
       abilities: ["Power Hitter", "Consigliere", "Good Bunt"], potential: "A+", catcherAbility: null,
       throwHand: "L", batHand: "L",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
