@@ -550,7 +550,7 @@ export function registerStorylineRoutes(app: Express) {
         });
       }
 
-      const generated = await generateAndResolveStorylineEvents(leagueId, league.currentSeason, league.currentWeek);
+      const generated = await generateAndResolveStorylineEvents(leagueId, league.currentSeason, league.currentWeek, league.seasonLength ?? "standard", undefined, league.currentPhase);
       res.json({ success: true, ...generated });
     } catch (err) {
       console.error("[storylines] GENERATE error:", err);
