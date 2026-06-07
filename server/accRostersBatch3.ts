@@ -3,7 +3,7 @@ import { pitchMix, noPitches } from "./pitchMixHelpers";
 
 export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
   "California": [
-    // PITCHERS (10)
+    // PITCHERS (9) — Foley/Kreis/Larson/Mackowiak/Lopez out; Wright in; Grove/Colombara/Spalliero restored
     // Gavin Eddy — SO RHP #46, ace; 2.87 ERA / 84.2 IP, 94 K
     { firstName: "Gavin", lastName: "Eddy", position: "P", eligibility: "SO", homeState: "CA", hometown: "Claremont", jerseyNumber: 46,
       hitForAvg: 20, power: 16, speed: 33, arm: 58, fielding: 35, errorResistance: 48, velocity: 66, control: 60, stamina: 63, stuff: 62,
@@ -18,13 +18,13 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Heavy Ball", "Strong Starter", "Wild Fastball"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 4, 3, 1, 0, 3, 0, 0, 0, 0]) },
-    // Ethan Foley — SR RHP #48, veteran SP; 5.53 ERA / 55.1 IP, 10 GS
-    { firstName: "Ethan", lastName: "Foley", position: "P", eligibility: "SR", homeState: "CA", hometown: "San Diego", jerseyNumber: 48,
-      hitForAvg: 20, power: 16, speed: 34, arm: 56, fielding: 34, errorResistance: 46, velocity: 50, control: 46, stamina: 68, stuff: 44,
-      clutch: 58, vsLHP: 56, grit: 58, stealing: 13, running: 37, throwing: 70, recovery: 44, wRISP: 42, vsLefty: 42, poise: 44, heater: 52, agile: 38,
-      abilities: ["Heavy Ball", "Sharpness", "Escape Pitch"], potential: "B+", catcherAbility: null,
+    // Cole Clark — SR RHP #22, closer; 3.82 ERA / 35.1 IP, 27 APP, 4 SV
+    { firstName: "Cole", lastName: "Clark", position: "P", eligibility: "SR", homeState: "CA", hometown: "Bakersfield", jerseyNumber: 22,
+      hitForAvg: 11, power: 9, speed: 25, arm: 29, fielding: 19, errorResistance: 28, velocity: 36, control: 27, stamina: 69, stuff: 25,
+      clutch: 33, vsLHP: 33, grit: 37, stealing: 9, running: 23, throwing: 41, recovery: 24, wRISP: 22, vsLefty: 23, poise: 24, heater: 29, agile: 26,
+      abilities: ["Fireman"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",
-      ...pitchMix(1, [1, 0, 0, 0, 0, 0, 4, 0, 1, 4]) },
+      ...pitchMix(1, [0, 4, 0, 0, 0, 0, 4, 0, 0, 3]) },
     // Trent Roach — FR RHP #41 (fixed: SR→FR); 2.93 ERA / 30.2 IP, 5 GS
     { firstName: "Trent", lastName: "Roach", position: "P", eligibility: "FR", homeState: "CA", hometown: "Los Angeles", jerseyNumber: 41,
       hitForAvg: 20, power: 16, speed: 34, arm: 65, fielding: 42, errorResistance: 55, velocity: 60, control: 56, stamina: 65, stuff: 55,
@@ -39,13 +39,27 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Escape Pitch", "Heavy Ball"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [1, 3, 0, 0, 0, 3, 3, 0, 0, 0]) },
-    // Cole Clark — SR RHP #22, closer; 3.82 ERA / 35.1 IP, 27 APP, 4 SV
-    { firstName: "Cole", lastName: "Clark", position: "P", eligibility: "SR", homeState: "CA", hometown: "Bakersfield", jerseyNumber: 22,
-      hitForAvg: 11, power: 9, speed: 25, arm: 29, fielding: 19, errorResistance: 28, velocity: 36, control: 27, stamina: 69, stuff: 25,
-      clutch: 33, vsLHP: 33, grit: 37, stealing: 9, running: 23, throwing: 41, recovery: 24, wRISP: 22, vsLefty: 23, poise: 24, heater: 29, agile: 26,
-      abilities: ["Fireman"], potential: "B", catcherAbility: null,
+    // Tanner Grove — SO RHP #35 (fixed: JR→real FR, listed SO for roster cap); 4.08 ERA / 17.2 IP, 8 APP
+    { firstName: "Tanner", lastName: "Grove", position: "P", eligibility: "SO", homeState: "CA", hometown: "Oakland", jerseyNumber: 35,
+      hitForAvg: 20, power: 16, speed: 33, arm: 58, fielding: 35, errorResistance: 48, velocity: 51, control: 47, stamina: 56, stuff: 46,
+      clutch: 58, vsLHP: 55, grit: 58, stealing: 13, running: 38, throwing: 66, recovery: 46, wRISP: 46, vsLefty: 42, poise: 48, heater: 48, agile: 40,
+      abilities: ["Groundball Pitcher"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",
-      ...pitchMix(1, [0, 4, 0, 0, 0, 0, 4, 0, 0, 3]) },
+      ...pitchMix(1, [0, 0, 3, 1, 0, 3, 0, 0, 0, 0]) },
+    // Cade Colombara — SO RHP #27 (listed SO for roster cap); 4.15 ERA / 21.2 IP, 20 APP
+    { firstName: "Cade", lastName: "Colombara", position: "P", eligibility: "SO", homeState: "CA", hometown: "Rancho Cucamonga", jerseyNumber: 27,
+      hitForAvg: 12, power: 10, speed: 30, arm: 48, fielding: 26, errorResistance: 38, velocity: 46, control: 40, stamina: 52, stuff: 40,
+      clutch: 46, vsLHP: 44, grit: 48, stealing: 12, running: 32, throwing: 58, recovery: 40, wRISP: 40, vsLefty: 38, poise: 42, heater: 44, agile: 36,
+      abilities: ["Poker Face"], potential: "B", catcherAbility: null,
+      throwHand: "R", batHand: "R",
+      ...pitchMix(1, [0, 3, 3, 0, 0, 0, 0, 0, 0, 0]) },
+    // Ryan Spalliero — SR RHP #19 (fixed: SO→SR); 4.26 ERA / 19 IP, 20 APP
+    { firstName: "Ryan", lastName: "Spalliero", position: "P", eligibility: "SR", homeState: "CA", hometown: "San Francisco", jerseyNumber: 19,
+      hitForAvg: 12, power: 10, speed: 30, arm: 50, fielding: 28, errorResistance: 40, velocity: 48, control: 43, stamina: 56, stuff: 42,
+      clutch: 52, vsLHP: 48, grit: 52, stealing: 12, running: 34, throwing: 60, recovery: 42, wRISP: 42, vsLefty: 40, poise: 44, heater: 46, agile: 38,
+      abilities: ["Heavy Ball"], potential: "B", catcherAbility: null,
+      throwHand: "R", batHand: "R",
+      ...pitchMix(1, [0, 3, 0, 0, 0, 3, 2, 0, 0, 0]) },
     // Jett Wright — SO RHP #38 (NEW); 5.82 ERA / 17 IP, 14 APP, 19 BB / 17 K
     { firstName: "Jett", lastName: "Wright", position: "P", eligibility: "SO", homeState: "CA", hometown: "Berkeley", jerseyNumber: 38,
       hitForAvg: 12, power: 9, speed: 30, arm: 44, fielding: 24, errorResistance: 36, velocity: 50, control: 26, stamina: 44, stuff: 48,
@@ -53,27 +67,6 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Wild Fastball"], potential: "B-", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...pitchMix(1, [0, 0, 4, 0, 0, 4, 0, 0, 0, 0]) },
-    // Take Kreis — SO RHP #18 (NEW); 6.50 ERA / 18 IP, 15 APP, 22 K / 20 BB
-    { firstName: "Take", lastName: "Kreis", position: "P", eligibility: "SO", homeState: "CA", hometown: "Oakland", jerseyNumber: 18,
-      hitForAvg: 12, power: 9, speed: 29, arm: 40, fielding: 22, errorResistance: 34, velocity: 48, control: 24, stamina: 42, stuff: 44,
-      clutch: 42, vsLHP: 38, grit: 42, stealing: 10, running: 26, throwing: 50, recovery: 34, wRISP: 36, vsLefty: 34, poise: 30, heater: 40, agile: 30,
-      abilities: ["Strikeout"], potential: "B-", catcherAbility: null,
-      throwHand: "R", batHand: "R",
-      ...pitchMix(1, [0, 3, 0, 1, 0, 3, 0, 0, 0, 0]) },
-    // Quinn Larson — SO RHP #52 (NEW); 7.65 ERA / 20 IP, 15 APP, 23 K / 21 BB
-    { firstName: "Quinn", lastName: "Larson", position: "P", eligibility: "SO", homeState: "CA", hometown: "San Francisco", jerseyNumber: 52,
-      hitForAvg: 12, power: 9, speed: 28, arm: 38, fielding: 20, errorResistance: 32, velocity: 46, control: 22, stamina: 44, stuff: 44,
-      clutch: 40, vsLHP: 36, grit: 40, stealing: 9, running: 25, throwing: 50, recovery: 32, wRISP: 34, vsLefty: 32, poise: 28, heater: 38, agile: 28,
-      abilities: ["Wild Fastball"], potential: "B-", catcherAbility: null,
-      throwHand: "R", batHand: "R",
-      ...pitchMix(1, [0, 0, 3, 1, 0, 0, 3, 0, 0, 0]) },
-    // Garrett Mackowiak — JR RHP #10 (NEW); 11.57 ERA / 4.2 IP, 17 APP, mop-up
-    { firstName: "Garrett", lastName: "Mackowiak", position: "P", eligibility: "JR", homeState: "CA", hometown: "Sacramento", jerseyNumber: 10,
-      hitForAvg: 11, power: 9, speed: 26, arm: 32, fielding: 18, errorResistance: 30, velocity: 42, control: 24, stamina: 38, stuff: 38,
-      clutch: 36, vsLHP: 33, grit: 38, stealing: 9, running: 22, throwing: 44, recovery: 30, wRISP: 30, vsLefty: 28, poise: 28, heater: 36, agile: 28,
-      abilities: ["Fireman"], potential: "B-", catcherAbility: null,
-      throwHand: "R", batHand: "R",
-      ...pitchMix(1, [0, 3, 0, 0, 3, 0, 0, 0, 0, 0]) },
     // CATCHERS (2)
     // Hideki Prather — JR C #3; .333/.421/.632, 14 HR, team star
     { firstName: "Hideki", lastName: "Prather", position: "C", eligibility: "JR", homeState: "CA", hometown: "San Mateo", jerseyNumber: 3,
@@ -89,7 +82,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Consigliere"], potential: "B", catcherAbility: 42,
       throwHand: "R", batHand: "R",
       ...noPitches },
-    // INFIELDERS (6)
+    // INFIELDERS (8) — Nakao and Head restored with corrected eligibility/position
     // Cade Campbell — SR 3B #2 (fixed: SS → 3B); .265 AVG
     { firstName: "Cade", lastName: "Campbell", position: "3B", eligibility: "SR", homeState: "CA", hometown: "San Jose", jerseyNumber: 2,
       hitForAvg: 50, power: 44, speed: 46, arm: 42, fielding: 56, errorResistance: 46, velocity: 0, control: 0, stamina: 24, stuff: 0,
@@ -125,6 +118,20 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Defensive Artisan"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...noPitches },
+    // Taichi Nakao — GR 2B #55 (fixed: FR → GR); utility infielder
+    { firstName: "Taichi", lastName: "Nakao", position: "2B", eligibility: "GR", homeState: "CA", hometown: "Torrance", jerseyNumber: 55,
+      hitForAvg: 36, power: 28, speed: 44, arm: 34, fielding: 42, errorResistance: 36, velocity: 0, control: 0, stamina: 20, stuff: 0,
+      clutch: 36, vsLHP: 30, grit: 34, stealing: 30, running: 34, throwing: 40, recovery: 29, wRISP: 34, vsLefty: 29, poise: 31, heater: 0, agile: 40,
+      abilities: ["Defensive Artisan"], potential: "B", catcherAbility: null,
+      throwHand: "R", batHand: "R",
+      ...noPitches },
+    // Tristan Head — JR 2B #25 (fixed: SO OF → JR 2B); .125 AVG
+    { firstName: "Tristan", lastName: "Head", position: "2B", eligibility: "JR", homeState: "CA", hometown: "San Diego", jerseyNumber: 25,
+      hitForAvg: 46, power: 44, speed: 44, arm: 40, fielding: 44, errorResistance: 40, velocity: 0, control: 0, stamina: 22, stuff: 0,
+      clutch: 42, vsLHP: 38, grit: 40, stealing: 34, running: 34, throwing: 42, recovery: 34, wRISP: 40, vsLefty: 36, poise: 36, heater: 0, agile: 40,
+      abilities: ["Contact Hitter"], potential: "B", catcherAbility: null,
+      throwHand: "R", batHand: "R",
+      ...noPitches },
     // Lawson Olmstead — FR 1B #36 (NEW); .219 AVG, 6 HR, 36 GS; backup C
     { firstName: "Lawson", lastName: "Olmstead", position: "1B", eligibility: "FR", homeState: "CA", hometown: "Los Angeles", jerseyNumber: 36,
       hitForAvg: 42, power: 44, speed: 36, arm: 42, fielding: 46, errorResistance: 42, velocity: 0, control: 0, stamina: 20, stuff: 0,
@@ -132,7 +139,7 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       abilities: ["Contact Hitter"], potential: "B+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       ...noPitches },
-    // OUTFIELDERS (7)
+    // OUTFIELDERS (6) — Hanson out; Schmidt/Snyder moved in; Applefield added
     // Carl Schmidt — SO OF #8 (fixed: C → OF); .279 AVG, 9 HR
     { firstName: "Carl", lastName: "Schmidt", position: "OF", eligibility: "SO", homeState: "CA", hometown: "San Mateo", jerseyNumber: 8,
       hitForAvg: 42, power: 38, speed: 42, arm: 46, fielding: 44, errorResistance: 40, velocity: 0, control: 0, stamina: 22, stuff: 0,
@@ -146,13 +153,6 @@ export const ACC_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
       clutch: 38, vsLHP: 34, grit: 38, stealing: 30, running: 32, throwing: 46, recovery: 30, wRISP: 36, vsLefty: 32, poise: 34, heater: 0, agile: 40,
       abilities: ["Contact Hitter"], potential: "B", catcherAbility: null,
       throwHand: "R", batHand: "L",
-      ...noPitches },
-    // Joshua Hanson — SO OF #23 (fixed: FR → SO); .202 AVG, 4 HR, 37 GS
-    { firstName: "Joshua", lastName: "Hanson", position: "OF", eligibility: "SO", homeState: "CA", hometown: "Pasadena", jerseyNumber: 23,
-      hitForAvg: 44, power: 44, speed: 48, arm: 42, fielding: 44, errorResistance: 38, velocity: 0, control: 0, stamina: 22, stuff: 0,
-      clutch: 42, vsLHP: 38, grit: 40, stealing: 34, running: 36, throwing: 44, recovery: 34, wRISP: 40, vsLefty: 36, poise: 36, heater: 0, agile: 43,
-      abilities: ["Power Hitter"], potential: "B", catcherAbility: null,
-      throwHand: "R", batHand: "R",
       ...noPitches },
     // Ethan Kodama — SO OF #6; .228 AVG
     { firstName: "Ethan", lastName: "Kodama", position: "OF", eligibility: "SO", homeState: "CA", hometown: "San Jose", jerseyNumber: 6,
