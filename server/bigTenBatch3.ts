@@ -334,7 +334,7 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     { firstName: "Grant", lastName: "Govel", position: "P", eligibility: "SO", homeState: "CA", hometown: "San Diego", jerseyNumber: 95,
       hitForAvg: 14, power: 10, speed: 32, arm: 70, fielding: 35, errorResistance: 46, velocity: 76, control: 68, stamina: 63, stuff: 70,
       clutch: 76, vsLHP: 70, grit: 66, stealing: 8, running: 30, throwing: 74, recovery: 49, wRISP: 56, vsLefty: 56, poise: 61, heater: 62, agile: 40,
-      abilities: ["Strong Starter", "Inside Pitch", "Staredown", "Efficient"], potential: "A+", catcherAbility: null,
+      abilities: ["Strong Starter", "Inside Pitch", "Staredown", "Heavy Ball"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "light", hairColor: "brown", hairStyle: "short",
       ...pitchMix(1, [1, 0, 0, 0, 4, 0, 0, 0, 1, 0]) },
