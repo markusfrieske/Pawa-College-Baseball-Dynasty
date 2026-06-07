@@ -14148,6 +14148,46 @@ export async function registerRoutes(
       nilSpentAccum.set(teamId, (nilSpentAccum.get(teamId) || 0) + cost);
 
     const MIN_ROSTER = 22;
+
+    // ── STEP 1: Interest-based auto-commit (runs FIRST) ──────────────────────
+    // Commit undecided recruits to their highest-interest team that has an offer
+    // BEFORE any CPU fill sweeps run.  This guarantees that human coaches who
+    // earned top interest and extended a scholarship offer actually receive that
+    // recruit — CPU MIN_ROSTER / dynamic class sweeps only operate on the
+    // remaining unsigned pool afterwards.
+    {
+      const undecidedForInterest = (await storage.getRecruitsByLeague(leagueId)).filter(
+        r => !r.signedTeamId && ["verbal", "top3", "top5", "top8", "open"].includes(r.stage || "")
+      );
+      for (const recruit of undecidedForInterest) {
+        try {
+          const interests = await storage.getRecruitingInterestsByRecruit(recruit.id);
+          const eligible = interests
+            .filter(i => (i.interestLevel || 0) > 0)
+            .sort((a, b) => (b.interestLevel || 0) - (a.interestLevel || 0));
+          // Prefer a team that has made an offer; fall back to highest raw interest
+          // Also enforce NIL budget — skip teams that can't afford the recruit
+          const recruitNilCost = recruit.nilCost || 0;
+          const affordableEligible = eligible.filter(i => sdCanAfford(i.teamId, recruitNilCost));
+          const target = (affordableEligible.find(i => i.hasOffer) ?? affordableEligible[0])
+            ?? (eligible.find(i => i.hasOffer) ?? eligible[0]);
+          if (target?.teamId && sdCanAfford(target.teamId, recruitNilCost)) {
+            sdChargeNil(target.teamId, recruitNilCost);
+            await storage.updateRecruit(recruit.id, { signedTeamId: target.teamId });
+          }
+        } catch (e) {
+          console.error(`[finalizeSigningDay] Failed to auto-commit recruit ${recruit.id}:`, e);
+        }
+      }
+      if (undecidedForInterest.length > 0) {
+        console.log(`[finalizeSigningDay] Auto-committed ${undecidedForInterest.length} undecided recruits based on interest`);
+      }
+    }
+
+    // ── STEP 2: CPU MIN_ROSTER fill sweep ────────────────────────────────────
+    // Fetch fresh recruit data AFTER the interest pass so the unsigned pool only
+    // contains recruits nobody claimed via interest — preventing CPU teams from
+    // stealing recruits that were already "promised" to a human coach.
     const cpuTeamsNeedingRecruits: Array<{ team: typeof teams[0]; needed: number; positionCounts: Record<string, number> }> = [];
     const allRecruitsPreCheck = await storage.getRecruitsByLeague(leagueId);
 
@@ -14186,7 +14226,7 @@ export async function registerRoutes(
           if (best) {
             sdChargeNil(entry.team.id, best.nilCost || 0);
             await storage.updateRecruit(best.id, { signedTeamId: entry.team.id });
-            // #26 — log CPU auto-signing in the activity feed so human coaches can see it
+            // log CPU auto-signing in the activity feed so human coaches can see it
             try {
               await storage.createLeagueEvent({
                 leagueId,
@@ -14207,40 +14247,6 @@ export async function registerRoutes(
             anyAssigned = true;
           }
         }
-      }
-    }
-
-    // Auto-commit remaining undecided recruits (top3/top5/verbal stage) to their
-    // highest-interest team that has made them an offer.  This ensures the signing-day
-    // preview and the actual outcome are consistent – previously these recruits were
-    // only auto-signed to CPU teams below the MIN_ROSTER threshold, which meant the
-    // preview "committingTo" value often didn't match what happened in the DB.
-    {
-      const stillUnsigned = (await storage.getRecruitsByLeague(leagueId)).filter(
-        r => !r.signedTeamId && ["verbal", "top3", "top5", "top8", "open"].includes(r.stage || "")
-      );
-      for (const recruit of stillUnsigned) {
-        try {
-          const interests = await storage.getRecruitingInterestsByRecruit(recruit.id);
-          const eligible = interests
-            .filter(i => (i.interestLevel || 0) > 0)
-            .sort((a, b) => (b.interestLevel || 0) - (a.interestLevel || 0));
-          // Prefer a team that has made an offer; fall back to highest raw interest
-          // Also enforce NIL budget — skip teams that can't afford the recruit
-          const recruitNilCost = recruit.nilCost || 0;
-          const affordableEligible = eligible.filter(i => sdCanAfford(i.teamId, recruitNilCost));
-          const target = (affordableEligible.find(i => i.hasOffer) ?? affordableEligible[0])
-            ?? (eligible.find(i => i.hasOffer) ?? eligible[0]);
-          if (target?.teamId && sdCanAfford(target.teamId, recruitNilCost)) {
-            sdChargeNil(target.teamId, recruitNilCost);
-            await storage.updateRecruit(recruit.id, { signedTeamId: target.teamId });
-          }
-        } catch (e) {
-          console.error(`[finalizeSigningDay] Failed to auto-commit recruit ${recruit.id}:`, e);
-        }
-      }
-      if (stillUnsigned.length > 0) {
-        console.log(`[finalizeSigningDay] Auto-committed ${stillUnsigned.length} undecided recruits based on interest`);
       }
     }
 
@@ -17307,19 +17313,31 @@ export async function registerRoutes(
 
       const previewRecruits = await Promise.all(undecided.map(async (recruit) => {
         const interests = await storage.getRecruitingInterestsByRecruit(recruit.id);
-        const topInterests = interests
+        // Sort all positive-interest entries by interest level descending
+        const allSortedInterests = interests
           .filter(i => (i.interestLevel || 0) > 0)
-          .sort((a, b) => (b.interestLevel || 0) - (a.interestLevel || 0))
-          .slice(0, 2)
-          .map(i => ({
-            teamId: i.teamId,
-            teamName: teamsMap.get(i.teamId)?.name || "Unknown",
-            teamAbbr: teamsMap.get(i.teamId)?.abbreviation || "???",
-            primaryColor: teamsMap.get(i.teamId)?.primaryColor || "#888",
-            interestLevel: i.interestLevel || 0,
-            hasOffer: i.hasOffer || false,
-          }));
-        const committingTo = topInterests.find(i => i.hasOffer) || topInterests[0] || null;
+          .sort((a, b) => (b.interestLevel || 0) - (a.interestLevel || 0));
+        // Show top 2 for the schools display
+        const topInterests = allSortedInterests.slice(0, 2).map(i => ({
+          teamId: i.teamId,
+          teamName: teamsMap.get(i.teamId)?.name || "Unknown",
+          teamAbbr: teamsMap.get(i.teamId)?.abbreviation || "???",
+          primaryColor: teamsMap.get(i.teamId)?.primaryColor || "#888",
+          interestLevel: i.interestLevel || 0,
+          hasOffer: i.hasOffer || false,
+        }));
+        // committingTo mirrors finalization order: highest-interest team with offer,
+        // falling back to highest raw interest — searched across ALL interest entries
+        // (not just top 2) so a lower-ranked team with an offer is not missed.
+        const committingToRaw = allSortedInterests.find(i => i.hasOffer) ?? allSortedInterests[0] ?? null;
+        const committingTo = committingToRaw ? {
+          teamId: committingToRaw.teamId,
+          teamName: teamsMap.get(committingToRaw.teamId)?.name || "Unknown",
+          teamAbbr: teamsMap.get(committingToRaw.teamId)?.abbreviation || "???",
+          primaryColor: teamsMap.get(committingToRaw.teamId)?.primaryColor || "#888",
+          interestLevel: committingToRaw.interestLevel || 0,
+          hasOffer: committingToRaw.hasOffer || false,
+        } : null;
         return {
           id: recruit.id,
           firstName: recruit.firstName,
