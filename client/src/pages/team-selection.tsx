@@ -14,6 +14,13 @@ import { TeamScoutingPanel, type TeamScoutingInfo } from "@/components/team-scou
 
 const TOTAL_NATIONAL_TEAMS = 142;
 
+function getConferenceTargets(maxTeams: number, conferenceCount: number): number[] {
+  if (maxTeams === 14 && conferenceCount === 3) return [6, 4, 4];
+  const base = Math.floor(maxTeams / conferenceCount);
+  const extras = maxTeams % conferenceCount;
+  return Array.from({ length: conferenceCount }, (_, i) => base + (i < extras ? 1 : 0));
+}
+
 interface TeamTemplate {
   name: string;
   mascot: string;
@@ -184,16 +191,14 @@ export default function TeamSelectionPage() {
           });
           return prev;
         }
-        // Enforce exact per-conference target: based on conference index in ordered list
-        // first (C - extras) conferences get floor(N/C), last extras conferences get floor(N/C)+1
+        // Enforce exact per-conference target using getConferenceTargets (14-team 3-conf → 6+4+4)
         if (data) {
           const confCount = data.conferences.length;
-          const basePerConf = Math.floor(data.league.maxTeams / confCount);
-          const extrasAllowed = data.league.maxTeams % confCount;
+          const targets = getConferenceTargets(data.league.maxTeams, confCount);
           const teamConf = allTeams.find(t => t.name === teamName)?.sourceConferenceId;
           if (teamConf) {
             const confIdx = data.conferences.findIndex(c => c.id === teamConf);
-            const confTarget = basePerConf + (confIdx < extrasAllowed ? 1 : 0);
+            const confTarget = targets[confIdx];
             const selectedInConf = allTeams.filter(t => t.sourceConferenceId === teamConf && next.has(t.name)).length;
             if (selectedInConf >= confTarget) {
               toast({
@@ -340,10 +345,8 @@ export default function TeamSelectionPage() {
                     <div className="flex items-center gap-2">
                       {(() => {
                         const confIdx = data.conferenceTeamPools.findIndex(p => p.conference.id === conference.id);
-                        const confCount = data.conferences.length;
-                        const base = Math.floor(data.league.maxTeams / confCount);
-                        const extras = data.league.maxTeams % confCount;
-                        const target = base + (confIdx < extras ? 1 : 0);
+                        const targets = getConferenceTargets(data.league.maxTeams, data.conferences.length);
+                        const target = targets[confIdx];
                         return (
                           <span className="text-[10px] text-muted-foreground font-pixel">
                             target {target}

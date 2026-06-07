@@ -1179,12 +1179,14 @@ export async function registerRoutes(
       // Enforce exact per-conference targets based on conference creation order:
       // first extras conferences get floor(N/C)+1 teams,
       // remaining get floor(N/C) — so SEC (index 0) gets the extra slot
-      const basePerConf = Math.floor(league.maxTeams / actualConfCount);
-      const extrasAllowed = league.maxTeams % actualConfCount;
-      const confTargetMap = new Map(conferences.map((c, i) => [
-        c.id,
-        basePerConf + (i < extrasAllowed ? 1 : 0),
-      ]));
+      const confTargets = (league.maxTeams === 14 && actualConfCount === 3)
+        ? [6, 4, 4]
+        : (() => {
+            const base = Math.floor(league.maxTeams / actualConfCount);
+            const extras = league.maxTeams % actualConfCount;
+            return conferences.map((_, i) => base + (i < extras ? 1 : 0));
+          })();
+      const confTargetMap = new Map(conferences.map((c, i) => [c.id, confTargets[i]]));
       for (const sel of selectedTeams) {
         const target = confTargetMap.get(sel.conferenceId);
         if (target === undefined) {
