@@ -1248,7 +1248,7 @@ const EVENT_FILTERS = [
   { key: "GAME_RESULT,RIVALRY_RESULT", label: "Games" },
   { key: "TRANSFER,DRAFT,ROSTER_CUT,WALKON", label: "Roster" },
   { key: "AWARD,PHASE_CHANGE", label: "League" },
-  { key: "STORYLINE", label: "Storylines" },
+  { key: "STORYLINE,STORYLINE_ABILITY", label: "Storylines" },
 ] as const;
 
 type FilterKey = (typeof EVENT_FILTERS)[number]["key"];
@@ -1264,6 +1264,7 @@ const eventTypeConfig: Record<string, { icon: React.ReactNode; color: string; la
   ROSTER_CUT: { icon: <FileX className="w-3 h-3" />, color: "text-red-400 bg-red-500/15 border-red-500/30", label: "Cut" },
   WALKON: { icon: <UserCheck className="w-3 h-3" />, color: "text-emerald-400 bg-emerald-500/15 border-emerald-500/30", label: "Walk-On" },
   STORYLINE: { icon: <Swords className="w-3 h-3" />, color: "text-amber-300 bg-amber-400/15 border-amber-400/30", label: "Storyline" },
+  STORYLINE_ABILITY: { icon: <Sparkles className="w-3 h-3" />, color: "text-yellow-400 bg-yellow-500/15 border-yellow-500/30", label: "Story Ability" },
 };
 
 function formatRelativeTime(date: string | Date): string {
@@ -1341,11 +1342,22 @@ function ActivityFeed({ leagueId }: { leagueId: string }) {
           </div>
         ) : (
           filteredEvents.map((event) => {
-            const cfg = eventTypeConfig[event.eventType] ?? {
+            let cfg = eventTypeConfig[event.eventType] ?? {
               icon: <Zap className="w-3 h-3" />,
               color: "text-muted-foreground bg-muted border-border",
               label: event.eventType,
             };
+            if (event.eventType === "STORYLINE_ABILITY") {
+              const desc = (event.description || "").toLowerCase();
+              const isLoss = desc.includes("lost") || desc.includes("removed");
+              cfg = {
+                icon: <Sparkles className="w-3 h-3" />,
+                color: isLoss
+                  ? "text-red-400 bg-red-500/15 border-red-500/30"
+                  : "text-yellow-400 bg-yellow-500/15 border-yellow-500/30",
+                label: "Story Ability",
+              };
+            }
             return (
               <div key={event.id} className="px-3 py-2.5 flex items-start gap-3 hover:bg-card/50 transition-colors" data-testid={`event-row-${event.id}`}>
                 <div className={`shrink-0 w-6 h-6 rounded-full border flex items-center justify-center ${cfg.color}`}>
