@@ -3427,30 +3427,43 @@ function RecruitRow({
                 </div>
               );
             })}
-            {/* Pitcher pitch mix chips — inside Attrs row after primary attrs */}
-            {isPitcherRecruit && (scoutPct > 0 || isFullyRevealed) && (() => {
-              const pitchFields = [
-                ["pitchFB", "FB"], ["pitch2S", "2S"], ["pitchSL", "SL"], ["pitchCB", "CB"],
-                ["pitchCH", "CH"], ["pitchCT", "CT"], ["pitchSNK", "SNK"], ["pitchSPL", "SPL"],
-                ["pitchSHU", "SHU"], ["pitchSWP", "SWP"], ["pitchKN", "KN"],
-              ] as const;
-              const active = pitchFields.filter(([k]) => {
-                const v = (recruit as any)[k];
-                return v != null && v > 0;
-              });
-              if (!active.length) return null;
-              return (
-                <>
-                  <div className="w-px h-3 bg-border/40 self-center" />
-                  {active.map(([k, label]) => (
-                    <span key={label} className="text-[8px] font-mono px-1 py-0.5 rounded bg-muted/40 border border-border/50 text-muted-foreground/70 leading-tight">
-                      {label}{(recruit as any)[k]}
-                    </span>
-                  ))}
-                </>
-              );
-            })()}
           </div>
+
+          {/* Row 1b — PITCH MIX (pitchers only) */}
+          {isPitcherRecruit && (() => {
+            const pitchFields = [
+              ["pitchFB", "FB"], ["pitch2S", "2S"], ["pitchSL", "SL"], ["pitchCB", "CB"],
+              ["pitchCH", "CH"], ["pitchCT", "CT"], ["pitchSNK", "SNK"], ["pitchSPL", "SPL"],
+              ["pitchSHU", "SHU"], ["pitchSWP", "SWP"], ["pitchKN", "KN"],
+              ["pitchVSL", "VSL"], ["pitchSFF", "SFF"], ["pitchFK", "FK"],
+              ["pitchSCB", "SCB"], ["pitchPCB", "PCB"],
+            ] as const;
+            const active = pitchFields.filter(([k]) => {
+              const v = (recruit as any)[k];
+              return v != null && v > 0;
+            });
+            if (!active.length) return null;
+            return (
+              <div className="flex items-center gap-1 flex-wrap">
+                <span className="font-pixel text-[7px] text-muted-foreground/50 uppercase w-14 shrink-0">PITCH MIX</span>
+                {scoutPct === 0 && !isFullyRevealed ? (
+                  active.map(([k], i) => (
+                    <span key={i} className="text-[9px] font-mono px-1 py-0.5 rounded bg-muted/40 border border-border/50 text-muted-foreground/50 leading-tight">●</span>
+                  ))
+                ) : scoutPct < 50 && !isFullyRevealed ? (
+                  active.map(([k, label]) => (
+                    <span key={label} className="text-[8px] font-mono px-1 py-0.5 rounded bg-muted/40 border border-border/50 text-muted-foreground/70 leading-tight">{label}</span>
+                  ))
+                ) : (
+                  active.map(([k, label]) => (
+                    <span key={label} className="text-[8px] font-mono px-1 py-0.5 rounded bg-muted/40 border border-border/50 text-muted-foreground/70 leading-tight">
+                      {label}·{(recruit as any)[k]}
+                    </span>
+                  ))
+                )}
+              </div>
+            );
+          })()}
 
           {/* Row 2 — COMMON abilities */}
           <div className="flex items-center gap-1 flex-wrap">
@@ -4105,6 +4118,42 @@ function RecruitDetailModal({
           {/* Compact letter-grade strip — mirrors board card badges */}
           {previewStripContent}
 
+          {/* Pitch mix row — mirrors board card (pitchers only) */}
+          {isPitcherRecruit && (() => {
+            const modalPitchFields = [
+              ["pitchFB", "FB"], ["pitch2S", "2S"], ["pitchSL", "SL"], ["pitchCB", "CB"],
+              ["pitchCH", "CH"], ["pitchCT", "CT"], ["pitchSNK", "SNK"], ["pitchSPL", "SPL"],
+              ["pitchSHU", "SHU"], ["pitchSWP", "SWP"], ["pitchKN", "KN"],
+              ["pitchVSL", "VSL"], ["pitchSFF", "SFF"], ["pitchFK", "FK"],
+              ["pitchSCB", "SCB"], ["pitchPCB", "PCB"],
+            ] as const;
+            const active = modalPitchFields.filter(([k]) => {
+              const v = (recruit as any)[k];
+              return v != null && v > 0;
+            });
+            if (!active.length) return null;
+            return (
+              <div className="flex items-center gap-1 flex-wrap">
+                <span className="font-pixel text-[7px] text-muted-foreground/50 uppercase w-14 shrink-0">PITCH MIX</span>
+                {scoutPct === 0 && !isFullyRevealed ? (
+                  active.map(([k], i) => (
+                    <span key={i} className="text-[9px] font-mono px-1 py-0.5 rounded bg-muted/40 border border-border/50 text-muted-foreground/50 leading-tight">●</span>
+                  ))
+                ) : scoutPct < 50 && !isFullyRevealed ? (
+                  active.map(([k, label]) => (
+                    <span key={label} className="text-[8px] font-mono px-1 py-0.5 rounded bg-muted/40 border border-border/50 text-muted-foreground/70 leading-tight">{label}</span>
+                  ))
+                ) : (
+                  active.map(([k, label]) => (
+                    <span key={label} className="text-[8px] font-mono px-1 py-0.5 rounded bg-muted/40 border border-border/50 text-muted-foreground/70 leading-tight">
+                      {label}·{(recruit as any)[k]}
+                    </span>
+                  ))
+                )}
+              </div>
+            );
+          })()}
+
           {recruit.position === "P" ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
@@ -4674,6 +4723,42 @@ function RecruitDetailModal({
 
           {/* Compact letter-grade strip — mirrors board card badges */}
           {previewStripContent}
+
+          {/* Pitch mix row — mirrors board card (pitchers only) */}
+          {isPitcherRecruit && (() => {
+            const modalPitchFields = [
+              ["pitchFB", "FB"], ["pitch2S", "2S"], ["pitchSL", "SL"], ["pitchCB", "CB"],
+              ["pitchCH", "CH"], ["pitchCT", "CT"], ["pitchSNK", "SNK"], ["pitchSPL", "SPL"],
+              ["pitchSHU", "SHU"], ["pitchSWP", "SWP"], ["pitchKN", "KN"],
+              ["pitchVSL", "VSL"], ["pitchSFF", "SFF"], ["pitchFK", "FK"],
+              ["pitchSCB", "SCB"], ["pitchPCB", "PCB"],
+            ] as const;
+            const active = modalPitchFields.filter(([k]) => {
+              const v = (recruit as any)[k];
+              return v != null && v > 0;
+            });
+            if (!active.length) return null;
+            return (
+              <div className="flex items-center gap-1 flex-wrap">
+                <span className="font-pixel text-[7px] text-muted-foreground/50 uppercase w-14 shrink-0">PITCH MIX</span>
+                {scoutPct === 0 && !isFullyRevealed ? (
+                  active.map(([k], i) => (
+                    <span key={i} className="text-[9px] font-mono px-1 py-0.5 rounded bg-muted/40 border border-border/50 text-muted-foreground/50 leading-tight">●</span>
+                  ))
+                ) : scoutPct < 50 && !isFullyRevealed ? (
+                  active.map(([k, label]) => (
+                    <span key={label} className="text-[8px] font-mono px-1 py-0.5 rounded bg-muted/40 border border-border/50 text-muted-foreground/70 leading-tight">{label}</span>
+                  ))
+                ) : (
+                  active.map(([k, label]) => (
+                    <span key={label} className="text-[8px] font-mono px-1 py-0.5 rounded bg-muted/40 border border-border/50 text-muted-foreground/70 leading-tight">
+                      {label}·{(recruit as any)[k]}
+                    </span>
+                  ))
+                )}
+              </div>
+            );
+          })()}
 
           {recruit.position === "P" ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
