@@ -3388,23 +3388,29 @@ function RecruitRow({
             </div>
           )}
 
-          {/* Trajectory row — hitters only, visible after 50% scouted */}
-          {!isPitcherRecruit && scoutPct >= TRAJECTORY_REVEAL_THRESHOLD && recruit.trajectory != null && (
+          {/* Trajectory row — hitters only; always shown, revealed after 50% scouted */}
+          {!isPitcherRecruit && (
             <div className="flex items-center gap-1" data-testid={`traj-row-${recruit.id}`}>
               <span className="font-pixel text-[7px] text-muted-foreground/50 uppercase w-14 shrink-0">TRAJ</span>
-              <TrajectoryIcon trajectory={recruit.trajectory as 1|2|3|4} iconSize="w-2.5 h-2.5" textSize="text-[9px]" />
-              <span className={`text-[9px] font-mono ${
-                recruit.trajectory === 1 ? "text-emerald-400" :
-                recruit.trajectory === 3 ? "text-amber-400" :
-                recruit.trajectory === 4 ? "text-red-400" :
-                "text-slate-400"
-              }`}>{TRAJECTORY_FULL_LABELS[recruit.trajectory] ?? ""}</span>
+              {scoutPct >= TRAJECTORY_REVEAL_THRESHOLD && recruit.trajectory != null ? (
+                <>
+                  <TrajectoryIcon trajectory={recruit.trajectory as 1|2|3|4} iconSize="w-2.5 h-2.5" textSize="text-[9px]" />
+                  <span className={`text-[9px] font-mono ${
+                    recruit.trajectory === 1 ? "text-emerald-400" :
+                    recruit.trajectory === 3 ? "text-amber-400" :
+                    recruit.trajectory === 4 ? "text-red-400" :
+                    "text-slate-400"
+                  }`}>{TRAJECTORY_FULL_LABELS[recruit.trajectory] ?? ""}</span>
+                </>
+              ) : (
+                <span className="font-pixel text-[9px] font-bold" style={{ color: "#374151" }}>?</span>
+              )}
             </div>
           )}
 
           {/* Row 1 — ATTRIBUTES */}
           <div className="flex items-center gap-1 flex-wrap">
-            <span className="font-pixel text-[7px] text-muted-foreground/50 uppercase w-14 shrink-0">ATTRIBUTES</span>
+            <span className="font-pixel text-[7px] text-muted-foreground/50 uppercase w-20 shrink-0">ATTRIBUTES</span>
             {primaryAttrFields.map(({ label, key, val }) => {
               const revealed = isAttrRevealed(key);
               const grade = (revealed && val != null) ? getLetterGrade(val) : null;
