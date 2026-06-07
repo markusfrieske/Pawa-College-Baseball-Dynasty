@@ -96,8 +96,8 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       // CATCHERS (2)
       // Ryder Helfrick — JR C, .283/.562SLG/18HR — power raised (hitForAvg split to avoid uniformity flag)
       { firstName: "Ryder", lastName: "Helfrick", position: "C", eligibility: "JR", homeState: "CA", hometown: "Discovery Bay", jerseyNumber: 27,
-        hitForAvg: 71, power: 74, speed: 55, arm: 63, fielding: 53, errorResistance: 43, velocity: 0, control: 0, stamina: 0, stuff: 0,
-        clutch: 65, vsLHP: 58, grit: 52, stealing: 51, running: 51, throwing: 59, recovery: 50, wRISP: 76, vsLefty: 70, poise: 76, heater: 0, agile: 38,
+        hitForAvg: 65, power: 63, speed: 55, arm: 63, fielding: 53, errorResistance: 43, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        clutch: 48, vsLHP: 58, grit: 52, stealing: 51, running: 51, throwing: 59, recovery: 50, wRISP: 48, vsLefty: 48, poise: 48, heater: 0, agile: 38,
         abilities: ["Insurer", "vs. Breaking Pitches", "Power Hitter", "Consigliere"], potential: "A+", catcherAbility: 64,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
@@ -113,8 +113,8 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
       // INFIELDERS (6)
       // Camden Kozeal — 2B JR, .318/.653SLG/20HR — power raised
       { firstName: "Camden", lastName: "Kozeal", position: "2B", eligibility: "JR", homeState: "NE", hometown: "Omaha", jerseyNumber: 8,
-        hitForAvg: 72, power: 78, speed: 66, arm: 49, fielding: 55, errorResistance: 45, velocity: 0, control: 0, stamina: 0, stuff: 0,
-        clutch: 80, vsLHP: 76, grit: 68, stealing: 51, running: 51, throwing: 60, recovery: 46, wRISP: 80, vsLefty: 76, poise: 80, heater: 0, agile: 52,
+        hitForAvg: 72, power: 78, speed: 66, arm: 49, fielding: 43, errorResistance: 38, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        clutch: 46, vsLHP: 46, grit: 46, stealing: 51, running: 51, throwing: 60, recovery: 46, wRISP: 46, vsLefty: 46, poise: 46, heater: 0, agile: 52,
         abilities: ["Storming Home", "High Speed Charge", "Power Hitter", "Consigliere"], potential: "A+", catcherAbility: null,
         throwHand: "R", batHand: "L",
         skinTone: "light", hairColor: "brown", hairStyle: "short",

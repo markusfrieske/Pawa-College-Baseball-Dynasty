@@ -422,8 +422,8 @@ export const BIG_TEN_BATCH3_ROSTERS: Record<string, RealPlayer[]> = {
     // INFIELDERS (7)
     // Kevin Takeuchi — 2B JR, .311/9 HR/60 RBI/65 R/14 SB — jersey #8, San Diego CA
     { firstName: "Kevin", lastName: "Takeuchi", position: "2B", eligibility: "JR", homeState: "CA", hometown: "San Diego", jerseyNumber: 8,
-      hitForAvg: 71, power: 61, speed: 65, arm: 64, fielding: 63, errorResistance: 59, velocity: 0, control: 0, stamina: 0, stuff: 0,
-      clutch: 80, vsLHP: 74, grit: 66, stealing: 62, running: 64, throwing: 66, recovery: 46, wRISP: 80, vsLefty: 74, poise: 80, heater: 0, agile: 60,
+      hitForAvg: 71, power: 61, speed: 65, arm: 64, fielding: 52, errorResistance: 59, velocity: 0, control: 0, stamina: 0, stuff: 0,
+      clutch: 48, vsLHP: 48, grit: 66, stealing: 62, running: 64, throwing: 66, recovery: 46, wRISP: 48, vsLefty: 48, poise: 48, heater: 0, agile: 60,
       abilities: ["Insurer", "Chance Maker"], potential: "A+", catcherAbility: null,
       throwHand: "R", batHand: "R",
       skinTone: "tan", hairColor: "black", hairStyle: "short",
