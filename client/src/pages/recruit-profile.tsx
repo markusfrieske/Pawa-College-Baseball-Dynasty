@@ -419,6 +419,10 @@ export default function RecruitProfilePage() {
   };
 
   const stage = stageBadges[recruit.stage] || stageBadges.open;
+  const verbalSchoolCount = recruit.stage === "verbal" ? (topSchools?.length ?? 0) : 0;
+  const stageDisplay = recruit.stage === "verbal"
+    ? { label: `Deciding (${verbalSchoolCount} Schools)`, color: "bg-amber-500" }
+    : stage;
 
   const getOverallDisplay = (): string => {
     if (isFullyRevealed) return recruit.overall.toString();
@@ -565,7 +569,16 @@ export default function RecruitProfilePage() {
                 <Badge variant="outline">
                   {recruit.recruitType === "JUCO" ? `JUCO ${recruit.recruitYear || "FR"}` : recruit.recruitType}
                 </Badge>
-                <Badge className={`${stage.color} text-white`}>{stage.label}</Badge>
+                {recruit.stage === "verbal" ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge className={`${stageDisplay.color} text-white animate-pulse cursor-default`}>{stageDisplay.label}</Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>This recruit will commit on Decision Day — keep recruiting!</TooltipContent>
+                  </Tooltip>
+                ) : (
+                  <Badge className={`${stageDisplay.color} text-white`}>{stageDisplay.label}</Badge>
+                )}
               </div>
               {/* Row 2: discovery / archetype badges */}
               <div className="flex items-center gap-2 flex-wrap mt-1.5">

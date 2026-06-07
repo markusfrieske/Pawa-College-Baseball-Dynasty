@@ -2475,7 +2475,7 @@ function RecruitRow({
   const [showEmailPicker, setShowEmailPicker] = useState(false);
   const [selectedPhonePitches, setSelectedPhonePitches] = useState<string[]>([]);
   const [selectedEmailPitch, setSelectedEmailPitch] = useState<string | null>(null);
-  const [showTopSchools, setShowTopSchools] = useState(false);
+  const [showTopSchools, setShowTopSchools] = useState(recruit.stage === "verbal");
   const [showMobileMore, setShowMobileMore] = useState(false);
 
   const isOverNilBudget = nilRemaining != null && (recruit.nilCost || 0) > nilRemaining && !recruit.interest?.hasOffer;
@@ -2508,6 +2508,10 @@ function RecruitRow({
   };
 
   const stage = stageBadges[recruit.stage] || stageBadges.open;
+  const verbalSchoolCount = recruit.stage === "verbal" ? (recruit.topSchools?.length ?? 0) : 0;
+  const stageDisplay = recruit.stage === "verbal"
+    ? { label: `Deciding (${verbalSchoolCount} Schools)`, color: "bg-amber-500" }
+    : stage;
   const scoutPct = recruit.interest?.scoutPercentage || 0;
   // Blue chips always show full details; everyone else must wait for the signing-day reveal
   const isFullyRevealed = recruit.isBlueChip || !!recruit.signingDayRevealed;
@@ -2669,8 +2673,17 @@ function RecruitRow({
                 >
                   Signed: {recruit.signedTeamAbbreviation}
                 </Badge>
+              ) : recruit.stage === "verbal" ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge className={`${stageDisplay.color} text-white text-[8px] shrink-0 animate-pulse`}>
+                      {stageDisplay.label}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent>This recruit will commit on Decision Day — keep recruiting!</TooltipContent>
+                </Tooltip>
               ) : (
-                <Badge className={`${stage.color} text-white text-[8px] shrink-0`}>{stage.label}</Badge>
+                <Badge className={`${stageDisplay.color} text-white text-[8px] shrink-0`}>{stageDisplay.label}</Badge>
               )}
             </div>
             {/* Row 2: location, hand, stars + all secondary badges */}
@@ -2683,6 +2696,23 @@ function RecruitRow({
                 {recruit.throwHand}/{recruit.batHand === "S" ? "S" : recruit.batHand}
               </span>
               <StarRating rating={recruit.starRank} size="sm" />
+              {recruit.stage === "verbal" && recruit.topSchools && recruit.topSchools.length > 0 && (
+                <div className="flex items-center gap-1 shrink-0">
+                  {recruit.topSchools.slice(0, 5).map(school => (
+                    <Tooltip key={school.teamId}>
+                      <TooltipTrigger asChild>
+                        <span
+                          className="text-[8px] font-bold px-1 py-0.5 rounded border border-current/30 cursor-default"
+                          style={{ color: school.primaryColor || "#aaa" }}
+                        >
+                          {school.abbreviation}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>{school.teamName}</TooltipContent>
+                    </Tooltip>
+                  ))}
+                </div>
+              )}
               {!isPitcherRecruit && scoutPct >= TRAJECTORY_REVEAL_THRESHOLD && recruit.trajectory != null && (
                 <span className={`flex items-center gap-0.5 px-1 py-0.5 rounded border ${
                   recruit.trajectory === 1 ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-400" :
