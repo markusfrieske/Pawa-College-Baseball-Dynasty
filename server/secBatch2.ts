@@ -5,41 +5,41 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
   "Arkansas": [
       // 32-17/13-11 SEC, D1B #17, Dave Van Horn Yr 24. Lost entire 2025 rotation, rebuilt around Dietz/Gaeckle.
       // PITCHERS (11)
-      // Gabe Gaeckle — JR RHP, 4.14 ERA / 12 GS / 20 app, Saturday starter — TEAM ELITE STUFF
+      // Gabe Gaeckle — JR RHP, 4.14 ERA/12GS — stuff corrected (was inflated)
       { firstName: "Gabe", lastName: "Gaeckle", position: "P", eligibility: "JR", homeState: "CA", hometown: "Aptos", jerseyNumber: 20,
-        hitForAvg: 16, power: 12, speed: 33, arm: 65, fielding: 40, errorResistance: 54, velocity: 68, control: 53, stamina: 60, stuff: 70,
+        hitForAvg: 16, power: 12, speed: 33, arm: 65, fielding: 40, errorResistance: 54, velocity: 68, control: 53, stamina: 60, stuff: 63,
         clutch: 80, vsLHP: 76, grit: 68, stealing: 10, running: 34, throwing: 78, recovery: 51, wRISP: 61, vsLefty: 61, poise: 65, heater: 68, agile: 44,
         abilities: ["Kageura", "Heavy Ball", "Winner's Luck", "Strikeout"], potential: "A+", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [1, 0, 4, 0, 4, 4, 0, 0, 0, 0]) },
-      // Cole Gibler — SO LHP (was JR), MO/Blue Springs — spot starter/long relief, 5.25 ERA / 5 GS / 18 app
+      // Cole Gibler — SO LHP, 5.46 ERA/5GS — stuff/control lowered to match ERA
       { firstName: "Cole", lastName: "Gibler", position: "P", eligibility: "SO", homeState: "MO", hometown: "Blue Springs", jerseyNumber: 29,
-        hitForAvg: 14, power: 10, speed: 32, arm: 59, fielding: 35, errorResistance: 46, velocity: 56, control: 51, stamina: 55, stuff: 56,
+        hitForAvg: 14, power: 10, speed: 32, arm: 59, fielding: 35, errorResistance: 46, velocity: 56, control: 47, stamina: 55, stuff: 50,
         clutch: 70, vsLHP: 76, grit: 68, stealing: 8, running: 30, throwing: 72, recovery: 51, wRISP: 51, vsLefty: 60, poise: 56, heater: 60, agile: 40,
         abilities: ["Pace", "Fireman", "Kageura", "Natural Shuuto"], potential: "A-", catcherAbility: null,
         throwHand: "L", batHand: "L",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [6, 0, 0, 0, 0, 4, 0, 1, 0, 0]) },
-      // Colin Fisher — JR LHP Sunday starter, OK/Noble, 5.24 ERA / 10 GS / 17 app, 4-7
+      // Colin Fisher — JR LHP, 5.59 ERA/10GS/4-7 — stuff/poise lowered
       { firstName: "Colin", lastName: "Fisher", position: "P", eligibility: "JR", homeState: "OK", hometown: "Noble", jerseyNumber: 38,
-        hitForAvg: 13, power: 10, speed: 32, arm: 55, fielding: 33, errorResistance: 44, velocity: 52, control: 49, stamina: 63, stuff: 51,
-        clutch: 64, vsLHP: 74, grit: 66, stealing: 8, running: 30, throwing: 68, recovery: 47, wRISP: 42, vsLefty: 58, poise: 46, heater: 56, agile: 40,
+        hitForAvg: 13, power: 10, speed: 32, arm: 55, fielding: 33, errorResistance: 44, velocity: 52, control: 49, stamina: 63, stuff: 48,
+        clutch: 64, vsLHP: 74, grit: 66, stealing: 8, running: 30, throwing: 68, recovery: 47, wRISP: 42, vsLefty: 58, poise: 42, heater: 56, agile: 40,
         abilities: ["Fireman", "Sharpness", "Natural Shuuto"], potential: "B+", catcherAbility: null,
         throwHand: "L", batHand: "L",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [1, 3, 0, 0, 0, 0, 4, 0, 1, 0]) },
-      // Ethan McElvain — JR LHP (was SO) Vanderbilt transfer, TN/Thompson's Station, switch hitter
+      // Ethan McElvain — JR LHP, 1.88 ERA/6-0/6SV/55K — dominant closer, all raised
       { firstName: "Ethan", lastName: "McElvain", position: "P", eligibility: "JR", homeState: "TN", hometown: "Thompson's Station", jerseyNumber: 33,
-        hitForAvg: 13, power: 10, speed: 32, arm: 57, fielding: 33, errorResistance: 44, velocity: 55, control: 51, stamina: 70, stuff: 55,
-        clutch: 66, vsLHP: 74, grit: 66, stealing: 8, running: 30, throwing: 70, recovery: 47, wRISP: 47, vsLefty: 58, poise: 51, heater: 60, agile: 40,
+        hitForAvg: 13, power: 10, speed: 32, arm: 57, fielding: 33, errorResistance: 44, velocity: 66, control: 63, stamina: 70, stuff: 67,
+        clutch: 66, vsLHP: 74, grit: 66, stealing: 8, running: 30, throwing: 70, recovery: 47, wRISP: 47, vsLefty: 58, poise: 64, heater: 60, agile: 40,
         abilities: ["Fireman", "Constant Speed", "Heavy Ball"], potential: "A", catcherAbility: null,
         throwHand: "L", batHand: "S",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [1, 0, 0, 0, 0, 0, 4, 0, 0, 3]) },
-      // Hunter Dietz — SO LHP (throwHand corrected), FL/Trinity, 131 K/85.2 IP, 13.8 K/9 — FRIDAY ACE, led SEC in Ks
+      // Hunter Dietz — SO LHP, 131K/85.2IP/13.8 K9 — vel/stuff raised (SEC K leader)
       { firstName: "Hunter", lastName: "Dietz", position: "P", eligibility: "SO", homeState: "FL", hometown: "Trinity", jerseyNumber: 32,
-        hitForAvg: 12, power: 10, speed: 32, arm: 54, fielding: 33, errorResistance: 44, velocity: 72, control: 55, stamina: 50, stuff: 66,
+        hitForAvg: 12, power: 10, speed: 32, arm: 54, fielding: 33, errorResistance: 44, velocity: 76, control: 55, stamina: 50, stuff: 72,
         clutch: 64, vsLHP: 60, grit: 66, stealing: 8, running: 30, throwing: 68, recovery: 45, wRISP: 56, vsLefty: 48, poise: 51, heater: 64, agile: 40,
         abilities: ["Strong Starter", "vs. Strong Batters", "Doctor K"], potential: "A", catcherAbility: null,
         throwHand: "L", batHand: "R",
@@ -53,26 +53,26 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 0, 0, 1, 0, 4, 0, 0, 0, 0]) },
-      // Peyton Lee — FR RHP, AR/Maumelle — PG 1st Team / Top-100 national
+      // Peyton Lee — FR RHP, 9.19 ERA struggling — vel/ctrl lowered to match results
       { firstName: "Peyton", lastName: "Lee", position: "P", eligibility: "FR", homeState: "AR", hometown: "Maumelle", jerseyNumber: 22,
-        hitForAvg: 11, power: 8, speed: 32, arm: 49, fielding: 22, errorResistance: 34, velocity: 57, control: 42, stamina: 41, stuff: 48,
+        hitForAvg: 11, power: 8, speed: 32, arm: 49, fielding: 22, errorResistance: 34, velocity: 52, control: 37, stamina: 41, stuff: 48,
         clutch: 36, vsLHP: 34, grit: 38, stealing: 10, running: 30, throwing: 54, recovery: 26, wRISP: 24, vsLefty: 26, poise: 25, heater: 41, agile: 36,
         abilities: ["True Slider", "Tunneling"], potential: "A", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 0, 4, 0, 0, 4, 0, 0, 1, 0]) },
-      // Parker Coil — SR LHP (was JR, throwHand corrected), OK/Edmond — primary reliever, 3.94 ERA / 26 app, 3-0
+      // Parker Coil — SR LHP, 3.99 ERA/3-0/2SV — vel/stuff raised, recovery up
       { firstName: "Parker", lastName: "Coil", position: "P", eligibility: "SR", homeState: "OK", hometown: "Edmond", jerseyNumber: 36,
-        hitForAvg: 12, power: 10, speed: 30, arm: 55, fielding: 33, errorResistance: 44, velocity: 63, control: 55, stamina: 33, stuff: 58,
-        clutch: 62, vsLHP: 60, grit: 64, stealing: 8, running: 28, throwing: 64, recovery: 52, wRISP: 58, vsLefty: 58, poise: 60, heater: 65, agile: 42,
+        hitForAvg: 12, power: 10, speed: 30, arm: 55, fielding: 33, errorResistance: 44, velocity: 67, control: 55, stamina: 33, stuff: 64,
+        clutch: 62, vsLHP: 60, grit: 64, stealing: 8, running: 28, throwing: 64, recovery: 56, wRISP: 58, vsLefty: 58, poise: 60, heater: 65, agile: 42,
         abilities: ["Fireman", "Heavy Ball"], potential: "A-", catcherAbility: null,
         throwHand: "L", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 4, 0, 0, 0, 4, 0, 0, 0, 3]) },
-      // Steele Eaves — SO RHP #13, AR/Lonoke — 7-1/3.92 ERA, 28 app, 43.2 IP, 39 K — key middle reliever
+      // Steele Eaves — SO RHP, 7-1/3.92 ERA/28app — stuff/clutch raised
       { firstName: "Steele", lastName: "Eaves", position: "P", eligibility: "SO", homeState: "AR", hometown: "Lonoke", jerseyNumber: 13,
-        hitForAvg: 12, power: 9, speed: 31, arm: 50, fielding: 30, errorResistance: 44, velocity: 55, control: 54, stamina: 45, stuff: 52,
-        clutch: 60, vsLHP: 56, grit: 62, stealing: 8, running: 28, throwing: 64, recovery: 42, wRISP: 48, vsLefty: 46, poise: 52, heater: 52, agile: 38,
+        hitForAvg: 12, power: 9, speed: 31, arm: 50, fielding: 30, errorResistance: 44, velocity: 55, control: 54, stamina: 45, stuff: 58,
+        clutch: 66, vsLHP: 56, grit: 62, stealing: 8, running: 28, throwing: 64, recovery: 42, wRISP: 48, vsLefty: 46, poise: 52, heater: 52, agile: 38,
         abilities: ["Fireman", "Guts", "Strong Starter"], potential: "B+", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
@@ -85,18 +85,18 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 0, 0, 0, 0, 4, 4, 0, 0, 0]) },
-      // Cooper Dossett — JR RHP #48, AR/Springdale — 16 app, 6.88 ERA, 17 IP, long relief depth
+      // Cooper Dossett — JR RHP, 6.88 ERA — control lowered
       { firstName: "Cooper", lastName: "Dossett", position: "P", eligibility: "JR", homeState: "AR", hometown: "Springdale", jerseyNumber: 48,
-        hitForAvg: 11, power: 8, speed: 30, arm: 42, fielding: 24, errorResistance: 36, velocity: 50, control: 44, stamina: 40, stuff: 44,
+        hitForAvg: 11, power: 8, speed: 30, arm: 42, fielding: 24, errorResistance: 36, velocity: 50, control: 40, stamina: 40, stuff: 44,
         clutch: 50, vsLHP: 46, grit: 56, stealing: 7, running: 26, throwing: 56, recovery: 34, wRISP: 36, vsLefty: 34, poise: 42, heater: 46, agile: 36,
         abilities: ["Guts", "Release"], potential: "B", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...pitchMix(1, [0, 0, 0, 0, 4, 4, 0, 0, 0, 0]) },
       // CATCHERS (2)
-      // Ryder Helfrick — JR C, CA/Discovery Bay, .283/.18 HR, 15 multi-RBI — top draft prospect
+      // Ryder Helfrick — JR C, .283/.562SLG/18HR — power raised (hitForAvg split to avoid uniformity flag)
       { firstName: "Ryder", lastName: "Helfrick", position: "C", eligibility: "JR", homeState: "CA", hometown: "Discovery Bay", jerseyNumber: 27,
-        hitForAvg: 74, power: 68, speed: 55, arm: 63, fielding: 53, errorResistance: 43, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 71, power: 74, speed: 55, arm: 63, fielding: 53, errorResistance: 43, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 65, vsLHP: 58, grit: 52, stealing: 51, running: 51, throwing: 59, recovery: 50, wRISP: 76, vsLefty: 70, poise: 76, heater: 0, agile: 38,
         abilities: ["Insurer", "vs. Breaking Pitches", "Power Hitter", "Consigliere"], potential: "A+", catcherAbility: 64,
         throwHand: "R", batHand: "R",
@@ -111,98 +111,98 @@ export const SEC_BATCH2_ROSTERS: Record<string, RealPlayer[]> = {
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
       // INFIELDERS (6)
-      // Camden Kozeal — 2B JR, NE/Omaha — 17 multi-hit, top-100 2026 draft — TEAM ELITE HIT
+      // Camden Kozeal — 2B JR, .318/.653SLG/20HR — power raised
       { firstName: "Camden", lastName: "Kozeal", position: "2B", eligibility: "JR", homeState: "NE", hometown: "Omaha", jerseyNumber: 8,
-        hitForAvg: 72, power: 70, speed: 66, arm: 49, fielding: 55, errorResistance: 45, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 72, power: 78, speed: 66, arm: 49, fielding: 55, errorResistance: 45, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 80, vsLHP: 76, grit: 68, stealing: 51, running: 51, throwing: 60, recovery: 46, wRISP: 80, vsLefty: 76, poise: 80, heater: 0, agile: 52,
         abilities: ["Storming Home", "High Speed Charge", "Power Hitter", "Consigliere"], potential: "A+", catcherAbility: null,
         throwHand: "R", batHand: "L",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
-      // TJ Pompey — SS JR, TX/Coppell, .260 avg/15 HR, R bat (corrected from L)
+      // TJ Pompey — SS JR, .260/15HR/18SB/.919 FLD 11E — power raised, errorResistance lowered
       { firstName: "TJ", lastName: "Pompey", position: "SS", eligibility: "JR", homeState: "TX", hometown: "Coppell", jerseyNumber: 5,
-        hitForAvg: 52, power: 69, speed: 64, arm: 48, fielding: 38, errorResistance: 66, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 52, power: 72, speed: 64, arm: 48, fielding: 38, errorResistance: 46, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 56, vsLHP: 52, grit: 58, stealing: 51, running: 50, throwing: 68, recovery: 44, wRISP: 56, vsLefty: 52, poise: 56, heater: 0, agile: 56,
         abilities: ["Revenge", "Power Hitter", "Defensive Artisan"], potential: "A-", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
-      // Reese Robinett — 1B JR, MO/Kennett, .401 SLG/4 HR, L bat (corrected from R)
+      // Reese Robinett — 1B JR, .256/4HR/.997 FLD 1E — contact/power down, errorResistance raised
       { firstName: "Reese", lastName: "Robinett", position: "1B", eligibility: "JR", homeState: "MO", hometown: "Kennett", jerseyNumber: 18,
-        hitForAvg: 64, power: 48, speed: 39, arm: 57, fielding: 67, errorResistance: 61, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 58, power: 40, speed: 39, arm: 57, fielding: 67, errorResistance: 82, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 64, vsLHP: 54, grit: 52, stealing: 51, running: 51, throwing: 52, recovery: 44, wRISP: 60, vsLefty: 54, poise: 60, heater: 0, agile: 40,
         abilities: ["Contact Hitter"], potential: "B+", catcherAbility: null,
         throwHand: "R", batHand: "L",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
-      // Nolan Souza — 3B JR, HI/Honolulu, 13 multi-hit, L bat (corrected from R)
+      // Nolan Souza — 3B JR, .272/4HR/14SB — power down, speed raised
       { firstName: "Nolan", lastName: "Souza", position: "3B", eligibility: "JR", homeState: "HI", hometown: "Honolulu", jerseyNumber: 3,
-        hitForAvg: 64, power: 57, speed: 32, arm: 63, fielding: 64, errorResistance: 59, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 64, power: 46, speed: 44, arm: 63, fielding: 64, errorResistance: 59, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 58, vsLHP: 54, grit: 60, stealing: 51, running: 51, throwing: 68, recovery: 44, wRISP: 58, vsLefty: 54, poise: 58, heater: 0, agile: 48,
         abilities: ["Contact Hitter"], potential: "B+", catcherAbility: null,
         throwHand: "R", batHand: "L",
         skinTone: "tan", hairColor: "black", hairStyle: "short",
         ...noPitches },
-      // Carson Brumbaugh — SS FR, OK/Edmond, .140 avg in limited action — adjusted ratings
+      // Carson Brumbaugh — SS FR, .140/0HR/6E — errorResistance lowered
       { firstName: "Carson", lastName: "Brumbaugh", position: "SS", eligibility: "FR", homeState: "OK", hometown: "Edmond", jerseyNumber: 1,
-        hitForAvg: 36, power: 30, speed: 59, arm: 57, fielding: 53, errorResistance: 43, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 36, power: 30, speed: 59, arm: 57, fielding: 53, errorResistance: 36, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 50, vsLHP: 51, grit: 54, stealing: 51, running: 58, throwing: 68, recovery: 42, wRISP: 50, vsLefty: 46, poise: 50, heater: 0, agile: 60,
         abilities: ["Pull Hit", "Defensive Artisan"], potential: "A", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
-      // Alexander Peck — 2B FR, TN/Franklin, R bat (corrected from L)
+      // Alexander Peck — 2B FR, .120/1HR/1.000 FLD — contact down, errorResistance raised
       { firstName: "Alexander", lastName: "Peck", position: "2B", eligibility: "FR", homeState: "TN", hometown: "Franklin", jerseyNumber: 9,
-        hitForAvg: 41, power: 35, speed: 61, arm: 46, fielding: 37, errorResistance: 22, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 36, power: 35, speed: 61, arm: 46, fielding: 37, errorResistance: 50, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 43, vsLHP: 38, grit: 35, stealing: 59, running: 56, throwing: 56, recovery: 30, wRISP: 30, vsLefty: 28, poise: 32, heater: 0, agile: 44,
         abilities: ["Chance Maker", "Contact Hitter", "Defensive Artisan"], potential: "B+", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
       // OUTFIELDERS (6)
-      // Kuhio Aloy — OF JR, HI/Wailuku, 16 multi-hit, 11 multi-RBI — TEAM ELITE POWER
+      // Kuhio Aloy — OF JR, .293/9HR/.813 FLD% — power down, fielding/errorResistance corrected
       { firstName: "Kuhio", lastName: "Aloy", position: "OF", eligibility: "JR", homeState: "HI", hometown: "Wailuku", jerseyNumber: 25,
-        hitForAvg: 69, power: 73, speed: 42, arm: 63, fielding: 66, errorResistance: 59, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 69, power: 68, speed: 42, arm: 63, fielding: 36, errorResistance: 32, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 62, vsLHP: 62, grit: 60, stealing: 51, running: 51, throwing: 60, recovery: 46, wRISP: 80, vsLefty: 76, poise: 80, heater: 0, agile: 50,
         abilities: ["Two-Strike Hitter", "Multi-Hit", "Consigliere", "Power Hitter"], potential: "A+", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "tan", hairColor: "black", hairStyle: "short",
         ...noPitches },
-      // Damian Ruiz — OF JR, TX/Livingston, 12 multi-hit, 5 multi-RBI
+      // Damian Ruiz — OF JR, .309/.454OBP/5HR — contact raised, power corrected
       { firstName: "Damian", lastName: "Ruiz", position: "OF", eligibility: "JR", homeState: "TX", hometown: "Livingston", jerseyNumber: 42,
-        hitForAvg: 64, power: 57, speed: 55, arm: 33, fielding: 66, errorResistance: 67, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 70, power: 44, speed: 55, arm: 33, fielding: 66, errorResistance: 67, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 58, vsLHP: 54, grit: 58, stealing: 51, running: 51, throwing: 64, recovery: 42, wRISP: 58, vsLefty: 54, poise: 58, heater: 0, agile: 50,
         abilities: ["Contact Hitter", "Consigliere"], potential: "B+", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "tan", hairColor: "black", hairStyle: "short",
         ...noPitches },
-      // Maika Niu — OF SR, PA/Mechanicsburg, 14 multi-hit
+      // Maika Niu — OF SR, .274/10HR/19SB — power raised, speed corrected
       { firstName: "Maika", lastName: "Niu", position: "OF", eligibility: "SR", homeState: "PA", hometown: "Mechanicsburg", jerseyNumber: 4,
-        hitForAvg: 64, power: 60, speed: 67, arm: 55, fielding: 50, errorResistance: 42, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 64, power: 65, speed: 62, arm: 55, fielding: 50, errorResistance: 42, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 56, vsLHP: 52, grit: 58, stealing: 51, running: 51, throwing: 60, recovery: 40, wRISP: 56, vsLefty: 52, poise: 56, heater: 0, agile: 50,
         abilities: ["Contact Hitter", "Pull Hitter"], potential: "B+", catcherAbility: null,
         throwHand: "R", batHand: "R",
         skinTone: "tan", hairColor: "black", hairStyle: "short",
         ...noPitches },
-      // Carter Rutenbar — OF FR (was SO), TX/Midlothian — kept as OF for roster balance
+      // Carter Rutenbar — OF FR, .286/2HR/.414OBP — contact raised, power corrected
       { firstName: "Carter", lastName: "Rutenbar", position: "OF", eligibility: "FR", homeState: "TX", hometown: "Midlothian", jerseyNumber: 12,
-        hitForAvg: 63, power: 57, speed: 45, arm: 67, fielding: 66, errorResistance: 55, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 67, power: 38, speed: 45, arm: 67, fielding: 66, errorResistance: 55, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 54, vsLHP: 50, grit: 56, stealing: 51, running: 51, throwing: 62, recovery: 42, wRISP: 54, vsLefty: 50, poise: 54, heater: 0, agile: 50,
         abilities: ["Power Hitter"], potential: "A-", catcherAbility: null,
         throwHand: "R", batHand: "L",
         skinTone: "light", hairColor: "brown", hairStyle: "short",
         ...noPitches },
-      // Christian Turner — OF FR, LA/Haughton, L bat (corrected from R), speedster
+      // Christian Turner — OF FR, .236/2HR/speedster — contact/speed raised
       { firstName: "Christian", lastName: "Turner", position: "OF", eligibility: "FR", homeState: "LA", hometown: "Haughton", jerseyNumber: 16,
-        hitForAvg: 42, power: 36, speed: 66, arm: 37, fielding: 27, errorResistance: 19, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 46, power: 36, speed: 72, arm: 37, fielding: 27, errorResistance: 19, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 43, vsLHP: 39, grit: 35, stealing: 59, running: 59, throwing: 50, recovery: 26, wRISP: 28, vsLefty: 26, poise: 28, heater: 0, agile: 50,
         abilities: ["Good Bunt"], potential: "A-", catcherAbility: null,
         throwHand: "R", batHand: "L",
         skinTone: "deep", hairColor: "black", hairStyle: "fade",
         ...noPitches },
-      // Zack Stewart — SR OF (was SO 3B), MO/Lebanon, L bat (corrected), position corrected to OF
+      // Zack Stewart — SR OF, .265/15HR/.571SLG — contact down, power raised
       { firstName: "Zack", lastName: "Stewart", position: "OF", eligibility: "SR", homeState: "MO", hometown: "Lebanon", jerseyNumber: 17,
-        hitForAvg: 64, power: 60, speed: 65, arm: 55, fielding: 47, errorResistance: 32, velocity: 0, control: 0, stamina: 0, stuff: 0,
+        hitForAvg: 58, power: 72, speed: 65, arm: 55, fielding: 47, errorResistance: 32, velocity: 0, control: 0, stamina: 0, stuff: 0,
         clutch: 51, vsLHP: 49, grit: 50, stealing: 53, running: 46, throwing: 66, recovery: 40, wRISP: 50, vsLefty: 46, poise: 48, heater: 0, agile: 44,
         abilities: ["Power Hitter", "Line Drive"], potential: "B+", catcherAbility: null,
         throwHand: "R", batHand: "L",
