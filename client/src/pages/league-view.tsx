@@ -2983,7 +2983,7 @@ function PhaseGuidanceBanner({ phase, leagueId }: { phase: string; leagueId: str
       case "offseason_recruiting_4":
         return { text: "Recruiting is open. Scout, contact, and offer scholarships to build your next class.", action: { label: "Recruiting", href: `/league/${leagueId}/recruiting` } };
       case "offseason_signing_day":
-        return { text: "Decision Day is here. Finalize your recruiting class from the Commissioner page.", action: { label: "Commissioner", href: `/league/${leagueId}/commissioner` } };
+        return { text: "Decision Day is here. See where the final few recruits go by readying up.", action: { label: "Commissioner", href: `/league/${leagueId}/commissioner` } };
       case "offseason_walkons":
         return { text: "Time to finalize your roster. Cut players to get to 25 and sign walk-ons to fill gaps.", action: { label: "Walk-Ons", href: `/league/${leagueId}/walkons` } };
       default:
